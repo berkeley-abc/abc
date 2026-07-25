@@ -92,9 +92,9 @@ void Wln_End( Abc_Frame_t * pAbc )
 ******************************************************************************/
 int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Abc_Ntk_t * Wln_ReadMappedSystemVerilog( char ** ppFileNames, int nFileNames, char * pTopModule, char * pDefines, char * pLibrary, int fVerbose );
-    extern Gia_Man_t * Wln_BlastSystemVerilog( char ** ppFileNames, int nFileNames, char * pTopModule, char * pDefines, int fSkipStrash, int fInvert, int fTechMap, int fLibInDir, int fSetUndef, int fVerbose );
-    extern Rtl_Lib_t * Wln_ReadSystemVerilog( char ** ppFileNames, int nFileNames, char * pTopModule, char * pDefines, int fCollapse, int fVerbose );
+    extern Abc_Ntk_t * Wln_ReadMappedSystemVerilog( char ** ppFileNames, int nFileNames, char * pTopModule, Vec_Ptr_t * vDefines, char * pLibrary, int fVerbose );
+    extern Gia_Man_t * Wln_BlastSystemVerilog( char ** ppFileNames, int nFileNames, char * pTopModule, Vec_Ptr_t * vDefines, Vec_Ptr_t * vBoxes, Vec_Ptr_t * vInsts, int fSkipStrash, int fInvert, int fTechMap, int fLibInDir, int fSetUndef, int fVerbose );
+    extern Rtl_Lib_t * Wln_ReadSystemVerilog( char ** ppFileNames, int nFileNames, char * pTopModule, Vec_Ptr_t * vDefines, int fCollapse, int fVerbose );
 
     FILE * pFile;
     char * pFileName = NULL;
@@ -103,7 +103,9 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nFileNames = 0;
     int fFileNamesAlloc = 0;
     char * pTopModule= NULL;
-    char * pDefines  = NULL;
+    Vec_Ptr_t * vDefines = Vec_PtrAlloc( 0 );
+    Vec_Ptr_t * vBoxes   = Vec_PtrAlloc( 0 );
+    Vec_Ptr_t * vInsts   = Vec_PtrAlloc( 0 );
     char * pLibrary  = NULL;
     int fBlast       =    0;
     int fDontBlast   =    0;
@@ -115,7 +117,7 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fSetUndef    =    0;
     int c, fVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "TMDLFbdisumlcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "TMDIBLFbdisumlcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -140,10 +142,28 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'D':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-D\" should be followed by a file name.\n" );
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by defines.\n" );
                 goto usage;
             }
-            pDefines = argv[globalUtilOptind];
+            Vec_PtrPush( vDefines, argv[globalUtilOptind] );
+            globalUtilOptind++;
+            break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by a module pattern.\n" );
+                goto usage;
+            }
+            Vec_PtrPush( vBoxes, argv[globalUtilOptind] );
+            globalUtilOptind++;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an instance pattern.\n" );
+                goto usage;
+            }
+            Vec_PtrPush( vInsts, argv[globalUtilOptind] );
             globalUtilOptind++;
             break;
         case 'L':
@@ -201,6 +221,9 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( nFileNames < 1 )
     {
         printf( "Abc_CommandReadWlc(): Input file name(s) should be given on the command line.\n" );
+        Vec_PtrFree( vDefines );
+        Vec_PtrFree( vBoxes );
+        Vec_PtrFree( vInsts );
         return 0;
     }
     ppFileNames = pFileName2 ? ABC_ALLOC( char *, nFileNames + 1 ) : argv + globalUtilOptind;
@@ -223,6 +246,9 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( 1, "\n" );
             if ( fFileNamesAlloc )
                 ABC_FREE( ppFileNames );
+            Vec_PtrFree( vDefines );
+            Vec_PtrFree( vBoxes );
+            Vec_PtrFree( vInsts );
             return 0;
         }
         fclose( pFile );
@@ -238,8 +264,21 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( 1, "Multiple input files are supported only for Verilog/SystemVerilog files.\n" );
             if ( fFileNamesAlloc )
                 ABC_FREE( ppFileNames );
+            Vec_PtrFree( vDefines );
+            Vec_PtrFree( vBoxes );
+            Vec_PtrFree( vInsts );
             return 0;
         }
+    }
+    if ( (Vec_PtrSize(vBoxes) > 0 || Vec_PtrSize(vInsts) > 0) && (pLibrary || fDontBlast) )
+    {
+        Abc_Print( -1, "Command line switches \"-B\" and \"-I\" are only supported when bit-blasting into an AIG.\n" );
+        if ( fFileNamesAlloc )
+            ABC_FREE( ppFileNames );
+        Vec_PtrFree( vDefines );
+        Vec_PtrFree( vBoxes );
+        Vec_PtrFree( vInsts );
+        return 1;
     }
 
     // perform reading
@@ -247,14 +286,17 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Ntk_t * pNtk = NULL;
         if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
-            pNtk = Wln_ReadMappedSystemVerilog( ppFileNames, nFileNames, pTopModule, pDefines, pLibrary, fVerbose );
+            pNtk = Wln_ReadMappedSystemVerilog( ppFileNames, nFileNames, pTopModule, vDefines, pLibrary, fVerbose );
         else if ( !strcmp( Extra_FileNameExtension(pFileName), "sv" )  )
-            pNtk = Wln_ReadMappedSystemVerilog( ppFileNames, nFileNames, pTopModule, pDefines, pLibrary, fVerbose );
+            pNtk = Wln_ReadMappedSystemVerilog( ppFileNames, nFileNames, pTopModule, vDefines, pLibrary, fVerbose );
         else
         {
             printf( "Abc_CommandYosys(): Unknown file extension.\n" );
             if ( fFileNamesAlloc )
                 ABC_FREE( ppFileNames );
+            Vec_PtrFree( vDefines );
+            Vec_PtrFree( vBoxes );
+            Vec_PtrFree( vInsts );
             return 0;
         }
         Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
@@ -263,9 +305,9 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Gia_Man_t * pNew = NULL;
         if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
-            pNew = Wln_BlastSystemVerilog( ppFileNames, nFileNames, pTopModule, pDefines, fSkipStrash, fInvert, fTechMap, fLibInDir, fSetUndef, fVerbose );
+            pNew = Wln_BlastSystemVerilog( ppFileNames, nFileNames, pTopModule, vDefines, vBoxes, vInsts, fSkipStrash, fInvert, fTechMap, fLibInDir, fSetUndef, fVerbose );
         else if ( !strcmp( Extra_FileNameExtension(pFileName), "sv" )  )
-            pNew = Wln_BlastSystemVerilog( ppFileNames, nFileNames, pTopModule, pDefines, fSkipStrash, fInvert, fTechMap, fLibInDir, fSetUndef, fVerbose );
+            pNew = Wln_BlastSystemVerilog( ppFileNames, nFileNames, pTopModule, vDefines, vBoxes, vInsts, fSkipStrash, fInvert, fTechMap, fLibInDir, fSetUndef, fVerbose );
         else if ( !strcmp( Extra_FileNameExtension(pFileName), "rtlil" )  )
         {
             if ( nFileNames > 1 )
@@ -273,15 +315,21 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( 1, "Multiple input files are supported only for Verilog/SystemVerilog files.\n" );
                 if ( fFileNamesAlloc )
                     ABC_FREE( ppFileNames );
+                Vec_PtrFree( vDefines );
+                Vec_PtrFree( vBoxes );
+                Vec_PtrFree( vInsts );
                 return 0;
             }
-            pNew = Wln_BlastSystemVerilog( ppFileNames, nFileNames, pTopModule, pDefines, fSkipStrash, fInvert, fTechMap, fLibInDir, fSetUndef, fVerbose );
+            pNew = Wln_BlastSystemVerilog( ppFileNames, nFileNames, pTopModule, vDefines, vBoxes, vInsts, fSkipStrash, fInvert, fTechMap, fLibInDir, fSetUndef, fVerbose );
         }
         else
         {
             printf( "Abc_CommandYosys(): Unknown file extension.\n" );
             if ( fFileNamesAlloc )
                 ABC_FREE( ppFileNames );
+            Vec_PtrFree( vDefines );
+            Vec_PtrFree( vBoxes );
+            Vec_PtrFree( vInsts );
             return 0;
         }
         Abc_FrameUpdateGia( pAbc, pNew );
@@ -290,9 +338,9 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Rtl_Lib_t * pLib = NULL;
         if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
-            pLib = Wln_ReadSystemVerilog( ppFileNames, nFileNames, pTopModule, pDefines, fCollapse, fVerbose );
+            pLib = Wln_ReadSystemVerilog( ppFileNames, nFileNames, pTopModule, vDefines, fCollapse, fVerbose );
         else if ( !strcmp( Extra_FileNameExtension(pFileName), "sv" )  )
-            pLib = Wln_ReadSystemVerilog( ppFileNames, nFileNames, pTopModule, pDefines, fCollapse, fVerbose );
+            pLib = Wln_ReadSystemVerilog( ppFileNames, nFileNames, pTopModule, vDefines, fCollapse, fVerbose );
         else if ( !strcmp( Extra_FileNameExtension(pFileName), "rtlil" )  )
         {
             if ( nFileNames > 1 )
@@ -300,28 +348,39 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( 1, "Multiple input files are supported only for Verilog/SystemVerilog files.\n" );
                 if ( fFileNamesAlloc )
                     ABC_FREE( ppFileNames );
+                Vec_PtrFree( vDefines );
+                Vec_PtrFree( vBoxes );
+                Vec_PtrFree( vInsts );
                 return 0;
             }
-            pLib = Wln_ReadSystemVerilog( ppFileNames, nFileNames, pTopModule, pDefines, fCollapse, fVerbose );
+            pLib = Wln_ReadSystemVerilog( ppFileNames, nFileNames, pTopModule, vDefines, fCollapse, fVerbose );
         }
         else
         {
             printf( "Abc_CommandYosys(): Unknown file extension.\n" );
             if ( fFileNamesAlloc )
                 ABC_FREE( ppFileNames );
+            Vec_PtrFree( vDefines );
+            Vec_PtrFree( vBoxes );
+            Vec_PtrFree( vInsts );
             return 0;
         }
         Wln_AbcUpdateRtl( pAbc, pLib );
     }
     if ( fFileNamesAlloc )
         ABC_FREE( ppFileNames );
+    Vec_PtrFree( vDefines );
+    Vec_PtrFree( vBoxes );
+    Vec_PtrFree( vInsts );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%yosys [-TM <module>] [-D <defines>] [-L <liberty_file>] [-F <file>] [-bdisumlcvh] <file_name> [file_name...]\n" );
+    Abc_Print( -2, "usage: %%yosys [-TM <module>] [-D <defines>] [-B <module_pattern>] [-I <instance_pattern>] [-L <liberty_file>] [-F <file>] [-bdisumlcvh] <file_name> [file_name...]\n" );
     Abc_Print( -2, "\t         reads Verilog or SystemVerilog using Yosys\n" );
     Abc_Print( -2, "\t-T     : specify the top module name (default uses \"-auto-top\")\n" );
     Abc_Print( -2, "\t-M     : specify the top module name (default uses \"-auto-top\") (equivalent to \"-T\")\n" );
-    Abc_Print( -2, "\t-D     : specify defines to be used by Yosys (default \"not used\")\n" );
+    Abc_Print( -2, "\t-D     : specify possibly repeated defines to be used by Yosys (default \"not used\")\n" );
+    Abc_Print( -2, "\t-B     : specify possibly repeated module patterns to box in AIG output (default \"not used\")\n" );
+    Abc_Print( -2, "\t-I     : specify possibly repeated instance/cell patterns to box in AIG output (default \"not used\")\n" );
     Abc_Print( -2, "\t-L     : specify the Liberty library to read a mapped design (default \"not used\")\n" );
     Abc_Print( -2, "\t-F     : specify an additional Verilog/SystemVerilog file (default \"not used\")\n" );
     Abc_Print( -2, "\t-b     : toggle bit-blasting the design into an AIG using Yosys (this switch has no effect)\n" );
@@ -334,6 +393,9 @@ usage:
     Abc_Print( -2, "\t-u     : toggle replacing undefined/reset-X with zero using Yosys setundef [default = %s]\n", fSetUndef? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    Vec_PtrFree( vDefines );
+    Vec_PtrFree( vBoxes );
+    Vec_PtrFree( vInsts );
     return 1;
 }
 

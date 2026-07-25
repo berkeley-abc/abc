@@ -146,6 +146,63 @@ static int Wln_FileNamesHasSv( char ** ppFileNames, int nFileNames )
             return 1;
     return 0;
 }
+char * Wln_YosysBuildDefines( Vec_Ptr_t * vDefines )
+{
+    char * pDefine, * pDefines;
+    int i, nChars = 1;
+    if ( vDefines == NULL || Vec_PtrSize(vDefines) == 0 )
+        return NULL;
+    Vec_PtrForEachEntry( char *, vDefines, pDefine, i )
+        nChars += strlen(pDefine) + 4;
+    pDefines = ABC_ALLOC( char, nChars );
+    pDefines[0] = 0;
+    Vec_PtrForEachEntry( char *, vDefines, pDefine, i )
+    {
+        if ( i )
+            strcat( pDefines, " " );
+        strcat( pDefines, "-D" );
+        strcat( pDefines, pDefine );
+    }
+    return pDefines;
+}
+char * Wln_YosysBuildBoxCommands( Vec_Ptr_t * vBoxes, int fExpose )
+{
+    char * pBox, * pBoxes;
+    const char * pPrefix = fExpose ? "expose -evert t:" : "blackbox ";
+    int i, nChars = 1;
+    if ( vBoxes == NULL || Vec_PtrSize(vBoxes) == 0 )
+        return NULL;
+    Vec_PtrForEachEntry( char *, vBoxes, pBox, i )
+        nChars += strlen(pPrefix) + strlen(pBox) + 2;
+    pBoxes = ABC_ALLOC( char, nChars );
+    pBoxes[0] = 0;
+    Vec_PtrForEachEntry( char *, vBoxes, pBox, i )
+    {
+        strcat( pBoxes, pPrefix );
+        strcat( pBoxes, pBox );
+        strcat( pBoxes, "; " );
+    }
+    return pBoxes;
+}
+char * Wln_YosysBuildInstCommands( Vec_Ptr_t * vInsts )
+{
+    char * pInst, * pInsts;
+    const char * pPrefix = "expose -evert c:";
+    int i, nChars = 1;
+    if ( vInsts == NULL || Vec_PtrSize(vInsts) == 0 )
+        return NULL;
+    Vec_PtrForEachEntry( char *, vInsts, pInst, i )
+        nChars += strlen(pPrefix) + strlen(pInst) + 2;
+    pInsts = ABC_ALLOC( char, nChars );
+    pInsts[0] = 0;
+    Vec_PtrForEachEntry( char *, vInsts, pInst, i )
+    {
+        strcat( pInsts, pPrefix );
+        strcat( pInsts, pInst );
+        strcat( pInsts, "; " );
+    }
+    return pInsts;
+}
 int Wln_ConvertToRtl( char * pCommand, char * pFileTemp )
 {
 #if defined(__wasm)
@@ -166,21 +223,21 @@ int Wln_ConvertToRtl( char * pCommand, char * pFileTemp )
     return 1;
 #endif
 }
-Rtl_Lib_t * Wln_ReadSystemVerilog( char ** ppFileNames, int nFileNames, char * pTopModule, char * pDefines, int fCollapse, int fVerbose )
+Rtl_Lib_t * Wln_ReadSystemVerilog( char ** ppFileNames, int nFileNames, char * pTopModule, Vec_Ptr_t * vDefines, int fCollapse, int fVerbose )
 {
     Rtl_Lib_t * pNtk = NULL;
-    char * pFileNames, * pCommand;
+    char * pFileNames, * pCommand, * pDefines;
     char * pFileTemp = "_temp_.rtlil";
     int fSVlog = Wln_FileNamesHasSv(ppFileNames, nFileNames);
     int nCommand;
     if ( nFileNames == 1 && strstr(ppFileNames[0], ".rtl") )
         return Rtl_LibReadFile( ppFileNames[0], ppFileNames[0] );
     pFileNames = Wln_FileNamesJoin( ppFileNames, nFileNames );
+    pDefines = Wln_YosysBuildDefines( vDefines );
     nCommand = strlen(Wln_GetYosysName()) + strlen(pFileNames) + (pDefines ? strlen(pDefines) : 0) + (pTopModule ? strlen(pTopModule) : 0) + strlen(pFileTemp) + 200;
     pCommand = ABC_ALLOC( char, nCommand );
-    sprintf( pCommand, "%s -qp \"read_verilog %s%s %s%s; hierarchy %s%s; %sproc; memory -nomap; memory_map; write_rtlil %s\"",
+    sprintf( pCommand, "%s -qp \"read_verilog %s %s%s; hierarchy -check %s%s; %sproc; memory -nomap; memory_map; write_rtlil %s\"",
         Wln_GetYosysName(), 
-        pDefines   ? "-D"       : "",
         pDefines   ? pDefines   : "",
         fSVlog     ? "-sv "     : "",
         pFileNames,
@@ -193,10 +250,12 @@ Rtl_Lib_t * Wln_ReadSystemVerilog( char ** ppFileNames, int nFileNames, char * p
     if ( !Wln_ConvertToRtl(pCommand, pFileTemp) )
     {
         ABC_FREE( pCommand );
+        ABC_FREE( pDefines );
         ABC_FREE( pFileNames );
         return NULL;
     }
     ABC_FREE( pCommand );
+    ABC_FREE( pDefines );
     ABC_FREE( pFileNames );
     pNtk = Rtl_LibReadFile( pFileTemp, ppFileNames[0] );
     if ( pNtk == NULL )
@@ -208,10 +267,10 @@ Rtl_Lib_t * Wln_ReadSystemVerilog( char ** ppFileNames, int nFileNames, char * p
     unlink( pFileTemp );
     return pNtk;
 }
-Gia_Man_t * Wln_BlastSystemVerilog( char ** ppFileNames, int nFileNames, char * pTopModule, char * pDefines, int fSkipStrash, int fInvert, int fTechMap, int fLibInDir, int fSetUndef, int fVerbose )
+Gia_Man_t * Wln_BlastSystemVerilog( char ** ppFileNames, int nFileNames, char * pTopModule, Vec_Ptr_t * vDefines, Vec_Ptr_t * vBoxes, Vec_Ptr_t * vInsts, int fSkipStrash, int fInvert, int fTechMap, int fLibInDir, int fSetUndef, int fVerbose )
 {
     Gia_Man_t * pGia = NULL;
-    char * pFileNames, * pCommand;
+    char * pFileNames, * pCommand, * pDefines, * pBoxes, * pExposes, * pInsts;
     char * pFileTemp, * pFileBase;
     int fRtlil = nFileNames == 1 && strstr(ppFileNames[0], ".rtl") != NULL;
     int fSVlog = Wln_FileNamesHasSv(ppFileNames, nFileNames);
@@ -222,31 +281,62 @@ Gia_Man_t * Wln_BlastSystemVerilog( char ** ppFileNames, int nFileNames, char * 
     sprintf( pFileTemp, "%s.aig", pFileBase );
     ABC_FREE( pFileBase );
     pFileNames = Wln_FileNamesJoin( ppFileNames, nFileNames );
-    nCommand = strlen(Wln_GetYosysName()) + strlen(pFileNames) + (pDefines ? strlen(pDefines) : 0) + (pTopModule ? strlen(pTopModule) : 0) + strlen(pFileTemp) + 500;
+    pDefines = Wln_YosysBuildDefines( vDefines );
+    pBoxes = Wln_YosysBuildBoxCommands( vBoxes, 0 );
+    pExposes = Wln_YosysBuildBoxCommands( vBoxes, 1 );
+    pInsts = Wln_YosysBuildInstCommands( vInsts );
+    nCommand = strlen(Wln_GetYosysName()) + strlen(pFileNames) + (pDefines ? strlen(pDefines) : 0) + (pBoxes ? strlen(pBoxes) : 0) + (pExposes ? strlen(pExposes) : 0) + 2 * (pInsts ? strlen(pInsts) : 0) + 2 * (pTopModule ? strlen(pTopModule) : 0) + strlen(pFileTemp) + 700;
     pCommand = ABC_ALLOC( char, nCommand );
-    sprintf( pCommand, "%s -qp \"%s %s%s %s%s; hierarchy %s%s; flatten; proc; opt; async2sync; opt; setundef -undriven -zero; %s%smemory -nomap; memory_map; dffunmap; opt_clean; opt_expr; %saigmap; write_aiger -symbols %s\"",
-        Wln_GetYosysName(), 
-        fRtlil ? "read_rtlil"   : "read_verilog",
-        pDefines  ? "-D"        : "",
-        pDefines  ? pDefines    : "",
-        fSVlog    ? "-sv "      : "",
-        pFileNames,
-        pTopModule ? "-top "    : "-auto-top",
-        pTopModule ? pTopModule : "", 
-        fTechMap ? (fLibInDir ? "techmap -map techmap.v; " : "techmap; ") : "",
-        fSetUndef ? "setundef -init -zero; " : "",
-        nFileNames > 1 ? "delete t:\\$scopeinfo; " : "",
-        pFileTemp );
+    if ( pBoxes || pInsts )
+        sprintf( pCommand, "%s -qp \"%s %s %s%s; hierarchy -check %s%s; %s%shierarchy -check %s%s; proc; memory -nomap; %smemory_map; opt; async2sync; opt; setundef -undriven -expose; setundef -zero; %sdffunmap; %sopt; dffunmap; flatten; %s%sopt_clean; opt_expr; setundef -undriven -expose; setundef -zero; aigmap; write_aiger -symbols %s\"",
+            Wln_GetYosysName(),
+            fRtlil ? "read_rtlil"   : "read_verilog",
+            pDefines  ? pDefines    : "",
+            fSVlog    ? "-sv "      : "",
+            pFileNames,
+            pTopModule ? "-top "    : "-auto-top",
+            pTopModule ? pTopModule : "",
+            pBoxes ? pBoxes : "",
+            pInsts ? pInsts : "",
+            pTopModule ? "-top "    : "-auto-top",
+            pTopModule ? pTopModule : "",
+            pInsts ? pInsts : "",
+            fSetUndef ? "setundef -init -zero; " : "",
+            fTechMap ? (fLibInDir ? "techmap -map techmap.v; " : "techmap; ") : "",
+            pExposes ? pExposes : "",
+            nFileNames > 1 ? "delete t:\\$scopeinfo; " : "",
+            pFileTemp );
+    else
+        sprintf( pCommand, "%s -qp \"%s %s %s%s; hierarchy -check %s%s; flatten; proc; opt; async2sync; opt; setundef -undriven -zero; %s%smemory -nomap; memory_map; dffunmap; opt_clean; opt_expr; %saigmap; write_aiger -symbols %s\"",
+            Wln_GetYosysName(),
+            fRtlil ? "read_rtlil"   : "read_verilog",
+            pDefines  ? pDefines    : "",
+            fSVlog    ? "-sv "      : "",
+            pFileNames,
+            pTopModule ? "-top "    : "-auto-top",
+            pTopModule ? pTopModule : "",
+            fTechMap ? (fLibInDir ? "techmap -map techmap.v; " : "techmap; ") : "",
+            fSetUndef ? "setundef -init -zero; " : "",
+            nFileNames > 1 ? "delete t:\\$scopeinfo; " : "",
+            pFileTemp );
     if ( fVerbose )
         printf( "%s\n", pCommand );
     if ( !Wln_ConvertToRtl(pCommand, pFileTemp) )
     {
         ABC_FREE( pCommand );
+        ABC_FREE( pDefines );
+        ABC_FREE( pBoxes );
+        ABC_FREE( pExposes );
+        ABC_FREE( pInsts );
         ABC_FREE( pFileNames );
         ABC_FREE( pFileTemp );
         return NULL;
     }
     ABC_FREE( pCommand );
+    ABC_FREE( pDefines );
+    ABC_FREE( pBoxes );
+    ABC_FREE( pExposes );
+    ABC_FREE( pInsts );
     ABC_FREE( pFileNames );
     pGia = Gia_AigerRead( pFileTemp, 0, fSkipStrash, 0 );
     if ( pGia == NULL )
@@ -269,21 +359,21 @@ Gia_Man_t * Wln_BlastSystemVerilog( char ** ppFileNames, int nFileNames, char * 
     }
     return pGia;
 }
-Abc_Ntk_t * Wln_ReadMappedSystemVerilog( char ** ppFileNames, int nFileNames, char * pTopModule, char * pDefines, char * pLibrary, int fVerbose )
+Abc_Ntk_t * Wln_ReadMappedSystemVerilog( char ** ppFileNames, int nFileNames, char * pTopModule, Vec_Ptr_t * vDefines, char * pLibrary, int fVerbose )
 {
     Abc_Ntk_t * pNtk = NULL;
-    char * pFileNames, * pCommand;
+    char * pFileNames, * pCommand, * pDefines;
     char * pFileTemp = "_temp_.blif";
     int fSVlog = Wln_FileNamesHasSv(ppFileNames, nFileNames);
     int nCommand;
     pFileNames = Wln_FileNamesJoin( ppFileNames, nFileNames );
+    pDefines = Wln_YosysBuildDefines( vDefines );
     nCommand = strlen(Wln_GetYosysName()) + strlen(pLibrary) + strlen(pFileNames) + (pDefines ? strlen(pDefines) : 0) + 2 * (pTopModule ? strlen(pTopModule) : 0) + strlen(pFileTemp) + 300;
     pCommand = ABC_ALLOC( char, nCommand );
-    sprintf( pCommand, "%s -qp \"read_liberty -lib %s; read %s %s%s %s; hierarchy %s%s; flatten; proc; memory -nomap; memory_map; write_blif %s%s -impltf -gates %s\"",
+    sprintf( pCommand, "%s -qp \"read_liberty -lib %s; read %s %s %s; hierarchy -check %s%s; flatten; proc; memory -nomap; memory_map; write_blif %s%s -impltf -gates %s\"",
         Wln_GetYosysName(),
         pLibrary,
         fSVlog    ? "-sv "      : "-vlog95",
-        pDefines  ? "-D"        : "",
         pDefines  ? pDefines    : "",
         pFileNames,
         pTopModule ? "-top "    : "-auto-top",
@@ -296,10 +386,12 @@ Abc_Ntk_t * Wln_ReadMappedSystemVerilog( char ** ppFileNames, int nFileNames, ch
     if ( !Wln_ConvertToRtl(pCommand, pFileTemp) )
     {
         ABC_FREE( pCommand );
+        ABC_FREE( pDefines );
         ABC_FREE( pFileNames );
         return NULL;
     }
     ABC_FREE( pCommand );
+    ABC_FREE( pDefines );
     ABC_FREE( pFileNames );
     pCommand = ABC_ALLOC( char, strlen(pLibrary) + 20 );
     sprintf( pCommand, "read_lib %s", pLibrary );
