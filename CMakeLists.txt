@@ -42,6 +42,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
     set(CLANG_DEFAULT_RTLIB compiler-rt)
 endif()
 
+option(LOCAL_INSTALL_WITH_RPATH "Use the full RPATH for the build tree" OFF)
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE
         "RelWithDebInfo"
@@ -87,6 +89,8 @@ option(BUILD_TESTING "Build and run tests" ON)
 option(COVERAGE_BUILD "Enable source-based LLVM code coverage" OFF)
 option(ABC_SKIP_EXE "Skip building executable (build libs only)" OFF)
 option(VENDOR_GTEST "download googletest" OFF)
+
+include(SetRPATH)  # mainly for development workflows and non-system install paths
 
 add_library(abc_interface INTERFACE)
 
