@@ -1836,6 +1836,9 @@ extern Vec_Int_t *         Tas_ReadModel( Tas_Man_t * p );
 extern void                Tas_ManSatPrintStats( Tas_Man_t * p );
 extern int                 Tas_ManSolve( Tas_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pObj2 );
 extern int                 Tas_ManSolveArray( Tas_Man_t * p, Vec_Ptr_t * vObjs );
+extern void                Tas_ManSetConflictNum( Tas_Man_t * p, int Num );
+extern void                Tas_ManSyncCore( Tas_Man_t * p );
+extern Vec_Int_t *         Tas_ManSolveRoots( Tas_Man_t * p, Vec_Int_t * vRootLits, Vec_Str_t ** pvStatus, int fVerbose );
 
 /*=== giaDecGraph.c ===========================================================*/
 extern Gia_Man_t*          Gia_ManDecGraph( Gia_Man_t* p );
@@ -1884,4 +1887,3 @@ ABC_NAMESPACE_HEADER_END
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-

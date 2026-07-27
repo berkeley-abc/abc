@@ -6,7 +6,7 @@
 
   PackageName [Combinational equivalence checking.]
 
-  Synopsis    [Persistent event-driven incremental simulation for &scorr.]
+  Synopsis    [Persistent event-driven incremental simulation for &scorr2.]
 
   Description [Keeps packed CI patterns and host-AIG values across CEX batches.
   Only changed CI words are propagated through the frame-aware fanout graph.
@@ -15,7 +15,7 @@
 
   Author      [Xiran Zhao]
 
-  Affiliation [University of Chinese Academy of Sciences]
+  Affiliation [University of Chinese Academy of Sciences (UCAS)]
 
   Date        [Ver. 1.0. Started - Jun 2026.]
 
@@ -389,6 +389,8 @@ void Cec_SeedSimFree( Cec_SeedSim_t * p )
     ABC_FREE( p->pEventWords );
     ABC_FREE( p->pCone );
     ABC_FREE( p->pConeClose );
+    ABC_FREE( p->pReprPre );
+    ABC_FREE( p->pNextPre );
     ABC_FREE( p->pRootMark );
     ABC_FREE( p->pTxnMark );
     ABC_FREE( p->pPackPres );
@@ -1327,6 +1329,149 @@ static void Cec_SeedSimBuildPersistentValues( Cec_SeedSim_t * p )
     }
 }
 
+// (-V) Oracle for incremental-resim correctness.  The maintained pVal must equal
+// the true value of every IN-CONE key under the current persistent inputs.  We
+// snapshot the under-test values, recompute the trusted values by a full sweep
+// from vSimInfo (no class side effects), compare on cone keys, then restore the
+// under-test values so the run trajectory is unchanged (purely observational).
+// Out-of-cone keys are intentionally stale and are not checked.
+int Cec_SeedSimVerifyValues( Cec_SeedSim_t * p )
+{
+    size_t nKeys, nVals;
+    unsigned * pTest;
+    int Key, w, nBad = 0;
+    if ( p->pVal == NULL )
+        return 0;
+    nKeys = (size_t)p->nFrames * p->nObjs;
+    nVals = nKeys * (size_t)p->nWords;
+    pTest = ABC_ALLOC( unsigned, nVals );
+    memcpy( pTest, p->pVal, sizeof(unsigned) * nVals );   // maintained (under test)
+    Cec_SeedSimBuildPersistentValues( p );                // p->pVal := true values
+    for ( Key = 0; Key < (int)nKeys; Key++ )
+    {
+        if ( p->fUseCone && !Abc_InfoHasBit(p->pCone, Key) )
+            continue;
+        for ( w = 0; w < p->nWords; w++ )
+        {
+            size_t Flat = (size_t)Key * p->nWords + w;
+            if ( pTest[Flat] != p->pVal[Flat] )
+            {
+                if ( nBad < 20 )
+                    Abc_Print( 1, "  [resim-oracle] STALE key f=%d obj=%d w=%d "
+                        "maintained=%08x true=%08x\n",
+                        Key / p->nObjs, Key % p->nObjs, w,
+                        pTest[Flat], p->pVal[Flat] );
+                nBad++;
+                break;
+            }
+        }
+    }
+    if ( nBad )
+        Abc_Print( 1, "  [resim-oracle] %d in-cone keys STALE "
+            "(maintained != true under persistent inputs)\n", nBad );
+    memcpy( p->pVal, pTest, sizeof(unsigned) * nVals );   // restore: stay observational
+    ABC_FREE( pTest );
+    return nBad;
+}
+
+// (-V) Capture the class partition (pReprs/pNexts) before a batch is resimulated.
+// Cec_SeedSimVerifyRefine() replays the trusted full resim from this snapshot.
+void Cec_SeedSimVerifySnapshot( Cec_SeedSim_t * p )
+{
+    int nObjs = p->nObjs;
+    if ( p->pAig->pReprs == NULL || p->pAig->pNexts == NULL )
+        return;
+    if ( p->pReprPre == NULL )
+    {
+        p->pReprPre = ABC_ALLOC( int, nObjs );
+        p->pNextPre = ABC_ALLOC( int, nObjs );
+    }
+    memcpy( p->pReprPre, p->pAig->pReprs, sizeof(int) * nObjs );
+    memcpy( p->pNextPre, p->pAig->pNexts, sizeof(int) * nObjs );
+}
+
+static inline int Cec_SeedSimSavedRoot( int * pReprs, int ObjId )
+{
+    return pReprs[ObjId] == GIA_VOID ? ObjId : pReprs[ObjId];
+}
+
+// (-V) Oracle for class refinement (not just the value cache).  The incremental
+// resim has just committed its splits for this batch (P_incr).  We re-run the
+// TRUSTED full resim on the SAME packed CEX inputs starting from the pre-batch
+// partition (P0), giving the reference partition P_full.
+//
+// Both directions matter:
+//   * P_incr merged, P_full split: missed split, a correctness risk.
+//   * P_incr split,  P_full merged: extra split, a QoR regression.
+//
+// The check reuses the production refinement code (correct phase/const handling),
+// then restores P_incr so the run stays observational.  Returns #mismatches.
+int Cec_SeedSimVerifyRefine( Cec_SeedSim_t * p, Cec_ManSim_t * pSim,
+    Vec_Ptr_t * vSimInfo, int nFrames )
+{
+    Gia_Man_t * pAig = p->pAig;
+    int nObjs = p->nObjs;
+    int * pReprIncr, * pNextIncr;
+    int i, nMissed = 0, nExtra = 0;
+    if ( pAig->pReprs == NULL || p->pReprPre == NULL )
+        return 0;
+    pReprIncr = ABC_ALLOC( int, nObjs );
+    pNextIncr = ABC_ALLOC( int, nObjs );
+    memcpy( pReprIncr, pAig->pReprs, sizeof(int) * nObjs );   // P_incr (committed)
+    memcpy( pNextIncr, pAig->pNexts, sizeof(int) * nObjs );
+    // restore the pre-batch partition and run the trusted full resim
+    memcpy( pAig->pReprs, p->pReprPre, sizeof(int) * nObjs );
+    memcpy( pAig->pNexts, p->pNextPre, sizeof(int) * nObjs );
+    Gia_ManCreateValueRefs( pAig );
+    pSim->pPars->nFrames = nFrames;
+    Cec_ManSeqResimulate( pSim, vSimInfo );                   // pAig now holds P_full
+    // a pair merged in P_incr but split in P_full is a missed (unsound) split
+    for ( i = 1; i < nObjs; i++ )
+    {
+        int rIncr = pReprIncr[i], ci, cr;
+        if ( rIncr == GIA_VOID )
+            continue;                                         // i was a head/none in P_incr
+        ci = Gia_ObjRepr(pAig, i)     == GIA_VOID ? i     : Gia_ObjRepr(pAig, i);
+        cr = Gia_ObjRepr(pAig, rIncr) == GIA_VOID ? rIncr : Gia_ObjRepr(pAig, rIncr);
+        if ( ci != cr )
+        {
+            if ( nMissed < 20 )
+                Abc_Print( 1, "  [resim-oracle] MISSED SPLIT obj=%d repr=%d "
+                    "(merged by incremental, split by full resim)\n", i, rIncr );
+            nMissed++;
+        }
+    }
+    // a pair split in P_incr but merged in P_full is an extra split (QoR loss)
+    for ( i = 1; i < nObjs; i++ )
+    {
+        int rFull = Gia_ObjRepr(pAig, i), ci, cr;
+        if ( rFull == GIA_VOID )
+            continue;                                         // i was a head/none in P_full
+        ci = Cec_SeedSimSavedRoot( pReprIncr, i );
+        cr = Cec_SeedSimSavedRoot( pReprIncr, rFull );
+        if ( ci != cr )
+        {
+            if ( nExtra < 20 )
+                Abc_Print( 1, "  [resim-oracle] EXTRA SPLIT obj=%d repr=%d "
+                    "(split by incremental roots %d/%d, merged by full resim)\n",
+                    i, rFull, ci, cr );
+            nExtra++;
+        }
+    }
+    // restore the committed (incremental) partition: stay observational
+    memcpy( pAig->pReprs, pReprIncr, sizeof(int) * nObjs );
+    memcpy( pAig->pNexts, pNextIncr, sizeof(int) * nObjs );
+    ABC_FREE( pReprIncr );
+    ABC_FREE( pNextIncr );
+    if ( nMissed )
+        Abc_Print( 1, "  [resim-oracle] %d MISSED SPLITS this batch "
+            "(incremental coarser than full resim)\n", nMissed );
+    if ( nExtra )
+        Abc_Print( 1, "  [resim-oracle] %d EXTRA SPLITS this batch "
+            "(incremental finer than full resim; QoR regression)\n", nExtra );
+    return nMissed + nExtra;
+}
+
 void Cec_SeedSimEnsurePersistent( Cec_SeedSim_t * p, Cec_ManSim_t * pSim )
 {
     int nInputs = p->nRegs + p->nPis * p->nFrames;
@@ -1928,6 +2073,11 @@ int Cec_SeedSimTryBatch( Cec_SeedSim_t * p, Cec_ManSim_t * pSim,
     Cec_SeedSimRecordBatch( p, Vec_IntSize(vOutBits) / 2 );
     p->nEventInputVarsMax = Abc_MaxInt( p->nEventInputVarsMax, nInputVars );
     p->nEventInputWordsMax = Abc_MaxInt( p->nEventInputWordsMax, nInputWords );
+    // Up-front density gate.  A batch whose changed-CI seed is a large fraction
+    // of all unrolled inputs will dirty a near-full closure, so event
+    // propagation cannot beat a bit-parallel full sweep.  Reject it here before
+    // mutating any persistent value, instead of propagating until a mid-flight
+    // budget abort discards the work (and then still falling back to full).
     if ( (ABC_INT64_T)nInputVars * CEC_EVENT_INPUT_FRAC_DEN >
          (ABC_INT64_T)nTotalInputs * CEC_EVENT_INPUT_FRAC_NUM )
     {
@@ -1935,6 +2085,17 @@ int Cec_SeedSimTryBatch( Cec_SeedSim_t * p, Cec_ManSim_t * pSim,
         p->nBatchFull++;
         return CEC_SEEDSIM_RESULT_FULL_WIDE;
     }
+    // No class-cone gate.  Event propagation below follows the full forward TFO of
+    // this batch's changed CIs (bounded only by the deterministic nNodeLimit /
+    // nEdgeLimit work budget; exceeding it falls back to a full sweep without
+    // committing).  This keeps the persistent pVal globally consistent with the
+    // committed inputs, so Cec_SeedSimEventRefine() never reads a stale value and
+    // never misses a split.  pSeed->fUseCone stays 0 (reset in
+    // Cec_ManResimulateCounterExamples), so Cec_SeedSimConeHasKey() is always true.
+    // The old per-call active-pair cone was too narrow -> stale values across calls
+    // -> missed splits -> unsound merges; see md/I_resim_soundness_bug.md.  The
+    // cone scaffolding (Cec_SeedSimBuildClassCone / pCone / ...) is retained, unused,
+    // for a future adaptive *full-candidate* cone on sparse-candidate designs.
     (void)vOutputs;
     Cec_SeedSimReset( p );
     Vec_IntClear( p->vValueUndo );
@@ -2023,7 +2184,8 @@ void Cec_SeedSimBeginCall( Cec_SeedSim_t * p )
     p->nEventLocal = p->nEventFallback = 0;
     p->nEventPopsMax = p->nEventEdgesMax = 0;
     p->nEventInputVarsMax = p->nEventInputWordsMax = 0;
-    p->nEventFallbackWork = 0;
+    p->nEventFallbackWork = p->nEventFallbackTime = 0;
+    p->nAdaptTrips = 0;
 }
 
 void Cec_SeedSimBypassBatch( Cec_SeedSim_t * p, int nCex )

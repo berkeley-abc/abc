@@ -6,11 +6,11 @@
 
   PackageName [Combinational equivalence checking.]
 
-  Synopsis    [Incremental active-list / TFO filter for &scorr.]
+  Synopsis    [Incremental active-list / TFO filter for &scorr2.]
 
   Author      [Xiran Zhao]
 
-  Affiliation [University of Chinese Academy of Sciences]
+  Affiliation [University of Chinese Academy of Sciences (UCAS)]
 
   Date        [Ver. 1.0. Started - May 2026.]
 
@@ -477,7 +477,7 @@ Gia_Man_t * Gia_ManCorrSpecReduce_Emit( Gia_Man_t * p, int nFrames, int fScorr,
                             (Mode == CEC_EMIT_SKIPPED && !fActive);
                 if ( !fEmit )
                     continue;
-                iObjRaw = Gia_ManCorrSpecReal( pNew, p, pObj, nFrames, 0 );
+                iObjRaw = Gia_ManCorr2SpecReal( pNew, p, pObj, nFrames, 0 );
                 iObjNew = Abc_LitNotCond( iObjRaw, Gia_ObjPhase(pObj) );
                 if ( iObjNew != 0 )
                 {
@@ -507,8 +507,8 @@ Gia_Man_t * Gia_ManCorrSpecReduce_Emit( Gia_Man_t * p, int nFrames, int fScorr,
                                 (Mode == CEC_EMIT_SKIPPED && !fActive);
                     if ( fEmit )
                     {
-                        iPrevRaw = Gia_ManCorrSpecReal( pNew, p, Gia_ManObj(p, iPrev), nFrames, 0 );
-                        iObjRaw  = Gia_ManCorrSpecReal( pNew, p, Gia_ManObj(p, iObj), nFrames, 0 );
+                        iPrevRaw = Gia_ManCorr2SpecReal( pNew, p, Gia_ManObj(p, iPrev), nFrames, 0 );
+                        iObjRaw  = Gia_ManCorr2SpecReal( pNew, p, Gia_ManObj(p, iObj), nFrames, 0 );
                         iPrevNew = Abc_LitNotCond( iPrevRaw, Gia_ObjPhase(pObj) ^ Gia_ObjPhase(Gia_ManObj(p, iPrev)) );
                         iObjNew  = Abc_LitNotCond( iObjRaw,  Gia_ObjPhase(pObj) ^ Gia_ObjPhase(Gia_ManObj(p, iObj)) );
                         if ( iPrevNew != iObjNew && iPrevNew != 0 && iObjNew != 1 )
@@ -536,8 +536,8 @@ Gia_Man_t * Gia_ManCorrSpecReduce_Emit( Gia_Man_t * p, int nFrames, int fScorr,
                                 (Mode == CEC_EMIT_SKIPPED && !fActive);
                     if ( fEmit )
                     {
-                        iPrevRaw = Gia_ManCorrSpecReal( pNew, p, Gia_ManObj(p, iPrev), nFrames, 0 );
-                        iObjRaw  = Gia_ManCorrSpecReal( pNew, p, Gia_ManObj(p, iObj), nFrames, 0 );
+                        iPrevRaw = Gia_ManCorr2SpecReal( pNew, p, Gia_ManObj(p, iPrev), nFrames, 0 );
+                        iObjRaw  = Gia_ManCorr2SpecReal( pNew, p, Gia_ManObj(p, iObj), nFrames, 0 );
                         iPrevNew = Abc_LitNotCond( iPrevRaw, Gia_ObjPhase(pObj) ^ Gia_ObjPhase(Gia_ManObj(p, iPrev)) );
                         iObjNew  = Abc_LitNotCond( iObjRaw,  Gia_ObjPhase(pObj) ^ Gia_ObjPhase(Gia_ManObj(p, iObj)) );
                         if ( iPrevNew != iObjNew && iPrevNew != 0 && iObjNew != 1 )
@@ -572,8 +572,8 @@ Gia_Man_t * Gia_ManCorrSpecReduce_Emit( Gia_Man_t * p, int nFrames, int fScorr,
                 if ( !fEmit )
                     continue;
             }
-            iPrevRaw = Gia_ObjIsConst(p, i)? 0 : Gia_ManCorrSpecReal( pNew, p, pRepr, nFrames, 0 );
-            iObjRaw  = Gia_ManCorrSpecReal( pNew, p, pObj, nFrames, 0 );
+            iPrevRaw = Gia_ObjIsConst(p, i)? 0 : Gia_ManCorr2SpecReal( pNew, p, pRepr, nFrames, 0 );
+            iObjRaw  = Gia_ManCorr2SpecReal( pNew, p, pObj, nFrames, 0 );
             iPrevNew = iPrevRaw;
             iObjNew  = Abc_LitNotCond( iObjRaw, Gia_ObjPhase(pRepr) ^ Gia_ObjPhase(pObj) );
             if ( iPrevNew != iObjNew )
@@ -662,8 +662,8 @@ Gia_Man_t * Gia_ManCorrSpecReduceInit_Active( Gia_Man_t * p, int nFrames, int nP
                 if ( !pTfoMark[i] && !pTfoMark[idR] )
                     continue;
             }
-            iPrevNew = Gia_ObjIsConst(p, i)? 0 : Gia_ManCorrSpecReal( pNew, p, pRepr, f, nPrefix );
-            iObjNew  = Gia_ManCorrSpecReal( pNew, p, pObj, f, nPrefix );
+            iPrevNew = Gia_ObjIsConst(p, i)? 0 : Gia_ManCorr2SpecReal( pNew, p, pRepr, f, nPrefix );
+            iObjNew  = Gia_ManCorr2SpecReal( pNew, p, pObj, f, nPrefix );
             iObjNew  = Abc_LitNotCond( iObjNew, Gia_ObjPhase(pRepr) ^ Gia_ObjPhase(pObj) );
             if ( iPrevNew != iObjNew )
             {

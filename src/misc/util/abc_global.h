@@ -351,6 +351,19 @@ static inline abctime Abc_Clock()
     return (abctime) clock();
 #endif
 }
+// Returns monotonic wall-clock time in nanoseconds.  The dynamic SRM
+// heuristics use this to compare rebuild and reuse costs.
+static inline abctime Abc_ClockHr()
+{
+#if defined(CLOCK_MONOTONIC)
+    struct timespec ts;
+    if ( clock_gettime( CLOCK_MONOTONIC, &ts ) < 0 )
+        return (abctime)-1;
+    return ((abctime) ts.tv_sec) * 1000000000 + (abctime) ts.tv_nsec;
+#else
+    return (abctime)( (double)Abc_Clock() * 1.0e9 / CLOCKS_PER_SEC );
+#endif
+}
 // counting thread time
 static inline abctime Abc_ThreadClock()
 {
