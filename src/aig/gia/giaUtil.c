@@ -3564,10 +3564,435 @@ void Gia_ManFindMutualEquivsTest()
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Prints longest combinational paths between seq endpoints.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static char * Gia_ManPrintPathNameFallback( Gia_Man_t * p, int fCi, int iTerm, char * pBuffer )
+{
+    if ( fCi )
+    {
+        if ( iTerm < Gia_ManPiNum(p) )
+            sprintf( pBuffer, "pi%d", iTerm );
+        else
+            sprintf( pBuffer, "ro%d", iTerm - Gia_ManPiNum(p) );
+    }
+    else
+    {
+        if ( iTerm < Gia_ManPoNum(p) )
+            sprintf( pBuffer, "po%d", iTerm );
+        else
+            sprintf( pBuffer, "ri%d", iTerm - Gia_ManPoNum(p) );
+    }
+    return pBuffer;
+}
+static int Gia_ManPrintPathNameBufferSize( Gia_Man_t * p )
+{
+    Vec_Ptr_t * vNames;
+    char * pName;
+    int i, nSize = 64;
+    vNames = p->vNamesIn;
+    if ( vNames )
+        Vec_PtrForEachEntry( char *, vNames, pName, i )
+            if ( pName )
+                nSize = Abc_MaxInt( nSize, (int)strlen(pName) + 64 );
+    vNames = p->vNamesOut;
+    if ( vNames )
+        Vec_PtrForEachEntry( char *, vNames, pName, i )
+            if ( pName )
+                nSize = Abc_MaxInt( nSize, (int)strlen(pName) + 64 );
+    return nSize;
+}
+static void Gia_ManPrintPathCopyToken( char * pBuffer, char * pBeg, char * pEnd )
+{
+    int nChars = pEnd ? (int)(pEnd - pBeg) : (int)strlen(pBeg);
+    memcpy( pBuffer, pBeg, nChars );
+    pBuffer[nChars] = 0;
+}
+static char * Gia_ManPrintPathName( Gia_Man_t * p, int fCi, int iTerm, char * pBuffer, int fFull, int fLeaf )
+{
+    Vec_Ptr_t * vNames = fCi ? p->vNamesIn : p->vNamesOut;
+    char * pName = vNames && iTerm < Vec_PtrSize(vNames) ? (char *)Vec_PtrEntry(vNames, iTerm) : NULL;
+    char * pBeg, * pEnd, * pFirst, * pFirstEnd;
+    if ( pName == NULL )
+        return Gia_ManPrintPathNameFallback( p, fCi, iTerm, pBuffer );
+    if ( fFull )
+        return pName;
+    if ( fLeaf )
+    {
+        pBeg = strrchr( pName, ' ' );
+        return pBeg ? pBeg + 1 : pName;
+    }
+    pFirst = pName;
+    pFirstEnd = strchr( pFirst, ' ' );
+    for ( pBeg = pName; pBeg && *pBeg; pBeg = pEnd ? pEnd + 1 : NULL )
+    {
+        pEnd = strchr( pBeg, ' ' );
+        if ( strstr( pBeg, "reg_" ) && (pEnd == NULL || pEnd > strstr( pBeg, "reg_" )) )
+        {
+            Gia_ManPrintPathCopyToken( pBuffer, pBeg, pEnd );
+            return pBuffer;
+        }
+    }
+    Gia_ManPrintPathCopyToken( pBuffer, pFirst, pFirstEnd );
+    return pBuffer;
+}
+static char * Gia_ManPrintPathKind( Gia_Man_t * p, int fCi, int iTerm )
+{
+    if ( fCi )
+        return iTerm < Gia_ManPiNum(p) ? (char *)"PI" : (char *)"RO";
+    return iTerm < Gia_ManPoNum(p) ? (char *)"PO" : (char *)"RI";
+}
+static int Gia_ManPrintPathTermIndex( Gia_Man_t * p, int fCi, int iTerm )
+{
+    if ( fCi )
+        return iTerm < Gia_ManPiNum(p) ? iTerm : iTerm - Gia_ManPiNum(p);
+    return iTerm < Gia_ManPoNum(p) ? iTerm : iTerm - Gia_ManPoNum(p);
+}
+static int Gia_ManPrintPathParseBit( char * pName, char * pBase, int * pBit, char * pSuffix )
+{
+    char * pLeft = strrchr( pName, '[' );
+    char * pRight = pLeft ? strchr( pLeft, ']' ) : NULL;
+    char * pTemp;
+    if ( pLeft == NULL || pRight == NULL )
+        return 0;
+    for ( pTemp = pLeft + 1; pTemp < pRight; pTemp++ )
+        if ( *pTemp < '0' || *pTemp > '9' )
+            return 0;
+    Gia_ManPrintPathCopyToken( pBase, pName, pLeft );
+    Gia_ManPrintPathCopyToken( pSuffix, pRight + 1, NULL );
+    *pBit = atoi( pLeft + 1 );
+    return 1;
+}
+static void Gia_ManPrintPathFormatTermRange( char * pBuffer, char * pKind, int iBeg, int iEnd )
+{
+    if ( iBeg == iEnd )
+        sprintf( pBuffer, "%s[%d]", pKind, iBeg );
+    else
+        sprintf( pBuffer, "%s[%d..%d]", pKind, iBeg, iEnd );
+}
+static void Gia_ManPrintPathFormatNameRange( char * pBuffer, char * pNameBeg, char * pNameEnd, int nNameSize )
+{
+    char * BaseBeg, * BaseEnd, * SuffixBeg, * SuffixEnd;
+    int BitBeg, BitEnd;
+    if ( !strcmp(pNameBeg, pNameEnd) )
+    {
+        sprintf( pBuffer, "%s", pNameBeg );
+        return;
+    }
+    BaseBeg   = ABC_ALLOC( char, nNameSize );
+    BaseEnd   = ABC_ALLOC( char, nNameSize );
+    SuffixBeg = ABC_ALLOC( char, nNameSize );
+    SuffixEnd = ABC_ALLOC( char, nNameSize );
+    if ( Gia_ManPrintPathParseBit(pNameBeg, BaseBeg, &BitBeg, SuffixBeg) &&
+         Gia_ManPrintPathParseBit(pNameEnd, BaseEnd, &BitEnd, SuffixEnd) &&
+         !strcmp(BaseBeg, BaseEnd) && !strcmp(SuffixBeg, SuffixEnd) )
+        sprintf( pBuffer, "%s[%d..%d]%s", BaseBeg, BitBeg, BitEnd, SuffixBeg );
+    else
+        sprintf( pBuffer, "%s..%s", pNameBeg, pNameEnd );
+    ABC_FREE( BaseBeg );
+    ABC_FREE( BaseEnd );
+    ABC_FREE( SuffixBeg );
+    ABC_FREE( SuffixEnd );
+}
+static int Gia_ManPrintPathCanGroup( Gia_Man_t * p, int Level0, int Source0, int Sink0, int Level1, int Source1, int Sink1, int nNameSize )
+{
+    char * pStore, * Buffer0, * Buffer1, * Buffer2, * Buffer3, * Base0, * Base1, * Suffix0, * Suffix1;
+    int Bit0, Bit1;
+    int RetValue;
+    if ( Level0 != Level1 || Source0 != Source1 )
+        return 0;
+    if ( (Sink0 < Gia_ManPoNum(p)) != (Sink1 < Gia_ManPoNum(p)) )
+        return 0;
+    if ( Gia_ManPrintPathTermIndex(p, 0, Sink1) != Gia_ManPrintPathTermIndex(p, 0, Sink0) + 1 )
+        return 0;
+    pStore = ABC_ALLOC( char, 8 * nNameSize );
+    Buffer0 = pStore + 0 * nNameSize;
+    Buffer1 = pStore + 1 * nNameSize;
+    Buffer2 = pStore + 2 * nNameSize;
+    Buffer3 = pStore + 3 * nNameSize;
+    Base0   = pStore + 4 * nNameSize;
+    Base1   = pStore + 5 * nNameSize;
+    Suffix0 = pStore + 6 * nNameSize;
+    Suffix1 = pStore + 7 * nNameSize;
+    Gia_ManPrintPathName( p, 1, Source0, Buffer0, 0, 0 );
+    Gia_ManPrintPathName( p, 1, Source1, Buffer1, 0, 0 );
+    if ( strcmp(Buffer0, Buffer1) )
+    {
+        ABC_FREE( pStore );
+        return 0;
+    }
+    Gia_ManPrintPathName( p, 1, Source0, Buffer0, 0, 1 );
+    Gia_ManPrintPathName( p, 1, Source1, Buffer1, 0, 1 );
+    if ( strcmp(Buffer0, Buffer1) )
+    {
+        ABC_FREE( pStore );
+        return 0;
+    }
+    Gia_ManPrintPathName( p, 0, Sink0, Buffer2, 0, 0 );
+    Gia_ManPrintPathName( p, 0, Sink1, Buffer3, 0, 0 );
+    if ( !Gia_ManPrintPathParseBit(Buffer2, Base0, &Bit0, Suffix0) ||
+         !Gia_ManPrintPathParseBit(Buffer3, Base1, &Bit1, Suffix1) )
+    {
+        ABC_FREE( pStore );
+        return 0;
+    }
+    RetValue = !strcmp(Base0, Base1) && !strcmp(Suffix0, Suffix1) && Bit1 == Bit0 + 1;
+    ABC_FREE( pStore );
+    return RetValue;
+}
+static int Gia_ManPrintPathCandBetter( int Level0, int Source0, int Sink0, int Level1, int Source1, int Sink1 )
+{
+    if ( Level0 != Level1 )
+        return Level0 > Level1;
+    if ( Source0 != Source1 )
+        return Source0 < Source1;
+    return Sink0 < Sink1;
+}
+static int Gia_ManPrintPathFaninBetter( int Level0, int Source0, int Level1, int Source1 )
+{
+    if ( Source0 < 0 )
+        return 0;
+    if ( Source1 < 0 )
+        return 1;
+    if ( Level0 != Level1 )
+        return Level0 > Level1;
+    return Source0 < Source1;
+}
+static void Gia_ManPrintPathInsert( int * pLevels, int * pSources, int * pSinks, int * pDrivers, int * pnPaths, int nPathsMax, int Level, int Source, int Sink, int Driver )
+{
+    int i, k, nPaths = *pnPaths;
+    if ( Source < 0 )
+        return;
+    for ( i = 0; i < nPaths; i++ )
+        if ( Gia_ManPrintPathCandBetter(Level, Source, Sink, pLevels[i], pSources[i], pSinks[i]) )
+            break;
+    if ( i == nPathsMax )
+        return;
+    if ( nPaths < nPathsMax )
+        nPaths++;
+    for ( k = nPaths - 1; k > i; k-- )
+    {
+        pLevels[k]  = pLevels[k-1];
+        pSources[k] = pSources[k-1];
+        pSinks[k]   = pSinks[k-1];
+        pDrivers[k] = pDrivers[k-1];
+    }
+    pLevels[i]  = Level;
+    pSources[i] = Source;
+    pSinks[i]   = Sink;
+    pDrivers[i] = Driver;
+    *pnPaths = nPaths;
+}
+static void Gia_ManPrintPathOne( Gia_Man_t * p, Vec_Int_t * vPreds, int Source, int Sink, int Driver, int nNameSize )
+{
+    Vec_Int_t * vPath = Vec_IntAlloc( 100 );
+    char * pBuffer = ABC_ALLOC( char, 2 * nNameSize );
+    char * pBuffer0 = pBuffer;
+    char * pBuffer1 = pBuffer + nNameSize;
+    int i, Id;
+    for ( Id = Driver; Id > 0 && !Gia_ObjIsCi(Gia_ManObj(p, Id)); Id = Vec_IntEntry(vPreds, Id) )
+    {
+        Vec_IntPush( vPath, Id );
+        if ( Vec_IntEntry(vPreds, Id) < 0 )
+            break;
+    }
+    printf( "    %s[%d] %s", Gia_ManPrintPathKind(p, 1, Source), Gia_ManPrintPathTermIndex(p, 1, Source), Gia_ManPrintPathName(p, 1, Source, pBuffer0, 1, 0) );
+    Vec_IntForEachEntryReverse( vPath, Id, i )
+        printf( " -> AND %d", Id );
+    printf( " -> %s[%d] %s\n", Gia_ManPrintPathKind(p, 0, Sink), Gia_ManPrintPathTermIndex(p, 0, Sink), Gia_ManPrintPathName(p, 0, Sink, pBuffer1, 1, 0) );
+    ABC_FREE( pBuffer );
+    Vec_IntFree( vPath );
+}
+void Gia_ManPrintPath( Gia_Man_t * p, int nPathsMax, int fVerbose, int fSummary )
+{
+    Vec_Int_t * vLevels, * vSources, * vPreds;
+    Vec_Int_t * vGroupStarts, * vGroupEnds;
+    Gia_Obj_t * pObj;
+    int * pLevels, * pSources, * pSinks, * pDrivers;
+    int nGroupsMax = nPathsMax;
+    int nPathsAlloc, nNameSize, nLineSize, nSourceTermW, nSourceNameW, nSinkTermW;
+    int nPaths = 0, Counts[4] = {0}, MaxLevels[4] = {0};
+    int i, k, Id, FanId, Level, Source, Sink, Driver, Cost, LevelBest, SourceBest, FanBest, nGroups, iBeg, iEnd;
+    char * Buffer0, * Buffer1, * Buffer2, * Buffer3, * Buffer4, * Buffer5, * Buffer6, * Buffer7, * Buffer8, * Buffer9, * Buffer10;
+    if ( nPathsMax < 1 )
+        nPathsMax = 1;
+    nGroupsMax = nPathsMax;
+    nPathsAlloc = Abc_MinInt( Gia_ManCoNum(p), Abc_MaxInt(32 * nGroupsMax, nGroupsMax) );
+    nNameSize = Gia_ManPrintPathNameBufferSize( p );
+    nLineSize = 4 * nNameSize + 100;
+    Buffer0  = ABC_ALLOC( char, nNameSize );
+    Buffer1  = ABC_ALLOC( char, nNameSize );
+    Buffer2  = ABC_ALLOC( char, nNameSize );
+    Buffer3  = ABC_ALLOC( char, nNameSize );
+    Buffer4  = ABC_ALLOC( char, nNameSize );
+    Buffer5  = ABC_ALLOC( char, nNameSize );
+    Buffer6  = ABC_ALLOC( char, nNameSize );
+    Buffer7  = ABC_ALLOC( char, nLineSize );
+    Buffer8  = ABC_ALLOC( char, nLineSize );
+    Buffer9  = ABC_ALLOC( char, nLineSize );
+    Buffer10 = ABC_ALLOC( char, nLineSize );
+    vGroupStarts = Vec_IntAlloc( nGroupsMax );
+    vGroupEnds   = Vec_IntAlloc( nGroupsMax );
+    vLevels  = Vec_IntStart( Gia_ManObjNum(p) );
+    vSources = Vec_IntStartFull( Gia_ManObjNum(p) );
+    vPreds   = Vec_IntStartFull( Gia_ManObjNum(p) );
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        Id = Gia_ObjId( p, pObj );
+        if ( Gia_ObjIsCi(pObj) )
+        {
+            Vec_IntWriteEntry( vLevels, Id, 0 );
+            Vec_IntWriteEntry( vSources, Id, Gia_ObjCioId(pObj) );
+            continue;
+        }
+        if ( !Gia_ObjIsAnd(pObj) )
+            continue;
+        Cost = (!p->fGiaSimple && Gia_ObjIsBuf(pObj)) ? 0 : (Gia_ObjIsMux(p, pObj) || Gia_ObjIsXor(pObj) ? 2 : 1);
+        LevelBest = SourceBest = FanBest = -1;
+        for ( k = 0; k < Gia_ObjFaninNum(p, pObj); k++ )
+        {
+            FanId = k == 2 ? Gia_ObjFaninId2(p, Id) : Gia_ObjFaninId(pObj, Id, k);
+            Level  = Vec_IntEntry( vLevels, FanId );
+            Source = Vec_IntEntry( vSources, FanId );
+            if ( Gia_ManPrintPathFaninBetter(Level, Source, LevelBest, SourceBest) )
+                LevelBest = Level, SourceBest = Source, FanBest = FanId;
+        }
+        Vec_IntWriteEntry( vLevels,  Id, LevelBest + Cost );
+        Vec_IntWriteEntry( vSources, Id, SourceBest );
+        Vec_IntWriteEntry( vPreds,   Id, FanBest );
+    }
+    pLevels  = ABC_ALLOC( int, nPathsAlloc );
+    pSources = ABC_ALLOC( int, nPathsAlloc );
+    pSinks   = ABC_ALLOC( int, nPathsAlloc );
+    pDrivers = ABC_ALLOC( int, nPathsAlloc );
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        Driver = Gia_ObjFaninId0p( p, pObj );
+        Level  = Vec_IntEntry( vLevels, Driver );
+        Source = Vec_IntEntry( vSources, Driver );
+        Sink   = Gia_ObjCioId( pObj );
+        if ( Source >= 0 )
+        {
+            k = (Source >= Gia_ManPiNum(p) ? 2 : 0) + (Sink >= Gia_ManPoNum(p) ? 1 : 0);
+            Counts[k]++;
+            MaxLevels[k] = Abc_MaxInt( MaxLevels[k], Level );
+        }
+        Gia_ManPrintPathInsert( pLevels, pSources, pSinks, pDrivers, &nPaths, nPathsAlloc, Level, Source, Sink, Driver );
+    }
+    for ( i = 0, nGroups = 0; i < nPaths && nGroups < nGroupsMax; i = iEnd + 1, nGroups++ )
+    {
+        iBeg = iEnd = i;
+        while ( iEnd + 1 < nPaths && Gia_ManPrintPathCanGroup(p, pLevels[iEnd], pSources[iEnd], pSinks[iEnd], pLevels[iEnd+1], pSources[iEnd+1], pSinks[iEnd+1], nNameSize) )
+            iEnd++;
+        Vec_IntPush( vGroupStarts, iBeg );
+        Vec_IntPush( vGroupEnds,   iEnd );
+    }
+    nSourceTermW = (int)strlen( "source" );
+    nSourceNameW = 0;
+    nSinkTermW   = (int)strlen( "sink" );
+    Vec_IntForEachEntry( vGroupStarts, iBeg, i )
+    {
+        char * pSourceName, * pSourceLeaf, * pSinkNameBeg, * pSinkNameEnd, * pSinkLeafBeg, * pSinkLeafEnd;
+        iEnd = Vec_IntEntry( vGroupEnds, i );
+        pSourceName = Gia_ManPrintPathName(p, 1, pSources[iBeg], Buffer0, 0, 0);
+        pSourceLeaf = Gia_ManPrintPathName(p, 1, pSources[iBeg], Buffer1, 0, 1);
+        pSinkNameBeg = Gia_ManPrintPathName(p, 0, pSinks[iBeg], Buffer2, 0, 0);
+        pSinkNameEnd = Gia_ManPrintPathName(p, 0, pSinks[iEnd], Buffer3, 0, 0);
+        pSinkLeafBeg = Gia_ManPrintPathName(p, 0, pSinks[iBeg], Buffer4, 0, 1);
+        pSinkLeafEnd = Gia_ManPrintPathName(p, 0, pSinks[iEnd], Buffer5, 0, 1);
+        Gia_ManPrintPathFormatTermRange( Buffer6, Gia_ManPrintPathKind(p, 1, pSources[iBeg]), Gia_ManPrintPathTermIndex(p, 1, pSources[iBeg]), Gia_ManPrintPathTermIndex(p, 1, pSources[iBeg]) );
+        sprintf( Buffer7, "%s", pSourceName );
+        if ( strcmp(pSourceName, pSourceLeaf) )
+            sprintf( Buffer7 + strlen(Buffer7), "->%s", pSourceLeaf );
+        Gia_ManPrintPathFormatTermRange( Buffer8, Gia_ManPrintPathKind(p, 0, pSinks[iBeg]), Gia_ManPrintPathTermIndex(p, 0, pSinks[iBeg]), Gia_ManPrintPathTermIndex(p, 0, pSinks[iEnd]) );
+        Gia_ManPrintPathFormatNameRange( Buffer9, pSinkNameBeg, pSinkNameEnd, nNameSize );
+        if ( strcmp(pSinkLeafBeg, pSinkLeafEnd) )
+            Gia_ManPrintPathFormatNameRange( Buffer10, pSinkLeafBeg, pSinkLeafEnd, nNameSize );
+        else
+            sprintf( Buffer10, "%s", pSinkLeafBeg );
+        if ( strcmp(Buffer9, Buffer10) )
+            sprintf( Buffer9 + strlen(Buffer9), "<-%s", Buffer10 );
+        nSourceTermW = Abc_MaxInt( nSourceTermW, (int)strlen(Buffer6) );
+        nSourceNameW = Abc_MaxInt( nSourceNameW, (int)strlen(Buffer7) );
+        nSinkTermW   = Abc_MaxInt( nSinkTermW,   (int)strlen(Buffer8) );
+    }
+    printf( "Grouped critical combinational paths:\n" );
+    printf( " rank paths   lev    %-*s %-*s   %-*s %s\n", nSourceTermW, "source", nSourceNameW, "", nSinkTermW, "sink", "" );
+    Vec_IntForEachEntry( vGroupStarts, iBeg, i )
+    {
+        char * pSourceName, * pSourceLeaf, * pSinkNameBeg, * pSinkNameEnd, * pSinkLeafBeg, * pSinkLeafEnd;
+        iEnd = Vec_IntEntry( vGroupEnds, i );
+        pSourceName = Gia_ManPrintPathName(p, 1, pSources[iBeg], Buffer0, 0, 0);
+        pSourceLeaf = Gia_ManPrintPathName(p, 1, pSources[iBeg], Buffer1, 0, 1);
+        pSinkNameBeg = Gia_ManPrintPathName(p, 0, pSinks[iBeg], Buffer2, 0, 0);
+        pSinkNameEnd = Gia_ManPrintPathName(p, 0, pSinks[iEnd], Buffer3, 0, 0);
+        pSinkLeafBeg = Gia_ManPrintPathName(p, 0, pSinks[iBeg], Buffer4, 0, 1);
+        pSinkLeafEnd = Gia_ManPrintPathName(p, 0, pSinks[iEnd], Buffer5, 0, 1);
+        Gia_ManPrintPathFormatTermRange( Buffer6, Gia_ManPrintPathKind(p, 1, pSources[iBeg]), Gia_ManPrintPathTermIndex(p, 1, pSources[iBeg]), Gia_ManPrintPathTermIndex(p, 1, pSources[iBeg]) );
+        sprintf( Buffer7, "%s", pSourceName );
+        if ( strcmp(pSourceName, pSourceLeaf) )
+            sprintf( Buffer7 + strlen(Buffer7), "->%s", pSourceLeaf );
+        Gia_ManPrintPathFormatTermRange( Buffer8, Gia_ManPrintPathKind(p, 0, pSinks[iBeg]), Gia_ManPrintPathTermIndex(p, 0, pSinks[iBeg]), Gia_ManPrintPathTermIndex(p, 0, pSinks[iEnd]) );
+        Gia_ManPrintPathFormatNameRange( Buffer9, pSinkNameBeg, pSinkNameEnd, nNameSize );
+        if ( strcmp(pSinkLeafBeg, pSinkLeafEnd) )
+            Gia_ManPrintPathFormatNameRange( Buffer10, pSinkLeafBeg, pSinkLeafEnd, nNameSize );
+        else
+            sprintf( Buffer10, "%s", pSinkLeafBeg );
+        if ( strcmp(Buffer9, Buffer10) )
+            sprintf( Buffer9 + strlen(Buffer9), "<-%s", Buffer10 );
+        if ( iBeg == iEnd )
+            sprintf( Buffer4, "%d", iBeg + 1 );
+        else
+            sprintf( Buffer4, "%d..%d", iBeg + 1, iEnd + 1 );
+        printf( "%5d %-7s %3d    %-*s %-*s   %-*s %s\n", i + 1, Buffer4, pLevels[iBeg], nSourceTermW, Buffer6, nSourceNameW, Buffer7, nSinkTermW, Buffer8, Buffer9 );
+    }
+    if ( fVerbose )
+    {
+        printf( "\nAIG paths:\n" );
+        Vec_IntForEachEntry( vGroupStarts, iBeg, i )
+            Gia_ManPrintPathOne( p, vPreds, pSources[iBeg], pSinks[iBeg], pDrivers[iBeg], nNameSize );
+    }
+    if ( fSummary )
+    {
+        printf( "\nEndpoint summary:\n" );
+        printf( "  PI->PO : paths = %7d  max levels = %6d\n", Counts[0], MaxLevels[0] );
+        printf( "  PI->RI : paths = %7d  max levels = %6d\n", Counts[1], MaxLevels[1] );
+        printf( "  RO->PO : paths = %7d  max levels = %6d\n", Counts[2], MaxLevels[2] );
+        printf( "  RO->RI : paths = %7d  max levels = %6d\n", Counts[3], MaxLevels[3] );
+    }
+    ABC_FREE( pLevels );
+    ABC_FREE( pSources );
+    ABC_FREE( pSinks );
+    ABC_FREE( pDrivers );
+    ABC_FREE( Buffer0 );
+    ABC_FREE( Buffer1 );
+    ABC_FREE( Buffer2 );
+    ABC_FREE( Buffer3 );
+    ABC_FREE( Buffer4 );
+    ABC_FREE( Buffer5 );
+    ABC_FREE( Buffer6 );
+    ABC_FREE( Buffer7 );
+    ABC_FREE( Buffer8 );
+    ABC_FREE( Buffer9 );
+    ABC_FREE( Buffer10 );
+    Vec_IntFree( vLevels );
+    Vec_IntFree( vSources );
+    Vec_IntFree( vPreds );
+    Vec_IntFreeP( &vGroupStarts );
+    Vec_IntFreeP( &vGroupEnds );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
 
 ABC_NAMESPACE_IMPL_END
-

@@ -668,6 +668,7 @@ static int Abc_CommandAbc9Divide             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Pipeline           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Unpipeline         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Regio              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9PrintPath          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -1527,6 +1528,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&unpipe",       Abc_CommandAbc9Unpipeline,             0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&regio",        Abc_CommandAbc9Regio,                  0 );
 
+    Cmd_CommandAdd( pAbc, "ABC9",         "&print_path",   Abc_CommandAbc9PrintPath,              0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,                   0 );
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&eslim",        Abc_CommandAbc9eSLIM,                  0 );
@@ -61264,6 +61266,67 @@ usage:
     Abc_Print( -2, "\t-o     : toggle adding PO flops [default = %s]\n", fRegOuts ? "yes" : "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9PrintPath( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManPrintPath( Gia_Man_t * p, int nPaths, int fVerbose, int fSummary );
+    int c, nPaths = 10, fVerbose = 0, fSummary = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvsh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nPaths = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nPaths < 1 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 's':
+            fSummary ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9PrintPath(): There is no AIG.\n" );
+        return 0;
+    }
+    Gia_ManPrintPath( pAbc->pGia, nPaths, fVerbose, fSummary );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &print_path [-N num] [-vsh]\n" );
+    Abc_Print( -2, "\t          prints longest combinational paths between sequential endpoints\n" );
+    Abc_Print( -2, "\t-N num  : number of path groups to print [default = %d]\n", nPaths );
+    Abc_Print( -2, "\t-v      : toggle printing one AIG path for each path group [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-s      : toggle printing endpoint category summary [default = %s]\n", fSummary? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }
 
