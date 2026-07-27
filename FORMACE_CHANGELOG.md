@@ -16,11 +16,17 @@ This file records ForMACE-specific changes made in this ABC fork.
 - Built ABC successfully with `make -j4 ABC_USE_NO_READLINE=1`.
 - Verified the extension command with `./abc -c "read i10.aig; fm_summary -v"`.
 - Verified command usage with `./abc -c "fm_summary -h"`.
+- Renamed the extension source directory from `src/extformace_ext/` to `src/formace_ext/` so it can be tracked and pushed without force-adding an upstream-ignored `src/ext*` path.
+- Updated the top-level `Makefile` to include `src/formace_ext` in `MODULES`.
+- Updated `src/formace_ext/module.make` to compile `src/formace_ext/formace.c`.
+- Ran `make -j4 ABC_USE_NO_READLINE=1` after the rename; Make reported the existing `abc` binary was already up to date.
+- Re-verified `./abc -c "read i10.aig; fm_summary -v"` after the rename.
+- Re-verified `./abc -c "fm_summary -h"` after the rename.
 
 ## Build And Verification Notes
 
 - First full ABC builds can take several minutes.
-- Prefer incremental builds after editing only `src/extformace_ext/`.
+- Prefer incremental builds after editing only `src/formace_ext/`.
 - Suggested build command:
 
 ```bash
