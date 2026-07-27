@@ -191,7 +191,7 @@ typedef enum Cec_IncrEmitMode_t_
     CEC_EMIT_SKIPPED
 } Cec_IncrEmitMode_t;
 
-// Persistent event-driven simulation manager for &scorr incremental mode.
+// Persistent event-driven simulation manager for &scorr2 -I.
 // Packed input patterns and host-AIG values survive across CEX batches.  A
 // batch records only the input words it changes; real value deltas propagate
 // through the frame-aware fanout graph and dirty classes are fully regrouped.
@@ -268,8 +268,14 @@ struct Cec_SeedSim_t_
     Vec_Int_t *  vConeQueue;      // newly marked keys used to class-close pCone
     int *        pConeClose;      // (frame,root) stamp: class already closed this build
     int          nConeCloseVer;   // version for pConeClose
+    int          fVerify;         // (-V) check maintained values vs full sweep each batch
+    int *        pReprPre;        // (-V) class-repr snapshot captured before a batch
+    int *        pNextPre;        // (-V) class-next snapshot captured before a batch
     int          nFallbackStreak; // persists across resimulation calls
     int          nFallbackCooldown; // batches bypassed before next event probe
+    int          nAdaptLocal;     // decaying window: recent successful event batches
+    int          nAdaptFail;      // decaying window: recent event batches that fell back
+    int          nAdaptTrips;     // per-call adaptive cooldown activations
     // Class-refinement scratch.
     int *        pRootMark;       // per-objId "root already queued" stamp
     int          nRootVersion;
@@ -288,7 +294,7 @@ struct Cec_SeedSim_t_
     unsigned *   pPhase0;         // nWords of 0 (phase-0 vector, used by refine)
     unsigned *   pPhase1;         // nWords of ~0 (phase-1 vector)
     int          fOwnsFanout;     // 1 if we built static fanout (must free)
-    // Profile counters (reset per resim call)
+    // Per-call work state used by bounded fallback and adaptive control.
     int          nBatchLocal;     // rounds handled by local TFO sim
     int          nBatchFull;      // rounds that fell back to full sweep
     int          nBatchTrunc;     // local rounds that stopped optional TFO expansion
@@ -313,10 +319,12 @@ struct Cec_SeedSim_t_
     int          nEventInputVarsMax;  // largest changed-CI count in one batch
     int          nEventInputWordsMax; // largest changed-CI-word count in one batch
     int          nEventFallbackWork;  // structural word-operation budget exceeded
+    int          nEventFallbackTime;  // adaptive elapsed-time budget exceeded
 };
 
-// Dynamic SRM construction manager for &scorr incremental mode.  It keeps the
-// speculative SRM core used by SAT.
+// Dynamic SRM construction manager for &scorr2 -D.  It keeps the speculative SRM
+// core used by SAT; counterexample resimulation is selected independently by
+// -I and otherwise uses the original host-AIG path.
 typedef struct Cec_DynSrm_t_ Cec_DynSrm_t;
 
 // Recursive diagnosis has a much higher constant factor than a linear sweep.
@@ -337,6 +345,15 @@ typedef struct Cec_DynSrm_t_ Cec_DynSrm_t;
 // Consecutive wide cones use bounded exponential backoff.  A successful local
 // batch clears both the streak and cooldown immediately.
 #define CEC_SEEDSIM_MAX_FALLBACK_BACKOFF 7
+// Adaptive event-resim circuit breaker.  Logs showed good cases are strongly
+// local-heavy (400k: 161/0, fermat: 451/6) while bad cases are fallback-heavy
+// (RAV: 122/1335).  Use a small decaying window to probe again after cooldown
+// without repeatedly paying the failed event propagation cost.
+#define CEC_SEEDSIM_ADAPT_WINDOW 16
+#define CEC_SEEDSIM_ADAPT_MIN_SAMPLES 8
+#define CEC_SEEDSIM_ADAPT_FAIL_MUL 2
+#define CEC_SEEDSIM_ADAPT_FAIL_EXTRA 4
+#define CEC_SEEDSIM_ADAPT_MAX_COOLDOWN 31
 #define CEC_EVENT_NODE_WORD_FRAC_NUM 1
 #define CEC_EVENT_NODE_WORD_FRAC_DEN 10
 #define CEC_EVENT_EDGE_WORD_FRAC_NUM 1
@@ -361,13 +378,13 @@ typedef struct Cec_DynSrm_t_ Cec_DynSrm_t;
 
 /*=== cecCorr.c ============================================================*/
 extern void                 Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIter, abctime Time );
-extern void                 Cec_ManStartSimInfo( Vec_Ptr_t * vInfo, int nFlops );
-extern Vec_Int_t *          Gia_ManCorrCreateRemapping( Gia_Man_t * p );
-extern void                 Gia_ManCorrPerformRemapping( Vec_Int_t * vPairs, Vec_Ptr_t * vInfo );
-extern int                  Cec_ManLoadCounterExamples( Vec_Ptr_t * vInfo, Vec_Int_t * vCexStore, int iStart );
-extern int                  Gia_ManCorrSpecReal( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int f, int nPrefix );
-extern void                 Gia_ManCorrSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int f, int nPrefix );
-extern Gia_Man_t *          Gia_ManCorrSpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_Int_t ** pvOutputs, int fRings );
+/*=== cecCorr2.c ===========================================================*/
+extern int                  Gia_ManCorr2SpecReal( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int f, int nPrefix );
+extern void                 Gia_ManCorr2SpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int f, int nPrefix );
+extern Gia_Man_t *          Gia_ManCorr2SpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_Int_t ** pvOutputs, int fRings, Vec_Int_t ** pvOutLits );
+extern Gia_Man_t *          Cec_ManLSCorrespondence2( Gia_Man_t * pAig, Cec_ParCor_t * pPars );
+/*=== cecCorrCert.c =========================================================*/
+extern int                  Cec_ManCorrKissatCertify( Gia_Man_t * pSrm, Vec_Int_t * vOutputs, Vec_Int_t ** pvCexStore, Vec_Str_t ** pvStatus, int * piOut, int fVerbose );
 /*=== cecCorrIncr.c ============================================================*/
 extern Cec_IncrMgr_t *      Cec_IncrMgrAlloc( Gia_Man_t * pAig, int nFrames );
 extern void                 Cec_IncrMgrFree( Cec_IncrMgr_t * p );
@@ -380,16 +397,19 @@ extern void                 Cec_IncrMgrComputeTfo( Cec_IncrMgr_t * p );
 extern Gia_Man_t *          Gia_ManCorrSpecReduce_Emit( Gia_Man_t * p, int nFrames, int fScorr, Vec_Int_t ** pvOutputs, int fRings, int * pTfoMark, Cec_IncrMgr_t * pIncr, Cec_IncrEmitMode_t Mode, Vec_Int_t ** pvOutLits );
 extern Gia_Man_t *          Gia_ManCorrSpecReduceInit_Active( Gia_Man_t * p, int nFrames, int nPrefix, int fScorr, Vec_Int_t ** pvOutputs, int * pTfoMark );
 /*=== cecCorrDyn.c ============================================================*/
-extern Cec_DynSrm_t *       Cec_DynSrmAlloc( Gia_Man_t * pAig, Cec_IncrMgr_t * pIncr );
+extern Cec_DynSrm_t *       Cec_DynSrmAlloc( Gia_Man_t * pAig, Cec_IncrMgr_t * pIncr, int fUseAdaptive );
+extern void                 Cec_DynSrmSetParams( Cec_DynSrm_t * p, Cec_ParCor_t * pPars );
+extern void                 Cec_DynSrmForceRebuild( Cec_DynSrm_t * p, int fIncrFallback );
 extern void                 Cec_DynSrmFree( Cec_DynSrm_t * p );
-extern void                 Cec_DynSrmPrintStats( Cec_DynSrm_t * p );
+extern void                 Cec_DynSrmRecordSolveStats( Cec_DynSrm_t * p, int nCalls, int nReal, int nTriv, int nFail, abctime tSat );
 extern void                 Cec_DynSrmCountActivePairs( Cec_DynSrm_t * p, int fRings, int * pTfoMark, int * pnTotal, int * pnActive );
 extern Gia_Man_t *          Cec_DynSrmBuild( Cec_DynSrm_t * p, int nFrames, int fScorr, Vec_Int_t ** pvOutputs, int fRings, int * pTfoMask, Cec_IncrEmitMode_t Mode );
 extern void                 Cec_DynSrmBuildCore( Cec_DynSrm_t * p, int nFrames, int fScorr, Vec_Int_t ** pvOutputs, int fRings, int * pTfoMask, Cec_IncrEmitMode_t Mode );
 extern Gia_Man_t *          Cec_DynSrmBuildInit( Cec_DynSrm_t * p, int nFrames, int nPrefix, int fScorr, Vec_Int_t ** pvOutputs, int * pTfoMask, Cec_IncrEmitMode_t Mode );
 extern void                 Cec_DynSrmBuildCoreInit( Cec_DynSrm_t * p, int nFrames, int nPrefix, int fScorr, Vec_Int_t ** pvOutputs, int * pTfoMask, Cec_IncrEmitMode_t Mode );
 extern Vec_Int_t *          Cec_DynSrmOutLits( Cec_DynSrm_t * p );
-extern Vec_Int_t *          Cec_DynSrmSolve( Cec_DynSrm_t * p, int nConfs, Vec_Str_t ** pvStatus );
+extern Vec_Int_t *          Cec_DynSrmSolve( Cec_DynSrm_t * p, int nConfs, Vec_Str_t ** pvStatus, int fUseTas );
+extern Vec_Int_t *          Cec_DynSrmSolveBmcAdaptive( Cec_DynSrm_t * p, int nConfs, Vec_Str_t ** pvStatus, int fUseTas );
 /*=== cecCorrIncrSim.c ============================================================*/
 extern Cec_SeedSim_t *      Cec_SeedSimAlloc( Gia_Man_t * pAig, int nFrames, int iSeedFrame, int nWords );
 extern void                 Cec_SeedSimFree( Cec_SeedSim_t * p );
@@ -401,6 +421,9 @@ extern void                 Cec_SeedSimBeginCall( Cec_SeedSim_t * p );
 extern void                 Cec_SeedSimBypassBatch( Cec_SeedSim_t * p, int nCex );
 extern void                 Cec_SeedSimEnsurePersistent( Cec_SeedSim_t * p, Cec_ManSim_t * pSim );
 extern void                 Cec_SeedSimBuildClassCone( Cec_SeedSim_t * p, Vec_Int_t * vOutputs );
+extern int                  Cec_SeedSimVerifyValues( Cec_SeedSim_t * p );
+extern void                 Cec_SeedSimVerifySnapshot( Cec_SeedSim_t * p );
+extern int                  Cec_SeedSimVerifyRefine( Cec_SeedSim_t * p, Cec_ManSim_t * pSim, Vec_Ptr_t * vSimInfo, int nFrames );
 extern int                  Cec_SeedSimLoadPersistentBatch( Cec_SeedSim_t * p, Vec_Int_t * vCexStore, int iStart, Vec_Int_t * vPairs, Vec_Int_t * vOutBits );
 extern void                 Cec_SeedSimRestorePersistentInputs( Cec_SeedSim_t * p );
 /*=== cecClass.c ============================================================*/
@@ -466,4 +489,3 @@ ABC_NAMESPACE_HEADER_END
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-

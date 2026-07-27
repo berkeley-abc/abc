@@ -159,6 +159,9 @@ struct Cec_ParCor_t_
     int              nLevelMax;     // (scorr only) the max number of levels
     int              nStepsMax;     // (scorr only) the max number of induction steps
     int              nLimitMax;     // (scorr only) stop after this many iterations if little or no improvement
+    int              nIncrFallbackPct; // (-i) fall back to full SRM when active pairs exceed this percent
+    int              nDynSrmRebuildPct; // (-D) cold-rebuild when active pairs exceed this percent
+    int              nDynSrmCompactMult; // (-D) cold-compact when core exceeds this multiple of reset size
     int              fLatchCorr;    // consider only latch outputs
     int              fConstCorr;    // consider only constants
     int              fUseRings;     // use rings
@@ -167,10 +170,16 @@ struct Cec_ParCor_t_
 //    int              fFirstStop;    // stop on the first sat output
     int              fUseSmartCnf;  // use smart CNF computation
     int              fStopWhenGone; // quit when PO is not a candidate constant
-    int              fIncremental;  // integrated incremental mode for &scorr
+    int              fIncremental;  // active-list/TFO-triggered reproof in main loop
+    int              fIncrOracle;   // internal unbounded shadow SAT for pairs skipped by -i
     int              fIncrSim;      // persistent CEX-TFO-only resimulation after SAT
     int              fDynSrm;       // persistent dynamic SRM and true-unroll resimulation
+    int              fDynSrmNoAdapt;// disable adaptive cold-rebuilds in DynSRM
+    int              fUseTas;       // use TAS (vs CBS) for persistent solving (-D)
+    int              fBmcTasAdaptive;// use guarded CBS-first/TAS-rescue policy in BMC
+    int              fKissatCert;   // strictly audit final base+step obligations with Kissat
     int              fSkipFailResim;// skip resim in rounds with no real CEX (only timeout/fail)
+    int              fVerifyResim;  // internal oracle: check incremental resim values vs full sweep
     int              fVerboseFlops; // verbose stats
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats
