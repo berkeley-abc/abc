@@ -1140,6 +1140,14 @@ SOURCE=.\src\base\acb\acbUtil.c
 # End Group
 # Begin Group "wln"
 
+SOURCE=.\src\base\acb\acbXec.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\acb\acbXec.h
+# End Source File
+# Begin Source File
+
 # PROP Default_Filter ""
 # Begin Source File
 
