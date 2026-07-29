@@ -14,8 +14,7 @@
 #define ABC__base__acb__acbXec_h
 
 #include "acb.h"
-
-typedef struct Cnf_Dat_t_ Cnf_Dat_t;
+#include "sat/cnf/cnf.h"
 
 ABC_NAMESPACE_HEADER_START
 
