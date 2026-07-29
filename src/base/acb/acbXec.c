@@ -81,7 +81,7 @@ static inline word Acb_XecGiaLitWord( Vec_Wrd_t * vSims, int nWords, int Lit, in
     word Res = Vec_WrdEntry( vSims, Abc_Lit2Var(Lit) * nWords + w );
     return Abc_LitIsCompl(Lit) ? ~Res : Res;
 }
-int * Acb_NtkSolveCadicalLimit( Gia_Man_t * p, int fUseHeavyOpt, int fVerbose, int * pStatus, int nSatTimeLimit, char * pLabel, int fUseXecOutputClauses )
+int * Acb_NtkSolveCadicalLimit( Gia_Man_t * p, int fUseHeavyOpt, int fVerbose, int * pStatus, int nSatTimeLimit, const char * pLabel, int fUseXecOutputClauses )
 {
     Aig_Man_t * pMan = NULL;
     Cnf_Dat_t * pCnf = NULL;

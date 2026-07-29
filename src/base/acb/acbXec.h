@@ -59,7 +59,7 @@ static inline void Acb_XecMergeTargetStatus( int StatusTarget, int fHasModel, in
         *pStatus = ACB_XEC_NEQ;
 }
 
-extern int *      Acb_NtkSolveCadicalLimit( Gia_Man_t * p, int fUseHeavyOpt, int fVerbose, int * pStatus, int nSatTimeLimit, char * pLabel, int fUseXecOutputClauses );
+extern int *      Acb_NtkSolveCadicalLimit( Gia_Man_t * p, int fUseHeavyOpt, int fVerbose, int * pStatus, int nSatTimeLimit, const char * pLabel, int fUseXecOutputClauses );
 extern int        Acb_CnfCoDriverLit( Cnf_Dat_t * pCnf, int iCo, int * pLit );
 extern int        Acb_GiaAllPosConst0( Gia_Man_t * p );
 
