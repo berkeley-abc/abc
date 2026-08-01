@@ -927,6 +927,79 @@ void Abc_NtkDelayTraceCritPathCollect_rec( Vec_Int_t * vSlacks, Abc_Obj_t * pNod
 
 /**Function*************************************************************
 
+  Synopsis    [Checks if the library has non-zero fanout delays.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Abc_LibraryHasFanoutDelay( Mio_Library_t * pLib )
+{
+    Mio_Gate_t * pGate;
+    Mio_Pin_t * pPin;
+    Mio_LibraryForEachGate( pLib, pGate )
+        Mio_GateForEachPin( pGate, pPin )
+            if ( Mio_PinReadDelayFanoutRise(pPin) != 0.0 || Mio_PinReadDelayFanoutFall(pPin) != 0.0 )
+                return 1;
+    return 0;
+}
+
+static float Abc_LibraryReadOutputLoad( Mio_Library_t * pLib )
+{
+    // use the inverter input load as the library-derived default CO load
+    Mio_Gate_t * pGate = Mio_LibraryReadInv( pLib );
+    Mio_Pin_t * pPin;
+    if ( pGate == NULL )
+        pGate = Mio_LibraryReadBuf( pLib );
+    pPin = pGate ? Mio_GateReadPins(pGate) : NULL;
+    return pPin ? (float)Mio_PinReadInputLoad(pPin) : 0.0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the load driven by the node output.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static float Abc_NodeDelayLoad( Abc_Obj_t * pNode, float OutputLoad )
+{
+    Abc_Obj_t * pFanout;
+    Mio_Pin_t * pPin;
+    float Load = 0.0;
+    int i, k, iFanin;
+    Abc_ObjForEachFanout( pNode, pFanout, i )
+    {
+        if ( Abc_ObjIsCo(pFanout) )
+        {
+            Load += OutputLoad;
+            continue;
+        }
+        if ( !Abc_ObjIsNode(pFanout) || pFanout->pData == NULL )
+        {
+            Load += OutputLoad;
+            continue;
+        }
+        iFanin = Abc_NodeFindFanin( pFanout, pNode );
+        assert( iFanin >= 0 );
+        pPin = Mio_GateReadPins( (Mio_Gate_t *)pFanout->pData );
+        for ( k = 0; k < iFanin; k++ )
+            pPin = Mio_PinReadNext( pPin );
+        assert( pPin != NULL );
+        Load += (float)Mio_PinReadInputLoad( pPin );
+    }
+    return Load;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -936,11 +1009,11 @@ void Abc_NtkDelayTraceCritPathCollect_rec( Vec_Int_t * vSlacks, Abc_Obj_t * pNod
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode, Vec_Int_t * vSlacks )
+static void Abc_NodeDelayTraceArrivalInt( Abc_Obj_t * pNode, Vec_Int_t * vSlacks, int fUseFanoutDelay, float OutputLoad )
 {
     Abc_Obj_t * pFanin;
     Abc_Time_t * pTimeIn, * pTimeOut;
-    float tDelayBlockRise, tDelayBlockFall;
+    float tDelayBlockRise, tDelayBlockFall, Load;
     Mio_PinPhase_t PinPhase;
     Mio_Pin_t * pPin;
     int i;
@@ -955,6 +1028,7 @@ void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode, Vec_Int_t * vSlacks )
         *pTimeOut = *pTimeIn;
         return;
     }
+    Load = fUseFanoutDelay ? Abc_NodeDelayLoad(pNode, OutputLoad) : 0.0;
     // go through the pins of the gate
     pPin = Mio_GateReadPins((Mio_Gate_t *)pNode->pData);
     Abc_ObjForEachFanin( pNode, pFanin, i )
@@ -964,6 +1038,11 @@ void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode, Vec_Int_t * vSlacks )
         PinPhase = Mio_PinReadPhase(pPin);
         tDelayBlockRise = (float)Mio_PinReadDelayBlockRise( pPin );  
         tDelayBlockFall = (float)Mio_PinReadDelayBlockFall( pPin );  
+        if ( fUseFanoutDelay )
+        {
+            tDelayBlockRise += (float)Mio_PinReadDelayFanoutRise( pPin ) * Load;
+            tDelayBlockFall += (float)Mio_PinReadDelayFanoutFall( pPin ) * Load;
+        }
         // compute the arrival times of the positive phase
         if ( PinPhase != MIO_PHASE_INV )  // NONINV phase is present
         {
@@ -995,6 +1074,11 @@ void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode, Vec_Int_t * vSlacks )
             PinPhase = Mio_PinReadPhase(pPin);
             tDelayBlockRise = (float)Mio_PinReadDelayBlockRise( pPin );  
             tDelayBlockFall = (float)Mio_PinReadDelayBlockFall( pPin );  
+            if ( fUseFanoutDelay )
+            {
+                tDelayBlockRise += (float)Mio_PinReadDelayFanoutRise( pPin ) * Load;
+                tDelayBlockFall += (float)Mio_PinReadDelayFanoutFall( pPin ) * Load;
+            }
             // compute the arrival times of the positive phase
             Slack = ABC_INFINITY;
             if ( PinPhase != MIO_PHASE_INV )  // NONINV phase is present
@@ -1011,6 +1095,13 @@ void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode, Vec_Int_t * vSlacks )
             Abc_NtkDelayTraceSetSlack( vSlacks, pNode, i, Slack );
         }
     }
+}
+
+void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode, Vec_Int_t * vSlacks )
+{
+    Mio_Library_t * pLib = (Mio_Library_t *)pNode->pNtk->pManFunc;
+    int fUseFanoutDelay = Abc_LibraryHasFanoutDelay( pLib );
+    Abc_NodeDelayTraceArrivalInt( pNode, vSlacks, fUseFanoutDelay, Abc_LibraryReadOutputLoad(pLib) );
 }
 
 
@@ -1034,8 +1125,8 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, in
     Abc_Obj_t * pNode, * pDriver;
     Vec_Ptr_t * vNodes;
     Abc_Time_t * pTime;
-    float tArrivalMax;
-    int i;
+    float tArrivalMax, OutputLoad;
+    int i, fUseFanoutDelay;
 
     assert( Abc_NtkIsMappedLogic(pNtk) );
     assert( pOut == NULL || Abc_ObjIsCo(pOut) );
@@ -1045,11 +1136,14 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, in
     if ( pOut || pIn || fPrint )
         vSlacks = Abc_NtkDelayTraceSlackStart( pNtk );
 
+    fUseFanoutDelay = Abc_LibraryHasFanoutDelay( (Mio_Library_t *)pNtk->pManFunc );
+    OutputLoad = Abc_LibraryReadOutputLoad( (Mio_Library_t *)pNtk->pManFunc );
+
     // compute the timing
     Abc_NtkTimePrepare( pNtk );
     vNodes = Abc_NtkDfs( pNtk, 1 );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
-        Abc_NodeDelayTraceArrival( pNode, vSlacks );
+        Abc_NodeDelayTraceArrivalInt( pNode, vSlacks, fUseFanoutDelay, OutputLoad );
     Vec_PtrFree( vNodes );
 
     // get the latest arrival times
@@ -1437,4 +1531,3 @@ void Abc_NtkUpdate( Abc_Obj_t * pObj, Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
 
 
 ABC_NAMESPACE_IMPL_END
-
