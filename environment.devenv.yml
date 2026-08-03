@@ -1,4 +1,7 @@
-name: abc-test
+name: abctest
+
+channels:
+  - conda-forge
 
 dependencies:
   - python ={{ get_env("PY_VER", default="3.10") }}
