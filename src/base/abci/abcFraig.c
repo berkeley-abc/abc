@@ -670,13 +670,29 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtkAdd )
         extern int Abc_NodeCompareCiCo( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew );
         if ( !Abc_NodeCompareCiCo(pNtk, (Abc_Ntk_t *)Vec_PtrEntry(vStore, 0)) )
         {
+            // Abc_NtkCompareSignals() sorts the PIs/POs/boxes of both networks by name as a
+            // side effect, which is what makes the comparison meaningful when the two do use
+            // the same names.  When they do not, the comparison fails, the store is reset and
+            // this network is kept -- so the sort has to be undone here.  Otherwise the stored
+            // network is a permutation of the one the caller read in, and everything after it
+            // is off by that permutation with nothing to indicate it.
+            Vec_Ptr_t * vPis   = Vec_PtrDup( pNtk->vPis );
+            Vec_Ptr_t * vPos   = Vec_PtrDup( pNtk->vPos );
+            Vec_Ptr_t * vBoxes = Vec_PtrDup( pNtk->vBoxes );
             // reorder PIs of pNtk2 according to pNtk1
             if ( !Abc_NtkCompareSignals( pNtk, (Abc_Ntk_t *)Vec_PtrEntry(vStore, 0), 1, 1 ) )
             {
+                Vec_PtrFree( pNtk->vPis );   pNtk->vPis   = vPis;   vPis   = NULL;
+                Vec_PtrFree( pNtk->vPos );   pNtk->vPos   = vPos;   vPos   = NULL;
+                Vec_PtrFree( pNtk->vBoxes ); pNtk->vBoxes = vBoxes; vBoxes = NULL;
+                Abc_NtkOrderCisCos( pNtk );
                 printf( "Trying to store the network with different primary inputs.\n" );
                 printf( "The previously stored networks are deleted and this one is added.\n" );
                 Abc_NtkFraigStoreClean();
             }
+            if ( vPis )   Vec_PtrFree( vPis );
+            if ( vPos )   Vec_PtrFree( vPos );
+            if ( vBoxes ) Vec_PtrFree( vBoxes );
         }
     }
     Vec_PtrPush( vStore, pNtk );
