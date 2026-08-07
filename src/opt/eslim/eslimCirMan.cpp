@@ -564,7 +564,13 @@ namespace eSLIM {
       node_ids[i] = id;
     }
 
-    return pNew;
+    // Rehash before returning: without structural hashing, ANDs that become trivial
+    // under hashing (e.g. AND(x,!x)->const) remain as unreachable nodes after
+    // Gia_ManToAig, which causes Aig_ManDupDfs / Aig_ManDfs to assert during
+    // inprocessing (DeepSyn / &dch).
+    Gia_Man_t * pStrash = Gia_ManRehash( pNew, 0 );
+    Gia_ManStop( pNew );
+    return pStrash;
   }
 
   Abc_Ntk_t* eSLIMCirMan::eSLIMCirManToNtk() {

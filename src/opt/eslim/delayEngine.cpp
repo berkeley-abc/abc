@@ -121,9 +121,17 @@ namespace eSLIM {
   }
   
   std::vector<bool> DelayEngine::reduceDelay(unsigned int max_size, unsigned int initial_delay) {
-    assert (delay_selectors.find(initial_delay) != delay_selectors.end());
+    // delay_selectors keys are arrival+remaining+d and need not be contiguous.
+    // Callers may pass a value that falls in a gap (e.g. replacement_delay-1 after
+    // area minimization). Use lower_bound (map is ordered by std::greater) to start
+    // from the largest representable delay <= initial_delay instead of requiring an
+    // exact key, which previously asserted and aborted.
     std::vector<bool> last_model;
-    for( auto it = delay_selectors.find(initial_delay); it != delay_selectors.end(); ++it ) {
+    auto it = delay_selectors.lower_bound(initial_delay);
+    if (it == delay_selectors.end()) {
+      return last_model;
+    }
+    for (; it != delay_selectors.end(); ++it ) {
       int d = it->first;
       double timeout = getDynamicTimeout(max_size);
       int status = existsReplacement(max_size, d, timeout);
