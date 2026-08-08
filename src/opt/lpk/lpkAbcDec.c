@@ -202,6 +202,24 @@ pMan->timeEvalMuxAn += Abc_Clock() - clk;
     assert( pResMux == NULL || pResDsd == NULL );
     if ( pResMux )
     {
+        // Lpk_MuxAnalize() decides feasibility from the cached cofactor supports in
+        // p->puSupps.  Those may have come from Lpk_ComputeSupports(), which derives
+        // them from two BDDs built in opposite variable orders and stitches the halves
+        // together, and that estimate can be a strict SUBSET of the true cofactor
+        // support.  When it is, the component retained by the split below ends up with
+        // no vacant fanin slot for the component that is split off, and Lpk_MuxSplit()
+        // fails its assertion `iVarVac < (int)p->nVars'.  Re-derive the one support the
+        // split actually depends on and decline the MUX decomposition if it does not fit.
+        unsigned * pTruthThis = Lpk_FunTruth( p, 0 );
+        unsigned * pTruthCof  = Lpk_FunTruth( p, 1 );
+        unsigned uSuppExact;
+        if ( pResMux->Polarity )
+            Kit_TruthCofactor1New( pTruthCof, pTruthThis, p->nVars, pResMux->Variable );
+        else
+            Kit_TruthCofactor0New( pTruthCof, pTruthThis, p->nVars, pResMux->Variable );
+        uSuppExact = Kit_TruthSupport( pTruthCof, p->nVars ) | ( 1 << pResMux->Variable );
+        if ( Kit_WordCountOnes( uSuppExact ) >= (int)p->nVars )
+            return 0;
 clk = Abc_Clock();
         p2 = Lpk_MuxSplit( pMan, p, pResMux->Variable, pResMux->Polarity );
 pMan->timeEvalMuxSp += Abc_Clock() - clk;
