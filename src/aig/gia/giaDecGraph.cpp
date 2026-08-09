@@ -2211,4 +2211,106 @@ Gia_Man_t* Gia_ManDecGraphFromFile(char* pFileName) {
     return pNew;
 }
 
+extern "C" int Gia_ManVerifyTruthFile(Gia_Man_t* p, char* pFileName, int fVerbose) {
+    const int nIns = Gia_ManCiNum(p);
+    const int nOuts = Gia_ManCoNum(p);
+    char* pBuffer;
+    char* table;
+    uint64_t nBits;
+    int iOut = 0;
+    int result = -1;
+
+    if (Gia_ManRegNum(p) != 0) {
+        Abc_Print(-1, "Truth-table verification requires a combinational network.\n");
+        return -1;
+    }
+    if (nIns >= 63) {
+        Abc_Print(-1, "A .truth file cannot represent a network with %d inputs.\n", nIns);
+        return -1;
+    }
+    nBits = (uint64_t)1 << nIns;
+    pBuffer = Extra_FileReadContents(pFileName);
+    if (pBuffer == NULL) {
+        Abc_Print(-1, "Cannot read truth-table file \"%s\".\n", pFileName);
+        return -1;
+    }
+
+    Abc_CexFreeP(&p->pCexComb);
+    Gia_ObjComputeTruthTableStart(p, nIns);
+    table = strtok(pBuffer, " \r\n\t|");
+    while (table != NULL) {
+        const uint64_t tableSize = strlen(table);
+        DecGraph::TruthTable fileTruth;
+        DecGraph::TruthTable giaTruth;
+        Gia_Obj_t* pObj;
+        word* pTruth;
+        uint64_t i;
+
+        if (iOut == nOuts) {
+            Abc_Print(-1, "Truth-table file \"%s\" has more than %d outputs.\n", pFileName, nOuts);
+            goto finish;
+        }
+        if (tableSize != nBits) {
+            Abc_Print(-1, "Output %d in truth-table file \"%s\" has %llu bits; expected %llu for %d inputs.\n",
+                iOut, pFileName, (unsigned long long)tableSize, (unsigned long long)nBits, nIns);
+            goto finish;
+        }
+        for (i = 0; i < tableSize; ++i) {
+            if (table[i] != '0' && table[i] != '1') {
+                Abc_Print(-1, "Unexpected character '%c' in output %d of truth-table file \"%s\".\n",
+                    table[i], iOut, pFileName);
+                goto finish;
+            }
+        }
+
+        fileTruth.readBinaryReverse(table);
+        giaTruth.create(nBits);
+        pObj = Gia_ManCo(p, iOut);
+        pTruth = Gia_ObjComputeTruthTable(p, Gia_ObjFanin0(pObj));
+        if (nIns >= 6) {
+            for (i = 0; i < giaTruth.nWords(); ++i)
+                giaTruth.data()[i] = Gia_ObjFaninC0(pObj) ? ~DecGraph::reverseBits(pTruth[i]) : DecGraph::reverseBits(pTruth[i]);
+        } else {
+            word value = (Gia_ObjFaninC0(pObj) ? ~pTruth[0] : pTruth[0]) & DecGraph::ones_mask[nIns];
+            giaTruth.data()[0] = DecGraph::reverseBits(value);
+        }
+
+        if (fileTruth != giaTruth) {
+            uint64_t iMint = 0;
+            p->pCexComb = Abc_CexAlloc(0, nIns, 1);
+            p->pCexComb->iPo = iOut;
+            for (i = 0; i < fileTruth.nWords(); ++i) {
+                word diff = fileTruth.data()[i] ^ giaTruth.data()[i];
+                if (diff == 0)
+                    continue;
+                for (int b = 0; b < 64; ++b)
+                    if (diff & ((word)1 << (63 - b))) {
+                        iMint = 64 * i + b;
+                        break;
+                    }
+                break;
+            }
+            for (int v = 0; v < nIns; ++v)
+                if ((iMint >> v) & 1)
+                    Abc_InfoSetBit(p->pCexComb->pData, v);
+            if (fVerbose)
+                Abc_Print(1, "Truth tables differ for output %d at minterm %llu.\n", iOut, (unsigned long long)iMint);
+            result = 0;
+            goto finish;
+        }
+        ++iOut;
+        table = strtok(NULL, " \r\n\t|");
+    }
+    if (iOut != nOuts) {
+        Abc_Print(-1, "Truth-table file \"%s\" has %d outputs; expected %d.\n", pFileName, iOut, nOuts);
+        goto finish;
+    }
+    result = 1;
+
+finish:
+    Gia_ObjComputeTruthTableStop(p);
+    ABC_FREE(pBuffer);
+    return result;
+}
+
 ABC_NAMESPACE_IMPL_END

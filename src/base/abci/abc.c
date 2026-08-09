@@ -702,6 +702,11 @@ extern int Cec_GiaReplayTest( Gia_Man_t * p, Wlc_Ntk_t * pWlc, char * pFileName,
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+#ifdef __cplusplus
+extern "C"
+#endif
+int Gia_ManVerifyTruthFile( Gia_Man_t * p, char * pFileName, int fVerbose );
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -44166,6 +44171,29 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             FileName = pAbc->pGia->pSpec;
         }
+        if ( fUseSim && nArgcNew == 1 && !strcmp( Extra_FileNameExtension(FileName), "truth" ) )
+        {
+            abctime clk = Abc_Clock();
+            int Status = Gia_ManVerifyTruthFile( pGias[0], FileName, pPars->fVerbose );
+            if ( Status == 1 )
+                Abc_Print( 1, "Network and truth table are equivalent.  " );
+            else if ( Status == 0 )
+                Abc_Print( 1, "Network and truth table are NOT equivalent.  " );
+            else
+            {
+                Vec_PtrFree( vDefines );
+                Vec_PtrFree( vBoxes );
+                Vec_PtrFree( vInsts );
+                return 1;
+            }
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+            pAbc->Status = Status;
+            Abc_FrameReplaceCex( pAbc, &pGias[0]->pCexComb );
+            Vec_PtrFree( vDefines );
+            Vec_PtrFree( vBoxes );
+            Vec_PtrFree( vInsts );
+            return 0;
+        }
         pGias[1] = Abc_ReadAigerOrVerilogFile( FileName, pFileName2, pTopModule, vDefines, vBoxes, vInsts, &Abc_ReadAigerOrVerilogFileStatus );
         if ( pGias[1] == NULL )
         {
@@ -44327,7 +44355,7 @@ usage:
     Abc_Print( -2, "\t-s     : toggle silent operation [default = %s]\n", pPars->fSilent ? "yes":"no");
     Abc_Print( -2, "\t-x     : toggle using new solver [default = %s]\n", fUseNewX? "yes":"no");
     Abc_Print( -2, "\t-y     : toggle using new solver [default = %s]\n", fUseNewY? "yes":"no");
-    Abc_Print( -2, "\t-t     : toggle using simulation [default = %s]\n", fUseSim? "yes":"no");
+    Abc_Print( -2, "\t-t     : toggle using simulation; accepts one .truth file for the current network [default = %s]\n", fUseSim? "yes":"no");
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes":"no");
     Abc_Print( -2, "\t-w     : toggle printing SAT solver statistics [default = %s]\n", pPars->fVeryVerbose? "yes":"no");
     Abc_Print( -2, "\t-h     : print the command usage\n");
