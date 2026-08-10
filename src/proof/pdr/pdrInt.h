@@ -129,6 +129,8 @@ struct Pdr_Man_t_
     Gip_Ctx_t * pGipCtx;
     Vec_Ptr_t * vGipSolvers;
     Vec_Int_t * vGipLits;  // scratch (constraint clause literals)
+    Vec_Int_t * vGipOrder; // scratch (assumption ordering)
+    int         fGipOrdNow;// with fFlopOrder: this query orders assumptions by vPrio (desc)
     // terminary simulation
     Txs3_Man_t * pTxs3;      
     // internal use
@@ -233,6 +235,7 @@ extern int             Pdr_ManCheckCubeCs( Pdr_Man_t * p, int k, Pdr_Set_t * pCu
 extern int             Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPred, int nConfLimit, int fTryConf, int fUseLit );
 extern Gip_Solver_t *  Pdr_ManGipSolver( Pdr_Man_t * p, int k );
 extern Vec_Int_t *     Pdr_ManGipCubeToLits( Pdr_Man_t * p, Pdr_Set_t * pCube, int fCompl, int fNext, Vec_Int_t * vOut );
+extern Vec_Int_t *     Pdr_ManGipCubeToLitsOrdered( Pdr_Man_t * p, Pdr_Set_t * pCube, int fCompl, int fNext, Vec_Int_t * vOut );
 /*=== pdrTsim.c ==========================================================*/
 extern Pdr_Set_t *     Pdr_ManTernarySim( Pdr_Man_t * p, int k, Pdr_Set_t * pCube );
 /*=== pdrTsim2.c ==========================================================*/

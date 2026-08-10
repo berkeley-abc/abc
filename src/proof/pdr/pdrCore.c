@@ -232,7 +232,9 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
             }
 
             // check if the clause can be moved to the next frame
+            p->fGipOrdNow = 1;
             RetValue2 = Pdr_ManCheckCube( p, k, pCubeK, NULL, 0, 0, 1 );
+            p->fGipOrdNow = 0;
             if ( RetValue2 == -1 )
                 return -1;
             if ( !RetValue2 )
@@ -1113,7 +1115,9 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
     *ppCubeMin = NULL;
     if ( p->pPars->fFlopOrder )
         Vec_IntSelectSortPrioReverseLit( pCube->Lits, pCube->nLits, p->vPrio );
+    p->fGipOrdNow = 1;
     RetValue = Pdr_ManCheckCube( p, k, pCube, ppPred, p->pPars->nConfLimit, 0, 1 );
+    p->fGipOrdNow = 0;
     if ( p->pPars->fFlopOrder )
         Vec_IntSelectSort( pCube->Lits, pCube->nLits );
     if ( RetValue == -1 )
@@ -1192,10 +1196,12 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
 
             // try removing this literal
             Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1;
+            p->fGipOrdNow = 1;
             if ( p->pPars->fSkipDown )
                 RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit, 1, !p->pPars->fSimpleGeneral );
             else
                 RetValue = Pdr_ManCheckCube( p, k, pCubeMin, &pPred, p->pPars->nConfLimit, 1, !p->pPars->fSimpleGeneral );
+            p->fGipOrdNow = 0;
             if ( RetValue == -1 )
             {
                 Pdr_ManGipUnsetMicDomain( p, k );
@@ -1281,7 +1287,9 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
                     continue;
                 // try removing this literal
                 Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1;
+                p->fGipOrdNow = 1;
                 RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit, 0, 1 );
+                p->fGipOrdNow = 0;
                 if ( RetValue == -1 )
                 {
                     Pdr_ManGipUnsetMicDomain( p, k );

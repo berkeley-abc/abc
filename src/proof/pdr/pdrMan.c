@@ -291,6 +291,7 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
         p->pGipCtx     = Gip_CtxCreate( pAig, p->pCnfMan );
         p->vGipSolvers = Vec_PtrAlloc( 0 );
         p->vGipLits    = Vec_IntAlloc( 100 );
+        p->vGipOrder   = Vec_IntAlloc( 100 );
     }
     // ternary simulation
     p->pTxs3    = pPars->fNewXSim ? Txs3_ManStart( p, pAig, p->vPrio ) : NULL;
@@ -363,6 +364,7 @@ void Pdr_ManStop( Pdr_Man_t * p )
     }
     Gip_CtxFree( p->pGipCtx );
     Vec_IntFreeP( &p->vGipLits );
+    Vec_IntFreeP( &p->vGipOrder );
     Vec_VecForEachEntry( Pdr_Set_t *, p->vClauses, pCla, i, k )
         Pdr_SetDeref( pCla );
     Vec_VecFree( p->vClauses );

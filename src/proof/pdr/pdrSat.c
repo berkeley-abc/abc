@@ -82,6 +82,64 @@ Vec_Int_t * Pdr_ManGipCubeToLits( Pdr_Man_t * p, Pdr_Set_t * pCube, int fCompl, 
 
 /**Function*************************************************************
 
+  Synopsis    [Converts a register cube into GipSAT literals, ordered by vPrio.]
+
+  Description [Used with fFlopOrder: mirrors rIC3's with_act_order
+  queries, which sort the cube by IC3 activity (descending) before
+  converting to assumptions. GipSAT places assumptions one decision
+  level at a time in the given order, so the order steers where
+  conflicts occur and hence which unsat core is produced. Ties broken
+  by flop index ascending. Does not touch the Pdr_Set itself.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Pdr_ManGipCubeToLitsOrdered( Pdr_Man_t * p, Pdr_Set_t * pCube, int fCompl, int fNext, Vec_Int_t * vOut )
+{
+    Aig_Obj_t * pObj;
+    int i, j, best, iVar, Lit, LitB;
+    Vec_Int_t * vIdx = p->vGipOrder;
+    Vec_IntClear( vIdx );
+    for ( i = 0; i < pCube->nLits; i++ )
+        if ( pCube->Lits[i] != -1 )
+            Vec_IntPush( vIdx, i );
+    for ( i = 0; i < Vec_IntSize(vIdx) - 1; i++ )
+    {
+        best = i;
+        for ( j = i + 1; j < Vec_IntSize(vIdx); j++ )
+        {
+            Lit  = pCube->Lits[Vec_IntEntry(vIdx, j)];
+            LitB = pCube->Lits[Vec_IntEntry(vIdx, best)];
+            if (  Vec_IntEntry(p->vPrio, Lit >> 1) >  Vec_IntEntry(p->vPrio, LitB >> 1) ||
+                 (Vec_IntEntry(p->vPrio, Lit >> 1) == Vec_IntEntry(p->vPrio, LitB >> 1) && Lit < LitB) )
+                best = j;
+        }
+        if ( best != i )
+        {
+            int Tmp = Vec_IntEntry( vIdx, i );
+            Vec_IntWriteEntry( vIdx, i, Vec_IntEntry(vIdx, best) );
+            Vec_IntWriteEntry( vIdx, best, Tmp );
+        }
+    }
+    Vec_IntClear( vOut );
+    Vec_IntForEachEntry( vIdx, j, i )
+    {
+        Lit = pCube->Lits[j];
+        if ( fNext )
+            pObj = Saig_ManLi( p->pAig, Abc_Lit2Var(Lit) );
+        else
+            pObj = Saig_ManLo( p->pAig, Abc_Lit2Var(Lit) );
+        iVar = Gip_ObjVar( pObj );
+        assert( iVar >= 0 );
+        Vec_IntPush( vOut, Abc_Var2Lit( iVar, fCompl ^ Abc_LitIsCompl(Lit) ) );
+    }
+    return vOut;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates new SAT solver.]
 
   Description []
@@ -435,7 +493,10 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
                 nCstLits[0] = Vec_IntSize( p->vGipLits );
                 nCst = 1;
             }
-            vLits = Pdr_ManGipCubeToLits( p, pCube, 0, 1, p->vLits );
+            if ( p->pPars->fFlopOrder && p->fGipOrdNow )
+                vLits = Pdr_ManGipCubeToLitsOrdered( p, pCube, 0, 1, p->vLits );
+            else
+                vLits = Pdr_ManGipCubeToLits( p, pCube, 0, 1, p->vLits );
             clk = Abc_Clock();
             pGip->nConfLimit = fTryConf ? p->pPars->nConfGenLimit : nConfLimit;
             pGip->TimeLimit  = Pdr_ManTimeLimit( p );
