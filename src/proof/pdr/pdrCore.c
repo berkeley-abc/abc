@@ -72,6 +72,7 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->fCtgs          =       0;  // handle CTGs in down
     pPars->fUseAbs        =       0;  // use abstraction 
     pPars->fUseSimpleRef  =       0;  // simplified CEX refinement
+    pPars->fUseGipSat     =       0;  // use GipSAT solver (rIC3 port)
     pPars->fVerbose       =       0;  // verbose output
     pPars->fVeryVerbose   =       0;  // very verbose output
     pPars->fNotVerbose    =       0;  // not printing line-by-line progress
@@ -87,10 +88,39 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
 
 /**Function*************************************************************
 
+  Synopsis    [Fixes/releases a temporary GipSAT domain for the MIC loop.]
+
+  Description [During generalization the domain is fixed once from the
+  initial cube (current-state and next-state literals) and reused for
+  all literal-removal queries.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Pdr_ManGipSetMicDomain( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
+{
+    if ( !p->pPars->fUseGipSat )
+        return;
+    Pdr_ManGipCubeToLits( p, pCube, 0, 0, p->vGipLits );   // current state
+    Pdr_ManGipCubeToLits( p, pCube, 0, 1, p->vLits );      // next state
+    Vec_IntAppend( p->vGipLits, p->vLits );
+    Gip_SolverSetDomain( Pdr_ManGipSolver(p, k), Vec_IntArray(p->vGipLits), Vec_IntSize(p->vGipLits) );
+}
+static void Pdr_ManGipUnsetMicDomain( Pdr_Man_t * p, int k )
+{
+    if ( !p->pPars->fUseGipSat )
+        return;
+    Gip_SolverUnsetDomain( Pdr_ManGipSolver(p, k) );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Reduces clause using analyzeFinal.]
 
   Description [Assumes that the SAT solver just terminated an UNSAT call.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -101,10 +131,34 @@ Pdr_Set_t * Pdr_ManReduceClause( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
     Pdr_Set_t * pCubeMin;
     Vec_Int_t * vLits;
     int i, Entry, nCoreLits, * pCoreLits;
-    // get relevant SAT literals
-    nCoreLits = sat_solver_final(Pdr_ManSolver(p, k), &pCoreLits);
-    // translate them into register literals and remove auxiliary
-    vLits = Pdr_ManLitsToCube( p, k, pCoreLits, nCoreLits );
+    if ( p->pPars->fUseGipSat )
+    {
+        // keep the cube literals whose next-state assumption literal is
+        // in the unsat core
+        Gip_Solver_t * pGip = Pdr_ManGipSolver( p, k );
+        Aig_Obj_t * pObj;
+        int iVar, Lit;
+        Vec_IntClear( p->vLits );
+        for ( i = 0; i < pCube->nLits; i++ )
+        {
+            Lit = pCube->Lits[i];
+            if ( Lit == -1 )
+                continue;
+            pObj = Saig_ManLi( p->pAig, Abc_Lit2Var(Lit) );
+            iVar = Gip_ObjVar( pObj );
+            assert( iVar >= 0 );
+            if ( Gip_SolverUnsatHas( pGip, Abc_Var2Lit(iVar, Abc_LitIsCompl(Lit)) ) )
+                Vec_IntPush( p->vLits, Lit );
+        }
+        vLits = p->vLits;
+    }
+    else
+    {
+        // get relevant SAT literals
+        nCoreLits = sat_solver_final(Pdr_ManSolver(p, k), &pCoreLits);
+        // translate them into register literals and remove auxiliary
+        vLits = Pdr_ManLitsToCube( p, k, pCoreLits, nCoreLits );
+    }
     // skip if there is no improvement
     if ( Vec_IntSize(vLits) == pCube->nLits )
         return NULL;
@@ -192,6 +246,14 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
 //                Abc_Print( 1, "%d ", pCubeK->nLits - pCubeMin->nLits );
                     Pdr_SetDeref( pCubeK );
                     pCubeK = pCubeMin;
+                    // the reduced clause is stronger than the one the lower
+                    // solvers hold; baseline solvers re-sync with vClauses on
+                    // recycle, but GipSAT solvers are persistent and never
+                    // recycle, so add it to solvers 1..k eagerly (a clause of
+                    // frame k+1 belongs to every frame j <= k+1)
+                    if ( p->pPars->fUseGipSat )
+                        for ( i = 1; i <= k; i++ )
+                            Pdr_ManSolverAddClause( p, i, pCubeK );
                 }
             }
 
@@ -325,6 +387,11 @@ int Pdr_ManPushAndBlockClauses( Pdr_Man_t * p )
 //                Abc_Print( 1, "%d ", pCubeK->nLits - pCubeMin->nLits );
                     Pdr_SetDeref( pCubeK );
                     pCubeK = pCubeMin;
+                    // see Pdr_ManPushClauses: keep persistent GipSAT solvers
+                    // in sync with the strengthened clause
+                    if ( p->pPars->fUseGipSat )
+                        for ( l = 1; l <= k; l++ )
+                            Pdr_ManSolverAddClause( p, l, pCubeK );
                 }
             }
 
@@ -1103,6 +1170,8 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
 
         // sort literals by their occurences
         pOrder = Pdr_ManSortByPriority( p, pCubeMin );
+        // fix the MIC domain from the initial minimized cube
+        Pdr_ManGipSetMicDomain( p, k, pCubeMin );
         // try removing literals
         for ( j = 0; j < pCubeMin->nLits; j++ )
         {
@@ -1122,13 +1191,14 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
                 continue;
 
             // try removing this literal
-            Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1; 
+            Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1;
             if ( p->pPars->fSkipDown )
                 RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit, 1, !p->pPars->fSimpleGeneral );
             else
                 RetValue = Pdr_ManCheckCube( p, k, pCubeMin, &pPred, p->pPars->nConfLimit, 1, !p->pPars->fSimpleGeneral );
             if ( RetValue == -1 )
             {
+                Pdr_ManGipUnsetMicDomain( p, k );
                 Pdr_SetDeref( pCubeMin );
                 return -1;
             }
@@ -1137,6 +1207,8 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
             {
                 if ( p->pPars->fSkipDown )
                     continue;
+                // release the fixed domain around 'down'
+                Pdr_ManGipUnsetMicDomain( p, k );
                 pCubeCpy = Pdr_SetCreateFrom( pCubeMin, i );
                 RetValue = ZPdr_ManDown( p, k, &pCubeCpy, pPred, keep, pCubeMin, &added );
                 if ( p->pPars->fCtgs )
@@ -1151,10 +1223,11 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
                 }
                 if ( RetValue == 0 )
                 {
-                    if ( keep ) 
+                    if ( keep )
                         Hash_IntWriteEntry( keep, pCubeMin->Lits[i], 0 );
                     if ( pCubeCpy )
                         Pdr_SetDeref( pCubeCpy );
+                    Pdr_ManGipSetMicDomain( p, k, pCubeMin );
                     continue;
                 }
                 //Inductive subclause
@@ -1163,6 +1236,7 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
                 pCubeMin = pCubeCpy;
                 assert( pCubeMin->nLits > 0 );
                 pOrder = Pdr_ManSortByPriority( p, pCubeMin );
+                Pdr_ManGipSetMicDomain( p, k, pCubeMin );
                 j = -1;
                 continue;
             }
@@ -1172,6 +1246,9 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
             pCubeMin = Pdr_SetCreateFrom( pCubeTmp = pCubeMin, i );
             Pdr_SetDeref( pCubeTmp );
             assert( pCubeMin->nLits > 0 );
+            // re-fix the domain from the shrunk cube
+            Pdr_ManGipUnsetMicDomain( p, k );
+            Pdr_ManGipSetMicDomain( p, k, pCubeMin );
 
             // assume the minimized cube
             if ( p->pPars->fSimpleGeneral )
@@ -1187,38 +1264,47 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
             pOrder = Pdr_ManSortByPriority( p, pCubeMin );
             j--;
         }
+        Pdr_ManGipUnsetMicDomain( p, k );
 
         if ( p->pPars->fTwoRounds )
-        for ( j = 0; j < pCubeMin->nLits; j++ )
         {
-            // use ordering
-    //        i = j;
-            i = pOrder[j];
-
-            // check init state
-            assert( pCubeMin->Lits[i] != -1 );
-            if ( Pdr_SetIsInit(pCubeMin, i) )
-                continue;
-            // try removing this literal
-            Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1; 
-            RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit, 0, 1 );
-            if ( RetValue == -1 )
+            Pdr_ManGipSetMicDomain( p, k, pCubeMin );
+            for ( j = 0; j < pCubeMin->nLits; j++ )
             {
-                Pdr_SetDeref( pCubeMin );
-                return -1;
+                // use ordering
+        //        i = j;
+                i = pOrder[j];
+
+                // check init state
+                assert( pCubeMin->Lits[i] != -1 );
+                if ( Pdr_SetIsInit(pCubeMin, i) )
+                    continue;
+                // try removing this literal
+                Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1;
+                RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit, 0, 1 );
+                if ( RetValue == -1 )
+                {
+                    Pdr_ManGipUnsetMicDomain( p, k );
+                    Pdr_SetDeref( pCubeMin );
+                    return -1;
+                }
+                pCubeMin->Lits[i] = Lit;
+                if ( RetValue == 0 )
+                    continue;
+
+                // success - update the cube
+                pCubeMin = Pdr_SetCreateFrom( pCubeTmp = pCubeMin, i );
+                Pdr_SetDeref( pCubeTmp );
+                assert( pCubeMin->nLits > 0 );
+                // re-fix the domain from the shrunk cube
+                Pdr_ManGipUnsetMicDomain( p, k );
+                Pdr_ManGipSetMicDomain( p, k, pCubeMin );
+
+                // get the ordering by decreasing priority
+                pOrder = Pdr_ManSortByPriority( p, pCubeMin );
+                j--;
             }
-            pCubeMin->Lits[i] = Lit;
-            if ( RetValue == 0 )
-                continue;
-
-            // success - update the cube
-            pCubeMin = Pdr_SetCreateFrom( pCubeTmp = pCubeMin, i );
-            Pdr_SetDeref( pCubeTmp );
-            assert( pCubeMin->nLits > 0 );
-
-            // get the ordering by decreasing priority
-            pOrder = Pdr_ManSortByPriority( p, pCubeMin );
-            j--;
+            Pdr_ManGipUnsetMicDomain( p, k );
         }
     }
 

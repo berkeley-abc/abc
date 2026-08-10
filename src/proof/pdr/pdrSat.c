@@ -33,6 +33,55 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the GipSAT solver of the given frame.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gip_Solver_t * Pdr_ManGipSolver( Pdr_Man_t * p, int k )
+{
+    return (Gip_Solver_t *)Vec_PtrEntry( p->vGipSolvers, k );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts a register cube into GipSAT literals.]
+
+  Description [Mirror of Pdr_ManCubeToLits, but uses the static
+  frame-independent variable numbering of the GipSAT context
+  (var == object id) and never mutates any solver. Fills vOut.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Pdr_ManGipCubeToLits( Pdr_Man_t * p, Pdr_Set_t * pCube, int fCompl, int fNext, Vec_Int_t * vOut )
+{
+    Aig_Obj_t * pObj;
+    int i, iVar;
+    Vec_IntClear( vOut );
+    for ( i = 0; i < pCube->nLits; i++ )
+    {
+        if ( pCube->Lits[i] == -1 )
+            continue;
+        if ( fNext )
+            pObj = Saig_ManLi( p->pAig, Abc_Lit2Var(pCube->Lits[i]) );
+        else
+            pObj = Saig_ManLo( p->pAig, Abc_Lit2Var(pCube->Lits[i]) );
+        iVar = Gip_ObjVar( pObj );
+        assert( iVar >= 0 );
+        Vec_IntPush( vOut, Abc_Var2Lit( iVar, fCompl ^ Abc_LitIsCompl(pCube->Lits[i]) ) );
+    }
+    return vOut;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates new SAT solver.]
 
   Description []
@@ -57,6 +106,24 @@ sat_solver * Pdr_ManCreateSolver( Pdr_Man_t * p, int k )
     Vec_PtrPush( p->vSolvers, pSat );
     Vec_VecExpand( p->vClauses, k );
     Vec_IntPush( p->vActVars, 0 );
+    // create the persistent GipSAT solver of this frame (never recycled)
+    if ( p->pPars->fUseGipSat )
+    {
+        Gip_Solver_t * pGip;
+        assert( Vec_PtrSize(p->vGipSolvers) == k );
+        pGip = Gip_SolverNew( p->pGipCtx );
+        if ( k == 0 )
+        {
+            // initial states: all registers are 0, added as unit lemmas
+            int Lit;
+            Saig_ManForEachLo( p->pAig, pObj, i )
+            {
+                Lit = Abc_Var2Lit( Gip_ObjVar(pObj), 1 );
+                Gip_SolverAddLemma( pGip, &Lit, 1 );
+            }
+        }
+        Vec_PtrPush( p->vGipSolvers, pGip );
+    }
     // add property cone
     Saig_ManForEachPo( p->pAig, pObj, i )
         Pdr_ObjSatVar( p, k, 1, pObj );
@@ -215,6 +282,12 @@ void Pdr_ManSolverAddClause( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
     sat_solver * pSat;
     Vec_Int_t * vLits;
     int RetValue;
+    if ( p->pPars->fUseGipSat )
+    {
+        vLits = Pdr_ManGipCubeToLits( p, pCube, 1, 0, p->vLits );
+        Gip_SolverAddLemma( Pdr_ManGipSolver(p, k), Vec_IntArray(vLits), Vec_IntSize(vLits) );
+        return;
+    }
     pSat  = Pdr_ManSolver(p, k);
     vLits = Pdr_ManCubeToLits( p, k, pCube, 1, 0 );
     RetValue = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
@@ -239,6 +312,18 @@ void Pdr_ManCollectValues( Pdr_Man_t * p, int k, Vec_Int_t * vObjIds, Vec_Int_t 
     Aig_Obj_t * pObj;
     int iVar, i;
     Vec_IntClear( vValues );
+    if ( p->pPars->fUseGipSat )
+    {
+        // model values from the GipSAT solver; unassigned (outside the
+        // domain, hence outside the queried cone) default to 0
+        Gip_Solver_t * pGip = Pdr_ManGipSolver( p, k );
+        Aig_ManForEachObjVec( vObjIds, p->pAig, pObj, i )
+        {
+            iVar = Gip_ObjVar( pObj ); assert( iVar >= 0 );
+            Vec_IntPush( vValues, Gip_SolverVarValue(pGip, iVar) );
+        }
+        return;
+    }
     pSat = Pdr_ManSolver(p, k);
     Aig_ManForEachObjVec( vObjIds, p->pAig, pObj, i )
     {
@@ -265,6 +350,17 @@ int Pdr_ManCheckCubeCs( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
     Vec_Int_t * vLits;
     abctime Limit;
     int RetValue;
+    if ( p->pPars->fUseGipSat )
+    {
+        Gip_Solver_t * pGip = Pdr_ManGipSolver( p, k );
+        vLits = Pdr_ManGipCubeToLits( p, pCube, 0, 0, p->vLits );
+        pGip->nConfLimit = 0;
+        pGip->TimeLimit  = Pdr_ManTimeLimit( p );
+        RetValue = Gip_SolverSolve( pGip, Vec_IntArray(vLits), Vec_IntSize(vLits), NULL, NULL, 0, -1 );
+        if ( RetValue == GIP_UNDEF )
+            return -1;
+        return (RetValue == GIP_UNSAT);
+    }
     pSat = Pdr_ManFetchSolver( p, k );
     vLits = Pdr_ManCubeToLits( p, k, pCube, 0, 0 );
     Limit = sat_solver_set_runtime_limit( pSat, Pdr_ManTimeLimit(p) );
@@ -300,10 +396,22 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
     if ( pCube == NULL ) // solve the property
     {
         clk = Abc_Clock();
-        Lit = Abc_Var2Lit( Pdr_ObjSatVar(p, k, 2, Aig_ManCo(p->pAig, p->iOutCur)), 0 ); // pos literal (property fails)
-        Limit = sat_solver_set_runtime_limit( pSat, Pdr_ManTimeLimit(p) );
-        RetValue = sat_solver_solve( pSat, &Lit, &Lit + 1, nConfLimit, 0, 0, 0 );
-        sat_solver_set_runtime_limit( pSat, Limit );
+        if ( p->pPars->fUseGipSat )
+        {
+            Gip_Solver_t * pGip = Pdr_ManGipSolver( p, k );
+            Lit = Abc_Var2Lit( Gip_ObjVar(Aig_ManCo(p->pAig, p->iOutCur)), 0 ); // pos literal (property fails)
+            pGip->nConfLimit = nConfLimit;
+            pGip->TimeLimit  = Pdr_ManTimeLimit( p );
+            RetValue = Gip_SolverSolve( pGip, &Lit, 1, NULL, NULL, 0, -1 );
+            RetValue = RetValue == GIP_SAT ? l_True : (RetValue == GIP_UNSAT ? l_False : l_Undef);
+        }
+        else
+        {
+            Lit = Abc_Var2Lit( Pdr_ObjSatVar(p, k, 2, Aig_ManCo(p->pAig, p->iOutCur)), 0 ); // pos literal (property fails)
+            Limit = sat_solver_set_runtime_limit( pSat, Pdr_ManTimeLimit(p) );
+            RetValue = sat_solver_solve( pSat, &Lit, &Lit + 1, nConfLimit, 0, 0, 0 );
+            sat_solver_set_runtime_limit( pSat, Limit );
+        }
         if ( RetValue == l_Undef )
             return -1;
         if ( p->pPars->pFuncProgress && p->pPars->pFuncProgress( p->pPars->pProgress, 0, (unsigned)k ) )
@@ -311,32 +419,58 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
     }
     else // check relative containment in terms of next states
     {
-        if ( fUseLit )
+        if ( p->pPars->fUseGipSat )
         {
-            fLitUsed = 1;
-            Vec_IntAddToEntry( p->vActVars, k, 1 );
-            // add the cube in terms of current state variables
-            vLits = Pdr_ManCubeToLits( p, k, pCube, 1, 0 );
-            // add activation literal
-            Lit = Abc_Var2Lit( Pdr_ManFreeVar(p, k), 0 );
-            // add activation literal
-            Vec_IntPush( vLits, Lit );
-            RetValue = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
-            assert( RetValue == 1 );
-            sat_solver_compress( pSat );
-            // create assumptions
-            vLits = Pdr_ManCubeToLits( p, k, pCube, 0, 1 );
-            // add activation literal
-            Vec_IntPush( vLits, Abc_LitNot(Lit) );
+            // assumptions are the next-state literals of the cube; with
+            // fUseLit, the negated cube is passed as a temporary constraint
+            // clause instead of a permanent activation-literal clause;
+            // vGipLits must stay distinct from vLits: the solver reads the
+            // constraint clause and the assumptions at the same time
+            Gip_Solver_t * pGip = Pdr_ManGipSolver( p, k );
+            int * pCstCls[1]; int nCstLits[1]; int nCst = 0;
+            if ( fUseLit )
+            {
+                Pdr_ManGipCubeToLits( p, pCube, 1, 0, p->vGipLits );
+                pCstCls[0]  = Vec_IntArray( p->vGipLits );
+                nCstLits[0] = Vec_IntSize( p->vGipLits );
+                nCst = 1;
+            }
+            vLits = Pdr_ManGipCubeToLits( p, pCube, 0, 1, p->vLits );
+            clk = Abc_Clock();
+            pGip->nConfLimit = fTryConf ? p->pPars->nConfGenLimit : nConfLimit;
+            pGip->TimeLimit  = Pdr_ManTimeLimit( p );
+            RetValue = Gip_SolverSolve( pGip, Vec_IntArray(vLits), Vec_IntSize(vLits), pCstCls, nCstLits, nCst, -1 );
+            RetValue = RetValue == GIP_SAT ? l_True : (RetValue == GIP_UNSAT ? l_False : l_Undef);
         }
         else
-            vLits = Pdr_ManCubeToLits( p, k, pCube, 0, 1 );
+        {
+            if ( fUseLit )
+            {
+                fLitUsed = 1;
+                Vec_IntAddToEntry( p->vActVars, k, 1 );
+                // add the cube in terms of current state variables
+                vLits = Pdr_ManCubeToLits( p, k, pCube, 1, 0 );
+                // add activation literal
+                Lit = Abc_Var2Lit( Pdr_ManFreeVar(p, k), 0 );
+                // add activation literal
+                Vec_IntPush( vLits, Lit );
+                RetValue = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
+                assert( RetValue == 1 );
+                sat_solver_compress( pSat );
+                // create assumptions
+                vLits = Pdr_ManCubeToLits( p, k, pCube, 0, 1 );
+                // add activation literal
+                Vec_IntPush( vLits, Abc_LitNot(Lit) );
+            }
+            else
+                vLits = Pdr_ManCubeToLits( p, k, pCube, 0, 1 );
 
-        // solve 
-        clk = Abc_Clock();
-        Limit = sat_solver_set_runtime_limit( pSat, Pdr_ManTimeLimit(p) );
-        RetValue = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), fTryConf ? p->pPars->nConfGenLimit : nConfLimit, 0, 0, 0 );
-        sat_solver_set_runtime_limit( pSat, Limit );
+            // solve
+            clk = Abc_Clock();
+            Limit = sat_solver_set_runtime_limit( pSat, Pdr_ManTimeLimit(p) );
+            RetValue = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), fTryConf ? p->pPars->nConfGenLimit : nConfLimit, 0, 0, 0 );
+            sat_solver_set_runtime_limit( pSat, Limit );
+        }
         if ( RetValue == l_Undef )
         {
             if ( fTryConf && p->pPars->nConfGenLimit )

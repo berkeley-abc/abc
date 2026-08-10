@@ -31,6 +31,7 @@
 #include "pdr.h" 
 #include "misc/hash/hashInt.h"
 #include "aig/gia/giaAig.h"
+#include "gipsat/gipsat.h"
 
 //#define PDR_USE_SATOKO 1
 
@@ -124,6 +125,10 @@ struct Pdr_Man_t_
     Vec_Int_t * vMapPpi2Ff;
     int         nCexes;
     int         nCexesTotal;
+    // GipSAT (fUseGipSat): shared static context + one persistent solver per frame
+    Gip_Ctx_t * pGipCtx;
+    Vec_Ptr_t * vGipSolvers;
+    Vec_Int_t * vGipLits;  // scratch (constraint clause literals)
     // terminary simulation
     Txs3_Man_t * pTxs3;      
     // internal use
@@ -226,6 +231,8 @@ extern void            Pdr_ManSolverAddClause( Pdr_Man_t * p, int k, Pdr_Set_t *
 extern void            Pdr_ManCollectValues( Pdr_Man_t * p, int k, Vec_Int_t * vObjIds, Vec_Int_t * vValues );
 extern int             Pdr_ManCheckCubeCs( Pdr_Man_t * p, int k, Pdr_Set_t * pCube );
 extern int             Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPred, int nConfLimit, int fTryConf, int fUseLit );
+extern Gip_Solver_t *  Pdr_ManGipSolver( Pdr_Man_t * p, int k );
+extern Vec_Int_t *     Pdr_ManGipCubeToLits( Pdr_Man_t * p, Pdr_Set_t * pCube, int fCompl, int fNext, Vec_Int_t * vOut );
 /*=== pdrTsim.c ==========================================================*/
 extern Pdr_Set_t *     Pdr_ManTernarySim( Pdr_Man_t * p, int k, Pdr_Set_t * pCube );
 /*=== pdrTsim2.c ==========================================================*/
