@@ -28,6 +28,7 @@
 #include "aig/gia/giaAig.h"
 #include "base/main/main.h"
 #include "base/cmd/cmd.h"
+#include "formace_ext/fm_camus.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1652,6 +1653,113 @@ Vec_Int_t * Acb_DerivePatchSupport( Cnf_Dat_t * pCnf, int iTar, int nTargets, in
     return vSupp;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes an exact minimum-cardinality incremental ECO support.]
+
+  Description [Builds the same two-copy dependency test used by
+  Acb_DerivePatchSupport.  Previously selected common divisors are equality
+  constraints in the background.  Each remaining divisor equality is one
+  guarded CAMUS group, so a minimum UNSAT group set is the smallest number of
+  additional divisors sufficient for the current target.]
+
+***********************************************************************/
+Vec_Int_t * Acb_DerivePatchSupportMinUnsat( Cnf_Dat_t * pCnf, int iTar, int nTargets, int nCoDivs, Vec_Int_t * vSuppOld, int TimeOut )
+{
+    Fm_CamusMan_t * pCamus = NULL;
+    Vec_Int_t * vCandidates = NULL, * vClause = NULL, * vResult = NULL;
+    int nVars = pCnf->nVars;
+    int iCoVarBeg = 1;
+    int iCiVarBeg = nVars - nTargets;
+    int Lits[2], i, k, Lit, iDiv;
+
+    pCamus = Fm_CamusStart( 2 * nVars, nCoDivs );
+    vCandidates = Vec_IntAlloc( nCoDivs );
+    vClause = Vec_IntAlloc( 16 );
+    if ( pCamus == NULL )
+        goto finish;
+    if ( TimeOut )
+        Fm_CamusSetLimits( pCamus, 0, Abc_Clock() + (abctime)TimeOut * CLOCKS_PER_SEC );
+
+    // Add both copies of the quantified ECO miter CNF as background.
+    for ( i = 0; i < pCnf->nClauses; i++ )
+    {
+        if ( !Fm_CamusAddBackground(pCamus, pCnf->pClauses[i], pCnf->pClauses[i+1] - pCnf->pClauses[i]) )
+            goto finish;
+        Vec_IntClear( vClause );
+        for ( k = 0; pCnf->pClauses[i] + k < pCnf->pClauses[i+1]; k++ )
+        {
+            Lit = pCnf->pClauses[i][k];
+            Vec_IntPush( vClause, Abc_Var2Lit(Abc_Lit2Var(Lit) + nVars, Abc_LitIsCompl(Lit)) );
+        }
+        if ( !Fm_CamusAddBackground(pCamus, Vec_IntArray(vClause), Vec_IntSize(vClause)) )
+            goto finish;
+    }
+
+    // Both copies must be valid miter assignments with opposite target values.
+    Lit = Abc_Var2Lit( iCoVarBeg, 0 );
+    if ( !Fm_CamusAddBackground(pCamus, &Lit, 1) )
+        goto finish;
+    Lit = Abc_Var2Lit( iCoVarBeg + nVars, 0 );
+    if ( !Fm_CamusAddBackground(pCamus, &Lit, 1) )
+        goto finish;
+    Lit = Abc_Var2Lit( iCiVarBeg + iTar, 1 );
+    if ( !Fm_CamusAddBackground(pCamus, &Lit, 1) )
+        goto finish;
+    Lit = Abc_Var2Lit( iCiVarBeg + nVars + iTar, 0 );
+    if ( !Fm_CamusAddBackground(pCamus, &Lit, 1) )
+        goto finish;
+
+    // Keep the support accumulated for later targets as mandatory background.
+    Vec_IntForEachEntry( vSuppOld, iDiv, i )
+    {
+        int iVar0 = iCoVarBeg + 1 + iDiv;
+        int iVar1 = iVar0 + nVars;
+        Lits[0] = Abc_Var2Lit( iVar0, 0 );
+        Lits[1] = Abc_Var2Lit( iVar1, 1 );
+        if ( !Fm_CamusAddBackground(pCamus, Lits, 2) )
+            goto finish;
+        Lits[0] = Abc_Var2Lit( iVar0, 1 );
+        Lits[1] = Abc_Var2Lit( iVar1, 0 );
+        if ( !Fm_CamusAddBackground(pCamus, Lits, 2) )
+            goto finish;
+    }
+
+    // Each not-yet-selected divisor equality is one optional constraint group.
+    for ( iDiv = 0; iDiv < nCoDivs; iDiv++ )
+    {
+        int iVar0 = iCoVarBeg + 1 + iDiv;
+        int iVar1 = iVar0 + nVars;
+        if ( Vec_IntFind(vSuppOld, iDiv) >= 0 )
+            continue;
+        Lits[0] = Abc_Var2Lit( iVar0, 0 );
+        Lits[1] = Abc_Var2Lit( iVar1, 1 );
+        if ( !Fm_CamusAddGroup(pCamus, iDiv, Lits, 2) )
+            goto finish;
+        Lits[0] = Abc_Var2Lit( iVar0, 1 );
+        Lits[1] = Abc_Var2Lit( iVar1, 0 );
+        if ( !Fm_CamusAddGroup(pCamus, iDiv, Lits, 2) )
+            goto finish;
+        Vec_IntPush( vCandidates, iDiv );
+    }
+
+    vResult = Fm_CamusFindMinimumMus( pCamus, vCandidates );
+    if ( vResult )
+    {
+        Vec_IntSort( vResult, 0 );
+        printf( "ForMACE runeco MinUNSAT selected %d new divisors (with %d previous, from %d candidates).\n",
+            Vec_IntSize(vResult), Vec_IntSize(vSuppOld), Vec_IntSize(vCandidates) );
+    }
+    else
+        printf( "ForMACE runeco MinUNSAT support computation failed or timed out.\n" );
+
+finish:
+    Vec_IntFreeP( &vClause );
+    Vec_IntFreeP( &vCandidates );
+    Fm_CamusStop( pCamus );
+    return vResult;
+}
+
 static inline int satoko_add_xor( satoko_t * pSat, int iVarA, int iVarB, int iVarC, int fCompl )
 {
     int Lits[3];
@@ -2871,7 +2979,7 @@ Vec_Ptr_t * Acb_TransformPatchFunctions( Vec_Ptr_t * vSops, Vec_Wec_t * vSupps, 
   SeeAlso     []
 
 ***********************************************************************/
-int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4], int nTimeout, int fCisOnly, int fInputs, int fCheck, int fUnitW, int fVerbose, int fVeryVerbose )
+int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4], int nTimeout, int fCisOnly, int fInputs, int fCheck, int fUnitW, int fMinUnsat, int fVerbose, int fVeryVerbose )
 {
     extern Gia_Man_t * Abc_SopSynthesizeOne( char * pSop, int fClp );
 
@@ -2973,7 +3081,9 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
         {
             pCnf = Acb_NtkDeriveMiterCnf( pGiaM, i, nTargets, fVerbose );
 //            vSupp = Acb_DerivePatchSupportS( pCnf, i, nTargets, Vec_IntSize(vDivs), vDivs, pNtkF, NULL, TimeOut );
-            vSupp = Acb_DerivePatchSupport( pCnf, i, nTargets, Vec_IntSize(vDivs), vDivs, pNtkF, vSuppOld, TimeOut );
+            vSupp = fMinUnsat ?
+                Acb_DerivePatchSupportMinUnsat( pCnf, i, nTargets, Vec_IntSize(vDivs), vSuppOld, TimeOut ) :
+                Acb_DerivePatchSupport( pCnf, i, nTargets, Vec_IntSize(vDivs), vDivs, pNtkF, vSuppOld, TimeOut );
             if ( vSupp == NULL )
             {
                 Cnf_DataFree( pCnf );
@@ -3137,7 +3247,7 @@ void Acb_NtkTestRun2( char * pFileNames[3], int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom, int fInputs, int fUnitW, int fVerbose, int fVeryVerbose )
+void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom, int fInputs, int fUnitW, int fMinUnsat, int fVerbose, int fVeryVerbose )
 {
     char Command[1000]; int Result = 1;
     Acb_Ntk_t * pNtkF = Acb_VerilogSimpleRead( pFileNames[0], pFileNames[2] );
@@ -3159,10 +3269,10 @@ void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom,
 
     Acb_IntallLibrary( Abc_FrameReadSignalNames() != NULL );
 
-    if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 0, fInputs, fCheck, fUnitW, fVerbose, fVeryVerbose ) )
+    if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 0, fInputs, fCheck, fUnitW, fMinUnsat, fVerbose, fVeryVerbose ) )
     {
 //        printf( "General computation timed out. Trying inputs only.\n\n" );
-//        if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 1, fInputs, fCheck, fUnitW, fVerbose, fVeryVerbose ) )
+//        if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 1, fInputs, fCheck, fUnitW, fMinUnsat, fVerbose, fVeryVerbose ) )
 //            printf( "Input-only computation also timed out.\n\n" );
         printf( "Computation did not succeed.\n" );
         Result = 0;
@@ -3185,4 +3295,3 @@ void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom,
 
 
 ABC_NAMESPACE_IMPL_END
-
