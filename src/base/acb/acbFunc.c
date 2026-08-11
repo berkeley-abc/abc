@@ -25,6 +25,7 @@
 #include "sat/satoko/satoko.h"
 #include "map/mio/mio.h"
 #include "misc/util/utilTruth.h"
+#include "aig/aig/aig.h"
 #include "aig/gia/giaAig.h"
 #include "base/main/main.h"
 #include "base/cmd/cmd.h"
@@ -1760,6 +1761,180 @@ finish:
     return vResult;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Creates a constant GIA with the requested support interface.]
+
+***********************************************************************/
+Gia_Man_t * Acb_EcoCreateConstGia( int nInputs, int fValue )
+{
+    Gia_Man_t * pGia = Gia_ManStart( nInputs + 2 );
+    int i;
+    for ( i = 0; i < nInputs; i++ )
+        Gia_ManAppendCi( pGia );
+    Gia_ManAppendCo( pGia, fValue );
+    return pGia;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks one target cofactor of the paper's ECO formula.]
+
+***********************************************************************/
+int Acb_EcoTargetPartUnsat( Cnf_Dat_t * pCnf, int iTar, int nTargets, int TargetValue )
+{
+    sat_solver * pSat = sat_solver_new();
+    int i, Lit, Status = l_Undef;
+    sat_solver_setnvars( pSat, pCnf->nVars );
+    for ( i = 0; i < pCnf->nClauses; i++ )
+        if ( !sat_solver_addclause(pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]) )
+        {
+            Status = l_False;
+            goto finish;
+        }
+    Lit = Abc_Var2Lit( 1, 0 );
+    if ( !sat_solver_addclause(pSat, &Lit, &Lit + 1) )
+    {
+        Status = l_False;
+        goto finish;
+    }
+    Lit = Abc_Var2Lit( pCnf->nVars - nTargets + iTar, !TargetValue );
+    if ( !sat_solver_addclause(pSat, &Lit, &Lit + 1) )
+    {
+        Status = l_False;
+        goto finish;
+    }
+    Status = sat_solver_solve( pSat, NULL, NULL, 0, 0, 0, 0 );
+
+finish:
+    sat_solver_delete( pSat );
+    return Status == l_False;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the paper Formula (2) patch with ForMACE interpolation.]
+
+  Description [The first CNF copy is mismatch with c=0 and the second is
+  mismatch with c=1.  Selected divisor equalities are placed in partition B,
+  making their first-copy variables the only shared vocabulary.  The resulting
+  Craig interpolant is a replacement function for c over the exact MinUNSAT
+  support.]
+
+***********************************************************************/
+Gia_Man_t * Acb_DeriveOnePatchFunctionInter( Cnf_Dat_t * pCnf, int iTar, int nTargets, Vec_Int_t * vUsed, int fVerbose )
+{
+    extern Gia_Man_t * Abc_GiaSynthesizeInter( Gia_Man_t * p );
+    sat_solver * pSat = NULL;
+    Inta_Man_t * pManInter = NULL;
+    Sto_Man_t * pSatCnf = NULL;
+    Aig_Man_t * pAig = NULL;
+    Gia_Man_t * pGia = NULL, * pTemp;
+    Vec_Int_t * vClause = NULL, * vVarsAB = NULL;
+    int nVars = pCnf->nVars;
+    int iCoVarBeg = 1;
+    int iCiVarBeg = nVars - nTargets;
+    int Lits[2], i, k, Lit, iDiv, Status;
+
+    // Degenerate Formula (2) partitions have the corresponding constant patch.
+    if ( Acb_EcoTargetPartUnsat(pCnf, iTar, nTargets, 0) )
+    {
+        printf( "ForMACE paper ECO selected constant-0 interpolant.\n" );
+        return Acb_EcoCreateConstGia( Vec_IntSize(vUsed), 0 );
+    }
+    if ( Acb_EcoTargetPartUnsat(pCnf, iTar, nTargets, 1) )
+    {
+        printf( "ForMACE paper ECO selected constant-1 interpolant.\n" );
+        return Acb_EcoCreateConstGia( Vec_IntSize(vUsed), 1 );
+    }
+
+    pSat = sat_solver_new();
+    sat_solver_store_alloc( pSat );
+    sat_solver_setnvars( pSat, 2 * nVars );
+    vClause = Vec_IntAlloc( 16 );
+    vVarsAB = Vec_IntAlloc( Vec_IntSize(vUsed) );
+
+    // E0: old/golden mismatch when the rectification target c is 0.
+    for ( i = 0; i < pCnf->nClauses; i++ )
+        if ( !sat_solver_addclause(pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]) )
+            goto finish;
+    Lit = Abc_Var2Lit( iCoVarBeg, 0 );
+    if ( !sat_solver_addclause(pSat, &Lit, &Lit + 1) )
+        goto finish;
+    Lit = Abc_Var2Lit( iCiVarBeg + iTar, 1 );
+    if ( !sat_solver_addclause(pSat, &Lit, &Lit + 1) )
+        goto finish;
+    sat_solver_store_mark_clauses_a( pSat );
+
+    // E1: an independent mismatch copy with c=1.
+    for ( i = 0; i < pCnf->nClauses; i++ )
+    {
+        Vec_IntClear( vClause );
+        for ( k = 0; pCnf->pClauses[i] + k < pCnf->pClauses[i+1]; k++ )
+        {
+            Lit = pCnf->pClauses[i][k];
+            Vec_IntPush( vClause, Abc_Var2Lit(Abc_Lit2Var(Lit) + nVars, Abc_LitIsCompl(Lit)) );
+        }
+        if ( !sat_solver_addclause(pSat, Vec_IntArray(vClause), Vec_IntLimit(vClause)) )
+            goto finish;
+    }
+    Lit = Abc_Var2Lit( iCoVarBeg + nVars, 0 );
+    if ( !sat_solver_addclause(pSat, &Lit, &Lit + 1) )
+        goto finish;
+    Lit = Abc_Var2Lit( iCiVarBeg + nVars + iTar, 0 );
+    if ( !sat_solver_addclause(pSat, &Lit, &Lit + 1) )
+        goto finish;
+
+    // V=fv(I) in Formula (2): equality for each exact selected patch input.
+    Vec_IntForEachEntry( vUsed, iDiv, i )
+    {
+        int iVar0 = iCoVarBeg + 1 + iDiv;
+        int iVar1 = iVar0 + nVars;
+        Vec_IntPush( vVarsAB, iVar0 );
+        Lits[0] = Abc_Var2Lit( iVar0, 0 );
+        Lits[1] = Abc_Var2Lit( iVar1, 1 );
+        if ( !sat_solver_addclause(pSat, Lits, Lits + 2) )
+            goto finish;
+        Lits[0] = Abc_Var2Lit( iVar0, 1 );
+        Lits[1] = Abc_Var2Lit( iVar1, 0 );
+        if ( !sat_solver_addclause(pSat, Lits, Lits + 2) )
+            goto finish;
+    }
+
+    sat_solver_store_mark_roots( pSat );
+    Status = sat_solver_solve( pSat, NULL, NULL, 0, 0, 0, 0 );
+    if ( Status != l_False )
+        goto finish;
+    pSatCnf = (Sto_Man_t *)sat_solver_store_release( pSat );
+    if ( pSatCnf == NULL )
+        goto finish;
+    pManInter = Inta_ManAlloc();
+    pAig = (Aig_Man_t *)Inta_ManInterpolate( pManInter, pSatCnf, 0, vVarsAB, fVerbose );
+    if ( pAig == NULL )
+        goto finish;
+    pGia = Gia_ManFromAigSimple( pAig );
+    if ( pGia == NULL || Gia_ManCiNum(pGia) != Vec_IntSize(vUsed) )
+    {
+        Gia_ManStopP( &pGia );
+        goto finish;
+    }
+    pGia = Abc_GiaSynthesizeInter( pTemp = pGia );
+    Gia_ManStop( pTemp );
+    if ( pGia == NULL )
+        goto finish;
+    printf( "ForMACE paper ECO interpolant: inputs = %d  ands = %d.\n",
+        Gia_ManCiNum(pGia), Gia_ManAndNum(pGia) );
+
+finish:
+    if ( pSat ) sat_solver_delete( pSat );
+    if ( pManInter ) Inta_ManFree( pManInter );
+    if ( pSatCnf ) Sto_ManFree( pSatCnf );
+    if ( pAig ) Aig_ManStop( pAig );
+    Vec_IntFreeP( &vClause );
+    Vec_IntFreeP( &vVarsAB );
+    return pGia;
+}
+
 static inline int satoko_add_xor( satoko_t * pSat, int iVarA, int iVarB, int iVarC, int fCompl )
 {
     int Lits[3];
@@ -2979,7 +3154,7 @@ Vec_Ptr_t * Acb_TransformPatchFunctions( Vec_Ptr_t * vSops, Vec_Wec_t * vSupps, 
   SeeAlso     []
 
 ***********************************************************************/
-int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4], int nTimeout, int fCisOnly, int fInputs, int fCheck, int fUnitW, int fMinUnsat, int fVerbose, int fVeryVerbose )
+int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4], int nTimeout, int fCisOnly, int fInputs, int fCheck, int fUnitW, int fMinUnsat, int fPaperInter, int fVerbose, int fVeryVerbose )
 {
     extern Gia_Man_t * Abc_SopSynthesizeOne( char * pSop, int fClp );
 
@@ -3012,7 +3187,7 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
 
     Vec_Int_t * vUsed  = NULL; 
     Vec_Ptr_t * vFuncs = NULL;
-    Vec_Ptr_t * vGias  = fCisOnly ? Vec_PtrAlloc(nTargets) : NULL;
+    Vec_Ptr_t * vGias  = (fCisOnly || fPaperInter) ? Vec_PtrAlloc(nTargets) : NULL;
     Vec_Str_t * vInst  = NULL, * vPatch = NULL;
 
     char * pSop = NULL;
@@ -3081,7 +3256,7 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
         {
             pCnf = Acb_NtkDeriveMiterCnf( pGiaM, i, nTargets, fVerbose );
 //            vSupp = Acb_DerivePatchSupportS( pCnf, i, nTargets, Vec_IntSize(vDivs), vDivs, pNtkF, NULL, TimeOut );
-            vSupp = fMinUnsat ?
+            vSupp = (fMinUnsat || fPaperInter) ?
                 Acb_DerivePatchSupportMinUnsat( pCnf, i, nTargets, Vec_IntSize(vDivs), vSuppOld, TimeOut ) :
                 Acb_DerivePatchSupport( pCnf, i, nTargets, Vec_IntSize(vDivs), vDivs, pNtkF, vSuppOld, TimeOut );
             if ( vSupp == NULL )
@@ -3095,37 +3270,57 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
             Vec_IntAppend( vSupp, vSuppOld );
             //Vec_IntClear( vSuppOld );
 
-            // derive function of this target
-            pSop  = Acb_DeriveOnePatchFunction( pCnf, i, nTargets, Vec_IntSize(vDivs), vSupp, fCisOnly );
-            Cnf_DataFree( pCnf );
-            if ( pSop == NULL )
+            if ( fPaperInter )
             {
-                RetValue = 0;
-                goto cleanup;
+                // Derive the paper Formula (2) replacement using ForMACE proof interpolation.
+                pOne = Acb_DeriveOnePatchFunctionInter( pCnf, i, nTargets, vSupp, fVeryVerbose );
+                Cnf_DataFree( pCnf );
+                if ( pOne == NULL )
+                {
+                    printf( "ForMACE paper ECO interpolation failed for target %d.\n", i );
+                    RetValue = 0;
+                    goto cleanup;
+                }
+                printf( "Tar%02d: ", i );
+                Gia_ManPrintStats( pOne, NULL );
+
+                pGiaM = Acb_UpdateMiter( pTemp = pGiaM, pOne, i, nTargets, vSupp, fCisOnly );
+                Gia_ManStop( pTemp );
+                Vec_PtrPush( vGias, pOne );
             }
-            if ( nTimeout && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= nTimeout ) 
+            else
+            {
+                // Derive the original runeco SOP by SAT cube enumeration.
+                pSop  = Acb_DeriveOnePatchFunction( pCnf, i, nTargets, Vec_IntSize(vDivs), vSupp, fCisOnly );
+                Cnf_DataFree( pCnf );
+                if ( pSop == NULL )
+                {
+                    RetValue = 0;
+                    goto cleanup;
+                }
+
+                // add new function to the miter
+                pOne  = Abc_SopSynthesizeOne( pSop, 1 );
+                printf( "Tar%02d: ", i );
+                Gia_ManPrintStats( pOne, NULL );
+
+                // update miter
+                pGiaM = Acb_UpdateMiter( pTemp = pGiaM, pOne, i, nTargets, vSupp, fCisOnly );
+                Gia_ManStop( pTemp );
+                Gia_ManStop( pOne );
+
+                // add to functions
+                Vec_PtrPush( vSops, pSop );
+                if ( fVeryVerbose )
+                    printf( "Function %d\n%s", i, pSop );
+            }
+            if ( nTimeout && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= nTimeout )
             {
                 Vec_IntFreeP( &vSupp );
-                ABC_FREE( pSop );
                 printf( "The target computation timed out after %d seconds.\n", nTimeout );
                 RetValue = 0;
                 goto cleanup;
             }
-
-            // add new function to the miter
-            pOne  = Abc_SopSynthesizeOne( pSop, 1 );
-            printf( "Tar%02d: ", i );
-            Gia_ManPrintStats( pOne, NULL );
-
-            // update miter
-            pGiaM = Acb_UpdateMiter( pTemp = pGiaM, pOne, i, nTargets, vSupp, fCisOnly );
-            Gia_ManStop( pTemp );
-            Gia_ManStop( pOne );
-
-            // add to functions
-            Vec_PtrPush( vSops, pSop );
-            if ( fVeryVerbose )
-                printf( "Function %d\n%s", i, pSop );
         }
         // add to supports
         Vec_IntAppend( Vec_WecPushLevel(vSupps), vSupp );
@@ -3152,6 +3347,11 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
     if ( fCisOnly )
     {
         vUsed = Vec_IntStartNatural( Vec_IntSize(vDivs) );
+        Vec_PtrReverseOrder( vGias );
+    }
+    else if ( fPaperInter )
+    {
+        vUsed = Vec_IntDup( vSuppOld );
         Vec_PtrReverseOrder( vGias );
     }
     else
@@ -3247,7 +3447,7 @@ void Acb_NtkTestRun2( char * pFileNames[3], int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom, int fInputs, int fUnitW, int fMinUnsat, int fVerbose, int fVeryVerbose )
+void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom, int fInputs, int fUnitW, int fMinUnsat, int fPaperInter, int fVerbose, int fVeryVerbose )
 {
     char Command[1000]; int Result = 1;
     Acb_Ntk_t * pNtkF = Acb_VerilogSimpleRead( pFileNames[0], pFileNames[2] );
@@ -3269,10 +3469,10 @@ void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom,
 
     Acb_IntallLibrary( Abc_FrameReadSignalNames() != NULL );
 
-    if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 0, fInputs, fCheck, fUnitW, fMinUnsat, fVerbose, fVeryVerbose ) )
+    if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 0, fInputs, fCheck, fUnitW, fMinUnsat, fPaperInter, fVerbose, fVeryVerbose ) )
     {
 //        printf( "General computation timed out. Trying inputs only.\n\n" );
-//        if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 1, fInputs, fCheck, fUnitW, fMinUnsat, fVerbose, fVeryVerbose ) )
+//        if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 1, fInputs, fCheck, fUnitW, fMinUnsat, fPaperInter, fVerbose, fVeryVerbose ) )
 //            printf( "Input-only computation also timed out.\n\n" );
         printf( "Computation did not succeed.\n" );
         Result = 0;
