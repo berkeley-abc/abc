@@ -43876,6 +43876,29 @@ static Gia_Man_t * Abc_ReadAigerOrVerilogFile( char * pFileName, char * pFileNam
 
 /**Function*************************************************************
 
+  Synopsis    [Returns 1 if all outputs of the swept miter are constant 0.]
+
+  Description [The equivalence check below concludes from the swept miter
+  having no AND nodes.  An AND-free GIA can still have outputs that are
+  constant 1 or CI literals, which are satisfiable, so the outputs are
+  checked here as well.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Abc_CecSweptMiterIsConst0( Gia_Man_t * p )
+{
+    int i;
+    for ( i = 0; i < Gia_ManPoNum(p); i++ )
+        if ( !Gia_ManPoIsConst0(p, i) )
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -44302,10 +44325,12 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             abctime clk = Abc_Clock();
             extern Gia_Man_t * Cec4_ManSimulateTest3( Gia_Man_t * p, int nBTLimit, int fVerbose );
             Gia_Man_t * pNew = Cec4_ManSimulateTest3( pMiter, pPars->nBTLimit, pPars->fVerbose );
-            if ( Gia_ManAndNum(pNew) == 0 )
+            if ( Gia_ManAndNum(pNew) != 0 )
+                Abc_Print( 1, "Networks are UNDECIDED.  " );
+            else if ( Abc_CecSweptMiterIsConst0(pNew) )
                 Abc_Print( 1, "Networks are equivalent.  " );
             else
-                Abc_Print( 1, "Networks are UNDECIDED.  " );
+                Abc_Print( 1, "Networks are NOT equivalent.  " );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             Gia_ManStop( pNew );
         }
@@ -44314,10 +44339,12 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             abctime clk = Abc_Clock();
             extern Gia_Man_t * Cec5_ManSimulateTest3( Gia_Man_t * p, int nBTLimit, int fVerbose );
             Gia_Man_t * pNew = Cec5_ManSimulateTest3( pMiter, pPars->nBTLimit, pPars->fVerbose );
-            if ( Gia_ManAndNum(pNew) == 0 )
+            if ( Gia_ManAndNum(pNew) != 0 )
+                Abc_Print( 1, "Networks are UNDECIDED.  " );
+            else if ( Abc_CecSweptMiterIsConst0(pNew) )
                 Abc_Print( 1, "Networks are equivalent.  " );
             else
-                Abc_Print( 1, "Networks are UNDECIDED.  " );
+                Abc_Print( 1, "Networks are NOT equivalent.  " );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             Gia_ManStop( pNew );
         }
@@ -44518,10 +44545,12 @@ int Abc_CommandAbc9ICec( Abc_Frame_t * pAbc, int argc, char ** argv )
             abctime clk = Abc_Clock();
             extern Gia_Man_t * Cec4_ManSimulateTest3( Gia_Man_t * p, int nBTLimit, int fVerbose );
             Gia_Man_t * pNew = Cec4_ManSimulateTest3( pMiter, pPars->nBTLimit, pPars->fVerbose );
-            if ( Gia_ManAndNum(pNew) == 0 )
+            if ( Gia_ManAndNum(pNew) != 0 )
+                Abc_Print( 1, "Networks are UNDECIDED.  " );
+            else if ( Abc_CecSweptMiterIsConst0(pNew) )
                 Abc_Print( 1, "Networks are equivalent.  " );
             else
-                Abc_Print( 1, "Networks are UNDECIDED.  " );
+                Abc_Print( 1, "Networks are NOT equivalent.  " );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             Gia_ManStop( pNew );
         }
