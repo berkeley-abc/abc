@@ -1664,7 +1664,52 @@ Vec_Int_t * Acb_DerivePatchSupport( Cnf_Dat_t * pCnf, int iTar, int nTargets, in
   additional divisors sufficient for the current target.]
 
 ***********************************************************************/
-Vec_Int_t * Acb_DerivePatchSupportMinUnsat( Cnf_Dat_t * pCnf, int iTar, int nTargets, int nCoDivs, Vec_Int_t * vSuppOld, int TimeOut )
+static int Acb_VerifyPatchSupportMinimumBruteForce( Fm_CamusMan_t * pCamus,
+    Vec_Int_t * vCandidates, Vec_Int_t * vResult )
+{
+    Vec_Int_t * vTrial = NULL;
+    unsigned Mask, nMasks;
+    int i, iGroup, nChecked = 0, Status, fSuccess = 0;
+    if ( Vec_IntSize(vCandidates) > 16 )
+    {
+        printf( "ForMACE runeco brute-force audit skipped (%d candidates exceeds limit 16).\n",
+            Vec_IntSize(vCandidates) );
+        return 1;
+    }
+    if ( Fm_CamusSolve(pCamus, vResult) != l_False )
+    {
+        printf( "ForMACE runeco brute-force audit FAILED: returned support is not UNSAT.\n" );
+        return 0;
+    }
+    nMasks = 1u << Vec_IntSize(vCandidates);
+    vTrial = Vec_IntAlloc( Vec_IntSize(vCandidates) );
+    for ( Mask = 0; Mask < nMasks; Mask++ )
+    {
+        if ( Abc_TtCountOnes((word)Mask) >= Vec_IntSize(vResult) )
+            continue;
+        Vec_IntClear( vTrial );
+        Vec_IntForEachEntry( vCandidates, iGroup, i )
+            if ( Mask & (1u << i) )
+                Vec_IntPush( vTrial, iGroup );
+        Status = Fm_CamusSolve( pCamus, vTrial );
+        nChecked++;
+        if ( Status != l_True )
+        {
+            printf( "ForMACE runeco brute-force audit %s after %d smaller subsets.\n",
+                Status == l_False ? "FAILED: found a smaller UNSAT support" : "INCONCLUSIVE: solver limit reached",
+                nChecked );
+            goto finish;
+        }
+    }
+    printf( "ForMACE runeco brute-force audit PASS: all %d smaller subsets are SAT.\n", nChecked );
+    fSuccess = 1;
+
+finish:
+    Vec_IntFreeP( &vTrial );
+    return fSuccess;
+}
+
+Vec_Int_t * Acb_DerivePatchSupportMinUnsat( Cnf_Dat_t * pCnf, int iTar, int nTargets, int nCoDivs, Vec_Int_t * vSuppOld, int TimeOut, int fAudit )
 {
     Fm_CamusMan_t * pCamus = NULL;
     Vec_Int_t * vCandidates = NULL, * vClause = NULL, * vResult = NULL;
@@ -1749,6 +1794,11 @@ Vec_Int_t * Acb_DerivePatchSupportMinUnsat( Cnf_Dat_t * pCnf, int iTar, int nTar
         Vec_IntSort( vResult, 0 );
         printf( "ForMACE runeco MinUNSAT selected %d new divisors (with %d previous, from %d candidates).\n",
             Vec_IntSize(vResult), Vec_IntSize(vSuppOld), Vec_IntSize(vCandidates) );
+        if ( fAudit && !Acb_VerifyPatchSupportMinimumBruteForce(pCamus, vCandidates, vResult) )
+        {
+            Vec_IntFreeP( &vResult );
+            goto finish;
+        }
     }
     else
         printf( "ForMACE runeco MinUNSAT support computation failed or timed out.\n" );
@@ -3082,7 +3132,7 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
             pCnf = Acb_NtkDeriveMiterCnf( pGiaM, i, nTargets, fVerbose );
 //            vSupp = Acb_DerivePatchSupportS( pCnf, i, nTargets, Vec_IntSize(vDivs), vDivs, pNtkF, NULL, TimeOut );
             vSupp = fMinUnsat ?
-                Acb_DerivePatchSupportMinUnsat( pCnf, i, nTargets, Vec_IntSize(vDivs), vSuppOld, TimeOut ) :
+                Acb_DerivePatchSupportMinUnsat( pCnf, i, nTargets, Vec_IntSize(vDivs), vSuppOld, TimeOut, fVeryVerbose ) :
                 Acb_DerivePatchSupport( pCnf, i, nTargets, Vec_IntSize(vDivs), vDivs, pNtkF, vSuppOld, TimeOut );
             if ( vSupp == NULL )
             {

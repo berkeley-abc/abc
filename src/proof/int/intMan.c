@@ -52,6 +52,9 @@ Inter_Man_t * Inter_ManCreate( Aig_Man_t * pAig, Inter_ManParams_t * pPars )
     p->vVarsAB = Vec_IntAlloc( Aig_ManRegNum(pAig) );
     p->nConfLimit = pPars->nBTLimit;
     p->fVerbose = pPars->fVerbose;
+    p->fForMaceMinvar = pPars->fForMaceMinvar;
+    p->fForMaceHybrid = pPars->fForMaceHybrid;
+    p->nForMaceVarLimit = pPars->nForMaceVarLimit;
     p->pFileName = pPars->pFileName;
     p->pAig = pAig;
     if ( pPars->fDropInvar )
@@ -162,4 +165,3 @@ void Inter_ManStop( Inter_Man_t * p, int fProved )
 
 
 ABC_NAMESPACE_IMPL_END
-

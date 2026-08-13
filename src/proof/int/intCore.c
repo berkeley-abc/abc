@@ -48,6 +48,7 @@ void Inter_ManSetDefaultParams( Inter_ManParams_t * p )
     memset( p, 0, sizeof(Inter_ManParams_t) );
     p->nBTLimit      = 0;     // limit on the number of conflicts
     p->nFramesMax    = 0;     // the max number timeframes to unroll
+    p->nFramesStart  = 1;     // initial suffix length
     p->nSecLimit     = 0;     // time limit in seconds
     p->nFramesK      = 1;     // the number of timeframes to use in induction
     p->fRewrite      = 0;     // use additional rewriting to simplify timeframes
@@ -60,7 +61,9 @@ void Inter_ManSetDefaultParams( Inter_ManParams_t * p )
     p->fUseBackward  = 0;     // perform backward interpolation
     p->fUseSeparate  = 0;     // solve each output separately
     p->fUseTwoFrames = 0;     // create OR of two last timeframes
+    p->fUseAllFrames = 0;     // create OR of all suffix timeframes
     p->fDropSatOuts  = 0;     // replace by 1 the solved outputs
+    p->nForMaceVarLimit = 16; // maximum exact-search candidate count
     p->fVerbose      = 0;     // print verbose statistics
     p->iFrameMax     =-1;
 }
@@ -131,7 +134,7 @@ p->timeCnf += Abc_Clock() - clk;
  
     // derive interpolant
     *piFrame = -1;
-    p->nFrames = 1;
+    p->nFrames = pPars->nFramesStart;
     for ( s = 0; ; s++ )
     {
         Cnf_Dat_t * pCnfInter2;
@@ -147,7 +150,7 @@ clk = Abc_Clock();
         p->pCnfInter = Cnf_Derive( p->pInter, 0 );  
 p->timeCnf += Abc_Clock() - clk;    
         // timeframes
-        p->pFrames = Inter_ManFramesInter( pAig, p->nFrames, pPars->fUseBackward, pPars->fUseTwoFrames );
+        p->pFrames = Inter_ManFramesInter( pAig, p->nFrames, pPars->fUseBackward, pPars->fUseTwoFrames, pPars->fUseAllFrames );
 clk = Abc_Clock();
         if ( pPars->fRewrite )
         {
@@ -409,4 +412,3 @@ p->timeCnf += Abc_Clock() - clk;
 
 
 ABC_NAMESPACE_IMPL_END
-

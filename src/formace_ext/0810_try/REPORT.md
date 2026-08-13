@@ -1,6 +1,53 @@
-# Experiment report
+# MinUNSAT-guided ECO patch reconstruction
 
 Run date: 2026-08-10
+
+## Purpose and method
+
+This isolated experiment tests whether ForMACE's exact MinUNSAT support
+selection and interpolation can reconstruct the output functions produced by
+ABC `runeco`. It preserves `runeco`'s patch and candidate interface while
+reconstructing every patch output independently with `fm_inter -m`:
+
+1. Extract one output cone from `patch.v` while preserving its full input
+   interface.
+2. Treat the function as the onset and its complement as the offset.
+3. Treat each corresponding cross-copy input equality as one guarded group.
+4. Find a minimum-cardinality UNSAT group set and interpolate over that
+   selected vocabulary.
+5. Assemble the outputs into a replacement patch and prove equivalence to R2
+   and to the original `runeco` result.
+
+For a Boolean function `f(d)`, the grouped problem is:
+
+```text
+f(d_A) = 1
+f(d_B) = 0
+d_A[i] = d_B[i]  for each enabled input group i
+```
+
+A minimum UNSAT group set is a minimum functional support for `f` relative to
+the candidate divisors already present in `patch.v`. This experiment does not
+replace `runeco` divisor discovery, search all G1 nodes, or optimize the union
+of support across outputs.
+
+## Reproduce
+
+The inputs are the existing `0808_ECO/testNN/patch.v` results and the ICCAD
+2021 ECO benchmark checkout. From the ABC repository root:
+
+```bash
+make -j4 ABC_USE_NO_READLINE=1
+python3 src/formace_ext/0810_try/run_minunsat_eco.py \
+  --output-timeout 300 --verify-timeout 180
+```
+
+Use `--case test01` for one case. Run the script with `--help` to override the
+ABC binary, baseline, benchmark, results directory, or MinUNSAT input limit.
+The committed machine-readable results are `results/summary.csv`,
+`results/summary.json`, `results/output_details.csv`, and
+`results/output_details.json`. Per-case BLIF, Verilog, and log files are
+reproducible and ignored by Git.
 
 ## Outcome
 
@@ -60,3 +107,10 @@ or add an implementation-cost-aware synthesis pass after interpolation.
 
 Detailed per-case and per-output data are in the committed CSV and JSON files
 under `results/`.
+
+## Isolation
+
+The experiment runner, report, and generated results live below `0810_try` and
+do not modify ABC source files. The original work was developed on branch
+`experiment/0810-minunsat-eco`; switching branches can hide the committed
+experiment without disturbing unrelated local work.

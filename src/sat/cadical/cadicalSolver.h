@@ -45,6 +45,7 @@ struct cadical_solver_
   int nVars;
   Vec_Int_t* vAssumptions;
   Vec_Int_t* vCore;
+  abctime nTimeOut;
 };
 
 
@@ -58,6 +59,10 @@ struct cadical_solver_
 
 extern cadical_solver*  cadical_solver_new(void);
 extern void             cadical_solver_delete(cadical_solver* s);
+extern const char*      cadical_solver_signature(void);
+extern int              cadical_solver_configure(cadical_solver* s, const char* name);
+extern int              cadical_solver_set_option(cadical_solver* s, const char* name, int value);
+extern void             cadical_solver_set_runtime_limit(cadical_solver* s, abctime nTimeOut);
 extern int              cadical_solver_addclause(cadical_solver* s, int* begin, int* end);
 extern int              cadical_solver_solve(cadical_solver* s, int* begin, int* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal);
 extern int              cadical_solver_final(cadical_solver* s, int** ppArray);

@@ -37,18 +37,18 @@ ABC_NAMESPACE_IMPL_START
 
   Description [The resulting manager is combinational. The primary inputs
   corresponding to register outputs are ordered first. The only POs of the 
-  manager is the property output of the last timeframe.]
+  manager is the requested final/two-frame/all-frame property output.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts, int fUseTwoFrames )
+Aig_Man_t * Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts, int fUseTwoFrames, int fUseAllFrames )
 {
     Aig_Man_t * pFrames;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
-    Aig_Obj_t * pLastPo = NULL;
+    Aig_Obj_t * pCurPo = NULL, * pLastPo = NULL, * pAllPo = NULL;
     int i, f;
     assert( Saig_ManRegNum(pAig) > 0 );
     assert( Saig_ManPoNum(pAig)-Saig_ManConstrNum(pAig) == 1 );
@@ -75,6 +75,9 @@ Aig_Man_t * Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts
         // add internal nodes of this frame
         Aig_ManForEachNode( pAig, pObj, i )
             pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+        pCurPo = Aig_ObjChild0Copy( Aig_ManCo(pAig, 0) );
+        if ( fUseAllFrames )
+            pAllPo = pAllPo == NULL ? pCurPo : Aig_Or( pFrames, pAllPo, pCurPo );
         // add outputs for constraints
         Saig_ManForEachPo( pAig, pObj, i )
         {
@@ -85,8 +88,7 @@ Aig_Man_t * Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts
         if ( f == nFrames - 1 )
             break;
         // remember the last PO
-        pObj = Aig_ManCo( pAig, 0 );
-        pLastPo = Aig_ObjChild0Copy(pObj);
+        pLastPo = pCurPo;
         // save register inputs
         Saig_ManForEachLi( pAig, pObj, i )
             pObj->pData = Aig_ObjChild0Copy(pObj);
@@ -103,12 +105,14 @@ Aig_Man_t * Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts
     // create the only PO of the manager
     else
     {
-        pObj = Aig_ManCo( pAig, 0 );
-        // add the last PO
-        if ( pLastPo == NULL || !fUseTwoFrames )
-            pLastPo = Aig_ObjChild0Copy(pObj);
+        assert( pCurPo != NULL );
+        // add the selected suffix property
+        if ( fUseAllFrames )
+            pLastPo = pAllPo;
+        else if ( pLastPo == NULL || !fUseTwoFrames )
+            pLastPo = pCurPo;
         else
-            pLastPo = Aig_Or( pFrames, pLastPo, Aig_ObjChild0Copy(pObj) );
+            pLastPo = Aig_Or( pFrames, pLastPo, pCurPo );
         Aig_ObjCreateCo( pFrames, pLastPo );
     }
     Aig_ManCleanup( pFrames );
@@ -121,4 +125,3 @@ Aig_Man_t * Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts
 
 
 ABC_NAMESPACE_IMPL_END
-
