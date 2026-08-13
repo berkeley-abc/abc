@@ -121,9 +121,8 @@ namespace eSLIM {
   }
   
   std::vector<bool> DelayEngine::reduceDelay(unsigned int max_size, unsigned int initial_delay) {
-    assert (delay_selectors.find(initial_delay) != delay_selectors.end());
     std::vector<bool> last_model;
-    for( auto it = delay_selectors.find(initial_delay); it != delay_selectors.end(); ++it ) {
+    for( auto it = delay_selectors.lower_bound(initial_delay); it != delay_selectors.end(); ++it ) {
       int d = it->first;
       double timeout = getDynamicTimeout(max_size);
       int status = existsReplacement(max_size, d, timeout);
