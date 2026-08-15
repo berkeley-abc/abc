@@ -288,11 +288,9 @@ enum sn_obj_type_enum
     SN_OBJ_TYPE_COUNT
 };
 
-#ifdef __cplusplus
-static_assert(SN_OBJ_TYPE_COUNT <= UINT8_MAX, "sn_obj_type_t cannot represent every object type");
-#else
-_Static_assert(SN_OBJ_TYPE_COUNT <= UINT8_MAX, "sn_obj_type_t cannot represent every object type");
-#endif
+// Use a negative-size array as a compile-time check because ABC is also built
+// as C by MSVC, whose C frontend does not accept the C11 _Static_assert keyword.
+typedef char sn_obj_type_count_must_fit_in_uint8_t[(SN_OBJ_TYPE_COUNT <= UINT8_MAX) ? 1 : -1];
 
 typedef enum sn_mux_fanin_t
 {
