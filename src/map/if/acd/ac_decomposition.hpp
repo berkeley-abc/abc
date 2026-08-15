@@ -482,6 +482,11 @@ private:
     for ( uint32_t i = 0; i < num_vars; ++i )
     {
       pComb[i] = pInvPerm[i] = i;
+      /* bestPerm is written only when some combination beats the initial
+       * best_cost.  When none does, the loop below still evaluates
+       * permutations[bestPerm[i]], which reads uninitialised stack and then
+       * indexes permutations[] with it.  Seed the identity permutation. */
+      bestPerm[i] = i;
     }
 
     /* early bail-out conditions */
