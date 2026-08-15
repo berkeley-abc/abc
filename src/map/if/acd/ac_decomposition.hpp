@@ -1322,7 +1322,10 @@ private:
     {
       auto mask = *tt.begin();
 
-      for ( auto i = real_num_vars; i < num_vars; ++i )
+      /* Replicate within the word only.  Variables 6 and above are replicated by the
+       * std::fill below, and shifting a 64-bit word by (1 << i) for i >= 6 is undefined
+       * behaviour rather than a no-op. */
+      for ( auto i = real_num_vars; i < std::min( num_vars, 6u ); ++i )
       {
         mask |= ( mask << ( 1 << i ) );
       }
