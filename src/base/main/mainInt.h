@@ -149,6 +149,7 @@ struct Abc_Frame_t_
     void *          pAbcWlc;
     Vec_Int_t *     pAbcWlcInv;
     void *          pAbcRtl;
+    void *          pAbcSn;
     void *          pAbcPla;
     Abc_Nam_t *     pJsonStrs;
     Vec_Wec_t *     vJsonObjs;

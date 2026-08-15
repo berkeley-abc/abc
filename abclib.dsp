@@ -971,10 +971,6 @@ SOURCE=.\src\base\acb\acbAig.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\acb\acbCom.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\acb\acbFunc.c
 # End Source File
 # Begin Source File
@@ -1064,6 +1060,74 @@ SOURCE=.\src\base\wln\wlnWlc.c
 # Begin Source File
 
 SOURCE=.\src\base\wln\wlnWriteVer.c
+# End Source File
+# End Group
+# Begin Group "sn"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\base\sn\sn.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snTech.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snMapDsp.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snMapMem.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snMapAdd.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snMapTech.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snCheck.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snBoundary.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snMapLut.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snPth.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snBlast.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snMiniAig.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snMiniLut.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snMiniGate.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snMux.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snCom.c
 # End Source File
 # End Group
 # End Group

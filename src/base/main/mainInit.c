@@ -53,6 +53,8 @@ extern void Wlc_Init( Abc_Frame_t * pAbc );
 extern void Wlc_End( Abc_Frame_t * pAbc );
 extern void Wln_Init( Abc_Frame_t * pAbc );
 extern void Wln_End( Abc_Frame_t * pAbc );
+extern void Sn_Init( Abc_Frame_t * pAbc );
+extern void Sn_End( Abc_Frame_t * pAbc );
 extern void Pla_Init( Abc_Frame_t * pAbc );
 extern void Pla_End( Abc_Frame_t * pAbc );
 extern void Sim_Init( Abc_Frame_t * pAbc );
@@ -119,6 +121,7 @@ void Abc_FrameInit( Abc_Frame_t * pAbc )
     Emap_Init( pAbc );
     Wlc_Init( pAbc );
     Wln_Init( pAbc );
+    Sn_Init( pAbc );
     Pla_Init( pAbc );
     Test_Init( pAbc );
     Ufar_Init( pAbc );
@@ -160,6 +163,7 @@ void Abc_FrameEnd( Abc_Frame_t * pAbc )
     Scl_End( pAbc );
     Wlc_End( pAbc );
     Wln_End( pAbc );
+    Sn_End( pAbc );
     Pla_End( pAbc );
     Test_End( pAbc );
     Glucose_End( pAbc );

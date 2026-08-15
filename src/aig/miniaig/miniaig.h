@@ -351,6 +351,20 @@ static int Mini_AigAndMulti( Mini_Aig_t * p, int * pLits, int nLits )
     }
     return pLits[0];
 }
+static int Mini_AigXorMulti( Mini_Aig_t * p, int * pLits, int nLits )
+{
+    int i;
+    assert( nLits > 0 );
+    while ( nLits > 1 )
+    {
+        for ( i = 0; i < nLits/2; i++ )
+            pLits[i] = Mini_AigXor(p, pLits[2*i], pLits[2*i+1]);
+        if ( nLits & 1 )
+            pLits[i++] = pLits[nLits-1];
+        nLits = i;
+    }
+    return pLits[0];
+}
 static int Mini_AigMuxMulti( Mini_Aig_t * p, int * pCtrl, int nCtrl, int * pData, int nData )
 {
     int i, c;
@@ -847,4 +861,3 @@ ABC_NAMESPACE_HEADER_END
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
