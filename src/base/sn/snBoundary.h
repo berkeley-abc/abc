@@ -488,37 +488,99 @@ static inline sn_obj_id_t sn_boundary_co_word(sn_boundary_regs_t* regs, const sn
     return sn_boundary_pack_bits(regs->result, co_drivers + begin, width, "boundary_word");
 }
 
-static inline bool sn_boundary_depends_on(const sn_module_t* module, sn_obj_id_t root, sn_obj_id_t dependency)
+typedef struct sn_boundary_dfs_frame_t
 {
-    uint8_t* visited = (uint8_t*)calloc(module->obj_types.size, sizeof(uint8_t));
-    sn_vec_t stack;
-    assert(visited);
+    sn_obj_id_t object;
+    uint32_t next_fanout;
+} sn_boundary_dfs_frame_t;
+
+// Marks tentative primitive-output substitutions that create combinational feedback. All temporary pair outputs
+// have already been replaced by the corresponding primitive outputs. One iterative Kosaraju traversal identifies
+// the resulting strongly connected components; a substituted edge whose endpoints share a component must retain
+// its loop pair. This replaces one complete cone walk per primitive output by linear whole-module graph work.
+static inline void sn_boundary_mark_feedback_pairs(sn_module_t* module, const sn_obj_id_t* actual_to_pair,
+                                                   uint8_t* keep)
+{
+    size_t object_count = module->obj_types.size;
+    uint8_t* visited = (uint8_t*)calloc(object_count, sizeof(uint8_t));
+    uint32_t* components = object_count ? (uint32_t*)malloc(object_count * sizeof(uint32_t)) : NULL;
+    sn_vec_t order, stack;
+    assert(visited && (components || object_count == 0));
+    sn_vec_init(&order);
     sn_vec_init(&stack);
-    *sn_vec_push(sn_obj_id_t, &stack) = root;
-    while (stack.size)
+    sn_vec_reserve(sn_obj_id_t, &order, object_count);
+    sn_module_build_fanouts(module);
+
+    for (sn_obj_id_t start = 0; start < object_count; start++)
     {
-        sn_obj_id_t object = sn_vec_at(sn_obj_id_t, &stack, --stack.size);
-        if (object == dependency)
-        {
-            sn_vec_destroy(&stack);
-            free(visited);
-            return true;
-        }
-        if (visited[object])
+        if (visited[start])
             continue;
-        visited[object] = 1;
-        if (sn_obj_type_is_pair_out(sn_obj_type(module, object)))
-            continue;
-        for (uint32_t i = 0; i < sn_obj_fanin_count(module, object); i++)
+        visited[start] = 1;
+        sn_boundary_dfs_frame_t* first = sn_vec_push(sn_boundary_dfs_frame_t, &stack);
+        first->object = start;
+        first->next_fanout = 0;
+        while (stack.size)
         {
-            sn_obj_id_t fanin = sn_obj_fanin(module, object, i);
-            if (fanin != SN_INVALID_ID && !visited[fanin])
-                *sn_vec_push(sn_obj_id_t, &stack) = fanin;
+            sn_boundary_dfs_frame_t* frame =
+                &sn_vec_at(sn_boundary_dfs_frame_t, &stack, stack.size - 1);
+            uint32_t count = sn_obj_fanout_count(module, frame->object);
+            if (frame->next_fanout < count)
+            {
+                sn_obj_id_t fanout = sn_obj_fanout(module, frame->object, frame->next_fanout++);
+                if (!visited[fanout])
+                {
+                    visited[fanout] = 1;
+                    sn_boundary_dfs_frame_t* child = sn_vec_push(sn_boundary_dfs_frame_t, &stack);
+                    child->object = fanout;
+                    child->next_fanout = 0;
+                }
+                continue;
+            }
+            *sn_vec_push(sn_obj_id_t, &order) = frame->object;
+            stack.size--;
         }
     }
+
+    for (sn_obj_id_t object = 0; object < object_count; object++)
+        components[object] = UINT32_MAX;
+    uint32_t component_count = 0;
+    for (size_t i = order.size; i-- > 0;)
+    {
+        sn_obj_id_t start = sn_vec_at(sn_obj_id_t, &order, i);
+        if (components[start] != UINT32_MAX)
+            continue;
+        components[start] = component_count;
+        *sn_vec_push(sn_obj_id_t, &stack) = start;
+        while (stack.size)
+        {
+            sn_obj_id_t object = sn_vec_at(sn_obj_id_t, &stack, --stack.size);
+            for (uint32_t k = 0; k < sn_obj_fanin_count(module, object); k++)
+            {
+                sn_obj_id_t fanin = sn_obj_fanin(module, object, k);
+                if (fanin != SN_INVALID_ID && components[fanin] == UINT32_MAX)
+                {
+                    components[fanin] = component_count;
+                    *sn_vec_push(sn_obj_id_t, &stack) = fanin;
+                }
+            }
+        }
+        component_count++;
+    }
+
+    for (sn_obj_id_t object = 0; object < object_count; object++)
+        for (uint32_t i = 0; i < sn_obj_fanin_count(module, object); i++)
+        {
+            sn_obj_id_t actual = sn_obj_fanin(module, object, i);
+            sn_obj_id_t pair_out = actual == SN_INVALID_ID ? SN_INVALID_ID : actual_to_pair[actual];
+            if (pair_out != SN_INVALID_ID && components[actual] == components[object])
+                keep[pair_out] = 1;
+        }
+
+    sn_module_invalidate_fanouts(module);
+    sn_vec_destroy(&order);
     sn_vec_destroy(&stack);
+    free(components);
     free(visited);
-    return false;
 }
 
 // Duplicates a module in topological order while omitting an explicitly unreferenced set of objects. This is used
@@ -618,8 +680,13 @@ static inline void sn_boundary_prune_primitive_pairs(sn_boundary_regs_t* regs)
     sn_module_t* source = regs->result;
     size_t object_count = source->obj_types.size;
     uint8_t* remove = (uint8_t*)calloc(object_count, sizeof(uint8_t));
+    uint8_t* keep = (uint8_t*)calloc(object_count, sizeof(uint8_t));
+    sn_obj_id_t* replacement = object_count ? (sn_obj_id_t*)malloc(object_count * sizeof(sn_obj_id_t)) : NULL;
+    sn_obj_id_t* actual_to_pair = object_count ? (sn_obj_id_t*)malloc(object_count * sizeof(sn_obj_id_t)) : NULL;
     size_t remove_count = 0;
-    assert(remove);
+    assert(remove && keep && (replacement || object_count == 0) && (actual_to_pair || object_count == 0));
+    for (sn_obj_id_t object = 0; object < object_count; object++)
+        replacement[object] = actual_to_pair[object] = SN_INVALID_ID;
     for (size_t i = 0; i < regs->boundary->primitives.size; i++)
     {
         const sn_blast_primitive_t* entry = &sn_vec_at(sn_blast_primitive_t, &regs->boundary->primitives, i);
@@ -628,16 +695,39 @@ static inline void sn_boundary_prune_primitive_pairs(sn_boundary_regs_t* regs)
         {
             sn_obj_pair_t pair = regs->primitive_pairs[regs->primitive_offsets[i] + output];
             sn_obj_id_t actual = sn_obj_fanin(source, pair.in, 0);
-            sn_obj_id_t inst = sn_obj_type(source, actual) == SN_FAN ? sn_fan_inst_id(source, actual) : actual;
-            if (sn_boundary_depends_on(source, inst, pair.out))
-                continue;
-            for (size_t k = 0; k < source->fanins.size; k++)
-                if (sn_vec_at(sn_obj_id_t, &source->fanins, k) == pair.out)
-                    sn_vec_at(sn_obj_id_t, &source->fanins, k) = actual;
-            remove[pair.out] = remove[pair.in] = 1;
-            remove_count += 2;
+            assert(replacement[pair.out] == SN_INVALID_ID && actual_to_pair[actual] == SN_INVALID_ID);
+            replacement[pair.out] = actual;
+            actual_to_pair[actual] = pair.out;
         }
     }
+    for (size_t i = 0; i < source->fanins.size; i++)
+    {
+        sn_obj_id_t fanin = sn_vec_at(sn_obj_id_t, &source->fanins, i);
+        if (fanin != SN_INVALID_ID && replacement[fanin] != SN_INVALID_ID)
+            sn_vec_at(sn_obj_id_t, &source->fanins, i) = replacement[fanin];
+    }
+    sn_module_invalidate_fanouts(source);
+    sn_boundary_mark_feedback_pairs(source, actual_to_pair, keep);
+    for (sn_obj_id_t object = 0; object < object_count; object++)
+        for (uint32_t i = 0; i < sn_obj_fanin_count(source, object); i++)
+        {
+            sn_obj_id_t actual = sn_obj_fanin(source, object, i);
+            sn_obj_id_t pair_out = actual == SN_INVALID_ID ? SN_INVALID_ID : actual_to_pair[actual];
+            if (pair_out != SN_INVALID_ID && keep[pair_out] && object != sn_obj_pair_in(source, pair_out))
+                sn_obj_connect(source, object, i, pair_out);
+        }
+    for (sn_obj_id_t pair_out = 0; pair_out < object_count; pair_out++)
+        if (replacement[pair_out] != SN_INVALID_ID && !keep[pair_out])
+        {
+            sn_obj_id_t actual = replacement[pair_out];
+            sn_obj_id_t pair_in = sn_obj_pair_in(source, pair_out);
+            if (sn_obj_type(source, actual) == SN_FAN && sn_obj_name_id(source, actual) == SN_INVALID_ID &&
+                sn_obj_name_id(source, pair_out) != SN_INVALID_ID)
+                sn_vec_at(sn_name_id_t, &source->name_ids, actual) = sn_obj_name_id(source, pair_out);
+            remove[pair_out] = remove[pair_in] = 1;
+            remove_count += 2;
+        }
+    sn_module_invalidate_fanouts(source);
     if (remove_count)
     {
         char name[96];
@@ -664,6 +754,9 @@ static inline void sn_boundary_prune_primitive_pairs(sn_boundary_regs_t* regs)
         sn_name_remove_last(&regs->design->names, temporary_name);
         regs->result = filtered;
     }
+    free(actual_to_pair);
+    free(replacement);
+    free(keep);
     free(remove);
 }
 

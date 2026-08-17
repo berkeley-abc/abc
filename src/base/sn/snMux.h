@@ -505,6 +505,8 @@ static inline bool sn_share_reg_mux_tree(sn_module_t* target, const sn_module_t*
     sn_vec_t stack, steps, paths, terms, term_hashes, term_links, data_terms, controls;
     sn_obj_id_t hold = SN_INVALID_ID, data = SN_INVALID_ID, new_reg = SN_INVALID_ID;
     uint32_t* term_buckets = NULL;
+    uint32_t* group_heads = NULL;
+    uint32_t* path_links = NULL;
     uint32_t term_bucket_count = 0;
     size_t hold_index = 0;
     bool exclusive = true, overflow = false;
@@ -553,6 +555,18 @@ static inline bool sn_share_reg_mux_tree(sn_module_t* target, const sn_module_t*
     }
     if (paths.size <= terms.size || paths.size - terms.size < options.min_saved_paths || paths.size < 2 * terms.size)
         goto unchanged;
+    group_heads = (uint32_t*)malloc(terms.size * sizeof(uint32_t));
+    path_links = (uint32_t*)malloc(paths.size * sizeof(uint32_t));
+    assert(group_heads && path_links);
+    for (size_t k = 0; k < terms.size; k++)
+        group_heads[k] = SN_INVALID_ID;
+    for (size_t i = 0; i < paths.size; i++)
+    {
+        uint32_t group = sn_vec_at(sn_share_path_t, &paths, i).group;
+        assert(group < terms.size);
+        path_links[i] = group_heads[group];
+        group_heads[group] = (uint32_t)i;
+    }
 
     hold = sn_share_strip_value(source, old_reg);
     hold_index = terms.size;
@@ -566,11 +580,10 @@ static inline bool sn_share_reg_mux_tree(sn_module_t* target, const sn_module_t*
             continue;
         sn_vec_t cubes;
         sn_vec_init(&cubes);
-        for (size_t i = 0; i < paths.size; i++)
+        for (uint32_t i = group_heads[k]; i != SN_INVALID_ID; i = path_links[i])
         {
             sn_share_path_t* path = &sn_vec_at(sn_share_path_t, &paths, i);
-            if (path->group == k)
-                *sn_vec_push(sn_obj_id_t, &cubes) = sn_share_path_condition(target, source, path, &steps);
+            *sn_vec_push(sn_obj_id_t, &cubes) = sn_share_path_condition(target, source, path, &steps);
         }
         *sn_vec_push(sn_obj_id_t, &controls) =
             sn_share_or(target, sn_vec_data(sn_obj_id_t, &cubes), (uint32_t)cubes.size);
@@ -615,6 +628,8 @@ static inline bool sn_share_reg_mux_tree(sn_module_t* target, const sn_module_t*
     sn_vec_destroy(&terms);
     sn_vec_destroy(&term_hashes);
     sn_vec_destroy(&term_links);
+    free(path_links);
+    free(group_heads);
     free(term_buckets);
     return true;
 
@@ -625,6 +640,8 @@ unchanged:
     sn_vec_destroy(&terms);
     sn_vec_destroy(&term_hashes);
     sn_vec_destroy(&term_links);
+    free(path_links);
+    free(group_heads);
     free(term_buckets);
     sn_vec_destroy(&data_terms);
     sn_vec_destroy(&controls);
@@ -672,6 +689,8 @@ static inline bool sn_share_reg_pmux(sn_module_t* target, const sn_module_t* sou
     while (bucket_count < 2 * count)
         bucket_count <<= 1;
     uint32_t* buckets = (uint32_t*)malloc((size_t)bucket_count * sizeof(uint32_t));
+    uint32_t* member_heads = NULL;
+    uint32_t* member_links = NULL;
     assert(buckets);
     memset(buckets, 0xff, (size_t)bucket_count * sizeof(uint32_t));
     for (uint32_t i = 0; i < count; i++)
@@ -712,6 +731,18 @@ static inline bool sn_share_reg_pmux(sn_module_t* target, const sn_module_t* sou
         free(buckets);
         return false;
     }
+    member_heads = (uint32_t*)malloc(unique.size * sizeof(uint32_t));
+    member_links = (uint32_t*)malloc(members.size * sizeof(uint32_t));
+    assert(member_heads && member_links);
+    for (size_t k = 0; k < unique.size; k++)
+        member_heads[k] = SN_INVALID_ID;
+    for (size_t j = 0; j < members.size; j++)
+    {
+        uint32_t group = sn_vec_at(uint32_t, &members, j) >> 16;
+        assert(group < unique.size);
+        member_links[j] = member_heads[group];
+        member_heads[group] = (uint32_t)j;
+    }
 
     sn_obj_id_t new_reg = sn_obj_dup(source, old_reg);
     sn_obj_id_t new_in = sn_obj_pair_in(target, new_reg);
@@ -720,11 +751,10 @@ static inline bool sn_share_reg_pmux(sn_module_t* target, const sn_module_t* sou
     {
         sn_vec_t bits;
         sn_vec_init(&bits);
-        for (size_t j = 0; j < members.size; j++)
+        for (uint32_t j = member_heads[k]; j != SN_INVALID_ID; j = member_links[j])
         {
             uint32_t member = sn_vec_at(uint32_t, &members, j);
-            if ((member >> 16) == k)
-                *sn_vec_push(sn_obj_id_t, &bits) = sn_share_select_bit(target, new_select, member & UINT16_MAX);
+            *sn_vec_push(sn_obj_id_t, &bits) = sn_share_select_bit(target, new_select, member & UINT16_MAX);
         }
         *sn_vec_push(sn_obj_id_t, &conditions) =
             sn_share_or(target, sn_vec_data(sn_obj_id_t, &bits), (uint32_t)bits.size);
@@ -776,6 +806,8 @@ static inline bool sn_share_reg_pmux(sn_module_t* target, const sn_module_t* sou
     sn_vec_destroy(&unique_links);
     sn_vec_destroy(&conditions);
     sn_vec_destroy(&members);
+    free(member_links);
+    free(member_heads);
     free(buckets);
     return true;
 }

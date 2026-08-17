@@ -63,14 +63,20 @@ set snslang /path/to/sn_slang
 `@slang` uses `sn_slang` from `PATH` unless the `snslang` setting overrides it. It accepts `-M` for the top module,
 repeatable `-D NAME` or `-D NAME=value` preprocessor definitions, `-F` for one additional source file, and any number
 of positional source files. For example, `-D WIDTH=8 -D SIGNED=1` defines two macros. `-T` is not used because ABC
-conventionally reserves it for a time limit. `-v` prints the external command and frontend timing. Black-box patterns
-and include-directory options remain unsupported.
+conventionally reserves it for a time limit. `-v` prints the external command and frontend timing. A module declared
+inside SystemVerilog `` `celldefine`` / `` `endcelldefine``, or marked by a nonzero `black_box` or `syn_black_box`
+module attribute, is imported as an opaque technology primitive with its elaborated PI/PO interface; its simulation
+body is not lowered. For example, both `` `celldefine`` around a module definition and
+`(* syn_black_box = 1 *) module macro (...);` create an opaque leaf. An explicit zero or false attribute does not.
+The declaration is still required: slang must know every port's name, direction, width, and signedness, so an
+undefined-module inst remains an error. Undefined-module patterns and include-directory options remain unsupported.
 
 `@read` and `@write` provide binary persistence. `@write` selects SN or Verilog output from the `.sn`, `.v`, or
 `.sv` extension. `@read -M module` selects the top stored in a multi-top design; otherwise the last top is used.
 Before installing external binary data, `@read` validates the encoding and runs the same non-aborting structural and
 semantic checks as `@check`. A failed `@write` removes its incomplete output file. Every design installed in ABC is
-topologically ordered.
+topologically ordered. The current writer emits binary format version 6; the reader also accepts version 5 and treats
+its modules as ordinary non-black-box modules because that format predates module flags.
 
 `@status` prints the current design and top names, SN revision, selected technology, hierarchy form, last extraction
 mode/module/revision, saved boundary hash, current GIA dimensions, and `@put` compatibility. A new `@read` or `@slang`
@@ -94,12 +100,14 @@ instance/FAN ordering, hierarchy recursion, LUTs, gates, and mapped primitive in
 line per module. Memory, DSP, and carry mapping commands run the same checker transactionally before and after each
 transformation, so an invalid result is diagnosed and rejected without replacing the current design.
 
-`@ps` prints compact statistics for the selected top module. `@ps -v` adds the hierarchy and statistics for every
-module definition. Like `%ps -d`, `@ps -d` prints occurrences by object type and output/input width signature. Its
-counts cover the elaborated hierarchy rooted at the selected top, including the multiplicity of repeated insts. The
-hierarchical occurrence totals are accumulated over the module DAG rather than by recursively revisiting every inst,
-so statistics remain practical for deeply repeated hierarchy. Memory is reported as used/allocated storage with
-rounded K, M, or G suffixes.
+`@ps` prints compact statistics for every module definition by default. `@ps -M module` prints the selected module
+instead and uses it as the root for optional hierarchy and detailed reports. `@ps -v` adds the selected hierarchy and
+keeps opaque definitions annotated with `[blackbox]`. Like `%ps -d`, `@ps -d` prints occurrences by object type and
+output/input width signature. It also reports every reachable black-box type, its instance-occurrence multiplicity,
+PI/PO port and bit counts, and totals for abstract AIG inputs and outputs. Counts cover the elaborated hierarchy rooted
+at the selected module (or the current design top when `-M` is absent), including repeated insts. Hierarchical totals
+are accumulated over the module DAG rather than by recursively revisiting every inst, so statistics remain practical
+for deeply repeated hierarchy. Memory is reported as used/allocated storage with rounded K, M, or G suffixes.
 
 `@map_mem`, `@map_dsp`, and `@map_add` map into the initial AMD/Xilinx UltraScale+ technology description.
 Transformations are transactional and keep the original user-visible top-module name. `@map_add` replaces word-level
@@ -107,6 +115,23 @@ addition and subtraction of at least three bits by chains of behavioral `__sn_CA
 operand inversion, extension, and final slicing remain ordinary SN logic for subsequent LUT mapping. Run DSP mapping
 before carry mapping so future DSP preadder and postadder recognition is not hidden. `@collapse` flattens user hierarchy
 while retaining mapped hard-block leaf instances.
+
+Opaque `SN_MODULE_BLACKBOX` insts are preserved by hierarchy collapse even when ordinary user hierarchy is flattened.
+During `@blast`, each opaque output is an additional GIA input and each opaque input is an additional GIA output, in
+natural port and LSB-first bit order. A black-box `SN_PO` has `SN_INVALID_ID` as its sole fanin, explicitly recording
+that its value has no SN implementation; no zero-valued placeholder is created. `@write` emits the preserved interface
+as a port-only `(* blackbox *)` module. Internally an opaque module contains only its declared `SN_PI` and `SN_PO`
+objects; an `inout` is a same-named PI/PO pair. Its body and descendants are absent from SN. `@check` permits the
+invalid PO fanin only for this boundary representation, and `@ps -v` / `@ps -d` expose the retained black boxes and
+their reachable occurrence counts.
+
+`SN_CAST` is a one-fanin operator whose object width and signedness define the result type. It does not permute bits.
+An equal-width cast only changes the signedness annotation; widening sign-extends a signed result and zero-extends an
+unsigned result; narrowing discards high bits and retains the LSB-first low-order portion. `sn_slang` adds casts for
+explicit and implicit slang conversions, `$signed` / `$unsigned`, dynamic selected-value normalization, packed-value
+updates, and final normalization of `SN_MUX` data branches to the mux result width. Memory, DSP, and carry mapping may
+also introduce casts while adapting word-level values to primitive interfaces. The Verilog writer uses `$signed` or
+`$unsigned` on a result-width wire, and the bit-blaster implements the same extension or truncation directly.
 
 `@opt_mux` restructures register mux cones by collecting root-to-terminal paths, grouping structurally identical
 LSB-first word values, and ORing the corresponding path conditions. A register-output terminal is converted into an
@@ -194,10 +219,12 @@ instances as well as ordinary SN logic.
 
 Mapped RAM/DSP/CARRY4 instances are reconstructed as technology leaf instances. SN loop-breaker pairs connect their
 output ports while the new flat module is built and are placed into a legal order by the final topological reorder.
-Temporary loop pairs are pruned after reconnection unless an actual feedback dependency remains, so acyclic datapaths
-do not gain artificial loop-breakers. Generic unmapped memory endpoints are recorded and abstracted by `@blast`, but
-`@put` currently rejects them because the boundary does not yet retain enough per-memory-port ownership data. This
-check prevents silent loss or misconnection of stateful memories.
+Temporary primitive-output loop pairs are pruned after reconnection unless an actual feedback dependency remains, so
+acyclic datapaths do not gain artificial loop-breakers. Explicit loop boundaries extracted from the original SN module
+are reconstructed unchanged; they are not currently re-proved unnecessary after `&`-space optimization. Generic
+unmapped memory endpoints are recorded and abstracted by `@blast`, but `@put` currently rejects them because the
+boundary does not yet retain enough per-memory-port ownership data. This check prevents silent loss or misconnection
+of stateful memories.
 
 ## Source files
 

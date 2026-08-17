@@ -31,38 +31,86 @@ typedef uint32_t (*sn_gate_id_resolver_t)(void* context, const char* gate_name);
 // afterward in topological order. Gate names stored at the end of the array are resolved into the current library's
 // stable gate IDs; the name is also retained as the SN object name for structural Verilog emission.
 static inline sn_module_id_t sn_design_add_gate_module(sn_design_t* design, sn_module_id_t source_top_id,
-                                                        const int* mapping, const sn_blast_boundary_t* boundary,
+                                                        const int* mapping, size_t mapping_count,
+                                                        const sn_blast_boundary_t* boundary,
                                                         sn_gate_id_resolver_t resolver, void* resolver_context,
                                                         const char* module_name)
 {
     assert(design && source_top_id < design->modules.size && mapping && boundary && resolver && module_name);
+    if (mapping_count < 4 || mapping[0] < 0 || mapping[1] < 0 || mapping[2] < 0 || mapping[3] < 0)
+        return SN_INVALID_ID;
     uint32_t ci_count = (uint32_t)mapping[0];
     uint32_t co_count = (uint32_t)mapping[1];
     uint32_t node_count = (uint32_t)mapping[2];
     uint32_t reg_count = (uint32_t)mapping[3];
-    assert(reg_count == 0 && ci_count == boundary->cis.size && co_count == boundary->cos.size);
+    if (reg_count != 0 || ci_count != boundary->cis.size || co_count != boundary->cos.size ||
+        node_count > UINT32_MAX - ci_count)
+        return SN_INVALID_ID;
 
-    // Resolve all gate names before mutating the design. A changed genlib can otherwise leave a partially constructed
-    // module behind or turn a user-level @put error into an assertion failure.
-    uint32_t position = 4;
-    for (uint32_t i = 0; i < node_count; i++)
+    // Validate the complete structural prefix and resolve all bounded gate-name strings before mutating the design.
+    // A changed genlib or malformed mini-mapping can otherwise leave a partially constructed module behind.
+    size_t position = 4;
+    uint32_t* fanin_counts = node_count ? (uint32_t*)malloc(sizeof(uint32_t) * node_count) : NULL;
+    const uint32_t** fanin_indices =
+        node_count ? (const uint32_t**)malloc(sizeof(uint32_t*) * node_count) : NULL;
+    uint32_t* gate_ids = node_count ? (uint32_t*)malloc(sizeof(uint32_t) * node_count) : NULL;
+    bool valid = true;
+    assert((fanin_counts && fanin_indices && gate_ids) || node_count == 0);
+    for (uint32_t i = 0; valid && i < node_count; i++)
     {
+        if (position >= mapping_count || mapping[position] < 0)
+        {
+            valid = false;
+            break;
+        }
         uint32_t count = (uint32_t)mapping[position++];
+        if (count > mapping_count - position)
+        {
+            valid = false;
+            break;
+        }
+        fanin_counts[i] = count;
+        fanin_indices[i] = (const uint32_t*)(mapping + position);
+        for (uint32_t k = 0; k < count; k++)
+            if (mapping[position + k] < 0 || (uint32_t)mapping[position + k] >= ci_count + i)
+                valid = false;
         position += count;
     }
-    position += co_count;
-    const char* gate_name = (const char*)(mapping + position);
-    uint32_t* gate_ids = node_count ? (uint32_t*)malloc(sizeof(uint32_t) * node_count) : NULL;
-    assert(gate_ids || node_count == 0);
-    for (uint32_t i = 0; i < node_count; i++)
+    if (valid && co_count > mapping_count - position)
+        valid = false;
+    const uint32_t* output_indices = valid ? (const uint32_t*)(mapping + position) : NULL;
+    for (uint32_t i = 0; valid && i < co_count; i++)
+        if (mapping[position + i] < 0 || (uint32_t)mapping[position + i] >= ci_count + node_count)
+            valid = false;
+    if (valid)
+        position += co_count;
+    const char* gate_names = valid ? (const char*)(mapping + position) : NULL;
+    const char* gate_name = gate_names;
+    size_t name_bytes = valid ? (mapping_count - position) * sizeof(int) : 0;
+    for (uint32_t i = 0; valid && i < node_count; i++)
     {
+        const char* end = (const char*)memchr(gate_name, '\0', name_bytes);
+        if (!end || end == gate_name)
+        {
+            valid = false;
+            break;
+        }
         gate_ids[i] = resolver(resolver_context, gate_name);
         if (gate_ids[i] == SN_INVALID_ID)
         {
-            free(gate_ids);
-            return SN_INVALID_ID;
+            valid = false;
+            break;
         }
-        gate_name += strlen(gate_name) + 1;
+        size_t length = (size_t)(end - gate_name) + 1;
+        gate_name += length;
+        name_bytes -= length;
+    }
+    if (!valid)
+    {
+        free(gate_ids);
+        free(fanin_indices);
+        free(fanin_counts);
+        return SN_INVALID_ID;
     }
 
     const sn_module_t* source = sn_design_get_module_const(design, source_top_id);
@@ -103,19 +151,7 @@ static inline sn_module_id_t sn_design_add_gate_module(sn_design_t* design, sn_m
             assert(false);
     }
 
-    position = 4;
-    uint32_t* fanin_counts = (uint32_t*)malloc(sizeof(uint32_t) * node_count);
-    const uint32_t** fanin_indices = (const uint32_t**)malloc(sizeof(uint32_t*) * node_count);
-    assert((fanin_counts && fanin_indices) || node_count == 0);
-    for (uint32_t i = 0; i < node_count; i++)
-    {
-        fanin_counts[i] = (uint32_t)mapping[position++];
-        fanin_indices[i] = (const uint32_t*)(mapping + position);
-        position += fanin_counts[i];
-    }
-    const uint32_t* output_indices = (const uint32_t*)(mapping + position);
-    position += co_count;
-    gate_name = (const char*)(mapping + position);
+    gate_name = gate_names;
 
     for (uint32_t i = 0; i < node_count; i++)
     {
@@ -160,6 +196,7 @@ static inline sn_module_id_t sn_design_add_gate_module(sn_design_t* design, sn_m
         co_drivers[i] = objects[output_indices[i]];
     }
     sn_boundary_regs_finish(&regs, co_drivers);
+    result = sn_design_get_module(design, result_id);
 
     free(co_drivers);
     free(fanin_indices);

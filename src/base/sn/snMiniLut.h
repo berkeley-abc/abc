@@ -391,6 +391,7 @@ static inline sn_module_id_t sn_design_add_lut_module(sn_design_t* design, sn_mo
         sn_module_add_po(result, width, sn_obj_is_signed(source, old_po), sn_obj_name(source, old_po), driver);
     }
     sn_boundary_regs_finish(&regs, co_drivers);
+    result = sn_design_get_module(design, result_id);
 
     free(co_drivers);
     free(mini_objects);

@@ -957,6 +957,7 @@ static inline int* sn_blast_shift(sn_blast_ctx_t* ctx, sn_obj_id_t object, bool 
     int fill = arithmetic && !left && sn_obj_is_signed(m, value_id) ? current[work_width - 1]
                                                                     : Mini_AigLitConst0();
     uint32_t useful_stages = 0;
+    // SN widths are capped below 2^31, so this unsigned shift never reaches 32.
     while ((UINT32_C(1) << useful_stages) < work_width)
         useful_stages++;
     uint32_t stage_count = amount_width < useful_stages ? amount_width : useful_stages;
@@ -1186,6 +1187,7 @@ static inline int* sn_blast_eval(sn_blast_ctx_t* ctx, sn_obj_id_t object)
     {
         uint32_t count = sn_obj_fanin_count(m, object);
         int inputs[6];
+        assert(count <= sizeof(inputs) / sizeof(inputs[0]));
         for (uint32_t i = 0; i < count; i++)
             inputs[i] = sn_blast_eval(ctx, sn_obj_fanin(m, object, i))[0];
         result = sn_blast_alloc_bits(1);
@@ -1206,8 +1208,7 @@ static inline int* sn_blast_eval(sn_blast_ctx_t* ctx, sn_obj_id_t object)
                                                           ctx->options.delay_comparators);
         result = sn_blast_alloc_bits(width);
         for (uint32_t i = 0; i < width; i++)
-            result[i] = i < work_width ? quotient_or_remainder[i]
-                                       : (signed_operands ? quotient_or_remainder[work_width - 1] : 0);
+            result[i] = quotient_or_remainder[i];
         free(a);
         free(b);
         free(quotient_or_remainder);
@@ -1475,6 +1476,8 @@ static inline bool sn_blast_hier_is_abstract_inst(const sn_blast_hier_t* hierarc
 {
     const sn_module_t* child = sn_design_get_module_const(hierarchy->design,
                                                            sn_inst_module_id(module, inst));
+    if (sn_module_is_blackbox(child))
+        return true;
     const char* name = sn_name_get(&hierarchy->design->names, child->name);
     bool memory = strncmp(name, "__sn_RAM", 8) == 0 || strncmp(name, "__sn_URAM", 9) == 0;
     bool multiplier = strncmp(name, "__sn_DSP", 8) == 0;

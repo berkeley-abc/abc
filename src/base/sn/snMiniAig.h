@@ -127,6 +127,7 @@ static inline sn_module_id_t sn_design_add_aig_module(sn_design_t* design, sn_mo
     }
     assert(co_index <= boundary->cos.size);
     sn_boundary_regs_finish(&regs, drivers);
+    result = sn_design_get_module(design, result_id);
 
     free(drivers);
     free(objects);

@@ -80,6 +80,20 @@ static inline bool sn_check_const_type(sn_obj_type_t type)
     return type == SN_CONST0 || type == SN_CONST1 || type == SN_CONST;
 }
 
+static inline bool sn_check_name_is_emittable(const char* name)
+{
+    size_t i;
+    if (!name || !name[0])
+        return false;
+    for (i = 0; name[i]; i++)
+    {
+        unsigned char c = (unsigned char)name[i];
+        if (c <= 32 || c >= 127 || c == '\\')
+            return false;
+    }
+    return true;
+}
+
 static inline int sn_check_fixed_fanin_count(sn_obj_type_t type)
 {
     if (type == SN_PI || type == SN_CONST0 || type == SN_CONST1 || type == SN_CONST)
@@ -108,19 +122,6 @@ static inline int sn_check_fixed_fanin_count(sn_obj_type_t type)
     return -1;
 }
 
-static inline bool sn_check_optional_fanin(sn_obj_type_t type, uint32_t index)
-{
-    if (type == SN_REG_OUT)
-        return index != SN_REG_DATA;
-    if (type == SN_MEM_OUT)
-        return index == SN_MEM_INIT_DATA || index == SN_MEM_INIT_MASK;
-    if (type == SN_MEM_READ)
-        return index == SN_MEM_READ_CLOCK || index == SN_MEM_READ_ENABLE;
-    if (type == SN_MEM_WRITE)
-        return index == SN_MEM_WRITE_ENABLE;
-    return false;
-}
-
 static inline bool sn_check_module_core(sn_check_ctx_t* ctx, const sn_module_t* module)
 {
     const sn_design_t* design = module ? module->design : NULL;
@@ -136,12 +137,14 @@ static inline bool sn_check_module_core(sn_check_ctx_t* ctx, const sn_module_t* 
                  "module table does not point back to this module");
     SN_CHECK(ctx, module, SN_INVALID_ID, module->name < design->names.names.size, "module name ID %u is out of range",
              module->name);
+    SN_CHECK(ctx, module, SN_INVALID_ID, (module->flags & ~SN_MODULE_ALL_FLAGS) == 0,
+             "module flags 0x%x contain unsupported bits", module->flags);
     if (module->name < design->names.names.size)
     {
-        SN_CHECK(ctx, module, SN_INVALID_ID, sn_name_get(&design->names, module->name)[0] != '\0',
-                 "module name is empty");
         const char* module_name = sn_name_get(&design->names, module->name);
-        if (strncmp(module_name, "__sn_", 5) == 0)
+        SN_CHECK(ctx, module, SN_INVALID_ID, module_name != NULL && module_name[0] != '\0',
+                 "module name is null or empty");
+        if (module_name && strncmp(module_name, "__sn_", 5) == 0)
             SN_CHECK(ctx, module, SN_INVALID_ID, sn_module_is_technology_primitive(module),
                      "module uses the reserved internal prefix __sn_");
     }
@@ -194,9 +197,14 @@ static inline bool sn_check_module_core(sn_check_ctx_t* ctx, const sn_module_t* 
         SN_CHECK(ctx, module, object, name_id == SN_INVALID_ID || name_id < design->names.names.size,
                  "name ID %u is out of range", name_id);
         if (type_valid && (type == SN_PI || type == SN_PO || type == SN_GATE))
+        {
+            const char* object_name = name_id < design->names.names.size
+                                          ? sn_name_get(&design->names, name_id)
+                                          : NULL;
             SN_CHECK(ctx, module, object,
-                     name_id < design->names.names.size && sn_name_get(&design->names, name_id)[0] != '\0',
+                     object_name != NULL && object_name[0] != '\0',
                      "type %u requires a nonempty Verilog name", (unsigned)type);
+        }
         if (type_valid)
         {
             int expected = sn_check_fixed_fanin_count(type);
@@ -213,13 +221,31 @@ static inline bool sn_check_module_core(sn_check_ctx_t* ctx, const sn_module_t* 
             {
                 sn_obj_id_t fanin = sn_vec_at(sn_obj_id_t, &module->fanins, offset + i);
                 SN_CHECK(ctx, module, object, fanin < object_count ||
-                             (fanin == SN_INVALID_ID && type_valid && sn_check_optional_fanin(type, i)),
+                             (fanin == SN_INVALID_ID && type_valid &&
+                              sn_obj_fanin_may_be_invalid(module, type, i)),
                          "fanin %u has invalid object ID %u", i, fanin);
             }
         offset += count;
     }
     SN_CHECK(ctx, module, SN_INVALID_ID, offset == module->fanins.size,
              "fanin spans use %zu entries but storage contains %zu", offset, module->fanins.size);
+
+    if (sn_module_is_blackbox(module))
+        for (sn_obj_id_t object = 0; object < object_count; object++)
+        {
+            sn_obj_type_t type = sn_vec_at(sn_obj_type_t, &module->obj_types, object);
+            SN_CHECK(ctx, module, object, type == SN_PI || type == SN_PO,
+                     "black-box module contains non-port object of type %u", (unsigned)type);
+            if (type == SN_PO)
+            {
+                uint32_t count = sn_vec_at(sn_fanin_count_t, &module->fanin_counts, object);
+                uint32_t po_offset = sn_vec_at(uint32_t, &module->fanin_offsets, object);
+                SN_CHECK(ctx, module, object,
+                         count == 1 && po_offset < module->fanins.size &&
+                         sn_vec_at(sn_obj_id_t, &module->fanins, po_offset) == SN_INVALID_ID,
+                         "black-box output must have one intentionally undriven fanin");
+            }
+        }
 
     for (uint32_t type = 0; type < SN_OBJ_TYPE_COUNT; type++)
         for (size_t type_id = 0; type_id < module->type_objects[type].size; type_id++)
@@ -940,47 +966,218 @@ static inline void sn_check_topology(sn_check_ctx_t* ctx, const sn_module_t* mod
     SN_CHECK(ctx, module, SN_INVALID_ID, valid, "objects are not in legal SN topological order");
 }
 
+static inline bool sn_check_parse_u32(const char** cursor, uint32_t* value, char delimiter)
+{
+    char* end;
+    unsigned long parsed;
+    if (!cursor || !*cursor || !value || **cursor < '0' || **cursor > '9')
+        return false;
+    parsed = strtoul(*cursor, &end, 10);
+    if (end == *cursor || parsed > UINT32_MAX || *end != delimiter)
+        return false;
+    *value = (uint32_t)parsed;
+    *cursor = delimiter ? end + 1 : end;
+    return true;
+}
+
+static inline bool sn_check_slice_bit(const sn_module_t* module, sn_obj_id_t object, sn_obj_id_t source,
+                                      uint32_t bit)
+{
+    if (object == SN_INVALID_ID || object >= module->obj_types.size || sn_obj_type(module, object) != SN_SLICE ||
+        sn_obj_fanin(module, object, 0) != source)
+        return false;
+    const sn_slice_info_t* info = sn_obj_slice_info(module, object);
+    return info->left_index == (int32_t)bit && info->right_index == (int32_t)bit;
+}
+
+static inline void sn_check_carry_primitive(sn_check_ctx_t* ctx, const sn_module_t* module)
+{
+    size_t pi_count = module->type_objects[SN_PI].size;
+    size_t po_count = module->type_objects[SN_PO].size;
+    const uint32_t pi_widths[] = {1, 1, 4, 4};
+    SN_CHECK(ctx, module, SN_INVALID_ID, pi_count == 4 && po_count == 2,
+             "carry primitive interface must have 4 inputs and 2 outputs");
+    for (size_t i = 0; i < pi_count && i < 4; i++)
+    {
+        sn_obj_id_t pi = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], i);
+        SN_CHECK(ctx, module, pi, sn_obj_width(module, pi) == pi_widths[i],
+                 "carry primitive input %zu has the wrong width", i);
+    }
+    for (size_t i = 0; i < po_count; i++)
+    {
+        sn_obj_id_t po = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PO], i);
+        SN_CHECK(ctx, module, po, sn_obj_width(module, po) == 4,
+                 "carry primitive output %zu has the wrong width", i);
+    }
+    if (pi_count != 4 || po_count != 2)
+        return;
+    sn_obj_id_t ci = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], 0);
+    sn_obj_id_t cyinit = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], 1);
+    sn_obj_id_t di = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], 2);
+    sn_obj_id_t s = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], 3);
+    sn_obj_id_t o = sn_obj_fanin(module, sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PO], 0), 0);
+    sn_obj_id_t co = sn_obj_fanin(module, sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PO], 1), 0);
+    bool packed = sn_obj_type(module, o) == SN_CONCAT && sn_obj_fanin_count(module, o) == 4 &&
+                  sn_obj_type(module, co) == SN_CONCAT && sn_obj_fanin_count(module, co) == 4;
+    SN_CHECK(ctx, module, SN_INVALID_ID, packed,
+             "carry primitive outputs must be four-bit concatenations");
+    if (!packed)
+        return;
+    sn_obj_id_t first_o = sn_obj_fanin(module, o, 0);
+    sn_obj_id_t carry = sn_obj_type(module, first_o) == SN_BIT_XOR && sn_obj_fanin_count(module, first_o) == 2
+                            ? sn_obj_fanin(module, first_o, 1)
+                            : SN_INVALID_ID;
+    bool initial = carry != SN_INVALID_ID && sn_obj_type(module, carry) == SN_BIT_OR &&
+                   sn_obj_fanin_count(module, carry) == 2 &&
+                   ((sn_obj_fanin(module, carry, 0) == ci && sn_obj_fanin(module, carry, 1) == cyinit) ||
+                    (sn_obj_fanin(module, carry, 0) == cyinit && sn_obj_fanin(module, carry, 1) == ci));
+    SN_CHECK(ctx, module, carry, initial, "carry primitive has an invalid initial carry expression");
+    for (uint32_t bit = 0; bit < 4; bit++)
+    {
+        sn_obj_id_t o_bit = sn_obj_fanin(module, o, bit);
+        sn_obj_id_t co_bit = sn_obj_fanin(module, co, bit);
+        bool o_valid = sn_obj_type(module, o_bit) == SN_BIT_XOR && sn_obj_fanin_count(module, o_bit) == 2;
+        bool co_valid = sn_obj_type(module, co_bit) == SN_MUX && sn_obj_fanin_count(module, co_bit) == 3;
+        sn_obj_id_t s_bit = o_valid ? sn_obj_fanin(module, o_bit, 0) : SN_INVALID_ID;
+        sn_obj_id_t di_bit = co_valid ? sn_obj_fanin(module, co_bit, SN_MUX_DEFAULT) : SN_INVALID_ID;
+        o_valid &= s_bit != SN_INVALID_ID && sn_obj_fanin(module, o_bit, 1) == carry &&
+                   sn_check_slice_bit(module, s_bit, s, bit);
+        co_valid &= s_bit != SN_INVALID_ID && di_bit != SN_INVALID_ID &&
+                    sn_obj_fanin(module, co_bit, SN_MUX_SELECT) == s_bit &&
+                    sn_obj_fanin(module, co_bit, SN_MUX_SELECTED) == carry &&
+                    sn_check_slice_bit(module, di_bit, di, bit);
+        SN_CHECK(ctx, module, o_bit, o_valid, "carry primitive O[%u] has invalid logic", bit);
+        SN_CHECK(ctx, module, co_bit, co_valid, "carry primitive CO[%u] has invalid logic", bit);
+        carry = co_bit;
+    }
+}
+
+static inline void sn_check_dsp_primitive(sn_check_ctx_t* ctx, const sn_module_t* module, const char* name)
+{
+    size_t pi_count = module->type_objects[SN_PI].size;
+    size_t po_count = module->type_objects[SN_PO].size;
+    size_t mul_count = module->type_objects[SN_MUL].size;
+    SN_CHECK(ctx, module, SN_INVALID_ID, pi_count == 2 && po_count == 1,
+             "DSP primitive interface must have 2 inputs and 1 output");
+    SN_CHECK(ctx, module, SN_INVALID_ID, mul_count == 1,
+             "DSP primitive behavioral wrapper must contain one multiplier");
+    const char* shape = strstr(name, "_mul_");
+    uint32_t a_width = 0, b_width = 0, y_width = 0;
+    bool parsed = shape != NULL;
+    const char* cursor = parsed ? shape + 5 : NULL;
+    parsed &= sn_check_parse_u32(&cursor, &a_width, '_');
+    parsed &= sn_check_parse_u32(&cursor, &b_width, '_');
+    parsed &= sn_check_parse_u32(&cursor, &y_width, '_');
+    parsed &= cursor && cursor[0] == 's' && (cursor[1] == '0' || cursor[1] == '1') &&
+              (cursor[2] == '0' || cursor[2] == '1') && cursor[3] == '\0';
+    SN_CHECK(ctx, module, SN_INVALID_ID, parsed, "DSP primitive name does not encode a valid interface");
+    if (pi_count != 2 || po_count != 1 || mul_count != 1 || !parsed)
+        return;
+    bool a_signed = cursor[1] == '1';
+    bool b_signed = cursor[2] == '1';
+    sn_obj_id_t a = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], 0);
+    sn_obj_id_t b = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], 1);
+    sn_obj_id_t mul = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_MUL], 0);
+    sn_obj_id_t po = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PO], 0);
+    bool valid = sn_obj_width(module, a) == a_width && sn_obj_is_signed(module, a) == a_signed &&
+                 sn_obj_width(module, b) == b_width && sn_obj_is_signed(module, b) == b_signed &&
+                 sn_obj_width(module, mul) == y_width && sn_obj_is_signed(module, mul) == (a_signed || b_signed) &&
+                 sn_obj_fanin_count(module, mul) == 2 && sn_obj_fanin(module, mul, 0) == a &&
+                 sn_obj_fanin(module, mul, 1) == b && sn_obj_width(module, po) == y_width &&
+                 sn_obj_is_signed(module, po) == (a_signed || b_signed) && sn_obj_fanin(module, po, 0) == mul;
+    SN_CHECK(ctx, module, SN_INVALID_ID, valid,
+             "DSP primitive behavior does not match its encoded interface");
+}
+
+static inline uint32_t sn_check_address_width(uint32_t depth)
+{
+    uint32_t width = 0;
+    for (uint32_t value = depth - 1; value; value >>= 1)
+        width++;
+    return width ? width : 1;
+}
+
+static inline void sn_check_memory_primitive(sn_check_ctx_t* ctx, const sn_module_t* module, const char* name)
+{
+    const char* marker = strstr(name, "_tdp_tile_");
+    bool tdp = marker != NULL;
+    bool legacy = false;
+    if (!marker)
+        marker = strstr(name, "_tile_");
+    if (!marker)
+    {
+        marker = strstr(name, "_mem_");
+        legacy = marker != NULL;
+    }
+    const char* cursor = marker ? marker + (tdp ? 10 : legacy ? 5 : 6) : NULL;
+    uint32_t width = 0, depth = 0;
+    bool parsed = marker && sn_check_parse_u32(&cursor, &width, '_') &&
+                  sn_check_parse_u32(&cursor, &depth, '\0') && cursor && *cursor == '\0' && width && depth;
+    SN_CHECK(ctx, module, SN_INVALID_ID, parsed, "memory primitive name does not encode valid dimensions");
+    size_t pi_count = module->type_objects[SN_PI].size;
+    size_t po_count = module->type_objects[SN_PO].size;
+    size_t reads = module->type_objects[SN_MEM_READ].size;
+    size_t writes = module->type_objects[SN_MEM_WRITE].size;
+    SN_CHECK(ctx, module, SN_INVALID_ID, module->type_objects[SN_MEM_OUT].size == 1,
+             "memory primitive wrapper must contain one memory");
+    SN_CHECK(ctx, module, SN_INVALID_ID, reads == (tdp ? 2u : 1u) && writes == (tdp ? 2u : 1u),
+             "memory primitive wrapper has the wrong number of read or write ports");
+    SN_CHECK(ctx, module, SN_INVALID_ID, pi_count == (tdp ? 8u : 5u) && po_count == reads,
+             "memory primitive interface has the wrong number of ports");
+    if (!parsed || module->type_objects[SN_MEM_OUT].size != 1 || reads != (tdp ? 2u : 1u) ||
+        writes != (tdp ? 2u : 1u) || pi_count != (tdp ? 8u : 5u) || po_count != reads)
+        return;
+    sn_obj_id_t memory = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_MEM_OUT], 0);
+    uint32_t address_width = legacy ? 32 : sn_check_address_width(depth);
+    bool valid = sn_obj_width(module, memory) == width && sn_obj_mem_depth(module, memory) == depth;
+    for (uint32_t port = 0; port < reads; port++)
+    {
+        uint32_t base = tdp ? 4 * port : 0;
+        sn_obj_id_t clock = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], base);
+        sn_obj_id_t enable = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], base + 1);
+        sn_obj_id_t address = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], base + 2);
+        sn_obj_id_t data = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], base + 3);
+        sn_obj_id_t read_address = tdp ? address : sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], 4);
+        sn_obj_id_t write = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_MEM_WRITE], port);
+        sn_obj_id_t read = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_MEM_READ], port);
+        sn_obj_id_t po = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PO], port);
+        valid &= sn_obj_width(module, clock) == 1 && sn_obj_width(module, enable) == 1 &&
+                 sn_obj_width(module, address) == address_width && sn_obj_width(module, data) == width &&
+                 sn_obj_fanin(module, write, SN_MEM_WRITE_CLOCK) == clock &&
+                 sn_obj_fanin(module, write, SN_MEM_WRITE_ENABLE) == enable &&
+                 sn_obj_fanin(module, write, SN_MEM_WRITE_DATA) == data &&
+                 sn_obj_fanin(module, write, SN_MEM_WRITE_ADDRESS) == address &&
+                 sn_obj_fanin(module, read, SN_MEM_READ_MEMORY) == memory &&
+                 sn_obj_fanin(module, read, SN_MEM_READ_CLOCK) == SN_INVALID_ID &&
+                 sn_obj_fanin(module, read, SN_MEM_READ_ENABLE) == SN_INVALID_ID &&
+                 sn_obj_width(module, read_address) == address_width &&
+                 sn_obj_fanin(module, read, SN_MEM_READ_ADDRESS) == read_address &&
+                 sn_obj_width(module, po) == width && sn_obj_fanin(module, po, 0) == read;
+    }
+    SN_CHECK(ctx, module, SN_INVALID_ID, valid,
+             "memory primitive behavior does not match its encoded interface");
+}
+
 static inline void sn_check_primitive(sn_check_ctx_t* ctx, const sn_module_t* module)
 {
     const char* name = sn_check_module_name(module);
-    size_t pi_count = module->type_objects[SN_PI].size;
-    size_t po_count = module->type_objects[SN_PO].size;
-    if (strncmp(name, "__sn_CARRY", 10) == 0)
+    bool carry = strncmp(name, "__sn_CARRY", 10) == 0;
+    bool dsp = strncmp(name, "__sn_DSP", 8) == 0;
+    bool memory = strncmp(name, "__sn_RAM", 8) == 0 || strncmp(name, "__sn_URAM", 9) == 0;
+    if (!carry && !dsp && !memory)
+        return;
+    if (sn_module_is_blackbox(module))
     {
-        const uint32_t pi_widths[] = {1, 1, 4, 4};
-        SN_CHECK(ctx, module, SN_INVALID_ID, pi_count == 4 && po_count == 2,
-                 "carry primitive interface must have 4 inputs and 2 outputs");
-        for (size_t i = 0; i < pi_count && i < 4; i++)
-        {
-            sn_obj_id_t pi = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], i);
-            SN_CHECK(ctx, module, pi, (sn_vec_at(uint32_t, &module->width_signed, pi) >> 1) == pi_widths[i],
-                     "carry primitive input %zu has the wrong width", i);
-        }
-        for (size_t i = 0; i < po_count; i++)
-        {
-            sn_obj_id_t po = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PO], i);
-            SN_CHECK(ctx, module, po, (sn_vec_at(uint32_t, &module->width_signed, po) >> 1) == 4,
-                     "carry primitive output %zu has the wrong width", i);
-        }
+        SN_CHECK(ctx, module, SN_INVALID_ID, false,
+                 "reserved __sn_ technology primitives must have a validated behavioral body");
+        return;
     }
-    else if (strncmp(name, "__sn_DSP", 8) == 0)
-    {
-        SN_CHECK(ctx, module, SN_INVALID_ID, pi_count == 2 && po_count == 1,
-                 "DSP primitive interface must have 2 inputs and 1 output");
-        SN_CHECK(ctx, module, SN_INVALID_ID, module->type_objects[SN_MUL].size == 1,
-                 "DSP primitive behavioral wrapper must contain one multiplier");
-    }
-    else if (strncmp(name, "__sn_RAM", 8) == 0 || strncmp(name, "__sn_URAM", 9) == 0)
-    {
-        size_t reads = module->type_objects[SN_MEM_READ].size;
-        size_t writes = module->type_objects[SN_MEM_WRITE].size;
-        SN_CHECK(ctx, module, SN_INVALID_ID, module->type_objects[SN_MEM_OUT].size == 1,
-                 "memory primitive wrapper must contain one memory");
-        SN_CHECK(ctx, module, SN_INVALID_ID, reads >= 1 && reads <= 2 && writes >= 1 && writes <= 2,
-                 "memory primitive wrapper must contain one or two read and write ports");
-        SN_CHECK(ctx, module, SN_INVALID_ID, po_count == reads,
-                 "memory primitive output count %zu differs from read-port count %zu", po_count, reads);
-    }
+    if (carry)
+        sn_check_carry_primitive(ctx, module);
+    else if (dsp)
+        sn_check_dsp_primitive(ctx, module, name);
+    else
+        sn_check_memory_primitive(ctx, module, name);
 }
 
 typedef struct sn_check_hierarchy_frame_t
@@ -1058,6 +1255,9 @@ static inline bool sn_design_check(const sn_design_t* design, FILE* out, bool ve
     {
         const char* name = sn_vec_at(char*, &design->names.names, i);
         SN_CHECK(&ctx, NULL, SN_INVALID_ID, name != NULL, "name %zu has a null string", i);
+        if (name)
+            SN_CHECK(&ctx, NULL, SN_INVALID_ID, sn_check_name_is_emittable(name),
+                     "name %zu cannot be emitted losslessly as a Verilog identifier", i);
     }
     uint8_t* name_seen = design->names.names.size ? (uint8_t*)calloc(design->names.names.size, 1) : NULL;
     SN_CHECK(&ctx, NULL, SN_INVALID_ID, design->names.names.size == 0 || name_seen != NULL,
@@ -1169,8 +1369,8 @@ static inline sn_design_t* sn_design_read_binary_checked(FILE* in, FILE* errors)
     {
         FILE* out = errors ? errors : stderr;
         if (status == SN_BINARY_READ_VERSION)
-            fprintf(out, "Cannot read SN binary format version %u; this build requires version %u.\n", version,
-                    SN_BINARY_FORMAT_VERSION);
+            fprintf(out, "Cannot read SN binary format version %u; this build supports versions %u through %u.\n",
+                    version, SN_BINARY_MIN_READ_VERSION, SN_BINARY_FORMAT_VERSION);
         else if (status == SN_BINARY_READ_MAGIC)
             fprintf(out, "Input is not an SN binary file.\n");
         else if (status == SN_BINARY_READ_LAYOUT)

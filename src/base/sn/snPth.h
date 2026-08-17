@@ -103,10 +103,22 @@ static inline void sn_pth_process(void** jobs, size_t count, unsigned processes,
     pool.context = context;
     pool.function = function;
     int status = pthread_mutex_init(&pool.mutex, NULL);
-    assert(status == 0);
-    (void)status;
+    if (status != 0)
+    {
+        for (size_t i = 0; i < count; i++)
+            function(context, jobs[i]);
+        return;
+    }
     pthread_t* workers = (pthread_t*)malloc(sizeof(pthread_t) * worker_count);
-    assert(workers);
+    if (!workers)
+    {
+        status = pthread_mutex_destroy(&pool.mutex);
+        assert(status == 0);
+        (void)status;
+        for (size_t i = 0; i < count; i++)
+            function(context, jobs[i]);
+        return;
+    }
     unsigned created = 0;
     for (; created < worker_count; created++)
     {

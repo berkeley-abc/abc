@@ -291,6 +291,9 @@ static int Sn_RunProcess( char ** ppArgs )
     if ( Child == 0 )
     {
         execvp( ppArgs[0], ppArgs );
+        // execvp() returns only on failure. Release the child copy so memory checkers do not report it as leaked;
+        // the parent's copy is unaffected and is freed by the caller.
+        ABC_FREE( ppArgs );
         _exit( 127 );
     }
     if ( waitpid(Child, &Status, 0) != Child )
@@ -404,8 +407,8 @@ static int Sn_DistribEntryCompare( const void * pLeft, const void * pRight )
     return (int)pL->Signs - (int)pR->Signs;
 }
 
-static void Sn_DistribAdd( Sn_DistribEntry_t ** ppEntries, size_t * pnEntries, size_t * pnCap,
-                           const sn_module_t * pModule, sn_obj_id_t Obj, uint64_t Mult )
+static int Sn_DistribAdd( Sn_DistribEntry_t ** ppEntries, size_t * pnEntries, size_t * pnCap,
+                          const sn_module_t * pModule, sn_obj_id_t Obj, uint64_t Mult )
 {
     Sn_DistribEntry_t Entry;
     uint32_t nFanins = sn_obj_fanin_count( pModule, Obj );
@@ -431,34 +434,44 @@ static void Sn_DistribAdd( Sn_DistribEntry_t ** ppEntries, size_t * pnEntries, s
         if ( pOld->OutWidth == Entry.OutWidth && pOld->In0Width == Entry.In0Width &&
              pOld->In1Width == Entry.In1Width && pOld->FaninNum == Entry.FaninNum && pOld->Signs == Entry.Signs )
         {
-            assert( UINT64_MAX - pOld->Occur >= Mult );
+            if ( UINT64_MAX - pOld->Occur < Mult )
+                return 0;
             pOld->Occur += Mult;
-            return;
+            return 1;
         }
     }
     if ( *pnEntries == *pnCap )
     {
+        Sn_DistribEntry_t * pNew;
+        if ( *pnCap > SIZE_MAX / 2 / sizeof(Sn_DistribEntry_t) )
+            return 0;
         *pnCap = *pnCap ? 2 * *pnCap : 8;
-        *ppEntries = ABC_REALLOC( Sn_DistribEntry_t, *ppEntries, *pnCap );
-        assert( *ppEntries != NULL );
+        pNew = ABC_REALLOC( Sn_DistribEntry_t, *ppEntries, *pnCap );
+        if ( pNew == NULL )
+            return 0;
+        *ppEntries = pNew;
     }
     Entry.Occur = Mult;
     (*ppEntries)[(*pnEntries)++] = Entry;
+    return 1;
 }
 
-static void Sn_ModuleCollectDistrib( const sn_design_t * pDesign, sn_module_id_t ModuleId, uint64_t Mult,
-                                     Sn_DistribEntry_t ** ppEntries, size_t * pnEntries, size_t * pnCaps,
-                                     uint64_t * pTypeCounts )
+static int Sn_ModuleCollectDistrib( const sn_design_t * pDesign, sn_module_id_t ModuleId, uint64_t Mult,
+                                    Sn_DistribEntry_t ** ppEntries, size_t * pnEntries, size_t * pnCaps,
+                                    uint64_t * pTypeCounts )
 {
     const sn_module_t * pModule = sn_design_get_module_const( pDesign, ModuleId );
     sn_obj_id_t Obj;
     for ( Obj = 0; Obj < pModule->obj_types.size; Obj++ )
     {
         sn_obj_type_t Type = sn_obj_type( pModule, Obj );
-        assert( UINT64_MAX - pTypeCounts[Type] >= Mult );
+        if ( UINT64_MAX - pTypeCounts[Type] < Mult )
+            return 0;
         pTypeCounts[Type] += Mult;
-        Sn_DistribAdd( ppEntries + Type, pnEntries + Type, pnCaps + Type, pModule, Obj, Mult );
+        if ( !Sn_DistribAdd(ppEntries + Type, pnEntries + Type, pnCaps + Type, pModule, Obj, Mult) )
+            return 0;
     }
+    return 1;
 }
 
 typedef struct Sn_DistribFrame_t_
@@ -467,19 +480,25 @@ typedef struct Sn_DistribFrame_t_
     size_t          NextInst;
 } Sn_DistribFrame_t;
 
-static void Sn_DesignPrintDistrib( FILE * pOut, const sn_design_t * pDesign, sn_module_id_t Top )
+// Returns the number of reachable occurrences of each module definition under Top. The hierarchy is a DAG, so a
+// reverse-postorder propagation accounts for repeated insts without expanding every hierarchical occurrence.
+static uint64_t * Sn_DesignCountModuleOccurrences( const sn_design_t * pDesign, sn_module_id_t Top )
 {
-    Sn_DistribEntry_t * pEntries[SN_OBJ_TYPE_COUNT] = { NULL };
-    size_t nEntries[SN_OBJ_TYPE_COUNT] = { 0 };
-    size_t nCaps[SN_OBJ_TYPE_COUNT] = { 0 };
-    uint64_t TypeCounts[SN_OBJ_TYPE_COUNT] = { 0 };
-    unsigned char * pStates = ABC_CALLOC( unsigned char, pDesign->modules.size );
-    uint64_t * pMults = ABC_CALLOC( uint64_t, pDesign->modules.size );
+    unsigned char * pStates;
+    uint64_t * pMults;
     sn_vec_t Stack, Postorder;
     Sn_DistribFrame_t * pFrame;
     size_t i;
-    int Type;
-    assert( pStates != NULL && pMults != NULL );
+    if ( pDesign == NULL || Top >= pDesign->modules.size )
+        return NULL;
+    pStates = ABC_CALLOC( unsigned char, pDesign->modules.size );
+    pMults = ABC_CALLOC( uint64_t, pDesign->modules.size );
+    if ( pStates == NULL || pMults == NULL )
+    {
+        ABC_FREE( pStates );
+        ABC_FREE( pMults );
+        return NULL;
+    }
     sn_vec_init( &Stack );
     sn_vec_init( &Postorder );
     pStates[Top] = 1;
@@ -494,7 +513,8 @@ static void Sn_DesignPrintDistrib( FILE * pOut, const sn_design_t * pDesign, sn_
         if ( pFrame->NextInst < pModule->inst_modules.size )
         {
             sn_module_id_t Child = sn_vec_at( sn_module_id_t, &pModule->inst_modules, pFrame->NextInst++ );
-            assert( pStates[Child] != 1 );
+            if ( Child >= pDesign->modules.size || pStates[Child] == 1 )
+                goto fail;
             if ( pStates[Child] == 0 )
             {
                 pStates[Child] = 1;
@@ -516,14 +536,117 @@ static void Sn_DesignPrintDistrib( FILE * pOut, const sn_design_t * pDesign, sn_
         uint64_t Mult = pMults[Module];
         if ( Mult == 0 )
             continue;
-        Sn_ModuleCollectDistrib( pDesign, Module, Mult, pEntries, nEntries, nCaps, TypeCounts );
         for ( size_t k = 0; k < pModule->inst_modules.size; k++ )
         {
             sn_module_id_t Child = sn_vec_at( sn_module_id_t, &pModule->inst_modules, k );
-            assert( UINT64_MAX - pMults[Child] >= Mult );
+            if ( Child >= pDesign->modules.size || UINT64_MAX - pMults[Child] < Mult )
+                goto fail;
             pMults[Child] += Mult;
         }
     }
+    sn_vec_destroy( &Postorder );
+    sn_vec_destroy( &Stack );
+    ABC_FREE( pStates );
+    return pMults;
+
+fail:
+    sn_vec_destroy( &Postorder );
+    sn_vec_destroy( &Stack );
+    ABC_FREE( pStates );
+    ABC_FREE( pMults );
+    return NULL;
+}
+
+static int Sn_ModulePortBits( const sn_module_t * pModule, sn_obj_type_t Type, uint64_t * pBits )
+{
+    uint64_t Bits = 0;
+    size_t i;
+    assert( Type == SN_PI || Type == SN_PO );
+    for ( i = 0; i < pModule->type_objects[Type].size; i++ )
+    {
+        uint32_t Width = sn_obj_width( pModule, sn_vec_at(sn_obj_id_t, &pModule->type_objects[Type], i) );
+        if ( UINT64_MAX - Bits < Width )
+            return 0;
+        Bits += Width;
+    }
+    *pBits = Bits;
+    return 1;
+}
+
+static void Sn_DesignPrintBlackboxes( FILE * pOut, const sn_design_t * pDesign, sn_module_id_t Top )
+{
+    const sn_module_t * pTop = sn_design_get_module_const( pDesign, Top );
+    uint64_t * pMults = Sn_DesignCountModuleOccurrences( pDesign, Top );
+    uint64_t nOccurrences = 0, nAigInputs = 0, nAigOutputs = 0;
+    size_t nTypes = 0, i;
+    if ( pMults == NULL )
+    {
+        fprintf( pOut, "Cannot count black-box occurrences: hierarchy is invalid or the count overflows.\n" );
+        return;
+    }
+    fprintf( pOut, "Black boxes reachable from \"%s\":\n", sn_name_get(&pDesign->names, pTop->name) );
+    fprintf( pOut, "Module                          occurrences   PI ports/bits   PO ports/bits   "
+                   "AIG inputs   AIG outputs\n" );
+    for ( i = 0; i < pDesign->modules.size; i++ )
+    {
+        const sn_module_t * pModule = sn_design_get_module_const( pDesign, (sn_module_id_t)i );
+        uint64_t Mult = pMults[i], PiBits, PoBits, AigInputs, AigOutputs;
+        if ( Mult == 0 || !sn_module_is_blackbox(pModule) )
+            continue;
+        if ( !Sn_ModulePortBits(pModule, SN_PI, &PiBits) || !Sn_ModulePortBits(pModule, SN_PO, &PoBits) ||
+             (PoBits != 0 && Mult > UINT64_MAX / PoBits) ||
+             (PiBits != 0 && Mult > UINT64_MAX / PiBits) )
+            goto overflow;
+        AigInputs = Mult * PoBits;
+        AigOutputs = Mult * PiBits;
+        if ( UINT64_MAX - nOccurrences < Mult || UINT64_MAX - nAigInputs < AigInputs ||
+             UINT64_MAX - nAigOutputs < AigOutputs )
+            goto overflow;
+        nTypes++;
+        nOccurrences += Mult;
+        nAigInputs += AigInputs;
+        nAigOutputs += AigOutputs;
+        fprintf( pOut, "%-32s %10llu   %6zu/%-6llu   %6zu/%-6llu   %10llu   %11llu\n",
+                 sn_name_get(&pDesign->names, pModule->name), (unsigned long long)Mult,
+                 pModule->type_objects[SN_PI].size, (unsigned long long)PiBits,
+                 pModule->type_objects[SN_PO].size, (unsigned long long)PoBits,
+                 (unsigned long long)AigInputs, (unsigned long long)AigOutputs );
+    }
+    fprintf( pOut, "Black-box totals: types = %zu  occurrences = %llu  AIG inputs = %llu  AIG outputs = %llu\n",
+             nTypes, (unsigned long long)nOccurrences, (unsigned long long)nAigInputs,
+             (unsigned long long)nAigOutputs );
+    ABC_FREE( pMults );
+    return;
+
+overflow:
+    fprintf( pOut, "Cannot print black-box statistics: a bit or occurrence total overflows 64 bits.\n" );
+    ABC_FREE( pMults );
+}
+
+static void Sn_DesignPrintDistrib( FILE * pOut, const sn_design_t * pDesign, sn_module_id_t Top )
+{
+    Sn_DistribEntry_t * pEntries[SN_OBJ_TYPE_COUNT] = { NULL };
+    size_t nEntries[SN_OBJ_TYPE_COUNT] = { 0 };
+    size_t nCaps[SN_OBJ_TYPE_COUNT] = { 0 };
+    uint64_t TypeCounts[SN_OBJ_TYPE_COUNT] = { 0 };
+    uint64_t * pMults = Sn_DesignCountModuleOccurrences( pDesign, Top );
+    size_t i;
+    int Type;
+    if ( pMults == NULL )
+    {
+        fprintf( pOut, "Cannot print object distribution: hierarchy is invalid or the occurrence count overflows.\n" );
+        return;
+    }
+    for ( i = 0; i < pDesign->modules.size; i++ )
+        if ( pMults[i] && !Sn_ModuleCollectDistrib(pDesign, (sn_module_id_t)i, pMults[i], pEntries,
+                                                   nEntries, nCaps, TypeCounts) )
+        {
+            fprintf( pOut, "Cannot print object distribution: a count overflows or allocation failed.\n" );
+            for ( Type = 0; Type < SN_OBJ_TYPE_COUNT; Type++ )
+                ABC_FREE( pEntries[Type] );
+            ABC_FREE( pMults );
+            return;
+        }
     fprintf( pOut, "ID  :  name       occurrence  (occurrence)<output_width>=<input0_width>.<input1_width> ...\n" );
     for ( Type = 0; Type < SN_OBJ_TYPE_COUNT; Type++ )
     {
@@ -551,10 +674,7 @@ static void Sn_DesignPrintDistrib( FILE * pOut, const sn_design_t * pDesign, sn_
         fprintf( pOut, "\n" );
         ABC_FREE( pEntries[Type] );
     }
-    sn_vec_destroy( &Postorder );
-    sn_vec_destroy( &Stack );
     ABC_FREE( pMults );
-    ABC_FREE( pStates );
 }
 
 void Sn_Init( Abc_Frame_t * pAbc )
@@ -997,7 +1117,7 @@ static int Sn_CommandOptMux( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !Sn_CommandCheckDesign(pAbc) )
         return 1;
     pCurrent = Sn_AbcGetMan( pAbc );
-    if ( !sn_design_check(pCurrent->pDesign, pAbc->Err, 0) )
+    if ( !sn_design_check(pCurrent->pDesign, Abc_FrameReadErr(pAbc), 0) )
     {
         Abc_Print( -1, "Cannot @opt_mux: the current SN design is inconsistent.\n" );
         return 1;
@@ -1009,7 +1129,7 @@ static int Sn_CommandOptMux( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     Stats = sn_design_share( p->pDesign, Options );
-    if ( !sn_design_check(p->pDesign, pAbc->Err, 0) )
+    if ( !sn_design_check(p->pDesign, Abc_FrameReadErr(pAbc), 0) )
     {
         Abc_Print( -1, "Cannot @opt_mux: the transformed SN design is inconsistent.\n" );
         Sn_ManFree( p );
@@ -1393,8 +1513,9 @@ static int Sn_CommandPut( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         pNtk = Abc_NtkFromCellMappedGia( pGia, 0 );
         vMapping = Abc_NtkWriteMiniMapping( pNtk );
-        Top = sn_design_add_gate_module( p->pDesign, p->BlastModule, Vec_IntArray(vMapping), &p->Boundary,
-                                         Sn_GateIdResolver, pLibrary, "__sn_gate_mapped" );
+        Top = sn_design_add_gate_module( p->pDesign, p->BlastModule, Vec_IntArray(vMapping),
+                                         (size_t)Vec_IntSize(vMapping), &p->Boundary, Sn_GateIdResolver,
+                                         pLibrary, "__sn_gate_mapped" );
         if ( Top == SN_INVALID_ID )
         {
             Abc_Print( -1, "Cannot @put: the current genlib does not contain every gate used by the mapped GIA.\n" );
@@ -1826,7 +1947,6 @@ usage:
 static int Sn_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Sn_Man_t * p;
-    const sn_module_t * pTop;
     char * pFileName;
     FILE * pFile;
     int c, Status = 0;
@@ -1838,7 +1958,6 @@ static int Sn_CommandWrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !Sn_CommandCheckDesign(pAbc) )
         return 1;
     p = Sn_AbcGetMan( pAbc );
-    pTop = sn_design_get_module_const( p->pDesign, p->Top );
     pFileName = argv[globalUtilOptind];
     if ( Sn_FileHasSuffix(pFileName, ".sn") )
     {
@@ -1887,17 +2006,27 @@ usage:
 static int Sn_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Sn_Man_t * p;
-    const sn_module_t * pTop;
+    const sn_module_t * pReport;
     sn_design_mem_usage_t Mem;
+    char * pModuleName = NULL;
+    sn_module_id_t Report;
     size_t nObjects = 0;
     size_t i;
     int c, fDistrib = 0, fVerbose = 0, fMem, fLut, fGate;
     char UsedMemory[32], AllocatedMemory[32];
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "dvh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "Mdvh")) != EOF )
     {
         switch ( c )
         {
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by a module name.\n" );
+                goto usage;
+            }
+            pModuleName = argv[globalUtilOptind++];
+            break;
         case 'd':
             fDistrib ^= 1;
             break;
@@ -1914,7 +2043,13 @@ static int Sn_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !Sn_CommandCheckDesign(pAbc) )
         return 1;
     p = Sn_AbcGetMan( pAbc );
-    pTop = sn_design_get_module_const( p->pDesign, p->Top );
+    Report = pModuleName ? sn_design_find_module( p->pDesign, pModuleName ) : p->Top;
+    if ( Report == SN_INVALID_ID )
+    {
+        Abc_Print( -1, "Cannot find module \"%s\" in the current SN design.\n", pModuleName );
+        return 1;
+    }
+    pReport = sn_design_get_module_const( p->pDesign, Report );
     for ( i = 0; i < p->pDesign->modules.size; i++ )
         nObjects += sn_design_get_module_const( p->pDesign, (sn_module_id_t)i )->obj_types.size;
     sn_design_get_mem_usage( p->pDesign, &Mem );
@@ -1925,27 +2060,35 @@ static int Sn_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
     Sn_FormatMemory( Mem.total.allocated_bytes, AllocatedMemory, sizeof(AllocatedMemory) );
     fprintf( pAbc->Out, "SN design: top = %s  modules = %zu  objects = %zu  memory = %s/%s "
                         "(used/allocated)\n",
-             sn_name_get(&p->pDesign->names, pTop->name), p->pDesign->modules.size, nObjects,
+             sn_name_get(&p->pDesign->names, pReport->name), p->pDesign->modules.size, nObjects,
              UsedMemory, AllocatedMemory );
-    Sn_ModulePrintStats( pAbc->Out, pTop, fMem, fLut, fGate );
-    if ( fVerbose )
+    if ( pModuleName )
+        Sn_ModulePrintStats( pAbc->Out, pReport, fMem, fLut, fGate );
+    else
     {
-        fprintf( pAbc->Out, "Hierarchy:\n" );
-        sn_design_print_hierarchy( pAbc->Out, p->pDesign, p->Top );
         fprintf( pAbc->Out, "Modules:\n" );
         for ( i = 0; i < p->pDesign->modules.size; i++ )
             Sn_ModulePrintStats( pAbc->Out, sn_design_get_module_const(p->pDesign, (sn_module_id_t)i),
                                  fMem, fLut, fGate );
     }
+    if ( fVerbose )
+    {
+        fprintf( pAbc->Out, "Hierarchy:\n" );
+        sn_design_print_hierarchy( pAbc->Out, p->pDesign, Report );
+    }
     if ( fDistrib )
-        Sn_DesignPrintDistrib( pAbc->Out, p->pDesign, p->Top );
+    {
+        Sn_DesignPrintBlackboxes( pAbc->Out, p->pDesign, Report );
+        Sn_DesignPrintDistrib( pAbc->Out, p->pDesign, Report );
+    }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: @ps [-dvh]\n" );
+    Abc_Print( -2, "usage: @ps [-M module] [-dvh]\n" );
     Abc_Print( -2, "\t         prints statistics for the current SN design\n" );
+    Abc_Print( -2, "\t-M name : select one module and its hierarchy [default = print all module definitions]\n" );
     Abc_Print( -2, "\t-d      : print object-type and width distribution for the elaborated hierarchy\n" );
-    Abc_Print( -2, "\t-v      : print hierarchy and per-module statistics\n" );
+    Abc_Print( -2, "\t-v      : print the hierarchy rooted at the selected module\n" );
     Abc_Print( -2, "\t-h      : print the command usage\n" );
     return 1;
 }

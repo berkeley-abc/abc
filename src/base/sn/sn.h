@@ -82,6 +82,14 @@ ABC_NAMESPACE_HEADER_START
 // bidirectional lookup without storing another object ID. Constructors create
 // adjacent OUT/IN objects, but topologically reordered modules need not retain
 // that adjacency; the shared type ID is the authoritative pairing invariant.
+//
+// A module marked SN_MODULE_BLACKBOX retains only its declared PI/PO interface.
+// Its implementation is intentionally opaque: hierarchy collapse preserves its
+// insts, AIG construction abstracts their outputs as CIs and inputs as COs, and
+// the Verilog writer emits a black-box module declaration without a body. Each
+// black-box PO has SN_INVALID_ID as its sole fanin, denoting an unimplemented
+// boundary value rather than an ordinary undriven net or a zero constant. An
+// inout port is represented by same-named PI and PO objects.
 
 #define SN_INVALID_ID UINT32_MAX
 
@@ -90,6 +98,14 @@ typedef uint32_t sn_module_id_t;
 typedef uint32_t sn_name_id_t;
 typedef uint32_t sn_type_id_t;
 typedef uint16_t sn_fanin_count_t;
+
+typedef enum sn_module_flag_t
+{
+    SN_MODULE_NO_FLAGS = 0,
+    SN_MODULE_BLACKBOX = 1u << 0
+} sn_module_flag_t;
+
+#define SN_MODULE_ALL_FLAGS ((uint32_t)SN_MODULE_BLACKBOX)
 
 // A C-style generic vector. Cap and size are measured in elements.
 // Access macros take the element type explicitly, for example:
@@ -272,6 +288,10 @@ enum sn_obj_type_enum
     // least-significant result bits, and later fanins supply successively more-
     // significant bits. Repetition has one fanin and a type-indexed repeat count.
     // Slice has one fanin and type-indexed left, right, and direction data.
+    // Cast also has one fanin. Its object width and signedness define the result:
+    // widening sign-extends a signed result and zero-extends an unsigned result;
+    // narrowing retains the LSB-first low-order bits; equal-width conversion
+    // changes only the signedness annotation.
     SN_CONCAT,
     SN_REPLICATE,
     SN_SLICE,
@@ -419,6 +439,7 @@ typedef struct sn_module_t
     sn_design_t* design;
     sn_module_id_t id;
     sn_name_id_t name;
+    uint32_t flags;
 
     // Core object attributes, all indexed by sn_obj_id_t.
     sn_vec_t obj_types;
@@ -838,6 +859,7 @@ static inline void sn_module_init(sn_module_t* module, sn_design_t* design, sn_m
     module->design = design;
     module->id = id;
     module->name = name;
+    module->flags = SN_MODULE_NO_FLAGS;
 
     sn_vec_init(&module->obj_types);
     sn_vec_init(&module->width_signed);
@@ -923,21 +945,27 @@ static inline void sn_design_destroy(sn_design_t* design)
     free(design);
 }
 
+static inline sn_module_id_t sn_design_add_module_name_id(sn_design_t* design, sn_name_id_t name)
+{
+    assert(design);
+    assert(name < design->names.names.size);
+    assert(design->modules.size < SN_INVALID_ID);
+    sn_module_id_t id = (sn_module_id_t)design->modules.size;
+    sn_module_t* module = (sn_module_t*)calloc(1, sizeof(sn_module_t));
+    assert(module);
+    sn_module_init(module, design, id, name);
+    *sn_vec_push(sn_module_t*, &design->modules) = module;
+    return id;
+}
+
 static inline sn_module_id_t sn_design_add_module(sn_design_t* design, const char* name)
 {
     assert(design);
     assert(name);
-    assert(design->modules.size < SN_INVALID_ID);
     sn_name_id_t name_id = sn_name_intern(&design->names, name);
     for (size_t i = 0; i < design->modules.size; i++)
         assert(sn_vec_at(sn_module_t*, &design->modules, i)->name != name_id);
-
-    sn_module_id_t id = (sn_module_id_t)design->modules.size;
-    sn_module_t* module = (sn_module_t*)calloc(1, sizeof(sn_module_t));
-    assert(module);
-    sn_module_init(module, design, id, name_id);
-    *sn_vec_push(sn_module_t*, &design->modules) = module;
-    return id;
+    return sn_design_add_module_name_id(design, name_id);
 }
 
 static inline sn_module_t* sn_design_get_module(sn_design_t* design, sn_module_id_t id)
@@ -967,6 +995,21 @@ static inline sn_module_id_t sn_design_find_module(const sn_design_t* design, co
     return SN_INVALID_ID;
 }
 
+static inline bool sn_module_is_blackbox(const sn_module_t* module)
+{
+    assert(module);
+    return (module->flags & SN_MODULE_BLACKBOX) != 0;
+}
+
+static inline void sn_module_set_blackbox(sn_module_t* module, bool blackbox)
+{
+    assert(module);
+    if (blackbox)
+        module->flags |= SN_MODULE_BLACKBOX;
+    else
+        module->flags &= ~((uint32_t)SN_MODULE_BLACKBOX);
+}
+
 // Deep-copy the semantic design state directly in memory. Derived constant-interner tables are intentionally left
 // empty and rebuilt lazily, matching binary roundtrip behavior. Fanout caches and optional object-copy maps are
 // preserved because callers may intentionally retain them between transformations.
@@ -986,6 +1029,7 @@ static inline sn_design_t* sn_design_dup(const sn_design_t* source)
         sn_module_id_t new_id = sn_design_add_module(target, sn_name_get(&source->names, old_module->name));
         assert(new_id == module_id);
         sn_module_t* new_module = sn_design_get_module(target, new_id);
+        new_module->flags = old_module->flags;
         new_module->fanouts_valid = old_module->fanouts_valid;
         new_module->interface_locked = old_module->interface_locked;
         new_module->copy_module = old_module->copy_module;
@@ -1224,34 +1268,44 @@ static inline void sn_obj_connect(sn_module_t* module, sn_obj_id_t object, uint3
     sn_module_invalidate_fanouts(module);
 }
 
-static inline void sn_obj_add_fanin(sn_module_t* module, sn_obj_id_t object, sn_obj_id_t fanin)
+static inline void sn_obj_add_fanins(sn_module_t* module, sn_obj_id_t object, uint32_t added_count,
+                                     const sn_obj_id_t* added_fanins)
 {
     assert(module);
     assert(object < module->obj_types.size);
-    assert(fanin < module->obj_types.size);
-    assert(module->fanins.size < UINT32_MAX);
+    assert(added_count == 0 || added_fanins);
+    assert(module->fanins.size + added_count <= UINT32_MAX);
+    for (uint32_t i = 0; i < added_count; i++)
+        assert(added_fanins[i] < module->obj_types.size);
+    if (!added_count)
+        return;
 
     uint32_t offset = sn_vec_at(uint32_t, &module->fanin_offsets, object);
     uint32_t count = sn_obj_fanin_count(module, object);
-    assert(count < UINT16_MAX);
+    assert(added_count <= UINT16_MAX - count);
     size_t insertion = (size_t)offset + count;
     assert(insertion <= module->fanins.size);
 
     size_t old_size = module->fanins.size;
-    sn_vec_resize(sn_obj_id_t, &module->fanins, old_size + 1);
+    sn_vec_resize(sn_obj_id_t, &module->fanins, old_size + added_count);
     sn_obj_id_t* fanins = sn_vec_data(sn_obj_id_t, &module->fanins);
-    memmove(fanins + insertion + 1, fanins + insertion, (old_size - insertion) * sizeof(*fanins));
-    fanins[insertion] = fanin;
-    sn_vec_at(sn_fanin_count_t, &module->fanin_counts, object) = (sn_fanin_count_t)(count + 1);
+    memmove(fanins + insertion + added_count, fanins + insertion, (old_size - insertion) * sizeof(*fanins));
+    memcpy(fanins + insertion, added_fanins, (size_t)added_count * sizeof(*fanins));
+    sn_vec_at(sn_fanin_count_t, &module->fanin_counts, object) = (sn_fanin_count_t)(count + added_count);
 
     // Preserve fanin-span order for every object after the modified object.
     for (sn_obj_id_t other = object + 1; other < module->obj_types.size; other++)
     {
         uint32_t other_offset = sn_vec_at(uint32_t, &module->fanin_offsets, other);
         if (other_offset >= insertion)
-            sn_vec_at(uint32_t, &module->fanin_offsets, other) = other_offset + 1;
+            sn_vec_at(uint32_t, &module->fanin_offsets, other) = other_offset + added_count;
     }
     sn_module_invalidate_fanouts(module);
+}
+
+static inline void sn_obj_add_fanin(sn_module_t* module, sn_obj_id_t object, sn_obj_id_t fanin)
+{
+    sn_obj_add_fanins(module, object, 1, &fanin);
 }
 
 static inline sn_obj_id_t sn_module_add_pi(sn_module_t* module, uint32_t width, bool is_signed, const char* name)
@@ -1265,12 +1319,43 @@ static inline sn_obj_id_t sn_module_add_po(sn_module_t* module, uint32_t width, 
                                            sn_obj_id_t driver)
 {
     assert(module);
+    assert(!sn_module_is_blackbox(module));
     assert(!module->interface_locked);
     assert(driver < module->obj_types.size);
     assert(sn_obj_width(module, driver) == width);
     sn_obj_id_t output = sn_module_add_named_obj(module, SN_PO, width, is_signed, 1, name);
     sn_obj_connect(module, output, 0, driver);
     return output;
+}
+
+// Adds an output port to an opaque module. Unlike an ordinary SN_PO, whose
+// only fanin is its RTL driver, a black-box output deliberately has no driver
+// inside SN. Parent insts expose it through their normal SN_INST/SN_FAN
+// boundary objects; collapse preserves that boundary and blasting abstracts
+// the value as a new combinational input.
+static inline sn_obj_id_t sn_module_add_blackbox_po(sn_module_t* module, uint32_t width, bool is_signed,
+                                                    const char* name)
+{
+    assert(module);
+    assert(sn_module_is_blackbox(module));
+    assert(!module->interface_locked);
+    return sn_module_add_named_obj(module, SN_PO, width, is_signed, 1, name);
+}
+
+static inline bool sn_obj_fanin_may_be_invalid(const sn_module_t* module, sn_obj_type_t type, uint32_t index)
+{
+    assert(module);
+    if (type == SN_PO)
+        return sn_module_is_blackbox(module) && index == 0;
+    if (type == SN_REG_OUT)
+        return index != SN_REG_DATA;
+    if (type == SN_MEM_OUT)
+        return index == SN_MEM_INIT_DATA || index == SN_MEM_INIT_MASK;
+    if (type == SN_MEM_READ)
+        return index == SN_MEM_READ_CLOCK || index == SN_MEM_READ_ENABLE;
+    if (type == SN_MEM_WRITE)
+        return index == SN_MEM_WRITE_ENABLE;
+    return false;
 }
 
 static inline bool sn_obj_type_is_operator(sn_obj_type_t type)
@@ -1858,9 +1943,10 @@ static inline sn_obj_id_t sn_module_add_mem_read(sn_module_t* module, sn_obj_id_
     return read;
 }
 
-static inline sn_obj_id_t sn_module_add_mem_write(sn_module_t* module, sn_obj_id_t mem_in, sn_obj_id_t clock,
-                                                  sn_obj_id_t enable, sn_obj_id_t data, sn_obj_id_t address,
-                                                  const char* name)
+static inline sn_obj_id_t sn_module_add_mem_write_unlinked(sn_module_t* module, sn_obj_id_t mem_in,
+                                                           sn_obj_id_t clock, sn_obj_id_t enable,
+                                                           sn_obj_id_t data, sn_obj_id_t address,
+                                                           const char* name)
 {
     assert(module);
     assert(sn_obj_type(module, mem_in) == SN_MEM_IN);
@@ -1875,6 +1961,14 @@ static inline sn_obj_id_t sn_module_add_mem_write(sn_module_t* module, sn_obj_id
     sn_obj_connect(module, write, SN_MEM_WRITE_ENABLE, enable);
     sn_obj_connect(module, write, SN_MEM_WRITE_DATA, data);
     sn_obj_connect(module, write, SN_MEM_WRITE_ADDRESS, address);
+    return write;
+}
+
+static inline sn_obj_id_t sn_module_add_mem_write(sn_module_t* module, sn_obj_id_t mem_in, sn_obj_id_t clock,
+                                                  sn_obj_id_t enable, sn_obj_id_t data, sn_obj_id_t address,
+                                                  const char* name)
+{
+    sn_obj_id_t write = sn_module_add_mem_write_unlinked(module, mem_in, clock, enable, data, address, name);
     sn_obj_add_fanin(module, mem_in, write);
     return write;
 }
@@ -2003,6 +2097,11 @@ static inline void sn_design_print_hierarchy_rec(FILE* out, const sn_design_t* d
     if (active_modules[module_id])
     {
         fputs(" [recursive]\n", out);
+        return;
+    }
+    if (sn_module_is_blackbox(module))
+    {
+        fputs(" [blackbox]\n", out);
         return;
     }
     fputc('\n', out);
@@ -2533,6 +2632,7 @@ static inline sn_module_id_t sn_design_dup_module_topo(sn_design_t* design, sn_m
     sn_vec_t order = sn_module_topo_order(source);
     sn_module_id_t target_module_id = sn_design_add_module(design, new_name);
     sn_module_t* target = sn_design_get_module(design, target_module_id);
+    target->flags = source->flags;
 
     sn_vec_resize(sn_obj_id_t, &source->copy_ids, source->obj_types.size);
     for (size_t i = 0; i < source->copy_ids.size; i++)
@@ -3054,6 +3154,7 @@ static inline sn_module_id_t sn_design_dup_module_clean_topo(sn_design_t* design
 
     sn_module_id_t target_id = sn_design_add_module(design, new_name);
     sn_module_t* target = sn_design_get_module(design, target_id);
+    target->flags = source->flags;
     sn_vec_resize(sn_obj_id_t, &source->copy_ids, object_count);
     for (size_t i = 0; i < object_count; i++)
         sn_vec_at(sn_obj_id_t, &source->copy_ids, i) = SN_INVALID_ID;
@@ -3071,9 +3172,19 @@ static inline sn_module_id_t sn_design_dup_module_clean_topo(sn_design_t* design
             continue;
         uint32_t bits = sn_obj_width(source, old_object);
         uint32_t* words = (uint32_t*)calloc(sn_const_word_count(bits), sizeof(uint32_t));
+        sn_name_id_t source_name_id = sn_obj_name_id(source, old_object);
+        const char* source_name = source_name_id == SN_INVALID_ID ? NULL :
+                                  sn_name_get(&source->design->names, source_name_id);
+        char* name = source_name ? (char*)malloc(strlen(source_name) + 1) : NULL;
         assert(words);
+        if (source_name)
+        {
+            assert(name);
+            memcpy(name, source_name, strlen(source_name) + 1);
+        }
         sn_vec_at(sn_obj_id_t, &source->copy_ids, old_object) =
-            sn_module_add_const(target, bits, sn_obj_is_signed(source, old_object), words, NULL);
+            sn_module_add_const(target, bits, sn_obj_is_signed(source, old_object), words, name);
+        free(name);
         free(words);
     }
     for (size_t i = input_count; i < order.size; i++)
@@ -3179,6 +3290,8 @@ typedef struct sn_collapse_context_t
 static inline bool sn_module_is_technology_primitive(const sn_module_t* module)
 {
     assert(module);
+    if (sn_module_is_blackbox(module))
+        return true;
     const char* name = sn_name_get(&module->design->names, module->name);
     return strncmp(name, "__sn_RAM", 8) == 0 || strncmp(name, "__sn_URAM", 9) == 0 ||
            strncmp(name, "__sn_DSP", 8) == 0 || strncmp(name, "__sn_CARRY", 10) == 0;
@@ -3187,15 +3300,15 @@ static inline bool sn_module_is_technology_primitive(const sn_module_t* module)
 static inline bool sn_collapse_preserves_object(const sn_collapse_context_t* context,
                                                 const sn_module_t* source, sn_obj_id_t object)
 {
-    if (!context->preserve_technology_primitives)
-        return false;
     sn_obj_type_t type = sn_obj_type(source, object);
     sn_obj_id_t inst = type == SN_INST ? object : type == SN_FAN ? sn_fan_inst_id(source, object)
                                                                         : SN_INVALID_ID;
     if (inst == SN_INVALID_ID)
         return false;
-    return sn_module_is_technology_primitive(
-        sn_design_get_module_const(context->design, sn_inst_module_id(source, inst)));
+    const sn_module_t* child = sn_design_get_module_const(context->design, sn_inst_module_id(source, inst));
+    if (sn_module_is_blackbox(child))
+        return true;
+    return context->preserve_technology_primitives && sn_module_is_technology_primitive(child);
 }
 
 static inline bool sn_collapse_obj_is_copied(sn_obj_type_t type, bool is_top)
@@ -3427,11 +3540,9 @@ static inline sn_module_id_t sn_design_collapse_module_internal(sn_design_t* des
     sn_module_rebuild_pair_type_ids(flat, SN_MEM_OUT, SN_MEM_IN, SN_MEM_STATE);
     sn_module_rebuild_pair_type_ids(flat, SN_LOOP_OUT, SN_LOOP_IN, 0);
 
-    if (!preserve_technology_primitives)
-    {
-        assert(flat->type_objects[SN_INST].size == 0);
-        assert(flat->type_objects[SN_FAN].size == 0);
-    }
+    for (size_t i = 0; i < flat->inst_modules.size; i++)
+        assert(sn_module_is_technology_primitive(
+            sn_design_get_module_const(design, sn_vec_at(sn_module_id_t, &flat->inst_modules, i))));
     assert(sn_module_is_topo(flat));
     return flat_module_id;
 }
@@ -4270,6 +4381,8 @@ static inline void sn_module_write_verilog_as(FILE* out, const sn_module_t* modu
             write_memories[write_id] = memory;
         }
     }
+    if (sn_module_is_blackbox(module))
+        fputs("(* blackbox *) ", out);
     fputs("module ", out);
     sn_write_verilog_identifier(out, emitted_name);
     fputs(" (", out);
@@ -4313,6 +4426,13 @@ static inline void sn_module_write_verilog_as(FILE* out, const sn_module_t* modu
             fputc(';', out);
             fputc(10, out);
         }
+
+    if (sn_module_is_blackbox(module))
+    {
+        fputs("endmodule\n\n", out);
+        free(write_memories);
+        return;
+    }
 
     for (sn_obj_id_t object = 0; object < module->obj_types.size; object++)
     {
@@ -4527,7 +4647,8 @@ static inline void sn_design_write_verilog_file(const sn_design_t* design, const
 // data words are unsigned 32-bit values. A format change must increment the
 // version below.
 
-#define SN_BINARY_FORMAT_VERSION 5u
+#define SN_BINARY_FORMAT_VERSION 6u
+#define SN_BINARY_MIN_READ_VERSION 5u
 
 // The format version covers field-layout changes. This signature additionally binds every serialized object type to
 // its numeric value, so reordering the enum cannot silently reinterpret an otherwise same-sized binary design.
@@ -4839,6 +4960,7 @@ static inline void sn_module_assert_valid(const sn_module_t* module)
     assert(module->id < module->design->modules.size);
     assert(sn_design_get_module_const(module->design, module->id) == module);
     assert(module->name < module->design->names.names.size);
+    assert((module->flags & ~SN_MODULE_ALL_FLAGS) == 0);
 
     size_t object_count = module->obj_types.size;
     assert(object_count < SN_INVALID_ID);
@@ -4865,11 +4987,22 @@ static inline void sn_module_assert_valid(const sn_module_t* module)
         for (uint32_t i = 0; i < fanin_count; i++)
         {
             sn_obj_id_t fanin = sn_vec_at(sn_obj_id_t, &module->fanins, fanin_offset + i);
-            assert(fanin == SN_INVALID_ID || fanin < object_count);
+            assert(fanin < object_count ||
+                   (fanin == SN_INVALID_ID && sn_obj_fanin_may_be_invalid(module, type, i)));
         }
         expected_fanin_offset += fanin_count;
     }
     assert(expected_fanin_offset == module->fanins.size);
+
+    if (sn_module_is_blackbox(module))
+        for (sn_obj_id_t object = 0; object < object_count; object++)
+        {
+            sn_obj_type_t type = sn_obj_type(module, object);
+            assert(type == SN_PI || type == SN_PO);
+            if (type == SN_PO)
+                assert(sn_obj_fanin_count(module, object) == 1 &&
+                       sn_obj_fanin(module, object, 0) == SN_INVALID_ID);
+        }
 
     for (uint32_t type = 0; type < SN_OBJ_TYPE_COUNT; type++)
         for (uint32_t type_id = 0; type_id < module->type_objects[type].size; type_id++)
@@ -5048,6 +5181,7 @@ static inline void sn_design_assert_valid(const sn_design_t* design)
 static inline void sn_binary_write_module(sn_binary_writer_t* writer, const sn_module_t* module)
 {
     sn_binary_write_u32(writer, module->name);
+    sn_binary_write_u32(writer, module->flags);
     sn_binary_write_u32(writer, module->fanouts_valid ? 1u : 0u);
     sn_binary_write_u32(writer, module->interface_locked ? 1u : 0u);
     sn_binary_write_u32(writer, module->copy_module);
@@ -5075,23 +5209,27 @@ static inline void sn_binary_write_module(sn_binary_writer_t* writer, const sn_m
     sn_binary_write_u32_vec(writer, &module->copy_ids);
 }
 
-static inline bool sn_binary_read_module(sn_binary_reader_t* reader, sn_design_t* design, sn_module_id_t expected_id)
+static inline bool sn_binary_read_module(sn_binary_reader_t* reader, sn_design_t* design, sn_module_id_t expected_id,
+                                         uint32_t version, uint8_t* module_name_seen)
 {
     sn_name_id_t name = sn_binary_read_u32(reader);
+    uint32_t flags = version >= 6 ? sn_binary_read_u32(reader) : SN_MODULE_NO_FLAGS;
     uint32_t fanouts_valid = sn_binary_read_u32(reader);
     uint32_t interface_locked = sn_binary_read_u32(reader);
     sn_module_id_t copy_module = sn_binary_read_u32(reader);
-    if (!reader->valid || name >= design->names.names.size || fanouts_valid > 1 || interface_locked > 1 ||
-        sn_design_find_module(design, sn_name_get(&design->names, name)) != SN_INVALID_ID)
+    if (!reader->valid || name >= design->names.names.size || module_name_seen[name] ||
+        (flags & ~SN_MODULE_ALL_FLAGS) != 0 || fanouts_valid > 1 || interface_locked > 1)
     {
         reader->valid = false;
         return false;
     }
 
-    sn_module_id_t id = sn_design_add_module(design, sn_name_get(&design->names, name));
+    module_name_seen[name] = 1;
+    sn_module_id_t id = sn_design_add_module_name_id(design, name);
     assert(id == expected_id);
     sn_module_t* module = sn_design_get_module(design, id);
     assert(module->name == name);
+    module->flags = flags;
     module->fanouts_valid = fanouts_valid != 0;
     module->interface_locked = interface_locked != 0;
     module->copy_module = copy_module;
@@ -5194,7 +5332,7 @@ static inline sn_design_t* sn_design_read_binary_raw_status(FILE* in, sn_binary_
         status = SN_BINARY_READ_IO;
     else if (memcmp(magic, expected_magic, sizeof(magic)) != 0)
         status = SN_BINARY_READ_MAGIC;
-    else if (version != SN_BINARY_FORMAT_VERSION)
+    else if (version < SN_BINARY_MIN_READ_VERSION || version > SN_BINARY_FORMAT_VERSION)
         status = SN_BINARY_READ_VERSION;
     else if (layout_signature != sn_binary_layout_signature() || object_type_count != SN_OBJ_TYPE_COUNT ||
              register_fanin_count != SN_REG_FANIN_COUNT ||
@@ -5220,7 +5358,11 @@ static inline sn_design_t* sn_design_read_binary_raw_status(FILE* in, sn_binary_
             break;
         }
         char* name = (char*)malloc(length + 1);
-        assert(name);
+        if (!name)
+        {
+            reader.valid = false;
+            break;
+        }
         sn_binary_read_bytes(&reader, name, length);
         name[length] = 0;
         if (memchr(name, 0, length) != NULL)
@@ -5241,8 +5383,12 @@ static inline sn_design_t* sn_design_read_binary_raw_status(FILE* in, sn_binary_
     size_t module_count = sn_binary_read_size(&reader);
     if (!reader.valid || module_count >= SN_INVALID_ID || module_count > reader.remaining / 16)
         reader.valid = false;
+    uint8_t* module_name_seen = name_count ? (uint8_t*)calloc(name_count, 1) : NULL;
+    if (reader.valid && module_count && !module_name_seen)
+        reader.valid = false;
     for (sn_module_id_t i = 0; reader.valid && i < module_count; i++)
-        sn_binary_read_module(&reader, design, i);
+        sn_binary_read_module(&reader, design, i, version, module_name_seen);
+    free(module_name_seen);
     if (!reader.valid)
     {
         sn_design_destroy(design);
