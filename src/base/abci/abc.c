@@ -7813,14 +7813,17 @@ usage:
 ***********************************************************************/
 int Abc_CommandRunTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose );
+    extern void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCadical );
     char * pFileNames[4] = {NULL};
-    int c, fFancy = 0, fVerbose = 0;
+    int c, fFancy = 0, fVerbose = 0, fUseCadical = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "fvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cfvh" ) ) != EOF )
     {
         switch ( c )
         {
+	case 'c':
+	    fUseCadical ^= 1;
+	    break;
         case 'f':
             fFancy ^= 1;
             break;
@@ -7840,12 +7843,13 @@ int Abc_CommandRunTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     for ( c = 0; c < argc - globalUtilOptind; c++ )
         pFileNames[c] = argv[globalUtilOptind+c];
-    Acb_NtkRunTest( pFileNames, fFancy, fVerbose );
+    Acb_NtkRunTest( pFileNames, fFancy, fVerbose, fUseCadical );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: xec [-fvh] <file1> <file2>\n" );
+    Abc_Print( -2, "usage: xec [-cfvh] <file1> <file2>\n" );
     Abc_Print( -2, "\t           combinational equivalence checking with x-values\n" );
+    Abc_Print( -2, "\t-c       : toggle using CaDiCaL SAT-only solving [default = %s]\n", fUseCadical? "yes": "no" );
     Abc_Print( -2, "\t-f       : toggle using experimental feature [default = %s]\n",      fFancy? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n",    fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
