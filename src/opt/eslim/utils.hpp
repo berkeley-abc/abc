@@ -74,9 +74,9 @@ namespace eSLIM {
       if (tt == 0) {
         return -1;
       }
-      int x = 0;
-      bool status = _BitScanForward64(x, tt);
-      return x;
+      unsigned long x = 0;
+      _BitScanForward64(&x, tt);
+      return (int)x;
     #else
       if (tt == 0) {
         return -1;

@@ -83,8 +83,11 @@
 #include <string.h>
 
 // catch memory leaks in Visual Studio
+// Note: _CRTDBG_MAP_ALLOC remaps malloc/free/etc. as macros, which collides with
+// C++ class members named the same (e.g. cadical's DeferDeleteArray::free), so
+// only enable it in C TUs.
 #ifdef WIN32
-  #ifdef _DEBUG
+  #if defined(_DEBUG) && !defined(__cplusplus)
     #define _CRTDBG_MAP_ALLOC
     #include <crtdbg.h>
   #endif
