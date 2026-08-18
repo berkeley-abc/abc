@@ -40,7 +40,9 @@
 #else
 #include <fcntl.h>
 #include <sys/types.h>
+#if !defined(__wasm)
 #include <sys/wait.h>
+#endif
 #include <unistd.h>
 #endif
 
@@ -1628,7 +1630,11 @@ static int Sn_MapLutExecutable( char * pBuffer, size_t nBuffer )
 
 static int Sn_MapLutRunProcess( const char * pExecutable, const char * pCommand )
 {
-#if defined(_MSC_VER) || defined(__MINGW32__)
+#if defined(__wasm)
+    (void)pExecutable;
+    (void)pCommand;
+    return -1;
+#elif defined(_MSC_VER) || defined(__MINGW32__)
     const char * pArgs[] = {pExecutable, "-q", pCommand, NULL};
     return (int)_spawnv( _P_WAIT, pExecutable, pArgs );
 #else
