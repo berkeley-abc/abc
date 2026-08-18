@@ -241,7 +241,7 @@ lib$(PROG).a: $(LIBOBJ)
 
 lib$(PROG).so: $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
-	$(VERBOSE)$(CXX) -shared -o $@ $^ $(LIBS)
+	$(VERBOSE)$(CXX) -shared -o $@ $^ $(LDFLAGS) $(LIBS)
 
 docs:
 	@echo "$(MSG_PREFIX)\`\` Building documentation." $(notdir $@)
