@@ -31,6 +31,7 @@
 #include <string.h>
 #include <assert.h>
 
+#include "misc/util/abc_global.h"
 #include "misc/vec/vec.h"
 #include "misc/util/utilCex.h"
 
@@ -226,14 +227,7 @@ static inline Aig_Cut_t *  Aig_CutNext( Aig_Cut_t * pCut )              { return
 ////////////////////////////////////////////////////////////////////////
 
 static inline unsigned     Aig_ObjCutSign( unsigned ObjId )       { return (1U << (ObjId & 31));                            }
-static inline int          Aig_WordCountOnes( unsigned uWord )
-{
-    uWord = (uWord & 0x55555555) + ((uWord>>1) & 0x55555555);
-    uWord = (uWord & 0x33333333) + ((uWord>>2) & 0x33333333);
-    uWord = (uWord & 0x0F0F0F0F) + ((uWord>>4) & 0x0F0F0F0F);
-    uWord = (uWord & 0x00FF00FF) + ((uWord>>8) & 0x00FF00FF);
-    return  (uWord & 0x0000FFFF) + (uWord>>16);
-}
+static inline int          Aig_WordCountOnes( unsigned uWord )    { return Abc_WordCountOnes( uWord );                      }
 static inline int          Aig_WordFindFirstBit( unsigned uWord )
 {
     int i;

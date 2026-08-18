@@ -43,7 +43,7 @@ struct Aig_ManPack_t_
     int                nPatRepeat;  // number of repeated patterns
 };
 
-static inline int Aig_Word6CountOnes( word t )  { return Aig_WordCountOnes( (unsigned)(t >> 32) ) + Aig_WordCountOnes( (unsigned)(t & 0xFFFFFFFF) ); }
+static inline int Aig_Word6CountOnes( word t )  { return Abc_Word6CountOnes( t ); }
 static inline int Aig_Word6HasOneBit( word t )  { return (t & (t-1)) == 0; }
 
 
