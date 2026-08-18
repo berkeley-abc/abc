@@ -104,7 +104,7 @@ clk = Abc_Clock();
     p->pTable = ABC_ALLOC( Rwt_Node_t *, p->nFuncs );
     memset( p->pTable, 0, sizeof(Rwt_Node_t *) * p->nFuncs );
     // create the elementary nodes
-    p->pMmNode  = Mem_FixedStart( sizeof(Rwt_Node_t) );
+    p->pMmNode  = Mem_FixedStart( alignPad(sizeof(Rwt_Node_t)) );
     p->vForest  = Vec_PtrAlloc( 100 );
     Rwt_ManAddVar( p, 0x0000, fPrecompute ); // constant 0
     Rwt_ManAddVar( p, 0xAAAA, fPrecompute ); // var A

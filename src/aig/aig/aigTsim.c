@@ -135,7 +135,7 @@ Aig_Tsi_t * Aig_TsiStart( Aig_Man_t * pAig )
     p->pAig    = pAig;
     p->nWords  = Abc_BitWordNum( 2*Aig_ManRegNum(pAig) );
     p->vStates = Vec_PtrAlloc( 1000 );
-    p->pMem    = Aig_MmFixedStart( sizeof(unsigned) * p->nWords + sizeof(unsigned *), 10000 );
+    p->pMem    = Aig_MmFixedStart( alignPad(sizeof(unsigned) * p->nWords + sizeof(unsigned *)), 10000 );
     p->nBins   = Abc_PrimeCudd(TSI_MAX_ROUNDS/2);
     p->pBins   = ABC_ALLOC( unsigned *, p->nBins );
     memset( p->pBins, 0, sizeof(unsigned *) * p->nBins );

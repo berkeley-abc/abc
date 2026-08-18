@@ -271,6 +271,27 @@ typedef ABC_INT64_T iword;
         ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (size_t)(num))) : \
          ((type *) malloc(sizeof(type) * (size_t)(num))))
 
+#ifndef ABC_MEMALIGN
+# if defined(__arm__)
+#   define ABC_MEMALIGN 4
+# elif defined(__hppa__)
+#   define ABC_MEMALIGN 8
+# elif defined(__sparc__)
+#   define ABC_MEMALIGN 8
+//# else
+//#   warning unsupported platform
+# endif
+#endif // !ABC_MEMALIGN
+
+static inline size_t alignPad(size_t objsize)
+{
+#ifdef ABC_MEMALIGN
+    if (objsize % ABC_MEMALIGN)
+        objsize += ABC_MEMALIGN - (objsize % ABC_MEMALIGN);
+#endif
+    return objsize;
+}
+
 static inline int      Abc_AbsInt( int a        )             { return a < 0 ? -a : a; }
 static inline int      Abc_MaxInt( int a, int b )             { return a > b ?  a : b; }
 static inline int      Abc_MinInt( int a, int b )             { return a < b ?  a : b; }
