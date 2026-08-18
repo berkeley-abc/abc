@@ -371,7 +371,11 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName 
     // copy functionality/names
     if ( Abc_ObjIsNode(pObj) ) // copy the function if functionality is compatible
     {
-        if ( pNtkNew->ntkFunc == pObj->pNtk->ntkFunc ) 
+        if ( fCopyName )
+        {
+            Abc_ObjAssignName(pObjNew, Abc_ObjName(pObj), NULL);
+        }
+        if ( pNtkNew->ntkFunc == pObj->pNtk->ntkFunc )
         {
             if ( Abc_NtkIsStrash(pNtkNew) ) 
             {}
