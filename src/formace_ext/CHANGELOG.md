@@ -2,6 +2,36 @@
 
 This file records ForMACE-specific changes made in this ABC fork.
 
+## 2026-08-18
+
+- Added the production `fm_minunsat` ABC command for exact clause-level
+  minimum UNSAT directly from DIMACS CNF, without an AIG conversion.
+- Added optional group-file input with a hard/background first group,
+  multi-clause unit-cost optional groups, strict clause-assignment validation,
+  resource limits, raw-core/all-candidate seed choices, and phase statistics.
+- Exposed every exact ablation configuration through `fm_minunsat -A` and
+  added `-j` machine-readable output so experiments invoke the production ABC
+  executable rather than compiling a private benchmark driver.
+- Added independent CaDiCaL `plain`, `ilb=2`, and `stabilizeonly=1` switches
+  plus all three pairwise configurations, enabling a separate complete `2^3`
+  solver-tuning matrix without changing the original ablation variants.
+- Added command-level regressions for clause-level minimum, raw-core seeding,
+  grouped hard clauses, hard-only UNSAT, SAT input, and multiline DIMACS.
+- Added runtime-configurable, exact minimum-UNSAT ablations for failed-core
+  shrinking, MUS upper-bound seeding, model-guided MSS growth, MCS growth,
+  map-bound search, and CaDiCaL tuning. Production defaults are unchanged.
+- Added a raw-core seed variant that uses the first failed-assumption core as
+  a valid upper bound without paying for deletion minimization.
+- Added per-phase minimum-UNSAT counters/timers and extended the independent
+  exhaustive oracle to cover all seven production/ablation configurations.
+- Kept the extension tree focused on C sources, user guides, regression
+  tests, and fixtures by moving the MinUNSAT ECO runner and results to the
+  workspace's `try/tools` and `try/results` areas.
+- Added `tests/run_all.sh` as the single entry point for the complete focused
+  regression suite.
+- Added extension-local Git exceptions so the small Verilog and BLIF fixtures
+  required by the smoke tests are present in a clean checkout.
+
 ## 2026-08-11
 
 - Audited `runeco -m` end to end. Confirmed that it minimizes the number of

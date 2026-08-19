@@ -8,6 +8,9 @@ solver.
 ## Commands
 
 - `fm_summary` reports basic statistics for the current ABC network.
+- `fm_minunsat input.cnf` computes an exact minimum-cardinality UNSAT clause
+  subset directly from DIMACS. `-g input.groups` enables hard clauses and
+  multi-clause optional groups; no CNF-to-AIG conversion is needed.
 - `fm_inter` builds a combinational interpolant from an onset/offset pair.
   It supports exact minimum-cardinality (`-m`), subset-minimal (`-c`), and
   baseline-support hybrid (`-y`) boundary selection.
@@ -23,8 +26,15 @@ From the ABC repository root:
 ```bash
 make -j4 ABC_USE_NO_READLINE=1
 bash src/formace_ext/tests/fm_camus_api_test.sh
+bash src/formace_ext/tests/fm_minunsat_test.sh
 bash src/formace_ext/tests/fm_inter_smoke.sh
 bash src/formace_ext/tests/fm_int_smoke.sh
+```
+
+Or run the complete focused suite with one command:
+
+```bash
+bash src/formace_ext/tests/run_all.sh
 ```
 
 The grouped-DIMACS benchmark driver is optional:
@@ -38,19 +48,24 @@ bash src/formace_ext/tests/fm_camus_grouped_benchmark.sh \
 
 - [Combinational interpolation](guides/fm_inter.md)
 - [Interpolation model checking](guides/fm_int.md)
+- [Minimum UNSAT for DIMACS CNF](guides/fm_minunsat.md)
 - [CAMUS/CaDiCaL API and architecture](guides/camus.md)
 - [Change log](CHANGELOG.md)
-- [MinUNSAT ECO experiment](0810_try/REPORT.md)
 
 ## Source layout
 
 - `formace.c`: command registration and the `fm_summary`, `fm_inter`, and
   `fm_int` command implementations.
+- `fm_minunsat.h`, `fm_minunsat.c`: DIMACS/group parsing and the direct
+  `fm_minunsat` shell command.
 - `fm_camus.h`, `fm_camus.c`: the in-memory grouped-constraint API and exact
   or subset-minimal MUS selection.
 - `module.make`: ABC build integration.
 - `tests/`: focused C/API tests, shell regression tests, and small fixtures.
-- `0810_try/`: the reproducible MinUNSAT-guided ECO experiment.
+
+Reusable experiment runners live outside the ABC source tree under the
+workspace's `try/tools/` directory. In particular, the MinUNSAT ECO runner is
+`try/tools/0810_minunsat_eco/run_minunsat_eco.py`.
 
 Keep generated build products and test output out of source control. Prefer
 extension-local changes; changes to upstream ABC internals should remain

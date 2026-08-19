@@ -1,0 +1,7 @@
+.model off_xnor_unused
+.inputs x y z
+.outputs f
+.names x y f
+00 1
+11 1
+.end

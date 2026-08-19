@@ -1,0 +1,7 @@
+c Hard clause 1 plus optional group 1 (clauses 2 and 3) is UNSAT.
+p cnf 2 5
+1 0
+-1 2 0
+-2 0
+2 0
+-2 0

@@ -20,6 +20,7 @@
 #include "sat/bsat/satStore.h"
 #include "sat/cadical/cadicalSolver.h"
 #include "formace_ext/fm_camus.h"
+#include "formace_ext/fm_minunsat.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -67,6 +68,7 @@ static void ForMace_Register( void )
 static void ForMace_Init( Abc_Frame_t * pAbc )
 {
     Cmd_CommandAdd( pAbc, "ForMACE", "fm_summary", ForMace_CommandSummary, 0 );
+    Cmd_CommandAdd( pAbc, "ForMACE", "fm_minunsat", Fm_CommandMinUnsat, 0 );
     Cmd_CommandAdd( pAbc, "ForMACE", "fm_inter", ForMace_CommandInter, 1 );
     Cmd_CommandAdd( pAbc, "ForMACE", "fm_int", ForMace_CommandBmcInter, 0 );
 }

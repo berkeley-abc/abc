@@ -12,6 +12,7 @@
 
 #include "fm_camus.h"
 #include "sat/cadical/cadicalSolver.h"
+#include <string.h>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -26,6 +27,8 @@ struct Fm_CamusMan_t_
     int            fRootUnsat;
     ABC_INT64_T    nConfLimit;
     abctime        nTimeOut;
+    Fm_CamusOptions_t Options;
+    Fm_CamusStats_t   Stats;
 };
 
 static Vec_Int_t * Fm_CamusNormalizeGroups( Fm_CamusMan_t * p, Vec_Int_t * vEnabled )
@@ -51,17 +54,51 @@ const char * Fm_CamusBackendName( void )
     return cadical_solver_signature();
 }
 
-Fm_CamusMan_t * Fm_CamusStart( int nVars, int nGroups )
+void Fm_CamusOptionsDefault( Fm_CamusOptions_t * pOptions )
+{
+    if ( pOptions == NULL )
+        return;
+    memset( pOptions, 0, sizeof(*pOptions) );
+    pOptions->fUseCoreShrink = 1;
+    pOptions->fUseMusSeed = 1;
+    pOptions->fMinimizeSeed = 1;
+    pOptions->fUseModelAbsorb = 1;
+    pOptions->fGrowMcs = 1;
+    pOptions->fBinaryMapBounds = 1;
+    pOptions->fUseCadicalTuning = 1;
+    pOptions->fUseCadicalPlain = 1;
+    pOptions->fUseCadicalIlb = 1;
+    pOptions->fUseCadicalStableOnly = 1;
+}
+
+void Fm_CamusGetStats( Fm_CamusMan_t * p, Fm_CamusStats_t * pStats )
+{
+    if ( pStats == NULL )
+        return;
+    if ( p == NULL )
+        memset( pStats, 0, sizeof(*pStats) );
+    else
+        *pStats = p->Stats;
+}
+
+Fm_CamusMan_t * Fm_CamusStartWithOptions( int nVars, int nGroups, const Fm_CamusOptions_t * pOptions )
 {
     Fm_CamusMan_t * p;
     if ( nVars < 0 || nGroups < 0 )
         return NULL;
     p = ABC_CALLOC( Fm_CamusMan_t, 1 );
+    if ( pOptions == NULL )
+        Fm_CamusOptionsDefault( &p->Options );
+    else
+        p->Options = *pOptions;
     p->pSat = cadical_solver_new();
     if ( p->pSat == NULL ||
-         !cadical_solver_configure(p->pSat, "plain") ||
-         !cadical_solver_set_option(p->pSat, "ilb", 2) ||
-         !cadical_solver_set_option(p->pSat, "stabilizeonly", 1) ||
+         (p->Options.fUseCadicalTuning && p->Options.fUseCadicalPlain &&
+          !cadical_solver_configure(p->pSat, "plain")) ||
+         (p->Options.fUseCadicalTuning && p->Options.fUseCadicalIlb &&
+          !cadical_solver_set_option(p->pSat, "ilb", 2)) ||
+         (p->Options.fUseCadicalTuning && p->Options.fUseCadicalStableOnly &&
+          !cadical_solver_set_option(p->pSat, "stabilizeonly", 1)) ||
          !cadical_solver_set_option(p->pSat, "checkassumptions", 0) ||
          !cadical_solver_set_option(p->pSat, "checkconstraint", 0) ||
          !cadical_solver_set_option(p->pSat, "checkfailed", 0) )
@@ -75,6 +112,11 @@ Fm_CamusMan_t * Fm_CamusStart( int nVars, int nGroups )
     p->nGroups = nGroups;
     cadical_solver_setnvars( p->pSat, nVars + nGroups );
     return p;
+}
+
+Fm_CamusMan_t * Fm_CamusStart( int nVars, int nGroups )
+{
+    return Fm_CamusStartWithOptions( nVars, nGroups, NULL );
 }
 
 void Fm_CamusStop( Fm_CamusMan_t * p )
@@ -183,50 +225,71 @@ static Vec_Int_t * Fm_CamusExtractCore( Fm_CamusMan_t * p )
     return vCore;
 }
 
-Vec_Int_t * Fm_CamusFindMus( Fm_CamusMan_t * p, Vec_Int_t * vEnabled )
+static Vec_Int_t * Fm_CamusFindMusInternal( Fm_CamusMan_t * p, Vec_Int_t * vEnabled,
+                                            int fMinimize )
 {
     Vec_Int_t * vMus, * vCore;
     int i, iGroup, RetValue;
     vMus = Fm_CamusNormalizeGroups( p, vEnabled );
-    if ( vMus == NULL || Fm_CamusSolve(p, vMus) != FM_CAMUS_UNSAT )
-    {
-        Vec_IntFreeP( &vMus );
+    if ( vMus == NULL )
         return NULL;
-    }
-    vCore = Fm_CamusExtractCore( p );
-    if ( vCore == NULL )
+    p->Stats.nSeedInput = Vec_IntSize( vMus );
+    p->Stats.nSeedSolves++;
+    if ( Fm_CamusSolve(p, vMus) != FM_CAMUS_UNSAT )
     {
         Vec_IntFree( vMus );
         return NULL;
     }
-    if ( Vec_IntSize(vCore) < Vec_IntSize(vMus) )
+    if ( p->Options.fUseCoreShrink )
     {
-        Vec_IntFree( vMus );
-        vMus = vCore;
+        vCore = Fm_CamusExtractCore( p );
+        if ( vCore == NULL )
+        {
+            Vec_IntFree( vMus );
+            return NULL;
+        }
+        if ( Vec_IntSize(vCore) < Vec_IntSize(vMus) )
+        {
+            p->Stats.nCoreShrinks++;
+            p->Stats.nCoreGroupsRemoved += Vec_IntSize(vMus) - Vec_IntSize(vCore);
+            Vec_IntFree( vMus );
+            vMus = vCore;
+        }
+        else
+            Vec_IntFree( vCore );
     }
-    else
-        Vec_IntFree( vCore );
+    if ( !fMinimize )
+    {
+        p->Stats.nSeedResult = Vec_IntSize( vMus );
+        return vMus;
+    }
     for ( i = 0; i < Vec_IntSize(vMus); )
     {
         iGroup = Vec_IntEntry( vMus, i );
         Vec_IntDrop( vMus, i );
+        p->Stats.nSeedSolves++;
         RetValue = Fm_CamusSolve( p, vMus );
         if ( RetValue == FM_CAMUS_UNSAT )
         {
-            vCore = Fm_CamusExtractCore( p );
-            if ( vCore == NULL )
+            if ( p->Options.fUseCoreShrink )
             {
-                Vec_IntFree( vMus );
-                return NULL;
+                vCore = Fm_CamusExtractCore( p );
+                if ( vCore == NULL )
+                {
+                    Vec_IntFree( vMus );
+                    return NULL;
+                }
+                if ( Vec_IntSize(vCore) < Vec_IntSize(vMus) )
+                {
+                    p->Stats.nCoreShrinks++;
+                    p->Stats.nCoreGroupsRemoved += Vec_IntSize(vMus) - Vec_IntSize(vCore);
+                    Vec_IntFree( vMus );
+                    vMus = vCore;
+                    i = 0;
+                }
+                else
+                    Vec_IntFree( vCore );
             }
-            if ( Vec_IntSize(vCore) < Vec_IntSize(vMus) )
-            {
-                Vec_IntFree( vMus );
-                vMus = vCore;
-                i = 0;
-            }
-            else
-                Vec_IntFree( vCore );
             continue;
         }
         if ( RetValue != FM_CAMUS_SAT )
@@ -237,7 +300,13 @@ Vec_Int_t * Fm_CamusFindMus( Fm_CamusMan_t * p, Vec_Int_t * vEnabled )
         Vec_IntInsert( vMus, i, iGroup );
         i++;
     }
+    p->Stats.nSeedResult = Vec_IntSize( vMus );
     return vMus;
+}
+
+Vec_Int_t * Fm_CamusFindMus( Fm_CamusMan_t * p, Vec_Int_t * vEnabled )
+{
+    return Fm_CamusFindMusInternal( p, vEnabled, 1 );
 }
 
 /**Function*************************************************************
@@ -291,10 +360,13 @@ static int Fm_CamusMapAddAtMost( cadical_solver * pSat, Fm_CamusMan_t * p,
 static Vec_Int_t * Fm_CamusMapSolve( Fm_CamusMan_t * p, Vec_Int_t * vCandidates,
                                      Vec_Ptr_t * vMcses, int Bound, int * pStatus )
 {
+    abctime clk = Abc_Clock();
     cadical_solver * pMap = cadical_solver_new();
     Vec_Int_t * vMcs, * vResult = NULL;
     int * pClause;
     int i, k, iGroup, RetValue = FM_CAMUS_UNSAT;
+    p->Stats.nMapSolves++;
+    p->Stats.nSolverConstructions++;
     if ( pMap == NULL ||
          !cadical_solver_set_option(pMap, "checkassumptions", 0) ||
          !cadical_solver_set_option(pMap, "checkconstraint", 0) ||
@@ -335,6 +407,11 @@ static Vec_Int_t * Fm_CamusMapSolve( Fm_CamusMan_t * p, Vec_Int_t * vCandidates,
 finish:
     if ( pMap )
         cadical_solver_delete( pMap );
+    p->Stats.timeMap += Abc_Clock() - clk;
+    if ( RetValue == FM_CAMUS_SAT )
+        p->Stats.nMapSat++;
+    else if ( RetValue == FM_CAMUS_UNSAT )
+        p->Stats.nMapUnsat++;
     *pStatus = RetValue;
     return vResult;
 }
@@ -350,6 +427,24 @@ static Vec_Int_t * Fm_CamusMinimumHit( Fm_CamusMan_t * p, Vec_Int_t * vCandidate
     Vec_Int_t * vBest = Vec_IntDup( vUpper );
     Vec_Int_t * vTrial;
     int Low = 0, High = Vec_IntSize(vUpper) - 1, Bound, Status;
+    if ( !p->Options.fBinaryMapBounds )
+    {
+        for ( Bound = Low; Bound <= High; Bound++ )
+        {
+            vTrial = Fm_CamusMapSolve( p, vCandidates, vMcses, Bound, &Status );
+            if ( Status == FM_CAMUS_SAT )
+            {
+                Vec_IntFree( vBest );
+                return vTrial;
+            }
+            if ( Status != FM_CAMUS_UNSAT )
+            {
+                Vec_IntFree( vBest );
+                return NULL;
+            }
+        }
+        return vBest;
+    }
     while ( Low <= High )
     {
         Bound = Low + (High - Low) / 2;
@@ -390,7 +485,7 @@ static Vec_Int_t * Fm_CamusGrowMcs( Fm_CamusMan_t * p, Vec_Int_t * vCandidates, 
     }
     while ( 1 )
     {
-        if ( fHaveModel )
+        if ( fHaveModel && p->Options.fUseModelAbsorb )
         {
             Vec_IntForEachEntry( vCandidates, iGroup, i )
                 if ( !Vec_IntEntry(vSelected, iGroup) &&
@@ -399,6 +494,7 @@ static Vec_Int_t * Fm_CamusGrowMcs( Fm_CamusMan_t * p, Vec_Int_t * vCandidates, 
                     Vec_IntWriteEntry( vSelected, iGroup, 1 );
                     Vec_IntWriteEntry( vDone, iGroup, 1 );
                     Vec_IntPush( vMss, iGroup );
+                    p->Stats.nModelGroupsAdded++;
                 }
             fHaveModel = 0;
         }
@@ -410,6 +506,8 @@ static Vec_Int_t * Fm_CamusGrowMcs( Fm_CamusMan_t * p, Vec_Int_t * vCandidates, 
         Vec_IntWriteEntry( vSelected, iGroup, 1 );
         Vec_IntWriteEntry( vDone, iGroup, 1 );
         Vec_IntPush( vMss, iGroup );
+        p->Stats.nExplicitGroupsTried++;
+        p->Stats.nGrowthSolves++;
         Status = Fm_CamusSolve( p, vMss );
         if ( Status == FM_CAMUS_SAT )
             fHaveModel = 1;
@@ -433,26 +531,59 @@ finish:
     return vMcs;
 }
 
+/** Returns a valid (not necessarily minimal) correction set for a SAT set. */
+static Vec_Int_t * Fm_CamusMakeCorrectionSet( Fm_CamusMan_t * p,
+                                              Vec_Int_t * vCandidates,
+                                              Vec_Int_t * vSat )
+{
+    Vec_Int_t * vSelected = Vec_IntStart( p->nGroups );
+    Vec_Int_t * vCorrection = Vec_IntAlloc( Vec_IntSize(vCandidates) - Vec_IntSize(vSat) );
+    int i, iGroup;
+    Vec_IntForEachEntry( vSat, iGroup, i )
+        Vec_IntWriteEntry( vSelected, iGroup, 1 );
+    Vec_IntForEachEntry( vCandidates, iGroup, i )
+        if ( !Vec_IntEntry(vSelected, iGroup) )
+            Vec_IntPush( vCorrection, iGroup );
+    Vec_IntFree( vSelected );
+    return vCorrection;
+}
+
 Vec_Int_t * Fm_CamusFindMinimumMus( Fm_CamusMan_t * p, Vec_Int_t * vEnabled )
 {
-    Vec_Int_t * vCandidates, * vBest, * vHit, * vMcs;
-    Vec_Ptr_t * vMcses;
+    Vec_Int_t * vCandidates = NULL, * vBest = NULL, * vHit, * vMcs;
+    Vec_Ptr_t * vMcses = NULL;
+    abctime clkTotal, clkPhase;
     int i, Status;
 
+    if ( p == NULL )
+        return NULL;
+    memset( &p->Stats, 0, sizeof(p->Stats) );
+    p->Stats.nSeedResult = -1;
+    p->Stats.nResult = -1;
+    p->Stats.nSolverConstructions = 1;
+    clkTotal = Abc_Clock();
     vCandidates = Fm_CamusNormalizeGroups( p, vEnabled );
     if ( vCandidates == NULL )
-        return NULL;
-    vBest = Fm_CamusFindMus( p, vCandidates );
+        goto finish;
+    clkPhase = Abc_Clock();
+    if ( p->Options.fUseMusSeed )
+        vBest = Fm_CamusFindMusInternal( p, vCandidates, p->Options.fMinimizeSeed );
+    else
+    {
+        p->Stats.nSeedInput = Vec_IntSize( vCandidates );
+        p->Stats.nSeedSolves++;
+        Status = Fm_CamusSolve( p, vCandidates );
+        if ( Status == FM_CAMUS_UNSAT )
+        {
+            vBest = Vec_IntDup( vCandidates );
+            p->Stats.nSeedResult = Vec_IntSize( vBest );
+        }
+    }
+    p->Stats.timeSeed += Abc_Clock() - clkPhase;
     if ( vBest == NULL )
-    {
-        Vec_IntFree( vCandidates );
-        return NULL;
-    }
+        goto finish;
     if ( Vec_IntSize(vBest) == 0 )
-    {
-        Vec_IntFree( vCandidates );
-        return vBest;
-    }
+        goto finish;
     vMcses = Vec_PtrAlloc( 16 );
     while ( 1 )
     {
@@ -463,7 +594,10 @@ Vec_Int_t * Fm_CamusFindMinimumMus( Fm_CamusMan_t * p, Vec_Int_t * vEnabled )
             vBest = NULL;
             break;
         }
+        clkPhase = Abc_Clock();
+        p->Stats.nValidationSolves++;
         Status = Fm_CamusSolve( p, vHit );
+        p->Stats.timeValidation += Abc_Clock() - clkPhase;
         if ( Status == FM_CAMUS_UNSAT )
         {
             Vec_IntFree( vBest );
@@ -477,7 +611,15 @@ Vec_Int_t * Fm_CamusFindMinimumMus( Fm_CamusMan_t * p, Vec_Int_t * vEnabled )
             vBest = NULL;
             break;
         }
-        vMcs = Fm_CamusGrowMcs( p, vCandidates, vHit );
+        p->Stats.nRefinements++;
+        if ( p->Options.fGrowMcs )
+        {
+            clkPhase = Abc_Clock();
+            vMcs = Fm_CamusGrowMcs( p, vCandidates, vHit );
+            p->Stats.timeGrowth += Abc_Clock() - clkPhase;
+        }
+        else
+            vMcs = Fm_CamusMakeCorrectionSet( p, vCandidates, vHit );
         Vec_IntFree( vHit );
         if ( vMcs == NULL || Vec_IntSize(vMcs) == 0 )
         {
@@ -486,12 +628,20 @@ Vec_Int_t * Fm_CamusFindMinimumMus( Fm_CamusMan_t * p, Vec_Int_t * vEnabled )
             vBest = NULL;
             break;
         }
+        p->Stats.nCorrectionSets++;
         Vec_PtrPush( vMcses, vMcs );
     }
-    Vec_PtrForEachEntry( Vec_Int_t *, vMcses, vMcs, i )
-        Vec_IntFree( vMcs );
-    Vec_PtrFree( vMcses );
-    Vec_IntFree( vCandidates );
+
+finish:
+    if ( vMcses )
+    {
+        Vec_PtrForEachEntry( Vec_Int_t *, vMcses, vMcs, i )
+            Vec_IntFree( vMcs );
+        Vec_PtrFree( vMcses );
+    }
+    Vec_IntFreeP( &vCandidates );
+    p->Stats.nResult = vBest == NULL ? -1 : Vec_IntSize( vBest );
+    p->Stats.timeTotal = Abc_Clock() - clkTotal;
     return vBest;
 }
 

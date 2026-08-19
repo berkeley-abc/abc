@@ -20,6 +20,49 @@ ABC_NAMESPACE_HEADER_START
 
 typedef struct Fm_CamusMan_t_ Fm_CamusMan_t;
 
+/** Experimental controls.  Defaults reproduce the production algorithm. */
+typedef struct Fm_CamusOptions_t_
+{
+    int fUseCoreShrink;
+    int fUseMusSeed;
+    int fMinimizeSeed;
+    int fUseModelAbsorb;
+    int fGrowMcs;
+    int fBinaryMapBounds;
+    /** Master switch retained for the original all-default CaDiCaL ablation. */
+    int fUseCadicalTuning;
+    /** Independent production tuning switches for solver-level ablations. */
+    int fUseCadicalPlain;
+    int fUseCadicalIlb;
+    int fUseCadicalStableOnly;
+} Fm_CamusOptions_t;
+
+/** Per-call measurements for Fm_CamusFindMinimumMus(). */
+typedef struct Fm_CamusStats_t_
+{
+    ABC_INT64_T nSeedSolves;
+    ABC_INT64_T nMapSolves;
+    ABC_INT64_T nMapSat;
+    ABC_INT64_T nMapUnsat;
+    ABC_INT64_T nValidationSolves;
+    ABC_INT64_T nGrowthSolves;
+    ABC_INT64_T nRefinements;
+    ABC_INT64_T nCorrectionSets;
+    ABC_INT64_T nCoreShrinks;
+    ABC_INT64_T nCoreGroupsRemoved;
+    ABC_INT64_T nModelGroupsAdded;
+    ABC_INT64_T nExplicitGroupsTried;
+    ABC_INT64_T nSolverConstructions;
+    abctime     timeTotal;
+    abctime     timeSeed;
+    abctime     timeMap;
+    abctime     timeValidation;
+    abctime     timeGrowth;
+    int         nSeedInput;
+    int         nSeedResult;
+    int         nResult;
+} Fm_CamusStats_t;
+
 /**Function*************************************************************
 
   Synopsis    [Starts a guarded-group SAT problem.]
@@ -29,7 +72,10 @@ typedef struct Fm_CamusMan_t_ Fm_CamusMan_t;
 
 ***********************************************************************/
 extern Fm_CamusMan_t * Fm_CamusStart( int nVars, int nGroups );
+extern Fm_CamusMan_t * Fm_CamusStartWithOptions( int nVars, int nGroups, const Fm_CamusOptions_t * pOptions );
 extern void            Fm_CamusStop( Fm_CamusMan_t * p );
+extern void            Fm_CamusOptionsDefault( Fm_CamusOptions_t * pOptions );
+extern void            Fm_CamusGetStats( Fm_CamusMan_t * p, Fm_CamusStats_t * pStats );
 /** Returns the linked CaDiCaL signature, for example "cadical-2.2.0". */
 extern const char *    Fm_CamusBackendName( void );
 extern void            Fm_CamusSetLimits( Fm_CamusMan_t * p, ABC_INT64_T nConfLimit, abctime nTimeOut );

@@ -1,0 +1,11 @@
+.model bmc_zero_boundary
+.inputs in
+.outputs bad
+.latch next_s s 0
+.latch next_j j 0
+.names bad
+.names in next_s
+1 1
+.names in next_j
+1 1
+.end

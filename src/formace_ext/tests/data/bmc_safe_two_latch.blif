@@ -1,0 +1,12 @@
+.model bmc_safe_two_latch
+.inputs in
+.outputs bad
+.latch next_s s 0
+.latch next_j j 0
+.names s bad
+1 1
+.names s next_s
+1 1
+.names in next_j
+1 1
+.end

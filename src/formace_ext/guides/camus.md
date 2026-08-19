@@ -171,9 +171,10 @@ src/formace_ext
 src/sat/cadical
 ```
 
-`src/formace_ext/module.make` adds `fm_camus.c` to `abc` and `libabc.a`.
-`fm_camus.c` includes `sat/cadical/cadicalSolver.h`; no extra library, runtime
-path, or external solver installation is required.
+`src/formace_ext/module.make` adds `fm_camus.c` and the direct
+`fm_minunsat.c` DIMACS command to `abc` and `libabc.a`. `fm_camus.c` includes
+`sat/cadical/cadicalSolver.h`; no extra library, runtime path, or external
+solver installation is required.
 
 Build with:
 
@@ -187,6 +188,7 @@ Run all focused integration tests from the ABC fork root:
 
 ```bash
 bash src/formace_ext/tests/fm_camus_api_test.sh
+bash src/formace_ext/tests/fm_minunsat_test.sh
 bash src/formace_ext/tests/fm_inter_smoke.sh
 bash src/formace_ext/tests/fm_int_smoke.sh
 bash src/formace_ext/tests/fm_runeco_minimum_test.sh
