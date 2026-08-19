@@ -563,8 +563,11 @@ namespace eSLIM {
       int id = Gia_ManAppendCo( pNew, fanin0 );
       node_ids[i] = id;
     }
-
-    return pNew;
+    // Gates may become unreachable due to constant gates,
+    // potentially causing the inprocessing step to fail.
+    Gia_Man_t * pStrash = Gia_ManRehash( pNew, 0 );
+    Gia_ManStop( pNew );
+    return pStrash;
   }
 
   Abc_Ntk_t* eSLIMCirMan::eSLIMCirManToNtk() {
