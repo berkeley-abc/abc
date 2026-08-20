@@ -128,6 +128,42 @@ finish:
     return RetValue;
 }
 
+static int Fm_TestMinimumCommon( void )
+{
+    Fm_CamusMan_t * pMans[2] = { NULL, NULL };
+    Vec_Int_t * vAll = NULL, * vMinimum = NULL;
+    int Lits[3] = { toLit(0), toLit(1), toLit(2) };
+    int Background0 = toLitCond( 0, 1 );
+    int Background1 = toLitCond( 1, 1 );
+    int i, k, Group, Mask = 0, RetValue = 0;
+    pMans[0] = Fm_CamusStart( 3, 3 );
+    pMans[1] = Fm_CamusStart( 3, 3 );
+    if ( pMans[0] == NULL || pMans[1] == NULL ||
+         !Fm_CamusAddBackground(pMans[0], &Background0, 1) ||
+         !Fm_CamusAddBackground(pMans[1], &Background1, 1) )
+        goto finish;
+    for ( i = 0; i < 2; i++ )
+        for ( k = 0; k < 3; k++ )
+            if ( !Fm_CamusAddGroup(pMans[i], k, &Lits[k], 1) )
+                goto finish;
+    vAll = Vec_IntStartNatural( 3 );
+    vMinimum = Fm_CamusFindMinimumCommonMus( pMans, 2, vAll, vAll, 0 );
+    if ( vMinimum == NULL || Vec_IntSize(vMinimum) != 2 )
+        goto finish;
+    Vec_IntForEachEntry( vMinimum, Group, i )
+        Mask |= 1 << Group;
+    RetValue = Mask == 3 &&
+        Fm_CamusSolve(pMans[0], vMinimum) == l_False &&
+        Fm_CamusSolve(pMans[1], vMinimum) == l_False;
+
+finish:
+    Vec_IntFreeP( &vMinimum );
+    Vec_IntFreeP( &vAll );
+    Fm_CamusStop( pMans[0] );
+    Fm_CamusStop( pMans[1] );
+    return RetValue;
+}
+
 #define FM_TEST_MAX_VARS    5
 #define FM_TEST_MAX_GROUPS  7
 #define FM_TEST_MAX_CLAUSES 24
@@ -300,6 +336,8 @@ case_finish:
 int main( void )
 {
     Fm_CamusMan_t * p;
+    Fm_CamusStats_t Stats;
+    Fm_CamusOptions_t DefaultOptions;
     Vec_Int_t * vAll = NULL, * vMus = NULL, * vMinimum = NULL, * vOne = NULL;
     int vBackgroundSmall[2] = { toLitCond(0, 1), toLitCond(1, 1) };
     int vBackgroundLarge[3] = { toLitCond(2, 1), toLitCond(3, 1), toLitCond(4, 1) };
@@ -312,7 +350,7 @@ int main( void )
     ABC_INT64_T nConfLimit = (ABC_INT64_T)ABC_CONST(4294967296);
     const char * pVariants[] = { "full", "no-core-shrink", "no-mus-seed",
         "core-only-seed", "no-model-absorb", "no-mss-growth", "linear-map-bounds",
-        "default-cadical", "cadical-preprocessing", "cadical-no-ilb",
+        "default-cadical", "cadical-plain-stable", "cadical-preprocessing", "cadical-no-ilb",
         "cadical-default-phases", "cadical-preprocessing-no-ilb",
         "cadical-preprocessing-default-phases", "cadical-no-ilb-default-phases" };
     int nVariants = sizeof(pVariants) / sizeof(pVariants[0]);
@@ -320,9 +358,15 @@ int main( void )
 
     if ( strncmp(Fm_CamusBackendName(), "cadical-", 8) )
         return 1;
+    Fm_CamusOptionsDefault( &DefaultOptions );
+    if ( !DefaultOptions.fUseCadicalTuning || DefaultOptions.fUseCadicalPlain ||
+         !DefaultOptions.fUseCadicalIlb || DefaultOptions.fUseCadicalStableOnly )
+        return 1;
     if ( !Fm_TestInvalidLiteral() )
         return 1;
     if ( !Fm_TestMinimumAgainstBruteForce() )
+        return 1;
+    if ( !Fm_TestMinimumCommon() )
         return 1;
     for ( Variant = 0; Variant < nVariants; Variant++ )
     {
@@ -341,25 +385,51 @@ int main( void )
         else if ( !strcmp(pVariants[Variant], "linear-map-bounds") )
             Options.fBinaryMapBounds = 0;
         else if ( !strcmp(pVariants[Variant], "default-cadical") )
+        {
             Options.fUseCadicalTuning = 0;
-        else if ( !strcmp(pVariants[Variant], "cadical-preprocessing") )
             Options.fUseCadicalPlain = 0;
-        else if ( !strcmp(pVariants[Variant], "cadical-no-ilb") )
             Options.fUseCadicalIlb = 0;
-        else if ( !strcmp(pVariants[Variant], "cadical-default-phases") )
             Options.fUseCadicalStableOnly = 0;
+        }
+        else if ( !strcmp(pVariants[Variant], "cadical-plain-stable") )
+        {
+            Options.fUseCadicalPlain = 1;
+            Options.fUseCadicalIlb = 1;
+            Options.fUseCadicalStableOnly = 1;
+        }
+        else if ( !strcmp(pVariants[Variant], "cadical-preprocessing") )
+        {
+            Options.fUseCadicalPlain = 0;
+            Options.fUseCadicalIlb = 1;
+            Options.fUseCadicalStableOnly = 1;
+        }
+        else if ( !strcmp(pVariants[Variant], "cadical-no-ilb") )
+        {
+            Options.fUseCadicalPlain = 1;
+            Options.fUseCadicalIlb = 0;
+            Options.fUseCadicalStableOnly = 1;
+        }
+        else if ( !strcmp(pVariants[Variant], "cadical-default-phases") )
+        {
+            Options.fUseCadicalPlain = 1;
+            Options.fUseCadicalIlb = 1;
+            Options.fUseCadicalStableOnly = 0;
+        }
         else if ( !strcmp(pVariants[Variant], "cadical-preprocessing-no-ilb") )
         {
             Options.fUseCadicalPlain = 0;
             Options.fUseCadicalIlb = 0;
+            Options.fUseCadicalStableOnly = 1;
         }
         else if ( !strcmp(pVariants[Variant], "cadical-preprocessing-default-phases") )
         {
             Options.fUseCadicalPlain = 0;
+            Options.fUseCadicalIlb = 1;
             Options.fUseCadicalStableOnly = 0;
         }
         else if ( !strcmp(pVariants[Variant], "cadical-no-ilb-default-phases") )
         {
+            Options.fUseCadicalPlain = 1;
             Options.fUseCadicalIlb = 0;
             Options.fUseCadicalStableOnly = 0;
         }
@@ -386,6 +456,9 @@ int main( void )
         goto finish_mus;
     vMinimum = Fm_CamusFindMinimumMus( p, vAll );
     if ( !Fm_TestIsMus(p, vMinimum) || Vec_IntSize(vMinimum) != 2 )
+        goto finish_minimum;
+    Fm_CamusGetStats( p, &Stats );
+    if ( Stats.nDisjointLower != 2 || Stats.nSolverConstructions != 2 )
         goto finish_minimum;
 
     vOne = Vec_IntAlloc( 1 );

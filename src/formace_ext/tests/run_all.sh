@@ -9,6 +9,8 @@ tests=(
   fm_inter_smoke.sh
   fm_int_smoke.sh
   fm_runeco_minimum_test.sh
+  fm_runeco_global_test.sh
+  fm_eco_test.sh
 )
 
 for test_script in "${tests[@]}"; do

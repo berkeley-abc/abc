@@ -2,8 +2,8 @@
 
 This directory contains the ForMACE additions to ABC: variable-minimizing
 combinational interpolation, interpolation-based safety checking with a
-minimized latch boundary, and the shared CaDiCaL-backed grouped-constraint
-solver.
+minimized latch boundary, interpolation-based ECO patch construction, and the
+shared CaDiCaL-backed grouped-constraint solver.
 
 ## Commands
 
@@ -16,6 +16,14 @@ solver.
   baseline-support hybrid (`-y`) boundary selection.
 - `fm_int` extends ABC's forward interpolation model checker with original
   (`-o`), exact minimum-boundary (`-m`), and hybrid (`-y`) modes.
+- `fm_eco` runs the DAC'18 ECO flow with Craig-interpolant patch functions.
+  Its default uses ABC's original support selector; `-m` selects exact
+  minimum-cardinality additional support with grouped MinUNSAT, while `-a`
+  keeps assumption minimization but skips `Acb_FindSupport()` for ablation.
+- The upstream `runeco` command also has a ForMACE `-g` mode for exact
+  minimum-cardinality support shared by all fixed target relations. It uses
+  the multi-oracle equivalent of `(B_0 OR ... OR B_(k-1)) AND Eq_S`, then
+  constructs SOP patch functions over the selected common support.
 
 The upstream `inter` and `int` commands retain their normal behavior.
 
@@ -29,6 +37,9 @@ bash src/formace_ext/tests/fm_camus_api_test.sh
 bash src/formace_ext/tests/fm_minunsat_test.sh
 bash src/formace_ext/tests/fm_inter_smoke.sh
 bash src/formace_ext/tests/fm_int_smoke.sh
+bash src/formace_ext/tests/fm_runeco_minimum_test.sh
+bash src/formace_ext/tests/fm_runeco_global_test.sh
+bash src/formace_ext/tests/fm_eco_test.sh
 ```
 
 Or run the complete focused suite with one command:
@@ -49,7 +60,8 @@ bash src/formace_ext/tests/fm_camus_grouped_benchmark.sh \
 - [Combinational interpolation](guides/fm_inter.md)
 - [Interpolation model checking](guides/fm_int.md)
 - [Minimum UNSAT for DIMACS CNF](guides/fm_minunsat.md)
-- [CAMUS/CaDiCaL API and architecture](guides/camus.md)
+- [Interpolation-based ECO](guides/fm_eco.md)
+- [CAMUS/CaDiCaL minimum-search algorithms, API, and architecture](guides/camus.md)
 - [Change log](CHANGELOG.md)
 
 ## Source layout
@@ -58,6 +70,8 @@ bash src/formace_ext/tests/fm_camus_grouped_benchmark.sh \
   `fm_int` command implementations.
 - `fm_minunsat.h`, `fm_minunsat.c`: DIMACS/group parsing and the direct
   `fm_minunsat` shell command.
+- `fm_eco.h`, `fm_eco.c`: `fm_eco` parsing and selector-free ECO proof
+  interpolation.
 - `fm_camus.h`, `fm_camus.c`: the in-memory grouped-constraint API and exact
   or subset-minimal MUS selection.
 - `module.make`: ABC build integration.

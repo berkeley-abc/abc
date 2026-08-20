@@ -1035,6 +1035,12 @@ extern int         Acb_NtkCreateNode( Acb_Ntk_t * p, word uTruth, Vec_Int_t * vS
 extern void        Acb_NtkUpdateNode( Acb_Ntk_t * p, int Pivot, word uTruth, Vec_Int_t * vSupp );
 
 extern Acb_Ntk_t * Acb_VerilogSimpleRead( char * pFileName, char * pFileNameW );
+extern int         Acb_NtkRunEco( char * pFileNames[4], int nTimeout,
+                                 int fCheck, int fRandom, int fInputs,
+                                 int fUnitW, int fMinUnsat, int fGlobalSupp,
+                                 int fUseSuppMin,
+                                 int fUseInter,
+                                 int fVerbose, int fVeryVerbose );
 
 ABC_NAMESPACE_HEADER_END
 
@@ -1044,4 +1050,3 @@ ABC_NAMESPACE_HEADER_END
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-

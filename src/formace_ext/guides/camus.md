@@ -65,31 +65,36 @@ literals.
 
 ## CaDiCaL configuration
 
-Manager construction applies the same incremental tuning used by the
-standalone `camus_cadical` work:
+Production manager construction keeps CaDiCaL's preprocessing/inprocessing and
+normal focused/stable phase switching enabled, while retaining incremental
+lazy backtracking for the repeated related assumption queries:
 
 ```text
-configuration = plain
+preprocessing/inprocessing = CaDiCaL defaults
 ilb           = 2
-stabilizeonly = 1
+search phases = CaDiCaL default switching
 checkassumptions = 0
 checkconstraint  = 0
 checkfailed      = 0
 ```
 
-`plain` avoids preprocessing choices that are undesirable for a long-lived
-assumption workflow. Incremental lazy backtracking level 2 and stable-only
-search improve repeated related queries. The internal validation sub-options
-are disabled in the production manager, matching the standalone backend;
-semantic regression tests validate cores and results externally.
+This is the `cadical-preprocessing-default-phases` configuration from the
+solver-tuning matrix. It was faster than the former `plain` plus stable-only
+configuration in seven of eight benchmark/depth pairs, including all four
+depth-8 pairs, while returning the same exact minima. The former configuration
+remains available to ablation drivers as `cadical-plain-stable`. The internal
+validation sub-options are disabled in the production manager; semantic
+regression tests validate cores and results externally.
 
 The exact minimum path does need cardinality, but on its smaller hitting-set
-map formula rather than on the guarded circuit formula. It builds a compact
-sequential-counter AtMost encoding, uses CaDiCaL to test a bound, and binary
-searches for the minimum feasible bound. The standalone native guarded AtMost
-propagator remains preferable for batched all-MCS enumeration; exposing that
-C++ propagator through ABC's C wrapper is not required for this one-result
-path.
+map formula rather than on the guarded circuit formula. Each minimum search
+constructs one incremental CaDiCaL map solver and one sequential counter up to
+the seed upper bound. AtMost bounds are selected by assumptions on the final
+counter row, and each discovered MCS is added permanently to the same solver.
+The minimum hitting-set cardinality from one refinement is retained as the
+next lower bound because adding an MCS cannot decrease that minimum. Learned
+clauses, the counter, and all prior MCSes are therefore reused throughout the
+search.
 
 ## API behavior
 
@@ -113,6 +118,11 @@ Vec_Int_t *     Fm_CamusFindMus( Fm_CamusMan_t * p,
                                   Vec_Int_t * vEnabled );
 Vec_Int_t *     Fm_CamusFindMinimumMus( Fm_CamusMan_t * p,
                                          Vec_Int_t * vEnabled );
+Vec_Int_t *     Fm_CamusFindMinimumCommonMus( Fm_CamusMan_t ** ppMans,
+                                               int nMans,
+                                               Vec_Int_t * vCandidates,
+                                               Vec_Int_t * vSeedCommon,
+                                               int fVerbose );
 ```
 
 `Fm_CamusBackendName()` returns the linked solver signature, currently
@@ -133,19 +143,53 @@ The result is subset-minimal but is not necessarily globally smallest.
 `Fm_CamusFindMinimumMus()` uses an implicit hitting-set loop:
 
 1. Obtain one MUS as a valid upper bound.
-2. Compute a minimum hitting set of the MCSes discovered so far with a
-   CaDiCaL map solver, binary bound search, and sequential AtMost encoding.
-3. Ask the persistent CaDiCaL instance whether that hitting set is UNSAT.
-4. If it is UNSAT, its hitting-set lower bound and UNSAT upper bound coincide,
+2. Greedily enumerate pairwise-disjoint MCSes by making all preceding
+   complements mandatory during the next MSS grow. Their count is a certified
+   initial lower bound.
+3. Compute a minimum hitting set of the MCSes discovered so far with the
+   persistent CaDiCaL map solver, assumption-selected cardinality bounds, and
+   the retained monotone lower bound.
+4. Ask the persistent CaDiCaL instance whether that hitting set is UNSAT.
+5. If it is UNSAT, its hitting-set lower bound and UNSAT upper bound coincide,
    so it is a global minimum.
-5. If it is SAT, grow it to a maximal satisfiable subset (MSS), using selector
+6. If it is SAT, grow it to a maximal satisfiable subset (MSS), using selector
    values from each model to enable groups in bulk and incremental trials for
-   the rest. Its candidate complement is a new MCS; add it and repeat.
+   the rest. Its candidate complement is a new MCS; add it incrementally to
+   the map solver and repeat without rebuilding the counter or solver.
+
+Learned correction sets are kept as an inclusion-minimal antichain. A
+deterministic multi-start packing of pairwise-disjoint learned sets may raise
+the lower bound further; because the actual disjoint sets are the certificate,
+this acceleration does not weaken exactness.
 
 This applies the CAMUS MUS/MCS duality without eagerly enumerating every MCS.
 It replaces the slow raw subset-lattice traversal while retaining an exact
 result. The `-L` limits remain useful guards because the worst case is still
 exponential. Both guarded-formula and map-solver queries observe the deadline.
+
+### Multi-manager common minimum
+
+`Fm_CamusFindMinimumCommonMus()` solves the related problem of finding one
+minimum group set that is UNSAT in every manager. The managers share the same
+group universe, so one group is selected and counted once across all branches.
+This is the multi-oracle equivalent of minimizing `S` for
+
+```text
+(B_0 OR ... OR B_(k-1)) AND Eq_S.
+```
+
+It deletion-minimizes a supplied common seed, bootstraps pairwise-disjoint
+MCSes using the combined OR oracle, and validates each candidate in every
+persistent manager. A failed candidate learns one combined-oracle MCS plus
+branch-local MCSes from the SAT managers. Corrections form an inclusion-
+minimal antichain and are repacked for certified lower bounds.
+
+Unlike the single-manager path, the common path rebuilds an exact temporary
+map over the current MCS-incidence equivalence/dominance quotient. At an
+already certified lower bound, exact-checked greedy and local repair may
+provide the next hitting set. The reduced map is built lazily only when those
+candidates fail. These candidate generators never raise the lower bound; all
+feasibility decisions still come from the guarded managers.
 
 An empty result is valid when the background is already UNSAT. `NULL` means
 SAT input, invalid input, timeout/resource exhaustion, or another failure;
@@ -192,6 +236,7 @@ bash src/formace_ext/tests/fm_minunsat_test.sh
 bash src/formace_ext/tests/fm_inter_smoke.sh
 bash src/formace_ext/tests/fm_int_smoke.sh
 bash src/formace_ext/tests/fm_runeco_minimum_test.sh
+bash src/formace_ext/tests/fm_runeco_global_test.sh
 ```
 
 The direct API test asserts the `cadical-` backend signature, validates a
@@ -201,7 +246,9 @@ against an independent exhaustive truth-assignment/subset oracle. The oracle
 does not call CaDiCaL or `Fm_CamusSolve()`. The test also retains sixteen
 SAT-oracle enumeration cases, exercises a conflict limit larger than 32 bits,
 checks an already-expired absolute deadline, and verifies the root-UNSAT empty
-MUS.
+MUS. It additionally checks the disjoint lower-bound certificate and requires
+exactly two solver constructions: one guarded-formula solver and one
+persistent map solver.
 
 The `runeco` test exercises the actual two-copy ECO encoding. It enables the
 `-w` audit, which exhaustively checks every smaller group subset when an `-m`

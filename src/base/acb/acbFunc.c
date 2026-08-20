@@ -29,6 +29,7 @@
 #include "base/main/main.h"
 #include "base/cmd/cmd.h"
 #include "formace_ext/fm_camus.h"
+#include "formace_ext/fm_eco.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1491,7 +1492,7 @@ Vec_Int_t * Acb_FindSupport( sat_solver * pSat, int iFirstDiv, Vec_Int_t * vWeig
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Acb_DerivePatchSupport( Cnf_Dat_t * pCnf, int iTar, int nTargets, int nCoDivs, Vec_Int_t * vDivs, Acb_Ntk_t * pNtkF, Vec_Int_t * vSuppOld, int TimeOut )
+Vec_Int_t * Acb_DerivePatchSupport( Cnf_Dat_t * pCnf, int iTar, int nTargets, int nCoDivs, Vec_Int_t * vDivs, Acb_Ntk_t * pNtkF, Vec_Int_t * vSuppOld, int TimeOut, int fUseSuppMin )
 {
     Vec_Int_t * vSupp = Vec_IntAlloc( 100 );
     int i, Lit;
@@ -1596,7 +1597,6 @@ Vec_Int_t * Acb_DerivePatchSupport( Cnf_Dat_t * pCnf, int iTar, int nTargets, in
             // find minimum subset
             if ( fUseMinAssump )
             {
-                int fUseSuppMin = 1;
                 // solve in a standard way
                 abctime clk = Abc_Clock();
                 nSuppNew = sat_solver_minimize_assumptions( pSat, Vec_IntArray(vSupp), Vec_IntSize(vSupp), 0 );
@@ -1627,6 +1627,8 @@ Vec_Int_t * Acb_DerivePatchSupport( Cnf_Dat_t * pCnf, int iTar, int nTargets, in
                     }
                     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
                 }
+                else if ( Vec_IntSize(vSupp) > 0 )
+                    printf( "Skipping Acb_FindSupport; using assumption-minimized support.\n" );
             }
             else
             {
@@ -1709,7 +1711,29 @@ finish:
     return fSuccess;
 }
 
-Vec_Int_t * Acb_DerivePatchSupportMinUnsat( Cnf_Dat_t * pCnf, int iTar, int nTargets, int nCoDivs, Vec_Int_t * vSuppOld, int TimeOut, int fAudit )
+static void Acb_PrintPatchSupportMinUnsatStats( Fm_CamusMan_t * pCamus )
+{
+    Fm_CamusStats_t Stats;
+    Fm_CamusGetStats( pCamus, &Stats );
+    printf( "ForMACE runeco CAMUS phases: total=%.6f seed=%.6f map=%.6f validation=%.6f growth=%.6f seconds.\n",
+        (double)Stats.timeTotal / (double)CLOCKS_PER_SEC,
+        (double)Stats.timeSeed / (double)CLOCKS_PER_SEC,
+        (double)Stats.timeMap / (double)CLOCKS_PER_SEC,
+        (double)Stats.timeValidation / (double)CLOCKS_PER_SEC,
+        (double)Stats.timeGrowth / (double)CLOCKS_PER_SEC );
+    printf( "ForMACE runeco CAMUS search: seed=%d->%d result=%d seed_solves=%lld map_solves=%lld validation_solves=%lld refinements=%lld correction_sets=%lld subsumed=%lld disjoint_lower=%d.\n",
+        Stats.nSeedInput, Stats.nSeedResult, Stats.nResult,
+        (long long)Stats.nSeedSolves, (long long)Stats.nMapSolves,
+        (long long)Stats.nValidationSolves, (long long)Stats.nRefinements,
+        (long long)Stats.nCorrectionSets,
+        (long long)Stats.nCorrectionSetsSubsumed, Stats.nDisjointLower );
+    printf( "ForMACE runeco CAMUS growth: solves=%lld explicit_groups=%lld model_groups=%lld core_shrinks=%lld core_groups_removed=%lld solver_constructions=%lld.\n",
+        (long long)Stats.nGrowthSolves, (long long)Stats.nExplicitGroupsTried,
+        (long long)Stats.nModelGroupsAdded, (long long)Stats.nCoreShrinks,
+        (long long)Stats.nCoreGroupsRemoved, (long long)Stats.nSolverConstructions );
+}
+
+Vec_Int_t * Acb_DerivePatchSupportMinUnsat( Cnf_Dat_t * pCnf, int iTar, int nTargets, int nCoDivs, Vec_Int_t * vSuppOld, int TimeOut, int fVerbose, int fAudit )
 {
     Fm_CamusMan_t * pCamus = NULL;
     Vec_Int_t * vCandidates = NULL, * vClause = NULL, * vResult = NULL;
@@ -1789,6 +1813,8 @@ Vec_Int_t * Acb_DerivePatchSupportMinUnsat( Cnf_Dat_t * pCnf, int iTar, int nTar
     }
 
     vResult = Fm_CamusFindMinimumMus( pCamus, vCandidates );
+    if ( fVerbose )
+        Acb_PrintPatchSupportMinUnsatStats( pCamus );
     if ( vResult )
     {
         Vec_IntSort( vResult, 0 );
@@ -2807,6 +2833,208 @@ Cnf_Dat_t * Acb_NtkDeriveMiterCnf( Gia_Man_t * p, int iTar, int nTars, int fVerb
     Gia_ManStop( pCof );
     return pCnf;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Builds one guarded-group B_i manager for common support.]
+
+***********************************************************************/
+static Fm_CamusMan_t * Acb_CreatePatchSupportCamus( Cnf_Dat_t * pCnf,
+    int iTar, int nTargets, int nCoDivs, int nTimeout )
+{
+    Fm_CamusMan_t * pCamus = Fm_CamusStart( 2 * pCnf->nVars, nCoDivs );
+    Vec_Int_t * vClause = Vec_IntAlloc( 16 );
+    int i, k, Lit, Lits[2];
+    if ( pCamus == NULL )
+        goto fail;
+    if ( nTimeout )
+        Fm_CamusSetLimits( pCamus, 0, Abc_Clock() + (abctime)nTimeout * CLOCKS_PER_SEC );
+    for ( i = 0; i < pCnf->nClauses; i++ )
+    {
+        if ( !Fm_CamusAddBackground(pCamus, pCnf->pClauses[i],
+                (int)(pCnf->pClauses[i+1] - pCnf->pClauses[i])) )
+            goto fail;
+        Vec_IntClear( vClause );
+        for ( k = 0; pCnf->pClauses[i] + k < pCnf->pClauses[i+1]; k++ )
+        {
+            Lit = pCnf->pClauses[i][k];
+            Vec_IntPush( vClause, Abc_Var2Lit(Abc_Lit2Var(Lit) + pCnf->nVars,
+                Abc_LitIsCompl(Lit)) );
+        }
+        if ( !Fm_CamusAddBackground(pCamus, Vec_IntArray(vClause), Vec_IntSize(vClause)) )
+            goto fail;
+    }
+    Lit = Abc_Var2Lit( 1, 0 );
+    if ( !Fm_CamusAddBackground(pCamus, &Lit, 1) )
+        goto fail;
+    Lit = Abc_Var2Lit( 1 + pCnf->nVars, 0 );
+    if ( !Fm_CamusAddBackground(pCamus, &Lit, 1) )
+        goto fail;
+    Lit = Abc_Var2Lit( pCnf->nVars - nTargets + iTar, 1 );
+    if ( !Fm_CamusAddBackground(pCamus, &Lit, 1) )
+        goto fail;
+    Lit = Abc_Var2Lit( 2 * pCnf->nVars - nTargets + iTar, 0 );
+    if ( !Fm_CamusAddBackground(pCamus, &Lit, 1) )
+        goto fail;
+    for ( i = 0; i < nCoDivs; i++ )
+    {
+        int iVar0 = 2 + i;
+        int iVar1 = iVar0 + pCnf->nVars;
+        Lits[0] = Abc_Var2Lit( iVar0, 0 );
+        Lits[1] = Abc_Var2Lit( iVar1, 1 );
+        if ( !Fm_CamusAddGroup(pCamus, i, Lits, 2) )
+            goto fail;
+        Lits[0] = Abc_Var2Lit( iVar0, 1 );
+        Lits[1] = Abc_Var2Lit( iVar1, 0 );
+        if ( !Fm_CamusAddGroup(pCamus, i, Lits, 2) )
+            goto fail;
+    }
+    Vec_IntFree( vClause );
+    return pCamus;
+
+fail:
+    Vec_IntFree( vClause );
+    Fm_CamusStop( pCamus );
+    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Multi-oracle form of OR_i B_i for common support.]
+
+***********************************************************************/
+static Vec_Int_t * Acb_DerivePatchSupportGlobalMulti( Vec_Ptr_t * vCnfs,
+    Vec_Int_t * vSeed, int nTargets, int nCoDivs, int nTimeout,
+    int fVerbose, int fAudit )
+{
+    Vec_Ptr_t * vMans = Vec_PtrStart( nTargets );
+    Vec_Int_t * vCandidates = Vec_IntStartNatural( nCoDivs );
+    Vec_Int_t * vResult = NULL;
+    int i;
+    for ( i = 0; i < nTargets; i++ )
+    {
+        Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Vec_PtrEntry( vCnfs, i );
+        Fm_CamusMan_t * pCamus = Acb_CreatePatchSupportCamus( pCnf, i,
+            nTargets, nCoDivs, nTimeout );
+        if ( pCamus == NULL )
+            goto finish;
+        Vec_PtrWriteEntry( vMans, i, pCamus );
+    }
+    vResult = Fm_CamusFindMinimumCommonMus(
+        (Fm_CamusMan_t **)Vec_PtrArray(vMans), nTargets, vCandidates, vSeed,
+        fVerbose );
+    if ( fVerbose && Vec_PtrEntry(vMans, 0) )
+        Acb_PrintPatchSupportMinUnsatStats( (Fm_CamusMan_t *)Vec_PtrEntry(vMans, 0) );
+    if ( vResult )
+    {
+        Vec_IntSort( vResult, 0 );
+        printf( "ForMACE runeco global MinUNSAT selected %d divisors across %d fixed target relations (from %d candidates).\n",
+            Vec_IntSize(vResult), nTargets, nCoDivs );
+        if ( fAudit )
+            for ( i = 0; i < nTargets; i++ )
+                if ( Fm_CamusSolve((Fm_CamusMan_t *)Vec_PtrEntry(vMans, i), vResult) != l_False )
+                {
+                    printf( "ForMACE runeco global MinUNSAT audit FAILED at fixed target %d.\n", i );
+                    Vec_IntFreeP( &vResult );
+                    break;
+                }
+    }
+    else
+        printf( "ForMACE runeco global MinUNSAT multi-oracle search failed or timed out.\n" );
+
+finish:
+    for ( i = 0; i < nTargets; i++ )
+        Fm_CamusStop( (Fm_CamusMan_t *)Vec_PtrEntry(vMans, i) );
+    Vec_PtrFree( vMans );
+    Vec_IntFree( vCandidates );
+    return vResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Records a reference B_i trajectory and minimizes its union.]
+
+***********************************************************************/
+static Vec_Int_t * Acb_DerivePatchSupportGlobal( Gia_Man_t * pGiaM,
+    int nTargets, Vec_Int_t * vDivs, Acb_Ntk_t * pNtkF, int nTimeout,
+    int fVerbose, int fAudit )
+{
+    Gia_Man_t * pGiaRef = Gia_ManDup( pGiaM );
+    Vec_Ptr_t * vCnfs = Vec_PtrStart( nTargets );
+    Vec_Int_t * vSuppOld = Vec_IntAlloc( 100 );
+    Vec_Int_t * vResult = NULL;
+    abctime clkStart = Abc_Clock();
+    int i;
+
+    printf( "ForMACE runeco global support: recording fixed B_i relations with the original SOP trajectory.\n" );
+    for ( i = nTargets - 1; i >= 0; i-- )
+    {
+        Cnf_Dat_t * pCnf;
+        Vec_Int_t * vSuppNew = NULL, * vSuppFull = NULL;
+        Gia_Man_t * pOne, * pTemp;
+        char * pSop = NULL;
+        int TimeOut = 120;
+
+        if ( nTimeout )
+        {
+            int nRemain = nTimeout - (int)((Abc_Clock() - clkStart) / CLOCKS_PER_SEC);
+            if ( nRemain <= 0 )
+                goto finish;
+            if ( TimeOut > nRemain )
+                TimeOut = nRemain;
+        }
+        pCnf = Acb_NtkDeriveMiterCnf( pGiaRef, i, nTargets, 0 );
+        Vec_PtrWriteEntry( vCnfs, i, pCnf );
+        vSuppNew = Acb_DerivePatchSupport( pCnf, i, nTargets,
+            Vec_IntSize(vDivs), vDivs, pNtkF, vSuppOld, TimeOut, 1 );
+        if ( vSuppNew == NULL )
+            goto finish;
+        Vec_IntAppend( vSuppOld, vSuppNew );
+        vSuppFull = Vec_IntDup( vSuppOld );
+        pSop = Acb_DeriveOnePatchFunction( pCnf, i, nTargets,
+            Vec_IntSize(vDivs), vSuppFull, 0 );
+        if ( pSop == NULL )
+        {
+            Vec_IntFree( vSuppNew );
+            Vec_IntFree( vSuppFull );
+            goto finish;
+        }
+        pOne = Abc_SopSynthesizeOne( pSop, 1 );
+        pGiaRef = Acb_UpdateMiter( pTemp = pGiaRef, pOne, i, nTargets, vSuppFull, 0 );
+        Gia_ManStop( pTemp );
+        Gia_ManStop( pOne );
+        ABC_FREE( pSop );
+        Vec_IntFree( vSuppNew );
+        Vec_IntFree( vSuppFull );
+    }
+
+    {
+        int nRemain = 0;
+        if ( nTimeout )
+        {
+            nRemain = nTimeout - (int)((Abc_Clock() - clkStart) / CLOCKS_PER_SEC);
+            if ( nRemain <= 0 )
+                goto finish;
+        }
+        vResult = Acb_DerivePatchSupportGlobalMulti( vCnfs, vSuppOld,
+            nTargets, Vec_IntSize(vDivs), nRemain, fVerbose, fAudit );
+    }
+
+finish:
+    if ( vResult == NULL )
+        printf( "ForMACE runeco global support computation did not succeed.\n" );
+    for ( i = 0; i < nTargets; i++ )
+    {
+        Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Vec_PtrEntry( vCnfs, i );
+        if ( pCnf )
+            Cnf_DataFree( pCnf );
+    }
+    Vec_PtrFree( vCnfs );
+    Vec_IntFree( vSuppOld );
+    Gia_ManStop( pGiaRef );
+    return vResult;
+}
 Gia_Man_t * Gia_ManInterOneInt( Gia_Man_t * pCof1, Gia_Man_t * pCof0, int Depth )
 {
     extern Gia_Man_t * Gia_ManInterOne( Gia_Man_t * pNtkOn, Gia_Man_t * pNtkOff, int fVerbose );
@@ -3029,14 +3257,14 @@ Vec_Ptr_t * Acb_TransformPatchFunctions( Vec_Ptr_t * vSops, Vec_Wec_t * vSupps, 
   SeeAlso     []
 
 ***********************************************************************/
-int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4], int nTimeout, int fCisOnly, int fInputs, int fCheck, int fUnitW, int fMinUnsat, int fVerbose, int fVeryVerbose )
+int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4], int nTimeout, int fCisOnly, int fInputs, int fCheck, int fUnitW, int fMinUnsat, int fGlobalSupp, int fUseSuppMin, int fUseInter, int fVerbose, int fVeryVerbose )
 {
     extern Gia_Man_t * Abc_SopSynthesizeOne( char * pSop, int fClp );
 
     abctime clkStart  = Abc_Clock();
     abctime clk  = Abc_Clock();
     int nTargets = Vec_IntSize(&pNtkF->vTargets);
-    int TimeOut  = fCisOnly ? 0 : 120;  // 60 seconds
+    int TimeOut  = fCisOnly ? 0 : 120;  // legacy per-call limit for the original selector
     int RetValue = 1;
 
     // compute various sets of nodes
@@ -3059,10 +3287,11 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
     Vec_Ptr_t * vSops    = Vec_PtrAlloc( nTargets );
     Vec_Wec_t * vSupps   = Vec_WecAlloc( nTargets );
     Vec_Int_t * vSuppOld = Vec_IntAlloc( 100 );
+    Vec_Int_t * vSuppGlobal = NULL;
 
     Vec_Int_t * vUsed  = NULL; 
     Vec_Ptr_t * vFuncs = NULL;
-    Vec_Ptr_t * vGias  = fCisOnly ? Vec_PtrAlloc(nTargets) : NULL;
+    Vec_Ptr_t * vGias  = (fCisOnly || fUseInter) ? Vec_PtrAlloc(nTargets) : NULL;
     Vec_Str_t * vInst  = NULL, * vPatch = NULL;
 
     char * pSop = NULL;
@@ -3106,6 +3335,28 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
         }
     }
 
+    if ( fGlobalSupp )
+    {
+        int nRemain = 0;
+        if ( nTimeout )
+        {
+            nRemain = nTimeout - (int)((Abc_Clock() - clkStart) / CLOCKS_PER_SEC);
+            if ( nRemain <= 0 )
+            {
+                printf( "The global support computation timed out after %d seconds.\n", nTimeout );
+                RetValue = 0;
+                goto cleanup;
+            }
+        }
+        vSuppGlobal = Acb_DerivePatchSupportGlobal( pGiaM, nTargets, vDivs,
+            pNtkF, nRemain, fVerbose, fVeryVerbose );
+        if ( vSuppGlobal == NULL )
+        {
+            RetValue = 0;
+            goto cleanup;
+        }
+    }
+
     for ( i = nTargets-1; i >= 0; i-- )
     {
         Vec_Int_t * vSupp = NULL;
@@ -3129,53 +3380,102 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
         }
         else
         {
+            int MinUnsatTimeOut = 0;
+            if ( (fMinUnsat || fGlobalSupp) && nTimeout )
+            {
+                int nElapsed = (int)((Abc_Clock() - clkStart) / CLOCKS_PER_SEC);
+                if ( nElapsed >= nTimeout )
+                {
+                    printf( "The target computation timed out after %d seconds.\n", nTimeout );
+                    RetValue = 0;
+                    goto cleanup;
+                }
+                MinUnsatTimeOut = nTimeout - nElapsed;
+            }
             pCnf = Acb_NtkDeriveMiterCnf( pGiaM, i, nTargets, fVerbose );
 //            vSupp = Acb_DerivePatchSupportS( pCnf, i, nTargets, Vec_IntSize(vDivs), vDivs, pNtkF, NULL, TimeOut );
-            vSupp = fMinUnsat ?
-                Acb_DerivePatchSupportMinUnsat( pCnf, i, nTargets, Vec_IntSize(vDivs), vSuppOld, TimeOut, fVeryVerbose ) :
-                Acb_DerivePatchSupport( pCnf, i, nTargets, Vec_IntSize(vDivs), vDivs, pNtkF, vSuppOld, TimeOut );
+            if ( fGlobalSupp )
+            {
+                Vec_Int_t * vExtra = Acb_DerivePatchSupportMinUnsat( pCnf, i,
+                    nTargets, Vec_IntSize(vDivs), vSuppGlobal,
+                    MinUnsatTimeOut, fVerbose, 0 );
+                if ( vExtra == NULL || Vec_IntSize(vExtra) != 0 )
+                {
+                    printf( "ForMACE runeco global support is not sufficient for evolving target %d%s.\n",
+                        i, vExtra ? " (additional divisors would be required)" : "" );
+                    Vec_IntFreeP( &vExtra );
+                    Cnf_DataFree( pCnf );
+                    RetValue = 0;
+                    goto cleanup;
+                }
+                Vec_IntFree( vExtra );
+                printf( "ForMACE runeco global support is sufficient for evolving target %d.\n", i );
+                vSupp = Vec_IntDup( vSuppGlobal );
+            }
+            else
+                vSupp = fMinUnsat ?
+                    Acb_DerivePatchSupportMinUnsat( pCnf, i, nTargets, Vec_IntSize(vDivs), vSuppOld, MinUnsatTimeOut, fVerbose, fVeryVerbose ) :
+                    Acb_DerivePatchSupport( pCnf, i, nTargets, Vec_IntSize(vDivs), vDivs, pNtkF, vSuppOld, TimeOut, fUseSuppMin );
             if ( vSupp == NULL )
             {
                 Cnf_DataFree( pCnf );
                 RetValue = 0;
                 goto cleanup;
             }
-            Vec_IntAppend( vSuppOld, vSupp );
-            Vec_IntClear( vSupp );
-            Vec_IntAppend( vSupp, vSuppOld );
+            if ( !fGlobalSupp )
+            {
+                Vec_IntAppend( vSuppOld, vSupp );
+                Vec_IntClear( vSupp );
+                Vec_IntAppend( vSupp, vSuppOld );
+            }
             //Vec_IntClear( vSuppOld );
 
-            // derive function of this target
-            pSop  = Acb_DeriveOnePatchFunction( pCnf, i, nTargets, Vec_IntSize(vDivs), vSupp, fCisOnly );
-            Cnf_DataFree( pCnf );
-            if ( pSop == NULL )
+            if ( fUseInter )
             {
-                RetValue = 0;
-                goto cleanup;
+                pOne = Fm_EcoDeriveInterpolant( pCnf, i, nTargets, vSupp, fVeryVerbose );
+                Cnf_DataFree( pCnf );
+                if ( pOne == NULL )
+                {
+                    printf( "ForMACE fm_eco interpolation failed for target %d.\n", i );
+                    RetValue = 0;
+                    goto cleanup;
+                }
+                printf( "Tar%02d: ", i );
+                Gia_ManPrintStats( pOne, NULL );
+
+                pGiaM = Acb_UpdateMiter( pTemp = pGiaM, pOne, i, nTargets, vSupp, fCisOnly );
+                Gia_ManStop( pTemp );
+                Vec_PtrPush( vGias, pOne );
             }
-            if ( nTimeout && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= nTimeout ) 
+            else
+            {
+                pSop  = Acb_DeriveOnePatchFunction( pCnf, i, nTargets, Vec_IntSize(vDivs), vSupp, fCisOnly );
+                Cnf_DataFree( pCnf );
+                if ( pSop == NULL )
+                {
+                    RetValue = 0;
+                    goto cleanup;
+                }
+
+                pOne  = Abc_SopSynthesizeOne( pSop, 1 );
+                printf( "Tar%02d: ", i );
+                Gia_ManPrintStats( pOne, NULL );
+
+                pGiaM = Acb_UpdateMiter( pTemp = pGiaM, pOne, i, nTargets, vSupp, fCisOnly );
+                Gia_ManStop( pTemp );
+                Gia_ManStop( pOne );
+
+                Vec_PtrPush( vSops, pSop );
+                if ( fVeryVerbose )
+                    printf( "Function %d\n%s", i, pSop );
+            }
+            if ( nTimeout && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= nTimeout )
             {
                 Vec_IntFreeP( &vSupp );
-                ABC_FREE( pSop );
                 printf( "The target computation timed out after %d seconds.\n", nTimeout );
                 RetValue = 0;
                 goto cleanup;
             }
-
-            // add new function to the miter
-            pOne  = Abc_SopSynthesizeOne( pSop, 1 );
-            printf( "Tar%02d: ", i );
-            Gia_ManPrintStats( pOne, NULL );
-
-            // update miter
-            pGiaM = Acb_UpdateMiter( pTemp = pGiaM, pOne, i, nTargets, vSupp, fCisOnly );
-            Gia_ManStop( pTemp );
-            Gia_ManStop( pOne );
-
-            // add to functions
-            Vec_PtrPush( vSops, pSop );
-            if ( fVeryVerbose )
-                printf( "Function %d\n%s", i, pSop );
         }
         // add to supports
         Vec_IntAppend( Vec_WecPushLevel(vSupps), vSupp );
@@ -3194,14 +3494,24 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
         if ( Res == 1 )
             printf( "The ECO solution was verified successfully.  " );
         else
+        {
             printf( "The ECO solution verification FAILED.  " );
+            RetValue = 0;
+        }
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        if ( !RetValue )
+            goto cleanup;
     }
 
     // derive new patch functions
     if ( fCisOnly )
     {
         vUsed = Vec_IntStartNatural( Vec_IntSize(vDivs) );
+        Vec_PtrReverseOrder( vGias );
+    }
+    else if ( fUseInter )
+    {
+        vUsed = Vec_IntDup( vSuppOld );
         Vec_PtrReverseOrder( vGias );
     }
     else
@@ -3219,7 +3529,7 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
     Acb_PrintPatch( pNtkF, vDivs, vUsed, clk );
 
     // generate output files
-    if ( pFileName[3] == NULL ) Acb_GenerateFilePatch( vPatch, "patch.v" );
+    Acb_GenerateFilePatch( vPatch, "patch.v" );
     Acb_GenerateFileOut( vInst, pFileName[0], pFileName[3] ? pFileName[3] : (char *)"out.v", vPatch );
     printf( "Finished dumping resulting file \"%s\".\n\n", pFileName[3] ? pFileName[3] : "out.v" );
 /*
@@ -3248,6 +3558,7 @@ cleanup:
     Vec_PtrFreeFree( vSops );
     Vec_WecFree( vSupps );
     Vec_IntFree( vSuppOld );
+    Vec_IntFreeP( &vSuppGlobal );
     Vec_IntFreeP( &vUsed );
     if ( vFuncs ) Vec_PtrFreeFree( vFuncs );
 
@@ -3297,13 +3608,17 @@ void Acb_NtkTestRun2( char * pFileNames[3], int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom, int fInputs, int fUnitW, int fMinUnsat, int fVerbose, int fVeryVerbose )
+int Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom, int fInputs, int fUnitW, int fMinUnsat, int fGlobalSupp, int fUseSuppMin, int fUseInter, int fVerbose, int fVeryVerbose )
 {
     char Command[1000]; int Result = 1;
     Acb_Ntk_t * pNtkF = Acb_VerilogSimpleRead( pFileNames[0], pFileNames[2] );
     Acb_Ntk_t * pNtkG = Acb_VerilogSimpleRead( pFileNames[1], NULL );
     if ( !pNtkF || !pNtkG )
-        return;
+    {
+        if ( pNtkF ) Acb_ManFree( pNtkF->pDesign );
+        if ( pNtkG ) Acb_ManFree( pNtkG->pDesign );
+        return 0;
+    }
     //int * pArray = Vec_IntArray( &pNtkF->vTargets );
     //ABC_SWAP( int, pArray[7], pArray[4] );
     //Vec_IntReverseOrder( &pNtkF->vTargets );
@@ -3314,15 +3629,21 @@ void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom,
         Vec_IntPrint( &pNtkF->vTargets );
     }
         
-    assert( Acb_NtkCiNum(pNtkF) == Acb_NtkCiNum(pNtkG) );
-    assert( Acb_NtkCoNum(pNtkF) == Acb_NtkCoNum(pNtkG) );
+    if ( Acb_NtkCiNum(pNtkF) != Acb_NtkCiNum(pNtkG) ||
+         Acb_NtkCoNum(pNtkF) != Acb_NtkCoNum(pNtkG) )
+    {
+        printf( "ECO implementation/specification interface mismatch.\n" );
+        Acb_ManFree( pNtkF->pDesign );
+        Acb_ManFree( pNtkG->pDesign );
+        return 0;
+    }
 
     Acb_IntallLibrary( Abc_FrameReadSignalNames() != NULL );
 
-    if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 0, fInputs, fCheck, fUnitW, fMinUnsat, fVerbose, fVeryVerbose ) )
+    if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 0, fInputs, fCheck, fUnitW, fMinUnsat, fGlobalSupp, fUseSuppMin, fUseInter, fVerbose, fVeryVerbose ) )
     {
 //        printf( "General computation timed out. Trying inputs only.\n\n" );
-//        if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 1, fInputs, fCheck, fUnitW, fMinUnsat, fVerbose, fVeryVerbose ) )
+//        if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 1, fInputs, fCheck, fUnitW, fMinUnsat, fGlobalSupp, fVerbose, fVeryVerbose ) )
 //            printf( "Input-only computation also timed out.\n\n" );
         printf( "Computation did not succeed.\n" );
         Result = 0;
@@ -3335,8 +3656,12 @@ void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom,
     sprintf( Command, "read %s; strash; write temp1.aig; read %s; strash; write temp2.aig; &cec temp1.aig temp2.aig", 
         pFileNames[1], pFileNames[3] ? pFileNames[3] : "out.v" );
     if ( Result && Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command ) )
+    {
         fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
+        Result = 0;
+    }
     printf( "\n" );
+    return Result;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -296,24 +296,45 @@ static int Fm_MinUnsatSelectVariant( const char * pName, Fm_CamusOptions_t * pOp
         pOptions->fUseCadicalIlb = 0;
         pOptions->fUseCadicalStableOnly = 0;
     }
+    else if ( !strcmp(pName, "cadical-plain-stable") )
+    {
+        pOptions->fUseCadicalPlain = 1;
+        pOptions->fUseCadicalIlb = 1;
+        pOptions->fUseCadicalStableOnly = 1;
+    }
     else if ( !strcmp(pName, "cadical-preprocessing") )
+    {
         pOptions->fUseCadicalPlain = 0;
+        pOptions->fUseCadicalIlb = 1;
+        pOptions->fUseCadicalStableOnly = 1;
+    }
     else if ( !strcmp(pName, "cadical-no-ilb") )
+    {
+        pOptions->fUseCadicalPlain = 1;
         pOptions->fUseCadicalIlb = 0;
+        pOptions->fUseCadicalStableOnly = 1;
+    }
     else if ( !strcmp(pName, "cadical-default-phases") )
+    {
+        pOptions->fUseCadicalPlain = 1;
+        pOptions->fUseCadicalIlb = 1;
         pOptions->fUseCadicalStableOnly = 0;
+    }
     else if ( !strcmp(pName, "cadical-preprocessing-no-ilb") )
     {
         pOptions->fUseCadicalPlain = 0;
         pOptions->fUseCadicalIlb = 0;
+        pOptions->fUseCadicalStableOnly = 1;
     }
     else if ( !strcmp(pName, "cadical-preprocessing-default-phases") )
     {
         pOptions->fUseCadicalPlain = 0;
+        pOptions->fUseCadicalIlb = 1;
         pOptions->fUseCadicalStableOnly = 0;
     }
     else if ( !strcmp(pName, "cadical-no-ilb-default-phases") )
     {
+        pOptions->fUseCadicalPlain = 1;
         pOptions->fUseCadicalIlb = 0;
         pOptions->fUseCadicalStableOnly = 0;
     }
@@ -337,11 +358,14 @@ static void Fm_MinUnsatPrintStats( FILE * pOut, Fm_CamusMan_t * pMan )
     Fm_CamusGetStats( pMan, &Stats );
     fprintf( pOut,
              "fm_minunsat stats: seconds=%.6f seed=%d->%d seed_solves=%lld "
-             "map_solves=%lld validation_solves=%lld growth_solves=%lld refinements=%lld\n",
+             "map_solves=%lld validation_solves=%lld growth_solves=%lld refinements=%lld "
+             "correction_sets=%lld subsumed=%lld disjoint_lower=%d\n",
              (double)Stats.timeTotal / (double)CLOCKS_PER_SEC,
              Stats.nSeedInput, Stats.nSeedResult, (long long)Stats.nSeedSolves,
              (long long)Stats.nMapSolves, (long long)Stats.nValidationSolves,
-             (long long)Stats.nGrowthSolves, (long long)Stats.nRefinements );
+             (long long)Stats.nGrowthSolves, (long long)Stats.nRefinements,
+             (long long)Stats.nCorrectionSets,
+             (long long)Stats.nCorrectionSetsSubsumed, Stats.nDisjointLower );
 }
 
 static void Fm_MinUnsatPrintJson( FILE * pOut, Fm_CamusMan_t * pMan,
@@ -373,7 +397,8 @@ static void Fm_MinUnsatPrintJson( FILE * pOut, Fm_CamusMan_t * pMan,
              "\"seed_solves\":%lld,\"map_solves\":%lld,\"map_sat\":%lld,"
              "\"map_unsat\":%lld,\"validation_solves\":%lld,"
              "\"growth_solves\":%lld,\"refinements\":%lld,"
-             "\"correction_sets\":%lld,\"core_shrinks\":%lld,"
+             "\"correction_sets\":%lld,\"correction_sets_subsumed\":%lld,"
+             "\"disjoint_lower\":%d,\"core_shrinks\":%lld,"
              "\"core_groups_removed\":%lld,\"model_groups_added\":%lld,"
              "\"explicit_groups_tried\":%lld,\"solver_constructions\":%lld}}\n",
              pOptions->fUseCoreShrink, pOptions->fUseMusSeed,
@@ -393,6 +418,7 @@ static void Fm_MinUnsatPrintJson( FILE * pOut, Fm_CamusMan_t * pMan,
              (long long)Stats.nMapSat, (long long)Stats.nMapUnsat,
              (long long)Stats.nValidationSolves, (long long)Stats.nGrowthSolves,
              (long long)Stats.nRefinements, (long long)Stats.nCorrectionSets,
+             (long long)Stats.nCorrectionSetsSubsumed, Stats.nDisjointLower,
              (long long)Stats.nCoreShrinks, (long long)Stats.nCoreGroupsRemoved,
              (long long)Stats.nModelGroupsAdded, (long long)Stats.nExplicitGroupsTried,
              (long long)Stats.nSolverConstructions );
@@ -529,7 +555,8 @@ usage:
     fprintf( pAbc->Err, "\t-g file : group clauses; first data line is hard, remaining lines are optional\n" );
     fprintf( pAbc->Err, "\t-A name : ablation variant: full, no-core-shrink, no-mus-seed, core-only-seed,\n" );
     fprintf( pAbc->Err, "\t          no-model-absorb, no-mss-growth, linear-map-bounds, default-cadical,\n" );
-    fprintf( pAbc->Err, "\t          cadical-preprocessing, cadical-no-ilb, or cadical-default-phases\n" );
+    fprintf( pAbc->Err, "\t          cadical-plain-stable, cadical-preprocessing, cadical-no-ilb,\n" );
+    fprintf( pAbc->Err, "\t          or cadical-default-phases\n" );
     fprintf( pAbc->Err, "\t          plus pairwise cadical-preprocessing-no-ilb,\n" );
     fprintf( pAbc->Err, "\t          cadical-preprocessing-default-phases, and cadical-no-ilb-default-phases\n" );
     fprintf( pAbc->Err, "\t-C num  : conflict limit for each SAT query [default = unlimited]\n" );

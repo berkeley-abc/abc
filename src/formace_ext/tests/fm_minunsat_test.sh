@@ -15,6 +15,7 @@ printf '%s' "$plain" | rg -q \
   'status=UNSAT mode=clauses vars=2 clauses=4 hard=0 candidates=4 minimum=2'
 printf '%s' "$plain" | rg -q '^selected_clauses=1 2$'
 printf '%s' "$plain" | rg -q '^fm_minunsat stats:'
+printf '%s' "$plain" | rg -q 'disjoint_lower=2$'
 
 raw=$(
   "$abc_bin" -c "fm_minunsat -r $data_dir/minunsat_clauses.cnf"
@@ -32,6 +33,17 @@ printf '%s' "$json" | rg -q \
   '"variant":"core-only-seed","seed_strategy":"raw-core","status":"ok"'
 printf '%s' "$json" | rg -q '"minimum":1,"selected":\[1\]'
 printf '%s' "$json" | rg -q '"minimize_seed":0'
+printf '%s' "$json" | rg -q '"disjoint_lower":1'
+printf '%s' "$json" | rg -q \
+  '"cadical_plain":0,"cadical_ilb":1,"cadical_stable_only":0'
+
+legacy_json=$(
+  "$abc_bin" -c \
+    "fm_minunsat -j -A cadical-plain-stable -g $data_dir/minunsat_grouped.groups $data_dir/minunsat_grouped.cnf"
+)
+printf '%s\n' "$legacy_json"
+printf '%s' "$legacy_json" | rg -q \
+  '"cadical_plain":1,"cadical_ilb":1,"cadical_stable_only":1'
 
 grouped=$(
   "$abc_bin" -c \

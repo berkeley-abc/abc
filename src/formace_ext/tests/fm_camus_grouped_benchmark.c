@@ -147,25 +147,51 @@ static int Fm_SelectAblation( const char * pName, Fm_CamusOptions_t * pOptions )
     else if ( !strcmp(pName, "linear-map-bounds") )
         pOptions->fBinaryMapBounds = 0;
     else if ( !strcmp(pName, "default-cadical") )
+    {
         pOptions->fUseCadicalTuning = 0;
-    else if ( !strcmp(pName, "cadical-preprocessing") )
         pOptions->fUseCadicalPlain = 0;
-    else if ( !strcmp(pName, "cadical-no-ilb") )
         pOptions->fUseCadicalIlb = 0;
-    else if ( !strcmp(pName, "cadical-default-phases") )
         pOptions->fUseCadicalStableOnly = 0;
+    }
+    else if ( !strcmp(pName, "cadical-plain-stable") )
+    {
+        pOptions->fUseCadicalPlain = 1;
+        pOptions->fUseCadicalIlb = 1;
+        pOptions->fUseCadicalStableOnly = 1;
+    }
+    else if ( !strcmp(pName, "cadical-preprocessing") )
+    {
+        pOptions->fUseCadicalPlain = 0;
+        pOptions->fUseCadicalIlb = 1;
+        pOptions->fUseCadicalStableOnly = 1;
+    }
+    else if ( !strcmp(pName, "cadical-no-ilb") )
+    {
+        pOptions->fUseCadicalPlain = 1;
+        pOptions->fUseCadicalIlb = 0;
+        pOptions->fUseCadicalStableOnly = 1;
+    }
+    else if ( !strcmp(pName, "cadical-default-phases") )
+    {
+        pOptions->fUseCadicalPlain = 1;
+        pOptions->fUseCadicalIlb = 1;
+        pOptions->fUseCadicalStableOnly = 0;
+    }
     else if ( !strcmp(pName, "cadical-preprocessing-no-ilb") )
     {
         pOptions->fUseCadicalPlain = 0;
         pOptions->fUseCadicalIlb = 0;
+        pOptions->fUseCadicalStableOnly = 1;
     }
     else if ( !strcmp(pName, "cadical-preprocessing-default-phases") )
     {
         pOptions->fUseCadicalPlain = 0;
+        pOptions->fUseCadicalIlb = 1;
         pOptions->fUseCadicalStableOnly = 0;
     }
     else if ( !strcmp(pName, "cadical-no-ilb-default-phases") )
     {
+        pOptions->fUseCadicalPlain = 1;
         pOptions->fUseCadicalIlb = 0;
         pOptions->fUseCadicalStableOnly = 0;
     }

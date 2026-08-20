@@ -3145,7 +3145,8 @@ Vec_Wec_t * Abc_GiaSynthesize( Vec_Ptr_t * vGias, Gia_Man_t * pMulti )
     int i, k, iNode = 0;
     Abc_FrameReplaceCurrentNetwork( Abc_FrameReadGlobalFrame(), pNtk );
     Abc_FrameSetBatchMode( 1 );
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "clp; sop; fx; strash; compress2rs; dch; map -a;  strash; compress2rs; dch; map -a" );
+    /* compress2rs is an abc.rc alias and is unavailable in arbitrary cwd. */
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "clp; sop; fx; strash; dc2; dch; map -a; strash; dc2; dch; map -a" );
     Abc_FrameSetBatchMode( 0 );
     pNtkNew = Abc_FrameReadNtk( Abc_FrameReadGlobalFrame() );
     vRes = Vec_WecStart( Abc_NtkPiNum(pNtkNew) + Abc_NtkNodeNum(pNtkNew) + Abc_NtkPoNum(pNtkNew) );
