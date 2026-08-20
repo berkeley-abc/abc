@@ -28,6 +28,12 @@ src/aig/ddb/
 
 *.[od]
 
+# Generated logic and HDL artifacts
+*.blif
+*.v
+*.aig
+*.aog
+
 *.ncb
 *.opt
 *.plg

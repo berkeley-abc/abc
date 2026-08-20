@@ -69,6 +69,9 @@ struct Inter_Man_t_
     int              nConfCur;     // the current number of conflicts
     int              nConfLimit;   // the limit on the number of conflicts
     int              fVerbose;     // the verbosiness flag
+    int              fForMaceMinvar;
+    int              fForMaceHybrid;
+    int              nForMaceVarLimit;
     char *           pFileName;
     // runtime
     abctime          timeRwr;
@@ -110,7 +113,7 @@ extern Aig_Man_t *     Inter_ManStartDuplicated( Aig_Man_t * p );
 extern Aig_Man_t *     Inter_ManStartOneOutput( Aig_Man_t * p, int fAddFirstPo );
 
 /*=== intFrames.c ============================================================*/
-extern Aig_Man_t *     Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts, int fUseTwoFrames );
+extern Aig_Man_t *     Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts, int fUseTwoFrames, int fUseAllFrames );
 
 /*=== intMan.c ============================================================*/
 extern Inter_Man_t *   Inter_ManCreate( Aig_Man_t * pAig, Inter_ManParams_t * pPars );
@@ -140,4 +143,3 @@ ABC_NAMESPACE_HEADER_END
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-

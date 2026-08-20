@@ -1,0 +1,8 @@
+# ABC's repository-wide ignore rules exclude generated HDL formats. These
+# exceptions keep the extension's deliberately small regression fixtures.
+!tests/data/*.blif
+!tests/data/*.v
+
+# Extension-local build products.
+*.o
+*.d

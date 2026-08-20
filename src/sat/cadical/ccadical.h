@@ -37,6 +37,7 @@ void ccadical_set_learn (CCaDiCaL *, void *state, int max_length,
 void ccadical_constrain (CCaDiCaL *, int lit);
 int ccadical_constraint_failed (CCaDiCaL *);
 void ccadical_set_option (CCaDiCaL *, const char *name, int val);
+int ccadical_configure (CCaDiCaL *, const char *name);
 void ccadical_limit (CCaDiCaL *, const char *name, int limit);
 int ccadical_get_option (CCaDiCaL *, const char *name);
 void ccadical_print_statistics (CCaDiCaL *);

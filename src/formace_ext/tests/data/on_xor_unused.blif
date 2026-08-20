@@ -1,0 +1,7 @@
+.model on_xor_unused
+.inputs x y z
+.outputs f
+.names x y f
+01 1
+10 1
+.end

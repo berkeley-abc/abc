@@ -7492,11 +7492,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandRunEco( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom, int fInputs, int fUnitW, int fVerbose, int fVeryVerbose );
+    extern int Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom, int fInputs, int fUnitW, int fMinUnsat, int fGlobalSupp, int fUseSuppMin, int fUseInter, int fVerbose, int fVeryVerbose );
     char * pFileNames[4] = {NULL};
-    int c, nTimeout = 0, fCheck = 0, fRandom = 0, fInputs = 0, fUnitW = 0, fVerbose = 0, fVeryVerbose = 0;
+    int c, nTimeout = 0, fCheck = 0, fRandom = 0, fInputs = 0, fUnitW = 0, fMinUnsat = 0, fGlobalSupp = 0, fAssumpOnly = 0, fVerbose = 0, fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Tcriuvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Tacgrimuvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7514,6 +7514,12 @@ int Abc_CommandRunEco( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             fCheck ^= 1;
             break;
+        case 'g':
+            fGlobalSupp ^= 1;
+            break;
+        case 'a':
+            fAssumpOnly ^= 1;
+            break;
         case 'r':
             fRandom ^= 1;
             break;
@@ -7522,6 +7528,9 @@ int Abc_CommandRunEco( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'u':
             fUnitW ^= 1;
+            break;
+        case 'm':
+            fMinUnsat ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -7534,6 +7543,11 @@ int Abc_CommandRunEco( Abc_Frame_t * pAbc, int argc, char ** argv )
         default:
             goto usage;
         }
+    }
+    if ( (fMinUnsat && fAssumpOnly) || (fGlobalSupp && (fMinUnsat || fAssumpOnly)) )
+    {
+        Abc_Print( -1, "runeco: -a, -m, and -g select different support algorithms and cannot be combined.\n" );
+        goto usage;
     }
 //    pArgvNew = argv + globalUtilOptind;
 //    nArgcNew = argc - globalUtilOptind;
@@ -7554,11 +7568,14 @@ int Abc_CommandRunEco( Abc_Frame_t * pAbc, int argc, char ** argv )
             fclose( pFile );
         pFileNames[c] = argv[globalUtilOptind+c];
     }
-    Acb_NtkRunEco( pFileNames, nTimeout, fCheck, fRandom, fInputs, fUnitW, fVerbose, fVeryVerbose );
-    return 0;
+    Abc_Print( 1, "ForMACE runeco: support=%s function=SOP unit_weights=%s\n",
+        fGlobalSupp ? "global-fixed-relations" : (fMinUnsat ? "minimum" : (fAssumpOnly ? "assumption-only" : "original")),
+        fUnitW ? "yes" : "no" );
+    return Acb_NtkRunEco( pFileNames, nTimeout, fCheck, fRandom, fInputs,
+                          fUnitW, fMinUnsat, fGlobalSupp, !fAssumpOnly, 0, fVerbose, fVeryVerbose ) ? 0 : 1;
 
 usage:
-    Abc_Print( -2, "usage: runeco [-T num] [-criuvwh] <implementation> <specification> <weights>\n" );
+    Abc_Print( -2, "usage: runeco [-T num] [-acgrimuvwh] <implementation> <specification> <weights>\n" );
     Abc_Print( -2, "\t         performs computation of patch functions during ECO,\n" );
     Abc_Print( -2, "\t         as described in the following paper: A. Q. Dao et al\n" );
     Abc_Print( -2, "\t         \"Efficient computation of ECO patch functions\", Proc. DAC\'18\n" );
@@ -7568,11 +7585,14 @@ usage:
     Abc_Print( -2, "\t         \"runeco unit1/F.v unit1/G.v unit1/weight.txt; cec -n out.v unit1/G.v\")\n" );
     Abc_Print( -2, "\t-T num : the timeout in seconds [default = %d]\n", nTimeout );
     Abc_Print( -2, "\t-c     : toggle checking that the problem has a solution [default = %s]\n", fCheck? "yes": "no" );
+    Abc_Print( -2, "\t-g     : toggle exact shared support over fixed multi-target relations [default = %s]\n", fGlobalSupp? "yes": "no" );
+    Abc_Print( -2, "\t-a     : use assumption minimization only; skip Acb_FindSupport [default = %s]\n", fAssumpOnly? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle using random permutation of support variables [default = %s]\n", fRandom? "yes": "no" );
     Abc_Print( -2, "\t-i     : toggle using primary inputs as support variables [default = %s]\n", fInputs? "yes": "no" );
     Abc_Print( -2, "\t-u     : toggle using unit weights [default = %s]\n", fUnitW? "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggle exact ForMACE MinUNSAT incremental support [default = %s]\n", fMinUnsat? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-w     : toggle printing more verbose information [default = %s]\n", fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggle more verbose output and small -m brute-force audit [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

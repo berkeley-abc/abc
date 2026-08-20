@@ -34,6 +34,7 @@ OS := $(shell uname -s)
 
 MODULES := \
 	$(wildcard src/ext*) \
+	src/formace_ext \
 	src/base/abc src/base/abci src/base/cmd src/base/io src/base/main src/base/exor \
 	src/base/ver src/base/wlc src/base/wln src/base/sn src/base/acb src/base/pla src/base/test \
 	src/map/mapper src/map/mio src/map/super src/map/if src/map/if/acd \

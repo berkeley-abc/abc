@@ -1,0 +1,6 @@
+.model off_notx
+.inputs x
+.outputs f
+.names x f
+0 1
+.end

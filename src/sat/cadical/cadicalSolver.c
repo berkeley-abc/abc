@@ -20,6 +20,7 @@
 
 #include "ccadical.h"
 #include "cadicalSolver.h"
+#include <limits.h>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -30,6 +31,11 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+static int cadical_solver_terminate_callback(void* pState) {
+  cadical_solver* s = (cadical_solver*)pState;
+  return s->nTimeOut && Abc_Clock() >= s->nTimeOut;
+}
 
 /**Function*************************************************************
 
@@ -48,6 +54,7 @@ cadical_solver* cadical_solver_new(void) {
   s->nVars = 0;
   s->vAssumptions = NULL;
   s->vCore = NULL;
+  s->nTimeOut = 0;
   return s;
 }
 
@@ -71,6 +78,25 @@ void cadical_solver_delete(cadical_solver* s) {
     Vec_IntFree(s->vCore);
   }
   free(s);
+}
+
+const char* cadical_solver_signature(void) {
+  return ccadical_signature();
+}
+
+int cadical_solver_configure(cadical_solver* s, const char* name) {
+  return ccadical_configure((CCaDiCaL*)s->p, name);
+}
+
+int cadical_solver_set_option(cadical_solver* s, const char* name, int value) {
+  ccadical_set_option((CCaDiCaL*)s->p, name, value);
+  return ccadical_get_option((CCaDiCaL*)s->p, name) == value;
+}
+
+void cadical_solver_set_runtime_limit(cadical_solver* s, abctime nTimeOut) {
+  s->nTimeOut = nTimeOut;
+  ccadical_set_terminate((CCaDiCaL*)s->p, nTimeOut ? s : NULL,
+                         nTimeOut ? cadical_solver_terminate_callback : NULL);
 }
 
 /**Function*************************************************************
@@ -111,24 +137,26 @@ int cadical_solver_addclause(cadical_solver* s, int* begin, int* end) {
 
 ***********************************************************************/
 int cadical_solver_solve(cadical_solver* s, int* begin, int* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal) {
+  ABC_INT64_T nEffectiveLimit = nConfLimit;
+  int nAssumptions = begin && end ? (int)(end - begin) : 0;
   // inspection limits are not supported
   assert(nInsLimit == 0);
   assert(nInsLimitGlobal == 0);
   // set conflict limits
-  if(nConfLimit)
-    ccadical_limit((CCaDiCaL*)s->p, "conflicts", nConfLimit);
-  if(nConfLimitGlobal && (nConfLimit == 0 || nConfLimit > nConfLimitGlobal))
-    ccadical_limit((CCaDiCaL*)s->p, "conflicts", nConfLimitGlobal);
+  if(nConfLimitGlobal && (nEffectiveLimit == 0 || nEffectiveLimit > nConfLimitGlobal))
+    nEffectiveLimit = nConfLimitGlobal;
+  if(nEffectiveLimit)
+    ccadical_limit((CCaDiCaL*)s->p, "conflicts",
+                   nEffectiveLimit > INT_MAX ? INT_MAX : (int)nEffectiveLimit);
   // assumptions
-  if(begin != end) {
+  if(s->vAssumptions == NULL)
+    s->vAssumptions = Vec_IntAlloc(nAssumptions);
+  else
+    Vec_IntClear(s->vAssumptions);
+  if(nAssumptions) {
     // save
-    if(s->vAssumptions == NULL) {
-      s->vAssumptions = Vec_IntAllocArrayCopy(begin, end - begin);
-    } else {
-      Vec_IntClear(s->vAssumptions);
-      Vec_IntGrow(s->vAssumptions, end - begin);
-      Vec_IntPushArray(s->vAssumptions, begin, end - begin);
-    }
+    Vec_IntGrow(s->vAssumptions, nAssumptions);
+    Vec_IntPushArray(s->vAssumptions, begin, nAssumptions);
     // assume
     for(;begin != end; begin++) {
       if(*begin & 1) {
@@ -170,9 +198,13 @@ int cadical_solver_solve(cadical_solver* s, int* begin, int* end, ABC_INT64_T nC
 int cadical_solver_final(cadical_solver* s, int** ppArray) {
   int v, i;
   if(s->vCore == NULL) {
-    s->vCore = Vec_IntAlloc(Vec_IntSize(s->vAssumptions));
+    s->vCore = Vec_IntAlloc(s->vAssumptions ? Vec_IntSize(s->vAssumptions) : 0);
   } else {
     Vec_IntClear(s->vCore);
+  }
+  if(s->vAssumptions == NULL) {
+    *ppArray = Vec_IntArray(s->vCore);
+    return 0;
   }
   Vec_IntForEachEntry(s->vAssumptions, v, i) {
     int failed;

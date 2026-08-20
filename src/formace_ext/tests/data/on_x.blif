@@ -1,0 +1,6 @@
+.model on_x
+.inputs x
+.outputs f
+.names x f
+1 1
+.end

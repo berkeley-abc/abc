@@ -50,6 +50,7 @@ struct Inter_ManParams_t_
 {
     int  nBTLimit;      // limit on the number of conflicts
     int  nFramesMax;    // the max number timeframes to unroll
+    int  nFramesStart;  // initial suffix length (1 preserves upstream behavior)
     int  nSecLimit;     // time limit in seconds
     int  nFramesK;      // the number of timeframes to use in induction
     int  fRewrite;      // use additional rewriting to simplify timeframes
@@ -62,9 +63,13 @@ struct Inter_ManParams_t_
     int  fUseBackward;  // perform backward interpolation
     int  fUseSeparate;  // solve each output separately
     int  fUseTwoFrames; // create the OR of two last timeframes
+    int  fUseAllFrames; // create the OR of the property in every suffix frame
     int  fDropSatOuts;  // replace by 1 the solved outputs
     int  fDropInvar;    // dump inductive invariant into file
     int  fVerbose;      // print verbose statistics
+    int  fForMaceMinvar; // use exact ForMACE latch-boundary selection
+    int  fForMaceHybrid; // use baseline-support ForMACE latch selection
+    int  nForMaceVarLimit; // maximum exact-search candidate count
     int  iFrameMax;     // the time frame reached
     char * pFileName;   // file name to dump interpolant
 };
@@ -93,4 +98,3 @@ ABC_NAMESPACE_HEADER_END
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
