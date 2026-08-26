@@ -71,7 +71,7 @@ static void ForMace_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ForMACE", "fm_summary", ForMace_CommandSummary, 0 );
     Cmd_CommandAdd( pAbc, "ForMACE", "fm_minunsat", Fm_CommandMinUnsat, 0 );
     Cmd_CommandAdd( pAbc, "ForMACE", "fm_inter", ForMace_CommandInter, 1 );
-    Cmd_CommandAdd( pAbc, "ForMACE", "fm_int", ForMace_CommandBmcInter, 0 );
+    Cmd_CommandAdd( pAbc, "ForMACE", "fm_int", ForMace_CommandBmcInter, 1 );
     Cmd_CommandAdd( pAbc, "ForMACE", "fm_eco", Fm_CommandEco, 0 );
 }
 
@@ -141,12 +141,12 @@ usage:
 static int ForMace_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Inter_ManParams_t Pars, * pPars = &Pars;
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk( pAbc );
-    int c, fOriginal = 0, fMinvar = 0, fHybrid = 0, nLimit = 16;
+    Abc_Ntk_t * pNtk;
+    int c, fOriginal = 0, fMinvar = 0, fHybrid = 0, fScorr = 0, nLimit = 16;
 
     Inter_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "C:F:S:T:K:I:L:omyairtcgvh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "C:F:S:T:K:I:L:omysairtcgvh")) != EOF )
     {
         switch ( c )
         {
@@ -160,6 +160,7 @@ static int ForMace_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'o': fOriginal = 1; break;
         case 'm': fMinvar = 1; break;
         case 'y': fHybrid = 1; break;
+        case 's': fScorr = 1; break;
         case 'a': pPars->fUseAllFrames = 1; break;
         case 'i': pPars->fDropInvar = 1; break;
         case 'r': pPars->fRewrite = 1; break;
@@ -173,6 +174,12 @@ static int ForMace_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc != globalUtilOptind || fOriginal + fMinvar + fHybrid != 1 || pPars->nBTLimit < 0 || pPars->nFramesMax < 0 || pPars->nFramesStart <= 0 || pPars->nSecLimit < 0 || pPars->nFramesK < 0 || nLimit < 0 )
         goto usage;
+    if ( fScorr && Cmd_CommandExecute(pAbc, "scorr; addflop") )
+    {
+        fprintf( pAbc->Err, "ForMACE fm_int preprocessing with scorr; addflop has failed.\n" );
+        return 1;
+    }
+    pNtk = Abc_FrameReadNtk( pAbc );
     if ( pNtk == NULL )
     {
         fprintf( pAbc->Err, "Empty network.\n" );
@@ -215,10 +222,11 @@ static int ForMace_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: fm_int (-o | -m | -y) [-CFSTK num] [-I file] [-L num] [-airtcgvh]\n" );
+    fprintf( pAbc->Err, "usage: fm_int (-o | -m | -y) [-s] [-CFSTK num] [-I file] [-L num] [-airtcgvh]\n" );
     fprintf( pAbc->Err, "\t-o       : original ABC interpolation without boundary minimization\n" );
     fprintf( pAbc->Err, "\t-m       : exact minvar search over latch-boundary equality groups\n" );
     fprintf( pAbc->Err, "\t-y       : hybrid search from baseline interpolant latch support\n" );
+    fprintf( pAbc->Err, "\t-s       : run scorr; addflop before IMC (use after fold; addpi)\n" );
     fprintf( pAbc->Err, "\t-L num   : maximum candidates for exact search [default = %d]\n", nLimit );
     fprintf( pAbc->Err, "\t-C num   : conflict limit per SAT call [default = %d]\n", pPars->nBTLimit );
     fprintf( pAbc->Err, "\t-F num   : maximum interpolation frames [default = %d]\n", pPars->nFramesMax );

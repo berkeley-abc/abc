@@ -15,7 +15,9 @@ shared CaDiCaL-backed grouped-constraint solver.
   It supports exact minimum-cardinality (`-m`), subset-minimal (`-c`), and
   baseline-support hybrid (`-y`) boundary selection.
 - `fm_int` extends ABC's forward interpolation model checker with original
-  (`-o`), exact minimum-boundary (`-m`), and hybrid (`-y`) modes.
+  (`-o`), exact minimum-boundary (`-m`), and hybrid (`-y`) modes. Its
+  orthogonal `-s` option applies the comparison flow's `scorr; addflop`
+  preprocessing before any of these IMC modes.
 - `fm_eco` runs the DAC'18 ECO flow with Craig-interpolant patch functions.
   Its default uses ABC's original support selector; `-m` selects exact
   minimum-cardinality additional support with grouped MinUNSAT, while `-a`

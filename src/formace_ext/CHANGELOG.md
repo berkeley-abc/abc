@@ -2,6 +2,15 @@
 
 This file records ForMACE-specific changes made in this ABC fork.
 
+## 2026-08-25
+
+- Added orthogonal `fm_int -s` preprocessing. `fm_int -s -o` runs default
+  `scorr; addflop` followed by original ABC interpolation, while
+  `fm_int -s -m` uses the same reduced network with exact minimum-support
+  interpolation. Callers run `fold; addpi` first to reproduce the comparison
+  order `fold; addpi; scorr; addflop; IMC`.
+- Extended the focused `fm_int` smoke test with both scorr-IMC variants.
+
 ## 2026-08-20
 
 - Added paper-derived disjoint-MCS bootstrapping and certified packing lower
