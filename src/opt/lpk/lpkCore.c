@@ -604,6 +604,13 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
         pPars->nLutSize = 6;
     if ( pPars->nLutSize < 3 )
         pPars->nLutSize = 3;
+    // If_Init() installs a 4-input LUT library at start-up, and it is always present,
+    // so the branch above always takes the library width and never the max fanin count
+    // that the "lutpack" usage message advertises.  Packing a 6-LUT network for 4-LUTs
+    // is close to inert, and silently so; say something when the widths disagree.
+    if ( Abc_FrameReadLibLut() && pPars->nLutSize < Abc_NtkGetFaninMax(pNtk) )
+        Abc_Print( ABC_WARNING, "Packing for %d-LUTs because the installed LUT library is %d-input, while the network has nodes with up to %d fanins. Use \"read_lut\" to install a wider library.\n",
+            pPars->nLutSize, ((If_LibLut_t *)Abc_FrameReadLibLut())->LutMax, Abc_NtkGetFaninMax(pNtk) );
     // adjust the number of crossbars based on LUT size
     if ( pPars->nVarsShared > pPars->nLutSize - 2 )
         pPars->nVarsShared = pPars->nLutSize - 2;
