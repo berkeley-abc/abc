@@ -87,18 +87,6 @@ static int Gip_SolverSearch( Gip_Solver_t * p, int * pAssump, int nAssump, doubl
             int btl;
             numConflict += 1.0;
             p->Stats.nConflicts++;
-            if ( p->nConfLimit > 0 && p->Stats.nConflicts >= p->nConfCounted + p->nConfLimit )
-            {
-                Gip_SolverBacktrack( p, nAssump, 1 );
-                p->fCanceled = 1;
-                return GIP_UNDEF;
-            }
-            if ( p->TimeLimit && (p->Stats.nConflicts & 1023) == 0 && Abc_Clock() > p->TimeLimit )
-            {
-                Gip_SolverBacktrack( p, nAssump, 1 );
-                p->fCanceled = 1;
-                return GIP_UNDEF;
-            }
             if ( Gip_SolverLevelOf(p) == 0 )
             {
                 Gip_LitSetClear( &p->UnsatCore );
@@ -126,6 +114,13 @@ static int Gip_SolverSearch( Gip_Solver_t * p, int * pAssump, int nAssump, doubl
         }
         else
         {
+            if ( (p->nConfLimit > 0 && p->Stats.nConflicts >= p->nConfCounted + p->nConfLimit) ||
+                 (p->TimeLimit && (p->Stats.nConflicts & 1023) == 0 && Abc_Clock() > p->TimeLimit) )
+            {
+                Gip_SolverBacktrack( p, nAssump, 1 );
+                p->fCanceled = 1;
+                return GIP_UNDEF;
+            }
             if ( noc >= 0 && numConflict >= noc )
             {
                 Gip_SolverBacktrack( p, nAssump, 1 );
