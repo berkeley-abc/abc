@@ -107,14 +107,9 @@ int tmpFile(const char* prefix, const char* suffix, char** out_name)
 {
 #if defined(_MSC_VER) || defined(__MINGW32__)
     int i, fd;
-    const char* dir = (strchr(prefix, '/') == NULL && strchr(prefix, '\\') == NULL) ? Abc_GetTmpDir() : "";
-    int need_slash = (*dir != '\0' && dir[strlen(dir)-1] != '\\' && dir[strlen(dir)-1] != '/');
-    *out_name = (char*)malloc(strlen(dir) + need_slash + strlen(prefix) + strlen(suffix) + 27);
+    *out_name = (char*)malloc(strlen(prefix) + strlen(suffix) + 27);
     for (i = 0; i < 10; i++){
-        if (*dir != '\0')
-            sprintf(*out_name, "%s%s%s%I64X%d%s", dir, need_slash ? "\\" : "", prefix, realTimeAbs(), _getpid(), suffix);
-        else
-            sprintf(*out_name, "%s%I64X%d%s", prefix, realTimeAbs(), _getpid(), suffix);
+        sprintf(*out_name, "%s%I64X%d%s", prefix, realTimeAbs(), _getpid(), suffix);
         fd = _open(*out_name, O_CREAT | O_EXCL | O_BINARY | O_RDWR, _S_IREAD | _S_IWRITE);
         if (fd == -1){
             free(*out_name);
@@ -137,14 +132,9 @@ int tmpFile(const char* prefix, const char* suffix, char** out_name)
     return fd;
 #else
     int fd;
-    const char* dir = (strchr(prefix, '/') == NULL) ? Abc_GetTmpDir() : "";
-    int need_slash = (*dir != '\0' && dir[strlen(dir)-1] != '/');
-    *out_name = (char*)malloc(strlen(dir) + need_slash + strlen(prefix) + strlen(suffix) + 7);
+    *out_name = (char*)malloc(strlen(prefix) + strlen(suffix) + 7);
     assert(*out_name != NULL);
-    if (*dir != '\0')
-        sprintf(*out_name, "%s%s%sXXXXXX", dir, need_slash ? "/" : "", prefix);
-    else
-        sprintf(*out_name, "%sXXXXXX", prefix);
+    sprintf(*out_name, "%sXXXXXX", prefix);
     fd = mkstemp(*out_name);
     if (fd == -1){
         free(*out_name);
