@@ -1296,10 +1296,10 @@ Abc_Ntk_t * Abc_NtkStochProcessOne( Abc_Ntk_t * p, char * pScript0, int Rand, in
     extern int Abc_NtkWriteToFile( char * pFileName, Abc_Ntk_t * pNtk );
     extern Abc_Ntk_t * Abc_NtkReadFromFile( char * pFileName );
     Abc_Ntk_t * pNew, * pTemp;
-    char FileName[100], Command[1000], PreCommand[500] = {0};
+    char FileName[1000], Command[2000], PreCommand[500] = {0};
     char * pLibFileName = Abc_NtkIsMappedLogic(p) ? Mio_LibraryReadFileName((Mio_Library_t *)p->pManFunc) : NULL;
     if ( pLibFileName ) sprintf( PreCommand, "read_genlib %s; ", pLibFileName );
-    sprintf( FileName, "%06x.mm", Rand );
+    sprintf( FileName, "%s/%06x.mm", Abc_GetTmpDir(), Rand );
     Abc_NtkWriteToFile( FileName, p );    
     char * pScript = Abc_UtilStrsav( pScript0 );
     sprintf( Command, "./abc -q \"%sread_mm %s; %s; write_mm %s\"", PreCommand[0] ? PreCommand : "", FileName, pScript, FileName );    

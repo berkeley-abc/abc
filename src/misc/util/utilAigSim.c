@@ -25,6 +25,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <time.h>
+#include "abc_global.h"
 #ifdef _WIN32
 #include <io.h>
 #define mkstemp(p) _mktemp_s(p, strlen(p)+1)
@@ -345,8 +346,11 @@ static int make_tmp_file(char *path, size_t cap, const char *prefix) {
     static int seq = 0; // no risk of collision since we're in a sandbox
     snprintf(path, cap, "%s%08d", prefix, seq++);
     int fd = open(path, O_CREAT | O_EXCL | O_RDWR, S_IREAD | S_IWRITE);
+#elif defined(_WIN32)
+    snprintf(path, cap, "%s\\%sXXXXXX", Abc_GetTmpDir(), prefix);
+    int fd = mkstemp(path);
 #else
-    snprintf(path, cap, "/tmp/%sXXXXXX", prefix);
+    snprintf(path, cap, "%s/%sXXXXXX", Abc_GetTmpDir(), prefix);
     int fd = mkstemp(path);
 #endif
     if (fd < 0) return 0;
@@ -360,8 +364,11 @@ static int make_tmp_path_noexist(char *path, size_t cap, const char *prefix) {
     static int seq = 0; // no risk of collision since we're in a sandbox
     snprintf(path, cap, "%s%08d", prefix, seq++);
     int fd = open(path, O_CREAT | O_EXCL | O_RDWR, S_IREAD | S_IWRITE);
+#elif defined(_WIN32)
+    snprintf(path, cap, "%s\\%sXXXXXX", Abc_GetTmpDir(), prefix);
+    int fd = mkstemp(path);
 #else
-    snprintf(path, cap, "/tmp/%sXXXXXX", prefix);
+    snprintf(path, cap, "%s/%sXXXXXX", Abc_GetTmpDir(), prefix);
     int fd = mkstemp(path);
 #endif
     if (fd < 0) return 0;

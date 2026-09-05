@@ -96,12 +96,9 @@ static int Sn_TempPrefix( char * pBuffer, size_t nBuffer, const char * pStem )
 {
     int Written;
 #if defined(_MSC_VER) || defined(__MINGW32__)
-    const char * pDirectory = getenv( "TEMP" );
-    if ( pDirectory == NULL )
-        pDirectory = ".";
-    Written = snprintf( pBuffer, nBuffer, "%s\\%s", pDirectory, pStem );
+    Written = snprintf( pBuffer, nBuffer, "%s\\%s", Abc_GetTmpDir(), pStem );
 #else
-    Written = snprintf( pBuffer, nBuffer, "/tmp/%s", pStem );
+    Written = snprintf( pBuffer, nBuffer, "%s/%s", Abc_GetTmpDir(), pStem );
 #endif
     return Written >= 0 && (size_t)Written < nBuffer;
 }
