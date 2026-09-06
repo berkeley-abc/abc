@@ -324,7 +324,7 @@ printf( "Converged after %d iterations.\n", nIters );
 void * Abc_NodeGetCutsRecursive( void * p, Abc_Obj_t * pObj, int fDag, int fTree )
 {
     void * pList;
-    if ( pList = Abc_NodeReadCuts( p, pObj ) )
+    if ( (pList = Abc_NodeReadCuts( p, pObj )) != NULL )
         return pList;
     Abc_NodeGetCutsRecursive( p, Abc_ObjFanin0(pObj), fDag, fTree );
     Abc_NodeGetCutsRecursive( p, Abc_ObjFanin1(pObj), fDag, fTree );
