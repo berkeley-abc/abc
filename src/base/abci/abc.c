@@ -33180,7 +33180,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Pdr_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCDQTHGSLIaxrmuyfqipdegjonctkvwzhb" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCDQTHGSLIaxrmuyfqipdegjonctksvwzhb" ) ) != EOF )
     {
         switch ( c )
         {
@@ -33358,6 +33358,9 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'k':
             pPars->fUseSimpleRef ^= 1;
             break;
+        case 's':
+            pPars->fUseGipSat ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -33411,7 +33414,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: pdr [-MFCDQTHGS <num>] [-LI <file>] [-axrmuyfqipdegjonctkvwzh]\n" );
+    Abc_Print( -2, "usage: pdr [-MFCDQTHGS <num>] [-LI <file>] [-axrmuyfqipdegjonctksvwzh]\n" );
     Abc_Print( -2, "\t         model checking using property directed reachability (aka IC3)\n" );
     Abc_Print( -2, "\t         pioneered by Aaron R. Bradley (http://theory.stanford.edu/~arbrad/)\n" );
     Abc_Print( -2, "\t         with improvements by Niklas Een (http://een.se/niklas/)\n" );
@@ -33445,6 +33448,7 @@ usage:
     Abc_Print( -2, "\t-c     : * toggle handling CTGs in \'down\' [default = %s]\n",                           pPars->fCtgs? "yes": "no" );
     Abc_Print( -2, "\t-t     : toggle using abstraction [default = %s]\n",                                   pPars->fUseAbs? "yes": "no" );
     Abc_Print( -2, "\t-k     : toggle using simplified refinement [default = %s]\n",                         pPars->fUseSimpleRef? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle using the GipSAT solver (ported from rIC3); -f is recommended [default = %s]\n", pPars->fUseGipSat? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing optimization summary [default = %s]\n",                       pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing detailed stats default = %s]\n",                              pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-z     : toggle suppressing report about solved outputs [default = %s]\n",             pPars->fNotVerbose? "yes": "no" );

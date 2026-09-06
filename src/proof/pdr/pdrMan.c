@@ -280,6 +280,19 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
     p->vCi2Rem  = Vec_IntAlloc( 100 );  // CIs to be removed
     p->vRes     = Vec_IntAlloc( 100 );  // final result
     p->pCnfMan  = Cnf_ManStart();
+    // GipSAT shared context (static CNF + dep table)
+    if ( pPars->fUseGipSat && (pPars->fNewXSim || pPars->fUseAbs || pPars->fUseSimpleRef || pPars->fSimpleGeneral) )
+    {
+        Abc_Print( 0, "GipSAT (-s) does not support -u/-t/-k/-j; disabling GipSAT.\n" );
+        pPars->fUseGipSat = 0;
+    }
+    if ( pPars->fUseGipSat )
+    {
+        p->pGipCtx     = Gip_CtxCreate( pAig, p->pCnfMan );
+        p->vGipSolvers = Vec_PtrAlloc( 0 );
+        p->vGipLits    = Vec_IntAlloc( 100 );
+        p->vGipOrder   = Vec_IntAlloc( 100 );
+    }
     // ternary simulation
     p->pTxs3    = pPars->fNewXSim ? Txs3_ManStart( p, pAig, p->vPrio ) : NULL;
     // additional AIG data-members
@@ -342,6 +355,16 @@ void Pdr_ManStop( Pdr_Man_t * p )
     Vec_PtrForEachEntry( sat_solver *, p->vSolvers, pSat, i )
         sat_solver_delete( pSat );
     Vec_PtrFree( p->vSolvers );
+    if ( p->vGipSolvers )
+    {
+        Gip_Solver_t * pGip;
+        Vec_PtrForEachEntry( Gip_Solver_t *, p->vGipSolvers, pGip, i )
+            Gip_SolverFree( pGip );
+        Vec_PtrFree( p->vGipSolvers );
+    }
+    Gip_CtxFree( p->pGipCtx );
+    Vec_IntFreeP( &p->vGipLits );
+    Vec_IntFreeP( &p->vGipOrder );
     Vec_VecForEachEntry( Pdr_Set_t *, p->vClauses, pCla, i, k )
         Pdr_SetDeref( pCla );
     Vec_VecFree( p->vClauses );
