@@ -42,11 +42,26 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+// Vec_PtrPushUnique() rescans the vector on every push, so a gate with n leaves
+// cost O(n^2). Above the threshold, push blind and uniquify once at the end;
+// below it the original scan stays, so the small gates that are almost every
+// call keep the old path. Compared by literal rather than by address, so the
+// result does not depend on the allocator.
+#define CNF_LEAF_LINEAR_MAX 16
+
+static int Cnf_LeafCompare( Aig_Obj_t ** pp1, Aig_Obj_t ** pp2 )
+{
+    return Aig_ObjToLit(*pp1) - Aig_ObjToLit(*pp2);
+}
+
 void Cnf_CollectLeaves_rec( Aig_Obj_t * pRoot, Aig_Obj_t * pObj, Vec_Ptr_t * vSuper, int fStopCompl )
 {
     if ( pRoot != pObj && (pObj->fMarkA || (fStopCompl && Aig_IsComplement(pObj))) )
     {
-        Vec_PtrPushUnique( vSuper, fStopCompl ? pObj : Aig_Regular(pObj) );
+        if ( vSuper->nSize < CNF_LEAF_LINEAR_MAX )
+            Vec_PtrPushUnique( vSuper, fStopCompl ? pObj : Aig_Regular(pObj) );
+        else
+            Vec_PtrPush( vSuper, fStopCompl ? pObj : Aig_Regular(pObj) );
         return;
     }
     assert( Aig_ObjIsNode(pObj) );
@@ -78,6 +93,9 @@ void Cnf_CollectLeaves( Aig_Obj_t * pRoot, Vec_Ptr_t * vSuper, int fStopCompl )
     assert( !Aig_IsComplement(pRoot) );
     Vec_PtrClear( vSuper );
     Cnf_CollectLeaves_rec( pRoot, pRoot, vSuper, fStopCompl );
+    // Under the threshold every push was checked, so nothing can be repeated.
+    if ( Vec_PtrSize(vSuper) >= CNF_LEAF_LINEAR_MAX )
+        Vec_PtrUniqify( vSuper, (int (*)(const void *, const void *))Cnf_LeafCompare );
 }
 
 /**Function*************************************************************
