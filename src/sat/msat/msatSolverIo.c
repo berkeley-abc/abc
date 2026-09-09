@@ -168,7 +168,7 @@ void Msat_TimeStamp( char * Buffer )
     struct tm Time;
     // get the current time
     time( &ltime );
-#ifdef _MSC_VER
+#ifdef _WIN32
     localtime_s( &Time, &ltime );
 #else
     localtime_r( &ltime, &Time );
