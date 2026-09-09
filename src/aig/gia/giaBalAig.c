@@ -1060,6 +1060,8 @@ Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax,
     else if ( p->vInArrs )
     {
         int i, Id, And2Delay = p->And2Delay ? p->And2Delay : 1;
+        Vec_IntFreeP( &p->vLevels );
+        p->vLevels = Vec_IntStart( Gia_ManObjNum(p) );
         Gia_ManForEachCiId( p, Id, i )
             Vec_IntWriteEntry( p->vLevels, Id, (int)(Vec_FltEntry(p->vInArrs, i)/And2Delay) );
     }
