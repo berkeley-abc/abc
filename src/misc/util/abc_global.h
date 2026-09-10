@@ -599,6 +599,25 @@ static inline void Abc_ReverseOrder( int * pA, int nA )
         ABC_SWAP( int, pA[i], pA[nA-1-i] );
 }
 
+static inline const char * Abc_GetTmpDir()
+{
+    const char * s;
+#if defined(_MSC_VER) || defined(__MINGW32__)
+    s = getenv( "TMP" );
+    if ( s && *s )
+        return s;
+    s = getenv( "TEMP" );
+    if ( s && *s )
+        return s;
+    return ".";
+#else
+    s = getenv( "TMPDIR" );
+    if ( s && *s )
+        return s;
+    return "/tmp";
+#endif
+}
+
 
 // sorting
 extern void   Abc_MergeSort( int * pInput, int nSize );
