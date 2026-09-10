@@ -69,6 +69,7 @@ int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int 
     int Required, nNodesSaved;
     int nNodesSaveCur = -1; // Suppress "might be used uninitialized"
     int i, GainCur = -1, GainBest = -1;
+    int fVerbose = Cut_ManReadParams(pManCut)->fVerbose;
     abctime clk, clk2;//, Counter;
 
     p->nNodesConsidered++;
@@ -76,10 +77,10 @@ int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int 
     Required = fUpdateLevel? Abc_ObjRequiredLevel(pNode) : ABC_INFINITY;
 
     // get the node's cuts
-clk = Abc_Clock();
+    ABC_TIME_START(fVerbose, clk);
     pCut = (Cut_Cut_t *)Abc_NodeGetCutsRecursive( pManCut, pNode, 0, 0 );
     assert( pCut != NULL );
-p->timeCut += Abc_Clock() - clk;
+    ABC_TIME_STOP(fVerbose, p->timeCut, clk);
 
 //printf( " %d", Rwr_CutCountNumNodes(pNode, pCut) );
 /*
@@ -89,7 +90,7 @@ p->timeCut += Abc_Clock() - clk;
     printf( "%d ", Counter );
 */
     // go through the cuts
-clk = Abc_Clock();
+    ABC_TIME_START(fVerbose, clk);
     for ( pCut = pCut->pNext; pCut; pCut = pCut->pNext )
     {
         // consider only 4-input cuts
@@ -128,7 +129,7 @@ clk = Abc_Clock();
                 continue;
         }
 
-clk2 = Abc_Clock();
+        ABC_TIME_START(fVerbose, clk2);
 /*
         printf( "Considering: (" );
         Vec_PtrForEachEntry( Abc_Obj_t *, p->vFaninsCur, pFanin, i )
@@ -145,12 +146,12 @@ clk2 = Abc_Clock();
         // unmark the fanin boundary
         Vec_PtrForEachEntry( Abc_Obj_t *, p->vFaninsCur, pFanin, i )
             Abc_ObjRegular(pFanin)->vFanouts.nSize--;
-p->timeMffc += Abc_Clock() - clk2;
+        ABC_TIME_STOP(fVerbose, p->timeMffc, clk2);
 
         // evaluate the cut
-clk2 = Abc_Clock();
+        ABC_TIME_START(fVerbose, clk2);
         pGraph = Rwr_CutEvaluate( p, pNode, pCut, p->vFaninsCur, nNodesSaved, Required, &GainCur, fPlaceEnable );
-p->timeEval += Abc_Clock() - clk2;
+        ABC_TIME_STOP(fVerbose, p->timeEval, clk2);
 
         // check if the cut is better than the current best one
         if ( pGraph != NULL && GainBest < GainCur )
@@ -167,7 +168,7 @@ p->timeEval += Abc_Clock() - clk2;
                 Vec_PtrPush( p->vFanins, pFanin );
         }
     }
-p->timeRes += Abc_Clock() - clk;
+    ABC_TIME_STOP(fVerbose, p->timeRes, clk);
 
     if ( GainBest == -1 )
         return -1;

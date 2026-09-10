@@ -421,6 +421,15 @@ static inline abctime Abc_ThreadClock()
 #endif
 }
 
+// stopwatch timing for verbose statistics
+#if defined(ABC_NO_TIMERS)
+    #define ABC_TIME_START(cond, clk)          do { (void)(clk); } while (0)
+    #define ABC_TIME_STOP(cond, acc, clk)      do { (void)(clk); } while (0)
+#else
+    #define ABC_TIME_START(cond, clk)          do { clk = (cond) ? Abc_Clock() : 0; } while (0)
+    #define ABC_TIME_STOP(cond, acc, clk)      do { if (cond) acc += Abc_Clock() - clk; } while (0)
+#endif
+
 // misc printing procedures
 enum Abc_VerbLevel
 {

@@ -79,6 +79,7 @@ void Dar_ManDefaultRwrParams( Dar_RwrPar_t * pPars )
 int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
 {
     extern Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * p, int nFrames, int nPref, int fProbOne );
+    int fVerbose = pPars->fVerbose;
     Dar_Man_t * p;
 //    Bar_Progress_t * pProgress;
     Dar_Cut_t * pCut;
@@ -138,10 +139,10 @@ int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
 
         // compute cuts for the node
         p->nNodesTried++;
-clk = Abc_Clock();
+        ABC_TIME_START(fVerbose, clk);
         Dar_ObjSetCuts( pObj, NULL );
         Dar_ObjComputeCuts_rec( p, pObj );
-p->timeCuts += Abc_Clock() - clk;
+        ABC_TIME_STOP(fVerbose, p->timeCuts, clk);
 
         // check if there is a trivial cut
         Dar_ObjForEachCut( pObj, pCut, k )

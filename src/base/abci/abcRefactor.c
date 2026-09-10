@@ -168,9 +168,9 @@ Dec_Graph_t * Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t *
     Required = fUpdateLevel? Abc_ObjRequiredLevel(pNode) : ABC_INFINITY;
 
     // get the function of the cut
-clk = Abc_Clock();
+    ABC_TIME_START(fVerbose, clk);
     pTruth = Abc_NodeConeTruth( p->vVars, p->vFuncs, nWordsMax, pNode, vFanins, p->vVisited );
-p->timeTru += Abc_Clock() - clk;
+    ABC_TIME_STOP(fVerbose, p->timeTru, clk);
     if ( pTruth == NULL )
         return NULL;
 
@@ -184,9 +184,9 @@ p->timeTru += Abc_Clock() - clk;
     }
 
     // get the factored form
-clk = Abc_Clock();
+    ABC_TIME_START(fVerbose, clk);
     pFForm = (Dec_Graph_t *)Kit_TruthToGraph( (unsigned *)pTruth, nVars, p->vMemory );
-p->timeFact += Abc_Clock() - clk;
+    ABC_TIME_STOP(fVerbose, p->timeFact, clk);
 
     // mark the fanin boundary 
     // (can mark only essential fanins, belonging to bNodeFunc!)
@@ -203,9 +203,9 @@ p->timeFact += Abc_Clock() - clk;
     }
 
     // detect how many new nodes will be added (while taking into account reused nodes)
-clk = Abc_Clock();
+    ABC_TIME_START(fVerbose, clk);
     nNodesAdded = Dec_GraphToNetworkCount( pNode, pFForm, nNodesSaved, Required );
-p->timeEval += Abc_Clock() - clk;
+    ABC_TIME_STOP(fVerbose, p->timeEval, clk);
     // quit if there is no improvement
     //if ( nNodesAdded == -1 || (nNodesAdded == nNodesSaved && !fUseZeros) )
     if ( nNodesAdded == -1 || nNodesSaved - nNodesAdded < nMinSaved )
@@ -335,9 +335,10 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nMinSaved, int nCon
     Dec_Graph_t * pFForm;
     Vec_Ptr_t * vFanins;
     Abc_Obj_t * pNode;
-    abctime clk, clkStart = Abc_Clock();
+    abctime clk, clkStart;
     int i, nNodes, RetValue = 1;
 
+    ABC_TIME_START(fVerbose, clkStart);
     assert( Abc_NtkIsStrash(pNtk) );
     // cleanup the AIG
     Abc_AigCleanup((Abc_Aig_t *)pNtk->pManFunc);
@@ -369,28 +370,28 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nMinSaved, int nCon
         if ( i >= nNodes )
             break;
         // compute a reconvergence-driven cut
-clk = Abc_Clock();
+        ABC_TIME_START(fVerbose, clk);
         vFanins = Abc_NodeFindCut( pManCut, pNode, fUseDcs );
-pManRef->timeCut += Abc_Clock() - clk;
+        ABC_TIME_STOP(fVerbose, pManRef->timeCut, clk);
         // evaluate this cut
-clk = Abc_Clock();
+        ABC_TIME_START(fVerbose, clk);
         pFForm = Abc_NodeRefactor( pManRef, pNode, vFanins, nMinSaved, fUpdateLevel, fUseZeros, fUseDcs, fVerbose );
-pManRef->timeRes += Abc_Clock() - clk;
+        ABC_TIME_STOP(fVerbose, pManRef->timeRes, clk);
         if ( pFForm == NULL )
             continue;
         // acceptable replacement found, update the graph
-clk = Abc_Clock();
+        ABC_TIME_START(fVerbose, clk);
         if ( !Dec_GraphUpdateNetwork( pNode, pFForm, fUpdateLevel, pManRef->nLastGain ) )
         {
             Dec_GraphFree( pFForm );
             RetValue = -1;
             break;
         }
-pManRef->timeNtk += Abc_Clock() - clk;
+        ABC_TIME_STOP(fVerbose, pManRef->timeNtk, clk);
         Dec_GraphFree( pFForm );
     }
     Extra_ProgressBarStop( pProgress );
-pManRef->timeTotal = Abc_Clock() - clkStart;
+    ABC_TIME_STOP(fVerbose, pManRef->timeTotal, clkStart);
     pManRef->nNodesEnd = Abc_NtkNodeNum(pNtk);
 
     // print statistics of the manager

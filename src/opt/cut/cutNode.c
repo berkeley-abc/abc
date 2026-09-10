@@ -368,6 +368,7 @@ static inline int Cut_CutProcessTwo( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t
 ***********************************************************************/
 Cut_Cut_t * Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int fTriv, int TreeCode )
 {
+    int fVerbose = p->pParams->fVerbose;
     Cut_List_t Super, * pSuper = &Super;
     Cut_Cut_t * pList, * pCut;
     abctime clk;
@@ -381,11 +382,11 @@ Cut_Cut_t * Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, 
         Cut_CutNumberList( Cut_NodeReadCutsNew(p, Node1) );
     }
     // compute the cuts
-clk = Abc_Clock();
+    ABC_TIME_START(fVerbose, clk);
     Cut_ListStart( pSuper );
     Cut_NodeDoComputeCuts( p, pSuper, Node, fCompl0, fCompl1, Cut_NodeReadCutsNew(p, Node0), Cut_NodeReadCutsNew(p, Node1), fTriv, TreeCode );
     pList = Cut_ListFinish( pSuper );
-p->timeMerge += Abc_Clock() - clk;
+    ABC_TIME_STOP(fVerbose, p->timeMerge, clk);
     // verify the result of cut computation
 //    Cut_CutListVerify( pList );
     // performing the recording
@@ -419,7 +420,7 @@ p->timeMerge += Abc_Clock() - clk;
 //        Cut_CutFilter( p, pList0 );
 //p->timeFilter += Abc_Clock() - clk;
     // perform mapping of this node with these cuts
-clk = Abc_Clock();
+    ABC_TIME_START(fVerbose, clk);
     if ( p->pParams->fMap && !p->pParams->fSeq )
     {
 //        int Delay1, Delay2;
@@ -428,7 +429,7 @@ clk = Abc_Clock();
 //        assert( Delay1 >= Delay2 );
         Cut_NodeMapping( p, pList, Node, Node0, Node1 );
     }
-p->timeMap += Abc_Clock() - clk;
+    ABC_TIME_STOP(fVerbose, p->timeMap, clk);
     return pList;
 }
 
@@ -677,11 +678,13 @@ Quits:
 ***********************************************************************/
 Cut_Cut_t * Cut_NodeUnionCuts( Cut_Man_t * p, Vec_Int_t * vNodes )
 {
+    int fVerbose = p->pParams->fVerbose;
     Cut_List_t Super, * pSuper = &Super;
     Cut_Cut_t * pList, * pListStart, * pCut, * pCut2;
     Cut_Cut_t * pTop = NULL; // Suppress "might be used uninitialized"
     int i, k, Node, Root, Limit = p->pParams->nVarsMax;
-    abctime clk = Abc_Clock();
+    abctime clk;
+    ABC_TIME_START(fVerbose, clk);
 
     // start the new list
     Cut_ListStart( pSuper );
@@ -771,7 +774,7 @@ finish :
     assert( Cut_NodeReadCutsNew(p, Root) == NULL );
     pList = Cut_ListFinish( pSuper );
     Cut_NodeWriteCutsNew( p, Root, pList );
-p->timeUnion += Abc_Clock() - clk;
+    ABC_TIME_STOP(fVerbose, p->timeUnion, clk);
     // filter the cuts
 //clk = Abc_Clock();
 //    if ( p->pParams->fFilter )

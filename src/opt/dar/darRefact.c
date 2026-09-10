@@ -496,6 +496,7 @@ int Dar_ObjCutLevelAchieved( Vec_Ptr_t * vCut, int nLevelMin )
 int Dar_ManRefactor( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
 {
 //    Bar_Progress_t * pProgress;
+    int fVerbose = pPars->fVerbose;
     Ref_Man_t * p;
     Vec_Ptr_t * vCut, * vCut2;
     Aig_Obj_t * pObj, * pObjNew;
@@ -532,12 +533,12 @@ int Dar_ManRefactor( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
 
 //printf( "\nConsidering node %d.\n", pObj->Id );
         // get the bounded MFFC size
-clk = Abc_Clock();
+        ABC_TIME_START(fVerbose, clk);
         nLevelMin = Abc_MaxInt( 0, Aig_ObjLevel(pObj) - 10 );
         nNodesSaved = Aig_NodeMffcSupp( pAig, pObj, nLevelMin, vCut );
         if ( nNodesSaved < p->pPars->nMffcMin ) // too small to consider
         {
-p->timeCuts += Abc_Clock() - clk;
+            ABC_TIME_STOP(fVerbose, p->timeCuts, clk);
             continue; 
         }
         p->nNodesTried++;
@@ -566,13 +567,13 @@ p->timeCuts += Abc_Clock() - clk;
             else
                 p->nNodesBelow++;
         }
-p->timeCuts += Abc_Clock() - clk;
+        ABC_TIME_STOP(fVerbose, p->timeCuts, clk);
 
         // try the cuts
-clk = Abc_Clock();
+        ABC_TIME_START(fVerbose, clk);
         Required = pAig->vLevelR? Aig_ObjRequiredLevel(pAig, pObj) : ABC_INFINITY;
         Dar_ManRefactorTryCuts( p, pObj, nNodesSaved, Required );
-p->timeEval += Abc_Clock() - clk;
+        ABC_TIME_STOP(fVerbose, p->timeEval, clk);
 
         // check the best gain
         if ( !(p->GainBest > 0 || (p->GainBest == 0 && p->pPars->fUseZeros)) )
