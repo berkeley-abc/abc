@@ -9,12 +9,12 @@
   Synopsis    [Liberty abstraction for delay-oriented mapping.]
 
   Author      [Alan Mishchenko, Niklas Een]
-  
+
   Affiliation [UC Berkeley]
 
-  Date        [Ver. 1.0. Started - August 24, 2012.]
+  Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: sclLibScl.c,v 1.0 2012/08/24 00:00:00 alanmi Exp $]
+  Revision    [$Id: sclLibScl.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -894,9 +894,16 @@ SC_Lib * Abc_SclMergeLibraries( SC_Lib * pLib1, SC_Lib * pLib2, int fUsePrefix )
     Abc_SclWriteLibrary( vOut, pLib1, n_valid_cells2, fUsePrefix );
     Abc_SclWriteLibraryCellsOnly( vOut, pLib2, fUsePrefix ? 2 : 0 );
     SC_Lib * p = Abc_SclReadFromStr( vOut );
+    char Name[64];
+    if ( p == NULL )
+    {
+        Vec_StrFree( vOut );
+        return NULL;
+    }
     p->pFileName = Abc_UtilStrsav( pLib1->pFileName );
-    p->pName = ABC_ALLOC( char, strlen(pLib1->pName) + strlen(pLib2->pName) + 10 );
-    sprintf( p->pName, "merged_lib_size_%d", p->vCells.nSize );
+    snprintf( Name, sizeof(Name), "merged_lib_size_%d", p->vCells.nSize );
+    ABC_FREE( p->pName );
+    p->pName = Abc_UtilStrsav( Name );
     Vec_StrFree( vOut );
     printf( "Updated library \"%s\" with additional %d cells from library \"%s\".\n", pLib1->pName, n_valid_cells2, pLib2->pName );
     return p;

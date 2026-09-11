@@ -41,7 +41,7 @@ typedef struct sn_dsp_map_options_t
 
 static inline sn_dsp_map_options_t sn_dsp_map_default_options(void)
 {
-    sn_dsp_map_options_t options = {true, false, false, true, true, true, 0, 0, 0};
+    sn_dsp_map_options_t options = {true, false, true, true, true, true, 0, 0, 0};
     return options;
 }
 
@@ -77,6 +77,45 @@ static inline sn_module_id_t sn_map_dsp_primitive_module(sn_design_t* design, co
     sn_obj_id_t fanins[] = {a, b};
     sn_obj_id_t product = sn_module_add_operator(module, SN_MUL, y_width, a_signed || b_signed, 2, fanins, "P");
     sn_module_add_po(module, y_width, a_signed || b_signed, "Y", product);
+    return id;
+}
+
+// Multiply-accumulate primitive using the DSP's post-adder: Y = (A * B << shift) + C.
+// The constant shift models the aligned partial-product position of a chained
+// multi-DSP multiplier; the C input carries the running sum or an absorbed
+// external addend. The behavioral body keeps standalone SN simulation and CEC
+// exact while the __sn_ prefix preserves the module as a hard primitive.
+static inline sn_module_id_t sn_map_dsp_mac_primitive_module(sn_design_t* design, const sn_dsp_tech_t* tech,
+                                                             uint32_t a_width, uint32_t b_width,
+                                                             uint32_t product_width, uint32_t shift,
+                                                             uint32_t y_width)
+{
+    assert(shift < y_width);
+    char name[128];
+    int length = snprintf(name, sizeof(name), "__sn_%s_mac_%u_%u_%u_%u_%u", tech->name, a_width, b_width,
+                          product_width, shift, y_width);
+    assert(length >= 0 && (size_t)length < sizeof(name));
+    sn_module_id_t existing = sn_design_find_module(design, name);
+    if (existing != SN_INVALID_ID)
+        return existing;
+    sn_module_id_t id = sn_design_add_module(design, name);
+    sn_module_t* module = sn_design_get_module(design, id);
+    sn_obj_id_t a = sn_module_add_pi(module, a_width, true, "A");
+    sn_obj_id_t b = sn_module_add_pi(module, b_width, true, "B");
+    sn_obj_id_t c = sn_module_add_pi(module, y_width, true, "C");
+    sn_obj_id_t fanins[] = {a, b};
+    sn_obj_id_t product = sn_module_add_operator(module, SN_MUL, product_width, true, 2, fanins, "P");
+    product = sn_module_add_operator(module, SN_CAST, y_width, true, 1, &product, NULL);
+    if (shift)
+    {
+        uint32_t amount = shift;
+        sn_obj_id_t shift_const = sn_module_add_const(module, 32, false, &amount, NULL);
+        sn_obj_id_t shift_fanins[] = {product, shift_const};
+        product = sn_module_add_operator(module, SN_SHL, y_width, true, 2, shift_fanins, NULL);
+    }
+    sn_obj_id_t sum_fanins[] = {product, c};
+    sn_obj_id_t sum = sn_module_add_operator(module, SN_ADD, y_width, true, 2, sum_fanins, NULL);
+    sn_module_add_po(module, y_width, true, "Y", sum);
     return id;
 }
 

@@ -64,22 +64,39 @@ typedef struct sn_blast_options_t
     bool ripple_adders;
     bool delay_comparators;
     bool abstract_memories;
+    // Mapped __sn_ memory primitive instances stay opaque by default;
+    // clearing this expands them for verification while plain SN memories
+    // remain ordinary memory boundaries.
+    bool abstract_memory_primitives;
     bool abstract_multipliers;
+    bool abstract_carries;
     // Treat every child instance as a combinational boundary. This derives one natural module partition while
     // preserving the hierarchy and is used by module-by-module logic mapping.
     bool abstract_instances;
     bool expose_register_controls;
     sn_blast_mode_t mode;
+    // Keep scalar Liberty flip-flop cells as opaque black-box boundaries (like latches) instead of compiling their
+    // sampled transition model. Their pins become ordinary CIs/COs, so @put can re-instantiate them unchanged.
+    bool opaque_sequential_gates;
+    // Analysis-only comb extraction: expose clocks and async controls as
+    // probes too. They are not part of the ordinary @put boundary contract.
+    bool probe_all_register_controls;
+    // Analysis-only: expose individual native latch boundaries through
+    // hierarchy instead of boxing their containing modules. Never a sampled
+    // sequential AIG or an ordinary @put extraction contract.
+    bool flatten_latch_modules;
 } sn_blast_options_t;
 
 static inline sn_blast_options_t sn_blast_default_options(void)
 {
-    sn_blast_options_t options = {SN_BLAST_MUL_BAUGH_WOOLEY, false, true, true, true, false, true, SN_BLAST_COMB};
+    sn_blast_options_t options = {SN_BLAST_MUL_BAUGH_WOOLEY, false, true, true, true, true, true, false, true,
+                                  SN_BLAST_COMB, false, false, false};
     return options;
 }
 
-// Latches cannot be represented by MiniAIG's edge-triggered register convention. Command-level clients use this
-// query to reject a reachable latch before constructing an AIG or modifying any saved extraction state.
+// Latches cannot be represented by MiniAIG's edge-triggered register convention. Hierarchical blasting therefore
+// exposes them as combinational black-box boundaries; clients that require a purely edge-triggered network can use
+// this query to reject a reachable latch before constructing an AIG.
 static inline sn_module_id_t sn_design_find_reachable_latch(const sn_design_t* design, sn_module_id_t root,
                                                              sn_obj_id_t* returned_latch)
 {
@@ -95,8 +112,9 @@ static inline sn_module_id_t sn_design_find_reachable_latch(const sn_design_t* d
         sn_module_id_t module_id = pending[--pending_count];
         const sn_module_t* module = sn_design_get_module_const(design, module_id);
         if (!sn_module_is_technology_primitive(module))
-            for (size_t i = 0; i < module->reg_flags.size; i++)
-                if (sn_vec_at(uint32_t, &module->reg_flags, i) & SN_REG_LATCH)
+            for (size_t i = 0; i < module->type_objects[SN_REG_OUT].size; i++)
+                if (sn_obj_reg_flags(module, sn_vec_at(sn_obj_id_t, &module->type_objects[SN_REG_OUT], i)) &
+                    SN_REG_LATCH)
                 {
                     if (returned_latch)
                         *returned_latch = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_REG_OUT], i);
@@ -104,9 +122,9 @@ static inline sn_module_id_t sn_design_find_reachable_latch(const sn_design_t* d
                     free(seen);
                     return module_id;
                 }
-        for (size_t i = 0; i < module->inst_modules.size; i++)
+        for (size_t i = 0; i < module->type_objects[SN_INST].size; i++)
         {
-            sn_module_id_t child = sn_vec_at(sn_module_id_t, &module->inst_modules, i);
+            sn_module_id_t child = sn_inst_module_id(module, sn_vec_at(sn_obj_id_t, &module->type_objects[SN_INST], i));
             assert(child < design->modules.size);
             if (!seen[child])
             {
@@ -132,6 +150,10 @@ struct sn_blast_ctx_t
     sn_blast_options_t options;
     int** bits;
     uint8_t* state;
+    int** gate_state; // sampled Liberty FF state, separate from output literals
+    int* cycle_bits;
+    sn_expr_lit_t* gate_scratch;
+    bool* failed;
     sn_blast_special_eval_fn special_eval;
     void* special_data;
 };
@@ -990,18 +1012,82 @@ static inline int* sn_blast_shift(sn_blast_ctx_t* ctx, sn_obj_id_t object, bool 
     return result;
 }
 
+static inline sn_expr_lit_t sn_blast_expr_and(void* aig, sn_expr_lit_t a, sn_expr_lit_t b)
+{
+    return (sn_expr_lit_t)Mini_AigAnd((Mini_Aig_t*)aig, (int)a, (int)b);
+}
+
+static inline int* sn_blast_gate_expression(sn_blast_ctx_t* ctx, sn_obj_id_t object, const sn_expr_t* e)
+{
+    assert(sn_expr_check(e));
+    size_t scratch_count = (size_t)e->inputs + e->count + 1;
+    uint32_t pins = sn_obj_fanin_count(ctx->module, object);
+    // Resolve dependencies before borrowing frame scratch: recursion through another
+    // gate in this frame may reuse it. Never traverse an unused FF data/clock pin.
+    for (uint32_t node = 0; node < e->count; node++)
+    {
+        uint32_t variables[] = {e->nodes[node].left >> 1, e->nodes[node].right >> 1};
+        for (uint32_t side = 0; side < 2; side++)
+            if (variables[side] && variables[side] <= pins)
+                sn_blast_eval(ctx, sn_obj_fanin(ctx->module, object, variables[side] - 1));
+    }
+    for (uint32_t output = 0; output < e->outputs; output++)
+    {
+        uint32_t variable = e->roots[output] >> 1;
+        if (variable && variable <= pins)
+            sn_blast_eval(ctx, sn_obj_fanin(ctx->module, object, variable - 1));
+    }
+    int* result = sn_blast_alloc_bits(e->outputs);
+    if (ctx->failed && *ctx->failed)
+    {
+        memset(result, 0, e->outputs * sizeof(*result));
+        return result;
+    }
+    sn_expr_lit_t* scratch = ctx->gate_scratch;
+    sn_expr_lit_t* outputs = scratch + scratch_count;
+    for (uint32_t input = 0; input < e->inputs; input++)
+    {
+        int* bits = input < pins ? ctx->bits[sn_obj_fanin(ctx->module, object, input)] : NULL;
+        scratch[input + 1] = input < pins ? (bits ? (sn_expr_lit_t)bits[0] : 0) :
+            (sn_expr_lit_t)ctx->gate_state[object][input - pins];
+    }
+    // Inputs occupy exactly the input slots of the replay map; the copy is in-place.
+    bool ok = sn_expr_blast(e, scratch + 1, sn_blast_expr_and, ctx->aig, scratch, scratch_count, outputs);
+    assert(ok); (void)ok;
+    for (uint32_t p = 0; p < e->outputs; p++) result[p] = (int)outputs[p];
+    return result;
+}
+
 static inline int* sn_blast_eval(sn_blast_ctx_t* ctx, sn_obj_id_t object)
 {
     const sn_module_t* m = ctx->module;
     assert(object < m->obj_types.size);
     if (ctx->bits[object])
         return ctx->bits[object];
+    if (ctx->state[object] && ctx->failed) {
+        if (!*ctx->failed) fprintf(stderr, "SN blast: combinational cycle at '%s' (object %u).\n",
+                                  sn_obj_name_id(ctx->module, object) != SN_INVALID_ID ?
+                                      sn_obj_name(ctx->module, object) : "unnamed", object);
+        *ctx->failed = true;
+        return ctx->cycle_bits;
+    }
     assert(ctx->state[object] == 0);
     ctx->state[object] = 1;
     sn_obj_type_t type = sn_obj_type(m, object);
     uint32_t width = sn_obj_width(m, object);
     int* result = NULL;
-    if ((type == SN_PI || type == SN_INST || type == SN_FAN) && ctx->special_eval)
+    if (type == SN_GATE)
+    {
+        const sn_expr_t* e = &m->design->library->functions[sn_obj_gate_id(m, object)];
+        result = sn_blast_gate_expression(ctx, object, e);
+    }
+    else if (type == SN_FAN && sn_obj_type(m, sn_fan_owner(m, object)) == SN_GATE)
+    {
+        int* outputs = sn_blast_eval(ctx, sn_fan_owner(m, object));
+        result = sn_blast_alloc_bits(1);
+        result[0] = outputs[sn_fan_output_index(m, object)];
+    }
+    else if ((type == SN_PI || type == SN_INST || type == SN_FAN) && ctx->special_eval)
         result = ctx->special_eval(ctx, object);
     else if (type == SN_PO || type == SN_LOOP_OUT || type == SN_LOOP_IN)
     {
@@ -1051,12 +1137,12 @@ static inline int* sn_blast_eval(sn_blast_ctx_t* ctx, sn_obj_id_t object)
     {
         sn_obj_id_t fanin = sn_obj_fanin(m, object, 0);
         int* source = sn_blast_eval(ctx, fanin);
-        const sn_slice_info_t* info = sn_obj_slice_info(m, object);
+        sn_slice_info_t info = sn_obj_slice_info(m, object);
         result = sn_blast_alloc_bits(width);
         for (uint32_t i = 0; i < width; i++)
         {
-            int64_t index = info->left_index >= info->right_index ? (int64_t)info->right_index + i
-                                                                   : (int64_t)info->right_index - i;
+            int64_t index = info.left_index >= info.right_index ? (int64_t)info.right_index + i
+                                                                 : (int64_t)info.right_index - i;
             assert(index >= 0 && (uint64_t)index < sn_obj_width(m, fanin));
             result[i] = source[index];
         }
@@ -1279,11 +1365,11 @@ static inline void sn_blast_check_module(const sn_module_t* module, sn_blast_opt
     for (sn_obj_id_t object = 0; object < module->obj_types.size; object++)
     {
         sn_obj_type_t type = sn_obj_type(module, object);
-        assert(type != SN_INST && type != SN_FAN);
+        assert(type != SN_INST && (type != SN_FAN || sn_obj_type(module, sn_fan_owner(module, object)) == SN_GATE));
         if (type == SN_LUT)
             assert(sn_obj_fanin_count(module, object) <= 6);
         if (type == SN_REG_OUT)
-            assert(!(sn_vec_at(uint32_t, &module->reg_flags, sn_obj_type_id(module, object)) & SN_REG_LATCH));
+            assert(!(sn_obj_reg_flags(module, object) & SN_REG_LATCH));
         if (!options.abstract_memories)
             assert(type != SN_MEM_OUT && type != SN_MEM_IN && type != SN_MEM_READ && type != SN_MEM_WRITE);
     }
@@ -1333,7 +1419,9 @@ typedef enum sn_blast_boundary_kind_t
     SN_BLAST_BOUNDARY_MEMORY_INPUT,
     SN_BLAST_BOUNDARY_PRIMITIVE_INPUT,
     SN_BLAST_BOUNDARY_REG_INPUT,
-    SN_BLAST_BOUNDARY_LOOP_INPUT
+    SN_BLAST_BOUNDARY_LOOP_INPUT,
+    SN_BLAST_BOUNDARY_GATE_STATE,
+    SN_BLAST_BOUNDARY_GATE_NEXT
 } sn_blast_boundary_kind_t;
 
 typedef struct sn_blast_hier_ref_t
@@ -1362,7 +1450,8 @@ typedef struct sn_blast_primitive_t
 {
     uint32_t occurrence;
     sn_obj_id_t inst;
-    sn_module_id_t module;
+    sn_module_id_t module; // SN_INVALID_ID for an opaque SN_GATE; inst is its owner.
+    uint32_t output_count;
     uint32_t ci_begin;
     uint32_t ci_count;
     uint32_t co_begin;
@@ -1451,9 +1540,13 @@ struct sn_blast_hier_t
     uint8_t* active_modules;
     sn_vec_t memory_reads;
     sn_vec_t memory_writes;
+    sn_vec_t latches;
     sn_vec_t registers;
     sn_vec_t loops;
     sn_vec_t abstract_insts;
+    sn_vec_t sequential_gates;
+    bool sampled_cells;
+    bool failed;
 };
 
 static inline bool sn_blast_reg_control_is_comb_output(const sn_module_t* module, sn_obj_id_t reg_out,
@@ -1467,7 +1560,7 @@ static inline bool sn_blast_reg_control_is_comb_output(const sn_module_t* module
     if (slot == SN_REG_RESET)
         return !(flags & SN_REG_RESET_ASYNC);
     if (slot == SN_REG_RESET_VALUE)
-        return sn_obj_fanin(module, reg_out, SN_REG_RESET) != SN_INVALID_ID && !(flags & SN_REG_RESET_ASYNC);
+        return sn_reg_fanin(module, reg_out, SN_REG_RESET) != SN_INVALID_ID && !(flags & SN_REG_RESET_ASYNC);
     return false;
 }
 
@@ -1478,12 +1571,22 @@ static inline bool sn_blast_hier_is_abstract_inst(const sn_blast_hier_t* hierarc
                                                            sn_inst_module_id(module, inst));
     if (sn_module_is_blackbox(child))
         return true;
+    // A latch-bearing module is a stateful macro from the combinational AIG's point of view. Keeping the complete
+    // instance opaque avoids flattening implementation-specific clock gates and latch-based register files, while
+    // the generic per-latch boundary below still handles a latch placed directly in the selected root module.
+    for (size_t i = 0; i < child->type_objects[SN_REG_OUT].size; i++)
+        if (!hierarchy->options.flatten_latch_modules &&
+            (sn_obj_reg_flags(child, sn_vec_at(sn_obj_id_t, &child->type_objects[SN_REG_OUT], i)) & SN_REG_LATCH))
+            return true;
     const char* name = sn_name_get(&hierarchy->design->names, child->name);
-    bool memory = strncmp(name, "__sn_RAM", 8) == 0 || strncmp(name, "__sn_URAM", 9) == 0;
+    bool memory = strncmp(name, "__sn_RAM", 8) == 0 || strncmp(name, "__sn_URAM", 9) == 0 ||
+                  strncmp(name, "__sn_SRL", 8) == 0;
     bool multiplier = strncmp(name, "__sn_DSP", 8) == 0;
     bool carry = strncmp(name, "__sn_CARRY", 10) == 0;
-    return hierarchy->options.abstract_instances || (memory && hierarchy->options.abstract_memories) ||
-           (multiplier && hierarchy->options.abstract_multipliers) || carry;
+    return hierarchy->options.abstract_instances ||
+           (memory && hierarchy->options.abstract_memory_primitives) ||
+           (multiplier && hierarchy->options.abstract_multipliers) ||
+           (carry && hierarchy->options.abstract_carries);
 }
 
 static inline sn_blast_hier_object_t* sn_blast_hier_add_object(sn_vec_t* objects, sn_blast_hier_frame_t* frame,
@@ -1522,8 +1625,6 @@ static inline sn_blast_hier_frame_t* sn_blast_hier_build_frame(sn_blast_hier_t* 
     hierarchy->active_modules[module_id] = 1;
     const sn_module_t* module = sn_design_get_module_const(hierarchy->design, module_id);
     assert(sn_module_is_topo(module));
-    for (size_t i = 0; i < module->reg_flags.size; i++)
-        assert(!(sn_vec_at(uint32_t, &module->reg_flags, i) & SN_REG_LATCH));
     for (size_t i = 0; i < module->type_objects[SN_LUT].size; i++)
         assert(sn_obj_fanin_count(module, sn_vec_at(sn_obj_id_t, &module->type_objects[SN_LUT], i)) <= 6);
 
@@ -1550,6 +1651,34 @@ static inline sn_blast_hier_frame_t* sn_blast_hier_build_frame(sn_blast_hier_t* 
     frame->blast.state = (uint8_t*)calloc(object_count, sizeof(uint8_t));
     frame->children = (sn_blast_hier_frame_t**)calloc(object_count, sizeof(sn_blast_hier_frame_t*));
     assert(frame->blast.bits && frame->blast.state && frame->children);
+    if (module->type_objects[SN_GATE].size)
+    {
+        frame->blast.gate_scratch = (sn_expr_lit_t*)malloc(
+            hierarchy->design->library->blast_scratch_count * sizeof(sn_expr_lit_t));
+        assert(frame->blast.gate_scratch);
+    }
+    if (hierarchy->sampled_cells) {
+        frame->blast.gate_state = (int**)calloc(object_count, sizeof(int*));
+        uint32_t max_width = 1;
+        for (sn_obj_id_t o = 0; o < object_count; o++) {
+            uint32_t width = sn_obj_type(module, o) == SN_GATE ? sn_gate_output_count(module, o) : sn_obj_width(module, o);
+            if (width > max_width) max_width = width;
+        }
+        frame->blast.cycle_bits = (int*)calloc(max_width, sizeof(int));
+        frame->blast.failed = &hierarchy->failed;
+        assert(frame->blast.gate_state && frame->blast.cycle_bits);
+        for (size_t g = 0; g < module->type_objects[SN_GATE].size; g++) {
+            sn_obj_id_t gate = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_GATE], g);
+            uint32_t cell = sn_obj_gate_id(module, gate);
+            if (hierarchy->options.opaque_sequential_gates &&
+                sn_library_ff_boundary(module->design->library, cell))
+                continue;
+            if (sn_expr_check(&module->design->library->transitions[cell])) {
+                sn_blast_hier_add_object(&hierarchy->sequential_gates, frame, gate);
+                hierarchy->stats.flop_bits += 3;
+            }
+        }
+    }
 
     // Boundary order must not depend on physical/topological object order, because a word-level transform can
     // legitimately rebuild that order. Type IDs are the stable natural order preserved by SN duplication. Collect
@@ -1578,7 +1707,9 @@ static inline sn_blast_hier_frame_t* sn_blast_hier_build_frame(sn_blast_hier_t* 
     for (size_t i = 0; i < module->type_objects[SN_REG_OUT].size; i++)
     {
         sn_obj_id_t object = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_REG_OUT], i);
-        sn_blast_hier_object_t* entry = sn_blast_hier_add_object(&hierarchy->registers, frame, object);
+        bool is_latch = (sn_obj_reg_flags(module, object) & SN_REG_LATCH) != 0;
+        sn_blast_hier_object_t* entry =
+            sn_blast_hier_add_object(is_latch ? &hierarchy->latches : &hierarchy->registers, frame, object);
         if (hierarchy->boundary)
         {
             assert(hierarchy->boundary->registers.size < UINT32_MAX);
@@ -1592,21 +1723,30 @@ static inline sn_blast_hier_frame_t* sn_blast_hier_build_frame(sn_blast_hier_t* 
                 reg->control_co_begin[slot] = SN_INVALID_ID;
             reg->width = sn_obj_width(module, object);
         }
-        hierarchy->stats.flop_bits += sn_obj_width(module, object);
-        if (hierarchy->options.expose_register_controls)
+        if (is_latch)
         {
-            const uint32_t slots[] = {SN_REG_ENABLE, SN_REG_SET, SN_REG_RESET, SN_REG_RESET_VALUE};
+            hierarchy->stats.abstraction_output_bits += sn_obj_width(module, object);
+            hierarchy->stats.abstraction_input_bits += sn_obj_width(module, object);
+        }
+        else
+            hierarchy->stats.flop_bits += sn_obj_width(module, object);
+        if (is_latch || hierarchy->options.expose_register_controls)
+        {
+            const uint32_t slots[] = {SN_REG_CLOCK, SN_REG_ENABLE, SN_REG_SET, SN_REG_RESET, SN_REG_RESET_VALUE};
             for (size_t j = 0; j < sizeof(slots) / sizeof(slots[0]); j++)
             {
-                if (hierarchy->options.mode != SN_BLAST_COMB ||
-                    !sn_blast_reg_control_is_comb_output(module, object, slots[j]))
+                if ((!is_latch && hierarchy->options.mode != SN_BLAST_COMB) ||
+                    (!hierarchy->options.probe_all_register_controls &&
+                     !sn_blast_reg_control_is_comb_output(module, object, slots[j])))
                     continue;
-                sn_obj_id_t fanin = sn_obj_fanin(module, object, slots[j]);
+                sn_obj_id_t fanin = sn_reg_fanin(module, object, (sn_reg_fanin_t)slots[j]);
                 if (fanin != SN_INVALID_ID)
                     hierarchy->stats.register_control_bits += sn_obj_width(module, fanin);
             }
         }
     }
+    // LOOPs are explicit combinational cut points, including in sampled-cell mode.
+    // Word-level merges may have apparent feedback even when each bit is acyclic.
     for (size_t i = 0; i < module->type_objects[SN_LOOP_OUT].size; i++)
     {
         sn_obj_id_t object = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_LOOP_OUT], i);
@@ -1623,6 +1763,29 @@ static inline sn_blast_hier_frame_t* sn_blast_hier_build_frame(sn_blast_hier_t* 
         }
         hierarchy->stats.abstraction_output_bits += sn_obj_width(module, object);
         hierarchy->stats.abstraction_input_bits += sn_obj_width(module, object);
+    }
+    for (size_t i = 0; i < module->type_objects[SN_GATE].size; i++)
+    {
+        sn_obj_id_t gate = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_GATE], i);
+        if (!sn_library_latch_boundary(hierarchy->design->library, sn_obj_gate_id(module, gate)) &&
+            !(hierarchy->options.opaque_sequential_gates &&
+              sn_library_ff_boundary(hierarchy->design->library, sn_obj_gate_id(module, gate))))
+            continue;
+        sn_blast_hier_object_t* entry = sn_blast_hier_add_object(&hierarchy->abstract_insts, frame, gate);
+        uint32_t outputs = sn_gate_output_count(module, gate);
+        if (hierarchy->boundary)
+        {
+            entry->boundary_owner = (uint32_t)hierarchy->boundary->primitives.size;
+            sn_blast_primitive_t* primitive = sn_vec_push(sn_blast_primitive_t, &hierarchy->boundary->primitives);
+            memset(primitive, 0, sizeof(*primitive));
+            primitive->occurrence = frame->occurrence;
+            primitive->inst = gate;
+            primitive->module = SN_INVALID_ID;
+            primitive->output_count = outputs;
+            primitive->ci_begin = primitive->co_begin = SN_INVALID_ID;
+        }
+        hierarchy->stats.abstraction_output_bits += outputs;
+        hierarchy->stats.abstraction_input_bits += sn_obj_fanin_count(module, gate);
     }
     for (size_t i = 0; i < module->type_objects[SN_INST].size; i++)
     {
@@ -1641,6 +1804,7 @@ static inline sn_blast_hier_frame_t* sn_blast_hier_build_frame(sn_blast_hier_t* 
                 primitive->occurrence = frame->occurrence;
                 primitive->inst = object;
                 primitive->module = child->id;
+                primitive->output_count = (uint32_t)child->type_objects[SN_PO].size;
                 primitive->ci_begin = SN_INVALID_ID;
                 primitive->ci_count = 0;
                 primitive->co_begin = SN_INVALID_ID;
@@ -1678,7 +1842,7 @@ static inline int* sn_blast_hier_eval_inst(sn_blast_ctx_t* context, sn_obj_id_t 
     if (type == SN_PI)
     {
         assert(frame->parent && frame->parent_inst != SN_INVALID_ID);
-        uint32_t port = sn_obj_type_id(module, object);
+        uint32_t port = sn_obj_data(module, object);
         sn_obj_id_t parent_fanin = sn_obj_fanin(frame->parent->blast.module, frame->parent_inst, port);
         assert(sn_obj_width(module, object) == sn_obj_width(frame->parent->blast.module, parent_fanin));
         int* source = sn_blast_eval(&frame->parent->blast, parent_fanin);
@@ -1728,6 +1892,306 @@ static inline void sn_blast_hier_seed_object(sn_blast_hier_frame_t* frame, sn_ob
     frame->blast.state[object] = 2;
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// Canonical boundary names. A boundary bit is named after its hierarchical owner and pin rather than its position,
+// so the CIs/COs of a blast taken before and after @put (or after any transformation that keeps the boundary) can be
+// matched by name, for example by ABC's `cec` command. Instance paths use '.', pins use '/', and bits use [b].
+// Unnamed objects fall back to type-and-ID names, which are reported as non-canonical because IDs change.
+
+typedef struct sn_blast_name_t
+{
+    char* text;
+    size_t size;
+    size_t capacity;
+} sn_blast_name_t;
+
+static inline void sn_blast_name_append(sn_blast_name_t* name, const char* text)
+{
+    size_t length = strlen(text);
+    if (name->size + length + 1 > name->capacity)
+    {
+        size_t capacity = name->capacity ? name->capacity : 64;
+        while (name->size + length + 1 > capacity)
+            capacity *= 2;
+        name->text = (char*)realloc(name->text, capacity);
+        assert(name->text);
+        name->capacity = capacity;
+    }
+    memcpy(name->text + name->size, text, length + 1);
+    name->size += length;
+}
+
+static inline void sn_blast_name_append_number(sn_blast_name_t* name, const char* prefix, uint32_t number)
+{
+    char text[32];
+    snprintf(text, sizeof(text), "%s%u", prefix, number);
+    sn_blast_name_append(name, text);
+}
+
+static inline void sn_blast_name_append_bit(sn_blast_name_t* name, uint32_t bit)
+{
+    char text[24];
+    snprintf(text, sizeof(text), "[%u]", bit);
+    sn_blast_name_append(name, text);
+}
+
+static inline void sn_blast_name_object(const sn_module_t* module, sn_obj_id_t object, const char* fallback,
+                                        sn_blast_name_t* name, bool* canonical)
+{
+    if (sn_obj_name_id(module, object) != SN_INVALID_ID)
+        sn_blast_name_append(name, sn_obj_name(module, object));
+    else
+    {
+        sn_blast_name_append_number(name, fallback, object);
+        *canonical = false;
+    }
+}
+
+// Appends "inst.inst." for the instance chain leading to occurrence; the root occurrence has an empty path.
+static inline void sn_blast_occurrence_path(const sn_design_t* design, const sn_blast_boundary_t* boundary,
+                                            uint32_t occurrence, sn_blast_name_t* name, bool* canonical)
+{
+    sn_vec_t chain;
+    sn_vec_init(&chain);
+    while (occurrence != 0 && occurrence < boundary->occurrences.size)
+    {
+        *sn_vec_push(uint32_t, &chain) = occurrence;
+        occurrence = sn_vec_at(sn_blast_occurrence_t, &boundary->occurrences, occurrence).parent_occurrence;
+    }
+    for (size_t i = chain.size; i-- > 0;)
+    {
+        const sn_blast_occurrence_t* entry =
+            &sn_vec_at(sn_blast_occurrence_t, &boundary->occurrences, sn_vec_at(uint32_t, &chain, i));
+        const sn_module_t* parent = sn_design_get_module_const(
+            design, sn_vec_at(sn_blast_occurrence_t, &boundary->occurrences, entry->parent_occurrence).module);
+        sn_blast_name_object(parent, entry->parent_inst, "inst", name, canonical);
+        sn_blast_name_append(name, ".");
+    }
+    sn_vec_destroy(&chain);
+}
+
+// Appends "<owner>/<pin>" for a gate or "<owner>/<port>[bit]" for an instance.
+static inline void sn_blast_owner_pin_name(const sn_design_t* design, const sn_module_t* module, sn_obj_id_t owner,
+                                           bool is_output, uint32_t port, uint32_t bit, sn_blast_name_t* name,
+                                           bool* canonical)
+{
+    bool gate = sn_obj_type(module, owner) == SN_GATE;
+    sn_blast_name_object(module, owner, gate ? "gate" : "inst", name, canonical);
+    sn_blast_name_append(name, "/");
+    if (gate)
+    {
+        const char* pin = design->library ? sn_library_pin_name(design->library, sn_obj_gate_id(module, owner),
+                                                                is_output ? SN_LIB_OUTPUT : SN_LIB_INPUT, port)
+                                          : NULL;
+        if (pin)
+            sn_blast_name_append(name, pin);
+        else
+            sn_blast_name_append_number(name, is_output ? "out" : "in", port);
+        return;
+    }
+    const sn_module_t* child = sn_design_get_module_const(design, sn_inst_module_id(module, owner));
+    sn_obj_id_t port_object = sn_vec_at(sn_obj_id_t, &child->type_objects[is_output ? SN_PO : SN_PI], port);
+    sn_blast_name_object(child, port_object, is_output ? "po" : "pi", name, canonical);
+    sn_blast_name_append_bit(name, bit);
+}
+
+// Canonical name of one bit of a signal: a named object, or a name derived structurally from a gate or instance
+// output, slice, buffer, cast, concatenation, or unnamed loop output over named signals. Returns false when no
+// such derivation exists; nothing is appended in that case.
+static inline bool sn_blast_signal_name(const sn_design_t* design, const sn_module_t* module, sn_obj_id_t object,
+                                        uint32_t bit, sn_blast_name_t* name, bool* canonical, unsigned depth)
+{
+    if (object == SN_INVALID_ID || depth > 64)
+        return false;
+    if (sn_obj_name_id(module, object) != SN_INVALID_ID)
+    {
+        sn_blast_name_append(name, sn_obj_name(module, object));
+        sn_blast_name_append_bit(name, bit);
+        return true;
+    }
+    sn_obj_type_t type = sn_obj_type(module, object);
+    if (type == SN_FAN)
+    {
+        sn_obj_id_t owner = sn_fan_owner(module, object);
+        sn_obj_type_t owner_type = sn_obj_type(module, owner);
+        if (owner_type != SN_GATE && owner_type != SN_INST)
+            return false;
+        sn_blast_owner_pin_name(design, module, owner, true, sn_fan_output_index(module, object), bit, name, canonical);
+        return true;
+    }
+    if (type == SN_GATE || type == SN_INST)
+    {
+        sn_blast_owner_pin_name(design, module, object, true, 0, bit, name, canonical);
+        return true;
+    }
+    if (type == SN_SLICE)
+    {
+        sn_slice_info_t info = sn_obj_slice_info(module, object);
+        int64_t index = info.left_index >= info.right_index ? (int64_t)info.right_index + bit
+                                                             : (int64_t)info.right_index - bit;
+        if (index < 0)
+            return false;
+        return sn_blast_signal_name(design, module, sn_obj_fanin(module, object, 0), (uint32_t)index, name,
+                                    canonical, depth + 1);
+    }
+    if (type == SN_BUF || type == SN_CAST || type == SN_POS)
+    {
+        sn_obj_id_t fanin = sn_obj_fanin(module, object, 0);
+        if (fanin == SN_INVALID_ID || bit >= sn_obj_width(module, fanin))
+            return false;
+        return sn_blast_signal_name(design, module, fanin, bit, name, canonical, depth + 1);
+    }
+    if (type == SN_CONCAT)
+    {
+        for (uint32_t i = 0; i < sn_obj_fanin_count(module, object); i++)
+        {
+            sn_obj_id_t fanin = sn_obj_fanin(module, object, i);
+            uint32_t width = fanin == SN_INVALID_ID ? 0 : sn_obj_width(module, fanin);
+            if (bit < width)
+                return sn_blast_signal_name(design, module, fanin, bit, name, canonical, depth + 1);
+            bit -= width;
+        }
+        return false;
+    }
+    if (type == SN_LOOP_OUT)
+        return sn_blast_signal_name(design, module, sn_obj_fanin(module, sn_obj_pair_in(module, object), 0), bit,
+                                    name, canonical, depth + 1);
+    return false;
+}
+
+// Appends the canonical base name of a loop pair: its own name, or "loop:" followed by the canonical name of bit 0
+// of its driver. The same rule names reconstructed loops, so blasts before and after @put agree.
+static inline void sn_blast_loop_base_name(const sn_design_t* design, const sn_module_t* module,
+                                           sn_obj_id_t loop_out, sn_blast_name_t* name, bool* canonical)
+{
+    if (sn_obj_name_id(module, loop_out) != SN_INVALID_ID)
+    {
+        sn_blast_name_append(name, sn_obj_name(module, loop_out));
+        return;
+    }
+    size_t size = name->size;
+    sn_blast_name_append(name, "loop:");
+    if (sn_blast_signal_name(design, module, sn_obj_fanin(module, sn_obj_pair_in(module, loop_out), 0), 0, name,
+                             canonical, 0))
+        return;
+    name->size = size;
+    name->text[size] = '\0';
+    sn_blast_name_append_number(name, "loop", loop_out);
+    *canonical = false;
+}
+
+static const char* const sn_blast_reg_slot_names[SN_REG_FANIN_COUNT] = {"d", "clock", "enable", "set", "reset",
+                                                                        "init", "mask", "reset_value"};
+
+// Returns the malloc'd canonical name of one boundary bit and clears *canonical when a fallback name was used.
+static inline char* sn_blast_boundary_bit_name(const sn_design_t* design, const sn_blast_boundary_t* boundary,
+                                               const sn_blast_boundary_bit_t* bit, bool* canonical)
+{
+    sn_blast_name_t name = {NULL, 0, 0};
+    bool ok = true;
+    uint32_t occurrence = bit->signal.occurrence;
+    const sn_module_t* module =
+        occurrence < boundary->occurrences.size
+            ? sn_design_get_module_const(design,
+                                         sn_vec_at(sn_blast_occurrence_t, &boundary->occurrences, occurrence).module)
+            : NULL;
+    if (!module)
+    {
+        sn_blast_name_append_number(&name, "bit", bit->signal.object);
+        sn_blast_name_append_bit(&name, bit->signal.bit);
+        *canonical = false;
+        return name.text;
+    }
+    sn_blast_occurrence_path(design, boundary, occurrence, &name, &ok);
+    switch (bit->kind)
+    {
+    case SN_BLAST_BOUNDARY_TOP_PI:
+    case SN_BLAST_BOUNDARY_TOP_PO:
+        sn_blast_name_object(module, bit->signal.object, bit->kind == SN_BLAST_BOUNDARY_TOP_PI ? "pi" : "po", &name,
+                             &ok);
+        sn_blast_name_append_bit(&name, bit->signal.bit);
+        break;
+    case SN_BLAST_BOUNDARY_PRIMITIVE_OUTPUT:
+    case SN_BLAST_BOUNDARY_PRIMITIVE_INPUT:
+        if (bit->owner < boundary->primitives.size)
+        {
+            const sn_blast_primitive_t* entry = &sn_vec_at(sn_blast_primitive_t, &boundary->primitives, bit->owner);
+            sn_blast_owner_pin_name(design, module, entry->inst, bit->kind == SN_BLAST_BOUNDARY_PRIMITIVE_OUTPUT,
+                                    bit->port, bit->signal.bit, &name, &ok);
+        }
+        else
+        {
+            sn_blast_name_append_number(&name, "primitive", bit->signal.object);
+            sn_blast_name_append_bit(&name, bit->signal.bit);
+            ok = false;
+        }
+        break;
+    case SN_BLAST_BOUNDARY_REG_OUTPUT:
+    case SN_BLAST_BOUNDARY_REG_INPUT:
+    case SN_BLAST_BOUNDARY_REG_CONTROL:
+        if (bit->owner < boundary->registers.size)
+        {
+            const sn_blast_register_t* entry = &sn_vec_at(sn_blast_register_t, &boundary->registers, bit->owner);
+            sn_blast_name_object(module, entry->reg_out, "reg", &name, &ok);
+            if (bit->kind == SN_BLAST_BOUNDARY_REG_INPUT)
+                sn_blast_name_append(&name, "/d");
+            else if (bit->kind == SN_BLAST_BOUNDARY_REG_CONTROL)
+            {
+                sn_blast_name_append(&name, "/");
+                sn_blast_name_append(&name, bit->port < SN_REG_FANIN_COUNT ? sn_blast_reg_slot_names[bit->port]
+                                                                            : "control");
+            }
+            sn_blast_name_append_bit(&name, bit->signal.bit);
+        }
+        else
+        {
+            sn_blast_name_append_number(&name, "reg", bit->signal.object);
+            sn_blast_name_append_bit(&name, bit->signal.bit);
+            ok = false;
+        }
+        break;
+    case SN_BLAST_BOUNDARY_LOOP_OUTPUT:
+    case SN_BLAST_BOUNDARY_LOOP_INPUT:
+        if (bit->owner < boundary->loops.size)
+        {
+            const sn_blast_loop_t* entry = &sn_vec_at(sn_blast_loop_t, &boundary->loops, bit->owner);
+            sn_blast_loop_base_name(design, module, entry->loop_out, &name, &ok);
+            if (bit->kind == SN_BLAST_BOUNDARY_LOOP_INPUT)
+                sn_blast_name_append(&name, "/d");
+            sn_blast_name_append_bit(&name, bit->port);
+        }
+        else
+        {
+            sn_blast_name_append_number(&name, "loop", bit->signal.object);
+            sn_blast_name_append_bit(&name, bit->signal.bit);
+            ok = false;
+        }
+        break;
+    case SN_BLAST_BOUNDARY_GATE_STATE:
+    case SN_BLAST_BOUNDARY_GATE_NEXT:
+        sn_blast_name_object(module, bit->signal.object, "gate", &name, &ok);
+        sn_blast_name_append(&name, bit->kind == SN_BLAST_BOUNDARY_GATE_STATE ? "/state" : "/next");
+        sn_blast_name_append_bit(&name, bit->port);
+        break;
+    case SN_BLAST_BOUNDARY_MEMORY_OUTPUT:
+        sn_blast_name_object(module, bit->signal.object, "mem", &name, &ok);
+        sn_blast_name_append_number(&name, "/read", bit->port);
+        sn_blast_name_append_bit(&name, bit->signal.bit);
+        break;
+    case SN_BLAST_BOUNDARY_MEMORY_INPUT:
+    default:
+        // The memory owner is not recorded on its input bits; @put rejects generic memories anyway.
+        sn_blast_name_append_number(&name, "memory_input", bit->signal.object);
+        sn_blast_name_append_number(&name, "/port", bit->port);
+        sn_blast_name_append_bit(&name, bit->signal.bit);
+        ok = false;
+        break;
+    }
+    if (!ok)
+        *canonical = false;
+    return name.text;
+}
+
 static inline void sn_blast_boundary_add_bit(sn_blast_hier_t* hierarchy, bool is_ci,
                                               sn_blast_boundary_kind_t kind, sn_blast_hier_frame_t* frame,
                                               sn_obj_id_t object, uint32_t bit, uint32_t owner, uint32_t port)
@@ -1748,9 +2212,7 @@ static inline void sn_blast_hier_seed_abstract_inst(sn_blast_hier_object_t occur
 {
     const sn_module_t* module = occurrence.frame->blast.module;
     sn_obj_id_t inst = occurrence.object;
-    const sn_module_t* child = sn_design_get_module_const(occurrence.frame->hierarchy->design,
-                                                           sn_inst_module_id(module, inst));
-    uint32_t output_count = (uint32_t)child->type_objects[SN_PO].size;
+    uint32_t output_count = sn_owner_output_count(module, inst);
     sn_blast_primitive_t* primitive = NULL;
     if (occurrence.frame->hierarchy->boundary)
     {
@@ -1762,7 +2224,7 @@ static inline void sn_blast_hier_seed_abstract_inst(sn_blast_hier_object_t occur
     }
     for (uint32_t i = 0; i < output_count; i++)
     {
-        sn_obj_id_t output = output_count == 1 ? inst : sn_inst_output(module, inst, i);
+        sn_obj_id_t output = sn_owner_output(module, inst, i);
         sn_blast_hier_seed_object(occurrence.frame, output, aig, false);
         for (uint32_t bit = 0; bit < sn_obj_width(module, output); bit++)
             sn_blast_boundary_add_bit(occurrence.frame->hierarchy, true,
@@ -1798,16 +2260,18 @@ static inline void sn_blast_hier_emit_memory_inputs(sn_blast_hier_object_t occur
 static inline void sn_blast_hier_emit_register_controls(sn_blast_hier_object_t occurrence, Mini_Aig_t* aig)
 {
     sn_blast_hier_t* hierarchy = occurrence.frame->hierarchy;
-    if (!hierarchy->options.expose_register_controls || hierarchy->options.mode != SN_BLAST_COMB)
-        return;
     const sn_module_t* module = occurrence.frame->blast.module;
-    const uint32_t slots[] = {SN_REG_ENABLE, SN_REG_SET, SN_REG_RESET, SN_REG_RESET_VALUE};
+    bool is_latch = (sn_obj_reg_flags(module, occurrence.object) & SN_REG_LATCH) != 0;
+    if (!is_latch && (!hierarchy->options.expose_register_controls || hierarchy->options.mode != SN_BLAST_COMB))
+        return;
+    const uint32_t slots[] = {SN_REG_CLOCK, SN_REG_ENABLE, SN_REG_SET, SN_REG_RESET, SN_REG_RESET_VALUE};
     for (size_t i = 0; i < sizeof(slots) / sizeof(slots[0]); i++)
     {
         uint32_t slot = slots[i];
-        if (!sn_blast_reg_control_is_comb_output(module, occurrence.object, slot))
+        if (!hierarchy->options.probe_all_register_controls &&
+            !sn_blast_reg_control_is_comb_output(module, occurrence.object, slot))
             continue;
-        sn_obj_id_t fanin = sn_obj_fanin(module, occurrence.object, slot);
+        sn_obj_id_t fanin = sn_reg_fanin(module, occurrence.object, (sn_reg_fanin_t)slot);
         if (fanin == SN_INVALID_ID)
             continue;
         int* bits = sn_blast_eval(&occurrence.frame->blast, fanin);
@@ -1833,7 +2297,7 @@ static inline int* sn_blast_hier_reg_next(sn_blast_hier_object_t occurrence)
     sn_blast_ctx_t* context = &occurrence.frame->blast;
     const sn_module_t* module = context->module;
     sn_obj_id_t reg_out = occurrence.object;
-    sn_obj_id_t reg_in = sn_obj_fanin(module, reg_out, SN_REG_DATA);
+    sn_obj_id_t reg_in = sn_obj_pair_in(module, reg_out);
     sn_obj_id_t data = sn_obj_fanin(module, reg_in, 0);
     uint32_t width = sn_obj_width(module, reg_out);
     uint32_t flags = sn_obj_reg_flags(module, reg_out);
@@ -1841,7 +2305,7 @@ static inline int* sn_blast_hier_reg_next(sn_blast_hier_object_t occurrence)
     int* result = sn_blast_alloc_bits(width);
     sn_blast_copy(result, source, width);
 
-    sn_obj_id_t enable = sn_obj_fanin(module, reg_out, SN_REG_ENABLE);
+    sn_obj_id_t enable = sn_reg_fanin(module, reg_out, SN_REG_ENABLE);
     if (enable != SN_INVALID_ID)
     {
         int control = sn_blast_eval(context, enable)[0];
@@ -1850,7 +2314,7 @@ static inline int* sn_blast_hier_reg_next(sn_blast_hier_object_t occurrence)
             result[bit] = Mini_AigMux(context->aig, control, result[bit], state[bit]);
     }
 
-    sn_obj_id_t set = sn_obj_fanin(module, reg_out, SN_REG_SET);
+    sn_obj_id_t set = sn_reg_fanin(module, reg_out, SN_REG_SET);
     if (set != SN_INVALID_ID && !(flags & SN_REG_SET_ASYNC))
     {
         int control = sn_blast_eval(context, set)[0];
@@ -1860,13 +2324,13 @@ static inline int* sn_blast_hier_reg_next(sn_blast_hier_object_t occurrence)
             result[bit] = Mini_AigMux(context->aig, control, Mini_AigLitConst1(), result[bit]);
     }
 
-    sn_obj_id_t reset = sn_obj_fanin(module, reg_out, SN_REG_RESET);
+    sn_obj_id_t reset = sn_reg_fanin(module, reg_out, SN_REG_RESET);
     if (reset != SN_INVALID_ID && !(flags & SN_REG_RESET_ASYNC))
     {
         int control = sn_blast_eval(context, reset)[0];
         if (flags & SN_REG_RESET_NEGEDGE)
             control = Mini_AigLitNot(control);
-        sn_obj_id_t value = sn_obj_fanin(module, reg_out, SN_REG_RESET_VALUE);
+        sn_obj_id_t value = sn_reg_fanin(module, reg_out, SN_REG_RESET_VALUE);
         int* reset_bits = value == SN_INVALID_ID ? NULL : sn_blast_eval(context, value);
         for (uint32_t bit = 0; bit < width; bit++)
             result[bit] = Mini_AigMux(context->aig, control,
@@ -1882,9 +2346,13 @@ static inline void sn_blast_hier_destroy_frame(sn_blast_hier_frame_t* frame)
         if (frame->children[object])
             sn_blast_hier_destroy_frame(frame->children[object]);
         free(frame->blast.bits[object]);
+        if (frame->blast.gate_state) free(frame->blast.gate_state[object]);
     }
     free(frame->blast.bits);
     free(frame->blast.state);
+    free(frame->blast.gate_state);
+    free(frame->blast.cycle_bits);
+    free(frame->blast.gate_scratch);
     free(frame->children);
     free(frame);
 }
@@ -1920,11 +2388,79 @@ static inline Mini_Aig_t* sn_design_blast_hier_boundary_options(const sn_design_
                                                                 sn_blast_boundary_t* boundary)
 {
     assert(design && top_module_id < design->modules.size);
+    if (options.flatten_latch_modules &&
+        (options.mode != SN_BLAST_COMB || !options.probe_all_register_controls || !boundary))
+        return NULL;
+    // Compile once per attached library, never once per occurrence. Reject
+    // absent/unsupported semantics before allocating any AIG or boundary state.
+    if (design->library && !sn_library_compile(design->library))
+        return NULL;
+    uint8_t* gate_seen = (uint8_t*)calloc(design->modules.size, 1);
+    sn_module_id_t* gate_pending = (sn_module_id_t*)malloc(design->modules.size * sizeof(*gate_pending));
+    if (!gate_seen || !gate_pending)
+    {
+        free(gate_seen); free(gate_pending);
+        return NULL;
+    }
+    size_t gate_pending_count = 1;
+    gate_pending[0] = top_module_id;
+    gate_seen[top_module_id] = 1;
+    bool gates_supported = true;
+    bool sampled_cells = false, word_state = false;
+    while (gate_pending_count && gates_supported)
+    {
+        const sn_module_t* module = sn_design_get_module_const(design, gate_pending[--gate_pending_count]);
+        word_state |= module->type_objects[SN_REG_OUT].size != 0 || module->type_objects[SN_MEM_OUT].size != 0;
+        if (!options.abstract_instances)
+            for (size_t ii = 0; ii < module->type_objects[SN_INST].size; ii++)
+            {
+                sn_module_id_t child = sn_inst_module_id(module, sn_vec_at(sn_obj_id_t, &module->type_objects[SN_INST], ii));
+                if (!gate_seen[child])
+                {
+                    gate_seen[child] = 1;
+                    gate_pending[gate_pending_count++] = child;
+                }
+            }
+        for (size_t gi = 0; gi < module->type_objects[SN_GATE].size; gi++)
+        {
+            sn_obj_id_t gate = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_GATE], gi);
+            uint32_t cell = sn_obj_gate_id(module, gate);
+            if (sn_library_latch_boundary(design->library, cell) ||
+                (options.opaque_sequential_gates && sn_library_ff_boundary(design->library, cell)))
+                continue;
+            if (design->library && cell < design->library->cell_count)
+                sampled_cells |= sn_expr_check(&design->library->transitions[cell]);
+            if (!design->library || cell >= design->library->cell_count ||
+                !sn_expr_check(&design->library->functions[cell]))
+            {
+                fprintf(stderr, "SN blast: gate '%s' has no supported bound function (cell ID %u).\n",
+                        sn_obj_name_id(module, gate) != SN_INVALID_ID ? sn_obj_name(module, gate) : "unnamed", cell);
+                if (design->library && cell < design->library->cell_count)
+                    fprintf(stderr, "SN blast: %s: %s.\n",
+                            sn_library_cell_name(design->library, cell),
+                            design->library->cells[cell].unsupported_reason);
+                gates_supported = false;
+                break;
+            }
+        }
+    }
+    free(gate_pending); free(gate_seen);
+    if (!gates_supported)
+        return NULL;
+    if (sampled_cells && word_state) {
+        fprintf(stderr, "SN blast: cannot mix sampled Liberty FFs with clock-abstracted SN state.\n");
+        return NULL;
+    }
+    if (sampled_cells && options.abstract_instances) {
+        fprintf(stderr, "SN blast: sampled Liberty FFs do not support partition reconstruction yet.\n");
+        return NULL;
+    }
     sn_blast_hier_t hierarchy;
     memset(&hierarchy, 0, sizeof(hierarchy));
     hierarchy.design = design;
     hierarchy.options = options;
     hierarchy.boundary = boundary;
+    hierarchy.sampled_cells = sampled_cells;
     if (boundary)
         assert(boundary->occurrences.size == 0 && boundary->primitives.size == 0 &&
                boundary->registers.size == 0 && boundary->loops.size == 0 &&
@@ -1933,9 +2469,11 @@ static inline Mini_Aig_t* sn_design_blast_hier_boundary_options(const sn_design_
     assert(hierarchy.active_modules);
     sn_vec_init(&hierarchy.memory_reads);
     sn_vec_init(&hierarchy.memory_writes);
+    sn_vec_init(&hierarchy.latches);
     sn_vec_init(&hierarchy.registers);
     sn_vec_init(&hierarchy.loops);
     sn_vec_init(&hierarchy.abstract_insts);
+    sn_vec_init(&hierarchy.sequential_gates);
 
     sn_blast_hier_frame_t* root =
         sn_blast_hier_build_frame(&hierarchy, top_module_id, SN_INVALID_ID, SN_INVALID_ID, NULL);
@@ -1968,6 +2506,17 @@ static inline Mini_Aig_t* sn_design_blast_hier_boundary_options(const sn_design_
     for (size_t i = 0; i < hierarchy.abstract_insts.size; i++)
         sn_blast_hier_seed_abstract_inst(
             sn_vec_at(sn_blast_hier_object_t, &hierarchy.abstract_insts, i), hierarchy.aig);
+    for (size_t i = 0; i < hierarchy.latches.size; i++)
+    {
+        sn_blast_hier_object_t occurrence = sn_vec_at(sn_blast_hier_object_t, &hierarchy.latches, i);
+        if (boundary)
+            sn_vec_at(sn_blast_register_t, &boundary->registers, occurrence.boundary_owner).ci_begin =
+                (uint32_t)boundary->cis.size;
+        sn_blast_hier_seed_object(occurrence.frame, occurrence.object, hierarchy.aig, false);
+        for (uint32_t bit = 0; bit < sn_obj_width(occurrence.frame->blast.module, occurrence.object); bit++)
+            sn_blast_boundary_add_bit(&hierarchy, true, SN_BLAST_BOUNDARY_REG_OUTPUT, occurrence.frame,
+                                      occurrence.object, bit, occurrence.boundary_owner, bit);
+    }
     for (size_t i = 0; i < hierarchy.loops.size; i++)
     {
         sn_blast_hier_object_t occurrence = sn_vec_at(sn_blast_hier_object_t, &hierarchy.loops, i);
@@ -1993,6 +2542,17 @@ static inline Mini_Aig_t* sn_design_blast_hier_boundary_options(const sn_design_
             sn_blast_boundary_add_bit(&hierarchy, true, SN_BLAST_BOUNDARY_REG_OUTPUT, occurrence.frame,
                                       occurrence.object, bit, occurrence.boundary_owner, bit);
     }
+    for (size_t i = 0; i < hierarchy.sequential_gates.size; i++) {
+        sn_blast_hier_object_t cell = sn_vec_at(sn_blast_hier_object_t, &hierarchy.sequential_gates, i);
+        int* bits = sn_blast_alloc_bits(3);
+        cell.frame->blast.gate_state[cell.object] = bits;
+        for (uint32_t b = 0; b < 3; b++) {
+            bits[b] = Mini_AigCreatePi(hierarchy.aig);
+            // Zero-initialized AIG state represents IQ=0, IQN=1, previous-clock=0.
+            if (b == 1) bits[b] = Mini_AigLitNot(bits[b]);
+            sn_blast_boundary_add_bit(&hierarchy, true, SN_BLAST_BOUNDARY_GATE_STATE, cell.frame, cell.object, b, (uint32_t)i, b);
+        }
+    }
     assert((uint64_t)Mini_AigPiNum(hierarchy.aig) == hierarchy.stats.primary_input_bits +
                                                        hierarchy.stats.abstraction_output_bits +
                                                        hierarchy.stats.flop_bits);
@@ -2002,8 +2562,29 @@ static inline Mini_Aig_t* sn_design_blast_hier_boundary_options(const sn_design_
     // preparation also avoids elaborating clock and asynchronous-control cones.
     int** reg_next = (int**)calloc(hierarchy.registers.size, sizeof(int*));
     assert(reg_next || hierarchy.registers.size == 0);
+    int** cell_next = (int**)calloc(hierarchy.sequential_gates.size, sizeof(int*));
+    assert(cell_next || !hierarchy.sequential_gates.size);
+    for (size_t i = 0; i < hierarchy.sequential_gates.size; i++) {
+        sn_blast_hier_object_t cell = sn_vec_at(sn_blast_hier_object_t, &hierarchy.sequential_gates, i);
+        cell_next[i] = sn_blast_gate_expression(&cell.frame->blast, cell.object,
+            &design->library->transitions[sn_obj_gate_id(cell.frame->blast.module, cell.object)]);
+    }
     for (size_t i = 0; i < top->type_objects[SN_PO].size; i++)
         sn_blast_eval(&root->blast, sn_vec_at(sn_obj_id_t, &top->type_objects[SN_PO], i));
+    for (size_t i = 0; i < hierarchy.latches.size; i++)
+    {
+        sn_blast_hier_object_t occurrence = sn_vec_at(sn_blast_hier_object_t, &hierarchy.latches, i);
+        const sn_module_t* module = occurrence.frame->blast.module;
+        sn_obj_id_t reg_in = sn_obj_pair_in(module, occurrence.object);
+        sn_blast_eval(&occurrence.frame->blast, sn_obj_fanin(module, reg_in, 0));
+        const uint32_t slots[] = {SN_REG_ENABLE, SN_REG_SET, SN_REG_RESET, SN_REG_RESET_VALUE};
+        for (size_t k = 0; k < sizeof(slots) / sizeof(slots[0]); k++)
+        {
+            sn_obj_id_t fanin = sn_reg_fanin(module, occurrence.object, (sn_reg_fanin_t)slots[k]);
+            if (fanin != SN_INVALID_ID && sn_blast_reg_control_is_comb_output(module, occurrence.object, slots[k]))
+                sn_blast_eval(&occurrence.frame->blast, fanin);
+        }
+    }
     for (size_t i = 0; i < hierarchy.registers.size; i++)
     {
         sn_blast_hier_object_t occurrence = sn_vec_at(sn_blast_hier_object_t, &hierarchy.registers, i);
@@ -2012,13 +2593,14 @@ static inline Mini_Aig_t* sn_design_blast_hier_boundary_options(const sn_design_
             reg_next[i] = sn_blast_hier_reg_next(occurrence);
         else
         {
-            sn_obj_id_t reg_in = sn_obj_fanin(module, occurrence.object, SN_REG_DATA);
+            sn_obj_id_t reg_in = sn_obj_pair_in(module, occurrence.object);
             sn_blast_eval(&occurrence.frame->blast, sn_obj_fanin(module, reg_in, 0));
-            const uint32_t slots[] = {SN_REG_ENABLE, SN_REG_SET, SN_REG_RESET, SN_REG_RESET_VALUE};
+            const uint32_t slots[] = {SN_REG_CLOCK, SN_REG_ENABLE, SN_REG_SET, SN_REG_RESET, SN_REG_RESET_VALUE};
             for (size_t k = 0; k < sizeof(slots) / sizeof(slots[0]); k++)
-                if (sn_blast_reg_control_is_comb_output(module, occurrence.object, slots[k]))
+                if (options.probe_all_register_controls ||
+                    sn_blast_reg_control_is_comb_output(module, occurrence.object, slots[k]))
                 {
-                    sn_obj_id_t fanin = sn_obj_fanin(module, occurrence.object, slots[k]);
+                    sn_obj_id_t fanin = sn_reg_fanin(module, occurrence.object, (sn_reg_fanin_t)slots[k]);
                     if (fanin != SN_INVALID_ID)
                         sn_blast_eval(&occurrence.frame->blast, fanin);
                 }
@@ -2075,6 +2657,9 @@ static inline Mini_Aig_t* sn_design_blast_hier_boundary_options(const sn_design_
     for (size_t i = 0; i < hierarchy.registers.size; i++)
         sn_blast_hier_emit_register_controls(
             sn_vec_at(sn_blast_hier_object_t, &hierarchy.registers, i), hierarchy.aig);
+    for (size_t i = 0; i < hierarchy.latches.size; i++)
+        sn_blast_hier_emit_register_controls(
+            sn_vec_at(sn_blast_hier_object_t, &hierarchy.latches, i), hierarchy.aig);
     for (size_t i = 0; i < hierarchy.memory_reads.size; i++)
         sn_blast_hier_emit_memory_inputs(sn_vec_at(sn_blast_hier_object_t, &hierarchy.memory_reads, i),
                                          hierarchy.aig);
@@ -2125,12 +2710,33 @@ static inline Mini_Aig_t* sn_design_blast_hier_boundary_options(const sn_design_
         }
     }
 
+    // Latches remain opaque state boundaries in every mode. Their output bits are ordinary CIs and their raw data
+    // bits are ordinary COs, so MiniAIG never mistakes them for edge-triggered registers. @put reconnects the saved
+    // latch flags and controls around the transformed combinational cloud.
+    for (size_t i = 0; i < hierarchy.latches.size; i++)
+    {
+        sn_blast_hier_object_t occurrence = sn_vec_at(sn_blast_hier_object_t, &hierarchy.latches, i);
+        const sn_module_t* module = occurrence.frame->blast.module;
+        sn_obj_id_t reg_in = sn_obj_pair_in(module, occurrence.object);
+        sn_obj_id_t data = sn_obj_fanin(module, reg_in, 0);
+        int* bits = sn_blast_eval(&occurrence.frame->blast, data);
+        if (boundary)
+            sn_vec_at(sn_blast_register_t, &boundary->registers, occurrence.boundary_owner).co_begin =
+                (uint32_t)boundary->cos.size;
+        for (uint32_t bit = 0; bit < sn_obj_width(module, occurrence.object); bit++)
+        {
+            Mini_AigCreatePo(hierarchy.aig, bits[bit]);
+            sn_blast_boundary_add_bit(&hierarchy, false, SN_BLAST_BOUNDARY_REG_INPUT, occurrence.frame,
+                                      data, bit, occurrence.boundary_owner, bit);
+        }
+    }
+
     // Register inputs are deliberately emitted last; nRegs pairs the final CIs and final COs.
     for (size_t i = 0; i < hierarchy.registers.size; i++)
     {
         sn_blast_hier_object_t occurrence = sn_vec_at(sn_blast_hier_object_t, &hierarchy.registers, i);
         const sn_module_t* module = occurrence.frame->blast.module;
-        sn_obj_id_t reg_in = sn_obj_fanin(module, occurrence.object, SN_REG_DATA);
+        sn_obj_id_t reg_in = sn_obj_pair_in(module, occurrence.object);
         sn_obj_id_t data = sn_obj_fanin(module, reg_in, 0);
         int* bits = sn_blast_mode_has_transition(options.mode) ? reg_next[i]
                                                                : sn_blast_eval(&occurrence.frame->blast, data);
@@ -2149,6 +2755,15 @@ static inline Mini_Aig_t* sn_design_blast_hier_boundary_options(const sn_design_
             free(reg_next[i]);
     }
     free(reg_next);
+    for (size_t i = 0; i < hierarchy.sequential_gates.size; i++) {
+        sn_blast_hier_object_t cell = sn_vec_at(sn_blast_hier_object_t, &hierarchy.sequential_gates, i);
+        for (uint32_t b = 0; b < 3; b++) {
+            Mini_AigCreatePo(hierarchy.aig, b == 1 ? Mini_AigLitNot(cell_next[i][b]) : cell_next[i][b]);
+            sn_blast_boundary_add_bit(&hierarchy, false, SN_BLAST_BOUNDARY_GATE_NEXT, cell.frame, cell.object, b, (uint32_t)i, b);
+        }
+        free(cell_next[i]);
+    }
+    free(cell_next);
 
     Mini_AigSetRegNum(hierarchy.aig, options.mode == SN_BLAST_SEQ ? (int)hierarchy.stats.flop_bits : 0);
     assert(Mini_AigIsNormalized(hierarchy.aig));
@@ -2161,12 +2776,16 @@ static inline Mini_Aig_t* sn_design_blast_hier_boundary_options(const sn_design_
     if (returned_stats)
         *returned_stats = hierarchy.stats;
     Mini_Aig_t* result = hierarchy.aig;
+    if (hierarchy.failed) { Mini_AigStop(result); result = NULL; }
     sn_blast_hier_destroy_frame(root);
     sn_vec_destroy(&hierarchy.memory_reads);
     sn_vec_destroy(&hierarchy.memory_writes);
+    sn_vec_destroy(&hierarchy.latches);
     sn_vec_destroy(&hierarchy.registers);
     sn_vec_destroy(&hierarchy.loops);
     sn_vec_destroy(&hierarchy.abstract_insts);
+    sn_vec_destroy(&hierarchy.sequential_gates);
+    if (!result && boundary) { sn_blast_boundary_destroy(boundary); sn_blast_boundary_init(boundary); }
     free(hierarchy.active_modules);
     return result;
 }
@@ -2213,6 +2832,7 @@ static inline Mini_Aig_t* sn_module_blast_comb_options(const sn_module_t* module
     sn_blast_check_module(module, options);
     sn_design_t wrapper;
     memset(&wrapper, 0, sizeof(wrapper));
+    wrapper.library = module->design->library; // borrowed for this invocation
     sn_vec_init(&wrapper.modules);
     *sn_vec_push(sn_module_t*, &wrapper.modules) = (sn_module_t*)module;
     Mini_Aig_t* aig = sn_design_blast_hier_options(&wrapper, 0, options, NULL);
@@ -2250,6 +2870,8 @@ static inline void sn_module_write_aiger(const sn_module_t* module, const char* 
 {
     assert(module && file_name);
     Mini_Aig_t* aig = sn_module_blast_comb_options(module, options);
+    if (!aig)
+        return;
     Mini_AigerWrite((char*)file_name, aig, 0);
     Mini_AigStop(aig);
 }

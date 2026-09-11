@@ -98,17 +98,15 @@ static inline int sn_check_fixed_fanin_count(sn_obj_type_t type)
 {
     if (type == SN_PI || type == SN_CONST0 || type == SN_CONST1 || type == SN_CONST)
         return 0;
-    if (type == SN_PO || type == SN_BUF || type == SN_FAN || type == SN_REG_IN || type == SN_LOOP_OUT ||
-        type == SN_LOOP_IN || (type >= SN_POS && type <= SN_REDUCE_XNOR) || type == SN_REPLICATE ||
-        type == SN_SLICE || type == SN_CAST)
+    if (type == SN_PO || type == SN_BUF || type == SN_FAN || type == SN_REG_OUT || type == SN_MEM_OUT ||
+        type == SN_LOOP_OUT || type == SN_LOOP_IN || (type >= SN_POS && type <= SN_REDUCE_XNOR) ||
+        type == SN_REPLICATE || type == SN_SLICE || type == SN_CAST)
         return 1;
     if ((type >= SN_ADD && type <= SN_LOG_OR) || (type >= SN_EQ && type <= SN_GE) ||
         (type >= SN_SHL && type <= SN_ASHR))
         return 2;
-    if (type == SN_REG_OUT)
+    if (type == SN_REG_IN)
         return SN_REG_FANIN_COUNT;
-    if (type == SN_MEM_OUT)
-        return SN_MEM_OUT_FANIN_COUNT;
     if (type == SN_MEM_READ)
         return SN_MEM_READ_FANIN_COUNT;
     if (type == SN_MEM_WRITE)
@@ -153,7 +151,7 @@ static inline bool sn_check_module_core(sn_check_ctx_t* ctx, const sn_module_t* 
     safe &= sn_check_vec(ctx, module, &module->width_signed, "width_signed");
     safe &= sn_check_vec(ctx, module, &module->fanin_counts, "fanin_counts");
     safe &= sn_check_vec(ctx, module, &module->fanin_offsets, "fanin_offsets");
-    safe &= sn_check_vec(ctx, module, &module->type_ids, "type_ids");
+    safe &= sn_check_vec(ctx, module, &module->obj_data, "obj_data");
     safe &= sn_check_vec(ctx, module, &module->name_ids, "name_ids");
     safe &= sn_check_vec(ctx, module, &module->fanins, "fanins");
     if (!safe)
@@ -166,11 +164,11 @@ static inline bool sn_check_module_core(sn_check_ctx_t* ctx, const sn_module_t* 
     SN_CHECK_OBJECT_VECTOR(width_signed);
     SN_CHECK_OBJECT_VECTOR(fanin_counts);
     SN_CHECK_OBJECT_VECTOR(fanin_offsets);
-    SN_CHECK_OBJECT_VECTOR(type_ids);
+    SN_CHECK_OBJECT_VECTOR(obj_data);
     SN_CHECK_OBJECT_VECTOR(name_ids);
 #undef SN_CHECK_OBJECT_VECTOR
     if (module->width_signed.size != object_count || module->fanin_counts.size != object_count ||
-        module->fanin_offsets.size != object_count || module->type_ids.size != object_count ||
+        module->fanin_offsets.size != object_count || module->obj_data.size != object_count ||
         module->name_ids.size != object_count)
         return false;
 
@@ -185,12 +183,12 @@ static inline bool sn_check_module_core(sn_check_ctx_t* ctx, const sn_module_t* 
         uint32_t packed_width = sn_vec_at(uint32_t, &module->width_signed, object);
         uint32_t count = sn_vec_at(sn_fanin_count_t, &module->fanin_counts, object);
         uint32_t stored_offset = sn_vec_at(uint32_t, &module->fanin_offsets, object);
-        uint32_t type_id = sn_vec_at(uint32_t, &module->type_ids, object);
+        uint32_t type_id = sn_vec_at(uint32_t, &module->obj_data, object);
         uint32_t name_id = sn_vec_at(uint32_t, &module->name_ids, object);
         bool type_valid = type > SN_NONE && type < SN_OBJ_TYPE_COUNT;
         SN_CHECK(ctx, module, object, type_valid, "object type %u is invalid", (unsigned)type);
-        SN_CHECK(ctx, module, object, (packed_width >> 1) != 0 || type == SN_INST,
-                 "object width is zero (only structural multi-output insts may have zero width)");
+        SN_CHECK(ctx, module, object, (packed_width >> 1) != 0 || type == SN_INST || type == SN_GATE,
+                 "object width is zero (only structural multi-output owners may have zero width)");
         SN_CHECK(ctx, module, object, stored_offset == offset, "fanin offset %u should be %zu", stored_offset, offset);
         SN_CHECK(ctx, module, object, offset <= module->fanins.size && count <= module->fanins.size - offset,
                  "fanin span [%zu, %zu) exceeds fanin storage size %zu", offset, offset + count, module->fanins.size);
@@ -210,11 +208,15 @@ static inline bool sn_check_module_core(sn_check_ctx_t* ctx, const sn_module_t* 
             int expected = sn_check_fixed_fanin_count(type);
             SN_CHECK(ctx, module, object, expected < 0 || count == (uint32_t)expected,
                      "type %u has %u fanins; expected %d", (unsigned)type, count, expected);
-            SN_CHECK(ctx, module, object, type_id < module->type_objects[type].size,
-                     "type ID %u is out of range for type %u", type_id, (unsigned)type);
-            if (type_id < module->type_objects[type].size)
-                SN_CHECK(ctx, module, object, sn_vec_at(sn_obj_id_t, &module->type_objects[type], type_id) == object,
-                         "reverse type-object entry does not point back to this object");
+            if (sn_obj_type_has_dense_index(type))
+            {
+                SN_CHECK(ctx, module, object, type_id < module->type_objects[type].size,
+                         "dense index %u is out of range for type %u", type_id, (unsigned)type);
+                if (type_id < module->type_objects[type].size)
+                    SN_CHECK(ctx, module, object,
+                             sn_vec_at(sn_obj_id_t, &module->type_objects[type], type_id) == object,
+                             "reverse type-object entry does not point back to this object");
+            }
         }
         if (offset <= module->fanins.size && count <= module->fanins.size - offset)
             for (uint32_t i = 0; i < count; i++)
@@ -224,6 +226,9 @@ static inline bool sn_check_module_core(sn_check_ctx_t* ctx, const sn_module_t* 
                              (fanin == SN_INVALID_ID && type_valid &&
                               sn_obj_fanin_may_be_invalid(module, type, i)),
                          "fanin %u has invalid object ID %u", i, fanin);
+                if (fanin < object_count && (sn_vec_at(uint32_t, &module->width_signed, fanin) >> 1) == 0)
+                    SN_CHECK(ctx, module, object, type == SN_FAN,
+                             "multi-output owner cannot be used directly as a signal; select a FAN");
             }
         offset += count;
     }
@@ -256,60 +261,63 @@ static inline bool sn_check_module_core(sn_check_ctx_t* ctx, const sn_module_t* 
             {
                 SN_CHECK(ctx, module, object, sn_vec_at(sn_obj_type_t, &module->obj_types, object) == type,
                          "reverse type-object entry has the wrong type");
-                SN_CHECK(ctx, module, object, sn_vec_at(uint32_t, &module->type_ids, object) == type_id,
-                         "reverse type-object entry has the wrong type ID");
+                SN_CHECK(ctx, module, object, !sn_obj_type_has_dense_index((sn_obj_type_t)type) ||
+                             sn_vec_at(uint32_t, &module->obj_data, object) == type_id,
+                         "reverse type-object entry has the wrong dense index");
             }
         }
     return true;
 }
 
-static inline bool sn_check_type_metadata(sn_check_ctx_t* ctx, const sn_module_t* module)
+// Returns the IN partner named by an OUT object's fanin, or SN_INVALID_ID when
+// the record is inconsistent. sn_check_pairs() reports the inconsistency.
+static inline sn_obj_id_t sn_check_pair_in(const sn_module_t* module, sn_obj_id_t out, sn_obj_type_t in_type)
 {
-    bool safe = true;
-#define SN_CHECK_TYPE_VECTOR(field, type)                                                                              \
-    do {                                                                                                               \
-        safe &= sn_check_vec(ctx, module, &module->field, #field);                                                     \
-        SN_CHECK(ctx, module, SN_INVALID_ID, module->field.size == module->type_objects[type].size,                    \
-                 #field " size %zu differs from type %u count %zu", module->field.size, (unsigned)(type),             \
-                 module->type_objects[type].size);                                                                     \
-        safe &= module->field.size == module->type_objects[type].size;                                                 \
-    } while (false)
-    SN_CHECK_TYPE_VECTOR(reg_flags, SN_REG_OUT);
-    SN_CHECK_TYPE_VECTOR(mem_depths, SN_MEM_OUT);
-    SN_CHECK_TYPE_VECTOR(inst_modules, SN_INST);
-    SN_CHECK_TYPE_VECTOR(fan_insts, SN_FAN);
-    SN_CHECK_TYPE_VECTOR(slice_infos, SN_SLICE);
-    SN_CHECK_TYPE_VECTOR(repeat_counts, SN_REPLICATE);
-    SN_CHECK_TYPE_VECTOR(const_word_offsets, SN_CONST);
-    SN_CHECK_TYPE_VECTOR(lut_truths, SN_LUT);
-    SN_CHECK_TYPE_VECTOR(gate_ids, SN_GATE);
-#undef SN_CHECK_TYPE_VECTOR
-    return safe;
+    size_t object_count = module->obj_types.size;
+    uint32_t count = sn_vec_at(sn_fanin_count_t, &module->fanin_counts, out);
+    uint32_t offset = sn_vec_at(uint32_t, &module->fanin_offsets, out);
+    if (SN_PAIR_OUT_IN_SLOT >= count || (size_t)offset + SN_PAIR_OUT_IN_SLOT >= module->fanins.size)
+        return SN_INVALID_ID;
+    sn_obj_id_t in = sn_vec_at(sn_obj_id_t, &module->fanins, offset + SN_PAIR_OUT_IN_SLOT);
+    if (in >= object_count || sn_vec_at(sn_obj_type_t, &module->obj_types, in) != in_type)
+        return SN_INVALID_ID;
+    return in;
 }
 
 static inline void sn_check_pairs(sn_check_ctx_t* ctx, const sn_module_t* module, sn_obj_type_t out_type,
                                   sn_obj_type_t in_type, uint32_t pair_slot)
 {
+    size_t object_count = module->obj_types.size;
     size_t out_count = module->type_objects[out_type].size;
     size_t in_count = module->type_objects[in_type].size;
     SN_CHECK(ctx, module, SN_INVALID_ID, out_count == in_count, "pair types %u/%u have %zu/%zu objects",
              (unsigned)out_type, (unsigned)in_type, out_count, in_count);
-    for (size_t i = 0; i < out_count && i < in_count; i++)
+    uint8_t* claimed = object_count ? (uint8_t*)calloc(object_count, 1) : NULL;
+    for (size_t i = 0; i < out_count; i++)
     {
         sn_obj_id_t out = sn_vec_at(sn_obj_id_t, &module->type_objects[out_type], i);
-        sn_obj_id_t in = sn_vec_at(sn_obj_id_t, &module->type_objects[in_type], i);
-        if (out >= module->obj_types.size || in >= module->obj_types.size)
+        if (out >= object_count)
             continue;
-        SN_CHECK(ctx, module, out, sn_vec_at(uint32_t, &module->type_ids, out) == i &&
-                     sn_vec_at(uint32_t, &module->type_ids, in) == i, "paired objects do not share type ID %zu", i);
-        SN_CHECK(ctx, module, out, sn_vec_at(uint32_t, &module->width_signed, out) ==
-                     sn_vec_at(uint32_t, &module->width_signed, in), "paired objects differ in width or signedness");
         uint32_t count = sn_vec_at(sn_fanin_count_t, &module->fanin_counts, out);
         uint32_t offset = sn_vec_at(uint32_t, &module->fanin_offsets, out);
-        if (pair_slot < count && offset + pair_slot < module->fanins.size)
-            SN_CHECK(ctx, module, out, sn_vec_at(sn_obj_id_t, &module->fanins, offset + pair_slot) == in,
-                     "OUT object does not reference its paired IN object");
+        sn_obj_id_t in = pair_slot < count && offset + pair_slot < module->fanins.size
+                             ? sn_vec_at(sn_obj_id_t, &module->fanins, offset + pair_slot)
+                             : SN_INVALID_ID;
+        SN_CHECK(ctx, module, out, in < object_count && sn_vec_at(sn_obj_type_t, &module->obj_types, in) == in_type,
+                 "OUT object does not reference a paired IN object");
+        if (in >= object_count || sn_vec_at(sn_obj_type_t, &module->obj_types, in) != in_type)
+            continue;
+        SN_CHECK(ctx, module, in, sn_vec_at(uint32_t, &module->obj_data, in) == out,
+                 "IN object does not reference its paired OUT object %u", out);
+        SN_CHECK(ctx, module, out, sn_vec_at(uint32_t, &module->width_signed, out) ==
+                     sn_vec_at(uint32_t, &module->width_signed, in), "paired objects differ in width or signedness");
+        if (claimed)
+        {
+            SN_CHECK(ctx, module, in, !claimed[in], "IN object is paired with more than one OUT object");
+            claimed[in] = 1;
+        }
     }
+    free(claimed);
 }
 
 static inline void sn_check_memories(sn_check_ctx_t* ctx, const sn_module_t* module)
@@ -327,23 +335,31 @@ static inline void sn_check_memories(sn_check_ctx_t* ctx, const sn_module_t* mod
     }
     for (size_t i = 0; i < object_count; i++)
         owner_memories[i] = SN_INVALID_ID;
-    for (size_t i = 0; i < module->type_objects[SN_MEM_OUT].size && i < module->mem_depths.size; i++)
+    for (size_t i = 0; i < module->type_objects[SN_MEM_OUT].size; i++)
     {
         sn_obj_id_t memory = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_MEM_OUT], i);
-        SN_CHECK(ctx, module, memory, sn_vec_at(uint32_t, &module->mem_depths, i) != 0, "memory depth is zero");
         if (memory >= object_count)
             continue;
+        SN_CHECK(ctx, module, memory, sn_vec_at(uint32_t, &module->obj_data, memory) != 0, "memory depth is zero");
         uint64_t init_width = (uint64_t)(sn_vec_at(uint32_t, &module->width_signed, memory) >> 1) *
-                              sn_vec_at(uint32_t, &module->mem_depths, i);
-        uint32_t offset = sn_vec_at(uint32_t, &module->fanin_offsets, memory);
+                              sn_vec_at(uint32_t, &module->obj_data, memory);
+        sn_obj_id_t memory_in = sn_check_pair_in(module, memory, SN_MEM_IN);
+        if (memory_in == SN_INVALID_ID)
+            continue;
+        uint32_t count = sn_vec_at(sn_fanin_count_t, &module->fanin_counts, memory_in);
+        uint32_t offset = sn_vec_at(uint32_t, &module->fanin_offsets, memory_in);
+        SN_CHECK(ctx, module, memory_in, count >= SN_MEM_IN_FIXED_FANIN_COUNT,
+                 "memory input lacks its %u fixed initialization slots", (unsigned)SN_MEM_IN_FIXED_FANIN_COUNT);
+        if (count < SN_MEM_IN_FIXED_FANIN_COUNT)
+            continue;
         for (uint32_t slot = SN_MEM_INIT_DATA; slot <= SN_MEM_INIT_MASK; slot++)
         {
             sn_obj_id_t value = sn_vec_at(sn_obj_id_t, &module->fanins, offset + slot);
             if (value == SN_INVALID_ID || value >= object_count)
                 continue;
-            SN_CHECK(ctx, module, memory, sn_check_const_type(sn_vec_at(sn_obj_type_t, &module->obj_types, value)),
+            SN_CHECK(ctx, module, memory_in, sn_check_const_type(sn_vec_at(sn_obj_type_t, &module->obj_types, value)),
                      "memory initialization slot %u is not driven by a constant", slot);
-            SN_CHECK(ctx, module, memory, init_width <= UINT32_MAX &&
+            SN_CHECK(ctx, module, memory_in, init_width <= UINT32_MAX &&
                          (sn_vec_at(uint32_t, &module->width_signed, value) >> 1) == init_width,
                      "memory initialization slot %u has the wrong width", slot);
         }
@@ -355,7 +371,7 @@ static inline void sn_check_memories(sn_check_ctx_t* ctx, const sn_module_t* mod
             continue;
         uint32_t count = sn_vec_at(sn_fanin_count_t, &module->fanin_counts, memory_in);
         uint32_t offset = sn_vec_at(uint32_t, &module->fanin_offsets, memory_in);
-        for (uint32_t j = 0; j < count; j++)
+        for (uint32_t j = SN_MEM_IN_FIXED_FANIN_COUNT; j < count; j++)
         {
             sn_obj_id_t write = sn_vec_at(sn_obj_id_t, &module->fanins, offset + j);
             SN_CHECK(ctx, module, memory_in, write < object_count &&
@@ -425,13 +441,15 @@ static inline void sn_check_instances(sn_check_ctx_t* ctx, const sn_module_t* mo
 {
     const sn_design_t* design = module->design;
     size_t object_count = module->obj_types.size;
-    for (size_t i = 0; i < module->type_objects[SN_INST].size && i < module->inst_modules.size; i++)
+    for (size_t i = 0; i < module->type_objects[SN_INST].size; i++)
     {
         sn_obj_id_t inst = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_INST], i);
-        sn_module_id_t child_id = sn_vec_at(sn_module_id_t, &module->inst_modules, i);
+        if (inst >= object_count)
+            continue;
+        sn_module_id_t child_id = sn_vec_at(uint32_t, &module->obj_data, inst);
         SN_CHECK(ctx, module, inst, child_id < design->modules.size, "referenced module ID %u is out of range",
                  child_id);
-        if (inst >= object_count || child_id >= design->modules.size)
+        if (child_id >= design->modules.size)
             continue;
         const sn_module_t* child = sn_vec_at(sn_module_t*, &design->modules, child_id);
         SN_CHECK(ctx, module, inst, child != NULL, "referenced module pointer is null");
@@ -472,44 +490,48 @@ static inline void sn_check_instances(sn_check_ctx_t* ctx, const sn_module_t* mo
                          "output %u is not represented by the adjacent FAN object %u", output_index, fan);
                 if (fan >= object_count || sn_vec_at(sn_obj_type_t, &module->obj_types, fan) != SN_FAN)
                     continue;
-                uint32_t fan_id = sn_vec_at(uint32_t, &module->type_ids, fan);
                 sn_obj_id_t child_output = sn_vec_at(sn_obj_id_t, &child->type_objects[SN_PO], output_index);
-                SN_CHECK(ctx, module, fan, fan_id < module->fan_insts.size &&
-                             sn_vec_at(sn_obj_id_t, &module->fan_insts, fan_id) == inst,
-                         "FAN ownership does not reference its adjacent inst");
+                uint32_t fan_offset = sn_vec_at(uint32_t, &module->fanin_offsets, fan);
+                SN_CHECK(ctx, module, fan, sn_vec_at(sn_fanin_count_t, &module->fanin_counts, fan) == 1 &&
+                             fan_offset < module->fanins.size &&
+                             sn_vec_at(sn_obj_id_t, &module->fanins, fan_offset) == inst,
+                         "FAN fanin does not reference its adjacent inst");
                 SN_CHECK(ctx, module, fan, sn_vec_at(uint32_t, &module->width_signed, fan) ==
                              sn_vec_at(uint32_t, &child->width_signed, child_output),
                          "FAN differs from its child output width or signedness");
             }
         }
     }
-    for (size_t i = 0; i < module->type_objects[SN_FAN].size && i < module->fan_insts.size; i++)
+    for (size_t i = 0; i < module->type_objects[SN_FAN].size; i++)
     {
         sn_obj_id_t fan = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_FAN], i);
-        sn_obj_id_t inst = sn_vec_at(sn_obj_id_t, &module->fan_insts, i);
+        if (fan >= object_count)
+            continue;
+        uint32_t offset = sn_vec_at(uint32_t, &module->fanin_offsets, fan);
+        sn_obj_id_t inst = sn_vec_at(sn_fanin_count_t, &module->fanin_counts, fan) == 1 && offset < module->fanins.size
+                               ? sn_vec_at(sn_obj_id_t, &module->fanins, offset)
+                               : SN_INVALID_ID;
         SN_CHECK(ctx, module, fan, inst < fan && inst < object_count &&
-                     sn_vec_at(sn_obj_type_t, &module->obj_types, inst) == SN_INST,
-                 "FAN owner %u is not an earlier inst", inst);
-        if (fan < object_count)
+                     (sn_vec_at(sn_obj_type_t, &module->obj_types, inst) == SN_INST ||
+                      sn_vec_at(sn_obj_type_t, &module->obj_types, inst) == SN_GATE),
+                 "FAN fanin %u is not an earlier instance or gate", inst);
+        if (inst < object_count && inst < fan && sn_vec_at(sn_obj_type_t, &module->obj_types, inst) == SN_GATE)
         {
-            uint32_t offset = sn_vec_at(uint32_t, &module->fanin_offsets, fan);
-            SN_CHECK(ctx, module, fan, offset < module->fanins.size &&
-                         sn_vec_at(sn_obj_id_t, &module->fanins, offset) == inst,
-                     "FAN data fanin does not reference its owning inst");
+            uint32_t outputs = sn_gate_output_count(module, inst);
+            SN_CHECK(ctx, module, fan, outputs > 1 && fan - inst - 1 < outputs,
+                     "FAN is outside its multi-output gate's adjacent output block");
+            SN_CHECK(ctx, module, fan, sn_vec_at(uint32_t, &module->width_signed, fan) == 2,
+                     "gate FAN must be an unsigned bit");
         }
-        if (inst < object_count && sn_vec_at(sn_obj_type_t, &module->obj_types, inst) == SN_INST)
+        if (inst < object_count && inst < fan && sn_vec_at(sn_obj_type_t, &module->obj_types, inst) == SN_INST)
         {
-            uint32_t inst_id = sn_vec_at(uint32_t, &module->type_ids, inst);
-            if (inst_id < module->inst_modules.size)
+            sn_module_id_t child_id = sn_vec_at(uint32_t, &module->obj_data, inst);
+            if (child_id < design->modules.size && sn_vec_at(sn_module_t*, &design->modules, child_id))
             {
-                sn_module_id_t child_id = sn_vec_at(sn_module_id_t, &module->inst_modules, inst_id);
-                if (child_id < design->modules.size && sn_vec_at(sn_module_t*, &design->modules, child_id))
-                {
-                    const sn_module_t* child = sn_vec_at(sn_module_t*, &design->modules, child_id);
-                    uint32_t output_index = fan - inst - 1;
-                    SN_CHECK(ctx, module, fan, output_index < child->type_objects[SN_PO].size,
-                             "FAN is outside its inst's natural adjacent output block");
-                }
+                const sn_module_t* child = sn_vec_at(sn_module_t*, &design->modules, child_id);
+                uint32_t output_index = fan - inst - 1;
+                SN_CHECK(ctx, module, fan, output_index < child->type_objects[SN_PO].size,
+                         "FAN is outside its inst's natural adjacent output block");
             }
         }
     }
@@ -518,15 +540,15 @@ static inline void sn_check_instances(sn_check_ctx_t* ctx, const sn_module_t* mo
 static inline void sn_check_special_objects(sn_check_ctx_t* ctx, const sn_module_t* module)
 {
     size_t object_count = module->obj_types.size;
-    size_t reg_count = module->reg_flags.size < module->type_objects[SN_REG_OUT].size
-                           ? module->reg_flags.size
-                           : module->type_objects[SN_REG_OUT].size;
-    for (size_t i = 0; i < reg_count; i++)
+    for (size_t i = 0; i < module->type_objects[SN_REG_OUT].size; i++)
     {
-        sn_obj_id_t reg = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_REG_OUT], i);
-        uint32_t flags = sn_vec_at(uint32_t, &module->reg_flags, i);
-        SN_CHECK(ctx, module, reg, (flags & ~SN_REG_FLAGS_ALL) == 0, "register flags 0x%x are invalid", flags);
-        if (reg >= object_count)
+        sn_obj_id_t reg_out = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_REG_OUT], i);
+        if (reg_out >= object_count)
+            continue;
+        uint32_t flags = sn_vec_at(uint32_t, &module->obj_data, reg_out);
+        SN_CHECK(ctx, module, reg_out, (flags & ~SN_REG_FLAGS_ALL) == 0, "register flags 0x%x are invalid", flags);
+        sn_obj_id_t reg = sn_check_pair_in(module, reg_out, SN_REG_IN);
+        if (reg == SN_INVALID_ID || sn_vec_at(sn_fanin_count_t, &module->fanin_counts, reg) != SN_REG_FANIN_COUNT)
             continue;
         uint32_t offset = sn_vec_at(uint32_t, &module->fanin_offsets, reg);
         sn_obj_id_t data = sn_vec_at(sn_obj_id_t, &module->fanins, offset + SN_REG_INIT_DATA);
@@ -541,79 +563,97 @@ static inline void sn_check_special_objects(sn_check_ctx_t* ctx, const sn_module
             SN_CHECK(ctx, module, reg, sn_check_const_type(sn_vec_at(sn_obj_type_t, &module->obj_types, value)),
                      "register initialization slot %u is not a constant", slot);
             SN_CHECK(ctx, module, reg, (sn_vec_at(uint32_t, &module->width_signed, value) >> 1) ==
-                         (sn_vec_at(uint32_t, &module->width_signed, reg) >> 1),
+                         (sn_vec_at(uint32_t, &module->width_signed, reg_out) >> 1),
                      "register initialization slot %u has the wrong width", slot);
         }
     }
-    size_t repeat_count = module->repeat_counts.size < module->type_objects[SN_REPLICATE].size
-                              ? module->repeat_counts.size
-                              : module->type_objects[SN_REPLICATE].size;
-    for (size_t i = 0; i < repeat_count; i++)
-        SN_CHECK(ctx, module, sn_vec_at(sn_obj_id_t, &module->type_objects[SN_REPLICATE], i),
-                 sn_vec_at(uint32_t, &module->repeat_counts, i) != 0, "repetition count is zero");
-    size_t slice_count = module->slice_infos.size < module->type_objects[SN_SLICE].size
-                             ? module->slice_infos.size
-                             : module->type_objects[SN_SLICE].size;
-    for (size_t i = 0; i < slice_count; i++)
+    for (size_t i = 0; i < module->type_objects[SN_REPLICATE].size; i++)
+    {
+        sn_obj_id_t object = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_REPLICATE], i);
+        if (object < object_count)
+            SN_CHECK(ctx, module, object, sn_vec_at(uint32_t, &module->obj_data, object) != 0,
+                     "repetition count is zero");
+    }
+    for (size_t i = 0; i < module->type_objects[SN_SLICE].size; i++)
     {
         sn_obj_id_t object = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_SLICE], i);
-        const sn_slice_info_t* info = &sn_vec_at(sn_slice_info_t, &module->slice_infos, i);
-        SN_CHECK(ctx, module, object, (info->flags & ~SN_SLICE_DESCENDING) == 0, "slice flags are invalid");
-        SN_CHECK(ctx, module, object, ((info->flags & SN_SLICE_DESCENDING) != 0) ==
-                     (info->left_index >= info->right_index), "slice direction flag disagrees with its indices");
-        if (object < object_count)
-        {
-            uint32_t offset = sn_vec_at(uint32_t, &module->fanin_offsets, object);
-            sn_obj_id_t value = sn_vec_at(sn_obj_id_t, &module->fanins, offset);
-            if (value < object_count)
-            {
-                uint32_t source_width = sn_vec_at(uint32_t, &module->width_signed, value) >> 1;
-                uint64_t slice_width = info->left_index >= info->right_index
-                                           ? (uint64_t)(int64_t)info->left_index - info->right_index + 1
-                                           : (uint64_t)(int64_t)info->right_index - info->left_index + 1;
-                SN_CHECK(ctx, module, object, info->left_index >= 0 && (uint32_t)info->left_index < source_width,
-                         "slice left index %d is outside source width %u", info->left_index, source_width);
-                SN_CHECK(ctx, module, object, info->right_index >= 0 && (uint32_t)info->right_index < source_width,
-                         "slice right index %d is outside source width %u", info->right_index, source_width);
-                SN_CHECK(ctx, module, object, slice_width ==
-                             (sn_vec_at(uint32_t, &module->width_signed, object) >> 1),
-                         "slice width does not match its index range");
-            }
-        }
-    }
-    size_t const_count = module->const_word_offsets.size < module->type_objects[SN_CONST].size
-                             ? module->const_word_offsets.size
-                             : module->type_objects[SN_CONST].size;
-    for (size_t i = 0; i < const_count; i++)
-    {
-        sn_obj_id_t object = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_CONST], i);
         if (object >= object_count)
             continue;
-        uint32_t words = ((sn_vec_at(uint32_t, &module->width_signed, object) >> 1) + 31) / 32;
-        uint32_t offset = sn_vec_at(uint32_t, &module->const_word_offsets, i);
-        SN_CHECK(ctx, module, object, offset <= module->design->constant_words.size &&
-                     words <= module->design->constant_words.size - offset,
-                 "constant word span [%u, %u) exceeds storage size %zu", offset, offset + words,
-                 module->design->constant_words.size);
+        uint32_t data = sn_vec_at(uint32_t, &module->obj_data, object);
+        int64_t left = sn_slice_unpack_left(data);
+        int64_t extent = (int64_t)(sn_vec_at(uint32_t, &module->width_signed, object) >> 1) - 1;
+        int64_t right = (data & SN_SLICE_DESCENDING) ? left - extent : left + extent;
+        uint32_t offset = sn_vec_at(uint32_t, &module->fanin_offsets, object);
+        sn_obj_id_t value = offset < module->fanins.size ? sn_vec_at(sn_obj_id_t, &module->fanins, offset)
+                                                          : SN_INVALID_ID;
+        if (value < object_count)
+        {
+            uint32_t source_width = sn_vec_at(uint32_t, &module->width_signed, value) >> 1;
+            SN_CHECK(ctx, module, object, left < source_width,
+                     "slice left index %lld is outside source width %u", (long long)left, source_width);
+            SN_CHECK(ctx, module, object, right >= 0 && right < source_width,
+                     "slice right index %lld is outside source width %u", (long long)right, source_width);
+        }
     }
-    size_t lut_count = module->lut_truths.size < module->type_objects[SN_LUT].size
-                           ? module->lut_truths.size
-                           : module->type_objects[SN_LUT].size;
-    for (size_t i = 0; i < lut_count; i++)
+    const sn_obj_type_t const_types[] = {SN_CONST0, SN_CONST1, SN_CONST};
+    for (size_t t = 0; t < 3; t++)
+        for (size_t i = 0; i < module->type_objects[const_types[t]].size; i++)
+        {
+            sn_obj_id_t object = sn_vec_at(sn_obj_id_t, &module->type_objects[const_types[t]], i);
+            if (object >= object_count)
+                continue;
+            uint32_t id = sn_vec_at(uint32_t, &module->obj_data, object);
+            bool valid_id = id < module->design->const_entries.size;
+            SN_CHECK(ctx, module, object, valid_id, "constant ID %u exceeds table size %zu",
+                     id, module->design->const_entries.size);
+            if (!valid_id)
+                continue;
+            const sn_const_entry_t* entry = &sn_vec_at(sn_const_entry_t, &module->design->const_entries, id);
+            bool span = entry->offset <= module->design->constant_words.size &&
+                        entry->word_count <= module->design->constant_words.size - entry->offset;
+            if (!span)
+                continue; // Reported by the design-level constant table check.
+            if (const_types[t] != SN_CONST)
+            {
+                bool implicit = const_types[t] == SN_CONST0 ? entry->word_count == 0
+                    : entry->word_count == 1 &&
+                      sn_vec_at(uint32_t, &module->design->constant_words, entry->offset) == 1;
+                SN_CHECK(ctx, module, object, implicit, "implicit constant has the wrong payload");
+            }
+            // The payload must fit the node: sn_const_word truncates to the node
+            // width, so a wider payload would silently change the value.
+            uint32_t width = sn_vec_at(uint32_t, &module->width_signed, object) >> 1;
+            uint32_t node_words = (width + 31) / 32;
+            bool fits = entry->word_count <= node_words &&
+                        (entry->word_count < node_words || !(width & 31) ||
+                         (sn_vec_at(uint32_t, &module->design->constant_words,
+                                    entry->offset + entry->word_count - 1) >> (width & 31)) == 0);
+            SN_CHECK(ctx, module, object, fits, "constant payload of %u words exceeds the node width %u",
+                     entry->word_count, width);
+        }
+    for (size_t i = 0; i < module->type_objects[SN_LUT].size; i++)
     {
         sn_obj_id_t object = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_LUT], i);
         if (object >= object_count)
             continue;
         uint32_t count = sn_vec_at(sn_fanin_count_t, &module->fanin_counts, object);
         uint32_t offset = sn_vec_at(uint32_t, &module->fanin_offsets, object);
-        uint64_t truth = sn_vec_at(uint64_t, &module->lut_truths, i);
+        uint32_t truth_offset = sn_vec_at(uint32_t, &module->obj_data, object);
+        bool truth_stored = truth_offset <= module->design->constant_words.size &&
+                            module->design->constant_words.size - truth_offset >= 2;
+        SN_CHECK(ctx, module, object, truth_stored, "LUT truth-table words [%u, %u) exceed storage size %zu",
+                 truth_offset, truth_offset + 2, module->design->constant_words.size);
         SN_CHECK(ctx, module, object, (sn_vec_at(uint32_t, &module->width_signed, object) >> 1) == 1 &&
                      !(sn_vec_at(uint32_t, &module->width_signed, object) & 1),
                  "LUT output must be one-bit unsigned");
         SN_CHECK(ctx, module, object, count <= 6, "LUT has %u inputs; at most 6 are supported", count);
-        if (count < 6)
+        if (truth_stored && count < 6)
+        {
+            const uint32_t* words = &sn_vec_at(uint32_t, &module->design->constant_words, truth_offset);
+            uint64_t truth = (uint64_t)words[0] | ((uint64_t)words[1] << 32);
             SN_CHECK(ctx, module, object, (truth >> (1u << count)) == 0,
                      "LUT truth table has nonzero unused high bits");
+        }
         for (uint32_t j = 0; j < count; j++)
         {
             sn_obj_id_t fanin = sn_vec_at(sn_obj_id_t, &module->fanins, offset + j);
@@ -622,18 +662,33 @@ static inline void sn_check_special_objects(sn_check_ctx_t* ctx, const sn_module
                          "LUT input %u is not one bit", j);
         }
     }
-    size_t gate_count = module->gate_ids.size < module->type_objects[SN_GATE].size
-                            ? module->gate_ids.size
-                            : module->type_objects[SN_GATE].size;
-    for (size_t i = 0; i < gate_count; i++)
+    for (size_t i = 0; i < module->type_objects[SN_GATE].size; i++)
     {
         sn_obj_id_t object = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_GATE], i);
         if (object >= object_count)
             continue;
-        SN_CHECK(ctx, module, object, sn_vec_at(uint32_t, &module->gate_ids, i) != SN_INVALID_ID,
+        SN_CHECK(ctx, module, object, sn_vec_at(uint32_t, &module->obj_data, object) != SN_INVALID_ID,
                  "gate ID is invalid");
-        SN_CHECK(ctx, module, object, (sn_vec_at(uint32_t, &module->width_signed, object) >> 1) == 1,
-                 "gate output is not one bit");
+        uint32_t outputs = sn_gate_output_count(module, object);
+        SN_CHECK(ctx, module, object, sn_vec_at(uint32_t, &module->width_signed, object) == (outputs == 1 ? 2u : 0u),
+                 "gate must be an unsigned bit or a zero-width multi-output owner");
+        if (module->design->library)
+        {
+            uint32_t cell = sn_obj_gate_id(module, object);
+            SN_CHECK(ctx, module, object, sn_library_scalar_cell(module->design->library, cell),
+                     "gate ID does not select a valid scalar library cell");
+            SN_CHECK(ctx, module, object, sn_obj_fanin_count(module, object) ==
+                         sn_library_port_count(module->design->library, cell, SN_LIB_INPUT),
+                     "gate input count differs from library interface");
+        }
+        if (outputs > 1)
+            for (uint32_t o = 0; o < outputs; o++)
+            {
+                sn_obj_id_t fan = object + 1 + o;
+                SN_CHECK(ctx, module, object, fan < object_count && sn_obj_type(module, fan) == SN_FAN &&
+                             sn_obj_fanin_count(module, fan) == 1 && sn_obj_fanin(module, fan, 0) == object,
+                         "gate output %u has no adjacent FAN", o);
+            }
     }
 }
 
@@ -662,11 +717,10 @@ static inline void sn_check_operator_shapes(sn_check_ctx_t* ctx, const sn_module
         else if (type == SN_REPLICATE && count == 1)
         {
             sn_obj_id_t fanin = sn_vec_at(sn_obj_id_t, &module->fanins, offset);
-            uint32_t type_id = sn_vec_at(uint32_t, &module->type_ids, object);
-            if (fanin < object_count && type_id < module->repeat_counts.size)
+            if (fanin < object_count)
             {
                 uint64_t packed_width = (uint64_t)(sn_vec_at(uint32_t, &module->width_signed, fanin) >> 1) *
-                                        sn_vec_at(uint32_t, &module->repeat_counts, type_id);
+                                        sn_vec_at(uint32_t, &module->obj_data, object);
                 SN_CHECK(ctx, module, object, packed_width == width,
                          "repetition produces %llu bits but output width is %u",
                          (unsigned long long)packed_width, width);
@@ -760,12 +814,13 @@ static inline void sn_check_operator_shapes(sn_check_ctx_t* ctx, const sn_module
 
     for (size_t i = 0; i < module->type_objects[SN_REG_OUT].size; i++)
     {
-        sn_obj_id_t reg = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_REG_OUT], i);
-        if (reg >= object_count)
+        sn_obj_id_t reg_out = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_REG_OUT], i);
+        sn_obj_id_t reg = reg_out < object_count ? sn_check_pair_in(module, reg_out, SN_REG_IN) : SN_INVALID_ID;
+        if (reg == SN_INVALID_ID || sn_vec_at(sn_fanin_count_t, &module->fanin_counts, reg) != SN_REG_FANIN_COUNT)
             continue;
         uint32_t width = sn_vec_at(uint32_t, &module->width_signed, reg) >> 1;
         uint32_t offset = sn_vec_at(uint32_t, &module->fanin_offsets, reg);
-        uint32_t flags = sn_vec_at(uint32_t, &module->reg_flags, i);
+        uint32_t flags = sn_vec_at(uint32_t, &module->obj_data, reg_out);
         sn_obj_id_t clock = sn_vec_at(sn_obj_id_t, &module->fanins, offset + SN_REG_CLOCK);
         sn_obj_id_t enable = sn_vec_at(sn_obj_id_t, &module->fanins, offset + SN_REG_ENABLE);
         sn_obj_id_t set = sn_vec_at(sn_obj_id_t, &module->fanins, offset + SN_REG_SET);
@@ -819,58 +874,30 @@ static inline void sn_check_operator_shapes(sn_check_ctx_t* ctx, const sn_module
 static inline void sn_check_auxiliary_storage(sn_check_ctx_t* ctx, const sn_module_t* module)
 {
     size_t object_count = module->obj_types.size;
-    bool hash_safe = sn_check_vec(ctx, module, &module->const_hash_buckets, "constant hash buckets");
-    hash_safe &= sn_check_vec(ctx, module, &module->const_hash_entries, "constant hash entries");
-    if (hash_safe && !module->const_hash_buckets.size)
-        SN_CHECK(ctx, module, SN_INVALID_ID, module->const_hash_entries.size == 0,
-                 "constant hash entries exist without buckets");
-    else if (hash_safe)
-    {
-        size_t bucket_count = module->const_hash_buckets.size;
-        SN_CHECK(ctx, module, SN_INVALID_ID, (bucket_count & (bucket_count - 1)) == 0,
-                 "constant hash bucket count %zu is not a power of two", bucket_count);
-        uint8_t* seen = module->const_hash_entries.size
-                            ? (uint8_t*)calloc(module->const_hash_entries.size, 1)
-                            : NULL;
-        SN_CHECK(ctx, module, SN_INVALID_ID, module->const_hash_entries.size == 0 || seen != NULL,
-                 "cannot allocate constant-hash validation state");
-        if (seen || !module->const_hash_entries.size)
-            for (size_t bucket = 0; bucket < bucket_count; bucket++)
-            {
-                uint32_t entry_id = sn_vec_at(uint32_t, &module->const_hash_buckets, bucket);
-                size_t steps = 0;
-                while (entry_id != SN_INVALID_ID && entry_id < module->const_hash_entries.size &&
-                       steps++ <= module->const_hash_entries.size)
-                {
-                    const sn_const_hash_entry_t* entry =
-                        &sn_vec_at(sn_const_hash_entry_t, &module->const_hash_entries, entry_id);
-                    SN_CHECK(ctx, module, entry->object, !seen[entry_id],
-                             "constant hash entry %u appears more than once", entry_id);
-                    seen[entry_id] = 1;
-                    SN_CHECK(ctx, module, entry->object, (entry->hash & (bucket_count - 1)) == bucket,
-                             "constant hash entry %u is in the wrong bucket", entry_id);
-                    SN_CHECK(ctx, module, entry->object, entry->object < object_count,
-                             "constant hash entry %u has an invalid object", entry_id);
-                    if (entry->object < object_count)
-                    {
-                        sn_obj_type_t type = sn_vec_at(sn_obj_type_t, &module->obj_types, entry->object);
-                        SN_CHECK(ctx, module, entry->object, sn_check_const_type(type),
-                                 "constant hash entry refers to a nonconstant object");
-                        SN_CHECK(ctx, module, entry->object,
-                                 sn_vec_at(uint32_t, &module->name_ids, entry->object) == SN_INVALID_ID,
-                                 "named constants must not appear in the interning cache");
-                    }
-                    entry_id = entry->next;
-                }
-                SN_CHECK(ctx, module, SN_INVALID_ID, entry_id == SN_INVALID_ID,
-                         "constant hash bucket %zu has an invalid or cyclic chain", bucket);
-            }
-        if (seen)
-            for (size_t i = 0; i < module->const_hash_entries.size; i++)
-                SN_CHECK(ctx, module, SN_INVALID_ID, seen[i], "constant hash entry %zu is unreachable", i);
-        free(seen);
-    }
-
+    bool source_safe = sn_check_vec(ctx, module, &module->source_records, "source_records");
+    bool attribute_safe = sn_check_vec(ctx, module, &module->attribute_records, "attribute_records");
+    if (source_safe)
+        for (size_t i = 0; i < module->source_records.size; i++)
+        {
+            const sn_source_record_t* record = &sn_vec_at(sn_source_record_t, &module->source_records, i);
+            SN_CHECK(ctx, module, record->object,
+                     record->object == SN_INVALID_ID || record->object < object_count,
+                     "source record %zu has invalid object ID %u", i, record->object);
+            SN_CHECK(ctx, module, record->object, record->file < module->design->names.names.size,
+                     "source record %zu has invalid file name ID %u", i, record->file);
+        }
+    if (attribute_safe)
+        for (size_t i = 0; i < module->attribute_records.size; i++)
+        {
+            const sn_attribute_record_t* record = &sn_vec_at(sn_attribute_record_t, &module->attribute_records, i);
+            SN_CHECK(ctx, module, record->object,
+                     record->object == SN_INVALID_ID || record->object < object_count,
+                     "attribute record %zu has invalid object ID %u", i, record->object);
+            SN_CHECK(ctx, module, record->object, record->name < module->design->names.names.size,
+                     "attribute record %zu has invalid name ID %u", i, record->name);
+            SN_CHECK(ctx, module, record->object, record->value < module->design->names.names.size,
+                     "attribute record %zu has invalid value ID %u", i, record->value);
+        }
     bool fanout_safe = sn_check_vec(ctx, module, &module->fanout_counts, "fanout_counts");
     fanout_safe &= sn_check_vec(ctx, module, &module->fanout_offsets, "fanout_offsets");
     fanout_safe &= sn_check_vec(ctx, module, &module->fanouts, "fanouts");
@@ -946,12 +973,8 @@ static inline void sn_check_topology(sn_check_ctx_t* ctx, const sn_module_t* mod
         if (type == SN_REG_OUT || type == SN_MEM_OUT || type == SN_LOOP_OUT)
         {
             sn_obj_type_t in_type = type == SN_REG_OUT ? SN_REG_IN : type == SN_MEM_OUT ? SN_MEM_IN : SN_LOOP_IN;
-            uint32_t type_id = sn_vec_at(uint32_t, &module->type_ids, object);
-            if (type_id >= module->type_objects[in_type].size)
-                valid = false;
-            else
-                pair_in = sn_vec_at(sn_obj_id_t, &module->type_objects[in_type], type_id);
-            valid &= pair_in > object;
+            pair_in = sn_check_pair_in(module, object, in_type);
+            valid &= pair_in != SN_INVALID_ID && pair_in > object;
         }
         uint32_t count = sn_vec_at(sn_fanin_count_t, &module->fanin_counts, object);
         uint32_t offset = sn_vec_at(uint32_t, &module->fanin_offsets, object);
@@ -986,8 +1009,8 @@ static inline bool sn_check_slice_bit(const sn_module_t* module, sn_obj_id_t obj
     if (object == SN_INVALID_ID || object >= module->obj_types.size || sn_obj_type(module, object) != SN_SLICE ||
         sn_obj_fanin(module, object, 0) != source)
         return false;
-    const sn_slice_info_t* info = sn_obj_slice_info(module, object);
-    return info->left_index == (int32_t)bit && info->right_index == (int32_t)bit;
+    sn_slice_info_t info = sn_obj_slice_info(module, object);
+    return info.left_index == (int32_t)bit && info.right_index == (int32_t)bit;
 }
 
 static inline void sn_check_carry_primitive(sn_check_ctx_t* ctx, const sn_module_t* module)
@@ -1052,8 +1075,67 @@ static inline void sn_check_carry_primitive(sn_check_ctx_t* ctx, const sn_module
     }
 }
 
+// The multiply-accumulate primitive uses the DSP post-adder:
+// Y = (A * B << shift) + C at the chain width, all signed.
+static inline void sn_check_dsp_mac_primitive(sn_check_ctx_t* ctx, const sn_module_t* module, const char* name)
+{
+    size_t pi_count = module->type_objects[SN_PI].size;
+    size_t po_count = module->type_objects[SN_PO].size;
+    size_t mul_count = module->type_objects[SN_MUL].size;
+    SN_CHECK(ctx, module, SN_INVALID_ID, pi_count == 3 && po_count == 1,
+             "DSP MAC primitive interface must have 3 inputs and 1 output");
+    SN_CHECK(ctx, module, SN_INVALID_ID, mul_count == 1,
+             "DSP MAC primitive behavioral wrapper must contain one multiplier");
+    const char* shape = strstr(name, "_mac_");
+    uint32_t a_width = 0, b_width = 0, p_width = 0, shift = 0, y_width = 0;
+    bool parsed = shape != NULL;
+    const char* cursor = parsed ? shape + 5 : NULL;
+    parsed &= sn_check_parse_u32(&cursor, &a_width, '_');
+    parsed &= sn_check_parse_u32(&cursor, &b_width, '_');
+    parsed &= sn_check_parse_u32(&cursor, &p_width, '_');
+    parsed &= sn_check_parse_u32(&cursor, &shift, '_');
+    parsed &= sn_check_parse_u32(&cursor, &y_width, '\0');
+    parsed &= parsed && shift < y_width;
+    SN_CHECK(ctx, module, SN_INVALID_ID, parsed, "DSP MAC primitive name does not encode a valid interface");
+    if (pi_count != 3 || po_count != 1 || mul_count != 1 || !parsed)
+        return;
+    sn_obj_id_t a = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], 0);
+    sn_obj_id_t b = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], 1);
+    sn_obj_id_t c = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], 2);
+    sn_obj_id_t mul = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_MUL], 0);
+    sn_obj_id_t po = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PO], 0);
+    bool valid = sn_obj_width(module, a) == a_width && sn_obj_is_signed(module, a) &&
+                 sn_obj_width(module, b) == b_width && sn_obj_is_signed(module, b) &&
+                 sn_obj_width(module, c) == y_width && sn_obj_is_signed(module, c) &&
+                 sn_obj_width(module, mul) == p_width && sn_obj_is_signed(module, mul) &&
+                 sn_obj_fanin_count(module, mul) == 2 && sn_obj_fanin(module, mul, 0) == a &&
+                 sn_obj_fanin(module, mul, 1) == b && sn_obj_width(module, po) == y_width &&
+                 sn_obj_is_signed(module, po);
+    sn_obj_id_t sum = valid ? sn_obj_fanin(module, po, 0) : SN_INVALID_ID;
+    valid = valid && sum != SN_INVALID_ID && sn_obj_type(module, sum) == SN_ADD &&
+            sn_obj_fanin_count(module, sum) == 2 && sn_obj_width(module, sum) == y_width &&
+            sn_obj_is_signed(module, sum) && sn_obj_fanin(module, sum, 1) == c;
+    sn_obj_id_t aligned = valid ? sn_obj_fanin(module, sum, 0) : SN_INVALID_ID;
+    if (valid && shift)
+    {
+        valid = aligned != SN_INVALID_ID && sn_obj_type(module, aligned) == SN_SHL &&
+                sn_obj_width(module, aligned) == y_width && sn_obj_is_signed(module, aligned);
+        aligned = valid ? sn_obj_fanin(module, aligned, 0) : SN_INVALID_ID;
+    }
+    valid = valid && aligned != SN_INVALID_ID && sn_obj_type(module, aligned) == SN_CAST &&
+            sn_obj_width(module, aligned) == y_width && sn_obj_is_signed(module, aligned) &&
+            sn_obj_fanin(module, aligned, 0) == mul;
+    SN_CHECK(ctx, module, SN_INVALID_ID, valid,
+             "DSP MAC primitive behavior does not match its encoded interface");
+}
+
 static inline void sn_check_dsp_primitive(sn_check_ctx_t* ctx, const sn_module_t* module, const char* name)
 {
+    if (strstr(name, "_mac_"))
+    {
+        sn_check_dsp_mac_primitive(ctx, module, name);
+        return;
+    }
     size_t pi_count = module->type_objects[SN_PI].size;
     size_t po_count = module->type_objects[SN_PO].size;
     size_t mul_count = module->type_objects[SN_MUL].size;
@@ -1099,9 +1181,21 @@ static inline uint32_t sn_check_address_width(uint32_t depth)
 
 static inline void sn_check_memory_primitive(sn_check_ctx_t* ctx, const sn_module_t* module, const char* name)
 {
-    const char* marker = strstr(name, "_tdp_tile_");
-    bool tdp = marker != NULL;
+    const char* marker = strstr(name, "_rtdp_tile_");
+    bool rtdp = marker != NULL;
+    bool tdp = rtdp;
     bool legacy = false;
+    bool rtile = false;
+    if (!marker)
+    {
+        marker = strstr(name, "_tdp_tile_");
+        tdp = marker != NULL;
+    }
+    if (!marker)
+    {
+        marker = strstr(name, "_rtile_");
+        rtile = marker != NULL;
+    }
     if (!marker)
         marker = strstr(name, "_tile_");
     if (!marker)
@@ -1109,10 +1203,21 @@ static inline void sn_check_memory_primitive(sn_check_ctx_t* ctx, const sn_modul
         marker = strstr(name, "_mem_");
         legacy = marker != NULL;
     }
-    const char* cursor = marker ? marker + (tdp ? 10 : legacy ? 5 : 6) : NULL;
+    const char* cursor = marker ? marker + (rtdp ? 11 : tdp ? 10 : rtile ? 7 : legacy ? 5 : 6) : NULL;
     uint32_t width = 0, depth = 0;
-    bool parsed = marker && sn_check_parse_u32(&cursor, &width, '_') &&
-                  sn_check_parse_u32(&cursor, &depth, '\0') && cursor && *cursor == '\0' && width && depth;
+    bool parsed = marker && sn_check_parse_u32(&cursor, &width, '_');
+    if (parsed)
+    {
+        // The depth may be followed by an initialization-image tag, an
+        // "_i" plus a 16-digit hash, optionally with a collision suffix.
+        if (sn_check_parse_u32(&cursor, &depth, '\0'))
+            parsed = true;
+        else if (sn_check_parse_u32(&cursor, &depth, '_'))
+            parsed = cursor && cursor[0] == 'i' && strlen(cursor) >= 17;
+        else
+            parsed = false;
+    }
+    parsed = parsed && width && depth;
     SN_CHECK(ctx, module, SN_INVALID_ID, parsed, "memory primitive name does not encode valid dimensions");
     size_t pi_count = module->type_objects[SN_PI].size;
     size_t po_count = module->type_objects[SN_PO].size;
@@ -1122,22 +1227,32 @@ static inline void sn_check_memory_primitive(sn_check_ctx_t* ctx, const sn_modul
              "memory primitive wrapper must contain one memory");
     SN_CHECK(ctx, module, SN_INVALID_ID, reads == (tdp ? 2u : 1u) && writes == (tdp ? 2u : 1u),
              "memory primitive wrapper has the wrong number of read or write ports");
-    SN_CHECK(ctx, module, SN_INVALID_ID, pi_count == (tdp ? 8u : 5u) && po_count == reads,
+    uint32_t expected_pis = rtdp ? 10u : tdp ? 8u : rtile ? 7u : 5u;
+    SN_CHECK(ctx, module, SN_INVALID_ID, pi_count == expected_pis && po_count == reads,
              "memory primitive interface has the wrong number of ports");
     if (!parsed || module->type_objects[SN_MEM_OUT].size != 1 || reads != (tdp ? 2u : 1u) ||
-        writes != (tdp ? 2u : 1u) || pi_count != (tdp ? 8u : 5u) || po_count != reads)
+        writes != (tdp ? 2u : 1u) || pi_count != expected_pis || po_count != reads)
         return;
     sn_obj_id_t memory = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_MEM_OUT], 0);
     uint32_t address_width = legacy ? 32 : sn_check_address_width(depth);
     bool valid = sn_obj_width(module, memory) == width && sn_obj_mem_depth(module, memory) == depth;
     for (uint32_t port = 0; port < reads; port++)
     {
-        uint32_t base = tdp ? 4 * port : 0;
+        uint32_t base = rtdp ? 5 * port : tdp ? 4 * port : 0;
         sn_obj_id_t clock = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], base);
         sn_obj_id_t enable = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], base + 1);
         sn_obj_id_t address = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], base + 2);
         sn_obj_id_t data = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], base + 3);
-        sn_obj_id_t read_address = tdp ? address : sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], 4);
+        sn_obj_id_t read_address = tdp     ? address
+                                   : rtile ? sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], 6)
+                                           : sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], 4);
+        sn_obj_id_t read_clock_pi = rtdp    ? clock
+                                    : rtile ? sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], 4)
+                                            : SN_INVALID_ID;
+        sn_obj_id_t read_enable_pi =
+            rtdp    ? sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], base + 4)
+            : rtile ? sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PI], 5)
+                    : SN_INVALID_ID;
         sn_obj_id_t write = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_MEM_WRITE], port);
         sn_obj_id_t read = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_MEM_READ], port);
         sn_obj_id_t po = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_PO], port);
@@ -1148,8 +1263,8 @@ static inline void sn_check_memory_primitive(sn_check_ctx_t* ctx, const sn_modul
                  sn_obj_fanin(module, write, SN_MEM_WRITE_DATA) == data &&
                  sn_obj_fanin(module, write, SN_MEM_WRITE_ADDRESS) == address &&
                  sn_obj_fanin(module, read, SN_MEM_READ_MEMORY) == memory &&
-                 sn_obj_fanin(module, read, SN_MEM_READ_CLOCK) == SN_INVALID_ID &&
-                 sn_obj_fanin(module, read, SN_MEM_READ_ENABLE) == SN_INVALID_ID &&
+                 sn_obj_fanin(module, read, SN_MEM_READ_CLOCK) == read_clock_pi &&
+                 sn_obj_fanin(module, read, SN_MEM_READ_ENABLE) == read_enable_pi &&
                  sn_obj_width(module, read_address) == address_width &&
                  sn_obj_fanin(module, read, SN_MEM_READ_ADDRESS) == read_address &&
                  sn_obj_width(module, po) == width && sn_obj_fanin(module, po, 0) == read;
@@ -1200,10 +1315,7 @@ static inline void sn_check_hierarchy_visit(sn_check_ctx_t* ctx, const sn_design
         sn_check_hierarchy_frame_t* frame =
             &sn_vec_at(sn_check_hierarchy_frame_t, &stack, stack.size - 1);
         const sn_module_t* module = sn_vec_at(sn_module_t*, &design->modules, frame->module);
-        size_t inst_count = module ? module->inst_modules.size < module->type_objects[SN_INST].size
-                                         ? module->inst_modules.size
-                                         : module->type_objects[SN_INST].size
-                                   : 0;
+        size_t inst_count = module ? module->type_objects[SN_INST].size : 0;
         if (frame->next_inst >= inst_count)
         {
             states[frame->module] = 2;
@@ -1211,7 +1323,10 @@ static inline void sn_check_hierarchy_visit(sn_check_ctx_t* ctx, const sn_design
             continue;
         }
         size_t inst_index = frame->next_inst++;
-        sn_module_id_t child = sn_vec_at(sn_module_id_t, &module->inst_modules, inst_index);
+        sn_obj_id_t inst = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_INST], inst_index);
+        if (inst >= module->obj_data.size)
+            continue;
+        sn_module_id_t child = sn_vec_at(uint32_t, &module->obj_data, inst);
         if (child >= design->modules.size)
             continue;
         if (states[child] == 1)
@@ -1229,6 +1344,52 @@ static inline void sn_check_hierarchy_visit(sn_check_ctx_t* ctx, const sn_design
     sn_vec_destroy(&stack);
 }
 
+// Payload descriptors are semantic state; bucket chains are an optional cache.
+// Validate payload spans before any hashing or word access.
+static inline void sn_check_constant_table(sn_check_ctx_t* ctx, const sn_design_t* design)
+{
+    size_t bucket_count = design->const_buckets.size;
+    size_t entry_count = design->const_entries.size;
+    for (size_t i = 0; i < entry_count; i++)
+    {
+        const sn_const_entry_t* entry = &sn_vec_at(sn_const_entry_t, &design->const_entries, i);
+        bool span = entry->offset <= design->constant_words.size &&
+                    entry->word_count <= design->constant_words.size - entry->offset;
+        SN_CHECK(ctx, NULL, SN_INVALID_ID, span, "constant entry %zu has an invalid word span", i);
+        if (span && entry->word_count)
+            SN_CHECK(ctx, NULL, SN_INVALID_ID,
+                     sn_vec_at(uint32_t, &design->constant_words, entry->offset + entry->word_count - 1) != 0,
+                     "constant entry %zu has a redundant high zero word", i);
+    }
+    if (!bucket_count)
+        return;
+    SN_CHECK(ctx, NULL, SN_INVALID_ID, (bucket_count & (bucket_count - 1)) == 0,
+             "constant bucket count %zu is not a power of two", bucket_count);
+    if (bucket_count & (bucket_count - 1))
+        return;
+    uint8_t* seen = entry_count ? (uint8_t*)calloc(entry_count, 1) : NULL;
+    assert(!entry_count || seen);
+    for (size_t bucket = 0; bucket < bucket_count; bucket++)
+    {
+        uint32_t id = sn_vec_at(uint32_t, &design->const_buckets, bucket);
+        size_t steps = 0;
+        while (id != SN_INVALID_ID && id < entry_count && steps++ < entry_count)
+        {
+            const sn_const_entry_t* entry = &sn_vec_at(sn_const_entry_t, &design->const_entries, id);
+            SN_CHECK(ctx, NULL, SN_INVALID_ID, !seen[id], "constant entry %u appears more than once", id);
+            seen[id] = 1;
+            SN_CHECK(ctx, NULL, SN_INVALID_ID, (entry->hash & (bucket_count - 1)) == bucket,
+                     "constant entry %u is in the wrong bucket", id);
+            id = entry->next;
+        }
+        SN_CHECK(ctx, NULL, SN_INVALID_ID, id == SN_INVALID_ID,
+                 "constant bucket %zu has an invalid or cyclic chain", bucket);
+    }
+    for (size_t i = 0; i < entry_count; i++)
+        SN_CHECK(ctx, NULL, SN_INVALID_ID, seen[i], "constant entry %zu is unreachable", i);
+    free(seen);
+}
+
 static inline bool sn_design_check(const sn_design_t* design, FILE* out, bool verbose)
 {
     sn_check_ctx_t ctx = {out ? out : stderr, 0, 0, 0, verbose};
@@ -1241,6 +1402,8 @@ static inline bool sn_design_check(const sn_design_t* design, FILE* out, bool ve
     safe &= sn_check_vec(&ctx, NULL, &design->names.links, "name links");
     safe &= sn_check_vec(&ctx, NULL, &design->names.buckets, "name buckets");
     safe &= sn_check_vec(&ctx, NULL, &design->constant_words, "constant words");
+    safe &= sn_check_vec(&ctx, NULL, &design->const_entries, "constant entries");
+    safe &= sn_check_vec(&ctx, NULL, &design->const_buckets, "constant buckets");
     if (!safe)
         return false;
     SN_CHECK(&ctx, NULL, SN_INVALID_ID, design->modules.size < SN_INVALID_ID, "module count is too large");
@@ -1251,6 +1414,7 @@ static inline bool sn_design_check(const sn_design_t* design, FILE* out, bool ve
              "name bucket count %zu is not a nonzero power of two", design->names.buckets.size);
     if (design->names.names.size != design->names.links.size)
         return false;
+    sn_check_constant_table(&ctx, design);
     for (size_t i = 0; i < design->names.names.size; i++)
     {
         const char* name = sn_vec_at(char*, &design->names.names, i);
@@ -1317,17 +1481,15 @@ static inline bool sn_design_check(const sn_design_t* design, FILE* out, bool ve
         size_t before_core = ctx.errors;
         if (module && module->design == design && sn_check_module_core(&ctx, module) && ctx.errors == before_core)
         {
-            bool metadata_safe = sn_check_type_metadata(&ctx, module);
-            if (metadata_safe)
-            {
-                sn_check_pairs(&ctx, module, SN_REG_OUT, SN_REG_IN, SN_REG_DATA);
-                sn_check_pairs(&ctx, module, SN_MEM_OUT, SN_MEM_IN, SN_MEM_STATE);
-                sn_check_pairs(&ctx, module, SN_LOOP_OUT, SN_LOOP_IN, 0);
-                sn_check_memories(&ctx, module);
-                sn_check_instances(&ctx, module);
-                sn_check_special_objects(&ctx, module);
-                sn_check_operator_shapes(&ctx, module);
-            }
+            // Per-object metadata lives in obj_data, checked with the core
+            // vectors above; there are no separate type-metadata vectors.
+            sn_check_pairs(&ctx, module, SN_REG_OUT, SN_REG_IN, SN_PAIR_OUT_IN_SLOT);
+            sn_check_pairs(&ctx, module, SN_MEM_OUT, SN_MEM_IN, SN_PAIR_OUT_IN_SLOT);
+            sn_check_pairs(&ctx, module, SN_LOOP_OUT, SN_LOOP_IN, SN_PAIR_OUT_IN_SLOT);
+            sn_check_memories(&ctx, module);
+            sn_check_instances(&ctx, module);
+            sn_check_special_objects(&ctx, module);
+            sn_check_operator_shapes(&ctx, module);
             sn_check_auxiliary_storage(&ctx, module);
             sn_check_topology(&ctx, module);
             sn_check_primitive(&ctx, module);

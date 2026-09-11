@@ -106,9 +106,9 @@ static inline bool sn_share_const_equal(const sn_module_t* module, sn_obj_id_t a
     for (uint32_t bit = 0; bit < width; bit++)
     {
         bool av = (ta == SN_CONST1 && bit == 0) ||
-                  (ta == SN_CONST && ((sn_const_words(module, a)[bit >> 5] >> (bit & 31)) & 1));
+                  (ta == SN_CONST && ((sn_const_word(module, a, bit >> 5) >> (bit & 31)) & 1));
         bool bv = (tb == SN_CONST1 && bit == 0) ||
-                  (tb == SN_CONST && ((sn_const_words(module, b)[bit >> 5] >> (bit & 31)) & 1));
+                  (tb == SN_CONST && ((sn_const_word(module, b, bit >> 5) >> (bit & 31)) & 1));
         if (av != bv)
             return false;
     }
@@ -163,9 +163,9 @@ static inline bool sn_share_value_equal(const sn_module_t* module, sn_obj_id_t a
         return false;
     if (ta == SN_SLICE)
     {
-        const sn_slice_info_t* ia = sn_obj_slice_info(module, a);
-        const sn_slice_info_t* ib = sn_obj_slice_info(module, b);
-        return ia->left_index == ib->left_index && ia->right_index == ib->right_index &&
+        sn_slice_info_t ia = sn_obj_slice_info(module, a);
+        sn_slice_info_t ib = sn_obj_slice_info(module, b);
+        return ia.left_index == ib.left_index && ia.right_index == ib.right_index &&
                sn_share_value_equal(module, sn_obj_fanin(module, a, 0), sn_obj_fanin(module, b, 0));
     }
     if (ta == SN_REPLICATE)
@@ -210,7 +210,7 @@ static inline uint64_t* sn_share_value_hashes(const sn_module_t* module)
             uint32_t count = sn_const_word_count(sn_obj_width(module, object));
             for (uint32_t i = 0; i < count; i++)
             {
-                uint32_t word = type == SN_CONST ? sn_const_words(module, object)[i]
+                uint32_t word = type == SN_CONST ? sn_const_word(module, object, i)
                                                  : type == SN_CONST1 && i == 0 ? 1 : 0;
                 if (i + 1 == count && (sn_obj_width(module, object) & 31))
                     word &= (UINT32_C(1) << (sn_obj_width(module, object) & 31)) - 1;
@@ -222,9 +222,9 @@ static inline uint64_t* sn_share_value_hashes(const sn_module_t* module)
         hash = sn_share_hash_mix(hash, type);
         if (type == SN_SLICE)
         {
-            const sn_slice_info_t* info = sn_obj_slice_info(module, object);
-            hash = sn_share_hash_mix(hash, (uint32_t)info->left_index);
-            hash = sn_share_hash_mix(hash, (uint32_t)info->right_index);
+            sn_slice_info_t info = sn_obj_slice_info(module, object);
+            hash = sn_share_hash_mix(hash, (uint32_t)info.left_index);
+            hash = sn_share_hash_mix(hash, (uint32_t)info.right_index);
             hash = sn_share_hash_mix(hash, hashes[sn_obj_fanin(module, object, 0)]);
         }
         else if (type == SN_REPLICATE)
@@ -608,7 +608,7 @@ static inline bool sn_share_reg_mux_tree(sn_module_t* target, const sn_module_t*
     if (hold_index < terms.size)
     {
         sn_obj_id_t update = sn_share_or(target, sn_vec_data(sn_obj_id_t, &controls), (uint32_t)controls.size);
-        sn_obj_id_t enable = sn_obj_fanin(target, new_reg, SN_REG_ENABLE);
+        sn_obj_id_t enable = sn_reg_fanin(target, new_reg, SN_REG_ENABLE);
         if (enable != SN_INVALID_ID)
         {
             sn_obj_id_t fanins[2] = {enable, update};
@@ -788,7 +788,7 @@ static inline bool sn_share_reg_pmux(sn_module_t* target, const sn_module_t* sou
     {
         sn_obj_id_t update =
             sn_share_or(target, sn_vec_data(sn_obj_id_t, &conditions), (uint32_t)conditions.size);
-        sn_obj_id_t enable = sn_obj_fanin(target, new_reg, SN_REG_ENABLE);
+        sn_obj_id_t enable = sn_reg_fanin(target, new_reg, SN_REG_ENABLE);
         if (enable != SN_INVALID_ID)
         {
             sn_obj_id_t fanins[2] = {enable, update};

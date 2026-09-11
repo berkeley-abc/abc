@@ -8,6 +8,10 @@
 
   Synopsis    [Initial mapping core.]
 
+  Date        [Ver. 1.0. Started - June 20, 2005.]
+
+  Revision    [$Id: emapCore.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+
 ***********************************************************************/
 
 #include "emap.h"
@@ -2193,6 +2197,7 @@ static Abc_Ntk_t * Emap_ManBuildMappedNtk( Abc_Ntk_t * pNtk, Emap_Obj_t * pMaps,
     int i;
     pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_MAP, 1 );
     pNtkNew->pName = Extra_UtilStrsav( pNtk->pName ? pNtk->pName : "emap" );
+    pNtkNew->pSpec = Extra_UtilStrsav( pNtk->pSpec );
     pNtkNew->pManFunc = pMio;
     vCopy = Vec_IntStartFull( 2 * Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachPi( pNtk, pObj, i )

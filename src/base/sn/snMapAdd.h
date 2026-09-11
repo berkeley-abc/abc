@@ -36,11 +36,16 @@ typedef struct sn_add_map_options_t
     bool map_add;
     bool map_sub;
     bool preserve_names;
+    // Collapse single-fanout chains of additions and subtractions into one
+    // carry-save compressor tree with a single final carry chain, the way
+    // multi-operand accumulation maps efficiently onto FPGAs.
+    bool map_trees;
+    uint32_t max_tree_operands;
 } sn_add_map_options_t;
 
 static inline sn_add_map_options_t sn_add_map_default_options(void)
 {
-    sn_add_map_options_t options = {0, true, true, true};
+    sn_add_map_options_t options = {0, true, true, true, true, 48};
     return options;
 }
 
@@ -159,6 +164,69 @@ static inline sn_obj_id_t sn_add_map_carry_chain(sn_module_t* module, const sn_c
         result = sn_module_add_slice(module, result, (int32_t)result_width - 1, 0, NULL);
     if (sn_obj_is_signed(module, result) != result_signed)
         result = sn_module_add_operator(module, SN_CAST, result_width, result_signed, 1, &result, name);
+    return result;
+}
+
+// Reduces three same-width unsigned operands to two with one carry-save
+// compressor level: sum = a ^ b ^ c and carry = majority(a, b, c) << 1,
+// exact modulo 2^width because the shifted-out majority bit is congruent to
+// zero. All values stay at the result width, so operand extension inside
+// every operator is the identity.
+static inline void sn_add_csa_compress(sn_module_t* module, sn_obj_id_t a, sn_obj_id_t b, sn_obj_id_t c,
+                                       uint32_t width, sn_obj_id_t* sum, sn_obj_id_t* carry)
+{
+    sn_obj_id_t ab[2] = {a, b};
+    sn_obj_id_t partial = sn_module_add_operator(module, SN_BIT_XOR, width, false, 2, ab, NULL);
+    sn_obj_id_t partial_c[2] = {partial, c};
+    *sum = sn_module_add_operator(module, SN_BIT_XOR, width, false, 2, partial_c, NULL);
+    sn_obj_id_t and_ab = sn_module_add_operator(module, SN_BIT_AND, width, false, 2, ab, NULL);
+    sn_obj_id_t bc[2] = {b, c};
+    sn_obj_id_t and_bc = sn_module_add_operator(module, SN_BIT_AND, width, false, 2, bc, NULL);
+    sn_obj_id_t ac[2] = {a, c};
+    sn_obj_id_t and_ac = sn_module_add_operator(module, SN_BIT_AND, width, false, 2, ac, NULL);
+    sn_obj_id_t or_ab_bc[2] = {and_ab, and_bc};
+    sn_obj_id_t majority = sn_module_add_operator(module, SN_BIT_OR, width, false, 2, or_ab_bc, NULL);
+    sn_obj_id_t or_all[2] = {majority, and_ac};
+    majority = sn_module_add_operator(module, SN_BIT_OR, width, false, 2, or_all, NULL);
+    sn_obj_id_t one = sn_module_add_named_obj(module, SN_CONST1, 32, false, 0, NULL);
+    sn_obj_id_t shift[2] = {majority, one};
+    *carry = sn_module_add_operator(module, SN_SHL, width, false, 2, shift, NULL);
+}
+
+// Sums the prepared same-width unsigned operands through a carry-save
+// compressor tree and one final carry chain. Exact modulo 2^result_width.
+static inline sn_obj_id_t sn_add_map_csa_tree(sn_module_t* module, const sn_carry_tech_t* tech,
+                                              sn_obj_id_t* operands, uint32_t count, uint32_t result_width,
+                                              bool result_signed, const char* name)
+{
+    assert(module && tech && operands && count >= 2);
+    sn_vec_t values;
+    sn_vec_init(&values);
+    for (uint32_t i = 0; i < count; i++)
+        *sn_vec_push(sn_obj_id_t, &values) = operands[i];
+    while (values.size > 2)
+    {
+        sn_vec_t next;
+        sn_vec_init(&next);
+        size_t i = 0;
+        for (; i + 3 <= values.size; i += 3)
+        {
+            sn_obj_id_t sum, carry;
+            sn_add_csa_compress(module, sn_vec_at(sn_obj_id_t, &values, i),
+                                sn_vec_at(sn_obj_id_t, &values, i + 1),
+                                sn_vec_at(sn_obj_id_t, &values, i + 2), result_width, &sum, &carry);
+            *sn_vec_push(sn_obj_id_t, &next) = sum;
+            *sn_vec_push(sn_obj_id_t, &next) = carry;
+        }
+        for (; i < values.size; i++)
+            *sn_vec_push(sn_obj_id_t, &next) = sn_vec_at(sn_obj_id_t, &values, i);
+        sn_vec_destroy(&values);
+        values = next;
+    }
+    sn_obj_id_t result = sn_add_map_carry_chain(module, tech, SN_ADD, sn_vec_at(sn_obj_id_t, &values, 0),
+                                                sn_vec_at(sn_obj_id_t, &values, 1), result_width, result_signed,
+                                                name);
+    sn_vec_destroy(&values);
     return result;
 }
 

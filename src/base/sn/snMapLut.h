@@ -81,27 +81,6 @@ static inline bool sn_map_lut_boundary_has_generic_memories(const sn_blast_bound
     return false;
 }
 
-static inline void sn_design_replace_appended_module(sn_design_t* design, sn_module_id_t module,
-                                                       sn_name_id_t name, sn_module_id_t temporary)
-{
-    sn_module_t* old_module;
-    sn_module_t* new_module;
-    bool interface_locked;
-    assert(design && module < design->modules.size);
-    old_module = sn_design_get_module(design, module);
-    assert(old_module->name == name);
-    assert(temporary + 1 == design->modules.size && temporary != module);
-    new_module = sn_design_get_module(design, temporary);
-    interface_locked = old_module->interface_locked;
-    sn_module_destroy(old_module);
-    free(old_module);
-    new_module->id = module;
-    new_module->name = name;
-    new_module->interface_locked = interface_locked;
-    sn_vec_at(sn_module_t*, &design->modules, module) = new_module;
-    design->modules.size--;
-}
-
 // Maps all user modules reachable from root. The callback borrows aig and boundary for the duration of the call and
 // returns a newly allocated MiniLUT owned by this harness. A NULL result aborts the pass. Modules containing generic
 // memories are skipped; map their memories into primitive instances first if their surrounding logic should be mapped.
@@ -142,8 +121,8 @@ static inline bool sn_design_map_lut_hierarchy(sn_design_t* design, sn_module_id
         reachable[module_id] = true;
         stats.reachable_modules++;
         module = sn_design_get_module_const(design, module_id);
-        for (size_t i = 0; i < module->inst_modules.size; i++)
-            *sn_vec_push(sn_module_id_t, &pending) = sn_vec_at(sn_module_id_t, &module->inst_modules, i);
+        for (size_t i = 0; i < module->type_objects[SN_INST].size; i++)
+            *sn_vec_push(sn_module_id_t, &pending) = sn_inst_module_id(module, sn_vec_at(sn_obj_id_t, &module->type_objects[SN_INST], i));
     }
     for (sn_module_id_t module_id = 0; module_id < module_count; module_id++)
     {
@@ -166,6 +145,22 @@ static inline bool sn_design_map_lut_hierarchy(sn_design_t* design, sn_module_id
         options.abstract_instances = true;
         sn_blast_boundary_init(&boundary);
         aig = sn_design_blast_hier_boundary_options(design, module_id, options, NULL, &boundary);
+        if (!aig)
+        {
+            stats.failed_module = module_id;
+            sn_blast_boundary_destroy(&boundary);
+            for (size_t j = 0; j < jobs.size; j++)
+            {
+                sn_map_lut_job_t* job = &sn_vec_at(sn_map_lut_job_t, &jobs, j);
+                Mini_AigStop(job->aig);
+                sn_blast_boundary_destroy(&job->boundary);
+            }
+            sn_vec_destroy(&pending);
+            sn_vec_destroy(&jobs);
+            free(reachable);
+            if (returned_stats) *returned_stats = stats;
+            return false;
+        }
         if (sn_map_lut_boundary_has_generic_memories(&boundary))
         {
             stats.generic_memory_modules++;
