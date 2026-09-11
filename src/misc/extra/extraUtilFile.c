@@ -471,7 +471,7 @@ char * Extra_TimeStamp()
     time_t ltime;
     // get the current time
     time( &ltime );
-#if defined(_WIN32) && !defined(__MINGW32__)
+#if defined(_WIN32)
     ctime_s( Buffer, sizeof(Buffer), &ltime );
 #else
     ctime_r( &ltime, Buffer );
