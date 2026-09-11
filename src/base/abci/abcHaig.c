@@ -461,10 +461,24 @@ int Abc_NtkHaigResetReprs( Hop_Man_t * p )
     // clear self-classes
     Vec_PtrForEachEntry( Hop_Obj_t *, p->vObjs, pObj, i )
     {
-        // fix the strange situation of double-loop
-        pRepr = (Hop_Obj_t *)pObj->pData;
-        if ( pRepr && pRepr->pData == pObj )
-            pRepr->pData = pRepr;
+        // Break a cycle in the representative chain, of any length.  This used to fix
+        // the two-node case only ("the strange situation of double-loop"); a cycle of
+        // three or more sends Hop_ObjRepr() -- which recurses on pObj->pData until it
+        // reaches NULL or a self-loop -- into unbounded recursion, and the process dies
+        // of a stack overflow rather than of anything diagnosable.  Floyd's algorithm
+        // finds a cycle of any length in constant space; breaking it by making the
+        // meeting node its own representative is what the two-node fix did.
+        Hop_Obj_t * pSlow = pObj, * pFast = pObj;
+        while ( pFast->pData && ((Hop_Obj_t *)pFast->pData)->pData )
+        {
+            pSlow = (Hop_Obj_t *)pSlow->pData;
+            pFast = (Hop_Obj_t *)((Hop_Obj_t *)pFast->pData)->pData;
+            if ( pSlow == pFast )
+            {
+                pSlow->pData = pSlow;
+                break;
+            }
+        }
         // remove self-loops
         if ( pObj->pData == pObj )
             pObj->pData = NULL;
