@@ -52,7 +52,7 @@ typedef enum {
     ACB_XNOR,      // 13: "xnor"
     ACB_MUX,       // 14: "_HMUX"
     ACB_DC,        // 15: "_DC"
-    ACB_UNUSED     // 14: unused
+    ACB_UNUSED     // 16: unused
 } Acb_KeyWords_t; 
 
 static inline char * Acb_Num2Name( int i )
