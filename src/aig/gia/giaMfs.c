@@ -423,9 +423,11 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
         pTruth = Sfm_NodeReadTruth( pNtk, iMfsId );
         iGroup = Vec_IntEntry( vGroupMap, iMfsId );
         vArray = Sfm_NodeReadFanins( pNtk, iMfsId ); // belongs to pNtk
-        if ( Vec_IntSize(vArray) == 1 && Vec_IntEntry(vArray,0) < nBbOuts ) // skip unreal inputs
+        // skip unreal inputs: the buffer from a black-box output to the CI
+        // representing it; after resubstitution, an internal node may also
+        // be driven by a black-box output alone and is handled below
+        if ( iGroup >= 0 && Abc_LitIsCompl(iGroup) && Vec_IntSize(vArray) == 1 && Vec_IntEntry(vArray,0) < nBbOuts )
         {
-            assert( Abc_LitIsCompl(iGroup) );
             assert( vBbOutLit != NULL );
             iLitNew = Vec_IntEntry( vBbOutLit, Vec_IntEntry(vArray,0) );
             assert( iLitNew >= 0 );
