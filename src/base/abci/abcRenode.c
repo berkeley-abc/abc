@@ -42,12 +42,12 @@ static int Abc_NtkRenodeEvalSop( If_Man_t * p, If_Cut_t * pCut );
 static int Abc_NtkRenodeEvalCnf( If_Man_t * p, If_Cut_t * pCut );
 static int Abc_NtkRenodeEvalMv( If_Man_t * p, If_Cut_t * pCut );
 
-static reo_man * s_pReo       = NULL;
-static DdManager * s_pDd      = NULL;
-static Vec_Int_t * s_vMemory  = NULL;
-static Vec_Int_t * s_vMemory2 = NULL;
+static ABC_THREAD_LOCAL reo_man * s_pReo       = NULL;
+static ABC_THREAD_LOCAL DdManager * s_pDd      = NULL;
+static ABC_THREAD_LOCAL Vec_Int_t * s_vMemory  = NULL;
+static ABC_THREAD_LOCAL Vec_Int_t * s_vMemory2 = NULL;
 
-static int nDsdCounter = 0;
+static ABC_THREAD_LOCAL int nDsdCounter = 0;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
