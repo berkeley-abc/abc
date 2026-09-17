@@ -96,7 +96,6 @@ void Hop_ManAddMemory( Hop_Man_t * p )
 //    assert( (Hop_ManObjNum(p) & IVY_PAGE_MASK) == 0 );
     // allocate new memory page
     nBytes = sizeof(Hop_Obj_t) * (1<<IVY_PAGE_SIZE) + 64;
-    pMemory = pMemory + 64 - (((int)(ABC_PTRUINT_T)pMemory) & 63);
     pMemory = ABC_ALLOC( char, nBytes );
     Vec_PtrPush( p->vChunks, pMemory );
     // align memory at the 32-byte boundary
