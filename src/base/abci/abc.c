@@ -35185,6 +35185,7 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     // transfer the spec name to the pNtk
     if( pAbc->pGia->pSpec )
     {
+        ABC_FREE( pNtk->pSpec );
         pNtk->pSpec = Extra_UtilStrsav( pAbc->pGia->pSpec );
     }
     // transfer PI names to pNtk
