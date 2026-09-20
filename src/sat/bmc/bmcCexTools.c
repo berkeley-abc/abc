@@ -972,6 +972,7 @@ unsigned char * Mnist_ReadImages1_()
     unsigned char * pData = (unsigned char *)malloc( Size );
     FILE * pFile = fopen( "train-images.idx3-ubyte", "rb" );
     int RetValue = fread( pData, 1, Size, pFile );
+    (void)RetValue;
     assert( RetValue == Size );
     fclose( pFile );
     return pData;
@@ -1002,4 +1003,3 @@ void Gia_ManCountCareBitsTest( Gia_Man_t * p )
 
 
 ABC_NAMESPACE_IMPL_END
-

@@ -903,6 +903,7 @@ void Io_TransformSF2PLA( char * pNameIn, char * pNameOut )
         if ( strstr(pBuffer, "SDF") )
         {
             char * pRes = fgets(pBuffer, Size, pFileIn);
+            (void)pRes;
             assert( pRes != NULL );
             if ( (pToken = strtok( pBuffer, " \t\r\n" )) )
                 fprintf( pFileOut, ".i %d\n", atoi(pToken) );
@@ -1089,4 +1090,3 @@ Vec_Ptr_t * Io_FileReadCnf( char * pFileName, int fMulti )
 
 
 ABC_NAMESPACE_IMPL_END
-

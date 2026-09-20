@@ -1249,6 +1249,7 @@ void Gia_ManQuantLoadCnf2( Gia_Man_t * p, Vec_Int_t * vObjsUsed, bmcg2_sat_solve
         {
             int Lit = Abc_Var2Lit( Gia_ObjCopyArray(p, 0), 1 );
             int RetValue = bmcg2_sat_solver_addclause( pSats[0], &Lit, 1 );
+            (void)RetValue;
             assert( RetValue );
             if ( pSats[1] )
             bmcg2_sat_solver_addclause( pSats[1], &Lit, 1 );

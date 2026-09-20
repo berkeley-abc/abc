@@ -403,6 +403,7 @@ Abc_Cex_t * Abc_CexTransformPhase( Abc_Cex_t * p, int nPisOld, int nPosOld, int 
     Abc_Cex_t * pCex;
     int nFrames = p->nPis / nPisOld;
     int nPosNew = nPosOld * nFrames;
+    (void)nPosNew;
     assert( p->nPis % nPisOld == 0 );
     assert( p->iPo < nPosNew );
     pCex = Abc_CexDup( p, nRegsOld );
@@ -571,4 +572,3 @@ int Abc_CexCountOnes( Abc_Cex_t * p )
 
 
 ABC_NAMESPACE_IMPL_END
-

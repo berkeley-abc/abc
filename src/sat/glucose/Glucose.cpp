@@ -1294,6 +1294,7 @@ printf("c ==================================[ Search Statistics (every %6d confl
         }
         
         int callback_result = pCnfFunc(pCnfMan, message, pCex);
+        (void)callback_result;
         assert(callback_result == 0);
     }
     else if (pCnfFunc)

@@ -385,7 +385,9 @@ void Saig_ManCexMinCollectReason_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t
     if ( Abc_LitIsCompl(pObj->iData) ) // value 1
     {
         int fPhase0 = Abc_LitIsCompl( Aig_ObjFanin0(pObj)->iData ) ^ Aig_ObjFaninC0(pObj);
+        (void)fPhase0;
         int fPhase1 = Abc_LitIsCompl( Aig_ObjFanin1(pObj)->iData ) ^ Aig_ObjFaninC1(pObj);
+        (void)fPhase1;
         assert( fPhase0 && fPhase1 );
         Saig_ManCexMinCollectReason_rec( p, Aig_ObjFanin0(pObj), vReason, fPiReason );
         Saig_ManCexMinCollectReason_rec( p, Aig_ObjFanin1(pObj), vReason, fPiReason );
@@ -575,4 +577,3 @@ Abc_Cex_t * Saig_ManCexMinPerform( Aig_Man_t * pAig, Abc_Cex_t * pCex )
 
 
 ABC_NAMESPACE_IMPL_END
-

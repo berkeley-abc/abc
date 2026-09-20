@@ -71,10 +71,12 @@ namespace rrr {
     Abc_FrameUpdateGia(pAbc, CreateGia(pNtk));
     if(Abc_FrameIsBatchMode()) {
       int r = Cmd_CommandExecute(pAbc, Command.c_str());
+      (void)r;
       assert(r == 0);
     } else {
       Abc_FrameSetBatchMode(1);
       int r = Cmd_CommandExecute(pAbc, Command.c_str());
+      (void)r;
       assert(r == 0);
       Abc_FrameSetBatchMode(0);
     }

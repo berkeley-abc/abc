@@ -787,6 +787,7 @@ void Abc_NtkFinSimulateOne( Abc_Ntk_t * pNtk, Vec_Int_t * vTypes, Vec_Int_t * vC
     Vec_Int_t * vClass, * vArray;
     int i, Counter = 0;
     int nItems = Vec_WecSizeSize(vRes);
+    (void)nItems;
     assert( nItems == Vec_WecSizeSize(vMap2) );
     assert( nItems <= 128 * nWords );
     // assign inputs
@@ -1261,4 +1262,3 @@ void Abc_NtkDetectClassesTest( Abc_Ntk_t * pNtk, int fSeq, int fVerbose, int fVe
 
 
 ABC_NAMESPACE_IMPL_END
-

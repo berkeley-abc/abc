@@ -322,12 +322,12 @@ Gia_Man_t * Acec_DetectAdditional( Gia_Man_t * p, int fVerbose )
         Acec_DetectComputeSupports( p, vRootXorSet );
 
         pNew = Acec_DetectXorBuildNew( p, vRootXorSet );
-        Vec_IntFree( vRootXorSet );
     }
     else
         pNew = Gia_ManDup( p );
 
-    printf( "Detected %d top XORs.  ", Vec_IntSize(vRootXorSet)/4 );
+    printf( "Detected %d top XORs.  ", vRootXorSet ? Vec_IntSize(vRootXorSet)/4 : 0 );
+    Vec_IntFreeP( &vRootXorSet );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
 //    Vec_IntFree( vXors );
@@ -442,4 +442,3 @@ Gia_Man_t * Acec_ManDecla( Gia_Man_t * pGia, int fBooth, int fVerbose )
 
 
 ABC_NAMESPACE_IMPL_END
-

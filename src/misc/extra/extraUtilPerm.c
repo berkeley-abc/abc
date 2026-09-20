@@ -91,7 +91,7 @@ struct Abc_ZddMan_
 };
 
 static inline int          Abc_ZddIthVar( int i )                                  { return i + 2;                                            }
-static inline unsigned     Abc_ZddHash( int Arg0, int Arg1, int Arg2 )             { return 12582917 * Arg0 + 4256249 * Arg1 + 741457 * Arg2; }
+static inline unsigned     Abc_ZddHash( int Arg0, int Arg1, int Arg2 )             { return 12582917u * (unsigned)Arg0 + 4256249u * (unsigned)Arg1 + 741457u * (unsigned)Arg2; }
 
 static inline Abc_ZddObj * Abc_ZddNode( Abc_ZddMan * p, int i )                    { return p->pObjs + i;                                     }
 static inline int          Abc_ZddObjId( Abc_ZddMan * p, Abc_ZddObj * pObj )       { return pObj - p->pObjs;                                  }
@@ -930,4 +930,3 @@ ZDD stats: Var = 276  Obj = 103566266  Alloc = 134217728  Hit = 63996630  Miss =
 
 
 ABC_NAMESPACE_IMPL_END
-

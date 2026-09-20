@@ -93,6 +93,7 @@ int Acb_DeriveCnfFromTruth( word Truth, int nVars, Vec_Int_t * vCover, Vec_Str_t
 void Acb_DeriveCnfForWindowOne( Acb_Ntk_t * p, int iObj )
 {
     Vec_Wec_t * vCnfs = &p->vCnfs;
+    (void)vCnfs;
     Vec_Str_t * vCnfBase = Acb_ObjCnfs( p, iObj );
     assert( Vec_StrSize(vCnfBase) == 0 ); // unassigned
     assert( Vec_WecSize(vCnfs) == Acb_NtkObjNumMax(p) );
@@ -298,6 +299,7 @@ void Acb_NtkWindowUndo( Acb_Ntk_t * p, Vec_Int_t * vWin )
 int Acb_NtkWindow2Solver( sat_solver * pSat, Cnf_Dat_t * pCnf, Vec_Int_t * vFlip, int PivotVar, int nDivs, int nTimes )
 {
     int n, i, RetValue, Test = pCnf->pClauses[0][0];
+    (void)Test;
     int nGroups = nTimes <= 2 ? nTimes-1 : 2;
     int nRounds = nTimes <= 2 ? nTimes-1 : nTimes;
     assert( sat_solver_nvars(pSat) == 0 );
@@ -1641,4 +1643,3 @@ void Acb_NtkOpt( Acb_Ntk_t * pNtk, Acb_Par_t * pPars )
 
 
 ABC_NAMESPACE_IMPL_END
-

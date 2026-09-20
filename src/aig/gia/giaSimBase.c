@@ -1803,6 +1803,7 @@ void Gia_RsbPrint( Gia_RsbMan_t * p )
 {
     Vec_Int_t * vLevel[2]; 
     int n, i, nLeaves = 1 << Vec_IntSize(p->vObjs);
+    (void)nLeaves;
     assert( Vec_WecSize(p->vSets[0]) == nLeaves );
     assert( Vec_WecSize(p->vSets[1]) == nLeaves );
     printf( "Database for %d objects and cost %d:\n", Vec_IntSize(p->vObjs), Gia_RsbCost(p) );
@@ -3762,4 +3763,3 @@ void Gia_ManComparePrint( Gia_Man_t * p, Gia_Man_t * q )
 
 
 ABC_NAMESPACE_IMPL_END
-

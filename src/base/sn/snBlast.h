@@ -173,8 +173,13 @@ static inline bool sn_blast_reg_init_bit(const sn_module_t* module, sn_obj_id_t 
 static inline int* sn_blast_alloc_bits(uint32_t width)
 {
     assert(width);
-    int* bits = (int*)malloc(sizeof(int) * width);
+    size_t bytes = sizeof(int) * (size_t)width;
+    if (!width || bytes / sizeof(int) != width)
+        abort();
+    int* bits = (int*)malloc(bytes);
     assert(bits);
+    if (!bits)
+        abort();
     return bits;
 }
 
@@ -187,6 +192,7 @@ static inline void sn_blast_copy(int* dst, const int* src, uint32_t width)
 static inline int sn_blast_bit(const sn_blast_ctx_t* ctx, sn_obj_id_t object, uint32_t bit)
 {
     const sn_module_t* module = ctx->module;
+    (void)module;
     assert(object < module->obj_types.size);
     assert(bit < sn_obj_width(module, object));
     return ctx->bits[object][bit];

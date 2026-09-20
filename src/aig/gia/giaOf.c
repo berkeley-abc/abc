@@ -1064,6 +1064,7 @@ static inline int Of_CutAreaDerefed( Of_Man_t * p, int * pCut )
 {
     int Ela1 = Of_CutRef_rec( p, pCut );
     int Ela2 = Of_CutDeref_rec( p, pCut );
+    (void)Ela2;
     assert( Ela1 == Ela2 );
     return Ela1;
 }
@@ -1863,4 +1864,3 @@ Gia_Man_t * Of_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 
 
 ABC_NAMESPACE_IMPL_END
-

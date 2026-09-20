@@ -150,6 +150,7 @@ int Gia_ManCountResub( Vec_Wrd_t * vTruths, int nVars, int fVerbose )
     Vec_Int_t * vResub; int nNodes;
     int nTtWords = Abc_Truth6WordNum(nVars);
     int v, nFuncs = Vec_WrdSize(vTruths) / 2 / nTtWords;
+    (void)nFuncs;
     Vec_Wrd_t * vElems = Vec_WrdStartTruthTables( nVars );
     Vec_Ptr_t * vDivs = Vec_PtrAlloc( 2 + nVars );
     assert( Vec_WrdSize(vElems) == nTtWords * nVars );
@@ -170,6 +171,7 @@ Vec_Int_t * Gia_ManDeriveResub( Vec_Wrd_t * vTruths, int nVars )
     Vec_Int_t * vResub;  
     int nTtWords = Abc_Truth6WordNum(nVars);
     int v, nFuncs = Vec_WrdSize(vTruths) / 2 / nTtWords;
+    (void)nFuncs;
     Vec_Wrd_t * vElems = Vec_WrdStartTruthTables( nVars );
     Vec_Ptr_t * vDivs = Vec_PtrAlloc( 2 + nVars );
     assert( Vec_WrdSize(vElems) == nTtWords * nVars );
@@ -322,6 +324,7 @@ Vec_Int_t * Gia_ManDeriveSolutionOne( Gia_Man_t * p, Vec_Wrd_t * vSims, Vec_Wrd_
     int nTtWords = Vec_WrdSize(vTruths)/2, nVars = Vec_IntSize(vSet);
     word * pTruth[2] = { Vec_WrdEntryP(vTruths, 0*nTtWords), 
                          Vec_WrdEntryP(vTruths, 1*nTtWords) };
+    (void)pTruth;
     if ( Type == 0 )
         vRes = Gia_ManDeriveResub( vTruths, nVars );
     else if ( Type == 1 )
@@ -333,6 +336,7 @@ Vec_Int_t * Gia_ManDeriveSolutionOne( Gia_Man_t * p, Vec_Wrd_t * vSims, Vec_Wrd_
     if ( vRes && Gia_ResubVarNum(vRes) <= 6 )
     {
         word Func = Gia_ResubToTruth6( vRes );
+        (void)Func;
         assert( !(Func &  pTruth[0][0]) );
         assert( !(pTruth[1][0] & ~Func) );   
     }
@@ -347,4 +351,3 @@ Vec_Int_t * Gia_ManDeriveSolutionOne( Gia_Man_t * p, Vec_Wrd_t * vSims, Vec_Wrd_
 
 
 ABC_NAMESPACE_IMPL_END
-

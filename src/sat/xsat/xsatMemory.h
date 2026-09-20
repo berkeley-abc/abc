@@ -75,6 +75,7 @@ static inline xSAT_Clause_t *  xSAT_MemClauseHand( xSAT_Mem_t * p, int h )
 static inline void xSAT_MemGrow( xSAT_Mem_t * p, unsigned nCap )
 {
     unsigned nPrevCap = p->nCap;
+    (void)nPrevCap;
     if ( p->nCap >= nCap )
         return;
     while (p->nCap < nCap)

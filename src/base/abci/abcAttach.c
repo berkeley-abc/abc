@@ -174,13 +174,14 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 int Abc_NodeAttach( Abc_Obj_t * pNode, Mio_Gate_t ** ppGates, unsigned ** puTruthGates, int nGates, unsigned uTruths[][2], char ** pPerms, int nPerms )
 {
-    int Perm[10];
+    int Perm[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
     int pTempInts[10];
     unsigned uTruthNode[2];
     Abc_Obj_t * pFanin;
     Mio_Gate_t * pGate;
     int nFanins, i;
 
+    if ( Abc_ObjFaninNum(pNode) > 6 ) return 0;
     // compute the node's truth table
     Abc_AttachComputeTruth( (char *)pNode->pData, uTruths, uTruthNode );
     // find the matching gate and permutation

@@ -175,6 +175,7 @@ int Kit_IsopNodeNum( unsigned * pTruth0, unsigned * pTruth1, int nVars, Vec_Int_
 void Kit_IsopResubInt( Kit_Graph_t * pGraph, Vec_Int_t * vRes )
 {
     int nVars = Kit_GraphLeaveNum(pGraph);
+    (void)nVars;
     assert( nVars >= 0 && nVars <= pGraph->nSize );
     if ( Kit_GraphIsConst(pGraph) )
         Vec_IntPush( vRes, Kit_GraphIsConst1(pGraph) );
@@ -322,4 +323,3 @@ Hop_Obj_t * Kit_CoverToHop( Hop_Man_t * pMan, Vec_Int_t * vCover, int nVars, Vec
 
 
 ABC_NAMESPACE_IMPL_END
-

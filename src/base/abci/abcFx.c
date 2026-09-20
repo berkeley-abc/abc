@@ -971,6 +971,7 @@ void Fx_ManUpdate( Fx_Man_t * p, int iDiv, int * fWarning )
     Vec_Int_t * vDiv = p->vDiv;
     int i, k, Lit0, Lit1, iVarNew = 0, RetValue, Level;
     float Diff = Vec_FltEntry(p->vWeights, iDiv) - (float)((int)Vec_FltEntry(p->vWeights, iDiv));
+    (void)Diff;
     assert( Diff > 0.0 && Diff < 1.0 );
 
     // get the divisor and select pivot variables
@@ -1207,4 +1208,3 @@ int Fx_FastExtract( Vec_Wec_t * vCubes, int ObjIdMax, int nNewNodesMax, int LitC
 
 
 ABC_NAMESPACE_IMPL_END
-

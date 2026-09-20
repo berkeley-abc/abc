@@ -39,7 +39,7 @@ void Io_WriteHMetis( Abc_Ntk_t *pNtk, char *pFileName, int fSkipPo, int fWeightE
     if ( pFHMetis == NULL )
     {
         fprintf( stdout, "Io_WriteHMetis(): Cannot open the output file \"%s\".\n", pFileName );
-        fclose( pFHMetis );
+        Vec_PtrFree( vHyperEdges );
         return;
     }
 

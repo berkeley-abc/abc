@@ -2321,6 +2321,7 @@ int sat_solver_minimize_assumptions2( sat_solver* s, int * pLits, int nLits, int
             {
                 int LitNot = Abc_LitNot(pLits[i]);
                 int RetValue = sat_solver_addclause( s, &LitNot, &LitNot+1 );
+                (void)RetValue;
                 assert( RetValue );
             }
 
@@ -2351,6 +2352,7 @@ int sat_solver_minimize_assumptions2( sat_solver* s, int * pLits, int nLits, int
             {
                 int LitNot = Abc_LitNot(pLits[i]);
                 int RetValue = sat_solver_addclause( s, &LitNot, &LitNot+1 );
+                (void)RetValue;
                 assert( RetValue );
             }
 

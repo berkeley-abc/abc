@@ -59,6 +59,7 @@ void Gia_ManMulFindXors2_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXor 
     }
     Gia_Obj_t * pFan0, * pFan1;
     int RetValue = Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1);
+    (void)RetValue;
     assert( RetValue );
     Gia_ManMulFindXors2_rec( p, Gia_Regular(pFan0), vXor );
     Gia_ManMulFindXors2_rec( p, Gia_Regular(pFan1), vXor );
@@ -334,7 +335,7 @@ int Gia_ManMulFindNextEntry2( Vec_Wec_t * vCuts4, Vec_Int_t * vSet, int Entry, V
             Entry0 = Vec_IntEntry(vCut, 1), Entry1 = Vec_IntEntry(vCut, 3);
         else if ( iPlace == 3 )
             Entry0 = Vec_IntEntry(vCut, 1), Entry1 = Vec_IntEntry(vCut, 2);
-        else assert( 0 );
+        else { assert( 0 ); abort(); }
         int Count0 = Gia_ManMulFindNextEntryCount(vCounts, Entry0);
         int Count1 = Gia_ManMulFindNextEntryCount(vCounts, Entry1);
         *pEntry0 = Count0 <= Count1 ? Entry0 : Entry1;
@@ -913,4 +914,3 @@ void Gia_ManMulFind( Gia_Man_t * p, int nCutNum, int fVerbose )
 ////////////////////////////////////////////////////////////////////////
 
 ABC_NAMESPACE_IMPL_END
-

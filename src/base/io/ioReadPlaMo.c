@@ -660,6 +660,7 @@ void Mop_ManReduce2( Mop_Man_t * p )
     int Count4    = Mop_ManMergeDist1All( p, vGroups, vStats, nLimit );
     int Count5    = Mop_ManMergeContainAll( p, vGroups );
     int Removed   = Mop_ManUnCreateGroups( p, vGroups );
+    (void)Removed;
     int nOutLits2 = Mop_ManCountOutputLits( p );
     Vec_WecFree( vGroups );
 //Vec_IntPrint( vStats );
@@ -810,4 +811,3 @@ Abc_Ntk_t * Mop_ManTest( char * pFileName, int fMerge, int fVerbose )
 
 
 ABC_NAMESPACE_IMPL_END
-

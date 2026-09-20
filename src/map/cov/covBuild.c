@@ -439,7 +439,7 @@ Abc_Obj_t * Abc_NtkCovDerive_rec( Cov_Man_t * p, Abc_Ntk_t * pNtkNew, Abc_Obj_t 
         Type = 'x';
     }
     else
-        assert( 0 );
+        { assert( 0 ); abort(); }
     // print the support of this node
     if ( fVerbose )
     {
@@ -541,4 +541,3 @@ Abc_Ntk_t * Abc_NtkCovDeriveRegular( Cov_Man_t * p, Abc_Ntk_t * pNtk )
 
 
 ABC_NAMESPACE_IMPL_END
-

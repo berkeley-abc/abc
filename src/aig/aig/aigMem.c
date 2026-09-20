@@ -473,6 +473,8 @@ Aig_MmStep_t * Aig_MmStepStart( int nSteps )
 {
     Aig_MmStep_t * p;
     int i, k;
+    assert( nSteps > 0 && nSteps <= 28 );
+    if ( nSteps <= 0 || nSteps > 28 ) abort();
     p = ABC_ALLOC( Aig_MmStep_t, 1 );
     memset( p, 0, sizeof(Aig_MmStep_t) );
     p->nMems = nSteps;
@@ -607,4 +609,3 @@ int Aig_MmStepReadMemUsage( Aig_MmStep_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 ABC_NAMESPACE_IMPL_END
-

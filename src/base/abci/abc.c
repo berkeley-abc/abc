@@ -27842,7 +27842,8 @@ int Abc_CommandSymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "%s\n", pTruth );
     // read the truth table to be the current network in ABC
     pCommand = ABC_CALLOC( char, strlen(pTruth) + 100 );
-    sprintf( pCommand, "read_truth %s", pTruth );
+    memcpy( pCommand, "read_truth ", 11 );
+    memcpy( pCommand + 11, pTruth, strlen(pTruth) + 1 );
     Cmd_CommandExecute( pAbc, pCommand );
     ABC_FREE( pCommand );
     ABC_FREE( pTruth );

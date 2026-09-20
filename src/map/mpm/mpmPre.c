@@ -736,7 +736,7 @@ Vec_Int_t * Ifd_ManDsdPermJT( int n )
                 dir[i] = !dir[i];
         max = n;
         for (i = 0; i < n; i++)
-            if (((!dir[i] && i != 0 && array[i] > array[i-1]) || (dir[i] && i != n-1 && array[i] > array[i+1])) && (array[i] > array[max] || max == n))
+            if (((!dir[i] && i != 0 && array[i] > array[i-1]) || (dir[i] && i != n-1 && array[i] > array[i+1])) && (max == n || array[i] > array[max]))
                 max = i;
     } 
     while (max < n);

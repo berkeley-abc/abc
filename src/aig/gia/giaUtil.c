@@ -2195,6 +2195,7 @@ void Gia_AigerWriteLut( Gia_Man_t * p, char * pFileName )
         {
             int nSize1 = nLuts * sizeof(Gia_MapLut_t);
             int nSize2 = fwrite( pLuts, 1, nSize1, pFile );
+            (void)nSize2;
             assert( nSize1 == nSize2 );
             printf( "Successfully dumped %d bytes of binary data.\n", nSize1 );
         }
@@ -2848,6 +2849,7 @@ void Gia_ManDumpSuppFile( Vec_Str_t * p, char * pFileName )
         int nIns  = Vec_StrSize(p)/Vec_StrCountEntry(p, '\n') - 1;
         int nSize1 = Vec_StrSize(p) - 1;
         int nSize2 = fwrite( Vec_StrArray(p), 1, nSize1, pFile );
+        (void)nSize2;
         assert( nSize1 == nSize2 );
         printf( "Successfully dumped file \"%s\" with support data for %d outputs and %d inputs.\n", pFileName, nOuts, nIns );
     }
@@ -3416,7 +3418,9 @@ Gia_Man_t * Gia_ManDupInsertWindows( Gia_Man_t * p, Vec_Ptr_t * vvIns, Vec_Ptr_t
     Gia_Man_t * pNew, * pTemp; Gia_Obj_t * pObj; int i, k, iNode;
     Vec_PtrForEachEntry( Gia_Man_t *, vWins, pTemp, i ) {
         Vec_Int_t * vIns  = (Vec_Int_t *)Vec_PtrEntry(vvIns, i);
+        (void)vIns;
         Vec_Int_t * vOuts = (Vec_Int_t *)Vec_PtrEntry(vvOuts, i);
+        (void)vOuts;
         assert( Vec_IntSize(vIns)  == Gia_ManPiNum(pTemp) );
         assert( Vec_IntSize(vOuts) == Gia_ManPoNum(pTemp) );
         assert( !Gia_ManWindowCheckTopoError(p, vIns, vOuts) );        
@@ -3489,6 +3493,7 @@ Gia_Man_t * Gia_ManCreateDualOutputMiter( Gia_Man_t * p0, Gia_Man_t * p1 )
     printf( "The two AIGs have %d structurally equivalent nodes.\n", Gia_ManAndNum(p0) + Gia_ManAndNum(p1) - Gia_ManAndNum(pNew) );
     // there should be no dangling nodes (otherwise, the second AIG may not be structurally hashed)
     int nDangling = Gia_ManMarkDangling(pNew);
+    (void)nDangling;
     assert( nDangling == 0 );
     Gia_ManCleanMark01(pNew);
     return pNew;

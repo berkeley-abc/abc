@@ -1168,6 +1168,7 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
             sat_solver *  pSat = Pdr_ManFetchSolver( p, k );
             Vec_Int_t * vLits1 = Pdr_ManCubeToLits( p, k, pCubeMin, 1, 0 );
             int RetValue1 = sat_solver_addclause( pSat, Vec_IntArray(vLits1), Vec_IntArray(vLits1) + Vec_IntSize(vLits1) );
+            (void)RetValue1;
             assert( RetValue1 == 1 );
             sat_solver_compress( pSat );
         }
@@ -1262,6 +1263,7 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
                 sat_solver *  pSat = Pdr_ManFetchSolver( p, k );
                 Vec_Int_t * vLits1 = Pdr_ManCubeToLits( p, k, pCubeMin, 1, 0 );
                 int RetValue1 = sat_solver_addclause( pSat, Vec_IntArray(vLits1), Vec_IntArray(vLits1) + Vec_IntSize(vLits1) );
+                (void)RetValue1;
                 assert( RetValue1 == 1 );
                 sat_solver_compress( pSat );
             }

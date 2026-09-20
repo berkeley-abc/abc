@@ -948,6 +948,7 @@ clause* solver2_propagate(sat_solver2* s)
                 {
                     int k, x, proof_id, Cid, Var = lit_var(Lit);
                     int fLitIsFalse = (var_value(s, Var) == !lit_sign(Lit));
+                    (void)fLitIsFalse;
                     // Log production of top-level unit clause:
                     proof_chain_start( s, c );
                     clause_foreach_var( c, x, k, 1 ){

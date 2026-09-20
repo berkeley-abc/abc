@@ -160,6 +160,7 @@ Aig_Man_t *createMonotoneTester(Aig_Man_t *pAig, struct aigPoIndices *aigPoIndic
 
     Vec_Int_t *vKnownMonotoneLocal = monotoneVectorArg->attrKnownMonotone;
     Vec_Int_t *vCandMonotoneLocal = monotoneVectorArg->attrCandMonotone;
+    (void)vCandMonotoneLocal;
     Vec_Int_t *vHintMonotoneLocal = monotoneVectorArg->attrHintMonotone;
     
     //****************************************************************

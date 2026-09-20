@@ -115,6 +115,7 @@ int Supp_ManCostInit( Vec_Wrd_t * vFuncs, int nWords )
 void Supp_ManInit( Supp_Man_t * p )
 {
     int Value, nFuncs, iSet = Hsh_VecManAdd( p->pHash, p->vTemp ); // empty set
+    (void)iSet;
     assert( iSet == 0 );
     Vec_IntPush( p->vSStarts, Vec_WrdSize(p->vSFuncs) );
     Vec_WrdAppend( p->vSFuncs, p->vIsfs );
@@ -504,6 +505,7 @@ int Supp_ComputePair1( Supp_Man_t * p, int iSet )
         Vec_IntForEachEntry( vSet, iObj, i )
         {
             word * pSet = Vec_WrdEntryP( p->vSims, Vec_IntEntry(p->vCands, iObj)*p->nWords );
+            (void)pSet;
             assert( Abc_TtGetBit(pSet, iBit0) == Abc_TtGetBit(pSet, iBit1) );
         }
     }
@@ -526,9 +528,13 @@ int Supp_ComputePair( Supp_Man_t * p, int iSet )
             word * pSet0 = Vec_WrdEntryP( p->vDivs[0], iObj*p->nWords );
             word * pSet1 = Vec_WrdEntryP( p->vDivs[1], iObj*p->nWords );
             int Value00 = Abc_TtGetBit(pSet0, iBit0);
+            (void)Value00;
             int Value01 = Abc_TtGetBit(pSet0, iBit1);
+            (void)Value01;
             int Value10 = Abc_TtGetBit(pSet1, iBit0);
+            (void)Value10;
             int Value11 = Abc_TtGetBit(pSet1, iBit1);
+            (void)Value11;
             assert( !Value00 || !Value11 );
             assert( !Value01 || !Value10 );
         }
@@ -1151,4 +1157,3 @@ Gia_Man_t * Supp_ManSolveOne( char * pFileName, int nIters, int nRounds, int fWr
 
 
 ABC_NAMESPACE_IMPL_END
-

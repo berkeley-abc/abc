@@ -1,0 +1,38 @@
+library(demo) {
+  delay_model : table_lookup;
+  time_unit : "1ns";
+  capacitive_load_unit(1, pf);
+
+  lu_table_template(delay_template) {
+    variable_1 : input_net_transition;
+    variable_2 : total_output_net_capacitance;
+    index_1("0.1");
+    index_2("0.1");
+  }
+
+  cell(BUF) {
+    area : 1;
+    pin(A) { direction : input; }
+    pin(Y) { direction : output; function : "A"; }
+  }
+
+  cell(INV) {
+    area : 1;
+    pin(A) { direction : input; }
+    pin(Y) { direction : output; function : "!A"; }
+  }
+
+  cell(AND2) {
+    area : 2;
+    pin(A) { direction : input; }
+    pin(B) { direction : input; }
+    pin(Y) { direction : output; function : "A * B"; }
+  }
+
+  cell(NAND2) {
+    area : 2;
+    pin(A) { direction : input; }
+    pin(B) { direction : input; }
+    pin(Y) { direction : output; function : "!(A * B)"; }
+  }
+}

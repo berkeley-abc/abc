@@ -3056,6 +3056,7 @@ static inline int Exa5_ManAddClause4( Exa5_Man_t * p, int Lit0, int Lit1, int Li
 static inline void Exa5_ManAddOneHot( Exa5_Man_t * p, int * pLits, int nLits )
 {
     int n, m;
+    if ( nLits < 0 || nLits > MAJ_NOBJS ) abort();
     for ( n = 0;   n < nLits; n++ )
     for ( m = n+1; m < nLits; m++ )
         Exa5_ManAddClause4( p, Abc_LitNot(pLits[n]), Abc_LitNot(pLits[m]), 0, 0, 0 );
@@ -3064,6 +3065,7 @@ static inline void Exa5_ManAddGroup( Exa5_Man_t * p, int iVar, int nVars )
 {
     int i, pLits[MAJ_NOBJS];
     assert( nVars+1 <= MAJ_NOBJS );
+    if ( (unsigned)nVars >= MAJ_NOBJS ) abort();
     pLits[0] = Abc_Var2Lit( iVar, 1 );
     for ( i = 1; i <= nVars; i++ )
         pLits[i] = Abc_Var2Lit( iVar+i, 0 );
@@ -3098,7 +3100,9 @@ int Exa5_ManGenStart( Exa5_Man_t * p, int fOnlyAnd, int fFancy, int fOrderNodes,
                 int iObj   = Vec_IntEntry( p->vFans, iVar );
                 int iNode0 = (iObj >>  0) & 0xFF;
                 int iNode1 = (iObj >>  8) & 0xFF;
+                (void)iNode1;
                 int iNode2 = (iObj >> 16) & 0xFF;
+                (void)iNode2;
                 assert( iObj > 0 );
                 assert( iNode1 == j );
                 assert( iNode2 == i );
@@ -3111,6 +3115,7 @@ int Exa5_ManGenStart( Exa5_Man_t * p, int fOnlyAnd, int fFancy, int fOrderNodes,
                     int jNode0 = (jObj >>  0) & 0xFF;
                     int jNode1 = (jObj >>  8) & 0xFF;
                     int jNode2 = (jObj >> 16) & 0xFF;
+                    (void)jNode2;
                     if ( jObj == 0 )
                         continue;
                     assert( jNode2 == j );
@@ -4621,6 +4626,7 @@ void Exa_NpnCascadeTest()
 //    for ( i = 0; i < 616126; i++ )
     {
         int Value = fscanf( pFile, "%s", Buffer );
+        (void)Value;
         assert( Value == 1 );
         if ( i == 0 ) continue;
         if ( Buffer[strlen(Buffer)-1] == '\n' )

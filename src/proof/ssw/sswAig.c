@@ -120,6 +120,7 @@ int Aig_ManConeSize( Aig_Obj_t * pNode0, Aig_Obj_t * pNode1 )
     Aig_ObjRef( pNode1 );
     int Count0 = Aig_ObjDeref_rec(pNode0) + Aig_ObjDeref_rec(pNode1);
     int Count1 = Aig_ObjRef_rec(pNode0)   + Aig_ObjRef_rec(pNode1);   
+    (void)Count1;
     Aig_ObjDeref( pNode0 );
     Aig_ObjDeref( pNode1 );     
     assert( Count0 == Count1 );

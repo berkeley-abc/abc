@@ -1568,6 +1568,7 @@ static inline int Mf_CutAreaRefed( Mf_Man_t * p, int * pCut )
 {
     int Ela1 = Mf_CutDeref_rec( p, pCut );
     int Ela2 = Mf_CutRef_rec( p, pCut );
+    (void)Ela2;
     assert( Ela1 == Ela2 );
     return Ela1;
 }
@@ -1575,6 +1576,7 @@ static inline int Mf_CutAreaDerefed( Mf_Man_t * p, int * pCut )
 {
     int Ela1 = Mf_CutRef_rec( p, pCut );
     int Ela2 = Mf_CutDeref_rec( p, pCut );
+    (void)Ela2;
     assert( Ela1 == Ela2 );
     return Ela1;
 }
@@ -1659,6 +1661,7 @@ static inline void Mf_ObjComputeBestCut( Mf_Man_t * p, int iObj )
     int * pCutSet = Mf_ObjCutSet( p, iObj );
     int * pCut, * pCutBest = NULL;
     int Value1 = -1, Value2 = -1;
+    (void)Value2;
     int i, Time = 0, TimeBest = ABC_INFINITY; 
     float Flow, FlowBest = ABC_INFINITY;
     if ( p->fUseEla && pBest->nMapRefs )
@@ -1912,4 +1915,3 @@ void Mf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int nLutSize, int fCnfObjId
 
 
 ABC_NAMESPACE_IMPL_END
-

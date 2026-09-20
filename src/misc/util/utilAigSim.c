@@ -84,9 +84,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define ABC_ALLOC(type, n)   ((type*)malloc((size_t)(n) * sizeof(type)))
-#define ABC_CALLOC(type, n)  ((type*)calloc((size_t)(n), sizeof(type)))
-#define ABC_FREE(p)          do { free(p); (p) = NULL; } while (0)
 
 typedef struct AigNode_ { uint32_t f0, f1; } AigNode;
 typedef struct AigMan_ {
@@ -775,5 +772,4 @@ int main(int argc, char **argv) {
 #ifdef AIGSIM_LIBRARY_ONLY
 ABC_NAMESPACE_IMPL_END
 #endif
-
 

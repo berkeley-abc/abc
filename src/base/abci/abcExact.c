@@ -2727,6 +2727,8 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
     {
         printf( "invalid truth table size %d\n", nVars );
         assert( 0 );
+        *Cost = ABC_INFINITY;
+        return ABC_INFINITY;
     }
 
     /* statistics */
@@ -2979,12 +2981,15 @@ void Abc_ExactStoreTest( int fVerbose )
 {
     int i;
     word pTruth[4] = {0xcafe, 0, 0, 0};
+    (void)pTruth;
     int pArrTimeProfile[4] = {6, 2, 8, 5};
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pFanins[4];
     Vec_Ptr_t * vNames;
     char pPerm[4] = {0};
+    (void)pPerm;
     int Cost = 0;
+    (void)Cost;
 
     pNtk = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
     pNtk->pName = Extra_UtilStrsav( "exact" );

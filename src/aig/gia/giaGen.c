@@ -803,6 +803,7 @@ int Gia_ManReadCifar10File( char * pFileName, Vec_Wrd_t ** pvSimsIn, Vec_Str_t *
         unsigned char * pBuffer = ABC_ALLOC( unsigned char, nFileSize );
         FILE * pFile = fopen( pFileName, "rb" );
         int Value = fread( pBuffer, 1, nFileSize, pFile );
+        (void)Value;
         fclose( pFile );
         assert( Value == nFileSize );
         printf( "Successfully read %5.2f MB (%d images) from file \"%s\".\n", (float)nFileSize/(1<<20), nExamples, pFileName );

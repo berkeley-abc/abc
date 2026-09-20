@@ -177,9 +177,9 @@ static inline int Tn_Base2Log( unsigned n )
 static void Tn_GetNextPerm(int *currPerm, int nVars)
 {
     int i = nVars - 1;
-    while (i >= 0 && currPerm[i - 1] >= currPerm[i])
+    while (i > 0 && currPerm[i - 1] >= currPerm[i])
         i--;
-    if (i >= 0)
+    if (i > 0)
     {
         int j = nVars;
         while (j > i && currPerm[j - 1] <= currPerm[i - 1])
@@ -685,6 +685,7 @@ static inline void Tn_AddCardinConstrMerge( tn_vi * p, int * pVars, int lo, int 
         {
             int Lits[2] = { tn_v2l(pVars[i], 0), tn_v2l(pVars[i+r], 1) };
             int Cid = Tn_AddClause( p, Lits, Lits + 2 );
+            (void)Cid;
             assert( Cid );
         }
     }
@@ -711,6 +712,7 @@ int Tn_AddCardinSolver( int LogN, tn_vi ** pvVars, tn_vi ** pvRes )
 {
     int i, nVars   = 1 << LogN;
     int nVarsAlloc = nVars + 2 * (nVars * LogN * (LogN-1) / 4 + nVars - 1);
+    (void)nVarsAlloc;
     tn_vi * vRes   = tn_vi_alloc( 1000 );
     tn_vi * vVars  = tn_vi_alloc( nVars );
     for ( i = 0; i < nVars; i++ )
@@ -1252,4 +1254,3 @@ int main(int argc, char ** argv)
 **************************************************************/
 
 ABC_NAMESPACE_IMPL_END
-

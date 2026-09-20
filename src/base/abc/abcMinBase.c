@@ -441,7 +441,7 @@ DdNode * Abc_NodeCollapseFunc( Abc_Obj_t * pFanin, Abc_Obj_t * pFanout, Vec_Ptr_
 {
     DdManager * dd = (DdManager *)pFanin->pNtk->pManFunc;
     DdNode * bVar, * bFunc0, * bFunc1, * bTemp, * bFanin, * bFanout;
-    int RetValue, nSize, iFanin;
+    int RetValue, nSize, iFanin = -1;
     // can only eliminate if fanin occurs in the fanin list of the fanout exactly once
     if ( Abc_NodeCheckDupFanin( pFanin, pFanout, &iFanin ) != 1 )
         return NULL;
@@ -606,7 +606,7 @@ Hop_Obj_t * Abc_NodeCollapseFunc1( Abc_Obj_t * pFanin, Abc_Obj_t * pFanout, Vec_
 {
     Hop_Man_t * pMan = (Hop_Man_t *)pFanin->pNtk->pManFunc;
     Hop_Obj_t * bFanin, * bFanout;
-    int RetValue, nSize, iFanin;
+    int RetValue, nSize, iFanin = -1;
     // can only eliminate if fanin occurs in the fanin list of the fanout exactly once
     if ( Abc_NodeCheckDupFanin( pFanin, pFanout, &iFanin ) != 1 )
         return NULL;
@@ -904,4 +904,3 @@ int Abc_NtkEliminate1( Abc_Ntk_t * pNtk, int ElimValue, int nMaxSize, int nIterM
 
 
 ABC_NAMESPACE_IMPL_END
-

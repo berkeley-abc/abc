@@ -331,6 +331,7 @@ static inline void Card_AddCardinConstrMerge( Vec_Int_t * p, int * pVars, int lo
         {
             lit Lits[2] = { Abc_Var2Lit(pVars[i], 0), Abc_Var2Lit(pVars[i+r], 1) };
             int Cid = Card_AddClause( p, Lits, Lits + 2 );
+            (void)Cid;
             assert( Cid );
         }
     }
@@ -357,6 +358,7 @@ int Card_AddCardinSolver( int LogN, Vec_Int_t ** pvVars, Vec_Int_t ** pvRes )
 {
     int nVars = 1 << LogN;
     int nVarsAlloc = nVars + 2 * (nVars * LogN * (LogN-1) / 4 + nVars - 1);
+    (void)nVarsAlloc;
     Vec_Int_t * vRes = Vec_IntAlloc( 1000 );
     Vec_Int_t * vVars = Vec_IntStartNatural( nVars );
     int nVarsReal = Card_AddCardinConstrPairWise( vRes, vVars );
@@ -430,6 +432,7 @@ static inline void Sbm_AddCardinConstrMerge( sat_solver * p, int * pVars, int lo
         {
             lit Lits[2] = { Abc_Var2Lit(pVars[i], 0), Abc_Var2Lit(pVars[i+r], 1) };
             int Cid = sat_solver_addclause( p, Lits, Lits + 2 );
+            (void)Cid;
             assert( Cid );
         }
     }
@@ -663,4 +666,3 @@ int Sbm_ManTestSat( void * pMan )
 
 
 ABC_NAMESPACE_IMPL_END
-

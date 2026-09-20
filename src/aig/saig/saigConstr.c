@@ -287,6 +287,8 @@ Aig_Man_t * Saig_ManDupUnfoldConstrs( Aig_Man_t * pAig )
     Aig_Obj_t * pMiter, * pObj;
     int i, k, RetValue;
     // detect constraints for each output
+    if ( Saig_ManPoNum(pAig) <= 0 )
+        return Aig_ManDupDfs( pAig );
     vOutsAll = Vec_PtrAlloc( Saig_ManPoNum(pAig) );
     vConsAll = Vec_PtrAlloc( Saig_ManPoNum(pAig) );
     Saig_ManForEachPo( pAig, pObj, i )
@@ -481,4 +483,3 @@ int Saig_ManDetectConstrTest( Aig_Man_t * p )
 
 
 ABC_NAMESPACE_IMPL_END
-

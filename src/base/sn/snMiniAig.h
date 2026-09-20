@@ -119,6 +119,7 @@ static inline sn_module_id_t sn_design_add_aig_module(sn_design_t* design, sn_mo
         for (uint32_t bit = 0; bit < width; bit++)
         {
             sn_blast_boundary_bit_t endpoint = sn_vec_at(sn_blast_boundary_bit_t, &boundary->cos, co_index + bit);
+            (void)endpoint;
             assert(endpoint.kind == SN_BLAST_BOUNDARY_TOP_PO && endpoint.port == i && endpoint.signal.bit == bit);
         }
         sn_obj_id_t driver = sn_lut_pack_bits(result, drivers + co_index, width, "aig_po_word");

@@ -448,8 +448,10 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
     {
         int End, Beg, Signed = Ndr_ObjReadRange(p, Obj, &End, &Beg);
         int nArray  = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
+        (void)nArray;
         int iObj    = Wlc_ObjAlloc( pNtk, WLC_OBJ_BUF, Signed, End, Beg );
         int NameId  = Ndr_ObjReadBody( p, Obj, NDR_OUTPUT );
+        (void)NameId;
         assert( nArray == 1 && NameId == -1 );
         pObj = Wlc_NtkObj( pNtk, iObj );
         Vec_IntFill( vFanins, 1, pArray[0] );

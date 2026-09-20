@@ -179,7 +179,7 @@ Vec_Str_t * Gls_ManCount( FILE * pFile, int pCounts[GLS_FINAL] )
                 Type = GLS_LUT4;
             else if ( pLine[3] == '6' )
                 Type = GLS_LUT6;
-            else assert( 0 );
+            else { assert( 0 ); abort(); }
         }
         else if ( *pLine == 'P' )
         {
@@ -187,7 +187,7 @@ Vec_Str_t * Gls_ManCount( FILE * pFile, int pCounts[GLS_FINAL] )
                 Type = GLS_PI;
             else if ( pLine[1] == 'O' )
                 Type = GLS_PO;
-            else assert( 0 );
+            else { assert( 0 ); abort(); }
         }
         else if ( *pLine == 'B' )
         {
@@ -195,7 +195,7 @@ Vec_Str_t * Gls_ManCount( FILE * pFile, int pCounts[GLS_FINAL] )
                 Type = GLS_BOX;
             else if ( pLine[1] == 'a' )
                 Type = GLS_BAR;
-            else assert( 0 );
+            else { assert( 0 ); abort(); }
         }
         else if ( *pLine == 'S' )
         {
@@ -203,11 +203,11 @@ Vec_Str_t * Gls_ManCount( FILE * pFile, int pCounts[GLS_FINAL] )
                 Type = GLS_SEL;
             else if ( pLine[2] == 'q' )
                 Type = GLS_SEQ;
-            else assert( 0 );
+            else { assert( 0 ); abort(); }
         }
         else if ( *pLine == 'D' )
             Type = GLS_DEL;
-        else assert( 0 );
+        else { assert( 0 ); abort(); }
         Vec_StrPush( vLines, (char)Type );
         pCounts[Type]++;
     }
@@ -227,7 +227,7 @@ int Gls_ManParseOne( char ** ppLine )
         Entry = 1;
     else if ( *pLine == 'w' )
         Entry = atoi(++pLine);
-    else assert( 0 );
+    else { assert( 0 ); abort(); }
     while ( *pLine == '-' || (*pLine >= '0' && *pLine <= '9') )   pLine++;
     while ( *pLine == ' ' )   pLine++;
     *ppLine = pLine;
@@ -503,4 +503,3 @@ Gia_Man_t * Gia_ManReadGig( char * pFileName )
 
 
 ABC_NAMESPACE_IMPL_END
-

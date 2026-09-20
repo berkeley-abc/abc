@@ -116,6 +116,7 @@ int Sfm_NodeResubSolve( Sfm_Ntk_t * p, int iNode, int f, int fRemoveOnly )
     int i, iFanin, iVar = -1;
     int iFaninRem = -1, iFaninSkip = -1;
     int nFanins = Sfm_ObjFaninNum(p, iNode); 
+    (void)nFanins;
     word uTruth, uSign, uMask;
     abctime clk;
     assert( Sfm_ObjIsNode(p, iNode) );
@@ -421,4 +422,3 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
 
 
 ABC_NAMESPACE_IMPL_END
-

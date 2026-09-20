@@ -1296,13 +1296,20 @@ Abc_Ntk_t * Abc_NtkStochProcessOne( Abc_Ntk_t * p, char * pScript0, int Rand, in
     extern int Abc_NtkWriteToFile( char * pFileName, Abc_Ntk_t * pNtk );
     extern Abc_Ntk_t * Abc_NtkReadFromFile( char * pFileName );
     Abc_Ntk_t * pNew, * pTemp;
-    char FileName[1000], Command[2000], PreCommand[500] = {0};
+    char FileName[1000], * Command, * PreCommand = NULL;
     char * pLibFileName = Abc_NtkIsMappedLogic(p) ? Mio_LibraryReadFileName((Mio_Library_t *)p->pManFunc) : NULL;
-    if ( pLibFileName ) sprintf( PreCommand, "read_genlib %s; ", pLibFileName );
-    sprintf( FileName, "%s/%06x.mm", Abc_GetTmpDir(), Rand );
+    int Length = snprintf( FileName, sizeof(FileName), "%s/%06x.mm", Abc_GetTmpDir(), Rand );
+    if ( Length < 0 || (size_t)Length >= sizeof(FileName) ) return Abc_NtkDupDfs(p);
+    if ( pLibFileName )
+    {
+        PreCommand = ABC_ALLOC( char, strlen(pLibFileName) + 32 );
+        sprintf( PreCommand, "read_genlib %s; ", pLibFileName );
+    }
     Abc_NtkWriteToFile( FileName, p );    
     char * pScript = Abc_UtilStrsav( pScript0 );
-    sprintf( Command, "./abc -q \"%sread_mm %s; %s; write_mm %s\"", PreCommand[0] ? PreCommand : "", FileName, pScript, FileName );    
+    Command = ABC_ALLOC( char, 2*strlen(FileName) + strlen(pScript) + (PreCommand ? strlen(PreCommand) : 0) + 64 );
+    sprintf( Command, "./abc -q \"%sread_mm %s; %s; write_mm %s\"", PreCommand ? PreCommand : "", FileName, pScript, FileName );
+    ABC_FREE( PreCommand );
 #if defined(__wasm)
     if ( 1 )
 #else
@@ -1315,8 +1322,10 @@ Abc_Ntk_t * Abc_NtkStochProcessOne( Abc_Ntk_t * p, char * pScript0, int Rand, in
         fflush( stdout );
         unlink( FileName );
         ABC_FREE( pScript );
+        ABC_FREE( Command );
         return Abc_NtkDupDfs(p);
     }
+    ABC_FREE( Command );
     ABC_FREE( pScript );
     pNew = Abc_NtkReadFromFile( FileName );
     unlink( FileName );
@@ -1513,7 +1522,9 @@ Abc_Ntk_t * Abc_NtkInsertPartitions( Abc_Ntk_t * p, Vec_Ptr_t * vvIns, Vec_Ptr_t
     Abc_Ntk_t * pNew, * pTemp; Abc_Obj_t * pObj; int i, k, iNode;
     Vec_PtrForEachEntry( Abc_Ntk_t *, vWins, pTemp, i ) {
         Vec_Int_t * vIns  = (Vec_Int_t *)Vec_PtrEntry(vvIns, i);
+        (void)vIns;
         Vec_Int_t * vOuts = (Vec_Int_t *)Vec_PtrEntry(vvOuts, i);
+        (void)vOuts;
         assert( Vec_IntSize(vIns)  == Abc_NtkPiNum(pTemp) );
         assert( Vec_IntSize(vOuts) == Abc_NtkPoNum(pTemp) );
         assert( !Abc_NtkWindowCheckTopoError(p, vIns, vOuts) );        
@@ -1968,4 +1979,3 @@ void Abc_NtkStochMap( int nSuppMax, int nIters, int TimeOut, int Seed, int fOver
 
 
 ABC_NAMESPACE_IMPL_END
-

@@ -1033,6 +1033,8 @@ static inline int Lf_CutComputeTruthMux6( Lf_Man_t * p, Lf_Cut_t * pCut0, Lf_Cut
 }
 static inline int Lf_CutComputeTruthMux( Lf_Man_t * p, Lf_Cut_t * pCut0, Lf_Cut_t * pCut1, Lf_Cut_t * pCutC, int fCompl0, int fCompl1, int fComplC, Lf_Cut_t * pCutR )
 {
+    assert( p->pPars->nLutSize >= 0 && p->pPars->nLutSize <= LF_LEAF_MAX );
+    if ( (unsigned)p->pPars->nLutSize > LF_LEAF_MAX ) abort();
     if ( p->pPars->nLutSize <= 6 )
         return Lf_CutComputeTruthMux6( p, pCut0, pCut1, pCutC, fCompl0, fCompl1, fComplC, pCutR );
     {
@@ -1617,6 +1619,7 @@ int Lf_ManSetMapRefs( Lf_Man_t * p )
 void Lf_ManCountMapRefsOne( Lf_Man_t * p, int iObj )
 {
     Lf_Bst_t * pBest = Lf_ObjReadBest( p, iObj );
+    (void)pBest;
     Lf_Cut_t * pCut = Lf_ObjCutBest( p, iObj );
     int k ,Required = Lf_ObjRequired( p, iObj );
     assert( Lf_ObjMapRefNum(p, iObj) > 0 );

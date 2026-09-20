@@ -1547,7 +1547,9 @@ unsigned Abc_TtCanonicizeWrap(TtCanonicizeFunc func, Abc_TtHieMan_t * p, word * 
     return uCanonPhase2;
 }
 
+#ifdef CANON_VERIFY
 static ABC_THREAD_LOCAL word gpVerCopy[1024];
+#endif
 static int Abc_TtCannonVerify(word* pTruth, int nVars, char * pCanonPerm, unsigned uCanonPhase)
 {
 #ifdef CANON_VERIFY

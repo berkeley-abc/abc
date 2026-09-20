@@ -108,17 +108,26 @@ static int name_exists(mv_ctx *ctx, const char *name) {
 }
 
 // Generate next auto input name: 'a','b','c',... then 'a0','a1',... if 26 exhausted.
+static void copy_string(char *out, size_t cap, const char *str) {
+    size_t len = strlen(str);
+    assert(cap > 0);
+    if (cap == 0) abort();
+    if (len >= cap) len = cap - 1;
+    memcpy(out, str, len);
+    out[len] = 0;
+}
+
 static void gen_auto_in_name(mv_ctx *ctx, char *out, size_t out_sz) {
     // try single letters first
     for (; ctx->next_auto_in < 26; ++ctx->next_auto_in) {
         char cand[3] = {(char)('a' + ctx->next_auto_in), 0, 0};
-        if (!name_exists(ctx, cand)) { strncpy(out, cand, out_sz-1); out[out_sz-1]=0; ++ctx->next_auto_in; return; }
+        if (!name_exists(ctx, cand)) { copy_string(out, out_sz, cand); ++ctx->next_auto_in; return; }
     }
     // fallback to aN form
     for (int n = 0;; ++n) {
         char cand[32];
         snprintf(cand, sizeof(cand), "a%d", n);
-        if (!name_exists(ctx, cand)) { strncpy(out, cand, out_sz-1); out[out_sz-1]=0; return; }
+        if (!name_exists(ctx, cand)) { copy_string(out, out_sz, cand); return; }
     }
 }
 
@@ -127,7 +136,7 @@ static void add_decl(decl_t *arr, int *cnt, const char *name, int w, int sg) {
     for (int k = 0; k < *cnt; ++k) {
         if (!strcmp(arr[k].name, name)) return;
     }
-    strncpy(arr[*cnt].name, name, sizeof(arr[*cnt].name) - 1);
+    copy_string(arr[*cnt].name, sizeof(arr[*cnt].name), name);
     arr[*cnt].width = w;
     arr[*cnt].is_signed = sg;
     ++(*cnt);
@@ -139,8 +148,8 @@ static int add_asn(mv_ctx *ctx, const char *lhs, const char *rhs) {
         printf("Too many assignments.\n");
         return 1;
     }
-    strncpy(ctx->assigns[ctx->na].lhs, lhs, sizeof(ctx->assigns[ctx->na].lhs) - 1);
-    strncpy(ctx->assigns[ctx->na].rhs, rhs, sizeof(ctx->assigns[ctx->na].rhs) - 1);
+    copy_string(ctx->assigns[ctx->na].lhs, sizeof(ctx->assigns[ctx->na].lhs), lhs);
+    copy_string(ctx->assigns[ctx->na].rhs, sizeof(ctx->assigns[ctx->na].rhs), rhs);
     ++ctx->na;
     return 0;
 }

@@ -920,8 +920,9 @@ void Dau_PrintNpnFunction( Vec_Mem_t * vTtMem, int nFuncs, word * pCopy, int nVa
 {
     int nWords = Abc_Truth6WordNum(nVars);
     if ( fVerbose ) {
+        word Phase = (unsigned)uPhase;
         printf( "%6d : ", nFuncs );
-        Abc_TtPrintBits2((word *)&uPhase, nVars);
+        Abc_TtPrintBits2(&Phase, nVars);
         printf( "  " );
         for ( int v = nVars-1; v >= 0; v-- )
             printf( " %d", pPerm[v] );

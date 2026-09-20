@@ -115,9 +115,11 @@ Vec_Int_t * Gia_StochProcessArray( Vec_Ptr_t * vGias, char * pScript, int TimeSe
 Gia_Man_t * Gia_StochProcessOne( Gia_Man_t * p, char * pScript, int Rand, int TimeSecs )
 {
     Gia_Man_t * pNew;
-    char FileName[1000], Command[2000];
-    sprintf( FileName, "%s/%06x.aig", Abc_GetTmpDir(), Rand );
+    char FileName[1000], * Command;
+    int Length = snprintf( FileName, sizeof(FileName), "%s/%06x.aig", Abc_GetTmpDir(), Rand );
+    if ( Length < 0 || (size_t)Length >= sizeof(FileName) ) return Gia_ManDup(p);
     Gia_AigerWrite( p, FileName, 0, 0, 0 );
+    Command = ABC_ALLOC( char, 2*strlen(FileName) + strlen(pScript) + 64 );
     sprintf( Command, "./abc -q \"&read %s; %s; &write %s\"", FileName, pScript, FileName );
 #if defined(__wasm)
     if ( 1 )
@@ -130,8 +132,10 @@ Gia_Man_t * Gia_StochProcessOne( Gia_Man_t * p, char * pScript, int Rand, int Ti
         fprintf( stderr, "Sorry for the inconvenience.\n" );
         fflush( stdout );
         unlink( FileName );
+        ABC_FREE( Command );
         return Gia_ManDup(p);
     }    
+    ABC_FREE( Command );
     pNew = Gia_AigerRead( FileName, 0, 0, 0 );
     unlink( FileName );
     if ( pNew && Gia_ManAndNum(pNew) < Gia_ManAndNum(p) )
@@ -1186,4 +1190,3 @@ void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int S
 
 
 ABC_NAMESPACE_IMPL_END
-

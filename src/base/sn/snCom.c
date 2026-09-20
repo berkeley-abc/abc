@@ -314,15 +314,41 @@ static void Sn_ManReplaceBlastedModule( Sn_Man_t * p, sn_module_id_t Temporary )
     Sn_ManReplaceModule( p, p->BlastModule, p->BlastName, Temporary );
 }
 
+static int Sn_MapLutExecutable( char * pBuffer, size_t nBuffer );
+
 static char * Sn_SlangExecutable()
 {
-    char * pExecutable = Abc_FrameReadFlag( "snslang" );
+    static char Companion[4096];
+    char * pSlash;
+    char * pExecutable = Abc_FrameReadFlag( "sn" );
     if ( pExecutable != NULL )
         return pExecutable;
+    if ( Sn_MapLutExecutable(Companion, sizeof(Companion)) )
+    {
+        pSlash = strrchr( Companion, '/' );
 #if defined(_MSC_VER) || defined(__MINGW32__)
-    return "sn_slang.exe";
+        {
+            char * pBackslash = strrchr( Companion, '\\' );
+            if ( pBackslash && (!pSlash || pBackslash > pSlash) )
+                pSlash = pBackslash;
+        }
+#endif
+        if ( pSlash && (size_t)(pSlash + 1 - Companion) + sizeof("sn.exe") <= sizeof(Companion) )
+        {
+#if defined(_MSC_VER) || defined(__MINGW32__)
+            strcpy( pSlash + 1, "sn.exe" );
+            if ( _access(Companion, 0) == 0 )
 #else
-    return "sn_slang";
+            strcpy( pSlash + 1, "sn" );
+            if ( access(Companion, X_OK) == 0 )
+#endif
+                return Companion;
+        }
+    }
+#if defined(_MSC_VER) || defined(__MINGW32__)
+    return "sn.exe";
+#else
+    return "sn";
 #endif
 }
 
@@ -1026,7 +1052,7 @@ static int Sn_CommandSlang( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         fclose( pFile );
     }
-    if ( !Sn_TempPrefix(TempPrefix, sizeof(TempPrefix), "sn_slang_") )
+    if ( !Sn_TempPrefix(TempPrefix, sizeof(TempPrefix), "sn_") )
     {
         Abc_Print( -1, "Temporary-file path is too long.\n" );
         Vec_PtrFree( vDefines );
@@ -1082,6 +1108,14 @@ static int Sn_CommandSlang( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( c != 0 )
     {
         Abc_Print( -1, "External SN frontend failed with status %d.\n", c );
+#if defined(_MSC_VER) || defined(__MINGW32__)
+        if ( c == -1 )
+            Abc_Print( -1, "The external SN frontend companion is not included in Windows builds.\n"
+                           "Use '@read design.sn' to load an SN file produced on Linux or macOS.\n" );
+#else
+        if ( c == 127 || c == -1 )
+            Abc_Print( -1, "Check 'set sn /path/to/sn', the companion beside ABC, or PATH.\n" );
+#endif
         remove( pTempName );
         ABC_FREE( pTempName );
         return 1;
@@ -1099,7 +1133,7 @@ static int Sn_CommandSlang( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Vec_PtrFree( vDefines );
     Abc_Print( -2, "usage: @slang [-M <module>] [-D <definition>] [-F <file>] [-vh] <file_name>...\n" );
-    Abc_Print( -2, "\t         reads Verilog or SystemVerilog using the external sn_slang frontend\n" );
+    Abc_Print( -2, "\t         reads Verilog or SystemVerilog using the external sn frontend\n" );
     Abc_Print( -2, "\t         based on Mike Popoloski's slang: https://github.com/MikePopoloski/slang\n" );
     Abc_Print( -2, "\t-M name : select the top module\n" );
     Abc_Print( -2, "\t-D def  : define one macro as NAME or NAME=value; may be repeated\n" );

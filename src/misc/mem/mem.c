@@ -491,6 +491,8 @@ Mem_Step_t * Mem_StepStart( int nSteps )
 {
     Mem_Step_t * p;
     int i, k;
+    assert( nSteps > 0 && nSteps <= 28 );
+    if ( nSteps <= 0 || nSteps > 28 ) abort();
     p = ABC_ALLOC( Mem_Step_t, 1 );
     memset( p, 0, sizeof(Mem_Step_t) );
     p->nMems = nSteps;
@@ -618,4 +620,3 @@ int Mem_StepReadMemUsage( Mem_Step_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 ABC_NAMESPACE_IMPL_END
-

@@ -1642,7 +1642,7 @@ int Gia_ManPerformGlaOld( Gia_Man_t * pAig, Abs_Par_t * pPars, int fStartVta )
     Gla_Man_t * p;
     Vec_Int_t * vPPis, * vCore;//, * vCore2 = NULL;
     Abc_Cex_t * pCex = NULL;
-    int f, i, iPrev, nConfls, Status, nVarsOld = 0, nCoreSize, fOneIsSent = 0, RetValue = -1;
+    int f, i, iPrev, nConfls, Status = -1, nVarsOld = 0, nCoreSize, fOneIsSent = 0, RetValue = -1;
     abctime clk2, clk = Abc_Clock();
     // preconditions
     assert( Gia_ManPoNum(pAig) == 1 );

@@ -873,6 +873,7 @@ namespace eSLIM {
     int size_diff = subcir.nodes.size() - replacement.getNofGates(); 
     if (nodes_aux.size() + size_diff != nodes.size()) { 
       int nredundant = processRedundant(subcir);
+      (void)nredundant;
       assert(nodes_aux.size() + size_diff + nredundant == nodes.size());
     }
     std::swap(nodes, nodes_aux);

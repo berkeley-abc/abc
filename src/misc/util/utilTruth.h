@@ -1037,11 +1037,13 @@ static inline unsigned Abc_Tt5Cofactor1( unsigned t, int iVar )
 static inline word Abc_Tt6Cofactor0( word t, int iVar )
 {
     assert( iVar >= 0 && iVar < 6 );
+    if ( (unsigned)iVar >= 6 ) abort();
     return (t &s_Truths6Neg[iVar]) | ((t &s_Truths6Neg[iVar]) << (1<<iVar));
 }
 static inline word Abc_Tt6Cofactor1( word t, int iVar )
 {
     assert( iVar >= 0 && iVar < 6 );
+    if ( (unsigned)iVar >= 6 ) abort();
     return (t & s_Truths6[iVar]) | ((t & s_Truths6[iVar]) >> (1<<iVar));
 }
 
@@ -1634,14 +1636,14 @@ static inline void Abc_TtPrintBits( word * pTruth, int nBits )
 {
     int k;
     for ( k = 0; k < nBits; k++ )
-        printf( "%d", Abc_InfoHasBit( (unsigned *)pTruth, k ) );
+        printf( "%d", (int)((pTruth[k >> 6] >> (k & 63)) & 1) );
     printf( "\n" );
 }
 static inline void Abc_TtPrintBits2( word * pTruth, int nBits )
 {
     int k;
     for ( k = nBits-1; k >= 0; k-- )
-        printf( "%d", Abc_InfoHasBit( (unsigned *)pTruth, k ) );
+        printf( "%d", (int)((pTruth[k >> 6] >> (k & 63)) & 1) );
     //printf( "\n" );
 }
 static inline void Abc_TtPrintBinary( word * pTruth, int nVars )
@@ -1706,6 +1708,8 @@ static inline int Abc_TtSuppIsMinBase( int Supp )
 }
 static inline int Abc_Tt6HasVar( word t, int iVar )
 {
+    assert( iVar >= 0 && iVar < 6 );
+    if ( (unsigned)iVar >= 6 ) abort();
     return ((t >> (1<<iVar)) & s_Truths6Neg[iVar]) != (t & s_Truths6Neg[iVar]);
 }
 static inline int Abc_Tt6XorVar( word t, int iVar )
@@ -3494,7 +3498,7 @@ static inline int Abc_TtEvalLut4( int Ins[4], int Lut, int nVars )
 ***********************************************************************/
 static inline void Abc_TtComputeGraph( word * pTruth, int v, int nVars, int * pGraph )
 {
-    word Cof0[64], Cof1[64]; // pow( 2, nVarsMax-6 )
+    word Cof0[64] = {0}, Cof1[64] = {0}; // pow( 2, nVarsMax-6 )
     word Cof00[64], Cof01[64], Cof10[64], Cof11[64];
     word CofXor, CofAndTest; 
     int i, w, nWords = Abc_TtWordNum(nVars);

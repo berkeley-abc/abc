@@ -209,6 +209,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             If_CutForEachLeaf( p, pCut, pLeaf, iLeaf )
             {
                 If_Cut_t * pBestCut = If_ObjCutBest( pLeaf );
+                (void)pBestCut;
                 assert( pBestCut != NULL );
                 assert( pBestCut->fUseless == 0 );
                 Delay = IF_MAX( Delay, If_ObjArrTime(pLeaf) + (float)Intrinsic[iLeaf] );
@@ -367,6 +368,7 @@ IfMapBestCutDone:
                         if ( p->pPars->fEnableCheck07 && p->pPars->pCellLib && pCut->nLeaves > 1 )
                         {
                             If_Cut_t * pBestCut = If_ObjCutBest( pLeaf );
+                            (void)pBestCut;
                             assert( pBestCut != NULL );
                             assert( pBestCut->fUseless == 0 );
                         }

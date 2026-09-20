@@ -372,6 +372,7 @@ static int Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
                 for ( k = 0; k < Vec_WrdSize(&pPin->vFunc); k++ )
                 {
                     word Value = Vec_StrGetW(vOut, pPos);
+                    (void)Value;
                     assert( Value == Vec_WrdEntry(&pPin->vFunc, k) );
                 }
             }

@@ -696,6 +696,7 @@ static inline sn_module_id_t sn_tech_tile_find(sn_design_t* design, char* name, 
         if (sn_tech_tile_init_matches(sn_design_get_module_const(design, existing), init_words, bits))
             return existing;
         int added = snprintf(name + length, name_size - (size_t)length, "_c%u", bump);
+        (void)added;
         assert(added > 0 && (size_t)length + (size_t)added < name_size);
     }
 }

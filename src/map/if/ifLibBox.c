@@ -176,6 +176,11 @@ If_LibBox_t * If_LibBoxRead2( char * pFileName )
     // read lines
     nPis = nPos = 0;
     pBuffer = ABC_ALLOC( char, nSize );
+    if ( pBuffer == NULL )
+    {
+        fclose( pFile );
+        return NULL;
+    }
     while ( fgets( pBuffer, nSize, pFile ) )
     {
         pToken = Abc_UtilStrtok( pBuffer, " \n\r\t", &pSave );

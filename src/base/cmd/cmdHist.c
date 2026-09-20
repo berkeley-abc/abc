@@ -39,8 +39,8 @@ ABC_NAMESPACE_IMPL_START
 
 #ifdef ABC_USE_PTHREADS
 static pthread_mutex_t s_HistoryMutex = PTHREAD_MUTEX_INITIALIZER;
-static void Cmd_HistoryLock()   { int Status = pthread_mutex_lock( &s_HistoryMutex );   assert( Status == 0 ); }
-static void Cmd_HistoryUnlock() { int Status = pthread_mutex_unlock( &s_HistoryMutex ); assert( Status == 0 ); }
+static void Cmd_HistoryLock()   { int Status = pthread_mutex_lock( &s_HistoryMutex );   assert( Status == 0 ); (void)Status; }
+static void Cmd_HistoryUnlock() { int Status = pthread_mutex_unlock( &s_HistoryMutex ); assert( Status == 0 ); (void)Status; }
 #else
 static void Cmd_HistoryLock()   {}
 static void Cmd_HistoryUnlock() {}

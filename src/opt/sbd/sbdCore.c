@@ -1565,6 +1565,7 @@ int Sbd_ManExplore3( Sbd_Man_t * p, int Pivot, int * pnStrs, Sbd_Str_t * Strs )
 {
     int FreeVar = Vec_IntSize(p->vWinObjs) + Vec_IntSize(p->vTfo) + Vec_IntSize(p->vRoots);
     int FreeVarStart = FreeVar;
+    (void)FreeVarStart;
     int nSize, nLeaves, pLeaves[SBD_DIV_MAX];
     //sat_solver_delete_p( &p->pSat );
     abctime clk = Abc_Clock();
@@ -1783,6 +1784,7 @@ int Sbd_ManImplement( Sbd_Man_t * p, int Pivot, word Truth )
     int i, k, w, iLit, Entry, Node;
     int iObjLast = Gia_ManObjNum(p->pGia);
     int iCurLev = Vec_IntEntry(p->vLutLevs, Pivot);
+    (void)iCurLev;
     int iNewLev;
     // collect leaf literals
     Vec_IntClear( p->vLits );
@@ -1845,6 +1847,7 @@ int Sbd_ManImplement2( Sbd_Man_t * p, int Pivot, int nStrs, Sbd_Str_t * pStrs )
     int i, k, w, iLit, Node;
     int iObjLast = Gia_ManObjNum(p->pGia);
     int iCurLev = Vec_IntEntry(p->vLutLevs, Pivot);
+    (void)iCurLev;
     int iNewLev;
     // collect leaf literals
     Vec_IntClear( p->vLits );
@@ -2226,4 +2229,3 @@ Gia_Man_t * Sbd_NtkPerform( Gia_Man_t * pGia, Sbd_Par_t * pPars )
 
 
 ABC_NAMESPACE_IMPL_END
-

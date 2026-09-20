@@ -281,6 +281,7 @@ int Acb_NtkCollectMfsGates( char * pFileName, Vec_Ptr_t * vNamesRefed, Vec_Ptr_t
     Vec_IntForEachEntry( vNodes, iObj, i )
     {
         int nFan = Acb_ObjFaninNum(pNtkF, iObj);
+        (void)nFan;
         int Type = Acb_ObjType( pNtkF, iObj );
         if ( Type == ABC_OPER_CONST_F ) 
             nGates[0]++;
@@ -1037,6 +1038,7 @@ Vec_Int_t * Acb_NtkPlaces( char * pFileName, Vec_Ptr_t * vNames )
     Vec_Int_t * vPlaces; int First = 1, Pos = -1, fComment = 0;
     char * pTemp, * pBuffer = Extra_FileReadContents( pFileName );
     char * pLimit = pBuffer + strlen(pBuffer);
+    (void)pLimit;
     if ( pBuffer == NULL )
         return NULL;
     vPlaces = Vec_IntAlloc( Vec_PtrSize(vNames) );
@@ -1265,4 +1267,3 @@ void Acb_Ntk4DumpWeights( char * pFileNameIn, Vec_Ptr_t * vObjNames, char * pFil
 
 
 ABC_NAMESPACE_IMPL_END
-

@@ -376,6 +376,7 @@ int Lpk_DsdAnalizeOne( Lpk_Fun_t * p, unsigned * ppTruths[5][16], Kit_DsdNtk_t *
     unsigned uNonDecSupp, uLateArrSupp;
     int i, k, nNonDecSize, nNonDecSizeMax;
     assert( nCofDepth >= 1 && nCofDepth <= 3 );
+    if ( nCofDepth < 1 || nCofDepth > 3 ) abort();
     assert( nCofDepth < (int)p->nLutK - 1 );
     assert( p->fSupports );
 

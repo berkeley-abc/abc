@@ -108,7 +108,7 @@ static inline int          Wln_ObjIsTable( Wln_Ntk_t * p, int i )               
 
 static inline int          Wln_ObjFaninNum( Wln_Ntk_t * p, int i )               { return p->vFanins[i].nSize;                                                }
 static inline int *        Wln_ObjFanins( Wln_Ntk_t * p, int i )                 { return Wln_ObjFaninNum(p, i) > 2 ? p->vFanins[i].pArray[0]    : p->vFanins[i].Array;    }
-static inline int          Wln_ObjFanin( Wln_Ntk_t * p, int i, int f )           { return Wln_ObjFaninNum(p, i) > 2 ? p->vFanins[i].pArray[0][f] : p->vFanins[i].Array[f]; }
+static inline int          Wln_ObjFanin( Wln_Ntk_t * p, int i, int f )           { int n = Wln_ObjFaninNum(p, i); assert(f >= 0 && f < n); if (f < 0 || f >= n) abort(); return n > 2 ? p->vFanins[i].pArray[0][f] : p->vFanins[i].Array[f]; }
 static inline void         Wln_ObjSetFanin( Wln_Ntk_t * p, int i, int f, int v ) { Wln_ObjFanins( p, i )[f] = v;                                              }
 static inline int          Wln_ObjFanin0( Wln_Ntk_t * p, int i )                 { return Wln_ObjFanin( p, i, 0 );                                            }
 static inline int          Wln_ObjFanin1( Wln_Ntk_t * p, int i )                 { return Wln_ObjFanin( p, i, 1 );                                            }

@@ -1048,6 +1048,7 @@ void Gia_WinCreateFromCut( Gia_Man_t * p, int iPivot, Vec_Int_t * vIn, Vec_Wec_t
 int Gia_RsbExpandCut( Gia_Man_t * p, Vec_Int_t * vIns )
 {
     int fOnlyPis = 0, fChange = 1, nSize = Vec_IntSize(vIns);
+    (void)nSize;
     while ( fChange )
     {
         Gia_Obj_t * pObj;
@@ -1555,4 +1556,3 @@ Vec_Wec_t * Gia_ManExtractCuts2( Gia_Man_t * p, int nCutSize, int nCuts, int fVe
 ////////////////////////////////////////////////////////////////////////
 
 ABC_NAMESPACE_IMPL_END
-

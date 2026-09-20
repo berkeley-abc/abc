@@ -493,6 +493,8 @@ Extra_MmStep_t * Extra_MmStepStart( int nSteps )
 {
     Extra_MmStep_t * p;
     int i, k;
+    assert( nSteps > 0 && nSteps <= 28 );
+    if ( nSteps <= 0 || nSteps > 28 ) abort();
     p = ABC_ALLOC( Extra_MmStep_t, 1 );
     memset( p, 0, sizeof(Extra_MmStep_t) );
     p->nMems = nSteps;
@@ -625,4 +627,3 @@ int Extra_MmStepReadMemUsage( Extra_MmStep_t * p )
 /*---------------------------------------------------------------------------*/
 
 ABC_NAMESPACE_IMPL_END
-

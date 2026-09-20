@@ -1202,6 +1202,7 @@ char * Abc_SopEncoderLog( Mem_Flex_t * pMan, int iBit, int nValues )
     char * pResult;
     Vec_Str_t * vSop;
     int v, Counter, fFirst = 1, nBits = Abc_Base2Log(nValues);
+    (void)nBits;
     assert( iBit < nBits );
     // count the number of literals
     Counter = 0;
@@ -1470,4 +1471,3 @@ void Abc_SopToTruthBig( char * pSop, int nInputs, word ** pVars, word * pCube, w
 
 
 ABC_NAMESPACE_IMPL_END
-

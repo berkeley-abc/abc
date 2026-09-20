@@ -234,6 +234,7 @@ static inline void Dau_DsdMergeInlineDefinitions( char * pDsd, int * pMatches, D
     int i;
     char * pDef;
     char * pBegin = pRes;
+    (void)pBegin;
     for ( i = 0; pDsd[i]; i++ )
     {
         // skip non-DSD block

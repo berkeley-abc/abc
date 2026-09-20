@@ -233,9 +233,12 @@ Wln_Ntk_t * Wln_NtkFromNdr( void * pData, int fDump )
     {
         int End, Beg, Signed = Ndr_ObjGetRange(p, Obj, &End, &Beg);
         int nArray  = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
+        (void)nArray;
         int iObj    = Wln_ObjAlloc( pNtk, ABC_OPER_CO, Signed, End, Beg );
         int NameId  = Ndr_ObjReadBody( p, Obj, NDR_OUTPUT );
+        (void)NameId;
         int InstId  = Ndr_ObjReadBody( p, Obj, NDR_NAME );
+        (void)InstId;
         assert( nArray == 1 && NameId == -1 && InstId == -1 );
         Wln_ObjAddFanin( pNtk, iObj, pArray[0] );
     }
@@ -338,4 +341,3 @@ void Wln_NtkRetimeTest( char * pFileName, int fIgnoreIO, int fSkipSimple, int fD
 
 
 ABC_NAMESPACE_IMPL_END
-

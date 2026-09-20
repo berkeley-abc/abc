@@ -71,6 +71,7 @@ static inline sn_module_id_t sn_add_carry_primitive_module(sn_design_t* design, 
     assert(design && tech && tech->width == 4);
     char name[64];
     int length = snprintf(name, sizeof(name), "__sn_%s", tech->name);
+    (void)length;
     assert(length >= 0 && (size_t)length < sizeof(name));
     sn_module_id_t existing = sn_design_find_module(design, name);
     if (existing != SN_INVALID_ID)

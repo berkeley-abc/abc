@@ -245,6 +245,7 @@ static inline int Smt_PrsReadType( Smt_Prs_t * p, int iSig, int * pfSigned, int 
     {
         Vec_Int_t * vFans = Smt_EntryNode( p, iSig );
         char * pStr = Smt_VecEntryName( p, vFans, 0 );  int Type;
+        (void)pStr;
         assert( Vec_IntSize(vFans) >= 3 );
         assert( !strcmp(pStr, "_") ); // special op
         *Value1 = *Value2 = -1;
@@ -567,7 +568,7 @@ static inline char * Smt_GetHexFromDecimalString(char * pStr)
             case 13: letter = 'd'; break;
             case 14: letter = 'e'; break;
             case 15: letter = 'f'; break;
-            default: assert(0);
+            default: assert(0); abort();
         }
         hex[nBits/4-1-k] = letter;
         //if (k<Vec_IntSize(rev))

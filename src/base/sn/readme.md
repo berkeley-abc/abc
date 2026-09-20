@@ -2,7 +2,7 @@
 
 This directory contains the Slang-independent Simple Netlist (SN) representation and algorithms.
 
-The external `sn_slang` executable parses and elaborates Verilog/SystemVerilog using Mike Popoloski's excellent
+The external `sn` executable parses and elaborates Verilog/SystemVerilog using Mike Popoloski's excellent
 [slang SystemVerilog compiler](https://github.com/MikePopoloski/slang) and writes a binary `.sn` design. ABC does
 not link slang or require its C++20 dependencies.
 
@@ -32,7 +32,7 @@ Preserved instance names enable name-checked boundary proofs after Verilog re-im
 generate-scope and instance-array indices so repeated instances do not collapse to the same leaf name.
 Unused named output pins are emitted explicitly open. Direct same-named register/output aliases use
 `output reg`; other native register declarations carry a name-only `sn_register_name` annotation for
-sn_slang re-import. Cell `sn_state_name` and `sn_state_phase` annotations are retained by both ordinary and named output. Neither annotation
+`sn` re-import. Cell `sn_state_name` and `sn_state_phase` annotations are retained by both ordinary and named output. Neither annotation
 encodes physical initialization or a proof of equivalence; malformed phases remain explicit refusals.
 
 `@status` reports both representations, the monotonically increasing SN revision, and whether the saved boundary is
@@ -45,7 +45,6 @@ matching boundary.
 The commands appear under `New word level commands` in ABC's `help` output.
 
 ```text
-set snslang /path/to/sn_slang
 @slang -M top rtl1.sv rtl2.sv
 @status
 @check
@@ -75,7 +74,14 @@ set snslang /path/to/sn_slang
 @write mapped_logic.sn
 ```
 
-`@slang` uses `sn_slang` from `PATH` unless the `snslang` setting overrides it. It accepts `-M` for the top module,
+`@slang` first uses an explicit `sn` setting, then a companion beside the running ABC executable, then `PATH`.
+Use `set sn /path/to/sn` only when selecting a specific frontend executable.
+Build both executables with `make -j10 ABC_USE_SLANG=1`; see [companion build instructions](../../../../tools/sn/readme.md).
+For a first smoke test, run `./abc -c "@slang counter.v; @check; @ps -v"` from the repository root.
+The sequential 4-bit `counter` top instantiates the combinational 4-bit `adder`, so this small example covers
+arithmetic lowering, register inference, instance connectivity and hierarchy. Its unique top is inferred
+automatically; use `-M module` when sources contain multiple possible tops.
+It accepts `-M` for the top module,
 repeatable `-D NAME` or `-D NAME=value` preprocessor definitions, `-F` for one additional source file, and any number
 of positional source files. For example, `-D WIDTH=8 -D SIGNED=1` defines two macros. `-T` is not used because ABC
 conventionally reserves it for a time limit. `-v` prints the external command and frontend timing. A module declared
@@ -140,12 +146,6 @@ reports parser-warning counts (including embedded sources), and reports unsuppor
 Interface pin/count queries use precomputed per-cell indices. Blasting reuses one expression scratch allocation
 per hierarchy frame, borrowing it only after recursively evaluating gate dependencies.
 
-In the maintainer's full development workspace, `test/sn/sn_iwls_trace.cc` is an ISCAS-specific test utility
-built by the sibling sn_slang CMake project against ABC headers, not by ABC's default build. Test sources
-and fixtures are not included in this source changeset or the minimal frontend distribution.
-The utility recognizes `blif_clk_net` and `blif_reset_net`, solves LOOP cuts with
-FF state held fixed, and rejects non-convergent traces. Opaque SRAM/macros require an external model and are not
-functionally checked by this utility.
 
 `@status` prints the current design and top names, SN revision, selected technology, hierarchy form, last extraction
 mode/module/revision, saved boundary hash, current GIA dimensions, and `@put` compatibility. A new `@read` or `@slang`
@@ -239,8 +239,7 @@ flags, initialization, and next-state data merge into one, interleaved with comb
 fixed point so next-state cones that become identical after earlier merges are found as well. Cones that lose their
 last fanout are swept. Set and reset controls are judged by their polarity flags: an active-low control tied to
 constant zero fires permanently and is never treated as absent. The pass is hierarchical and transactional; `@check`
-verifies the structural invariants of its result on every design, and the simulation and equivalence regressions in
-`abc/test/sn` and `sn_slang/tests` cover its behavior. Shift-register extraction is `@map_srl`; flop-cell
+verifies the structural invariants of its result on every design. Shift-register extraction is `@map_srl`; flop-cell
 legalization is a planned extension.
 
 Memory mapping preserves read-to-write feedback through explicit `SN_LOOP_OUT` / `SN_LOOP_IN` ordering
@@ -259,7 +258,7 @@ their reachable occurrence counts.
 
 `SN_CAST` is a one-fanin operator whose object width and signedness define the result type. It does not permute bits.
 An equal-width cast only changes the signedness annotation; widening sign-extends a signed result and zero-extends an
-unsigned result; narrowing discards high bits and retains the LSB-first low-order portion. `sn_slang` adds casts for
+unsigned result; narrowing discards high bits and retains the LSB-first low-order portion. `sn` adds casts for
 explicit and implicit slang conversions, `$signed` / `$unsigned`, dynamic selected-value normalization, packed-value
 updates, and final normalization of `SN_MUX` data branches to the mux result width. Memory, DSP, and carry mapping may
 also introduce casts while adapting word-level values to primitive interfaces. The Verilog writer uses `$signed` or
@@ -339,8 +338,7 @@ pthread workers and one coordinating process. `-P 1` uses the current ABC proces
 becomes the current `&`-space GIA; use `-P 2` or more when the preexisting `&`-space network must remain untouched.
 SN pthread support is compiled out on Windows, where `-P 1` remains fully supported and larger values are rejected.
 Parallel workers locate the current executable using `/proc/self/exe` on Linux and `_NSGetExecutablePath` on
-macOS; insufficient path-buffer capacity is reported as an error. The header compile regression uses an ABC
-namespace and the Windows SDK's `interface` macro to catch include-order portability regressions.
+macOS; insufficient path-buffer capacity is reported as an error.
 `@map_lut -E prefix` stops at the same partition boundary, writes each nontrivial job as
 `prefix_<module-id>_<module-name>.aig` with a `.txt` interface-statistics sidecar, and does not run synthesis or modify
 the SN design. This mode cannot be combined with `-S` or `-F`, currently requires `-P 1`, and is intended for
@@ -391,9 +389,9 @@ an SN library. A mapped main network must be cleared before replacing the ABC li
 
 The SCL reader normalizes supported time/capacitance units before merging. Unknown explicit units are
 refused. Mixed nominal corners retain the selected vocabulary for functional/area mapping, but disable
-SCL timing and sizing rather than invent a common corner. The supplied ASAP7 files differ in nominal
-voltage (0.7/0.77 V) and temperature (0/25 C), so their corpus results are area-only. Diagnostics name the
-conflicting files and values. Cells above 16 inputs or two outputs remain in the SN bundle but are
+SCL timing and sizing rather than invent a common corner. Such mixed-corner libraries remain usable for
+functional and area mapping, but their results must not be presented as timing-comparable. Diagnostics name
+the conflicting files and values. Cells above 16 inputs or two outputs remain in the SN bundle but are
 explicitly excluded from SCL mapping targets; genuine binding/function mismatches still refuse loading.
 Sequential-only files contribute interfaces without requiring a combinational genlib. `.snlib` timing
 reuse requires the exact recorded text source, checked by size and hash as described above.
@@ -439,16 +437,14 @@ Reconstruction and consistency checking occur on a replacement design, installed
 sequential cells are partition cuts. Generic memories must be mapped first. Mapping checks ordered partition
 port names and physical library binding, then installs a checked replacement transactionally; both existing
 ABC workspaces remain unchanged. `-v` reports each definition's mapping progress and runtime. Port correspondence is not CEC. `snMapCell.h` exposes the borrowed-MiniAIG /
-owned-network callback for this harness. There is no parallel or BLIF worker protocol yet.
-This path uses default per-definition nf without a technology-independent synthesis script. The flat
-experiment manifest separately supports `synthesis: none|dc2|syn2`; raw mapping-only area is not a tuned
-synthesis result. See the [controlled comparison](../../../../sn_slang/results/README.md).
+owned-network callback for this mapping path. There is no parallel or BLIF worker protocol yet.
+This path uses default per-definition nf without a technology-independent synthesis script; raw mapping-only
+area is not a tuned synthesis result.
 
 For a common-corner SCL target, main-network buffering/sizing can precede reinsertion:
 `@blast -c -f; &nf; &put; topo; buffer -N 4; upsize -I 10; dnsize -I 3; @put -n`.
-`topo` is required for non-topological mapper results (notably `emap`). The frontend's W6 harness exercises
-this path for all four mappers, with fresh-process SN and Verilog CEC. Its default loads/constraints are not
-a matched physical timing experiment; mixed-corner targets deliberately lack SCL sizing support.
+`topo` is required for non-topological mapper results (notably `emap`). Default loads and constraints do not
+constitute a matched physical timing experiment; mixed-corner targets deliberately lack SCL sizing support.
 
 Mapped RAM/DSP/CARRY4 instances are reconstructed as technology leaf instances. SN loop-breaker pairs connect their
 output ports while the new flat module is built and are placed into a legal order by the final topological reorder.
@@ -471,7 +467,7 @@ control bits, and `u0.fb[0]` / `u0.fb/d[0]` for a loop pair. An unnamed loop is 
 name of bit 0 of its driver (a named signal, or a gate/instance output reached through slices, buffers, casts, and
 concatenations). Reconstruction gives rebuilt gates, instances, registers, and loops the same hierarchical names, so
 the blast of a module before `@put` and the blast of the rebuilt module can be compared with `cec`, which matches
-CIs/COs by name, even though the topological reorder permutes their positions. sn_slang names the loop pairs it
+CIs/COs by name, even though the topological reorder permutes their positions. `sn` names the loop pairs it
 creates for instance feedback after the instance input they feed (`inst/port`). Names that had to fall back to an
 object ID, and names that received a `#n` suffix to stay unique, are counted and reported by `@blast -v`; such bits
 cannot be matched reliably.
@@ -482,9 +478,7 @@ cannot be matched reliably.
 The iterative dependency check refuses any observable combinational cycle and leaves the GIA unchanged
 on refusal. State, latch, macro and other non-LOOP cuts remain independent; this is not a closed sequential
 model. Successful stitching disables `@put` until a fresh `@blast`, because its interface no longer
-matches the reconstruction boundary. The original SN design is never changed. Ariane136 still has a
-reachable cache miss-handler cycle after joining wires, so this command does not yet resolve its large
-Verilog round-trip proof gap.
+matches the reconstruction boundary. The original SN design is never changed.
 
 `@blast -a -t` is a separate checked clock abstraction: outputs and next-state functions with one
 free corresponding-state input per eligible bit. It follows hierarchy, buffers and inversions,
@@ -542,17 +536,7 @@ prove inactive under the explicit constant-input contract. Generic memories and 
 refuse. `-u` cuts declared opaque modules, with free outputs and observed inputs, not invented SRAM state.
 This is **not** a time-step, settling, glitch/timing or sequential-AIG model, and not an independent RTL
 translation proof. It cannot be combined with `-a`, `-t`, `-z` or ordinary blast modes and cannot feed
-`@put`. Ordinary `-a` latch/domain refusals remain unchanged. The proof harness records `action_cec`
-only, requiring explicit `state_actions: true, run_sec: false`; it never runs SEC on these signatures.
-
-`sn_slang/scripts/run_clock_cec.py` records transition CEC and independent `dsec` results with
-explicit reset-inactive/shared-initial-state contracts. All four mappings of the 30 stateful
-IWLS RTL designs pass both checks; the supplied mapped s27 also passes. The s953 RTL is stateless
-with undriven outputs and remains unverified. Results are in `build/clock_iwls_w5/`, with follow-ups
-in `build/clock_s5378_w5_phase_v2/` and `build/clock_s38417_w5_no_retime/`. The first follow-up fixes
-lost phase correspondence; the second disables optional solver retiming to avoid timeouts.
-The NanGate45 Ariane136 checkpoint has 19,839 FF cells, 136 opaque macros and 26,198 LOOP bits;
-it is correctly refused as a closed model.
+`@put`. Ordinary `-a` latch/domain refusals remain unchanged.
 
 `@blast -a -u -t` explicitly permits declared black-box module cuts. Behavioral child modules containing
 native latches are not eligible, even though ordinary combinational extraction treats them as boundaries.
@@ -561,15 +545,6 @@ inputs are observed outputs; every cut is named and logged. The result is labele
 a closed sequential model or a model of SRAM contents. Clocks driven by macros, transparent latches,
 generic memories and residual cycles still refuse. A cycle refusal identifies one participating boundary bit
 when available, not an arbitrary upstream cut. Duplicate cut names refuse rather than guess a pairing.
-The original Ariane136 RTL-to-legalized transition CEC passes with `rst_ni=1` and these SRAM cuts
-(`sn_slang/build/clock_ariane136_w7_v5/`). This is not a proof against the supplied commercial netlist.
-That historical import predates the incomplete-`always_comb` hold fix. Corrected Ariane136 contains
-three real latch bits and refuses this edge-triggered mode. Corrected Ariane136 and MemPool each pass
-the three state-action comparisons (native SN to legalized cells, remapping, Verilog reimport) in all
-three libraries; `sn_slang/build/mp_rtl_comparison_w7_v7/` records the 18 checks and their exact scope.
-The corrected hierarchical Ariane136 chain also passes, with the same conditional contract, in
-`sn_slang/build/state_actions_hierarchy_chain_w6/`. These checks include the actual latch state; they
-do not reuse the historical pre-fix edge-triggered proofs.
 
 `snSeq.h` provides `sn_library_seq_info`: separate preservation, sampled, one-state abstraction and
 mapping eligibility, with an owned expression graph and borrowed raw state/collision record. Signed
@@ -588,12 +563,8 @@ are retained. Latch data is cofactored while its gate is asserted, removing fron
 artifacts without expanding Liberty functions into SN operators. Clock inversions and inactive
 control ties are reported. A retained source cell is not a target unless selected by `@read_lib`.
 
-Do not introduce an implicit zero-initialization assumption before legalization. The IWLS validation
-uses `@map_dff -c -m` to disable constant-register folding and register merging. Its 31 RTL designs
-legalize and all 124 four-mapper SN/Verilog boundary proofs pass; vendor-model event comparisons have
-known-output coverage for 30 designs. The supplied s953 RTL leaves its outputs undriven, so it remains
-unverified. See `sn_slang/build/iwls_mapping_w4_v2/`. Event traces and combinational boundary proofs
-are complementary evidence, not a universal sequential equivalence claim.
+Do not introduce an implicit zero-initialization assumption before legalization. Use `@map_dff -c -m`
+to disable constant-register folding and register merging when preserving correspondence is required.
 
 ## Source files
 
@@ -648,14 +619,9 @@ their name under `SN_LIB_TIMING_OTHER`. An interface must not be built from an i
 the library's `bus_naming_style` and nested `pin(A[3:2])` range overrides are applied; `sn_lib_table_lookup3`
 interpolates all three axes and the x/y helper returns NAN for three-dimensional tables. Only a syntax error
 (including an unterminated comment or a read error), a missing `library` group, or memory exhaustion is fatal;
-`sn_lib_ok` covers all three, and an allocation-injection test (`abc/test/sn/sn_liberty_oom_test.cc`) fails
-every allocation in turn to keep that contract honest. The vendor tests read IWLS 2005 GSCLib, the sky130 library shipped with
-OpenROAD, and the gf180, STM 90 nm, and Faraday libraries under `~/Projects/libs`; the cell functions of three
-of them were compared exhaustively against ABC's own genlib conversions. Completeness for every Liberty
+`sn_lib_ok` covers all three. Completeness for every Liberty
 construct is not claimed: `include_file` is recorded but not executed, a second `library` group in a file is
-ignored with a warning, and bus-level expressions are shared with the bits without bit selection. See
-`sn_slang/sn_liberty_review.md` in the sibling frontend project for the September 7 correctness review and
-its resolution.
+ignored with a warning, and bus-level expressions are shared with the bits without bit selection.
 
 Binary format version 15 embeds each library model of a design as its functional-only binary encoding
 (below) instead of the Liberty text that versions 13 and 14 carried, so `@read` no longer re-parses the
@@ -669,25 +635,11 @@ indices are identical, and downstream consumers behave the same as with a text-p
 the size and hash of the library text it came from (`sn_lib_binary_identity`, `sn_lib_source_identity`) and ends
 with a payload hash, so truncated, damaged, or foreign files are rejected before decoding. A functional-only file
 (`sn_lib_binary_options_t.functional_only`) drops timing, power, leakage, tables, and templates and is a small
-fraction of the full file: sky130 hs (72 MB text, 0.44 s to parse) becomes a 39 MB full file that loads in
-36 ms or a 2 MB functional file that loads in 2 ms; NanGate45 (6.7 MB, 47 ms) becomes 5.4 MB in 4 ms or 1 MB
-in 1 ms.
+fraction of the full file and typically loads faster because omitted characterization data is neither stored nor
+decoded.
 
-The frontend adapter in `sn_slang/src/sn_slang_liberty.h` generates interface-only Verilog before slang
+The frontend adapter in `tools/sn/src/snLiberty.h` generates interface-only Verilog before slang
 elaboration. Scalar cells become compact `SN_GATE` objects; `snLibrary.h` compiles their supported functions
 into shared expression graphs, and blasting expands those graphs into AIG nodes. No scalar gate module or
 elementary SN function network is created. Vector macros use opaque module interfaces. The parser itself
-remains independent of SN representation details. See the reviewed
-[mapping roadmap](../../../../sn_slang/sequential_cells_plan.md) for binding ABC mapper results back to SN
-and for the separate sequential-mapping and clock-abstraction work.
-
-The maintainer's local unit tests live in `abc/test/sn/sn_test.cc`. These tests, their CMake registration,
-binary fixtures, and temporary experiment artifacts are deliberately excluded from this source changeset;
-the minimal sn_slang distribution likewise contains no test sources or fixtures. The coverage descriptions
-here refer to the full development workspace, not files or test targets supplied to release users.
-Those tests cover the checker's rejection of corrupted invariants, mapping and blasting behavior,
-register optimization (including control polarity and constant negation), and the binary upgrade chain: the
-version-7 fixture in `abc/test/sn/fixtures` must match `uart_v11.sn`, the same RTL written by the current frontend
-and writer. A representation change that touches an invariant must update the corresponding corruption test there;
-a format change should add a fixture pair. Behavioral coverage of the mapping passes lives in the sn_slang tree
-(`map_dff_polarity_sim`, `map_srl_chains_sim`, `map_mem_registered_sim` simulate the RTL against the mapped design).
+remains independent of SN representation details.

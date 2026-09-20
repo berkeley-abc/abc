@@ -780,6 +780,7 @@ void generate_prefix_adder_verilog(int* array, int width, int mfo, int print_mit
 	// Parse array header
 	int idx = 0;
 	int array_size = array[idx++]; 
+	(void)array_size;
 	int N = array[idx++];
 	int P = array[idx++];
 	int L = array[idx++];
@@ -932,9 +933,11 @@ int* adder_return_array_int(int* prefix_array, int* pnObjs, int* pnIns, int* pnL
 	// Parse prefix array
 	int idx = 0;
 	int array_size = prefix_array[idx++];
+	(void)array_size;
 	int N = prefix_array[idx++];  // Number of inputs
 	int P = prefix_array[idx++];  // Number of prefix nodes
 	int L = prefix_array[idx++];  // Number of levels
+	(void)L;
 	assert( L > 0 );
 	int width = N;
 	

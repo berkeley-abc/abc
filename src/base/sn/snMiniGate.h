@@ -188,6 +188,7 @@ static inline sn_module_id_t sn_design_add_gate_module_impl(sn_design_t* design,
         for (uint32_t bit = 0; bit < width; bit++)
         {
             sn_blast_boundary_bit_t endpoint = sn_vec_at(sn_blast_boundary_bit_t, &boundary->cos, co_index);
+            (void)endpoint;
             assert(endpoint.kind == SN_BLAST_BOUNDARY_TOP_PO && endpoint.port == i && endpoint.signal.bit == bit);
             assert(output_indices[co_index] < ci_count + node_count);
             bits[bit] = objects[output_indices[co_index++]];

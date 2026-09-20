@@ -1157,6 +1157,7 @@ int Abc_NtkFindTiming( Abc_LutCas_t * p )
 {
     int Delay0 = Abc_NtkFindPathTimeD( p );
     int Delay1 = Abc_NtkFindPathTimeR( p );
+    (void)Delay1;
     assert( Delay0 == Delay1 );
     p->DelayMax = Delay0;
     Abc_NtkFindCriticalEdges( p );
@@ -1245,6 +1246,7 @@ int Abc_NtkUpdateTiming( Abc_LutCas_t * p, int Node, int Fanin )
         return p->DelayMax;
     }
     int DelayOld = p->DelayMax;
+    (void)DelayOld;
     Abc_NtkFindTiming(p);
     assert( DelayOld > p->DelayMax );
     return p->DelayMax;

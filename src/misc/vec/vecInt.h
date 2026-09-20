@@ -98,6 +98,8 @@ struct Vec_Int_t_
 static inline Vec_Int_t * Vec_IntAlloc( int nCap )
 {
     Vec_Int_t * p;
+    assert( nCap >= 0 );
+    if ( nCap < 0 ) abort();
     p = ABC_ALLOC( Vec_Int_t, 1 );
     if ( nCap > 0 && nCap < 16 )
         nCap = 16;
@@ -2371,4 +2373,3 @@ ABC_NAMESPACE_HEADER_END
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-

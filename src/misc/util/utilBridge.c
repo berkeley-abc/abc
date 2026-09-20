@@ -314,6 +314,7 @@ Gia_Man_t *  Gia_ManFromBridgeReadBody( int Size, unsigned char * pBuffer, Vec_I
     Vec_Int_t * vLits, * vInits;
     Gia_Man_t * p = NULL;
     unsigned char * pBufferPivot, * pBufferEnd = pBuffer + Size;
+    (void)pBufferEnd;
     int i, nInputs, nFlops, nGates, nProps;
     int verFairness, nFairness, nConstraints;
     unsigned iFan0, iFan1;

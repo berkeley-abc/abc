@@ -384,6 +384,7 @@ static inline sn_module_id_t sn_design_add_lut_module(sn_design_t* design, sn_mo
         for (uint32_t bit = 0; bit < width; bit++)
         {
             sn_blast_boundary_bit_t endpoint = sn_vec_at(sn_blast_boundary_bit_t, &boundary->cos, co_index + bit);
+            (void)endpoint;
             assert(endpoint.kind == SN_BLAST_BOUNDARY_TOP_PO && endpoint.port == i && endpoint.signal.bit == bit);
         }
         co_index += width;

@@ -1595,6 +1595,7 @@ int Gia_ManFromIfLogicHop( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Cut_t * pCutB
 
     // convert the LUT-structure into a set of logic nodes in Gia_Man_t 
     unsigned char bytes_check = decompArray[0];
+    (void)bytes_check;
     assert( bytes_check <= 92 );
 
     int byte_p = 2;
@@ -2158,6 +2159,7 @@ void Gia_ManFromIfGetConfig2( Vec_Str_t * vConfigs2, If_Man_t * pIfMan, word * p
     int i, CellId;
     int startPos = Vec_StrSize(vConfigs2);
     If_LibCell_t * pCellLib = pIfMan && pIfMan->pPars ? pIfMan->pPars->pCellLib : NULL;
+    (void)pCellLib;
     assert( pCellLib != NULL );
 
     // Determine cell type based on the number of leaves and configuration
@@ -3038,6 +3040,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
     if ( pPars->fUseDsd )
     {
         If_DsdMan_t * p = (If_DsdMan_t *)Abc_FrameReadManDsd();
+        (void)p;
         assert( pPars->nLutSize <= If_DsdManVarNum(p) );
         assert( (pPars->pLutStruct == NULL && If_DsdManLutSize(p) == 0) || (pPars->pLutStruct && pPars->pLutStruct[0] - '0' == If_DsdManLutSize(p)) );
         pIfMan->pIfDsdMan = (If_DsdMan_t *)Abc_FrameReadManDsd();

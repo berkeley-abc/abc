@@ -919,7 +919,7 @@ EpdPow2(int n, EpDouble *epd)
   if (n <= EPD_MAX_BIN) {
     EpdConvert(pow((double)2.0, (double)n), epd);
   } else {
-    EpDouble    epd1, epd2;
+    EpDouble    epd1 = {0}, epd2 = {0};
     int         n1, n2;
 
     n1 = n / 2;
@@ -950,7 +950,7 @@ EpdPow2Decimal(int n, EpDouble *epd)
     epd->exponent = 0;
     EpdNormalizeDecimal(epd);
   } else {
-    EpDouble    epd1, epd2;
+    EpDouble    epd1 = {0}, epd2 = {0};
     int         n1, n2;
 
     n1 = n / 2;

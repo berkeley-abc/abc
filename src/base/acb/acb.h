@@ -431,6 +431,7 @@ static inline void Acb_ObjDeleteFaninIndex( Acb_Ntk_t * p, int iObj, int iFaninI
 static inline void Acb_ObjDeleteFanin( Acb_Ntk_t * p, int iObj, int iFanin )
 {
     int * pFanins = Acb_ObjFanins( p, iObj );
+    (void)pFanins;
     int iFaninIndex = Acb_ObjWhatFanin( p, iObj, iFanin );
     assert( pFanins[ 1 + iFaninIndex ] == iFanin );
     Acb_ObjDeleteFaninIndex( p, iObj, iFaninIndex );
@@ -535,6 +536,7 @@ static inline void Acb_ObjAddFaninFanout( Acb_Ntk_t * p, int iObj )
 static inline void Acb_ObjRemoveFaninFanoutOne( Acb_Ntk_t * p, int iObj, int iFanin )
 {
     int RetValue = Vec_IntRemove( Vec_WecEntry(&p->vFanouts, iFanin), iObj );
+    (void)RetValue;
     assert( RetValue );
     Acb_ObjDeleteFanin( p, iObj, iFanin );
 }
@@ -544,6 +546,7 @@ static inline void Acb_ObjRemoveFaninFanout( Acb_Ntk_t * p, int iObj )
     Acb_ObjForEachFaninFast( p, iObj, pFanins, iFanin, k )
     {
         int RetValue = Vec_IntRemove( Vec_WecEntry(&p->vFanouts, iFanin), iObj );
+        (void)RetValue;
         assert( RetValue );
     }
 }
@@ -666,6 +669,7 @@ static inline int Acb_ManNewConstZero( Acb_Ntk_t * p, int nBits )
 static inline void Acb_NtkAdd( Acb_Man_t * p, Acb_Ntk_t * pNtk )
 {    
     int fFound, NtkId = Abc_NamStrFindOrAdd( p->pMods, Acb_NtkName(pNtk), &fFound );
+    (void)NtkId;
     if ( fFound )
         printf( "Network with name \"%s\" already exists.\n", Acb_NtkName(pNtk) );
     else
@@ -1044,4 +1048,3 @@ ABC_NAMESPACE_HEADER_END
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-

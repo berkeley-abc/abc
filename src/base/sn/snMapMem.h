@@ -77,6 +77,7 @@ static inline sn_module_id_t sn_map_mem_primitive_module(sn_design_t* design, co
 {
     char name[128];
     int length = snprintf(name, sizeof(name), "__sn_%s_mem_%u_%u", tech->name, width, depth);
+    (void)length;
     assert(length >= 0 && (size_t)length < sizeof(name));
     sn_module_id_t existing = sn_design_find_module(design, name);
     if (existing != SN_INVALID_ID)
@@ -185,6 +186,7 @@ static inline sn_module_id_t sn_map_srl_chain_primitive_module(sn_design_t* desi
     char name[128];
     int length = snprintf(name, sizeof(name), "__sn_SRLC_%u_%u_e%u_n%u", width, depth, has_enable ? 1u : 0u,
                           negedge ? 1u : 0u);
+    (void)length;
     assert(length >= 0 && (size_t)length < sizeof(name));
     sn_module_id_t existing = sn_design_find_module(design, name);
     if (existing != SN_INVALID_ID)

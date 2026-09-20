@@ -1792,6 +1792,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                     if ( k > 0 )
                     {
                         Wlc_Obj_t * pFanin = Wlc_NtkObj(p, iFanin);
+                        (void)pFanin;
                         assert( nRange == Wlc_ObjRange(pFanin) );
                         pFans1 = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, iFanin) );
                         Vec_IntPush( vTemp0, pFans1[b] );
@@ -1857,7 +1858,9 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             int End = Wlc_ObjRangeEnd(pObj);
             int Beg = Wlc_ObjRangeBeg(pObj);
             int Low  = Abc_MinInt( End, Beg );
+            (void)Low;
             int High = Abc_MaxInt( End, Beg );
+            (void)High;
             assert( nRange == High - Low + 1 );
             if ( pFanin->End >= pFanin->Beg )
             {
@@ -2637,6 +2640,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             Wlc_Obj_t * pObj2 = Wlc_NtkCo( p, ++i );
             char * pName2 = Wlc_ObjName(p, Wlc_ObjId(p, pObj2));
             int nRange1 = Wlc_ObjRange( pObj );
+            (void)nRange1;
             assert( nRange == nRange1 );
             for ( k = 0; k < nRange; k++ )
             {

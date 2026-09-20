@@ -1626,6 +1626,7 @@ printf( "\nSides:\n" );
     if ( pMit )
     {
         int nDivsNew, nOldSize = Vec_IntSize(vMap);
+        (void)nOldSize;
         Vec_IntClear( vTfo );
         Vec_IntAppend( vTfo, vMap );
         nDivsNew = Sfm_MitSortArrayByArrival( pMit, vTfo, Abc_ObjId(pPivot) );
@@ -1641,6 +1642,7 @@ printf( "\nSides:\n" );
     else if ( pTim )
     {
         int nDivsNew, nOldSize = Vec_IntSize(vMap);
+        (void)nOldSize;
         Vec_IntClear( vTfo );
         Vec_IntAppend( vTfo, vMap );
         nDivsNew = Sfm_TimSortArrayByArrival( pTim, vTfo, Abc_ObjId(pPivot) );
@@ -2165,4 +2167,3 @@ void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
 
 
 ABC_NAMESPACE_IMPL_END
-

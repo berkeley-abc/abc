@@ -384,7 +384,7 @@ void Wlc_NtkAbsCreateFlopInputs( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, Vec_Int_t * vN
                     Wlc_ObjAddFanins( pNew, pFanin, vFanins );
                 }
             }
-            else assert( 0 );
+            else { assert( 0 ); abort(); }
             assert( Wlc_ObjRange(pFlop) == Wlc_ObjRange(pFanin) );
             // create constant
             pConst = Wlc_NtkObj(pNew, Wlc_ObjAlloc(pNew, WLC_OBJ_CONST, 0, AdderBits-1, 0));
@@ -1519,4 +1519,3 @@ Wlc_Ntk_t * Wlc_NtkAbstractMem( Wlc_Ntk_t * p, int nFrames, int fVerbose )
 
 
 ABC_NAMESPACE_IMPL_END
-

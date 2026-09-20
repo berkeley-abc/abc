@@ -571,6 +571,7 @@ int Gia_ManSifDeriveMapping_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vC
     for ( i = 1; i <= pCut[0]; i++ )
     {
         Gia_Obj_t * pObj = Gia_ManObj(p, pCut[i] >> 8);
+        (void)pObj;
         assert( !Gia_ObjIsAnd(pObj) || Gia_ObjIsLut(p, pCut[i] >> 8) );
         Vec_IntPush( p->vMapping, pCut[i] >> 8 );
     }
@@ -673,4 +674,3 @@ Gia_Man_t * Gia_ManSifPerform( Gia_Man_t * p, int nLutSize, int fEvalOnly, int f
 
 
 ABC_NAMESPACE_IMPL_END
-

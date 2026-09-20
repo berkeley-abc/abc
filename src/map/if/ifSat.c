@@ -507,6 +507,7 @@ void If_ManSatTest2()
 //    unsigned uSet = (3 << 0) | (1 << 2) | (1 << 8) | (1 << 4);
     unsigned uSet = (1 << 0) | (3 << 2) | (1 << 4) | (1 << 6);
     int RetValue = If_ManSatCheckXY( p, nLutSize, pTruth, nVars, uSet, &uBound, &uFree, vLits );
+    (void)RetValue;
     assert( RetValue );
     
 //    Abc_TtPrintBinary( pTruth, nVars );
@@ -545,4 +546,3 @@ void If_ManSatTest3()
 
 
 ABC_NAMESPACE_IMPL_END
-

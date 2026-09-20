@@ -59,7 +59,7 @@ int Ssw_ManProfileConstraints( Aig_Man_t * p, int nWords, int nFrames, int fVerb
     Vec_Int_t * vProbs, * vProbs2;
     Aig_Obj_t * pObj, * pObjLi;
     unsigned * pInfo, * pInfo0, * pInfo1, * pInfoMask, * pInfoMask2;
-    int i, w, f, RetValue = 1;
+    int i, w, f, iFanin0, iFanin1, RetValue = 1;
     abctime clk = Abc_Clock();
     if ( fVerbose )
         printf( "Simulating %d nodes and %d flops for %d frames with %d words... ", 
@@ -103,9 +103,14 @@ int Ssw_ManProfileConstraints( Aig_Man_t * p, int nWords, int nFrames, int fVerb
         // simulate the nodes
         Aig_ManForEachNode( p, pObj, i )
         {
+            iFanin0 = Aig_ObjFaninId0(pObj);
+            iFanin1 = Aig_ObjFaninId1(pObj);
+            assert( iFanin0 >= 0 && iFanin1 >= 0 );
+            if ( iFanin0 < 0 || iFanin1 < 0 )
+                abort();
             pInfo  = (unsigned *)Vec_PtrEntry( vInfo, Aig_ObjId(pObj) );
-            pInfo0 = (unsigned *)Vec_PtrEntry( vInfo, Aig_ObjFaninId0(pObj) );
-            pInfo1 = (unsigned *)Vec_PtrEntry( vInfo, Aig_ObjFaninId1(pObj) );
+            pInfo0 = (unsigned *)Vec_PtrEntry( vInfo, iFanin0 );
+            pInfo1 = (unsigned *)Vec_PtrEntry( vInfo, iFanin1 );
             if ( Aig_ObjFaninC0(pObj) )
             {
                 if (  Aig_ObjFaninC1(pObj) )
@@ -1011,4 +1016,3 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc( Aig_Man_t * pAig, int fCompl, int fVerbo
 
 #include "saigUnfold2.c"
 ABC_NAMESPACE_IMPL_END
-

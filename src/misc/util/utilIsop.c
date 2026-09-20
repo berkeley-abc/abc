@@ -137,9 +137,9 @@ word Abc_Isop6Cover( word uOn, word uOnDc, word * pRes, int nVars, word CostLim,
     Cost0 = Abc_Isop6Cover( uOn0 & ~uOnDc1, uOnDc0, &uRes0, Var, CostLim, pCover );
     if ( Cost0 >= CostLim ) return CostLim;
     Cost1 = Abc_Isop6Cover( uOn1 & ~uOnDc0, uOnDc1, &uRes1, Var, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) : NULL );
-    if ( Cost0 + Cost1 >= CostLim ) return CostLim;
+    if ( Cost1 >= CostLim - Cost0 ) return CostLim;
     Cost2 = Abc_Isop6Cover( (uOn0 & ~uRes0) | (uOn1 & ~uRes1), uOnDc0 & uOnDc1, &uRes2, Var, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) + Abc_CostCubes(Cost1) : NULL );
-    if ( Cost0 + Cost1 + Cost2 >= CostLim ) return CostLim;
+    if ( Cost2 >= CostLim - Cost0 - Cost1 ) return CostLim;
     // derive the final truth table
     *pRes = uRes2 | (uRes0 & s_Truths6Neg[Var]) | (uRes1 & s_Truths6[Var]);
     assert( (uOn & ~*pRes) == 0 && (*pRes & ~uOnDc) == 0 );
@@ -148,7 +148,7 @@ word Abc_Isop6Cover( word uOn, word uOnDc, word * pRes, int nVars, word CostLim,
 }
 word Abc_Isop7Cover( word * pOn, word * pOnDc, word * pRes, word CostLim, int * pCover )
 {
-    word uOn0, uOn1, uOn2, uOnDc2, uRes0, uRes1, uRes2;
+    word uOn0, uOn1, uOn2, uOnDc2, uRes0 = 0, uRes1 = 0, uRes2 = 0;
     word Cost0, Cost1, Cost2;  int nVars = 6; 
     assert( (pOn[0] & ~pOnDc[0]) == 0 );
     assert( (pOn[1] & ~pOnDc[1]) == 0 );
@@ -159,11 +159,11 @@ word Abc_Isop7Cover( word * pOn, word * pOnDc, word * pRes, word CostLim, int * 
     Cost0 = Abc_IsopCheck( &uOn0, pOnDc,   &uRes0, nVars, CostLim, pCover );
     if ( Cost0 >= CostLim ) return CostLim;
     Cost1 = Abc_IsopCheck( &uOn1, pOnDc+1, &uRes1, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) : NULL );
-    if ( Cost0 + Cost1 >= CostLim ) return CostLim;
+    if ( Cost1 >= CostLim - Cost0 ) return CostLim;
     uOn2 = (pOn[0] & ~uRes0) | (pOn[1] & ~uRes1);
     uOnDc2 = pOnDc[0] & pOnDc[1];
     Cost2 = Abc_IsopCheck( &uOn2, &uOnDc2,  &uRes2, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) + Abc_CostCubes(Cost1) : NULL );
-    if ( Cost0 + Cost1 + Cost2 >= CostLim ) return CostLim;
+    if ( Cost2 >= CostLim - Cost0 - Cost1 ) return CostLim;
     // derive the final truth table
     pRes[0] = uRes2 | uRes0;
     pRes[1] = uRes2 | uRes1;
@@ -185,12 +185,12 @@ word Abc_Isop8Cover( word * pOn, word * pOnDc, word * pRes, word CostLim, int * 
     uOn2[0] = pOn[2] & ~pOnDc[0];
     uOn2[1] = pOn[3] & ~pOnDc[1];
     Cost1 = Abc_IsopCheck( uOn2, pOnDc+2, uRes1, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) : NULL );
-    if ( Cost0 + Cost1 >= CostLim ) return CostLim;
+    if ( Cost1 >= CostLim - Cost0 ) return CostLim;
     // middle cofactor
     uOn2[0] = (pOn[0] & ~uRes0[0]) | (pOn[2] & ~uRes1[0]); uOnDc2[0] = pOnDc[0] & pOnDc[2];
     uOn2[1] = (pOn[1] & ~uRes0[1]) | (pOn[3] & ~uRes1[1]); uOnDc2[1] = pOnDc[1] & pOnDc[3];
     Cost2 = Abc_IsopCheck( uOn2, uOnDc2,  uRes2, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) + Abc_CostCubes(Cost1) : NULL );
-    if ( Cost0 + Cost1 + Cost2 >= CostLim ) return CostLim;
+    if ( Cost2 >= CostLim - Cost0 - Cost1 ) return CostLim;
     // derive the final truth table
     pRes[0] = uRes2[0] | uRes0[0];
     pRes[1] = uRes2[1] | uRes0[1];
@@ -214,12 +214,12 @@ word Abc_Isop9Cover( word * pOn, word * pOnDc, word * pRes, word CostLim, int * 
     for ( c = 0; c < nWords; c++ )
         uOn2[c] = pOn[c+nWords] & ~pOnDc[c];
     Cost1 = Abc_IsopCheck( uOn2, pOnDc+nWords, uRes1, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) : NULL );
-    if ( Cost0 + Cost1 >= CostLim ) return CostLim;
+    if ( Cost1 >= CostLim - Cost0 ) return CostLim;
     // middle cofactor
     for ( c = 0; c < nWords; c++ )
         uOn2[c] = (pOn[c] & ~uRes0[c]) | (pOn[c+nWords] & ~uRes1[c]), uOnDc2[c] = pOnDc[c] & pOnDc[c+nWords];
     Cost2 = Abc_IsopCheck( uOn2, uOnDc2,       uRes2, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) + Abc_CostCubes(Cost1) : NULL );
-    if ( Cost0 + Cost1 + Cost2 >= CostLim ) return CostLim;
+    if ( Cost2 >= CostLim - Cost0 - Cost1 ) return CostLim;
     // derive the final truth table
     for ( c = 0; c < nWords; c++ )
         pRes[c] = uRes2[c] | uRes0[c], pRes[c+nWords] = uRes2[c] | uRes1[c];
@@ -242,12 +242,12 @@ word Abc_Isop10Cover( word * pOn, word * pOnDc, word * pRes, word CostLim, int *
     for ( c = 0; c < nWords; c++ )
         uOn2[c] = pOn[c+nWords] & ~pOnDc[c];
     Cost1 = Abc_IsopCheck( uOn2, pOnDc+nWords, uRes1, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) : NULL );
-    if ( Cost0 + Cost1 >= CostLim ) return CostLim;
+    if ( Cost1 >= CostLim - Cost0 ) return CostLim;
     // middle cofactor
     for ( c = 0; c < nWords; c++ )
         uOn2[c] = (pOn[c] & ~uRes0[c]) | (pOn[c+nWords] & ~uRes1[c]), uOnDc2[c] = pOnDc[c] & pOnDc[c+nWords];
     Cost2 = Abc_IsopCheck( uOn2, uOnDc2,       uRes2, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) + Abc_CostCubes(Cost1) : NULL );
-    if ( Cost0 + Cost1 + Cost2 >= CostLim ) return CostLim;
+    if ( Cost2 >= CostLim - Cost0 - Cost1 ) return CostLim;
     // derive the final truth table
     for ( c = 0; c < nWords; c++ )
         pRes[c] = uRes2[c] | uRes0[c], pRes[c+nWords] = uRes2[c] | uRes1[c];
@@ -270,12 +270,12 @@ word Abc_Isop11Cover( word * pOn, word * pOnDc, word * pRes, word CostLim, int *
     for ( c = 0; c < nWords; c++ )
         uOn2[c] = pOn[c+nWords] & ~pOnDc[c];
     Cost1 = Abc_IsopCheck( uOn2, pOnDc+nWords, uRes1, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) : NULL );
-    if ( Cost0 + Cost1 >= CostLim ) return CostLim;
+    if ( Cost1 >= CostLim - Cost0 ) return CostLim;
     // middle cofactor
     for ( c = 0; c < nWords; c++ )
         uOn2[c] = (pOn[c] & ~uRes0[c]) | (pOn[c+nWords] & ~uRes1[c]), uOnDc2[c] = pOnDc[c] & pOnDc[c+nWords];
     Cost2 = Abc_IsopCheck( uOn2, uOnDc2,       uRes2, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) + Abc_CostCubes(Cost1) : NULL );
-    if ( Cost0 + Cost1 + Cost2 >= CostLim ) return CostLim;
+    if ( Cost2 >= CostLim - Cost0 - Cost1 ) return CostLim;
     // derive the final truth table
     for ( c = 0; c < nWords; c++ )
         pRes[c] = uRes2[c] | uRes0[c], pRes[c+nWords] = uRes2[c] | uRes1[c];
@@ -298,12 +298,12 @@ word Abc_Isop12Cover( word * pOn, word * pOnDc, word * pRes, word CostLim, int *
     for ( c = 0; c < nWords; c++ )
         uOn2[c] = pOn[c+nWords] & ~pOnDc[c];
     Cost1 = Abc_IsopCheck( uOn2, pOnDc+nWords, uRes1, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) : NULL );
-    if ( Cost0 + Cost1 >= CostLim ) return CostLim;
+    if ( Cost1 >= CostLim - Cost0 ) return CostLim;
     // middle cofactor
     for ( c = 0; c < nWords; c++ )
         uOn2[c] = (pOn[c] & ~uRes0[c]) | (pOn[c+nWords] & ~uRes1[c]), uOnDc2[c] = pOnDc[c] & pOnDc[c+nWords];
     Cost2 = Abc_IsopCheck( uOn2, uOnDc2,       uRes2, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) + Abc_CostCubes(Cost1) : NULL );
-    if ( Cost0 + Cost1 + Cost2 >= CostLim ) return CostLim;
+    if ( Cost2 >= CostLim - Cost0 - Cost1 ) return CostLim;
     // derive the final truth table
     for ( c = 0; c < nWords; c++ )
         pRes[c] = uRes2[c] | uRes0[c], pRes[c+nWords] = uRes2[c] | uRes1[c];
@@ -326,12 +326,12 @@ word Abc_Isop13Cover( word * pOn, word * pOnDc, word * pRes, word CostLim, int *
     for ( c = 0; c < nWords; c++ )
         uOn2[c] = pOn[c+nWords] & ~pOnDc[c];
     Cost1 = Abc_IsopCheck( uOn2, pOnDc+nWords, uRes1, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) : NULL );
-    if ( Cost0 + Cost1 >= CostLim ) return CostLim;
+    if ( Cost1 >= CostLim - Cost0 ) return CostLim;
     // middle cofactor
     for ( c = 0; c < nWords; c++ )
         uOn2[c] = (pOn[c] & ~uRes0[c]) | (pOn[c+nWords] & ~uRes1[c]), uOnDc2[c] = pOnDc[c] & pOnDc[c+nWords];
     Cost2 = Abc_IsopCheck( uOn2, uOnDc2,       uRes2, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) + Abc_CostCubes(Cost1) : NULL );
-    if ( Cost0 + Cost1 + Cost2 >= CostLim ) return CostLim;
+    if ( Cost2 >= CostLim - Cost0 - Cost1 ) return CostLim;
     // derive the final truth table
     for ( c = 0; c < nWords; c++ )
         pRes[c] = uRes2[c] | uRes0[c], pRes[c+nWords] = uRes2[c] | uRes1[c];
@@ -354,12 +354,12 @@ word Abc_Isop14Cover( word * pOn, word * pOnDc, word * pRes, word CostLim, int *
     for ( c = 0; c < nWords; c++ )
         uOn2[c] = pOn[c+nWords] & ~pOnDc[c];
     Cost1 = Abc_IsopCheck( uOn2, pOnDc+nWords, uRes1, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) : NULL );
-    if ( Cost0 + Cost1 >= CostLim ) return CostLim;
+    if ( Cost1 >= CostLim - Cost0 ) return CostLim;
     // middle cofactor
     for ( c = 0; c < nWords; c++ )
         uOn2[c] = (pOn[c] & ~uRes0[c]) | (pOn[c+nWords] & ~uRes1[c]), uOnDc2[c] = pOnDc[c] & pOnDc[c+nWords];
     Cost2 = Abc_IsopCheck( uOn2, uOnDc2,       uRes2, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) + Abc_CostCubes(Cost1) : NULL );
-    if ( Cost0 + Cost1 + Cost2 >= CostLim ) return CostLim;
+    if ( Cost2 >= CostLim - Cost0 - Cost1 ) return CostLim;
     // derive the final truth table
     for ( c = 0; c < nWords; c++ )
         pRes[c] = uRes2[c] | uRes0[c], pRes[c+nWords] = uRes2[c] | uRes1[c];
@@ -382,12 +382,12 @@ word Abc_Isop15Cover( word * pOn, word * pOnDc, word * pRes, word CostLim, int *
     for ( c = 0; c < nWords; c++ )
         uOn2[c] = pOn[c+nWords] & ~pOnDc[c];
     Cost1 = Abc_IsopCheck( uOn2, pOnDc+nWords, uRes1, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) : NULL );
-    if ( Cost0 + Cost1 >= CostLim ) return CostLim;
+    if ( Cost1 >= CostLim - Cost0 ) return CostLim;
     // middle cofactor
     for ( c = 0; c < nWords; c++ )
         uOn2[c] = (pOn[c] & ~uRes0[c]) | (pOn[c+nWords] & ~uRes1[c]), uOnDc2[c] = pOnDc[c] & pOnDc[c+nWords];
     Cost2 = Abc_IsopCheck( uOn2, uOnDc2,       uRes2, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) + Abc_CostCubes(Cost1) : NULL );
-    if ( Cost0 + Cost1 + Cost2 >= CostLim ) return CostLim;
+    if ( Cost2 >= CostLim - Cost0 - Cost1 ) return CostLim;
     // derive the final truth table
     for ( c = 0; c < nWords; c++ )
         pRes[c] = uRes2[c] | uRes0[c], pRes[c+nWords] = uRes2[c] | uRes1[c];
@@ -410,12 +410,12 @@ word Abc_Isop16Cover( word * pOn, word * pOnDc, word * pRes, word CostLim, int *
     for ( c = 0; c < nWords; c++ )
         uOn2[c] = pOn[c+nWords] & ~pOnDc[c];
     Cost1 = Abc_IsopCheck( uOn2, pOnDc+nWords, uRes1, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) : NULL );
-    if ( Cost0 + Cost1 >= CostLim ) return CostLim;
+    if ( Cost1 >= CostLim - Cost0 ) return CostLim;
     // middle cofactor
     for ( c = 0; c < nWords; c++ )
         uOn2[c] = (pOn[c] & ~uRes0[c]) | (pOn[c+nWords] & ~uRes1[c]), uOnDc2[c] = pOnDc[c] & pOnDc[c+nWords];
     Cost2 = Abc_IsopCheck( uOn2, uOnDc2,       uRes2, nVars, CostLim, pCover ? pCover + Abc_CostCubes(Cost0) + Abc_CostCubes(Cost1) : NULL );
-    if ( Cost0 + Cost1 + Cost2 >= CostLim ) return CostLim;
+    if ( Cost2 >= CostLim - Cost0 - Cost1 ) return CostLim;
     // derive the final truth table
     for ( c = 0; c < nWords; c++ )
         pRes[c] = uRes2[c] | uRes0[c], pRes[c+nWords] = uRes2[c] | uRes1[c];
@@ -437,7 +437,8 @@ word Abc_IsopCheck( word * pOn, word * pOnDc, word * pRes, int nVars, word CostL
         Cost = Abc_Isop6Cover( *pOn, *pOnDc, pRes, nVarsNew, CostLim, pCover );
     else
         Cost = s_pFuncIsopCover[nVarsNew]( pOn, pOnDc, pRes, CostLim, pCover );
-    Abc_TtStretch6( pRes, nVarsNew, nVars );
+    if ( Cost < CostLim )
+        Abc_TtStretch6( pRes, nVarsNew, nVars );
     return Cost;
 }
 

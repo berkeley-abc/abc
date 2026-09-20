@@ -739,6 +739,7 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pClp, int fVerbose, in
     Gia_Obj_t * pObj;
     Vec_Int_t * vCarryOuts;
     Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
+    (void)pManTime;
     int * pReprs   = ABC_FALLOC( int, Gia_ManObjNum(p) );
     int * pClp2Gia = ABC_FALLOC( int, Gia_ManObjNum(pClp) );
     int i, iLitClp, iLitClp2, iReprClp, fCompl;
@@ -933,6 +934,7 @@ void Gia_ManSweepComputeOneDomainEquivs( Gia_Man_t * p, Vec_Int_t * vRegClasses,
     Vec_Int_t * vPerm;
     int i, Class, nFlops;
     int nDoms = Vec_IntFindMax(vRegClasses);
+    (void)nDoms;
     assert( iDom >= 1 && iDom <= nDoms );
     assert( p->pManTime == NULL );
     assert( Gia_ManRegNum(p) > 0 );
@@ -1107,4 +1109,3 @@ Gia_Man_t * Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, 
 
 
 ABC_NAMESPACE_IMPL_END
-

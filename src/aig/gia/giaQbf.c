@@ -1209,6 +1209,7 @@ Vec_Int_t * Gia_ManGenIoCombs( Gia_Man_t * pGia, Vec_Int_t * vInsOuts, int nIns,
     sat_solver * pSat  = (sat_solver*)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     int iLit = Abc_Var2Lit( 1, 0 ); // enumerating the care set (the miter output is 1)
     int status = sat_solver_addclause( pSat, &iLit, &iLit + 1 );  assert( status );
+    (void)status;
     Vec_Int_t * vSatVars = Vec_IntAlloc( Vec_IntSize(vInsOuts) );
     Vec_IntForEachEntry( vInsOuts, iNode, i )
         Vec_IntPush( vSatVars, i < nIns ? 2+i : pCnf->nVars-Vec_IntSize(vInsOuts)+i );
@@ -1283,4 +1284,3 @@ void Gia_ManGenRel( Gia_Man_t * pGia, Vec_Int_t * vInsOuts, int nIns, char * pFi
 
 
 ABC_NAMESPACE_IMPL_END
-

@@ -154,6 +154,7 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     if ( pPars->fUseDsd )
     {
         If_DsdMan_t * p = (If_DsdMan_t *)Abc_FrameReadManDsd();
+        (void)p;
         assert( pPars->nLutSize <= If_DsdManVarNum(p) );
         assert( (pPars->pLutStruct == NULL && If_DsdManLutSize(p) == 0) || (pPars->pLutStruct && pPars->pLutStruct[0] - '0' == If_DsdManLutSize(p)) );
         pIfMan->pIfDsdMan = (If_DsdMan_t *)Abc_FrameReadManDsd();
@@ -477,6 +478,7 @@ void Abc_DecRecordToHop( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Cut_t * pCut
 
     // convert the LUT-structure into a set of logic nodes in Abc_Ntk_t 
     unsigned char bytes_check = decompArray[0];
+    (void)bytes_check;
     assert( bytes_check <= 92 );
 
     int byte_p = 2;
@@ -967,4 +969,3 @@ void Abc_NtkMarkMux( Abc_Obj_t * pDriver, Abc_Obj_t ** ppNode1, Abc_Obj_t ** ppN
 
 
 ABC_NAMESPACE_IMPL_END
-

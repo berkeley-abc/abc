@@ -1031,6 +1031,7 @@ static inline sn_design_t* sn_design_dup(const sn_design_t* source)
     for (size_t i = 0; i < source->names.names.size; i++)
     {
         sn_name_id_t name = sn_name_intern(&target->names, sn_name_get(&source->names, (sn_name_id_t)i));
+        (void)name;
         assert(name == i);
     }
     sn_vec_dup(uint32_t, &target->constant_words, &source->constant_words);
@@ -1575,6 +1576,7 @@ static inline uint32_t sn_design_intern_const(sn_design_t* design, uint32_t coun
 static inline uint32_t sn_const_word(const sn_module_t* module, sn_obj_id_t object, uint32_t index)
 {
     sn_obj_type_t type = sn_obj_type(module, object);
+    (void)type;
     assert(type == SN_CONST || type == SN_CONST0 || type == SN_CONST1);
     uint32_t width = sn_obj_width(module, object);
     if (index >= sn_const_word_count(width))
@@ -1735,6 +1737,7 @@ static inline sn_obj_id_t sn_obj_pair_in(const sn_module_t* module, sn_obj_id_t 
 {
     assert(module);
     sn_obj_type_t out_type = sn_obj_type(module, out);
+    (void)out_type;
     assert(out_type == SN_REG_OUT || out_type == SN_MEM_OUT || out_type == SN_LOOP_OUT);
     sn_obj_id_t in = sn_obj_fanin(module, out, SN_PAIR_OUT_IN_SLOT);
     assert(in < module->obj_types.size);
@@ -1748,6 +1751,7 @@ static inline sn_obj_id_t sn_obj_pair_out(const sn_module_t* module, sn_obj_id_t
 {
     assert(module);
     sn_obj_type_t in_type = sn_obj_type(module, in);
+    (void)in_type;
     assert(in_type == SN_REG_IN || in_type == SN_MEM_IN || in_type == SN_LOOP_IN);
     sn_obj_id_t out = sn_obj_data(module, in);
     assert(out < module->obj_types.size);
@@ -1959,15 +1963,18 @@ static inline void sn_mem_set_init(sn_module_t* module, sn_obj_id_t mem, sn_obj_
     assert(data != SN_INVALID_ID || mask == SN_INVALID_ID);
     sn_obj_id_t mem_in = sn_mem_in(module, mem);
     uint32_t init_width = sn_obj_mem_init_width(module, mem_in);
+    (void)init_width;
     if (data != SN_INVALID_ID)
     {
         sn_obj_type_t type = sn_obj_type(module, data);
+        (void)type;
         assert(type == SN_CONST0 || type == SN_CONST1 || type == SN_CONST);
         assert(sn_obj_width(module, data) == init_width);
     }
     if (mask != SN_INVALID_ID)
     {
         sn_obj_type_t type = sn_obj_type(module, mask);
+        (void)type;
         assert(type == SN_CONST0 || type == SN_CONST1 || type == SN_CONST);
         assert(sn_obj_width(module, mask) == init_width);
     }
@@ -2335,6 +2342,7 @@ static inline void sn_module_topo_push(sn_topo_context_t* context, sn_vec_t* sta
         return;
     assert(context->marks[object] == SN_TOPO_UNSEEN);
     sn_obj_type_t type = sn_obj_type(module, object);
+    (void)type;
     assert(type != SN_PI && type != SN_PO);
     context->marks[object] = SN_TOPO_VISITING;
     sn_topo_frame_t* frame = sn_vec_push(sn_topo_frame_t, stack);
@@ -2882,11 +2890,13 @@ static inline void sn_design_reorder_module_topo(sn_design_t* design, sn_module_
     do
     {
         int length = snprintf(temporary_name, sizeof(temporary_name), "__sn_topo_%u_%u", module_id, suffix++);
+        (void)length;
         assert(length >= 0 && (size_t)length < sizeof(temporary_name));
         assert(suffix != 0);
     } while (sn_name_find(&design->names, temporary_name) != SN_INVALID_ID);
 
     size_t old_module_count = design->modules.size;
+    (void)old_module_count;
     sn_module_t* source = sn_design_get_module(design, module_id);
     sn_name_id_t source_name = source->name;
     bool interface_locked = source->interface_locked;
@@ -3113,6 +3123,7 @@ static inline void sn_module_clean_topo_push(sn_clean_topo_context_t* context, s
         return;
     assert(context->marks[object] == SN_TOPO_UNSEEN);
     sn_obj_type_t type = sn_obj_type(module, object);
+    (void)type;
     assert(type != SN_PI && type != SN_PO);
     if (context->const_zero_objects[object] || sn_obj_is_const_zero_rec(module, object, context->const_zero_cache))
     {
@@ -3381,6 +3392,7 @@ static inline void sn_design_cleanup_module_topo(sn_design_t* design, sn_module_
     do
     {
         int length = snprintf(temporary_name, sizeof(temporary_name), "__sn_clean_%u_%u", module_id, suffix++);
+        (void)length;
         assert(length >= 0 && (size_t)length < sizeof(temporary_name));
         assert(suffix != 0);
     } while (sn_name_find(&design->names, temporary_name) != SN_INVALID_ID);
@@ -5589,9 +5601,11 @@ static inline void sn_module_assert_valid(const sn_module_t* module)
     {
         sn_obj_type_t type = sn_vec_at(sn_obj_type_t, &module->obj_types, object);
         uint32_t type_id = sn_vec_at(uint32_t, &module->obj_data, object);
+        (void)type_id;
         uint32_t fanin_count = sn_obj_fanin_count(module, object);
         uint32_t fanin_offset = sn_vec_at(uint32_t, &module->fanin_offsets, object);
         uint32_t name = sn_vec_at(uint32_t, &module->name_ids, object);
+        (void)name;
         assert(type > SN_NONE && type < SN_OBJ_TYPE_COUNT);
         if (sn_obj_type_has_dense_index(type))
         {
@@ -5604,6 +5618,7 @@ static inline void sn_module_assert_valid(const sn_module_t* module)
         for (uint32_t i = 0; i < fanin_count; i++)
         {
             sn_obj_id_t fanin = sn_vec_at(sn_obj_id_t, &module->fanins, fanin_offset + i);
+            (void)fanin;
             assert(fanin < object_count ||
                    (fanin == SN_INVALID_ID && sn_obj_fanin_may_be_invalid(module, type, i)));
         }
@@ -5625,6 +5640,7 @@ static inline void sn_module_assert_valid(const sn_module_t* module)
         for (uint32_t type_id = 0; type_id < module->type_objects[type].size; type_id++)
         {
             sn_obj_id_t object = sn_vec_at(sn_obj_id_t, &module->type_objects[type], type_id);
+            (void)object;
             assert(object < object_count);
             assert(sn_vec_at(sn_obj_type_t, &module->obj_types, object) == (sn_obj_type_t)type);
             assert(!sn_obj_type_has_dense_index((sn_obj_type_t)type) ||
@@ -5643,6 +5659,7 @@ static inline void sn_module_assert_valid(const sn_module_t* module)
                 sn_obj_id_t out = sn_vec_at(sn_obj_id_t, &module->type_objects[out_types[t]], i);
                 assert(sn_obj_fanin_count(module, out) == SN_PAIR_OUT_FANIN_COUNT);
                 sn_obj_id_t in = sn_obj_pair_in(module, out);
+                (void)in;
                 assert(sn_obj_pair_out(module, in) == out);
                 assert(sn_obj_width(module, in) == sn_obj_width(module, out));
             }
@@ -5658,12 +5675,14 @@ static inline void sn_module_assert_valid(const sn_module_t* module)
         if (data != SN_INVALID_ID)
         {
             sn_obj_type_t type = sn_obj_type(module, data);
+            (void)type;
             assert(type == SN_CONST0 || type == SN_CONST1 || type == SN_CONST);
             assert(sn_obj_width(module, data) == sn_obj_width(module, reg));
         }
         if (mask != SN_INVALID_ID)
         {
             sn_obj_type_t type = sn_obj_type(module, mask);
+            (void)type;
             assert(type == SN_CONST0 || type == SN_CONST1 || type == SN_CONST);
             assert(sn_obj_width(module, mask) == sn_obj_width(module, reg));
         }
@@ -5677,15 +5696,18 @@ static inline void sn_module_assert_valid(const sn_module_t* module)
         sn_obj_id_t mask = sn_obj_mem_init_mask(module, memory);
         assert(data != SN_INVALID_ID || mask == SN_INVALID_ID);
         uint32_t init_width = sn_obj_mem_init_width(module, memory);
+        (void)init_width;
         if (data != SN_INVALID_ID)
         {
             sn_obj_type_t type = sn_obj_type(module, data);
+            (void)type;
             assert(type == SN_CONST0 || type == SN_CONST1 || type == SN_CONST);
             assert(sn_obj_width(module, data) == init_width);
         }
         if (mask != SN_INVALID_ID)
         {
             sn_obj_type_t type = sn_obj_type(module, mask);
+            (void)type;
             assert(type == SN_CONST0 || type == SN_CONST1 || type == SN_CONST);
             assert(sn_obj_width(module, mask) == init_width);
         }
@@ -5697,7 +5719,9 @@ static inline void sn_module_assert_valid(const sn_module_t* module)
     {
         sn_obj_id_t object = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_SLICE], i);
         sn_slice_info_t info = sn_obj_slice_info(module, object);
+        (void)info;
         uint32_t source_width = sn_obj_width(module, sn_obj_fanin(module, object, 0));
+        (void)source_width;
         assert(info.left_index >= 0 && (uint32_t)info.left_index < source_width);
         assert(info.right_index >= 0 && (uint32_t)info.right_index < source_width);
     }
@@ -5708,6 +5732,7 @@ static inline void sn_module_assert_valid(const sn_module_t* module)
     {
         sn_obj_id_t object = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_CONST], i);
         uint32_t id = sn_obj_data(module, object);
+        (void)id;
         assert(id < module->design->const_entries.size);
     }
     for (size_t i = 0; i < module->type_objects[SN_LUT].size; i++)
@@ -5731,12 +5756,14 @@ static inline void sn_module_assert_valid(const sn_module_t* module)
     for (size_t i = 0; i < module->source_records.size; i++)
     {
         const sn_source_record_t* record = &sn_vec_at(sn_source_record_t, &module->source_records, i);
+        (void)record;
         assert(record->object == SN_INVALID_ID || record->object < object_count);
         assert(record->file < module->design->names.names.size);
     }
     for (size_t i = 0; i < module->attribute_records.size; i++)
     {
         const sn_attribute_record_t* record = &sn_vec_at(sn_attribute_record_t, &module->attribute_records, i);
+        (void)record;
         assert(record->object == SN_INVALID_ID || record->object < object_count);
         assert(record->name < module->design->names.names.size);
         assert(record->value < module->design->names.names.size);
@@ -5751,6 +5778,7 @@ static inline void sn_module_assert_valid(const sn_module_t* module)
         assert(sn_obj_type(module, inst) == SN_INST || sn_obj_type(module, inst) == SN_GATE);
         assert(fan > inst);
         uint32_t output_index = fan - inst - 1;
+        (void)output_index;
         assert(sn_owner_output_count(module, inst) > 1);
         assert(output_index < sn_owner_output_count(module, inst));
     }
@@ -5782,9 +5810,11 @@ static inline void sn_module_assert_valid(const sn_module_t* module)
         assert(module->copy_ids.size == object_count);
         assert(module->copy_module < module->design->modules.size);
         size_t copy_count = sn_design_get_module_const(module->design, module->copy_module)->obj_types.size;
+        (void)copy_count;
         for (size_t i = 0; i < module->copy_ids.size; i++)
         {
             sn_obj_id_t copy = sn_vec_at(sn_obj_id_t, &module->copy_ids, i);
+            (void)copy;
             assert(copy == SN_INVALID_ID || copy < copy_count);
         }
     }
@@ -5802,6 +5832,7 @@ static inline void sn_design_assert_valid(const sn_design_t* design)
     for (size_t i = 0; i < design->names.names.size; i++)
     {
         const char* name = sn_vec_at(char*, &design->names.names, i);
+        (void)name;
         assert(name);
         assert(sn_name_find(&design->names, name) == i);
     }

@@ -1669,6 +1669,7 @@ int Cec5_ManSolveTwo( Cec5_Man_t * p, int iObj0, int iObj1, int fPhase, int * pf
 void Cec5_FlushCache2Pattern( Cec5_Man_t * p ){
     int j, iLit, nWrite = 0;
     int iPatsOld = p->pAig->iPatsPi;
+    (void)iPatsOld;
     j = 0;
     p->pAig->iPatsPi -- ;
     while( j < p->vPiPatsCache->nSize ){

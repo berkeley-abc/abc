@@ -140,6 +140,7 @@ void Jf_ManGenCnf( word uTruth, int iLitOut, Vec_Int_t * vLeaves, Vec_Int_t * vL
         for ( c = 0; c < 2; c ++ )
         {
             int RetValue = Kit_TruthIsop( (unsigned *)&uTruth, Vec_IntSize(vLeaves), vCover, 0 );
+            (void)RetValue;
             assert( RetValue == 0 );
             Vec_IntForEachEntry( vCover, Cube, i )
             {
@@ -1802,4 +1803,3 @@ void Jf_ManTestCnf( Gia_Man_t * p )
 
 
 ABC_NAMESPACE_IMPL_END
-

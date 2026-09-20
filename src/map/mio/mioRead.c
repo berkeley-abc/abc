@@ -249,7 +249,7 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtended
                 if ( strcmp( pToken, MIO_STRING_LATCH ) == 0 )
                 {
                     pToken = Abc_UtilStrtok( NULL, " \t\r\n", &pSave );
-                    printf( "Skipping latch \"%s\"...\n", pToken );
+                    printf( "Skipping latch \"%s\"...\n", pToken ? pToken : "<missing name>" );
                     continue;
                 }
                 pToken = Abc_UtilStrtok( NULL, " \t\r\n", &pSave );

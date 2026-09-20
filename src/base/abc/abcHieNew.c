@@ -58,7 +58,7 @@ struct Au_Obj_t_ // 16 bytes
     unsigned               Value   :  2;       // node value
     unsigned               Type    :  3;       // object type
     unsigned               nFanins : 29;       // fanin count (related to AU_MAX_FANIN_NUM)
-    int                    Fanins[2];          // fanin literals
+    int                    Fanins[1];          // fanin literals
 };
 
 struct Au_Ntk_t_ 
@@ -1632,4 +1632,3 @@ Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, char * pModelName, int fVerbos
 
 
 ABC_NAMESPACE_IMPL_END
-

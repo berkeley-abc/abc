@@ -246,6 +246,7 @@ int AddOneFanoutFF(Wlc_Ntk_t * pNtk, int obj_id, unsigned& count_bits) {
 
      // create flop
      int fo = Wlc_ObjCreate( pNtk, WLC_OBJ_FO, Wlc_ObjIsSigned(Wlc_NtkObj(pNtk, obj_id)), range-1, 0, vFanins );
+     (void)fo;
 
      // set up FI
      Wlc_NtkObj(pNtk, obj_id)->fIsFi = 1;
@@ -1374,6 +1375,7 @@ int bit_level_solve(Wlc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, const string* pFileNam
 
     if(pParSetting && fSyn) {
         int num_orig_pis  = Gia_ManPiNum(pGia);
+        (void)num_orig_pis;
         pGia = Gia_ManSeqStructSweep(pGia, 1, 1, 0);
         assert(num_orig_pis == Gia_ManPiNum(pGia));
     }

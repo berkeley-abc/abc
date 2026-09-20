@@ -543,6 +543,7 @@ static inline sn_obj_id_t sn_boundary_co_word(sn_boundary_regs_t* regs, const sn
     {
         sn_blast_boundary_bit_t endpoint =
             sn_vec_at(sn_blast_boundary_bit_t, &regs->boundary->cos, begin + bit);
+        (void)endpoint;
         assert(endpoint.kind == kind && endpoint.owner == owner &&
                (port == SN_INVALID_ID || endpoint.port == port) && endpoint.signal.bit == bit);
     }
@@ -803,6 +804,7 @@ static inline void sn_boundary_prune_primitive_pairs(sn_boundary_regs_t* regs)
         do
         {
             int length = snprintf(name, sizeof(name), "__sn_boundary_%u_%u", source->id, suffix++);
+            (void)length;
             assert(length >= 0 && (size_t)length < sizeof(name) && suffix != 0);
         } while (sn_name_find(&regs->design->names, name) != SN_INVALID_ID);
         sn_module_id_t source_id = source->id;

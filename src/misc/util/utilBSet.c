@@ -350,7 +350,8 @@ int Abc_TtGetCMInt( word * p, int nVars, int nFVars, Vec_Int_t * vCounts, Vec_In
     int nMintsBS = 1 << (nVars - nFVars);
     int nWordsBS = Abc_TtWordNum(nVars - nFVars);
     //assert( nMintsBS * nWordsBS <= MAX_PAT_WORD_SIZE );
-    memset( pPat, 0, 8 * nMintsBS * nWordsBS );
+    if ( pPat )
+        memset( pPat, 0, sizeof(word) * nMintsBS * nWordsBS );
     int nMyu = 0;
     if ( nFVars == 1 ) 
         nMyu = Abc_TtGetCM1Pat( p, nVars, pPat );
@@ -399,9 +400,9 @@ int Abc_TtGetCM( word * p, int nVars, int nFVars, Vec_Int_t * vCounts, Vec_Int_t
 static void Abc_TtPermGen( int * currPerm, int nVars, word * pT, int nTtVars )
 {
     int i = nVars - 1;
-    while ( i >= 0 && currPerm[i - 1] >= currPerm[i] )
+    while ( i > 0 && currPerm[i - 1] >= currPerm[i] )
         i--;
-    if (i >= 0)
+    if (i > 0)
     {
         int j = nVars;
         while ( j > i && currPerm[j - 1] <= currPerm[i - 1 ])
@@ -832,6 +833,9 @@ void Abc_BSEvalCreateCofs( int iSet, int nVars, Vec_Wrd_t * vCofs, Vec_Wrd_t * v
 }
 Vec_Wrd_t * Abc_BSEvalCreateCofactorSets( int nVars, Vec_Wec_t ** pvSets )
 {
+    assert( nVars >= 0 && nVars < MAX_TT_SIZE );
+    if ( nVars < 0 || nVars >= MAX_TT_SIZE )
+        abort();
     Vec_Wrd_t * vElems = Vec_WrdStartTruthTables6( nVars );
     Vec_Wrd_t * vCofs  = Vec_WrdAlloc( 1000 );
     Vec_Wec_t * vSets  = Vec_WecStart( nVars+1 );
@@ -1298,4 +1302,3 @@ Vec_Wrd_t * Abc_TtFindBVarsSVars2( Abc_BSEval_t * p, word * pTruth, int nVars, i
 
 
 ABC_NAMESPACE_IMPL_END
-

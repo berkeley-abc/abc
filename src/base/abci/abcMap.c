@@ -997,6 +997,7 @@ Abc_Ntk_t * Abc_NtkReadFromFile( char * pFileName )
     FILE * pFile = fopen( pFileName, "rb" );
     char * pArray = ABC_ALLOC( char, nSize );
     int nSize2 = fread( pArray, sizeof(char), nSize, pFile );
+    (void)nSize2;
     assert( nSize2 == nSize );
     fclose( pFile );
     Abc_Ntk_t * pNtk = Abc_NtkFromMiniMapping( (int*)pArray );
@@ -1009,6 +1010,7 @@ int Abc_NtkWriteToFile( char * pFileName, Abc_Ntk_t * pNtk )
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL ) { printf( "Cannot open input file \"%s\" for writing.\n", pFileName ); return 0; }
     int nSize = fwrite( Vec_IntArray(vRes), sizeof(int), Vec_IntSize(vRes), pFile );
+    (void)nSize;
     assert( nSize == Vec_IntSize(vRes) );
     Vec_IntFree( vRes );
     fclose( pFile );

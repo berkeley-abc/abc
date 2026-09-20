@@ -70,7 +70,7 @@ void Acb_ObjPushToFanout( Acb_Ntk_t * p, int iObj, int iFaninIndex, int iFanout 
         Gate =  s_Truths6[iFanoutFaninIndex] | s_Truths6[iFanoutObjIndex];
     else if ( DecType == 4 ) //  F = i # G
         Gate =  s_Truths6[iFanoutFaninIndex] ^ s_Truths6[iFanoutObjIndex];
-    else assert( 0 );
+    else { assert( 0 ); abort(); }
     uTruthFanNew = (~Gate & c0) | (Gate & c1);
     // update functions
     Vec_WrdWriteEntry( &p->vObjTruth, iObj, Abc_Tt6RemoveVar(uTruthObjNew, iFaninIndex) );
@@ -369,4 +369,3 @@ void Acb_NtkPushLogic2( Acb_Ntk_t * p, int nLutSize, int fVerbose )
 
 
 ABC_NAMESPACE_IMPL_END
-

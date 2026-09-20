@@ -722,7 +722,7 @@ static inline int Exa9_ManFindFanin( Exa9_Man_t * p, int Obj, int k, int * pComp
         }
     }
     assert( 0 );
-    return -1;
+    abort();
 }
 static inline int Exa9_ManFindOutput( Exa9_Man_t * p, int * pCompl )
 {
@@ -736,7 +736,7 @@ static inline int Exa9_ManFindOutput( Exa9_Man_t * p, int * pCompl )
             return j;
         }
     assert( 0 );
-    return -1;
+    abort();
 }
 static int Exa9_ManEval( Exa9_Man_t * p )
 {

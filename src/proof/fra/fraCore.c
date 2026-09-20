@@ -156,7 +156,7 @@ int Fra_FraigMiterAssertedOutput( Aig_Man_t * p )
 static inline void Fra_FraigNodeSpeculate( Fra_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pObjFraig, Aig_Obj_t * pObjReprFraig )
 { 
     static ABC_THREAD_LOCAL int Counter = 0;
-    char FileName[20];
+    char FileName[32];
     Aig_Man_t * pTemp;
     Aig_Obj_t * pNode;
     int i;

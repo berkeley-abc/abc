@@ -2791,6 +2791,8 @@ void Gia_ManTransferEquivs2( Gia_Man_t * p, Gia_Man_t * pOld )
         if ( ~pObj->Value )
             Gia_ManObj(p, Abc_Lit2Var(pObj->Value))->Value = Abc_Var2Lit(i, 0);
     // start representatives
+    assert( Gia_ManObjNum(pOld) > 0 );
+    if ( Gia_ManObjNum(pOld) <= 0 ) abort();
     pOld->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(pOld) );
     for ( i = 0; i < Gia_ManObjNum(pOld); i++ )
         Gia_ObjSetRepr( pOld, i, GIA_VOID );

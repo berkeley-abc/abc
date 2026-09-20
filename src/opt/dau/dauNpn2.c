@@ -146,7 +146,9 @@ void Dau_ParseFormulaTest()
 {
     char * p = "~((~~d&~(~~b&c))^(~(~a&~d)&~(~c^~b)))";
     word r = ABC_CONST(0x037d037d037d037d);
+    (void)r;
     word t = Dau_ParseFormula( p );
+    (void)t;
     assert( r == t );
 }
 
@@ -1085,4 +1087,3 @@ void Dtt_EnumerateLf( int nVars, int nNodeMax, int fDelay, int fMulti, int fVerb
 ////////////////////////////////////////////////////////////////////////
 
 ABC_NAMESPACE_IMPL_END
-

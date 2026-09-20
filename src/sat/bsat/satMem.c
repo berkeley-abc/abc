@@ -435,6 +435,8 @@ Sat_MmStep_t * Sat_MmStepStart( int nSteps )
 {
     Sat_MmStep_t * p;
     int i, k;
+    assert( nSteps > 0 && nSteps <= 28 );
+    if ( nSteps <= 0 || nSteps > 28 ) abort();
     p = ABC_ALLOC( Sat_MmStep_t, 1 );
     p->nMems = nSteps;
     // start the fixed memory managers
@@ -580,4 +582,3 @@ int Sat_MmStepReadMemUsage( Sat_MmStep_t * p )
     return nMemTotal;
 }
 ABC_NAMESPACE_IMPL_END
-

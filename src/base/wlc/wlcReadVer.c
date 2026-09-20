@@ -982,7 +982,8 @@ startword:
             {
                 // THIS IS A HACK to detect table module descriptions
                 int Width1 = -1, Width2 = -1;
-                int v, b, Value, nBits, nInts;
+                int v, b, nBits, nInts;
+                word Value;
                 unsigned * pTable;
                 Vec_Int_t * vValues = Vec_IntAlloc( 256 );
                 Wlc_PrsForEachLineStart( p, pStart, i, i+1 )
@@ -997,9 +998,15 @@ startword:
                     if ( pStart == NULL )
                         continue;
                     Width2 = atoi(pStart-1);
+                    for ( v = 0; Abc_TtIsHexDigit(pStart[2+v]); v++ ) {}
+                    if ( v > 16 )
+                    {
+                        Vec_IntFree( vValues );
+                        return Wlc_PrsWriteErrorMessage( p, pStart, "Table constant is too wide in module \"%s\".", pName );
+                    }
                     Value = 0;
-                    Abc_TtReadHexNumber( (word *)&Value, pStart+2 );
-                    Vec_IntPush( vValues, Value );
+                    Abc_TtReadHexNumber( &Value, pStart+2 );
+                    Vec_IntPush( vValues, (int)Value );
                 }
                 //Vec_IntPrint( vValues );
                 nBits = Abc_Base2Log( Vec_IntSize(vValues) );
