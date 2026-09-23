@@ -433,6 +433,7 @@ int Abc_NtkDontCareWinAddMissing_rec( Odc_Man_t * p, Abc_Obj_t * pObj )
         Vec_PtrPush( p->vBranches, pObj );
         return Vec_PtrSize(p->vBranches) <= 32;
     }
+    Abc_NodeSetTravIdCurrent( pObj );
     // visit the fanins of the node
     Abc_ObjForEachFanin( pObj, pFanin, i )
         if ( !Abc_NtkDontCareWinAddMissing_rec( p, pFanin ) )
