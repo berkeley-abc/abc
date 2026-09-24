@@ -1,0 +1,13 @@
+vector[5] 23GAT(9) expect H, observe L  # T'01100' 
+vector[5] 22GAT(10) expect H, observe L  # T'01100' 
+vector[4] 23GAT(9) expect H, observe L  # T'11011' 
+vector[4] 22GAT(10) expect H, observe L  # T'11011' 
+vector[3] 23GAT(9) expect H, observe L  # T'01000' 
+vector[3] 22GAT(10) expect H, observe L  # T'01000' 
+vector[2] 23GAT(9) expect H, observe L  # T'10001' 
+
+v 1 2 3 -4 -5 -6 -7 -8 9 10 11 -12 13 -14 -15 -16 -17 18 19 20 -21 -22 -23 -24
+v -25 26 27 28 -29 -30 -31 -32 -33 34 35 36 -37 -38 -39 -40 -41 42 43 44 -45
+v -46 -47 -48 -49 50 51 52 -53 -54 -55 -56 -57 58 59 60 -61 -62 -63 -64 -65
+v -66 -67 -68 -69 -70 -71 -72 -73 -74 -75 -76 -77 -78 79 -80 81 -82 -83 -84 85
+v -86 -87 0
