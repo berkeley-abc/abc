@@ -10102,6 +10102,8 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             while ( true ) {
                 if ( *p2 == ',' )
                 {
+                    if ( nVars >= 8 )
+                        goto usage;
                     *p2 = '\0';
                     pArrTimeProfile[nVars++] = atoi( p1 );
                     *p2++ = ',';
@@ -10109,6 +10111,8 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
                 }
                 else if ( *p2 == '\0' )
                 {
+                    if ( nVars >= 8 )
+                        goto usage;
                     pArrTimeProfile[nVars++] = atoi( p1 );
                     break;
                 }
@@ -40500,7 +40504,7 @@ int Abc_CommandAbc9BalanceLut( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLutSize < 0 )
+            if ( nLutSize < 2 || nLutSize >= 16 )
                 goto usage;
             break;
         case 'C':

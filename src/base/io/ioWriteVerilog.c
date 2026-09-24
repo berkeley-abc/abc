@@ -122,7 +122,7 @@ void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk, int fOnlyAnds, int fNew
 //    fprintf( pFile, "module %s ( gclk,\n   ", Abc_NtkName(pNtk) );
     fprintf( pFile, "module %s ( ", Io_WriteVerilogGetName(Abc_NtkName(pNtk)) );
     // add the clock signal if it does not exist
-    if ( Abc_NtkLatchNum(pNtk) > 0 && Nm_ManFindIdByName(pNtk->pManName, "clock", ABC_OBJ_PI) == -1 )
+    if ( Abc_NtkLatchNum(pNtk) > 0 && Nm_ManFindIdByNameTwoTypes(pNtk->pManName, "clock", ABC_OBJ_PI, ABC_OBJ_NET) == -1 )
         fprintf( pFile, "clock, " );
     // write other primary inputs
     fprintf( pFile, "\n   " );
@@ -135,7 +135,7 @@ void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk, int fOnlyAnds, int fNew
         Io_WriteVerilogPos( pFile, pNtk, 3, fNewInterface );
     fprintf( pFile, "  );\n" );
     // add the clock signal if it does not exist
-    if ( Abc_NtkLatchNum(pNtk) > 0 && Nm_ManFindIdByName(pNtk->pManName, "clock", ABC_OBJ_PI) == -1 )
+    if ( Abc_NtkLatchNum(pNtk) > 0 && Nm_ManFindIdByNameTwoTypes(pNtk->pManName, "clock", ABC_OBJ_PI, ABC_OBJ_NET) == -1 )
         fprintf( pFile, "  input  clock;\n" );
     // write inputs, outputs, registers, and wires
     if ( Abc_NtkPiNum(pNtk) > 0  )

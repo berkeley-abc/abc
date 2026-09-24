@@ -261,6 +261,11 @@ void Abc_NtkDelayTracePrint( Abc_Ntk_t * pNtk, int fUseLutLib, int fVerbose )
     memset( pCounters, 0, sizeof(int)*(nSteps + 1) );
     // perform delay trace
     tArrival = Abc_NtkDelayTraceLut( pNtk, fUseLutLib );
+    if ( tArrival == -ABC_INFINITY )
+    {
+        ABC_FREE( pCounters );
+        return;
+    }
     tDelta = tArrival / nSteps;
     // count how many nodes have slack in the corresponding intervals
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -519,6 +524,8 @@ Abc_Ntk_t * Abc_NtkSpeedup( Abc_Ntk_t * pNtk, int fUseLutLib, int Percentage, in
     unsigned * puTCEdges;
     // perform delay trace
     tArrival = Abc_NtkDelayTraceLut( pNtk, fUseLutLib );
+    if ( tArrival == -ABC_INFINITY )
+        return NULL;
     tDelta = fUseLutLib ? tArrival*Percentage/100.0 : 1.0;
     if ( fVerbose )
     {
