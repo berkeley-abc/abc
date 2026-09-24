@@ -27,6 +27,9 @@
 #include "sn.h"
 #include "snMiniAig.h"
 #include "snBlast.h"
+#include "snGia.h"
+#include "snRead.h"
+#include "snLowerMem.h"
 #include "snCheck.h"
 #include "snMiniGate.h"
 #include "snMiniLut.h"
@@ -86,6 +89,8 @@ struct Sn_Man_t_
     int                fBoundary;
     int                fBlasted;
     int                BlastMode;
+    Vec_Int_t *        vCecDescriptor;
+    int                CecCiCount, CecCoCount, CecRegCount;
     int                fLastBlast;
     const char *       pLastAnalysis; // diagnostic-only kind, static string
     sn_module_id_t     LastBlastModule;
@@ -112,6 +117,7 @@ static int Sn_CommandSlang( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandCheck( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandMapMem( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Sn_CommandLowerMem( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandMapDsp( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandMapAdd( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandMapDff( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -130,17 +136,6 @@ static const char * Sn_ManPutNtkStatus( const Sn_Man_t * p, Abc_Ntk_t * pNtk );
 
 extern int tmpFile( const char * pPrefix, const char * pSuffix, char ** ppFileName );
 
-static int Sn_TempPrefix( char * pBuffer, size_t nBuffer, const char * pStem )
-{
-    int Written;
-#if defined(_MSC_VER) || defined(__MINGW32__)
-    Written = snprintf( pBuffer, nBuffer, "%s\\%s", Abc_GetTmpDir(), pStem );
-#else
-    Written = snprintf( pBuffer, nBuffer, "%s/%s", Abc_GetTmpDir(), pStem );
-#endif
-    return Written >= 0 && (size_t)Written < nBuffer;
-}
-
 static inline Sn_Man_t * Sn_AbcGetMan( Abc_Frame_t * pAbc )
 {
     return (Sn_Man_t *)pAbc->pAbcSn;
@@ -154,6 +149,7 @@ static void Sn_ManFree( Sn_Man_t * p )
         sn_blast_boundary_destroy( &p->Boundary );
     sn_design_destroy( p->pDesign );
     sn_vec_destroy( &p->TargetModels );
+    Vec_IntFreeP(&p->vCecDescriptor);
     ABC_FREE( p );
 }
 
@@ -203,6 +199,7 @@ static void Sn_ManAdvanceRevision( Sn_Man_t * p )
     assert( p && p->Revision != ULLONG_MAX );
     p->Revision++;
     p->fBlasted = 0;
+    Vec_IntFreeP(&p->vCecDescriptor);
     p->pLastAnalysis = NULL;
     p->BlastModule = SN_INVALID_ID;
     p->BlastName = SN_INVALID_ID;
@@ -314,69 +311,6 @@ static void Sn_ManReplaceBlastedModule( Sn_Man_t * p, sn_module_id_t Temporary )
     Sn_ManReplaceModule( p, p->BlastModule, p->BlastName, Temporary );
 }
 
-static int Sn_MapLutExecutable( char * pBuffer, size_t nBuffer );
-
-static char * Sn_SlangExecutable()
-{
-    static char Companion[4096];
-    char * pSlash;
-    char * pExecutable = Abc_FrameReadFlag( "sn" );
-    if ( pExecutable != NULL )
-        return pExecutable;
-    if ( Sn_MapLutExecutable(Companion, sizeof(Companion)) )
-    {
-        pSlash = strrchr( Companion, '/' );
-#if defined(_MSC_VER) || defined(__MINGW32__)
-        {
-            char * pBackslash = strrchr( Companion, '\\' );
-            if ( pBackslash && (!pSlash || pBackslash > pSlash) )
-                pSlash = pBackslash;
-        }
-#endif
-        if ( pSlash && (size_t)(pSlash + 1 - Companion) + sizeof("sn.exe") <= sizeof(Companion) )
-        {
-#if defined(_MSC_VER) || defined(__MINGW32__)
-            strcpy( pSlash + 1, "sn.exe" );
-            if ( _access(Companion, 0) == 0 )
-#else
-            strcpy( pSlash + 1, "sn" );
-            if ( access(Companion, X_OK) == 0 )
-#endif
-                return Companion;
-        }
-    }
-#if defined(_MSC_VER) || defined(__MINGW32__)
-    return "sn.exe";
-#else
-    return "sn";
-#endif
-}
-
-static int Sn_RunProcess( char ** ppArgs )
-{
-#if defined(__wasm)
-    (void)ppArgs;
-    return -1;
-#elif defined(_MSC_VER) || defined(__MINGW32__)
-    return (int)_spawnvp( _P_WAIT, ppArgs[0], (const char * const *)ppArgs );
-#else
-    pid_t Child = fork();
-    int Status;
-    if ( Child < 0 )
-        return -1;
-    if ( Child == 0 )
-    {
-        execvp( ppArgs[0], ppArgs );
-        // execvp() returns only on failure. Release the child copy so memory checkers do not report it as leaked;
-        // the parent's copy is unaffected and is freed by the caller.
-        ABC_FREE( ppArgs );
-        _exit( 127 );
-    }
-    if ( waitpid(Child, &Status, 0) != Child )
-        return -1;
-    return WIFEXITED(Status) ? WEXITSTATUS(Status) : -1;
-#endif
-}
 
 static int Sn_DesignHasType( const sn_design_t * pDesign, sn_obj_type_t Type )
 {
@@ -898,11 +832,14 @@ static void Sn_DesignPrintDistrib( FILE * pOut, const sn_design_t * pDesign, sn_
 
 void Sn_Init( Abc_Frame_t * pAbc )
 {
+    extern int Sn_CommandSec( Abc_Frame_t *, int, char ** );
+    Cmd_CommandAdd( pAbc, "ABC9", "&sec", Sn_CommandSec, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@slang", Sn_CommandSlang, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@read",  Sn_CommandRead,  0 );
     Cmd_CommandAdd( pAbc, "New word level", "@check", Sn_CommandCheck, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@collapse", Sn_CommandCollapse, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@map_mem", Sn_CommandMapMem, 0 );
+    Cmd_CommandAdd( pAbc, "New word level", "@lower_mem", Sn_CommandLowerMem, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@map_dsp", Sn_CommandMapDsp, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@map_add", Sn_CommandMapAdd, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@map_dff", Sn_CommandMapDff, 0 );
@@ -976,17 +913,16 @@ usage:
 
 static int Sn_CommandSlang( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    char TempPrefix[512];
-    char * pTopName = NULL;
-    char * pExtraFile = NULL;
-    char * pDefine;
-    char * pTempName = NULL;
-    char ** ppArgs;
-    Vec_Ptr_t * vDefines = Vec_PtrAlloc( 4 );
+    char * pTopName = NULL, * pExtraFile = NULL;
+    Vec_Ptr_t * vDefines = Vec_PtrAlloc(4), * vFiles;
+    Vec_Ptr_t * vBlackboxes = Vec_PtrAlloc(4);
+    Sn_ReadOptions_t Options = {0};
+    sn_design_t * pDesign;
+    sn_module_id_t Top;
     Sn_Man_t * p;
-    int c, fVerbose = 0, nFiles, nArgs, i, k, File;
+    int c, fVerbose = 0, fPreserve = 0, nFiles, i;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "MFDBIvh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "MFDBIpvh")) != EOF )
     {
         switch ( c )
         {
@@ -1014,10 +950,17 @@ static int Sn_CommandSlang( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             Vec_PtrPush( vDefines, argv[globalUtilOptind++] );
             break;
+        case 'p':
+            fPreserve ^= 1;
+            break;
         case 'B':
+            if (globalUtilOptind >= argc) goto usage;
+            Vec_PtrPush(vBlackboxes, argv[globalUtilOptind++]);
+            break;
         case 'I':
             Abc_Print( -1, "Command line switch \"-%c\" is not supported by the external SN frontend yet.\n", c );
             Vec_PtrFree( vDefines );
+            Vec_PtrFree( vBlackboxes );
             return 1;
         case 'v':
             fVerbose ^= 1;
@@ -1030,114 +973,35 @@ static int Sn_CommandSlang( Abc_Frame_t * pAbc, int argc, char ** argv )
     nFiles = argc - globalUtilOptind + (pExtraFile != NULL);
     if ( nFiles == 0 )
         goto usage;
-    for ( i = globalUtilOptind; i < argc; i++ )
-    {
-        FILE * pFile = fopen( argv[i], "r" );
-        if ( pFile == NULL )
-        {
-            Abc_Print( -1, "Cannot open input file \"%s\".\n", argv[i] );
-            Vec_PtrFree( vDefines );
-            return 1;
-        }
-        fclose( pFile );
-    }
-    if ( pExtraFile != NULL )
-    {
-        FILE * pFile = fopen( pExtraFile, "r" );
-        if ( pFile == NULL )
-        {
-            Abc_Print( -1, "Cannot open input file \"%s\".\n", pExtraFile );
-            Vec_PtrFree( vDefines );
-            return 1;
-        }
-        fclose( pFile );
-    }
-    if ( !Sn_TempPrefix(TempPrefix, sizeof(TempPrefix), "sn_") )
-    {
-        Abc_Print( -1, "Temporary-file path is too long.\n" );
-        Vec_PtrFree( vDefines );
-        return 1;
-    }
-    File = tmpFile( TempPrefix, ".sn", &pTempName );
-    if ( File < 0 )
-    {
-        Abc_Print( -1, "Cannot create a temporary SN file.\n" );
-        Vec_PtrFree( vDefines );
-        return 1;
-    }
-#if defined(_MSC_VER) || defined(__MINGW32__)
-    _close( File );
-#else
-    close( File );
-#endif
-    nArgs = 1 + (pTopName ? 2 : 0) + 2 * Vec_PtrSize(vDefines) + (fVerbose ? 1 : 0) + 2 + nFiles + 1;
-    ppArgs = ABC_ALLOC( char *, nArgs );
-    k = 0;
-    ppArgs[k++] = Sn_SlangExecutable();
-    if ( pTopName )
-    {
-        ppArgs[k++] = "-M";
-        ppArgs[k++] = pTopName;
-    }
-    Vec_PtrForEachEntry( char *, vDefines, pDefine, i )
-    {
-        ppArgs[k++] = "-D";
-        ppArgs[k++] = pDefine;
-    }
-    if ( fVerbose )
-        ppArgs[k++] = "-t";
-    ppArgs[k++] = "-o";
-    ppArgs[k++] = pTempName;
-    for ( i = globalUtilOptind; i < argc; i++ )
-        ppArgs[k++] = argv[i];
-    if ( pExtraFile )
-        ppArgs[k++] = pExtraFile;
-    ppArgs[k] = NULL;
-    assert( k + 1 == nArgs );
-    if ( fVerbose )
-    {
-        Abc_Print( 1, "Running:" );
-        for ( i = 0; i < k; i++ )
-            Abc_Print( 1, " %s", ppArgs[i] );
-        Abc_Print( 1, "\n" );
-        fflush( pAbc->Out );
-    }
-    c = Sn_RunProcess( ppArgs );
-    ABC_FREE( ppArgs );
-    Vec_PtrFree( vDefines );
-    if ( c != 0 )
-    {
-        Abc_Print( -1, "External SN frontend failed with status %d.\n", c );
-#if defined(_MSC_VER) || defined(__MINGW32__)
-        if ( c == -1 )
-            Abc_Print( -1, "The external SN frontend companion is not included in Windows builds.\n"
-                           "Use '@read design.sn' to load an SN file produced on Linux or macOS.\n" );
-#else
-        if ( c == 127 || c == -1 )
-            Abc_Print( -1, "Check 'set sn /path/to/sn', the companion beside ABC, or PATH.\n" );
-#endif
-        remove( pTempName );
-        ABC_FREE( pTempName );
-        return 1;
-    }
-    p = Sn_ManReadBinary( pTempName, pTopName, Abc_FrameReadErr(pAbc) );
-    remove( pTempName );
-    ABC_FREE( pTempName );
-    if ( p == NULL )
-        return 1;
-    Sn_AbcUpdateMan( pAbc, p );
-    if ( fVerbose )
-        Abc_Print( 1, "Loaded SN design with %zu modules.\n", p->pDesign->modules.size );
+    vFiles = Vec_PtrAlloc(nFiles);
+    for ( i = globalUtilOptind; i < argc; ++i ) Vec_PtrPush(vFiles, argv[i]);
+    if ( pExtraFile ) Vec_PtrPush(vFiles, pExtraFile);
+    Options.pTop = pTopName;
+    Options.vDefines = vDefines;
+    Options.vBlackboxes = vBlackboxes;
+    Options.fVerbose = fVerbose;
+    Options.fPreserveState = fPreserve;
+    pDesign = Sn_ReadHdl(Vec_PtrSize(vFiles), (char **)Vec_PtrArray(vFiles), &Options, &Top,
+                         Abc_FrameReadErr(pAbc));
+    Vec_PtrFree(vFiles);
+    Vec_PtrFree(vDefines);
+    Vec_PtrFree(vBlackboxes);
+    if ( !pDesign ) return 1;
+    p = Sn_ManAlloc(pDesign, Top);
+    Sn_AbcUpdateMan(pAbc, p);
+    if ( fVerbose ) Abc_Print(1, "Loaded SN design with %zu modules.\n", pDesign->modules.size);
     return 0;
-
 usage:
     Vec_PtrFree( vDefines );
-    Abc_Print( -2, "usage: @slang [-M <module>] [-D <definition>] [-F <file>] [-vh] <file_name>...\n" );
+    Vec_PtrFree( vBlackboxes );
+    Abc_Print( -2, "usage: @slang [-M <module>] [-D <definition>] [-B <module>] [-F <file>] [-pvh] <file_name>...\n" );
     Abc_Print( -2, "\t         reads Verilog or SystemVerilog using the external sn frontend\n" );
     Abc_Print( -2, "\t         based on Mike Popoloski's slang: https://github.com/MikePopoloski/slang\n" );
     Abc_Print( -2, "\t-M name : select the top module\n" );
     Abc_Print( -2, "\t-D def  : define one macro as NAME or NAME=value; may be repeated\n" );
+    Abc_Print( -2, "\t-B name : import a declared module as an opaque black box; may be repeated\n" );
     Abc_Print( -2, "\t-F file : add another Verilog/SystemVerilog input file\n" );
+    Abc_Print( -2, "\t-p      : preserve constant and unused state for positional CEC [default = no]\n" );
     Abc_Print( -2, "\t-v      : print the external command and frontend timing\n" );
     Abc_Print( -2, "\t-h      : print the command usage\n" );
     return 1;
@@ -1258,6 +1122,133 @@ usage:
     Abc_Print( -2, "\t-v      : print per-module and design summaries\n" );
     Abc_Print( -2, "\t-h      : print the command usage\n" );
     return 1;
+}
+
+static int Sn_CommandLowerMem( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    sn_lower_mem_t Ctx;
+    Vec_Ptr_t * vPaths = Vec_PtrAlloc(4);
+    const char * pModule = NULL;
+    int c, Ret = 1, fPreview = 0;
+    Sn_Man_t * p, * pNew = NULL;
+    sn_module_id_t Root, Mapped;
+    memset(&Ctx, 0, sizeof(Ctx));
+    Extra_UtilGetoptReset();
+    while ((c = Extra_UtilGetopt(argc, argv, "MSIanh")) != EOF)
+    {
+        if (c == 'a') Ctx.all = true;
+        else if (c == 'n') fPreview = 1;
+        else if (c == 'M' || c == 'S' || c == 'I')
+        {
+            if (globalUtilOptind == argc) goto usage;
+            const char * Value = argv[globalUtilOptind++];
+            if (c == 'M') pModule = Value;
+            else if (c == 'I') Vec_PtrPush(vPaths, (void *)Value);
+            else
+            {
+                char * End;
+                unsigned long long Bits = strtoull(Value, &End, 10);
+                if (*Value < '0' || *Value > '9' || *End || !Bits || Bits > UINT32_MAX) goto usage;
+                Ctx.max_bits = (uint64_t)Bits;
+            }
+        }
+        else goto usage;
+    }
+    if (globalUtilOptind != argc || (!Ctx.all && !Ctx.max_bits && !Vec_PtrSize(vPaths))) goto usage;
+    if (!Sn_CommandCheckDesign(pAbc)) goto done;
+    p = Sn_AbcGetMan(pAbc);
+    Root = pModule ? sn_design_find_module(p->pDesign, pModule) : p->Top;
+    if (Root == SN_INVALID_ID) { Abc_Print(-1, "Unknown SN module '%s'.\n", pModule); goto done; }
+    Ctx.design = p->pDesign;
+    Ctx.root_name = sn_name_get(&Ctx.design->names, sn_design_get_module(Ctx.design, Root)->name);
+    Ctx.paths = (const char **)Vec_PtrArray(vPaths);
+    Ctx.path_count = Vec_PtrSize(vPaths);
+    Ctx.matched = ABC_CALLOC(unsigned char, Ctx.path_count + 1);
+    Ctx.out = Abc_FrameReadOut(pAbc);
+    Ctx.preview = Ctx.valid = true;
+    sn_lower_mem_visit(&Ctx, Root, "");
+    for (size_t i = 0; i < Ctx.path_count; i++)
+        if (!Ctx.matched[i])
+        {
+            Abc_Print(-1, "Unmatched memory or memory-containing instance path '%s'.\n", Ctx.paths[i]);
+            Ctx.valid = false;
+        }
+    Abc_Print(1, "Selected %llu memory occurrences: %llu storage flop bits, %llu read-register bits, "
+                 "%llu decoded read-mux data bits.\n",
+              (unsigned long long)Ctx.memories, (unsigned long long)Ctx.storage_bits,
+              (unsigned long long)Ctx.read_reg_bits, (unsigned long long)Ctx.mux_bits);
+    if (Ctx.memories > 32) Abc_Print(1, "  %llu additional selections omitted.\n",
+                                   (unsigned long long)(Ctx.memories - 32));
+    if (Ctx.excluded > 10) Abc_Print(1, "  %llu additional selections excluded by -S.\n",
+                                    (unsigned long long)(Ctx.excluded - 10));
+    if (Ctx.storage_bits + Ctx.read_reg_bits >= 1048576 || Ctx.mux_bits >= 8388608)
+        Abc_Print(1, "Warning: large memory expansion; consider -S or narrower -I selection.\n");
+    if (!Ctx.valid) goto done;
+    if (fPreview || !Ctx.memories) { Ret = 0; goto done; }
+    pNew = Sn_ManDup(p);
+    if (!pNew) goto done;
+    Ctx.design = pNew->pDesign;
+    Ctx.preview = false;
+    Ctx.cache = ABC_ALLOC(sn_module_id_t, Ctx.design->modules.size);
+    for (size_t i = 0; i < Ctx.design->modules.size; i++) Ctx.cache[i] = SN_INVALID_ID;
+    Mapped = sn_lower_mem_visit(&Ctx, Root, "");
+    // Replace the selected definition, preserving its public name and all
+    // callers. The old body is discarded in both top and non-top modes.
+    if (Mapped != Root)
+    {
+        sn_module_t * Old = sn_design_get_module(Ctx.design, Root);
+        sn_design_replace_appended_module(Ctx.design, Root, Old->name, Mapped);
+        // Binary SN defaults to the last definition. Keep the actual top
+        // last even when specialization appended definitions below it.
+        sn_module_id_t Last = (sn_module_id_t)Ctx.design->modules.size - 1;
+        sn_module_id_t Top = pNew->Top;
+        if (Top != Last)
+        {
+            sn_module_t * A = sn_design_get_module(Ctx.design, Top);
+            sn_module_t * B = sn_design_get_module(Ctx.design, Last);
+            sn_design_invalidate_copies_to_module(Ctx.design, Top);
+            sn_design_invalidate_copies_to_module(Ctx.design, Last);
+            A->id = Last;
+            B->id = Top;
+            sn_vec_at(sn_module_t *, &Ctx.design->modules, Top) = B;
+            sn_vec_at(sn_module_t *, &Ctx.design->modules, Last) = A;
+            for (size_t i = 0; i < Ctx.design->modules.size; i++)
+            {
+                sn_module_t * M = sn_design_get_module(Ctx.design, (sn_module_id_t)i);
+                for (size_t j = 0; j < M->type_objects[SN_INST].size; j++)
+                {
+                    sn_obj_id_t Inst = sn_vec_at(sn_obj_id_t, &M->type_objects[SN_INST], j);
+                    sn_module_id_t Child = sn_inst_module_id(M, Inst);
+                    if (Child == Top || Child == Last)
+                        sn_obj_set_data(M, Inst, Child == Top ? Last : Top);
+                }
+            }
+            pNew->Top = Last;
+        }
+    }
+    if (!sn_design_check(Ctx.design, Abc_FrameReadErr(pAbc), false)) goto done;
+    Sn_ManAdvanceRevision(pNew);
+    Sn_AbcUpdateMan(pAbc, pNew);
+    pNew = NULL;
+    Abc_Print(1, "Selected memories lowered; remaining memories are unchanged.\n");
+    Ret = 0;
+    goto done;
+usage:
+    Abc_Print(-2, "usage: @lower_mem [-M module] [-I path]... [-S max_bits] [-anh]\n"
+                  "  Lower selected native arrays to registers and read muxes.\n"
+                  "  -M name : restrict to this module definition and its hierarchy (default: current top)\n"
+                  "  -I path : exact memory path or instance subtree, relative to selected root\n"
+                  "  -S bits : width * depth limit per array (intersects path selection)\n"
+                  "  -a      : explicitly select all native memories\n"
+                  "  -n      : preview only; report expansion and unsupported memories\n"
+                  "  At least one of -I, -S, -a is required. Multiple writers are rejected.\n"
+                  "  Two-state address semantics: out-of-range reads are zero; writes are ignored.\n");
+done:
+    if (pNew) Sn_ManFree(pNew);
+    ABC_FREE(Ctx.cache);
+    ABC_FREE(Ctx.matched);
+    Vec_PtrFree(vPaths);
+    return Ret;
 }
 
 static int Sn_CommandMapMem( Abc_Frame_t * pAbc, int argc, char ** argv )
@@ -1773,63 +1764,10 @@ static void Sn_StampExtraction( Sn_Man_t * p, Gia_Man_t * pGia )
 
 // Canonical boundary names (see sn_blast_boundary_bit_name). Duplicate names receive a "#<n>" suffix so that every
 // CI/CO name is unique; the counts of non-canonical and suffixed names are returned for reporting.
-static void Sn_GiaSetNames( Gia_Man_t * pGia, const Sn_Man_t * p, int fOmitLoops,
-                            int * pNonCanonical, int * pDuplicates )
+static void Sn_CommandGiaSetNames( Gia_Man_t * pGia, const Sn_Man_t * p, int fOmitLoops,
+                                   int * pNonCanonical, int * pDuplicates )
 {
-    Abc_Nam_t * pNam = Abc_NamStart( (int)(p->Boundary.cis.size + p->Boundary.cos.size) + 16, 32 );
-    int nNonCanonical = 0, nDuplicates = 0;
-    size_t i;
-    assert( pGia && (fOmitLoops || (size_t)Gia_ManCiNum(pGia) == p->Boundary.cis.size) );
-    assert( fOmitLoops || (size_t)Gia_ManCoNum(pGia) == p->Boundary.cos.size );
-    if ( pGia->vNamesIn )
-        Vec_PtrFreeFree( pGia->vNamesIn );
-    if ( pGia->vNamesOut )
-        Vec_PtrFreeFree( pGia->vNamesOut );
-    pGia->vNamesIn = Vec_PtrAlloc( Gia_ManCiNum(pGia) );
-    pGia->vNamesOut = Vec_PtrAlloc( Gia_ManCoNum(pGia) );
-    for ( i = 0; i < p->Boundary.cis.size + p->Boundary.cos.size; i++ )
-    {
-        int fCi = i < p->Boundary.cis.size;
-        const sn_blast_boundary_bit_t * pBit = fCi
-            ? &sn_vec_at(sn_blast_boundary_bit_t, &p->Boundary.cis, i)
-            : &sn_vec_at(sn_blast_boundary_bit_t, &p->Boundary.cos, i - p->Boundary.cis.size);
-        if ( fOmitLoops && (pBit->kind == SN_BLAST_BOUNDARY_LOOP_INPUT || pBit->kind == SN_BLAST_BOUNDARY_LOOP_OUTPUT) )
-            continue;
-        bool fCanonical = true;
-        char * pName = sn_blast_boundary_bit_name( p->pDesign, &p->Boundary, pBit, &fCanonical );
-        int fFound = 0, nSuffix = 1;
-        Abc_NamStrFindOrAdd( pNam, pName, &fFound );
-        if ( fFound )
-        {
-            size_t Length = strlen( pName );
-            char * pUnique = ABC_ALLOC( char, Length + 24 );
-            do
-                snprintf( pUnique, Length + 24, "%s#%d", pName, ++nSuffix );
-            while ( Abc_NamStrFindOrAdd(pNam, pUnique, &fFound), fFound );
-            free( pName );
-            pName = Abc_UtilStrsav( pUnique );
-            ABC_FREE( pUnique );
-            nDuplicates++;
-        }
-        else
-        {
-            char * pCopy = Abc_UtilStrsav( pName );
-            free( pName );
-            pName = pCopy;
-        }
-        nNonCanonical += !fCanonical;
-        Vec_PtrPush( fCi ? pGia->vNamesIn : pGia->vNamesOut, pName );
-    }
-    Abc_NamStop( pNam );
-    assert( Vec_PtrSize(pGia->vNamesIn) == Gia_ManCiNum(pGia) );
-    assert( Vec_PtrSize(pGia->vNamesOut) == Gia_ManCoNum(pGia) );
-    ABC_FREE( pGia->pName );
-    pGia->pName = Abc_UtilStrsav(
-        (char *)sn_name_get(&p->pDesign->names, sn_design_get_module_const(p->pDesign, p->BlastModule)->name) );
-    if ( pNonCanonical )
-        *pNonCanonical = nNonCanonical;
-    if ( pDuplicates )
-        *pDuplicates = nDuplicates;
+    Sn_GiaSetNames(pGia, p->pDesign, p->BlastModule, &p->Boundary, fOmitLoops, pNonCanonical, pDuplicates);
 }
 
 static int Sn_CommandClockBlast( Abc_Frame_t * pAbc, Sn_Man_t * p, sn_module_id_t Top,
@@ -1896,14 +1834,66 @@ bad_constraint:
     return 1;
 }
 
+void Sn_ForgetGiaDescriptor( Abc_Frame_t * pAbc )
+{
+    Sn_Man_t * p = Sn_AbcGetMan(pAbc);
+    if (p) Vec_IntFreeP(&p->vCecDescriptor);
+}
+
+const Vec_Int_t * Sn_CurrentGiaDescriptor( Abc_Frame_t * pAbc, Gia_Man_t * pGia )
+{
+    Sn_Man_t * p = Sn_AbcGetMan(pAbc);
+    if ( !p || !pGia || pGia != Abc_FrameReadGia(pAbc) || !p->vCecDescriptor ||
+         Gia_ManCiNum(pGia) != p->CecCiCount || Gia_ManCoNum(pGia) != p->CecCoCount ||
+         Gia_ManRegNum(pGia) != p->CecRegCount )
+        return NULL;
+    return p->vCecDescriptor;
+}
+
+static int Sn_CommandBlastCuts( Abc_Frame_t * pAbc, const char * pTopName, const Sn_GiaOptions_t * pOptions )
+{
+    Vec_Int_t * vDescriptor = Vec_IntAlloc(16);
+    Gia_Man_t * pGia = NULL;
+    Sn_Man_t * p;
+    sn_module_id_t Top;
+    int Status = 1;
+    if (!Sn_CommandCheckDesign(pAbc)) goto done;
+    p = Sn_AbcGetMan(pAbc);
+    Top = pTopName ? sn_design_find_module(p->pDesign, pTopName) : p->Top;
+    if (Top == SN_INVALID_ID) { Abc_Print(-1, "Unknown SN top module.\n"); goto done; }
+    pGia = Sn_DesignExtractGia(p->pDesign, Top, pOptions, vDescriptor, Abc_FrameReadErr(pAbc));
+    if (!pGia) goto done;
+    Abc_FrameUpdateGia(pAbc, pGia);
+    p->vCecDescriptor = vDescriptor;
+    vDescriptor = NULL;
+    p->CecCiCount = Gia_ManCiNum(pGia);
+    p->CecCoCount = Gia_ManCoNum(pGia);
+    p->CecRegCount = Gia_ManRegNum(pGia);
+    p->fBlasted = 0; // Verification cuts do not support reinsertion.
+    p->fLastBlast = 0;
+    p->pLastAnalysis = "positional verification extraction";
+    Status = 0;
+done:
+    Vec_IntFreeP(&vDescriptor);
+    return Status;
+}
+
 static int Sn_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Sn_Man_t * p;
-    Mini_Aig_t * pAig;
+    Gia_Man_t * pGia;
+    Sn_GiaResult_t Result;
+    sn_blast_boundary_t Boundary;
     abctime clkBlast, clkImport, clkNames;
     int nMiniAnds;
     sn_blast_options_t Options = sn_blast_default_options();
     sn_blast_hier_stats_t Stats = {0};
+    Sn_GiaOptions_t Cuts;
+    int fVerification = 0;
+    memset(&Cuts, 0, sizeof(Cuts));
+    Cuts.Blast = sn_blast_default_options();
+    Cuts.vModules = Vec_PtrAlloc(4);
+    Cuts.vInstances = Vec_PtrAlloc(4);
     char * pModuleName = NULL, * pConstraints = NULL;
     sn_module_id_t BlastModule;
     int c, fVerbose = 0, nNonCanonical = 0, nDuplicates = 0, fAbstract = 0, fStateActions = 0, fZero = 0, fMacros = 0, fNamedStates = 0, fOrdinaryOptions = 0;
@@ -1914,11 +1904,24 @@ static int Sn_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
         fflush( stdout );
     Options.mode = SN_BLAST_SEQ;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "MRNaqzuctdbrpfvh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "MABIVRNaqzuctdbrpfvh")) != EOF )
     {
         if ( strchr("cdbrpf", c) ) fOrdinaryOptions = 1;
         switch ( c )
         {
+        case 'V': fVerification = 1; break;
+        case 'A':
+        case 'B':
+        case 'I':
+            if (globalUtilOptind >= argc) goto usage;
+            fVerification = 1;
+            if (c == 'B') Vec_PtrPush(Cuts.vModules, argv[globalUtilOptind]);
+            else if (c == 'I') Vec_PtrPush(Cuts.vInstances, argv[globalUtilOptind]);
+            else if (!strcmp(argv[globalUtilOptind], "mem")) Cuts.fMemory = 1;
+            else if (!strcmp(argv[globalUtilOptind], "mul")) Cuts.fMultiply = 1;
+            else goto usage;
+            ++globalUtilOptind;
+            break;
         case 'a': fAbstract = 1; break;
         case 'q': fStateActions = 1; break;
         case 'z': fZero = 1; break;
@@ -1970,6 +1973,17 @@ static int Sn_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc != globalUtilOptind )
         goto usage;
+    if (fVerification)
+    {
+        if (fOrdinaryOptions || fAbstract || fStateActions || fZero || fMacros || fNamedStates ||
+            pConstraints || Options.mode != SN_BLAST_SEQ) goto usage;
+        int Status = Sn_CommandBlastCuts(pAbc, pModuleName, &Cuts);
+        Vec_PtrFree(Cuts.vModules);
+        Vec_PtrFree(Cuts.vInstances);
+        return Status;
+    }
+    Vec_PtrFreeP(&Cuts.vModules);
+    Vec_PtrFreeP(&Cuts.vInstances);
     if ( ((fAbstract || fStateActions) && fOrdinaryOptions) || (fAbstract && fStateActions) ||
          (fStateActions && (fZero || Options.mode == SN_BLAST_TRANSITION)) ||
          (!(fAbstract || fStateActions) && (fZero || fMacros || fNamedStates || pConstraints)) )
@@ -1994,18 +2008,22 @@ static int Sn_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fAbstract || fStateActions )
         return Sn_CommandClockBlast(pAbc, p, BlastModule, fStateActions || Options.mode == SN_BLAST_TRANSITION,
                                    fZero, fMacros, fNamedStates, fStateActions, fVerbose, pConstraints);
-    sn_blast_boundary_destroy( &p->Boundary );
-    sn_blast_boundary_init( &p->Boundary );
-    clkBlast = Abc_Clock();
-    pAig = sn_design_blast_hier_boundary_options( p->pDesign, BlastModule, Options, &Stats, &p->Boundary );
-    if ( pAig == NULL )
+    sn_blast_boundary_init(&Boundary);
+    pGia = Sn_DesignToGia(p->pDesign, BlastModule, &Options, &Boundary, &Result);
+    if ( pGia == NULL )
+    {
+        sn_blast_boundary_destroy(&Boundary);
         return 1;
-    clkBlast = Abc_Clock() - clkBlast;
-    nMiniAnds = Mini_AigAndNum( pAig );
-    clkImport = Abc_Clock();
-    Abc_FrameGiaInputMiniAig( pAbc, pAig );
-    clkImport = Abc_Clock() - clkImport;
-    Mini_AigStop( pAig );
+    }
+    sn_blast_boundary_destroy(&p->Boundary);
+    p->Boundary = Boundary;
+    Stats = Result.Stats;
+    clkBlast = Result.BlastTime;
+    clkImport = Result.ImportTime;
+    nMiniAnds = Result.MiniAnds;
+    Gia_ManStopP(&pAbc->pGiaMiniAig);
+    Vec_IntFreeP(&pAbc->vCopyMiniAig);
+    Abc_FrameUpdateGia(pAbc, pGia);
     p->BlastModule = BlastModule;
     p->BlastName = sn_design_get_module_const( p->pDesign, BlastModule )->name;
     p->fBlasted = 1;
@@ -2017,7 +2035,7 @@ static int Sn_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     p->LastBlastRevision = p->Revision;
     p->BlastBoundarySignature = Sn_BoundarySignature( p );
     clkNames = Abc_Clock();
-    Sn_GiaSetNames( Abc_FrameReadGia(pAbc), p, 0, &nNonCanonical, &nDuplicates );
+    Sn_CommandGiaSetNames( Abc_FrameReadGia(pAbc), p, 0, &nNonCanonical, &nDuplicates );
     p->BlastInterfaceSignature = Sn_GiaInterfaceSignature( Abc_FrameReadGia(pAbc) );
     p->BlastGenlibSignature = Sn_GenlibSignature( (Mio_Library_t *)Abc_FrameReadLibGen() );
     Sn_StampExtraction(p, Abc_FrameReadGia(pAbc));
@@ -2041,7 +2059,12 @@ static int Sn_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: @blast [-M module] [-ctdbrpfaqNuzvh] [-R pin=0,pin=1]\n" );
+    Vec_PtrFreeP(&Cuts.vModules);
+    Vec_PtrFreeP(&Cuts.vInstances);
+    Abc_Print( -2, "\t         derives a flat AIG directly from the hierarchical SN design\n" );
     Abc_Print( -2, "       ordinary extraction: @blast [-M module] [-ctdbrpfv]\n" );
+    Abc_Print( -2, "       positional CEC: @blast [-M module] [-V] [-B module]... [-I top/path]... [-A mem|mul]...\n" );
+    Abc_Print( -2, "\t-V      : verification extraction, retaining raw state polarity; implied by -A/-B/-I\n" );
     Abc_Print( -2, "       @blast -a [-M module] [-t | -z] [-uNv] [-R pin=0,pin=1]\n" );
     Abc_Print( -2, "       @blast -q [-M module] [-uv] [-R pin=0,pin=1]\n" );
     Abc_Print( -2, "\t-q      : named state-action/trigger proof signature, including plain latches;\n" );
@@ -2052,7 +2075,7 @@ usage:
     Abc_Print( -2, "\t-z      : explicitly assume zero for unspecified state (analysis only, with -a)\n" );
     Abc_Print( -2, "\t-R list : constrain scalar inputs constantly (with -a or -q); async controls must prove inactive\n" );
     Abc_Print( -2, "\t          vector ports and bit selections are not supported\n" );
-    Abc_Print( -2, "\t         derives a flat AIG directly from the hierarchical SN design\n" );
+    Abc_Print( -2, "\t          unlike &sec -R, these constraints are permanent, not a startup reset\n" );
     Abc_Print( -2, "\t-M name : select the module replaced by a later @put [default = current top]\n" );
     Abc_Print( -2, "\t-c      : use combinational AIG mode\n" );
     Abc_Print( -2, "\t-t      : ordinary mode: sampled transition relation; with -a: checked free-state relation\n" );
@@ -2728,27 +2751,6 @@ static int Sn_MapLutExtractName( char * pFileName, size_t nFileName, const char 
     return 1;
 }
 
-static int Sn_MapLutExecutable( char * pBuffer, size_t nBuffer )
-{
-    if ( pBuffer == NULL || nBuffer < 2 || nBuffer > UINT32_MAX )
-        return 0;
-#if defined(_MSC_VER) || defined(__MINGW32__)
-    DWORD Length = GetModuleFileNameA( NULL, pBuffer, (DWORD)nBuffer );
-    return Length > 0 && Length < nBuffer;
-#elif defined(__APPLE__)
-    uint32_t Size = (uint32_t)nBuffer;
-    return _NSGetExecutablePath( pBuffer, &Size ) == 0;
-#else
-    // readlink does not terminate its result. Give it the full capacity so an
-    // exact-capacity result is detected as truncation, not accepted as a path.
-    ssize_t Length = readlink( "/proc/self/exe", pBuffer, nBuffer );
-    if ( Length <= 0 || (size_t)Length >= nBuffer )
-        return 0;
-    pBuffer[Length] = '\0';
-    return 1;
-#endif
-}
-
 static int Sn_MapLutRunProcess( const char * pExecutable, const char * pCommand )
 {
 #if defined(__wasm)
@@ -3379,7 +3381,7 @@ static int Sn_CommandStitch( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // Recompute canonical names without the deleted endpoints: otherwise a
     // removed LOOP can leave a spurious '#2' suffix on a surviving PO.
-    Sn_GiaSetNames(pResult, p, 1, &NonCanonical, &Duplicates);
+    Sn_CommandGiaSetNames(pResult, p, 1, &NonCanonical, &Duplicates);
     Abc_Print( 1, "Joined %d LOOP bits: proof boundary %d CIs / %d COs; "
                   "state and opaque cuts remain independent.\n",
                Gia_ManCiNum(pGia) - Gia_ManCiNum(pResult), Gia_ManCiNum(pResult), Gia_ManCoNum(pResult) );

@@ -583,7 +583,7 @@ SOURCE=.\src\base\io\io.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\io\ioabc.h
+SOURCE=.\src\base\io\ioAbc.h
 # End Source File
 # Begin Source File
 
@@ -1059,10 +1059,6 @@ SOURCE=.\src\base\wln\wlnRetime.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\wln\wlnRtl.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\wln\wlnWlc.c
 # End Source File
 # Begin Source File
@@ -1079,27 +1075,7 @@ SOURCE=.\src\base\sn\sn.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\sn\snTech.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\sn\snMapDsp.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\sn\snMapMem.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\sn\snMapAdd.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\sn\snMapTech.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\sn\snCheck.h
+SOURCE=.\src\base\sn\snBlast.h
 # End Source File
 # Begin Source File
 
@@ -1107,31 +1083,11 @@ SOURCE=.\src\base\sn\snBoundary.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\sn\snMapLut.h
+SOURCE=.\src\base\sn\snCheck.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\sn\snPth.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\sn\snBlast.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\sn\snMiniAig.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\sn\snMiniLut.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\sn\snMiniGate.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\sn\snMux.h
+SOURCE=.\src\base\sn\snClock.h
 # End Source File
 # Begin Source File
 
@@ -1143,6 +1099,14 @@ SOURCE=.\src\base\sn\snExpr.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\sn\snGia.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snGia.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\sn\snLiberty.h
 # End Source File
 # Begin Source File
@@ -1151,19 +1115,11 @@ SOURCE=.\src\base\sn\snLibrary.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\sn\snSeq.h
+SOURCE=.\src\base\sn\snLowerMem.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\sn\snMio.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\sn\snNtk.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\sn\snStitch.h
+SOURCE=.\src\base\sn\snMapAdd.h
 # End Source File
 # Begin Source File
 
@@ -1175,11 +1131,79 @@ SOURCE=.\src\base\sn\snMapDff.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\sn\snMapDsp.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\sn\snMapFf.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\sn\snClock.h
+SOURCE=.\src\base\sn\snMapLut.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snMapMem.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snMapTech.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snMiniAig.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snMiniGate.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snMiniLut.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snMio.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snMux.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snNtk.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snPth.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snRead.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snRead.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snSec.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snSec.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snSeq.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snStitch.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snTech.h
 # End Source File
 # End Group
 # End Group

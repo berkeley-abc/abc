@@ -32,6 +32,7 @@
 #include "misc/util/utilSignal.h"
 
 ABC_NAMESPACE_IMPL_START
+void Sn_ForgetGiaDescriptor( Abc_Frame_t * pAbc );
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -605,6 +606,7 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
         {
             Gia_ManStopP( &pAbc->pGia );
             pAbc->pGia = pGia;                
+            Sn_ForgetGiaDescriptor(pAbc);
         }
     }    
 

@@ -6,11 +6,15 @@ The external `sn` executable parses and elaborates Verilog/SystemVerilog using M
 [slang SystemVerilog compiler](https://github.com/MikePopoloski/slang) and writes a binary `.sn` design. ABC does
 not link slang or require its C++20 dependencies.
 
-The frontend architecture benefited from [yosys-slang](https://github.com/povik/yosys-slang), developed by
-Martin Povišer. It has been both an inspiration and a helpful practical guideline for working from slang's
-elaborated model, particularly for lvalue analysis, procedural state, timing patterns, memory eligibility, resolved
-nets, and diagnostics. The SN representation and lowering are independently developed, with warm thanks to Martin
-for his work and advice.
+Several semantic abstractions and improvement priorities in this implementation were inspired by Martin Povišer's
+[sv-elab](https://github.com/povik/sv-elab) project, which provided valuable ideas for lvalue analysis, procedural
+state, timing-pattern recognition, memory eligibility, addressing, resolved nets, and diagnostics. Warm thanks to
+Martin for saving us from discovering many of SystemVerilog's sharp edges the hard way. The SN representation and
+lowering implementation are developed independently.
+
+We also thank [Yosys](https://github.com/YosysHQ/yosys) and its contributors for an exemplary synthesis flow.
+Its approaches to elaboration, technology mapping, and other synthesis problems have been valuable examples
+from which we have learned while developing SN.
 
 ABC holds the SN design and the `&`-space GIA as independent representations. Commands move data between them only
 when explicitly requested:
@@ -18,11 +22,116 @@ when explicitly requested:
 | Command | Reads | Writes |
 | --- | --- | --- |
 | `@slang`, `@read` | HDL or `.sn` | Current SN design |
-| `@map_*`, `@opt_mux`, `@collapse` | SN | New SN design revision |
+| `@map_*`, `@lower_mem`, `@opt_mux`, `@collapse` | SN | New SN design revision |
 | `@blast` | SN | Current `&`-space GIA plus a saved boundary |
 | `&...` commands | GIA | GIA |
 | `@put` | GIA plus saved boundary | Module selected by the preceding `@blast` |
 | `@write` | SN | `.sn` or Verilog |
+
+## Lowering selected memories
+
+`@lower_mem` replaces selected native SN arrays with word registers, write-address decoders, and balanced
+decoded read-mux logic. This is distinct from FPGA mapping (`@map_mem`) and memory abstraction (`@blast -A mem`).
+
+```text
+@lower_mem -S 1024 -n           # Preview arrays with width * depth <= 1024 bits
+@lower_mem -S 1024              # Lower those arrays
+@lower_mem -I top/u_fifo/data   # Select one memory occurrence
+@lower_mem -I u_fifo -S 4096    # Select small arrays beneath an instance
+@lower_mem -M datapath -a       # Lower all native arrays beneath this module definition
+@check
+@blast -A mem                  # Abstract any remaining memories
+```
+
+At least one of `-S`, `-I`, or `-a` is required. Repeated exact `-I` paths form a union; `-S` restricts that
+selection. Paths are relative to the selected root or prefixed by its module name. They may name a memory or
+an instance subtree; unnamed objects use `@<object-ID>`. Unmatched paths are errors. `-M` selects a definition
+(all its callers see the replacement); `-I` specializes affected occurrences without changing unselected siblings.
+Size limits apply to each SN array, including individual byte lanes, not aggregate architectural memory banks.
+Preview reports storage flop bits, clocked-read register bits, and decoded read-mux data bits, not exact AIG size.
+Large expansions should be previewed first. More than 32 selected paths are summarized rather than listed.
+Selections excluded by `-S` are reported (the first ten individually). Expansions with at least 1,048,576
+state bits or 8,388,608 decoded read-mux data bits produce a warning, not a hard refusal.
+With `-a`, shared definitions remain shared even if redundant `-I` paths are supplied.
+
+The initial implementation supports zero or one write port, arbitrary read-port counts, asynchronous and
+positive-edge clocked reads, scalar enables, and per-bit initialization masks. Clocked reads retain old-data
+read-during-write behavior. Fully initialized read-only arrays become constants. Other read-only arrays retain
+initial/unknown storage in disabled registers, emitted as `always @(posedge 1'd0)`. Selected
+multi-write-port memories are rejected before changing the design; technology/black-box instances are not expanded.
+Addresses follow SN's two-state convention: out-of-range writes do nothing and out-of-range reads yield zero.
+Four-state behavior for X/Z addresses is not promised. Known-address initialization masks remain intact.
+Per-bit write masks are not supported. Native clocked `SN_MEM_READ` ports are supported, but the current
+frontend represents clocked RTL reads as asynchronous memory ports followed by separate registers.
+The current frontend may reject re-importing emitted read-only storage implemented with a constant clock;
+binary roundtripping and Verilog simulation of that representation remain supported.
+Generated register ordering is deterministic, but is not intended to match another tool's memory lowering for
+positional CEC. Ordinary `@blast` then expands the new registers and logic; only unlowered memories remain abstract.
+
+## HDL equivalence
+
+Use `@slang design.sv; @blast` to load HDL into `&`-space, or pass HDL directly
+to `&cec`. Both routes use the companion `sn` executable.
+
+```text
+&cec -M top before.sv after.sv
+&cec -M top -D WIDTH=32 -D FEATURE=1 before.sv after.sv
+&cec -M top -A mem -A mul before.sv after.sv
+@slang -p -M top design.sv; @blast -V; &b; &cec -M top design.sv
+@slang -p -M top design.sv; @blast -A mul; &cec -M top -A mul design.sv
+```
+
+HDL comparisons are positional. They compare combinational outputs and next-state functions with corresponding
+state bits treated as independent inputs, not full sequential equivalence. Flop counts and interface sizes must
+match; initial states are not compared. The reader preserves unused registers for this workflow, and verification
+extraction preserves state polarity rather than normalizing initialization. Signal names are not matched to
+reorder any comparison, including AIGER input. Users must supply designs with corresponding port and state order.
+The CEC solver and its default settings are unchanged; the positional contract and explicit PI/PO/flop-count
+checks apply to all compared networks.
+
+Direct HDL `&cec` automatically requests state preservation. For an interactive equivalent workflow, use
+`@slang -p` followed by `@blast -V` (or a cut option, which implies `-V`). Normal `@slang` retains its existing
+cleanup defaults, and ordinary `@blast` retains initialization normalization. `-V` does not undo earlier state
+cleanup and is not a reinsertion mode for `@put`. Declaration-based state ordering applies to ordinary imports
+as well as preserved-state imports; this replaces the former procedural-block/hash-table order.
+
+Ports retain declaration order and LSB-first bits. State and memories follow declaration order within each
+occurrence, with parent-local state before children in source instance order. Generate scopes use elaborated
+iteration order; selected array elements use numerical index order and selected packed bits use LSB-first order.
+Synthetic state without a declaration follows declared state in stable construction order. Topological duplication
+preserves these lists even when combinational object IDs change; binary serialization preserves the lists as well.
+Verification cuts of combinational instances and multipliers follow dependency DFS rooted in POs, register inputs,
+then memory inputs. Native memory ports are grouped by source occurrence and memory order, with established
+access order within each group. Memory CIs are read-data bits; memory COs list read controls followed by write
+controls, in SN slot order, omitting absent optional controls. Pairing links are not signals.
+
+`-B module` cuts instances of an exact module name; `-I top/instance/path` cuts an exact instance path.
+Paths may also be relative to the top (`-I instance/path`), avoiding specialized top names. An unnamed instance
+has the selectable path segment `@<object-id>` in its containing module.
+Source module names select all parameter specializations through retained `sn_source_module` metadata; an exact
+specialized SN module name selects that definition alone. Older SN files without this metadata support only exact
+SN module names. Ancestor cuts subsume descendant cuts, but descendant paths are still checked for typos.
+`-A mem` abstracts native memories and `-A mul` abstracts multiplication operators. These options are repeatable
+and are available in both `&cec` and `@blast`. Cuts expose outputs as additional inputs and inputs as additional
+outputs. A successful comparison with cuts is conditional on the abstracted blocks being equivalent; it does
+not prove the blocks themselves. Boundary descriptors check shapes and memory-port ownership without name matching.
+Unmatched selections and incompatible descriptors are rejected. Verification cuts do not support `@put`.
+Every successful GIA replacement invalidates the saved cut descriptor at `Abc_FrameUpdateGia`, including synthesis
+commands. This conservative rule prevents unrelated or reordered interfaces from inheriting a contract merely
+because their sizes match. Changing the SN design also discards it. AIGER files do not carry this descriptor: comparing
+cut networks against HDL requires a fresh verification extraction, not just matching CI/CO counts.
+
+The verification extractor reconnects transparent LOOP boundaries after bit-blasting, when individual output
+dependencies are visible. This resolves artificial cycles between multi-output instances without flattening SN.
+An observable combinational cycle remaining after reconnection is rejected; LOOPs are not free proof inputs.
+The relative order of all retained inputs, outputs, and flop endpoints is preserved.
+
+The initial verification path conservatively rejects latches, asynchronous native state controls,
+sequential library cells, unselected opaque boundaries, and initialized memories. These cases require a stronger
+event/state contract; they are not silently treated as ordinary synchronous flops or uninitialized memories.
+
+`snRead.h` provides the frame-independent HDL-to-SN reader. `snGia.h` provides reusable SN-to-GIA extraction and
+verification-boundary APIs; neither operation installs a current ABC network. Command handlers own that step.
 
 `@write -n file.v` preserves unique signal, gate and module-instance names, escaping Verilog keywords and
 punctuation. Duplicate, unnamed or unrepresentable names fall back to collision-free generated identifiers;
@@ -32,13 +141,159 @@ Preserved instance names enable name-checked boundary proofs after Verilog re-im
 generate-scope and instance-array indices so repeated instances do not collapse to the same leaf name.
 Unused named output pins are emitted explicitly open. Direct same-named register/output aliases use
 `output reg`; other native register declarations carry a name-only `sn_register_name` annotation for
-`sn` re-import. Cell `sn_state_name` and `sn_state_phase` annotations are retained by both ordinary and named output. Neither annotation
-encodes physical initialization or a proof of equivalence; malformed phases remain explicit refusals.
+`sn` re-import. Cell `sn_state_name` and `sn_state_phase` annotations are retained by both ordinary and named output.
+SEC `sn_sec_identity` and `sn_sec_instance` annotations are also emitted when present, independently of `-n`;
+the preserve-state frontend restores them on Verilog re-import. These annotations do not encode physical
+initialization or prove equivalence; malformed values remain explicit refusals.
 
 `@status` reports both representations, the monotonically increasing SN revision, and whether the saved boundary is
 compatible with the current SN design and GIA. In particular, reading or transforming SN does not clear or update an
 old `&`-space network; it makes that network unavailable for `@put` until another combinational `@blast` records a
 matching boundary.
+
+## Sequential HDL equivalence
+
+`&sec` compares two Verilog/SystemVerilog designs without replacing the current SN design, main network, or GIA:
+
+```text
+&sec -M top before.sv after.sv
+&sec -z counter.v counter.v
+&sec -z -v -O mismatch.txt before.sv after.sv
+&sec -z -W mismatch.vcd before.sv after.sv
+&sec -R rst=1 -N 2 -v -O reset_trace.txt before.sv after.sv
+&sec -p -R rst=1 -v before.sv after.sv
+&sec -m -z -O mismatch.txt miter.sv
+&sec -m -x -z -M top two_result_words.sv
+&sec -M top -D WIDTH=16 -F helpers.sv -T 60 before.sv after.sv
+```
+
+Each input must have one effective clock edge, with the clock connected to a scalar top-level input.
+The clock is removed after checking that it is not used as data. Remaining ports match positionally, LSB first,
+with matching word widths; port names are used only for diagnostics. Opposite edges across the two designs are allowed:
+each transition samples its own active edge. Unequal flop counts and zero-state operands are supported.
+If one side has no state but retains an unused clock port, its peer identifies that port positionally;
+it is removed only after checking that no output depends on it.
+State is preserved during import. Known initial bits, including mixed zero/one words, are honored.
+
+By default, unspecified initial bits are refused. `-z` explicitly assumes zero for those bits only; it does not
+overwrite known-one bits. The result states this assumption and reports how many bits were affected on each side.
+Reset/set and enable logic remain part of the next-state function. Reset inputs are free on every cycle, including
+frame zero; no startup reset is assumed in the default or `-z` modes.
+
+Alternatively, `-R rst=1` or `-R rst_n=0` drives a scalar top-level reset input at its asserted level for
+`-N` clock edges (default one), then holds it deasserted. Repeat `-R` to drive several reset pins together.
+Unlike `@blast -R`, these are repeated single assignments describing a startup sequence, not permanent
+constant constraints. `-N` requires `-R`; `-R` and `-z` are mutually exclusive. Both sides must select the same
+positional scalar pins and asserted levels. Other inputs remain free and shared during and after reset.
+Comparison starts at frame N, immediately after the last startup edge. All known initial bits are preserved;
+every unknown bit receives its own independent initial choice, on each side. A single combined `undc`
+normalization encodes those choices in a zero-initialized solver model. Reset transitions are executed, so
+correlations they establish are preserved; post-reset state is not replaced by arbitrary bits.
+This is a stronger check than assuming matching initial state. An identical design can fail if an unreset
+register remains observable: such a mismatch may be spurious for an intended state correspondence.
+Automatic reset inference is not performed. Traces show the initial choices, all startup
+samples, driven reset values, and where comparison becomes enabled. Initial choices are labeled by side and
+raw state-bit index; `-v`, `-O`, and `-W` also show source-labeled register values when available.
+The shared startup controller uses logarithmic
+state in N and is separate from the one-cycle initialization selector.
+
+Use `-p -R ...` to explicitly assume source-state correspondence instead. Unknown bits with the same relative
+hierarchical source identity and compatible declared word layout share one initial choice. The frontend records
+source identities; SN object IDs, declaration order, and generated names are never used as correspondence.
+Simple scalar/integral and one-dimensional packed registers, named instances, and named generate scopes are
+supported. The complete declared range and width must match; a bit offset is compared only within that identical
+layout. Known bits retain their own initial values and are never forced to match an unknown peer.
+Missing or incompatible peers refuse by default. `-p -u -R ...` leaves unmatched bits independent; duplicates,
+missing identity metadata, escaped identifiers, and implicit generate identities still refuse.
+The Verilog writer preserves supported register and instance identities across `@write`/re-import, with or without
+`-n`. `@lower_mem` gives each writable RAM word an identity derived from its source array, declared index,
+and packed word layout. This permits `-p -R` to pair corresponding initially unknown RAM words after lowering.
+Separately lowered procedural register slices, multidimensional/struct state, and partial read-only arrays remain
+outside this contract. `-v` and failure traces list source keys and choice-PI mappings.
+Names define an assumed initial relation, not evidence that it is intended. Results identify this relation;
+unmatched independent choices can still cause spurious mismatches. Without `-p`, `-R` behavior is unchanged.
+
+Latches, gated/multiple clocks, and opaque boundaries are refused. Asynchronous set/reset controls are
+accepted only when the composed circuit proves them inactive; active or unresolved controls are refused,
+never silently treated as synchronous. This does not imply an initial value for an otherwise uninitialized flop.
+Both `&sec` and `&cec` read HDL with the companion's `-s` option: undeclared module instances
+are errors, never silently dropped or replaced by zero outputs during verification.
+This does not change ordinary `@slang` import policy. Declared opaque modules still
+require explicit abstraction in `&cec` and are refused by `&sec`.
+Raw memories must first be lowered explicitly with `@lower_mem` and written as Verilog. Re-imported lowered RAM
+can use complete initialization, `-z`, independent-state `-R`, or `-p -R` when both sides carry matching source
+memory identities. An independently written register-file model needs equivalent explicit identities on its words
+to use `-p`; otherwise `-z` or independent `-R` applies. A fully initialized ROM lowers to constants.
+Partially initialized read-only arrays with constant clocks remain unsupported.
+
+For a small RAM, explicitly lower its storage and then compare against an independent register-file
+implementation with the same positional interface:
+
+```text
+@slang -p -M top ram.sv; @check; @lower_mem -a; @check; @write lowered.v
+&sec -M top lowered.v register_file.v
+```
+
+The default comparison requires all retained state to have known initialization. Use `&sec -z` instead only
+when assuming zero for unknown initial contents is appropriate. To compare a collapsed version, insert
+`@collapse; @check` before `@write`. Different flop counts are allowed. Read enables, collision behavior
+(old-data versus write-first), and output latency must agree; memory abstraction is not used as a substitute
+for the storage semantics. Generated state names need not match for known-init or `-z` proofs.
+`@collapse` qualifies copied register and memory identities with their former source-instance paths,
+so `-p` can also compare a flattened revision against a hierarchical one. An instance without a
+supported source identity leaves its copied state unpaired and `-p` refuses it.
+
+For two revisions with the same named RAM, run `@slang -p; @lower_mem -a; @write` on each,
+then `&sec -p -R reset=1 left_lowered.v right_lowered.v`. The positional ports and reset pin
+must agree. The reported relation shares initial choices only for matching source memory words
+and ordinary registers. Renamed or reshaped state is refused unless `-u` leaves it independent.
+
+The backend tries combinational proof, bounded checking, and ABC's existing sequential proof engines on temporary
+models. `-T` is a positive whole-second solver budget, shared across these phases, excluding import/extraction.
+Engine deadlines are cooperative, not a hard process timeout. `dsec` and `dprove` are unchanged.
+Bounded runs use PDR after bounded checking: the legacy SEC wrapper does not propagate its time limit through
+every preprocessing step. Unbounded runs retain that wrapper. A solver-only unused input accommodates older
+simulation engines on autonomous designs with no data inputs; it is removed from the returned witness.
+The command accepts two HDL files, or one supplied HDL miter with `-m`: every output bit is a bad indicator
+that must remain zero. The same checked extraction, reset controller, initialization normalization, and backend
+are reused by comparing the miter against a stateless zero reference. Reports and text traces explicitly label
+the miter and synthetic zero reference. With `-m -x`, the top must have exactly two equal-width output words;
+corresponding bits are XORed into one mismatch word before proof, and each mismatch bit is a bad indicator.
+Traces show this mismatch word, not the two original result words. The comparison uses SN port boundaries,
+not an arbitrary split of the bit-level GIA outputs. `-m -R` makes
+unknown bits independent; any desired relation between internal
+copies must be encoded in the HDL itself. `-p`/`-u` are pair-only options. Binary inputs and current-GIA operands
+remain unsupported. Pair/miter agreement requires the same initial-state relation, not merely similar RTL.
+
+A mismatch witness is validated on the constructed model before reporting the first differing output bit and frame.
+Frame zero denotes the initial state. Reset-mode verdicts and traces retain solver indices and additionally label
+frame N+k as post-reset k; earlier frames are labeled startup. If reset mode includes unknown initial bits,
+the mismatch verdict explicitly says "under independent initial choices".
+`-v` prints state-correspondence details and bounded input/output/register samples. `-w` independently enables solver
+phase messages and verbose output from the combinational checker, BMC, and the selected sequential engine;
+use `-vw` for both. This calls the underlying engines directly, not the `dprove` command, and does not change
+the proof strategy or time budget. Intermediate backend results are not the final SEC verdict—for example,
+a free-state combinational mismatch can be unreachable from the allowed initial state. `-O` writes the complete text trace,
+including source-labeled register values, to a new file. `-W` writes a VCD of sampled inputs, outputs, register values,
+initial choices, and comparison status from the same validated replay. Both refuse existing paths; neither file is created
+for equivalence or an inconclusive result. VCD timestamps are sampled cycles 10 ns apart, not physical timing, and no
+clock waveform is fabricated. VCD signals use plain sanitized identifiers; grouped vectors omit the bit-zero
+suffix, while per-bit mismatch and initial-choice signals use `name [bit]` references. Initial choices have
+separate `initial_choices/left` and `initial_choices/right` scopes. A numeric suffix is added only for a true
+name-and-bit collision within the same scope. Single-bit registers
+with validated source identity print without a redundant `[0]` in the text trace. Register vectors use their
+source-declared ranges when valid
+`sn_sec_identity` metadata is available, including ascending and non-zero-based ranges; otherwise they use
+the extracted LSB-first `[width-1:0]` layout. Port vectors still use that normalized layout because
+source-declared port ranges are not retained in SN. ABC's proof status and witness are updated, but that witness belongs
+to the temporary SEC miter, not the unchanged current network; use `&sec`'s own trace output for replay.
+Option and usage errors leave the frame untouched. Once option validation succeeds and operand reading begins,
+any refusal clears the previous proof result and witness, including input-reading failures.
+After a proof, the frame count may reflect the BMC depth explored, not a proof bound.
+
+`snSec.h` provides the reusable extraction, miter-construction, and proof APIs. Clock validation is shared with
+`snClock.h` through an opt-in raw-polarity mode; ordinary `@blast` behavior is unchanged. Known-one state is normalized
+once, after the two raw models have been combined.
 
 ## Commands
 

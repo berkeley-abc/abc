@@ -79,6 +79,8 @@ typedef struct sn_slang_options_t
     // normalized SN offsets. Packed integral input/output ports only; no unions.
     // Diagnostics only, not a correspondence proof. Existing files refuse.
     const char* port_layout_file;
+    // Keep constant and unobservable elaborated state through topological reconstruction for positional CEC.
+    bool preserve_state;
 } sn_slang_options_t;
 
 // Parse, elaborate, and import SystemVerilog source files into a new SN design.

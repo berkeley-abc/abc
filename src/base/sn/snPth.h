@@ -29,7 +29,8 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#if defined(ABC_USE_PTHREADS) && !defined(_WIN32)
+#if defined(ABC_USE_PTHREADS) && !defined(_WIN32) && !defined(WIN32) && \
+    !defined(_MSC_VER) && !defined(__MINGW32__)
 #define SN_PTH_USE_THREADS 1
 #include <pthread.h>
 #else

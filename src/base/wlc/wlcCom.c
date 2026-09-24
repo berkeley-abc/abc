@@ -382,7 +382,7 @@ int Abc_CommandGenWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
                 else {
                     printf( "The following design in Verilog, which was generated from string \"%s\",\n", pStr );
                     printf( "cannot be read into ABC due to the known limitations of command \"%%read\".\n" );
-                    printf( "Please try the following \"%%gen -F <file.v> <string>; %%yosys -b <file.v>; &ps\".\n" );
+                    printf( "Please try the following \"%%gen -F <file.v> <string>; @slang <file.v>; @blast; &ps\".\n" );
                     printf( "Generated design:\n%s\n", pOutStr );
                 }
             }
@@ -425,11 +425,11 @@ usage:
     Abc_Print( -2, "  * For the design to be readable into ABC, make sure each RHS has only one operator,\n" );
     Abc_Print( -2, "    with constant definition, bit-slicing, and concatenation being considered operators.\n" );
     Abc_Print( -2, "  * Alternatively, use any RHS style, which make have several operator per line,\n" );
-    Abc_Print( -2, "    write the design by specifying the file name \"-F file\", and read it back using Yosys.\n" );
-    Abc_Print( -2, "    Example: \"mtest;i4a,b,c;o4z=a*b+c\" is not readable into ABC directly but readable via Yosys:\n\n" );
+    Abc_Print( -2, "    write the design by specifying the file name \"-F file\", and read it back using @slang.\n" );
+    Abc_Print( -2, "    Example: \"mtest;i4a,b,c;o4z=a*b+c\" is not readable into ABC directly but readable via @slang:\n\n" );
     Abc_Print( -2, "    abc 01> %%gen \"mtest;i4a,b,c;o4z=a*b+c\"\n" );
     Abc_Print( -2, "    Warning: Trailing symbols \"+ c \" in line 6.\n\n" );
-    Abc_Print( -2, "    abc 01> %%gen -F test.v \"mtest;i4a,b,c;o4z=a*b+c\"; %yosys -b test.v; &ps\n" );
+    Abc_Print( -2, "    abc 01> %%gen -F test.v \"mtest;i4a,b,c;o4z=a*b+c\"; @slang test.v; @blast; &ps\n" );
     Abc_Print( -2, "    Dumped the design generated from mini-Verilog string \"mtest;i4a,b,c;o4z=a*b+c\" into file \"test.v\".\n" );
     Abc_Print( -2, "    test     : i/o =     12/      4  and =      61  lev =   15 (9.00)  mem = 0.00 MB\n" );
     return 1;

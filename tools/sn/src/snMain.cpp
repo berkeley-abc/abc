@@ -38,10 +38,28 @@
 static void sn_slang_usage(const char* program)
 {
     std::fprintf(stderr,
-                 "usage: %s [-M <module>] [-D <name[=value]>]... [-B <module>]... [-E] [-A] [-g] [-I|-R] [-t] "
-                 "[-L <cells.lib|cells.snlib>]... [--library-cache <dir>] [--strict-modules|--allow-unknown-modules] "
-                 "[--include-dir <dir>]... [--libfile <source.v>]... [--port-layout <new.json>] "
-                 "-o <output.sn> <input.sv>...\n",
+                 "\nusage: %s [-M module] [-D name[=value]]... [-B module]... [-L library]...\n"
+                 "       [-I directory]... [-F file]... [-C directory] [-P file.json]\n"
+                 "       [-e] [-a] [-g] [-i|-r] [-s|-u] [-p] [-t] [-h] -o file.sn file.sv ...\n"
+                 "    -M module\t\tselect the top module [default = unique top]\n"
+                 "    -D name[=value]\tspecify a preprocessor definition; may be repeated\n"
+                 "    -B module\t\timport a declared module as a black box; may be repeated\n"
+                 "    -L library\t\tread a Liberty or SN library; may be repeated\n"
+                 "    -I directory\tadd an include directory; may be repeated\n"
+                 "    -F file\t\tadd a Verilog library source; may be repeated\n"
+                 "    -C directory\tuse this Liberty cache directory\n"
+                 "    -P file.json\twrite the top-level port layout as JSON\n"
+                 "    -e\t\t\tblack-box empty modules\n"
+                 "    -a\t\t\tinfer memories only from attributes\n"
+                 "    -g\t\t\tpreserve source metadata\n"
+                 "    -i\t\t\tignore assertions [default = warn]\n"
+                 "    -r\t\t\treject assertions [default = warn]\n"
+                 "    -s\t\t\treject unknown modules\n"
+                 "    -u\t\t\twarn and drop unknown modules\n"
+                 "    -p\t\t\tpreserve constant and unused state\n"
+                 "    -t\t\t\treport frontend timing\n"
+                 "    -o file.sn\t\twrite the binary SN design (required)\n"
+                 "    -h\t\t\tprint the command usage\n",
                  program);
 }
 
@@ -54,7 +72,7 @@ int main(int argc, char** argv)
     const char* library_cache = nullptr;
     const char* port_layout = nullptr;
     sn_slang_unknown_module_policy_t unknown_policy = SN_SLANG_UNKNOWN_DEFAULT;
-    bool timing = false;
+    bool timing = false, preserve_state = false;
     std::vector<const char*> files;
     std::vector<std::string> define_storage;
     std::vector<const char*> blackboxes;
@@ -75,32 +93,37 @@ int main(int argc, char** argv)
             libraries.push_back(argv[arg + 1]);
             arg += 2;
         }
-        else if (std::strcmp(option, "--include-dir") == 0 && arg + 1 < argc)
+        else if (std::strcmp(option, "-p") == 0)
+        {
+            preserve_state = true;
+            arg++;
+        }
+        else if (std::strcmp(option, "-I") == 0 && arg + 1 < argc)
         {
             include_directories.push_back(argv[arg + 1]);
             arg += 2;
         }
-        else if (std::strcmp(option, "--libfile") == 0 && arg + 1 < argc)
+        else if (std::strcmp(option, "-F") == 0 && arg + 1 < argc)
         {
             library_sources.push_back(argv[arg + 1]);
             arg += 2;
         }
-        else if (std::strcmp(option, "--port-layout") == 0 && arg + 1 < argc)
+        else if (std::strcmp(option, "-P") == 0 && arg + 1 < argc)
         {
             port_layout = argv[arg + 1];
             arg += 2;
         }
-        else if (std::strcmp(option, "--library-cache") == 0 && arg + 1 < argc)
+        else if (std::strcmp(option, "-C") == 0 && arg + 1 < argc)
         {
             library_cache = argv[arg + 1];
             arg += 2;
         }
-        else if (std::strcmp(option, "--strict-modules") == 0)
+        else if (std::strcmp(option, "-s") == 0)
         {
             unknown_policy = SN_SLANG_UNKNOWN_ERROR;
             arg++;
         }
-        else if (std::strcmp(option, "--allow-unknown-modules") == 0)
+        else if (std::strcmp(option, "-u") == 0)
         {
             unknown_policy = SN_SLANG_UNKNOWN_WARN_DROP;
             arg++;
@@ -130,12 +153,12 @@ int main(int argc, char** argv)
             blackboxes.push_back(argv[arg + 1]);
             arg += 2;
         }
-        else if (std::strcmp(option, "-E") == 0)
+        else if (std::strcmp(option, "-e") == 0)
         {
             blackbox_empty_modules = true;
             arg++;
         }
-        else if (std::strcmp(option, "-A") == 0)
+        else if (std::strcmp(option, "-a") == 0)
         {
             memories_from_attributes_only = true;
             arg++;
@@ -145,12 +168,12 @@ int main(int argc, char** argv)
             preserve_metadata = true;
             arg++;
         }
-        else if (std::strcmp(option, "-I") == 0)
+        else if (std::strcmp(option, "-i") == 0)
         {
             assertion_policy = SN_SLANG_ASSERT_IGNORE;
             arg++;
         }
-        else if (std::strcmp(option, "-R") == 0)
+        else if (std::strcmp(option, "-r") == 0)
         {
             assertion_policy = SN_SLANG_ASSERT_ERROR;
             arg++;
@@ -189,6 +212,7 @@ int main(int argc, char** argv)
     try
     {
         sn_slang_options_t options = {};
+        options.preserve_state = preserve_state;
         options.define_count = int(defines.size());
         options.defines = defines.data();
         options.blackbox_count = int(blackboxes.size());

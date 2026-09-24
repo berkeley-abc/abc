@@ -18,11 +18,21 @@
 
 ***********************************************************************/
 
+// The frontend uses Mike Popoloski's Slang (https://github.com/MikePopoloski/slang), whose
+// SystemVerilog parsing and elaboration provide the foundation for this work. We gratefully
+// acknowledge Mike and the Slang contributors.
+//
 // Several semantic abstractions and improvement priorities in this implementation were inspired
-// by Martin Povišer's yosys-slang project, which provided valuable ideas for lvalue analysis,
+// by Martin Povišer's sv-elab project, which provided valuable ideas for lvalue analysis,
 // procedural state, timing-pattern recognition, memory eligibility, addressing, resolved nets,
 // and diagnostics. Warm thanks to Martin for saving us from discovering many of SystemVerilog's
 // sharp edges the hard way.
+// Project: https://github.com/povik/sv-elab
+//
+// We also thank Yosys and its contributors for an exemplary synthesis flow. Their approaches to
+// elaboration, technology mapping, and other synthesis problems have been valuable examples
+// from which we have learned while developing SN.
+// Project: https://github.com/YosysHQ/yosys
 
 #include "snSlang.h"
 #include "snLvalue.h"
@@ -38,10 +48,12 @@
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -85,6 +97,106 @@ using namespace slang::ast;
 using sn_slang_detail::sn_lvalue_analyze;
 using sn_slang_detail::sn_lvalue_context_t;
 using sn_slang_detail::sn_lvalue_t;
+
+// Some generated Verilog netlists spell a positional parameter override as
+// `cell#7 inst (...)` instead of the required `cell #(7) inst (...)`. Repair
+// only this unambiguous instance pattern, outside comments and strings, while
+// keeping the original source path and line numbers for Slang diagnostics.
+static unsigned normalize_bare_parameter_overrides(std::string_view source, std::string& normalized)
+{
+    auto identifier_start = [](char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || c == '$';
+    };
+    auto identifier_char = [&](char c) {
+        return identifier_start(c) || (c >= '0' && c <= '9');
+    };
+    auto whitespace = [](char c) { return c == ' ' || c == '\t' || c == '\r' || c == '\n'; };
+    size_t copied = 0;
+    unsigned count = 0;
+    for (size_t i = 0; i < source.size();)
+    {
+        if (source[i] == '/' && i + 1 < source.size() && source[i + 1] == '/')
+        {
+            i += 2;
+            while (i < source.size() && source[i] != '\n') i++;
+        }
+        else if (source[i] == '/' && i + 1 < source.size() && source[i + 1] == '*')
+        {
+            i += 2;
+            while (i + 1 < source.size() && !(source[i] == '*' && source[i + 1] == '/')) i++;
+            i = std::min(i + 2, source.size());
+        }
+        else if (source[i] == '"')
+        {
+            i++;
+            while (i < source.size() && source[i] != '"')
+            {
+                if (source[i] == '\\' && i + 1 < source.size()) i++;
+                i++;
+            }
+            if (i < source.size()) i++;
+        }
+        else if (source[i] == '\\')
+        {
+            // Escaped Verilog identifiers terminate at whitespace.
+            while (i < source.size() && !whitespace(source[i])) i++;
+        }
+        else if (identifier_start(source[i]))
+        {
+            size_t end = i + 1;
+            while (end < source.size() && identifier_char(source[end])) end++;
+            if (end < source.size() && source[end] == '#')
+            {
+                size_t number = end + 1;
+                while (number < source.size() && source[number] >= '0' && source[number] <= '9') number++;
+                size_t instance = number;
+                while (instance < source.size() && whitespace(source[instance])) instance++;
+                if (number > end + 1 && instance > number && instance < source.size() &&
+                    identifier_start(source[instance]))
+                {
+                    size_t after_instance = instance + 1;
+                    while (after_instance < source.size() && identifier_char(source[after_instance]))
+                        after_instance++;
+                    while (after_instance < source.size() && whitespace(source[after_instance]))
+                        after_instance++;
+                    if (after_instance < source.size() && source[after_instance] == '(')
+                    {
+                        normalized.append(source.substr(copied, end - copied));
+                        normalized.append(" #(");
+                        normalized.append(source.substr(end + 1, number - end - 1));
+                        normalized.push_back(')');
+                        copied = number;
+                        count++;
+                    }
+                }
+            }
+            i = end;
+        }
+        else i++;
+    }
+    if (count) normalized.append(source.substr(copied));
+    return count;
+}
+
+static void add_source_with_legacy_parameter_compat(driver::Driver& driver, const char* path)
+{
+    std::ifstream input(path, std::ios::binary);
+    if (!input)
+    {
+        driver.sourceLoader.addFiles(path);
+        return;
+    }
+    std::string source(std::istreambuf_iterator<char>{input}, {});
+    std::string normalized;
+    unsigned count = normalize_bare_parameter_overrides(source, normalized);
+    if (!count)
+    {
+        driver.sourceLoader.addFiles(path);
+        return;
+    }
+    std::fprintf(stderr, "sn-slang: normalized %u legacy bare parameter override(s) in %s\n", count, path);
+    driver.sourceLoader.addBuffer(driver.sourceManager.assignText(path, normalized));
+}
 
 static const InstanceBodySymbol* canonical_body(const InstanceBodySymbol& body)
 {
@@ -396,9 +508,11 @@ struct ModuleImporter
     std::vector<SequentialBlock> sequential_blocks;
     std::unordered_map<const ValueSymbol*, sn_obj_pair_t> sequential_registers;
     std::unordered_map<SelectedValue, sn_obj_pair_t, SelectedValueHash> sequential_selected_registers;
+    std::unordered_map<sn_obj_id_t, SelectedValue> latch_declarations;
     std::unordered_map<const ValueSymbol*, sn_obj_id_t> combinational_placeholders;
     std::unordered_map<SelectedValue, sn_obj_id_t, SelectedValueHash> combinational_selected_placeholders;
     std::vector<PendingInstance> pending_insts;
+    bool preserve_state = false;
     std::unordered_set<std::string> warned_unknown_modules;
     const ProceduralValues* active_procedural_values = nullptr;
     const ProceduralValues* nonblocking_read_values = nullptr;
@@ -517,10 +631,141 @@ struct ModuleImporter
         add_attribute_metadata(object, symbol);
     }
 
+    enum class SecPathPolicy { Register, General };
+
+    // Use one relative-path and named-generate-scope check for SEC metadata.
+    // Register keys retain their stricter simple-identifier rule; memory and
+    // instance keys permit the printable indexed paths they used before.
+    std::optional<std::string> sec_relative_path(const Symbol& symbol, SecPathPolicy policy) const
+    {
+        auto simple = [](std::string_view name) {
+            if (name.empty() || !(std::isalpha((unsigned char)name[0]) || name[0] == '_')) return false;
+            return std::all_of(name.begin(), name.end(), [](unsigned char c) {
+                return std::isalnum(c) || c == '_' || c == '$';
+            });
+        };
+        if (symbol.name.starts_with("_sn_") || symbol.name.starts_with("__sn_") ||
+            (policy == SecPathPolicy::Register && !simple(symbol.name)))
+            return std::nullopt;
+        const Scope* scope = symbol.getParentScope();
+        while (scope && &scope->asSymbol() != body)
+        {
+            const Symbol& parent = scope->asSymbol();
+            // A named generate-for owns unnamed per-index block entries.
+            // Their path comes from the named array and its declared index.
+            if (parent.as_if<GenerateBlockSymbol>() && parent.getParentScope())
+                if (const auto* array = parent.getParentScope()->asSymbol().as_if<GenerateBlockArraySymbol>();
+                    array && !array->isUnnamed &&
+                    (policy == SecPathPolicy::General || simple(array->name)))
+                { scope = parent.getParentScope(); continue; }
+            if (const auto* gen = parent.as_if<GenerateBlockSymbol>(); gen && gen->isUnnamed)
+                return std::nullopt;
+            if (const auto* array = parent.as_if<GenerateBlockArraySymbol>(); array && array->isUnnamed)
+                return std::nullopt;
+            if (policy == SecPathPolicy::Register && !simple(parent.name))
+                return std::nullopt;
+            scope = parent.getParentScope();
+        }
+        if (policy == SecPathPolicy::Register && !scope) return std::nullopt;
+        std::string path = symbol.getHierarchicalPath();
+        std::string prefix = body->getHierarchicalPath() + ".";
+        if (!path.starts_with(prefix)) return std::nullopt;
+        path.erase(0, prefix.size());
+        if (policy == SecPathPolicy::General &&
+            !std::all_of(path.begin(), path.end(), [](unsigned char c) {
+                return std::isalnum(c) || c == '_' || c == '$' || c == '.' ||
+                       c == '[' || c == ']' || c == '-';
+            }))
+            return std::nullopt;
+        return path;
+    }
+
+    // SEC correspondence is an explicit source-level assumption. Do not infer
+    // identities from generated SN object names or from flattened bit positions.
+    bool add_sec_identity(sn_obj_id_t object, const ValueSymbol& symbol)
+    {
+        if (!preserve_state) return true;
+        for (const AttributeSymbol* attribute : body->getCompilation().getAttributes(symbol))
+            if (attribute->name == "sn_sec_identity")
+            {
+                std::string identity;
+                if (!register_name(symbol, identity, "sn_sec_identity"))
+                    return false;
+                sn_module_add_attribute_record(module, object, "sn_sec_identity", identity.c_str());
+                return true;
+            }
+        auto path = sec_relative_path(symbol, SecPathPolicy::Register);
+        if (!path) return true;
+        const Type& type = symbol.getType().getCanonicalType();
+        // Initially support scalar/integral and one-dimensional packed words.
+        // Packed structs, multidimensional and individually lowered array words
+        // require a richer tuple identity and are deliberately not guessed.
+        if (!type.isIntegral()) return true;
+        if (const auto* array = type.as_if<PackedArrayType>(); array && array->elementType.getCanonicalType().isPackedArray()) return true;
+        if (type.isStruct() || type.isUnion()) return true;
+        ConstantRange range = type.getFixedRange();
+        std::string identity = *path + "|" + std::to_string(range.left) + ":" +
+            std::to_string(range.right) + ":" + std::to_string(width(type));
+        sn_module_add_attribute_record(module, object, "sn_sec_identity", identity.c_str());
+        return true;
+    }
+
     void add_module_metadata(const InstanceBodySymbol& instance_body)
     {
+        // Internal source identity survives parameter specialization and SN binary roundtrips.
+        std::string definition(instance_body.getDefinition().name);
+        sn_module_add_attribute_record(module, SN_INVALID_ID, "sn_source_module", definition.c_str());
         add_source_metadata(SN_INVALID_ID, instance_body.location);
         add_attribute_metadata(SN_INVALID_ID, instance_body.getDefinition());
+    }
+
+    void collect_declaration_order(const Scope& scope, std::unordered_map<const ValueSymbol*, size_t>& order)
+    {
+        for (const Symbol& symbol : scope.members())
+        {
+            if (symbol.as_if<InstanceSymbol>())
+                continue;
+            if (const auto* generate = symbol.as_if<GenerateBlockSymbol>(); generate && generate->isUninstantiated)
+                continue;
+            if (const auto* value = symbol.as_if<ValueSymbol>())
+                order.emplace(value, order.size());
+            if (const Scope* child = symbol.as_if<Scope>())
+                collect_declaration_order(*child, order);
+        }
+    }
+
+    // Boundary order must not depend on procedural assignment order or hash-table iteration.
+    void order_state_declarations()
+    {
+        std::unordered_map<const ValueSymbol*, size_t> order;
+        collect_declaration_order(*body, order);
+        using Key = std::tuple<size_t, int64_t, int64_t>;
+        std::unordered_map<sn_obj_id_t, Key> keys;
+        auto rank = [&](const ValueSymbol* symbol) {
+            auto it = order.find(symbol);
+            return it == order.end() ? SIZE_MAX : it->second;
+        };
+        for (const auto& [symbol, pair] : sequential_registers)
+            keys.emplace(pair.out, Key(rank(symbol), 0, -1));
+        for (const auto& [selected, pair] : sequential_selected_registers)
+            keys.emplace(pair.out, Key(rank(selected.symbol), selected.index, selected.bit));
+        for (const auto& [object, selected] : latch_declarations)
+            keys.emplace(object, Key(rank(selected.symbol), selected.index, selected.bit));
+        for (const auto& [symbol, memory] : memories)
+            keys.emplace(memory.pair.out, Key(rank(symbol), 0, -1));
+        for (sn_obj_type_t type : {SN_REG_OUT, SN_MEM_OUT})
+        {
+            auto& objects = module->type_objects[type];
+            if (objects.size < 2)
+                continue;
+            auto* first = &sn_vec_at(sn_obj_id_t, &objects, 0);
+            std::stable_sort(first, first + objects.size, [&](sn_obj_id_t a, sn_obj_id_t b) {
+                auto ia = keys.find(a), ib = keys.find(b);
+                Key ka = ia == keys.end() ? Key(SIZE_MAX, 0, 0) : ia->second;
+                Key kb = ib == keys.end() ? Key(SIZE_MAX, 0, 0) : ib->second;
+                return ka < kb;
+            });
+        }
     }
 
     // The named writer can disambiguate a state variable from a buffered output.
@@ -3436,6 +3681,27 @@ struct ModuleImporter
                     return result;
                 }
             }
+            // A variable with a constant declaration initializer and no updates
+            // retains that value; it is not an uninitialized/undriven zero.
+            // Keep the placeholder bookkeeping in case a later collected driver
+            // replaces it, just as for the undriven fallback below. Do not turn
+            // a nonconstant time-zero initializer into a continuous assignment.
+            if (const auto* variable = symbol.as_if<VariableSymbol>())
+                if (const Expression* initializer = variable->getInitializer())
+                {
+                    EvalContext context(*body->parentInstance);
+                    ConstantValue initial = initializer->eval(context);
+                    if (initial && initial.isInteger())
+                    {
+                        sn_obj_id_t result = lower_integer(initial.integer(), symbol.getType());
+                        if (result != SN_INVALID_ID)
+                        {
+                            values.emplace(&symbol, result);
+                            undriven_values.emplace(&symbol);
+                            return result;
+                        }
+                    }
+                }
             // SN is a two-state synthesis IR, so an undriven data object (Z for a net and X for a variable) is
             // deterministically concretized to zero. This also covers state hidden behind an inactive generate
             // condition and explicit synthesis black-box outputs; a future black-box abstraction can replace the
@@ -4600,6 +4866,24 @@ struct ModuleImporter
             sn_obj_pair_t pair = sn_module_add_mem_pair(module, bits, element_type->isSigned(), uint32_t(range.width()),
                                                         name.c_str(), nullptr);
             add_metadata(pair.out, *symbol);
+            if (preserve_state)
+            {
+                auto path = sec_relative_path(*symbol, SecPathPolicy::General);
+                if (path && !path->empty())
+                {
+                    const Type& word = element_type->getCanonicalType();
+                    const auto* packed_array = word.as_if<PackedArrayType>();
+                    if (word.isIntegral() && !word.isStruct() && !word.isUnion() &&
+                        (!packed_array || !packed_array->elementType.getCanonicalType().isPackedArray()))
+                    {
+                        ConstantRange packed = word.getFixedRange();
+                        std::string identity = *path + "|" + std::to_string(range.lower()) + ":" +
+                            std::to_string(range.width()) + ":" + std::to_string(packed.left) + ":" +
+                            std::to_string(packed.right) + ":" + std::to_string(bits);
+                        sn_module_add_attribute_record(module, pair.out, "sn_sec_memory", identity.c_str());
+                    }
+                }
+            }
             memories.emplace(symbol,
                              Memory{pair, range.lower(), uint32_t(range.width()), range.left,
                                     range.left <= range.right ? int64_t(1) : int64_t(-1)});
@@ -6177,7 +6461,7 @@ struct ModuleImporter
             bool syntactic_ok = collect_sequential_targets(timed->stmt, syntactic_targets,
                                                             syntactic_selected_targets, syntactic_seen,
                                                             syntactic_selected_seen, true);
-            prune_procedural_constants = true;
+            prune_procedural_constants = !preserve_state;
             if (!syntactic_ok)
                 return false;
             if (!collect_sequential_targets(timed->stmt, sequential.targets, sequential.selected_targets, seen,
@@ -6222,6 +6506,8 @@ struct ModuleImporter
                 sn_obj_pair_t pair = sn_module_add_reg_pair(module, bits, target->getType().isSigned(), name.c_str(),
                                                             nullptr, clock);
                 add_metadata(pair.out, *target);
+                if (!add_sec_identity(pair.out, *target))
+                    return false;
                 sn_reg_set_flags(module, pair.out, flags & SN_REG_CLOCK_NEGEDGE);
                 sequential_registers.emplace(target, pair);
                 values.emplace(target, pair.out);
@@ -8800,6 +9086,12 @@ struct ModuleImporter
         // checked procedural driver legality. Lower all combinational processes into one aggregate environment so
         // disjoint field assignments share one placeholder and are connected only after the last process.
         ProceduralValues environment;
+        std::unordered_map<const ValueSymbol*, size_t> declaration_order;
+        collect_declaration_order(*body, declaration_order);
+        auto declaration_rank = [&](const ValueSymbol* symbol) {
+            auto it = declaration_order.find(symbol);
+            return it == declaration_order.end() ? SIZE_MAX : it->second;
+        };
         for (const auto& [symbol, placeholder] : combinational_placeholders)
             environment.values.emplace(symbol, placeholder);
         for (const auto& [selected, placeholder] : combinational_selected_placeholders)
@@ -8849,7 +9141,7 @@ struct ModuleImporter
             auto connect_value = [&](sn_obj_id_t placeholder, sn_obj_id_t value, uint32_t bits,
                                      bool is_signed, bool fully_assigned,
                                      const std::vector<PartialDriver>* external_drivers,
-                                     const ValueSymbol& target) -> bool {
+                                     const ValueSymbol& target, int64_t index = 0, int64_t bit = -1) -> bool {
                 // The procedural graph is a DAG apart from its unresolved placeholder. Cache whether each object
                 // reaches that placeholder. Re-running a complete DFS at every node made this substitution
                 // quadratic on large case statements (and caused allocator growth into many GiB on Ara's SIMD
@@ -8937,6 +9229,7 @@ struct ModuleImporter
                 sn_obj_pair_t latch = sn_module_add_reg_pair(module, bits, is_signed, name.c_str(), nullptr,
                                                               SN_INVALID_ID);
                 add_metadata(latch.out, target);
+                latch_declarations.emplace(latch.out, SelectedValue{&target, index, bit});
                 sn_reg_set_flags(module, latch.out, SN_REG_LATCH);
                 uint32_t zero_word = 0;
                 uint32_t one_word = 1;
@@ -8959,6 +9252,42 @@ struct ModuleImporter
                             return {SN_INVALID_ID, SN_INVALID_ID};
                         return {sn_module_add_mux(module, select, selected.first, default_value.first, nullptr),
                                 sn_module_add_mux(module, select, selected.second, default_value.second, nullptr)};
+                    }
+                    if (sn_obj_type(module, object) == SN_BMUX)
+                    {
+                        sn_obj_id_t select = sn_obj_fanin(module, object, SN_BMUX_SELECT);
+                        sn_obj_id_t packed = sn_obj_fanin(module, object, SN_BMUX_ALTERNATIVES);
+                        uint32_t select_width = sn_obj_width(module, select);
+                        if (select_width >= 31)
+                            return {SN_INVALID_ID, SN_INVALID_ID};
+                        uint32_t count = 1u << select_width;
+                        if (uint64_t(sn_obj_width(module, packed)) != uint64_t(count) * bits)
+                            return {SN_INVALID_ID, SN_INVALID_ID};
+                        std::vector<sn_obj_id_t> data_values, enable_values;
+                        data_values.reserve(count);
+                        enable_values.reserve(count);
+                        for (uint32_t i = 0; i < count; i++)
+                        {
+                            sn_obj_id_t alternative_object;
+                            if (sn_obj_type(module, packed) == SN_CONCAT &&
+                                sn_obj_fanin_count(module, packed) == count)
+                                alternative_object = sn_obj_fanin(module, packed, i);
+                            else
+                            {
+                                uint32_t low = i * bits;
+                                alternative_object =
+                                    sn_module_add_slice(module, packed, int32_t(low + bits - 1), int32_t(low), nullptr);
+                            }
+                            auto alternative = self(self, alternative_object, true);
+                            if (alternative.first == SN_INVALID_ID)
+                                return {SN_INVALID_ID, SN_INVALID_ID};
+                            data_values.push_back(alternative.first);
+                            enable_values.push_back(alternative.second);
+                        }
+                        sn_obj_id_t data_packed = sn_module_add_concat(module, count, data_values.data(), nullptr);
+                        sn_obj_id_t enable_packed = sn_module_add_concat(module, count, enable_values.data(), nullptr);
+                        return {sn_module_add_bmux(module, select, data_packed, bits, is_signed, nullptr),
+                                sn_module_add_bmux(module, select, enable_packed, 1, false, nullptr)};
                     }
                     if (sn_obj_type(module, object) == SN_PMUX)
                     {
@@ -9023,8 +9352,16 @@ struct ModuleImporter
                             return true;
                 return false;
             };
-            for (const auto& [symbol, value] : environment.values)
+            std::vector<const ValueSymbol*> ordered_targets;
+            for (const auto& entry : environment.values)
+                if (!is_automatic_value(*entry.first))
+                    ordered_targets.push_back(entry.first);
+            std::sort(ordered_targets.begin(), ordered_targets.end(), [&](auto* a, auto* b) {
+                return declaration_rank(a) < declaration_rank(b);
+            });
+            for (const ValueSymbol* symbol : ordered_targets)
             {
+                sn_obj_id_t value = environment.values.at(symbol);
                 if (is_automatic_value(*symbol))
                     continue; // Automatic block and loop variables do not become module outputs or latches.
                 auto placeholder = combinational_placeholders.find(symbol);
@@ -9056,8 +9393,16 @@ struct ModuleImporter
                     return false;
                 }
             }
-            for (const auto& [selected, value] : environment.selected_values)
+            std::vector<SelectedValue> ordered_selected;
+            for (const auto& entry : environment.selected_values)
+                ordered_selected.push_back(entry.first);
+            std::sort(ordered_selected.begin(), ordered_selected.end(), [&](const auto& a, const auto& b) {
+                return std::tuple(declaration_rank(a.symbol), a.index, a.bit) <
+                       std::tuple(declaration_rank(b.symbol), b.index, b.bit);
+            });
+            for (const SelectedValue& selected : ordered_selected)
             {
+                sn_obj_id_t value = environment.selected_values.at(selected);
                 auto placeholder = combinational_selected_placeholders.find(selected);
                 if (placeholder == combinational_selected_placeholders.end())
                 {
@@ -9079,7 +9424,7 @@ struct ModuleImporter
                                                         : &mask->second))
                     return false;
                 if (!connect_value(placeholder->second, value, bits, selected_is_signed(selected),
-                                   fully_assigned, drivers, *selected.symbol))
+                                   fully_assigned, drivers, *selected.symbol, selected.index, selected.bit))
                 {
                     std::fprintf(stderr, "sn-slang: failed to connect combinational target '%.*s[%lld][%lld]'\n",
                                  int(selected.symbol->name.size()), selected.symbol->name.data(),
@@ -9662,6 +10007,28 @@ struct ModuleImporter
             sn_module_add_library_gate(module, cell, inputs.data(), name.c_str(), nullptr) :
             sn_module_add_inst(module, module_it->second, input_count, inputs.data(), name.c_str(), nullptr);
         add_metadata(object, inst);
+        if (preserve_state)
+        {
+            bool restored_identity = false;
+            for (const AttributeSymbol* attribute : body->getCompilation().getAttributes(inst))
+                if (attribute->name == "sn_sec_instance")
+                {
+                    std::string identity;
+                    if (!register_name(inst, identity, "sn_sec_instance"))
+                        return false;
+                    sn_module_add_attribute_record(module, object, "sn_sec_instance", identity.c_str());
+                    restored_identity = true;
+                    break;
+            }
+            // A writer-generated instance name is not a source occurrence key.
+            // It is usable only when the explicit annotation above restores the key.
+            if (!restored_identity && !inst.name.empty())
+            {
+                auto path = sec_relative_path(inst, SecPathPolicy::General);
+                if (path)
+                    sn_module_add_attribute_record(module, object, "sn_sec_instance", path->c_str());
+            }
+        }
         if (cell != SN_LIB_NONE)
             for (const AttributeSymbol* attribute : body->getCompilation().getAttributes(inst))
                 if (attribute->name == "sn_state_phase")
@@ -9748,7 +10115,7 @@ struct ModuleImporter
                 if (warned_unknown_modules.insert(name).second)
                     std::fprintf(stderr, "sn-slang: warning: dropping unknown module '%s' in '%s': no port model. "
                                          "Supply Liberty (-L) or a Verilog stub with -B; "
-                                         "use --strict-modules to reject this.\n",
+                                         "use -s to reject this.\n",
                                  name.c_str(), sn_name_get(&module->design->names, module->name));
                 continue;
             }
@@ -10487,7 +10854,7 @@ static sn_design_t* read_files_top(int file_count, const char* const* file_paths
                                    const char* liberty_cache_dir = nullptr,
                                    int include_directory_count = 0, const char* const* include_directories = nullptr,
                                    int library_source_count = 0, const char* const* library_sources = nullptr,
-                                   const char* port_layout_file = nullptr)
+                                   const char* port_layout_file = nullptr, bool preserve_state = false)
 {
     using clock = std::chrono::steady_clock;
     if (timing)
@@ -10604,7 +10971,7 @@ static sn_design_t* read_files_top(int file_count, const char* const* file_paths
             std::fprintf(stderr, "sn-slang: source file path cannot be null\n");
             return nullptr;
         }
-        driver.sourceLoader.addFiles(file_paths[i]);
+        add_source_with_legacy_parameter_compat(driver, file_paths[i]);
     }
     if (!driver.processOptions() || !driver.parseAllSources())
         return nullptr;
@@ -10708,6 +11075,7 @@ static sn_design_t* read_files_top(int file_count, const char* const* file_paths
         ModuleImporter importer(module, body, &body_modules, compilation->getSourceManager(), &translate_off_cache,
                                 &approximation_counters, &formal_statement_counters,
                                 memories_from_attributes_only, preserve_metadata, assertion_policy);
+        importer.preserve_state = preserve_state;
         importer.add_module_metadata(*body);
         auto stage_start = clock::now();
         auto report_stage = [&](const char* stage) {
@@ -10777,8 +11145,12 @@ static sn_design_t* read_files_top(int file_count, const char* const* file_paths
         if (!importer.add_outputs(*body))
             return stage_failed("output creation");
         report_stage("output creation");
+        importer.order_state_declarations();
         repair_module_connections(module, repair_warnings);
-        sn_design_cleanup_module_topo(design, body_modules.at(body));
+        if (preserve_state)
+            sn_design_reorder_module_topo(design, body_modules.at(body));
+        else
+            sn_design_cleanup_module_topo(design, body_modules.at(body));
         report_stage("topological cleanup");
         if (!sn_module_is_topo(sn_design_get_module_const(design, body_modules.at(body))))
         {
@@ -10888,7 +11260,8 @@ extern "C" sn_design_t* sn_slang_read_files_top_options_timed(int file_count, co
                           options->assertion_policy, timing, options->liberty_file,
                           options->liberty_count, options->liberty_files, options->unknown_module_policy,
                           options->liberty_cache_dir, options->include_directory_count, options->include_directories,
-                          options->library_source_count, options->library_sources, options->port_layout_file);
+                          options->library_source_count, options->library_sources, options->port_layout_file,
+                          options->preserve_state);
 }
 
 extern "C" bool sn_slang_write_binary_files_top_options_timed(int file_count, const char* const* file_paths,

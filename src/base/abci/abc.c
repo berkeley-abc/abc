@@ -65,6 +65,8 @@
 #include "opt/fret/fretime.h"
 #include "opt/nwk/nwkMerge.h"
 #include "base/wln/wln.h"
+#include "base/sn/snRead.h"
+#include "base/sn/snGia.h"
 #include "misc/extra/extra.h"
 #include "opt/eslim/eSLIM.h"
 
@@ -868,6 +870,8 @@ void Abc_FrameUpdateGia( Abc_Frame_t * pAbc, Gia_Man_t * pNew )
         Abc_Print( -1, "Abc_FrameUpdateGia(): Transformation has failed.\n" );
         return;
     }
+    // A replacement GIA has no proven relationship to the saved positional cut interface.
+    Sn_ForgetGiaDescriptor(pAbc);
     if ( Gia_ManPoNum(pNew) == 0 )
         Abc_Print( 0, "The current GIA has no primary outputs. Some commands may not work correctly.\n" );
     if ( pNew == pAbc->pGia )
@@ -914,6 +918,7 @@ Gia_Man_t * Abc_FrameGetGia( Abc_Frame_t * pAbc )
     pAbc->pGia2 = NULL;
     pGia = pAbc->pGia;
     pAbc->pGia = NULL;
+    Sn_ForgetGiaDescriptor(pAbc);
     return pGia;
 }
 
@@ -35554,6 +35559,7 @@ int Abc_CommandAbc9Load( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Gia_ManStopP( &pAbc->pGia );
     pAbc->pGia = Gia_ManDupWithAttributes( pAbc->pGiaBest );
+    Sn_ForgetGiaDescriptor(pAbc);
     return 0;
 
 usage:
@@ -35597,6 +35603,7 @@ int Abc_CommandAbc9Load2( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Gia_ManStopP( &pAbc->pGia );
     pAbc->pGia = pAbc->pGiaBest2;
+    Sn_ForgetGiaDescriptor(pAbc);
     pAbc->pGiaBest2 = NULL;
     pAbc->nBestLuts2 = 0;
     pAbc->nBestEdges2 = 0;
@@ -35644,6 +35651,7 @@ int Abc_CommandAbc9LoadAig( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Gia_ManStopP( &pAbc->pGia );
     pAbc->pGia = Gia_ManDupWithAttributes( pAbc->pGiaSaved );
+    Sn_ForgetGiaDescriptor(pAbc);
     return 0;
 
 usage:
@@ -43398,173 +43406,6 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-static Vec_Ptr_t * Abc_GiaDupNameVec( Vec_Ptr_t * vNames )
-{
-    Vec_Ptr_t * vNew;
-    char * pName;
-    int i;
-    if ( vNames == NULL )
-        return NULL;
-    vNew = Vec_PtrAlloc( Vec_PtrSize(vNames) );
-    Vec_PtrForEachEntry( char *, vNames, pName, i )
-        Vec_PtrPush( vNew, pName ? Abc_UtilStrsav(pName) : NULL );
-    return vNew;
-}
-
-static Gia_Man_t * Abc_GiaReorderInputsByName( Gia_Man_t * pFirst, Gia_Man_t * pSecond )
-{
-    Vec_Int_t * vPiPerm;
-    Gia_Man_t * pNew;
-    char * pName1, * pName2;
-    int * pUsed;
-    int i, k, nPis, fDiff = 0;
-    if ( pFirst == NULL || pSecond == NULL || pFirst->vNamesIn == NULL || pSecond->vNamesIn == NULL )
-        return NULL;
-    nPis = Gia_ManPiNum( pFirst );
-    if ( nPis != Gia_ManPiNum(pSecond) )
-        return NULL;
-    if ( Vec_PtrSize(pFirst->vNamesIn) < nPis || Vec_PtrSize(pSecond->vNamesIn) < nPis )
-        return NULL;
-    vPiPerm = Vec_IntAlloc( nPis );
-    pUsed = ABC_CALLOC( int, nPis );
-    for ( i = 0; i < nPis; i++ )
-    {
-        pName1 = (char *)Vec_PtrEntry( pFirst->vNamesIn, i );
-        if ( pName1 == NULL )
-            break;
-        for ( k = 0; k < nPis; k++ )
-        {
-            pName2 = (char *)Vec_PtrEntry( pSecond->vNamesIn, k );
-            if ( pName2 && !pUsed[k] && !strcmp(pName1, pName2) )
-                break;
-        }
-        if ( k == nPis )
-            break;
-        pUsed[k] = 1;
-        Vec_IntPush( vPiPerm, k );
-        fDiff |= (k != i);
-    }
-    ABC_FREE( pUsed );
-    if ( i < nPis || !fDiff )
-    {
-        Vec_IntFree( vPiPerm );
-        return NULL;
-    }
-    pNew = Gia_ManDupPerm( pSecond, vPiPerm );
-    Vec_IntFree( vPiPerm );
-    pNew->vNamesIn = Vec_PtrAlloc( Vec_PtrSize(pSecond->vNamesIn) );
-    for ( i = 0; i < nPis; i++ )
-    {
-        pName1 = (char *)Vec_PtrEntry( pFirst->vNamesIn, i );
-        Vec_PtrPush( pNew->vNamesIn, pName1 ? Abc_UtilStrsav(pName1) : NULL );
-    }
-    for ( i = nPis; i < Vec_PtrSize(pSecond->vNamesIn); i++ )
-    {
-        pName2 = (char *)Vec_PtrEntry( pSecond->vNamesIn, i );
-        Vec_PtrPush( pNew->vNamesIn, pName2 ? Abc_UtilStrsav(pName2) : NULL );
-    }
-    pNew->vNamesOut = Abc_GiaDupNameVec( pSecond->vNamesOut );
-    return pNew;
-}
-
-static Gia_Man_t * Abc_GiaDupPermOutputs( Gia_Man_t * p, Vec_Int_t * vPoPerm )
-{
-    Gia_Man_t * pNew;
-    Gia_Obj_t * pObj;
-    int i;
-    assert( Vec_IntSize(vPoPerm) == Gia_ManPoNum(p) );
-    pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Abc_UtilStrsav( p->pName );
-    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
-    Gia_ManConst0(p)->Value = 0;
-    Gia_ManForEachCi( p, pObj, i )
-        pObj->Value = Gia_ManAppendCi( pNew );
-    Gia_ManForEachAnd( p, pObj, i )
-    {
-        if ( Gia_ObjIsBuf(pObj) )
-            pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
-        else
-            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-    }
-    Gia_ManForEachPo( p, pObj, i )
-        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManPo(p, Vec_IntEntry(vPoPerm, i))) );
-    Gia_ManForEachRi( p, pObj, i )
-        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
-    return pNew;
-}
-
-static Gia_Man_t * Abc_GiaReorderOutputsByName( Gia_Man_t * pFirst, Gia_Man_t * pSecond )
-{
-    Vec_Int_t * vPoPerm;
-    Gia_Man_t * pNew;
-    char * pName1, * pName2;
-    int * pUsed;
-    int i, k, nPos, fDiff = 0;
-    if ( pFirst == NULL || pSecond == NULL || pFirst->vNamesOut == NULL || pSecond->vNamesOut == NULL )
-        return NULL;
-    nPos = Gia_ManPoNum( pFirst );
-    if ( nPos != Gia_ManPoNum(pSecond) )
-        return NULL;
-    if ( Vec_PtrSize(pFirst->vNamesOut) < nPos || Vec_PtrSize(pSecond->vNamesOut) < nPos )
-        return NULL;
-    vPoPerm = Vec_IntAlloc( nPos );
-    pUsed = ABC_CALLOC( int, nPos );
-    for ( i = 0; i < nPos; i++ )
-    {
-        pName1 = (char *)Vec_PtrEntry( pFirst->vNamesOut, i );
-        if ( pName1 == NULL )
-            break;
-        for ( k = 0; k < nPos; k++ )
-        {
-            pName2 = (char *)Vec_PtrEntry( pSecond->vNamesOut, k );
-            if ( pName2 && !pUsed[k] && !strcmp(pName1, pName2) )
-                break;
-        }
-        if ( k == nPos )
-            break;
-        pUsed[k] = 1;
-        Vec_IntPush( vPoPerm, k );
-        fDiff |= (k != i);
-    }
-    ABC_FREE( pUsed );
-    if ( i < nPos || !fDiff )
-    {
-        Vec_IntFree( vPoPerm );
-        return NULL;
-    }
-    pNew = Abc_GiaDupPermOutputs( pSecond, vPoPerm );
-    Vec_IntFree( vPoPerm );
-    pNew->vNamesIn = Abc_GiaDupNameVec( pSecond->vNamesIn );
-    pNew->vNamesOut = Vec_PtrAlloc( Vec_PtrSize(pSecond->vNamesOut) );
-    for ( i = 0; i < nPos; i++ )
-    {
-        pName1 = (char *)Vec_PtrEntry( pFirst->vNamesOut, i );
-        Vec_PtrPush( pNew->vNamesOut, pName1 ? Abc_UtilStrsav(pName1) : NULL );
-    }
-    for ( i = nPos; i < Vec_PtrSize(pSecond->vNamesOut); i++ )
-    {
-        pName2 = (char *)Vec_PtrEntry( pSecond->vNamesOut, i );
-        Vec_PtrPush( pNew->vNamesOut, pName2 ? Abc_UtilStrsav(pName2) : NULL );
-    }
-    return pNew;
-}
-
-static void Abc_GiaTransferNamesIfMatch( Gia_Man_t * pGia, Gia_Man_t * pGiaNames )
-{
-    if ( pGia == NULL || pGiaNames == NULL )
-        return;
-    if ( pGia->vNamesIn == NULL && pGiaNames->vNamesIn != NULL && Gia_ManCiNum(pGia) == Vec_PtrSize(pGiaNames->vNamesIn) )
-    {
-        pGia->vNamesIn = pGiaNames->vNamesIn;
-        pGiaNames->vNamesIn = NULL;
-    }
-    if ( pGia->vNamesOut == NULL && pGiaNames->vNamesOut != NULL && Gia_ManCoNum(pGia) == Vec_PtrSize(pGiaNames->vNamesOut) )
-    {
-        pGia->vNamesOut = pGiaNames->vNamesOut;
-        pGiaNames->vNamesOut = NULL;
-    }
-}
 
 /**Function*************************************************************
 
@@ -43577,158 +43418,49 @@ static void Abc_GiaTransferNamesIfMatch( Gia_Man_t * pGia, Gia_Man_t * pGiaNames
   SeeAlso     []
 
 ***********************************************************************/
-static Gia_Man_t * Abc_ReadAigerOrVerilogFile( char * pFileName, char * pFileName2, char * pTopModule, Vec_Ptr_t * vDefines, Vec_Ptr_t * vBoxes, Vec_Ptr_t * vInsts, int * pAbc_ReadAigerOrVerilogFileStatus )
+static Gia_Man_t * Abc_ReadAigerOrVerilogFile( char * pFileName, char * pFileName2, char * pTopModule,
+    Vec_Ptr_t * vDefines, Vec_Ptr_t * vBoxes, Vec_Ptr_t * vInsts, int Abstractions,
+    Vec_Int_t * vDescriptor, int * pStatus )
 {
-    FILE * pFile;
     Gia_Man_t * pGia;
-    char * pTemp;
-    char * pOrigFileName = NULL;
-    char * pFileTemp = NULL;
-    char * pDefines = NULL;
-    char * pBoxes = NULL;
-    char * pExposes = NULL;
-    char * pInsts = NULL;
-    int fVerilog, fSystemVerilog;
-
-    *pAbc_ReadAigerOrVerilogFileStatus = 0;
-    if ( pFileName == NULL )
-        return NULL;
-
-    // fix the wrong symbol
-    for ( pTemp = pFileName; *pTemp; pTemp++ )
-        if ( *pTemp == '>' )
-            *pTemp = '\\';
-    if ( (pFile = fopen( pFileName, "r" )) == NULL )
+    *pStatus = 1;
+    if ( !pFileName ) return NULL;
+    if ( Sn_IsHdlFile(pFileName) )
     {
-        Abc_Print( -1, "Cannot open input file \"%s\". ", pFileName );
-        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".aig", NULL, NULL, NULL, NULL )) )
-            Abc_Print( 1, "Did you mean \"%s\"?", pFileName );
-        Abc_Print( 1, "\n" );
-        *pAbc_ReadAigerOrVerilogFileStatus = 1;
-        return NULL;
-    }
-    fclose( pFile );
-
-    fSystemVerilog = Extra_FileIsType( pFileName, ".sv", NULL, NULL );
-    fVerilog = fSystemVerilog || Extra_FileIsType( pFileName, ".v", NULL, NULL );
-    if ( fVerilog )
-    {
-        extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
-        Aig_Man_t * pAig = NULL;
-        char * pCommand;
-        char * pFileBase;
-        int nCommand;
-        int RetValue;
-        int fSystemVerilog2 = pFileName2 && Extra_FileIsType( pFileName2, ".sv", NULL, NULL );
-        // Save the original filename before changing it
-        pOrigFileName = pFileName;
-        pFileBase = pTopModule ? Abc_UtilStrsav(pTopModule) :
-            Extra_FileNameGeneric( Extra_FileNameWithoutPath(pFileName) );
-        pFileTemp = ABC_ALLOC( char, strlen(pFileBase) + 5 );
-        sprintf( pFileTemp, "%s.aig", pFileBase );
-        ABC_FREE( pFileBase );
-        pDefines = Wln_YosysBuildDefines( vDefines );
-        pBoxes = Wln_YosysBuildBoxCommands( vBoxes, 0 );
-        pExposes = Wln_YosysBuildBoxCommands( vBoxes, 1 );
-        pInsts = Wln_YosysBuildInstCommands( vInsts );
-        nCommand = strlen("yosys") + (pDefines ? strlen(pDefines) : 0) + (pBoxes ? strlen(pBoxes) : 0) + (pExposes ? strlen(pExposes) : 0) + 2 * (pInsts ? strlen(pInsts) : 0) + strlen(pFileName) + (pFileName2 ? strlen(pFileName2) : 0) + 2 * (pTopModule ? strlen(pTopModule) : 0) + strlen(pFileTemp) + 700;
-        pCommand = ABC_ALLOC( char, nCommand );
-        if ( pBoxes || pInsts )
-            snprintf( pCommand, nCommand,
-                "yosys -qp \"read_verilog %s %s%s%s%s; hierarchy -check %s%s; %s%shierarchy -check %s%s; proc; memory -nomap; %smemory_map; opt; async2sync; opt; setundef -undriven -expose; setundef -zero; dffunmap; techmap; opt; dffunmap; flatten; %s%sopt_clean; opt_expr; setundef -undriven -expose; setundef -zero; aigmap; write_aiger -symbols %s\"",
-                pDefines ? pDefines : "",
-                (fSystemVerilog || fSystemVerilog2) ? "-sv " : "", pFileName,
-                pFileName2 ? " " : "", pFileName2 ? pFileName2 : "",
-                pTopModule ? "-top "    : "-auto-top", pTopModule ? pTopModule : "",
-                pBoxes ? pBoxes : "",
-                pInsts ? pInsts : "",
-                pTopModule ? "-top "    : "-auto-top", pTopModule ? pTopModule : "",
-                pInsts ? pInsts : "",
-                pExposes ? pExposes : "",
-                pFileName2 ? "delete t:\\$scopeinfo; " : "",
-                pFileTemp );
-        else
-            snprintf( pCommand, nCommand,
-                "yosys -qp \"read_verilog %s %s%s%s%s; hierarchy -check %s%s; flatten; proc; opt; async2sync; opt; setundef -undriven -zero; techmap; memory -nomap; memory_map; dffunmap; opt_clean; opt_expr; %saigmap; write_aiger -symbols %s\"",
-                pDefines ? pDefines : "",
-                (fSystemVerilog || fSystemVerilog2) ? "-sv " : "", pFileName,
-                pFileName2 ? " " : "", pFileName2 ? pFileName2 : "",
-                pTopModule ? "-top "    : "-auto-top", pTopModule ? pTopModule : "",
-                pFileName2 ? "delete t:\\$scopeinfo; " : "",
-                pFileTemp );
-#if defined(__wasm)
-        RetValue = 1;
-#else
-        RetValue = system( pCommand );
-#endif
-        if ( RetValue != 0 )
-        {
-            Abc_Print( -1, "Yosys command failed: \"%s\".\n", pCommand );
-            ABC_FREE( pCommand );
-            ABC_FREE( pDefines );
-            ABC_FREE( pBoxes );
-            ABC_FREE( pExposes );
-            ABC_FREE( pInsts );
-            ABC_FREE( pFileTemp );
-            return NULL;
-        }
-        ABC_FREE( pCommand );
-        ABC_FREE( pDefines );
-        ABC_FREE( pBoxes );
-        ABC_FREE( pExposes );
-        ABC_FREE( pInsts );
-        pDefines = NULL;
-        pBoxes = NULL;
-        pExposes = NULL;
-        pInsts = NULL;
-        if ( pFileName2 )
-        {
-            Gia_Man_t * pGiaNames = NULL;
-            Abc_Ntk_t * pNtk = Io_Read( pFileTemp, IO_FILE_AIGER, 1, 0 );
-            if ( pNtk == NULL )
-            {
-                Abc_Print( -1, "Reading AIGER from file \"%s\" has failed.\n", pFileTemp );
-                ABC_FREE( pFileTemp );
-                return NULL;
-            }
-            pAig = Abc_NtkToDar( pNtk, 0, 1 );
-            Abc_NtkDelete( pNtk );
-            if ( pAig == NULL )
-            {
-                Abc_Print( -1, "Converting the AIGER network into an internal AIG has failed.\n" );
-                ABC_FREE( pFileTemp );
-                return NULL;
-            }
-            pGia = Gia_ManFromAig( pAig );
-            Aig_ManStop( pAig );
-            pGiaNames = Gia_AigerRead( pFileTemp, 0, 1, 0 );
-            Abc_GiaTransferNamesIfMatch( pGia, pGiaNames );
-            if ( pGiaNames )
-                Gia_ManStop( pGiaNames );
-        }
-        else
-        {
-            pFileName = pFileTemp;
-            pGia = Gia_AigerRead( pFileName, 0, 0, 0 );
-        }
+        Sn_GiaOptions_t GiaOptions;
+        char * Files[2] = {pFileName, pFileName2};
+        sn_module_id_t Top;
+        sn_design_t * pDesign;
+        memset(&GiaOptions, 0, sizeof(GiaOptions));
+        GiaOptions.Blast = sn_blast_default_options();
+        GiaOptions.vModules = vBoxes;
+        GiaOptions.vInstances = vInsts;
+        GiaOptions.fMemory = (Abstractions & 1) != 0;
+        GiaOptions.fMultiply = (Abstractions & 2) != 0;
+        pDesign = Sn_ReadVerifyHdl(pFileName2 ? 2 : 1, Files, pTopModule, vDefines, &Top,
+                                  Abc_FrameReadErr(Abc_FrameGetGlobalFrame()));
+        if ( !pDesign ) return NULL;
+        pGia = Sn_DesignExtractGia(pDesign, Top, &GiaOptions, vDescriptor,
+                                   Abc_FrameReadErr(Abc_FrameGetGlobalFrame()));
+        sn_design_destroy(pDesign);
+        if ( !pGia ) return NULL;
+        ABC_FREE(pGia->pSpec);
+        pGia->pSpec = Abc_UtilStrsav(pFileName);
     }
     else
-        pGia = Gia_AigerRead( pFileName, 0, 0, 0 );
-    if ( pGia == NULL )
     {
-        Abc_Print( -1, "Reading AIGER from file \"%s\" has failed.\n", pFileName );
-        ABC_FREE( pFileTemp );
-        return NULL;
+        FILE * pFile = fopen(pFileName, "rb");
+        if ( !pFile )
+        {
+            Abc_Print(-1, "Cannot open input file \"%s\".\n", pFileName);
+            char * pSimilar = Extra_FileGetSimilarName(pFileName, (char *)".aig", (char *)".aiger", NULL, NULL, NULL);
+            if (pSimilar) Abc_Print(1, "Did you mean \"%s\"?\n", pSimilar);
+            return NULL;
+        }
+        fclose(pFile);
+        pGia = Gia_AigerRead(pFileName, 0, 0, 0);
     }
-
-    // If we read from a Verilog file, keep the original filename as the spec
-    if ( pOrigFileName != NULL )
-    {
-        ABC_FREE( pGia->pSpec );
-        pGia->pSpec = Abc_UtilStrsav( pOrigFileName );
-    }
-
-    ABC_FREE( pFileTemp );
+    if ( pGia ) *pStatus = 0;
     return pGia;
 }
 
@@ -43777,10 +43509,11 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     Vec_Ptr_t * vBoxes   = Vec_PtrAlloc( 0 );
     Vec_Ptr_t * vInsts   = Vec_PtrAlloc( 0 );
     int c, nArgcNew, fUseSim = 0, fUseNewX = 0, fUseNewY = 0, fMiter = 0, fDualOutput = 0, fDumpMiter = 0, fSavedSpec = 0;
-    int Abc_ReadAigerOrVerilogFileStatus = 0;
+    int Abc_ReadAigerOrVerilogFileStatus = 0, Abstractions = 0;
+    Vec_Int_t * vDescriptors[2] = {Vec_IntAlloc(16), Vec_IntAlloc(16)};
     Cec_ManCecSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CTMDIBFnmdbasxytvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ACTMDIBFnmdbasxytvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -43824,10 +43557,17 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Vec_PtrPush( vDefines, argv[globalUtilOptind] );
             globalUtilOptind++;
             break;
+        case 'A':
+            if ( globalUtilOptind >= argc ) goto usage;
+            if ( !strcmp(argv[globalUtilOptind], "mem") ) Abstractions |= 1;
+            else if ( !strcmp(argv[globalUtilOptind], "mul") ) Abstractions |= 2;
+            else { Abc_Print(-1, "Unknown abstraction kind; use -A mem or -A mul.\n"); goto usage; }
+            globalUtilOptind++;
+            break;
         case 'B':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-B\" should be followed by a module pattern.\n" );
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by a module name.\n" );
                 goto usage;
             }
             Vec_PtrPush( vBoxes, argv[globalUtilOptind] );
@@ -43836,7 +43576,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'I':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-I\" should be followed by an instance pattern.\n" );
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by a top/instance path.\n" );
                 goto usage;
             }
             Vec_PtrPush( vInsts, argv[globalUtilOptind] );
@@ -43896,6 +43636,8 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         Vec_PtrFree( vDefines );
         Vec_PtrFree( vBoxes );
         Vec_PtrFree( vInsts );
+        Vec_IntFree(vDescriptors[0]);
+        Vec_IntFree(vDescriptors[1]);
         return 1;
     }
     if ( pFileName2 )
@@ -43906,6 +43648,8 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Vec_PtrFree( vDefines );
             Vec_PtrFree( vBoxes );
             Vec_PtrFree( vInsts );
+            Vec_IntFree(vDescriptors[0]);
+            Vec_IntFree(vDescriptors[1]);
             return 1;
         }
         fclose( pFile );
@@ -43920,6 +43664,8 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Vec_PtrFree( vDefines );
             Vec_PtrFree( vBoxes );
             Vec_PtrFree( vInsts );
+            Vec_IntFree(vDescriptors[0]);
+            Vec_IntFree(vDescriptors[1]);
             return 1;
         }
         if ( fDualOutput )
@@ -43930,6 +43676,8 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Vec_PtrFree( vDefines );
                 Vec_PtrFree( vBoxes );
                 Vec_PtrFree( vInsts );
+                Vec_IntFree(vDescriptors[0]);
+                Vec_IntFree(vDescriptors[1]);
                 return 1;
             }
             if ( !pPars->fSilent )
@@ -43957,6 +43705,8 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Vec_PtrFree( vDefines );
                 Vec_PtrFree( vBoxes );
                 Vec_PtrFree( vInsts );
+                Vec_IntFree(vDescriptors[0]);
+                Vec_IntFree(vDescriptors[1]);
                 return 0;
             }
             // handle the case when the output is disproved by an all-0 primary input pattern
@@ -43986,6 +43736,8 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         Vec_PtrFree( vDefines );
         Vec_PtrFree( vBoxes );
         Vec_PtrFree( vInsts );
+        Vec_IntFree(vDescriptors[0]);
+        Vec_IntFree(vDescriptors[1]);
         return 0;
     }
     if ( nArgcNew > 2 )
@@ -43994,6 +43746,8 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         Vec_PtrFree( vDefines );
         Vec_PtrFree( vBoxes );
         Vec_PtrFree( vInsts );
+        Vec_IntFree(vDescriptors[0]);
+        Vec_IntFree(vDescriptors[1]);
         return 1;
     }
     if ( nArgcNew == 2 )
@@ -44002,12 +43756,15 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         int n;
         for ( n = 0; n < 2; n++ )
         {
-            pGias[n] = Abc_ReadAigerOrVerilogFile( pFileNames[n], pFileName2, pTopModule, vDefines, vBoxes, vInsts, &Abc_ReadAigerOrVerilogFileStatus );
+            pGias[n] = Abc_ReadAigerOrVerilogFile( pFileNames[n], pFileName2, pTopModule, vDefines, vBoxes, vInsts, Abstractions, vDescriptors[n], &Abc_ReadAigerOrVerilogFileStatus );
             if ( pGias[n] == NULL )
             {
+                if ( n ) Gia_ManStop(pGias[0]);
                 Vec_PtrFree( vDefines );
                 Vec_PtrFree( vBoxes );
                 Vec_PtrFree( vInsts );
+                Vec_IntFree(vDescriptors[0]);
+                Vec_IntFree(vDescriptors[1]);
                 return Abc_ReadAigerOrVerilogFileStatus;
             }
         }
@@ -44020,6 +43777,8 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Vec_PtrFree( vDefines );
             Vec_PtrFree( vBoxes );
             Vec_PtrFree( vInsts );
+            Vec_IntFree(vDescriptors[0]);
+            Vec_IntFree(vDescriptors[1]);
             return 1;
         }
         pGias[0] = pAbc->pGia;
@@ -44034,6 +43793,8 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Vec_PtrFree( vDefines );
             Vec_PtrFree( vBoxes );
             Vec_PtrFree( vInsts );
+            Vec_IntFree(vDescriptors[0]);
+            Vec_IntFree(vDescriptors[1]);
             return 1;
         }
         pGias[0] = pAbc->pGia;
@@ -44048,6 +43809,8 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Vec_PtrFree( vDefines );
                 Vec_PtrFree( vBoxes );
                 Vec_PtrFree( vInsts );
+                Vec_IntFree(vDescriptors[0]);
+                Vec_IntFree(vDescriptors[1]);
                 return 1;
             }
             FileName = pAbc->pGia->pSpec;
@@ -44065,6 +43828,8 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Vec_PtrFree( vDefines );
                 Vec_PtrFree( vBoxes );
                 Vec_PtrFree( vInsts );
+                Vec_IntFree(vDescriptors[0]);
+                Vec_IntFree(vDescriptors[1]);
                 return 1;
             }
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -44073,38 +43838,57 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Vec_PtrFree( vDefines );
             Vec_PtrFree( vBoxes );
             Vec_PtrFree( vInsts );
+            Vec_IntFree(vDescriptors[0]);
+            Vec_IntFree(vDescriptors[1]);
             return 0;
         }
-        pGias[1] = Abc_ReadAigerOrVerilogFile( FileName, pFileName2, pTopModule, vDefines, vBoxes, vInsts, &Abc_ReadAigerOrVerilogFileStatus );
+        pGias[1] = Abc_ReadAigerOrVerilogFile( FileName, pFileName2, pTopModule, vDefines, vBoxes, vInsts, Abstractions, vDescriptors[1], &Abc_ReadAigerOrVerilogFileStatus );
         if ( pGias[1] == NULL )
         {
             Vec_PtrFree( vDefines );
             Vec_PtrFree( vBoxes );
             Vec_PtrFree( vInsts );
+            Vec_IntFree(vDescriptors[0]);
+            Vec_IntFree(vDescriptors[1]);
             return Abc_ReadAigerOrVerilogFileStatus;
         }
     }
-    if ( pGias[0] && pGias[1] )
+    if (pGias[0] == pAbc->pGia && !Vec_IntSize(vDescriptors[0]))
     {
-        Gia_Man_t * pTemp = Abc_GiaReorderInputsByName( pGias[0], pGias[1] );
-        if ( pTemp )
-        {
-            if ( pPars->fVerbose )
-                Abc_Print( 1, "Reordered primary inputs of the second network using input names.\n" );
-            if ( pGias[1] != pAbc->pGia && pGias[1] != pAbc->pGiaSaved )
-                Gia_ManStop( pGias[1] );
-            pGias[1] = pTemp;
-        }
-        pTemp = Abc_GiaReorderOutputsByName( pGias[0], pGias[1] );
-        if ( pTemp )
-        {
-            if ( pPars->fVerbose )
-                Abc_Print( 1, "Reordered primary outputs of the second network using output names.\n" );
-            if ( pGias[1] != pAbc->pGia && pGias[1] != pAbc->pGiaSaved )
-                Gia_ManStop( pGias[1] );
-            pGias[1] = pTemp;
-        }
+        const Vec_Int_t * vSaved = Sn_CurrentGiaDescriptor(pAbc, pGias[0]);
+        if (vSaved) Vec_IntAppend(vDescriptors[0], (Vec_Int_t *)vSaved);
     }
+    if ( Gia_ManRegNum(pGias[0]) != Gia_ManRegNum(pGias[1]) ||
+         Gia_ManPiNum(pGias[0]) != Gia_ManPiNum(pGias[1]) ||
+         Gia_ManPoNum(pGias[0]) != Gia_ManPoNum(pGias[1]) ||
+         (Vec_IntSize(vDescriptors[0]) && Vec_IntSize(vDescriptors[1]) &&
+          !Vec_IntEqual(vDescriptors[0], vDescriptors[1])) ||
+         ((Abstractions || Vec_PtrSize(vBoxes) || Vec_PtrSize(vInsts)) &&
+          (!Vec_IntSize(vDescriptors[0]) || !Vec_IntSize(vDescriptors[1]))) )
+    {
+        if (Gia_ManPiNum(pGias[0]) != Gia_ManPiNum(pGias[1]))
+            Abc_Print(-1, "Incompatible PI counts: %d versus %d.\n", Gia_ManPiNum(pGias[0]), Gia_ManPiNum(pGias[1]));
+        if (Gia_ManPoNum(pGias[0]) != Gia_ManPoNum(pGias[1]))
+            Abc_Print(-1, "Incompatible PO counts: %d versus %d.\n", Gia_ManPoNum(pGias[0]), Gia_ManPoNum(pGias[1]));
+        if (Gia_ManRegNum(pGias[0]) != Gia_ManRegNum(pGias[1]))
+            Abc_Print(-1, "Incompatible flop counts: %d versus %d; preserved flops are required.\n",
+                Gia_ManRegNum(pGias[0]), Gia_ManRegNum(pGias[1]));
+        if (Vec_IntSize(vDescriptors[0]) && Vec_IntSize(vDescriptors[1]) &&
+            !Vec_IntEqual(vDescriptors[0], vDescriptors[1]))
+            Abc_Print(-1, "Incompatible positional cut descriptors.\n");
+        if ((Abstractions || Vec_PtrSize(vBoxes) || Vec_PtrSize(vInsts)) &&
+            (!Vec_IntSize(vDescriptors[0]) || !Vec_IntSize(vDescriptors[1])))
+            Abc_Print(-1, "Cut comparison requires a valid extraction descriptor on both sides; "
+                "an AIG load or replacement invalidates the saved descriptor.\n");
+        Abc_Print(-1, "Comparison not performed.\n");
+        for ( int i = 0; i < 2; ++i )
+            if ( pGias[i] != pAbc->pGia && pGias[i] != pAbc->pGiaSaved ) Gia_ManStop(pGias[i]);
+        Vec_PtrFree(vDefines); Vec_PtrFree(vBoxes); Vec_PtrFree(vInsts);
+        Vec_IntFree(vDescriptors[0]); Vec_IntFree(vDescriptors[1]);
+        return 1;
+    }
+    if ( Abstractions || Vec_PtrSize(vBoxes) || Vec_PtrSize(vInsts) )
+        Abc_Print(1, "CEC is conditional on the shared abstract box outputs; removed internals are not verified.\n");
     pPars->pNameSpec = pGias[0] ? (pGias[0]->pSpec ? pGias[0]->pSpec : pGias[0]->pName) : NULL;
     pPars->pNameImpl = pGias[1] ? (pGias[1]->pSpec ? pGias[1]->pSpec : pGias[1]->pName) : NULL;
     pPars->vNamesIn  = pGias[0] ? pGias[0]->vNamesIn : NULL;
@@ -44143,6 +43927,8 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Vec_PtrFree( vDefines );
             Vec_PtrFree( vBoxes );
             Vec_PtrFree( vInsts );
+            Vec_IntFree(vDescriptors[0]);
+            Vec_IntFree(vDescriptors[1]);
             return 0;
         }
         if ( fUseSim )
@@ -44220,18 +44006,21 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     Vec_PtrFree( vDefines );
     Vec_PtrFree( vBoxes );
     Vec_PtrFree( vInsts );
+    Vec_IntFree(vDescriptors[0]);
+    Vec_IntFree(vDescriptors[1]);
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cec [-CT num] [-M str] [-D str] [-B str] [-I str] [-F str] [-nmdbasxytvwh]\n" );
+    Abc_Print( -2, "usage: &cec [-CT num] [-M str] [-D str] [-B str] [-I str] [-A kind] [-F str] [-nmdbasxytvwh]\n" );
     Abc_Print( -2, "\t         new combinational equivalence checker\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
-    Abc_Print( -2, "\t-M str : top module name if Verilog file(s) are used [default = \"not used\"]\n" );
-    Abc_Print( -2, "\t-D str : possibly repeated defines used by Yosys for Verilog files [default = \"not used\"]\n" );
-    Abc_Print( -2, "\t-B str : possibly repeated module patterns to box in Verilog AIG output [default = \"not used\"]\n" );
-    Abc_Print( -2, "\t-I str : possibly repeated instance/cell patterns to box in Verilog AIG output [default = \"not used\"]\n" );
-    Abc_Print( -2, "\t-F str : second Verilog/SystemVerilog file read together with each Verilog input [default = \"not used\"]\n" );
+    Abc_Print( -2, "\t-M str : top module name for HDL inputs [default = inferred]\n" );
+    Abc_Print( -2, "\t-A kind: abstract inferred mem or mul operators (repeatable)\n" );
+    Abc_Print( -2, "\t-D str : macro definition for HDL inputs (repeatable) [default = none]\n" );
+    Abc_Print( -2, "\t-B str : declared HDL module to abstract as a cut (repeatable) [default = none]\n" );
+    Abc_Print( -2, "\t-I str : exact instance path, rooted at or relative to the top (repeatable)\n" );
+    Abc_Print( -2, "\t-F str : additional HDL file read with each HDL operand [default = none]\n" );
     Abc_Print( -2, "\t-n     : toggle using naive SAT-based checking [default = %s]\n", pPars->fNaive? "yes":"no");
     Abc_Print( -2, "\t-m     : toggle miter vs. two circuits [default = %s]\n", fMiter? "miter":"two circuits");
     Abc_Print( -2, "\t-d     : toggle using dual output miter [default = %s]\n", fDualOutput? "yes":"no");
@@ -44244,9 +44033,15 @@ usage:
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes":"no");
     Abc_Print( -2, "\t-w     : toggle printing SAT solver statistics [default = %s]\n", pPars->fVeryVerbose? "yes":"no");
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\tInterfaces match positionally, never by name; PI/PO/flop counts must agree.\n" );
+    Abc_Print( -2, "\tFlops must be preserved; this is combinational, not sequential equivalence.\n" );
+    Abc_Print( -2, "\tCut proofs are conditional on aligned abstract outputs, not proof of removed internals.\n" );
+    Abc_Print( -2, "\t-F may require -M if the additional source introduces another top module.\n" );
     Vec_PtrFree( vDefines );
     Vec_PtrFree( vBoxes );
     Vec_PtrFree( vInsts );
+    Vec_IntFree(vDescriptors[0]);
+    Vec_IntFree(vDescriptors[1]);
     return 1;
 }
 
@@ -51155,6 +50950,7 @@ int Abc_CommandAbc9Undo( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Gia_ManStop( pAbc->pGia );
     pAbc->pGia = pAbc->pGia2;
+    Sn_ForgetGiaDescriptor(pAbc);
     pAbc->pGia2 = NULL;
     return 0;
 

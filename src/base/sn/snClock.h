@@ -39,6 +39,15 @@ typedef struct sn_clock_options_t
     // sequential AIG, or delta-cycle/glitch proof. Requires transition + names.
     bool state_actions;
     bool verbose; // per-bit identity/phase manifest; summaries always printed
+    // Opt-in SEC extraction; ordinary @blast behavior is unchanged. The caller
+    // owns init_bits (raw 0/1/X, one per state bit) and optional clock metadata.
+    bool sec_raw;
+    bool sec_free_init; // SEC startup-reset model keeps unspecified state nondeterministic
+    Vec_Str_t* init_bits;
+    Vec_Ptr_t* sec_state_keys; // optional owned source identity/layout strings, one per raw state bit
+    Vec_Ptr_t* sec_display_names; // optional owned physical names; reporting only, never used for pairing
+    int* clock_input;
+    int* clock_edge;
 } sn_clock_options_t;
 
 typedef struct sn_clock_state_t
@@ -131,8 +140,16 @@ static inline Gia_Man_t* sn_design_clock_abstract(const sn_design_t* design, sn_
     signed char** phase_maps = NULL;
     sn_name_id_t** state_name_maps = NULL;
     *reason = NULL;
+    if (options.clock_input) *options.clock_input = -1;
+    if (options.clock_edge) *options.clock_edge = -1;
     sn_vec_init(&states);
     sn_blast_boundary_init(&boundary);
+    if (options.sec_state_keys && options.named_states)
+    { *reason = "SEC source keys and action-signature names require separate extractions"; goto cleanup; }
+    if (options.sec_raw && (options.transition || options.state_actions))
+    { *reason = "raw SEC extraction cannot use transition or state-action mode"; goto cleanup; }
+    if (options.sec_free_init && !options.sec_raw)
+    { *reason = "free SEC initial state requires raw SEC extraction"; goto cleanup; }
     if (options.state_actions && (!options.transition || !options.named_states || options.assume_zero))
     { *reason = "state-action proof requires named free state, not a sequential or zero-start model"; goto cleanup; }
     blast.mode = SN_BLAST_COMB;
@@ -219,6 +236,9 @@ static inline Gia_Man_t* sn_design_clock_abstract(const sn_design_t* design, sn_
         const sn_blast_occurrence_t* occurrence = &sn_vec_at(sn_blast_occurrence_t, &boundary.occurrences, reg->occurrence);
         const sn_module_t* module = sn_design_get_module_const(design, occurrence->module);
         uint32_t flags = sn_obj_reg_flags(module, reg->reg_out);
+        // SEC may ignore asynchronous controls only when the check below
+        // proves every such control inactive after hierarchy substitution.
+        // A live asynchronous event is never silently sampled as a clocked one.
         int clock = sn_clock_control(source, reg, SN_REG_CLOCK, -1);
         int enable = sn_clock_control(source, reg, SN_REG_ENABLE, 1);
         int set = sn_clock_control(source, reg, SN_REG_SET, (flags & SN_REG_SET_NEGEDGE) != 0) ^
@@ -244,10 +264,10 @@ static inline Gia_Man_t* sn_design_clock_abstract(const sn_design_t* design, sn_
             sn_obj_id_t mask = sn_obj_reg_init_mask(module, reg->reg_out);
             bool explicit_init = init != SN_INVALID_ID && (mask == SN_INVALID_ID || sn_const_bit(module, mask, bit));
             int phase = explicit_init && sn_const_bit(module, init, bit);
-            int state = Gia_ManAppendCi(source) ^ phase;
+            int state = Gia_ManAppendCi(source) ^ (options.sec_raw ? 0 : phase);
             int next = sn_clock_co(source, reg->co_begin + bit);
             sn_clock_state_t* record;
-            if (!explicit_init && !options.transition && !options.assume_zero)
+            if (!explicit_init && !options.transition && !options.assume_zero && !(options.sec_raw && options.sec_free_init))
             { *reason = "unspecified initial state: use a free-state transition relation or explicitly assume zero"; goto cleanup; }
             Vec_IntPush(aliases, -1);
             Vec_IntWriteEntry(aliases, (int)(reg->ci_begin + bit), state);
@@ -261,7 +281,8 @@ static inline Gia_Man_t* sn_design_clock_abstract(const sn_design_t* design, sn_
             }
             record = sn_vec_push(sn_clock_state_t, &states);
             record->occurrence = reg->occurrence; record->object = reg->reg_out; record->bit = bit;
-            record->next = next ^ phase; record->clock = clock; record->phase = phase;
+            record->next = next ^ (options.sec_raw ? 0 : phase);
+            record->clock = clock; record->phase = phase;
             record->cell = false; record->explicit_init = explicit_init;
             record->latch = latch;
         }
@@ -295,11 +316,13 @@ static inline Gia_Man_t* sn_design_clock_abstract(const sn_design_t* design, sn_
         // are then unreachable under this explicit contract.
         if (!sn_seq_proof_eligible(&info, options.state_actions))
         { *reason = info.abstract_reason; sn_seq_info_destroy(&info); goto cleanup; }
+        // As with native registers, the composed clear/preset roots are
+        // retained and must be proved inactive before a SEC model is returned.
         if (info.latch && !options.state_actions)
         { *reason = "transparent cell latch prevents a closed edge-triggered model"; sn_seq_info_destroy(&info); goto cleanup; }
         if (info.latch && (info.state->clear != SN_LIB_NONE || info.state->preset != SN_LIB_NONE))
         { *reason = "state-action proof supports only plain cell latches"; sn_seq_info_destroy(&info); goto cleanup; }
-        if (!options.transition && !options.assume_zero)
+        if (!options.transition && !options.assume_zero && !(options.sec_raw && options.sec_free_init))
         { *reason = "Liberty state has no power-up value: explicitly assume zero or request free-state transition";
           sn_seq_info_destroy(&info); goto cleanup; }
         inputs = design->library->cells[cell].input_count;
@@ -325,7 +348,7 @@ static inline Gia_Man_t* sn_design_clock_abstract(const sn_design_t* design, sn_
             phase = phase_maps[module->id][primitive->inst];
         int state = Gia_ManAppendCi(source);
         Vec_IntPush(aliases, -1);
-        values[inputs + 1] = state ^ phase;
+        values[inputs + 1] = state ^ (options.sec_raw ? 0 : phase);
         for (uint32_t node = 0; node < info.graph.count; ++node)
         {
             sn_expr_node_t pair = info.graph.nodes[node];
@@ -345,7 +368,7 @@ static inline Gia_Man_t* sn_design_clock_abstract(const sn_design_t* design, sn_
         sn_expr_lit_t data = info.graph.roots[SN_SEQ_DATA], clk = info.graph.roots[SN_SEQ_CLOCK];
         sn_clock_state_t* record = sn_vec_push(sn_clock_state_t, &states);
         record->occurrence = primitive->occurrence; record->object = primitive->inst; record->bit = 0;
-        record->next = values[data >> 1] ^ (data & 1) ^ phase;
+        record->next = values[data >> 1] ^ (data & 1) ^ (options.sec_raw ? 0 : phase);
         record->clock = values[clk >> 1] ^ (clk & 1); record->phase = phase;
         record->cell = true; record->explicit_init = false;
         record->latch = info.latch;
@@ -355,7 +378,7 @@ static inline Gia_Man_t* sn_design_clock_abstract(const sn_design_t* design, sn_
         sn_seq_info_destroy(&info);
         if (oom) { *reason = "allocation failure recognizing state phase"; goto cleanup; }
     }
-    if (!states.size) { *reason = "no state to abstract"; goto cleanup; }
+    if (!states.size && !options.sec_raw) { *reason = "no state to abstract"; goto cleanup; }
     for (size_t i = 0; i < states.size; ++i)
         Vec_IntPush(roots, sn_vec_at(sn_clock_state_t, &states, i).next);
     for (size_t i = 0; i < states.size; ++i)
@@ -397,9 +420,27 @@ static inline Gia_Man_t* sn_design_clock_abstract(const sn_design_t* design, sn_
         { *reason = "multiple clock roots or mixed effective edges"; goto cleanup; }
         common_clock = clock;
     }
+    if (options.sec_raw && common_clock >= 0)
+    {
+        // Check data/output support BEFORE fixing the clock level. Reject any
+        // retained dependence, even if a particular input assignment masks it.
+        Gia_Obj_t* obj;
+        int i, clock_id = Abc_Lit2Var(common_clock), clock_ci = Gia_ObjCioId(Gia_ManObj(joined, clock_id));
+        unsigned char* depends = ABC_CALLOC(unsigned char, Gia_ManObjNum(joined));
+        depends[clock_id] = 1;
+        Gia_ManForEachAnd(joined, obj, i)
+            depends[i] = depends[Gia_ObjFaninId0p(joined, obj)] || depends[Gia_ObjFaninId1p(joined, obj)];
+        for (i = 0; i < outputs + (int)states.size; i++)
+            if (depends[Abc_Lit2Var(sn_clock_co(joined, (uint32_t)i))]) break;
+        ABC_FREE(depends);
+        if (i < outputs + (int)states.size)
+        { *reason = "SEC clock is used as data or in an output"; goto cleanup; }
+        if (options.clock_input) *options.clock_input = clock_ci;
+        if (options.clock_edge) *options.clock_edge = common_clock & 1;
+    }
     for (int i = 0; i < Vec_IntSize(asyncs); ++i)
         if (sn_clock_co(joined, (uint32_t)(outputs + 2 * states.size + i)) != 0)
-        { *reason = "async controls are not proved inactive under the supplied input constraints"; goto cleanup; }
+        { *reason = "asynchronous controls are not proved inactive under the supplied input constraints"; goto cleanup; }
     final_aliases = ABC_ALLOC(int, Gia_ManCiNum(joined));
     if (states.size > (size_t)(INT_MAX - outputs) / (options.state_actions ? 2 : 1))
     { *reason = "state proof output count exceeds the AIG limit"; goto cleanup; }
@@ -407,7 +448,7 @@ static inline Gia_Man_t* sn_design_clock_abstract(const sn_design_t* design, sn_
     final_roots = ABC_ALLOC(int, final_outputs);
     if (!final_aliases || !final_roots) { *reason = "allocation failure finalizing clock model"; goto cleanup; }
     for (int i = 0; i < Gia_ManCiNum(joined); ++i) final_aliases[i] = -1;
-    if (!options.state_actions)
+    if (!options.state_actions && common_clock >= 0)
         final_aliases[Gia_ObjCioId(Gia_ManObj(joined, Abc_Lit2Var(common_clock)))] = 1 ^ (common_clock & 1);
     for (int i = 0; i < final_outputs; ++i) final_roots[i] = sn_clock_co(joined, (uint32_t)i);
     result = sn_gia_substitute_cis(joined, final_aliases, final_roots, final_outputs, reason, &cycle_ci);
@@ -417,7 +458,8 @@ static inline Gia_Man_t* sn_design_clock_abstract(const sn_design_t* design, sn_
     result->vNamesOut = Vec_PtrAlloc(Gia_ManCoNum(result));
     {
         int retained = 0, input_index = 0;
-        int clock_index = options.state_actions ? -1 : Gia_ObjCioId(Gia_ManObj(joined, Abc_Lit2Var(common_clock)));
+        int clock_index = options.state_actions || common_clock < 0 ? -1 :
+            Gia_ObjCioId(Gia_ManObj(joined, Abc_Lit2Var(common_clock)));
         for (size_t i = 0; i < boundary.cis.size; ++i)
         {
             const sn_blast_boundary_bit_t* bit = &sn_vec_at(sn_blast_boundary_bit_t, &boundary.cis, i);
@@ -470,6 +512,61 @@ static inline Gia_Man_t* sn_design_clock_abstract(const sn_design_t* design, sn_
         }
         for (size_t i = 0; i < states.size; ++i)
         {
+            if (options.sec_display_names)
+            {
+                const sn_clock_state_t* state = &sn_vec_at(sn_clock_state_t, &states, i);
+                const sn_blast_occurrence_t* occurrence = &sn_vec_at(sn_blast_occurrence_t, &boundary.occurrences, state->occurrence);
+                const sn_module_t* module = sn_design_get_module_const(design, occurrence->module);
+                sn_blast_name_t name = {NULL, 0, 0};
+                bool canonical = true;
+                sn_blast_occurrence_path(design, &boundary, state->occurrence, &name, &canonical);
+                sn_blast_name_object(module, state->object, state->cell ? "cell" : "reg", &name, &canonical);
+                sn_blast_name_append_bit(&name, state->bit);
+                Vec_PtrPush(options.sec_display_names, name.text);
+            }
+            if (options.sec_state_keys)
+            {
+                const sn_clock_state_t* state = &sn_vec_at(sn_clock_state_t, &states, i);
+                const sn_blast_occurrence_t* occurrence = &sn_vec_at(sn_blast_occurrence_t, &boundary.occurrences, state->occurrence);
+                const sn_module_t* module = sn_design_get_module_const(design, occurrence->module);
+                if (!state_name_maps[module->id])
+                    state_name_maps[module->id] = sn_module_attribute_name_map(module, SN_ATTRIBUTE_MAP_SEC_IDENTITY, true);
+                if (!state_name_maps[module->id])
+                { *reason = "allocation failure indexing SEC identities"; goto cleanup; }
+                sn_name_id_t id = state_name_maps[module->id][state->object];
+                sn_blast_name_t name = {NULL, 0, 0};
+                bool canonical = true;
+                sn_vec_t chain;
+                sn_vec_init(&chain);
+                for (uint32_t pos = state->occurrence; pos;)
+                {
+                    *sn_vec_push(uint32_t, &chain) = pos;
+                    pos = sn_vec_at(sn_blast_occurrence_t, &boundary.occurrences, pos).parent_occurrence;
+                }
+                for (size_t j = chain.size; j-- > 0;)
+                {
+                    const sn_blast_occurrence_t* child = &sn_vec_at(sn_blast_occurrence_t, &boundary.occurrences, sn_vec_at(uint32_t, &chain, j));
+                    const sn_module_t* parent = sn_design_get_module_const(design,
+                        sn_vec_at(sn_blast_occurrence_t, &boundary.occurrences, child->parent_occurrence).module);
+                    if (!state_name_maps[parent->id])
+                        state_name_maps[parent->id] = sn_module_attribute_name_map(parent, SN_ATTRIBUTE_MAP_SEC_IDENTITY, true);
+                    if (!state_name_maps[parent->id])
+                    { canonical = false; *reason = "allocation failure indexing SEC instance identities"; break; }
+                    sn_name_id_t path = state_name_maps[parent->id][child->parent_inst];
+                    if (path >= SN_INVALID_ID - 1) { canonical = false; break; }
+                    sn_blast_name_append(&name, sn_name_get(&design->names, path));
+                    sn_blast_name_append(&name, ".");
+                }
+                sn_vec_destroy(&chain);
+                if (*reason) { free(name.text); goto cleanup; }
+                if (!state->cell && canonical && id < SN_INVALID_ID - 1)
+                {
+                    sn_blast_name_append(&name, sn_name_get(&design->names, id));
+                    sn_blast_name_append_bit(&name, state->bit);
+                    Vec_PtrPush(options.sec_state_keys, name.text);
+                }
+                else { free(name.text); Vec_PtrPush(options.sec_state_keys, NULL); }
+            }
             if (options.named_states)
             {
                 const sn_clock_state_t* state = &sn_vec_at(sn_clock_state_t, &states, i);
@@ -531,6 +628,12 @@ static inline Gia_Man_t* sn_design_clock_abstract(const sn_design_t* design, sn_
     }
     if (!sn_clock_names_unique(result->vNamesIn) || !sn_clock_names_unique(result->vNamesOut))
     { *reason = "duplicate boundary names; preserve generated-scope identities before clock abstraction"; goto cleanup; }
+    if (options.init_bits)
+        for (size_t i = 0; i < states.size; ++i)
+        {
+            const sn_clock_state_t* state = &sn_vec_at(sn_clock_state_t, &states, i);
+            Vec_StrPush(options.init_bits, state->explicit_init ? (char)('0' + state->phase) : 'x');
+        }
     if (report)
     {
         fprintf(report, "%s: %s %s; %zu state bits, %d data inputs, %d outputs; LOOPs joined.\n",
@@ -538,7 +641,7 @@ static inline Gia_Man_t* sn_design_clock_abstract(const sn_design_t* design, sn_
                 macro_inputs || macro_outputs ? "CONDITIONAL" : "CLOSED",
                 options.state_actions ? "combinational proof signature" :
                 options.transition ? "free-state transition relation" : "sequential AIG", states.size,
-                retained_inputs - !options.state_actions, outputs);
+                retained_inputs - (!options.state_actions && common_clock >= 0), outputs);
         if (macro_inputs || macro_outputs)
             fprintf(report, "Macro contract: %d free output bits / %d observed input bits; no macro transition semantics. NOT a closed sequential model.\n",
                     macro_inputs, macro_outputs);

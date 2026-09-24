@@ -250,11 +250,6 @@ extern Vec_Int_t *    Wln_NtkRetime( Wln_Ntk_t * p, int fIgnoreIO, int fSkipSimp
 extern void           Wln_NtkRetimeCreateDelayInfo( Wln_Ntk_t * pNtk );
 /*=== wlcWriteVer.c ========================================================*/
 extern void           Wln_WriteVer( Wln_Ntk_t * p, char * pFileName );
-/*=== wlnRtl.c ========================================================*/
-extern char *         Wln_YosysBuildDefines( Vec_Ptr_t * vDefines );
-extern char *         Wln_YosysBuildBoxCommands( Vec_Ptr_t * vBoxes, int fExpose );
-extern char *         Wln_YosysBuildInstCommands( Vec_Ptr_t * vInsts );
-
 /*=== wlcRead.c ========================================================*/
 typedef struct Rtl_Lib_t_ Rtl_Lib_t;
 extern Rtl_Lib_t *    Rtl_LibReadFile( char * pFileName, char * pFileSpec );

@@ -34,6 +34,14 @@
 
 ABC_NAMESPACE_HEADER_START
 
+// ABC command integration; these declarations do not change the frame-independent netlist APIs below.
+struct Abc_Frame_t_;
+struct Gia_Man_t_;
+struct Vec_Int_t_;
+const struct Vec_Int_t_ * Sn_CurrentGiaDescriptor( struct Abc_Frame_t_ * pAbc, struct Gia_Man_t_ * pGia );
+// Every successful GIA replacement invalidates the saved verification extraction contract.
+void Sn_ForgetGiaDescriptor( struct Abc_Frame_t_ * pAbc );
+
 // Simple Netlist (sn)
 // -------------------
 //
@@ -1789,7 +1797,8 @@ static inline void sn_module_link_pairs(sn_module_t* module)
 // a different order. Requires the source copy map for every kept OUT object.
 static inline void sn_module_order_pairs_by_source(sn_module_t* target, const sn_module_t* source)
 {
-    static const sn_obj_type_t out_types[] = {SN_REG_OUT, SN_MEM_OUT, SN_LOOP_OUT};
+    // Occurrences and memory ports retain their order independently of physical combinational topo order.
+    static const sn_obj_type_t out_types[] = {SN_REG_OUT, SN_MEM_OUT, SN_LOOP_OUT, SN_INST, SN_MEM_READ, SN_MEM_WRITE};
     for (size_t t = 0; t < sizeof(out_types) / sizeof(out_types[0]); t++)
     {
         size_t next = 0;
@@ -1800,6 +1809,8 @@ static inline void sn_module_order_pairs_by_source(sn_module_t* target, const sn
             if (new_out == SN_INVALID_ID || sn_obj_type(target, new_out) != out_types[t])
                 continue;
             assert(next < target->type_objects[out_types[t]].size);
+            if (sn_obj_type_has_dense_index(out_types[t]))
+                sn_vec_at(uint32_t, &target->obj_data, new_out) = (uint32_t)next;
             sn_vec_at(sn_obj_id_t, &target->type_objects[out_types[t]], next++) = new_out;
         }
         assert(next == target->type_objects[out_types[t]].size);
@@ -2496,6 +2507,15 @@ static inline sn_vec_t sn_module_topo_order(const sn_module_t* module)
                 sn_module_topo_visit(&context, fanin);
         }
     }
+
+    // Stable boundary roots precede disconnected logic; combinational edits must not change state root order.
+    const sn_obj_type_t roots[] = {SN_REG_OUT, SN_MEM_OUT};
+    for (size_t kind = 0; kind < sizeof(roots) / sizeof(roots[0]); ++kind)
+        for (size_t i = 0; i < module->type_objects[roots[kind]].size; ++i)
+        {
+            sn_obj_id_t out = sn_vec_at(sn_obj_id_t, &module->type_objects[roots[kind]], i);
+            sn_module_topo_visit(&context, sn_obj_pair_in(module, out));
+        }
 
     // Include disconnected and otherwise unreachable internal objects.
     for (sn_obj_id_t object = 0; object < object_count; object++)
@@ -3443,6 +3463,60 @@ static inline void sn_module_prefix_state_names(sn_module_t* module, size_t firs
     }
 }
 
+// A flattened register must retain the same key that hierarchical SEC builds:
+// source occurrence path followed by the module-relative register identity.
+// If an occurrence lacks explicit source identity, discard its copied keys so
+// correspondence refuses instead of guessing from generated instance names.
+static inline void sn_module_prefix_sec_metadata(sn_module_t* module, size_t first, const char* prefix)
+{
+    size_t kept = first;
+    for (size_t i = first; i < module->attribute_records.size; i++)
+    {
+        sn_attribute_record_t attr = sn_vec_at(sn_attribute_record_t, &module->attribute_records, i);
+        const char* name = sn_name_get(&module->design->names, attr.name);
+        if (!strcmp(name, "sn_sec_identity") || !strcmp(name, "sn_sec_memory"))
+        {
+            if (!prefix) continue;
+            if (*prefix)
+            {
+                const char* leaf = sn_name_get(&module->design->names, attr.value);
+                if (*leaf)
+                {
+                    char* full = (char*)malloc(strlen(prefix) + strlen(leaf) + 1);
+                    assert(full);
+                    strcpy(full, prefix);
+                    strcat(full, leaf);
+                    attr.value = sn_name_intern(&module->design->names, full);
+                    free(full);
+                }
+            }
+        }
+        sn_vec_at(sn_attribute_record_t, &module->attribute_records, kept++) = attr;
+    }
+    module->attribute_records.size = kept;
+}
+
+static inline const char* sn_module_sec_instance_path(const sn_module_t* module, sn_obj_id_t inst)
+{
+    const char* path = NULL;
+    for (size_t i = 0; i < module->attribute_records.size; i++)
+    {
+        const sn_attribute_record_t* attr = &sn_vec_at(sn_attribute_record_t, &module->attribute_records, i);
+        if (attr->object != inst ||
+            strcmp(sn_name_get(&module->design->names, attr->name), "sn_sec_instance"))
+            continue;
+        if (path) return NULL;
+        path = sn_name_get(&module->design->names, attr->value);
+    }
+    if (!path || !*path) return NULL;
+    for (const unsigned char* p = (const unsigned char*)path; *p; p++)
+        if (!((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z') ||
+              (*p >= '0' && *p <= '9') || *p == '_' || *p == '$' ||
+              *p == '.' || *p == '[' || *p == ']' || *p == '-'))
+            return NULL;
+    return path;
+}
+
 static inline bool sn_module_is_technology_primitive(const sn_module_t* module)
 {
     assert(module);
@@ -3481,7 +3555,8 @@ static inline bool sn_collapse_obj_is_copied(sn_obj_type_t type, bool is_top)
 
 static inline void sn_module_collapse_into(sn_collapse_context_t* context, sn_module_id_t source_module_id,
                                            const sn_obj_id_t* input_bindings, uint32_t input_count, bool is_top,
-                                           sn_vec_t* output_bindings, const char* state_prefix)
+                                           sn_vec_t* output_bindings, const char* state_prefix,
+                                           const char* sec_prefix)
 {
     assert(context);
     assert(source_module_id < context->design->modules.size);
@@ -3562,8 +3637,17 @@ static inline void sn_module_collapse_into(sn_collapse_context_t* context, sn_mo
             char* child_prefix = (char*)malloc(strlen(state_prefix) + strlen(leaf_name) + 2);
             assert(child_prefix);
             sprintf(child_prefix, "%s%s.", state_prefix, leaf_name);
+            const char* sec_leaf = sec_prefix ? sn_module_sec_instance_path(source, old_object) : NULL;
+            char* child_sec_prefix = NULL;
+            if (sec_leaf)
+            {
+                child_sec_prefix = (char*)malloc(strlen(sec_prefix) + strlen(sec_leaf) + 2);
+                assert(child_sec_prefix);
+                sprintf(child_sec_prefix, "%s%s.", sec_prefix, sec_leaf);
+            }
             sn_module_collapse_into(context, child_id, sn_vec_data(sn_obj_id_t, &child_inputs), child_input_count,
-                                    false, &child_outputs, child_prefix);
+                                    false, &child_outputs, child_prefix, child_sec_prefix);
+            free(child_sec_prefix);
             free(child_prefix);
             uint32_t output_count = sn_design_module_output_count(context->design, child_id);
             assert(child_outputs.size == output_count);
@@ -3587,6 +3671,7 @@ static inline void sn_module_collapse_into(sn_collapse_context_t* context, sn_mo
         size_t first_attribute = context->target->attribute_records.size;
         sn_module_dup_obj_metadata(context->target, new_object, source, old_object);
         sn_module_prefix_state_names(context->target, first_attribute, state_prefix);
+        sn_module_prefix_sec_metadata(context->target, first_attribute, sec_prefix);
     }
 
     // Patch fanins after every source object has a mapping. This is needed for
@@ -3682,7 +3767,7 @@ static inline sn_module_id_t sn_design_collapse_module_internal(sn_design_t* des
     context.target = flat;
     context.active_modules = active_modules;
     context.preserve_technology_primitives = preserve_technology_primitives;
-    sn_module_collapse_into(&context, top_module_id, NULL, 0, true, NULL, "");
+    sn_module_collapse_into(&context, top_module_id, NULL, 0, true, NULL, "", "");
     free(active_modules);
 
     sn_module_link_pairs(flat);
@@ -3902,7 +3987,27 @@ typedef struct sn_verilog_writer_t
     const uint8_t* name_counts; // NULL selects the historical generated-net spelling
     const uint8_t* used; // optional object-use bitmap for explicit open output pins
     const sn_obj_id_t* port_registers; // direct output-reg aliases, indexed by either object
+    const sn_name_id_t* sec_ids; // optional SEC identity for registers and instance occurrences
 } sn_verilog_writer_t;
+
+static inline void sn_write_verilog_sec_identity(FILE* out, const sn_verilog_writer_t* writer,
+                                                 sn_obj_id_t object, const char* attribute)
+{
+    if (!writer->sec_ids || writer->sec_ids[object] == SN_INVALID_ID ||
+        writer->sec_ids[object] == SN_INVALID_ID - 1) return;
+    sn_name_id_t id = writer->sec_ids[object];
+    const char* value = sn_name_get(&writer->module->design->names, id);
+    if (!value[0]) return;
+    for (const unsigned char* p = (const unsigned char*)value; *p; p++)
+        if (*p < 32 || *p >= 127) return;
+    fprintf(out, "  (* %s = \"", attribute);
+    for (const unsigned char* p = (const unsigned char*)value; *p; p++)
+    {
+        if (*p == '\\' || *p == '"') fputc('\\', out);
+        fputc(*p, out);
+    }
+    fputs("\" *)\n", out);
+}
 
 // Internal names retain the compact historical spelling unless a user name collides with it. The fallback includes the
 // module, object, and object role and is checked against the global name manager as well.
@@ -4226,6 +4331,7 @@ static inline void sn_write_verilog_inst_named_ctx(FILE* out, const sn_verilog_w
     sn_module_id_t child_id = sn_inst_module_id(module, inst);
     const sn_module_t* child = sn_design_get_module_const(module->design, child_id);
     assert(sn_obj_fanin_count(module, inst) == child->type_objects[SN_PI].size);
+    sn_write_verilog_sec_identity(out, writer, inst, "sn_sec_instance");
     fputs("  ", out);
     sn_write_verilog_identifier(out, sn_name_get(&module->design->names, child->name));
     fputc(' ', out);
@@ -4626,25 +4732,61 @@ static inline signed char* sn_module_state_phase_map(const sn_module_t* module)
     return phases;
 }
 
-// Scalar logical-state identity, independent of the physical instance name.
-// Missing = SN_INVALID_ID; malformed/duplicate = SN_INVALID_ID-1. Like phase,
-// this is proof correspondence only and never changes the cell's behavior.
-static inline sn_name_id_t* sn_module_state_name_map(const sn_module_t* module)
+typedef enum sn_attribute_name_map_kind_t
 {
-    sn_name_id_t* names = (sn_name_id_t*)malloc(sizeof(*names) * (module->obj_types.size ? module->obj_types.size : 1));
-    if (!names) return NULL;
-    for (size_t i = 0; i < module->obj_types.size; ++i) names[i] = SN_INVALID_ID;
+    SN_ATTRIBUTE_MAP_STATE_NAME,
+    SN_ATTRIBUTE_MAP_SEC_IDENTITY
+} sn_attribute_name_map_kind_t;
+
+// Missing = SN_INVALID_ID; malformed/duplicate = SN_INVALID_ID-1. SEC maps
+// are sparse for Verilog writing, but clock extraction needs a dense map even
+// when no identity attributes exist. Neither map changes circuit behavior.
+static inline sn_name_id_t* sn_module_attribute_name_map(const sn_module_t* module,
+                                                         sn_attribute_name_map_kind_t kind, bool allocate_empty)
+{
+    sn_name_id_t* ids = NULL;
+    if (allocate_empty)
+    {
+        ids = (sn_name_id_t*)malloc(sizeof(*ids) * (module->obj_types.size ? module->obj_types.size : 1));
+        if (!ids) return NULL;
+        for (size_t j = 0; j < module->obj_types.size; ++j) ids[j] = SN_INVALID_ID;
+    }
     for (size_t i = 0; i < module->attribute_records.size; ++i)
     {
         const sn_attribute_record_t* attr = &sn_vec_at(sn_attribute_record_t, &module->attribute_records, i);
-        if (attr->object == SN_INVALID_ID || strcmp(sn_name_get(&module->design->names, attr->name), "sn_state_name"))
-            continue;
-        const unsigned char* value = (const unsigned char*)sn_name_get(&module->design->names, attr->value);
-        bool valid = value[0] != 0 && names[attr->object] == SN_INVALID_ID;
-        for (const unsigned char* p = value; *p; ++p) valid &= *p >= 32 && *p < 127;
-        names[attr->object] = valid ? attr->value : SN_INVALID_ID - 1;
+        if (attr->object >= module->obj_types.size) continue;
+        const char* name = sn_name_get(&module->design->names, attr->name);
+        bool matches = kind == SN_ATTRIBUTE_MAP_STATE_NAME ? !strcmp(name, "sn_state_name") :
+            ((sn_obj_type(module, attr->object) == SN_REG_OUT && !strcmp(name, "sn_sec_identity")) ||
+             (sn_obj_type(module, attr->object) == SN_INST && !strcmp(name, "sn_sec_instance")));
+        if (!matches) continue;
+        if (!ids)
+        {
+            ids = (sn_name_id_t*)malloc(sizeof(*ids) * (module->obj_types.size ? module->obj_types.size : 1));
+            if (!ids) return NULL;
+            for (size_t j = 0; j < module->obj_types.size; ++j) ids[j] = SN_INVALID_ID;
+        }
+        if (kind == SN_ATTRIBUTE_MAP_STATE_NAME)
+        {
+            const unsigned char* value = (const unsigned char*)sn_name_get(&module->design->names, attr->value);
+            bool valid = value[0] != 0 && ids[attr->object] == SN_INVALID_ID;
+            for (const unsigned char* p = value; *p; ++p) valid &= *p >= 32 && *p < 127;
+            ids[attr->object] = valid ? attr->value : SN_INVALID_ID - 1;
+        }
+        else ids[attr->object] = ids[attr->object] == SN_INVALID_ID ? attr->value : SN_INVALID_ID - 1;
     }
-    return names;
+    return ids;
+}
+
+// Scalar logical-state identity, independent of the physical instance name.
+static inline sn_name_id_t* sn_module_state_name_map(const sn_module_t* module)
+{
+    return sn_module_attribute_name_map(module, SN_ATTRIBUTE_MAP_STATE_NAME, true);
+}
+
+static inline sn_name_id_t* sn_module_sec_identity_map(const sn_module_t* module)
+{
+    return sn_module_attribute_name_map(module, SN_ATTRIBUTE_MAP_SEC_IDENTITY, false);
 }
 
 static inline void sn_module_write_verilog_as_named(FILE* out, const sn_module_t* module, const char* emitted_name,
@@ -4659,6 +4801,7 @@ static inline void sn_module_write_verilog_as_named(FILE* out, const sn_module_t
     // Proof identity/phase is inert metadata, not a cosmetic naming option.
     signed char* state_phases = sn_module_state_phase_map(module);
     sn_name_id_t* state_names = sn_module_state_name_map(module);
+    sn_name_id_t* sec_ids = sn_module_sec_identity_map(module);
     assert(state_phases);
     assert(state_names);
     if (preserve_names)
@@ -4703,7 +4846,7 @@ static inline void sn_module_write_verilog_as_named(FILE* out, const sn_module_t
             }
         }
     }
-    sn_verilog_writer_t context = {module, name_counts, used, port_registers};
+    sn_verilog_writer_t context = {module, name_counts, used, port_registers, sec_ids};
     const sn_verilog_writer_t* writer = &context;
     size_t write_count = module->type_objects[SN_MEM_WRITE].size;
     sn_obj_id_t* write_memories = write_count ? (sn_obj_id_t*)malloc(write_count * sizeof(sn_obj_id_t)) : NULL;
@@ -4763,6 +4906,8 @@ static inline void sn_module_write_verilog_as_named(FILE* out, const sn_module_t
             if (type == SN_PO && matching != SN_INVALID_ID)
                 continue;
             bool output_reg = port_registers && port_registers[object] != SN_INVALID_ID;
+            if (output_reg)
+                sn_write_verilog_sec_identity(out, writer, port_registers[object], "sn_sec_identity");
             fprintf(out, "  %s %s ", matching != SN_INVALID_ID ? "inout" : type == SN_PI ? "input" : "output",
                     output_reg ? "reg" : "wire");
             sn_write_verilog_range(out, module, object);
@@ -4780,6 +4925,7 @@ static inline void sn_module_write_verilog_as_named(FILE* out, const sn_module_t
         free(port_registers);
         free(state_phases);
         free(state_names);
+        free(sec_ids);
         return;
     }
 
@@ -4813,6 +4959,8 @@ static inline void sn_module_write_verilog_as_named(FILE* out, const sn_module_t
         // retain the register's proof identity independently of its legal net name.
         const char* reg_name = type == SN_REG_OUT && sn_obj_name_id(module, object) != SN_INVALID_ID
             ? sn_obj_name(module, object) : NULL;
+        if (type == SN_REG_OUT)
+            sn_write_verilog_sec_identity(out, writer, object, "sn_sec_identity");
         if (writer->name_counts && reg_name && reg_name[0])
         {
             bool printable = true;
@@ -4935,6 +5083,7 @@ static inline void sn_module_write_verilog_as_named(FILE* out, const sn_module_t
     free(port_registers);
     free(state_phases);
     free(state_names);
+    free(sec_ids);
 }
 
 // Compatibility entry points use generated internal names; named whole-module
@@ -4942,83 +5091,83 @@ static inline void sn_module_write_verilog_as_named(FILE* out, const sn_module_t
 static inline void sn_write_verilog_generated_name(FILE* out, const sn_module_t* module, const char* role,
                                                    sn_obj_id_t object)
 {
-    sn_verilog_writer_t writer = {module, NULL, NULL, NULL};
+    sn_verilog_writer_t writer = {module, NULL, NULL, NULL, NULL};
     sn_write_verilog_generated_name_ctx(out, &writer, role, object);
 }
 
 static inline void sn_write_verilog_ref(FILE* out, const sn_module_t* module, sn_obj_id_t object)
 {
-    sn_verilog_writer_t writer = {module, NULL, NULL, NULL};
+    sn_verilog_writer_t writer = {module, NULL, NULL, NULL, NULL};
     sn_write_verilog_ref_ctx(out, &writer, object);
 }
 
 static inline void sn_write_verilog_expression(FILE* out, const sn_module_t* module, sn_obj_id_t object)
 {
-    sn_verilog_writer_t writer = {module, NULL, NULL, NULL};
+    sn_verilog_writer_t writer = {module, NULL, NULL, NULL, NULL};
     sn_write_verilog_expression_ctx(out, &writer, object);
 }
 
 static inline void sn_write_verilog_inst_named(FILE* out, const sn_module_t* module, sn_obj_id_t inst,
                                                const char* emitted_name)
 {
-    sn_verilog_writer_t writer = {module, NULL, NULL, NULL};
+    sn_verilog_writer_t writer = {module, NULL, NULL, NULL, NULL};
     sn_write_verilog_inst_named_ctx(out, &writer, inst, emitted_name);
 }
 
 static inline void sn_write_verilog_inst(FILE* out, const sn_module_t* module, sn_obj_id_t inst)
 {
-    sn_verilog_writer_t writer = {module, NULL, NULL, NULL};
+    sn_verilog_writer_t writer = {module, NULL, NULL, NULL, NULL};
     sn_write_verilog_inst_ctx(out, &writer, inst);
 }
 
 static inline void sn_write_verilog_lut(FILE* out, const sn_module_t* module, sn_obj_id_t object)
 {
-    sn_verilog_writer_t writer = {module, NULL, NULL, NULL};
+    sn_verilog_writer_t writer = {module, NULL, NULL, NULL, NULL};
     sn_write_verilog_lut_ctx(out, &writer, object);
 }
 
 static inline void sn_write_verilog_gate_named(FILE* out, const sn_module_t* module, sn_obj_id_t object,
                                                const char* emitted_name)
 {
-    sn_verilog_writer_t writer = {module, NULL, NULL, NULL};
+    sn_verilog_writer_t writer = {module, NULL, NULL, NULL, NULL};
     sn_write_verilog_gate_named_ctx(out, &writer, object, emitted_name);
 }
 
 static inline void sn_write_verilog_gate(FILE* out, const sn_module_t* module, sn_obj_id_t object)
 {
-    sn_verilog_writer_t writer = {module, NULL, NULL, NULL};
+    sn_verilog_writer_t writer = {module, NULL, NULL, NULL, NULL};
     sn_write_verilog_gate_ctx(out, &writer, object);
 }
 
 static inline void sn_write_verilog_active_control(FILE* out, const sn_module_t* module, sn_obj_id_t control,
                                                    bool active_low)
 {
-    sn_verilog_writer_t writer = {module, NULL, NULL, NULL};
+    sn_verilog_writer_t writer = {module, NULL, NULL, NULL, NULL};
     sn_write_verilog_active_control_ctx(out, &writer, control, active_low);
 }
 
 static inline void sn_write_verilog_register(FILE* out, const sn_module_t* module, sn_obj_id_t reg_out)
 {
-    sn_verilog_writer_t writer = {module, NULL, NULL, NULL};
+    sn_verilog_writer_t writer = {module, NULL, NULL, NULL, NULL};
     sn_write_verilog_register_ctx(out, &writer, reg_out);
 }
 
 static inline void sn_write_verilog_memory_read(FILE* out, const sn_module_t* module, sn_obj_id_t read)
 {
-    sn_verilog_writer_t writer = {module, NULL, NULL, NULL};
+    sn_verilog_writer_t writer = {module, NULL, NULL, NULL, NULL};
     sn_write_verilog_memory_read_ctx(out, &writer, read);
 }
 
 static inline void sn_write_verilog_memory_init(FILE* out, const sn_module_t* module, sn_obj_id_t memory)
 {
-    sn_verilog_writer_t writer = {module, NULL, NULL, NULL};
+    sn_verilog_writer_t writer = {module, NULL, NULL, NULL, NULL};
     sn_write_verilog_memory_init_ctx(out, &writer, memory);
 }
 
 static inline void sn_write_verilog_memory_write(FILE* out, const sn_module_t* module, sn_obj_id_t write,
                                                  sn_obj_id_t memory)
 {
-    sn_verilog_writer_t writer = {module, NULL, NULL, NULL};
+    sn_verilog_writer_t writer = {module, NULL, NULL, NULL, NULL};
     sn_write_verilog_memory_write_ctx(out, &writer, write, memory);
 }
 

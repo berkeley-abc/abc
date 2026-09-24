@@ -85,12 +85,19 @@ typedef struct sn_blast_options_t
     // hierarchy instead of boxing their containing modules. Never a sampled
     // sequential AIG or an ordinary @put extraction contract.
     bool flatten_latch_modules;
+    // Positional verification keeps the RTL state polarity, irrespective of initialization values.
+    bool raw_state;
+    bool abstract_mul_operators;
+    // Optional occurrence selector. The frame argument identifies the enclosing hierarchy occurrence.
+    bool (*cut_instance)(void* context, const void* frame, sn_obj_id_t inst);
+    void* cut_context;
+    const uint8_t* verification_modules; // Optional preflight mask of modules present outside explicit cuts.
 } sn_blast_options_t;
 
 static inline sn_blast_options_t sn_blast_default_options(void)
 {
     sn_blast_options_t options = {SN_BLAST_MUL_BAUGH_WOOLEY, false, true, true, true, true, true, false, true,
-                                  SN_BLAST_COMB, false, false, false};
+                                  SN_BLAST_COMB, false, false, false, false, false, NULL, NULL, NULL};
     return options;
 }
 
@@ -1456,12 +1463,13 @@ typedef struct sn_blast_primitive_t
 {
     uint32_t occurrence;
     sn_obj_id_t inst;
-    sn_module_id_t module; // SN_INVALID_ID for an opaque SN_GATE; inst is its owner.
+    sn_module_id_t module; // SN_INVALID_ID for an opaque SN_GATE or SN_MUL; inst is its owner.
     uint32_t output_count;
     uint32_t ci_begin;
     uint32_t ci_count;
     uint32_t co_begin;
     uint32_t co_count;
+    bool explicit_cut;
 } sn_blast_primitive_t;
 
 typedef struct sn_blast_register_t
@@ -1527,6 +1535,7 @@ typedef struct sn_blast_hier_frame_t
     uint32_t occurrence;
     struct sn_blast_hier_frame_t* parent;
     sn_obj_id_t parent_inst;
+    uint64_t* verification_order;
 } sn_blast_hier_frame_t;
 
 typedef struct sn_blast_hier_object_t
@@ -1534,6 +1543,8 @@ typedef struct sn_blast_hier_object_t
     sn_blast_hier_frame_t* frame;
     sn_obj_id_t object;
     uint32_t boundary_owner;
+    uint64_t order;
+    uint32_t port_order;
 } sn_blast_hier_object_t;
 
 struct sn_blast_hier_t
@@ -1544,6 +1555,7 @@ struct sn_blast_hier_t
     sn_blast_hier_stats_t stats;
     sn_blast_boundary_t* boundary;
     uint8_t* active_modules;
+    uint32_t occurrence_count;
     sn_vec_t memory_reads;
     sn_vec_t memory_writes;
     sn_vec_t latches;
@@ -1602,6 +1614,8 @@ static inline sn_blast_hier_object_t* sn_blast_hier_add_object(sn_vec_t* objects
     entry->frame = frame;
     entry->object = object;
     entry->boundary_owner = SN_INVALID_ID;
+    entry->order = 0;
+    entry->port_order = 0;
     return entry;
 }
 
@@ -1640,11 +1654,12 @@ static inline sn_blast_hier_frame_t* sn_blast_hier_build_frame(sn_blast_hier_t* 
     frame->hierarchy = hierarchy;
     frame->parent = parent_frame;
     frame->parent_inst = parent_inst;
-    frame->occurrence = SN_INVALID_ID;
+    assert(hierarchy->occurrence_count < SN_INVALID_ID);
+    frame->occurrence = hierarchy->occurrence_count++;
     if (hierarchy->boundary)
     {
         assert(hierarchy->boundary->occurrences.size < UINT32_MAX);
-        frame->occurrence = (uint32_t)hierarchy->boundary->occurrences.size;
+        assert(frame->occurrence == hierarchy->boundary->occurrences.size);
         sn_blast_occurrence_t* occurrence = sn_vec_push(sn_blast_occurrence_t, &hierarchy->boundary->occurrences);
         occurrence->module = module_id;
         occurrence->parent_occurrence = parent_occurrence;
@@ -1691,12 +1706,29 @@ static inline sn_blast_hier_frame_t* sn_blast_hier_build_frame(sn_blast_hier_t* 
     // each class in type-ID order and recurse through child occurrences in natural instance order. Register bits then
     // have the canonical key (depth-first instance path, register type ID, LSB-first bit index).
     hierarchy->stats.memory_count += module->type_objects[SN_MEM_OUT].size;
+    uint32_t* memory_order = NULL;
+    if (hierarchy->options.raw_state && module->type_objects[SN_MEM_OUT].size)
+    {
+        memory_order = (uint32_t*)calloc(module->obj_types.size, sizeof(uint32_t));
+        assert(memory_order);
+        for (size_t i = 0; i < module->type_objects[SN_MEM_OUT].size; ++i)
+        {
+            sn_obj_id_t mem = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_MEM_OUT], i);
+            memory_order[mem] = (uint32_t)i;
+            for (uint32_t k = 0; k < sn_obj_mem_write_count(module, mem); ++k)
+                memory_order[sn_obj_mem_write(module, mem, k)] = (uint32_t)i;
+        }
+    }
     if (hierarchy->options.abstract_memories)
     {
         for (size_t i = 0; i < module->type_objects[SN_MEM_READ].size; i++)
         {
             sn_obj_id_t object = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_MEM_READ], i);
-            sn_blast_hier_add_object(&hierarchy->memory_reads, frame, object);
+            sn_blast_hier_object_t* entry = sn_blast_hier_add_object(&hierarchy->memory_reads, frame, object);
+            if (memory_order)
+                entry->order = ((uint64_t)frame->occurrence << 32) |
+                    memory_order[sn_obj_fanin(module, object, SN_MEM_READ_MEMORY)];
+            entry->port_order = (uint32_t)i;
             hierarchy->stats.abstraction_output_bits += sn_obj_width(module, object);
             hierarchy->stats.abstraction_input_bits += sn_blast_hier_memory_input_bits(module, object);
         }
@@ -1706,10 +1738,14 @@ static inline sn_blast_hier_frame_t* sn_blast_hier_build_frame(sn_blast_hier_t* 
         for (size_t i = 0; i < module->type_objects[SN_MEM_WRITE].size; i++)
         {
             sn_obj_id_t object = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_MEM_WRITE], i);
-            sn_blast_hier_add_object(&hierarchy->memory_writes, frame, object);
+            sn_blast_hier_object_t* entry = sn_blast_hier_add_object(&hierarchy->memory_writes, frame, object);
+            if (memory_order)
+                entry->order = ((uint64_t)frame->occurrence << 32) | memory_order[object];
+            entry->port_order = (uint32_t)i;
             hierarchy->stats.abstraction_input_bits += sn_blast_hier_memory_input_bits(module, object);
         }
     }
+    free(memory_order);
     for (size_t i = 0; i < module->type_objects[SN_REG_OUT].size; i++)
     {
         sn_obj_id_t object = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_REG_OUT], i);
@@ -1798,7 +1834,9 @@ static inline sn_blast_hier_frame_t* sn_blast_hier_build_frame(sn_blast_hier_t* 
         sn_obj_id_t object = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_INST], i);
         const sn_module_t* child = sn_design_get_module_const(hierarchy->design,
                                                                sn_inst_module_id(module, object));
-        if (sn_blast_hier_is_abstract_inst(hierarchy, module, object))
+        bool explicit_cut = hierarchy->options.cut_instance &&
+            hierarchy->options.cut_instance(hierarchy->options.cut_context, frame, object);
+        if (explicit_cut || sn_blast_hier_is_abstract_inst(hierarchy, module, object))
         {
             sn_blast_hier_object_t* entry = sn_blast_hier_add_object(&hierarchy->abstract_insts, frame, object);
             if (hierarchy->boundary)
@@ -1810,6 +1848,7 @@ static inline sn_blast_hier_frame_t* sn_blast_hier_build_frame(sn_blast_hier_t* 
                 primitive->occurrence = frame->occurrence;
                 primitive->inst = object;
                 primitive->module = child->id;
+                primitive->explicit_cut = explicit_cut;
                 primitive->output_count = (uint32_t)child->type_objects[SN_PO].size;
                 primitive->ci_begin = SN_INVALID_ID;
                 primitive->ci_count = 0;
@@ -1833,6 +1872,28 @@ static inline sn_blast_hier_frame_t* sn_blast_hier_build_frame(sn_blast_hier_t* 
             frame->children[object] =
                 sn_blast_hier_build_frame(hierarchy, child->id, frame->occurrence, object, frame);
     }
+    if (hierarchy->options.abstract_mul_operators)
+        for (sn_obj_id_t object = 0; object < module->obj_types.size; ++object)
+            if (sn_obj_type(module, object) == SN_MUL)
+            {
+                sn_blast_hier_object_t* entry = sn_blast_hier_add_object(&hierarchy->abstract_insts, frame, object);
+                if (hierarchy->boundary)
+                {
+                    entry->boundary_owner = (uint32_t)hierarchy->boundary->primitives.size;
+                    sn_blast_primitive_t* primitive =
+                        sn_vec_push(sn_blast_primitive_t, &hierarchy->boundary->primitives);
+                    memset(primitive, 0, sizeof(*primitive));
+                    primitive->occurrence = frame->occurrence;
+                    primitive->inst = object;
+                    primitive->module = SN_INVALID_ID;
+                    primitive->output_count = 1;
+                    primitive->ci_begin = primitive->co_begin = SN_INVALID_ID;
+                }
+                hierarchy->stats.multiplier_count++;
+                hierarchy->stats.abstraction_output_bits += sn_obj_width(module, object);
+                for (uint32_t k = 0; k < sn_obj_fanin_count(module, object); ++k)
+                    hierarchy->stats.abstraction_input_bits += sn_obj_width(module, sn_obj_fanin(module, object, k));
+            }
     hierarchy->active_modules[module_id] = 0;
     return frame;
 }
@@ -2122,6 +2183,14 @@ static inline char* sn_blast_boundary_bit_name(const sn_design_t* design, const 
         if (bit->owner < boundary->primitives.size)
         {
             const sn_blast_primitive_t* entry = &sn_vec_at(sn_blast_primitive_t, &boundary->primitives, bit->owner);
+            if (sn_obj_type(module, entry->inst) == SN_MUL)
+            {
+                sn_blast_name_object(module, entry->inst, "mul", &name, &ok);
+                sn_blast_name_append_number(&name,
+                    bit->kind == SN_BLAST_BOUNDARY_PRIMITIVE_OUTPUT ? "/result" : "/operand", bit->port);
+                sn_blast_name_append_bit(&name, bit->signal.bit);
+                break;
+            }
             sn_blast_owner_pin_name(design, module, entry->inst, bit->kind == SN_BLAST_BOUNDARY_PRIMITIVE_OUTPUT,
                                     bit->port, bit->signal.bit, &name, &ok);
         }
@@ -2218,7 +2287,8 @@ static inline void sn_blast_hier_seed_abstract_inst(sn_blast_hier_object_t occur
 {
     const sn_module_t* module = occurrence.frame->blast.module;
     sn_obj_id_t inst = occurrence.object;
-    uint32_t output_count = sn_owner_output_count(module, inst);
+    bool is_mul = sn_obj_type(module, inst) == SN_MUL;
+    uint32_t output_count = is_mul ? 1 : sn_owner_output_count(module, inst);
     sn_blast_primitive_t* primitive = NULL;
     if (occurrence.frame->hierarchy->boundary)
     {
@@ -2230,7 +2300,7 @@ static inline void sn_blast_hier_seed_abstract_inst(sn_blast_hier_object_t occur
     }
     for (uint32_t i = 0; i < output_count; i++)
     {
-        sn_obj_id_t output = sn_owner_output(module, inst, i);
+        sn_obj_id_t output = is_mul ? inst : sn_owner_output(module, inst, i);
         sn_blast_hier_seed_object(occurrence.frame, output, aig, false);
         for (uint32_t bit = 0; bit < sn_obj_width(module, output); bit++)
             sn_blast_boundary_add_bit(occurrence.frame->hierarchy, true,
@@ -2345,6 +2415,37 @@ static inline int* sn_blast_hier_reg_next(sn_blast_hier_object_t occurrence)
     return result;
 }
 
+// Verification cut order follows dependency DFS, independently of source-ordered state enumeration.
+static inline void sn_blast_hier_rank_cuts(sn_blast_hier_frame_t* frame, uint64_t* next, sn_vec_t* orders)
+{
+    const sn_module_t* module = frame->blast.module;
+    frame->verification_order = (uint64_t*)calloc(module->obj_types.size, sizeof(uint64_t));
+    assert(frame->verification_order);
+    sn_vec_t* order = &orders[module->id];
+    if (!order->data)
+        *order = sn_module_topo_order(module);
+    for (size_t i = 0; i < order->size; ++i)
+    {
+        sn_obj_id_t object = sn_vec_at(sn_obj_id_t, order, i);
+        if (frame->children[object])
+            sn_blast_hier_rank_cuts(frame->children[object], next, orders);
+        frame->verification_order[object] = (*next)++;
+    }
+}
+
+static inline int sn_blast_hier_compare_order(const void* a, const void* b)
+{
+    uint64_t x = ((const sn_blast_hier_object_t*)a)->order;
+    uint64_t y = ((const sn_blast_hier_object_t*)b)->order;
+    if (x == y)
+    {
+        uint32_t u = ((const sn_blast_hier_object_t*)a)->port_order;
+        uint32_t v = ((const sn_blast_hier_object_t*)b)->port_order;
+        return (u > v) - (u < v);
+    }
+    return (x > y) - (x < y);
+}
+
 static inline void sn_blast_hier_destroy_frame(sn_blast_hier_frame_t* frame)
 {
     for (sn_obj_id_t object = 0; object < frame->blast.module->obj_types.size; object++)
@@ -2360,6 +2461,7 @@ static inline void sn_blast_hier_destroy_frame(sn_blast_hier_frame_t* frame)
     free(frame->blast.cycle_bits);
     free(frame->blast.gate_scratch);
     free(frame->children);
+    free(frame->verification_order);
     free(frame);
 }
 
@@ -2421,7 +2523,7 @@ static inline Mini_Aig_t* sn_design_blast_hier_boundary_options(const sn_design_
             for (size_t ii = 0; ii < module->type_objects[SN_INST].size; ii++)
             {
                 sn_module_id_t child = sn_inst_module_id(module, sn_vec_at(sn_obj_id_t, &module->type_objects[SN_INST], ii));
-                if (!gate_seen[child])
+                if (!gate_seen[child] && (!options.verification_modules || options.verification_modules[child]))
                 {
                     gate_seen[child] = 1;
                     gate_pending[gate_pending_count++] = child;
@@ -2483,6 +2585,32 @@ static inline Mini_Aig_t* sn_design_blast_hier_boundary_options(const sn_design_
 
     sn_blast_hier_frame_t* root =
         sn_blast_hier_build_frame(&hierarchy, top_module_id, SN_INVALID_ID, SN_INVALID_ID, NULL);
+    if (options.raw_state)
+    {
+        if (hierarchy.memory_reads.size > 1)
+            qsort(hierarchy.memory_reads.data, hierarchy.memory_reads.size,
+                  sizeof(sn_blast_hier_object_t), sn_blast_hier_compare_order);
+        if (hierarchy.memory_writes.size > 1)
+            qsort(hierarchy.memory_writes.data, hierarchy.memory_writes.size,
+                  sizeof(sn_blast_hier_object_t), sn_blast_hier_compare_order);
+    }
+    if (options.raw_state && hierarchy.abstract_insts.size)
+    {
+        uint64_t next = 0;
+        sn_vec_t* orders = (sn_vec_t*)calloc(design->modules.size, sizeof(sn_vec_t));
+        assert(orders);
+        sn_blast_hier_rank_cuts(root, &next, orders);
+        for (size_t i = 0; i < design->modules.size; ++i)
+            sn_vec_destroy(&orders[i]);
+        free(orders);
+        for (size_t i = 0; i < hierarchy.abstract_insts.size; ++i)
+        {
+            sn_blast_hier_object_t* entry = &sn_vec_at(sn_blast_hier_object_t, &hierarchy.abstract_insts, i);
+            entry->order = entry->frame->verification_order[entry->object];
+        }
+        qsort(hierarchy.abstract_insts.data, hierarchy.abstract_insts.size,
+              sizeof(sn_blast_hier_object_t), sn_blast_hier_compare_order);
+    }
     const sn_module_t* top = root->blast.module;
     for (size_t i = 0; i < top->type_objects[SN_PI].size; i++)
         hierarchy.stats.primary_input_bits +=
@@ -2538,7 +2666,7 @@ static inline Mini_Aig_t* sn_design_blast_hier_boundary_options(const sn_design_
             sn_vec_at(sn_blast_register_t, &boundary->registers, occurrence.boundary_owner).ci_begin =
                 (uint32_t)boundary->cis.size;
         sn_blast_hier_seed_object(occurrence.frame, occurrence.object, hierarchy.aig, false);
-        if (sn_blast_mode_has_transition(options.mode))
+        if (sn_blast_mode_has_transition(options.mode) && !options.raw_state)
             for (uint32_t bit = 0;
                  bit < sn_obj_width(occurrence.frame->blast.module, occurrence.object); bit++)
                 if (sn_blast_reg_init_bit(occurrence.frame->blast.module, occurrence.object, bit))
@@ -2751,7 +2879,7 @@ static inline Mini_Aig_t* sn_design_blast_hier_boundary_options(const sn_design_
                 (uint32_t)boundary->cos.size;
         for (uint32_t bit = 0; bit < sn_obj_width(module, occurrence.object); bit++)
         {
-            bool invert = sn_blast_mode_has_transition(options.mode) &&
+            bool invert = sn_blast_mode_has_transition(options.mode) && !options.raw_state &&
                           sn_blast_reg_init_bit(module, occurrence.object, bit);
             Mini_AigCreatePo(hierarchy.aig, invert ? Mini_AigLitNot(bits[bit]) : bits[bit]);
             sn_blast_boundary_add_bit(&hierarchy, false, SN_BLAST_BOUNDARY_REG_INPUT, occurrence.frame,
