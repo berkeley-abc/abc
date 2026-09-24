@@ -744,6 +744,7 @@ Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fS
     Gia_ManForEachCo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManHashStop( pNew );
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     return pNew;
 }
@@ -2071,6 +2072,7 @@ Gia_Man_t * Gia_ManEquivToChoices( Gia_Man_t * p, int nSnapshots )
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     Gia_ManRemoveBadChoices( pNew );
 //Gia_ManEquivPrintClasses( pNew, 0, 0 );
+    Gia_ManOriginsDup( pNew, p );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
 //Gia_ManEquivPrintClasses( pNew, 0, 0 );

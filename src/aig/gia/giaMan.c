@@ -107,6 +107,8 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFreeP( &p->vIdsOrig );
     Vec_IntFreeP( &p->vIdsEquiv );
     Vec_IntFreeP( &p->vEquLitIds );
+    Gia_ManOriginsFreeOverflows( p );
+    Vec_IntFreeP( &p->vOrigins );
     Vec_IntFreeP( &p->vLutConfigs );
     Vec_IntFreeP( &p->vEdgeDelay );
     Vec_IntFreeP( &p->vEdgeDelayR );

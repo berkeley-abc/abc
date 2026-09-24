@@ -315,6 +315,7 @@ Gia_Man_t * Gia_ManDupFromBarBufs( Gia_Man_t * p )
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    Gia_ManOriginsDup( pNew, p );
     return pNew;
 }
 Gia_Man_t * Gia_ManDupToBarBufs( Gia_Man_t * p, int nBarBufs )
@@ -357,6 +358,7 @@ Gia_Man_t * Gia_ManDupToBarBufs( Gia_Man_t * p, int nBarBufs )
     assert( Gia_ManBufNum(pNew) == nBarBufs );
     assert( Gia_ManCiNum(pNew) == nPiReal );
     assert( Gia_ManCoNum(pNew) == nPoReal );
+    Gia_ManOriginsDup( pNew, p );
     return pNew;
 }
 
@@ -396,6 +398,8 @@ Gia_Man_t * Gia_ManAigSynch2Choices( Gia_Man_t * pGia1, Gia_Man_t * pGia2, Gia_M
     // convert to GIA
     pGia = Gia_ManFromAigChoices( pMan );
     Aig_ManStop( pMan );
+    // recover origins from base variant (pGia1) via CI/CO correspondence
+    Gia_ManOriginsAfterRoundTrip( pGia, pGia1 );
     return pGia;
 }
 Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * pInit, void * pPars0, int nLutSize, int nRelaxRatio )
