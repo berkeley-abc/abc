@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 project(sn LANGUAGES CXX)
-if(WIN32)
+if(MSVC)
     message(FATAL_ERROR "The optional Slang-to-SN companion is not supported on Windows")
 endif()
 set(CMAKE_CXX_STANDARD 20)
