@@ -56,8 +56,8 @@ struct Mf_Obj_t_
     int             iCutSet;        // cutset
     float           Flow;           // area
     float           nFlowRefs;      // flow references
-    unsigned        Delay    : 16;  // delay 
-    unsigned        nMapRefs : 16;  // map references
+    unsigned        Delay;          // delay 
+    unsigned        nMapRefs;       // map references
 };
 typedef struct Mf_Man_t_ Mf_Man_t; 
 struct Mf_Man_t_
