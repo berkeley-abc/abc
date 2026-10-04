@@ -1827,6 +1827,8 @@ Gia_Man_t * Mf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {
     Mf_Man_t * p;
     Gia_Man_t * pNew, * pCls;
+    // fCnfOnly returns no network, so the CNF is the only output left
+    assert( !pPars->fCnfOnly || pPars->fGenCnf );
     if ( pPars->fGenCnf || pPars->fGenLit )
         pPars->fCutMin = 1;
     if ( Gia_ManHasChoices(pGia) )
