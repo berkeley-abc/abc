@@ -114,7 +114,7 @@ int Abc_NodeMffcLabelAig( Abc_Obj_t * pNode )
 
 /**Function*************************************************************
 
-  Synopsis    [References/references the node and returns MFFC size.]
+  Synopsis    [References/dereferences the node and returns MFFC size.]
 
   Description []
                
@@ -159,7 +159,7 @@ int Abc_NodeRefDeref( Abc_Obj_t * pNode, int fReference, int fLabel )
 
 /**Function*************************************************************
 
-  Synopsis    [References/references the node and returns MFFC size.]
+  Synopsis    [References/dereferences the node and returns MFFC size.]
 
   Description [Stops at the complemented edges.]
                
