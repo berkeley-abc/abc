@@ -202,6 +202,18 @@ static inline int Cnf_ObjGetLit( Vec_Int_t * vMap, Aig_Obj_t * pObj, int fCompl 
   SeeAlso     []
 
 ***********************************************************************/
+// Entries the table will hold. Nothing bounds how many distinct cut functions
+// a circuit can present -- at most two per cone, so O(AIG) -- while the reuse
+// is extreme and concentrated: on a 293k-AND multiplier four functions answer
+// 146,304 of 146,304 requests. Replaying the five request streams measured so
+// far against a bound of 1024, an LRU of 1024 and a direct-mapped 1024 gives
+// the same hit rate as an unbounded table to three decimal places, the most
+// distinct functions any of them presents being 166. So the table is bounded
+// here and the policy left as simple as it can be: past the bound a function
+// already stored is still replayed, and one that is not is computed and not
+// stored.
+#define CNF_ISOP_CACHE_MAX 1024
+
 typedef struct Cnf_IsopCache_t_ Cnf_IsopCache_t;
 struct Cnf_IsopCache_t_
 {
@@ -244,7 +256,21 @@ static int * Cnf_IsopCacheCover( Cnf_IsopCache_t * p, word Truth, int nLeaves, V
     }
     Key[0] = Truth;
     Key[1] = (word)nLeaves;
-    iFunc  = Vec_MemHashInsert( p->vFuncs, Key );
+    if ( Vec_IntSize(p->vCovers) < CNF_ISOP_CACHE_MAX )
+        iFunc = Vec_MemHashInsert( p->vFuncs, Key );
+    else
+    {
+        // Full: serve what is stored, compute the rest without storing it.
+        int * pSpot = Vec_MemHashLookup( p->vFuncs, Key );
+        if ( *pSpot == -1 )
+        {
+            RetValue = Kit_TruthIsop( (unsigned *)&Truth, nLeaves, vCover, 0 );
+            assert( RetValue >= 0 );
+            *pnCubes = Vec_IntSize( vCover );
+            return Vec_IntArray( vCover );
+        }
+        iFunc = *pSpot;
+    }
     if ( iFunc == Vec_IntSize(p->vCovers) )
     {
         RetValue = Kit_TruthIsop( (unsigned *)&Truth, nLeaves, vCover, 0 );
