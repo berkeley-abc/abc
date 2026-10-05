@@ -26,6 +26,8 @@
 #include "opt/dau/dau.h"
 #include "misc/util/utilTruth.h"
 #include "base/main/main.h"
+#include "bool/lms/lms.h"
+#include "bool/lms/lmsXor.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -92,6 +94,13 @@ struct Lms_Man_t_
     abctime           timeInsert;
     abctime           timeOther;
     abctime           timeTotal;
+    Lms_Collect_t *    pCollect;
+    int               fCollectHopNotice;
+    int               fLateFilter;
+    int               fXorCost;
+    int               fFilterInvalid;
+    int               fDefaultCache;
+    Lms_Eval_t *      pEval;
 };
 
 static ABC_THREAD_LOCAL Lms_Man_t * s_pMan3Standalone = NULL;
@@ -170,7 +179,7 @@ static inline void Lms_DelayPrint( word D, int nVars )
         printf( " %d", Lms_DelayGet(D, v) );
     printf( " }\n" );
 }
-Vec_Wrd_t * Lms_GiaDelays( Gia_Man_t * p )
+static Vec_Wrd_t * Lms_GiaDelaysMode( Gia_Man_t * p, int fXor )
 {
     Vec_Wrd_t * vDelays, * vResult;
     Gia_Obj_t * pObj;
@@ -181,7 +190,11 @@ Vec_Wrd_t * Lms_GiaDelays( Gia_Man_t * p )
     Gia_ManForEachObj1( p, pObj, i )
     {
         if ( Gia_ObjIsAnd(pObj) )
-            Vec_WrdPush( vDelays, Lms_DelayMax( Vec_WrdEntry(vDelays, Gia_ObjFaninId0(pObj, i)), Vec_WrdEntry(vDelays, Gia_ObjFaninId1(pObj, i)), Gia_ManCiNum(p) ) );
+        {
+            Gia_Obj_t * pA, * pB;
+            Lms_GiaMetricFans(pObj, fXor, &pA, &pB);
+            Vec_WrdPush( vDelays, Lms_DelayMax( Vec_WrdEntry(vDelays, Gia_ObjId(p, pA)), Vec_WrdEntry(vDelays, Gia_ObjId(p, pB)), Gia_ManCiNum(p) ) );
+        }
         else if ( Gia_ObjIsCo(pObj) )
             Vec_WrdPush( vDelays, Lms_DelayDecrement( Vec_WrdEntry(vDelays, Gia_ObjFaninId0(pObj, i)), Gia_ManCiNum(p) ) );
         else if ( Gia_ObjIsCi(pObj) )
@@ -194,6 +207,20 @@ Vec_Wrd_t * Lms_GiaDelays( Gia_Man_t * p )
         Vec_WrdPush( vResult, Vec_WrdEntry(vDelays, Gia_ObjId(p, pObj)) );
     Vec_WrdFree( vDelays );
     return vResult;
+}
+Vec_Wrd_t * Lms_GiaDelays( Gia_Man_t * p )
+{
+    return Lms_GiaDelaysMode(p, 0);
+}
+static int Lms_ObjXorArea_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    Gia_Obj_t * pA, * pB;
+    int Area;
+    if ( !Gia_ObjIsAnd(pObj) || Gia_ObjIsTravIdCurrent(p, pObj) ) return 0;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    Lms_GiaMetricFans(pObj, 1, &pA, &pB);
+    Area = Lms_ObjXorArea_rec(p, pA);
+    return 1 + Area + Lms_ObjXorArea_rec(p, pB);
 }
 void Lms_ObjAreaMark_rec( Gia_Obj_t * pObj )
 {
@@ -225,6 +252,18 @@ Vec_Str_t * Lms_GiaAreas( Gia_Man_t * p )
     vAreas = Vec_StrAlloc( Gia_ManCoNum(p) );
     Gia_ManForEachCo( p, pObj, i )
         Vec_StrPush( vAreas, (char)(Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) ? Lms_ObjArea(Gia_ObjFanin0(pObj)) : 0) );
+    return vAreas;
+}
+static Vec_Str_t * Lms_GiaXorAreas( Gia_Man_t * p )
+{
+    Vec_Str_t * vAreas = Vec_StrAlloc(Gia_ManCoNum(p));
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManForEachCo(p, pObj, i)
+    {
+        Gia_ManIncrementTravId(p);
+        Vec_StrPush(vAreas, (char)Lms_ObjXorArea_rec(p, Gia_ObjFanin0(pObj)));
+    }
     return vAreas;
 }
 Vec_Str_t * Lms_GiaSuppSizes( Gia_Man_t * p )
@@ -331,6 +370,7 @@ Lms_Man_t * Lms_ManStart( Gia_Man_t * pGia, int nVars, int nCuts, int fFuncOnly,
     p->nCuts = nCuts;
     p->nWords = Abc_Truth6WordNum( nVars );
     p->fFuncOnly = fFuncOnly;
+    p->fDefaultCache = pGia != NULL && !fFuncOnly;
     // internal data for library construction
     p->vTtMem = Vec_MemAlloc( p->nWords, 12 ); // 32 KB/page for 6-var functions
 //    p->vTtMem2 = Vec_MemAlloc( p->nWords, 12 ); // 32 KB/page for 6-var functions
@@ -377,6 +417,8 @@ p->timeTotal += Abc_Clock() - clk2;
 }
 void Lms_ManStop( Lms_Man_t * p )
 {
+    Lms_CollectStop( p->pCollect );
+    Lms_EvalStop( p->pEval );
     // temporaries
     Vec_IntFreeP( &p->vLabels );
     Vec_PtrFreeP( &p->vLabelsP );
@@ -413,9 +455,114 @@ void Lms_ManPrepare( Lms_Man_t * p )
     assert( p->vDelays == NULL );
     assert( p->vAreas == NULL );
     assert( p->vFreqs == NULL );
-    p->vDelays = Lms_GiaDelays( p->pGia );
-    p->vAreas  = Lms_GiaAreas( p->pGia );
+    p->vDelays = Lms_GiaDelaysMode( p->pGia, p->fXorCost );
+    p->vAreas  = p->fXorCost ? Lms_GiaXorAreas(p->pGia) : Lms_GiaAreas( p->pGia );
     p->vFreqs  = Vec_IntStart( Gia_ManCoNum(p->pGia) );
+    if ( p->fDefaultCache )
+    {
+        p->fDefaultCache = 0;
+        p->pEval = Lms_EvalStart(p->nVars, Vec_IntSize(p->vTruthPo)-1,
+            Vec_IntArray(p->vTruthPo), Vec_WrdArray(p->vDelays), Vec_StrArray(p->vAreas));
+        Lms_EvalCacheEnable(p->pEval, 1);
+        p->fLateFilter = 1;
+    }
+}
+// Samples own truth tables, not indices into the library. They remain valid
+// if the library grows. Stopping the library also releases its collector.
+/**Function*************************************************************
+
+  Synopsis    [Configure or report exact LMS filtering and caching.]
+
+  Description []
+
+  SideEffects [Updates the active LMS manager.]
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_LmsFilterControl3( int Mode, FILE * pOut )
+{
+    Lms_Man_t * p = s_pMan3;
+    if ( !p || !p->pGia || p->fLibConstr || p->fFuncOnly )
+    {
+        fprintf(pOut, "LMS filtering requires a loaded structure library (rec_start3).\n");
+        return 1;
+    }
+    if ( Mode == 2 )
+    {
+        if ( p->fDefaultCache )
+        {
+            fprintf(pOut, "LMS exact winner cache enabled by default (initialized on first library use).\n");
+            return 0;
+        }
+        fprintf(pOut, "LMS late-input filtering is %s.\n", p->fLateFilter ? "enabled" : "disabled");
+        Lms_EvalStats(p->pEval, pOut);
+        return 0;
+    }
+    if ( Mode && p->fFilterInvalid )
+    {
+        fprintf(pOut, "LMS filtering: reload the modified library before enabling its index.\n");
+        return 1;
+    }
+    p->fDefaultCache = 0;
+    if ( Mode && !p->pEval )
+    {
+        if ( !p->vTruthPo ) Lms_ManPrepare(p);
+        p->pEval = Lms_EvalStart(p->nVars, Vec_IntSize(p->vTruthPo)-1,
+            Vec_IntArray(p->vTruthPo), Vec_WrdArray(p->vDelays), Vec_StrArray(p->vAreas));
+    }
+    p->fLateFilter = Mode != 0;
+    if ( p->pEval ) Lms_EvalCacheEnable(p->pEval, Mode == 3);
+    if ( Mode ) Lms_EvalResetStats(p->pEval);
+    fprintf(pOut, "LMS late-input filtering %s.\n", Mode ? "enabled" : "disabled");
+    if ( Mode == 3 ) fprintf(pOut, "LMS winner cache enabled (empty).\n");
+    return 0;
+}
+static void Lms_ManFilterInvalidate( Lms_Man_t * p )
+{
+    if ( p->fLateFilter )
+        Abc_Print(1, "LMS filtering disabled because the library is being modified.\n");
+    if ( p->pEval || p->vDelays ) p->fFilterInvalid = 1;
+    Lms_EvalStop(p->pEval); p->pEval = NULL; p->fLateFilter = 0;
+    p->fDefaultCache = 0;
+}
+/**Function*************************************************************
+
+  Synopsis    [Start, stop, or export LMS truth/arrival collection.]
+
+  Description []
+
+  SideEffects [Updates the active collector or writes its samples.]
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_LmsCollectControl3( const char * pFileName, int Mode, FILE * pError )
+{
+    Lms_Man_t * p = s_pMan3;
+    if ( Mode == 2 )
+    {
+        if ( p ) { Lms_CollectStop(p->pCollect); p->pCollect = NULL; }
+        return 0;
+    }
+    if ( !p || p->nVars != 6 || p->fLibConstr || p->fFuncOnly )
+    {
+        fprintf(pError, "LMS sampling requires a loaded six-input library (rec_start3).\n");
+        return 1;
+    }
+    if ( Mode == 1 )
+    {
+        Lms_CollectStop(p->pCollect);
+        p->pCollect = Lms_CollectStart();
+        p->fCollectHopNotice = 0;
+        return 0;
+    }
+    if ( !p->pCollect )
+    {
+        fprintf(pError, "Start LMS sampling with rec_collect3 -r.\n");
+        return 1;
+    }
+    return !Lms_CollectWrite(p->pCollect, pFileName, pError);
 }
 void Lms_ManPrintFuncStats( Lms_Man_t * p )
 {
@@ -598,6 +745,7 @@ void Abc_NtkRecLibMerge3( Gia_Man_t * pLib )
         return;
     }
     assert( Gia_ManCiNum(pLib) == Gia_ManCiNum(pGia) );
+    Lms_ManFilterInvalidate(p);
 
     // create hash table if not available
     if ( Vec_IntSize(&pGia->vHTable) == 0 )
@@ -854,6 +1002,7 @@ void Abc_NtkRecAdd3( Abc_Ntk_t * pNtk, int fUseSOPB )
     if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Performing recoding structures with choices.\n" );
     // remember that the manager was used for library construction
+    Lms_ManFilterInvalidate(s_pMan3);
     s_pMan3->fLibConstr = 1;
     // create hash table if not available
     if ( s_pMan3->pGia && Vec_IntSize(&s_pMan3->pGia->vHTable) == 0 )
@@ -975,6 +1124,15 @@ p->timeCanon += Abc_Clock() - clk;
     iFirstPoNext = Vec_IntEntry( p->vTruthPo, *pTruthId+1 );
     // iterate through the subgraphs of this class
     iBestPo = -1;
+    if ( p->fLateFilter && iFirstPoNext-iFirstPo > 2 )
+    {
+        float Times[LMS_VAR_MAX];
+        for ( i = 0; i < nLeaves; ++i )
+            Times[i] = If_ObjCutBest(If_ManObj(pIfMan, pCut->pLeaves[(int)pCanonPerm[i]]))->Delay;
+        iBestPo = Lms_EvalFind(p->pEval, *pTruthId, nLeaves, Times, &BestDelay);
+        BestArea = Vec_StrEntry(p->vAreas, iBestPo);
+    }
+    else
     for ( i = iFirstPo; i < iFirstPoNext; i++ )
     {
         Delay = If_CutComputeDelay( pIfMan, pCut, pCanonPerm, Vec_WrdEntry(p->vDelays, i) );
@@ -1052,6 +1210,11 @@ Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
     Gia_Man_t * pGia = p->pGia;
     Gia_Obj_t * pGiaPo, * pGiaTemp = NULL;
     int i, uSupport, BestPo = -1, nLeaves = If_CutLeaveNum(pCut);
+    if ( p->pCollect && !p->fCollectHopNotice )
+    {
+        Abc_Print(1, "LMS: sample collection requires the GIA path (&if -y); network if -y does not collect.\n");
+        p->fCollectHopNotice = 1;
+    }
     assert( pIfMan->pPars->fCutMin == 1 );
 
     // compute support
@@ -1181,6 +1344,14 @@ int Abc_RecToGia3( Gia_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int
     assert( Gia_ObjIsAnd(pGiaTemp) );
     iGiaObj = Vec_IntEntry(p->vLabels, Gia_ObjNum(pGia, pGiaTemp) + nLeaves);
     // complement the result if needed
+    if ( p->pCollect )
+    {
+        int Arrivals[6];
+        word Truth = *Vec_MemReadEntry(p->vTtMem, Vec_IntEntry(p->vTruthIds, BestPo));
+        for ( i = 0; i < nLeaves; ++i )
+            Arrivals[i] = (int)If_ObjCutBest(If_ManObj(pIfMan, pCut->pLeaves[(int)pCanonPerm[i]]))->Delay;
+        Lms_CollectAdd(p->pCollect, Truth, nLeaves, Arrivals);
+    }
     return Abc_LitNotCond( iGiaObj,  Gia_ObjFaninC0(pGiaPo) ^ ((uCanonPhase >> nLeaves) & 1) ^ pCut->fCompl );    
 }
 
@@ -1251,7 +1422,7 @@ Vec_Int_t * Lms_GiaFindNonRedundantCos( Lms_Man_t * p )
     Vec_Wrd_t * vDelays;
     int i, k, EntryI, EntryK;
     word D1, D2;
-    vDelays = Lms_GiaDelays( p->pGia );
+    vDelays = Lms_GiaDelaysMode( p->pGia, p->fXorCost );
     vUseful = Lms_GiaCollectUsefulCos( p );
     Vec_IntForEachEntry( vUseful, EntryI, i )
     {
@@ -1296,6 +1467,7 @@ void Lms_GiaNormalize( Lms_Man_t * p )
     Vec_Int_t * vRemain;
     Vec_Int_t * vTruthIdsNew;
     int i, Entry, Prev = -1, Next;
+    Lms_ManFilterInvalidate(p);
     // collect non-redundant COs
     vRemain = Lms_GiaFindNonRedundantCos( p );
     // change these to be useful literals
@@ -1431,6 +1603,63 @@ void Abc_NtkRecStart3( Gia_Man_t * p, int nVars, int nCuts, int fFuncOnly, int f
 {
     assert( s_pMan3 == NULL );
     Lms_ManSetCurrent( Lms_ManStart(p, nVars, nCuts, fFuncOnly, fVerbose) );
+}
+// Invoked only by &if -y when no manager was explicitly installed. Parsing
+// needs writable storage because the AIGER reader edits symbol delimiters.
+/**Function*************************************************************
+
+  Synopsis    [Lazily load the compiled-in six-input LMS library.]
+
+  Description [Returns 1 on success and 0 on failure. An existing manager
+  takes precedence; messages and errors use their respective streams.]
+
+  SideEffects [Decodes the library and installs an LMS manager.]
+
+  SeeAlso     [Abc_NtkRecStart3 Abc_NtkRecStop3]
+
+***********************************************************************/
+int Abc_NtkRecStartBuiltin3( FILE * pOut, FILE * pError )
+{
+    char * pCopy;
+    int nBytes;
+    Gia_Man_t * pGia;
+    if ( s_pMan3 ) return 1;
+    pCopy = Lms_BuiltinDecode(&nBytes);
+    if ( !pCopy )
+    {
+        fprintf(pError, "Error: could not decode the built-in LMS library.\n");
+        return 0;
+    }
+    pGia = Gia_AigerReadFromMemory(pCopy, nBytes, 0, 1, 0);
+    ABC_FREE(pCopy);
+    if ( !pGia || Gia_ManCiNum(pGia) != 6 || Gia_ManRegNum(pGia) || !Gia_ManCoNum(pGia) )
+    {
+        Gia_ManStopP(&pGia);
+        fprintf(pError, "Error: could not load the built-in LMS library.\n");
+        return 0;
+    }
+    ABC_FREE(pGia->pName);
+    pGia->pName = Abc_UtilStrsav((char *)"lms_builtin");
+    Abc_NtkRecStart3(pGia, 6, 32, 0, 0);
+    fprintf(pOut, "LMS: using built-in generated library (%d bytes); exact winner cache enabled.\n", nBytes);
+    return 1;
+}
+/**Function*************************************************************
+
+  Synopsis    [Select unit XOR costs before preparing the loaded library.]
+
+  Description []
+
+  SideEffects [Updates the active LMS manager.]
+
+  SeeAlso     [Abc_NtkRecStart3]
+
+***********************************************************************/
+void Abc_NtkRecXorMode3( void )
+{
+    assert(s_pMan3 && !s_pMan3->vDelays);
+    s_pMan3->fXorCost = 1;
+    Abc_Print(1, "LMS: unit AND/XOR cost model; library and results remain ordinary AIGs.\n");
 }
 
 void Abc_NtkRecStop3()

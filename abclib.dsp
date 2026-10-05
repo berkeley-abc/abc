@@ -6590,6 +6590,46 @@ SOURCE=.\src\bool\kit\kitTruth.c
 # PROP Default_Filter ""
 # Begin Source File
 
+SOURCE=.\src\bool\lms\lms.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\lms\lmsBuiltin.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\lms\lmsBuiltinData.inc
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\lms\lmsCollect.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\lms\lmsEval.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\lms\lmsGen.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\lms\lmsInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\lms\lmsKernel.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\lms\lmsLib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\lms\lmsXor.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\bool\lucky\lucky.c
 # End Source File
 # Begin Source File
