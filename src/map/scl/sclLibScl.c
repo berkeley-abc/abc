@@ -174,7 +174,11 @@ SC_Lib * Abc_SclReadFromGenlib( void * pLib0 )
     if ( !Abc_SclReadLibraryGenlib( p, pLib ) )
         return NULL;
     // hash gates by name
-    Abc_SclHashCells( p );
+    if ( !Abc_SclHashCells( p ) )
+    {
+        Abc_SclLibFree( p );
+        return NULL;
+    }
     Abc_SclLinkCells( p );
     return p;
 }
@@ -415,7 +419,11 @@ SC_Lib * Abc_SclReadFromStr( Vec_Str_t * vOut )
         return NULL;
     assert( Pos == Vec_StrSize(vOut) );
     // hash gates by name
-    Abc_SclHashCells( p );
+    if ( !Abc_SclHashCells( p ) )
+    {
+        Abc_SclLibFree( p );
+        return NULL;
+    }
     Abc_SclLinkCells( p );
     return p;
 }
