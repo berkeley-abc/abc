@@ -163,6 +163,10 @@ Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__
     pLib->pMmFlex = Mem_FlexStart();
     pLib->vCube = Vec_StrAlloc( 100 );
 
+    // skip the UTF-8 byte order mark, if present
+    if ( (unsigned char)pBuffer[0] == 0xEF && (unsigned char)pBuffer[1] == 0xBB && (unsigned char)pBuffer[2] == 0xBF )
+        pBuffer[0] = pBuffer[1] = pBuffer[2] = ' ';
+
     Io_ReadFileRemoveComments( pBuffer, NULL, NULL );
 
     // parse the contents of the file

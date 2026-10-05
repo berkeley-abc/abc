@@ -1035,11 +1035,19 @@ Vec_Ptr_t * Abc_SopFromTruthsBin( char * pTruth )
     Vec_Ptr_t * vRes = Vec_PtrAlloc( 10 );
     char * pCopy = Abc_UtilStrsav(pTruth);
     char * pToken = strtok( pCopy, " \r\n\t|" );
+    char * pSop;
     while ( pToken )
     {
         if ( !Abc_SopCheckReadTruth( vRes, pToken, 0 ) )
             break;
-        Vec_PtrPush( vRes, Abc_SopFromTruthBin(pToken) );
+        pSop = Abc_SopFromTruthBin(pToken);
+        if ( pSop == NULL )
+        {
+            Vec_PtrFreeData( vRes );
+            Vec_PtrClear( vRes );
+            break;
+        }
+        Vec_PtrPush( vRes, pSop );
         pToken = strtok( NULL, " \r\n\t|" );
     }
     ABC_FREE( pCopy );    
@@ -1129,13 +1137,21 @@ Vec_Ptr_t * Abc_SopFromTruthsHex( char * pTruth )
     Vec_Ptr_t * vRes = Vec_PtrAlloc( 10 );
     char * pCopy = Abc_UtilStrsav(pTruth);
     char * pToken = strtok( pCopy, " \r\n\t|" );
+    char * pSop;
     while ( pToken )
     {
         if ( pToken[0] == '0' && pToken[1] == 'x' )
             pToken += 2;
         if ( !Abc_SopCheckReadTruth( vRes, pToken, 1 ) )
             break;
-        Vec_PtrPush( vRes, Abc_SopFromTruthHex(pToken) );
+        pSop = Abc_SopFromTruthHex(pToken);
+        if ( pSop == NULL )
+        {
+            Vec_PtrFreeData( vRes );
+            Vec_PtrClear( vRes );
+            break;
+        }
+        Vec_PtrPush( vRes, pSop );
         pToken = strtok( NULL, " \r\n\t|" );
     }
     ABC_FREE( pCopy );
