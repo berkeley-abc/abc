@@ -1,0 +1,2 @@
+vector[7] 22GAT(10) expect L, observe H  # T'01111' 
+vector[0] 22GAT(10) expect L, observe H  # T'00110' 
