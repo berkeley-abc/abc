@@ -1341,7 +1341,11 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
     if ( pvProds )
         *pvProds = Vec_WecDup(vProds);
     else
+    {
         Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes, fSigned, fCla );
+        // the columns above the product width hold the leftovers of the sign-extension trick
+        Vec_IntShrink( vRes, nArgA + nArgB );
+    }
     //    Wlc_BlastReduceMatrix2( pNew, vProds, vRes, fSigned, fCla );
     Vec_WecFree( vProds );
     Vec_WecFree( vLevels );
