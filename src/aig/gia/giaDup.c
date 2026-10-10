@@ -5787,7 +5787,8 @@ Gia_Man_t * Gia_ManDupWithCare( Gia_Man_t * p, Gia_Man_t * pCare )
 ***********************************************************************/
 void Gia_ManProdAdderGen( int nArgA, int nArgB, int Seed, int fSigned, int fCla )
 {
-    extern void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vLevels, Vec_Int_t * vRes, int fSigned, int fCla );
+    typedef struct Wlc_BlastTim_t_ Wlc_BlastTim_t; // timing memo of the arrival-driven final adder (not used here)
+    extern void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vLevels, Vec_Int_t * vRes, int fSigned, int fCla, Wlc_BlastTim_t * pTim, int nBitsRes );
     int i, k, x, fCompl, iLit; char  pNameP[32], pNameT[32];
     Vec_Wec_t * vProds  = Vec_WecStart( nArgA + nArgB );
     Vec_Wec_t * vLevels = Vec_WecStart( nArgA + nArgB );
@@ -5834,7 +5835,7 @@ void Gia_ManProdAdderGen( int nArgA, int nArgB, int Seed, int fSigned, int fCla 
             if ( Vec_IntSize(vLevel) > 1 )
                 Vec_IntRandomizeOrder( vLevel );
     }
-    Wlc_BlastReduceMatrix( pTree, vProds, vLevels, vRes, fSigned, fCla );
+    Wlc_BlastReduceMatrix( pTree, vProds, vLevels, vRes, fSigned, fCla, NULL, 0 );
     Vec_IntShrink( vRes, nArgA + nArgB );
     assert( Vec_IntSize(vRes) == nArgA + nArgB );
     Vec_IntForEachEntry( vRes, iLit, x )
