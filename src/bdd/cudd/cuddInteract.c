@@ -237,9 +237,10 @@ int
 cuddInitInteract(
   DdManager * table)
 {
-    int i,j,k;
+    ABC_UINT64_T i;
+    int j,k;
     ABC_UINT64_T words;
-    long *interact;
+    ABC_UINT64_T *interact;
     int *support;
     DdNode *f;
     DdNode *sentinel = &(table->sentinel);
@@ -248,7 +249,7 @@ cuddInitInteract(
     int n = table->size;
 
     words = ((n * (n-1)) >> (1 + LOGBPL)) + 1;
-    table->interact = interact = ABC_ALLOC(long,(unsigned)words);
+    table->interact = interact = ABC_ALLOC(ABC_UINT64_T,words);
     if (interact == NULL) {
         table->errorCode = CUDD_MEMORY_OUT;
         return(0);
