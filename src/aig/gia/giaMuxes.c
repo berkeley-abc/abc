@@ -227,6 +227,7 @@ Gia_Man_t * Gia_ManCreateXors( Gia_Man_t * p )
 ***********************************************************************/
 Gia_Man_t * Gia_ManDupNoMuxes( Gia_Man_t * p, int fSkipBufs )
 {
+    extern void Gia_ManCleanupRemap( Gia_Man_t * p, Gia_Man_t * pGia );
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     int i;
@@ -256,6 +257,7 @@ Gia_Man_t * Gia_ManDupNoMuxes( Gia_Man_t * p, int fSkipBufs )
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     // perform cleanup
     pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManCleanupRemap( p, pTemp );
     Gia_ManStop( pTemp );
     return pNew;
 }

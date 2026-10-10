@@ -3027,6 +3027,7 @@ int Gia_ManMiter_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
 ***********************************************************************/
 Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int nInsDup, int fDualOut, int fSeq, int fImplic, int fVerbose )
 {
+    extern void Gia_ManCleanupRemap( Gia_Man_t * p, Gia_Man_t * pGia );
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     int i, iLit;
@@ -3154,9 +3155,15 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int nInsDup, int fDual
     }
     Gia_ManHashStop( pNew );
     pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManCleanupRemap( p0, pTemp );
+    if ( p1 != p0 )
+        Gia_ManCleanupRemap( p1, pTemp );
     Gia_ManStop( pTemp );
 
     pNew = Gia_ManDupNormalize( pTemp = pNew, 0 );
+    Gia_ManCleanupRemap( p0, pTemp );
+    if ( p1 != p0 )
+        Gia_ManCleanupRemap( p1, pTemp );
     Gia_ManStop( pTemp );
     return pNew;
 }
@@ -3671,7 +3678,7 @@ Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit, int nNewPis, int fG
     // create flop inputs
     Gia_ManForEachRi( p, pObj, i )
         if ( pInit[i] == '1' )
-            pObj->Value = Gia_ManAppendCo( pNew, Abc_LitNot(Gia_ObjFanin0Copy(pObj)) );
+            pObj->Value = Abc_LitNot( Gia_ManAppendCo(pNew, Abc_LitNot(Gia_ObjFanin0Copy(pObj))) );
         else
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     // create reset flop input
@@ -3917,6 +3924,7 @@ Gia_Man_t * Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes )
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
@@ -3927,7 +3935,7 @@ Gia_Man_t * Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManForEachPo( p, pObj, i )
         if ( Vec_IntEntry(vPoTypes, i) == 1 ) // constraint (should be complemented!)
-            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) ^ 1 ), nConstr++;
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) ^ 1 ) ^ 1, nConstr++;
     Gia_ManForEachRi( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
 //    Gia_ManDupRemapEquiv( pNew, p );

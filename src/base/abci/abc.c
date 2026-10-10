@@ -44396,13 +44396,15 @@ int Abc_CommandAbc9Verify( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( argc > globalUtilOptind + 1 )
+        goto usage;
     if ( argc == globalUtilOptind + 1 )
     {
         pFileSpec = argv[globalUtilOptind];
         Extra_FileNameCorrectPath( pFileSpec );
         printf( "Taking spec from file \"%s\".\n", pFileSpec );
     }
-    Gia_ManVerifyWithBoxes( pAbc->pGia, nBTLimit, nTimeLim, fSeq, fObjIdMap, fDumpFiles, fVerbose, pFileSpec );
+    Abc_FrameSetStatus( Gia_ManVerifyWithBoxes(pAbc->pGia, nBTLimit, nTimeLim, fSeq, fObjIdMap, fDumpFiles, fVerbose, pFileSpec) );
     return 0;
 
 usage:

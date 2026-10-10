@@ -802,7 +802,15 @@ void Gia_ManDupCollapse_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Man_t * pNew )
     Gia_ManDupCollapse_rec( p, Gia_ObjFanin0(pObj), pNew );
     Gia_ManDupCollapse_rec( p, Gia_ObjFanin1(pObj), pNew );
 //    assert( !~pObj->Value );
-    pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    if ( Gia_ObjIsMux(p, pObj) )
+    {
+        Gia_ManDupCollapse_rec( p, Gia_ObjFanin2(p, pObj), pNew );
+        pObj->Value = Gia_ManHashMux( pNew, Gia_ObjFanin2Copy(p, pObj), Gia_ObjFanin1Copy(pObj), Gia_ObjFanin0Copy(pObj) );
+    }
+    else if ( Gia_ObjIsXor(pObj) )
+        pObj->Value = Gia_ManHashXor( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    else
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
         pNew->pSibls[Abc_Lit2Var(pObj->Value)] = Abc_Lit2Var(Gia_ObjSiblObj(p, Gia_ObjId(p, pObj))->Value);        
 }
@@ -813,7 +821,6 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj, * pObjBox;
     int i, k, curCi, curCo, nBBins = 0, nBBouts = 0, nNewPis = 0;
-    assert( !fSeq || p->vRegClasses );
     //assert( Gia_ManRegNum(p) == 0 );
     assert( Gia_ManCiNum(p) == Tim_ManPiNum(pManTime) + Gia_ManCoNum(pBoxes) );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
@@ -1000,7 +1007,7 @@ Vec_Int_t * Gia_ManVerifyFindNameMapping( Gia_Man_t * p, Gia_Man_t * p1, Gia_Man
         pObj = Gia_ManObj( p1, Abc_Lit2Var(Entry) );
         if ( !Gia_ObjIsCo(pObj) )
             continue;
-        Vec_IntWriteEntry( vMap, Gia_ObjCioId(pObj), i );
+        Vec_IntWriteEntry( vMap, Gia_ObjCioId(pObj), Abc_Var2Lit(i, Abc_LitIsCompl(Entry)) );
     }
     Vec_IntForEachEntry( vMap2, Entry, i )
     {
@@ -1011,8 +1018,9 @@ Vec_Int_t * Gia_ManVerifyFindNameMapping( Gia_Man_t * p, Gia_Man_t * p1, Gia_Man
             continue;
         
         assert( Vec_IntEntry(vRes, i) == -1 );
-        Vec_IntWriteEntry( vRes, i, Abc_Var2Lit( Vec_IntEntry(vMap, Gia_ObjCioId(pObj)), 0 ) );
-        assert( Vec_IntEntry(vRes, i) != -1 );
+        iLit = Vec_IntEntry(vMap, Gia_ObjCioId(pObj));
+        if ( iLit >= 0 )
+            Vec_IntWriteEntry( vRes, i, Abc_LitNotCond(iLit, Abc_LitIsCompl(Entry)) );
     }
     Vec_IntFree( vMap );
     return vRes;    
@@ -1054,9 +1062,23 @@ void Gia_ManVerifyVerifyNameMapping( Gia_Man_t * p, Gia_Man_t * p1, Gia_Man_t * 
 
 int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fSeq, int fObjIdMap, int fDumpFiles, int fVerbose, char * pFileSpec )
 {
+    extern Gia_Man_t * Gia_AigerReadWithMapping( char * pFileName, int fGiaSimple, int fSkipStrash, int fCheck, Vec_Int_t ** pvFileIds );
     int Status   = -1;
     Gia_Man_t * pSpec, * pGia0, * pGia1, * pMiter;
     Vec_Int_t * vBoxPres = NULL;
+    Vec_Int_t * vSpecIds = NULL;
+    if ( pGia == NULL )
+    {
+        Abc_Print( -1, "There is no AIG to verify.\n" );
+        return Status;
+    }
+    if ( fObjIdMap )
+        Vec_IntFreeP( &pGia->vEquLitIds );
+    if ( fSeq && fObjIdMap )
+    {
+        Abc_Print( -1, "Object ID mapping is supported only for combinational verification.\n" );
+        return Status;
+    }
     if ( pFileSpec == NULL && pGia->pSpec == NULL )
     {
         printf( "Spec file is not given. Use standard flow.\n" );
@@ -1068,9 +1090,16 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
         return Status;
     }
     // read original AIG
-    pSpec = Gia_AigerRead( pFileSpec ? pFileSpec : pGia->pSpec, 0, 0, 0 );
+    // Track file IDs through hashing, cleanup, and initialization conversion.
+    pSpec = Gia_AigerReadWithMapping( pFileSpec ? pFileSpec : pGia->pSpec, 0, 0, 0, fObjIdMap ? &vSpecIds : NULL );
+    if ( pSpec == NULL )
+    {
+        Abc_Print( -1, "Cannot read the specification AIG.\n" );
+        return Status;
+    }
     if ( Gia_ManBoxNum(pSpec) && pSpec->pAigExtra == NULL )
     {
+        Vec_IntFreeP( &vSpecIds );
         Gia_ManStop( pSpec );
         printf( "Spec has no box logic. Use standard flow.\n" );
         return Status;
@@ -1079,7 +1108,7 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
     if ( pGia->pManTime == NULL && pSpec->pManTime == NULL )
     {
         pGia0 = Gia_ManDup( pSpec );
-        pGia1 = Gia_ManDup( pGia );
+        pGia1 = (Gia_ManMuxNum(pGia) || Gia_ManXorNum(pGia)) ? Gia_ManDupNoMuxes(pGia, 0) : Gia_ManDup(pGia);
     }
     else
     {
@@ -1091,6 +1120,8 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
             if ( Gia_ManBoxNum(pSpec) < Gia_ManBoxNum(pGia) )
             {
                 printf( "Spec has less boxes than the design. Cannot proceed.\n" );
+                Gia_ManStop( pSpec );
+                Vec_IntFreeP( &vSpecIds );
                 return Status;
             }
             // to align the boxes, find what boxes of pSpec are dropped in pGia
@@ -1100,6 +1131,8 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
                 if ( vBoxPres == NULL )
                 {
                     printf( "Boxes of spec and design cannot be aligned. Cannot proceed.\n" );
+                    Gia_ManStop( pSpec );
+                    Vec_IntFreeP( &vSpecIds );
                     return Status;
                 }
             }
@@ -1112,19 +1145,20 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
         if ( Gia_ManBoxNum(pGia) > 0 )
             pGia1 = Gia_ManDupCollapse( pGia,  pGia->pAigExtra,  NULL, fSeq  );
         else
-            pGia1 = Gia_ManDup( pGia );
+            pGia1 = (Gia_ManMuxNum(pGia) || Gia_ManXorNum(pGia)) ? Gia_ManDupNoMuxes(pGia, 0) : Gia_ManDup(pGia);
         Vec_IntFreeP( &vBoxPres );
     }
     if ( fDumpFiles )
     {
-        char pFileName0[1000], pFileName1[1000];
         char * pNameGeneric = Extra_FileNameGeneric( pFileSpec ? pFileSpec : pGia->pSpec );
-        sprintf( pFileName0, "%s_spec.aig", pNameGeneric );
-        sprintf( pFileName1, "%s_impl.aig", pNameGeneric );
+        char * pFileName0 = Abc_UtilStrsavTwo( pNameGeneric, "_spec.aig" );
+        char * pFileName1 = Abc_UtilStrsavTwo( pNameGeneric, "_impl.aig" );
         Gia_AigerWrite( pGia0, pFileName0, 0, 0, 0 );
         Gia_AigerWrite( pGia1, pFileName1, 0, 0, 0 );
         ABC_FREE( pNameGeneric );
         printf( "Dumped two parts of the miter into files \"%s\" and \"%s\".\n", pFileName0, pFileName1 );
+        ABC_FREE( pFileName0 );
+        ABC_FREE( pFileName1 );
     }
     // compute the miter
     if ( fSeq )
@@ -1169,13 +1203,12 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
             Status = Cec_ManVerify( pMiter, pPars );
             if ( pPars->iOutFail >= 0 )
                 Abc_Print( 1, "Verification failed for at least one output (%d).\n", pPars->iOutFail );
-            if ( fObjIdMap ) {
+            if ( fObjIdMap && Status == 1 ) {
                 Gia_Man_t * pReduced = Gia_ManOrigIdsReduce( pMiter, pMiter->vIdsEquiv );
                 Gia_ManStop( pReduced );
-                Gia_Obj_t * pObj; int i;           
-                Vec_Int_t * vCopy0 = Vec_IntAlloc(Gia_ManObjNum(pSpec));     
-                Gia_ManForEachObj( pSpec, pObj, i )
-                    Vec_IntPush( vCopy0, pObj->Value );
+                Gia_Obj_t * pObj; int i;
+                Vec_Int_t * vCopy0 = Vec_IntDup(vSpecIds);
+                Gia_ManDupRemapLiterals( vCopy0, pSpec );
                 Vec_Int_t * vCopy1 = Vec_IntAlloc(Gia_ManObjNum(pGia));     
                 Gia_ManForEachObj( pGia, pObj, i )
                     Vec_IntPush( vCopy1, pObj->Value );
@@ -1192,6 +1225,7 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
     Gia_ManStop( pGia0 );
     Gia_ManStop( pGia1 );
     Gia_ManStop( pSpec );
+    Vec_IntFreeP( &vSpecIds );
     return Status;
 }
 

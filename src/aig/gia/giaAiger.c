@@ -174,12 +174,13 @@ Vec_Str_t * Gia_AigerWriteLiterals( Vec_Int_t * vLits )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSimple, int fSkipStrash, int fCheck )
+static Gia_Man_t * Gia_AigerReadFromMemoryInt( char * pContents, int nFileSize, int fGiaSimple, int fSkipStrash, int fCheck, Vec_Int_t ** pvFileIds )
 {
     Gia_Man_t * pNew, * pTemp;
     Vec_Ptr_t * vNamesIn = NULL, * vNamesOut = NULL, * vNamesRegIn = NULL, * vNamesRegOut = NULL, * vNamesNode = NULL;
     Vec_Int_t * vLits = NULL, * vPoTypes = NULL;
     Vec_Int_t * vNodes, * vDrivers, * vInits = NULL;
+    Vec_Int_t * vFileIds = NULL;
     int iObj, iNode0, iNode1, fHieOnly = 0;
     int nTotal, nInputs, nOutputs, nLatches, nAnds, i;
     int nBad = 0, nConstr = 0, nJust = 0, nFair = 0;
@@ -374,6 +375,12 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
 
     // create the latches
     Gia_ManSetRegNum( pNew, nLatches );
+    if ( pvFileIds )
+    {
+        vFileIds = Vec_IntDup( vNodes );
+        for ( i = 0; i < Gia_ManCoNum(pNew); i++ )
+            Vec_IntPush( vFileIds, Gia_Obj2Lit(pNew, Gia_ManCo(pNew, i)) );
+    }
 
     // read signal names if they are of the special type
     pCur = pSymbols;
@@ -957,12 +964,19 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
 
     // update polarity of the additional outputs
     if ( nBad || nConstr || nJust || nFair )
+    {
         Gia_ManInvertConstraints( pNew );
+        if ( vFileIds )
+            for ( i = Gia_ManPoNum(pNew) - Gia_ManConstrNum(pNew); i < Gia_ManPoNum(pNew); i++ )
+                Vec_IntWriteEntry( vFileIds, nTotal + 1 + i, Vec_IntEntry(vFileIds, nTotal + 1 + i) ^ 1 );
+    }
 
     // clean the PO drivers
     if ( vPoTypes )
     {
         pNew = Gia_ManDupWithConstraints( pTemp = pNew, vPoTypes );
+        if ( vFileIds )
+            Gia_ManDupRemapLiterals( vFileIds, pTemp );
         Gia_ManStop( pTemp );
         Vec_IntFreeP( &vPoTypes );
     }
@@ -980,6 +994,8 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
         pManTime = (Tim_Man_t *)pNew->pManTime; pNew->pManTime = NULL;
         pAigExtra   = pNew->pAigExtra;    pNew->pAigExtra      = NULL;
         pNew = Gia_ManCleanup( pTemp = pNew );
+        if ( vFileIds )
+            Gia_ManDupRemapLiterals( vFileIds, pTemp );
         if ( (vGateMap || vObjMap) && (Gia_ManObjNum(pNew) < Gia_ManObjNum(pTemp)) )
             printf( "Cleanup removed objects after reading. Old gate/object abstraction maps are invalid!\n" );
         Gia_ManStop( pTemp );
@@ -997,6 +1013,9 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
     {
         extern void Gia_ManFlipInit1( Gia_Man_t * p, Vec_Int_t * vInit );
         Tim_Man_t * pTimMan = (Tim_Man_t *)pNew->pManTime;
+        if ( vFileIds )
+            for ( i = 0; i < Gia_ManObjNum(pNew); i++ )
+                Gia_ManObj(pNew, i)->Value = Abc_Var2Lit(i, 0);
 
         if ( pTimMan && Gia_ManRegBoxNum(pNew) > 0 )
         {
@@ -1020,6 +1039,8 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                     {
                         pObj = Gia_ManCi(pNew, curCi);
                         pObj->fMark0 = 1;
+                        if ( vFileIds )
+                            pObj->Value ^= 1;
                     }
                     iRegBox++;
                 }
@@ -1062,7 +1083,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
             }
 
             // Step 5: Complement register box inputs with init state 1
-            curCo = Tim_ManPoNum(pTimMan);
+            curCo = 0;
             iRegBox = 0;
             for ( i = 0; i < Gia_ManBoxNum(pNew); i++ )
             {
@@ -1074,6 +1095,8 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                     {
                         pObj = Gia_ManCo(pNew, curCo);
                         pObj->fCompl0 ^= 1;
+                        if ( vFileIds )
+                            pObj->Value ^= 1;
                     }
                     iRegBox++;
                 }
@@ -1086,10 +1109,19 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
         else if ( Gia_ManRegNum(pNew) > 0 )
         {
             // Handle regular flops (no boxes)
+            if ( vFileIds )
+                for ( i = 0; i < Gia_ManRegNum(pNew); i++ )
+                    if ( Vec_IntEntry(pNew->vRegInits, i) == 1 )
+                    {
+                        Gia_ManRo(pNew, i)->Value ^= 1;
+                        Gia_ManRi(pNew, i)->Value ^= 1;
+                    }
             Gia_ManFlipInit1( pNew, pNew->vRegInits );
             // Clear all init states to 0 (transformation is now structural)
             Vec_IntFill( pNew->vRegInits, Vec_IntSize(pNew->vRegInits), 0 );
         }
+        if ( vFileIds )
+            Gia_ManDupRemapLiterals( vFileIds, pNew );
     }
 
     if ( fHieOnly )
@@ -1135,6 +1167,8 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
         {
             pNew = Gia_ManDupZeroUndc( pTemp = pNew, pInit, 0, fGiaSimple, 1 );
             pNew->nConstrs = pTemp->nConstrs; pTemp->nConstrs = 0;
+            if ( vFileIds )
+                Gia_ManDupRemapLiterals( vFileIds, pTemp );
             Gia_ManStop( pTemp );
         }
         ABC_FREE( pInit );
@@ -1178,7 +1212,13 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
     if ( vNamesOut ) Vec_PtrFreeFree( vNamesOut );
     if ( vNamesRegIn ) Vec_PtrFreeFree( vNamesRegIn );
     if ( vNamesRegOut ) Vec_PtrFreeFree( vNamesRegOut );
+    if ( pvFileIds )
+        *pvFileIds = vFileIds;
     return pNew;
+}
+Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSimple, int fSkipStrash, int fCheck )
+{
+    return Gia_AigerReadFromMemoryInt( pContents, nFileSize, fGiaSimple, fSkipStrash, fCheck, NULL );
 }
 
 /**Function*************************************************************
@@ -1192,23 +1232,26 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_AigerRead( char * pFileName, int fGiaSimple, int fSkipStrash, int fCheck )
+Gia_Man_t * Gia_AigerReadWithMapping( char * pFileName, int fGiaSimple, int fSkipStrash, int fCheck, Vec_Int_t ** pvFileIds )
 {
     FILE * pFile;
     Gia_Man_t * pNew;
     char * pName, * pContents;
     int nFileSize;
     int RetValue;
+    if ( pvFileIds )
+        *pvFileIds = NULL;
 
     // read the file into the buffer
     Gia_FileFixName( pFileName );
     nFileSize = Gia_FileSize( pFileName );
-    pFile = fopen( pFileName, "rb" );
+    if ( nFileSize <= 0 || (pFile = fopen(pFileName, "rb")) == NULL )
+        return NULL;
     pContents = ABC_ALLOC( char, nFileSize );
     RetValue = fread( pContents, nFileSize, 1, pFile );
     fclose( pFile );
 
-    pNew = Gia_AigerReadFromMemory( pContents, nFileSize, fGiaSimple, fSkipStrash, fCheck );
+    pNew = RetValue == 1 ? Gia_AigerReadFromMemoryInt( pContents, nFileSize, fGiaSimple, fSkipStrash, fCheck, pvFileIds ) : NULL;
     ABC_FREE( pContents );
     if ( pNew )
     {
@@ -1221,6 +1264,10 @@ Gia_Man_t * Gia_AigerRead( char * pFileName, int fGiaSimple, int fSkipStrash, in
         pNew->pSpec = Abc_UtilStrsav( pFileName );
     }
     return pNew;
+}
+Gia_Man_t * Gia_AigerRead( char * pFileName, int fGiaSimple, int fSkipStrash, int fCheck )
+{
+    return Gia_AigerReadWithMapping( pFileName, fGiaSimple, fSkipStrash, fCheck, NULL );
 }
 
 
@@ -1426,6 +1473,14 @@ void Gia_AigerWriteS( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, in
     {
 //        printf( "Gia_AigerWrite(): Normalizing AIG for writing.\n" );
         p = Gia_ManDupNormalize( pInit, 0 );
+        if ( pInit->vEquLitIds )
+        {
+            // Rows follow the serialized object order; spec literals do not change.
+            assert( Vec_IntSize(pInit->vEquLitIds) == Gia_ManObjNum(pInit) );
+            p->vEquLitIds = Vec_IntStartFull( Gia_ManObjNum(p) );
+            Gia_ManForEachObj( pInit, pObj, i )
+                Vec_IntWriteEntry( p->vEquLitIds, Abc_Lit2Var(pObj->Value), Vec_IntEntry(pInit->vEquLitIds, i) );
+        }
         Gia_ManTransferMapping( p, pInit );
         Gia_ManTransferPacking( p, pInit );
         Gia_ManTransferTiming( p, pInit );
