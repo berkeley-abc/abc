@@ -562,6 +562,8 @@ void * Dsm_ManDeriveGia( void * pGia, int fUseMuxes )
         assert( iLev == 1 + Abc_MaxInt(iLev0, iLev1) );
     }
 */
+    // propagate origins
+    Gia_ManOriginsDup( pNew, p );
     // perform cleanup
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
