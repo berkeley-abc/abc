@@ -5774,6 +5774,10 @@ Gia_Man_t * Gia_ManDupWithCare( Gia_Man_t * p, Gia_Man_t * pCare )
     return pNew;
 }
 
+// timing memo of the arrival-driven final adder (base/wlc/wlc.h); declared at file scope
+// so that the C++ build does not take it for a type local to the function below
+typedef struct Wlc_BlastTim_t_ Wlc_BlastTim_t;
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -5787,7 +5791,6 @@ Gia_Man_t * Gia_ManDupWithCare( Gia_Man_t * p, Gia_Man_t * pCare )
 ***********************************************************************/
 void Gia_ManProdAdderGen( int nArgA, int nArgB, int Seed, int fSigned, int fCla )
 {
-    typedef struct Wlc_BlastTim_t_ Wlc_BlastTim_t; // timing memo of the arrival-driven final adder (not used here)
     extern void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vLevels, Vec_Int_t * vRes, int fSigned, int fCla, Wlc_BlastTim_t * pTim, int nBitsRes );
     int i, k, x, fCompl, iLit; char  pNameP[32], pNameT[32];
     Vec_Wec_t * vProds  = Vec_WecStart( nArgA + nArgB );
