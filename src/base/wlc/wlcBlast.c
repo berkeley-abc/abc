@@ -969,10 +969,12 @@ void Wlc_BlastPrintMatrix( Gia_Man_t * p, Vec_Wec_t * vProds, int fVerbose )
     Vec_IntFree( vSupp );
     Vec_WrdFree( vTemp );
 }
-void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vLevels, Vec_Int_t * vRes, int fSigned, int fCla )
+// the final adder is driven by the arrival profile if pTim is given, otherwise it is carry-look-ahead (fCla) or ripple-carry;
+// if nBitsRes is positive, only the nBitsRes least significant columns are added and returned
+void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vLevels, Vec_Int_t * vRes, int fSigned, int fCla, Wlc_BlastTim_t * pTim, int nBitsRes )
 {
     Vec_Int_t * vLevel, * vProd;
-    int i, NodeS, NodeC, LevelS, LevelC, Node1, Node2, Node3, Level1, Level2, Level3;
+    int i, NodeS, NodeC, LevelS, LevelC, Node1, Node2, Node3, Level1, Level2, Level3, nBits;
     int nSize = Vec_WecSize(vProds), nFAs = Vec_WecSize(vProds), nHAs = 0;
     assert( nSize == Vec_WecSize(vLevels) );
     for ( i = 0; i < nSize; i++ )
@@ -1034,11 +1036,15 @@ void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vL
     Vec_IntPush( vRes,   0 );
     Vec_IntPush( vLevel, 0 );
 
-    if ( fCla )
-        Wlc_BlastAdderCLA( pNew, Vec_IntArray(vRes), Vec_IntArray(vLevel), Vec_IntSize(vRes), fSigned, 0 );
+    nBits = nBitsRes > 0 ? Abc_MinInt( nBitsRes, Vec_IntSize(vRes) ) : Vec_IntSize(vRes);
+    if ( pTim )
+        Wlc_BlastAdderProfile( pNew, pTim, Vec_IntArray(vRes), Vec_IntArray(vLevel), nBits, 1, 1 );
+    else if ( fCla )
+        Wlc_BlastAdderCLA( pNew, Vec_IntArray(vRes), Vec_IntArray(vLevel), nBits, fSigned, 0 );
     else
-        Wlc_BlastAdder( pNew, Vec_IntArray(vRes), Vec_IntArray(vLevel), Vec_IntSize(vRes), 0 );
-    //printf( "Created %d-bit %d-input AT with %d FAs and %d HAs.\n", Vec_WecSize(vProds), Vec_WecSizeSize(vProds), nFAs, nHAs );     
+        Wlc_BlastAdder( pNew, Vec_IntArray(vRes), Vec_IntArray(vLevel), nBits, 0 );
+    Vec_IntShrink( vRes, nBits );
+    //printf( "Created %d-bit %d-input AT with %d FAs and %d HAs.\n", Vec_WecSize(vProds), Vec_WecSizeSize(vProds), nFAs, nHAs );
 }
 
 int Wlc_BlastAddLevel( Gia_Man_t * pNew, int Start )
@@ -1166,7 +1172,7 @@ void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA
     if ( pvProds )
         *pvProds = Vec_WecDup(vProds);
     else
-        Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes, fSigned, fCla );
+        Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes, fSigned, fCla, NULL, 0 );
 //    Wlc_BlastReduceMatrix2( pNew, vProds, vRes, fSigned, fCla );
 
     Vec_WecFree( vProds );
@@ -1192,7 +1198,7 @@ void Wlc_BlastSquare( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t * vTmp, 
             }
         }
 
-    Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes, 0, 0 );
+    Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes, 0, 0, NULL, 0 );
 
     Vec_WecFree( vProds );
     Vec_WecFree( vLevels );
@@ -1251,13 +1257,21 @@ void Wlc_DumpMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds )
     printf( "Finished dumping Booth PPs into \"%s\".\n", pFileName );
     exit(1);
 }
-void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fCla, Vec_Wec_t ** pvProds, int fVerbose )
+void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fFastAdder, Vec_Wec_t ** pvProds, int fVerbose )
 {
     Vec_Wec_t * vProds  = Vec_WecStart( nArgA + nArgB + 3 );
     Vec_Wec_t * vLevels = Vec_WecStart( nArgA + nArgB + 3 );
+    Wlc_BlastTim_t * pTim = NULL; // timing memo for the arrival-driven final adder
     int FillA = fSigned ? pArgA[nArgA-1] : 0;
     int FillB = fSigned ? pArgB[nArgB-1] : 0;
     int i, k, Sign;
+    if ( fFastAdder && pvProds == NULL )
+    {
+        pTim = Wlc_BlastTimStart();
+        Wlc_BlastTimNewGen( pTim, pNew );
+        Wlc_BlastTimSetInputs( pTim, pArgA, nArgA );
+        Wlc_BlastTimSetInputs( pTim, pArgB, nArgB );
+    }
 
     // extend argument B
     Vec_Int_t * vArgB = Vec_IntAlloc( nArgB + 2 );
@@ -1342,14 +1356,597 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
         *pvProds = Vec_WecDup(vProds);
     else
     {
-        Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes, fSigned, fCla );
         // the columns above the product width hold the leftovers of the sign-extension trick
-        Vec_IntShrink( vRes, nArgA + nArgB );
+        Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes, fSigned, 0, pTim, nArgA + nArgB );
     }
     //    Wlc_BlastReduceMatrix2( pNew, vProds, vRes, fSigned, fCla );
+    if ( pTim )
+        Wlc_BlastTimStop( pTim );
     Vec_WecFree( vProds );
     Vec_WecFree( vLevels );
     Vec_IntFree( vArgB );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Arrival-driven multipliers following Yeh and Jen (IEEE TC, July 2000).]
+
+  Description [Overview of the code below: the timing memo (Wlc_BlastTim_t),
+  the final adder (Wlc_BlastAdderProfile), the column reduction
+  (Wlc_BlastYjReduce), and the Booth (Wlc_BlastBoothYJ) and Wallace
+  (Wlc_BlastWallace) generators. The Booth multiplier implements the three
+  parts of the paper. (1) Modified Booth
+  encoding in which the multiplicand bits are XORed with the negation signal
+  before the one/two selection, so that the negation does not add a serial
+  XOR after the selection; the zero digit produces an all-zero row without
+  a correction bit. (2) Partial-product array in which the LSB of every row
+  and its negation carry are folded into two precomputed signals (eqs. (2)
+  and (3) of the paper), removing one entry from each even column.
+  (3) TDM-style column reduction (three earliest signals of a column enter
+  one full adder, the slowest on the carry-in) driven by the actual AIG
+  levels of the signals, followed by a final adder. With fFastAdder, the
+  block structure of the final adder follows the arrival profile of the two
+  reduced rows; this adder is an adaptation of the paper's MLCSMA to the AIG
+  cost model rather than a transcription of it (Wlc_BlastAdderProfile lists
+  the differences). Without fFastAdder, the final adder is ripple-carry.
+  Parts (3) and the final adder are shared with the Wallace-tree multiplier
+  (Wlc_BlastWallace), which reduces plain AND partial products instead of
+  Booth-encoded ones; the reduction is in Wlc_BlastYjReduce.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+// Timing memo of the arrival-driven multiplier. Objects created by the current
+// multiplier (ID >= iBase) are memoized in a dense array indexed by ID - iBase;
+// the few older objects it touches (its operands, which are preset to level 0,
+// and nodes returned by structural hashing) go into a small hash table. Both
+// cost only what the multiplier visits. An array covering the whole AIG for
+// every multiplier made designs with many multipliers quadratic.
+Wlc_BlastTim_t * Wlc_BlastTimStart( void )
+{
+    Wlc_BlastTim_t * p = ABC_CALLOC( Wlc_BlastTim_t, 1 );
+    p->vLev = Vec_IntAlloc( 1000 );
+    p->vOld = Vec_IntAlloc( 0 );
+    return p;
+}
+void Wlc_BlastTimStop( Wlc_BlastTim_t * p )
+{
+    Vec_IntFree( p->vLev );
+    Vec_IntFree( p->vOld );
+    ABC_FREE( p );
+}
+// forgets all memoized levels; objects created from now on are the new ones
+void Wlc_BlastTimNewGen( Wlc_BlastTim_t * p, Gia_Man_t * pGia )
+{
+    p->iBase = Gia_ManObjNum( pGia );
+    p->nOld  = 0;
+    Vec_IntClear( p->vLev );
+    Vec_IntFill( p->vOld, Vec_IntSize(p->vOld), -1 );
+}
+static inline int Wlc_BlastTimHash( int iObj, int nSlots )
+{
+    return (int)(((unsigned)iObj * 2654435761u) & (unsigned)(nSlots - 1));
+}
+// open-addressing hash of (object ID -> level); empty slots have key -1
+static inline int Wlc_BlastTimOldLookup( Wlc_BlastTim_t * p, int iObj )
+{
+    int nSlots = Vec_IntSize(p->vOld) / 2, s;
+    if ( nSlots == 0 )
+        return -1;
+    for ( s = Wlc_BlastTimHash(iObj, nSlots); Vec_IntEntry(p->vOld, 2*s) != -1; s = (s + 1) & (nSlots - 1) )
+        if ( Vec_IntEntry(p->vOld, 2*s) == iObj )
+            return Vec_IntEntry( p->vOld, 2*s+1 );
+    return -1;
+}
+static void Wlc_BlastTimOldInsert( Wlc_BlastTim_t * p, int iObj, int Level )
+{
+    int nSlots = Vec_IntSize(p->vOld) / 2, s;
+    if ( 2 * (p->nOld + 1) > nSlots )
+    {
+        // grow and rehash
+        Vec_Int_t * vOld = p->vOld;
+        int i, nNew = Abc_MaxInt( 64, 4 * nSlots );
+        p->vOld = Vec_IntStartFull( 2 * nNew );
+        p->nOld = 0;
+        for ( i = 0; i < Vec_IntSize(vOld); i += 2 )
+            if ( Vec_IntEntry(vOld, i) != -1 )
+                Wlc_BlastTimOldInsert( p, Vec_IntEntry(vOld, i), Vec_IntEntry(vOld, i+1) );
+        Vec_IntFree( vOld );
+        nSlots = nNew;
+    }
+    for ( s = Wlc_BlastTimHash(iObj, nSlots); Vec_IntEntry(p->vOld, 2*s) != -1; s = (s + 1) & (nSlots - 1) )
+        if ( Vec_IntEntry(p->vOld, 2*s) == iObj )
+        {
+            Vec_IntWriteEntry( p->vOld, 2*s+1, Level );
+            return;
+        }
+    Vec_IntWriteEntry( p->vOld, 2*s,   iObj );
+    Vec_IntWriteEntry( p->vOld, 2*s+1, Level );
+    p->nOld++;
+}
+static inline void Wlc_BlastTimSet( Wlc_BlastTim_t * p, int iObj, int Level )
+{
+    if ( iObj < p->iBase )
+        Wlc_BlastTimOldInsert( p, iObj, Level );
+    else
+    {
+        Vec_IntFillExtra( p->vLev, iObj - p->iBase + 1, -1 );
+        Vec_IntWriteEntry( p->vLev, iObj - p->iBase, Level );
+    }
+}
+// the operands of the arithmetic unit arrive at time 0
+void Wlc_BlastTimSetInputs( Wlc_BlastTim_t * p, int * pLits, int nLits )
+{
+    int i;
+    for ( i = 0; i < nLits; i++ )
+        Wlc_BlastTimSet( p, Abc_Lit2Var(pLits[i]), 0 );
+}
+// returns -1 if the level of the object is not memoized
+static inline int Wlc_BlastTimGet( Wlc_BlastTim_t * p, int iObj )
+{
+    if ( iObj < p->iBase )
+        return Wlc_BlastTimOldLookup( p, iObj );
+    if ( iObj - p->iBase >= Vec_IntSize(p->vLev) )
+        return -1;
+    return Vec_IntEntry( p->vLev, iObj - p->iBase );
+}
+// returns the AIG level of a literal, computed relative to the nodes preset
+// to level 0 (the operands of the multiplier);
+// other non-AND objects have level 0
+int Wlc_BlastYjLevel( Gia_Man_t * p, Wlc_BlastTim_t * pTim, int iLit )
+{
+    int iObj  = Abc_Lit2Var( iLit );
+    int Level = Wlc_BlastTimGet( pTim, iObj );
+    Gia_Obj_t * pObj;
+    if ( Level >= 0 )
+        return Level;
+    pObj = Gia_ManObj( p, iObj );
+    if ( Gia_ObjIsAnd(pObj) )
+        Level = 1 + Abc_MaxInt( Wlc_BlastYjLevel(p, pTim, Gia_ObjFaninLit0(pObj, iObj)),
+                                Wlc_BlastYjLevel(p, pTim, Gia_ObjFaninLit1(pObj, iObj)) );
+    else
+        Level = 0;
+    Wlc_BlastTimSet( pTim, iObj, Level );
+    return Level;
+}
+static inline int Wlc_BlastYjTime( Gia_Man_t * p, Wlc_BlastTim_t * pTim, int iLitG, int iLitP )
+{
+    return Abc_MaxInt( Wlc_BlastYjLevel(p, pTim, iLitG), Wlc_BlastYjLevel(p, pTim, iLitP) );
+}
+// adds a literal to a column of the partial-product matrix, keeping the column sorted by arrival time
+static inline void Wlc_BlastYjPush( Gia_Man_t * p, Wlc_BlastTim_t * pTim, Vec_Wec_t * vProds, Vec_Wec_t * vLevels, int Col, int iLit )
+{
+    if ( iLit == 0 || Col >= Vec_WecSize(vProds) )
+        return;
+    Wlc_IntInsert( Vec_WecEntry(vProds, Col), Vec_WecEntry(vLevels, Col), iLit, Wlc_BlastYjLevel(p, pTim, iLit) );
+}
+// combines generate/propagate of a higher bit range with those of the adjacent lower bit range
+static inline void Wlc_BlastYjMerge( Gia_Man_t * p, int Ghi, int Phi, int Glo, int Plo, int * pG, int * pP )
+{
+    *pG = Gia_ManHashOr( p, Ghi, Gia_ManHashAnd(p, Phi, Glo) );
+    *pP = Gia_ManHashAnd( p, Phi, Plo );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Final adder driven by the arrival profile of its inputs.]
+
+  Description [Processes the bits from LSB to MSB. A stack of prefix levels
+  is maintained. Level 0 holds the real carries. When the running prefix of
+  the top level arrives later than the next input bit by more than Slack
+  levels, a new level is opened for that bit and grows on its own (serially
+  while its inputs keep up, recursively otherwise). A level is closed into
+  the level below when it has caught up with it, or when closing it cannot
+  delay anything because the level below is itself waiting for an even
+  later level. Closing merges every prefix of the level with the prefix
+  of the level below (conditional carries). When a level closes into
+  level 0 and the incoming carry is the critical signal, the sums are
+  produced by selecting between precomputed conditional sums (conditional
+  sum), which costs one mux instead of a carry merge and an XOR.
+  The result is returned in pAdd0. Levels are measured by Wlc_BlastYjLevel.
+  This is an adaptation of the MLCSMA of Yeh and Jen to the AIG cost model,
+  not the algorithm itself. The differences are: (a) blocks are represented
+  by generate/propagate prefixes merged with the usual rules G | P & G' and
+  P & P' instead of the paper's conditional-carry cells; (b) a new level
+  starts with a single bit instead of a two-bit conditional-carry adder;
+  (c) the decisions to open and close levels use the AIG arrival times and
+  the Slack rule above instead of the paper's cell-delay rules; (d) the
+  conditional sums may be used wherever a level closes into the real
+  carries, not only in the most significant block.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_BlastAdderProfile( Gia_Man_t * pNew, Wlc_BlastTim_t * pTim, int * pAdd0, int * pAdd1, int nBits, int Slack, int fCondSum )
+{
+    Vec_Wec_t * vGs = Vec_WecAlloc( 16 ), * vPs = Vec_WecAlloc( 16 );
+    Vec_Int_t * vStart = Vec_IntAlloc( 16 ), * vG, * vP;
+    int * pG = ABC_ALLOC( int, nBits );
+    int * pP = ABC_ALLOC( int, nBits );
+    int * pC = ABC_ALLOC( int, nBits + 1 );
+    int * pS = ABC_ALLOC( int, nBits );
+    int b, k, n, Tb, Tacc, iTop;
+    for ( b = 0; b < nBits; b++ )
+    {
+        pG[b] = Gia_ManHashAnd( pNew, pAdd0[b], pAdd1[b] );
+        pP[b] = Gia_ManHashXor( pNew, pAdd0[b], pAdd1[b] );
+        pC[b] = pS[b] = -1;
+    }
+    pC[0] = 0; pC[nBits] = -1;
+    // level 0: the entries are the carries into bits 1, 2, ...
+    Vec_IntPush( vStart, 0 );
+    vG = Vec_WecPushLevel( vGs ); Vec_IntClear( vG );
+    vP = Vec_WecPushLevel( vPs ); Vec_IntClear( vP );
+    for ( b = 0; b < nBits; b++ )
+    {
+        iTop = Vec_IntSize(vStart) - 1;
+        vG   = Vec_WecEntry( vGs, iTop );
+        vP   = Vec_WecEntry( vPs, iTop );
+        Tb   = Wlc_BlastYjLevel( pNew, pTim, pP[b] );
+        Tacc = Vec_IntSize(vG) ? Wlc_BlastYjTime( pNew, pTim, Vec_IntEntryLast(vG), Vec_IntEntryLast(vP) ) : 0;
+        if ( Tacc > Tb + Slack )
+        {
+            // the running prefix is late: open a new level starting with this bit
+            Vec_IntPush( vStart, b );
+            vG = Vec_WecPushLevel( vGs ); Vec_IntClear( vG ); Vec_IntPush( vG, pG[b] );
+            vP = Vec_WecPushLevel( vPs ); Vec_IntClear( vP ); Vec_IntPush( vP, pP[b] );
+        }
+        else if ( iTop == 0 )
+        {
+            // ripple into the real carry
+            int c = Vec_IntSize(vG) ? Vec_IntEntryLast(vG) : 0;
+            pC[b+1] = Gia_ManHashOr( pNew, pG[b], Gia_ManHashAnd(pNew, pP[b], c) );
+            Vec_IntPush( vG, pC[b+1] );
+            Vec_IntPush( vP, 0 );
+        }
+        else
+        {
+            // ripple into the relative prefix of the top level
+            int G, P;
+            Wlc_BlastYjMerge( pNew, pG[b], pP[b], Vec_IntEntryLast(vG), Vec_IntEntryLast(vP), &G, &P );
+            Vec_IntPush( vG, G );
+            Vec_IntPush( vP, P );
+        }
+        // close the levels that are ready
+        while ( (n = Vec_IntSize(vStart)) > 1 )
+        {
+            Vec_Int_t * vGh = Vec_WecEntry( vGs, n-1 ), * vPh = Vec_WecEntry( vPs, n-1 );
+            Vec_Int_t * vGl = Vec_WecEntry( vGs, n-2 ), * vPl = Vec_WecEntry( vPs, n-2 );
+            int Start  = Vec_IntEntry( vStart, n-1 );
+            int Thi    = Wlc_BlastYjTime( pNew, pTim, Vec_IntEntryLast(vGh), Vec_IntEntryLast(vPh) );
+            int Tlo    = Vec_IntSize(vGl) ? Wlc_BlastYjTime( pNew, pTim, Vec_IntEntryLast(vGl), Vec_IntEntryLast(vPl) ) : 0;
+            int fClose = (b == nBits - 1) || (Thi >= Tlo);
+            if ( !fClose && n > 2 )
+            {
+                Vec_Int_t * vGll = Vec_WecEntry( vGs, n-3 ), * vPll = Vec_WecEntry( vPs, n-3 );
+                int Tll = Vec_IntSize(vGll) ? Wlc_BlastYjTime( pNew, pTim, Vec_IntEntryLast(vGll), Vec_IntEntryLast(vPll) ) : 0;
+                fClose  = Abc_MaxInt(Thi, Tlo) + 2 <= Tll;
+            }
+            if ( !fClose )
+                break;
+            if ( n == 2 )
+            {
+                // closing into level 0: the entries become real carries
+                int c  = Vec_IntSize(vGl) ? Vec_IntEntryLast(vGl) : 0;
+                int Tc = Wlc_BlastYjLevel( pNew, pTim, c );
+                for ( k = 0; k < Vec_IntSize(vGh); k++ )
+                {
+                    int Gk = Vec_IntEntry(vGh, k), Pk = Vec_IntEntry(vPh, k), j = Start + k + 1; // j is the bit receiving the carry
+                    int TG = Wlc_BlastYjLevel( pNew, pTim, Gk ), TP = Wlc_BlastYjLevel( pNew, pTim, Pk );
+                    int Carry = -1, fMux = 0;
+                    if ( j < nBits )
+                    {
+                        int Tp     = Wlc_BlastYjLevel( pNew, pTim, pP[j] );
+                        int TCarry = Abc_MaxInt( Abc_MaxInt(TP, Tc) + 1, TG ) + 1;
+                        int TSum   = Abc_MaxInt( TCarry, Tp ) + 2;
+                        int TSum0  = Abc_MaxInt( Tp, TG ) + 2;
+                        int TSum1  = Abc_MaxInt( Tp, Abc_MaxInt(TG, TP) + 1 ) + 2;
+                        int TMux   = Abc_MaxInt( Tc, Abc_MaxInt(TSum0, TSum1) ) + 2;
+                        fMux = fCondSum && TMux < TSum;
+                        if ( fMux )
+                        {
+                            int Sum0 = Gia_ManHashXor( pNew, pP[j], Gk );
+                            int Sum1 = Gia_ManHashXor( pNew, pP[j], Gia_ManHashOr(pNew, Gk, Pk) );
+                            pS[j] = Gia_ManHashMux( pNew, c, Sum1, Sum0 );
+                        }
+                    }
+                    if ( !fMux || k == Vec_IntSize(vGh) - 1 )
+                        Carry = Gia_ManHashOr( pNew, Gk, Gia_ManHashAnd(pNew, Pk, c) );
+                    pC[j] = Carry;
+                    Vec_IntPush( vGl, Carry == -1 ? 0 : Carry );
+                    Vec_IntPush( vPl, 0 );
+                }
+            }
+            else
+            {
+                int Glo = Vec_IntEntryLast(vGl), Plo = Vec_IntEntryLast(vPl);
+                for ( k = 0; k < Vec_IntSize(vGh); k++ )
+                {
+                    int G, P;
+                    Wlc_BlastYjMerge( pNew, Vec_IntEntry(vGh, k), Vec_IntEntry(vPh, k), Glo, Plo, &G, &P );
+                    Vec_IntPush( vGl, G );
+                    Vec_IntPush( vPl, P );
+                }
+            }
+            Vec_WecShrink( vGs, n-1 );
+            Vec_WecShrink( vPs, n-1 );
+            Vec_IntShrink( vStart, n-1 );
+        }
+    }
+    assert( Vec_IntSize(vStart) == 1 );
+    for ( b = 0; b < nBits; b++ )
+    {
+        if ( pS[b] == -1 )
+        {
+            assert( pC[b] != -1 );
+            pS[b] = Gia_ManHashXor( pNew, pP[b], pC[b] );
+        }
+        pAdd0[b] = pS[b];
+    }
+    Vec_WecFree( vGs );
+    Vec_WecFree( vPs );
+    Vec_IntFree( vStart );
+    ABC_FREE( pG );
+    ABC_FREE( pP );
+    ABC_FREE( pC );
+    ABC_FREE( pS );
+}
+
+// A column that is down to three signals is finished by a half adder on the
+// two earliest ones when the third arrives at least this many AIG levels after
+// them. Without this, the latest signal is swallowed by the last full adder
+// of the column, which delays it by two levels, and when the next column is
+// in the same situation this repeats: for the plain partial-product matrix,
+// whose columns grow by one row each, the reduced rows of a 64-bit multiplier
+// arrive 131 levels late in the middle instead of 37. The threshold is not
+// zero because the profile adder is faster for columns holding one signal
+// and a constant (no generate) than for two real signals; sweeping it over
+// 16..64-bit Booth and Wallace multipliers found 5..6 best overall.
+#define WLC_YJ_HA_SLACK 6
+
+/**Function*************************************************************
+
+  Synopsis    [Reduces a partial-product matrix and adds the two remaining rows.]
+
+  Description [Each column is compressed by full adders over its three
+  earliest-arriving signals (the slowest on the carry-in) until two remain;
+  a column left with three signals is finished by a half adder on the two
+  earliest, which keeps its latest signal out of the carry chain. The
+  carries enter the next column with their arrival times. The
+  final addition is driven by the arrival profile when fFastAdder is set and
+  is ripple-carry otherwise. The columns of vProds/vLevels are kept sorted by
+  decreasing arrival time, as filled by Wlc_BlastYjPush. The product is
+  returned in vRes with one bit per column.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_BlastYjReduce( Gia_Man_t * pNew, Wlc_BlastTim_t * pTim, Vec_Wec_t * vProds, Vec_Wec_t * vLevels, Vec_Int_t * vRes, int fFastAdder, int fVerbose )
+{
+    int nCols = Vec_WecSize(vProds);
+    int * pRow0 = ABC_CALLOC( int, nCols );
+    int * pRow1 = ABC_CALLOC( int, nCols );
+    Vec_Int_t * vProd, * vLevel;
+    int i, Node1, Node2, Node3, NodeS, NodeC, nFAs = 0, nHAs = 0;
+    assert( nCols == Vec_WecSize(vLevels) );
+    if ( fVerbose )
+        Vec_WecPrint( vProds, 0 );
+
+    // reduce the columns: the three earliest signals enter one full adder, the slowest on the carry-in;
+    // a column with three signals left, the latest of which is much later than the other two, gets a half
+    // adder on the two earliest, so that its latest signal goes to the final adder directly instead of
+    // rippling through the last full adders of the following columns (see the comment at WLC_YJ_HA_SLACK)
+    for ( i = 0; i < nCols; i++ )
+    {
+        vProd  = Vec_WecEntry( vProds,  i );
+        vLevel = Vec_WecEntry( vLevels, i );
+        while ( Vec_IntSize(vProd) >= 3 )
+        {
+            Node1 = Vec_IntPop( vProd );  Vec_IntPop( vLevel );
+            Node2 = Vec_IntPop( vProd );  Vec_IntPop( vLevel );
+            if ( Vec_IntSize(vProd) == 1 && fFastAdder && Vec_IntEntry(vLevel, 0) - Wlc_BlastYjLevel(pNew, pTim, Node2) >= WLC_YJ_HA_SLACK )
+            {
+                NodeS = Gia_ManHashXor( pNew, Node1, Node2 );
+                NodeC = Gia_ManHashAnd( pNew, Node1, Node2 );
+                nHAs += (Node1 > 1) + (Node2 > 1) == 2;
+            }
+            else
+            {
+                Node3 = Vec_IntPop( vProd );  Vec_IntPop( vLevel );
+                Wlc_BlastFullAdder( pNew, Node1, Node2, Node3, &NodeC, &NodeS );
+                nFAs += (Node1 > 1) + (Node2 > 1) + (Node3 > 1) == 3;
+                nHAs += (Node1 > 1) + (Node2 > 1) + (Node3 > 1) == 2;
+            }
+            Wlc_IntInsert( vProd, vLevel, NodeS, Wlc_BlastYjLevel(pNew, pTim, NodeS) );
+            if ( i + 1 < nCols )
+                Wlc_IntInsert( Vec_WecEntry(vProds, i+1), Vec_WecEntry(vLevels, i+1), NodeC, Wlc_BlastYjLevel(pNew, pTim, NodeC) );
+        }
+        pRow0[i] = Vec_IntSize(vProd) > 0 ? Vec_IntEntry(vProd, 0) : 0;
+        pRow1[i] = Vec_IntSize(vProd) > 1 ? Vec_IntEntry(vProd, 1) : 0;
+    }
+    if ( fVerbose )
+    {
+        printf( "%d FAs, %d HAs. Arrival profile of the reduced rows:\n", nFAs, nHAs );
+        for ( i = 0; i < nCols; i++ )
+            printf( "%d ", Abc_MaxInt(Wlc_BlastYjLevel(pNew, pTim, pRow0[i]), Wlc_BlastYjLevel(pNew, pTim, pRow1[i])) );
+        printf( "\n" );
+    }
+
+    // final addition: driven by the arrival profile, or ripple-carry
+    if ( fFastAdder )
+        Wlc_BlastAdderProfile( pNew, pTim, pRow0, pRow1, nCols, 1, 1 );
+    else
+        Wlc_BlastAdder( pNew, pRow0, pRow1, nCols, 0 );
+    if ( fVerbose )
+    {
+        printf( "Arrival profile of the product:\n" );
+        for ( i = 0; i < nCols; i++ )
+            printf( "%d ", Wlc_BlastYjLevel(pNew, pTim, pRow0[i]) );
+        printf( "\n" );
+    }
+    Vec_IntClear( vRes );
+    for ( i = 0; i < nCols; i++ )
+        Vec_IntPush( vRes, pRow0[i] );
+    ABC_FREE( pRow0 );
+    ABC_FREE( pRow1 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Generates the Yeh-Jen Booth multiplier.]
+
+  Description [The product has nArgA + nArgB bits (sign-extended by the
+  caller if a wider result is needed).]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_BlastBoothYJ( Gia_Man_t * pNew, Wlc_BlastTim_t * pTim, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fFastAdder, int fVerbose )
+{
+    int nCols = nArgA + nArgB;
+    Vec_Wec_t * vProds  = Vec_WecStart( nCols );
+    Vec_Wec_t * vLevels = Vec_WecStart( nCols );
+    Wlc_BlastTim_t * pTimLocal = pTim ? NULL : Wlc_BlastTimStart();
+    Vec_Int_t * vArgB   = Vec_IntAlloc( nArgB + 4 );
+    Vec_Int_t * vArgN   = Vec_IntAlloc( nArgA + 2 );
+    int FillA = fSigned ? pArgA[nArgA-1] : 0;
+    int FillB = fSigned ? pArgB[nArgB-1] : 0;
+    int i, k, Sign;
+    assert( nArgA > 0 && nArgB > 0 );
+    if ( pTim == NULL )
+        pTim = pTimLocal;
+    Wlc_BlastTimNewGen( pTim, pNew );
+
+    // the operands arrive at time 0
+    Wlc_BlastTimSetInputs( pTim, pArgA, nArgA );
+    Wlc_BlastTimSetInputs( pTim, pArgB, nArgB );
+
+    // extend argument B
+    Vec_IntPush( vArgB, 0 );
+    for ( i = 0; i < nArgB; i++ )
+        Vec_IntPush( vArgB, pArgB[i] );
+    if ( !fSigned )
+        Vec_IntPushTwo( vArgB, FillB, FillB );
+    if ( Vec_IntSize(vArgB) % 2 == 0 )
+        Vec_IntPush( vArgB, FillB );
+    assert( Vec_IntSize(vArgB) % 2 == 1 );
+
+    // iterate through bit-pairs of B
+    for ( k = 0; k+2 < Vec_IntSize(vArgB); k += 2 )
+    {
+        int pp    = 0;
+        int Q2jM1 = Vec_IntEntry(vArgB, k);   // q(2*j-1)
+        int Q2j   = Vec_IntEntry(vArgB, k+1); // q(2*j+0)
+        int Q2jP1 = Vec_IntEntry(vArgB, k+2); // q(2*j+1)
+        int Neg   = Q2jP1;                                                                                  // the digit is -2, -1 or -0
+        int One   = Gia_ManHashXor( pNew, Q2j, Q2jM1 );                                                     // the digit is +1 or -1
+        int Two   = Gia_ManHashAnd( pNew, Gia_ManHashXor(pNew, Q2jP1, Q2j), Abc_LitNot(One) );              // the digit is +2 or -2
+        int NegC  = Gia_ManHashAnd( pNew, Neg, Abc_LitNot(Gia_ManHashAnd(pNew, Q2j, Q2jM1)) );              // the digit is -2 or -1
+        // the row LSB with the negation carry folded in (eq. 2), and the carry into the next column (eq. 3)
+        int Lsb   = Gia_ManHashAnd( pNew, One, pArgA[0] );
+        int Cin   = Gia_ManHashOr( pNew, Gia_ManHashAnd(pNew, Neg, Gia_ManHashAnd(pNew, Abc_LitNot(Q2j), Abc_LitNot(Q2jM1))),
+                                         Gia_ManHashAnd(pNew, One, Gia_ManHashAnd(pNew, Neg, Abc_LitNot(pArgA[0]))) );
+        // multiplicand bits XORed with the negation signal, in parallel with the encoder (bit -1 is Neg)
+        Vec_IntClear( vArgN );
+        Vec_IntPush( vArgN, Neg );
+        for ( i = 0; i <= nArgA; i++ )
+            Vec_IntPush( vArgN, Gia_ManHashXor(pNew, i == nArgA ? FillA : pArgA[i], Neg) );
+        for ( i = 0; i <= nArgA; i++ )
+        {
+            pp = Gia_ManHashOr( pNew, Gia_ManHashAnd(pNew, One, Vec_IntEntry(vArgN, i+1)), Gia_ManHashAnd(pNew, Two, Vec_IntEntry(vArgN, i)) );
+            if ( fVerbose ) printf( "%4d = PP(%5d %5d  %5d %5d %5d)\n", pp, i ? pArgA[i-1] : 0, i == nArgA ? FillA : pArgA[i], Q2jM1, Q2j, Q2jP1 );
+            if ( i == 0 || (fSigned && i == nArgA) )
+                continue;
+            Wlc_BlastYjPush( pNew, pTim, vProds, vLevels, k+i, pp );
+        }
+        Wlc_BlastYjPush( pNew, pTim, vProds, vLevels, k,   Lsb );
+        Wlc_BlastYjPush( pNew, pTim, vProds, vLevels, k+1, Cin );
+        if ( fSigned ) i--;
+        // perform sign extension
+        Sign = fSigned ? pp : NegC;
+        if ( k == 0 )
+        {
+            Wlc_BlastYjPush( pNew, pTim, vProds, vLevels, k+i,   Sign );
+            Wlc_BlastYjPush( pNew, pTim, vProds, vLevels, k+i+1, Sign );
+            Wlc_BlastYjPush( pNew, pTim, vProds, vLevels, k+i+2, Abc_LitNot(Sign) );
+        }
+        else
+        {
+            Wlc_BlastYjPush( pNew, pTim, vProds, vLevels, k+i,   Abc_LitNot(Sign) );
+            Wlc_BlastYjPush( pNew, pTim, vProds, vLevels, k+i+1, 1 );
+        }
+    }
+    if ( fVerbose )
+        printf( "Yeh-Jen Booth %d x %d (%s):\n", nArgA, nArgB, fSigned ? "signed" : "unsigned" );
+    Wlc_BlastYjReduce( pNew, pTim, vProds, vLevels, vRes, fFastAdder, fVerbose );
+
+    Vec_WecFree( vProds );
+    Vec_WecFree( vLevels );
+    if ( pTimLocal )
+        Wlc_BlastTimStop( pTimLocal );
+    Vec_IntFree( vArgB );
+    Vec_IntFree( vArgN );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Generates the Wallace-tree multiplier with arrival-driven reduction.]
+
+  Description [The partial products are plain AND gates, in Baugh-Wooley form
+  for signed operands. They are compressed and added the same way as in the
+  Yeh-Jen Booth multiplier. The product has nArgA + nArgB bits.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_BlastWallace( Gia_Man_t * pNew, Wlc_BlastTim_t * pTim, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fFastAdder, int fVerbose )
+{
+    int nCols = nArgA + nArgB;
+    Vec_Wec_t * vProds  = Vec_WecStart( nCols );
+    Vec_Wec_t * vLevels = Vec_WecStart( nCols );
+    Wlc_BlastTim_t * pTimLocal = pTim ? NULL : Wlc_BlastTimStart();
+    int i, k;
+    assert( nArgA > 0 && nArgB > 0 );
+    if ( pTim == NULL )
+        pTim = pTimLocal;
+    Wlc_BlastTimNewGen( pTim, pNew );
+
+    // the operands arrive at time 0
+    Wlc_BlastTimSetInputs( pTim, pArgA, nArgA );
+    Wlc_BlastTimSetInputs( pTim, pArgB, nArgB );
+
+    // partial products; in the signed case, the ones involving exactly one sign bit are complemented
+    for ( i = 0; i < nArgA; i++ )
+        for ( k = 0; k < nArgB; k++ )
+        {
+            int fCompl = fSigned && ((i == nArgA-1) ^ (k == nArgB-1));
+            Wlc_BlastYjPush( pNew, pTim, vProds, vLevels, i+k, Abc_LitNotCond(Gia_ManHashAnd(pNew, pArgA[i], pArgB[k]), fCompl) );
+        }
+    // the Baugh-Wooley correction 2^(nArgA-1) + 2^(nArgB-1) + 2^(nArgA+nArgB-1) compensates for the complemented products
+    if ( fSigned )
+    {
+        Wlc_BlastYjPush( pNew, pTim, vProds, vLevels, nArgA-1, 1 );
+        Wlc_BlastYjPush( pNew, pTim, vProds, vLevels, nArgB-1, 1 );
+        Wlc_BlastYjPush( pNew, pTim, vProds, vLevels, nCols-1, 1 );
+    }
+    if ( fVerbose )
+        printf( "Wallace %d x %d (%s):\n", nArgA, nArgB, fSigned ? "signed" : "unsigned" );
+    Wlc_BlastYjReduce( pNew, pTim, vProds, vLevels, vRes, fFastAdder, fVerbose );
+
+    Vec_WecFree( vProds );
+    Vec_WecFree( vLevels );
+    if ( pTimLocal )
+        Wlc_BlastTimStop( pTimLocal );
 }
 
 void Wlc_NtkDumpMulties( Wlc_Ntk_t * p, Gia_Man_t * pNew )
@@ -1419,6 +2016,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     Gia_Man_t * pTemp, * pNew, * pExtra = NULL;
     Wlc_Obj_t * pObj, * pObj2;
     Vec_Int_t * vBits = &p->vBits, * vTemp0, * vTemp1, * vTemp2, * vRes, * vAddOutputs = NULL, * vAddObjs = NULL;
+    Wlc_BlastTim_t * pTim = NULL; // timing memo shared by the Yeh-Jen multipliers
     int nBits = Wlc_NtkPrepareBits( p );
     int nRange, nRange0, nRange1, nRange2, nRange3;
     int i, k, b, iFanin, iLit, nAndPrev, * pFans0, * pFans1, * pFans2, * pFans3;
@@ -2062,7 +2660,19 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                     ABC_SWAP( int, nRange0, nRange1 );
                 }
                 if ( pPar->fBooth )
+                {
+                    if ( pTim == NULL )
+                        pTim = Wlc_BlastTimStart();
+                    Wlc_BlastBoothYJ( pNew, pTim, pArg0, pArg1, nRange0, nRange1, vRes, fSigned, pPar->fCla, pParIn->fVerbose );
+                }
+                else if ( pPar->fBoothOld )
                     Wlc_BlastBooth( pNew, pArg0, pArg1, nRange0, nRange1, vRes, fSigned, pPar->fCla, NULL, pParIn->fVerbose );
+                else if ( pPar->fWallace )
+                {
+                    if ( pTim == NULL )
+                        pTim = Wlc_BlastTimStart();
+                    Wlc_BlastWallace( pNew, pTim, pArg0, pArg1, nRange0, nRange1, vRes, fSigned, pPar->fCla, pParIn->fVerbose );
+                }
                 else if ( pPar->fCla )
                     Wlc_BlastMultiplier3( pNew, pArg0, pArg1, nRange0, nRange1, vRes, Wlc_ObjIsSignedFanin01(p, pObj), pPar->fCla, NULL, pParIn->fVerbose );
                 else
@@ -2164,6 +2774,8 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     Vec_IntFree( vTemp1 );
     Vec_IntFree( vTemp2 );
     Vec_IntFree( vRes );
+    if ( pTim )
+        Wlc_BlastTimStop( pTim );
     // create flop boxes
     Wlc_NtkForEachFf2( p, pObj, i )
     {
