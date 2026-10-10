@@ -88,9 +88,10 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
         }
     }
     p->nPermWords  = p->pPars->fUsePerm? If_CutPermWords( p->pPars->nLutSize ) : 0;
-    p->nObjBytes   = sizeof(If_Obj_t) + sizeof(int) * (p->pPars->nLutSize + p->nPermWords);
-    p->nCutBytes   = sizeof(If_Cut_t) + sizeof(int) * (p->pPars->nLutSize + p->nPermWords);
-    p->nSetBytes   = sizeof(If_Set_t) + (sizeof(If_Cut_t *) + p->nCutBytes) * (p->pPars->nCutsMax + 1);
+    p->nObjBytes   = alignPad(sizeof(If_Obj_t) + sizeof(int) * (p->pPars->nLutSize + p->nPermWords));
+    p->nCutBytes   = alignPad(sizeof(If_Cut_t) + sizeof(int) * (p->pPars->nLutSize + p->nPermWords));
+    p->nSetBytes   = alignPad(sizeof(If_Set_t) + (sizeof(If_Cut_t *) + p->nCutBytes) * (p->pPars->nCutsMax + 1));
+
     p->pMemObj     = Mem_FixedStart( p->nObjBytes );
     // report expected memory usage
     if ( p->pPars->fVerbose )
