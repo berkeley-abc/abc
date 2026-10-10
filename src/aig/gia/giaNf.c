@@ -2714,6 +2714,9 @@ Gia_Man_t * Nf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars )
     if ( Gia_ManHasChoices(pGia) || pGia->pManTime )
         pPars->fCoarsen = 0;     
     pCls = pPars->fCoarsen ? Gia_ManDupMuxes(pGia, pPars->nCoarseLimit) : pGia;
+    // Convert the command-line delay target to the mapper's fixed-point units.
+    if ( pPars->DelayTarget > 0 )
+        pPars->MapDelayTarget = Scl_Flt2Int(pPars->DelayTarget);
     p = Nf_StoCreate( pCls, pPars );
     if ( p == NULL )
         return NULL;
