@@ -1500,7 +1500,8 @@ void Mf_ManPrintQuit( Mf_Man_t * p, Gia_Man_t * pNew )
     float MemMan   = 1.0 * sizeof(Mf_Obj_t) * Gia_ManObjNum(p->pGia) / (1<<20);
     float MemCuts  = 1.0 * sizeof(int) * (1 << 16) * Vec_PtrSize(&p->vPages) / (1<<20);
     float MemTt    = p->vTtMem ? Vec_MemMemory(p->vTtMem) / (1<<20) : 0;
-    float MemMap   = Vec_IntMemory(pNew->vMapping) / (1<<20);
+    // pNew is NULL under fCnfOnly: no mapped network was built
+    float MemMap   = pNew ? Vec_IntMemory(pNew->vMapping) / (1<<20) : 0;
     if ( p->CutCount[0] == 0 )
         p->CutCount[0] = 1;
     if ( !p->pPars->fVerbose )
@@ -1826,6 +1827,8 @@ Gia_Man_t * Mf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {
     Mf_Man_t * p;
     Gia_Man_t * pNew, * pCls;
+    // fCnfOnly returns no network, so the CNF is the only output left
+    assert( !pPars->fCnfOnly || pPars->fGenCnf );
     if ( pPars->fGenCnf || pPars->fGenLit )
         pPars->fCutMin = 1;
     if ( Gia_ManHasChoices(pGia) )
@@ -1848,7 +1851,11 @@ Gia_Man_t * Mf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
     //Mf_ManOptimization( p );
     if ( pPars->fVeryVerbose && pPars->fCutMin )
         Vec_MemDumpTruthTables( p->vTtMem, Gia_ManName(p->pGia), pPars->nLutSize );
-    if ( pPars->fCutMin )
+    // the CNF is derived from the cuts, not from the mapped network, so a
+    // caller that wants only the CNF gets no network and does not pay for one
+    if ( pPars->fCnfOnly )
+        pNew = NULL;
+    else if ( pPars->fCutMin )
         pNew = Mf_ManDeriveMappingGia( p );
     else if ( pPars->fCoarsen )
         pNew = Mf_ManDeriveMappingCoarse( p );
@@ -1858,7 +1865,8 @@ Gia_Man_t * Mf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
         pGia->pData = Mf_ManDeriveCnf( p, p->pPars->fCnfObjIds, p->pPars->fAddOrCla );
     //if ( p->pPars->fGenCnf || p->pPars->fGenLit )
     //    Mf_ManProfileTruths( p );
-    Gia_ManMappingVerify( pNew );
+    if ( pNew )
+        Gia_ManMappingVerify( pNew );
     Mf_ManPrintQuit( p, pNew );
     Mf_ManFree( p );
     if ( pCls != pGia )
@@ -1890,6 +1898,8 @@ void * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fA
     pPars->fAddOrCla   = fAddOrCla;
     pPars->fCnfMapping = fMapping;
     pPars->fVerbose    = fVerbose;
+    // the mapped network is dropped below, so ask for the CNF alone
+    pPars->fCnfOnly    = 1;
     pNew = Mf_ManPerformMapping( pGia, pPars );
     Gia_ManStopP( &pNew );
 //    Cnf_DataPrint( (Cnf_Dat_t *)pGia->pData, 1 );

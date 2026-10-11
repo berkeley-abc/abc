@@ -365,6 +365,7 @@ struct Jf_Par_t_
     int            fCnfObjIds;
     int            fAddOrCla;
     int            fCnfMapping;
+    int            fCnfOnly;
     int            fPureAig;
     int            fDoAverage;
     int            fCutHashing;
