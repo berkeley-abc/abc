@@ -28,6 +28,7 @@
 #include "base/main/main.h"
 #include "bool/lms/lms.h"
 #include "bool/lms/lmsXor.h"
+#include <limits.h>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -47,6 +48,20 @@ ABC_NAMESPACE_IMPL_START
     LSM manager should be restarted by dumping GIA (rec_dump3 <file>.aig) 
     and starting LMS manager again (rec_start3 <file>.aig).
 */
+
+// Bounded direct-mapped caches used only during one &lms cut collection.
+// Collisions evict entries; full keys are checked before reusing anything.
+typedef struct Lms_TargetCanon_t_
+{
+    word Truth;
+    int Id;
+    unsigned Phase;
+    char Perm[6];
+    unsigned char nLeaves;
+} Lms_TargetCanon_t;
+typedef struct Lms_TargetProfile_t_ Lms_TargetProfile_t;
+struct Lms_TargetProfile_t_ { word Key; int Po; };
+#define LMS_TARGET_CACHE_SIZE (1 << 17)
 
 typedef struct Lms_Man_t_ Lms_Man_t;
 struct Lms_Man_t_
@@ -101,6 +116,10 @@ struct Lms_Man_t_
     int               fFilterInvalid;
     int               fDefaultCache;
     Lms_Eval_t *      pEval;
+    Lms_TargetCanon_t * pTargetCanon;
+    Vec_Wec_t *       vTargetProfiles;
+    int *             pTargetNext;
+    int *             pTargetCounts;
 };
 
 static ABC_THREAD_LOCAL Lms_Man_t * s_pMan3Standalone = NULL;
@@ -417,6 +436,10 @@ p->timeTotal += Abc_Clock() - clk2;
 }
 void Lms_ManStop( Lms_Man_t * p )
 {
+    ABC_FREE(p->pTargetCanon);
+    Vec_WecFreeP(&p->vTargetProfiles);
+    ABC_FREE(p->pTargetNext);
+    ABC_FREE(p->pTargetCounts);
     Lms_CollectStop( p->pCollect );
     Lms_EvalStop( p->pEval );
     // temporaries
@@ -1064,6 +1087,50 @@ static inline int If_CutComputeDelay( If_Man_t * p, If_Cut_t * pCut, char * pCan
     }
     return delayMax;
 }
+/**Function*************************************************************
+
+  Synopsis    [Cache canonical matching during one target cut collection.]
+
+  Description [The library is immutable within this scope. Entries include
+  the raw truth and leaf count, and retain the deterministic phase and
+  permutation as well as the library class ID (including misses). Ordinary
+  mapper invocations do not allocate or consult this cache.]
+
+  SideEffects []
+
+  SeeAlso     [Abc_RecTargetCache3]
+
+***********************************************************************/
+static int Lms_TargetCanonLookup( Lms_Man_t * p, word Truth, int nLeaves, char * pPerm, unsigned * pPhase )
+{
+    word T = Truth ^ ((word)nLeaves << 58);
+    unsigned h = (unsigned)((T * ABC_CONST(0x9E3779B97F4A7C15)) >> 40) & (LMS_TARGET_CACHE_SIZE-1);
+    Lms_TargetCanon_t * pEntry = p->pTargetCanon ? p->pTargetCanon + h : NULL;
+    int Id;
+    assert(p->nVars == 6 && nLeaves > 1 && nLeaves <= 6);
+    if ( pEntry && pEntry->nLeaves == nLeaves && pEntry->Truth == Truth )
+    {
+        memcpy(pPerm, pEntry->Perm, nLeaves);
+        *pPhase = pEntry->Phase;
+        return pEntry->Id;
+    }
+    T = Truth;
+#ifdef LMS_USE_OLD_FORM
+    *pPhase = Kit_TruthSemiCanonicize((unsigned *)&T, (unsigned *)p->pTemp2, nLeaves, pPerm);
+#else
+    *pPhase = Abc_TtCanonicize(&T, nLeaves, pPerm);
+#endif
+    Abc_TtStretch5((unsigned *)&T, nLeaves, 6);
+    Id = *Vec_MemHashLookup(p->vTtMem, &T);
+    if ( !pEntry ) return Id;
+    pEntry->Id = Id;
+    pEntry->Truth = Truth;
+    pEntry->Phase = *pPhase;
+    pEntry->nLeaves = (unsigned char)nLeaves;
+    memcpy(pEntry->Perm, pPerm, nLeaves);
+    return pEntry->Id;
+}
+
 static inline int If_CutFindBestStruct( If_Man_t * pIfMan, If_Cut_t * pCut, char * pCanonPerm, unsigned * puCanonPhase, int * pBestPo )
 {
     Lms_Man_t * p = s_pMan3;
@@ -1103,8 +1170,7 @@ clk = Abc_Clock();
     *puCanonPhase = Abc_TtCanonicize( p->pTemp1, nLeaves, pCanonPerm );
 #endif
     Abc_TtStretch5( (unsigned *)p->pTemp1, nLeaves, p->nVars );
-p->timeCanon += Abc_Clock() - clk;
-
+    p->timeCanon += Abc_Clock() - clk;
     // get TT ID for the given class
     pTruthId = Vec_MemHashLookup( p->vTtMem, p->pTemp1 );
     if ( *pTruthId == -1 )
@@ -1566,10 +1632,289 @@ void Abc_NtkRecDumpTt3( char * pFileName, int fBinary )
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Limit collector/profile caches to one target optimization.]
+
+  Description [Storage is released when target optimization finishes.
+  Profile links remain available for lazy union expansion. Repeated commands
+  and library replacement cannot reuse stale class IDs or phases.]
+
+  SideEffects []
+
+  SeeAlso     [Lms_TargetPerform]
+
+***********************************************************************/
+void Abc_RecTargetCache3( int fStart )
+{
+    Lms_Man_t * p = s_pMan3;
+    assert(p && p->nVars == 6);
+    ABC_FREE(p->pTargetCanon);
+    Vec_WecFreeP(&p->vTargetProfiles);
+    ABC_FREE(p->pTargetNext);
+    ABC_FREE(p->pTargetCounts);
+    if ( !fStart ) return;
+    if ( !p->vTruthPo ) Lms_ManPrepare(p);
+    p->pTargetCanon = ABC_CALLOC(Lms_TargetCanon_t, LMS_TARGET_CACHE_SIZE);
+    p->vTargetProfiles = Vec_WecStart(Vec_IntSize(p->vTruthPo)-1);
+    p->pTargetNext = ABC_ALLOC(int, Gia_ManCoNum(p->pGia));
+    p->pTargetCounts = ABC_ALLOC(int, Gia_ManCoNum(p->pGia));
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Order library outputs by area/depth profile and output index.]
 
   Description []
-               
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Lms_TargetProfileCompare( const void * pA, const void * pB )
+{
+    const Lms_TargetProfile_t * a = (const Lms_TargetProfile_t *)pA, * b = (const Lms_TargetProfile_t *)pB;
+    if ( a->Key != b->Key ) return a->Key < b->Key ? -1 : 1;
+    return (a->Po > b->Po) - (a->Po < b->Po);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Group structures with identical area and pin-depth profiles.]
+
+  Description [Equal profiles have identical DP and macro-cover costs. Retain
+  the last PO, which wins the original reverse-chain tie, and link all of
+  its structural alternatives for expansion only at a live union root.]
+
+  SideEffects [Caches profile representatives and structural links.]
+
+  SeeAlso     [Abc_RecTargetNext3]
+
+***********************************************************************/
+static Vec_Int_t * Lms_TargetProfiles( Lms_Man_t * p, int Class )
+{
+    Vec_Int_t * vReprs = Vec_WecEntry(p->vTargetProfiles, Class);
+    Lms_TargetProfile_t * pSort;
+    int i, Prev = -1, First = Vec_IntEntry(p->vTruthPo, Class);
+    int Count = Vec_IntEntry(p->vTruthPo, Class+1) - First;
+    if ( Vec_IntSize(vReprs) ) return vReprs;
+    assert(Count > 0);
+    pSort = ABC_ALLOC(Lms_TargetProfile_t, Count);
+    for ( i = 0; i < Count; ++i )
+    {
+        pSort[i].Po = First+i;
+        pSort[i].Key = (Vec_WrdEntry(p->vDelays, First+i) << 8) | (unsigned char)Vec_StrEntry(p->vAreas, First+i);
+    }
+    qsort(pSort, Count, sizeof(Lms_TargetProfile_t), Lms_TargetProfileCompare);
+    for ( i = 0; i < Count; ++i )
+    {
+        int Po = pSort[i].Po;
+        if ( i && pSort[i].Key != pSort[i-1].Key )
+        { Vec_IntPush(vReprs, Prev); Prev = -1; }
+        p->pTargetNext[Po] = Prev;
+        p->pTargetCounts[Po] = Prev < 0 ? 1 : p->pTargetCounts[Prev]+1;
+        Prev = Po;
+    }
+    Vec_IntPush(vReprs, Prev);
+    Vec_IntSort(vReprs, 0);
+    ABC_FREE(pSort);
+    return vReprs;
+}
+/**Function*************************************************************
+
+  Synopsis    [Return the next structure with the same area/depth profile.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     [Lms_TargetProfiles]
+
+***********************************************************************/
+int Abc_RecTargetNext3( int Po )
+{
+    return Po < 0 ? -1 : s_pMan3->pTargetNext[Po];
+}
+/**Function*************************************************************
+
+  Synopsis    [Return the number of structures linked from a representative.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     [Lms_TargetProfiles]
+
+***********************************************************************/
+int Abc_RecTargetCount3( int Po )
+{
+    return Po < 0 ? 1 : s_pMan3->pTargetCounts[Po];
+}
+/**Function*************************************************************
+
+  Synopsis    [Borrow library areas and packed pin depths for target selection.]
+
+  Description [Arrays remain valid until the active library is replaced.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_RecTargetData3( const unsigned char ** ppAreas, const word ** ppDelays )
+{
+    *ppAreas = (const unsigned char *)Vec_StrArray(s_pMan3->vAreas);
+    *ppDelays = Vec_WrdArray(s_pMan3->vDelays);
+    return Gia_ManCoNum(s_pMan3->pGia);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Evaluate a cut's library delay and area without mapper objects.]
+
+  Description [The truth has minimal support and includes output polarity.
+  Arrivals use the enumerator's sorted leaf order. Preserve the mapper's
+  initial delay/area ranking, including unit cost for degenerate cuts.
+  Reserve ABC_INFINITY for missing functions; cap matched delays below it.]
+
+  SideEffects [Updates the canonical matching and library winner caches.]
+
+  SeeAlso     [Abc_RecTargetCollect3]
+
+***********************************************************************/
+int Abc_RecTargetCost3( word Truth, int nLeaves, const int * pTimes, int * pArea, Lms_CutMatch_t * pMatch )
+{
+    Lms_Man_t * p = s_pMan3;
+    unsigned Phase;
+    float Times[6];
+    int k, Id, Po, First, Last, Delay, Area, BestDelay = INT_MAX;
+    *pArea = 1;
+    pMatch->Class = -1;
+    pMatch->Perm[0] = 0;
+    pMatch->Phase = (unsigned char)(Truth & 1);
+    if ( nLeaves < 2 ) return nLeaves ? Abc_MinInt(ABC_INFINITY-1, pTimes[0]) : 0;
+    pMatch->Class = Id = Lms_TargetCanonLookup(p, Truth, nLeaves, pMatch->Perm, &Phase);
+    pMatch->Phase = (unsigned char)Phase;
+    *pArea = ABC_INFINITY;
+    if ( Id < 0 ) return ABC_INFINITY;
+    First = Vec_IntEntry(p->vTruthPo, Id);
+    Last = Vec_IntEntry(p->vTruthPo, Id+1);
+    if ( p->fLateFilter && Last-First > 2 )
+    {
+        int Base = 0;
+        // Pin depths are at most 15. Normalize before conversion to float
+        // so large integer arrivals retain their one-level differences.
+        // Clipped early inputs cannot dominate the latest input, even when
+        // subtracting the minimum alone would leave a large arrival span.
+        for ( k = 0; k < nLeaves; ++k ) Base = Abc_MaxInt(Base, pTimes[k]-15);
+        for ( k = 0; k < nLeaves; ++k ) Times[k] = (float)Abc_MaxInt(0, pTimes[(int)pMatch->Perm[k]]-Base);
+        Po = Lms_EvalFind(p->pEval, Id, nLeaves, Times, &BestDelay);
+        *pArea = (unsigned char)Vec_StrEntry(p->vAreas, Po);
+        return Abc_MinInt(ABC_INFINITY-1, BestDelay+Base);
+    }
+    for ( Po = First; Po < Last; ++Po )
+    {
+        word Profile = Vec_WrdEntry(p->vDelays, Po);
+        Delay = 0;
+        for ( k = 0; k < nLeaves; ++k )
+            Delay = Abc_MaxInt(Delay, pTimes[(int)pMatch->Perm[k]] + Lms_DelayGet(Profile, k));
+        Area = (unsigned char)Vec_StrEntry(p->vAreas, Po);
+        if ( BestDelay > Delay || (BestDelay == Delay && *pArea > Area) )
+        { BestDelay = Delay; *pArea = Area; }
+    }
+    return Abc_MinInt(ABC_INFINITY-1, BestDelay);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Check that the active library supports target-delay selection.]
+
+  Description [Requires a prepared six-input library with unit AND costs.]
+
+  SideEffects []
+
+  SeeAlso     [Lms_TargetPerform]
+
+***********************************************************************/
+int Abc_RecTargetReady3( void )
+{
+    return s_pMan3 && !s_pMan3->fLibConstr && !s_pMan3->fXorCost && s_pMan3->nVars == 6;
+}
+/**Function*************************************************************
+
+  Synopsis    [Collect library alternatives without selecting a mapping.]
+
+  Description [Reuse the match saved during costing. Canonical leaf literals
+  carry input phases. The saved PO and output phase identify the exact
+  structure used in reconstruction.]
+
+  SideEffects [Adds bindings and profiles to the target candidate bank.]
+
+  SeeAlso     [Lms_TargetPerform]
+
+***********************************************************************/
+int Abc_RecTargetCollect3( void * pData, int Root, int n, const int * pLeaves, word Truth, const Lms_CutMatch_t * pMatch )
+{
+    Lms_Man_t * p = s_pMan3;
+    Vec_Int_t * vProfiles;
+    int k, Leaves[6];
+    if ( n < 2 )
+    {
+        if ( n ) Leaves[0] = Abc_Var2Lit(pLeaves[0], 0);
+        Lms_TargetCut(pData, Root, n, Leaves, (int)(Truth & 1), NULL, 1);
+        return 1;
+    }
+    if ( pMatch->Class < 0 ) return 1;
+    for ( k = 0; k < n; ++k )
+        Leaves[k] = Abc_Var2Lit(pLeaves[(int)pMatch->Perm[k]], (pMatch->Phase >> k) & 1);
+    vProfiles = Lms_TargetProfiles(p, pMatch->Class);
+    Lms_TargetCut(pData, Root, n, Leaves, (pMatch->Phase >> n) & 1,
+        Vec_IntArray(vProfiles), Vec_IntSize(vProfiles));
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compile a saved library structure without rematching.]
+
+  Description []
+
+  SideEffects [Uses the library's temporary node labels.]
+
+  SeeAlso     [Abc_RecTargetCollect3]
+
+***********************************************************************/
+void Abc_RecTargetRecipe3( int Po, Vec_Int_t * vProgram )
+{
+    Lms_Man_t * p = s_pMan3;
+    Gia_Man_t * pLib = p->pGia;
+    Gia_Obj_t * pObj, * pCo;
+    int i, k;
+    pCo = Gia_ManCo(pLib, Po);
+    if ( pLib->vTtNodes == NULL ) pLib->vTtNodes = Vec_IntAlloc(256);
+    Gia_ObjCollectInternal(pLib, Gia_ObjFanin0(pCo));
+    // Six local input slots, then the ANDs in the same DFS order as emission.
+    Vec_IntPush(vProgram, Vec_IntSize(pLib->vTtNodes));
+    Gia_ManForEachObjVec(pLib->vTtNodes, pLib, pObj, i)
+    {
+        pObj->fMark0 = 0;
+        for ( k = 0; k < 2; ++k )
+        {
+            Gia_Obj_t * pFan = k ? Gia_ObjFanin1(pObj) : Gia_ObjFanin0(pObj);
+            int Index = Gia_ObjIsAnd(pFan) ? Gia_ObjNum(pLib, pFan) + 6 : Gia_ObjCioId(pFan);
+            assert(Gia_ObjIsAnd(pFan) || Gia_ObjIsCi(pFan));
+            Vec_IntPush(vProgram, Abc_Var2Lit(Index, k ? Gia_ObjFaninC1(pObj) : Gia_ObjFaninC0(pObj)));
+        }
+    }
+    assert(Vec_IntSize(pLib->vTtNodes) > 0);
+    Vec_IntPush(vProgram, Abc_Var2Lit(6+Vec_IntSize(pLib->vTtNodes)-1, Gia_ObjFaninC0(pCo)));
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Return the loaded library's input count.]
+
+  Description []
+
   SideEffects []
 
   SeeAlso     []

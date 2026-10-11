@@ -296,6 +296,7 @@ static int Abc_CommandDumpEquiv              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandRecStart3              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecCollect3            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecGen3                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandLmsTarget              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecEmbed3              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecFilter3             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecStop3               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1159,6 +1160,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_start3",    Abc_CommandRecStart3,        0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_collect3",  Abc_CommandRecCollect3,      0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_gen3",      Abc_CommandRecGen3,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&lms",          Abc_CommandLmsTarget,        0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_embed3",    Abc_CommandRecEmbed3,        0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_filter3",   Abc_CommandRecFilter3,       0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_stop3",     Abc_CommandRecStop3,         0 );
@@ -21117,6 +21119,97 @@ usage:
     Abc_Print(-2, "       -s : stop sampling; without switches write accumulated samples\n");
     return 1;
 }
+/**Function*************************************************************
+
+  Synopsis    [Experimental target-delay LMS replacement selection.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Abc_CommandLmsTarget( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Abc_NtkRecStartBuiltin3( FILE *, FILE * );
+    Gia_Man_t * pNew;
+    int c, Pass, Target = -1, Cuts = 8, CriticalCuts = 0, Rounds = 4, Exact = 16, Passes = 1, DpMode = 2, Memory = 1024, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "DCBIEPLMvh")) != EOF )
+    {
+        if ( c == 'v' ) fVerbose ^= 1;
+        else if ( c == 'D' || c == 'C' || c == 'B' || c == 'I' || c == 'E' || c == 'P' || c == 'L' || c == 'M' )
+        {
+            char * pEnd, * pStart;
+            long Value;
+            if ( globalUtilOptind >= argc ) goto usage;
+            pStart = argv[globalUtilOptind++];
+            Value = strtol(pStart, &pEnd, 10);
+            if ( pStart == pEnd || *pEnd || Value < (c == 'D' ? -1 : c == 'B' || c == 'E' || c == 'L' || c == 'M' ? 0 : 1) || Value > (c == 'D' ? 100000 : c == 'C' || c == 'B' ? 128 : c == 'E' ? 256 : c == 'L' ? 2 : c == 'M' ? 1048576 : 100) ) goto usage;
+            if ( c == 'D' ) Target = (int)Value;
+            if ( c == 'C' ) Cuts = (int)Value;
+            if ( c == 'B' ) CriticalCuts = (int)Value;
+            if ( c == 'I' ) Rounds = (int)Value;
+            if ( c == 'E' ) Exact = (int)Value;
+            if ( c == 'P' ) Passes = (int)Value;
+            if ( c == 'L' ) DpMode = (int)Value;
+            if ( c == 'M' ) Memory = (int)Value;
+        }
+        else goto usage;
+    }
+    if ( globalUtilOptind != argc ) goto usage;
+    if ( !pAbc->pGia ) { Abc_Print(-1, "There is no AIG.\n"); return 1; }
+    if ( !Abc_NtkRecIsRunning3() && !Abc_NtkRecStartBuiltin3(Abc_FrameReadOut(pAbc), Abc_FrameReadErr(pAbc)) ) return 1;
+    pNew = Lms_TargetPerformAdaptive(pAbc->pGia, Target, Cuts, Rounds, Exact, DpMode, Memory, CriticalCuts, fVerbose);
+    if ( !pNew ) return 1;
+    // Preserve given output requirements across passes. Without them,
+    // freeze the first pass's achieved arrival, including late CIs.
+    if ( Target < 0 && !pNew->vCoReqs )
+        Target = pNew->vCoArrs && Vec_IntSize(pNew->vCoArrs) ? Vec_IntFindMax(pNew->vCoArrs) : Gia_ManLevelNum(pNew);
+    // Recollect on the rewritten AIG, exposing new macro interiors and cut
+    // boundaries. Keep the deadline DP on each pass; do not freeze the input.
+    for ( Pass = 1; Pass < Passes; ++Pass )
+    {
+        Gia_Man_t * pTrial;
+        if ( fVerbose ) Abc_Print(1, "LMS target: recollection pass %d of %d.\n", Pass+1, Passes);
+        pTrial = Lms_TargetPerformAdaptive(pNew, Target, Cuts, Rounds, Exact, DpMode, Memory, CriticalCuts, fVerbose);
+        if ( !pTrial )
+        {
+            Abc_Print(0, "LMS target: recollection failed; keeping the preceding feasible result.\n");
+            break;
+        }
+        if ( Gia_ManAndNum(pTrial) >= Gia_ManAndNum(pNew) )
+        {
+            Gia_ManStop(pTrial);
+            if ( fVerbose ) Abc_Print(1, "LMS target: no area improvement; stopping recollection.\n");
+            break;
+        }
+        Gia_ManStop(pNew);
+        pNew = pTrial;
+    }
+    Abc_FrameUpdateGia(pAbc, pNew);
+    return 0;
+usage:
+    Abc_Print(-2, "usage: &lms [-D num] [-CBIEPLM num] [-vh]\n");
+    Abc_Print(-2, "           experimental LMS-inspired delay-optimization\n");
+    Abc_Print(-2, "\t-D num : maximum output arrival (unit AND delay); -1 = automatic\n");
+    Abc_Print(-2, "\t         default: given CO requirements, or best arrival in the cut bank\n");
+    Abc_Print(-2, "\t         honors GIA integer CI arrivals/CO requirements; explicit -D caps every CO\n");
+    Abc_Print(-2, "\t-C num : retained cuts per node [default = %d]\n", Cuts);
+    Abc_Print(-2, "\t-B num : recollect zero-slack macros with this cut budget; 0 = disabled [default = %d]\n", CriticalCuts);
+    Abc_Print(-2, "\t         must exceed -C to add a pilot-guided collection (maximum 128)\n");
+    Abc_Print(-2, "\t-I num : sharing-estimate rounds [default = %d]\n", Rounds);
+    Abc_Print(-2, "\t-E num : ranked exact-area trials per root; 0 = exhaustive [default = %d]\n", Exact);
+    Abc_Print(-2, "\t-P num : maximum collect/select passes; stop without area gain [default = %d]\n", Passes);
+    Abc_Print(-2, "\t-L num : deadline DP: 0 = dense, 1 = lazy, 2 = adaptive [default = %d]\n", DpMode);
+    Abc_Print(-2, "\t-M num : deadline-table budget in MiB; 0 = unlimited [default = %d]\n", Memory);
+    Abc_Print(-2, "\t         limits extra deadline slack when needed; preserves feasibility but may restrict area search\n");
+    Abc_Print(-2, "\t-v     : print timing, memory, and optimization statistics\n");
+    Abc_Print(-2, "\t-h     : print usage\n");
+    return 1;
+}
+
 static int Abc_CommandRecGen3( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     int c, fXor = 0;
@@ -45481,6 +45574,14 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
+    // LMS defaults to six-input cuts unless the user supplied -K.
+    if ( pPars->fUserRecLib && pPars->nLutSize == -1 )
+    {
+        pPars->nLutSize = 6;
+        pPars->pLutLib = NULL;
+        pPars->pCellLib = NULL;
+    }
+
     // Auto-detect K from cell library when -j is used
     if ( pPars->fEnableCheck07 && pPars->nLutSize == -1 )
     {
@@ -45517,8 +45618,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    // LMS uses the same -K/library precedence as ordinary mapping. The
-    // no-library case above supplies LUT6; do not discard an existing target.
+    // Use the LUT library for an unspecified cut size.
     if ( pPars->nLutSize == -1 )
     {
         if ( pPars->pLutLib == NULL )
@@ -45828,7 +45928,7 @@ usage:
     else
         sprintf(Buffer, "%.2f", pPars->DelayTarget );
     if ( pPars->nLutSize == -1 )
-        sprintf(LutSize, "library" );
+        sprintf(LutSize, "%s", pPars->fUserRecLib ? "6" : "library" );
     else
         sprintf(LutSize, "%d", pPars->nLutSize );
     Abc_Print( -2, "usage: &if [-KCFAGRTXYZM num] [-DEW float] [-SJ str] [-qarlepmsdbgxyofuijkztnchvw]\n" );
@@ -45864,7 +45964,7 @@ usage:
     Abc_Print( -2, "\t-x       : toggles delay optimization by DSD balancing [default = %s]\n", pPars->fDsdBalance? "yes": "no" );
     Abc_Print( -2, "\t-y       : toggles delay optimization with recorded library [default = %s]\n", pPars->fUserRecLib? "yes": "no" );
     Abc_Print( -2, "\t           -y uses the built-in six-input library if none is loaded; exact cache is on\n" );
-    Abc_Print( -2, "\t           use -K 6 for this library; without -K the current LUT target sets K\n" );
+    Abc_Print( -2, "\t           -y defaults to -K 6; an explicit -K overrides this default\n" );
     Abc_Print( -2, "\t-o       : toggles using buffers to decouple combinational outputs [default = %s]\n", pPars->fUseBuffs? "yes": "no" );
     Abc_Print( -2, "\t-f       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck75? "yes": "no" );
     Abc_Print( -2, "\t-u       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck75u? "yes": "no" );

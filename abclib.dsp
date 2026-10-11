@@ -6606,6 +6606,10 @@ SOURCE=.\src\bool\lms\lmsCollect.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\bool\lms\lmsCuts.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\bool\lms\lmsEval.c
 # End Source File
 # Begin Source File
@@ -6623,6 +6627,10 @@ SOURCE=.\src\bool\lms\lmsKernel.c
 # Begin Source File
 
 SOURCE=.\src\bool\lms\lmsLib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\lms\lmsTarget.c
 # End Source File
 # Begin Source File
 
