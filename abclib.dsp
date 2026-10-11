@@ -6517,6 +6517,42 @@ SOURCE=.\src\bool\dec\decUtil.c
 SOURCE=.\src\bool\deco\deco.h
 # End Source File
 # End Group
+# Begin Group "decpla"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\bool\decpla\decpla.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\decpla\decplaCom.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\decpla\decplaCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\decpla\decplaDec.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\decpla\decplaInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\decpla\decplaRead.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\decpla\decplaSupp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\decpla\decplaVerify.c
+# End Source File
+# End Group
 # Begin Group "kit"
 
 # PROP Default_Filter ""
