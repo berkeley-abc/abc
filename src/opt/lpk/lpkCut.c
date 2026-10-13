@@ -203,7 +203,12 @@ unsigned * Lpk_CutTruth( Lpk_Man_t * p, Lpk_Cut_t * pCut, int fInv )
         // compute the truth table of internal nodes
         pTruth = Lpk_CutTruth_rec( pManHop, pObjHop, pCut->nLeaves, p->vTtNodes, &iCount );
         if ( Hop_IsComplement((Hop_Obj_t *)pObj->pData) )
-            Kit_TruthNot( pTruth, pTruth, pCut->nLeaves );
+        {
+            // A local inverter must not overwrite its driver's truth table.
+            unsigned * pTruthNew = Hop_ObjIsPi(pObjHop) ? (unsigned *)Vec_PtrEntry(p->vTtNodes, iCount++) : pTruth;
+            Kit_TruthNot( pTruthNew, pTruth, pCut->nLeaves );
+            pTruth = pTruthNew;
+        }
         // set the truth table at the node
         pObj->pCopy = (Abc_Obj_t *)pTruth;
     }
