@@ -1234,14 +1234,14 @@ Dec_Graph_t * Abc_ManResubDivs1( Abc_ManRes_t * p, int Required )
                     if ( ((~puData0[w] & ~puData1[w]) ^ puDataR[w]) & p->pCareSet[w] ) // care set
                         break;
             }
-            if ( Abc_ObjIsComplement(pObj0) )
+            else if ( Abc_ObjIsComplement(pObj0) )
             {
                 for ( w = 0; w < p->nWords; w++ )
     //                if ( (puData0[w] & puData1[w]) != puDataR[w] )
                     if ( ((~puData0[w] & puData1[w]) ^ puDataR[w]) & p->pCareSet[w] ) // care set
                         break;
             }
-            if ( Abc_ObjIsComplement(pObj1) )
+            else if ( Abc_ObjIsComplement(pObj1) )
             {
                 for ( w = 0; w < p->nWords; w++ )
     //                if ( (puData0[w] & puData1[w]) != puDataR[w] )
