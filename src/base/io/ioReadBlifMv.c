@@ -1252,13 +1252,16 @@ static int Io_MvParseLineLatch( Io_MvMod_t * p, char * pLine )
             if ( Vec_PtrSize(vTokens) > 6 )
                 printf( "Warning: Line %d has .latch directive with unrecognized entries (the total of %d entries).\n", 
                     Io_MvGetLine(p->pMan, pToken), Vec_PtrSize(vTokens) ); 
-            if ( Vec_PtrSize(vTokens) > 3 )
-                Init = atoi( (char *)Vec_PtrEntryLast(vTokens) );
+            if ( Vec_PtrSize(vTokens) == 4 || Vec_PtrSize(vTokens) == 6 )
+            {
+                pToken = (char *)Vec_PtrEntryLast(vTokens);
+                Init = pToken[0] && !pToken[1] ? pToken[0] - '0' : -1;
+            }
             else
                 Init = 2;
             if ( Init < 0 || Init > 3 )
             {
-                sprintf( p->pMan->sError, "Line %d: Initial state of the latch is incorrect \"%s\".", Io_MvGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens,3) );
+                sprintf( p->pMan->sError, "Line %d: Initial state of the latch is incorrect \"%s\".", Io_MvGetLine(p->pMan, pToken), pToken );
                 return 0;
             }
             if ( Init == 0 )
