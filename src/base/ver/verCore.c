@@ -118,6 +118,7 @@ Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Des_t * pGateLib )
     p->vStackFn  = Vec_PtrAlloc( 100 );
     p->vStackOp  = Vec_IntAlloc( 100 );
     p->vPerm     = Vec_IntAlloc( 100 );
+    p->tNtk2Ports = st__init_table( st__ptrcmp, st__ptrhash );
     // create the design library and assign the technology library
     p->pDesign   = Abc_DesCreate( pFileName );
     p->pDesign->pLibrary = pGateLib;
@@ -141,6 +142,9 @@ Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Des_t * pGateLib )
 ***********************************************************************/
 void Ver_ParseStop( Ver_Man_t * p )
 {
+    st__generator * gen;
+    const char * pKey;
+    Vec_Ptr_t * vPorts;
     if ( p->pProgress )
         Extra_ProgressBarStop( p->pProgress );
     Ver_StreamFree( p->pReader );
@@ -148,6 +152,9 @@ void Ver_ParseStop( Ver_Man_t * p )
     Vec_PtrFree( p->vStackFn );
     Vec_IntFree( p->vStackOp );
     Vec_IntFree( p->vPerm );
+    st__foreach_item( p->tNtk2Ports, gen, &pKey, (char **)&vPorts )
+        Vec_PtrFreeFree( vPorts );
+    st__free_table( p->tNtk2Ports );
     ABC_FREE( p );
 }
  
@@ -401,6 +408,7 @@ int Ver_ParseConvertNetwork( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, int fMapped )
 int Ver_ParseModule( Ver_Man_t * pMan )
 {
     Mio_Gate_t * pGate;
+    Vec_Ptr_t * vPorts;
     Ver_Stream_t * p = pMan->pReader;
     Abc_Ntk_t * pNtk, * pNtkTemp;
     char * pWord, Symbol;
@@ -420,10 +428,15 @@ int Ver_ParseModule( Ver_Man_t * pMan )
         return 0;
     }
 
-    // skip to the end of parentheses
+    // Save the header order independently of the later input/output declarations.
+    if ( st__lookup(pMan->tNtk2Ports, (char *)pNtk, (char **)&vPorts) )
+        Vec_PtrFreeFree( vPorts );
+    vPorts = Vec_PtrAlloc( 16 );
+    st__insert( pMan->tNtk2Ports, (char *)pNtk, (char *)vPorts );
     do {
-        if ( Ver_ParseGetName( pMan ) == NULL )
+        if ( (pWord = Ver_ParseGetName(pMan)) == NULL )
             return 0;
+        Vec_PtrPush( vPorts, Extra_UtilStrsav(pWord) );
         Symbol = Ver_StreamPopChar(p);
     } while ( Symbol == ',' );
     assert( Symbol == ')' );
@@ -562,7 +575,7 @@ int Ver_ParseModule( Ver_Man_t * pMan )
 ***********************************************************************/
 int Ver_ParseLookupSuffix( Ver_Man_t * pMan, char * pWord, int * pnMsb, int * pnLsb )
 {
-    unsigned Value;
+    ABC_PTRUINT_T Value;
     *pnMsb = *pnLsb = -1;
     if ( pMan->tName2Suffix == NULL )
         return 1;
@@ -2092,7 +2105,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
     Abc_Obj_t * pTerm, * pTermNew, * pNetAct;
     Ver_Bundle_t * pBundle;
     char * pNameFormal;
-    int i, k, j, iBundle, Length;
+    int i, k, j, Length;
 
     assert( !Ver_ObjIsConnected(pBox) );
     assert( Ver_NtkIsDefined(pNtkBox) );
@@ -2126,61 +2139,26 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
             break;
     if ( k < Vec_PtrSize(vBundles) )
     {
-        printf( "Warning: The instance %s of network %s will be connected without using formal names.\n", pNtkBox->pName, Abc_ObjName(pBox) );
-        // add all actual nets in the bundles
-        iBundle = 0;
-        Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, j )
-            iBundle += Vec_PtrSize(pBundle->vNetsActual);
-
-        // check the number of actual nets is the same as the number of formal nets
-        if ( iBundle != Abc_NtkPiNum(pNtkBox) + Abc_NtkPoNum(pNtkBox) )
-        {
-            sprintf( pMan->sError, "The number of actual IOs (%d) is different from the number of formal IOs (%d) when instantiating network %s in box %s.", 
-                Vec_PtrSize(vBundles), Abc_NtkPiNum(pNtkBox) + Abc_NtkPoNum(pNtkBox), pNtkBox->pName, Abc_ObjName(pBox) );
-            // free the bundling
-            Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, k )
-                Ver_ParseFreeBundle( pBundle );
-            Vec_PtrFree( vBundles );
-            pBox->pCopy = NULL;
-            Ver_ParsePrintErrorMessage( pMan );
-            return 0;
-        }
-        // connect bundles in the natural order
-        iBundle = 0;
-        Abc_NtkForEachPi( pNtkBox, pTerm, i )
-        {
-            pBundle = (Ver_Bundle_t *)Vec_PtrEntry( vBundles, iBundle++ );
-            // the bundle is found - add the connections - using order LSB to MSB
-            Vec_PtrForEachEntryReverse( Abc_Obj_t *, pBundle->vNetsActual, pNetAct, k )
-            {
-                pTermNew = Abc_NtkCreateBi( pNtk );
-                Abc_ObjAddFanin( pBox, pTermNew );
-                Abc_ObjAddFanin( pTermNew, pNetAct );
-                i++;
-            }
-            i--;
-        }
-        // create fanins of the box
-        Abc_NtkForEachPo( pNtkBox, pTerm, i )
-        {
-            pBundle = (Ver_Bundle_t *)Vec_PtrEntry( vBundles, iBundle++ );
-            // the bundle is found - add the connections - using order LSB to MSB
-            Vec_PtrForEachEntryReverse( Abc_Obj_t *, pBundle->vNetsActual, pNetAct, k )
-            {
-                pTermNew = Abc_NtkCreateBo( pNtk );
-                Abc_ObjAddFanin( pTermNew, pBox );
-                Abc_ObjAddFanin( pNetAct, pTermNew );
-                i++;
-            }
-            i--;
-        }
-
-        // free the bundling
+        Vec_Ptr_t * vPorts;
+        int nActuals = 0;
         Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, k )
-            Ver_ParseFreeBundle( pBundle );
-        Vec_PtrFree( vBundles );
-        pBox->pCopy = NULL;
-        return 1;
+            nActuals += Vec_PtrSize(pBundle->vNetsActual);
+        if ( !st__lookup(pMan->tNtk2Ports, (char *)pNtkBox, (char **)&vPorts) ||
+             Vec_PtrSize(vPorts) != Vec_PtrSize(vBundles) ||
+             nActuals != Abc_NtkPiNum(pNtkBox) + Abc_NtkPoNum(pNtkBox) )
+        {
+            sprintf( pMan->sError, "Cannot match positional ports of network %s in box %s.", pNtkBox->pName, Abc_ObjName(pBox) );
+            goto failure;
+        }
+        Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, k )
+            if ( pBundle->pNameFormal != NULL )
+            {
+                sprintf( pMan->sError, "Cannot mix named and positional ports in box %s.", Abc_ObjName(pBox) );
+                goto failure;
+            }
+        // Name positional connections according to the module header, then use the common path.
+        Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, k )
+            pBundle->pNameFormal = Extra_UtilStrsav( (char *)Vec_PtrEntry(vPorts, k) );
     }
 
     // bundles arrive in any order - but inside each bundle the order is MSB to LSB
@@ -2309,6 +2287,14 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
     Vec_PtrFree( vBundles );
     pBox->pCopy = NULL;
     return 1;
+
+failure:
+    Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, k )
+        Ver_ParseFreeBundle( pBundle );
+    Vec_PtrFree( vBundles );
+    pBox->pCopy = NULL;
+    Ver_ParsePrintErrorMessage( pMan );
+    return 0;
 }
 
 

@@ -59,6 +59,7 @@ struct Ver_Man_t_
     // current design
     Abc_Des_t *     pDesign;
     st__table *      tName2Suffix;
+    st__table *      tNtk2Ports;    // module header port names in positional order
     // error handling
     FILE *          Output;
     int             fTopLevel;
