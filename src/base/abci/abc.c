@@ -45645,6 +45645,12 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    if ( !Gia_ManHasChoices(pAbc->pGia) && pAbc->pGia->pNexts && Gia_ManHasDangling(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Choice nodes are not in the format required by &if. Use \"&get -s\" to import choices for mapping.\n" );
+        return 1;
+    }
+
     // enable truth table computation if choices are selected
     if ( Gia_ManHasChoices(pAbc->pGia) )
     {
