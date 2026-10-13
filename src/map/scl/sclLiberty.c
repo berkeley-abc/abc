@@ -759,7 +759,59 @@ char * Scl_LibertyReadPinFormula( Scl_Tree_t * p, Scl_Item_t * pPin )
 {
     Scl_Item_t * pFunc;
     Scl_ItemForEachChildName( p, pPin, pFunc, "function" )
-        return Scl_LibertyReadString(p, pFunc->Head);
+    {
+        char * pFormula = Scl_LibertyReadString(p, pFunc->Head), * pCopy, * pCur;
+        int fOperand = 0;
+        if ( !strchr(pFormula, '^') )
+            return pFormula;
+        // Liberty gives XOR precedence over AND.  Parenthesize XOR groups so
+        // the formula keeps its meaning in GENLIB and in the serialized SCL.
+        pCopy = Abc_UtilStrsav( pFormula );
+        Vec_StrClear( p->vBuffer );
+        Vec_StrPush( p->vBuffer, '(' );
+        for ( pCur = pCopy; *pCur; )
+        {
+            char c = *pCur++;
+            if ( strchr(" \t\r\n", c) )
+                continue;
+            if ( strchr("*&+|", c) )
+            {
+                Vec_StrPush( p->vBuffer, ')' );
+                Vec_StrPush( p->vBuffer, c );
+                Vec_StrPush( p->vBuffer, '(' );
+                fOperand = 0;
+            }
+            else if ( c == '^' )
+            {
+                Vec_StrPush( p->vBuffer, c );
+                fOperand = 0;
+            }
+            else if ( c == ')' )
+            {
+                Vec_StrPrintStr( p->vBuffer, "))" );
+                fOperand = 1;
+            }
+            else if ( c == '\'' )
+                Vec_StrPush( p->vBuffer, c );
+            else
+            {
+                if ( fOperand ) // implicit AND between adjacent operands
+                    Vec_StrPrintStr( p->vBuffer, ")*(" );
+                if ( c == '(' )
+                    Vec_StrPrintStr( p->vBuffer, "((" );
+                else
+                    Vec_StrPush( p->vBuffer, c );
+                fOperand = (c != '(' && c != '!');
+                if ( fOperand )
+                    while ( *pCur && !strchr(" \t\r\n()!'^*&+|", *pCur) )
+                        Vec_StrPush( p->vBuffer, *pCur++ );
+            }
+        }
+        Vec_StrPrintStr( p->vBuffer, ")" );
+        Vec_StrPush( p->vBuffer, '\0' );
+        ABC_FREE( pCopy );
+        return Vec_StrArray( p->vBuffer );
+    }
     return NULL;
 }
 int Scl_LibertyReadCellIsThreeState( Scl_Tree_t * p, Scl_Item_t * pCell )
@@ -838,7 +890,7 @@ Vec_Str_t * Scl_LibertyReadGenlibStr( Scl_Tree_t * p, int fVerbose, SC_DontUse d
             Vec_StrPrintStr( vStr, " " );
             Vec_StrPrintStr( vStr, Scl_LibertyReadString(p, pOutput->Head) );
             Vec_StrPrintStr( vStr, "=" );
-            Vec_StrPrintStr( vStr, pFormula );
+            Vec_StrPrintStr( vStr, Scl_LibertyReadPinFormula(p, pOutput) );
             Vec_StrPrintStr( vStr, ";\n" );
             // iterate through input pins
             Scl_ItemForEachChildName( p, pCell, pInput, "pin" )
