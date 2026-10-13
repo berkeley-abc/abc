@@ -48,6 +48,7 @@ ABC_NAMESPACE_IMPL_START
 #define VER_PARSE_OPER_EQU     3    // equvalence   (a'b'| ab )
 #define VER_PARSE_OPER_MUX     2    // MUX(a,b,c)   (ab | a'c )
 #define VER_PARSE_OPER_MARK    1    // OpStack token standing for an opening parenthesis
+#define VER_PARSE_OPER_QUEST   0    // pending question mark (true-branch boundary)
 
 // these are values of the internal Flag
 #define VER_PARSE_FLAG_START   1    // after the opening parenthesis 
@@ -157,13 +158,12 @@ void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_
                 break;
             }
             Vec_IntPush( vStackOp, VER_PARSE_OPER_NEG );
-            break;
+            continue;
 
         case VER_PARSE_SYM_AND:
         case VER_PARSE_SYM_OR:
         case VER_PARSE_SYM_XOR:
         case VER_PARSE_SYM_MUX1:
-        case VER_PARSE_SYM_MUX2:
             if ( Flag != VER_PARSE_FLAG_VAR )
             {
                 sprintf( pErrorMessage, "Parse_FormulaParser(): There is no variable before AND, EXOR, or OR." );
@@ -177,10 +177,35 @@ void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_
             else if ( *pTemp == VER_PARSE_SYM_XOR )
                 Vec_IntPush( vStackOp, VER_PARSE_OPER_XOR );
             else if ( *pTemp == VER_PARSE_SYM_MUX1 )
-                Vec_IntPush( vStackOp, VER_PARSE_OPER_MUX );
-//            else if ( *pTemp == VER_PARSE_SYM_MUX2 )
-//                Vec_IntPush( vStackOp, VER_PARSE_OPER_MUX );
+                Vec_IntPush( vStackOp, VER_PARSE_OPER_QUEST );
             Flag = VER_PARSE_FLAG_OPER; 
+            break;
+
+        case VER_PARSE_SYM_MUX2:
+            if ( Flag != VER_PARSE_FLAG_VAR )
+            {
+                sprintf( pErrorMessage, "Parse_FormulaParser(): Missing conditional branch." );
+                return NULL;
+            }
+            // Finish the true branch, stopping at its matching question mark.
+            while ( Vec_IntSize(vStackOp) && Vec_IntEntryLast(vStackOp) != VER_PARSE_OPER_QUEST )
+            {
+                Oper = Vec_IntPop( vStackOp );
+                if ( Oper == VER_PARSE_OPER_MARK ||
+                     Ver_FormulaParserTopOper( (Hop_Man_t *)pMan, vStackFn, Oper ) == NULL )
+                {
+                    sprintf( pErrorMessage, "Parse_FormulaParser(): Unmatched conditional colon." );
+                    return NULL;
+                }
+            }
+            if ( !Vec_IntSize(vStackOp) )
+            {
+                sprintf( pErrorMessage, "Parse_FormulaParser(): Unmatched conditional colon." );
+                return NULL;
+            }
+            Vec_IntPop( vStackOp );
+            Vec_IntPush( vStackOp, VER_PARSE_OPER_MUX );
+            Flag = VER_PARSE_FLAG_START;
             break;
 
         case VER_PARSE_SYM_OPEN:
@@ -286,7 +311,8 @@ void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_
                     break;
                 }
                 Oper2 = Vec_IntPop( vStackOp ); // the operation before the last one
-                if ( Oper2 >= Oper1 && !(Oper1 == Oper2 && Oper1 == VER_PARSE_OPER_MUX) )  
+                if ( Oper2 >= (Oper1 == VER_PARSE_OPER_QUEST ? VER_PARSE_OPER_MUX : Oper1) &&
+                     !(Oper1 == VER_PARSE_OPER_QUEST && Oper2 == VER_PARSE_OPER_MUX) )
                 {  // if Oper2 precedence is higher or equal, execute it
                     if ( Ver_FormulaParserTopOper( (Hop_Man_t *)pMan, vStackFn, Oper2 ) == NULL )
                     {
@@ -342,6 +368,8 @@ void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_
 Hop_Obj_t * Ver_FormulaParserTopOper( Hop_Man_t * pMan, Vec_Ptr_t * vStackFn, int Oper )
 {
     Hop_Obj_t * bArg0, * bArg1, * bArg2, * bFunc;
+    if ( Oper == VER_PARSE_OPER_QUEST || Vec_PtrSize(vStackFn) < (Oper == VER_PARSE_OPER_MUX ? 3 : 2) )
+        return NULL;
     // perform the given operation
     bArg2 = (Hop_Obj_t *)Vec_PtrPop( vStackFn );
     bArg1 = (Hop_Obj_t *)Vec_PtrPop( vStackFn );
