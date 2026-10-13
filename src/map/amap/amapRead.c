@@ -459,6 +459,9 @@ Amap_Lib_t * Amap_LibReadBuffer( char * pBuffer, int fVerbose )
 {
     Amap_Lib_t * pLib;
     Vec_Ptr_t * vTokens;
+    // skip the UTF-8 byte order mark, if present
+    if ( !strncmp(pBuffer, "\xEF\xBB\xBF", 3) )
+        pBuffer += 3;
     Amap_RemoveComments( pBuffer, NULL, NULL );
     vTokens = Amap_DeriveTokens( pBuffer );
     pLib = Amap_ParseTokens( vTokens, fVerbose );

@@ -97,7 +97,8 @@ Mio_Library_t * Mio_LibraryRead( char * FileName, char * pBuffer, char * Exclude
     if ( tExcludeGate )
         st__free_table( tExcludeGate );
 
-    pLib->pFileName = Abc_UtilStrsav( FileName );
+    if ( pLib )
+        pLib->pFileName = Abc_UtilStrsav( FileName );
     return pLib;
 }
 
@@ -163,6 +164,9 @@ Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__
     pLib->pMmFlex = Mem_FlexStart();
     pLib->vCube = Vec_StrAlloc( 100 );
 
+    // skip the UTF-8 byte order mark, if present
+    if ( !strncmp(pBuffer, "\xEF\xBB\xBF", 3) )
+        pBuffer += 3;
     Io_ReadFileRemoveComments( pBuffer, NULL, NULL );
 
     // parse the contents of the file
