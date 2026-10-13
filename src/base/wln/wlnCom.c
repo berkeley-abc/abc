@@ -251,6 +251,8 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pNew = Rtl_LibCollapse( pLib, pTopModule, fRev, fVerbose );
+    if ( pNew == NULL )
+        return 1;
     if ( fInv )
         Gia_ManInvertPos( pNew );
     Abc_FrameUpdateGia( pAbc, pNew );
