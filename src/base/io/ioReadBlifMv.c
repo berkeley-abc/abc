@@ -176,7 +176,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     // prepare the file for parsing
     Io_MvReadPreparse( p );
     // parse interfaces of each network and construct the network
-    if ( Io_MvReadInterfaces( p ) )
+    if ( !p->sError[0] && Io_MvReadInterfaces( p ) )
         pDesign = Io_MvParse( p );
     if ( p->sError[0] )
         fprintf( stdout, "%s\n", p->sError );
@@ -782,6 +782,11 @@ static void Io_MvReadPreparse( Io_MvMan_t * p )
         // parse directives
         if ( *(pCur-1) != '.' )
             continue;
+        if ( p->pLatest == NULL && strncmp(pCur, "model", 5) && strncmp(pCur, "end", 3) && strncmp(pCur, "exdc", 4) )
+        {
+            sprintf( p->sError, "Line %d: Directive outside a model.", Io_MvGetLine(p, pCur) );
+            return;
+        }
         if ( !strncmp(pCur, "names", 5) || !strncmp(pCur, "table", 5) || !strncmp(pCur, "gate", 4) )
             Vec_PtrPush( p->pLatest->vNames, pCur );
         else if ( p->fBlifMv && (!strncmp(pCur, "def ", 4) || !strncmp(pCur, "default ", 8)) )
