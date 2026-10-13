@@ -2063,6 +2063,10 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName, int fFastAlgo, 
     if ( fChangePol )
         Cnf_DataTranformPolarity( pCnf, 0 );
 
+    // These generators reserve variable zero. Drop this unused slot for export.
+    Cnf_DataLift( pCnf, -1 );
+    pCnf->nVars--;
+
     // print stats
 //    if ( fVerbose )
     {

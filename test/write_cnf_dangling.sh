@@ -1,60 +1,80 @@
 #!/usr/bin/env bash
-# Regression test for berkeley-abc/abc#479
-#
-# After "strash", a primary input wired directly to a primary output becomes
-# a dangling PI: it shows up in the DIMACS header's variable count but the
-# Tseitin encoder emits no clause mentioning it.  Such a free variable
-# silently doubles the model count of the written formula, breaking #SAT
-# and uniform sampling.
-#
-# The fix in Cnf_DataWriteIntoFile() detects DIMACS variables that are
-# declared in the header but unreferenced in any clause, and emits a unit
-# clause pinning each of them to false.  The two cases below exercise that
-# behaviour against the abc binary.
+# Issue #479: discard the reserved CNF slot, but preserve free source inputs.
+source "$(dirname "$0")/issues/common.sh"
 
-set -eu
-
-ABC=${ABC:-./abc}
-TMP=$(mktemp -d)
-trap 'rm -rf "$TMP"' EXIT
-
-fail() { echo "FAIL: $1" >&2; exit 1; }
-
-run_case() {
-    local name=$1 input=$2
-    local in="$TMP/$name.in.cnf" out="$TMP/$name.out.cnf"
-    printf '%s' "$input" > "$in"
-    "$ABC" -q "read_cnf $in; strash; write_cnf $out" > /dev/null
-
-    # Extract declared variable count from the header.
-    local header
-    header=$(grep -m1 '^p cnf ' "$out")
-    local nVars
-    nVars=$(echo "$header" | awk '{print $3}')
-
-    # Every variable 1..nVars must appear (positive or negated) in some clause.
-    local v
-    for v in $(seq 1 "$nVars"); do
-        if ! grep -Eq "(^|[ \t-])$v( |$)" "$out"; then
-            cat "$out" >&2
-            fail "$name: variable $v declared in header but never used in any clause"
-        fi
-    done
-    echo "PASS: $name ($header)"
+count_models() {
+    awk '
+        BEGIN { clauses = 0; count = 0 }
+        /^c/ { next }
+        /^p/ { vars = $3; expected = $4; next }
+        {
+            for (i = 1; i <= NF; i++)
+                if ($i == 0) clauses++;
+                else lits[clauses, ++sizes[clauses]] = $i;
+        }
+        END {
+            if (vars > 16 || clauses != expected) exit 1;
+            for (a = 0; a < 2^vars; a++) {
+                good = 1;
+                for (c = 0; c < clauses && good; c++) {
+                    satisfied = 0;
+                    for (i = 1; i <= sizes[c]; i++) {
+                        lit = lits[c, i]; v = lit < 0 ? -lit : lit;
+                        if (v < 1 || v > vars) exit 1;
+                        bit = int(a / 2^(v-1)) % 2;
+                        if (bit == (lit > 0)) satisfied = 1;
+                    }
+                    if (!satisfied) good = 0;
+                }
+                count += good;
+            }
+            print count + 0;
+        }
+    ' "$1"
 }
 
-# Case 1: original reproducer from issue #479 -- a single PI wired directly
-# to a single PO.  Before the fix, the output was "p cnf 3 2" with clauses
-# "-3 0" and "2 0", leaving variable 1 unconstrained.
-run_case "pi_to_po_direct" "p cnf 1 1
-1 0
-"
+run_case() {
+    local name=$1 expected=$2 input=$3 format=${4:-cnf} flags count
+    printf '%s\n' "$input" > "input.$format"
+    if [ "$format" = cnf ]; then
+        test "$(count_models input.cnf)" = "$expected"
+    fi
+    for flags in '' '-f' '-c' '-fc'; do
+        run_abc "read_$format input.$format; strash; write_cnf $flags output.cnf; write_cnf $flags output.cnf.gz"
+        gzip -dc output.cnf.gz > compressed.cnf
+        cmp output.cnf compressed.cnf
+        count=$(count_models output.cnf)
+        if [ "$count" != "$expected" ]; then
+            cat output.cnf
+            echo "FAIL: $name $flags: expected $expected models, got $count" >&2
+            exit 1
+        fi
+    done
+}
 
-# Case 2: two independent PIs, each a direct wire to its own PO.  Both PIs
-# end up dangling after strash.
-run_case "two_pis_two_pos" "p cnf 2 2
+run_case positive 1 'p cnf 1 1
+1 0'
+run_case negative 1 'p cnf 1 1
+-1 0'
+run_case two_units 1 'p cnf 2 2
 1 0
-2 0
-"
-
-echo "All regression tests passed."
+2 0'
+run_case disjunction 3 'p cnf 2 1
+1 2 0'
+run_case free_input 2 'p cnf 2 1
+1 0'
+run_case free_inputs 4 'p cnf 3 1
+2 0'
+run_case redundant_input 2 'p cnf 2 2
+1 2 0
+1 -2 0'
+run_case constant_true 2 '.model constant_true
+.inputs a
+.outputs y
+.names y
+1
+.end' blif
+run_case unsatisfiable 0 'p cnf 1 2
+1 0
+-1 0'
+echo 'PASS: Issue #479'

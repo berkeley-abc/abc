@@ -32,41 +32,6 @@ ABC_NAMESPACE_IMPL_START
 static inline int Cnf_Lit2Var(int Lit) { return (Lit & 1) ? -(Lit >> 1) - 1 : (Lit >> 1) + 1; }
 static inline int Cnf_Lit2Var2(int Lit) { return (Lit & 1) ? -(Lit >> 1) : (Lit >> 1); }
 
-// Emits unit clauses for DIMACS variables that are declared in the header
-// but never referenced in any clause.  After strash, a primary input that
-// is wired directly to a primary output has no fanout into any AND node,
-// so the Tseitin encoder leaves the corresponding DIMACS variable without
-// any connecting clause.  Such a dangling variable silently doubles the
-// model count of the output formula, breaking #SAT and uniform sampling.
-// Forcing each unreferenced declared variable to a fixed polarity restores
-// the original number of satisfying assignments without affecting the set
-// of assignments over live variables.  Pass pFile == NULL to only count.
-static int Cnf_DataWriteDanglingUnitClauses(FILE *pFile, Cnf_Dat_t *p)
-{
-    char *pUsed;
-    int *pLit, *pStop;
-    int i, v, iVar, nExtra = 0;
-    if (p->nVars <= 0)
-        return 0;
-    pUsed = ABC_CALLOC(char, p->nVars + 1);
-    for (i = 0; i < p->nClauses; i++)
-        for (pLit = p->pClauses[i], pStop = p->pClauses[i + 1]; pLit < pStop; pLit++)
-        {
-            iVar = (*pLit >> 1) + 1;
-            if (iVar >= 1 && iVar <= p->nVars)
-                pUsed[iVar] = 1;
-        }
-    for (v = 1; v <= p->nVars; v++)
-        if (!pUsed[v])
-        {
-            if (pFile)
-                fprintf(pFile, "-%d 0\n", v);
-            nExtra++;
-        }
-    ABC_FREE(pUsed);
-    return nExtra;
-}
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -422,7 +387,7 @@ void Cnf_DataWriteIntoFileInvGz(Cnf_Dat_t *p, char *pFileName, int fReadable, Ve
 void Cnf_DataWriteIntoFile(Cnf_Dat_t *p, char *pFileName, int fReadable, Vec_Int_t *vForAlls, Vec_Int_t *vExists)
 {
     FILE *pFile;
-    int *pLit, *pStop, i, VarId, nExtra;
+    int *pLit, *pStop, i, VarId;
     if (!strncmp(pFileName + strlen(pFileName) - 3, ".gz", 3))
     {
         Cnf_DataWriteIntoFileGz(p, pFileName, fReadable, vForAlls, vExists);
@@ -434,9 +399,8 @@ void Cnf_DataWriteIntoFile(Cnf_Dat_t *p, char *pFileName, int fReadable, Vec_Int
         printf("Cnf_WriteIntoFile(): Output file cannot be opened.\n");
         return;
     }
-    nExtra = Cnf_DataWriteDanglingUnitClauses(NULL, p);
     fprintf(pFile, "c Result of efficient AIG-to-CNF conversion using package CNF\n");
-    fprintf(pFile, "p cnf %d %d\n", p->nVars, p->nClauses + nExtra);
+    fprintf(pFile, "p cnf %d %d\n", p->nVars, p->nClauses);
     if (vForAlls)
     {
         fprintf(pFile, "a ");
@@ -457,8 +421,6 @@ void Cnf_DataWriteIntoFile(Cnf_Dat_t *p, char *pFileName, int fReadable, Vec_Int
             fprintf(pFile, "%d ", fReadable ? Cnf_Lit2Var2(*pLit) : Cnf_Lit2Var(*pLit));
         fprintf(pFile, "0\n");
     }
-    if (nExtra)
-        Cnf_DataWriteDanglingUnitClauses(pFile, p);
     fprintf(pFile, "\n");
     fclose(pFile);
 }
