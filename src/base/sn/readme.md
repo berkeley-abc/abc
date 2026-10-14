@@ -27,6 +27,87 @@ when explicitly requested:
 | `&...` commands | GIA | GIA |
 | `@put` | GIA plus saved boundary | Module selected by the preceding `@blast` |
 | `@write` | SN | `.sn` or Verilog |
+| `@aig_cost` | SN | Printed local and occurrence-weighted costs |
+| `@partition` | SN | Acyclic hierarchy with measured local area caps, or feasibility preview |
+
+## Local workload partitioning
+
+`@partition -A cap` partitions oversized local masters in the current
+hierarchy. `-M name_or_mID` selects a subtree and `-a` includes all definitions.
+The cap uses AIG AND equivalents with `-D` flop and `-R` SRAM coefficients,
+excluding retained child contents. New blocks are recharacterized, so lost
+sharing cannot silently violate the cap. Unknown masters and masters containing
+an indivisible over-cap group are retained and reported separately. The cap
+is verified for the remaining known masters. Port-limit failures and exhausted
+work budgets fail without changing the installed design.
+
+`-p` previews costs and SCC feasibility without changing anything. `-B`
+sets balance tolerance in percent, `-P` the FM passes, `-S` the deterministic
+seed, and `-J` the maximum bisections. `-C levels` optionally enables
+multilevel refinement (0..16, default 0). Word nets retain widths and signedness;
+state, memory, and multi-output owners stay together. Existing master IDs
+and the current top are preserved, with new part definitions appended.
+After writing `.sn`, use `@read -M original_top file.sn` because the binary
+format does not store the selected top. See [the parter package](../parter/readme.md)
+for the API, constraints, and native regression targets.
+
+## AIG cost characterization
+
+`@aig_cost [-M module | -a] [-D flop_area] [-R sram_area] [-v]` measures
+each selected master's local structurally hashed AIG. By default it visits
+the current top and its reachable masters. `-M` selects a module name or a
+decimal `mID`; a literal module name takes precedence over the ID notation.
+`-a` includes all definitions, while expanded totals still refer to the
+current top. `-v` prints each master's counts and any unknown-cost reason.
+
+The command reports AND counts, local levels, flop/SRAM bits, unique-master
+area, and occurrence-weighted area. Storage defaults to eight AND
+equivalents per flop bit and one half per SRAM bit; `-D` and `-R` require
+positive finite coefficients. Shared definitions are characterized once.
+Child instances, state, memory, and explicit loop boundaries are cut, so
+local levels do not measure full-hierarchy delay or timing slack.
+
+Opaque technology primitives and masters containing unsupported functions
+remain unknown. Their costs are excluded from numerical totals, and `-v`
+explains why. Other supported masters still characterize; malformed input,
+allocation failure, and overflow fail the call. An unsupported cell makes
+its containing master's cost unknown, rather than receiving a zero weight.
+
+The command leaves the SN graph, current GIA, and saved extraction boundary
+unchanged. It computes, prints, and frees its result; it does not cache costs
+in the design or save them in the `.sn` file. The implementation depends only
+on SN and ABC's GIA code and requires no frontend or external tool.
+
+Native consumers use `Sn_AigCostCompute` and release the caller-owned result
+with `Sn_AigCostFree`. The result contains per-master counts, occurrence
+counts, unknown reasons, and per-object assigned areas. Each surviving AND
+is assigned to its first owner once; the area array also includes weighted
+storage. It is an area attribution, not a raw per-object AND-count array.
+
+`Sn_AigCostComputeModule` characterizes one explicit master with children
+treated as boundaries; it does not characterize their contents or compute
+hierarchy totals. It returns the same local counts, object arrays, and unknown
+reason as the hierarchy API, with `Occurrences` set to one. Release its
+independently owned record with `Sn_AigCostModuleFree`. It retains full SN
+consistency and coefficient validation, so callers need not weaken validation
+to avoid repeated descendant characterization.
+`Sn_AigCostComputeModuleLocal` is a batch entry point for a previously
+validated private design. It validates the named module while trusting the
+unchanged shared tables and checked child interfaces. A batch must check the
+complete design before publishing. Per-module areas and known flags live
+only in `pModules`; the result no longer duplicates them in parallel arrays.
+
+`pObjectLevels` reports each object's maximum observed output level after
+GIA hashing and cleanup, independently of area ownership. A shared alias may
+own zero ANDs yet have a nonzero output level. Constants and cut boundary
+signals have level zero; `SN_AIG_COST_LEVEL_NONE` marks objects with no
+observed surviving output. Unknown or unselected masters have no object
+arrays. Multi-output objects use the maximum over surviving outputs; these
+levels are also recorded on their individual `SN_FAN` outputs. This includes
+multi-output child instances and opaque sequential cells whose owner has no
+direct signal bits. Levels are structural estimates for consumers to
+interpret, not timing constraints. Characterization does not retain dead
+logic merely to report its level.
 
 ## Lowering selected memories
 
@@ -840,6 +921,7 @@ snMapLut.h    natural-hierarchy LUT-mapping harness
 snMapCell.h   checked in-process natural-hierarchy standard-cell mapping harness
 snPth.h       bounded pthread worker harness
 snBlast.h     direct hierarchical MiniAIG construction
+snAigCost.c/h shared-master AIG area and per-object output-level characterization
 snMux.h       register mux-path sharing and restructuring
 snBoundary.h  saved boundary and combinational register reconnection
 snMiniAig.h   unmapped MiniAIG reconstruction

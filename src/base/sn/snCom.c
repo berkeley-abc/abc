@@ -31,6 +31,8 @@
 #include "snRead.h"
 #include "snLowerMem.h"
 #include "snCheck.h"
+#include "snAigCost.h"
+#include "base/parter/parterRun.h"
 #include "snMiniGate.h"
 #include "snMiniLut.h"
 #include "snMapDff.h"
@@ -218,6 +220,258 @@ static int Sn_CommandCheckDesign( Abc_Frame_t * pAbc )
         return 1;
     Abc_Print( -1, "There is no current SN design.\n" );
     return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Resolves a literal module name or a decimal module ID.]
+
+***********************************************************************/
+static sn_module_id_t Sn_CommandModuleId( const sn_design_t * d, const char * name )
+{
+    sn_module_id_t id = sn_design_find_module(d,name);
+    unsigned value = 0;
+    const unsigned char * digit;
+    if ( id != SN_INVALID_ID || name[0] != 'm' ) return id;
+    if ( !name[1] ) return SN_INVALID_ID;
+    for ( digit = (const unsigned char *)name+1; *digit; ++digit )
+    {
+        if ( *digit < '0' || *digit > '9' || value > (UINT_MAX-(*digit-'0'))/10 ) return SN_INVALID_ID;
+        value = 10*value+(*digit-'0');
+    }
+    if ( value >= d->modules.size ) return SN_INVALID_ID;
+    return (sn_module_id_t)value;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reports measured local logic and occurrence-weighted storage costs.]
+
+***********************************************************************/
+static void Sn_AigCostPrint( const sn_design_t * d, const Sn_AigCost_t * cost, int verbose, FILE * out )
+{
+    unsigned i;
+    if ( verbose )
+        for ( i = 0; i < cost->nModules; ++i )
+        {
+            const Sn_AigCostModule_t * m = cost->pModules+i;
+            const char * name;
+            if ( !m->fSelected ) continue;
+            name = sn_name_get(&d->names,sn_design_get_module_const(d,i)->name);
+            if ( !m->Known )
+                fprintf(out,"  %s (m%u): area unknown (%s); %llu occurrences.\n",name,i,
+                    m->UnknownReason[0] ? m->UnknownReason : "no supported model",(unsigned long long)m->Occurrences);
+            else
+                fprintf(out,"  %s (m%u): %llu ANDs, %u local levels, %llu flop bits, %llu SRAM bits, area %.9g; %llu occurrences.\n",
+                    name,i,(unsigned long long)m->Ands,m->Levels,(unsigned long long)m->FlopBits,
+                    (unsigned long long)m->SramBits,m->LocalArea,(unsigned long long)m->Occurrences);
+        }
+    fprintf(out,"AIG characterization: %u characterized masters, %u unknown; %llu unique ANDs, %u maximum local levels, %llu flop bits, %llu SRAM bits, known area %.9g.\n",
+        cost->nCharacterized,cost->nOpaque,(unsigned long long)cost->Ands,cost->MaxLevels,
+        (unsigned long long)cost->FlopBits,(unsigned long long)cost->SramBits,cost->LocalArea);
+    fprintf(out,"Expanded AIG costs: %llu ANDs, %llu flop bits, %llu SRAM bits, known area %.9g AND equivalents; unknown masters excluded.\n",
+        (unsigned long long)cost->ExpandedAnds,(unsigned long long)cost->ExpandedFlopBits,
+        (unsigned long long)cost->ExpandedSramBits,cost->ExpandedArea);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Characterizes each master without flattening hierarchy or changing logic.]
+
+***********************************************************************/
+static int Sn_CommandAigCost( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Sn_Man_t * p = Sn_AbcGetMan(pAbc);
+    Sn_AigCost_t * cost = NULL;
+    const char * name = NULL;
+    char error[512] = {0};
+    double flop = 8, sram = 0.5;
+    unsigned top;
+    int i, all = 0, verbose = 0;
+    abctime start = Abc_Clock();
+    for ( i = 1; i < argc; ++i )
+    {
+        if ( !strcmp(argv[i],"-a") ) all = 1;
+        else if ( !strcmp(argv[i],"-v") ) verbose = 1;
+        else if ( !strcmp(argv[i],"-M") && i+1 < argc ) name = argv[++i];
+        else if ( (!strcmp(argv[i],"-D") || !strcmp(argv[i],"-R")) && i+1 < argc )
+        {
+            int isFlop = argv[i][1] == 'D';
+            const char * text = argv[++i];
+            char * end;
+            double value = strtod(text,&end);
+            if ( !*text || *end || !isfinite(value) || value <= 0 ) goto usage;
+            if ( isFlop ) flop = value; else sram = value;
+        }
+        else goto usage;
+    }
+    if ( name && all ) goto usage;
+    if ( !Sn_CommandCheckDesign(pAbc) ) return 1;
+    top = name ? Sn_CommandModuleId(p->pDesign,name) : p->Top;
+    if ( top == SN_INVALID_ID )
+    { fprintf(Abc_FrameReadErr(pAbc),"Unknown module: %s\n",name); return 1; }
+    if ( !Sn_AigCostCompute(p->pDesign,top,all,flop,sram,&cost,error,sizeof(error)) )
+    { fprintf(Abc_FrameReadErr(pAbc),"AIG characterization: %s\n",error); return 1; }
+    Sn_AigCostPrint(p->pDesign,cost,verbose,Abc_FrameReadOut(pAbc));
+    fprintf(Abc_FrameReadOut(pAbc),"AIG characterization time: %.6f s. Levels are local to each master, with child and storage boundaries cut.\n",
+        (double)(Abc_Clock()-start)/CLOCKS_PER_SEC);
+    Sn_AigCostFree(cost);
+    return 0;
+usage:
+    Abc_Print(-2,"usage: @aig_cost [-M module | -a] [-D flop_area] [-R sram_area] [-vh]\n");
+    Abc_Print(-2,"\t         measure local structurally hashed AIG nodes and levels without changing the design\n");
+    Abc_Print(-2,"\t-M str : module name or mID [default = current top and its reachable masters]\n");
+    Abc_Print(-2,"\t-a     : characterize all definitions; expanded totals still use the current top\n");
+    Abc_Print(-2,"\t-D num : positive area per flop bit [default = 8]\n");
+    Abc_Print(-2,"\t-R num : positive area per SRAM bit [default = 0.5]\n");
+    Abc_Print(-2,"\t-v     : show each master's local costs and occurrence count\n");
+    Abc_Print(-2,"\t         local levels are not full-hierarchy delay; unsupported or opaque areas remain unknown\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Partitions local workloads or previews their indivisible groups.]
+
+***********************************************************************/
+static int Sn_CommandPartition( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Sn_Man_t * p = Sn_AbcGetMan(pAbc);
+    Sn_AigCost_t * cost = NULL;
+    Prt_SnModel_t * model = NULL;
+    Prt_RunOptions_t options;
+    Prt_RunStats_t stats;
+    sn_design_t * result = NULL;
+    const char * name = NULL;
+    char error[512] = {0};
+    double cap = 100000, flop = 8, sram = 0.5, blocked = 0, total = 0;
+    unsigned top, id, v, known = 0, unknown = 0, oversized = 0;
+    int i, all = 0, verbose = 0, preview = 0, ok = 0;
+    abctime start = Abc_Clock();
+    Prt_RunOptionsDefault(&options);
+    for ( i = 1; i < argc; ++i )
+    {
+        if ( !strcmp(argv[i],"-a") ) all = 1;
+        else if ( !strcmp(argv[i],"-v") ) verbose = 1;
+        else if ( !strcmp(argv[i],"-p") ) preview = 1;
+        else if ( !strcmp(argv[i],"-M") && i+1 < argc ) name = argv[++i];
+        else if ( (!strcmp(argv[i],"-A") || !strcmp(argv[i],"-D") || !strcmp(argv[i],"-R") || !strcmp(argv[i],"-B")) && i+1 < argc )
+        {
+            int option = argv[i][1];
+            const char * text = argv[++i];
+            char * end;
+            double value = strtod(text,&end);
+            if ( !*text || *end || !isfinite(value) || value < 0 || (value == 0 && option != 'B') ) goto usage;
+            if ( option == 'B' ) { if ( value > 100 ) goto usage; options.Partition.BalanceTolerance = value/100; }
+            else if ( option == 'A' ) cap = value;
+            else if ( option == 'D' ) flop = value;
+            else sram = value;
+        }
+        else if ( (!strcmp(argv[i],"-S") || !strcmp(argv[i],"-P") || !strcmp(argv[i],"-J") || !strcmp(argv[i],"-C")) && i+1 < argc )
+        {
+            int option = argv[i][1];
+            const unsigned char * text = (const unsigned char *)argv[++i];
+            unsigned value = 0;
+            if ( !*text ) goto usage;
+            for ( ; *text; ++text )
+            {
+                if ( *text < '0' || *text > '9' || value > (UINT_MAX-(*text-'0'))/10 ) goto usage;
+                value = 10*value+(*text-'0');
+            }
+            if ( option == 'S' ) options.Partition.Seed = value;
+            else if ( option == 'C' ) { if ( value > 16 ) goto usage; options.nCoarseLevels = value; }
+            else if ( option == 'P' ) { if ( value > 1000 ) goto usage; options.Partition.nPasses = value; }
+            else { if ( value > 1000000 ) goto usage; options.nMaxSplits = value; }
+        }
+        else goto usage;
+    }
+    if ( name && all ) goto usage;
+    if ( !Sn_CommandCheckDesign(pAbc) ) return 1;
+    top = name ? Sn_CommandModuleId(p->pDesign,name) : p->Top;
+    if ( top == SN_INVALID_ID )
+    { fprintf(Abc_FrameReadErr(pAbc),"Unknown module: %s\n",name); return 1; }
+    if ( !sn_design_check(p->pDesign,Abc_FrameReadErr(pAbc),false) ) return 1;
+    if ( !preview )
+    {
+        Sn_Man_t * next;
+        options.Top = top; options.fAll = all;
+        options.MaxArea = cap; options.FlopArea = flop; options.SramArea = sram;
+        options.pLog = verbose ? Abc_FrameReadOut(pAbc) : NULL;
+        if ( !Prt_SnPartition(p->pDesign,&options,&result,&stats,error,sizeof(error)) )
+        { fprintf(Abc_FrameReadErr(pAbc),"Partition: %s\n",error); return 1; }
+        next = Sn_ManAlloc(result,p->Top);
+        next->Revision = p->Revision;
+        // Preserve diagnostic history without keeping a usable stale boundary.
+        next->fLastBlast = p->fLastBlast;
+        next->LastBlastModule = p->LastBlastModule;
+        next->LastBlastName = p->LastBlastName;
+        next->LastBlastRevision = p->LastBlastRevision;
+        next->BlastMode = p->BlastMode;
+        next->BlastBoundarySignature = p->BlastBoundarySignature;
+        Sn_ManAdvanceRevision(next);
+        Sn_AbcUpdateMan(pAbc,next);
+        fprintf(Abc_FrameReadOut(pAbc),"Partition: %u splits, %u added part masters, %u relaxed splits, %u unknown and %u indivisible masters retained; known local area %.9g -> %.9g; cap %.9g verified for remaining masters.\n",
+            stats.nSplits,stats.nParts,stats.nRelaxed,stats.nUnknown,stats.nIndivisible,stats.InitialArea,stats.FinalArea,cap);
+        fprintf(Abc_FrameReadOut(pAbc),"Generated interfaces: %llu input bits, %llu output bits (cumulative); CPU %.6f s.\n",
+            (unsigned long long)stats.InputBits,(unsigned long long)stats.OutputBits,(double)(Abc_Clock()-start)/CLOCKS_PER_SEC);
+        return 0;
+    }
+    if ( !Sn_AigCostCompute(p->pDesign,top,all,flop,sram,&cost,error,sizeof(error)) ) goto done;
+    for ( id = 0; id < cost->nModules; ++id )
+    {
+        const Sn_AigCostModule_t * cm = cost->pModules+id;
+        const sn_module_t * m = sn_design_get_module_const(p->pDesign,id);
+        const char * module = sn_name_get(&p->pDesign->names,m->name);
+        double over = 0;
+        if ( !cm->fSelected ) continue;
+        if ( !cm->Known )
+        {
+            ++unknown;
+            fprintf(Abc_FrameReadOut(pAbc),"  %s (m%u): skipped unknown cost (%s).\n",module,id,cm->UnknownReason);
+            continue;
+        }
+        if ( !Prt_SnBuild(m,cm,&model,error,sizeof(error)) ) goto done;
+        ++known;
+        total += cm->LocalArea;
+        for ( v = 0; v < model->pGraph->nObjs; ++v )
+            if ( model->pGraph->pObjWeight[v] > cap ) over += model->pGraph->pObjWeight[v];
+        blocked += over;
+        oversized += cm->LocalArea > cap;
+        if ( verbose || cm->LocalArea > cap )
+            fprintf(Abc_FrameReadOut(pAbc),"  %s (m%u): local %.9g; %u objects, %u groups, %u SCCs; largest group %.9g (o%u), SCC %.9g (o%u); over-cap SCC area %.9g.\n",
+                module,id,cm->LocalArea,model->nMovable,model->nGroups,model->nScc,
+                model->MaxGroupWeight,model->MaxGroupObject,model->MaxSccWeight,model->MaxSccObject,over);
+        Prt_SnFree(model);
+        model = NULL;
+    }
+    fprintf(Abc_FrameReadOut(pAbc),"Partition preview: %u known masters, %u unknown, %u above local cap %.9g; indivisible over-cap area %.9g of %.9g (%.3f%%).\n",
+        known,unknown,oversized,cap,blocked,total,total > 0 ? 100*blocked/total : 0);
+    fprintf(Abc_FrameReadOut(pAbc),"Partition preview CPU: %.6f s. Design unchanged.\n",(double)(Abc_Clock()-start)/CLOCKS_PER_SEC);
+    ok = 1;
+done:
+    if ( !ok ) fprintf(Abc_FrameReadErr(pAbc),"Partition preview: %s\n",error);
+    Prt_SnFree(model);
+    Sn_AigCostFree(cost);
+    return !ok;
+usage:
+    Abc_Print(-2,"usage: @partition [-M module | -a] [-A area] [-B percent] [-P passes] [-S seed] [-J splits] [-C levels] [-D flop_area] [-R sram_area] [-pvh]\n");
+    Abc_Print(-2,"\t         split local workloads into acyclic blocks and verify the measured area cap\n");
+    Abc_Print(-2,"\t-M str : module name or mID [default = current top and its reachable masters]\n");
+    Abc_Print(-2,"\t-a     : examine all definitions\n");
+    Abc_Print(-2,"\t-A num : positive local area cap [default = 100000]\n");
+    Abc_Print(-2,"\t-D num : positive area per flop bit [default = 8]\n");
+    Abc_Print(-2,"\t-R num : positive area per SRAM bit [default = 0.5]\n");
+    Abc_Print(-2,"\t-B num : relative balance tolerance in percent [default = 10]\n");
+    Abc_Print(-2,"\t-P num : FM passes per bisection, 0..1000 [default = 4]\n");
+    Abc_Print(-2,"\t-S num : deterministic seed; zero uses fixed ready order [default = 1]\n");
+    Abc_Print(-2,"\t-C num : optional coarsening levels, 0..16 [default = 0]\n");
+    Abc_Print(-2,"\t-J num : maximum accepted bisections, 0..1000000 [default = 1024]\n");
+    Abc_Print(-2,"\t-p     : preview costs and indivisible groups; leave design unchanged\n");
+    Abc_Print(-2,"\t-v     : print split details, or every master in preview\n");
+    Abc_Print(-2,"\t         unknown and indivisible over-cap masters are retained and reported\n");
+    Abc_Print(-2,"\t         port-limit failures and exhausted work budgets leave the design unchanged\n");
+    Abc_Print(-2,"\t-h     : print the command usage\n");
+    return 1;
 }
 
 static Sn_Man_t * Sn_ManReadBinary( const char * pFileName, const char * pTopName, FILE * pError )
@@ -837,6 +1091,8 @@ void Sn_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New word level", "@slang", Sn_CommandSlang, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@read",  Sn_CommandRead,  0 );
     Cmd_CommandAdd( pAbc, "New word level", "@check", Sn_CommandCheck, 0 );
+    Cmd_CommandAdd( pAbc, "New word level", "@aig_cost", Sn_CommandAigCost, 0 );
+    Cmd_CommandAdd( pAbc, "New word level", "@partition", Sn_CommandPartition, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@collapse", Sn_CommandCollapse, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@map_mem", Sn_CommandMapMem, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@lower_mem", Sn_CommandLowerMem, 0 );

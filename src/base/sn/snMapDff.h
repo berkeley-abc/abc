@@ -1011,8 +1011,9 @@ static inline sn_module_id_t sn_design_opt_dff_module(sn_design_t* design, sn_mo
         sn_vec_at(sn_obj_id_t, &source->copy_ids, i) = SN_INVALID_ID;
 
     // Copy skeletons for representatives only: the PI prefix, then appended
-    // constants (which the analysis created after the topological order was
-    // taken), then the remaining representatives in topological order.
+    // constants, then the remaining representatives in topological order.
+    // The order includes the appended constants too; skip their second
+    // allocation below so no skeleton is left without constant metadata.
     size_t pi_count = source->type_objects[SN_PI].size;
     for (size_t i = 0; i < pi_count; i++)
     {
@@ -1029,7 +1030,8 @@ static inline sn_module_id_t sn_design_opt_dff_module(sn_design_t* design, sn_mo
     for (size_t i = pi_count; i < order.size; i++)
     {
         sn_obj_id_t old_object = sn_vec_at(sn_obj_id_t, &order, i);
-        if (sn_dff_rep(reps, old_object) != old_object)
+        if (sn_dff_rep(reps, old_object) != old_object ||
+            sn_vec_at(sn_obj_id_t, &source->copy_ids, old_object) != SN_INVALID_ID)
             continue;
         sn_vec_at(sn_obj_id_t, &source->copy_ids, old_object) =
             sn_module_dup_obj_skeleton(mapped, source, old_object);
