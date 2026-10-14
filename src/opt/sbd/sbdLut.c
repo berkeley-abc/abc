@@ -57,7 +57,7 @@ int Sbd_ProblemAddClauses( sat_solver * pSat, int nVars, int nStrs, int * pVars,
     Sbd_Str_t * pStr;
     int VarOut = nVars;
     int VarPar = nVars + nStrs;
-    int m, k, n, status, pLits[SBD_SIZE_MAX+2];
+    int m, k, n, status, pLits[6+2];
 //printf( "Start par = %d.  ", VarPar );
     for ( pStr = pStr0; pStr < pStr0 + nStrs; pStr++, VarOut++ )
     {

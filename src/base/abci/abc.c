@@ -56288,7 +56288,7 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nLutSize < 0 )
+            if ( pPars->nLutSize < 2 || pPars->nLutSize > 6 )
                 goto usage;
             break;
         case 'S':

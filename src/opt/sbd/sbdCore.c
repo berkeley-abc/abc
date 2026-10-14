@@ -1405,7 +1405,7 @@ int Sbd_ManExploreCut( Sbd_Man_t * p, int Pivot, int nLeaves, int * pLeaves, int
         Strs[1].Res = 0;
 
         nNodesDiff = p->pPars->nLutSize-1 - nNodesTop;
-        assert( nNodesDiff >= 0 && nNodesDiff <= 3 );
+        assert( nNodesDiff >= 0 && nNodesDiff <= p->pPars->nLutSize-1 );
         for ( k = 0; k < nNodesDiff; k++ )
         {
             Strs[2+k].fLut = 0;
@@ -1468,7 +1468,7 @@ int Sbd_ManExploreCut( Sbd_Man_t * p, int Pivot, int nLeaves, int * pLeaves, int
         Strs[2].Res = 0;
 
         nNodesDiff = p->pPars->nLutSize-2 - nNodesTop;
-        assert( nNodesDiff >= 0 && nNodesDiff <= 2 );
+        assert( nNodesDiff >= 0 && nNodesDiff <= p->pPars->nLutSize-2 );
         for ( k = 0; k < nNodesDiff; k++ )
         {
             Strs[3+k].fLut = 0;
@@ -1537,7 +1537,7 @@ int Sbd_ManExploreCut( Sbd_Man_t * p, int Pivot, int nLeaves, int * pLeaves, int
         Strs[2].Res = 0;
 
         nNodesDiff = nNodesDiff1 + nNodesDiff2;
-        assert( nNodesDiff >= 0 && nNodesDiff <= 3 );
+        assert( nNodesDiff >= 0 && nNodesDiff <= p->pPars->nLutSize-1 );
         for ( k = 0; k < nNodesDiff; k++ )
         {
             Strs[3+k].fLut = 0;
