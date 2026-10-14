@@ -2313,7 +2313,8 @@ static int Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens )
             Abc_Ntk_t * pModel; int k;
             Vec_PtrForEachEntry( Abc_Ntk_t *, p->pMan->pDesign->vModules, pModel, k )
             {
-                if ( pModel == p->pNtk )
+                // The EXDC cover keeps its own SOP memory manager.
+                if ( pModel == p->pNtk || !strcmp(pModel->pName, "EXDC") )
                     continue;
                 assert( pModel->ntkFunc == ABC_FUNC_SOP );
                 pModel->ntkFunc = ABC_FUNC_MAP;
