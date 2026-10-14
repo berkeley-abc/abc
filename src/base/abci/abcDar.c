@@ -3085,6 +3085,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar, int nBmcFramesMax, i
         if ( RetValue == 0  && (Abc_NtkLatchNum(pNtk) == 0) )
         {
             pNtk->pModel = pNtkComb->pModel; pNtkComb->pModel = NULL;
+            Abc_NtkDelete( pNtkComb );
             if ( pSecPar->fReportSolution )
                 Abc_Print( 1, "SOLUTION: FAIL       " );
             else
