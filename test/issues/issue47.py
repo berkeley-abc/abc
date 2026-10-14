@@ -14,6 +14,7 @@ with tempfile.TemporaryDirectory() as tmp:
                 r = subprocess.run([abc, "-s", "-c", f"read_aiger input.aig; write_aiger -s output.{ext}"], cwd=p, capture_output=True, text=True)
                 assert r.returncode == 0, r.stdout + r.stderr
                 lines = decode((p/f"output.{ext}").read_bytes()).splitlines()
+                assert lines, (init, constrained, ext, r.stdout, r.stderr)
                 assert lines[0].decode() == header, lines[:4]
                 assert lines[1].decode() == latch, lines[:4]
                 assert lines[2] == b"2", lines[:4]
