@@ -567,7 +567,7 @@ Gia_Man_t * Gia_ManPerformMfs( Gia_Man_t * p, Sfm_Par_t * pPars )
     int nFaninMax, nNodes = 0;
     assert( Gia_ManRegNum(p) == 0 );
     assert( p->vMapping != NULL );
-    if ( p->pManTime != NULL && p->pAigExtra == NULL )
+    if ( Gia_ManBoxNum(p) && p->pAigExtra == NULL )
     {
         Abc_Print( 1, "Timing manager is given but there is no GIA of boxes.\n" );
         return NULL;
