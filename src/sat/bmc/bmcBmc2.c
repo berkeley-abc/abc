@@ -45,6 +45,7 @@ struct Saig_Bmc_t_
     Aig_Man_t *           pAig;           // the user's AIG manager
     Aig_Man_t *           pFrm;           // Frames manager
     Vec_Int_t *           vVisited;       // nodes visited in Frames
+    Vec_Int_t *           vStack;         // construction stack (object/frame pairs)
     // node mapping
     int                   nObjs;          // the largest number of an AIG object
     Vec_Ptr_t *           vAig2Frm;       // mapping of AIG nodees into Frames nodes
@@ -330,6 +331,7 @@ Saig_Bmc_t * Saig_BmcManStart( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, 
     // other data structures
     p->vTargets     = Vec_PtrAlloc( 1000 );
     p->vVisited     = Vec_IntAlloc( 1000 );
+    p->vStack       = Vec_IntAlloc( 1000 );
     p->iOutputFail  = -1;
     p->iFrameFail   = -1;
     return p;
@@ -355,6 +357,7 @@ void Saig_BmcManStop( Saig_Bmc_t * p )
     if ( p->pSat2 ) satoko_destroy( p->pSat2 );
     Vec_PtrFree( p->vTargets );
     Vec_IntFree( p->vVisited );
+    Vec_IntFree( p->vStack );
     ABC_FREE( p );
 }
 
@@ -423,37 +426,53 @@ Aig_Obj_t * Saig_BmcIntervalExplore_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Saig_BmcIntervalConstruct_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i, Vec_Int_t * vVisited )
+Aig_Obj_t * Saig_BmcIntervalConstruct( Saig_Bmc_t * p, Aig_Obj_t * pRoot, int iFrame )
 {
-    Aig_Obj_t * pRes;
-    pRes = Saig_BmcObjFrame( p, pObj, i );
-    if ( pRes != NULL )
-        return pRes;
-    if ( Saig_ObjIsPi( p->pAig, pObj ) )
-        pRes = Aig_ObjCreateCi(p->pFrm);
-    else if ( Saig_ObjIsLo( p->pAig, pObj ) )
-        pRes = Saig_BmcIntervalConstruct_rec( p, Saig_ObjLoToLi(p->pAig, pObj), i-1, vVisited );
-    else if ( Aig_ObjIsCo( pObj ) )
+    Aig_Obj_t * pObj, * pFanin, * pRes;
+    int i, iFanin;
+    Vec_IntClear( p->vStack );
+    Vec_IntPushTwo( p->vStack, Aig_ObjId(pRoot), iFrame );
+    while ( Vec_IntSize(p->vStack) )
     {
-        Saig_BmcIntervalConstruct_rec( p, Aig_ObjFanin0(pObj), i, vVisited );
-        pRes = Saig_BmcObjChild0( p, pObj, i );
-    }
-    else 
-    {
-        Saig_BmcIntervalConstruct_rec( p, Aig_ObjFanin0(pObj), i, vVisited );
-        if ( Saig_BmcObjChild0(p, pObj, i) == Aig_ManConst0(p->pFrm) )
-            pRes = Aig_ManConst0(p->pFrm);
+        pObj = Aig_ManObj( p->pAig, Vec_IntEntry(p->vStack, Vec_IntSize(p->vStack)-2) );
+        i = Vec_IntEntryLast( p->vStack );
+        if ( Saig_BmcObjFrame(p, pObj, i) )
+        {
+            Vec_IntShrink( p->vStack, Vec_IntSize(p->vStack)-2 );
+            continue;
+        }
+        if ( Saig_ObjIsPi(p->pAig, pObj) )
+            pRes = Aig_ObjCreateCi( p->pFrm );
         else
         {
-            Saig_BmcIntervalConstruct_rec( p, Aig_ObjFanin1(pObj), i, vVisited );
-            pRes = Aig_And( p->pFrm, Saig_BmcObjChild0(p, pObj, i), Saig_BmcObjChild1(p, pObj, i) );
+            pFanin = Saig_ObjIsLo(p->pAig, pObj) ? Saig_ObjLoToLi(p->pAig, pObj) : Aig_ObjFanin0(pObj);
+            iFanin = i - Saig_ObjIsLo(p->pAig, pObj);
+            pRes = Saig_BmcObjFrame( p, pFanin, iFanin );
+            if ( pRes == NULL )
+            {
+                Vec_IntPushTwo( p->vStack, Aig_ObjId(pFanin), iFanin );
+                continue;
+            }
+            if ( !Saig_ObjIsLo(p->pAig, pObj) )
+            {
+                pRes = Aig_NotCond( pRes, Aig_ObjFaninC0(pObj) );
+                if ( !Aig_ObjIsCo(pObj) && pRes != Aig_ManConst0(p->pFrm) )
+                {
+                    pFanin = Aig_ObjFanin1(pObj);
+                    if ( Saig_BmcObjFrame(p, pFanin, i) == NULL )
+                    {
+                        Vec_IntPushTwo( p->vStack, Aig_ObjId(pFanin), i );
+                        continue;
+                    }
+                    pRes = Aig_And( p->pFrm, pRes, Saig_BmcObjChild1(p, pObj, i) );
+                }
+            }
         }
+        Saig_BmcObjSetFrame( p, pObj, i, pRes );
+        Vec_IntPushTwo( p->vVisited, Aig_ObjId(pObj), i );
+        Vec_IntShrink( p->vStack, Vec_IntSize(p->vStack)-2 );
     }
-    assert( pRes != NULL );
-    Saig_BmcObjSetFrame( p, pObj, i, pRes );
-    Vec_IntPush( vVisited, Aig_ObjId(pObj) );
-    Vec_IntPush( vVisited, i );
-    return pRes;
+    return Saig_BmcObjFrame( p, pRoot, iFrame );
 }
 
 /**Function*************************************************************
@@ -469,8 +488,8 @@ Aig_Obj_t * Saig_BmcIntervalConstruct_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int
 ***********************************************************************/
 void Saig_BmcInterval( Saig_Bmc_t * p )
 {
-    Aig_Obj_t * pTarget;
-    int i, iObj, iFrame;
+    Aig_Obj_t * pTarget, * pObj;
+    int i, iObj, iFrame, iObjStart;
     int nNodes = Aig_ManObjNum( p->pFrm );
     Vec_PtrClear( p->vTargets );
     p->iFramePrev = p->iFrameLast;
@@ -485,11 +504,21 @@ void Saig_BmcInterval( Saig_Bmc_t * p )
             if ( Aig_ManObjNum(p->pFrm) >= nNodes + p->nNodesMax )
                 return;
 //            Saig_BmcIntervalExplore_rec( p, Aig_ManCo(p->pAig, p->iOutputLast), p->iFrameLast );
+            iObjStart = Aig_ManObjNumMax( p->pFrm );
             Vec_IntClear( p->vVisited );
-            pTarget = Saig_BmcIntervalConstruct_rec( p, Aig_ManCo(p->pAig, p->iOutputLast), p->iFrameLast, p->vVisited );
+            pTarget = Saig_BmcIntervalConstruct( p, Aig_ManCo(p->pAig, p->iOutputLast), p->iFrameLast );
             Vec_PtrPush( p->vTargets, pTarget );
             Aig_ObjCreateCo( p->pFrm, pTarget );
-            Aig_ManCleanup( p->pFrm ); // it is not efficient to cleanup the whole manager!!!
+            // Only newly created nodes can be dangling. Frames are topological.
+            for ( i = Aig_ManObjNumMax(p->pFrm)-1; i >= iObjStart; i-- )
+            {
+                pObj = Aig_ManObj( p->pFrm, i );
+                if ( pObj && Aig_ObjIsNode(pObj) && Aig_ObjRefs(pObj) == 0 )
+                {
+                    Aig_ObjDisconnect( p->pFrm, pObj );
+                    Aig_ObjDelete( p->pFrm, pObj );
+                }
+            }
             // check if the node is gone
             Vec_IntForEachEntryDouble( p->vVisited, iObj, iFrame, i )
                 Saig_BmcObjFrame( p, Aig_ManObj(p->pAig, iObj), iFrame );
