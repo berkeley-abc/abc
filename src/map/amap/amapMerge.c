@@ -414,9 +414,7 @@ void Amap_ManMergeNodeCutsMux( Amap_Man_t * p, Amap_Obj_t * pNode )
         Vec_PtrForEachEntry( Amap_Cut_t *, p->vCuts1, pCut1, c1 )
         Vec_PtrForEachEntry( Amap_Cut_t *, p->vCuts2, pCut2, c2 )
         {
-            Amap_Nod_t * pNod = Amap_LibNod( p->pLib, Vec_IntEntry(vRules, x+3) );
-            if ( pNod->pSets == NULL )
-                continue;
+            // Keep partial MUX matches needed by larger library gates.
             // complement literals
             Amap_ManCutCreate3( p, pCut0, pCut1, pCut2, Vec_IntEntry(vRules, x+3), pCut0->nFans == 1 && (pCut0->fInv ^ fComplFanin0), pCut1->nFans == 1 && (pCut1->fInv ^ fComplFanin1), pCut2->nFans == 1 && (pCut2->fInv ^ fComplFanin2) );
         }
