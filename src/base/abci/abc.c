@@ -20794,6 +20794,8 @@ int Abc_CommandFraigDress( Abc_Frame_t * pAbc, int argc, char ** argv )
     // modify the current network
 //    Abc_NtkDress( pNtk, pFileName, fVerbose );
     pNtk2 = Io_Read( pFileName, Io_ReadFileType(pFileName), 1, 0 );
+    if ( pNtk2 == NULL )
+        return 1;
     Abc_NtkDress2( pNtk, pNtk2, nConfs, fVerbose );
     Abc_NtkDelete( pNtk2 );
     return 0;
