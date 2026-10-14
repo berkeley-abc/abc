@@ -948,6 +948,7 @@ extern ABC_DLL int                Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * 
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkTopmost( Abc_Ntk_t * pNtk, int nLevels );
 /*=== abcSweep.c ==========================================================*/
 extern ABC_DLL int                Abc_NtkSweep( Abc_Ntk_t * pNtk, int fVerbose );
+extern ABC_DLL int                Abc_NtkFabsorb( Abc_Ntk_t * pNtk, int nLutSize, int nFanoutMax, int nRounds, int fVerbose );
 extern ABC_DLL int                Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose );
 extern ABC_DLL int                Abc_NtkCleanupNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, int fVerbose );
 extern ABC_DLL int                Abc_NtkCleanupSeq( Abc_Ntk_t * pNtk, int fLatchSweep, int fAutoSweep, int fVerbose );

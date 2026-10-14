@@ -123,6 +123,7 @@ static int Abc_CommandMulti                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandRenode                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCleanup                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSweep                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFabsorb                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFastExtract            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFxch                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandEliminate              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -989,6 +990,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "renode",        Abc_CommandRenode,           1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "cleanup",       Abc_CommandCleanup,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "sweep",         Abc_CommandSweep,            1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "fabsorb",       Abc_CommandFabsorb,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "fx",            Abc_CommandFastExtract,      1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "fxch",          Abc_CommandFxch,             1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "eliminate",     Abc_CommandEliminate,        1 );
@@ -4589,6 +4591,106 @@ usage:
     Abc_Print( -2, "\t-o    : toggles removing POs with const-0 drivers [default = %s]\n", fCleanupPos? "yes": "no" );
     Abc_Print( -2, "\t-v    : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandFabsorb( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, nInit, nRemoved;
+    int nLutSize   = 6;
+    int nFanoutMax = 8;
+    int nRounds    = 1;
+    int fVerbose   = 0;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KMRvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 2 )
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFanoutMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFanoutMax < 2 )
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nRounds = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRounds < 1 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        Abc_Print( -1, "The network should be a LUT-mapped logic network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkHasAig(pNtk) && !Abc_NtkToAig(pNtk) )
+    {
+        Abc_Print( -1, "Converting node functions to AIGs has failed.\n" );
+        return 1;
+    }
+    nInit = Abc_NtkNodeNum(pNtk);
+    nRemoved = Abc_NtkFabsorb( pNtk, nLutSize, nFanoutMax, nRounds, fVerbose );
+    Abc_Print( 1, "fabsorb: K=%d M=%d R=%d  nodes %d -> %d (-%d)\n",
+        nLutSize, nFanoutMax, nRounds, nInit, Abc_NtkNodeNum(pNtk), nRemoved );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: fabsorb [-KMR num] [-vh]\n" );
+    Abc_Print( -2, "\t         absorbs multi-fanout LUTs into all their fanout LUTs when every result fits in K inputs\n" );
+    Abc_Print( -2, "\t-K num : the max LUT size after absorption [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-M num : the max fanout count of a candidate node [default = %d]\n", nFanoutMax );
+    Abc_Print( -2, "\t-R num : the number of passes [default = %d]\n", nRounds );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n" );
     return 1;
 }
 
