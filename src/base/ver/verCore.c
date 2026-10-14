@@ -609,8 +609,12 @@ int Ver_ParseInsertsSuffix( Ver_Man_t * pMan, char * pWord, int nMsb, int nLsb )
         pMan->tName2Suffix = st__init_table( strcmp, st__strhash );
     if ( st__is_member( pMan->tName2Suffix, pWord ) )
         return 1;
-    assert( nMsb >= 0 && nMsb < 128 );
-    assert( nLsb >= 0 && nLsb < 128 );
+    if ( nMsb < 0 || nMsb >= 128 || nLsb < 0 || nLsb >= 128 )
+    {
+        sprintf( pMan->sError, "Bus indices must be between 0 and 127 in this reader." );
+        Ver_ParsePrintErrorMessage( pMan );
+        return 0;
+    }
     Value = (nMsb << 8) | nLsb;
     st__insert( pMan->tName2Suffix, Extra_UtilStrsav(pWord), (char *)(ABC_PTRUINT_T)Value );
     return 1;
@@ -863,9 +867,9 @@ int Ver_ParseSignal( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Ver_SignalType_t SigTyp
         }
         else
         {
-            assert( nMsb >= 0 && nLsb >= 0 );
             // add to the hash table
-            Ver_ParseInsertsSuffix( pMan, pWord, nMsb, nLsb );
+            if ( !Ver_ParseInsertsSuffix(pMan, pWord, nMsb, nLsb) )
+                return 0;
             // add signals from Lsb to Msb
             Limit = nMsb > nLsb? nMsb - nLsb + 1: nLsb - nMsb + 1;
             for ( i = 0, Bit = nLsb; i < Limit; i++, Bit = nMsb > nLsb ? Bit + 1: Bit - 1  )
