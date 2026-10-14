@@ -70,7 +70,7 @@ struct Hash_Gen_t_
 ////////////////////////////////////////////////////////////////////////
 
 #define Hash_GenForEachEntry( pHash, pEntry, bin )   \
-  for(bin=-1, pEntry=NULL; bin < pHash->nBins; (!pEntry)?(pEntry=pHash->pArray[++bin]):(pEntry=pEntry->pNext)) \
+  for(bin=-1, pEntry=NULL; bin < (pHash)->nBins; pEntry ? (pEntry=pEntry->pNext) : (pEntry=++bin < (pHash)->nBins ? (pHash)->pArray[bin] : NULL)) \
     if (pEntry)
 
 ////////////////////////////////////////////////////////////////////////
