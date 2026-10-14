@@ -95,6 +95,7 @@ Extra_FileReader_t * Extra_FileReaderAlloc( char * pFileName,
     char * pChar;
     int nCharsToRead;
     int RetValue;
+    long nFileSize;
     // check if the file can be opened
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
@@ -102,6 +103,14 @@ Extra_FileReader_t * Extra_FileReaderAlloc( char * pFileName,
         printf( "Extra_FileReaderAlloc(): Cannot open input file \"%s\".\n", pFileName );
         return NULL;
     }
+    // The reader and its progress interface use signed integer offsets.
+    if ( fseek(pFile, 0, SEEK_END) || (nFileSize = ftell(pFile)) < 0 || nFileSize > 0x7FFFFFFF )
+    {
+        printf( "Extra_FileReaderAlloc(): Cannot read file \"%s\" (unsupported size or seek failure).\n", pFileName );
+        fclose( pFile );
+        return NULL;
+    }
+    rewind( pFile );
     // start the file reader    
     p = ABC_ALLOC( Extra_FileReader_t, 1 );
     memset( p, 0, sizeof(Extra_FileReader_t) );
@@ -116,9 +125,7 @@ Extra_FileReader_t * Extra_FileReaderAlloc( char * pFileName,
     for ( pChar = pCharsClean; *pChar; pChar++ )
         p->pCharMap[(unsigned char)*pChar] = EXTRA_CHAR_CLEAN;
     // get the file size, in bytes
-    fseek( pFile, 0, SEEK_END );  
-    p->nFileSize = ftell( pFile );  
-    rewind( pFile ); 
+    p->nFileSize = (int)nFileSize;
     // allocate the buffer
     p->pBuffer = ABC_ALLOC( char, EXTRA_BUFFER_SIZE+1 );
     p->nBufferSize = EXTRA_BUFFER_SIZE;
