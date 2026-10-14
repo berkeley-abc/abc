@@ -393,6 +393,17 @@ Abc_Obj_t * Abc_SclAddOneInv( Bus_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFano
         Abc_NodeInvUpdateFanPolarity( pInv );
     return pInv;
 }
+// removes the COs that have the same name as the CI from the list of its fanouts
+// such a CO must stay driven by the CI directly (see Abc_NtkCheckUniqueCioNames())
+static void Abc_SclKeepSameNameCo( Abc_Obj_t * pCi, Vec_Ptr_t * vFanouts )
+{
+    Abc_Obj_t * pFanout;
+    int i, k = 0;
+    Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pFanout, i )
+        if ( !Abc_ObjIsCo(pFanout) || Nm_ManFindIdByNameTwoTypes( pCi->pNtk->pManName, Abc_ObjName(pFanout), ABC_OBJ_PI, ABC_OBJ_BO ) != (int)Abc_ObjId(pCi) )
+            Vec_PtrWriteEntry( vFanouts, k++, pFanout );
+    Vec_PtrShrink( vFanouts, k );
+}
 void Abc_SclBufSize( Bus_Man_t * p, float Gain )
 {
     SC_Cell * pCell, * pCellNew;
@@ -434,19 +445,24 @@ void Abc_SclBufSize( Bus_Man_t * p, float Gain )
             // add one or more inverters
 //            Abc_NtkPrintFanoutProfile( pObj );
             Abc_NodeCollectFanouts( pObj, p->vFanouts );
+            if ( Abc_ObjIsCi(pObj) )
+                Abc_SclKeepSameNameCo( pObj, p->vFanouts );
             Vec_PtrSort( p->vFanouts, (int(*)(const void *, const void *))Bus_SclCompareFanouts );
-            do 
+            if ( Vec_PtrSize(p->vFanouts) > 0 )
             {
-                Abc_Obj_t * pInv;
-                if ( p->pPars->fVeryVerbose )//|| Vec_PtrSize(p->vFanouts) == Abc_ObjFanoutNum(pObj) )
-                    Abc_NtkPrintFanoutProfileVec( pObj, p->vFanouts );
-                pInv = Abc_SclAddOneInv( p, pObj, p->vFanouts, GainInv );
-                if ( p->pPars->fVeryVerbose )
-                    Abc_SclOneNodePrint( p, pInv );
-                Bus_SclInsertFanout( p->vFanouts, pInv );
-                Load = Abc_NtkComputeFanoutLoad( p, p->vFanouts );
+                do
+                {
+                    Abc_Obj_t * pInv;
+                    if ( p->pPars->fVeryVerbose )//|| Vec_PtrSize(p->vFanouts) == Abc_ObjFanoutNum(pObj) )
+                        Abc_NtkPrintFanoutProfileVec( pObj, p->vFanouts );
+                    pInv = Abc_SclAddOneInv( p, pObj, p->vFanouts, GainInv );
+                    if ( p->pPars->fVeryVerbose )
+                        Abc_SclOneNodePrint( p, pInv );
+                    Bus_SclInsertFanout( p->vFanouts, pInv );
+                    Load = Abc_NtkComputeFanoutLoad( p, p->vFanouts );
+                }
+                while ( Vec_PtrSize(p->vFanouts) > p->pPars->nDegree || (Vec_PtrSize(p->vFanouts) > 1 && Load > GainGate * Cin) );
             }
-            while ( Vec_PtrSize(p->vFanouts) > p->pPars->nDegree || (Vec_PtrSize(p->vFanouts) > 1 && Load > GainGate * Cin) );
             // update node fanouts
             Vec_PtrForEachEntry( Abc_Obj_t *, p->vFanouts, pFanout, k )
                 if ( Abc_ObjFaninNum(pFanout) == 0 )
