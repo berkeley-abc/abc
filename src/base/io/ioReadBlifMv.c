@@ -2308,7 +2308,7 @@ static int Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens )
         p->pNtk->ntkFunc = ABC_FUNC_MAP;
         Mem_FlexStop( (Mem_Flex_t *)p->pNtk->pManFunc, 0 );
         p->pNtk->pManFunc = pGenlib;
-        if ( p->pMan && p->pMan->pDesign && Vec_PtrSize(p->pMan->pDesign->vModules) > 0 )
+        if ( strcmp(p->pNtk->pName, "EXDC") && p->pMan && p->pMan->pDesign && Vec_PtrSize(p->pMan->pDesign->vModules) > 0 )
         {
             Abc_Ntk_t * pModel; int k;
             Vec_PtrForEachEntry( Abc_Ntk_t *, p->pMan->pDesign->vModules, pModel, k )

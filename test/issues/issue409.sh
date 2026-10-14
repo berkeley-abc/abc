@@ -35,4 +35,22 @@ for input in mapped.blif roundtrip.blif; do
     run_abc "read_genlib cells.genlib; read_blif $input; exdc_get; strash; &get; &cec exdc.aig"
     expect_log 'Networks are equivalent'
 done
+cat > mirror.blif <<'EOF'
+.model top
+.inputs a b
+.outputs y
+.names a b y
+11 0
+.exdc
+.inputs a b
+.outputs y
+.gate nor2 A=a B=b Y=y
+.end
+EOF
+for input in mirror.blif mirror-roundtrip.blif; do
+    run_abc "read_genlib cells.genlib; read_blif $input; write_blif mirror-roundtrip.blif; strash; &get; &cec main.aig"
+    expect_log 'Networks are equivalent'
+    run_abc "read_genlib cells.genlib; read_blif $input; exdc_get; strash; &get; &cec exdc.aig"
+    expect_log 'Networks are equivalent'
+done
 echo 'PASS: Issue #409'
