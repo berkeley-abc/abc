@@ -34,4 +34,6 @@ for k in 2 3 4 5 6; do
         expect_log 'Networks are equivalent'
     done
 done
-echo 'PASS: Issue #248 (invalid widths rejected; ten equivalence checks)'
+run_abc "&read $issue_root/i10.aig; &mfsd -K 2; &cec $issue_root/i10.aig"
+expect_log 'Networks are equivalent'
+echo 'PASS: Issue #248 (invalid widths rejected; eleven equivalence checks)'

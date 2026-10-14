@@ -1374,7 +1374,7 @@ int Sbd_ManExploreCut( Sbd_Man_t * p, int Pivot, int nLeaves, int * pLeaves, int
     assert( nNodesBot == nNodesBot1 + nNodesBot2 );
     if ( i < Vec_IntSize(p->vDivSet) )
         return 0;
-    if ( nNodesTop > p->pPars->nLutSize-1 )
+    if ( nNodesTop > p->pPars->nLutSize-1 || Vec_IntSize(p->vDivSet) > 3*p->pPars->nLutSize-2 )
         return 0;
 
     // try 44
