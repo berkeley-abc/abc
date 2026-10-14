@@ -3734,6 +3734,8 @@ Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit, int nNewPis, int fG
         Vec_Ptr_t * vNamesOut = Vec_PtrAlloc( Vec_PtrSize(p->vNamesOut) );
         for ( i = 0; i < Vec_PtrSize(p->vNamesOut); i++ )
             Vec_PtrPush( vNamesOut, Abc_UtilStrsav( (char *)Vec_PtrEntry(p->vNamesOut, i) ) );
+        if ( CountPis > Gia_ManPiNum(p) )
+            Vec_PtrPush( vNamesOut, Abc_UtilStrsav("init_reset") );
         pNew->vNamesOut = vNamesOut;
     }
     ABC_FREE( pPiLits );

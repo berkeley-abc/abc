@@ -35222,11 +35222,6 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_NtkDelete( pStrash );
             pGia = Gia_ManFromAig( pAig );
             Aig_ManStop( pAig );
-            // perform undc/zero
-            pInits = Abc_NtkCollectLatchValuesStr( pAbc->pNtkCur );
-            pGia = Gia_ManDupZeroUndc( pTemp = pGia, pInits, 0, 0, fVerbose );
-            Gia_ManStop( pTemp );
-            ABC_FREE( pInits );
         }
     }
     else
@@ -35248,6 +35243,14 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         pGia->vNamesIn  = Abc_NtkCollectCiNames( pAbc->pNtkCur );
         pGia->vNamesOut = Abc_NtkCollectCoNames( pAbc->pNtkCur );
+    }
+    // Normalize initialization after copying names so new terminals are named, too.
+    if ( !Abc_NtkIsStrash(pAbc->pNtkCur) && !fGiaSimple && !fMapped )
+    {
+        pInits = Abc_NtkCollectLatchValuesStr( pAbc->pNtkCur );
+        pGia = Gia_ManDupZeroUndc( pTemp = pGia, pInits, 0, 0, fVerbose );
+        Gia_ManStop( pTemp );
+        ABC_FREE( pInits );
     }
     // copy user timing information
     if ( pAbc->pNtkCur->pManTime != NULL )
