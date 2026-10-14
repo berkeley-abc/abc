@@ -429,22 +429,43 @@ Vec_Int_t * Str_ManCreateRoots( Vec_Wec_t * vGroups, int nObjs )
     return vRoots;
 }
 
-void Str_MuxTraverse_rec( Gia_Man_t * p, int i )
+int Str_MuxTraverse_rec( Gia_Man_t * p, int i, Vec_Wec_t * vGroups, Vec_Int_t * vRoots, int iGroup )
 {
     Gia_Obj_t * pObj;
+    Vec_Int_t * vGroup;
+    int iRoot, iObj, k;
     if ( Gia_ObjIsTravIdCurrentId(p, i) )
-        return;
+        return 0;
     Gia_ObjSetTravIdCurrentId(p, i);
     pObj = Gia_ManObj(p, i);
     if ( !Gia_ObjIsAnd(pObj) )
-        return;
-    Str_MuxTraverse_rec(p, Gia_ObjFaninId0(pObj, i) );
-    Str_MuxTraverse_rec(p, Gia_ObjFaninId1(pObj, i) );
-    if ( Gia_ObjIsMux(p, pObj) )
-        Str_MuxTraverse_rec(p, Gia_ObjFaninId2(p, i) );
+        return 0;
+    iRoot = Vec_IntEntry( vRoots, i );
+    if ( iRoot == iGroup )
+        return 1;
+    if ( iRoot >= 0 )
+    {
+        // Normalization visits a whole group at once. Include its other trees
+        // to detect cycles between groups, not just dependencies within one.
+        vGroup = Vec_WecEntry( vGroups, iRoot );
+        Vec_IntForEachEntry( vGroup, iObj, k )
+            Gia_ObjSetTravIdCurrentId( p, iObj );
+        Vec_IntForEachEntry( vGroup, iObj, k )
+        {
+            pObj = Gia_ManObj(p, iObj);
+            if ( Str_MuxTraverse_rec( p, Gia_ObjFaninId0(pObj, iObj), vGroups, vRoots, iGroup ) ||
+                 Str_MuxTraverse_rec( p, Gia_ObjFaninId1(pObj, iObj), vGroups, vRoots, iGroup ) ||
+                 Str_MuxTraverse_rec( p, Gia_ObjFaninId2(p, iObj), vGroups, vRoots, iGroup ) )
+                return 1;
+        }
+        return 0;
+    }
+    return Str_MuxTraverse_rec( p, Gia_ObjFaninId0(pObj, i), vGroups, vRoots, iGroup ) ||
+           Str_MuxTraverse_rec( p, Gia_ObjFaninId1(pObj, i), vGroups, vRoots, iGroup ) ||
+           (Gia_ObjIsMux(p, pObj) && Str_MuxTraverse_rec( p, Gia_ObjFaninId2(p, i), vGroups, vRoots, iGroup ));
 }
-void Str_ManCheckOverlap( Gia_Man_t * p, Vec_Wec_t * vGroups )
-{   // check that members of each group are not in the TFI of each other
+void Str_ManCheckOverlap( Gia_Man_t * p, Vec_Wec_t * vGroups, Vec_Int_t * vRoots )
+{   // check that groups remain acyclic when their members are visited together
     Vec_Int_t * vGroup, * vGroup2;
     int i, k, n, iObj, iObj2;
 
@@ -453,18 +474,20 @@ void Str_ManCheckOverlap( Gia_Man_t * p, Vec_Wec_t * vGroups )
 //        Gia_ManPrintCone2( p, Gia_ManObj(p, iObj) ), printf( "\n" );
 
     Vec_WecForEachLevel( vGroups, vGroup, i )
-    Vec_IntForEachEntry( vGroup, iObj, k )
     {
-        if ( Vec_IntSize(vGroup) == 1 )
+        if ( Vec_IntSize(vGroup) < 2 )
             continue;
-        // high light the cone
+        // Share one traversal across all members of a group.
         Gia_ManIncrementTravId( p );
-        Str_MuxTraverse_rec( p, iObj );
-        // check that none of the others are highlighted
-        Vec_IntForEachEntry( vGroup, iObj2, n )
-            if ( iObj != iObj2 && Gia_ObjIsTravIdCurrentId(p, iObj2) )
+        Vec_IntForEachEntry( vGroup, iObj, k )
+        {
+            Gia_Obj_t * pObj = Gia_ManObj(p, iObj);
+            if ( Str_MuxTraverse_rec( p, Gia_ObjFaninId0(pObj, iObj), vGroups, vRoots, i ) ||
+                 Str_MuxTraverse_rec( p, Gia_ObjFaninId1(pObj, iObj), vGroups, vRoots, i ) ||
+                 Str_MuxTraverse_rec( p, Gia_ObjFaninId2(p, iObj), vGroups, vRoots, i ) )
                 break;
-        if ( n == Vec_IntSize(vGroup) )
+        }
+        if ( k == Vec_IntSize(vGroup) )
             continue;
         // split the group into individual trees
         Vec_IntForEachEntryStart( vGroup, iObj2, n, 1 )
@@ -472,6 +495,7 @@ void Str_ManCheckOverlap( Gia_Man_t * p, Vec_Wec_t * vGroups )
             vGroup2 = Vec_WecPushLevel( vGroups );
             vGroup  = Vec_WecEntry( vGroups, i );
             Vec_IntPush( vGroup2, iObj2 );
+            Vec_IntWriteEntry( vRoots, iObj2, Vec_WecSize(vGroups) - 1 );
         }
         Vec_IntShrink( vGroup, 1 );
 
@@ -758,8 +782,8 @@ Str_Ntk_t * Str_ManNormalize( Gia_Man_t * p )
     Gia_Man_t * pMuxes = Gia_ManDupMuxes( p, 5 );
     Vec_Wec_t * vGroups = Str_ManDeriveTrees( pMuxes );
     Vec_Int_t * vRoots;
-    Str_ManCheckOverlap( pMuxes, vGroups );
     vRoots = Str_ManCreateRoots( vGroups, Gia_ManObjNum(pMuxes) );
+    Str_ManCheckOverlap( pMuxes, vGroups, vRoots );
     pNtk = Str_ManNormalizeInt( pMuxes, vGroups, vRoots );
     Gia_ManCleanMark0( pMuxes );
     Gia_ManStop( pMuxes );
