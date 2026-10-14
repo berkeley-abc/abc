@@ -2809,7 +2809,7 @@ static int Rtl_NtkCheckComb_rec( Rtl_Ntk_t * p )
 Gia_Man_t * Rtl_LibCollapse( Rtl_Lib_t * p, char * pTopModule, int fRev, int fVerbose )
 {
     Gia_Man_t * pGia = NULL;
-    char * pName = Abc_UtilStrsavTwo( "\\", pTopModule ? pTopModule : "" );
+    char * pName = Abc_UtilStrsavTwo( "\\", pTopModule );
     int NameId = Abc_NamStrFind( p->pManName, pName );
     int iNtk   = NameId ? Rtl_LibFindModule( p, NameId ) : -1;
     ABC_FREE( pName );
