@@ -2874,6 +2874,11 @@ int IoCommandWriteCnf( Abc_Frame_t * pAbc, int argc, char **argv )
         printf( "Warning: Selected option to write all primes has no effect when deriving CNF from AIG.\n" );
     }
     // call the corresponding file writer
+    if ( (fFastAlgo || fNewAlgo) && !Abc_NtkIsStrash(pAbc->pNtkCur) )
+    {
+        fprintf( pAbc->Err, "This CNF writer requires an AIG. Run \"strash\" first.\n" );
+        return 1;
+    }
     if ( fFastAlgo )
         Abc_NtkDarToCnf( pAbc->pNtkCur, pFileName, 1, fChangePol, fVerbose );
     else if ( fNewAlgo )
