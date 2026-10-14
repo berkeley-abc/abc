@@ -439,7 +439,12 @@ int Ver_ParseModule( Ver_Man_t * pMan )
         Vec_PtrPush( vPorts, Extra_UtilStrsav(pWord) );
         Symbol = Ver_StreamPopChar(p);
     } while ( Symbol == ',' );
-    assert( Symbol == ')' );
+    if ( Symbol != ')' )
+    {
+        sprintf( pMan->sError, "Expected ',' or ')' in module port list. Use separate input/output declarations." );
+        Ver_ParsePrintErrorMessage( pMan );
+        return 0;
+    }
     if ( !Ver_ParseSkipComments( pMan ) )
         return 0;
     Symbol = Ver_StreamPopChar(p);
