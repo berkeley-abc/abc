@@ -720,7 +720,8 @@ int Scl_LibertyReadCellIsDontUse( Scl_Tree_t * p, Scl_Item_t * pCell, SC_DontUse
     Scl_Item_t * pAttr;
     Scl_ItemForEachChild( p, pCell, pAttr )
     {
-        if ( !Scl_LibertyCompare(p, pAttr->Key, "dont_use") )
+        if ( !Scl_LibertyCompare(p, pAttr->Key, "dont_use") &&
+             !strcmp(Scl_LibertyReadString(p, pAttr->Head), "true") )
             return 1;
         const char * cell_name = Scl_LibertyReadString(p, pCell->Head);
         for (int i = 0; i < dont_use.size; i++) {
