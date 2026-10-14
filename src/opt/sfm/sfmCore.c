@@ -367,7 +367,7 @@ void Sfm_NtkPrint( Sfm_Ntk_t * p )
 ***********************************************************************/
 int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
 {
-    int i, k, Counter = 0, CounterLarge = 0;
+    int i, k, Counter = 0, CounterLarge = 0, nNodesTried = 0;
     //Sfm_NtkPrint( p );
     p->timeTotal = Abc_Clock();
     if ( pPars->fVerbose )
@@ -402,7 +402,7 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
 //            break;
         }
         Counter += (k > 0);
-        if ( pPars->nNodesMax && Counter >= pPars->nNodesMax )
+        if ( pPars->nNodesMax && ++nNodesTried >= pPars->nNodesMax )
             break;
     }
     p->nTotalNodesEnd = Vec_WecSizeUsedLimits( &p->vFanins, Sfm_NtkPiNum(p), Vec_WecSize(&p->vFanins) - Sfm_NtkPoNum(p) );
