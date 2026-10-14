@@ -14840,6 +14840,11 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "Cannot find node \"%s\".\n", argv[globalUtilOptind] );
             return 1;
         }
+        c = Nm_ManFindIdByName( pNtk->pManName, argv[globalUtilOptind], ABC_OBJ_PO );
+        if ( c < 0 )
+            c = Nm_ManFindIdByName( pNtk->pManName, argv[globalUtilOptind], ABC_OBJ_BI );
+        if ( c >= 0 )
+            pNodeCo = Abc_NtkObj( pNtk, c );
         if ( fUseMffc )
             pNtkRes = Abc_NtkCreateMffc( pNtk, pNode, argv[globalUtilOptind] );
         else
@@ -14898,16 +14903,13 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
         else
             pNtkRes = Abc_NtkCreateCone( pNtk, Abc_ObjFanin0(pNodeCo), Abc_ObjName(pNodeCo), fUseAllCis );
     }
-    if ( pNodeCo && Abc_ObjFaninC0(pNodeCo) )
-    {
-        Abc_NtkPo(pNtkRes, 0)->fCompl0  ^= 1;
-//        Abc_Print( -1, "The extracted cone represents the complement function of the CO.\n" );
-    }
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "Writing the logic cone of one node has failed.\n" );
         return 1;
     }
+    if ( pNodeCo && Abc_ObjFaninC0(pNodeCo) )
+        Abc_NtkPo(pNtkRes, 0)->fCompl0 ^= 1;
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
