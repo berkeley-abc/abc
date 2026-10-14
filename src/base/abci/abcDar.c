@@ -3969,6 +3969,68 @@ Abc_Ntk_t * Abc_NtkDarTempor( Abc_Ntk_t * pNtk, int nFrames, int TimeOut, int nC
 
 /**Function*************************************************************
 
+  Synopsis    [Restores a temporal-decomposition counterexample.]
+
+  Description [Supports compact history inputs and the old dense layout.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Abc_NtkDarTemporCex( Abc_Ntk_t * pNtk, Abc_Cex_t * pCex )
+{
+    Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
+    Aig_Obj_t * pObj;
+    Abc_Cex_t * pNew = NULL;
+    int i, f, k, nFrames, nPisUsed = 0, nPis = Abc_NtkPiNum(pNtk);
+    if ( pAig == NULL )
+        return NULL;
+    if ( nPis == 0 || pCex->iPo < 0 || pCex->iPo >= Abc_NtkPoNum(pNtk) )
+    {
+        Aig_ManStop( pAig );
+        return NULL;
+    }
+    // First try the legacy layout when its dimensions match.
+    if ( pCex->iFrame > 0 && pCex->nPis >= nPis && pCex->nPis % nPis == 0 )
+    {
+        pNew = Abc_CexTransformTempor( pCex, nPis, Abc_NtkPoNum(pNtk), Abc_NtkLatchNum(pNtk) );
+        if ( !Saig_ManVerifyCex(pAig, pNew) )
+            Abc_CexFreeP( &pNew );
+    }
+    if ( pNew == NULL )
+    {
+        Saig_ManForEachPi( pAig, pObj, i )
+            nPisUsed += Aig_ObjRefs(pObj) > 0;
+        if ( pCex->nPis < nPis || (pCex->nPis - nPis) % Abc_MaxInt(1, nPisUsed) )
+        {
+            Aig_ManStop( pAig );
+            return NULL;
+        }
+        nFrames = (pCex->nPis - nPis) / Abc_MaxInt(1, nPisUsed);
+        pNew = Abc_CexAlloc( Abc_NtkLatchNum(pNtk), nPis, nFrames + pCex->iFrame + 1 );
+        pNew->iPo = pCex->iPo;
+        pNew->iFrame = nFrames + pCex->iFrame;
+        for ( f = 0, k = pCex->nRegs + nPis; f < nFrames; f++ )
+            Saig_ManForEachPi( pAig, pObj, i )
+                if ( Aig_ObjRefs(pObj) || (nPisUsed == 0 && i == 0) )
+                {
+                    if ( Abc_InfoHasBit(pCex->pData, k++) )
+                        Abc_InfoSetBit( pNew->pData, pNew->nRegs + f*nPis + i );
+                }
+        for ( f = 0; f <= pCex->iFrame; f++ )
+            for ( i = 0; i < nPis; i++ )
+                if ( Abc_InfoHasBit(pCex->pData, pCex->nRegs + f*pCex->nPis + i) )
+                    Abc_InfoSetBit( pNew->pData, pNew->nRegs + (nFrames+f)*nPis + i );
+        if ( !Saig_ManVerifyCex(pAig, pNew) )
+            Abc_CexFreeP( &pNew );
+    }
+    Aig_ManStop( pAig );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs induction for property only.]
 
   Description []

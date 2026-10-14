@@ -32195,6 +32195,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern Abc_Cex_t * Abc_NtkDarTemporCex( Abc_Ntk_t * pNtk, Abc_Cex_t * pCex );
     extern Abc_Ntk_t * Abc_NtkDarTempor( Abc_Ntk_t * pNtk, int nFrames, int TimeOut, int nConfLimit, int fUseBmc, int fUseTransSigs, int fVerbose, int fVeryVerbose );
     Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
     int nFrames       =       0;
@@ -32292,12 +32293,12 @@ int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "Counter-example is not available.\n" );
             return 1;
         }
-        if ( pAbc->pCex->nPis % Abc_NtkPiNum(pNtk) != 0 )
+        pCexNew = Abc_NtkDarTemporCex( pNtk, pAbc->pCex );
+        if ( pCexNew == NULL )
         {
-            Abc_Print( -1, "PI count of the CEX is not a multiple of PI count of the current AIG.\n" );
+            Abc_Print( -1, "The counter-example does not match this network after temporal decomposition.\n" );
             return 1;
         }
-        pCexNew = Abc_CexTransformTempor( pAbc->pCex, Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk), Abc_NtkLatchNum(pNtk) );
         Abc_FrameReplaceCex( pAbc, &pCexNew );
         return 0;
     }

@@ -47,10 +47,12 @@ Aig_Man_t * Saig_ManTemporFrames( Aig_Man_t * pAig, int nFrames )
 {
     Aig_Man_t * pFrames;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
-    int i, f;
+    int i, f, nPisUsed = 0;
+    Saig_ManForEachPi( pAig, pObj, i )
+        nPisUsed += Aig_ObjRefs(pObj) > 0;
     // start the frames package
     Aig_ManCleanData( pAig );
-    pFrames = Aig_ManStart( Aig_ManObjNumMax(pAig) * nFrames );
+    pFrames = Aig_ManStart( Aig_ManNodeNum(pAig) );
     pFrames->pName = Abc_UtilStrsav( pAig->pName );
     // initiliaze the flops
     Saig_ManForEachLo( pAig, pObj, i )
@@ -60,7 +62,10 @@ Aig_Man_t * Saig_ManTemporFrames( Aig_Man_t * pAig, int nFrames )
     {
         Aig_ManConst1(pAig)->pData = Aig_ManConst1(pFrames);
         Saig_ManForEachPi( pAig, pObj, i )
-            pObj->pData = Aig_ObjCreateCi(pFrames);
+            // Retain one history PI per frame even when all inputs are unused,
+            // so the CEX interface still encodes the prefix length.
+            if ( Aig_ObjRefs(pObj) || (nPisUsed == 0 && i == 0) )
+                pObj->pData = Aig_ObjCreateCi(pFrames);
         Aig_ManForEachNode( pAig, pObj, i )
             pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
         Aig_ManForEachCo( pAig, pObj, i )
