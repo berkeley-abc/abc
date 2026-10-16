@@ -6837,6 +6837,10 @@ SOURCE=.\src\proof\cec\cecCorr2.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\cec\cecCorr3.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\cec\cecCorrCert.c
 # End Source File
 # Begin Source File

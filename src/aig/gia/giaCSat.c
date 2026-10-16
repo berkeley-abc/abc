@@ -145,6 +145,22 @@ void Cbs_ManSetConflictNum( Cbs_Man_t * p, int Num )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the conflict count for the most recent SAT query.]
+
+  Description [Cbs_ManSolve and Cbs_ManSolve2 reset this count before solving.]
+
+  SideEffects []
+
+  SeeAlso     [Cbs_ManSolve Cbs_ManSolve2]
+
+***********************************************************************/
+int Cbs_ManReadConflictNum( Cbs_Man_t * p )
+{
+    return p->Pars.nBTThis;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []

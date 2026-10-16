@@ -502,10 +502,11 @@ static int Abc_CommandAbc9Scl                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Lcorr              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Scorr              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Scorr2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Scorr3             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Choice             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Sat                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatEnum            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9AdvGenSim             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9AdvGenSim          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Fraig              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9CFraig             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Srm                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1367,6 +1368,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&lcorr",        Abc_CommandAbc9Lcorr,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&scorr",        Abc_CommandAbc9Scorr,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&scorr2",       Abc_CommandAbc9Scorr2,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&scorr3",       Abc_CommandAbc9Scorr3,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&choice",       Abc_CommandAbc9Choice,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sat",          Abc_CommandAbc9Sat,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satenum",      Abc_CommandAbc9SatEnum,      0 );
@@ -42352,6 +42354,66 @@ usage:
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t         This command was contributed by Xiran Zhao from University of Chinese Academy of Sciences (UCAS).\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes signal correspondence with lazy speculative updates.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Scorr3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Cec_ManLSCorrespondence3( Gia_Man_t *, Cec_ParCor_t * );
+    Cec_ParCor_t Pars;
+    Gia_Man_t * pNew;
+    int c;
+    Cec_ManCorSetDefaultParams( &Pars );
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "FCkvh")) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+        case 'C':
+        {
+            char * pEnd, * pArg;
+            long Value;
+            if ( globalUtilOptind >= argc ) goto usage;
+            pArg = argv[globalUtilOptind++];
+            Value = strtol( pArg, &pEnd, 10 );
+            if ( pEnd == pArg || *pEnd || Value < (c == 'F') || Value > 1000000 ) goto usage;
+            if ( c == 'F' ) Pars.nFrames = (int)Value;
+            else Pars.nBTLimit = (int)Value;
+            break;
+        }
+        case 'k': Pars.fKissatCert ^= 1; break;
+        case 'v': Pars.fVerbose ^= 1; break;
+        default: goto usage;
+        }
+    }
+    if ( globalUtilOptind != argc ) goto usage;
+    if ( !pAbc->pGia ) { Abc_Print(-1,"&scorr3: There is no AIG.\n"); return 1; }
+    if ( !Gia_ManRegNum(pAbc->pGia) ) { Abc_Print(0,"The network is combinational.\n"); return 0; }
+    if ( Gia_ManRegBoxNum(pAbc->pGia) ) { Abc_Print(-1,"&scorr3: register boxes are not supported.\n"); return 1; }
+    pNew = Cec_ManLSCorrespondence3( pAbc->pGia, &Pars );
+    if ( !pNew ) return 1;
+    Abc_FrameUpdateGia( pAbc, pNew );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: &scorr3 [-FC num] [-kvh]\n" );
+    Abc_Print( -2, "\t         performs signal correspondence computation\n" );
+    Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", Pars.nBTLimit );
+    Abc_Print( -2, "\t-F num : the number of timeframes in inductive case (at least 1) [default = %d]\n", Pars.nFrames );
+    Abc_Print( -2, "\t-k     : toggle auditing final base and step obligations with Kissat [default = %s]\n", Pars.fKissatCert? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", Pars.fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n" );
     return 1;
 }
 
