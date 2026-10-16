@@ -182,16 +182,20 @@ void Cmd_End( Abc_Frame_t * pAbc )
 int CmdCommandTime( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     int c;
-    int fClear;
+    int fClear, fPrecise;
 
     fClear = 0;
+    fPrecise = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cph" ) ) != EOF )
     {
         switch ( c )
         {
         case 'c':
             fClear ^= 1;
+            break;
+        case 'p':
+            fPrecise ^= 1;
             break;
         case 'h':
             goto usage;
@@ -214,23 +218,24 @@ int CmdCommandTime( Abc_Frame_t * pAbc, int argc, char **argv )
 
 
     pAbc->TimeTotal += pAbc->TimeCommand;
-    fprintf( pAbc->Out, "elapse: %3.2f seconds, total: %3.2f seconds\n",
+    fprintf( pAbc->Out, fPrecise ? "elapse: %.6f seconds, total: %.6f seconds\n" : "elapse: %3.2f seconds, total: %3.2f seconds\n",
         pAbc->TimeCommand, pAbc->TimeTotal );
-/*
-    {
-        FILE * pTable;
-        pTable = fopen( "runtimes.txt", "a+" );
-        fprintf( pTable, "%4.2f\n", pAbc->TimeCommand );
-        fclose( pTable );
-    }
-*/
+//
+//    {
+//        FILE * pTable;
+//        pTable = fopen( "runtimes.txt", "a+" );
+//        fprintf( pTable, "%4.2f\n", pAbc->TimeCommand );
+//        fclose( pTable );
+//    }
+//
     pAbc->TimeCommand = 0.0;
     return 0;
 
   usage:
-    fprintf( pAbc->Err, "usage: time [-ch]\n" );
+    fprintf( pAbc->Err, "usage: time [-cph]\n" );
     fprintf( pAbc->Err, "      \t\tprint the runtime since the last call\n" );
     fprintf( pAbc->Err, "   -c \t\tclears the elapsed time without printing it\n" );
+    fprintf( pAbc->Err, "   -p \t\tprints elapsed and total time with six decimal places\n" );
     fprintf( pAbc->Err, "   -h \t\tprint the command usage\n" );
     return 1;
 }

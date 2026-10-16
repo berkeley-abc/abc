@@ -6036,10 +6036,11 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Sfm_ParSetDefault3( Sfm_Par_t * pPars );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Sfm_Par_t Pars, * pPars = &Pars; int c;
+    int fAreaOnly = 0, fDelayOnly = 0, fKeepTiming = 0;
     // set defaults
     Sfm_ParSetDefault3( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IOVFKLHRMCNPWDEarmzoespdlvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IOVFKLHRMCNPWDETarmzoespdtlvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -6212,10 +6213,13 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             break;
         case 'a':
-            pPars->fArea ^= 1;
+            fAreaOnly = 1;
             break;
         case 'r':
             pPars->fAreaRev ^= 1;
+            break;
+        case 't':
+            fKeepTiming = 1;
             break;
         case 'm':
             pPars->fUseAndOr ^= 1;
@@ -6236,6 +6240,9 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fPrintDecs ^= 1;
             break;
         case 'd':
+            fDelayOnly = 1;
+            break;
+        case 'T':
             pPars->fDelayVerbose ^= 1;
             break;
         case 'l':
@@ -6253,6 +6260,15 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( fDelayOnly && (fAreaOnly || fKeepTiming) )
+    {
+        Abc_Print( -1, "Delay optimization (-d) cannot be combined with area-mode switches (-a or -t).\n" );
+        goto usage;
+    }
+    // Resolve mode selectors independently of their order. Keep -at as an
+    // explicit spelling of the default for compatibility with earlier scripts.
+    pPars->fArea = !fDelayOnly;
+    pPars->fAreaTiming = !fDelayOnly && (!fAreaOnly || fKeepTiming);
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
@@ -6268,8 +6284,9 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: mfs3 [-IOVFKLHRMCNPWDE <num>] [-armzespdlvwh]\n" );
+    Abc_Print( -2, "usage: mfs3 [-a|-d] [-IOVFKLHRMCNPWDE <num>] [-trmzespTlvwh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of mapped networks\n" );
+    Abc_Print( -2, "\t           minimizes area while preserving initial GENLIB block delay by default\n" );
     Abc_Print( -2, "\t-I <num> : the number of levels in the TFI cone (1 <= num) [default = %d]\n",             pPars->nTfiLevMax );
     Abc_Print( -2, "\t-O <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevMax );
     Abc_Print( -2, "\t-V <num> : the number of levels in the TFI/TFO cone (1 <= num) [default = %d]\n",         pPars->nTfiLevMax );
@@ -6285,14 +6302,16 @@ usage:
     Abc_Print( -2, "\t-W <num> : size of timing window in percents (0 <= num <= 100) [default = %d]\n",         pPars->nTimeWin );
     Abc_Print( -2, "\t-D <num> : size of critical-timing delay-delta (in picoseconds) [default = %d]\n",        pPars->DeltaCrit );
     Abc_Print( -2, "\t-E <num> : delay-area tradeoff (in picoseconds per area-unit) [default = %d]\n",          pPars->DelAreaRatio );
-    Abc_Print( -2, "\t-a       : toggle area minimization [default = %s]\n",                                    pPars->fArea? "yes": "no" );
+    Abc_Print( -2, "\t-a       : minimize area without a delay constraint\n" );
+    Abc_Print( -2, "\t-d       : minimize delay explicitly (area may increase)\n" );
+    Abc_Print( -2, "\t-t       : preserve initial GENLIB delay in area mode (default; overrides -a)\n" );
     Abc_Print( -2, "\t-r       : toggle using reverse topo order for area minimization [default = %s]\n",       pPars->fAreaRev? "yes": "no" );
     Abc_Print( -2, "\t-m       : toggle detecting multi-input AND/OR gates [default = %s]\n",                   pPars->fUseAndOr? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggle zero-cost replacements [default = %s]\n",                               pPars->fZeroCost? "yes": "no" );
     Abc_Print( -2, "\t-e       : toggle using more effort [default = %s]\n",                                    pPars->fMoreEffort? "yes": "no" );
     Abc_Print( -2, "\t-s       : toggle using simulation [default = %s]\n",                                     pPars->fUseSim? "yes": "no" );
     Abc_Print( -2, "\t-p       : toggle printing decompositions [default = %s]\n",                              pPars->fPrintDecs? "yes": "no" );
-    Abc_Print( -2, "\t-d       : toggle printing delay profile statistics [default = %s]\n",                    pPars->fDelayVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-T       : toggle printing delay profile statistics [default = %s]\n",                    pPars->fDelayVerbose? "yes": "no" );
     Abc_Print( -2, "\t-l       : toggle printing library usage statistics [default = %s]\n",                    pPars->fLibVerbose? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n",                pPars->fVeryVerbose? "yes": "no" );
