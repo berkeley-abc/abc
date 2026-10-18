@@ -35,6 +35,7 @@
 #include "opt/lpk/lpk.h"
 #include "aig/gia/giaAig.h"
 #include "opt/dar/dar.h"
+#include "opt/drw/drw.h"
 #include "opt/mfs/mfs.h"
 #include "proof/fra/fra.h"
 #include "aig/saig/saig.h"
@@ -505,6 +506,7 @@ static int Abc_CommandAbc9Lcorr              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Scorr              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Scorr2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Scorr3             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Drw                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Choice             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Sat                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatEnum            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1372,6 +1374,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&scorr",        Abc_CommandAbc9Scorr,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&scorr2",       Abc_CommandAbc9Scorr2,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&scorr3",       Abc_CommandAbc9Scorr3,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&drw",          Abc_CommandAbc9Drw,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&choice",       Abc_CommandAbc9Choice,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sat",          Abc_CommandAbc9Sat,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satenum",      Abc_CommandAbc9SatEnum,      0 );
@@ -42476,6 +42479,59 @@ usage:
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t         This command was contributed by Xiran Zhao from University of Chinese Academy of Sciences (UCAS).\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs compact AIG rewriting using one cut per node.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Drw( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pNew;
+    int c, fKeepLevel = 1, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "lvh")) != EOF )
+    {
+        switch ( c )
+        {
+        case 'l': fKeepLevel ^= 1; break;
+        case 'v': fVerbose ^= 1; break;
+        default: goto usage;
+        }
+    }
+    if ( globalUtilOptind != argc ) goto usage;
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "&drw: There is no AIG.\n" );
+        return 1;
+    }
+    if ( Gia_ManHasChoices(pAbc->pGia) || pAbc->pGia->pMuxes || Gia_ManXorNum(pAbc->pGia) )
+    {
+        Abc_Print( -1, "&drw: This command requires an AIG without choices or XOR/MUX nodes.\n" );
+        return 1;
+    }
+    pNew = Drw_ManRewrite( pAbc->pGia, fKeepLevel, fVerbose );
+    if ( pNew == NULL )
+    {
+        Abc_Print( -1, "&drw: Rewriting has failed.\n" );
+        return 1;
+    }
+    Abc_FrameUpdateGia( pAbc, pNew );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: &drw [-lvh]\n" );
+    Abc_Print( -2, "\t         performs one pass of AIG rewriting using one cut per node\n" );
+    Abc_Print( -2, "\t-l     : toggle preserving the number of levels [default = %s]\n", fKeepLevel ? "yes" : "no" );
+    Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n" );
     return 1;
 }
 

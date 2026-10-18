@@ -3945,6 +3945,26 @@ SOURCE=.\src\opt\dar\darResub.c
 SOURCE=.\src\opt\dar\darScript.c
 # End Source File
 # End Group
+# Begin Group "drw"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\drw\drw.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\drw\drwInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\drw\drwCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\drw\drwData.c
+# End Source File
+# End Group
 # Begin Group "rwt"
 
 # PROP Default_Filter ""
