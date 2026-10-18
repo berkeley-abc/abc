@@ -3,8 +3,8 @@
 issue_root=$(cd "$(dirname "$0")/../.." && pwd)
 source "$issue_root/test/issues/common.sh"
 for k in -1 0 1 7 8; do
-    run_abc "&read $issue_root/i10.aig; &mfsd -K $k; echo invalid_width_accepted"
-    expect_log 'usage: &mfsd'
+    run_abc "&read $issue_root/i10.aig; &mfs2 -K $k; echo invalid_width_accepted"
+    expect_log 'usage: &mfs2'
     expect_log '2 <= num <= 6'
     if grep -q '^invalid_width_accepted' abc.log; then
         cat abc.log
@@ -30,10 +30,10 @@ for k in 2 3 4 5 6; do
         *) design="$issue_root/i10.aig" ;;
     esac
     for options in '' '-N 10 -S 3'; do
-        run_abc "&read $design; &mfsd -K $k $options; &cec $design"
+        run_abc "&read $design; &mfs2 -K $k $options; &cec $design"
         expect_log 'Networks are equivalent'
     done
 done
-run_abc "&read $issue_root/i10.aig; &mfsd -K 2; &cec $issue_root/i10.aig"
+run_abc "&read $issue_root/i10.aig; &mfs2 -K 2; &cec $issue_root/i10.aig"
 expect_log 'Networks are equivalent'
 echo 'PASS: Issue #248 (invalid widths rejected; eleven equivalence checks)'

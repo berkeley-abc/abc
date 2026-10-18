@@ -99,6 +99,12 @@ struct Sfm_Ntk_t_
     Vec_Int_t         vTravIds2;   // traversal IDs
     int               nTravIds;    // traversal IDs
     int               nTravIds2;   // traversal IDs
+    Vec_Int_t *       vBoxPins;    // box inputs: index+1; outputs: -(index+1)
+    Vec_Int_t *       vBoxLimits;  // first box input reachable from each object
+    Vec_Int_t *       vBoxMarks;   // candidate dependency cache for this window
+    int               nBoxTravId;  // dependency cache generation
+    int               iBoxLimit;   // first box reachable from the pivot
+    int               nBoxRejects; // candidates excluded by the box order
     // window
     int               iPivotNode;  // window pivot
     Vec_Int_t *       vNodes;      // internal
@@ -259,6 +265,7 @@ extern int          Sfm_MitEvalRemapping( Sfm_Mit_t * p, Vec_Int_t * vMffc, Abc_
 //=== sfmWin.c ==========================================================
 extern int          Sfm_ObjMffcSize( Sfm_Ntk_t * p, int iObj );
 extern int          Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose );
+extern int          Sfm_NtkCheckBoxOrder( Sfm_Ntk_t * p, int iDiv );
 
 ABC_NAMESPACE_HEADER_END
 

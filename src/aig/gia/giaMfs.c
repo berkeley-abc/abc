@@ -586,6 +586,34 @@ Gia_Man_t * Gia_ManPerformMfs( Gia_Man_t * p, Sfm_Par_t * pPars )
     }
     // collect information
     pNtk = Gia_ManExtractMfs( p );
+    if ( pPars->fBoxOrder && Gia_ManBoxNum(p) )
+    {
+        Tim_Man_t * pTim = (Tim_Man_t *)p->pManTime;
+        int i, k, Id;
+        for ( i = 0; i < Tim_ManBoxNum(pTim); i++ )
+        {
+            for ( k = 0; k < Tim_ManBoxInputNum(pTim, i); k++ )
+            {
+                Id = Gia_ObjId( p, Gia_ManCo(p, Tim_ManBoxInputFirst(pTim, i) + k) );
+                Sfm_NtkSetBoxPin( pNtk, Gia_ObjCopyArray(p, Id), i + 1 );
+            }
+            for ( k = 0; k < Tim_ManBoxOutputNum(pTim, i); k++ )
+            {
+                int iMfs;
+                Id = Gia_ObjId( p, Gia_ManCi(p, Tim_ManBoxOutputFirst(pTim, i) + k) );
+                iMfs = Gia_ObjCopyArray( p, Id );
+                Sfm_NtkSetBoxPin( pNtk, iMfs, -i - 1 );
+                if ( Tim_ManBoxIsBlack(pTim, i) )
+                {
+                    // Black-box outputs also have independent SAT inputs.
+                    // Selecting those directly must obey the same order.
+                    Vec_Int_t * vFanins = Sfm_NodeReadFanins( pNtk, iMfs );
+                    assert( Vec_IntSize(vFanins) == 1 );
+                    Sfm_NtkSetBoxPin( pNtk, Vec_IntEntry(vFanins, 0), -i - 1 );
+                }
+            }
+        }
+    }
     // perform optimization
     nNodes = Sfm_NtkPerform( pNtk, pPars );
     if ( nNodes == 0 )

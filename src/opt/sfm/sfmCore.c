@@ -76,6 +76,8 @@ void Sfm_NtkPrintStats( Sfm_Ntk_t * p )
     p->timeOther = p->timeTotal - p->timeWin - p->timeDiv - p->timeCnf - p->timeSat;
     printf( "Nodes = %d. Try = %d. Resub = %d. Div = %d (ave = %d). SAT calls = %d. Timeouts = %d. MaxDivs = %d.\n",
         Sfm_NtkNodeNum(p), p->nNodesTried, p->nRemoves + p->nResubs, p->nTotalDivs, p->nTotalDivs/Abc_MaxInt(1, p->nNodesTried), p->nSatCalls, p->nTimeOuts, p->nMaxDivs );
+    if ( p->vBoxPins )
+        printf( "Box order: rejected %d divisor candidates.\n", p->nBoxRejects );
 
     printf( "Attempts :   " );
     printf( "Remove %6d out of %6d (%6.2f %%)   ", p->nRemoves, p->nTryRemoves, 100.0*p->nRemoves/Abc_MaxInt(1, p->nTryRemoves) );
@@ -176,7 +178,8 @@ p->timeSat += Abc_Clock() - clk;
         // find the next divisor to try
         uMask = (~(word)0) >> (64 - p->nCexes);
         Vec_WrdForEachEntry( p->vDivCexes, uSign, iVar )
-            if ( uSign == uMask && Vec_IntEntry(p->vDivs, iVar) != iFaninSkip )
+            if ( uSign == uMask && Vec_IntEntry(p->vDivs, iVar) != iFaninSkip &&
+                 (!p->vBoxPins || Sfm_NtkCheckBoxOrder(p, Vec_IntEntry(p->vDivs, iVar))) )
                 break;
         if ( iVar == Vec_IntSize(p->vDivs) )
             return 0;

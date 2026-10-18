@@ -285,9 +285,9 @@ static inline int Sbd_CutSetLastCutIsContained( Sbd_Cut_t ** pCuts, int nCuts )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Sbd_CutCompare( Sbd_Cut_t * pCut0, Sbd_Cut_t * pCut1 )
+static inline int Sbd_CutCompare( Sbd_Cut_t * pCut0, Sbd_Cut_t * pCut1, int nLutSize )
 {
-    if ( pCut0->nLeaves <= 4 && pCut1->nLeaves <= 4 )
+    if ( pCut0->nLeaves <= nLutSize && pCut1->nLeaves <= nLutSize )
     {
         if ( pCut0->nLeaves     < pCut1->nLeaves )      return -1;
         if ( pCut0->nLeaves     > pCut1->nLeaves )      return  1;
@@ -296,9 +296,9 @@ static inline int Sbd_CutCompare( Sbd_Cut_t * pCut0, Sbd_Cut_t * pCut1 )
         if ( pCut0->CostLev     < pCut1->CostLev )      return -1;
         if ( pCut0->CostLev     > pCut1->CostLev )      return  1;
     }
-    else if ( pCut0->nLeaves <= 4 )
+    else if ( pCut0->nLeaves <= nLutSize )
         return -1;
-    else if ( pCut1->nLeaves <= 4 )
+    else if ( pCut1->nLeaves <= nLutSize )
         return  1;
     else
     {
@@ -313,9 +313,9 @@ static inline int Sbd_CutCompare( Sbd_Cut_t * pCut0, Sbd_Cut_t * pCut1 )
     }
     return 0;
 }
-static inline int Sbd_CutCompare2( Sbd_Cut_t * pCut0, Sbd_Cut_t * pCut1 )
+static inline int Sbd_CutCompare2( Sbd_Cut_t * pCut0, Sbd_Cut_t * pCut1, int nLutSize )
 {
-    assert( pCut0->nLeaves > 4 && pCut1->nLeaves > 4 );
+    assert( pCut0->nLeaves > nLutSize && pCut1->nLeaves > nLutSize );
     if ( pCut0->nSlowLeaves < pCut1->nSlowLeaves )  return -1;
     if ( pCut0->nSlowLeaves > pCut1->nSlowLeaves )  return  1;
     if ( pCut0->nTreeLeaves < pCut1->nTreeLeaves )  return -1;
@@ -347,23 +347,23 @@ static inline int Sbd_CutSetLastCutContains( Sbd_Cut_t ** pCuts, int nCuts )
     }
     return k - 1;
 }
-static inline void Sbd_CutSetSortByCost( Sbd_Cut_t ** pCuts, int nCuts )
+static inline void Sbd_CutSetSortByCost( Sbd_Cut_t ** pCuts, int nCuts, int nLutSize )
 {
     int i;
     for ( i = nCuts; i > 0; i-- )
     {
-        if ( Sbd_CutCompare(pCuts[i - 1], pCuts[i]) < 0 )//!= 1 )
+        if ( Sbd_CutCompare(pCuts[i - 1], pCuts[i], nLutSize) < 0 )
             return;
         ABC_SWAP( Sbd_Cut_t *, pCuts[i - 1], pCuts[i] );
     }
 }
-static inline int Sbd_CutSetAddCut( Sbd_Cut_t ** pCuts, int nCuts, int nCutNum )
+static inline int Sbd_CutSetAddCut( Sbd_Cut_t ** pCuts, int nCuts, int nCutNum, int nLutSize )
 {
     if ( nCuts == 0 )
         return 1;
     nCuts = Sbd_CutSetLastCutContains(pCuts, nCuts);
     assert( nCuts >= 0 );
-    Sbd_CutSetSortByCost( pCuts, nCuts );
+    Sbd_CutSetSortByCost( pCuts, nCuts, nLutSize );
     // add new cut if there is room
     return Abc_MinInt( nCuts + 1, nCutNum - 1 );
 }
@@ -627,7 +627,7 @@ void Sbd_StoMergeCuts( Sbd_Sto_t * p, int iObj )
         pCutsR[nCutsR]->Cost = Sbd_CutCost( p, pCutsR[nCutsR] );
         pCutsR[nCutsR]->CostLev = Sbd_CutCostLev( p, pCutsR[nCutsR] );
         pCutsR[nCutsR]->nTreeLeaves = Sbd_CutTreeLeaves( p, pCutsR[nCutsR] );
-        nCutsR = Sbd_CutSetAddCut( pCutsR, nCutsR, nCutNum );
+        nCutsR = Sbd_CutSetAddCut( pCutsR, nCutsR, nCutNum, p->nLutSize );
     }
     Sbd_StoComputeDelay( p, iObj, pCutsR, nCutsR );
     Sbd_StoComputeSpec( p, iObj, pCutsR, nCutsR );
@@ -747,6 +747,23 @@ int Sbd_StoObjRefs( Sbd_Sto_t * p, int iObj )
 {
     return Vec_IntEntry(p->vRefs, iObj);
 }
+/**Function*************************************************************
+
+  Synopsis    [Transfers pivot references after a replacement is accepted.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sbd_StoTransferRefs( Sbd_Sto_t * p, int iObj, int iMirror )
+{
+    assert( iMirror > 0 && iMirror < iObj );
+    Vec_IntWriteEntry( p->vRefs, iObj, Vec_IntEntry(p->vRefs, iMirror) );
+    Vec_IntWriteEntry( p->vRefs, iMirror, 1 );
+}
 void Sbd_StoRefObj( Sbd_Sto_t * p, int iObj, int iMirror )
 {
     Gia_Obj_t * pObj = Gia_ManObj(p->pGia, iObj);
@@ -755,10 +772,7 @@ void Sbd_StoRefObj( Sbd_Sto_t * p, int iObj, int iMirror )
     Vec_IntPush( p->vRefs, 0 );
 //printf( "Ref %d\n", iObj );
     if ( iMirror > 0 )
-    {
-        Vec_IntWriteEntry( p->vRefs, iObj, Vec_IntEntry(p->vRefs, iMirror) );
-        Vec_IntWriteEntry( p->vRefs, iMirror, 1 );
-    }
+        Sbd_StoTransferRefs( p, iObj, iMirror );
     if ( Gia_ObjIsAnd(pObj) )
     {
         int Lit0m = Vec_IntEntry( p->vMirrors, Gia_ObjFaninId0(pObj, iObj) );
@@ -816,7 +830,7 @@ int Sbd_StoObjBestCut( Sbd_Sto_t * p, int iObj, int nSize, int * pLeaves )
         if ( (int)p->ppCuts[i]->nLeaves > p->nLutSize && 
              (int)p->ppCuts[i]->nSlowLeaves <= 1 &&
              (int)p->ppCuts[i]->nTopLeaves <= p->nLutSize-1 &&
-             (pCutBest == NULL || Sbd_CutCompare2(pCutBest, p->ppCuts[i]) == 1) )
+             (pCutBest == NULL || Sbd_CutCompare2(pCutBest, p->ppCuts[i], p->nLutSize) == 1) )
             pCutBest = p->ppCuts[i];
     }
     if ( fVerbose && iObj % 1000 == 0 )

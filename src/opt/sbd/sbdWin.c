@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [sbd.c]
+  FileName    [sbdWin.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: sbd.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: sbdWin.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -167,20 +167,22 @@ sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMi
 
   Description [Computes node function for PivotVar with fanins in vDivSet
   using don't-care represented in the SAT solver. Uses array vValues to 
-  return the values of the first Vec_IntSize(vValues) SAT variables in case
-  the implementation of the node with the given fanins does not exist.]
+  return counterexamples when the support is infeasible (l_True).
+  Returns l_False for a feasible support and l_Undef on a conflict limit.
+  A truth table is optional and can only be requested for up to six inputs.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDivSet, Vec_Int_t * vDivVars, Vec_Int_t * vDivValues, Vec_Int_t * vTemp )
+int Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDivSet, Vec_Int_t * vDivVars, Vec_Int_t * vDivValues, Vec_Int_t * vTemp, int nBTLimit, word * pTruth )
 {
-    int nBTLimit = 0;
     word uCube, uTruth = 0;
     int status, i, iVar, nFinal, * pFinal, pLits[2], nIter = 0;
-    assert( FreeVar < sat_solver_nvars(pSat) );
+    assert( pTruth == NULL || Vec_IntSize(vDivSet) <= 6 );
+    if ( FreeVar >= sat_solver_nvars(pSat) )
+        sat_solver_setnvars( pSat, FreeVar + 1 );
     assert( Vec_IntSize(vDivVars) == Vec_IntSize(vDivValues) );
     pLits[0] = Abc_Var2Lit( PivotVar, 0 ); // F = 1
     pLits[1] = Abc_Var2Lit( FreeVar, 0 );  // iNewLit
@@ -189,9 +191,13 @@ word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDi
         // find onset minterm
         status = sat_solver_solve( pSat, pLits, pLits + 2, nBTLimit, 0, 0, 0 );
         if ( status == l_Undef )
-            return SBD_SAT_UNDEC;
+            return l_Undef;
         if ( status == l_False )
-            return uTruth;
+        {
+            if ( pTruth )
+                *pTruth = uTruth;
+            return l_False;
+        }
         assert( status == l_True );
         // remember variable values
         Vec_IntForEachEntry( vDivVars, iVar, i )
@@ -204,7 +210,7 @@ word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDi
         // check against offset
         status = sat_solver_solve( pSat, Vec_IntArray(vTemp), Vec_IntArray(vTemp) + Vec_IntSize(vTemp), nBTLimit, 0, 0, 0 );
         if ( status == l_Undef )
-            return SBD_SAT_UNDEC;
+            return l_Undef;
         if ( status == l_True )
             break;
         assert( status == l_False );
@@ -218,8 +224,11 @@ word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDi
             if ( pFinal[i] == pLits[0] )
                 continue;
             Vec_IntPush( vTemp, pFinal[i] );
-            iVar = Vec_IntFind( vDivSet, Abc_Lit2Var(pFinal[i]) );   assert( iVar >= 0 );
-            uCube &= Abc_LitIsCompl(pFinal[i]) ? s_Truths6[iVar] : ~s_Truths6[iVar];
+            if ( pTruth )
+            {
+                iVar = Vec_IntFind( vDivSet, Abc_Lit2Var(pFinal[i]) );   assert( iVar >= 0 );
+                uCube &= Abc_LitIsCompl(pFinal[i]) ? s_Truths6[iVar] : ~s_Truths6[iVar];
+            }
         }
         uTruth |= uCube;
         status = sat_solver_addclause( pSat, Vec_IntArray(vTemp), Vec_IntArray(vTemp) + Vec_IntSize(vTemp) );
@@ -233,24 +242,24 @@ word Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDi
 
     for ( i = 0; i < Vec_IntSize(vDivValues); i++ )
         Vec_IntAddToEntry( vDivValues, i, 0xC );
-/*
-    // reduce the counter example
-    for ( n = 0; n < 2; n++ )
-    {
-        Vec_IntClear( vTemp );
-        Vec_IntPush( vTemp, Abc_Var2Lit(PivotVar, n) ); // n = 0 => F = 1  (expanding offset against onset)
-        for ( i = 0; i < Vec_IntSize(vValues); i++ )
-            Vec_IntPush( vTemp, Abc_Var2Lit(i, !((Vec_IntEntry(vValues, i) >> n) & 1)) );
-        status = sat_solver_solve( pSat, Vec_IntArray(vTemp), Vec_IntArray(vTemp) + Vec_IntSize(vTemp), nBTLimit, 0, 0, 0 );
-        assert( status == l_False );
-        // compute cube and add clause
-        nFinal = sat_solver_final( pSat, &pFinal );
-        for ( i = 0; i < nFinal; i++ )
-            if ( Abc_Lit2Var(pFinal[i]) != PivotVar )
-                Vec_IntAddToEntry( vValues, Abc_Lit2Var(pFinal[i]), 1 << (n+2) );
-    }
-*/
-    return SBD_SAT_SAT;
+//
+//     // reduce the counter example
+//     for ( n = 0; n < 2; n++ )
+//     {
+//         Vec_IntClear( vTemp );
+//         Vec_IntPush( vTemp, Abc_Var2Lit(PivotVar, n) ); // n = 0 => F = 1  (expanding offset against onset)
+//         for ( i = 0; i < Vec_IntSize(vValues); i++ )
+//             Vec_IntPush( vTemp, Abc_Var2Lit(i, !((Vec_IntEntry(vValues, i) >> n) & 1)) );
+//         status = sat_solver_solve( pSat, Vec_IntArray(vTemp), Vec_IntArray(vTemp) + Vec_IntSize(vTemp), nBTLimit, 0, 0, 0 );
+//         assert( status == l_False );
+//         // compute cube and add clause
+//         nFinal = sat_solver_final( pSat, &pFinal );
+//         for ( i = 0; i < nFinal; i++ )
+//             if ( Abc_Lit2Var(pFinal[i]) != PivotVar )
+//                 Vec_IntAddToEntry( vValues, Abc_Lit2Var(pFinal[i]), 1 << (n+2) );
+//     }
+//
+    return l_True;
 }
 
 /**Function*************************************************************
@@ -404,13 +413,12 @@ static void sat_solver_random_polarity(sat_solver* s)
     for ( i = 0; i < s->size; i += 64 )
     {
         word Polar = Gia_ManRandomW(0);
-        for ( k = 0; k < 64 && (i << 6) + k < s->size; k++ )
-            s->polarity[(i << 6) + k] = Abc_TtGetBit(&Polar, k);
+        for ( k = 0; k < 64 && i + k < s->size; k++ )
+            s->polarity[i + k] = Abc_TtGetBit(&Polar, k);
     }
 }
-int Sbd_ManCollectConstants( sat_solver * pSat, int nCareMints[2], int PivotVar, word * pVarSims[], Vec_Int_t * vInds )
+int Sbd_ManCollectConstants( sat_solver * pSat, int nCareMints[2], int PivotVar, word * pVarSims[], Vec_Int_t * vInds, int nBTLimit )
 {
-    int nBTLimit = 0;
     int i, Ind; 
     assert( Vec_IntSize(vInds) == nCareMints[0] + nCareMints[1] );
     Vec_IntForEachEntry( vInds, Ind, i )
@@ -430,9 +438,8 @@ int Sbd_ManCollectConstants( sat_solver * pSat, int nCareMints[2], int PivotVar,
     return -1;
 }
 
-int Sbd_ManCollectConstantsNew( sat_solver * pSat, Vec_Int_t * vDivVars, int nConsts, int PivotVar, word * pOnset, word * pOffset )
+int Sbd_ManCollectConstantsNew( sat_solver * pSat, Vec_Int_t * vDivVars, int nConsts, int PivotVar, word * pOnset, word * pOffset, int nBTLimit )
 {
-    int nBTLimit = 0;
     int n, i, k, status, iLit, iVar; 
     word * pPats[2] = {pOnset, pOffset};
     assert( Vec_IntSize(vDivVars) < 64 );

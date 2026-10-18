@@ -46,16 +46,17 @@ ABC_NAMESPACE_IMPL_START
 int Sbc_ManAddInternalToPath_rec( Gia_Man_t * p, int iObj, Vec_Bit_t * vPath )
 {
     Gia_Obj_t * pObj; 
-    int k, iFan, Value = 0;
+    int Value;
     if ( Gia_ObjIsTravIdCurrentId(p, iObj) )
         return Vec_BitEntry(vPath, iObj);
     Gia_ObjSetTravIdCurrentId(p, iObj);
     pObj = Gia_ManObj( p, iObj );
-    if ( Gia_ObjIsCi(pObj) )
+    if ( Gia_ObjIsCi(pObj) || Gia_ObjIsConst0(pObj) )
         return Vec_BitEntry(vPath, iObj);
     assert( Gia_ObjIsAnd(pObj) );
-    Gia_LutForEachFanin( p, iObj, iFan, k )
-        Value |= Sbc_ManAddInternalToPath_rec( p, iFan, vPath );
+    // Traverse the AIG inside the LUT, stopping at its marked cut leaves.
+    Value  = Sbc_ManAddInternalToPath_rec( p, Gia_ObjFaninId0(pObj, iObj), vPath );
+    Value |= Sbc_ManAddInternalToPath_rec( p, Gia_ObjFaninId1(pObj, iObj), vPath );
     if ( Value )
         Vec_BitWriteEntry( vPath, iObj, 1 );
     return Value;
@@ -85,12 +86,13 @@ void Sbc_ManAddInternalToPath( Gia_Man_t * p, Vec_Bit_t * vPath )
   SeeAlso     []
 
 ***********************************************************************/
-void Sbc_ManCriticalPath_rec( Gia_Man_t * p, int * pLevels, int iObj, int LevelFan, Vec_Bit_t * vPath, int Slack )
+void Sbc_ManCriticalPath_rec( Gia_Man_t * p, int * pLevels, int iObj, int LevelFan, Vec_Bit_t * vPath, Vec_Int_t * vSlack, int Slack )
 {
     Gia_Obj_t * pObj; int k, iFan;
-    if ( Gia_ObjIsTravIdCurrentId(p, iObj) )
+    if ( !iObj || Vec_IntEntry(vSlack, iObj) >= Slack )
         return;
-    Gia_ObjSetTravIdCurrentId(p, iObj);
+    // A reconvergent visit with more slack can reach additional critical nodes.
+    Vec_IntWriteEntry( vSlack, iObj, Slack );
     pObj = Gia_ManObj( p, iObj );
     Vec_BitWriteEntry( vPath, iObj, 1 );
     if ( Gia_ObjIsCi(pObj) )
@@ -101,12 +103,14 @@ void Sbc_ManCriticalPath_rec( Gia_Man_t * p, int * pLevels, int iObj, int LevelF
         {
             int curCo = Tim_ManBoxInputFirst( pManTime, iBox );
             int nBoxInputs = Tim_ManBoxInputNum( pManTime, iBox );
+            int iOut = Gia_ObjCioId(pObj) - Tim_ManBoxOutputFirst(pManTime, iBox);
+            float * pDelays = Tim_ManBoxDelayTable( pManTime, iBox ) + 3 + iOut * nBoxInputs;
             for ( k = 0; k < nBoxInputs; k++ )
             {
                 Gia_Obj_t * pCo = Gia_ManCo( p, curCo + k );
                 int iDriver = Gia_ObjFaninId0p( p, pCo );
-                if ( (pLevels[iDriver]+Slack >= LevelFan-1) && iDriver )
-                    Sbc_ManCriticalPath_rec( p, pLevels, iDriver, pLevels[iDriver], vPath, Abc_MaxInt(0, pLevels[iDriver]+Slack-(LevelFan-1)) );
+                if ( pDelays[k] != -ABC_INFINITY && (pLevels[iDriver]+Slack >= LevelFan-1) && iDriver )
+                    Sbc_ManCriticalPath_rec( p, pLevels, iDriver, pLevels[iDriver], vPath, vSlack, Abc_MaxInt(0, pLevels[iDriver]+Slack-(LevelFan-1)) );
             }
         }
         return;
@@ -114,19 +118,24 @@ void Sbc_ManCriticalPath_rec( Gia_Man_t * p, int * pLevels, int iObj, int LevelF
     assert( Gia_ObjIsAnd(pObj) );
     Gia_LutForEachFanin( p, iObj, iFan, k )
         if ( pLevels[iFan]+Slack >= LevelFan-1 )
-            Sbc_ManCriticalPath_rec( p, pLevels, iFan, pLevels[iFan], vPath, Abc_MaxInt(0, pLevels[iFan]+Slack-(LevelFan-1)) );
+            Sbc_ManCriticalPath_rec( p, pLevels, iFan, pLevels[iFan], vPath, vSlack, Abc_MaxInt(0, pLevels[iFan]+Slack-(LevelFan-1)) );
 }
 Vec_Bit_t * Sbc_ManCriticalPath( Gia_Man_t * p )
 {
     int * pLevels = NULL, k, iDriver, Slack = 1;
-    int nLevels = p->pManTime ? Gia_ManLutLevelWithBoxes(p) : Gia_ManLutLevel(p, &pLevels);
+    int nRegs = p->nRegs, nLevels;
+    if ( p->pManTime )
+        p->nRegs = 0;
+    nLevels = p->pManTime ? Gia_ManLutLevelWithBoxes(p) : Gia_ManLutLevel(p, &pLevels);
+    p->nRegs = nRegs;
     Vec_Bit_t * vPath = Vec_BitStart( Gia_ManObjNum(p) );
+    Vec_Int_t * vSlack = Vec_IntStartFull( Gia_ManObjNum(p) );
     if ( p->pManTime )
         pLevels = Vec_IntArray( p->vLevels );
-    Gia_ManIncrementTravId( p );
     Gia_ManForEachCoDriverId( p, iDriver, k )
         if ( (pLevels[iDriver] == nLevels) && iDriver )
-            Sbc_ManCriticalPath_rec( p, pLevels, iDriver, pLevels[iDriver], vPath, Slack );
+            Sbc_ManCriticalPath_rec( p, pLevels, iDriver, pLevels[iDriver], vPath, vSlack, Slack );
+    Vec_IntFree( vSlack );
     if ( !p->pManTime )
         ABC_FREE( pLevels );
     Sbc_ManAddInternalToPath( p, vPath );

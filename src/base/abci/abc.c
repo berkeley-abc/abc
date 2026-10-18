@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include <inttypes.h>
+#include <errno.h>
 #include "base/abc/abc.h"
 #include "bool/lms/lms.h"
 #include "base/main/main.h"
@@ -1488,7 +1489,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&esop",         Abc_CommandAbc9Esop,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&exorcism",     Abc_CommandAbc9Exorcism,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mfs",          Abc_CommandAbc9Mfs,          0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&mfsd",         Abc_CommandAbc9Mfsd,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&mfs2",         Abc_CommandAbc9Mfsd,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&deepsyn",      Abc_CommandAbc9DeepSyn,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&randsyn",      Abc_CommandAbc9RandSyn,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satsyn",       Abc_CommandAbc9SatSyn,       0 );
@@ -56462,11 +56463,23 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Sbd_NtkPerform( Gia_Man_t * pGia, Sbd_Par_t * pPars );
     Gia_Man_t * pTemp; int c;
-    Sbd_Par_t Pars, * pPars = &Pars;
+    Sbd_Par_t Pars, AreaPars, * pPars = &Pars;
     Sbd_ParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KSNPWFMCmcdpvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KSNPWFMCBamcdepAqvwh" ) ) != EOF )
     {
+        if ( strchr("KSNPWFMCB", c) && globalUtilOptind < argc )
+        {
+            char * pEnd;
+            long Value;
+            errno = 0;
+            Value = strtol( argv[globalUtilOptind], &pEnd, 10 );
+            if ( errno == ERANGE || pEnd == argv[globalUtilOptind] || *pEnd || Value < 0 || Value > INT_MAX )
+            {
+                Abc_Print( -1, "Command line switch \"-%c\" requires a nonnegative integer.\n", c );
+                goto usage;
+            }
+        }
         switch ( c )
         {
         case 'K':
@@ -56488,7 +56501,7 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nLutNum = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nLutNum < 0 )
+            if ( pPars->nLutNum < 1 || pPars->nLutNum > 3 )
                 goto usage;
             break;
         case 'N':
@@ -56499,7 +56512,7 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nCutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nCutSize < 0 )
+            if ( pPars->nCutSize < 2 || pPars->nCutSize > 10 )
                 goto usage;
             break;
         case 'P':
@@ -56510,7 +56523,7 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nCutNum = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nCutNum < 0 )
+            if ( pPars->nCutNum < 2 || pPars->nCutNum > 500 )
                 goto usage;
             break;
         case 'W':
@@ -56532,7 +56545,7 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nTfoFanMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nTfoFanMax < 0 )
+            if ( pPars->nTfoFanMax < 1 )
                 goto usage;
             break;
         case 'M':
@@ -56557,6 +56570,21 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nBTLimit < 0 )
                 goto usage;
             break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBTLimitDch = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'q':
+            pPars->fChoices = 1;
+            break;
+        case 'a':
+            pPars->fArea = 1;
+            break;
         case 'm':
             pPars->fMapping ^= 1;
             break;
@@ -56564,10 +56592,16 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fMoreCuts ^= 1;
             break;
         case 'd':
+            pPars->fDelay = 1;
+            break;
+        case 'e':
             pPars->fFindDivs ^= 1;
             break;
         case 'p':
-            pPars->fUsePath ^= 1;
+            pPars->fUsePath = 1;
+            break;
+        case 'A':
+            pPars->fUsePath = 0;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -56583,35 +56617,61 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Mfsd(): There is no AIG.\n" );
-        return 0;
+        Abc_Print( -1, "&mfs2: There is no AIG.\n" );
+        return 1;
+    }
+    if ( globalUtilOptind != argc || pPars->nCutSize < pPars->nLutSize )
+        goto usage;
+    if ( pPars->fArea && pPars->fDelay )
+    {
+        Abc_Print( -1, "Area-only (-a) and delay (-d) modes cannot be combined.\n" );
+        return 1;
     }
     if ( Gia_ManBufNum(pAbc->pGia) )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Mfsd(): This command does not work with barrier buffers.\n" );
+        Abc_Print( -1, "&mfs2: This command does not work with barrier buffers.\n" );
         return 1;
     }
-    if ( Gia_ManHasMapping(pAbc->pGia) )
-        Abc_Print( 1, "The current AIG has mapping, which can be used to determine critical path if \"-p\" is selected.\n" );
     pTemp = Sbd_NtkPerform( pAbc->pGia, pPars );
+    if ( pTemp == NULL )
+        return 1;
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &mfsd [-KSNPWFMC <num>] [-mcdpvwh]\n" );
-    Abc_Print( -2, "\t           performs SAT-based delay-oriented AIG optimization\n" );
-    Abc_Print( -2, "\t-K <num> : the LUT size for delay minimization (2 <= num <= 6) [default = %d]\n",         pPars->nLutSize );
-    Abc_Print( -2, "\t-S <num> : the LUT structure size (1 <= num <= 2) [default = %d]\n",                      pPars->nLutNum );
-    Abc_Print( -2, "\t-N <num> : the cut size considered for optimization (2 <= num <= 10) [default = %d]\n",   pPars->nCutSize );
-    Abc_Print( -2, "\t-P <num> : the number of cuts computed at a node (1 <= num <= 500) [default = %d]\n",     pPars->nCutNum );
+    AreaPars = Pars;
+    AreaPars.fDelay = 0;
+    Sbd_ParResolve( &AreaPars );
+    Sbd_ParResolve( pPars );
+    Abc_Print( -2, "usage: &mfs2 [-KSNPWFMCB <num>] [-amcdepAqvwh]\n" );
+    Abc_Print( -2, "\t           performs SAT-based LUT optimization and remapping\n" );
+    Abc_Print( -2, "\t           default: minimize LUT count without increasing the input LUT depth\n" );
+    Abc_Print( -2, "\t           delay mode includes structural choices and a final SAT/IF area pass\n" );
+    Abc_Print( -2, "\t           unmapped inputs are first mapped with &if -K; input LUTs must fit K\n" );
+    Abc_Print( -2, "\t           XAIG boxes are preserved; depth includes one level per box arc (levB)\n" );
+    Abc_Print( -2, "\t-K <num> : the target LUT size (2 <= num <= 6) [default = %d]\n",                        pPars->nLutSize );
+    Abc_Print( -2, "\t-S <num> : the LUT structure size for delay search (1 <= num <= 3) [default = %d]\n",     pPars->nLutNum );
+    Abc_Print( -2, "\t-N <num> : the cut size for delay search (K <= num <= 10) [default = %d]\n",             pPars->nCutSize );
+    Abc_Print( -2, "\t-P <num> : the number of cuts for delay search (2 <= num <= 500) [default = %d]\n",       pPars->nCutNum );
     Abc_Print( -2, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevels );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n",                pPars->nTfoFanMax );
     Abc_Print( -2, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n",    pPars->nWinSizeMax );
     Abc_Print( -2, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n",   pPars->nBTLimit );
-    Abc_Print( -2, "\t-m       : toggle generating delay-oriented mapping [default = %s]\n",                    pPars->fMapping? "yes": "no" );
-    Abc_Print( -2, "\t-c       : toggle using several cuts at each node [default = %s]\n",                      pPars->fMoreCuts? "yes": "no" );
-    Abc_Print( -2, "\t-d       : toggle additional search for good divisors [default = %s]\n",                  pPars->fFindDivs? "yes": "no" );
-    Abc_Print( -2, "\t-p       : toggle optimizing critical path only [default = %s]\n",                        pPars->fUsePath? "yes": "no" );
+    if ( pPars->fDelay )
+    {
+        Abc_Print( -2, "\t           final area defaults: W=%d F=%d M=%d C=%d; explicit values apply to both profiles\n",
+            AreaPars.nTfoLevels, AreaPars.nTfoFanMax, AreaPars.nWinSizeMax, AreaPars.nBTLimit );
+    }
+    Abc_Print( -2, "\t-B <num> : choice SAT conflicts (0 = no limit; also capped by -C) [default = %d]\n", pPars->nBTLimitDch );
+    Abc_Print( -2, "\t           the choice budget does not limit delay search\n" );
+    Abc_Print( -2, "\t-a       : minimize area without a depth constraint (incompatible with -d)\n" );
+    Abc_Print( -2, "\t-d       : reduce depth, then minimize area under the achieved depth bound\n" );
+    Abc_Print( -2, "\t-q       : add structural choices and a final SAT/IF area pass (included in -d)\n" );
+    Abc_Print( -2, "\t-m       : toggle returning a LUT mapping [default = %s]\n",                           pPars->fMapping? "yes": "no" );
+    Abc_Print( -2, "\t-c       : toggle using several cuts in delay search [default = %s]\n",                  pPars->fMoreCuts? "yes": "no" );
+    Abc_Print( -2, "\t-e       : toggle extra divisor search in delay mode (formerly -d) [default = %s]\n",    pPars->fFindDivs? "yes": "no" );
+    Abc_Print( -2, "\t-p       : restrict delay search to critical paths of the LUT mapping (default)\n" );
+    Abc_Print( -2, "\t-A       : search all nodes in delay mode\n" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n",                pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
