@@ -1,0 +1,52 @@
+
+#Circuit Summary:
+#---------------
+#number of inputs = 36
+#number of outputs = 7
+#number of gates = 245
+#number of wires = 281
+#atpg: cputime for reading in circuit ../sample_circuits/c432.ckt: 0.0s 0.0s
+#atpg: cputime for levelling circuit ../sample_circuits/c432.ckt: 0.0s 0.0s
+#atpg: cputime for rearranging gate inputs ../sample_circuits/c432.ckt: 0.0s 0.0s
+#atpg: cputime for creating dummy nodes ../sample_circuits/c432.ckt: 0.0s 0.0s
+#number of equivalent faults = 604
+#atpg: cputime for generating fault list ../sample_circuits/c432.ckt: 0.0s 0.0s
+T'011101111111110101111101110111110100'
+T'110101110111110101011111111101010111'
+T'101101110111111111011101011101110110'
+T'110011010101111111011101110111111101'
+T'110110011101011101110101010101111101'
+T'110101000111010101011111010101111110'
+T'111101010011010111111101110111111111'
+T'111111111110011111011101111101011101'
+T'111111010101100111011101110111111110'
+T'110101110111010001010111011111111110'
+T'110111110111110110011111111111010111'
+T'110111010111111101000101010101111110'
+T'110111011101110111010011110101110100'
+T'111111110101110101111100010101110111'
+T'111101011101010101011101000101011100'
+T'110101011111010111111111011001011111'
+T'111101111111010111010101010100010101'
+T'111101110111010101111101010111001110'
+T'111111111111011111011111011101010000'
+T'000100010000000000001001000100000001'
+
+#number of aborted faults = 0
+
+#number of redundant faults = 677
+
+#number of calling podem1 = 697
+
+#total number of backtracks = 1378
+
+#FAULT COVERAGE RESULTS :
+#number of test vectors = 20
+#total number of gate faults = 1110
+#total number of detected faults = 149
+#total gate fault coverage = 13.42%
+#number of equivalent gate faults = 604
+#number of equivalent detected faults = 108
+#equivalent gate fault coverage = 17.88%
+
+#atpg: cputime for test pattern generation ../sample_circuits/c432.ckt: 0.0s 0.0s

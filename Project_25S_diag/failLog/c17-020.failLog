@@ -1,0 +1,7 @@
+vector[7] 22GAT(10) expect L, observe H  # T'01111' 
+vector[6] 22GAT(10) expect L, observe H  # T'10000' 
+vector[5] 23GAT(9) expect H, observe L  # T'01100' 
+vector[4] 23GAT(9) expect H, observe L  # T'11011' 
+vector[3] 23GAT(9) expect H, observe L  # T'01000' 
+vector[2] 23GAT(9) expect H, observe L  # T'10001' 
+vector[2] 22GAT(10) expect L, observe H  # T'10001' 
