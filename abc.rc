@@ -97,6 +97,7 @@ alias tr0 trace_start
 alias tr1 trace_check
 alias trt "r c.blif; st; tr0; b; tr1"
 alias u undo
+alias vf verilog_format
 alias w write
 alias wa write_aiger
 alias wb write_bench
