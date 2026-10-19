@@ -1673,7 +1673,7 @@ ZeroCase(
   constant. At the decomposition point, the factors returned are (f,
   1). Recur on the two children. The order is determined by the
   heavier branch. Combine the factors of the two children and pick the
-  one that already occurs in the gh table. Occurence in g is indicated
+  one that already occurs in the gh table. Occurrence in g is indicated
   by value 1, occurence in h by 2, occurence in both 3.]
 
   SideEffects []
