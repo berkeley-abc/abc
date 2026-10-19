@@ -492,6 +492,12 @@ int Gia_ManHashXorReal( Gia_Man_t * p, int iLit0, int iLit1 )
         if ( *pPlace )
         {
             p->nHashHit++;
+            // on hash hit, union input origins into existing node
+            if ( p->vOrigins && *pPlace * GIA_ORIGINS_STRIDE < Vec_IntSize(p->vOrigins) )
+            {
+                Gia_ObjUnionOrigins( p, *pPlace, p, Abc_Lit2Var(iLit0) );
+                Gia_ObjUnionOrigins( p, *pPlace, p, Abc_Lit2Var(iLit1) );
+            }
             return Abc_Var2Lit( *pPlace, fCompl );
         }
         p->nHashMiss++;
@@ -503,6 +509,14 @@ int Gia_ManHashXorReal( Gia_Man_t * p, int iLit0, int iLit1 )
             pPlace = Gia_ManHashFind( p, iLit0, iLit1, -1 );
             assert( *pPlace == 0 );
             *pPlace = Abc_Lit2Var( iNode );
+        }
+        // propagate origins from both inputs into new node
+        if ( p->vOrigins )
+        {
+            int iNew = *pPlace;
+            Gia_ManOriginsGrow( p, iNew );
+            Gia_ObjUnionOrigins( p, iNew, p, Abc_Lit2Var(iLit0) );
+            Gia_ObjUnionOrigins( p, iNew, p, Abc_Lit2Var(iLit1) );
         }
         return Abc_Var2Lit( *pPlace, fCompl );
     }
@@ -547,6 +561,13 @@ int Gia_ManHashMuxReal( Gia_Man_t * p, int iLitC, int iLit1, int iLit0 )
         if ( *pPlace )
         {
             p->nHashHit++;
+            // on hash hit, union input origins into existing node
+            if ( p->vOrigins && *pPlace * GIA_ORIGINS_STRIDE < Vec_IntSize(p->vOrigins) )
+            {
+                Gia_ObjUnionOrigins( p, *pPlace, p, Abc_Lit2Var(iLit0) );
+                Gia_ObjUnionOrigins( p, *pPlace, p, Abc_Lit2Var(iLit1) );
+                Gia_ObjUnionOrigins( p, *pPlace, p, Abc_Lit2Var(iLitC) );
+            }
             return Abc_Var2Lit( *pPlace, fCompl );
         }
         p->nHashMiss++;
@@ -558,6 +579,15 @@ int Gia_ManHashMuxReal( Gia_Man_t * p, int iLitC, int iLit1, int iLit0 )
             pPlace = Gia_ManHashFind( p, iLit0, iLit1, iLitC );
             assert( *pPlace == 0 );
             *pPlace = Abc_Lit2Var( iNode );
+        }
+        // propagate origins from all three inputs into new node
+        if ( p->vOrigins )
+        {
+            int iNew = *pPlace;
+            Gia_ManOriginsGrow( p, iNew );
+            Gia_ObjUnionOrigins( p, iNew, p, Abc_Lit2Var(iLit0) );
+            Gia_ObjUnionOrigins( p, iNew, p, Abc_Lit2Var(iLit1) );
+            Gia_ObjUnionOrigins( p, iNew, p, Abc_Lit2Var(iLitC) );
         }
         return Abc_Var2Lit( *pPlace, fCompl );
     }
@@ -604,6 +634,12 @@ int Gia_ManHashAnd( Gia_Man_t * p, int iLit0, int iLit1 )
         if ( *pPlace )
         {
             p->nHashHit++;
+            // on hash hit, union input origins into existing node
+            if ( p->vOrigins && *pPlace * GIA_ORIGINS_STRIDE < Vec_IntSize(p->vOrigins) )
+            {
+                Gia_ObjUnionOrigins( p, *pPlace, p, Abc_Lit2Var(iLit0) );
+                Gia_ObjUnionOrigins( p, *pPlace, p, Abc_Lit2Var(iLit1) );
+            }
             return Abc_Var2Lit( *pPlace, 0 );
         }
         p->nHashMiss++;
@@ -615,6 +651,14 @@ int Gia_ManHashAnd( Gia_Man_t * p, int iLit0, int iLit1 )
             pPlace = Gia_ManHashFind( p, iLit0, iLit1, -1 );
             assert( *pPlace == 0 );
             *pPlace = Abc_Lit2Var( iNode );
+        }
+        // propagate origins from both inputs into new node
+        if ( p->vOrigins )
+        {
+            int iNew = *pPlace;
+            Gia_ManOriginsGrow( p, iNew );
+            Gia_ObjUnionOrigins( p, iNew, p, Abc_Lit2Var(iLit0) );
+            Gia_ObjUnionOrigins( p, iNew, p, Abc_Lit2Var(iLit1) );
         }
         return Abc_Var2Lit( *pPlace, 0 );
     }
@@ -762,6 +806,7 @@ Gia_Man_t * Gia_ManRehash( Gia_Man_t * p, int fAddStrash )
     }
     Gia_ManHashStop( pNew );
     pNew->fAddStrash = 0;
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
 //    printf( "Top gate is %s\n", Gia_ObjFaninC0(Gia_ManCo(pNew, 0))? "OR" : "AND" );
     pNew = Gia_ManCleanup( pTemp = pNew );
