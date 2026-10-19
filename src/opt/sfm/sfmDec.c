@@ -2144,7 +2144,7 @@ void Abc_NtkAreaOpt( Sfm_Dec_t * p )
     int i, nStop = Abc_NtkObjNumMax(p->pNtk);
     Abc_NtkForEachNode( p->pNtk, pObj, i )
     {
-        if ( i >= nStop || (p->pPars->nNodesMax && i > p->pPars->nNodesMax) )
+        if ( i >= nStop || (p->pPars->nNodesMax && p->nNodesTried >= p->pPars->nNodesMax) )
             break;
         Abc_NtkAreaOptOne( p, i );
     }
@@ -2166,6 +2166,8 @@ void Abc_NtkAreaOpt2( Sfm_Dec_t * p )
     // process nodes in this order
     Vec_PtrForEachEntry( Abc_Obj_t *, vFront, pObj, i )
     {
+        if ( p->pPars->nNodesMax && p->nNodesTried >= p->pPars->nNodesMax )
+            break;
         if ( Abc_ObjIsNone(pObj) )
             continue;
         pObjNew = Abc_NtkAreaOptOne( p, Abc_ObjId(pObj) );
@@ -2197,9 +2199,9 @@ void Abc_NtkAreaOpt2( Sfm_Dec_t * p )
 void Abc_NtkDelayOpt( Sfm_Dec_t * p )
 {
     Abc_Ntk_t * pNtk = p->pNtk;
-    Sfm_Par_t * pPars = p->pPars; int n;
+    Sfm_Par_t * pPars = p->pPars;
     Abc_NtkCleanMarkABC( pNtk );
-    for ( n = 0; pPars->nNodesMax == 0 || n < pPars->nNodesMax; n++ )
+    while ( pPars->nNodesMax == 0 || p->nNodesTried < pPars->nNodesMax )
     {
         Abc_Obj_t * pObj, * pObjNew; abctime clk;
         int i = 0, Limit, RetValue;
@@ -2213,8 +2215,11 @@ void Abc_NtkDelayOpt( Sfm_Dec_t * p )
         // try improving delay for the nodes according to the priority
         Abc_NtkForEachObjVec( &p->vCands, p->pNtk, pObj, i )
         {
-            int OldId = Abc_ObjId(pObj);
-            int DelayOld = Sfm_ManReadObjDelay(p, OldId);
+            int OldId, DelayOld;
+            if ( pPars->nNodesMax && p->nNodesTried >= pPars->nNodesMax )
+                break;
+            OldId = Abc_ObjId(pObj);
+            DelayOld = Sfm_ManReadObjDelay(p, OldId);
             assert( pObj->fMarkA == 0 );
             p->nNodesTried++;
 clk = Abc_Clock();
@@ -2306,9 +2311,22 @@ p->timeTime += Abc_Clock() - clk;
     }
     Abc_NtkCleanMarkABC( pNtk );
 }
-void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
+int Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
 {
-    Sfm_Dec_t * p = Sfm_DecStart( pPars, (Mio_Library_t *)pNtk->pManFunc, pNtk );
+    Sfm_Dec_t * p;
+    // Mapped inputs can contain dangling cones with no window roots.
+    Abc_NtkCleanup( pNtk, 0 );
+    if ( pPars->iNodeOne )
+    {
+        int iNode = pPars->iNodeOne;
+        Abc_Obj_t * pObj = iNode >= 0 && iNode < Abc_NtkObjNumMax(pNtk) ? Abc_NtkObj(pNtk, iNode) : NULL;
+        if ( pObj == NULL || !Abc_ObjIsNode(pObj) )
+        {
+            Abc_Print( -1, "mfsmap: -P %d does not name a live internal node.\n", iNode );
+            return 0;
+        }
+    }
+    p = Sfm_DecStart( pPars, (Mio_Library_t *)pNtk->pManFunc, pNtk );
     if ( pPars->fVerbose )
     {
         printf( "Remapping parameters: " );
@@ -2383,6 +2401,105 @@ void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
         extern void Abc_NtkChangePerform( Abc_Ntk_t * pNtk, int fVerbose );
         Abc_NtkChangePerform( pNtk, pPars->fVerbose );
     }
+    // New gates have no original AIG node ID; keep this metadata safe to copy.
+    if ( pNtk->vOrigNodeIds )
+        Vec_IntFillExtra( pNtk->vOrigNodeIds, Abc_NtkObjNumMax(pNtk), -1 );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Measures delay using the optimization's GENLIB timing model.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Sfm_DecReadNtkDelay( Abc_Ntk_t * pNtk )
+{
+    // This matches the engine while the Liberty timing stub Sfm_MitStart returns NULL.
+    Sfm_Tim_t * pTim = Sfm_TimStart( (Mio_Library_t *)pNtk->pManFunc, Scl_ConReadMan(), pNtk, 1 );
+    int Delay = Sfm_TimReadNtkDelay( pTim );
+    Sfm_TimStop( pTim );
+    return Delay;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Repeats complete optimization iterations while quality improves.]
+
+  Description [Area modes require a strict area reduction; bounded area also
+  preserves the incumbent delay. Delay mode accepts lower delay, or lower
+  area at equal delay, including the first iteration. Single-node requests
+  perform one in-place iteration to preserve the requested object ID.
+  Returns NULL when the requested node is invalid after cleanup.]
+
+  SideEffects [Area modes and single-node requests modify the input. Full
+  delay optimization preserves the input. Returns the input or a new network;
+  the caller retains ownership of the input in either case.]
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkPerformMfs3Rounds( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars, int nIters )
+{
+    Abc_Ntk_t * pBest = pNtk, * pTrial;
+    int i = 0, DelayBest, fTiming = !pPars->fArea || pPars->fAreaTiming;
+    double AreaBest;
+    assert( nIters > 0 );
+    if ( pPars->iNodeOne )
+    {
+        // Duplication renumbers object IDs, so keep this diagnostic in place.
+        return Abc_NtkPerformMfs3( pBest, pPars ) ? pBest : NULL;
+    }
+    if ( pPars->fArea )
+    {
+        Abc_NtkPerformMfs3( pBest, pPars );
+        if ( nIters == 1 )
+            return pBest;
+        i = 1;
+    }
+    AreaBest = Abc_NtkGetMappedArea( pBest );
+    DelayBest = fTiming ? Sfm_DecReadNtkDelay(pBest) : 0;
+    for ( ; i < nIters; i++ )
+    {
+        double AreaNew;
+        int DelayNew, fAreaGain, fImprove;
+        // Preserve the incumbent, including the input mapping in delay mode.
+        pTrial = Abc_NtkDup( pBest );
+        if ( pPars->fVerbose )
+            Abc_Print( 1, "Optimization iteration %d of %d.\n", i + 1, nIters );
+        Abc_NtkPerformMfs3( pTrial, pPars );
+        AreaNew = Abc_NtkGetMappedArea( pTrial );
+        DelayNew = fTiming ? Sfm_DecReadNtkDelay(pTrial) : 0;
+        // Ignore summation roundoff when comparing floating-point gate areas.
+        fAreaGain = AreaNew < AreaBest - 1e-6;
+        if ( pPars->fArea )
+            fImprove = fAreaGain && (!pPars->fAreaTiming || DelayNew <= DelayBest);
+        else
+            fImprove = DelayNew < DelayBest || (DelayNew == DelayBest && fAreaGain);
+        if ( pPars->fVerbose )
+        {
+            Abc_Print( 1, "Optimization iteration %d: area %.2f -> %.2f. ", i + 1, AreaBest, AreaNew );
+            if ( fTiming )
+                Abc_Print( 1, "Delay %.2f -> %.2f. ", Scl_Int2Flt(DelayBest), Scl_Int2Flt(DelayNew) );
+            Abc_Print( 1, "%s.\n", fImprove ? "Accepted" : "No improvement; stopping" );
+        }
+        if ( !fImprove )
+        {
+            Abc_NtkDelete( pTrial );
+            break;
+        }
+        if ( pBest != pNtk )
+            Abc_NtkDelete( pBest );
+        pBest = pTrial;
+        AreaBest = AreaNew;
+        DelayBest = DelayNew;
+    }
+    return pBest;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -138,6 +138,12 @@ void Sfm_LibPreprocess( Mio_Library_t * pLib, Vec_Int_t * vGateSizes, Vec_Wrd_t 
     Vec_PtrGrow( vGateHands, nGates );
     Mio_LibraryForEachGate( pLib, pGate )
     {
+        // The mapped-network engine uses one-word truth tables for cells.
+        if ( Mio_GateReadPinNum(pGate) > 6 )
+        {
+            Mio_GateSetValue( pGate, -1 );
+            continue;
+        }
         Vec_IntPush( vGateSizes, Mio_GateReadPinNum(pGate) );
         Vec_WrdPush( vGateFuncs, Mio_GateReadTruth(pGate) );
         Mio_GateSetValue( pGate, Vec_PtrSize(vGateHands) );

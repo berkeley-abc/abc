@@ -121,6 +121,7 @@ void Sbd_ParSetDefault( Sbd_Par_t * pPars )
     pPars->nLutNum      = 3;    // target LUT count
     pPars->nCutSize     = (pPars->nLutSize - 1) * pPars->nLutNum + 1;  // target cut size
     pPars->nCutNum      = 128;  // target cut count
+    pPars->nIters       = 1;    // complete delay optimization rounds
     pPars->nTfoLevels   = -1;   // use the objective's window defaults
     pPars->nTfoFanMax   = -1;
     pPars->nWinSizeMax  = -1;
@@ -2905,6 +2906,65 @@ static Gia_Man_t * Sbd_ManOptimizeArea( Gia_Man_t * pGia, Sbd_Par_t * pPars, int
 
 /**Function*************************************************************
 
+  Synopsis    [Runs one complete optimization round including area recovery.]
+
+  Description [Parameters are resolved and the input has a LUT mapping.]
+
+  SideEffects [Consumes the input manager.]
+
+  SeeAlso     []
+
+***********************************************************************/
+static Gia_Man_t * Sbd_NtkPerformRound( Gia_Man_t * pWork, Sbd_Par_t * pPars, Sbd_Par_t * pAreaPars )
+{
+    Gia_Man_t * pNew;
+    int nBound;
+    if ( pPars->fDelay )
+    {
+        int iPass;
+        for ( iPass = 0; iPass < 2; iPass++ )
+        {
+            int nLevelPrev = Sbd_ManLutLevel(pWork);
+            if ( pPars->fVerbose )
+                Abc_Print( 1, "Delay pass %d (%s): starting at depth %d.\n", iPass + 1,
+                    iPass ? "structural revisit" : "SAT/QBF and ACD", nLevelPrev );
+            pNew = Sbd_NtkPerformDelay( pWork, pPars, iPass != 0 );
+            Gia_ManStop( pWork );
+            if ( pNew == NULL )
+                return NULL;
+            nBound = Sbd_ManLutLevel(pNew);
+            pNew = Sbd_ManOptimizeArea( pNew, pPars, nBound );
+            if ( nBound >= nLevelPrev || iPass == 1 )
+                break;
+            // Rebuild cuts and criticality on the changed mapping. This also
+            // revisits earlier pivots and the nodes introduced by synthesis.
+            pWork = pNew;
+        }
+    }
+    else
+    {
+        pNew = pWork;
+        nBound = pPars->fArea ? -1 : Sbd_ManLutLevel(pNew);
+        pNew = Sbd_ManOptimizeArea( pNew, pPars, nBound );
+    }
+    if ( pPars->fDelay || pPars->fChoices )
+    {
+        int nLutsPrev;
+        nBound = pPars->fArea ? -1 : Sbd_ManLutLevel(pNew);
+        pNew = Sbd_ManRecoverArea( pNew, pPars, nBound, 1 );
+        nLutsPrev = Gia_ManLutNum(pNew);
+        // The choice remap can expose new SAT resubstitutions.
+        nBound = pPars->fArea ? -1 : Sbd_ManLutLevel(pNew);
+        pNew = Sbd_ManOptimizeArea( pNew, pAreaPars, nBound );
+        if ( pPars->fVerbose )
+            Abc_Print( 1, "Final area recovery: LUTs %d -> %d. Depth %d.\n",
+                nLutsPrev, Gia_ManLutNum(pNew), Sbd_ManLutLevel(pNew) );
+    }
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Selects bounded area, unconstrained area, or delay optimization.]
 
   Description [The default preserves the input LUT depth while reducing area.
@@ -2919,7 +2979,9 @@ static Gia_Man_t * Sbd_ManOptimizeArea( Gia_Man_t * pGia, Sbd_Par_t * pPars, int
   the mapping seen by the structural revisit. Area modes can request this extra
   recovery with fChoices. With boxes, depth counts one level
   per box arc and the existing box order is preserved. Box dependency checks
-  are disabled for ordinary AIGs.]
+  are disabled for ordinary AIGs. Optional extra delay rounds retain the
+  incumbent unless depth improves or equal depth uses fewer LUTs. Stop at
+  the first round without improvement.]
 
   SideEffects []
 
@@ -2930,7 +2992,7 @@ Gia_Man_t * Sbd_NtkPerform( Gia_Man_t * pGia, Sbd_Par_t * pPars )
 {
     Gia_Man_t * pWork, * pNew;
     Sbd_Par_t Settings = *pPars, Pars, AreaPars = *pPars;
-    int nLuts, nLevel, nBound;
+    int iIter, nLuts, nLevel;
     int nRegsBox = Gia_ManIsSeqWithBoxes(pGia) ? Gia_ManRegNum(pGia) : 0;
     abctime clk = Abc_Clock();
     // Explicit caller settings, including zero limits, apply to both profiles.
@@ -2953,6 +3015,11 @@ Gia_Man_t * Sbd_NtkPerform( Gia_Man_t * pGia, Sbd_Par_t * pPars )
     if ( pPars->fArea && pPars->fDelay )
     {
         Abc_Print( -1, "Area-only (-a) and delay (-d) modes cannot be combined.\n" );
+        return NULL;
+    }
+    if ( pPars->nIters < 1 || (pPars->nIters > 1 && !pPars->fDelay) )
+    {
+        Abc_Print( -1, "The iteration count must be positive; multiple iterations require delay mode (-d).\n" );
         return NULL;
     }
     if ( Gia_ManHasMapping(pGia) && Gia_ManLutSizeMax(pGia) > pPars->nLutSize )
@@ -3020,46 +3087,36 @@ Gia_Man_t * Sbd_NtkPerform( Gia_Man_t * pGia, Sbd_Par_t * pPars )
     nLevel = Sbd_ManLutLevel(pWork);
     // All objectives use LUT mapping internally, including when -m is given.
     Pars.fMapping = 1;
-    if ( pPars->fDelay )
+    pNew = Sbd_NtkPerformRound( pWork, &Pars, &AreaPars );
+    if ( pNew == NULL )
+        return NULL;
+    for ( iIter = 1; iIter < pPars->nIters; iIter++ )
     {
-        int iPass;
-        for ( iPass = 0; iPass < 2; iPass++ )
-        {
-            int nLevelPrev = Sbd_ManLutLevel(pWork);
-            if ( pPars->fVerbose )
-                Abc_Print( 1, "Delay pass %d (%s): starting at depth %d.\n", iPass + 1,
-                    iPass ? "structural revisit" : "SAT/QBF and ACD", nLevelPrev );
-            pNew = Sbd_NtkPerformDelay( pWork, &Pars, iPass != 0 );
-            Gia_ManStop( pWork );
-            if ( pNew == NULL )
-                return NULL;
-            nBound = Sbd_ManLutLevel(pNew);
-            pNew = Sbd_ManOptimizeArea( pNew, &Pars, nBound );
-            if ( nBound >= nLevelPrev || iPass == 1 )
-                break;
-            // Rebuild cuts and criticality on the changed mapping. This also
-            // revisits earlier pivots and the nodes introduced by synthesis.
-            pWork = pNew;
-        }
-    }
-    else
-    {
-        pNew = pWork;
-        nBound = pPars->fArea ? -1 : nLevel;
-        pNew = Sbd_ManOptimizeArea( pNew, &Pars, nBound );
-    }
-    if ( pPars->fDelay || pPars->fChoices )
-    {
-        int nLutsPrev;
-        nBound = pPars->fArea ? -1 : Sbd_ManLutLevel(pNew);
-        pNew = Sbd_ManRecoverArea( pNew, &Pars, nBound, 1 );
-        nLutsPrev = Gia_ManLutNum(pNew);
-        // The choice remap can expose new SAT resubstitutions.
-        nBound = pPars->fArea ? -1 : Sbd_ManLutLevel(pNew);
-        pNew = Sbd_ManOptimizeArea( pNew, &AreaPars, nBound );
+        int nLutsPrev = Gia_ManLutNum(pNew), nLevelPrev = Sbd_ManLutLevel(pNew);
+        int nLutsNew, nLevelNew, fImprove;
+        // Preserve the incumbent while the next round restructures its copy.
+        pWork = Gia_ManDup( pNew );
+        pWork->vMapping = Vec_IntDup( pNew->vMapping );
+        Sbd_ManCopyBoxes( pWork, pNew );
         if ( pPars->fVerbose )
-            Abc_Print( 1, "Final area recovery: LUTs %d -> %d. Depth %d.\n",
-                nLutsPrev, Gia_ManLutNum(pNew), Sbd_ManLutLevel(pNew) );
+            Abc_Print( 1, "Optimization iteration %d of %d.\n", iIter + 1, pPars->nIters );
+        pWork = Sbd_NtkPerformRound( pWork, &Pars, &AreaPars );
+        if ( pWork == NULL )
+            break;
+        nLutsNew = Gia_ManLutNum(pWork);
+        nLevelNew = Sbd_ManLutLevel(pWork);
+        fImprove = nLevelNew < nLevelPrev || (nLevelNew == nLevelPrev && nLutsNew < nLutsPrev);
+        if ( pPars->fVerbose )
+            Abc_Print( 1, "Optimization iteration %d: depth %d -> %d. LUTs %d -> %d. %s.\n",
+                iIter + 1, nLevelPrev, nLevelNew, nLutsPrev, nLutsNew,
+                fImprove ? "Accepted" : "No improvement; stopping" );
+        if ( !fImprove )
+        {
+            Gia_ManStop( pWork );
+            break;
+        }
+        Gia_ManStop( pNew );
+        pNew = pWork;
     }
     assert( pPars->fArea || Sbd_ManLutLevel(pNew) <= nLevel );
     assert( pPars->fDelay || Gia_ManLutNum(pNew) <= nLuts );

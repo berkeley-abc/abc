@@ -42,6 +42,7 @@ struct Sbd_Par_t_
     int             nLutNum;      // target LUT count
     int             nCutSize;     // target cut size
     int             nCutNum;      // target cut count
+    int             nIters;       // maximum complete delay optimization rounds
     int             nTfoLevels;   // the number of TFO levels (-1 = objective default)
     int             nTfoFanMax;   // the max number of fanouts (-1 = objective default)
     int             nWinSizeMax;  // maximum window size (-1 = objective default)

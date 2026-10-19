@@ -313,7 +313,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
             }
             //if ( pNtk->vOrigNodeIds )
             //    printf( "%d = %d \n", pNode->Id, Vec_IntEntry(pNtk->vOrigNodeIds, pNode->Id) )
-            AigNodeId = (fAigIds && pNtk->vOrigNodeIds) ? Vec_IntEntry(pNtk->vOrigNodeIds, pNode->Id) : -1;
+            AigNodeId = (fAigIds && pNtk->vOrigNodeIds && pNode->Id < Vec_IntSize(pNtk->vOrigNodeIds)) ? Vec_IntEntry(pNtk->vOrigNodeIds, pNode->Id) : -1;
             if ( AigNodeId > 0 )
                 fprintf( pFile, "  Node%d [label = \"%s%d\\n%s\"", pNode->Id, Abc_LitIsCompl(AigNodeId) ? "-":"+", Abc_Lit2Var(AigNodeId), pSopString );
             else 

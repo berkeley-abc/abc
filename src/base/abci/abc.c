@@ -1009,7 +1009,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Cmd_CommandAdd( pAbc, "Synthesis",    "imfs",          Abc_CommandImfs,             1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "mfs",           Abc_CommandMfs,              1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "mfs2",          Abc_CommandMfs2,             1 );
-    Cmd_CommandAdd( pAbc, "Synthesis",    "mfs3",          Abc_CommandMfs3,             1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "mfsmap",        Abc_CommandMfs3,             1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "logicpush",     Abc_CommandLogicPush,        1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "trace",         Abc_CommandTrace,            0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "glitch",        Abc_CommandGlitch,           0 );
@@ -6144,18 +6144,40 @@ usage:
 ***********************************************************************/
 int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars );
+    extern Abc_Ntk_t * Abc_NtkPerformMfs3Rounds( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars, int nIters );
     extern void Sfm_ParSetDefault3( Sfm_Par_t * pPars );
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes;
     Sfm_Par_t Pars, * pPars = &Pars; int c;
-    int fAreaOnly = 0, fDelayOnly = 0, fKeepTiming = 0;
+    int fAreaOnly = 0, fDelayOnly = 0, fKeepTiming = 0, nIters = 1;
     // set defaults
     Sfm_ParSetDefault3( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IOVFKLHRMCNPWDETarmzoespdtlvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "RIOVFKLHSMCNPWDETarmzespdtlvwh" ) ) != EOF )
     {
+        if ( (c == 'R' || c == 'I' || c == 'S' || c == 'N' || c == 'P') && globalUtilOptind < argc )
+        {
+            char * pEnd;
+            long Value;
+            int fPositive = c == 'R' || c == 'I' || c == 'S';
+            errno = 0;
+            Value = strtol( argv[globalUtilOptind], &pEnd, 10 );
+            if ( errno == ERANGE || pEnd == argv[globalUtilOptind] || *pEnd || Value < fPositive || Value > INT_MAX )
+            {
+                Abc_Print( -1, "Command line switch \"-%c\" requires a %s integer.\n", c, fPositive ? "positive" : "nonnegative" );
+                goto usage;
+            }
+        }
         switch ( c )
         {
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
         case 'I':
             if ( globalUtilOptind >= argc )
             {
@@ -6164,11 +6186,6 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nTfiLevMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nTfiLevMax < 1 )
-            {
-                Abc_Print( -1, "The number of TFI levels (switch \"-I\") should be at least 1.\n" );
-                goto usage;
-            }
             break;
         case 'O':
             if ( globalUtilOptind >= argc )
@@ -6236,15 +6253,15 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nMffcMax < 0 )
                 goto usage;
             break;
-        case 'R':
+        case 'S':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
                 goto usage;
             }
             pPars->nDecMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nDecMax < 0 )
+            if ( pPars->nDecMax < 1 || pPars->nDecMax > 4 )
                 goto usage;
             break;
         case 'M':
@@ -6339,9 +6356,6 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'z':
             pPars->fZeroCost ^= 1;
             break;
-        case 'o':
-            pPars->fRrOnly ^= 1;
-            break;
         case 'e':
             pPars->fMoreEffort ^= 1;
             break;
@@ -6388,34 +6402,64 @@ int Abc_CommandMfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkIsMappedLogic(pNtk) )
     {
-        Abc_Print( -1, "This command can only be applied to a mapped logic network.\n" );
+        char Command[5], * pArgv[2] = { Command, NULL };
+        int fUseAmap = pPars->fArea && !pPars->fAreaTiming, fMapFailed;
+        strcpy( Command, fUseAmap ? "amap" : "map" );
+        if ( pPars->fVerbose )
+            Abc_Print( 1, "Mapping the input using %s.\n", Command );
+        // Reuse mapper defaults, input conversion, and failure handling.
+        fMapFailed = fUseAmap ? Abc_CommandAmap(pAbc, 1, pArgv) : Abc_CommandMap(pAbc, 1, pArgv);
+        if ( fMapFailed && !fUseAmap )
+            return 1;
+        pNtk = Abc_FrameReadNtk(pAbc);
+        if ( fUseAmap && (fMapFailed || Abc_NtkGetFaninMax(pNtk) > 6) )
+        {
+            if ( fMapFailed )
+                Abc_Print( 1, "Automatic amap mapping failed; retrying with map.\n" );
+            else if ( pPars->fVerbose )
+                Abc_Print( 1, "The amap result uses gates with more than 6 inputs; retrying with map.\n" );
+            strcpy( Command, "map" );
+            if ( Abc_CommandMap(pAbc, 1, pArgv) )
+                return 1;
+            pNtk = Abc_FrameReadNtk(pAbc);
+        }
+    }
+    if ( Abc_NtkGetFaninMax(pNtk) > 6 )
+    {
+        Abc_Print( -1, "mfsmap requires mapped gates with at most 6 inputs.\n" );
         return 1;
     }
     // modify the current network
-    Abc_NtkPerformMfs3( pNtk, pPars );
+    pNtkRes = Abc_NtkPerformMfs3Rounds( pNtk, pPars, nIters );
+    if ( pNtkRes == NULL )
+        return 1;
+    if ( pNtkRes != pNtk )
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: mfs3 [-a|-d] [-IOVFKLHRMCNPWDE <num>] [-trmzespTlvwh]\n" );
+    Abc_Print( -2, "usage: mfsmap [-a|-d] [-RIOVFKLHSMCNPWDE <num>] [-trmzespTlvwh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of mapped networks\n" );
     Abc_Print( -2, "\t           minimizes area while preserving initial GENLIB block delay by default\n" );
-    Abc_Print( -2, "\t-I <num> : the number of levels in the TFI cone (1 <= num) [default = %d]\n",             pPars->nTfiLevMax );
+    Abc_Print( -2, "\t-R <num> : max complete optimization iterations (1 <= num) [default = %d]\n",            nIters );
+    Abc_Print( -2, "\t           stop at the first iteration without improvement of the selected objective\n" );
+    Abc_Print( -2, "\t-I <num> : TFI cone levels (1 <= num) [default = %d]\n",                                pPars->nTfiLevMax );
     Abc_Print( -2, "\t-O <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevMax );
     Abc_Print( -2, "\t-V <num> : the number of levels in the TFI/TFO cone (1 <= num) [default = %d]\n",         pPars->nTfiLevMax );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n",                pPars->nFanoutMax );
     Abc_Print( -2, "\t-K <num> : the max number of variables (2 <= num <= 8 ) [default = %d]\n",                pPars->nVarMax );
     Abc_Print( -2, "\t-L <num> : the min size of max fanout-free cone (MFFC) (area-only) [default = %d]\n",     pPars->nMffcMin );
     Abc_Print( -2, "\t-H <num> : the max size of max fanout-free cone (MFFC) (area-only) [default = %d]\n",     pPars->nMffcMax );
-    Abc_Print( -2, "\t-R <num> : the max number of decomposition rounds (1 <= num <= 4) [default = %d]\n",      pPars->nDecMax );
+    Abc_Print( -2, "\t-S <num> : max decomposition attempts per node (1 <= num <= 4) [default = %d]\n",         pPars->nDecMax );
     Abc_Print( -2, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n",    pPars->nWinSizeMax );
     Abc_Print( -2, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n",   pPars->nBTLimit );
-    Abc_Print( -2, "\t-N <num> : the max number of nodes to try (0 = all) [default = %d]\n",                    pPars->nNodesMax );
+    Abc_Print( -2, "\t-N <num> : max nodes to try per iteration (0 = all) [default = %d]\n",                    pPars->nNodesMax );
     Abc_Print( -2, "\t-P <num> : one particular node to try (0 = none) [default = %d]\n",                       pPars->iNodeOne );
     Abc_Print( -2, "\t-W <num> : size of timing window in percents (0 <= num <= 100) [default = %d]\n",         pPars->nTimeWin );
     Abc_Print( -2, "\t-D <num> : size of critical-timing delay-delta (in picoseconds) [default = %d]\n",        pPars->DeltaCrit );
     Abc_Print( -2, "\t-E <num> : delay-area tradeoff (in picoseconds per area-unit) [default = %d]\n",          pPars->DelAreaRatio );
     Abc_Print( -2, "\t-a       : minimize area without a delay constraint\n" );
-    Abc_Print( -2, "\t-d       : minimize delay explicitly (area may increase)\n" );
+    Abc_Print( -2, "\t-d       : minimize delay; allow area growth only if delay decreases (except with -P)\n" );
     Abc_Print( -2, "\t-t       : preserve initial GENLIB delay in area mode (default; overrides -a)\n" );
     Abc_Print( -2, "\t-r       : toggle using reverse topo order for area minimization [default = %s]\n",       pPars->fAreaRev? "yes": "no" );
     Abc_Print( -2, "\t-m       : toggle detecting multi-input AND/OR gates [default = %s]\n",                   pPars->fUseAndOr? "yes": "no" );
@@ -57060,17 +57104,17 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
     Sbd_Par_t Pars, AreaPars, * pPars = &Pars;
     Sbd_ParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KSNPWFMCBamcdepAqvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KSNPRWFMCBamcdepAqvwh" ) ) != EOF )
     {
-        if ( strchr("KSNPWFMCB", c) && globalUtilOptind < argc )
+        if ( strchr("KSNPRWFMCB", c) && globalUtilOptind < argc )
         {
             char * pEnd;
             long Value;
             errno = 0;
             Value = strtol( argv[globalUtilOptind], &pEnd, 10 );
-            if ( errno == ERANGE || pEnd == argv[globalUtilOptind] || *pEnd || Value < 0 || Value > INT_MAX )
+            if ( errno == ERANGE || pEnd == argv[globalUtilOptind] || *pEnd || Value < (c == 'R' ? 1 : 0) || Value > INT_MAX )
             {
-                Abc_Print( -1, "Command line switch \"-%c\" requires a nonnegative integer.\n", c );
+                Abc_Print( -1, "Command line switch \"-%c\" requires a %s integer.\n", c, c == 'R' ? "positive" : "nonnegative" );
                 goto usage;
             }
         }
@@ -57173,6 +57217,17 @@ int Abc_CommandAbc9Mfsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nBTLimitDch = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nIters < 1 )
+                goto usage;
+            break;
         case 'q':
             pPars->fChoices = 1;
             break;
@@ -57237,7 +57292,7 @@ usage:
     AreaPars.fDelay = 0;
     Sbd_ParResolve( &AreaPars );
     Sbd_ParResolve( pPars );
-    Abc_Print( -2, "usage: &mfs2 [-KSNPWFMCB <num>] [-amcdepAqvwh]\n" );
+    Abc_Print( -2, "usage: &mfs2 [-KSNPRWFMCB <num>] [-amcdepAqvwh]\n" );
     Abc_Print( -2, "\t           performs SAT-based LUT optimization and remapping\n" );
     Abc_Print( -2, "\t           default: minimize LUT count without increasing the input LUT depth\n" );
     Abc_Print( -2, "\t           delay mode includes structural choices and a final SAT/IF area pass\n" );
@@ -57247,6 +57302,8 @@ usage:
     Abc_Print( -2, "\t-S <num> : the LUT structure size for delay search (1 <= num <= 3) [default = %d]\n",     pPars->nLutNum );
     Abc_Print( -2, "\t-N <num> : the cut size for delay search (K <= num <= 10) [default = %d]\n",             pPars->nCutSize );
     Abc_Print( -2, "\t-P <num> : the number of cuts for delay search (2 <= num <= 500) [default = %d]\n",       pPars->nCutNum );
+    Abc_Print( -2, "\t-R <num> : max complete delay-mode iterations (1 <= num) [default = %d]\n",              pPars->nIters );
+    Abc_Print( -2, "\t           extra iterations require -d; stop unless depth or equal-depth LUT count improves\n" );
     Abc_Print( -2, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevels );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n",                pPars->nTfoFanMax );
     Abc_Print( -2, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n",    pPars->nWinSizeMax );

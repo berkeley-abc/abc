@@ -591,8 +591,9 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
         if ( pNtk->vOrigNodeIds ) 
         {
             pNtkNew->vOrigNodeIds = Vec_IntStartFull( Abc_NtkObjNumMax(pNtkNew) );
+            // Newly added mapped nodes may have no original-ID entry.
             Abc_NtkForEachObj( pNtk, pObj, i )
-                if ( pObj->pCopy && Vec_IntEntry(pNtk->vOrigNodeIds, pObj->Id) > 0 )
+                if ( pObj->pCopy && Abc_ObjId(pObj) < Vec_IntSize(pNtk->vOrigNodeIds) && Vec_IntEntry(pNtk->vOrigNodeIds, pObj->Id) > 0 )
                     Vec_IntWriteEntry( pNtkNew->vOrigNodeIds, pObj->pCopy->Id, Vec_IntEntry(pNtk->vOrigNodeIds, pObj->Id) );
         }
         
