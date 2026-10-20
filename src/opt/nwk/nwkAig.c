@@ -252,7 +252,7 @@ void Nwk_ManDeriveMinCut( Gia_Man_t * p, int fVerbose )
         Nwk_ManColleacReached_rec( p, pObj, vNodes2, vLeaves2 );
     }
     if ( fVerbose )
-        printf( "Min-cut: %d -> %d.  Nodes %d -> %d.  ", Vec_IntSize(vPPis)+1, Vec_PtrSize(vMinCut), Vec_IntSize(vNodes), Vec_IntSize(vNodes2) );
+        fprintf( Abc_FrameGlobalGetOut(), "Min-cut: %d -> %d.  Nodes %d -> %d.  ", Vec_IntSize(vPPis)+1, Vec_PtrSize(vMinCut), Vec_IntSize(vNodes), Vec_IntSize(vNodes2) );
     Vec_IntFree( vPPis );
     Vec_PtrFree( vMinCut );
     Vec_IntFree( vMapInv );
@@ -266,7 +266,7 @@ void Nwk_ManDeriveMinCut( Gia_Man_t * p, int fVerbose )
     vDiff1 = Vec_IntAlloc( 100 );
     Vec_IntTwoSplit( vNodes, vNodes2, vCommon, vDiff0, vDiff1 );
     if ( fVerbose )
-        printf( "Common = %d.  Diff0 = %d. Diff1 = %d.\n", Vec_IntSize(vCommon), Vec_IntSize(vDiff0), Vec_IntSize(vDiff1) );
+        fprintf( Abc_FrameGlobalGetOut(), "Common = %d.  Diff0 = %d. Diff1 = %d.\n", Vec_IntSize(vCommon), Vec_IntSize(vDiff0), Vec_IntSize(vDiff1) );
 
     // fill in
     Vec_IntForEachEntry( vDiff0, iObjId, i )

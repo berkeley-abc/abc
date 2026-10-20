@@ -529,12 +529,12 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
         return 1;
 
     // print stats about the window
-    printf( "%6d : ", iNode );
-    printf( "Leaves = %5d. ", 0 );
-    printf( "Nodes = %5d. ",  Vec_IntSize(p->vNodes) );
-    printf( "Roots = %5d. ",  Vec_IntSize(p->vRoots) );
-    printf( "Divs = %5d. ",   Vec_IntSize(p->vDivs) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "%6d : ", iNode );
+    fprintf( Abc_FrameGlobalGetOut(), "Leaves = %5d. ", 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes = %5d. ",  Vec_IntSize(p->vNodes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Roots = %5d. ",  Vec_IntSize(p->vRoots) );
+    fprintf( Abc_FrameGlobalGetOut(), "Divs = %5d. ",   Vec_IntSize(p->vDivs) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     return 1;
 }
 void Sfm_NtkWindowTest( Sfm_Ntk_t * p, int iNode )

@@ -97,13 +97,13 @@ void Dar_ManPrintStats( Dar_Man_t * p )
     extern void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 
     Gain = p->nNodesInit - Aig_ManNodeNum(p->pAig);
-    printf( "Tried = %8d. Beg = %8d. End = %8d. Gain = %6d. (%6.2f %%).  Cut mem = %d MB\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Tried = %8d. Beg = %8d. End = %8d. Gain = %6d. (%6.2f %%).  Cut mem = %d MB\n", 
         p->nNodesTried, p->nNodesInit, Aig_ManNodeNum(p->pAig), Gain, 100.0*Gain/p->nNodesInit, p->nCutMemUsed );
-    printf( "Cuts = %8d. Tried = %8d. Used = %8d. Bad = %5d. Skipped = %5d. Ave = %.2f.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Cuts = %8d. Tried = %8d. Used = %8d. Bad = %5d. Skipped = %5d. Ave = %.2f.\n", 
         p->nCutsAll, p->nCutsTried, p->nCutsUsed, p->nCutsBad, p->nCutsSkipped,
         (float)p->nCutsUsed/Aig_ManNodeNum(p->pAig) );
 
-    printf( "Bufs = %5d. BufMax = %5d. BufReplace = %6d. BufFix = %6d.  Levels = %4d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Bufs = %5d. BufMax = %5d. BufReplace = %6d. BufFix = %6d.  Levels = %4d.\n", 
         Aig_ManBufNum(p->pAig), p->pAig->nBufMax, p->pAig->nBufReplaces, p->pAig->nBufFixes, Aig_ManLevels(p->pAig) );
     ABC_PRT( "Cuts  ", p->timeCuts );
     ABC_PRT( "Eval  ", p->timeEval );
@@ -117,15 +117,15 @@ void Dar_ManPrintStats( Dar_Man_t * p )
     {
         if ( p->ClassGains[i] == 0 && p->ClassTimes[i] == 0 )
             continue;
-        printf( "%3d : ", i );
-        printf( "G = %6d (%5.2f %%)  ", p->ClassGains[i], Gain? 100.0*p->ClassGains[i]/Gain : 0.0 );
-        printf( "S = %8d (%5.2f %%)  ", p->ClassSubgs[i], p->nTotalSubgs? 100.0*p->ClassSubgs[i]/p->nTotalSubgs : 0.0 );
-        printf( "R = %7d   ", p->ClassGains[i]? p->ClassSubgs[i]/p->ClassGains[i] : 9999999 );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "G = %6d (%5.2f %%)  ", p->ClassGains[i], Gain? 100.0*p->ClassGains[i]/Gain : 0.0 );
+        fprintf( Abc_FrameGlobalGetOut(), "S = %8d (%5.2f %%)  ", p->ClassSubgs[i], p->nTotalSubgs? 100.0*p->ClassSubgs[i]/p->nTotalSubgs : 0.0 );
+        fprintf( Abc_FrameGlobalGetOut(), "R = %7d   ", p->ClassGains[i]? p->ClassSubgs[i]/p->ClassGains[i] : 9999999 );
 //        Kit_DsdPrintFromTruth( pCanons + i, 4 );
 //        ABC_PRTP( "T", p->ClassTimes[i], p->timeEval );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 

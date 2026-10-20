@@ -55,7 +55,7 @@ int Nwk_ManVerifyTopoOrder( Nwk_Man_t * pNtk )
             {
                 if ( !Nwk_ObjIsTravIdCurrent(pNext) )
                 {
-                    printf( "Node %d has fanin %d that is not in a topological order.\n", pObj->Id, pNext->Id );
+                    fprintf( Abc_FrameGlobalGetOut(), "Node %d has fanin %d that is not in a topological order.\n", pObj->Id, pNext->Id );
                     return 0;
                 }
             }
@@ -74,7 +74,7 @@ int Nwk_ManVerifyTopoOrder( Nwk_Man_t * pNtk )
                         pNext = Nwk_ManCo( pNtk, iTerm1 + k );
                         if ( !Nwk_ObjIsTravIdCurrent(pNext) )
                         {
-                            printf( "Box %d has input %d that is not in a topological order.\n", iBox, pNext->Id );
+                            fprintf( Abc_FrameGlobalGetOut(), "Box %d has input %d that is not in a topological order.\n", iBox, pNext->Id );
                             return 0;
                         }
                     }
@@ -546,7 +546,7 @@ void Nwk_ManSupportSum( Nwk_Man_t * pNtk )
         nTotalSupps += Vec_PtrSize( vSupp );
         Vec_PtrFree( vSupp );
     }
-    printf( "Total supports = %d.\n", nTotalSupps );
+    fprintf( Abc_FrameGlobalGetOut(), "Total supports = %d.\n", nTotalSupps );
 }
 
 

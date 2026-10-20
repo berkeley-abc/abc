@@ -351,13 +351,13 @@ p->timeSat += Abc_Clock() - clk;
     }
     if ( p->pPars->fPrintCares ) {
         int nFaninMax = Abc_NtkGetFaninMax(pNode->pNtk);
-        printf( "Node %d : ", Abc_ObjId(pNode) );
-        printf( "Fanins %d : ", Abc_ObjFaninNum(pNode) );
-        printf( "Care " );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %d : ", Abc_ObjId(pNode) );
+        fprintf( Abc_FrameGlobalGetOut(), "Fanins %d : ", Abc_ObjFaninNum(pNode) );
+        fprintf( Abc_FrameGlobalGetOut(), "Care " );
         for ( int i = 0; i < (1 << nFaninMax)-(1 << Abc_ObjFaninNum(pNode)); i++ )
-            printf( " " );
-        Extra_PrintBinary( stdout, p->uCare, 1 << Abc_ObjFaninNum(pNode) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), p->uCare, 1 << Abc_ObjFaninNum(pNode) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     // minimize the local function of the node using bi-decomposition
@@ -407,7 +407,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     {
         if ( nFaninMax > 8 )
         {
-            printf( "Nodes with more than %d fanins will not be processed.\n", 8 );
+            fprintf( Abc_FrameGlobalGetOut(), "Nodes with more than %d fanins will not be processed.\n", 8 );
             nFaninMax = 8;
         }
     }
@@ -415,7 +415,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     {
         if ( nFaninMax > MFS_FANIN_MAX )
         {
-            printf( "Nodes with more than %d fanins will not be processed.\n", MFS_FANIN_MAX );
+            fprintf( Abc_FrameGlobalGetOut(), "Nodes with more than %d fanins will not be processed.\n", MFS_FANIN_MAX );
             nFaninMax = MFS_FANIN_MAX;
         }
     }
@@ -424,7 +424,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     // convert into the AIG
     if ( !Abc_NtkToAig(pNtk) )
     {
-        fprintf( stdout, "Converting to AIGs has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Converting to AIGs has failed.\n"  );
         return 0;
     }
     assert( Abc_NtkHasAig(pNtk) );
@@ -453,7 +453,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     {
         Abc_Ntk_t * pTemp;
         if ( Abc_NtkPiNum((Abc_Ntk_t *)pNtk->pExcare) != Abc_NtkCiNum(pNtk) )
-            printf( "The PI count of careset (%d) and logic network (%d) differ. Careset is not used.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "The PI count of careset (%d) and logic network (%d) differ. Careset is not used.\n",
                 Abc_NtkPiNum((Abc_Ntk_t *)pNtk->pExcare), Abc_NtkCiNum(pNtk) );
         else
         {
@@ -464,7 +464,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
         }
     }
     if ( p->pCare != NULL )
-        printf( "Performing optimization with %d external care clauses.\n", Aig_ManCoNum(p->pCare) );
+        fprintf( Abc_FrameGlobalGetOut(), "Performing optimization with %d external care clauses.\n", Aig_ManCoNum(p->pCare) );
     // prepare the BDC manager
     if ( !pPars->fResub )
     {
@@ -499,7 +499,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
             Abc_NtkMfsPowerResub( p, pPars);
         } else
         {
-        pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
+        pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkObjNumMax(pNtk) );
         Abc_NtkForEachNode( pNtk, pObj, i )
         {
             if ( p->pPars->nDepthMax && (int)pObj->Level > p->pPars->nDepthMax )
@@ -523,7 +523,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
 #if 0
         printf( "Total switching before  = %7.2f,  ----> ", Abc_NtkMfsTotalSwitching(pNtk) );
 #endif
-        pProgress = Extra_ProgressBarStart( stdout, Abc_NtkNodeNum(pNtk) );
+        pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkNodeNum(pNtk) );
         vLevels = Abc_NtkLevelize( pNtk );
         Vec_VecForEachLevelStart( vLevels, vNodes, k, 1 )
         {
@@ -589,7 +589,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
         p->TotalSwitchingEnd = Abc_NtkMfsTotalSwitching(pNtk);
 //        printf( "Total switching after  = %7.2f.\n", Abc_NtkMfsTotalSwitching(pNtk) );
 #else
-        printf( "Total switching after  = %7.2f.\n", Abc_NtkMfsTotalSwitching(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(), "Total switching after  = %7.2f.\n", Abc_NtkMfsTotalSwitching(pNtk) );
 #endif
     }
 

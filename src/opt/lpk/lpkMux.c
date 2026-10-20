@@ -104,7 +104,7 @@ If_Obj_t * Lpk_MapTreeMux_rec( Lpk_Man_t * p, unsigned * pTruth, int nVars, If_O
     ppNtks[1] = Kit_DsdDecompose( pCof1, nVars );
     if ( p->pPars->fVeryVerbose )
     {
-        printf( "Cofactoring w.r.t. var %c (%d -> %d+%d supp vars):\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Cofactoring w.r.t. var %c (%d -> %d+%d supp vars):\n", 
             'a'+iBestVar, nVars, Kit_TruthSupportSize(pCof0, nVars), Kit_TruthSupportSize(pCof1, nVars) );
         Kit_DsdPrintExpanded( ppNtks[0] );
         Kit_DsdPrintExpanded( ppNtks[1] );
@@ -260,11 +260,11 @@ void Lpk_TryDec( word * pTruth, int nVars )
     extern void If_Dec6Verify( word t, word z );
     //int nWords = Abc_Truth6WordNum( nVars );
     assert( nVars == 8 );
-    printf( "%d", If_Dec6Perform(pTruth[0], 1) > 0 );
-    printf( "%d", If_Dec6Perform(pTruth[1], 1) > 0 );
-    printf( "%d", If_Dec6Perform(pTruth[2], 1) > 0 );
-    printf( "%d", If_Dec6Perform(pTruth[3], 1) > 0 );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "%d", If_Dec6Perform(pTruth[0], 1) > 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "%d", If_Dec6Perform(pTruth[1], 1) > 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "%d", If_Dec6Perform(pTruth[2], 1) > 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "%d", If_Dec6Perform(pTruth[3], 1) > 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Lpk_TryDecTest()
 {

@@ -196,7 +196,7 @@ void dfsfast_preorder( Abc_Ntk_t *pNtk ) {
     Vec_IntAddToEntry(pManMR->vSinkDistHist, FDATA(pObj)->e_dist, 1);
 
 #ifdef DEBUG_PREORDER
-    printf("node %d\t: r=%d\te=%d\n", Abc_ObjId(pObj), FDATA(pObj)->r_dist, FDATA(pObj)->e_dist);
+    fprintf( Abc_FrameGlobalGetOut(), "node %d\t: r=%d\te=%d\n", Abc_ObjId(pObj), FDATA(pObj)->r_dist, FDATA(pObj)->e_dist);
 #endif
   }
 
@@ -224,7 +224,7 @@ int dfsfast_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
   FSET(pObj, VISITED_E);
 
 #ifdef DEBUG_VISITED
-  printf("(%de=%d) ", Abc_ObjId(pObj), FDATA(pObj)->e_dist);
+  fprintf("( Abc_FrameGlobalGetOut(), %de=%d) ", Abc_ObjId(pObj), FDATA(pObj)->e_dist);
 #endif  
 
   // 1. structural edges
@@ -234,7 +234,7 @@ int dfsfast_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
           FDIST(pObj, e, pNext, r) &&
           dfsfast_r(pNext, pPred)) {
 #ifdef DEBUG_PRINT_FLOWS
-        printf("o");
+        fprintf( Abc_FrameGlobalGetOut(), "o");
 #endif
         goto found;
       }
@@ -245,7 +245,7 @@ int dfsfast_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
           FDIST(pObj, e, pNext, r) &&
           dfsfast_r(pNext, pPred)) {
 #ifdef DEBUG_PRINT_FLOWS
-        printf("o");
+        fprintf( Abc_FrameGlobalGetOut(), "o");
 #endif
         goto found;
       }
@@ -261,7 +261,7 @@ int dfsfast_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
           FDIST(pObj, e, pNext, e) &&
           dfsfast_e(pNext, pPred)) {
 #ifdef DEBUG_PRINT_FLOWS
-        printf("i");
+        fprintf( Abc_FrameGlobalGetOut(), "i");
 #endif
         goto found;
       }
@@ -275,7 +275,7 @@ int dfsfast_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
             FDIST(pObj, e, pNext, e) &&
             dfsfast_e(pNext, pPred)) {
 #ifdef DEBUG_PRINT_FLOWS
-          printf("o");
+          fprintf( Abc_FrameGlobalGetOut(), "o");
 #endif
           goto found;
         }
@@ -292,7 +292,7 @@ int dfsfast_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
     FUNSET(pObj, FLOW);
     FSETPRED(pObj, NULL);
 #ifdef DEBUG_PRINT_FLOWS
-    printf("u");
+    fprintf( Abc_FrameGlobalGetOut(), "u");
 #endif
     goto found;
   }
@@ -304,7 +304,7 @@ int dfsfast_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
   
  found:
 #ifdef DEBUG_PRINT_FLOWS
-  printf("%d ", Abc_ObjId(pObj));
+  fprintf(" Abc_FrameGlobalGetOut(), %d ", Abc_ObjId(pObj));
 #endif 
   FUNSET(pObj, VISITED_E);
   return 1;
@@ -317,7 +317,7 @@ int dfsfast_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
   if (pManMR->fSinkDistTerminate) return 0;
 
 #ifdef DEBUG_VISITED
-  printf("(%dr=%d) ", Abc_ObjId(pObj), FDATA(pObj)->r_dist);
+  fprintf("( Abc_FrameGlobalGetOut(), %dr=%d) ", Abc_ObjId(pObj), FDATA(pObj)->r_dist);
 #endif  
 
   // have we reached the sink?
@@ -341,7 +341,7 @@ int dfsfast_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
       FSETPRED(pObj, pPred);
 
 #ifdef DEBUG_PRINT_FLOWS
-      printf("fr");
+      fprintf( Abc_FrameGlobalGetOut(), "fr");
 #endif
       goto found;
     }
@@ -356,7 +356,7 @@ int dfsfast_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
       FSETPRED(pObj, pPred);
 
 #ifdef DEBUG_PRINT_FLOWS
-      printf("f");
+      fprintf( Abc_FrameGlobalGetOut(), "f");
 #endif
       goto found;
     }
@@ -370,7 +370,7 @@ int dfsfast_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
           !Abc_ObjIsLatch(pNext) &&
           dfsfast_r(pNext, pPred)) {
 #ifdef DEBUG_PRINT_FLOWS
-        printf("i");
+        fprintf( Abc_FrameGlobalGetOut(), "i");
 #endif
         goto found;
       }
@@ -384,7 +384,7 @@ int dfsfast_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
             FDIST(pObj, r, pNext, r) &&
             dfsfast_r(pNext, pPred)) {
 #ifdef DEBUG_PRINT_FLOWS
-          printf("o");
+          fprintf( Abc_FrameGlobalGetOut(), "o");
 #endif
           goto found;
         }
@@ -398,7 +398,7 @@ int dfsfast_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
 
  found:
 #ifdef DEBUG_PRINT_FLOWS
-  printf("%d ", Abc_ObjId(pObj));
+  fprintf(" Abc_FrameGlobalGetOut(), %d ", Abc_ObjId(pObj));
 #endif
   FUNSET(pObj, VISITED_R);
   return 1;
@@ -546,7 +546,7 @@ int dfsplain_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
       if (!FTEST(pNext, VISITED_R) &&
           dfsplain_r(pNext, pPred)) {
 #ifdef DEBUG_PRINT_FLOWS
-        printf("o");
+        fprintf( Abc_FrameGlobalGetOut(), "o");
 #endif
         goto found;
       }
@@ -556,7 +556,7 @@ int dfsplain_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
       if (!FTEST(pNext, VISITED_R) &&
           dfsplain_r(pNext, pPred)) {
 #ifdef DEBUG_PRINT_FLOWS
-        printf("o");
+        fprintf( Abc_FrameGlobalGetOut(), "o");
 #endif
         goto found;
       }
@@ -571,7 +571,7 @@ int dfsplain_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
       if (!FTEST(pNext, VISITED_E) &&
           dfsplain_e(pNext, pPred)) {
 #ifdef DEBUG_PRINT_FLOWS
-        printf("i");
+        fprintf( Abc_FrameGlobalGetOut(), "i");
 #endif
         goto found;
       }
@@ -584,7 +584,7 @@ int dfsplain_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
         if (!FTEST(pNext, VISITED_E) &&
             dfsplain_e(pNext, pPred)) {
 #ifdef DEBUG_PRINT_FLOWS
-          printf("o");
+          fprintf( Abc_FrameGlobalGetOut(), "o");
 #endif
           goto found;
         }
@@ -599,7 +599,7 @@ int dfsplain_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
     FUNSET(pObj, FLOW);
     FSETPRED(pObj, NULL);
 #ifdef DEBUG_PRINT_FLOWS
-    printf("u");
+    fprintf( Abc_FrameGlobalGetOut(), "u");
 #endif
     goto found;
   }
@@ -608,7 +608,7 @@ int dfsplain_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
   
  found:
 #ifdef DEBUG_PRINT_FLOWS
-  printf("%d ", Abc_ObjId(pObj));
+  fprintf(" Abc_FrameGlobalGetOut(), %d ", Abc_ObjId(pObj));
 #endif
 
   return 1;
@@ -640,7 +640,7 @@ int dfsplain_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
       FSETPRED(pObj, pPred);
 
 #ifdef DEBUG_PRINT_FLOWS
-      printf("fr");
+      fprintf( Abc_FrameGlobalGetOut(), "fr");
 #endif
       goto found;
     }
@@ -654,7 +654,7 @@ int dfsplain_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
       FSETPRED(pObj, pPred);
 
 #ifdef DEBUG_PRINT_FLOWS
-      printf("f");
+      fprintf( Abc_FrameGlobalGetOut(), "f");
 #endif
       goto found;
     }
@@ -667,7 +667,7 @@ int dfsplain_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
           !Abc_ObjIsLatch(pNext) &&
           dfsplain_r(pNext, pPred)) {
 #ifdef DEBUG_PRINT_FLOWS
-        printf("i");
+        fprintf( Abc_FrameGlobalGetOut(), "i");
 #endif
         goto found;
       }
@@ -680,7 +680,7 @@ int dfsplain_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
         if (!FTEST(pNext, VISITED_R) &&
             dfsplain_r(pNext, pPred)) {
 #ifdef DEBUG_PRINT_FLOWS
-          printf("o");
+          fprintf( Abc_FrameGlobalGetOut(), "o");
 #endif
           goto found;
         }
@@ -692,7 +692,7 @@ int dfsplain_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
 
  found:
 #ifdef DEBUG_PRINT_FLOWS
-  printf("%d ", Abc_ObjId(pObj));
+  fprintf(" Abc_FrameGlobalGetOut(), %d ", Abc_ObjId(pObj));
 #endif
   return 1;
 }

@@ -58,7 +58,7 @@ Vec_Int_t * Abc_NtkRetimeInitialValues( Abc_Ntk_t * pNtkCone, Vec_Int_t * vValue
     // get the miter
     pNtkMiter = Abc_NtkCreateTarget( pNtkLogic, pNtkLogic->vCos, vValues );
     if ( fVerbose )
-        printf( "The miter for initial state computation has %d AIG nodes. ", Abc_NtkNodeNum(pNtkMiter) );
+        fprintf( Abc_FrameGlobalGetOut(), "The miter for initial state computation has %d AIG nodes. ", Abc_NtkNodeNum(pNtkMiter) );
     // solve the miter
     clk = Abc_Clock();
     RetValue = Abc_NtkMiterSat( pNtkMiter, (ABC_INT64_T)500000, (ABC_INT64_T)50000000, 0, NULL, NULL );
@@ -66,11 +66,11 @@ Vec_Int_t * Abc_NtkRetimeInitialValues( Abc_Ntk_t * pNtkCone, Vec_Int_t * vValue
         { ABC_PRT( "SAT solving time", Abc_Clock() - clk ); }
     // analyze the result
     if ( RetValue == 1 )
-        printf( "Abc_NtkRetimeInitialValues(): The problem is unsatisfiable. DC latch values are used.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRetimeInitialValues(): The problem is unsatisfiable. DC latch values are used.\n" );
     else if ( RetValue == -1 )
-        printf( "Abc_NtkRetimeInitialValues(): The SAT problem timed out. DC latch values are used.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRetimeInitialValues(): The SAT problem timed out. DC latch values are used.\n" );
     else if ( !Abc_NtkRetimeVerifyModel( pNtkCone, vValues, pNtkMiter->pModel ) )
-        printf( "Abc_NtkRetimeInitialValues(): The computed counter-example is incorrect.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRetimeInitialValues(): The computed counter-example is incorrect.\n" );
     // set the values of the latches
     vSolution = RetValue? NULL : Vec_IntAllocArray( pNtkMiter->pModel, Abc_NtkPiNum(pNtkLogic) );
     pNtkMiter->pModel = NULL;
@@ -150,7 +150,7 @@ int Abc_NtkRetimeVerifyModel( Abc_Ntk_t * pNtkCone, Vec_Int_t * vValues, int * p
     Abc_NtkForEachPo( pNtkCone, pObj, i )
         Counter += (Vec_IntEntry(vValues, i) != (int)(ABC_PTRUINT_T)pObj->pCopy);
     if ( Counter > 0 )
-        printf( "%d outputs (out of %d) have a value mismatch.\n", Counter, Abc_NtkPoNum(pNtkCone) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d outputs (out of %d) have a value mismatch.\n", Counter, Abc_NtkPoNum(pNtkCone) );
     return 1;
 }
 
@@ -290,7 +290,7 @@ void Abc_NtkRetimeBackwardInitialFinish( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, 
     Abc_NtkAddDummyPoNames( pNtkNew );
     // check the network
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkRetimeBackwardInitialFinish(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRetimeBackwardInitialFinish(): Network check has failed.\n" );
     // derive new initial values
     vValuesNew = Abc_NtkRetimeInitialValues( pNtkNew, vValuesOld, fVerbose );
     // insert new initial values

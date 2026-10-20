@@ -133,7 +133,7 @@ int Sbd_GiaSatOne( Gia_Man_t * p, Vec_Int_t * vPairs )
                     break;
                 }
             }
-            printf( "%c", n == 2 ? '.' : 'c' );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", n == 2 ? '.' : 'c' );
         }
         else
         {
@@ -152,12 +152,12 @@ int Sbd_GiaSatOne( Gia_Man_t * p, Vec_Int_t * vPairs )
                     break;
                 }
             }
-            printf( "%c", n == 2 ? '.' : 'e' );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", n == 2 ? '.' : 'e' );
         }
         if ( iPat == 64 * p->iPatsPi - 1 )
             break;
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     return iPat;
 }
 
@@ -195,12 +195,12 @@ void Sbd_GiaSimRoundBack( Gia_Man_t * p )
     }
     Vec_IntFree( vMap );
     Vec_IntFree( vReprs );
-    printf( "Constants = %d.   Classes = %d.\n", nConsts, nClasses );
+    fprintf( Abc_FrameGlobalGetOut(), "Constants = %d.   Classes = %d.\n", nConsts, nClasses );
 
     nPats = Sbd_GiaSatOne( p, vPairs );
     Vec_IntFree( vPairs );
 
-    printf( "Generated %d patterns.\n", nPats );
+    fprintf( Abc_FrameGlobalGetOut(), "Generated %d patterns.\n", nPats );
 }
 
 /**Function*************************************************************
@@ -269,7 +269,7 @@ void Sbd_GiaSimRound( Gia_Man_t * p, int fTry, Vec_Int_t ** pvMap )
 //    printf( "\n" );
     Vec_MemHashFree( vStore );
     Vec_MemFree( vStore );
-    printf( "Objects = %6d.  Unique = %6d.\n", Gia_ManAndNum(p), Vec_IntCountUnique(vMap) );
+    fprintf( Abc_FrameGlobalGetOut(), "Objects = %6d.  Unique = %6d.\n", Gia_ManAndNum(p), Vec_IntCountUnique(vMap) );
     if ( pvMap )
         *pvMap = vMap;
     else
@@ -290,11 +290,11 @@ void Sbd_GiaSimTest( Gia_Man_t * pGia )
     Sbd_GiaSimRound( pGia, 0, NULL );
     Sbd_GiaSimRound( pGia, 0, NULL );
 
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Sbd_GiaSimRound( pGia, 1, NULL );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Sbd_GiaSimRound( pGia, 1, NULL );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Sbd_GiaSimRound( pGia, 1, NULL );
 
     Vec_WrdFreeP( &pGia->vSims );

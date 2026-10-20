@@ -405,7 +405,7 @@ int Nwk_ManRetimeVerifyCutForward( Nwk_Man_t * pMan, Vec_Ptr_t * vNodes )
     Nwk_ManIncrementTravId( pMan );
     Nwk_ManForEachCo( pMan, pObj, i )
         if ( !Nwk_ManVerifyCut_rec( pObj ) )
-            printf( "Nwk_ManRetimeVerifyCutForward(): Internal cut verification failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Nwk_ManRetimeVerifyCutForward(): Internal cut verification failed.\n" );
     // unmark the nodes
     Vec_PtrForEachEntry( Nwk_Obj_t *, vNodes, pObj, i )
         pObj->MarkA = 0;
@@ -464,7 +464,7 @@ Vec_Ptr_t * Nwk_ManRetimeCutForward( Nwk_Man_t * pMan, int nLatches, int fVerbos
         Counter++;
     }
     if ( fVerbose )
-    printf( "Forward:  Max-flow = %4d -> ", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Forward:  Max-flow = %4d -> ", Counter );
     // continue flow computation from each LO
     Nwk_ManIncrementTravIdFlow( pMan );
     Nwk_ManForEachLoSeq( pMan, pObj, i )
@@ -475,7 +475,7 @@ Vec_Ptr_t * Nwk_ManRetimeCutForward( Nwk_Man_t * pMan, int nLatches, int fVerbos
         Counter2++;
     }
     if ( fVerbose )
-    printf( "%4d.  ", Counter+Counter2 );
+    fprintf( Abc_FrameGlobalGetOut(), "%4d.  ", Counter+Counter2 );
     // repeat flow computation from each LO
     if ( Counter2 > 0 )
     {
@@ -503,7 +503,7 @@ Vec_Ptr_t * Nwk_ManRetimeCutForward( Nwk_Man_t * pMan, int nLatches, int fVerbos
 //    assert( Nwk_ManRetimeVerifyCutForward(pMan, vNodes) );
     if ( fVerbose )
     {
-    printf( "Min-cut = %4d.  Unmoved = %4d. ", Vec_PtrSize(vNodes), Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Min-cut = %4d.  Unmoved = %4d. ", Vec_PtrSize(vNodes), Counter );
     ABC_PRT( "Time", Abc_Clock() - clk );
     }
     return vNodes;
@@ -548,7 +548,7 @@ Vec_Ptr_t * Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int nLatches, int fVerbo
         Counter++; 
     }
     if ( fVerbose ) 
-    printf( "Backward: Max-flow = %4d -> ", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Backward: Max-flow = %4d -> ", Counter );
     // continue flow computation from each LI driver
     Nwk_ManIncrementTravIdFlow( pMan );
     Nwk_ManForEachLiSeq( pMan, pObj, i )
@@ -559,7 +559,7 @@ Vec_Ptr_t * Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int nLatches, int fVerbo
         Counter2++;
     }
     if ( fVerbose )
-    printf( "%4d.  ", Counter+Counter2 );
+    fprintf( Abc_FrameGlobalGetOut(), "%4d.  ", Counter+Counter2 );
     // repeat flow computation from each LI driver
     if ( Counter2 > 0 )
     {
@@ -590,7 +590,7 @@ Vec_Ptr_t * Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int nLatches, int fVerbo
 //    assert( Nwk_ManRetimeVerifyCutBackward(pMan, vNodes) );
     if ( fVerbose )
     {
-    printf( "Min-cut = %4d.  Unmoved = %4d. ", Vec_PtrSize(vNodes), Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Min-cut = %4d.  Unmoved = %4d. ", Vec_PtrSize(vNodes), Counter );
     ABC_PRT( "Time", Abc_Clock() - clk );
     }
     return vNodes;

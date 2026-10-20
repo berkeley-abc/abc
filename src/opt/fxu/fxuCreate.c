@@ -87,13 +87,13 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
         }
     if ( nBitsMax <= 0 )
     {
-        printf( "The current network does not have SOPs to perform extraction.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The current network does not have SOPs to perform extraction.\n" );
         return NULL;
     }
 
     if ( nPairsStore > 50000000 )
     {
-        printf( "The problem is too large to be solved by \"fxu\" (%d cubes and %d cube pairs)\n", nCubesTotal, nPairsStore );
+        fprintf( Abc_FrameGlobalGetOut(), "The problem is too large to be solved by \"fxu\" (%d cubes and %d cube pairs)\n", nCubesTotal, nPairsStore );
         return NULL;
     }
 
@@ -184,12 +184,12 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
 //        printf( "The total number of cube pairs is %d.\n", nPairsTotal );
     if ( nPairsTotal > 10000000 )
     {
-        printf( "The total number of cube pairs of the network is more than 10,000,000.\n" );
-        printf( "Command \"fx\" takes a long time to run in such cases. It is suggested\n" );
-        printf( "that the user changes the network by reducing the size of logic node and\n" );
-        printf( "consequently the number of cube pairs to be processed by this command.\n" );
-        printf( "It can be achieved as follows: \"st; if -K <num>\" or \"st; renode -s -K <num>\"\n" );
-        printf( "as a proprocessing step, while selecting <num> as approapriate.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The total number of cube pairs of the network is more than 10,000,000.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Command \"fx\" takes a long time to run in such cases. It is suggested\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "that the user changes the network by reducing the size of logic node and\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "consequently the number of cube pairs to be processed by this command.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "It can be achieved as follows: \"st; if -K <num>\" or \"st; renode -s -K <num>\"\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "as a proprocessing step, while selecting <num> as approapriate.\n" );
         return NULL;
     }
     if ( nPairsTotal > pData->nPairsMax )
@@ -200,12 +200,12 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
 
     if ( p->lVars.nItems > 1000000 )
     {
-        printf( "The total number of variables is more than 1,000,000.\n" );
-        printf( "Command \"fx\" takes a long time to run in such cases. It is suggested\n" );
-        printf( "that the user changes the network by reducing the size of logic node and\n" );
-        printf( "consequently the number of cube pairs to be processed by this command.\n" );
-        printf( "It can be achieved as follows: \"st; if -K <num>\" or \"st; renode -s -K <num>\"\n" );
-        printf( "as a proprocessing step, while selecting <num> as approapriate.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The total number of variables is more than 1,000,000.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Command \"fx\" takes a long time to run in such cases. It is suggested\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "that the user changes the network by reducing the size of logic node and\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "consequently the number of cube pairs to be processed by this command.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "It can be achieved as follows: \"st; if -K <num>\" or \"st; renode -s -K <num>\"\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "as a proprocessing step, while selecting <num> as approapriate.\n" );
         return NULL;
     }
 
@@ -218,13 +218,13 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
     {
         double Density;
         Density = ((double)p->nEntries) / p->lVars.nItems / p->lCubes.nItems;
-        fprintf( stdout, "Matrix: [vars x cubes] = [%d x %d]  ",
-            p->lVars.nItems, p->lCubes.nItems );
-        fprintf( stdout, "Lits = %d  Density = %.5f%%\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Matrix: [vars x cubes] = [%d x %d]  ",
+            p->lVars.nItems, p->lCubes.nItems  );
+        fprintf( Abc_FrameGlobalGetOut(), "Lits = %d  Density = %.5f%%\n", 
             p->nEntries, Density );
-        fprintf( stdout, "1-cube divs = %6d. (Total = %6d)  ",  p->lSingles.nItems, p->nSingleTotal );
-        fprintf( stdout, "2-cube divs = %6d. (Total = %6d)",  p->nDivsTotal, nPairsTotal );
-        fprintf( stdout, "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "1-cube divs = %6d. (Total = %6d)  ",  p->lSingles.nItems, p->nSingleTotal );
+        fprintf( Abc_FrameGlobalGetOut(), "2-cube divs = %6d. (Total = %6d)",  p->nDivsTotal, nPairsTotal );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 //    Fxu_MatrixPrint( stdout, p );
     return p;

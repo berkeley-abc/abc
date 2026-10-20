@@ -578,18 +578,18 @@ static inline void Sbd_CutPrint( Sbd_Sto_t * p, int iObj, Sbd_Cut_t * pCut )
 {
     int i, nDigits = Abc_Base10Log(Gia_ManObjNum(p->pGia)); 
     int Delay = Vec_IntEntry(p->vDelays, iObj);
-    if ( pCut == NULL ) { printf( "No cut.\n" ); return; }
-    printf( "%d  {", pCut->nLeaves );
+    if ( pCut == NULL ) { fprintf( Abc_FrameGlobalGetOut(), "No cut.\n" ); return; }
+    fprintf( Abc_FrameGlobalGetOut(), "%d  {", pCut->nLeaves );
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
-        printf( " %*d", nDigits, pCut->pLeaves[i] );
+        fprintf( Abc_FrameGlobalGetOut(), " %*d", nDigits, pCut->pLeaves[i] );
     for ( ; i < (int)p->nCutSize; i++ )
-        printf( " %*s", nDigits, " " );
-    printf( "  }  Cost = %3d  CostL = %3d  Tree = %d  Slow = %d  Top = %d  ", 
+        fprintf( Abc_FrameGlobalGetOut(), " %*s", nDigits, " " );
+    fprintf( Abc_FrameGlobalGetOut(), "  }  Cost = %3d  CostL = %3d  Tree = %d  Slow = %d  Top = %d  ", 
         pCut->Cost, pCut->CostLev, pCut->nTreeLeaves, pCut->nSlowLeaves, pCut->nTopLeaves );
-    printf( "%c ", pCut->nSlowLeaves == 0 ? '*' : ' ' );
+    fprintf( Abc_FrameGlobalGetOut(), "%c ", pCut->nSlowLeaves == 0 ? '*' : ' ' );
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
-        printf( "%3d ", Vec_IntEntry(p->vDelays, pCut->pLeaves[i]) - Delay );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d ", Vec_IntEntry(p->vDelays, pCut->pLeaves[i]) - Delay );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Sbd_StoMergeCuts( Sbd_Sto_t * p, int iObj )
 {
@@ -638,11 +638,11 @@ void Sbd_StoMergeCuts( Sbd_Sto_t * p, int iObj )
     // debug printout
     if ( 0 )
     {
-        printf( "*** Obj = %4d  Delay = %4d  NumCuts = %4d\n", iObj, Vec_IntEntry(p->vDelays, iObj), nCutsR );
+        fprintf( Abc_FrameGlobalGetOut(), "*** Obj = %4d  Delay = %4d  NumCuts = %4d\n", iObj, Vec_IntEntry(p->vDelays, iObj), nCutsR );
         for ( i = 0; i < nCutsR; i++ )
             if ( (int)pCutsR[i]->nLeaves <= p->nLutSize || pCutsR[i]->nSlowLeaves < 2 )
                 Sbd_CutPrint( p, iObj, pCutsR[i] );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // verify
     assert( nCutsR > 0 && nCutsR < nCutNum );
@@ -798,7 +798,7 @@ void Sbd_StoDerefObj( Sbd_Sto_t * p, int iObj )
 
     pObj = Gia_ManObj(p->pGia, iObj);
     if ( Vec_IntEntry(p->vRefs, iObj) == 0 )
-        printf( "Ref count mismatch at node %d\n", iObj );
+        fprintf( Abc_FrameGlobalGetOut(), "Ref count mismatch at node %d\n", iObj );
     assert( Vec_IntEntry(p->vRefs, iObj) > 0 );
     Vec_IntAddToEntry( p->vRefs, iObj, -1 );
     if ( Vec_IntEntry( p->vRefs, iObj ) > 0 )
@@ -820,7 +820,7 @@ int Sbd_StoObjBestCut( Sbd_Sto_t * p, int iObj, int nSize, int * pLeaves )
     Sbd_Cut_t * pCutBest = NULL;   int i;
     assert( p->Pivot == iObj );
     if ( fVerbose && iObj % 1000 == 0 )
-        printf( "Node %6d : \n", iObj );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %6d : \n", iObj );
     for ( i = 0; i < p->nCutsR; i++ )
     {
         if ( fVerbose && iObj % 1000 == 0 )
@@ -835,7 +835,7 @@ int Sbd_StoObjBestCut( Sbd_Sto_t * p, int iObj, int nSize, int * pLeaves )
     }
     if ( fVerbose && iObj % 1000 == 0 )
     {
-        printf( "Best cut of size %d:\n", nSize );
+        fprintf( Abc_FrameGlobalGetOut(), "Best cut of size %d:\n", nSize );
         Sbd_CutPrint( p, iObj, pCutBest );
     }
     if ( pCutBest == NULL )
@@ -861,16 +861,16 @@ void Sbd_StoComputeCutsTest( Gia_Man_t * pGia )
         Sbd_StoComputeCutsNode( p, iObj );
     if ( p->fVerbose )
     {
-        printf( "Running cut computation with LutSize = %d  CutSize = %d  CutNum = %d:\n", p->nLutSize, p->nCutSize, p->nCutNum );
-        printf( "CutPair = %.0f  ",         p->CutCount[0] );
-        printf( "Merge = %.0f (%.2f %%)  ", p->CutCount[1], 100.0*p->CutCount[1]/p->CutCount[0] );
-        printf( "Eval = %.0f (%.2f %%)  ",  p->CutCount[2], 100.0*p->CutCount[2]/p->CutCount[0] );
-        printf( "Cut = %.0f (%.2f %%)  ",   p->CutCount[3], 100.0*p->CutCount[3]/p->CutCount[0] );
-        printf( "Cut/Node = %.2f  ",        p->CutCount[3] / Gia_ManAndNum(p->pGia) );
-        printf( "\n" );
-        printf( "Spec = %4d  ",             p->nCutsSpec );
-        printf( "Over = %4d  ",             p->nCutsOver );
-        printf( "Lev = %4d  ",              p->DelayMin );
+        fprintf( Abc_FrameGlobalGetOut(), "Running cut computation with LutSize = %d  CutSize = %d  CutNum = %d:\n", p->nLutSize, p->nCutSize, p->nCutNum );
+        fprintf( Abc_FrameGlobalGetOut(), "CutPair = %.0f  ",         p->CutCount[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "Merge = %.0f (%.2f %%)  ", p->CutCount[1], 100.0*p->CutCount[1]/p->CutCount[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "Eval = %.0f (%.2f %%)  ",  p->CutCount[2], 100.0*p->CutCount[2]/p->CutCount[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "Cut = %.0f (%.2f %%)  ",   p->CutCount[3], 100.0*p->CutCount[3]/p->CutCount[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "Cut/Node = %.2f  ",        p->CutCount[3] / Gia_ManAndNum(p->pGia) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Spec = %4d  ",             p->nCutsSpec );
+        fprintf( Abc_FrameGlobalGetOut(), "Over = %4d  ",             p->nCutsOver );
+        fprintf( Abc_FrameGlobalGetOut(), "Lev = %4d  ",              p->DelayMin );
         Abc_PrintTime( 0, "Time", Abc_Clock() - p->clkStart );
     }
     Sbd_StoFree( p );

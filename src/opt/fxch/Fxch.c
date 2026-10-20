@@ -237,7 +237,7 @@ int Abc_NtkFxchPerform( Abc_Ntk_t* pNtk,
 
     if ( !Abc_NtkFxCheck( pNtk ) )
     {
-        printf( "Abc_NtkFxchPerform(): Nodes have duplicated fanins. FXCH is not performed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFxchPerform(): Nodes have duplicated fanins. FXCH is not performed.\n" );
         return 0;
     }
 
@@ -248,12 +248,12 @@ int Abc_NtkFxchPerform( Abc_Ntk_t* pNtk,
         Vec_WecFree( vCubes );
 
         if ( !Abc_NtkCheck( pNtk ) )
-            printf( "Abc_NtkFxchPerform(): The network check has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFxchPerform(): The network check has failed.\n" );
 
         return 1;
     }
     else
-        printf( "Warning: The network has not been changed by \"fxch\".\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The network has not been changed by \"fxch\".\n" );
 
     Vec_WecFree( vCubes );
 

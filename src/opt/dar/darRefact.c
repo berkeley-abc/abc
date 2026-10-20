@@ -142,9 +142,9 @@ Ref_Man_t * Dar_ManRefStart( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
 void Dar_ManRefPrintStats( Ref_Man_t * p )
 {
     int Gain = p->nNodesInit - Aig_ManNodeNum(p->pAig);
-    printf( "NodesBeg = %8d. NodesEnd = %8d. Gain = %6d. (%6.2f %%).\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "NodesBeg = %8d. NodesEnd = %8d. Gain = %6d. (%6.2f %%).\n", 
         p->nNodesInit, Aig_ManNodeNum(p->pAig), Gain, 100.0*Gain/p->nNodesInit );
-    printf( "Tried = %6d. Below = %5d. Extended = %5d.  Used = %5d.  Levels = %4d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Tried = %6d. Below = %5d. Extended = %5d.  Used = %5d.  Levels = %4d.\n", 
         p->nNodesTried, p->nNodesBelow, p->nNodesExten, p->nCutsUsed, Aig_ManLevels(p->pAig) );
     ABC_PRT( "Cuts  ", p->timeCuts );
     ABC_PRT( "Eval  ", p->timeEval );
@@ -206,9 +206,9 @@ void Ref_ObjComputeCuts( Aig_Man_t * pAig, Aig_Obj_t * pRoot, Vec_Vec_t * vCuts 
 ***********************************************************************/
 void Ref_ObjPrint( Aig_Obj_t * pObj )
 {
-    printf( "%d", pObj? Aig_Regular(pObj)->Id : -1 );
+    fprintf( Abc_FrameGlobalGetOut(), "%d", pObj? Aig_Regular(pObj)->Id : -1 );
     if ( pObj )
-        printf( "(%d) ", Aig_IsComplement(pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "(%d) ", Aig_IsComplement(pObj) );
 }
 
 /**Function*************************************************************
@@ -624,7 +624,7 @@ p->timeOther = p->timeTotal - p->timeCuts - p->timeEval;
 //    Aig_ManCheckPhase( pAig );
     if ( !Aig_ManCheck( pAig ) )
     {
-        printf( "Dar_ManRefactor: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Dar_ManRefactor: The network check has failed.\n" );
         return 0;
     }
     return 1;

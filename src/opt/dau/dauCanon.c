@@ -1069,7 +1069,7 @@ unsigned Abc_TtCanonicize( word * pTruth, int nVars, char * pCanonPerm )
     memcpy( pCanonPermCopy, pCanonPerm, sizeof(char) * nVars );
     Abc_TtImplementNpnConfig( pCopy2, nVars, pCanonPermCopy, uCanonPhase );
     if ( !Abc_TtEqual( pCopy1, pCopy2, nWords ) )
-        printf( "Canonical form verification failed!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Canonical form verification failed!\n" );
 #endif
 /*
     if ( !Abc_TtEqual( pCopy1, pCopy2, nWords ) )
@@ -1122,7 +1122,7 @@ unsigned Abc_TtCanonicizePerm( word * pTruth, int nVars, char * pCanonPerm )
     memcpy( pCanonPermCopy, pCanonPerm, sizeof(char) * nVars );
     Abc_TtImplementNpnConfig( pCopy2, nVars, pCanonPermCopy, uCanonPhase );
     if ( !Abc_TtEqual( pCopy1, pCopy2, nWords ) )
-        printf( "Canonical form verification failed!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Canonical form verification failed!\n" );
 #endif
 
     assert( uCanonPhase == 0 );
@@ -1223,7 +1223,7 @@ unsigned Abc_TtCanonicizePhase( word * pTruth, int nVars )
     Abc_TtCopy( pCopy2, pTruth, nWords, 0 );
     Abc_TtImplementNpnConfig( pCopy2, nVars, NULL, uCanonPhase );
     if ( !Abc_TtEqual( pCopy1, pCopy2, nWords ) )
-        printf( "Canonical form verification failed!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Canonical form verification failed!\n" );
 #endif
     return uCanonPhase;
 }
@@ -2631,7 +2631,7 @@ unsigned Abc_TtCanonicizeAda(Abc_TtHieMan_t * p, word * pTruth, int nVars, char 
 
 #ifdef CANON_VERIFY
     if (!Abc_TgCannonVerify(&tgMan))
-        printf("Canonical form verification failed!\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Canonical form verification failed!\n");
 #endif
     return tgMan.uPhase;
 }
@@ -2689,7 +2689,7 @@ unsigned Abc_TtCanonicizeCA(Abc_TtHieMan_t * p, word * pTruth, int nVars, char *
 
 #ifdef CANON_VERIFY
     if (!Abc_TgCannonVerify(&tgMan))
-        printf("Canonical form verification failed!\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Canonical form verification failed!\n");
 #endif
     return tgMan.uPhase | fHard;
 }

@@ -988,7 +988,7 @@ int Cut_CutListVerify( Cut_Cut_t * pList )
         {
             if ( Cut_CutCheckDominance( pDom, pCut ) )
             {
-                printf( "******************* These are contained cuts:\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "******************* These are contained cuts:\n" );
                 Cut_CutPrint( pDom, 1 );
                 Cut_CutPrint( pDom, 1 );
                 return 0;

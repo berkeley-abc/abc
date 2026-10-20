@@ -455,7 +455,7 @@ void Rwr_ManWriteToArray( Rwr_Man_t * p )
     Extra_PrintHex( pFile, &Entry0, 4 );
     fprintf( pFile, " \n};\n" );
     fclose( pFile );
-    printf( "The number of nodes saved = %d.   ", nEntries );  ABC_PRT( "Saving", Abc_Clock() - clk );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of nodes saved = %d.   ", nEntries );  ABC_PRT( "Saving", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************
@@ -504,8 +504,8 @@ void Rwr_ManLoadFromArray( Rwr_Man_t * p, int fVerbose )
     nEntries = i - 1;
     if ( fVerbose )
     {
-        printf( "The number of classes = %d. Canonical nodes = %d.\n", p->nClasses, p->nAdded );
-        printf( "The number of nodes loaded = %d.  ", nEntries );  ABC_PRT( "Loading", Abc_Clock() - clk );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of classes = %d. Canonical nodes = %d.\n", p->nClasses, p->nAdded );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of nodes loaded = %d.  ", nEntries );  ABC_PRT( "Loading", Abc_Clock() - clk );
     }
 }
 
@@ -545,7 +545,7 @@ void Rwr_ManWriteToFile( Rwr_Man_t * p, char * pFileName )
     fwrite( pBuffer, sizeof(unsigned), nEntries * 2, pFile );
     ABC_FREE( pBuffer );
     fclose( pFile );
-    printf( "The number of nodes saved = %d.   ", nEntries );  ABC_PRT( "Saving", Abc_Clock() - clk );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of nodes saved = %d.   ", nEntries );  ABC_PRT( "Saving", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************
@@ -573,7 +573,7 @@ void Rwr_ManLoadFromFile( Rwr_Man_t * p, char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Rwr_ManLoadFromFile: Cannot open file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Rwr_ManLoadFromFile: Cannot open file \"%s\".\n", pFileName );
         return;
     }
     RetValue = fread( &nEntries, sizeof(int), 1, pFile );
@@ -600,8 +600,8 @@ void Rwr_ManLoadFromFile( Rwr_Man_t * p, char * pFileName )
         Rwr_ManAddNode( p, p0, p1, fExor, Level, Volume + fExor );
     }
     ABC_FREE( pBuffer );
-    printf( "The number of classes = %d. Canonical nodes = %d.\n", p->nClasses, p->nAdded );
-    printf( "The number of nodes loaded = %d.   ", nEntries );  ABC_PRT( "Loading", Abc_Clock() - clk );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of classes = %d. Canonical nodes = %d.\n", p->nClasses, p->nAdded );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of nodes loaded = %d.   ", nEntries );  ABC_PRT( "Loading", Abc_Clock() - clk );
 }
 
 

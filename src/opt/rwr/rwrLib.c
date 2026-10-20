@@ -58,8 +58,8 @@ void Rwr_ManPrecompute( Rwr_Man_t * p )
         if ( LevelOld < (int)p0->Level )
         {
             LevelOld = p0->Level;
-            printf( "Starting level %d  (at %d nodes).\n", LevelOld+1, i );
-            printf( "Considered = %5d M.   Found = %8d.   Classes = %6d.   Trying %7d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Starting level %d  (at %d nodes).\n", LevelOld+1, i );
+            fprintf( Abc_FrameGlobalGetOut(), "Considered = %5d M.   Found = %8d.   Classes = %6d.   Trying %7d.\n", 
                 p->nConsidered/1000000, p->vForest->nSize, p->nClasses, i );
         }
 
@@ -86,12 +86,12 @@ void Rwr_ManPrecompute( Rwr_Man_t * p )
         Rwr_ManTryNode( p,         p0 ,         p1 , 1, Level, Volume + 1 );
         // report the progress
         if ( p->nConsidered % 50000000 == 0 )
-            printf( "Considered = %5d M.   Found = %8d.   Classes = %6d.   Trying %7d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Considered = %5d M.   Found = %8d.   Classes = %6d.   Trying %7d.\n", 
                 p->nConsidered/1000000, p->vForest->nSize, p->nClasses, i );
         // quit after some time
         if ( p->vForest->nSize == RWR_LIMIT + 5 )
         {
-            printf( "Considered = %5d M.   Found = %8d.   Classes = %6d.   Trying %7d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Considered = %5d M.   Found = %8d.   Classes = %6d.   Trying %7d.\n", 
                 p->nConsidered/1000000, p->vForest->nSize, p->nClasses, i );
             goto save;
         }
@@ -118,7 +118,7 @@ save :
             p0->Id = k++;
         }
     p->vForest->nSize = k;
-    printf( "Total canonical = %4d. Total used = %5d.\n", nNodes, p->vForest->nSize );
+    fprintf( Abc_FrameGlobalGetOut(), "Total canonical = %4d. Total used = %5d.\n", nNodes, p->vForest->nSize );
 }
 
 /**Function*************************************************************

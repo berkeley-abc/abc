@@ -119,7 +119,7 @@ Vec_Ptr_t * Sim_ComputeFunSupp( Abc_Ntk_t * pNtk, int fVerbose )
     // set the support targets 
     Sim_ComputeSuppSetTargets( p );
     if ( fVerbose )
-        printf( "Number of support targets after simulation = %5d.\n", Vec_VecSizeSize(p->vSuppTargs) );
+        fprintf( Abc_FrameGlobalGetOut(), "Number of support targets after simulation = %5d.\n", Vec_VecSizeSize(p->vSuppTargs) );
     if ( Vec_VecSizeSize(p->vSuppTargs) == 0 )
         goto exit;
 
@@ -132,7 +132,7 @@ Vec_Ptr_t * Sim_ComputeFunSupp( Abc_Ntk_t * pNtk, int fVerbose )
             goto exit;
 
         if ( fVerbose )
-            printf( "Targets = %5d.   Solved = %5d.  Fifo = %5d.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "Targets = %5d.   Solved = %5d.  Fifo = %5d.\n",
                 Vec_VecSizeSize(p->vSuppTargs), nSolved, Vec_PtrSize(p->vFifo) );
     }
 
@@ -146,7 +146,7 @@ Vec_Ptr_t * Sim_ComputeFunSupp( Abc_Ntk_t * pNtk, int fVerbose )
         nSolved = Sim_ComputeSuppRound( p, 1 );
 
 if ( fVerbose )
-    printf( "Targets = %5d.   Solved = %5d.  Fifo = %5d.  SAT runs = %3d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Targets = %5d.   Solved = %5d.  Fifo = %5d.  SAT runs = %3d.\n", 
             Vec_VecSizeSize(p->vSuppTargs), nSolved, Vec_PtrSize(p->vFifo), p->nSatRuns );
     }
 
@@ -249,7 +249,7 @@ p->timeSim += Abc_Clock() - clk;
             // otherwise, we solved a new target
             Vec_PtrRemove( vTargets, vTargets->pArray[i] );
 if ( fVerbose )
-    printf( "(%d,%d) ", iNumCi, Output );
+    fprintf( Abc_FrameGlobalGetOut(), "(%d,%d) ", iNumCi, Output );
             Counter++;
             // make sure this variable is not yet detected
             assert( !Sim_SuppFunHasVar(p->vSuppFun, Output, iNumCi) );
@@ -278,7 +278,7 @@ if ( fVerbose )
             }
         }
 if ( fVerbose && Counter )
-printf( "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     else
     {

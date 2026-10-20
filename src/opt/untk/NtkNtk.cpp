@@ -1563,7 +1563,7 @@ Gia_Man_t * GetInvMiter(Wlc_Ntk_t * pNtk, char * nameInv) {
 
     Gia_Man_t * pMiter = NULL;
     Gia_Man_t * pGia = BitBlast(pNtk);
-    printf("Gia stat: pi = %d, ff = %d, and = %d, po = %d\n", Gia_ManPiNum(pGia), Gia_ManRegNum(pGia), Gia_ManAndNum(pGia), Gia_ManPoNum(pGia));
+    fprintf( Abc_FrameGlobalGetOut(), "Gia stat: pi = %d, ff = %d, and = %d, po = %d\n", Gia_ManPiNum(pGia), Gia_ManRegNum(pGia), Gia_ManAndNum(pGia), Gia_ManPoNum(pGia) );
 
     if (!check_pla(nameInv)) {
         LOG(2) << "Empty invariant. Changed to combinational SAT.";
@@ -1573,8 +1573,8 @@ Gia_Man_t * GetInvMiter(Wlc_Ntk_t * pNtk, char * nameInv) {
         Abc_Ntk_t *pStrash = Abc_NtkStrash(pAbcNtk, 0, 1, 0);
         Aig_Man_t *pAig = Abc_NtkToDar(pStrash, 0, 0);
         Gia_Man_t *pInv = Gia_ManFromAig(pAig);
-        printf("Inv stat: pi = %d, ff = %d, and = %d, po = %d\n", Gia_ManPiNum(pInv), Gia_ManRegNum(pInv),
-               Gia_ManAndNum(pInv), Gia_ManPoNum(pInv));
+        fprintf( Abc_FrameGlobalGetOut(), "Inv stat: pi = %d, ff = %d, and = %d, po = %d\n", Gia_ManPiNum(pInv), Gia_ManRegNum(pInv),
+               Gia_ManAndNum(pInv), Gia_ManPoNum(pInv) );
         pMiter = Gia_ManDupInvMiter(pGia, pInv);
 
         Abc_NtkDelete(pAbcNtk);
@@ -1590,13 +1590,13 @@ Gia_Man_t * GetInvMiter(Wlc_Ntk_t * pNtk, char * nameInv) {
 
 void TestInvariant(string& nameNtk, string& nameInv) {
     Gia_Man_t * pGia = Gia_AigerRead( &nameNtk[0u], 0, 0, 0 );
-    printf("Gia stat: pi = %d, ff = %d, and = %d, po = %d\n", Gia_ManPiNum(pGia), Gia_ManRegNum(pGia), Gia_ManAndNum(pGia), Gia_ManPoNum(pGia));
+    fprintf( Abc_FrameGlobalGetOut(), "Gia stat: pi = %d, ff = %d, and = %d, po = %d\n", Gia_ManPiNum(pGia), Gia_ManRegNum(pGia), Gia_ManAndNum(pGia), Gia_ManPoNum(pGia) );
 
     Abc_Ntk_t * pAbcNtk = Io_Read( &nameInv[0u], Io_ReadFileType(&nameInv[0u]), 1, 0 );
     Abc_Ntk_t * pStrash = Abc_NtkStrash( pAbcNtk, 0, 1, 0 );
     Aig_Man_t * pAig = Abc_NtkToDar( pStrash, 0, 0 );
     Gia_Man_t * pInv = Gia_ManFromAig( pAig );
-    printf("Inv stat: pi = %d, ff = %d, and = %d, po = %d\n", Gia_ManPiNum(pInv), Gia_ManRegNum(pInv), Gia_ManAndNum(pInv), Gia_ManPoNum(pInv));
+    fprintf( Abc_FrameGlobalGetOut(), "Inv stat: pi = %d, ff = %d, and = %d, po = %d\n", Gia_ManPiNum(pInv), Gia_ManRegNum(pInv), Gia_ManAndNum(pInv), Gia_ManPoNum(pInv) );
 
     Gia_Man_t * pMiter = Gia_ManDupInvMiter(pGia, pInv);
     Gia_AigerWrite(pMiter, "miter.aig", 0, 0, 0);

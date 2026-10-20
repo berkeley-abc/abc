@@ -253,10 +253,10 @@ void Dau_VerifyFile( char * pFileName )
         Extra_ReadHexadecimal( &uTruth2, Buffer, 5 );
         uTruth = (unsigned)Dau_ParseFormula( Buffer + 11 );
         if ( uTruth != uTruth2 )
-            printf( "Verification failed in line %d:  %s\n", nLines, Buffer ), nFails++;
+            fprintf( Abc_FrameGlobalGetOut(),  "Verification failed in line %d:  %s\n", nLines, Buffer ), nFails++;
         nLines++;
     }
-    printf( "Verification succeeded for %d functions and failed for %d functions.\n", nLines-nFails, nFails );
+    fprintf( Abc_FrameGlobalGetOut(), "Verification succeeded for %d functions and failed for %d functions.\n", nLines-nFails, nFails );
 }
 void Dau_VerifyFileTest()
 {
@@ -295,7 +295,7 @@ Gia_Man_t * Dau_ConstructAigFromFile( char * pFileName )
         Gia_ManAppendCo( p, Dau_ParseFormulaAig(p, Buffer + 11) );
         nLines++;
     }
-    printf( "Finish constructing AIG for %d structures.\n", nLines );
+    fprintf( Abc_FrameGlobalGetOut(), "Finish constructing AIG for %d structures.\n", nLines );
     return p;
 }
 
@@ -322,11 +322,11 @@ unsigned * Dau_ReadFile2( char * pFileName, int nSizeW )
     RetValue = 0;
     if ( pFile )
     {
-        printf( "Finished reading file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished reading file \"%s\".\n", pFileName );
         fclose( pFile );
     }
     else
-        printf( "Cannot open input file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\".\n", pFileName );
     Abc_PrintTime( 1, "File reading", Abc_Clock() - clk );
     return p;
 }
@@ -341,7 +341,7 @@ void Dtt_ManRenum( int nVars, unsigned * pTable, int * pnClasses )
             assert( pTable[i] < i );
             pTable[i] = pTable[pTable[i]];
         }
-    printf( "The total number of NPN classes = %d.\n", Count );
+    fprintf( Abc_FrameGlobalGetOut(), "The total number of NPN classes = %d.\n", Count );
     *pnClasses = Count;
 }
 unsigned * Dtt_ManLoadClasses( int nVars, int * pnClasses )
@@ -584,34 +584,34 @@ void Dtt_ManAddFunction( Dtt_Man_t * p, int n, int FanI, int FanJ, int Type, uns
 int Dtt_PrintStats( int nNodes, int nVars, Vec_Wec_t * vFunNodes, word nSteps, abctime clk, int fDelay, word nMultis )
 {
     int nNew = Vec_IntSize(Vec_WecEntry(vFunNodes, nNodes));
-    printf("%c =%2d  |  ",     fDelay ? 'D':'N', nNodes );
-    printf("C =%12.0f  |  ",   (double)(iword)nSteps );
-    printf("New%d =%10d   ",   nVars, nNew + (int)(nNodes==0) );
-    printf("All%d =%10d  |  ", nVars, Vec_WecSizeSize(vFunNodes)+1 );
-    printf("Multi =%10d  |  ", (int)nMultis );
+    fprintf( Abc_FrameGlobalGetOut(), "%c =%2d  |  ",     fDelay ? 'D':'N', nNodes );
+    fprintf( Abc_FrameGlobalGetOut(), "C =%12.0f  |  ",   (double)(iword)nSteps );
+    fprintf( Abc_FrameGlobalGetOut(), "New%d =%10d   ",   nVars, nNew + (int)(nNodes==0) );
+    fprintf( Abc_FrameGlobalGetOut(), "All%d =%10d  |  ", nVars, Vec_WecSizeSize(vFunNodes)+1 );
+    fprintf( Abc_FrameGlobalGetOut(), "Multi =%10d  |  ", (int)nMultis );
     Abc_PrintTime( 1, "Time",  Abc_Clock() - clk );
     //Abc_Print(1, "%9.2f sec\n", 1.0*(Abc_Clock() - clk)/(CLOCKS_PER_SEC));
-    fflush(stdout);
+    fflush( Abc_FrameGlobalGetOut() );
     return nNew;
 }
 void Dtt_PrintDistrib( Dtt_Man_t * p )
 {
     int i;
-    printf( "NPN classes for each node count (N):\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "NPN classes for each node count (N):\n" );
     for ( i = 0; i < 32; i++ )
         if ( p->Counts[i] )
-            printf( "N = %2d : NPN = %6d\n", i, p->Counts[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "N = %2d : NPN = %6d\n", i, p->Counts[i] );
 }
 void Dtt_PrintMulti2( Dtt_Man_t * p )
 {
     int i, n;
     for ( n = 0; n <= 7; n++ )
     {
-        printf( "n=%d : ", n);
+        fprintf( Abc_FrameGlobalGetOut(), "n=%d : ", n);
         for ( i = 0; i < p->nClasses; i++ )
             if ( p->pNodes[i] == n )
-                printf( "%d ", p->pTimes[i] );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%d ", p->pTimes[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void Dtt_PrintMulti1( Dtt_Man_t * p )
@@ -645,10 +645,10 @@ void Dtt_PrintMulti1( Dtt_Man_t * p )
             }
         if ( Count > 0 )
             Vec_IntPushTwo( vUsed, Prev, Count );
-        printf( "n=%d : ", n);
+        fprintf( Abc_FrameGlobalGetOut(), "n=%d : ", n);
         Vec_IntForEachEntryDouble( vUsed, Prev, Entry, i )
-            printf( "%d=%d ", Prev, Entry );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", Prev, Entry );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         Vec_IntFree( vTimes );
         Vec_IntFree( vUsed );
     }
@@ -673,15 +673,15 @@ void Dtt_PrintMulti( Dtt_Man_t * p )
             }
         if ( Count == 0 )
             break;
-        printf( "n=%2d : ", n );
-        printf( "All = %7d  ", Count );
-        printf( "Ave = %6.2f  ", 1.0*Total/Count );
+        fprintf( Abc_FrameGlobalGetOut(), "n=%2d : ", n );
+        fprintf( Abc_FrameGlobalGetOut(), "All = %7d  ", Count );
+        fprintf( Abc_FrameGlobalGetOut(), "Ave = %6.2f  ", 1.0*Total/Count );
         for ( i = 0; i < 15; i++ )
             if ( Counts[n][i] )
-                printf( "%6d", Counts[n][i] );
+                fprintf( Abc_FrameGlobalGetOut(), "%6d", Counts[n][i] );
             else
-                printf( "%6s", "" );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%6s", "" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -1002,8 +1002,8 @@ void Dtt_DumpLibrary( Dtt_Man_t * p, char* FileName )
     }
 
     fclose( pFile );
-    printf( "Dumped file \"%s\". \n", FileName );
-    fflush( stdout );
+    fprintf( Abc_FrameGlobalGetOut(), "Dumped file \"%s\". \n", FileName );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 void Dtt_EnumerateLf( int nVars, int nNodeMax, int fDelay, int fMulti, int fVerbose, char* pFileName )

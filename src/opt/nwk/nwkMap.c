@@ -249,7 +249,7 @@ Hop_Obj_t * Nwk_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * 
     gFunc = Nwk_NodeIfToHop2_rec( pHopMan, pIfMan, pIfObj, pIfMan->vTemp ); 
     if ( gFunc == (void *)1 )
     {
-        printf( "Nwk_NodeIfToHop(): Computing local AIG has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Nwk_NodeIfToHop(): Computing local AIG has failed.\n" );
         return NULL;
     }
 //    printf( "%d ", Vec_PtrSize(p->vTemp) );

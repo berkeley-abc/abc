@@ -206,8 +206,8 @@ static void Lpk_PrintSetOne( int uSupport )
     unsigned k;
     for ( k = 0; k < 16; k++ )
         if ( uSupport & (1<<k) )
-            printf( "%c", 'a'+k );
-    printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'a'+k );
+    fprintf( Abc_FrameGlobalGetOut(), " " );
 }
 /**Function*************************************************************
 
@@ -224,13 +224,13 @@ static void Lpk_PrintSets( Vec_Int_t * vSets )
 {
     unsigned uSupport;
     int Number, i;
-    printf( "Subsets(%d): ", Vec_IntSize(vSets) );
+    fprintf( Abc_FrameGlobalGetOut(), "Subsets(%d): ", Vec_IntSize(vSets) );
     Vec_IntForEachEntry( vSets, Number, i )
     {
         uSupport = Number;
         Lpk_PrintSetOne( uSupport );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -305,7 +305,7 @@ Lpk_PrintSetOne( uBoundSet & 0xFFFF );
         Area = 1 + Lpk_LutNumLuts( nVarsRem, p->nLutK );
         Delay = 1 + Lpk_SuppDelay( uBoundSet & 0xFFFF, p->pDelays );
 if ( fVerbose )
-printf( "area = %d limit = %d  delay = %d limit = %d\n", Area, (int)p->nAreaLim, Delay, (int)p->nDelayLim );
+fprintf( Abc_FrameGlobalGetOut(), "area = %d limit = %d  delay = %d limit = %d\n", Area, (int)p->nAreaLim, Delay, (int)p->nDelayLim );
         if ( Area > (int)p->nAreaLim || Delay > (int)p->nDelayLim )
             continue;
         if ( pRes->BSVars == 0 || pRes->nSuppSizeL > nVarsRem || (pRes->nSuppSizeL == nVarsRem && pRes->DelayEst > Delay) )
@@ -322,13 +322,13 @@ if ( fVerbose )
 {
 if ( pRes->BSVars )
 {
-printf( "Found bound set " );
+fprintf( Abc_FrameGlobalGetOut(), "Found bound set " );
 Lpk_PrintSetOne( pRes->BSVars );
-printf( "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 else
-printf( "Did not find boundsets.\n" );
-printf( "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Did not find boundsets.\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
     if ( pRes->BSVars )
     {
@@ -414,7 +414,7 @@ int Lpk_DsdAnalizeOne( Lpk_Fun_t * p, unsigned * ppTruths[5][16], Kit_DsdNtk_t *
             Kit_DsdNtkFree( pNtks[i] );
         pNtks[i] = Kit_DsdDecomposeExpand( ppTruths[nCofDepth][i], p->nVars );
 if ( fVerbose )
-Kit_DsdPrint( stdout, pNtks[i] );
+Kit_DsdPrint( Abc_FrameGlobalGetOut(), pNtks[i] );
         pvBSets[nCofDepth][i] = Lpk_ComputeBoundSets( pNtks[i], p->nLutK - nCofDepth ); // try restricting to those in uNonDecSupp!!!
     }
 

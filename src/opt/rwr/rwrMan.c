@@ -146,14 +146,14 @@ void Rwr_ManPrintStats( Rwr_Man_t * p )
     for ( i = 0; i < 222; i++ )
         Counter += (p->nScores[i] > 0);
 
-    printf( "Rewriting statistics:\n" );
-    printf( "Total cuts tries  = %8d.\n", p->nCutsGood );
-    printf( "Bad cuts found    = %8d.\n", p->nCutsBad );
-    printf( "Total subgraphs   = %8d.\n", p->nSubgraphs );
-    printf( "Used NPN classes  = %8d.\n", Counter );
-    printf( "Nodes considered  = %8d.\n", p->nNodesConsidered );
-    printf( "Nodes rewritten   = %8d.\n", p->nNodesRewritten );
-    printf( "Gain              = %8d. (%6.2f %%).\n", p->nNodesBeg-p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg );
+    fprintf( Abc_FrameGlobalGetOut(), "Rewriting statistics:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Total cuts tries  = %8d.\n", p->nCutsGood );
+    fprintf( Abc_FrameGlobalGetOut(), "Bad cuts found    = %8d.\n", p->nCutsBad );
+    fprintf( Abc_FrameGlobalGetOut(), "Total subgraphs   = %8d.\n", p->nSubgraphs );
+    fprintf( Abc_FrameGlobalGetOut(), "Used NPN classes  = %8d.\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes considered  = %8d.\n", p->nNodesConsidered );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes rewritten   = %8d.\n", p->nNodesRewritten );
+    fprintf( Abc_FrameGlobalGetOut(), "Gain              = %8d. (%6.2f %%).\n", p->nNodesBeg-p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg );
     ABC_PRT( "Start       ", p->timeStart );
     ABC_PRT( "Cuts        ", p->timeCut );
     ABC_PRT( "Resynthesis ", p->timeRes );
@@ -172,7 +172,7 @@ void Rwr_ManPrintStats( Rwr_Man_t * p )
             Ivy_TruthDsdComputePrint( (unsigned)p->pMapInv[i] | ((unsigned)p->pMapInv[i] << 16) );
         }
 */
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
 }
 

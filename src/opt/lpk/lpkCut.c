@@ -429,18 +429,18 @@ void Lpk_NodePrintCut( Lpk_Man_t * p, Lpk_Cut_t * pCut, int fLeavesOnly )
     Abc_Obj_t * pObj;
     int i;
     if ( !fLeavesOnly )
-        printf( "LEAVES:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "LEAVES:\n" );
     Lpk_CutForEachLeaf( p->pNtk, pCut, pObj, i )
-        printf( "%d,", pObj->Id );
+        fprintf( Abc_FrameGlobalGetOut(), "%d,", pObj->Id );
     if ( !fLeavesOnly )
     {
-        printf( "\nNODES:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\nNODES:\n" );
         Lpk_CutForEachNode( p->pNtk, pCut, pObj, i )
         {
-            printf( "%d,", pObj->Id );
+            fprintf( Abc_FrameGlobalGetOut(), "%d,", pObj->Id );
             assert( Abc_ObjIsNode(pObj) );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 

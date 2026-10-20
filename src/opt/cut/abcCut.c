@@ -104,7 +104,7 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     // compute cuts for internal nodes
     vNodes = Abc_AigDfs( pNtk, 0, 1 ); // collects POs
     vChoices = Vec_IntAlloc( 100 );
-    pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(vNodes) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Vec_PtrSize(vNodes) );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         // when we reached a CO, it is time to deallocate the cuts
@@ -144,7 +144,7 @@ PRT( "Total", clock() - clk );
 
     // temporary printout of stats
     if ( nTotal )
-    printf( "Total cuts = %d. Good cuts = %d.  Ratio = %5.2f\n", nTotal, nGood, ((double)nGood)/nTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Total cuts = %d. Good cuts = %d.  Ratio = %5.2f\n", nTotal, nGood, ((double)nGood)/nTotal );
     return p;
 }
 
@@ -458,11 +458,11 @@ void Abc_NtkPrintCuts( void * p, Abc_Ntk_t * pNtk, int fSeq )
     Cut_Cut_t * pList;
     Abc_Obj_t * pObj;
     int i;
-    printf( "Cuts of the network:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Cuts of the network:\n" );
     Abc_NtkForEachObj( pNtk, pObj, i )
     {
         pList = Abc_NodeReadCuts( p, pObj );
-        printf( "Node %s:\n", Abc_ObjName(pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %s:\n", Abc_ObjName(pObj) );
         Cut_CutPrintList( pList, fSeq );
     }
 }
@@ -485,7 +485,7 @@ void Abc_NtkPrintCuts_( void * p, Abc_Ntk_t * pNtk, int fSeq )
     Abc_Obj_t * pObj;
     pObj = Abc_NtkObj( pNtk, 2 * Abc_NtkObjNum(pNtk) / 3 );
     pList = Abc_NodeReadCuts( p, pObj );
-    printf( "Node %s:\n", Abc_ObjName(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "Node %s:\n", Abc_ObjName(pObj) );
     Cut_CutPrintList( pList, fSeq );
 }
 

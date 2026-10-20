@@ -58,7 +58,7 @@ Abc_Ntk_t * Abc_NtkDecFromTruth( word * pTruth, int nVars, int nLutSize )
     if ( !Abc_NtkToAig(pNew) )
     {
         Abc_NtkDelete( pNew );
-        fprintf( stdout, "Converting to AIG has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Converting to AIG has failed.\n" );
         return NULL;
     }
     assert( Abc_NtkHasAig(pNew) );
@@ -268,7 +268,7 @@ p->timeMap += Abc_Clock() - clk;
     // compute the gain in area
     nGain = pCut->nNodes - pCut->nNodesDup - (int)p->pIfMan->AreaGlo;
     if ( p->pPars->fVeryVerbose )
-        printf( "       Mffc = %2d. Mapped = %2d. Gain = %3d. Depth increase = %d. SReds = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "       Mffc = %2d. Mapped = %2d. Gain = %3d. Depth increase = %d. SReds = %d.\n", 
             pCut->nNodes - pCut->nNodesDup, (int)p->pIfMan->AreaGlo, nGain, (int)p->pIfMan->RequiredGlo - (int)p->pObj->Level, p->nCalledSRed );
 
     // quit if there is no gain
@@ -333,7 +333,7 @@ p->timeCuts += Abc_Clock() - clk;
 //return 0;
 
     if ( p->pPars->fVeryVerbose )
-    printf( "Node %5d : Mffc size = %5d. Cuts = %5d.\n", p->pObj->Id, p->nMffc, p->nEvals );
+    fprintf( Abc_FrameGlobalGetOut(), "Node %5d : Mffc size = %5d. Cuts = %5d.\n", p->pObj->Id, p->nMffc, p->nEvals );
     // try the good cuts
     p->nCutsTotal  += p->nCuts;
     p->nCutsUseful += p->nEvals;
@@ -385,9 +385,9 @@ p->timeTruth += Abc_Clock() - clk;
         if ( p->pPars->fVeryVerbose )
         {
 //            char * pFileName;
-            printf( "  C%02d: L= %2d/%2d  V= %2d/%d  N= %d  W= %4.2f  ", 
+            fprintf( Abc_FrameGlobalGetOut(), "  C%02d: L= %2d/%2d  V= %2d/%d  N= %d  W= %4.2f  ", 
                 i, pCut->nLeaves, nSuppSize, pCut->nNodes, pCut->nNodesDup, pCut->nLuts, pCut->Weight );
-            Kit_DsdPrint( stdout, pDsdNtk );
+            Kit_DsdPrint( Abc_FrameGlobalGetOut(), pDsdNtk );
             Kit_DsdPrintFromTruth( pTruth, pCut->nLeaves );
 //            pFileName = Kit_TruthDumpToFile( pTruth, pCut->nLeaves, Count++ );
 //            printf( "Saved truth table in file \"%s\".\n", pFileName );
@@ -463,7 +463,7 @@ p->timeCuts += Abc_Clock() - clk;
 p->timeCuts += Abc_Clock() - clk;
 
     if ( p->pPars->fVeryVerbose )
-        printf( "Node %5d : Mffc size = %5d. Cuts = %5d.  Level = %2d. Req = %2d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Node %5d : Mffc size = %5d. Cuts = %5d.  Level = %2d. Req = %2d.\n", 
             p->pObj->Id, p->nMffc, p->nEvals, p->pObj->Level, Required );
     // try the good cuts
     p->nCutsTotal  += p->nCuts;
@@ -521,13 +521,13 @@ p->timeTruth3 += Abc_Clock() - clk;
         {
 //            char * pFileName;
             int nSuppSize = Extra_TruthSupportSize( pTruth, pCut->nLeaves );
-            printf( "  C%02d: L= %2d/%2d  V= %2d/%d  N= %d  W= %4.2f  ", 
+            fprintf( Abc_FrameGlobalGetOut(), "  C%02d: L= %2d/%2d  V= %2d/%d  N= %d  W= %4.2f  ", 
                 i, pCut->nLeaves, nSuppSize, pCut->nNodes, pCut->nNodesDup, pCut->nLuts, pCut->Weight );
             Vec_PtrForEachEntry( Abc_Obj_t *, p->vLeaves, pLeaf, k )
-                printf( "%c=%d ", 'a'+k, Abc_ObjLevel(pLeaf) );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%c=%d ", 'a'+k, Abc_ObjLevel(pLeaf) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
             Kit_DsdPrintFromTruth( pTruth, pCut->nLeaves );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
 //            pFileName = Kit_TruthDumpToFile( pTruth, pCut->nLeaves, Count++ );
 //            printf( "Saved truth table in file \"%s\".\n", pFileName );
         }
@@ -561,7 +561,7 @@ p->timeEval += Abc_Clock() - clk;
             p->nGainTotal += nGain;
             p->nChanges++;
             if ( p->pPars->fVeryVerbose )
-                printf( "Performed resynthesis: Gain = %2d. Level = %2d. Req = %2d.\n", nGain, Abc_ObjLevel(pObjNew), Required );
+                fprintf( Abc_FrameGlobalGetOut(), "Performed resynthesis: Gain = %2d. Level = %2d. Req = %2d.\n", nGain, Abc_ObjLevel(pObjNew), Required );
             Abc_NtkUpdate( p->pObj, pObjNew, p->vLevels );
 //printf( "%3d : %d-%d=%d(%d) \n", p->nChanges, nNodesBef, Abc_NtkNodeNum(p->pNtk), nNodesBef-Abc_NtkNodeNum(p->pNtk), nGain );
             break;
@@ -627,7 +627,7 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
     }
     if ( pPars->fVerbose )
     {
-        printf( "Resynthesis for %d %d-LUTs with %d non-MFFC LUTs, %d crossbars, and %d-input cuts.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Resynthesis for %d %d-LUTs with %d non-MFFC LUTs, %d crossbars, and %d-input cuts.\n",
             pPars->nLutsMax, pPars->nLutSize, pPars->nLutsOver, pPars->nVarsShared, pPars->nVarsMax );
     }
  
@@ -635,7 +635,7 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
     // convert into the AIG
     if ( !Abc_NtkToAig(pNtk) )
     {
-        fprintf( stdout, "Converting to BDD has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Converting to BDD has failed.\n"  );
         return 0;
     }
     assert( Abc_NtkHasAig(pNtk) );
@@ -676,7 +676,7 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
         // consider all nodes
         nNodes = Abc_NtkObjNumMax(pNtk);
         if ( !pPars->fVeryVerbose )
-            pProgress = Extra_ProgressBarStart( stdout, nNodes );
+            pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
         Abc_NtkForEachNode( pNtk, pObj, i )
         {
             // skip all except the final node
@@ -732,20 +732,20 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
 //        Cloud_PrintInfo( p->pDsdMan->dd );
         p->nTotalNets2 = Abc_NtkGetTotalFanins(pNtk);
         p->nTotalNodes2 = Abc_NtkNodeNum(pNtk);
-        printf( "Node gain = %5d. (%.2f %%)  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Node gain = %5d. (%.2f %%)  ", 
             p->nTotalNodes-p->nTotalNodes2, 100.0*(p->nTotalNodes-p->nTotalNodes2)/p->nTotalNodes );
-        printf( "Edge gain = %5d. (%.2f %%)  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Edge gain = %5d. (%.2f %%)  ", 
             p->nTotalNets-p->nTotalNets2, 100.0*(p->nTotalNets-p->nTotalNets2)/p->nTotalNets );
-        printf( "Muxes = %4d. Dsds = %4d.", p->nMuxes, p->nDsds );
-        printf( "\n" );
-        printf( "Nodes = %5d (%3d)  Cuts = %5d (%4d)  Changes = %5d  Iter = %2d  Benefit = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Muxes = %4d. Dsds = %4d.", p->nMuxes, p->nDsds );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes = %5d (%3d)  Cuts = %5d (%4d)  Changes = %5d  Iter = %2d  Benefit = %d.\n", 
             p->nNodesTotal, p->nNodesOver, p->nCutsTotal, p->nCutsUseful, p->nChanges, Iter, p->nBenefited );
 
-        printf( "Non-DSD:" );
+        fprintf( Abc_FrameGlobalGetOut(), "Non-DSD:" );
         for ( i = 3; i <= pPars->nVarsMax; i++ )
             if ( p->nBlocks[i] )
-                printf( " %d=%d", i, p->nBlocks[i] );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " %d=%d", i, p->nBlocks[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         p->timeTotal = Abc_Clock() - clk;
         p->timeEval  = p->timeEval  - p->timeMap;
@@ -768,7 +768,7 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
     // check the resulting network
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Lpk_Resynthesize: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Lpk_Resynthesize: The network check has failed.\n" );
         return 0;
     }
     return 1;

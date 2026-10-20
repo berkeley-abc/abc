@@ -74,22 +74,22 @@ void Sfm_ParSetDefault( Sfm_Par_t * pPars )
 void Sfm_NtkPrintStats( Sfm_Ntk_t * p )
 {
     p->timeOther = p->timeTotal - p->timeWin - p->timeDiv - p->timeCnf - p->timeSat;
-    printf( "Nodes = %d. Try = %d. Resub = %d. Div = %d (ave = %d). SAT calls = %d. Timeouts = %d. MaxDivs = %d.\n",
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes = %d. Try = %d. Resub = %d. Div = %d (ave = %d). SAT calls = %d. Timeouts = %d. MaxDivs = %d.\n",
         Sfm_NtkNodeNum(p), p->nNodesTried, p->nRemoves + p->nResubs, p->nTotalDivs, p->nTotalDivs/Abc_MaxInt(1, p->nNodesTried), p->nSatCalls, p->nTimeOuts, p->nMaxDivs );
     if ( p->vBoxPins )
         printf( "Box order: rejected %d divisor candidates.\n", p->nBoxRejects );
 
-    printf( "Attempts :   " );
-    printf( "Remove %6d out of %6d (%6.2f %%)   ", p->nRemoves, p->nTryRemoves, 100.0*p->nRemoves/Abc_MaxInt(1, p->nTryRemoves) );
-    printf( "Resub  %6d out of %6d (%6.2f %%)   ", p->nResubs,  p->nTryResubs,  100.0*p->nResubs /Abc_MaxInt(1, p->nTryResubs)  );
+    fprintf( Abc_FrameGlobalGetOut(), "Attempts :   " );
+    fprintf( Abc_FrameGlobalGetOut(), "Remove %6d out of %6d (%6.2f %%)   ", p->nRemoves, p->nTryRemoves, 100.0*p->nRemoves/Abc_MaxInt(1, p->nTryRemoves) );
+    fprintf( Abc_FrameGlobalGetOut(), "Resub  %6d out of %6d (%6.2f %%)   ", p->nResubs,  p->nTryResubs,  100.0*p->nResubs /Abc_MaxInt(1, p->nTryResubs)  );
     if ( p->pPars->fUseDcs )
-    printf( "Improves %6d out of %6d (%6.2f %%)   ", p->nImproves,p->nTryImproves,100.0*p->nImproves/Abc_MaxInt(1, p->nTryImproves));
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Improves %6d out of %6d (%6.2f %%)   ", p->nImproves,p->nTryImproves,100.0*p->nImproves/Abc_MaxInt(1, p->nTryImproves));
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( "Reduction:   " );
-    printf( "Nodes  %6d out of %6d (%6.2f %%)   ", p->nTotalNodesBeg-p->nTotalNodesEnd, p->nTotalNodesBeg, 100.0*(p->nTotalNodesBeg-p->nTotalNodesEnd)/Abc_MaxInt(1, p->nTotalNodesBeg) );
-    printf( "Edges  %6d out of %6d (%6.2f %%)   ", p->nTotalEdgesBeg-p->nTotalEdgesEnd, p->nTotalEdgesBeg, 100.0*(p->nTotalEdgesBeg-p->nTotalEdgesEnd)/Abc_MaxInt(1, p->nTotalEdgesBeg) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Reduction:   " );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes  %6d out of %6d (%6.2f %%)   ", p->nTotalNodesBeg-p->nTotalNodesEnd, p->nTotalNodesBeg, 100.0*(p->nTotalNodesBeg-p->nTotalNodesEnd)/Abc_MaxInt(1, p->nTotalNodesBeg) );
+    fprintf( Abc_FrameGlobalGetOut(), "Edges  %6d out of %6d (%6.2f %%)   ", p->nTotalEdgesBeg-p->nTotalEdgesEnd, p->nTotalEdgesBeg, 100.0*(p->nTotalEdgesBeg-p->nTotalEdgesEnd)/Abc_MaxInt(1, p->nTotalEdgesBeg) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     ABC_PRTP( "Win", p->timeWin  ,  p->timeTotal );
     ABC_PRTP( "Div", p->timeDiv  ,  p->timeTotal );
@@ -126,7 +126,7 @@ int Sfm_NodeResubSolve( Sfm_Ntk_t * p, int iNode, int f, int fRemoveOnly )
     p->nTryRemoves++;
     // report init stats
     if ( p->pPars->fVeryVerbose )
-        printf( "%5d : Lev =%3d. Leaf =%3d.  Node =%3d.  Div=%3d.  Fanin =%4d (%d/%d). MFFC = %d\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "%5d : Lev =%3d. Leaf =%3d.  Node =%3d.  Div=%3d.  Fanin =%4d (%d/%d). MFFC = %d\n", 
             iNode, Sfm_ObjLevel(p, iNode), 0, Vec_IntSize(p->vNodes), Vec_IntSize(p->vDivs), 
             Sfm_ObjFanin(p, iNode, f), f, Sfm_ObjFaninNum(p, iNode), Sfm_ObjMffcSize(p, Sfm_ObjFanin(p, iNode, f)) );
     // clean simulation info
@@ -161,19 +161,19 @@ p->timeSat += Abc_Clock() - clk;
     if ( fVeryVerbose )
     {
         for ( i = 0; i < 9; i++ )
-            printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
         for ( i = 0; i < Vec_IntSize(p->vDivs); i++ )
-            printf( "%d", i % 10 );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", i % 10 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     while ( 1 ) 
     {
         if ( fVeryVerbose )
         {
-            printf( "%3d: %3d ", p->nCexes, iVar );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d: %3d ", p->nCexes, iVar );
             Vec_WrdForEachEntry( p->vDivCexes, uSign, i )
-                printf( "%d", Abc_TtGetBit(&uSign, p->nCexes-1) );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtGetBit(&uSign, p->nCexes-1) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         // find the next divisor to try
         uMask = (~(word)0) >> (64 - p->nCexes);
@@ -206,11 +206,11 @@ finish:
     if ( p->pPars->fVeryVerbose )
     {
         if ( iVar == -1 )
-            printf( "Node %d: Fanin %d (%d) can be removed.  ", iNode, f, Sfm_ObjFanin(p, iNode, f) );
+            fprintf( Abc_FrameGlobalGetOut(), "Node %d: Fanin %d (%d) can be removed.  ", iNode, f, Sfm_ObjFanin(p, iNode, f) );
         else
-            printf( "Node %d: Fanin %d (%d) can be replaced by divisor %d (%d).   ", 
+            fprintf( Abc_FrameGlobalGetOut(), "Node %d: Fanin %d (%d) can be replaced by divisor %d (%d).   ", 
             iNode, f, Sfm_ObjFanin(p, iNode, f), iVar, Vec_IntEntry(p->vDivs, iVar) );
-        Kit_DsdPrintFromTruth( (unsigned *)&uTruth, Vec_IntSize(p->vDivIds) ); printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned *)&uTruth, Vec_IntSize(p->vDivIds) ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     if ( iVar == -1 )
         p->nRemoves++;
@@ -249,7 +249,7 @@ int Sfm_NodeResubOne( Sfm_Ntk_t * p, int iNode )
     p->nTryImproves++;
     // report init stats
     if ( p->pPars->fVeryVerbose )
-        printf( "%5d : Lev =%3d. Leaf =%3d.  Node =%3d.  Div=%3d.  Fanins = %d.  MFFC = %d\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "%5d : Lev =%3d. Leaf =%3d.  Node =%3d.  Div=%3d.  Fanins = %d.  MFFC = %d\n", 
             iNode, Sfm_ObjLevel(p, iNode), 0, Vec_IntSize(p->vNodes), Vec_IntSize(p->vDivs), 
             Sfm_ObjFaninNum(p, iNode), Sfm_ObjMffcSize(p, iNode) );
     // collect fanins
@@ -347,12 +347,12 @@ void Sfm_NtkPrint( Sfm_Ntk_t * p )
     for ( i = 0; i < p->nObjs; i++ )
     {
         Vec_Int_t * vArray = Vec_WecEntry( &p->vFanins, i );
-        printf( "Obj %3d : ", i );
-        printf( "Fixed %d  ", Vec_StrEntry(p->vFixed, i) );
-        printf( "Empty %d  ", Vec_StrEntry(p->vEmpty, i) );
-        printf( "Truth  " );
-        Extra_PrintHex( stdout, (unsigned *)Vec_WrdEntryP(p->vTruths, i), Vec_IntSize(vArray) );
-        printf( "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Obj %3d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Fixed %d  ", Vec_StrEntry(p->vFixed, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "Empty %d  ", Vec_StrEntry(p->vEmpty, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "Truth  " );
+        Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)Vec_WrdEntryP(p->vTruths, i), Vec_IntSize(vArray) );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );
         Vec_IntPrint( vArray );
     }
 }
@@ -377,7 +377,7 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
     {
         int nFixed = p->vFixed ? Vec_StrSum(p->vFixed) : 0;
         int nEmpty = p->vEmpty ? Vec_StrSum(p->vEmpty) : 0;
-        printf( "Performing MFS with %d PIs, %d POs, %d nodes (%d flexible, %d fixed, %d empty).\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Performing MFS with %d PIs, %d POs, %d nodes (%d flexible, %d fixed, %d empty).\n", 
             p->nPis, p->nPos, p->nNodes, p->nNodes-nFixed, nFixed, nEmpty );
     }
     p->pPars = pPars;
@@ -412,7 +412,7 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
     p->nTotalEdgesEnd = Vec_WecSizeSize(&p->vFanins) - Sfm_NtkPoNum(p);
     p->timeTotal = Abc_Clock() - p->timeTotal;
     if ( pPars->fVerbose && CounterLarge )
-        printf( "MFS skipped %d (out of %d) nodes with more than %d fanins.\n", CounterLarge, p->nNodes, SFM_SUPP_MAX );
+        fprintf( Abc_FrameGlobalGetOut(), "MFS skipped %d (out of %d) nodes with more than %d fanins.\n", CounterLarge, p->nNodes, SFM_SUPP_MAX );
     if ( pPars->fVerbose )
         Sfm_NtkPrintStats( p );
     //Sfm_NtkPrint( p );

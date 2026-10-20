@@ -152,7 +152,7 @@ int Sbd_ManCutIsTopo( Gia_Man_t * p, Vec_Int_t * vMirrors, Vec_Int_t * vCut, int
         Gia_ObjSetTravIdCurrentId( p, Entry );        
     RetValue = Sbd_ManCutIsTopo_rec( p, vMirrors, iObj );
     if ( RetValue == 0 )
-        printf( "Cut of node %d is not tological\n", iObj );
+        fprintf( Abc_FrameGlobalGetOut(), "Cut of node %d is not tological\n", iObj );
     assert( RetValue );
     return RetValue;
 }

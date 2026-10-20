@@ -73,7 +73,7 @@ void Sbd_CountTopos()
     Hsh_VecMan_t * p = Hsh_VecManStart( 10000 ); // hash table for arrays
     Vec_Int_t * vSet = Vec_IntAlloc( 100 );
     int i, k, e, Start, Stop;
-    printf( "Counting topologies for %d inputs and %d degree-%d nodes.\n", nInputs, nNodes, Degree );
+    fprintf( Abc_FrameGlobalGetOut(), "Counting topologies for %d inputs and %d degree-%d nodes.\n", nInputs, nNodes, Degree );
     Start = Hsh_VecManAdd( p, vSet );
     for ( i = 1; i <= nNodes; i++ )
     {
@@ -95,16 +95,16 @@ void Sbd_CountTopos()
             Vec_IntPush( vSet, 1 );
             Hsh_VecManAdd( p, vSet );
         }
-        printf( "Nodes = %2d : This = %8d  All = %8d\n", i, Hsh_VecSize(p) - Stop, Hsh_VecSize(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes = %2d : This = %8d  All = %8d\n", i, Hsh_VecSize(p) - Stop, Hsh_VecSize(p) );
         if ( fVerbose )
         {
             for ( e = Stop; e < Hsh_VecSize(p); e++ )
             {
                 Vec_Int_t * vTemp = Hsh_VecReadEntry( p, e );
-                printf( "Params = %3d.  ", Sbd_CountConfigVars(vTemp, nInputs, Degree) );
+                fprintf( Abc_FrameGlobalGetOut(), "Params = %3d.  ", Sbd_CountConfigVars(vTemp, nInputs, Degree) );
                 Vec_IntPrint( vTemp );
             }
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         Start = Stop;
     }
