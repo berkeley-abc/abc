@@ -162,7 +162,7 @@ Vec_Ptr_t * Llb_ManCutMap( Aig_Man_t * p, Vec_Ptr_t * vResult, Vec_Ptr_t * vSupp
 
     // find all that will appear here
     Counter = Aig_ManRegNum(p);
-    printf( "%d ", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "%d ", Counter );
     Vec_PtrForEachEntryStart( Vec_Int_t *, vMaps, vMap, i, 1 )
     {
         vPrev = (Vec_Int_t *)Vec_PtrEntry( vMaps, i-1 );
@@ -187,9 +187,9 @@ Vec_Ptr_t * Llb_ManCutMap( Aig_Man_t * p, Vec_Ptr_t * vResult, Vec_Ptr_t * vSupp
             }
         }
         Counter = Counter + CounterPlus - CounterMinus;
-        printf( "%d=%d ", i, Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, Counter );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     if ( !fShowMatrix )
         return vMaps;
@@ -202,17 +202,17 @@ Vec_Ptr_t * Llb_ManCutMap( Aig_Man_t * p, Vec_Ptr_t * vResult, Vec_Ptr_t * vSupp
                 break;
         if ( k == Vec_PtrSize(vMaps) )
             continue;
-        printf( "Obj = %4d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Obj = %4d : ", i );
         if ( Saig_ObjIsPi(p,pObj) )
-            printf( "pi  " );
+            fprintf( Abc_FrameGlobalGetOut(), "pi  " );
         else if ( Saig_ObjIsLo(p,pObj) )
-            printf( "lo  " );
+            fprintf( Abc_FrameGlobalGetOut(), "lo  " );
         else if ( Aig_ObjIsNode(pObj) )
-            printf( "and " );
+            fprintf( Abc_FrameGlobalGetOut(), "and " );
 
         Vec_PtrForEachEntry( Vec_Int_t *, vMaps, vMap, k )
-            printf( "%d", Vec_IntEntry(vMap, i) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Vec_IntEntry(vMap, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return vMaps;
 }
@@ -472,26 +472,26 @@ void Llb_ManCutPrint( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUpper )
     Pis = Llb_ManCutPiNum(p, vLower);
     Ffs = Llb_ManCutLoNum(p, vLower);
     And = Vec_PtrSize(vLower) - Pis - Ffs;
-    printf( "Leaf: %3d=%3d+%3d+%3d  ",  Vec_PtrSize(vLower), Pis, Ffs, And );
+    fprintf( Abc_FrameGlobalGetOut(), "Leaf: %3d=%3d+%3d+%3d  ",  Vec_PtrSize(vLower), Pis, Ffs, And );
 
     Pis = Llb_ManCutPiNum(p, vUpper);
     Ffs = Llb_ManCutLiNum(p, vUpper);
     And = Vec_PtrSize(vUpper) - Pis - Ffs;
-    printf( "Root: %3d=%3d+%3d+%3d  ", Vec_PtrSize(vUpper), Pis, Ffs, And );
+    fprintf( Abc_FrameGlobalGetOut(), "Root: %3d=%3d+%3d+%3d  ", Vec_PtrSize(vUpper), Pis, Ffs, And );
 
     vSupp = Llb_ManCutSupp( p, vLower, vUpper );
     Pis = Llb_ManCutPiNum(p, vSupp);
     Ffs = Llb_ManCutLoNum(p, vSupp);
     And = Vec_PtrSize(vSupp) - Pis - Ffs;
-    printf( "Supp: %3d=%3d+%3d+%3d  ", Vec_PtrSize(vSupp), Pis, Ffs, And );
+    fprintf( Abc_FrameGlobalGetOut(), "Supp: %3d=%3d+%3d+%3d  ", Vec_PtrSize(vSupp), Pis, Ffs, And );
 
     vRange = Llb_ManCutRange( p, vLower, vUpper );
     Pis = Llb_ManCutPiNum(p, vRange);
     Ffs = Llb_ManCutLiNum(p, vRange);
     And = Vec_PtrSize(vRange) - Pis - Ffs;
-    printf( "Range: %3d=%3d+%3d+%3d  ", Vec_PtrSize(vRange), Pis, Ffs, And );
+    fprintf( Abc_FrameGlobalGetOut(), "Range: %3d=%3d+%3d+%3d  ", Vec_PtrSize(vRange), Pis, Ffs, And );
 
-    printf( "S =%3d. V =%3d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "S =%3d. V =%3d.\n", 
         Vec_PtrSize(vSupp)+Vec_PtrSize(vRange), Llb_ManCutVolume(p, vLower, vUpper) );
     Vec_PtrFree( vSupp );
     Vec_PtrFree( vRange );
@@ -811,7 +811,7 @@ Vec_Ptr_t * Llb_ManFlow( Aig_Man_t * p, Vec_Ptr_t * vSources, int * pnFlow )
     assert( Vec_PtrSize(vMinCut) == Flow );
     // verify the cut
     if ( !Llb_ManFlowVerifyCut(p, vMinCut) )
-        printf( "Llb_ManFlow() error! The computed min-cut is not a cut!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Llb_ManFlow() error! The computed min-cut is not a cut!\n" );
 //    Llb_ManFlowPrintCut( p, vMinCut );
     return vMinCut;
 }
@@ -886,7 +886,7 @@ Vec_Ptr_t * Llb_ManFlowCompute( Aig_Man_t * p )
 //printf( "%d   ", Vec_PtrSize(vMinCut) );
     // verify the cut
     if ( !Llb_ManFlowVerifyCut(p, vMinCut) )
-        printf( "Llb_ManFlow() error! The computed min-cut is not a cut!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Llb_ManFlow() error! The computed min-cut is not a cut!\n" );
 //    Llb_ManFlowPrintCut( p, vMinCut );
     return vMinCut;
 }
@@ -1251,9 +1251,9 @@ Vec_Ptr_t * Llb_ManComputeCuts( Aig_Man_t * p, int Num, int fVerbose, int fVeryV
             if ( vMinCut == NULL )
             {
                 if ( fVeryVerbose )
-                printf( "Could not break the cut.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Could not break the cut.\n" );
                 if ( fVeryVerbose )
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 vLower = vUpper;
                 continue;
             }
@@ -1263,7 +1263,7 @@ Vec_Ptr_t * Llb_ManComputeCuts( Aig_Man_t * p, int Num, int fVerbose, int fVeryV
             if ( fVeryVerbose )
             Llb_ManCutPrint( p, vLower,  vMinCut );
             if ( fVeryVerbose )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
             break;
         }
@@ -1277,7 +1277,7 @@ Vec_Ptr_t * Llb_ManComputeCuts( Aig_Man_t * p, int Num, int fVerbose, int fVeryV
     }
     if ( fVerbose )
     {
-        printf( "Finished computing %d partitions.  ", Vec_PtrSize(vResult) - 1 );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished computing %d partitions.  ", Vec_PtrSize(vResult) - 1 );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         Llb_ManResultPrint( p, vResult );
     }

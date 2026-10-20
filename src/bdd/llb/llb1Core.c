@@ -143,7 +143,7 @@ int Llb_ManModelCheckAig( Aig_Man_t * pAigGlo, Gia_ParLlb_t * pPars, Vec_Int_t *
         if ( pPars->fVerbose )
         {
             Llb_ManPrintAig( p );
-            printf( "Original matrix:          " );
+            fprintf( Abc_FrameGlobalGetOut(), "Original matrix:          " );
             Llb_MtrPrintMatrixStats( p->pMatrix );
             if ( pPars->fVeryVerbose )
                 Llb_MtrPrint( p->pMatrix, 1 );
@@ -153,7 +153,7 @@ int Llb_ManModelCheckAig( Aig_Man_t * pAigGlo, Gia_ParLlb_t * pPars, Vec_Int_t *
             Llb_ManCluster( p->pMatrix );
             if ( pPars->fVerbose )
             {
-                printf( "Matrix after clustering:  " );
+                fprintf( Abc_FrameGlobalGetOut(), "Matrix after clustering:  " );
                 Llb_MtrPrintMatrixStats( p->pMatrix );
                 if ( pPars->fVeryVerbose )
                     Llb_MtrPrint( p->pMatrix, 1 );
@@ -164,7 +164,7 @@ int Llb_ManModelCheckAig( Aig_Man_t * pAigGlo, Gia_ParLlb_t * pPars, Vec_Int_t *
             Llb_MtrSchedule( p->pMatrix );
             if ( pPars->fVerbose )
             {
-                printf( "Matrix after scheduling:  " );
+                fprintf( Abc_FrameGlobalGetOut(), "Matrix after scheduling:  " );
                 Llb_MtrPrintMatrixStats( p->pMatrix );
                 if ( pPars->fVeryVerbose )
                     Llb_MtrPrint( p->pMatrix, 1 );

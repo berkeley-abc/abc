@@ -280,7 +280,7 @@ cuddZddIsop(
     }
 
     if (U == zero || L == one) {
-        printf("*** ERROR : illegal condition for ISOP (U < L).\n");
+        fprintf( Abc_FrameGlobalGetOut(), "*** ERROR : illegal condition for ISOP (U < L).\n");
         exit(1);
     }
 

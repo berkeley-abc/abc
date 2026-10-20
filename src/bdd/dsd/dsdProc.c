@@ -138,7 +138,7 @@ s_Loops2Useless = 0;
     }
 
     if ( pDsdMan->fVerbose )
-        printf( "\nDecomposability statistics for individual outputs:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\nDecomposability statistics for individual outputs:\n" );
 
     // set the counter of decomposition nodes
     s_nDecBlocks = 0;
@@ -178,32 +178,32 @@ s_Loops2Useless = 0;
 
         if ( pDsdMan->fVerbose )
         {
-            printf("#%02d: ", i );                              
-            printf("Ins=%2d. ", Cudd_SupportSize(dd,pbFuncs[i]) );                  
-            printf("Gts=%3d. ", Dsd_TreeCountNonTerminalNodesOne( pDsdMan->pRoots[i] ) ); 
-            printf("Pri=%3d. ", Dsd_TreeCountPrimeNodesOne( pDsdMan->pRoots[i] ) ); 
-            printf("Max=%3d. ", MaxBlock ); 
-            printf("Reuse=%2d. ", s_nReusedBlocks-nReusedBlocksPres ); 
-            printf("Csc=%2d. ", nCascades ); 
-            printf("T= %.2f s. ", (float)(Abc_Clock()-clk)/(float)(CLOCKS_PER_SEC) ) ;
-            printf("Bdd=%2d. ", Cudd_DagSize(pbFuncs[i]) ); 
-            printf("\n");
-            fflush( stdout );
+            fprintf( Abc_FrameGlobalGetOut(), "#%02d: ", i );                              
+            fprintf( Abc_FrameGlobalGetOut(), "Ins=%2d. ", Cudd_SupportSize(dd,pbFuncs[i]) );                  
+            fprintf( Abc_FrameGlobalGetOut(), "Gts=%3d. ", Dsd_TreeCountNonTerminalNodesOne( pDsdMan->pRoots[i] ) ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Pri=%3d. ", Dsd_TreeCountPrimeNodesOne( pDsdMan->pRoots[i] ) ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Max=%3d. ", MaxBlock ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Reuse=%2d. ", s_nReusedBlocks-nReusedBlocksPres ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Csc=%2d. ", nCascades ); 
+            fprintf( Abc_FrameGlobalGetOut(), "T= %.2f s. ", (float)(Abc_Clock()-clk)/(float)(CLOCKS_PER_SEC) ) ;
+            fprintf( Abc_FrameGlobalGetOut(), "Bdd=%2d. ", Cudd_DagSize(pbFuncs[i]) ); 
+            fprintf( Abc_FrameGlobalGetOut(), "\n");
+            fflush( Abc_FrameGlobalGetOut() );
         }
     }
     assert( pDsdMan->nRoots == nFuncs );
 
     if ( pDsdMan->fVerbose )
     {
-        printf( "\n" );
-        printf( "The cumulative decomposability statistics:\n" );
-        printf( "  Total outputs                             = %5d\n", nFuncs );
-        printf( "  Decomposable outputs                      = %5d\n", nDecOutputs );
-        printf( "  Completely decomposable outputs           = %5d\n", nCBFOutputs );
-        printf( "  The sum of max gate sizes                 = %5d\n", SumMaxGateSize );
-        printf( "  Shared BDD size                           = %5d\n", Cudd_SharingSize( pbFuncs, nFuncs ) );
-        printf( "  Decomposition entries                     = %5d\n", st__count( pDsdMan->Table ) );
-        printf( "  Pure decomposition time                   =  %.2f sec\n", (float)(Abc_Clock() - clk)/(float)(CLOCKS_PER_SEC) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The cumulative decomposability statistics:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "  Total outputs                             = %5d\n", nFuncs );
+        fprintf( Abc_FrameGlobalGetOut(), "  Decomposable outputs                      = %5d\n", nDecOutputs );
+        fprintf( Abc_FrameGlobalGetOut(), "  Completely decomposable outputs           = %5d\n", nCBFOutputs );
+        fprintf( Abc_FrameGlobalGetOut(), "  The sum of max gate sizes                 = %5d\n", SumMaxGateSize );
+        fprintf( Abc_FrameGlobalGetOut(), "  Shared BDD size                           = %5d\n", Cudd_SharingSize( pbFuncs, nFuncs ) );
+        fprintf( Abc_FrameGlobalGetOut(), "  Decomposition entries                     = %5d\n", st__count( pDsdMan->Table ) );
+        fprintf( Abc_FrameGlobalGetOut(), "  Pure decomposition time                   =  %.2f sec\n", (float)(Abc_Clock() - clk)/(float)(CLOCKS_PER_SEC) );
     }
 /*
     printf( "s_Loops1 = %d.\n", s_Loops1 );

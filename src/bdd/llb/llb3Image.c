@@ -231,20 +231,20 @@ void Llb_NonlinPrint( Llb_Mgr_t * p )
     Llb_Prt_t * pPart;
     Llb_Var_t * pVar;
     int i, k;
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Llb_MgrForEachVar( p, pVar, i )
     {
-        printf( "Var %3d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Var %3d : ", i );
         Llb_VarForEachPart( p, pVar, pPart, k )
-            printf( "%d ", pPart->iPart );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", pPart->iPart );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Llb_MgrForEachPart( p, pPart, i )
     {
-        printf( "Part %3d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Part %3d : ", i );
         Llb_PartForEachVar( p, pPart, pVar, k )
-            printf( "%d ", pVar->iVar );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", pVar->iVar );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -273,9 +273,9 @@ int Llb_NonlinQuantify1( Llb_Mgr_t * p, Llb_Prt_t * pPart, int fSubset )
 //        pPart->bFunc = Cudd_SubsetHeavyBranch( p->dd, bTemp = pPart->bFunc, nSuppSize, 3*pPart->nSize/4 );  Cudd_Ref( pPart->bFunc );
         pPart->bFunc = Cudd_LargestCube( p->dd, bTemp = pPart->bFunc, &Length );  Cudd_Ref( pPart->bFunc );
 
-        printf( "Subsetting %3d : ", pPart->iPart );
-        printf( "(Supp =%3d  Node =%5d) -> ", Cudd_SupportSize(p->dd, bTemp),        Cudd_DagSize(bTemp) );
-        printf( "(Supp =%3d  Node =%5d)\n",   Cudd_SupportSize(p->dd, pPart->bFunc), Cudd_DagSize(pPart->bFunc) );
+        fprintf( Abc_FrameGlobalGetOut(), "Subsetting %3d : ", pPart->iPart );
+        fprintf( Abc_FrameGlobalGetOut(), "(Supp =%3d  Node =%5d) -> ", Cudd_SupportSize(p->dd, bTemp),        Cudd_DagSize(bTemp) );
+        fprintf( Abc_FrameGlobalGetOut(), "(Supp =%3d  Node =%5d)\n",   Cudd_SupportSize(p->dd, pPart->bFunc), Cudd_DagSize(pPart->bFunc) );
 
         RetValue = (Cudd_DagSize(bTemp) == Cudd_DagSize(pPart->bFunc));
 
@@ -354,11 +354,11 @@ int Llb_NonlinQuantify2( Llb_Mgr_t * p, Llb_Prt_t * pPart1, Llb_Prt_t * pPart2 )
     bCube = Llb_NonlinCreateCube2( p, pPart1, pPart2 );   Cudd_Ref( bCube );
 if ( fVerbose )
 {
-printf( "\n" );
-printf( "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
 Llb_NonlinPrint( p );
-printf( "Conjoining partitions %d and %d.\n", pPart1->iPart, pPart2->iPart );
-Extra_bddPrintSupport( p->dd, bCube );  printf( "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Conjoining partitions %d and %d.\n", pPart1->iPart, pPart2->iPart );
+Extra_bddPrintSupport( p->dd, bCube );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
  
     // derive new function
@@ -435,7 +435,7 @@ Extra_bddPrintSupport( p->dd, bCube );  printf( "\n" );
         else if ( Vec_IntSize(pVar->vParts) == 1 )
         {
             if ( fVerbose )
-                printf( "Adding partition %d because of var %d.\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "Adding partition %d because of var %d.\n", 
                     Llb_MgrPart(p, Vec_IntEntry(pVar->vParts,0))->iPart, pVar->iVar );
             Vec_PtrPushUnique( vSingles, Llb_MgrPart(p, Vec_IntEntry(pVar->vParts,0)) );
         }
@@ -449,7 +449,7 @@ Extra_bddPrintSupport( p->dd, bCube );  printf( "\n" );
         else if ( Vec_IntSize(pVar->vParts) == 1 )
         {
             if ( fVerbose )
-                printf( "Adding partition %d because of var %d.\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "Adding partition %d because of var %d.\n", 
                     Llb_MgrPart(p, Vec_IntEntry(pVar->vParts,0))->iPart, pVar->iVar );
             Vec_PtrPushUnique( vSingles, Llb_MgrPart(p, Vec_IntEntry(pVar->vParts,0)) );
         }
@@ -463,7 +463,7 @@ Llb_NonlinPrint( p );
     Vec_PtrForEachEntry( Llb_Prt_t *, vSingles, pTemp, i )
     {
 if ( fVerbose )
-printf( "Updating partitiong %d with singlton vars.\n", pTemp->iPart );
+fprintf( Abc_FrameGlobalGetOut(), "Updating partitiong %d with singlton vars.\n", pTemp->iPart );
         Llb_NonlinQuantify1( p, pTemp, 0 );
     }
 if ( fVerbose )

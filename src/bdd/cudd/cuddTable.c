@@ -614,8 +614,8 @@ cuddInitTable(
     unique->postGCHook = NULL;
     unique->preReorderingHook = NULL;
     unique->postReorderingHook = NULL;
-    unique->out = stdout;
-    unique->err = stderr;
+    unique->out = Abc_FrameGlobalGetOut();
+    unique->err = Abc_FrameGlobalGetErr();
     unique->errorCode = CUDD_NO_ERROR;
 
     /* Initialize statistical counters. */

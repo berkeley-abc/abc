@@ -257,17 +257,17 @@ void Extra_SymmPairsDissolve( Extra_SymmInfo_t * p )
 void Extra_SymmPairsPrint( Extra_SymmInfo_t * p )
 {
     int i, k;
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( i = 0; i < p->nVars; i++ )
     {
         for ( k = 0; k <= i; k++ )
-            printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
         for ( k = i+1; k < p->nVars; k++ )
             if ( p->pSymms[i][k] )
-                printf( "1" );
+                fprintf( Abc_FrameGlobalGetOut(), "1" );
             else
-                printf( "." );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "." );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 } /* end of Extra_SymmPairsPrint */
 

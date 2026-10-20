@@ -690,7 +690,7 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
             if ( p->bCurrent == NULL )
             {
                 if ( !p->pPars->fSilent )
-                    printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+                    fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
                 p->pPars->iFrame = -1;
                 return -1;
             }
@@ -701,7 +701,7 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
         if ( p->bCurrent == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during remapping bad states.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during remapping bad states.\n",  p->pPars->TimeLimit );
             Cudd_RecursiveDeref( p->dd, bAux );
             p->pPars->iFrame = -1;
             return -1;
@@ -722,7 +722,7 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
                 if ( p->bBad == NULL )
                 {
                     if ( !p->pPars->fSilent )
-                        printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+                        fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
                     p->pPars->iFrame = -1;
                     return -1;
                 }
@@ -743,7 +743,7 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
         if ( p->pPars->TimeLimit && Abc_Clock() > p->pPars->TimeTarget )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             return -1;
         }
@@ -774,7 +774,7 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
         if ( p->bNext == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation in quantification.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation in quantification.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             return -1;
         }
@@ -787,7 +787,7 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
         if ( p->bNext == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during remapping next states.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during remapping next states.\n",  p->pPars->TimeLimit );
             Cudd_RecursiveDeref( p->dd, bAux );
             p->pPars->iFrame = nIters - 1;
             return -1;
@@ -810,7 +810,7 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
         if ( p->bCurrent == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             return -1;
         }
@@ -831,7 +831,7 @@ printf( "Before = %d.  After = %d.\n", Cudd_DagSize(bAux), Cudd_DagSize(p->bCurr
         if ( p->bReached == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->dd, bAux );  
             return -1;
@@ -843,12 +843,12 @@ printf( "Before = %d.  After = %d.\n", Cudd_DagSize(bAux), Cudd_DagSize(p->bCurr
         // report the results
         if ( p->pPars->fVerbose )
         {
-            printf( "I =%5d : ",   nIters );
-            printf( "Fr =%7d  ",   nBddSizeFr );
-            printf( "ImNs =%7d  ", nBddSizeTo );
-            printf( "ImCs =%7d  ", nBddSizeTo2 );
-            printf( "Rea =%7d   ", Cudd_DagSize(p->bReached) );
-            printf( "(%4d %4d)  ", Cudd_ReadReorderings(p->dd), Cudd_ReadGarbageCollections(p->dd) );
+            fprintf( Abc_FrameGlobalGetOut(), "I =%5d : ",   nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "Fr =%7d  ",   nBddSizeFr );
+            fprintf( Abc_FrameGlobalGetOut(), "ImNs =%7d  ", nBddSizeTo );
+            fprintf( Abc_FrameGlobalGetOut(), "ImCs =%7d  ", nBddSizeTo2 );
+            fprintf( Abc_FrameGlobalGetOut(), "Rea =%7d   ", Cudd_DagSize(p->bReached) );
+            fprintf( Abc_FrameGlobalGetOut(), "(%4d %4d)  ", Cudd_ReadReorderings(p->dd), Cudd_ReadGarbageCollections(p->dd) );
             Abc_PrintTime( 1, "T", Abc_Clock() - clkIter );
         }
 /*
@@ -863,7 +863,7 @@ printf( "Before = %d.  After = %d.\n", Cudd_DagSize(bAux), Cudd_DagSize(p->bCurr
         if ( nIters == p->pPars->nIterMax - 1 )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached limit on the number of timeframes (%d).\n",  p->pPars->nIterMax );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached limit on the number of timeframes (%d).\n",  p->pPars->nIterMax );
             p->pPars->iFrame = nIters;
             return -1;
         }
@@ -874,22 +874,22 @@ printf( "Before = %d.  After = %d.\n", Cudd_DagSize(bAux), Cudd_DagSize(p->bCurr
     {
         double nMints = Cudd_CountMinterm(p->dd, p->bReached, Saig_ManRegNum(p->pAig) );
         if ( p->bCurrent && Cudd_IsConstant(p->bCurrent) )
-            printf( "Reachability analysis completed after %d frames.\n", nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "Reachability analysis completed after %d frames.\n", nIters );
         else
-            printf( "Reachability analysis is stopped after %d frames.\n", nIters );
-        printf( "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Saig_ManRegNum(p->pAig)) );
-        fflush( stdout ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Reachability analysis is stopped after %d frames.\n", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Saig_ManRegNum(p->pAig)) );
+        fflush( Abc_FrameGlobalGetOut() ); 
     }
     if ( p->bCurrent == NULL || !Cudd_IsConstant(p->bCurrent) )
     {
         if ( !p->pPars->fSilent )
-            printf( "Verified only for states reachable in %d frames.  ", nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "Verified only for states reachable in %d frames.  ", nIters );
         p->pPars->iFrame = p->pPars->nIterMax;
         return -1; // undecided
     }
     // report
     if ( !p->pPars->fSilent )
-        printf( "The miter is proved unreachable after %d iterations.  ", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "The miter is proved unreachable after %d iterations.  ", nIters );
     if ( !p->pPars->fSilent )
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     p->pPars->iFrame = nIters - 1;
@@ -1050,7 +1050,7 @@ void Llb_MnxCheckNextStateVars( Llb_Mnx_t * p )
             else
                 Counter1++;
         }
-    printf( "Total = %d.  Direct LO = %d. Compl LO = %d.\n", Aig_ManRegNum(p->pAig), Counter1, Counter0 );
+    fprintf( Abc_FrameGlobalGetOut(), "Total = %d.  Direct LO = %d. Compl LO = %d.\n", Aig_ManRegNum(p->pAig), Counter1, Counter0 );
 }
 
 /**Function*************************************************************
@@ -1072,7 +1072,7 @@ int Llb_Nonlin4CoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
     Aig_ManPrintStats( pAig );
     if ( pPars->fCluster && Aig_ManObjNum(pAig) >= (1 << 15) )
     {
-        printf( "The number of objects is more than 2^15.  Clustering cannot be used.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of objects is more than 2^15.  Clustering cannot be used.\n" );
         return RetValue;
     }
     {

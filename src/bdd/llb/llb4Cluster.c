@@ -311,13 +311,13 @@ void Llb_Nonlin4PrintGroups( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrde
         if ( Cudd_DagSize(bTemp) <= 10 )
             continue;
 
-        printf( "%4d : bdd =%6d  supp =%3d  ", i, Cudd_DagSize(bTemp), nSuppAll );
-        printf( "pi =%3d ",  nSuppPi );
-        printf( "po =%3d ",  nSuppPo );
-        printf( "lo =%3d ",  nSuppLo );
-        printf( "li =%3d ",  nSuppLi );
-        printf( "and =%3d",  nSuppAnd );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%4d : bdd =%6d  supp =%3d  ", i, Cudd_DagSize(bTemp), nSuppAll );
+        fprintf( Abc_FrameGlobalGetOut(), "pi =%3d ",  nSuppPi );
+        fprintf( Abc_FrameGlobalGetOut(), "po =%3d ",  nSuppPo );
+        fprintf( Abc_FrameGlobalGetOut(), "lo =%3d ",  nSuppLo );
+        fprintf( Abc_FrameGlobalGetOut(), "li =%3d ",  nSuppLi );
+        fprintf( Abc_FrameGlobalGetOut(), "and =%3d",  nSuppAnd );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -366,14 +366,14 @@ void Llb_Nonlin4PrintSuppProfile( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * 
     }
     ABC_FREE( pSupp );
 
-    printf( "Groups =%3d  ", Vec_PtrSize(vGroups) );
-    printf( "Variables: all =%4d ",  nSuppAll );
-    printf( "pi =%4d ",  nSuppPi );
-    printf( "po =%4d ",  nSuppPo );
-    printf( "lo =%4d ",  nSuppLo );
-    printf( "li =%4d ",  nSuppLi );
-    printf( "and =%4d",  nSuppAnd );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Groups =%3d  ", Vec_PtrSize(vGroups) );
+    fprintf( Abc_FrameGlobalGetOut(), "Variables: all =%4d ",  nSuppAll );
+    fprintf( Abc_FrameGlobalGetOut(), "pi =%4d ",  nSuppPi );
+    fprintf( Abc_FrameGlobalGetOut(), "po =%4d ",  nSuppPo );
+    fprintf( Abc_FrameGlobalGetOut(), "lo =%4d ",  nSuppLo );
+    fprintf( Abc_FrameGlobalGetOut(), "li =%4d ",  nSuppLi );
+    fprintf( Abc_FrameGlobalGetOut(), "and =%4d",  nSuppAnd );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -414,7 +414,7 @@ void Llb_Nonlin4Cluster( Aig_Man_t * pAig, DdManager ** pdd, Vec_Int_t ** pvOrde
 //    if ( fVerbose )
     Llb_Nonlin4PrintSuppProfile( dd, pAig, vOrder, vGroups );
     if ( fVerbose )
-    printf( "Before reordering\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Before reordering\n" );
     if ( fVerbose )
     Llb_Nonlin4PrintGroups( dd, pAig, vOrder, vGroups );
 

@@ -54,8 +54,8 @@ ABC_NAMESPACE_IMPL_START
 void Extra_ThreshPrintChow(int Chow0, int * pChow, int nVars) {
     int i;
     for (i = 0; i < nVars; i++)
-        printf("%d ", pChow[i]);
-    printf("  %d\n", Chow0);
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", pChow[i]);
+    fprintf( Abc_FrameGlobalGetOut(), "  %d\n", Chow0);
 }
 int Extra_ThreshComputeChow(word * t, int nVars, int * pChow) {
     int i, k, Chow0 = 0, nMints = (1 << nVars);
@@ -364,14 +364,14 @@ void Extra_ThreshPrintInequalities(unsigned long ** pGreaters,
         unsigned long ** pSmallers, int nChows, int nInequalities) {
     int i = 0, k = 0;
     for (k = 0; k < nInequalities; k++) {
-        printf("\n Inequality [%d] = ", k);
+        fprintf( Abc_FrameGlobalGetOut(), "\n Inequality [%d] = ", k);
         for (i = 0; i < nChows; i++) {
-            printf("%ld ", pGreaters[k][i]);
+            fprintf( Abc_FrameGlobalGetOut(), "%ld ", pGreaters[k][i]);
         }
-        printf(" > ");
+        fprintf( Abc_FrameGlobalGetOut(), " > ");
 
         for (i = 0; i < nChows; i++) {
-            printf("%ld ", pSmallers[k][i]);
+            fprintf( Abc_FrameGlobalGetOut(), "%ld ", pSmallers[k][i]);
         }
     }
 }
@@ -546,12 +546,12 @@ void Extra_ThreshPrintWeights(int T, int * pW, int nVars) {
     int i;
 
     if (T == 0)
-        fprintf( stdout, "\nHeuristic method: is not TLF\n\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\nHeuristic method: is not TLF\n\n" );
     else {
-        fprintf( stdout, "\nHeuristic method: Weights and threshold value:\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\nHeuristic method: Weights and threshold value:\n" );
         for (i = 0; i < nVars; i++)
-            printf("%d ", pW[i]);
-        printf("  %d\n", T);
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", pW[i]);
+        fprintf( Abc_FrameGlobalGetOut(), "  %d\n", T);
     }
 }
 /**Function*************************************************************
@@ -665,14 +665,14 @@ void Extra_ThreshCheckTest() {
     int i;
     assert(nVars <= 8);
     for (i = 0; i < nVars; i++)
-        printf("%d %d %d\n", i, Abc_TtPosVar(&t, nVars, i),
+        fprintf( Abc_FrameGlobalGetOut(), "%d %d %d\n", i, Abc_TtPosVar(&t, nVars, i),
                 Abc_TtNegVar(&t, nVars, i));
 //    word t = s_Truths6[0] & s_Truths6[1] & s_Truths6[2];
     Chow0 = Extra_ThreshComputeChow(&t, nVars, Chow);
     if ((T = Extra_ThreshCheck(&t, nVars, Weights)))
         Extra_ThreshPrintChow(T, Weights, nVars);
     else
-        printf("No threshold\n");
+        fprintf( Abc_FrameGlobalGetOut(), "No threshold\n");
 }
 void Extra_ThreshHeuristicTest() {
     int nVars = 6;

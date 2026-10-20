@@ -71,7 +71,7 @@ Abc_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd,
     if ( pTree == NULL )
     {
         if ( !fSilent )
-            printf( "BDDs blew up during qualitification scheduling.  " );
+            fprintf( Abc_FrameGlobalGetOut(), "BDDs blew up during qualitification scheduling.  " );
         return NULL;
     }
 
@@ -106,7 +106,7 @@ Abc_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd,
         {
             Cudd_RecursiveDeref( dd, bState );
             if ( !fSilent )
-                printf( "BDDs blew up during image computation.  " );
+                fprintf( Abc_FrameGlobalGetOut(), "BDDs blew up during image computation.  " );
             Bbr_bddImageTreeDelete( pTree );
             ABC_FREE( pValues );
             return NULL;
@@ -154,7 +154,7 @@ Abc_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd,
     {
     RetValue = Saig_ManVerifyCex( p, pCex );
     if ( RetValue == 0 && !fSilent )
-        printf( "Aig_ManVerifyUsingBdds(): Counter-example verification has FAILED.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManVerifyUsingBdds(): Counter-example verification has FAILED.\n" );
     }
     if ( fVerbose && !fSilent )
     {

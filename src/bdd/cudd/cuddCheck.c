@@ -761,9 +761,9 @@ cuddPrintVarGroups(
     } else {
         level = dd->perm[root->index];
     }
-    if (!silent) (void) printf("(%d",level);
+    if (!silent) (void) fprintf( Abc_FrameGlobalGetOut(), "(%d",level);
     if (MTR_TEST(root,MTR_TERMINAL) || root->child == NULL) {
-        if (!silent) (void) printf(",");
+        if (!silent) (void) fprintf( Abc_FrameGlobalGetOut(), ",");
     } else {
         node = root->child;
         while (node != NULL) {
@@ -774,15 +774,15 @@ cuddPrintVarGroups(
         }
     }
     if (!silent) {
-        (void) printf("%d", (int) (level + root->size - 1));
+        (void) fprintf( Abc_FrameGlobalGetOut(), "%d", (int) (level + root->size - 1));
         if (root->flags != MTR_DEFAULT) {
-            (void) printf("|");
-            if (MTR_TEST(root,MTR_FIXED)) (void) printf("F");
-            if (MTR_TEST(root,MTR_NEWNODE)) (void) printf("N");
-            if (MTR_TEST(root,MTR_SOFT)) (void) printf("S");
+            (void) fprintf( Abc_FrameGlobalGetOut(), "|");
+            if (MTR_TEST(root,MTR_FIXED)) (void) fprintf( Abc_FrameGlobalGetOut(), "F");
+            if (MTR_TEST(root,MTR_NEWNODE)) (void) fprintf( Abc_FrameGlobalGetOut(), "N");
+            if (MTR_TEST(root,MTR_SOFT)) (void) fprintf( Abc_FrameGlobalGetOut(), "S");
         }
-        (void) printf(")");
-        if (root->parent == NULL) (void) printf("\n");
+        (void) fprintf( Abc_FrameGlobalGetOut(), ")");
+        if (root->parent == NULL) (void) fprintf( Abc_FrameGlobalGetOut(), "\n");
     }
     assert((root->flags &~(MTR_TERMINAL | MTR_SOFT | MTR_FIXED | MTR_NEWNODE)) == 0);
     return;

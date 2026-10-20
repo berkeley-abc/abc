@@ -2829,8 +2829,8 @@ void
 Cudd_OutOfMem(
   long size /* size of the allocation that failed */)
 {
-    (void) fflush(stdout);
-    (void) fprintf(stderr, "\nunable to allocate %ld bytes\n", size);
+    (void) fflush( Abc_FrameGlobalGetOut() );
+    (void) fprintf( Abc_FrameGlobalGetErr(), "\nunable to allocate %ld bytes\n", size);
     return;
 
 } /* end of Cudd_OutOfMem */

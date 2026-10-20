@@ -56,8 +56,8 @@ DdNode * Bbr_NodeGlobalBdds_rec( DdManager * dd, Aig_Obj_t * pNode, int nBddSize
     {
 //        Extra_ProgressBarStop( pProgress );
         if ( fVerbose )
-        printf( "The number of live nodes reached %d.\n", nBddSizeMax );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of live nodes reached %d.\n", nBddSizeMax );
+        fflush( Abc_FrameGlobalGetOut() );
         return NULL;
     }
     // if the result is available return
@@ -186,7 +186,7 @@ DdManager * Aig_ManComputeGlobalBdds( Aig_Man_t * p, int nBddSizeMax, int fDropI
         if ( bFunc == NULL )
         {
             if ( fVerbose )
-            printf( "Constructing global BDDs is aborted.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Constructing global BDDs is aborted.\n" );
             Aig_ManFreeGlobalBdds( p, dd );
             Cudd_Quit( dd ); 
             // reset references

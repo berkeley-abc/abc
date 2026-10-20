@@ -110,7 +110,7 @@ void Llb_ManTestCuts( Aig_Man_t * p )
         if ( Aig_ObjRefs(pObj) <= 1 )
             continue;
         Count = Llb_ManTracePaths( p, pObj );
-        printf( "Obj =%5d.  Lev =%3d.  Fanout =%5d.  Count = %3d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Obj =%5d.  Lev =%3d.  Fanout =%5d.  Count = %3d.\n", 
             i, Aig_ObjLevel(pObj), Aig_ObjRefs(pObj), Count );
     }
     Aig_ManFanoutStop( p );
