@@ -423,12 +423,12 @@ void Fraig_FeedBackCovering( Fraig_Man_t * p, Msat_IntVec_t * vPats )
     // print stats related to the covering problem
     if ( p->fVerbose && fVeryVerbose )
     {
-        printf( "%3d\\%3d\\%3d   ",     p->nWordsRand, p->nWordsDyna, p->iWordPerm );
-        printf( "Col (pairs) = %5d.  ", vColumns->nSize );
-        printf( "Row (pats) = %5d.  ",  p->iWordStart * 32 );
-        printf( "Dns = %6.2f %%.  ",    vColumns->nSize==0? 0.0 : 100.0 * nOnesTotal / vColumns->nSize / p->iWordStart / 32 );
-        printf( "Sol = %3d (%3d).  ",   Msat_IntVecReadSize(vPats), nSolStarting );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d\\%3d\\%3d   ",     p->nWordsRand, p->nWordsDyna, p->iWordPerm );
+        fprintf( Abc_FrameGlobalGetOut(), "Col (pairs) = %5d.  ", vColumns->nSize );
+        fprintf( Abc_FrameGlobalGetOut(), "Row (pats) = %5d.  ",  p->iWordStart * 32 );
+        fprintf( Abc_FrameGlobalGetOut(), "Dns = %6.2f %%.  ",    vColumns->nSize==0? 0.0 : 100.0 * nOnesTotal / vColumns->nSize / p->iWordStart / 32 );
+        fprintf( Abc_FrameGlobalGetOut(), "Sol = %3d (%3d).  ",   Msat_IntVecReadSize(vPats), nSolStarting );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Fraig_NodeVecFree( vColumns );
     ABC_FREE( pHits );
@@ -652,7 +652,7 @@ void Fraig_FeedBackCheckTable( Fraig_Man_t * p )
             for ( m = k+1; m < p->vCones->nSize; m++ )
             {
                 if ( Fraig_CompareSimInfo( p->vCones->pArray[k], p->vCones->pArray[m], p->iWordStart, 0 ) )
-                    printf( "Nodes %d and %d have the same D simulation info.\n", 
+                    fprintf( Abc_FrameGlobalGetOut(), "Nodes %d and %d have the same D simulation info.\n", 
                         p->vCones->pArray[k]->Num, p->vCones->pArray[m]->Num );
                 nPairs++;
             }   
@@ -689,7 +689,7 @@ void Fraig_FeedBackCheckTableF0( Fraig_Man_t * p )
             for ( m = k+1; m < p->vCones->nSize; m++ )
             {
                 if ( Fraig_CompareSimInfo( p->vCones->pArray[k], p->vCones->pArray[m], p->iWordStart, 0 ) )
-                    printf( "Nodes %d and %d have the same D simulation info.\n", 
+                    fprintf( Abc_FrameGlobalGetOut(), "Nodes %d and %d have the same D simulation info.\n", 
                         p->vCones->pArray[k]->Num, p->vCones->pArray[m]->Num );
                 nPairs++;
             }   

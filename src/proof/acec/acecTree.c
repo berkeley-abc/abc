@@ -78,8 +78,8 @@ void Acec_VerifyBoxLeaves( Acec_Box_t * pBox, Vec_Bit_t * vIgnore )
     Vec_WecForEachLevel( pBox->vLeafLits, vLevel, i )
         Vec_IntForEachEntry( vLevel, iLit, k )
             if ( Gia_ObjIsAnd(Gia_ManObj(pBox->pGia, Abc_Lit2Var(iLit))) && !Vec_BitEntry(vIgnore, Abc_Lit2Var(iLit)) )
-                printf( "Internal node %d of rank %d is not part of PPG.\n", Abc_Lit2Var(iLit), i ), Count++;
-    printf( "Detected %d suspicious leaves.\n", Count );
+                fprintf( Abc_FrameGlobalGetOut(),  "Internal node %d of rank %d is not part of PPG.\n", Abc_Lit2Var(iLit), i ), Count++;
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d suspicious leaves.\n", Count );
 }
 
 /**Function*************************************************************
@@ -139,7 +139,7 @@ void Acec_TreeFilterOne( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree )
 */
         if ( Vec_BitEntry(vMarked, Vec_IntEntry(vAdds, 6*Box+3)) || Vec_BitEntry(vMarked, Vec_IntEntry(vAdds, 6*Box+4)) )
         {
-            printf( "Removing box %d=(%d,%d) of rank %d.\n", Box, Vec_IntEntry(vAdds, 6*Box+3), Vec_IntEntry(vAdds, 6*Box+4), Rank ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Removing box %d=(%d,%d) of rank %d.\n", Box, Vec_IntEntry(vAdds, 6*Box+3), Vec_IntEntry(vAdds, 6*Box+4), Rank ); 
             continue;
         }
         Vec_IntWriteEntry( vTree, k++, Box );
@@ -209,7 +209,7 @@ void Acec_TreeFilterOne2( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree )
     {
         if ( Vec_BitEntry(vMarked, Vec_IntEntry(vAdds, 6*Box+3)) || Vec_BitEntry(vMarked, Vec_IntEntry(vAdds, 6*Box+4)) )
         {
-            printf( "Removing box %d=(%d,%d) of rank %d.\n", Box, Vec_IntEntry(vAdds, 6*Box+3), Vec_IntEntry(vAdds, 6*Box+4), Rank ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Removing box %d=(%d,%d) of rank %d.\n", Box, Vec_IntEntry(vAdds, 6*Box+3), Vec_IntEntry(vAdds, 6*Box+4), Rank ); 
             continue;
         }
         Vec_IntWriteEntry( vTree, k++, Box );
@@ -281,18 +281,18 @@ void Acec_TreeVerifyPhaseOne( Gia_Man_t * p, Vec_Int_t * vAdds, int iBox )
     if ( fFadd ) // FADD
     {
         if ( TruthXor != 0x96 )
-            printf( "Fadd %d sum %d is wrong.\n", iBox, Vec_IntEntry( vAdds, 6*iBox+3 ) );
+            fprintf( Abc_FrameGlobalGetOut(), "Fadd %d sum %d is wrong.\n", iBox, Vec_IntEntry( vAdds, 6*iBox+3 ) );
         if ( TruthMaj != 0xE8 )
-            printf( "Fadd %d carry %d is wrong.\n", iBox, Vec_IntEntry( vAdds, 6*iBox+4 ) );
+            fprintf( Abc_FrameGlobalGetOut(), "Fadd %d carry %d is wrong.\n", iBox, Vec_IntEntry( vAdds, 6*iBox+4 ) );
     }
     else
     {
         //printf( "Sign1 = %d%d%d %d\n", Acec_SignBit(vAdds, iBox, 0), Acec_SignBit(vAdds, iBox, 1), Acec_SignBit(vAdds, iBox, 2), Acec_SignBit(vAdds, iBox, 3) );
         //printf( "Sign2 = %d%d%d %d%d\n", Acec_SignBit2(vAdds, iBox, 0), Acec_SignBit2(vAdds, iBox, 1), Acec_SignBit2(vAdds, iBox, 2), Acec_SignBit2(vAdds, iBox, 3), Acec_SignBit2(vAdds, iBox, 4) );
         if ( TruthXor != 0x66 )
-            printf( "Hadd %d sum %d is wrong.\n", iBox, Vec_IntEntry( vAdds, 6*iBox+3 ) );
+            fprintf( Abc_FrameGlobalGetOut(), "Hadd %d sum %d is wrong.\n", iBox, Vec_IntEntry( vAdds, 6*iBox+3 ) );
         if ( TruthMaj != 0x88 )
-            printf( "Hadd %d carry %d is wrong.\n", iBox, Vec_IntEntry( vAdds, 6*iBox+4 ) );
+            fprintf( Abc_FrameGlobalGetOut(), "Hadd %d carry %d is wrong.\n", iBox, Vec_IntEntry( vAdds, 6*iBox+4 ) );
     }
 }
 void Acec_TreeVerifyPhases( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vBoxes )
@@ -327,7 +327,7 @@ void Acec_TreeVerifyPhases2( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vBoxe
                     continue;
                 if ( Vec_BitEntry(vPhase, Vec_IntEntry(vAdds, 6*Box+n)) == Acec_SignBit2(vAdds, Box, n) )
                     continue;
-                printf( "Phase of input %d=%d is mismatched in box %d=(%d,%d).\n",
+                fprintf( Abc_FrameGlobalGetOut(), "Phase of input %d=%d is mismatched in box %d=(%d,%d).\n",
                     n, Vec_IntEntry(vAdds, 6*Box+n), Box, Vec_IntEntry(vAdds, 6*Box+3), Vec_IntEntry(vAdds, 6*Box+4) );
             }
     Vec_BitFree( vPhase );
@@ -352,15 +352,15 @@ void Acec_TreeVerifyConnections( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * v
                 if ( Vec_IntEntry( vCounts, Vec_IntEntry(vAdds, 6*Box+n) ) != -1 )
                     Vec_IntAddToEntry( vCounts, Vec_IntEntry(vAdds, 6*Box+n), 1 );
     // print out
-    printf( "The adder tree has %d internal cut points. ", Vec_IntCountLarger(vCounts, -1) );
+    fprintf( Abc_FrameGlobalGetOut(), "The adder tree has %d internal cut points. ", Vec_IntCountLarger(vCounts, -1) );
     if ( Vec_IntCountLarger(vCounts, 1) == 0 )
-        printf( "There is no internal fanouts.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There is no internal fanouts.\n" );
     else
     {
-        printf( "These %d points have more than one fanout:\n", Vec_IntCountLarger(vCounts, 1) );
+        fprintf( Abc_FrameGlobalGetOut(), "These %d points have more than one fanout:\n", Vec_IntCountLarger(vCounts, 1) );
         Vec_IntForEachEntry( vCounts, Box, i )
             if ( Box > 1 )
-                printf( "Node %d(lev %d) has fanout %d.\n", i, Gia_ObjLevelId(p, i), Box );
+                fprintf( Abc_FrameGlobalGetOut(), "Node %d(lev %d) has fanout %d.\n", i, Gia_ObjLevelId(p, i), Box );
     }
     Vec_IntFree( vCounts );
 }
@@ -542,12 +542,12 @@ void Acec_TreeFindTreesTest( Gia_Man_t * p )
     abctime clk = Abc_Clock();
     Vec_Int_t * vAdds = Ree_ManComputeCuts( p, NULL, 1 );
     int nFadds = Ree_ManCountFadds( vAdds );
-    printf( "Detected %d adders (%d FAs and %d HAs).  ", Vec_IntSize(vAdds)/6, nFadds, Vec_IntSize(vAdds)/6-nFadds );
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d adders (%d FAs and %d HAs).  ", Vec_IntSize(vAdds)/6, nFadds, Vec_IntSize(vAdds)/6-nFadds );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     clk = Abc_Clock();
     vTrees = Acec_TreeFindTrees( p, vAdds, NULL, 0, 0 );
-    printf( "Collected %d trees with %d adders in them.  ", Vec_WecSize(vTrees), Vec_WecSizeSize(vTrees)/2 );
+    fprintf( Abc_FrameGlobalGetOut(), "Collected %d trees with %d adders in them.  ", Vec_WecSize(vTrees), Vec_WecSizeSize(vTrees)/2 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Vec_WecPrint( vTrees, 0 );
 
@@ -573,23 +573,23 @@ void Acec_PrintAdders( Vec_Wec_t * vBoxes, Vec_Int_t * vAdds )
     int i, k, iBox;
     Vec_WecForEachLevel( vBoxes, vLevel, i )
     {
-        printf( " %4d : %2d  {", i, Vec_IntSize(vLevel) );
+        fprintf( Abc_FrameGlobalGetOut(), " %4d : %2d  {", i, Vec_IntSize(vLevel) );
         Vec_IntForEachEntry( vLevel, iBox, k )
         {
-            printf( " %s%d=(%d,%d)", Vec_IntEntry(vAdds, 6*iBox+2) == 0 ? "*":"", iBox, 
+            fprintf( Abc_FrameGlobalGetOut(), " %s%d=(%d,%d)", Vec_IntEntry(vAdds, 6*iBox+2) == 0 ? "*":"", iBox, 
                                      Vec_IntEntry(vAdds, 6*iBox+3), Vec_IntEntry(vAdds, 6*iBox+4) );
             //printf( "(%d,%d,%d)", Vec_IntEntry(vAdds, 6*iBox+0), Vec_IntEntry(vAdds, 6*iBox+1), Vec_IntEntry(vAdds, 6*iBox+2) );
         }
-        printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " }\n" );
     }
 }
 void Acec_TreePrintBox( Acec_Box_t * pBox, Vec_Int_t * vAdds )
 {
-    printf( "Adders:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Adders:\n" );
     Acec_PrintAdders( pBox->vAdds, vAdds );
-    printf( "Inputs:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Inputs:\n" );
     Vec_WecPrintLits( pBox->vLeafLits );
-    printf( "Outputs:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Outputs:\n" );
     Vec_WecPrintLits( pBox->vRootLits );
 //    printf( "Node %d has level %d.\n", 3715, Gia_ObjLevelId(pBox->pGia, 3715) );
 //    printf( "Node %d has level %d.\n", 167, Gia_ObjLevelId(pBox->pGia, 167) );
@@ -717,21 +717,21 @@ void Acec_CreateBoxTest( Gia_Man_t * p )
     abctime clk = Abc_Clock();
     Vec_Int_t * vAdds = Ree_ManComputeCuts( p, NULL, 1 );
     int i, nFadds = Ree_ManCountFadds( vAdds );
-    printf( "Detected %d adders (%d FAs and %d HAs).  ", Vec_IntSize(vAdds)/6, nFadds, Vec_IntSize(vAdds)/6-nFadds );
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d adders (%d FAs and %d HAs).  ", Vec_IntSize(vAdds)/6, nFadds, Vec_IntSize(vAdds)/6-nFadds );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     clk = Abc_Clock();
     vTrees = Acec_TreeFindTrees( p, vAdds, NULL, 0, 0 );
-    printf( "Collected %d trees with %d adders in them.  ", Vec_WecSize(vTrees), Vec_WecSizeSize(vTrees)/2 );
+    fprintf( Abc_FrameGlobalGetOut(), "Collected %d trees with %d adders in them.  ", Vec_WecSize(vTrees), Vec_WecSizeSize(vTrees)/2 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     //Vec_WecPrint( vTrees, 0 );
 
     Vec_WecForEachLevel( vTrees, vTree, i )
     {
         pBox = Acec_CreateBox( p, vAdds, Vec_WecEntry(vTrees, i) );
-        printf( "Processing tree %d:  Ranks = %d.  Adders = %d.  Leaves = %d.  Roots = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Processing tree %d:  Ranks = %d.  Adders = %d.  Leaves = %d.  Roots = %d.\n", 
             i, Vec_WecSize(pBox->vAdds), Vec_WecSizeSize(pBox->vAdds), 
-            Vec_WecSizeSize(pBox->vLeafLits), Vec_WecSizeSize(pBox->vRootLits)  );
+            Vec_WecSizeSize(pBox->vLeafLits), Vec_WecSizeSize(pBox->vRootLits) );
         Acec_TreePrintBox( pBox, vAdds );
         Acec_BoxFreeP( &pBox );
     }
@@ -762,9 +762,9 @@ Acec_Box_t * Acec_DeriveBox( Gia_Man_t * p, Vec_Bit_t * vIgnore, int fFilterIn, 
         Acec_VerifyBoxLeaves( pBox, vIgnore );
     }
     if ( pBox )//&& fVerbose )
-        printf( "Processing tree %d:  Ranks = %d.  Adders = %d.  Leaves = %d.  Roots = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Processing tree %d:  Ranks = %d.  Adders = %d.  Leaves = %d.  Roots = %d.\n", 
             0, Vec_WecSize(pBox->vAdds), Vec_WecSizeSize(pBox->vAdds), 
-            Vec_WecSizeSize(pBox->vLeafLits), Vec_WecSizeSize(pBox->vRootLits)  );
+            Vec_WecSizeSize(pBox->vLeafLits), Vec_WecSizeSize(pBox->vRootLits) );
     if ( pBox && fVerbose )
         Acec_TreePrintBox( pBox, vAdds );
     //Acec_PrintAdders( pBox0->vAdds, vAdds );

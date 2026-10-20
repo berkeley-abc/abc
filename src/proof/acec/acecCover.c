@@ -125,9 +125,9 @@ void Gia_AcecExplore( Gia_Man_t * p, int fVerbose )
     vHadds = Gia_ManDetectHalfAdders( p, fVerbose );
 
     pObj = Gia_ManObj( p, 352 );
-    printf( "Xor = %d.\n", Gia_ObjIsXor(pObj) );
-    printf( "Fanin0 = %d.  Fanin1 = %d.\n", Gia_ObjFaninId0(pObj, 352), Gia_ObjFaninId1(pObj, 352) );
-    printf( "Fan00 = %d.  Fan01 = %d.   Fan10 = %d.  Fan11 = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Xor = %d.\n", Gia_ObjIsXor(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "Fanin0 = %d.  Fanin1 = %d.\n", Gia_ObjFaninId0(pObj, 352), Gia_ObjFaninId1(pObj, 352) );
+    fprintf( Abc_FrameGlobalGetOut(), "Fan00 = %d.  Fan01 = %d.   Fan10 = %d.  Fan11 = %d.\n", 
         Gia_ObjFaninId0(Gia_ObjFanin0(pObj), Gia_ObjFaninId0(pObj, 352)), 
         Gia_ObjFaninId1(Gia_ObjFanin0(pObj), Gia_ObjFaninId0(pObj, 352)), 
         Gia_ObjFaninId0(Gia_ObjFanin1(pObj), Gia_ObjFaninId1(pObj, 352)), 
@@ -157,7 +157,7 @@ void Gia_AcecExplore( Gia_Man_t * p, int fVerbose )
     vXors = Gia_AcecCollectXors( p, vMap );
     Vec_BitFree( vMap );
 
-    printf( "Collected XORs: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Collected XORs: " );
     Vec_IntPrint( vXors );
 
     // mark their fanins
@@ -196,10 +196,10 @@ void Gia_AcecExplore( Gia_Man_t * p, int fVerbose )
         {
             nSupp = Gia_ManSuppSize( p, &i, 1 );
             nCone = Gia_ManConeSize( p, &i, 1 );
-            printf( "Node %5d : Supp = %5d.  Cone = %5d.\n", i, nSupp, nCone );
+            fprintf( Abc_FrameGlobalGetOut(), "Node %5d : Supp = %5d.  Cone = %5d.\n", i, nSupp, nCone );
             Vec_IntPush( vNodes, i );
         }
-    printf( "Fadds = %d. Hadds = %d.  Root nodes found = %d.\n", Vec_IntSize(vFadds)/5, nHadds, Vec_IntSize(vNodes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Fadds = %d. Hadds = %d.  Root nodes found = %d.\n", Vec_IntSize(vFadds)/5, nHadds, Vec_IntSize(vNodes) );
 
     Gia_ManCleanMark01( p );
 
@@ -244,9 +244,9 @@ void Gia_AcecCover( Gia_Man_t * p )
         pObj = Gia_ManObj( p, Entry );
         if ( pObj->fMark1 )
             continue;
-        printf( "%d ", Entry );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Entry );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     Gia_ManCleanMark01( p );
 

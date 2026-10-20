@@ -386,7 +386,7 @@ int Fra_ClausSelectClauses( Clu_Man_t * p )
     ABC_FREE( pCostCount );
     p->nClauses = nClauCount;
 if ( p->fVerbose )
-printf( "Selected %d clauses. Cost range: [%d < %d < %d]\n", nClauCount, 1, c, CostMax );
+fprintf( Abc_FrameGlobalGetOut(), "Selected %d clauses. Cost range: [%d < %d < %d]\n", nClauCount, 1, c, CostMax );
     return c;
 }
 
@@ -581,7 +581,7 @@ int Fra_ClausCollectLatchClauses( Clu_Man_t * p, Fra_Sml_t * pSeq )
     }
     pSeq->nWordsPref = 0;
     if ( p->fVerbose )
-    printf( "Collected %d register constants and %d one-hotness implications.\n", nCountConst, nCountImps );
+    fprintf( Abc_FrameGlobalGetOut(), "Collected %d register constants and %d one-hotness implications.\n", nCountConst, nCountImps );
     p->nOneHots = nCountConst + nCountImps;
     p->nOneHotsProven = 0;
     return 0;
@@ -615,7 +615,7 @@ clk = Abc_Clock();
     pSeq = Fra_SmlSimulateSeq( p->pAig, 0, p->nPref + p->nSimFrames, p->nSimWords/p->nSimFrames, 1 );
     if ( p->fTarget && pSeq->fNonConstOut )
     {
-        printf( "Property failed after sequential simulation!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Property failed after sequential simulation!\n" );
         Fra_SmlStop( pSeq );
         return 0;
     }
@@ -700,7 +700,7 @@ ABC_PRT( "Infocmb", Abc_Clock() - clk );
 }
 
     if ( p->fVerbose )
-    printf( "Node = %5d. Non-triv cuts = %7d. Clauses = %6d. Clause per cut = %6.2f.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Node = %5d. Non-triv cuts = %7d. Clauses = %6d. Clause per cut = %6.2f.\n", 
         Aig_ManNodeNum(p->pAig), nCuts, Vec_IntSize(p->vClauses), 1.0*Vec_IntSize(p->vClauses)/nCuts );
 
     if ( Vec_IntSize(p->vClauses) > p->nClausesMax )
@@ -740,7 +740,7 @@ clk = Abc_Clock();
     pSeq = Fra_SmlSimulateSeq( p->pAig, 0, p->nPref + p->nSimFrames, p->nSimWords/p->nSimFrames, 1  );
     if ( p->fTarget && pSeq->fNonConstOut )
     {
-        printf( "Property failed after sequential simulation!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Property failed after sequential simulation!\n" );
         Fra_SmlStop( pSeq );
         return 0;
     }
@@ -808,7 +808,7 @@ clk = Abc_Clock();
 
     if ( p->fVerbose )
     {
-    printf( "Node = %5d. Cuts = %7d. Clauses = %6d. Clause/cut = %6.2f.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Node = %5d. Cuts = %7d. Clauses = %6d. Clause/cut = %6.2f.\n", 
         Aig_ManNodeNum(p->pAig), nCuts, Vec_IntSize(p->vClauses), 1.0*Vec_IntSize(p->vClauses)/nCuts );
     ABC_PRT( "Processing sim-info to find candidate clauses (unoptimized)", Abc_Clock() - clk );
     }
@@ -826,7 +826,7 @@ clk = Abc_Clock();
         p->pSatMain = (sat_solver *)Cnf_DataWriteIntoSolver( p->pCnf, 1, 0 );
         if ( p->pSatMain == NULL )
         {
-            printf( "Error: Main solver is unsat.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Error: Main solver is unsat.\n" );
             return -1;
         }  
 
@@ -840,7 +840,7 @@ clk = Abc_Clock();
             RetValue = sat_solver_addclause( p->pSatMain, pStart + Beg, pStart + End );
             if ( RetValue == 0 )
             {
-                printf( "Error: Solver is UNSAT after adding assumption clauses.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Error: Solver is UNSAT after adding assumption clauses.\n" );
                 return -1;
             }
             Beg = End;
@@ -870,7 +870,7 @@ clk = Abc_Clock();
         }
         assert( End == Vec_IntSize(p->vLits) );
         if ( p->fVerbose )
-        printf( "Already proved clauses filtered out %d candidate clauses (out of %d).\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Already proved clauses filtered out %d candidate clauses (out of %d).\n", 
             Vec_IntSize(p->vClauses) - p->nClauses, Vec_IntSize(p->vClauses) );
     }
 
@@ -1106,7 +1106,7 @@ int Fra_ClausInductiveClauses( Clu_Man_t * p )
     p->pSatMain = (sat_solver *)Cnf_DataWriteIntoSolver( p->pCnf, p->nFrames+1, 0 );
     if ( p->pSatMain == NULL )
     {
-        printf( "Error: Main solver is unsat.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Error: Main solver is unsat.\n" );
         return -1;
     }  
     Fra_ClausSimInfoClean( p );
@@ -1150,7 +1150,7 @@ int Fra_ClausInductiveClauses( Clu_Man_t * p )
             RetValue = sat_solver_addclause( p->pSatMain, pStart + Beg, pStart + End );
             if ( RetValue == 0 )
             {
-                printf( "Error: Solver is UNSAT after adding assumption clauses.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Error: Solver is UNSAT after adding assumption clauses.\n" );
                 return -1;
             }
             Beg = End;
@@ -1202,7 +1202,7 @@ int Fra_ClausInductiveClauses( Clu_Man_t * p )
             RetValue = sat_solver_addclause( p->pSatMain, pStart + Beg, pStart + End );
             if ( RetValue == 0 )
             {
-                printf( "Error: Solver is UNSAT after adding assumption clauses.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Error: Solver is UNSAT after adding assumption clauses.\n" );
                 return -1;
             }
             Beg = End;
@@ -1226,12 +1226,12 @@ int Fra_ClausInductiveClauses( Clu_Man_t * p )
         if ( Fra_ClausRunSat0( p ) )
         {
             if ( p->fVerbose )
-            printf( " Property holds.  " );
+            fprintf( Abc_FrameGlobalGetOut(), " Property holds.  " );
         }
         else
         {
             if ( p->fVerbose )
-            printf( " Property fails.  " );
+            fprintf( Abc_FrameGlobalGetOut(), " Property fails.  " );
     //        return -2;
             p->fFail = 1;
         }
@@ -1459,7 +1459,7 @@ void Fra_ClausAddToStorage( Clu_Man_t * p )
             p->nOneHotsProven++;
     }
     if ( p->fVerbose )
-    printf( "Added to storage %d proved clauses (including %d one-hot clauses)\n", Counter, p->nOneHotsProven );
+    fprintf( Abc_FrameGlobalGetOut(), "Added to storage %d proved clauses (including %d one-hot clauses)\n", Counter, p->nOneHotsProven );
 
     Vec_IntClear( p->vClauses );
     Vec_IntClear( p->vLits );
@@ -1496,14 +1496,14 @@ void Fra_ClausPrintIndClauses( Clu_Man_t * p )
 //printf( "%d ", End-Beg );
         Beg = End;
     }
-    printf( "SUMMARY: Total proved clauses = %d. ", Vec_IntSize(p->vClausesProven) );
-    printf( "Clause per lit: " );
+    fprintf( Abc_FrameGlobalGetOut(), "SUMMARY: Total proved clauses = %d. ", Vec_IntSize(p->vClausesProven) );
+    fprintf( Abc_FrameGlobalGetOut(), "Clause per lit: " );
     for ( i = 0; i < 8; i++ )
         if ( Counters[i] )
-            printf( "%d=%d ", i, Counters[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, Counters[i] );
     if ( Counters[8] )
-            printf( ">7=%d ", Counters[8] );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), ">7=%d ", Counters[8] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -1573,7 +1573,7 @@ void Fra_ClausWriteIndClauses( Clu_Man_t * p )
     ABC_FREE( pVar2Id );
     Aig_ManCleanup( pNew );
     pName = Ioa_FileNameGenericAppend( p->pAig->pName, "_care.aig" );
-    printf( "Care one-hotness clauses will be written into file \"%s\".\n", pName );
+    fprintf( Abc_FrameGlobalGetOut(), "Care one-hotness clauses will be written into file \"%s\".\n", pName );
     Ioa_WriteAiger( pNew, pName, 0, 1 );
     Aig_ManStop( pNew );
 }
@@ -1662,8 +1662,8 @@ void Fra_ClausEstimateCoverage( Clu_Man_t * p )
     Fra_SmlStop( pComb );
     ABC_FREE( pVar2Id );
     // print the result
-    printf( "Care states ratio = %f. ", 1.0 * (nCombSimWords * 32 - nCovered) / (nCombSimWords * 32) );
-    printf( "(%d out of %d patterns)  ", nCombSimWords * 32 - nCovered, nCombSimWords * 32 );
+    fprintf( Abc_FrameGlobalGetOut(), "Care states ratio = %f. ", 1.0 * (nCombSimWords * 32 - nCovered) / (nCombSimWords * 32) );
+    fprintf( Abc_FrameGlobalGetOut(), "(%d out of %d patterns)  ", nCombSimWords * 32 - nCovered, nCombSimWords * 32 );
     ABC_PRT( "Time", Abc_Clock() - clk );
 }
 
@@ -1690,8 +1690,8 @@ int Fra_Claus( Aig_Man_t * pAig, int nFrames, int nPref, int nClausesMax, int nL
     p = Fra_ClausAlloc( pAig, nFrames, nPref, nClausesMax, nLutSize, nLevels, nCutsMax, nBatches, fStepUp, fTarget, fVerbose, fVeryVerbose );
 if ( p->fVerbose )
 {
-    printf( "PARAMETERS: Frames = %d. Pref = %d. Clauses max = %d. Cut size = %d.\n", nFrames, nPref, nClausesMax, nLutSize );
-    printf( "Level max = %d. Cuts max = %d. Batches = %d. Increment cut size = %s.\n", nLevels, nCutsMax, nBatches, fStepUp? "yes":"no" );
+    fprintf( Abc_FrameGlobalGetOut(), "PARAMETERS: Frames = %d. Pref = %d. Clauses max = %d. Cut size = %d.\n", nFrames, nPref, nClausesMax, nLutSize );
+    fprintf( Abc_FrameGlobalGetOut(), "Level max = %d. Cuts max = %d. Batches = %d. Increment cut size = %s.\n", nLevels, nCutsMax, nBatches, fStepUp? "yes":"no" );
 //ABC_PRT( "Sim-seq", Abc_Clock() - clk );
 }
 
@@ -1714,13 +1714,13 @@ clk = Abc_Clock();
     p->pSatBmc = (sat_solver *)Cnf_DataWriteIntoSolver( p->pCnf, p->nPref + p->nFrames, 1 );
     if ( p->pSatBmc == NULL )
     {
-        printf( "Error: BMC solver is unsat.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Error: BMC solver is unsat.\n" );
         Fra_ClausFree( p );
         return 1;
     } 
     if ( p->fTarget && !Fra_ClausRunBmc( p ) )
     {
-        printf( "Problem fails the base case after %d frame expansion.\n", p->nPref + p->nFrames );
+        fprintf( Abc_FrameGlobalGetOut(), "Problem fails the base case after %d frame expansion.\n", p->nPref + p->nFrames );
         Fra_ClausFree( p );
         return 1;
     }
@@ -1734,7 +1734,7 @@ clk = Abc_Clock();
     p->pSatMain = (sat_solver *)Cnf_DataWriteIntoSolver( p->pCnf, p->nFrames+1, 0 );
     if ( p->pSatMain == NULL )
     {
-        printf( "Error: Main solver is unsat.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Error: Main solver is unsat.\n" );
         Fra_ClausFree( p );
         return 1;
     } 
@@ -1743,15 +1743,15 @@ clk = Abc_Clock();
     for ( b = 0; b < p->nBatches; b++ )
     {
 //        if ( fVerbose )
-        printf( "*** BATCH %d:  ", b+1 );
+        fprintf( Abc_FrameGlobalGetOut(), "*** BATCH %d:  ", b+1 );
         if ( b && p->nLutSize < 12 && (!p->fFiltering || p->fNothingNew || p->fStepUp) )
             p->nLutSize++;
-        printf( "Using %d-cuts.\n", p->nLutSize );
+        fprintf( Abc_FrameGlobalGetOut(), "Using %d-cuts.\n", p->nLutSize );
 
         // try solving without additional clauses
         if ( p->fTarget && Fra_ClausRunSat( p ) )
         {
-            printf( "Problem is inductive without strengthening.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Problem is inductive without strengthening.\n" );
             Fra_ClausFree( p );
             return 1;
         }
@@ -1780,7 +1780,7 @@ clk = Abc_Clock();
             p->nClauses -= Counter;
             if ( fVerbose )
             {
-                printf( "BMC disproved %d clauses.  ", Counter );
+                fprintf( Abc_FrameGlobalGetOut(), "BMC disproved %d clauses.  ", Counter );
                 ABC_PRT( "Time", Abc_Clock() - clk );
             }
         }
@@ -1792,13 +1792,13 @@ clk = Abc_Clock();
         for ( Iter = 0; Counter > 0; Iter++ )
         {
             if ( fVerbose )
-            printf( "Iter %3d : Begin = %5d. ", Iter, p->nClauses );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %3d : Begin = %5d. ", Iter, p->nClauses );
             Counter = Fra_ClausInductiveClauses( p );
             if ( Counter > 0 )
                p->nClauses -= Counter;
             if ( fVerbose )
             {
-            printf( "End = %5d. Exs = %5d.  ", p->nClauses, p->nCexes );
+            fprintf( Abc_FrameGlobalGetOut(), "End = %5d. Exs = %5d.  ", p->nClauses, p->nCexes );
     //        printf( "\n" );
             ABC_PRT( "Time", Abc_Clock() - clk );
             }
@@ -1810,18 +1810,18 @@ clk = Abc_Clock();
         if ( p->fTarget )
         {
             if ( Counter == -1 )
-                printf( "Fra_Claus(): Internal error.  " );
+                fprintf( Abc_FrameGlobalGetOut(), "Fra_Claus(): Internal error.  " );
             else if ( p->fFail )
-                printf( "Property FAILS during refinement.  " );
+                fprintf( Abc_FrameGlobalGetOut(), "Property FAILS during refinement.  " );
             else
-                printf( "Property HOLDS inductively after strengthening.  " );
+                fprintf( Abc_FrameGlobalGetOut(), "Property HOLDS inductively after strengthening.  " );
             ABC_PRT( "Time  ", Abc_Clock() - clkTotal );
             if ( !p->fFail )
                 break;
         }
         else
         {
-            printf( "Finished proving inductive clauses. " );
+            fprintf( Abc_FrameGlobalGetOut(), "Finished proving inductive clauses. " );
             ABC_PRT( "Time  ", Abc_Clock() - clkTotal );
         }
     }

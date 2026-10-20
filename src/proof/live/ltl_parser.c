@@ -118,7 +118,7 @@ int isUnexpectedEOS( char *formula, int index )
     assert( formula );
     if( index >= (int)strlen( formula ) )
     {
-        printf("\nInvalid LTL formula: unexpected end of string..." );
+        fprintf( Abc_FrameGlobalGetOut(), "\nInvalid LTL formula: unexpected end of string..." );
         return 1;
     }
     return 0;
@@ -128,7 +128,7 @@ int isTemporalOperator( char *formula, int index )
 {
     if( !(isUnexpectedEOS( formula, index ) || formula[ index ] == 'G' || formula[ index ] == 'F' || formula[ index ] == 'U' || formula[ index ] == 'X') )
     {
-        printf("\nInvalid LTL formula: expecting temporal operator at the position %d....\n", index);
+        fprintf( Abc_FrameGlobalGetOut(), "\nInvalid LTL formula: expecting temporal operator at the position %d....\n", index);
         return 0;
     }
     return 1;
@@ -146,7 +146,7 @@ ltlNode *readLtlFormula( char *formula )
     formulaLength = strlen( formula );
     if( isUnexpectedEOS( formula, startOfSuffixString ) )
     {
-        printf("\nFAULTING POINT: formula = %s\nstartOfSuffixString = %d, formula[%d] = %c\n\n", formula, startOfSuffixString, startOfSuffixString - 1, formula[startOfSuffixString-1]);
+        fprintf( Abc_FrameGlobalGetOut(), "\nFAULTING POINT: formula = %s\nstartOfSuffixString = %d, formula[%d] = %c\n\n", formula, startOfSuffixString, startOfSuffixString - 1, formula[startOfSuffixString-1]);
         return NULL;
     }
             
@@ -191,7 +191,7 @@ ltlNode *readLtlFormula( char *formula )
                             varName = getVarName( formula, i, &rememberEnd );
                             if( !varName )
                             {
-                                printf("\nInvalid LTL formula: expecting valid variable name token...aborting" );
+                                fprintf( Abc_FrameGlobalGetOut(), "\nInvalid LTL formula: expecting valid variable name token...aborting" );
                                 return NULL;
                             }
                             curr_node = generateTypedNode(BOOL);
@@ -221,7 +221,7 @@ ltlNode *readLtlFormula( char *formula )
                             varName = getVarName( formula, i, &rememberEnd );
                             if( !varName )
                             {
-                                printf("\nInvalid LTL formula: expecting valid variable name token...aborting" );
+                                fprintf( Abc_FrameGlobalGetOut(), "\nInvalid LTL formula: expecting valid variable name token...aborting" );
                                 return NULL;
                             }
                             curr_node = generateTypedNode(BOOL);
@@ -251,7 +251,7 @@ ltlNode *readLtlFormula( char *formula )
                             varName = getVarName( formula, i, &rememberEnd );
                             if( !varName )
                             {
-                                printf("\nInvalid LTL formula: expecting valid variable name token...aborting" );
+                                fprintf( Abc_FrameGlobalGetOut(), "\nInvalid LTL formula: expecting valid variable name token...aborting" );
                                 return NULL;
                             }
                             curr_node = generateTypedNode(BOOL);
@@ -286,7 +286,7 @@ ltlNode *readLtlFormula( char *formula )
                             varName = getVarName( formula, i, &rememberEnd );
                             if( !varName )
                             {
-                                printf("\nInvalid LTL formula: expecting valid variable name token...aborting" );
+                                fprintf( Abc_FrameGlobalGetOut(), "\nInvalid LTL formula: expecting valid variable name token...aborting" );
                                 return NULL;
                             }
                             curr_node = generateTypedNode(BOOL);
@@ -345,7 +345,7 @@ ltlNode *readLtlFormula( char *formula )
                 varName = getVarName( formula, i, &rememberEnd );
                 if( !varName )
                 {
-                    printf("\nInvalid LTL formula: expecting valid variable name token...aborting" );
+                    fprintf( Abc_FrameGlobalGetOut(), "\nInvalid LTL formula: expecting valid variable name token...aborting" );
                     return NULL;
                 }
                 curr_node = generateTypedNode(BOOL);
@@ -378,57 +378,57 @@ void traverseAbstractSyntaxTree( ltlNode *node )
 {
     switch(node->type){
         case( AND ):
-            printf("& ");
+            fprintf( Abc_FrameGlobalGetOut(), "& ");
             assert( node->left != NULL );
             assert( node->right != NULL );
             traverseAbstractSyntaxTree( node->left );
             traverseAbstractSyntaxTree( node->right );
             return;
         case( OR ):
-            printf("+ ");
+            fprintf( Abc_FrameGlobalGetOut(), "+ ");
             assert( node->left != NULL );
             assert( node->right != NULL );
             traverseAbstractSyntaxTree( node->left );
             traverseAbstractSyntaxTree( node->right );
             return;
         case( NOT ):
-            printf("~ ");
+            fprintf( Abc_FrameGlobalGetOut(), "~ ");
             assert( node->left != NULL );
             traverseAbstractSyntaxTree( node->left );
             assert( node->right == NULL );
             return;
         case( GLOBALLY ):
-            printf("G ");
+            fprintf( Abc_FrameGlobalGetOut(), "G ");
             assert( node->left != NULL );
             traverseAbstractSyntaxTree( node->left );
             assert( node->right == NULL );
             return;
         case( EVENTUALLY ):
-            printf("F ");
+            fprintf( Abc_FrameGlobalGetOut(), "F ");
             assert( node->left != NULL );
             traverseAbstractSyntaxTree( node->left );
             assert( node->right == NULL );
             return;
         case( NEXT ):
-            printf("X ");
+            fprintf( Abc_FrameGlobalGetOut(), "X ");
             assert( node->left != NULL );
             traverseAbstractSyntaxTree( node->left );
             assert( node->right == NULL );
             return;
         case( UNTIL ):
-            printf("U ");
+            fprintf( Abc_FrameGlobalGetOut(), "U ");
             assert( node->left != NULL );
             assert( node->right != NULL );
             traverseAbstractSyntaxTree( node->left );
             traverseAbstractSyntaxTree( node->right );
             return;
         case( BOOL ):
-            printf("%s ", node->name);
+            fprintf( Abc_FrameGlobalGetOut(), "%s ", node->name);
             assert( node->left == NULL );
             assert( node->right == NULL );
             return;
         default:
-            printf("\nUnsupported token type: Exiting execution\n");
+            fprintf( Abc_FrameGlobalGetOut(), "\nUnsupported token type: Exiting execution\n");
             exit(0);
     }
 }
@@ -437,31 +437,31 @@ void traverseAbstractSyntaxTree_postFix( ltlNode *node )
 {
     switch(node->type){
         case( AND ):
-            printf("( ");
+            fprintf( Abc_FrameGlobalGetOut(), "( ");
             assert( node->left != NULL );
             assert( node->right != NULL );
             traverseAbstractSyntaxTree_postFix( node->left );
-            printf("& ");
+            fprintf( Abc_FrameGlobalGetOut(), "& ");
             traverseAbstractSyntaxTree_postFix( node->right );
-            printf(") ");
+            fprintf( Abc_FrameGlobalGetOut(), ") ");
             return;
         case( OR ):
-            printf("( ");
+            fprintf( Abc_FrameGlobalGetOut(), "( ");
             assert( node->left != NULL );
             assert( node->right != NULL );
             traverseAbstractSyntaxTree_postFix( node->left );
-            printf("+ ");
+            fprintf( Abc_FrameGlobalGetOut(), "+ ");
             traverseAbstractSyntaxTree_postFix( node->right );
-            printf(") ");
+            fprintf( Abc_FrameGlobalGetOut(), ") ");
             return;
         case( NOT ):
-            printf("~ ");
+            fprintf( Abc_FrameGlobalGetOut(), "~ ");
             assert( node->left != NULL );
             traverseAbstractSyntaxTree_postFix( node->left );
             assert( node->right == NULL );
             return;
         case( GLOBALLY ):
-            printf("G ");
+            fprintf( Abc_FrameGlobalGetOut(), "G ");
             //printf("( ");
             assert( node->left != NULL );
             traverseAbstractSyntaxTree_postFix( node->left );
@@ -469,7 +469,7 @@ void traverseAbstractSyntaxTree_postFix( ltlNode *node )
             //printf(") ");
             return;
         case( EVENTUALLY ):
-            printf("F ");
+            fprintf( Abc_FrameGlobalGetOut(), "F ");
             //printf("( ");
             assert( node->left != NULL );
             traverseAbstractSyntaxTree_postFix( node->left );
@@ -477,27 +477,27 @@ void traverseAbstractSyntaxTree_postFix( ltlNode *node )
             //printf(") ");
             return;
         case( NEXT ):
-            printf("X ");
+            fprintf( Abc_FrameGlobalGetOut(), "X ");
             assert( node->left != NULL );
             traverseAbstractSyntaxTree_postFix( node->left );
             assert( node->right == NULL );
             return;
         case( UNTIL ):
-            printf("( ");
+            fprintf( Abc_FrameGlobalGetOut(), "( ");
             assert( node->left != NULL );
             assert( node->right != NULL );
             traverseAbstractSyntaxTree_postFix( node->left );
-            printf("U ");
+            fprintf( Abc_FrameGlobalGetOut(), "U ");
             traverseAbstractSyntaxTree_postFix( node->right );
-            printf(") ");
+            fprintf( Abc_FrameGlobalGetOut(), ") ");
             return;
         case( BOOL ):
-            printf("%s ", node->name);
+            fprintf( Abc_FrameGlobalGetOut(), "%s ", node->name);
             assert( node->left == NULL );
             assert( node->right == NULL );
             return;
         default:
-            printf("\nUnsupported token type: Exiting execution\n");
+            fprintf( Abc_FrameGlobalGetOut(), "\nUnsupported token type: Exiting execution\n");
             exit(0);
     }
 }
@@ -550,7 +550,7 @@ void populateAigPointerUnitGF( Aig_Man_t *pAigNew, ltlNode *topASTNode, Vec_Ptr_
         case BOOL:
             return;
         default:
-            printf("\nINVALID situation: aborting...\n");
+            fprintf( Abc_FrameGlobalGetOut(), "\nINVALID situation: aborting...\n");
             exit(0);
     }
 }
@@ -589,10 +589,10 @@ Aig_Obj_t *buildLogicFromLTLNode_combinationalOnly( Aig_Man_t *pAigNew, ltlNode 
             case EVENTUALLY:
             case NEXT:
             case UNTIL:
-                printf("FORBIDDEN node: ABORTING!!\n");
+                fprintf( Abc_FrameGlobalGetOut(), "FORBIDDEN node: ABORTING!!\n");
                 exit(0);
             default:
-                printf("\nSerious ERROR: attempting to create AIG node from a temporal node\n");
+                fprintf( Abc_FrameGlobalGetOut(), "\nSerious ERROR: attempting to create AIG node from a temporal node\n");
                 exit(0);
         }
     }
@@ -632,10 +632,10 @@ Aig_Obj_t *buildLogicFromLTLNode( Aig_Man_t *pAig, ltlNode *pLtlNode )
             case EVENTUALLY:
             case NEXT:
             case UNTIL:
-                printf("\nAttempting to create circuit with missing AIG pointer in a TEMPORAL node: ABORTING!!\n");
+                fprintf( Abc_FrameGlobalGetOut(), "\nAttempting to create circuit with missing AIG pointer in a TEMPORAL node: ABORTING!!\n");
                 exit(0);
             default:
-                printf("\nSerious ERROR: attempting to create AIG node from a temporal node\n");
+                fprintf( Abc_FrameGlobalGetOut(), "\nSerious ERROR: attempting to create AIG node from a temporal node\n");
                 exit(0);
         }
     }
@@ -716,7 +716,7 @@ int checkSignalNameExistence( Abc_Ntk_t *pNtk, ltlNode *topASTNode )
                     return 1;
                 }
             }
-            printf("\nVariable name \"%s\" not found in the PO name list\n", targetName);
+            fprintf( Abc_FrameGlobalGetOut(), "\nVariable name \"%s\" not found in the PO name list\n", targetName);
             return 0;
         case AND:
         case OR:
@@ -734,7 +734,7 @@ int checkSignalNameExistence( Abc_Ntk_t *pNtk, ltlNode *topASTNode )
             assert( topASTNode->right == NULL );
             return checkSignalNameExistence( pNtk, topASTNode->left );
         default:
-            printf("\nUNSUPPORTED LTL NODE TYPE:: Aborting execution\n");
+            fprintf( Abc_FrameGlobalGetOut(), "\nUNSUPPORTED LTL NODE TYPE:: Aborting execution\n");
             exit(0);
     }
 }
@@ -787,7 +787,7 @@ void populateBoolWithAigNodePtr( Abc_Ntk_t *pNtk, Aig_Man_t *pAigOld, Aig_Man_t 
             populateBoolWithAigNodePtr( pNtk, pAigOld, pAigNew, topASTNode->left );
             return;
         default:
-            printf("\nUNSUPPORTED LTL NODE TYPE:: Aborting execution\n");
+            fprintf( Abc_FrameGlobalGetOut(), "\nUNSUPPORTED LTL NODE TYPE:: Aborting execution\n");
             exit(0);
     }
 }
@@ -801,7 +801,7 @@ int checkAllBoolHaveAIGPointer( ltlNode *topASTNode )
                 return 1;
             else
             {
-                printf("\nfaulting PODMANDYO topASTNode->name = %s\n", topASTNode->name);
+                fprintf( Abc_FrameGlobalGetOut(), "\nfaulting PODMANDYO topASTNode->name = %s\n", topASTNode->name);
                 return 0;
             }
         case AND:
@@ -820,7 +820,7 @@ int checkAllBoolHaveAIGPointer( ltlNode *topASTNode )
             assert( topASTNode->right == NULL );
             return checkAllBoolHaveAIGPointer( topASTNode->left );
         default:
-            printf("\nUNSUPPORTED LTL NODE TYPE:: Aborting execution\n");
+            fprintf( Abc_FrameGlobalGetOut(), "\nUNSUPPORTED LTL NODE TYPE:: Aborting execution\n");
             exit(0);
     }
 }

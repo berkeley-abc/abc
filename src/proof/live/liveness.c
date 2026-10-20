@@ -95,7 +95,7 @@ void printVecPtrOfString( Vec_Ptr_t *vec )
 
     for( i=0; i< Vec_PtrSize( vec ); i++ )
     {
-        printf("vec[%d] = %s\n", i, (char *)Vec_PtrEntry(vec, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "vec[%d] = %s\n", i, (char *)Vec_PtrEntry(vec, i) );
     }
 }
 
@@ -383,7 +383,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
         }
         else
         {
-            printf("WARNING!! No safety property is found, a new (negated) constant 1 output is created\n");
+            fprintf( Abc_FrameGlobalGetOut(), "WARNING!! No safety property is found, a new (negated) constant 1 output is created\n");
             pObjOriginalSafetyPropertyOutput = Aig_ObjCreateCo( pNew, Aig_Not( Aig_ManConst1(pNew) ) );
         }
     }
@@ -451,7 +451,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
             pObjAndAcc = Aig_ManConst1( pNew );
             if( vLive == NULL || Vec_PtrSize( vLive ) == 0 )
             {
-                printf("Circuit without any liveness property\n");
+                fprintf( Abc_FrameGlobalGetOut(), "Circuit without any liveness property\n");
             }
             else
             {
@@ -481,7 +481,7 @@ Aig_Man_t * LivenessToSafetyTransformation( int mode, Abc_Ntk_t * pNtk, Aig_Man_
                 
             pObjAndAcc = Aig_ManConst1( pNew );
             if( vFair == NULL || Vec_PtrSize( vFair ) == 0 )
-                printf("Circuit without any fairness property\n");
+                fprintf( Abc_FrameGlobalGetOut(), "Circuit without any fairness property\n");
             else
             {
                 Vec_PtrForEachEntry( Aig_Obj_t *, vFair, pObj, i )
@@ -680,7 +680,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
         }
         else
         {
-            printf("WARNING!! No safety property is found, a new (negated) constant 1 output is created\n");
+            fprintf( Abc_FrameGlobalGetOut(), "WARNING!! No safety property is found, a new (negated) constant 1 output is created\n");
             Aig_ObjCreateCo( pNew, Aig_Not( Aig_ManConst1(pNew) ) );
         }
     }
@@ -721,7 +721,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
             //Saig_ManForEachLo( p, pObj, i )
             Saig_ManForEachLo( p, pObj, i )
             {
-                printf("Flop[%d] = %s\n", i, Abc_ObjName( Abc_NtkCi( pNtk, Abc_NtkPiNum(pNtk) + i ) ) );
+                fprintf( Abc_FrameGlobalGetOut(), "Flop[%d] = %s\n", i, Abc_ObjName( Abc_NtkCi( pNtk, Abc_NtkPiNum(pNtk) + i ) ) );
             }
             Vec_IntForEachEntry( vFlops, iEntry, i )
             {
@@ -732,7 +732,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
                     Vec_PtrPush( vecLos, pObjShadowLo );
                     nodeName = (char *)malloc( strlen( Abc_ObjName( Abc_NtkCi( pNtk, Abc_NtkPiNum(pNtk) + iEntry ) ) ) + 10 );
                     sprintf( nodeName, "%s__%s", Abc_ObjName( Abc_NtkCi( pNtk, Abc_NtkPiNum(pNtk) + iEntry ) ), "SHADOW" );
-                    printf("Flop copied [%d] = %s\n", iEntry, nodeName );
+                    fprintf( Abc_FrameGlobalGetOut(), "Flop copied [%d] = %s\n", iEntry, nodeName );
                     Vec_PtrPush( vecLoNames, nodeName );
                 #endif
 
@@ -754,7 +754,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
             pObjAndAcc = Aig_ManConst1( pNew );
             if( vLive == NULL || Vec_PtrSize( vLive ) == 0 )
             {
-                printf("Circuit without any liveness property\n");
+                fprintf( Abc_FrameGlobalGetOut(), "Circuit without any liveness property\n");
             }
             else
             {
@@ -784,7 +784,7 @@ Aig_Man_t * LivenessToSafetyTransformationAbs( int mode, Abc_Ntk_t * pNtk, Aig_M
                 
             pObjAndAcc = Aig_ManConst1( pNew );
             if( vFair == NULL || Vec_PtrSize( vFair ) == 0 )
-                printf("Circuit without any fairness property\n");
+                fprintf( Abc_FrameGlobalGetOut(), "Circuit without any fairness property\n");
             else
             {
                 Vec_PtrForEachEntry( Aig_Obj_t *, vFair, pObj, i )
@@ -861,7 +861,7 @@ Aig_Man_t * LivenessToSafetyTransformationOneStepLoop( int mode, Abc_Ntk_t * pNt
 
     if( Aig_ManRegNum( p ) == 0 )
     {
-        printf("The input AIG contains no register, returning the original AIG as it is\n");
+        fprintf( Abc_FrameGlobalGetOut(), "The input AIG contains no register, returning the original AIG as it is\n");
         return p;
     }
 
@@ -1010,7 +1010,7 @@ Aig_Man_t * LivenessToSafetyTransformationOneStepLoop( int mode, Abc_Ntk_t * pNt
             Aig_ObjCreateCo( pNew, Aig_And( pNew, Aig_Not(collectiveAssertSafety), collectiveAssumeSafety ) );
         }
         else
-            printf("No safety property is specified, hence no safety gate is created\n");
+            fprintf( Abc_FrameGlobalGetOut(), "No safety property is specified, hence no safety gate is created\n");
     }
 
     //********************************************************************
@@ -1074,7 +1074,7 @@ Aig_Man_t * LivenessToSafetyTransformationOneStepLoop( int mode, Abc_Ntk_t * pNt
         // create the master AND gate and corresponding AND and OR logic for the liveness properties
         pObjAndAcc = NULL;
         if( vLive == NULL || Vec_PtrSize( vLive ) == 0 )
-            printf("Circuit without any liveness property\n");
+            fprintf( Abc_FrameGlobalGetOut(), "Circuit without any liveness property\n");
         else
         {
             Vec_PtrForEachEntry( Aig_Obj_t *, vLive, pObj, i )
@@ -1098,7 +1098,7 @@ Aig_Man_t * LivenessToSafetyTransformationOneStepLoop( int mode, Abc_Ntk_t * pNt
         // create the master AND gate and corresponding AND and OR logic for the fairness properties
         pObjAndAcc = NULL;
         if( vFair == NULL || Vec_PtrSize( vFair ) == 0 )
-            printf("Circuit without any fairness property\n");
+            fprintf( Abc_FrameGlobalGetOut(), "Circuit without any fairness property\n");
         else
         {
             Vec_PtrForEachEntry( Aig_Obj_t *, vFair, pObj, i )
@@ -1154,7 +1154,7 @@ Vec_Ptr_t * populateLivenessVector( Abc_Ntk_t *pNtk, Aig_Man_t *pAig )
             Vec_PtrPush( vLive, Aig_ManCo( pAig, i ) );
             liveCounter++;
         }
-    printf("Number of liveness property found = %d\n", liveCounter);
+    fprintf( Abc_FrameGlobalGetOut(), "Number of liveness property found = %d\n", liveCounter);
     return vLive;
 }
 
@@ -1172,7 +1172,7 @@ Vec_Ptr_t * populateFairnessVector( Abc_Ntk_t *pNtk, Aig_Man_t *pAig )
             Vec_PtrPush( vFair, Aig_ManCo( pAig, i ) );
             fairCounter++;
         }
-    printf("Number of fairness property found = %d\n", fairCounter);
+    fprintf( Abc_FrameGlobalGetOut(), "Number of fairness property found = %d\n", fairCounter);
     return vFair;
 }
 
@@ -1190,7 +1190,7 @@ Vec_Ptr_t * populateSafetyAssertionVector( Abc_Ntk_t *pNtk, Aig_Man_t *pAig )
             Vec_PtrPush( vAssertSafety, Aig_ManCo( pAig, i ) );
             assertSafetyCounter++;
         }
-    printf("Number of safety property found = %d\n", assertSafetyCounter);
+    fprintf( Abc_FrameGlobalGetOut(), "Number of safety property found = %d\n", assertSafetyCounter);
     return vAssertSafety;
 }
 
@@ -1208,7 +1208,7 @@ Vec_Ptr_t * populateSafetyAssumptionVector( Abc_Ntk_t *pNtk, Aig_Man_t *pAig )
             Vec_PtrPush( vAssumeSafety, Aig_ManCo( pAig, i ) );
             assumeSafetyCounter++;
         }
-    printf("Number of assume_safety property found = %d\n", assumeSafetyCounter);
+    fprintf( Abc_FrameGlobalGetOut(), "Number of assume_safety property found = %d\n", assumeSafetyCounter);
     return vAssumeSafety;
 }
 
@@ -1325,7 +1325,7 @@ int Abc_CommandAbcLivenessToSafety( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if( !Abc_NtkIsStrash( pNtk ) )
     {
-        printf("The input network was not strashed, strashing....\n");
+        fprintf( Abc_FrameGlobalGetOut(), "The input network was not strashed, strashing....\n");
         pNtkTemp = Abc_NtkStrash( pNtk, 0, 0, 0 );
         pNtkOld = pNtkTemp;
         pAig = Abc_NtkToDar( pNtkTemp, 0, 1 );
@@ -1356,7 +1356,7 @@ int Abc_CommandAbcLivenessToSafety( Abc_Frame_t * pAbc, int argc, char ** argv )
         //{
             pAigNew = LivenessToSafetyTransformation( FULL_BIERE_MODE, pNtk, pAig, vLive, vFair, vAssertSafety, vAssumeSafety );
             if( Aig_ManRegNum(pAigNew) != 0 )
-                printf("A new circuit is produced with\n\t2 POs - one for safety and one for liveness.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created if the original circuit is combinational\n\tnon-property POs are suppressed\n");
+                fprintf( Abc_FrameGlobalGetOut(), "A new circuit is produced with\n\t2 POs - one for safety and one for liveness.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created if the original circuit is combinational\n\tnon-property POs are suppressed\n");
             break;
         //}
     case FULL_BIERE_ONE_LOOP_MODE:
@@ -1369,7 +1369,7 @@ int Abc_CommandAbcLivenessToSafety( Abc_Frame_t * pAbc, int argc, char ** argv )
         //{
             pAigNew = LivenessToSafetyTransformationOneStepLoop( FULL_BIERE_ONE_LOOP_MODE, pNtk, pAig, vLive, vFair, vAssertSafety, vAssumeSafety );
             if( Aig_ManRegNum(pAigNew) != 0 )
-                printf("A new circuit is produced with\n\t2 POs - one for safety and one for liveness.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created\n\tnon-property POs are suppressed\n");
+                fprintf( Abc_FrameGlobalGetOut(), "A new circuit is produced with\n\t2 POs - one for safety and one for liveness.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created\n\tnon-property POs are suppressed\n");
             break;
         //}
     case IGNORE_LIVENESS_KEEP_SAFETY_MODE:
@@ -1382,7 +1382,7 @@ int Abc_CommandAbcLivenessToSafety( Abc_Frame_t * pAbc, int argc, char ** argv )
         //{
             pAigNew = LivenessToSafetyTransformation( IGNORE_LIVENESS_KEEP_SAFETY_MODE, pNtk, pAig, vLive, vFair, vAssertSafety, vAssumeSafety );
             if( Aig_ManRegNum(pAigNew) != 0 )
-                printf("A new circuit is produced with\n\t1 PO - only for safety property; liveness properties are ignored, if any.\n\tno additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created\n\tnon-property POs are suppressed\n");
+                fprintf( Abc_FrameGlobalGetOut(), "A new circuit is produced with\n\t1 PO - only for safety property; liveness properties are ignored, if any.\n\tno additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created\n\tnon-property POs are suppressed\n");
             break;
         //}
     case IGNORE_SAFETY_KEEP_LIVENESS_MODE:
@@ -1395,7 +1395,7 @@ int Abc_CommandAbcLivenessToSafety( Abc_Frame_t * pAbc, int argc, char ** argv )
         //{
             pAigNew = LivenessToSafetyTransformation( IGNORE_SAFETY_KEEP_LIVENESS_MODE, pNtk, pAig, vLive, vFair, vAssertSafety, vAssumeSafety );
             if( Aig_ManRegNum(pAigNew) != 0 )
-                printf("A new circuit is produced with\n\t1 PO - only for liveness property; safety properties are ignored, if any.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created if the original circuit is combinational\n\tnon-property POs are suppressed\n");
+                fprintf( Abc_FrameGlobalGetOut(), "A new circuit is produced with\n\t1 PO - only for liveness property; safety properties are ignored, if any.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created if the original circuit is combinational\n\tnon-property POs are suppressed\n");
             break;
         //}
     case IGNORE_SAFETY_KEEP_LIVENESS_ONE_LOOP_MODE:
@@ -1408,7 +1408,7 @@ int Abc_CommandAbcLivenessToSafety( Abc_Frame_t * pAbc, int argc, char ** argv )
         //{
             pAigNew = LivenessToSafetyTransformationOneStepLoop( IGNORE_SAFETY_KEEP_LIVENESS_ONE_LOOP_MODE, pNtk, pAig, vLive, vFair, vAssertSafety, vAssumeSafety );
             if( Aig_ManRegNum(pAigNew) != 0 )
-                printf("New circuit is produced ignoring safety outputs!\nOnly liveness and fairness outputs are considered.\nShadow registers are not created\n");
+                fprintf( Abc_FrameGlobalGetOut(), "New circuit is produced ignoring safety outputs!\nOnly liveness and fairness outputs are considered.\nShadow registers are not created\n");
             break;
         //}
     }
@@ -1538,7 +1538,7 @@ int Abc_CommandAbcLivenessToSafety( Abc_Frame_t * pAbc, int argc, char ** argv )
     pNtkNew->pName = Abc_UtilStrsav( pAigNew->pName );
     
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkCreateCone(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCreateCone(): Network check has failed.\n"  );
     
     updateNewNetworkNameManager( pNtkNew, pAigNew, vecPiNames, vecLoNames );
     Abc_FrameSetCurrentNetwork( pAbc, pNtkNew );
@@ -1557,12 +1557,12 @@ int Abc_CommandAbcLivenessToSafety( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: l2s [-1lsh]\n" );
-    fprintf( stdout, "\t         performs Armin Biere's live-to-safe transformation\n" );
-    fprintf( stdout, "\t-1 : no shadow logic, presume all loops are self loops\n");
-    fprintf( stdout, "\t-l : ignore liveness and fairness outputs\n");
-    fprintf( stdout, "\t-s : ignore safety assertions and assumptions\n");
-    fprintf( stdout, "\t-h : print command usage\n");
+    fprintf( Abc_FrameGlobalGetOut(), "usage: l2s [-1lsh]\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\t         performs Armin Biere's live-to-safe transformation\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\t-1 : no shadow logic, presume all loops are self loops\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\t-l : ignore liveness and fairness outputs\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\t-s : ignore safety assertions and assumptions\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\t-h : print command usage\n" );
     return 1;
 }
 
@@ -1671,7 +1671,7 @@ int Abc_CommandAbcLivenessToSafetyAbstraction( Abc_Frame_t * pAbc, int argc, cha
     }
     if( !Abc_NtkIsStrash( pNtk ) )
     {
-        printf("The input network was not strashed, strashing....\n");
+        fprintf( Abc_FrameGlobalGetOut(), "The input network was not strashed, strashing....\n");
         pNtkTemp = Abc_NtkStrash( pNtk, 0, 0, 0 );
         pNtkOld = pNtkTemp;
         pAig = Abc_NtkToDar( pNtkTemp, 0, 1 );
@@ -1706,7 +1706,7 @@ int Abc_CommandAbcLivenessToSafetyAbstraction( Abc_Frame_t * pAbc, int argc, cha
         //{
             pAigNew = LivenessToSafetyTransformationAbs( FULL_BIERE_MODE, pNtk, pAig, vFlops, vLive, vFair, vAssertSafety, vAssumeSafety );
             if( Aig_ManRegNum(pAigNew) != 0 )
-                printf("A new circuit is produced with\n\t2 POs - one for safety and one for liveness.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created if the original circuit is combinational\n\tnon-property POs are suppressed\n");
+                fprintf( Abc_FrameGlobalGetOut(), "A new circuit is produced with\n\t2 POs - one for safety and one for liveness.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created if the original circuit is combinational\n\tnon-property POs are suppressed\n");
             break;
         //}
     case FULL_BIERE_ONE_LOOP_MODE:
@@ -1719,7 +1719,7 @@ int Abc_CommandAbcLivenessToSafetyAbstraction( Abc_Frame_t * pAbc, int argc, cha
         //{
             pAigNew = LivenessToSafetyTransformationOneStepLoop( FULL_BIERE_ONE_LOOP_MODE, pNtk, pAig, vLive, vFair, vAssertSafety, vAssumeSafety );
             if( Aig_ManRegNum(pAigNew) != 0 )
-                printf("A new circuit is produced with\n\t2 POs - one for safety and one for liveness.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created\n\tnon-property POs are suppressed\n");
+                fprintf( Abc_FrameGlobalGetOut(), "A new circuit is produced with\n\t2 POs - one for safety and one for liveness.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created\n\tnon-property POs are suppressed\n");
             break;
         //}
     case IGNORE_LIVENESS_KEEP_SAFETY_MODE:
@@ -1732,7 +1732,7 @@ int Abc_CommandAbcLivenessToSafetyAbstraction( Abc_Frame_t * pAbc, int argc, cha
         //{
             pAigNew = LivenessToSafetyTransformationAbs( IGNORE_LIVENESS_KEEP_SAFETY_MODE, pNtk, pAig, vFlops, vLive, vFair, vAssertSafety, vAssumeSafety );
             if( Aig_ManRegNum(pAigNew) != 0 )
-                printf("A new circuit is produced with\n\t1 PO - only for safety property; liveness properties are ignored, if any.\n\tno additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created\n\tnon-property POs are suppressed\n");
+                fprintf( Abc_FrameGlobalGetOut(), "A new circuit is produced with\n\t1 PO - only for safety property; liveness properties are ignored, if any.\n\tno additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created\n\tnon-property POs are suppressed\n");
             break;
         //}
     case IGNORE_SAFETY_KEEP_LIVENESS_MODE:
@@ -1745,7 +1745,7 @@ int Abc_CommandAbcLivenessToSafetyAbstraction( Abc_Frame_t * pAbc, int argc, cha
         //{
             pAigNew = LivenessToSafetyTransformationAbs( IGNORE_SAFETY_KEEP_LIVENESS_MODE, pNtk, pAig, vFlops, vLive, vFair, vAssertSafety, vAssumeSafety );
             if( Aig_ManRegNum(pAigNew) != 0 )
-                printf("A new circuit is produced with\n\t1 PO - only for liveness property; safety properties are ignored, if any.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created if the original circuit is combinational\n\tnon-property POs are suppressed\n");
+                fprintf( Abc_FrameGlobalGetOut(), "A new circuit is produced with\n\t1 PO - only for liveness property; safety properties are ignored, if any.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created if the original circuit is combinational\n\tnon-property POs are suppressed\n");
             break;
         //}
     case IGNORE_SAFETY_KEEP_LIVENESS_ONE_LOOP_MODE:
@@ -1758,7 +1758,7 @@ int Abc_CommandAbcLivenessToSafetyAbstraction( Abc_Frame_t * pAbc, int argc, cha
         //{
             pAigNew = LivenessToSafetyTransformationOneStepLoop( IGNORE_SAFETY_KEEP_LIVENESS_ONE_LOOP_MODE, pNtk, pAig, vLive, vFair, vAssertSafety, vAssumeSafety );
             if( Aig_ManRegNum(pAigNew) != 0 )
-                printf("New circuit is produced ignoring safety outputs!\nOnly liveness and fairness outputs are considered.\nShadow registers are not created\n");
+                fprintf( Abc_FrameGlobalGetOut(), "New circuit is produced ignoring safety outputs!\nOnly liveness and fairness outputs are considered.\nShadow registers are not created\n");
             break;
         //}
     }
@@ -1767,7 +1767,7 @@ int Abc_CommandAbcLivenessToSafetyAbstraction( Abc_Frame_t * pAbc, int argc, cha
     pNtkNew->pName = Abc_UtilStrsav( pAigNew->pName );
     
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkCreateCone(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCreateCone(): Network check has failed.\n"  );
     
     updateNewNetworkNameManager( pNtkNew, pAigNew, vecPiNames,vecLoNames );
     Abc_FrameSetCurrentNetwork( pAbc, pNtkNew );
@@ -1786,12 +1786,12 @@ int Abc_CommandAbcLivenessToSafetyAbstraction( Abc_Frame_t * pAbc, int argc, cha
     return 0;
 
 usage:
-    fprintf( stdout, "usage: l2s [-1lsh]\n" );
-    fprintf( stdout, "\t         performs Armin Biere's live-to-safe transformation\n" );
-    fprintf( stdout, "\t-1 : no shadow logic, presume all loops are self loops\n");
-    fprintf( stdout, "\t-l : ignore liveness and fairness outputs\n");
-    fprintf( stdout, "\t-s : ignore safety assertions and assumptions\n");
-    fprintf( stdout, "\t-h : print command usage\n");
+    fprintf( Abc_FrameGlobalGetOut(), "usage: l2s [-1lsh]\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\t         performs Armin Biere's live-to-safe transformation\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\t-1 : no shadow logic, presume all loops are self loops\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\t-l : ignore liveness and fairness outputs\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\t-s : ignore safety assertions and assumptions\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\t-h : print command usage\n" );
     return 1;
 }
 
@@ -1855,29 +1855,29 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
         if( vecInputLtlFormulae )
         {
             vTopASTNodeArray = Vec_PtrAlloc( Vec_PtrSize( vecInputLtlFormulae ) );
-            printf("\n");
+            fprintf( Abc_FrameGlobalGetOut(), "\n");
             Vec_PtrForEachEntry( char *, vecInputLtlFormulae, pFormula, i )
             {
                 tempTopASTNode = parseFormulaCreateAST( pFormula );
                 //traverseAbstractSyntaxTree_postFix( tempTopASTNode );
                 if( tempTopASTNode )
                 {
-                    printf("Formula %d: AST is created, ", i+1);
+                    fprintf( Abc_FrameGlobalGetOut(), "Formula %d: AST is created, ", i+1);
                     if( isWellFormed( tempTopASTNode ) )
-                        printf("Well-formedness check PASSED, ");
+                        fprintf( Abc_FrameGlobalGetOut(), "Well-formedness check PASSED, ");
                     else
                     {
-                        printf("Well-formedness check FAILED!!\n");
-                        printf("AST will be ignored for formula %d, no extra logic will be added for this formula\n", i+1 );
+                        fprintf( Abc_FrameGlobalGetOut(), "Well-formedness check FAILED!!\n");
+                        fprintf( Abc_FrameGlobalGetOut(), "AST will be ignored for formula %d, no extra logic will be added for this formula\n", i+1 );
                         //do memory management to free the created AST
                         continue;
                     }
                     if( checkSignalNameExistence( pNtk, tempTopASTNode ) )
-                        printf("Signal check PASSED\n");
+                        fprintf( Abc_FrameGlobalGetOut(), "Signal check PASSED\n");
                     else
                     {
-                        printf("Signal check FAILED!!");
-                        printf("AST will be ignored for formula %d, no extra logic will be added for this formula\n", i+1 );
+                        fprintf( Abc_FrameGlobalGetOut(), "Signal check FAILED!!");
+                        fprintf( Abc_FrameGlobalGetOut(), "AST will be ignored for formula %d, no extra logic will be added for this formula\n", i+1 );
                         //do memory management to free the created AST
                         continue;
                     }
@@ -1885,14 +1885,14 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
                     (*numLtlProcessed)++;
                 }
                 else
-                    printf("\nNo AST has been created for formula %d, no extra logic will be added\n", i+1 );
+                    fprintf( Abc_FrameGlobalGetOut(), "\nNo AST has been created for formula %d, no extra logic will be added\n", i+1 );
             }
         }
-        printf("\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\n");
         if( Vec_PtrSize( vTopASTNodeArray ) == 0 )
         {
             //printf("\nNo AST has been created for any formula; hence the circuit is left untouched\n");
-            printf("\nCurrently aborting, need to take care when Vec_PtrSize( vTopASTNodeArray ) == 0\n");
+            fprintf( Abc_FrameGlobalGetOut(), "\nCurrently aborting, need to take care when Vec_PtrSize( vTopASTNodeArray ) == 0\n");
             exit(0);
         }
     }
@@ -2020,7 +2020,7 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
             }
             else
             {
-                printf("WARNING!! No safety property is found, a new (negated) constant 1 output is created\n");
+                fprintf( Abc_FrameGlobalGetOut(), "WARNING!! No safety property is found, a new (negated) constant 1 output is created\n");
                 pNegatedSafetyConjunction = Aig_Not( Aig_ManConst1(pNew) );
                 if( mode == FULL_BIERE_MODE || mode == IGNORE_LIVENESS_KEEP_SAFETY_MODE )
                     pObjOriginalSafetyPropertyOutput = Aig_ObjCreateCo( pNew, Aig_Not( Aig_ManConst1(pNew) ) );
@@ -2228,7 +2228,7 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
                                     pObjLive = retriveAIGPointerFromLTLNode( topNodeOfAST );
                                     pObjSafetyGate = Aig_And( pNew, pObjSavedLoAndEquality, Aig_Not(pObjLive) );
                                     #ifdef ALLOW_SAFETY_PROPERTIES
-                                        printf("liveness output is conjoined with safety assertions\n");
+                                        fprintf( Abc_FrameGlobalGetOut(), "liveness output is conjoined with safety assertions\n");
                                         pObjSafetyAndLiveToSafety = Aig_Or( pNew, pObjSafetyGate, pNegatedSafetyConjunction );
                                         pObjSafetyPropertyOutput = (Aig_Obj_t *)Vec_PtrEntry( vPoForLtlProps, iii );
                                         Aig_ObjPatchFanin0( pNew, pObjSafetyPropertyOutput, pObjSafetyAndLiveToSafety );
@@ -2342,7 +2342,7 @@ int Abc_CommandAbcLivenessToSafetyWithLTL( Abc_Frame_t * pAbc, int argc, char **
                 //ltfFormulaString = argv[2];
                 
                 //LTL_FLAG = 1;
-                printf("\nILLEGAL FLAG: aborting....\n");
+                fprintf( Abc_FrameGlobalGetOut(), "\nILLEGAL FLAG: aborting....\n");
                 exit(0);
                 break;
             case 'h':
@@ -2360,7 +2360,7 @@ int Abc_CommandAbcLivenessToSafetyWithLTL( Abc_Frame_t * pAbc, int argc, char **
     }
     if( !Abc_NtkIsStrash( pNtk ) )
     {
-        printf("The input network was not strashed, strashing....\n");
+        fprintf( Abc_FrameGlobalGetOut(), "The input network was not strashed, strashing....\n");
         pNtkTemp = Abc_NtkStrash( pNtk, 0, 0, 0 );
         pNtkOld = pNtkTemp;
         pAig = Abc_NtkToDar( pNtkTemp, 0, 1 );
@@ -2389,32 +2389,32 @@ int Abc_CommandAbcLivenessToSafetyWithLTL( Abc_Frame_t * pAbc, int argc, char **
     case FULL_BIERE_MODE:
             pAigNew = LivenessToSafetyTransformationWithLTL( FULL_BIERE_MODE, pNtk, pAig, vLive, vFair, vAssertSafety, vAssumeSafety, &numOfLtlPropOutput, ltlBuffer );
             if( Aig_ManRegNum(pAigNew) != 0 )
-                printf("A new circuit is produced with\n\t%d POs - one for safety and %d for liveness.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created if the original circuit is combinational\n\tnon-property POs are suppressed\n", numOfLtlPropOutput+1, numOfLtlPropOutput);
+                fprintf( Abc_FrameGlobalGetOut(), "A new circuit is produced with\n\t%d POs - one for safety and %d for liveness.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created if the original circuit is combinational\n\tnon-property POs are suppressed\n", numOfLtlPropOutput+1, numOfLtlPropOutput);
             break;
         
     case FULL_BIERE_ONE_LOOP_MODE:
             pAigNew = LivenessToSafetyTransformationOneStepLoop( FULL_BIERE_ONE_LOOP_MODE, pNtk, pAig, vLive, vFair, vAssertSafety, vAssumeSafety );
             if( Aig_ManRegNum(pAigNew) != 0 )
-                printf("A new circuit is produced with\n\t2 POs - one for safety and one for liveness.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created\n\tnon-property POs are suppressed\n");
+                fprintf( Abc_FrameGlobalGetOut(), "A new circuit is produced with\n\t2 POs - one for safety and one for liveness.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created\n\tnon-property POs are suppressed\n");
             break;
         
     case IGNORE_LIVENESS_KEEP_SAFETY_MODE:
             pAigNew = LivenessToSafetyTransformationWithLTL( IGNORE_LIVENESS_KEEP_SAFETY_MODE, pNtk, pAig, vLive, vFair, vAssertSafety, vAssumeSafety, &numOfLtlPropOutput, ltlBuffer );
             assert( numOfLtlPropOutput == 0 );
             if( Aig_ManRegNum(pAigNew) != 0 )
-                printf("A new circuit is produced with\n\t1 PO - only for safety property; liveness properties are ignored, if any.\n\tno additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created\n\tnon-property POs are suppressed\n");
+                fprintf( Abc_FrameGlobalGetOut(), "A new circuit is produced with\n\t1 PO - only for safety property; liveness properties are ignored, if any.\n\tno additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created\n\tnon-property POs are suppressed\n");
             break;
         
     case IGNORE_SAFETY_KEEP_LIVENESS_MODE:
             pAigNew = LivenessToSafetyTransformationWithLTL( IGNORE_SAFETY_KEEP_LIVENESS_MODE, pNtk, pAig, vLive, vFair, vAssertSafety, vAssumeSafety, &numOfLtlPropOutput, ltlBuffer );
             if( Aig_ManRegNum(pAigNew) != 0 )
-                printf("A new circuit is produced with\n\t%d PO - only for liveness property; safety properties are ignored, if any.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created if the original circuit is combinational\n\tnon-property POs are suppressed\n", numOfLtlPropOutput);
+                fprintf( Abc_FrameGlobalGetOut(), "A new circuit is produced with\n\t%d PO - only for liveness property; safety properties are ignored, if any.\n\tone additional input is added (due to Biere's nondeterminism)\n\tshadow flops are not created if the original circuit is combinational\n\tnon-property POs are suppressed\n", numOfLtlPropOutput);
             break;
         
     case IGNORE_SAFETY_KEEP_LIVENESS_ONE_LOOP_MODE:
             pAigNew = LivenessToSafetyTransformationOneStepLoop( IGNORE_SAFETY_KEEP_LIVENESS_ONE_LOOP_MODE, pNtk, pAig, vLive, vFair, vAssertSafety, vAssumeSafety );
             if( Aig_ManRegNum(pAigNew) != 0 )
-                printf("New circuit is produced ignoring safety outputs!\nOnly liveness and fairness outputs are considered.\nShadow registers are not created\n");
+                fprintf( Abc_FrameGlobalGetOut(), "New circuit is produced ignoring safety outputs!\nOnly liveness and fairness outputs are considered.\nShadow registers are not created\n");
             break;
     }
 
@@ -2543,7 +2543,7 @@ int Abc_CommandAbcLivenessToSafetyWithLTL( Abc_Frame_t * pAbc, int argc, char **
     pNtkNew->pName = Abc_UtilStrsav( pAigNew->pName );
     
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkCreateCone(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCreateCone(): Network check has failed.\n"  );
     
     updateNewNetworkNameManager( pNtkNew, pAigNew, vecPiNames, vecLoNames );
     Abc_FrameSetCurrentNetwork( pAbc, pNtkNew );
@@ -2562,12 +2562,12 @@ int Abc_CommandAbcLivenessToSafetyWithLTL( Abc_Frame_t * pAbc, int argc, char **
     return 0;
 
 usage:
-    fprintf( stdout, "usage: l3s [-1lsh]\n" );
-    fprintf( stdout, "\t         performs Armin Biere's live-to-safe transformation\n" );
-    fprintf( stdout, "\t-1 : no shadow logic, presume all loops are self loops\n");
-    fprintf( stdout, "\t-l : ignore liveness and fairness outputs\n");
-    fprintf( stdout, "\t-s : ignore safety assertions and assumptions\n");
-    fprintf( stdout, "\t-h : print command usage\n");
+    fprintf( Abc_FrameGlobalGetOut(), "usage: l3s [-1lsh]\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\t         performs Armin Biere's live-to-safe transformation\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\t-1 : no shadow logic, presume all loops are self loops\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\t-l : ignore liveness and fairness outputs\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\t-s : ignore safety assertions and assumptions\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\t-h : print command usage\n" );
     return 1;
 }
 

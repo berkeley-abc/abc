@@ -171,19 +171,19 @@ Vec_Wec_t * Acec_ParseSignature( char * p )
 void Acec_PrintSignature( Vec_Wec_t * vMonos )
 {
     Vec_Int_t * vLevel; int i, k, Entry;
-    printf( "Output signature with %d monomials:\n", Vec_WecSize(vMonos) );
+    fprintf( Abc_FrameGlobalGetOut(), "Output signature with %d monomials:\n", Vec_WecSize(vMonos) );
     Vec_WecForEachLevel( vMonos, vLevel, i )
     {
-        printf( "  %s2^%d", Vec_IntEntryLast(vLevel) > 0 ? "+":"-", Abc_AbsInt(Vec_IntEntryLast(vLevel))-1 );
+        fprintf( Abc_FrameGlobalGetOut(), "  %s2^%d", Vec_IntEntryLast(vLevel) > 0 ? "+":"-", Abc_AbsInt(Vec_IntEntryLast(vLevel))-1 );
         Vec_IntForEachEntryStop( vLevel, Entry, k, Vec_IntSize(vLevel)-1 )
         {
-            printf( " * " );
+            fprintf( Abc_FrameGlobalGetOut(), " * " );
             if ( Entry < 0 )
-                printf( "i%d", -Entry-1 );
+                fprintf( Abc_FrameGlobalGetOut(), "i%d", -Entry-1 );
             else 
-                printf( "o%d", Entry );
+                fprintf( Abc_FrameGlobalGetOut(), "o%d", Entry );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void Acec_ParseSignatureTest()
@@ -259,18 +259,18 @@ static inline void Vec_IntCheckUniqueOrder( Vec_Int_t * p )
 void Gia_PolynPrintMono( Vec_Int_t * vConst, Vec_Int_t * vMono, int Prev )
 {
     int k, Entry;
-    printf( "%c ", Prev != Abc_AbsInt(Vec_IntEntry(vConst, 0)) ? '|' : ' ' );
+    fprintf( Abc_FrameGlobalGetOut(), "%c ", Prev != Abc_AbsInt(Vec_IntEntry(vConst, 0)) ? '|' : ' ' );
     Vec_IntForEachEntry( vConst, Entry, k )
-        printf( "%s2^%d", Entry < 0 ? "-" : "+", Abc_AbsInt(Entry)-1 );
+        fprintf( Abc_FrameGlobalGetOut(), "%s2^%d", Entry < 0 ? "-" : "+", Abc_AbsInt(Entry)-1 );
     Vec_IntForEachEntry( vMono, Entry, k )
-        printf( " * i%d", Entry-1 );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " * i%d", Entry-1 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Gia_PolynPrint( Vec_Wec_t * vPolyn )
 {
     Vec_Int_t * vConst, * vMono;  
     int i, Prev = -1;
-    printf( "Polynomial with %d monomials:\n", Vec_WecSize(vPolyn)/2 );
+    fprintf( Abc_FrameGlobalGetOut(), "Polynomial with %d monomials:\n", Vec_WecSize(vPolyn)/2 );
     for ( i = 0; i < Vec_WecSize(vPolyn)/2; i++ )
     {
         vConst = Vec_WecEntry( vPolyn, 2*i+0 );
@@ -283,7 +283,7 @@ void Gia_PolynPrintStats( Vec_Wec_t * vPolyn )
 {
     Vec_Int_t * vConst, * vCountsP, * vCountsN;
     int i, Entry, Max = 0;
-    printf( "Input signature with %d monomials:\n", Vec_WecSize(vPolyn)/2 );
+    fprintf( Abc_FrameGlobalGetOut(), "Input signature with %d monomials:\n", Vec_WecSize(vPolyn)/2 );
     for ( i = 0; i < Vec_WecSize(vPolyn)/2; i++ )
     {
         vConst = Vec_WecEntry( vPolyn, 2*i+0 );
@@ -302,10 +302,10 @@ void Gia_PolynPrintStats( Vec_Wec_t * vPolyn )
     }
     Vec_IntForEachEntry( vCountsN, Entry, i )
         if ( Entry )
-            printf( "  -2^%d appears %d times\n", Abc_AbsInt(i)-1, Entry );
+            fprintf( Abc_FrameGlobalGetOut(), "  -2^%d appears %d times\n", Abc_AbsInt(i)-1, Entry );
     Vec_IntForEachEntry( vCountsP, Entry, i )
         if ( Entry )
-            printf( "  +2^%d appears %d times\n", Abc_AbsInt(i)-1, Entry );
+            fprintf( Abc_FrameGlobalGetOut(), "  +2^%d appears %d times\n", Abc_AbsInt(i)-1, Entry );
     Vec_IntFree( vCountsP );
     Vec_IntFree( vCountsN );
 }
@@ -587,7 +587,7 @@ Vec_Wec_t * Gia_PolynBuildNew2( Gia_Man_t * pGia, Vec_Int_t * vRootLits, int nEx
     // get the results
     vPolyn = Gia_PolynGetResult( pHashC, pHashM, vCoefs );
 
-    printf( "HashC = %d. HashM = %d.  Total = %d. Left = %d.  Used = %d.  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "HashC = %d. HashM = %d.  Total = %d. Left = %d.  Used = %d.  ", 
         Hsh_VecSize(pHashC), Hsh_VecSize(pHashM), nBuilds, nMonos, Vec_WecSize(vPolyn)/2 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
@@ -657,7 +657,7 @@ Vec_Wec_t * Gia_PolynBuildNew( Gia_Man_t * pGia, Vec_Wec_t * vSign, Vec_Int_t * 
     Vec_IntPush( vCoefs, 0 );
 
     if ( nExtra )
-        printf( "Assigning %d outputs from %d to %d rank %d.\n", nExtra, Vec_IntSize(vRootLits)-nExtra, Vec_IntSize(vRootLits)-1, Vec_IntSize(vRootLits)-nExtra );
+        fprintf( Abc_FrameGlobalGetOut(), "Assigning %d outputs from %d to %d rank %d.\n", nExtra, Vec_IntSize(vRootLits)-nExtra, Vec_IntSize(vRootLits)-1, Vec_IntSize(vRootLits)-nExtra );
 
     // create output signature
     if ( vSign )
@@ -704,7 +704,7 @@ Vec_Wec_t * Gia_PolynBuildNew( Gia_Man_t * pGia, Vec_Wec_t * vSign, Vec_Int_t * 
         Gia_PolynPrepare2( vTempC, vTempM, Abc_Lit2Var(iLit), Value );
         if ( fSigned && i >= Vec_IntSize(vRootLits)-nExtra-1 )
         {
-            if ( fVeryVerbose ) printf( "Out %d : Negative   Value = %d\n", i, Value-1 );
+            if ( fVeryVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Out %d : Negative   Value = %d\n", i, Value-1 );
             if ( Abc_LitIsCompl(iLit) )
             {
                 nMonos += Gia_PolynBuildAdd( pHashC, pHashM, vCoefs, vLit2Mono, vTempC[1], vTempM[0] );   // -C
@@ -716,7 +716,7 @@ Vec_Wec_t * Gia_PolynBuildNew( Gia_Man_t * pGia, Vec_Wec_t * vSign, Vec_Int_t * 
         }
         else 
         {
-            if ( fVeryVerbose ) printf( "Out %d : Positive   Value = %d\n", i, Value-1 );
+            if ( fVeryVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Out %d : Positive   Value = %d\n", i, Value-1 );
             if ( Abc_LitIsCompl(iLit) )
             {
                 nMonos += Gia_PolynBuildAdd( pHashC, pHashM, vCoefs, vLit2Mono, vTempC[0], vTempM[0] );   //  C
@@ -775,7 +775,7 @@ Vec_Wec_t * Gia_PolynBuildNew( Gia_Man_t * pGia, Vec_Wec_t * vSign, Vec_Int_t * 
     // get the results
     vPolyn = Gia_PolynGetResult( pHashC, pHashM, vCoefs );
 
-    printf( "HashC = %d. HashM = %d.  Total = %d. Left = %d.  Used = %d.  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "HashC = %d. HashM = %d.  Total = %d. Left = %d.  Used = %d.  ", 
         Hsh_VecSize(pHashC), Hsh_VecSize(pHashM), nBuilds, nMonos, Vec_WecSize(vPolyn)/2 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
@@ -813,7 +813,7 @@ void Gia_PolynBuild2Test( Gia_Man_t * pGia, char * pSign, int nExtra, int fSigne
 
     if ( pSign != NULL && (vMonos = Acec_ParseSignature(pSign)) == NULL )
     {
-        printf( "Canont parse the output signatures.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Canont parse the output signatures.\n" );
         return;
     }
     if ( vMonos && fVerbose )
@@ -831,7 +831,7 @@ void Gia_PolynBuild2Test( Gia_Man_t * pGia, char * pSign, int nExtra, int fSigne
                 iMax = i;
             }
         nExtra = Gia_ManCoNum(pGia) - iMax - 1;
-        printf( "Determined the number of extra outputs to be %d.\n", nExtra );
+        fprintf( Abc_FrameGlobalGetOut(), "Determined the number of extra outputs to be %d.\n", nExtra );
     }
 
     Gia_ManForEachObj( pGia, pObj, i )

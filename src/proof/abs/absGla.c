@@ -520,7 +520,7 @@ unsigned Ga2_ObjComputeTruthSpecial( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t
     assert( Gia_ObjIsAnd(pRoot) );
 
     if ( fVerbose )
-    printf( "Object %d.\n", Gia_ObjId(p, pRoot) );
+    fprintf( Abc_FrameGlobalGetOut(), "Object %d.\n", Gia_ObjId(p, pRoot) );
 
     // assign elementary truth tables
     Gia_ManForEachObjVec( vLeaves, p, pObj, i )
@@ -534,14 +534,14 @@ unsigned Ga2_ObjComputeTruthSpecial( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t
         else // non-trivial literal
             pObj->Value = uTruth5[i];
         if ( fVerbose )
-        printf( "%d ", Entry );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Entry );
     }
 
     if ( fVerbose )
     {
     Res = Ga2_ObjTruth( p, pRoot );
 //    Kit_DsdPrintFromTruth( &Res, Vec_IntSize(vLeaves) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     // compute truth table
@@ -589,7 +589,7 @@ unsigned Ga2_ObjComputeTruthSpecial( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t
             Vec_IntPush( vLits, pUsed[i] );
             assert( Ga2_ObjTruthDepends(Res, i) );
             if ( fVerbose )
-            printf( "%d ", pUsed[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", pUsed[i] );
         }
         for ( ; i < 5; i++ )
             assert( !Ga2_ObjTruthDepends(Res, i) );
@@ -597,7 +597,7 @@ unsigned Ga2_ObjComputeTruthSpecial( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t
 if ( fVerbose )
 {
 //    Kit_DsdPrintFromTruth( &Res, nUsed );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
     }
@@ -607,7 +607,7 @@ if ( fVerbose )
 if ( fVerbose )
 {
     Vec_IntClear( vLits );
-    printf( "Const %d\n", Res > 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "Const %d\n", Res > 0 );
 }
 
     }
@@ -1186,38 +1186,38 @@ void Ga2_ManRefinePrint( Ga2_Man_t * p, Vec_Int_t * vVec )
 {
     Gia_Obj_t * pObj, * pFanin;
     int i, k;
-    printf( "\n         Unsat core: \n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n         Unsat core: \n" );
     Gia_ManForEachObjVec( vVec, p->pGia, pObj, i )
     {
         Vec_Int_t * vLeaves = Ga2_ObjLeaves( p->pGia, pObj );
-        printf( "%12d : ", i );
-        printf( "Obj =%6d ", Gia_ObjId(p->pGia, pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "%12d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Obj =%6d ", Gia_ObjId(p->pGia, pObj) );
         if ( Gia_ObjIsRo(p->pGia, pObj) )
-            printf( "ff " );
+            fprintf( Abc_FrameGlobalGetOut(), "ff " );
         else
-            printf( "   " );
+            fprintf( Abc_FrameGlobalGetOut(), "   " );
         if ( Ga2_ObjIsAbs0(p, pObj) )
-            printf( "a " );
+            fprintf( Abc_FrameGlobalGetOut(), "a " );
         else if ( Ga2_ObjIsLeaf0(p, pObj) )
-            printf( "l " );
+            fprintf( Abc_FrameGlobalGetOut(), "l " );
         else 
-            printf( "  " );
-        printf( "Fanins: " );
+            fprintf( Abc_FrameGlobalGetOut(), "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Fanins: " );
         Gia_ManForEachObjVec( vLeaves, p->pGia, pFanin, k )
         {
-            printf( "%6d ", Gia_ObjId(p->pGia, pFanin) );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d ", Gia_ObjId(p->pGia, pFanin) );
             if ( Gia_ObjIsRo(p->pGia, pFanin) )
-                printf( "ff " );
+                fprintf( Abc_FrameGlobalGetOut(), "ff " );
             else
-                printf( "   " );
+                fprintf( Abc_FrameGlobalGetOut(), "   " );
             if ( Ga2_ObjIsAbs0(p, pFanin) )
-                printf( "a " );
+                fprintf( Abc_FrameGlobalGetOut(), "a " );
             else if ( Ga2_ObjIsLeaf0(p, pFanin) )
-                printf( "l " );
+                fprintf( Abc_FrameGlobalGetOut(), "l " );
             else
-                printf( "  " );
+                fprintf( Abc_FrameGlobalGetOut(), "  " );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void Ga2_ManRefinePrintPPis( Ga2_Man_t * p )
@@ -1235,11 +1235,11 @@ void Ga2_ManRefinePrintPPis( Ga2_Man_t * p )
         assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsCi(pObj) );
         Vec_IntPush( vVec, Gia_ObjId(p->pGia, pObj) );
     }
-    printf( "        Current PPIs (%d): ", Vec_IntSize(vVec) );
+    fprintf( Abc_FrameGlobalGetOut(), "        Current PPIs (%d): ", Vec_IntSize(vVec) );
     Vec_IntSort( vVec, 1 );
     Gia_ManForEachObjVec( vVec, p->pGia, pObj, i )
-        printf( "%d ", Gia_ObjId(p->pGia, pObj) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Gia_ObjId(p->pGia, pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_IntFree( vVec );
 }
 
@@ -1389,7 +1389,7 @@ void Ga2_ManAbsPrintFrame( Ga2_Man_t * p, int nFrames, int nConfls, int nCexes, 
     Abc_Print( 1, "%9.2f sec", 1.0*Time/CLOCKS_PER_SEC );
     Abc_Print( 1, "%5.0f MB", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<20) );
     Abc_Print( 1, "%s", fUseNewLine ? "\n" : "\r" );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 /**Function*************************************************************
@@ -1474,7 +1474,7 @@ void Gia_Ga2SendAbsracted( Ga2_Man_t * p, int fVerbose )
     Vec_IntFreeP( &vGateClasses );
     Gia_ManCleanValue( p->pGia );
     // send it out
-    Gia_ManToBridgeAbsNetlist( stdout, pAbs, BRIDGE_ABS_NETLIST );
+    Gia_ManToBridgeAbsNetlist( Abc_FrameGlobalGetOut(), pAbs, BRIDGE_ABS_NETLIST );
     Gia_ManStop( pAbs );
 }
 void Gia_Ga2SendCancel( Ga2_Man_t * p, int fVerbose )
@@ -1483,7 +1483,7 @@ void Gia_Ga2SendCancel( Ga2_Man_t * p, int fVerbose )
     assert( Abc_FrameIsBridgeMode() );
 //    if ( fVerbose )
 //        Abc_Print( 1, "Cancelling previously sent model...\n" );
-    Gia_ManToBridgeBadAbs( stdout );
+    Gia_ManToBridgeBadAbs( Abc_FrameGlobalGetOut() );
 }
 
 /**Function*************************************************************
@@ -1899,7 +1899,7 @@ finish:
     }
 //    Ga2_ManDumpStats( p->pGia, p->pPars, p->pSat, p->pPars->iFrameProved, 0 );
     Ga2_ManStop( p );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
     return RetValue;
 }
 

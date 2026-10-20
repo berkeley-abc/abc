@@ -69,7 +69,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
 
         if ( fVerbose )
         {
-            printf( "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+            fprintf( Abc_FrameGlobalGetOut(), "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
 
@@ -105,7 +105,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
         Cnf_DataFree( pCnf );
 
 
-        printf( "Created SAT problem with %d variable and %d clauses. ", sat_solver2_nvars(pSat), sat_solver2_nclauses(pSat) );
+        fprintf( Abc_FrameGlobalGetOut(), "Created SAT problem with %d variable and %d clauses. ", sat_solver2_nvars(pSat), sat_solver2_nclauses(pSat) );
         ABC_PRT( "Time", Abc_Clock() - clk );
 
         // simplify the problem
@@ -154,7 +154,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
         }
         // free the sat_solver2
         if ( fVerbose )
-            Sat_Solver2PrintStats( stdout, pSat );
+            Sat_Solver2PrintStats( Abc_FrameGlobalGetOut(), pSat );
     //sat_solver2_store_write( pSat, "trace.cnf" );
     //sat_solver2_store_free( pSat );
         sat_solver2_delete( pSat );
@@ -181,7 +181,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
 
         if ( fVerbose )
         {
-            printf( "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+            fprintf( Abc_FrameGlobalGetOut(), "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
 
@@ -275,7 +275,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
         }
         // free the sat_solver
         if ( fVerbose )
-            Sat_SolverPrintStats( stdout, pSat );
+            Sat_SolverPrintStats( Abc_FrameGlobalGetOut(), pSat );
     //sat_solver_store_write( pSat, "trace.cnf" );
     //sat_solver_store_free( pSat );
         sat_solver_delete( pSat );
@@ -331,7 +331,7 @@ int Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose )
     // report the original miter
     if ( fVerbose )
     {
-        printf( "Original miter:   Nodes = %6d.\n", Aig_ManNodeNum(pAig) );
+        fprintf( Abc_FrameGlobalGetOut(), "Original miter:   Nodes = %6d.\n", Aig_ManNodeNum(pAig) );
     }
     RetValue = Fra_FraigMiterStatus( pAig );
 //    assert( RetValue == -1 );
@@ -347,7 +347,7 @@ clk = Abc_Clock();
     RetValue = Fra_FraigSat( pAig, (ABC_INT64_T)2*nBTLimitStart, (ABC_INT64_T)0, 0, 0, 0, 1, 0, 0, 0 );
     if ( fVerbose )
     {
-        printf( "Initial SAT:      Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
+        fprintf( Abc_FrameGlobalGetOut(), "Initial SAT:      Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
 ABC_PRT( "Time", Abc_Clock() - clk );
     }
     if ( RetValue >= 0 )
@@ -359,7 +359,7 @@ clk = Abc_Clock();
     Aig_ManStop( pTemp );
     if ( fVerbose )
     {
-        printf( "Rewriting:        Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
+        fprintf( Abc_FrameGlobalGetOut(), "Rewriting:        Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
 ABC_PRT( "Time", Abc_Clock() - clk );
     }
 
@@ -380,7 +380,7 @@ clk = Abc_Clock();
             Aig_ManStop( pTemp );
             if ( fVerbose )
             {
-                printf( "Balance-X:        Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
+                fprintf( Abc_FrameGlobalGetOut(), "Balance-X:        Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
 ABC_PRT( "Time", Abc_Clock() - clk );
             } 
         }
@@ -391,7 +391,7 @@ clk = Abc_Clock();
         Aig_ManStop( pTemp );
         if ( fVerbose )
         {
-            printf( "Fraiging (i=%d):   Nodes = %6d.  ", i+1, Aig_ManNodeNum(pAig) );
+            fprintf( Abc_FrameGlobalGetOut(), "Fraiging (i=%d):   Nodes = %6d.  ", i+1, Aig_ManNodeNum(pAig) );
 ABC_PRT( "Time", Abc_Clock() - clk );
         }
 
@@ -406,7 +406,7 @@ clk = Abc_Clock();
         Aig_ManStop( pTemp );
         if ( fVerbose )
         {
-            printf( "Rewriting:        Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
+            fprintf( Abc_FrameGlobalGetOut(), "Rewriting:        Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
 ABC_PRT( "Time", Abc_Clock() - clk );
         } 
 
@@ -428,7 +428,7 @@ clk = Abc_Clock();
         RetValue = Fra_FraigSat( pAig, (ABC_INT64_T)nBTLimitLast, (ABC_INT64_T)0, 0, 0, 0, 1, 0, 0, 0 );
         if ( fVerbose )
         {
-            printf( "Final SAT:        Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
+            fprintf( Abc_FrameGlobalGetOut(), "Final SAT:        Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
 ABC_PRT( "Time", Abc_Clock() - clk );
         }
     }
@@ -462,10 +462,10 @@ int Fra_FraigCecPartitioned( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimi
         nOutputs++;
         if ( fVerbose )
         {
-            printf( "Verifying part %4d  (out of %4d)  PI = %5d. PO = %5d. And = %6d. Lev = %4d.\r", 
+            fprintf( Abc_FrameGlobalGetOut(), "Verifying part %4d  (out of %4d)  PI = %5d. PO = %5d. And = %6d. Lev = %4d.\r", 
                 i+1, Vec_PtrSize(vParts), Aig_ManCiNum(pAig), Aig_ManCoNum(pAig), 
                 Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig) );
-            fflush( stdout );
+            fflush( Abc_FrameGlobalGetOut() );
         }
         RetValue = Fra_FraigMiterStatus( pAig );
         if ( RetValue == 1 )
@@ -483,14 +483,14 @@ int Fra_FraigCecPartitioned( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimi
     // clear the result
     if ( fVerbose )
     {
-        printf( "                                                                                          \r" );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "                                                                                          \r" );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     // report the timeout
     if ( RetValue == -1 )
     {
-        printf( "Timed out after verifying %d partitions (out of %d).\n", nOutputs, Vec_PtrSize(vParts) );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "Timed out after verifying %d partitions (out of %d).\n", nOutputs, Vec_PtrSize(vParts) );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     // free intermediate results
     Vec_PtrForEachEntry( Aig_Man_t *, vParts, pAig, i )
@@ -519,12 +519,12 @@ int Fra_FraigCecTop( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int n
 
     if ( Aig_ManCiNum(pMan1) != Aig_ManCiNum(pMan1) )
     {
-        printf( "Abc_CommandAbc8Cec(): Miters have different number of PIs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_CommandAbc8Cec(): Miters have different number of PIs.\n" );
         return 0;
     }
     if ( Aig_ManCoNum(pMan1) != Aig_ManCoNum(pMan1) )
     {
-        printf( "Abc_CommandAbc8Cec(): Miters have different number of POs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_CommandAbc8Cec(): Miters have different number of POs.\n" );
         return 0;
     }
     assert( Aig_ManCiNum(pMan1) == Aig_ManCiNum(pMan1) );
@@ -547,20 +547,20 @@ int Fra_FraigCecTop( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int n
     // report the miter
     if ( RetValue == 1 )
     {
-        printf( "Networks are equivalent.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are equivalent.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     else if ( RetValue == 0 )
     {
-        printf( "Networks are NOT EQUIVALENT.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     else
     {
-        printf( "Networks are UNDECIDED.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are UNDECIDED.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
     return RetValue;
 }
 

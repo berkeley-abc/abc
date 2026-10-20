@@ -114,7 +114,7 @@ Vec_Int_t * Pdr_ManDeriveFlopPriorities3( Gia_Man_t * p, int fMuxCtrls )
                 if ( Vec_BitEntry(vCtrls, Gia_ObjId(p, pObj)) && Vec_BitEntry(vDatas, Gia_ObjId(p, pObj)) )
                     nBoth++;
             }
-            printf( "%10s : Flops = %5d.  Ctrls = %5d.  Datas = %5d.  Both = %5d.\n", Gia_ManName(p), Gia_ManRegNum(p), nCtrls, nDatas, nBoth );
+            fprintf( Abc_FrameGlobalGetOut(), "%10s : Flops = %5d.  Ctrls = %5d.  Datas = %5d.  Both = %5d.\n", Gia_ManName(p), Gia_ManRegNum(p), nCtrls, nDatas, nBoth );
         }
         Vec_BitFree( vCtrls );
         Vec_BitFree( vDatas );
@@ -219,7 +219,7 @@ Vec_Int_t * Pdr_ManDeriveFlopPriorities2( Gia_Man_t * p, int fMuxCtrls )
                 if ( Vec_BitEntry(vCtrls, Gia_ObjId(p, pObj)) && Vec_BitEntry(vDatas, Gia_ObjId(p, pObj)) )
                     nBoth++;
             }
-            printf( "%10s : Flops = %5d.  Ctrls = %5d.  Datas = %5d.  Both = %5d.\n", Gia_ManName(p), Gia_ManRegNum(p), nCtrls, nDatas, nBoth );
+            fprintf( Abc_FrameGlobalGetOut(), "%10s : Flops = %5d.  Ctrls = %5d.  Datas = %5d.  Both = %5d.\n", Gia_ManName(p), Gia_ManRegNum(p), nCtrls, nDatas, nBoth );
         }
         Vec_BitFree( vCtrls );
         Vec_BitFree( vDatas );
@@ -349,7 +349,7 @@ void Pdr_ManStop( Pdr_Man_t * p )
         ABC_PRTP( "CNF compute", p->tCnf,       p->tTotal );
         ABC_PRTP( "Refinement ", p->tAbs,       p->tTotal );
         ABC_PRTP( "TOTAL      ", p->tTotal,     p->tTotal );
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
     }
 //    Abc_Print( 1, "SS =%6d. SU =%6d. US =%6d. UU =%6d.\n", p->nCasesSS, p->nCasesSU, p->nCasesUS, p->nCasesUU );
     Vec_PtrForEachEntry( sat_solver *, p->vSolvers, pSat, i )
@@ -453,7 +453,7 @@ Abc_Cex_t * Pdr_ManDeriveCex( Pdr_Man_t * p )
         }
     assert( f == nFrames );
     if ( !Saig_ManVerifyCex(p->pAig, pCex) )
-        printf( "CEX for output %d is not valid.\n", p->iOutCur );
+        fprintf( Abc_FrameGlobalGetOut(), "CEX for output %d is not valid.\n", p->iOutCur );
     return pCex;
 }
 

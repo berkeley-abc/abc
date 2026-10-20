@@ -106,9 +106,9 @@ void Fraig_MemFixedStop( Fraig_MemFixed_t * p, int fVerbose )
         return;
     if ( fVerbose )
     {
-        printf( "Fixed memory manager: Entry = %5d. Chunk = %5d. Chunks used = %5d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Fixed memory manager: Entry = %5d. Chunk = %5d. Chunks used = %5d.\n",
             p->nEntrySize, p->nChunkSize, p->nChunks );
-        printf( "   Entries used = %8d. Entries peak = %8d. Memory used = %8d. Memory alloc = %8d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "   Entries used = %8d. Entries peak = %8d. Memory used = %8d. Memory alloc = %8d.\n",
             p->nEntriesUsed, p->nEntriesMax, p->nEntrySize * p->nEntriesUsed, p->nMemoryAlloc );
     }
     for ( i = 0; i < p->nChunks; i++ )

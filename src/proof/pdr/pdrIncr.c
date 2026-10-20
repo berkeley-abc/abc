@@ -157,7 +157,7 @@ int IPdr_ManCheckClauses( Pdr_Man_t * p )
             RetValue = Pdr_ManCheckCube( p, k - 1, pCubeK, NULL, 0, 0, 1 );
 
             if ( !RetValue ) {
-                printf( "Cube[%d][%d] not inductive!\n", k, j );
+                fprintf( Abc_FrameGlobalGetOut(), "Cube[%d][%d] not inductive!\n", k, j );
             }
 
             if ( RetValue == -1 )
@@ -389,7 +389,7 @@ int IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses )
                 Vec_IntWriteEntry( p->pPars->vOutMap, iFrame, 1 ); // unsat
                 p->pPars->nProveOuts++;
                 if ( p->pPars->fUseBridge )
-                    Gia_ManToBridgeResult( stdout, 1, NULL, iFrame );
+                    Gia_ManToBridgeResult( Abc_FrameGlobalGetOut(), 1, NULL, iFrame );
             }
     // create the first timeframe
     p->pPars->timeLastSolved = Abc_Clock();
@@ -492,7 +492,7 @@ int IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses )
                     nOutDigits, p->iOutCur, iFrame, nOutDigits, p->pPars->nFailOuts, nOutDigits, Saig_ManPoNum(p->pAig) );
                 assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
                 if ( p->pPars->fUseBridge )
-                    Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
+                    Gia_ManToBridgeResult( Abc_FrameGlobalGetOut(), 0, pCexNew, pCexNew->iPo );
                 Vec_PtrWriteEntry( p->vCexes, p->iOutCur, pCexNew );
                 if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(p->iOutCur, p->pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, p->iOutCur) : NULL) )
                 {
@@ -608,7 +608,7 @@ int IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses )
                         if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, 0 );
                         assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
                         if ( p->pPars->fUseBridge )
-                            Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
+                            Gia_ManToBridgeResult( Abc_FrameGlobalGetOut(), 0, pCexNew, pCexNew->iPo );
                         Vec_PtrWriteEntry( p->vCexes, p->iOutCur, pCexNew );
                         if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(p->iOutCur, p->pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, p->iOutCur) : NULL) )
                         {
@@ -719,7 +719,7 @@ int IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses )
                     {
                         Vec_IntWriteEntry( p->pPars->vOutMap, iFrame, 1 ); // unsat
                         if ( p->pPars->fUseBridge )
-                            Gia_ManToBridgeResult( stdout, 1, NULL, iFrame );
+                            Gia_ManToBridgeResult( Abc_FrameGlobalGetOut(), 1, NULL, iFrame );
                     }
             if ( p->pPars->nProveOuts == Saig_ManPoNum(p->pAig) )
                 return 1; // UNSAT
@@ -864,7 +864,7 @@ int IPdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
             if ( Vec_IntEntry(pPars->vOutMap, k) == -2 ) // unknown
                 Vec_IntWriteEntry( pPars->vOutMap, k, -1 ); // undec
     if ( pPars->fUseBridge )
-        Gia_ManToBridgeAbort( stdout, 7, (unsigned char *)"timeout" );
+        Gia_ManToBridgeAbort( Abc_FrameGlobalGetOut(), 7, (unsigned char *)"timeout" );
     return RetValue;
 }
 

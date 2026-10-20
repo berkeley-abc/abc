@@ -518,7 +518,7 @@ Abc_Cex_t * Saig_RefManRunSat( Saig_RefMan_t * p, int fNewOrder )
     RetValue = Saig_RefManSetPhases( p, NULL, 0 );
     if ( RetValue )
     {
-        printf( "Constructed frames are incorrect.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Constructed frames are incorrect.\n" );
         Cnf_DataFree( pCnf );
         return NULL;
     }
@@ -538,7 +538,7 @@ Abc_Cex_t * Saig_RefManRunSat( Saig_RefMan_t * p, int fNewOrder )
             (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( RetValue == l_False )
         {
-            printf( "The problem is trivially UNSAT. The CEX is real.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The problem is trivially UNSAT. The CEX is real.\n" );
             // create counter-example
             pCare = Abc_CexDup( p->pCex, p->pCex->nRegs );
             memset( pCare->pData, 0, sizeof(unsigned) * Abc_BitWordNum(pCare->nBits) );
@@ -573,11 +573,11 @@ Abc_Cex_t * Saig_RefManRunSat( Saig_RefMan_t * p, int fNewOrder )
             Vec_IntPush( vAssumps, Entry );
 
         for ( i = 0; i < Vec_VecSize(vLits); i++ )
-            printf( "%d ", Vec_IntSize( Vec_VecEntryInt(vLits, i) ) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Vec_IntSize( Vec_VecEntryInt(vLits, i) ) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         if ( p->fVerbose )
-            printf( "Total PIs = %d. Essential PIs = %d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Total PIs = %d. Essential PIs = %d.\n", 
                 Saig_ManPiNum(p->pAig) - p->nInputs, Vec_VecSize(vLits) );
     }
 
@@ -589,9 +589,9 @@ clk = Abc_Clock();
     if ( RetValue != l_False )
     {
         if ( RetValue == l_True )
-            printf( "Internal Error!!! The resulting problem is SAT.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Internal Error!!! The resulting problem is SAT.\n" );
         else
-            printf( "Internal Error!!! SAT solver timed out.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Internal Error!!! SAT solver timed out.\n" );
         Cnf_DataFree( pCnf );
         sat_solver_delete( pSat );
         Vec_IntFree( vAssumps );
@@ -604,7 +604,7 @@ clk = Abc_Clock();
     nCoreLits = sat_solver_final( pSat, &pCoreLits );
     assert( nCoreLits > 0 );
     if ( p->fVerbose )
-    printf( "AnalizeFinal selected %d assumptions (out of %d). Conflicts = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "AnalizeFinal selected %d assumptions (out of %d). Conflicts = %d.\n", 
         nCoreLits, Vec_IntSize(vAssumps), (int)pSat->stats.conflicts );
 
     // save literals
@@ -627,7 +627,7 @@ clk = Abc_Clock();
 //    printf( "\n" );
 
     if ( p->fVerbose )
-        printf( "Total PIs = %d. Essential PIs = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Total PIs = %d. Essential PIs = %d.\n", 
             Saig_ManPiNum(p->pAig) - p->nInputs, Vec_VecSize(vLits) );
 /*
     // try assumptions in different order
@@ -684,10 +684,10 @@ clk = Abc_Clock();
     // verify counter-example
     RetValue = Saig_RefManSetPhases( p, pCare, 0 );
     if ( RetValue )
-        printf( "Reduced CEX verification has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Reduced CEX verification has failed.\n" );
     RetValue = Saig_RefManSetPhases( p, pCare, 1 );
     if ( RetValue )
-        printf( "Reduced CEX verification has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Reduced CEX verification has failed.\n" );
     return pCare;
 }
 
@@ -749,7 +749,7 @@ Vec_Int_t * Saig_RefManRefineWithSat( Saig_RefMan_t * p, Vec_Int_t * vAigPis )
     // try assumptions in different order
     RetValue = sat_solver_solve( pSat, Vec_IntArray(vAssumps), Vec_IntArray(vAssumps) + Vec_IntSize(vAssumps), 
         (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-    printf( "Assumpts = %2d. Intermediate instance is %5s. Conflicts = %2d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Assumpts = %2d. Intermediate instance is %5s. Conflicts = %2d.\n", 
         Vec_IntSize(vAssumps), (RetValue == l_False ? "UNSAT" : "SAT"), (int)pSat->stats.conflicts );
 
 /*
@@ -786,8 +786,8 @@ Vec_Int_t * Saig_RefManRefineWithSat( Saig_RefMan_t * p, Vec_Int_t * vAigPis )
     // derive literals
     vLits = Saig_RefManOrderLiterals( p, vVar2PiId, vAssumps );
     for ( i = 0; i < Vec_VecSize(vLits); i++ )
-        printf( "%d ", Vec_IntSize( Vec_VecEntryInt(vLits, i) ) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Vec_IntSize( Vec_VecEntryInt(vLits, i) ) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // create different sets of assumptions
     Counter = Vec_VecSize(vLits);
@@ -801,7 +801,7 @@ Vec_Int_t * Saig_RefManRefineWithSat( Saig_RefMan_t * p, Vec_Int_t * vAigPis )
         // try the new assumptions
         RetValue = sat_solver_solve( pSat, Vec_IntArray(vAssumps), Vec_IntArray(vAssumps) + Vec_IntSize(vAssumps), 
             (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-        printf( "Assumpts = %2d. Intermediate instance is %5s. Conflicts = %2d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Assumpts = %2d. Intermediate instance is %5s. Conflicts = %2d.\n", 
             Vec_IntSize(vAssumps), RetValue == l_False ? "UNSAT" : "SAT", (int)pSat->stats.conflicts );
         if ( RetValue != l_False )
             continue;
@@ -812,8 +812,8 @@ Vec_Int_t * Saig_RefManRefineWithSat( Saig_RefMan_t * p, Vec_Int_t * vAigPis )
     }
 
     for ( i = 0; i < Vec_VecSize(vLits); i++ )
-        printf( "%d ", Vec_IntSize( Vec_VecEntryInt(vLits, i) ) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Vec_IntSize( Vec_VecEntryInt(vLits, i) ) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // create assumptions
     Vec_IntClear( vAssumps );
@@ -823,7 +823,7 @@ Vec_Int_t * Saig_RefManRefineWithSat( Saig_RefMan_t * p, Vec_Int_t * vAigPis )
     // try assumptions in different order
     RetValue = sat_solver_solve( pSat, Vec_IntArray(vAssumps), Vec_IntArray(vAssumps) + Vec_IntSize(vAssumps), 
         (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-    printf( "Assumpts = %2d. Intermediate instance is %5s. Conflicts = %2d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Assumpts = %2d. Intermediate instance is %5s. Conflicts = %2d.\n", 
         Vec_IntSize(vAssumps), (RetValue == l_False ? "UNSAT" : "SAT"), (int)pSat->stats.conflicts );
 
 //    if ( p->fVerbose )
@@ -880,7 +880,7 @@ Aig_ManPrintStats( p->pFrames );
 //    if ( fVerbose )
     {
         Vec_Int_t * vRes = Saig_RefManReason2Inputs( p, vReasons );
-        printf( "Frame PIs = %4d (essential = %4d)   AIG PIs = %4d (essential = %4d)   ",
+        fprintf( Abc_FrameGlobalGetOut(), "Frame PIs = %4d (essential = %4d)   AIG PIs = %4d (essential = %4d)   ",
             Aig_ManCiNum(p->pFrames), Vec_IntSize(vReasons), 
             Saig_ManPiNum(p->pAig) - p->nInputs, Vec_IntSize(vRes) );
 ABC_PRT( "Time", Abc_Clock() - clk );
@@ -934,7 +934,7 @@ Vec_Int_t * Saig_ManExtendCounterExampleTest3( Aig_Man_t * pAig, int iFirstFlopP
     abctime clk;
     if ( Saig_ManPiNum(pAig) != pCex->nPis )
     {
-        printf( "Saig_ManExtendCounterExampleTest3(): The PI count of AIG (%d) does not match that of cex (%d).\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Saig_ManExtendCounterExampleTest3(): The PI count of AIG (%d) does not match that of cex (%d).\n", 
             Aig_ManCiNum(pAig), pCex->nPis );
         return NULL;
     }
@@ -947,7 +947,7 @@ clk = Abc_Clock();
 
 //    if ( fVerbose )
     {
-        printf( "Frame PIs = %4d (essential = %4d)   AIG PIs = %4d (essential = %4d)   ",
+        fprintf( Abc_FrameGlobalGetOut(), "Frame PIs = %4d (essential = %4d)   AIG PIs = %4d (essential = %4d)   ",
             Aig_ManCiNum(p->pFrames), Vec_IntSize(vReasons), 
             Saig_ManPiNum(p->pAig) - p->nInputs, Vec_IntSize(vRes) );
 ABC_PRT( "Time", Abc_Clock() - clk );

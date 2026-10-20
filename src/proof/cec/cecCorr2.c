@@ -760,7 +760,7 @@ int Cec_Man2ResimulateCounterExamples( Cec_ManSim_t * pSim, Vec_Int_t * vCexStor
                     {
                         Abc_Print( -1, "[resim-oracle] FATAL: incremental resim "
                             "differs from full resim (%d violations); aborting -V verification.\n", nBad );
-                        fflush( stdout );
+                        fflush( Abc_FrameGlobalGetOut() );
                         assert( 0 );
                     }
                 }
@@ -1362,7 +1362,7 @@ int Cec_ManLSCorrAnalyzeDependence2( Gia_Man_t * p, Vec_Int_t * vEquivs, Vec_Str
             Count1++;
         pObj->fMark1 = 0;
     }
-    printf( "%5d -> %5d (%3d)  ", Count0, Count1, Iter );
+    fprintf( Abc_FrameGlobalGetOut(), "%5d -> %5d (%3d)  ", Count0, Count1, Iter );
     return 0;
 }
 
@@ -1777,8 +1777,8 @@ int Cec_ManLSCorrespondenceClasses2( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         // quit if const is no longer there
         if ( pPars->fStopWhenGone && Gia_ManPoNum(pAig) == 1 && !Gia_ObjIsConst( pAig, Gia_ObjFaninId0p(pAig, Gia_ManPo(pAig, 0)) ) )
         {
-            printf( "Iterative refinement is stopped after iteration %d\n", r );
-            printf( "because the property output is no longer a candidate constant.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Iterative refinement is stopped after iteration %d\n", r );
+            fprintf( Abc_FrameGlobalGetOut(), "because the property output is no longer a candidate constant.\n" );
             Cec_ManSimStop( pSim );
             Cec_DynSrmFree( pDynSrm );
             Cec_IncrMgrFree( pMgr );
@@ -1790,8 +1790,8 @@ int Cec_ManLSCorrespondenceClasses2( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
             int nCur = Cec_Man2CountLits(pAig);
             if ( r > 4 && nPrev[0] - nCur <= 4*pPars->nLimitMax )
             {
-                printf( "Iterative refinement is stopped after iteration %d\n", r );
-                printf( "because refinement does not proceed quickly.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Iterative refinement is stopped after iteration %d\n", r );
+                fprintf( Abc_FrameGlobalGetOut(), "because refinement does not proceed quickly.\n" );
                 Cec_ManSimStop( pSim );
                 Cec_DynSrmFree( pDynSrm );
                 Cec_IncrMgrFree( pMgr );
@@ -2171,7 +2171,7 @@ Vec_Int_t * Gia_ManFindStopFlops2( Gia_Man_t * p, int nFlopIncFreq, int fVerbose
         }
     }
     if ( fVerbose && vRes )
-        printf( "Detected %d sequence%s containing %d flops.\n", nItems, nItems > 1 ? "s":"", Vec_IntSize(vRes) );
+        fprintf( Abc_FrameGlobalGetOut(), "Detected %d sequence%s containing %d flops.\n", nItems, nItems > 1 ? "s":"", Vec_IntSize(vRes) );
     Vec_IntFree( vNexts );
     Vec_IntFree( vAvail );
     Vec_IntFree( vHeads );

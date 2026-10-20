@@ -416,10 +416,10 @@ void Txs_ManFindCiReduction( Gia_Man_t * p,
 void Txs_ManPrintFlopLits( Vec_Int_t * vFfLits, Vec_Int_t * vPrio )
 {
     int i, Entry;
-    printf( "%3d : ", Vec_IntSize(vFfLits) );
+    fprintf( Abc_FrameGlobalGetOut(), "%3d : ", Vec_IntSize(vFfLits) );
     Vec_IntForEachEntry( vFfLits, Entry, i )
-        printf( "%s%d(%d) ", Abc_LitIsCompl(Entry)? "+":"-", Abc_Lit2Var(Entry), Vec_IntEntry(vPrio, Abc_Lit2Var(Entry)) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%s%d(%d) ", Abc_LitIsCompl(Entry)? "+":"-", Abc_Lit2Var(Entry), Vec_IntEntry(vPrio, Abc_Lit2Var(Entry)) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -514,7 +514,7 @@ if ( 0 )
 {
 Abc_Print( 1, "Trying to justify cube " );
 if ( pCube )
-    Pdr_SetPrint( stdout, pCube, Gia_ManRegNum(p->pGia), NULL );
+    Pdr_SetPrint( Abc_FrameGlobalGetOut(), pCube, Gia_ManRegNum(p->pGia), NULL );
 else
     Abc_Print( 1, "<prop=fail>" );
 Abc_Print( 1, " in frame %d.\n", k );

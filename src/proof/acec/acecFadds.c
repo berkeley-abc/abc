@@ -112,15 +112,15 @@ Vec_Int_t * Gia_ManDetectHalfAdders( Gia_Man_t * p, int fVerbose )
     if ( fVerbose )
     {
         int iXor, iAnd;
-        printf( "Found %d half-adders with XOR gates: ", Vec_IntSize(vHadds)/2 );
+        fprintf( Abc_FrameGlobalGetOut(), "Found %d half-adders with XOR gates: ", Vec_IntSize(vHadds)/2 );
         for ( i = 0; i <= 4; i++ )
-            printf( "%d=%d ", i, Counts[i] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, Counts[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         Vec_IntForEachEntryDouble( vHadds, iXor, iAnd, i )
         {
             pObj = Gia_ManObj( p, iXor );
-            printf( "%3d : %5d %5d -> %5d %5d\n", i, Gia_ObjFaninId0(pObj, iXor), Gia_ObjFaninId1(pObj, iXor), iXor, iAnd );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d : %5d %5d -> %5d %5d\n", i, Gia_ObjFaninId0(pObj, iXor), Gia_ObjFaninId1(pObj, iXor), iXor, iAnd );
         }
     }
     return vHadds;
@@ -150,22 +150,22 @@ void Gia_ManIllustrateBoxes( Gia_Man_t * p )
     {
         nBoxIns = Tim_ManBoxInputNum(pManTime, i);
         nBoxOuts = Tim_ManBoxOutputNum(pManTime, i);
-        printf( "Box %4d  [%d x %d] :   ", i, nBoxIns, nBoxOuts );
-        printf( "Input obj IDs = " );
+        fprintf( Abc_FrameGlobalGetOut(), "Box %4d  [%d x %d] :   ", i, nBoxIns, nBoxOuts );
+        fprintf( Abc_FrameGlobalGetOut(), "Input obj IDs = " );
         for ( k = 0; k < nBoxIns; k++ )
         {
             pObj = Gia_ManCo( p, curCo + k );
-            printf( "%d ", Gia_ObjId(p, pObj) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Gia_ObjId(p, pObj) );
         }
-        printf( "  Output obj IDs = " );
+        fprintf( Abc_FrameGlobalGetOut(), "  Output obj IDs = " );
         for ( k = 0; k < nBoxOuts; k++ )
         {
             pObj = Gia_ManCi( p, curCi + k );
-            printf( "%d ", Gia_ObjId(p, pObj) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Gia_ObjId(p, pObj) );
         }
         curCo += nBoxIns;
         curCi += nBoxOuts;
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     curCo += Tim_ManPoNum(pManTime);
     // verify counts
@@ -275,7 +275,7 @@ void Dtc_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_I
     Vec_Int_t * vTemp;
     int i, k, c, Type, * pCut0, * pCut1, pCut[4];
     if ( fVerbose )
-        printf( "Object %d = :\n", iObj );
+        fprintf( Abc_FrameGlobalGetOut(), "Object %d = :\n", iObj );
     Vec_IntFill( vCuts, 2, 1 );
     Vec_IntPush( vCuts, iObj );
     Dtc_ForEachCut( pList0, pCut0, i )
@@ -287,15 +287,15 @@ void Dtc_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_I
             continue;
         Vec_IntAddToEntry( vCuts, 0, 1 );  
         if ( fVerbose )
-            printf( "%d : ", pCut[0] );
+            fprintf( Abc_FrameGlobalGetOut(), "%d : ", pCut[0] );
         for ( c = 0; c <= pCut[0]; c++ )
         {
             Vec_IntPush( vCuts, pCut[c] );
             if ( fVerbose && c )
-                printf( "%d ", pCut[c] );
+                fprintf( Abc_FrameGlobalGetOut(), "%d ", pCut[c] );
         }
         if ( fVerbose )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         if ( pCut[0] == 2 )
         {
             int Value = Dtc_ObjComputeTruth( p, iObj, pCut, NULL );
@@ -347,7 +347,7 @@ void Dtc_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvCutsXor2, Vec_Int_t ** pv
         nCuts += Vec_IntEntry( vTemp, 0 );
     }
     if ( fVerbose )
-        printf( "Nodes = %d.  Cuts = %d.  Cuts/Node = %.2f.  Ints/Node = %.2f.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes = %d.  Cuts = %d.  Cuts/Node = %.2f.  Ints/Node = %.2f.\n", 
             Gia_ManAndNum(p), nCuts, 1.0*nCuts/Gia_ManAndNum(p), 1.0*Vec_IntSize(vCuts)/Gia_ManAndNum(p) );
     Vec_IntFree( vTemp );
     Vec_IntFree( vCuts );
@@ -393,18 +393,18 @@ void Dtc_ManPrintFadds( Vec_Int_t * vFadds )
     int i;
     Dtc_ForEachFadd( vFadds, i )
     {
-        printf( "%6d : ", i );
-        printf( "%6d ", Vec_IntEntry(vFadds, 5*i+0) );
-        printf( "%6d ", Vec_IntEntry(vFadds, 5*i+1) );
-        printf( "%6d ", Vec_IntEntry(vFadds, 5*i+2) );
-        printf( " ->  " );
-        printf( "%6d ", Vec_IntEntry(vFadds, 5*i+3) );
-        printf( "%6d ", Vec_IntEntry(vFadds, 5*i+4) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d ", Vec_IntEntry(vFadds, 5*i+0) );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d ", Vec_IntEntry(vFadds, 5*i+1) );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d ", Vec_IntEntry(vFadds, 5*i+2) );
+        fprintf( Abc_FrameGlobalGetOut(), " ->  " );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d ", Vec_IntEntry(vFadds, 5*i+3) );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d ", Vec_IntEntry(vFadds, 5*i+4) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         if ( i == 100 )
         {
-            printf( "Skipping other FADDs.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Skipping other FADDs.\n" );
             break;
         }
     }
@@ -435,7 +435,7 @@ Vec_Int_t * Gia_ManDetectFullAdders( Gia_Man_t * p, int fVerbose, Vec_Int_t ** p
     vFadds = Dtc_ManFindCommonCuts( p, vCutsXor, vCutsMaj );
     qsort( Vec_IntArray(vFadds), (size_t)(Vec_IntSize(vFadds)/5), 20, (int (*)(const void *, const void *))Dtc_ManCompare2 );
     if ( fVerbose )
-        printf( "XOR3 cuts = %d.  MAJ cuts = %d.  Full-adders = %d.\n", Vec_IntSize(vCutsXor)/4, Vec_IntSize(vCutsMaj)/4, Vec_IntSize(vFadds)/5 );
+        fprintf( Abc_FrameGlobalGetOut(), "XOR3 cuts = %d.  MAJ cuts = %d.  Full-adders = %d.\n", Vec_IntSize(vCutsXor)/4, Vec_IntSize(vCutsMaj)/4, Vec_IntSize(vFadds)/5 );
     if ( fVerbose )
         Dtc_ManPrintFadds( vFadds );
     Vec_IntFree( vCutsXor );
@@ -447,7 +447,7 @@ void Gia_ManDetectFullAdders2( Gia_Man_t * p, int fVerbose )
     Vec_Int_t * vCutsXor2, * vCutsXor, * vCutsMaj;
     Dtc_ManComputeCuts( p, &vCutsXor2, &vCutsXor, &vCutsMaj, fVerbose );
     if ( fVerbose )
-        printf( "XOR3 cuts = %d.  MAJ cuts = %d.\n", Vec_IntSize(vCutsXor)/4, Vec_IntSize(vCutsMaj)/4 );
+        fprintf( Abc_FrameGlobalGetOut(), "XOR3 cuts = %d.  MAJ cuts = %d.\n", Vec_IntSize(vCutsXor)/4, Vec_IntSize(vCutsMaj)/4 );
     Vec_IntFree( vCutsXor2 );
     Vec_IntFree( vCutsXor );
     Vec_IntFree( vCutsMaj );
@@ -583,25 +583,25 @@ void Gia_ManPrintChains( Gia_Man_t * p, Vec_Int_t * vFadds, Vec_Int_t * vMap, Ve
         Count += Vec_IntSize(vChain);
         if ( i < 10 )
         {
-            printf( "Chain %4d : %4d    ", i, Vec_IntSize(vChain) );
+            fprintf( Abc_FrameGlobalGetOut(), "Chain %4d : %4d    ", i, Vec_IntSize(vChain) );
             Vec_IntForEachEntry( vChain, iFadd, k )
             {
-                printf( "%d(%d) ", iFadd, Vec_IntEntry(vFadds, 5*iFadd+4) );
+                fprintf( Abc_FrameGlobalGetOut(), "%d(%d) ", iFadd, Vec_IntEntry(vFadds, 5*iFadd+4) );
                 if ( k != Vec_IntSize(vChain) - 1 )
-                    printf( "-> " );
+                    fprintf( Abc_FrameGlobalGetOut(), "-> " );
                 if ( k > 6 )
                 {
-                    printf( "..." );
+                    fprintf( Abc_FrameGlobalGetOut(), "..." );
                     break;
                 }
             }
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         else if ( i == 10 )
-            printf( "...\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "...\n" );
 
     }
-    printf( "Total chains = %d. Total full-adders = %d.\n", Vec_WecSize(vChains), Count );
+    fprintf( Abc_FrameGlobalGetOut(), "Total chains = %d. Total full-adders = %d.\n", Vec_WecSize(vChains), Count );
 }
 // map SUM bits and topmost MAJ into topmost FADD number
 Vec_Int_t * Gia_ManFindMapping( Gia_Man_t * p, Vec_Int_t * vFadds, Vec_Int_t * vMap, Vec_Wec_t * vChains )
@@ -798,7 +798,7 @@ Gia_Man_t * Gia_ManDupWithNaturalBoxes( Gia_Man_t * p, int nFaddMin, int fVerbos
     int i, nBoxes;
     if ( Gia_ManBoxNum(p) > 0 )
     {
-        printf( "Currently natural carry-chains cannot be detected when boxes are present.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Currently natural carry-chains cannot be detected when boxes are present.\n" );
         return NULL;
     }
     assert( Gia_ManBoxNum(p) == 0 );
@@ -847,7 +847,7 @@ Gia_Man_t * Gia_ManDupWithNaturalBoxes( Gia_Man_t * p, int nFaddMin, int fVerbos
     if ( Gia_ManRegNum(p) )
     {
         if ( fVerbose )
-            printf( "Warning: Sequential design is converted into combinational one by adding white boxes.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Warning: Sequential design is converted into combinational one by adding white boxes.\n" );
         pNew->nRegs = 0;
     }
     assert( !Gia_ManHasDangling(pNew) );
@@ -1207,7 +1207,7 @@ int Gia_ManIteratePaths( Gia_Man_t * p, int DelayC, int nPathMin, int nPathMax, 
     Gia_ManForEachCi( p, pObj, i )
         pObj->fPhase = 1;
     if ( fVerbose )
-        printf( "Running path detection: BoxDelay = %d, PathMin = %d, PathMax = %d, PathLimit = %d.\n", DelayC, nPathMin, nPathMax, nPathLimit );
+        fprintf( Abc_FrameGlobalGetOut(), "Running path detection: BoxDelay = %d, PathMin = %d, PathMax = %d, PathLimit = %d.\n", DelayC, nPathMin, nPathMax, nPathLimit );
     for ( i = 0; i < nPathLimit; i++ )
     {
         MaxDelay = Gia_ManFindAnnotatedDelay( p, DelayC, &nBoxes, fIgnoreBoxDelays );
@@ -1216,7 +1216,7 @@ int Gia_ManIteratePaths( Gia_Man_t * p, int DelayC, int nPathMin, int nPathMax, 
             break;
         nPaths += (RetValue > 0);
         if ( fVerbose )
-            printf( "Iter %5d : Paths = %2d. Boxes = %2d. Total boxes = %6d.  Max delay = %5d.\n", i, nPaths, RetValue, nBoxes, MaxDelay );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %5d : Paths = %2d. Boxes = %2d. Total boxes = %6d.  Max delay = %5d.\n", i, nPaths, RetValue, nBoxes, MaxDelay );
     }
     Vec_IntFree( vPath );
     Vec_IntFreeP( &p->vLevels );

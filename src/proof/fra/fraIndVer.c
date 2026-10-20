@@ -54,7 +54,7 @@ int Fra_InvariantVerify( Aig_Man_t * pAig, int nFrames, Vec_Int_t * vClauses, Ve
 
     if ( nFrames != 1 )
     {
-        printf( "Invariant verification: Can only verify for K = 1\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Invariant verification: Can only verify for K = 1\n" );
         return 1;
     }
 
@@ -109,7 +109,7 @@ int Fra_InvariantVerify( Aig_Man_t * pAig, int nFrames, Vec_Int_t * vClauses, Ve
         {
             Cnf_DataFree( pCnf );
             sat_solver_delete( pSat );
-            printf( "Invariant verification: SAT solver is unsat after adding a clause.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Invariant verification: SAT solver is unsat after adding a clause.\n" );
             return 0;
         }
     }
@@ -147,12 +147,12 @@ int Fra_InvariantVerify( Aig_Man_t * pAig, int nFrames, Vec_Int_t * vClauses, Ve
     sat_solver_delete( pSat );
     Cnf_DataFree( pCnf );
     if ( CounterBase )
-        printf( "Invariant verification: %d clauses (out of %d) FAILED the base case.\n", CounterBase, Vec_IntSize(vClauses) );
+        fprintf( Abc_FrameGlobalGetOut(), "Invariant verification: %d clauses (out of %d) FAILED the base case.\n", CounterBase, Vec_IntSize(vClauses) );
     if ( CounterInd )
-        printf( "Invariant verification: %d clauses (out of %d) FAILED the inductive case.\n", CounterInd, Vec_IntSize(vClauses) );
+        fprintf( Abc_FrameGlobalGetOut(), "Invariant verification: %d clauses (out of %d) FAILED the inductive case.\n", CounterInd, Vec_IntSize(vClauses) );
     if ( CounterBase || CounterInd )
         return 0;
-    printf( "Invariant verification: %d clauses verified correctly.  ", Vec_IntSize(vClauses) );
+    fprintf( Abc_FrameGlobalGetOut(), "Invariant verification: %d clauses verified correctly.  ", Vec_IntSize(vClauses) );
     ABC_PRT( "Time", Abc_Clock() - clk );
     return 1;
 }

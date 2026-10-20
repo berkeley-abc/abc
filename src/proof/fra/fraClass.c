@@ -122,7 +122,7 @@ void Fra_ClassesCopyReprs( Fra_Cla_t * p, Vec_Ptr_t * vFailed )
         Aig_ManForEachObj( p->pAig, pObj, i )
         {
             if ( p->pAig->pReprs[i] != NULL )
-                printf( "Classes are not cleared!\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Classes are not cleared!\n" );
             assert( p->pAig->pReprs[i] == NULL );
         }
     }
@@ -216,10 +216,10 @@ void Fra_PrintClass( Fra_Cla_t * p, Aig_Obj_t ** pClass )
     int i;
     for ( i = 1; (pTemp = pClass[i]); i++ )
         assert( Fra_ClassObjRepr(pTemp) == pClass[0] );
-    printf( "{ " );
+    fprintf( Abc_FrameGlobalGetOut(), "{ " );
     for ( i = 0; (pTemp = pClass[i]); i++ )
-        printf( "%d(%d,%d) ", pTemp->Id, pTemp->Level, Aig_SupportSize(p->pAig,pTemp) );
-    printf( "}\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d(%d,%d) ", pTemp->Id, pTemp->Level, Aig_SupportSize(p->pAig,pTemp) );
+    fprintf( Abc_FrameGlobalGetOut(), "}\n" );
 }
 
 /**Function*************************************************************
@@ -239,26 +239,26 @@ void Fra_ClassesPrint( Fra_Cla_t * p, int fVeryVerbose )
     Aig_Obj_t * pObj;
     int i;
 
-    printf( "Const = %5d. Class = %5d. Lit = %5d. ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Const = %5d. Class = %5d. Lit = %5d. ", 
         Vec_PtrSize(p->vClasses1), Vec_PtrSize(p->vClasses), Fra_ClassesCountLits(p) );
     if ( p->vImps && Vec_IntSize(p->vImps) > 0 )
-        printf( "Imp = %5d. ", Vec_IntSize(p->vImps) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Imp = %5d. ", Vec_IntSize(p->vImps) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     if ( fVeryVerbose )
     {
         Vec_PtrForEachEntry( Aig_Obj_t *, p->vClasses1, pObj, i )
             assert( Fra_ClassObjRepr(pObj) == Aig_ManConst1(p->pAig) );
-        printf( "Constants { " );
+        fprintf( Abc_FrameGlobalGetOut(), "Constants { " );
         Vec_PtrForEachEntry( Aig_Obj_t *, p->vClasses1, pObj, i )
-            printf( "%d(%d,%d) ", pObj->Id, pObj->Level, Aig_SupportSize(p->pAig,pObj) );
-        printf( "}\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d(%d,%d) ", pObj->Id, pObj->Level, Aig_SupportSize(p->pAig,pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "}\n" );
         Vec_PtrForEachEntry( Aig_Obj_t **, p->vClasses, pClass, i )
         {
-            printf( "%3d (%3d) : ", i, Fra_ClassCount(pClass) );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d (%3d) : ", i, Fra_ClassCount(pClass) );
             Fra_PrintClass( p, pClass );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -658,7 +658,7 @@ void Fra_ClassesPostprocess( Fra_Cla_t * p )
         WeightMax = Abc_MaxInt( WeightMax, pWeights[i] );
     }
     Fra_SmlStop( pComb );
-    printf( "Before: Const = %6d. Class = %6d.  ", Vec_PtrSize(p->vClasses1), Vec_PtrSize(p->vClasses) );
+    fprintf( Abc_FrameGlobalGetOut(), "Before: Const = %6d. Class = %6d.  ", Vec_PtrSize(p->vClasses1), Vec_PtrSize(p->vClasses) );
     // remove nodes from classes whose weight is less than WeightMax/Ratio
     k = 0;
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vClasses1, pObj, i )
@@ -688,7 +688,7 @@ void Fra_ClassesPostprocess( Fra_Cla_t * p )
         if ( ppClass[1] != NULL )
             Vec_PtrWriteEntry( p->vClasses, k++, ppClass );
     Vec_PtrShrink( p->vClasses, k );
-    printf( "After: Const = %6d. Class = %6d. \n", Vec_PtrSize(p->vClasses1), Vec_PtrSize(p->vClasses) );
+    fprintf( Abc_FrameGlobalGetOut(), "After: Const = %6d. Class = %6d. \n", Vec_PtrSize(p->vClasses1), Vec_PtrSize(p->vClasses) );
     ABC_FREE( pWeights );
 }
 
@@ -846,7 +846,7 @@ Aig_Man_t * Fra_ClassesDeriveAig( Fra_Cla_t * p, int nFramesK )
     ABC_FREE( ppEquivs );
     // mark the asserts
     assert( Aig_ManCoNum(pManFraig) % nFramesAll == 0 );
-printf( "Assert miters = %6d. Output miters = %6d.\n", 
+fprintf( Abc_FrameGlobalGetOut(), "Assert miters = %6d. Output miters = %6d.\n", 
        pManFraig->nAsserts, Aig_ManCoNum(pManFraig) - pManFraig->nAsserts );
     // remove dangling nodes
     Aig_ManCleanup( pManFraig );

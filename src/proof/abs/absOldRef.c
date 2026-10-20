@@ -87,7 +87,7 @@ Abc_Cex_t * Saig_ManCexRemap( Aig_Man_t * p, Aig_Man_t * pAbs, Abc_Cex_t * pCexA
     Aig_Obj_t * pObj;
     int i, f;
     if ( !Saig_ManVerifyCex( pAbs, pCexAbs ) )
-        printf( "Saig_ManCexRemap(): The initial counter-example is invalid.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Saig_ManCexRemap(): The initial counter-example is invalid.\n" );
 //    else
 //        printf( "Saig_ManCexRemap(): The initial counter-example is correct.\n" );
     // start the counter-example
@@ -108,7 +108,7 @@ Abc_Cex_t * Saig_ManCexRemap( Aig_Man_t * p, Aig_Man_t * pAbs, Abc_Cex_t * pCexA
     // verify the counter example
     if ( !Saig_ManVerifyCex( p, pCex ) )
     {
-        printf( "Saig_ManCexRemap(): Counter-example is invalid.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Saig_ManCexRemap(): Counter-example is invalid.\n" );
         Abc_CexFree( pCex );
         pCex = NULL;
     }
@@ -174,7 +174,7 @@ Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlo
         pPars->nTimeOut = 10;
         pPars->fVerbose = fVerbose;
         if ( pPars->fVerbose )
-            printf( "Running property directed reachability...\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Running property directed reachability...\n" );
         RetValue = Pdr_ManSolve( pAbsOrpos, pPars );
         if ( pAbsOrpos->pSeqModel )
             pAbsOrpos->pSeqModel->iPo = Saig_ManFindFailedPoCex( pAbs, pAbsOrpos->pSeqModel );
@@ -215,7 +215,7 @@ Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlo
         return NULL;
     if ( Vec_IntSize(vFlopsNew) == 0 )
     {
-        printf( "Discovered a true counter-example!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Discovered a true counter-example!\n" );
         p->pSeqModel = Saig_ManCexRemap( p, pAbs, pAbs->pSeqModel );
         Vec_IntFree( vFlopsNew );
         *piRetValue = 0;
@@ -223,7 +223,7 @@ Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlo
     }
     // vFlopsNew contains PI numbers that should be kept in pAbs
     if ( fVerbose )
-        printf( "Adding %d registers to the abstraction (total = %d).\n\n", Vec_IntSize(vFlopsNew), Aig_ManRegNum(pAbs)+Vec_IntSize(vFlopsNew) );
+        fprintf( Abc_FrameGlobalGetOut(), "Adding %d registers to the abstraction (total = %d).\n\n", Vec_IntSize(vFlopsNew), Aig_ManRegNum(pAbs)+Vec_IntSize(vFlopsNew) );
     // add to the abstraction
     Vec_IntForEachEntry( vFlopsNew, Entry, i )
     {
@@ -271,8 +271,8 @@ int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Vec_Int_t * vFlopC
     }
     if ( Vec_IntSize(vFlopsNew) == 0 )
     {
-        printf( "Refinement did not happen. Discovered a true counter-example.\n" );
-        printf( "Remapping counter-example from %d to %d primary inputs.\n", Aig_ManCiNum(pAbs), Aig_ManCiNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "Refinement did not happen. Discovered a true counter-example.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Remapping counter-example from %d to %d primary inputs.\n", Aig_ManCiNum(pAbs), Aig_ManCiNum(p) );
         p->pSeqModel = Saig_ManCexRemap( p, pAbs, pCex );
         Vec_IntFree( vFlopsNew );
         Aig_ManStop( pAbs );
@@ -280,7 +280,7 @@ int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Vec_Int_t * vFlopC
     }
     if ( fVerbose )
     {
-        printf( "Adding %d registers to the abstraction (total = %d).  ", Vec_IntSize(vFlopsNew), Aig_ManRegNum(p)+Vec_IntSize(vFlopsNew) );
+        fprintf( Abc_FrameGlobalGetOut(), "Adding %d registers to the abstraction (total = %d).  ", Vec_IntSize(vFlopsNew), Aig_ManRegNum(p)+Vec_IntSize(vFlopsNew) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     // vFlopsNew contains PI numbers that should be kept in pAbs
@@ -294,7 +294,7 @@ int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Vec_Int_t * vFlopC
         // create new flops
         vFlopsNewBest = Saig_ManCbaFilterFlops( p, pCex, vFlopClasses, vFlopsNew, nFfToAddMax );
         assert( Vec_IntSize(vFlopsNewBest) == nFfToAddMax );
-        printf( "Filtering flops based on cost (%d -> %d).\n", Vec_IntSize(vFlopsNew), Vec_IntSize(vFlopsNewBest) );
+        fprintf( Abc_FrameGlobalGetOut(), "Filtering flops based on cost (%d -> %d).\n", Vec_IntSize(vFlopsNew), Vec_IntSize(vFlopsNewBest) );
         // update
         Vec_IntFree( vFlopsNew );
         vFlopsNew = vFlopsNewBest;
@@ -375,7 +375,7 @@ int Gia_ManCexAbstractionRefine( Gia_Man_t * pGia, Abc_Cex_t * pCex, int nFfToAd
     Vec_Int_t * vFlops;
     if ( pGia->vFlopClasses == NULL )
     {
-        printf( "Gia_ManCexAbstractionRefine(): Abstraction latch map is missing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Gia_ManCexAbstractionRefine(): Abstraction latch map is missing.\n" );
         return -1;
     }
     pNew = Gia_ManToAig( pGia, 0 );
@@ -414,7 +414,7 @@ Vec_Int_t * Saig_ManCexAbstractionFlops( Aig_Man_t * p, Gia_ParAbs_t * pPars )
     int Iter;//, clk = Abc_Clock(), clk2 = Abc_Clock();//, iFlop;
     assert( Aig_ManRegNum(p) > 0 );
     if ( pPars->fVerbose )
-        printf( "Performing counter-example-based refinement.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Performing counter-example-based refinement.\n" );
     Aig_ManSetCioIds( p );
     vFlops = Vec_IntStartNatural( 1 );
 /*
@@ -427,10 +427,10 @@ Vec_Int_t * Saig_ManCexAbstractionFlops( Aig_Man_t * p, Gia_ParAbs_t * pPars )
     pAbs = Saig_ManDupAbstraction( p, vFlops );
     if ( !pPars->fVerbose )
     {
-        printf( "Init : " );
+        fprintf( Abc_FrameGlobalGetOut(), "Init : " );
         Aig_ManPrintStats( pAbs );
     }
-    printf( "Refining abstraction...\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Refining abstraction...\n" );
     for ( Iter = 0; ; Iter++ )
     {
         pTemp = Saig_ManCexRefine( p, pAbs, vFlops, pPars->nFramesBmc, pPars->nConfMaxBmc, pPars->fUseBdds, pPars->fUseDprove, pPars->fVerbose, pPars->fUseStart?&nUseStart:NULL, &pPars->Status, &pPars->nFramesDone );
@@ -444,7 +444,7 @@ Vec_Int_t * Saig_ManCexAbstractionFlops( Aig_Man_t * p, Gia_ParAbs_t * pPars )
         }
         Aig_ManStop( pAbs );
         pAbs = pTemp;
-        printf( "ITER %4d : ", Iter );
+        fprintf( Abc_FrameGlobalGetOut(), "ITER %4d : ", Iter );
         if ( !pPars->fVerbose )
             Aig_ManPrintStats( pAbs );
         // output the intermediate result of abstraction
@@ -453,7 +453,7 @@ Vec_Int_t * Saig_ManCexAbstractionFlops( Aig_Man_t * p, Gia_ParAbs_t * pPars )
         // check if the ratio is reached
         if ( 100.0*(Aig_ManRegNum(p)-Aig_ManRegNum(pAbs))/Aig_ManRegNum(p) < 1.0*pPars->nRatio )
         {
-            printf( "Refinements is stopped because flop reduction is less than %d%%\n", pPars->nRatio );
+            fprintf( Abc_FrameGlobalGetOut(), "Refinements is stopped because flop reduction is less than %d%%\n", pPars->nRatio );
             Aig_ManStop( pAbs );
             pAbs = NULL;
             Vec_IntFree( vFlops );

@@ -149,7 +149,7 @@ void Txs3_ManCollectCone( Txs3_Man_t * p, int fVerbose )
     Gia_ManForEachObjVec( p->vCoObjs, p->pGia, pObj, i )
         Txs3_ManCollectCone_rec( p, Gia_ObjFanin0(pObj) );
 if ( fVerbose )
-printf( "%d %d %d \n", Vec_IntSize(p->vCiObjs), Vec_IntSize(p->vFosPre), Vec_IntSize(p->vFosAbs) );
+fprintf( Abc_FrameGlobalGetOut(), "%d %d %d \n", Vec_IntSize(p->vCiObjs), Vec_IntSize(p->vFosPre), Vec_IntSize(p->vFosAbs) );
     p->nPiLits = Vec_IntSize(p->vCiObjs);
     // sort primary inputs
     Vec_IntSelectSort( Vec_IntArray(p->vCiObjs), Vec_IntSize(p->vCiObjs) );
@@ -219,7 +219,7 @@ if ( 0 )
 {
 Abc_Print( 1, "Trying to justify cube " );
 if ( pCube )
-    Pdr_SetPrint( stdout, pCube, Gia_ManRegNum(p->pGia), NULL );
+    Pdr_SetPrint( Abc_FrameGlobalGetOut(), pCube, Gia_ManRegNum(p->pGia), NULL );
 else
     Abc_Print( 1, "<prop=fail>" );
 Abc_Print( 1, " in frame %d.\n", k );
@@ -263,7 +263,7 @@ Abc_Print( 1, " in frame %d.\n", k );
     }
     if ( fVerbose )
     {
-        printf( "Clause with %d lits on lev %d\n", pCube ? pCube->nLits : 0, k );
+        fprintf( Abc_FrameGlobalGetOut(), "Clause with %d lits on lev %d\n", pCube ? pCube->nLits : 0, k );
         Vec_IntPrint( p->vTemp );
     }
 
@@ -343,7 +343,7 @@ p->pMan->tAbs += Abc_Clock() - clk;
     if ( fVerbose )
         Vec_IntPrint( p->vFfLits );
     if ( fVerbose )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // derive the final set
     pRes = Pdr_SetCreate( p->vFfLits, p->vPiLits );

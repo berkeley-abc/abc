@@ -72,7 +72,7 @@ void Gia_PolynAnalyzeXors( Gia_Man_t * pGia, int fVerbose )
     Vec_Int_t * vXors = Vec_IntAlloc( 100 );
     if ( pGia->pMuxes == NULL )
     {
-        printf( "AIG does not have XORs extracted.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "AIG does not have XORs extracted.\n" );
         return;
     }
     assert( pGia->pMuxes );
@@ -83,10 +83,10 @@ void Gia_PolynAnalyzeXors( Gia_Man_t * pGia, int fVerbose )
         Gia_PolynCollectXors_rec( pGia, iDriver, vXors );
         //printf( "%3d : ", i );
         //Vec_IntPrint( vXors );
-        printf( "%d=%d  ", i, Vec_IntSize(vXors) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=%d  ", i, Vec_IntSize(vXors) );
         Count += Vec_IntSize(vXors);
     }
-    printf( "Total = %d.\n", Count );
+    fprintf( Abc_FrameGlobalGetOut(), "Total = %d.\n", Count );
     Vec_IntFree( vXors );
 }
 

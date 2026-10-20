@@ -55,19 +55,19 @@ void Ree_TruthPrecompute()
     {
         Truth = Truths[i];
         Truth = Abc_Tt6SwapAdjacent( Truth, 1 );
-        Abc_TtPrintHexRev( stdout, &Truth, 3 );
-        printf( "\n" );
+        Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), &Truth, 3 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( i = 0; i < 8; i++ )
     {
         Truth = Truths[i];
         Truth = Abc_Tt6SwapAdjacent( Truth, 1 );
         Truth = Abc_Tt6SwapAdjacent( Truth, 0 );
-        Abc_TtPrintHexRev( stdout, &Truth, 3 );
-        printf( "\n" );
+        Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), &Truth, 3 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Ree_TruthPrecompute2()
 {
@@ -78,7 +78,7 @@ void Ree_TruthPrecompute2()
         for ( b = 0; b < 3; b++ )
             if ( (i >> b) & 1 )
                 Truth = Abc_Tt6Flip( Truth, b );
-        printf( "%d = %X\n", i, 0xFF & (int)Truth );
+        fprintf( Abc_FrameGlobalGetOut(), "%d = %X\n", i, 0xFF & (int)Truth );
     }
 }
 
@@ -246,14 +246,14 @@ int Ree_ObjComputeTruth( Gia_Man_t * p, int iObj, int * pCut )
 void Ree_ManCutPrint( int * pCut, int Count, word Truth, int iObj )
 {
     int c;
-    printf( "%d : %d : ", Count, iObj );
+    fprintf( Abc_FrameGlobalGetOut(), "%d : %d : ", Count, iObj );
     for ( c = 1; c <= pCut[0]; c++ )
-        printf( "%3d ", pCut[c] );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d ", pCut[c] );
     for (      ; c <= 4; c++ )
-        printf( "    " );
-    printf( "0x" );
-    Abc_TtPrintHexRev( stdout, &Truth, 3 );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "    " );
+    fprintf( Abc_FrameGlobalGetOut(), "0x" );
+    Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), &Truth, 3 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Ree_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_Int_t * vCuts, Hash_IntMan_t * pHash, Vec_Int_t * vData, Vec_Int_t * vXors )
 {
@@ -261,7 +261,7 @@ void Ree_ManCutMerge( Gia_Man_t * p, int iObj, int * pList0, int * pList1, Vec_I
     int i, k, c, Value, Truth, TruthC, * pCut0, * pCut1, pCut[6], Count = 0;
     int iXor2 = -1, iXor3 = -1;
     if ( fVerbose )
-        printf( "Object %d\n", iObj );
+        fprintf( Abc_FrameGlobalGetOut(), "Object %d\n", iObj );
     Vec_IntFill( vCuts, 2, 1 );
     Vec_IntPush( vCuts, iObj );
     Vec_IntPush( vCuts, 0xAA );
@@ -437,14 +437,14 @@ Vec_Int_t * Ree_ManComputeCuts( Gia_Man_t * p, Vec_Int_t ** pvXors, int fVerbose
         nCuts += Vec_IntEntry( vTemp, 0 );
     }
     if ( fVerbose )
-        printf( "AIG nodes = %d.  Cuts = %d.  Cuts/Node = %.2f.  Ints/Node = %.2f.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "AIG nodes = %d.  Cuts = %d.  Cuts/Node = %.2f.  Ints/Node = %.2f.\n", 
             Gia_ManAndNum(p), nCuts, 1.0*nCuts/Gia_ManAndNum(p), 1.0*Vec_IntSize(vCuts)/Gia_ManAndNum(p) );
     Vec_IntFree( vTemp );
     Vec_IntFree( vCuts );
     vAdds = Ree_ManDeriveAdds( pHash, vData, fVerbose );
     qsort( Vec_IntArray(vAdds), (size_t)(Vec_IntSize(vAdds)/6), 24, (int (*)(const void *, const void *))Ree_ManCompare );
     if ( fVerbose )
-        printf( "Adders = %d.  Total cuts = %d.  Hashed cuts = %d.  Hashed/Adders = %.2f.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Adders = %d.  Total cuts = %d.  Hashed cuts = %d.  Hashed/Adders = %.2f.\n", 
             Vec_IntSize(vAdds)/6, Vec_IntSize(vData)/3, Hash_IntManEntryNum(pHash), 6.0*Hash_IntManEntryNum(pHash)/Vec_IntSize(vAdds) );
     Vec_IntFree( vData );
     Hash_IntManStop( pHash );
@@ -570,15 +570,15 @@ void Ree_ManPrintAdders( Vec_Int_t * vAdds, int fVerbose )
         //    continue;
         if ( !fVerbose )
             continue;
-        printf( "%6d : ", i );
-        printf( "%6d ", Vec_IntEntry(vAdds, 6*i+0) );
-        printf( "%6d ", Vec_IntEntry(vAdds, 6*i+1) );
-        printf( "%6d ", Vec_IntEntry(vAdds, 6*i+2) );
-        printf( "   ->  " );
-        printf( "%6d ", Vec_IntEntry(vAdds, 6*i+3) );
-        printf( "%6d ", Vec_IntEntry(vAdds, 6*i+4) );
-        printf( "  (%d)", Vec_IntEntry(vAdds, 6*i+5) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d ", Vec_IntEntry(vAdds, 6*i+0) );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d ", Vec_IntEntry(vAdds, 6*i+1) );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d ", Vec_IntEntry(vAdds, 6*i+2) );
+        fprintf( Abc_FrameGlobalGetOut(), "   ->  " );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d ", Vec_IntEntry(vAdds, 6*i+3) );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d ", Vec_IntEntry(vAdds, 6*i+4) );
+        fprintf( Abc_FrameGlobalGetOut(), "  (%d)", Vec_IntEntry(vAdds, 6*i+5) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void Ree_ManComputeCutsTest( Gia_Man_t * p )
@@ -587,7 +587,7 @@ void Ree_ManComputeCutsTest( Gia_Man_t * p )
     Vec_Int_t * vAdds = Ree_ManComputeCuts( p, NULL, 1 );
     int nFadds = Ree_ManCountFadds( vAdds );
     Ree_ManPrintAdders( vAdds, 1 );
-    printf( "Detected %d FAs and %d HAs.  ", nFadds, Vec_IntSize(vAdds)/6-nFadds );
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d FAs and %d HAs.  ", nFadds, Vec_IntSize(vAdds)/6-nFadds );
     Vec_IntFree( vAdds );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }

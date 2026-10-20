@@ -321,9 +321,9 @@ void Gia_ManCheckCex( Gia_Man_t * pAig, Abc_Cex_t * p, int iFrame )
     RetValue = Gia_ManPo(pAig, p->iPo)->fMark0;
     Gia_ManCleanMark0(pAig);
     if ( RetValue == 1 )
-        printf( "Shortened CEX holds for the abstraction of the fast-forwarded model.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Shortened CEX holds for the abstraction of the fast-forwarded model.\n" );
     else
-        printf( "Shortened CEX does not hold for the abstraction of the fast-forwarded model.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Shortened CEX does not hold for the abstraction of the fast-forwarded model.\n" );
 }
 
 /**Function*************************************************************
