@@ -100,7 +100,7 @@ Extra_FileReader_t * Extra_FileReaderAlloc( char * pFileName,
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Extra_FileReaderAlloc(): Cannot open input file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Extra_FileReaderAlloc(): Cannot open input file \"%s\".\n", pFileName );
         return NULL;
     }
     // The reader and its progress interface use signed integer offsets.
@@ -306,7 +306,7 @@ void * Extra_FileReaderGetTokens_int( Extra_FileReader_t * p )
                         if ( pChar == p->pBufferEnd )
                         {   // this failure is due to the fact the comment continued 
                             // through EXTRA_OFFSET_SIZE chars till the end of the buffer
-                            printf( "Extra_FileReader failed to parse the file \"%s\".\n", p->pFileName );
+                            fprintf( Abc_FrameGlobalGetOut(), "Extra_FileReader failed to parse the file \"%s\".\n", p->pFileName );
                             return NULL;
                         }
                     }
@@ -346,7 +346,7 @@ void * Extra_FileReaderGetTokens_int( Extra_FileReader_t * p )
         p->fStop = 1;
         return p->vTokens;
     }
-    printf( "Extra_FileReader failed to parse the file \"%s\".\n", p->pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Extra_FileReader failed to parse the file \"%s\".\n", p->pFileName );
 /*
     {
         int i;

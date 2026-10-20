@@ -38,27 +38,27 @@ pPLA PLA;
         jpart = cube.first_part[cube.output] + j;
 
         if (check_equiv(F[i], F[j])) {
-        (void) printf("# Outputs %d and %d (%s and %s) are equivalent\n",
-            i, j, PLA->label[ipart], PLA->label[jpart]);
+        (void) fprintf( Abc_FrameGlobalGetOut(), "# Outputs %d and %d (%s and %s) are equivalent\n",
+            i, j, PLA->label[ipart], PLA->label[jpart] );
         some_equiv = TRUE;
         } else if (check_equiv(F[i], R[j])) {
-        (void) printf("# Outputs %d and NOT %d (%s and %s) are equivalent\n",
-            i, j, PLA->label[ipart], PLA->label[jpart]);
+        (void) fprintf( Abc_FrameGlobalGetOut(), "# Outputs %d and NOT %d (%s and %s) are equivalent\n",
+            i, j, PLA->label[ipart], PLA->label[jpart] );
         some_equiv = TRUE;
         } else if (check_equiv(R[i], F[j])) {
-        (void) printf("# Outputs NOT %d and %d (%s and %s) are equivalent\n",
-            i, j, PLA->label[ipart], PLA->label[jpart]);
+        (void) fprintf( Abc_FrameGlobalGetOut(), "# Outputs NOT %d and %d (%s and %s) are equivalent\n",
+            i, j, PLA->label[ipart], PLA->label[jpart] );
         some_equiv = TRUE;
         } else if (check_equiv(R[i], R[j])) {
-        (void) printf("# Outputs NOT %d and NOT %d (%s and %s) are equivalent\n",
-            i, j, PLA->label[ipart], PLA->label[jpart]);
+        (void) fprintf( Abc_FrameGlobalGetOut(), "# Outputs NOT %d and NOT %d (%s and %s) are equivalent\n",
+            i, j, PLA->label[ipart], PLA->label[jpart] );
         some_equiv = TRUE;
         }
     }
     }
 
     if (! some_equiv) {
-    (void) printf("# No outputs are equivalent\n");
+    (void) fprintf( Abc_FrameGlobalGetOut(), "# No outputs are equivalent\n" );
     }
 
     for(i = 0; i < cube.part_size[cube.output]; i++) {

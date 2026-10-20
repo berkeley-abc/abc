@@ -222,24 +222,24 @@ void Nm_ManProfile( Nm_Man_t * p )
 {
     Nm_Entry_t * pEntry;
     int Counter, e;
-    printf( "I2N table: " );
+    fprintf( Abc_FrameGlobalGetOut(), "I2N table: " );
     for ( e = 0; e < p->nBins; e++ )
     {
         Counter = 0;
         for ( pEntry = p->pBinsI2N[e]; pEntry; pEntry = pEntry->pNextI2N )
             Counter++;
-        printf( "%d ", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Counter );
     }
-    printf( "\n" );
-    printf( "N2I table: " );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "N2I table: " );
     for ( e = 0; e < p->nBins; e++ )
     {
         Counter = 0;
         for ( pEntry = p->pBinsN2I[e]; pEntry; pEntry = pEntry->pNextN2I )
             Counter++;
-        printf( "%d ", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Counter );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************

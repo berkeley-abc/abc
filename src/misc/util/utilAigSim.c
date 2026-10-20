@@ -145,17 +145,17 @@ static int read_uleb128(FILE *f, unsigned *out) {
 }
 static AigMan* Aig_ManLoadAigerBinary(const char *filename, int verbose) {
     FILE *f = fopen(filename, "rb");
-    if (!f) { fprintf(stderr, "Error: cannot open '%s'\n", filename); return NULL; }
+    if (!f) { fprintf( Abc_FrameGlobalGetErr(), "Error: cannot open '%s'\n", filename); return NULL; }
     char hdr[256];
-    if (!read_line(f, hdr, sizeof(hdr))) { fprintf(stderr, "Error: cannot read header\n"); fclose(f); return NULL; }
+    if (!read_line(f, hdr, sizeof(hdr))) { fprintf( Abc_FrameGlobalGetErr(), "Error: cannot read header\n"); fclose(f); return NULL; }
     unsigned M=0,I=0,L=0,O=0,A=0;
-    if (!parse_header(hdr, &M,&I,&L,&O,&A)) { fprintf(stderr, "Error: bad header: %s\n", hdr); fclose(f); return NULL; }
-    if (verbose) printf("[aiger] %s : M=%u I=%u L=%u O=%u A=%u\n", filename, M,I,L,O,A);
-    if (L != 0) { fprintf(stderr, "Error: latches (L=%u) not supported.\n", L); fclose(f); return NULL; }
+    if (!parse_header(hdr, &M,&I,&L,&O,&A)) { fprintf( Abc_FrameGlobalGetErr(), "Error: bad header: %s\n", hdr); fclose(f); return NULL; }
+    if (verbose) fprintf(Abc_FrameGlobalGetOut(), "[aiger] %s : M=%u I=%u L=%u O=%u A=%u\n", filename, M,I,L,O,A);
+    if (L != 0) { fprintf( Abc_FrameGlobalGetErr(), "Error: latches (L=%u) not supported.\n", L); fclose(f); return NULL; }
 
     unsigned *outs = ABC_ALLOC(unsigned, O);
     for (unsigned i = 0; i < O; i++) if (!read_ascii_uint_line(f, &outs[i])) {
-        fprintf(stderr, "Error: cannot read output literal %u\n", i); ABC_FREE(outs); fclose(f); return NULL;
+        fprintf( Abc_FrameGlobalGetErr(), "Error: cannot read output literal %u\n", i); ABC_FREE(outs); fclose(f); return NULL;
     }
 
     AigMan *p = Aig_ManStartCompact((int)I, (int)A, (int)O);
@@ -165,7 +165,7 @@ static AigMan* Aig_ManLoadAigerBinary(const char *filename, int verbose) {
         unsigned lhs_lit = lhs_var << 1;
         unsigned d1=0, d2=0;
         if (!read_uleb128(f, &d1) || !read_uleb128(f, &d2)) {
-            fprintf(stderr, "Error: cannot decode AND gate %u\n", k);
+            fprintf( Abc_FrameGlobalGetErr(), "Error: cannot decode AND gate %u\n", k);
             ABC_FREE(outs); Aig_ManStop(p); fclose(f); return NULL;
         }
         unsigned rhs0 = lhs_lit - d1;
@@ -249,7 +249,7 @@ static void PrintMaskSegmentsOneLine(const char *maskStr,
         else         n += snprintf(buf + n, sizeof(buf) - (size_t)n, " %d-%d",  s, e);
     }
     n += snprintf(buf + n, sizeof(buf) - (size_t)n, "  vars=%d nCis=%d", nVars, nCis);
-    printf("%s\n", buf);
+    fprintf(Abc_FrameGlobalGetOut(), "%s\n", buf);
 }
 
 static int ParseMaskString(const char *maskStr, int nCis, uint64_t *varMasks, int *pnVars, int verbose) {
@@ -279,26 +279,26 @@ static int ParseMaskString(const char *maskStr, int nCis, uint64_t *varMasks, in
         if (*p == '(') { grouped = 1; p++; while (*p && isspace((unsigned char)*p)) p++; }
 
         if (!isdigit((unsigned char)*p)) {
-            fprintf(stderr, "Error: bad mask near '%s'\n", p);
+            fprintf( Abc_FrameGlobalGetErr(), "Error: bad mask near '%s'\n", p);
             return 0;
         }
 
         char *end = NULL;
         long w = strtol(p, &end, 10);
         if (w <= 0 || w > 64) {
-            fprintf(stderr, "Error: bad width %ld in mask\n", w);
+            fprintf( Abc_FrameGlobalGetErr(), "Error: bad width %ld in mask\n", w);
             return 0;
         }
         p = end;
 
         while (*p && isspace((unsigned char)*p)) p++;
         if (grouped) {
-            if (*p != ')') { fprintf(stderr, "Error: missing ')' in mask\n"); return 0; }
+            if (*p != ')') { fprintf( Abc_FrameGlobalGetErr(), "Error: missing ')' in mask\n"); return 0; }
             p++;
         }
 
         if (off + (int)w > nCis) {
-            fprintf(stderr, "Error: mask widths exceed nCis (%d)\n", nCis);
+            fprintf( Abc_FrameGlobalGetErr(), "Error: mask widths exceed nCis (%d)\n", nCis);
             return 0;
         }
 
@@ -309,11 +309,11 @@ static int ParseMaskString(const char *maskStr, int nCis, uint64_t *varMasks, in
 
         if (grouped) {
             uint64_t m = ((w == 64) ? ~0ull : (((1ull << (unsigned)w) - 1ull) << (unsigned)off));
-            if (nVars >= 64) { fprintf(stderr, "Error: too many vars in mask\n"); return 0; }
+            if (nVars >= 64) { fprintf( Abc_FrameGlobalGetErr(), "Error: too many vars in mask\n"); return 0; }
             varMasks[nVars++] = m;
         } else {
             for (int t = 0; t < (int)w; ++t) {
-                if (nVars >= 64) { fprintf(stderr, "Error: too many vars in mask\n"); return 0; }
+                if (nVars >= 64) { fprintf( Abc_FrameGlobalGetErr(), "Error: too many vars in mask\n"); return 0; }
                 varMasks[nVars++] = 1ull << (unsigned)(off + t);
             }
         }
@@ -321,7 +321,7 @@ static int ParseMaskString(const char *maskStr, int nCis, uint64_t *varMasks, in
     }
 
     if (off != nCis) {
-        fprintf(stderr, "Error: mask widths sum to %d but nCis=%d\n", off, nCis);
+        fprintf( Abc_FrameGlobalGetErr(), "Error: mask widths sum to %d but nCis=%d\n", off, nCis);
         return 0;
     }
 
@@ -396,12 +396,12 @@ static int SimulateCompareAigAig(const AigMan *p1, const AigMan *p2,
                                  const uint64_t *varMasks, int nVars, int verbose)
 {
     if (p1->nCis != p2->nCis || p1->nCos != p2->nCos) {
-        fprintf(stderr, "Error: interface mismatch: (I,O)=(%d,%d) vs (%d,%d)\n",
+        fprintf( Abc_FrameGlobalGetErr(), "Error: interface mismatch: (I,O)=(%d,%d) vs (%d,%d)\n",
                 p1->nCis, p1->nCos, p2->nCis, p2->nCos);
         return 0;
     }
     if (p1->nCis > 64 || p1->nCos > 64) {
-        fprintf(stderr, "Error: supports nCis<=64 and nCos<=64 (got I=%d O=%d)\n", p1->nCis, p1->nCos);
+        fprintf( Abc_FrameGlobalGetErr(), "Error: supports nCis<=64 and nCos<=64 (got I=%d O=%d)\n", p1->nCis, p1->nCos);
         return 0;
     }
 
@@ -410,7 +410,7 @@ static int SimulateCompareAigAig(const AigMan *p1, const AigMan *p2,
 #ifndef HAVE_INT_128
     // No support for __int128, limit to 32 variables
     if (nVars > 32) {
-        fprintf(stderr, "Error: This architecture build supports nVars<=32 (got nVars=%d)\n", nVars);
+        fprintf( Abc_FrameGlobalGetErr(), "Error: This architecture build supports nVars<=32 (got nVars=%d)\n", nVars);
         return 0;
     }
     const uint64_t combs = ((uint64_t)1) << (unsigned)nVars;
@@ -505,10 +505,10 @@ static int SimulateCompareAigAig(const AigMan *p1, const AigMan *p2,
                 int outHex = (p1->nCos + 3) / 4;
                 char gbuf[64]; u128_to_dec(patsDone + (unsigned)ptn, gbuf, sizeof(gbuf));
 
-                printf("FAIL pattern=%s out_bit=%d\n", gbuf, o);
-                printf("  in  = 0x%0*llx\n", inHex,  (unsigned long long)(inVec[ptn] & inMask));
-                printf("  y1  = 0x%0*llx\n", outHex, (unsigned long long)(out1 & outMask));
-                printf("  y2  = 0x%0*llx\n", outHex, (unsigned long long)(out2 & outMask));
+                fprintf(Abc_FrameGlobalGetOut(), "FAIL pattern=%s out_bit=%d\n", gbuf, o);
+                fprintf(Abc_FrameGlobalGetOut(), "  in  = 0x%0*llx\n", inHex,  (unsigned long long)(inVec[ptn] & inMask));
+                fprintf(Abc_FrameGlobalGetOut(), "  y1  = 0x%0*llx\n", outHex, (unsigned long long)(out1 & outMask));
+                fprintf(Abc_FrameGlobalGetOut(), "  y2  = 0x%0*llx\n", outHex, (unsigned long long)(out2 & outMask));
 
                 ABC_FREE(S1); ABC_FREE(S2); ABC_FREE(co1); ABC_FREE(co2);
                 return 0;
@@ -519,7 +519,7 @@ static int SimulateCompareAigAig(const AigMan *p1, const AigMan *p2,
         patsDone += (unsigned)nThis;
         if (verbose && (rounds % 256ull) == 0ull) {
             char buf[64]; u128_to_dec(patsDone, buf, sizeof(buf));
-            printf("[sim] rounds=%llu patterns=%s\n", rounds, buf);
+            fprintf(Abc_FrameGlobalGetOut(), "[sim] rounds=%llu patterns=%s\n", rounds, buf);
         }
     }
 
@@ -527,7 +527,7 @@ static int SimulateCompareAigAig(const AigMan *p1, const AigMan *p2,
     double sec = (double)(t1 - t0) / (double)CLOCKS_PER_SEC;
 
     char totBuf[64]; u128_to_dec(combs, totBuf, sizeof(totBuf));
-    printf("OK patterns=%s rounds=%llu time=%.3fs\n", totBuf, rounds, sec);
+    fprintf(Abc_FrameGlobalGetOut(), "OK patterns=%s rounds=%llu time=%.3fs\n", totBuf, rounds, sec);
 
     ABC_FREE(S1); ABC_FREE(S2); ABC_FREE(co1); ABC_FREE(co2);
     return 1;
@@ -539,7 +539,7 @@ static int SimulateCompareAigBin(const AigMan *p1, const char *bin,
                                  const uint64_t *varMasks, int nVars, int verbose)
 {
     if (p1->nCis > 64 || p1->nCos > 64) {
-        fprintf(stderr, "Error: supports nCis<=64 and nCos<=64 (got I=%d O=%d)\n", p1->nCis, p1->nCos);
+        fprintf( Abc_FrameGlobalGetErr(), "Error: supports nCis<=64 and nCos<=64 (got I=%d O=%d)\n", p1->nCis, p1->nCos);
         return 0;
     }
 
@@ -548,7 +548,7 @@ static int SimulateCompareAigBin(const AigMan *p1, const char *bin,
 #ifndef HAVE_INT_128
     // No support for __int128, limit to 32 variables
     if (nVars > 32) {
-        fprintf(stderr, "Error: This architecture build supports nVars<=32 (got nVars=%d)\n", nVars);
+        fprintf( Abc_FrameGlobalGetErr(), "Error: This architecture build supports nVars<=32 (got nVars=%d)\n", nVars);
         return 0;
     }
     const uint64_t combs = ((uint64_t)1) << (unsigned)nVars;
@@ -568,7 +568,7 @@ static int SimulateCompareAigBin(const AigMan *p1, const char *bin,
     char inFile[128], outFile[128], cmd[512];
     if (!make_tmp_file(inFile, sizeof(inFile), "aigsim_in_") ||
         !make_tmp_path_noexist(outFile, sizeof(outFile), "aigsim_out_")) {
-        fprintf(stderr, "Error: cannot create temp files\n");
+        fprintf( Abc_FrameGlobalGetErr(), "Error: cannot create temp files\n");
         ABC_FREE(S1); ABC_FREE(co1); ABC_FREE(out2);
         return 0;
     }
@@ -629,7 +629,7 @@ static int SimulateCompareAigBin(const AigMan *p1, const char *bin,
 
         // Write input sim-info file: nCis * NW words, CI major, word minor
         if (!write_words(inFile, &S1[1 * NW], (size_t)p1->nCis * NW)) {
-            fprintf(stderr, "Error: cannot write %s\n", inFile);
+            fprintf( Abc_FrameGlobalGetErr(), "Error: cannot write %s\n", inFile);
             goto fail;
         }
 
@@ -642,13 +642,13 @@ static int SimulateCompareAigBin(const AigMan *p1, const char *bin,
         int rc = system(cmd);
 #endif
         if (rc != 0) {
-            fprintf(stderr, "Error: system() failed (rc=%d): %s\n", rc, cmd);
+            fprintf( Abc_FrameGlobalGetErr(), "Error: system() failed (rc=%d): %s\n", rc, cmd);
             goto fail;
         }
 
         // Read output sim-info file: nCos * NW words
         if (!read_words(outFile, out2, (size_t)p1->nCos * NW)) {
-            fprintf(stderr, "Error: cannot read %s (expected %d*%d words)\n", outFile, p1->nCos, NW);
+            fprintf( Abc_FrameGlobalGetErr(), "Error: cannot read %s (expected %d*%d words)\n", outFile, p1->nCos, NW);
             goto fail;
         }
 
@@ -673,10 +673,10 @@ static int SimulateCompareAigBin(const AigMan *p1, const char *bin,
                 int outHex = (p1->nCos + 3) / 4;
                 char gbuf[64]; u128_to_dec(patsDone + (unsigned)ptn, gbuf, sizeof(gbuf));
 
-                printf("FAIL pattern=%s out_bit=%d\n", gbuf, o);
-                printf("  in   = 0x%0*llx\n", inHex,  (unsigned long long)(inVec[ptn] & inMask));
-                printf("  aig  = 0x%0*llx\n", outHex, (unsigned long long)(out1 & outMask));
-                printf("  bin  = 0x%0*llx\n", outHex, (unsigned long long)(outB & outMask));
+                fprintf(Abc_FrameGlobalGetOut(), "FAIL pattern=%s out_bit=%d\n", gbuf, o);
+                fprintf(Abc_FrameGlobalGetOut(), "  in   = 0x%0*llx\n", inHex,  (unsigned long long)(inVec[ptn] & inMask));
+                fprintf(Abc_FrameGlobalGetOut(), "  aig  = 0x%0*llx\n", outHex, (unsigned long long)(out1 & outMask));
+                fprintf(Abc_FrameGlobalGetOut(), "  bin  = 0x%0*llx\n", outHex, (unsigned long long)(outB & outMask));
                 goto fail;
             }
         }
@@ -685,7 +685,7 @@ static int SimulateCompareAigBin(const AigMan *p1, const char *bin,
         patsDone += (unsigned)nThis;
         if (verbose && (rounds % 256ull) == 0ull) {
             char buf[64]; u128_to_dec(patsDone, buf, sizeof(buf));
-            printf("[sim] rounds=%llu patterns=%s\n", rounds, buf);
+            fprintf(Abc_FrameGlobalGetOut(), "[sim] rounds=%llu patterns=%s\n", rounds, buf);
         }
     }
 
@@ -693,7 +693,7 @@ static int SimulateCompareAigBin(const AigMan *p1, const char *bin,
         clock_t t1 = clock();
         double sec = (double)(t1 - t0) / (double)CLOCKS_PER_SEC;
         char totBuf[64]; u128_to_dec(combs, totBuf, sizeof(totBuf));
-        printf("OK patterns=%s rounds=%llu time=%.3fs\n", totBuf, rounds, sec);
+        fprintf(Abc_FrameGlobalGetOut(), "OK patterns=%s rounds=%llu time=%.3fs\n", totBuf, rounds, sec);
     }
 
     remove(inFile);
@@ -754,7 +754,7 @@ int main(int argc, char **argv) {
     int ai = 1;
     if (ai < argc && !strcmp(argv[ai], "-v")) { verbose = 1; ai++; }
     if (ai + 1 >= argc) {
-        fprintf(stderr, "Usage: %s [-v] file1.aig file2.aig_or_binary [mask_str]\n", argv[0]);
+        fprintf( Abc_FrameGlobalGetErr(), "Usage: %s [-v] file1.aig file2.aig_or_binary [mask_str]\n", argv[0]);
         return 1;
     }
     f1 = argv[ai++];

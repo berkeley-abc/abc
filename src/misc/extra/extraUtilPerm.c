@@ -151,7 +151,7 @@ static inline int Abc_ZddUniqueCreate( Abc_ZddMan * p, int Var, int True, int Fa
             if ( p->pObjs[*q].Var == (unsigned)Var && p->pObjs[*q].True == (unsigned)True && p->pObjs[*q].False == (unsigned)False )
                 return *q;
         if ( p->nObjs == p->nObjsAlloc )
-            printf( "Aborting because the number of nodes exceeded %d.\n", p->nObjsAlloc ), fflush(stdout);
+            fprintf( Abc_FrameGlobalGetOut(), "Aborting because the number of nodes exceeded %d.\n", p->nObjsAlloc ), fflush( Abc_FrameGlobalGetOut() );
         assert( p->nObjs < p->nObjsAlloc );     
         *q = p->nObjs++;
         p->pObjs[*q].Var = Var;
@@ -226,9 +226,9 @@ void Abc_ZddManCreatePerms( Abc_ZddMan * p, int nPermSize )
 }
 void Abc_ZddManFree( Abc_ZddMan * p )
 {
-    printf( "ZDD stats: Var = %d  Obj = %d  Alloc = %d  Hit = %d  Miss = %d  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "ZDD stats: Var = %d  Obj = %d  Alloc = %d  Hit = %d  Miss = %d  ", 
         p->nVars, p->nObjs, p->nObjsAlloc, p->nCacheLookups-p->nCacheMisses, p->nCacheMisses );
-    printf( "Mem = %.2f MB\n", 4.0*(int)(p->nMemory/(1<<20)) );
+    fprintf( Abc_FrameGlobalGetOut(), "Mem = %.2f MB\n", 4.0*(int)(p->nMemory/(1<<20)) );
     ABC_FREE( p->pT2V );
     ABC_FREE( p->pV2TI );
     ABC_FREE( p->pV2TJ );
@@ -619,19 +619,19 @@ int Abc_ZddPermProduct( Abc_ZddMan * p, int a, int b )
 void Abc_ZddPermPrint( int * pPerm, int Size )
 {
     int i;
-    printf( "{" );
+    fprintf( Abc_FrameGlobalGetOut(), "{" );
     for ( i = 0; i < Size; i++ )
-        printf( " %2d", pPerm[i] );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %2d", pPerm[i] );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 void Abc_ZddCombPrint( int * pComb, int nTrans )
 {
     int i;
     if ( nTrans == 0 )
-        printf( "Empty set" );
+        fprintf( Abc_FrameGlobalGetOut(), "Empty set" );
     for ( i = 0; i < nTrans; i++ )
-        printf( "(%d %d)", pComb[i] >> 16, pComb[i] & 0xffff );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "(%d %d)", pComb[i] >> 16, pComb[i] & 0xffff );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 int Abc_ZddPerm2Comb( int * pPerm, int Size, int * pComb )
 {
@@ -722,10 +722,10 @@ void Abc_ZddPrintTest( Abc_ZddMan * p )
         Set = Abc_ZddBuildSet( p, pSets[i], Size );
         Union = Abc_ZddUnion( p, Union, Set );
     }
-    printf( "Resulting set:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Resulting set:\n" );
     Abc_ZddPrint( p, Union );
-    printf( "\n" );
-    printf( "Nodes = %d.   Path = %d.\n", Abc_ZddCountNodes(p, Union), Abc_ZddCountPaths(p, Union) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes = %d.   Path = %d.\n", Abc_ZddCountNodes(p, Union), Abc_ZddCountPaths(p, Union) );
     Size = 0;
 }
 
@@ -764,7 +764,7 @@ void Abc_ZddGiaTest( Gia_Man_t * pGia )
     }
     Gia_ManForEachAnd( pGia, pObj, i )
         Paths += Abc_ZddCountPaths(p, pObj->Value);
-    printf( "Paths = %d.  Shared nodes = %d.\n", Paths, Abc_ZddCountNodesArray(p, vNodes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Paths = %d.  Shared nodes = %d.\n", Paths, Abc_ZddCountNodesArray(p, vNodes) );
     Vec_IntFree( vNodes );
     Abc_ZddManFree( p );
 }
@@ -797,7 +797,7 @@ void Abc_ZddPermTestInt( Abc_ZddMan * p )
         Abc_ZddPermPrint( pPerms[i], Size );
     for ( i = 0; i < nPerms; i++ )
     {
-        printf( "Perm %d:\n", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Perm %d:\n", i );
         Abc_ZddPermPrint( pPerms[i], Size );
         nTrans = Abc_ZddPerm2Comb( pPerms[i], Size, pComb );
         Abc_ZddCombPrint( pComb, nTrans );
@@ -808,17 +808,17 @@ void Abc_ZddPermTestInt( Abc_ZddMan * p )
         Set = Abc_ZddBuildSet( p, pComb, nTrans );
         Union = Abc_ZddUnion( p, Union, Set );
     }
-    printf( "\nResulting set of permutations:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\nResulting set of permutations:\n" );
     Abc_ZddPrint( p, Union );
-    printf( "Nodes = %d.   Path = %d.\n", Abc_ZddCountNodes(p, Union), Abc_ZddCountPaths(p, Union) );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes = %d.   Path = %d.\n", Abc_ZddCountNodes(p, Union), Abc_ZddCountPaths(p, Union) );
 
     iPivot = Abc_ZddVarIJ( p, 3, 4 );
     Union = Abc_ZddPerm( p, Union, iPivot );
 
-    printf( "\nResulting set of permutations:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\nResulting set of permutations:\n" );
     Abc_ZddPrint( p, Union );
-    printf( "Nodes = %d.   Path = %d.\n", Abc_ZddCountNodes(p, Union), Abc_ZddCountPaths(p, Union) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes = %d.   Path = %d.\n", Abc_ZddCountNodes(p, Union), Abc_ZddCountPaths(p, Union) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 void Abc_ZddPermTest()
@@ -857,11 +857,11 @@ void Abc_EnumerateCubeStatesZdd()
     int i, k, pComb[9], pPerm[24], nSize;
     int ZddTurn1, ZddTurn2, ZddTurn3, ZddTurns, ZddAll;
     abctime clk = Abc_Clock();
-    printf( "Enumerating states of 2x2x2 cube.\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Enumerating states of 2x2x2 cube.\n" );
     p = Abc_ZddManAlloc( 24 * 23 / 2, 1 << LogObj ); // finished with 2^27 (4 GB)
     Abc_ZddManCreatePerms( p, 24 );
     // init state
-    printf( "Iter %2d -> %8d  Nodes = %7d  Used = %10d  ", 0, 1, 0, 2 );
+    fprintf( Abc_FrameGlobalGetOut(), "Iter %2d -> %8d  Nodes = %7d  Used = %10d  ", 0, 1, 0, 2 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // first 9 states
     ZddTurns = 1;
@@ -890,7 +890,7 @@ void Abc_EnumerateCubeStatesZdd()
         //printf( "\n" );
     }
     //Abc_ZddPrint( p, ZddTurns );
-    printf( "Iter %2d -> %8d  Nodes = %7d  Used = %10d  ", 1, Abc_ZddCountPaths(p, ZddTurns), Abc_ZddCountNodes(p, ZddTurns), p->nObjs );
+    fprintf( Abc_FrameGlobalGetOut(), "Iter %2d -> %8d  Nodes = %7d  Used = %10d  ", 1, Abc_ZddCountPaths(p, ZddTurns), Abc_ZddCountNodes(p, ZddTurns), p->nObjs );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // other states
     ZddAll = ZddTurns;
@@ -898,7 +898,7 @@ void Abc_EnumerateCubeStatesZdd()
     {
         int ZddAllPrev = ZddAll;
         ZddAll = Abc_ZddPermProduct( p, ZddAll, ZddTurns );
-        printf( "Iter %2d -> %8d  Nodes = %7d  Used = %10d  ", i, Abc_ZddCountPaths(p, ZddAll), Abc_ZddCountNodes(p, ZddAll), p->nObjs );
+        fprintf( Abc_FrameGlobalGetOut(), "Iter %2d -> %8d  Nodes = %7d  Used = %10d  ", i, Abc_ZddCountPaths(p, ZddAll), Abc_ZddCountNodes(p, ZddAll), p->nObjs );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         if ( ZddAllPrev == ZddAll )
             break;

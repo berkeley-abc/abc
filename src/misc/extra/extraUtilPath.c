@@ -209,10 +209,10 @@ void Abc_GraphPathPrint4( int * pBuffer, Vec_Int_t * vEdges )
         }
         else assert( 0 );
     }
-    for ( y = 0; y < 13; y++, printf("\n") )
+    for ( y = 0; y < 13; y++, fprintf( Abc_FrameGlobalGetOut(), "\n" ) )
     for ( x = 0; x < 13; x++ )
-        printf( "%c", Box[y][x] );
-    printf( "\n\n=================================\n\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", Box[y][x] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n\n=================================\n\n" );
 }
 void Abc_GraphPathPrint5( int * pBuffer, Vec_Int_t * vEdges )
 {
@@ -246,10 +246,10 @@ void Abc_GraphPathPrint5( int * pBuffer, Vec_Int_t * vEdges )
         }
         else assert( 0 );
     }
-    for ( y = 0; y < 17; y++, printf("\n") )
+    for ( y = 0; y < 17; y++, fprintf( Abc_FrameGlobalGetOut(), "\n" ) )
     for ( x = 0; x < 17; x++ )
-        printf( "%c", Box[y][x] );
-    printf( "\n\n=================================\n\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", Box[y][x] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n\n=================================\n\n" );
 }
 
 /**Function*************************************************************
@@ -355,7 +355,7 @@ void Abc_GraphDeriveGiaDump( Vec_Wec_t * vNodes, Vec_Int_t * vEdges, int Size )
     sprintf( pFileName, "grid_%dx%d_e%03d.aig", Size, Size, Vec_IntSize(vEdges)/2 );
     Gia_AigerWrite( pGia, pFileName, 0, 0, 0 );
     Gia_ManStop( pGia );
-    printf( "Finished dumping AIG into file \"%s\".\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping AIG into file \"%s\".\n", pFileName );
 }
 
 /**Function*************************************************************
@@ -377,13 +377,13 @@ int Abc_GraphBuildState( Vec_Int_t * vState, int e, int x, Vec_Int_t * vEdges, V
     int nNodes = Vec_IntSize(vLife)/2;
     int i, n, Node, First, pEquivs[2];
     assert( pNodes[0] < pNodes[1] );
-    if ( fVerbose ) printf( "Edge = %d. Arc = %d.\nCurrent state: ", e, x );
+    if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Edge = %d. Arc = %d.\nCurrent state: ", e, x );
     Vec_IntForEachEntry( vFront, Node, i )
     {
         pFront[Node] = Vec_IntEntry(vState, i);
-        if ( fVerbose ) printf( "%d(%d) ", pFront[Node] & 0xFFFF, pFront[Node] >> 16 );
+        if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "%d(%d) ", pFront[Node] & 0xFFFF, pFront[Node] >> 16 );
     }
-    if ( fVerbose ) printf( "\n" );
+    if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( n = 0; n < 2; n++ )
         if ( Vec_IntEntry(vLife, 2*pNodes[n]) == e ) // first time
             pFront[pNodes[n]] = pNodes[n]; // degree = 0; comp = singleton
@@ -438,13 +438,13 @@ int Abc_GraphBuildState( Vec_Int_t * vState, int e, int x, Vec_Int_t * vEdges, V
     }
     // create next state
     Vec_IntClear( vStateNew );
-    if ( fVerbose ) printf( "Next state: " );
+    if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Next state: " );
     Vec_IntForEachEntry( vFront2, Node, i )
     {
         Vec_IntPush( vStateNew, pFront[Node] );
-        if ( fVerbose ) printf( "%d(%d) ", pFront[Node] & 0xFFFF, pFront[Node] >> 16 );
+        if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "%d(%d) ", pFront[Node] & 0xFFFF, pFront[Node] >> 16 );
     }
-    if ( fVerbose ) printf( "\n\n" );
+    if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "\n\n" );
     return 1;
 }
 void Abc_GraphBuildFrontier( int nSize, Vec_Int_t * vEdges, Vec_Int_t * vLife, Vec_Wec_t * vFronts, int fVerbose )
@@ -467,10 +467,10 @@ void Abc_GraphBuildFrontier( int nSize, Vec_Int_t * vEdges, Vec_Int_t * vLife, V
         Vec_IntPush( vStateCount, nStates );
         if ( fVerbose )
         {
-            printf( "\n" );
-            printf( "Processing edge %d = {%d %d}\n", e, Vec_IntEntry(vEdges, 2*e), Vec_IntEntry(vEdges, 2*e+1) );
-            printf( "Frontier: " );  Vec_IntPrint( Vec_WecEntry(vFronts, e) );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Processing edge %d = {%d %d}\n", e, Vec_IntEntry(vEdges, 2*e), Vec_IntEntry(vEdges, 2*e+1) );
+            fprintf( Abc_FrameGlobalGetOut(), "Frontier: " );  Vec_IntPrint( Vec_WecEntry(vFronts, e) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         for ( s = 0; s < nStates; s++ )
         {
@@ -485,7 +485,7 @@ void Abc_GraphBuildFrontier( int nSize, Vec_Int_t * vEdges, Vec_Int_t * vLife, V
                     else
                         Next = Hsh_VecManAdd( pNext, vStateNew );
                 }
-                if ( fVerbose ) printf( "Return value = %d\n", Next );
+                if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Return value = %d\n", Next );
                 Vec_IntPush( vNode, Next );
             }
         }
@@ -494,7 +494,7 @@ void Abc_GraphBuildFrontier( int nSize, Vec_Int_t * vEdges, Vec_Int_t * vLife, V
         pNext = Hsh_VecManStart( 1000 );
     }
     nPaths = Abc_GraphCountPaths(vNodes, vEdges);
-    printf( "States = %8d   Paths = %24.0f  ", Vec_IntSum(vStateCount), nPaths ); 
+    fprintf( Abc_FrameGlobalGetOut(), "States = %8d   Paths = %24.0f  ", Vec_IntSum(vStateCount), nPaths ); 
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( fVerbose )
         Vec_IntPrint( vStateCount );
@@ -590,8 +590,8 @@ void Abc_GraphSolve( Gia_Man_t * pGia )
     }
     //Mint1 = 0;
     Total = (Mint2-Mint1)/nIters;
-    printf( "Vars = %d   Iters = %d   Ave = %.0f   Total = %.0f  ", nVars, nIters, Abc_Word2Double(Mint2-Mint1), Abc_Word2Double(Total) );
-    printf( "Estimate = %.0f\n", (pow(2,nVars)-Abc_Word2Double(Mint1))/Abc_Word2Double((Mint2-Mint1)/nIters) );
+    fprintf( Abc_FrameGlobalGetOut(), "Vars = %d   Iters = %d   Ave = %.0f   Total = %.0f  ", nVars, nIters, Abc_Word2Double(Mint2-Mint1), Abc_Word2Double(Total) );
+    fprintf( Abc_FrameGlobalGetOut(), "Estimate = %.0f\n", (pow(2,nVars)-Abc_Word2Double(Mint1))/Abc_Word2Double((Mint2-Mint1)/nIters) );
 
     sat_solver_delete( pSat );
     Cnf_DataFree( pCnf );

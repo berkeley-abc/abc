@@ -232,15 +232,15 @@ int strategy;
     cost_array = find_pairing_cost(PLA, strategy);
 
     if (summary) {
-    printf("    ");
+    fprintf( Abc_FrameGlobalGetOut(), "    " );
     for(i = 0; i < cube.num_binary_vars; i++)
-        printf("%3d ", i+1);
-    printf("\n");
+        fprintf( Abc_FrameGlobalGetOut(), "%3d ", i+1 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for(i = 0; i < cube.num_binary_vars; i++) {
-        printf("%3d ", i+1);
+        fprintf( Abc_FrameGlobalGetOut(), "%3d ", i+1 );
         for(j = 0; j < cube.num_binary_vars; j++)
-        printf("%3d ", cost_array[i][j]);
-        printf("\n");
+        fprintf( Abc_FrameGlobalGetOut(), "%3d ", cost_array[i][j] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     }
 
@@ -249,7 +249,7 @@ int strategy;
     } else {
     (void) greedy_best_cost(cost_array, &(PLA->pair));
     }
-    printf("# ");
+    fprintf( Abc_FrameGlobalGetOut(), "# " );
     print_pair(PLA->pair);
     
     for(i = 0; i < cube.num_binary_vars; i++)
@@ -377,10 +377,10 @@ ppair pair;
 {
     int i;
 
-    printf("pair is");
+    fprintf( Abc_FrameGlobalGetOut(), "pair is" );
     for(i = 0; i < pair->cnt; i++)
-    printf (" (%d %d)", pair->var1[i], pair->var2[i]);
-    printf("\n");
+    fprintf ( Abc_FrameGlobalGetOut(), " (%d %d)", pair->var1[i], pair->var2[i]);
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 
@@ -458,7 +458,7 @@ register ppair pair;
     best_pair = pair_save(pair, pair->cnt);
     }
     if ((debug & MINCOV) && trace) {
-    printf("cost is %d ", cost);
+    fprintf( Abc_FrameGlobalGetOut(), "cost is %d ", cost );
     print_pair(pair);
     }
 }
@@ -500,7 +500,7 @@ int pair_strategy;
     (void) set_phase(PLA->phase);
 */
     set_pair(PLA);
-    printf("# ");
+    fprintf( Abc_FrameGlobalGetOut(), "# " );
     print_pair(PLA->pair);
 
     sf_free(PLA->F);
@@ -544,7 +544,7 @@ ppair pair;
     case 2:
         EXEC_S(phase_assignment(global_PLA,0), "OPO       ", global_PLA->F);
         if (summary)
-        printf("# phase is %s\n", pc1(global_PLA->phase));
+        fprintf( Abc_FrameGlobalGetOut(), "# phase is %s\n", pc1(global_PLA->phase) );
         break;
     case 1:
         EXEC_S(global_PLA->F = minimize_exact(global_PLA->F, global_PLA->D,

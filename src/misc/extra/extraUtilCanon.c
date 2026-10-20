@@ -596,20 +596,20 @@ void Map_Var3Print()
     for ( i = 0; i < 256; i++ )
     {
         if ( i % 8 == 0 )
-            printf( "\n" );
-        Extra_PrintHex( stdout, uCanons + i, 5 ); 
-        printf( ", " );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        Extra_PrintHex( Abc_FrameGlobalGetOut(), uCanons + i, 5 ); 
+        fprintf( Abc_FrameGlobalGetOut(), ", " );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     for ( i = 0; i < 256; i++ )
     {
-        printf( "%3d */  { %2d,   ", i, pCounters[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d */  { %2d,   ", i, pCounters[i] );
         for ( k = 0; k < pCounters[i]; k++ )            
-            printf( "%s%d", k? ", ":"", uPhases[i][k] );
-        printf( " }\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%s%d", k? ", ":"", uPhases[i][k] );
+        fprintf( Abc_FrameGlobalGetOut(), " }\n" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************

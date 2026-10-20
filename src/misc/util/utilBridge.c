@@ -148,7 +148,7 @@ void Gia_CreateHeader( FILE * pFile, int Type, int Size, unsigned char * pBuffer
     while (bytes_written < Size){
         ssize_t n = write(fd, &pBuffer[bytes_written], Size - bytes_written);
         if (n < 0){
-            fprintf(stderr, "BridgeMode: failed to send package; aborting\n"); fflush(stderr);
+            fprintf( Abc_FrameGlobalGetErr(), "BridgeMode: failed to send package; aborting\n"); fflush( Abc_FrameGlobalGetErr() );
             _exit(255);
         }
         bytes_written += n;
@@ -438,7 +438,7 @@ int Gia_ManFromBridgeReadPackage( FILE * pFile, int * pType, int * pSize, unsign
     RetValue = fread( Temp, 24, 1, pFile );
     if ( RetValue != 1 )
     {
-        printf( "Gia_ManFromBridgeReadPackage();  Error 1: Something is wrong!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Gia_ManFromBridgeReadPackage();  Error 1: Something is wrong!\n" );
         return 0;
     }
     Temp[6] = 0;
@@ -452,7 +452,7 @@ int Gia_ManFromBridgeReadPackage( FILE * pFile, int * pType, int * pSize, unsign
     if ( RetValue != 1 && *pSize != 0 )
     {
         ABC_FREE( *ppBuffer );
-        printf( "Gia_ManFromBridgeReadPackage();  Error 2: Something is wrong!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Gia_ManFromBridgeReadPackage();  Error 2: Something is wrong!\n" );
         return 0;
     }
     return 1;
@@ -520,7 +520,7 @@ void Gia_ManToBridgeAbsNetlistTest( char * pFileName, Gia_Man_t * p, int msg_typ
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
     Gia_ManToBridgeAbsNetlist( pFile, p, msg_type );
@@ -544,7 +544,7 @@ void Gia_ManFromBridgeTest( char * pFileName )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open input file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\".\n", pFileName );
         return;
     }
 

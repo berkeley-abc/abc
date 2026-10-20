@@ -135,7 +135,7 @@ void Abc_NamPrint( Abc_Nam_t * p, char * pFileName )
 {
     FILE * pFile = pFileName ? fopen( pFileName, "wb" ) : stdout;
     int h, i;
-    if ( pFile == NULL ) { printf( "Count node open file %s\n", pFileName ); return; }
+    if ( pFile == NULL ) { fprintf( Abc_FrameGlobalGetOut(), "Count node open file %s\n", pFileName ); return; }
     Vec_IntForEachEntryStart( &p->vInt2Handle, h, i, 1 )
         fprintf( pFile, "%8d = %s\n", i, Abc_NamHandleToStr(p, h) );
     if ( pFile != stdout )
@@ -156,7 +156,7 @@ void Abc_NamPrint( Abc_Nam_t * p, char * pFileName )
 void Abc_NamSave( Abc_Nam_t * p, char * pFileName )
 {
     FILE * pFile = fopen( pFileName, "wb" ); int h, i;
-    if ( pFile == NULL ) { printf( "Count node open input file %s\n", pFileName ); return; }
+    if ( pFile == NULL ) { fprintf( Abc_FrameGlobalGetOut(), "Count node open input file %s\n", pFileName ); return; }
     Vec_IntForEachEntryStart( &p->vInt2Handle, h, i, 1 )
         fprintf( pFile, "%s\n", Abc_NamHandleToStr(p, h) );
     fclose(pFile);
@@ -167,7 +167,7 @@ Abc_Nam_t * Abc_NamLoad( char * pFileName )
     int fFound, NameId = -1, nLineSize = 1 << 20;
     char * pBuffer = ABC_ALLOC( char, nLineSize+1 );
     FILE * pFile = fopen( pFileName, "rb" );
-    if ( pFile == NULL ) { printf( "Count node open output file %s\n", pFileName ); return NULL; }
+    if ( pFile == NULL ) { fprintf( Abc_FrameGlobalGetOut(), "Count node open output file %s\n", pFileName ); return NULL; }
     p = Abc_NamStart( 1000, 20 );
     while ( fgets( pBuffer, nLineSize, pFile ) != NULL )
     {

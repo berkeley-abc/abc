@@ -198,7 +198,7 @@ float Tim_ManGetCiArrival( Tim_Man_t * p, int iCi )
     if ( p->fUseTravId )
     Tim_ManBoxForEachInput( p, pBox, pObj, i )
         if ( pObj->TravId != p->nTravIds )
-            printf( "Tim_ManGetCiArrival(): Input arrival times of the box are not up to date!\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Tim_ManGetCiArrival(): Input arrival times of the box are not up to date!\n" );
     // compute the arrival times for each output of the box (PIs)
     pTable = Tim_ManBoxDelayTable( p, pBox->iBox );
     Tim_ManBoxForEachOutput( p, pBox, pObjRes, i )
@@ -246,7 +246,7 @@ float Tim_ManGetCoRequired( Tim_Man_t * p, int iCo )
     if ( p->fUseTravId )
     Tim_ManBoxForEachOutput( p, pBox, pObj, i )
         if ( pObj->TravId != p->nTravIds )
-            printf( "Tim_ManGetCoRequired(): Output required times of output %d the box %d are not up to date!\n", i, pBox->iBox );
+            fprintf( Abc_FrameGlobalGetOut(), "Tim_ManGetCoRequired(): Output required times of output %d the box %d are not up to date!\n", i, pBox->iBox );
     // compute the required times for each input of the box (POs)
     pTable = Tim_ManBoxDelayTable( p, pBox->iBox );
     Tim_ManBoxForEachInput( p, pBox, pObjRes, i )

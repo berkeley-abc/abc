@@ -1658,11 +1658,11 @@ static inline unsigned Vec_IntUniqueHashKeyDebug( unsigned char * pStr, int nCha
     for ( c = 0; c < nChars; c++ )
     {
         Key += (unsigned)pStr[c] * s_BigPrimes[c & 3];
-        printf( "%d : ", c );
-        printf( "%3d  ", pStr[c] );
-        printf( "%12u ", Key );
-        printf( "%12u ", Key&TableMask );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "%d : ", c  );
+        fprintf( Abc_FrameGlobalGetOut(),  "%3d  ", pStr[c]  );
+        fprintf( Abc_FrameGlobalGetOut(),  "%12u ", Key  );
+        fprintf( Abc_FrameGlobalGetOut(),  "%12u ", Key&TableMask  );
+        fprintf( Abc_FrameGlobalGetOut(),  "\n"  );
     }
     return Key;
 }
@@ -1676,14 +1676,14 @@ static inline void Vec_IntUniqueProfile( Vec_Int_t * vData, int * pTable, int * 
             Counter++;
         if ( Counter < 7 )
             continue;
-        printf( "%d\n", Counter );
+        fprintf( Abc_FrameGlobalGetOut(),  "%d\n", Counter  );
         for ( Key = pTable[i]; Key != -1; Key = pNexts[Key] )
         {
 //            Extra_PrintBinary( stdout, (unsigned *)Vec_IntEntryP(vData, Key*nIntSize), 40 ), printf( "\n" );
 //            Vec_IntUniqueHashKeyDebug( (unsigned char *)Vec_IntEntryP(vData, Key*nIntSize), 4*nIntSize, TableMask );
         }
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(),  "\n"  );
 }
 
 static inline unsigned Vec_IntUniqueHashKey2( unsigned char * pStr, int nChars )
@@ -2212,16 +2212,16 @@ static inline void Vec_IntSelectSortCost2Reverse( int * pArray, int nSize, int *
 static inline void Vec_IntPrint( Vec_Int_t * vVec )
 {
     int i, Entry;
-    printf( "Vector has %d entries: {", Vec_IntSize(vVec) );
+    fprintf( Abc_FrameGlobalGetOut(),  "Vector has %d entries: {", Vec_IntSize(vVec)  );
     Vec_IntForEachEntry( vVec, Entry, i )
-        printf( " %d", Entry );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  " %d", Entry  );
+    fprintf( Abc_FrameGlobalGetOut(),  " }\n"  );
 }
 static inline void Vec_IntPrintBinary( Vec_Int_t * vVec )
 {
     int i, Entry;
     Vec_IntForEachEntry( vVec, Entry, i )
-        printf( "%d", (int)(Entry != 0) );
+        fprintf( Abc_FrameGlobalGetOut(),  "%d", (int)(Entry != 0)  );
 }
 
 /**Function*************************************************************
@@ -2322,15 +2322,15 @@ static inline void Vec_IntDumpBin( char * pFileName, Vec_Int_t * p, int fVerbose
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file \"%s\" for writing.\n", pFileName  );
         return;
     }
     RetValue = fwrite( Vec_IntArray(p), 1, sizeof(int)*Vec_IntSize(p), pFile );
     fclose( pFile );
     if ( RetValue != (int)sizeof(int)*Vec_IntSize(p) )
-        printf( "Error reading data from file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "Error reading data from file.\n"  );
     if ( fVerbose )
-        printf( "Written %d integers into file \"%s\".\n", Vec_IntSize(p), pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Written %d integers into file \"%s\".\n", Vec_IntSize(p), pFileName  );
 }
 static inline Vec_Int_t * Vec_IntReadBin( char * pFileName, int fVerbose )
 {
@@ -2338,20 +2338,20 @@ static inline Vec_Int_t * Vec_IntReadBin( char * pFileName, int fVerbose )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file \"%s\" for reading.\n", pFileName  );
         return NULL;
     }
     fseek( pFile, 0, SEEK_END );
     nSize = ftell( pFile );
     if ( nSize == 0 )
     {
-        printf( "The input file is empty.\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "The input file is empty.\n"  );
         fclose( pFile );
         return NULL;
     }
     if ( nSize % sizeof(int) > 0 )
     {
-        printf( "Cannot read file with integers because it is not aligned at 4 bytes (remainder = %d).\n", (int)(nSize % sizeof(int)) );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot read file with integers because it is not aligned at 4 bytes (remainder = %d).\n", (int)(nSize % sizeof(int))  );
         fclose( pFile );
         return NULL;
     }
@@ -2360,9 +2360,9 @@ static inline Vec_Int_t * Vec_IntReadBin( char * pFileName, int fVerbose )
     RetValue = fread( Vec_IntArray(p), 1, nSize, pFile );
     fclose( pFile );
     if ( RetValue != nSize )
-        printf( "Error reading data from file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "Error reading data from file.\n"  );
     if ( fVerbose )
-        printf( "Read %d integers from file \"%s\".\n", (int)(nSize/sizeof(int)), pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Read %d integers from file \"%s\".\n", (int)(nSize/sizeof(int)), pFileName  );
     return p;
 }
 

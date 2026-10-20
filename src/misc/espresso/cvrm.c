@@ -274,8 +274,8 @@ unsigned int comp_debug;
     set_free(seed);
 
     if (comp_debug) {
-    (void) printf("COMPONENT_REDUCTION: split into %d %d\n",
-        count, numcube - count);
+    (void) fprintf( Abc_FrameGlobalGetOut(), "COMPONENT_REDUCTION: split into %d %d\n",
+        count, numcube - count );
     }
 
     if (count != numcube) {

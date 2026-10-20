@@ -129,7 +129,7 @@ DdNode * Parse_FormulaParser( FILE * pOutput, char * pFormulaInit, int nVars, in
     // make sure that the number of vars and ranks is correct
     if ( nVars * (nRanks + 1) > dd->size )
     {
-        printf( "Parse_FormulaParser(): The BDD manager does not have enough variables.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Parse_FormulaParser(): The BDD manager does not have enough variables.\n" );
         return NULL;
     }
 

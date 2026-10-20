@@ -686,15 +686,15 @@ void Sdm_ManPrintDsdStats( Sdm_Man_t * p, int fVerbose )
         }
         if ( fVerbose )
         {
-            printf( "%5d  :  ", i );
-            printf( "%-20s   ", p->pDsd6[i].pStr );
-            printf( "%8d ",     p->nCountDsd[i] );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d  :  ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "%-20s   ", p->pDsd6[i].pStr );
+            fprintf( Abc_FrameGlobalGetOut(), "%8d ",     p->nCountDsd[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
-    printf( "Unused classes = %d (%.2f %%).  ", Absent, 100.0 * Absent / DSD_CLASS_NUM );
-    printf( "Non-DSD cuts = %d (%.2f %%).  ",   p->nNonDsd, 100.0 * p->nNonDsd / Abc_MaxInt(1, p->nAllDsd) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Unused classes = %d (%.2f %%).  ", Absent, 100.0 * Absent / DSD_CLASS_NUM );
+    fprintf( Abc_FrameGlobalGetOut(), "Non-DSD cuts = %d (%.2f %%).  ",   p->nNonDsd, 100.0 * p->nNonDsd / Abc_MaxInt(1, p->nAllDsd) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -878,8 +878,8 @@ void Sdm_ManPrintPerm( unsigned s )
 {
     int i;
     for ( i = 0; i < 6; i++ )
-        printf( "%d ", (s >> (3*i)) & 7 );
-    printf( "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", (s >> (3*i)) & 7 );
+    fprintf( Abc_FrameGlobalGetOut(), "  " );
 }
 
 /**Function*************************************************************
@@ -1229,9 +1229,9 @@ void Sdm_ManDivTest()
 
     Vec_WrdForEachEntry( vDivs, u, i )
     {
-        printf( "%2d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : ", i );
 //        Kit_DsdPrintFromTruth( (unsigned *)&u, 6 ); 
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     RetValue = Rsb_ManPerformResub6( pManRsb, 6, t, vDivs, &t0, &t1, 1 );
@@ -1239,7 +1239,7 @@ void Sdm_ManDivTest()
     {
 //        Kit_DsdPrintFromTruth( (unsigned *)&t0, 6 ); printf( "\n" );
 //        Kit_DsdPrintFromTruth( (unsigned *)&t1, 6 ); printf( "\n" );
-        printf( "Decomposition exits.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Decomposition exits.\n" );
     }
 
 

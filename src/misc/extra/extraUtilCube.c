@@ -25,6 +25,8 @@
 #include "misc/vec/vec.h"
 #include "misc/vec/vecHsh.h"
 
+#include "extra.h"
+
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
@@ -33,7 +35,7 @@ ABC_NAMESPACE_IMPL_START
 
 static inline void Abc_StatePush( Vec_Int_t * vData, char * pState, int k )  { int i; for ( i = 0; i < 6; i++ ) Vec_IntWriteEntry(vData, 6*k+i, ((int*)pState)[i]);  }
 static inline void Abc_StatePerm( char * pState, char * pPerm, char * pRes ) { int i; for ( i = 0; i < 24; i++ ) pRes[i] = pState[(int)pPerm[i]];                    }
-static inline void Abc_StatePrint( char * pState )                           { int i; for ( i = 0; i < 24; i++ ) printf(" %2d", pState[i]); printf( "\n" );          }
+static inline void Abc_StatePrint( char * pState )                           { int i; for ( i = 0; i < 24; i++ ) fprintf( Abc_FrameGlobalGetOut(), " %2d", pState[i] ); fprintf( Abc_FrameGlobalGetOut(), "\n" );          }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -62,7 +64,7 @@ void Abc_EnumerateCubeStates2()
     int i, k, v, RetValue, Beg, End, Counter = 0;
     char pStart[24], pFirst[9][24];
     abctime clk = Abc_Clock();
-    printf( "Enumerating states of 2x2x2 cube.\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Enumerating states of 2x2x2 cube.\n" );
     // init state
     for ( v = 0; v < 24; v++ )
         pStart[v] = v;
@@ -100,9 +102,9 @@ void Abc_EnumerateCubeStates2()
         Counter++;
         //Abc_StatePrint( pFirst[6+i] );
     }
-    printf( "Iter %2d -> %8d   ", 0, 1 );
+    fprintf( Abc_FrameGlobalGetOut(), "Iter %2d -> %8d   ", 0, 1 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-    printf( "Iter %2d -> %8d   ", 1, Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Iter %2d -> %8d   ", 1, Counter );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Beg = 1;  End = 10;
     for ( i = 2; i <= 100; i++ )
@@ -118,13 +120,13 @@ void Abc_EnumerateCubeStates2()
                     Counter++;
                 if ( Counter == (1<<22) )
                 {
-                    printf( "Did not converge.  " );
+                    fprintf( Abc_FrameGlobalGetOut(), "Did not converge.  " );
                     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
                     return;
                 }
             }
         Beg = End;  End = Counter;
-        printf( "Iter %2d -> %8d   ", i, Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Iter %2d -> %8d   ", i, Counter );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     Hsh_IntManStop( vHash );
@@ -201,7 +203,7 @@ void Abc_EnumerateCubeStates()
     int i, k, v, Beg, End, Counter = 0;
     char * pPrev, * pState, pStart[24], pFirst[9][24];
     abctime clk = Abc_Clock();
-    printf( "Enumerating states of 2x2x2 cube.\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Enumerating states of 2x2x2 cube.\n" );
     // init state
     for ( v = 0; v < 24; v++ )
         pStart[v] = v;
@@ -235,9 +237,9 @@ void Abc_EnumerateCubeStates()
         Counter++;
         //Abc_StatePrint( pFirst[6+i] );
     }
-    printf( "Iter %2d -> %8d   ", 0, 1 );
+    fprintf( Abc_FrameGlobalGetOut(), "Iter %2d -> %8d   ", 0, 1 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-    printf( "Iter %2d -> %8d   ", 1, Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Iter %2d -> %8d   ", 1, Counter );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Beg = 1;  End = 10;
     for ( i = 2; i <= 100; i++ )
@@ -256,14 +258,14 @@ void Abc_EnumerateCubeStates()
                     Abc_DataXorBit(pHash, State), Counter++;
                 if ( Counter == (1<<22) )
                 {
-                    printf( "Did not converge.  " );
+                    fprintf( Abc_FrameGlobalGetOut(), "Did not converge.  " );
                     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
                     return;
                 }
             }
         }
         Beg = End;  End = Counter;
-        printf( "Iter %2d -> %8d   ", i, Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Iter %2d -> %8d   ", i, Counter );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     Vec_IntFree( vData );

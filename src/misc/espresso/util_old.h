@@ -188,10 +188,10 @@ extern long random();
 #ifndef NDEBUG
 #define assert(ex) {\
     if (! (ex)) {\
-    (void) fprintf(stderr,\
+    (void) fprintf( Abc_FrameGlobalGetErr(),\
         "Assertion failed: file %s, line %d\n\"%s\"\n",\
         __FILE__, __LINE__, "ex");\
-    (void) fflush(stdout);\
+    (void) fflush( Abc_FrameGlobalGetErr() );\
     abort();\
     }\
 }
@@ -212,10 +212,10 @@ extern long random();
 #  else
 #    define assert(ex) {\
     if (! (ex)) {\
-    (void) fprintf(stderr,\
+    (void) fprintf( Abc_FrameGlobalGetErr(), \
         "Assertion failed: file %s, line %d\n\"%s\"\n",\
         __FILE__, __LINE__, "ex");\
-    (void) fflush(stdout);\
+    (void) fflush( Abc_FrameGlobalGetOut() );\
     abort();\
     }\
 }
@@ -223,9 +223,9 @@ extern long random();
 
 
 #define fail(why) {\
-    (void) fprintf(stderr, "Fatal error: file %s, line %d\n%s\n",\
+    (void) fprintf( Abc_FrameGlobalGetErr(), "Fatal error: file %s, line %d\n%s\n",\
     __FILE__, __LINE__, why);\
-    (void) fflush(stdout);\
+    (void) fflush( Abc_FrameGlobalGetOut() );\
     abort();\
 }
 

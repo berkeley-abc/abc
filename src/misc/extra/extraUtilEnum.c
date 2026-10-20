@@ -263,28 +263,28 @@ void Abc_EnumPrint_rec( Vec_Int_t * vGates, int i, int nVars )
     if ( Fan0 > Fan1 )
         ABC_SWAP( int, Fan0, Fan1 );
     if ( Fan0 < nVars )
-        printf( "%c", 'a'+Fan0 );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", 'a'+Fan0 );
     else
     {
-        printf( "(" );
+        fprintf( Abc_FrameGlobalGetOut(), "(" );
         Abc_EnumPrint_rec( vGates, Fan0, nVars );
-        printf( ")" );
+        fprintf( Abc_FrameGlobalGetOut(), ")" );
     }
-    printf( "%s", pOper );
+    fprintf( Abc_FrameGlobalGetOut(), "%s", pOper );
     if ( Fan1 < nVars )
-        printf( "%c", 'a'+Fan1 );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", 'a'+Fan1 );
     else
     {
-        printf( "(" );
+        fprintf( Abc_FrameGlobalGetOut(), "(" );
         Abc_EnumPrint_rec( vGates, Fan1, nVars );
-        printf( ")" );
+        fprintf( Abc_FrameGlobalGetOut(), ")" );
     }
 }
 void Abc_EnumPrint( Vec_Int_t * vGates, int i, int nVars )
 {
     assert( 2*i < Vec_IntSize(vGates) );
     Abc_EnumPrint_rec( vGates, i, nVars );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -359,7 +359,7 @@ void Abc_EnumerateFunctions( int nDecMax )
         for ( b = a; b <= n; b++ )
         if ( a + b == n )
         {
-            printf( "Trying %d + %d + 1 = %d\n", a, b, n+1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Trying %d + %d + 1 = %d\n", a, b, n+1 );
             for ( i = GateCount[a]; i < GateCount[a+1]; i++ )
             for ( k = GateCount[b]; k < GateCount[b+1]; k++ )
             if ( i < k )
@@ -377,7 +377,7 @@ void Abc_EnumerateFunctions( int nDecMax )
                     for ( v = 0; v < nFuncs; v++ )
                     if ( !FuncDone[v] && Truth == pFuncs[v] )
                     {
-                        printf( "Found function %d with %d gates: ", v, n+1 );
+                        fprintf( Abc_FrameGlobalGetOut(), "Found function %d with %d gates: ", v, n+1 );
                         Abc_EnumPrint( vGates, Vec_IntSize(vTruths)-1, nVars );
                         FuncDone[v] = 1;
                         nFuncDone++;
@@ -396,7 +396,7 @@ void Abc_EnumerateFunctions( int nDecMax )
                     for ( v = 0; v < nFuncs; v++ )
                     if ( !FuncDone[v] && Truth == pFuncs[v] )
                     {
-                        printf( "Found function %d with %d gates: ", v, n+1 );
+                        fprintf( Abc_FrameGlobalGetOut(), "Found function %d with %d gates: ", v, n+1 );
                         Abc_EnumPrint( vGates, Vec_IntSize(vTruths)-1, nVars );
                         FuncDone[v] = 1;
                         nFuncDone++;
@@ -405,7 +405,7 @@ void Abc_EnumerateFunctions( int nDecMax )
             }
         }
         GateCount[n+2] = Vec_IntSize(vTruths);
-        printf( "Finished %d gates.  Truths = %10d.  ", n+1, Vec_IntSize(vTruths) );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished %d gates.  Truths = %10d.  ", n+1, Vec_IntSize(vTruths) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     ABC_FREE( pHash );
@@ -491,10 +491,10 @@ static inline void Abc_EnumPrintOne( Abc_EnuMan_t * p )
     Kit_DsdPrintFromTruth( (unsigned *)(p->pTruths + p->nNodes - 1), p->nVars ); 
     for ( i = p->nVars; i < p->nNodes; i++ )
         if ( p->Polar[i] == 4 )
-            printf( "  %c=%c+%c", 'a'+i, 'a'+p->pFans0[i], 'a'+p->pFans1[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "  %c=%c+%c", 'a'+i, 'a'+p->pFans0[i], 'a'+p->pFans1[i] );
         else
-            printf( "  %c=%s%c%s%c", 'a'+i, p->fCompl0[i]?"!":"", 'a'+p->pFans0[i], p->fCompl1[i]?"!":"", 'a'+p->pFans1[i] );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "  %c=%s%c%s%c", 'a'+i, p->fCompl0[i]?"!":"", 'a'+p->pFans0[i], p->fCompl1[i]?"!":"", 'a'+p->pFans1[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -648,7 +648,7 @@ void Abc_EnumerateFuncs( int nVars, int nGates, int fVerbose )
     int i;
     if ( nVars > nGates + 1 )
     {
-        printf( "The gate count %d is not enough to have functions with %d inputs.\n", nGates, nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "The gate count %d is not enough to have functions with %d inputs.\n", nGates, nVars );
         return;
     }
     assert( nVars >= 2 && nVars <= 6 );
@@ -666,7 +666,7 @@ void Abc_EnumerateFuncs( int nVars, int nGates, int fVerbose )
     assert( p->nNodes == nVars );
     assert( p->nTops == nVars );
     // report statistics
-    printf( "Vars = %d.  Gates = %d.  Tries = %u. Builds = %u.  Finished = %d. ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Vars = %d.  Gates = %d.  Tries = %u. Builds = %u.  Finished = %d. ", 
         nVars, nGates, (unsigned)p->nTries, (unsigned)p->nBuilds, (unsigned)p->nFinished );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }

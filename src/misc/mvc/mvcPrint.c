@@ -49,7 +49,7 @@ void Mvc_CoverPrint( Mvc_Cover_t * pCover )
     Mvc_Cube_t * pCube;
     int i;
     // print general statistics
-    printf( "The cover contains %d cubes (%d bits and %d words)\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "The cover contains %d cubes (%d bits and %d words)\n", 
         pCover->lCubes.nItems, pCover->nBits, pCover->nWords );
     // iterate through the cubes
     Mvc_CoverForEachCube( pCover, pCube )
@@ -58,10 +58,10 @@ void Mvc_CoverPrint( Mvc_Cover_t * pCover )
     if ( pCover->pLits )
     {
         for ( i = 0; i < pCover->nBits; i++ )
-            printf( " %d", pCover->pLits[i] );
-        printf( "\n" ); 
+            fprintf( Abc_FrameGlobalGetOut(), " %d", pCover->pLits[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" ); 
     }
-    printf( "End of cover printout\n" ); 
+    fprintf( Abc_FrameGlobalGetOut(), "End of cover printout\n" ); 
 }
 
 
@@ -82,8 +82,8 @@ void Mvc_CubePrint( Mvc_Cover_t * pCover, Mvc_Cube_t * pCube )
     // iterate through the literals
 //    printf( "Size = %2d   ", Mvc_CubeReadSize(pCube) );
     Mvc_CubeForEachBit( pCover, pCube, iBit, Value )
-        printf( "%c", '0' + Value );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", '0' + Value );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 
@@ -103,7 +103,7 @@ void Mvc_CoverPrintBinary( Mvc_Cover_t * pCover )
     Mvc_Cube_t * pCube;
     int i;
     // print general statistics
-    printf( "The cover contains %d cubes (%d bits and %d words)\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "The cover contains %d cubes (%d bits and %d words)\n", 
         pCover->lCubes.nItems, pCover->nBits, pCover->nWords );
     // iterate through the cubes
     Mvc_CoverForEachCube( pCover, pCube )
@@ -112,10 +112,10 @@ void Mvc_CoverPrintBinary( Mvc_Cover_t * pCover )
     if ( pCover->pLits )
     {
         for ( i = 0; i < pCover->nBits; i++ )
-            printf( " %d", pCover->pLits[i] );
-        printf( "\n" ); 
+            fprintf( Abc_FrameGlobalGetOut(), " %d", pCover->pLits[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" ); 
     }
-    printf( "End of cover printout\n" ); 
+    fprintf( Abc_FrameGlobalGetOut(), "End of cover printout\n" ); 
 }
 
 
@@ -139,13 +139,13 @@ void Mvc_CubePrintBinary( Mvc_Cover_t * pCover, Mvc_Cube_t * pCube )
     {
         assert( Value != 0 );
         if ( Value == 3 )
-            printf( "-" );
+            fprintf( Abc_FrameGlobalGetOut(), "-" );
         else if ( Value == 1 )
-            printf( "0" );
+            fprintf( Abc_FrameGlobalGetOut(), "0" );
         else 
-            printf( "1" );
+            fprintf( Abc_FrameGlobalGetOut(), "1" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 #if 0
@@ -166,7 +166,7 @@ void Mvc_CoverPrintMv( Mvc_Data_t * pData, Mvc_Cover_t * pCover )
     Mvc_Cube_t * pCube;
     int i;
     // print general statistics
-    printf( "The cover contains %d cubes (%d bits and %d words)\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "The cover contains %d cubes (%d bits and %d words)\n", 
         pCover->lCubes.nItems, pCover->nBits, pCover->nWords );
     // iterate through the cubes
     Mvc_CoverForEachCube( pCover, pCube )
@@ -175,10 +175,10 @@ void Mvc_CoverPrintMv( Mvc_Data_t * pData, Mvc_Cover_t * pCover )
     if ( pCover->pLits )
     {
         for ( i = 0; i < pCover->nBits; i++ )
-            printf( " %d", pCover->pLits[i] );
-        printf( "\n" ); 
+            fprintf( Abc_FrameGlobalGetOut(), " %d", pCover->pLits[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" ); 
     }
-    printf( "End of cover printout\n" ); 
+    fprintf( Abc_FrameGlobalGetOut(), "End of cover printout\n" ); 
 }
 
 
@@ -197,21 +197,21 @@ void Mvc_CubePrintMv( Mvc_Data_t * pData, Mvc_Cover_t * pCover, Mvc_Cube_t * pCu
 {
     int iLit, iVar;
     // iterate through the literals
-    printf( "Size = %2d   ", Mvc_CubeReadSize(pCube) );
+    fprintf( Abc_FrameGlobalGetOut(), "Size = %2d   ", Mvc_CubeReadSize(pCube) );
     iVar = 0;
     for ( iLit = 0; iLit < pData->pVm->nValuesIn; iLit++ )
     {
         if ( iLit == pData->pVm->pValuesFirst[iVar+1] )
         {
-            printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
             iVar++;
         }
         if ( Mvc_CubeBitValue( pCube, iLit ) )
-            printf( "%c", '0' + iLit - pData->pVm->pValuesFirst[iVar] );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", '0' + iLit - pData->pVm->pValuesFirst[iVar] );
         else
-            printf( "-" );
+            fprintf( Abc_FrameGlobalGetOut(), "-" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 #endif

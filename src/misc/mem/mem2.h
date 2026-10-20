@@ -94,9 +94,9 @@ static inline void Mmr_FlexStop( Mmr_Flex_t * p )
     word * pPage;
     int i;
     if ( 0 && Vec_PtrSize(&p->vPages) )
-        printf( "Using %3d pages of %6d words each with %6d entries (max = %6d). Total memory = %5.2f MB.\n", 
+        fprintf( Abc_FrameGlobalGetOut(),  "Using %3d pages of %6d words each with %6d entries (max = %6d). Total memory = %5.2f MB.\n", 
             Vec_PtrSize(&p->vPages), p->nPageBase ? 1 << p->nPageBase : 0, p->nEntries, p->nEntriesMax, 
-            1.0 * Vec_PtrSize(&p->vPages) * (1 << p->nPageBase) * 8 / (1 << 20) );
+            1.0 * Vec_PtrSize(&p->vPages) * (1 << p->nPageBase) * 8 / (1 << 20)  );
     Vec_PtrForEachEntry( word *, &p->vPages, pPage, i )
         ABC_FREE( pPage );
     ABC_FREE( p->vPages.pArray );
@@ -163,9 +163,9 @@ static inline void Mmr_FixedStop( Mmr_Fixed_t * p, int fFreeLast )
     word * pPage;
     int i;
     if ( 0 && Vec_PtrSize(&p->vPages) )
-        printf( "Using %3d pages of %6d words each with %6d entries (max = %6d) of size %d. Total memory = %5.2f MB.\n", 
+        fprintf( Abc_FrameGlobalGetOut(),  "Using %3d pages of %6d words each with %6d entries (max = %6d) of size %d. Total memory = %5.2f MB.\n", 
             Vec_PtrSize(&p->vPages), p->nPageBase ? 1 << p->nPageBase : 0, p->nEntries, p->nEntriesMax, p->nEntryWords,
-            1.0 * Vec_PtrSize(&p->vPages) * (1 << p->nPageBase) * 8 / (1 << 20) );
+            1.0 * Vec_PtrSize(&p->vPages) * (1 << p->nPageBase) * 8 / (1 << 20)  );
     Vec_PtrForEachEntry( word *, &p->vPages, pPage, i )
         ABC_FREE( pPage );
     ABC_FREE( p->vPages.pArray );

@@ -160,9 +160,9 @@ Extra_MmFixed_t * Extra_MmFixedStart( int nEntrySize )
 ***********************************************************************/
 void Extra_MmFixedPrint( Extra_MmFixed_t * p )
 {
-    printf( "Fixed memory manager: Entry = %5d. Chunk = %5d. Chunks used = %5d.\n",
+    fprintf( Abc_FrameGlobalGetOut(), "Fixed memory manager: Entry = %5d. Chunk = %5d. Chunks used = %5d.\n",
         p->nEntrySize, p->nChunkSize, p->nChunks );
-    printf( "   Entries used = %8d. Entries peak = %8d. Memory used = %8d. Memory alloc = %8d.\n",
+    fprintf( Abc_FrameGlobalGetOut(), "   Entries used = %8d. Entries peak = %8d. Memory used = %8d. Memory alloc = %8d.\n",
         p->nEntriesUsed, p->nEntriesMax, p->nEntrySize * p->nEntriesUsed, p->nMemoryAlloc );
 }
 
@@ -375,9 +375,9 @@ Extra_MmFlex_t * Extra_MmFlexStart()
 ***********************************************************************/
 void Extra_MmFlexPrint( Extra_MmFlex_t * p )
 {
-    printf( "Flexible memory manager: Chunk size = %d. Chunks used = %d.\n",
+    fprintf( Abc_FrameGlobalGetOut(), "Flexible memory manager: Chunk size = %d. Chunks used = %d.\n",
         p->nChunkSize, p->nChunks );
-    printf( "   Entries used = %d. Memory used = %d. Memory alloc = %d.\n",
+    fprintf( Abc_FrameGlobalGetOut(), "   Entries used = %d. Memory used = %d. Memory alloc = %d.\n",
         p->nEntriesUsed, p->nMemoryUsed, p->nMemoryAlloc );
 }
 

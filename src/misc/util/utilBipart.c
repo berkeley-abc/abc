@@ -1172,36 +1172,36 @@ static void solver_free_context(SolverContext *ctx) {
 static void print_components(const SolverContext *ctx) {
   int c;
   if (ctx->component_count == 0) {
-    printf("The number of components found is 0.\n");
+    fprintf(Abc_FrameGlobalGetOut(), "The number of components found is 0.\n");
     return;
   }
-  printf("The number of components found is %d:\n", ctx->component_count);
+  fprintf(Abc_FrameGlobalGetOut(), "The number of components found is %d:\n", ctx->component_count);
   for (c = 0; c < ctx->component_count; ++c) {
     const WorkComponent *comp = &ctx->components[c];
     int i;
-    printf("Component %d:\n", c + 1);
-    printf("  { ");
+    fprintf(Abc_FrameGlobalGetOut(), "Component %d:\n", c + 1);
+    fprintf(Abc_FrameGlobalGetOut(), "  { ");
     for (i = 0; i < comp->nodesA.size; ++i) {
-      printf("%d ", ctx->graph.orig_ids[comp->nodesA.data[i]]);
+      fprintf(Abc_FrameGlobalGetOut(), "%d ", ctx->graph.orig_ids[comp->nodesA.data[i]]);
     }
-    printf("}\n");
-    printf("  { ");
+    fprintf(Abc_FrameGlobalGetOut(), "}\n");
+    fprintf(Abc_FrameGlobalGetOut(), "  { ");
     for (i = 0; i < comp->nodesB.size; ++i) {
-      printf("%d ", ctx->graph.orig_ids[comp->nodesB.data[i]]);
+      fprintf(Abc_FrameGlobalGetOut(), "%d ", ctx->graph.orig_ids[comp->nodesB.data[i]]);
     }
-    printf("}\n");
+    fprintf(Abc_FrameGlobalGetOut(), "}\n");
 
-    printf("      ");
+    fprintf(Abc_FrameGlobalGetOut(), "      ");
     for (i = 0; i < comp->nodesA.size; ++i) {
-      printf("%6d", ctx->graph.orig_ids[comp->nodesA.data[i]]);
+      fprintf(Abc_FrameGlobalGetOut(), "%6d", ctx->graph.orig_ids[comp->nodesA.data[i]]);
     }
-    printf("\n");
+    fprintf(Abc_FrameGlobalGetOut(), "\n");
     {
       int row;
       for (row = 0; row < comp->nodesB.size; ++row) {
         int nodeB = comp->nodesB.data[row];
         int col;
-        printf("%6d", ctx->graph.orig_ids[nodeB]);
+        fprintf(Abc_FrameGlobalGetOut(), "%6d", ctx->graph.orig_ids[nodeB]);
         for (col = 0; col < comp->nodesA.size; ++col) {
           int nodeA = comp->nodesA.data[col];
           int idx = edge_map_find(ctx->edge_map, ctx->edge_count, nodeA, nodeB);
@@ -1209,12 +1209,12 @@ static void print_components(const SolverContext *ctx) {
           if (idx >= 0 && ctx->edges[idx].assigned == c) {
             mark = 1;
           }
-          printf("%6c", mark ? 'x' : ' ');
+          fprintf(Abc_FrameGlobalGetOut(), "%6c", mark ? 'x' : ' ');
         }
-        printf("\n");
+        fprintf(Abc_FrameGlobalGetOut(), "\n");
       }
     }
-    printf("\n");
+    fprintf(Abc_FrameGlobalGetOut(), "\n");
   }
 }
 

@@ -631,10 +631,10 @@ static inline void Vec_VecPrintInt( Vec_Vec_t * p, int fSkipSingles )
         if ( fSkipSingles && Vec_VecLevelSize(p, i) == 1 )
             break;
         if ( k == 0 )
-            printf( " %4d : {", i );
-        printf( " %d", Entry );
+            fprintf( Abc_FrameGlobalGetOut(),  " %4d : {", i  );
+        fprintf( Abc_FrameGlobalGetOut(),  " %d", Entry  );
         if ( k == Vec_VecLevelSize(p, i) - 1 )
-            printf( " }\n" );
+            fprintf( Abc_FrameGlobalGetOut(),  " }\n"  );
     }
 }
 
