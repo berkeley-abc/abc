@@ -224,7 +224,7 @@ int Bmc_BmciPerform( Gia_Man_t * p, Vec_Int_t * vInit0, Vec_Int_t * vInit1, int 
         if ( Vec_IntSum(vMiters) + Vec_IntSize(vLits1) == 0 )
         {
             if ( fVerbose )
-                printf( "Reached a fixed point after %d frames.  \n", f+1 );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached a fixed point after %d frames.  \n", f+1 );
             break;
         }
         // create new part
@@ -270,7 +270,7 @@ int Bmc_BmciPerform( Gia_Man_t * p, Vec_Int_t * vInit0, Vec_Int_t * vInit1, int 
             }
             if ( status == l_Undef )
             {
-                printf( "Timeout reached after %d seconds.  \n", nTimeOut );
+                fprintf( Abc_FrameGlobalGetOut(), "Timeout reached after %d seconds.  \n", nTimeOut );
                 RetValue = 0;
                 goto cleanup;
             }
@@ -288,18 +288,18 @@ int Bmc_BmciPerform( Gia_Man_t * p, Vec_Int_t * vInit0, Vec_Int_t * vInit1, int 
         }
         if ( fVerbose )
         {
-            printf( "Frame %4d : ",     f+1 );
-            printf( "Vars =%7d  ",      nSatVars );
-            printf( "Clause =%10d  ",   sat_solver_nclauses(pSat) );
-            printf( "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
-            printf( "AIG =%7d  ",       Gia_ManAndNum(pNew) );
-            printf( "Miters =%5d  ",    nMiters );
-            printf( "SAT =%5d  ",       nChanges );
+            fprintf( Abc_FrameGlobalGetOut(), "Frame %4d : ",     f+1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Vars =%7d  ",      nSatVars );
+            fprintf( Abc_FrameGlobalGetOut(), "Clause =%10d  ",   sat_solver_nclauses(pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "AIG =%7d  ",       Gia_ManAndNum(pNew) );
+            fprintf( Abc_FrameGlobalGetOut(), "Miters =%5d  ",    nMiters );
+            fprintf( Abc_FrameGlobalGetOut(), "SAT =%5d  ",       nChanges );
             Abc_PrintTime( 1, "Time",   Abc_Clock() - clk );
         }
         if ( nChanges == 0 )
         {
-            printf( "Reached a fixed point after %d frames.  \n", f+1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Reached a fixed point after %d frames.  \n", f+1 );
             break;
         }
     }

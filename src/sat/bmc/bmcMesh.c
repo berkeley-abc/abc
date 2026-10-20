@@ -126,13 +126,13 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
     }
     if ( fVerbose )
     {
-        printf( "The graph has %d inputs: ", Gia_ManPiNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "The graph has %d inputs: ", Gia_ManPiNum(p) );
         for ( i = 0; i < I; i++ )
-            printf( "%c ", 'a' + i );
-        printf( "  and %d nodes: ", Gia_ManAndNum(p) );
+            fprintf( Abc_FrameGlobalGetOut(), "%c ", 'a' + i );
+        fprintf( Abc_FrameGlobalGetOut(), "  and %d nodes: ", Gia_ManAndNum(p) );
         for ( i = I; i < G; i++ )
-            printf( "%c=%c%c ", 'a' + i, 'a' + pN[i][0] , 'a' + pN[i][1] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c=%c%c ", 'a' + i, 'a' + pN[i][0] , 'a' + pN[i][1] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     // init SAT variables (time vars + graph vars + config vars)
@@ -148,7 +148,7 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
     Me[101][100] = T;
     Me[101][101] = G;
     if ( fVerbose )
-        printf( "SAT variable count is %d (%d time vars + %d graph vars + %d config vars + %d aux vars)\n", iVar, X*Y*T, X*Y*G, X*Y*NCPARS, X*Y );
+        fprintf( Abc_FrameGlobalGetOut(), "SAT variable count is %d (%d time vars + %d graph vars + %d config vars + %d aux vars)\n", iVar, X*Y*T, X*Y*G, X*Y*NCPARS, X*Y );
 
     // add constraints
 
@@ -308,7 +308,7 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
         RetValue = satoko_add_clause( pSat, &Lit, 1 );  
         if ( RetValue == 0 )
         {
-            printf( "Problem has no solution. " );
+            fprintf( Abc_FrameGlobalGetOut(), "Problem has no solution. " );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             satoko_destroy( pSat );
             return;
@@ -316,7 +316,7 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
     }
 
     if ( fVerbose )
-        printf( "Finished adding %d clauses. Started solving...\n", nClauses );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished adding %d clauses. Started solving...\n", nClauses );
 
     while ( 1 )
     {
@@ -324,12 +324,12 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
         status = satoko_solve( pSat );
         if ( status == SATOKO_UNSAT )
         {
-            printf( "Problem has no solution. " );
+            fprintf( Abc_FrameGlobalGetOut(), "Problem has no solution. " );
             break;
         }
         if ( status == SATOKO_UNDEC )
         {
-            printf( "Computation timed out. " );
+            fprintf( Abc_FrameGlobalGetOut(), "Computation timed out. " );
             break;
         }
         assert( status == SATOKO_SAT );
@@ -354,10 +354,10 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
         }
         if ( nAddClauses > 0 )
         {
-            printf( "Adding %d one-hotness clauses.\n", nAddClauses );
+            fprintf( Abc_FrameGlobalGetOut(), "Adding %d one-hotness clauses.\n", nAddClauses );
             continue;
         }
-        printf( "Satisfying solution found. " );
+        fprintf( Abc_FrameGlobalGetOut(), "Satisfying solution found. " );
 /*
         iVar = satoko_varnum(pSat);
         for ( i = 0; i < iVar; i++ )
@@ -389,15 +389,15 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
                     nNodes++;
                 }
         }
-        printf( "The %d x %d mesh with latency %d with %d active cells (%d nodes and %d buffers):\n", X, Y, T, nNodes+nBuffs, nNodes, nBuffs );
+        fprintf( Abc_FrameGlobalGetOut(), "The %d x %d mesh with latency %d with %d active cells (%d nodes and %d buffers):\n", X, Y, T, nNodes+nBuffs, nNodes, nBuffs );
         // print mesh
-        printf( " Y\\X " );
+        fprintf( Abc_FrameGlobalGetOut(), " Y\\X " );
         for ( x = 0; x < X; x++ )
-            printf( "  %-2d ", x );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "  %-2d ", x );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         for ( y = 0; y < Y; y++ )
         {
-            printf( " %-2d  ", y );
+            fprintf( Abc_FrameGlobalGetOut(), " %-2d  ", y );
             for ( x = 0; x < X; x++ )
             {
                 int iTVar  = Bmc_MeshTVar( Me, x, y );
@@ -408,17 +408,17 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
                 for ( g = 0; g < G; g++ )
                     if ( Bmc_MeshVarValue(pSat, iTVar+t) && Bmc_MeshVarValue(pSat, iGVar+g) )
                     {
-                        printf( " %c%-2d ", 'a' + g, t );
+                        fprintf( Abc_FrameGlobalGetOut(), " %c%-2d ", 'a' + g, t );
                         fFound = 1;
                     }
                 if ( fFound )
                     continue;
                 if ( x == 0 || x == X-1 || y == 0 || y == Y-1 ) // boundary
-                    printf( "  *  " );
+                    fprintf( Abc_FrameGlobalGetOut(), "  *  " );
                 else
-                    printf( "     " );
+                    fprintf( Abc_FrameGlobalGetOut(), "     " );
             }
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     satoko_destroy( pSat );

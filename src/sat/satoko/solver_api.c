@@ -54,32 +54,32 @@ static inline void solver_clean_stats(solver_t *s)
 
 static inline void print_opts(solver_t *s)
 {
-    printf( "+-[ BLACK MAGIC - PARAMETERS ]-+\n");
-    printf( "|                              |\n");
-    printf( "|--> Restarts heuristic        |\n");
-    printf( "|    * LBD Queue   = %6d    |\n", s->opts.sz_lbd_bqueue);
-    printf( "|    * Trail Queue = %6d    |\n", s->opts.sz_trail_bqueue);
-    printf( "|    * f_rst       = %6.2f    |\n", s->opts.f_rst);
-    printf( "|    * b_rst       = %6.2f    |\n", s->opts.b_rst);
-    printf( "|                              |\n");
-    printf( "|--> Clause DB reduction:      |\n");
-    printf( "|    * First       = %6d    |\n", s->opts.n_conf_fst_reduce);
-    printf( "|    * Inc         = %6d    |\n", s->opts.inc_reduce);
-    printf( "|    * Special Inc = %6d    |\n", s->opts.inc_special_reduce);
-    printf( "|    * Protected (LBD) < %2d    |\n", s->opts.lbd_freeze_clause);
-    printf( "|                              |\n");
-    printf( "|--> Binary resolution:        |\n");
-    printf( "|    * Clause size < %3d       |\n", s->opts.clause_max_sz_bin_resol);
-    printf( "|    * Clause lbd  < %3d       |\n", s->opts.clause_min_lbd_bin_resol);
-    printf( "+------------------------------+\n\n");
+    fprintf( Abc_FrameGlobalGetOut(),  "+-[ BLACK MAGIC - PARAMETERS ]-+\n");
+    fprintf( Abc_FrameGlobalGetOut(),  "|                              |\n");
+    fprintf( Abc_FrameGlobalGetOut(),  "|--> Restarts heuristic        |\n");
+    fprintf( Abc_FrameGlobalGetOut(),  "|    * LBD Queue   = %6d    |\n", s->opts.sz_lbd_bqueue);
+    fprintf( Abc_FrameGlobalGetOut(),  "|    * Trail Queue = %6d    |\n", s->opts.sz_trail_bqueue);
+    fprintf( Abc_FrameGlobalGetOut(),  "|    * f_rst       = %6.2f    |\n", s->opts.f_rst);
+    fprintf( Abc_FrameGlobalGetOut(),  "|    * b_rst       = %6.2f    |\n", s->opts.b_rst);
+    fprintf( Abc_FrameGlobalGetOut(),  "|                              |\n");
+    fprintf( Abc_FrameGlobalGetOut(),  "|--> Clause DB reduction:      |\n");
+    fprintf( Abc_FrameGlobalGetOut(),  "|    * First       = %6d    |\n", s->opts.n_conf_fst_reduce);
+    fprintf( Abc_FrameGlobalGetOut(),  "|    * Inc         = %6d    |\n", s->opts.inc_reduce);
+    fprintf( Abc_FrameGlobalGetOut(),  "|    * Special Inc = %6d    |\n", s->opts.inc_special_reduce);
+    fprintf( Abc_FrameGlobalGetOut(),  "|    * Protected (LBD) < %2d    |\n", s->opts.lbd_freeze_clause);
+    fprintf( Abc_FrameGlobalGetOut(),  "|                              |\n");
+    fprintf( Abc_FrameGlobalGetOut(),  "|--> Binary resolution:        |\n");
+    fprintf( Abc_FrameGlobalGetOut(),  "|    * Clause size < %3d       |\n", s->opts.clause_max_sz_bin_resol);
+    fprintf( Abc_FrameGlobalGetOut(),  "|    * Clause lbd  < %3d       |\n", s->opts.clause_min_lbd_bin_resol);
+    fprintf( Abc_FrameGlobalGetOut(),  "+------------------------------+\n\n");
 }
 
 static inline void print_stats(solver_t *s)
 {
-    printf("starts        : %10d\n", s->stats.n_starts);
-    printf("conflicts     : %10ld\n", s->stats.n_conflicts);
-    printf("decisions     : %10ld\n", s->stats.n_decisions);
-    printf("propagations  : %10ld\n", s->stats.n_propagations);
+    fprintf( Abc_FrameGlobalGetOut(), "starts        : %10d\n", s->stats.n_starts);
+    fprintf( Abc_FrameGlobalGetOut(), "conflicts     : %10ld\n", s->stats.n_conflicts);
+    fprintf( Abc_FrameGlobalGetOut(), "decisions     : %10ld\n", s->stats.n_decisions);
+    fprintf( Abc_FrameGlobalGetOut(), "propagations  : %10ld\n", s->stats.n_propagations);
 }
 
 //===------------------------------------------------------------------------===
@@ -286,9 +286,9 @@ int satoko_add_clause(solver_t *s, int *lits, int size)
     if ( 0 ) {
         for ( i = 0; i < vec_uint_size(s->temp_lits); i++ ) {
             int lit = vec_uint_at(s->temp_lits, i);
-            printf( "%s%d ", lit&1 ? "!":"", lit>>1 );
+            fprintf( Abc_FrameGlobalGetOut(), "%s%d ", lit&1 ? "!":"", lit>>1 );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     cref = solver_clause_create(s, s->temp_lits, 0);
     clause_watch(s, cref);
@@ -320,7 +320,7 @@ int satoko_solve(solver_t *s)
     //if (s->opts.verbose)
     //    print_opts(s);
     if (s->status == SATOKO_ERR) {
-        printf("Satoko in inconsistent state\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Satoko in inconsistent state\n");
         return SATOKO_UNDEC;
     }
 
@@ -597,7 +597,7 @@ void satoko_write_dimacs(satoko_t *s, char *fname, int wrt_lrnt, int zero_var)
         file = stdout;
     
     if (file == NULL) {
-        printf( "Error: Cannot open output file.\n");
+        fprintf( Abc_FrameGlobalGetOut(),  "Error: Cannot open output file.\n");
         return;
     }
     fprintf(file, "p cnf %d %d\n", n_vars, wrt_lrnt ? n_orig + n_lrnts : n_orig);

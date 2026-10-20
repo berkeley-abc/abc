@@ -303,22 +303,22 @@ int xSAT_SolverSolve( xSAT_Solver_t* s )
     assert(s);
     if ( s->Config.fVerbose )
     {
-        printf( "==========================================[ BLACK MAGIC ]================================================\n" );
-        printf( "|                                |                                |                                     |\n" );
-        printf( "| - Restarts:                    | - Reduce Clause DB:            | - Minimize Asserting:               |\n" );
-        printf( "|   * LBD Queue    : %6d      |   * First     : %6d         |    * size < %3d                     |\n",       s->Config.nSizeLBDQueue, s->Config.nConfFirstReduce, 0 );
-        printf( "|   * Trail Queue  : %6d      |   * Inc       : %6d         |    * lbd  < %3d                     |\n",       s->Config.nSizeTrailQueue, s->Config.nIncReduce, 0 );
-        printf( "|   * K            : %6.2f      |   * Special   : %6d         |                                     |\n",     s->Config.K, s->Config.nSpecialIncReduce );
-        printf( "|   * R            : %6.2f      |   * Protected :  (lbd)< %2d     |                                     |\n", s->Config.R, s->Config.nLBDFrozenClause );
-        printf( "|                                |                                |                                     |\n" );
-        printf( "=========================================================================================================\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "==========================================[ BLACK MAGIC ]================================================\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "|                                |                                |                                     |\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "| - Restarts:                    | - Reduce Clause DB:            | - Minimize Asserting:               |\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "|   * LBD Queue    : %6d      |   * First     : %6d         |    * size < %3d                     |\n",       s->Config.nSizeLBDQueue, s->Config.nConfFirstReduce, 0 );
+        fprintf( Abc_FrameGlobalGetOut(), "|   * Trail Queue  : %6d      |   * Inc       : %6d         |    * lbd  < %3d                     |\n",       s->Config.nSizeTrailQueue, s->Config.nIncReduce, 0 );
+        fprintf( Abc_FrameGlobalGetOut(), "|   * K            : %6.2f      |   * Special   : %6d         |                                     |\n",     s->Config.K, s->Config.nSpecialIncReduce );
+        fprintf( Abc_FrameGlobalGetOut(), "|   * R            : %6.2f      |   * Protected :  (lbd)< %2d     |                                     |\n", s->Config.R, s->Config.nLBDFrozenClause );
+        fprintf( Abc_FrameGlobalGetOut(), "|                                |                                |                                     |\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "=========================================================================================================\n" );
     }
 
     while ( status == LBoolUndef )
         status = xSAT_SolverSearch( s );
 
     if ( s->Config.fVerbose )
-        printf( "=========================================================================================================\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "=========================================================================================================\n" );
 
     xSAT_SolverCancelUntil( s, 0 );
     return status;
@@ -337,10 +337,10 @@ int xSAT_SolverSolve( xSAT_Solver_t* s )
 ***********************************************************************/
 void xSAT_SolverPrintStats( xSAT_Solver_t * s )
 {
-    printf( "starts        : %10d\n", s->Stats.nStarts );
-    printf( "conflicts     : %10lld\n", (long long)s->Stats.nConflicts );
-    printf( "decisions     : %10lld\n", (long long)s->Stats.nDecisions );
-    printf( "propagations  : %10lld\n", (long long)s->Stats.nPropagations );
+    fprintf( Abc_FrameGlobalGetOut(), "starts        : %10d\n", s->Stats.nStarts );
+    fprintf( Abc_FrameGlobalGetOut(), "conflicts     : %10lld\n", (long long)s->Stats.nConflicts );
+    fprintf( Abc_FrameGlobalGetOut(), "decisions     : %10lld\n", (long long)s->Stats.nDecisions );
+    fprintf( Abc_FrameGlobalGetOut(), "propagations  : %10lld\n", (long long)s->Stats.nPropagations );
 }
 
 ABC_NAMESPACE_IMPL_END

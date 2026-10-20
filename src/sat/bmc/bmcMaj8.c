@@ -259,7 +259,7 @@ static int Exa8_ManMarkup( Exa8_Man_t * p )
             }
         }
     }
-    if ( !p->pPars->fSilent ) printf( "The number of parameter variables = %d.\n", p->iVar );
+    if ( !p->pPars->fSilent ) fprintf( Abc_FrameGlobalGetOut(), "The number of parameter variables = %d.\n", p->iVar );
     if ( p->pPars->fLutCascade && (p->pPars->fLutInFixed || p->pPars->pPermStr) ) {
         if ( p->pPars->pPermStr )
             p->vInVars = Exa8_ChooseInputVars2( p->nVars, p->nNodes, p->nLutSize, p->pPars->pPermStr );
@@ -267,13 +267,13 @@ static int Exa8_ManMarkup( Exa8_Man_t * p )
             p->vInVars = Exa8_ChooseInputVars( p->nVars, p->nNodes, p->nLutSize );
         if ( !p->pPars->fSilent ) {
             Vec_Int_t * vLevel; int i, Var;
-            printf( "Using fixed input assignment %s%s:\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Using fixed input assignment %s%s:\n", 
                 p->pPars->pPermStr ? "provided by the user " : "generated randomly", p->pPars->pPermStr ? p->pPars->pPermStr : "" );
             Vec_WecForEachLevelReverse( p->vInVars, vLevel, i ) {
-                printf( "%c : ", 'A'+p->nVars+i-p->nVars );
+                fprintf( Abc_FrameGlobalGetOut(), "%c : ", 'A'+p->nVars+i-p->nVars );
                 Vec_IntForEachEntry( vLevel, Var, k )
-                    printf( "%c ", Var < 0 ? '*' : 'a'+Var );
-                printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "%c ", Var < 0 ? '*' : 'a'+Var );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
         }
     }
@@ -281,13 +281,13 @@ static int Exa8_ManMarkup( Exa8_Man_t * p )
     // printout
     for ( i = p->nObjs - 1; i >= p->nVars; i-- )
     {
-        printf( "       Node %2d\n", i );
+        fprintf( Abc_FrameGlobalGetOut(), "       Node %2d\n", i );
         for ( j = 0; j < p->nObjs; j++ )
         {
-            printf( "Fanin %2d : ", j );
+            fprintf( Abc_FrameGlobalGetOut(), "Fanin %2d : ", j );
             for ( k = 0; k < p->nLutSize; k++ )
-                printf( "%3d ", p->VarMarks[i][k][j] );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%3d ", p->VarMarks[i][k][j] );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     return p->iVar;
@@ -441,33 +441,33 @@ static Vec_Wrd_t * Exa8_ManSaveTruthTables( Exa8_Man_t * p, int fCompl )
 static void Exa8_ManPrintSolution( Exa8_Man_t * p, int fCompl )
 {
     int i, k, iVar;
-    printf( "Realization of given %d-input function using %d %d-input LUTs:\n", p->nVars, p->nNodes, p->nLutSize );
+    fprintf( Abc_FrameGlobalGetOut(), "Realization of given %d-input function using %d %d-input LUTs:\n", p->nVars, p->nNodes, p->nLutSize );
     for ( i = p->nObjs - 1; i >= p->nVars; i-- )
     {
         int Val, iVarStart = 1 + p->LutMask*(i - p->nVars);
-        printf( "%c = %d\'b", 'A'+i-p->nVars, 1 << p->nLutSize );
+        fprintf( Abc_FrameGlobalGetOut(), "%c = %d\'b", 'A'+i-p->nVars, 1 << p->nLutSize );
         for ( k = p->LutMask - 1; k >= 0; k-- )
         {
             Val = Exa8_KissatVarValue(p, iVarStart+k); 
             if ( i == p->nObjs - 1 && fCompl )
-                printf( "%d", !Val );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", !Val );
             else
-                printf( "%d", Val );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", Val );
         }
         if ( i == p->nObjs - 1 && fCompl )
-            printf( "1(" );
+            fprintf( Abc_FrameGlobalGetOut(), "1(" );
         else
-            printf( "0(" );
+            fprintf( Abc_FrameGlobalGetOut(), "0(" );
 
         for ( k = p->nLutSize - 1; k >= 0; k-- )
         {
             iVar = Exa8_ManFindFanin( p, i, k );
             if ( iVar >= 0 && iVar < p->nVars )
-                printf( " %c", 'a'+iVar );
+                fprintf( Abc_FrameGlobalGetOut(), " %c", 'a'+iVar );
             else
-                printf( " %c", 'A'+iVar-p->nVars );
+                fprintf( Abc_FrameGlobalGetOut(), " %c", 'A'+iVar-p->nVars );
         }
-        printf( " )\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " )\n" );
     }
 }
 static void Exa8_ManPrintPerm( Exa8_Man_t * p )
@@ -476,12 +476,12 @@ static void Exa8_ManPrintPerm( Exa8_Man_t * p )
     for ( i = p->nVars; i < p->nObjs; i++ )
     {
         if ( i > p->nVars )
-            printf( "_" );
+            fprintf( Abc_FrameGlobalGetOut(), "_" );
         for ( k = p->nLutSize - 1; k >= 0; k-- )
         {
             iVar = Exa8_ManFindFanin( p, i, k );
             if ( iVar >= 0 && iVar < p->nVars )
-                printf( "%c", 'a'+iVar );
+                fprintf( Abc_FrameGlobalGetOut(), "%c", 'a'+iVar );
         }
     }
 }
@@ -516,7 +516,7 @@ static int Exa8_ManDumpCascadeVerilog( Exa8_Man_t * p, int fCompl )
     if ( p->nLutSize > 6 )
     {
         if ( !p->pPars->fSilent )
-            printf( "Vivado LUT cascade dumping supports only LUTs with up to 6 inputs. Falling back to BLIF dumping.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Vivado LUT cascade dumping supports only LUTs with up to 6 inputs. Falling back to BLIF dumping.\n" );
         return 0;
     }
     Exa8_ManDumpVerilogName( p, pBase );
@@ -575,7 +575,7 @@ static int Exa8_ManDumpCascadeVerilog( Exa8_Man_t * p, int fCompl )
     fprintf( pFile, "endmodule\n\n" );
     fclose( pFile );
     if ( !p->pPars->fSilent )
-        printf( "Finished dumping the resulting LUT cascade into file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished dumping the resulting LUT cascade into file \"%s\".\n", pFileName );
     return 1;
 }
 static int Exa8_ManDumpVerilog( Exa8_Man_t * p, int fCompl )
@@ -588,7 +588,7 @@ static int Exa8_ManDumpVerilog( Exa8_Man_t * p, int fCompl )
     if ( p->nLutSize > 6 )
     {
         if ( !p->pPars->fSilent )
-            printf( "Vivado LUT dumping supports only LUTs with up to 6 inputs. Skipping Verilog dump.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Vivado LUT dumping supports only LUTs with up to 6 inputs. Skipping Verilog dump.\n" );
         return 0;
     }
     Exa8_ManDumpVerilogName( p, pBase );
@@ -637,7 +637,7 @@ static int Exa8_ManDumpVerilog( Exa8_Man_t * p, int fCompl )
     fprintf( pFile, "endmodule\n\n" );
     fclose( pFile );
     if ( !p->pPars->fSilent )
-        printf( "Finished dumping the resulting LUT network into file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished dumping the resulting LUT network into file \"%s\".\n", pFileName );
     return 1;
 }
 
@@ -698,7 +698,7 @@ static void Exa8_ManDumpBlif( Exa8_Man_t * p, int fCompl )
     }
     fprintf( pFile, ".end\n\n" );
     fclose( pFile );
-    if ( !p->pPars->fSilent ) printf( "Finished dumping the resulting LUT network into file \"%s\".\n", pFileName );
+    if ( !p->pPars->fSilent ) fprintf( Abc_FrameGlobalGetOut(), "Finished dumping the resulting LUT network into file \"%s\".\n", pFileName );
     ABC_FREE( pStr );
 }
 
@@ -804,7 +804,7 @@ static int Exa8_ManAddCnfStart( Exa8_Man_t * p, int fOnlyAnd )
             Vec_IntForEachEntry( vLevel, Var, k ) {
                 if ( Var < 0 ) continue;
                 if ( p->VarMarks[p->nVars+i][p->nLutSize-1-k][Var] == 0 ) {
-                    printf( "Skipping variable %d in place %d because it cannot be constrained.\n", Var, k );
+                    fprintf( Abc_FrameGlobalGetOut(), "Skipping variable %d in place %d because it cannot be constrained.\n", Var, k );
                     continue;
                 }
                 pLits[0] = Abc_Var2Lit( p->VarMarks[p->nVars+i][p->nLutSize-1-k][Var], 0 ); assert(pLits[0]);
@@ -893,19 +893,19 @@ int Exa8_ManExactSynthesis( Bmc_EsPar_t * pPars )
         word * pFun = Abc_TtSymFunGenerate( pPars->pSymStr, pPars->nVars );
         pPars->pTtStr = ABC_CALLOC( char, pPars->nVars > 2 ? (1 << (pPars->nVars-2)) + 1 : 2 );
         Extra_PrintHexadecimalString( pPars->pTtStr, (unsigned *)pFun, pPars->nVars );
-        if ( !pPars->fSilent && pPars->nVars <= 7 ) printf( "Generated symmetric function: %s\n", pPars->pTtStr );
+        if ( !pPars->fSilent && pPars->nVars <= 7 ) fprintf( Abc_FrameGlobalGetOut(), "Generated symmetric function: %s\n", pPars->pTtStr );
         ABC_FREE( pFun );
     }
     if ( pPars->pTtStr )
         Abc_TtReadHex( pTruth, pPars->pTtStr );
     else assert( 0 );
     if ( pPars->fUseIncr && !pPars->fSilent )
-        printf( "Warning: Ignoring incremental option when using Kissat.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Ignoring incremental option when using Kissat.\n" );
     pPars->fUseIncr = 0;
     p = Exa8_ManAlloc( pPars, pTruth );
     if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, p->nWords ); }
     if ( !pPars->fSilent ) 
-        printf( "Running exact synthesis for %d-input function with %d %d-input LUTs...\n", p->nVars, p->nNodes, p->nLutSize );
+        fprintf( Abc_FrameGlobalGetOut(), "Running exact synthesis for %d-input function with %d %d-input LUTs...\n", p->nVars, p->nNodes, p->nLutSize );
     if ( Exa8_ManAddCnfStart( p, pPars->fOnlyAnd ) )
     {
         int nMints = 1 << p->nVars;
@@ -938,11 +938,11 @@ int Exa8_ManExactSynthesis( Bmc_EsPar_t * pPars )
     {
         int DiffMint = Exa8_ManEval( p );
         if ( DiffMint != -1 )
-            printf( "Warning: Verification detected a mismatch at minterm %d.\n", DiffMint );
+            fprintf( Abc_FrameGlobalGetOut(), "Warning: Verification detected a mismatch at minterm %d.\n", DiffMint );
         Exa8_ManPrintSolution( p, fCompl );
-        printf( "The variable permutation is \"" );
+        fprintf( Abc_FrameGlobalGetOut(), "The variable permutation is \"" );
         Exa8_ManPrintPerm(p);
-        printf( "\".\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\".\n" );
         if ( pPars->fDumpBlif )
         {
             Exa8_ManDumpBlif( p, fCompl );
@@ -961,17 +961,17 @@ int Exa8_ManExactSynthesis( Bmc_EsPar_t * pPars )
     else if ( status == KISSAT_UNSAT )
     {
         if ( !p->pPars->fSilent )
-            printf( "The problem has no solution.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The problem has no solution.\n" );
         Res = 2;
     }
     else
     {
         Res = 0;
         if ( pPars->RuntimeLim )
-            printf( "The solver timed out after %d sec.\n", pPars->RuntimeLim );
+            fprintf( Abc_FrameGlobalGetOut(), "The solver timed out after %d sec.\n", pPars->RuntimeLim );
     }
     if ( !pPars->fSilent && (p->nUsed[0] || p->nUsed[1]) )
-        printf( "Added = %d.  Tried = %d.  ", p->nUsed[1], p->nUsed[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "Added = %d.  Tried = %d.  ", p->nUsed[1], p->nUsed[0] );
     if ( !pPars->fSilent )
         Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
     if ( pPars->pSymStr ) 
@@ -988,7 +988,7 @@ int Exa8_ManExactSynthesisIter( Bmc_EsPar_t * pPars )
     int nNodeMax = pPars->nNodes, Result = 0;
     int fGenPerm = pPars->pPermStr == NULL;
     for ( int n = nNodeMin; n <= nNodeMax; n++ ) {
-        if ( !pPars->fSilent ) printf( "\nTrying M = %d:\n", n );
+        if ( !pPars->fSilent ) fprintf( Abc_FrameGlobalGetOut(), "\nTrying M = %d:\n", n );
         pPars->nNodes = n;
         if ( !pPars->fUsePerm && fGenPerm ) {
             Vec_Str_t * vStr = Vec_StrAlloc( 100 );
@@ -1053,7 +1053,7 @@ int Exa8_ManExactSynthesisIter( Bmc_EsPar_t * pPars )
             Vec_StrFree( vStr );
         }
         Result = Exa8_ManExactSynthesis(pPars);
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
         if ( Result == 1 )
             break;
     }
@@ -1096,7 +1096,7 @@ Vec_Ptr_t * Exa8_ManExactSynthesisPopcount( int nVars, int nLutSize, int fVerbos
         pPars->pSymStr = pBuffer;
         int status = Exa8_ManExactSynthesisIter( pPars );
         if ( status != 1 ) {
-            printf( "Synthesis failed for output %d.\n", o );
+            fprintf( Abc_FrameGlobalGetOut(), "Synthesis failed for output %d.\n", o );
             break;
         }
         Vec_PtrPush( vRes, pPars->vTruths );

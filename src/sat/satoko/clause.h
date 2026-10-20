@@ -53,10 +53,10 @@ static inline int clause_compare(const void *p1, const void *p2)
 static inline void clause_print(struct clause *clause)
 {
     unsigned i;
-    printf("{ ");
+    fprintf( Abc_FrameGlobalGetOut(), "{ " );
     for (i = 0; i < clause->size; i++)
-        printf("%u ", clause->data[i].lit);
-    printf("}\n");
+        fprintf( Abc_FrameGlobalGetOut(), "%u ", clause->data[i].lit );
+    fprintf( Abc_FrameGlobalGetOut(), "}\n" );
 }
 
 static inline void clause_dump(FILE *file, struct clause *clause, int no_zero_var) 

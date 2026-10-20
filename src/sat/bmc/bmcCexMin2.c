@@ -100,7 +100,7 @@ int Gia_ManAnnotateUnrolling( Gia_Man_t * p, Abc_Cex_t * pCex, int fJustMax )
     // check the output value
     RetValue = Gia_ManPo(p, pCex->iPo)->fMark0;
     if ( RetValue != 1 )
-        printf( "Counter-example is invalid.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Counter-example is invalid.\n" );
     // assign justification to nodes
     Gia_ManCleanMark0(p);
     pObj = Gia_ManPo(p, pCex->iPo);
@@ -331,7 +331,7 @@ Abc_Cex_t * Gia_ManCexMin( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int
     if ( nRealPis >= 0 ) // refinement
     {
         pNew = Gia_ManCreateUnate( p, pCex, iFrameStart, nRealPis, fUseAll );
-        printf( "%3d : ", iFrameStart );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : ", iFrameStart );
         Gia_ManPrintStats( pNew, NULL );
         if ( fVerbose )
             Gia_AigerWrite( pNew, "temp.aig", 0, 0, 0 );
@@ -342,7 +342,7 @@ Abc_Cex_t * Gia_ManCexMin( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrameStart, int
         for ( f = pCex->iFrame; f >= iFrameStart; f-- )
         {
             pNew = Gia_ManCreateUnate( p, pCex, f, -1, fUseAll );
-            printf( "%3d : ", f );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d : ", f );
             Gia_ManPrintStats( pNew, NULL );
             if ( fVerbose )
                 Gia_AigerWrite( pNew, "temp.aig", 0, 0, 0 );

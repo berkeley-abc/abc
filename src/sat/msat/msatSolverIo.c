@@ -47,22 +47,22 @@ static void Msat_TimeStamp( char * Buffer );
 void Msat_SolverPrintAssignment( Msat_Solver_t * p )
 {
     int i;
-    printf( "Current assignments are: \n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Current assignments are: \n" );
     for ( i = 0; i < p->nVars; i++ )
-        printf( "%d", i % 10 );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", i % 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( i = 0; i < p->nVars; i++ )
         if ( p->pAssigns[i] == MSAT_VAR_UNASSIGNED )
-            printf( "." );
+            fprintf( Abc_FrameGlobalGetOut(), "." );
         else
         {
             assert( i == MSAT_LIT2VAR(p->pAssigns[i]) );
             if ( MSAT_LITSIGN(p->pAssigns[i]) )
-                printf( "0" );
+                fprintf( Abc_FrameGlobalGetOut(), "0" );
             else 
-                printf( "1" );
+                fprintf( Abc_FrameGlobalGetOut(), "1" );
         }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -81,27 +81,27 @@ void Msat_SolverPrintClauses( Msat_Solver_t * p )
     Msat_Clause_t ** pClauses;
     int nClauses, i;
 
-    printf( "Original clauses: \n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Original clauses: \n" );
     nClauses = Msat_ClauseVecReadSize( p->vClauses );
     pClauses = Msat_ClauseVecReadArray( p->vClauses );
     for ( i = 0; i < nClauses; i++ )
     {
-        printf( "%3d: ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d: ", i );
         Msat_ClausePrint( pClauses[i] );
     }
 
-    printf( "Learned clauses: \n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Learned clauses: \n" );
     nClauses = Msat_ClauseVecReadSize( p->vLearned );
     pClauses = Msat_ClauseVecReadArray( p->vLearned );
     for ( i = 0; i < nClauses; i++ )
     {
-        printf( "%3d: ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d: ", i );
         Msat_ClausePrint( pClauses[i] );
     }
 
-    printf( "Variable activity: \n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Variable activity: \n" );
     for ( i = 0; i < p->nVars; i++ )
-        printf( "%3d : %.4f\n", i, p->pdActivity[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : %.4f\n", i, p->pdActivity[i] );
 }
 
 /**Function*************************************************************

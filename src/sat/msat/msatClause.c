@@ -469,15 +469,15 @@ void Msat_ClausePrint( Msat_Clause_t * pC )
 {
     int i;
     if ( pC == NULL )
-        printf( "NULL pointer" );
+        fprintf( Abc_FrameGlobalGetOut(), "NULL pointer" );
     else 
     {
         if ( pC->fLearned )
-            printf( "Act = %.4f  ", Msat_ClauseReadActivity(pC) );
+            fprintf( Abc_FrameGlobalGetOut(), "Act = %.4f  ", Msat_ClauseReadActivity(pC) );
         for ( i = 0; i < (int)pC->nSize; i++ )
-            printf( " %s%d", ((pC->pData[i]&1)? "-": ""),  pC->pData[i]/2 + 1 );
+            fprintf( Abc_FrameGlobalGetOut(), " %s%d", ((pC->pData[i]&1)? "-": ""),  pC->pData[i]/2 + 1 );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -516,15 +516,15 @@ void Msat_ClausePrintSymbols( Msat_Clause_t * pC )
 {
     int i;
     if ( pC == NULL )
-        printf( "NULL pointer" );
+        fprintf( Abc_FrameGlobalGetOut(), "NULL pointer" );
     else 
     {
 //        if ( pC->fLearned )
 //            printf( "Act = %.4f  ", Msat_ClauseReadActivity(pC) );
         for ( i = 0; i < (int)pC->nSize; i++ )
-            printf(" " L_LIT, L_lit(pC->pData[i]));
+            fprintf( Abc_FrameGlobalGetOut(), " " L_LIT, L_lit(pC->pData[i]));
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 

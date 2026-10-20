@@ -237,10 +237,10 @@ void Options::usage () {
   // We prefer the macro iteration here since '[VLH]' might be '1e9' etc.
 #define OPTION(N, V, L, H, O, P, R, D) \
   if ((L) == 0 && (H) == 1) \
-    printf ("  %-26s " D " [%s]\n", "--" #N "=bool", \
+    fprintf ( Abc_FrameGlobalGetOut(), "  %-26s " D " [%s]\n", "--" #N "=bool", \
             (bool) (V) ? "true" : "false"); \
   else \
-    printf ("  %-26s " D " [" #V "]\n", "--" #N "=" #L ".." #H);
+    fprintf ( Abc_FrameGlobalGetOut(), "  %-26s " D " [" #V "]\n", "--" #N "=" #L ".." #H);
   OPTIONS
 #undef OPTION
 }

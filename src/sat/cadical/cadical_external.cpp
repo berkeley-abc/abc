@@ -733,10 +733,10 @@ void External::check_assignment (int (External::*a) (int) const) {
     if (!lit) {
       if (!satisfied) {
         fatal_message_start ();
-        fputs ("unsatisfied clause:\n", stderr);
+        fputs ("unsatisfied clause:\n", Abc_FrameGlobalGetErr());
         for (auto j = start; j != i; j++)
-          fprintf (stderr, "%d ", *j);
-        fputc ('0', stderr);
+          fprintf( Abc_FrameGlobalGetErr(),  "%d ", *j);
+        fputc( '0', Abc_FrameGlobalGetErr() );
         fatal_message_end ();
       }
       satisfied = false;
@@ -782,10 +782,10 @@ void External::check_assignment (int (External::*a) (int) const) {
 
     if (!satisfied) {
       fatal_message_start ();
-      fputs ("unsatisfied external forgettable clause:\n", stderr);
+      fputs ("unsatisfied external forgettable clause:\n", Abc_FrameGlobalGetErr());
       for (size_t j = 1; j < forgettables.second.size (); j++)
-        fprintf (stderr, "%d ", forgettables.second[j]);
-      fputc ('0', stderr);
+        fprintf( Abc_FrameGlobalGetErr(),  "%d ", forgettables.second[j]);
+      fputc( '0', Abc_FrameGlobalGetErr() );
       fatal_message_end ();
     }
   }

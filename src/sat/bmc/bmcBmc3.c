@@ -1581,7 +1581,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
             if ( p->pPars->fUseBridge )
                 Saig_ManForEachPo( pAig, pObj, i )
                     if ( !(p->vCexes && Vec_PtrEntry(p->vCexes, i)) && !(p->pTime4Outs && p->pTime4Outs[i] == 0) ) // not SAT and not timed out
-                        Gia_ManToBridgeResult( stdout, 1, NULL, i );
+                        Gia_ManToBridgeResult( Abc_FrameGlobalGetOut(), 1, NULL, i );
             RetValue = pPars->nFailOuts ? 0 : 1;
             goto finish;
         }
@@ -1754,7 +1754,7 @@ nTimeUnsat += clkSatRun;
                     }
                 }
                 if ( p->pPars->fUseBridge )
-                    Gia_ManReportProgress( stdout, i, f );
+                    Gia_ManReportProgress( Abc_FrameGlobalGetOut(), i, f );
             }
             else if ( status == l_True )
             {
@@ -1782,7 +1782,7 @@ nTimeSat += clkSatRun;
 //                        Abc_Print( 1, "S =%6d. ", p->nBufNum );
 //                        Abc_Print( 1, "D =%6d. ", p->nDupNum );
                         Abc_Print( 1, "\n" );
-                        fflush( stdout );
+                        fflush( Abc_FrameGlobalGetOut() );
                     }
                     ABC_FREE( pAig->pSeqModel );
                     pAig->pSeqModel = Saig_ManGenerateCex( p, f, i );
@@ -1798,7 +1798,7 @@ nTimeSat += clkSatRun;
                 pCexNew0 = NULL;
                 if ( p->pPars->fUseBridge )
                 {
-                    Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
+                    Gia_ManToBridgeResult( Abc_FrameGlobalGetOut(), 0, pCexNew, pCexNew->iPo );
                     //Abc_CexFree( pCexNew );
                     pCexNew0 = pCexNew; 
                     pCexNew = (Abc_Cex_t *)(ABC_PTRINT_T)1;
@@ -1866,7 +1866,7 @@ nTimeSat += clkSatRun;
                     {
                         // set the output number
                         pCexNew0->iPo = k;
-                        Gia_ManToBridgeResult( stdout, 0, pCexNew0, pCexNew0->iPo );
+                        Gia_ManToBridgeResult( Abc_FrameGlobalGetOut(), 0, pCexNew0, pCexNew0->iPo );
                     }
                     // remember solved output
                     //Vec_PtrWriteEntry( p->vCexes, k, Abc_CexDup(pCexNew, Saig_ManRegNum(pAig)) );
@@ -1923,7 +1923,7 @@ nTimeUndec += clkSatRun;
 //            Abc_Print( 1, "Simples = %6d. ", p->nBufNum );
 //            Abc_Print( 1, "Dups = %6d. ", p->nDupNum );
             Abc_Print( 1, "\n" );
-            fflush( stdout );
+            fflush( Abc_FrameGlobalGetOut() );
         }
     }
     // consider the next timeframe
@@ -1943,7 +1943,7 @@ finish:
         Abc_Print( 1, "\n" );
     }
     Saig_Bmc3ManStop( p );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
     if ( pLogFile )
         fclose( pLogFile );
     return RetValue;

@@ -40,13 +40,13 @@ void printStats(Solver& solver)
 {
     double cpu_time = cpuTime();
     double mem_used = memUsedPeak();
-    printf("restarts              : %-12.0f\n",                                (double)(int64_t)solver.starts);
-    printf("conflicts             : %-12.0f  (%.0f /sec)\n",                   (double)(int64_t)solver.conflicts,    (double)(int64_t)solver.conflicts / cpu_time);
-    printf("decisions             : %-12.0f  (%4.2f %% random) (%.0f /sec)\n", (double)(int64_t)solver.decisions,    (double)(int64_t)solver.rnd_decisions*100 / (double)(int64_t)solver.decisions, (double)(int64_t)solver.decisions / cpu_time);
-    printf("propagations          : %-12.0f  (%.0f /sec)\n",                   (double)(int64_t)solver.propagations, (double)(int64_t)solver.propagations / cpu_time);
-    printf("conflict literals     : %-12.0f  (%4.2f %% deleted)\n",            (double)(int64_t)solver.tot_literals, (double)(int64_t)(solver.max_literals - solver.tot_literals)*100 / (double)(int64_t)solver.max_literals);
-    if (mem_used != 0) printf("Memory used           : %.2f MB\n", mem_used);
-    printf("CPU time              : %g s\n", cpu_time);
+    fprintf( Abc_FrameGlobalGetOut(), "restarts              : %-12.0f\n",                                (double)(int64_t)solver.starts );
+    fprintf( Abc_FrameGlobalGetOut(), "conflicts             : %-12.0f  (%.0f /sec)\n",                   (double)(int64_t)solver.conflicts,    (double)(int64_t)solver.conflicts / cpu_time );
+    fprintf( Abc_FrameGlobalGetOut(), "decisions             : %-12.0f  (%4.2f %% random) (%.0f /sec)\n", (double)(int64_t)solver.decisions,    (double)(int64_t)solver.rnd_decisions*100 / (double)(int64_t)solver.decisions, (double)(int64_t)solver.decisions / cpu_time );
+    fprintf( Abc_FrameGlobalGetOut(), "propagations          : %-12.0f  (%.0f /sec)\n",                   (double)(int64_t)solver.propagations, (double)(int64_t)solver.propagations / cpu_time );
+    fprintf( Abc_FrameGlobalGetOut(), "conflict literals     : %-12.0f  (%4.2f %% deleted)\n",            (double)(int64_t)solver.tot_literals, (double)(int64_t)(solver.max_literals - solver.tot_literals)*100 / (double)(int64_t)solver.max_literals );
+    if (mem_used != 0) fprintf( Abc_FrameGlobalGetOut(), "Memory used           : %.2f MB\n", mem_used );
+    fprintf( Abc_FrameGlobalGetOut(), "CPU time              : %g s\n", cpu_time );
 }
 
 
@@ -59,10 +59,10 @@ static void SIGINT_interrupt(int signum) { solver->interrupt(); }
 // destructors and may cause deadlocks if a malloc/free function happens to be running (these
 // functions are guarded by locks for multithreaded use).
 static void SIGINT_exit(int signum) {
-    printf("\n"); printf("*** INTERRUPTED ***\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\n" ); fprintf( Abc_FrameGlobalGetOut(), "*** INTERRUPTED ***\n" );
     if (solver->verbosity > 0){
         printStats(*solver);
-        printf("\n"); printf("*** INTERRUPTED ***\n"); }
+        fprintf( Abc_FrameGlobalGetOut(), "\n" ); fprintf( Abc_FrameGlobalGetOut(), "*** INTERRUPTED ***\n" ); }
     _exit(1); }
 
 
@@ -79,7 +79,7 @@ extern "C" int MainSat(int argc, char** argv)
 #if defined(__linux__)
         fpu_control_t oldcw, newcw;
         _FPU_GETCW(oldcw); newcw = (oldcw & ~_FPU_EXTENDED) | _FPU_DOUBLE; _FPU_SETCW(newcw);
-        printf("WARNING: for repeatability, setting FPU to use double precision\n");
+        fprintf( Abc_FrameGlobalGetOut(), "WARNING: for repeatability, setting FPU to use double precision\n" );
 #endif
         // Extra options:
         //
@@ -125,30 +125,30 @@ extern "C" int MainSat(int argc, char** argv)
 */        
         if (argc == 1)
         {
-            printf("Reading from standard input... Use '--help' for help.\n");
+            fprintf( Abc_FrameGlobalGetOut(), "Reading from standard input... Use '--help' for help.\n" );
             return 1;
         }
         
         gzFile in = (argc == 1) ? gzdopen(0, "rb") : gzopen(argv[1], "rb");
         if (in == NULL)
-            printf("ERROR! Could not open file: %s\n", argc == 1 ? "<stdin>" : argv[1]), exit(1);
+            fprintf( Abc_FrameGlobalGetOut(), "ERROR! Could not open file: %s\n", argc == 1 ? "<stdin>" : argv[1] ), exit(1);
         
         if (S.verbosity > 0){
-            printf("============================[ Problem Statistics ]=============================\n");
-            printf("|                                                                             |\n"); }
+            fprintf( Abc_FrameGlobalGetOut(), "============================[ Problem Statistics ]=============================\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "|                                                                             |\n" ); }
         
         parse_DIMACS(in, S);
         gzclose(in);
         FILE* res = (argc >= 3) ? fopen(argv[2], "wb") : NULL;
         
         if (S.verbosity > 0){
-            printf("|  Number of variables:  %12d                                         |\n", S.nVars());
-            printf("|  Number of clauses:    %12d                                         |\n", S.nClauses()); }
+            fprintf( Abc_FrameGlobalGetOut(), "|  Number of variables:  %12d                                         |\n", S.nVars() );
+            fprintf( Abc_FrameGlobalGetOut(), "|  Number of clauses:    %12d                                         |\n", S.nClauses() ); }
         
         double parsed_time = cpuTime();
         if (S.verbosity > 0){
-            printf("|  Parse time:           %12.2f s                                       |\n", parsed_time - initial_time);
-            printf("|                                                                             |\n"); }
+            fprintf( Abc_FrameGlobalGetOut(), "|  Parse time:           %12.2f s                                       |\n", parsed_time - initial_time );
+            fprintf( Abc_FrameGlobalGetOut(), "|                                                                             |\n" ); }
  
         // Change to signal-handlers that will only notify the solver and allow it to terminate
         // voluntarily:
@@ -158,11 +158,11 @@ extern "C" int MainSat(int argc, char** argv)
         if (!S.simplify()){
             if (res != NULL) fprintf(res, "UNSAT\n"), fclose(res);
             if (S.verbosity > 0){
-                printf("===============================================================================\n");
-                printf("Solved by unit propagation\n");
+                fprintf( Abc_FrameGlobalGetOut(), "===============================================================================\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Solved by unit propagation\n" );
                 printStats(S);
-                printf("\n"); }
-            printf("UNSATISFIABLE\n");
+                fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
+            fprintf( Abc_FrameGlobalGetOut(), "UNSATISFIABLE\n" );
             exit(20);
         }
         
@@ -170,8 +170,8 @@ extern "C" int MainSat(int argc, char** argv)
         lbool ret = S.solveLimited(dummy);
         if (S.verbosity > 0){
             printStats(S);
-            printf("\n"); }
-        printf(ret == l_True ? "SATISFIABLE\n" : ret == l_False ? "UNSATISFIABLE\n" : "INDETERMINATE\n");
+            fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
+        fprintf( Abc_FrameGlobalGetOut(), ret == l_True ? "SATISFIABLE\n" : ret == l_False ? "UNSATISFIABLE\n" : "INDETERMINATE\n" );
         if (res != NULL){
             if (ret == l_True){
                 fprintf(res, "SAT\n");
@@ -192,8 +192,8 @@ extern "C" int MainSat(int argc, char** argv)
         return (ret == l_True ? 10 : ret == l_False ? 20 : 0);
 //#endif
     } catch (OutOfMemoryException&){
-        printf("===============================================================================\n");
-        printf("INDETERMINATE\n");
+        fprintf( Abc_FrameGlobalGetOut(), "===============================================================================\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "INDETERMINATE\n" );
         exit(0);
     }
 }

@@ -234,14 +234,14 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
         *piFrame = nFrames;
     if ( fVerbose )
     {
-        printf( "Running \"bmc\". AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Running \"bmc\". AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 
             Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), Saig_ManRegNum(pAig),
             Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig) );
-        printf( "Time-frames (%d):  PI/PO = %d/%d.  Node = %6d. Lev = %5d.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Time-frames (%d):  PI/PO = %d/%d.  Node = %6d. Lev = %5d.  ", 
             nFrames, Aig_ManCiNum(pFrames), Aig_ManCoNum(pFrames), 
             Aig_ManNodeNum(pFrames), Aig_ManLevelNum(pFrames) );
         ABC_PRT( "Time", Abc_Clock() - clk );
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     // rewrite the timeframes
     if ( fRewrite )
@@ -252,10 +252,10 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
         Aig_ManStop( pAigTemp );
         if ( fVerbose )
         {
-            printf( "Time-frames after rewriting:  Node = %6d. Lev = %5d.  ", 
+            fprintf( Abc_FrameGlobalGetOut(), "Time-frames after rewriting:  Node = %6d. Lev = %5d.  ", 
                 Aig_ManNodeNum(pFrames), Aig_ManLevelNum(pFrames) );
             ABC_PRT( "Time", Abc_Clock() - clk );
-            fflush( stdout );
+            fflush( Abc_FrameGlobalGetOut() );
         }
     }
     // create the SAT solver
@@ -285,17 +285,17 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
     }
     if ( fVerbose )
     {
-        printf( "CNF: Variables = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+        fprintf( Abc_FrameGlobalGetOut(), "CNF: Variables = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
         ABC_PRT( "Time", Abc_Clock() - clk );
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     status = pSat ? sat_solver_simplify(pSat) : 1;
     if ( status == 0 )
     {
         if ( fVerbose )
         {
-            printf( "The BMC problem is trivially UNSAT\n" );
-            fflush( stdout );
+            fprintf( Abc_FrameGlobalGetOut(), "The BMC problem is trivially UNSAT\n" );
+            fflush( Abc_FrameGlobalGetOut() );
         }
     }
     else
@@ -306,7 +306,7 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
             Lit = toLitCond( pCnf->pVarNums[pObj->Id], 0 );
             if ( fVerbose )
             {
-                printf( "Solving output %2d of frame %3d ... \r", 
+                fprintf( Abc_FrameGlobalGetOut(), "Solving output %2d of frame %3d ... \r", 
                     i % Saig_ManPoNum(pAig), i / Saig_ManPoNum(pAig) );
             }
             clk = Abc_Clock();
@@ -316,14 +316,14 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
                 status = sat_solver_solve( pSat, &Lit, &Lit + 1, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
             if ( fVerbose && (i % Saig_ManPoNum(pAig) == Saig_ManPoNum(pAig) - 1) )
             {
-                printf( "Solved %2d outputs of frame %3d.  ", 
+                fprintf( Abc_FrameGlobalGetOut(), "Solved %2d outputs of frame %3d.  ", 
                     Saig_ManPoNum(pAig), i / Saig_ManPoNum(pAig) );
-                printf( "Conf =%8.0f. Imp =%11.0f. ", 
+                fprintf( Abc_FrameGlobalGetOut(), "Conf =%8.0f. Imp =%11.0f. ", 
                     (double)(pSat ? pSat->stats.conflicts    : satoko_conflictnum(pSat2)), 
                     (double)(pSat ? pSat->stats.propagations : satoko_stats(pSat2)->n_propagations) );
                 ABC_PRT( "T", Abc_Clock() - clkPart );
                 clkPart = Abc_Clock();
-                fflush( stdout );
+                fflush( Abc_FrameGlobalGetOut() );
             }
             if ( status == l_False )
             {

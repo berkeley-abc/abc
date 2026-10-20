@@ -1951,7 +1951,7 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
                 (double)s->stats.learnts_literals,
                 (s->stats.learnts == 0)? 0.0 : (double)s->stats.learnts_literals / s->stats.learnts,
                 s->progress_estimate*100);
-            fflush(stdout);
+            fflush( Abc_FrameGlobalGetOut() );
         }
         if ( s->nRuntimeLimit && Abc_Clock() > s->nRuntimeLimit )
             break;

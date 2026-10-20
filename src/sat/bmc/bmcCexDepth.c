@@ -98,7 +98,7 @@ Gia_Man_t * Bmc_CexTarget( Gia_Man_t * p, int nFrames )
     pNew = Bmc_CexTargetEnlarge( p, nFrames );
     for ( i = 0; i < Limit; i++ )
     {
-        printf( "%3d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : ", i );
         if ( i % Gia_ManPiNum(p) == 0 )
             Gia_ManPrintStats( pNew, NULL );
         pNew = Gia_ManDupExist( pTemp = pNew, i );
@@ -298,11 +298,11 @@ Gia_Man_t * Bmc_CexBuildNetwork2Test( Gia_Man_t * p, Abc_Cex_t * pCex, int nFram
     abctime clk = Abc_Clock();
     int i;
     nFramesMax = Abc_MinInt( nFramesMax, pCex->iFrame );
-    printf( "Processing CEX in frame %d (max frames %d).\n", pCex->iFrame, nFramesMax );
+    fprintf( Abc_FrameGlobalGetOut(), "Processing CEX in frame %d (max frames %d).\n", pCex->iFrame, nFramesMax );
     vCones = Vec_PtrAlloc( nFramesMax );
     for ( i = pCex->iFrame; i > pCex->iFrame - nFramesMax; i-- )
     {
-        printf( "Frame %5d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Frame %5d : ", i );
         pNew = Bmc_CexBuildNetwork2_( p, pCex, i );
         Gia_ManPrintStats( pNew, NULL );
         Vec_PtrPush( vCones, pNew );
@@ -313,7 +313,7 @@ Gia_Man_t * Bmc_CexBuildNetwork2Test( Gia_Man_t * p, Abc_Cex_t * pCex, int nFram
     Vec_PtrForEachEntry( Gia_Man_t *, vCones, pTemp, i )
         Gia_ManStop( pTemp );
     Vec_PtrFree( vCones );
-    printf( "GIA with additional properties is written into \"miter2.aig\".\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "GIA with additional properties is written into \"miter2.aig\".\n" );
 //    printf( "CE-induced network is written into file \"unate.aig\".\n" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 //    Gia_ManStop( pNew );
@@ -342,7 +342,7 @@ Gia_Man_t * Bmc_CexDepthTest( Gia_Man_t * p, Abc_Cex_t * pCex, int nFrames, int 
 //    Abc_Cex_t * pCexEss, * pCexMin;
 
     if ( !Bmc_CexVerify( p, pCex, pCexCare ) )
-        printf( "Counter-example care-set verification has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Counter-example care-set verification has failed.\n" );
 
 //    pCexEss = Bmc_CexEssentialBits( p, pCexStates, pCexCare, fVerbose );
 //    pCexMin = Bmc_CexCareBits( p, pCexStates, pCexImpl, pCexEss, 0, fVerbose );

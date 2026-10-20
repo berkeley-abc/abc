@@ -115,10 +115,10 @@ Cnf_Cut_t * Cnf_CutCreate( Cnf_Man_t * p, Aig_Obj_t * pObj )
 void Cnf_CutPrint( Cnf_Cut_t * pCut )
 {
     int i;
-    printf( "{" );
+    fprintf( Abc_FrameGlobalGetOut(), "{" );
     for ( i = 0; i < pCut->nFanins; i++ )
-        printf( "%d ", pCut->pFanins[i] );
-    printf( " } " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", pCut->pFanins[i] );
+    fprintf( Abc_FrameGlobalGetOut(), " } " );
 }
 
 /**Function*************************************************************

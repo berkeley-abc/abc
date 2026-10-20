@@ -151,7 +151,7 @@ Vec_Int_t * Gia_ManMaxiPerform( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, i
     Gia_ManStop( p1 );
     assert( Gia_ManRegNum(p) > 0 );
     if ( fVerbose )
-        printf( "Running with %d frames and %sgiven init state.\n", nFrames, vInit ? "":"no " );
+        fprintf( Abc_FrameGlobalGetOut(), "Running with %d frames and %sgiven init state.\n", nFrames, vInit ? "":"no " );
 
     pSat = sat_solver_new();
     sat_solver_setnvars( pSat, pCnf->nVars );
@@ -176,11 +176,11 @@ Vec_Int_t * Gia_ManMaxiPerform( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, i
 
     if ( fVerbose )
     {
-        printf( "Iter%6d : ",       0 );
-        printf( "Var =%10d  ",      sat_solver_nvars(pSat) );
-        printf( "Clause =%10d  ",   sat_solver_nclauses(pSat) );
-        printf( "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
-        printf( "Subset =%6d  ",    Vec_IntSize(vLits) );
+        fprintf( Abc_FrameGlobalGetOut(), "Iter%6d : ",       0 );
+        fprintf( Abc_FrameGlobalGetOut(), "Var =%10d  ",      sat_solver_nvars(pSat) );
+        fprintf( Abc_FrameGlobalGetOut(), "Clause =%10d  ",   sat_solver_nclauses(pSat) );
+        fprintf( Abc_FrameGlobalGetOut(), "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
+        fprintf( Abc_FrameGlobalGetOut(), "Subset =%6d  ",    Vec_IntSize(vLits) );
         Abc_PrintTime( 1, "Time", clkSat );
 //      ABC_PRTr( "Solver time", clkSat );
     }
@@ -193,25 +193,25 @@ Vec_Int_t * Gia_ManMaxiPerform( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, i
         {
 //            if ( fVerbose )
 //                printf( "\n" );
-            printf( "Timeout reached after %d seconds and %d iterations.  ", nTimeOut, Iter );
+            fprintf( Abc_FrameGlobalGetOut(), "Timeout reached after %d seconds and %d iterations.  ", nTimeOut, Iter );
             break;
         }
         if ( status == l_True )
         {
 //            if ( fVerbose )
 //                printf( "\n" );
-            printf( "The problem is SAT after %d iterations.  ", Iter );
+            fprintf( Abc_FrameGlobalGetOut(), "The problem is SAT after %d iterations.  ", Iter );
             break;
         }
         assert( status == l_False );
         nLits = sat_solver_final( pSat, &pLits );
         if ( fVerbose )
         {
-            printf( "Iter%6d : ",       Iter+1 );
-            printf( "Var =%10d  ",      sat_solver_nvars(pSat) );
-            printf( "Clause =%10d  ",   sat_solver_nclauses(pSat) );
-            printf( "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
-            printf( "Subset =%6d  ",    nLits );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter%6d : ",       Iter+1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Var =%10d  ",      sat_solver_nvars(pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Clause =%10d  ",   sat_solver_nclauses(pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Subset =%6d  ",    nLits );
             Abc_PrintTime( 1, "Time", clkSat );
 //            ABC_PRTr( "Solver time", clkSat );
         }
@@ -219,7 +219,7 @@ Vec_Int_t * Gia_ManMaxiPerform( Gia_Man_t * p, Vec_Int_t * vInit, int nFrames, i
         {
 //            if ( fVerbose )
 //                printf( "\n" );
-            printf( "Reached fixed point with %d entries after %d iterations.  ", Vec_IntSize(vLits), Iter+1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Reached fixed point with %d entries after %d iterations.  ", Vec_IntSize(vLits), Iter+1 );
             break;
         }
         // collect used literals

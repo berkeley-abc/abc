@@ -42,30 +42,30 @@ void kissat_solver_test() {
     Lits[0] = Abc_Var2Lit(a, 0);
     Lits[1] = Abc_Var2Lit(b, 0);
     Lits[2] = Abc_Var2Lit(c, 0);
-    printf("adding (a, b, c)\n");
+    fprintf( Abc_FrameGlobalGetOut(), "adding (a, b, c)\n");
     RetValue = kissat_solver_addclause(pSat, Lits, Lits + 3);
     assert(RetValue);
     Lits[0] = Abc_Var2Lit(a, 0);
     Lits[1] = Abc_Var2Lit(b, 1);
-    printf("adding (a, !b)\n");
+    fprintf( Abc_FrameGlobalGetOut(), "adding (a, !b)\n");
     RetValue = kissat_solver_addclause(pSat, Lits, Lits + 2);
     assert(RetValue);
     Lits[0] = Abc_Var2Lit(a, 1);
-    printf("adding (!a)\n");
+    fprintf( Abc_FrameGlobalGetOut(), "adding (!a)\n");
     RetValue = kissat_solver_addclause(pSat, Lits, Lits + 1);
     assert(RetValue);
     RetValue = kissat_solver_solve(pSat, NULL, NULL, 0, 0, 0, 0);
-    printf("solved: %d\n", RetValue);
+    fprintf( Abc_FrameGlobalGetOut(), "solved: %d\n", RetValue);
     assert(RetValue == 1);
     int a_val = kissat_solver_get_var_value(pSat, a);
     int b_val = kissat_solver_get_var_value(pSat, b);
     int c_val = kissat_solver_get_var_value(pSat, c);
-    printf("a = %d, b = %d, c = %d\n", a_val, b_val, c_val);
+    fprintf( Abc_FrameGlobalGetOut(), "a = %d, b = %d, c = %d\n", a_val, b_val, c_val);
     assert(a_val == 0);
     assert(b_val == 0);
     assert(c_val == 1);
     kissat_solver_delete(pSat);
-    printf("test 1 passed\n");
+    fprintf( Abc_FrameGlobalGetOut(), "test 1 passed\n");
   }
   // test 2
   {
@@ -74,27 +74,27 @@ void kissat_solver_test() {
     assert(kissat_solver_nvars(pSat) == 2);
     Lits[0] = Abc_Var2Lit(0, 0);
     Lits[1] = Abc_Var2Lit(1, 0);
-    printf("adding (x0, x1)\n");
+    fprintf( Abc_FrameGlobalGetOut(), "adding (x0, x1)\n");
     RetValue = kissat_solver_addclause(pSat, Lits, Lits + 2);
     assert(RetValue);
     Lits[0] = Abc_Var2Lit(0, 0);
     Lits[1] = Abc_Var2Lit(1, 1);
-    printf("adding (x0, !x1)\n");
+    fprintf( Abc_FrameGlobalGetOut(), "adding (x0, !x1)\n");
     RetValue = kissat_solver_addclause(pSat, Lits, Lits + 2);
     assert(RetValue);
     Lits[0] = Abc_Var2Lit(0, 1);
     Lits[1] = Abc_Var2Lit(1, 1);
-    printf("adding (!x0, !x1)\n");
+    fprintf( Abc_FrameGlobalGetOut(), "adding (!x0, !x1)\n");
     RetValue = kissat_solver_addclause(pSat, Lits, Lits + 2);
     assert(RetValue);
     RetValue = kissat_solver_solve(pSat, NULL, NULL, 0, 0, 0, 0);
-    printf("solved: %d\n", RetValue);
+    fprintf( Abc_FrameGlobalGetOut(), "solved: %d\n", RetValue);
     assert(RetValue == 1);
-    printf("x0 = %d, x1 = %d\n", kissat_solver_get_var_value(pSat, 0), kissat_solver_get_var_value(pSat, 1));
+    fprintf( Abc_FrameGlobalGetOut(), "x0 = %d, x1 = %d\n", kissat_solver_get_var_value(pSat, 0), kissat_solver_get_var_value(pSat, 1));
     assert(kissat_solver_get_var_value(pSat, 0) == 1);
     assert(kissat_solver_get_var_value(pSat, 1) == 0);
     kissat_solver_delete(pSat);
-    printf("test 2 passed\n");
+    fprintf( Abc_FrameGlobalGetOut(), "test 2 passed\n");
   }
   // test 3
   {
@@ -104,25 +104,25 @@ void kissat_solver_test() {
     Lits[0] = Abc_Var2Lit(0, 1);
     Lits[1] = Abc_Var2Lit(1, 0);
     Lits[2] = Abc_Var2Lit(2, 1);
-    printf("adding (!x0, x1, !x2)\n");
+    fprintf( Abc_FrameGlobalGetOut(), "adding (!x0, x1, !x2)\n");
     RetValue = kissat_solver_addclause(pSat, Lits, Lits + 3);
     assert(RetValue);
     Lits[0] = Abc_Var2Lit(0, 0);
-    printf("adding (x0)\n");
+    fprintf( Abc_FrameGlobalGetOut(), "adding (x0)\n");
     RetValue = kissat_solver_addclause(pSat, Lits, Lits + 1);
     assert(RetValue);
     Lits[0] = Abc_Var2Lit(1, 1);
-    printf("adding (!x1)\n");
+    fprintf( Abc_FrameGlobalGetOut(), "adding (!x1)\n");
     RetValue = kissat_solver_addclause(pSat, Lits, Lits + 1);
     assert(RetValue);
     Lits[0] = Abc_Var2Lit(2, 0);
-    printf("adding (x2)\n");
+    fprintf( Abc_FrameGlobalGetOut(), "adding (x2)\n");
     RetValue = kissat_solver_addclause(pSat, Lits, Lits + 1);
     RetValue = kissat_solver_solve(pSat, NULL, NULL, 0, 0, 0, 0);
-    printf("solved: %d\n", RetValue);
+    fprintf( Abc_FrameGlobalGetOut(), "solved: %d\n", RetValue);
     assert(RetValue == -1);
     kissat_solver_delete(pSat);
-    printf("test 3 passed\n");
+    fprintf( Abc_FrameGlobalGetOut(), "test 3 passed\n");
   }
 }
 

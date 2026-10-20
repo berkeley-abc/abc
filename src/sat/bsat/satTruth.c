@@ -247,7 +247,7 @@ Tru_Man_t * Tru_ManAlloc( int nVars )
 ***********************************************************************/
 void Tru_ManFree( Tru_Man_t * p )
 {
-    printf( "Lookups = %d. Entries = %d.\n", p->nTableLookups, Vec_SetEntryNum(p->pMem) );
+    fprintf( Abc_FrameGlobalGetOut(), "Lookups = %d. Entries = %d.\n", p->nTableLookups, Vec_SetEntryNum(p->pMem) );
     Vec_SetFree( p->pMem );
     ABC_FREE( p->pZero );
     ABC_FREE( p->pTable );

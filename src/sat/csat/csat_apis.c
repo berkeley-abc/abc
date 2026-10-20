@@ -191,7 +191,7 @@ int ABC_AddGate( ABC_Manager mng, enum GateType type, char * name, int nofi, cha
     case CSAT_BPI:
     case CSAT_BPPI:
         if ( nofi != 0 )
-            { printf( "ABC_AddGate: The PI/PPI gate \"%s\" has fanins.\n", name ); return 0; }
+            { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddGate: The PI/PPI gate \"%s\" has fanins.\n", name ); return 0; }
         // create the PI
         pObj = Abc_NtkCreatePi( mng->pNtk );
         stmm_insert( mng->tNode2Name, (char *)pObj, name );
@@ -211,7 +211,7 @@ int ABC_AddGate( ABC_Manager mng, enum GateType type, char * name, int nofi, cha
         for ( i = 0; i < nofi; i++ )
         {
             if ( !stmm_lookup( mng->tName2Node, fanins[i], (char **)&pFanin ) )
-                { printf( "ABC_AddGate: The fanin gate \"%s\" is not in the network.\n", fanins[i] ); return 0; }
+                { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddGate: The fanin gate \"%s\" is not in the network.\n", fanins[i] ); return 0; }
             Abc_ObjAddFanin( pObj, pFanin );
         }
         // create the node function
@@ -219,51 +219,51 @@ int ABC_AddGate( ABC_Manager mng, enum GateType type, char * name, int nofi, cha
         {
             case CSAT_CONST:
                 if ( nofi != 0 )
-                    { printf( "ABC_AddGate: The constant gate \"%s\" has fanins.\n", name ); return 0; }
+                    { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddGate: The constant gate \"%s\" has fanins.\n", name ); return 0; }
                 pSop = Abc_SopCreateConst1( (Mem_Flex_t *)mng->pNtk->pManFunc );
                 break;
             case CSAT_BAND:
                 if ( nofi < 1 )
-                    { printf( "ABC_AddGate: The AND gate \"%s\" no fanins.\n", name ); return 0; }
+                    { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddGate: The AND gate \"%s\" no fanins.\n", name ); return 0; }
                 pSop = Abc_SopCreateAnd( (Mem_Flex_t *)mng->pNtk->pManFunc, nofi, NULL );
                 break;
             case CSAT_BNAND:
                 if ( nofi < 1 )
-                    { printf( "ABC_AddGate: The NAND gate \"%s\" no fanins.\n", name ); return 0; }
+                    { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddGate: The NAND gate \"%s\" no fanins.\n", name ); return 0; }
                 pSop = Abc_SopCreateNand( (Mem_Flex_t *)mng->pNtk->pManFunc, nofi );
                 break;
             case CSAT_BOR:
                 if ( nofi < 1 )
-                    { printf( "ABC_AddGate: The OR gate \"%s\" no fanins.\n", name ); return 0; }
+                    { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddGate: The OR gate \"%s\" no fanins.\n", name ); return 0; }
                 pSop = Abc_SopCreateOr( (Mem_Flex_t *)mng->pNtk->pManFunc, nofi, NULL );
                 break;
             case CSAT_BNOR:
                 if ( nofi < 1 )
-                    { printf( "ABC_AddGate: The NOR gate \"%s\" no fanins.\n", name ); return 0; }
+                    { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddGate: The NOR gate \"%s\" no fanins.\n", name ); return 0; }
                 pSop = Abc_SopCreateNor( (Mem_Flex_t *)mng->pNtk->pManFunc, nofi );
                 break;
             case CSAT_BXOR:
                 if ( nofi < 1 )
-                    { printf( "ABC_AddGate: The XOR gate \"%s\" no fanins.\n", name ); return 0; }
+                    { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddGate: The XOR gate \"%s\" no fanins.\n", name ); return 0; }
                 if ( nofi > 2 )
-                    { printf( "ABC_AddGate: The XOR gate \"%s\" has more than two fanins.\n", name ); return 0; }
+                    { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddGate: The XOR gate \"%s\" has more than two fanins.\n", name ); return 0; }
                 pSop = Abc_SopCreateXor( (Mem_Flex_t *)mng->pNtk->pManFunc, nofi );
                 break;
             case CSAT_BXNOR:
                 if ( nofi < 1 )
-                    { printf( "ABC_AddGate: The XNOR gate \"%s\" no fanins.\n", name ); return 0; }
+                    { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddGate: The XNOR gate \"%s\" no fanins.\n", name ); return 0; }
                 if ( nofi > 2 )
-                    { printf( "ABC_AddGate: The XNOR gate \"%s\" has more than two fanins.\n", name ); return 0; }
+                    { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddGate: The XNOR gate \"%s\" has more than two fanins.\n", name ); return 0; }
                 pSop = Abc_SopCreateNxor( (Mem_Flex_t *)mng->pNtk->pManFunc, nofi );
                 break;
             case CSAT_BINV:
                 if ( nofi != 1 )
-                    { printf( "ABC_AddGate: The inverter gate \"%s\" does not have exactly one fanin.\n", name ); return 0; }
+                    { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddGate: The inverter gate \"%s\" does not have exactly one fanin.\n", name ); return 0; }
                 pSop = Abc_SopCreateInv( (Mem_Flex_t *)mng->pNtk->pManFunc );
                 break;
             case CSAT_BBUF:
                 if ( nofi != 1 )
-                    { printf( "ABC_AddGate: The buffer gate \"%s\" does not have exactly one fanin.\n", name ); return 0; }
+                    { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddGate: The buffer gate \"%s\" does not have exactly one fanin.\n", name ); return 0; }
                 pSop = Abc_SopCreateBuf( (Mem_Flex_t *)mng->pNtk->pManFunc );
                 break;
             default :
@@ -274,23 +274,23 @@ int ABC_AddGate( ABC_Manager mng, enum GateType type, char * name, int nofi, cha
     case CSAT_BPPO:
     case CSAT_BPO:
         if ( nofi != 1 )
-            { printf( "ABC_AddGate: The PO/PPO gate \"%s\" does not have exactly one fanin.\n", name ); return 0; }
+            { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddGate: The PO/PPO gate \"%s\" does not have exactly one fanin.\n", name ); return 0; }
         // create the PO
         pObj = Abc_NtkCreatePo( mng->pNtk );
         stmm_insert( mng->tNode2Name, (char *)pObj, name );
         // connect to the PO fanin
         if ( !stmm_lookup( mng->tName2Node, fanins[0], (char **)&pFanin ) )
-            { printf( "ABC_AddGate: The fanin gate \"%s\" is not in the network.\n", fanins[0] ); return 0; }
+            { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddGate: The fanin gate \"%s\" is not in the network.\n", fanins[0] ); return 0; }
         Abc_ObjAddFanin( pObj, pFanin );
         break;
     default:
-        printf( "ABC_AddGate: Unknown gate type.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC_AddGate: Unknown gate type.\n" );
         break;
     }
 
     // map the name into the node
     if ( stmm_insert( mng->tName2Node, name, (char *)pObj ) )
-        { printf( "ABC_AddGate: The same gate \"%s\" is added twice.\n", name ); return 0; }
+        { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddGate: The same gate \"%s\" is added twice.\n", name ); return 0; }
     return 1;
 }
 
@@ -350,7 +350,7 @@ int ABC_Check_Integrity( ABC_Manager mng )
     // make sure everything is okay with the network structure
     if ( !Abc_NtkDoCheck( pNtk ) )
     {
-        printf( "ABC_Check_Integrity: The internal network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC_Check_Integrity: The internal network check has failed.\n" );
         return 0;
     }
     return 1;
@@ -536,7 +536,7 @@ int ABC_AddTarget( ABC_Manager mng, int nog, char ** names, int * values )
     Abc_Obj_t * pObj;
     int i;
     if ( nog < 1 )
-        { printf( "ABC_AddTarget: The target has no gates.\n" ); return 0; }
+        { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddTarget: The target has no gates.\n" ); return 0; }
     // clear storage for the target
     mng->nog = 0;
     Vec_PtrClear( mng->vNodes );
@@ -545,10 +545,10 @@ int ABC_AddTarget( ABC_Manager mng, int nog, char ** names, int * values )
     for ( i = 0; i < nog; i++ )
     {
         if ( !stmm_lookup( mng->tName2Node, names[i], (char **)&pObj ) )
-            { printf( "ABC_AddTarget: The target gate \"%s\" is not in the network.\n", names[i] ); return 0; }
+            { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddTarget: The target gate \"%s\" is not in the network.\n", names[i] ); return 0; }
         Vec_PtrPush( mng->vNodes, pObj );
         if ( values[i] < 0 || values[i] > 1 )
-            { printf( "ABC_AddTarget: The value of gate \"%s\" is not 0 or 1.\n", names[i] ); return 0; }
+            { fprintf( Abc_FrameGlobalGetOut(), "ABC_AddTarget: The value of gate \"%s\" is not 0 or 1.\n", names[i] ); return 0; }
         Vec_IntPush( mng->vValues, values[i] );
     }
     mng->nog = nog;
@@ -572,7 +572,7 @@ void ABC_SolveInit( ABC_Manager mng )
     // check if the target is available
     assert( mng->nog == Vec_PtrSize(mng->vNodes) );
     if ( mng->nog == 0 )
-        { printf( "ABC_SolveInit: Target is not specified by ABC_AddTarget().\n" ); return; }
+        { fprintf( Abc_FrameGlobalGetOut(), "ABC_SolveInit: Target is not specified by ABC_AddTarget().\n" ); return; }
 
     // free the previous target network if present
     if ( mng->pTarget ) Abc_NtkDelete( mng->pTarget );
@@ -615,7 +615,7 @@ enum CSAT_StatusT ABC_Solve( ABC_Manager mng )
 
     // check if the target network is available
     if ( mng->pTarget == NULL )
-        { printf( "ABC_Solve: Target network is not derived by ABC_SolveInit().\n" ); return UNDETERMINED; }
+        { fprintf( Abc_FrameGlobalGetOut(), "ABC_Solve: Target network is not derived by ABC_SolveInit().\n" ); return UNDETERMINED; }
 
     // try to prove the miter using a number of techniques
     if ( mng->mode )
@@ -687,7 +687,7 @@ void ABC_Dump_Bench_File( ABC_Manager mng )
     pNtkTemp = Abc_NtkToNetlistBench( pNtkAig );
     Abc_NtkDelete( pNtkAig );
     if ( pNtkTemp == NULL ) 
-        { printf( "ABC_Dump_Bench_File: Dumping BENCH has failed.\n" ); return; }
+        { fprintf( Abc_FrameGlobalGetOut(), "ABC_Dump_Bench_File: Dumping BENCH has failed.\n" ); return; }
     pFileName = mng->pDumpFileName? mng->pDumpFileName: "abc_test.bench";
     Io_WriteBench( pNtkTemp, pFileName );
     Abc_NtkDelete( pNtkTemp );

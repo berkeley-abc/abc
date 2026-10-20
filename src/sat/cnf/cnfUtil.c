@@ -87,7 +87,7 @@ Vec_Int_t *Cnf_RunSolverOnce(int Id, int Rand, int TimeOut, int fVerbose)
 #else
         if (system(pCommand) == -1) {
 #endif
-            fprintf(stdout, "Command \"%s\" did not succeed.\n", pCommand);
+            fprintf( Abc_FrameGlobalGetOut(), "Command \"%s\" did not succeed.\n", pCommand);
             return 0;
         }
         vRes = Exa4_ManParse(FileNameOut); // FileNameOut is removed here
@@ -95,17 +95,17 @@ Vec_Int_t *Cnf_RunSolverOnce(int Id, int Rand, int TimeOut, int fVerbose)
     if (fVerbose) {
         double SolvingTime = ((double)(Abc_Clock() - clkTotal))/((double)CLOCKS_PER_SEC);
         if (vRes)
-            printf("Problem %2d has a solution. ", Id);
+            fprintf( Abc_FrameGlobalGetOut(), "Problem %2d has a solution. ", Id);
         else if (vRes == NULL && (TimeOut == 0 || SolvingTime < (double)TimeOut))
-            printf("Problem %2d has no solution. ", Id);
+            fprintf( Abc_FrameGlobalGetOut(), "Problem %2d has no solution. ", Id);
         else if (vRes == NULL)
-            printf("Problem %2d has no solution or timed out after %d sec. ", Id, TimeOut);
+            fprintf( Abc_FrameGlobalGetOut(), "Problem %2d has no solution or timed out after %d sec. ", Id, TimeOut);
         Abc_PrintTime(1, "Solving time", Abc_Clock() - clkTotal );
     }
     else if (vRes) {   
-        printf("Problem %2d has a solution. ", Id);
+        fprintf( Abc_FrameGlobalGetOut(), "Problem %2d has a solution. ", Id);
         Abc_PrintTime(1, "Solving time", Abc_Clock() - clkTotal );
-        printf("(Currently waiting for %d sec for other threads to finish.)\n", TimeOut);
+        fprintf( Abc_FrameGlobalGetOut(), "(Currently waiting for %d sec for other threads to finish.)\n", TimeOut);
     }
     return vRes;
 }
@@ -178,8 +178,8 @@ Vec_Int_t *Cnf_RunSolver(int nProcs, int TimeOut, int fVerbose)
     pthread_t WorkerThread[PAR_THR_MAX];
     int i, k, status;
     if (fVerbose)
-        printf("Running concurrent solving with %d processes.\n", nProcs);
-    fflush(stdout);
+        fprintf( Abc_FrameGlobalGetOut(), "Running concurrent solving with %d processes.\n", nProcs);
+    fflush( Abc_FrameGlobalGetOut() );
     if (nProcs < 2)
         return Cnf_RunSolverArray(nProcs, TimeOut, fVerbose);
     // subtract manager thread
@@ -519,7 +519,7 @@ Cnf_Dat_t *Cnf_DataReadFromFile(char *pFileName)
     FILE *pFile = fopen(pFileName, "rb");
     if (pFile == NULL)
     {
-        printf("Cannot open file \"%s\" for writing.\n", pFileName);
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName);
         return NULL;
     }
     pBuffer = ABC_ALLOC(char, MaxLine);
@@ -533,7 +533,7 @@ Cnf_Dat_t *Cnf_DataReadFromFile(char *pFileName)
             pToken = strtok(pBuffer + 1, " \t");
             if (strcmp(pToken, "cnf"))
             {
-                printf("Incorrect input file.\n");
+                fprintf( Abc_FrameGlobalGetOut(), "Incorrect input file.\n");
                 goto finish;
             }
             pToken = strtok(NULL, " \t");
@@ -542,7 +542,7 @@ Cnf_Dat_t *Cnf_DataReadFromFile(char *pFileName)
             nClas = atoi(pToken);
             if (nVars <= 0 || nClas <= 0)
             {
-                printf("Incorrect parameters.\n");
+                fprintf( Abc_FrameGlobalGetOut(), "Incorrect parameters.\n");
                 goto finish;
             }
             // temp storage
@@ -562,7 +562,7 @@ Cnf_Dat_t *Cnf_DataReadFromFile(char *pFileName)
             Lit = (Var > 0) ? Abc_Var2Lit(Var - 1, 0) : Abc_Var2Lit(-Var - 1, 1);
             if (Lit >= 2 * nVars)
             {
-                printf("Literal %d is out-of-bound for %d variables.\n", Lit, nVars);
+                fprintf( Abc_FrameGlobalGetOut(), "Literal %d is out-of-bound for %d variables.\n", Lit, nVars);
                 goto finish;
             }
             Vec_IntPush(vLits, Lit);
@@ -570,13 +570,13 @@ Cnf_Dat_t *Cnf_DataReadFromFile(char *pFileName)
         }
         if (Var != 0)
         {
-            printf("There is no zero-terminator in line %d.\n", iLine);
+            fprintf( Abc_FrameGlobalGetOut(), "There is no zero-terminator in line %d.\n", iLine);
             goto finish;
         }
     }
     // finalize
     if (Vec_IntSize(vClas) != nClas)
-        printf("Warning! The number of clauses (%d) is different from declaration (%d).\n", Vec_IntSize(vClas), nClas);
+        fprintf( Abc_FrameGlobalGetOut(), "Warning! The number of clauses (%d) is different from declaration (%d).\n", Vec_IntSize(vClas), nClas);
     Vec_IntPush(vClas, Vec_IntSize(vLits));
     // create
     pCnf = ABC_CALLOC(Cnf_Dat_t, 1);
@@ -616,14 +616,14 @@ int Cnf_DataSolveFromFile(char *pFileName, int nConfLimit, int nLearnedStart, in
         return -1;
     if (fVerbose)
     {
-        printf("CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals);
+        fprintf( Abc_FrameGlobalGetOut(), "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals);
         Abc_PrintTime(1, "Time", Abc_Clock() - clk);
     }
     // convert into SAT solver
     pSat = (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0);
     if (pSat == NULL)
     {
-        printf("The problem is trivially UNSAT.\n");
+        fprintf( Abc_FrameGlobalGetOut(), "The problem is trivially UNSAT.\n");
         Cnf_DataFree(pCnf);
         return 1;
     }
@@ -649,7 +649,7 @@ int Cnf_DataSolveFromFile(char *pFileName, int nConfLimit, int nLearnedStart, in
     else
         assert(0);
     if (fVerbose)
-        Sat_SolverPrintStats(stdout, pSat);
+        Sat_SolverPrintStats(Abc_FrameGlobalGetOut(), pSat);
     if (RetValue == -1)
         Abc_Print(1, "UNDECIDED      ");
     else if (RetValue == 0)
@@ -668,8 +668,8 @@ int Cnf_DataSolveFromFile(char *pFileName, int nConfLimit, int nLearnedStart, in
     if (RetValue == 0 && fShowPattern)
     {
         for (i = 0; i < pCnf->nVars; i++)
-            printf("%d", sat_solver_var_value(pSat, i));
-        printf("\n");
+            fprintf( Abc_FrameGlobalGetOut(), "%d", sat_solver_var_value(pSat, i));
+        fprintf( Abc_FrameGlobalGetOut(), "\n");
     }
     Cnf_DataFree(pCnf);
     sat_solver_delete(pSat);
@@ -710,7 +710,7 @@ void Cnf_Experiment1()
         char FileName[100];
         sprintf(FileName, "cnf/%03d.cnf", i);
         Cnf_DataWriteIntoFile(p, FileName, 0, NULL, NULL);
-        printf("Dumped file \"%s\".\n", FileName);
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped file \"%s\".\n", FileName);
         p = Cnf_DataDupCof(pTemp = p, Abc_Var2Lit(iVar, 0));
         Cnf_DataFree(pTemp);
         pSkip[iVar] = 1;
@@ -751,7 +751,7 @@ Vec_Int_t *Cnf_GenRandLits(int iVarBeg, int iVarEnd, int nLits, int Value, int R
     Vec_IntSort(vLits, 0);
     if ( fVerbose )
     Vec_IntPrint(vLits);
-    fflush(stdout);
+    fflush( Abc_FrameGlobalGetOut() );
     return vLits;
 }
 void Cnf_SplitCnfFile(char * pFileName, int nParts, int iVarBeg, int iVarEnd, int nLits, int Value, int Rand, int fPrepro, int fVerbose)
@@ -773,7 +773,7 @@ void Cnf_SplitCnfFile(char * pFileName, int nParts, int iVarBeg, int iVarEnd, in
 #else
             if (system(Command) == -1) {
 #endif
-                fprintf(stdout, "Command \"%s\" did not succeed. Preprocessing skipped.\n", Command);
+                fprintf( Abc_FrameGlobalGetOut(), "Command \"%s\" did not succeed. Preprocessing skipped.\n", Command);
                 Cnf_DataWriteIntoFile(pCnf, FileName, 0, NULL, NULL);
             }
             unlink("temp.cnf");
@@ -811,11 +811,11 @@ void Cnf_SplitSat(char *pFileName, int iVarBeg, int iVarEnd, int nLits, int Valu
         vSol = Cnf_RunSolver(nProcs, TimeOut, fVerbose);
         Cnf_SplitCnfCleanup(nProcs);
         if (fVerbose) {
-            printf( "Finished iteration %d.  ", i);    
+            fprintf( Abc_FrameGlobalGetOut(),  "Finished iteration %d.  ", i);    
             Abc_PrintTime(0, "Time", Abc_Clock() - clk2);
         }
     }
-    printf("%solution is found.  ", vSol ? "S" : "No s");
+    fprintf( Abc_FrameGlobalGetOut(), "%solution is found.  ", vSol ? "S" : "No s");
     Abc_PrintTime(0, "Total time", Abc_Clock() - clk);
     Vec_IntFreeP(&vSol);
 }
