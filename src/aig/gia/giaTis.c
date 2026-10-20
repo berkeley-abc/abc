@@ -149,18 +149,18 @@ void Gia_ManTisPrintMffc( Gia_Man_t * p, int Id, Vec_Int_t * vMffc, Vec_Int_t * 
 {
     Gia_Obj_t * pObj;
     int i;
-    printf( "MFFC %d has %d nodes and %d leaves:\n", Id, Vec_IntSize(vMffc), Vec_IntSize(vLeaves) );
+    fprintf( Abc_FrameGlobalGetOut(), "MFFC %d has %d nodes and %d leaves:\n", Id, Vec_IntSize(vMffc), Vec_IntSize(vLeaves) );
     Gia_ManForEachObjVecReverse( vMffc, p, pObj, i )
     {
-        printf( "Node %2d : ", Vec_IntSize(vMffc) - 1 - i );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %2d : ", Vec_IntSize(vMffc) - 1 - i );
         Gia_ObjPrint( p, pObj );
     }
     Gia_ManForEachObjVec( vLeaves, p, pObj, i )
     {
-        printf( "Leaf %2d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Leaf %2d : ", i );
         Gia_ObjPrint( p, pObj );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************

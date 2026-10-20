@@ -168,7 +168,7 @@ Aig_Man_t * Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * 
     Aig_ObjCreateCo( pNew, pObj );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManExtractMiter(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManExtractMiter(): The check has failed.\n" );
     return pNew;
 }
 
@@ -379,26 +379,26 @@ int Aig_ManCoCleanup( Aig_Man_t * p )
 void Aig_ManPrintStats( Aig_Man_t * p )
 {
     int nChoices = Aig_ManChoiceNum(p);
-    printf( "%-15s : ",      p->pName );
-    printf( "pi = %5d  ",    Aig_ManCiNum(p)-Aig_ManRegNum(p) );
-    printf( "po = %5d  ",    Aig_ManCoNum(p)-Aig_ManRegNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "%-15s : ",      p->pName );
+    fprintf( Abc_FrameGlobalGetOut(), "pi = %5d  ",    Aig_ManCiNum(p)-Aig_ManRegNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "po = %5d  ",    Aig_ManCoNum(p)-Aig_ManRegNum(p) );
     if ( Aig_ManRegNum(p) )
-    printf( "lat = %5d  ", Aig_ManRegNum(p) );
-    printf( "and = %7d  ",   Aig_ManAndNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "lat = %5d  ", Aig_ManRegNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "and = %7d  ",   Aig_ManAndNum(p) );
 //    printf( "Eq = %7d  ",     Aig_ManHaigCounter(p) );
     if ( Aig_ManExorNum(p) )
-    printf( "xor = %5d  ",    Aig_ManExorNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "xor = %5d  ",    Aig_ManExorNum(p) );
     if ( nChoices )
-    printf( "ch = %5d  ",  nChoices );
+    fprintf( Abc_FrameGlobalGetOut(), "ch = %5d  ",  nChoices );
     if ( Aig_ManBufNum(p) )
-    printf( "buf = %5d  ",    Aig_ManBufNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "buf = %5d  ",    Aig_ManBufNum(p) );
 //    printf( "Cre = %6d  ",  p->nCreated );
 //    printf( "Del = %6d  ",  p->nDeleted );
 //    printf( "Lev = %3d  ",  Aig_ManLevelNum(p) );
 //    printf( "Max = %7d  ",  Aig_ManObjNumMax(p) );
-    printf( "lev = %3d",  Aig_ManLevels(p) );
-    printf( "\n" );
-    fflush( stdout );
+    fprintf( Abc_FrameGlobalGetOut(), "lev = %3d",  Aig_ManLevels(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 /**Function*************************************************************
@@ -414,13 +414,13 @@ void Aig_ManPrintStats( Aig_Man_t * p )
 ***********************************************************************/
 void Aig_ManReportImprovement( Aig_Man_t * p, Aig_Man_t * pNew )
 {
-    printf( "REG: Beg = %5d. End = %5d. (R =%5.1f %%)  ",
+    fprintf( Abc_FrameGlobalGetOut(), "REG: Beg = %5d. End = %5d. (R =%5.1f %%)  ",
         Aig_ManRegNum(p), Aig_ManRegNum(pNew), 
         Aig_ManRegNum(p)? 100.0*(Aig_ManRegNum(p)-Aig_ManRegNum(pNew))/Aig_ManRegNum(p) : 0.0 );
-    printf( "AND: Beg = %6d. End = %6d. (R =%5.1f %%)",
+    fprintf( Abc_FrameGlobalGetOut(), "AND: Beg = %6d. End = %6d. (R =%5.1f %%)",
         Aig_ManNodeNum(p), Aig_ManNodeNum(pNew), 
         Aig_ManNodeNum(p)? 100.0*(Aig_ManNodeNum(p)-Aig_ManNodeNum(pNew))/Aig_ManNodeNum(p) : 0.0 );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************

@@ -311,7 +311,7 @@ void Jf_ManProfileClasses( Jf_Man_t * p )
     Gia_Obj_t * pObj; 
     int Counts[595] = {0}, Costs[595] = {0};
     int i, iFunc, Total = 0, CostTotal = 0, Other = 0, CostOther = 0;
-    printf( "DSD classes that appear in more than %.1f %% of mapped nodes:\n", 0.1 * p->pPars->nVerbLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "DSD classes that appear in more than %.1f %% of mapped nodes:\n", 0.1 * p->pPars->nVerbLimit );
     Gia_ManForEachAnd( p->pGia, pObj, i )
         if ( !Gia_ObjIsBuf(pObj) && Gia_ObjRefNumId(p->pGia, i) )
         {
@@ -330,26 +330,26 @@ void Jf_ManProfileClasses( Jf_Man_t * p )
     for ( i = 0; i < 595; i++ )
         if ( Counts[i] && 100.0 * Counts[i] / Total >= 0.1 * p->pPars->nVerbLimit )
         {
-            printf( "%5d  :  ", i );
-            printf( "%-20s   ", Sdm_ManReadDsdStr(p->pDsd, i) );
-            printf( "%8d  ",    Counts[i] );
-            printf( "%5.1f %%   ", 100.0 * Counts[i] / Total );
-            printf( "%8d  ",    Costs[i] );
-            printf( "%5.1f %%", 100.0 * Costs[i] / CostTotal );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d  :  ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "%-20s   ", Sdm_ManReadDsdStr(p->pDsd, i) );
+            fprintf( Abc_FrameGlobalGetOut(), "%8d  ",    Counts[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "%5.1f %%   ", 100.0 * Counts[i] / Total );
+            fprintf( Abc_FrameGlobalGetOut(), "%8d  ",    Costs[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "%5.1f %%", 100.0 * Costs[i] / CostTotal );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         else
         {
             Other += Counts[i];
             CostOther += Costs[i];
         }
-    printf( "Other  :  " );
-    printf( "%-20s   ",   "" );
-    printf( "%8d  ",    Other );
-    printf( "%5.1f %%   ", 100.0 * Other / Total );
-    printf( "%8d  ",    CostOther );
-    printf( "%5.1f %%", 100.0 * CostOther / CostTotal );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Other  :  " );
+    fprintf( Abc_FrameGlobalGetOut(), "%-20s   ",   "" );
+    fprintf( Abc_FrameGlobalGetOut(), "%8d  ",    Other );
+    fprintf( Abc_FrameGlobalGetOut(), "%5.1f %%   ", 100.0 * Other / Total );
+    fprintf( Abc_FrameGlobalGetOut(), "%8d  ",    CostOther );
+    fprintf( Abc_FrameGlobalGetOut(), "%5.1f %%", 100.0 * CostOther / CostTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -400,7 +400,7 @@ void Jf_ManFree( Jf_Man_t * p )
         Sdm_ManPrintDsdStats( p->pDsd, 0 );
     if ( p->pPars->fVerbose && p->vTtMem )
     {
-        printf( "Unique truth tables = %d. Memory = %.2f MB   ", Vec_MemEntryNum(p->vTtMem), Vec_MemMemory(p->vTtMem) / (1<<20) ); 
+        fprintf( Abc_FrameGlobalGetOut(), "Unique truth tables = %d. Memory = %.2f MB   ", Vec_MemEntryNum(p->vTtMem), Vec_MemMemory(p->vTtMem) / (1<<20) ); 
         Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
     }
     if ( p->pPars->fVeryVerbose && p->pPars->fCutMin && p->pPars->fFuncDsd )
@@ -438,22 +438,22 @@ void Jf_ManFree( Jf_Man_t * p )
 static inline void Jf_CutPrint( int * pCut )
 {
     int i; 
-    printf( "%d {", Jf_CutSize(pCut) );
+    fprintf( Abc_FrameGlobalGetOut(), "%d {", Jf_CutSize(pCut) );
     for ( i = 1; i <= Jf_CutSize(pCut); i++ )
-        printf( " %d", Jf_CutLit(pCut, i) );
-    printf( " } Func = %d\n", Jf_CutFunc(pCut) );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", Jf_CutLit(pCut, i) );
+    fprintf( Abc_FrameGlobalGetOut(), " } Func = %d\n", Jf_CutFunc(pCut) );
 }
 static inline void Jf_ObjCutPrint( int * pCuts )
 {
     int i, * pCut; 
     Jf_ObjForEachCut( pCuts, pCut, i )
         Jf_CutPrint( pCut );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 static inline void Jf_ObjBestCutConePrint( Jf_Man_t * p, Gia_Obj_t * pObj )
 {
     int * pCut = Jf_ObjCutBest( p, Gia_ObjId(p->pGia, pObj) );
-    printf( "Best cut of node %d : ", Gia_ObjId(p->pGia, pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "Best cut of node %d : ", Gia_ObjId(p->pGia, pObj) );
     Jf_CutPrint( pCut );
     Gia_ManPrintCone( p->pGia, pObj, Jf_CutLits(pCut), Jf_CutSize(pCut), p->vTemp );
 }
@@ -1029,13 +1029,13 @@ static inline void Jf_ObjPrintStore( Jf_Man_t * p, Jf_Cut_t ** pSto, int c )
     int i;
     for ( i = 0; i < c; i++ )
     {
-        printf( "Flow =%9.5f  ", pSto[i]->Flow );
-        printf( "Time = %5d   ", pSto[i]->Time );
-        printf( "Func = %5d   ", pSto[i]->iFunc );
-        printf( "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Flow =%9.5f  ", pSto[i]->Flow );
+        fprintf( Abc_FrameGlobalGetOut(), "Time = %5d   ", pSto[i]->Time );
+        fprintf( Abc_FrameGlobalGetOut(), "Func = %5d   ", pSto[i]->iFunc );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );
         Jf_CutPrint( pSto[i]->pCut );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 static inline void Jf_ObjCheckPtrs( Jf_Cut_t ** pSto, int c )
 {
@@ -1187,7 +1187,7 @@ void Jf_ObjComputeCuts( Jf_Man_t * p, Gia_Obj_t * pObj, int fEdge )
             if ( pSto[c]->pCut[0] < nOldSupp )
                 pSto[c]->Sign = Jf_CutGetSign( pSto[c]->pCut );
             if ( pSto[c]->iFunc >= (1 << 24) )
-                printf( "Hard limit on the number of different Boolean functions (2^23) is reached. Quitting...\n" ), exit(1);
+                fprintf( Abc_FrameGlobalGetOut(),  "Hard limit on the number of different Boolean functions (2^23) is reached. Quitting...\n"  ), exit(1);
         }
         p->CutCount[2]++;
         pSto[c]->Time = p->pPars->fAreaOnly ? 0 : Jf_CutArr(p, pSto[c]->pCut);
@@ -1243,10 +1243,10 @@ void Jf_ManComputeCuts( Jf_Man_t * p, int fEdge )
     Gia_Obj_t * pObj; int i;
     if ( p->pPars->fVerbose )
     {
-        printf( "Aig: CI = %d  CO = %d  AND = %d    ", Gia_ManCiNum(p->pGia), Gia_ManCoNum(p->pGia), Gia_ManAndNum(p->pGia) );
-        printf( "LutSize = %d  CutMax = %d  Rounds = %d\n", p->pPars->nLutSize, p->pPars->nCutNum, p->pPars->nRounds );
-        printf( "Computing cuts...\r" );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig: CI = %d  CO = %d  AND = %d    ", Gia_ManCiNum(p->pGia), Gia_ManCoNum(p->pGia), Gia_ManAndNum(p->pGia) );
+        fprintf( Abc_FrameGlobalGetOut(), "LutSize = %d  CutMax = %d  Rounds = %d\n", p->pPars->nLutSize, p->pPars->nCutNum, p->pPars->nRounds );
+        fprintf( Abc_FrameGlobalGetOut(), "Computing cuts...\r" );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     Gia_ManForEachObj( p->pGia, pObj, i )
     {
@@ -1259,19 +1259,19 @@ void Jf_ManComputeCuts( Jf_Man_t * p, int fEdge )
     }
     if ( p->pPars->fVerbose )
     {
-        printf( "CutPair = %lu  ", (long)p->CutCount[0] );
-        printf( "Merge = %lu  ",   (long)p->CutCount[1] );
-        printf( "Eval = %lu  ",    (long)p->CutCount[2] );
-        printf( "Cut = %lu  ",     (long)p->CutCount[3] );
+        fprintf( Abc_FrameGlobalGetOut(), "CutPair = %lu  ", (long)p->CutCount[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "Merge = %lu  ",   (long)p->CutCount[1] );
+        fprintf( Abc_FrameGlobalGetOut(), "Eval = %lu  ",    (long)p->CutCount[2] );
+        fprintf( Abc_FrameGlobalGetOut(), "Cut = %lu  ",     (long)p->CutCount[3] );
         Abc_PrintTime( 1, "Time",  Abc_Clock() - p->clkStart );
-        printf( "Memory:  " );
-        printf( "Gia = %.2f MB  ", Gia_ManMemory(p->pGia) / (1<<20) );
-        printf( "Man = %.2f MB  ", 6.0 * sizeof(int) * Gia_ManObjNum(p->pGia) / (1<<20) );
-        printf( "Cuts = %.2f MB",  Vec_ReportMemory(&p->pMem) / (1<<20) );
+        fprintf( Abc_FrameGlobalGetOut(), "Memory:  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Gia = %.2f MB  ", Gia_ManMemory(p->pGia) / (1<<20) );
+        fprintf( Abc_FrameGlobalGetOut(), "Man = %.2f MB  ", 6.0 * sizeof(int) * Gia_ManObjNum(p->pGia) / (1<<20) );
+        fprintf( Abc_FrameGlobalGetOut(), "Cuts = %.2f MB",  Vec_ReportMemory(&p->pMem) / (1<<20) );
         if ( p->nCoarse )
-        printf( "   Coarse = %d (%.1f %%)",  p->nCoarse, 100.0 * p->nCoarse / Gia_ManObjNum(p->pGia) );
-        printf( "\n" );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "   Coarse = %d (%.1f %%)",  p->nCoarse, 100.0 * p->nCoarse / Gia_ManObjNum(p->pGia) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fflush( Abc_FrameGlobalGetOut() );
     }
 }
 
@@ -1704,14 +1704,14 @@ void Jf_ManPrintStats( Jf_Man_t * p, char * pTitle )
 {
     if ( !p->pPars->fVerbose )
         return;
-    printf( "%s :  ", pTitle );
-    printf( "Level =%6lu   ", (long)p->pPars->Delay );
-    printf( "Area =%9lu   ",  (long)p->pPars->Area );
-    printf( "Edge =%9lu   ",  (long)p->pPars->Edge );
+    fprintf( Abc_FrameGlobalGetOut(), "%s :  ", pTitle );
+    fprintf( Abc_FrameGlobalGetOut(), "Level =%6lu   ", (long)p->pPars->Delay );
+    fprintf( Abc_FrameGlobalGetOut(), "Area =%9lu   ",  (long)p->pPars->Area );
+    fprintf( Abc_FrameGlobalGetOut(), "Edge =%9lu   ",  (long)p->pPars->Edge );
     if ( p->pPars->fGenCnf )
-    printf( "Cnf =%9lu   ",   (long)p->pPars->Clause );
+    fprintf( Abc_FrameGlobalGetOut(), "Cnf =%9lu   ",   (long)p->pPars->Clause );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 Gia_Man_t * Jf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {
@@ -1776,7 +1776,7 @@ void Jf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int fVerbose )
     Gia_ManStop( pNew );
 //    if ( fVerbose )
     {
-        printf( "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+        fprintf( Abc_FrameGlobalGetOut(), "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     Cnf_DataFree(pCnf);
@@ -1792,7 +1792,7 @@ void Jf_ManTestCnf( Gia_Man_t * p )
     pCnf = (Cnf_Dat_t *)pNew->pData; pNew->pData = NULL;
     Cnf_DataWriteIntoFile( pCnf, "test.cnf", 0, NULL, NULL );
     for ( i = 0; i < pCnf->nVars; i++ )
-        printf( "%d : %d %d\n", i, pCnf->pObj2Count[i], pCnf->pObj2Clause[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%d : %d %d\n", i, pCnf->pObj2Count[i], pCnf->pObj2Clause[i] );
     Gia_ManStop( pNew );
     Cnf_DataFree(pCnf);
 }

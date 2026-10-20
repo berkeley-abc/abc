@@ -166,13 +166,13 @@ void Gia_Rsb2ManStart( Gia_Rsb2Man_t * p, int * pObjs, int nObjs, int nDivsMax, 
 void Gia_Rsb2ManPrint( Gia_Rsb2Man_t * p )
 {
     int i, * pObjs = Vec_IntArray( &p->vObjs );
-    printf( "PI = %d.  PO = %d.  Obj = %d.\n", p->nPis, p->nPos, p->nObjs );
+    fprintf( Abc_FrameGlobalGetOut(), "PI = %d.  PO = %d.  Obj = %d.\n", p->nPis, p->nPos, p->nObjs );
     for ( i = p->nPis + 1; i < p->iFirstPo; i++ )
-        printf( "%2d = %c%2d & %c%2d;\n", i, 
+        fprintf( Abc_FrameGlobalGetOut(), "%2d = %c%2d & %c%2d;\n", i, 
             Abc_LitIsCompl(pObjs[2*i+0]) ? '!' : ' ', Abc_Lit2Var(pObjs[2*i+0]),
             Abc_LitIsCompl(pObjs[2*i+1]) ? '!' : ' ', Abc_Lit2Var(pObjs[2*i+1]) );
     for ( i = p->iFirstPo; i < p->nObjs; i++ )
-        printf( "%2d = %c%2d;\n", i, 
+        fprintf( Abc_FrameGlobalGetOut(), "%2d = %c%2d;\n", i, 
             Abc_LitIsCompl(pObjs[2*i+0]) ? '!' : ' ', Abc_Lit2Var(pObjs[2*i+0]) );
 }
 
@@ -418,7 +418,7 @@ void Abc_ResubPrintDivs( void ** ppDivs, int nDivs )
     int i;
     for ( i = 0; i < nDivs; i++ )
     {
-        printf( "Div %2d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Div %2d : ", i );
         Dau_DsdPrintFromTruth( pDivs[i], 6 );
     }
 }
@@ -1329,7 +1329,7 @@ int Gia_ManVerifyTwoTruths( Gia_Man_t * p1, Gia_Man_t * p2 )
         {
             //Dau_DsdPrintFromTruth( &word1, 6 );
             //Dau_DsdPrintFromTruth( &word2, 6 );
-            printf( "Verification failed for output %d (out of %d).\n", i, Gia_ManCoNum(p1) );
+            fprintf( Abc_FrameGlobalGetOut(), "Verification failed for output %d (out of %d).\n", i, Gia_ManCoNum(p1) );
             fFailed = 1;
         }
     }
@@ -1378,14 +1378,14 @@ void Gia_RsbEnumerateWindows( Gia_Man_t * p, int nInputsMax, int nLevelsMax )
 
         if ( fVerbose )
         {
-            printf( "\n\nObj %d\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "\n\nObj %d\n", i );
             Vec_IntPrint( vWin );    
             Vec_IntPrint( vIns );    
             Vec_IntPrint( vOuts );    
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         else if ( Vec_IntSize(vWin) > 1000 )
-            printf( "Obj %d.   Window: Ins = %d. Ands = %d. Outs = %d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Obj %d.   Window: Ins = %d. Ands = %d. Outs = %d.\n", 
                 i, Vec_IntSize(vIns), Vec_IntSize(vWin)-Vec_IntSize(vIns), Vec_IntSize(vOuts) );
 
         if ( fUseHash )
@@ -1423,7 +1423,7 @@ void Gia_RsbEnumerateWindows( Gia_Man_t * p, int nInputsMax, int nLevelsMax )
     Vec_WecFree( vLevels );
     Vec_IntFree( vPaths );
     Vec_IntFree( vRefs );
-    printf( "Computed windows for %d nodes (out of %d). Unique = %d. Ave inputs = %.2f. Ave outputs = %.2f. Ave volume = %.2f.  Gain = %d. ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Computed windows for %d nodes (out of %d). Unique = %d. Ave inputs = %.2f. Ave outputs = %.2f. Ave volume = %.2f.  Gain = %d. ", 
         nWins, Gia_ManAndNum(p), Hsh_VecSize(pHash), 1.0*nInsSize/Abc_MaxInt(1,nWins), 
         1.0*nOutSize/Abc_MaxInt(1,nWins), 1.0*nWinSize/Abc_MaxInt(1,nWins), nNodeGain );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -1485,21 +1485,21 @@ void Gia_RsbTestArray()
         Vec_IntPush( vArray, Array[i] );
     Vec_IntPrint( vArray );
     // check the nodes
-    printf( "Constant0 and primary inputs:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Constant0 and primary inputs:\n" );
     Vec_IntForEachEntryDouble( vArray, iFan0, iFan1, i )
     {
         if ( iFan0 != iFan1 )
             break;
-        printf( "%2d = %c%2d & %c%2d;\n", i, 
+        fprintf( Abc_FrameGlobalGetOut(), "%2d = %c%2d & %c%2d;\n", i, 
             Abc_LitIsCompl(iFan0) ? '!' : ' ', Abc_Lit2Var(iFan0),
             Abc_LitIsCompl(iFan1) ? '!' : ' ', Abc_Lit2Var(iFan1) );
     }
-    printf( "Primary outputs:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Primary outputs:\n" );
     Vec_IntForEachEntryDoubleStart( vArray, iFan0, iFan1, i, 14 )
     {
         if ( iFan0 != iFan1 )
             continue;
-        printf( "%2d = %c%2d & %c%2d;\n", i, 
+        fprintf( Abc_FrameGlobalGetOut(), "%2d = %c%2d & %c%2d;\n", i, 
             Abc_LitIsCompl(iFan0) ? '!' : ' ', Abc_Lit2Var(iFan0),
             Abc_LitIsCompl(iFan1) ? '!' : ' ', Abc_Lit2Var(iFan1) );
     }

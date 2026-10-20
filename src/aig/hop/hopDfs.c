@@ -417,7 +417,7 @@ Hop_Obj_t * Hop_Compose( Hop_Man_t * p, Hop_Obj_t * pRoot, Hop_Obj_t * pFunc, in
     // quit if the PI variable is not defined
     if ( iVar >= Hop_ManPiNum(p) )
     {
-        printf( "Hop_Compose(): The PI variable %d is not defined.\n", iVar );
+        fprintf( Abc_FrameGlobalGetOut(), "Hop_Compose(): The PI variable %d is not defined.\n", iVar );
         return NULL;
     }
     // recursively perform composition
@@ -471,7 +471,7 @@ Hop_Obj_t * Hop_Complement( Hop_Man_t * p, Hop_Obj_t * pRoot, int iVar )
     // quit if the PI variable is not defined
     if ( iVar >= Hop_ManPiNum(p) )
     {
-        printf( "Hop_Complement(): The PI variable %d is not defined.\n", iVar );
+        fprintf( Abc_FrameGlobalGetOut(), "Hop_Complement(): The PI variable %d is not defined.\n", iVar );
         return NULL;
     }
     // recursively perform composition
@@ -522,7 +522,7 @@ Hop_Obj_t * Hop_Remap( Hop_Man_t * p, Hop_Obj_t * pRoot, unsigned uSupp, int nVa
     // quit if the PI variable is not defined
     if ( nVars > Hop_ManPiNum(p) )
     {
-        printf( "Hop_Remap(): The number of variables (%d) is more than the manager size (%d).\n", nVars, Hop_ManPiNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "Hop_Remap(): The number of variables (%d) is more than the manager size (%d).\n", nVars, Hop_ManPiNum(p) );
         return NULL;
     }
     // return if constant

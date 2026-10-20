@@ -276,15 +276,15 @@ void Aig_TsiStatePrint( Aig_Tsi_t * p, unsigned * pState )
     {
         Value = (Abc_InfoHasBit( pState, 2 * i + 1 ) << 1) | Abc_InfoHasBit( pState, 2 * i );
         if ( Value == 1 )
-            printf( "0" ), nZeros++;
+            fprintf( Abc_FrameGlobalGetOut(),  "0"  ), nZeros++;
         else if ( Value == 2 )
-            printf( "1" ), nOnes++;
+            fprintf( Abc_FrameGlobalGetOut(),  "1"  ), nOnes++;
         else if ( Value == 3 )
-            printf( "x" ), nDcs++;
+            fprintf( Abc_FrameGlobalGetOut(),  "x"  ), nDcs++;
         else
             assert( 0 );
     }
-    printf( " (0=%5d, 1=%5d, x=%5d)\n", nZeros, nOnes, nDcs );
+    fprintf( Abc_FrameGlobalGetOut(), " (0=%5d, 1=%5d, x=%5d)\n", nZeros, nOnes, nDcs );
 }
 
 /**Function*************************************************************
@@ -377,7 +377,7 @@ Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose, int fVeryVerbos
 //        printf( "%d ", Aig_TsiStateCount(pTsi, pState) );
 if ( fVeryVerbose )
 {
-printf( "%3d : ", f );
+fprintf( Abc_FrameGlobalGetOut(), "%3d : ", f );
 Aig_TsiStatePrint( pTsi, pState );
 }
         // check if this state exists
@@ -426,7 +426,7 @@ Aig_TsiStatePrint( pTsi, pState );
 //printf( "\n" );
     if ( f == TSI_MAX_ROUNDS )
     {
-        printf( "Aig_ManTernarySimulate(): Did not reach a fixed point after %d iterations (not a bug).\n", TSI_MAX_ROUNDS );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManTernarySimulate(): Did not reach a fixed point after %d iterations (not a bug).\n", TSI_MAX_ROUNDS );
         Aig_TsiStop( pTsi );
         return NULL;
     }
@@ -452,7 +452,7 @@ Aig_TsiStatePrint( pTsi, pState );
     if ( fConstants == 0 )
     {
         if ( fVerbose )
-        printf( "Detected 0 constants after %d iterations of ternary simulation.\n", f );
+        fprintf( Abc_FrameGlobalGetOut(), "Detected 0 constants after %d iterations of ternary simulation.\n", f );
         Aig_TsiStop( pTsi );
         return NULL;
     }
@@ -480,7 +480,7 @@ Aig_TsiStatePrint( pTsi, pState );
 //    printf( "\n" );
     Aig_TsiStop( pTsi );
     if ( fVerbose )
-    printf( "Detected %d constants after %d iterations of ternary simulation.\n", nCounter, f );
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d constants after %d iterations of ternary simulation.\n", nCounter, f );
     return vMap;
 }
 

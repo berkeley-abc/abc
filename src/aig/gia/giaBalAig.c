@@ -725,18 +725,18 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
     if ( !fVerbose )
         return;
     // print stats
-    printf( "Pairs:" );
-    printf( "  Total =%9d (%6.2f %%)", nPairsAll,   100.0 * nPairsAll   / Abc_MaxInt(nPairsAll, 1) );
-    printf( "  Tried =%9d (%6.2f %%)", nPairsTried, 100.0 * nPairsTried / Abc_MaxInt(nPairsAll, 1) );
-    printf( "  Used =%9d (%6.2f %%)",  nPairsUsed,  100.0 * nPairsUsed  / Abc_MaxInt(nPairsAll, 1) );
-    printf( "  Xor =%9d (%6.2f %%)",   nPairsXor,   100.0 * nPairsXor   / Abc_MaxInt(nPairsAll, 1) );
-    printf( "\n" );
-    printf( "Div:  " );
-    printf( "  Total =%9d (%6.2f %%)", nDivsAll,    100.0 * nDivsAll    / Abc_MaxInt(nDivsAll, 1) );
-    printf( "  Tried =%9d (%6.2f %%)", nDivsAll,    100.0 * nDivsAll    / Abc_MaxInt(nDivsAll, 1) );
-    printf( "  Used =%9d (%6.2f %%)",  nDivsUsed,   100.0 * nDivsUsed   / Abc_MaxInt(nDivsAll, 1) );
-    printf( "  Xor =%9d (%6.2f %%)",   nDivsXor,    100.0 * nDivsXor    / Abc_MaxInt(nDivsAll, 1) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Pairs:" );
+    fprintf( Abc_FrameGlobalGetOut(), "  Total =%9d (%6.2f %%)", nPairsAll,   100.0 * nPairsAll   / Abc_MaxInt(nPairsAll, 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "  Tried =%9d (%6.2f %%)", nPairsTried, 100.0 * nPairsTried / Abc_MaxInt(nPairsAll, 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "  Used =%9d (%6.2f %%)",  nPairsUsed,  100.0 * nPairsUsed  / Abc_MaxInt(nPairsAll, 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "  Xor =%9d (%6.2f %%)",   nPairsXor,   100.0 * nPairsXor   / Abc_MaxInt(nPairsAll, 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Div:  " );
+    fprintf( Abc_FrameGlobalGetOut(), "  Total =%9d (%6.2f %%)", nDivsAll,    100.0 * nDivsAll    / Abc_MaxInt(nDivsAll, 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "  Tried =%9d (%6.2f %%)", nDivsAll,    100.0 * nDivsAll    / Abc_MaxInt(nDivsAll, 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "  Used =%9d (%6.2f %%)",  nDivsUsed,   100.0 * nDivsUsed   / Abc_MaxInt(nDivsAll, 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "  Xor =%9d (%6.2f %%)",   nDivsXor,    100.0 * nDivsXor    / Abc_MaxInt(nDivsAll, 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -840,39 +840,39 @@ Gia_Man_t * Dam_ManMultiAig( Dam_Man_t * pMan )
 void Dam_PrintDiv( Dam_Man_t * p, int iDiv )
 {
     if ( iDiv == 0 )
-        printf( "Final statistics after extracting %6d divisors:          ", p->nDivs );
+        fprintf( Abc_FrameGlobalGetOut(), "Final statistics after extracting %6d divisors:          ", p->nDivs );
     else
     {
         char Buffer[100];
         int iData0 = Hash_IntObjData0(p->vHash, iDiv);
         int iData1 = Hash_IntObjData1(p->vHash, iDiv);
-        printf( "Div%5d : ",  p->nDivs+1 );
-        printf( "D%-8d = ",   iDiv );
+        fprintf( Abc_FrameGlobalGetOut(), "Div%5d : ",  p->nDivs+1 );
+        fprintf( Abc_FrameGlobalGetOut(), "D%-8d = ",   iDiv );
         sprintf( Buffer, "%c%d", Abc_LitIsCompl(iData0)? '!':' ', Abc_Lit2Var(iData0) );
-        printf( "%8s ",   Buffer );
-        printf( "%c  ",     (iData0 < iData1) ? '*' : '+' );
+        fprintf( Abc_FrameGlobalGetOut(), "%8s ",   Buffer );
+        fprintf( Abc_FrameGlobalGetOut(), "%c  ",     (iData0 < iData1) ? '*' : '+' );
         sprintf( Buffer, "%c%d", Abc_LitIsCompl(iData1)? '!':' ', Abc_Lit2Var(iData1) );
-        printf( "%8s   ", Buffer );
-        printf( "Weight %9.2f  ", Vec_FltEntry(p->vCounts, iDiv) );
+        fprintf( Abc_FrameGlobalGetOut(), "%8s   ", Buffer );
+        fprintf( Abc_FrameGlobalGetOut(), "Weight %9.2f  ", Vec_FltEntry(p->vCounts, iDiv) );
     }
-    printf( "Divs =%8d  ",  Hash_IntManEntryNum(p->vHash) );
-    printf( "Ands =%8d  ",  p->nAnds - p->nGain );
+    fprintf( Abc_FrameGlobalGetOut(), "Divs =%8d  ",  Hash_IntManEntryNum(p->vHash) );
+    fprintf( Abc_FrameGlobalGetOut(), "Ands =%8d  ",  p->nAnds - p->nGain );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
 }
 void Dam_PrintQue( Dam_Man_t * p )
 {
     int i;
-    printf( "Divisor queue: \n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Divisor queue: \n" );
     for ( i = 1; i <= Hash_IntManEntryNum(p->vHash); i++ )
     {
         int iLit0 = Hash_IntObjData0(p->vHash, i);
         int iLit1 = Hash_IntObjData1(p->vHash, i);
-        printf( "Div %7d : ",     i );
-        printf( "Weight %9.2f  ", Vec_FltEntry(p->vCounts, i) );
-        printf( "F = %c%c ",      Abc_LitIsCompl(iLit0) ? '!': ' ', 'a' + Abc_Lit2Var(iLit0)-1 );
-        printf( "%c ",            (Hash_IntObjData0(p->vHash, i) < Hash_IntObjData1(p->vHash, i)) ? '*':'+' );
-        printf( "%c%c   ",        Abc_LitIsCompl(iLit1) ? '!': ' ', 'a' + Abc_Lit2Var(iLit1)-1 );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Div %7d : ",     i );
+        fprintf( Abc_FrameGlobalGetOut(), "Weight %9.2f  ", Vec_FltEntry(p->vCounts, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "F = %c%c ",      Abc_LitIsCompl(iLit0) ? '!': ' ', 'a' + Abc_Lit2Var(iLit0)-1 );
+        fprintf( Abc_FrameGlobalGetOut(), "%c ",            (Hash_IntObjData0(p->vHash, i) < Hash_IntObjData1(p->vHash, i)) ? '*':'+' );
+        fprintf( Abc_FrameGlobalGetOut(), "%c%c   ",        Abc_LitIsCompl(iLit1) ? '!': ' ', 'a' + Abc_Lit2Var(iLit1)-1 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 int Dam_ManUpdateNode( Dam_Man_t * p, int iObj, int iLit0, int iLit1, int iLitNew, Vec_Int_t * vDivs )
@@ -1034,11 +1034,11 @@ Gia_Man_t * Dam_ManAreaBalanceInt( Gia_Man_t * pGia, Vec_Int_t * vCiLevels, int 
     {
         int nDivsAll = Hash_IntManEntryNum(p->vHash);
         int nDivsUsed = p->nDivs;
-        printf( "Div:  " );
-        printf( "  Total =%9d (%6.2f %%) ",   nDivsAll,   100.0 * nDivsAll    / Abc_MaxInt(nDivsAll, 1) );
-        printf( "  Used =%9d (%6.2f %%)",     nDivsUsed,  100.0 * nDivsUsed   / Abc_MaxInt(nDivsAll, 1) );
-        printf( "  Gain =%6d (%6.2f %%)",     p->nGain,   100.0 * p->nGain / Abc_MaxInt(p->nAnds, 1) );
-        printf( "  GainX = %d  ",             p->nGainX  );
+        fprintf( Abc_FrameGlobalGetOut(), "Div:  " );
+        fprintf( Abc_FrameGlobalGetOut(), "  Total =%9d (%6.2f %%) ",   nDivsAll,   100.0 * nDivsAll    / Abc_MaxInt(nDivsAll, 1) );
+        fprintf( Abc_FrameGlobalGetOut(), "  Used =%9d (%6.2f %%)",     nDivsUsed,  100.0 * nDivsUsed   / Abc_MaxInt(nDivsAll, 1) );
+        fprintf( Abc_FrameGlobalGetOut(), "  Gain =%6d (%6.2f %%)",     p->nGain,   100.0 * p->nGain / Abc_MaxInt(p->nAnds, 1) );
+        fprintf( Abc_FrameGlobalGetOut(), "  GainX = %d  ",             p->nGainX );
         Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
     }
     Dam_ManFree( p );

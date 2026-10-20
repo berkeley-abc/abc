@@ -332,18 +332,18 @@ Ivy_Obj_t * Ivy_MultiEval( Ivy_Obj_t ** pArgs, int nArgs, Ivy_Type_t Type )
     int i, k;
     int nArgsOld = nArgs;
     for ( i = 0; i < nArgs; i++ )
-        printf( "%d[%d] ", i, Ivy_Regular(pArgs[i])->Level );
+        fprintf( Abc_FrameGlobalGetOut(), "%d[%d] ", i, Ivy_Regular(pArgs[i])->Level );
     for ( i = 1; i < nArgs; i++ )
         for ( k = 0; k < i; k++ )
         {
             pTemp = Ivy_TableLookup(Ivy_ObjCreateGhost(pArgs[k], pArgs[i], Type, IVY_INIT_NONE));
             if ( pTemp != NULL )
             {
-                printf( "%d[%d]=(%d,%d) ", nArgs, Ivy_Regular(pTemp)->Level, k, i );
+                fprintf( Abc_FrameGlobalGetOut(), "%d[%d]=(%d,%d) ", nArgs, Ivy_Regular(pTemp)->Level, k, i );
                 pArgs[nArgs++] = pTemp;
             }
         }
-    printf( "     ((%d/%d))    ", nArgsOld, nArgs-nArgsOld );
+    fprintf( Abc_FrameGlobalGetOut(), "     ((%d/%d))    ", nArgsOld, nArgs-nArgsOld );
     return NULL;
 }
 

@@ -141,7 +141,7 @@ static inline void Str_NtkDelete( Str_Ntk_t * p )
 }
 static inline void Str_NtkPs( Str_Ntk_t * p, abctime clk )
 {
-    printf( "Network contains %d ands, %d xors, %d muxes (%d trees in %d groups).  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Network contains %d ands, %d xors, %d muxes (%d trees in %d groups).  ", 
         p->nObjCount[STR_AND], p->nObjCount[STR_XOR], p->nObjCount[STR_MUX], p->nTrees, p->nGroups );
     Abc_PrintTime( 1, "Time", clk );
 }
@@ -165,9 +165,9 @@ static inline void Str_NtkPrintGroups( Str_Ntk_t * p )
         {
             Str_ObjReadGroup( p, pObj, &nGroups, &nMuxes );
             pObj += nGroups * nMuxes - 1;
-            printf( "%d x %d  ", nGroups, nMuxes );
+            fprintf( Abc_FrameGlobalGetOut(), "%d x %d  ", nGroups, nMuxes );
         }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 Gia_Man_t * Str_NtkToGia( Gia_Man_t * pGia, Str_Ntk_t * p )
 {
@@ -407,10 +407,10 @@ Vec_Wec_t * Str_ManDeriveTrees( Gia_Man_t * p )
         char * pTemp; 
         Abc_NamManForEachObj( pNames, pTemp, i )
         {
-            printf( "%5d : ", i );
-            printf( "Occur = %4d   ", Vec_IntSize(Vec_WecEntry(vGroups,i)) );
-            printf( "Size = %4d   ",  Str_ManMuxCountOne(pTemp) );
-            printf( "%s\n", pTemp );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d : ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Occur = %4d   ", Vec_IntSize(Vec_WecEntry(vGroups,i)) );
+            fprintf( Abc_FrameGlobalGetOut(), "Size = %4d   ",  Str_ManMuxCountOne(pTemp) );
+            fprintf( Abc_FrameGlobalGetOut(), "%s\n", pTemp );
         }
     }
     Abc_NamStop( pNames );
@@ -991,17 +991,17 @@ int Str_ManVectorAffinity( Gia_Man_t * p, Vec_Int_t * vSuper, Vec_Int_t * vDelay
     // report
     if ( fVerbose && nSize > 10 )
     {
-        printf( "Gate inputs = %d.  Collected fanins = %d.  All = %d.  Good = %d.  Levels = %d\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Gate inputs = %d.  Collected fanins = %d.  All = %d.  Good = %d.  Levels = %d\n", 
             nSize, Vec_IntSize(vSuper) - nSize, Vec_IntSize(vSuper), nSizeNew, nLevels );
-        printf( "                     " );
+        fprintf( Abc_FrameGlobalGetOut(), "                     " );
         for ( i = 0; i < nSizeNew; i++ )
-            printf( "%d", Levels[i] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Levels[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         for ( i = 0; i < nSize; i++ )
         {
-            printf( "%6d : ", Abc_Lit2Var(Vec_IntEntry(vSuper, i)) );
-            printf( "%3d   ", Vec_IntEntry(vDelay, i) >> 4 );
-            printf( "%3d   ", Vec_IntEntry(vDelay, i) & 15 );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d : ", Abc_Lit2Var(Vec_IntEntry(vSuper, i)) );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d   ", Vec_IntEntry(vDelay, i) >> 4 );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d   ", Vec_IntEntry(vDelay, i) & 15 );
 //            Extra_PrintBinary( stdout, Matrix+i, 64 ), printf( "\n" );
         }
         i = 0;
@@ -1043,13 +1043,13 @@ static inline void Str_PrintState( int * pCost, int * pSuper, word * pMatrix, in
     int i;
     for ( i = 0; i < nSize; i++ )
     {
-        printf( "%6d : ", i );
-        printf( "%6d : ", Abc_Lit2Var(pSuper[i]) );
-        printf( "%3d   ", pCost[i] >> 4 );
-        printf( "%3d   ", pCost[i] & 15 );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : ", Abc_Lit2Var(pSuper[i]) );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d   ", pCost[i] >> 4 );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d   ", pCost[i] & 15 );
 //        Extra_PrintBinary( stdout, pMatrix+i, 64 ), printf( "\n" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 
@@ -1382,7 +1382,7 @@ Gia_Man_t * Str_NtkBalance( Gia_Man_t * pGia, Str_Ntk_t * p, int nLutSize, int f
         else assert( 0 );
     }
     if ( fVerbose )
-        printf( "Max delay = %d.  Old objs = %d.  New objs = %d.\n", Delay >> 4, Gia_ManObjNum(pGia), Gia_ManObjNum(pNew) );
+        fprintf( Abc_FrameGlobalGetOut(), "Max delay = %d.  Old objs = %d.  New objs = %d.\n", Delay >> 4, Gia_ManObjNum(pGia), Gia_ManObjNum(pNew) );
     Vec_IntFree( vDelay );
     ABC_FREE( pNew->vCopies.pArray );
     Gia_ManHashStop( pNew );
@@ -1489,26 +1489,26 @@ void Str_MuxDelayPrint_rec( Str_Mux_t * pMux, int i )
     Str_Mux_t * pFanin;
     if ( pMux->Edge[i].Fan <= 0 )
     {
-        printf( "%d", -pMux->Edge[i].Fan );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", -pMux->Edge[i].Fan );
         if ( fShowDelay )
-            printf( "{%d}", pMux->Edge[i].FanDel );
+            fprintf( Abc_FrameGlobalGetOut(), "{%d}", pMux->Edge[i].FanDel );
         return;
     }
     pFanin = Str_MuxFanin( pMux, i );
-    printf( "[ " );
+    fprintf( Abc_FrameGlobalGetOut(), "[ " );
     if ( pFanin->Edge[0].fCompl )
-        printf( "!" );
+        fprintf( Abc_FrameGlobalGetOut(), "!" );
     Str_MuxDelayPrint_rec( pFanin, 0 );
-    printf( "|" );
+    fprintf( Abc_FrameGlobalGetOut(), "|" );
     if ( pFanin->Edge[1].fCompl )
-        printf( "!" );
+        fprintf( Abc_FrameGlobalGetOut(), "!" );
     Str_MuxDelayPrint_rec( pFanin, 1 );
-    printf( "(" );
+    fprintf( Abc_FrameGlobalGetOut(), "(" );
     if ( pFanin->Edge[2].fCompl )
-        printf( "!" );
+        fprintf( Abc_FrameGlobalGetOut(), "!" );
     Str_MuxDelayPrint_rec( pFanin, 2 );
-    printf( ")" );
-    printf( " ]" );
+    fprintf( Abc_FrameGlobalGetOut(), ")" );
+    fprintf( Abc_FrameGlobalGetOut(), " ]" );
 }
 int Str_MuxDelayEdge_rec( Str_Mux_t * pMux, int i )
 {
@@ -1685,7 +1685,7 @@ int Str_MuxTryOnce( Gia_Man_t * pNew, Str_Ntk_t * pNtk, Str_Mux_t * pTree, Str_M
     if ( RetValue == 0 )
         return 0;
     if ( fVerbose )
-        printf( "Trying node %d with path of length %d.\n", pRoot->Id, nLength );
+        fprintf( Abc_FrameGlobalGetOut(), "Trying node %d with path of length %d.\n", pRoot->Id, nLength );
     for ( i = 0; i < nLength; i++ )
     for ( k = i+2; k < nLength; k++ )
     {
@@ -1695,23 +1695,23 @@ int Str_MuxTryOnce( Gia_Man_t * pNew, Str_Ntk_t * pNtk, Str_Mux_t * pTree, Str_M
         if ( DelayBest > Delay || (ForkBest > 0 && DelayBest == Delay) )
             DelayBest = Delay, ForkBest = (i << 16) | k;
         if ( fVerbose )
-            printf( "%2d %2d -> %3d (%3d)\n", i, k, Delay, DelayBest );
+            fprintf( Abc_FrameGlobalGetOut(), "%2d %2d -> %3d (%3d)\n", i, k, Delay, DelayBest );
         nChecks++;
     }
     if ( ForkBest == -1 )
     {
         if ( fVerbose )
-            printf( "Did not find!\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Did not find!\n" );
         return 0;
     }
 //    Str_MuxDelayPrint_rec( pRoot, Edge ); printf( "\n" );
     Str_MuxChangeOnce( pTree, pPath, ForkBest >> 16, ForkBest & 0xFFFF, NULL, pNew, vDelay );
 //    Str_MuxDelayPrint_rec( pRoot, Edge ); printf( "\n" );
     if ( fVerbose )
-        printf( "Node %6d (%3d %3d) : Checks = %d. Delay: %d -> %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Node %6d (%3d %3d) : Checks = %d. Delay: %d -> %d.\n", 
             pRoot->Id, ForkBest >> 16, ForkBest & 0xFFFF, nChecks, DelayInit, DelayBest );
     if ( fVerbose )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     return 1;
 }
 int Str_MuxRestruct_rec( Gia_Man_t * pNew, Str_Ntk_t * pNtk, Str_Mux_t * pTree, Str_Mux_t * pRoot, int Edge, Vec_Int_t * vDelay, int fVerbose )

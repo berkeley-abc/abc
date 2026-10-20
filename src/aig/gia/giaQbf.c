@@ -84,7 +84,7 @@ Vec_Int_t * Gia_GenCollectFlopIndexes( char * pStr, int nLutNum, int nLutSize, i
         int iFlop = atoi(pTemp);
         if ( iFlop >= nFlops )
         {
-            printf( "Flop index (%d) exceeds the number of flops (%d).\n", iFlop, nFlops );
+            fprintf( Abc_FrameGlobalGetOut(), "Flop index (%d) exceeds the number of flops (%d).\n", iFlop, nFlops );
             break;
         }
         Vec_IntPush( vFlops, iFlop );
@@ -92,14 +92,14 @@ Vec_Int_t * Gia_GenCollectFlopIndexes( char * pStr, int nLutNum, int nLutSize, i
     }
     if ( Vec_IntSize(vFlops) != nLutNum * nLutSize )
     {
-        printf( "Gia_GenCollectFlopIndexes: Expecting %d flop indexes (instead of %d).\n", nLutNum * nLutSize, Vec_IntSize(vFlops) );
+        fprintf( Abc_FrameGlobalGetOut(), "Gia_GenCollectFlopIndexes: Expecting %d flop indexes (instead of %d).\n", nLutNum * nLutSize, Vec_IntSize(vFlops) );
         Vec_IntFree( vFlops );
         return NULL;
     }
     nDups = Vec_IntCountDuplicates(vFlops);
     if ( nDups )
     {
-        printf( "Gia_GenCollectFlopIndexes: There are %d duplicated flops in the list.\n", nDups );
+        fprintf( Abc_FrameGlobalGetOut(), "Gia_GenCollectFlopIndexes: There are %d duplicated flops in the list.\n", nDups );
         Vec_IntFree( vFlops );
         return NULL;
     }
@@ -285,7 +285,7 @@ Gia_Man_t * Gia_Gen2CreateMiter( int nLutSize, int nLutNum )
     Vec_IntFree( vXYRes2 );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
-    printf( "Generated QBF miter with %d parameters, %d functional variables, and %d AIG nodes.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Generated QBF miter with %d parameters, %d functional variables, and %d AIG nodes.\n", 
         nLutNum * (1 << nLutSize), 2*nLutSize, Gia_ManAndNum(pNew) );
     return pNew;
 }
@@ -310,22 +310,22 @@ void Gia_Gen2CodePrint( int nLutSize, int nLutNum, Vec_Int_t * vCode )
 {
     // |<-- PVars(0)-->|...|<-- PVars(nLutNum-1)-->|
     int i, n, nPairs = 16;
-    printf( "%d-input %d-output code table:\n", nLutSize, nLutNum );
+    fprintf( Abc_FrameGlobalGetOut(), "%d-input %d-output code table:\n", nLutSize, nLutNum );
     for ( i = 0; i < (1 << nLutSize); i++ )
     {
         word * CodeX  = Gia_Gen2CodeOneP( nLutSize, nLutNum, vCode, i );
-        printf( "%3d  ", i );
-        Extra_PrintBinary( stdout, (unsigned *)&i, nLutSize );
-        printf( "  -->  " );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d  ", i );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&i, nLutSize );
+        fprintf( Abc_FrameGlobalGetOut(), "  -->  " );
         if ( nLutNum <= 16 )
-            printf( "%5d  ", (int)CodeX[0] );
-        Extra_PrintBinary( stdout, (unsigned *)CodeX, nLutNum );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d  ", (int)CodeX[0] );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)CodeX, nLutNum );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         ABC_FREE( CodeX );
     }
     // create several different pairs
     srand( time(NULL) );
-    printf( "Simulation of the encoding with %d random pairs:\n", nPairs );
+    fprintf( Abc_FrameGlobalGetOut(), "Simulation of the encoding with %d random pairs:\n", nPairs );
     for ( n = 0; n < nPairs; n++ )
     {
         unsigned MaskIn = Abc_InfoMask( nLutSize );
@@ -345,27 +345,27 @@ void Gia_Gen2CodePrint( int nLutSize, int nLutNum, Vec_Int_t * vCode )
         if ( nLutNum < 64*nWords )
             CodeXCodeY[nWords-1] &= Abc_Tt6Mask(nLutNum % 64);            
 
-        printf( "%2d :", n );
-        printf( " x =%3d ", NumX );
-        Extra_PrintBinary( stdout,(unsigned *) &NumX, nLutSize );
-        printf( " y =%3d ", NumY );
-        Extra_PrintBinary( stdout, (unsigned *)&NumY, nLutSize );
-        printf( " nand =%3d ", NumXY );
-        Extra_PrintBinary( stdout, (unsigned *)&NumXY, nLutSize );
-        printf( "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d :", n );
+        fprintf( Abc_FrameGlobalGetOut(), " x =%3d ", NumX );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(),(unsigned *) &NumX, nLutSize );
+        fprintf( Abc_FrameGlobalGetOut(), " y =%3d ", NumY );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&NumY, nLutSize );
+        fprintf( Abc_FrameGlobalGetOut(), " nand =%3d ", NumXY );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&NumXY, nLutSize );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );
 
-        printf( " c(x) = " );
-        Extra_PrintBinary( stdout, (unsigned *)CodeX, nLutNum );
-        printf( " c(y) = " );
-        Extra_PrintBinary( stdout, (unsigned *)CodeY, nLutNum );
-        printf( " c(nand) = " );
-        Extra_PrintBinary( stdout, (unsigned *)CodeXY, nLutNum );
-        printf( "  nand(c(x),c(y)) = " );
-        Extra_PrintBinary( stdout, (unsigned *)CodeXCodeY, nLutNum );
-        printf( "  " );
+        fprintf( Abc_FrameGlobalGetOut(), " c(x) = " );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)CodeX, nLutNum );
+        fprintf( Abc_FrameGlobalGetOut(), " c(y) = " );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)CodeY, nLutNum );
+        fprintf( Abc_FrameGlobalGetOut(), " c(nand) = " );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)CodeXY, nLutNum );
+        fprintf( Abc_FrameGlobalGetOut(), "  nand(c(x),c(y)) = " );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)CodeXCodeY, nLutNum );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );
 
-        printf( "%s", Abc_TtEqual(CodeXCodeY, CodeXY, nWords) ? "yes" : "no" );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%s", Abc_TtEqual(CodeXCodeY, CodeXY, nWords) ? "yes" : "no" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         ABC_FREE( CodeX );
         ABC_FREE( CodeY );
@@ -421,10 +421,10 @@ int Gia_ManSatEnum( Gia_Man_t * pGia, int nConfLimit, int nTimeOut, int fVerbose
             Vec_IntPush( vLits, Abc_Var2Lit(iParVarBeg+i, sat_solver_var_value(pSat, iParVarBeg+i)) );
         if ( fVerbose )
         {
-            printf( "%5d : ", Iter );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d : ", Iter );
             Vec_IntForEachEntry( vLits, iLit, i )
-                printf( "%d", !Abc_LitIsCompl(iLit) );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", !Abc_LitIsCompl(iLit) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         // add clause
         if ( !sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) ) )
@@ -434,11 +434,11 @@ int Gia_ManSatEnum( Gia_Man_t * pGia, int nConfLimit, int nTimeOut, int fVerbose
     sat_solver_delete( pSat );
     Vec_IntFree( vLits );
     if ( nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= nTimeOut )
-        printf( "Enumerated %d assignments when timeout (%d sec) was reached.  ", nSolutions, nTimeOut );
+        fprintf( Abc_FrameGlobalGetOut(), "Enumerated %d assignments when timeout (%d sec) was reached.  ", nSolutions, nTimeOut );
     else if ( nConfLimit && !RetValue )
-        printf( "Enumerated %d assignments when conflict limit (%d) was reached.  ", nSolutions, nConfLimit );
+        fprintf( Abc_FrameGlobalGetOut(), "Enumerated %d assignments when conflict limit (%d) was reached.  ", nSolutions, nConfLimit );
     else 
-        printf( "Enumerated the complete set of %d assignments.  ", nSolutions );
+        fprintf( Abc_FrameGlobalGetOut(), "Enumerated the complete set of %d assignments.  ", nSolutions );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
     return RetValue;
 }
@@ -483,7 +483,7 @@ void Gia_QbfDumpFile( Gia_Man_t * pGia, int nPars )
     Vec_IntFree( vForAlls );
     Vec_IntFree( vExists );
     Vec_IntFree( vVarMap );
-    printf( "The 2QBF formula was written into file \"%s\".\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "The 2QBF formula was written into file \"%s\".\n", pFileName );
 }
 void Gia_QbfDumpFileInv( Gia_Man_t * pGia, int nPars )
 {
@@ -519,7 +519,7 @@ void Gia_QbfDumpFileInv( Gia_Man_t * pGia, int nPars )
     Vec_IntFree( vForAlls );
     Vec_IntFree( vExists2 );
     Vec_IntFree( vVarMap );
-    printf( "The 2QBF formula was written into file \"%s\".\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "The 2QBF formula was written into file \"%s\".\n", pFileName );
 }
 
 
@@ -791,14 +791,14 @@ void Gia_QbfOnePattern( Qbf_Man_t * p, Vec_Int_t * vValues )
 }
 void Gia_QbfPrint( Qbf_Man_t * p, Vec_Int_t * vValues, int Iter )
 {
-    printf( "%5d : ", Iter );
+    fprintf( Abc_FrameGlobalGetOut(), "%5d : ", Iter );
     assert( Vec_IntSize(vValues) == p->nVars );
-    Vec_IntPrintBinary( vValues ); printf( "  " );
-    printf( "Var =%7d  ",  p->pSatSynC ? cadical_solver_nvars(p->pSatSynC)        :
-                           p->pSatSynG ? bmcg_sat_solver_varnum(p->pSatSynG)      : sat_solver_nvars(p->pSatSyn)      );
-    printf( "Cla =%7d  ",  p->pSatSynC ? cadical_solver_nclauses(p->pSatSynC)     :
-                           p->pSatSynG ? bmcg_sat_solver_clausenum(p->pSatSynG)   : sat_solver_nclauses(p->pSatSyn)   );
-    printf( "Conf =%9d  ", p->pSatSynC ? cadical_solver_nconflicts(p->pSatSynC)   :
+    Vec_IntPrintBinary( vValues ); fprintf( Abc_FrameGlobalGetOut(), "  " );
+    fprintf( Abc_FrameGlobalGetOut(), "Var =%7d  ",  p->pSatSynC ? cadical_solver_nvars(p->pSatSynC)        :
+                           p->pSatSynG ? bmcg_sat_solver_varnum(p->pSatSynG)      : sat_solver_nvars(p->pSatSyn) );
+    fprintf( Abc_FrameGlobalGetOut(), "Cla =%7d  ",  p->pSatSynC ? cadical_solver_nclauses(p->pSatSynC)     :
+                           p->pSatSynG ? bmcg_sat_solver_clausenum(p->pSatSynG)   : sat_solver_nclauses(p->pSatSyn) );
+    fprintf( Abc_FrameGlobalGetOut(), "Conf =%9d  ", p->pSatSynC ? cadical_solver_nconflicts(p->pSatSynC)   :
                            p->pSatSynG ? bmcg_sat_solver_conflictnum(p->pSatSynG) : sat_solver_nconflicts(p->pSatSyn) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
 }
@@ -859,17 +859,17 @@ void Gia_QbfLearnConstraint( Qbf_Man_t * p, Vec_Int_t * vValues )
 {
     int i, status, Entry, Lits[2];
     assert( Vec_IntSize(vValues) == p->nPars );
-    printf( "  Pattern   " );
+    fprintf( Abc_FrameGlobalGetOut(), "  Pattern   " );
     Vec_IntPrintBinary( vValues );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_IntForEachEntry( vValues, Entry, i )
     {
         Lits[0] = Abc_Var2Lit( i, Entry );
         status = sat_solver_solve( p->pSatSyn, Lits, Lits+1, 0, 0, 0, 0 );
-        printf( "  Var =%4d ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "  Var =%4d ", i );
         if ( status != l_True )
         {
-            printf( "UNSAT\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "UNSAT\n" );
             Lits[0] = Abc_LitNot(Lits[0]);
             status = sat_solver_addclause( p->pSatSyn, Lits, Lits+1 );
             assert( status );
@@ -877,7 +877,7 @@ void Gia_QbfLearnConstraint( Qbf_Man_t * p, Vec_Int_t * vValues )
         }
         Gia_QbfOnePattern( p, p->vLits );
         Vec_IntPrintBinary( p->vLits );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     assert( Vec_IntSize(vValues) == p->nPars );
 }
@@ -901,7 +901,7 @@ int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, i
     abctime clk;
 //    Gia_QbfAddSpecialConstr( p );
     if ( fVerbose )
-        printf( "Solving QBF for \"%s\" with %d parameters, %d variables and %d AIG nodes.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Solving QBF for \"%s\" with %d parameters, %d variables and %d AIG nodes.\n", 
             Gia_ManName(pGia), p->nPars, p->nVars, Gia_ManAndNum(pGia) );
     assert( Gia_ManRegNum(pGia) == 0 );
     Vec_IntFill( p->vValues, nPars, 0 );
@@ -939,7 +939,7 @@ int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, i
     if ( RetValue == 0 )
     {
         int nZeros = Vec_IntCountZero( p->vValues );
-        printf( "Parameters (%d): 0x", nPars );
+        fprintf( Abc_FrameGlobalGetOut(), "Parameters (%d): 0x", nPars );
         assert( Vec_IntSize(p->vValues) == nPars );
         //Vec_IntPrintBinary( p->vValues );
         while ( Vec_IntSize(p->vValues) % 4 )
@@ -949,9 +949,9 @@ int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, i
             Digit |= Vec_IntEntry(p->vValues, 4*i+1) << 1;
             Digit |= Vec_IntEntry(p->vValues, 4*i+2) << 2;
             Digit |= Vec_IntEntry(p->vValues, 4*i+3) << 3;
-            printf( "%x", Digit );
+            fprintf( Abc_FrameGlobalGetOut(), "%x", Digit );
         }
-        printf( "  Statistics: 0=%d 1=%d\n", nZeros, Vec_IntSize(p->vValues) - nZeros );
+        fprintf( Abc_FrameGlobalGetOut(), "  Statistics: 0=%d 1=%d\n", nZeros, Vec_IntSize(p->vValues) - nZeros );
         if ( nEncVars )
         {
             int nBits = Vec_IntSize(p->vValues)/(1 << nEncVars);
@@ -960,18 +960,18 @@ int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, i
         }
     }
     if ( RetValue == -1 && nTimeOut && (Abc_Clock() - p->clkStart)/CLOCKS_PER_SEC >= nTimeOut )
-        printf( "The problem timed out after %d sec.  ", nTimeOut );
+        fprintf( Abc_FrameGlobalGetOut(), "The problem timed out after %d sec.  ", nTimeOut );
     else if ( RetValue == -1 && nConfLimit )
-        printf( "The problem aborted after %d conflicts.  ", nConfLimit );
+        fprintf( Abc_FrameGlobalGetOut(), "The problem aborted after %d conflicts.  ", nConfLimit );
     else if ( RetValue == -1 && nIterLimit )
-        printf( "The problem aborted after %d iterations.  ", nIterLimit );
+        fprintf( Abc_FrameGlobalGetOut(), "The problem aborted after %d iterations.  ", nIterLimit );
     else if ( RetValue == 1 && !fSilent )
-        printf( "The problem is UNSAT after %d iterations.  ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "The problem is UNSAT after %d iterations.  ", i );
     else if ( !fSilent )
-        printf( "The problem is SAT after %d iterations.  ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "The problem is SAT after %d iterations.  ", i );
     if ( fVerbose )
     {
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         Abc_PrintTime( 1, "SAT  ", p->clkSat );
         Abc_PrintTime( 1, "Other", Abc_Clock() - p->clkStart - p->clkSat );
         Abc_PrintTime( 1, "TOTAL", Abc_Clock() - p->clkStart );
@@ -1042,12 +1042,12 @@ Vec_Int_t * Gia_ManGenCombs( Gia_Man_t * p, Vec_Int_t * vInsOuts, int nIns, int 
         Vec_IntPush( vRes, Mask );
         if ( fVerbose )
         {
-            printf( "%5d : ", Iter );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d : ", Iter );
             Vec_IntForEachEntry( vInsOuts, iSatVar, i ) {
-                if ( i == nIns )  printf( " " );
-                printf( "%d", (Mask >> (Vec_IntSize(vInsOuts)-1-i)) & 1 );
+                if ( i == nIns )  fprintf( Abc_FrameGlobalGetOut(), " " );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", (Mask >> (Vec_IntSize(vInsOuts)-1-i)) & 1 );
             }
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         // add clause
         if ( !sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) ) )
@@ -1090,7 +1090,7 @@ void Gia_ManGenRel2( Gia_Man_t * pGia, Vec_Int_t * vInsOuts, int nIns, char * pF
 {
     Vec_Int_t * vRes = Gia_ManGenCombs( pGia, vInsOuts, nIns, fVerbose ); 
     if ( vRes == NULL ) {
-        printf( "Enumerating solutions did not succeed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Enumerating solutions did not succeed.\n" );
         return;
     }
     Gia_ManGenWriteRel( vRes, nIns, Vec_IntSize(vInsOuts)-nIns, pFileName );
@@ -1196,8 +1196,8 @@ Gia_Man_t * Gia_ManGenRelMiter( Gia_Man_t * pGia, Vec_Int_t * vInsOuts, int nIns
 void Gia_ManPrintRelMinterm( int Mint, int nIns, int nVars )
 {
     for ( int i = 0; i < nVars; i++ )
-        printf( "%s%d", i == nIns ? " ":"", (Mint >> (nVars-1-i)) & 1 );
-    printf( "\n" );    
+        fprintf( Abc_FrameGlobalGetOut(), "%s%d", i == nIns ? " ":"", (Mint >> (nVars-1-i)) & 1 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );    
 }
 Vec_Int_t * Gia_ManGenIoCombs( Gia_Man_t * pGia, Vec_Int_t * vInsOuts, int nIns, int fVerbose )
 {
@@ -1231,7 +1231,7 @@ Vec_Int_t * Gia_ManGenIoCombs( Gia_Man_t * pGia, Vec_Int_t * vInsOuts, int nIns,
         }
         Vec_IntPush( vRes, Mask );
         if ( 0 ) {
-            printf( "%5d : ", Iter );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d : ", Iter );
             Gia_ManPrintRelMinterm( Mask, nIns, Vec_IntSize(vSatVars) );
         }
         // add clause
@@ -1262,12 +1262,12 @@ void Gia_ManGenRel( Gia_Man_t * pGia, Vec_Int_t * vInsOuts, int nIns, char * pFi
     abctime clkStart  = Abc_Clock();
     Vec_Int_t * vRes = Gia_ManGenIoCombs( pGia, vInsOuts, nIns, fVerbose ); 
     if ( vRes == NULL ) {
-        printf( "Enumerating solutions did not succeed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Enumerating solutions did not succeed.\n" );
         return;
     }
     Gia_ManGenWriteRel( vRes, nIns, Vec_IntSize(vInsOuts)-nIns, pFileName );
     if ( fVerbose ) {
-        printf( "The resulting relation with %d input/output minterms is written into file \"%s\".  ", Vec_IntSize(vRes), pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "The resulting relation with %d input/output minterms is written into file \"%s\".  ", Vec_IntSize(vRes), pFileName );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
         if ( 0 ) {
             int i, Mint;

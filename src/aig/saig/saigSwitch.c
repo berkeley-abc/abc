@@ -285,8 +285,8 @@ clk = Abc_Clock();
         nFramesReal = atoi( Abc_FrameReadFlag("seqsimframes") );
     if ( nFramesReal <= nPref )
     {
-        printf( "The total number of frames (%d) should exceed prefix (%d).\n", nFramesReal, nPref );\
-        printf( "Setting the total number of frames to be %d.\n", nFrames );
+        fprintf( Abc_FrameGlobalGetOut(), "The total number of frames (%d) should exceed prefix (%d).\n", nFramesReal, nPref );\
+        fprintf( Abc_FrameGlobalGetOut(), "Setting the total number of frames to be %d.\n", nFrames );
         nFramesReal = nFrames;
     }
 //printf( "Simulating %d frames.\n", nFramesReal );
@@ -557,7 +557,7 @@ Aig_CMan_t * Aig_CManCreate( Aig_Man_t * p )
     Aig_ManForEachCo( p, pObj, i )
         Aig_CManAddPo( pCMan, 
             (Aig_ObjFaninId0(pObj) << 1) | Aig_ObjFaninC0(pObj) ); 
-    printf( "\nBytes alloc = %5d.  Bytes used = %7d.  Ave per node = %4.2f. \n", 
+    fprintf( Abc_FrameGlobalGetOut(), "\nBytes alloc = %5d.  Bytes used = %7d.  Ave per node = %4.2f. \n", 
         pCMan->nBytes, (int)(pCMan->pCur - pCMan->Data), 
         1.0 * (pCMan->pCur - pCMan->Data) / (pCMan->nNodes + pCMan->nOuts ) );
 //    Aig_CManStop( pCMan );

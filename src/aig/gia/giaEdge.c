@@ -83,7 +83,7 @@ void Gia_ManEdgeFromArray( Gia_Man_t * p, Vec_Int_t * vArray )
         Count += Gia_ObjEdgeAdd( iObj2, iObj1, p->vEdge1, p->vEdge2 );
     }
     if ( Count ) 
-        printf( "Found %d violations during edge conversion.\n", Count );
+        fprintf( Abc_FrameGlobalGetOut(), "Found %d violations during edge conversion.\n", Count );
 }
 Vec_Int_t * Gia_ManEdgeToArray( Gia_Man_t * p )
 {
@@ -151,7 +151,7 @@ void Gia_ManConvertPackingToEdges( Gia_Man_t * p )
     }
     assert( nEntries == nEntries2 );
     if ( Count )
-        printf( "Skipped %d illegal edges.\n", Count );
+        fprintf( Abc_FrameGlobalGetOut(), "Skipped %d illegal edges.\n", Count );
 }
 
 /**Function*************************************************************
@@ -845,11 +845,11 @@ int Edg_ObjImprove( Gia_Man_t * p, int iObj, int nEdgeLimit, int DelayMax, int f
     }
     if ( fVerbose )
     {
-        printf( "%8d : ", iObj );
-        printf( "Edges = %d  ", nEdges );
-        printf( "Fanins (all %d  EC %d  ENC %d  C %d)  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "%8d : ", iObj );
+        fprintf( Abc_FrameGlobalGetOut(), "Edges = %d  ", nEdges );
+        fprintf( Abc_FrameGlobalGetOut(), "Fanins (all %d  EC %d  ENC %d  C %d)  ", 
             Gia_ObjLutSize2(p, iObj), nFaninsEC, nFaninsENC, nFaninsC );
-        printf( "Fanouts (all %d  EC %d  ENC %d  C %d)  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Fanouts (all %d  EC %d  ENC %d  C %d)  ", 
             Gia_ObjLutFanoutNum2(p, iObj), nFanoutsEC, nFanoutsENC, nFanoutsC );
     }
     // consider simple cases
@@ -857,7 +857,7 @@ int Edg_ObjImprove( Gia_Man_t * p, int iObj, int nEdgeLimit, int DelayMax, int f
     if ( nEdges == nEdgeLimit )
     {
         if ( fVerbose )
-            printf( "Full\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Full\n" );
         return 0;
     }
     nEdgeDiff = nEdgeLimit - nEdges;
@@ -875,9 +875,9 @@ int Edg_ObjImprove( Gia_Man_t * p, int iObj, int nEdgeLimit, int DelayMax, int f
                 Count += Gia_ObjEdgeAdd( pFanins[i], iObj, p->vEdge1, p->vEdge2 );
             }
             if ( Count )
-                printf( "Wrong number of edges.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Wrong number of edges.\n" );
             if ( fVerbose )
-                printf( "Fixed %d critical fanins\n", nFaninsC );
+                fprintf( Abc_FrameGlobalGetOut(), "Fixed %d critical fanins\n", nFaninsC );
             return 1;
         }
     }
@@ -894,14 +894,14 @@ int Edg_ObjImprove( Gia_Man_t * p, int iObj, int nEdgeLimit, int DelayMax, int f
                 Count += Gia_ObjEdgeAdd( pFanouts[i], iObj, p->vEdge1, p->vEdge2 );
             }
             if ( Count )
-                printf( "Wrong number of edges.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Wrong number of edges.\n" );
             if ( fVerbose )
-                printf( "Fixed %d critical fanouts\n", nFanoutsC );
+                fprintf( Abc_FrameGlobalGetOut(), "Fixed %d critical fanouts\n", nFanoutsC );
             return 1;
         }
     }
     if ( fVerbose )
-        printf( "Cannot fix\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot fix\n" );
     return 0;
 }
 
@@ -927,7 +927,7 @@ int Edg_ManAssignEdgeNew( Gia_Man_t * p, int nEdges, int fVerbose )
     int DelayD = 0, DelayR = 0, DelayPrev = ABC_INFINITY;
     int k, j, i, iLast = -1, iObj;
     if ( fVerbose )
-        printf( "Running edge assignment with E = %d.\n", nEdges );
+        fprintf( Abc_FrameGlobalGetOut(), "Running edge assignment with E = %d.\n", nEdges );
     // create fanouts
     Edg_ManToMapping( p );
     // create empty assignment
@@ -954,7 +954,7 @@ int Edg_ManAssignEdgeNew( Gia_Man_t * p, int nEdges, int fVerbose )
             iLast = i;
         }
         if ( fVerbose )
-            printf( "\nIter %4d : Delay = %4d\n", i, DelayD );
+            fprintf( Abc_FrameGlobalGetOut(), "\nIter %4d : Delay = %4d\n", i, DelayD );
         // collect critical nodes (nodes with critical edges)
         Edg_ManCollectCritEdges( p, vEdges, DelayD );
         // sort levels according to the number of critical edges
@@ -969,7 +969,7 @@ int Edg_ManAssignEdgeNew( Gia_Man_t * p, int nEdges, int fVerbose )
             Vec_WecForEachLevel( vEdges, vLevel, k )
             {
                 int Level = Vec_IntPop( vLevel );
-                printf( "%d: Level %2d : ", k, Level );
+                fprintf( Abc_FrameGlobalGetOut(), "%d: Level %2d : ", k, Level );
                 Vec_IntPrint( vLevel );
             }
         }

@@ -477,7 +477,7 @@ Gia_Man_t * Gia_ManReadGig( char * pFileName )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot read file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot read file \"%s\".\n", pFileName );
         return NULL;
     }
     vLines = Gls_ManCount( pFile, pCounts );
@@ -485,7 +485,7 @@ Gia_Man_t * Gia_ManReadGig( char * pFileName )
     // statistics
     for ( i = 0; i < GLS_FINAL; i++ )
         if ( pCounts[i] )
-            printf( "%s=%d  ", s_Strs[i], pCounts[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "%s=%d  ", s_Strs[i], pCounts[i] );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // collect data and derive AIG
     p = Gls_ManAlloc( vLines, pCounts );

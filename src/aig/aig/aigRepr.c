@@ -305,7 +305,7 @@ Aig_Man_t * Aig_ManDupRepr( Aig_Man_t * p, int fOrdered )
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the new manager
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupRepr: Check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupRepr: Check has failed.\n" );
     return pNew;
 }
 

@@ -279,15 +279,15 @@ void Bnd_ManPrintMappings()
     int k, id;
     for( int j=0; j < Vec_PtrSize(vBmiter2Spec); j++ )
     {
-        printf("node %d: ", j);
+        fprintf( Abc_FrameGlobalGetOut(), "node %d: ", j );
         vIds_spec = (Vec_Int_t *)Vec_PtrEntry( vBmiter2Spec, j);
         vIds_impl = (Vec_Int_t *)Vec_PtrEntry( vBmiter2Impl, j);
         Vec_IntForEachEntry(vIds_spec, id, k)
-            printf("%d ", id);
-        printf("| ");
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", id );
+        fprintf( Abc_FrameGlobalGetOut(), "| " );
         Vec_IntForEachEntry(vIds_impl, id, k)
-            printf("%d ", id);
-        printf("\n");
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", id );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
 }
@@ -297,14 +297,14 @@ void Bnd_ManPrintBound()
 
     // printf("%d nodes merged in spec\n", pBnd ->nMerged_spec - Vec_IntSize(pBnd->vBI) - Vec_IntSize(pBnd->vBO) );
     // printf("%d nodes merged in impl\n", pBnd ->nMerged_impl );
-    printf("BI spec:\t"); Vec_IntPrint(pBnd -> vBI);
-    printf("BO spec:\t"); Vec_IntPrint(pBnd -> vBO);
-    printf("EI spec:\t"); Vec_IntPrint(pBnd -> vEI_spec);
-    printf("EI impl:\t"); Vec_IntPrint(pBnd -> vEI_impl);
-    printf("EI phase:\t"); Vec_BitPrint(pBnd -> vEI_phase);
-    printf("EO spec:\t"); Vec_IntPrint(pBnd -> vEO_spec);
-    printf("EO impl:\t"); Vec_IntPrint(pBnd -> vEO_impl);
-    printf("EO phase:\t"); Vec_BitPrint(pBnd -> vEO_phase);
+    fprintf( Abc_FrameGlobalGetOut(), "BI spec:\t" ); Vec_IntPrint(pBnd -> vBI);
+    fprintf( Abc_FrameGlobalGetOut(), "BO spec:\t" ); Vec_IntPrint(pBnd -> vBO);
+    fprintf( Abc_FrameGlobalGetOut(), "EI spec:\t" ); Vec_IntPrint(pBnd -> vEI_spec);
+    fprintf( Abc_FrameGlobalGetOut(), "EI impl:\t" ); Vec_IntPrint(pBnd -> vEI_impl);
+    fprintf( Abc_FrameGlobalGetOut(), "EI phase:\t" ); Vec_BitPrint(pBnd -> vEI_phase);
+    fprintf( Abc_FrameGlobalGetOut(), "EO spec:\t" ); Vec_IntPrint(pBnd -> vEO_spec);
+    fprintf( Abc_FrameGlobalGetOut(), "EO impl:\t" ); Vec_IntPrint(pBnd -> vEO_impl);
+    fprintf( Abc_FrameGlobalGetOut(), "EO phase:\t" ); Vec_BitPrint(pBnd -> vEO_phase);
 }
 
 void Bnd_ManPrintStats()
@@ -312,22 +312,22 @@ void Bnd_ManPrintStats()
     Bnd_Man_t* p = pBnd;
 
 
-    printf("\nSTATS\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\nSTATS\n" );
 
     int warning = 0;
     if ( p->nChoice_spec > 0 )
     {
         warning = 1;
-        printf("WARNING: multiple equiv nodes on the boundary of spec\n");
+        fprintf( Abc_FrameGlobalGetOut(), "WARNING: multiple equiv nodes on the boundary of spec\n" );
     }
     if ( p->nChoice_impl > 0 )
     {
         warning = 1;
-        printf("WARNING: multiple equiv nodes on the boundary of impl\n");
+        fprintf( Abc_FrameGlobalGetOut(), "WARNING: multiple equiv nodes on the boundary of impl\n" );
     }
 
-    printf("The outsides of spec and impl are %sEQ.\n", p->eq_out ? "" : "NOT " );
-    printf("The patched impl is %sEQ. to spec (and impl)\n", p->eq_res ? "" : "NOT " );
+    fprintf( Abc_FrameGlobalGetOut(), "The outsides of spec and impl are %sEQ.\n", p->eq_out ? "" : "NOT "  );
+    fprintf( Abc_FrameGlobalGetOut(), "The patched impl is %sEQ. to spec (and impl)\n", p->eq_res ? "" : "NOT "  );
 
     // #internal
     // nBI, nBO
@@ -341,8 +341,8 @@ void Bnd_ManPrintStats()
     // warning (may be neq)
     // eq_out, eq_res
 
-    printf("\nRESULT\n");
-    printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+    fprintf( Abc_FrameGlobalGetOut(), "\nRESULT\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
         p->nInternal,
         p->nBI, p->nBO,
         p->nBI_miss, p->nBO_miss,
@@ -353,10 +353,10 @@ void Bnd_ManPrintStats()
         p->nChoice_spec,
         warning,
         p->eq_out, p->eq_res
-    );
+     );
 
-    printf("#Choice Spec\t%d\n", p->nChoice_spec);
-    printf("#Choice Impl\t%d\n", p->nChoice_impl);
+    fprintf( Abc_FrameGlobalGetOut(), "#Choice Spec\t%d\n", p->nChoice_spec );
+    fprintf( Abc_FrameGlobalGetOut(), "#Choice Impl\t%d\n", p->nChoice_impl );
 
 
 
@@ -383,7 +383,7 @@ int Bnd_ManCheckBound( Gia_Man_t * p, int fVerbose )
     int valid = 1;
     int nBI = 0, nBO = 0, nInternal = 0;
 
-    if ( fVerbose ) printf( "Checking boundary... \n");
+    if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(),  "Checking boundary... \n" );
 
     Vec_Int_t *vPath;
     vPath = Vec_IntAlloc( Gia_ManObjNum(p) );
@@ -403,7 +403,7 @@ int Bnd_ManCheckBound( Gia_Man_t * p, int fVerbose )
         if ( path >= 8 )
         {
             valid = 0;
-            printf("there're more than 2 bufs in a path\n");
+            fprintf( Abc_FrameGlobalGetOut(), "there're more than 2 bufs in a path\n" );
             break;
         }
 
@@ -436,7 +436,7 @@ int Bnd_ManCheckBound( Gia_Man_t * p, int fVerbose )
             if ( (Vec_IntEntry( vPath, Gia_ObjId(p, pObj) ) | 5) != 5 )
             {
                 valid = 0;
-                printf("incorrect buf number at pi %d\n", Vec_IntEntry(vPath, Gia_ObjId(p, pObj)) );
+                fprintf( Abc_FrameGlobalGetOut(), "incorrect buf number at pi %d\n", Vec_IntEntry(vPath, Gia_ObjId(p, pObj))  );
                 break;
             }
         }
@@ -446,21 +446,21 @@ int Bnd_ManCheckBound( Gia_Man_t * p, int fVerbose )
 
     if ( !valid ) 
     {
-        printf("invalid boundary\n");
+        fprintf( Abc_FrameGlobalGetOut(), "invalid boundary\n" );
         return 0;
     }
     else if ( nBI == 0 )
     {
-        printf("no boundary\n");
+        fprintf( Abc_FrameGlobalGetOut(), "no boundary\n" );
         return 0;
     }
     else 
     {
         if ( fVerbose )
         {
-            printf("valid boundary (");
-            printf("#BI = %d\t#BO = %d\t", nBI, Gia_ManBufNum(p)- nBI);
-            printf("#Internal = %d)\n", nInternal );
+            fprintf( Abc_FrameGlobalGetOut(), "valid boundary (" );
+            fprintf( Abc_FrameGlobalGetOut(), "#BI = %d\t#BO = %d\t", nBI, Gia_ManBufNum(p)- nBI );
+            fprintf( Abc_FrameGlobalGetOut(), "#Internal = %d)\n", nInternal  );
         }
         if ( pBnd )
         {
@@ -601,7 +601,7 @@ void Bnd_ManFindBound( Gia_Man_t * p, Gia_Man_t * pImpl )
             Vec_IntPush(vEO_spec, id);
         }
     }
-    if ( pBnd -> fVerbose )  printf("%d BO doesn't match. ", Vec_PtrSize(vQ) );
+    if ( pBnd -> fVerbose )  fprintf( Abc_FrameGlobalGetOut(), "%d BO doesn't match. ", Vec_PtrSize(vQ)  );
     pBnd -> nBO_miss = Vec_PtrSize(vQ);
 
     int cnt_extra = - Vec_PtrSize(vQ);
@@ -630,7 +630,7 @@ void Bnd_ManFindBound( Gia_Man_t * p, Gia_Man_t * pImpl )
         }
     }
     // printf("%d AO found with %d extra nodes\n", Vec_IntSize(vAO) , cnt_extra );
-    if ( pBnd -> fVerbose ) printf("%d AO found\n", Vec_IntSize(vAO) );
+    if ( pBnd -> fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "%d AO found\n", Vec_IntSize(vAO)  );
 
 
     // mark TFOC of BO with flag 1 to prevent them from being selected into EI
@@ -673,7 +673,7 @@ void Bnd_ManFindBound( Gia_Man_t * p, Gia_Man_t * pImpl )
             Vec_IntPush(vEI_spec, id);
         }
     }
-    if ( pBnd -> fVerbose ) printf("%d BI doesn't match. ", Vec_PtrSize(vQ) );
+    if ( pBnd -> fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "%d BI doesn't match. ", Vec_PtrSize(vQ)  );
     pBnd -> nBI_miss = Vec_PtrSize(vQ);
     cnt_extra -= Vec_PtrSize(vQ);
 
@@ -716,7 +716,7 @@ void Bnd_ManFindBound( Gia_Man_t * p, Gia_Man_t * pImpl )
 
         Vec_IntSetEntry( vFlag, id, 2 );
     }
-    if ( pBnd -> fVerbose ) printf("%d AI found with %d extra nodes in total\n", Vec_IntSize(vAI) , cnt_extra );
+    if ( pBnd -> fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "%d AI found with %d extra nodes in total\n", Vec_IntSize(vAI) , cnt_extra  );
     pBnd -> nExtra = cnt_extra;
 
 
@@ -746,7 +746,7 @@ void Bnd_ManFindBound( Gia_Man_t * p, Gia_Man_t * pImpl )
     // print
     if ( pBnd -> fVerbose )
     {
-        printf("#EI = %d\t#EO = %d\t#Extra Node = %d\n", Vec_IntSize(vEI_spec) , Vec_IntSize(vEO_spec), cnt_extra );
+        fprintf( Abc_FrameGlobalGetOut(), "#EI = %d\t#EO = %d\t#Extra Node = %d\n", Vec_IntSize(vEI_spec) , Vec_IntSize(vEO_spec), cnt_extra  );
         Bnd_ManPrintBound();
     }
 
@@ -754,7 +754,7 @@ void Bnd_ManFindBound( Gia_Man_t * p, Gia_Man_t * pImpl )
     if ( !Bnd_ManCheckExtBound( p, vEI_spec, vEO_spec ) )
     {
 
-        printf("Combinational loop exist\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Combinational loop exist\n" );
         pBnd -> combLoop_spec = 1;
 
     }
@@ -787,7 +787,7 @@ Gia_Man_t* Bnd_ManCutBoundary( Gia_Man_t *p, Vec_Int_t* vEI, Vec_Int_t* vEO, Vec
     // check if the boundary has loop (EO cannot be in the TFC of EI )
     if ( !Bnd_ManCheckExtBound( p, vEI, vEO ) )
     {
-        printf("Combinational loop exist\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Combinational loop exist\n" );
         pBnd -> combLoop_impl = 1;
         return 0;
     }
@@ -866,13 +866,13 @@ Gia_Man_t* Bnd_ManCutBoundary( Gia_Man_t *p, Vec_Int_t* vEI, Vec_Int_t* vEO, Vec
 
 Gia_Man_t* Bnd_ManGenSpecOut( Gia_Man_t* p  )
 {
-    if ( pBnd -> fVerbose ) printf("Generating spec_out with given boundary.\n");
+    if ( pBnd -> fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Generating spec_out with given boundary.\n" );
     Gia_Man_t *pNew = Bnd_ManCutBoundary( p, pBnd->vEI_spec, pBnd->vEO_spec, 0, 0 );
     return pNew;
 }
 Gia_Man_t* Bnd_ManGenImplOut( Gia_Man_t* p)
 {
-    if ( pBnd -> fVerbose ) printf("Generating impl_out with given boundary.\n");
+    if ( pBnd -> fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Generating impl_out with given boundary.\n" );
     Gia_Man_t *pNew = Bnd_ManCutBoundary( p, pBnd->vEI_impl, pBnd->vEO_impl, pBnd->vEI_phase, pBnd->vEO_phase );
     if (!pNew) pBnd -> combLoop_impl = 1;
     return pNew;
@@ -1256,11 +1256,11 @@ Gia_Man_t* Bnd_ManStackGias( Gia_Man_t *pSpec, Gia_Man_t *pImpl )
 
     int i, iLit;
     if ( Gia_ManBufNum(pSpec) == 0 ) {
-        printf( "The spec AIG should have a boundary.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The spec AIG should have a boundary.\n" );
         return NULL;
     }
     if ( Gia_ManBufNum(pImpl) != 0 ) {
-        printf( "The impl AIG should have no boundary.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The impl AIG should have no boundary.\n" );
         return NULL;
     }
 

@@ -12,7 +12,7 @@ int  Saig_ManFilterUsingIndOne2( Aig_Man_t * p, Aig_Man_t * pFrame, sat_solver *
       return status;
   if ( status == l_Undef )
     {
-      printf( "Solver returned undecided.\n" );
+      fprintf( Abc_FrameGlobalGetOut(), "Solver returned undecided.\n" );
       return status;
     }
   assert( status == l_True );
@@ -140,7 +140,7 @@ void Saig_ManFilterUsingInd2( Aig_Man_t * p, Vec_Vec_t * vCands, int nConfs, int
   pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
   // check candidates
   if ( fVerbose )
-    printf( "Filtered cands:  \n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Filtered cands:  \n" );
   Counter = 0;
   Vec_VecForEachLevel( vCands, vNodes, i )
     {
@@ -153,8 +153,8 @@ void Saig_ManFilterUsingInd2( Aig_Man_t * p, Vec_Vec_t * vCands, int nConfs, int
             {
               Vec_PtrWriteEntry( vNodes, k2++, pObj );
               if ( fVerbose )
-                printf( "%d:%s%d \n", i, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
-              printf( " type I : %d:%s%d \n", i, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
+                fprintf( Abc_FrameGlobalGetOut(), "%d:%s%d \n", i, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
+              fprintf( Abc_FrameGlobalGetOut(), " type I : %d:%s%d \n", i, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
               Vec_PtrPush(p->unfold2_type_I, pObj);
             }
           /* jlong -- begin  */
@@ -163,8 +163,8 @@ void Saig_ManFilterUsingInd2( Aig_Man_t * p, Vec_Vec_t * vCands, int nConfs, int
               if ( Saig_ManFilterUsingIndOne2( p, pFrames, pSat, pCnf, nConfs, nProps, Counter-1 , 2) == l_False ){
                 //Vec_PtrWriteEntry( vNodes, k2++, pObj );
                 if ( fVerbose )
-                  printf( "%d:%s%d  \n", i, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
-                printf( " type II: %d:%s%d  \n", i, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
+                  fprintf( Abc_FrameGlobalGetOut(), "%d:%s%d  \n", i, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
+                fprintf( Abc_FrameGlobalGetOut(), " type II: %d:%s%d  \n", i, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
                 Vec_PtrWriteEntry( vNodes, k2++, pObj ); /* add type II constraints */
                 Vec_PtrPush(p->unfold2_type_II, pObj);
               }
@@ -252,13 +252,13 @@ Vec_Vec_t * Ssw_ManFindDirectImplications2( Aig_Man_t * p, int nFrames, int nCon
 
   if ( fVerbose )
     {
-      printf( "Found %3d candidates.\n", Vec_VecSizeSize(vCands) );
+      fprintf( Abc_FrameGlobalGetOut(), "Found %3d candidates.\n", Vec_VecSizeSize(vCands) );
       Vec_VecForEachLevel( vCands, vNodes, k )
         {
-          printf( "Level %d. Cands  =%d    ", k, Vec_PtrSize(vNodes) );
+          fprintf( Abc_FrameGlobalGetOut(), "Level %d. Cands  =%d    ", k, Vec_PtrSize(vNodes) );
           //            Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
           //                printf( "%d:%s%d ", k, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
-          printf( "\n" );
+          fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
 
@@ -266,15 +266,15 @@ Vec_Vec_t * Ssw_ManFindDirectImplications2( Aig_Man_t * p, int nFrames, int nCon
   /* -- jlong -- this does the SAT proof of the constraints */
   Saig_ManFilterUsingInd2( p, vCands, nConfs, nProps, fVerbose );
   if ( Vec_VecSizeSize(vCands) )
-    printf( "Found %3d constraints after filtering.\n", Vec_VecSizeSize(vCands) );
+    fprintf( Abc_FrameGlobalGetOut(), "Found %3d constraints after filtering.\n", Vec_VecSizeSize(vCands) );
   if ( fVerbose )
     {
       Vec_VecForEachLevel( vCands, vNodes, k )
         {
-          printf( "Level %d. Constr =%d    ", k, Vec_PtrSize(vNodes) );
+          fprintf( Abc_FrameGlobalGetOut(), "Level %d. Constr =%d    ", k, Vec_PtrSize(vNodes) );
           //            Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
           //                printf( "%d:%s%d ", k, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
-          printf( "\n" );
+          fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
   
@@ -354,7 +354,7 @@ Aig_Man_t * Saig_ManDupUnfoldConstrsFunc2( Aig_Man_t * pAig, int nFrames, int nC
   nNewFlops = Vec_PtrSize(pAig->unfold2_type_II);
   //assert( nNewFlops == Vec_PtrSize(vNewFlops) );
   Aig_ManSetRegNum( pNew, Aig_ManRegNum(pAig) + nNewFlops );
-  printf("#reg after unfold2: %d\n", Aig_ManRegNum(pAig) + nNewFlops );
+  fprintf( Abc_FrameGlobalGetOut(), "#reg after unfold2: %d\n", Aig_ManRegNum(pAig) + nNewFlops  );
   Vec_VecFreeP( &vCands );
   Vec_PtrFree( vNewFlops );
   return pNew;
@@ -418,7 +418,7 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc2( Aig_Man_t * pAig, int fCompl, int fVerb
                                 Aig_NotCond(type_II_latch, fCompl),
                                 Aig_NotCond( Aig_ObjChild0Copy(pObj), fCompl ) )
                         );
-        printf( "modeling typeII : %d:%s%d \n", i, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
+        fprintf( Abc_FrameGlobalGetOut(), "modeling typeII : %d:%s%d \n", i, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
       } else 
         pMiter = Aig_Or( pAigNew, pMiter, Aig_NotCond( Aig_ObjChild0Copy(pObj), fCompl ) );
     }
@@ -453,7 +453,7 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc2( Aig_Man_t * pAig, int fCompl, int fVerb
                                (Aig_Obj_t*)pObjLo->pData);
         Aig_ObjCreateCo( pAigNew, c);
       } else {
-        printf ( "skipping: reg%d\n", i);
+        fprintf ( Abc_FrameGlobalGetOut(),  "skipping: reg%d\n", i);
         Aig_ObjCreateCo( pAigNew,Aig_ObjChild0Copy(pObjLi));
       }
     }
@@ -477,7 +477,7 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc2( Aig_Man_t * pAig, int fCompl, int fVerb
       if (type_II) {
         Aig_ObjCreateCo( pAigNew, Aig_ObjChild0Copy(pObj));
         Aig_ManSetRegNum( pAigNew, Aig_ManRegNum(pAigNew)+1 );
-        printf( "Latch for typeII : %d:%s%d \n", i, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
+        fprintf( Abc_FrameGlobalGetOut(), "Latch for typeII : %d:%s%d \n", i, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
       }
     }
 
@@ -489,7 +489,7 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc2( Aig_Man_t * pAig, int fCompl, int fVerb
       Aig_ObjCreateCo( pAigNew, pFlopIn );
       Aig_ManSetRegNum( pAigNew, Aig_ManRegNum(pAigNew)+1 );
     }
-  printf("#reg after fold2: %d\n", Aig_ManRegNum(pAigNew));
+  fprintf( Abc_FrameGlobalGetOut(), "#reg after fold2: %d\n", Aig_ManRegNum(pAigNew) );
   // perform cleanup
   Aig_ManCleanup( pAigNew );
   Aig_ManSeqCleanup( pAigNew );

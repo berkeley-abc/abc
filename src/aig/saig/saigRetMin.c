@@ -146,10 +146,10 @@ int Saig_ManRetimeUnsatCore( Aig_Man_t * p, int fVerbose )
                 nVars++;
             pVars[ (*pLit) >> 1 ] = 1;
             if ( fVeryVerbose )
-            printf( "%s%d ", ((*pLit) & 1)? "-" : "+", (*pLit) >> 1 );
+            fprintf( Abc_FrameGlobalGetOut(), "%s%d ", ((*pLit) & 1)? "-" : "+", (*pLit) >> 1 );
         }
         if ( fVeryVerbose )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // collect the nodes
     if ( fVeryVerbose ) {
@@ -157,7 +157,7 @@ int Saig_ManRetimeUnsatCore( Aig_Man_t * p, int fVerbose )
           if ( pCnf->pVarNums[pObj->Id] >= 0 && pVars[ pCnf->pVarNums[pObj->Id] ] == 1 )
           {
               Aig_ObjPrint( p, pObj );
-              printf( "\n" );
+              fprintf( Abc_FrameGlobalGetOut(), "\n" );
           }
     }
     // pick the first PO in the list
@@ -171,7 +171,7 @@ int Saig_ManRetimeUnsatCore( Aig_Man_t * p, int fVerbose )
             nPos++;
         }
     if ( fVerbose )
-        printf( "UNSAT core: %d clauses, %d variables, %d POs.  ", Vec_IntSize(vCore), nVars, nPos );
+        fprintf( Abc_FrameGlobalGetOut(), "UNSAT core: %d clauses, %d variables, %d POs.  ", Vec_IntSize(vCore), nVars, nPos );
     ABC_FREE( pVars );
     Vec_IntFree( vCore );
     Cnf_DataFree( pCnf );
@@ -573,7 +573,7 @@ Aig_Man_t * Saig_ManRetimeMinAreaBackward( Aig_Man_t * pNew, int fVerbose )
     // transform the AIG to have no bad registers
     vBadRegs = Saig_ManGetRegistersToExclude( pNew );
     if ( fVerbose && Vec_PtrSize(vBadRegs) )
-        printf( "Excluding %d registers that cannot be backward retimed.\n", Vec_PtrSize(vBadRegs) ); 
+        fprintf( Abc_FrameGlobalGetOut(), "Excluding %d registers that cannot be backward retimed.\n", Vec_PtrSize(vBadRegs) ); 
     while ( 1 )
     {
         Saig_ManHideBadRegs( pNew, vBadRegs );
@@ -601,7 +601,7 @@ Aig_Man_t * Saig_ManRetimeMinAreaBackward( Aig_Man_t * pNew, int fVerbose )
         iBadReg = Saig_ManRetimeUnsatCore( pInit, fVerbose );
         Aig_ManStop( pInit );
         if ( fVerbose )
-            printf( "Excluding register %d.\n", iBadReg ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Excluding register %d.\n", iBadReg ); 
         // prepare to remove this output
         vBadRegs = Vec_PtrAlloc( 1 );
         Vec_PtrPush( vBadRegs, Aig_ManCo( pNew, Saig_ManPoNum(pNew) + iBadReg ) );
@@ -637,7 +637,7 @@ Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnl
         if ( Vec_PtrSize(vCut) >= Aig_ManRegNum(pNew) )
         {
             if ( fVerbose && !fChanges )
-                printf( "Forward retiming cannot reduce registers.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Forward retiming cannot reduce registers.\n" );
             Vec_PtrFree( vCut );
             break;
         }
@@ -659,7 +659,7 @@ Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnl
         if ( Vec_PtrSize(vCut) >= Aig_ManRegNum(pNew) )
         {
             if ( fVerbose && !fChanges )
-                printf( "Backward retiming cannot reduce registers.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Backward retiming cannot reduce registers.\n" );
             Vec_PtrFree( vCut );
             break;
         }
@@ -681,7 +681,7 @@ Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnl
         if ( pTemp == NULL )
         {
             if ( fVerbose && !fChanges )
-                printf( "Backward retiming cannot reduce registers.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Backward retiming cannot reduce registers.\n" );
             break;
         }
         Saig_ManExposeBadRegs( pTemp, Saig_ManPoNum(pTemp) - Saig_ManPoNum(pNew) );
@@ -692,7 +692,7 @@ Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnl
         fChanges = 1;
     }
     if ( !fForwardOnly && !fInitial && fChanges )
-        printf( "Assuming const-0 init-state after backward retiming. Result will not verify.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Assuming const-0 init-state after backward retiming. Result will not verify.\n" );
     return pNew;
 }
 

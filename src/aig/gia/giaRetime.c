@@ -276,7 +276,7 @@ Gia_Man_t * Gia_ManRetimeForward( Gia_Man_t * p, int nMaxIters, int fVerbose )
         pNew = Gia_ManRetimeForwardOne( pTemp = pNew, &nRegFixed, &nRegMoves );
         if ( fVerbose )
         {
-            printf( "%2d : And = %6d. Reg = %5d. Unret = %5d. Move = %6d. ", 
+            fprintf( Abc_FrameGlobalGetOut(), "%2d : And = %6d. Reg = %5d. Unret = %5d. Move = %6d. ", 
                 i + 1, Gia_ManAndNum(pTemp), Gia_ManRegNum(pTemp), nRegFixed, nRegMoves );
             ABC_PRT( "Time", Abc_Clock() - clk );
         }

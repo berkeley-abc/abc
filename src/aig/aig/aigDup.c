@@ -89,7 +89,7 @@ Aig_Man_t * Aig_ManDupSimple( Aig_Man_t * p )
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupSimple(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupSimple(): The check has failed.\n" );
     return pNew;
 }
 
@@ -138,7 +138,7 @@ Aig_Man_t * Aig_ManDupSimpleWithHints( Aig_Man_t * p, Vec_Int_t * vHints )
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Llb_ManDeriveAigWithHints(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Llb_ManDeriveAigWithHints(): The check has failed.\n" );
     return pNew;
 }
 
@@ -222,7 +222,7 @@ Aig_Man_t * Aig_ManDupSimpleDfs( Aig_Man_t * p )
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupSimple(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupSimple(): The check has failed.\n" );
     return pNew;
 }
 
@@ -259,7 +259,7 @@ Aig_Man_t * Aig_ManDupSimpleDfsPart( Aig_Man_t * p, Vec_Ptr_t * vPis, Vec_Ptr_t 
     Aig_ManSetRegNum( pNew, 0 );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupSimple(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupSimple(): The check has failed.\n" );
     return pNew;
 }
 
@@ -320,14 +320,14 @@ Aig_Man_t * Aig_ManDupOrdered( Aig_Man_t * p )
     }
     assert( Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
     if ( (nNodes = Aig_ManCleanup( pNew )) )
-        printf( "Aig_ManDupOrdered(): Cleanup after AIG duplication removed %d nodes.\n", nNodes );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupOrdered(): Cleanup after AIG duplication removed %d nodes.\n", nNodes );
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // duplicate the timing manager
     if ( p->pManTime )
         pNew->pManTime = Tim_ManDup( (Tim_Man_t *)p->pManTime, 0 );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupOrdered(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupOrdered(): The check has failed.\n" );
     return pNew;
 }
 
@@ -394,7 +394,7 @@ Aig_Man_t * Aig_ManDupCof( Aig_Man_t * p, int iInput, int Value )
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupSimple(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupSimple(): The check has failed.\n" );
     return pNew;
 }
 
@@ -440,11 +440,11 @@ Aig_Man_t * Aig_ManDupTrim( Aig_Man_t * p )
     }
     assert( Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
     if ( (nNodes = Aig_ManCleanup( pNew )) )
-        printf( "Aig_ManDupTrim(): Cleanup after AIG duplication removed %d nodes.\n", nNodes );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupTrim(): Cleanup after AIG duplication removed %d nodes.\n", nNodes );
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupTrim(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupTrim(): The check has failed.\n" );
     return pNew;
 }
 
@@ -511,7 +511,7 @@ Aig_Man_t * Aig_ManDupExor( Aig_Man_t * p )
         pNew->pManTime = Tim_ManDup( (Tim_Man_t *)p->pManTime, 0 );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupExor(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupExor(): The check has failed.\n" );
     return pNew;
 }
 
@@ -601,14 +601,14 @@ Aig_Man_t * Aig_ManDupDfs( Aig_Man_t * p )
     }
     assert( p->pEquivs != NULL || Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
     if ( p->pEquivs == NULL && p->pReprs == NULL && (nNodes = Aig_ManCleanup( pNew )) )
-        printf( "Aig_ManDupDfs(): Cleanup after AIG duplication removed %d nodes.\n", nNodes );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupDfs(): Cleanup after AIG duplication removed %d nodes.\n", nNodes );
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // duplicate the timing manager
     if ( p->pManTime )
         pNew->pManTime = Tim_ManDup( (Tim_Man_t *)p->pManTime, 0 );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupDfs(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupDfs(): The check has failed.\n" );
     return pNew;
 }
 
@@ -738,14 +738,14 @@ Aig_Man_t * Aig_ManDupDfsGuided( Aig_Man_t * p, Vec_Ptr_t * vPios )
     }
 //    assert( Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
     if ( p->pEquivs == NULL && p->pReprs == NULL && (nNodes = Aig_ManCleanup( pNew )) )
-        printf( "Aig_ManDupDfs(): Cleanup after AIG duplication removed %d nodes.\n", nNodes );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupDfs(): Cleanup after AIG duplication removed %d nodes.\n", nNodes );
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // duplicate the timing manager
     if ( p->pManTime )
         pNew->pManTime = Tim_ManDup( (Tim_Man_t *)p->pManTime, 0 );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupDfs(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupDfs(): The check has failed.\n" );
     return pNew;
 }
 
@@ -817,7 +817,7 @@ Aig_Man_t * Aig_ManDupLevelized( Aig_Man_t * p )
         pNew->pManTime = Tim_ManDup( (Tim_Man_t *)p->pManTime, 0 );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupLevelized(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupLevelized(): The check has failed.\n" );
     return pNew;
 }
 
@@ -879,7 +879,7 @@ Aig_Man_t * Aig_ManDupFlopsOnly( Aig_Man_t * p )
     Aig_ManCleanup( pNew );
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupFlopsOnly(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupFlopsOnly(): The check has failed.\n" );
     return pNew;
 
 }
@@ -951,7 +951,7 @@ Aig_Man_t * Aig_ManDupRepres( Aig_Man_t * p )
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the new manager
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupRepres: Check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupRepres: Check has failed.\n" );
     return pNew;
 }
 
@@ -1026,7 +1026,7 @@ Aig_Man_t * Aig_ManDupRepresDfs( Aig_Man_t * p )
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the new manager
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupRepresDfs: Check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupRepresDfs: Check has failed.\n" );
     return pNew;
 }
 
@@ -1104,7 +1104,7 @@ Aig_Man_t * Aig_ManDupOrpos( Aig_Man_t * p, int fAddRegs )
     assert( Aig_ManRegNum(p) > 0 );
     if ( p->nConstrs > 0 )
     {
-        printf( "The AIG manager should have no constraints.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The AIG manager should have no constraints.\n" );
         return NULL;
     }
     // create the new manager
@@ -1204,7 +1204,7 @@ Aig_Man_t * Aig_ManDupUnsolvedOutputs( Aig_Man_t * p, int fAddRegs )
     assert( Aig_ManRegNum(p) > 0 );
     if ( p->nConstrs > 0 )
     {
-        printf( "The AIG manager should have no constraints.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The AIG manager should have no constraints.\n" );
         return NULL;
     }
     // create the new manager
@@ -1284,7 +1284,7 @@ Aig_Man_t * Aig_ManDupArray( Vec_Ptr_t * vArray )
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupSimple(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupSimple(): The check has failed.\n" );
     return pNew;
 }
 

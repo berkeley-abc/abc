@@ -249,13 +249,13 @@ void Gia_Iso2ManPrint( Gia_Iso2Man_t * p, abctime Time, int fVerbose )
 {
     if ( !fVerbose )
         return;
-    printf( "Iter %4d :  ", p->nIters++ );
-    printf( "Entries =%8d.  ", Vec_IntSize(p->vTied) );
-    printf( "Uniques =%8d.  ", p->nUniques );
-    printf( "Singles =%8d.  ", Vec_PtrSize(p->vSingles) );
-    printf( "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
-    printf( "\n" );
-    fflush( stdout );
+    fprintf( Abc_FrameGlobalGetOut(), "Iter %4d :  ", p->nIters++ );
+    fprintf( Abc_FrameGlobalGetOut(), "Entries =%8d.  ", Vec_IntSize(p->vTied) );
+    fprintf( Abc_FrameGlobalGetOut(), "Uniques =%8d.  ", p->nUniques );
+    fprintf( Abc_FrameGlobalGetOut(), "Singles =%8d.  ", Vec_PtrSize(p->vSingles) );
+    fprintf( Abc_FrameGlobalGetOut(), "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 /**Function*************************************************************
@@ -290,9 +290,9 @@ int Gia_Iso2ManUniqify( Gia_Iso2Man_t * p )
 #if 0
     Gia_ManForEachObjVec( p->vTied, p->pGia, pObj, i )
     {
-        printf( "%3d : ", Gia_ObjId(p->pGia, pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : ", Gia_ObjId(p->pGia, pObj) );
         Extra_PrintBinary( stdout, &pObj->Value, 32 );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 #endif
 
@@ -580,7 +580,7 @@ Vec_Wec_t * Gia_Iso2ManCheckIsoClassesSkip( Gia_Man_t * p, Vec_Wec_t * vEquivs )
     Vec_WecForEachLevel( vEquivs, vClass, i )
     {
         if ( i % 50 == 0 )
-            printf( "Finished %8d outputs (out of %8d)...\r", Counter, Gia_ManPoNum(p) ), fflush(stdout);
+            fprintf( Abc_FrameGlobalGetOut(),  "Finished %8d outputs (out of %8d)...\r", Counter, Gia_ManPoNum(p)  ), fflush( Abc_FrameGlobalGetOut() );
         Counter += Vec_IntSize(vClass);
         if ( Vec_IntSize(vClass) < 2 || Gia_Iso2ManCheckIsoClassOneSkip(p, vClass, vRoots, vVec0, vVec1, vMap0, vMap1) )
         {
@@ -640,7 +640,7 @@ Vec_Wec_t * Gia_Iso2ManCheckIsoClasses( Gia_Man_t * p, Vec_Wec_t * vEquivs )
     Vec_WecForEachLevel( vEquivs, vClass, i )
     {
         if ( i % 50 == 0 )
-            printf( "Finished %8d outputs (out of %8d)...\r", Counter, Gia_ManPoNum(p) ), fflush(stdout);
+            fprintf( Abc_FrameGlobalGetOut(),  "Finished %8d outputs (out of %8d)...\r", Counter, Gia_ManPoNum(p)  ), fflush( Abc_FrameGlobalGetOut() );
         // split this class
         Gia_Iso2ManCheckIsoClassOne( p, vClass, vRoots, vVec0, vVec1, vMap0, vMap1, vNewClass );
         Counter += Vec_IntSize(vClass);
@@ -725,7 +725,7 @@ Gia_Man_t * Gia_ManIsoReduce2( Gia_Man_t * pGia, Vec_Ptr_t ** pvPosEquivs, Vec_P
     vEquivs = Gia_Iso2ManPerform( pGia, fVeryVerbose );
     // report class stats
     nClasses = Vec_WecCountNonTrivial( vEquivs, &nUsedPos );
-    printf( "Reduced %d outputs to %d candidate   classes (%d outputs are in %d non-trivial classes).  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Reduced %d outputs to %d candidate   classes (%d outputs are in %d non-trivial classes).  ", 
         Gia_ManPoNum(pGia), Vec_WecSize(vEquivs), nUsedPos, nClasses );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( fEstimate )
@@ -749,12 +749,12 @@ Gia_Man_t * Gia_ManIsoReduce2( Gia_Man_t * pGia, Vec_Ptr_t ** pvPosEquivs, Vec_P
     Vec_IntFree( vRemains );
     // report class stats
     nClasses = Vec_WecCountNonTrivial( vEquivs, &nUsedPos );
-    printf( "Reduced %d outputs to %d equivalence classes (%d outputs are in %d non-trivial classes).  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Reduced %d outputs to %d equivalence classes (%d outputs are in %d non-trivial classes).  ", 
         Gia_ManPoNum(pGia), Vec_WecSize(vEquivs), nUsedPos, nClasses );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( fVerbose )
     { 
-        printf( "Nontrivial classes:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Nontrivial classes:\n" );
         Vec_WecPrint( vEquivs, 1 );
     }
     if ( pvPiPerms )

@@ -279,12 +279,12 @@ void Gia_ManComputeDomsTry( Gia_Man_t * p )
         // sort by cost
         Vec_IntSelectSortCost2( Vec_IntArray(vSupp), Vec_IntSize(vSupp), Vec_IntArray(vSuppRefs) );
 
-        printf( "Obj %6d : ", i );
-        printf( "Cone = %4d  ", nSize );
-        printf( "Supp = %4d  ", Vec_IntSize(vSupp) );
+        fprintf( Abc_FrameGlobalGetOut(), "Obj %6d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Cone = %4d  ", nSize );
+        fprintf( Abc_FrameGlobalGetOut(), "Supp = %4d  ", Vec_IntSize(vSupp) );
 //        Vec_IntForEachEntry( vSuppRefs, Entry, k )
 //            printf( "%d(%d) ", -Entry, Gia_ObjLevelId(p, Vec_IntEntry(vSupp, k)) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         // selected k
         for ( k = 0; k < Vec_IntSize(vSupp); k++ )

@@ -89,9 +89,9 @@ int Gia_ManTreeCountNodes( Tree_Sto_t * p )
 void Gia_ManTreePrint( Tree_Sto_t * p )
 {
     int i;
-    printf( "Tree with %d nodes:\n", Gia_ManTreeCountNodes(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Tree with %d nodes:\n", Gia_ManTreeCountNodes(p) );
     for ( i = p->nIns-1; i >= 0; i-- )
-        printf( "Level %2d  Var %2d : %s  Nodes = %3d  Cofs = %3d\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Level %2d  Var %2d : %s  Nodes = %3d  Cofs = %3d\n", 
             i, p->pIPerm[i], p->pTried[i]?"*":" ", p->nNodes[i], Vec_IntSize(p->vCofs+i) );
 //    for ( i = p->nIns-1; i >= 0; i-- )
 //        printf( "Var %2d    Level %2d\n", i, p->pPerm[i] );
@@ -184,7 +184,7 @@ Tree_Sto_t * Gia_ManContructTree( word * pTruths, int nIns, int nOuts, int nWord
 void Gia_ManContructTreeTest( word * pTruths, int nIns, int nOuts, int nWords )
 {
     Tree_Sto_t * pSto = Gia_ManContructTree( pTruths, nIns, nOuts, nWords );
-    printf( "Total nodes = %d.\n", Gia_ManTreeCountNodes(pSto) );
+    fprintf( Abc_FrameGlobalGetOut(), "Total nodes = %d.\n", Gia_ManTreeCountNodes(pSto) );
     Gia_ManTreeFree( pSto );
 }
 
@@ -234,7 +234,7 @@ int Gia_ManFindBestPosition( word * pTruths, int nIns, int nOuts, int nWords, wo
             vBest = v;
         }
         if ( fVerbose )
-            printf( "Level %2d -> %2d :  Nodes = %4d.    ", v+1, v, nNodesCur );
+            fprintf( Abc_FrameGlobalGetOut(), "Level %2d -> %2d :  Nodes = %4d.    ", v+1, v, nNodesCur );
         Abc_TtCopy( pStore+v*nOuts*nWords, pSto->pMem, nOuts*nWords, 0 );
         if ( fVerbose )
             Gia_ManContructTreeTest( pSto->pMem, nIns, nOuts, nWords );
@@ -242,7 +242,7 @@ int Gia_ManFindBestPosition( word * pTruths, int nIns, int nOuts, int nWords, wo
     assert( vBest != nIns-1 );
     Gia_ManTreeFree( pSto );
     if ( fVerbose )
-        printf( "Best level = %d. Best nodes = %d.\n", vBest, nNodesMin );
+        fprintf( Abc_FrameGlobalGetOut(), "Best level = %d. Best nodes = %d.\n", vBest, nNodesMin );
     if ( pnNodesMin )
         *pnNodesMin = nNodesMin;
     return vBest;
@@ -251,8 +251,8 @@ void Gia_ManPermStats( int nIns, int * pIPerm, int * pTried )
 {
     int v;
     for ( v = nIns-1; v >= 0; v-- )
-        printf( "Level = %2d : Var = %2d  Tried = %2d\n", v, pIPerm[v], pTried[v] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Level = %2d : Var = %2d  Tried = %2d\n", v, pIPerm[v], pTried[v] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 int Gia_ManPermuteTreeOne( word * pTruths, int nIns, int nOuts, int nWords, int fRandom, int * pIPermOut, int fVeryVerbose, int fVerbose )
 {
@@ -282,7 +282,7 @@ int Gia_ManPermuteTreeOne( word * pTruths, int nIns, int nOuts, int nWords, int 
     {
         nNodesPrev = nNodesMin;
         if ( fVeryVerbose )
-            printf( "\nRound %d:\n", r );
+            fprintf( Abc_FrameGlobalGetOut(), "\nRound %d:\n", r );
         Pos = Gia_ManFindBestPosition( pTruths, nIns, nOuts, nWords, pStore, r&1, &nNodesMin, fVeryVerbose );
         Abc_TtCopy( pTruths, pStore+Pos*nOuts*nWords, nOuts*nWords, 0 );
         pTried[nIns-1]++;
@@ -301,7 +301,7 @@ int Gia_ManPermuteTreeOne( word * pTruths, int nIns, int nOuts, int nWords, int 
     nNodesEnd = Gia_ManTreeCountNodes(pSto);
     //Gia_ManDumpMuxes( pSto, "from_tt2.aig", pIPerm );
     if ( fVerbose )
-        printf( "Nodes %5d -> %5d.    ", nNodesBeg, nNodesEnd );
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes %5d -> %5d.    ", nNodesBeg, nNodesEnd );
     Gia_ManTreeFree( pSto );
     ABC_FREE( pStore );
     if ( pIPermOut )
@@ -493,7 +493,7 @@ word * Abc_TtMinArray( word * p, int nOuts, int nVars, int * pnNodes, int fVerbo
             Abc_TtCopy( pResult + o*nWords, pRes, nWords, 0 );
     }
     if ( fVerbose )
-    printf( "Nodes = %5d.  Nodes2 = %5d.  Total = %5d.    ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes = %5d.  Nodes2 = %5d.  Total = %5d.    ", 
         Vec_WrdSize(vNodes), Vec_WecSizeSize(vNodes2), Vec_WrdSize(vNodes) + Vec_WecSizeSize(vNodes2) );
     //printf( "Memory %d (Truth table %d)\n", Vec_WrdSize(vMemory), nWords );
     if ( pnNodes )
@@ -687,7 +687,7 @@ Gia_Man_t * Abc_TtSimpleMinArrayNew( word * p, int nVars, int nOuts, int * pnNod
         Gia_ManAppendCo( pNew, iLit );
     }
     if ( fVerbose )
-    printf( "Nodes = %5d.  Nodes2 = %5d.  Total = %5d.    ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes = %5d.  Nodes2 = %5d.  Total = %5d.    ", 
         Vec_WrdSize(vNodes), Vec_WecSizeSize(vNodes2), Vec_WrdSize(vNodes) + Vec_WecSizeSize(vNodes2) );
     //printf( "Memory %d (Truth table %d)\n", Vec_WrdSize(vMemory), nWords );
     if ( pnNodes )
@@ -930,7 +930,7 @@ Gia_Man_t * Abc_TtGiaMinArray( word * p, int nVars, int nOuts, int * pnNodes, in
         }
     }
     if ( fVerbose )
-    printf( "Nodes = %5d.  Nodes2 = %5d.  Total = %5d.    ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes = %5d.  Nodes2 = %5d.  Total = %5d.    ", 
         Vec_WrdSize(vNodes), Vec_WecSizeSize(vNodes2), Vec_WrdSize(vNodes) + Vec_WecSizeSize(vNodes2) );
     //printf( "Memory %d (Truth table %d)\n", Vec_WrdSize(vMemory), nWords );
     if ( pnNodes )
@@ -973,7 +973,7 @@ Gia_Man_t * Abc_TtGiaMinArrayNew( word * p, int nVars, int nOuts, int * pnNodes,
         Gia_ManAppendCo( pNew, iLit );
     }
     if ( fVerbose )
-    printf( "Nodes = %5d.  Nodes2 = %5d.  Total = %5d.    ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes = %5d.  Nodes2 = %5d.  Total = %5d.    ", 
         Vec_WrdSize(vNodes), Vec_WecSizeSize(vNodes2), Vec_WrdSize(vNodes) + Vec_WecSizeSize(vNodes2) );
     //printf( "Memory %d (Truth table %d)\n", Vec_WrdSize(vMemory), nWords );
     if ( pnNodes )
@@ -1074,7 +1074,7 @@ void Gia_ManDumpMuxes( Tree_Sto_t * p, char * pFileName, int * pIPerm )
     Gia_Man_t * pNew = Gia_ManBuildMuxes( p, pIPerm );
     Gia_AigerWrite( pNew, pFileName, 0, 0, 0 );
     Gia_ManStop( pNew );
-    printf( "Finished dumping tree into AIG file \"%s\".\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping tree into AIG file \"%s\".\n", pFileName );
 }
 Gia_Man_t * Gia_ManCreateMuxGia( word * pTruths, int nIns, int nOuts, int nWords, int * pIPerm )
 {
@@ -1127,10 +1127,10 @@ Gia_Man_t * Gia_TryPermOptCare( word * pTruths, int nIns, int nOuts, int nWords,
         }
         Abc_TtCopy( pTruthDup, pTruths, nOuts*nWords, 0 );
         if ( fVerbose )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     if ( fVerbose )
-        printf( "Best round %3d. Best nodes %5d.  ", rBest, nNodesBest );
+        fprintf( Abc_FrameGlobalGetOut(), "Best round %3d. Best nodes %5d.  ", rBest, nNodesBest );
     ABC_FREE( pTruthDup );
     if ( fVerbose )
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -1170,11 +1170,11 @@ Gia_Man_t * Gia_TryPermOpt2( word * pTruths, int nIns, int nOuts, int nWords, in
         ABC_FREE( pRes );
         Abc_TtCopy( pTruthDup, pTruths, nOuts*nWords, 0 );
         if ( fVerbose )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         nNodesAll = 0;
     }
     if ( fVerbose )
-        printf( "Best round %3d. Best nodes %5d.  ", rBest, nNodesBest );
+        fprintf( Abc_FrameGlobalGetOut(), "Best round %3d. Best nodes %5d.  ", rBest, nNodesBest );
     ABC_FREE( pTruthDup );
     if ( fVerbose )
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -1212,11 +1212,11 @@ Gia_Man_t * Gia_TryPermOpt( word * pTruths, int nIns, int nOuts, int nWords, int
         Gia_ManStopP( &pTemp );
         Abc_TtCopy( pTruthDup, pTruths, nOuts*nWords, 0 );
         if ( fVerbose )
-            printf( "Permuted = %5d.  AIG = %5d.\n", nNodesAll, nNodes2 );
+            fprintf( Abc_FrameGlobalGetOut(), "Permuted = %5d.  AIG = %5d.\n", nNodesAll, nNodes2 );
         nNodesAll = 0;
     }
     if ( fVerbose )
-        printf( "Best round %3d. Best nodes %5d.  ", rBest, nNodesBest );
+        fprintf( Abc_FrameGlobalGetOut(), "Best round %3d. Best nodes %5d.  ", rBest, nNodesBest );
     ABC_FREE( pTruthDup );
     if ( fVerbose )
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -1260,11 +1260,11 @@ Gia_Man_t * Gia_TryPermOptNew( word * pTruths, int nIns, int nOuts, int nWords, 
 */
         Abc_TtCopy( pTruthDup, pTruths, (nOuts+1)*nWords, 0 );
         if ( fVerbose )
-            printf( "Permuted = %5d.  AIG = %5d.\n", nNodesAll, nNodes2 );
+            fprintf( Abc_FrameGlobalGetOut(), "Permuted = %5d.  AIG = %5d.\n", nNodesAll, nNodes2 );
         nNodesAll = 0;
     }
     if ( fVerbose )
-        printf( "Best round %3d. Best nodes %5d.  ", rBest, nNodesBest );
+        fprintf( Abc_FrameGlobalGetOut(), "Best round %3d. Best nodes %5d.  ", rBest, nNodesBest );
     ABC_FREE( pTruthDup );
     if ( fVerbose )
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -1290,11 +1290,11 @@ void Abc_Tt6MinTest3( Gia_Man_t * p )
     word r = ~f;
     Vec_Wrd_t * vNodes = Vec_WrdAlloc( 100 );
     word Res = Abc_Tt6Min_rec( f, r, 6, vNodes );
-    printf( "Nodes = %d.\n", Vec_WrdSize(vNodes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes = %d.\n", Vec_WrdSize(vNodes) );
     if ( Res == f )
-        printf( "Verification successful.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification successful.\n" );
     else
-        printf( "Verification FAILED.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification FAILED.\n" );
     Vec_WrdFree( vNodes );
 }
 void Abc_Tt6MinTest2( Gia_Man_t * p )
@@ -1328,12 +1328,12 @@ void Abc_Tt6MinTest2( Gia_Man_t * p )
     Abc_TtCopy( pTruths[1], pTruths[0], nWords, 1 );
 
     pRes = Abc_TtMin( pTruths[0], pTruths[1], Gia_ManCiNum(p), vMemory, vNodes, vNodes2 );
-    printf( "Nodes = %d.\n",  Vec_WrdSize(vNodes) );
-    printf( "Nodes2 = %d.\n", Vec_WecSizeSize(vNodes2) );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes = %d.\n",  Vec_WrdSize(vNodes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes2 = %d.\n", Vec_WecSizeSize(vNodes2) );
     if ( Abc_TtEqual(pRes, pTruths[0], nWords) )
-        printf( "Verification successful.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification successful.\n" );
     else
-        printf( "Verification FAILED.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification FAILED.\n" );
 
     //printf( "Printing the tree:\n" );
 //    Gia_ManPermuteTree( pTruths[0], Gia_ManCiNum(p), 1, nWords, fVerbose );

@@ -279,10 +279,10 @@ void Gia_ManFrontTest( Gia_Man_t * p )
                 pObj->iDiff1, pObjNew->iDiff1 );
         }
 */
-        printf( "Verification failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification failed.\n" );
     }
     else
-        printf( "Verification successful.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification successful.\n" );
     Gia_ManStop( pNew );
 }
 

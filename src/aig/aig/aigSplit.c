@@ -122,7 +122,7 @@ Aig_Man_t * Aig_ManConvertBddsToAigs( Aig_Man_t * p, DdManager * dd, Vec_Ptr_t *
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManConvertBddsToAigs(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManConvertBddsToAigs(): The check has failed.\n" );
     return pNew;
 }
 
@@ -267,29 +267,29 @@ Aig_Man_t * Aig_ManSplit( Aig_Man_t * p, int nVars, int fVerbose )
     abctime clk = Abc_Clock();
     if ( Saig_ManPoNum(p) != 1 )
     {
-        printf( "Currently works only for one primary output.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Currently works only for one primary output.\n" );
         return NULL;
     }
     if ( nVars < 1 )
     {
-        printf( "The number of cofactoring variables should be a positive number.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of cofactoring variables should be a positive number.\n" );
         return NULL;
     }
     if ( nVars > 16 )
     {
-        printf( "The number of cofactoring variables should be less than 17.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of cofactoring variables should be less than 17.\n" );
         return NULL;
     }
     vSupp = Aig_Support( p, Aig_ObjFanin0(Aig_ManCo(p,0)) );
     if ( Vec_PtrSize(vSupp) == 0 )
     {
-        printf( "Property output function is a constant.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Property output function is a constant.\n" );
         Vec_PtrFree( vSupp );
         return NULL;
     }
     dd    = Aig_ManBuildPoBdd( p, &bFunc ); // bFunc is referenced
     if ( fVerbose )
-        printf( "Support =%5d.  BDD size =%6d.  ", Vec_PtrSize(vSupp), Cudd_DagSize(bFunc) );
+        fprintf( Abc_FrameGlobalGetOut(), "Support =%5d.  BDD size =%6d.  ", Vec_PtrSize(vSupp), Cudd_DagSize(bFunc) );
     vSubs = Aig_ManVecRandSubset( vSupp, nVars );
     // replace nodes by their BDD variables
     Vec_PtrForEachEntry( Aig_Obj_t *, vSubs, pNode, i )
@@ -300,7 +300,7 @@ Aig_Man_t * Aig_ManSplit( Aig_Man_t * p, int nVars, int fVerbose )
     Vec_PtrFree( vSupp );
     Vec_PtrFree( vSubs );
     if ( fVerbose )
-        printf( "Created %d cofactors (out of %d).  ", Saig_ManPoNum(pRes), Vec_PtrSize(vCofs) );
+        fprintf( Abc_FrameGlobalGetOut(), "Created %d cofactors (out of %d).  ", Saig_ManPoNum(pRes), Vec_PtrSize(vCofs) );
     if ( fVerbose )
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // dereference

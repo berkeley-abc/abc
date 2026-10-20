@@ -65,9 +65,9 @@ void Saig_ManReportUselessRegisters( Aig_Man_t * pAig )
             Counter2++;
     }
     if ( Counter1 )
-        printf( "Network has %d (out of %d) registers driving POs.\n", Counter1, Saig_ManRegNum(pAig) );
+        fprintf( Abc_FrameGlobalGetOut(), "Network has %d (out of %d) registers driving POs.\n", Counter1, Saig_ManRegNum(pAig) );
     if ( Counter2 )
-        printf( "Network has %d (out of %d) registers driven by PIs.\n", Counter2, Saig_ManRegNum(pAig) );
+        fprintf( Abc_FrameGlobalGetOut(), "Network has %d (out of %d) registers driven by PIs.\n", Counter2, Saig_ManRegNum(pAig) );
 }
 
 

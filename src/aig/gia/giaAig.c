@@ -131,9 +131,9 @@ void Gia_ManCheckChoices( Gia_Man_t * p )
         Gia_ManCheckChoices_rec( p, Gia_ObjFanin0(pObj) );
     Gia_ManForEachAnd( p, pObj, i )
         if ( !pObj->fPhase )
-            printf( "Object %d is dangling.\n", i ), fFound = 1;
+            fprintf( Abc_FrameGlobalGetOut(),  "Object %d is dangling.\n", i  ), fFound = 1;
     if ( !fFound )
-        printf( "There are no dangling objects.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There are no dangling objects.\n" );
     Gia_ManCleanPhase( p );
 }
 
@@ -626,8 +626,8 @@ int Gia_ManTestChoices( Gia_Man_t * p )
     Gia_ManForEachAnd( p, pObj, i )
         if ( Vec_IntEntry(vPointed, i) && Gia_ObjRefNumId(p, i) > 0 )
         {
-            printf( "Gia_ManCheckChoices: Member %d", i );
-            printf( " of a choice node has %d fanouts.\n", Gia_ObjRefNumId(p, i) );
+            fprintf( Abc_FrameGlobalGetOut(), "Gia_ManCheckChoices: Member %d", i );
+            fprintf( Abc_FrameGlobalGetOut(), " of a choice node has %d fanouts.\n", Gia_ObjRefNumId(p, i) );
             ABC_FREE( p->pRefs );
             Vec_IntFree( vPointed );
             return 0;

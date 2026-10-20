@@ -459,7 +459,7 @@ void Ivy_ManTestCutsTravAll( Ivy_Man_t * p )
         nNodeOver  += (nCutsCut == IVY_CUT_LIMIT);
         nNodeTotal++;
     }
-    printf( "Total cuts = %6d. Trivial = %6d.   Nodes = %6d. Satur = %6d.  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Total cuts = %6d. Trivial = %6d.   Nodes = %6d. Satur = %6d.  ", 
         nCutsTotal, Ivy_ManPiNum(p) + Ivy_ManNodeNum(p), nNodeTotal, nNodeOver );
     ABC_PRT( "Time", Abc_Clock() - clk );
 

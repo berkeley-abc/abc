@@ -146,17 +146,17 @@ static inline void CbsP_UpdateRecord( CbsP_Par_t * pPars, int res ){
 }
 
 void CbsP_PrintRecord( CbsP_Par_t * pPars ){
-    printf("max of solved: jscan# %13d rscan %13d prop %13d\n"   , pPars->maxJscanSolved, pPars->maxRscanSolved , pPars->maxPropSolved );
-    printf("max of  undec: jscan# %13d rscan %13d prop %13d\n"   , pPars->maxJscanUndec , pPars->maxRscanUndec  , pPars->maxPropUndec  );
-    printf("acc of    sat: jscan# %13ld rscan %13ld prop %13ld\n", pPars->accJscanSat   , pPars->accRscanSat    , pPars->accPropSat    );
-    printf("acc of  unsat: jscan# %13ld rscan %13ld prop %13ld\n", pPars->accJscanUnsat , pPars->accRscanUnsat  , pPars->accPropUnsat  );
-    printf("acc of  undec: jscan# %13ld rscan %13ld prop %13ld\n", pPars->accJscanUndec , pPars->accRscanUndec  , pPars->accPropUndec  );
+    fprintf( Abc_FrameGlobalGetOut(), "max of solved: jscan# %13d rscan %13d prop %13d\n"   , pPars->maxJscanSolved, pPars->maxRscanSolved , pPars->maxPropSolved  );
+    fprintf( Abc_FrameGlobalGetOut(), "max of  undec: jscan# %13d rscan %13d prop %13d\n"   , pPars->maxJscanUndec , pPars->maxRscanUndec  , pPars->maxPropUndec   );
+    fprintf( Abc_FrameGlobalGetOut(), "acc of    sat: jscan# %13ld rscan %13ld prop %13ld\n", pPars->accJscanSat   , pPars->accRscanSat    , pPars->accPropSat     );
+    fprintf( Abc_FrameGlobalGetOut(), "acc of  unsat: jscan# %13ld rscan %13ld prop %13ld\n", pPars->accJscanUnsat , pPars->accRscanUnsat  , pPars->accPropUnsat   );
+    fprintf( Abc_FrameGlobalGetOut(), "acc of  undec: jscan# %13ld rscan %13ld prop %13ld\n", pPars->accJscanUndec , pPars->accRscanUndec  , pPars->accPropUndec   );
     if( pPars->nSat )
-        printf("avg of    sat: jscan# %13ld rscan %13ld prop %13ld\n", pPars->accJscanSat   / pPars->nSat   , pPars->accRscanSat   / pPars->nSat   , pPars->accPropSat   / pPars->nSat   );
+        fprintf( Abc_FrameGlobalGetOut(), "avg of    sat: jscan# %13ld rscan %13ld prop %13ld\n", pPars->accJscanSat   / pPars->nSat   , pPars->accRscanSat   / pPars->nSat   , pPars->accPropSat   / pPars->nSat    );
     if( pPars->nUnsat )
-        printf("avg of  unsat: jscan# %13ld rscan %13ld prop %13ld\n", pPars->accJscanUnsat / pPars->nUnsat , pPars->accRscanUnsat / pPars->nUnsat , pPars->accPropUnsat / pPars->nUnsat );
+        fprintf( Abc_FrameGlobalGetOut(), "avg of  unsat: jscan# %13ld rscan %13ld prop %13ld\n", pPars->accJscanUnsat / pPars->nUnsat , pPars->accRscanUnsat / pPars->nUnsat , pPars->accPropUnsat / pPars->nUnsat  );
     if( pPars->nUndec )
-        printf("avg of  undec: jscan# %13ld rscan %13ld prop %13ld\n", pPars->accJscanUndec / pPars->nUndec , pPars->accRscanUndec / pPars->nUndec , pPars->accPropUndec / pPars->nUndec );
+        fprintf( Abc_FrameGlobalGetOut(), "avg of  undec: jscan# %13ld rscan %13ld prop %13ld\n", pPars->accJscanUndec / pPars->nUndec , pPars->accRscanUndec / pPars->nUndec , pPars->accPropUndec / pPars->nUndec  );
 }
 
 /**Function*************************************************************
@@ -590,10 +590,10 @@ static inline void CbsP_ManPrintClause( CbsP_Man_t * p, int Level, int hClause )
     Gia_Obj_t * pObj;
     int i;
     assert( CbsP_QueIsEmpty( pQue ) );
-    printf( "Level %2d : ", Level );
+    fprintf( Abc_FrameGlobalGetOut(), "Level %2d : ", Level );
     for ( i = hClause; (pObj = pQue->pData[i]); i++ )
-        printf( "%d=%d(%d) ", Gia_ObjId(p->pAig, pObj), CbsP_VarValue(pObj), CbsP_VarDecLevel(p, pObj) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=%d(%d) ", Gia_ObjId(p->pAig, pObj), CbsP_VarValue(pObj), CbsP_VarDecLevel(p, pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -613,10 +613,10 @@ static inline void CbsP_ManPrintClauseNew( CbsP_Man_t * p, int Level, int hClaus
     Gia_Obj_t * pObj;
     int i;
     assert( CbsP_QueIsEmpty( pQue ) );
-    printf( "Level %2d : ", Level );
+    fprintf( Abc_FrameGlobalGetOut(), "Level %2d : ", Level );
     for ( i = hClause; (pObj = pQue->pData[i]); i++ )
-        printf( "%c%d ", CbsP_VarValue(pObj)? '+':'-', Gia_ObjId(p->pAig, pObj) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%c%d ", CbsP_VarValue(pObj)? '+':'-', Gia_ObjId(p->pAig, pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -1072,18 +1072,18 @@ int CbsP_ManSolve2( CbsP_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pObj2 )
 ***********************************************************************/
 void CbsP_ManSatPrintStats( CbsP_Man_t * p )
 {
-    printf( "CO = %8d  ", Gia_ManCoNum(p->pAig) );
-    printf( "AND = %8d  ", Gia_ManAndNum(p->pAig) );
-    printf( "Conf = %6d  ", p->Pars.nBTLimit );
-    printf( "JustMax = %5d  ", p->Pars.nJustLimit );
-    printf( "\n" );
-    printf( "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "CO = %8d  ", Gia_ManCoNum(p->pAig) );
+    fprintf( Abc_FrameGlobalGetOut(), "AND = %8d  ", Gia_ManAndNum(p->pAig) );
+    fprintf( Abc_FrameGlobalGetOut(), "Conf = %6d  ", p->Pars.nBTLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "JustMax = %5d  ", p->Pars.nJustLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatUnsat, p->nSatTotal? 100.0*p->nSatUnsat/p->nSatTotal :0.0, p->nSatUnsat? 1.0*p->nConfUnsat/p->nSatUnsat :0.0 );
     ABC_PRTP( "Time", p->timeSatUnsat, p->timeTotal );
-    printf( "Sat   calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Sat   calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatSat,   p->nSatTotal? 100.0*p->nSatSat/p->nSatTotal :0.0, p->nSatSat? 1.0*p->nConfSat/p->nSatSat : 0.0 );
     ABC_PRTP( "Time", p->timeSatSat,   p->timeTotal );
-    printf( "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatUndec, p->nSatTotal? 100.0*p->nSatUndec/p->nSatTotal :0.0, p->nSatUndec? 1.0*p->nConfUndec/p->nSatUndec : 0.0 );
     ABC_PRTP( "Time", p->timeSatUndec, p->timeTotal );
     ABC_PRT( "Total time", p->timeTotal );

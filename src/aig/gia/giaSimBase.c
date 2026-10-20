@@ -208,7 +208,7 @@ void Gia_ManSimPatSimInTest( Gia_Man_t * pGia )
     Vec_Wrd_t * vSims2  = Gia_ManSimPatSimIn( pGia, vSims, 0, NULL );
     int nOnes  = Abc_TtCountOnesVec( Vec_WrdArray(vSims2), Vec_WrdSize(vSims2) );
     int nTotal = 64*nWords*Gia_ManCandNum(pGia);
-    printf( "Ratio = %6.2f %%\n", 100.0*nOnes/nTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Ratio = %6.2f %%\n", 100.0*nOnes/nTotal );
     Vec_WrdFree( vSims );
     Vec_WrdFree( vSims2 );
     Vec_WrdFree( vSimsCi );
@@ -254,7 +254,7 @@ void Gia_ManSimPatSimCTest( Gia_Man_t * pGia )
     int nOnes2 = Abc_TtCountOnesVec( Vec_WrdArray(vSims2), Vec_WrdSize(vSims2) );
     int nOnes3 = Abc_TtCountOnesVec( Vec_WrdArray(vSims3), Vec_WrdSize(vSims3) );
     int nTotal = 64*nWords*Gia_ManCandNum(pGia);
-    printf( "Ratio = %6.2f %%   Ratio = %6.2f %%\n", 100.0*nOnes2/nTotal, 100.0*nOnes3/nTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Ratio = %6.2f %%   Ratio = %6.2f %%\n", 100.0*nOnes2/nTotal, 100.0*nOnes3/nTotal );
     Vec_WrdFree( vSims );
     Vec_WrdFree( vSims2 );
     Vec_WrdFree( vSims3 );
@@ -436,7 +436,7 @@ int Gia_ManFindDividerVar( Gia_Man_t * p, int fVerbose )
     if ( iVar == Gia_ManCiNum(p) )
         iVar = Gia_ManCiNum(p) - 1;
     if ( fVerbose )
-        printf( "Split var = %d.  Rounds = %d.  Bytes per node = %d.  Total = %.2f MB.\n", iVar, 1 << (Gia_ManCiNum(p) - iVar), 1 << (iVar-3), 1.0*(1 << (iVar-3)) * Gia_ManObjNum(p)/(1<<20) );
+        fprintf( Abc_FrameGlobalGetOut(), "Split var = %d.  Rounds = %d.  Bytes per node = %d.  Total = %.2f MB.\n", iVar, 1 << (Gia_ManCiNum(p) - iVar), 1 << (iVar-3), 1.0*(1 << (iVar-3)) * Gia_ManObjNum(p)/(1<<20) );
     return iVar;
 }
 int Gia_ManComparePair( Gia_Man_t * p, Vec_Wrd_t * vSims, int iOut, int nWords2 )
@@ -469,7 +469,7 @@ int Gia_ManCheckSimEquiv( Gia_Man_t * p, int fVerbose )
     {
         if ( !Gia_ManComparePair( p, vSims, i, nWords2 ) )
         {
-            printf( "Miter is asserted for output %d.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Miter is asserted for output %d.\n", i );
             Vec_WecFree( vNodes );
             Vec_WrdFree( vSims );
             return 0;
@@ -490,7 +490,7 @@ int Gia_ManCheckSimEquiv( Gia_Man_t * p, int fVerbose )
             }
             else if ( !Gia_ManComparePair( p, vSims, iObj - Gia_ManObjNum(p), nWords2 ) )
             {
-                printf( "Miter is asserted for output %d.\n", iObj - Gia_ManObjNum(p) );
+                fprintf( Abc_FrameGlobalGetOut(), "Miter is asserted for output %d.\n", iObj - Gia_ManObjNum(p) );
                 Vec_WecFree( vNodes );
                 Vec_WrdFree( vSims );
                 return 0;
@@ -499,10 +499,10 @@ int Gia_ManCheckSimEquiv( Gia_Man_t * p, int fVerbose )
         //for ( i = 0; i < Gia_ManObjNum(p); i++ )
         //    printf( "%3d : ", i), Extra_PrintHex2( stdout, (unsigned *)Vec_WrdEntryP(vSims, i), 6 ), printf( "\n" );
         if ( !fWarning && Abc_Clock() > clk + 5*CLOCKS_PER_SEC )
-            printf( "The computation is expected to take about %.2f sec.\n", 5.0*(1 << nVars3)/m ), fWarning = 1;
+            fprintf( Abc_FrameGlobalGetOut(),  "The computation is expected to take about %.2f sec.\n", 5.0*(1 << nVars3)/m  ), fWarning = 1;
         //if ( (m & 0x3F) == 0x3F )
         if ( fVerbose && (m & 0xFF) == 0xFF )
-        printf( "Finished %6d (out of %6d)...\n", m, 1 << nVars3 );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished %6d (out of %6d)...\n", m, 1 << nVars3 );
     }
     Vec_WecFree( vNodes );
     Vec_WrdFree( vSims );
@@ -685,7 +685,7 @@ Vec_Wrd_t * Gia_ManSimBitPacking( Gia_Man_t * p, Vec_Int_t * vCexStore, int nCex
     }
     assert( iCur == Vec_IntSize(vCexStore) );
     vSimsRes = Gia_ManSimCombine( Gia_ManCiNum(p), p->vSimsPi, vSimsIn, Abc_Bit6WordNum(iPat+1) );
-    printf( "Compressed %d CEXes into %d patterns and added %d words to available %d words.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Compressed %d CEXes into %d patterns and added %d words to available %d words.\n", 
         nCexes, iPat, Abc_Bit6WordNum(iPat+1), Vec_WrdSize(p->vSimsPi) / Gia_ManCiNum(p) );
     Vec_WrdFree( vSimsIn );
     Vec_WrdFree( vSimsCare );
@@ -766,7 +766,7 @@ void Gia_ManSimProfile( Gia_Man_t * pGia )
     Vec_Wrd_t * vSims = Gia_ManSimPatSim( pGia );
     int nWords = Vec_WrdSize(vSims) / Gia_ManObjNum(pGia);
     int nC0s = 0, nC1s = 0, nUnique = Gia_ManSimPatHashPatterns( pGia, nWords, vSims, &nC0s, &nC1s );
-    printf( "Simulating %d patterns leads to %d unique objects (%.2f %% out of %d). Const0 = %d. Const1 = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Simulating %d patterns leads to %d unique objects (%.2f %% out of %d). Const0 = %d. Const1 = %d.\n", 
         64*nWords, nUnique, 100.0*nUnique/Gia_ManCandNum(pGia), Gia_ManCandNum(pGia), nC0s, nC1s );
     Vec_WrdFree( vSims );
 }
@@ -789,9 +789,9 @@ void Gia_ManPatSatImprove( Gia_Man_t * p, int nWords0, int fVerbose )
         Counts[Status+1]++;
     }
     if ( fVerbose )
-        printf( "Total = %d : SAT = %d.  UNSAT = %d.  UNDEC = %d.\n", Counts[1]+Counts[2]+Counts[0], Counts[1], Counts[2], Counts[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "Total = %d : SAT = %d.  UNSAT = %d.  UNDEC = %d.\n", Counts[1]+Counts[2]+Counts[0], Counts[1], Counts[2], Counts[0] );
     if ( Counts[1] == 0 )
-        printf( "There are no counter-examples.  No need for more simulation.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There are no counter-examples.  No need for more simulation.\n" );
     else
     {
         vSimsIn = Gia_ManSimBitPacking( p, vCexStore, Counts[1], Counts[0] );
@@ -1063,10 +1063,10 @@ Extra_PrintBinary( stdout, (unsigned *)p->pFunc[1], 64 );  printf( "\n" );
         word * pDiv = Vec_WrdEntryP( p->vSimsObj, p->nWords*iCand );
         if ( !Abc_TtIntersect(pDiv, p->pFunc[0], p->nWords, 0) &&
              !Abc_TtIntersect(pDiv, p->pFunc[1], p->nWords, 1) )
-            { (*pnBufs)++; if ( fVerbose ) printf( "Level %3d : %d = buf(%d)\n", Gia_ObjLevelId(p->pGia, iObj), iObj, iCand ); RetValue = 1; }
+            { (*pnBufs)++; if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Level %3d : %d = buf(%d)\n", Gia_ObjLevelId(p->pGia, iObj), iObj, iCand ); RetValue = 1; }
         if ( !Abc_TtIntersect(pDiv, p->pFunc[0], p->nWords, 1) &&
              !Abc_TtIntersect(pDiv, p->pFunc[1], p->nWords, 0) )
-            { (*pnInvs)++; if ( fVerbose ) printf( "Level %3d : %d = inv(%d)\n", Gia_ObjLevelId(p->pGia, iObj), iObj, iCand ); RetValue = 1; }
+            { (*pnInvs)++; if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Level %3d : %d = inv(%d)\n", Gia_ObjLevelId(p->pGia, iObj), iObj, iCand ); RetValue = 1; }
     }
     return RetValue;
 }
@@ -1081,7 +1081,7 @@ int Gia_ManSimRsb( Gia_Man_t * pGia, int nCands, int fVerbose )
     Gia_ManForEachAnd( pGia, pObj, iObj )
         //if ( iObj == 6 )
         nCount += Gia_ObjSimRsb( p, iObj, nCands, fVerbose, &nBufs, &nInvs );
-    printf( "Can resubstitute %d nodes (%.2f %% out of %d) (Bufs = %d Invs = %d)  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Can resubstitute %d nodes (%.2f %% out of %d) (Bufs = %d Invs = %d)  ", 
         nCount, 100.0*nCount/Gia_ManAndNum(pGia), Gia_ManAndNum(pGia), nBufs, nInvs );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Gia_SimRsbFree( p );
@@ -1148,7 +1148,7 @@ int Gia_ManSimRelCollectOutputs( Gia_Man_t * p, int nWords, Vec_Wrd_t * vSims, i
         Count += CountMints == 0;
     }
     if ( Count )
-        printf( "The relation is not well-defined for %d (out of %d) patterns.\n", Count, 64 * nWordsOut );
+        fprintf( Abc_FrameGlobalGetOut(), "The relation is not well-defined for %d (out of %d) patterns.\n", Count, 64 * nWordsOut );
     return Count;
 }
 Vec_Wrd_t * Gia_ManSimRel( Gia_Man_t * p, Vec_Int_t * vObjs, Vec_Wrd_t * vVals )
@@ -1222,13 +1222,13 @@ void Gia_ManSimRelCheckFuncs( Gia_Man_t * p, Vec_Wrd_t * vRel, int nOuts, Vec_Wr
             if ( Abc_TtGetBit( Vec_WrdArray(vRel), i*nMints+m ) )
                 continue;
             if ( nErrors++ == 0 )
-                printf( "For pattern %d, minterm %d produced by function is not in the relation.\n", i, m );
+                fprintf( Abc_FrameGlobalGetOut(), "For pattern %d, minterm %d produced by function is not in the relation.\n", i, m );
         }
     }
     if ( nErrors )    
-        printf( "Total number of similar errors = %d.\n", nErrors );
+        fprintf( Abc_FrameGlobalGetOut(), "Total number of similar errors = %d.\n", nErrors );
     else
-        printf( "The function agrees with the relation.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The function agrees with the relation.\n" );
 }
 Vec_Wrd_t * Gia_ManSimRelDeriveFuncs( Gia_Man_t * p, Vec_Wrd_t * vRel, int nOuts )
 {
@@ -1248,9 +1248,9 @@ Vec_Wrd_t * Gia_ManSimRelDeriveFuncs( Gia_Man_t * p, Vec_Wrd_t * vRel, int nOuts
                 Abc_TtSetBit( Vec_WrdEntryP(vFuncs, (2*k+0)*nWords), i );
     }
     if ( Count )
-        printf( "The relation is not well-defined for %d (out of %d) patterns.\n", Count, 64 * nWords );
+        fprintf( Abc_FrameGlobalGetOut(), "The relation is not well-defined for %d (out of %d) patterns.\n", Count, 64 * nWords );
     else
-        printf( "The relation was successfully determized without don't-cares for %d patterns.\n", 64 * nWords );
+        fprintf( Abc_FrameGlobalGetOut(), "The relation was successfully determized without don't-cares for %d patterns.\n", 64 * nWords );
     Gia_ManSimRelCheckFuncs( p, vRel, nOuts, vFuncs );
     return vFuncs;
 }
@@ -1281,32 +1281,32 @@ Vec_Wrd_t * Gia_ManSimRelDeriveFuncs2( Gia_Man_t * p, Vec_Wrd_t * vRel, int nOut
         if ( 0 )
         {
             for ( m = 0; m < nMints; m++ )
-                printf( "%d", Abc_TtGetBit( Vec_WrdArray(vRel), i*nMints+m ) );
-            printf( " " );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtGetBit( Vec_WrdArray(vRel), i*nMints+m ) );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
             for ( k = 0; k < nOuts; k++ )
             {
                 if ( Abc_TtGetBit( Vec_WrdEntryP(vFuncs, (2*k+0)*nWords), i ) )
-                    printf( "0" );
+                    fprintf( Abc_FrameGlobalGetOut(), "0" );
                 else if ( Abc_TtGetBit( Vec_WrdEntryP(vFuncs, (2*k+1)*nWords), i ) )
-                    printf( "1" );
+                    fprintf( Abc_FrameGlobalGetOut(), "1" );
                 else
-                    printf( "-" );
+                    fprintf( Abc_FrameGlobalGetOut(), "-" );
             }
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     if ( Count )
-        printf( "The relation is not well-defined for %d (out of %d) patterns.\n", Count, 64 * nWords );
+        fprintf( Abc_FrameGlobalGetOut(), "The relation is not well-defined for %d (out of %d) patterns.\n", Count, 64 * nWords );
     else
     {
-        printf( "The relation was successfully determized with don't-cares for %d patterns.\n", 64 * nWords );
+        fprintf( Abc_FrameGlobalGetOut(), "The relation was successfully determized with don't-cares for %d patterns.\n", 64 * nWords );
         for ( k = 0; k < nOuts; k++ )
         {
             int nOffs = Abc_TtCountOnesVec( Vec_WrdEntryP(vFuncs, (2*k+0)*nWords), nWords );
             int nOns  = Abc_TtCountOnesVec( Vec_WrdEntryP(vFuncs, (2*k+1)*nWords), nWords );
-            printf( "%4d : Off = %6d  On = %6d  Dc = %6d (%6.2f %%)\n", k, nOffs, nOns, nDCs[k], 100.0*nDCs[k]/(64*nWords) );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d : Off = %6d  On = %6d  Dc = %6d (%6.2f %%)\n", k, nOffs, nOns, nDCs[k], 100.0*nDCs[k]/(64*nWords) );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Gia_ManSimRelCheckFuncs( p, vRel, nOuts, vFuncs );
     return vFuncs;
@@ -1368,10 +1368,10 @@ void Gia_ManSimRelPrint( Gia_Man_t * p, Vec_Wrd_t * vRel, Vec_Int_t * vOutMints 
         Count = 0;
         for ( m = 0; m < nMints; m++ )
         {
-            printf( "%d", Abc_TtGetBit( Vec_WrdArray(vRel), i*nMints+m ) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtGetBit( Vec_WrdArray(vRel), i*nMints+m ) );
             Count += Abc_TtGetBit( Vec_WrdArray(vRel), i*nMints+m );
         }
-        printf( "  Count = %2d \n", Count );
+        fprintf( Abc_FrameGlobalGetOut(), "  Count = %2d \n", Count );
     }
 }
 Vec_Int_t * Gia_ManSimPatStart( int nItems )
@@ -1478,7 +1478,7 @@ void Gia_SimAbsCheckSolution( Gia_SimAbsMan_t * p )
                 break;
         if ( w == p->nWordsTable )
         {
-            printf( "Found solution { %d }\n", x );
+            fprintf( Abc_FrameGlobalGetOut(), "Found solution { %d }\n", x );
             fFound = 1;
         }
     }
@@ -1495,7 +1495,7 @@ void Gia_SimAbsCheckSolution( Gia_SimAbsMan_t * p )
                 break;
         if ( w == p->nWordsTable )
         {
-            printf( "Found solution { %d %d }\n", y, x );
+            fprintf( Abc_FrameGlobalGetOut(), "Found solution { %d %d }\n", y, x );
             fFound = 1;
         }
     }
@@ -1513,7 +1513,7 @@ void Gia_SimAbsCheckSolution( Gia_SimAbsMan_t * p )
             if ( p->pTableTemp[w] != (pSimTableX[w] | pSimTableY[w] | pSimTableZ[w]) )
                 break;
         if ( w == p->nWordsTable )
-            printf( "Found solution { %d %d %d }\n", z, y, x );
+            fprintf( Abc_FrameGlobalGetOut(), "Found solution { %d %d %d }\n", z, y, x );
     }
 }
 
@@ -1549,22 +1549,22 @@ void Gia_SimAbsSolve( Gia_SimAbsMan_t * p )
 
     if ( 0 )
     {
-        printf( "                  " );
+        fprintf( Abc_FrameGlobalGetOut(), "                  " );
         for ( i = 0; i < p->nCands; i++ )
-            printf( "%d", i % 10 );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", i % 10 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         Vec_IntForEachEntryDouble( p->vPatPairs, iPat, iPat2, i )
         {
-            printf( "%4d  ", i/2 );
-            printf( "%4d  ", iPat );
-            printf( "%4d  ", iPat2 );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d  ", i/2 );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d  ", iPat );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d  ", iPat2 );
             for ( k = 0; k < p->nCands; k++ )
             {
                 word * pSimTable = Vec_WrdEntryP( p->vCoverTable, p->nWordsTable * k );
-                printf( "%c", Abc_TtGetBit(pSimTable, i/2) ? '*' : ' ' );
+                fprintf( Abc_FrameGlobalGetOut(), "%c", Abc_TtGetBit(pSimTable, i/2) ? '*' : ' ' );
             }
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
 
@@ -1597,12 +1597,12 @@ void Gia_SimAbsSolve( Gia_SimAbsMan_t * p )
     }
     if ( p->fVerbose )
     {
-        printf( "Solution %2d for covering problem [%5d x %5d]: ", Vec_IntSize(p->vResub), Vec_IntSize(p->vPatPairs)/2, p->nCands );
+        fprintf( Abc_FrameGlobalGetOut(), "Solution %2d for covering problem [%5d x %5d]: ", Vec_IntSize(p->vResub), Vec_IntSize(p->vPatPairs)/2, p->nCands );
         Vec_IntForEachEntry( p->vResub, iPat, i )
-            printf( "%6d ", iPat );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d ", iPat );
         for ( ; i < 12; i++ )
-            printf( "       " );
-        printf( "   " );
+            fprintf( Abc_FrameGlobalGetOut(), "       " );
+        fprintf( Abc_FrameGlobalGetOut(), "   " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
 }
@@ -1659,7 +1659,7 @@ void Gia_SimAbsInit( Gia_SimAbsMan_t * p )
     Vec_Int_t * vValue0 = Gia_SimAbsFind( p->vValues, 0 );
     Vec_Int_t * vValue1 = Gia_SimAbsFind( p->vValues, 1 );
     Vec_IntClear( p->vPatPairs );
-    printf( "There are %d offset and %d onset minterms (%d pairs) and %d divisors.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "There are %d offset and %d onset minterms (%d pairs) and %d divisors.\n", 
         Vec_IntSize(vValue0), Vec_IntSize(vValue1), Vec_IntSize(vValue0)*Vec_IntSize(vValue1), p->nCands );
     Abc_Random( 1 );
     assert( Vec_IntSize(vValue0) > 0 );
@@ -1806,13 +1806,13 @@ void Gia_RsbPrint( Gia_RsbMan_t * p )
     (void)nLeaves;
     assert( Vec_WecSize(p->vSets[0]) == nLeaves );
     assert( Vec_WecSize(p->vSets[1]) == nLeaves );
-    printf( "Database for %d objects and cost %d:\n", Vec_IntSize(p->vObjs), Gia_RsbCost(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Database for %d objects and cost %d:\n", Vec_IntSize(p->vObjs), Gia_RsbCost(p) );
     Vec_WecForEachLevelTwo( p->vSets[0], p->vSets[1], vLevel[0], vLevel[1], i )
     {
         for ( n = 0; n < 2; n++ )
         {
-            printf( "%5d : ", i );
-            Extra_PrintBinary2( stdout, (unsigned*)&i, Vec_IntSize(p->vObjs) ); printf( " %d ", n );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d : ", i );
+            Extra_PrintBinary2( stdout, (unsigned*)&i, Vec_IntSize(p->vObjs) ); fprintf( Abc_FrameGlobalGetOut(), " %d ", n );
             Vec_IntPrint( vLevel[n] );
         }
     }    
@@ -2069,17 +2069,17 @@ void Gia_SimQualityTest( Gia_Man_t * p )
     assert( Gia_ManCiNum(p) <= 10 );
     for ( m = 0; m < nMints; m++ )
     {
-        printf( "%d : ", m );
-        Extra_PrintBinary( stdout, (unsigned*)&m, Gia_ManCiNum(p) );
-        printf( " " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d : ", m );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned*)&m, Gia_ManCiNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
         vPat = Vec_IntAlloc( Gia_ManCiNum(p) );
         for ( k = 0; k < Gia_ManCiNum(p); k++ )
             Vec_IntPush( vPat, (m >> k) & 1 );
         vRes = Gia_SimQualityOne( p, vPat, 1 );
-        printf( "%d ", Vec_IntSum(vRes) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Vec_IntSum(vRes) );
         Vec_IntFree( vRes );
         Vec_IntFree( vPat );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 Vec_Int_t * Gia_SimGenerateStats( Gia_Man_t * p )
@@ -2125,7 +2125,7 @@ int Gia_SimQualityPatternsMax( Gia_Man_t * p, Vec_Int_t * vPat, int Iter, int fV
     Vec_IntFree( vRes );
 
     if ( fVerbose )
-        printf( "Iter %5d : Init = %6.3f  ", Iter, InitValue );
+        fprintf( Abc_FrameGlobalGetOut(), "Iter %5d : Init = %6.3f  ", Iter, InitValue );
 
     for ( k = 0; k < Gia_ManCiNum(p); k++ )
     {
@@ -2149,8 +2149,8 @@ int Gia_SimQualityPatternsMax( Gia_Man_t * p, Vec_Int_t * vPat, int Iter, int fV
     MaxIn = Vec_IntSize(vTries) ? Vec_IntEntry( vTries, rand()%Vec_IntSize(vTries) ) : -1;
     if ( fVerbose )
     {
-        printf( "Final = %6.3f  Ratio = %4.2f  Tries = %5d  ", MaxValue, MaxValue/InitValue, Vec_IntSize(vTries) );
-        printf( "Choosing %5d\r", MaxIn );
+        fprintf( Abc_FrameGlobalGetOut(), "Final = %6.3f  Ratio = %4.2f  Tries = %5d  ", MaxValue, MaxValue/InitValue, Vec_IntSize(vTries) );
+        fprintf( Abc_FrameGlobalGetOut(), "Choosing %5d\r", MaxIn );
     }
     Vec_IntFree( vTries );
     return MaxIn;
@@ -2208,7 +2208,7 @@ void Gia_ManPatDistImprove( Gia_Man_t * p, int fVerbose )
 
         if ( fVerbose )
         {
-            printf( "Pat %5d : Tries = %5d  InitValue = %6.3f  FinalValue = %6.3f  Ratio = %4.2f  ", 
+            fprintf( Abc_FrameGlobalGetOut(), "Pat %5d : Tries = %5d  InitValue = %6.3f  FinalValue = %6.3f  Ratio = %4.2f  ", 
                 n, k, InitValue, FinalValue, FinalValue/InitValue );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
@@ -2218,8 +2218,8 @@ void Gia_ManPatDistImprove( Gia_Man_t * p, int fVerbose )
     }
     Vec_IntFree( vStats );
     if ( fVerbose )
-        printf( "\n" );
-    printf( "Improved %d patterns with average init value %.2f and average final value %.2f.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Improved %d patterns with average init value %.2f and average final value %.2f.\n", 
         64*nWords, 1.0*InitTotal/(64*nWords), 1.0*FinalTotal/(64*nWords) );
     p->vSimsPi = vPatterns;
 }
@@ -2365,7 +2365,7 @@ void Gia_ManPatRareImprove( Gia_Man_t * p, int RareLimit, int fVerbose )
         if ( fVerbose )
         {
             float PatQuo = Gia_ManPatGetOneQuo( p, RareLimit, vPatterns, nWords, n );
-            printf( "Pat %5d : Rare = %4d  Cands = %3d  Value = %8.3f  Change = %8.3f  ", 
+            fprintf( Abc_FrameGlobalGetOut(), "Pat %5d : Rare = %4d  Cands = %3d  Value = %8.3f  Change = %8.3f  ", 
                 n, Vec_IntSize(vRareCounts)/2, vBest ? Vec_IntSize(vBest) : 0, 
                 PatQuo, vBest ? Vec_FltEntry(vQuoIncs, Vec_IntEntry(vBest,0)) : 0 );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -2383,11 +2383,11 @@ void Gia_ManPatRareImprove( Gia_Man_t * p, int RareLimit, int fVerbose )
         Vec_IntFreeP( &vBest );
     }
     if ( fVerbose )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     FinalTotal = Gia_ManPatGetTotalQuo( p, RareLimit, vPatterns, nWords );
     p->vSimsPi = vPatterns;
 
-    printf( "Improved %d out of %d patterns using %d rare nodes: %.2f -> %.2f.  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Improved %d out of %d patterns using %d rare nodes: %.2f -> %.2f.  ", 
         nChanges, 64*nWords, nRares, InitTotal, FinalTotal );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
@@ -2508,13 +2508,13 @@ int Gia_ManSimTwo( Gia_Man_t * p0, Gia_Man_t * p1, int nWords, int nRounds, int 
     abctime clk = Abc_Clock();
     int n, i, RetValue = 1;
     int TimeStop  = TimeLimit ? TimeLimit * CLOCKS_PER_SEC + Abc_Clock() : 0; // in CPU ticks
-    printf( "Simulating %d round with %d machine words.\n", nRounds, nWords );
+    fprintf( Abc_FrameGlobalGetOut(), "Simulating %d round with %d machine words.\n", nRounds, nWords );
     Abc_RandomW(0);
     for ( n = 0; RetValue && n < nRounds; n++ )
     {
         if ( TimeStop && Abc_Clock() > TimeStop )
         {
-            printf( "Computation timed out after %d seconds and %d rounds.\n", TimeLimit, n );
+            fprintf( Abc_FrameGlobalGetOut(), "Computation timed out after %d seconds and %d rounds.\n", TimeLimit, n );
             break;
         }
         vSim0 = Vec_WrdStartRandom( Gia_ManCiNum(p0) * nWords );
@@ -2528,7 +2528,7 @@ int Gia_ManSimTwo( Gia_Man_t * p0, Gia_Man_t * p1, int nWords, int nRounds, int 
             word * pSim2 = Vec_WrdEntryP(vSim2, Gia_ObjId(p1, Gia_ManCo(p1, i))*nWords);
             if ( memcmp(pSim1, pSim2, sizeof(word)*nWords) )
             {
-                printf( "Output %d failed simulation at round %d.  ", i, n );
+                fprintf( Abc_FrameGlobalGetOut(), "Output %d failed simulation at round %d.  ", i, n );
                 RetValue = 0;
                 break;
             }
@@ -2540,7 +2540,7 @@ int Gia_ManSimTwo( Gia_Man_t * p0, Gia_Man_t * p1, int nWords, int nRounds, int 
         p1->vSimsPi = NULL;
     }
     if ( RetValue == 1 )
-        printf( "Simulation did not detect a bug.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Simulation did not detect a bug.  " );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return RetValue;
 }
@@ -2629,13 +2629,13 @@ void Gia_ManSimArrayTest( Vec_Wrd_t * vSimsPi )
             vSimsPi3->nSize /= 2;
 
             if ( Vec_WrdEqual( vSimsPi, vSimsPi2 ) )
-                printf( "Success.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Success.\n" );
             else
-                printf( "Failure.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Failure.\n" );
             if ( Vec_WrdEqual( vSimsPi, vSimsPi3 ) )
-                printf( "Success.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Success.\n" );
             else
-                printf( "Failure.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Failure.\n" );
             Vec_WrdFree( vSimsPi2 );
             Vec_WrdFree( vSimsPi3 );
             Vec_PtrFree( vTemp2 );
@@ -2665,7 +2665,7 @@ void Gia_ManPtrWrdDumpBin( char * pFileName, Vec_Ptr_t * p, int fVerbose )
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         return;
     }
     nSize = Vec_PtrSize(p);
@@ -2678,7 +2678,7 @@ void Gia_ManPtrWrdDumpBin( char * pFileName, Vec_Ptr_t * p, int fVerbose )
     }
     fclose( pFile );
     if ( fVerbose )
-        printf( "Written %d arrays into file \"%s\".\n", Vec_PtrSize(p), pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Written %d arrays into file \"%s\".\n", Vec_PtrSize(p), pFileName );
 }
 Vec_Ptr_t * Gia_ManPtrWrdReadBin( char * pFileName, int fVerbose )
 {
@@ -2686,20 +2686,20 @@ Vec_Ptr_t * Gia_ManPtrWrdReadBin( char * pFileName, int fVerbose )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName );
         return NULL;
     }
     fseek( pFile, 0, SEEK_END );
     nSize = ftell( pFile );
     if ( nSize == 0 )
     {
-        printf( "The input file is empty.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The input file is empty.\n" );
         fclose( pFile );
         return NULL;
     }
     if ( nSize % (int)sizeof(int) > 0 )
     {
-        printf( "Cannot read file with integers because it is not aligned at 4 bytes (remainder = %d).\n", nSize % (int)sizeof(int) );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot read file with integers because it is not aligned at 4 bytes (remainder = %d).\n", nSize % (int)sizeof(int) );
         fclose( pFile );
         return NULL;
     }
@@ -2719,7 +2719,7 @@ Vec_Ptr_t * Gia_ManPtrWrdReadBin( char * pFileName, int fVerbose )
     }
     fclose( pFile );
     if ( fVerbose )
-        printf( "Read %d arrays from file \"%s\".\n", Vec_PtrSize(p), pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Read %d arrays from file \"%s\".\n", Vec_PtrSize(p), pFileName );
     return p;
 }
 
@@ -2793,7 +2793,7 @@ void Gia_ManUpdateCoPhase( Gia_Man_t * pNew, Gia_Man_t * pOld )
     Gia_ManForEachCo( pNew, pObj, i )
         if ( pObj->fPhase ^ Gia_ManCo(pOld, i)->fPhase )
         {
-            printf( "Updating out %d.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Updating out %d.\n", i );
             Gia_ObjFlipFaninC0( pObj );
         }
 }
@@ -2822,9 +2822,9 @@ void Gia_ManCompareSims( Gia_Man_t * pHie, Gia_Man_t * pFlat, int nWords, int fV
     pHie->vSimsPi = NULL;
     Vec_WrdFree( vSims );
 
-    printf( "Comparing two AIGs using %d simulation words.\n", nWords );
-    printf( "Hierarchical: " ); Gia_ManPrintStats( pHie, NULL );
-    printf( "Flat:         " ); Gia_ManPrintStats( pFlat, NULL );
+    fprintf( Abc_FrameGlobalGetOut(), "Comparing two AIGs using %d simulation words.\n", nWords );
+    fprintf( Abc_FrameGlobalGetOut(), "Hierarchical: " ); Gia_ManPrintStats( pHie, NULL );
+    fprintf( Abc_FrameGlobalGetOut(), "Flat:         " ); Gia_ManPrintStats( pFlat, NULL );
 
     Vec_MemHashAlloc( vStore, 1 << 12 );
     Gia_ManForEachCand( pFlat, pObj, i )
@@ -2841,7 +2841,7 @@ void Gia_ManCompareSims( Gia_Man_t * pHie, Gia_Man_t * pFlat, int nWords, int fV
         Vec_IntWriteEntry( vLabels, i, Value );
     }
     nUnique = Vec_MemEntryNum( vStore );
-    printf( "Simulating %d patterns through the second (flat) AIG leads to %d unique objects (%.2f %% out of %d). Const0 = %d. Const1 = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Simulating %d patterns through the second (flat) AIG leads to %d unique objects (%.2f %% out of %d). Const0 = %d. Const1 = %d.\n", 
         64*nWords, nUnique, 100.0*nUnique/Gia_ManCandNum(pFlat), Gia_ManCandNum(pFlat), nC0s, nC1s );
 
     assert( Gia_ManCiNum(pFlat) == Gia_ManCiNum(pHie) );
@@ -2871,7 +2871,7 @@ void Gia_ManCompareSims( Gia_Man_t * pHie, Gia_Man_t * pFlat, int nWords, int fV
     Vec_WrdFree( vSims1 );
     Vec_IntFree( vLabels );
 
-    printf( "The first (hierarchical) AIG has %d (%.2f %%) matches, %d (%.2f %%) mismatches, including %d (%.2f %%) on the boundary.  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "The first (hierarchical) AIG has %d (%.2f %%) matches, %d (%.2f %%) mismatches, including %d (%.2f %%) on the boundary.  ", 
         nMatched,  100.0*nMatched /Abc_MaxInt(1, Gia_ManCandNum(pHie)), 
         nFound[2], 100.0*nFound[2]/Abc_MaxInt(1, Gia_ManCandNum(pHie)), 
         nFound[1], 100.0*nFound[1]/Abc_MaxInt(1, nBoundary) );
@@ -2984,28 +2984,28 @@ void Gia_ManRelPrint( Gia_Man_t * p, Vec_Int_t * vObjs, Vec_Wrd_t * vSims, Vec_W
 {
     int w, nWords = Vec_WrdSize(p->vSimsPi) / Gia_ManCiNum(p);
     int i, Id, m, nMints = 1 << Vec_IntSize(vObjs);
-    printf( "Relation has %d inputs and %d outputs:\n", Gia_ManCiNum(p), Vec_IntSize(vObjs) );
+    fprintf( Abc_FrameGlobalGetOut(), "Relation has %d inputs and %d outputs:\n", Gia_ManCiNum(p), Vec_IntSize(vObjs) );
     for ( w = 0; w < 64*nWords; w++ )
     {
         Gia_ManForEachCiId( p, Id, i )
-            printf( "%d", Abc_TtGetBit(Vec_WrdEntryP(vSims, Id*nWords), w) );
-        printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtGetBit(Vec_WrdEntryP(vSims, Id*nWords), w) );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
         Vec_IntForEachEntry( vObjs, Id, i )
-            printf( "%d", Abc_TtGetBit(Vec_WrdEntryP(vSims, Id*nWords), w) );
-        printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtGetBit(Vec_WrdEntryP(vSims, Id*nWords), w) );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
         Gia_ManForEachCoId( p, Id, i )
-            printf( "%d", Abc_TtGetBit(Vec_WrdEntryP(vSims, Id*nWords), w) );
-        printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtGetBit(Vec_WrdEntryP(vSims, Id*nWords), w) );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
         for ( m = 0; m < nMints; m++ )
         {
-            printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
             for ( i = 0; i < Vec_IntSize(vObjs); i++ )
-                printf( "%d", (m >> i) & 1 );
-            printf( "=" );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", (m >> i) & 1 );
+            fprintf( Abc_FrameGlobalGetOut(), "=" );
             Gia_ManForEachCoId( p, Id, i )
-                printf( "%d", Abc_TtGetBit(Vec_WrdEntryP(vRel, (m*Gia_ManCoNum(p)+i)*nWords), w) );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtGetBit(Vec_WrdEntryP(vRel, (m*Gia_ManCoNum(p)+i)*nWords), w) );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void Gia_ManRelPrint2( Gia_Man_t * p, Vec_Int_t * vObjs, Vec_Wrd_t * vSims, Vec_Wrd_t * vRel )
@@ -3014,46 +3014,46 @@ void Gia_ManRelPrint2( Gia_Man_t * p, Vec_Int_t * vObjs, Vec_Wrd_t * vSims, Vec_
     int i, Id, m, nMints = 1 << Vec_IntSize(vObjs);
     int nWordsM = Abc_Truth6WordNum(Vec_IntSize(vObjs));
     Vec_Wrd_t * vRes = Vec_WrdStart( 64*nWords * nWordsM );
-    printf( "Relation has %d inputs and %d outputs:\n", Gia_ManCiNum(p), Vec_IntSize(vObjs) );
+    fprintf( Abc_FrameGlobalGetOut(), "Relation has %d inputs and %d outputs:\n", Gia_ManCiNum(p), Vec_IntSize(vObjs) );
     for ( w = 0; w < 64*nWords; w++ )
     {
         int iMint = 0;
         int nValid = 0;
         Gia_ManForEachCiId( p, Id, i )
-            printf( "%d", Abc_TtGetBit(Vec_WrdEntryP(vSims, Id*nWords), w) );
-        printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtGetBit(Vec_WrdEntryP(vSims, Id*nWords), w) );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
         Vec_IntForEachEntry( vObjs, Id, i )
         {
-            printf( "%d", Abc_TtGetBit(Vec_WrdEntryP(vSims, Id*nWords), w) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtGetBit(Vec_WrdEntryP(vSims, Id*nWords), w) );
             if ( Abc_TtGetBit(Vec_WrdEntryP(vSims, Id*nWords), w) )
                 iMint |= 1 << i;
         }
-        printf( " " );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
         Gia_ManForEachCoId( p, Id, i )
-            printf( "%d", Abc_TtGetBit(Vec_WrdEntryP(vSims, Id*nWords), w) );
-        printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtGetBit(Vec_WrdEntryP(vSims, Id*nWords), w) );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
         for ( m = 0; m < nMints; m++ )
         {
             int Count = 0;
             Gia_ManForEachCoId( p, Id, i )
                 Count += Abc_TtGetBit(Vec_WrdEntryP(vRel, (m*Gia_ManCoNum(p)+i)*nWords), w);
-            printf( "%d", Count == 0 );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Count == 0 );
             nValid += Count > 0;
             if ( Count == 0 )
                 Abc_TtSetBit( Vec_WrdEntryP(vRes, w*nWordsM), m );
         }
-        printf( " " );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
         for ( m = 0; m < nMints; m++ )
-            printf( "%d", Abc_TtGetBit(Vec_WrdEntryP(vRes, w*nWordsM), m) );
-        printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtGetBit(Vec_WrdEntryP(vRes, w*nWordsM), m) );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
         assert( Abc_TtGetBit(Vec_WrdEntryP(vRes, w*nWordsM), iMint) );
         for ( i = 0; i < Vec_IntSize(vObjs); i++ )
             if ( Abc_TtGetBit(Vec_WrdEntryP(vRes, w*nWordsM), iMint ^ (1 << i)) )
-                printf( "-" );
+                fprintf( Abc_FrameGlobalGetOut(), "-" );
             else
-                printf( "%d", (iMint >> i) & 1 );
-        printf( " %d", nMints-nValid );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", (iMint >> i) & 1 );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", nMints-nValid );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_WrdFree( vRes );
 }
@@ -3156,7 +3156,7 @@ Vec_Int_t * Gia_ManRelInitMffc( Gia_Man_t * p, Vec_Int_t * vOuts )
     Gia_ManForEachAnd( p, pObj, i )
         if ( !Gia_ObjIsTravIdCurrent(p, pObj) )
             Vec_IntPush( vRes, i );
-    printf( "MFFC: " );
+    fprintf( Abc_FrameGlobalGetOut(), "MFFC: " );
     Vec_IntPrint( vRes );
     return vRes;
 }
@@ -3188,7 +3188,7 @@ Vec_Int_t * Gia_ManRelInitDivs( Gia_Man_t * p, Vec_Int_t * vIns, Vec_Int_t * vOu
                 Vec_IntPush( vRes, i );
             Gia_ObjSetTravIdCurrent( p, pObj );
         }
-    printf( "Divisors: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Divisors: " );
     Vec_IntPrint( vRes );
     return vRes;
 }
@@ -3229,7 +3229,7 @@ void Gia_ManRelSolve( Gia_Man_t * p, Vec_Wrd_t * vSims, Vec_Int_t * vIns, Vec_In
             Phase |= 1 << i;
 
     assert( Entry0 >= 0 );
-    printf( "Entry0 = %d\n", Entry0 );
+    fprintf( Abc_FrameGlobalGetOut(), "Entry0 = %d\n", Entry0 );
     Entry0 ^= 1;
 //    for ( m = 0; m < nMints; m++ )
     Vec_IntForEachEntry( vRel, Entry, m )
@@ -3247,7 +3247,7 @@ void Gia_ManRelSolve( Gia_Man_t * p, Vec_Wrd_t * vSims, Vec_Int_t * vIns, Vec_In
         iMint++;
     }
     assert( iMint == nMints );
-    printf( "Created %d minterms.\n", iMint );
+    fprintf( Abc_FrameGlobalGetOut(), "Created %d minterms.\n", iMint );
     Exa4_ManGenTest( vSimsIn, vSimsOut, Vec_IntSize(vIns), Vec_IntSize(vDivs), Vec_IntSize(vOuts), 10, 0, 0, 0, 0, 0, 1, 0, NULL );
     Vec_WrdFree( vSimsIn );
     Vec_WrdFree( vSimsOut );
@@ -3461,9 +3461,9 @@ void Gia_ManRelCompute( Gia_Man_t * p, Vec_Int_t * vIns, Vec_Int_t * vDivs, Vec_
     p->vSimsPi = Vec_WrdStartTruthTables( Gia_ManCiNum(p) );
 
     if ( !Gia_ManRelCheck( p, vIns, vDivs, vOuts ) )
-        printf( "Window is NOT consistent.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Window is NOT consistent.\n" );
     else
-        printf( "Window is consistent.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Window is consistent.\n" );
 
     vSims  = Gia_ManSimPatSim( p );
     vRel   = Gia_ManRelDeriveRel( p, vIns, vDivs, vOuts, vSims );
@@ -3607,13 +3607,13 @@ void Gia_ManRelDeriveTest1( Gia_Man_t * p )
     Vec_Wrd_t * vSimsDiv = NULL, * vSimsOut = NULL;
     Gia_ManRelCompute( p, vIns, vDivs, vOuts, &vSimsDiv, &vSimsOut );
 
-    printf( "Inputs:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Inputs:\n" );
     Vec_WrdForEachEntry( vSimsDiv, Entry, i )
         Abc_TtPrintBits( &Entry, 1 + Vec_IntSize(vIns) + Vec_IntSize(vDivs) );
-    printf( "Outputs:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Outputs:\n" );
     Vec_WrdForEachEntry( vSimsOut, Entry, i )
         Abc_TtPrintBits( &Entry, 1 << Vec_IntSize(vOuts) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     Exa6_WriteFile2( "mul44_i5_n0_t3_s11.rel", Vec_IntSize(vIns), Vec_IntSize(vDivs), Vec_IntSize(vOuts), vSimsDiv, vSimsOut );
 
@@ -3741,16 +3741,16 @@ void Gia_ManComparePrint( Gia_Man_t * p, Gia_Man_t * q )
             if ( !Abc_TtEqual(pSimQ, pSimP, nWords) )
                 continue;
             if ( fFirst ) {
-                printf( "%5d :", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%5d :", i );
                 fFirst = 0;
                 Count++;
             }
-            printf( " %5d(%d)", k, pObjQ->fPhase ^ pObjP->fPhase );
+            fprintf( Abc_FrameGlobalGetOut(), " %5d(%d)", k, pObjQ->fPhase ^ pObjP->fPhase );
         }
         if ( !fFirst )
-            printf( "\n");
+            fprintf( Abc_FrameGlobalGetOut(),  "\n" );
     }   
-    printf( "Found %d equivalent nodes.\n", Count );
+    fprintf( Abc_FrameGlobalGetOut(), "Found %d equivalent nodes.\n", Count );
     Vec_WrdFree( vSimsP );
     Vec_WrdFree( vSimsQ );
     Vec_WrdFree( vSimsPi );

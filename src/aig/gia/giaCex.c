@@ -284,9 +284,9 @@ void Gia_ManCounterExampleValueTest( Gia_Man_t * pGia, Abc_Cex_t * pCex )
 {
     Gia_Obj_t * pObj = Gia_ManObj( pGia, Gia_ManObjNum(pGia)/2 );
     int iFrame = Abc_MaxInt( 0, pCex->iFrame - 1 );
-    printf( "\nUsing counter-example, which asserts output %d in frame %d.\n", pCex->iPo, pCex->iFrame );
+    fprintf( Abc_FrameGlobalGetOut(), "\nUsing counter-example, which asserts output %d in frame %d.\n", pCex->iPo, pCex->iFrame );
     Gia_ManCounterExampleValueStart( pGia, pCex );
-    printf( "Value of object %d in frame %d is %d.\n", Gia_ObjId(pGia, pObj), iFrame,
+    fprintf( Abc_FrameGlobalGetOut(), "Value of object %d in frame %d is %d.\n", Gia_ObjId(pGia, pObj), iFrame,
         Gia_ManCounterExampleValueLookup(pGia, Gia_ObjId(pGia, pObj), iFrame) );
     Gia_ManCounterExampleValueStop( pGia );
 }
@@ -456,7 +456,7 @@ void Gia_ManMinCex( Gia_Man_t * p, Abc_Cex_t * pCex )
     for ( i = pCexCare->nRegs; i < pCexCare->nBits; i++ )
         Counter += Abc_InfoHasBit(pCexCare->pData, i);
     Abc_CexFree( pCexCare );
-    printf( "Care bits = %d. ", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Care bits = %d. ", Counter );
     Abc_PrintTime( 1, "CEX minimization", Abc_Clock() - clk );
 
     // SAT instance
@@ -482,13 +482,13 @@ void Gia_ManMinCex( Gia_Man_t * p, Abc_Cex_t * pCex )
         clk = Abc_Clock();
         status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits), 0, 0, 0, 0 );
         nFinal = sat_solver_final( pSat, &pFinal );
-        printf( "Status %d.  Selected %d assumptions out of %d.  ", status, nFinal, Vec_IntSize(vLits) );
+        fprintf( Abc_FrameGlobalGetOut(), "Status %d.  Selected %d assumptions out of %d.  ", status, nFinal, Vec_IntSize(vLits) );
         Abc_PrintTime( 1, "Analyze_final", Abc_Clock() - clk );
 
         // SAT-based minimization
         clk = Abc_Clock();
         nFinal = sat_solver_minimize_assumptions( pSat, Vec_IntArray(vLits), Vec_IntSize(vLits), 0 );
-        printf( "Status %d.  Selected %d assumptions out of %d.  ", status, nFinal, Vec_IntSize(vLits) );
+        fprintf( Abc_FrameGlobalGetOut(), "Status %d.  Selected %d assumptions out of %d.  ", status, nFinal, Vec_IntSize(vLits) );
         Abc_PrintTime( 1, "LEXUNSAT", Abc_Clock() - clk );
     }
 
@@ -533,7 +533,7 @@ Abc_Cex_t * Bmc_CexCareSatBasedMinimizeAig( Gia_Man_t * p, Abc_Cex_t * pCex, int
         CountBest += Abc_InfoHasBit(pCexBest->pData, i);
     if ( fVerbose )
     {
-        printf( "Care bits = %d. ", CountBest );
+        fprintf( Abc_FrameGlobalGetOut(), "Care bits = %d. ", CountBest );
         Abc_PrintTime( 1, "Non-SAT-based CEX minimization", Abc_Clock() - clk );
     }
 
@@ -566,7 +566,7 @@ Abc_Cex_t * Bmc_CexCareSatBasedMinimizeAig( Gia_Man_t * p, Abc_Cex_t * pCex, int
         nFinal = sat_solver_final( pSat, &pFinal );
         if ( fVerbose )
         {
-            printf( "Status %s   Selected %5d assumptions out of %5d.  ", status == l_False ? "OK ":"BUG", nFinal, Vec_IntSize(vLits) );
+            fprintf( Abc_FrameGlobalGetOut(), "Status %s   Selected %5d assumptions out of %5d.  ", status == l_False ? "OK ":"BUG", nFinal, Vec_IntSize(vLits) );
             Abc_PrintTime( 1, "Analyze_final", Abc_Clock() - clk );
         }
         if ( CountBest > nFinal )
@@ -583,7 +583,7 @@ Abc_Cex_t * Bmc_CexCareSatBasedMinimizeAig( Gia_Man_t * p, Abc_Cex_t * pCex, int
         nFinal = sat_solver_minimize_assumptions( pSat, Vec_IntArray(vLits), Vec_IntSize(vLits), 0 );
         if ( fVerbose )
         {
-            printf( "Status %s   Selected %5d assumptions out of %5d.  ", status == l_False ? "OK ":"BUG", nFinal, Vec_IntSize(vLits) );
+            fprintf( Abc_FrameGlobalGetOut(), "Status %s   Selected %5d assumptions out of %5d.  ", status == l_False ? "OK ":"BUG", nFinal, Vec_IntSize(vLits) );
             Abc_PrintTime( 1, "LEXUNSAT     ", Abc_Clock() - clk );
         }
         if ( CountBest > nFinal )
@@ -595,7 +595,7 @@ Abc_Cex_t * Bmc_CexCareSatBasedMinimizeAig( Gia_Man_t * p, Abc_Cex_t * pCex, int
     }
     if ( fVerbose )
     {
-        printf( "Final    :    " );
+        fprintf( Abc_FrameGlobalGetOut(), "Final    :    " );
         Bmc_CexPrint( pCexBest, pCexBest->nPis, 0 );
     }
     // cleanup

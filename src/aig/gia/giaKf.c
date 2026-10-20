@@ -867,17 +867,17 @@ static inline void Kf_CutDeref( Kf_Man_t * p, int * pCut )
 static inline void Kf_CutPrint( int * pCut )
 {
     int i; 
-    printf( "%d {", Kf_CutSize(pCut) );
+    fprintf( Abc_FrameGlobalGetOut(), "%d {", Kf_CutSize(pCut) );
     for ( i = 1; i <= Kf_CutSize(pCut); i++ )
-        printf( " %d", Kf_CutLeaf(pCut, i) );
-    printf( " } Func = %d\n", Kf_CutFunc(pCut) );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", Kf_CutLeaf(pCut, i) );
+    fprintf( Abc_FrameGlobalGetOut(), " } Func = %d\n", Kf_CutFunc(pCut) );
 }
 static inline void Gia_CutSetPrint( int * pCuts )
 {
     int i, * pCut; 
     Kf_ObjForEachCutInt( pCuts, pCut, i )
         Kf_CutPrint( pCut );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -1087,7 +1087,7 @@ void Kf_ManComputeCuts( Kf_Man_t * p )
     Vec_IntForEachEntry( vFanins, iFan, k )
         if ( iFan != 0 )
         {
-            printf( "%d -> %d    ", k, iFan );
+            fprintf( Abc_FrameGlobalGetOut(), "%d -> %d    ", k, iFan );
             Gia_ObjPrint( p->pGia, Gia_ManObj(p->pGia, k) );
         }
     assert( Vec_IntSum(vFanins) == 0 );
@@ -1104,11 +1104,11 @@ void Kf_ManComputeCuts( Kf_Man_t * p )
     if ( !p->pPars->fVerbose )
         return;
     // print runtime statistics
-    printf( "Main     : " );
+    fprintf( Abc_FrameGlobalGetOut(), "Main     : " );
     Abc_PrintTime( 1, "Time", clkUsed );
     for ( i = 0; i < nProcs; i++ )
     {
-        printf( "Thread %d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Thread %d : ", i );
         Abc_PrintTime( 1, "Time", ThData[i].clkUsed );
     }
 
@@ -1129,22 +1129,22 @@ void Kf_ManPrintStats( Kf_Man_t * p, char * pTitle )
 {
     if ( !p->pPars->fVerbose )
         return;
-    printf( "%s :  ", pTitle );
-    printf( "Level =%6lu   ", (long)p->pPars->Delay );
-    printf( "Area =%9lu   ",  (long)p->pPars->Area );
-    printf( "Edge =%9lu   ",  (long)p->pPars->Edge );
+    fprintf( Abc_FrameGlobalGetOut(), "%s :  ", pTitle );
+    fprintf( Abc_FrameGlobalGetOut(), "Level =%6lu   ", (long)p->pPars->Delay );
+    fprintf( Abc_FrameGlobalGetOut(), "Area =%9lu   ",  (long)p->pPars->Area );
+    fprintf( Abc_FrameGlobalGetOut(), "Edge =%9lu   ",  (long)p->pPars->Edge );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 void Kf_ManComputeMapping( Kf_Man_t * p )
 {
     Gia_Obj_t * pObj; int i, iPi;
     if ( p->pPars->fVerbose )
     {
-        printf( "Aig: CI = %d  CO = %d  AND = %d    ", Gia_ManCiNum(p->pGia), Gia_ManCoNum(p->pGia), Gia_ManAndNum(p->pGia) );
-        printf( "LutSize = %d  CutMax = %d  Threads = %d\n", p->pPars->nLutSize, p->pPars->nCutNum, p->pPars->nProcNum );
-        printf( "Computing cuts...\r" );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig: CI = %d  CO = %d  AND = %d    ", Gia_ManCiNum(p->pGia), Gia_ManCoNum(p->pGia), Gia_ManAndNum(p->pGia) );
+        fprintf( Abc_FrameGlobalGetOut(), "LutSize = %d  CutMax = %d  Threads = %d\n", p->pPars->nLutSize, p->pPars->nCutNum, p->pPars->nProcNum );
+        fprintf( Abc_FrameGlobalGetOut(), "Computing cuts...\r" );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     Gia_ManForEachCi( p->pGia, pObj, iPi )
     {
@@ -1178,18 +1178,18 @@ void Kf_ManComputeMapping( Kf_Man_t * p )
     Kf_ManComputeRefs( p );
     if ( p->pPars->fVerbose )
     {
-        printf( "CutPair = %lu  ", (long)p->pSett->CutCount[0] );
-        printf( "Merge = %lu  ",   (long)p->pSett->CutCount[1] );
-        printf( "Eval = %lu  ",    (long)p->pSett->CutCount[2] );
-        printf( "Cut = %lu  ",     (long)p->pSett->CutCount[3] );
+        fprintf( Abc_FrameGlobalGetOut(), "CutPair = %lu  ", (long)p->pSett->CutCount[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "Merge = %lu  ",   (long)p->pSett->CutCount[1] );
+        fprintf( Abc_FrameGlobalGetOut(), "Eval = %lu  ",    (long)p->pSett->CutCount[2] );
+        fprintf( Abc_FrameGlobalGetOut(), "Cut = %lu  ",     (long)p->pSett->CutCount[3] );
         Abc_PrintTime( 1, "Time",  Abc_Clock() - p->clkStart );
-        printf( "Memory:  " );
-        printf( "Gia = %.2f MB  ", Gia_ManMemory(p->pGia) / (1<<20) );
-        printf( "Man = %.2f MB  ", 4.0 * sizeof(int) * Gia_ManObjNum(p->pGia) / (1<<20) );
-        printf( "Cuts = %.2f MB  ",Vec_ReportMemory(&p->pMem) / (1<<20) );
-        printf( "Set = %.2f KB  ", 1.0 * sizeof(Kf_Set_t) / (1<<10) );
-        printf( "\n" );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "Memory:  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Gia = %.2f MB  ", Gia_ManMemory(p->pGia) / (1<<20) );
+        fprintf( Abc_FrameGlobalGetOut(), "Man = %.2f MB  ", 4.0 * sizeof(int) * Gia_ManObjNum(p->pGia) / (1<<20) );
+        fprintf( Abc_FrameGlobalGetOut(), "Cuts = %.2f MB  ",Vec_ReportMemory(&p->pMem) / (1<<20) );
+        fprintf( Abc_FrameGlobalGetOut(), "Set = %.2f KB  ", 1.0 * sizeof(Kf_Set_t) / (1<<10) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fflush( Abc_FrameGlobalGetOut() );
         Kf_ManPrintStats( p, "Start" );
     }
 }

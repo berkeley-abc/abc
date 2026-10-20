@@ -232,7 +232,7 @@ void Gia_ManSatokoCall( Gia_Man_t * p, satoko_opts_t * opts, int fSplit, int fIn
             {
                 vCone = Gia_ManCollectVars( i+1, pCnf->vMapping, pCnf->nVars );
                 satoko_mark_cone( pSat, Vec_IntArray(vCone), Vec_IntSize(vCone) );
-                printf( "Cone has %6d vars (out of %6d).  ", Vec_IntSize(vCone), pCnf->nVars );
+                fprintf( Abc_FrameGlobalGetOut(), "Cone has %6d vars (out of %6d).  ", Vec_IntSize(vCone), pCnf->nVars );
                 status = satoko_solve( pSat );
                 satoko_unmark_cone( pSat, Vec_IntArray(vCone), Vec_IntSize(vCone) );
                 Vec_IntFree( vCone );

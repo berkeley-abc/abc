@@ -599,20 +599,20 @@ static inline void Cbs3_ManPrintClause( Cbs3_Man_t * p, int Level, int hClause )
 {
     int i, iLit;
     assert( Cbs3_QueIsEmpty( &p->pClauses ) );
-    printf( "Level %2d : ", Level );
+    fprintf( Abc_FrameGlobalGetOut(), "Level %2d : ", Level );
     Cbs3_ClauseForEachEntry( p, hClause, iLit, i )
-        printf( "%c%d ", Abc_LitIsCompl(iLit) ? '-':'+', Abc_Lit2Var(iLit) );
+        fprintf( Abc_FrameGlobalGetOut(), "%c%d ", Abc_LitIsCompl(iLit) ? '-':'+', Abc_Lit2Var(iLit) );
 //        printf( "%d=%d(%d) ", iObj, Cbs3_VarValue(p, Abc_Lit2Var(iLit)), Cbs3_VarDecLevel(p, Abc_Lit2Var(iLit)) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 static inline void Cbs3_ManPrintCube( Cbs3_Man_t * p, int Level, int hClause )
 {
     int i, iObj;
     assert( Cbs3_QueIsEmpty( &p->pClauses ) );
-    printf( "Level %2d : ", Level );
+    fprintf( Abc_FrameGlobalGetOut(), "Level %2d : ", Level );
     Cbs3_ClauseForEachEntry( p, hClause, iObj, i )
-        printf( "%c%d ", Cbs3_VarValue(p, iObj)? '+':'-', iObj );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%c%d ", Cbs3_VarValue(p, iObj)? '+':'-', iObj );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -1133,19 +1133,19 @@ int Cbs3_ManSolve( Cbs3_Man_t * p, int iLit, int nRestarts )
 ***********************************************************************/
 void Cbs3_ManSatPrintStats( Cbs3_Man_t * p )
 {
-    printf( "CO = %8d  ", Gia_ManCoNum(p->pAig) );
-    printf( "AND = %8d  ", Gia_ManAndNum(p->pAig) );
-    printf( "Conf = %6d  ", p->Pars.nBTLimit );
-    printf( "Restart = %2d  ", p->Pars.nRestLimit );
-    printf( "JustMax = %5d  ", p->Pars.nJustLimit );
-    printf( "\n" );
-    printf( "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "CO = %8d  ", Gia_ManCoNum(p->pAig) );
+    fprintf( Abc_FrameGlobalGetOut(), "AND = %8d  ", Gia_ManAndNum(p->pAig) );
+    fprintf( Abc_FrameGlobalGetOut(), "Conf = %6d  ", p->Pars.nBTLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "Restart = %2d  ", p->Pars.nRestLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "JustMax = %5d  ", p->Pars.nJustLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatUnsat, p->nSatTotal? 100.0*p->nSatUnsat/p->nSatTotal :0.0, p->nSatUnsat? 1.0*p->nConfUnsat/p->nSatUnsat :0.0 );
     ABC_PRTP( "Time", p->timeSatUnsat, p->timeTotal );
-    printf( "Sat   calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Sat   calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatSat,   p->nSatTotal? 100.0*p->nSatSat/p->nSatTotal :0.0, p->nSatSat? 1.0*p->nConfSat/p->nSatSat : 0.0 );
     ABC_PRTP( "Time", p->timeSatSat,   p->timeTotal );
-    printf( "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatUndec, p->nSatTotal? 100.0*p->nSatUndec/p->nSatTotal :0.0, p->nSatUndec? 1.0*p->nConfUndec/p->nSatUndec : 0.0 );
     ABC_PRTP( "Time", p->timeSatUndec, p->timeTotal );
     ABC_PRT( "Total time", p->timeTotal );
@@ -1344,8 +1344,8 @@ Vec_Int_t * Cbs3_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, int nRestarts, V
         Cbs3_ManSatPrintStats( p );
     if ( fVerbose )
     {
-        printf( "Prop1 = %d.  Prop2 = %d.  Prop3 = %d.  ClaConf = %d.   FailJ = %d.  FailC = %d.   ", p->nPropCalls[0], p->nPropCalls[1], p->nPropCalls[2], p->nClauseConf, p->nFails[0], p->nFails[1] );
-        printf( "Mem usage %.2f MB.\n", 1.0*Cbs3_ManMemory(p)/(1<<20) );
+        fprintf( Abc_FrameGlobalGetOut(), "Prop1 = %d.  Prop2 = %d.  Prop3 = %d.  ClaConf = %d.   FailJ = %d.  FailC = %d.   ", p->nPropCalls[0], p->nPropCalls[1], p->nPropCalls[2], p->nClauseConf, p->nFails[0], p->nFails[1] );
+        fprintf( Abc_FrameGlobalGetOut(), "Mem usage %.2f MB.\n", 1.0*Cbs3_ManMemory(p)/(1<<20) );
         //Abc_PrintTime( 1, "JFront", p->timeJFront );
         //Abc_PrintTime( 1, "Loading", p->timeSatLoad );
         //printf( "Decisions = %d.\n", p->nDecs );

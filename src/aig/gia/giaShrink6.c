@@ -135,7 +135,7 @@ Gia_Man_t * Shr_ManFree( Shr_Man_t * p )
     {
         p->pNew = Gia_ManCleanup( pTemp = p->pNew );
         if ( Gia_ManAndNum(p->pNew) != Gia_ManAndNum(pTemp) )
-            printf( "Node reduction after sweep %6d -> %6d.\n", Gia_ManAndNum(pTemp), Gia_ManAndNum(p->pNew) );
+            fprintf( Abc_FrameGlobalGetOut(), "Node reduction after sweep %6d -> %6d.\n", Gia_ManAndNum(pTemp), Gia_ManAndNum(p->pNew) );
         Gia_ManStop( pTemp );
     }
     Gia_ManSetRegNum( p->pNew, Gia_ManRegNum(p->pGia) );
@@ -475,8 +475,8 @@ Gia_Man_t * Gia_ManMapShrink6( Gia_Man_t * p, int nFanoutMax, int fKeepLevel, in
     }
     if ( fVerbose )
     {
-        printf( "Performed %d resubs and %d decomps.  ", Counter1, Counter2 );
-        printf( "Gain in AIG nodes = %d.  ", Gia_ManObjNum(p)-Gia_ManObjNum(pMan->pNew) );
+        fprintf( Abc_FrameGlobalGetOut(), "Performed %d resubs and %d decomps.  ", Counter1, Counter2 );
+        fprintf( Abc_FrameGlobalGetOut(), "Gain in AIG nodes = %d.  ", Gia_ManObjNum(p)-Gia_ManObjNum(pMan->pNew) );
         ABC_PRT( "Runtime", Abc_Clock() - clk );
 //        ABC_PRT( "Divisors", timeFanout );        
     }

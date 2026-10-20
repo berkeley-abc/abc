@@ -598,10 +598,10 @@ static inline void Cbs_ManPrintClause( Cbs_Man_t * p, int Level, int hClause )
     Gia_Obj_t * pObj;
     int i;
     assert( Cbs_QueIsEmpty( pQue ) );
-    printf( "Level %2d : ", Level );
+    fprintf( Abc_FrameGlobalGetOut(), "Level %2d : ", Level );
     for ( i = hClause; (pObj = pQue->pData[i]); i++ )
-        printf( "%d=%d(%d) ", Gia_ObjId(p->pAig, pObj), Cbs_VarValue(pObj), Cbs_VarDecLevel(p, pObj) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=%d(%d) ", Gia_ObjId(p->pAig, pObj), Cbs_VarValue(pObj), Cbs_VarDecLevel(p, pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -621,10 +621,10 @@ static inline void Cbs_ManPrintClauseNew( Cbs_Man_t * p, int Level, int hClause 
     Gia_Obj_t * pObj;
     int i;
     assert( Cbs_QueIsEmpty( pQue ) );
-    printf( "Level %2d : ", Level );
+    fprintf( Abc_FrameGlobalGetOut(), "Level %2d : ", Level );
     for ( i = hClause; (pObj = pQue->pData[i]); i++ )
-        printf( "%c%d ", Cbs_VarValue(pObj)? '+':'-', Gia_ObjId(p->pAig, pObj) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%c%d ", Cbs_VarValue(pObj)? '+':'-', Gia_ObjId(p->pAig, pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -1110,18 +1110,18 @@ int Cbs_ManReadConflicts( Cbs_Man_t * p )
 ***********************************************************************/
 void Cbs_ManSatPrintStats( Cbs_Man_t * p )
 {
-    printf( "CO = %8d  ", Gia_ManCoNum(p->pAig) );
-    printf( "AND = %8d  ", Gia_ManAndNum(p->pAig) );
-    printf( "Conf = %6d  ", p->Pars.nBTLimit );
-    printf( "JustMax = %5d  ", p->Pars.nJustLimit );
-    printf( "\n" );
-    printf( "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "CO = %8d  ", Gia_ManCoNum(p->pAig) );
+    fprintf( Abc_FrameGlobalGetOut(), "AND = %8d  ", Gia_ManAndNum(p->pAig) );
+    fprintf( Abc_FrameGlobalGetOut(), "Conf = %6d  ", p->Pars.nBTLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "JustMax = %5d  ", p->Pars.nJustLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatUnsat, p->nSatTotal? 100.0*p->nSatUnsat/p->nSatTotal :0.0, p->nSatUnsat? 1.0*p->nConfUnsat/p->nSatUnsat :0.0 );
     ABC_PRTP( "Time", p->timeSatUnsat, p->timeTotal );
-    printf( "Sat   calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Sat   calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatSat,   p->nSatTotal? 100.0*p->nSatSat/p->nSatTotal :0.0, p->nSatSat? 1.0*p->nConfSat/p->nSatSat : 0.0 );
     ABC_PRTP( "Time", p->timeSatSat,   p->timeTotal );
-    printf( "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatUndec, p->nSatTotal? 100.0*p->nSatUndec/p->nSatTotal :0.0, p->nSatUndec? 1.0*p->nConfUndec/p->nSatUndec : 0.0 );
     ABC_PRTP( "Time", p->timeSatUndec, p->timeTotal );
     ABC_PRT( "Total time", p->timeTotal );

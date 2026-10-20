@@ -305,7 +305,7 @@ int Gia_ManSuppSizeTest( Gia_Man_t * p )
     Gia_ManForEachObj( p, pObj, i )
         if ( Gia_ObjIsAnd(pObj) )
             Counter += (Gia_ManSuppSizeOne(p, pObj) <= 16);
-    printf( "Nodes with small support %d (out of %d)\n", Counter, Gia_ManAndNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes with small support %d (out of %d)\n", Counter, Gia_ManAndNum(p) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return Counter;
 }
@@ -543,7 +543,7 @@ void Gia_ManCollectSeqTest( Gia_Man_t * p )
     for ( i = 0; i < Gia_ManPoNum(p); i++ )
     {
         if ( i % 10000 == 0 )
-            printf( "%8d finished...\r", i );
+            fprintf( Abc_FrameGlobalGetOut(), "%8d finished...\r", i );
 
         vObjs = Gia_ManCollectSeq( p, &i, 1 );
 //        printf( "%d ", Vec_IntSize(vObjs) );

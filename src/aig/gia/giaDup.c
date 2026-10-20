@@ -1150,20 +1150,20 @@ Gia_Man_t * Gia_ManDupRandPerm( Gia_Man_t * p, int fVerbose )
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
-    if ( fVerbose ) printf( "Input NP transform: " );
+    if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Input NP transform: " );
     Gia_ManForEachPi( p, pObj, i ) {
         Gia_ManPi(p, Vec_IntEntry(vPiPerm,i))->Value = Gia_ManAppendCi(pNew) ^ (fCompl = (Abc_Random(0) & 1));
-        if ( fVerbose ) printf( "%s%d ", fCompl ? "~":"", Vec_IntEntry(vPiPerm,i) );
+        if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "%s%d ", fCompl ? "~":"", Vec_IntEntry(vPiPerm,i) );
     }
-    if ( fVerbose ) printf( "\n" );
+    if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Gia_ManForEachAnd( p, pObj, i )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-    if ( fVerbose ) printf( "Output NP transform: " );
+    if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Output NP transform: " );
     Gia_ManForEachPo( p, pObj, i ) {
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManPo(p, Vec_IntEntry(vPoPerm,i))) ^ (fCompl = (Abc_Random(0) & 1)) );
-        if ( fVerbose ) printf( "%s%d ", fCompl ? "~":"", Vec_IntEntry(vPoPerm,i) );
+        if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "%s%d ", fCompl ? "~":"", Vec_IntEntry(vPoPerm,i) );
     }
-    if ( fVerbose ) printf( "\n" );
+    if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_IntFree( vPiPerm );
     Vec_IntFree( vPoPerm );
     return pNew;
@@ -2736,8 +2736,8 @@ void Gia_ManPrintRepr( Gia_Man_t * p )
     int i;
     Gia_ManForEachObj( p, pObj, i )
         if ( ~p->pReprsOld[i] )
-            printf( "%d->%d ", i, p->pReprs[i].iRepr );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d->%d ", i, p->pReprs[i].iRepr );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -2894,7 +2894,7 @@ Gia_Man_t * Gia_ManDupTopAnd_iter( Gia_Man_t * p, int fVerbose )
     if ( Vec_IntSize(vFront) == 0 )
     {
         if ( fVerbose )
-            printf( "The AIG cannot be decomposed using AND-decomposition.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The AIG cannot be decomposed using AND-decomposition.\n" );
         Vec_IntFree( vFront );
         Vec_IntFree( vLeaves );
         return Gia_ManDupNormalize( p, 0 );
@@ -2938,7 +2938,7 @@ Gia_Man_t * Gia_ManDupTopAnd_iter( Gia_Man_t * p, int fVerbose )
     }
     if ( i < Vec_IntSize(vLeaves) )
     {
-        printf( "Problem is trivially UNSAT.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Problem is trivially UNSAT.\n" );
         ABC_FREE( pCi2Lit );
         ABC_FREE( pVar2Val );
         Vec_IntFree( vLeaves );
@@ -2950,7 +2950,7 @@ Gia_Man_t * Gia_ManDupTopAnd_iter( Gia_Man_t * p, int fVerbose )
         if ( !Gia_ObjIsCi(pObj) && (pVar2Val[i] == 0 || pVar2Val[i] == 1) )
             Vec_IntPush( vLeaves, Abc_Var2Lit(i, pVar2Val[i]) );
     if ( fVerbose )
-        printf( "Detected %6d AND leaves and %6d CI leaves.\n", Vec_IntSize(vLeaves), nCiLits );
+        fprintf( Abc_FrameGlobalGetOut(), "Detected %6d AND leaves and %6d CI leaves.\n", Vec_IntSize(vLeaves), nCiLits );
     // create the input map
     if ( nCiLits == 0 )
         pNew = Gia_ManDupDfsLitArray( p, vLeaves );
@@ -2986,7 +2986,7 @@ Gia_Man_t * Gia_ManDupTopAnd( Gia_Man_t * p, int fVerbose )
         Gia_ManStop( pTemp );
         if ( fVerbose )
         {
-            printf( "Iter %2d : ", ++iIter );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %2d : ", ++iIter );
             Gia_ManPrintStatsShort( pNew );
         }
     }
@@ -3036,17 +3036,17 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int nInsDup, int fDual
     {
         if ( Gia_ManPiNum(p0) != Gia_ManPiNum(p1) )
         {
-            printf( "Gia_ManMiter(): Designs have different number of PIs.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Gia_ManMiter(): Designs have different number of PIs.\n" );
             return NULL;
         }
         if ( Gia_ManPoNum(p0) != Gia_ManPoNum(p1) )
         {
-            printf( "Gia_ManMiter(): Designs have different number of POs.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Gia_ManMiter(): Designs have different number of POs.\n" );
             return NULL;
         }
         if ( Gia_ManRegNum(p0) == 0 || Gia_ManRegNum(p1) == 0 )
         {
-            printf( "Gia_ManMiter(): At least one of the designs has no registers.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Gia_ManMiter(): At least one of the designs has no registers.\n" );
             return NULL;
         }
     }
@@ -3054,12 +3054,12 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int nInsDup, int fDual
     {
         if ( Gia_ManCiNum(p0) != Gia_ManCiNum(p1) )
         {
-            printf( "Gia_ManMiter(): Designs have different number of CIs.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Gia_ManMiter(): Designs have different number of CIs.\n" );
             return NULL;
         }
         if ( Gia_ManCoNum(p0) != Gia_ManCoNum(p1) )
         {
-            printf( "Gia_ManMiter(): Designs have different number of COs.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Gia_ManMiter(): Designs have different number of COs.\n" );
             return NULL;
         }
     }
@@ -3188,10 +3188,10 @@ Gia_Man_t * Gia_ManMiterInverse( Gia_Man_t * pBot, Gia_Man_t * pTop, int fDualOu
     int nInputs1 = Gia_ManCiNum(pTop) - Gia_ManCoNum(pBot);
     int nInputs2 = Gia_ManCiNum(pBot) - Gia_ManCoNum(pTop);
     if ( nInputs1 == nInputs2 )
-        printf( "Assuming that the circuits have %d shared inputs, ordered first.\n", nInputs1 );
+        fprintf( Abc_FrameGlobalGetOut(), "Assuming that the circuits have %d shared inputs, ordered first.\n", nInputs1 );
     else
     {
-        printf( "The number of inputs and outputs does not match.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of inputs and outputs does not match.\n" );
         return NULL;
     }
     pNew = Gia_ManStart( Gia_ManObjNum(pBot) + Gia_ManObjNum(pTop) );
@@ -3746,7 +3746,7 @@ Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit, int nNewPis, int fG
         Gia_ManAppendCo( pNew, 1 );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) + (int)(CountPis > Gia_ManPiNum(p)) );
     if ( fVerbose )
-        printf( "Converted %d 1-valued FFs and %d DC-valued FFs.\n", Count1, CountPis-Gia_ManPiNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "Converted %d 1-valued FFs and %d DC-valued FFs.\n", Count1, CountPis-Gia_ManPiNum(p) );
     // propagate CI names if present and extend with init-value drivers
     if ( p->vNamesIn )
     {
@@ -4365,10 +4365,10 @@ void Gia_ManDupChoicesTest( Gia_Man_t * p, Gia_Man_t * pNew )
             ChoiceCounts[1][nSize]++;
             nSize = 1;
         }
-    printf( "Choice counting statistics:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Choice counting statistics:\n" );
     for ( i = 0; i < 1000; i++ )
         if ( ChoiceCounts[0][i] || ChoiceCounts[1][i] )
-            printf( "%3d : %6d %6d\n", i, ChoiceCounts[0][i], ChoiceCounts[1][i] );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d : %6d %6d\n", i, ChoiceCounts[0][i], ChoiceCounts[1][i] );
 }
 void Gia_ManDupChoices_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
 {
@@ -4519,12 +4519,12 @@ Gia_Man_t * Gia_ManDupWithConstr( Gia_Man_t * p )
     pObj = Gia_ManPo( p, 0 );
     if ( Gia_ObjFaninC0(pObj) )
     {
-        printf( "The miter's output is not AND-decomposable.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The miter's output is not AND-decomposable.\n" );
         return NULL;
     }
     if ( Gia_ObjFaninId0p(p, pObj) == 0 )
     {
-        printf( "The miter's output is a constant.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The miter's output is a constant.\n" );
         return NULL;
     }
     vSuper = Vec_IntAlloc( 100 );
@@ -4894,7 +4894,7 @@ Gia_Man_t * Gia_ManIsoStrashReduce( Gia_Man_t * p, Vec_Ptr_t ** pvPosEquivs, int
     // report and return    
     if ( fVerbose )
     { 
-        printf( "Nontrivial classes:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Nontrivial classes:\n" );
         Vec_WecPrint( vPosEquivs, 1 );
     }
     if ( pvPosEquivs )
@@ -4928,7 +4928,7 @@ Gia_Man_t * Gia_ManDupDemiter( Gia_Man_t * p, int fVerbose )
     Gia_ManDupWithConstrCollectAnd_rec( p, Gia_ObjFanin0(pObjPo), vSuper, 1 );
     assert( Vec_IntSize(vSuper) > 1 );
     // report the result
-    printf( "The miter is %s-decomposable into %d parts.\n", Gia_ObjFaninC0(pObjPo) ? "OR":"AND", Vec_IntSize(vSuper) );
+    fprintf( Abc_FrameGlobalGetOut(), "The miter is %s-decomposable into %d parts.\n", Gia_ObjFaninC0(pObjPo) ? "OR":"AND", Vec_IntSize(vSuper) );
     // create levels
     Gia_ManLevelNum( p );
     Vec_IntForEachEntry( vSuper, iLit, i )
@@ -5202,7 +5202,7 @@ Gia_Man_t * Gia_ManDemiterToDual( Gia_Man_t * p )
     Vec_Int_t * vOrder = Gia_ManCollectTopXors( p );
     if ( vOrder == NULL )
     {
-        printf( "Cannot demiter because the top-most gate is an AND-gate.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot demiter because the top-most gate is an AND-gate.\n" );
         return NULL;
     }
     assert( Vec_IntSize(vOrder) % 2 == 0 );
@@ -5475,17 +5475,17 @@ void Gia_ManSeqEquivMerge( Gia_Man_t * p, Gia_Man_t * pPart[2] )
 void Gia_ManPrintEquivs( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj; int i, iObj;
-    printf( "Const0:" );
+    fprintf( Abc_FrameGlobalGetOut(), "Const0:" );
     Gia_ManForEachAnd( p, pObj, i )
         if ( Gia_ObjRepr(p, i) == 0 )
-            printf( " %d", i );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " %d", i );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Gia_ManForEachClass( p, i )
     {
-        printf( "%d:", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%d:", i );
         Gia_ClassForEachObj1( p, i, iObj )
-            printf( " %d", iObj );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " %d", iObj );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -5728,7 +5728,7 @@ Gia_Man_t * Gia_ManDupUif( Gia_Man_t * p )
     ABC_FREE( pvMap );
     if ( p->vBarBufs )
         pNew->vBarBufs = Vec_IntDup( p->vBarBufs );
-    printf( "Added UIF constraints for %d type%s of boxes.\n", Vec_IntSize(vTypes), Vec_IntSize(vTypes) > 1 ? "s" :"" );
+    fprintf( Abc_FrameGlobalGetOut(), "Added UIF constraints for %d type%s of boxes.\n", Vec_IntSize(vTypes), Vec_IntSize(vTypes) > 1 ? "s" :"" );
     Vec_IntFree( vTypes );
     return pNew;
 }
@@ -5915,7 +5915,7 @@ void Gia_ManProdAdderGen( int nArgA, int nArgB, int Seed, int fSigned, int fCla 
     Gia_AigerWrite( pTree, pNameT, 0, 0, 0 );
     Gia_ManStop( pProd );
     Gia_ManStop( pTree );
-    printf( "Dumped files \"%s\" and \"%s\".\n", pNameP, pNameT );
+    fprintf( Abc_FrameGlobalGetOut(), "Dumped files \"%s\" and \"%s\".\n", pNameP, pNameT );
 
     Vec_WecFree( vProds );
     Vec_WecFree( vLevels );
@@ -6009,11 +6009,11 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose )
     Gia_Obj_t * pObj;
     int i, iLit;
     if ( Gia_ManBufNum(p1) == 0 ) {
-        printf( "The first AIG should have a boundary.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The first AIG should have a boundary.\n" );
         return NULL;
     }
     if ( Gia_ManBufNum(p2) != 0 ) {
-        printf( "The second AIG should have no boundary.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The second AIG should have no boundary.\n" );
         return NULL;
     }
     assert( Gia_ManBufNum(p1) > 0 );
@@ -6024,7 +6024,7 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose )
     assert( Gia_ManCoNum(p1) == Gia_ManCoNum(p2) );
     // vLits = Vec_IntAlloc( Gia_ManBufNum(p1) );
     if ( fVerbose )
-        printf( "Creating a boundary miter with %d inputs, %d outputs, and %d buffers.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Creating a boundary miter with %d inputs, %d outputs, and %d buffers.\n", 
             Gia_ManCiNum(p1), Gia_ManCoNum(p1), Gia_ManBufNum(p1) );
     pNew = Gia_ManStart( Gia_ManObjNum(p1) + Gia_ManObjNum(p2) );
     pNew->pName = ABC_ALLOC( char, strlen(p1->pName) + 10 );
@@ -6142,10 +6142,10 @@ Gia_Man_t * Gia_ManImplFromBMiter( Gia_Man_t * p, int nPo, int nBInput )
     Gia_ManStop( pTemp );
 
 
-    printf( "synthesized implementation:\n" );
-    printf( "\t%d / %d input boundary recovered.\n", nBoundI, nBInput );
-    printf( "\t%d / %d output boundary recovered.\n", nBoundO, Gia_ManCoNum(p)-2*nPo-nBInput );
-    printf( "\t%d / %d unused nodes in the box.\n", nExtra, Gia_ManAndNum(pNew) - Gia_ManBufNum( pNew ) );
+    fprintf( Abc_FrameGlobalGetOut(), "synthesized implementation:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\t%d / %d input boundary recovered.\n", nBoundI, nBInput );
+    fprintf( Abc_FrameGlobalGetOut(), "\t%d / %d output boundary recovered.\n", nBoundO, Gia_ManCoNum(p)-2*nPo-nBInput );
+    fprintf( Abc_FrameGlobalGetOut(), "\t%d / %d unused nodes in the box.\n", nExtra, Gia_ManAndNum(pNew) - Gia_ManBufNum( pNew ) );
 
     return pNew;
 }
@@ -6279,8 +6279,8 @@ Gia_Man_t * Gia_ManDupWindow( Gia_Man_t * p, Vec_Int_t * vCut )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     Gia_ManForEachObjVec( vOuts, p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, pObj->Value );
-    printf( "Derived window with %d inputs, %d internal nodes, and %d outputs.\n", Vec_IntSize(vCut), Vec_IntSize(vInner), Vec_IntSize(vOuts) );
-    printf( "Outputs: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Derived window with %d inputs, %d internal nodes, and %d outputs.\n", Vec_IntSize(vCut), Vec_IntSize(vInner), Vec_IntSize(vOuts) );
+    fprintf( Abc_FrameGlobalGetOut(), "Outputs: " );
     Vec_IntPrint( vOuts );
     Vec_IntFree( vInner );
     Vec_IntFree( vOuts );
@@ -6456,11 +6456,11 @@ Vec_Int_t * Gia_ManCofClassPattern( Gia_Man_t * p, Vec_Int_t * vVarNums, int fVe
     if ( fVerbose )
     {
         int i, Class, nClasses = Vec_IntFindMax(vRes)+1;
-        printf( "%d -> %d: ", Vec_IntSize(vVarNums), nClasses );
+        fprintf( Abc_FrameGlobalGetOut(), "%d -> %d: ", Vec_IntSize(vVarNums), nClasses );
         if ( nClasses <= 36 ) 
             Vec_IntForEachEntry( vRes, Class, i )
-                printf( "%c", (Class < 10 ? (int)'0' : (int)'A'-10) + Class );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%c", (Class < 10 ? (int)'0' : (int)'A'-10) + Class );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return vRes;
 }
@@ -6491,7 +6491,7 @@ Gia_Man_t * Gia_ManDupEncode( Gia_Man_t * p, Vec_Int_t * vVarNums, int fVerbose 
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     if ( fVerbose )
-        printf( "Generated AIG with %d inputs and %d nodes representing %d PIs with %d columns.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Generated AIG with %d inputs and %d nodes representing %d PIs with %d columns.\n", 
             Gia_ManPiNum(pNew), Gia_ManAndNum(pNew), Vec_IntSize(vVarNums), nClasses );
     return pNew;      
 }
@@ -6518,10 +6518,10 @@ void Gia_ManCofClassRand( Gia_Man_t * p, int nVars, int nRands )
         Vec_IntRandomizeOrder( vIns );
         Vec_IntShrink( vIns, nVars );
         int k, Entry;
-        printf( "Vars: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Vars: " );
         Vec_IntForEachEntry( vIns, Entry, k )
-            printf( "%d ", Entry );
-        printf( "  " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Entry );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );
         Vec_Int_t * vTemp = Gia_ManCofClassPattern( p, vIns, 1 );
         Vec_IntFree( vTemp );        
         Vec_IntFree( vIns );        
@@ -6541,10 +6541,10 @@ void Gia_ManCofClassEnum( Gia_Man_t * p, int nVars )
             if ( (m >> k) & 1 )
                 Vec_IntPush( vIns, k );
         assert( Vec_IntSize(vIns) == Count );
-        printf( "Vars: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Vars: " );
         Vec_IntForEachEntry( vIns, Entry, k )
-            printf( "%d ", Entry );
-        printf( "  " );        
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Entry );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );        
         Vec_Int_t * vTemp = Gia_ManCofClassPattern( p, vIns, 1 );
         Vec_IntFree( vTemp );        
     }
@@ -6660,7 +6660,7 @@ void Gia_ManPrintChoices( Gia_Man_t * p )
     Gia_Obj_t * pObj; int i;
     Gia_ManForEachAnd( p, pObj, i )
         if ( p->pSibls[i] )
-            printf( "%d -> %d    ", i, p->pSibls[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "%d -> %d    ", i, p->pSibls[i] );
 }
 void Gia_ManReorderChoices_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
 {
@@ -6946,7 +6946,7 @@ void Gia_ManDupSplit( Gia_Man_t * p, int nParts, int nCutLevel )
         Lcut = nCutLevel;
     else
         Lcut = Gia_ManLevelNum(p) / 2;
-    printf( "Dividing at level %d (total levels = %d).  ", Lcut, Gia_ManLevelNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Dividing at level %d (total levels = %d).  ", Lcut, Gia_ManLevelNum(p) );
 
     // mark the nodes pointed to under the cut
     Gia_ManForEachAnd( p, pObj, i ) {
@@ -6969,7 +6969,7 @@ void Gia_ManDupSplit( Gia_Man_t * p, int nParts, int nCutLevel )
         pObj->fMark0 = 0;
         Vec_IntPush( vCutNodes, i );
     }
-    printf( "Found %d nodes at the cut\n", Vec_IntSize(vCutNodes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Found %d nodes at the cut\n", Vec_IntSize(vCutNodes) );
 
     // Create names for cut nodes
     vCutNames = Vec_PtrAlloc( Vec_IntSize(vCutNodes) );
@@ -7002,7 +7002,7 @@ void Gia_ManDupSplit( Gia_Man_t * p, int nParts, int nCutLevel )
     // Write Part 0
     pFileName = Extra_FileNameGenericAppend( (char *)(p->pSpec ? p->pSpec : "network.aig"), "_part0.aig" );
     Gia_AigerWrite( pPart0, pFileName, 0, 0, 0 );
-    printf( "Part 0: PI = %d, PO = %d, AND = %d, written to %s\n",
+    fprintf( Abc_FrameGlobalGetOut(), "Part 0: PI = %d, PO = %d, AND = %d, written to %s\n",
         Gia_ManCiNum(pPart0), Gia_ManCoNum(pPart0), Gia_ManAndNum(pPart0), pFileName );
     Gia_ManStop( pPart0 );
 
@@ -7030,7 +7030,7 @@ void Gia_ManDupSplit( Gia_Man_t * p, int nParts, int nCutLevel )
     // Write Part 1
     pFileName = Extra_FileNameGenericAppend( (char *)(p->pSpec ? p->pSpec : "network.aig"), "_part1.aig" );
     Gia_AigerWrite( pPart1, pFileName, 0, 0, 0 );
-    printf( "Part 1: PI = %d, PO = %d, AND = %d, written to %s\n",
+    fprintf( Abc_FrameGlobalGetOut(), "Part 1: PI = %d, PO = %d, AND = %d, written to %s\n",
         Gia_ManCiNum(pPart1), Gia_ManCoNum(pPart1), Gia_ManAndNum(pPart1), pFileName );
     Gia_ManStop( pPart1 );
 

@@ -563,7 +563,7 @@ void Spl_ManComputeOneTest( Gia_Man_t * pGia )
     {
         Vec_Int_t * vRoots, * vNodes, * vLeaves, * vAnds;
         Count = Gia_ManComputeOneWin( pGia, iLut, &vRoots, &vNodes, &vLeaves, &vAnds );
-        printf( "Obj = %6d : Leaf = %2d.  Node = %2d.  Root = %2d.    AND = %3d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Obj = %6d : Leaf = %2d.  Node = %2d.  Root = %2d.    AND = %3d.\n", 
             iLut, Vec_IntSize(vLeaves), Vec_IntSize(vNodes), Vec_IntSize(vRoots), Count ); 
     }
     Gia_ManComputeOneWin( pGia, -1, NULL, NULL, NULL, NULL );

@@ -58,7 +58,7 @@ Vec_Wec_t * Vec_WrdReadLayerText( char * pFileName, int * pnIns, int * pnOuts )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName );
         return NULL;
     }
     vRes = Vec_WecAlloc(100);
@@ -94,7 +94,7 @@ int Vec_WrdReadTruthTextOne( char * pFileName, int nIns, int nOuts, word * pRes 
     char * pStart, * pBuffer = Extra_FileReadContents( pFileName );
     if ( pBuffer == NULL )
     {
-        printf( "Cannot read file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot read file \"%s\".\n", pFileName );
         return 0;
     }
     pStart = pBuffer;
@@ -103,7 +103,7 @@ int Vec_WrdReadTruthTextOne( char * pFileName, int nIns, int nOuts, word * pRes 
         pStart = strstr( pStart + 1, "0x" );
         if ( !Extra_ReadHex( (unsigned *)(pRes + i*nWords), pStart + 2, nWords*16 ) )
         {
-            printf( "Cannot read truth table %d (out of %d) in file \"%s\".\n", i, nOuts, pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot read truth table %d (out of %d) in file \"%s\".\n", i, nOuts, pFileName );
             ABC_FREE( pBuffer );
             return 0;
         }
@@ -198,14 +198,14 @@ void Vec_WrdReadText( char * pFileName, Vec_Wrd_t ** pvSimI, Vec_Wrd_t ** pvSimO
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName );
         return;
     }
     fseek( pFile, 0, SEEK_END );  
     nSize = ftell( pFile );  
     if ( nSize % (nIns + nOuts + 1) > 0 )
     {
-        printf( "Cannot read file with simulation data that is not aligned at 8 bytes (remainder = %d).\n", nSize % (nIns + nOuts + 1) );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot read file with simulation data that is not aligned at 8 bytes (remainder = %d).\n", nSize % (nIns + nOuts + 1) );
         fclose( pFile );
         return;
     }
@@ -228,7 +228,7 @@ void Vec_WrdReadText( char * pFileName, Vec_Wrd_t ** pvSimI, Vec_Wrd_t ** pvSimO
     fclose( pFile );
     *pvSimI = vSimI;
     *pvSimO = vSimO;
-    printf( "Read %d words of simulation data for %d inputs and %d outputs (padded %d zero-patterns).\n", nWords, nIns, nOuts, nWords*64-nLines );
+    fprintf( Abc_FrameGlobalGetOut(), "Read %d words of simulation data for %d inputs and %d outputs (padded %d zero-patterns).\n", nWords, nIns, nOuts, nWords*64-nLines );
 }
 int Vec_WrdReadText2( char * pFileName, Vec_Wrd_t ** pvSimI )
 {
@@ -238,12 +238,12 @@ int Vec_WrdReadText2( char * pFileName, Vec_Wrd_t ** pvSimI )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName );
         return 0;
     }
     if ( !fgets(pLine, 2000, pFile) || (nIns = strlen(pLine)-1) < 1 )
     {
-        printf( "Cannot find the number of inputs in file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot find the number of inputs in file \"%s\".\n", pFileName );
         fclose( pFile );
         return 0;
     }
@@ -251,7 +251,7 @@ int Vec_WrdReadText2( char * pFileName, Vec_Wrd_t ** pvSimI )
     nSize = ftell( pFile );  
     if ( nSize % (nIns + 1) > 0 )
     {
-        printf( "Cannot read file with simulation data that is not aligned at 8 bytes (remainder = %d).\n", nSize % (nIns + 1) );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot read file with simulation data that is not aligned at 8 bytes (remainder = %d).\n", nSize % (nIns + 1) );
         fclose( pFile );
         return 0;
     }
@@ -268,7 +268,7 @@ int Vec_WrdReadText2( char * pFileName, Vec_Wrd_t ** pvSimI )
     }
     fclose( pFile );
     *pvSimI = vSimI;
-    printf( "Read %d words of simulation data for %d inputs (padded to 64-bit boundary with %d zero-patterns).\n", nWords, nIns, nWords*64-nLines );
+    fprintf( Abc_FrameGlobalGetOut(), "Read %d words of simulation data for %d inputs (padded to 64-bit boundary with %d zero-patterns).\n", nWords, nIns, nWords*64-nLines );
     return nIns;
 }
 Vec_Int_t * Vec_WrdReadNumsOut( char * pFileName, int fVerbose )
@@ -278,7 +278,7 @@ Vec_Int_t * Vec_WrdReadNumsOut( char * pFileName, int fVerbose )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName );
         return NULL;
     }
     vNums = Vec_IntAlloc( 1000 );
@@ -286,7 +286,7 @@ Vec_Int_t * Vec_WrdReadNumsOut( char * pFileName, int fVerbose )
         Vec_IntPush( vNums, atoi(pLine) );
     fclose( pFile );
     if ( fVerbose )
-    printf( "Finished reading %d output values from file \"%s\".\n", Vec_IntSize(vNums), pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished reading %d output values from file \"%s\".\n", Vec_IntSize(vNums), pFileName );
     return vNums;
 }
 Vec_Wrd_t * Vec_WrdReadTextOut( char * pFileName, int nOuts )
@@ -302,7 +302,7 @@ Vec_Wrd_t * Vec_WrdReadTextOut( char * pFileName, int nOuts )
     Vec_IntForEachEntry( vNums, i, iLine )
         Abc_TtXorBit( Vec_WrdArray(vSimO) + i*nWords, iLine );
     Vec_IntFree( vNums );
-    printf( "Read %d words of simulation data for %d outputs (padded %d zero-patterns).\n", nWords, nOuts, nWords*64-nLines );
+    fprintf( Abc_FrameGlobalGetOut(), "Read %d words of simulation data for %d outputs (padded %d zero-patterns).\n", nWords, nOuts, nWords*64-nLines );
     return vSimO;
 }
 void Gia_ManReadSimInfoInputs( char * pFileName, char * pFileOut1, int fVerbose )
@@ -367,12 +367,12 @@ void Gia_ManSimInfoPrintOne( Gia_Man_t * p, Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSi
     {
         Gia_ManForEachCiId( p, Id, i )
     //        printf( "%d", Vec_WrdEntry(p->vSims, p->nSimWords*Id) & 1 );
-            printf( "%d", (int)(Vec_WrdEntry(vSimsIn,  nWords*i) >> k) & 1 );
-        printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", (int)(Vec_WrdEntry(vSimsIn,  nWords*i) >> k) & 1 );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
         Gia_ManForEachCoId( p, Id, i )
     //        printf( "%d", Vec_WrdEntry(p->vSims, p->nSimWords*Id) & 1 );
-            printf( "%d", (int)(Vec_WrdEntry(vSimsOut, nWords*i) >> k) & 1 );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", (int)(Vec_WrdEntry(vSimsOut, nWords*i) >> k) & 1 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 Vec_Wrd_t * Gia_ManSimInfoTryOne( Gia_Man_t * p, Vec_Wrd_t * vSimI, int fPrint )
@@ -397,7 +397,7 @@ int Gia_ManSimEvalOne( Gia_Man_t * p, Vec_Wrd_t * vSimO, Vec_Wrd_t * vSimO_new )
         Abc_TtOrXor( pSim0, pSimImpl, pSimGold, nWords );
     }
     Count = Abc_TtCountOnesVec( pSim0, nWords );
-    printf( "Number of failed patterns is %d (%8.4f %% of %d). The first one is %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Number of failed patterns is %d (%8.4f %% of %d). The first one is %d.\n", 
         Count, 100.0*Count/(64*nWords), 64*nWords, Abc_TtFindFirstBit2(pSim0, nWords) );
     ABC_FREE( pSim0 );
     return Count;
@@ -414,7 +414,7 @@ int Gia_ManSimEvalOne2( Gia_Man_t * p, Vec_Wrd_t * vSimO, Vec_Wrd_t * vSimO_new 
         Abc_TtXor( pSim0, pSimImpl, pSimGold, nWords, 0 );
         Count += Abc_TtCountOnesVec( pSim0, nWords );
     }
-    printf( "Number of failed patterns is %d (%8.4f %% of %d). The first one is %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Number of failed patterns is %d (%8.4f %% of %d). The first one is %d.\n", 
         Count, 100.0*Count/(64*nWords*Gia_ManCoNum(p)), 64*nWords*Gia_ManCoNum(p), Abc_TtFindFirstBit2(pSim0, nWords) );
     ABC_FREE( pSim0 );
     return Count;
@@ -452,7 +452,7 @@ int Gia_ManSimEvalOne3( Gia_Man_t * p, Vec_Wrd_t * vSimO, Vec_Int_t * vValues, i
             if ( First == -1 )
                 First = i;
         }
-    printf( "The accuracy is %8.4f %% (%d out of %d output are correct, for example, output number %d).\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "The accuracy is %8.4f %% (%d out of %d output are correct, for example, output number %d).\n", 
         100.0*Count/Vec_IntSize(vValues), Count, Vec_IntSize(vValues), First );
     if ( 0 )
     {
@@ -483,8 +483,8 @@ int Gia_ManSimInfoEval_old( Gia_Man_t * p, Vec_Wrd_t * vSimO, Vec_Wrd_t * vSimO_
 {
     int nResult = Gia_ManSimEvalOne2(p, vSimO, vSimO_new);
     //Vec_WrdDumpBin( "temp.simo", vSimO_new, 1 );
-    printf( "Total errors = %d.  ", nResult );
-    printf( "Density of output patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimO_new), Vec_WrdSize(vSimO_new))/(64*Vec_WrdSize(vSimO_new)) );
+    fprintf( Abc_FrameGlobalGetOut(), "Total errors = %d.  ", nResult );
+    fprintf( Abc_FrameGlobalGetOut(), "Density of output patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimO_new), Vec_WrdSize(vSimO_new))/(64*Vec_WrdSize(vSimO_new)) );
     return nResult;
 }
 void Gia_ManSimInfoPassTest( Gia_Man_t * p, char * pFileName, char * pFileName2, int fVerbose )
@@ -493,9 +493,9 @@ void Gia_ManSimInfoPassTest( Gia_Man_t * p, char * pFileName, char * pFileName2,
     Vec_Wrd_t * vSimI = Vec_WrdReadBin( pFileName, fVerbose );
     Vec_Wrd_t * vSimO = Gia_ManSimInfoTry( p, vSimI );
     if ( fVerbose )
-    printf( "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
+    fprintf( Abc_FrameGlobalGetOut(), "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
     if ( fVerbose )
-    printf( "Density of output patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimO), Vec_WrdSize(vSimO))/(64*Vec_WrdSize(vSimO)) );
+    fprintf( Abc_FrameGlobalGetOut(), "Density of output patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimO), Vec_WrdSize(vSimO))/(64*Vec_WrdSize(vSimO)) );
     Vec_WrdDumpBin( pFileName2, vSimO, fVerbose );
     Vec_WrdFree( vSimI );
     Vec_WrdFree( vSimO );
@@ -509,7 +509,7 @@ void Gia_ManSimInfoEval( Gia_Man_t * p, char * pFileName, char * pFileName2, int
     Vec_Int_t * vNums = Vec_WrdReadNumsOut( pFileName2, fVerbose );
     assert( nOuts > 0 );
     if ( fVerbose )
-    printf( "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSim1), Vec_WrdSize(vSim1))/(64*Vec_WrdSize(vSim1)) );
+    fprintf( Abc_FrameGlobalGetOut(), "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSim1), Vec_WrdSize(vSim1))/(64*Vec_WrdSize(vSim1)) );
     Gia_ManSimEvalOne3( p, vSim1, vNums, nOuts );
     Vec_WrdFree( vSim1 );
     Vec_IntFree( vNums );
@@ -560,7 +560,7 @@ word * Gia_ManCountFraction( Gia_Man_t * p, Vec_Wrd_t * vSimI, Vec_Int_t * vSupp
         pRes[0] = Abc_Tt6Stretch( pRes[0], Vec_IntSize(vSupp) );
     //printf( "\n" );
     if ( fVerbose )
-    printf( "Used %4d and good %4d (out of %4d).\n", nUsed, nGood, nMints ); 
+    fprintf( Abc_FrameGlobalGetOut(), "Used %4d and good %4d (out of %4d).\n", nUsed, nGood, nMints ); 
     ABC_FREE( pSims );
     ABC_FREE( pCounts );
     *pCare = nGood;
@@ -660,8 +660,8 @@ Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, int fTryNew, char * pFileName,
     if ( vSimI && fVerbose )
     {
         //int nPats = 64*Vec_WrdSize(vSimI)/Gia_ManCiNum(p);
-        printf( "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
-        printf( "Using patterns with count %d and higher as cares.\n", Thresh );
+        fprintf( Abc_FrameGlobalGetOut(), "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
+        fprintf( Abc_FrameGlobalGetOut(), "Using patterns with count %d and higher as cares.\n", Thresh );
     }
     Gia_ManLevelNum( p );
     Gia_ManFillValue( p );
@@ -676,7 +676,7 @@ Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, int fTryNew, char * pFileName,
     for ( g = 0; g < Gia_ManCoNum(p); g += nOuts )
     {
         Vec_Int_t * vSupp = Gia_ManCollectSuppNew( p, g, nOuts );
-        int Care = 1 << Vec_IntSize(vSupp), Temp = fVerbose ? printf( "Group %3d / %3d / %3d : Supp = %3d   %s", g, nOuts, Gia_ManCoNum(p), Vec_IntSize(vSupp), vSimI ? "":"\n" ) : 0;
+        int Care = 1 << Vec_IntSize(vSupp), Temp = fVerbose ? fprintf( Abc_FrameGlobalGetOut(),  "Group %3d / %3d / %3d : Supp = %3d   %s", g, nOuts, Gia_ManCoNum(p), Vec_IntSize(vSupp), vSimI ? "":"\n"  ) : 0;
         word * pCare = vSimI ? Gia_ManCountFraction( p, vSimI, vSupp, Thresh, fVerbose, &Care ) : ABC_FALLOC( word, Abc_Truth6WordNum(Vec_IntSize(vSupp)) );
         int nWords = Abc_Truth6WordNum( Vec_IntSize(vSupp) );
         CareAve += 100.0*Care/(1 << Vec_IntSize(vSupp));
@@ -739,7 +739,7 @@ Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, int fTryNew, char * pFileName,
     Vec_IntFree( vMemory );
     Vec_WrdFreeP( &vSimI );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
-    printf( "Using patterns with count %d and higher as cares. Average care set is %8.4f %%.  ", Thresh, CareAve );
+    fprintf( Abc_FrameGlobalGetOut(), "Using patterns with count %d and higher as cares. Average care set is %8.4f %%.  ", Thresh, CareAve );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( 0 )
     {
@@ -762,8 +762,8 @@ Gia_Man_t * Gia_ManPerformLNetOptNew( Gia_Man_t * p, char * pFileName, int nIns,
     if ( vSimI && fVerbose )
     {
         //int nPats = 64*Vec_WrdSize(vSimI)/Gia_ManCiNum(p);
-        printf( "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
-        printf( "Using patterns with count %d and higher as cares.\n", Thresh );
+        fprintf( Abc_FrameGlobalGetOut(), "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
+        fprintf( Abc_FrameGlobalGetOut(), "Using patterns with count %d and higher as cares.\n", Thresh );
     }
     Gia_ManLevelNum( p );
     Gia_ManFillValue( p );
@@ -793,7 +793,7 @@ Gia_Man_t * Gia_ManPerformLNetOptNew( Gia_Man_t * p, char * pFileName, int nIns,
         {
 
         Vec_Int_t * vSupp = Gia_ManCollectSuppNew( p, g, nOuts );
-        int Care = 1 << Vec_IntSize(vSupp), Temp = fVerbose ? printf( "Group %3d / %3d / %3d : Supp = %3d   %s", g, nOuts, Gia_ManCoNum(p), Vec_IntSize(vSupp), vSimI ? "":"\n" ) : 0;
+        int Care = 1 << Vec_IntSize(vSupp), Temp = fVerbose ? fprintf( Abc_FrameGlobalGetOut(),  "Group %3d / %3d / %3d : Supp = %3d   %s", g, nOuts, Gia_ManCoNum(p), Vec_IntSize(vSupp), vSimI ? "":"\n"  ) : 0;
         word * pCare = vSimI ? Gia_ManCountFraction( p, vSimI, vSupp, Thresh, fVerbose, &Care ) : ABC_FALLOC( word, Abc_Truth6WordNum(Vec_IntSize(vSupp)) );
         int nWords = Abc_Truth6WordNum( Vec_IntSize(vSupp) );
         CareAve += 100.0*Care/(1 << Vec_IntSize(vSupp));
@@ -834,7 +834,7 @@ Gia_Man_t * Gia_ManPerformLNetOptNew( Gia_Man_t * p, char * pFileName, int nIns,
     Vec_IntFree( vLeaves );
     Vec_WrdFreeP( &vSimI );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
-    printf( "Using patterns with count %d and higher as cares. Average care set is %8.4f %%.  ", Thresh, CareAve );
+    fprintf( Abc_FrameGlobalGetOut(), "Using patterns with count %d and higher as cares. Average care set is %8.4f %%.  ", Thresh, CareAve );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( 0 )
     {
@@ -985,11 +985,11 @@ Abc_Ntk_t * Abc_NtkMapTransform( Gia_Man_t * p, int nOuts, int fUseFixed, int fT
 
         if ( fVerbose )
         {
-        printf( "%3d / %3d :  ", g, nGroups );
-        printf( "Test   = %4d   ", Counts[0] );
-        printf( "MarkA  = %4d   ", Counts[1] );
-        printf( "MarkB  = %4d   ", Counts[2] );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d / %3d :  ", g, nGroups );
+        fprintf( Abc_FrameGlobalGetOut(), "Test   = %4d   ", Counts[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "MarkA  = %4d   ", Counts[1] );
+        fprintf( Abc_FrameGlobalGetOut(), "MarkB  = %4d   ", Counts[2] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
 
         CountsAll[0] += Counts[0];
@@ -997,7 +997,7 @@ Abc_Ntk_t * Abc_NtkMapTransform( Gia_Man_t * p, int nOuts, int fUseFixed, int fT
         CountsAll[2] += Counts[2];
     }
     if ( fVerbose )
-    printf( "Total LUT count = %5d.  MarkA = %5d. MarkB = %5d.\n", CountsAll[0], CountsAll[1], CountsAll[2] );
+    fprintf( Abc_FrameGlobalGetOut(), "Total LUT count = %5d.  MarkA = %5d. MarkB = %5d.\n", CountsAll[0], CountsAll[1], CountsAll[2] );
     // create names
     Abc_NtkAddDummyPiNames( pNtkNew );
     Abc_NtkAddDummyPoNames( pNtkNew );
@@ -1024,16 +1024,16 @@ Abc_Ntk_t * Gia_ManPerformLNetMap( Gia_Man_t * p, int GroupSize, int fUseFixed, 
             for ( o = 0; o < GroupSize; o++ )
                 pPos[o] = g*GroupSize+o;
             pNew = Gia_ManDupCones( p, pPos, GroupSize, 0 );
-            printf( "%3d / %3d :  ", g, nGroups );
-            printf( "Test1 = %4d   ", Res1 = Gia_ManDoTest1(pNew, 0) );
-            printf( "Test2 = %4d   ", Res2 = Gia_ManDoTest1(pNew, 1) );
-            printf( "Test  = %4d   ", Abc_MinInt(Res1, Res2) );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d / %3d :  ", g, nGroups );
+            fprintf( Abc_FrameGlobalGetOut(), "Test1 = %4d   ", Res1 = Gia_ManDoTest1(pNew, 0) );
+            fprintf( Abc_FrameGlobalGetOut(), "Test2 = %4d   ", Res2 = Gia_ManDoTest1(pNew, 1) );
+            fprintf( Abc_FrameGlobalGetOut(), "Test  = %4d   ", Abc_MinInt(Res1, Res2) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
             Result += Abc_MinInt(Res1, Res2);
             //Gia_ManPrintStats( pNew, NULL );
             Gia_ManStop( pNew );
         }
-        printf( "Total LUT count = %d.\n", Result );
+        fprintf( Abc_FrameGlobalGetOut(), "Total LUT count = %d.\n", Result );
         return NULL;
 
     }

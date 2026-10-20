@@ -170,10 +170,10 @@ void Gia_ManCheckUnateVecTest( Gia_Man_t * p, int fVerbose )
     char * pBuffer = ABC_CALLOC( char, nVars+1 );
     if ( fVerbose )
     {
-        printf( "Inputs  : " );
+        fprintf( Abc_FrameGlobalGetOut(), "Inputs  : " );
         for ( i = 0; i < nVars; i++ )
-            printf( "%d", i % 10 );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", i % 10 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     for ( o = 0; o < Gia_ManCoNum(p); o++ )
     {
@@ -185,11 +185,11 @@ void Gia_ManCheckUnateVecTest( Gia_Man_t * p, int fVerbose )
             else
                 pBuffer[Abc_Lit2Var(Var)] = Abc_LitIsCompl(Var) ? 'n' : 'p', nUnate++;
         if ( fVerbose )
-            printf( "Out%4d : %s\n", o, pBuffer );
+            fprintf( Abc_FrameGlobalGetOut(), "Out%4d : %s\n", o, pBuffer );
     }
     ABC_FREE( pBuffer );
     // print stats
-    printf( "Ins/Outs = %4d/%4d.  Total supp = %5d.  Total unate = %5d.\n",
+    fprintf( Abc_FrameGlobalGetOut(), "Ins/Outs = %4d/%4d.  Total supp = %5d.  Total unate = %5d.\n",
         Gia_ManCiNum(p), Gia_ManCoNum(p), nUnate+nNonUnate, nUnate );
     ABC_PRT( "Total time", Abc_Clock() - clk );
     //Vec_WecPrint( vUnates, 0 );
@@ -219,10 +219,10 @@ void Gia_ManCheckUnateTest( Gia_Man_t * p, int fComputeAll, int fVerbose )
         char * pBuffer = ABC_CALLOC( char, nVars+1 );
         if ( fVerbose )
         {
-            printf( "Inputs  : " );
+            fprintf( Abc_FrameGlobalGetOut(), "Inputs  : " );
             for ( i = 0; i < nVars; i++ )
-                printf( "%d", i % 10 );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", i % 10 );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         for ( o = 0; o < Gia_ManCoNum(p); o++ )
         {
@@ -236,11 +236,11 @@ void Gia_ManCheckUnateTest( Gia_Man_t * p, int fComputeAll, int fVerbose )
                 else assert( 0 );
             }
             if ( fVerbose )
-                printf( "Out%4d : %s\n", o, pBuffer );
+                fprintf( Abc_FrameGlobalGetOut(), "Out%4d : %s\n", o, pBuffer );
         }
         ABC_FREE( pBuffer );
         // print stats
-        printf( "Ins/Outs = %4d/%4d.  Total supp = %5d.  Total unate = %5d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Ins/Outs = %4d/%4d.  Total supp = %5d.  Total unate = %5d.\n",
             Gia_ManCiNum(p), Gia_ManCoNum(p), nUnate+nNonUnate, nUnate );
         ABC_PRT( "Total time", Abc_Clock() - clk );
     }

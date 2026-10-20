@@ -165,12 +165,12 @@ void Aig_ObjDomVecRecycle( Aig_Sto_t * pSto, Vec_Ptr_t * vDoms )
 void Aig_ObjDomPrint( Aig_Sto_t * pSto, Aig_Dom_t * pDom, int Num )
 {
     int k;
-    printf( "%4d : {", Num );
+    fprintf( Abc_FrameGlobalGetOut(), "%4d : {", Num );
     for ( k = 0; k < pDom->nNodes; k++ )
-        printf( " %4d", pDom->pNodes[k] );
+        fprintf( Abc_FrameGlobalGetOut(), " %4d", pDom->pNodes[k] );
     for ( ; k < pSto->Limit; k++ )
-        printf( "     " );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "     " );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 
 /**Function*************************************************************
@@ -209,7 +209,7 @@ void Aig_ManDomPrint( Aig_Sto_t * pSto )
     int i;
     Saig_ManForEachPi( pSto->pAig, pObj, i )
     {
-        printf( "*** PI %4d %4d :\n", i, pObj->Id );
+        fprintf( Abc_FrameGlobalGetOut(), "*** PI %4d %4d :\n", i, pObj->Id );
         Aig_ObjDomVecPrint( pSto, (Vec_Ptr_t *)Vec_PtrEntry(pSto->vDoms, pObj->Id) );
     }
 }
@@ -640,7 +640,7 @@ Aig_Sto_t * Aig_ManComputeDomsFlops( Aig_Man_t * pAig, int Limit )
     Aig_ManForEachCi( pAig, pObj, i )
         Aig_ObjDomCompute( pSto, pObj );
     // print statistics
-    printf( "Nodes =%4d. Flops =%4d. Doms =%9d. Ave =%8.2f.   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes =%4d. Flops =%4d. Doms =%9d. Ave =%8.2f.   ", 
         pSto->nDomNodes, Aig_ManRegNum(pSto->pAig), pSto->nDomsTotal, 
 //        pSto->nDomsFilter1, pSto->nDomsFilter2,
         1.0 * pSto->nDomsTotal / (pSto->nDomNodes + Aig_ManRegNum(pSto->pAig)) );
@@ -681,7 +681,7 @@ Aig_Sto_t * Aig_ManComputeDomsPis( Aig_Man_t * pAig, int Limit )
     Saig_ManForEachPi( pAig, pObj, i )
         Aig_ObjDomCompute( pSto, pObj );
     // print statistics
-    printf( "Nodes =%4d. PIs =%4d. Doms =%9d. Ave =%8.2f.   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes =%4d. PIs =%4d. Doms =%9d. Ave =%8.2f.   ", 
         pSto->nDomNodes, Saig_ManPiNum(pSto->pAig), pSto->nDomsTotal, 
 //        pSto->nDomsFilter1, pSto->nDomsFilter2,
         1.0 * pSto->nDomsTotal / (pSto->nDomNodes + Saig_ManPiNum(pSto->pAig)) );
@@ -720,7 +720,7 @@ Aig_Sto_t * Aig_ManComputeDomsNodes( Aig_Man_t * pAig, int Limit )
     Aig_ManForEachCi( pAig, pObj, i )
         Aig_ObjDomCompute( pSto, pObj );
     // print statistics
-    printf( "Nodes =%6d. Doms =%9d. Ave =%8.2f.   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes =%6d. Doms =%9d. Ave =%8.2f.   ", 
         pSto->nDomNodes, pSto->nDomsTotal, 
 //        pSto->nDomsFilter1, pSto->nDomsFilter2,
         1.0 * pSto->nDomsTotal / pSto->nDomNodes );
@@ -984,15 +984,15 @@ void Aig_ObjDomFindGood( Aig_Sto_t * pSto )
     vCut  = Aig_ObjDomCollectLos( pSto );
     vDoms = Aig_ObjDomCollect( pSto, vCut );
     Vec_IntFree( vCut );
-    printf( "The cut has %d non-trivial %d-dominators.\n", Vec_PtrSize(vDoms), pSto->Limit );
+    fprintf( Abc_FrameGlobalGetOut(), "The cut has %d non-trivial %d-dominators.\n", Vec_PtrSize(vDoms), pSto->Limit );
 
     Aig_ObjPoLogicDeref( pSto );
     Vec_PtrForEachEntry( Aig_Dom_t *, vDoms, pDom, i )
     {
 //        if ( Aig_ObjDomDomed(pSto, pDom) <= 1 )
 //            continue;
-        printf( "Vol =%3d.  ", Aig_ObjDomVolume(pSto, pDom) );
-        printf( "Dom =%3d.  ", Aig_ObjDomDomed(pSto, pDom) );
+        fprintf( Abc_FrameGlobalGetOut(), "Vol =%3d.  ", Aig_ObjDomVolume(pSto, pDom) );
+        fprintf( Abc_FrameGlobalGetOut(), "Dom =%3d.  ", Aig_ObjDomDomed(pSto, pDom) );
         Aig_ObjDomPrint( pSto, pDom, i );
     }
     Aig_ObjPoLogicRef( pSto );
@@ -1021,7 +1021,7 @@ void Aig_ManComputeDomsTest2( Aig_Man_t * pAig, int Num )
     Aig_ManFanoutStart( pAig );
 //    for ( i = 1; i < 9; i++ )
     {
-        printf( "ITERATION %d:\n", Num );
+        fprintf( Abc_FrameGlobalGetOut(), "ITERATION %d:\n", Num );
         pSto = Aig_ManComputeDomsFlops( pAig, Num );
         Aig_ObjDomFindGood( pSto );
 //        Aig_ManDomPrint( pSto );
@@ -1092,16 +1092,16 @@ void Aig_ObjDomCount( Aig_Sto_t * pSto, Aig_Obj_t * pObj )
         {
             if ( fPrint == 0 )
             {
-                printf( "%6d : Level =%4d. Fanout =%6d.\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "%6d : Level =%4d. Fanout =%6d.\n", 
                     Aig_ObjId(pObj), Aig_ObjLevel(pObj), Aig_ObjRefs(pObj) );
             }
             fPrint = 1;
-            printf( "%d(%d) ", Entry, Vec_IntEntry(pSto->vTimes, Entry) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d(%d) ", Entry, Vec_IntEntry(pSto->vTimes, Entry) );
         }
         Vec_IntWriteEntry( pSto->vTimes, Entry, 0);
     }
     if ( fPrint )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_IntFree( vSingles );
 }
 

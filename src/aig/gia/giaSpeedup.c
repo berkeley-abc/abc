@@ -378,7 +378,7 @@ float Gia_ManDelayTraceLut( Gia_Man_t * p )
     // get the library
     if ( pLutLib && pLutLib->LutMax < Gia_ManLutSizeMax(p) )
     {
-        printf( "The max LUT size (%d) is less than the max fanin count (%d).\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "The max LUT size (%d) is less than the max fanin count (%d).\n", 
             pLutLib->LutMax, Gia_ManLutSizeMax(p) );
         return -TIM_ETERNITY;
     }
@@ -627,7 +627,7 @@ float Gia_ManDelayTraceLutPrintInt( Gia_Man_t * p, int fVerbose )
     // check library compatibility
     if ( pLutLib && pLutLib->LutMax < Gia_ManLutSizeMax(p) )
     {
-        printf( "The max LUT size (%d) is less than the max fanin count (%d).\n",
+        fprintf( Abc_FrameGlobalGetOut(), "The max LUT size (%d) is less than the max fanin count (%d).\n",
             pLutLib->LutMax, Gia_ManLutSizeMax(p) );
         return -ABC_INFINITY;
     }
@@ -639,7 +639,7 @@ float Gia_ManDelayTraceLutPrintInt( Gia_Man_t * p, int fVerbose )
                 nMaxInputs = pCellLib->nCellInputs[i];
         if ( nMaxInputs < Gia_ManLutSizeMax(p) )
         {
-            printf( "The max cell inputs (%d) is less than the max fanin count (%d).\n",
+            fprintf( Abc_FrameGlobalGetOut(), "The max cell inputs (%d) is less than the max fanin count (%d).\n",
                 nMaxInputs, Gia_ManLutSizeMax(p) );
             return -ABC_INFINITY;
         }
@@ -666,14 +666,14 @@ float Gia_ManDelayTraceLutPrintInt( Gia_Man_t * p, int fVerbose )
     if ( fVerbose )
     {
         if ( pCellLib )
-            printf( "Max delay = %d. Delay trace using %s model:\n", (int)tArrival, pDelayModel );
+            fprintf( Abc_FrameGlobalGetOut(), "Max delay = %d. Delay trace using %s model:\n", (int)tArrival, pDelayModel );
         else
-            printf( "Max delay = %6.2f. Delay trace using %s model:\n", tArrival, pDelayModel );
+            fprintf( Abc_FrameGlobalGetOut(), "Max delay = %6.2f. Delay trace using %s model:\n", tArrival, pDelayModel );
         Nodes = 0;
         for ( i = 0; i < nSteps; i++ )
         {
             Nodes += pCounters[i];
-            printf( "%3d %s : %5d  (%6.2f %%)\n", (pLutLib || pCellLib)? 5*(i+1) : i+1,
+            fprintf( Abc_FrameGlobalGetOut(), "%3d %s : %5d  (%6.2f %%)\n", (pLutLib || pCellLib)? 5*(i+1) : i+1,
                 (pLutLib || pCellLib)? "%":"lev", Nodes, 100.0*Nodes/Gia_ManLutNum(p) );
         }
     }
@@ -705,7 +705,7 @@ float Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose )
         Gia_Man_t * pTemp = Gia_ManDupUnnormalize( p );
         if ( pTemp == NULL )
         {
-            printf( "Failed to unnormalize AIG with boxes for delay trace.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Failed to unnormalize AIG with boxes for delay trace.\n" );
             return -1.0;
         }
 
@@ -827,7 +827,7 @@ void Gia_ManSpeedupObj( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_I
     vNodes = Vec_IntAlloc( 100 );
     if ( !Gia_ManSpeedupObj_rec( p, pObj, vNodes ) )
     {
-        printf( "Bad node!!!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Bad node!!!\n" );
         Vec_IntFree( vNodes );
         return;
     }
@@ -890,11 +890,11 @@ Gia_Man_t * Gia_ManSpeedup( Gia_Man_t * p, int Percentage, int Degree, int fVerb
     tDelta = fUseLutLib ? tArrival*Percentage/100.0 : 1.0;
     if ( fVerbose )
     {
-        printf( "Max delay = %.2f. Delta = %.2f. ", tArrival, tDelta );
-        printf( "Using %s model. ", fUseLutLib ? "LUT library" : "unit-delay" );
+        fprintf( Abc_FrameGlobalGetOut(), "Max delay = %.2f. Delta = %.2f. ", tArrival, tDelta );
+        fprintf( Abc_FrameGlobalGetOut(), "Using %s model. ", fUseLutLib ? "LUT library" : "unit-delay" );
         if ( fUseLutLib )
-            printf( "Percentage = %d. ", Percentage );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Percentage = %d. ", Percentage );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // mark the timing critical nodes and edges
     puTCEdges = ABC_CALLOC( unsigned, Gia_ManObjNum(p) );
@@ -914,7 +914,7 @@ Gia_Man_t * Gia_ManSpeedup( Gia_Man_t * p, int Percentage, int Degree, int fVerb
                     Counter++;
             CounterRes += Gia_WordCountOnes( puTCEdges[iObj] );
         }
-        printf( "Edges: Total = %7d. 0-slack = %7d. Critical = %7d. Ratio = %4.2f\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Edges: Total = %7d. 0-slack = %7d. Critical = %7d. Ratio = %4.2f\n", 
             Gia_ManLutFaninCount(p), Counter, CounterRes, Counter? 1.0*CounterRes/Counter : 0.0 );
     }
 
@@ -970,11 +970,11 @@ Gia_Man_t * Gia_ManSpeedup( Gia_Man_t * p, int Percentage, int Degree, int fVerb
         // print the results
         if ( fVeryVerbose )
         {
-        printf( "%5d Node %5d : %d %2d %2d  ", Counter, iObj, 
+        fprintf( Abc_FrameGlobalGetOut(), "%5d Node %5d : %d %2d %2d  ", Counter, iObj, 
             nTimeCris, Vec_IntSize(vTimeCries), Vec_IntSize(vTimeFanins) );
         Gia_LutForEachFanin( p, iObj, iFanin, k )
-            printf( "%d(%.2f)%s ", iFanin, Gia_ObjTimeSlack(p, iFanin), (puTCEdges[iObj] & (1<<k))? "*":"" );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d(%.2f)%s ", iFanin, Gia_ObjTimeSlack(p, iFanin), (puTCEdges[iObj] & (1<<k))? "*":"" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         // add the node to choices
         if ( Vec_IntSize(vTimeCries) == 0 || Vec_IntSize(vTimeCries) > Degree )
@@ -1012,7 +1012,7 @@ Gia_Man_t * Gia_ManSpeedup( Gia_Man_t * p, int Percentage, int Degree, int fVerb
         // quit if the number of nodes is large
         if ( Gia_ManObjNum(pNew) > nNodesNew - 100 )
         {
-            printf( "Speedup stopped adding choices because there was too many to add.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Speedup stopped adding choices because there was too many to add.\n" );
             break;
         }
     }
@@ -1021,7 +1021,7 @@ Gia_Man_t * Gia_ManSpeedup( Gia_Man_t * p, int Percentage, int Degree, int fVerb
     Vec_IntFree( vTimeFanins );
     ABC_FREE( puTCEdges );
     if ( fVerbose )
-        printf( "Nodes: Total = %7d. 0-slack = %7d. Workable = %7d. Ratio = %4.2f\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes: Total = %7d. 0-slack = %7d. Workable = %7d. Ratio = %4.2f\n", 
         Gia_ManLutNum(p), Counter, CounterRes, Counter? 1.0*CounterRes/Counter : 0.0 ); 
     if ( pTempTim )
     {

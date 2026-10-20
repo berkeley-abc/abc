@@ -185,13 +185,13 @@ void Gia_SweeperPrintStats( Gia_Man_t * pGia )
     double nMemGia = (double)Gia_ManObjNum(pGia)*(sizeof(Gia_Obj_t) + sizeof(int));
     double nMemSat = sat_solver_memory(p->pSat);
     double nMemTot = nMemSwp + nMemGia + nMemSat;
-    printf( "SAT sweeper statistics:\n" );
-    printf( "Memory usage:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "SAT sweeper statistics:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Memory usage:\n" );
     ABC_PRMP( "Sweeper         ", nMemSwp, nMemTot );
     ABC_PRMP( "AIG manager     ", nMemGia, nMemTot );
     ABC_PRMP( "SAT solver      ", nMemSat, nMemTot );
     ABC_PRMP( "TOTAL           ", nMemTot, nMemTot );
-    printf( "Runtime usage:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Runtime usage:\n" );
     p->timeTotal = Abc_Clock() - p->timeStart;
     ABC_PRTP( "CNF construction", p->timeCnf,      p->timeTotal );
     ABC_PRTP( "SAT solving     ", p->timeSat,      p->timeTotal );
@@ -199,11 +199,11 @@ void Gia_SweeperPrintStats( Gia_Man_t * pGia )
     ABC_PRTP( "    Unsat       ", p->timeSatUnsat, p->timeTotal );
     ABC_PRTP( "    Undecided   ", p->timeSatUndec, p->timeTotal );
     ABC_PRTP( "TOTAL RUNTIME   ", p->timeTotal,    p->timeTotal );
-    printf( "GIA: " );
+    fprintf( Abc_FrameGlobalGetOut(), "GIA: " );
     Gia_ManPrintStats( pGia, NULL );
-    printf( "SAT calls = %d. Sat = %d. Unsat = %d. Undecided = %d.  Proofs = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "SAT calls = %d. Sat = %d. Unsat = %d. Undecided = %d.  Proofs = %d.\n", 
         p->nSatCalls, p->nSatCallsSat, p->nSatCallsUnsat, p->nSatCallsUndec, p->nSatProofs );
-    Sat_SolverPrintStats( stdout, p->pSat );
+    Sat_SolverPrintStats( Abc_FrameGlobalGetOut(), p->pSat );
 }
 
 /**Function*************************************************************
@@ -429,7 +429,7 @@ void Gia_SweeperLogicDump( Gia_Man_t * p, Vec_Int_t * vProbeIds, int fDumpConds,
 {
     Gia_Man_t * pGiaOuts = Gia_SweeperExtractUserLogic( p, vProbeIds, NULL, NULL );
     Vec_Int_t * vProbeConds = Gia_SweeperCondVector( p );
-    printf( "Dumping logic cones" );
+    fprintf( Abc_FrameGlobalGetOut(), "Dumping logic cones" );
     if ( fDumpConds && Vec_IntSize(vProbeConds) > 0 )
     {
         Gia_Man_t * pGiaCond = Gia_SweeperExtractUserLogic( p, vProbeConds, NULL, NULL );
@@ -437,11 +437,11 @@ void Gia_SweeperLogicDump( Gia_Man_t * p, Vec_Int_t * vProbeIds, int fDumpConds,
         pGiaOuts->nConstrs = Gia_ManPoNum(pGiaCond);
         Gia_ManHashStop( pGiaOuts );
         Gia_ManStop( pGiaCond );
-        printf( " and conditions" );
+        fprintf( Abc_FrameGlobalGetOut(), " and conditions" );
     }
     Gia_AigerWrite( pGiaOuts, pFileName, 0, 0, 0 );
     Gia_ManStop( pGiaOuts );
-    printf( " into file \"%s\".\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), " into file \"%s\".\n", pFileName );
 }
 
 /**Function*************************************************************
@@ -1116,7 +1116,7 @@ int Gia_SweeperRun( Gia_Man_t * p, Vec_Int_t * vProbeIds, char * pCommLime, int 
     if ( pCommLime )
     {
         if ( fVerbose )
-            printf( "GIA manager statistics before and after applying \"%s\":\n", pCommLime );
+            fprintf( Abc_FrameGlobalGetOut(), "GIA manager statistics before and after applying \"%s\":\n", pCommLime );
         if ( fVerbose )
             Gia_ManPrintStats( pNew, NULL );
         // set pNew to be current GIA in ABC

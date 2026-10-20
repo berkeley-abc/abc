@@ -544,7 +544,7 @@ static inline Gia_ObjAre_t * Gia_ManAreCreateObj( Gia_ManAre_t * p )
     {
         if ( p->nObjPages == MAX_PAGE_NUM )
         {
-            printf( "ERA manager has run out of memory after allocating 2B internal nodes.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "ERA manager has run out of memory after allocating 2B internal nodes.\n" );
             return NULL;
         }
         p->ppObjs[p->nObjPages++] = ABC_CALLOC( unsigned, MAX_ITEM_NUM * 4 );
@@ -571,7 +571,7 @@ static inline Gia_StaAre_t * Gia_ManAreCreateSta( Gia_ManAre_t * p )
     {
         if ( p->nStaPages == MAX_PAGE_NUM )
         {
-            printf( "ERA manager has run out of memory after allocating 2B state cubes.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "ERA manager has run out of memory after allocating 2B state cubes.\n" );
             return NULL;
         }
         if ( p->ppStas[p->nStaPages] == NULL )
@@ -682,22 +682,22 @@ void Gia_ManArePrintCube( Gia_ManAre_t * p, Gia_StaAre_t * pSta )
 {
     Gia_Obj_t * pObj;
     int i, Count0 = 0, Count1 = 0, Count2 = 0;
-    printf( "%4d %4d :  ", p->iStaCur, p->nStas-1 );
-    printf( "Prev %4d   ", Gia_Ptr2Int(pSta->iPrev) );
-    printf( "%p   ", pSta );
+    fprintf( Abc_FrameGlobalGetOut(), "%4d %4d :  ", p->iStaCur, p->nStas-1 );
+    fprintf( Abc_FrameGlobalGetOut(), "Prev %4d   ", Gia_Ptr2Int(pSta->iPrev) );
+    fprintf( Abc_FrameGlobalGetOut(), "%p   ", pSta );
     Gia_ManForEachRi( p->pAig, pObj, i )
     {
         if ( Gia_StaHasValue0(pSta, i) )
-            printf( "0" ), Count0++;
+            fprintf( Abc_FrameGlobalGetOut(),  "0"  ), Count0++;
         else if ( Gia_StaHasValue1(pSta, i) )
-            printf( "1" ), Count1++;
+            fprintf( Abc_FrameGlobalGetOut(),  "1"  ), Count1++;
         else
-            printf( "-" ), Count2++;
+            fprintf( Abc_FrameGlobalGetOut(),  "-"  ), Count2++;
     }
-    printf( "  0 =%3d", Count0 );
-    printf( "  1 =%3d", Count1 );
-    printf( "  - =%3d", Count2 );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "  0 =%3d", Count0 );
+    fprintf( Abc_FrameGlobalGetOut(), "  1 =%3d", Count1 );
+    fprintf( Abc_FrameGlobalGetOut(), "  - =%3d", Count2 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
  
 /**Function*************************************************************
@@ -883,7 +883,7 @@ int Gia_ManAreFindBestVar( Gia_ManAre_t * p, Gia_PtrAre_t List )
     if ( iVarBest == -1 )
     {
         Gia_ManArePrintListUsed( p, List );
-        printf( "Error: Best variable not found!!!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Error: Best variable not found!!!\n" );
     }
     assert( iVarBest != -1 );
     return iVarBest;
@@ -975,7 +975,7 @@ static inline int Gia_ManAreCubeCheckList( Gia_ManAre_t * p, Gia_PtrAre_t * pRoo
     int iVar;
 if ( fVerbose )
 {
-printf( "Trying cube: " );
+fprintf( Abc_FrameGlobalGetOut(), "Trying cube: " );
 Gia_ManArePrintCube( p, pSta );
 }
     Gia_ManAreForEachCubeList( p, Gia_ManAreSta(p, *pRoot), pCube )
@@ -989,7 +989,7 @@ Gia_ManArePrintCube( p, pSta );
         {
 if ( fVerbose )
 {
-printf( "Contained in " );
+fprintf( Abc_FrameGlobalGetOut(), "Contained in " );
 Gia_ManArePrintCube( p, pCube );
 }
             Gia_ManAreRycycleSta( p, pSta );
@@ -999,7 +999,7 @@ Gia_ManArePrintCube( p, pCube );
         {
 if ( fVerbose )
 {
-printf( "Contains     " );
+fprintf( Abc_FrameGlobalGetOut(), "Contains     " );
 Gia_ManArePrintCube( p, pCube );
 }
             Gia_StaSetUnused( pCube );
@@ -1010,7 +1010,7 @@ Gia_ManArePrintCube( p, pCube );
             continue;
 if ( fVerbose )
 {
-printf( "Sharped by   " );
+fprintf( Abc_FrameGlobalGetOut(), "Sharped by   " );
 Gia_ManArePrintCube( p, pCube );
 Gia_ManArePrintCube( p, pSta );
 }
@@ -1045,7 +1045,7 @@ static inline void Gia_ManAreCubeAddToList( Gia_ManAre_t * p, Gia_PtrAre_t * pRo
     assert( pSta == Gia_ManAreSta(p, *pRoot) );
 if ( fVerbose )
 {
-printf( "Adding cube: " );
+fprintf( Abc_FrameGlobalGetOut(), "Adding cube: " );
 Gia_ManArePrintCube( p, pSta );
 //printf( "\n" );
 }
@@ -1659,7 +1659,7 @@ int Gia_ManAreDeriveNexts( Gia_ManAre_t * p, Gia_PtrAre_t Sta )
     RetValue = Gia_ManAreDeriveNexts_rec( p, Sta );
     if ( p->nRecCalls >= MAX_CALL_NUM )
     {
-        printf( "Exceeded the limit on the number of transitions from a state cube (%d).\n", MAX_CALL_NUM );
+        fprintf( Abc_FrameGlobalGetOut(), "Exceeded the limit on the number of transitions from a state cube (%d).\n", MAX_CALL_NUM );
         p->fStopped = 1;
     }
 //    printf( "%d ", p->nRecCalls );
@@ -1682,7 +1682,7 @@ int Gia_ManAreDeriveNexts( Gia_ManAre_t * p, Gia_PtrAre_t Sta )
 ***********************************************************************/
 void Gia_ManArePrintReport( Gia_ManAre_t * p, abctime Time, int fFinal )
 {
-    printf( "States =%10d. Reached =%10d. R = %5.3f. Depth =%6d. Mem =%9.2f MB.  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "States =%10d. Reached =%10d. R = %5.3f. Depth =%6d. Mem =%9.2f MB.  ", 
         p->iStaCur, p->nStas, 1.0*p->iStaCur/p->nStas, Gia_ManAreDepth(p, p->iStaCur), 
         (sizeof(Gia_ManAre_t) + 4.0*Gia_ManRegNum(p->pAig) + 8.0*MAX_PAGE_NUM + 
          4.0*p->nStaPages*p->nSize*MAX_ITEM_NUM + 16.0*p->nObjPages*MAX_ITEM_NUM)/(1<<20) );
@@ -1716,7 +1716,7 @@ int Gia_ManArePerform( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbos
     int RetValue = 1;
     if ( Gia_ManRegNum(pAig) > MAX_VARS_NUM )
     {
-        printf( "Currently can only handle circuit with up to %d registers.\n", MAX_VARS_NUM );
+        fprintf( Abc_FrameGlobalGetOut(), "Currently can only handle circuit with up to %d registers.\n", MAX_VARS_NUM );
         return -1;
     }
     ABC_FREE( pAig->pCexSeq );
@@ -1738,7 +1738,7 @@ int Gia_ManArePerform( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbos
             Gia_ManArePrintReport( p, clk, 0 );
     }
     Gia_ManArePrintReport( p, clk, 1 );
-    printf( "%s after finding %d state cubes (%d not contained) with depth %d.  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "%s after finding %d state cubes (%d not contained) with depth %d.  ", 
         p->fStopped ? "Stopped" : "Completed", 
         p->nStas, Gia_ManAreListCountUsed(p), 
         Gia_ManAreDepth(p, p->iStaCur-1) );
@@ -1756,7 +1756,7 @@ int Gia_ManArePerform( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbos
     if ( Gia_ManRegNum(pAig) <= 30 )
     {
         clk = Abc_Clock();
-        printf( "The number of unique state minterms in computed state cubes is %d.   ", Gia_ManCountMinterms(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of unique state minterms in computed state cubes is %d.   ", Gia_ManCountMinterms(p) );
         ABC_PRT( "Time", Abc_Clock() - clk );
     }
 //    printf( "Compares = %d.  Equals = %d.  Disj = %d.  Disj2 = %d.  Disj3 = %d.\n", 
@@ -1768,9 +1768,9 @@ int Gia_ManArePerform( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbos
     if ( pAig->pCexSeq )
     {
         if ( !Gia_ManVerifyCex( pAig, pAig->pCexSeq, 0 ) )
-            printf( "Generated counter-example is INVALID.                       \n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Generated counter-example is INVALID.                       \n" );
         else
-            printf( "Generated counter-example verified correctly.               \n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Generated counter-example verified correctly.               \n" );
         return 0;
     }
     return RetValue;
@@ -1879,7 +1879,7 @@ void Gia_ManAreDeriveCexSat( Gia_ManAre_t * p, Gia_StaAre_t * pCur, Gia_StaAre_t
         (ABC_INT64_T)1000000, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( status != l_True )
     {
-        printf( "SAT problem is not satisfiable. Failure...\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "SAT problem is not satisfiable. Failure...\n" );
         return;
     }
     assert( status == l_True );

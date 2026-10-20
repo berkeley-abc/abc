@@ -127,10 +127,10 @@ Gia_Man_t * Gia_StochProcessOne( Gia_Man_t * p, char * pScript, int Rand, int Ti
     if ( system( (char *)Command ) )    
 #endif
     {
-        fprintf( stderr, "The following command has returned non-zero exit status:\n" );
-        fprintf( stderr, "\"%s\"\n", (char *)Command );
-        fprintf( stderr, "Sorry for the inconvenience.\n" );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetErr(),  "The following command has returned non-zero exit status:\n" );
+        fprintf( Abc_FrameGlobalGetErr(),  "\"%s\"\n", (char *)Command );
+        fprintf( Abc_FrameGlobalGetErr(),  "Sorry for the inconvenience.\n" );
+        fflush( Abc_FrameGlobalGetOut() );
         unlink( FileName );
         ABC_FREE( Command );
         return Gia_ManDup(p);
@@ -178,7 +178,7 @@ Vec_Int_t * Gia_StochProcess( Vec_Ptr_t * vGias, char * pScript, int nProcs, int
 {
     if ( nProcs <= 2 ) {
         if ( fVerbose )
-            printf( "Running non-concurrent synthesis.\n" ), fflush(stdout);            
+            fprintf( Abc_FrameGlobalGetOut(),  "Running non-concurrent synthesis.\n"  ), fflush( Abc_FrameGlobalGetOut() );            
         return Gia_StochProcessArray( vGias, pScript, TimeSecs, fVerbose );
     }
     Vec_Int_t * vGains = Vec_IntStartFull( Vec_PtrSize(vGias) );
@@ -195,7 +195,7 @@ Vec_Int_t * Gia_StochProcess( Vec_Ptr_t * vGias, char * pScript, int nProcs, int
         Vec_PtrPush( vData, pData+i );
     }
     if ( fVerbose )
-        printf( "Running concurrent synthesis with %d processes.\n", nProcs ), fflush(stdout);
+        fprintf( Abc_FrameGlobalGetOut(),  "Running concurrent synthesis with %d processes.\n", nProcs  ), fflush( Abc_FrameGlobalGetOut() );
     Util_ProcessThreads( Gia_StochProcess1, vData, nProcs, TimeSecs, fVerbose );
     // replace old AIGs by new AIGs
     Vec_PtrForEachEntry( Gia_Man_t *, vGias, pGia, i ) {
@@ -443,7 +443,7 @@ Vec_Int_t * Gia_ManDeriveWinOuts( Gia_Man_t * pMan, Vec_Int_t * vNodes )
             Vec_IntPush( vOuts, Gia_ObjId(pMan, pObj) );
     }
     if ( Vec_IntSize(vOuts) == 0 )
-        printf( "Window with %d internal nodes has no outputs (are these dangling nodes?).\n", Vec_IntSize(vNodes) );
+        fprintf( Abc_FrameGlobalGetOut(), "Window with %d internal nodes has no outputs (are these dangling nodes?).\n", Vec_IntSize(vNodes) );
     return vOuts;
 }
 Vec_Ptr_t * Gia_ManDeriveWinOutsAll( Gia_Man_t * pMan, Vec_Ptr_t * vvNodes )
@@ -1043,7 +1043,7 @@ Gia_Man_t * Gia_ManCreateChoicesArray( Vec_Ptr_t * vGias, int fVerbose )
     //Vec_PtrPush( vGias, Vec_PtrEntry(vGias,0) );
     //Vec_PtrWriteEntry( vGias, 0, pTemp );
     if ( fVerbose ) {
-        printf( "Choicing will be performed with %d AIGs:\n", Vec_PtrSize(vGias) );
+        fprintf( Abc_FrameGlobalGetOut(), "Choicing will be performed with %d AIGs:\n", Vec_PtrSize(vGias) );
         Gia_Man_t * pTemp; int i;
         Vec_PtrForEachEntry( Gia_Man_t *, vGias, pTemp, i )
             Gia_ManPrintStats( pTemp, NULL );
@@ -1092,12 +1092,12 @@ void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int S
     for ( i = 0; i < 10+Seed; i++ )
         Abc_Random(0);
     if ( fVerbose ) {
-        printf( "Running %d iterations of the script \"%s\"", nIters, pScript );
+        fprintf( Abc_FrameGlobalGetOut(), "Running %d iterations of the script \"%s\"", nIters, pScript );
         if ( nProcs > 2 )
-            printf( " using %d concurrent threads.\n", nProcs-1 );
+            fprintf( Abc_FrameGlobalGetOut(), " using %d concurrent threads.\n", nProcs-1 );
         else
-            printf( " without concurrency.\n" );
-        fflush(stdout);
+            fprintf( Abc_FrameGlobalGetOut(), " without concurrency.\n" );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     if ( !nSuppMax ) {
         for ( i = 0; i < nIters; i++ )
@@ -1113,7 +1113,7 @@ void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int S
             if ( vGias ) Vec_PtrPush( vGias, Gia_ManDup(pNew) );
             Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pNew );
             if ( fVerbose )
-            printf( "Iteration %3d : Using %3d partitions. Reducing %6d to %6d %s.  ", 
+            fprintf( Abc_FrameGlobalGetOut(), "Iteration %3d : Using %3d partitions. Reducing %6d to %6d %s.  ", 
                 i, Vec_PtrSize(vAigs), fMapped ? Gia_ManLutNum(pGia) : Gia_ManAndNum(pGia), 
                                     fMapped ? Gia_ManLutNum(pNew) : Gia_ManAndNum(pNew),
                                     fMapped ? "LUTs" : "ANDs" ); 
@@ -1126,7 +1126,7 @@ void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int S
             Vec_WecFree( vOuts );
             if ( nTimeToStop && Abc_Clock() > nTimeToStop )
             {
-                printf( "Runtime limit (%d sec) is reached after %d iterations.\n", TimeOut, i );
+                fprintf( Abc_FrameGlobalGetOut(), "Runtime limit (%d sec) is reached after %d iterations.\n", TimeOut, i );
                 break;
             }
         }
@@ -1146,7 +1146,7 @@ void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int S
             if ( vGias ) Vec_PtrPush( vGias, Gia_ManDup(pNew) );
             Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pNew );
             if ( fVerbose )
-            printf( "Iteration %3d : Using %3d -> %3d partitions. Reducing node count from %6d to %6d.  ", 
+            fprintf( Abc_FrameGlobalGetOut(), "Iteration %3d : Using %3d -> %3d partitions. Reducing node count from %6d to %6d.  ", 
                 i, nPartsInit, Vec_PtrSize(vAigs), Gia_ManAndNum(pGia), Gia_ManAndNum(pNew) ); 
             if ( fVerbose )
             Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
@@ -1159,7 +1159,7 @@ void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int S
             if ( vNodes ) Vec_PtrFreeFunc( vNodes, (void (*)(void *)) Vec_IntFree );                
             if ( nTimeToStop && Abc_Clock() > nTimeToStop )
             {
-                printf( "Runtime limit (%d sec) is reached after %d iterations.\n", TimeOut, i );
+                fprintf( Abc_FrameGlobalGetOut(), "Runtime limit (%d sec) is reached after %d iterations.\n", TimeOut, i );
                 break;
             }
         }
@@ -1168,7 +1168,7 @@ void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int S
     nLutEnd  = fMapped ? Gia_ManLutNum(Abc_FrameReadGia(Abc_FrameGetGlobalFrame())) : 0;
     nEnd     = Gia_ManAndNum(Abc_FrameReadGia(Abc_FrameGetGlobalFrame()));
     if ( fVerbose )
-    printf( "Cumulatively reduced %d %s (%.2f %%) after %d iterations.  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Cumulatively reduced %d %s (%.2f %%) after %d iterations.  ", 
         fMapped ? nLutBeg - nLutEnd : nBeg - nEnd, fMapped ? "LUTs" : "nodes", 100.0*(nBeg - nEnd)/Abc_MaxInt(nBeg, 1), nIters );
     if ( fVerbose )
     Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );

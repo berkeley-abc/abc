@@ -128,7 +128,7 @@ int Ivy_ManSeqFindCut_int( Ivy_Man_t * p, Vec_Int_t * vFront, Vec_Int_t * vInsid
 //        return Ivy_NodeBuildCutLevelTwo_int( vInside, vFront, nFaninLimit );
 
     assert( Counter > 0 );
-printf( "%d", Counter );
+fprintf( Abc_FrameGlobalGetOut(), "%d", Counter );
 
     LeafBest = LeavesBest[rand() % Counter];
 
@@ -482,16 +482,16 @@ void Ivy_ManTestCutsBool( Ivy_Man_t * p )
             continue;
         if ( Ivy_ObjIsMuxType(pObj) )
         {
-            printf( "m" );
+            fprintf( Abc_FrameGlobalGetOut(), "m" );
             continue;
         }
         if ( Ivy_ObjIsExor(pObj) )
-            printf( "x" );
+            fprintf( Abc_FrameGlobalGetOut(), "x" );
         RetValue = Ivy_ManFindBoolCut( p, pObj, vFront, vVolume, vLeaves );
         if ( RetValue == 0 )
-            printf( "- " );
+            fprintf( Abc_FrameGlobalGetOut(), "- " );
         else
-            printf( "%d ", Vec_PtrSize(vLeaves) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Vec_PtrSize(vLeaves) );
 /*        
         printf( "( " );
         Vec_PtrForEachEntry( Ivy_Obj_t *, vFront, pTemp, k )
@@ -499,7 +499,7 @@ void Ivy_ManTestCutsBool( Ivy_Man_t * p )
         printf( ")\n" );
 */
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_PtrFree( vFront );
     Vec_PtrFree( vVolume );
     Vec_PtrFree( vLeaves );
@@ -835,10 +835,10 @@ void Ivy_NodePrintCut( Ivy_Cut_t * pCut )
 {
     int i;
     assert( pCut->nSize > 0 );
-    printf( "%d : {", pCut->nSize );
+    fprintf( Abc_FrameGlobalGetOut(), "%d : {", pCut->nSize );
     for ( i = 0; i < pCut->nSize; i++ )
-        printf( " %d", pCut->pArray[i] );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", pCut->pArray[i] );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 
 /**Function*************************************************************
@@ -855,7 +855,7 @@ void Ivy_NodePrintCut( Ivy_Cut_t * pCut )
 void Ivy_NodePrintCuts( Ivy_Store_t * pCutStore )
 {
     int i;
-    printf( "Node %d\n", pCutStore->pCuts[0].pArray[0] );
+    fprintf( Abc_FrameGlobalGetOut(), "Node %d\n", pCutStore->pCuts[0].pArray[0] );
     for ( i = 0; i < pCutStore->nCuts; i++ )
         Ivy_NodePrintCut( pCutStore->pCuts + i );
 }
@@ -982,7 +982,7 @@ void Ivy_ManTestCutsAll( Ivy_Man_t * p )
         nNodeOver  += (nCutsCut == IVY_CUT_LIMIT);
         nNodeTotal++;
     }
-    printf( "Total cuts = %6d. Trivial = %6d.   Nodes = %6d. Satur = %6d.  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Total cuts = %6d. Trivial = %6d.   Nodes = %6d. Satur = %6d.  ", 
         nCutsTotal, Ivy_ManPiNum(p) + Ivy_ManNodeNum(p), nNodeTotal, nNodeOver );
     ABC_PRT( "Time", Abc_Clock() - clk );
 }

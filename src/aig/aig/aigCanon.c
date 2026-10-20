@@ -266,15 +266,15 @@ int Aig_RManTableFindOrAdd( Aig_RMan_t * p, unsigned * pTruth, int nVars )
 void Aig_RManStop( Aig_RMan_t * p )
 {
     int i;
-    printf( "Total funcs    = %10d\n", p->nTotal );
-    printf( "Full DSD funcs = %10d\n", p->nTtDsd );
-    printf( "Part DSD funcs = %10d\n", p->nTtDsdPart );
-    printf( "Non- DSD funcs = %10d\n", p->nTtDsdNot );
-    printf( "Uniq-var funcs = %10d\n", p->nUniqueVars );
-    printf( "Unique   funcs = %10d\n", p->nEntries );
-    printf( "Distribution of functions:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Total funcs    = %10d\n", p->nTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Full DSD funcs = %10d\n", p->nTtDsd );
+    fprintf( Abc_FrameGlobalGetOut(), "Part DSD funcs = %10d\n", p->nTtDsdPart );
+    fprintf( Abc_FrameGlobalGetOut(), "Non- DSD funcs = %10d\n", p->nTtDsdNot );
+    fprintf( Abc_FrameGlobalGetOut(), "Uniq-var funcs = %10d\n", p->nUniqueVars );
+    fprintf( Abc_FrameGlobalGetOut(), "Unique   funcs = %10d\n", p->nEntries );
+    fprintf( Abc_FrameGlobalGetOut(), "Distribution of functions:\n" );
     for ( i = 5; i <= p->nVars; i++ )
-        printf( "%2d = %8d\n", i, p->nVarFuncs[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d = %8d\n", i, p->nVarFuncs[i] );
     Aig_MmFlexStop( p->pMemTrus, 0 );
     Aig_ManStop( p->pAig );
     Bdc_ManFree( p->pBidec );
@@ -325,8 +325,8 @@ void Aig_RManPrintVarProfile( unsigned * pTruth, int nVars,  unsigned * pTruthAu
     int i;
     Kit_TruthCountOnesInCofsSlow( pTruth, nVars, pStore2, pTruthAux );
     for ( i = 0; i < nVars; i++ )
-        printf( "%2d/%2d ", pStore2[2*i], pStore2[2*i+1] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d/%2d ", pStore2[2*i], pStore2[2*i+1] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -369,16 +369,16 @@ void Aig_RManPrintSigs( Aig_VSig_t * pSigs, int nVars )
     int v, i, k;
     for ( v = 0; v < nVars; v++ )
     {
-        printf( "%2d : ", v );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : ", v );
         for ( k = 0; k < 2; k++ )
         {
-            printf( "%5d  ", pSigs[2*v+k].nOnes );
-            printf( "(" );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d  ", pSigs[2*v+k].nOnes );
+            fprintf( Abc_FrameGlobalGetOut(), "(" );
             for ( i = 0; i < nVars; i++ )
-                printf( "%4d ", pSigs[2*v+k].nCofOnes[i] );
-            printf( ")  " );
+                fprintf( Abc_FrameGlobalGetOut(), "%4d ", pSigs[2*v+k].nCofOnes[i] );
+            fprintf( Abc_FrameGlobalGetOut(), ")  " );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -463,20 +463,20 @@ void Aig_RManPrintUniqueVars( Aig_VSig_t * pMints, int nVars )
     int i;
     for ( i = 0; i < nVars; i++ )
         if ( Aig_RManCompareSigs( &pMints[2*i], &pMints[2*i+1], nVars ) == 0 )
-            printf( "=" );
+            fprintf( Abc_FrameGlobalGetOut(), "=" );
         else 
-            printf( "x" );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "x" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( "0" );
+    fprintf( Abc_FrameGlobalGetOut(), "0" );
     for ( i = 1; i < nVars; i++ )
         if ( Aig_RManCompareSigs( &pMints[2*(i-1)], &pMints[2*i], nVars ) == 0 )
-            printf( "-" );
+            fprintf( Abc_FrameGlobalGetOut(), "-" );
         else if ( i < 10 )
-            printf( "%c", '0' + i );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", '0' + i );
         else 
-            printf( "%c", 'A' + i-10 );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'A' + i-10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
  
 /**Function*************************************************************
@@ -578,7 +578,7 @@ void Aig_RManSaveOne( Aig_RMan_t * p, unsigned * pTruth, int nVars )
     RetValue = Bdc_ManDecompose( p->pBidec, pTruth, NULL, nVars, NULL, 1000 );
     if ( RetValue < 0 )
     {
-        printf( "Decomposition failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Decomposition failed.\n" );
         return;
     }
     // convert back into HOP
@@ -620,7 +620,7 @@ void Aig_RManRecord( unsigned * pTruth, int nVarsInit )
 
     if ( nVarsInit > RMAN_MAXVARS )
     {
-        printf( "The number of variables in too large.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of variables in too large.\n" );
         return;
     }
 
@@ -700,7 +700,7 @@ Extra_PrintBinary( stdout, s_pRMan->pTruth, 1<<nVars ); printf( "\n\n" );
 
         // perform verification
         if ( fUniqueVars && !Kit_TruthIsEqual( s_pRMan->pTruth, s_pRMan->pTruthInit, nVars ) )
-            printf( "Verification failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Verification failed.\n" );
     }
 //Aig_RManPrintVarProfile( s_pRMan->pTruth, nVars, s_pRMan->pTruthTemp );
 //Extra_PrintBinary( stdout, s_pRMan->pTruth, 1<<nVars ); printf( "\n" );
