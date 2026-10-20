@@ -125,7 +125,7 @@ static int Abc_CommandMulti                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandRenode                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCleanup                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSweep                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFabsorb                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandLutAbsorb                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFastExtract            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFxch                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandEliminate              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -994,7 +994,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "renode",        Abc_CommandRenode,           1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "cleanup",       Abc_CommandCleanup,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "sweep",         Abc_CommandSweep,            1 );
-    Cmd_CommandAdd( pAbc, "Synthesis",    "fabsorb",       Abc_CommandFabsorb,          1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "lutabsorb",     Abc_CommandLutAbsorb,        1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "fx",            Abc_CommandFastExtract,      1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "fxch",          Abc_CommandFxch,             1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "eliminate",     Abc_CommandEliminate,        1 );
@@ -4611,14 +4611,16 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandFabsorb( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandLutAbsorb( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c, nInit, nRemoved;
-    int nLutSize   = 6;
+    If_LibLut_t * pLutLib = (If_LibLut_t *)Abc_FrameReadLibLut();
+    int c, nInit, nRemoved, fKgiven = 0;
+    int nLutSize   = pLutLib? Abc_MinInt(6, pLutLib->LutMax) : 6;
     int nFanoutMax = 8;
     int nRounds    = 1;
     int fVerbose   = 0;
+    float AreaGain = 0.0;
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "KMRvh" ) ) != EOF )
@@ -4633,6 +4635,7 @@ int Abc_CommandFabsorb( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
+            fKgiven = 1;
             if ( nLutSize < 2 )
                 goto usage;
             break;
@@ -4678,21 +4681,37 @@ int Abc_CommandFabsorb( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "The network should be a LUT-mapped logic network.\n" );
         return 1;
     }
+    if ( pLutLib && pLutLib->LutMax < 2 )
+    {
+        Abc_Print( -1, "The LUT library max LUT size (%d) is less than 2.\n", pLutLib->LutMax );
+        return 1;
+    }
+    if ( pLutLib && nLutSize > pLutLib->LutMax )
+    {
+        if ( fKgiven )
+            Abc_Print( 1, "lutabsorb: -K %d exceeds the LUT library max %d; using %d.\n",
+                nLutSize, pLutLib->LutMax, pLutLib->LutMax );
+        nLutSize = pLutLib->LutMax;
+    }
     if ( !Abc_NtkHasAig(pNtk) && !Abc_NtkToAig(pNtk) )
     {
         Abc_Print( -1, "Converting node functions to AIGs has failed.\n" );
         return 1;
     }
+    if ( pLutLib && Abc_NtkGetFaninMax(pNtk) > pLutLib->LutMax )
+        Abc_Print( ABC_WARNING, "The network has nodes with up to %d fanins, but the LUT library max is %d; candidates involving larger nodes are skipped.\n",
+            Abc_NtkGetFaninMax(pNtk), pLutLib->LutMax );
     nInit = Abc_NtkNodeNum(pNtk);
-    nRemoved = Abc_NtkFabsorb( pNtk, nLutSize, nFanoutMax, nRounds, fVerbose );
-    Abc_Print( 1, "fabsorb: K=%d M=%d R=%d  nodes %d -> %d (-%d)\n",
-        nLutSize, nFanoutMax, nRounds, nInit, Abc_NtkNodeNum(pNtk), nRemoved );
+    nRemoved = Abc_NtkLutAbsorb( pNtk, nLutSize, nFanoutMax, nRounds, fVerbose, pLutLib, &AreaGain );
+    Abc_Print( 1, "lutabsorb: K=%d M=%d R=%d  nodes %d -> %d (-%d)  area gain %.2f\n",
+        nLutSize, nFanoutMax, nRounds, nInit, Abc_NtkNodeNum(pNtk), nRemoved, AreaGain );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: fabsorb [-KMR num] [-vh]\n" );
+    Abc_Print( -2, "usage: lutabsorb [-KMR num] [-vh]\n" );
     Abc_Print( -2, "\t         absorbs multi-fanout LUTs into all their fanout LUTs when every result fits in K inputs\n" );
     Abc_Print( -2, "\t-K num : the max LUT size after absorption [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t         values above the current LUT library max are truncated to it\n" );
     Abc_Print( -2, "\t-M num : the max fanout count of a candidate node [default = %d]\n", nFanoutMax );
     Abc_Print( -2, "\t-R num : the number of passes [default = %d]\n", nRounds );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n", fVerbose? "yes": "no" );

@@ -283,7 +283,7 @@ SOURCE=.\src\base\abci\abcExtract.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\abci\abcFabsorb.c
+SOURCE=.\src\base\abci\abcLutAbsorb.c
 # End Source File
 # Begin Source File
 
