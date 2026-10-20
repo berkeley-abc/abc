@@ -142,6 +142,11 @@ void        Abc_FrameSetArrayMapping( int * p )              { ABC_FREE( s_Globa
 int *       Abc_FrameReadBoxes( Abc_Frame_t * pAbc )         { return pAbc->pBoxes;                                            }
 void        Abc_FrameSetBoxes( int * p )                     { ABC_FREE( s_GlobalFrame->pBoxes ); s_GlobalFrame->pBoxes = p;   }      
 
+void        Abc_FrameGlobalSetOut( FILE * fd )               { if (s_GlobalFrame) s_GlobalFrame->Out = fd;     }
+void        Abc_FrameGlobalSetErr( FILE * fd )               { if (s_GlobalFrame) s_GlobalFrame->Err = fd;     }
+FILE *      Abc_FrameGlobalGetOut()                          { return s_GlobalFrame ? s_GlobalFrame->Out : stdout;   }
+FILE *      Abc_FrameGlobalGetErr()                          { return s_GlobalFrame ? s_GlobalFrame->Err : stderr;   }
+
 /**Function*************************************************************
 
   Synopsis    [Returns 1 if the flag is enabled without value or with value 1.]
