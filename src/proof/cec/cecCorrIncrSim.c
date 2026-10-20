@@ -1275,6 +1275,31 @@ static void Cec_SeedSimRecordBatch( Cec_SeedSim_t * p, int nCex )
         p->nBatchCexMax = nCex;
 }
 
+static inline abctime Cec_SeedSimProfStart()
+{
+    return Cec_ScorrProfOn ? Abc_ClockHr() : 0;
+}
+
+static inline void Cec_SeedSimProfStop( abctime * pTime, abctime Start )
+{
+    if ( Start )
+        *pTime += Abc_ClockHr() - Start;
+}
+
+static int Cec_SeedSimProfReturn( Cec_SeedSim_t * p, int Status, abctime Start )
+{
+    if ( Start )
+    {
+        abctime Elapsed = Abc_ClockHr() - Start;
+        p->tTry += Elapsed;
+        if ( Status == CEC_SEEDSIM_RESULT_LOCAL )
+            p->tTryLocal += Elapsed;
+        else
+            p->tTryFallback += Elapsed;
+    }
+    return Status;
+}
+
 static void Cec_SeedSimBuildPersistentValues( Cec_SeedSim_t * p )
 {
     Gia_Obj_t * pObj;
@@ -1476,7 +1501,9 @@ void Cec_SeedSimEnsurePersistent( Cec_SeedSim_t * p, Cec_ManSim_t * pSim )
 {
     int nInputs = p->nRegs + p->nPis * p->nFrames;
     size_t nInputWords = (size_t)nInputs * p->nWords;
+    size_t nKeys = (size_t)p->nFrames * p->nObjs;
     int i, w;
+    abctime tInit;
     if ( p->vSimInfo == NULL )
     {
         p->vSimInfo = Vec_PtrAllocSimInfo( nInputs, p->nWords );
@@ -1485,6 +1512,19 @@ void Cec_SeedSimEnsurePersistent( Cec_SeedSim_t * p, Cec_ManSim_t * pSim )
     }
     if ( p->fInitialized )
         return;
+    if ( Cec_ScorrProfOn )
+    {
+        size_t nValueBytes = nKeys * p->nWords * sizeof(unsigned);
+        size_t nQueueBytes = nKeys * p->nEventMaskWords * sizeof(unsigned);
+        size_t nInputBytes = nInputWords *
+            (3 * sizeof(unsigned)) + (size_t)nInputs * sizeof(int);
+        double M = 1.0 / (1024.0 * 1024.0);
+        Abc_Print( 1,
+            "[scorr2-profile] event cache_mb(total/value/queue/input)=%.1f/%.1f/%.1f/%.1f\n",
+            (nValueBytes + nQueueBytes + nInputBytes) * M,
+            nValueBytes * M, nQueueBytes * M, nInputBytes * M );
+    }
+    tInit = Cec_SeedSimProfStart();
     for ( i = 0; i < nInputs; i++ )
     {
         unsigned * pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, i );
@@ -1498,6 +1538,7 @@ void Cec_SeedSimEnsurePersistent( Cec_SeedSim_t * p, Cec_ManSim_t * pSim )
     Cec_ManSeqResimulateSeed( pSim, p->vSimInfo, p );
     Cec_SeedSimBuildPersistentValues( p );
     p->fInitialized = 1;
+    Cec_SeedSimProfStop( &p->tEventInit, tInit );
 }
 
 static void Cec_SeedSimStartInputTxn( Cec_SeedSim_t * p )
@@ -1580,6 +1621,7 @@ int Cec_SeedSimLoadPersistentBatch( Cec_SeedSim_t * p, Vec_Int_t * vCexStore,
     Vec_Int_t * vPat = Vec_IntAlloc( 100 );
     int nBits = 32 * p->nWords;
     int i, k, nSize, Out, Flat;
+    abctime t = Cec_SeedSimProfStart();
     Cec_SeedSimStartInputTxn( p );
     Vec_IntClear( p->vPackTouched );
     Vec_IntClear( vOutBits );
@@ -1614,12 +1656,14 @@ int Cec_SeedSimLoadPersistentBatch( Cec_SeedSim_t * p, Vec_Int_t * vCexStore,
             Cec_SeedSimSetInputWord( p, Out, nSize, pSrc[nSize] );
     }
     Vec_IntFree( vPat );
+    Cec_SeedSimProfStop( &p->tEventLoad, t );
     return iStart;
 }
 
 void Cec_SeedSimRestorePersistentInputs( Cec_SeedSim_t * p )
 {
     int i, Flat;
+    abctime t = Cec_SeedSimProfStart();
     for ( i = Vec_IntSize(p->vInputUndo) - 2; i >= 0; i -= 2 )
     {
         Flat = Vec_IntEntry( p->vInputUndo, i );
@@ -1629,6 +1673,7 @@ void Cec_SeedSimRestorePersistentInputs( Cec_SeedSim_t * p )
     }
     Vec_IntClear( p->vInputUndo );
     Vec_IntClear( p->vChangedInputs );
+    Cec_SeedSimProfStop( &p->tEventRollback, t );
 }
 
 static void Cec_SeedSimCommitPersistentInputs( Cec_SeedSim_t * p )
@@ -1858,6 +1903,7 @@ static int Cec_SeedSimEventUpdateNode( Cec_SeedSim_t * p,
 static void Cec_SeedSimEventRollbackValues( Cec_SeedSim_t * p )
 {
     int i, Key, w;
+    abctime t = Cec_SeedSimProfStart();
     for ( i = Vec_IntSize(p->vValueUndo) - 3; i >= 0; i -= 3 )
     {
         Key = Vec_IntEntry( p->vValueUndo, i );
@@ -1868,6 +1914,7 @@ static void Cec_SeedSimEventRollbackValues( Cec_SeedSim_t * p )
     }
     Vec_IntClear( p->vValueUndo );
     Vec_IntClear( p->vChangedValues );
+    Cec_SeedSimProfStop( &p->tEventRollback, t );
 }
 
 static void Cec_SeedSimEventRefine( Cec_SeedSim_t * p, Cec_ManSim_t * pSim )
@@ -1934,6 +1981,7 @@ static int Cec_SeedSimTryBatchLegacy( Cec_SeedSim_t * p, Cec_ManSim_t * pSim,
     int nBatchCex = Vec_IntSize(vOutBits) / 2;
     int nPackedLanes = 32 * p->nWords - 1;
     int nInitialSplits, nDirty;
+    abctime tTry = Cec_SeedSimProfStart(), tPhase;
     assert( nFrames == p->nFrames );
     assert( Vec_PtrSize(vSimInfo) == p->nRegs + p->nPis * p->nFrames );
     assert( Vec_PtrReadWordsSimInfo(vSimInfo) == p->nWords );
@@ -1942,84 +1990,108 @@ static int Cec_SeedSimTryBatchLegacy( Cec_SeedSim_t * p, Cec_ManSim_t * pSim,
     {
         p->nFallbackPre++;
         p->nBatchFull++;
-        return CEC_SEEDSIM_RESULT_FULL;
+        return Cec_SeedSimProfReturn( p, CEC_SEEDSIM_RESULT_FULL, tTry );
     }
     if ( nBatchCex > CEC_SEEDSIM_CEX_LANE_FACTOR * nPackedLanes )
     {
         p->nFallbackCex++;
         p->nBatchFull++;
-        return CEC_SEEDSIM_RESULT_FULL_WIDE;
+        return Cec_SeedSimProfReturn( p, CEC_SEEDSIM_RESULT_FULL_WIDE, tTry );
     }
+    tPhase = Cec_SeedSimProfStart();
     Cec_SeedSimReset( p );
     p->vBatchInfo = vSimInfo;
     if ( !Cec_SeedSimDiagnosisShapeSmall(p, vOutputs, vOutBits, nDiagLimit) )
     {
+        Cec_SeedSimProfStop( &p->tDiagShape, tPhase );
         nDirty = Vec_IntSize( p->vDirtyKeys );
         if ( nDirty > p->nMaxDirty )
             p->nMaxDirty = nDirty;
         p->vBatchInfo = NULL;
         p->nFallbackPre++;
         p->nBatchFull++;
-        return CEC_SEEDSIM_RESULT_FULL_WIDE;
+        return Cec_SeedSimProfReturn( p, CEC_SEEDSIM_RESULT_FULL_WIDE, tTry );
     }
+    Cec_SeedSimProfStop( &p->tDiagShape, tPhase );
     Cec_SeedSimRestartTfoMarks( p );
+    tPhase = Cec_SeedSimProfStart();
     if ( !Cec_SeedSimCollectDiagnosis(p, vOutputs, vOutBits, nLimit) ||
          Vec_IntSize(p->vDiagKeys) > nLimit )
     {
+        Cec_SeedSimProfStop( &p->tDiagCollect, tPhase );
         nDirty = Abc_MaxInt( p->nSpecKeys, p->nEvalKeys );
         if ( nDirty > p->nMaxDirty )
             p->nMaxDirty = nDirty;
         p->vBatchInfo = NULL;
         p->nFallbackPre++;
         p->nBatchFull++;
-        return CEC_SEEDSIM_RESULT_FULL_WIDE;
+        return Cec_SeedSimProfReturn( p, CEC_SEEDSIM_RESULT_FULL_WIDE, tTry );
     }
+    Cec_SeedSimProfStop( &p->tDiagCollect, tPhase );
+    tPhase = Cec_SeedSimProfStart();
     if ( !Cec_SeedSimDiagnosisEvalShapeSmall(p, p->vDiagKeys, nDiagLimit) )
     {
+        Cec_SeedSimProfStop( &p->tDiagEval, tPhase );
         nDirty = Vec_IntSize( p->vDirtyKeys );
         if ( nDirty > p->nMaxDirty )
             p->nMaxDirty = nDirty;
         p->vBatchInfo = NULL;
         p->nFallbackPre++;
         p->nBatchFull++;
-        return CEC_SEEDSIM_RESULT_FULL_WIDE;
+        return Cec_SeedSimProfReturn( p, CEC_SEEDSIM_RESULT_FULL_WIDE, tTry );
     }
+    Cec_SeedSimProfStop( &p->tDiagEval, tPhase );
     Cec_SeedSimRestartTfoMarks( p );
     Cec_SeedSimUseCexLanes( p );
+    tPhase = Cec_SeedSimProfStart();
     Cec_SeedSimTxnBegin( p );
+    Cec_SeedSimProfStop( &p->tTxn, tPhase );
+    tPhase = Cec_SeedSimProfStart();
     if ( !Cec_SeedSimProcessKeys(p, pSim, p->vDiagKeys, nLimit, 1) )
     {
+        Cec_SeedSimProfStop( &p->tDiagSim, tPhase );
         nDirty = Abc_MaxInt( p->nSpecKeys, p->nEvalKeys );
         if ( nDirty > p->nMaxDirty )
             p->nMaxDirty = nDirty;
+        tPhase = Cec_SeedSimProfStart();
         Cec_SeedSimTxnRollback( p );
+        Cec_SeedSimProfStop( &p->tTxn, tPhase );
         p->vBatchInfo = NULL;
         p->nFallbackProcess++;
         p->nBatchFull++;
-        return CEC_SEEDSIM_RESULT_FULL;
+        return Cec_SeedSimProfReturn( p, CEC_SEEDSIM_RESULT_FULL, tTry );
     }
+    Cec_SeedSimProfStop( &p->tDiagSim, tPhase );
     {
         int nMissing;
+        tPhase = Cec_SeedSimProfStart();
         nMissing = Cec_SeedSimDiagnosisMissing( p );
+        Cec_SeedSimProfStop( &p->tDiagSim, tPhase );
         if ( nMissing )
         {
             nDirty = Abc_MaxInt( p->nSpecKeys, p->nEvalKeys );
             if ( nDirty > p->nMaxDirty )
                 p->nMaxDirty = nDirty;
+            tPhase = Cec_SeedSimProfStart();
             Cec_SeedSimTxnRollback( p );
+            Cec_SeedSimProfStop( &p->tTxn, tPhase );
             p->vBatchInfo = NULL;
             p->nCoverageMiss += nMissing;
             p->nFallbackCoverage++;
             p->nBatchFull++;
-            return CEC_SEEDSIM_RESULT_FULL;
+            return Cec_SeedSimProfReturn( p, CEC_SEEDSIM_RESULT_FULL, tTry );
         }
     }
+    tPhase = Cec_SeedSimProfStart();
     Cec_SeedSimTxnCommit( p );
+    Cec_SeedSimProfStop( &p->tTxn, tPhase );
+    tPhase = Cec_SeedSimProfStart();
     Cec_SeedSimUsePackedLanes( p );
     nInitialSplits = Vec_IntSize( p->vSplitKeys );
     Cec_SeedSimQueueInitialSplits( p, nInitialSplits );
     if ( !Cec_SeedSimComputeTfo(p, nTfoLimit) )
     {
+        Cec_SeedSimProfStop( &p->tTfoBuild, tPhase );
         nDirty = Vec_IntSize( p->vDirtyKeys );
         if ( nDirty > p->nMaxDirty )
             p->nMaxDirty = nDirty;
@@ -2027,12 +2099,15 @@ static int Cec_SeedSimTryBatchLegacy( Cec_SeedSim_t * p, Cec_ManSim_t * pSim,
         p->nBatchTrunc++;
         p->nTruncCone++;
         p->nBatchLocal++;
-        return CEC_SEEDSIM_RESULT_LOCAL;
+        return Cec_SeedSimProfReturn( p, CEC_SEEDSIM_RESULT_LOCAL, tTry );
     }
     Cec_SeedSimCollectWave( p );
+    Cec_SeedSimProfStop( &p->tTfoBuild, tPhase );
+    tPhase = Cec_SeedSimProfStart();
     if ( Vec_IntSize(p->vWaveKeys) &&
          !Cec_SeedSimProcessKeys(p, pSim, p->vWaveKeys, nTfoLimit, 0) )
     {
+        Cec_SeedSimProfStop( &p->tTfoSim, tPhase );
         p->nDeferredSplits += Vec_IntSize(p->vSplitKeys) - nInitialSplits;
         if ( p->nEvalKeys > p->nMaxDirty )
             p->nMaxDirty = p->nEvalKeys;
@@ -2040,8 +2115,9 @@ static int Cec_SeedSimTryBatchLegacy( Cec_SeedSim_t * p, Cec_ManSim_t * pSim,
         p->nBatchTrunc++;
         p->nTruncEval++;
         p->nBatchLocal++;
-        return CEC_SEEDSIM_RESULT_LOCAL;
+        return Cec_SeedSimProfReturn( p, CEC_SEEDSIM_RESULT_LOCAL, tTry );
     }
+    Cec_SeedSimProfStop( &p->tTfoSim, tPhase );
     p->nDeferredSplits += Vec_IntSize(p->vSplitKeys) - nInitialSplits;
     nDirty = Abc_MaxInt( p->nSpecKeys, Vec_IntSize(p->vDirtyKeys) );
     nDirty = Abc_MaxInt( nDirty, p->nEvalKeys );
@@ -2049,7 +2125,7 @@ static int Cec_SeedSimTryBatchLegacy( Cec_SeedSim_t * p, Cec_ManSim_t * pSim,
         p->nMaxDirty = nDirty;
     p->vBatchInfo = NULL;
     p->nBatchLocal++;
-    return CEC_SEEDSIM_RESULT_LOCAL;
+    return Cec_SeedSimProfReturn( p, CEC_SEEDSIM_RESULT_LOCAL, tTry );
 }
 
 int Cec_SeedSimTryBatch( Cec_SeedSim_t * p, Cec_ManSim_t * pSim,
@@ -2068,6 +2144,7 @@ int Cec_SeedSimTryBatch( Cec_SeedSim_t * p, Cec_ManSim_t * pSim,
     int nTotalInputs = p->nRegs + p->nPis * p->nFrames;
     int i, iVar, Key;
     int Status = CEC_SEEDSIM_RESULT_LOCAL;
+    abctime tTry = Cec_SeedSimProfStart(), tPhase;
     assert( nFrames == p->nFrames );
     assert( vSimInfo == p->vSimInfo );
     Cec_SeedSimRecordBatch( p, Vec_IntSize(vOutBits) / 2 );
@@ -2083,7 +2160,7 @@ int Cec_SeedSimTryBatch( Cec_SeedSim_t * p, Cec_ManSim_t * pSim,
     {
         p->nFallbackCex++;
         p->nBatchFull++;
-        return CEC_SEEDSIM_RESULT_FULL_WIDE;
+        return Cec_SeedSimProfReturn( p, CEC_SEEDSIM_RESULT_FULL_WIDE, tTry );
     }
     // No class-cone gate.  Event propagation below follows the full forward TFO of
     // this batch's changed CIs (bounded only by the deterministic nNodeLimit /
@@ -2102,6 +2179,7 @@ int Cec_SeedSimTryBatch( Cec_SeedSim_t * p, Cec_ManSim_t * pSim,
     Vec_IntClear( p->vChangedValues );
     p->nEventPops = p->nEventEdges = 0;
 
+    tPhase = Cec_SeedSimProfStart();
     Vec_IntForEachEntry( p->vChangedInputs, iVar, i )
         if ( !Cec_SeedSimEventUpdateInput(p, iVar, nEdgeLimit) )
         {
@@ -2119,6 +2197,7 @@ int Cec_SeedSimTryBatch( Cec_SeedSim_t * p, Cec_ManSim_t * pSim,
             break;
         }
     }
+    Cec_SeedSimProfStop( &p->tEventProp, tPhase );
     p->nEventPopsMax = Abc_MaxInt( p->nEventPopsMax, p->nEventPops );
     p->nEventEdgesMax = Abc_MaxInt( p->nEventEdgesMax, p->nEventEdges );
     p->nMaxDirty = Abc_MaxInt(
@@ -2130,17 +2209,20 @@ int Cec_SeedSimTryBatch( Cec_SeedSim_t * p, Cec_ManSim_t * pSim,
         p->nEventFallbackWork++;
         p->nFallbackPre++;
         p->nBatchFull++;
-        return Status;
+        return Cec_SeedSimProfReturn( p, Status, tTry );
     }
+    tPhase = Cec_SeedSimProfStart();
     Cec_SeedSimTxnBegin( p );
     Cec_SeedSimEventRefine( p, pSim );
     Cec_SeedSimTxnCommit( p );
+    Cec_SeedSimProfStop( &p->tEventRefine, tPhase );
     Vec_IntClear( p->vValueUndo );
     Vec_IntClear( p->vChangedValues );
     Cec_SeedSimCommitPersistentInputs( p );
     p->nEventLocal++;
     p->nBatchLocal++;
-    return CEC_SEEDSIM_RESULT_LOCAL;
+    return Cec_SeedSimProfReturn(
+        p, CEC_SEEDSIM_RESULT_LOCAL, tTry );
 }
 
 void Cec_SeedSimSaveFrameInputs( Cec_SeedSim_t * p, Vec_Ptr_t * vInfoCis, int Frame )
@@ -2186,6 +2268,11 @@ void Cec_SeedSimBeginCall( Cec_SeedSim_t * p )
     p->nEventInputVarsMax = p->nEventInputWordsMax = 0;
     p->nEventFallbackWork = p->nEventFallbackTime = 0;
     p->nAdaptTrips = 0;
+    p->tTry = p->tTryLocal = p->tTryFallback = 0;
+    p->tDiagShape = p->tDiagCollect = p->tDiagEval = p->tDiagSim = 0;
+    p->tTfoBuild = p->tTfoSim = p->tTxn = 0;
+    p->tEventLoad = p->tEventProp = p->tEventRefine = p->tEventRollback = 0;
+    p->tEventInit = 0;
 }
 
 void Cec_SeedSimBypassBatch( Cec_SeedSim_t * p, int nCex )
@@ -2194,6 +2281,53 @@ void Cec_SeedSimBypassBatch( Cec_SeedSim_t * p, int nCex )
     p->nFallbackBypass++;
     p->nBatchFull++;
 }
+
+int Cec_SeedSimNumLocal( Cec_SeedSim_t * p ) { return p->nBatchLocal; }
+int Cec_SeedSimNumFull ( Cec_SeedSim_t * p ) { return p->nBatchFull; }
+int Cec_SeedSimNumTrunc( Cec_SeedSim_t * p ) { return p->nBatchTrunc; }
+int Cec_SeedSimNumRollback( Cec_SeedSim_t * p ) { return p->nBatchRollback; }
+int Cec_SeedSimNumRollbackObjs( Cec_SeedSim_t * p ) { return p->nRollbackObjs; }
+int Cec_SeedSimNumCoverageMiss( Cec_SeedSim_t * p ) { return p->nCoverageMiss; }
+int Cec_SeedSimNumFallbackPre( Cec_SeedSim_t * p ) { return p->nFallbackPre; }
+int Cec_SeedSimNumFallbackProcess( Cec_SeedSim_t * p ) { return p->nFallbackProcess; }
+int Cec_SeedSimNumFallbackCoverage( Cec_SeedSim_t * p ) { return p->nFallbackCoverage; }
+int Cec_SeedSimNumFallbackCex( Cec_SeedSim_t * p ) { return p->nFallbackCex; }
+int Cec_SeedSimNumFallbackBypass( Cec_SeedSim_t * p ) { return p->nFallbackBypass; }
+int Cec_SeedSimNumTruncCone( Cec_SeedSim_t * p ) { return p->nTruncCone; }
+int Cec_SeedSimNumTruncEval( Cec_SeedSim_t * p ) { return p->nTruncEval; }
+int Cec_SeedSimNumBatchCex( Cec_SeedSim_t * p ) { return p->nBatchCex; }
+int Cec_SeedSimNumBatchCexMax( Cec_SeedSim_t * p ) { return p->nBatchCexMax; }
+int Cec_SeedSimNumDeferredSplits( Cec_SeedSim_t * p ) { return p->nDeferredSplits; }
+int Cec_SeedSimNumDirty( Cec_SeedSim_t * p ) { return p->nMaxDirty; }
+int Cec_SeedSimNumConeKeys( Cec_SeedSim_t * p ) { return p->nConeKeys; }
+int Cec_SeedSimNumKeys ( Cec_SeedSim_t * p ) { return p->nFrames * p->nObjs; }
+abctime Cec_SeedSimTimeTry( Cec_SeedSim_t * p ) { return p->tTry; }
+abctime Cec_SeedSimTimeTryLocal( Cec_SeedSim_t * p ) { return p->tTryLocal; }
+abctime Cec_SeedSimTimeTryFallback( Cec_SeedSim_t * p ) { return p->tTryFallback; }
+abctime Cec_SeedSimTimeDiagShape( Cec_SeedSim_t * p ) { return p->tDiagShape; }
+abctime Cec_SeedSimTimeDiagCollect( Cec_SeedSim_t * p ) { return p->tDiagCollect; }
+abctime Cec_SeedSimTimeDiagEval( Cec_SeedSim_t * p ) { return p->tDiagEval; }
+abctime Cec_SeedSimTimeDiagSim( Cec_SeedSim_t * p ) { return p->tDiagSim; }
+abctime Cec_SeedSimTimeTfoBuild( Cec_SeedSim_t * p ) { return p->tTfoBuild; }
+abctime Cec_SeedSimTimeTfoSim( Cec_SeedSim_t * p ) { return p->tTfoSim; }
+abctime Cec_SeedSimTimeTxn( Cec_SeedSim_t * p ) { return p->tTxn; }
+int Cec_SeedSimNumEventLocal( Cec_SeedSim_t * p ) { return p->nEventLocal; }
+int Cec_SeedSimNumEventFallback( Cec_SeedSim_t * p ) { return p->nEventFallback; }
+int Cec_SeedSimNumEventPopsMax( Cec_SeedSim_t * p ) { return p->nEventPopsMax; }
+int Cec_SeedSimNumEventEdgesMax( Cec_SeedSim_t * p ) { return p->nEventEdgesMax; }
+int Cec_SeedSimNumEventInputVarsMax( Cec_SeedSim_t * p ) { return p->nEventInputVarsMax; }
+int Cec_SeedSimNumEventInputWordsMax( Cec_SeedSim_t * p ) { return p->nEventInputWordsMax; }
+int Cec_SeedSimNumEventFallbackWork( Cec_SeedSim_t * p ) { return p->nEventFallbackWork; }
+int Cec_SeedSimNumEventFallbackTime( Cec_SeedSim_t * p ) { return p->nEventFallbackTime; }
+int Cec_SeedSimNumAdaptLocal( Cec_SeedSim_t * p ) { return p->nAdaptLocal; }
+int Cec_SeedSimNumAdaptFail( Cec_SeedSim_t * p ) { return p->nAdaptFail; }
+int Cec_SeedSimNumAdaptTrips( Cec_SeedSim_t * p ) { return p->nAdaptTrips; }
+int Cec_SeedSimNumAdaptCooldown( Cec_SeedSim_t * p ) { return p->nFallbackCooldown; }
+abctime Cec_SeedSimTimeEventLoad( Cec_SeedSim_t * p ) { return p->tEventLoad; }
+abctime Cec_SeedSimTimeEventProp( Cec_SeedSim_t * p ) { return p->tEventProp; }
+abctime Cec_SeedSimTimeEventRefine( Cec_SeedSim_t * p ) { return p->tEventRefine; }
+abctime Cec_SeedSimTimeEventRollback( Cec_SeedSim_t * p ) { return p->tEventRollback; }
+abctime Cec_SeedSimTimeEventInit( Cec_SeedSim_t * p ) { return p->tEventInit; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

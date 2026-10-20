@@ -1749,7 +1749,11 @@ Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_RwrPar_t * pPars )
         Vec_VecFree( vParts );
     }
 */
-    Dar_ManRewrite( pMan, pPars );
+    if ( !Dar_ManRewrite( pMan, pPars ) && pPars->nResubCutSize )
+    {
+        Aig_ManStop( pMan );
+        return NULL;
+    }
 //    pMan = Dar_ManBalance( pTemp = pMan, pPars->fUpdateLevel );
 //    Aig_ManStop( pTemp );
 

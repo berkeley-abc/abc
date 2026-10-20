@@ -49,6 +49,8 @@ struct Cec_DynSrm_t_
     Vec_Int_t *      vRoMap;        // host obj id -> RO index
     // Phase-2 measurement (behavior-preserving): per-key stamp used to count the
     // union of true-value (no repr substitution) cones of the active pairs.
+    int *            pTrueMark;     // size = nFramesTotal * nObjs; 0 = unvisited
+    int              nTrueStamp;    // current visit stamp
     int              nObjs;
     int              nPis;
     int              nRegs;
@@ -107,12 +109,14 @@ struct Cec_DynSrm_t_
     abctime          tBuildEnsureLast;
     abctime          tBuildInvalidateLast;
     abctime          tBuildEmitLast;
+    abctime          tBuildTrueConeLast;
     abctime          tBuildTotal;
     abctime          tBuildResetTotal;
     abctime          tBuildReuseTotal;
     abctime          tBuildEnsureTotal;
     abctime          tBuildInvalidateTotal;
     abctime          tBuildEmitTotal;
+    abctime          tBuildTrueConeTotal;
     abctime          tViewLast;
     abctime          tViewTotal;
     abctime          tSolveLast;
@@ -216,6 +220,8 @@ static void Cec_DynSrmResetCore( Cec_DynSrm_t * p )
     Vec_IntFreeP( &p->vCopyTouched );
     Vec_IntFreeP( &p->vPiMap );
     Vec_IntFreeP( &p->vRoMap );
+    ABC_FREE( p->pTrueMark );
+    p->nTrueStamp = 0;
     p->nObjs = p->nPis = p->nRegs = p->nFramesTotal = p->nCoreCiNum = 0;
 }
 
@@ -244,6 +250,23 @@ enum {
     CEC_DYN_RESET_IFALLBACK = 5,
     CEC_DYN_RESET_DACTIVE = 6
 };
+
+static const char * Cec_DynSrmResetReasonName( int Reason )
+{
+    if ( Reason == CEC_DYN_RESET_SHAPE )
+        return "shape";
+    if ( Reason == CEC_DYN_RESET_COMPACT )
+        return "compact";
+    if ( Reason == CEC_DYN_RESET_ADAPT )
+        return "adapt";
+    if ( Reason == CEC_DYN_RESET_BURST )
+        return "burst";
+    if ( Reason == CEC_DYN_RESET_IFALLBACK )
+        return "ifallback";
+    if ( Reason == CEC_DYN_RESET_DACTIVE )
+        return "dactive";
+    return "reuse";
+}
 
 static int Cec_DynSrmCurrentBloatPermil( Cec_DynSrm_t * p )
 {
@@ -554,11 +577,22 @@ static Gia_Man_t * Cec_DynSrmBuildView( Cec_DynSrm_t * p )
     return pView;
 }
 
+static const char * Cec_DynSrmModeName( Cec_IncrEmitMode_t Mode )
+{
+    if ( Mode == CEC_EMIT_ACTIVE )
+        return "active";
+    if ( Mode == CEC_EMIT_SKIPPED )
+        return "skipped";
+    return "full";
+}
+
 static void Cec_DynSrmRecordBuildStats( Cec_DynSrm_t * p,
     Cec_IncrEmitMode_t Mode, int nCoreObjsBefore, int nCoreResetsBefore,
-    abctime tBuild, abctime tEnsure, abctime tInvalidate, abctime tEmit )
+    abctime tBuild, abctime tEnsure, abctime tInvalidate, abctime tEmit,
+    abctime tTrueCone )
 {
     int fReset = p->nCoreResets > nCoreResetsBefore;
+    int ResetReason = fReset ? p->nLastResetReason : CEC_DYN_RESET_NONE;
     p->nBuildsSinceReset++;
     if ( Mode == CEC_EMIT_ACTIVE )
     {
@@ -586,6 +620,7 @@ static void Cec_DynSrmRecordBuildStats( Cec_DynSrm_t * p,
         p->tBuildEnsureLast = tEnsure;
         p->tBuildInvalidateLast = tInvalidate;
         p->tBuildEmitLast = tEmit;
+        p->tBuildTrueConeLast = tTrueCone;
         p->tBuildTotal += tBuild;
         if ( fReset )
             p->tBuildResetTotal += tBuild;
@@ -594,7 +629,15 @@ static void Cec_DynSrmRecordBuildStats( Cec_DynSrm_t * p,
         p->tBuildEnsureTotal += tEnsure;
         p->tBuildInvalidateTotal += tInvalidate;
         p->tBuildEmitTotal += tEmit;
+        p->tBuildTrueConeTotal += tTrueCone;
     }
+    if ( Cec_ScorrProfOn )
+        Abc_Print( 1, "[scorr2-profile] dynsrm build=%d mode=%s reset=%d reason=%s roots=%d core=%d delta=%d bloat=%.3f time_ms(total/ensure/invalidate/emit/truecone)=%.3f/%.3f/%.3f/%.3f/%.3f\n",
+            p->nBuilds, Cec_DynSrmModeName(Mode), fReset, Cec_DynSrmResetReasonName(ResetReason),
+            p->nOutLitsLast, p->nCoreObjsLast, p->nCoreDeltaLast,
+            0.001 * p->nCoreBloatLastPermil,
+            1.0e-6 * tBuild, 1.0e-6 * tEnsure, 1.0e-6 * tInvalidate,
+            1.0e-6 * tEmit, 1.0e-6 * tTrueCone );
 }
 
 Cec_DynSrm_t * Cec_DynSrmAlloc( Gia_Man_t * pAig, Cec_IncrMgr_t * pIncr, int fUseAdaptive )
@@ -631,6 +674,57 @@ void Cec_DynSrmFree( Cec_DynSrm_t * p )
         return;
     Cec_DynSrmResetCore( p );
     ABC_FREE( p );
+}
+
+void Cec_DynSrmPrintStats( Cec_DynSrm_t * p )
+{
+    ABC_INT64_T nActive = p ? p->nBuildsActive : 0;
+    ABC_INT64_T nFull = p ? p->nBuildsFull : 0;
+    if ( p == NULL )
+        return;
+    Abc_Print( 1, "[scorr2-profile] dynsrm summary\n" );
+    Abc_Print( 1, "  builds: total=%d active=%d full=%d core=%d view=%d resets=%d compactions=%d\n",
+        p->nBuilds, p->nBuildsActive, p->nBuildsFull, p->nCoreBuilds,
+        p->nViewBuilds, p->nCoreResets, p->nCoreCompactions );
+    Abc_Print( 1, "  size: roots_last/max=%d/%d core_last/max=%d/%d view_last/max=%d/%d delta_last/max=%d/%d bloat_last/max=%.3f/%.3f\n",
+        p->nOutLitsLast, p->nOutLitsMax,
+        p->nCoreObjsLast, p->nCoreObjsMax,
+        p->nViewObjsLast, p->nViewObjsMax,
+        p->nCoreDeltaLast, p->nCoreDeltaMax,
+        0.001 * p->nCoreBloatLastPermil,
+        0.001 * p->nCoreBloatMaxPermil );
+    Abc_Print( 1, "  reset: incremental_fallback=%d dynamic_active=%d compact_multiple=%d\n",
+        p->nIncrFallbackResets, p->nDynActiveResets, p->nCompactMult );
+    Abc_Print( 1, "  adaptive: enabled=%d resets=%d burst=%d span=%d samples_reset/reuse=%d/%d cost_ns_per_call(reset/reuse/last)=%.3f/%.3f/%.3f\n",
+        p->fUseAdaptive, p->nAdaptiveResets, p->nAdaptiveBurstResets,
+        p->nLastResetSpan, p->nAdaptResetSamples, p->nAdaptReuseSamples,
+        p->dAdaptResetCost, p->dAdaptReuseCost, p->dAdaptLastCost );
+    Abc_Print( 1, "  cache: full_clears=%d local_clears=%d local_entries=%d\n",
+        p->nCacheFullClears, p->nCacheLocalClears, p->nCacheLocalEntries );
+    Abc_Print( 1, "  average: roots_full/active=%.1f/%.1f core_full/active=%.1f/%.1f\n",
+        nFull ? (double)p->nOutLitsFullSum / (double)nFull : 0.0,
+        nActive ? (double)p->nOutLitsActiveSum / (double)nActive : 0.0,
+        nFull ? (double)p->nCoreObjsFullSum / (double)nFull : 0.0,
+        nActive ? (double)p->nCoreObjsActiveSum / (double)nActive : 0.0 );
+    Abc_Print( 1, "  solve: iterations=%lld calls=%lld cex_real/trivial/failed=%lld/%lld/%lld failed_iterations=%lld\n",
+        (long long)p->nSolveIters, (long long)p->nSolveCalls,
+        (long long)p->nSolveReal, (long long)p->nSolveTriv,
+        (long long)p->nSolveFail, (long long)p->nSolveFailIters );
+    Abc_Print( 1, "  failed_work: core_avg/max=%.1f/%d roots_avg/max=%.1f/%d\n",
+        p->nSolveFail ? (double)p->nFailCoreObjSum / (double)p->nSolveFail : 0.0,
+        p->nFailCoreObjMax,
+        p->nSolveFail ? (double)p->nFailOutLitSum / (double)p->nSolveFail : 0.0,
+        p->nFailOutLitMax );
+    if ( p->tBuildTotal || p->tViewTotal )
+        Abc_Print( 1, "  time_ms: build=%.3f reset=%.3f reuse=%.3f view=%.3f ensure=%.3f invalidate=%.3f emit=%.3f truecone=%.3f\n",
+            1.0e-6 * p->tBuildTotal,
+            1.0e-6 * p->tBuildResetTotal,
+            1.0e-6 * p->tBuildReuseTotal,
+            1.0e-6 * p->tViewTotal,
+            1.0e-6 * p->tBuildEnsureTotal,
+            1.0e-6 * p->tBuildInvalidateTotal,
+            1.0e-6 * p->tBuildEmitTotal,
+            1.0e-6 * p->tBuildTrueConeTotal );
 }
 
 static void Cec_DynSrmUpdateAdaptCost( double * pCost, int * pSamples, double Value )
@@ -735,6 +829,103 @@ void Cec_DynSrmCountActivePairs( Cec_DynSrm_t * p, int fRings, int * pTfoMark,
     }
 }
 
+// Phase-2 measurement only (gated on -w; never mutates pCore or classes).
+// Marks the union of true-value cones (NO repr substitution) of one host
+// endpoint at one frame, counting the distinct (frame,obj) keys a sim-on-SRM
+// true-value resim would have to evaluate for this endpoint.
+static void Cec_DynSrmTrueConeMark_rec( Cec_DynSrm_t * p, int ObjId, int f, int * pnKeys )
+{
+    Gia_Obj_t * pObj;
+    int Key;
+    if ( ObjId == 0 )
+        return;
+    Key = f * p->nObjs + ObjId;
+    if ( p->pTrueMark[Key] == p->nTrueStamp )
+        return;
+    p->pTrueMark[Key] = p->nTrueStamp;
+    (*pnKeys)++;
+    pObj = Gia_ManObj( p->pAig, ObjId );
+    if ( Gia_ObjIsPi(p->pAig, pObj) )
+        return;
+    if ( Gia_ObjIsRo(p->pAig, pObj) )
+    {
+        if ( f == 0 )
+            return;
+        Cec_DynSrmTrueConeMark_rec( p,
+            Gia_ObjFaninId0p(p->pAig, Gia_ObjRoToRi(p->pAig, pObj)), f - 1, pnKeys );
+        return;
+    }
+    assert( Gia_ObjIsAnd(pObj) );
+    Cec_DynSrmTrueConeMark_rec( p, Gia_ObjFaninId0p(p->pAig, pObj), f, pnKeys );
+    Cec_DynSrmTrueConeMark_rec( p, Gia_ObjFaninId1p(p->pAig, pObj), f, pnKeys );
+}
+
+// Reports the size of the active pairs' true-value cone versus the full host
+// unrolling (design doc 20.2 go/no-go: sim-on-SRM only pays when ratio << 1).
+static void Cec_DynSrmReportTrueCone( Cec_DynSrm_t * p, int nFrames, int fRings, int * pTfoMask )
+{
+    Gia_Man_t * pAig = p->pAig;
+    Gia_Obj_t * pObj, * pRepr;
+    int i, iPrev, iObj, nKeys = 0;
+    ABC_INT64_T nFull;
+    // This scratch buffer is used only by the optional profiling measurement.
+    if ( p->pTrueMark == NULL )
+        p->pTrueMark = ABC_CALLOC( int, p->nFramesTotal * p->nObjs );
+    if ( ++p->nTrueStamp == 0 )
+    {
+        memset( p->pTrueMark, 0, sizeof(int) * p->nFramesTotal * p->nObjs );
+        p->nTrueStamp = 1;
+    }
+    if ( fRings )
+    {
+        Gia_ManForEachObj1( pAig, pObj, i )
+        {
+            if ( Gia_ObjIsConst( pAig, i ) )
+            {
+                if ( Cec_DynSrmActiveConst( p, pTfoMask, i ) )
+                    Cec_DynSrmTrueConeMark_rec( p, i, nFrames, &nKeys );
+            }
+            else if ( Gia_ObjIsHead( pAig, i ) )
+            {
+                iPrev = i;
+                Gia_ClassForEachObj1( pAig, i, iObj )
+                {
+                    if ( Cec_DynSrmActivePair( p, pTfoMask, 1, iPrev, iObj ) )
+                    {
+                        Cec_DynSrmTrueConeMark_rec( p, iPrev, nFrames, &nKeys );
+                        Cec_DynSrmTrueConeMark_rec( p, iObj,  nFrames, &nKeys );
+                    }
+                    iPrev = iObj;
+                }
+                if ( Cec_DynSrmActivePair( p, pTfoMask, 1, iPrev, i ) )
+                {
+                    Cec_DynSrmTrueConeMark_rec( p, iPrev, nFrames, &nKeys );
+                    Cec_DynSrmTrueConeMark_rec( p, i,     nFrames, &nKeys );
+                }
+            }
+        }
+    }
+    else
+    {
+        Gia_ManForEachObj1( pAig, pObj, i )
+        {
+            int idR;
+            pRepr = Gia_ObjReprObj( pAig, Gia_ObjId(pAig,pObj) );
+            if ( pRepr == NULL )
+                continue;
+            idR = Gia_ObjId( pAig, pRepr );
+            if ( !Cec_DynSrmActivePair( p, pTfoMask, 0, idR, i ) )
+                continue;
+            if ( !Gia_ObjIsConst(pAig, i) )
+                Cec_DynSrmTrueConeMark_rec( p, idR, nFrames, &nKeys );
+            Cec_DynSrmTrueConeMark_rec( p, i, nFrames, &nKeys );
+        }
+    }
+    nFull = (ABC_INT64_T)p->nFramesTotal * p->nObjs;
+    Abc_Print( 1, "[scorr2-profile] dynsrm truecone build=%d active_keys=%d full_keys=%lld ratio=%.4f\n",
+        p->nBuilds, nKeys, nFull, nFull ? (double)nKeys / (double)nFull : 0.0 );
+}
+
 // Builds (or extends) the persistent COless pCore and selects this round's
 // active-pair root literals into p->vOutLits / *pvOutputs.  Shared by the view
 // path (Cec_DynSrmBuild) and the -D persistence path (solve pCore directly).
@@ -744,9 +935,9 @@ void Cec_DynSrmBuildCore( Cec_DynSrm_t * p, int nFrames, int fScorr,
     Gia_Obj_t * pObj, * pRepr;
     int i, iPrev, iObj, iPrevNew, iObjNew, iPrevRaw, iObjRaw;
     int nCoreResetsBefore, nCoreObjsBefore;
-    int fMeasure = p->fUseAdaptive;
+    int fMeasure = Cec_ScorrProfOn || p->fUseAdaptive;
     abctime tBuild = fMeasure ? Abc_ClockHr() : 0;
-    abctime tStep, tEnsure = 0, tInvalidate = 0, tEmit = 0;
+    abctime tStep, tEnsure = 0, tInvalidate = 0, tEmit = 0, tTrueCone = 0;
     assert( p != NULL );
     assert( nFrames > 0 );
     assert( Gia_ManRegNum(p->pAig) > 0 );
@@ -859,16 +1050,34 @@ void Cec_DynSrmBuildCore( Cec_DynSrm_t * p, int nFrames, int fScorr,
         p->nCoreObjsAtReset = p->nCoreObjsLast;   // real post-build size as the compaction baseline
     p->nCoreObjsMax = Abc_MaxInt( p->nCoreObjsMax, p->nCoreObjsLast );
     if ( fMeasure ) tEmit = Abc_ClockHr() - tStep;
+    if ( Cec_ScorrProfOn && Mode == CEC_EMIT_ACTIVE )
+    {
+        tStep = Abc_ClockHr();
+        Cec_DynSrmReportTrueCone( p, nFrames, fRings, pTfoMask );
+        tTrueCone = Abc_ClockHr() - tStep;
+    }
     if ( fMeasure ) tBuild = Abc_ClockHr() - tBuild;
     Cec_DynSrmRecordBuildStats( p, Mode, nCoreObjsBefore, nCoreResetsBefore,
-        tBuild, tEnsure, tInvalidate, tEmit );
+        tBuild, tEnsure, tInvalidate, tEmit, tTrueCone );
 }
 
 Gia_Man_t * Cec_DynSrmBuild( Cec_DynSrm_t * p, int nFrames, int fScorr,
     Vec_Int_t ** pvOutputs, int fRings, int * pTfoMask, Cec_IncrEmitMode_t Mode )
 {
+    Gia_Man_t * pView;
+    abctime tView;
     Cec_DynSrmBuildCore( p, nFrames, fScorr, pvOutputs, fRings, pTfoMask, Mode );
-    return Cec_DynSrmBuildView( p );
+    tView = Cec_ScorrProfOn ? Abc_ClockHr() : 0;
+    pView = Cec_DynSrmBuildView( p );
+    if ( Cec_ScorrProfOn )
+    {
+        p->tViewLast = Abc_ClockHr() - tView;
+        p->tViewTotal += p->tViewLast;
+        Abc_Print( 1, "[scorr2-profile] dynsrm view build=%d roots=%d objects=%d time_ms=%.3f\n",
+            p->nBuilds, Vec_IntSize(p->vOutLits), p->nViewObjsLast,
+            1.0e-6 * p->tViewLast );
+    }
+    return pView;
 }
 
 // BMC/init variant of Cec_DynSrmBuildCore.  It mirrors
@@ -881,7 +1090,7 @@ void Cec_DynSrmBuildCoreInit( Cec_DynSrm_t * p, int nFrames, int nPrefix, int fS
     Gia_Obj_t * pObj, * pRepr;
     int f, i, iPrevNew, iObjNew;
     int nCoreResetsBefore, nCoreObjsBefore;
-    int fMeasure = p->fUseAdaptive;
+    int fMeasure = Cec_ScorrProfOn || p->fUseAdaptive;
     abctime tBuild = fMeasure ? Abc_ClockHr() : 0;
     abctime tStep, tEnsure = 0, tInvalidate = 0, tEmit = 0;
     assert( p != NULL );
@@ -941,7 +1150,7 @@ void Cec_DynSrmBuildCoreInit( Cec_DynSrm_t * p, int nFrames, int nPrefix, int fS
         tBuild = Abc_ClockHr() - tBuild;
     }
     Cec_DynSrmRecordBuildStats( p, Mode, nCoreObjsBefore, nCoreResetsBefore,
-        tBuild, tEnsure, tInvalidate, tEmit );
+        tBuild, tEnsure, tInvalidate, tEmit, 0 );
 }
 
 Gia_Man_t * Cec_DynSrmBuildInit( Cec_DynSrm_t * p, int nFrames, int nPrefix, int fScorr,
@@ -1042,6 +1251,18 @@ static int Cec_DynSrmTasRetryBatch( Cec_DynSrm_t * p, int nConfs,
     return nResolved;
 }
 
+static void Cec_DynSrmProfAccumulate( int * pnCalls, abctime * ptSetup,
+    abctime * ptSolve, abctime * ptMax )
+{
+    if ( !Cec_ScorrProfOn )
+        return;
+    *pnCalls += Cec_ScorrProfCalls;
+    *ptSetup += Cec_ScorrProfSetup;
+    *ptSolve += Cec_ScorrProfSolve;
+    if ( *ptMax < Cec_ScorrProfMax )
+        *ptMax = Cec_ScorrProfMax;
+}
+
 /**Function*************************************************************
 
   Synopsis    [CBS-first BMC solving with guarded TAS rescue.]
@@ -1063,7 +1284,9 @@ Vec_Int_t * Cec_DynSrmSolveBmcAdaptive( Cec_DynSrm_t * p, int nConfs,
     Vec_Int_t * vProbeRoots, * vProbeMap, * vRetryRoots, * vRetryMap;
     Vec_Int_t * vTasStore, * vTasStarts, * vFinalStore;
     abctime clk;
+    abctime tProfSetup = 0, tProfSolve = 0, tProfMax = 0;
     int i, Status, nRoots = Vec_IntSize(p->vOutLits), nProbe, nProbeResolved;
+    int nProfCalls = 0;
     int nFrames = Abc_MaxInt( 1, p->nFramesTotal );
     int nCore = Gia_ManObjNum( p->pCore );
     int nCoreNorm = (nCore + nFrames - 1) / nFrames;
@@ -1076,6 +1299,7 @@ Vec_Int_t * Cec_DynSrmSolveBmcAdaptive( Cec_DynSrm_t * p, int nConfs,
     clk = Abc_ClockHr();
     vCbsStore = Cec_DynSrmSolve( p, nConfs, &vStatus, 0 );
     p->tBmcCbs += Abc_ClockHr() - clk;
+    Cec_DynSrmProfAccumulate( &nProfCalls, &tProfSetup, &tProfSolve, &tProfMax );
     vUnknown = Vec_IntAlloc( 64 );
     Vec_StrForEachEntry( vStatus, Status, i )
         if ( Status == -1 )
@@ -1125,6 +1349,7 @@ Vec_Int_t * Cec_DynSrmSolveBmcAdaptive( Cec_DynSrm_t * p, int nConfs,
     nProbeResolved = Cec_DynSrmTasRetryBatch( p, nConfs, vProbeRoots, vProbeMap,
         vStatus, vTasStore, vTasStarts );
     p->nBmcTasStructWork += (ABC_INT64_T)nCoreNorm * nProbe;
+    Cec_DynSrmProfAccumulate( &nProfCalls, &tProfSetup, &tProfSolve, &tProfMax );
     p->nBmcTasResolved += nProbeResolved;
     p->nBmcTasUnknown += nProbe - nProbeResolved;
     Vec_IntFree( vProbeRoots );
@@ -1157,6 +1382,7 @@ Vec_Int_t * Cec_DynSrmSolveBmcAdaptive( Cec_DynSrm_t * p, int nConfs,
             p->nBmcTasRetryRoots += Vec_IntSize(vRetryRoots);
             i = Cec_DynSrmTasRetryBatch( p, nConfs, vRetryRoots, vRetryMap,
                 vStatus, vTasStore, vTasStarts );
+            Cec_DynSrmProfAccumulate( &nProfCalls, &tProfSetup, &tProfSolve, &tProfMax );
             p->nBmcTasResolved += i;
             p->nBmcTasUnknown += Vec_IntSize(vRetryRoots) - i;
             p->nBmcTasStructWork += (ABC_INT64_T)nCoreNorm * nRetry;
@@ -1202,8 +1428,37 @@ Vec_Int_t * Cec_DynSrmSolveBmcAdaptive( Cec_DynSrm_t * p, int nConfs,
     Vec_IntFree( vTasStore );
     Vec_IntFree( vTasStarts );
     Vec_IntFree( vUnknown );
+    if ( Cec_ScorrProfOn )
+    {
+        Cec_ScorrProfCalls = nProfCalls;
+        Cec_ScorrProfSetup = tProfSetup;
+        Cec_ScorrProfSolve = tProfSolve;
+        Cec_ScorrProfMax = tProfMax;
+    }
     *pvStatus = vStatus;
     return vFinalStore;
+}
+
+void Cec_DynSrmPrintBmcSolverStats( Cec_DynSrm_t * p )
+{
+    if ( p == NULL )
+        return;
+    Abc_Print( 1, "[scorr2-profile] adaptive_solver summary\n" );
+    Abc_Print( 1, "  cbs: rounds=%lld roots=%lld unknown=%lld tas_skipped_large=%lld\n",
+        (long long)p->nBmcAdaptiveRounds, (long long)p->nBmcCbsRoots,
+        (long long)p->nBmcCbsUnknown, (long long)p->nBmcTasSkippedLarge );
+    Abc_Print( 1, "  tas: probes=%lld retries=%lld resolved=%lld unknown=%lld enabled_rounds=%lld\n",
+        (long long)p->nBmcTasProbeRoots, (long long)p->nBmcTasRetryRoots,
+        (long long)p->nBmcTasResolved, (long long)p->nBmcTasUnknown,
+        (long long)p->nBmcTasEnabledRounds );
+    Abc_Print( 1, "  budget: skipped_work=%lld skipped_roots=%lld structural_work=%lld/%lld retry_roots=%d\n",
+        (long long)p->nBmcTasSkippedWork, (long long)p->nBmcTasSkippedBudget,
+        (long long)p->nBmcTasStructWork, (long long)CEC_BMC_TAS_STRUCT_WORK_MAX,
+        CEC_BMC_TAS_RETRY_ROOTS_MAX );
+    Abc_Print( 1, "  policy: time_ms_cbs/tas=%.3f/%.3f core_limit_abs/norm=%d/%d probe_roots=%d success_threshold=%d%%\n",
+        1.0e-6 * p->tBmcCbs, 1.0e-6 * p->tBmcTas,
+        CEC_BMC_TAS_CORE_ABS_MAX, CEC_BMC_TAS_CORE_NORM_MAX,
+        CEC_BMC_TAS_PROBE_ROOTS, CEC_BMC_TAS_PROBE_SUCCESS_PCT );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -20,6 +20,7 @@
 
 #include <inttypes.h>
 #include <errno.h>
+#include <limits.h>
 #include "base/abc/abc.h"
 #include "bool/lms/lms.h"
 #include "base/main/main.h"
@@ -506,6 +507,7 @@ static int Abc_CommandAbc9Lcorr              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Scorr              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Scorr2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Scorr3             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Sresub             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Drw                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Choice             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Sat                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1374,6 +1376,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&scorr",        Abc_CommandAbc9Scorr,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&scorr2",       Abc_CommandAbc9Scorr2,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&scorr3",       Abc_CommandAbc9Scorr3,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&sresub",       Abc_CommandAbc9Sresub,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&drw",          Abc_CommandAbc9Drw,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&choice",       Abc_CommandAbc9Choice,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sat",          Abc_CommandAbc9Sat,          0 );
@@ -18341,7 +18344,7 @@ int Abc_CommandDRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk, * pNtkRes;
     Dar_RwrPar_t Pars, * pPars = &Pars;
-    int c;
+    int c, fRewriteOption = 0;
 
     extern Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_RwrPar_t * pPars );
 
@@ -18349,11 +18352,12 @@ int Abc_CommandDRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Dar_ManDefaultRwrParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CNMflzrvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CNMKflzrvwh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'C':
+            fRewriteOption = 1;
             if ( globalUtilOptind >= argc )
             {
                 Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
@@ -18365,6 +18369,7 @@ int Abc_CommandDRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             break;
         case 'N':
+            fRewriteOption = 1;
             if ( globalUtilOptind >= argc )
             {
                 Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
@@ -18376,6 +18381,7 @@ int Abc_CommandDRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             break;
         case 'M':
+            fRewriteOption = 1;
             if ( globalUtilOptind >= argc )
             {
                 Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
@@ -18387,21 +18393,37 @@ int Abc_CommandDRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             break;
         case 'f':
+            fRewriteOption = 1;
             pPars->fFanout ^= 1;
             break;
         case 'l':
             pPars->fUpdateLevel ^= 1;
             break;
         case 'z':
+            fRewriteOption = 1;
             pPars->fUseZeros ^= 1;
             break;
         case 'r':
+            fRewriteOption = 1;
             pPars->fRecycle ^= 1;
             break;
+        case 'K':
+        {
+            char * pEnd;
+            long Value;
+            if ( globalUtilOptind >= argc ) goto usage;
+            errno = 0;
+            Value = strtol( argv[globalUtilOptind++], &pEnd, 10 );
+            if ( errno || pEnd == argv[globalUtilOptind-1] ||
+                 *pEnd || (Value != 0 && Value < 4) || Value > 10 ) goto usage;
+            pPars->nResubCutSize = (int)Value;
+            break;
+        }
         case 'v':
             pPars->fVerbose ^= 1;
             break;
         case 'w':
+            fRewriteOption = 1;
             pPars->fVeryVerbose ^= 1;
             break;
         case 'h':
@@ -18410,6 +18432,8 @@ int Abc_CommandDRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( (pPars->nResubCutSize && fRewriteOption) ||
+         globalUtilOptind != argc ) goto usage;
     if ( pPars->fUseZeros )
         pPars->nMinSaved = 0;
     if ( pPars->nMinSaved == 0 )
@@ -18428,14 +18452,14 @@ int Abc_CommandDRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "Command has failed.\n" );
-        return 0;
+        return pPars->nResubCutSize ? 1 : 0;
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: drw [-C num] [-NM num] [-lfzrvwh]\n" );
+    Abc_Print( -2, "usage: drw [-C num] [-NM num] [-flzrvwh] | drw -K 4..10 [-lv]\n" );
     Abc_Print( -2, "\t         performs combinational AIG rewriting\n" );
     Abc_Print( -2, "\t-C num : the max number of cuts at a node [default = %d]\n", pPars->nCutsMax );
     Abc_Print( -2, "\t-N num : the max number of subgraphs tried [default = %d]\n", pPars->nSubgMax );
@@ -18444,6 +18468,7 @@ usage:
     Abc_Print( -2, "\t-f     : toggle representing fanouts [default = %s]\n", pPars->fFanout? "yes": "no" );
     Abc_Print( -2, "\t-z     : toggle using zero-cost replacements [default = %s]\n", pPars->fUseZeros? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle using cut recycling [default = %s]\n", pPars->fRecycle? "yes": "no" );
+    Abc_Print( -2, "\t-K num : use resubstitution with 4..10 cut leaves (0 = rewriting) [default = %d]\n", pPars->nResubCutSize );
     Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle very verbose printout [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -42241,7 +42266,6 @@ int Abc_CommandAbc9Scorr2( Abc_Frame_t * pAbc, int argc, char ** argv )
     Cec_ParCor_t Pars, * pPars = &Pars;
     Gia_Man_t * pTemp;
     int fPartition = 0;
-    int nFlopIncFreq = 0;
     int fUseOld = 0, c;
     Cec_ManCorSetDefaultParams( pPars );
     pPars->nProcs           = 1;
@@ -42250,7 +42274,7 @@ int Abc_CommandAbc9Scorr2( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->fIncrSim         = 1;
     pPars->fSkipFailResim   = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCGXPSZKYDpkrecqiIosvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCGXPSKYDpkrecqiIosvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -42320,17 +42344,6 @@ int Abc_CommandAbc9Scorr2( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nPartSize < 0 )
                 goto usage;
             break;
-        case 'Z':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-Z\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nFlopIncFreq = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nFlopIncFreq < 0 )
-                goto usage;
-            break;
         case 'p':
             fPartition ^= 1;
             break;
@@ -42389,7 +42402,7 @@ int Abc_CommandAbc9Scorr2( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pPars->fKissatCert &&
          (fUseOld || fPartition || pPars->nPartSize > 0 ||
-          nFlopIncFreq > 0 || pPars->nPrefix > 0) )
+          pPars->nPrefix > 0) )
     {
         Abc_Print( -1, "The strict fixed-point oracle (-K) supports the direct engine with -G 0 only.\n" );
         return 1;
@@ -42415,33 +42428,6 @@ int Abc_CommandAbc9Scorr2( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 0, "The network is combinational.\n" );
         return 0;
     }
-    if ( nFlopIncFreq )
-    {
-        extern Gia_Man_t * Gia_ManDupStopsAdd( Gia_Man_t * p, Vec_Int_t * vStops );
-        extern Gia_Man_t * Gia_ManDupStopsRem( Gia_Man_t * p, Vec_Int_t * vStops );
-        extern Vec_Int_t * Gia_ManFindStopFlops( Gia_Man_t * p, int nFlopIncFreq, int fVerbose );
-        Vec_Int_t * vStops = Gia_ManFindStopFlops( pAbc->pGia, nFlopIncFreq, pPars->fVerbose );
-        if ( vStops )
-        {
-            extern void Gia_ManTransferEquivs2( Gia_Man_t * p, Gia_Man_t * pNew );
-            Gia_Man_t * pUsed = Gia_ManDupStopsAdd( pAbc->pGia, vStops );
-            if ( pPars->nPartSize > 0 )
-                pTemp = Gia_SignalCorrespondencePart( pUsed, pPars );
-            else if ( fUseOld )
-                pTemp = Cec_ManScorrCorrespondence( pUsed, pPars );
-            else if ( fPartition )
-                pTemp = Gia_ManScorrDivideTest( pUsed, pPars );
-            else
-                pTemp = Cec_ManLSCorrespondence2( pUsed, pPars );
-            Gia_ManTransferEquivs2( pUsed, pAbc->pGia );
-            Gia_ManStop( pUsed );
-            pTemp = Gia_ManDupStopsRem( pUsed = pTemp, vStops );
-            Gia_ManStop( pUsed );
-            Abc_FrameUpdateGia( pAbc, pTemp );
-            Vec_IntFree( vStops );
-            return 0;
-        }
-    }
     if ( pPars->nPartSize > 0 )
         pTemp = Gia_SignalCorrespondencePart( pAbc->pGia, pPars );
     else if ( fUseOld )
@@ -42454,7 +42440,7 @@ int Abc_CommandAbc9Scorr2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &scorr2 [-FCGXPSZ num] [-pkrecqiDIsYKovh]\n" );
+    Abc_Print( -2, "usage: &scorr2 [-FCGXPS num] [-pkrecqiDIsYKovh]\n" );
     Abc_Print( -2, "\t         performs signal correpondence computation using the incremental scorr2 engine\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-F num : the number of timeframes in inductive case [default = %d]\n", pPars->nFrames );
@@ -42462,7 +42448,6 @@ usage:
     Abc_Print( -2, "\t-X num : the number of iterations of little or no improvement [default = %d]\n", pPars->nLimitMax );
     Abc_Print( -2, "\t-P num : the number of concurrent processes [default = %d]\n", pPars->nProcs );
     Abc_Print( -2, "\t-S num : the number of flops in one partition [default = %d]\n", pPars->nPartSize );
-    Abc_Print( -2, "\t-Z num : the average flop include frequency [default = %d]\n", nFlopIncFreq );
     Abc_Print( -2, "\t-p     : toggle using partitioning for the input AIG [default = %s]\n", fPartition? "yes": "no" );
     Abc_Print( -2, "\t-k     : toggle using constant correspondence [default = %s]\n", pPars->fConstCorr? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle using implication rings during refinement [default = %s]\n", pPars->fUseRings? "yes": "no" );
@@ -42592,6 +42577,68 @@ usage:
     Abc_Print( -2, "\t-k     : toggle auditing final base and step obligations with Kissat [default = %s]\n", Pars.fKissatCert? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", Pars.fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs sequential root resubstitution.]
+
+***********************************************************************/
+static int Abc_CommandAbc9Sresub( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Cec_ParTran_t Pars;
+    Gia_Man_t * pResult;
+    int c, fStrictOnly = 0;
+
+    Cec_ManTranSetRoute3Params( &Pars, 1 );
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "fcspvh")) != EOF )
+    {
+        if ( c == 'f' || c == 'c' )
+        {
+            char * pEnd;
+            long Value;
+            if ( globalUtilOptind >= argc ) goto usage;
+            errno = 0;
+            Value = strtol( argv[globalUtilOptind++], &pEnd, 10 );
+            if ( errno || pEnd == argv[globalUtilOptind-1] ||
+                 *pEnd || Value < (c == 'f') || Value > INT_MAX - (c == 'f') ) goto usage;
+            if ( c == 'f' ) Pars.nFrames = Pars.nWindowFrames = (int)Value;
+            else Pars.nBTLimit = Pars.nWindowConflicts = (int)Value;
+            continue;
+        }
+        switch ( c )
+        {
+        case 's': fStrictOnly = 1; break;
+        case 'p': Pars.fProfile ^= 1; break;
+        case 'v': Pars.fVerbose ^= 1; break;
+        default: goto usage;
+        }
+    }
+    if ( globalUtilOptind != argc ) goto usage;
+    if ( fStrictOnly ) Pars.fUseOdc = 0;
+    if ( !pAbc->pGia || Gia_ManBoxNum(pAbc->pGia) || Gia_ManBufNum(pAbc->pGia) ||
+         Gia_ManHasChoices(pAbc->pGia) || pAbc->pGia->pMuxes ||
+         Gia_ManXorNum(pAbc->pGia) )
+    {
+        Abc_Print( -1, "&sresub requires a plain GIA without boxes, buffers, or choices.\n" );
+        return 1;
+    }
+    if ( !Gia_ManRegNum(pAbc->pGia) ) return 0;
+    pResult = Cec_ManSequentialTransduction( pAbc->pGia, &Pars );
+    if ( !pResult ) return 1;
+    Abc_FrameUpdateGia( pAbc, pResult );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &sresub [-f num] [-c num] [-spvh]\n" );
+    Abc_Print( -2, "\t-f num : induction depth in Strict and ODC [default = %d]\n", Pars.nFrames );
+    Abc_Print( -2, "\t-c num : SAT conflict limit in Strict and ODC [default = %d]\n", Pars.nBTLimit );
+    Abc_Print( -2, "\t-s     : run Strict only\n" );
+    Abc_Print( -2, "\t-p     : print exact Build reduction\n" );
+    Abc_Print( -2, "\t-v     : print detailed discovery/proof diagnostics\n" );
+    Abc_Print( -2, "\t-h     : print command usage\n" );
     return 1;
 }
 

@@ -985,19 +985,85 @@ int Cbs_ManSolve_rec( Cbs_Man_t * p, int Level )
 ***********************************************************************/
 int Cbs_ManSolve( Cbs_Man_t * p, Gia_Obj_t * pObj )
 {
-    int RetValue = 0;
+    int iLit = Abc_Var2Lit( Gia_ObjId(p->pAig, Gia_Regular(pObj)),
+        Gia_IsComplement(pObj) );
+    return Cbs_ManSolveLits( p, &iLit, 1 );
+}
+int Cbs_ManSolveNoModel( Cbs_Man_t * p, Gia_Obj_t * pObj )
+{
+    int iLit = Abc_Var2Lit( Gia_ObjId(p->pAig, Gia_Regular(pObj)),
+        Gia_IsComplement(pObj) );
+    return Cbs_ManSolveLitsNoModel( p, &iLit, 1 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Solves one conjunction of GIA literals without a query gate.]
+
+  Description [All literals in pLits are asserted true at decision level 0.
+  Returns 1 if the cube is unsatisfiable, 0 if satisfiable, and -1 if the
+  resource limit is reached.  Constants, duplicates, and contradictory
+  literal pairs are handled before entering the recursive solver.  This is
+  the candidate-directed interface used by sequential transduction to prove
+  implications such as a -> b and a -> c independently, without constructing
+  an XOR/miter node.]
+
+  SideEffects [The satisfying model contains CI literals, like Cbs_ManSolve.]
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Cbs_ManSolveLitsInt( Cbs_Man_t * p, int const * pLits,
+    int nLits, int fSaveModel )
+{
+    int RetValue = 0, i, k, iLit, iVar, fSkip;
+    assert( nLits >= 0 );
     assert( !p->pProp.iHead && !p->pProp.iTail );
     assert( !p->pJust.iHead && !p->pJust.iTail );
     assert( p->pClauses.iHead == 1 && p->pClauses.iTail == 1 );
+    Cbs_ManSyncCore( p );
+    Vec_IntClear( p->vModel );
     p->Pars.nBTThis = p->Pars.nJustThis = p->Pars.nBTThisNc = 0;
-    Cbs_ManAssign( p, pObj, 0, NULL, NULL );
-    if ( !Cbs_ManSolve_rec(p, 0) && !Cbs_ManCheckLimits(p) )
+    for ( i = 0; i < nLits; i++ )
     {
-        Cbs_ManSaveModel( p, p->vModel );
-        Cbs_ManSaveOutVals( p, p->vOutLits, p->vOutVals, p->iOutVal );
+        iLit = pLits[i];
+        iVar = Abc_Lit2Var( iLit );
+        assert( iVar >= 0 && iVar < Gia_ManObjNum(p->pAig) );
+        if ( iVar == 0 )
+        {
+            if ( !Abc_LitIsCompl(iLit) )
+                RetValue = 1;
+            continue;
+        }
+        fSkip = 0;
+        for ( k = 0; k < i; k++ )
+            if ( Abc_Lit2Var(pLits[k]) == iVar )
+            {
+                if ( Abc_LitIsCompl(pLits[k]) != Abc_LitIsCompl(iLit) )
+                    RetValue = 1;
+                fSkip = 1;
+                break;
+            }
+        if ( RetValue )
+            break;
+        if ( !fSkip )
+            Cbs_ManAssign( p, Gia_ObjFromLit(p->pAig, iLit), 0, NULL, NULL );
     }
-    else
-        RetValue = 1;
+    if ( !RetValue && p->pProp.iTail )
+    {
+        if ( !Cbs_ManSolve_rec(p, 0) && !Cbs_ManCheckLimits(p) )
+        {
+            if ( fSaveModel == 2 )
+                Cbs_ManSaveModelAll( p, p->vModel );
+            else if ( fSaveModel == 1 )
+            {
+                Cbs_ManSaveModel( p, p->vModel );
+                Cbs_ManSaveOutVals( p, p->vOutLits, p->vOutVals, p->iOutVal );
+            }
+        }
+        else
+            RetValue = 1;
+    }
     Cbs_ManCancelUntil( p, 0 );
     p->pJust.iHead = p->pJust.iTail = 0;
     p->pClauses.iHead = p->pClauses.iTail = 1;
@@ -1007,28 +1073,28 @@ int Cbs_ManSolve( Cbs_Man_t * p, Gia_Obj_t * pObj )
         RetValue = -1;
     return RetValue;
 }
+int Cbs_ManSolveLits( Cbs_Man_t * p, int const * pLits, int nLits )
+{
+    return Cbs_ManSolveLitsInt( p, pLits, nLits, 1 );
+}
+int Cbs_ManSolveLitsNoModel( Cbs_Man_t * p, int const * pLits, int nLits )
+{
+    return Cbs_ManSolveLitsInt( p, pLits, nLits, 0 );
+}
 int Cbs_ManSolve2( Cbs_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pObj2 )
 {
-    int RetValue = 0;
-    assert( !p->pProp.iHead && !p->pProp.iTail );
-    assert( !p->pJust.iHead && !p->pJust.iTail );
-    assert( p->pClauses.iHead == 1 && p->pClauses.iTail == 1 );
-    p->Pars.nBTThis = p->Pars.nJustThis = p->Pars.nBTThisNc = 0;
-    Cbs_ManAssign( p, pObj, 0, NULL, NULL );
-    if ( pObj2 ) 
-    Cbs_ManAssign( p, pObj2, 0, NULL, NULL );
-    if ( !Cbs_ManSolve_rec(p, 0) && !Cbs_ManCheckLimits(p) )
-        Cbs_ManSaveModelAll( p, p->vModel );
-    else
-        RetValue = 1;
-    Cbs_ManCancelUntil( p, 0 );
-    p->pJust.iHead = p->pJust.iTail = 0;
-    p->pClauses.iHead = p->pClauses.iTail = 1;
-    p->Pars.nBTTotal += p->Pars.nBTThis;
-    p->Pars.nJustTotal = Abc_MaxInt( p->Pars.nJustTotal, p->Pars.nJustThis );
-    if ( Cbs_ManCheckLimits( p ) )
-        RetValue = -1;
-    return RetValue;
+    int Lits[2], nLits = 1;
+    Lits[0] = Abc_Var2Lit( Gia_ObjId(p->pAig, Gia_Regular(pObj)),
+        Gia_IsComplement(pObj) );
+    if ( pObj2 )
+        Lits[nLits++] = Abc_Var2Lit(
+            Gia_ObjId(p->pAig, Gia_Regular(pObj2)), Gia_IsComplement(pObj2) );
+    return Cbs_ManSolveLitsInt( p, Lits, nLits, 2 );
+}
+
+int Cbs_ManReadConflicts( Cbs_Man_t * p )
+{
+    return p->Pars.nBTThis;
 }
 
 /**Function*************************************************************
@@ -1076,12 +1142,18 @@ Vec_Int_t * Cbs_ManSolveMiterNcOutVals( Gia_Man_t * pAig, int nConfs, Vec_Str_t 
 {
     extern void Gia_ManCollectTest( Gia_Man_t * pAig );
     extern void Cec_ManSatAddToStore( Vec_Int_t * vCexStore, Vec_Int_t * vCex, int Out );
+    // &scorr fine-grained profiling hooks (defined in cecCorr.c)
+    extern int     Cec_ScorrProfOn, Cec_ScorrProfCalls;
+    extern abctime Cec_ScorrProfSetup, Cec_ScorrProfSolve, Cec_ScorrProfMax;
+    extern ABC_INT64_T Cec_ScorrConfLimit, Cec_ScorrConfUsed;
+    extern int         Cec_ScorrConfStop;
     Cbs_Man_t * p;
     Vec_Int_t * vCex, * vVisit, * vCexStore, * vOutVals = NULL;
     Vec_Str_t * vStatus;
     Gia_Obj_t * pRoot;
     int i, status;
     abctime clk, clkTotal = Abc_Clock();
+    abctime clkHr = Cec_ScorrProfOn ? Abc_ClockHr() : 0;
     assert( Gia_ManRegNum(pAig) == 0 );
 //    Gia_ManCollectTest( pAig );
     // prepare AIG
@@ -1104,6 +1176,12 @@ Vec_Int_t * Cbs_ManSolveMiterNcOutVals( Gia_Man_t * pAig, int nConfs, Vec_Str_t 
     }
     vVisit    = Vec_IntAlloc( 100 );
     vCex      = Cbs_ReadModel( p );
+    if ( Cec_ScorrProfOn )
+    {
+        Cec_ScorrProfSetup = Abc_ClockHr() - clkHr;   // solver alloc + AIG prep
+        Cec_ScorrProfSolve = Cec_ScorrProfMax = 0;
+        Cec_ScorrProfCalls = 0;
+    }
     // solve for each output
     Gia_ManForEachCo( pAig, pRoot, i )
     {
@@ -1125,16 +1203,41 @@ Vec_Int_t * Cbs_ManSolveMiterNcOutVals( Gia_Man_t * pAig, int nConfs, Vec_Str_t 
             }
             continue;
         }
+        if ( Cec_ScorrConfLimit > 0 && Cec_ScorrConfUsed >= Cec_ScorrConfLimit )
+        {
+            Cec_ScorrConfStop = 1;
+            Vec_StrPush( vStatus, -1 );
+            Cec_ManSatAddToStore( vCexStore, NULL, i );
+            continue;
+        }
+        p->Pars.nBTLimit = nConfs;
+        if ( Cec_ScorrConfLimit > 0 )
+        {
+            ABC_INT64_T nRemain = Cec_ScorrConfLimit - Cec_ScorrConfUsed;
+            if ( nConfs == 0 || nRemain < nConfs )
+                p->Pars.nBTLimit = (int)nRemain;
+        }
         clk = Abc_Clock();
+        clkHr = Cec_ScorrProfOn ? Abc_ClockHr() : 0;
         p->Pars.fUseHighest = 1;
         p->Pars.fUseLowest  = 0;
         p->vOutLits = vOutLits;
         p->vOutVals = vOutVals;
         p->iOutVal  = i;
         status = Cbs_ManSolve( p, Gia_ObjChild0(pRoot) );
+        Cec_ScorrConfUsed += p->Pars.nBTThis;
+        if ( Cec_ScorrConfLimit > 0 && Cec_ScorrConfUsed >= Cec_ScorrConfLimit )
+            Cec_ScorrConfStop = 1;
         p->vOutLits = NULL;
         p->vOutVals = NULL;
         p->iOutVal  = -1;
+        if ( Cec_ScorrProfOn )
+        {
+            abctime dHr = Abc_ClockHr() - clkHr;
+            Cec_ScorrProfSolve += dHr;
+            if ( dHr > Cec_ScorrProfMax ) Cec_ScorrProfMax = dHr;
+            Cec_ScorrProfCalls++;
+        }
 //        printf( "\n" );
 /*
         if ( status == -1 )
@@ -1255,16 +1358,25 @@ void Cbs_ManSyncCore( Cbs_Man_t * p )
 Vec_Int_t * Cbs_ManSolveRoots( Cbs_Man_t * p, Vec_Int_t * vRootLits, Vec_Str_t ** pvStatus, int fVerbose )
 {
     extern void Cec_ManSatAddToStore( Vec_Int_t * vCexStore, Vec_Int_t * vCex, int Out );
+    extern int     Cec_ScorrProfOn, Cec_ScorrProfCalls;
+    extern abctime Cec_ScorrProfSetup, Cec_ScorrProfSolve, Cec_ScorrProfMax;
     Gia_Man_t * pAig = p->pAig;
     Vec_Int_t * vCex, * vCexStore;
     Vec_Str_t * vStatus;
     int i, iLit, status;
     abctime clk, clkTotal = Abc_Clock();
+    abctime clkHr = Cec_ScorrProfOn ? Abc_ClockHr() : 0;
     assert( Gia_ManRegNum(pAig) == 0 );
     Cbs_ManSyncCore( p ); // prep only objects appended since the last solve
     vStatus   = Vec_StrAlloc( Vec_IntSize(vRootLits) );
     vCexStore = Vec_IntAlloc( 10000 );
     vCex      = Cbs_ReadModel( p );
+    if ( Cec_ScorrProfOn )
+    {
+        Cec_ScorrProfSetup = Abc_ClockHr() - clkHr;   // incremental sync of new objects
+        Cec_ScorrProfSolve = Cec_ScorrProfMax = 0;
+        Cec_ScorrProfCalls = 0;
+    }
     Vec_IntForEachEntry( vRootLits, iLit, i )
     {
         Vec_IntClear( vCex );
@@ -1280,9 +1392,17 @@ Vec_Int_t * Cbs_ManSolveRoots( Cbs_Man_t * p, Vec_Int_t * vRootLits, Vec_Str_t *
             continue;
         }
         clk = Abc_Clock();
+        clkHr = Cec_ScorrProfOn ? Abc_ClockHr() : 0;
         p->Pars.fUseHighest = 1;
         p->Pars.fUseLowest  = 0;
         status = Cbs_ManSolve( p, Gia_ObjFromLit(pAig, iLit) );
+        if ( Cec_ScorrProfOn )
+        {
+            abctime dHr = Abc_ClockHr() - clkHr;
+            Cec_ScorrProfSolve += dHr;
+            if ( dHr > Cec_ScorrProfMax ) Cec_ScorrProfMax = dHr;
+            Cec_ScorrProfCalls++;
+        }
         Vec_StrPush( vStatus, (char)status );
         if ( status == -1 )
         {
