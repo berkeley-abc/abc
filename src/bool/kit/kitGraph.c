@@ -489,11 +489,11 @@ int * Kit_TruthTest( char * pFileName )
     int nFuncs    = nFileSize / 4 / Abc_TruthWordNum(nVars);
     unsigned * pA = (unsigned *)Extra_FileReadContents( pFileName );
     int * pResult = Kit_TruthStatsArray( pA, nVars, nFuncs );
-    printf( "Finished proceessing %d functions with %d variables. ", nFuncs, nVars );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished proceessing %d functions with %d variables. ", nFuncs, nVars );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     ABC_FREE( pA );
     for ( i = 0; i < 5; i++ )
-        printf( "Function %3d :  AND2 = %3d  Lev = %3d\n", i, pResult[i] & 0xFFFF, pResult[i] >> 16 );
+        fprintf( Abc_FrameGlobalGetOut(), "Function %3d :  AND2 = %3d  Lev = %3d\n", i, pResult[i] & 0xFFFF, pResult[i] >> 16 );
     return pResult;
 }
 

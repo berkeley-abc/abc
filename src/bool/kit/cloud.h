@@ -245,6 +245,8 @@ extern void           Cloud_PrintHashTable( CloudManager * dd );
 
 ABC_NAMESPACE_HEADER_END
 
+extern ABC_DLL FILE *             Abc_FrameGlobalGetOut();
+extern ABC_DLL FILE *             Abc_FrameGlobalGetErr();
 
 
 #endif

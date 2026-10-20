@@ -185,7 +185,7 @@ void Kit_TruthIsopPrintCover( Vec_Int_t * vCover, int nVars, int fCompl )
     int i, k, Entry, Literal;
     if ( Vec_IntSize(vCover) == 0 || (Vec_IntSize(vCover) == 1 && Vec_IntEntry(vCover, 0) == 0) )
     {
-        printf( "Constant %d\n", Vec_IntSize(vCover) );
+        fprintf( Abc_FrameGlobalGetOut(), "Constant %d\n", Vec_IntSize(vCover) );
         return;
     }
     Vec_IntForEachEntry( vCover, Entry, i )
@@ -194,14 +194,14 @@ void Kit_TruthIsopPrintCover( Vec_Int_t * vCover, int nVars, int fCompl )
         {
             Literal = 3 & (Entry >> (k << 1));
             if ( Literal == 1 ) // neg literal
-                printf( "0" );
+                fprintf( Abc_FrameGlobalGetOut(), "0" );
             else if ( Literal == 2 ) // pos literal
-                printf( "1" );
+                fprintf( Abc_FrameGlobalGetOut(), "1" );
             else if ( Literal == 0 ) 
-                printf( "-" );
+                fprintf( Abc_FrameGlobalGetOut(), "-" );
             else assert( 0 );
         }
-        printf( " %d\n", !fCompl );
+        fprintf( Abc_FrameGlobalGetOut(), " %d\n", !fCompl );
     }
 }
 void Kit_TruthIsopPrint( unsigned * puTruth, int nVars, Vec_Int_t * vCover, int fTryBoth )

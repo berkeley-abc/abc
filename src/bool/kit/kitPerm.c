@@ -114,10 +114,10 @@ void Kit_PermCreateS()
     for ( i = 0; i < 256; i++ )
     {
         if ( i % 8 == 0 )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         for ( r = n = 0; n < 8; n++ )
             r |= ((i & (1 << n)) << n);
-        printf( "0x%04x, ", r );
+        fprintf( Abc_FrameGlobalGetOut(), "0x%04x, ", r );
     }
 }
 
@@ -138,12 +138,12 @@ void Kit_PermCreateP()
     for ( i = 0; i < 256; i++ )
     {
         if ( i % 16 == 0 )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         s1 = i & 0x0A;
         s2 = i & 0x50;
         r = i ^ s1 ^ s2 ^ (s1 << 3) ^ (s2 >> 3);
         assert( r < 256 );
-        printf( "0x%02x, ", r );
+        fprintf( Abc_FrameGlobalGetOut(), "0x%02x, ", r );
     }
 }
 

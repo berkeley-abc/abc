@@ -87,11 +87,11 @@ static inline void Rsb_DecVerifyCex( word * f, word ** g, int nGs, int iCexA, in
     int i;
     // f distinquished it
     if ( Rsb_DecTryCex( f, iCexA, iCexB ) )
-        printf( "Verification of CEX has failed: f(A) == f(B)!!!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification of CEX has failed: f(A) == f(B)!!!\n" );
     // g do not distinguish it
     for ( i = 0; i < nGs; i++ )
         if ( !Rsb_DecTryCex( g[i], iCexA, iCexB ) )
-            printf( "Verification of CEX has failed: g[%d](A) != g[%d](B)!!!\n", i, i );
+            fprintf( Abc_FrameGlobalGetOut(), "Verification of CEX has failed: g[%d](A) != g[%d](B)!!!\n", i, i );
 }
 static inline void Rsb_DecRecordCex( word ** g, int nGs, int iCexA, int iCexB, word * pCexes, int nCexes ) 
 {
@@ -202,25 +202,25 @@ void Rsb_DecPrintTable( word * pCexes, int nGs, int nGsAll, Vec_Int_t * vTries )
 
 //    printf( "\n" );
     for ( i = 0; i < 4; i++ )
-        printf( "    " );
-    printf( "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "    " );
+    fprintf( Abc_FrameGlobalGetOut(), "  " );
     for ( i = 0; i < nGs; i++ )
-        printf( "%d", (i % 100) / 10 );
-    printf( "|" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", (i % 100) / 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "|" );
     for ( ; i < nGsAll; i++ )
-        printf( "%d", (i % 100) / 10 );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", (i % 100) / 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     for ( i = 0; i < 4; i++ )
-        printf( "    " );
-    printf( "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "    " );
+    fprintf( Abc_FrameGlobalGetOut(), "  " );
     for ( i = 0; i < nGs; i++ )
-        printf( "%d", i % 10 );
-    printf( "|" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", i % 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "|" );
     for ( ; i < nGsAll; i++ )
-        printf( "%d", i % 10 );
-    printf( "\n" );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", i % 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     for ( c = 0; iStart < Vec_IntSize(vTries); c++ )
     {
@@ -240,41 +240,41 @@ void Rsb_DecPrintTable( word * pCexes, int nGs, int nGsAll, Vec_Int_t * vTries )
         // print them
         for ( i = 0; i < 4; i++ )
             if ( pCands[i] >= 0 )
-                printf( "%4d", pCands[i] );
+                fprintf( Abc_FrameGlobalGetOut(), "%4d", pCands[i] );
             else
-                printf( "    " );
+                fprintf( Abc_FrameGlobalGetOut(), "    " );
         // print the bit-string
-        printf( "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );
         for ( i = 0; i < nGs; i++ )
-            printf( "%c", Abc_TtGetBit( pCexes + i, c ) ? '.' : '+' );
-        printf( "|" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", Abc_TtGetBit( pCexes + i, c ) ? '.' : '+' );
+        fprintf( Abc_FrameGlobalGetOut(), "|" );
         for ( ; i < nGsAll; i++ )
-            printf( "%c", Abc_TtGetBit( pCexes + i, c ) ? '.' : '+' );
-        printf( "  %3d\n", c );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", Abc_TtGetBit( pCexes + i, c ) ? '.' : '+' );
+        fprintf( Abc_FrameGlobalGetOut(), "  %3d\n", c );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // write the number of ones
     for ( i = 0; i < 4; i++ )
-        printf( "    " );
-    printf( "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "    " );
+    fprintf( Abc_FrameGlobalGetOut(), "  " );
     for ( i = 0; i < nGs; i++ )
-        printf( "%d", Abc_TtCountOnes(pCexes[i]) / 10 );
-    printf( "|" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtCountOnes(pCexes[i]) / 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "|" );
     for ( ; i < nGsAll; i++ )
-        printf( "%d", Abc_TtCountOnes(pCexes[i]) / 10 );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtCountOnes(pCexes[i]) / 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     for ( i = 0; i < 4; i++ )
-        printf( "    " );
-    printf( "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "    " );
+    fprintf( Abc_FrameGlobalGetOut(), "  " );
     for ( i = 0; i < nGs; i++ )
-        printf( "%d", Abc_TtCountOnes(pCexes[i]) % 10 );
-    printf( "|" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtCountOnes(pCexes[i]) % 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "|" );
     for ( ; i < nGsAll; i++ )
-        printf( "%d", Abc_TtCountOnes(pCexes[i]) % 10 );
-    printf( "\n" );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtCountOnes(pCexes[i]) % 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -369,7 +369,7 @@ unsigned Rsb_DecPerformInt( Rsb_Man_t * p, int nVars, word * f, word ** g, int n
             if ( fFindAll )
             {
                 uTruth = (unsigned)Abc_Tt6Stretch( (word)uTruth, 1 );
-                Kit_DsdPrintFromTruth( &uTruth, 1 ); printf( "   " );
+                Kit_DsdPrintFromTruth( &uTruth, 1 ); fprintf( Abc_FrameGlobalGetOut(), "   " );
                 Vec_IntPrint(p->vFanins);
                 continue;
             }
@@ -402,7 +402,7 @@ unsigned Rsb_DecPerformInt( Rsb_Man_t * p, int nVars, word * f, word ** g, int n
             if ( fFindAll )
             {
                 uTruth = (unsigned)Abc_Tt6Stretch( (word)uTruth, 2 );
-                Kit_DsdPrintFromTruth( &uTruth, 2 ); printf( "   " );
+                Kit_DsdPrintFromTruth( &uTruth, 2 ); fprintf( Abc_FrameGlobalGetOut(), "   " );
                 Vec_IntPrint(p->vFanins);
                 continue;
             }
@@ -438,7 +438,7 @@ unsigned Rsb_DecPerformInt( Rsb_Man_t * p, int nVars, word * f, word ** g, int n
             if ( fFindAll )
             {
                 uTruth = (unsigned)Abc_Tt6Stretch( (word)uTruth, 3 );
-                Kit_DsdPrintFromTruth( &uTruth, 3 ); printf( "   " );
+                Kit_DsdPrintFromTruth( &uTruth, 3 ); fprintf( Abc_FrameGlobalGetOut(), "   " );
                 Vec_IntPrint(p->vFanins);
                 continue;
             }
@@ -477,7 +477,7 @@ unsigned Rsb_DecPerformInt( Rsb_Man_t * p, int nVars, word * f, word ** g, int n
             if ( fFindAll )
             {
                 uTruth = (unsigned)Abc_Tt6Stretch( (word)uTruth, 4 );
-                Kit_DsdPrintFromTruth( &uTruth, 4 ); printf( "   " );
+                Kit_DsdPrintFromTruth( &uTruth, 4 ); fprintf( Abc_FrameGlobalGetOut(), "   " );
                 Vec_IntPrint(p->vFanins);
                 continue;
             }
@@ -522,28 +522,28 @@ void Rsb_DecPrintFunc( Rsb_Man_t * p, unsigned Truth4, word * f, word ** ppGs, i
     word wIsop =  Abc_Tt6Isop( wOn, wOnDc, nVars, NULL );
     int i;
 
-    printf( "Offset : " );
+    fprintf( Abc_FrameGlobalGetOut(), "Offset : " );
     Abc_TtPrintBinary( &Copy, nVars );  //printf( "\n" );
     Copy >>= ((word)1 << nVars);
-    printf( "Onset  : " );
+    fprintf( Abc_FrameGlobalGetOut(), "Onset  : " );
     Abc_TtPrintBinary( &Copy, nVars );  //printf( "\n" );
-    printf( "Result : " );
+    fprintf( Abc_FrameGlobalGetOut(), "Result : " );
     Abc_TtPrintBinary( &wIsop, nVars ); //printf( "\n" );
-    Kit_DsdPrintFromTruth( (unsigned *)&wIsop, nVars );  printf( "\n" );
+    Kit_DsdPrintFromTruth( (unsigned *)&wIsop, nVars );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // print functions
-    printf( "Func   : " );
+    fprintf( Abc_FrameGlobalGetOut(), "Func   : " );
     Abc_TtPrintBinary( f, nVarsAll );   //printf( "\n" );
-    Kit_DsdPrintFromTruth( (unsigned *)f, nVarsAll );    printf( "\n" );
+    Kit_DsdPrintFromTruth( (unsigned *)f, nVarsAll );    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( i = 0; i < nGs; i++ )
     {
-        printf( "Div%3d : ", i );
-        Kit_DsdPrintFromTruth( (unsigned *)ppGs[i], nVarsAll );  printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Div%3d : ", i );
+        Kit_DsdPrintFromTruth( (unsigned *)ppGs[i], nVarsAll );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    printf( "Solution : " );
+    fprintf( Abc_FrameGlobalGetOut(), "Solution : " );
     for ( i = 0; i < Vec_IntSize(p->vFanins); i++ )
-        printf( "%d ", Vec_IntEntry(p->vFanins, i) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Vec_IntEntry(p->vFanins, i) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -591,7 +591,7 @@ int Rsb_DecVerify( Rsb_Man_t * p, int nVars, word * f, word ** g, int nGs, unsig
     }
     // check the function
     if ( !Abc_TtEqual( pTemp1, f, nWords ) )
-        printf( "Verification failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification failed.\n" );
 //    else
 //        printf( "Verification passed.\n" );
     return 1;
@@ -628,10 +628,10 @@ unsigned Rsb_ManPerform( Rsb_Man_t * p, int nVars, word * f, word ** g, int nGs,
 //        assert( uTruth != 0 );
         if ( fVerbose )
         {
-            printf( "Verified orig decomp with %d vars {", Vec_IntSize(p->vFaninsOld) );
+            fprintf( Abc_FrameGlobalGetOut(), "Verified orig decomp with %d vars {", Vec_IntSize(p->vFaninsOld) );
             Vec_IntForEachEntry( p->vFaninsOld, Entry, i )
-                printf( " %d", Entry );
-            printf( " }\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " %d", Entry );
+            fprintf( Abc_FrameGlobalGetOut(), " }\n" );
         }
         if ( uTruth )
         {
@@ -640,11 +640,11 @@ unsigned Rsb_ManPerform( Rsb_Man_t * p, int nVars, word * f, word ** g, int nGs,
         }
         else 
         {
-            printf( "Verified orig decomp with %d vars {", Vec_IntSize(p->vFaninsOld) );
+            fprintf( Abc_FrameGlobalGetOut(), "Verified orig decomp with %d vars {", Vec_IntSize(p->vFaninsOld) );
             Vec_IntForEachEntry( p->vFaninsOld, Entry, i )
-                printf( " %d", Entry );
-            printf( " }\n" );
-            printf( "Verification FAILED.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " %d", Entry );
+            fprintf( Abc_FrameGlobalGetOut(), " }\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Verification FAILED.\n" );
         }
     }
     // start tries
@@ -658,10 +658,10 @@ vTries = Vec_IntAlloc( 100 );
         if ( fVerbose )
         {
             int i, Entry;
-            printf( "Found decomp with %d vars {", Vec_IntSize(p->vFanins) );
+            fprintf( Abc_FrameGlobalGetOut(), "Found decomp with %d vars {", Vec_IntSize(p->vFanins) );
             Vec_IntForEachEntry( p->vFanins, Entry, i )
-                printf( " %d", Entry );
-            printf( " }\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " %d", Entry );
+            fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 //            Rsb_DecPrintFunc( p, uTruth );
 //            Rsb_DecVerify( nVars, f, g, nGs, p->vFanins, uTruth, g[nGsAll], g[nGsAll+1] );
         }
@@ -670,7 +670,7 @@ vTries = Vec_IntAlloc( 100 );
     {
         Vec_IntShrink( p->vFanins, 0 );
         if ( fVerbose )
-        printf( "Did not find decomposition with 4 variables.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Did not find decomposition with 4 variables.\n" );
     }
 
 if ( fVerbose )
