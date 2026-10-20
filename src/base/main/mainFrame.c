@@ -836,7 +836,7 @@ void Abc_FrameCheckPoConstTest( Abc_Frame_t * p )
     Abc_Obj_t * pObj;
     int i;
     Abc_NtkForEachPo( p->pNtkCur, pObj, i )
-        printf( "%d = %d\n", i, Abc_FrameCheckPoConst(p, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d = %d\n", i, Abc_FrameCheckPoConst(p, i) );
 }
 
 

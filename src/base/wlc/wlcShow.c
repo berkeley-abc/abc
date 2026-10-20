@@ -51,12 +51,12 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
 
     if ( vBold ? (Vec_IntSize(vBold) > 2000) : (Wlc_NtkObjNum(p) > 2000) )
     {
-        fprintf( stdout, "Cannot visualize WLC with more than %d nodes.\n", 2000 );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot visualize WLC with more than %d nodes.\n", 2000 );
         return;
     }
     if ( (pFile = fopen( pFileName, "w" )) == NULL )
     {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the intermediate file \"%s\".\n", pFileName );
         return;
     }
 
@@ -370,7 +370,7 @@ void Wlc_NtkShow( Wlc_Ntk_t * p, Vec_Int_t * vBold )
     // check that the file can be opened
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
     {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the intermediate file \"%s\".\n", FileNameDot );
         return;
     }
     fclose( pFile );

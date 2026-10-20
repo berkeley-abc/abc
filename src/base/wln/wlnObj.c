@@ -136,10 +136,10 @@ int Wln_ObjCreateCo( Wln_Ntk_t * p, int iFanin )
 void Wln_ObjPrint( Wln_Ntk_t * p, int iObj )
 {
     int k, iFanin, Type = Wln_ObjType(p, iObj);
-    printf( "Obj %6d : Type = %6s  Fanins = %d : ", iObj, Abc_OperName(Type), Wln_ObjFaninNum(p, iObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "Obj %6d : Type = %6s  Fanins = %d : ", iObj, Abc_OperName(Type), Wln_ObjFaninNum(p, iObj) );
     Wln_ObjForEachFanin( p, iObj, iFanin, k )
-        printf( "%5d ", iFanin );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%5d ", iFanin );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 ////////////////////////////////////////////////////////////////////////

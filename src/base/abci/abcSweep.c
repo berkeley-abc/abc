@@ -102,7 +102,7 @@ int Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, i
     if ( fExdc )
     {
         if ( pNtk->pExdc == NULL )
-            printf( "Warning: Networks has no EXDC.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Warning: Networks has no EXDC.\n" );
         else
             Abc_NtkFraigSweepUsingExdc( pMan, pNtk );
     }
@@ -129,7 +129,7 @@ int Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, i
     // check
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Abc_NtkFraigSweep: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFraigSweep: The network check has failed.\n" );
         return 0;
     }
     return 1;
@@ -240,23 +240,23 @@ stmm_table * Abc_NtkFraigEquiv( Abc_Ntk_t * pNtk, int fUseInv, int fVerbose, int
 
         if ( fVeryVerbose )
         {
-            printf( "Class %2d : {", c );
+            fprintf( Abc_FrameGlobalGetOut(), "Class %2d : {", c );
             for ( pNode = pList; pNode; pNode = pNode->pNext )
             {
                 pNode->pCopy = NULL;
-                printf( " %s", Abc_ObjName(pNode) );
-                printf( "(%c)", pNode->fPhase? '-' : '+' );
-                printf( "(%d)", pNode->Level );
+                fprintf( Abc_FrameGlobalGetOut(), " %s", Abc_ObjName(pNode) );
+                fprintf( Abc_FrameGlobalGetOut(), "(%c)", pNode->fPhase? '-' : '+' );
+                fprintf( Abc_FrameGlobalGetOut(), "(%d)", pNode->Level );
             }
-            printf( " }\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " }\n" );
             c++;
         }
     }
     if ( fVerbose || fVeryVerbose )
     {
-        printf( "Sweeping stats for network \"%s\":\n", pNtk->pName );
-        printf( "Internal nodes = %d. Different functions (up to compl) = %d.\n", Abc_NtkNodeNum(pNtk), stmm_count(tStrash2Net) );
-        printf( "Non-trivial classes = %d. Nodes in non-trivial classes = %d.\n", stmm_count(tResult), Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Sweeping stats for network \"%s\":\n", pNtk->pName );
+        fprintf( Abc_FrameGlobalGetOut(), "Internal nodes = %d. Different functions (up to compl) = %d.\n", Abc_NtkNodeNum(pNtk), stmm_count(tStrash2Net) );
+        fprintf( Abc_FrameGlobalGetOut(), "Non-trivial classes = %d. Nodes in non-trivial classes = %d.\n", stmm_count(tResult), Counter );
     }
     stmm_free_table( tStrash2Net );
     return tResult;
@@ -484,7 +484,7 @@ int Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose )
     vNodes = Abc_NtkDfs( pNtk, 0 );
     Counter = Abc_NtkReduceNodes( pNtk, vNodes );
     if ( fVerbose )
-        printf( "Cleanup removed %d dangling nodes.\n", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Cleanup removed %d dangling nodes.\n", Counter );
     Vec_PtrFree( vNodes );
     return Counter;
 }
@@ -518,7 +518,7 @@ int Abc_NtkCleanupNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, int fVerbose )
     Vec_PtrFree( vStarts );
     Counter = Abc_NtkReduceNodes( pNtk, vNodes );
     if ( fVerbose )
-        printf( "Cleanup removed %d dangling nodes.\n", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Cleanup removed %d dangling nodes.\n", Counter );
     Vec_PtrFree( vNodes );
     return Counter;
 }
@@ -555,7 +555,7 @@ int Abc_NtkReduceNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes )
         pNode->fMarkA = 0;
     // check
     if ( !Abc_NtkCheck( pNtk ) )
-        printf( "Abc_NtkCleanup: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCleanup: The network check has failed.\n" );
     return Counter;
 }
 
@@ -583,8 +583,8 @@ void Abc_NodeConstantInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin, int fConst0 )
     assert( Abc_NtkIsBddLogic(pNode->pNtk) ); 
     if ( (iFanin = Vec_IntFind( &pNode->vFanins, pFanin->Id )) == -1 )
     {
-        printf( "Node %s should be among", Abc_ObjName(pFanin) );
-        printf( " the fanins of node %s...\n", Abc_ObjName(pNode) );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %s should be among", Abc_ObjName(pFanin) );
+        fprintf( Abc_FrameGlobalGetOut(), " the fanins of node %s...\n", Abc_ObjName(pNode) );
         return;
     }
     bVar = Cudd_NotCond( Cudd_bddIthVar(dd, iFanin), fConst0 );
@@ -612,7 +612,7 @@ int Abc_NtkSweep( Abc_Ntk_t * pNtk, int fVerbose )
     // convert network to BDD representation
     if ( !Abc_NtkToBdd(pNtk) )
     {
-        fprintf( stdout, "Converting to BDD has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Converting to BDD has failed.\n"  );
         return 1;
     }
     // perform cleanup
@@ -682,7 +682,7 @@ int Abc_NtkSweep( Abc_Ntk_t * pNtk, int fVerbose )
     Abc_NtkCleanup( pNtk, 0 );
     // report
     if ( fVerbose )
-        printf( "Sweep removed %d nodes.\n", nNodesOld - Abc_NtkNodeNum(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(), "Sweep removed %d nodes.\n", nNodesOld - Abc_NtkNodeNum(pNtk) );
     return nNodesOld - Abc_NtkNodeNum(pNtk);
 }
 
@@ -714,12 +714,12 @@ int Abc_NodeRemoveNonCurrentObjects( Abc_Ntk_t * pNtk )
     // report on the nodes to be deleted
     if ( fVerbose )
     {
-        printf( "These nodes will be deleted: \n" );
+        fprintf( Abc_FrameGlobalGetOut(), "These nodes will be deleted: \n" );
         Abc_NtkForEachObj( pNtk, pObj, i )
             if ( !Abc_NodeIsTravIdCurrent( pObj ) )
             {
-                printf( "    " );
-                Abc_ObjPrint( stdout, pObj );
+                fprintf( Abc_FrameGlobalGetOut(), "    " );
+                Abc_ObjPrint( Abc_FrameGlobalGetOut(), pObj );
             }
     }
     
@@ -926,13 +926,13 @@ int Abc_NtkCleanupSeq( Abc_Ntk_t * pNtk, int fLatchSweep, int fAutoSweep, int fV
     // remove the non-marked nodes
     Counter = Abc_NodeRemoveNonCurrentObjects( pNtk );
     if ( fVerbose )
-        printf( "Cleanup removed %4d dangling objects.\n", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Cleanup removed %4d dangling objects.\n", Counter );
     // check if some of the latches can be removed
     if ( fLatchSweep )
     {
         Counter = Abc_NtkLatchSweep( pNtk );
         if ( fVerbose )
-            printf( "Cleanup removed %4d redundant latches.\n", Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "Cleanup removed %4d redundant latches.\n", Counter );
     }
     // detect the autonomous components
     if ( fAutoSweep )
@@ -942,15 +942,15 @@ int Abc_NtkCleanupSeq( Abc_Ntk_t * pNtk, int fLatchSweep, int fAutoSweep, int fV
         // replace them by PIs
         Counter = Abc_NtkReplaceAutonomousLogic( pNtk );
         if ( fVerbose )
-            printf( "Cleanup added   %4d additional PIs.\n", Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "Cleanup added   %4d additional PIs.\n", Counter );
         // remove the non-marked nodes
         Counter = Abc_NodeRemoveNonCurrentObjects( pNtk );
         if ( fVerbose )
-            printf( "Cleanup removed %4d autonomous objects.\n", Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "Cleanup removed %4d autonomous objects.\n", Counter );
     }
     // check
     if ( !Abc_NtkCheck( pNtk ) )
-        printf( "Abc_NtkCleanupSeq: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCleanupSeq: The network check has failed.\n" );
     return 1;
 }
 
@@ -974,7 +974,7 @@ int Abc_NtkSweepBufsInvs( Abc_Ntk_t * pNtk, int fVerbose )
     // convert network to BDD representation
     if ( !Abc_NtkToAig(pNtk) )
     {
-        fprintf( stdout, "Converting to SOP has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Converting to SOP has failed.\n"  );
         return 1;
     }
     // get AIG manager
@@ -1014,7 +1014,7 @@ int Abc_NtkSweepBufsInvs( Abc_Ntk_t * pNtk, int fVerbose )
         }
     }
     if ( fVerbose )
-        printf( "Removed %d single input nodes.\n", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Removed %d single input nodes.\n", Counter );
     return Counter;
 }
 

@@ -257,10 +257,10 @@ void Wlc_BlastMultiplierCnfTest( int nBits )
     int i, status = sat_solver_solve( pSat, NULL, NULL, 0, 0, 0, 0 );
     Sat_SolverWriteDimacs( pSat, "test_mult.cnf", NULL, NULL, 0 );
     for ( i = 0; i < sat_solver_nvars(pSat); i++ )
-        printf( "%d=%d ", i, sat_solver_var_value(pSat, i) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, sat_solver_var_value(pSat, i) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( "Verifying for %d bits:  %s   ", nBits, status == l_True ? "SAT" : "UNSAT" );
+    fprintf( Abc_FrameGlobalGetOut(), "Verifying for %d bits:  %s   ", nBits, status == l_True ? "SAT" : "UNSAT" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     sat_solver_delete( pSat );
 }
@@ -537,7 +537,7 @@ void Wlc_ManGenTreeOne( Gia_Man_t * pNew, Vec_Wec_t * vBits0, int fMult, int fVe
     int i, iLit, nBitsAll = 0, CounterAll = 0, Counter = 1;
     for ( i = 0; Counter && i < 1000; i++ )
     {
-        if ( fVerbose ) printf( "LEVEL %d\n", i );
+        if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "LEVEL %d\n", i );
         if ( fVerbose ) Vec_WecPrint( vBits, 0 );
         if ( Vec_WecMaxLevelSize(vBits) <= 2 )
             break;
@@ -545,7 +545,7 @@ void Wlc_ManGenTreeOne( Gia_Man_t * pNew, Vec_Wec_t * vBits0, int fMult, int fVe
         Vec_WecFree( vTemp );
         CounterAll += Counter;
     }
-    printf( "Total count = %d.\n", CounterAll );
+    fprintf( Abc_FrameGlobalGetOut(), "Total count = %d.\n", CounterAll );
     if ( !fMult )
     {
         int Carry;
@@ -583,7 +583,7 @@ void Wlc_ManGenTreeOne( Gia_Man_t * pNew, Vec_Wec_t * vBits0, int fMult, int fVe
             else
                 Vec_IntPush( vLits1, 0 );
         }
-        printf( "The adder size is %d.\n", Vec_IntSize(vLits0) );
+        fprintf( Abc_FrameGlobalGetOut(), "The adder size is %d.\n", Vec_IntSize(vLits0) );
         Vec_IntShrink( vLits0, 11 );
         Vec_IntShrink( vLits1, 11 );
 
@@ -611,7 +611,7 @@ void Wlc_ManGenTreeOne( Gia_Man_t * pNew, Vec_Wec_t * vBits0, int fMult, int fVe
             else
                 Vec_IntPush( vLits1, 0 );
         }
-        printf( "The adder size is %d.\n", Vec_IntSize(vLits0) );
+        fprintf( Abc_FrameGlobalGetOut(), "The adder size is %d.\n", Vec_IntSize(vLits0) );
         Vec_IntShrink( vLits0, Gia_ManCiNum(pNew)+1 ); // mult
         Vec_IntShrink( vLits1, Gia_ManCiNum(pNew)+1 ); // mult
 
@@ -738,8 +738,8 @@ void Wlc_AdderTreeGen( int n )
                 pIns[nIns][0] = i, pIns[nIns][1] = k, nIns++;
     }
     for ( x = 0; x < nIns; x++ )
-        printf( "(%d, %d) ", pIns[x][0], pIns[x][1] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "(%d, %d) ", pIns[x][0], pIns[x][1] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( i = 0; i < (1<<n); i++ )
     for ( k = 0; k < (1<<n); k++ )
     {
@@ -763,11 +763,11 @@ void Wlc_AdderTreeGen( int n )
         nMints = 64;
     }
     for ( x = 0; x < nMints; x++ )
-        printf( "%d", Abc_TtGetBit(Care, x) );
-    printf( "\n\n" );
-    for ( i = 0; i < 2*n; i++, printf( "\n" ) )
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtGetBit(Care, x) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n\n" );
+    for ( i = 0; i < 2*n; i++, fprintf( Abc_FrameGlobalGetOut(),  "\n" ) )
     for ( x = 0; x < nMints; x++ )
-        printf( "%d", Abc_TtGetBit(Truth[i], x) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtGetBit(Truth[i], x) );
     if ( 1 )
     {
         FILE * pFile = fopen( "tadd.truth", "wb" );

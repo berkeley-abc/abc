@@ -66,14 +66,14 @@ void Io_WriteVerilog( Abc_Ntk_t * pNtk, char * pFileName, int fOnlyAnds, int fNe
     // can only write nodes represented using local AIGs
     if ( !Abc_NtkIsAigNetlist(pNtk) && !Abc_NtkIsMappedNetlist(pNtk) )
     {
-        printf( "Io_WriteVerilog(): Can produce Verilog for mapped or AIG netlists only.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteVerilog(): Can produce Verilog for mapped or AIG netlists only.\n" );
         return;
     }
     // start the output stream
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteVerilog(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteVerilog(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
 
@@ -279,7 +279,7 @@ void Io_WriteVerilogPos( FILE * pFile, Abc_Ntk_t * pNtk, int Start, int fNewInte
     if (nskip != 0)
     {
         assert (pSkip);
-        printf( "Io_WriteVerilogPos(): Omitted %d feedthrough nets from output list of module (e.g. %s).\n", nskip, Abc_ObjName(pSkip) );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteVerilogPos(): Omitted %d feedthrough nets from output list of module (e.g. %s).\n", nskip, Abc_ObjName(pSkip) );
         return;
     }
 
@@ -992,12 +992,12 @@ void Io_WriteVerilogLut( Abc_Ntk_t * pNtk, char * pFileName, int nLutSize, int f
         if ( Abc_ObjFaninNum(pObj) > nLutSize )
         {
             if ( Counter < 3 )
-                printf( "Node \"%s\" has the fanin count (%d) larger than the LUT size (%d).\n", Abc_ObjName(pObj), Abc_ObjFaninNum(pObj), nLutSize );
+                fprintf( Abc_FrameGlobalGetOut(), "Node \"%s\" has the fanin count (%d) larger than the LUT size (%d).\n", Abc_ObjName(pObj), Abc_ObjFaninNum(pObj), nLutSize );
             Counter++;
         }
     if ( Counter )
     {
-        printf( "In total, %d internal logic nodes exceed the fanin count limit. Verilog is not written.\n", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "In total, %d internal logic nodes exceed the fanin count limit. Verilog is not written.\n", Counter );
         return;
     }
 
@@ -1005,7 +1005,7 @@ void Io_WriteVerilogLut( Abc_Ntk_t * pNtk, char * pFileName, int nLutSize, int f
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteVerilog(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteVerilog(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
 

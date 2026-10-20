@@ -193,7 +193,7 @@ void Wlc_NtkPrintNameArray( Vec_Ptr_t * vNames )
 {
     int i; char * pTemp;
     Vec_PtrForEachEntry( char *, vNames, pTemp, i )
-        printf( "%2d : %s\n", i, pTemp );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : %s\n", i, pTemp );
 }
 
 /**Function*************************************************************
@@ -945,7 +945,7 @@ void Wlc_BlastPrintMatrix( Gia_Man_t * p, Vec_Wec_t * vProds, int fVerbose )
         Vec_IntForEachEntry( vLevel, iLit, k )
             if ( Gia_ObjIsAnd(Gia_ManObj(p, Abc_Lit2Var(iLit))) )
                 Vec_IntPushUnique( vSupp, Abc_Lit2Var(iLit) );
-    printf( "Booth partial products: %d pps, %d unique, %d nodes.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Booth partial products: %d pps, %d unique, %d nodes.\n", 
         Vec_WecSizeSize(vProds), Vec_IntSize(vSupp), Gia_ManAndNum(p) );
     Vec_IntPrint( vSupp );
 
@@ -953,18 +953,18 @@ void Wlc_BlastPrintMatrix( Gia_Man_t * p, Vec_Wec_t * vProds, int fVerbose )
     Vec_WecForEachLevel( vProds, vLevel, i )
         Vec_IntForEachEntry( vLevel, iLit, k )
         {
-            printf( "Obj = %4d : ", Abc_Lit2Var(iLit) );
-            printf( "Compl = %d  ", Abc_LitIsCompl(iLit) );
-            printf( "Rank = %2d  ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Obj = %4d : ", Abc_Lit2Var(iLit) );
+            fprintf( Abc_FrameGlobalGetOut(), "Compl = %d  ", Abc_LitIsCompl(iLit) );
+            fprintf( Abc_FrameGlobalGetOut(), "Rank = %2d  ", i );
             Truth = Gia_ObjComputeTruth6Cis( p, iLit, vSupp, vTemp );
-            Extra_PrintHex( stdout, (unsigned*)&Truth, Vec_IntSize(vSupp) );
-            if ( Vec_IntSize(vSupp) == 4 ) printf( "    " );
-            if ( Vec_IntSize(vSupp) == 3 ) printf( "      " );
-            if ( Vec_IntSize(vSupp) <= 2 ) printf( "       " );
-            printf( "  " );
+            Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned*)&Truth, Vec_IntSize(vSupp) );
+            if ( Vec_IntSize(vSupp) == 4 ) fprintf( Abc_FrameGlobalGetOut(), "    " );
+            if ( Vec_IntSize(vSupp) == 3 ) fprintf( Abc_FrameGlobalGetOut(), "      " );
+            if ( Vec_IntSize(vSupp) <= 2 ) fprintf( Abc_FrameGlobalGetOut(), "       " );
+            fprintf( Abc_FrameGlobalGetOut(), "  " );
             Vec_IntPrint( vSupp );
             if ( k == Vec_IntSize(vLevel)-1 )
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     Vec_IntFree( vSupp );
     Vec_WrdFree( vTemp );
@@ -1254,7 +1254,7 @@ void Wlc_DumpMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds )
         Vec_IntForEachEntry( vLevel, Entry, k )
             Gia_ManAppendCo(pNew, Entry);
     Gia_AigerWrite( pNew, pFileName, 0, 0, 0 );
-    printf( "Finished dumping Booth PPs into \"%s\".\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping Booth PPs into \"%s\".\n", pFileName );
     exit(1);
 }
 void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fFastAdder, Vec_Wec_t ** pvProds, int fVerbose )
@@ -1300,7 +1300,7 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
             int Prev = i ? pArgA[i-1] : 0;
             int Part = Gia_ManHashOr( pNew, Gia_ManHashAnd(pNew, One, This), Gia_ManHashAnd(pNew, Two, Prev) );
             pp = Gia_ManHashXor( pNew, Part, Neg );
-            if ( fVerbose ) printf( "%4d = PP(%5d %5d  %5d %5d %5d)\n", pp, Prev, This, Q2jM1, Q2j, Q2jP1 );
+            if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "%4d = PP(%5d %5d  %5d %5d %5d)\n", pp, Prev, This, Q2jM1, Q2j, Q2jP1 );
             if ( pp == 0 || (fSigned && i == nArgA) )
                 continue;
             if ( pp )
@@ -1348,7 +1348,7 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
     if ( fVerbose )
         Vec_WecPrint( vProds, 0 );
     if ( fVerbose ) 
-        printf( "Total PPs = %d.\n", Vec_WecSizeSize(vProds) );
+        fprintf( Abc_FrameGlobalGetOut(), "Total PPs = %d.\n", Vec_WecSizeSize(vProds) );
     //Wlc_DumpMatrix( pNew, vProds );
     //Wlc_BlastPrintMatrix( pNew, vProds, 1 );
     //printf( "Cutoff ID for partial products = %d.\n", Gia_ManObjNum(pNew) );
@@ -1772,10 +1772,10 @@ void Wlc_BlastYjReduce( Gia_Man_t * pNew, Wlc_BlastTim_t * pTim, Vec_Wec_t * vPr
     }
     if ( fVerbose )
     {
-        printf( "%d FAs, %d HAs. Arrival profile of the reduced rows:\n", nFAs, nHAs );
+        fprintf( Abc_FrameGlobalGetOut(),  "%d FAs, %d HAs. Arrival profile of the reduced rows:\n", nFAs, nHAs );
         for ( i = 0; i < nCols; i++ )
-            printf( "%d ", Abc_MaxInt(Wlc_BlastYjLevel(pNew, pTim, pRow0[i]), Wlc_BlastYjLevel(pNew, pTim, pRow1[i])) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(),  "%d ", Abc_MaxInt(Wlc_BlastYjLevel(pNew, pTim, pRow0[i]), Wlc_BlastYjLevel(pNew, pTim, pRow1[i])) );
+        fprintf( Abc_FrameGlobalGetOut(),  "\n" );
     }
 
     // final addition: driven by the arrival profile, or ripple-carry
@@ -1785,10 +1785,10 @@ void Wlc_BlastYjReduce( Gia_Man_t * pNew, Wlc_BlastTim_t * pTim, Vec_Wec_t * vPr
         Wlc_BlastAdder( pNew, pRow0, pRow1, nCols, 0 );
     if ( fVerbose )
     {
-        printf( "Arrival profile of the product:\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "Arrival profile of the product:\n" );
         for ( i = 0; i < nCols; i++ )
-            printf( "%d ", Wlc_BlastYjLevel(pNew, pTim, pRow0[i]) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(),  "%d ", Wlc_BlastYjLevel(pNew, pTim, pRow0[i]) );
+        fprintf( Abc_FrameGlobalGetOut(),  "\n" );
     }
     Vec_IntClear( vRes );
     for ( i = 0; i < nCols; i++ )
@@ -1862,7 +1862,7 @@ void Wlc_BlastBoothYJ( Gia_Man_t * pNew, Wlc_BlastTim_t * pTim, int * pArgA, int
         for ( i = 0; i <= nArgA; i++ )
         {
             pp = Gia_ManHashOr( pNew, Gia_ManHashAnd(pNew, One, Vec_IntEntry(vArgN, i+1)), Gia_ManHashAnd(pNew, Two, Vec_IntEntry(vArgN, i)) );
-            if ( fVerbose ) printf( "%4d = PP(%5d %5d  %5d %5d %5d)\n", pp, i ? pArgA[i-1] : 0, i == nArgA ? FillA : pArgA[i], Q2jM1, Q2j, Q2jP1 );
+            if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(),  "%4d = PP(%5d %5d  %5d %5d %5d)\n", pp, i ? pArgA[i-1] : 0, i == nArgA ? FillA : pArgA[i], Q2jM1, Q2j, Q2jP1 );
             if ( i == 0 || (fSigned && i == nArgA) )
                 continue;
             Wlc_BlastYjPush( pNew, pTim, vProds, vLevels, k+i, pp );
@@ -1885,7 +1885,7 @@ void Wlc_BlastBoothYJ( Gia_Man_t * pNew, Wlc_BlastTim_t * pTim, int * pArgA, int
         }
     }
     if ( fVerbose )
-        printf( "Yeh-Jen Booth %d x %d (%s):\n", nArgA, nArgB, fSigned ? "signed" : "unsigned" );
+        fprintf( Abc_FrameGlobalGetOut(),  "Yeh-Jen Booth %d x %d (%s):\n", nArgA, nArgB, fSigned ? "signed" : "unsigned" );
     Wlc_BlastYjReduce( pNew, pTim, vProds, vLevels, vRes, fFastAdder, fVerbose );
 
     Vec_WecFree( vProds );
@@ -1940,7 +1940,7 @@ void Wlc_BlastWallace( Gia_Man_t * pNew, Wlc_BlastTim_t * pTim, int * pArgA, int
         Wlc_BlastYjPush( pNew, pTim, vProds, vLevels, nCols-1, 1 );
     }
     if ( fVerbose )
-        printf( "Wallace %d x %d (%s):\n", nArgA, nArgB, fSigned ? "signed" : "unsigned" );
+        fprintf( Abc_FrameGlobalGetOut(),  "Wallace %d x %d (%s):\n", nArgA, nArgB, fSigned ? "signed" : "unsigned" );
     Wlc_BlastYjReduce( pNew, pTim, vProds, vLevels, vRes, fFastAdder, fVerbose );
 
     Vec_WecFree( vProds );
@@ -1964,30 +1964,30 @@ void Wlc_NtkDumpMulties( Wlc_Ntk_t * p, Gia_Man_t * pNew )
         int * pFans0 = Vec_IntEntryP( &p->vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId0(pObj)) );
         int * pFans1 = Vec_IntEntryP( &p->vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId1(pObj)) );
 
-        printf( "\n%d\n", fSigned );
-        printf( "%2d :", nRange0 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n%d\n", fSigned );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d :", nRange0 );
         for ( int k = 0; k < nRange0; k++ )
             if ( pFans0[k] == -1 )
-                printf( " -" );
+                fprintf( Abc_FrameGlobalGetOut(), " -" );
             else
-                printf( " %c%d(%d)", Abc_LitIsCompl(pFans0[k])?'-':'+', Abc_Lit2Var(pFans0[k]), Gia_ObjRefNumId(pNew, Abc_Lit2Var(pFans0[k])) );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " %c%d(%d)", Abc_LitIsCompl(pFans0[k])?'-':'+', Abc_Lit2Var(pFans0[k]), Gia_ObjRefNumId(pNew, Abc_Lit2Var(pFans0[k])) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-        printf( "%2d :", nRange1 );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d :", nRange1 );
         for ( int k = 0; k < nRange1; k++ )
             if ( pFans1[k] == -1 )
-                printf( " -" );
+                fprintf( Abc_FrameGlobalGetOut(), " -" );
             else
-                printf( " %c%d(%d)", Abc_LitIsCompl(pFans1[k])?'-':'+', Abc_Lit2Var(pFans1[k]), Gia_ObjRefNumId(pNew, Abc_Lit2Var(pFans1[k])) );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " %c%d(%d)", Abc_LitIsCompl(pFans1[k])?'-':'+', Abc_Lit2Var(pFans1[k]), Gia_ObjRefNumId(pNew, Abc_Lit2Var(pFans1[k])) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-        printf( "%2d :", nRange );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d :", nRange );
         for ( int k = 0; k < nRange; k++ )
             if ( pFans[k] == -1 )
-                printf( " -" );
+                fprintf( Abc_FrameGlobalGetOut(), " -" );
             else
-                printf( " %c%d(%d)", Abc_LitIsCompl(pFans[k])?'-':'+', Abc_Lit2Var(pFans[k]), Gia_ObjRefNumId(pNew, Abc_Lit2Var(pFans[k])) );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " %c%d(%d)", Abc_LitIsCompl(pFans[k])?'-':'+', Abc_Lit2Var(pFans[k]), Gia_ObjRefNumId(pNew, Abc_Lit2Var(pFans[k])) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -2944,9 +2944,9 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         }
         Vec_IntFree( vOuts );
         if ( pPar->fCreateWordMiter )
-            printf( "Derived an ordinary miter with %d bit-level outputs, one for each pair of word-level outputs.\n", nPairs );
+            fprintf( Abc_FrameGlobalGetOut(), "Derived an ordinary miter with %d bit-level outputs, one for each pair of word-level outputs.\n", nPairs );
         else
-            printf( "Derived a dual-output miter with %d pairs of bits belonging to %d pairs of word-level outputs.\n", nBits, nPairs );
+            fprintf( Abc_FrameGlobalGetOut(), "Derived a dual-output miter with %d pairs of bits belonging to %d pairs of word-level outputs.\n", nBits, nPairs );
     }
     else
     {
@@ -2960,13 +2960,13 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             {
                 Vec_IntForEachEntry( vAddOutputs, iLit, k )
                     Gia_ManAppendCo( pNew, iLit );
-                printf( "Created %d additional POs for %d interesting internal word-level variables.\n", Vec_IntSize(vAddOutputs), Vec_IntSize(vAddObjs) );
+                fprintf( Abc_FrameGlobalGetOut(), "Created %d additional POs for %d interesting internal word-level variables.\n", Vec_IntSize(vAddOutputs), Vec_IntSize(vAddObjs) );
                 Vec_IntFreeP( &vAddOutputs );
             }
             nRange = Wlc_ObjRange( pObj );
             pFans0 = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjId(p, pObj)) );
             if ( fVerbose )
-                printf( "%s(%d) ", Wlc_ObjName(p, Wlc_ObjId(p, pObj)), Gia_ManCoNum(pNew) );
+                fprintf( Abc_FrameGlobalGetOut(), "%s(%d) ", Wlc_ObjName(p, Wlc_ObjId(p, pObj)), Gia_ManCoNum(pNew) );
             if ( Wlc_ObjRangeIsReversed(pObj) )
             {
                 for ( k = 0; k < nRange; k++ )
@@ -2981,7 +2981,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                 nFFins += nRange;
         }
         if ( fVerbose )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     //Vec_IntErase( vBits );
     //Vec_IntErase( &p->vCopies );
@@ -3012,8 +3012,8 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     {
         if ( (int)strlen(p->pInits) != Gia_ManRegNum(pNew) )
         {
-            printf( "The number of init values (%d) does not match the number of flops (%d).\n", (int)strlen(p->pInits), Gia_ManRegNum(pNew) );
-            printf( "It is assumed that the AIG has constant 0 initial state.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The number of init values (%d) does not match the number of flops (%d).\n", (int)strlen(p->pInits), Gia_ManRegNum(pNew) );
+            fprintf( Abc_FrameGlobalGetOut(), "It is assumed that the AIG has constant 0 initial state.\n" );
         }
         else
         {
@@ -3365,7 +3365,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         Gia_ManStop( pGia1 );
         Vec_IntFree( vOrder );
         ABC_FREE( pNameGeneric );
-        printf( "Dumped two parts of the miter into files \"%s\" and \"%s\".\n", pFileName0, pFileName1 );
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped two parts of the miter into files \"%s\" and \"%s\".\n", pFileName0, pFileName1 );
     }
     //Wlc_NtkPrintNameArray( pNew->vNamesIn );
     //Wlc_NtkPrintNameArray( pNew->vNamesOut );
@@ -3573,16 +3573,16 @@ void Wlc_TransferPioNames( Wlc_Ntk_t * p, Gia_Man_t * pNew )
             }
     }
     if ( Vec_PtrSize(pNew->vNamesIn) != Gia_ManPiNum(pNew) ) 
-        printf( "The number of input bits (%d) does not match the number of primary inputs (%d) in the current AIG.\n", Vec_PtrSize(pNew->vNamesIn), Gia_ManPiNum(pNew) );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of input bits (%d) does not match the number of primary inputs (%d) in the current AIG.\n", Vec_PtrSize(pNew->vNamesIn), Gia_ManPiNum(pNew) );
     if ( Vec_PtrSize(pNew->vNamesOut) != Gia_ManPoNum(pNew) ) 
-        printf( "The number of output bits (%d) does not match the number of primary inputs (%d) in the current AIG.\n", Vec_PtrSize(pNew->vNamesOut), Gia_ManPoNum(pNew) );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of output bits (%d) does not match the number of primary inputs (%d) in the current AIG.\n", Vec_PtrSize(pNew->vNamesOut), Gia_ManPoNum(pNew) );
     if ( Vec_PtrSize(pNew->vNamesIn) != Gia_ManPiNum(pNew) || Vec_PtrSize(pNew->vNamesOut) != Gia_ManPoNum(pNew) ) 
     {
         Vec_PtrFreeP( &pNew->vNamesIn );
         Vec_PtrFreeP( &pNew->vNamesOut );
     }
     else
-        printf( "Successfully transferred the primary input/output names from the word-level design to the current AIG.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Successfully transferred the primary input/output names from the word-level design to the current AIG.\n" );
 }
     
 /**Function*************************************************************
@@ -3618,12 +3618,12 @@ void Wlc_MultBlastTest()
         Wlc_MultBlastFileGen( a, b, s );
         if ( Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command ) )
         {
-            fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot execute command \"%s\".\n", Command );
             return;
         }
         Iters++;
     }
-    printf( "Finished %d iterations.\n", Iters );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished %d iterations.\n", Iters );
 }
 
 ////////////////////////////////////////////////////////////////////////

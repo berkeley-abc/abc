@@ -107,7 +107,7 @@ void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int nItersMax, int fDumpCnf, int f
         Vec_IntFree( vForAlls );
         Vec_IntFree( vExists );
         Vec_IntFree( vVarMap );
-        printf( "The 2QBF formula was written into file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "The 2QBF formula was written into file \"%s\".\n", pFileName );
         return;
     }
 
@@ -126,10 +126,10 @@ void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int nItersMax, int fDumpCnf, int f
     pNtkSyn = Abc_NtkMiterCofactor( pNtk, vPiValues );
     if ( fVerbose )
     {
-        printf( "Iter %2d : ", 0 );
-        printf( "AIG = %6d  ", Abc_NtkNodeNum(pNtkSyn) );
+        fprintf( Abc_FrameGlobalGetOut(), "Iter %2d : ", 0 );
+        fprintf( Abc_FrameGlobalGetOut(), "AIG = %6d  ", Abc_NtkNodeNum(pNtkSyn) );
         Abc_NtkVectorPrintVars( pNtk, vPiValues, nPars );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     // iteratively solve
@@ -148,7 +148,7 @@ clkS = Abc_Clock() - clkS;
         }
         if ( RetValue == -1 )
         {
-            printf( "Synthesis timed out.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Synthesis timed out.\n" );
             break;
         }
         // there is a counter-example
@@ -173,7 +173,7 @@ clkV = Abc_Clock() - clkV;
         }
         if ( RetValue == -1 )
         {
-            printf( "Verification timed out.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Verification timed out.\n" );
             break;
         }
         // there is a counter-example
@@ -188,10 +188,10 @@ clkV = Abc_Clock() - clkV;
 
         if ( fVerbose )
         {
-            printf( "Iter %2d : ", nIters+1 );
-            printf( "AIG = %6d  ", Abc_NtkNodeNum(pNtkSyn) );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %2d : ", nIters+1 );
+            fprintf( Abc_FrameGlobalGetOut(), "AIG = %6d  ", Abc_NtkNodeNum(pNtkSyn) );
             Abc_NtkVectorPrintVars( pNtk, vPiValues, nPars );
-            printf( "  " );
+            fprintf( Abc_FrameGlobalGetOut(), "  " );
             ABC_PRT( "Syn", clkS );
 //            ABC_PRT( "Ver", clkV );
         }
@@ -201,15 +201,15 @@ clkV = Abc_Clock() - clkV;
     if ( fFound )
     {
         int nZeros = Vec_IntCountZero( vPiValues );
-        printf( "Parameters: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Parameters: " );
         Abc_NtkVectorPrintPars( vPiValues, nPars );
-        printf( "  Statistics: 0=%d 1=%d\n", nZeros, nPars - nZeros );
-        printf( "Solved after %d iterations.  ", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "  Statistics: 0=%d 1=%d\n", nZeros, nPars - nZeros );
+        fprintf( Abc_FrameGlobalGetOut(), "Solved after %d iterations.  ", nIters );
     }
     else if ( nIters == nItersMax )
-        printf( "Quit after %d iterations.  ", nItersMax );
+        fprintf( Abc_FrameGlobalGetOut(), "Quit after %d iterations.  ", nItersMax );
     else
-        printf( "Implementation does not exist.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Implementation does not exist.  " );
     ABC_PRT( "Total runtime", Abc_Clock() - clkTotal );
     Vec_IntFree( vPiValues );
 }
@@ -285,7 +285,7 @@ void Abc_NtkVectorPrintPars( Vec_Int_t * vPiValues, int nPars )
 {
     int i;
     for ( i = 0; i < nPars; i++ )
-        printf( "%d", Vec_IntEntry(vPiValues,i) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Vec_IntEntry(vPiValues,i) );
 }
 
 /**Function*************************************************************
@@ -303,7 +303,7 @@ void Abc_NtkVectorPrintVars( Abc_Ntk_t * pNtk, Vec_Int_t * vPiValues, int nPars 
 {
     int i;
     for ( i = nPars; i < Abc_NtkPiNum(pNtk); i++ )
-        printf( "%d", Vec_IntEntry(vPiValues,i) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Vec_IntEntry(vPiValues,i) );
 }
 
 ////////////////////////////////////////////////////////////////////////

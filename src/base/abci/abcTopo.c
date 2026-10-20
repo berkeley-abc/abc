@@ -102,7 +102,7 @@ Abc_Ntk_t * Abc_NtkTopoExact( Abc_Ntk_t * pFunc, Abc_Ntk_t * pTopo, int nTimeOut
     if ( nSeed > 0 )
         kissat_set_option( pSat, "seed", nSeed );
     if ( fVerbose )
-        printf( "Running fixed-topology exact synthesis:  PI = %d  Nodes = %d  PO = %d\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Running fixed-topology exact synthesis:  PI = %d  Nodes = %d  PO = %d\n",
             Abc_NtkCiNum(pTopo), Abc_NtkNodeNum(pTopo), Abc_NtkPoNum(pTopo) );
     // for each minterm, iterate through each PI, each internal node, and each outputs
     // and add constraints that tell us that the value of the node's output agrees with the values of its fanins
@@ -193,7 +193,7 @@ Abc_Ntk_t * Abc_NtkTopoExact( Abc_Ntk_t * pFunc, Abc_Ntk_t * pTopo, int nTimeOut
         }
     }
     if ( fVerbose )
-        printf( "Minterm variables = %d.  Internal variables = %d.  Clauses = %d.\n", nMints, nVarsAlloc - nMints, nClauses );
+        fprintf( Abc_FrameGlobalGetOut(), "Minterm variables = %d.  Internal variables = %d.  Clauses = %d.\n", nMints, nVarsAlloc - nMints, nClauses );
 
     abctime timeStop = 0;
     if ( nTimeOut )
@@ -222,7 +222,7 @@ Abc_Ntk_t * Abc_NtkTopoExact( Abc_Ntk_t * pFunc, Abc_Ntk_t * pTopo, int nTimeOut
           Vec_WrdWriteEntry( vTruths, i, Abc_Tt6Stretch( TruthSmall, Abc_ObjFaninNum(pObj) ) );
           if ( fVerbose ) {
               int nDigits = 1 << (Abc_ObjFaninNum(pObj)-2);
-              printf( "Node %2d (fanins = %d) 0x%0*lx\n", i, Abc_ObjFaninNum(pObj), nDigits, TruthSmall );
+              fprintf( Abc_FrameGlobalGetOut(), "Node %2d (fanins = %d) 0x%0*lx\n", i, Abc_ObjFaninNum(pObj), nDigits, TruthSmall );
           }
         }
         assert( iMint == nMints );
@@ -230,12 +230,12 @@ Abc_Ntk_t * Abc_NtkTopoExact( Abc_Ntk_t * pFunc, Abc_Ntk_t * pTopo, int nTimeOut
         pRes = Abc_NtkTopoDup( pTopo, vTruths );
         Vec_WrdFree( vTruths );
         if ( fVerbose )
-            printf( "The problem has a solution.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The problem has a solution.\n" );
     }
     else if ( status == KISSAT_UNSAT && fVerbose )
-        printf( "The problem has no solution.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The problem has no solution.\n" );
     else if ( status == KISSAT_UNDEC && fVerbose )
-        printf( "The solver returned unknown.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The solver returned unknown.\n" );
     kissat_release( pSat );
     Vec_WrdFree( vSims );
     Vec_WrdFree( vSimsPi );

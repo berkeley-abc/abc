@@ -49,8 +49,8 @@ static inline void Io_ReadPlaPrintCube( word * p, int nVars )
 {
     char Symbs[3] = {'-', '0', '1'}; int v;
     for ( v = 0; v < nVars; v++ )
-        printf( "%c", Symbs[Abc_TtGetQua(p, v)] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", Symbs[Abc_TtGetQua(p, v)] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -281,7 +281,7 @@ void Io_ReadPlaCubePreprocess( Vec_Str_t * vSop, int iCover, int fVerbose )
     int nCubesNew, Count, Iter = 0;
     Vec_Bit_t * vMarks = Vec_BitStart( nCubes );
     if ( fVerbose )
-        printf( "Cover %5d : V =%5d  C%d =%5d", iCover, nVars, Iter, nCubes );
+        fprintf( Abc_FrameGlobalGetOut(), "Cover %5d : V =%5d  C%d =%5d", iCover, nVars, Iter, nCubes );
 
     do 
     {
@@ -298,18 +298,18 @@ void Io_ReadPlaCubePreprocess( Vec_Str_t * vSop, int iCover, int fVerbose )
             Count = Io_ReadPlaMergeDistance1( pCs, nCubes, nWords, vMarks );
         } while ( Count );
         if ( fVerbose )
-            printf( "  C%d =%5d", Iter, nCubes );
+            fprintf( Abc_FrameGlobalGetOut(), "  C%d =%5d", Iter, nCubes );
         // try consensus
         //Count = Io_ReadPlaSelfSubsumption( pCs, nCubes, nWords, vMarks );
         if ( fVerbose )
-            printf( "%4d", Count );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d", Count );
     } while ( Count );
 
     // translate
     Io_ReadPlaCubeSetdown( vSop, pCs, nCubes, nVars );
     // finalize
     if ( fVerbose )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_BitFree( vMarks );
     ABC_FREE( pCs[0] );
     ABC_FREE( pCs );
@@ -346,7 +346,7 @@ Abc_Ntk_t * Io_ReadPla( char * pFileName, int fZeros, int fBoth, int fOnDc, int 
     // make sure that everything is okay with the network structure
     if ( fCheck && !Abc_NtkCheckRead( pNtk ) )
     {
-        printf( "Io_ReadPla: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_ReadPla: The network check has failed.\n" );
         Abc_NtkDelete( pNtk );
         return NULL;
     }
@@ -381,7 +381,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, in
 
     // go through the lines of the file
     nCubes = 0;
-    pProgress = Extra_ProgressBarStart( stdout, Extra_FileReaderGetFileSize(p) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Extra_FileReaderGetFileSize(p) );
     while ( (vTokens = (Vec_Ptr_t *)Extra_FileReaderGetTokens(p)) )
     {
         Extra_ProgressBarUpdate( pProgress, Extra_FileReaderGetCurPosition(p), NULL );
@@ -405,7 +405,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, in
 
         if ( vTokens->nSize == 1 )
         {
-            printf( "%s (line %d): Wrong number of token.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "%s (line %d): Wrong number of token.\n", 
                 Extra_FileReaderGetFileName(p), iLine );
             Abc_NtkDelete( pNtk );
             Extra_ProgressBarStop( pProgress );
@@ -422,14 +422,14 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, in
         else if ( strcmp( (char *)vTokens->pArray[0], ".ilb" ) == 0 )
         {
             if ( vTokens->nSize - 1 != nInputs )
-                printf( "Warning: Mismatch between the number of PIs on the .i line (%d) and the number of PIs on the .ilb line (%d).\n", nInputs, vTokens->nSize - 1 );
+                fprintf( Abc_FrameGlobalGetOut(), "Warning: Mismatch between the number of PIs on the .i line (%d) and the number of PIs on the .ilb line (%d).\n", nInputs, vTokens->nSize - 1 );
             for ( i = 1; i < vTokens->nSize; i++ )
                 Io_ReadCreatePi( pNtk, (char *)vTokens->pArray[i] );
         }
         else if ( strcmp( (char *)vTokens->pArray[0], ".ob" ) == 0 )
         {
             if ( vTokens->nSize - 1 != nOutputs )
-                printf( "Warning: Mismatch between the number of POs on the .o line (%d) and the number of POs on the .ob line (%d).\n", nOutputs, vTokens->nSize - 1 );
+                fprintf( Abc_FrameGlobalGetOut(), "Warning: Mismatch between the number of POs on the .o line (%d) and the number of POs on the .ob line (%d).\n", nOutputs, vTokens->nSize - 1 );
             for ( i = 1; i < vTokens->nSize; i++ )
                 Io_ReadCreatePo( pNtk, (char *)vTokens->pArray[i] );
         }
@@ -440,7 +440,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, in
             {
                 if ( nInputs == -1 )
                 {
-                    printf( "%s: The number of inputs is not specified.\n", Extra_FileReaderGetFileName(p) );
+                    fprintf( Abc_FrameGlobalGetOut(), "%s: The number of inputs is not specified.\n", Extra_FileReaderGetFileName(p) );
                     Abc_NtkDelete( pNtk );
                     Extra_ProgressBarStop( pProgress );
                     ABC_FREE( ppSops );
@@ -457,7 +457,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, in
             {
                 if ( nOutputs == -1 )
                 {
-                    printf( "%s: The number of outputs is not specified.\n", Extra_FileReaderGetFileName(p) );
+                    fprintf( Abc_FrameGlobalGetOut(), "%s: The number of outputs is not specified.\n", Extra_FileReaderGetFileName(p) );
                     Abc_NtkDelete( pNtk );
                     Extra_ProgressBarStop( pProgress );
                     ABC_FREE( ppSops );
@@ -490,7 +490,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, in
             // read the cubes
             if ( vTokens->nSize != 2 )
             {
-                printf( "%s (line %d): Input and output cubes are not specified.\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "%s (line %d): Input and output cubes are not specified.\n", 
                     Extra_FileReaderGetFileName(p), iLine );
                 Abc_NtkDelete( pNtk );
                 Extra_ProgressBarStop( pProgress );
@@ -501,7 +501,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, in
             pCubeOut = (char *)vTokens->pArray[1];
             if ( (int)strlen(pCubeIn) != nInputs )
             {
-                printf( "%s (line %d): Input cube length (%d) differs from the number of inputs (%d).\n",
+                fprintf( Abc_FrameGlobalGetOut(), "%s (line %d): Input cube length (%d) differs from the number of inputs (%d).\n",
                     Extra_FileReaderGetFileName(p), iLine, (int)strlen(pCubeIn), nInputs );
                 Abc_NtkDelete( pNtk );
                 ABC_FREE( ppSops );
@@ -509,7 +509,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, in
             }
             if ( (int)strlen(pCubeOut) != nOutputs )
             {
-                printf( "%s (line %d): Output cube length (%d) differs from the number of outputs (%d).\n",
+                fprintf( Abc_FrameGlobalGetOut(), "%s (line %d): Output cube length (%d) differs from the number of outputs (%d).\n",
                     Extra_FileReaderGetFileName(p), iLine, (int)strlen(pCubeOut), nOutputs );
                 Abc_NtkDelete( pNtk );
                 Extra_ProgressBarStop( pProgress );
@@ -565,7 +565,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, in
     }
     Extra_ProgressBarStop( pProgress );
     if ( nProducts != -1 && nCubes != nProducts )
-        printf( "Warning: Mismatch between the number of cubes (%d) and the number on .p line (%d).\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Mismatch between the number of cubes (%d) and the number on .p line (%d).\n", 
             nCubes, nProducts );
 
     // add the SOP covers

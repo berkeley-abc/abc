@@ -1770,7 +1770,7 @@ void Abc_GenAT( char * pFileName, Vec_Int_t * vNums )
     fprintf( pFile, ".end\n\n" );
     Abc_WriteHalfAdder( pFile );
     Abc_WriteFullAdder( pFile );
-    printf( "Created %d-bit %d-input AT with %d FAs and %d HAs.\n", nBits, Vec_IntSum(vNums), nFAs, nHAs );
+    fprintf( Abc_FrameGlobalGetOut(), "Created %d-bit %d-input AT with %d FAs and %d HAs.\n", nBits, Vec_IntSum(vNums), nFAs, nHAs );
     fclose( pFile );
     Vec_WecFree( vItems );
 }
@@ -1913,7 +1913,7 @@ void Abc_GenATDual( char * pFileName, Vec_Int_t * vNums )
     Abc_WriteFullAdder( pFile );
     if ( fUsed )
         Abc_WriteMDFA( pFile );
-    printf( "Created %d-bit %d-input AT with %d FAs, %d HAs, and %d XORs.\n", nBits, Vec_IntSum(vNums), nFAs, nHAs, nXors );
+    fprintf( Abc_FrameGlobalGetOut(), "Created %d-bit %d-input AT with %d FAs, %d HAs, and %d XORs.\n", nBits, Vec_IntSum(vNums), nFAs, nHAs, nXors );
     fclose( pFile );
     Vec_WecFree( vItems );
 }

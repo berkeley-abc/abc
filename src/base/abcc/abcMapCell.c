@@ -506,7 +506,7 @@ int Abc_CommandGlitch( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( Abc_NtkIsMappedLogic(pNtk) || Abc_NtkGetFaninMax(pNtk) <= 6 )
         Abc_Print( 1, "Glitching adds %7.2f %% of signal transitions, compared to switching.\n", Abc_NtkMfsTotalGlitching(pNtk, nPats, Prob, fVerbose) );
     else
-        printf( "Currently computes glitching only for K-LUT networks with K <= 6.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Currently computes glitching only for K-LUT networks with K <= 6.\n" );
     return 0;
 
 usage:
@@ -1309,7 +1309,7 @@ int Abc_CommandStochMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     }    
     if ( argc != globalUtilOptind + 1 )
     {
-        printf( "Expecting a synthesis script in quotes on the command line (for example: \"&st; &dch; &if\").\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Expecting a synthesis script in quotes on the command line (for example: \"&st; &dch; &if\").\n" );
         goto usage;
     }
     pScript = Abc_UtilStrsav( argv[globalUtilOptind] );
@@ -2389,7 +2389,7 @@ int Abc_CommandAbc9Simap( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Mio_IntallSimpleLibrary();
     if ( !Gia_ManSimpleMapping( pAbc->pGia, nBound, Seed, nBTLimit, nTimeout, fVerbose, fKeepFile, argc, argv ) )
-        printf( "Simple mapping has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Simple mapping has failed.\n" );
     return 0;
 
 usage:

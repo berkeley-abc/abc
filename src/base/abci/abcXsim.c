@@ -138,7 +138,7 @@ void Abc_NtkXValueSimulate( Abc_Ntk_t * pNtk, int nFrames, int fXInputs, int fXS
             Abc_ObjSetXsim( Abc_ObjFanout0(pObj), Abc_LatchInit(pObj) );
     }
     // simulate and print the result
-    fprintf( stdout, "Frame : Inputs : Latches : Outputs\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Frame : Inputs : Latches : Outputs\n" );
     for ( f = 0; f < nFrames; f++ )
     {
         Abc_AigForEachAnd( pNtk, pObj, i )
@@ -146,20 +146,20 @@ void Abc_NtkXValueSimulate( Abc_Ntk_t * pNtk, int nFrames, int fXInputs, int fXS
         Abc_NtkForEachCo( pNtk, pObj, i )
             Abc_ObjSetXsim( pObj, Abc_ObjGetXsimFanin0(pObj) );
         // print out
-        fprintf( stdout, "%2d : ", f );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : ", f );
         Abc_NtkForEachPi( pNtk, pObj, i )
-            Abc_XsimPrint( stdout, Abc_ObjGetXsim(pObj) );
-        fprintf( stdout, " : " );
+            Abc_XsimPrint( Abc_FrameGlobalGetOut(), Abc_ObjGetXsim(pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), " : " );
         Abc_NtkForEachLatch( pNtk, pObj, i )
         {
 //            if ( Abc_ObjGetXsim(Abc_ObjFanout0(pObj)) != XVSX )
 //                printf( " %s=", Abc_ObjName(pObj) );
-            Abc_XsimPrint( stdout, Abc_ObjGetXsim(Abc_ObjFanout0(pObj)) );
+            Abc_XsimPrint( Abc_FrameGlobalGetOut(), Abc_ObjGetXsim(Abc_ObjFanout0(pObj)) );
         }
-        fprintf( stdout, " : " );
+        fprintf( Abc_FrameGlobalGetOut(), " : " );
         Abc_NtkForEachPo( pNtk, pObj, i )
-            Abc_XsimPrint( stdout, Abc_ObjGetXsim(pObj) );
-        fprintf( stdout, "\n" );
+            Abc_XsimPrint( Abc_FrameGlobalGetOut(), Abc_ObjGetXsim(pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         // assign input values
         if ( fXInputs )
         {

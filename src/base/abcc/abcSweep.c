@@ -3704,7 +3704,7 @@ int Abc_CommandAbc9Sweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( Gia_ManBoxNum(pAbc->pGia) && pAbc->pGia->pAigExtra == NULL )
     {
-        printf( "Timing manager is given but there is no GIA of boxes.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Timing manager is given but there is no GIA of boxes.\n" );
         return 0;
     }
     if ( Gia_ManBoxNum(pAbc->pGia) )

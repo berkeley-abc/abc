@@ -114,15 +114,15 @@ void Wlc_NtkPrintInvStats( Wlc_Ntk_t * pNtk, Vec_Int_t * vCounts, int fVerbose )
             nBits += nRange;
             continue;
         }
-        printf( "%s[%d:%d] : ", Wlc_ObjName(pNtk, Wlc_ObjId(pNtk, pObj)), pObj->End, pObj->Beg );
+        fprintf( Abc_FrameGlobalGetOut(), "%s[%d:%d] : ", Wlc_ObjName(pNtk, Wlc_ObjId(pNtk, pObj)), pObj->End, pObj->Beg );
         for ( k = 0; k < nRange; k++ )
         {
             nNum = Vec_IntEntry( vCounts, nBits + k );
             if ( nNum == 0 )
                 continue;
-            printf( "  [%d] -> %d", k, nNum );
+            fprintf( Abc_FrameGlobalGetOut(), "  [%d] -> %d", k, nNum );
         }
-        printf( "\n");
+        fprintf( Abc_FrameGlobalGetOut(),  "\n");
         nBits += nRange;
     }
     //printf( "%d %d\n", Vec_IntSize(vCounts), nBits );
@@ -179,7 +179,7 @@ Abc_Ntk_t * Wlc_NtkGetInv( Wlc_Ntk_t * pNtk, Vec_Int_t * vInv, Vec_Ptr_t * vName
         }
         if ( Abc_NtkPiNum(pMainNtk) != nInputs )
         {
-            printf( "Mismatch between number of inputs and the number of literals in the invariant.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Mismatch between number of inputs and the number of literals in the invariant.\n" );
             Abc_NtkDelete( pMainNtk );
             return NULL;
         }
@@ -250,9 +250,9 @@ Vec_Int_t * Wlc_NtkGetPut( Abc_Ntk_t * pNtk, Gia_Man_t * pGia )
     int nRegs = Gia_ManRegNum(pGia);
     Vec_Int_t * vRes = NULL;
     if ( Abc_NtkPoNum(pNtk) != 1 )
-        printf( "The number of outputs is other than 1.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of outputs is other than 1.\n" );
     else if ( Abc_NtkNodeNum(pNtk) != 1 )
-        printf( "The number of internal nodes is other than 1.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of internal nodes is other than 1.\n" );
     else
     {
         Abc_Nam_t * pNames = NULL;
@@ -282,7 +282,7 @@ Vec_Int_t * Wlc_NtkGetPut( Abc_Ntk_t * pNtk, Gia_Man_t * pGia )
                 if ( Value < 0 )
                 {
                     if ( Counter++ == 0 )
-                        printf( "Cannot read input name \"%s\" of fanin %d.\n", pName, i );
+                        fprintf( Abc_FrameGlobalGetOut(), "Cannot read input name \"%s\" of fanin %d.\n", pName, i );
                     Value = i;
                 }
             }
@@ -294,7 +294,7 @@ Vec_Int_t * Wlc_NtkGetPut( Abc_Ntk_t * pNtk, Gia_Man_t * pGia )
                 if ( k == (int)strlen(pName)-1 )
                 {
                     if ( Counter++ == 0 )
-                        printf( "Cannot read input name \"%s\" of fanin %d.\n", pName, i );
+                        fprintf( Abc_FrameGlobalGetOut(), "Cannot read input name \"%s\" of fanin %d.\n", pName, i );
                     Value = i;
                 }
                 else 
@@ -303,7 +303,7 @@ Vec_Int_t * Wlc_NtkGetPut( Abc_Ntk_t * pNtk, Gia_Man_t * pGia )
             Vec_IntPush( vFanins, Value );
         }
         if ( Counter )
-            printf( "Cannot read names for %d inputs of the invariant.\n", Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot read names for %d inputs of the invariant.\n", Counter );
         if ( pNames )
             Abc_NamStop( pNames );
         assert( Vec_IntSize(vFanins) == Abc_ObjFaninNum(pNode) );

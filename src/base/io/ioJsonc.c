@@ -444,16 +444,16 @@ bool json_load_file(json_t *json, const char *filename) {
 
 // Helper function to print a JSON value (for debugging)
 void json_debug_value(json_t *json, json_value_t val, int indent) {
-    for (int i = 0; i < indent; i++) printf("  ");
+    for (int i = 0; i < indent; i++) fprintf( Abc_FrameGlobalGetOut(), "  ");
     
-    printf("Type: %d, Offset: %u, Length: %u, Content: '", 
+    fprintf( Abc_FrameGlobalGetOut(), "Type: %d, Offset: %u, Length: %u, Content: '", 
            val.type, val.offset, val.length);
     
     for (uint32_t i = 0; i < val.length && i < 50; i++) {
         putchar(json->str[val.offset + i]);
     }
-    if (val.length > 50) printf("...");
-    printf("'\n");
+    if (val.length > 50) fprintf( Abc_FrameGlobalGetOut(), "...");
+    fprintf( Abc_FrameGlobalGetOut(), "'\n");
 }
 
 // Print a JSON string value with proper escaping
@@ -589,20 +589,20 @@ int Jsonc_ReadTest( char * pFileName )
 {
     json_t *json = json_create();
     if (!json) {
-        fprintf(stderr, "Failed to create JSON structure\n");
+        fprintf( Abc_FrameGlobalGetErr(), "Failed to create JSON structure\n");
         return 1;
     }
     
-    printf("Parsing JSONC file: %s\n", pFileName);
+    fprintf( Abc_FrameGlobalGetOut(), "Parsing JSONC file: %s\n", pFileName);
     if (!json_load_file(json, pFileName)) {
-        fprintf(stderr, "Failed to load JSON file\n");
+        fprintf( Abc_FrameGlobalGetErr(), "Failed to load JSON file\n");
         json_destroy(json);
         return 1;
     }
     
-    printf("JSON parsed successfully!\n");
-    printf("String length: %u\n", json->str_len);
-    printf("Container count: %u\n", json->container_count);
+    fprintf( Abc_FrameGlobalGetOut(), "JSON parsed successfully!\n");
+    fprintf( Abc_FrameGlobalGetOut(), "String length: %u\n", json->str_len);
+    fprintf( Abc_FrameGlobalGetOut(), "Container count: %u\n", json->container_count);
 
     //printf("\nRoot value:\n");
     //json_debug_value(json, json->root, 0);
@@ -620,7 +620,7 @@ int Jsonc_ReadTest( char * pFileName )
     }
 */    
     // Also print to stdout for verification
-    printf("\nParsed JSON output:\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\nParsed JSON output:\n");
     json_print(json, stdout);
 
     json_destroy(json);
@@ -771,7 +771,7 @@ void Jsonc_WriteTest( Abc_Ntk_t * p, char * pFileName )
     pFile    = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Jsonc_WriteTest(): Cannot open output file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Jsonc_WriteTest(): Cannot open output file \"%s\" for writing.\n", pFileName );
         Vec_IntFree( vObj2Num );
         Vec_PtrFree( vNodes );
         return;
@@ -992,12 +992,12 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
         *pvNodeOutNames = NULL;
     if ( pLib == NULL )
     {
-        printf( "Genlib library is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Genlib library is not available.\n" );
         return NULL;
     }
     if ( pJson->root.type != JSON_OBJECT )
     {
-        printf( "JSONC root should be an object.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "JSONC root should be an object.\n" );
         return NULL;
     }
     pTemp = Jsonc_ObjectLookup( pJson, pJson->root, "name" );
@@ -1006,13 +1006,13 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
     pTemp = Jsonc_ObjectLookup( pJson, pJson->root, "nodes" );
     if ( pTemp == NULL || pTemp->type != JSON_ARRAY )
     {
-        printf( "JSONC file is missing top-level \"nodes\" array.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "JSONC file is missing top-level \"nodes\" array.\n" );
         return NULL;
     }
     pNodes = Jsonc_GetContainer( pJson, *pTemp );
     if ( pNodes == NULL )
     {
-        printf( "Internal JSONC structure is incomplete.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Internal JSONC structure is incomplete.\n" );
         return NULL;
     }
     vNodeMap   = Vec_IntStartFull( pNodes->count );
@@ -1033,12 +1033,12 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
         int Bit = 0;
         if ( pType == NULL || pType->type != JSON_STRING )
         {
-            printf( "Node %d does not have a valid \"type\" field.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Node %d does not have a valid \"type\" field.\n", i );
             goto cleanup;
         }
         if ( pBit && !Jsonc_ParseInt( pJson, *pBit, &Bit ) )
         {
-            printf( "Node %d has an invalid \"bit\" field.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Node %d has an invalid \"bit\" field.\n", i );
             goto cleanup;
         }
         if ( Jsonc_StringEqual( pJson, *pType, "pi" ) )
@@ -1047,7 +1047,7 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
             pBase = Jsonc_StringDup( pJson, pName ? *pName : *pType );
             if ( pBase == NULL )
             {
-                printf( "Primary input %d is missing a name.\n", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Primary input %d is missing a name.\n", i );
                 goto cleanup;
             }
             Vec_PtrPush( vPiBases, pBase );
@@ -1065,7 +1065,7 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
             pBase = Jsonc_StringDup( pJson, pName ? *pName : *pType );
             if ( pBase == NULL )
             {
-                printf( "Primary output %d is missing a name.\n", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Primary output %d is missing a name.\n", i );
                 goto cleanup;
             }
             Vec_PtrPush( vPoBases, pBase );
@@ -1073,7 +1073,7 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
         }
         else
         {
-            printf( "Node %d has unsupported type.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Node %d has unsupported type.\n", i );
             goto cleanup;
         }
     }
@@ -1103,27 +1103,27 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
             char * pGateStr, * pOutStr;
             if ( pGateName == NULL || pGateName->type != JSON_STRING )
             {
-                printf( "Gate node %d is missing a name.\n", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Gate node %d is missing a name.\n", i );
                 goto cleanup;
             }
             pGateStr = Jsonc_StringDup( pJson, *pGateName );
             if ( pGateStr == NULL )
             {
-                printf( "Gate node %d has an invalid name.\n", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Gate node %d has an invalid name.\n", i );
                 goto cleanup;
             }
             pOutStr = Jsonc_GetInstanceOutName( pJson, Node );
             pGate = Mio_LibraryReadGateByName( pLib, pGateStr, pOutStr );
             if ( pGate == NULL )
             {
-                printf( "Gate \"%s\"%s%s%s is not found in the current library.\n", pGateStr, pOutStr ? " with output pin \"" : "", pOutStr ? pOutStr : "", pOutStr ? "\"" : "" );
+                fprintf( Abc_FrameGlobalGetOut(), "Gate \"%s\"%s%s%s is not found in the current library.\n", pGateStr, pOutStr ? " with output pin \"" : "", pOutStr ? pOutStr : "", pOutStr ? "\"" : "" );
                 ABC_FREE( pOutStr );
                 ABC_FREE( pGateStr );
                 goto cleanup;
             }
             if ( pFanins == NULL || pFanins->type != JSON_OBJECT )
             {
-                printf( "Gate \"%s\" is missing \"fanins\" description.\n", pGateStr );
+                fprintf( Abc_FrameGlobalGetOut(), "Gate \"%s\" is missing \"fanins\" description.\n", pGateStr );
                 ABC_FREE( pOutStr );
                 ABC_FREE( pGateStr );
                 goto cleanup;
@@ -1131,7 +1131,7 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
             pFanObj = Jsonc_GetContainer( pJson, *pFanins );
             if ( pFanObj == NULL )
             {
-                printf( "Gate \"%s\" has incomplete fanin information.\n", pGateStr );
+                fprintf( Abc_FrameGlobalGetOut(), "Gate \"%s\" has incomplete fanin information.\n", pGateStr );
                 ABC_FREE( pOutStr );
                 ABC_FREE( pGateStr );
                 goto cleanup;
@@ -1144,7 +1144,7 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
                 int NodeId, MapId;
                 if ( pPinInfo == NULL || pPinInfo->type != JSON_OBJECT )
                 {
-                    printf( "Gate \"%s\" is missing connection for pin \"%s\".\n", pGateStr, Mio_PinReadName(pPin) );
+                    fprintf( Abc_FrameGlobalGetOut(), "Gate \"%s\" is missing connection for pin \"%s\".\n", pGateStr, Mio_PinReadName(pPin) );
                     ABC_FREE( pOutStr );
                     ABC_FREE( pGateStr );
                     goto cleanup;
@@ -1152,14 +1152,14 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
                 pNodeLit = Jsonc_ObjectLookup( pJson, *pPinInfo, "node" );
                 if ( pNodeLit == NULL || !Jsonc_ParseInt( pJson, *pNodeLit, &NodeId ) )
                 {
-                    printf( "Gate \"%s\" has invalid node reference on pin \"%s\".\n", pGateStr, Mio_PinReadName(pPin) );
+                    fprintf( Abc_FrameGlobalGetOut(), "Gate \"%s\" has invalid node reference on pin \"%s\".\n", pGateStr, Mio_PinReadName(pPin) );
                     ABC_FREE( pOutStr );
                     ABC_FREE( pGateStr );
                     goto cleanup;
                 }
                 if ( NodeId < 0 || NodeId >= Vec_IntSize(vNodeMap) )
                 {
-                    printf( "Gate \"%s\" references out-of-range node %d.\n", pGateStr, NodeId );
+                    fprintf( Abc_FrameGlobalGetOut(), "Gate \"%s\" references out-of-range node %d.\n", pGateStr, NodeId );
                     ABC_FREE( pOutStr );
                     ABC_FREE( pGateStr );
                     goto cleanup;
@@ -1167,7 +1167,7 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
                 MapId = Vec_IntEntry( vNodeMap, NodeId );
                 if ( MapId < 0 )
                 {
-                    printf( "Gate \"%s\" refers to unsupported node %d.\n", pGateStr, NodeId );
+                    fprintf( Abc_FrameGlobalGetOut(), "Gate \"%s\" refers to unsupported node %d.\n", pGateStr, NodeId );
                     ABC_FREE( pOutStr );
                     ABC_FREE( pGateStr );
                     goto cleanup;
@@ -1186,18 +1186,18 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
             int NodeId, MapId;
             if ( pNodeId == NULL || !Jsonc_ParseInt( pJson, *pNodeId, &NodeId ) )
             {
-                printf( "Primary output %d is missing driver information.\n", Vec_IntSize(vPoDrivers) );
+                fprintf( Abc_FrameGlobalGetOut(), "Primary output %d is missing driver information.\n", Vec_IntSize(vPoDrivers) );
                 goto cleanup;
             }
             if ( NodeId < 0 || NodeId >= Vec_IntSize(vNodeMap) )
             {
-                printf( "Primary output %d refers to out-of-range node %d.\n", Vec_IntSize(vPoDrivers), NodeId );
+                fprintf( Abc_FrameGlobalGetOut(), "Primary output %d refers to out-of-range node %d.\n", Vec_IntSize(vPoDrivers), NodeId );
                 goto cleanup;
             }
             MapId = Vec_IntEntry( vNodeMap, NodeId );
             if ( MapId < 0 )
             {
-                printf( "Primary output %d points to unsupported node %d.\n", Vec_IntSize(vPoDrivers), NodeId );
+                fprintf( Abc_FrameGlobalGetOut(), "Primary output %d points to unsupported node %d.\n", Vec_IntSize(vPoDrivers), NodeId );
                 goto cleanup;
             }
             Vec_IntPush( vPoDrivers, MapId );
@@ -1205,7 +1205,7 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
     }
     if ( Vec_IntSize(vPoDrivers) != nCos )
     {
-        printf( "JSONC file declares %d POs but %d drivers were found.\n", nCos, Vec_IntSize(vPoDrivers) );
+        fprintf( Abc_FrameGlobalGetOut(), "JSONC file declares %d POs but %d drivers were found.\n", nCos, Vec_IntSize(vPoDrivers) );
         goto cleanup;
     }
     // append CO drivers
@@ -1281,12 +1281,12 @@ Abc_Ntk_t * Jsonc_ReadNetwork( char * pFileName )
     json_t * pJson = json_create();
     if ( pJson == NULL )
     {
-        printf( "Failed to allocate JSONC parser.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Failed to allocate JSONC parser.\n" );
         return NULL;
     }
     if ( !json_load_file( pJson, pFileName ) )
     {
-        printf( "Failed to load JSONC file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Failed to load JSONC file \"%s\".\n", pFileName );
         json_destroy( pJson );
         return NULL;
     }

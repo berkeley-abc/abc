@@ -102,17 +102,17 @@ Abc_Ntk_t * Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck
     Abc_Ntk_t * pNtk;
     if ( FileType == IO_FILE_NONE || FileType == IO_FILE_UNKNOWN )
     {
-        fprintf( stdout, "Generic file reader requires a known file extension to open \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Generic file reader requires a known file extension to open \"%s\".\n", pFileName );
         return NULL;
     }
     // check if the file exists
     pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Cannot open input file \"%s\". ", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\". ", pFileName );
         if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".blif", ".bench", ".pla", ".baf", ".aig" )) )
-            fprintf( stdout, "Did you mean \"%s\"?", pFileName );
-        fprintf( stdout, "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Did you mean \"%s\"?", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
        return NULL;
     }
     fclose( pFile );
@@ -127,7 +127,7 @@ Abc_Ntk_t * Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck
             pNtk = Io_ReadBblif( pFileName, fCheck );
         if ( pNtk == NULL )
         {
-            fprintf( stdout, "Reading AIG from file has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Reading AIG from file has failed.\n" );
             return NULL;
         }
         return pNtk;
@@ -150,12 +150,12 @@ Abc_Ntk_t * Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck
         pNtk = Io_ReadVerilog( pFileName, fCheck );
     else 
     {
-        fprintf( stderr, "Unknown file format.\n" );
+        fprintf( Abc_FrameGlobalGetErr(),  "Unknown file format.\n" );
         return NULL;
     }
     if ( pNtk == NULL )
     {
-        fprintf( stdout, "Reading network from file has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Reading network from file has failed.\n" );
         return NULL;
     }
 
@@ -265,19 +265,19 @@ Abc_Ntk_t * Io_Read( char * pFileName, Io_FileType_t FileType, int fCheck, int f
         Abc_NtkDelete( pTemp );
         if ( pNtk == NULL )
         {
-            fprintf( stdout, "Flattening logic hierarchy has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Flattening logic hierarchy has failed.\n" );
             return NULL;
         }
     }
     // convert blackboxes
     if ( Abc_NtkBlackboxNum(pNtk) > 0 )
     {
-        printf( "Hierarchy reader converted %d instances of blackboxes.\n", Abc_NtkBlackboxNum(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(), "Hierarchy reader converted %d instances of blackboxes.\n", Abc_NtkBlackboxNum(pNtk) );
         pNtk = Abc_NtkConvertBlackboxes( pTemp = pNtk );
         Abc_NtkDelete( pTemp );
         if ( pNtk == NULL )
         {
-            fprintf( stdout, "Converting blackboxes has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Converting blackboxes has failed.\n" );
             return NULL;
         }
     }
@@ -288,7 +288,7 @@ Abc_Ntk_t * Io_Read( char * pFileName, Io_FileType_t FileType, int fCheck, int f
         Abc_NtkDelete( pTemp );
         if ( pNtk == NULL )
         {
-            fprintf( stdout, "Converting BLIF-MV to AIG has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Converting BLIF-MV to AIG has failed.\n" );
             return NULL;
         }
         return pNtk;
@@ -300,7 +300,7 @@ Abc_Ntk_t * Io_Read( char * pFileName, Io_FileType_t FileType, int fCheck, int f
     Abc_NtkDelete( pTemp );
     if ( pNtk == NULL )
     {
-        fprintf( stdout, "Converting netlist to logic network after reading has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Converting netlist to logic network after reading has failed.\n" );
         return NULL;
     }
     return pNtk;
@@ -323,13 +323,13 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
     // check if the current network is available
     if ( pNtk == NULL )
     {
-        fprintf( stdout, "Empty network.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Empty network.\n" );
         return;
     }
     // check if the file extension if given
     if ( FileType == IO_FILE_NONE || FileType == IO_FILE_UNKNOWN )
     {
-        fprintf( stdout, "The generic file writer requires a known file extension.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The generic file writer requires a known file extension.\n" );
         return;
     }
     // write the AIG formats
@@ -337,7 +337,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
     {
         if ( !Abc_NtkIsStrash(pNtk) )
         {
-            fprintf( stdout, "Writing this format is only possible for structurally hashed AIGs.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Writing this format is only possible for structurally hashed AIGs.\n" );
             return;
         }
         if ( FileType == IO_FILE_AIGER )
@@ -366,7 +366,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
     {
         if ( !Abc_NtkIsLogic(pNtk) )
         {
-            fprintf( stdout, "Writing Binary BLIF is only possible for logic networks.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Writing Binary BLIF is only possible for logic networks.\n" );
             return;
         }
         if ( !Abc_NtkHasSop(pNtk) )
@@ -386,14 +386,14 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
     {
         if ( Abc_NtkLevel(pNtk) > 1 )
         {
-            fprintf( stdout, "PLA writing is available for collapsed networks.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "PLA writing is available for collapsed networks.\n" );
             return;
         }
         if ( Abc_NtkIsComb(pNtk) )
             pNtkTemp = Abc_NtkToNetlist( pNtk );
         else
         {
-            fprintf( stdout, "Latches are written into the PLA file at PI/PO pairs.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Latches are written into the PLA file at PI/PO pairs.\n" );
             pNtkCopy = Abc_NtkDup( pNtk );
             Abc_NtkMakeComb( pNtkCopy, 0 );
             pNtkTemp = Abc_NtkToNetlist( pNtk );
@@ -410,7 +410,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
     {
         if ( !Abc_NtkIsStrash(pNtk) )
         {
-            fprintf( stdout, "Writing traditional BENCH is available for AIGs only (use \"write_bench\").\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Writing traditional BENCH is available for AIGs only (use \"write_bench\").\n" );
             return;
         }
         pNtkTemp = Abc_NtkToNetlistBench( pNtk );
@@ -419,7 +419,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
     {
         if ( !Abc_NtkIsStrash(pNtk) )
         {
-            fprintf( stdout, "Writing traditional SMV is available for AIGs only.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Writing traditional SMV is available for AIGs only.\n" );
             return;
         }
         pNtkTemp = Abc_NtkToNetlistBench( pNtk );
@@ -429,7 +429,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
 
     if ( pNtkTemp == NULL )
     {
-        fprintf( stdout, "Converting to netlist has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Converting to netlist has failed.\n" );
         return;
     }
 
@@ -468,7 +468,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
         Io_WriteVerilog( pNtkTemp, pFileName, 0, 0 );
     }
     else 
-        fprintf( stderr, "Unknown file format.\n" );
+        fprintf( Abc_FrameGlobalGetErr(),  "Unknown file format.\n");
     Abc_NtkDelete( pNtkTemp );
 }
 
@@ -490,7 +490,7 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
     // check if the current network is available
     if ( pNtk == NULL )
     {
-        fprintf( stdout, "Empty network.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Empty network.\n" );
         return;
     }
 
@@ -503,7 +503,7 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
     else if ( Io_ReadFileType(pBaseName) == IO_FILE_VERILOG )
         pNtkBase = Io_ReadVerilog( pBaseName, 1 );
     else 
-        fprintf( stderr, "Unknown input file format.\n" );
+        fprintf( Abc_FrameGlobalGetErr(),  "Unknown input file format.\n" );
     if ( pNtkBase == NULL )
         return;
 
@@ -524,13 +524,13 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
         pNtkResult = Abc_NtkFromBarBufs( pNtkBase, pNtkTemp = pNtkResult );
         Abc_NtkDelete( pNtkTemp );
         if ( pNtkResult )
-            printf( "Hierarchy writer replaced %d barbufs by hierarchy boundaries.\n", pNtk->nBarBufs );
+            fprintf( Abc_FrameGlobalGetOut(), "Hierarchy writer replaced %d barbufs by hierarchy boundaries.\n", pNtk->nBarBufs );
     }
     else if ( Io_ReadFileType(pBaseName) == IO_FILE_BLIFMV ) 
     {
         if ( Abc_NtkBlackboxNum(pNtkBase) > 0 )
         {
-            printf( "Hierarchy writer does not support BLIF-MV with blackboxes.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Hierarchy writer does not support BLIF-MV with blackboxes.\n" );
             Abc_NtkDelete( pNtkBase );
             return;
         }
@@ -553,11 +553,11 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
         pNtkResult = Abc_NtkInsertNewLogic( pNtkBase, pNtkTemp = pNtkResult );
         Abc_NtkDelete( pNtkTemp );
         if ( pNtkResult )
-            printf( "Hierarchy writer reintroduced %d instances of blackboxes.\n", Abc_NtkBlackboxNum(pNtkBase) );
+            fprintf( Abc_FrameGlobalGetOut(), "Hierarchy writer reintroduced %d instances of blackboxes.\n", Abc_NtkBlackboxNum(pNtkBase) );
     }
     else
     {
-        printf( "Warning: The output network does not contain blackboxes.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The output network does not contain blackboxes.\n" );
         pNtkResult = Abc_NtkToNetlist( pNtk );
     }
     Abc_NtkDelete( pNtkBase );
@@ -600,7 +600,7 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
         Io_WriteBlifMv( pNtkResult, pFileName );
     }
     else 
-        fprintf( stderr, "Unknown output file format.\n" );
+        fprintf( Abc_FrameGlobalGetErr(),  "Unknown output file format.\n" );
 
     Abc_NtkDelete( pNtkResult );
 }
@@ -622,7 +622,7 @@ Abc_Obj_t * Io_ReadCreatePi( Abc_Ntk_t * pNtk, char * pName )
     // get the PI net
     pNet  = Abc_NtkFindNet( pNtk, pName );
     if ( pNet )
-        printf( "Warning: PI \"%s\" appears twice in the list.\n", pName );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: PI \"%s\" appears twice in the list.\n", pName );
     pNet  = Abc_NtkFindOrCreateNet( pNtk, pName );
     // add the PI node
     pTerm = Abc_NtkCreatePi( pNtk );
@@ -647,7 +647,7 @@ Abc_Obj_t * Io_ReadCreatePo( Abc_Ntk_t * pNtk, char * pName )
     // get the PO net
     pNet  = Abc_NtkFindNet( pNtk, pName );
     if ( pNet && Abc_ObjFaninNum(pNet) == 0 )
-        printf( "Warning: PO \"%s\" appears twice in the list.\n", pName );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: PO \"%s\" appears twice in the list.\n", pName );
     pNet  = Abc_NtkFindOrCreateNet( pNtk, pName );
     // add the PO node
     pTerm = Abc_NtkCreatePo( pNtk );
@@ -850,7 +850,7 @@ FILE * Io_FileOpen( const char * FileName, const char * PathVar, const char * Mo
                 if ( ( fp = fopen ( ActualFileName, Mode ) ) )
                 {
                     if ( fVerbose )
-                    fprintf ( stdout, "Using file %s\n", ActualFileName );
+                    fprintf ( Abc_FrameGlobalGetOut(), "Using file %s\n", ActualFileName );
                     ABC_FREE( t );
                     return fp;
                 }
@@ -885,13 +885,13 @@ void Io_TransformSF2PLA( char * pNameIn, char * pNameOut )
     if ( pFileIn == NULL )
     {
         if ( pFileOut ) fclose( pFileOut );
-        printf( "Cannot open file \"%s\" for reading.\n", pNameIn );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pNameIn );
         return;
     }
     if ( pFileOut == NULL )
     {
         if ( pFileIn )  fclose( pFileIn );
-        printf( "Cannot open file \"%s\" for writing.\n", pNameOut );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pNameOut );
         return;
     }
     pBuffer = ABC_ALLOC( char, Size );
@@ -937,7 +937,7 @@ void Io_TransformROM2PLA( char * pNameIn, char * pNameOut )
 {
     FILE * pFileOut = fopen( pNameOut, "wb" );
     if ( pFileOut == NULL ) {
-        printf( "Cannot open file \"%s\" for writing.\n", pNameOut );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pNameOut );
         return;
     }
     int nWords = -1;
@@ -1032,7 +1032,7 @@ Vec_Ptr_t * Io_FileReadCnf( char * pFileName, int fMulti )
     int nVars = -1, nClas = -1;
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL ) {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName );
         return NULL;
     }
     while ( fgets( pLine, 10000, pFile ) )
@@ -1047,7 +1047,7 @@ Vec_Ptr_t * Io_FileReadCnf( char * pFileName, int fMulti )
                 Vec_PtrFree( vSops );
                 Vec_WecFree( vNums );
                 fclose( pFile );
-                printf( "Wrong file format.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Wrong file format.\n" );
                 return NULL;
             }
             pThis = strtok(NULL, " \t\n\r");
@@ -1074,7 +1074,7 @@ Vec_Ptr_t * Io_FileReadCnf( char * pFileName, int fMulti )
     }
     fclose( pFile );
     if ( nClas != Vec_WecSize(vNums) )
-        printf( "Warning: The number of clauses (%d) listed is different from the actual number (%d).\n", nClas, Vec_WecSize(vNums) );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The number of clauses (%d) listed is different from the actual number (%d).\n", nClas, Vec_WecSize(vNums) );
     //Vec_WecPrint( vNums, 0 );
     if ( fMulti )
         vSops = Io_ConvertNumsToSopMulti(vNums, nVars);

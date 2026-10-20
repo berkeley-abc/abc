@@ -38,12 +38,12 @@ typedef enum Acb_XecStatus_t_
 
 static inline void Acb_NtkPrintUnsupportedObj( Acb_Ntk_t * p, int iObj, const char * pWhere, int ExpectedFans, int ActualFans )
 {
-    printf( "%s unsupported ACB object: obj = %d", pWhere ? pWhere : "XEC" , iObj );
+    fprintf( Abc_FrameGlobalGetOut(),  "%s unsupported ACB object: obj = %d", pWhere ? pWhere : "XEC" , iObj );
     if ( p && iObj >= 0 && iObj < Acb_NtkObjNumMax(p) )
-        printf( ", type = %d", Acb_ObjType(p, iObj) );
+        fprintf( Abc_FrameGlobalGetOut(),  ", type = %d", Acb_ObjType(p, iObj) );
     if ( ExpectedFans >= 0 || ActualFans >= 0 )
-        printf( ", fanins = %d, expected = %d", ActualFans, ExpectedFans );
-    printf( ".\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  ", fanins = %d, expected = %d", ActualFans, ExpectedFans );
+    fprintf( Abc_FrameGlobalGetOut(),  ".\n" );
 }
 
 static inline void Acb_XecMergeTargetStatus( int StatusTarget, int fHasModel, int * pStatus, int * pCheckModel )

@@ -130,7 +130,7 @@ int Abc_CommandReadPla( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc != globalUtilOptind + 1 )
     {
-        printf( "Abc_CommandReadPla(): Input file name should be given on the command line.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_CommandReadPla(): Input file name should be given on the command line.\n" );
         return 0;
     }
     // get the file name
@@ -150,7 +150,7 @@ int Abc_CommandReadPla( Abc_Frame_t * pAbc, int argc, char ** argv )
         p = Pla_ReadPla( pFileName );
     else
     {
-        printf( "Abc_CommandReadPla(): Unknown file extension.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_CommandReadPla(): Unknown file extension.\n" );
         return 0;
     }
     Pla_AbcUpdateMan( pAbc, p );
@@ -204,7 +204,7 @@ int Abc_CommandWritePla( Abc_Frame_t * pAbc, int argc, char ** argv )
         pFileName = argv[globalUtilOptind];
     else
     {
-        printf( "Output file name should be given on the command line.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Output file name should be given on the command line.\n" );
         return 0;
     }
     Pla_WritePla( p, pFileName );

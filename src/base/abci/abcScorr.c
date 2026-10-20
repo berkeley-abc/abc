@@ -249,7 +249,7 @@ int Abc_NtkTestScorrWriteEquivGia( Tst_Dat_t * pData )
                 Gia_ObjPhase(pRepr) ^ Gia_ObjPhase(pObj) );
     }
     fclose( pFile );
-    printf( "%d pairs of sequentially equivalent nodes are written into file \"%s\".\n", Counter, pFileNameOut );
+    fprintf( Abc_FrameGlobalGetOut(), "%d pairs of sequentially equivalent nodes are written into file \"%s\".\n", Counter, pFileNameOut );
     return Counter;
 }
 
@@ -300,7 +300,7 @@ int Abc_NtkTestScorrWriteEquivAig( Tst_Dat_t * pData )
                 Aig_ObjPhase(pRepr) ^ Aig_ObjPhase(pObj) );
     }
     fclose( pFile );
-    printf( "%d pairs of sequentially equivalent nodes are written into file \"%s\".\n", Counter, pFileNameOut );
+    fprintf( Abc_FrameGlobalGetOut(), "%d pairs of sequentially equivalent nodes are written into file \"%s\".\n", Counter, pFileNameOut );
     return Counter;
 }
 
@@ -331,7 +331,7 @@ Abc_Ntk_t * Abc_NtkTestScorr( char * pFileNameIn, char * pFileNameOut, int nStep
     pFile = fopen( pFileNameIn, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Input file \"%s\" cannot be opened.\n", pFileNameIn );
+        fprintf( Abc_FrameGlobalGetOut(), "Input file \"%s\" cannot be opened.\n", pFileNameIn );
         return NULL;
     }
     fclose( pFile );
@@ -339,7 +339,7 @@ Abc_Ntk_t * Abc_NtkTestScorr( char * pFileNameIn, char * pFileNameOut, int nStep
     pFile = fopen( pFileNameOut, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Output file \"%s\" cannot be opened.\n", pFileNameOut );
+        fprintf( Abc_FrameGlobalGetOut(), "Output file \"%s\" cannot be opened.\n", pFileNameOut );
         return NULL;
     }
     fclose( pFile );
@@ -347,14 +347,14 @@ Abc_Ntk_t * Abc_NtkTestScorr( char * pFileNameIn, char * pFileNameOut, int nStep
     pNetlist = Io_ReadNetlist( pFileNameIn, Io_ReadFileType(pFileNameIn), 1 );
     if ( pNetlist == NULL )
     {
-        printf( "Reading input file \"%s\" has failed.\n", pFileNameIn );
+        fprintf( Abc_FrameGlobalGetOut(), "Reading input file \"%s\" has failed.\n", pFileNameIn );
         return NULL;
     }
     pLogic = Abc_NtkToLogic( pNetlist );
     if ( pLogic == NULL )
     {
         Abc_NtkDelete( pNetlist );
-        printf( "Deriving logic network from input file %s has failed.\n", pFileNameIn );
+        fprintf( Abc_FrameGlobalGetOut(), "Deriving logic network from input file %s has failed.\n", pFileNameIn );
         return NULL;
     }
     if ( Extra_FileIsType( pFileNameIn, ".bench", ".BENCH", NULL ) )
@@ -364,20 +364,20 @@ Abc_Ntk_t * Abc_NtkTestScorr( char * pFileNameIn, char * pFileNameOut, int nStep
         pFile = fopen( pFileNameInit, "rb" );
         if ( pFile == NULL )
         {
-            printf( "Init file \"%s\" cannot be opened.\n", pFileNameInit );
+            fprintf( Abc_FrameGlobalGetOut(), "Init file \"%s\" cannot be opened.\n", pFileNameInit );
             return NULL;
         }
         Io_ReadBenchInit( pLogic, pFileNameInit );
         Abc_NtkConvertDcLatches( pLogic );
         if ( fVerbose )
-            printf( "Initial state was derived from file \"%s\".\n", pFileNameInit );
+            fprintf( Abc_FrameGlobalGetOut(), "Initial state was derived from file \"%s\".\n", pFileNameInit );
     }
     pStrash = Abc_NtkStrash( pLogic, 0, 1, 0 );
     if ( pStrash == NULL )
     {
         Abc_NtkDelete( pLogic );
         Abc_NtkDelete( pNetlist );
-        printf( "Deriving strashed network from input file %s has failed.\n", pFileNameIn );
+        fprintf( Abc_FrameGlobalGetOut(), "Deriving strashed network from input file %s has failed.\n", pFileNameIn );
         return NULL;
     }
     pAig = Abc_NtkToDar( pStrash, 0, 1 ); // performs "zero" internally

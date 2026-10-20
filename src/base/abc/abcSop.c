@@ -881,7 +881,7 @@ int Abc_SopCheck( char * pSop, int nFanins )
         // compare the distance
         if ( pCubes - pCubesOld != nFanins )
         {
-            fprintf( stdout, "Abc_SopCheck: SOP has a mismatch between its cover size (%d) and its fanin number (%d).\n",
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_SopCheck: SOP has a mismatch between its cover size (%d) and its fanin number (%d).\n",
                 (int)(ABC_PTRDIFF_T)(pCubes - pCubesOld), nFanins );
             return 0;
         }
@@ -893,20 +893,20 @@ int Abc_SopCheck( char * pSop, int nFanins )
             fFound1 = 1;
         else if ( *pCubes != 'x' && *pCubes != 'n' )
         {
-            fprintf( stdout, "Abc_SopCheck: SOP has a strange character (%c) in the output part of its cube.\n", *pCubes );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_SopCheck: SOP has a strange character (%c) in the output part of its cube.\n", *pCubes );
             return 0;
         }
         // check the last symbol (new line)
         pCubes++;
         if ( *pCubes != '\n' )
         {
-            fprintf( stdout, "Abc_SopCheck: SOP has a cube without new line in the end.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_SopCheck: SOP has a cube without new line in the end.\n" );
             return 0;
         }
     }
     if ( fFound0 && fFound1 )
     {
-        fprintf( stdout, "Abc_SopCheck: SOP has cubes in both phases.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_SopCheck: SOP has cubes in both phases.\n" );
         return 0;
     }
     return 1;
@@ -931,7 +931,7 @@ int Abc_SopCheckReadTruth( Vec_Ptr_t * vRes, char * pToken, int fHex )
         Log2 = 0;     
     if ( (1 << Log2) != (int)strlen(pToken) )
     {
-        printf( "The truth table length (%d) is not power-of-2.\n", (int)strlen(pToken) );
+        fprintf( Abc_FrameGlobalGetOut(), "The truth table length (%d) is not power-of-2.\n", (int)strlen(pToken) );
         Vec_PtrFreeData( vRes );
         Vec_PtrShrink( vRes, 0 );
         return 0;
@@ -949,7 +949,7 @@ int Abc_SopCheckReadTruth( Vec_Ptr_t * vRes, char * pToken, int fHex )
     nVars = Abc_SopGetVarNum( pBase );
     if ( nVars != Log2+2*fHex )
     {
-        printf( "Truth table #1 has %d vars while truth table #%d has %d vars.\n", nVars, Vec_PtrSize(vRes)+1, Log2+2*fHex );
+        fprintf( Abc_FrameGlobalGetOut(), "Truth table #1 has %d vars while truth table #%d has %d vars.\n", nVars, Vec_PtrSize(vRes)+1, Log2+2*fHex );
         Vec_PtrFreeData( vRes );
         Vec_PtrShrink( vRes, 0 );
         return 0;
@@ -979,7 +979,7 @@ char * Abc_SopFromTruthBin( char * pTruth )
     nVars = Abc_Base2Log( nTruthSize );
     if ( nTruthSize != (1 << (nVars)) )
     {
-        printf( "String %s does not look like a truth table of a %d-variable function.\n", pTruth, nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "String %s does not look like a truth table of a %d-variable function.\n", pTruth, nVars );
         return NULL;
     }
 
@@ -992,7 +992,7 @@ char * Abc_SopFromTruthBin( char * pTruth )
         else
         {
             Vec_IntFree( vMints );
-            printf( "String %s does not look like a binary representation of the truth table.\n", pTruth );
+            fprintf( Abc_FrameGlobalGetOut(), "String %s does not look like a binary representation of the truth table.\n", pTruth );
             return NULL;
         }
         if ( Digit == 1 )
@@ -1075,7 +1075,7 @@ char * Abc_SopFromTruthHex( char * pTruth )
     nVars = (nTruthSize < 2) ? 2 : Abc_Base2Log(nTruthSize) + 2;
     if ( nTruthSize != (1 << (nVars-2)) )
     {
-        printf( "String %s does not look like a truth table of a %d-variable function.\n", pTruth, nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "String %s does not look like a truth table of a %d-variable function.\n", pTruth, nVars );
         return NULL;
     }
 
@@ -1092,7 +1092,7 @@ char * Abc_SopFromTruthHex( char * pTruth )
         else
         {
             Vec_IntFree( vMints );
-            printf( "String %s does not look like a hexadecimal representation of the truth table.\n", pTruth );
+            fprintf( Abc_FrameGlobalGetOut(), "String %s does not look like a hexadecimal representation of the truth table.\n", pTruth );
             return NULL;
         }
         for ( b = 0; b < 4; b++ )

@@ -193,10 +193,10 @@ static inline int Lms_DelayDom( word D1, word D2, int nVars ) // returns 1 if D1
 static inline void Lms_DelayPrint( word D, int nVars )
 {
     int v;
-    printf( "Delay profile = {" );
+    fprintf( Abc_FrameGlobalGetOut(), "Delay profile = {" );
     for ( v = 0; v < nVars; v++ )
-        printf( " %d", Lms_DelayGet(D, v) );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", Lms_DelayGet(D, v) );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 static Vec_Wrd_t * Lms_GiaDelaysMode( Gia_Man_t * p, int fXor )
 {
@@ -320,8 +320,8 @@ void Lms_GiaProfilesPrint( Gia_Man_t * p )
     vAreas = Lms_GiaAreas( p );
     Gia_ManForEachPo( p, pObj, i )
     {
-        printf( "%6d : ", i );
-        printf( "A = %2d  ", Vec_StrEntry(vAreas, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "A = %2d  ", Vec_StrEntry(vAreas, i) );
         Lms_DelayPrint( Vec_WrdEntry(vDelays, i), Gia_ManPiNum(p) );
 //        Lms_GiaPrintSubgraph( p, pObj );
 //        printf( "\n" );
@@ -609,7 +609,7 @@ void Lms_ManPrintFuncStats( Lms_Man_t * p )
     }
     for ( i = 0; i <= LMS_VAR_MAX; i++ )
         if ( Counters[i] )
-            printf( "Inputs = %2d.  Funcs = %8d.  Subgrs = %8d.  Ratio = %6.2f.\n", i, Counters[i], CountersS[i], 1.0*CountersS[i]/Counters[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "Inputs = %2d.  Funcs = %8d.  Subgrs = %8d.  Ratio = %6.2f.\n", i, Counters[i], CountersS[i], 1.0*CountersS[i]/Counters[i] );
     Vec_StrFree( vSupps );
 }
 void Lms_ManPrintFreqStats( Lms_Man_t * p )
@@ -623,10 +623,10 @@ void Lms_ManPrintFreqStats( Lms_Man_t * p )
     int nNonDecSize;
     word * pTruth;
     int i, Freq, Status;
-    printf( "Cuts  = %10d. ",            p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "Cuts  = %10d. ",            p->nTried );
 //    printf( "Funcs = %10d (%6.2f %%). ", Vec_MemEntryNum(p->vTtMem2), 100.0*Vec_MemEntryNum(p->vTtMem2)/p->nTried );
-    printf( "Class = %10d (%6.2f %%). ", Vec_MemEntryNum(p->vTtMem),  100.0*Vec_MemEntryNum(p->vTtMem)/p->nTried );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Class = %10d (%6.2f %%). ", Vec_MemEntryNum(p->vTtMem),  100.0*Vec_MemEntryNum(p->vTtMem)/p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 //    return;
 
     Vec_IntForEachEntry( p->vTruthFreqs, Freq, i )
@@ -678,55 +678,55 @@ void Lms_ManPrintFreqStats( Lms_Man_t * p )
     }
 
     // print the results
-    printf( "NPN: " );
-    printf( "Full = %6.2f %%  ", 100.0 * CountDsdNpn[0] / Vec_MemEntryNum(p->vTtMem) );
-    printf( "Part = %6.2f %%  ", 100.0 * CountDsdNpn[1] / Vec_MemEntryNum(p->vTtMem) );
-    printf( "None = %6.2f %%  ", 100.0 * CountDsdNpn[2] / Vec_MemEntryNum(p->vTtMem) );
+    fprintf( Abc_FrameGlobalGetOut(), "NPN: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Full = %6.2f %%  ", 100.0 * CountDsdNpn[0] / Vec_MemEntryNum(p->vTtMem) );
+    fprintf( Abc_FrameGlobalGetOut(), "Part = %6.2f %%  ", 100.0 * CountDsdNpn[1] / Vec_MemEntryNum(p->vTtMem) );
+    fprintf( Abc_FrameGlobalGetOut(), "None = %6.2f %%  ", 100.0 * CountDsdNpn[2] / Vec_MemEntryNum(p->vTtMem) );
 //    printf( "\n" );
-    printf( "   " );
+    fprintf( Abc_FrameGlobalGetOut(), "   " );
     // print the results
-    printf( "All: " );
-    printf( "Full = %6.2f %%  ", 100.0 * CountDsdAll[0] / p->nTried );
-    printf( "Part = %6.2f %%  ", 100.0 * CountDsdAll[1] / p->nTried );
-    printf( "None = %6.2f %%  ", 100.0 * CountDsdAll[2] / p->nTried );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "All: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Full = %6.2f %%  ", 100.0 * CountDsdAll[0] / p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "Part = %6.2f %%  ", 100.0 * CountDsdAll[1] / p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "None = %6.2f %%  ", 100.0 * CountDsdAll[2] / p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // print the results
-    printf( "NPN: " );
-    printf( "Full = %6.2f %%  ", 100.0 * CountStepNpn[0] / Vec_MemEntryNum(p->vTtMem) );
-    printf( "1stp = %6.2f %%  ", 100.0 * CountStepNpn[1] / Vec_MemEntryNum(p->vTtMem) );
-    printf( "Comp = %6.2f %%  ", 100.0 * CountStepNpn[2] / Vec_MemEntryNum(p->vTtMem) );
+    fprintf( Abc_FrameGlobalGetOut(), "NPN: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Full = %6.2f %%  ", 100.0 * CountStepNpn[0] / Vec_MemEntryNum(p->vTtMem) );
+    fprintf( Abc_FrameGlobalGetOut(), "1stp = %6.2f %%  ", 100.0 * CountStepNpn[1] / Vec_MemEntryNum(p->vTtMem) );
+    fprintf( Abc_FrameGlobalGetOut(), "Comp = %6.2f %%  ", 100.0 * CountStepNpn[2] / Vec_MemEntryNum(p->vTtMem) );
 //    printf( "\n" );
-    printf( "   " );
+    fprintf( Abc_FrameGlobalGetOut(), "   " );
     // print the results
-    printf( "All: " );
-    printf( "Full = %6.2f %%  ", 100.0 * CountStepAll[0] / p->nTried );
-    printf( "1stp = %6.2f %%  ", 100.0 * CountStepAll[1] / p->nTried );
-    printf( "Comp = %6.2f %%  ", 100.0 * CountStepAll[2] / p->nTried );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "All: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Full = %6.2f %%  ", 100.0 * CountStepAll[0] / p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "1stp = %6.2f %%  ", 100.0 * CountStepAll[1] / p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "Comp = %6.2f %%  ", 100.0 * CountStepAll[2] / p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
 }
 void Lms_ManPrint( Lms_Man_t * p )
 {
 //    Gia_ManPrintStats( p->pGia, 0, 0 );
-    printf( "Library with %d vars has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Library with %d vars has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
         p->nVars, Vec_MemEntryNum(p->vTtMem), p->nAdded, p->pGia ? Gia_ManAndNum(p->pGia) : 0 );
 
 //    Lms_ManPrintFreqStats( p );
     Lms_ManPrintFuncStats( p );
 
     p->nAddedFuncs = Vec_MemEntryNum(p->vTtMem);
-    printf( "Subgraphs tried                             = %10d. (%6.2f %%)\n", p->nTried,         !p->nTried? 0 : 100.0*p->nTried/p->nTried );
-    printf( "Subgraphs filtered by support size          = %10d. (%6.2f %%)\n", p->nFilterSize,    !p->nTried? 0 : 100.0*p->nFilterSize/p->nTried );
-    printf( "Subgraphs filtered by structural redundancy = %10d. (%6.2f %%)\n", p->nFilterRedund,  !p->nTried? 0 : 100.0*p->nFilterRedund/p->nTried );
-    printf( "Subgraphs filtered by volume                = %10d. (%6.2f %%)\n", p->nFilterVolume,  !p->nTried? 0 : 100.0*p->nFilterVolume/p->nTried );
-    printf( "Subgraphs filtered by TT redundancy         = %10d. (%6.2f %%)\n", p->nFilterTruth,   !p->nTried? 0 : 100.0*p->nFilterTruth/p->nTried );
-    printf( "Subgraphs filtered by error                 = %10d. (%6.2f %%)\n", p->nFilterError,   !p->nTried? 0 : 100.0*p->nFilterError/p->nTried );
-    printf( "Subgraphs filtered by isomorphism           = %10d. (%6.2f %%)\n", p->nFilterSame,    !p->nTried? 0 : 100.0*p->nFilterSame/p->nTried );
-    printf( "Subgraphs added                             = %10d. (%6.2f %%)\n", p->nAdded,         !p->nTried? 0 : 100.0*p->nAdded/p->nTried );
-    printf( "Functions added                             = %10d. (%6.2f %%)\n", p->nAddedFuncs,    !p->nTried? 0 : 100.0*p->nAddedFuncs/p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "Subgraphs tried                             = %10d. (%6.2f %%)\n", p->nTried,         !p->nTried? 0 : 100.0*p->nTried/p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "Subgraphs filtered by support size          = %10d. (%6.2f %%)\n", p->nFilterSize,    !p->nTried? 0 : 100.0*p->nFilterSize/p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "Subgraphs filtered by structural redundancy = %10d. (%6.2f %%)\n", p->nFilterRedund,  !p->nTried? 0 : 100.0*p->nFilterRedund/p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "Subgraphs filtered by volume                = %10d. (%6.2f %%)\n", p->nFilterVolume,  !p->nTried? 0 : 100.0*p->nFilterVolume/p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "Subgraphs filtered by TT redundancy         = %10d. (%6.2f %%)\n", p->nFilterTruth,   !p->nTried? 0 : 100.0*p->nFilterTruth/p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "Subgraphs filtered by error                 = %10d. (%6.2f %%)\n", p->nFilterError,   !p->nTried? 0 : 100.0*p->nFilterError/p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "Subgraphs filtered by isomorphism           = %10d. (%6.2f %%)\n", p->nFilterSame,    !p->nTried? 0 : 100.0*p->nFilterSame/p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "Subgraphs added                             = %10d. (%6.2f %%)\n", p->nAdded,         !p->nTried? 0 : 100.0*p->nAdded/p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "Functions added                             = %10d. (%6.2f %%)\n", p->nAddedFuncs,    !p->nTried? 0 : 100.0*p->nAddedFuncs/p->nTried );
     if ( p->nHoleInTheWall )
-    printf( "Cuts whose logic structure has a hole       = %10d. (%6.2f %%)\n", p->nHoleInTheWall, !p->nTried? 0 : 100.0*p->nHoleInTheWall/p->nTried );
+    fprintf( Abc_FrameGlobalGetOut(), "Cuts whose logic structure has a hole       = %10d. (%6.2f %%)\n", p->nHoleInTheWall, !p->nTried? 0 : 100.0*p->nHoleInTheWall/p->nTried );
 
     p->timeOther = p->timeTotal - p->timeTruth - p->timeCanon - p->timeBuild - p->timeCheck - p->timeInsert;
     ABC_PRTP( "Runtime: Truth ", p->timeTruth,  p->timeTotal );
@@ -764,7 +764,7 @@ void Abc_NtkRecLibMerge3( Gia_Man_t * pLib )
 
     if ( Gia_ManCiNum(pLib) != Gia_ManCiNum(pGia) )
     {
-        printf( "The number of Library inputs (%d) differs from the number of Gia inputs (%d).\n", Gia_ManCiNum(pLib), Gia_ManCiNum(pGia) );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of Library inputs (%d) differs from the number of Gia inputs (%d).\n", Gia_ManCiNum(pLib), Gia_ManCiNum(pGia) );
         return;
     }
     assert( Gia_ManCiNum(pLib) == Gia_ManCiNum(pGia) );
@@ -836,9 +836,9 @@ p->timeCheck += Abc_Clock() - clk;
         if ( memcmp( p->pTemp1, pTruth, p->nWords * sizeof(word) ) != 0 )
         {
     
-            Kit_DsdPrintFromTruth( (unsigned *)pTruth, nLeaves ); printf( "\n" );
-            Kit_DsdPrintFromTruth( (unsigned *)p->pTemp1, nLeaves ); printf( "\n" );
-            printf( "Truth table verification has failed.\n" );
+            Kit_DsdPrintFromTruth( (unsigned *)pTruth, nLeaves ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+            Kit_DsdPrintFromTruth( (unsigned *)p->pTemp1, nLeaves ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Truth table verification has failed.\n" );
     
             // drive PO with constant
             Gia_ManPatchCoDriver( pGia, Gia_ManCoNum(pGia)-1, 0 );
@@ -1023,7 +1023,7 @@ void Abc_NtkRecAdd3( Abc_Ntk_t * pNtk, int fUseSOPB )
     Abc_Ntk_t * pNtkNew;
     int clk = Abc_Clock();
     if ( Abc_NtkGetChoiceNum( pNtk ) )
-        printf( "Performing recoding structures with choices.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Performing recoding structures with choices.\n" );
     // remember that the manager was used for library construction
     Lms_ManFilterInvalidate(s_pMan3);
     s_pMan3->fLibConstr = 1;
@@ -1231,10 +1231,10 @@ clk = Abc_Clock();
         if ( Two + 2 < Max && Max + 3 < BestDelay )
         {
             for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
-                printf( "%3d ", pTimes[i] );
+                fprintf( Abc_FrameGlobalGetOut(), "%3d ", pTimes[i] );
             for ( ; i < pIfMan->pPars->nLutSize; i++ )
-                printf( "    " );
-            printf( "-> %3d   ", BestDelay );
+                fprintf( Abc_FrameGlobalGetOut(), "    " );
+            fprintf( Abc_FrameGlobalGetOut(), "-> %3d   ", BestDelay );
             Dau_DsdPrintFromTruth( If_CutTruthW(pIfMan, pCut), If_CutLeaveNum(pCut) );
         }
     }
@@ -1596,13 +1596,13 @@ void Abc_NtkRecDumpTt3( char * pFileName, int fBinary )
     int nEntries = Vec_MemEntryNum(p->vTtMem);
     if ( nEntries == 0 )
     {
-        printf( "There is not truth tables.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There is not truth tables.\n" );
         return;
     }
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "The file cannot be opened.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The file cannot be opened.\n" );
         return;
     }
     p->vSupps = Vec_StrAlloc( nEntries );
@@ -1931,10 +1931,10 @@ int Abc_NtkRecIsRunning3()
 Gia_Man_t * Abc_NtkRecGetGia3()
 {
     abctime clk = Abc_Clock();
-    printf( "Before normalizing: Library has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Before normalizing: Library has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
         Vec_MemEntryNum(s_pMan3->vTtMem), Gia_ManPoNum(s_pMan3->pGia), Gia_ManAndNum(s_pMan3->pGia) );
     Lms_GiaNormalize( s_pMan3 );
-    printf( "After normalizing:  Library has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "After normalizing:  Library has %d classes and %d AIG subgraphs with %d AND nodes.\n", 
         Vec_MemEntryNum(s_pMan3->vTtMem), Gia_ManPoNum(s_pMan3->pGia), Gia_ManAndNum(s_pMan3->pGia) );
     Abc_PrintTime( 1, "Normalization runtime", Abc_Clock() - clk );
     s_pMan3->fLibConstr = 0;

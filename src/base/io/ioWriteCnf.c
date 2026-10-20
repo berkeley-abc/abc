@@ -49,22 +49,22 @@ int Io_WriteCnf( Abc_Ntk_t * pNtk, char * pFileName, int fAllPrimes )
 {
     sat_solver * pSat;
     if ( Abc_NtkIsStrash(pNtk) )
-        printf( "Io_WriteCnf() warning: Generating CNF by applying heuristic AIG to CNF conversion.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteCnf() warning: Generating CNF by applying heuristic AIG to CNF conversion.\n" );
     else
-        printf( "Io_WriteCnf() warning: Generating CNF by convering logic nodes into CNF clauses.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteCnf() warning: Generating CNF by convering logic nodes into CNF clauses.\n" );
     if ( Abc_NtkPoNum(pNtk) != 1 )
     {
-        fprintf( stdout, "Io_WriteCnf(): Currently can only process the miter (the network with one PO).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteCnf(): Currently can only process the miter (the network with one PO).\n" );
         return 0;
     }
     if ( Abc_NtkLatchNum(pNtk) != 0 )
     {
-        fprintf( stdout, "Io_WriteCnf(): Currently can only process the miter for combinational circuits.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteCnf(): Currently can only process the miter for combinational circuits.\n" );
         return 0;
     }
     if ( Abc_NtkNodeNum(pNtk) == 0 )
     {
-        fprintf( stdout, "The network has no logic nodes. No CNF file is generaled.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The network has no logic nodes. No CNF file is generaled.\n" );
         return 0;
     }
     // convert to logic BDD network
@@ -74,7 +74,7 @@ int Io_WriteCnf( Abc_Ntk_t * pNtk, char * pFileName, int fAllPrimes )
     pSat = (sat_solver *)Abc_NtkMiterSatCreate( pNtk, fAllPrimes );
     if ( pSat == NULL )
     {
-        fprintf( stdout, "The problem is trivially UNSAT. No CNF file is generated.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The problem is trivially UNSAT. No CNF file is generated.\n" );
         return 1;
     }        
     // write the clauses

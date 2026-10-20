@@ -72,7 +72,7 @@ void Abc_NtkWriteLogFile( char * pFileName, Abc_Cex_t * pCex, int Status, int nF
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open log file for writing \"%s\".\n" , pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open log file for writing \"%s\".\n" , pFileName );
         return;
     }
     // write <result>
@@ -83,7 +83,7 @@ void Abc_NtkWriteLogFile( char * pFileName, Abc_Cex_t * pCex, int Status, int nF
     else if ( Status == -1 )
         fprintf( pFile, "snl_UNK" );
     else 
-        printf( "Abc_NtkWriteLogFile(): Cannot recognize solving status.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkWriteLogFile(): Cannot recognize solving status.\n" );
     fprintf( pFile, " " );
     // write <bug_free_depth>
     fprintf( pFile, "%d", nFrames );
@@ -139,7 +139,7 @@ int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex, int * pnFrames )
     pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open log file for reading \"%s\".\n" , pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open log file for reading \"%s\".\n" , pFileName );
         return -1;
     }
     RetValue = fgets( Buffer, 1000, pFile );
@@ -173,7 +173,7 @@ int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex, int * pnFrames )
     }
     else
     {
-        printf( "Unrecognized status.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Unrecognized status.\n" );
     }
     // found regs till the new line
     vNums = Vec_IntAlloc( 100 );
@@ -197,19 +197,19 @@ int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex, int * pnFrames )
         int iFrameCex = (nFrames2 == -1) ? nFrames : nFrames2;
         if ( nRegs < 0 )
         {
-            printf( "Cannot read register number.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot read register number.\n" );
             Vec_IntFree( vNums );
             return -1;
         }
         if ( Vec_IntSize(vNums)-nRegs == 0 )
         {
-            printf( "Cannot read counter example.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot read counter example.\n" );
             Vec_IntFree( vNums );
             return -1;
         }
         if ( (Vec_IntSize(vNums)-nRegs) % (iFrameCex + 1) != 0 )
         {
-            printf( "Incorrect number of bits.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Incorrect number of bits.\n" );
             Vec_IntFree( vNums );
             return -1;
         }

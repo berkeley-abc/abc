@@ -279,11 +279,11 @@ void Abc_NtkDontCareFree( Odc_Man_t * p )
 {
     if ( p->fVerbose )
     {
-        printf( "Wins = %5d. Empty = %5d. SimsEmpty = %5d. QuantOver = %5d. WinsFinish = %5d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Wins = %5d. Empty = %5d. SimsEmpty = %5d. QuantOver = %5d. WinsFinish = %5d.\n", 
             p->nWins, p->nWinsEmpty, p->nSimsEmpty, p->nQuantsOver, p->nWinsFinish );
-        printf( "Ave DCs per window = %6.2f %%. Ave DCs per finished window = %6.2f %%.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Ave DCs per window = %6.2f %%. Ave DCs per finished window = %6.2f %%.\n", 
             1.0*p->nTotalDcs/p->nWins, 1.0*p->nTotalDcs/p->nWinsFinish );
-        printf( "Runtime stats of the ODC manager:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Runtime stats of the ODC manager:\n" );
         ABC_PRT( "Cleaning    ", p->timeClean );
         ABC_PRT( "Windowing   ", p->timeWin   );
         ABC_PRT( "Miter       ", p->timeMiter );
@@ -1072,11 +1072,11 @@ int Abc_NtkDontCareCompute( Odc_Man_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vLeave
 
     if ( p->fVeryVerbose )
     {
-        printf( " %5d : ", pNode->Id );
-        printf( "Leaf = %2d ", Vec_PtrSize(p->vLeaves) );
-        printf( "Root = %2d ", Vec_PtrSize(p->vRoots) );
-        printf( "Bran = %2d ", Vec_PtrSize(p->vBranches) );
-        printf( " |  " );
+        fprintf( Abc_FrameGlobalGetOut(), " %5d : ", pNode->Id );
+        fprintf( Abc_FrameGlobalGetOut(), "Leaf = %2d ", Vec_PtrSize(p->vLeaves) );
+        fprintf( Abc_FrameGlobalGetOut(), "Root = %2d ", Vec_PtrSize(p->vRoots) );
+        fprintf( Abc_FrameGlobalGetOut(), "Bran = %2d ", Vec_PtrSize(p->vBranches) );
+        fprintf( Abc_FrameGlobalGetOut(), " |  " );
     }
 
     // transfer the window into the AIG package
@@ -1090,8 +1090,8 @@ int Abc_NtkDontCareCompute( Odc_Man_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vLeave
     ABC_TIME_STOP(fVerbose, p->timeSim, clk);
     if ( p->fVeryVerbose )
     {
-        printf( "AIG = %5d ", Odc_NodeNum(p) );
-        printf( "%6.2f %%  ", 100.0 * (p->nBits - nMints) / p->nBits );
+        fprintf( Abc_FrameGlobalGetOut(), "AIG = %5d ", Odc_NodeNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "%6.2f %%  ", 100.0 * (p->nBits - nMints) / p->nBits );
     }
 
     // if there is less then the given percentage of don't-cares, skip
@@ -1099,7 +1099,7 @@ int Abc_NtkDontCareCompute( Odc_Man_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vLeave
     {
         ABC_TIME_STOP(fVerbose, p->timeAbort, clkTotal);
         if ( p->fVeryVerbose )
-            printf( "Simulation cutoff.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Simulation cutoff.\n" );
         Abc_InfoFill( puTruth, p->nWords );
         p->nSimsEmpty++;
         return 0;
@@ -1113,7 +1113,7 @@ int Abc_NtkDontCareCompute( Odc_Man_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vLeave
     {
         ABC_TIME_STOP(fVerbose, p->timeAbort, clkTotal);
         if ( p->fVeryVerbose )
-            printf( "=== Overflow! ===\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "=== Overflow! ===\n" );
         Abc_InfoFill( puTruth, p->nWords );
         p->nQuantsOver++;
         return 0;
@@ -1126,9 +1126,9 @@ int Abc_NtkDontCareCompute( Odc_Man_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vLeave
     ABC_TIME_STOP(fVerbose, p->timeTruth, clk);
     if ( p->fVeryVerbose )
     {
-        printf( "AIG = %5d ", Odc_NodeNum(p) );
-        printf( "%6.2f %%  ", 100.0 * (p->nBits - nMints) / p->nBits );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "AIG = %5d ", Odc_NodeNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "%6.2f %%  ", 100.0 * (p->nBits - nMints) / p->nBits );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     ABC_TIME_STOP(fVerbose, p->timeTotal, clkTotal);
     p->nWinsFinish++;

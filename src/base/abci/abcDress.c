@@ -85,9 +85,9 @@ void Abc_NtkDress( Abc_Ntk_t * pNtkLogic, char * pFileName, int fVerbose )
 
 if ( fVerbose ) 
 {
-printf( "After mitering:\n" );
-printf( "Logic:  Nodes = %5d. Copy = %5d. \n", Abc_NtkNodeNum(pNtkLogic), Abc_NtkCountCopy(pNtkLogic) );
-printf( "Orig:   Nodes = %5d. Copy = %5d. \n", Abc_NtkNodeNum(pNtkOrig),  Abc_NtkCountCopy(pNtkOrig) );
+fprintf( Abc_FrameGlobalGetOut(), "After mitering:\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Logic:  Nodes = %5d. Copy = %5d. \n", Abc_NtkNodeNum(pNtkLogic), Abc_NtkCountCopy(pNtkLogic) );
+fprintf( Abc_FrameGlobalGetOut(), "Orig:   Nodes = %5d. Copy = %5d. \n", Abc_NtkNodeNum(pNtkOrig),  Abc_NtkCountCopy(pNtkOrig) );
 }
 
     // fraig the miter (miter nodes point to the fraiged miter)
@@ -99,9 +99,9 @@ printf( "Orig:   Nodes = %5d. Copy = %5d. \n", Abc_NtkNodeNum(pNtkOrig),  Abc_Nt
 
 if ( fVerbose ) 
 {
-printf( "After fraiging:\n" );
-printf( "Logic:  Nodes = %5d. Copy = %5d. \n", Abc_NtkNodeNum(pNtkLogic), Abc_NtkCountCopy(pNtkLogic) );
-printf( "Orig:   Nodes = %5d. Copy = %5d. \n", Abc_NtkNodeNum(pNtkOrig),  Abc_NtkCountCopy(pNtkOrig) );
+fprintf( Abc_FrameGlobalGetOut(), "After fraiging:\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Logic:  Nodes = %5d. Copy = %5d. \n", Abc_NtkNodeNum(pNtkLogic), Abc_NtkCountCopy(pNtkLogic) );
+fprintf( Abc_FrameGlobalGetOut(), "Orig:   Nodes = %5d. Copy = %5d. \n", Abc_NtkNodeNum(pNtkOrig),  Abc_NtkCountCopy(pNtkOrig) );
 }
 
     // derive mapping from the fraiged nodes into their prototype nodes in the original netlist
@@ -199,8 +199,8 @@ void Abc_NtkDressTransferNames( Abc_Ntk_t * pNtk, stmm_table * tMapping, int fVe
     }
     if ( fVerbose )
     {
-        printf( "Total number of names collected = %5d.\n", CounterInit );
-        printf( "Total number of names assigned  = %5d. (Dir = %5d. Compl = %5d.)\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Total number of names collected = %5d.\n", CounterInit );
+        fprintf( Abc_FrameGlobalGetOut(), "Total number of names assigned  = %5d. (Dir = %5d. Compl = %5d.)\n", 
             Counter + CounterInv, Counter, CounterInv );
     }
 }

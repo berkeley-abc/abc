@@ -153,7 +153,7 @@ int Abc_CommandSendAig( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "There is no AIG in the &-space.\n" );
             return 1;
         }
-        Gia_ManToBridgeAbsNetlist( stdout, pAbc->pGia, fAbsNetlist ? BRIDGE_ABS_NETLIST : BRIDGE_NETLIST );
+        Gia_ManToBridgeAbsNetlist( Abc_FrameGlobalGetOut(), pAbc->pGia, fAbsNetlist ? BRIDGE_ABS_NETLIST : BRIDGE_NETLIST );
     }
     else
     {
@@ -172,7 +172,7 @@ int Abc_CommandSendAig( Abc_Frame_t * pAbc, int argc, char ** argv )
         pAig = Abc_NtkToDar( pAbc->pNtkCur, 0, 1 );
         pGia = Gia_ManFromAig( pAig );
         Aig_ManStop( pAig );
-        Gia_ManToBridgeAbsNetlist( stdout, pGia, fAbsNetlist ? BRIDGE_ABS_NETLIST : BRIDGE_NETLIST  );
+        Gia_ManToBridgeAbsNetlist( Abc_FrameGlobalGetOut(), pGia, fAbsNetlist ? BRIDGE_ABS_NETLIST : BRIDGE_NETLIST  );
         Gia_ManStop( pGia );
     }
     return 0;
@@ -222,7 +222,7 @@ int Abc_CommandSendStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Status is \"sat\", but current CEX is not available.\n" );
         return 1;
     }
-    Gia_ManToBridgeResult( stdout, pAbc->Status, pAbc->pCex, 0 );
+    Gia_ManToBridgeResult( Abc_FrameGlobalGetOut(), pAbc->Status, pAbc->pCex, 0 );
     return 0;
 
 usage:
@@ -356,7 +356,7 @@ static inline int Abc_NtkCompareWithBest( Abc_Ntk_t * pBest, Abc_Ntk_t * p,
         *pnBestNtkDelay  = nNtkDelay; 
         *pnBestNtkNodes  = nNtkNodes;
         *pnBestNtkLevels = nNtkLevels;
-        printf( "\nUpdating the best network (Area = %10.2f  Delay = %10.2f  Nodes = %6d  Level = %6d).\n\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "\nUpdating the best network (Area = %10.2f  Delay = %10.2f  Nodes = %6d  Level = %6d).\n\n", 
             nNtkArea, nNtkDelay, nNtkNodes, nNtkLevels );
         return 1;
     }
@@ -1971,7 +1971,7 @@ int Abc_CommandAbc9LNetRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_Man_t * pNew = Vec_WrdReadTest( argv[globalUtilOptind] );
         if ( pNew == NULL )
         {
-            printf( "Cannot read network from file \"%s\".\n", argv[globalUtilOptind] );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot read network from file \"%s\".\n", argv[globalUtilOptind] );
             return 0;
         }
         Abc_FrameUpdateGia( pAbc, pNew );

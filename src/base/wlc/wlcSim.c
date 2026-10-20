@@ -185,7 +185,7 @@ Vec_Ptr_t * Wlc_NtkSimulate( Wlc_Ntk_t * p, Vec_Int_t * vNodes, int nWords, int 
             }
         }
         if ( f == 0 && Counter )
-            printf( "Replaced %d dangling internal bits with constant 0.\n", Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "Replaced %d dangling internal bits with constant 0.\n", Counter );
     }
     Vec_WrdFreeP( &pGia->vSims );
     pGia->nSimWords = 0;
@@ -211,9 +211,9 @@ void Wlc_NtkSimulatePrint( Wlc_Ntk_t * p, Vec_Int_t * vNodes, Vec_Ptr_t * vRes, 
 {
     Wlc_Obj_t * pWlcObj; 
     int f, w, b, i, k, iPat = 0;
-    for ( f = 0; f < nFrames; f++, printf("\n") )
+    for ( f = 0; f < nFrames; f++, fprintf( Abc_FrameGlobalGetOut(), "\n") )
       for ( w = 0; w < nWords; w++ )
-        for ( b = 0; b < 64; b++, iPat++, printf("\n") )
+        for ( b = 0; b < 64; b++, iPat++, fprintf( Abc_FrameGlobalGetOut(), "\n") )
         {
             Wlc_NtkForEachObjVec( vNodes, p, pWlcObj, i )
             {
@@ -221,9 +221,9 @@ void Wlc_NtkSimulatePrint( Wlc_Ntk_t * p, Vec_Int_t * vNodes, Vec_Ptr_t * vRes, 
                 for ( k = nBits-1; k >= 0; k-- )
                 {
                     word * pInfo = (word*)Vec_VecEntryEntry( (Vec_Vec_t *)vRes, i, k );
-                    printf( "%d", Abc_InfoHasBit((unsigned *)pInfo, iPat) );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_InfoHasBit((unsigned *)pInfo, iPat) );
                 }
-                printf( " " );
+                fprintf( Abc_FrameGlobalGetOut(), " " );
             }
         }
 }

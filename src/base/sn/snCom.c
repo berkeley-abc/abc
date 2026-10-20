@@ -2243,8 +2243,8 @@ static int Sn_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     // Header-level blast diagnostics go to stderr. Finish buffered @ps output
     // before any such diagnostic so redirected logs do not interleave mid-line.
     fflush( pAbc->Out );
-    if ( pAbc->Out != stdout )
-        fflush( stdout );
+    if ( pAbc->Out != Abc_FrameGlobalGetOut() )
+        fflush( Abc_FrameGlobalGetOut() );
     Options.mode = SN_BLAST_SEQ;
     Extra_UtilGetoptReset();
     while ( (c = Extra_UtilGetopt(argc, argv, "MABIVRNaqzuctdbrpfvh")) != EOF )

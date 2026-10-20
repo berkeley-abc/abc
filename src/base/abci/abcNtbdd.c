@@ -111,7 +111,7 @@ Abc_Ntk_t * Abc_NtkDeriveFromBdd( void * dd0, void * bFunc, char * pNamePo, Vec_
     if ( vNamesPiFake )
         Abc_NodeFreeNames( vNamesPiFake );
     if ( !Abc_NtkCheck( pNtk ) )
-        fprintf( stdout, "Abc_NtkDeriveFromBdd(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkDeriveFromBdd(): Network check has failed.\n" );
     return pNtk;
 }
 
@@ -149,7 +149,7 @@ Abc_Ntk_t * Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk, int fGlobal, int Limit, int fUs
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkBddToMuxes: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkBddToMuxes: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -176,7 +176,7 @@ void Abc_NtkBddToMuxesPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
     assert( Abc_NtkIsBddLogic(pNtk) );
     // perform conversion in the topological order
     vNodes = Abc_NtkDfs( pNtk, 0 );
-    pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), vNodes->nSize );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -278,7 +278,7 @@ int Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int Limi
     dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, Limit, 1, fReorder, 0, 0 );
     if ( dd == NULL )
     {
-        printf( "Construction of global BDDs has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Construction of global BDDs has failed.\n" );
         return 0;
     }
     //printf( "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
@@ -372,14 +372,14 @@ void * Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fDropInter
     // collect the global functions of the COs
     Counter = 0;
     // construct the BDDs
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkNodeNum(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkNodeNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
         bFunc = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin0(pObj), nBddSizeMax, fDropInternal, pProgress, &Counter, fVerbose );
         if ( bFunc == NULL )
         {
             if ( fVerbose )
-            printf( "Constructing global BDDs is aborted.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Constructing global BDDs is aborted.\n" );
             Abc_NtkFreeGlobalBdds( pNtk, 0 );
             Cudd_Quit( dd ); 
 
@@ -434,7 +434,7 @@ void * Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fDropInter
         Cudd_AutodynDisable( dd );
     }
     if ( fVerbose )
-        Cudd_PrintInfo( dd, stdout );
+        Cudd_PrintInfo( dd, Abc_FrameGlobalGetOut() );
     return dd;
 }
 
@@ -458,8 +458,8 @@ DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSize
     {
         Extra_ProgressBarStop( pProgress );
         if ( fVerbose )
-        printf( "The number of live nodes reached %d.\n", nBddSizeMax );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of live nodes reached %d.\n", nBddSizeMax );
+        fflush( Abc_FrameGlobalGetOut() );
         return NULL;
     }
     // if the result is available return
@@ -667,15 +667,15 @@ clk = Abc_Clock();
     bSum = b0;   Cudd_Ref( bSum );
     for ( i = 0; i < nImps; i++ )
     {
-        printf( "." );
+        fprintf( Abc_FrameGlobalGetOut(), "." );
         bImp = Cudd_bddAnd( dd, dd->vars[rand()%nVars], dd->vars[rand()%nVars] );  Cudd_Ref( bImp );
         bSum = Cudd_bddOr( dd, bTemp = bSum, bImp );     Cudd_Ref( bSum );
         Cudd_RecursiveDeref( dd, bTemp );
         Cudd_RecursiveDeref( dd, bImp );
     }
-    printf( "The BDD before = %d.\n", Cudd_DagSize(bSum) );
+    fprintf( Abc_FrameGlobalGetOut(), "The BDD before = %d.\n", Cudd_DagSize(bSum) );
     Cudd_ReduceHeap( dd, CUDD_REORDER_SIFT, 1 );
-    printf( "The BDD after  = %d.\n", Cudd_DagSize(bSum) );
+    fprintf( Abc_FrameGlobalGetOut(), "The BDD after  = %d.\n", Cudd_DagSize(bSum) );
 ABC_PRT( "Time", Abc_Clock() - clk );
     Cudd_RecursiveDeref( dd, bSum );
     Cudd_Quit( dd );

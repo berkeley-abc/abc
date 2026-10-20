@@ -168,7 +168,7 @@ Gia_Man_t * Abc_NtkFlattenHierarchyGia2( Abc_Ntk_t * pNtk )
     Gia_ManHashAlloc( pNew );
     Abc_NtkFlattenHierarchyGia2_rec( pNew, pNtk, &Counter, pNew->vBarBufs );
     Gia_ManHashStop( pNew );
-    printf( "Hierarchy reader flattened %d instances of logic boxes.\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Hierarchy reader flattened %d instances of logic boxes.\n", Counter );
 
     // delete DFS order of nets
     if ( !pNtk->pDesign )
@@ -252,7 +252,7 @@ void Gia_ManPrintBarBufDrivers( Gia_Man_t * p )
         iFanin = Gia_ObjFaninId0p( p, pObj );
         CountFans[(int)(iFanin != 0)]++;
     }
-    printf( "Detected %d const (out of %d) and %d shared (out of %d) barbufs with fanout.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d const (out of %d) and %d shared (out of %d) barbufs with fanout.\n", 
         CountFans[0], CountCrit[0], CountFans[1], CountCrit[1] );
     Vec_IntFree( vMap );
     Vec_IntFree( vFan );
@@ -452,7 +452,7 @@ Gia_Man_t * Abc_NtkFlattenHierarchyGia( Abc_Ntk_t * pNtk, Vec_Ptr_t ** pvBuffers
         Abc_NtkFlattenHierarchyGia_rec( pNew, vSupers, pTerm, vBuffers );
     Gia_ManHashStop( pNew );
     Vec_PtrFree( vSupers );
-    printf( "Hierarchy reader flattened %d instances of boxes and added %d barbufs (out of %d).\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Hierarchy reader flattened %d instances of boxes and added %d barbufs (out of %d).\n", 
         pNtk->pDesign ? Vec_PtrSize(pNtk->pDesign->vModules)-1 : 0, Vec_PtrSize(vBuffers), Counter );
 
     // create buffers and POs
@@ -857,7 +857,7 @@ static void GiaHie_DumpInterfaceGates( Gia_Man_t * p, char * pFileName )
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
 
@@ -1450,13 +1450,13 @@ static void GiaHie_DumpInterfaceAssignsSeq( Gia_Man_t * p, char * pFileName, int
     FILE * pFile;
     if ( fUseCtrlPis && Gia_ManPiNum(p) < 2 )
     {
-        printf( "Sequential Verilog with \"-c\" expects at least 2 primary inputs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Sequential Verilog with \"-c\" expects at least 2 primary inputs.\n" );
         return;
     }
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
 
@@ -1562,7 +1562,7 @@ static void GiaHie_DumpInterfaceAssigns( Gia_Man_t * p, char * pFileName, int fU
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
 
@@ -1649,14 +1649,14 @@ static void GiaHie_DumpMappedLuts( Gia_Man_t * p, char * pFileName )
     // Check if AIG is mapped
     if ( !Gia_ManHasMapping(p) )
     {
-        printf( "Cannot write LUT-based Verilog because AIG is not mapped.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot write LUT-based Verilog because AIG is not mapped.\n" );
         return;
     }
 
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
 
@@ -1863,7 +1863,7 @@ void Gia_WriteMappedVerilog( char * pFileName, Gia_Man_t * pGia, int fVerbose )
         return;
     if ( !Gia_ManHasMapping(pGia) )
     {
-        printf( "Cannot write LUT-based Verilog because AIG is not mapped.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot write LUT-based Verilog because AIG is not mapped.\n" );
         return;
     }
     GiaHie_DumpMappedLuts( pGia, pFileName );

@@ -112,7 +112,7 @@ int CountLiteralsCheck()
     }
 
     if ( LitCounterControl != LitCounter )
-        printf( "Warning! The recorded number of literals (%d) differs from the actual number (%d)\n", LitCounterControl, LitCounter );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning! The recorded number of literals (%d) differs from the actual number (%d)\n", LitCounterControl, LitCounter );
     return LitCounter;
 }
 
@@ -189,7 +189,7 @@ int WriteResultIntoFile( char * pFileName )
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stderr, "\n\nCannot open the output file\n" );
+        fprintf( Abc_FrameGlobalGetErr(),  "\n\nCannot open the output file\n" );
         return 1;
     }
 

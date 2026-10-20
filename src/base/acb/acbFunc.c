@@ -590,7 +590,7 @@ Vec_Int_t * Acb_ReadWeightMap( char * pFileName, Abc_Nam_t * pNames )
         int Number = atoi(pNum);
         if ( NameId <= 0 )
         {
-            printf( "Cannot find name \"%s\" among node names of this network.\n", pToken );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot find name \"%s\" among node names of this network.\n", pToken );
             continue;
         }
         Vec_IntWriteEntry( vWeights, NameId, Number );
@@ -630,12 +630,12 @@ Acb_Ntk_t * Acb_VerilogSimpleRead( char * pFileName, char * pFileNameW )
     Vec_Int_t * vWeights = pFileNameW ? Acb_ReadWeightMap( pFileNameW, pNames ) : NULL;
     if ( pFileName && pModule == NULL )
     {
-        printf( "Cannot read input file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot read input file \"%s\".\n", pFileName );
         return NULL;
     }
     if ( pFileNameW && vWeights == NULL )
     {
-        printf( "Cannot read weight file \"%s\".\n", pFileNameW );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot read weight file \"%s\".\n", pFileNameW );
         return NULL;
     }
     if ( 0 )
@@ -672,7 +672,7 @@ void Acb_VerilogSimpleWrite( Acb_Ntk_t * p, char * pFileName )
 {
     int i, iObj, fFirst = 1;
     FILE * pFile = fopen( pFileName, "wb" ); 
-    if ( pFile == NULL ) { printf( "Cannot open file \"%s\" for writing.\n", pFileName ); return; }
+    if ( pFile == NULL ) { fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName ); return; }
 
     fprintf( pFile, "\nmodule %s (\n  ", Acb_NtkName(p) );
 
@@ -854,7 +854,7 @@ Vec_Int_t * Acb_NtkFindDivsCis( Acb_Ntk_t * p, Vec_Int_t * vSupp )
         assert( Acb_ObjWeight(p, iObj) > 0 );
         Vec_IntPush( vDivs, iObj );
     }
-    printf( "Divisors are %d support variables (CIs in the TFO of the targets).\n", Vec_IntSize(vSupp) );
+    fprintf( Abc_FrameGlobalGetOut(), "Divisors are %d support variables (CIs in the TFO of the targets).\n", Vec_IntSize(vSupp) );
     return vDivs;
 }
 Vec_Int_t * Acb_NtkFindDivs( Acb_Ntk_t * p, Vec_Int_t * vSupp, Vec_Bit_t * vBlock, int fUnitW, int fVerbose )
@@ -892,24 +892,24 @@ Vec_Int_t * Acb_NtkFindDivs( Acb_Ntk_t * p, Vec_Int_t * vSupp, Vec_Bit_t * vBloc
 //            printf( "%d:%d (w=%d)   ", i, iObj, Vec_IntEntry(&p->vObjWeight, iObj) );
 //        printf( "\n" );
 
-        printf( "    : " );
+        fprintf( Abc_FrameGlobalGetOut(), "    : " );
         Vec_IntForEachEntryStop( vDivs, iObj, i, nDivLimit )
-            printf( "%d", (Vec_IntEntry(&p->vObjWeight, iObj) / 100) % 10 );
-        printf( "\n" );
-        printf( "    : " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", (Vec_IntEntry(&p->vObjWeight, iObj) / 100) % 10 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "    : " );
         Vec_IntForEachEntryStop( vDivs, iObj, i, nDivLimit )
-            printf( "%d", (Vec_IntEntry(&p->vObjWeight, iObj) / 10) % 10 );
-        printf( "\n" );
-        printf( "    : " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", (Vec_IntEntry(&p->vObjWeight, iObj) / 10) % 10 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "    : " );
         Vec_IntForEachEntryStop( vDivs, iObj, i, nDivLimit )
-            printf( "%d", (Vec_IntEntry(&p->vObjWeight, iObj) / 1) % 10 );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", (Vec_IntEntry(&p->vObjWeight, iObj) / 1) % 10 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     if ( fVerbose )
-    printf( "Reducing divisor set from %d to ", Vec_IntSize(vDivs) );
+    fprintf( Abc_FrameGlobalGetOut(), "Reducing divisor set from %d to ", Vec_IntSize(vDivs) );
     Vec_IntShrink( vDivs, nDivLimit );
     if ( fVerbose )
-    printf( "%d.\n", Vec_IntSize(vDivs) );
+    fprintf( Abc_FrameGlobalGetOut(), "%d.\n", Vec_IntSize(vDivs) );
     return vDivs;
 }
 
@@ -1143,7 +1143,7 @@ void Vec_IntPermute2( Vec_Int_t * p )
     {
         if ( rand() % 3 == 0 )
         {
-            printf( "Permuting %d and %d\n", i, i+1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Permuting %d and %d\n", i, i+1 );
             ABC_SWAP( int, pArray[i], pArray[i+1] );
         }
     }
@@ -1152,42 +1152,42 @@ void Vec_IntPermute2( Vec_Int_t * p )
 void Acb_PrintPatterns( Vec_Wrd_t * vPats, int nPats, Vec_Int_t * vWeights )
 {
     int i, k, Entry, nDivs = Vec_IntSize(vWeights);
-    printf( "    : " );
+    fprintf( Abc_FrameGlobalGetOut(), "    : " );
     Vec_IntForEachEntry( vWeights, Entry, i )
-        printf( "%d", (Entry / 100) % 10 );
-    printf( "\n" );
-    printf( "    : " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", (Entry / 100) % 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "    : " );
     Vec_IntForEachEntry( vWeights, Entry, i )
-        printf( "%d", (Entry / 10) % 10 );
-    printf( "\n" );
-    printf( "    : " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", (Entry / 10) % 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "    : " );
     Vec_IntForEachEntry( vWeights, Entry, i )
-        printf( "%d", (Entry / 1) % 10 );
-    printf( "\n" );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", (Entry / 1) % 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( "    : " );
+    fprintf( Abc_FrameGlobalGetOut(), "    : " );
     for ( i = 0; i < nDivs; i++ )
-        printf( "%d", (i / 100) % 10 );
-    printf( "\n" );
-    printf( "    : " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", (i / 100) % 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "    : " );
     for ( i = 0; i < nDivs; i++ )
-        printf( "%d", (i / 10) % 10 );
-    printf( "\n" );
-    printf( "    : " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", (i / 10) % 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "    : " );
     for ( i = 0; i < nDivs; i++ )
-        printf( "%d", i % 10 );
-    printf( "\n" );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", i % 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     for ( k = 0; k < nPats; k++ )
     {
-        printf( "%3d : ", k );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : ", k );
         for ( i = 0; i < nDivs; i++ )
-            printf( "%c", Abc_TtGetBit(Vec_WrdEntryP(vPats, NWORDS*i), k) ? '*' : '|' );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", Abc_TtGetBit(Vec_WrdEntryP(vPats, NWORDS*i), k) ? '*' : '|' );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 Vec_Int_t * Acb_DeriveWeights( Vec_Int_t * vDivs, Acb_Ntk_t * pNtkF )
@@ -1332,7 +1332,7 @@ Vec_Int_t * Acb_FindSupportNext( sat_solver * pSat, int iFirstDiv, Vec_Int_t * v
         (*pnPats)++;
         if ( *pnPats == NWORDS*64 )
         {
-            printf( "Exceeded %d words.\n", NWORDS );
+            fprintf( Abc_FrameGlobalGetOut(), "Exceeded %d words.\n", NWORDS );
             Vec_IntFreeP( &vSupp );
             return NULL;
         }
@@ -1442,14 +1442,14 @@ Vec_Int_t * Acb_FindSupport( sat_solver * pSat, int iFirstDiv, Vec_Int_t * vWeig
     // find initial best
     CostBest = Acb_ComputeSuppCost( vSuppStart, vWeights, iFirstDiv );
     vSuppBest = Vec_IntDup( vSuppStart );
-    printf( "Starting cost = %d.\n", CostBest );
+    fprintf( Abc_FrameGlobalGetOut(), "Starting cost = %d.\n", CostBest );
 
     // iteratively find the one with the most ones in the uncovered rows
     for ( Iter = 0; Iter < 500; Iter++ )
     {
         if ( Abc_Clock() > clkLimit )
         {
-            printf( "Timeout after %d sec.\n", TimeOut );
+            fprintf( Abc_FrameGlobalGetOut(), "Timeout after %d sec.\n", TimeOut );
             break;
         }
         if ( Iter == 0 )
@@ -1468,8 +1468,8 @@ Vec_Int_t * Acb_FindSupport( sat_solver * pSat, int iFirstDiv, Vec_Int_t * vWeig
         {
             CostBest = Cost;
             ABC_SWAP( Vec_Int_t *, vSuppBest, vSupp );
-            printf( "Iter %4d:  Next cost = %5d.  ", Iter, Cost );
-            printf( "Updating best solution.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %4d:  Next cost = %5d.  ", Iter, Cost );
+            fprintf( Abc_FrameGlobalGetOut(), "Updating best solution.\n" );
         }
         Vec_IntFree( vSupp );
     }
@@ -1551,7 +1551,7 @@ Vec_Int_t * Acb_DerivePatchSupport( Cnf_Dat_t * pCnf, int iTar, int nTargets, in
                 pLits[1] = Abc_Var2Lit( iVar1, 1 );
                 if ( !sat_solver_addclause( pSat, pLits, pLits+2 ) )
                 {
-                    printf( "Unsat is detected earlier.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Unsat is detected earlier.\n" );
                     status = l_False;
                     break;
                 }
@@ -1559,7 +1559,7 @@ Vec_Int_t * Acb_DerivePatchSupport( Cnf_Dat_t * pCnf, int iTar, int nTargets, in
                 pLits[1] = Abc_Var2Lit( iVar1, 0 );
                 if ( !sat_solver_addclause( pSat, pLits, pLits+2 ) )
                 {
-                    printf( "Unsat is detected earlier.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Unsat is detected earlier.\n" );
                     status = l_False;
                     break;
                 }
@@ -1578,20 +1578,20 @@ Vec_Int_t * Acb_DerivePatchSupport( Cnf_Dat_t * pCnf, int iTar, int nTargets, in
             if ( TimeOut ) sat_solver_set_runtime_limit( pSat, 0 );
             if ( status == l_True )
             {
-                printf( "ECO does not exist.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "ECO does not exist.\n" );
                 sat_solver_delete( pSat );
                 Vec_IntFree( vSupp );
                 return NULL;
             }
             if ( status == l_Undef )
             {
-                printf( "Support computation timed out after %d sec.\n", TimeOut );
+                fprintf( Abc_FrameGlobalGetOut(), "Support computation timed out after %d sec.\n", TimeOut );
                 sat_solver_delete( pSat );
                 Vec_IntFree( vSupp );
                 return NULL;
             }
             assert( status == l_False );
-            printf( "Proved that the problem has a solution.  " );
+            fprintf( Abc_FrameGlobalGetOut(), "Proved that the problem has a solution.  " );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             // find minimum subset
             if ( fUseMinAssump )
@@ -1602,7 +1602,7 @@ Vec_Int_t * Acb_DerivePatchSupport( Cnf_Dat_t * pCnf, int iTar, int nTargets, in
                 nSuppNew = sat_solver_minimize_assumptions( pSat, Vec_IntArray(vSupp), Vec_IntSize(vSupp), 0 );
                 Vec_IntShrink( vSupp, nSuppNew );
                 Vec_IntSort( vSupp, 0 );
-                printf( "Found one feasible set of %d divisors.  ", Vec_IntSize(vSupp) );
+                fprintf( Abc_FrameGlobalGetOut(), "Found one feasible set of %d divisors.  ", Vec_IntSize(vSupp) );
                 Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
                 // perform minimization
@@ -1616,14 +1616,14 @@ Vec_Int_t * Acb_DerivePatchSupport( Cnf_Dat_t * pCnf, int iTar, int nTargets, in
                     Vec_IntFree( vTemp );
                     if ( vSupp == NULL )
                     {
-                        printf( "Support minimization did not succeed.  " );
+                        fprintf( Abc_FrameGlobalGetOut(), "Support minimization did not succeed.  " );
                         //sat_solver_delete( pSat );
                         vSupp = vSupp2;
                     }
                     else
                     {
                         Vec_IntFree( vSupp2 );
-                        printf( "Minimized support to %d supp vars.  ", Vec_IntSize(vSupp) );
+                        fprintf( Abc_FrameGlobalGetOut(), "Minimized support to %d supp vars.  ", Vec_IntSize(vSupp) );
                     }
                     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
                 }
@@ -1631,7 +1631,7 @@ Vec_Int_t * Acb_DerivePatchSupport( Cnf_Dat_t * pCnf, int iTar, int nTargets, in
             else
             {
                 int * pFinal, nFinal = sat_solver_final( pSat, &pFinal );
-                printf( "AnalyzeFinal returned %d (out of %d).\n", nFinal, Vec_IntSize(vSupp) );
+                fprintf( Abc_FrameGlobalGetOut(), "AnalyzeFinal returned %d (out of %d).\n", nFinal, Vec_IntSize(vSupp) );
                 Vec_IntClear( vSupp ); 
                 for ( i = 0; i < nFinal; i++ )
                     Vec_IntPush( vSupp, Abc_LitNot(pFinal[i]) );
@@ -1640,7 +1640,7 @@ Vec_Int_t * Acb_DerivePatchSupport( Cnf_Dat_t * pCnf, int iTar, int nTargets, in
                 assert( status == l_False );
                 // try again
                 nFinal = sat_solver_final( pSat, &pFinal );
-                printf( "AnalyzeFinal returned %d (out of %d).\n", nFinal, Vec_IntSize(vSupp) );
+                fprintf( Abc_FrameGlobalGetOut(), "AnalyzeFinal returned %d (out of %d).\n", nFinal, Vec_IntSize(vSupp) );
             }
             // remap them into numbers
             Vec_IntForEachEntry( vSupp, iLit, i )
@@ -1769,14 +1769,14 @@ Vec_Int_t * Acb_DerivePatchSupportS( Cnf_Dat_t * pCnf, int nCiTars, int nCoDivs,
         status = satoko_solve_assumptions( pSat, Vec_IntArray(vSupp), Vec_IntSize(vSupp) );
         if ( status != l_False )
         {
-            printf( "Demonstrated that the problem has NO solution.  " );
+            fprintf( Abc_FrameGlobalGetOut(), "Demonstrated that the problem has NO solution.  " );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             satoko_destroy( pSat );
             Vec_IntFree( vSupp );
             return NULL;
         }
         assert( status == l_False );
-        printf( "Proved that the problem has a solution.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Proved that the problem has a solution.  " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
         // find minimum subset
@@ -1785,13 +1785,13 @@ Vec_Int_t * Acb_DerivePatchSupportS( Cnf_Dat_t * pCnf, int nCiTars, int nCoDivs,
             abctime clk = Abc_Clock();
             nSuppNew = satoko_minimize_assumptions( pSat, Vec_IntArray(vSupp), Vec_IntSize(vSupp), 0 );
             Vec_IntShrink( vSupp, nSuppNew );
-            printf( "Solved the problem with %d supp vars.  ", Vec_IntSize(vSupp) );
+            fprintf( Abc_FrameGlobalGetOut(), "Solved the problem with %d supp vars.  ", Vec_IntSize(vSupp) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
         else
         {
             int * pFinal, nFinal = satoko_final_conflict( pSat, &pFinal );
-            printf( "AnalyzeFinal returned %d (out of %d).\n", nFinal, Vec_IntSize(vSupp) );
+            fprintf( Abc_FrameGlobalGetOut(), "AnalyzeFinal returned %d (out of %d).\n", nFinal, Vec_IntSize(vSupp) );
             Vec_IntClear( vSupp ); 
             for ( i = 0; i < nFinal; i++ )
                 Vec_IntPush( vSupp, Abc_LitNot(pFinal[i]) );
@@ -1800,7 +1800,7 @@ Vec_Int_t * Acb_DerivePatchSupportS( Cnf_Dat_t * pCnf, int nCiTars, int nCoDivs,
             assert( status == l_False );
             // try again
             nFinal = satoko_final_conflict( pSat, &pFinal );
-            printf( "AnalyzeFinal returned %d (out of %d).\n", nFinal, Vec_IntSize(vSupp) );
+            fprintf( Abc_FrameGlobalGetOut(), "AnalyzeFinal returned %d (out of %d).\n", nFinal, Vec_IntSize(vSupp) );
         }
 
         // remap them into numbers
@@ -1867,7 +1867,7 @@ char * Acb_EnumerateSatAssigns( sat_solver * pSat, int PivotVar, int FreeVar, Ve
         {
             if ( Vec_IntSize(vDivVars) == 0 )
             {
-                printf( "Assuming constant 0 function.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Assuming constant 0 function.\n" );
                 Vec_StrClear( vTempSop );
                 Vec_StrPush( vTempSop, ' ' );
                 Vec_StrPush( vTempSop, '0' );
@@ -1876,7 +1876,7 @@ char * Acb_EnumerateSatAssigns( sat_solver * pSat, int PivotVar, int FreeVar, Ve
                 return Vec_StrReleaseArray(vTempSop);
             }
 
-            printf( "Reached the limit on the number of cubes (1000).\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Reached the limit on the number of cubes (1000).\n" );
             Vec_IntFree( vTemp );
             Vec_IntFree( vLits );
             return NULL;
@@ -1886,7 +1886,7 @@ char * Acb_EnumerateSatAssigns( sat_solver * pSat, int PivotVar, int FreeVar, Ve
         status = sat_solver_solve( pSat, pLits, pLits + 2, 0, 0, 0, 0 );
         if ( status == l_False )
         {
-            printf( "Finished enumerating %d cubes.\n", iMint );
+            fprintf( Abc_FrameGlobalGetOut(), "Finished enumerating %d cubes.\n", iMint );
             Vec_IntFree( vTemp );
             Vec_IntFree( vLits );
             Vec_StrPush( vTempSop, '\0' );
@@ -1930,7 +1930,7 @@ char * Acb_EnumerateSatAssigns( sat_solver * pSat, int PivotVar, int FreeVar, Ve
             // expand against offset
             status = sat_solver_solve( pSat, Vec_IntArray(vTempLits), Vec_IntLimit(vTempLits), 0, 0, 0, 0 );
             if ( status != l_False )
-                printf( "Selected onset minterm number %d belongs to the offset (this is a bug).\n", iMint );
+                fprintf( Abc_FrameGlobalGetOut(), "Selected onset minterm number %d belongs to the offset (this is a bug).\n", iMint );
             assert( status == l_False );
 
             // compute cube and add clause
@@ -2339,14 +2339,14 @@ Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUs
 //    printf( "Synthesized patch with %d inputs, %d outputs and %d gates (const = %d  buf = %d  inv = %d  other = %d).\n", 
 //        Vec_IntSize(vUsed), nOuts, nWires, nConst, nBufs, nInvs, nNodes );
 //    printf( "Summary of the results\n" );
-    printf( "\n" );
-    printf( "Patch   : in = %d  out = %d : pi_in = %d  po_out = %d : tfi = %d  tfo = %d\n", Vec_IntSize(vUsed), nOuts, nPiCount, nPoCount, Vec_IntSize(vTfi), Vec_IntSize(vTfo) );
-    printf( "Added   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires,         nGates0[0], nGates0[1], nGates0[2], nGates0[3], nGates0[4] ); 
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Patch   : in = %d  out = %d : pi_in = %d  po_out = %d : tfi = %d  tfo = %d\n", Vec_IntSize(vUsed), nOuts, nPiCount, nPoCount, Vec_IntSize(vTfi), Vec_IntSize(vTfo) );
+    fprintf( Abc_FrameGlobalGetOut(), "Added   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires,         nGates0[0], nGates0[1], nGates0[2], nGates0[3], nGates0[4] ); 
     if ( Abc_FrameReadSpecName() )
-    printf( "Removed : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nMffc,          nGates1[0], nGates1[1], nGates1[2], nGates1[3], nGates1[4] ); 
+    fprintf( Abc_FrameGlobalGetOut(), "Removed : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nMffc,          nGates1[0], nGates1[1], nGates1[2], nGates1[3], nGates1[4] ); 
     if ( Abc_FrameReadSpecName() )
-    printf( "TOTAL   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires-nMffc,   nGates0[0]-nGates1[0],  nGates0[1]-nGates1[1],  nGates0[2]-nGates1[2], nGates0[3]-nGates1[3], nGates0[4]-nGates1[4] ); 
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "TOTAL   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires-nMffc,   nGates0[0]-nGates1[0],  nGates0[1]-nGates1[1],  nGates0[2]-nGates1[2], nGates0[3]-nGates1[3], nGates0[4]-nGates1[4] ); 
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     return vStr;
 }
 
@@ -2465,7 +2465,7 @@ Vec_Str_t * Acb_GeneratePatch2( Gia_Man_t * pGia, Vec_Ptr_t * vIns, Vec_Ptr_t * 
     Vec_PtrFreeFree( vNames );
     Vec_WecFree( vGates );
 
-    printf( "Synthesized patch with %d inputs, %d outputs and %d gates (including %d two-input gates).\n", nIns, nOuts, nWires, nTwoIns );
+    fprintf( Abc_FrameGlobalGetOut(), "Synthesized patch with %d inputs, %d outputs and %d gates (including %d two-input gates).\n", nIns, nOuts, nWires, nTwoIns );
     return vStr;
 }
 void Acb_GenerateFile2( Gia_Man_t * pGia, Vec_Ptr_t * vIns, Vec_Ptr_t * vOuts, char * pFileName, char * pFileNameOut, int fSkipMffc )
@@ -2479,11 +2479,11 @@ void Acb_GenerateFile2( Gia_Man_t * pGia, Vec_Ptr_t * vIns, Vec_Ptr_t * vOuts, c
     //Gia_AigerWrite( pGia, "test.aig", 0, 0, 0 );
     // generate output files
     Acb_GenerateFilePatch( vPatch, "patch.v" );
-    printf( "Finished dumping patch file \"%s\".\n", "patch.v" );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping patch file \"%s\".\n", "patch.v" );
     Acb_NtkInsert( pFileName, "temp.v", vOuts, 0, fSkipMffc );
-    printf( "Finished dumping intermediate file \"%s\".\n", "temp.v" );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping intermediate file \"%s\".\n", "temp.v" );
     Acb_GenerateFileOut( vInst, "temp.v", pFileNameOut, vPatch );
-    printf( "Finished dumping the resulting file \"%s\".\n", pFileNameOut );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping the resulting file \"%s\".\n", pFileNameOut );
     Vec_StrFree( vInst );
     Vec_StrFree( vPatch );
 }
@@ -2542,15 +2542,15 @@ void Acb_GenerateFileOut( Vec_Str_t * vPatchLine, char * pFileNameF, char * pFil
 void Acb_PrintPatch( Acb_Ntk_t * pNtkF, Vec_Int_t * vDivs, Vec_Int_t * vUsed, abctime clk )
 {
     int i, iObj, Weight = 0;
-    printf( "Patch has %d inputs: ", Vec_IntSize(vUsed) );
+    fprintf( Abc_FrameGlobalGetOut(), "Patch has %d inputs: ", Vec_IntSize(vUsed) );
     Vec_IntForEachEntryInVec( vDivs, vUsed, iObj, i )
     {
-        printf( "%d=%s(w=%d) ", Vec_IntEntry(vUsed, i), Acb_ObjNameStr(pNtkF, iObj), Acb_ObjWeight(pNtkF, iObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=%s(w=%d) ", Vec_IntEntry(vUsed, i), Acb_ObjNameStr(pNtkF, iObj), Acb_ObjWeight(pNtkF, iObj) );
         Weight += Acb_ObjWeight(pNtkF, iObj);
     }
-    printf( "\nTotal weight = %d  ", Weight );
+    fprintf( Abc_FrameGlobalGetOut(), "\nTotal weight = %d  ", Weight );
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clk );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -2569,13 +2569,13 @@ Gia_Man_t * Acb_NtkEcoSynthesize( Gia_Man_t * p )
     int Iter, fVerbose = 0;
     Gia_Man_t * pNew = Gia_ManDup( p );
 
-    if ( fVerbose ) printf( "M_quo: " );
+    if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "M_quo: " );
     if ( fVerbose ) Gia_ManPrintStats( pNew, NULL );
 
     pNew = Gia_ManAreaBalance( p = pNew, 0, 0, 0, 0 );
     Gia_ManStop( p );
 
-    if ( fVerbose ) printf( "M_bal: " );
+    if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "M_bal: " );
     if ( fVerbose ) Gia_ManPrintStats( pNew, NULL );
 
     for ( Iter = 0; Iter < 2; Iter++ )
@@ -2583,14 +2583,14 @@ Gia_Man_t * Acb_NtkEcoSynthesize( Gia_Man_t * p )
         pNew = Gia_ManCompress2( p = pNew, 1, 0 );
         Gia_ManStop( p );
 
-        if ( fVerbose ) printf( "M_dc2: " );
+        if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "M_dc2: " );
         if ( fVerbose ) Gia_ManPrintStats( pNew, NULL );
     }
 
     pNew = Gia_ManAigSyn2( p = pNew, 0, 1, 0, 100, 0, 0, 0 );
     Gia_ManStop( p );
 
-    if ( fVerbose ) printf( "M_sn2: " );
+    if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "M_sn2: " );
     if ( fVerbose ) Gia_ManPrintStats( pNew, NULL );
 
     for ( Iter = 0; Iter < 2; Iter++ )
@@ -2598,7 +2598,7 @@ Gia_Man_t * Acb_NtkEcoSynthesize( Gia_Man_t * p )
         pNew = Gia_ManCompress2( p = pNew, 1, 0 );
         Gia_ManStop( p );
 
-        if ( fVerbose ) printf( "M_dc2: " );
+        if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "M_dc2: " );
         if ( fVerbose ) Gia_ManPrintStats( pNew, NULL );
     }
     return pNew;
@@ -2617,17 +2617,17 @@ Cnf_Dat_t * Acb_NtkDeriveMiterCnf( Gia_Man_t * p, int iTar, int nTars, int fVerb
         Gia_ManStop( pTemp );
         if ( Gia_ManAndNum(pCof) > 10000 )
         {
-            printf( "Quantifying target %3d ", v );
+            fprintf( Abc_FrameGlobalGetOut(), "Quantifying target %3d ", v );
             Gia_ManPrintStats( pCof, NULL );
         }
         assert( Gia_ManCiNum(pCof) == Gia_ManCiNum(p) );
         Gia_ManStop( p );
     }
-    if ( fVerbose ) printf( "M_quo: " );
+    if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "M_quo: " );
     if ( fVerbose ) Gia_ManPrintStats( pCof, NULL );
     //pCof = Acb_NtkEcoSynthesize( p = pCof );
     //Gia_ManStop( p );
-    if ( fVerbose ) printf( "M_syn: " );
+    if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "M_syn: " );
     if ( fVerbose ) Gia_ManPrintStats( pCof, NULL );
     if ( 0 && iTar < nTars )
     {
@@ -2641,8 +2641,8 @@ Cnf_Dat_t * Acb_NtkDeriveMiterCnf( Gia_Man_t * p, int iTar, int nTars, int fVerb
         Gia_AigerWrite( pCof1, "eco_qbf1.aig", 0, 0, 0 );
         Gia_ManStop( pCof0 );
         Gia_ManStop( pCof1 );
-        printf( "Dumped cof0 into file \"%s\".\n", "eco_qbf0.aig" );
-        printf( "Dumped cof1 into file \"%s\".\n", "eco_qbf1.aig" );
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped cof0 into file \"%s\".\n", "eco_qbf0.aig" );
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped cof1 into file \"%s\".\n", "eco_qbf1.aig" );
     }
 //    Gia_AigerWrite( pCof, "eco_qbf.aig", 0, 0, 0 );
 //    printf( "Dumped the result of quantification into file \"%s\".\n", "eco_qbf.aig" );
@@ -2688,7 +2688,7 @@ Gia_Man_t * Gia_ManInterOneInt( Gia_Man_t * pCof1, Gia_Man_t * pCof0, int Depth 
         pCof[n][m] = Gia_ManDupCofactorVar( pGia[n], iVarBest, m );
         pCof[n][m] = Acb_NtkEcoSynthesize( pTemp = pCof[n][m] );
         Gia_ManStop( pTemp );
-        printf( "%*sCof%d%d : ", 8-Depth, "", n, m );
+        fprintf( Abc_FrameGlobalGetOut(), "%*sCof%d%d : ", 8-Depth, "", n, m );
         Gia_ManPrintStats( pCof[n][m], NULL );
     }
     for ( m = 0; m < 2; m++ )
@@ -2699,11 +2699,11 @@ Gia_Man_t * Gia_ManInterOneInt( Gia_Man_t * pCof1, Gia_Man_t * pCof0, int Depth 
             pInter[m] = Gia_ManInterOne( pCof[1][m], pCof[0][m], 1 );
         else
             pInter[m] = Gia_ManInterOneInt( pCof[1][m], pCof[0][m], Depth-1 );
-        printf( "%*sInter%d : ", 8-Depth, "", m );
+        fprintf( Abc_FrameGlobalGetOut(), "%*sInter%d : ", 8-Depth, "", m );
         Gia_ManPrintStats( pInter[m], NULL );
         pInter[m] = Abc_GiaSynthesizeInter( pTemp = pInter[m] );
         Gia_ManStop( pTemp );
-        printf( "%*sInter%d : ", 8-Depth, "", m );
+        fprintf( Abc_FrameGlobalGetOut(), "%*sInter%d : ", 8-Depth, "", m );
         Gia_ManPrintStats( pInter[m], NULL );
     }
     for ( n = 0; n < 2; n++ )
@@ -2736,9 +2736,9 @@ Gia_Man_t * Acb_NtkDeriveMiterCnfInter2( Gia_Man_t * p, int iTar, int nTars )
     pCof1 = Acb_NtkEcoSynthesize( p = pCof1 );
     Gia_ManStop( p );
 
-    printf( "Cof0 : " );
+    fprintf( Abc_FrameGlobalGetOut(), "Cof0 : " );
     Gia_ManPrintStats( pCof0, NULL );
-    printf( "Cof1 : " );
+    fprintf( Abc_FrameGlobalGetOut(), "Cof1 : " );
     Gia_ManPrintStats( pCof1, NULL );
 
     if ( Gia_ManAndNum(pCof1) == 0 || Gia_ManAndNum(pCof0) == 0 )
@@ -2917,13 +2917,13 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
 
     if ( fVerbose )
     {
-        printf( "The number of targets = %d.\n", nTargets );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of targets = %d.\n", nTargets );
 
-        printf( "NtkF:  " );
+        fprintf( Abc_FrameGlobalGetOut(), "NtkF:  " );
         Gia_ManPrintStats( pGiaF, NULL );
-        printf( "NtkG:  " );
+        fprintf( Abc_FrameGlobalGetOut(), "NtkG:  " );
         Gia_ManPrintStats( pGiaG, NULL );
-        printf( "Miter: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Miter: " );
         Gia_ManPrintStats( pGiaM, NULL );
     }
 
@@ -2940,7 +2940,7 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
         status = sat_solver_addclause( pSat, &Lit, &Lit+1 );
         status = status == 0 ? l_False : sat_solver_solve( pSat, NULL, NULL, 0, 0, 0, 0 );
         sat_solver_delete( pSat );
-        printf( "The ECO problem has %s solution. ", status == l_False ? "a" : "NO" );
+        fprintf( Abc_FrameGlobalGetOut(), "The ECO problem has %s solution. ", status == l_False ? "a" : "NO" );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         if ( status != l_False )
         {
@@ -2952,15 +2952,15 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
     for ( i = nTargets-1; i >= 0; i-- )
     {
         Vec_Int_t * vSupp = NULL;
-        printf( "\nConsidering target %d (out of %d)...\n", i, nTargets );
+        fprintf( Abc_FrameGlobalGetOut(), "\nConsidering target %d (out of %d)...\n", i, nTargets );
         // compute support of this target
         if ( fCisOnly )
         {
             vSupp = Vec_IntStartNatural( Vec_IntSize(vDivs) );
-            printf( "Target %d has support with %d variables.\n", i, Vec_IntSize(vSupp) );
+            fprintf( Abc_FrameGlobalGetOut(), "Target %d has support with %d variables.\n", i, Vec_IntSize(vSupp) );
 
             pOne = Acb_NtkDeriveMiterCnfInter( pGiaM, i, nTargets );
-            printf( "Tar%02d: ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Tar%02d: ", i );
             Gia_ManPrintStats( pOne, NULL );
 
             // update miter
@@ -2998,14 +2998,14 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
             {
                 Vec_IntFreeP( &vSupp );
                 ABC_FREE( pSop );
-                printf( "The target computation timed out after %d seconds.\n", nTimeout );
+                fprintf( Abc_FrameGlobalGetOut(), "The target computation timed out after %d seconds.\n", nTimeout );
                 RetValue = 0;
                 goto cleanup;
             }
 
             // add new function to the miter
             pOne  = Abc_SopSynthesizeOne( pSop, 1 );
-            printf( "Tar%02d: ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Tar%02d: ", i );
             Gia_ManPrintStats( pOne, NULL );
 
             // update miter
@@ -3016,7 +3016,7 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
             // add to functions
             Vec_PtrPush( vSops, pSop );
             if ( fVeryVerbose )
-                printf( "Function %d\n%s", i, pSop );
+                fprintf( Abc_FrameGlobalGetOut(), "Function %d\n%s", i, pSop );
         }
         // add to supports
         Vec_IntAppend( Vec_WecPushLevel(vSupps), vSupp );
@@ -3024,7 +3024,7 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
     }
 
     // make sure the function is UNSAT
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     if ( !fCisOnly )
     {
         int Res;
@@ -3033,9 +3033,9 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
         Res = Acb_CheckMiter( pCnf );
         Cnf_DataFree( pCnf );
         if ( Res == 1 )
-            printf( "The ECO solution was verified successfully.  " );
+            fprintf( Abc_FrameGlobalGetOut(), "The ECO solution was verified successfully.  " );
         else
-            printf( "The ECO solution verification FAILED.  " );
+            fprintf( Abc_FrameGlobalGetOut(), "The ECO solution verification FAILED.  " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
 
@@ -3062,7 +3062,7 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
     // generate output files
     if ( pFileName[3] == NULL ) Acb_GenerateFilePatch( vPatch, "patch.v" );
     Acb_GenerateFileOut( vInst, pFileName[0], pFileName[3] ? pFileName[3] : (char *)"out.v", vPatch );
-    printf( "Finished dumping resulting file \"%s\".\n\n", pFileName[3] ? pFileName[3] : "out.v" );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping resulting file \"%s\".\n\n", pFileName[3] ? pFileName[3] : "out.v" );
 /*
     {
         char * pFileBase = Extra_FileNameGenericAppend( pFileName[0], "_patch.v" );
@@ -3150,7 +3150,7 @@ void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom,
     //Vec_IntReverseOrder( &pNtkF->vTargets );
     if ( fRandom )
     {
-        printf( "Permuting targets as follows:   " );
+        fprintf( Abc_FrameGlobalGetOut(), "Permuting targets as follows:   " );
         Vec_IntPermute( &pNtkF->vTargets );
         Vec_IntPrint( &pNtkF->vTargets );
     }
@@ -3165,7 +3165,7 @@ void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom,
 //        printf( "General computation timed out. Trying inputs only.\n\n" );
 //        if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 1, fInputs, fCheck, fUnitW, fVerbose, fVeryVerbose ) )
 //            printf( "Input-only computation also timed out.\n\n" );
-        printf( "Computation did not succeed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Computation did not succeed.\n" );
         Result = 0;
     }
 
@@ -3176,8 +3176,8 @@ void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom,
     sprintf( Command, "read %s; strash; write temp1.aig; read %s; strash; write temp2.aig; &cec temp1.aig temp2.aig", 
         pFileNames[1], pFileNames[3] ? pFileNames[3] : "out.v" );
     if ( Result && Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command ) )
-        fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot execute command \"%s\".\n", Command );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 ////////////////////////////////////////////////////////////////////////

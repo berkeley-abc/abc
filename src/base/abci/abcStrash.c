@@ -57,7 +57,7 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, int fCleanup )
 //timeRetime = Abc_Clock();
     // print warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )
-        printf( "Warning: The choice nodes in the original AIG are removed by strashing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The choice nodes in the original AIG are removed by strashing.\n" );
     // start the new network (constants and CIs of the old network will point to the their counterparts in the new network)
     pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
     // restrash the nodes (assuming a topological order of the old network)
@@ -81,7 +81,7 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, int fCleanup )
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkAig ) )
     {
-        printf( "Abc_NtkStrash: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkStrash: The network check has failed.\n" );
         Abc_NtkDelete( pNtkAig );
         return NULL;
     }
@@ -143,7 +143,7 @@ Abc_Ntk_t * Abc_NtkRestrashRandom( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsStrash(pNtk) );
     // print warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )
-        printf( "Warning: The choice nodes in the original AIG are removed by strashing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The choice nodes in the original AIG are removed by strashing.\n" );
     // start the new network (constants and CIs of the old network will point to the their counterparts in the new network)
     pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
     // restrash the nodes (assuming a topological order of the old network)
@@ -158,7 +158,7 @@ Abc_Ntk_t * Abc_NtkRestrashRandom( Abc_Ntk_t * pNtk )
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkAig ) )
     {
-        printf( "Abc_NtkStrash: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkStrash: The network check has failed.\n" );
         Abc_NtkDelete( pNtkAig );
         return NULL;
     }
@@ -189,7 +189,7 @@ Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, int fCleanup )
 //timeRetime = Abc_Clock();
     // print warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )
-        printf( "Warning: The choice nodes in the original AIG are removed by strashing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The choice nodes in the original AIG are removed by strashing.\n" );
     // start the new network (constants and CIs of the old network will point to the their counterparts in the new network)
     pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
     // complement the 1-values registers
@@ -201,7 +201,7 @@ Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, int fCleanup )
             Abc_ObjFanout0(pObj)->pCopy = Abc_ObjNot(Abc_ObjFanout0(pObj)->pCopy);
     }
     if ( Counter )
-    printf( "Converting %d flops from don't-care to zero initial value.\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Converting %d flops from don't-care to zero initial value.\n", Counter );
     // restrash the nodes (assuming a topological order of the old network)
     Abc_NtkForEachNode( pNtk, pObj, i )
         pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
@@ -228,7 +228,7 @@ Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, int fCleanup )
 //        printf( "Warning: The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtkAig) );
     // perform cleanup if requested
     if ( fCleanup && (nNodes = Abc_AigCleanup((Abc_Aig_t *)pNtkAig->pManFunc)) ) 
-        printf( "Abc_NtkRestrash(): AIG cleanup removed %d nodes (this is a bug).\n", nNodes );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRestrash(): AIG cleanup removed %d nodes (this is a bug).\n", nNodes );
     // duplicate EXDC 
     if ( pNtk->pExdc )
         pNtkAig->pExdc = Abc_NtkDup( pNtk->pExdc );
@@ -240,7 +240,7 @@ Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, int fCleanup )
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkAig ) )
     {
-        printf( "Abc_NtkStrash: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkStrash: The network check has failed.\n" );
         Abc_NtkDelete( pNtkAig );
         return NULL;
     }
@@ -273,7 +273,7 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, int fAllNodes, int fCleanup, int fR
     // convert the node representation in the logic network to the AIG form
     if ( !Abc_NtkToAig(pNtk) )
     {
-        printf( "Converting to AIGs has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Converting to AIGs has failed.\n" );
         return NULL;
     }
     // perform strashing
@@ -297,7 +297,7 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, int fAllNodes, int fCleanup, int fR
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkAig ) )
     {
-        printf( "Abc_NtkStrash: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkStrash: The network check has failed.\n" );
         Abc_NtkDelete( pNtkAig );
         return NULL;
     }
@@ -327,13 +327,13 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
     assert( Abc_NtkIsLogic(pNtk2) || Abc_NtkIsStrash(pNtk2) ); 
     if ( Abc_NtkIsLogic(pNtk2) && !Abc_NtkToAig(pNtk2) )
     {
-        printf( "Converting to AIGs has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Converting to AIGs has failed.\n" );
         return 0;
     }
     // check that the networks have the same PIs
     // reorder PIs of pNtk2 according to pNtk1
     if ( !Abc_NtkCompareSignals( pNtk1, pNtk2, 1, 1 ) )
-        printf( "Abc_NtkAppend(): The union of the network PIs is computed (warning).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkAppend(): The union of the network PIs is computed (warning).\n" );
     // perform strashing
     nNewCis = 0;
     Abc_NtkCleanCopy( pNtk2 );
@@ -350,7 +350,7 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
         }
     }
     if ( nNewCis )
-        printf( "Warning: Procedure Abc_NtkAppend() added %d new CIs.\n", nNewCis );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Procedure Abc_NtkAppend() added %d new CIs.\n", nNewCis );
     // add pNtk2 to pNtk1 while strashing
     if ( Abc_NtkIsLogic(pNtk2) )
         Abc_NtkStrashPerform( pNtk2, pNtk1, 1, 0 );
@@ -393,7 +393,7 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtk1 ) )
     {
-        printf( "Abc_NtkAppend: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkAppend: The network check has failed.\n" );
         return 0;
     }
     return 1;
@@ -572,7 +572,7 @@ Abc_Ntk_t * Abc_NtkTopmost( Abc_Ntk_t * pNtk, int nLevels )
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkTopmost: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkTopmost: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -640,7 +640,7 @@ Abc_Ntk_t * Abc_NtkBottommost( Abc_Ntk_t * pNtk, int nLevels )
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkBottommost: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkBottommost: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -762,11 +762,11 @@ Abc_Ntk_t * Abc_NtkTopAnd( Abc_Ntk_t * pNtk )
     Vec_PtrFree( vNodes );
     // perform cleanup if requested
     if ( (nNodes = Abc_AigCleanup((Abc_Aig_t *)pNtkAig->pManFunc)) ) 
-        printf( "Abc_NtkTopAnd(): AIG cleanup removed %d nodes (this is a bug).\n", nNodes );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkTopAnd(): AIG cleanup removed %d nodes (this is a bug).\n", nNodes );
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkAig ) )
     {
-        printf( "Abc_NtkStrash: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkStrash: The network check has failed.\n" );
         Abc_NtkDelete( pNtkAig );
         return NULL;
     }
@@ -798,7 +798,7 @@ void Abc_NtkWriteAig( Abc_Ntk_t * pNtk, char * pFileName )
         pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open output file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file.\n" );
         return;
     }
     vId2Num = Vec_IntAlloc( 2*Abc_NtkObjNumMax(pNtk) );
@@ -905,7 +905,7 @@ Abc_Ntk_t * Abc_NtkPutOnTop( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtk2 )
         Abc_ObjAddFanin( pObj->pCopy, Abc_ObjChild0Copy(pObj) );
     }
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkPutOnTop(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkPutOnTop(): Network check has failed.\n"  );
     return pNtkNew;
 }
 

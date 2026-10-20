@@ -71,7 +71,7 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int nF
     Abc_Ntk_t * pNtkNew;
 
     if ( Abc_NtkGetChoiceNum( pNtk ) )
-        printf( "Performing renoding with choices.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Performing renoding with choices.\n" );
 
     nDsdCounter = 0;
 

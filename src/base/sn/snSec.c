@@ -556,7 +556,7 @@ static int Sn_GiaSecProveMiterOnStream( Gia_Man_t * p, int seconds, int verbose,
     *ppCex = NULL;
     *pnFrames = 0;
     if (!Gia_ManPoNum(p)) return 1;
-    if (verbose) printf("SEC solver phase: combinational check.\n");
+    if (verbose) fprintf( Abc_FrameGlobalGetOut(), "SEC solver phase: combinational check.\n");
     status = Sn_SecCombTry(p, seconds ? Abc_MinInt(seconds, 1) : 1, verbose, ppCex, error);
     if (status != -1) return status;
     // The existing engines export invariants/unfinished miters through global
@@ -587,7 +587,7 @@ static int Sn_GiaSecProveMiterOnStream( Gia_Man_t * p, int seconds, int verbose,
     remaining = Sn_SecRemaining(seconds, start);
     if (!seconds || remaining > 0)
     {
-        if (verbose) printf("SEC solver phase: bounded checking (up to 16 frames).\n");
+        if (verbose) fprintf( Abc_FrameGlobalGetOut(), "SEC solver phase: bounded checking (up to 16 frames).\n");
         status = Saig_BmcPerform(aig, 0, 16, 2000, remaining, 100000, 0, verbose, 0, pnFrames, !verbose, 0);
     }
     remaining = Sn_SecRemaining(seconds, start);
@@ -603,7 +603,7 @@ static int Sn_GiaSecProveMiterOnStream( Gia_Man_t * p, int seconds, int verbose,
             pdr.nTimeOut = remaining;
             pdr.fVerbose = verbose;
             pdr.fSilent = !verbose;
-            if (verbose) printf("SEC solver phase: PDR (remaining budget %d seconds).\n", remaining);
+            if (verbose) fprintf( Abc_FrameGlobalGetOut(), "SEC solver phase: PDR (remaining budget %d seconds).\n", remaining);
             status = Pdr_ManSolve(aig, &pdr);
             *pnFrames = Abc_MaxInt(*pnFrames, pdr.iFrame);
         }
@@ -612,7 +612,7 @@ static int Sn_GiaSecProveMiterOnStream( Gia_Man_t * p, int seconds, int verbose,
             Fra_SecSetDefaultParams(&pars);
             pars.fVerbose = verbose;
             pars.fSilent = !verbose;
-            if (verbose) printf("SEC solver phase: sequential equivalence engine.\n");
+            if (verbose) fprintf( Abc_FrameGlobalGetOut(), "SEC solver phase: sequential equivalence engine.\n");
             status = Fra_FraigSec(aig, &pars, NULL);
         }
     }

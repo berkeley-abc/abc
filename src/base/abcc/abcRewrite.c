@@ -673,7 +673,7 @@ int Abc_CommandOrchestrate( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( RetValue == -1 )
     {
         Abc_FrameReplaceCurrentNetwork( pAbc, pDup );
-        printf( "An error occurred during computation. The original network is restored.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "An error occurred during computation. The original network is restored.\n" );
     }
     else
     {
@@ -838,7 +838,7 @@ int Abc_CommandAIGAugmentation( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( RetValue == -1 )
     {
         Abc_FrameReplaceCurrentNetwork( pAbc, pDup );
-        printf( "An error occurred during computation. The original network is restored.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "An error occurred during computation. The original network is restored.\n" );
     }
     else
     {
@@ -954,7 +954,7 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( RetValue == -1 )
     {
         Abc_FrameReplaceCurrentNetwork( pAbc, pDup );
-        printf( "An error occurred during computation. The original network is restored.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "An error occurred during computation. The original network is restored.\n" );
     }
     else
     {
@@ -1105,7 +1105,7 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( RetValue == -1 )
     {
         Abc_FrameReplaceCurrentNetwork( pAbc, pDup );
-        printf( "An error occurred during computation. The original network is restored.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "An error occurred during computation. The original network is restored.\n" );
     }
     else
     {
@@ -1287,10 +1287,10 @@ int Abc_CommandRr( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
-    printf( "This command is obsolete." );
-    printf( "To perform pure redudancy removal, try \"mfs -r\".\n" );
-    printf( "To perform something a little stronger try \"mfs2\"\n" );
-    printf( "When working with an AIG, use \"logic\" before and \"strash\" after this command.\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "This command is obsolete." );
+    fprintf( Abc_FrameGlobalGetOut(), "To perform pure redudancy removal, try \"mfs -r\".\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "To perform something a little stronger try \"mfs2\"\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "When working with an AIG, use \"logic\" before and \"strash\" after this command.\n" );
     return 0;
 
     if ( pNtk == NULL )
@@ -2816,7 +2816,7 @@ int Abc_CommandAbc9Syn2( Abc_Frame_t * pAbc, int argc, char ** argv )
         If_DsdMan_t * p = (If_DsdMan_t *)Abc_FrameReadManDsd();
         if ( p && If_DsdManVarNum(p) < 6 )
         {
-            printf( "DSD manager has incompatible number of variables. Delay minimization is not performed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "DSD manager has incompatible number of variables. Delay minimization is not performed.\n" );
             fDelayMin = 0;
         }
     }
@@ -4187,7 +4187,7 @@ int Abc_CommandAbc9RandSyn( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( Seed == 0 ) {
         Seed = Abc_Random(0) % 10000;
-        printf( "Using random seed: %09u\n", Seed );
+        fprintf( Abc_FrameGlobalGetOut(), "Using random seed: %09u\n", Seed );
     }
     pTemp = Gia_ManRandSyn( pAbc->pGia, Seed );
     Abc_FrameUpdateGia( pAbc, pTemp );
@@ -4400,12 +4400,12 @@ int Abc_CommandAbc9StochSyn( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc != globalUtilOptind + 1 )
     {
-        printf( "Expecting a synthesis script in quotes on the command line (for example: \"&st; &dch; &if\").\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Expecting a synthesis script in quotes on the command line (for example: \"&st; &dch; &if\").\n" );
         goto usage;
     }
     if ( fChoices && nIters < 2 )
     {
-        printf( "The number of iterations should be more than 1.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of iterations should be more than 1.\n" );
         goto usage;
     }    
     pScript = Abc_UtilStrsav( argv[globalUtilOptind] );

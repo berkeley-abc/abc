@@ -85,7 +85,7 @@ Abc_Ntk_t * Bbl_ManToAbc( Bbl_Man_t * p )
     Abc_NtkAddDummyPiNames( pNtk );
     Abc_NtkAddDummyPoNames( pNtk );
     if ( !Abc_NtkCheck( pNtk ) )
-        printf( "Bbl_ManToAbc(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Bbl_ManToAbc(): Network check has failed.\n" );
     return pNtk;
 }
 
@@ -302,7 +302,7 @@ clk = Abc_Clock();
     Abc_NtkDelete( pNtkNew );
 clk5 = Abc_Clock() - clk;
 
-printf( "Runtime stats:\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Runtime stats:\n" );
 ABC_PRT( "ABC to Man", clk1 );
 ABC_PRT( "Writing   ", clk2 );
 ABC_PRT( "Reading   ", clk3 );
@@ -332,7 +332,7 @@ Abc_Ntk_t * Io_ReadBblif( char * pFileName, int fCheck )
     // check the result
     if ( fCheck && !Abc_NtkCheckRead( pNtkNew ) )
     {
-        printf( "Io_ReadBaf: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_ReadBaf: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }

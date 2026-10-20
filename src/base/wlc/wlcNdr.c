@@ -249,7 +249,7 @@ void Wlc_WriteNdr( Wlc_Ntk_t * pNtk, char * pFileName )
     void * pDesign = Wlc_NtkToNdr( pNtk );
     Ndr_Write( pFileName, pDesign );
     Ndr_Delete( pDesign );
-    printf( "Dumped the current design into file \"%s\".\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Dumped the current design into file \"%s\".\n", pFileName );
 }
 void Wlc_NtkToNdrTest( Wlc_Ntk_t * pNtk )
 {
@@ -304,7 +304,7 @@ void Ndr_ObjReadConstant( Vec_Int_t * vFanins, char * pStr )
             break;
     if ( pStr == NULL || pStr[k] != 'b' )
     {
-        printf( "Constants should be represented in binary Verilog notation <nbits>\'b<bits> as char strings (for example, \"4'b1010\").\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Constants should be represented in binary Verilog notation <nbits>\'b<bits> as char strings (for example, \"4'b1010\").\n" );
         return;
     }
     Vec_IntFill( vFanins, Abc_BitWordNum(Len-k-1), 0 );
@@ -312,26 +312,26 @@ void Ndr_ObjReadConstant( Vec_Int_t * vFanins, char * pStr )
         if ( pStr[i] == '1' )
             Abc_InfoSetBit( (unsigned *)Vec_IntArray(vFanins), Len-i-1 );
         else if ( pStr[i] != '0' )
-            printf( "Wrongn symbol (%c) in binary Verilog constant \"%s\".\n", pStr[i], pStr );
+            fprintf( Abc_FrameGlobalGetOut(), "Wrongn symbol (%c) in binary Verilog constant \"%s\".\n", pStr[i], pStr );
 }
 void Ndr_NtkPrintNodes( Wlc_Ntk_t * pNtk )
 {
     Wlc_Obj_t * pObj; int i, k;
-    printf( "Node IDs and their fanins:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Node IDs and their fanins:\n" );
     Wlc_NtkForEachObj( pNtk, pObj, i )
     {
         int * pFanins = Wlc_ObjFanins(pObj);
-        printf( "%5d = ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%5d = ", i );
         for ( k = 0; k < Wlc_ObjFaninNum(pObj); k++ )
-            printf( "%5d ", pFanins[k] );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d ", pFanins[k] );
         for (      ; k < 4; k++ )
-            printf( "      " );
-        printf( "    Name Id %d ", Wlc_ObjNameId(pNtk, i) );
+            fprintf( Abc_FrameGlobalGetOut(), "      " );
+        fprintf( Abc_FrameGlobalGetOut(), "    Name Id %d ", Wlc_ObjNameId(pNtk, i) );
         if ( Wlc_ObjIsPi(pObj) )
-            printf( "  pi  " );
+            fprintf( Abc_FrameGlobalGetOut(), "  pi  " );
         if ( Wlc_ObjIsPo(pObj) )
-            printf( "  po  " );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "  po  " );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void Wlc_NtkCheckIntegrity( void * pData )
@@ -346,11 +346,11 @@ void Wlc_NtkCheckIntegrity( void * pData )
         {
             int Type = Ndr_ObjReadBody( p, Obj, NDR_OPERTYPE );
             if ( Type != ABC_OPER_CO )
-                printf( "Internal object %d of type %s has no output name.\n", Obj, Abc_OperName(Type) );
+                fprintf( Abc_FrameGlobalGetOut(), "Internal object %d of type %s has no output name.\n", Obj, Abc_OperName(Type) );
             continue;
         }
         if ( Vec_IntGetEntry(vMap, NameId) > 0 )
-            printf( "Output name %d is used more than once (obj %d and obj %d).\n", NameId, Vec_IntGetEntry(vMap, NameId), Obj );
+            fprintf( Abc_FrameGlobalGetOut(), "Output name %d is used more than once (obj %d and obj %d).\n", NameId, Vec_IntGetEntry(vMap, NameId), Obj );
         Vec_IntSetEntry( vMap, NameId, Obj );
     }
     Ndr_ModForEachObj( p, Mod, Obj )
@@ -359,7 +359,7 @@ void Wlc_NtkCheckIntegrity( void * pData )
         int i, * pArray, nArray  = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
         for ( i = 0; i < nArray; i++ )
             if ( Vec_IntGetEntry(vMap, pArray[i]) == 0 && !(Type == ABC_OPER_DFFRSE && (i >= 5 && i <= 7)) )
-                printf( "Input name %d appearing as fanin %d of obj %d is not used as output name in any object.\n", pArray[i], i, Obj );
+                fprintf( Abc_FrameGlobalGetOut(), "Input name %d appearing as fanin %d of obj %d is not used as output name in any object.\n", pArray[i], i, Obj );
     }
     Vec_IntFree( vMap );
 }
@@ -442,7 +442,7 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
         }
     }
     if ( nTruths[0] )
-        printf( "Warning! The number of LUTs without function is %d (out of %d).\n", nTruths[0], nTruths[0]+nTruths[1] );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning! The number of LUTs without function is %d (out of %d).\n", nTruths[0], nTruths[0]+nTruths[1] );
     // mark primary outputs
     Ndr_ModForEachPo( p, Mod, Obj )
     {

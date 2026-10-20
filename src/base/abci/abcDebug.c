@@ -59,7 +59,7 @@ void Abc_NtkAutoDebug( Abc_Ntk_t * pNtk, int (*pFuncError) (Abc_Ntk_t *) )
     pNtk = Abc_NtkDup(pNtk);
     if ( !(*pFuncError)( pNtk ) )
     {
-        printf( "The original network does not cause the bug. Quitting.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The original network does not cause the bug. Quitting.\n" );
         Abc_NtkDelete( pNtk );
         return;
     }
@@ -89,7 +89,7 @@ void Abc_NtkAutoDebug( Abc_Ntk_t * pNtk, int (*pFuncError) (Abc_Ntk_t *) )
             else // no bug
                 Abc_NtkDelete( pNtkMod );
         }
-        printf( "Iter %6d : Latches = %6d. Nodes = %6d. Steps = %6d. Error step = %3d.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Iter %6d : Latches = %6d. Nodes = %6d. Steps = %6d. Error step = %3d.  ", 
             nIter, Abc_NtkLatchNum(pNtk), Abc_NtkNodeNum(pNtk), nSteps, i );
         ABC_PRT( "Time", Abc_Clock() - clk );
         if ( i == nSteps ) // could not modify it while preserving the bug
@@ -97,7 +97,7 @@ void Abc_NtkAutoDebug( Abc_Ntk_t * pNtk, int (*pFuncError) (Abc_Ntk_t *) )
     }
     // write out the final network
     Io_WriteBlifLogic( pNtk, pFileName, 1 );
-    printf( "Final network written into file \"%s\". ", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Final network written into file \"%s\". ", pFileName );
     ABC_PRT( "Total time", Abc_Clock() - clkTotal );
     Abc_NtkDelete( pNtk );
 }

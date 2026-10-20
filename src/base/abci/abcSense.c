@@ -137,7 +137,7 @@ Abc_Ntk_t * Abc_NtkSensitivityMiter( Abc_Ntk_t * pNtk, int iVar )
     // make sure everything is okay
     if ( !Abc_NtkCheck( pMiter ) )
     {
-        printf( "Abc_NtkSensitivityMiter: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkSensitivityMiter: The network check has failed.\n" );
         Abc_NtkDelete( pMiter );
         return NULL;
     }
@@ -173,7 +173,7 @@ Vec_Int_t * Abc_NtkSensitivity( Abc_Ntk_t * pNtk, int nConfLim, int fVerbose )
     pParams->nMiteringLimitLast = nConfLim;
     // iterate through the PIs
     vResult = Vec_IntAlloc( 100 );
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCiNum(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkCiNum(pNtk) );
     Abc_NtkForEachCi( pNtk, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -187,7 +187,7 @@ Vec_Int_t * Abc_NtkSensitivity( Abc_Ntk_t * pNtk, int nConfLim, int fVerbose )
         {
             int * pSimInfo = Abc_NtkVerifySimulatePattern( pMiter, pMiter->pModel );
             if ( pSimInfo[0] != 1 )
-                printf( "ERROR in Abc_NtkMiterProve(): Generated counter-example is invalid.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "ERROR in Abc_NtkMiterProve(): Generated counter-example is invalid.\n" );
 //            else
 //                printf( "Networks are NOT EQUIVALENT.\n" );
             ABC_FREE( pSimInfo );
@@ -198,11 +198,11 @@ Vec_Int_t * Abc_NtkSensitivity( Abc_Ntk_t * pNtk, int nConfLim, int fVerbose )
     Extra_ProgressBarStop( pProgress );
     if ( fVerbose )
     {
-        printf( "The outputs are sensitive to %d (out of %d) inputs:\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "The outputs are sensitive to %d (out of %d) inputs:\n", 
             Vec_IntSize(vResult), Abc_NtkCiNum(pNtk) );
         Vec_IntForEachEntry( vResult, RetValue, i )
-            printf( "%d ", RetValue );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", RetValue );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return vResult;
 }

@@ -66,7 +66,7 @@ void Io_WriteBlifMv( Abc_Ntk_t * pNtk, char * FileName )
     pFile = fopen( FileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteBlifMv(): Cannot open the output file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteBlifMv(): Cannot open the output file.\n" );
         return;
     }
     fprintf( pFile, "# Benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
@@ -106,7 +106,7 @@ void Io_NtkWriteBlifMv( FILE * pFile, Abc_Ntk_t * pNtk )
     Io_NtkWriteBlifMvOne( pFile, pNtk );
     // write EXDC network if it exists
     if ( Abc_NtkExdc(pNtk) )
-        printf( "Io_NtkWriteBlifMv(): EXDC is not written.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_NtkWriteBlifMv(): EXDC is not written.\n" );
     // finalize the file
     fprintf( pFile, ".end\n\n\n" );
 }

@@ -85,7 +85,7 @@ void Acb_NtkRunGen( int nInputs, int nMints, int nFuncs, int Seed, int fVerbose,
     Abc_Random(1);
     for ( i = 0; i < 10+Seed; i++ )
         Abc_Random(0);
-    printf( "Synthesizing %d random %d-variable functions with %d positive minterms using script \"%s\".\n", nFuncs, nInputs, nMints, pScript );
+    fprintf( Abc_FrameGlobalGetOut(), "Synthesizing %d random %d-variable functions with %d positive minterms using script \"%s\".\n", nFuncs, nInputs, nMints, pScript );
     for ( i = 0; i < nFuncs; i++ )
     {
         if ( nMints == 0 )
@@ -110,18 +110,18 @@ void Acb_NtkRunGen( int nInputs, int nMints, int nFuncs, int Seed, int fVerbose,
         Vec_IntAddToEntry( vNodes, nNodes, 1 );
 
         if ( fVerbose ) {
-          printf( "Function %4d : ", i );
-          printf( "Random function has %d positive minterms ", nMints );
-          printf( "and maps into %d nodes.\n", nNodes );
+          fprintf( Abc_FrameGlobalGetOut(), "Function %4d : ", i );
+          fprintf( Abc_FrameGlobalGetOut(), "Random function has %d positive minterms ", nMints );
+          fprintf( Abc_FrameGlobalGetOut(), "and maps into %d nodes.\n", nNodes );
           if ( fVerbose )
-              printf( "Truth table : %s\n", pTtStr );
+              fprintf( Abc_FrameGlobalGetOut(), "Truth table : %s\n", pTtStr );
         }
         ABC_FREE( pTtStr );
         ABC_FREE( pSop );
     }
     Vec_IntForEachEntry( vNodes, i, k )
       if ( i )
-          printf( "Nodes %3d :   Functions %3d   Ratio %5.2f %%\n", k, i, 100.0*i/nFuncs );
+          fprintf( Abc_FrameGlobalGetOut(), "Nodes %3d :   Functions %3d   Ratio %5.2f %%\n", k, i, 100.0*i/nFuncs );
     ABC_FREE( pFun );
     Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );  
 }

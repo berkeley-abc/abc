@@ -398,11 +398,11 @@ int Abc_CommandPrintIo( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "Cannot find node \"%s\".\n", argv[globalUtilOptind] );
             return 1;
         }
-        Abc_NodePrintFanio( stdout, pNode );
+        Abc_NodePrintFanio( Abc_FrameGlobalGetOut(), pNode );
         return 0;
     }
     // print the nodes
-    Abc_NtkPrintIo( stdout, pNtk, fPrintFlops );
+    Abc_NtkPrintIo( Abc_FrameGlobalGetOut(), pNtk, fPrintFlops );
     return 0;
 
 usage:
@@ -455,7 +455,7 @@ int Abc_CommandPrintLatch( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     // print the nodes
-    Abc_NtkPrintLatch( stdout, pNtk );
+    Abc_NtkPrintLatch( Abc_FrameGlobalGetOut(), pNtk );
     if ( fPrintSccs )
         Abc_NtkPrintSccs( pNtk, 0 );
     return 0;
@@ -525,13 +525,13 @@ int Abc_CommandPrintFanio( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // print the nodes
     if ( fMffc || !fVerbose )
-        Abc_NtkPrintFanioNew( stdout, pNtk, fMffc );
+        Abc_NtkPrintFanioNew( Abc_FrameGlobalGetOut(), pNtk, fMffc );
     else
     {
         if ( fUseFanio + fUsePio + fUseSupp + fUseCone == 1 )
-            Abc_NtkPrintFanio( stdout, pNtk, fUseFanio, fUsePio, fUseSupp, fUseCone );
+            Abc_NtkPrintFanio( Abc_FrameGlobalGetOut(), pNtk, fUseFanio, fUsePio, fUseSupp, fUseCone );
         else
-            printf( "Exactly one of the switches \"-f\", \"-i\", \"-s\", \"-c\" should be enabled.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Exactly one of the switches \"-f\", \"-i\", \"-s\", \"-c\" should be enabled.\n" );
     }
     return 0;
 
@@ -585,7 +585,7 @@ int Abc_CommandPrintMffc( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // print the nodes
-    Abc_NtkPrintMffc( stdout, pNtk );
+    Abc_NtkPrintMffc( Abc_FrameGlobalGetOut(), pNtk );
     return 0;
 
 usage:
@@ -663,16 +663,16 @@ int Abc_CommandPrintFactor( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         if ( fSop )
-            Abc_NodePrintSop( stdout, pNode, fUseRealNames );
+            Abc_NodePrintSop( Abc_FrameGlobalGetOut(), pNode, fUseRealNames );
         else
-            Abc_NodePrintFactor( stdout, pNode, fUseRealNames );
+            Abc_NodePrintFactor( Abc_FrameGlobalGetOut(), pNode, fUseRealNames );
         return 0;
     }
     // print the nodes
     if ( fSop )
-        Abc_NtkPrintSop( stdout, pNtk, fUseRealNames );
+        Abc_NtkPrintSop( Abc_FrameGlobalGetOut(), pNtk, fUseRealNames );
     else
-        Abc_NtkPrintFactor( stdout, pNtk, fUseRealNames );
+        Abc_NtkPrintFactor( Abc_FrameGlobalGetOut(), pNtk, fUseRealNames );
     return 0;
 
 usage:
@@ -761,11 +761,11 @@ int Abc_CommandPrintLevel( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "Cannot find node \"%s\".\n", argv[globalUtilOptind] );
             return 1;
         }
-        Abc_NodePrintLevel( stdout, pNode );
+        Abc_NodePrintLevel( Abc_FrameGlobalGetOut(), pNode );
         return 0;
     }
     // process all COs
-    Abc_NtkPrintLevel( stdout, pNtk, fProfile, fListNodes, fOutputs, fVerbose );
+    Abc_NtkPrintLevel( Abc_FrameGlobalGetOut(), pNtk, fProfile, fListNodes, fOutputs, fVerbose );
     return 0;
 
 usage:
@@ -969,7 +969,7 @@ int Abc_CommandPrintMint( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     Abc_NtkForEachNode( pNtk, pObj, c )
-        printf( "ObjId %3d : SuppSize = %5d   MintCount = %32.0f\n", c, Abc_ObjFaninNum(pObj), 
+        fprintf( Abc_FrameGlobalGetOut(), "ObjId %3d : SuppSize = %5d   MintCount = %32.0f\n", c, Abc_ObjFaninNum(pObj), 
             Cudd_CountMinterm((DdManager *)pNtk->pManFunc, (DdNode *)pObj->pData, Abc_ObjFaninNum(pObj)) );
     return 0;
 
@@ -1563,7 +1563,7 @@ int Abc_CommandPrintDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
         pTruth = Hop_ManConvertAigToTruth( (Hop_Man_t *)pNtk->pManFunc, Hop_Regular((Hop_Obj_t *)pObj->pData), Abc_ObjFaninNum(pObj), vMemory, 0 );
         if ( Hop_IsComplement((Hop_Obj_t *)pObj->pData) )
             Extra_TruthNot( pTruth, pTruth, Abc_ObjFaninNum(pObj) );
-//        Extra_PrintBinary( stdout, pTruth, 1 << Abc_ObjFaninNum(pObj) );
+//        Extra_PrintBinary( Abc_FrameGlobalGetOut(), pTruth, 1 << Abc_ObjFaninNum(pObj) );
 //        Abc_Print( -1, "\n" );
         if ( fPrintDec )//&&Abc_ObjFaninNum(pObj) <= 6 )
         {
@@ -1780,7 +1780,7 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
                 }
                 if ( pTemp )
                 {
-                    printf( "%4d : ", ++nCexes );
+                    fprintf( Abc_FrameGlobalGetOut(), "%4d : ", ++nCexes );
                     Abc_CexPrintStats( pTemp );
                 }
             }
@@ -1796,7 +1796,7 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
             FILE * pFile = fopen( pLogFileName, "wb" );
             if ( pFile == NULL )
             {
-                printf( "Cannot open file \"%s\" for writing.\n", pLogFileName );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pLogFileName );
                 return 0;
             }
             Vec_PtrForEachEntry( Abc_Cex_t *, pAbc->vCexVec, pTemp, c )
@@ -1817,7 +1817,7 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         else if ( fShort )
         {
-            printf( "Status array contains %d SAT, %d UNSAT, and %d UNDEC entries (out of %d).",
+            fprintf( Abc_FrameGlobalGetOut(), "Status array contains %d SAT, %d UNSAT, and %d UNDEC entries (out of %d).",
                 Vec_IntCountEntry(pAbc->vStatuses, 0), Vec_IntCountEntry(pAbc->vStatuses, 1),
                 Vec_IntCountEntry(pAbc->vStatuses, -1), Vec_IntSize(pAbc->vStatuses) );
         }
@@ -1825,9 +1825,9 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
         {
             int i, Entry;
             Vec_IntForEachEntry( pAbc->vStatuses, Entry, i )
-                printf( "%d=%d  ", i, Entry );
+                fprintf( Abc_FrameGlobalGetOut(), "%d=%d  ", i, Entry );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return 0;
 
@@ -2416,17 +2416,17 @@ int Abc_CommandAbc9Pms( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9PFan(): There is no AIG.\n" );
         return 1;
     }
-    printf( "Status of %d outputs of the miter: ", Gia_ManPoNum(pAbc->pGia) );
+    fprintf( Abc_FrameGlobalGetOut(), "Status of %d outputs of the miter: ", Gia_ManPoNum(pAbc->pGia) );
     Gia_ManForEachPo( pAbc->pGia, pObj, c )
     {
-        printf( "%d", c );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", c );
         if ( pAbc->pGia->vNamesOut )
-           printf( "(%s)", (char *)Vec_PtrEntry(pAbc->pGia->vNamesOut, c) );
-        printf( "=%s ", Gia_ObjFaninLit0p(pAbc->pGia, pObj) == 0 ? "unsat":"sat" );
+           fprintf( Abc_FrameGlobalGetOut(), "(%s)", (char *)Vec_PtrEntry(pAbc->pGia->vNamesOut, c) );
+        fprintf( Abc_FrameGlobalGetOut(), "=%s ", Gia_ObjFaninLit0p(pAbc->pGia, pObj) == 0 ? "unsat":"sat" );
         nSat += Gia_ObjFaninLit0p(pAbc->pGia, pObj) != 0;
     }
-    printf( "\n" );
-    printf( "Total sat = %d. Total unsat = %d.\n", nSat, Gia_ManPoNum(pAbc->pGia)-nSat );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Total sat = %d. Total unsat = %d.\n", nSat, Gia_ManPoNum(pAbc->pGia)-nSat );
     return 0;
 
 usage:
@@ -2683,9 +2683,9 @@ int Abc_CommandAbc9PrintTruth( Abc_Frame_t * pAbc, int argc, char ** argv )
     for ( i = iOutNum; i < iOutNum + nOutRange; i++ )
     {
         Truth = Gia_LutComputeTruth6Simple( pAbc->pGia, i );
-        printf( "Output %8d : ", i );
-        Extra_PrintHex( stdout, (unsigned *)&Truth, Gia_ManCiNum(pAbc->pGia) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Output %8d : ", i );
+        Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&Truth, Gia_ManCiNum(pAbc->pGia) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return 0;
 

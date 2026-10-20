@@ -478,17 +478,17 @@ void Abc_NktMffcTest( Abc_Ntk_t * pNtk )
     vLeaves = Vec_PtrAlloc( 100 );
     Vec_PtrForEachEntry( Abc_Obj_t *, vRoots, pObj, i )
     {
-        printf( "%6d : ",      i );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : ",      i );
 
         Abc_MffcCollectNodes( &pObj, 1, vNodes );
         Abc_MffcCollectLeaves( vNodes, vLeaves );
         nNodes += Vec_PtrSize(vNodes);
-        printf( "%6d  ",      Abc_ObjId(pObj) );
-        printf( "Vol =%3d  ", Vec_PtrSize(vNodes) );
-        printf( "Cut =%3d  ", Vec_PtrSize(vLeaves) );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d  ",      Abc_ObjId(pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "Vol =%3d  ", Vec_PtrSize(vNodes) );
+        fprintf( Abc_FrameGlobalGetOut(), "Cut =%3d  ", Vec_PtrSize(vLeaves) );
         if ( Vec_PtrSize(vLeaves) < 2 )
         {
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
             continue;
         }
 
@@ -497,19 +497,19 @@ void Abc_NktMffcTest( Abc_Ntk_t * pNtk )
         pNodes[2] = (Abc_Obj_t *)Vec_PtrEntry( vRoots2, i );
         if ( pNodes[1] == NULL || pNodes[2] == NULL )
         {
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
             continue;
         }
         Abc_MffcCollectNodes( pNodes, 3, vNodes );
         Abc_MffcCollectLeaves( vNodes, vLeaves );
         nNodes2 += Vec_PtrSize(vNodes);
-        printf( "%6d  ",      Abc_ObjId(pNodes[1]) );
-        printf( "%6d  ",      Abc_ObjId(pNodes[2]) );
-        printf( "Vol =%3d  ", Vec_PtrSize(vNodes) );
-        printf( "Cut =%3d  ", Vec_PtrSize(vLeaves) );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d  ",      Abc_ObjId(pNodes[1]) );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d  ",      Abc_ObjId(pNodes[2]) );
+        fprintf( Abc_FrameGlobalGetOut(), "Vol =%3d  ", Vec_PtrSize(vNodes) );
+        fprintf( Abc_FrameGlobalGetOut(), "Cut =%3d  ", Vec_PtrSize(vLeaves) );
  
-        printf( "%4.2f  ",    1.0 * Vec_PtrSize(vNodes)/Vec_PtrSize(vLeaves)  );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%4.2f  ",    1.0 * Vec_PtrSize(vNodes)/Vec_PtrSize(vLeaves) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         // generate file
         if ( Vec_PtrSize(vNodes) < 10 )
@@ -517,7 +517,7 @@ void Abc_NktMffcTest( Abc_Ntk_t * pNtk )
         sprintf( pFileName, "%s_mffc%04d_%02d.blif", Abc_NtkName(pNtk), Abc_ObjId(pObj), Vec_PtrSize(vNodes) );
         Abc_NktMffcPrint( pFileName, pNodes, 3, vNodes, vLeaves );
     }
-    printf( "Total nodes = %d.  Root nodes = %d.  Mffc nodes = %d.  Mffc nodes2 = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Total nodes = %d.  Root nodes = %d.  Mffc nodes = %d.  Mffc nodes2 = %d.\n", 
         Abc_NtkNodeNum(pNtk), Vec_PtrSize(vRoots), nNodes, nNodes2 );
     Vec_PtrFree( vNodes );
     Vec_PtrFree( vLeaves );
@@ -608,7 +608,7 @@ void Abc_NktMffcTestSuper( Abc_Ntk_t * pNtk )
         if ( Vec_IntEntry( vMarks, Abc_ObjId(pObj) ) )
             nSizes += Vec_IntEntry( vSizes, Abc_ObjId(pObj) );
     }
-    printf( "Included = %6d.  Total = %6d. (%6.2f %%)\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Included = %6d.  Total = %6d. (%6.2f %%)\n", 
         nSizes, Abc_NtkNodeNum(pNtk), 100.0 * nSizes / Abc_NtkNodeNum(pNtk) );
 
 
@@ -616,11 +616,11 @@ void Abc_NktMffcTestSuper( Abc_Ntk_t * pNtk )
     {
         if ( Vec_IntEntry(vCounts, Abc_ObjId(pObj)) != 2 )
             continue;
-        printf( "%d ", Vec_IntEntry( vSizes, Abc_ObjId(pObj) ) + 
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Vec_IntEntry( vSizes, Abc_ObjId(pObj) ) + 
                        Vec_IntEntry( vSizes, Vec_IntEntry(vNode1, Abc_ObjId(pObj)) ) + 
                        Vec_IntEntry( vSizes, Vec_IntEntry(vNode2, Abc_ObjId(pObj)) ) );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // print how many times they appear
     vNumbers = Vec_IntStart( 32 );
@@ -648,16 +648,16 @@ if ( Entry == 2 )
     }
     for ( i = 1; i <= 10; i++ )
         if ( Vec_IntEntry(vNumbers,i) )
-            printf( "       n =  %4d   %6d\n", i, Vec_IntEntry(vNumbers,i) );
+            fprintf( Abc_FrameGlobalGetOut(), "       n =  %4d   %6d\n", i, Vec_IntEntry(vNumbers,i) );
     for ( i = 11; i <= 20; i++ )
         if ( Vec_IntEntry(vNumbers,i) )
-            printf( "%4d < n <= %4d   %6d\n", 10*(i-10),  10*(i-9),  Vec_IntEntry(vNumbers,i) );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d < n <= %4d   %6d\n", 10*(i-10),  10*(i-9),  Vec_IntEntry(vNumbers,i) );
     for ( i = 21; i < 30; i++ )
         if ( Vec_IntEntry(vNumbers,i) )
-            printf( "%4d < n <= %4d   %6d\n", 100*(i-20), 100*(i-19), Vec_IntEntry(vNumbers,i) );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d < n <= %4d   %6d\n", 100*(i-20), 100*(i-19), Vec_IntEntry(vNumbers,i) );
     if ( Vec_IntEntry(vNumbers,31) )
-    printf( "       n >  1000   %6d\n", Vec_IntEntry(vNumbers,30) );
-    printf( "Total MFFCs = %d. ", Vec_PtrSize(vRoots) );
+    fprintf( Abc_FrameGlobalGetOut(), "       n >  1000   %6d\n", Vec_IntEntry(vNumbers,30) );
+    fprintf( Abc_FrameGlobalGetOut(), "Total MFFCs = %d. ", Vec_PtrSize(vRoots) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Vec_IntFree( vNumbers );
     Vec_PtrFree( vNodes );
@@ -796,16 +796,16 @@ void Abc_NktMffcTestIdeaOne( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
     vLeaves2 = Vec_PtrAlloc( 100 );
     vRoots2  = Vec_PtrAlloc( 100 );
     vVolume2 = Vec_PtrAlloc( 100 );
-printf( "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( i = 1; i <= 16; i++ )
     {
         Vec_PtrPush( vNodes, pNodeBest );
         Abc_NktMffCollectLeafRoot( pNtk, vNodes, vLeaves, vRoots );
         Abc_MffcCollectNodes( (Abc_Obj_t **)Vec_PtrArray(vRoots), Vec_PtrSize(vRoots), vVolume );
 
-        printf( "%2d : Node =%6d (%2d%3d)  Cost =%6.2f   ", i, Abc_ObjId(pNodeBest), 
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : Node =%6d (%2d%3d)  Cost =%6.2f   ", i, Abc_ObjId(pNodeBest), 
             Abc_ObjFaninNum(pNodeBest), Abc_ObjFanoutNum(pNodeBest), CostBest );
-        printf( "Leaf =%2d  Root =%2d  Vol =%2d\n", Vec_PtrSize(vLeaves), Vec_PtrSize(vRoots), Vec_PtrSize(vVolume) );
+        fprintf( Abc_FrameGlobalGetOut(), "Leaf =%2d  Root =%2d  Vol =%2d\n", Vec_PtrSize(vLeaves), Vec_PtrSize(vRoots), Vec_PtrSize(vVolume) );
 
         // try including different nodes
         pNodeBest = NULL;
@@ -1223,12 +1223,12 @@ void Abc_NktMffcServerTest( Abc_Ntk_t * pNtk )
         if ( Cost < 0.5 )
             continue;
 
-        printf( "%6d : Root =%3d. Leaf =%3d. Node =%4d. ", 
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : Root =%3d. Leaf =%3d. Node =%4d. ", 
             i, Vec_IntSize(vRoots), Vec_IntSize(vLeaves), Vec_IntSize(vGlob) );
-        printf( "Cost =%6.2f     ", Cost );
+        fprintf( Abc_FrameGlobalGetOut(), "Cost =%6.2f     ", Cost );
         Vec_IntForEachEntry( vRoots, Entry, k )
-            printf( "%d ", Entry );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Entry );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         sprintf( pFileName, "%sc%04di%02dn%02d.blif", Abc_NtkName(pNtk), i, Vec_IntSize(vLeaves), Vec_IntSize(vGlob) );
         Abc_NktMffcPrintInt( pFileName, pNtk, vRoots, vGlob, vLeaves );
@@ -1238,8 +1238,8 @@ void Abc_NktMffcServerTest( Abc_Ntk_t * pNtk )
     Vec_PtrForEachEntry( Vec_Int_t *, vGlobs, vGlob, i )
         Vec_IntFree( vGlob );
     Vec_PtrFree( vGlobs );
-    printf( "Total = %6d.  Nodes = %6d.  ", Abc_NtkNodeNum(pNtk), nNodes );
-    printf( "Cost = %6.2f  ", CostAll );
+    fprintf( Abc_FrameGlobalGetOut(), "Total = %6d.  Nodes = %6d.  ", Abc_NtkNodeNum(pNtk), nNodes );
+    fprintf( Abc_FrameGlobalGetOut(), "Cost = %6.2f  ", CostAll );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 

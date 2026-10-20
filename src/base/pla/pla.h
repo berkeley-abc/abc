@@ -257,14 +257,14 @@ static inline int Pla_ManLitOutNum( Pla_Man_t * p )
 }
 static inline void Pla_ManPrintStats( Pla_Man_t * p, int fVerbose )
 {
-    printf( "%-16s :  ",     Pla_ManName(p) );
-    printf( "In =%4d  ",     Pla_ManInNum(p) );
-    printf( "Out =%4d  ",    Pla_ManOutNum(p) );
-    printf( "Cube =%8d  ",   Pla_ManCubeNum(p) );
-    printf( "LitIn =%8d  ",  Pla_ManLitInNum(p) );
-    printf( "LitOut =%8d  ", Pla_ManLitOutNum(p) );
-    printf( "Div =%6d  ",    Pla_ManDivNum(p) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(),  "%-16s :  ",     Pla_ManName(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "In =%4d  ",     Pla_ManInNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "Out =%4d  ",    Pla_ManOutNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "Cube =%8d  ",   Pla_ManCubeNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "LitIn =%8d  ",  Pla_ManLitInNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "LitOut =%8d  ", Pla_ManLitOutNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "Div =%6d  ",    Pla_ManDivNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "\n" );
 }
 
 

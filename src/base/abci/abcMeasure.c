@@ -50,16 +50,16 @@ void Abc_NtkPrintMeasures( unsigned * pTruth, int nVars )
 
     // total pairs
     nOnes =  Kit_TruthCountOnes( uCofs[0], nVars );
-    printf( "Total = %d.\n", nOnes * ((1 << nVars) - nOnes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Total = %d.\n", nOnes * ((1 << nVars) - nOnes) );
 
     // print measures for individual variables
     for ( i = 0; i < nVars; i++ )
     {
         Kit_TruthUniqueNew( uCofs[0], pTruth, nVars, i );
         nOnes = Kit_TruthCountOnes( uCofs[0], nVars );
-        printf( "%7d ", nOnes );
+        fprintf( Abc_FrameGlobalGetOut(), "%7d ", nOnes );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // consider pairs
     for ( i = 0; i < nVars; i++ )
@@ -67,7 +67,7 @@ void Abc_NtkPrintMeasures( unsigned * pTruth, int nVars )
     {
         if ( i == k )
         {
-            printf( "        " );
+            fprintf( Abc_FrameGlobalGetOut(), "        " );
             continue;
         }
         Kit_TruthCofactor0New( uCofs[0], pTruth, nVars, i );
@@ -88,11 +88,11 @@ void Abc_NtkPrintMeasures( unsigned * pTruth, int nVars )
                 Kit_TruthCountOnes( uCofs[8], nVars ) + 
                 Kit_TruthCountOnes( uCofs[9], nVars );
 
-        printf( "%7d ", nOnes );
+        fprintf( Abc_FrameGlobalGetOut(), "%7d ", nOnes );
         if ( k == nVars - 1 )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 
@@ -111,23 +111,23 @@ void Abc_Ntk4VarObjPrint_rec( Abc_Obj_t * pObj )
 {
     if ( pObj == Abc_AigConst1(pObj->pNtk) )
     {
-        printf( "1" );
+        fprintf( Abc_FrameGlobalGetOut(), "1" );
         return;
     }
     if ( Abc_ObjIsPi(pObj) )
     {
-        printf( "%c", pObj->Id - 1 + 'a' );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", pObj->Id - 1 + 'a' );
         return;
     }
 
-    printf( "(" );
+    fprintf( Abc_FrameGlobalGetOut(), "(" );
     Abc_Ntk4VarObjPrint_rec( Abc_ObjFanin0(pObj) );
     if ( Abc_ObjFaninC0(pObj) )
-        printf( "\'" );
+        fprintf( Abc_FrameGlobalGetOut(), "\'" );
     Abc_Ntk4VarObjPrint_rec( Abc_ObjFanin1(pObj) );
     if ( Abc_ObjFaninC1(pObj) )
-        printf( "\'" );
-    printf( ")" );
+        fprintf( Abc_FrameGlobalGetOut(), "\'" );
+    fprintf( Abc_FrameGlobalGetOut(), ")" );
 }
 
 /**Function*************************************************************
@@ -253,10 +253,10 @@ void Abc_Ntk4VarTable( Abc_Ntk_t * pNtk )
     Count = 0;
     for ( k = 0; k < 222; k++ )
     {
-        printf( "%d/%x/%d ", k, u4VarTts[k], Counters[k] );
+        fprintf( Abc_FrameGlobalGetOut(), "%d/%x/%d ", k, u4VarTts[k], Counters[k] );
         Count += Counters[k];
     }
-    printf( " Total = %d\n", Count );
+    fprintf( Abc_FrameGlobalGetOut(), " Total = %d\n", Count );
 }
 
 
@@ -409,10 +409,10 @@ void Abc_NtkPrintOneDecomp( unsigned * pTruth, int nVars )
     for ( i = 0; i < BoundSet; i++ )
         Abc_NtkPrintOneDecomp_rec( uCofs, nCofs, nVars, (1 << i), &BestSize, &uBestMask );
 
-    printf( "Best size = %d  ", BestSize );
-    printf( "Best mask = " );
-    Extra_PrintBinary( stdout, &uBestMask, nVars );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Best size = %d  ", BestSize );
+    fprintf( Abc_FrameGlobalGetOut(), "Best mask = " );
+    Extra_PrintBinary( Abc_FrameGlobalGetOut(), &uBestMask, nVars );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 

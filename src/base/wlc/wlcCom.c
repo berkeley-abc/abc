@@ -184,7 +184,7 @@ int Abc_CommandReadWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc != globalUtilOptind + 1 )
     {
-        printf( "Abc_CommandReadWlc(): Input file name should be given on the command line.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_CommandReadWlc(): Input file name should be given on the command line.\n" );
         return 0;
     }
     // get the file name
@@ -212,7 +212,7 @@ int Abc_CommandReadWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtk = Wlc_ReadNdr( pFileName );
     else
     {
-        printf( "Abc_CommandReadWlc(): Unknown file extension.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_CommandReadWlc(): Unknown file extension.\n" );
         return 0;
     }
     Wlc_AbcUpdateNtk( pAbc, pNtk );
@@ -281,7 +281,7 @@ int Abc_CommandWriteWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
         pFileName = argv[globalUtilOptind];
     else
     {
-        printf( "Output file name should be given on the command line.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Output file name should be given on the command line.\n" );
         return 0;
     }
     if ( !strcmp( Extra_FileNameExtension(pFileName), "ndr" )  )
@@ -352,7 +352,7 @@ int Abc_CommandGenWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
     if ( argc != globalUtilOptind + 1 ) {
-        printf( "The input string is not given on the command line.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The input string is not given on the command line.\n" );
         goto usage;
     }
     else {
@@ -362,28 +362,28 @@ int Abc_CommandGenWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
         int RetValue = miniver_translate( pStr, pOutStr, Size, fShort );
         if ( !RetValue ) {
             if ( fVerbose ) 
-                printf( "Entered Verilog design:\n%s", pOutStr );
+                fprintf( Abc_FrameGlobalGetOut(), "Entered Verilog design:\n%s", pOutStr );
             if ( pFileName ) {
                 FILE * pFile = fopen( pFileName, "wb" );
                 if ( pFile == NULL ) 
-                    printf( "Cannot open output file \"%s\".\n", pFileName );
+                    fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
                 else {
                     fprintf( pFile, "// Design generated from mini-Verilog string: %s\n\n%s\n", pStr, pOutStr );
                     fclose( pFile );
-                    printf( "Dumped the design generated from mini-Verilog string \"%s\" into file \"%s\".\n", pStr, pFileName );
+                    fprintf( Abc_FrameGlobalGetOut(), "Dumped the design generated from mini-Verilog string \"%s\" into file \"%s\".\n", pStr, pFileName );
                 }
             }
             else {
                 if ( fVerbose ) 
-                    printf( "Reading generated Verilog using using command %%read...\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Reading generated Verilog using using command %%read...\n" );
                 Wlc_Ntk_t * pNtk = Wlc_ReadVer( NULL, pOutStr, 0 );
                 if ( pNtk )
                     Wlc_AbcUpdateNtk( pAbc, pNtk );
                 else {
-                    printf( "The following design in Verilog, which was generated from string \"%s\",\n", pStr );
-                    printf( "cannot be read into ABC due to the known limitations of command \"%%read\".\n" );
-                    printf( "Please try the following \"%%gen -F <file.v> <string>; @slang <file.v>; @blast; &ps\".\n" );
-                    printf( "Generated design:\n%s\n", pOutStr );
+                    fprintf( Abc_FrameGlobalGetOut(), "The following design in Verilog, which was generated from string \"%s\",\n", pStr );
+                    fprintf( Abc_FrameGlobalGetOut(), "cannot be read into ABC due to the known limitations of command \"%%read\".\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Please try the following \"%%gen -F <file.v> <string>; @slang <file.v>; @blast; &ps\".\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Generated design:\n%s\n", pOutStr );
                 }
             }
         }
@@ -592,7 +592,7 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Abc_CommandCone(): Illegal output index (%d) (should be 0 <= num < %d).\n", iOutput, Wlc_NtkCoNum(pNtk) );
         return 0;
     }
-    printf( "Extracting output %d as a %s word-level network.\n", iOutput, fSeq ? "sequential" : "combinational" );
+    fprintf( Abc_FrameGlobalGetOut(), "Extracting output %d as a %s word-level network.\n", iOutput, fSeq ? "sequential" : "combinational" );
     pName = Wlc_NtkNewName( pNtk, iOutput, fSeq );
     Wlc_NtkMarkCone( pNtk, iOutput, Range, fSeq, fAllPis );
     pNtk = Wlc_NtkDupDfs( pNtk, 1, fSeq );
@@ -1530,7 +1530,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
         Wln_Ntk_t * pNtk = Wln_NtkFromNdr( pAbc->pNdr, fDump );
         if ( pNtk == NULL )
         {
-            printf( "Transforming NDR into internal representation has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Transforming NDR into internal represnetation has failed.\n" );
             return 1;
         }
         Wln_NtkRetimeCreateDelayInfo( pNtk );
@@ -1543,7 +1543,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc != globalUtilOptind + 1 )
     {
-        printf( "Abc_CommandRetime(): Input file name should be given on the command line.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_CommandRetime(): Input file name should be given on the command line.\n" );
         return 1;
     }
     // get the file name
@@ -1863,9 +1863,9 @@ int Abc_CommandInvCheck( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     nFailed = Pdr_InvCheck( pAbc->pGia, Wlc_AbcGetInv(pAbc), fVerbose );
     if ( nFailed )
-        printf( "Invariant verification failed for %d clauses (out of %d). ", nFailed, Vec_IntEntry(Wlc_AbcGetInv(pAbc),0) );
+        fprintf( Abc_FrameGlobalGetOut(), "Invariant verification failed for %d clauses (out of %d). ", nFailed, Vec_IntEntry(Wlc_AbcGetInv(pAbc),0) );
     else
-        printf( "Invariant verification succeeded.    " );
+        fprintf( Abc_FrameGlobalGetOut(), "Invariant verification succeeded.    " );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return 0;
 usage:

@@ -629,21 +629,21 @@ void Abc_ManTimeDup( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew )
 void Abc_NtkTimePrint( Abc_Ntk_t * pNtk )
 {
     if ( pNtk->pManTime == NULL )
-        printf( "There is no timing manager\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There is no timing manager\n" );
     else
     {
         Abc_Obj_t * pObj; int i;
-        printf( "Default arrival = %8f\n", pNtk->pManTime->tArrDef.Fall );
-        printf( "Default required = %8f\n", pNtk->pManTime->tReqDef.Fall );
-        printf( "Inputs (%d):\n", Abc_NtkCiNum(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(), "Default arrival = %8f\n", pNtk->pManTime->tArrDef.Fall );
+        fprintf( Abc_FrameGlobalGetOut(), "Default required = %8f\n", pNtk->pManTime->tReqDef.Fall );
+        fprintf( Abc_FrameGlobalGetOut(), "Inputs (%d):\n", Abc_NtkCiNum(pNtk) );
         Abc_NtkForEachCi( pNtk, pObj, i )
-            printf( "%20s   arrival = %8f   required = %8f\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "%20s   arrival = %8f   required = %8f\n", 
                 Abc_ObjName(pObj), 
                 Abc_NodeReadArrivalWorst(pObj), 
                 Abc_NodeReadRequiredWorst(pObj) );
-        printf( "Outputs (%d):\n", Abc_NtkCoNum(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(), "Outputs (%d):\n", Abc_NtkCoNum(pNtk) );
         Abc_NtkForEachCo( pNtk, pObj, i )
-            printf( "%20s   arrival = %8f   required = %8f\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "%20s   arrival = %8f   required = %8f\n", 
                 Abc_ObjName(pObj), 
                 Abc_NodeReadArrivalWorst(pObj), 
                 Abc_NodeReadRequiredWorst(pObj) );
@@ -1178,9 +1178,9 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, in
         if ( !Abc_NtkDelayTraceCritPath_rec( vSlacks, Abc_ObjFanin0(pOut), pIn, vBest ) )
         {
             if ( pIn == NULL )
-                printf( "The logic cone of PO \"%s\" has no primary inputs.\n", Abc_ObjName(pOut) );
+                fprintf( Abc_FrameGlobalGetOut(), "The logic cone of PO \"%s\" has no primary inputs.\n", Abc_ObjName(pOut) );
             else
-                printf( "There is no combinational path between PI \"%s\" and PO \"%s\".\n", Abc_ObjName(pIn), Abc_ObjName(pOut) );
+                fprintf( Abc_FrameGlobalGetOut(), "There is no combinational path between PI \"%s\" and PO \"%s\".\n", Abc_ObjName(pIn), Abc_ObjName(pOut) );
         }
         else
         {
@@ -1199,46 +1199,46 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk, Abc_Obj_t * pOut, Abc_Obj_t * pIn, in
                     Length = Abc_MaxInt( Length, strlen(Mio_GateReadName((Mio_Gate_t *)pNode->pData)) );
             // print critical path
             Abc_NtkLevel( pNtk );
-            printf( "Critical path from PI \"%s\" to PO \"%s\":\n", Abc_ObjName(pIn), Abc_ObjName(pOut) ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Critical path from PI \"%s\" to PO \"%s\":\n", Abc_ObjName(pIn), Abc_ObjName(pOut) ); 
             Vec_PtrForEachEntry( Abc_Obj_t *, vPath, pNode, i )
             {
-                printf( "Level %3d : ", Abc_ObjLevel(pNode) );
+                fprintf( Abc_FrameGlobalGetOut(), "Level %3d : ", Abc_ObjLevel(pNode) );
                 if ( Abc_ObjIsCi(pNode) )
                 {
-                    printf( "Primary input \"%s\".   ", Abc_ObjName(pNode) );
-                    printf( "Arrival time =%6.1f. ", Abc_NodeReadArrivalWorst(pNode) );
-                    printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Primary input \"%s\".   ", Abc_ObjName(pNode) );
+                    fprintf( Abc_FrameGlobalGetOut(), "Arrival time =%6.1f. ", Abc_NodeReadArrivalWorst(pNode) );
+                    fprintf( Abc_FrameGlobalGetOut(), "\n" );
                     continue;
                 }
                 if ( Abc_ObjIsCo(pNode) )
                 {
-                    printf( "Primary output \"%s\".   ", Abc_ObjName(pNode) );
-                    printf( "Arrival =%6.1f. ", Abc_NodeReadArrivalWorst(pNode) );
+                    fprintf( Abc_FrameGlobalGetOut(), "Primary output \"%s\".   ", Abc_ObjName(pNode) );
+                    fprintf( Abc_FrameGlobalGetOut(), "Arrival =%6.1f. ", Abc_NodeReadArrivalWorst(pNode) );
                 }
                 else
                 {
                     assert( Abc_ObjIsNode(pNode) );
                     iFanin = Abc_NodeFindFanin( pNode, (Abc_Obj_t *)Vec_PtrEntry(vPath,i-1) );
                     Slack = Abc_NtkDelayTraceSlack(vSlacks, pNode, iFanin);
-                    printf( "%10s/", Abc_ObjName(pNode) );
-                    printf( "%-4s", Mio_GateReadPinName((Mio_Gate_t *)pNode->pData, iFanin) );
-                    printf( " (%s)", Mio_GateReadName((Mio_Gate_t *)pNode->pData) );
+                    fprintf( Abc_FrameGlobalGetOut(), "%10s/", Abc_ObjName(pNode) );
+                    fprintf( Abc_FrameGlobalGetOut(), "%-4s", Mio_GateReadPinName((Mio_Gate_t *)pNode->pData, iFanin) );
+                    fprintf( Abc_FrameGlobalGetOut(), " (%s)", Mio_GateReadName((Mio_Gate_t *)pNode->pData) );
                     for ( k = strlen(Mio_GateReadName((Mio_Gate_t *)pNode->pData)); k < Length; k++ )
-                        printf( " " );
-                    printf( "   " );
-                    printf( "Arrival =%6.1f.   ", Abc_NodeReadArrivalWorst(pNode) );
-                    printf( "I/O times: (" );
+                        fprintf( Abc_FrameGlobalGetOut(), " " );
+                    fprintf( Abc_FrameGlobalGetOut(), "   " );
+                    fprintf( Abc_FrameGlobalGetOut(), "Arrival =%6.1f.   ", Abc_NodeReadArrivalWorst(pNode) );
+                    fprintf( Abc_FrameGlobalGetOut(), "I/O times: (" );
                     Abc_ObjForEachFanin( pNode, pFanin, k )
-                        printf( "%s%.1f", (k? ", ":""), Abc_NodeReadArrivalWorst(pFanin) );
+                        fprintf( Abc_FrameGlobalGetOut(), "%s%.1f", (k? ", ":""), Abc_NodeReadArrivalWorst(pFanin) );
 //                    printf( " -> %.1f)", Abc_NodeReadArrival(pNode)->Worst + Slack + SlackAdd );
-                    printf( " -> %.1f)", Abc_NodeReadArrivalWorst(pNode) );
+                    fprintf( Abc_FrameGlobalGetOut(), " -> %.1f)", Abc_NodeReadArrivalWorst(pNode) );
                 }
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
-            printf( "Level %3d : ", Abc_ObjLevel(Abc_ObjFanin0(pOut)) + 1 );
-            printf( "Primary output \"%s\".   ", Abc_ObjName(pOut) );
-            printf( "Required time = %6.1f.  ", Abc_NodeReadRequiredWorst(pOut) );
-            printf( "Path slack = %6.1f.\n", SlackAdd );
+            fprintf( Abc_FrameGlobalGetOut(), "Level %3d : ", Abc_ObjLevel(Abc_ObjFanin0(pOut)) + 1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Primary output \"%s\".   ", Abc_ObjName(pOut) );
+            fprintf( Abc_FrameGlobalGetOut(), "Required time = %6.1f.  ", Abc_NodeReadRequiredWorst(pOut) );
+            fprintf( Abc_FrameGlobalGetOut(), "Path slack = %6.1f.\n", SlackAdd );
         }
         Vec_PtrFree( vPath );
         Vec_IntFree( vBest );

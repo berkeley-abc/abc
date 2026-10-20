@@ -332,7 +332,7 @@ int CmdCommandEcho( Abc_Frame_t * pAbc, int argc, char **argv )
         }
     }
 
-    if (pAbc->Out == stdout){
+    if (pAbc->Out == Abc_FrameGlobalGetOut()){
         for ( i = globalUtilOptind; i < argc; i++ )
             Abc_Print( 1, "%s ", argv[i] );
         if ( n )
@@ -925,13 +925,13 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
 
         if ( strcmp( argv[1], "abcout" ) == 0 )
         {
-            if ( pAbc->Out != stdout )
+            if ( pAbc->Out != Abc_FrameGlobalGetOut() )
                 fclose( pAbc->Out );
             if ( strcmp( flag_value, "" ) == 0 )
                 flag_value = "-";
             pAbc->Out = CmdFileOpen( pAbc, flag_value, "w", NULL, 0 );
             if ( pAbc->Out == NULL )
-                pAbc->Out = stdout;
+                pAbc->Out = Abc_FrameGlobalGetOut();
 #if HAVE_SETVBUF
             setvbuf( pAbc->Out, ( char * ) NULL, _IOLBF, 0 );
 #endif
@@ -1315,12 +1315,12 @@ int CmdCommandScanDir( Abc_Frame_t * pAbc, int argc, char **argv )
     {
         if( (pDirCur = _getcwd( NULL, 0 )) == NULL )
         {
-            printf( "Cannot read current directory\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot read current directory\n" );
             return 0;
         }
         if ( _chdir(pDirStr) )
         {
-            printf( "Cannot change to directory: %s\n", pDirStr );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot change to directory: %s\n", pDirStr );
             return 0;
         }
     }
@@ -1328,9 +1328,9 @@ int CmdCommandScanDir( Abc_Frame_t * pAbc, int argc, char **argv )
     if( (hFile = _findfirst( "*.txt", &c_file )) == -1L )
     {
         if ( pDirStr )
-            printf( "No .txt files in the current directory.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "No .txt files in the current directory.\n" );
         else
-            printf( "No .txt files in directory: %s\n", pDirStr );
+            fprintf( Abc_FrameGlobalGetOut(), "No .txt files in directory: %s\n", pDirStr );
     }
     else
     {
@@ -1357,7 +1357,7 @@ int CmdCommandScanDir( Abc_Frame_t * pAbc, int argc, char **argv )
             // get the time
             if ( pFile == NULL )
             {
-                printf( "Cannot open file %s\n", c_file.name );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot open file %s\n", c_file.name );
                 continue;
             }
             fclose( pFile );
@@ -1384,7 +1384,7 @@ int CmdCommandScanDir( Abc_Frame_t * pAbc, int argc, char **argv )
             else
                 pPlace += strlen( pStr1 );
             sscanf( pPlace, "%f", &Time );
-            printf( "%s %.2f\n", pThis, Time );
+            fprintf( Abc_FrameGlobalGetOut(), "%s %.2f\n", pThis, Time );
             ABC_FREE( pBuffer );
         }
         while( _findnext( hFile, &c_file ) == 0 );
@@ -1395,7 +1395,7 @@ int CmdCommandScanDir( Abc_Frame_t * pAbc, int argc, char **argv )
         if ( _chdir(pDirCur) )
         {
             ABC_FREE( pDirCur );
-            printf( "Cannot change to directory: %s\n", pDirCur );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot change to directory: %s\n", pDirCur );
             return 0;
         }
         ABC_FREE( pDirCur );
@@ -1538,7 +1538,7 @@ int CmdCommandRenameFiles( Abc_Frame_t * pAbc, int argc, char **argv )
 
     if ( pNameExt == NULL )
     {
-        printf( "Extension of the files should be given on the command line.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Extension of the files should be given on the command line.\n" );
         return 0;
     }
 
@@ -1546,12 +1546,12 @@ int CmdCommandRenameFiles( Abc_Frame_t * pAbc, int argc, char **argv )
     {
         if( (pDirCur = _getcwd( NULL, 0 )) == NULL )
         {
-            printf( "Cannot read current directory\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot read current directory\n" );
             return 0;
         }
         if ( _chdir(pDirStr) )
         {
-            printf( "Cannot change to directory: %s\n", pDirStr );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot change to directory: %s\n", pDirStr );
             return 0;
         }
     }
@@ -1560,9 +1560,9 @@ int CmdCommandRenameFiles( Abc_Frame_t * pAbc, int argc, char **argv )
     if( (hFile = _findfirst( pNewName, &c_file )) == -1L )
     {
         if ( pDirStr )
-            printf( "No .aig files in the current directory.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "No .aig files in the current directory.\n" );
         else
-            printf( "No .aig files in directory: %s\n", pDirStr );
+            fprintf( Abc_FrameGlobalGetOut(), "No .aig files in directory: %s\n", pDirStr );
     }
     else
     {
@@ -1581,7 +1581,7 @@ int CmdCommandRenameFiles( Abc_Frame_t * pAbc, int argc, char **argv )
             Vec_IntPush( vNums, CmfFindNumber(pName) );
             if ( Vec_IntEntryLast(vNums) < 0 )
             {
-                printf( "Directory \"%s\" contains file (%s) with extension %s without number\n", pDirStr, pName, pNameExt );
+                fprintf( Abc_FrameGlobalGetOut(), "Directory \"%s\" contains file (%s) with extension %s without number\n", pDirStr, pName, pNameExt );
                 Vec_PtrFreeFree( vNames );
                 Vec_IntFree( vNums );
                 return 0;
@@ -1597,7 +1597,7 @@ int CmdCommandRenameFiles( Abc_Frame_t * pAbc, int argc, char **argv )
             pOldName = (char *)Vec_PtrEntry( vNames, pOrder[i] );
             sprintf( pNewName, "%s%0*d.%s", pNameNew ? pNameNew : "", nDigits, nBase+Vec_IntEntry(vNums, pOrder[i]), pNameExt );
             rename( pOldName, pNewName );
-            printf( "%s -> %s\n", pOldName, pNewName );
+            fprintf( Abc_FrameGlobalGetOut(), "%s -> %s\n", pOldName, pNewName );
 //            CnfDupFileUnzip( pOldName );
         }
         // cleanup
@@ -1610,7 +1610,7 @@ int CmdCommandRenameFiles( Abc_Frame_t * pAbc, int argc, char **argv )
         if ( _chdir(pDirCur) )
         {
             ABC_FREE( pDirCur );
-            printf( "Cannot change to directory: %s\n", pDirCur );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot change to directory: %s\n", pDirCur );
             return 0;
         }
         ABC_FREE( pDirCur );
@@ -1815,7 +1815,7 @@ int CmdCommandScrGen( Abc_Frame_t * pAbc, int argc, char **argv )
 
     if ( _getcwd( Buffer, 1000 ) == NULL )
     {
-        printf( "Cannot get the current directory.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot get the current directory.\n" );
         return 0;
     }
     if ( fUseCurrent )
@@ -1824,7 +1824,7 @@ int CmdCommandScrGen( Abc_Frame_t * pAbc, int argc, char **argv )
     {
         if ( _chdir(pDirStr) )
         {
-            printf( "Cannot change to directory: %s\n", pDirStr );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot change to directory: %s\n", pDirStr );
             return 0;
         }
     }
@@ -1832,10 +1832,10 @@ int CmdCommandScrGen( Abc_Frame_t * pAbc, int argc, char **argv )
         pFile = fopen( pFileStr, "w" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file %s.\n", pFileStr );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file %s.\n", pFileStr );
         if ( pDirStr && _chdir(Buffer) )
         {
-            printf( "Cannot change to the current directory: %s\n", Buffer );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot change to the current directory: %s\n", Buffer );
             return 0;
         }
         return 0;
@@ -1845,12 +1845,12 @@ int CmdCommandScrGen( Abc_Frame_t * pAbc, int argc, char **argv )
     if( (hFile = _findfirst( "*.*", &c_file )) == -1L )
     {
         if ( pDirStr )
-            printf( "No files in the current directory.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "No files in the current directory.\n" );
         else
-            printf( "No files in directory: %s\n", pDirStr );
+            fprintf( Abc_FrameGlobalGetOut(), "No files in directory: %s\n", pDirStr );
         if ( pDirStr && _chdir(Buffer) )
         {
-            printf( "Cannot change to the current directory: %s\n", Buffer );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot change to the current directory: %s\n", Buffer );
             return 0;
         }
     }
@@ -1886,9 +1886,9 @@ int CmdCommandScrGen( Abc_Frame_t * pAbc, int argc, char **argv )
         if( (hFile = _findfirst( "*.*", &c_file )) == -1L )
         {
             if ( pDirStr )
-                printf( "No files in the current directory.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "No files in the current directory.\n" );
             else
-                printf( "No files in directory: %s\n", pDirStr );
+                fprintf( Abc_FrameGlobalGetOut(), "No files in directory: %s\n", pDirStr );
         }
         fprintf( pFile, "# Script file produced by ABC on %s\n", Extra_TimeStamp() );
         fprintf( pFile, "# Command line was: scrgen -F %s -D %s -C \"%s\"%s%s\n",
@@ -1930,15 +1930,15 @@ int CmdCommandScrGen( Abc_Frame_t * pAbc, int argc, char **argv )
     fclose( pFile );
     if ( pDirStr && _chdir(Buffer) )
     {
-        printf( "Cannot change to the current directory: %s\n", Buffer );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot change to the current directory: %s\n", Buffer );
         return 0;
     }
 
     // report
     if ( fUseCurrent )
-        printf( "Script file \"%s\" was saved in the current directory.\n", pFileStr );
+        fprintf( Abc_FrameGlobalGetOut(), "Script file \"%s\" was saved in the current directory.\n", pFileStr );
     else
-        printf( "Script file \"%s\" was saved in directory: %s\n", pFileStr, pDirStr );
+        fprintf( Abc_FrameGlobalGetOut(), "Script file \"%s\" was saved in directory: %s\n", pFileStr, pDirStr );
     return 0;
 
 usage:
@@ -1962,7 +1962,7 @@ Vec_Ptr_t * CmdReturnFileNames( char * pDirStr )
     struct dirent **namelist;
     int num_files = scandir(pDirStr, &namelist, NULL, alphasort);
     if (num_files == -1) {
-        printf("Error opening directory.\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Error opening directory.\n");
         return NULL;
     }
     for (int i = 0; i < num_files; i++) {
@@ -2050,14 +2050,14 @@ int CmdCommandScrGenLinux( Abc_Frame_t * pAbc, int argc, char **argv )
     pFile = fopen( pFileStr, "w" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open output file %s.\n", pFileStr );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file %s.\n", pFileStr );
         return 0;
     }
     vNames = CmdReturnFileNames( pDirStr );
     if ( !vNames || !Vec_PtrSize(vNames) )
     {
         if ( vNames )
-            printf( "It looks like the directory \"%s\" does not contain any relevant files.\n", pDirStr );
+            fprintf( Abc_FrameGlobalGetOut(), "It looks like the directory \"%s\" does not contain any relevant files.\n", pDirStr );
         Vec_PtrFreeP(&vNames);
         return 0;
     }
@@ -2096,7 +2096,7 @@ int CmdCommandScrGenLinux( Abc_Frame_t * pAbc, int argc, char **argv )
         }
     }
     fclose( pFile );
-    printf( "Script file \"%s\" with command lines for %d files.\n", pFileStr, Vec_PtrSize(vNames) );
+    fprintf( Abc_FrameGlobalGetOut(), "Script file \"%s\" with command lines for %d files.\n", pFileStr, Vec_PtrSize(vNames) );
     Vec_PtrFreeFree( vNames );
     return 0;
 
@@ -2187,7 +2187,7 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( Abc_NtkIsMappedLogic(pNtk) )
     {
         Abc_NtkMapToSop(pNtk);
-        printf( "The current network is unmapped before calling SIS.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The current network is unmapped before calling SIS.\n" );
     }
 
     // write out the current network
@@ -2329,7 +2329,7 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( Abc_NtkIsMappedLogic(pNtk) )
     {
         Abc_NtkMapToSop(pNtk);
-        printf( "The current network is unmapped before calling MVSIS.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The current network is unmapped before calling MVSIS.\n" );
     }
 
     // write out the current network
@@ -2427,7 +2427,7 @@ void Gia_ManGnuplotShow( char * pPlotFileName )
     // read in the Capo plotting output
     if ( (pFile = fopen( pPlotFileName, "r" )) == NULL )
     {
-        fprintf( stdout, "Cannot open the plot file \"%s\".\n\n", pPlotFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the plot file \"%s\".\n\n", pPlotFileName  );
         return;
     }
     fclose( pFile );
@@ -2447,7 +2447,7 @@ void Gia_ManGnuplotShow( char * pPlotFileName )
         pProgNameGnuplot = pProgNameGnuplotUnix;
     else if ( pFile == NULL )
     {
-        fprintf( stdout, "Cannot find \"%s\" or \"%s\" in the current directory.\n", pProgNameGnuplotWin, pProgNameGnuplotUnix );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot find \"%s\" or \"%s\" in the current directory.\n", pProgNameGnuplotWin, pProgNameGnuplotUnix );
         return;
     }
     fclose( pFile );
@@ -2456,7 +2456,7 @@ void Gia_ManGnuplotShow( char * pPlotFileName )
 #ifdef WIN32
     if ( _spawnl( _P_NOWAIT, pProgNameGnuplot, pProgNameGnuplot, pPlotFileName, NULL ) == -1 )
     {
-        fprintf( stdout, "Cannot find \"%s\".\n", pProgNameGnuplot );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot find \"%s\".\n", pProgNameGnuplot  );
         return;
     }
 #else
@@ -2469,7 +2469,7 @@ void Gia_ManGnuplotShow( char * pPlotFileName )
         if ( system( Command ) == -1 )
 #endif
         {
-            fprintf( stdout, "Cannot execute \"%s\".\n", Command );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot execute \"%s\".\n", Command );
             return;
         }
     }
@@ -2547,7 +2547,7 @@ int CmdCommandCapo( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( Abc_NtkIsMappedLogic(pNtk) )
     {
         Abc_NtkMapToSop(pNtk);
-        printf( "The current network is unmapped before calling Capo.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The current network is unmapped before calling Capo.\n" );
     }
 
     // write out the current network
@@ -2621,7 +2621,7 @@ int CmdCommandCapo( Abc_Frame_t * pAbc, int argc, char **argv )
 #ifdef WIN32
     if ( _spawnl( _P_NOWAIT, pProgNameGnuplot, pProgNameGnuplot, pPlotFileName, NULL ) == -1 )
     {
-        fprintf( stdout, "Cannot find \"%s\".\n", pProgNameGnuplot );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot find \"%s\".\n", pProgNameGnuplot );
         goto usage;
     }
 #else
@@ -2629,7 +2629,7 @@ int CmdCommandCapo( Abc_Frame_t * pAbc, int argc, char **argv )
         sprintf( Command, "%s %s ", pProgNameGnuplot, pPlotFileName );
         if ( Util_SignalSystem( Command ) == -1 )
         {
-            fprintf( stdout, "Cannot execute \"%s\".\n", Command );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot execute \"%s\".\n", Command );
             goto usage;
         }
     }
@@ -3080,7 +3080,7 @@ int CmdCommandVersion( Abc_Frame_t * pAbc, int argc, char **argv )
         }
     }
 
-    printf("%s\n", Abc_UtilsGetVersion(pAbc));
+    fprintf( Abc_FrameGlobalGetOut(), "%s\n", Abc_UtilsGetVersion(pAbc));
     return 0;
 
 usage:

@@ -106,15 +106,15 @@ void Abc_NodeMffcConeSuppCollect( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_
     Abc_NodeRef_rec( pNode );
     if ( iVerbose )
     {
-        printf( "Node = %6s : Supp = %3d  Cone = %3d  (", 
+        fprintf( Abc_FrameGlobalGetOut(), "Node = %6s : Supp = %3d  Cone = %3d  (", 
             Abc_ObjName(pNode), Vec_PtrSize(vSupp), Vec_PtrSize(vCone) );
         Vec_PtrForEachEntry( Abc_Obj_t *, vCone, pObj, i )
-            printf( " %s", Abc_ObjName(pObj) );
-        printf( " )\n" );
-        printf("vSupp = (");
+            fprintf( Abc_FrameGlobalGetOut(), " %s", Abc_ObjName(pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), " )\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "vSupp = (");
         Vec_PtrForEachEntry( Abc_Obj_t *, vSupp, pObj, i )
-            printf( " %s", Abc_ObjName(pObj) );
-        printf( " )\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " %s", Abc_ObjName(pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), " )\n" );
     }
 }
 
@@ -472,7 +472,7 @@ void AbcRmInvAvaCuts( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, Cut_Man_t * pCutMan, 
     pCut = (Cut_Cut_t *)Abc_NodeGetCutsRecursive( pCutMan, pNode, 0, 1 );
     if ( pCut == NULL )
     {
-        printf("Warning: Abc_NodeGetCutsRecursive returned NULL for node %d\n", Abc_ObjId(pNode));
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Abc_NodeGetCutsRecursive returned NULL for node %d\n", Abc_ObjId(pNode));
         Vec_PtrFree( vCutsPreSD );
         Vec_PtrFree( vCutsPreSAD );
         return;
@@ -489,8 +489,8 @@ void AbcRmInvAvaCuts( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, Cut_Man_t * pCutMan, 
     Vec_PtrCopy( vASDCuts, vCutsPreSD );
     if ( iVerbose )
     {
-        printf("    %d cuts have been found and processed.\n", nCuts);
-        printf("    Retrieved %d(%d) of cuts in self-anti-dual and %d(%d) of cuts in self-dual.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "    %d cuts have been found and processed.\n", nCuts);
+        fprintf( Abc_FrameGlobalGetOut(), "    Retrieved %d(%d) of cuts in self-anti-dual and %d(%d) of cuts in self-dual.\n",
             Vec_PtrSize(vASADCuts), Vec_PtrSize(vCutsPreSAD),
             Vec_PtrSize(vASDCuts), Vec_PtrSize(vCutsPreSD));
     }
@@ -606,7 +606,7 @@ void Abc_NtkMarkCriticalNodesScale( Abc_Ntk_t * pNtk )
             Counter++;
         }
     }
-    printf( "The number of nodes on the critical paths = %6d  (%5.2f %%)\n", Counter, 100.0 * Counter / Abc_NtkNodeNum(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of nodes on the critical paths = %6d  (%5.2f %%)\n", Counter, 100.0 * Counter / Abc_NtkNodeNum(pNtk) );
 }
 
 /**Function*************************************************************
@@ -710,15 +710,15 @@ void Abc_NtkRmInverter( Abc_Ntk_t * pNtk, int iVerbose )
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        printf("Error: Abc_NtkRmInverter requires a strashed AIG network.\n");
-        printf("Current network type: %d\n", pNtk->ntkType);
+        fprintf( Abc_FrameGlobalGetOut(), "Error: Abc_NtkRmInverter requires a strashed AIG network.\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Current network type: %d\n", pNtk->ntkType);
         return;
     }
     if ( iVerbose )
     {
-        printf("Processing strashed AIG network with %d nodes, %d PIs, %d POs\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Processing strashed AIG network with %d nodes, %d PIs, %d POs\n",
             Abc_NtkNodeNum(pNtk), Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk));
-        printf("Network level: %d\n", Abc_NtkLevel(pNtk));
+        fprintf( Abc_FrameGlobalGetOut(), "Network level: %d\n", Abc_NtkLevel(pNtk));
     }
 
     Abc_NtkStartReverseLevels( pNtk, 0 );
@@ -788,7 +788,7 @@ void Abc_NtkRmInverter( Abc_Ntk_t * pNtk, int iVerbose )
             Vec_Ptr_t * vSupp = Vec_PtrAlloc( 16 );
 
             if ( iVerbose )
-                printf("\n\n\n");
+                fprintf( Abc_FrameGlobalGetOut(), "\n\n\n");
 
             Abc_NodeMffcConeSuppCollect( pNode, vCone, vSupp, iVerbose );
 
@@ -797,7 +797,7 @@ void Abc_NtkRmInverter( Abc_Ntk_t * pNtk, int iVerbose )
                 Vec_PtrInsert( vCone, 0, pObj );
 
             if ( iVerbose )
-                printf("Support var size %d, internal node size %d\n", Vec_PtrSize(vSupp), Vec_PtrSize(vCone));
+                fprintf( Abc_FrameGlobalGetOut(), "Support var size %d, internal node size %d\n", Vec_PtrSize(vSupp), Vec_PtrSize(vCone));
 
             Vec_Ptr_t * vASDCuts  = Vec_PtrAlloc( 16 );
             Vec_Ptr_t * vASADCuts = Vec_PtrAlloc( 16 );
@@ -828,10 +828,10 @@ void Abc_NtkRmInverter( Abc_Ntk_t * pNtk, int iVerbose )
 
     if ( iVerbose )
     {
-        printf("=====Statistics about invNum with Threshold %d=====\n", iThreshold);
-        printf("Before %d   After %d    Gain %d \n", iNCEBefore, iNCEAfter, iNCEBefore - iNCEAfter);
+        fprintf( Abc_FrameGlobalGetOut(), "=====Statistics about invNum with Threshold %d=====\n", iThreshold);
+        fprintf( Abc_FrameGlobalGetOut(), "Before %d   After %d    Gain %d \n", iNCEBefore, iNCEAfter, iNCEBefore - iNCEAfter);
         if ( iNCEAfter > 0 || iNCEBefore > 0 )
-            printf("=====Statistics about edges that ease on slack=====\n"
+            fprintf( Abc_FrameGlobalGetOut(), "=====Statistics about edges that ease on slack=====\n"
                    "Ease Gain %f \n", (float)invSlackAfter / (iNCEAfter ? iNCEAfter : 1) - (float)invSlackBefore / (iNCEBefore ? iNCEBefore : 1));
     }
 
@@ -841,13 +841,13 @@ void Abc_NtkRmInverter( Abc_Ntk_t * pNtk, int iVerbose )
     assert( nCountCriticalSAD + nCountNonCriticalSAD == nCountSAD );
     assert( nCountCriticalSD + nCountNonCriticalSD == nCountSD );
 
-    printf("Total %d self-anti-dual functions", nCountSAD);
+    fprintf( Abc_FrameGlobalGetOut(), "Total %d self-anti-dual functions", nCountSAD);
     if ( nCountSAD > 0 )
-        printf(", Critical(%f), Non-critical(%f)", (float)nCountCriticalSAD / nCountSAD, (float)nCountNonCriticalSAD / nCountSAD);
-    printf(" / %d self-dual are modified", nCountSD);
+        fprintf( Abc_FrameGlobalGetOut(), ", Critical(%f), Non-critical(%f)", (float)nCountCriticalSAD / nCountSAD, (float)nCountNonCriticalSAD / nCountSAD);
+    fprintf( Abc_FrameGlobalGetOut(), " / %d self-dual are modified", nCountSD);
     if ( nCountSD > 0 )
-        printf(", Critical(%f), Non-critical(%f)", (float)nCountCriticalSD / nCountSD, (float)nCountNonCriticalSD / nCountSD);
-    printf(". Total process rate %f\n", nTotalNodes > 0 ? (float)nProcessed / nTotalNodes : 0.0f);
+        fprintf( Abc_FrameGlobalGetOut(), ", Critical(%f), Non-critical(%f)", (float)nCountCriticalSD / nCountSD, (float)nCountNonCriticalSD / nCountSD);
+    fprintf( Abc_FrameGlobalGetOut(), ". Total process rate %f\n", nTotalNodes > 0 ? (float)nProcessed / nTotalNodes : 0.0f);
 }
 
 ABC_NAMESPACE_IMPL_END

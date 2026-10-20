@@ -104,11 +104,11 @@ void Abc_MvPrintStats( Mv_Man_t * p )
     int i, v;
     for ( i = 0; i < 15; i++ )
     {
-        printf( "%2d : ", i );
-        printf( "%3d (%2d)    ", Cudd_DagSize(p->bFuncs[i])-1, Cudd_SupportSize(p->dd, p->bFuncs[i]) );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d (%2d)    ", Cudd_DagSize(p->bFuncs[i])-1, Cudd_SupportSize(p->dd, p->bFuncs[i]) );
         for ( v = 0; v < 4; v++ )
-            printf( "%d = %3d (%2d)  ", v, Cudd_DagSize(p->bValues[i][v])-1, Cudd_SupportSize(p->dd, p->bValues[i][v]) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d = %3d (%2d)  ", v, Cudd_DagSize(p->bValues[i][v])-1, Cudd_SupportSize(p->dd, p->bValues[i][v]) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -233,7 +233,7 @@ void Abc_MvRead( Mv_Man_t * p )
             p->bValues[i][v] = Cudd_bddOr( p->dd, bTemp = p->bValues[i][v], Cudd_Not(bCubeSum) );  Cudd_Ref( p->bValues[i][v] );
             Cudd_RecursiveDeref( p->dd, bTemp );
         }
-    printf( "Domain = %5.2f %%.\n", 100.0*Cudd_CountMinterm(p->dd, bCubeSum, 32)/Cudd_CountMinterm(p->dd, Cudd_ReadOne(p->dd), 32) ); 
+    fprintf( Abc_FrameGlobalGetOut(), "Domain = %5.2f %%.\n", 100.0*Cudd_CountMinterm(p->dd, bCubeSum, 32)/Cudd_CountMinterm(p->dd, Cudd_ReadOne(p->dd), 32) ); 
     Cudd_RecursiveDeref( p->dd, bCubeSum );
 
     // create each output function
@@ -303,7 +303,7 @@ void Abc_MvDecompose( Mv_Man_t * p )
 
     for ( k = 0; k < p->nFuncs; k++ )
     {
-        printf( "FUNCTION %d\n", k );
+        fprintf( Abc_FrameGlobalGetOut(), "FUNCTION %d\n", k );
         for ( i1 = 0; i1 < p->nFuncs; i1++ )
         for ( i2 = i1+1; i2 < p->nFuncs; i2++ )
         {
@@ -355,7 +355,7 @@ void Abc_MvDecompose( Mv_Man_t * p )
             for ( v1 = 0; v1 < 4; v1++ )
             for ( v2 = 0; v2 < 4; v2++ )
                 Vec_PtrPushUnique( vCofs, bCofs[v1 * 4 + v2] );
-            printf( "%d ", Vec_PtrSize(vCofs) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Vec_PtrSize(vCofs) );
             Vec_PtrFree( vCofs );
 
             // free the cofactors
@@ -363,7 +363,7 @@ void Abc_MvDecompose( Mv_Man_t * p )
             for ( v2 = 0; v2 < 4; v2++ )
                 Cudd_RecursiveDeref( p->dd, bCofs[v1 * 4 + v2] );
 
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
 //            printf( "%2d, %2d : %3d\n", i1, i2, Counter );
         }
     }

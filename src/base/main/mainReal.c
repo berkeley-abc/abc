@@ -137,7 +137,7 @@ int Abc_RealMain( int argc, char * argv[] )
             case 'm': {
 #if !defined(WIN32) && !defined(ABC_NO_RLIMIT)
                 int maxMb = atoi(globalUtilOptarg);             
-                printf("Limiting memory use to %d MB\n", maxMb);
+                fprintf( Abc_FrameGlobalGetOut(), "Limiting memory use to %d MB\n", maxMb);
                 struct rlimit limit = {                         
                     maxMb * (1llu << 20), /* soft limit */      
                     maxMb * (1llu << 20)  /* hard limit */      
@@ -149,7 +149,7 @@ int Abc_RealMain( int argc, char * argv[] )
             case 'l': {
 #if !defined(WIN32) && !defined(ABC_NO_RLIMIT)
                 rlim_t maxTime = atoi(globalUtilOptarg);           
-                printf("Limiting time to %d seconds\n", (int)maxTime);
+                fprintf( Abc_FrameGlobalGetOut(), "Limiting time to %d seconds\n", (int)maxTime);
                 struct rlimit limit = {                         
                     maxTime,             /* soft limit */       
                     maxTime              /* hard limit */       

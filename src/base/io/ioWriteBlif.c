@@ -63,7 +63,7 @@ void Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
     pNtkTemp = Abc_NtkToNetlist(pNtk);
     if ( pNtkTemp == NULL )
     {
-        fprintf( stdout, "Writing BLIF has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Writing BLIF has failed.\n" );
         return;
     }
     Io_WriteBlif( pNtkTemp, FileName, fWriteLatches, 0, 0 );
@@ -91,7 +91,7 @@ void Io_WriteBlif( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches, int fBb
     pFile = fopen( FileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteBlif(): Cannot open the output file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteBlif(): Cannot open the output file.\n" );
         return;
     }
     fprintf( pFile, "# Benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
@@ -249,7 +249,7 @@ void Io_NtkWriteOne( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches, int fBb2
 
     // write each internal node
     Length = Abc_NtkHasMapping(pNtk)? Mio_LibraryReadGateNameMax((Mio_Library_t *)pNtk->pManFunc) : 0;
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -602,7 +602,7 @@ int Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode, int Length )
     if ( pNode2 == NULL )
     {
         if ( !fReport )
-            fReport = 1, printf( "Warning: Missing second output of gate(s) \"%s\".\n", Mio_GateReadName(pGate) );
+            fReport = 1, fprintf( Abc_FrameGlobalGetOut(), "Warning: Missing second output of gate(s) \"%s\".\n", Mio_GateReadName(pGate) );
         return 0;
     }
     if ( !Io_NtkNodesHaveSameFanins( pNode, pNode2 ) )
@@ -767,7 +767,7 @@ void Abc_NtkConvertBb2Wb( char * pFileNameIn, char * pFileNameOut, int fSeq, int
     pFile = fopen( pFileNameIn, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Input file \"%s\" cannot be opened.\n", pFileNameIn );
+        fprintf( Abc_FrameGlobalGetOut(), "Input file \"%s\" cannot be opened.\n", pFileNameIn );
         return;
     }
     fclose( pFile );
@@ -775,7 +775,7 @@ void Abc_NtkConvertBb2Wb( char * pFileNameIn, char * pFileNameOut, int fSeq, int
     pFile = fopen( pFileNameOut, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Output file \"%s\" cannot be opened.\n", pFileNameOut );
+        fprintf( Abc_FrameGlobalGetOut(), "Output file \"%s\" cannot be opened.\n", pFileNameOut );
         return;
     }
     fclose( pFile );
@@ -783,7 +783,7 @@ void Abc_NtkConvertBb2Wb( char * pFileNameIn, char * pFileNameOut, int fSeq, int
     pNetlist = Io_ReadNetlist( pFileNameIn, Io_ReadFileType(pFileNameIn), 1 );
     if ( pNetlist == NULL )
     {
-        printf( "Reading input file \"%s\" has failed.\n", pFileNameIn );
+        fprintf( Abc_FrameGlobalGetOut(), "Reading input file \"%s\" has failed.\n", pFileNameIn );
         return;
     }
     Io_WriteBlif( pNetlist, pFileNameOut, 1, 1, fSeq );
@@ -842,7 +842,7 @@ void Io_NtkWriteNodeInt( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCover )
     int i, nVars = Abc_ObjFaninNum(pNode);
     if ( nVars > 7 )
     {
-        printf( "Node \"%s\" has more than 7 inputs. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+        fprintf( Abc_FrameGlobalGetOut(), "Node \"%s\" has more than 7 inputs. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
         return;
     }
 
@@ -937,7 +937,7 @@ void Io_NtkWriteNodeInt( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCover )
         }
         if ( z == 0 )
         {
-            printf( "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+            fprintf( Abc_FrameGlobalGetOut(), "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
             return;
         }
 
@@ -992,13 +992,13 @@ void Io_NtkWriteNodeIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCov
     Length = strlen(pStr);
     if ( Length != 2 && Length != 3 )
     {
-        printf( "Wrong LUT struct (%s)\n", pStr );
+        fprintf( Abc_FrameGlobalGetOut(), "Wrong LUT struct (%s)\n", pStr );
         return;
     }
     for ( i = 0; i < Length; i++ )
         if ( pStr[i] - '0' < 3 || pStr[i] - '0' > 6 )
         {
-            printf( "The LUT size (%d) should belong to {3,4,5,6}.\n", pStr[i] - '0' );
+            fprintf( Abc_FrameGlobalGetOut(), "The LUT size (%d) should belong to {3,4,5,6}.\n", pStr[i] - '0' );
             return;
         }
 
@@ -1007,7 +1007,7 @@ void Io_NtkWriteNodeIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCov
     nLutRoot  =                   pStr[Length-1] - '0';
     if ( nLeaves > nLutLeaf - 1 + (nLutLeaf2 ? nLutLeaf2 - 1 : 0) + nLutRoot )
     {
-        printf( "The node size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
+        fprintf( Abc_FrameGlobalGetOut(), "The node size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
         return;
     }
 
@@ -1078,9 +1078,9 @@ void Io_NtkWriteNodeIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCov
         {
             if ( !If_CluCheckExt( NULL, pRes, nLeaves, nLutLeaf, nLutRoot, pLut0, pLut1, &Func0, &Func1 ) )
             {
-                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
-                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
-                printf( "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+                Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "    " );
+                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
                 return;
             }
         }
@@ -1088,9 +1088,9 @@ void Io_NtkWriteNodeIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCov
         {
             if ( !If_CluCheckExt3( NULL, pRes, nLeaves, nLutLeaf, nLutLeaf2, nLutRoot, pLut0, pLut1, pLut2, &Func0, &Func1, &Func2 ) )
             {
-                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
-                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
-                printf( "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+                Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "    " );
+                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
                 return;
             }
         }
@@ -1165,13 +1165,13 @@ void Io_NtkWriteModelIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCo
     Length = strlen(pStr);
     if ( Length != 2 && Length != 3 )
     {
-        printf( "Wrong LUT struct (%s)\n", pStr );
+        fprintf( Abc_FrameGlobalGetOut(), "Wrong LUT struct (%s)\n", pStr );
         return;
     }
     for ( i = 0; i < Length; i++ )
         if ( pStr[i] - '0' < 3 || pStr[i] - '0' > 6 )
         {
-            printf( "The LUT size (%d) should belong to {3,4,5,6}.\n", pStr[i] - '0' );
+            fprintf( Abc_FrameGlobalGetOut(), "The LUT size (%d) should belong to {3,4,5,6}.\n", pStr[i] - '0' );
             return;
         }
 
@@ -1180,7 +1180,7 @@ void Io_NtkWriteModelIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCo
     nLutRoot  =                   pStr[Length-1] - '0';
     if ( nLeaves > nLutLeaf - 1 + (nLutLeaf2 ? nLutLeaf2 - 1 : 0) + nLutRoot )
     {
-        printf( "The node size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
+        fprintf( Abc_FrameGlobalGetOut(), "The node size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
         return;
     }
 
@@ -1252,9 +1252,9 @@ void Io_NtkWriteModelIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCo
         {
             if ( !If_CluCheckExt( NULL, pRes, nLeaves, nLutLeaf, nLutRoot, pLut0, pLut1, &Func0, &Func1 ) )
             {
-                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
-                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
-                printf( "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+                Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "    " );
+                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
                 return;
             }
         }
@@ -1262,9 +1262,9 @@ void Io_NtkWriteModelIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCo
         {
             if ( !If_CluCheckExt3( NULL, pRes, nLeaves, nLutLeaf, nLutLeaf2, nLutRoot, pLut0, pLut1, pLut2, &Func0, &Func1, &Func2 ) )
             {
-                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
-                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
-                printf( "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+                Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "    " );
+                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
                 return;
             }
         }
@@ -1333,7 +1333,7 @@ void Io_WriteBlifInt( Abc_Ntk_t * pNtk, char * FileName, char * pLutStruct, int 
     pFile = fopen( FileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteBlifInt(): Cannot open the output file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteBlifInt(): Cannot open the output file.\n"  );
         return;
     }
     fprintf( pFile, "# Benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
@@ -1404,7 +1404,7 @@ void Io_WriteBlifSpecial( Abc_Ntk_t * pNtk, char * FileName, char * pLutStruct, 
     pNtkTemp = Abc_NtkToNetlist(pNtk);
     if ( pNtkTemp == NULL )
     {
-        fprintf( stdout, "Writing BLIF has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Writing BLIF has failed.\n"  );
         return;
     }
     if ( pLutStruct && fUseHie )

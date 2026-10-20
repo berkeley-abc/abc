@@ -370,7 +370,7 @@ int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     if ( !Abc_NtkHasSop(pNtk) )
         if ( !Abc_NtkToSop( pNtk, -1, ABC_INFINITY ) )
         {
-            printf( "Conversion to SOP has failed due to low resource limit.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Conversion to SOP has failed due to low resource limit.\n" );
             return 0;
         }
     // collect information
@@ -467,7 +467,7 @@ Abc_Ntk_t * Abc_NtkUnrollAndDrop( Abc_Ntk_t * p, int nFrames, int nFramesAdd, Ve
     // perform combinational cleanup
     Abc_NtkCleanup( pNtk, 0 );
     if ( !Abc_NtkCheck( pNtk ) )
-        fprintf( stdout, "Abc_NtkCreateFromNode(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCreateFromNode(): Network check has failed.\n" );
     return pNtk;
 }
 

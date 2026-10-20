@@ -89,12 +89,12 @@ int Abc_NtkSuperChoiceLut( Abc_Ntk_t * pNtk, int nLutSize, int nCutSizeMax, int 
     assert( Abc_NtkIsSopLogic(pNtk) );
     if ( nLutSize < 3 || nLutSize > SCL_LUT_MAX )
     {
-        printf( "LUT size (%d) does not belong to the interval: 3 <= LUT size <= %d\n", nLutSize, SCL_LUT_MAX );
+        fprintf( Abc_FrameGlobalGetOut(), "LUT size (%d) does not belong to the interval: 3 <= LUT size <= %d\n", nLutSize, SCL_LUT_MAX );
         return 0;
     }
     if ( nCutSizeMax <= nLutSize || nCutSizeMax > SCL_VARS_MAX )
     {
-        printf( "Cut size (%d) does not belong to the interval: LUT size (%d) < Cut size <= %d\n", nCutSizeMax, nLutSize, SCL_VARS_MAX );
+        fprintf( Abc_FrameGlobalGetOut(), "Cut size (%d) does not belong to the interval: LUT size (%d) < Cut size <= %d\n", nCutSizeMax, nLutSize, SCL_VARS_MAX );
         return 0;
     }
 
@@ -175,7 +175,7 @@ int Abc_NtkSuperChoiceLut( Abc_Ntk_t * pNtk, int nLutSize, int nCutSizeMax, int 
     }
 
     if ( fVerbose )
-    printf( "Try = %d. Dec = %d. Exist = %d. Use = %d. SUPER = %d levels of %d-LUTs.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Try = %d. Dec = %d. Exist = %d. Use = %d. SUPER = %d levels of %d-LUTs.\n", 
         nNodesTried, nNodesDec, nNodesExist, nNodesUsed, LevelMax, nLutSize );
 //    if ( fVerbose )
 //    printf( "The network is superchoiced for %d levels of %d-LUTs.\n", LevelMax, nLutSize );
@@ -187,7 +187,7 @@ int Abc_NtkSuperChoiceLut( Abc_Ntk_t * pNtk, int nLutSize, int nCutSizeMax, int 
     // check
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Abc_NtkSuperChoiceLut: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkSuperChoiceLut: The network check has failed.\n" );
         return 0;
     }
     return 1;
@@ -874,15 +874,15 @@ Abc_Ntk_t * Abc_NtkSpecialMapping( Abc_Ntk_t * pNtk, int fVerbose )
     {
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
-        printf( "Node %4d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %4d : ", i );
         if ( pObj->fMarkA )
-            printf( " MarkA  " );
+            fprintf( Abc_FrameGlobalGetOut(), " MarkA  " );
         else
-            printf( "        " );
+            fprintf( Abc_FrameGlobalGetOut(), "        " );
         if ( pObj->fMarkB )
-            printf( " MarkB  " );
+            fprintf( Abc_FrameGlobalGetOut(), " MarkB  " );
         else
-            printf( "        " );
+            fprintf( Abc_FrameGlobalGetOut(), "        " );
         Vec_IntPrint( Vec_WecEntry(vSupps, i) );
     }
     }
@@ -911,7 +911,7 @@ Abc_Ntk_t * Abc_NtkSpecialMapping( Abc_Ntk_t * pNtk, int fVerbose )
 
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkSpecialMapping: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkSpecialMapping: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }

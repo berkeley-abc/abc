@@ -63,10 +63,10 @@ void Io_WriteEdgelist( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches, int
     pFile = fopen( FileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteEdgelist(): Cannot open the output file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteEdgelist(): Cannot open the output file.\n" );
         return;
     }
-    fprintf( stdout, "WriteEdgelist (Verilog-to-PyG @ https://github.com/ycunxi/Verilog-to-PyG) starts writing to %s.\n", FileName );
+    fprintf( Abc_FrameGlobalGetOut(), "WriteEdgelist (Verilog-to-PyG @ https://github.com/ycunxi/Verilog-to-PyG) starts writing to %s.\n", FileName );
     fprintf( pFile, "# Benchmark Edgelist Dumping (beta) \"%s\" written by ABC on %s (more at https://github.com/ycunxi/Verilog-to-PyG)\n", pNtk->pName, Extra_TimeStamp() );
     // write the master network
     Io_NtkEdgelistWrite( pFile, pNtk, fWriteLatches, fBb2Wb, fSeq , fName);
@@ -684,7 +684,7 @@ int Io_NtkEdgelistWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode, int Length, in
     if ( pNode2 == NULL )
     {
         if ( !fReport )
-            fReport = 1, printf( "Warning: Missing second output of gate(s) \"%s\".\n", Mio_GateReadName(pGate) );
+            fReport = 1, fprintf( Abc_FrameGlobalGetOut(), "Warning: Missing second output of gate(s) \"%s\".\n", Mio_GateReadName(pGate) );
         return 0;
     }
     fprintf( pFile, " %s",  Abc_ObjName( Abc_ObjFanout0(pNode2) ) );
@@ -775,7 +775,7 @@ void Io_NtkEdgelistWriteNodeInt( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vC
     int i, nVars = Abc_ObjFaninNum(pNode);
     if ( nVars > 7 )
     {
-        printf( "Node \"%s\" has more than 7 inputs. Writing Edgelist has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+        fprintf( Abc_FrameGlobalGetOut(), "Node \"%s\" has more than 7 inputs. Writing Edgelist has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
         return;
     }
 
@@ -868,7 +868,7 @@ void Io_NtkEdgelistWriteNodeInt( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vC
         }
         if ( z == 0 )
         {
-            printf( "Node \"%s\" is not decomposable. Writing Edgelist has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+            fprintf( Abc_FrameGlobalGetOut(), "Node \"%s\" is not decomposable. Writing Edgelist has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
             return;
         }
 
@@ -923,13 +923,13 @@ void Io_NtkEdgelistWriteNodeIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_
     Length = strlen(pStr);
     if ( Length != 2 && Length != 3 )
     {
-        printf( "Wrong LUT struct (%s)\n", pStr );
+        fprintf( Abc_FrameGlobalGetOut(), "Wrong LUT struct (%s)\n", pStr );
         return;
     }
     for ( i = 0; i < Length; i++ )
         if ( pStr[i] - '0' < 3 || pStr[i] - '0' > 6 )
         {
-            printf( "The LUT size (%d) should belong to {3,4,5,6}.\n", pStr[i] - '0' );
+            fprintf( Abc_FrameGlobalGetOut(), "The LUT size (%d) should belong to {3,4,5,6}.\n", pStr[i] - '0' );
             return;
         }
 
@@ -938,7 +938,7 @@ void Io_NtkEdgelistWriteNodeIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_
     nLutRoot  =                   pStr[Length-1] - '0';
     if ( nLeaves > nLutLeaf - 1 + (nLutLeaf2 ? nLutLeaf2 - 1 : 0) + nLutRoot )
     {
-        printf( "The node size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
+        fprintf( Abc_FrameGlobalGetOut(), "The node size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
         return;
     }
 
@@ -1009,9 +1009,9 @@ void Io_NtkEdgelistWriteNodeIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_
         {
             if ( !If_CluCheckExt( NULL, pRes, nLeaves, nLutLeaf, nLutRoot, pLut0, pLut1, &Func0, &Func1 ) )
             {
-                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
-                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
-                printf( "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "    " );
+                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
                 return;
             }
         }
@@ -1019,9 +1019,9 @@ void Io_NtkEdgelistWriteNodeIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_
         {
             if ( !If_CluCheckExt3( NULL, pRes, nLeaves, nLutLeaf, nLutLeaf2, nLutRoot, pLut0, pLut1, pLut2, &Func0, &Func1, &Func2 ) )
             {
-                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
-                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
-                printf( "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "    " );
+                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
                 return;
             }
         }
@@ -1097,13 +1097,13 @@ void Io_NtkEdgelistWriteModelIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int
     Length = strlen(pStr);
     if ( Length != 2 && Length != 3 )
     {
-        printf( "Wrong LUT struct (%s)\n", pStr );
+        fprintf( Abc_FrameGlobalGetOut(), "Wrong LUT struct (%s)\n", pStr );
         return;
     }
     for ( i = 0; i < Length; i++ )
         if ( pStr[i] - '0' < 3 || pStr[i] - '0' > 6 )
         {
-            printf( "The LUT size (%d) should belong to {3,4,5,6}.\n", pStr[i] - '0' );
+            fprintf( Abc_FrameGlobalGetOut(), "The LUT size (%d) should belong to {3,4,5,6}.\n", pStr[i] - '0' );
             return;
         }
 
@@ -1112,7 +1112,7 @@ void Io_NtkEdgelistWriteModelIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int
     nLutRoot  =                   pStr[Length-1] - '0';
     if ( nLeaves > nLutLeaf - 1 + (nLutLeaf2 ? nLutLeaf2 - 1 : 0) + nLutRoot )
     {
-        printf( "The node size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
+        fprintf( Abc_FrameGlobalGetOut(), "The node size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
         return;
     }
 
@@ -1184,9 +1184,9 @@ void Io_NtkEdgelistWriteModelIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int
         {
             if ( !If_CluCheckExt( NULL, pRes, nLeaves, nLutLeaf, nLutRoot, pLut0, pLut1, &Func0, &Func1 ) )
             {
-                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
-                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
-                printf( "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "    " );
+                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
                 return;
             }
         }
@@ -1194,9 +1194,9 @@ void Io_NtkEdgelistWriteModelIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int
         {
             if ( !If_CluCheckExt3( NULL, pRes, nLeaves, nLutLeaf, nLutLeaf2, nLutRoot, pLut0, pLut1, pLut2, &Func0, &Func1, &Func2 ) )
             {
-                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
-                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
-                printf( "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "    " );
+                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
                 return;
             }
         }

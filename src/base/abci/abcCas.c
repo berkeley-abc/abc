@@ -80,7 +80,7 @@ Abc_Ntk_t * Abc_NtkCascade( Abc_Ntk_t * pNtk, int nLutSize, int fCheck, int fVer
     if ( fVerbose )
     {
         DdManager * dd = (DdManager *)Abc_NtkGlobalBddMan( pNtk );
-        printf( "Shared BDD size = %6d nodes.  ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+        fprintf( Abc_FrameGlobalGetOut(), "Shared BDD size = %6d nodes.  ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
         ABC_PRT( "BDD construction time", Abc_Clock() - clk );
     }
 
@@ -110,7 +110,7 @@ Abc_Ntk_t * Abc_NtkCascade( Abc_Ntk_t * pNtk, int nLutSize, int fCheck, int fVer
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkCollapse: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCollapse: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -134,12 +134,12 @@ void Abc_LutBddTestPrint( DdManager * dd, Vec_Ptr_t * vNodes, Vec_Wrd_t * vMasks
     Vec_PtrForEachEntry( DdNode *, vNodes, node, i )
     {
         if (Cudd_IsConstant(node)) 
-            printf("ID = %2d  value = %d                           ", (int)node->Id, (int)Cudd_V(node) );
+            fprintf( Abc_FrameGlobalGetOut(), "ID = %2d  value = %d                           ", (int)node->Id, (int)Cudd_V(node) );
         else
-            printf("ID = %2d  level = %2d  index = %2d (%s)  cof0 = %2d  Cof1 = %2d  r = %u   ", 
+            fprintf( Abc_FrameGlobalGetOut(), "ID = %2d  level = %2d  index = %2d (%s)  cof0 = %2d  Cof1 = %2d  r = %u   ", 
                 (int)node->Id, Cudd_ReadPerm(dd, node->index), (int)node->index, ppNames[node->index], (int)Cudd_E(node)->Id, (int)Cudd_T(node)->Id, (int)node->ref);
         if ( Cudd_ReadPerm(dd, node->index) == 0 ) {
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
             continue;
         }
         word Mask = Vec_WrdEntry(vMasks, (int)node->Id);
@@ -148,15 +148,15 @@ void Abc_LutBddTestPrint( DdManager * dd, Vec_Ptr_t * vNodes, Vec_Wrd_t * vMasks
                 continue;            
             int Val = (((Mask >> Abc_Var2Lit(k, 0)) & 1) << 1) | ((Mask >> Abc_Var2Lit(k, 1)) & 1);
             if ( Val == 1 )
-                printf( "%c%s", '-', ppNames[k] );
+                fprintf( Abc_FrameGlobalGetOut(), "%c%s", '-', ppNames[k] );
             else if ( Val == 2 )
-                printf( "%c%s", '+', ppNames[k] );
+                fprintf( Abc_FrameGlobalGetOut(), "%c%s", '+', ppNames[k] );
             else if ( Val == 3 )
-                printf( "**" );
+                fprintf( Abc_FrameGlobalGetOut(), "**" );
             else if ( Val == 0 )
-                printf( "??" );                
+                fprintf( Abc_FrameGlobalGetOut(), "??" );                
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -196,13 +196,13 @@ void Abc_LutBddTest( DdManager * dd, DdNode * bFunc, char ** ppNames, int nNames
     }
     assert( Vec_IntSize(vLevels) == Vec_PtrSize(vNodes) );
 
-    printf( "Size = %d.  Fanins = %d.  Vars = %d.  Nodes = %d.\n", dd->size, nNames, nVars, Vec_PtrSize(vNodes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Size = %d.  Fanins = %d.  Vars = %d.  Nodes = %d.\n", dd->size, nNames, nVars, Vec_PtrSize(vNodes) );
     Vec_PtrForEachEntry( DdNode *, vNodes, node, i )
     {
         if (Cudd_IsConstant(node)) 
-            printf("ID = %2d  value = %d\n", (int)node->Id, (int)Cudd_V(node) );
+            fprintf( Abc_FrameGlobalGetOut(), "ID = %2d  value = %d\n", (int)node->Id, (int)Cudd_V(node) );
         else
-            printf("ID = %2d  level = %2d  index = %2d (%s)  cof0 = %2d  Cof1 = %2d  r = %u\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "ID = %2d  level = %2d  index = %2d (%s)  cof0 = %2d  Cof1 = %2d  r = %u\n", 
                 (int)node->Id, Cudd_ReadPerm(dd, node->index), (int)node->index, ppNames[node->index], (int)Cudd_E(node)->Id, (int)Cudd_T(node)->Id, (int)node->ref);
     }
 
@@ -230,7 +230,7 @@ void Abc_LutBddTest( DdManager * dd, DdNode * bFunc, char ** ppNames, int nNames
 
         //printf( "Level %2d : ", i );
         //Vec_IntPrint( vLevel );
-        printf( "Level %2d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Level %2d : ", i );
         for ( k = 0; k < nNames; k++ ) {
             if ( Cudd_ReadPerm(dd, k) >= i )
                 continue;
@@ -239,9 +239,9 @@ void Abc_LutBddTest( DdManager * dd, DdNode * bFunc, char ** ppNames, int nNames
                 Vec_IntForEachEntry(vLevel, Obj, n)
                     if ( (Vec_WrdEntry(vMasks, Obj) >> Abc_Var2Lit(k, !f)) & 1 )
                         Counts[f]++;
-            printf( "%s(%d:%d)  ", ppNames[k], Counts[0], Counts[1] );
+            fprintf( Abc_FrameGlobalGetOut(), "%s(%d:%d)  ", ppNames[k], Counts[0], Counts[1] );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         Vec_IntForEachEntry( vLevel, Obj, n )
         {
@@ -404,20 +404,20 @@ void Abc_LutCascadePrintLut( word * pLuts, int n, int i, int nLutSize, int nVars
     word nIns   = pLuts[i+1];
     word * pIns = pLuts+i+2;
     word * pT   = pLuts+i+2+nIns+1; int k;
-    printf( "LUT%d : ", n );
-    printf( "%c = { ", Abc_LutCascadeChar((int)pIns[nIns], nVars) );
+    fprintf( Abc_FrameGlobalGetOut(), "LUT%d : ", n );
+    fprintf( Abc_FrameGlobalGetOut(), "%c = { ", Abc_LutCascadeChar((int)pIns[nIns], nVars) );
     for ( k = nLutSize-1; k >= nIns; k-- )
-        printf( "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );
     for ( k = nIns-1; k >= 0; k-- )
-        printf( "%c ", Abc_LutCascadeChar((int)pIns[k], nVars) );
-    printf( "}  " );
-    Abc_TtPrintHexRev( stdout, pT, nIns );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%c ", Abc_LutCascadeChar((int)pIns[k], nVars) );
+    fprintf( Abc_FrameGlobalGetOut(), "}  " );
+    Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), pT, nIns );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Abc_LutCascadePrint( word * pLuts, int nLutSize )
 {
     int n, i, nVars = pLuts[3+pLuts[2]];
-    printf( "The LUT cascade contains %d LUTs:\n", (int)pLuts[0] );
+    fprintf( Abc_FrameGlobalGetOut(), "The LUT cascade contains %d LUTs:\n", (int)pLuts[0] );
     for ( n = 0, i = 1; n < pLuts[0]; n++, i += pLuts[i] )
         Abc_LutCascadePrintLut( pLuts, n, i, nLutSize, nVars );
 }
@@ -499,9 +499,9 @@ word * Abc_LutCascadeGen( int nVars, int nLutSize, int nRails, int nShared )
         Vec_StrPush( vGuide, 'a'+Obj );
     Vec_StrPush( vGuide, '\0' );
     
-    printf( "Generated %d-LUT cascade for a %d-var function with %d rails and %d shared vars (node = %d, level = %d).\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Generated %d-LUT cascade for a %d-var function with %d rails and %d shared vars (node = %d, level = %d).\n", 
         nLutSize, nVars, nRails, nShared, (int)Vec_WrdEntry(vRes, 0), c );
-    printf( "Structural info: %s\n", Vec_StrArray(vGuide) );
+    fprintf( Abc_FrameGlobalGetOut(), "Structural info: %s\n", Vec_StrArray(vGuide) );
     Vec_StrFree( vGuide );
 
     word * pRes = Vec_WrdReleaseArray(vRes);
@@ -623,14 +623,14 @@ void Abc_TtPermuteMask( word * p, int nVars, int Mask, Vec_Int_t * vPerm )
     int v, i, iLast = nVars-1, nWords = Abc_TtWordNum(nVars);
     int * pPerm = vPerm ? Vec_IntArray(vPerm) : NULL;
     if ( 0 && vPerm ) {
-        printf( "Beg: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Beg: " );
         for ( v = 0; v < nVars; v++ )
-            printf( "%c ", 'a'+Vec_IntEntry(vPerm, v) );
-        printf( "\n" );
-        printf( "Bit:  " );
+            fprintf( Abc_FrameGlobalGetOut(), "%c ", 'a'+Vec_IntEntry(vPerm, v) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Bit:  " );
         for ( v = 0; v < nVars; v++ )
-            printf( "%c ", (Mask >> v) & 1 ? '1' : '-' );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c ", (Mask >> v) & 1 ? '1' : '-' );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     for ( v = nVars-1; v >= 0; v-- ) {
         if ( ((Mask >> v) & 1) == 0 )
@@ -647,10 +647,10 @@ void Abc_TtPermuteMask( word * p, int nVars, int Mask, Vec_Int_t * vPerm )
         iLast--;
     }
     if ( 0 && vPerm ) {
-        printf( "End:  " );
+        fprintf( Abc_FrameGlobalGetOut(), "End:  " );
         for ( v = 0; v < nVars; v++ )
-            printf( "%c ", 'a'+Vec_IntEntry(vPerm, v) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c ", 'a'+Vec_IntEntry(vPerm, v) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -772,7 +772,7 @@ word * Abc_LutCascadeDec( Abc_BSEval_t * p, char * pGuide, word * pTruth, int nV
             nRVars = -1;
         if ( i+2 > nStages ) {
             if ( fVerbose )
-                printf( "The length of the cascade (%d) exceeds the max allowed number of stages (%d).\n", i+2, nStages );
+                fprintf( Abc_FrameGlobalGetOut(), "The length of the cascade (%d) exceeds the max allowed number of stages (%d).\n", i+2, nStages );
             nRVars = -1;
         }
         if ( fXRail && nRVars == -1 && Vec_IntSize(vVarIDs) > nLutSize-1 ) {
@@ -786,14 +786,14 @@ word * Abc_LutCascadeDec( Abc_BSEval_t * p, char * pGuide, word * pTruth, int nV
                 nRVars = -1;
             if ( i+2 > nStages ) {
                 if ( fVerbose )
-                    printf( "The length of the cascade (%d) exceeds the max allowed number of stages (%d).\n", i+2, nStages );
+                    fprintf( Abc_FrameGlobalGetOut(), "The length of the cascade (%d) exceeds the max allowed number of stages (%d).\n", i+2, nStages );
                 nRVars = -1;
             }
         }
         if ( nRVars == -1 ) {
             Vec_IntClear( vVarIDs );
             if ( fVerbose )
-                printf( "The function is not decomposable with %d rails.\n", nRails );
+                fprintf( Abc_FrameGlobalGetOut(), "The function is not decomposable with %d rails.\n", nRails );
             break;
         }
     }
@@ -879,7 +879,7 @@ Abc_Ntk_t * Abc_NtkLutCascadeFromLuts( word * pLuts, int nVars, Abc_Ntk_t * pNtk
     Vec_PtrFree( vCopy ); 
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkLutCascadeFromLuts: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkLutCascadeFromLuts: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -920,13 +920,13 @@ Abc_Ntk_t * Abc_NtkLutCascadeOne( Abc_Ntk_t * pNtk, int nLutSize, int nStages, i
         Abc_TtMinimumBase( pTruth1, Vec_IntArray(vVarIDs), Abc_NtkCiNum(pNtk), &nVars );
         Vec_IntShrink( vVarIDs, nVars );
         if ( fVerbose ) {
-            printf( "Iter %2d : ", Iter );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %2d : ", Iter );
             if ( Abc_NtkCiNum(pNtk) != nVars )
-                printf( "The support of the function is reduced from %d to %d variables.\n", Abc_NtkCiNum(pNtk), nVars );
-            printf( "Decomposing %d-var function into %d-rail cascade of %d-LUTs", nVars, nRails, nLutSize );
+                fprintf( Abc_FrameGlobalGetOut(), "The support of the function is reduced from %d to %d variables.\n", Abc_NtkCiNum(pNtk), nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "Decomposing %d-var function into %d-rail cascade of %d-LUTs", nVars, nRails, nLutSize );
             if ( pGuide )
-                printf( " using structural info: %s", pGuide );
-            printf( ".\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " using structural info: %s", pGuide );
+            fprintf( Abc_FrameGlobalGetOut(), ".\n" );
         }
 
         word * pLuts = Abc_LutCascadeDec( p, pGuide, pTruth1, Abc_NtkCiNum(pNtk), vVarIDs, nRails, nLutSize, nStages, (int)(Iter >= 0), nZParam, fXRail, fVeryVerbose, NULL, NULL, nSubsets, nBest );
@@ -939,12 +939,12 @@ Abc_Ntk_t * Abc_NtkLutCascadeOne( Abc_Ntk_t * pNtk, int nLutSize, int nStages, i
                 Abc_LutCascadePrint( pLuts, nLutSize );
             word * pTruth2 = Abc_LutCascadeTruth( pLuts, Abc_NtkCiNum(pNtk) );
             if ( !Abc_TtEqual(pCopy, pTruth2, nWords) ) {
-                printf( "Verification FAILED.\n" );
-                printf("Function before: "); Abc_TtPrintHexRev( stdout, pCopy,   Abc_NtkCiNum(pNtk) ); printf( "\n" );
-                printf("Function after:  "); Abc_TtPrintHexRev( stdout, pTruth2, Abc_NtkCiNum(pNtk) ); printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Verification FAILED.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Function before: "); Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), pCopy,   Abc_NtkCiNum(pNtk) ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Function after:  "); Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), pTruth2, Abc_NtkCiNum(pNtk) ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
             else if ( fVerbose )
-                printf( "Verification passed.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Verification passed.\n" );
             ABC_FREE( pLuts );
             ABC_FREE( pTruth2 );
             break;
@@ -965,7 +965,7 @@ Abc_Ntk_t * Abc_NtkLutCascadeGen( int nLutSize, int nStages, int nRails, int nSh
     if ( fVerbose ) {        
         word * pTruth = Abc_LutCascadeTruth( pLuts, nVars );
         if ( nVars <= 10 ) {
-            printf( "Function: "); Abc_TtPrintHexRev( stdout, pTruth, nVars ); printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(),  "Function: "); Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), pTruth, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         ABC_FREE( pTruth );
     }
@@ -1271,7 +1271,7 @@ int Abc_NtkAddEdges( Abc_LutCas_t * p )
     Vec_IntFill( p->vPath[1], Vec_IntSize(p->vPath[1]), 0 );
     Abc_NtkFindTiming( p );
     if ( p->fVerbose )
-        printf( "Start : %d\n", p->DelayMax );
+        fprintf( Abc_FrameGlobalGetOut(), "Start : %d\n", p->DelayMax );
     int i, LastChange = 0;
     for ( i = 0; i < nEdgesMax; i++ ) 
     {
@@ -1293,7 +1293,7 @@ int Abc_NtkAddEdges( Abc_LutCas_t * p )
             LastChange = i+1;
         DelayPrev = p->DelayMax;
         if ( p->fVerbose )
-            printf( "%5d : %d : %4d -> %4d\n", i, p->DelayMax, Fanin, Node );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d : %d : %4d -> %4d\n", i, p->DelayMax, Fanin, Node );
     }
     Vec_IntShrink( p->vTrace, 2*LastChange );
     return p->DelayMax;
@@ -1322,11 +1322,11 @@ Vec_Wec_t * Abc_NtkProfileCascades( Abc_Ntk_t * pNtk, Vec_Int_t * vTrace )
             Vec_IntPush( vLevel, Node );
         Vec_IntAddToEntry( vCounts, Vec_IntSize(vLevel), 1 );
     }
-    printf( "Cascades: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Cascades: " );
     Vec_IntForEachEntry( vCounts, Count, i )
         if ( Count )
-            printf( "%d=%d ", i, Count ), nCascs += Count;
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(),  "%d=%d ", i, Count ), nCascs += Count;
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_IntFree( vMap );
     Vec_IntFree( vPath );
     Vec_IntFree( vCounts );
@@ -1382,7 +1382,7 @@ Abc_Ntk_t * Abc_NtkLutCascadeMap( Abc_Ntk_t * pNtk, int nLutsMax, int nIters, in
     for ( i = 0; i < nIters; i++ )
     {
         if ( fVerbose )
-            printf( "ITERATION %2d:\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "ITERATION %2d:\n", i );
         float Delay = Abc_NtkAddEdges( p );
         if ( DelayBest < Delay || (DelayBest == Delay && Vec_IntSize(p->vTraceBest) <= Vec_IntSize(p->vTrace)) )
             continue;
@@ -1390,7 +1390,7 @@ Abc_Ntk_t * Abc_NtkLutCascadeMap( Abc_Ntk_t * pNtk, int nLutsMax, int nIters, in
         DelayBest = Delay;
         ABC_SWAP( Vec_Int_t *, p->vTrace, p->vTraceBest );
     }
-    printf( "Delay reduction %d -> %d (-%.2f %%) is found after iter %d with %d edges (%.2f %%). ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Delay reduction %d -> %d (-%.2f %%) is found after iter %d with %d edges (%.2f %%). ", 
         DelayStart, DelayBest, 100.0*(DelayStart - DelayBest)/DelayStart, IterBest, Vec_IntSize(p->vTraceBest)/2, 50.0*Vec_IntSize(p->vTraceBest)/nEdges );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Vec_Wec_t * vCascs = Abc_NtkProfileCascades( p->pNtk, p->vTraceBest );
@@ -1421,7 +1421,7 @@ Vec_Wrd_t * Abc_NtkLutCasReadTruths( char * pFileName, int nVarsOrig )
     int nWords = Abc_TtWordNum(nVarsOrig);
     int nFileSize = Gia_FileSize( pFileName );
     FILE * pFile = fopen( pFileName, "rb" );
-    if ( pFile == NULL ) { printf("Cannot open file \"%s\" for reading.\n", pFileName); return NULL; }
+    if ( pFile == NULL ) { fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName); return NULL; }
     word * pTruth = ABC_ALLOC( word, 2*nWords );
     char * pToken, * pLine = ABC_ALLOC( char, nFileSize );
     for ( int i = 0; fgets(pLine, nFileSize, pFile); i++ ) {
@@ -1431,12 +1431,12 @@ Vec_Wrd_t * Abc_NtkLutCasReadTruths( char * pFileName, int nVarsOrig )
         if ( pToken[0] == '0' && pToken[1] == 'x' )
             pToken += 2;
        if ( strlen(pToken) != (1 << (nVarsOrig-2)) ) {
-            printf( "Line %d has truth table of size %d while expected size is %d.\n", i, (int)strlen(pToken), 1 << (nVarsOrig-2) );
+            fprintf( Abc_FrameGlobalGetOut(), "Line %d has truth table of size %d while expected size is %d.\n", i, (int)strlen(pToken), 1 << (nVarsOrig-2) );
             Vec_WrdFreeP( &vTruths );
             break;
         }
         if ( !Abc_TtReadHex( pTruth, pToken ) ) {
-            printf( "Line %d has truth table that cannot be read correctly (%s).\n", i, pToken );
+            fprintf( Abc_FrameGlobalGetOut(), "Line %d has truth table that cannot be read correctly (%s).\n", i, pToken );
             Vec_WrdFreeP( &vTruths );
             break;
         }        
@@ -1478,7 +1478,7 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
 
     int nFuncs = Vec_WrdSize(vTruths)/nWords;
     if ( Vec_WrdSize(vTruths) != nFuncs * nWords ) {
-        printf( "The files size (%d bytes) does not match the truth table size (%d) for the given number of functions (%d).\n", 8*Vec_WrdSize(vTruths), 8*nWords, nFuncs );
+        fprintf( Abc_FrameGlobalGetOut(), "The files size (%d bytes) does not match the truth table size (%d) for the given number of functions (%d).\n", 8*Vec_WrdSize(vTruths), 8*nWords, nFuncs );
         Vec_WrdFree( vTruths );
         return;
     }
@@ -1486,7 +1486,7 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
     Abc_Random(1);
     for ( i = 0; i < Seed; i++ )
         Abc_Random(0);
-    printf( "Considering %d functions having %d variables from file \"%s\".\n", nFuncs, nVarsOrig, pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Considering %d functions having %d variables from file \"%s\".\n", nFuncs, nVarsOrig, pFileName );
     word * pCopy = ABC_ALLOC( word, nWords );
     int Iter = 0, IterReal = 0, LutStats[50] = {0}, StageStats[50] = {0}, MyuStats[50] = {0};
     Abc_BSEval_t * p = Abc_BSEvalAlloc();
@@ -1496,11 +1496,11 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
         Abc_TtCopy( pCopy, pTruth, nWords, 0 );
 
         if ( fVeryVerbose )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         if ( fVerbose || fVeryVerbose )
-            printf( "Function %4d : ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Function %4d : ", i );
         if ( fVeryVerbose )
-            Abc_TtPrintHexRev( stdout, pTruth, nVarsOrig ), printf( "\n" );
+            Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), pTruth, nVarsOrig ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
         //continue;
 
         int nVars = -1;
@@ -1509,8 +1509,8 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
         Vec_IntShrink( vVarIDs, nVars );
         if ( fVeryVerbose ) {
             if ( nVarsOrig != nVars )
-                printf( "The support of the function is reduced from %d to %d variables.\n", nVarsOrig, nVars );
-            printf( "Decomposing %d-var function into %d-rail cascade of %d-LUTs.\n", nVars, nRails, nLutSize );
+                fprintf( Abc_FrameGlobalGetOut(), "The support of the function is reduced from %d to %d variables.\n", nVarsOrig, nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "Decomposing %d-var function into %d-rail cascade of %d-LUTs.\n", nVars, nRails, nLutSize );
         }
         
         word * pLuts = Abc_LutCascadeDec( p, NULL, pTruth, nVarsOrig, vVarIDs, nRails, nLutSize, nStages, (int)(Iter >= 0), nZParam, fXRail, fVeryVerbose, &nStageCount, &MyuMin, nSubsets, nBest );
@@ -1523,7 +1523,7 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
             }
             Iter = 0;
             if ( fVerbose || fVeryVerbose )
-                printf( "Not decomposable.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Not decomposable.\n" );
             if ( fDump ) {
                 if ( pFile == NULL ) {
                     sprintf( pFileNameOut, "%s_nd", pFileName );
@@ -1547,15 +1547,15 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
         if ( fVeryVerbose )
             Abc_LutCascadePrint( pLuts, nLutSize );
         if ( fVerbose || fVeryVerbose )
-            printf( "Decomposition exists.  " );
+            fprintf( Abc_FrameGlobalGetOut(), "Decomposition exists.  " );
         if ( !Abc_TtEqual(pCopy, pTruth2, nWords) ) {
-            if ( fVerbose || fVeryVerbose )   printf( "Verification FAILED for function %d.\n", i );
-            if ( fVerbose || fVeryVerbose ) { printf( "Before: " ); Abc_TtPrintHexRev( stdout, pCopy,   nVarsOrig ), printf( "\n" ); }
-            if ( fVerbose || fVeryVerbose ) { printf( "After:  " ); Abc_TtPrintHexRev( stdout, pTruth2, nVarsOrig ), printf( "\n" ); }
+            if ( fVerbose || fVeryVerbose )   fprintf( Abc_FrameGlobalGetOut(), "Verification FAILED for function %d.\n", i );
+            if ( fVerbose || fVeryVerbose ) { fprintf( Abc_FrameGlobalGetOut(), "Before: " ); Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), pCopy,   nVarsOrig ), fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
+            if ( fVerbose || fVeryVerbose ) { fprintf( Abc_FrameGlobalGetOut(), "After:  " ); Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), pTruth2, nVarsOrig ), fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
             nErrors++;
         }
         else if ( fVerbose || fVeryVerbose )
-            printf( "Verification passed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Verification passed.\n" );
         ABC_FREE( pTruth2 );
         ABC_FREE( pLuts );
     }
@@ -1563,28 +1563,28 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
     ABC_FREE( pCopy );
     Vec_WrdFree( vTruths );
     if ( fPrintMyu ) {
-        printf( "Column multiplicity statistics for %d-rail LUT cascade:\n", nRails );
+        fprintf( Abc_FrameGlobalGetOut(), "Column multiplicity statistics for %d-rail LUT cascade:\n", nRails );
         for ( i = 0; i < 50; i++ )
             if ( MyuStats[i] )
-                printf( "   %2d Myu   : Function count = %8d (%6.2f %%)\n", i, MyuStats[i], 100.0*MyuStats[i]/Abc_MaxInt(1, nFuncs)/IterReal );
+                fprintf( Abc_FrameGlobalGetOut(), "   %2d Myu   : Function count = %8d (%6.2f %%)\n", i, MyuStats[i], 100.0*MyuStats[i]/Abc_MaxInt(1, nFuncs)/IterReal );
     }
     if ( fPrintLev ) {
-        printf( "Level count statistics for %d-rail LUT cascade:\n", nRails );
+        fprintf( Abc_FrameGlobalGetOut(), "Level count statistics for %d-rail LUT cascade:\n", nRails );
         for ( i = 0; i < 50; i++ )
             if ( StageStats[i] )
-                printf( "   %2d level : Function count = %8d (%6.2f %%)\n", i, StageStats[i], 100.0*StageStats[i]/Abc_MaxInt(1, nFuncs) );
+                fprintf( Abc_FrameGlobalGetOut(), "   %2d level : Function count = %8d (%6.2f %%)\n", i, StageStats[i], 100.0*StageStats[i]/Abc_MaxInt(1, nFuncs) );
     }
-    printf( "LUT count statistics for %d-rail LUT cascade:\n", nRails );
+    fprintf( Abc_FrameGlobalGetOut(), "LUT count statistics for %d-rail LUT cascade:\n", nRails );
     for ( i = 0; i < 50; i++ )
         if ( LutStats[i] )
-            printf( "   %2d LUT%d  : Function count = %8d (%6.2f %%)\n", i, nLutSize, LutStats[i], 100.0*LutStats[i]/Abc_MaxInt(1, nFuncs) );
-    printf( "Non-decomp  : Function count = %8d (%6.2f %%)\n", nFuncs-Sum, 100.0*(nFuncs-Sum)/Abc_MaxInt(1, nFuncs) );
-    if ( nErrors ) printf( "Verification ***FAILED*** for %d functions (%6.2f %%)\n", nErrors, 100.0*nErrors/Abc_MaxInt(1, nFuncs) );
-    printf( "Finished %d functions (%.2f LUTs / function; %.2f functions / sec).  ", 
+            fprintf( Abc_FrameGlobalGetOut(), "   %2d LUT%d  : Function count = %8d (%6.2f %%)\n", i, nLutSize, LutStats[i], 100.0*LutStats[i]/Abc_MaxInt(1, nFuncs) );
+    fprintf( Abc_FrameGlobalGetOut(), "Non-decomp  : Function count = %8d (%6.2f %%)\n", nFuncs-Sum, 100.0*(nFuncs-Sum)/Abc_MaxInt(1, nFuncs) );
+    if ( nErrors ) fprintf( Abc_FrameGlobalGetOut(), "Verification ***FAILED*** for %d functions (%6.2f %%)\n", nErrors, 100.0*nErrors/Abc_MaxInt(1, nFuncs) );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished %d functions (%.2f LUTs / function; %.2f functions / sec).  ", 
         nFuncs, 1.0*nTotalLuts/Sum, 1.0*nFuncs/(((double)(Abc_Clock() - clkStart))/((double)CLOCKS_PER_SEC)) );
     Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );
     if ( pFile ) {
-        printf( "Finished dumping %d non-decomposable functions into file \"%s\".\n", nFuncs-Sum, pFileNameOut );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished dumping %d non-decomposable functions into file \"%s\".\n", nFuncs-Sum, pFileNameOut );
         fclose( pFile );
     }
 }
@@ -1603,7 +1603,7 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
 void Vec_WrdWriteTruthHex( char * pFileName, Vec_Wrd_t * vTruths, int nVars )
 {
     FILE * pFile = fopen( pFileName, "wb" );
-    if ( pFile == NULL ) { printf("Cannot open file \"%s\" for reading.\n", pFileName); return; }
+    if ( pFile == NULL ) { fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName); return; }
     int i, nWords = Abc_TtWordNum(nVars), nFuncs = Vec_WrdSize(vTruths)/nWords;
     assert( nFuncs * nWords == Vec_WrdSize(vTruths) );
     for ( i = 0; i < nFuncs; i++ )
@@ -1614,7 +1614,7 @@ void Abc_NtkSuppMinFile( char * pFileName )
 {
     int fError = 0, nFileSize = Gia_FileSize( pFileName );
     FILE * pFile = fopen( pFileName, "rb" );
-    if ( pFile == NULL ) { printf("Cannot open file \"%s\" for reading.\n", pFileName); return; }
+    if ( pFile == NULL ) { fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName); return; }
     Vec_Wrd_t ** pvTruths = ABC_CALLOC( Vec_Wrd_t *, 32 );
     char * pToken, * pLine = ABC_ALLOC( char, nFileSize );
     word * pTruth = ABC_ALLOC( word, nFileSize/16 );
@@ -1628,13 +1628,13 @@ void Abc_NtkSuppMinFile( char * pFileName )
         Len = strlen(pToken);
         nVars = Abc_Base2Log(Len);
         if ( Len != (1 << nVars) ) {
-            printf( "The number of hex characters (%d) in the truth table listed in line %d is not a degree of 2.\n", Len, i );
+            fprintf( Abc_FrameGlobalGetOut(), "The number of hex characters (%d) in the truth table listed in line %d is not a degree of 2.\n", Len, i );
             fError = 1;
             break;
         }
         nVars += 2;
         if ( !Abc_TtReadHex( pTruth, pToken ) ) {
-            printf( "Line %d has truth table that cannot be read correctly (%s).\n", i, pToken );
+            fprintf( Abc_FrameGlobalGetOut(), "Line %d has truth table that cannot be read correctly (%s).\n", i, pToken );
             fError = 1;
             break;
         }
@@ -1659,16 +1659,16 @@ void Abc_NtkSuppMinFile( char * pFileName )
         return;
     }
     // dump the resulting truth tables
-    printf( "Read and support-minimized %d functions. Total support reduction %d -> %d (%.2f %%).\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Read and support-minimized %d functions. Total support reduction %d -> %d (%.2f %%).\n", 
         nFuncs, nSuppSums[0], nSuppSums[1], 100.0*(nSuppSums[0]-nSuppSums[1])/Abc_MaxInt(nSuppSums[0], 1) );
-    printf( "The resulting function statistics:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "The resulting function statistics:\n" );
     for ( nVars = 0; nVars < 32; nVars++ ) {
         if ( pvTruths[nVars] == NULL )
             continue;
         char pFileName2[1000];
         sprintf( pFileName2, "%s_%02d.txt", Extra_FileNameGeneric(pFileName), nVars );
         Vec_WrdWriteTruthHex( pFileName2, pvTruths[nVars], nVars );
-        printf( "Support size %2d : Dumped %6d truth tables into file \"%s\".\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Support size %2d : Dumped %6d truth tables into file \"%s\".\n", 
             nVars, Vec_WrdSize(pvTruths[nVars])/Abc_TtWordNum(nVars), pFileName2 );
         Vec_WrdFreeP( &pvTruths[nVars] );
     }
@@ -1707,10 +1707,10 @@ void Abc_NtkRandFile( char * pFileName, int nVars, int nFuncs, int nMints )
     }
     Vec_WrdWriteTruthHex( pFileName, vTruths, nVars );
     if ( nMints )
-        printf( "Generated %d random %d-variable functions with %d positive minterms and dumped them into file \"%s\".\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Generated %d random %d-variable functions with %d positive minterms and dumped them into file \"%s\".\n", 
             nFuncs, nVars, nMints, pFileName );
     else
-        printf( "Generated %d random %d-variable functions and dumped them into file \"%s\".\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Generated %d random %d-variable functions and dumped them into file \"%s\".\n", 
             nFuncs, nVars, pFileName );    
     Vec_WrdFree( vTruths );
 }
@@ -1793,13 +1793,13 @@ void Abc_LutCascadeDumpVerilog( Vec_Ptr_t * vLuts, int nVars, const char * pFile
 {
     if ( vLuts == NULL || pFileName == NULL )
     {
-        printf( "Abc_LutCascadeDumpVerilog(): Null input.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_LutCascadeDumpVerilog(): Null input.\n" );
         return;
     }
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Abc_LutCascadeDumpVerilog(): Cannot open \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_LutCascadeDumpVerilog(): Cannot open \"%s\" for writing.\n", pFileName );
         return;
     }
     int nOuts = Vec_PtrSize( vLuts );
@@ -1852,7 +1852,7 @@ Vec_Ptr_t * Exa8_ManExactSynthesisPopcountAsLuts( int nVars, int nLutSize, int f
     int nWordsNode = Abc_TtWordNum( nLutSize );
     int nOuts = Abc_Base2Log( nVars + 1 );
     if ( Vec_PtrSize(vTruthSets) != nOuts && fVerbose )
-        printf( "Exa8_ManExactSynthesisPopcountAsLuts(): Expecting %d outputs, got %d.\n", nOuts, Vec_PtrSize(vTruthSets) );
+        fprintf( Abc_FrameGlobalGetOut(), "Exa8_ManExactSynthesisPopcountAsLuts(): Expecting %d outputs, got %d.\n", nOuts, Vec_PtrSize(vTruthSets) );
     Vec_Ptr_t * vRes = Vec_PtrAlloc( Vec_PtrSize(vTruthSets) );
     Vec_Wrd_t * vTruths; int o;
     Vec_PtrForEachEntry( Vec_Wrd_t *, vTruthSets, vTruths, o )
@@ -1916,7 +1916,7 @@ Abc_Ntk_t * Abc_NtkLutCascadeFromPopcountLuts( int nVars, int nLutSize, int fVer
         return NULL;
     if ( pFileName && nLutSize == 6 ) {
         Abc_LutCascadeDumpVerilog( vLuts, nVars, pFileName );
-        printf( "Wrote the resulting network into a Verilog file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Wrote the resulting network into a Verilog file \"%s\".\n", pFileName );
     }
     Abc_Ntk_t * pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 0 );
     Abc_Obj_t * pObj; int Id; char pName[32];
@@ -1931,7 +1931,7 @@ Abc_Ntk_t * Abc_NtkLutCascadeFromPopcountLuts( int nVars, int nLutSize, int fVer
     }
     Vec_Int_t * vCover = Vec_IntAlloc( 1000 );
     if ( Vec_PtrSize(vLuts) != Abc_Base2Log(nVars + 1) )
-        printf( "Abc_NtkLutCascadeFromPopcountLuts(): Expecting %d outputs, got %d.\n", Abc_Base2Log(nVars + 1), Vec_PtrSize(vLuts) );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkLutCascadeFromPopcountLuts(): Expecting %d outputs, got %d.\n", Abc_Base2Log(nVars + 1), Vec_PtrSize(vLuts) );
     word * pLuts; int o;
     Vec_PtrForEachEntry( word *, vLuts, pLuts, o )
     {
@@ -1968,7 +1968,7 @@ Abc_Ntk_t * Abc_NtkLutCascadeFromPopcountLuts( int nVars, int nLutSize, int fVer
     Vec_PtrFreeFree( vLuts );
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkLutCascadeFromPopcountLuts: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkLutCascadeFromPopcountLuts: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }

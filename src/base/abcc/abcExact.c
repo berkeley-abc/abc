@@ -188,7 +188,7 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         extern void Abc_ExactTest( int fVerbose );
         extern void Abc_ExactStoreTest( int fVerbose );
 
-        printf( "run test suite, ignore all other settings\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "run test suite, ignore all other settings\n" );
         Abc_ExactTest( fVerbose );
         Abc_ExactStoreTest( fVerbose );
         return 0;
@@ -1009,7 +1009,7 @@ static int Abc_TwoExactRunMin( Bmc_EsPar_t * pPars, int nNodeMax )
     for ( n = nNodeBeg; n <= nNodeMax; n++ )
     {
         if ( !pPars->fSilent )
-            printf( "\nTrying N = %d:\n", n );
+            fprintf( Abc_FrameGlobalGetOut(), "\nTrying N = %d:\n", n );
         pPars->nNodes = n;
         ABC_FREE( pPars->pSolFans );
         fFound = Abc_TwoExactRun( pPars );
@@ -1055,7 +1055,7 @@ static Vec_Int_t * Abc_TwoExactCofactorSeeds( Bmc_EsPar_t * pPars, int nNodeMax 
         nFound = Abc_TwoExactRunMin( pCof, nNodeMax );
         if ( nFound )
         {
-            printf( "Cofactor %c=%d: minimum N = %d, truth = %s\n", 'a' + v, c, nFound, pCofHex );
+            fprintf( Abc_FrameGlobalGetOut(), "Cofactor %c=%d: minimum N = %d, truth = %s\n", 'a' + v, c, nFound, pCofHex );
             for ( i = 0; i < nFound; i++ )
             {
                 int Fan0 = pCof->pSolFans[2*i];
@@ -1070,7 +1070,7 @@ static Vec_Int_t * Abc_TwoExactCofactorSeeds( Bmc_EsPar_t * pPars, int nNodeMax 
             }
         }
         else
-            printf( "Cofactor %c=%d: no solution up to N = %d, truth = %s\n", 'a' + v, c, nNodeMax, pCofHex );
+            fprintf( Abc_FrameGlobalGetOut(), "Cofactor %c=%d: no solution up to N = %d, truth = %s\n", 'a' + v, c, nNodeMax, pCofHex );
         ABC_FREE( pCof->pSolFans );
         ABC_FREE( pCofHex );
     }
@@ -1372,13 +1372,13 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Random( 1 );
         if ( fSmartGen )
         {
-            printf( "Deriving frequent seed nodes from cofactors.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Deriving frequent seed nodes from cofactors.\n" );
             vSeedPairs = Abc_TwoExactCofactorSeeds( pPars, pPars->nNodes );
             nSeedNodes = Abc_MinInt( nSeedNodes, Vec_IntSize(vSeedPairs) );
-            printf( "Trying %d smart candidate input assignments with %d frozen seed node%s and %d randomized don't-care position%s.\n", nCandPerms, nSeedNodes, nSeedNodes == 1 ? "" : "s", nPermDcs, nPermDcs == 1 ? "" : "s" );
+            fprintf( Abc_FrameGlobalGetOut(), "Trying %d smart candidate input assignments with %d frozen seed node%s and %d randomized don't-care position%s.\n", nCandPerms, nSeedNodes, nSeedNodes == 1 ? "" : "s", nPermDcs, nPermDcs == 1 ? "" : "s" );
         }
         else
-            printf( "Trying %d random candidate input assignments with %d randomized don't-care position%s.\n", nCandPerms, nPermDcs, nPermDcs == 1 ? "" : "s" );
+            fprintf( Abc_FrameGlobalGetOut(), "Trying %d random candidate input assignments with %d randomized don't-care position%s.\n", nCandPerms, nPermDcs, nPermDcs == 1 ? "" : "s" );
         pPars->fSilent = 1;
         for ( i = 0; i < nCandPerms; i++ )
         {
@@ -1395,13 +1395,13 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->pPermFans = pFans;
             pPars->pPermStr = pPerm;
             if ( nGenerated == 1 || nGenerated % 10000 == 0 )
-                printf( "Trying candidate %d/%d: %s\n", nGenerated, nCandPerms, pStruct );
+                fprintf( Abc_FrameGlobalGetOut(), "Trying candidate %d/%d: %s\n", nGenerated, nCandPerms, pStruct );
             fFound = pPars->fGlucose ? Exa_ManExactSynthesis( pPars ) : Exa_ManExactSynthesis2( pPars );
             if ( fFound )
             {
                 pPars->fSilent = fSilentSave;
                 Abc_TwoExactRun( pPars );
-                printf( "Found solution using candidate %d: %s\n", nGenerated, pStruct );
+                fprintf( Abc_FrameGlobalGetOut(), "Found solution using candidate %d: %s\n", nGenerated, pStruct );
                 ABC_FREE( pStruct );
                 ABC_FREE( pPerm );
                 ABC_FREE( pFans );
@@ -1419,7 +1419,7 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         Vec_IntFreeP( &vSeedPairs );
         ABC_FREE( pPars->pSolFans );
         if ( !fFound )
-            printf( "No solution found after trying %d generated candidate%s (%d generation failure%s).\n", nGenerated, nGenerated == 1 ? "" : "s", nFailed, nFailed == 1 ? "" : "s" );
+            fprintf( Abc_FrameGlobalGetOut(), "No solution found after trying %d generated candidate%s (%d generation failure%s).\n", nGenerated, nGenerated == 1 ? "" : "s", nFailed, nFailed == 1 ? "" : "s" );
         Abc_PrintTime( 1, "Total candidate-search runtime", Abc_Clock() - clk );
         return 0;
     }
@@ -1436,7 +1436,7 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         if ( !Abc_TwoExactRunMin(pPars, pPars->nNodes) )
-            printf( "No solution found from N = %d through N = %d.\n", pPars->nVars + 1, pPars->nNodes );
+            fprintf( Abc_FrameGlobalGetOut(), "No solution found from N = %d through N = %d.\n", pPars->nVars + 1, pPars->nNodes );
         ABC_FREE( pPars->pSolFans );
         return 0;
     }
@@ -2397,7 +2397,7 @@ int Abc_CommandNetExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
-    printf( "Finished reading %d output%s\n\n", nOuts, nOuts == 1 ? "" : "s" );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished reading %d output%s\n\n", nOuts, nOuts == 1 ? "" : "s" );
     Tn_SolveProblem( nIns, nOuts, Truths, pTypes, nEdgeLimit, nLevelLimit, nSolsMax, Seed, TimeOut, fVerbose );    
     return 0;
 

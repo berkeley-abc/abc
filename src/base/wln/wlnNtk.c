@@ -123,10 +123,10 @@ int Wln_NtkMemUsage( Wln_Ntk_t * p )
 void Wln_NtkPrint( Wln_Ntk_t * p )
 {
     int iObj;
-    printf( "Printing %d objects of network \"%s\":\n", Wln_NtkObjNum(p), p->pName );
+    fprintf( Abc_FrameGlobalGetOut(), "Printing %d objects of network \"%s\":\n", Wln_NtkObjNum(p), p->pName );
     Wln_NtkForEachObj( p, iObj )
         Wln_ObjPrint( p, iObj );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 
@@ -159,10 +159,10 @@ int Wln_NtkIsAcyclic_rec( Wln_Ntk_t * p, int iObj )
     // check if the node is part of the combinational loop
     if ( Wln_ObjIsTravIdCurrent(p, iObj) )
     {
-        fprintf( stdout, "Network contains combinational loop!\n" );
-        fprintf( stdout, "Node %16s is encountered twice on the following path:\n", Wln_ObjName(p, iObj) );
-        fprintf( stdout, "Node %16s (ID %6d) of type %5s (type ID %2d) ->\n", 
-            Wln_ObjName(p, iObj), iObj, Abc_OperName(Wln_ObjType(p, iObj)), Wln_ObjType(p, iObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "Network contains combinational loop!\n"  );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %16s is encountered twice on the following path:\n", Wln_ObjName(p, iObj)  );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %16s (ID %6d) of type %5s (type ID %2d) ->\n", 
+            Wln_ObjName(p, iObj), iObj, Abc_OperName(Wln_ObjType(p, iObj)), Wln_ObjType(p, iObj)  );
         return 0;
     }
     // mark this node as a node on the current path
@@ -180,8 +180,8 @@ int Wln_NtkIsAcyclic_rec( Wln_Ntk_t * p, int iObj )
         if ( !Wln_NtkIsAcyclic_rec(p, iFanin) )
         {
             // return as soon as the loop is detected
-            fprintf( stdout, "Node %16s (ID %6d) of type %5s (type ID %2d) ->\n", 
-                Wln_ObjName(p, iObj), iObj, Abc_OperName(Wln_ObjType(p, iObj)), Wln_ObjType(p, iObj) );
+            fprintf( Abc_FrameGlobalGetOut(), "Node %16s (ID %6d) of type %5s (type ID %2d) ->\n", 
+                Wln_ObjName(p, iObj), iObj, Abc_OperName(Wln_ObjType(p, iObj)), Wln_ObjType(p, iObj)  );
             return 0;
         }
     }
@@ -206,7 +206,7 @@ int Wln_NtkIsAcyclic( Wln_Ntk_t * p )
         if ( (fAcyclic = Wln_NtkIsAcyclic_rec(p, iObj)) )
             continue;
         // stop as soon as the first loop is detected
-        fprintf( stdout, "Primary output %16s (ID %6d)\n", Wln_ObjName(p, iObj), iObj );
+        fprintf( Abc_FrameGlobalGetOut(), "Primary output %16s (ID %6d)\n", Wln_ObjName(p, iObj), iObj );
         goto finish;
     }
     Wln_NtkForEachFf( p, iObj, i )
@@ -215,7 +215,7 @@ int Wln_NtkIsAcyclic( Wln_Ntk_t * p )
         if ( (fAcyclic = Wln_NtkIsAcyclic_rec(p, iObj)) )
             continue;
         // stop as soon as the first loop is detected
-        fprintf( stdout, "Flip-flop %16s (ID %6d)\n", Wln_ObjName(p, iObj), iObj );
+        fprintf( Abc_FrameGlobalGetOut(), "Flip-flop %16s (ID %6d)\n", Wln_ObjName(p, iObj), iObj );
         goto finish;
     }
     Wln_NtkForEachObj( p, iObj )
@@ -224,7 +224,7 @@ int Wln_NtkIsAcyclic( Wln_Ntk_t * p )
     {
         int nSinks = 0;
         Wln_NtkCreateRefs(p);
-        printf( "The network has %d objects and %d (%6.2f %%) of them are not connected to the outputs.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "The network has %d objects and %d (%6.2f %%) of them are not connected to the outputs.\n", 
             Wln_NtkObjNum(p), nUnvisited, 100.0*nUnvisited/Wln_NtkObjNum(p) );
         Wln_NtkForEachObj( p, iObj )
             if ( !Wln_ObjRefs(p, iObj) && !Wln_ObjIsCi(p, iObj) && !Wln_ObjIsCo(p, iObj) && !Wln_ObjIsFf(p, iObj) )
@@ -232,17 +232,17 @@ int Wln_NtkIsAcyclic( Wln_Ntk_t * p )
         if ( nSinks )
         {
             int nPrinted = 0;
-            printf( "These unconnected objects feed into %d sink objects without fanout:\n", nSinks );
+            fprintf( Abc_FrameGlobalGetOut(), "These unconnected objects feed into %d sink objects without fanout:\n", nSinks );
             Wln_NtkForEachObj( p, iObj )
                 if ( !Wln_ObjRefs(p, iObj) && !Wln_ObjIsCi(p, iObj) && !Wln_ObjIsCo(p, iObj) && !Wln_ObjIsFf(p, iObj) )
                 {
-                    fprintf( stdout, "Node %16s (ID %6d) of type %5s (type ID %2d)\n", 
-                        Wln_ObjName(p, iObj), iObj, Abc_OperName(Wln_ObjType(p, iObj)), Wln_ObjType(p, iObj) );
+                    fprintf( Abc_FrameGlobalGetOut(), "Node %16s (ID %6d) of type %5s (type ID %2d)\n", 
+                        Wln_ObjName(p, iObj), iObj, Abc_OperName(Wln_ObjType(p, iObj)), Wln_ObjType(p, iObj)  );
                     if ( ++nPrinted == 5 )
                         break;
                 }
             if ( nPrinted < nSinks )
-                printf( "...\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "...\n" );
         }
         Wln_NtkForEachObj( p, iObj )
             if ( /*!Wln_ObjRefs(p, iObj) &&*/ !Wln_ObjIsTravIdPrevious(p, iObj) && !Wln_ObjIsCi(p, iObj) )
@@ -251,7 +251,7 @@ int Wln_NtkIsAcyclic( Wln_Ntk_t * p )
                 if ( (fAcyclic = Wln_NtkIsAcyclic_rec(p, iObj)) )
                     continue;
                 // stop as soon as the first loop is detected
-                fprintf( stdout, "Unconnected object %s\n", Wln_ObjName(p, iObj) );
+                fprintf( Abc_FrameGlobalGetOut(), "Unconnected object %s\n", Wln_ObjName(p, iObj) );
                 goto finish;
             }
     }
@@ -428,18 +428,18 @@ void Wln_NtkStaticFanoutStop( Wln_Ntk_t * p )
 void Wln_NtkStaticFanoutTest( Wln_Ntk_t * p )
 {
     int k, iObj, iFanout;
-    printf( "Printing fanouts of %d objects of network \"%s\":\n", Wln_NtkObjNum(p), p->pName );
+    fprintf( Abc_FrameGlobalGetOut(), "Printing fanouts of %d objects of network \"%s\":\n", Wln_NtkObjNum(p), p->pName );
     Wln_NtkStaticFanoutStart( p );
     Wln_NtkForEachObj( p, iObj )
     {
         Wln_ObjPrint( p, iObj );
-        printf( "   Fanouts : " );
+        fprintf( Abc_FrameGlobalGetOut(), "   Fanouts : " );
         Wln_ObjForEachFanoutStatic( p, iObj, iFanout, k )
-            printf( "%5d ", iFanout );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d ", iFanout );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Wln_NtkStaticFanoutStop( p );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -71,7 +71,7 @@ Abc_Ntk_t * Abc_NtkMulti( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCnf
 
     // print a warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )
-        printf( "Warning: The choice nodes in the AIG are removed by renoding.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The choice nodes in the AIG are removed by renoding.\n" );
 
     // define the boundary
     if ( fCnf )
@@ -109,7 +109,7 @@ Abc_Ntk_t * Abc_NtkMulti( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCnf
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkMulti: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkMulti: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -143,7 +143,7 @@ void Abc_NtkMultiInt( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
     }
 
     // perform renoding for POs
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );

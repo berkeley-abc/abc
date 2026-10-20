@@ -92,7 +92,7 @@ void Pla_WritePla( Pla_Man_t * p, char * pFileName )
     {
         FILE * pFile = fopen( pFileName, "wb" );
         if ( pFile == NULL )
-            printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         else
         {
             fwrite( Vec_StrArray(vOut), 1, Vec_StrSize(vOut), pFile );

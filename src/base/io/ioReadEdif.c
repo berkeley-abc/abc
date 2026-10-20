@@ -49,7 +49,7 @@ Abc_Ntk_t * Io_ReadEdif( char * pFileName, int fCheck )
     Extra_FileReader_t * p;
     Abc_Ntk_t * pNtk;
 
-    printf( "Currently this parser does not work!\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Currently this parser does not work!\n" );
     return NULL;
 
     // start the file
@@ -66,7 +66,7 @@ Abc_Ntk_t * Io_ReadEdif( char * pFileName, int fCheck )
     // make sure that everything is okay with the network structure
     if ( fCheck && !Abc_NtkCheckRead( pNtk ) )
     {
-        printf( "Io_ReadEdif: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_ReadEdif: The network check has failed.\n" );
         Abc_NtkDelete( pNtk );
         return NULL;
     }
@@ -96,7 +96,7 @@ Abc_Ntk_t * Io_ReadEdifNetwork( Extra_FileReader_t * p )
     vTokens = (Vec_Ptr_t *)Extra_FileReaderGetTokens(p);
     if ( strcmp( (char *)vTokens->pArray[0], "edif" ) != 0 )
     {
-        printf( "%s: Wrong input file format.\n", Extra_FileReaderGetFileName(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "%s: Wrong input file format.\n", Extra_FileReaderGetFileName(p) );
         return NULL;
     }
     
@@ -105,7 +105,7 @@ Abc_Ntk_t * Io_ReadEdifNetwork( Extra_FileReader_t * p )
 
     // go through the lines of the file
     fTokensReady = 0;
-    pProgress = Extra_ProgressBarStart( stdout, Extra_FileReaderGetFileSize(p) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Extra_FileReaderGetFileSize(p) );
     for ( iLine = 1; fTokensReady || (vTokens = (Vec_Ptr_t *)Extra_FileReaderGetTokens(p)); iLine++ )
     {
         Extra_ProgressBarUpdate( pProgress, Extra_FileReaderGetCurPosition(p), NULL );
@@ -178,7 +178,7 @@ Abc_Ntk_t * Io_ReadEdifNetwork( Extra_FileReader_t * p )
                     Io_ReadCreatePo( pNtk, (char *)vTokens->pArray[1] );
                 else
                 {
-                    printf( "%s (line %d): Wrong interface specification.\n", Extra_FileReaderGetFileName(p), iLine );
+                    fprintf( Abc_FrameGlobalGetOut(), "%s (line %d): Wrong interface specification.\n", Extra_FileReaderGetFileName(p), iLine );
                     Abc_NtkDelete( pNtk );
                     return NULL;
                 }
@@ -215,7 +215,7 @@ Abc_Ntk_t * Io_ReadEdifNetwork( Extra_FileReader_t * p )
             Abc_ObjSetData( pObj, Abc_SopCreateBuf((Mem_Flex_t *)pNtk->pManFunc) );
         else
         {
-            printf( "%s: Unknown gate type \"%s\".\n", Extra_FileReaderGetFileName(p), (char*)pObj->pData );
+            fprintf( Abc_FrameGlobalGetOut(), "%s: Unknown gate type \"%s\".\n", Extra_FileReaderGetFileName(p), (char*)pObj->pData );
             Abc_NtkDelete( pNtk );
             return NULL;
         }

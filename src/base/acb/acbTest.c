@@ -266,12 +266,12 @@ int * Acb_NtkFindSimCex( Gia_Man_t * pF, Gia_Man_t * pG, int nWords, int fVerbos
                     pModel[k] = Abc_TtGetBit( pSimPi, b );
                 }
                 if ( fVerbose )
-                    printf( "Random simulation found mismatch at output %d, pattern %d.\n", i, b );
+                    fprintf( Abc_FrameGlobalGetOut(), "Random simulation found mismatch at output %d, pattern %d.\n", i, b );
                 break;
             }
     }
     if ( fVerbose && pModel == NULL )
-        printf( "Random simulation tried %d patterns and found no mismatch.\n", nBits );
+        fprintf( Abc_FrameGlobalGetOut(), "Random simulation tried %d patterns and found no mismatch.\n", nBits );
     Vec_WrdFree( vSimsF );
     Vec_WrdFree( vSimsG );
     Vec_WrdFreeP( &pF->vSimsPi );
@@ -304,12 +304,12 @@ int * Acb_GiaFindOnePoSimCex( Gia_Man_t * p, int nWords, int fVerbose, char * pL
             pModel[k] = Abc_TtGetBit( pSimPi, b );
         }
         if ( fVerbose )
-            printf( "%s simulation found bad pattern at pattern %d/%d.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "%s simulation found bad pattern at pattern %d/%d.\n",
                 pLabel ? pLabel : "Hard-output", b, nBits );
         break;
     }
     if ( fVerbose && pModel == NULL )
-        printf( "%s simulation tried %d patterns and found no bad pattern.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "%s simulation tried %d patterns and found no bad pattern.\n",
             pLabel ? pLabel : "Hard-output", nBits );
     Vec_WrdFreeP( &vSims );
     Vec_WrdFreeP( &p->vSimsPi );
@@ -341,12 +341,12 @@ int Acb_NtkCheckModelCex( Gia_Man_t * pF, Gia_Man_t * pG, int * pModel, int fVer
         if ( !Gx && (Fx || (Fb ^ Gb)) )
         {
             if ( fVerbose )
-                printf( "Validated SAT counterexample at output %d.\n", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Validated SAT counterexample at output %d.\n", i );
             return 1;
         }
     }
     if ( fVerbose )
-        printf( "SAT model validation failed: no compatible mismatch is observed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "SAT model validation failed: no compatible mismatch is observed.\n" );
     return 0;
 }
 int Acb_NtkEvalModelBool( Acb_Ntk_t * p, int * pModel, Vec_Int_t * vVals )
@@ -413,7 +413,7 @@ int Acb_NtkCheckModelCexAcbBool( Acb_Ntk_t * pF, Acb_Ntk_t * pG, int * pModel, i
             if ( Vec_IntEntry(vF, Acb_ObjFanin(pF, iCoF, 0)) != Vec_IntEntry(vG, Acb_ObjFanin(pG, iCoG, 0)) )
             {
                 if ( fVerbose )
-                    printf( "Original ACB Boolean validation found SAT counterexample at output %d.\n", i );
+                    fprintf( Abc_FrameGlobalGetOut(), "Original ACB Boolean validation found SAT counterexample at output %d.\n", i );
                 Ret = ACB_CEX_VALID;
                 break;
             }
@@ -1230,7 +1230,7 @@ void Acb_OutputFile( char * pFileName, Acb_Ntk_t * pNtkF, int * pModel, int Stat
     FILE * pFile = fopen( pFileName0, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open results file \"%s\".\n", pFileName0 );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open results file \"%s\".\n", pFileName0 );
         return;
     }
     if ( Status == ACB_XEC_UNDEC )
@@ -1251,7 +1251,7 @@ void Acb_OutputFile( char * pFileName, Acb_Ntk_t * pNtkF, int * pModel, int Stat
             fprintf( pFile, "%s %d\n", Acb_ObjNameStr(pNtkF, iObj), pModel[i] );
     }
     fclose( pFile );
-    printf( "Produced output file \"%s\".\n\n", pFileName0 );
+    fprintf( Abc_FrameGlobalGetOut(), "Produced output file \"%s\".\n\n", pFileName0 );
 }
 int * Acb_NtkSolve( Gia_Man_t * p, int fVerbose, int * pStatus )
 {
@@ -1271,7 +1271,7 @@ int * Acb_NtkSolve( Gia_Man_t * p, int fVerbose, int * pStatus )
         pNtkTemp->pModel = NULL;
         Abc_NtkDelete( pNtkTemp );
         *pStatus = RetValue;
-        printf( "The networks are %s.  ", RetValue == 1 ? "equivalent" : (RetValue == 0 ? "NOT equivalent" : "UNDECIDED") );
+        fprintf( Abc_FrameGlobalGetOut(), "The networks are %s.  ", RetValue == 1 ? "equivalent" : (RetValue == 0 ? "NOT equivalent" : "UNDECIDED") );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         if ( RetValue == 0 )
             return pModel;
@@ -1304,14 +1304,14 @@ int * Acb_NtkSolveIvyPrecheck( Gia_Man_t * p, int fVerbose, int * pStatus )
         int RetValue;
         int * pModel;
         if ( fVerbose )
-            printf( "Trying bounded Ivy/FRAIG precheck before CaDiCaL: And = %d. PO = %d. total conflict limit = %d.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "Trying bounded Ivy/FRAIG precheck before CaDiCaL: And = %d. PO = %d. total conflict limit = %d.\n",
                 Gia_ManAndNum(p), Gia_ManCoNum(p), (int)pParams->nTotalBacktrackLimit );
         RetValue = Abc_NtkIvyProve( &pNtkTemp, pParams );
         pModel = pNtkTemp->pModel;
         pNtkTemp->pModel = NULL;
         Abc_NtkDelete( pNtkTemp );
         *pStatus = RetValue;
-        printf( "The networks are %s by bounded Ivy/FRAIG precheck.  ",
+        fprintf( Abc_FrameGlobalGetOut(), "The networks are %s by bounded Ivy/FRAIG precheck.  ",
             RetValue == 1 ? "equivalent" : (RetValue == 0 ? "NOT equivalent" : "UNDECIDED") );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         if ( RetValue == 0 )
@@ -1341,7 +1341,7 @@ int * Acb_NtkSolveNormalPrecheck( Gia_Man_t * p, int fVerbose, int * pStatus, in
         int RetValue;
         int * pModel;
         if ( fVerbose )
-            printf( "Trying normal XEC precheck before CaDiCaL-specific UNSAT passes: And = %d. PO = %d. backtrack limit = %d.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "Trying normal XEC precheck before CaDiCaL-specific UNSAT passes: And = %d. PO = %d. backtrack limit = %d.\n",
                 Gia_ManAndNum(p), Gia_ManCoNum(p), nBacktrackLimit );
         RetValue = Abc_NtkIvyProve( &pNtkTemp, pParams );
         pModel = pNtkTemp->pModel;
@@ -1349,7 +1349,7 @@ int * Acb_NtkSolveNormalPrecheck( Gia_Man_t * p, int fVerbose, int * pStatus, in
         Abc_NtkDelete( pNtkTemp );
         if ( pStatus )
             *pStatus = RetValue;
-        printf( "The networks are %s by normal XEC precheck.  ",
+        fprintf( Abc_FrameGlobalGetOut(), "The networks are %s by normal XEC precheck.  ",
             RetValue == 1 ? "equivalent" : (RetValue == 0 ? "NOT equivalent" : "UNDECIDED") );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         if ( RetValue == 0 )
@@ -1379,7 +1379,7 @@ Gia_Man_t * Acb_NtkFraigEquivReduce( Gia_Man_t * p, int fVerbose, char * pLabel,
     if ( pWork == NULL )
         return NULL;
     if ( fVerbose )
-        printf( "%s %s FRAIG equivalence reduction: And = %d. PO = %d. words = %d. node-conf = %d. sat-var-max = %d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "%s %s FRAIG equivalence reduction: And = %d. PO = %d. words = %d. node-conf = %d. sat-var-max = %d.\n",
             pLabel ? pLabel : "XEC", pPhase ? pPhase : "structural", nAndStart, Gia_ManCoNum(p), nWords, nConfLimit, nSatVarMax );
     pNew = Gia_ManFraigSweepSimple( pWork, pPars );
     Gia_ManStop( pWork );
@@ -1393,7 +1393,7 @@ Gia_Man_t * Acb_NtkFraigEquivReduce( Gia_Man_t * p, int fVerbose, char * pLabel,
     }
     if ( fVerbose )
     {
-        printf( "%s %s FRAIG equivalence reduction: And = %d -> %d. Lev = %d -> %d. ",
+        fprintf( Abc_FrameGlobalGetOut(), "%s %s FRAIG equivalence reduction: And = %d -> %d. Lev = %d -> %d. ",
             pLabel ? pLabel : "XEC", pPhase ? pPhase : "structural",
             nAndStart, Gia_ManAndNum(pNew), Gia_ManLevelNum(p), Gia_ManLevelNum(pNew) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -1401,7 +1401,7 @@ Gia_Man_t * Acb_NtkFraigEquivReduce( Gia_Man_t * p, int fVerbose, char * pLabel,
     if ( Gia_ManCoNum(pNew) != Gia_ManCoNum(p) || Gia_ManAndNum(pNew) >= nAndStart - nMinGain )
     {
         if ( fVerbose && Gia_ManCoNum(pNew) == Gia_ManCoNum(p) )
-            printf( "%s %s FRAIG equivalence reduction skipped because the proven merge gain is too small.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "%s %s FRAIG equivalence reduction skipped because the proven merge gain is too small.\n",
                 pLabel ? pLabel : "XEC", pPhase ? pPhase : "structural" );
         Gia_ManStop( pNew );
         return NULL;
@@ -1449,7 +1449,7 @@ int * Acb_NtkSolveConstXSeedCanonical( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec
     pGiaG = Acb_NtkGiaDeriveDualTargetsForceZero( pNtkG, vTargetsG );
     pGia  = Acb_NtkGiaDeriveMiter( pGiaF, pGiaG, 2 );
     if ( fVerbose )
-        printf( "Trying constant-X seed canonical proof: DC seeds = %d. And = %d. PO = %d. limit = %d sec.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Trying constant-X seed canonical proof: DC seeds = %d. And = %d. PO = %d. limit = %d sec.\n",
             Vec_IntSize(vDcObjsG), Gia_ManAndNum(pGia), Gia_ManCoNum(pGia), nSatTimeLimit );
     if ( Gia_ManAndNum(pGia) > 5000 )
     {
@@ -1457,7 +1457,7 @@ int * Acb_NtkSolveConstXSeedCanonical( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec
         if ( pTemp )
         {
             if ( fVerbose )
-                printf( "Constant-X seed canonical compression: And = %d -> %d. PO = %d.\n",
+                fprintf( Abc_FrameGlobalGetOut(), "Constant-X seed canonical compression: And = %d -> %d. PO = %d.\n",
                     Gia_ManAndNum(pGia), Gia_ManAndNum(pTemp), Gia_ManCoNum(pTemp) );
             Gia_ManStop( pGia );
             pGia = pTemp;
@@ -1480,7 +1480,7 @@ int * Acb_NtkSolveConstXSeedCanonical( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec
     {
         Status = ACB_XEC_EQ;
         if ( fVerbose )
-            printf( "Constant-X seed canonical proof: all miter outputs are constant-0 after canonicalization.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Constant-X seed canonical proof: all miter outputs are constant-0 after canonicalization.\n" );
     }
     else
         pModel = Acb_NtkSolveCadicalLimit( pGia, 0, fVerbose, &Status, nSatTimeLimit,
@@ -1489,12 +1489,12 @@ int * Acb_NtkSolveConstXSeedCanonical( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec
         *pStatus = Status;
     if ( Status == ACB_XEC_EQ )
     {
-        printf( "The networks are equivalent by constant-X seed canonical proof.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "The networks are equivalent by constant-X seed canonical proof.  " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     else if ( fVerbose )
     {
-        printf( "The networks are %s by constant-X seed canonical proof.  ",
+        fprintf( Abc_FrameGlobalGetOut(), "The networks are %s by constant-X seed canonical proof.  ",
             Status == ACB_XEC_NEQ ? "NOT equivalent" : "UNDECIDED" );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
@@ -1526,17 +1526,17 @@ Gia_Man_t * Acb_NtkBranchSweepReduce( Gia_Man_t * p, int fVerbose, char * pLabel
     pPars->fRewriting   = 1;
     pPars->fVerbose     = 0;
     if ( fVerbose )
-        printf( "%s branch SAT-sweeping reduction: And = %d. PO = %d. limit = %d sec. node-conf = %d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "%s branch SAT-sweeping reduction: And = %d. PO = %d. limit = %d sec. node-conf = %d.\n",
             pLabel ? pLabel : "XEC", nAndStart, Gia_ManCoNum(p), pPars->TimeLimit, pPars->nBTLimit );
     pNew = Cec_ManSatSweeping( p, pPars, 1 );
     if ( pNew == NULL )
     {
         if ( fVerbose )
-            printf( "%s branch SAT-sweeping reduction produced no network.\n", pLabel ? pLabel : "XEC" );
+            fprintf( Abc_FrameGlobalGetOut(), "%s branch SAT-sweeping reduction produced no network.\n", pLabel ? pLabel : "XEC" );
     }
     else if ( fVerbose )
     {
-        printf( "%s branch SAT-sweeping reduction: And = %d -> %d. Lev = %d -> %d. ",
+        fprintf( Abc_FrameGlobalGetOut(), "%s branch SAT-sweeping reduction: And = %d -> %d. Lev = %d -> %d. ",
             pLabel ? pLabel : "XEC", nAndStart, Gia_ManAndNum(pNew), Gia_ManLevelNum(p), Gia_ManLevelNum(pNew) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
@@ -1555,7 +1555,7 @@ Gia_Man_t * Acb_NtkBranchSweepReduce( Gia_Man_t * p, int fVerbose, char * pLabel
     if ( pBest == NULL || Gia_ManAndNum(pBest) >= nAndStart - Abc_MaxInt( 50, nAndStart / 100 ) )
     {
         if ( fVerbose )
-            printf( "%s branch structural reduction skipped because reduction is too small.\n", pLabel ? pLabel : "XEC" );
+            fprintf( Abc_FrameGlobalGetOut(), "%s branch structural reduction skipped because reduction is too small.\n", pLabel ? pLabel : "XEC" );
         if ( pBest )
             Gia_ManStop( pBest );
         return NULL;
@@ -1646,7 +1646,7 @@ int Acb_GiaSolveLinearObligations( Gia_Man_t * p, Vec_Int_t * vReq, int fVerbose
         if ( !Acb_GiaCollectLinearLit_rec( p, Lit, pRows + i * nWords, nWords, &Const, 0 ) )
         {
             if ( fVerbose )
-                printf( "Required-literal XOR-linear proof: obligation %d is non-linear; skipping.\n", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Required-literal XOR-linear proof: obligation %d is non-linear; skipping.\n", i );
             fLinear = 0;
             break;
         }
@@ -1697,14 +1697,14 @@ int Acb_GiaSolveLinearObligations( Gia_Man_t * p, Vec_Int_t * vReq, int fVerbose
         if ( fZero && pRhs[i] )
         {
             if ( fVerbose )
-                printf( "Required-literal XOR-linear proof: UNSAT. equations = %d. rank = %d.\n", nRows, nRank );
+                fprintf( Abc_FrameGlobalGetOut(), "Required-literal XOR-linear proof: UNSAT. equations = %d. rank = %d.\n", nRows, nRank );
             ABC_FREE( pRows );
             ABC_FREE( pRhs );
             return ACB_XEC_EQ;
         }
     }
     if ( fLinear && fVerbose )
-        printf( "Required-literal XOR-linear proof: consistent. equations = %d. rank = %d.\n", nRows, nRank );
+        fprintf( Abc_FrameGlobalGetOut(), "Required-literal XOR-linear proof: consistent. equations = %d. rank = %d.\n", nRows, nRank );
     ABC_FREE( pRows );
     ABC_FREE( pRhs );
     return ACB_XEC_UNDEC;
@@ -1782,7 +1782,7 @@ int Acb_GiaSolveObligationListUnit( Gia_Man_t * p, Vec_Int_t * vReq, int fVerbos
 cleanup:
     if ( fVerbose )
     {
-        printf( "%s: %s. obligations = %d. ",
+        fprintf( Abc_FrameGlobalGetOut(), "%s: %s. obligations = %d. ",
             pLabel ? pLabel : "Exact obligation unit branch",
             Status == ACB_XEC_EQ ? "UNSAT" : "UNDECIDED", Vec_IntSize(vReq) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -1877,19 +1877,19 @@ void Acb_GiaPrintHardPoFrontier( Gia_Man_t * p, int iPo, int fVerbose )
         return;
     vFrontier = Acb_GiaCollectPoFrontier( p, iPo, &LevelRoot, &LevelCut );
     nFront = Vec_IntSize( vFrontier );
-    printf( "    frontier: root level = %d, cut level = %d, candidates = %d",
+    fprintf( Abc_FrameGlobalGetOut(), "    frontier: root level = %d, cut level = %d, candidates = %d",
         LevelRoot, LevelCut, nFront );
     nPrint = Abc_MinInt( nFront, 8 );
     if ( nPrint )
     {
-        printf( ", sample obj/level/cone =" );
+        fprintf( Abc_FrameGlobalGetOut(), ", sample obj/level/cone =" );
         for ( i = 0; i < nPrint; i++ )
         {
             iObj = Vec_IntEntry( vFrontier, i );
-            printf( " %d/%d/%d", iObj, Gia_ObjLevelId(p, iObj), Gia_ManConeSize(p, &iObj, 1) );
+            fprintf( Abc_FrameGlobalGetOut(), " %d/%d/%d", iObj, Gia_ObjLevelId(p, iObj), Gia_ManConeSize(p, &iObj, 1) );
         }
     }
-    printf( ".\n" );
+    fprintf( Abc_FrameGlobalGetOut(), ".\n" );
     Vec_IntFree( vFrontier );
 }
 int Acb_GiaDupPoFrontier_rec( Gia_Man_t * p, Gia_Man_t * pNew, Gia_Obj_t * pObj, Vec_Int_t * vFrontMarks, int * pNFrontPis )
@@ -1976,7 +1976,7 @@ int Acb_NtkTryFrontierAbstractPo( Gia_Man_t * p, int iPo, int fVerbose, int nSat
         pOpt = nAndBest > 100 ? Gia_ManCompress2( pAbs, 1, 0 ) : NULL;
         pSolve = pOpt ? pOpt : pAbs;
         if ( fVerbose )
-            printf( "%s frontier abstraction: selector %d branch %d output %d. level %d/%d, frontier = %d, abs PIs = %d, And = %d -> %d, limit = %d sec.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "%s frontier abstraction: selector %d branch %d output %d. level %d/%d, frontier = %d, abs PIs = %d, And = %d -> %d, limit = %d sec.\n",
                 pLabel, iSelId, fUseOneBranch, iPo, Cuts[c], LevelRoot, nFrontier, nFrontPis, nAndBest, Gia_ManAndNum(pSolve), nLimit );
         if ( Gia_ManAndNum(pSolve) == 0 )
         {
@@ -1994,7 +1994,7 @@ int Acb_NtkTryFrontierAbstractPo( Gia_Man_t * p, int iPo, int fVerbose, int nSat
         }
         if ( fVerbose )
         {
-            printf( "%s frontier abstraction: output %d %s.  ",
+            fprintf( Abc_FrameGlobalGetOut(), "%s frontier abstraction: output %d %s.  ",
                 pLabel, iPo, Status == 1 ? "UNSAT" : "inconclusive" );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
@@ -2042,7 +2042,7 @@ int Acb_GiaSolveSmallConeInternalFrontier( Gia_Man_t * p, int fVerbose, int nSat
     ACB_ADD_FRONTIER_CUT( Abc_MaxInt(1, LevelRoot - 16) );
 #undef ACB_ADD_FRONTIER_CUT
     if ( fVerbose )
-        printf( "Trying small-cone internal frontier proof: CI = %d. AND = %d. levels = %d. cuts = %d. limit = %d sec.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Trying small-cone internal frontier proof: CI = %d. AND = %d. levels = %d. cuts = %d. limit = %d sec.\n",
             Gia_ManCiNum(p), Gia_ManAndNum(p), LevelRoot, nCuts, nSatTimeLimit );
     for ( c = 0; c < nCuts; c++ )
     {
@@ -2089,7 +2089,7 @@ int Acb_GiaSolveSmallConeInternalFrontier( Gia_Man_t * p, int fVerbose, int nSat
         }
         pSolve = pAbs;
         if ( fVerbose )
-            printf( "Small-cone internal frontier proof: cut = %d/%d. frontier = %d. abs PIs = %d. And = %d. limit = %d sec.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "Small-cone internal frontier proof: cut = %d/%d. frontier = %d. abs PIs = %d. And = %d. limit = %d sec.\n",
                 Cuts[c], LevelRoot, nFront, nFrontPis, Gia_ManAndNum(pSolve), nThisLimit );
         pModel = Acb_NtkSolveCadicalLimit( pSolve, 0, 0, &StatusOne, nThisLimit, NULL, 0 );
         ABC_FREE( pModel );
@@ -2103,7 +2103,7 @@ int Acb_GiaSolveSmallConeInternalFrontier( Gia_Man_t * p, int fVerbose, int nSat
     }
     if ( fVerbose )
     {
-        printf( "Small-cone internal frontier proof: %s.  ", Status == ACB_XEC_EQ ? "UNSAT" : "UNDECIDED" );
+        fprintf( Abc_FrameGlobalGetOut(), "Small-cone internal frontier proof: %s.  ", Status == ACB_XEC_EQ ? "UNSAT" : "UNDECIDED" );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     return Status;
@@ -2126,7 +2126,7 @@ int * Acb_NtkSolveCadicalLocalOptPo( Gia_Man_t * p, int iPo, int fVerbose, int *
     pOne = Gia_ManDupCones( p, &iPo, 1, 0 );
     nAndBefore = Gia_ManAndNum( pOne );
     if ( fVerbose )
-        printf( "%s local optimized cone: selector %d branch %d output %d. And = %d. limit = %d sec.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "%s local optimized cone: selector %d branch %d output %d. And = %d. limit = %d sec.\n",
             pLabel, iSelId, fUseOneBranch, iPo, nAndBefore, nSatTimeLimit );
     pOpt = Gia_ManCompress2( pOne, 1, fVerbose );
     pBase = pOpt ? pOpt : pOne;
@@ -2143,11 +2143,11 @@ int * Acb_NtkSolveCadicalLocalOptPo( Gia_Man_t * p, int iPo, int fVerbose, int *
     pSolve = pSyn ? pSyn : pBase;
     nAndAfter = Gia_ManAndNum( pSolve );
     if ( fVerbose )
-        printf( "%s local optimized cone: optimized And = %d -> %d.\n", pLabel, nAndBefore, nAndAfter );
+        fprintf( Abc_FrameGlobalGetOut(), "%s local optimized cone: optimized And = %d -> %d.\n", pLabel, nAndBefore, nAndAfter );
     if ( 10 * nAndAfter > 9 * nAndBefore )
     {
         if ( fVerbose )
-            printf( "%s local optimized cone: output %d skipped because reduction is below 10%%.  ", pLabel, iPo );
+            fprintf( Abc_FrameGlobalGetOut(), "%s local optimized cone: output %d skipped because reduction is below 10%%.  ", pLabel, iPo );
         if ( pStatus )
             *pStatus = ACB_XEC_UNDEC;
         fSkipped = 1;
@@ -2165,7 +2165,7 @@ cleanup:
         *pStatus = Status;
     if ( fVerbose )
     {
-        printf( "%s local optimized cone: output %d %s.  ",
+        fprintf( Abc_FrameGlobalGetOut(), "%s local optimized cone: output %d %s.  ",
             pLabel, iPo, fSkipped ? "SKIPPED" : (Status == 0 ? "SAT" : (Status == 1 ? "UNSAT" : "UNDECIDED")) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
@@ -2252,11 +2252,11 @@ int Acb_GiaBuildOverlapSchedule( Gia_Man_t * p, Acb_SplitPoOrder_t * pOrder, int
             }
         }
         if ( fVerbose && nAdded )
-            printf( "%s support-overlap cluster %d: seed output %d, members = %d.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "%s support-overlap cluster %d: seed output %d, members = %d.\n",
                 pLabel, nGroups - 1, iSeedPo, nAdded + 1 );
     }
     if ( fVerbose )
-        printf( "%s support-overlap clustering: outputs = %d. clusters = %d. overlap >= %d.%d%%, size ratio >= %d.%d%%.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "%s support-overlap clustering: outputs = %d. clusters = %d. overlap >= %d.%d%%, size ratio >= %d.%d%%.\n",
             pLabel, nMiterOuts, nGroups,
             pCtx->Pars.nOverlapMinPermille / 10, pCtx->Pars.nOverlapMinPermille % 10,
             pCtx->Pars.nOverlapSizePermille / 10, pCtx->Pars.nOverlapSizePermille % 10 );
@@ -2306,7 +2306,7 @@ int * Acb_NtkSolveCadicalSelectorBranch( Gia_Man_t * p, int nMiterOuts, int fUse
         goto cleanup;
     }
     if ( fVerbose )
-        printf( "%s conditioned grouped CaDiCaL sweep: selector %d branch %d. outputs = %d. And = %d -> %d. CNF var = %d. cla = %d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "%s conditioned grouped CaDiCaL sweep: selector %d branch %d. outputs = %d. And = %d -> %d. CNF var = %d. cla = %d.\n",
             pLabel, iSelId, fUseOneBranch, nMiterOuts, nAndCond, Gia_ManAndNum(pCnfGia), pCnf->nVars, pCnf->nClauses );
     pOrder = ABC_ALLOC( Acb_SplitPoOrder_t, nMiterOuts );
     Acb_NtkSortSplitOutputsLimit( pCnfGia, pOrder, nMiterOuts );
@@ -2335,7 +2335,7 @@ int * Acb_NtkSolveCadicalSelectorBranch( Gia_Man_t * p, int nMiterOuts, int fUse
         pPoSlot[pOrder[i].iPo] = i + 1;
     }
     if ( fVerbose )
-        printf( "%s output order: smallest cone %d ANDs, largest cone %d ANDs.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "%s output order: smallest cone %d ANDs, largest cone %d ANDs.\n",
             pLabel, pOrder[0].nAnds, pOrder[nMiterOuts-1].nAnds );
     pSched = ABC_ALLOC( int, nMiterOuts );
     pGroupStart = ABC_ALLOC( int, nMiterOuts );
@@ -2344,16 +2344,16 @@ int * Acb_NtkSolveCadicalSelectorBranch( Gia_Man_t * p, int nMiterOuts, int fUse
     if ( fVerbose )
     {
         int nPrint = Abc_MinInt( nSched, pCtx->Pars.nBranchSchedulePrintMax );
-        printf( "%s support-overlap schedule: selector %d branch %d outputs = %d. order =", pLabel, iSelId, fUseOneBranch, nSched );
+        fprintf( Abc_FrameGlobalGetOut(), "%s support-overlap schedule: selector %d branch %d outputs = %d. order =", pLabel, iSelId, fUseOneBranch, nSched );
         for ( i = 0; i < nPrint; i++ )
         {
             if ( pGroupStart[i] )
-                printf( " |" );
-            printf( " %d", pOrder[pSched[i]].iPo );
+                fprintf( Abc_FrameGlobalGetOut(), " |" );
+            fprintf( Abc_FrameGlobalGetOut(), " %d", pOrder[pSched[i]].iPo );
         }
         if ( nPrint < nSched )
-            printf( " ..." );
-        printf( ".\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " ..." );
+        fprintf( Abc_FrameGlobalGetOut(), ".\n" );
     }
     for ( i = 0; i < nSched; i++ )
     {
@@ -2374,7 +2374,7 @@ int * Acb_NtkSolveCadicalSelectorBranch( Gia_Man_t * p, int nMiterOuts, int fUse
                 break;
             }
             if ( fVerbose )
-                printf( "%s grouped CaDiCaL: starting overlap cluster at output %d.\n",
+                fprintf( Abc_FrameGlobalGetOut(), "%s grouped CaDiCaL: starting overlap cluster at output %d.\n",
                     pLabel, iPo );
         }
         nConflictsBeg = cadical_solver_nconflicts(pSat);
@@ -2390,7 +2390,7 @@ int * Acb_NtkSolveCadicalSelectorBranch( Gia_Man_t * p, int nMiterOuts, int fUse
             Status = 0;
             nUndec++;
             if ( fVerbose )
-                printf( "%s grouped CaDiCaL: skipping output %d because remaining branch budget is below %d sec.\n",
+                fprintf( Abc_FrameGlobalGetOut(), "%s grouped CaDiCaL: skipping output %d because remaining branch budget is below %d sec.\n",
                     pLabel, iPo, nMinOutTime );
             break;
         }
@@ -2411,7 +2411,7 @@ int * Acb_NtkSolveCadicalSelectorBranch( Gia_Man_t * p, int nMiterOuts, int fUse
                 Status = -1;
                 nUnsat++;
                 if ( fVerbose )
-                    printf( "%s grouped CaDiCaL: output %d UNSAT by frontier abstraction; skipping grouped assumption.\n", pLabel, iPo );
+                    fprintf( Abc_FrameGlobalGetOut(), "%s grouped CaDiCaL: output %d UNSAT by frontier abstraction; skipping grouped assumption.\n", pLabel, iPo );
                 continue;
             }
             if ( nLocalLimit >= nMinOutTime )
@@ -2436,7 +2436,7 @@ int * Acb_NtkSolveCadicalSelectorBranch( Gia_Man_t * p, int nMiterOuts, int fUse
                     Status = -1;
                     nUnsat++;
                     if ( fVerbose )
-                        printf( "%s grouped CaDiCaL: output %d UNSAT by local optimized cone; skipping grouped assumption.\n", pLabel, iPo );
+                        fprintf( Abc_FrameGlobalGetOut(), "%s grouped CaDiCaL: output %d UNSAT by local optimized cone; skipping grouped assumption.\n", pLabel, iPo );
                     continue;
                 }
             }
@@ -2454,7 +2454,7 @@ int * Acb_NtkSolveCadicalSelectorBranch( Gia_Man_t * p, int nMiterOuts, int fUse
                 pPoLearnTotal[iPo] = cadical_solver_nlearned(pSat);
                 pPoTime[iPo]   = (int)((Abc_Clock() - clkOut + CLOCKS_PER_SEC/2) / CLOCKS_PER_SEC);
                 if ( fVerbose )
-                    printf( "%s grouped CaDiCaL: output %d UNDECIDED because its CNF driver is unmapped.\n", pLabel, iPo );
+                    fprintf( Abc_FrameGlobalGetOut(), "%s grouped CaDiCaL: output %d UNDECIDED because its CNF driver is unmapped.\n", pLabel, iPo );
                 break;
             }
             if ( RetLit == -1 )
@@ -2468,7 +2468,7 @@ int * Acb_NtkSolveCadicalSelectorBranch( Gia_Man_t * p, int nMiterOuts, int fUse
                 pPoLearnTotal[iPo] = cadical_solver_nlearned(pSat);
                 pPoTime[iPo]   = (int)((Abc_Clock() - clkOut + CLOCKS_PER_SEC/2) / CLOCKS_PER_SEC);
                 if ( fVerbose )
-                    printf( "%s grouped CaDiCaL: output %d UNSAT because it is constant 0.\n", pLabel, iPo );
+                    fprintf( Abc_FrameGlobalGetOut(), "%s grouped CaDiCaL: output %d UNSAT because it is constant 0.\n", pLabel, iPo );
                 continue;
             }
             if ( RetLit == 0 )
@@ -2478,7 +2478,7 @@ int * Acb_NtkSolveCadicalSelectorBranch( Gia_Man_t * p, int nMiterOuts, int fUse
             }
         }
         if ( fVerbose )
-            printf( "%s grouped CaDiCaL: selector %d branch %d output %d (%d/%d), cone = %d ANDs.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "%s grouped CaDiCaL: selector %d branch %d output %d (%d/%d), cone = %d ANDs.\n",
                 pLabel, iSelId, fUseOneBranch, iPo, iPos + 1, nMiterOuts, pOrder[iPos].nAnds );
         if ( Status != 1 )
             Status = cadical_solver_solve( pSat, &Lit, &Lit + 1, 0, 0, 0, 0 );
@@ -2503,7 +2503,7 @@ int * Acb_NtkSolveCadicalSelectorBranch( Gia_Man_t * p, int nMiterOuts, int fUse
             nUnsat++;
             if ( fVerbose )
             {
-                printf( "%s grouped CaDiCaL: output %d UNSAT. delta conflicts = %d. delta learned = %d. total conflicts = %d. total learned = %d.  ",
+                fprintf( Abc_FrameGlobalGetOut(), "%s grouped CaDiCaL: output %d UNSAT. delta conflicts = %d. delta learned = %d. total conflicts = %d. total learned = %d.  ",
                     pLabel, iPo, pPoConf[iPo], pPoLearn[iPo], nConflicts, nLearned );
                 Abc_PrintTime( 1, "Time", Abc_Clock() - clkOut );
             }
@@ -2513,7 +2513,7 @@ int * Acb_NtkSolveCadicalSelectorBranch( Gia_Man_t * p, int nMiterOuts, int fUse
             nUndec++;
             if ( fVerbose )
             {
-                printf( "%s grouped CaDiCaL: output %d UNDECIDED. delta conflicts = %d. delta learned = %d. total conflicts = %d. total learned = %d.  ",
+                fprintf( Abc_FrameGlobalGetOut(), "%s grouped CaDiCaL: output %d UNDECIDED. delta conflicts = %d. delta learned = %d. total conflicts = %d. total learned = %d.  ",
                     pLabel, iPo, pPoConf[iPo], pPoLearn[iPo], nConflicts, nLearned );
                 Abc_PrintTime( 1, "Time", Abc_Clock() - clkOut );
             }
@@ -2525,7 +2525,7 @@ int * Acb_NtkSolveCadicalSelectorBranch( Gia_Man_t * p, int nMiterOuts, int fUse
             if ( Status == -1 )
                 nIsolations++;
             if ( fVerbose && Status == -1 )
-                printf( "%s hard-output isolation: resetting solver after output %d. delta conflicts = %d, time = %d sec.\n",
+                fprintf( Abc_FrameGlobalGetOut(), "%s hard-output isolation: resetting solver after output %d. delta conflicts = %d, time = %d sec.\n",
                     pLabel, iPo, pPoConf[iPo], pPoTime[iPo] );
             cadical_solver_delete( pSat );
             pSat = NULL;
@@ -2533,7 +2533,7 @@ int * Acb_NtkSolveCadicalSelectorBranch( Gia_Man_t * p, int nMiterOuts, int fUse
     }
     if ( pStatus )
         *pStatus = Status == 1 ? 0 : (nUndec ? -1 : 1);
-    printf( "The selector %d branch %d is %s by %s CaDiCaL.  ",
+    fprintf( Abc_FrameGlobalGetOut(), "The selector %d branch %d is %s by %s CaDiCaL.  ",
         iSelId, fUseOneBranch, Status == 1 ? "SAT" : (nUndec ? "UNDECIDED" : "UNSAT"), pLabel );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     for ( i = 0; i < nMiterOuts; i++ )
@@ -2542,19 +2542,19 @@ int * Acb_NtkSolveCadicalSelectorBranch( Gia_Man_t * p, int nMiterOuts, int fUse
     if ( fVerbose )
     {
         int nHard = 0;
-        printf( "%s grouped CaDiCaL stats: overlap clusters = %d. hard isolations = %d. SAT = %d. UNSAT = %d. UNDEC = %d. last-group conflicts = %d. last-group learned = %d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "%s grouped CaDiCaL stats: overlap clusters = %d. hard isolations = %d. SAT = %d. UNSAT = %d. UNDEC = %d. last-group conflicts = %d. last-group learned = %d.\n",
             pLabel, nGroups, nIsolations, Status == 1, nUnsat, nUndec, nConflicts, nLearned );
         for ( i = 0; i < nMiterOuts; i++ )
             if ( pPoStatus[i] != 2 && (pPoStatus[i] != -1 || pPoConf[i] >= pCtx->Pars.nBranchHardConflictMin || pPoTime[i] >= pCtx->Pars.nBranchHardTimeMin) )
                 nHard++;
         if ( nHard )
         {
-            printf( "%s hard-output summary: selector %d branch %d. thresholds: delta conflicts >= %d OR time >= %d sec OR non-UNSAT.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "%s hard-output summary: selector %d branch %d. thresholds: delta conflicts >= %d OR time >= %d sec OR non-UNSAT.\n",
                 pLabel, iSelId, fUseOneBranch, pCtx->Pars.nBranchHardConflictMin, pCtx->Pars.nBranchHardTimeMin );
             for ( i = 0; i < nMiterOuts; i++ )
                 if ( pPoStatus[i] != 2 && (pPoStatus[i] != -1 || pPoConf[i] >= pCtx->Pars.nBranchHardConflictMin || pPoTime[i] >= pCtx->Pars.nBranchHardTimeMin) )
                 {
-                    printf( "  output %d: status = %s, sorted slot = %d/%d, cone = %d ANDs, delta conflicts = %d, delta learned = %d, total conflicts = %d, total learned = %d, time = %d sec.\n",
+                    fprintf( Abc_FrameGlobalGetOut(), "  output %d: status = %s, sorted slot = %d/%d, cone = %d ANDs, delta conflicts = %d, delta learned = %d, total conflicts = %d, total learned = %d, time = %d sec.\n",
                         i, pPoStatus[i] == 1 ? "SAT" : (pPoStatus[i] == -1 ? "UNSAT" : "UNDECIDED"),
                         pPoSlot[i], nMiterOuts, pPoCone[i], pPoConf[i], pPoLearn[i], pPoConfTotal[i], pPoLearnTotal[i], pPoTime[i] );
                     Acb_GiaPrintHardPoFrontier( pCnfGia, i, fVerbose );
@@ -2604,7 +2604,7 @@ int * Acb_NtkSolveHmuxBranches( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec_Int_t 
     int * pModel = NULL;
     abctime clk = Abc_Clock();
     if ( fVerbose )
-        printf( "Trying HMUX branch-level proving: selectors = %d.\n", Vec_IntSize(vMuxSelectorsG) );
+        fprintf( Abc_FrameGlobalGetOut(), "Trying HMUX branch-level proving: selectors = %d.\n", Vec_IntSize(vMuxSelectorsG) );
     for ( iSel = 0; iSel < Vec_IntSize(vMuxSelectorsG); iSel++ )
     {
         for ( fOne = 0; fOne <= 1; fOne++ )
@@ -2619,7 +2619,7 @@ int * Acb_NtkSolveHmuxBranches( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec_Int_t 
             pGiaGBranch = Acb_NtkGiaDeriveDualTargets( pNtkG, vGTargets );
             pGiaBranch  = Acb_NtkGiaDeriveMiterWithSecondExtras( pGiaFBranch, pGiaGBranch, 1 );
             if ( fVerbose )
-                printf( "HMUX branch miter: selector %d branch %d. And = %d. PO = %d.\n",
+                fprintf( Abc_FrameGlobalGetOut(), "HMUX branch miter: selector %d branch %d. And = %d. PO = %d.\n",
                     iSel, fOne, Gia_ManAndNum(pGiaBranch), Gia_ManPoNum(pGiaBranch) );
             Status = -1;
             if ( Vec_IntSize(vFTargets) >= 16 && Gia_ManAndNum(pGiaBranch) <= 30000 )
@@ -2627,14 +2627,14 @@ int * Acb_NtkSolveHmuxBranches( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec_Int_t 
                 int nWholeLimit = Vec_IntSize(vFTargets) >= 24 ? 60 : 450;
                 pGiaCond = Acb_GiaDeriveBranchConditionMiter( pGiaBranch, Vec_IntSize(vFTargets), fOne );
                 if ( fVerbose )
-                    printf( "HMUX branch whole-miter try: selector %d branch %d. And = %d. PO = %d. limit = %d sec.\n",
+                    fprintf( Abc_FrameGlobalGetOut(), "HMUX branch whole-miter try: selector %d branch %d. And = %d. PO = %d. limit = %d sec.\n",
                         iSel, fOne, Gia_ManAndNum(pGiaCond), Gia_ManPoNum(pGiaCond), nWholeLimit );
                 fTriedBranchWhole = 1;
                 pModel = Acb_NtkSolveCadicalLimit( pGiaCond, 0, fVerbose, &Status, nWholeLimit, "HMUX branch whole-miter CaDiCaL", 0 );
                 Gia_ManStop( pGiaCond );
                 pGiaCond = NULL;
                 if ( Status == -1 && fVerbose )
-                    printf( "HMUX branch whole-miter CaDiCaL was UNDECIDED; skipping duplicate grouped branch sweep.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "HMUX branch whole-miter CaDiCaL was UNDECIDED; skipping duplicate grouped branch sweep.\n" );
             }
             if ( Status == -1 && !fTriedBranchWhole )
                 pModel = Acb_NtkSolveCadicalSelectorBranch( pGiaBranch, Vec_IntSize(vFTargets), fOne, fVerbose, &Status, 1200, iSel, 0, "HMUX branch", pCtx );
@@ -2663,14 +2663,14 @@ int * Acb_NtkSolveHmuxBranches( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec_Int_t 
                         if ( iHardLocal >= 0 && iHardLocal < Vec_IntSize(vPoIds) )
                             Vec_IntPushUnique( vHardOrig, Vec_IntEntry(vPoIds, iHardLocal) );
                     if ( fVerbose )
-                        printf( "HMUX branch selector %d branch %d collected %d hard/unvisited local outputs -> %d original outputs for targeted DC-control proof.\n",
+                        fprintf( Abc_FrameGlobalGetOut(), "HMUX branch selector %d branch %d collected %d hard/unvisited local outputs -> %d original outputs for targeted DC-control proof.\n",
                             iSel, fOne, Vec_IntSize(pCtx->vLastBranchHardPos), Vec_IntSize(vHardOrig) );
                     if ( Vec_IntSize(vHardOrig) <= 4 && Vec_IntSize(vIntDcCtrlsG) <= 8 )
                         pModel = Acb_NtkSolveMuxDcControlTargetList( pNtkF, pNtkG, vHardOrig,
                             vCutObjsG, vMuxSelectorsG, vMuxPoSelIdsG, fOne,
                             vIntDcObjsG, vIntDcCtrlsG, vIntDcCtrlIdsG, fVerbose, &StatusDc, 90 );
                     else if ( fVerbose )
-                        printf( "Skipping HMUX+DC targeted recursive proof: hard outputs = %d, DC controls = %d; recursion is too broad for this branch.\n",
+                        fprintf( Abc_FrameGlobalGetOut(), "Skipping HMUX+DC targeted recursive proof: hard outputs = %d, DC controls = %d; recursion is too broad for this branch.\n",
                             Vec_IntSize(vHardOrig), Vec_IntSize(vIntDcCtrlsG) );
                     Vec_IntFree( vHardOrig );
                     Vec_IntFree( vPoIds );
@@ -2690,7 +2690,7 @@ int * Acb_NtkSolveHmuxBranches( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec_Int_t 
     }
     if ( pStatus )
         *pStatus = fUndec ? -1 : 1;
-    printf( "The networks are %s by HMUX branch-level proving.  ", fUndec ? "UNDECIDED" : "equivalent" );
+    fprintf( Abc_FrameGlobalGetOut(), "The networks are %s by HMUX branch-level proving.  ", fUndec ? "UNDECIDED" : "equivalent" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return NULL;
 }
@@ -2713,7 +2713,7 @@ int * Acb_NtkSolveHmuxCompleteCubes( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec_I
     pGiaF = Acb_NtkGiaDeriveDualTargets( pNtkF, vFTargets );
     vCubeVals = Vec_IntAlloc( nSels );
     if ( fVerbose )
-        printf( "Trying complete HMUX selector-cube proof: selectors = %d. cubes = %d. outputs = %d. total limit = %d sec.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Trying complete HMUX selector-cube proof: selectors = %d. cubes = %d. outputs = %d. total limit = %d sec.\n",
             nSels, nCubes, Acb_NtkCoNum(pNtkF), nTotalLimit );
     for ( iCube = 0; iCube < nCubes; iCube++ )
     {
@@ -2758,16 +2758,16 @@ int * Acb_NtkSolveHmuxCompleteCubes( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec_I
         }
         if ( fVerbose )
         {
-            printf( "Complete HMUX selector cube %d/%d: values =", iCube + 1, nCubes );
+            fprintf( Abc_FrameGlobalGetOut(), "Complete HMUX selector cube %d/%d: values =", iCube + 1, nCubes );
             for ( iSel = 0; iSel < nSels; iSel++ )
-                printf( " s%d=%d", iSel, Vec_IntEntry(vCubeVals, iSel) );
-            printf( ". And = %d. PO = %d. limit = %d sec.\n", Gia_ManAndNum(pGiaCond), Gia_ManCoNum(pGiaCond), nThisLimit );
+                fprintf( Abc_FrameGlobalGetOut(), " s%d=%d", iSel, Vec_IntEntry(vCubeVals, iSel) );
+            fprintf( Abc_FrameGlobalGetOut(), ". And = %d. PO = %d. limit = %d sec.\n", Gia_ManAndNum(pGiaCond), Gia_ManCoNum(pGiaCond), nThisLimit );
         }
         pModel = Acb_NtkSolveCadicalPoSweepLabel( pGiaCond, fVerbose, &Status, nThisLimit, 500000, "complete HMUX selector-cube PO sweep", 0 );
         if ( Status == ACB_XEC_UNDEC )
         {
             if ( fVerbose )
-                printf( "Complete HMUX selector cube %d/%d PO sweep was inconclusive; skipping duplicate whole-cube CaDiCaL.\n",
+                fprintf( Abc_FrameGlobalGetOut(), "Complete HMUX selector cube %d/%d PO sweep was inconclusive; skipping duplicate whole-cube CaDiCaL.\n",
                     iCube + 1, nCubes );
         }
         Gia_ManStop( pGiaCond );  pGiaCond = NULL;
@@ -2789,12 +2789,12 @@ int * Acb_NtkSolveHmuxCompleteCubes( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec_I
         *pStatus = StatusAll;
     if ( StatusAll == ACB_XEC_EQ )
     {
-        printf( "The networks are equivalent by complete HMUX selector-cube proof.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "The networks are equivalent by complete HMUX selector-cube proof.  " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     else if ( fVerbose )
     {
-        printf( "The networks are %s by complete HMUX selector-cube proof.  ",
+        fprintf( Abc_FrameGlobalGetOut(), "The networks are %s by complete HMUX selector-cube proof.  ",
             StatusAll == ACB_XEC_NEQ ? "NOT equivalent" : "UNDECIDED" );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
@@ -2831,7 +2831,7 @@ int * Acb_NtkSolveMuxTargetBranches( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, int i
     }
     Vec_IntPush( vFTargets, Acb_ObjFanin(pNtkF, Acb_NtkCo(pNtkF, iPo), 0) );
     if ( fVerbose )
-        printf( "Trying MUX target branch proving: output = %d. selector = %d/%d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Trying MUX target branch proving: output = %d. selector = %d/%d.\n",
             iPo, iSel, Vec_IntSize(vMuxSelectorsG) );
     for ( fOne = 0; fOne <= 1; fOne++ )
     {
@@ -2845,12 +2845,12 @@ int * Acb_NtkSolveMuxTargetBranches( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, int i
         pGiaGBranch = Acb_NtkGiaDeriveDualTargets( pNtkG, vGTargets );
         pGiaBranch  = Acb_NtkGiaDeriveMiterWithSecondExtras( pGiaFBranch, pGiaGBranch, 1 );
         if ( fVerbose )
-            printf( "MUX target branch miter: output %d selector %d branch %d. And = %d. PO = %d.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "MUX target branch miter: output %d selector %d branch %d. And = %d. PO = %d.\n",
                 iPo, iSel, fOne, Gia_ManAndNum(pGiaBranch), Gia_ManPoNum(pGiaBranch) );
         if ( nMaxBranchAnd > 0 && Gia_ManAndNum(pGiaBranch) >= nMaxBranchAnd )
         {
             if ( fVerbose )
-                printf( "Skipping MUX target branch output %d selector %d/%d because branch miter is not smaller than current hard cone: branch And = %d, current And = %d.\n",
+                fprintf( Abc_FrameGlobalGetOut(), "Skipping MUX target branch output %d selector %d/%d because branch miter is not smaller than current hard cone: branch And = %d, current And = %d.\n",
                     iPo, iSel, fOne, Gia_ManAndNum(pGiaBranch), nMaxBranchAnd );
             Status = -1;
             fUndec = 1;
@@ -2875,7 +2875,7 @@ int * Acb_NtkSolveMuxTargetBranches( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, int i
     Vec_IntFree( vFTargets );
     if ( pStatus )
         *pStatus = fUndec ? ACB_XEC_UNDEC : ACB_XEC_EQ;
-    printf( "The hard output %d is %s by MUX target branch proving.  ",
+    fprintf( Abc_FrameGlobalGetOut(), "The hard output %d is %s by MUX target branch proving.  ",
         iPo, fUndec ? "UNDECIDED" : "UNSAT" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Acb_XecCtxFree( &BranchCtx );
@@ -2890,7 +2890,7 @@ int * Acb_NtkSolveDcControlBranchesLimit( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, 
     abctime clk = Abc_Clock();
     Acb_XecCtxInit( &BranchCtx );
     if ( fVerbose )
-        printf( "Trying DC-control branch proving: DC nodes = %d. controls = %d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Trying DC-control branch proving: DC nodes = %d. controls = %d.\n",
             Vec_IntSize(vDcObjsG), Vec_IntSize(vDcCtrlsG) );
     for ( iCtrl = 0; iCtrl < Vec_IntSize(vDcCtrlsG); iCtrl++ )
     {
@@ -2908,12 +2908,12 @@ int * Acb_NtkSolveDcControlBranchesLimit( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, 
             pGiaGBranch = Acb_NtkGiaDeriveDualTargetsBranch( pNtkG, vGTargets, vDcObjsOne, fOne );
             pGiaBranch  = Acb_NtkGiaDeriveMiterWithSecondExtras( pGiaFBranch, pGiaGBranch, 1 );
             if ( fVerbose )
-                printf( "DC-control branch miter: control %d branch %d. DC nodes = %d. And = %d. PO = %d.\n",
+                fprintf( Abc_FrameGlobalGetOut(), "DC-control branch miter: control %d branch %d. DC nodes = %d. And = %d. PO = %d.\n",
                     iCtrl, fOne, Vec_IntSize(vDcObjsOne), Gia_ManAndNum(pGiaBranch), Gia_ManPoNum(pGiaBranch) );
             if ( nMaxBranchAnd > 0 && Gia_ManAndNum(pGiaBranch) >= nMaxBranchAnd )
             {
                 if ( fVerbose )
-                    printf( "Skipping DC-control branch %d/%d because branch miter is not smaller than current miter: branch And = %d, current And = %d.\n",
+                    fprintf( Abc_FrameGlobalGetOut(), "Skipping DC-control branch %d/%d because branch miter is not smaller than current miter: branch And = %d, current And = %d.\n",
                         iCtrl, fOne, Gia_ManAndNum(pGiaBranch), nMaxBranchAnd );
                 Status = -1;
                 fUndec = 1;
@@ -2948,7 +2948,7 @@ int * Acb_NtkSolveDcControlBranchesLimit( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, 
             Acb_XecCtxFree( &BranchCtx );
             if ( pStatus )
                 *pStatus = ACB_XEC_EQ;
-            printf( "The networks are equivalent by DC-control branch proving on control %d.  ", iCtrl );
+            fprintf( Abc_FrameGlobalGetOut(), "The networks are equivalent by DC-control branch proving on control %d.  ", iCtrl );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             return NULL;
         }
@@ -2956,7 +2956,7 @@ int * Acb_NtkSolveDcControlBranchesLimit( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, 
     Vec_IntFree( vFTargets );
     if ( pStatus )
         *pStatus = fUndec ? -1 : 1;
-    printf( "The networks are %s by DC-control branch proving.  ", fUndec ? "UNDECIDED" : "equivalent" );
+    fprintf( Abc_FrameGlobalGetOut(), "The networks are %s by DC-control branch proving.  ", fUndec ? "UNDECIDED" : "equivalent" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Acb_XecCtxFree( &BranchCtx );
     return NULL;
@@ -2972,7 +2972,7 @@ int * Acb_NtkSolveDcControlTargetBranches( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG,
     assert( iPo >= 0 && iPo < Acb_NtkCoNum(pNtkF) && iPo < Acb_NtkCoNum(pNtkG) );
     Vec_IntPush( vFTargets, Acb_ObjFanin(pNtkF, Acb_NtkCo(pNtkF, iPo), 0) );
     if ( fVerbose )
-        printf( "Trying DC-control target branch proving: output = %d. DC nodes = %d. controls = %d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Trying DC-control target branch proving: output = %d. DC nodes = %d. controls = %d.\n",
             iPo, Vec_IntSize(vDcObjsG), Vec_IntSize(vDcCtrlsG) );
     for ( iCtrl = 0; iCtrl < Vec_IntSize(vDcCtrlsG); iCtrl++ )
     {
@@ -2988,12 +2988,12 @@ int * Acb_NtkSolveDcControlTargetBranches( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG,
             pGiaGBranch = Acb_NtkGiaDeriveDualTargetsBranch( pNtkG, vGTargets, vDcObjsOne, fOne );
             pGiaBranch  = Acb_NtkGiaDeriveMiterWithSecondExtras( pGiaFBranch, pGiaGBranch, 1 );
             if ( fVerbose )
-                printf( "DC-control target branch miter: output %d control %d branch %d. DC nodes = %d. And = %d. PO = %d.\n",
+                fprintf( Abc_FrameGlobalGetOut(), "DC-control target branch miter: output %d control %d branch %d. DC nodes = %d. And = %d. PO = %d.\n",
                     iPo, iCtrl, fOne, Vec_IntSize(vDcObjsOne), Gia_ManAndNum(pGiaBranch), Gia_ManPoNum(pGiaBranch) );
             if ( nMaxBranchAnd > 0 && Gia_ManAndNum(pGiaBranch) >= nMaxBranchAnd )
             {
                 if ( fVerbose )
-                    printf( "Skipping DC-control target branch output %d control %d/%d because branch miter is not smaller than current hard cone: branch And = %d, current And = %d.\n",
+                    fprintf( Abc_FrameGlobalGetOut(), "Skipping DC-control target branch output %d control %d/%d because branch miter is not smaller than current hard cone: branch And = %d, current And = %d.\n",
                         iPo, iCtrl, fOne, Gia_ManAndNum(pGiaBranch), nMaxBranchAnd );
                 Status = -1;
                 fUndec = 1;
@@ -3026,7 +3026,7 @@ int * Acb_NtkSolveDcControlTargetBranches( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG,
             Acb_XecCtxFree( &BranchCtx );
             if ( pStatus )
                 *pStatus = ACB_XEC_EQ;
-            printf( "The hard output %d is UNSAT by DC-control target branch proving on control %d.  ", iPo, iCtrl );
+            fprintf( Abc_FrameGlobalGetOut(), "The hard output %d is UNSAT by DC-control target branch proving on control %d.  ", iPo, iCtrl );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             return NULL;
         }
@@ -3034,7 +3034,7 @@ int * Acb_NtkSolveDcControlTargetBranches( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG,
     Vec_IntFree( vFTargets );
     if ( pStatus )
         *pStatus = fUndec ? ACB_XEC_UNDEC : ACB_XEC_EQ;
-    printf( "The hard output %d is %s by DC-control target branch proving.  ",
+    fprintf( Abc_FrameGlobalGetOut(), "The hard output %d is %s by DC-control target branch proving.  ",
         iPo, fUndec ? "UNDECIDED" : "UNSAT" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Acb_XecCtxFree( &BranchCtx );
@@ -3090,10 +3090,10 @@ int * Acb_NtkSolveDcControlTargetCube( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, int
     }
     if ( fVerbose )
     {
-        printf( "DC-control recursive target: output %d cube =", iPo );
+        fprintf( Abc_FrameGlobalGetOut(), "DC-control recursive target: output %d cube =", iPo );
         Vec_IntForEachEntry( vCubeCtrls, iCtrl, i )
-            printf( " c%d=%d", iCtrl, Vec_IntEntry(vCubeVals, i) );
-        printf( ". And = %d. limit = %d sec%s.\n", Gia_ManAndNum(pGiaCond), nProbeLimit,
+            fprintf( Abc_FrameGlobalGetOut(), " c%d=%d", iCtrl, Vec_IntEntry(vCubeVals, i) );
+        fprintf( Abc_FrameGlobalGetOut(), ". And = %d. limit = %d sec%s.\n", Gia_ManAndNum(pGiaCond), nProbeLimit,
             nDepthLeft > 0 ? " before split" : "" );
     }
     pModel = Acb_NtkSolveCadicalLimit( pGiaCond, 0, 0, &Status, nProbeLimit, NULL, 0 );
@@ -3108,7 +3108,7 @@ int * Acb_NtkSolveDcControlTargetCube( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, int
     if ( Status == 1 )
     {
         if ( fVerbose )
-            printf( "DC-control recursive target: output %d cube UNSAT.\n", iPo );
+            fprintf( Abc_FrameGlobalGetOut(), "DC-control recursive target: output %d cube UNSAT.\n", iPo );
         if ( pStatus )
             *pStatus = ACB_XEC_EQ;
         return NULL;
@@ -3116,7 +3116,7 @@ int * Acb_NtkSolveDcControlTargetCube( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, int
     if ( Status == 0 )
     {
         if ( fVerbose )
-            printf( "DC-control recursive target: output %d cube SAT.\n", iPo );
+            fprintf( Abc_FrameGlobalGetOut(), "DC-control recursive target: output %d cube SAT.\n", iPo );
         if ( pStatus )
             *pStatus = ACB_XEC_NEQ;
         return pModel;
@@ -3125,7 +3125,7 @@ int * Acb_NtkSolveDcControlTargetCube( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, int
     if ( nDepthLeft <= 0 )
     {
         if ( fVerbose )
-            printf( "DC-control recursive target: output %d cube UNDECIDED at depth limit.\n", iPo );
+            fprintf( Abc_FrameGlobalGetOut(), "DC-control recursive target: output %d cube UNDECIDED at depth limit.\n", iPo );
         return NULL;
     }
     {
@@ -3172,7 +3172,7 @@ int * Acb_NtkSolveDcControlTargetCube( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, int
         if ( !fCtrlUndec )
         {
             if ( fVerbose )
-                printf( "DC-control recursive target: output %d proven by splitting control %d.\n", iPo, iCtrl );
+                fprintf( Abc_FrameGlobalGetOut(), "DC-control recursive target: output %d proven by splitting control %d.\n", iPo, iCtrl );
             Vec_IntFree( vTriedCtrls );
             if ( pStatus )
                 *pStatus = ACB_XEC_EQ;
@@ -3195,7 +3195,7 @@ int * Acb_NtkSolveDcControlTargetList( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec
     if ( vHardPos == NULL || Vec_IntSize(vHardPos) == 0 )
         return NULL;
     if ( fVerbose )
-        printf( "Trying DC-control target proving for %d hard outputs.\n", Vec_IntSize(vHardPos) );
+        fprintf( Abc_FrameGlobalGetOut(), "Trying DC-control target proving for %d hard outputs.\n", Vec_IntSize(vHardPos) );
     Vec_IntForEachEntry( vHardPos, iPo, i )
     {
         Vec_Int_t * vCubeCtrls = Vec_IntAlloc( Vec_IntSize(vDcCtrlsG) );
@@ -3215,13 +3215,13 @@ int * Acb_NtkSolveDcControlTargetList( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec
         {
             fUndec = 1;
             if ( fVerbose )
-                printf( "DC-control target list: output %d remains UNDECIDED; stopping target-list proof.\n", iPo );
+                fprintf( Abc_FrameGlobalGetOut(), "DC-control target list: output %d remains UNDECIDED; stopping target-list proof.\n", iPo );
             break;
         }
     }
     if ( pStatus )
         *pStatus = fUndec ? -1 : 1;
-    printf( "The hard outputs are %s by DC-control target-list proving.  ", fUndec ? "UNDECIDED" : "UNSAT" );
+    fprintf( Abc_FrameGlobalGetOut(), "The hard outputs are %s by DC-control target-list proving.  ", fUndec ? "UNDECIDED" : "UNSAT" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return NULL;
 }
@@ -3264,11 +3264,11 @@ int * Acb_NtkSolveMuxDcControlTargetCube( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, 
     }
     if ( fVerbose )
     {
-        printf( "HMUX+DC recursive target: output %d selector %d branch %d cube =",
+        fprintf( Abc_FrameGlobalGetOut(), "HMUX+DC recursive target: output %d selector %d branch %d cube =",
             iPo, Vec_IntEntry(vMuxPoSelIdsG, iPo), fSelBranch );
         Vec_IntForEachEntry( vCubeCtrls, iCtrl, i )
-            printf( " c%d=%d", iCtrl, Vec_IntEntry(vCubeVals, i) );
-        printf( ". And = %d. limit = %d sec%s.\n", Gia_ManAndNum(pGiaCond), nProbeLimit,
+            fprintf( Abc_FrameGlobalGetOut(), " c%d=%d", iCtrl, Vec_IntEntry(vCubeVals, i) );
+        fprintf( Abc_FrameGlobalGetOut(), ". And = %d. limit = %d sec%s.\n", Gia_ManAndNum(pGiaCond), nProbeLimit,
             nDepthLeft > 0 ? " before split" : "" );
     }
     pModel = Acb_NtkSolveCadicalLimit( pGiaCond, 0, 0, &Status, nProbeLimit, NULL, 0 );
@@ -3284,7 +3284,7 @@ int * Acb_NtkSolveMuxDcControlTargetCube( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, 
     if ( Status == 1 )
     {
         if ( fVerbose )
-            printf( "HMUX+DC recursive target: output %d cube UNSAT.\n", iPo );
+            fprintf( Abc_FrameGlobalGetOut(), "HMUX+DC recursive target: output %d cube UNSAT.\n", iPo );
         if ( pStatus )
             *pStatus = ACB_XEC_EQ;
         return NULL;
@@ -3292,7 +3292,7 @@ int * Acb_NtkSolveMuxDcControlTargetCube( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, 
     if ( Status == 0 )
     {
         if ( fVerbose )
-            printf( "HMUX+DC recursive target: output %d cube SAT.\n", iPo );
+            fprintf( Abc_FrameGlobalGetOut(), "HMUX+DC recursive target: output %d cube SAT.\n", iPo );
         if ( pStatus )
             *pStatus = ACB_XEC_NEQ;
         return pModel;
@@ -3301,7 +3301,7 @@ int * Acb_NtkSolveMuxDcControlTargetCube( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, 
     if ( nDepthLeft <= 0 )
     {
         if ( fVerbose )
-            printf( "HMUX+DC recursive target: output %d cube UNDECIDED at depth limit.\n", iPo );
+            fprintf( Abc_FrameGlobalGetOut(), "HMUX+DC recursive target: output %d cube UNDECIDED at depth limit.\n", iPo );
         return NULL;
     }
     {
@@ -3348,7 +3348,7 @@ int * Acb_NtkSolveMuxDcControlTargetCube( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, 
         if ( !fCtrlUndec )
         {
             if ( fVerbose )
-                printf( "HMUX+DC recursive target: output %d proven by splitting control %d.\n", iPo, iCtrl );
+                fprintf( Abc_FrameGlobalGetOut(), "HMUX+DC recursive target: output %d proven by splitting control %d.\n", iPo, iCtrl );
             Vec_IntFree( vTriedCtrls );
             if ( pStatus )
                 *pStatus = ACB_XEC_EQ;
@@ -3376,12 +3376,12 @@ int * Acb_NtkSolveMuxDcControlTargetList( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, 
     if ( Vec_IntSize(vHardPos) > 4 || nCtrls > 8 )
     {
         if ( fVerbose )
-            printf( "Skipping HMUX+DC target proving because recursive search is too broad: hard outputs = %d, controls = %d.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "Skipping HMUX+DC target proving because recursive search is too broad: hard outputs = %d, controls = %d.\n",
                 Vec_IntSize(vHardPos), nCtrls );
         return NULL;
     }
     if ( fVerbose )
-        printf( "Trying HMUX+DC target proving for %d hard outputs. selector branch = %d. controls = %d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Trying HMUX+DC target proving for %d hard outputs. selector branch = %d. controls = %d.\n",
             Vec_IntSize(vHardPos), fSelBranch, nCtrls );
     vCubeCtrls = Vec_IntAlloc( nCtrls );
     vCubeVals = Vec_IntAlloc( nCtrls );
@@ -3404,13 +3404,13 @@ int * Acb_NtkSolveMuxDcControlTargetList( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, 
         {
             fUndec = 1;
             if ( fVerbose )
-                printf( "HMUX+DC target list: output %d remains UNDECIDED; stopping target-list proof.\n", iPo );
+                fprintf( Abc_FrameGlobalGetOut(), "HMUX+DC target list: output %d remains UNDECIDED; stopping target-list proof.\n", iPo );
             break;
         }
     }
     if ( pStatus )
         *pStatus = fUndec ? -1 : 1;
-    printf( "The HMUX hard outputs are %s by targeted DC-control proving.  ", fUndec ? "UNDECIDED" : "UNSAT" );
+    fprintf( Abc_FrameGlobalGetOut(), "The HMUX hard outputs are %s by targeted DC-control proving.  ", fUndec ? "UNDECIDED" : "UNSAT" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Vec_IntFree( vCubeCtrls );
     Vec_IntFree( vCubeVals );
@@ -3431,7 +3431,7 @@ int * Acb_NtkSolveDcControlWholeCubes( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec
         return NULL;
     nCubes = 1 << nCtrls;
     if ( fVerbose )
-        printf( "Trying few-control DC whole-cube proof: outputs = %d. DC nodes = %d. controls = %d. cubes = %d. total limit = %d sec.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Trying few-control DC whole-cube proof: outputs = %d. DC nodes = %d. controls = %d. cubes = %d. total limit = %d sec.\n",
             Acb_NtkCoNum(pNtkF), Vec_IntSize(vDcObjsG), nCtrls, nCubes, nTotalLimit );
     vFTargets = Vec_IntAlloc( Acb_NtkCoNum(pNtkF) );
     vGTargets = Vec_IntAlloc( Acb_NtkCoNum(pNtkG) + nCtrls );
@@ -3481,10 +3481,10 @@ int * Acb_NtkSolveDcControlWholeCubes( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec
         }
         if ( fVerbose )
         {
-            printf( "Few-control DC whole cube %d/%d:", iCube + 1, nCubes );
+            fprintf( Abc_FrameGlobalGetOut(), "Few-control DC whole cube %d/%d:", iCube + 1, nCubes );
             for ( i = 0; i < nCtrls; i++ )
-                printf( " c%d=%d", i, Vec_IntEntry(vCubeVals, i) );
-            printf( ". And = %d. PO = %d. limit = %d sec.\n", Gia_ManAndNum(pGiaCond), Gia_ManCoNum(pGiaCond), nThisLimit );
+                fprintf( Abc_FrameGlobalGetOut(), " c%d=%d", i, Vec_IntEntry(vCubeVals, i) );
+            fprintf( Abc_FrameGlobalGetOut(), ". And = %d. PO = %d. limit = %d sec.\n", Gia_ManAndNum(pGiaCond), Gia_ManCoNum(pGiaCond), nThisLimit );
         }
         pModel = Acb_NtkSolveCadicalLimit( pGiaCond, 0, fVerbose, &StatusCube, nThisLimit, "few-control DC whole-cube CaDiCaL", 0 );
         Gia_ManStop( pGiaCond );  pGiaCond = NULL;
@@ -3507,12 +3507,12 @@ int * Acb_NtkSolveDcControlWholeCubes( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec
         *pStatus = StatusAll;
     if ( StatusAll == 1 )
     {
-        printf( "The networks are equivalent by few-control DC whole-cube proof.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "The networks are equivalent by few-control DC whole-cube proof.  " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     else if ( fVerbose )
     {
-        printf( "The networks are %s by few-control DC whole-cube proof.  ",
+        fprintf( Abc_FrameGlobalGetOut(), "The networks are %s by few-control DC whole-cube proof.  ",
             StatusAll == 0 ? "NOT equivalent" : "UNDECIDED" );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
@@ -3707,7 +3707,7 @@ void Acb_NtkCollectTargetCutCandidatesSim( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG,
     }
 finish:
     if ( fVerbose )
-        printf( "Hard-output simulation cutpoint candidates: F pool = %d. G pool = %d. matched = %d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Hard-output simulation cutpoint candidates: F pool = %d. G pool = %d. matched = %d.\n",
             Vec_IntSize(vPoolF), Vec_IntSize(vPoolG), Vec_IntSize(vCutsF) );
     Vec_IntFree( vPoolF );
     Vec_IntFree( vPoolG );
@@ -3747,7 +3747,7 @@ int * Acb_NtkSolveTargetCutpoints( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, int iPo
         Acb_NtkCollectTargetCutCandidatesSim( pNtkF, pNtkG, iPo, &vCandF, &vCandG, 96, fVerbose );
     }
     if ( fVerbose )
-        printf( "Trying hard-output internal cutpoints: output = %d. candidates = %d.\n", iPo, Vec_IntSize(vCandF) );
+        fprintf( Abc_FrameGlobalGetOut(), "Trying hard-output internal cutpoints: output = %d. candidates = %d.\n", iPo, Vec_IntSize(vCandF) );
     Vec_IntForEachEntryTwo( vCandF, vCandG, iObjF, iObjG, i )
     {
         if ( clkLimit && Abc_Clock() > clkLimit )
@@ -3794,7 +3794,7 @@ int * Acb_NtkSolveTargetCutpoints( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, int iPo
             break;
     }
     if ( fVerbose )
-        printf( "Hard-output cutpoints: tried = %d. proven = %d. bad = %d. undecided = %d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Hard-output cutpoints: tried = %d. proven = %d. bad = %d. undecided = %d.\n",
             nTried, Vec_IntSize(vProofF), nSat, nUndec );
     if ( Vec_IntSize(vProofF) == 0 )
         goto cleanup;
@@ -3814,14 +3814,14 @@ int * Acb_NtkSolveTargetCutpoints( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, int iPo
         }
     }
     if ( fVerbose )
-        printf( "Hard-output top cutpoint miter: output = %d. cutpoints = %d. And = %d. PO = %d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Hard-output top cutpoint miter: output = %d. cutpoints = %d. And = %d. PO = %d.\n",
             iPo, Vec_IntSize(vProofF), Gia_ManAndNum(pGiaMiter), Gia_ManCoNum(pGiaMiter) );
     pModel = Acb_NtkSolveCadicalPoSweepLabel( pGiaMiter, fVerbose, &StatusTop, nSatTimeLimit, 250000, "Hard-output top cutpoint miter", 0 );
     if ( StatusTop == 1 )
     {
         if ( pStatus )
             *pStatus = ACB_XEC_EQ;
-        printf( "The hard output %d is UNSAT by internal cutpoint abstraction.  ", iPo );
+        fprintf( Abc_FrameGlobalGetOut(), "The hard output %d is UNSAT by internal cutpoint abstraction.  ", iPo );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     else
@@ -3832,7 +3832,7 @@ int * Acb_NtkSolveTargetCutpoints( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, int iPo
             pModel = NULL;
         }
         if ( fVerbose )
-            printf( "Hard-output cutpoint abstraction did not prove output %d; SAT on abstraction may be spurious.\n", iPo );
+            fprintf( Abc_FrameGlobalGetOut(), "Hard-output cutpoint abstraction did not prove output %d; SAT on abstraction may be spurious.\n", iPo );
     }
 cleanup:
     Vec_IntFreeP( &vCandF );
@@ -3864,7 +3864,7 @@ int * Acb_NtkSolveTargetCutpointList( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec_
     if ( vHardPos == NULL || Vec_IntSize(vHardPos) == 0 )
         return NULL;
     if ( fVerbose )
-        printf( "Trying hard-output cutpoint abstraction for %d collected outputs.\n", Vec_IntSize(vHardPos) );
+        fprintf( Abc_FrameGlobalGetOut(), "Trying hard-output cutpoint abstraction for %d collected outputs.\n", Vec_IntSize(vHardPos) );
     Vec_IntForEachEntry( vHardPos, iPo, i )
     {
         int nLimit = nPoLimit;
@@ -3895,13 +3895,13 @@ int * Acb_NtkSolveTargetCutpointList( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, Vec_
         {
             fUndec = 1;
             if ( fVerbose )
-                printf( "Hard-output cutpoint abstraction: output %d remains UNDECIDED; stopping list proof.\n", iPo );
+                fprintf( Abc_FrameGlobalGetOut(), "Hard-output cutpoint abstraction: output %d remains UNDECIDED; stopping list proof.\n", iPo );
             break;
         }
     }
     if ( pStatus )
         *pStatus = fUndec ? -1 : 1;
-    printf( "The collected hard outputs are %s by cutpoint abstraction.  ", fUndec ? "UNDECIDED" : "UNSAT" );
+    fprintf( Abc_FrameGlobalGetOut(), "The collected hard outputs are %s by cutpoint abstraction.  ", fUndec ? "UNDECIDED" : "UNSAT" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return NULL;
 }
@@ -3934,20 +3934,20 @@ int * Acb_NtkSolveCadicalPoSweepLabel( Gia_Man_t * p, int fVerbose, int * pStatu
     pOrder = ABC_ALLOC( Acb_SplitPoOrder_t, Gia_ManCoNum(p) );
     Acb_NtkSortSplitOutputs( p, pOrder );
     if ( fVerbose )
-        printf( "%s: smallest cone %d ANDs, largest cone %d ANDs.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "%s: smallest cone %d ANDs, largest cone %d ANDs.\n",
             pLabel, pOrder[0].nAnds, pOrder[Gia_ManCoNum(p)-1].nAnds );
     for ( k = 0; k < Gia_ManCoNum(p); k++ )
     {
         i = pOrder[k].iPo;
         Ret = Acb_CnfCoDriverLit( pCnf, i, &Lit );
         if ( fVerbose )
-            printf( "%s: trying output %d (%d/%d), cone = %d ANDs.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "%s: trying output %d (%d/%d), cone = %d ANDs.\n",
                 pLabel, i, k + 1, Gia_ManCoNum(p), pOrder[k].nAnds );
         if ( Ret == -2 )
         {
             nUndec++;
             if ( fVerbose )
-                printf( "%s: output %d UNDECIDED because its CNF driver is unmapped.\n", pLabel, i );
+                fprintf( Abc_FrameGlobalGetOut(), "%s: output %d UNDECIDED because its CNF driver is unmapped.\n", pLabel, i );
             if ( fStopOnUndec )
                 break;
             continue;
@@ -3956,7 +3956,7 @@ int * Acb_NtkSolveCadicalPoSweepLabel( Gia_Man_t * p, int fVerbose, int * pStatu
         {
             nUnsat++;
             if ( fVerbose )
-                printf( "%s: output %d UNSAT because it is constant 0.\n", pLabel, i );
+                fprintf( Abc_FrameGlobalGetOut(), "%s: output %d UNSAT because it is constant 0.\n", pLabel, i );
             continue;
         }
         if ( Ret == 0 )
@@ -3965,7 +3965,7 @@ int * Acb_NtkSolveCadicalPoSweepLabel( Gia_Man_t * p, int fVerbose, int * pStatu
             pModel = ABC_CALLOC( int, Aig_ManCiNum(pMan) );
             if ( pStatus )
                 *pStatus = ACB_XEC_NEQ;
-            printf( "%s found SAT on output %d.  ", pLabel, pOrder[k].iPo );
+            fprintf( Abc_FrameGlobalGetOut(), "%s found SAT on output %d.  ", pLabel, pOrder[k].iPo );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             goto cleanup;
         }
@@ -3979,7 +3979,7 @@ int * Acb_NtkSolveCadicalPoSweepLabel( Gia_Man_t * p, int fVerbose, int * pStatu
                 pModel[i] = cadical_solver_get_var_value( pSat, pCnf->pVarNums[pObjCi->Id] );
             if ( pStatus )
                 *pStatus = ACB_XEC_NEQ;
-            printf( "%s found SAT on output %d.  ", pLabel, pOrder[k].iPo );
+            fprintf( Abc_FrameGlobalGetOut(), "%s found SAT on output %d.  ", pLabel, pOrder[k].iPo );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             goto cleanup;
         }
@@ -3987,19 +3987,19 @@ int * Acb_NtkSolveCadicalPoSweepLabel( Gia_Man_t * p, int fVerbose, int * pStatu
         {
             nUnsat++;
             if ( fVerbose )
-                printf( "%s: output %d UNSAT. conflicts = %d. learned = %d.\n",
+                fprintf( Abc_FrameGlobalGetOut(), "%s: output %d UNSAT. conflicts = %d. learned = %d.\n",
                     pLabel, i, cadical_solver_nconflicts(pSat), cadical_solver_nlearned(pSat) );
         }
         else
         {
             nUndec++;
             if ( fVerbose )
-                printf( "%s: output %d UNDECIDED. conflicts = %d. learned = %d.\n",
+                fprintf( Abc_FrameGlobalGetOut(), "%s: output %d UNDECIDED. conflicts = %d. learned = %d.\n",
                     pLabel, i, cadical_solver_nconflicts(pSat), cadical_solver_nlearned(pSat) );
             if ( fStopOnUndec )
             {
                 if ( fVerbose )
-                    printf( "%s: stopping after first UNDECIDED output because this proof needs every output UNSAT.\n", pLabel );
+                    fprintf( Abc_FrameGlobalGetOut(), "%s: stopping after first UNDECIDED output because this proof needs every output UNSAT.\n", pLabel );
                 break;
             }
             if ( (fManyOutputs || Gia_ManCoNum(p) > 16) && k + 1 < Gia_ManCoNum(p) )
@@ -4009,13 +4009,13 @@ int * Acb_NtkSolveCadicalPoSweepLabel( Gia_Man_t * p, int fVerbose, int * pStatu
                 if ( pSat == NULL || !Acb_CnfWriteIntoCadical( pSat, pCnf ) )
                     goto cleanup;
                 if ( fVerbose )
-                    printf( "%s: reset solver after undecided output %d to avoid carrying unrelated learned clauses.\n",
+                    fprintf( Abc_FrameGlobalGetOut(), "%s: reset solver after undecided output %d to avoid carrying unrelated learned clauses.\n",
                         pLabel, i );
             }
             if ( fManyOutputs && nUndec >= nMaxManyUndec && nUnsat == 0 )
             {
                 if ( fVerbose )
-                    printf( "%s: stopping early after %d many-output UNDECIDED probes; moving to next XEC method.\n",
+                    fprintf( Abc_FrameGlobalGetOut(), "%s: stopping early after %d many-output UNDECIDED probes; moving to next XEC method.\n",
                         pLabel, nUndec );
                 break;
             }
@@ -4023,11 +4023,11 @@ int * Acb_NtkSolveCadicalPoSweepLabel( Gia_Man_t * p, int fVerbose, int * pStatu
     }
     if ( pStatus )
         *pStatus = nUndec ? -1 : 1;
-    printf( "%s is %s.  ", pLabel, nUndec ? "UNDECIDED" : "UNSAT" );
+    fprintf( Abc_FrameGlobalGetOut(), "%s is %s.  ", pLabel, nUndec ? "UNDECIDED" : "UNSAT" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 cleanup:
     if ( fVerbose && pSat )
-        printf( "%s stats: SAT = %d. UNSAT = %d. UNDEC = %d. conflicts = %d. learned = %d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "%s stats: SAT = %d. UNSAT = %d. UNDEC = %d. conflicts = %d. learned = %d.\n",
             pLabel, nSat, nUnsat, nUndec, cadical_solver_nconflicts(pSat), cadical_solver_nlearned(pSat) );
     if ( pOrder )
         ABC_FREE( pOrder );
@@ -4113,7 +4113,7 @@ int Acb_GiaRequiredLiteralContradiction( Gia_Man_t * p, int iPo, int fVerbose )
             break;
     }
     if ( fVerbose )
-        printf( "Required-literal structural proof: output %d %s. required literals = %d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Required-literal structural proof: output %d %s. required literals = %d.\n",
             iPo, Ret == ACB_XEC_EQ ? "UNSAT" : "inconclusive", nSeen );
     Vec_IntFree( vStack );
     Vec_IntFree( vAssign );
@@ -4150,7 +4150,7 @@ int Acb_GiaRequiredLiteralUnitProof( Gia_Man_t * p, int iPo, int fVerbose, int n
     {
         Status = Acb_GiaSolveObligationListUnit( p, vReq, 0, nSatTimeLimit, NULL );
         if ( fVerbose )
-            printf( "Required-literal unit proof: output %d %s. required literals = %d.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "Required-literal unit proof: output %d %s. required literals = %d.\n",
                 iPo, Status == ACB_XEC_EQ ? "UNSAT" : "inconclusive", nReq );
     }
     Vec_IntFreeP( &vAssign );
@@ -4206,7 +4206,7 @@ Vec_Int_t * Acb_GiaCollectRequiredLiteralAssigns( Gia_Man_t * p, int iPo, int fV
             break;
     }
     if ( fVerbose && *pStatus == ACB_XEC_EQ )
-        printf( "Required-literal cofactor: output %d is UNSAT before cofactoring. required literals = %d.\n", iPo, nSeen );
+        fprintf( Abc_FrameGlobalGetOut(), "Required-literal cofactor: output %d is UNSAT before cofactoring. required literals = %d.\n", iPo, nSeen );
     Vec_IntFree( vStack );
     return vAssign;
 }
@@ -4355,7 +4355,7 @@ int * Acb_NtkSolveCadicalLocalConeSweepSkipCtx( Gia_Man_t * p, int fVerbose, int
     pOrder = ABC_ALLOC( Acb_SplitPoOrder_t, Gia_ManCoNum(p) );
     Acb_NtkSortSplitOutputs( p, pOrder );
     if ( fVerbose )
-        printf( "Local-cone CaDiCaL sweep: outputs = %d. skip = %d. smallest cone %d ANDs, largest cone %d ANDs. total limit = %d sec, per-output limit = %d sec%s.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Local-cone CaDiCaL sweep: outputs = %d. skip = %d. smallest cone %d ANDs, largest cone %d ANDs. total limit = %d sec, per-output limit = %d sec%s.\n",
             Gia_ManCoNum(p), nSkipUnsat, pOrder[0].nAnds, pOrder[Gia_ManCoNum(p)-1].nAnds, nSatTimeLimit, nProbeLimit,
             fQuickMany ? " (SAT-hunting quick probe for many-output miter)" : "" );
     for ( k = 0; k < Gia_ManCoNum(p); k++ )
@@ -4370,7 +4370,7 @@ int * Acb_NtkSolveCadicalLocalConeSweepSkipCtx( Gia_Man_t * p, int fVerbose, int
         if ( vSkipUnsat && Vec_IntFind(vSkipUnsat, i) >= 0 )
         {
             if ( fVerbose )
-                printf( "Local-cone CaDiCaL: skipping output %d because it is already proven UNSAT.\n", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Local-cone CaDiCaL: skipping output %d because it is already proven UNSAT.\n", i );
             continue;
         }
         if ( clkLimit && nLimit <= 0 )
@@ -4394,7 +4394,7 @@ int * Acb_NtkSolveCadicalLocalConeSweepSkipCtx( Gia_Man_t * p, int fVerbose, int
              Gia_ManAndNum(pOne) <= 5000 && nLimit <= 120 )
             nLimit = Abc_MaxInt( nLimit, Acb_XecRemainingTimeLimit( clkLimit, nUnsat >= 4 ? 420 : 180 ) );
         if ( fVerbose )
-            printf( "Local-cone CaDiCaL: output %d (%d/%d), cone = %d ANDs, support = %d/%d PIs, limit = %d sec.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "Local-cone CaDiCaL: output %d (%d/%d), cone = %d ANDs, support = %d/%d PIs, limit = %d sec.\n",
                 i, k + 1, Gia_ManCoNum(p), Gia_ManAndNum(pOne), nSuppSize, Gia_ManCiNum(p), nLimit );
         StatusOne = Acb_XecLocalConeProof( pOne, nSuppSize, nLimit, clkLimit, fVerbose && (nUndec > 0 || nSuppSize >= 40), &pModel );
         if ( StatusOne == ACB_XEC_NEQ )
@@ -4403,7 +4403,7 @@ int * Acb_NtkSolveCadicalLocalConeSweepSkipCtx( Gia_Man_t * p, int fVerbose, int
             pModel = Acb_XecLocalConeExpandModel( p, pOne, vSuppMap, pModel );
             if ( fVerbose )
             {
-                printf( "Local-cone CaDiCaL: output %d SAT.  ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Local-cone CaDiCaL: output %d SAT.  ", i );
                 Abc_PrintTime( 1, "Time", Abc_Clock() - clkOut );
             }
             Gia_ManStop( pOne );
@@ -4421,7 +4421,7 @@ int * Acb_NtkSolveCadicalLocalConeSweepSkipCtx( Gia_Man_t * p, int fVerbose, int
             Vec_IntPushUnique( pCtx->vLastProvenPos, i );
             if ( fVerbose )
             {
-                printf( "Local-cone CaDiCaL: output %d UNSAT.  ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Local-cone CaDiCaL: output %d UNSAT.  ", i );
                 Abc_PrintTime( 1, "Time", Abc_Clock() - clkOut );
             }
             Gia_ManStop( pOne );
@@ -4433,7 +4433,7 @@ int * Acb_NtkSolveCadicalLocalConeSweepSkipCtx( Gia_Man_t * p, int fVerbose, int
         Vec_IntPushUnique( pCtx->vLastHardPos, i );
         if ( fVerbose )
         {
-            printf( "Local-cone CaDiCaL: output %d UNDECIDED.  ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Local-cone CaDiCaL: output %d UNDECIDED.  ", i );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clkOut );
         }
         Gia_ManStop( pOne );
@@ -4441,7 +4441,7 @@ int * Acb_NtkSolveCadicalLocalConeSweepSkipCtx( Gia_Man_t * p, int fVerbose, int
         if ( Acb_XecLocalConeKeepSweeping( fQuickMany, fMediumSweep, fResumeSweep, nUndec, nMaxUndec ) )
         {
             if ( fVerbose )
-                printf( "Local-cone CaDiCaL: continuing after hard output %d; undecided probes = %d/%d.\n",
+                fprintf( Abc_FrameGlobalGetOut(), "Local-cone CaDiCaL: continuing after hard output %d; undecided probes = %d/%d.\n",
                     i, nUndec, nMaxUndec );
             continue;
         }
@@ -4452,16 +4452,16 @@ int * Acb_NtkSolveCadicalLocalConeSweepSkipCtx( Gia_Man_t * p, int fVerbose, int
         pCtx->LastHardPo = iLastUndec;
     if ( pStatus )
         *pStatus = StatusFinal;
-    printf( "The networks are %s by local-cone CaDiCaL sweep.  ",
+    fprintf( Abc_FrameGlobalGetOut(), "The networks are %s by local-cone CaDiCaL sweep.  ",
         nSat ? "NOT equivalent" : (nUndec ? "UNDECIDED" : "equivalent") );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( fVerbose )
     {
-        printf( "Local-cone CaDiCaL stats: SAT = %d. UNSAT = %d. SKIP = %d. UNDEC = %d.\n", nSat, nUnsat, nSkipUnsat, nUndec );
+        fprintf( Abc_FrameGlobalGetOut(), "Local-cone CaDiCaL stats: SAT = %d. UNSAT = %d. SKIP = %d. UNDEC = %d.\n", nSat, nUnsat, nSkipUnsat, nUndec );
         if ( StatusFinal == ACB_XEC_ONE_HARD )
-            printf( "Local-cone CaDiCaL: only output %d remains hard; whole-miter CaDiCaL would duplicate this cone.\n", iLastUndec );
+            fprintf( Abc_FrameGlobalGetOut(), "Local-cone CaDiCaL: only output %d remains hard; whole-miter CaDiCaL would duplicate this cone.\n", iLastUndec );
         else if ( StatusFinal == ACB_XEC_MANY_HARD )
-            printf( "Local-cone CaDiCaL: %d outputs remain hard after complete short-probe sweep.\n", nUndec );
+            fprintf( Abc_FrameGlobalGetOut(), "Local-cone CaDiCaL: %d outputs remain hard after complete short-probe sweep.\n", nUndec );
     }
     ABC_FREE( pOrder );
     return pModel;
@@ -4478,14 +4478,14 @@ int * Acb_NtkSolveCadicalOdc( Gia_Man_t * p, int fVerbose, int * pStatus )
     {
         if ( pStatus )
             *pStatus = ACB_XEC_EQ;
-        printf( "The networks are equivalent by ODC CaDiCaL.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "The networks are equivalent by ODC CaDiCaL.  " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         return NULL;
     }
     pOrder = ABC_ALLOC( Acb_SplitPoOrder_t, Gia_ManCoNum(p) );
     Acb_NtkSortSplitOutputs( p, pOrder );
     if ( fVerbose )
-        printf( "ODC CaDiCaL: solving one observable output cone at a time; cone limit = %d sec, total limit = %d sec.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "ODC CaDiCaL: solving one observable output cone at a time; cone limit = %d sec, total limit = %d sec.\n",
             nConeTimeLimit, nTotalTimeLimit );
     for ( k = 0; k < Gia_ManCoNum(p); k++ )
     {
@@ -4496,7 +4496,7 @@ int * Acb_NtkSolveCadicalOdc( Gia_Man_t * p, int fVerbose, int * pStatus )
         }
         i = pOrder[k].iPo;
         if ( fVerbose )
-            printf( "ODC CaDiCaL output %d: cone ANDs = %d.\n", i, pOrder[k].nAnds );
+            fprintf( Abc_FrameGlobalGetOut(), "ODC CaDiCaL output %d: cone ANDs = %d.\n", i, pOrder[k].nAnds );
         pOne = Gia_ManDupCones( p, &i, 1, 0 );
         pModel = Acb_NtkSolveCadicalLimit( pOne, 0, fVerbose, &Status, nConeTimeLimit, NULL, 0 );
         Gia_ManStop( pOne );
@@ -4505,7 +4505,7 @@ int * Acb_NtkSolveCadicalOdc( Gia_Man_t * p, int fVerbose, int * pStatus )
             ABC_FREE( pOrder );
             if ( pStatus )
                 *pStatus = ACB_XEC_NEQ;
-            printf( "The networks are NOT equivalent by ODC CaDiCaL on output %d.  ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "The networks are NOT equivalent by ODC CaDiCaL on output %d.  ", i );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             return pModel;
         }
@@ -4515,7 +4515,7 @@ int * Acb_NtkSolveCadicalOdc( Gia_Man_t * p, int fVerbose, int * pStatus )
     ABC_FREE( pOrder );
     if ( pStatus )
         *pStatus = fOneUndef ? -1 : 1;
-    printf( "The networks are %s by ODC CaDiCaL.  ", fOneUndef ? "UNDECIDED" : "equivalent" );
+    fprintf( Abc_FrameGlobalGetOut(), "The networks are %s by ODC CaDiCaL.  ", fOneUndef ? "UNDECIDED" : "equivalent" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return NULL;
 }
@@ -4531,14 +4531,14 @@ int * Acb_NtkSolveSplit( Gia_Man_t * p, int fVerbose, int * pStatus )
     {
         if ( pStatus )
             *pStatus = ACB_XEC_EQ;
-        printf( "The networks are equivalent by split SAT.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "The networks are equivalent by split SAT.  " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         return NULL;
     }
     pOrder = ABC_ALLOC( Acb_SplitPoOrder_t, Gia_ManCoNum(p) );
     Acb_NtkSortSplitOutputs( p, pOrder );
     if ( fVerbose && Gia_ManCoNum(p) > 1 )
-        printf( "Split SAT output order: smallest cone %d ANDs, largest cone %d ANDs.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Split SAT output order: smallest cone %d ANDs, largest cone %d ANDs.\n",
             pOrder[0].nAnds, pOrder[Gia_ManCoNum(p)-1].nAnds );
     for ( k = 0; k < Gia_ManCoNum(p); k++ )
     {
@@ -4551,7 +4551,7 @@ int * Acb_NtkSolveSplit( Gia_Man_t * p, int fVerbose, int * pStatus )
             ABC_FREE( pOrder );
             if ( pStatus )
                 *pStatus = ACB_XEC_NEQ;
-            printf( "The networks are NOT equivalent by split SAT on output %d.  ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "The networks are NOT equivalent by split SAT on output %d.  ", i );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             return pModel;
         }
@@ -4564,7 +4564,7 @@ int * Acb_NtkSolveSplit( Gia_Man_t * p, int fVerbose, int * pStatus )
     ABC_FREE( pOrder );
     if ( pStatus )
         *pStatus = fOneUndef ? -1 : 1;
-    printf( "The networks are %s by split SAT.  ", fOneUndef ? "UNDECIDED" : "equivalent" );
+    fprintf( Abc_FrameGlobalGetOut(), "The networks are %s by split SAT.  ", fOneUndef ? "UNDECIDED" : "equivalent" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return NULL;
 }
@@ -4589,12 +4589,12 @@ void Acb_NtkPrintCecStats( Acb_Ntk_t * pNtk )
         else if ( Acb_ObjType( pNtk, iObj ) == ABC_OPER_BIT_MUX )
             nMuxes++;
 
-    printf( "PI = %6d  ",  Acb_NtkCiNum(pNtk) );
-    printf( "PO = %6d  ",  Acb_NtkCoNum(pNtk) );
-    printf( "Obj = %6d  ", Acb_NtkObjNum(pNtk) );
-    printf( "DC = %4d  ",  nDcs );
-    printf( "Mux = %4d  ", nMuxes );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "PI = %6d  ",  Acb_NtkCiNum(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "PO = %6d  ",  Acb_NtkCoNum(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "Obj = %6d  ", Acb_NtkObjNum(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "DC = %4d  ",  nDcs );
+    fprintf( Abc_FrameGlobalGetOut(), "Mux = %4d  ", nMuxes );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 void Acb_NtkCountXConstructs( Acb_Ntk_t * pNtk, int * pnDcs, int * pnMuxes, int * pnConstXs )
@@ -4652,13 +4652,13 @@ int * Acb_NtkSolveBinaryCec( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, int fVerbose,
             Gia_ManStop( pMiter );
             pMiter = pTemp;
             if ( fVerbose )
-                printf( "Conventional binary XOR-miter compression: And = %d -> %d. Lev = %d -> %d. PO = %d.\n",
+                fprintf( Abc_FrameGlobalGetOut(), "Conventional binary XOR-miter compression: And = %d -> %d. Lev = %d -> %d. PO = %d.\n",
                     nAndBefore, Gia_ManAndNum(pMiter), nLevBefore, Gia_ManLevelNum(pMiter), Gia_ManCoNum(pMiter) );
         }
     }
     if ( fVerbose )
     {
-        printf( "Trying conventional binary XOR-miter CaDiCaL for no-X design: PI = %d. PO = %d. And = %d. limit = %d sec.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Trying conventional binary XOR-miter CaDiCaL for no-X design: PI = %d. PO = %d. And = %d. limit = %d sec.\n",
             Gia_ManCiNum(pMiter), Gia_ManCoNum(pMiter), Gia_ManAndNum(pMiter), nTimeLimit );
         Gia_ManPrintStats( pMiter, NULL );
     }
@@ -4674,10 +4674,10 @@ int * Acb_NtkSolveBinaryCec( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, int fVerbose,
             if ( pStatus )
                 *pStatus = ACB_XEC_UNDEC;
             RetValue = ACB_XEC_UNDEC;
-            printf( "The binary XOR-miter CaDiCaL SAT model is not a valid original Boolean counterexample; treating it as UNDECIDED.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The binary XOR-miter CaDiCaL SAT model is not a valid original Boolean counterexample; treating it as UNDECIDED.\n" );
         }
     }
-    printf( "The networks are %s by conventional binary XOR-miter CaDiCaL.  ",
+    fprintf( Abc_FrameGlobalGetOut(), "The networks are %s by conventional binary XOR-miter CaDiCaL.  ",
         RetValue == 1 ? "equivalent" : (RetValue == 0 ? "NOT equivalent" : "UNDECIDED") );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Gia_ManStop( pMiter );
@@ -4713,7 +4713,7 @@ void Acb_NtkUpdateCiOrder( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG )
         int NameIdG = Acb_ManStrId( pNtkG->pDesign, Acb_ObjNameStr(pNtkF, iObj) );
         int iPerm = NameIdG < Vec_IntSize(vMap) ? Vec_IntEntry( vMap, NameIdG ) : -1;
         if ( iPerm == -1 )
-            printf( "Cannot find name \"%s\" of PI %d of F among PIs of G.\n", Acb_ObjNameStr(pNtkF, iObj), i );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot find name \"%s\" of PI %d of F among PIs of G.\n", Acb_ObjNameStr(pNtkF, iObj), i );
         else
             Vec_IntWriteEntry( vOrder, iPerm, iObj );
     }
@@ -4732,13 +4732,13 @@ int Acb_NtkCheckPiOrder( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG )
         if ( strcmp(pNameF, pNameG) )
         {
 //            printf( "PI %d has different names (%s and %s) in these networks.\n", i, pNameF, pNameG );
-            printf( "Networks have different PI names. Reordering PIs of the implementation network.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Networks have different PI names. Reordering PIs of the implementation network.\n" );
             Acb_NtkUpdateCiOrder( pNtkF, pNtkG );
             break;
         }
     }
     if ( i == nPis )
-        printf( "Networks have the same PI names.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks have the same PI names.\n" );
     return i == nPis;
 }
 
@@ -4808,7 +4808,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
     if ( fUseCadical && nDcsF == 0 && nMuxesF == 0 && nConstXsF == 0 && nDcsG == 0 && nMuxesG == 0 && nConstXsG == 0 )
     {
         if ( fVerbose )
-            printf( "No X/DC/MUX constructs found; using conventional binary CaDiCaL instead of X-aware dual-rail proving.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "No X/DC/MUX constructs found; using conventional binary CaDiCaL instead of X-aware dual-rail proving.\n" );
         pModel = Acb_NtkSolveBinaryCec( pNtkF, pNtkG, fVerbose, &Status, 1200 );
         Acb_OutputFile( pFileNames[2], pNtkF, pModel, Status );
         ABC_FREE( pModel );
@@ -4822,7 +4822,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
     pGiaG = Acb_NtkGiaDeriveDual( pNtkG );
     if ( pGiaF == NULL || pGiaG == NULL )
     {
-        printf( "XEC dual-rail translation failed; see unsupported ACB object diagnostic above.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "XEC dual-rail translation failed; see unsupported ACB object diagnostic above.\n" );
         Status = ACB_XEC_UNDEC;
         Acb_OutputFile( pFileNames[2], pNtkF, NULL, Status );
         Gia_ManStopP( &pGiaF );
@@ -4839,7 +4839,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
         {
             vCutObjsF = Acb_NtkCollectCoDrivers( pNtkF );
             if ( fVerbose )
-                printf( "Found %d output DC cutpoints in implementation network.\n", Vec_IntSize(vDcDataObjsG) );
+                fprintf( Abc_FrameGlobalGetOut(), "Found %d output DC cutpoints in implementation network.\n", Vec_IntSize(vDcDataObjsG) );
         }
         vCutObjsG = Acb_NtkCollectPoMuxCutpoints( pNtkG );
         if ( vCutObjsF == NULL && Vec_IntSize(vCutObjsG) == Acb_NtkCoNum(pNtkG) )
@@ -4848,13 +4848,13 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
             vMuxSelectorsG = Acb_NtkCollectPoMuxSelectors( pNtkG, vCutObjsG );
             vMuxPoSelIdsG = Acb_NtkCollectPoMuxSelectorIds( pNtkG, vCutObjsG, vMuxSelectorsG );
             if ( fVerbose )
-                printf( "Found %d output partition-candidate cutpoints using %d unique selectors in implementation network.\n",
+                fprintf( Abc_FrameGlobalGetOut(), "Found %d output partition-candidate cutpoints using %d unique selectors in implementation network.\n",
                     Vec_IntSize(vCutObjsG), Vec_IntSize(vMuxSelectorsG) );
         }
         else if ( fVerbose && vCutObjsF == NULL && Vec_IntSize(vCutObjsG) > 0 )
-            printf( "No complete output partition-candidate cutpoint set found.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "No complete output partition-candidate cutpoint set found.\n" );
         if ( Acb_NtkCollectInternalDcControls( pNtkG, &vIntDcObjsG, &vIntDcCtrlsG, &vIntDcCtrlIdsG ) && fVerbose )
-            printf( "Found %d internal DC nodes using %d unique controls in implementation network.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "Found %d internal DC nodes using %d unique controls in implementation network.\n",
                 Vec_IntSize(vIntDcObjsG), Vec_IntSize(vIntDcCtrlsG) );
         if ( vIntDcObjsG && Vec_IntSize(vIntDcObjsG) > 0 && Acb_NtkCoNum(pNtkG) > 512 )
             Acb_NtkCollectInternalDcControls( pNtkF, &vSymIntDcObjsF, &vSymIntDcCtrlsF, &vSymIntDcCtrlIdsF );
@@ -4872,7 +4872,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
                 Vec_IntSize(vSymIntDcObjsF) == Vec_IntSize(vIntDcObjsG) &&
                 Vec_IntSize(vSymIntDcCtrlsF) == Vec_IntSize(vIntDcCtrlsG);
             if ( fVerbose && fSymmetricMuxDc )
-                printf( "Detected symmetric output-MUX/internal-DC structure in both networks.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Detected symmetric output-MUX/internal-DC structure in both networks.\n" );
         }
     }
     if ( Gia_ManAndNum(pGia) > 5000 )
@@ -4882,7 +4882,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
         if ( pTemp )
         {
             if ( fVerbose )
-                printf( "XEC miter compression: And = %d -> %d. PO = %d.\n", nAndBefore, Gia_ManAndNum(pTemp), Gia_ManPoNum(pTemp) );
+                fprintf( Abc_FrameGlobalGetOut(), "XEC miter compression: And = %d -> %d. PO = %d.\n", nAndBefore, Gia_ManAndNum(pTemp), Gia_ManPoNum(pTemp) );
             Gia_ManStop( pGia );
             pGia = pTemp;
         }
@@ -4906,7 +4906,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
         if ( pModel )
         {
             Status = 0;
-            printf( "The networks are NOT equivalent by random simulation.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The networks are NOT equivalent by random simulation.\n" );
         }
         else
         {
@@ -4934,13 +4934,13 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
                         if ( Gia_ManAndNum(pGiaCut) >= Gia_ManAndNum(pGia) )
                         {
                             if ( fVerbose )
-                                printf( "Skipping output-DC guarded cutpoint miter because it is not smaller: And = %d, current = %d.\n",
+                                fprintf( Abc_FrameGlobalGetOut(), "Skipping output-DC guarded cutpoint miter because it is not smaller: And = %d, current = %d.\n",
                                     Gia_ManAndNum(pGiaCut), Gia_ManAndNum(pGia) );
                         }
                         else
                         {
                             if ( fVerbose )
-                                printf( "Trying output-DC guarded cutpoint CaDiCaL sweep before whole-miter CaDiCaL: And = %d. PO = %d.\n",
+                                fprintf( Abc_FrameGlobalGetOut(), "Trying output-DC guarded cutpoint CaDiCaL sweep before whole-miter CaDiCaL: And = %d. PO = %d.\n",
                                     Gia_ManAndNum(pGiaCut), Gia_ManPoNum(pGiaCut) );
                             pModel = Acb_NtkSolveCadicalLimit( pGiaCut, 0, fVerbose, &Status, 900, "output-DC guarded cutpoint CaDiCaL", 0 );
                             Acb_XecMergeTargetStatus( Status, pModel != NULL, &Status, &fCheckModel );
@@ -4973,13 +4973,13 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
                     {
                         int nWholeDcLimit = fHighPiTwoCtrlDc ? XecCtx.Pars.nSharedDcWholeSec : 1200;
                         if ( fVerbose )
-                            printf( "Trying whole-miter CaDiCaL before local sweep for %slarge high-PI DC design: And = %d. PO = %d. DC controls = %d.\n",
+                            fprintf( Abc_FrameGlobalGetOut(), "Trying whole-miter CaDiCaL before local sweep for %slarge high-PI DC design: And = %d. PO = %d. DC controls = %d.\n",
                             fHighPiTwoCtrlDc ? "case8-style " : "", Gia_ManAndNum(pGia), Gia_ManCoNum(pGia), Vec_IntSize(vIntDcCtrlsG) );
                         fTriedWholeMiterEarly = 1;
                         pModel = Acb_NtkSolveCadicalLimit( pGia, 0, fVerbose, &Status, nWholeDcLimit, "large high-PI DC whole-miter CaDiCaL", 0 );
                         Acb_XecMergeTargetStatus( Status, pModel != NULL, &Status, &fCheckModel );
                         if ( Status == -1 && fVerbose )
-                            printf( "Large high-PI DC whole-miter CaDiCaL was UNDECIDED%s.\n",
+                            fprintf( Abc_FrameGlobalGetOut(), "Large high-PI DC whole-miter CaDiCaL was UNDECIDED%s.\n",
                                 fHighPiTwoCtrlDc ? "; skipping local/cube detours for this case8-style shape" : "; continuing with local structural attempts" );
                         if ( Status == -1 && fHighPiTwoCtrlDc )
                         {
@@ -4995,13 +4995,13 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
                          Gia_ManAndNum(pGia) >= 30000 && Gia_ManAndNum(pGia) <= 70000 )
                     {
                         if ( fVerbose )
-                            printf( "Trying whole-miter CaDiCaL before local sweep for symmetric MUX/DC design: And = %d. PO = %d. selectors = %d. DC controls = %d.\n",
+                            fprintf( Abc_FrameGlobalGetOut(), "Trying whole-miter CaDiCaL before local sweep for symmetric MUX/DC design: And = %d. PO = %d. selectors = %d. DC controls = %d.\n",
                             Gia_ManAndNum(pGia), Gia_ManCoNum(pGia), Vec_IntSize(vMuxSelectorsG), Vec_IntSize(vIntDcCtrlsG) );
                         fTriedWholeMiterEarly = 1;
                         pModel = Acb_NtkSolveCadicalLimit( pGia, 0, fVerbose, &Status, 1200, "symmetric MUX/DC whole-miter CaDiCaL", 0 );
                         Acb_XecMergeTargetStatus( Status, pModel != NULL, &Status, &fCheckModel );
                         if ( Status == -1 && fVerbose )
-                            printf( "Symmetric MUX/DC whole-miter CaDiCaL was UNDECIDED; continuing with local structural attempts.\n" );
+                            fprintf( Abc_FrameGlobalGetOut(), "Symmetric MUX/DC whole-miter CaDiCaL was UNDECIDED; continuing with local structural attempts.\n" );
                     }
                     if ( Status == -1 && !fFancy && !fSymmetricMuxDc && !fSkipAsymHmuxBranch &&
                          vCutObjsG && vMuxSelectorsG && vMuxPoSelIdsG &&
@@ -5019,7 +5019,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
                         {
                             fSkipAsymHmuxBranch = 1;
                             if ( fVerbose )
-                                printf( "Complete HMUX selector-cube proof was inconclusive; skipping CEPR and partial-selector HMUX detours for this broad asymmetric shape.\n" );
+                                fprintf( Abc_FrameGlobalGetOut(), "Complete HMUX selector-cube proof was inconclusive; skipping CEPR and partial-selector HMUX detours for this broad asymmetric shape.\n" );
                         }
                     }
                     if ( Status == -1 && !fFancy && !fSymmetricMuxDc && !fSkipAsymHmuxBranch &&
@@ -5032,14 +5032,14 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
                          Gia_ManAndNum(pGia) <= 35000 )
                     {
                         if ( fVerbose )
-                            printf( "Trying compact HMUX/DC whole-miter CaDiCaL before asymmetric branch proof: And = %d. PO = %d. selectors = %d. DC controls = %d.\n",
+                            fprintf( Abc_FrameGlobalGetOut(), "Trying compact HMUX/DC whole-miter CaDiCaL before asymmetric branch proof: And = %d. PO = %d. selectors = %d. DC controls = %d.\n",
                                 Gia_ManAndNum(pGia), Gia_ManCoNum(pGia), Vec_IntSize(vMuxSelectorsG), Vec_IntSize(vIntDcCtrlsG) );
                         fTriedWholeMiterEarly = 1;
                         fSkipAsymHmuxBranch = 1;
                         pModel = Acb_NtkSolveCadicalLimit( pGia, 0, fVerbose, &Status, 1200, "compact HMUX/DC whole-miter CaDiCaL", 0 );
                         Acb_XecMergeTargetStatus( Status, pModel != NULL, &Status, &fCheckModel );
                         if ( Status == -1 && fVerbose )
-                            printf( "Compact HMUX/DC whole-miter CaDiCaL was UNDECIDED; skipping the expensive asymmetric HMUX branch detour.\n" );
+                            fprintf( Abc_FrameGlobalGetOut(), "Compact HMUX/DC whole-miter CaDiCaL was UNDECIDED; skipping the expensive asymmetric HMUX branch detour.\n" );
                     }
 
                     if ( Status == -1 && !fFancy && !fSymmetricMuxDc && !fSkipAsymHmuxBranch &&
@@ -5051,7 +5051,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
                     {
                         int StatusHmux = -1;
                         if ( fVerbose )
-                            printf( "Trying asymmetric HMUX branch proof with targeted DC fallback before local sweep.\n" );
+                            fprintf( Abc_FrameGlobalGetOut(), "Trying asymmetric HMUX branch proof with targeted DC fallback before local sweep.\n" );
                         pModel = Acb_NtkSolveHmuxBranches( pNtkF, pNtkG,
                             vCutObjsG, vMuxSelectorsG, vMuxPoSelIdsG,
                             vIntDcObjsG, vIntDcCtrlsG, vIntDcCtrlIdsG,
@@ -5078,7 +5078,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
                             {
                                 fTriedSmallDcCutpoints = 1;
                                 if ( fVerbose )
-                                    printf( "Trying collected hard-output cutpoint abstraction for small single-control DC design: hard outputs = %d. DC nodes = %d.\n",
+                                    fprintf( Abc_FrameGlobalGetOut(), "Trying collected hard-output cutpoint abstraction for small single-control DC design: hard outputs = %d. DC nodes = %d.\n",
                                         Vec_IntSize(XecCtx.vLastHardPos), Vec_IntSize(vIntDcObjsG) );
                                 pModel = Acb_NtkSolveTargetCutpointList( pNtkF, pNtkG, XecCtx.vLastHardPos,
                                     fVerbose, &StatusTarget, 900, 120 );
@@ -5086,7 +5086,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
                             if ( StatusTarget == -1 && !fTriedSmallDcCutpoints && !fHighPiTwoCtrlDc )
                             {
                                 if ( fVerbose )
-                                    printf( "Trying DC-control target recursion after local-cone sweep: hard outputs = %d. controls = %d.\n",
+                                    fprintf( Abc_FrameGlobalGetOut(), "Trying DC-control target recursion after local-cone sweep: hard outputs = %d. controls = %d.\n",
                                         Vec_IntSize(XecCtx.vLastHardPos), Vec_IntSize(vIntDcCtrlsG) );
                                 pModel = Acb_NtkSolveDcControlTargetList( pNtkF, pNtkG, XecCtx.vLastHardPos,
                                     vIntDcObjsG, vIntDcCtrlsG, vIntDcCtrlIdsG, fVerbose, &StatusTarget, 180 );
@@ -5104,7 +5104,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
                                         Vec_IntForEachEntry( XecCtx.vLastProvenPos, iPoSkip, iSkip )
                                             Vec_IntPushUnique( vSkipUnsat, iPoSkip );
                                     if ( fVerbose )
-                                        printf( "DC-control target recursion proved %d collected hard outputs; resuming local-cone sweep for %d remaining outputs.\n",
+                                        fprintf( Abc_FrameGlobalGetOut(), "DC-control target recursion proved %d collected hard outputs; resuming local-cone sweep for %d remaining outputs.\n",
                                             Vec_IntSize(XecCtx.vLastHardPos), Gia_ManCoNum(pGia) - Vec_IntSize(vSkipUnsat) );
                                     pModel = Acb_NtkSolveCadicalLocalConeSweepSkipCtx( pGia, fVerbose, &StatusResume, 900, -120, vSkipUnsat, &XecCtx );
                                     Vec_IntFree( vSkipUnsat );
@@ -5117,7 +5117,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
                             {
                                 fSkipWholeMiter = 1;
                                 if ( fVerbose )
-                                    printf( "Skipping expensive high-PI two-control DC fallbacks after quick local sweep; remaining outputs need a specialized proof.\n" );
+                                    fprintf( Abc_FrameGlobalGetOut(), "Skipping expensive high-PI two-control DC fallbacks after quick local sweep; remaining outputs need a specialized proof.\n" );
                             }
                         }
                     }
@@ -5169,14 +5169,14 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
                         if ( XecCtx.LastHardDirectTried )
                         {
                             if ( fVerbose )
-                                printf( "Skipping whole-miter CaDiCaL because the isolated hard output already had a rejected direct-clause SAT model.\n" );
+                                fprintf( Abc_FrameGlobalGetOut(), "Skipping whole-miter CaDiCaL because the isolated hard output already had a rejected direct-clause SAT model.\n" );
                             Status = -1;
                             fSkipWholeMiter = 1;
                         }
                         else
                         {
                             if ( fVerbose )
-                                printf( "Skipping whole-miter CaDiCaL because it duplicates the isolated hard-output cone.\n" );
+                                fprintf( Abc_FrameGlobalGetOut(), "Skipping whole-miter CaDiCaL because it duplicates the isolated hard-output cone.\n" );
                             Status = -1;
                             fSkipWholeMiter = 1;
                         }
@@ -5184,7 +5184,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
                     if ( Status == ACB_XEC_MANY_HARD )
                     {
                         if ( fVerbose )
-                            printf( "Skipping whole-miter CaDiCaL because the remaining hard-output proof already isolated the unresolved outputs.\n" );
+                            fprintf( Abc_FrameGlobalGetOut(), "Skipping whole-miter CaDiCaL because the remaining hard-output proof already isolated the unresolved outputs.\n" );
                         Status = -1;
                         fSkipWholeMiter = 1;
                     }
@@ -5199,7 +5199,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
                         pGiaGCtrl = Acb_NtkGiaDeriveDualTargets( pNtkG, vDcCtrlObjsG );
                         pGiaCut   = Acb_NtkGiaDeriveMiterDcGuard( pGiaFCut, pGiaGCut, pGiaGCtrl );
                         if ( fVerbose )
-                            printf( "Trying exact split SAT on output-DC cutpoint miter: And = %d. PO = %d.\n", Gia_ManAndNum(pGiaCut), Gia_ManPoNum(pGiaCut) );
+                            fprintf( Abc_FrameGlobalGetOut(), "Trying exact split SAT on output-DC cutpoint miter: And = %d. PO = %d.\n", Gia_ManAndNum(pGiaCut), Gia_ManPoNum(pGiaCut) );
                         pModel = Acb_NtkSolveSplit( pGiaCut, fVerbose, &Status );
                         Acb_XecMergeTargetStatus( Status, pModel != NULL, &Status, &fCheckModel );
                     }
@@ -5226,13 +5226,13 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
                         if ( Gia_ManAndNum(pGiaCut) >= Gia_ManAndNum(pGia) )
                         {
                             if ( fVerbose )
-                                printf( "Skipping partition-candidate cutpoint miter because it is not smaller: And = %d, current = %d.\n",
+                                fprintf( Abc_FrameGlobalGetOut(), "Skipping partition-candidate cutpoint miter because it is not smaller: And = %d, current = %d.\n",
                                     Gia_ManAndNum(pGiaCut), Gia_ManAndNum(pGia) );
                         }
                         else
                         {
                             if ( fVerbose )
-                                printf( "Trying exact split SAT on partition-candidate cutpoint miter: And = %d. PO = %d.\n", Gia_ManAndNum(pGiaCut), Gia_ManPoNum(pGiaCut) );
+                                fprintf( Abc_FrameGlobalGetOut(), "Trying exact split SAT on partition-candidate cutpoint miter: And = %d. PO = %d.\n", Gia_ManAndNum(pGiaCut), Gia_ManPoNum(pGiaCut) );
                             pModel = Acb_NtkSolveSplit( pGiaCut, fVerbose, &Status );
                             Acb_XecMergeTargetStatus( Status, pModel != NULL, &Status, &fCheckModel );
                         }
@@ -5246,7 +5246,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
                     }
                     if ( Status == -1 && fFancy )
                     {
-                        printf( "Trying X-aware whole-miter CaDiCaL after ODC/split SAT was undecided.\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "Trying X-aware whole-miter CaDiCaL after ODC/split SAT was undecided.\n" );
                         if ( pGiaX == NULL )
                             pGiaX = Acb_NtkGiaDeriveMiter( pGiaF, pGiaG, 3 );
                         pModel = Acb_NtkSolveCadicalLimit( pGiaX, fFancy, fVerbose, &Status, 1200, "X-aware CaDiCaL SAT-only", 1 );
@@ -5292,7 +5292,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose, int fUseCad
                 ABC_FREE( pModel );
                 pModel = NULL;
                 Status = -1;
-                printf( "The SAT model is not a valid XEC counterexample; treating the result as UNDECIDED.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "The SAT model is not a valid XEC counterexample; treating the result as UNDECIDED.\n" );
             }
         }
         Acb_OutputFile( pFileNames[2], pNtkF, pModel, Status );
