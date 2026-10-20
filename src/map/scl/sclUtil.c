@@ -52,7 +52,7 @@ void Abc_SclMioGates2SclGates( SC_Lib * pLib, Abc_Ntk_t * p )
     // find buffer
     if ( Mio_LibraryReadBuf((Mio_Library_t *)p->pManFunc) == NULL )
     {
-        printf( "Cannot find buffer in the current library. Quitting.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot find buffer in the current library. Quitting.\n" );
         return;
     }
     bufferId = Abc_SclCellFind( pLib, Mio_GateReadName(Mio_LibraryReadBuf((Mio_Library_t *)p->pManFunc)) );
@@ -86,7 +86,7 @@ void Abc_SclSclGates2MioGates( SC_Lib * pLib, Abc_Ntk_t * p )
         CounterAll++;
     }
     if ( Counter )
-        printf( "Could not find %d (out of %d) gates in the current library.\n", Counter, CounterAll );
+        fprintf( Abc_FrameGlobalGetOut(), "Could not find %d (out of %d) gates in the current library.\n", Counter, CounterAll );
     Vec_IntFreeP( &p->vGates );
     p->pSCLib = NULL;
 }
@@ -143,17 +143,17 @@ void Abc_SclManPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p, Vec_Int_t * vGates 
         TotArea += pCell->area;
         nGates++;
     }
-    printf( "Total gates = %d.  Total area = %.1f\n", nGates, TotArea );
+    fprintf( Abc_FrameGlobalGetOut(), "Total gates = %d.  Total area = %.1f\n", nGates, TotArea );
     for ( i = 0; i < ABC_SCL_MAX_SIZE; i++ )
     {
         if ( Counters[i] == 0 )
             continue;
-        printf( "Cell size = %d.  ", i );
-        printf( "Count = %6d  ",     Counters[i] );
-        printf( "(%5.1f %%)   ",     100.0 * Counters[i] / nGates );
-        printf( "Area = %12.1f  ",   Areas[i] );
-        printf( "(%5.1f %%)  ",      100.0 * Areas[i] / TotArea );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cell size = %d.  ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Count = %6d  ",     Counters[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "(%5.1f %%)   ",     100.0 * Counters[i] / nGates );
+        fprintf( Abc_FrameGlobalGetOut(), "Area = %12.1f  ",   Areas[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "(%5.1f %%)  ",      100.0 * Areas[i] / TotArea );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void Abc_SclPrintGateSizes( SC_Lib * pLib, Abc_Ntk_t * p )
@@ -263,16 +263,16 @@ void Abc_SclReadTimingConstr( Abc_Frame_t * pAbc, char * pFileName, int fVerbose
         {
             Abc_FrameSetDrivingCell( Abc_UtilStrsav(Abc_UtilStrtok(NULL, " \t\r\n", &pSave)) );
             if ( fVerbose ) 
-                printf( "Setting driving cell to be \"%s\".\n", Abc_FrameReadDrivingCell() );
+                fprintf( Abc_FrameGlobalGetOut(), "Setting driving cell to be \"%s\".\n", Abc_FrameReadDrivingCell() );
         }
         else if ( !strcmp(pToken, "set_load") )
 //        else if ( !strcmp(pToken, "default_output_load") )
         {
             Abc_FrameSetMaxLoad( atof(Abc_UtilStrtok(NULL, " \t\r\n", &pSave)) );
             if ( fVerbose ) 
-                printf( "Setting output load to be %f.\n", Abc_FrameReadMaxLoad() );
+                fprintf( Abc_FrameGlobalGetOut(), "Setting output load to be %f.\n", Abc_FrameReadMaxLoad() );
         }
-        else printf( "Unrecognized token \"%s\".\n", pToken );
+        else fprintf( Abc_FrameGlobalGetOut(), "Unrecognized token \"%s\".\n", pToken );
     }
     fclose( pFile );
 }
@@ -371,7 +371,7 @@ Vec_Int_t * Abc_SclExtractBarBufs( Abc_Ntk_t * pNtk )
     pBuffer = Mio_LibraryReadBuf( (Mio_Library_t *)pNtk->pManFunc );
     if ( pBuffer == NULL )
     {
-        printf( "Cannot find buffer in the current library. Quitting.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot find buffer in the current library. Quitting.\n" );
         return NULL;
     }
     vBufs = Vec_IntAlloc( 100 );

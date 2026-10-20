@@ -92,11 +92,11 @@ void Map_CutFree( Map_Man_t * p, Map_Cut_t * pCut )
 void Map_CutPrint( Map_Man_t * p, Map_Node_t * pRoot, Map_Cut_t * pCut, int fPhase )
 {
     int i;
-    printf( "CUT:  Delay = (%4.2f, %4.2f). Area = %4.2f. Nodes = %d -> {", 
+    fprintf( Abc_FrameGlobalGetOut(), "CUT:  Delay = (%4.2f, %4.2f). Area = %4.2f. Nodes = %d -> {", 
         pCut->M[fPhase].tArrive.Rise, pCut->M[fPhase].tArrive.Fall, pCut->M[fPhase].AreaFlow, pRoot->Num );
     for ( i = 0; i < pCut->nLeaves; i++ )
-        printf( " %d", pCut->ppLeaves[i]->Num );
-    printf( " } \n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", pCut->ppLeaves[i]->Num );
+    fprintf( Abc_FrameGlobalGetOut(), " } \n" );
 }
 
 
@@ -249,16 +249,16 @@ Vec_Ptr_t * Map_CutInternalNodes( Map_Node_t * pObj, Map_Cut_t * pCut )
   Map_CutInternalNodes_rec( pObj, vAnds );
   if ( 0 )
   {
-    printf( "Leaves:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Leaves:\n" );
     for ( i = 0; i < pCut->nLeaves; i++ )
-      printf( " %d", pCut->ppLeaves[i]->Num );
-    printf( "\n" );
-    printf( "Nodes:\n" );
+      fprintf( Abc_FrameGlobalGetOut(), " %d", pCut->ppLeaves[i]->Num );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes:\n" );
     Vec_PtrForEachEntry( Map_Node_t *, vAnds, pTemp, i )
-      printf( "%d = %s%d & %s%d\n", pTemp->Num, 
+      fprintf( Abc_FrameGlobalGetOut(), "%d = %s%d & %s%d\n", pTemp->Num, 
                                     Map_IsComplement(pTemp->p1) ? "~" : " ", Map_Regular(pTemp->p1)->Num, 
                                     Map_IsComplement(pTemp->p2) ? "~" : " ", Map_Regular(pTemp->p2)->Num );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
   }
   return vAnds;
 }

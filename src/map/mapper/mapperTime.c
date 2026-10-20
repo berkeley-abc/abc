@@ -394,12 +394,12 @@ void Map_TimeComputeRequiredGlobal( Map_Man_t * p )
         if ( p->fRequiredGlo > p->DelayTarget + p->fEpsilon )
         {
             if ( p->fMappingMode == 1 )
-                printf( "Cannot meet the target required times (%4.2f). Continue anyway.\n", p->DelayTarget );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot meet the target required times (%4.2f). Continue anyway.\n", p->DelayTarget );
         }
         else if ( p->fRequiredGlo < p->DelayTarget - p->fEpsilon )
         {
             if ( p->fMappingMode == 1 && p->fVerbose )
-                printf( "Relaxing the required times from (%4.2f) to the target (%4.2f).\n", p->fRequiredGlo, p->DelayTarget );
+                fprintf( Abc_FrameGlobalGetOut(), "Relaxing the required times from (%4.2f) to the target (%4.2f).\n", p->fRequiredGlo, p->DelayTarget );
             p->fRequiredGlo = p->DelayTarget;
         }
     }

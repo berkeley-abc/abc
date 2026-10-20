@@ -124,10 +124,10 @@ void Ifd_ManStop( Ifd_Man_t * p )
     int i, This, Prev = 0;
     Vec_IntForEachEntryStart( p->vMarks, This, i, 1 )
     {
-        printf( "%d(%d:%d) ", i-1, This, This - Prev );
+        fprintf( Abc_FrameGlobalGetOut(), "%d(%d:%d) ", i-1, This, This - Prev );
         Prev = This;
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     Vec_IntFreeP( &p->vArgs );
     Vec_IntFreeP( &p->vRes );
@@ -156,26 +156,26 @@ void Ifd_ObjPrint_rec( Ifd_Man_t * p, int iLit, int * pCounter, int DiffType )
     char Symb[2][4] = { {'?','(','[','<'}, {'?',')',']','>'} };
     Ifd_Obj_t * pDsd;
     if ( Abc_LitIsCompl(iLit) )
-        printf( "!" ), iLit = Abc_LitNot(iLit);
+        fprintf( Abc_FrameGlobalGetOut(),  "!" ), iLit = Abc_LitNot(iLit);
     if ( iLit == 2 )
-        { printf( "%c", 'a' + (*pCounter)++ ); return; }
+        { fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + (*pCounter)++ ); return; }
     pDsd = Ifd_ManObjFromLit( p, iLit );
     if ( DiffType )
-        printf( "%c", Symb[0][pDsd->Type] );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", Symb[0][pDsd->Type] );
     Ifd_ObjPrint_rec( p, pDsd->pFans[0], pCounter, pDsd->Type == 3 || Abc_LitIsCompl(pDsd->pFans[0]) || pDsd->Type != Ifd_ManObjFromLit(p, pDsd->pFans[0])->Type );
     Ifd_ObjPrint_rec( p, pDsd->pFans[1], pCounter, pDsd->Type == 3 || Abc_LitIsCompl(pDsd->pFans[1]) || pDsd->Type != Ifd_ManObjFromLit(p, pDsd->pFans[1])->Type );
     if ( pDsd->pFans[2] != -1 )
     Ifd_ObjPrint_rec( p, pDsd->pFans[2], pCounter, pDsd->Type == 3 || Abc_LitIsCompl(pDsd->pFans[2]) || pDsd->Type != Ifd_ManObjFromLit(p, pDsd->pFans[2])->Type );
     if ( DiffType )
-        printf( "%c", Symb[1][pDsd->Type] );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", Symb[1][pDsd->Type] );
 }
 void Ifd_ObjPrint( Ifd_Man_t * p, int iLit )
 {
     int Counter = 0;
     if ( iLit == 0 )
-        { printf( "0" ); return; }
+        { fprintf( Abc_FrameGlobalGetOut(), "0" ); return; }
     if ( iLit == 1 )
-        { printf( "1" ); return; }
+        { fprintf( Abc_FrameGlobalGetOut(), "1" ); return; }
     Ifd_ObjPrint_rec( p, iLit, &Counter, 1 );
 }
 void Ifd_ManPrint2( Ifd_Man_t * p )
@@ -183,9 +183,9 @@ void Ifd_ManPrint2( Ifd_Man_t * p )
     int i;
     for ( i = 0; i < p->nObjs; i++ )
     {
-        printf( "%4d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%4d : ", i );
         Ifd_ObjPrint( p, Abc_Var2Lit( i, 0 ) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void Ifd_ManPrint( Ifd_Man_t * p )
@@ -194,15 +194,15 @@ void Ifd_ManPrint( Ifd_Man_t * p )
     for ( i = 0; i < p->nObjs; i++ )
     {
         word Fun = Vec_WrdEntry( p->vTruths, i );
-        printf( "    { " );
-        printf( "%d, ", Extra_TruthSupportSize((unsigned *)&Fun, 6) );
-        printf( "%2d, ", Ifd_LitNumAnds(p, Abc_Var2Lit(i, 0)) );
-        printf( "%2d, ", Vec_IntEntry(p->vClauses, i) );
-        printf( "ABC_CONST(" );
-        Extra_PrintHex( stdout, (unsigned *)&Fun, 6 ); 
-        printf( "), \"" );
+        fprintf( Abc_FrameGlobalGetOut(), "    { " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d, ", Extra_TruthSupportSize((unsigned *)&Fun, 6) );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d, ", Ifd_LitNumAnds(p, Abc_Var2Lit(i, 0)) );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d, ", Vec_IntEntry(p->vClauses, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC_CONST(" );
+        Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&Fun, 6 ); 
+        fprintf( Abc_FrameGlobalGetOut(), "), \"" );
         Ifd_ObjPrint( p, Abc_Var2Lit( i, 0 ) );
-        printf( "\" },   // %4d \n", i );
+        fprintf( Abc_FrameGlobalGetOut(), "\" },   // %4d \n", i );
     }
 }
 
@@ -401,7 +401,7 @@ int Ifd_ManHashFindOrAdd( Ifd_Man_t * p, int iDsd0, int iDsd1, int iDsdC, int Ty
     else
     {
         if ( p->nObjs == p->nObjsAlloc )
-            printf( "The number of nodes is more than %d\n", p->nObjs );
+            fprintf( Abc_FrameGlobalGetOut(), "The number of nodes is more than %d\n", p->nObjs );
         assert( p->nObjs < p->nObjsAlloc );
         iObj = p->nObjs;
         pObj = Ifd_ManObj( p, p->nObjs++ );
@@ -614,7 +614,7 @@ void Ifd_ManDsdTest2()
     int iLit = Ifd_ManFindDsd( pMan, p );
     Ifd_ObjPrint( pMan, iLit );
     Ifd_ManStop( pMan );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -707,8 +707,8 @@ void Ifd_ManDsdPermPrint( int * perm, int size )
 {
     int i;
     for ( i = 0; i < size; i++ )
-        printf( "%d", perm[i] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", perm[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 Vec_Int_t * Ifd_ManDsdPermJT( int n ) 
 {
@@ -904,12 +904,12 @@ int Ifd_ManDsdTest33()
     {
         Ifd_ComputeSignature( uTruth, pCounts );
         // print
-        printf( "%5d :  ", i ); 
+        fprintf( Abc_FrameGlobalGetOut(), "%5d :  ", i ); 
         for ( v = 0; v < 6; v++ )
-            printf( "%2d %2d %2d   ", (pCounts[v] >> 20) & 0xFF, (pCounts[v] >> 10) & 0xFF, (pCounts[v] >> 0) & 0xFF );
-        printf( "  " );
+            fprintf( Abc_FrameGlobalGetOut(), "%2d %2d %2d   ", (pCounts[v] >> 20) & 0xFF, (pCounts[v] >> 10) & 0xFF, (pCounts[v] >> 0) & 0xFF );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );
         Kit_DsdPrintFromTruth( (unsigned *)&uTruth, nVars );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_WrdFree( vTruths );
     return 1;
@@ -978,7 +978,7 @@ int Ifd_ManDsdTest()
     Vec_WrdFree( vTruths );
     ABC_FREE( pPerm );
     ABC_FREE( pComp );
-    printf( "Total = %d.\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Total = %d.\n", Counter );
     assert( Vec_WrdSize(vTruthRes) == Counter );
     // write the data into a file
     sprintf( pFileName, "dsdfuncs%d.dat", nVars );
@@ -986,7 +986,7 @@ int Ifd_ManDsdTest()
     fwrite( Vec_WrdArray(vTruthRes), sizeof(word), Vec_WrdSize(vTruthRes), pFile );
     fwrite( Vec_IntArray(vConfgRes), sizeof(int), Vec_IntSize(vConfgRes), pFile );
     fclose( pFile );
-    printf( "File \"%s\" with %d 6-input functions has been written out.\n", pFileName, Vec_IntSize(vConfgRes) );
+    fprintf( Abc_FrameGlobalGetOut(), "File \"%s\" with %d 6-input functions has been written out.\n", pFileName, Vec_IntSize(vConfgRes) );
     Vec_WrdFree( vTruthRes );
     Vec_IntFree( vConfgRes );
     return 1;

@@ -170,7 +170,7 @@ If_LibBox_t * If_LibBoxRead2( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\".\n", pFileName );
         return NULL;
     }
     // read lines
@@ -232,7 +232,7 @@ If_LibBox_t * If_LibBoxRead2( char * pFileName )
             while ( pToken == NULL )
             {
                 if ( fgets( pBuffer, nSize, pFile ) == NULL )
-                { printf( "The table does not have enough entries.\n" ); fflush(stdout); assert( 0 ); }
+                { fprintf( Abc_FrameGlobalGetOut(), "The table does not have enough entries.\n" ); fflush( Abc_FrameGlobalGetOut() ); assert( 0 ); }
                 pToken = Abc_UtilStrtok( pBuffer, " \n\r\t", &pSave );
             }
             pBox->pDelays[i] = (pToken[0] == '-') ? -1 : atoi(pToken);
@@ -290,7 +290,7 @@ If_LibBox_t * If_LibBoxRead( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\".\n", pFileName );
         return NULL;
     }
     // get the library name
@@ -298,13 +298,13 @@ If_LibBox_t * If_LibBoxRead( char * pFileName )
     if ( pToken == NULL )
     {
         fclose( pFile );
-        printf( "Cannot read library name from file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot read library name from file \"%s\".\n", pFileName );
         return NULL;
     }
     if ( pToken[0] == '.' )    
     {
         fclose( pFile );
-        printf( "Wrong box format. Please try \"read_box -e\".\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Wrong box format. Please try \"read_box -e\".\n" );
         return NULL;
     }
        
@@ -364,12 +364,12 @@ void If_LibBoxWrite( char * pFileName, If_LibBox_t * p )
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\".\n", pFileName );
         return;
     }
     If_LibBoxPrint( pFile, p );
     fclose( pFile );
-    printf( "Finished writing box library into file \"%s\".\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished writing box library into file \"%s\".\n", pFileName );
 }
 
 /**Function*************************************************************

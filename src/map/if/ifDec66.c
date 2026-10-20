@@ -376,20 +376,20 @@ int If_CutPerformCheckXX( If_Man_t * p, unsigned * pTruth0, int nVars, int nLeav
     Length = strlen(pStr);
     if ( Length != 2 )
     {
-        printf( "Wrong LUT struct (%s)\n", pStr );
+        fprintf( Abc_FrameGlobalGetOut(), "Wrong LUT struct (%s)\n", pStr );
         return 0;
     }
 
     int lutSize = pStr[0] - '0';
     if ( lutSize < 3 || lutSize > 6 )
     {
-        printf( "The LUT size (%d) should belong to {3,4,5,6}.\n", lutSize );
+        fprintf( Abc_FrameGlobalGetOut(), "The LUT size (%d) should belong to {3,4,5,6}.\n", lutSize );
         return 0;
     }
 
     if ( nLeaves >= 2 * lutSize  )
     {
-        printf( "The cut size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
+        fprintf( Abc_FrameGlobalGetOut(), "The cut size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
         return 0;
     }
 

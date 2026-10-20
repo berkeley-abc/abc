@@ -76,7 +76,7 @@ Map_Super_t * Map_LibraryReadGateTree( Map_SuperLib_t * pLib, char * pBuffer, in
     pGate->pRoot = Mio_LibraryReadGateByName( pLib->pGenlib, pTemp, NULL );
     if ( pGate->pRoot == NULL )
     {
-        printf( "Cannot read the root gate names %s.\n", pTemp );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot read the root gate names %s.\n", pTemp );
         return NULL;
     }
     // set the max number of fanouts
@@ -89,18 +89,18 @@ Map_Super_t * Map_LibraryReadGateTree( Map_SuperLib_t * pLib, char * pBuffer, in
             break;
         if ( i == nVarsMax )
         {
-            printf( "There are too many entries on the line.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "There are too many entries on the line.\n" );
             return NULL;
         }
         Num = atoi(pTemp);
         if ( Num < 0 )
         {
-            printf( "The number of a child supergate is negative.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The number of a child supergate is negative.\n" );
             return NULL;
         }
         if ( Num > pLib->nLines )
         {
-            printf( "The number of a child supergate (%d) exceeded the number of lines (%d).\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "The number of a child supergate (%d) exceeded the number of lines (%d).\n", 
                 Num, pLib->nLines );
             return NULL;
         }
@@ -109,7 +109,7 @@ Map_Super_t * Map_LibraryReadGateTree( Map_SuperLib_t * pLib, char * pBuffer, in
     pGate->nFanins = i;
     if ( pGate->nFanins != (unsigned)Mio_GateReadPinNum(pGate->pRoot) )
     {
-        printf( "The number of fanins of a root gate is wrong.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of fanins of a root gate is wrong.\n" );
         return NULL;
     }
 
@@ -127,7 +127,7 @@ Map_Super_t * Map_LibraryReadGateTree( Map_SuperLib_t * pLib, char * pBuffer, in
     // check the rest of the string
     pTemp = Abc_UtilStrtok( NULL, " \n\0", &pSave );
     if ( pTemp != NULL )
-        printf( "The following trailing symbols found \"%s\".\n", pTemp );
+        fprintf( Abc_FrameGlobalGetOut(), "The following trailing symbols found \"%s\".\n", pTemp );
     return pGate;
 }
 
@@ -417,7 +417,7 @@ int Map_LibraryReadFileTreeStr( Map_SuperLib_t * pLib, Mio_Library_t * pGenlib, 
 //    if ( pLib->pGenlib == NULL || strcmp( , pLibName ) )
     if ( pLib->pGenlib == NULL || Map_LibraryCompareLibNames(Mio_LibraryReadName(pLib->pGenlib), pLibName) )
     {
-        printf( "Supergate library \"%s\" requires the use of genlib library \"%s\".\n", pFileName, pLibName );
+        fprintf( Abc_FrameGlobalGetOut(), "Supergate library \"%s\" requires the use of genlib library \"%s\".\n", pFileName, pLibName );
         return 0;
     }
 
@@ -428,7 +428,7 @@ int Map_LibraryReadFileTreeStr( Map_SuperLib_t * pLib, Mio_Library_t * pGenlib, 
     RetValue = sscanf( pBuffer, "%d\n", &pLib->nVarsMax );
     if ( pLib->nVarsMax < 2 || pLib->nVarsMax > 10 )
     {
-        printf( "Suspicious number of variables (%d).\n", pLib->nVarsMax );
+        fprintf( Abc_FrameGlobalGetOut(), "Suspicious number of variables (%d).\n", pLib->nVarsMax );
         return 0;
     }
 
@@ -439,7 +439,7 @@ int Map_LibraryReadFileTreeStr( Map_SuperLib_t * pLib, Mio_Library_t * pGenlib, 
     RetValue = sscanf( pBuffer, "%d\n", &pLib->nSupersReal );
     if ( pLib->nSupersReal < 1 || pLib->nSupersReal > 10000000 )
     {
-        printf( "Suspicious number of gates (%d).\n", pLib->nSupersReal );
+        fprintf( Abc_FrameGlobalGetOut(), "Suspicious number of gates (%d).\n", pLib->nSupersReal );
         return 0;
     }
 
@@ -450,7 +450,7 @@ int Map_LibraryReadFileTreeStr( Map_SuperLib_t * pLib, Mio_Library_t * pGenlib, 
     RetValue = sscanf( pBuffer, "%d\n", &pLib->nLines );
     if ( pLib->nLines < 1 || pLib->nLines > 10000000 )
     {
-        printf( "Suspicious number of lines (%d).\n", pLib->nLines );
+        fprintf( Abc_FrameGlobalGetOut(), "Suspicious number of lines (%d).\n", pLib->nLines );
         return 0;
     }
 
@@ -483,7 +483,7 @@ int Map_LibraryReadFileTreeStr( Map_SuperLib_t * pLib, Mio_Library_t * pGenlib, 
 
     // read the lines
     nCounter = pLib->nVarsMax;
-    pProgress = Extra_ProgressBarStart( stdout, pLib->nLines );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), pLib->nLines );
 //    while ( fgets( pBuffer, 5000, pFile ) != NULL )
     while ( Vec_StrGets( pBuffer, 5000, vStr, &nPos ) )
     {
@@ -511,14 +511,14 @@ int Map_LibraryReadFileTreeStr( Map_SuperLib_t * pLib, Mio_Library_t * pGenlib, 
     }
     Extra_ProgressBarStop( pProgress );
     if ( nCounter != pLib->nLines )
-        printf( "The number of lines read (%d) is different from what the file says (%d).\n", nCounter, pLib->nLines );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of lines read (%d) is different from what the file says (%d).\n", nCounter, pLib->nLines );
     pLib->nSupersAll = nCounter;
     // count the number of real supergates
     nCounter = 0;
     for ( k = 0; k < pLib->nLines; k++ )
         nCounter += pLib->ppSupers[k]->fSuper;
     if ( nCounter != pLib->nSupersReal )
-        printf( "The number of gates read (%d) is different what the file says (%d).\n", nCounter, pLib->nSupersReal );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of gates read (%d) is different what the file says (%d).\n", nCounter, pLib->nSupersReal );
     pLib->nSupersReal = nCounter;
     return 1;
 }
@@ -536,7 +536,7 @@ int Map_LibraryReadTree( Map_SuperLib_t * pLib, Mio_Library_t * pGenlib, char * 
     pBuffer = Mio_ReadFile( pFileName, 0 );
     if ( pBuffer == NULL )
     {
-        printf( "Cannot open input file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\".\n", pFileName );
         return 0;
     }
     vStr = Vec_StrAllocArray( pBuffer, strlen(pBuffer) );
@@ -635,7 +635,7 @@ int Map_LibraryDeriveGateInfo( Map_SuperLib_t * pLib, st__table * tExcludeGate )
             // if there is no corresponding pin, this is a bug, return fail
             if ( pPin == NULL )
             {
-                printf( "There are less pins than gate inputs.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "There are less pins than gate inputs.\n" );
                 return 0;
             }
             // update the delay information of k-th fanins info from the corresponding pin
@@ -644,7 +644,7 @@ int Map_LibraryDeriveGateInfo( Map_SuperLib_t * pLib, st__table * tExcludeGate )
         // if there are some pins left, this is a bug, return fail
         if ( pPin != NULL )
         {
-            printf( "There are more pins than gate inputs.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "There are more pins than gate inputs.\n" );
             return 0;
         }
         // find the max delay
@@ -988,48 +988,48 @@ void Map_LibraryPrintTree( Map_SuperLib_t * pLib )
         pGate = pLib->ppSupers[i];
 
         // write the gate's fanin info and formula
-        printf( "%6d  ", pGate->Num );
-        printf( "%c ", pGate->fSuper? '*' : ' ' );
-        printf( "%6s", Mio_GateReadName(pGate->pRoot) );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d  ", pGate->Num );
+        fprintf( Abc_FrameGlobalGetOut(), "%c ", pGate->fSuper? '*' : ' ' );
+        fprintf( Abc_FrameGlobalGetOut(), "%6s", Mio_GateReadName(pGate->pRoot) );
         for ( k = 0; k < (int)pGate->nFanins; k++ )
-            printf( " %6d", pGate->pFanins[k]->Num );
-        printf( "  %s", pGate->pFormula );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " %6d", pGate->pFanins[k]->Num );
+        fprintf( Abc_FrameGlobalGetOut(), "  %s", pGate->pFormula );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         // write the gate's derived info
-        Extra_PrintBinary( stdout, pGate->uTruth, 64 );
-        printf( "  %3d",   pGate->nGates );
-        printf( "  %6.2f", pGate->Area );
-        printf( "  (%4.2f, %4.2f)", pGate->tDelayMax.Rise, pGate->tDelayMax.Fall );
-        printf( "\n" );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), pGate->uTruth, 64 );
+        fprintf( Abc_FrameGlobalGetOut(), "  %3d",   pGate->nGates );
+        fprintf( Abc_FrameGlobalGetOut(), "  %6.2f", pGate->Area );
+        fprintf( Abc_FrameGlobalGetOut(), "  (%4.2f, %4.2f)", pGate->tDelayMax.Rise, pGate->tDelayMax.Fall );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         for ( k = 0; k < pLib->nVarsMax; k++ )
         {
             // print the constraint on the rise of the gate in the form (D1, D2), 
             // where D1 is the constraint related to the rise of the k-th PI
             // where D2 is the constraint related to the fall of the k-th PI
             if ( pGate->tDelaysR[k].Rise < 0 && pGate->tDelaysR[k].Fall < 0 )
-                printf( " (----, ----)" );
+                fprintf( Abc_FrameGlobalGetOut(), " (----, ----)" );
             else if ( pGate->tDelaysR[k].Fall < 0 )
-                printf( " (%4.2f, ----)", pGate->tDelaysR[k].Rise );
+                fprintf( Abc_FrameGlobalGetOut(), " (%4.2f, ----)", pGate->tDelaysR[k].Rise );
             else if ( pGate->tDelaysR[k].Rise < 0 )
-                printf( " (----, %4.2f)", pGate->tDelaysR[k].Fall );
+                fprintf( Abc_FrameGlobalGetOut(), " (----, %4.2f)", pGate->tDelaysR[k].Fall );
             else
-                printf( " (%4.2f, %4.2f)", pGate->tDelaysR[k].Rise, pGate->tDelaysR[k].Fall );
+                fprintf( Abc_FrameGlobalGetOut(), " (%4.2f, %4.2f)", pGate->tDelaysR[k].Rise, pGate->tDelaysR[k].Fall );
 
             // print the constraint on the fall of the gate in the form (D1, D2), 
             // where D1 is the constraint related to the rise of the k-th PI
             // where D2 is the constraint related to the fall of the k-th PI
             if ( pGate->tDelaysF[k].Rise < 0 && pGate->tDelaysF[k].Fall < 0 )
-                printf( " (----, ----)" );
+                fprintf( Abc_FrameGlobalGetOut(), " (----, ----)" );
             else if ( pGate->tDelaysF[k].Fall < 0 )
-                printf( " (%4.2f, ----)", pGate->tDelaysF[k].Rise );
+                fprintf( Abc_FrameGlobalGetOut(), " (%4.2f, ----)", pGate->tDelaysF[k].Rise );
             else if ( pGate->tDelaysF[k].Rise < 0 )
-                printf( " (----, %4.2f)", pGate->tDelaysF[k].Fall );
+                fprintf( Abc_FrameGlobalGetOut(), " (----, %4.2f)", pGate->tDelaysF[k].Fall );
             else
-                printf( " (%4.2f, %4.2f)", pGate->tDelaysF[k].Rise, pGate->tDelaysF[k].Fall );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " (%4.2f, %4.2f)", pGate->tDelaysF[k].Rise, pGate->tDelaysF[k].Fall );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 

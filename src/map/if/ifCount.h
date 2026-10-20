@@ -191,10 +191,10 @@ static inline void If_CutPinDelayTranslate( word D, int nVars, char * pPerm )
 static inline void If_CutPinDelayPrint( word D, int nVars )
 {
     int v;
-    printf( "Delay profile = {" );
+    fprintf( Abc_FrameGlobalGetOut(),  "Delay profile = {" );
     for ( v = 0; v < nVars; v++ )
-        printf( " %d", If_CutPinDelayGet(D, v) );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  " %d", If_CutPinDelayGet(D, v) );
+    fprintf( Abc_FrameGlobalGetOut(),  " }\n" );
 }
 static inline int If_LogCounterPinDelays( int * pTimes, int * pnTimes, word * pPinDels, int Num, word PinDel, int nSuppAll, int fXor )
 {
@@ -302,17 +302,17 @@ static inline void If_AigPrintArray( Vec_Int_t * vAig, int nLeaves )
     assert( Vec_IntSize(vAig) > 0 );
     assert( Vec_IntEntryLast(vAig) < 2 );
     if ( Vec_IntSize(vAig) == 1 ) // const
-        printf( "Const %d\n", Vec_IntEntry(vAig, 0) );
+        fprintf( Abc_FrameGlobalGetOut(),  "Const %d\n", Vec_IntEntry(vAig, 0) );
     else if ( Vec_IntSize(vAig) == 2 ) // variable
-        printf( "Variable %s\n", Vec_IntEntry(vAig, 1) ? "Compl" : "" );
+        fprintf( Abc_FrameGlobalGetOut(),  "Variable %s\n", Vec_IntEntry(vAig, 1) ? "Compl" : "" );
     else
     {
         int i, iLit0, iLit1;
         assert( Vec_IntSize(vAig) & 1 );
         Vec_IntForEachEntryDouble( vAig, iLit0, iLit1, i )
-            printf( "%d %d\n", iLit0, iLit1 );
+            fprintf( Abc_FrameGlobalGetOut(),  "%d %d\n", iLit0, iLit1 );
         assert( i == Vec_IntSize(vAig) - 1 );
-        printf( "%s\n", Vec_IntEntry(vAig, i) ? "Compl" : "" );
+        fprintf( Abc_FrameGlobalGetOut(),  "%s\n", Vec_IntEntry(vAig, i) ? "Compl" : "" );
     }
 }
 

@@ -147,7 +147,7 @@ static inline int Scl_ConParse( Scl_Con_t * p, Abc_Nam_t * pNamI, Abc_Nam_t * pN
         pToken2 = Abc_UtilStrtok( NULL, " \t\r\n", &pSave );
         if ( pToken2 == NULL )
         {
-            printf( "Line %d: Skipping directive \"%s\" without argument.\n", nLines, pToken );
+            fprintf( Abc_FrameGlobalGetOut(),  "Line %d: Skipping directive \"%s\" without argument.\n", nLines, pToken );
             continue;
         }
         pToken3 = Abc_UtilStrtok( NULL, " \t\r\n", &pSave );
@@ -158,14 +158,14 @@ static inline int Scl_ConParse( Scl_Con_t * p, Abc_Nam_t * pNamI, Abc_Nam_t * pN
         else if ( !strcmp(pToken, SCL_DEF_DIRECTIVE(SCL_INPUT_LOAD)) )  p->tInLoadDef  = Scl_Flt2Int(atof(pToken2));
         else if ( !strcmp(pToken, SCL_DEF_DIRECTIVE(SCL_OUTPUT_REQ)) )  p->tOutReqDef  = Scl_Flt2Int(atof(pToken2));
         else if ( !strcmp(pToken, SCL_DEF_DIRECTIVE(SCL_OUTPUT_LOAD)))  p->tOutLoadDef = Scl_Flt2Int(atof(pToken2));
-        else if ( pToken3 == NULL ) { printf( "Directive %s should be followed by two arguments.\n", pToken ); continue; }
-        else if ( !strcmp(pToken, SCL_DIRECTIVE(SCL_INPUT_CELL))  )     if ( (Num = Abc_NamStrFind(pNamI, pToken2)) > 0 )  Vec_PtrWriteEntry( &p->vInCells,  Num-1, Abc_UtilStrsav(pToken3) );    else printf( "Line %d: Cannot find input \"%s\".\n", nLines, pToken2 );
-        else if ( !strcmp(pToken, SCL_DIRECTIVE(SCL_INPUT_ARR))   )     if ( (Num = Abc_NamStrFind(pNamI, pToken2)) > 0 )  Vec_IntWriteEntry( &p->vInArrs,   Num-1, Scl_Flt2Int(atof(pToken3)) ); else printf( "Line %d: Cannot find input \"%s\".\n", nLines, pToken2 );
-        else if ( !strcmp(pToken, SCL_DIRECTIVE(SCL_INPUT_SLEW))  )     if ( (Num = Abc_NamStrFind(pNamI, pToken2)) > 0 )  Vec_IntWriteEntry( &p->vInSlews,  Num-1, Scl_Flt2Int(atof(pToken3)) ); else printf( "Line %d: Cannot find input \"%s\".\n", nLines, pToken2 );
-        else if ( !strcmp(pToken, SCL_DIRECTIVE(SCL_INPUT_LOAD))  )     if ( (Num = Abc_NamStrFind(pNamI, pToken2)) > 0 )  Vec_IntWriteEntry( &p->vInLoads,  Num-1, Scl_Flt2Int(atof(pToken3)) ); else printf( "Line %d: Cannot find input \"%s\".\n", nLines, pToken2 );
-        else if ( !strcmp(pToken, SCL_DIRECTIVE(SCL_OUTPUT_REQ))  )     if ( (Num = Abc_NamStrFind(pNamO, pToken2)) > 0 )  Vec_IntWriteEntry( &p->vOutReqs,  Num-1, Scl_Flt2Int(atof(pToken3)) ); else printf( "Line %d: Cannot find output \"%s\".\n", nLines, pToken2 );
-        else if ( !strcmp(pToken, SCL_DIRECTIVE(SCL_OUTPUT_LOAD)) )     if ( (Num = Abc_NamStrFind(pNamO, pToken2)) > 0 )  Vec_IntWriteEntry( &p->vOutLoads, Num-1, Scl_Flt2Int(atof(pToken3)) ); else printf( "Line %d: Cannot find output \"%s\".\n", nLines, pToken2 );
-        else printf( "Line %d: Skipping unrecognized directive \"%s\".\n", nLines, pToken );
+        else if ( pToken3 == NULL ) { fprintf( Abc_FrameGlobalGetOut(),  "Directive %s should be followed by two arguments.\n", pToken  ); continue; }
+        else if ( !strcmp(pToken, SCL_DIRECTIVE(SCL_INPUT_CELL))  )     if ( (Num = Abc_NamStrFind(pNamI, pToken2)) > 0 )  Vec_PtrWriteEntry( &p->vInCells,  Num-1, Abc_UtilStrsav(pToken3) );    else fprintf( Abc_FrameGlobalGetOut(),  "Line %d: Cannot find input \"%s\".\n", nLines, pToken2 );
+        else if ( !strcmp(pToken, SCL_DIRECTIVE(SCL_INPUT_ARR))   )     if ( (Num = Abc_NamStrFind(pNamI, pToken2)) > 0 )  Vec_IntWriteEntry( &p->vInArrs,   Num-1, Scl_Flt2Int(atof(pToken3)) ); else fprintf( Abc_FrameGlobalGetOut(),  "Line %d: Cannot find input \"%s\".\n", nLines, pToken2 );
+        else if ( !strcmp(pToken, SCL_DIRECTIVE(SCL_INPUT_SLEW))  )     if ( (Num = Abc_NamStrFind(pNamI, pToken2)) > 0 )  Vec_IntWriteEntry( &p->vInSlews,  Num-1, Scl_Flt2Int(atof(pToken3)) ); else fprintf( Abc_FrameGlobalGetOut(),  "Line %d: Cannot find input \"%s\".\n", nLines, pToken2 );
+        else if ( !strcmp(pToken, SCL_DIRECTIVE(SCL_INPUT_LOAD))  )     if ( (Num = Abc_NamStrFind(pNamI, pToken2)) > 0 )  Vec_IntWriteEntry( &p->vInLoads,  Num-1, Scl_Flt2Int(atof(pToken3)) ); else fprintf( Abc_FrameGlobalGetOut(),  "Line %d: Cannot find input \"%s\".\n", nLines, pToken2 );
+        else if ( !strcmp(pToken, SCL_DIRECTIVE(SCL_OUTPUT_REQ))  )     if ( (Num = Abc_NamStrFind(pNamO, pToken2)) > 0 )  Vec_IntWriteEntry( &p->vOutReqs,  Num-1, Scl_Flt2Int(atof(pToken3)) ); else fprintf( Abc_FrameGlobalGetOut(),  "Line %d: Cannot find output \"%s\".\n", nLines, pToken2 );
+        else if ( !strcmp(pToken, SCL_DIRECTIVE(SCL_OUTPUT_LOAD)) )     if ( (Num = Abc_NamStrFind(pNamO, pToken2)) > 0 )  Vec_IntWriteEntry( &p->vOutLoads, Num-1, Scl_Flt2Int(atof(pToken3)) ); else fprintf( Abc_FrameGlobalGetOut(),  "Line %d: Cannot find output \"%s\".\n", nLines, pToken2 );
+        else fprintf( Abc_FrameGlobalGetOut(),  "Line %d: Skipping unrecognized directive \"%s\".\n", nLines, pToken );
     }
     // set missing defaults
     if ( p->pInCellDef  == NULL )          p->pInCellDef  = NULL; // consider using buffer from the current library
@@ -200,7 +200,7 @@ static inline void Scl_ConWrite( Scl_Con_t * p, char * pFileName )
     FILE * pFile = pFileName ? fopen( pFileName, "wb" ) : stdout;
     if ( pFile == NULL )
     {
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
     fprintf( pFile, ".model %s\n", p->pModelName );

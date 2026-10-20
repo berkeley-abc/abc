@@ -68,7 +68,7 @@ Mio_Library_t * Mio_LibraryRead( char * FileName, char * pBuffer, char * Exclude
             tExcludeGate = 0;
             return 0;
         }
-        fprintf ( stdout, "Read %d gates from exclude file\n", num );
+        fprintf ( Abc_FrameGlobalGetOut(), "Read %d gates from exclude file\n", num );
     }
 
     pBufferCopy = Abc_UtilStrsav(pBuffer);
@@ -91,7 +91,7 @@ Mio_Library_t * Mio_LibraryRead( char * FileName, char * pBuffer, char * Exclude
                 pLib->pName = Abc_UtilStrsav( Extra_FileNameGenericAppend(FileName, ".genlib") );
         }
         if ( pLib != NULL )
-            printf ( "Warning: Read extended genlib format but ignoring extensions\n" );
+            fprintf ( Abc_FrameGlobalGetOut(), "Warning: Read extended genlib format but ignoring extensions\n" );
     }
     ABC_FREE( pBufferCopy );
     if ( tExcludeGate )
@@ -179,7 +179,7 @@ Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__
     // derive the functinality of gates
     if ( Mio_LibraryParseFormulas( pLib ) )
     {
-        printf( "Mio_LibraryRead: Had problems parsing formulas.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Mio_LibraryRead: Had problems parsing formulas.\n" );
         Mio_LibraryDelete( pLib );
         return NULL;
     }
@@ -253,7 +253,7 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtended
                 if ( strcmp( pToken, MIO_STRING_LATCH ) == 0 )
                 {
                     pToken = Abc_UtilStrtok( NULL, " \t\r\n", &pSave );
-                    printf( "Skipping latch \"%s\"...\n", pToken ? pToken : "<missing name>" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Skipping latch \"%s\"...\n", pToken ? pToken : "<missing name>" );
                     continue;
                 }
                 pToken = Abc_UtilStrtok( NULL, " \t\r\n", &pSave );
@@ -313,7 +313,7 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtended
                 Mio_Gate_t * pBase = Mio_LibraryReadGateByName( pLib, pGate->pName, NULL );
                 if ( pBase->pTwin != NULL )
                 {
-                    printf( "Gates with more than 2 outputs are not supported.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Gates with more than 2 outputs are not supported.\n" );
                     continue;
                 }
                 pBase->pTwin = pGate;
@@ -325,7 +325,7 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtended
 
     if ( nGates == 0 )
     {
-        printf( "The library contains no gates.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The library contains no gates.\n" );
         return 1;
     }
 
@@ -334,7 +334,7 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtended
         return 1;
 
     if ( nDel != 0 ) 
-        printf( "Actually excluded %d cells\n", nDel );
+        fprintf( Abc_FrameGlobalGetOut(), "Actually excluded %d cells\n", nDel );
 
     return 0;
 }
@@ -466,7 +466,7 @@ Mio_Pin_t * Mio_LibraryReadPin( char ** ppToken, char ** ppSave, int fExtendedFo
         pPin->Phase = MIO_PHASE_NONINV;
     else 
     {
-        printf( "Cannot read pin phase specification\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot read pin phase specification\n" );
         Mio_PinDelete( pPin );
         *ppToken = pToken;
         return NULL;
@@ -661,8 +661,8 @@ void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
         pLib->pGateBuf = Mio_GateCompare( pLib->pGateBuf, pGate, uFuncBuf );
     if ( pLib->pGateBuf == NULL )
     {
-        printf( "Warnings: genlib library reader cannot detect the buffer gate.\n" );
-        printf( "Some parts of the supergate-based technology mapper may not work correctly.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warnings: genlib library reader cannot detect the buffer gate.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Some parts of the supergate-based technology mapper may not work correctly.\n" );
     }
  
     // get smallest-area inverter
@@ -670,8 +670,8 @@ void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
         pLib->pGateInv = Mio_GateCompare( pLib->pGateInv, pGate, uFuncInv );
     if ( pLib->pGateInv == NULL )
     {
-        printf( "Warnings: genlib library reader cannot detect the invertor gate.\n" );
-        printf( "Some parts of the supergate-based technology mapper may not work correctly.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warnings: genlib library reader cannot detect the invertor gate.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Some parts of the supergate-based technology mapper may not work correctly.\n" );
     }
 
     // get smallest-area NAND2/AND2 gates
@@ -684,8 +684,8 @@ void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
     }
     if ( pLib->pGateAnd2 == NULL && pLib->pGateNand2 == NULL && pLib->pGateNor2 == NULL && pLib->pGateOr2 == NULL )
     {
-        printf( "Warnings: genlib library reader cannot detect the AND2, NAND2, OR2, and NOR2 gate.\n" );
-        printf( "Some parts of the supergate-based technology mapper may not work correctly.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warnings: genlib library reader cannot detect the AND2, NAND2, OR2, and NOR2 gate.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Some parts of the supergate-based technology mapper may not work correctly.\n" );
     }
 }
 
@@ -714,7 +714,7 @@ int Mio_LibraryReadExclude( char * ExcludeFile, st__table * tExcludeGate )
 
         if ( pEx == NULL )
         {
-            fprintf ( stdout, "Error: Could not open exclude file %s. Stop.\n", ExcludeFile );
+            fprintf ( Abc_FrameGlobalGetOut(), "Error: Could not open exclude file %s. Stop.\n", ExcludeFile );
             return -1;
         }
 

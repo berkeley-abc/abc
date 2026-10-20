@@ -157,7 +157,7 @@ void Amap_LibWriteGate( FILE * pFile, Amap_Gat_t * pGate, int fPrintDsd )
     if ( fPrintDsd )
     {
         if ( pGate->pFunc == NULL )
-            printf( "Truth table is not available.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Truth table is not available.\n" );
         else
             Kit_DsdPrintFromTruth( pGate->pFunc, pGate->nPins );
     }
@@ -310,11 +310,11 @@ void Amap_LibPrintSelectedGates( Amap_Lib_t * p, int fAllGates )
     vArray = fAllGates? p->vGates : p->vSelect;
     Vec_PtrForEachEntry( Amap_Gat_t *, vArray, pGate, i )
     {
-        printf( "%3d :%12s %d %9.2f  ", i, pGate->pName, pGate->nPins, pGate->dArea );
-        printf( "%4s=%40s  ", pGate->pOutName, pGate->pForm );
-        printf( "DSD: " );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d :%12s %d %9.2f  ", i, pGate->pName, pGate->nPins, pGate->dArea );
+        fprintf( Abc_FrameGlobalGetOut(), "%4s=%40s  ", pGate->pOutName, pGate->pForm );
+        fprintf( Abc_FrameGlobalGetOut(), "DSD: " );
         Kit_DsdPrintFromTruth( pGate->pFunc, pGate->nPins );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -342,7 +342,7 @@ Amap_Lib_t * Amap_LibReadAndPrepare( char * pFileName, char * pBuffer, int fVerb
             p->pName = Abc_UtilStrsav( pFileName );
     }
     if ( fVerbose )
-        printf( "Read %d gates from file \"%s\".\n", Vec_PtrSize(p->vGates), pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Read %d gates from file \"%s\".\n", Vec_PtrSize(p->vGates), pFileName );
     if ( p == NULL )
         return NULL;
     if ( !Amap_LibParseEquations( p, fVerbose ) )
@@ -354,7 +354,7 @@ Amap_Lib_t * Amap_LibReadAndPrepare( char * pFileName, char * pBuffer, int fVerb
     p->vSelect = Amap_LibSelectGates( p, fVerbose );
     if ( fVerbose )
     {
-        printf( "Selected %d functionally unique gates. ", Vec_PtrSize(p->vSelect) );
+        fprintf( Abc_FrameGlobalGetOut(), "Selected %d functionally unique gates. ", Vec_PtrSize(p->vSelect) );
         ABC_PRT( "Time", Abc_Clock() - clk );
 //       Amap_LibPrintSelectedGates( p, 0 );
     }
@@ -362,7 +362,7 @@ Amap_Lib_t * Amap_LibReadAndPrepare( char * pFileName, char * pBuffer, int fVerb
     Amap_LibCreateRules( p, fVeryVerbose );
     if ( fVerbose )
     {
-        printf( "Created %d rules and %d matches. ", p->nNodes, p->nSets );
+        fprintf( Abc_FrameGlobalGetOut(), "Created %d rules and %d matches. ", p->nNodes, p->nSets );
         ABC_PRT( "Time", Abc_Clock() - clk );
     }
     return p;

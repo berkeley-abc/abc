@@ -424,13 +424,13 @@ void Fpga_MappingPrintOutputArrivals( Fpga_Man_t * p )
         pNode  = Fpga_Regular(p->pOutputs[pSorted[i]]);
         fCompl = Fpga_IsComplement(p->pOutputs[pSorted[i]]);
         // print out the best arrival time
-        printf( "Output  %-*s : ", MaxNameSize + 3, p->ppOutputNames[pSorted[i]] );
-        printf( "Delay = %8.2f  ",     (double)pNode->pCutBest->tArrival );
+        fprintf( Abc_FrameGlobalGetOut(), "Output  %-*s : ", MaxNameSize + 3, p->ppOutputNames[pSorted[i]] );
+        fprintf( Abc_FrameGlobalGetOut(), "Delay = %8.2f  ",     (double)pNode->pCutBest->tArrival );
         if ( fCompl )
-            printf( "NEG" );
+            fprintf( Abc_FrameGlobalGetOut(), "NEG" );
         else
-            printf( "POS" );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "POS" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -509,21 +509,21 @@ int Fpga_ManCheckConsistency( Fpga_Man_t * p )
         if ( Fpga_NodeIsVar(pNode) )
         {
             if ( pNode->pRepr )
-                printf( "Primary input %d is a secondary node.\n", pNode->Num );
+                fprintf( Abc_FrameGlobalGetOut(), "Primary input %d is a secondary node.\n", pNode->Num );
         }
         else if ( Fpga_NodeIsConst(pNode) )
         {
             if ( pNode->pRepr )
-                printf( "Constant 1 %d is a secondary node.\n", pNode->Num );
+                fprintf( Abc_FrameGlobalGetOut(), "Constant 1 %d is a secondary node.\n", pNode->Num );
         }
         else
         {
             if ( pNode->pRepr )
-                printf( "Internal node %d is a secondary node.\n", pNode->Num );
+                fprintf( Abc_FrameGlobalGetOut(), "Internal node %d is a secondary node.\n", pNode->Num );
             if ( Fpga_Regular(pNode->p1)->pRepr )
-                printf( "Internal node %d has first fanin that is a secondary node.\n", pNode->Num );
+                fprintf( Abc_FrameGlobalGetOut(), "Internal node %d has first fanin that is a secondary node.\n", pNode->Num );
             if ( Fpga_Regular(pNode->p2)->pRepr )
-                printf( "Internal node %d has second fanin that is a secondary node.\n", pNode->Num );
+                fprintf( Abc_FrameGlobalGetOut(), "Internal node %d has second fanin that is a secondary node.\n", pNode->Num );
         }
     }
     Fpga_NodeVecFree( pVec );
@@ -921,8 +921,8 @@ void Fpga_ManReportChoices( Fpga_Man_t * pMan )
     }
     if ( pMan->fVerbose )
     {
-    printf( "Maximum level: Original = %d. Reduced due to choices = %d.\n", LevelMax1, LevelMax2 );
-    printf( "Choice stats:  Choice nodes = %d. Total choices = %d.\n", nChoiceNodes, nChoices );
+    fprintf( Abc_FrameGlobalGetOut(), "Maximum level: Original = %d. Reduced due to choices = %d.\n", LevelMax1, LevelMax2 );
+    fprintf( Abc_FrameGlobalGetOut(), "Choice stats:  Choice nodes = %d. Total choices = %d.\n", nChoiceNodes, nChoices );
     }
 /*
     {

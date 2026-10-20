@@ -598,7 +598,7 @@ int Map_MappingMatches( Map_Man_t * p )
 
     // the PI cuts are matched in the cut computation package
     // in the loop below we match the internal nodes
-    pProgress = Extra_ProgressBarStart( stdout, p->vMapObjs->nSize );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), p->vMapObjs->nSize );
     for ( i = 0; i < p->vMapObjs->nSize; i++ )
     {
         pNode = p->vMapObjs->pArray[i];
@@ -618,7 +618,7 @@ int Map_MappingMatches( Map_Man_t * p )
         if ( pNode->pCuts->pNext == NULL )
         {
             Extra_ProgressBarStop( pProgress );
-            printf( "\nError: A node in the mapping graph does not have feasible cuts.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\nError: A node in the mapping graph does not have feasible cuts.\n" );
             return 0;
         }
 
@@ -638,9 +638,9 @@ int Map_MappingMatches( Map_Man_t * p )
         // make sure that at least one phase is mapped
         if ( pNode->pCutBest[0] == NULL && pNode->pCutBest[1] == NULL )
         {
-            printf( "\nError: Could not match both phases of AIG node %d.\n", pNode->Num );
-            printf( "Please make sure that the supergate library has equivalents of AND2 or NAND2.\n" );
-            printf( "If such supergates exist in the library, report a bug.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\nError: Could not match both phases of AIG node %d.\n", pNode->Num );
+            fprintf( Abc_FrameGlobalGetOut(), "Please make sure that the supergate library has equivalents of AND2 or NAND2.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "If such supergates exist in the library, report a bug.\n" );
             Extra_ProgressBarStop( pProgress );
             return 0;
         }

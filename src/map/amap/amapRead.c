@@ -85,7 +85,7 @@ char * Amap_LoadFile( char * pFileName )
     // have been detected by caller
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\".\n", pFileName );
         return NULL;
     }
     assert ( pFile != NULL );
@@ -351,7 +351,7 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
         if ( strcmp( pToken, AMAP_STRING_GATE ) )
         {
             Amap_LibFree( p );
-            printf( "The first line should begin with %s.\n", AMAP_STRING_GATE );
+            fprintf( Abc_FrameGlobalGetOut(), "The first line should begin with %s.\n", AMAP_STRING_GATE );
             return NULL;
         }
         // start gate
@@ -379,7 +379,7 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
             if ( strcmp( pToken, AMAP_STRING_PIN ) )
             {
                 Amap_LibFree( p );
-                printf( "Cannot parse cell %s.\n", pGate->pName );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot parse cell %s.\n", pGate->pName );
                 return NULL;
             }
             // read pin
@@ -395,7 +395,7 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
             else 
             {
                 Amap_LibFree( p );
-                printf( "Cannot read phase of pin %s of cell %s\n", pPin->pName, pGate->pName );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot read phase of pin %s of cell %s\n", pPin->pName, pGate->pName );
                 return NULL;
             }
             pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
@@ -442,7 +442,7 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
         pPrev = pGate;
     }
     if ( Count )
-        printf( "Warning: Detected %d multi-output cells (for example, \"%s\").\n", Count, pMoGate );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Detected %d multi-output cells (for example, \"%s\").\n", Count, pMoGate );
     return p;
 }
 

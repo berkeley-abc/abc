@@ -153,7 +153,7 @@ void Abc_SclComputeLoad( SC_Man * p )
         {
             SC_Pair * pLoad = Abc_SclObjLoad( p, pObj );
             if ( Abc_SclObjInDrive(p, pObj) != 0 && (pLoad->rise > Abc_SclObjInDrive(p, pObj) || pLoad->fall > Abc_SclObjInDrive(p, pObj)) )
-                printf( "Maximum input drive strength is exceeded at primary input %d.\n", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Maximum input drive strength is exceeded at primary input %d.\n", i );
         }
     }
 /*

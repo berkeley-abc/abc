@@ -209,23 +209,23 @@ void Abc_NtkTestSop( Abc_Ntk_t * pNtk )
     {
         if ( !Abc_ObjIsNode(Abc_ObjFanin0(pObj)) )
         {
-            printf( "%-20s :  Trivial.\n", Abc_ObjName(pObj) );
+            fprintf( Abc_FrameGlobalGetOut(), "%-20s :  Trivial.\n", Abc_ObjName(pObj) );
             continue;
         }
 
         vSupp  = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
         vNodes = Abc_NtkDfsNodes( pNtk, &pObj, 1 );
 
-        printf( "%20s :  Cone = %5d.  Supp = %5d.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "%20s :  Cone = %5d.  Supp = %5d.  ", 
             Abc_ObjName(pObj), vNodes->nSize, vSupp->nSize );
 //        if ( vSupp->nSize <= 128 )
         {
             p = Min_ManAlloc( vSupp->nSize );
             nCubes = Abc_NodeDeriveSops( p, pObj, vSupp, vNodes );
-            printf( "Cubes = %5d.  ", nCubes );
+            fprintf( Abc_FrameGlobalGetOut(), "Cubes = %5d.  ", nCubes );
             Min_ManFree( p );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
 
         Vec_PtrFree( vNodes );
@@ -388,23 +388,23 @@ void Abc_NtkTestEsop( Abc_Ntk_t * pNtk )
     {
         if ( !Abc_ObjIsNode(Abc_ObjFanin0(pObj)) )
         {
-            printf( "%-20s :  Trivial.\n", Abc_ObjName(pObj) );
+            fprintf( Abc_FrameGlobalGetOut(), "%-20s :  Trivial.\n", Abc_ObjName(pObj) );
             continue;
         }
 
         vSupp  = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
         vNodes = Abc_NtkDfsNodes( pNtk, &pObj, 1 );
 
-        printf( "%20s :  Cone = %5d.  Supp = %5d.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "%20s :  Cone = %5d.  Supp = %5d.  ", 
             Abc_ObjName(pObj), vNodes->nSize, vSupp->nSize );
 //        if ( vSupp->nSize <= 128 )
         {
             p = Min_ManAlloc( vSupp->nSize );
             nCubes = Abc_NodeDeriveEsops( p, pObj, vSupp, vNodes );
-            printf( "Cubes = %5d.  ", nCubes );
+            fprintf( Abc_FrameGlobalGetOut(), "Cubes = %5d.  ", nCubes );
             Min_ManFree( p );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
 
         Vec_PtrFree( vNodes );

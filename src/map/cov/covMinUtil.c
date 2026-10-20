@@ -142,7 +142,7 @@ void Min_CoverWrite( FILE * pFile, Min_Cube_t * pCover )
     Min_Cube_t * pCube;
     Min_CoverForEachCube( pCover, pCube )
         Min_CubeWrite( pFile, pCube );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -164,16 +164,16 @@ void Min_CoverWriteStore( FILE * pFile, Min_Man_t * p )
     {
         Min_CoverForEachCube( p->ppStore[i], pCube )
         {
-            printf( "%2d : ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "%2d : ", i );
             if ( pCube == p->pBubble )
             {
-                printf( "Bubble\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Bubble\n" );
                 continue;
             }
             Min_CubeWrite( pFile, pCube );
         }
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************

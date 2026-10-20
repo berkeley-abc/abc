@@ -674,15 +674,15 @@ void Mpm_ManPrintDsdStats( Mpm_Man_t * p )
         }
         if ( p->pPars->fVeryVerbose )
         {
-            printf( "%5d  :  ", i );
-            printf( "%-20s   ", p->pDsd6[i].pStr );
-            printf( "%8d ",     p->nCountDsd[i] );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d  :  ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "%-20s   ", p->pDsd6[i].pStr );
+            fprintf( Abc_FrameGlobalGetOut(), "%8d ",     p->nCountDsd[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
-    printf( "Unused classes = %d (%.2f %%).  ",  Absent, 100.0 * Absent / 595 );
-    printf( "Non-DSD cuts = %d (%.2f %%).  ",   p->nNonDsd, 100.0 * p->nNonDsd / p->nCutsMergedAll );
-    printf( "No-match cuts = %d (%.2f %%).\n",  p->nNoMatch, 100.0 * p->nNoMatch / p->nCutsMergedAll );
+    fprintf( Abc_FrameGlobalGetOut(), "Unused classes = %d (%.2f %%).  ",  Absent, 100.0 * Absent / 595 );
+    fprintf( Abc_FrameGlobalGetOut(), "Non-DSD cuts = %d (%.2f %%).  ",   p->nNonDsd, 100.0 * p->nNonDsd / p->nCutsMergedAll );
+    fprintf( Abc_FrameGlobalGetOut(), "No-match cuts = %d (%.2f %%).\n",  p->nNoMatch, 100.0 * p->nNoMatch / p->nCutsMergedAll );
 }
 
 /**Function*************************************************************
@@ -737,8 +737,8 @@ void Mpm_ManPrintPerm( unsigned s )
 {
     int i;
     for ( i = 0; i < 6; i++ )
-        printf( "%d ", (s >> (3*i)) & 7 );
-    printf( "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", (s >> (3*i)) & 7 );
+    fprintf( Abc_FrameGlobalGetOut(), "  " );
 }
 
 /**Function*************************************************************
@@ -957,10 +957,10 @@ int Mpm_CutComputeDsd6( Mpm_Man_t * p, Mpm_Cut_t * pCut, Mpm_Cut_t * pCut0, Mpm_
 
 if ( fVerbose )
 {
-Mpm_ManPrintPerm( p->uPermMask[1] );               printf( "\n" );
-Kit_DsdPrintFromTruth( (unsigned *)&Truth0, 6 );   printf( "\n" );
-Kit_DsdPrintFromTruth( (unsigned *)&Truth1p, 6 );  printf( "\n" );
-Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );        printf( "\n" );
+Mpm_ManPrintPerm( p->uPermMask[1] );               fprintf( Abc_FrameGlobalGetOut(), "\n" );
+Kit_DsdPrintFromTruth( (unsigned *)&Truth0, 6 );   fprintf( Abc_FrameGlobalGetOut(), "\n" );
+Kit_DsdPrintFromTruth( (unsigned *)&Truth1p, 6 );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
     }
     else
@@ -1039,9 +1039,9 @@ Mpm_CutPrint( pCut );
 
 if ( fVerbose )
 {
-printf( "Computed " );
+fprintf( Abc_FrameGlobalGetOut(), "Computed " );
 Mpm_CutPrint( pCut );
-printf( "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
     return 1;
 }

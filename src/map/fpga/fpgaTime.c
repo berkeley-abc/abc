@@ -92,7 +92,7 @@ float Fpga_TimeComputeArrivalMax( Fpga_Man_t * p )
     int i;
     if ( p->fLatchPaths && p->nLatches == 0 )
     {
-        printf( "Delay optimization of latch path is not performed because there is no latches.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Delay optimization of latch path is not performed because there is no latches.\n" );
         p->fLatchPaths = 0;
     }
     // get the critical PO arrival time
@@ -142,12 +142,12 @@ void Fpga_TimeComputeRequiredGlobal( Fpga_Man_t * p, int fFirstTime )
         if ( p->fRequiredGlo > p->DelayTarget + p->fEpsilon )
         {
             if ( fFirstTime )
-                printf( "Cannot meet the target required times (%4.2f). Mapping continues anyway.\n", p->DelayTarget );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot meet the target required times (%4.2f). Mapping continues anyway.\n", p->DelayTarget );
         }
         else if ( p->fRequiredGlo < p->DelayTarget - p->fEpsilon )
         {
             if ( fFirstTime )
-                printf( "Relaxing the required times from (%4.2f) to the target (%4.2f).\n", p->fRequiredGlo, p->DelayTarget );
+                fprintf( Abc_FrameGlobalGetOut(), "Relaxing the required times from (%4.2f) to the target (%4.2f).\n", p->fRequiredGlo, p->DelayTarget );
             p->fRequiredGlo = p->DelayTarget;
         }
     }

@@ -103,17 +103,17 @@ static inline int Mpm_CutCopySet( Mpm_Man_t * p, Mig_Obj_t * pObj, int fCompl )
 void Mpm_CutPrint( Mpm_Cut_t * pCut )  
 { 
     int i;
-    printf( "%d : { ", pCut->nLeaves );
+    fprintf( Abc_FrameGlobalGetOut(), "%d : { ", pCut->nLeaves );
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
-        printf( "%d ", pCut->pLeaves[i] );
-    printf( "}\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", pCut->pLeaves[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "}\n" );
 }
 static inline void Mpm_CutPrintAll( Mpm_Man_t * p )  
 { 
     int i;
     for ( i = 0; i < p->nCutStore; i++ )
     {
-        printf( "%2d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : ", i );
         Mpm_CutPrint( &p->pCutStore[i]->pCut );
     }
 }
@@ -596,7 +596,7 @@ abctime clk;
         int Times = Mpm_CutGetArrTime( p, pCut );
         assert( pCut->hNext == 0 );
         if ( Times > Required )
-            printf( "Arrival time (%d) exceeds required time (%d) at object %d.\n", Times, Required, Mig_ObjId(pObj) );
+            fprintf( Abc_FrameGlobalGetOut(), "Arrival time (%d) exceeds required time (%d) at object %d.\n", Times, Required, Mig_ObjId(pObj) );
         if ( p->fMainRun )
             Mpm_ObjAddCutToStore( p, Mpm_ManMergeCuts(p, pCut, NULL, NULL), Times );
         else
@@ -823,7 +823,7 @@ void Mpm_ManPerformRound( Mpm_Man_t * p )
     // report results
     if ( p->pPars->fVerbose )
     {
-    printf( "Del =%5d.  Ar =%8d.  Edge =%8d.  Cut =%10d. Max =%8d.  Tru =%8d. Small =%6d. ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Del =%5d.  Ar =%8d.  Edge =%8d.  Cut =%10d. Max =%8d.  Tru =%8d. Small =%6d. ", 
         p->GloRequired, (int)p->GloArea, (int)p->GloEdge, 
         p->nCutsMerged, p->pManCuts->nEntriesMax, 
         p->vTtMem ? p->vTtMem->nEntries : 0, p->nSmallSupp );

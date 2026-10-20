@@ -310,7 +310,7 @@ void Amap_LibVerifyPerm( Amap_Lib_t * pLib, Amap_Gat_t * pGate, Kit_DsdNtk_t * p
 //Extra_PrintBinary( stdout, pGate->pFunc, 4 ); printf("\n" );
     // compare
     if ( !Kit_TruthIsEqual(pGate->pFunc, pTruth, pGate->nPins) )
-        printf( "Verification failed for gate %d (%s) and node %d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Verification failed for gate %d (%s) and node %d.\n",
             pGate->Id, pGate->pForm, pNod->Id );
     Vec_IntFree( vTruth );
     Vec_PtrFree( vTtElems );
@@ -363,10 +363,10 @@ int Amap_LibDeriveGatePerm( Amap_Lib_t * pLib, Amap_Gat_t * pGate, Kit_DsdNtk_t 
     // print the result
     if ( fVerbose )
     {
-    printf( "node %4d : ", pNod->Id );
+    fprintf( Abc_FrameGlobalGetOut(), "node %4d : ", pNod->Id );
     for ( i = 0; i < (int)pNod->nSuppSize; i++ )
-        printf( "%d=%d%c ", i, Abc_Lit2Var(pArray[i]), Abc_LitIsCompl(pArray[i])?'-':'+' );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=%d%c ", i, Abc_Lit2Var(pArray[i]), Abc_LitIsCompl(pArray[i])?'-':'+' );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return 1;
 }

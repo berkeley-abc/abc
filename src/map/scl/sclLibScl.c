@@ -436,7 +436,7 @@ SC_Lib * Abc_SclReadFromFile( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName );
         return NULL;
     }
     // get the file size, in bytes
@@ -651,7 +651,7 @@ void Abc_SclWriteScl( char * pFileName, SC_Lib * p )
     {
         FILE * pFile = fopen( pFileName, "wb" );
         if ( pFile == NULL )
-            printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         else
         {
             fwrite( Vec_StrArray(vOut), 1, Vec_StrSize(vOut), pFile );
@@ -876,12 +876,12 @@ void Abc_SclWriteLiberty( char * pFileName, SC_Lib * p )
 {
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
-        printf( "Cannot open text file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open text file \"%s\" for writing.\n", pFileName );
     else
     {
         Abc_SclWriteLibraryText( pFile, p );
         fclose( pFile );
-        printf( "Dumped internal library with %d cells into Liberty file \"%s\".\n", SC_LibCellNum(p), pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped internal library with %d cells into Liberty file \"%s\".\n", SC_LibCellNum(p), pFileName );
     }
 }
 
@@ -914,7 +914,7 @@ SC_Lib * Abc_SclMergeLibraries( SC_Lib * pLib1, SC_Lib * pLib2, int fUsePrefix )
     ABC_FREE( p->pName );
     p->pName = Abc_UtilStrsav( Name );
     Vec_StrFree( vOut );
-    printf( "Updated library \"%s\" with additional %d cells from library \"%s\".\n", pLib1->pName, n_valid_cells2, pLib2->pName );
+    fprintf( Abc_FrameGlobalGetOut(), "Updated library \"%s\" with additional %d cells from library \"%s\".\n", pLib1->pName, n_valid_cells2, pLib2->pName );
     return p;
 }
 

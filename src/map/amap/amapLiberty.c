@@ -150,7 +150,7 @@ int Amap_LibertyPrintLiberty( Amap_Tree_t * p, char * pFileName )
         pFile = fopen( pFileName, "w" );
         if ( pFile == NULL )
         {
-            printf( "Amap_LibertyPrintLiberty(): The output file is unavailable (absent or open).\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Amap_LibertyPrintLiberty(): The output file is unavailable (absent or open).\n" );
             return 0;
         }
     }
@@ -398,7 +398,7 @@ int Amap_LibertyPrintGenlib( Amap_Tree_t * p, char * pFileName, int fVerbose )
         pFile = fopen( pFileName, "w" );
         if ( pFile == NULL )
         {
-            printf( "Amap_LibertyPrintGenlib(): The output file is unavailable (absent or open).\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Amap_LibertyPrintGenlib(): The output file is unavailable (absent or open).\n" );
             return 0;
         }
     }
@@ -431,20 +431,20 @@ int Amap_LibertyPrintGenlib( Amap_Tree_t * p, char * pFileName, int fVerbose )
         if ( Amap_LibertyCellIsFlop(p, pCell) )
         {
             if ( fVerbose )
-                printf( "Amap_LibertyPrintGenlib() skipped sequential cell \"%s\".\n", Amap_LibertyGetString(p, pCell->Head) );
+                fprintf( Abc_FrameGlobalGetOut(), "Amap_LibertyPrintGenlib() skipped sequential cell \"%s\".\n", Amap_LibertyGetString(p, pCell->Head) );
             continue;
         }
         if ( Amap_LibertyCellIsDontUse(p, pCell) )
         {
             if ( fVerbose )
-                printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" due to dont_use attribute.\n", Amap_LibertyGetString(p, pCell->Head) );
+                fprintf( Abc_FrameGlobalGetOut(), "Amap_LibertyPrintGenlib() skipped cell \"%s\" due to dont_use attribute.\n", Amap_LibertyGetString(p, pCell->Head) );
             continue;
         }
         Counter = Amap_LibertyCellCountOutputs( p, pCell );
         if ( Counter == 0 )
         {
             if ( fVerbose )
-                printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" without logic function.\n", Amap_LibertyGetString(p, pCell->Head) );
+                fprintf( Abc_FrameGlobalGetOut(), "Amap_LibertyPrintGenlib() skipped cell \"%s\" without logic function.\n", Amap_LibertyGetString(p, pCell->Head) );
             continue;
         }
 /*
@@ -459,7 +459,7 @@ int Amap_LibertyPrintGenlib( Amap_Tree_t * p, char * pFileName, int fVerbose )
         if ( pArea == NULL )
         {
             if ( fVerbose )
-                printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" with unspecified area.\n", Amap_LibertyGetString(p, pCell->Head) );
+                fprintf( Abc_FrameGlobalGetOut(), "Amap_LibertyPrintGenlib() skipped cell \"%s\" with unspecified area.\n", Amap_LibertyGetString(p, pCell->Head) );
             continue;
         }
 //        pOutput = Amap_LibertyCellOutput( p, pCell );
@@ -471,7 +471,7 @@ int Amap_LibertyPrintGenlib( Amap_Tree_t * p, char * pFileName, int fVerbose )
             if ( !strcmp(pForm, "0") || !strcmp(pForm, "1") )
             {
                 if ( fVerbose )
-                    printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" with constant formula \"%s\".\n", Amap_LibertyGetString(p, pCell->Head), pForm );
+                    fprintf( Abc_FrameGlobalGetOut(), "Amap_LibertyPrintGenlib() skipped cell \"%s\" with constant formula \"%s\".\n", Amap_LibertyGetString(p, pCell->Head), pForm );
                 continue;
             }
             fprintf( pFile, "GATE  " );
@@ -521,27 +521,27 @@ Vec_Str_t * Amap_LibertyPrintGenlibStr( Amap_Tree_t * p, int fVerbose )
         if ( Amap_LibertyCellIsFlop(p, pCell) )
         {
             if ( fVerbose )
-                printf( "Amap_LibertyPrintGenlib() skipped sequential cell \"%s\".\n", Amap_LibertyGetString(p, pCell->Head) );
+                fprintf( Abc_FrameGlobalGetOut(), "Amap_LibertyPrintGenlib() skipped sequential cell \"%s\".\n", Amap_LibertyGetString(p, pCell->Head) );
             continue;
         }
         if ( Amap_LibertyCellIsDontUse(p, pCell) )
         {
             if ( fVerbose )
-                printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" due to dont_use attribute.\n", Amap_LibertyGetString(p, pCell->Head) );
+                fprintf( Abc_FrameGlobalGetOut(), "Amap_LibertyPrintGenlib() skipped cell \"%s\" due to dont_use attribute.\n", Amap_LibertyGetString(p, pCell->Head) );
             continue;
         }
         Counter = Amap_LibertyCellCountOutputs( p, pCell );
         if ( Counter == 0 )
         {
             if ( fVerbose )
-                printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" without logic function.\n", Amap_LibertyGetString(p, pCell->Head) );
+                fprintf( Abc_FrameGlobalGetOut(), "Amap_LibertyPrintGenlib() skipped cell \"%s\" without logic function.\n", Amap_LibertyGetString(p, pCell->Head) );
             continue;
         }
         pArea = Amap_LibertyCellArea( p, pCell );
         if ( pArea == NULL )
         {
             if ( fVerbose )
-                printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" with unspecified area.\n", Amap_LibertyGetString(p, pCell->Head) );
+                fprintf( Abc_FrameGlobalGetOut(), "Amap_LibertyPrintGenlib() skipped cell \"%s\" with unspecified area.\n", Amap_LibertyGetString(p, pCell->Head) );
             continue;
         }
         vOutputs = Amap_LibertyCellOutputs( p, pCell );
@@ -552,7 +552,7 @@ Vec_Str_t * Amap_LibertyPrintGenlibStr( Amap_Tree_t * p, int fVerbose )
             if ( !strcmp(pForm, "0") || !strcmp(pForm, "1") )
             {
                 if ( fVerbose )
-                    printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" with constant formula \"%s\".\n", Amap_LibertyGetString(p, pCell->Head), pForm );
+                    fprintf( Abc_FrameGlobalGetOut(), "Amap_LibertyPrintGenlib() skipped cell \"%s\" with constant formula \"%s\".\n", Amap_LibertyGetString(p, pCell->Head), pForm );
                 continue;
             }
 /*
@@ -610,7 +610,7 @@ int Amap_LibertyFileSize( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Amap_LibertyFileSize(): The input file is unavailable (absent or open).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Amap_LibertyFileSize(): The input file is unavailable (absent or open).\n" );
         return 0;
     }
     fseek( pFile, 0, SEEK_END );  
@@ -1055,7 +1055,7 @@ int Amap_LibertyParse( char * pFileName, int fVerbose )
     if ( Amap_LibertyBuildItem( p, &pPos, p->pContents + p->nContents ) == 0 )
     {
         if ( fVerbose )
-        printf( "Parsing finished successfully.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Parsing finished successfully.\n" );
 //        Amap_LibertyPrintLiberty( p, "temp_.lib" );
         Amap_LibertyPrintGenlib( p, Extra_FileNameGenericAppend(pFileName, ".genlib"), fVerbose );
         RetValue = 1;
@@ -1063,14 +1063,14 @@ int Amap_LibertyParse( char * pFileName, int fVerbose )
     else
     {
         if ( p->pError )
-            printf( "%s", p->pError );
+            fprintf( Abc_FrameGlobalGetOut(), "%s", p->pError );
         if ( fVerbose )
-        printf( "Parsing failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Parsing failed.\n" );
         RetValue = 0;
     }
     if ( fVerbose )
     {
-    printf( "Memory = %7.2f MB. ", 1.0*(p->nContents+p->nItermAlloc*sizeof(Amap_Item_t))/(1<<20) );
+    fprintf( Abc_FrameGlobalGetOut(), "Memory = %7.2f MB. ", 1.0*(p->nContents+p->nItermAlloc*sizeof(Amap_Item_t))/(1<<20) );
     ABC_PRT( "Time", Abc_Clock() - clk );
     }
     Amap_LibertyStop( p );
@@ -1103,7 +1103,7 @@ Vec_Str_t * Amap_LibertyParseStr( char * pFileName, int fVerbose )
     if ( Amap_LibertyBuildItem( p, &pPos, p->pContents + p->nContents ) == 0 )
     {
         if ( fVerbose )
-        printf( "Parsing finished successfully.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Parsing finished successfully.\n" );
 //        Amap_LibertyPrintLiberty( p, "temp_.lib" );
         vStr = Amap_LibertyPrintGenlibStr( p, fVerbose );
         RetValue = 1;
@@ -1111,14 +1111,14 @@ Vec_Str_t * Amap_LibertyParseStr( char * pFileName, int fVerbose )
     else
     {
         if ( p->pError )
-            printf( "%s", p->pError );
+            fprintf( Abc_FrameGlobalGetOut(), "%s", p->pError );
         if ( fVerbose )
-        printf( "Parsing failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Parsing failed.\n" );
         RetValue = 0;
     }
     if ( fVerbose )
     {
-    printf( "Memory = %7.2f MB. ", 1.0*(p->nContents+p->nItermAlloc*sizeof(Amap_Item_t))/(1<<20) );
+    fprintf( Abc_FrameGlobalGetOut(), "Memory = %7.2f MB. ", 1.0*(p->nContents+p->nItermAlloc*sizeof(Amap_Item_t))/(1<<20) );
     ABC_PRT( "Time", Abc_Clock() - clk );
     }
     Amap_LibertyStop( p );

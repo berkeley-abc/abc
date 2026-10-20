@@ -60,7 +60,7 @@ void If_ObjConePrint_rec( If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Ptr_t * vVis
     If_ObjConePrint_rec( pIfMan, pIfObj->pEquiv, vVisited );
     If_ObjConePrint_rec( pIfMan, pIfObj->pFanin0, vVisited );
     If_ObjConePrint_rec( pIfMan, pIfObj->pFanin1, vVisited );
-    printf( "%5d = %5d & %5d | %5d\n", pIfObj->Id, pIfObj->pFanin0->Id, pIfObj->pFanin1->Id, pIfObj->pEquiv ? pIfObj->pEquiv->Id : 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "%5d = %5d & %5d | %5d\n", pIfObj->Id, pIfObj->pFanin0->Id, pIfObj->pFanin1->Id, pIfObj->pEquiv ? pIfObj->pEquiv->Id : 0 );
 }
 void If_ObjConePrint( If_Man_t * pIfMan, If_Obj_t * pIfObj )
 {
@@ -72,11 +72,11 @@ void If_ObjConePrint( If_Man_t * pIfMan, If_Obj_t * pIfObj )
     Vec_PtrForEachEntry( If_Cut_t *, pIfMan->vTemp, pCut, i )
         If_CutSetDataInt( pCut, 0 );
     // print the leaf variables
-    printf( "Cut " );
+    fprintf( Abc_FrameGlobalGetOut(), "Cut " );
     pCut = If_ObjCutBest(pIfObj);
     If_CutForEachLeaf( pIfMan, pCut, pLeaf, i )
-        printf( "%d ", pLeaf->Id );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", pLeaf->Id );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 

@@ -61,7 +61,7 @@ Vec_Wec_t * Mpm_ManFindDsdMatches( Mpm_Man_t * p, void * pScl )
         if ( pRepr->n_inputs > 6 || pRepr->n_outputs > 1 )
         {
             if ( fVerbose )
-            printf( "Skipping cell %s with %d inputs and %d outputs\n", pRepr->pName, pRepr->n_inputs, pRepr->n_outputs );
+            fprintf( Abc_FrameGlobalGetOut(), "Skipping cell %s with %d inputs and %d outputs\n", pRepr->pName, pRepr->n_inputs, pRepr->n_outputs );
             continue;
         }
         Truth = *Vec_WrdArray( &SC_CellPin(pRepr, pRepr->n_inputs)->vFunc );
@@ -69,7 +69,7 @@ Vec_Wec_t * Mpm_ManFindDsdMatches( Mpm_Man_t * p, void * pScl )
         if ( Config == -1 )
         {
             if ( fVerbose )
-            printf( "Skipping cell %s with non-DSD function\n", pRepr->pName );
+            fprintf( Abc_FrameGlobalGetOut(), "Skipping cell %s with non-DSD function\n", pRepr->pName );
             continue;
         }
         iClass = Config >> 17;
@@ -80,12 +80,12 @@ Vec_Wec_t * Mpm_ManFindDsdMatches( Mpm_Man_t * p, void * pScl )
         if ( !fVerbose )
             continue;
 
-        printf( "Gate %5d  %-30s : ", pRepr->Id, pRepr->pName );
-        printf( "Class %3d  ", iClass );
-        printf( "Area %10.3f  ", pRepr->area );
-        Extra_PrintBinary( stdout, (unsigned *)&Config, 17 );
-        printf( "   " );
-        Kit_DsdPrintFromTruth( (unsigned *)&Truth, pRepr->n_inputs ); printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Gate %5d  %-30s : ", pRepr->Id, pRepr->pName );
+        fprintf( Abc_FrameGlobalGetOut(), "Class %3d  ", iClass );
+        fprintf( Abc_FrameGlobalGetOut(), "Area %10.3f  ", pRepr->area );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&Config, 17 );
+        fprintf( Abc_FrameGlobalGetOut(), "   " );
+        Kit_DsdPrintFromTruth( (unsigned *)&Truth, pRepr->n_inputs ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return vClasses;
 }
@@ -174,7 +174,7 @@ Abc_Ntk_t * Mpm_ManDeriveMappedAbcNtk( Mpm_Man_t * p, Mio_Library_t * pMio )
     vNpnGatesMio = Mpm_ManFindCells( pMio, (SC_Lib *)p->pPars->pScl, p->vNpnConfigs );
     if ( vNpnGatesMio == NULL )
     {
-        printf( "Genlib library does not match SCL library.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Genlib library does not match SCL library.\n" );
         return NULL;
     }
 
