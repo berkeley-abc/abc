@@ -114,6 +114,7 @@ struct Pdr2_Par_t_
 // pdr2Core.c
 extern void               Pdr2_ManSetDefaultParams( Pdr2_Par_t * pPars );
 extern int                Pdr2_ManSolve( Aig_Man_t * p, Pdr2_Par_t * pPars );
+extern int                Pdr2_ManSolveInit( Aig_Man_t * p, Vec_Int_t * vInit, Pdr2_Par_t * pPars );
 
 ABC_NAMESPACE_HEADER_END
 

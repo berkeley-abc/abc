@@ -52,7 +52,7 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Pdr2_ManAbsProject( Pdr2_Man_t * p, Vec_Int_t * vCube, Vec_Int_t * vPpis )
 {
-    int i, k = 0, Lit, fHasPos = 0, iBest = -1;
+    int i, k = 0, Lit, fNonInit = 0, iBest = -1;
     if ( !p->fAbsActive )
         return;
     if ( vPpis )
@@ -61,10 +61,10 @@ void Pdr2_ManAbsProject( Pdr2_Man_t * p, Vec_Int_t * vCube, Vec_Int_t * vPpis )
     // keep the dropped one with the highest activity: the projected cube must not look initial
     Vec_IntForEachEntry( vCube, Lit, i )
         if ( p->pAbs[Abc_Lit2Var(Lit)] )
-            fHasPos |= !Abc_LitIsCompl(Lit);
-        else if ( !Abc_LitIsCompl(Lit) && (iBest == -1 || p->pAct[Abc_Lit2Var(Lit)] > p->pAct[Abc_Lit2Var(Vec_IntEntry(vCube, iBest))]) )
+            fNonInit |= Pdr2_ManLitIsNonInit( p, Lit );
+        else if ( Pdr2_ManLitIsNonInit(p, Lit) && (iBest == -1 || p->pAct[Abc_Lit2Var(Lit)] > p->pAct[Abc_Lit2Var(Vec_IntEntry(vCube, iBest))]) )
             iBest = i;
-    if ( !fHasPos && iBest != -1 )
+    if ( !fNonInit && iBest != -1 )
     {
         p->pAbs[Abc_Lit2Var(Vec_IntEntry(vCube, iBest))] = 1;
         p->nAbsFlops++;
@@ -120,23 +120,29 @@ void Pdr2_ManAbsCleanup( Pdr2_Man_t * p )
   Synopsis    [Gates the flop outputs with a reset flop.]
 
   Description [Adds a register that is 0 in the first cycle and 1 after
-  it, and replaces every flop output by its AND with this register. In the
-  first cycle the logic sees the (all-zero) initial values whatever the
-  flops hold, so the flops themselves become unconstrained initially and
-  only the reset register distinguishes the initial state. This is the
-  encoding used by treb -abs: a cube can intersect the initial states
-  only through the reset literal, so projected cubes do not look initial.
-  The new register is the last one. Traces (inputs, outputs) are unchanged.]
+  it, and replaces the output of every flop with a defined initial value
+  by its AND (initial value 0) or OR (initial value 1, with the negated
+  register) with this register. In the first cycle the logic sees the
+  initial values whatever the flops hold, so the flops themselves become
+  unconstrained initially and only the reset register distinguishes the
+  initial state. This is the encoding used by treb -abs: a cube can
+  intersect the initial states only through the reset literal, so
+  projected cubes do not look initial. The flops with a don't-care initial
+  value are not gated. The new register is the last one. Returns the new
+  design and, in ppInitNew, its initial values: don't-care for the
+  ungated flops and 0 for all others. Traces (inputs, outputs) are
+  unchanged.]
 
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Pdr2_ManDupGatedInit( Aig_Man_t * pAig )
+Aig_Man_t * Pdr2_ManDupGatedInit( Aig_Man_t * pAig, char * pInit, char ** ppInitNew )
 {
     Aig_Man_t * pNew;
     Aig_Obj_t * pObj, * pReset;
+    char * pInitNew = ABC_CALLOC( char, Aig_ManRegNum(pAig) + 2 );
     int i;
     pNew = Aig_ManStart( Aig_ManObjNumMax(pAig) + Aig_ManRegNum(pAig) + 2 );
     pNew->pName = Abc_UtilStrsav( pAig->pName );
@@ -148,7 +154,12 @@ Aig_Man_t * Pdr2_ManDupGatedInit( Aig_Man_t * pAig )
         pObj->pData = Aig_ObjCreateCi( pNew );
     pReset = Aig_ObjCreateCi( pNew );
     Saig_ManForEachLo( pAig, pObj, i )
-        pObj->pData = Aig_And( pNew, (Aig_Obj_t *)pObj->pData, pReset );
+        if ( pInit && pInit[i] == 2 )
+            pInitNew[i] = 2;
+        else if ( pInit && pInit[i] == 1 )
+            pObj->pData = Aig_Not( Aig_And( pNew, Aig_Not((Aig_Obj_t *)pObj->pData), pReset ) );
+        else
+            pObj->pData = Aig_And( pNew, (Aig_Obj_t *)pObj->pData, pReset );
     Aig_ManForEachNode( pAig, pObj, i )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     Saig_ManForEachPo( pAig, pObj, i )
@@ -158,6 +169,7 @@ Aig_Man_t * Pdr2_ManDupGatedInit( Aig_Man_t * pAig )
     Aig_ObjCreateCo( pNew, Aig_ManConst1(pNew) );
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(pAig) + 1 );
     Aig_ManCleanup( pNew );
+    *ppInitNew = pInitNew;
     return pNew;
 }
 
@@ -545,9 +557,9 @@ static int Pdr2_ManAbsSimConcrete( Pdr2_Man_t * p, Pdr2_Obl_t * pObl )
     char * pVals = p->pAbsVals, * pNext = p->pAbsVals + Aig_ManObjNumMax(p->pAig);
     Pdr2_Obl_t * pTemp;
     int i, Lit, Result;
-    // initial state
+    // the initial state (computed by the caller for the head of the chain)
     Saig_ManForEachLo( p->pAig, pObj, i )
-        pVals[Aig_ObjId(pObj)] = PDR2_V0;
+        pVals[Aig_ObjId(pObj)] = p->pInitState[i];
     for ( pTemp = pObl; pTemp; pTemp = pTemp->pNext )
     {
         if ( Pdr2_ManPastDeadline(p) )
@@ -606,7 +618,7 @@ static int Pdr2_ManAbsSimFrames( Pdr2_Man_t * p, char * pVals, char * pFix, int 
             if ( pFix && pFix[(size_t)f * p->nRegs + i] )
                 continue;
             if ( f == 0 )
-                pV[Id] = PDR2_V0;
+                pV[Id] = p->pInitState[i];
             else
                 pV[Id] = pVals[(size_t)(f-1) * nObjs + Aig_ObjId(Saig_ManLi(p->pAig, i))];
         }
@@ -875,6 +887,8 @@ int Pdr2_ManAbsCheckCex( Pdr2_Man_t * p, Pdr2_Obl_t * pObl )
     unsigned short * pPrio = NULL;
     int f, i, Lit, Id, v0, v1, p0, p1, nRefined = 0, RetValue;
     abctime clk = Abc_Clock();
+    // the initial state of the trace: the one the counterexample will have
+    Pdr2_ManInitState( p, pObl->pState, p->pInitState );
     if ( (RetValue = Pdr2_ManAbsSimConcrete( p, pObl )) )
     {
         p->nAbsCut += RetValue == -1;
@@ -948,7 +962,7 @@ int Pdr2_ManAbsCheckCex( Pdr2_Man_t * p, Pdr2_Obl_t * pObl )
             Id = Aig_ObjId( pObj );
             if ( f == 0 )
             {
-                pV[Id] = PDR2_V0;
+                pV[Id] = p->pInitState[i];
                 pP[Id] = 0;
             }
             else if ( p->pAbs[i] )
