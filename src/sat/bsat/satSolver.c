@@ -1843,7 +1843,16 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts)
             act_var_bump_global(s, s->act_vars.ptr[i]);
 
     for (;;){
-        int hConfl = sat_solver_propagate(s);
+        int hConfl;
+        // Multi-stage clients need an exact shared budget. The historical
+        // default checks only after a conflict-free propagation and may exceed it.
+        if (s->fExactConfLimit && s->nConfLimit && s->stats.conflicts >= s->nConfLimit){
+            s->progress_estimate = sat_solver_progress(s);
+            sat_solver_canceluntil(s,s->root_level);
+            veci_delete(&learnt_clause);
+            return l_Undef;
+        }
+        hConfl = sat_solver_propagate(s);
         if (hConfl != 0){
             // CONFLICT
             int blevel;
@@ -1974,7 +1983,7 @@ int sat_solver_solve_internal(sat_solver* s)
         nof_conflicts = (ABC_INT64_T)( 100 * luby(2, restart_iter++) );
         status = sat_solver_search(s, nof_conflicts);
         // quit the loop if reached an external limit
-        if ( s->nConfLimit && s->stats.conflicts > s->nConfLimit )
+        if ( s->nConfLimit && (s->fExactConfLimit ? s->stats.conflicts >= s->nConfLimit : s->stats.conflicts > s->nConfLimit) )
             break;
         if ( s->nInsLimit  && s->stats.propagations > s->nInsLimit )
             break;

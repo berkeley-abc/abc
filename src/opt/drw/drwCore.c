@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "drwInt.h"
+#include "drwGia.h"
 #include <limits.h>
 #include "misc/util/utilTruth.h"
 #include "misc/tim/tim.h"
@@ -116,6 +117,9 @@ struct Drw_Man_t_
     int nRewritten;
     int nMerged;
 };
+
+static Drw_Gia_t * s_pDrwGiaCapture;
+static void Drw_GiaCapture( Drw_Cut_t * pCut );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -560,6 +564,7 @@ static void Drw_CutMinimize( Drw_Cut_t * pCut )
     static const unsigned Masks[4] = { 0x5555, 0x3333, 0x0F0F, 0x00FF };
     int i, j;
     unsigned t = pCut->Truth;
+    if ( s_pDrwGiaCapture ) Drw_GiaCapture(pCut);
     for ( i = 0; i < pCut->nLeaves; i++ )
     {
         if ( ((t >> (1 << i)) ^ t) & Masks[i] ) continue;
@@ -1398,6 +1403,89 @@ finish:
     ABC_FREE( p->pHash );
     ABC_FREE( p );
     return pNew;
+}
+
+struct Drw_Gia_t_
+{
+    Drw_Man_t Core;
+    Drw_Cut_t Structural;
+    int Captures;
+};
+
+static void Drw_GiaRequire( int Condition, const char * pMessage )
+{
+    if ( Condition ) return;
+    fprintf(stderr, "SRESUB_DRW_FAIL %s\n", pMessage);
+    abort();
+}
+
+static void Drw_GiaCapture( Drw_Cut_t * pCut )
+{
+    Drw_GiaRequire(s_pDrwGiaCapture != NULL, "observer outside selection");
+    s_pDrwGiaCapture->Structural = *pCut;
+    s_pDrwGiaCapture->Captures++;
+}
+
+Drw_Gia_t * Drw_GiaStart( Gia_Man_t * pGia )
+{
+    Drw_Gia_t * p = ABC_CALLOC(Drw_Gia_t, 1);
+    Gia_Obj_t * pObj;
+    int Id;
+    p->Core.nObjs = p->Core.nCap = Gia_ManObjNum(pGia);
+    p->Core.pObjs = ABC_CALLOC(Drw_Obj_t, p->Core.nObjs);
+    p->Core.vStack = Vec_IntAlloc(3*DRW_MFFC_LIMIT);
+    // IDs and physical fanout counts are preserved, including dangling nodes.
+    // GIA and DRW both use const0; complemented literals need no translation.
+    Gia_ManForEachObj(pGia, pObj, Id)
+    {
+        Drw_Obj_t * q = p->Core.pObjs + Id;
+        if ( !Id ) q->Type = DRW_CONST;
+        else if ( Gia_ObjIsCi(pObj) ) q->Type = DRW_CI;
+        else if ( Gia_ObjIsCo(pObj) ) q->Type = DRW_CO;
+        else
+        {
+            Drw_GiaRequire(Gia_ObjIsAndNotBuf(pObj) && !Gia_ObjIsXor(pObj), "only plain AIG ANDs supported");
+            Drw_GiaRequire(Gia_ObjFaninId0p(pGia,pObj) && Gia_ObjFaninId1p(pGia,pObj), "unsimplified constant AND");
+            q->Type = DRW_AND;
+        }
+        if ( q->Type == DRW_AND || q->Type == DRW_CO )
+        {
+            q->Fan[0] = Gia_ObjFaninLit0p(pGia,pObj);
+            p->Core.pObjs[q->Fan[0] >> 1].Refs++;
+        }
+        if ( q->Type == DRW_AND )
+        {
+            q->Fan[1] = Gia_ObjFaninLit1p(pGia,pObj);
+            p->Core.pObjs[q->Fan[1] >> 1].Refs++;
+        }
+    }
+    return p;
+}
+
+Vec_Int_t * Drw_GiaSelect( Drw_Gia_t * p, int Id )
+{
+    Drw_Cut_t Cut;
+    Vec_Int_t * vLeaves;
+    int i;
+    Drw_GiaRequire(!s_pDrwGiaCapture && Id > 0 && Id < p->Core.nObjs &&
+        p->Core.pObjs[Id].Type == DRW_AND, "invalid/concurrent query");
+    p->Captures = 0;
+    s_pDrwGiaCapture = p;
+    Drw_SelectCut(&p->Core, Id, &Cut);
+    s_pDrwGiaCapture = NULL;
+    Drw_GiaRequire(p->Captures == 1 && p->Structural.nLeaves <= 4, "missing structural boundary");
+    vLeaves = Vec_IntAlloc(4);
+    for ( i = 0; i < p->Structural.nLeaves; ++i )
+        Vec_IntPush(vLeaves,p->Structural.Leaves[i]);
+    return vLeaves;
+}
+
+void Drw_GiaStop( Drw_Gia_t * p )
+{
+    if ( !p ) return;
+    Vec_IntFree(p->Core.vStack);
+    ABC_FREE(p->Core.pObjs);
+    ABC_FREE(p);
 }
 
 ABC_NAMESPACE_IMPL_END

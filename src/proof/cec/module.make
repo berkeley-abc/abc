@@ -9,6 +9,7 @@ SRC +=    src/proof/cec/cecCec.c \
     src/proof/cec/cecCorrDyn.c \
     src/proof/cec/cecCorrIncr.c \
     src/proof/cec/cecCorrIncrSim.c \
+    src/proof/cec/cecTrans.c \
     src/proof/cec/cecIso.c \
     src/proof/cec/cecMan.c \
     src/proof/cec/cecPat.c \

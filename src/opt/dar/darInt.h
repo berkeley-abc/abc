@@ -42,6 +42,7 @@
 
 
 ABC_NAMESPACE_HEADER_START
+extern int Dar_ManResubRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars );
  
 
 ////////////////////////////////////////////////////////////////////////

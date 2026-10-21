@@ -1674,14 +1674,13 @@ static int Cec3_Run( Cec3_Man_t * p )
 ***********************************************************************/
 static int Cec3_Check( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
 {
-    extern Gia_Man_t * Gia_ManCorrSpecReduce( Gia_Man_t *, int, int, Vec_Int_t **, int );
     extern Gia_Man_t * Gia_ManCorrSpecReduceInit( Gia_Man_t *, int, int, int, Vec_Int_t **, int );
     int Phase, Status, Out;
     for ( Phase = 0; Phase < 2; Phase++ )
     {
         Vec_Int_t * vPairs = NULL, * vCex = NULL;
         Vec_Str_t * vStatus = NULL;
-        Gia_Man_t * pSrm = Phase ? Gia_ManCorrSpecReduce( pAig, pPars->nFrames, 1, &vPairs, 1 )
+        Gia_Man_t * pSrm = Phase ? Gia_ManCorrSpecReduce( pAig, pPars->nFrames, 1, &vPairs, 1, NULL )
                                  : Gia_ManCorrSpecReduceInit( pAig, pPars->nFrames, 0, 1, &vPairs, 1 );
         Status = Cec_ManCorrKissatCertify( pSrm, vPairs, &vCex, &vStatus, &Out, 0 );
         Abc_Print( 1, "scorr3 audit %s: %s\n", Phase ? "step" : "base",
