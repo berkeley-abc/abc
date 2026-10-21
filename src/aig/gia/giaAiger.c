@@ -1008,8 +1008,10 @@ static Gia_Man_t * Gia_AigerReadFromMemoryInt( char * pContents, int nFileSize, 
         pNew->pAigExtra    = pAigExtra;
     }
 
-    // Apply init state transformation for register boxes with init=1
-    if ( pNew->vRegInits && Vec_IntCountEntry(pNew->vRegInits, 1) > 0 )
+    // Keep explicit regular-flop initialization when structural hashing is skipped.
+    // Register boxes retain their existing initialization handling.
+    if ( pNew->vRegInits && Vec_IntCountEntry(pNew->vRegInits, 1) > 0 &&
+         (!fSkipStrash || (pNew->pManTime && Gia_ManRegBoxNum(pNew) > 0)) )
     {
         extern void Gia_ManFlipInit1( Gia_Man_t * p, Vec_Int_t * vInit );
         Tim_Man_t * pTimMan = (Tim_Man_t *)pNew->pManTime;
@@ -1170,6 +1172,14 @@ static Gia_Man_t * Gia_AigerReadFromMemoryInt( char * pContents, int nFileSize, 
             if ( vFileIds )
                 Gia_ManDupRemapLiterals( vFileIds, pTemp );
             Gia_ManStop( pTemp );
+        }
+        else if ( pNew->vRegInits == NULL )
+        {
+            // Preserve AIGER initialization for &put: 0, 1, or 2 (don't-care).
+            // The ABC extension, when present, already supplies this information.
+            pNew->vRegInits = Vec_IntAlloc( Gia_ManRegNum(pNew) );
+            for ( i = 0; i < Gia_ManRegNum(pNew); i++ )
+                Vec_IntPush( pNew->vRegInits, pInit[i] == '0' ? 0 : pInit[i] == '1' ? 1 : 2 );
         }
         ABC_FREE( pInit );
     }

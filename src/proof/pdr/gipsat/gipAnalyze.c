@@ -38,7 +38,12 @@ static inline void Gip_ClearMarks( Gip_Solver_t * p )
   Synopsis    [Checks whether a learnt literal is redundant.]
 
   Description [Iterative DFS over reason clauses with an explicit stack
-  of (lit, resume index) pairs.]
+  of (lit, resume index) pairs. The frame of the learnt clause is lowered
+  only by the clauses of a successful derivation: each literal marked
+  removable records the lowest frame of its own derivation (its reason,
+  the level-0 literals and the removable literals of the reason), which a
+  later derivation reusing the mark inherits; a failed exploration lowers
+  nothing.]
 
   SideEffects []
 
@@ -59,7 +64,7 @@ static int Gip_SolverLitRedundant( Gip_Solver_t * p, int Lit )
         int Cref = p->pReason[Gip_LitVar(q)];
         int * pLits = Gip_ClaLits( &p->Cdb.Alloc, Cref );
         int nLits = Gip_ClaLen( &p->Cdb.Alloc, Cref );
-        int i, fDescend = 0;
+        int i, Frame, fDescend = 0;
         for ( i = b; i < nLits; i++ )
         {
             int l = pLits[i];
@@ -85,9 +90,28 @@ static int Gip_SolverLitRedundant( Gip_Solver_t * p, int Lit )
         }
         if ( fDescend )
             continue;
-        if ( p->pMark[Gip_LitVar(q)] == GIP_MARK_UNSEEN )
-            Gip_MarkAs( p, q, GIP_MARK_REMOVABLE );
+        // q is derived: the lowest frame of its reason and of the literals the reason relies on
+        Frame = Gip_SolverClaFrame( p, Cref );
+        for ( i = 1; i < nLits; i++ )
+        {
+            int v = Gip_LitVar( pLits[i] );
+            if ( p->pLevel[v] == 0 )
+                Frame = Abc_MinInt( Frame, p->pTag0[v] );
+            else if ( p->pMark[v] == GIP_MARK_REMOVABLE )
+                Frame = Abc_MinInt( Frame, p->pRemFrame[v] );
+        }
+        if ( q == Lit )
+        {
+            // the literal is redundant: the learnt clause depends on its derivation
+            assert( Vec_IntSize(vStack) == 0 );
+            p->iAnaFrame = Abc_MinInt( p->iAnaFrame, Frame );
+            return 1;
+        }
+        assert( p->pMark[Gip_LitVar(q)] == GIP_MARK_UNSEEN );
+        Gip_MarkAs( p, q, GIP_MARK_REMOVABLE );
+        p->pRemFrame[Gip_LitVar(q)] = Frame;
     }
+    assert( 0 );
     return 1;
 }
 
@@ -120,6 +144,7 @@ int Gip_SolverAnalyze( Gip_Solver_t * p, int Conflict, Vec_Int_t * vLearnt )
     int i, btl;
     Vec_IntClear( vLearnt );
     Vec_IntPush( vLearnt, 0 );   // placeholder for the asserting literal
+    p->iAnaFrame = GIP_FRAME_INF;
     while ( 1 )
     {
         int * pLits, nLits, begin, tl;
@@ -127,10 +152,14 @@ int Gip_SolverAnalyze( Gip_Solver_t * p, int Conflict, Vec_Int_t * vLearnt )
         pLits = Gip_ClaLits( &p->Cdb.Alloc, Conflict );
         nLits = Gip_ClaLen( &p->Cdb.Alloc, Conflict );
         begin = resolveLit != -1 ? 1 : 0;
+        if ( Gip_SolverClaFrame(p, Conflict) < p->iAnaFrame )
+            p->iAnaFrame = Gip_SolverClaFrame( p, Conflict );
         for ( i = begin; i < nLits; i++ )
         {
             int Lit = pLits[i];
             int Var = Gip_LitVar( Lit );
+            if ( p->pLevel[Var] == 0 && p->pTag0[Var] < p->iAnaFrame )
+                p->iAnaFrame = p->pTag0[Var];
             if ( !Gip_Seen(p, Lit) && p->pLevel[Var] > 0 )
             {
                 if ( Var != p->constrainAct )
@@ -192,11 +221,20 @@ int Gip_SolverAnalyze( Gip_Solver_t * p, int Conflict, Vec_Int_t * vLearnt )
 ***********************************************************************/
 void Gip_SolverAnalyzeUnsatCore( Gip_Solver_t * p, int Lit )
 {
-    int i;
+    int i, Frame = GIP_FRAME_INF;
     Gip_LitSetClear( &p->UnsatCore );
     Gip_LitSetInsert( &p->UnsatCore, Lit );
-    if ( Gip_SolverLevelOf(p) == 0 )
+    if ( p->pLevel[Gip_LitVar(Lit)] == 0 )
+    {
+        // the assumption is falsified by a level-0 fact
+        p->iCoreFrame = p->pTag0[Gip_LitVar(Lit)];
         return;
+    }
+    if ( Gip_SolverLevelOf(p) == 0 )
+    {
+        p->iCoreFrame = Frame;
+        return;
+    }
     Gip_See( p, Lit );
     for ( i = Vec_IntSize(p->vTrail) - 1; i >= Vec_IntEntry(p->vPosInTrail, 0); i-- )
     {
@@ -209,14 +247,19 @@ void Gip_SolverAnalyzeUnsatCore( Gip_Solver_t * p, int Lit )
             int * pLits = Gip_ClaLits( &p->Cdb.Alloc, Cref );
             int nLits = Gip_ClaLen( &p->Cdb.Alloc, Cref );
             int j;
+            if ( Gip_SolverClaFrame(p, Cref) < Frame )
+                Frame = Gip_SolverClaFrame( p, Cref );
             for ( j = 1; j < nLits; j++ )
                 if ( p->pLevel[Gip_LitVar(pLits[j])] > 0 )
                     Gip_See( p, pLits[j] );
+                else if ( p->pTag0[Gip_LitVar(pLits[j])] < Frame )
+                    Frame = p->pTag0[Gip_LitVar(pLits[j])];
         }
         else
             Gip_LitSetInsert( &p->UnsatCore, pl );
     }
     Gip_ClearMarks( p );
+    p->iCoreFrame = Frame;
 }
 
 ////////////////////////////////////////////////////////////////////////

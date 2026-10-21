@@ -37,6 +37,7 @@
 #include "proof/cec/cec.h"
 #include "opt/csw/csw.h"
 #include "proof/pdr/pdr.h"
+#include "proof/pdr2/pdr2.h"
 #include "sat/bmc/bmc.h"
 #include "misc/util/utilTruth.h"
 #include "map/mio/mio.h"
@@ -3247,6 +3248,53 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Fra_Sec_t * pSecPar )
 
     // perform verification
     RetValue = Fra_FraigSec( pMan, pSecPar, NULL );
+    Aig_ManStop( pMan );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs the second implementation of PDR.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkDarPdr2( Abc_Ntk_t * pNtk, Pdr2_Par_t * pPars )
+{
+    int RetValue = -1;
+    abctime clk = Abc_Clock();
+    Aig_Man_t * pMan;
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+    {
+        Abc_Print( 1, "Converting network into AIG has failed.\n" );
+        return -1;
+    }
+    RetValue = Pdr2_ManSolve( pMan, pPars );
+    if ( !pPars->fSilent )
+    {
+        if ( RetValue == 1 )
+            Abc_Print( 1, "Property proved.  " );
+        else if ( RetValue == 0 )
+        {
+            if ( pMan->pSeqModel == NULL )
+                Abc_Print( 1, "Abc_NtkDarPdr2(): Counter-example is not available.\n" );
+            else
+                Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", pMan->pSeqModel->iPo, pNtk->pName, pMan->pSeqModel->iFrame );
+        }
+        else if ( RetValue == -1 )
+            Abc_Print( 1, "Property UNDECIDED.  " );
+        else
+            assert( 0 );
+        ABC_PRT( "Time", Abc_Clock() - clk );
+    }
+    ABC_FREE( pNtk->pSeqModel );
+    pNtk->pSeqModel = pMan->pSeqModel;
+    pMan->pSeqModel = NULL;
     Aig_ManStop( pMan );
     return RetValue;
 }

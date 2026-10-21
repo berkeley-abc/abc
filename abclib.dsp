@@ -7325,6 +7325,34 @@ SOURCE=.\src\proof\pdr\pdrTsim3.c
 SOURCE=.\src\proof\pdr\pdrUtil.c
 # End Source File
 # End Group
+# Begin Group "pdr2"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\proof\pdr2\pdr2.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\pdr2\pdr2Abs.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\pdr2\pdr2Core.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\pdr2\pdr2Int.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\pdr2\pdr2Man.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\pdr2\pdr2Sat.c
+# End Source File
+# End Group
 # Begin Group "ssw"
 
 # PROP Default_Filter ""

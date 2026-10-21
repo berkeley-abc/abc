@@ -52,6 +52,7 @@
 #include "proof/cec/cec.h"
 #include "proof/acec/acec.h"
 #include "proof/pdr/pdr.h"
+#include "proof/pdr2/pdr2.h"
 #include "misc/tim/tim.h"
 #include "bdd/llb/llb.h"
 #include "bdd/bbr/bbr.h"
@@ -402,6 +403,7 @@ static int Abc_CommandBm2                    ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandSaucy                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestCex                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPdr                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPdr2                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 #ifdef ABC_USE_CUDD
 static int Abc_CommandReconcile              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 #endif
@@ -1271,6 +1273,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "saucy3",        Abc_CommandSaucy,            1 );
     Cmd_CommandAdd( pAbc, "Verification", "testcex",       Abc_CommandTestCex,          0 );
     Cmd_CommandAdd( pAbc, "Verification", "pdr",           Abc_CommandPdr,              0 );
+    Cmd_CommandAdd( pAbc, "Verification", "pdr2",          Abc_CommandPdr2,             0 );
 #ifdef ABC_USE_CUDD
     Cmd_CommandAdd( pAbc, "Verification", "reconcile",     Abc_CommandReconcile,        1 );
 #endif
@@ -33506,6 +33509,471 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandPdr2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Abc_NtkDarPdr2( Abc_Ntk_t * pNtk, Pdr2_Par_t * pPars );
+    Pdr2_Par_t Pars, * pPars = &Pars;
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkUsed, * pNtkFlop = NULL;
+    char * pLogFileName = NULL;
+    int c;
+    Pdr2_ManSetDefaultParams( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FTSXYANZQDERCPMGKUJHLIcgopluktedrbxjsOBWVmfqianvywzh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFrameMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFrameMax < 0 )
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTimeOut < 0 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nRandomSeed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nRandomSeed < 0 )
+                goto usage;
+            break;
+        case 'X':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-X\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nCtgMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nCtgMax < 0 )
+                goto usage;
+            break;
+        case 'Y':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-Y\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nCtgLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nCtgLimit < 0 )
+                goto usage;
+            break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nAbsStart = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nAbsStart < 0 )
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLiftIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLiftIters < -1 )
+                goto usage;
+            break;
+        case 'Z':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-Z\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nDynLimitMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nDynLimitMax < 0 )
+                goto usage;
+            break;
+        case 'Q':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-Q\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nDynAct = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nDynAct < 0 )
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nDynTime = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nDynTime < 0 )
+                goto usage;
+            break;
+        case 'E':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-E\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nDynExplode = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nDynExplode < 0 )
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLevelRestart = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLevelRestart < 0 )
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nCtgTime = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nCtgTime < 0 )
+                goto usage;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nPreprocTime = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nPreprocTime < 0 )
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nAbsTime = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nAbsTime < 0 )
+                goto usage;
+            break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nAbsRefineMode = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nAbsRefineMode < 0 || pPars->nAbsRefineMode > 3 )
+                goto usage;
+            break;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nQueueOrder = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nQueueOrder < 0 || pPars->nQueueOrder > 3 )
+                goto usage;
+            break;
+        case 'U':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-U\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLiftSim = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLiftSim < 0 || pPars->nLiftSim > 2 )
+                goto usage;
+            break;
+        case 'J':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-J\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLiftSimOrder = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLiftSimOrder < 0 || pPars->nLiftSimOrder > 2 )
+                goto usage;
+            break;
+        case 'H':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-H\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMicMode = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMicMode < 0 || pPars->nMicMode > 1 )
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pLogFileName = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pPars->pInvFileName = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'c':
+            pPars->fCtg ^= 1;
+            break;
+        case 'g':
+            pPars->fDynamic ^= 1;
+            break;
+        case 'o':
+            pPars->fDropPo ^= 1;
+            break;
+        case 'p':
+            pPars->fParentLemma ^= 1;
+            break;
+        case 'l':
+            pPars->fLift ^= 1;
+            break;
+        case 'u':
+            pPars->fPropHyp ^= 1;
+            break;
+        case 'k':
+            pPars->fCtiCache ^= 1;
+            break;
+        case 't':
+            pPars->fUseAbs ^= 1;
+            break;
+        case 'e':
+            pPars->fAbsCleanup ^= 1;
+            break;
+        case 'r':
+            pPars->fAbsRefineAll ^= 1;
+            break;
+        case 'b':
+            pPars->fAbsReset ^= 1;
+            break;
+        case 'x':
+            pPars->fAbsRefineXsim ^= 1;
+            break;
+        case 'j':
+            pPars->fTopCtg ^= 1;
+            break;
+        case 's':
+            pPars->fSemContain ^= 1;
+            break;
+        case 'f':
+            pPars->fDynFirst ^= 1;
+            break;
+        case 'q':
+            pPars->fPreproc ^= 1;
+            break;
+        case 'i':
+            pPars->fBlockInduct ^= 1;
+            break;
+        case 'a':
+            pPars->nQueueOrder ^= 1;
+            break;
+        case 'n':
+            pPars->fShareInf ^= 1;
+            break;
+        case 'm':
+            pPars->fCtgMic ^= 1;
+            break;
+        case 'O':
+            pPars->fKeepObl ^= 1;
+            break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nAbsRuns = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nAbsRuns < 0 || pPars->nAbsRuns > 2 )
+                goto usage;
+            break;
+        case 'W':
+            pPars->fInfPromote ^= 1;
+            break;
+        case 'V':
+            pPars->fSimRun ^= 1;
+            break;
+        case 'y':
+            pPars->fVerify ^= 1;
+            break;
+        case 'd':
+            pPars->fDumpInv ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
+            break;
+        case 'z':
+            pPars->fSilent ^= 1;
+            break;
+        case 'h':
+        default:
+            goto usage;
+        }
+    }
+    // with the abstraction, relative induction in the blocking query is on by default (-i then turns it off)
+    if ( pPars->fUseAbs )
+        pPars->fBlockInduct ^= 1;
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -2, "There is no current network.\n");
+        return 0;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -2, "The current network is not an AIG (run \"strash\").\n");
+        return 0;
+    }
+    if ( pAbc->fBatchMode && (pAbc->Status == 0 || pAbc->Status == 1) )
+    {
+        Abc_Print( 1, "The miter is already solved; skipping the command.\n" );
+        return 0;
+    }
+    if ( Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        pNtkFlop = Abc_NtkDup( pNtk );
+        Abc_NtkAddLatch( pNtkFlop, Abc_AigConst1(pNtkFlop), ABC_INIT_ONE );
+    }
+    // run the procedure
+    pNtkUsed = pNtkFlop ? pNtkFlop : pNtk;
+    pAbc->Status  = Abc_NtkDarPdr2( pNtkUsed, pPars );
+    pAbc->nFrames = pPars->iFrame;
+    if ( pNtkFlop && pNtkUsed->pSeqModel )
+    {
+        // the counterexample of a combinational network: drop the bit of the added latch
+        Abc_Cex_t * pCex = Abc_CexDup( pNtkUsed->pSeqModel, 0 );
+        Abc_CexFree( pNtkUsed->pSeqModel );
+        pNtkUsed->pSeqModel = pCex;
+    }
+    Abc_FrameReplaceCex( pAbc, &pNtkUsed->pSeqModel );
+    if ( pNtkFlop ) Abc_NtkDelete( pNtkFlop );
+    if ( pLogFileName )
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "pdr2" );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: pdr2 [-FTSXYANZQDERCPMGKUJHB <num>] [-LI <file>] [-cgopluktedrbxjsOWVmfqianvywzh]\n" );
+    Abc_Print( -2, "\t         model checking using property directed reachability (aka IC3)\n" );
+    Abc_Print( -2, "\t         with SAT-core lifting, CTG generalization, and the GipSAT solver\n" );
+    Abc_Print( -2, "\t         (the algorithm follows rIC3 by Yuheng Su, https://github.com/gipsyh/rIC3)\n" );
+    Abc_Print( -2, "\t-F num : limit on timeframes explored to stop computation [default = %d]\n",           pPars->nFrameMax );
+    Abc_Print( -2, "\t-T num : runtime limit, in seconds (0 = no limit) [default = %d]\n",                   pPars->nTimeOut );
+    Abc_Print( -2, "\t-S num : random seed [default = %d]\n",                                                pPars->nRandomSeed );
+    Abc_Print( -2, "\t-X num : max number of CTGs handled per literal drop [default = %d]\n",                pPars->nCtgMax );
+    Abc_Print( -2, "\t-Y num : effort limit on blocking CTGs [default = %d]\n",                              pPars->nCtgLimit );
+    Abc_Print( -2, "\t-A num : start the abstraction after this many seconds [default = %d]\n",            pPars->nAbsStart );
+    Abc_Print( -2, "\t-N num : max number of lifting iterations (0 = until no change, -1 = no SAT lifting) [default = %d]\n",   pPars->nLiftIters );
+    Abc_Print( -2, "\t-Z num : cap on the CTG blocking effort in dynamic mode [default = %d]\n",            pPars->nDynLimitMax );
+    Abc_Print( -2, "\t-Q num : obligation activity threshold for CTG in dynamic mode [default = %d]\n",     pPars->nDynAct );
+    Abc_Print( -2, "\t-D num : first budget of the dynamic phases, in nominal seconds (12 M solver propagations each); phases alternate and double (0 = dynamic only; the plain dynamic run needs PDR2_DYNRUN=1) [default = %d]\n", pPars->nDynTime );
+    Abc_Print( -2, "\t-C num : first budget of the CTG phases, in nominal seconds (12 M solver propagations each) [default = %d]\n", pPars->nCtgTime );
+    Abc_Print( -2, "\t-E num : end a dynamic phase when a level handles this many obligations (and 3x the previous max; 0 = never) [default = %d]\n", pPars->nDynExplode );
+    Abc_Print( -2, "\t-R num : restart the obligation queue when a level has used this many millions of solver propagations (the budget doubles; 0 = never) [default = %d]\n", pPars->nLevelRestart );
+    Abc_Print( -2, "\t-P num : time limit (sec) of the scorr preprocessing (with -q) [default = %d]\n", pPars->nPreprocTime );
+    Abc_Print( -2, "\t-M num : first budget of the abstraction runs (with -t, -B, -V), in nominal seconds (12 M solver propagations each) [default = %d]\n", pPars->nAbsTime );
+    Abc_Print( -2, "\t-G num : refinement variant: 0 = recorded pseudo-inputs, 1 = all outside flops fixed, 2 = treb's loop, 3 = 2 + intermediate frames [default = %d]\n", pPars->nAbsRefineMode );
+    Abc_Print( -2, "\t-K num : obligation order in a frame: 0 = deepest chain first, 1 = shortest cube first, 2 = most recently queued first, 3 = shortest, then most recently queued [default = %d]\n", pPars->nQueueOrder );
+    Abc_Print( -2, "\t-U num : weaken predecessors by justification and ternary simulation: 0 = no, 1 = before the SAT core, 2 = instead of it [default = %d]\n", pPars->nLiftSim );
+    Abc_Print( -2, "\t-J num : order of the removal trials: 0 = highest activity first, 1 = lowest first, 2 = by flop index [default = %d]\n", pPars->nLiftSimOrder );
+    Abc_Print( -2, "\t-H num : generalization: 0 = MIC with down/CTG (rIC3), 1 = two-orbit literal removal with core shrinking (treb) [default = %d]\n", pPars->nMicMode );
+    Abc_Print( -2, "\t-L file: the log file name [default = %s]\n",                                          pLogFileName ? pLogFileName : "no logging" );
+    Abc_Print( -2, "\t-I file: the invariant file name; the design is written as <name>_design.aig [default = %s]\n", pPars->pInvFileName ? pPars->pInvFileName : "inv.pla" );
+    Abc_Print( -2, "\t-c     : toggle generalization with counterexamples to generalization [default = %s]\n", pPars->fCtg? "yes": "no" );
+    Abc_Print( -2, "\t-g     : toggle choosing CTG effort from obligation activity (no dropping) [default = %s]\n", pPars->fDynamic? "yes": "no" );
+    Abc_Print( -2, "\t-o     : toggle dropping proof obligations that keep failing [default = %s]\n",        pPars->fDropPo? "yes": "no" );
+    Abc_Print( -2, "\t-p     : toggle ordering literals by the parent lemma [default = %s]\n",               pPars->fParentLemma? "yes": "no" );
+    Abc_Print( -2, "\t-l     : toggle cheap model-based lifting before the SAT-core lift [default = %s]\n",  pPars->fLift? "yes": "no" );
+    Abc_Print( -2, "\t-u     : toggle asserting the property in completed frames [default = %s]\n",           pPars->fPropHyp? "yes": "no" );
+    Abc_Print( -2, "\t-k     : toggle caching counterexamples to propagation [default = %s]\n",              pPars->fCtiCache? "yes": "no" );
+    Abc_Print( -2, "\t-t     : toggle localization abstraction of flops [default = %s]\n",                  pPars->fUseAbs? "yes": "no" );
+    Abc_Print( -2, "\t-e     : toggle removing unused flops from the abstraction [default = %s]\n",       pPars->fAbsCleanup? "yes": "no" );
+    Abc_Print( -2, "\t-r     : toggle refining with all pseudo-inputs of a spurious CEX [default = %s]\n",  pPars->fAbsRefineAll? "yes": "no" );
+    Abc_Print( -2, "\t-b     : toggle gating flop outputs with a reset flop (with -t) [default = %s]\n",    pPars->fAbsReset? "yes": "no" );
+    Abc_Print( -2, "\t-x     : toggle refining by ternary-simulation minimization [default = %s]\n",      pPars->fAbsRefineXsim? "yes": "no" );
+    Abc_Print( -2, "\t-j     : toggle minimum CTG effort for top-level obligations [default = %s]\n",       pPars->fTopCtg? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle the semantic containment check of obligations [default = %s]\n",     pPars->fSemContain? "yes": "no" );
+    Abc_Print( -2, "\t-f     : toggle starting with a dynamic phase instead of a CTG phase (with -t or PDR2_DYNRUN=1) [default = %s]\n", pPars->fDynFirst? "yes": "no" );
+    Abc_Print( -2, "\t-q     : toggle simplifying the design with signal correspondence (scorr) first [default = %s]\n", pPars->fPreproc? "yes": "no" );
+    Abc_Print( -2, "\t-i     : toggle assuming the negation of the cube in the blocking query [default = %s; yes with -t]\n", pPars->fBlockInduct? "yes": "no" );
+    Abc_Print( -2, "\t-a     : toggle treb's obligation order (shortest cube first) instead of deepest chain first [default = %s]\n", pPars->nQueueOrder? "yes": "no" );
+    Abc_Print( -2, "\t-n     : toggle passing invariant lemmas between runs 0 and 1 (with -t or PDR2_DYNRUN=1) [default = %s]\n", pPars->fShareInf? "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggle generalizing the lemmas that block CTGs [default = %s]\n", pPars->fCtgMic? "yes": "no" );
+    Abc_Print( -2, "\t-O     : toggle keeping obligations pushed beyond the last frame [default = %s]\n",   pPars->fKeepObl? "yes": "no" );
+    Abc_Print( -2, "\t-B num : abstraction runs added to the alternating schedule (0 = none, 1 = dynamic, 2 = also CTG generalization) [default = %d]\n", pPars->nAbsRuns );
+    Abc_Print( -2, "\t-W     : toggle moving new lemmas to frame infinity when inductive relative to it [default = %s]\n", pPars->fInfPromote? "yes": "no" );
+    Abc_Print( -2, "\t-V     : toggle running CTG generalization with the weakening by simulation as another alternating run [default = %s]\n", pPars->fSimRun? "yes": "no" );
+    Abc_Print( -2, "\t-y     : toggle verifying the inductive invariant [default = %s]\n",                    pPars->fVerify? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle dumping the inductive invariant (with the solved design, see -I) [default = %s]\n", pPars->fDumpInv? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggle printing very verbose information [default = %s]\n",                   pPars->fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-z     : toggle suppressing report about solved outputs [default = %s]\n",             pPars->fSilent? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t         environment: PDR2_BMC=<sec> time limit of the BMC stage after the first slice (0 = none) [default = %d],\n", pPars->nBmcTime );
+    Abc_Print( -2, "\t         PDR2_TIMEGEN=0|1|2 time generalization (off, frame infinity only, also frame jumps) [default = %d],\n", pPars->fTimeGen );
+    Abc_Print( -2, "\t         PDR2_DYNRUN=0|1 the plain run with dynamic generalization in the alternating schedule [default = %d]\n", pPars->fDynRun );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars );
@@ -35520,6 +35988,29 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pNtk == NULL )
         return 1;
+    // transfer explicit flop initialization (register-box initialization is separate)
+    if ( pAbc->pGia->vRegInits &&
+         (!pAbc->pGia->pManTime || Gia_ManRegBoxNum(pAbc->pGia) == 0) )
+    {
+        Abc_Obj_t * pLatch;
+        int i, k = 0, Init;
+        if ( Vec_IntSize(pAbc->pGia->vRegInits) != Abc_NtkLatchNum(pNtk) )
+        {
+            Abc_Print( -1, "The number of register initial values does not match the number of latches.\n" );
+            Abc_NtkDelete( pNtk );
+            return 1;
+        }
+        Abc_NtkForEachLatch( pNtk, pLatch, i )
+        {
+            Init = Vec_IntEntry( pAbc->pGia->vRegInits, k++ );
+            if ( Init == 0 )
+                Abc_LatchSetInit0( pLatch );
+            else if ( Init == 1 )
+                Abc_LatchSetInit1( pLatch );
+            else
+                Abc_LatchSetInitDc( pLatch );
+        }
+    }
     // transfer the spec name to the pNtk
     if( pAbc->pGia->pSpec )
     {

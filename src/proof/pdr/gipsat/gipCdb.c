@@ -39,13 +39,13 @@ static void Gip_AllocGrow( Gip_Alloc_t * p, unsigned nWords )
 // clause words: 1 header + nLits + (learnt ? 1 : 0)
 static inline unsigned Gip_ClaWords( Gip_Alloc_t * p, int Cref )
 {
-    return 1 + (unsigned)Gip_ClaLen(p, Cref) + (unsigned)Gip_ClaIsLearnt(p, Cref);
+    return 1 + (unsigned)Gip_ClaLen(p, Cref) + (unsigned)Gip_ClaIsLearnt(p, Cref) + 1;
 }
 
-static int Gip_AllocClause( Gip_Alloc_t * p, int * pLits, int nLits, int fTrans, int fLearnt )
+static int Gip_AllocClause( Gip_Alloc_t * p, int * pLits, int nLits, int fTrans, int fLearnt, unsigned TagWord )
 {
     int cid, i;
-    unsigned nWords = 1 + (unsigned)nLits + (unsigned)(fLearnt != 0);
+    unsigned nWords = 1 + (unsigned)nLits + (unsigned)(fLearnt != 0) + 1;
     assert( !(fTrans && fLearnt) );
     Gip_AllocGrow( p, nWords );
     cid = (int)p->nSize;
@@ -57,6 +57,7 @@ static int Gip_AllocClause( Gip_Alloc_t * p, int * pLits, int nLits, int fTrans,
         float zero = 0.0;
         memcpy( p->pData + cid + 1 + nLits, &zero, 4 );
     }
+    p->pData[cid + 1 + nLits + (fLearnt != 0)] = TagWord;
     p->nSize += nWords;
     assert( p->nSize < (unsigned)GIP_CREF_NONE );
     return cid;
@@ -116,9 +117,9 @@ void Gip_CdbFree( Gip_Cdb_t * p )
     Vec_IntFreeP( &p->vTemp );
 }
 
-static int Gip_CdbAlloc( Gip_Cdb_t * p, int * pLits, int nLits, int Kind )
+static int Gip_CdbAlloc( Gip_Cdb_t * p, int * pLits, int nLits, int Kind, unsigned TagWord )
 {
-    int cid = Gip_AllocClause( &p->Alloc, pLits, nLits, Kind == GIP_CLA_TRANS, Kind == GIP_CLA_LEARNT );
+    int cid = Gip_AllocClause( &p->Alloc, pLits, nLits, Kind == GIP_CLA_TRANS, Kind == GIP_CLA_LEARNT, TagWord );
     switch ( Kind )
     {
         case GIP_CLA_TRANS:     Vec_IntPush( p->vTrans,  cid ); break;
@@ -138,38 +139,6 @@ static void Gip_CdbFreeClause( Gip_Cdb_t * p, int Cref )
 
 /**Function*************************************************************
 
-  Synopsis    [Bumps the activity of a learnt clause.]
-
-  Description []
-
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gip_CdbBump( Gip_Cdb_t * p, int Cref )
-{
-    float act;
-    if ( !Gip_ClaIsLearnt(&p->Alloc, Cref) )
-        return;
-    act = Gip_ClaAct( &p->Alloc, Cref ) + p->actInc;
-    Gip_ClaSetAct( &p->Alloc, Cref, act );
-    if ( act > (float)1e20 )
-    {
-        int i, l;
-        Vec_IntForEachEntry( p->vLearnt, l, i )
-            Gip_ClaSetAct( &p->Alloc, l, Gip_ClaAct(&p->Alloc, l) * (float)1e-20 );
-        p->actInc *= (float)1e-20;
-    }
-}
-
-void Gip_CdbDecay( Gip_Cdb_t * p )
-{
-    p->actInc *= (float)(1.0 / 0.99);
-}
-
-/**Function*************************************************************
-
   Synopsis    [Attaches a clause to the database and the watchers.]
 
   Description []
@@ -179,13 +148,37 @@ void Gip_CdbDecay( Gip_Cdb_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gip_SolverAttachClause( Gip_Solver_t * p, int * pLits, int nLits, int Kind )
+int Gip_SolverAttachClauseTag( Gip_Solver_t * p, int * pLits, int nLits, int Kind, unsigned TagWord )
 {
     int cid;
     assert( nLits > 1 );
-    cid = Gip_CdbAlloc( &p->Cdb, pLits, nLits, Kind );
+    cid = Gip_CdbAlloc( &p->Cdb, pLits, nLits, Kind, TagWord );
     Gip_WatchersAttach( p, cid );
     return cid;
+}
+int Gip_SolverAttachClause( Gip_Solver_t * p, int * pLits, int nLits, int Kind )
+{
+    return Gip_SolverAttachClauseTag( p, pLits, nLits, Kind, (unsigned)GIP_FRAME_INF << 1 );
+}
+// lowers the frame tag of a clause (a dependency on a clause or fact of that frame): a finite
+// dependency freezes the tag at the lower of the two frames, because a tag that follows the
+// clause's own lemma would rise above the dependency when that lemma is pushed or promoted
+void Gip_SolverLowerTag( Gip_Solver_t * p, int Cref, int Frame )
+{
+    int Cur = Gip_SolverClaFrame( p, Cref );
+    if ( Frame == GIP_FRAME_INF )
+        return;
+    Gip_ClaSetTagWord( &p->Cdb.Alloc, Cref, (unsigned)(Frame < Cur ? Frame : Cur) << 1 );
+}
+// the lowest frame a conflict at level 0 depends on: the clause and the facts falsifying it
+int Gip_SolverConflictFrame( Gip_Solver_t * p, int Cref )
+{
+    int * pLits = Gip_ClaLits( &p->Cdb.Alloc, Cref );
+    int i, nLits = Gip_ClaLen( &p->Cdb.Alloc, Cref ), Frame = Gip_SolverClaFrame( p, Cref );
+    for ( i = 0; i < nLits; i++ )
+        if ( p->pLevel[Gip_LitVar(pLits[i])] == 0 && p->pTag0[Gip_LitVar(pLits[i])] < Frame )
+            Frame = p->pTag0[Gip_LitVar(pLits[i])];
+    return Frame;
 }
 
 void Gip_SolverDetachClause( Gip_Solver_t * p, int Cref )
@@ -232,13 +225,42 @@ static int Gip_SolverLocked( Gip_Solver_t * p, int Cref )
 }
 
 // sort helper for clean_learnt: descending activity
-typedef struct Gip_ActPair_t_ { float act; int cref; } Gip_ActPair_t;
+typedef struct Gip_ActPair_t_ { float act; int cref; int order; } Gip_ActPair_t;
+// quickselect: afterwards a[0..k) hold the k entries with the largest activities (unordered)
+static void Gip_SelectTop( Gip_ActPair_t * a, int n, int k )
+{
+    int lo = 0, hi = n - 1;
+    if ( k >= n )
+        return;
+    while ( lo < hi )
+    {
+        float pivot = a[(lo + hi) / 2].act;
+        int i = lo, j = hi;
+        while ( i <= j )
+        {
+            while ( a[i].act > pivot ) i++;
+            while ( a[j].act < pivot ) j--;
+            if ( i <= j )
+            {
+                Gip_ActPair_t t = a[i]; a[i] = a[j]; a[j] = t;
+                i++; j--;
+            }
+        }
+        if ( k <= j )
+            hi = j;
+        else if ( k >= i )
+            lo = i;
+        else
+            break;
+    }
+}
 static int Gip_ActPairCmp( const void * a, const void * b )
 {
-    float fa = ((Gip_ActPair_t *)a)->act, fb = ((Gip_ActPair_t *)b)->act;
-    if ( fa > fb ) return -1;
-    if ( fa < fb ) return 1;
-    return 0;
+    const Gip_ActPair_t * pa = (const Gip_ActPair_t *)a, * pb = (const Gip_ActPair_t *)b;
+    if ( pa->act > pb->act ) return -1;
+    if ( pa->act < pb->act ) return 1;
+    // Keep equal-activity clauses in their input order on every platform.
+    return pa->order - pb->order;
 }
 
 /**Function*************************************************************
@@ -260,7 +282,11 @@ void Gip_SolverCleanLearnt( Gip_Solver_t * p, int fFull )
     Gip_ActPair_t * pPairs;
     int i, l;
     abctime clk;
-    if ( !( (fFull && nLearnt * 15 > nTrans) || nLearnt > nTrans ) )
+    if ( !( (fFull && nLearnt * 15 > nTrans) || (nLearnt > nTrans && (!p->fCleanSkip || nLearnt > p->nCleanWait)) ) )
+        return;
+    // without a conflict since a cleaning that removed nothing (no new clause, the same
+    // activities), the cleaning would again remove nothing
+    if ( p->fCleanSkip && p->nCleanIdle == p->Stats.nConflicts )
         return;
     clk = Abc_Clock();
     pPairs = ABC_ALLOC( Gip_ActPair_t, nLearnt );
@@ -268,8 +294,14 @@ void Gip_SolverCleanLearnt( Gip_Solver_t * p, int fFull )
     {
         pPairs[i].act  = Gip_ClaAct( &p->Cdb.Alloc, l );
         pPairs[i].cref = l;
+        pPairs[i].order = i;
     }
-    qsort( pPairs, (size_t)nLearnt, sizeof(Gip_ActPair_t), Gip_ActPairCmp );
+    // the original (rIC3) cleaning sorts all learnt clauses by activity; the selection keeps the
+    // same number of clauses but breaks ties differently and leaves them unordered
+    if ( p->fFastClean )
+        Gip_SelectTop( pPairs, nLearnt, nLearnt / 3 + 1 );
+    else
+        qsort( pPairs, (size_t)nLearnt, sizeof(Gip_ActPair_t), Gip_ActPairCmp );
     Vec_IntClear( p->Cdb.vLearnt );
     for ( i = 0; i < nLearnt; i++ )
     {
@@ -280,6 +312,15 @@ void Gip_SolverCleanLearnt( Gip_Solver_t * p, int fFull )
             Vec_IntPush( p->Cdb.vLearnt, l );
     }
     ABC_FREE( pPairs );
+    p->Stats.nCleanL++;
+    p->Stats.nCleanLDel += nLearnt - Vec_IntSize(p->Cdb.vLearnt);
+    p->Stats.nCleanLNone += nLearnt == Vec_IntSize(p->Cdb.vLearnt);
+    p->nCleanIdle = nLearnt == Vec_IntSize(p->Cdb.vLearnt) ? p->Stats.nConflicts : -1;
+    // when the kept clauses (locked or binary) still exceed the threshold, the cleaning would
+    // repeat at every decision while removing little: wait until the learnt clauses grow by 1/16
+    // (with fCleanSkip, set by pdr2; pdr -s cleans as before)
+    nLearnt = Vec_IntSize( p->Cdb.vLearnt );
+    p->nCleanWait = nLearnt > nTrans ? nLearnt + nLearnt / 16 : 0;
     Gip_SolverGarbageCollect( p );
     p->Stats.timeCleanL += Abc_Clock() - clk;
 }
@@ -307,11 +348,11 @@ void Gip_SolverStrengthenClause( Gip_Solver_t * p, int Cref, int Lit )
             break;
     assert( pos < nLits );
     Gip_WatchersDetach( p, Cref );
-    // swap_remove: move last literal into pos; if learnt, move the
-    // activity word into the freed literal slot
+    // swap_remove: move last literal into pos; the trailing words (activity if learnt, tag)
+    // move down into the freed literal slot
     pLits[pos] = pLits[nLits-1];
-    if ( fLearnt )
-        pA->pData[Cref + nLits] = pA->pData[Cref + nLits + 1];
+    for ( pos = 0; pos < fLearnt + 1; pos++ )
+        pA->pData[Cref + nLits + pos] = pA->pData[Cref + nLits + 1 + pos];
     Gip_ClaSetLen( pA, Cref, nLits - 1 );
     Gip_WatchersAttach( p, Cref );
 }

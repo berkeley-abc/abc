@@ -39,16 +39,22 @@ Gip_Solver_t * Gip_SolverNew( Gip_Ctx_t * pCtx )
     p->constrainAct = pCtx->nVars;
     p->nVarsAlloc = pCtx->nVars + 1;
     p->pValue  = ABC_ALLOC( char, p->nVarsAlloc );
+    p->pLitVal = ABC_ALLOC( char, 2 * p->nVarsAlloc );
     p->pPhase  = ABC_ALLOC( char, p->nVarsAlloc );
     p->pMark   = ABC_CALLOC( char, p->nVarsAlloc );
+    p->pRemFrame = ABC_ALLOC( int, p->nVarsAlloc );
     p->pLevel  = ABC_CALLOC( unsigned, p->nVarsAlloc );
     p->pReason = ABC_ALLOC( int, p->nVarsAlloc );
+    p->pTag0   = ABC_ALLOC( int, p->nVarsAlloc );
     for ( i = 0; i < p->nVarsAlloc; i++ )
     {
         p->pValue[i]  = GIP_NONE;
+        p->pLitVal[2*i] = p->pLitVal[2*i+1] = GIP_NONE;
         p->pPhase[i]  = GIP_NONE;
         p->pReason[i] = GIP_CREF_NONE;
+        p->pTag0[i]   = GIP_FRAME_INF;
     }
+    p->iCoreFrame = p->iAnaFrame = p->iTrivialFrame = GIP_FRAME_INF;
     p->pWatchers = ABC_CALLOC( Gip_WVec_t, 2 * p->nVarsAlloc );
     Gip_CdbInit( &p->Cdb );
     Gip_VsidsInit( &p->Vsids, p->nVarsAlloc );
@@ -63,6 +69,7 @@ Gip_Solver_t * Gip_SolverNew( Gip_Ctx_t * pCtx )
     p->vSeeds      = Vec_IntAlloc( 100 );
     p->vAssump     = Vec_IntAlloc( 16 );
     p->nLastNumLemma = 1000;
+    p->nCleanIdle = -1;
     for ( c = 0; c < pCtx->pCnf->nClauses; c++ )
         Gip_SolverAddClauseInner( p, pCtx->pCnf->pClauses[c],
             (int)(pCtx->pCnf->pClauses[c+1] - pCtx->pCnf->pClauses[c]), GIP_CLA_TRANS );
@@ -92,10 +99,13 @@ void Gip_SolverFree( Gip_Solver_t * p )
         ABC_FREE( p->pWatchers[i].pArray );
     ABC_FREE( p->pWatchers );
     ABC_FREE( p->pValue );
+    ABC_FREE( p->pLitVal );
     ABC_FREE( p->pPhase );
     ABC_FREE( p->pMark );
+    ABC_FREE( p->pRemFrame );
     ABC_FREE( p->pLevel );
     ABC_FREE( p->pReason );
+    ABC_FREE( p->pTag0 );
     Gip_CdbFree( &p->Cdb );
     Gip_VsidsFree( &p->Vsids );
     Gip_DomainFree( &p->Domain );
@@ -168,25 +178,61 @@ static int Gip_SolverSimplifyClause( Gip_Solver_t * p, int * pLits, int nLits )
   SeeAlso     []
 
 ***********************************************************************/
-int Gip_SolverAddClauseInner( Gip_Solver_t * p, int * pLits, int nLits, int Kind )
+int Gip_SolverAddClauseTag( Gip_Solver_t * p, int * pLits, int nLits, int Kind, unsigned TagWord )
 {
-    int i, Lit;
+    int i, Lit, Conflict, Frame = GIP_FRAME_INF, fStripped = 0;
+    // literals false at level 0 are dropped: the clause then depends on those facts
+    for ( i = 0; i < nLits; i++ )
+        if ( Gip_SolverLitValue(p, pLits[i]) == GIP_FALSE )
+        {
+            fStripped = 1;
+            if ( p->pTag0[Gip_LitVar(pLits[i])] < Frame )
+                Frame = p->pTag0[Gip_LitVar(pLits[i])];
+        }
     if ( !Gip_SolverSimplifyClause( p, pLits, nLits ) )
+    {
+        // an empty clause (every literal false at level 0) is a permanent contradiction that
+        // depends on the clause's own frame and on the facts that falsified its literals
+        if ( Vec_IntSize(p->vSimpCls) == 0 )
+        {
+            int Own = (TagWord & 1) ? (p->vLemFrame ? Vec_IntEntry(p->vLemFrame, (int)(TagWord >> 1)) : GIP_FRAME_INF) : (int)(TagWord >> 1);
+            assert( p->fTrivialUnsat );
+            if ( Own < p->iTrivialFrame )
+                p->iTrivialFrame = Own;
+            if ( Frame < p->iTrivialFrame )
+                p->iTrivialFrame = Frame;
+        }
         return GIP_CREF_NONE;
+    }
     Vec_IntForEachEntry( p->vSimpCls, Lit, i )
         if ( Gip_LitVar(Lit) == p->constrainAct )
             Kind = GIP_CLA_TEMPORARY;
+    if ( fStripped )
+    {
+        // resolve the tag to a frame value and lower it by the facts used
+        int Own = (TagWord & 1) ? (p->vLemFrame ? Vec_IntEntry(p->vLemFrame, (int)(TagWord >> 1)) : GIP_FRAME_INF) : (int)(TagWord >> 1);
+        TagWord = (unsigned)(Own < Frame ? Own : Frame) << 1;
+    }
     if ( Vec_IntSize(p->vSimpCls) == 1 )
     {
         Lit = Vec_IntEntry( p->vSimpCls, 0 );
         assert( Gip_LitVar(Lit) != p->constrainAct );
         assert( Gip_SolverLitValue(p, Lit) == GIP_NONE );
         Gip_SolverAssign( p, Lit, GIP_CREF_NONE );
-        if ( Gip_SolverPropagate(p) != GIP_CREF_NONE )
+        p->pTag0[Gip_LitVar(Lit)] = (TagWord & 1) ? (p->vLemFrame ? Vec_IntEntry(p->vLemFrame, (int)(TagWord >> 1)) : GIP_FRAME_INF) : (int)(TagWord >> 1);
+        Conflict = Gip_SolverPropagate( p );
+        if ( Conflict != GIP_CREF_NONE )
+        {
             p->fTrivialUnsat = 1;
+            p->iTrivialFrame = Gip_SolverConflictFrame( p, Conflict );
+        }
         return GIP_CREF_NONE;
     }
-    return Gip_SolverAttachClause( p, Vec_IntArray(p->vSimpCls), Vec_IntSize(p->vSimpCls), Kind );
+    return Gip_SolverAttachClauseTag( p, Vec_IntArray(p->vSimpCls), Vec_IntSize(p->vSimpCls), Kind, TagWord );
+}
+int Gip_SolverAddClauseInner( Gip_Solver_t * p, int * pLits, int nLits, int Kind )
+{
+    return Gip_SolverAddClauseTag( p, pLits, nLits, Kind, (unsigned)GIP_FRAME_INF << 1 );
 }
 
 /**Function*************************************************************
@@ -221,13 +267,22 @@ void Gip_SolverReset( Gip_Solver_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gip_SolverAddLemma( Gip_Solver_t * p, int * pLits, int nLits )
+void Gip_SolverAddLemmaId( Gip_Solver_t * p, int * pLits, int nLits, int Id )
 {
     int i;
     Gip_SolverReset( p );
     for ( i = 0; i < nLits; i++ )
         Gip_SolverAddDomain( p, Gip_LitVar(pLits[i]), 1 );
-    Gip_SolverAddClauseInner( p, pLits, nLits, GIP_CLA_LEMMA );
+    Gip_SolverAddClauseTag( p, pLits, nLits, GIP_CLA_LEMMA, Id >= 0 ? (((unsigned)Id << 1) | 1) : ((unsigned)GIP_FRAME_INF << 1) );
+}
+void Gip_SolverAddLemma( Gip_Solver_t * p, int * pLits, int nLits )
+{
+    Gip_SolverAddLemmaId( p, pLits, nLits, -1 );
+}
+// the table that maps lemma ids to their current frames (owned by the caller)
+void Gip_SolverSetLemFrames( Gip_Solver_t * p, Vec_Int_t * vLemFrame )
+{
+    p->vLemFrame = vLemFrame;
 }
 
 /**Function*************************************************************
@@ -260,8 +315,22 @@ static int Gip_SolverNewRound( Gip_Solver_t * p, Vec_Int_t * vSeeds,
             continue;
         assert( Vec_IntSize(p->vSimpCls) > 0 );
         if ( Vec_IntSize(p->vSimpCls) == 1 )
+        {
+            // every literal of the constraint is false at level 0: the query depends on those facts
+            p->iCoreFrame = GIP_FRAME_INF;
+            for ( i = 0; i < pnCstLits[c]; i++ )
+                if ( p->pTag0[Gip_LitVar(ppCstCls[c][i])] < p->iCoreFrame )
+                    p->iCoreFrame = p->pTag0[Gip_LitVar(ppCstCls[c][i])];
             return 0;
-        Gip_SolverAttachClause( p, Vec_IntArray(p->vSimpCls), Vec_IntSize(p->vSimpCls), GIP_CLA_TEMPORARY );
+        }
+        {
+            // literals false at level 0 were stripped: the constraint depends on those facts
+            int Frame = GIP_FRAME_INF;
+            for ( i = 0; i < pnCstLits[c]; i++ )
+                if ( Gip_SolverLitValue(p, ppCstCls[c][i]) == GIP_FALSE && p->pTag0[Gip_LitVar(ppCstCls[c][i])] < Frame )
+                    Frame = p->pTag0[Gip_LitVar(ppCstCls[c][i])];
+            Gip_SolverAttachClauseTag( p, Vec_IntArray(p->vSimpCls), Vec_IntSize(p->vSimpCls), GIP_CLA_TEMPORARY, (unsigned)Frame << 1 );
+        }
     }
     if ( !p->fTempDomain )
     {
@@ -303,16 +372,25 @@ int Gip_SolverSolve( Gip_Solver_t * p,
     int i, c, res, * pUse, nUse;
     p->fCanceled = 0;
     p->nConfCounted = p->Stats.nConflicts;
+    p->iCoreFrame = GIP_FRAME_INF;
     if ( p->fTrivialUnsat )
     {
         Gip_LitSetClear( &p->UnsatCore );
+        p->iCoreFrame = p->iTrivialFrame;
         return GIP_UNSAT;
+    }
+    // the deadline is checked on entry (and then periodically during the search)
+    if ( p->TimeLimit && Gip_SolverTimedOut(p) )
+    {
+        p->fCanceled = 1;
+        return GIP_UNDEF;
     }
     p->Stats.nSolves++;
     clk = Abc_Clock();
-    if ( Gip_SolverPropagate(p) != GIP_CREF_NONE )
+    if ( (i = Gip_SolverPropagate(p)) != GIP_CREF_NONE )
     {
         p->fTrivialUnsat = 1;
+        p->iTrivialFrame = p->iCoreFrame = Gip_SolverConflictFrame( p, i );
         Gip_LitSetClear( &p->UnsatCore );
         p->Stats.timeSolve += Abc_Clock() - clk;
         return GIP_UNSAT;

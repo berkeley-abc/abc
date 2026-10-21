@@ -21,15 +21,6 @@ ABC_NAMESPACE_IMPL_START
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-void Gip_SolverAssign( Gip_Solver_t * p, int Lit, int Reason )
-{
-    int Var = Gip_LitVar( Lit );
-    Vec_IntPush( p->vTrail, Lit );
-    Gip_SolverSetLit( p, Lit );
-    p->pReason[Var] = Reason;
-    p->pLevel[Var] = (unsigned)Gip_SolverLevelOf( p );
-}
-
 void Gip_SolverNewLevel( Gip_Solver_t * p )
 {
     Vec_IntPush( p->vPosInTrail, Vec_IntSize(p->vTrail) );
@@ -90,6 +81,7 @@ static int Gip_SolverSearch( Gip_Solver_t * p, int * pAssump, int nAssump, doubl
             if ( Gip_SolverLevelOf(p) == 0 )
             {
                 Gip_LitSetClear( &p->UnsatCore );
+                p->iCoreFrame = Gip_SolverConflictFrame( p, Conflict );
                 return GIP_UNSAT;
             }
             btl = Gip_SolverAnalyze( p, Conflict, p->vLearntCls );
@@ -98,6 +90,7 @@ static int Gip_SolverSearch( Gip_Solver_t * p, int * pAssump, int nAssump, doubl
             {
                 assert( btl == 0 );
                 Gip_SolverAssign( p, Vec_IntEntry(p->vLearntCls, 0), GIP_CREF_NONE );
+                p->pTag0[Gip_LitVar(Vec_IntEntry(p->vLearntCls, 0))] = p->iAnaFrame;
             }
             else
             {
@@ -105,7 +98,7 @@ static int Gip_SolverSearch( Gip_Solver_t * p, int * pAssump, int nAssump, doubl
                 Vec_IntForEachEntry( p->vLearntCls, Lit, i )
                     if ( Gip_LitVar(Lit) == p->constrainAct )
                         Kind = GIP_CLA_TEMPORARY;
-                Cref = Gip_SolverAttachClause( p, Vec_IntArray(p->vLearntCls), Vec_IntSize(p->vLearntCls), Kind );
+                Cref = Gip_SolverAttachClauseTag( p, Vec_IntArray(p->vLearntCls), Vec_IntSize(p->vLearntCls), Kind, (unsigned)p->iAnaFrame << 1 );
                 Gip_CdbBump( &p->Cdb, Cref );
                 Gip_SolverAssign( p, Gip_ClaLits(&p->Cdb.Alloc, Cref)[0], Cref );
             }
@@ -115,7 +108,8 @@ static int Gip_SolverSearch( Gip_Solver_t * p, int * pAssump, int nAssump, doubl
         else
         {
             if ( (p->nConfLimit > 0 && p->Stats.nConflicts >= p->nConfCounted + p->nConfLimit) ||
-                 (p->TimeLimit && (p->Stats.nConflicts & 1023) == 0 && Abc_Clock() > p->TimeLimit) )
+                 (p->nPropLimit > 0 && p->Stats.nPropagations >= p->nPropLimit) ||
+                 (p->TimeLimit && p->Stats.nPropagations >= p->nTimeCheck && Gip_SolverTimedOut(p)) )
             {
                 Gip_SolverBacktrack( p, nAssump, 1 );
                 p->fCanceled = 1;
