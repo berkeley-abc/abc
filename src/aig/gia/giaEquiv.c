@@ -2113,6 +2113,57 @@ int Gia_ManCountChoiceNodes( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Estimates fanout use without counting alternatives simultaneously.]
+
+  Description [Split a reachable class equally among its alternatives. Accumulate
+  expected fanout use and cap reachability at one. Siblings precede their
+  representatives. These weights guide area flow, not equivalence or timing.
+  The caller owns the returned array, indexed by GIA object ID.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float * Gia_ManChoiceRefs( Gia_Man_t * p )
+{
+    float * pRefs = ABC_CALLOC( float, Gia_ManObjNum(p) );
+    float * pReach = ABC_CALLOC( float, Gia_ManObjNum(p) );
+    int * pCount = ABC_CALLOC( int, Gia_ManObjNum(p) );
+    Gia_Obj_t * pObj;
+    int i, k, Id, Sibl;
+    float Weight;
+    Gia_ManForEachAnd( p, pObj, i )
+        pCount[i] = 1 + (Gia_ObjSibl(p, i) ? pCount[Gia_ObjSibl(p, i)] : 0);
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        Id = Gia_ObjFaninId0p( p, pObj );
+        pRefs[Id] += 1;
+        pReach[Id] = 1;
+    }
+    Gia_ManForEachAndReverse( p, pObj, i )
+    {
+        Weight = pReach[i];
+        Sibl = Gia_ObjSibl( p, i );
+        if ( Sibl )
+        {
+            pReach[Sibl] += Weight * (float)(pCount[i] - 1) / (float)pCount[i];
+            Weight /= pCount[i];
+        }
+        for ( k = 0; k < (Gia_ObjIsMux(p, pObj) ? 3 : 2); k++ )
+        {
+            Id = k == 2 ? Gia_ObjFaninId2(p, i) : k ? Gia_ObjFaninId1(pObj, i) : Gia_ObjFaninId0(pObj, i);
+            pRefs[Id] += Weight;
+            pReach[Id] = Abc_MinFloat( 1.0f, pReach[Id] + Weight );
+        }
+    }
+    ABC_FREE( pReach );
+    ABC_FREE( pCount );
+    return pRefs;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Counts the number of choices]
 
   Description []

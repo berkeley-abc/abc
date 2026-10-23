@@ -46,17 +46,7 @@ ABC_NAMESPACE_HEADER_START
 #define AMAP_STRING_CONST0     "CONST0"
 #define AMAP_STRING_CONST1     "CONST1"
 
-// object types
-typedef enum { 
-    AMAP_OBJ_NONE,    // 0: non-existent object
-    AMAP_OBJ_CONST1,  // 1: constant 1 
-    AMAP_OBJ_PI,      // 2: primary input
-    AMAP_OBJ_PO,      // 3: primary output
-    AMAP_OBJ_AND,     // 4: AND node
-    AMAP_OBJ_XOR,     // 5: XOR node
-    AMAP_OBJ_MUX,     // 6: MUX node
-    AMAP_OBJ_VOID     // 7: unused object
-} Amap_Type_t;
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -64,8 +54,6 @@ typedef enum {
 
 typedef struct Amap_Pin_t_ Amap_Pin_t;
 typedef struct Amap_Gat_t_ Amap_Gat_t;
-typedef struct Amap_Nod_t_ Amap_Nod_t;
-typedef struct Amap_Set_t_ Amap_Set_t;
 
 typedef struct Amap_Man_t_ Amap_Man_t;
 typedef struct Amap_Obj_t_ Amap_Obj_t;
@@ -170,17 +158,7 @@ struct Amap_Set_t_
     unsigned           nIns     : 15;
     char               Ins[AMAP_MAXINS];// mapping from gate inputs into fanins
 };
-struct Amap_Nod_t_
-{
-    unsigned           Id       : 16;   // ID of the node
-    unsigned           nSuppSize:  8;   // support size
-    unsigned           Type     :  8;   // the type of node
-    short              iFan0;           // fanin0
-    short              iFan1;           // fanin1
-    short              iFan2;           // fanin2
-    short              Unused;          // 
-    Amap_Set_t *       pSets;           // implementable gates
-};
+
 struct Amap_Cut_t_
 {
     unsigned           iMat     : 16;

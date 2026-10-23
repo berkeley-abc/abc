@@ -124,7 +124,7 @@ alias v2p         "&vta_gla; &ps; &gla_derive; &put; w 1.aig; pdr -v"
 alias g2p         "&ps; &gla_derive; &put; w 2.aig; pdr -v"
 alias &sw_        "&put; sweep; st; &get"
 alias &fx_        "&put; sweep; sop; fx; st; &get"
-alias &dc3        "&b; &jf -K 6; &b; &jf -K 4; &b"
+alias &dc3old     "&b; &jf -K 6; &b; &jf -K 4; &b"
 alias &dc4        "&b; &jf -K 7; &fx; &b; &jf -K 5; &fx; &b"
 
 # resubstitution scripts for the IWLS paper

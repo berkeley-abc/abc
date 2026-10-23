@@ -198,6 +198,7 @@ extern void              Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, i
 extern void              Mio_WriteLibraryVerilog( FILE * pFile, Mio_Library_t * pLib, int fPrintSops, int fShort, int fSelected );
 extern Mio_Gate_t **     Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay, int fSkipInv, int * pnGates, int fVerbose );
 extern Mio_Cell_t *      Mio_CollectRootsNew( Mio_Library_t * pLib, int nInputs, int * pnGates, int fVerbose );
+extern Mio_Cell2_t *     Mio_CollectRootsNew2( Mio_Library_t * pLib, int nInputs, int * pnGates, int fVerbose );
 extern Mio_Cell_t *      Mio_CollectRootsNewDefault( int nInputs, int * pnGates, int fVerbose );
 extern Mio_Cell2_t *     Mio_CollectRootsNewDefault2( int nInputs, int * pnGates, int fVerbose );
 extern int               Mio_CollectRootsNewDefault3( int nInputs, Vec_Ptr_t ** pvNames, Vec_Wrd_t ** pvTruths );

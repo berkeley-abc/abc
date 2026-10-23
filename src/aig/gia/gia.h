@@ -396,6 +396,23 @@ struct Jf_Par_t_
     char *         ZFile;
 };
 
+typedef struct If2_Par_t_ If2_Par_t;
+struct If2_Par_t_
+{
+    int             nLutSize;
+    int             nCutsMax;     // maximum bank size; delay/exact rounds use fewer cuts
+    int             nFlowIters;   // recovery rounds after delay and fresh seeding
+    int             nAreaIters;
+    int             fCutMin;      // compose truths and minimize supports retaining at least two inputs
+    int             fArea;
+    int             fDiverse;
+    int             fVerbose;
+    float           DelayTarget;
+    float           Delay;
+    int             Area;
+    int             Edge;
+};
+
 static inline unsigned     Gia_ObjCutSign( unsigned ObjId )       { return (1 << (ObjId & 31));                                 }
 static inline int          Gia_WordHasOneBit( unsigned uWord )    { return (uWord & (uWord-1)) == 0;                            }
 static inline int          Gia_WordHasOnePair( unsigned uWord )   { return Gia_WordHasOneBit(uWord & (uWord>>1) & 0x55555555);  }
@@ -1474,6 +1491,7 @@ extern void                Gia_ManEquivImprove( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManEquivToChoices( Gia_Man_t * p, int nSnapshots );
 extern int                 Gia_ManCountChoiceNodes( Gia_Man_t * p );
 extern int                 Gia_ManCountChoices( Gia_Man_t * p );
+extern float *             Gia_ManChoiceRefs( Gia_Man_t * p );
 extern int                 Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * pName2, int fLatchA, int fLatchB );
 extern int                 Gia_ManFilterEquivsUsingParts( Gia_Man_t * pGia, char * pName1, char * pName2 );
 extern void                Gia_ManFilterEquivsUsingLatches( Gia_Man_t * pGia, int fFlopsOnly, int fFlopsWith, int fUseRiDrivers );
@@ -1508,6 +1526,23 @@ extern Gia_Man_t *         Gia_ManFront( Gia_Man_t * p );
 extern void                Gia_ManFrontTest( Gia_Man_t * p );
 /*=== giaFx.c ==========================================================*/
 extern Gia_Man_t *         Gia_ManPerformFx( Gia_Man_t * p, int nNewNodesMax, int LitCountMax, int fReverse, int fVerbose, int fVeryVerbose );
+//=== giaDrf.c ============================================================
+// Returns NULL for unsupported inputs, including barrier buffers.
+extern Gia_Man_t *         Drf_ManRefactor( Gia_Man_t * pGia, int fKeepLevel, int fVerbose );
+//=== giaIf2.c ============================================================
+extern void                If2_ManSetDefaultPars( If2_Par_t * pPars );
+extern Gia_Man_t *         If2_ManPerformMapping( Gia_Man_t * pGia, If2_Par_t * pPars );
+//=== giaNf2.c / giaNf2Lib.c ===============================================
+// Round counts of -1 select native defaults or reference-fallback defaults.
+extern void                Nf2_ManSetDefaultPars( Jf_Par_t * pPars );
+extern void                Nf2_ManClearCache( void );
+extern void                Nf2_LibClearCache( void );
+// MapDelay is an output; zero means unreported for the area-only fallback.
+extern Gia_Man_t *         Nf2_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars );
+extern Gia_Man_t *         Nf2_ManPerformMappingTied( Gia_Man_t * pGia, Jf_Par_t * pPars );
+//=== giaRsb.c ============================================================
+// Returns NULL for unsupported inputs, including barrier buffers.
+extern Gia_Man_t *         Rsub_ManPerform( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMinSaved, int fKeepLevel, int fVerbose );
 /*=== giaHash.c ===========================================================*/
 extern void                Gia_ManHashAlloc( Gia_Man_t * p ); 
 extern void                Gia_ManHashStart( Gia_Man_t * p ); 

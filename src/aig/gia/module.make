@@ -19,10 +19,14 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaCSatP.c \
     src/aig/gia/giaCTas.c \
     src/aig/gia/giaCut.c \
+    src/aig/gia/giaDc3.c \
+    src/aig/gia/giaDch2.c \
+    src/aig/gia/giaEdit.c \
     src/aig/gia/giaDecs.c \
     src/aig/gia/giaDeep.c \
     src/aig/gia/giaDfs.c \
     src/aig/gia/giaDup.c \
+    src/aig/gia/giaDrf.c \
     src/aig/gia/giaEdge.c \
     src/aig/gia/giaEmbed.c \
     src/aig/gia/giaEnable.c \
@@ -42,6 +46,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaGlitch.c \
     src/aig/gia/giaHash.c \
     src/aig/gia/giaIf.c \
+    src/aig/gia/giaIf2.c \
     src/aig/gia/giaIff.c \
     src/aig/gia/giaIiff.c \
     src/aig/gia/giaIso.c \
@@ -62,6 +67,8 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaMulFind3.c \
     src/aig/gia/giaMuxes.c \
     src/aig/gia/giaNf.c \
+    src/aig/gia/giaNf2.c \
+    src/aig/gia/giaNf2Lib.c \
     src/aig/gia/giaOf.c \
     src/aig/gia/giaPack.c \
     src/aig/gia/giaPat.c \
@@ -75,6 +82,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaResub3.c \
     src/aig/gia/giaResub6.c \
     src/aig/gia/giaRetime.c \
+    src/aig/gia/giaRsb.c \
     src/aig/gia/giaRex.c \
     src/aig/gia/giaRrr.cpp \
     src/aig/gia/giaSatEdge.c \

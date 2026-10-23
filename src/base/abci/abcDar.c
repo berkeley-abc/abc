@@ -1138,13 +1138,14 @@ static inline Abc_Obj_t * Abc_NtkFromCellRead( Abc_Ntk_t * p, Vec_Int_t * vCopyL
     int iObjNew = Vec_IntEntry( vCopyLits, Abc_Var2Lit(i, c) );
     if ( iObjNew >= 0 )
         return Abc_NtkObj(p, iObjNew);
-    // opposite phase should be already constructed
-    assert( 0 );
+    // Constant pins can first be encountered inside a mapped cell.
     if ( i == 0 )
         pObjNew = c ? Abc_NtkCreateNodeConst1(p) : Abc_NtkCreateNodeConst0(p);
     else
     {
-        iObjNew = Vec_IntEntry( vCopyLits, Abc_Var2Lit(i, !c) );   assert( iObjNew >= 0 );
+        // Preserve the opposite-polarity fallback for other mapped networks.
+        iObjNew = Vec_IntEntry( vCopyLits, Abc_Var2Lit(i, !c) );
+        assert( iObjNew >= 0 );
         pObjNew = Abc_NtkCreateNodeInv( p, Abc_NtkObj(p, iObjNew) );
     }
     Abc_NtkFromCellWrite( vCopyLits, i, c, Abc_ObjId(pObjNew) );

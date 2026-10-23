@@ -368,6 +368,29 @@ Amap_Lib_t * Amap_LibReadAndPrepare( char * pFileName, char * pBuffer, int fVerb
     return p;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns a borrowed read-only view of library pattern rules.]
+
+  Description [A NULL library returns an empty view. Ownership stays with
+  the library, and no rule or node representation is changed.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Amap_LibReadPatterns( Amap_Lib_t * p, Amap_PatView_t * pView )
+{
+    memset( pView, 0, sizeof(Amap_PatView_t) );
+    if ( p == NULL ) return;
+    pView->nNodes  = p->nNodes;
+    pView->pNodes  = p->pNodes;
+    pView->pRules  = p->pRules;
+    pView->pRulesX = p->pRulesX;
+    pView->vRules3 = p->vRules3;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

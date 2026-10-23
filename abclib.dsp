@@ -2610,6 +2610,122 @@ SOURCE=.\src\sat\glucose2\Vec.h
 SOURCE=.\src\sat\glucose2\XAlloc.h
 # End Source File
 # End Group
+# Begin Group "glucose3"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\AbcGlucose3.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\AbcGlucose3.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\Alg.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\Alloc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\BoundedQueue.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\CGlucose.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\CGlucoseCore.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\Constants.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\Dimacs.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\Glucose3.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\Heap.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\Heap2.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\IntTypes.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\Map.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\Options.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\Options3.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\ParseUtils.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\Queue.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\SimpSolver.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\SimpSolver3.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\Solver.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\SolverTypes.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\Sort.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\System.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\System3.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\Vec.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\XAlloc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose3\pstdint.h
+# End Source File
+# End Group
 # Begin Group "kissat"
 
 # PROP Default_Filter ""
@@ -6002,6 +6118,30 @@ SOURCE=.\src\aig\saig\saigWnd.c
 # PROP Default_Filter ""
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaIf2.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaNf2.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaNf2Lib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaDrf.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaDrf.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaRsb.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\gia.c
 # End Source File
 # Begin Source File
@@ -6099,6 +6239,22 @@ SOURCE=.\src\aig\gia\giaCTas.c
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaCut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaDc3.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaDch2.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaEdit.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaEdit.h
 # End Source File
 # Begin Source File
 
@@ -6918,6 +7074,14 @@ SOURCE=.\src\proof\cec\cecSatG2.c
 # Begin Source File
 
 SOURCE=.\src\proof\cec\cecSatG3.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\cec\cecSatU.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\cec\cecSatZ.c
 # End Source File
 # Begin Source File
 
