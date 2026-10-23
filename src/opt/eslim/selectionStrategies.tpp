@@ -27,8 +27,12 @@ namespace eSLIM {
 
   }
 
-  inline bool SubcircuitValidator::check(const Subcircuit& candidate) const {
+  inline bool SubcircuitValidator::precheck(const Subcircuit& candidate) const {
     return candidate.inputs.size() <= max_ninputs && candidate.inputs.size() >= cfg.gate_size;
+  }
+
+  inline bool SubcircuitValidator::check(const Subcircuit& candidate) const {
+    return precheck(candidate);
   }
 
   inline bool SubcircuitNoFBValidator::check(const Subcircuit& candidate) const {
@@ -205,14 +209,17 @@ namespace eSLIM {
   Subcircuit RandomizedBFSSelection<Validator, RootSelector, SearchDirection, BiasSelector, CandidateNodeConstraint>::getSubcircuit(bool& status) {
     std::set<int> scir;
     status = false;
-    for (int i = 1; i < cfg.nselection_trials; i++) {
+    for (int i = 0; i < cfg.nselection_trials; i++) {
       scir = computeSubcircuitCandidate();
       if (scir.size() < min_size) {
-        scir.clear();
         continue;
       }
       es_man.incrementTraversalId();
-      Subcircuit candidate = Subcircuit::getSubcircuit(es_man, scir);
+      Subcircuit candidate = Subcircuit::getSubcircuitBare(es_man, scir);
+      if (!validator.precheck(candidate)) {
+        continue;
+      }
+      candidate.markCones(es_man);
       if (validator.check(candidate)) {
         status = true;
         return candidate;

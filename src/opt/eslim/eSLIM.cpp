@@ -18,6 +18,7 @@
 
 ***********************************************************************/
 
+#include <random>
 
 #include "utils.hpp"
 #include "eSLIMMan.hpp"
@@ -45,7 +46,7 @@ eSLIM::eSLIMConfig getCfg(const eSLIM_ParamStruct* params) {
   eSLIM::eSLIMConfig config;
   config.apply_strash = params->apply_strash;
   config.fill_subcircuits = params->fill_subcircuits;
-  config.fix_seed = params->fix_seed;
+  // config.fix_seed = params->fix_seed;
   config.trial_limit_active = params->trial_limit_active;
   config.timeout = params->timeout;
   config.iterations = params->iterations;
@@ -114,7 +115,8 @@ namespace eSLIM {
   class DeepsynInprocessor {
     public:
       DeepsynInprocessor(eSLIMConfig& config);
-      void setTimeout(int timeout) {this->timeout = timeout;}
+      // Deepsyn interprets a timeout==0 as no timeout
+      void setTimeout(int timeout) {this->timeout = timeout < 1 ? 1 : timeout;}
       void runInprocessing(eSLIMCirMan& es_man);
     private:
       eSLIMConfig& config;
@@ -197,17 +199,28 @@ namespace eSLIM {
     nruns = params->nruns;
     config.aig = false;
     config.apply_strash = false;
+    if (!params->fix_seed) {
+      config.seed = std::random_device{}();
+      if (config.verbosity_level > 0) {
+        std::cout << "Set seed: " << config.seed << "\n";
+      }
+    }
   }
 
   template <typename Approach, typename Inprocessor>
   eSLIMRun<Approach, Inprocessor>::eSLIMRun(Gia_Man_t* cir, const eSLIM_ParamStruct* params)
                             : es_man(cir), config(getCfg(params)), log(params->subcircuit_max_size), inprocessor(config)  {
     nruns = params->nruns;
+    if (!params->fix_seed) {
+      config.seed = std::random_device{}();
+      if (config.verbosity_level > 0) {
+        std::cout << "Set seed: " << config.seed << "\n";
+      }
+    }
   }
 
   template <typename Approach, typename Inprocessor>
   Gia_Man_t* eSLIMRun<Approach, Inprocessor>::runeSLIM(Gia_Man_t* cir, const eSLIM_ParamStruct* params) {
-
     eSLIMRun<Approach, Inprocessor> eslim_run(cir, params);
     // It seems like the variables are freed by abc during preprocessing. Thus,we copy them
     char* name = Abc_UtilStrsav( cir->pName );
@@ -271,6 +284,11 @@ namespace eSLIM {
       if (config.verbosity_level > 0) {
         std::cout << "Start eslim run " << i + 1 << "\n";
       }
+      if (es_man.getNofGates() == 0) {
+        std::cout << "Cannot further reduce the given circuit.\n";
+        printLog();
+        return;
+      }
       Approach::applyeSLIM(es_man, config, log);
       int size_eslim = es_man.getNofGates();
       int delay_eslim = es_man.getDepth();
@@ -289,9 +307,10 @@ namespace eSLIM {
           std::cout << "inprocessing -- size: " << size_inprocessing << " delay: " << delay_inprocessing << "\n";
         }
       }
-      if (config.fix_seed) {
-        config.seed++;
-      }
+      // if (config.fix_seed) {
+      //   config.seed++;
+      // }
+      config.seed++;
     }
     printLog();
   }
@@ -350,12 +369,20 @@ namespace eSLIM {
       std::cout << "Total relation generation time (s): " << log.relation_generation_time << "\n";
       std::cout << "Total synthesis time (s): " << log.synthesis_time << "\n";
       std::cout << "#Iterations with forbidden pairs: " << log.subcircuits_with_forbidden_pairs << "\n";
-      printf("Relation generation: #SAT-calls: %lu, Total SAT-time: %.2f sec, Max SAT-time: %.4f sec, Avg. SAT-time: %.4f sec\n",  
-            log.nof_sat_calls_relation_generation, log.cummulative_sat_runtime_relation_generation, log.max_sat_runtime_relation_generation, 
-            log.cummulative_sat_runtime_relation_generation/log.nof_sat_calls_relation_generation);
-      printf("Synthesis: #SAT-calls: %lu, Total SAT-time: %.2f sec, Max SAT-time: %.4f sec, Avg. SAT-time: %.4f sec\n",  
-            log.nof_sat_calls_synthesis, log.cummulative_sat_runtime_synthesis / 1000, log.max_sat_runtime_synthesis / 1000,
-            log.cummulative_sat_runtime_synthesis / (log.nof_sat_calls_synthesis*1000));
+      printf("Relation generation: #SAT-calls: %llu, Total SAT-time: %.2f sec, Max SAT-time: %.4f sec ",  
+            static_cast<unsigned long long>(log.nof_sat_calls_relation_generation), log.cummulative_sat_runtime_relation_generation, log.max_sat_runtime_relation_generation);
+      if (log.nof_sat_calls_relation_generation > 0) {
+        printf("Avg. SAT-time: %.4f sec\n", log.cummulative_sat_runtime_relation_generation/log.nof_sat_calls_relation_generation);
+      } else {
+        std::cout << "Avg. SAT-time: -\n";
+      }
+      printf("Synthesis: #SAT-calls: %llu, Total SAT-time: %.2f sec, Max SAT-time: %.4f sec ",  
+            static_cast<unsigned long long>(log.nof_sat_calls_synthesis), log.cummulative_sat_runtime_synthesis / 1000, log.max_sat_runtime_synthesis / 1000);  
+      if (log.nof_sat_calls_synthesis > 0) {
+        printf("Avg. SAT-time: %.4f sec\n", log.cummulative_sat_runtime_synthesis / (log.nof_sat_calls_synthesis*1000));
+      } else {
+        std::cout << "Avg. SAT-time: -\n";
+      }
     }
     if (config.verbosity_level > 2) {
       for (int i = 2; i < log.nof_analyzed_circuits_per_size.size(); i++) {
@@ -434,6 +461,7 @@ namespace eSLIM {
     abctime clkStart    = Abc_Clock();
     abctime nTimeToStop = clkStart + timeout * CLOCKS_PER_SEC;
     Gia_Man_t* pGia = es_man.eSLIMCirManToGia();
+    Gia_Man_t* tmp = nullptr;
     int nand = Gia_ManAndNum(pGia);
     int nlevel = Gia_ManLevelNum(pGia);
     char * resyn2 = "balance; rewrite; rewrite -z; balance; rewrite -z; balance";
@@ -446,28 +474,30 @@ namespace eSLIM {
     }
     Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pGia );
     if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), "&put") ) {
-      return;
+      goto cleanup;
     }
     while (Abc_Clock() <= nTimeToStop) {
       if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), Command) ) {
         Abc_Print( 1, "Something did not work out with the command \"%s\".\n", Command );
-        return;
+        goto cleanup;
       }
     }
     if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), "&get") ) {
-      return;
+      goto cleanup;
     }
-    if (reset_batch_mode) {
-      Abc_FrameSetBatchMode( 0 );
-    }
-    Gia_Man_t* tmp = Abc_FrameReadGia(Abc_FrameGetGlobalFrame());
+
+    tmp = Abc_FrameReadGia(Abc_FrameGetGlobalFrame());
     if constexpr (!IncreaseSize) {
       if (Gia_ManAndNum(tmp) > nand) {
-        return;
+        goto cleanup;
       }
     }
     if (Gia_ManLevelNum(tmp) <= nlevel) {
       es_man = eSLIMCirMan(tmp);
+    }
+cleanup:
+    if (reset_batch_mode) {
+      Abc_FrameSetBatchMode( 0 );
     }
   }
 
@@ -478,6 +508,7 @@ namespace eSLIM {
 
   void Resyn2Inprocessor::runInprocessing(eSLIMCirMan& es_man) {
     Gia_Man_t* pGia = es_man.eSLIMCirManToGia();
+    Gia_Man_t* tmp = nullptr;
     int nand = Gia_ManAndNum(pGia);
     int nlevel = Gia_ManLevelNum(pGia);
     char * resyn2 = "balance; rewrite; rewrite -z; balance; rewrite -z; balance";
@@ -488,21 +519,22 @@ namespace eSLIM {
     }
     Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pGia );
     if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), "&put") ) {
-      return;
+      goto cleanup;
     }
     if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), resyn2) ) {
       Abc_Print( 1, "Something did not work out with the command \"%s\".\n", resyn2 );
-      return;
+      goto cleanup;
     }
     if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), "&get") ) {
-      return;
+      goto cleanup;
     }
-    if (reset_batch_mode) {
-      Abc_FrameSetBatchMode( 0 );
-    }
-    Gia_Man_t* tmp = Abc_FrameReadGia(Abc_FrameGetGlobalFrame());
+    tmp = Abc_FrameReadGia(Abc_FrameGetGlobalFrame());
     if (Gia_ManAndNum(tmp) <= nand && Gia_ManLevelNum(tmp) <= nlevel) {
       es_man = eSLIMCirMan(tmp);
+    }
+cleanup:
+    if (reset_batch_mode) {
+      Abc_FrameSetBatchMode( 0 );
     }
   }
 
@@ -587,12 +619,14 @@ namespace eSLIM {
         return setSearchDirection<Circuitrepresentation, EmptyInprocessor, DelayMinimizer, SubcircuitNoFBValidator>(cir, params);
       default:
         assert(false);
-        return NULL;
+        return nullptr;
     }
   }
 }
 
-template <typename Circuitrepresentation> 
+template <typename Circuitrepresentation,
+          typename std::enable_if_t<std::is_same_v<Circuitrepresentation, Gia_Man_t> ||
+                                    std::is_same_v<Circuitrepresentation, Abc_Ntk_t>, int> = 0>
 Circuitrepresentation* runeSLIM(Circuitrepresentation * cir, const eSLIM_ParamStruct* params) {
   // Windowing does currently not support Deleyconstraints/Delayoptimisation
   if (params->nWindows && params->synthesis_approach != 0) {
@@ -605,12 +639,39 @@ Circuitrepresentation* runeSLIM(Circuitrepresentation * cir, const eSLIM_ParamSt
 Gia_Man_t* applyeSLIM(Gia_Man_t * pGia, const eSLIM_ParamStruct* params) {
   if (Gia_ManHasDangling(pGia)) {
     std::cout << "Warning: Circuit must not contain dangling nodes.\n";
-    return pGia;
+    return NULL;
+  } 
+  if (Gia_ManRegNum(pGia) > 0) {
+    std::cout << "Warning: Only combinatorial circuits are supported.\n";
+    return NULL;
   }
+  if (Gia_ManMuxNum(pGia) > 0) {
+    std::cout << "Warning: Structural Muxes are not supported.\n";
+    return NULL;
+  }
+  if (Gia_ManXorNum(pGia) > 0) {
+    std::cout << "Warning: Structural XORs are not supported.\n";
+    return NULL;
+  }
+
   return runeSLIM(pGia, params);
 }
 
 Abc_Ntk_t* applyelSLIM(Abc_Ntk_t * ntk, const eSLIM_ParamStruct* params) {
+  assert (Abc_NtkIsLogic(ntk));
+  assert (Abc_NtkHasSop(ntk));
+
+  // We restrict the number of fanins in order to represent truth tables by single 64-bit integers.
+  // Using more fanins would also make the synthesis encoding harder, and thus larger gates would likely not be helpful anyway.
+  // We might generalise the implementation to support gates with more fanins in the future.
+  if (Abc_NtkGetFaninMax(ntk) > 6) {
+    std::cout << "Warning: Currently only networks whose gates have at most 6 fanins are supported.\n";
+    return NULL;
+  }
+  if (!Abc_NtkIsComb(ntk)) {
+    std::cout << "Warning: Only combinatorial circuits are supported.\n";
+    return NULL;
+  }
   return runeSLIM(ntk, params);
 }
 

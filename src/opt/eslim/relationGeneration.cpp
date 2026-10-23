@@ -36,7 +36,7 @@ namespace eSLIM {
 
   void Relation::addOutputPattern(int inputidx, std::vector<bool>&& pattern) {
     lines_with_pattern += output_patterns[inputidx].empty();
-    output_patterns[inputidx].push_back(pattern);
+    output_patterns[inputidx].push_back(std::move(pattern));
   }
 
   RelationGenerator::RelationGenerator( const eSLIMCirMan& cir, const Subcircuit& subcir, 
@@ -136,7 +136,7 @@ namespace eSLIM {
     setupConstantGate();
     std::vector<int> compare_nodes;
     for (int i = cir.getNofObjs() - cir.getNofPos(); i < cir.getNofObjs(); i++) {
-      const auto obj = cir.getObj(i);
+      const auto& obj = cir.getObj(i);
       int fid = obj.fanins[0]->node_id;
       // multiple POs can use the same fanin
       // if gate2varref[fid] is not 0 we have already seen it
@@ -150,7 +150,7 @@ namespace eSLIM {
 
     for (int i = cir.getNofObjs() - cir.getNofPos() - 1; i > cir.getNofPis(); i--) {
       if (gate2varref[i]) { // the gate is connected to a PO that is in the TFO of the subcircuit
-        const auto obj = cir.getObj(i);
+        const auto& obj = cir.getObj(i);
         for (const auto& f : obj.fanins) {
           int fid = f->node_id;
           if (gate2varref[fid] == 0) {
@@ -196,7 +196,7 @@ namespace eSLIM {
     std::vector<int> compare_nodes = markRestrictedCone();
     int max_node = *std::max_element(compare_nodes.begin(), compare_nodes.end());
     for (int i = max_node; i > cir.getNofPis(); i--) {
-      const auto obj = cir.getObj(i);
+      const auto& obj = cir.getObj(i);
       if (gate2varref[i] != 0) {
         for (auto& f : obj.fanins ) {
           if (gate2varref[f->node_id] == 0) {
@@ -224,7 +224,7 @@ namespace eSLIM {
     std::vector<unsigned char> counts(cir.getNofObjs() - cir.getNofPos());
     int max_node = *std::max_element(compare_nodes.begin(), compare_nodes.end());
     for (int i = max_node; i > cir.getNofPis(); i--) {
-      const auto obj = cir.getObj(i);
+      const auto& obj = cir.getObj(i);
       if (gate2varref[i] != 0) {
         if (cir.inTFO(obj) || cir.inSubcircuit(obj)) {
           counts[i] = cfg.relation_tfi_bound + 1;
@@ -266,7 +266,7 @@ namespace eSLIM {
     }
     std::vector<int> nodes;
     for (int i = subcir.outputs[0] + 1; i < cir.getNofObjs() - cir.getNofPos(); i++) { //outputs are ordered
-      const auto obj = cir.getObj(i);
+      const auto& obj = cir.getObj(i);
       if (!cir.inTFO(obj) || cir.inSubcircuit(obj)) {
         continue;
       }
@@ -285,7 +285,7 @@ namespace eSLIM {
     }
     std::set<int> used;
     for (int i = cir.getNofObjs() - cir.getNofPos(); i < cir.getNofObjs(); i++) {
-      const auto obj = cir.getObj(i);
+      const auto& obj = cir.getObj(i);
       if (cir.inTFO(obj) && counts[obj.fanins[0]->node_id] > 0 && used.find(obj.fanins[0]->node_id) == used.end()) {
         nodes.push_back(obj.fanins[0]->node_id);
         used.insert(obj.fanins[0]->node_id);
