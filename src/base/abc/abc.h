@@ -652,8 +652,9 @@ extern ABC_DLL int                Abc_ExactInputNum();
 extern ABC_DLL int                Abc_ExactIsRunning();
 extern ABC_DLL Abc_Obj_t *        Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile, Abc_Obj_t ** pFanins, Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkFindExact( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrivalTimes, int nBTLimit, int nStartGates, int fVerbose );
-/*=== abcFabsorb.c ==========================================================*/
-extern ABC_DLL int                Abc_NtkFabsorb( Abc_Ntk_t * pNtk, int nLutSize, int nFanoutMax, int nRounds, int fVerbose );
+/*=== abcLutAbsorb.c ========================================================*/
+struct If_LibLut_t_;
+extern ABC_DLL int                Abc_NtkLutAbsorb( Abc_Ntk_t * pNtk, int nLutSize, int nFanoutMax, int nRounds, int fVerbose, struct If_LibLut_t_ * pLutLib, float * pfAreaGain );
 /*=== abcFanio.c ==========================================================*/
 extern ABC_DLL void               Abc_ObjAddFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin );
 extern ABC_DLL void               Abc_ObjDeleteFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin );

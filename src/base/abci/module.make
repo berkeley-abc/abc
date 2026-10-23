@@ -20,7 +20,7 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcEco.c \
     src/base/abci/abcExact.c \
     src/base/abci/abcExtract.c \
-    src/base/abci/abcFabsorb.c \
+    src/base/abci/abcLutAbsorb.c \
     src/base/abci/abcFraig.c \
     src/base/abci/abcFx.c \
     src/base/abci/abcFxu.c \
