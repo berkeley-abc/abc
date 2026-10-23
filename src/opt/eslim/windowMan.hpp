@@ -43,7 +43,7 @@ namespace eSLIM {
     private:
 
       WindowMan(eSLIMCirMan& es_man, const eSLIMConfig& cfg, eSLIMLog& log);
-      eSLIMCirMan getCircuit();
+      // eSLIMCirMan getCircuit();
 
       void setupWindows();
       void computeWindow(const std::vector<int>& gate_ids, int node_begin, int node_end);

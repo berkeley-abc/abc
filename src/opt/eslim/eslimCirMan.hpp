@@ -146,6 +146,7 @@ namespace eSLIM {
 
       void markSubcircuit(const std::vector<int>& nodes);
       void markCones(const std::vector<int>& nodes);
+      void markConesRange(const std::vector<int>& nodes);
 
       int addPi();
       int addPo(int fanin, bool negated); 

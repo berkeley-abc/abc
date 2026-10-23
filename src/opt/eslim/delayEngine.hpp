@@ -65,6 +65,7 @@ namespace eSLIM {
     void setupVariables();
 
     unsigned int getDelayFromDelayVariables(const std::vector<bool>& model);
+    unsigned int computeDelay(const std::vector<bool>& model);
 
     std::vector<bool> reduceArea(unsigned int max_delay, unsigned int initial_area);
     std::vector<bool> reduceDelay(unsigned int max_size, unsigned int initial_delay);

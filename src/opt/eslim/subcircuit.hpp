@@ -38,8 +38,13 @@ namespace eSLIM {
     public:
       template <typename It>
       static Subcircuit getSubcircuitBare(eSLIMCirMan& es_man, It begin, It end);
-      static Subcircuit getSubcircuit(eSLIMCirMan& es_man, const std::set<int>& nodes);
+      static Subcircuit getSubcircuitBare(eSLIMCirMan& es_man, const std::set<int>& nodes);
       static Subcircuit getEmptySubcircuit();
+
+      // Marks the TFI/TFO cones of the subcircuit and derives the forbidden pairs.
+      // Requires that the subcircuit nodes are marked (inSubcircuit) and the IOs are set,
+      // i.e. the subcircuit was created by getSubcircuitBare.
+      void markCones(eSLIMCirMan& es_man);
 
       int setupTimings(eSLIMCirMan& es_man);
 
