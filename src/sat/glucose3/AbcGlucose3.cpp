@@ -203,6 +203,24 @@ int bmcg3_sat_solver_read_cex_varvalue(bmcg3_sat_solver* s, int ivar)
     return glucose3_solver_read_cex_varvalue((Gluco3::SimpSolver*)s, ivar);
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns a permanent literal value, or minus one if unknown.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int bmcg3_sat_solver_read_unit( bmcg3_sat_solver * s, int lit )
+{
+    Gluco3::SimpSolver * p = (Gluco3::SimpSolver *)s;
+    Gluco3::lbool Value = p->value( Gluco3::toLit(lit) );
+    return Value == G3_l_Undef || p->level(lit >> 1) != 0 ? -1 : Value == G3_l_True;
+}
+
 void bmcg3_sat_solver_set_stop(bmcg3_sat_solver* s, int * pstop)
 {
     glucose3_solver_setstop((Gluco3::SimpSolver*)s, pstop);
@@ -362,6 +380,40 @@ void bmcg3_sat_solver_set_var_fanin_lit(bmcg3_sat_solver* s, int var, int lit0, 
 void bmcg3_sat_solver_select_cone(bmcg3_sat_solver* s, int v0, int v1)
 {
     ((Gluco3::SimpSolver*)s)->selectCone(v0, v1);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Selects the union of the query's circuit cones.]
+
+  Description [Do not mix with the two-root interface until solver reset.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void bmcg3_sat_solver_select_cones( bmcg3_sat_solver * s, const int * roots, int count )
+{
+    ((Gluco3::SimpSolver *)s)->selectCones( roots, count );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Enables justification of permanent gate units.]
+
+  Description [Disable only when permanent gate units follow from the
+  circuit itself. Arbitrary gate constraints must be query assumptions
+  or justified units.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void bmcg3_sat_solver_set_unit_justification( bmcg3_sat_solver * s, int enable )
+{
+    ((Gluco3::SimpSolver *)s)->setUnitJustification( enable != 0 );
 }
 
 void bmcg3_sat_solver_start_new_round(bmcg3_sat_solver* s)

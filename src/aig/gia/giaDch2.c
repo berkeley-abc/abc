@@ -28,8 +28,8 @@ ABC_NAMESPACE_IMPL_START
 
 extern int CecZ_ManComputeEquivs( Gia_Man_t * p, Vec_Int_t * vOrigins, Vec_Int_t * vEquivs, int nConfs, int nConfsChoice,
                                   int fVerbose );
-extern Gia_Man_t * Gia_ManDc3Snapshots( Gia_Man_t * p, int fKeep, int fVerbose, Gia_Man_t ** ppSnapshot,
-                                        Vec_Ptr_t * vLabels );
+extern Gia_Man_t * Gia_ManDc3SnapshotsMore( Gia_Man_t * p, int fKeep, int fVerbose, Gia_Man_t ** ppSnapshot,
+                                            Vec_Ptr_t * vLabels, int fMore );
 extern void Gia_ManRemoveBadChoices( Gia_Man_t * p );
 
 /**Function*************************************************************
@@ -683,7 +683,8 @@ static Gia_Man_t * Dch2_Export( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDch2( Gia_Man_t * p, int nSnapshots, int nConfs, int nConfsChoice, int fKeepLevel, int fVerbose )
+static Gia_Man_t * Dch2_Perform( Gia_Man_t * p, int nSnapshots, int nConfs, int nConfsChoice, int fKeepLevel,
+                                 int fSweep, int fMore, int fVerbose )
 {
     Gia_Man_t *pLast, *pMiddle = NULL, *pMiter, *pChoices, *pNew;
     Vec_Ptr_t *vSnapshots, *vLabels;
@@ -697,7 +698,7 @@ Gia_Man_t * Gia_ManDch2( Gia_Man_t * p, int nSnapshots, int nConfs, int nConfsCh
         return NULL;
     if ( Gia_ManIsSeqWithBoxes( p ) && !Gia_ManIsNormalized( p ) ) return NULL;
     vLabels = Vec_PtrAlloc( nSnapshots );
-    pLast = Gia_ManDc3Snapshots( p, fKeepLevel, fVerbose, &pMiddle, vLabels );
+    pLast = Gia_ManDc3SnapshotsMore( p, fKeepLevel, fVerbose, &pMiddle, vLabels, fMore );
     if ( !pLast )
     {
         if ( pMiddle ) Gia_ManStop( pMiddle );
@@ -733,7 +734,13 @@ Gia_Man_t * Gia_ManDch2( Gia_Man_t * p, int nSnapshots, int nConfs, int nConfsCh
     vEquivs = Vec_IntAlloc( Gia_ManObjNum( pReduced ) );
     if ( fVerbose )
         Abc_Print( 1, "Provenance reduction: %d -> %d ANDs\n", Gia_ManAndNum( pMiter ), Gia_ManAndNum( pReduced ) );
-    if ( !CecZ_ManComputeEquivs( pReduced, vOrigins, vEquivs, nConfs, nConfsChoice, fVerbose ) )
+    if ( !fSweep )
+    {
+        // Reduction already merged construction-proved and hashed equalities.
+        // Identity here adds no unproved relation to those exact merges.
+        for ( k = 0; k < Gia_ManObjNum(pReduced); k++ ) Vec_IntPush( vEquivs, 2*k );
+    }
+    else if ( !CecZ_ManComputeEquivs( pReduced, vOrigins, vEquivs, nConfs, nConfsChoice, fVerbose ) )
     {
         Gia_ManStop( pMiter );
         Gia_ManStop( pReduced );
@@ -769,6 +776,62 @@ Gia_Man_t * Gia_ManDch2( Gia_Man_t * p, int nSnapshots, int nConfs, int nConfsCh
                    (double)Export / CLOCKS_PER_SEC, (double)( Abc_Clock() - Start ) / CLOCKS_PER_SEC );
     }
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects construction and SAT-proved synthesis choices.]
+
+  Description [Preserves the existing DCH2 command and resource limits.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDch2( Gia_Man_t * p, int nSnapshots, int nConfs, int nConfsChoice, int fKeepLevel, int fVerbose )
+{
+    return Dch2_Perform( p, nSnapshots, nConfs, nConfsChoice, fKeepLevel, 1, 0, fVerbose );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects construction-proved choices without SAT sweeping.]
+
+  Description [Two synthesized structures remain available to the mapper.
+  Every alternative follows from an exact synthesis operation
+  or structural hashing; simulation classes are not used as proofs.
+  Extra synthesis passes depend on measured structural gain.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDch2Construct( Gia_Man_t * p, int fKeepLevel, int fVerbose )
+{
+    return Dch2_Perform( p, 2, 0, 0, fKeepLevel, 0, 1, fVerbose );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Exports proven representative relations as acyclic choices.]
+
+  Description [All outputs are retained. The caller supplies sound representative
+  relations, including phases, and retains ownership of the input GIA.]
+
+  SideEffects [Uses the input objects' scratch values.]
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDch2DeriveChoices( Gia_Man_t * p )
+{
+    Gia_Man_t * q = Dch2_Collect( p, 1 );
+    Gia_Man_t * r = Dch2_Export( q );
+    Gia_ManStop( q );
+    if ( r ) Gia_ManSetRegNum( r, Gia_ManRegNum(p) );
+    return r;
 }
 
 ABC_NAMESPACE_IMPL_END

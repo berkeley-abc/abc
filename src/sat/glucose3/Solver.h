@@ -456,6 +456,10 @@ protected:
     vec<int> jnext;
 
     vec<int> coneRefs;
+    vec<Var> coneRoots;
+    bool skipUnitJustification;
+    bool useConeFanouts;
+    vec<int> coneFanoutHeads, coneFanoutNext, coneFanoutPrev;
     Var coneRoot0, coneRoot1;
     void coneRef( Var v, int delta );
     int nSkipMark;
@@ -467,6 +471,8 @@ public:
     void markApprox( Var v0, Var v1, int nlim );
     // Exact incremental alternative to setNewRound/markCone until reset.
     void selectCone( Var v0, Var v1 );
+    void selectCones( const int * roots, int count );
+    void setUnitJustification( bool enable ) { skipUnitJustification = !enable; }
 
     void prelocate( int var_num );
     void setVarFaninLits( Var v, Lit lit1, Lit lit2 );

@@ -3481,10 +3481,11 @@ void Nf2_ManSetDefaultPars( Jf_Par_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-static Gia_Man_t * Nf2_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars, Mio_Library_t * pMio, Amap_Lib_t * pAmap )
+static Gia_Man_t * Nf2_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars, Mio_Library_t * pMio, Amap_Lib_t * pAmap, int fAdaptive )
 {
     Gia_Man_t * pNew = NULL;
-    Nf2_Man_t * p; int i, Id;
+    Nf2_Man_t * p; int i, Id, Stable = 0;
+    float OldArea = 0;
     p = Nf2_StoCreate( pGia, pPars, pMio, pAmap );
     if ( p == NULL )
         return NULL;
@@ -3514,14 +3515,28 @@ static Gia_Man_t * Nf2_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars,
         if ( p->Iter ) Nf2_ManComputeMapping( p );
         Nf2_ManSetMapRefs( p );
         Nf2_ManPrintStats( p, p->Iter || pPars->fAreaOnly ? "Area " : "Delay" );
+        // The area-oriented caller permits early termination after two weak
+        // rounds. Ordinary NF2 retains its requested iteration schedule.
+        if ( fAdaptive )
+        {
+            Stable = p->Iter && pPars->MapAreaF > 0.998f * OldArea ? Stable+1 : 0;
+            OldArea = pPars->MapAreaF;
+            if ( p->Iter >= 3 && Stable >= 2 ) { pPars->nRounds = ++p->Iter; break; }
+        }
     }
 
-    p->fUseEla = 1;
+    p->fUseEla = 1; Stable = 0;
     for ( ; p->Iter < p->pPars->nRounds + pPars->nRoundsEla; p->Iter++ )
     {
         Nf2_ManComputeMappingEla( p );
         Nf2_ManUpdateStats( p );
         Nf2_ManPrintStats( p, "Ela  " );
+        if ( fAdaptive )
+        {
+            Stable = pPars->MapAreaF > 0.9995f * OldArea ? Stable+1 : 0;
+            OldArea = pPars->MapAreaF;
+            if ( p->Iter >= pPars->nRounds+2 && Stable >= 2 ) break;
+        }
     }
     if ( pPars->nRoundsEla == 0 ) Nf2_ManResetMatches(p,0);
     // Refresh selected arrivals after reverse exact-area changes.
@@ -3551,7 +3566,7 @@ static Gia_Man_t * Nf2_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars,
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Nf2_ManPerformMappingWithLib( Gia_Man_t * p, Jf_Par_t * pPars, Mio_Library_t * pMio, Amap_Lib_t * pAmap )
+static Gia_Man_t * Nf2_ManPerformMappingWithLibInt( Gia_Man_t * p, Jf_Par_t * pPars, Mio_Library_t * pMio, Amap_Lib_t * pAmap, int fAdaptive )
 {
     extern Gia_Man_t * Nf_ManPerformMappingWithLib( Gia_Man_t *, Jf_Par_t *, Mio_Library_t * );
     extern void Nf_ManSetDefaultPars( Jf_Par_t * );
@@ -3631,7 +3646,7 @@ Gia_Man_t * Nf2_ManPerformMappingWithLib( Gia_Man_t * p, Jf_Par_t * pPars, Mio_L
         Gia_ManTransferTiming( pNew, p );
         p = pNew;
         // mapping
-        pNew = Nf2_ManPerformMappingInt( p, pPars, pMio, pAmap );
+        pNew = Nf2_ManPerformMappingInt( p, pPars, pMio, pAmap, fAdaptive );
         if ( pNew == NULL )
         {
             Gia_ManTransferTiming( pOrig, p );
@@ -3652,7 +3667,7 @@ Gia_Man_t * Nf2_ManPerformMappingWithLib( Gia_Man_t * p, Jf_Par_t * pPars, Mio_L
     }
     else
     {
-        pNew = Nf2_ManPerformMappingInt( p, pPars, pMio, pAmap );
+        pNew = Nf2_ManPerformMappingInt( p, pPars, pMio, pAmap, fAdaptive );
         if ( pNew == NULL ) return NULL;
         Gia_ManTransferTiming( pNew, p );
     }
@@ -3663,6 +3678,40 @@ finish:
     pPars->MapDelayTarget = pUserPars->MapDelayTarget;
     *pUserPars = *pPars;
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Maps with supplied libraries and the ordinary NF2 schedule.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Nf2_ManPerformMappingWithLib( Gia_Man_t * p, Jf_Par_t * pPars, Mio_Library_t * pMio, Amap_Lib_t * pAmap )
+{
+    return Nf2_ManPerformMappingWithLibInt( p, pPars, pMio, pAmap, 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Maps for NF3, stopping additional recovery rounds at diminishing gains.]
+
+  Description [Rounds are upper bounds. This entry point shares the matcher
+  and compiled library with NF2 without changing the NF2 command's schedule.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Nf2_ManPerformMappingArea( Gia_Man_t * pGia, Jf_Par_t * pPars )
+{
+    return Nf2_ManPerformMappingWithLibInt( pGia, pPars,
+        (Mio_Library_t *)Abc_FrameReadLibGen(), (Amap_Lib_t *)Abc_FrameReadLibGen2(), 1 );
 }
 
 /**Function*************************************************************

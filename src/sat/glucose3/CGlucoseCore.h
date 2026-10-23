@@ -140,6 +140,19 @@ inline void Solver::gateAddJwatch(Var v,int index){
 }
 
 inline void Solver::updateJustActivity( Var v ){
+    if ( useConeFanouts )
+    {
+        for ( int edge = coneFanoutHeads[v]; edge >= 0; edge = coneFanoutNext[edge] )
+        {
+            Var x = edge >> 1;
+            if ( var2NodeData[x].now && jheap.inHeap(x) )
+            {
+                double a = activity[getFaninVar0(x)], b = activity[getFaninVar1(x)];
+                jheap.update( JustKey(a > b ? a : b, x, jheap.data_attr(x)) );
+            }
+        }
+        return;
+    }
 	if( ! var2NodeData[v].sort )
 		inplace_sort(v);
 
@@ -301,6 +314,17 @@ inline CRef Solver::gatePropagate( Lit p ){
 	// check fanout consistency
 check_fanout:
 	assert( var(p) < var2Fanout0.size() );
+
+    if ( useConeFanouts )
+    {
+        for ( int edge = coneFanoutHeads[var(p)]; edge >= 0; edge = coneFanoutNext[edge] )
+            if ( CRef_Undef != (stats = gatePropagateCheckFanout(var(p), toLit(edge))) )
+            {
+                confl = stats;
+                if ( G3_l_True == value(edge >> 1) ) return confl;
+            }
+        return confl;
+    }
 
 	if( ! var2NodeData[var(p)].sort )
 		inplace_sort(var(p));
@@ -545,6 +569,30 @@ inline void Solver::coneRef( Var v, int delta )
     if ( !isTwoFanin(v) )
         return;
     Var a = getFaninVar0(v), b = getFaninVar1(v);
+    // The multi-root interface maintains precisely the active edges.
+    // No scan of old query gates or unselected side cones is needed during
+    // propagation. The original two-root interface keeps its old ordering.
+    if ( useConeFanouts )
+        for ( int k = 0; k < 2; k++ )
+        {
+            int edge = 2*v + k, fanin = k ? b : a;
+            if ( delta > 0 )
+            {
+                int head = coneFanoutHeads[fanin];
+                coneFanoutPrev[edge] = -1;
+                coneFanoutNext[edge] = head;
+                if ( head >= 0 ) coneFanoutPrev[head] = edge;
+                coneFanoutHeads[fanin] = edge;
+            }
+            else
+            {
+                int prev = coneFanoutPrev[edge], next = coneFanoutNext[edge];
+                if ( prev < 0 ) coneFanoutHeads[fanin] = next;
+                else coneFanoutNext[prev] = next;
+                if ( next >= 0 ) coneFanoutPrev[next] = prev;
+                coneFanoutPrev[edge] = coneFanoutNext[edge] = -1;
+            }
+        }
     var2NodeData[a].sort = 0;
     var2NodeData[b].sort = 0;
     coneRef( a, delta );
@@ -553,6 +601,7 @@ inline void Solver::coneRef( Var v, int delta )
 
 inline void Solver::selectCone( Var v0, Var v1 )
 {
+    assert( !useConeFanouts );
     if ( coneRoot0 == -2 )
     {
         for ( int i = 0; i < var2TravId.size(); i++ )
@@ -569,6 +618,32 @@ inline void Solver::selectCone( Var v0, Var v1 )
     if ( coneRoot1 >= 0 ) coneRef( coneRoot1, -1 );
     coneRoot0 = v0;
     coneRoot1 = v1;
+}
+
+// Multiple required roots use the same exact cone references as two-root
+// sweeping. A solver instance uses one of these interfaces until its reset.
+inline void Solver::selectCones( const int * roots, int count )
+{
+    if ( coneRoot0 == -2 )
+    {
+        for ( int i = 0; i < var2TravId.size(); i++ )
+            var2TravId[i] = 0;
+        travId = 1;
+        coneRoot0 = coneRoot1 = -1;
+    }
+    assert( travId == 1 && coneRoot0 == -1 && coneRoot1 == -1 );
+    useConeFanouts = true;
+    coneFanoutHeads.growTo( nVars(), -1 );
+    coneFanoutNext.growTo( 2*nVars(), -1 );
+    coneFanoutPrev.growTo( 2*nVars(), -1 );
+    coneRefs.growTo( nVars(), 0 );
+    for ( int i = 0; i < count; i++ )
+        coneRef( roots[i], 1 );
+    for ( int i = 0; i < coneRoots.size(); i++ )
+        coneRef( coneRoots[i], -1 );
+    coneRoots.clear();
+    for ( int i = 0; i < count; i++ )
+        coneRoots.push( roots[i] );
 }
 
 inline void Solver::markCone( Var v ){

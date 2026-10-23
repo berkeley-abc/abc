@@ -67,6 +67,7 @@ extern void              bmcg3_sat_solver_var_set_frozen( bmcg3_sat_solver* s, i
 extern int               bmcg3_sat_solver_elim_varnum(bmcg3_sat_solver* s);
 extern int *             bmcg3_sat_solver_read_cex( bmcg3_sat_solver* s );
 extern int               bmcg3_sat_solver_read_cex_varvalue( bmcg3_sat_solver* s, int );
+extern int               bmcg3_sat_solver_read_unit( bmcg3_sat_solver * s, int lit );
 extern void              bmcg3_sat_solver_set_stop( bmcg3_sat_solver* s, int * pstop );
 extern void              bmcg3_sat_solver_markapprox(bmcg3_sat_solver* s, int v0, int v1, int nlim);
 extern abctime           bmcg3_sat_solver_set_runtime_limit( bmcg3_sat_solver* s, abctime Limit );
@@ -82,6 +83,10 @@ extern int               bmcg3_sat_solver_jftr( bmcg3_sat_solver * s );
 extern void              bmcg3_sat_solver_set_jftr( bmcg3_sat_solver * s, int jftr );
 extern void              bmcg3_sat_solver_set_var_fanin_lit( bmcg3_sat_solver * s, int var, int lit0, int lit1 );
 extern void              bmcg3_sat_solver_select_cone( bmcg3_sat_solver * s, int v0, int v1 );
+// Use either cone-selection interface, without mixing them until reset.
+extern void              bmcg3_sat_solver_select_cones( bmcg3_sat_solver * s, const int * roots, int count );
+// Disable only when every permanent gate unit is a proved circuit consequence.
+extern void              bmcg3_sat_solver_set_unit_justification( bmcg3_sat_solver * s, int enable );
 extern void              bmcg3_sat_solver_start_new_round( bmcg3_sat_solver * s );
 extern void              bmcg3_sat_solver_mark_cone( bmcg3_sat_solver * s, int var );
 extern void              bmcg3_sat_solver_prelocate( bmcg3_sat_solver * s, int var_num );

@@ -26,9 +26,12 @@ ABC_NAMESPACE_IMPL_START
 ///                           DECLARATIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-// Fixed scheduling thresholds, independent of the -C conflict limit.
+// Hard-proof scheduling thresholds, independent of the -C conflict limit.
 #define CEC3_HARD_CONFLICTS  10
 #define CEC3_DEFER_LIMIT      3
+// Scorr4 caps the cheap probe and refines after a bounded model batch.
+#define CEC3_PROBE_CONFLICTS  4
+#define CEC3_BATCH_QUERIES 1024
 
 typedef struct Cec3_Que_t_ Cec3_Que_t;
 struct Cec3_Que_t_
@@ -54,6 +57,15 @@ struct Cec3_Man_t_
     Gia_Man_t * pAig, * pCore;
     Cec_ParCor_t * pPars;
     Cbs_Man_t * pSat;
+    Cec4_Sat_t * pSat4;
+    int nSides;
+    ABC_INT64_T nCondSplits;
+    Vec_Int_t * vSides, * vConditional;
+    Vec_Int_t * vProofOffsets, * vProofDeps, * vProofLits;
+    int * pProofUsers;
+    int * pSideLits;
+    Vec_Int_t * vBuiltSides;
+    Vec_Str_t * vSidePresent;
     int nObjs, nPis, nRegs, nFrames, nSimFrames, fBase;
     int * pRaw, * pSpec;              // cached literals, indexed by frame * nObjs + object
     int * pPrev;                     // predecessor in the current equivalence ring
@@ -80,6 +92,7 @@ struct Cec3_Man_t_
     unsigned nHashSize, nHashEntries;
     Cec3_Que_t Update, Sim;
     ABC_INT64_T nUpdates, nSimUpdates, nSat, nReuse, nSplits, nSimSat;
+    ABC_INT64_T nProbe, nProbeUnsat, nProbeSat;
     int nRebuilds, nRounds, nBatches, nUnknown, nReplayFallback, nSimLive, nDense;
     abctime tSrm, tSat, tSim;
 };
@@ -126,6 +139,26 @@ static inline word Cec3_RandomWord( void )
     unsigned High = Gia_ManRandom( 0 );
     unsigned Low = Gia_ManRandom( 0 );
     return ( (word)High << 32 ) | (word)Low;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Finds the first set bit using a compiler intrinsic when available.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Cec3_FirstBit( word Bits )
+{
+#if defined(__GNUC__) || defined(__clang__)
+    return Bits ? __builtin_ctzll( Bits ) : -1;
+#else
+    return Abc_Tt6FirstBit( Bits );
+#endif
 }
 
 
@@ -234,10 +267,10 @@ static inline int Cec3_QuePop( Cec3_Que_t * p )
     if ( p->iWord < 0 )
     {
         for ( i = p->nLevels - 1; i >= 1; i-- )
-            Key = 64 * Key + Abc_Tt6FirstBit( p->pBits[i][Key] );
+            Key = 64 * Key + Cec3_FirstBit( p->pBits[i][Key] );
         p->iWord = Key;
     }
-    Key = 64 * p->iWord + Abc_Tt6FirstBit( p->pBits[0][p->iWord] );
+    Key = 64 * p->iWord + Cec3_FirstBit( p->pBits[0][p->iWord] );
     Result = Key;
     for ( i = 0; i < p->nLevels; i++, Key >>= 6 )
     {
@@ -314,10 +347,71 @@ static void Cec3_HashGrow( Cec3_Man_t * p )
 static inline int Cec3_HashAnd( Cec3_Man_t * p, int a, int b )
 {
     unsigned Slot;
+again:
     if ( a < 2 ) return a ? b : 0;
     if ( b < 2 ) return b ? a : 0;
     if ( a == b ) return a;
     if ( a == ( b ^ 1 ) ) return 0;
+    if ( p->nSides >= -1 )
+    {
+        // The same two-level identities as GIA's additional strashing,
+        // applied only to the scorr4 speculative core. Each restart lowers
+        // an operand, so neither new dependencies nor cycles are introduced.
+        Gia_Obj_t * p0 = Gia_ManObj( p->pCore, Abc_Lit2Var(a) );
+        Gia_Obj_t * p1 = Gia_ManObj( p->pCore, Abc_Lit2Var(b) );
+        int A = -1, B = -1, C = -1, D = -1;
+        if ( Gia_ObjIsAnd(p0) )
+        {
+            A = Gia_ObjFaninLit0p( p->pCore, p0 );
+            B = Gia_ObjFaninLit1p( p->pCore, p0 );
+            if ( A == (b ^ 1) || B == (b ^ 1) ) return (a & 1) ? b : 0;
+            if ( A == b || B == b )
+            {
+                if ( !(a & 1) ) return a;
+                a = (A == b ? B : A) ^ 1;
+                goto again;
+            }
+        }
+        if ( Gia_ObjIsAnd(p1) )
+        {
+            C = Gia_ObjFaninLit0p( p->pCore, p1 );
+            D = Gia_ObjFaninLit1p( p->pCore, p1 );
+            if ( C == (a ^ 1) || D == (a ^ 1) ) return (b & 1) ? a : 0;
+            if ( C == a || D == a )
+            {
+                if ( !(b & 1) ) return b;
+                b = (C == a ? D : C) ^ 1;
+                goto again;
+            }
+        }
+        if ( A >= 0 && C >= 0 )
+        {
+            int Opposite = A == (C ^ 1) || A == (D ^ 1) || B == (C ^ 1) || B == (D ^ 1);
+            if ( !(a & 1) && !(b & 1) )
+            {
+                if ( Opposite ) return 0;
+                if ( A == C || B == C ) { b = D; goto again; }
+                if ( A == D || B == D ) { b = C; goto again; }
+            }
+            else if ( (a & 1) && !(b & 1) )
+            {
+                if ( Opposite ) return b;
+                if ( A == C || A == D ) { a = B ^ 1; goto again; }
+                if ( B == C || B == D ) { a = A ^ 1; goto again; }
+            }
+            else if ( !(a & 1) && (b & 1) )
+            {
+                if ( Opposite ) return a;
+                if ( C == A || C == B ) { b = D ^ 1; goto again; }
+                if ( D == A || D == B ) { b = C ^ 1; goto again; }
+            }
+            else
+            {
+                if ( (A == C && B == (D ^ 1)) || (A == D && B == (C ^ 1)) ) return A ^ 1;
+                if ( (B == C && A == (D ^ 1)) || (B == D && A == (C ^ 1)) ) return B ^ 1;
+            }
+        }
+    }
     if ( a > b ) ABC_SWAP( int, a, b );
     if ( 2 * (word)p->nHashEntries >= p->nHashSize )
         Cec3_HashGrow( p );
@@ -723,7 +817,18 @@ static void Cec3_Partition( Cec3_Man_t * p )
 {
     int i, j, k, Id, Head, Prev, Size = p->nSort;
     Cec3_Sig_t * pSort = p->pSort;
-    qsort( pSort, Size, sizeof( Cec3_Sig_t ), Cec3_SortCompare );
+    if ( p->nSides >= -1 && Size <= 16 )
+    {
+        for ( i = 1; i < Size; i++ )
+        {
+            Cec3_Sig_t Entry = pSort[i];
+            for ( j = i; j && Cec3_SortCompare(&Entry, pSort + j - 1) < 0; j-- )
+                pSort[j] = pSort[j - 1];
+            pSort[j] = Entry;
+        }
+    }
+    else
+        qsort( pSort, Size, sizeof( Cec3_Sig_t ), Cec3_SortCompare );
     for ( i = 0; i < Size; i++ )
     {
         Id = pSort[i].Id;
@@ -1116,7 +1221,7 @@ static void Cec3_Resimulate( Cec3_Man_t * p, Vec_Int_t * vStore )
             Start--;
             continue;
         }
-        Bit = Abc_Tt6FirstBit( Available );
+        Bit = Cec3_FirstBit( Available );
         for ( i = 0; i < Size; i++ )
         {
             word Mask = (word)1 << Bit, Value;
@@ -1147,6 +1252,19 @@ static void Cec3_Resimulate( Cec3_Man_t * p, Vec_Int_t * vStore )
 static void Cec3_CoreStart( Cec3_Man_t * p )
 {
     int i, f;
+    if ( p->pSat4 )
+        Cec4_SatStop( p->pSat4 );
+    p->pSat4 = NULL;
+    Vec_IntClear( p->vConditional );
+    if ( p->pProofUsers )
+        memset( p->pProofUsers, 0, sizeof(int) * (p->nFrames + 1) * p->nObjs );
+    if ( p->pSideLits )
+        memset( p->pSideLits, 255, sizeof(int) * p->nFrames * p->nObjs );
+    Vec_IntClear( p->vBuiltSides );
+    Vec_IntClear( p->vProofOffsets );
+    Vec_IntClear( p->vProofLits );
+    Vec_IntFill( p->vProofDeps, 1, 0 );
+    p->nCondSplits = p->nSplits;
     if ( p->pSat )
         Cbs_ManStop( p->pSat );
     if ( p->pCore )
@@ -1184,7 +1302,7 @@ static void Cec3_CoreStart( Cec3_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static Cec3_Man_t * Cec3_Start( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int fBase )
+static Cec3_Man_t * Cec3_Start( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int fBase, int nSides )
 {
     Cec3_Man_t * p = ABC_CALLOC( Cec3_Man_t, 1 );
     Gia_Obj_t * pObj;
@@ -1192,12 +1310,22 @@ static Cec3_Man_t * Cec3_Start( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int fBas
     p->pAig = pAig;
     p->pPars = pPars;
     p->fBase = fBase;
+    p->nSides = nSides;
+    p->vSides = Vec_IntAlloc( 1000 );
+    p->vBuiltSides = Vec_IntAlloc( 1000 );
+    p->vConditional = Vec_IntAlloc( 1000 );
+    p->vProofOffsets = Vec_IntAlloc( 1000 );
+    p->vProofDeps = Vec_IntAlloc( 1000 );
+    p->vProofLits = Vec_IntAlloc( 1000 );
+    p->vSidePresent = Vec_StrAlloc( 1000 );
     p->nObjs = Gia_ManObjNum( pAig );
     p->nPis = Gia_ManPiNum( pAig );
     p->nRegs = Gia_ManRegNum( pAig );
     p->nFrames = pPars->nFrames;
     p->nSimFrames = p->nFrames + ( fBase ? 1 : 2 );
     nKeys = ( p->nFrames + 1 ) * p->nObjs;
+    if ( nSides >= -1 ) p->pProofUsers = ABC_CALLOC( int, nKeys );
+    if ( nSides >= -1 ) p->pSideLits = ABC_ALLOC( int, p->nFrames * p->nObjs );
     p->pRaw = ABC_ALLOC( int, nKeys );
     p->pSpec = ABC_ALLOC( int, nKeys );
     p->pPrev = ABC_CALLOC( int, p->nObjs );
@@ -1325,6 +1453,17 @@ static Cec3_Man_t * Cec3_Start( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int fBas
 ***********************************************************************/
 static void Cec3_Stop( Cec3_Man_t * p )
 {
+    if ( p->pSat4 )
+        Cec4_SatStop( p->pSat4 );
+    Vec_IntFree( p->vSides );
+    Vec_IntFree( p->vBuiltSides );
+    Vec_IntFree( p->vConditional );
+    Vec_IntFree( p->vProofOffsets );
+    Vec_IntFree( p->vProofDeps );
+    Vec_IntFree( p->vProofLits );
+    ABC_FREE( p->pProofUsers );
+    ABC_FREE( p->pSideLits );
+    Vec_StrFree( p->vSidePresent );
     if ( p->pSat )
         Cbs_ManStop( p->pSat );
     Gia_ManStop( p->pCore );
@@ -1440,13 +1579,16 @@ static void Cec3_CoreSimulate( Cec3_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static int Cec3_CoreWitness( Cec3_Man_t * p, int Lit )
+static int Cec3_CoreWitness( Cec3_Man_t * p, int Lit, Vec_Int_t * vAssumps )
 {
     word Value = Vec_WrdEntry( p->vCoreSims, Abc_Lit2Var( Lit ) ) ^ -(word)Abc_LitIsCompl( Lit );
-    int Bit, Id;
+    int Bit, Id, i, Assump;
+    if ( vAssumps )
+        Vec_IntForEachEntry( vAssumps, Assump, i )
+            Value &= Vec_WrdEntry(p->vCoreSims, Abc_Lit2Var(Assump)) ^ -(word)Abc_LitIsCompl(Assump);
     if ( !Value )
         return 0;
-    Bit = Abc_Tt6FirstBit( Value );
+    Bit = Cec3_FirstBit( Value );
     if ( p->JustifyStamp == INT_MAX )
     {
         Vec_IntFill( p->vJustified, Vec_IntSize( p->vJustified ), 0 );
@@ -1456,6 +1598,9 @@ static int Cec3_CoreWitness( Cec3_Man_t * p, int Lit )
     Vec_IntClear( p->vJustify );
     Vec_IntClear( p->vModel );
     Vec_IntPush( p->vJustify, Abc_Lit2Var( Lit ) );
+    if ( vAssumps )
+        Vec_IntForEachEntry( vAssumps, Assump, i )
+            Vec_IntPush( p->vJustify, Abc_Lit2Var(Assump) );
     while ( Vec_IntSize( p->vJustify ) )
     {
         Gia_Obj_t * pObj;
@@ -1488,6 +1633,175 @@ static int Cec3_CoreWitness( Cec3_Man_t * p, int Lit )
 }
 /**Function*************************************************************
 
+  Synopsis    [Materializes a selected induction hypothesis in the shared core.]
+
+  Description [Only selected hypotheses and dependencies of cached proofs
+  need a mismatch gate. The endpoint cones are immutable within a round.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Cec3_SideBuild( void * pData, int Key )
+{
+    Cec3_Man_t * p = (Cec3_Man_t *)pData;
+    int a = Cec3_Raw( p, Key % p->nObjs, Key / p->nObjs );
+    int b = Cec3_Spec( p, Key % p->nObjs, Key / p->nObjs );
+    if ( p->pSideLits[Key] < 0 ) Vec_IntPush( p->vBuiltSides, Key );
+    return p->pSideLits[Key] = Cec3_HashXor( p, a, b );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Indexes existing endpoint cones without unrolling unused nodes.]
+
+  Description [Records raw literal, substituted literal, mismatch, and key.
+  A negative raw literal denotes an unbuilt member cone. Bounded mode
+  indexes the existing representative cone and builds the member and
+  mismatch only on selection. Full mode keeps the complete conjunction.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Cec3_SidePrepare( Cec3_Man_t * p, Vec_Int_t * vCare )
+{
+    int i, Care = 1;
+    Vec_IntClear( p->vSides );
+    if ( p->nSides >= -1 && p->nSides != 0 && !p->fBase )
+    {
+        int Id, f, a, b, Key, Repr;
+        for ( f = 0; f < p->nFrames; f++ )
+            for ( Id = 1; Id < p->nObjs; Id++ )
+                if ( Gia_ObjRepr(p->pAig, Id) != GIA_VOID )
+                {
+                    Key = f * p->nObjs + Id;
+                    Repr = Gia_ObjRepr( p->pAig, Id );
+                    // Substitution redirects the member to this endpoint;
+                    // its own raw cone normally does not exist yet.
+                    if ( p->nSides >= 0 && p->pSpec[f * p->nObjs + Repr] < 0 ) continue;
+                    a = p->nSides == -1 ? Cec3_Raw(p, Id, f) : p->pRaw[Key];
+                    b = Cec3_Spec( p, Id, f );
+                    if ( a == b ) continue;
+                    Vec_IntPushTwo( p->vSides, a, b );
+                    Vec_IntPushTwo( p->vSides, p->nSides == -1 ? Cec3_SideBuild(p, Key) : -1, Key );
+                }
+    }
+    if ( p->nSides == -1 && Vec_IntSize(p->vSides) )
+    {
+        Vec_IntClear( vCare );
+        for ( i = 2; i < Vec_IntSize(p->vSides); i += 4 )
+            Vec_IntPush( vCare, Vec_IntEntry(p->vSides, i) ^ 1 );
+        while ( Vec_IntSize(vCare) > 1 )
+        {
+            int Size = Vec_IntSize(vCare), k = 0;
+            for ( i = 0; i + 1 < Size; i += 2 )
+                Vec_IntWriteEntry( vCare, k++, Cec3_HashAnd(p, Vec_IntEntry(vCare, i), Vec_IntEntry(vCare, i + 1)) );
+            if ( Size & 1 ) Vec_IntWriteEntry( vCare, k++, Vec_IntEntry(vCare, Size - 1) );
+            Vec_IntShrink( vCare, k );
+        }
+        Care = Vec_IntEntry( vCare, 0 );
+    }
+    return Care;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Retains proofs whose used hypotheses survived refinement.]
+
+  Description [A class split may leave most side equalities unchanged.
+  Recheck every user of a proof only when one of its actual assumptions
+  disappears. Circuit literals are immutable for the lifetime of the core.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Cec3_ProofRefresh( Cec3_Man_t * p, int Care )
+{
+    int i, j, Lit, Key, Offset, Count, Size = 0;
+    if ( !Vec_IntSize(p->vProofLits) )
+    {
+        p->nCondSplits = p->nSplits;
+        return;
+    }
+    Vec_StrFill( p->vSidePresent, 2 * Gia_ManObjNum(p->pCore), 0 );
+    Vec_StrWriteEntry( p->vSidePresent, Care, 1 );
+    Vec_IntForEachEntry( p->vBuiltSides, Key, i )
+        if ( Gia_ObjRepr(p->pAig, Key % p->nObjs) != GIA_VOID )
+        {
+            Lit = Cec3_SideBuild( p, Key ) ^ 1;
+            Vec_StrFillExtra( p->vSidePresent, 2 * Gia_ManObjNum(p->pCore), 0 );
+            Vec_StrWriteEntry( p->vSidePresent, Lit, 1 );
+        }
+    // Proof validity belongs to the literal, independently of its current
+    // users. A key may switch proofs while the old proof stays in the cache.
+    Vec_IntForEachEntry( p->vProofLits, Lit, i )
+    {
+        if ( Vec_StrEntry(p->vProven, Lit) == 2 )
+        {
+            Offset = Vec_IntEntry( p->vProofOffsets, Lit );
+            assert( Offset > 0 );
+            Count = Vec_IntEntry( p->vProofDeps, Offset );
+            for ( j = 1; j <= Count; j++ )
+                if ( !Vec_StrEntry(p->vSidePresent, Vec_IntEntry(p->vProofDeps, Offset + j)) )
+                {
+                    Vec_StrWriteEntry( p->vProven, Lit, 0 );
+                    break;
+                }
+        }
+        if ( Vec_StrEntry(p->vProven, Lit) == 2 )
+            Vec_IntWriteEntry( p->vProofLits, Size++, Lit );
+    }
+    Vec_IntShrink( p->vProofLits, Size );
+    Size = 0;
+    for ( i = 0; i < Vec_IntSize(p->vConditional); i += 2 )
+    {
+        Key = Vec_IntEntry( p->vConditional, i );
+        Lit = Vec_IntEntry( p->vConditional, i + 1 );
+        if ( !Vec_StrEntry(p->vProven, Lit) )
+        {
+            p->pProofUsers[Key] = 0;
+            Cec3_Activate( p, Key % p->nObjs, Key / p->nObjs );
+        }
+        else
+        {
+            p->pProofUsers[Key] = Size + 1;
+            Vec_IntWriteEntry( p->vConditional, Size++, Key );
+            Vec_IntWriteEntry( p->vConditional, Size++, Lit );
+        }
+    }
+    Vec_IntShrink( p->vConditional, Size );
+    p->nCondSplits = p->nSplits;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Records at most one current conditional proof per obligation.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Cec3_ProofUser( Cec3_Man_t * p, int Key, int Lit )
+{
+    if ( p->pProofUsers[Key] )
+        Vec_IntWriteEntry( p->vConditional, p->pProofUsers[Key], Lit );
+    else
+    {
+        p->pProofUsers[Key] = Vec_IntSize(p->vConditional) + 1;
+        Vec_IntPushTwo( p->vConditional, Key, Lit );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Refines candidates until all remaining obligations are proved.]
 
   Description []
@@ -1501,7 +1815,8 @@ static int Cec3_Run( Cec3_Man_t * p )
 {
     Vec_Int_t * vWork = Vec_IntAlloc( 1000 ), * vLits = Vec_IntAlloc( 1000 ), * vTargets = Vec_IntAlloc( 1000 );
     Vec_Int_t * vStore = Vec_IntAlloc( 1000 ), * vFail = Vec_IntAlloc( 100 ), * vDefer = Vec_IntAlloc( 100 );
-    int i, Key, Lit, Target, Status, Pass, n, nItems, fOk = 1;
+    Vec_Int_t * vCare = Vec_IntAlloc( 1000 );
+    int i, Key, Lit, Target, Status, Pass, n, nItems, Care, StopAt, nModels, nDeferDone, fOk = 1;
     ABC_INT64_T nDeferred = 0;
     abctime clk;
     for ( p->nRounds = 0; p->nRounds < 100000; p->nRounds++ )
@@ -1516,6 +1831,12 @@ static int Cec3_Run( Cec3_Man_t * p )
         if ( p->nCoreInitial && Gia_ManObjNum( p->pCore ) > (ABC_INT64_T)4 * p->nCoreInitial )
             Cec3_CoreStart( p );
         Cec3_Invalidate( p );
+        if ( !Vec_IntSize(p->vActive) &&
+             (p->nCondSplits == p->nSplits || !Vec_IntSize(p->vConditional)) )
+            break;
+        Care = p->nSides == -1 ? Cec3_SidePrepare( p, vCare ) : 1;
+        if ( p->nSides >= -1 && p->nCondSplits != p->nSplits )
+            Cec3_ProofRefresh( p, Care );
         if ( !Vec_IntSize( p->vActive ) )
             break;
         ABC_SWAP( Vec_Int_t *, vWork, p->vActive );
@@ -1531,21 +1852,42 @@ static int Cec3_Run( Cec3_Man_t * p )
             Vec_IntPush( vLits, Lit );
             Vec_IntPush( vTargets, Target );
         }
+        if ( p->nSides >= 0 ) Care = Cec3_SidePrepare( p, vCare );
         if ( !p->nCoreInitial )
             p->nCoreInitial = Gia_ManObjNum( p->pCore );
         Vec_StrFillExtra( p->vProven, 2 * Gia_ManObjNum( p->pCore ), 0 );
         Vec_IntFillExtra( p->vSeen, 2 * Gia_ManObjNum( p->pCore ), 0 );
-        if ( !p->pSat )
+        if ( p->nSides >= -1 )
         {
-            p->pSat = Cbs_ManAlloc( p->pCore );
-            Cbs_ManSetConflictNum( p->pSat, p->pPars->nBTLimit );
+            if ( !p->pSat4 )
+                p->pSat4 = Cec4_SatStart( p->fBase ? 0 : p->nSides, p->pPars->nBTLimit );
+            Cec3_CoreSimulate( p );
+            Cec4_SatPrepare( p->pSat4, p->pCore, p->vSides, Care, p, Cec3_SideBuild );
+            if ( !p->pSat )
+            {
+                p->pSat = Cbs_ManAlloc( p->pCore );
+                Cbs_ManSetConflictNum( p->pSat, p->pPars->nBTLimit ?
+                    Abc_MaxInt(1, Abc_MinInt(p->pPars->nBTLimit / 4, CEC3_PROBE_CONFLICTS)) : CEC3_PROBE_CONFLICTS );
+            }
+            Cbs_ManSyncCore( p->pSat );
         }
-        Cbs_ManSyncCore( p->pSat );
-        Cec3_CoreSimulate( p );
+        else
+        {
+            if ( !p->pSat )
+            {
+                p->pSat = Cbs_ManAlloc( p->pCore );
+                Cbs_ManSetConflictNum( p->pSat, p->pPars->nBTLimit );
+            }
+            Cbs_ManSyncCore( p->pSat );
+        }
+        if ( !p->pSat4 ) Cec3_CoreSimulate( p );
         p->tSrm += Abc_Clock() - clk;
         clk = Abc_Clock();
         p->SolveStamp++;
         Vec_IntClear( vDefer );
+        StopAt = -1;
+        nModels = 0;
+        nDeferDone = 0;
         for ( Pass = 0; Pass < 2; Pass++ )
         {
             if ( Pass && ( Vec_IntSize( vStore ) || Vec_IntSize( vFail ) ) )
@@ -1560,10 +1902,17 @@ static int Cec3_Run( Cec3_Man_t * p )
             nItems = Pass ? Vec_IntSize( vDefer ) : Vec_IntSize( vLits );
             for ( n = 0; n < nItems; n++ )
             {
+                Vec_Int_t * vAssumps = NULL;
+                int fConditional = 0, nConfs = 0;
                 i = Pass ? Vec_IntEntry( vDefer, n ) : n;
+                if ( Pass ) nDeferDone = n + 1;
                 Lit = Vec_IntEntry( vLits, i );
                 if ( !Lit || Vec_StrEntry( p->vProven, Lit ) )
                 {
+                    // Every user of a conditional proof must be reactivated
+                    // if a later split removes an induction hypothesis.
+                    if ( Lit && Vec_StrEntry(p->vProven, Lit) == 2 )
+                        Cec3_ProofUser( p, Vec_IntEntry(vWork, i), Lit );
                     p->nReuse++;
                     continue;
                 }
@@ -1592,18 +1941,70 @@ static int Cec3_Run( Cec3_Man_t * p )
                     continue;
                 }
                 Vec_IntWriteEntry( p->vSeen, Lit, p->SolveStamp );
-                if ( Cec3_CoreWitness( p, Lit ) )
+                if ( p->pSat4 && Cec4_SatProven(p->pSat4, Lit) )
+                    goto proved;
+                if ( p->pSat4 && !p->pHard[Key] && (!p->pPars->nBTLimit || p->pPars->nBTLimit >= 8) &&
+                     !(Vec_WrdEntry(p->vCoreSims, Abc_Lit2Var(Lit)) ^ -(word)Abc_LitIsCompl(Lit)) )
+                {
+                    p->nProbe++;
+                    Status = Vec_IntSize(p->vSides) ? Cbs_ManSolveNoModel( p->pSat, Gia_ObjFromLit(p->pCore, Lit) )
+                                                   : Cbs_ManSolve( p->pSat, Gia_ObjFromLit(p->pCore, Lit) );
+                    nConfs = Cbs_ManReadConflictNum( p->pSat );
+                    if ( Status == 1 )
+                    {
+                        p->nProbeUnsat++;
+                        goto proved;
+                    }
+                    if ( Status == 0 && !Vec_IntSize(p->vSides) )
+                    {
+                        // With no side hypotheses the CBS cube refutes the
+                        // same obligation, so a second solver call adds nothing.
+                        Vec_Int_t * vModel = Cbs_ReadModel( p->pSat );
+                        Vec_IntPush( vStore, Vec_IntSize(vModel) );
+                        Vec_IntAppend( vStore, vModel );
+                        p->nProbeSat++;
+                        if ( ++nModels >= CEC3_BATCH_QUERIES )
+                        {
+                            StopAt = Pass ? Vec_IntSize(vLits) : i + 1;
+                            goto replay;
+                        }
+                        continue;
+                    }
+                }
+                if ( p->pSat4 )
+                {
+                    vAssumps = Cec4_SatSelect( p->pSat4, Lit );
+                    Cec3_CoreSimulate( p );
+                }
+                if ( Cec3_CoreWitness(p, Lit, vAssumps) && (!p->pSat4 || !Cec4_SatRefine(p->pSat4)) )
                 {
                     Vec_IntPush( vStore, Vec_IntSize( p->vModel ) );
                     Vec_IntAppend( vStore, p->vModel );
+                    if ( p->pSat4 && ++nModels >= CEC3_BATCH_QUERIES )
+                    {
+                        StopAt = Pass ? Vec_IntSize(vLits) : i + 1;
+                        goto replay;
+                    }
                     continue;
                 }
                 p->nSat++;
-                Status = Cbs_ManSolve( p->pSat, Gia_ObjFromLit( p->pCore, Lit ) );
+                Status = p->pSat4 ? Cec4_SatSolve( p->pSat4, p->vModel, nConfs )
+                                 : Cbs_ManSolve( p->pSat, Gia_ObjFromLit(p->pCore, Lit) );
                 if ( Status == 1 )
                 {
-                    Vec_StrWriteEntry( p->vProven, Lit, 1 );
-                    p->pHard[Key] = Cbs_ManReadConflictNum( p->pSat ) >= CEC3_HARD_CONFLICTS;
+                    fConditional = p->pSat4 && Cec4_SatConditional(p->pSat4);
+                    nConfs = p->pSat4 ? Cec4_SatConflicts(p->pSat4) : Cbs_ManReadConflictNum(p->pSat);
+proved:
+                    Vec_StrWriteEntry( p->vProven, Lit, fConditional ? 2 : 1 );
+                    p->pHard[Key] = nConfs >= CEC3_HARD_CONFLICTS;
+                    if ( fConditional )
+                    {
+                        Vec_IntFillExtra( p->vProofOffsets, 2 * Gia_ManObjNum(p->pCore), 0 );
+                        Vec_IntWriteEntry( p->vProofOffsets, Lit, Vec_IntSize(p->vProofDeps) );
+                        Cec4_SatDependencies( p->pSat4, p->vProofDeps );
+                        Vec_IntPush( p->vProofLits, Lit );
+                        Cec3_ProofUser( p, Key, Lit );
+                    }
                 }
                 else if ( Status == -1 )
                 {
@@ -1612,11 +2013,30 @@ static int Cec3_Run( Cec3_Man_t * p )
                 }
                 else
                 {
-                    Vec_Int_t * vModel = Cbs_ReadModel( p->pSat );
+                    Vec_Int_t * vModel = p->pSat4 ? p->vModel : Cbs_ReadModel( p->pSat );
                     Vec_IntPush( vStore, Vec_IntSize( vModel ) );
                     Vec_IntAppend( vStore, vModel );
+                    if ( p->pSat4 && ++nModels >= CEC3_BATCH_QUERIES )
+                    {
+                        StopAt = Pass ? Vec_IntSize(vLits) : i + 1;
+                        goto replay;
+                    }
                 }
             }
+        }
+replay:
+        if ( StopAt >= 0 )
+        {
+            // Unattempted obligations remain active. Replay may invalidate
+            // their cones before the next round; they are not failed proofs.
+            for ( i = StopAt; i < Vec_IntSize(vLits); i++ )
+            {
+                Key = Vec_IntEntry( vWork, i );
+                Cec3_Activate( p, Key % p->nObjs, Key / p->nObjs );
+                Vec_IntWriteEntry( vLits, i, -1 );
+            }
+            for ( n = nDeferDone; n < Vec_IntSize(vDefer); n++ )
+                Vec_IntWriteEntry( vLits, Vec_IntEntry(vDefer, n), -1 );
         }
         p->tSat += Abc_Clock() - clk;
         clk = Abc_Clock();
@@ -1640,13 +2060,16 @@ static int Cec3_Run( Cec3_Man_t * p )
         fOk = 0;
     if ( p->pPars->fVerbose )
     {
-        Abc_Print( 1, "scorr3 replay: deferred=%lld batches=%d dense=%d unknown=%d fallback=%d witnessed=%lld\n",
-                   (long long)nDeferred, p->nBatches,
+        if ( p->pSat4 ) Cec4_SatPrint( p->pSat4 );
+        if ( p->pSat4 ) Abc_Print( 1, "scorr4 CBS probe: tried=%lld proved=%lld refuted=%lld\n",
+            (long long)p->nProbe, (long long)p->nProbeUnsat, (long long)p->nProbeSat );
+        Abc_Print( 1, "%s replay: deferred=%lld batches=%d dense=%d unknown=%d fallback=%d witnessed=%lld\n",
+                   p->nSides >= -1 ? "scorr4" : "scorr3", (long long)nDeferred, p->nBatches,
                    p->nDense, p->nUnknown, p->nReplayFallback, (long long)p->nSimSat );
         Abc_Print( 1,
-                   "scorr3 %s: rounds=%d rebuilds=%d sat=%lld reuse=%lld invalidated=%lld sim-updates=%lld  "
+                   "%s %s: rounds=%d rebuilds=%d sat=%lld reuse=%lld invalidated=%lld sim-updates=%lld  "
                    "srm=%.3f sat=%.3f sim=%.3f sec\n",
-                   p->fBase ? "base" : "step", p->nRounds, p->nRebuilds - 1, (long long)p->nSat, (long long)p->nReuse,
+                   p->nSides >= -1 ? "scorr4" : "scorr3", p->fBase ? "base" : "step", p->nRounds, p->nRebuilds - 1, (long long)p->nSat, (long long)p->nReuse,
                    (long long)p->nUpdates, (long long)p->nSimUpdates, Cec3_Seconds( p->tSrm ),
                    Cec3_Seconds( p->tSat ), Cec3_Seconds( p->tSim ) );
     }
@@ -1656,6 +2079,7 @@ static int Cec3_Run( Cec3_Man_t * p )
     Vec_IntFree( vStore );
     Vec_IntFree( vFail );
     Vec_IntFree( vDefer );
+    Vec_IntFree( vCare );
     return fOk;
 }
 
@@ -1697,6 +2121,92 @@ static int Cec3_Check( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Compares flat signatures using portable wide loads.]
+
+  Description [memcpy permits unsigned-word storage without alignment or
+  aliasing assumptions; equal-polarity signatures use the library memcmp.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Cec3_InitialEqual( unsigned * a, unsigned * b, int nWords )
+{
+    int i;
+    if ( !((a[0] ^ b[0]) & 1) ) return !memcmp(a, b, sizeof(unsigned) * nWords);
+    for ( i = 0; i + 1 < nWords; i += 2 )
+    {
+        word x, y;
+        memcpy( &x, a + i, sizeof(word) );
+        memcpy( &y, b + i, sizeof(word) );
+        if ( x != ~y ) return 0;
+    }
+    return i == nWords || a[i] == ~b[i];
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Partitions a splitting simulation class in expected linear time.]
+
+  Description [The first member of each signature group is its smallest ID.
+  Open addressing only selects storage slots, so collisions do not affect
+  class contents or ordering. Stable classes use the original linear scan.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Cec3_InitialRefine( Cec_ManSim_t * p, int Head, Vec_Int_t * vBins )
+{
+    extern int Cec_ManSimClassRefineOne( Cec_ManSim_t *, int );
+    extern int Cec_ManSimCompareEqual( unsigned *, unsigned *, int );
+    unsigned * pValues = p->pMems + 1;
+    unsigned * pHead = pValues + p->pSimInfo[Head];
+    int Count = 0, Id, Next, Size = 0, nBins = 16, Slot, Repr, * pBins;
+    if ( vBins == NULL )
+    {
+        return Cec_ManSimClassRefineOne( p, Head );
+    }
+    Gia_ClassForEachObj1( p->pAig, Head, Id )
+        if ( !Cec3_InitialEqual(pHead, pValues + p->pSimInfo[Id], p->nWords) ) break;
+    if ( !Id ) return 0;
+    Gia_ClassForEachObj( p->pAig, Head, Id ) Size++;
+    if ( Size <= 8 )
+    {
+        return Cec_ManSimClassRefineOne( p, Head );
+    }
+    while ( nBins < 2 * Size ) nBins *= 2;
+    Vec_IntFill( vBins, 2 * nBins, 0 );
+    pBins = Vec_IntArray( vBins );
+    for ( Id = Head; Id; Id = Next )
+    {
+        unsigned * pSig = pValues + p->pSimInfo[Id];
+        Next = Gia_ObjNext( p->pAig, Id );
+        Gia_ObjSetNext( p->pAig, Id, 0 );
+        Slot = Cec_ManSimHashKey( pSig, p->nWords, nBins );
+        while ( (Repr = pBins[2 * Slot]) &&
+                !Cec3_InitialEqual(pSig, pValues + p->pSimInfo[Repr], p->nWords) )
+            Slot = (Slot + 1) & (nBins - 1);
+        if ( Repr )
+        {
+            Gia_ObjSetRepr( p->pAig, Id, Repr );
+            Gia_ObjSetNext( p->pAig, pBins[2 * Slot + 1], Id );
+        }
+        else
+        {
+            Count++;
+            pBins[2 * Slot] = Id;
+            Gia_ObjSetRepr( p->pAig, Id, GIA_VOID );
+        }
+        pBins[2 * Slot + 1] = Id;
+    }
+    return Count - 1;
+}
+
 // Initial simulation uses fixed slices instead of allocating and releasing
 // a simulation record at every gate in every round.  The established class
 // comparison and splitting routines read these slices through pSimInfo.
@@ -1711,12 +2221,12 @@ static int Cec3_Check( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-static void Cec3_InitialRound( Cec_ManSim_t * p )
+static int Cec3_InitialRound( Cec_ManSim_t * p, Vec_Int_t * vBins )
 {
     extern int Cec_ManSimCompareConst( unsigned *, int );
     extern int Cec_ManSimClassRefineOne( Cec_ManSim_t *, int );
     Gia_Obj_t * pObj;
-    int i, w, k, Size, * pTable;
+    int i, w, k, Size, nChanges = 0, * pTable;
     unsigned * pValues = p->pMems + 1;
     Vec_IntClear( p->vRefinedC );
     Gia_ManForEachObj1( p->pAig, pObj, i )
@@ -1745,16 +2255,26 @@ static void Cec3_InitialRound( Cec_ManSim_t * p )
             unsigned * b = pValues + p->pSimInfo[Gia_ObjFaninId1( pObj, i )];
             unsigned Mask0 = -(unsigned)Gia_ObjFaninC0( pObj );
             unsigned Mask1 = -(unsigned)Gia_ObjFaninC1( pObj );
-            for ( w = 0; w < p->nWords; w++ )
+            w = 0;
+            if ( vBins )
+                for ( ; w + 1 < p->nWords; w += 2 )
+                {
+                    word x, y, z;
+                    memcpy( &x, a + w, sizeof(word) );
+                    memcpy( &y, b + w, sizeof(word) );
+                    z = (x ^ -(word)Gia_ObjFaninC0(pObj)) & (y ^ -(word)Gia_ObjFaninC1(pObj));
+                    memcpy( pRes + w, &z, sizeof(word) );
+                }
+            for ( ; w < p->nWords; w++ )
                 pRes[w] = ( a[w] ^ Mask0 ) & ( b[w] ^ Mask1 );
         }
         if ( Gia_ObjIsConst( p->pAig, i ) && !Cec_ManSimCompareConst( pRes, p->nWords ) )
             Vec_IntPush( p->vRefinedC, i );
         if ( Gia_ObjIsTail( p->pAig, i ) )
-            Cec_ManSimClassRefineOne( p, Gia_ObjRepr( p->pAig, i ) );
+            nChanges += Cec3_InitialRefine( p, Gia_ObjRepr(p->pAig, i), vBins );
     }
     if ( !Vec_IntSize( p->vRefinedC ) )
-        return;
+        return nChanges;
     // Match the existing candidate-constant partition, including its order,
     // without the recyclable-memory bookkeeping attached to each member.
     Size = Abc_PrimeCudd( 100 + Vec_IntSize( p->vRefinedC ) / 3 );
@@ -1774,8 +2294,10 @@ static void Cec3_InitialRound( Cec_ManSim_t * p )
     }
     Vec_IntForEachEntry( p->vRefinedC, i, k )
         if ( Gia_ObjIsHead( p->pAig, i ) )
-            Cec_ManSimClassRefineOne( p, i );
+            Cec3_InitialRefine( p, i, vBins );
+    nChanges += Vec_IntSize(p->vRefinedC);
     ABC_FREE( pTable );
+    return nChanges;
 }
 /**Function*************************************************************
 
@@ -1788,14 +2310,16 @@ static void Cec3_InitialRound( Cec_ManSim_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static int Cec3_InitialClasses( Cec_ManSim_t * p )
+static int Cec3_InitialClasses( Cec_ManSim_t * p, int fFast )
 {
     extern void Cec_ManSimCreateInfo( Cec_ManSim_t *, Vec_Ptr_t *, Vec_Ptr_t * );
     Gia_Obj_t * pObj;
-    int i, Round, nWords = p->pPars->nWords;
+    Vec_Int_t * vBins;
+    int i, Round, nStable = 0, nWords = p->pPars->nWords;
     ABC_INT64_T nSize = (ABC_INT64_T)nWords * Gia_ManObjNum( p->pAig ) + 1;
     if ( p->pAig->nSimWords || nWords < 1 || nSize > INT_MAX )
         return 0;
+    vBins = fFast ? Vec_IntAlloc(1000) : NULL;
     assert( p->pMems == NULL );
     p->pMems = ABC_CALLOC( unsigned, (size_t)nSize );
     p->pAig->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum( p->pAig ) );
@@ -1830,7 +2354,7 @@ static int Cec3_InitialClasses( Cec_ManSim_t * p )
         for ( Round = 0; Round < 4; Round++ )
         {
             Cec_ManSimCreateInfo( p, p->vCiSimInfo, p->vCoSimInfo );
-            Cec3_InitialRound( p );
+            Cec3_InitialRound( p, vBins );
         }
         if ( p->nWords > ( nWords - 1 ) / 2 )
             break;
@@ -1840,8 +2364,10 @@ static int Cec3_InitialClasses( Cec_ManSim_t * p )
     for ( Round = 0; Round < p->pPars->nRounds; Round++ )
     {
         Cec_ManSimCreateInfo( p, p->vCiSimInfo, p->vCoSimInfo );
-        Cec3_InitialRound( p );
+        if ( Cec3_InitialRound(p, vBins) ) nStable = 0;
+        else if ( fFast && p->pPars->nNonRefines > 0 && ++nStable >= p->pPars->nNonRefines ) break;
     }
+    Vec_IntFreeP( &vBins );
     return 1;
 }
 
@@ -1856,7 +2382,7 @@ static int Cec3_InitialClasses( Cec_ManSim_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Cec_ManLSCorrespondence3( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
+Gia_Man_t * Cec_ManLSCorrespondenceShared( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nSides )
 {
     extern Gia_Man_t * Gia_ManCorrReduce( Gia_Man_t * );
     Cec_ParSim_t SimPars;
@@ -1864,6 +2390,7 @@ Gia_Man_t * Cec_ManLSCorrespondence3( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     Cec3_Man_t * p;
     Gia_Man_t * pNew, * pTemp;
     int fOwnFanout = pAig->vFanout == NULL, fOk, i;
+    const char * pName = nSides >= -1 ? "scorr4" : "scorr3";
     Gia_Obj_t * pObj;
     abctime clk = Abc_Clock();
     // Representatives have the lowest object ID in their class.  Putting
@@ -1871,17 +2398,17 @@ Gia_Man_t * Cec_ManLSCorrespondence3( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     // during counterexample replay.  Reject before modifying the input.
     if ( !Gia_ManIsNormalized( pAig ) )
     {
-        Abc_Print( -1, "scorr3: normalize the AIG (CIs first, COs last) before correspondence.\n" );
+        Abc_Print( -1, "%s: normalize the AIG (CIs first, COs last) before correspondence.\n", pName );
         return NULL;
     }
     if ( Gia_ManXorNum(pAig) || Gia_ManMuxNum(pAig) || Gia_ManBufNum(pAig) )
     {
-        Abc_Print( -1, "scorr3: expand XORs, MUXes, and buffers into an AND/inverter graph first.\n" );
+        Abc_Print( -1, "%s: expand XORs, MUXes, and buffers into an AND/inverter graph first.\n", pName );
         return NULL;
     }
     if ( pPars->nFrames < 1 || 3 * ( (ABC_INT64_T)pPars->nFrames + 2 ) * Gia_ManObjNum( pAig ) > INT_MAX - 64 )
     {
-        Abc_Print( -1, "scorr3: timeframe/object count exceeds indexing capacity.\n" );
+        Abc_Print( -1, "%s: timeframe/object count exceeds indexing capacity.\n", pName );
         return NULL;
     }
     ABC_FREE( pAig->pReprs );
@@ -1892,7 +2419,7 @@ Gia_Man_t * Cec_ManLSCorrespondence3( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     SimPars.nFrames = pPars->nFrames;
     SimPars.fSeqSimulate = 1;
     pSim = Cec_ManSimStart( pAig, &SimPars );
-    if ( !Cec3_InitialClasses( pSim ) )
+    if ( !Cec3_InitialClasses( pSim, nSides >= -1 ) )
     {
         Cec_ManSimClassesPrepare( pSim, -1 );
         Cec_ManSimClassesRefine( pSim );
@@ -1900,24 +2427,24 @@ Gia_Man_t * Cec_ManLSCorrespondence3( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     Cec_ManSimStop( pSim );
     if ( fOwnFanout )
         Gia_ManStaticFanoutStart( pAig );
-    p = Cec3_Start( pAig, pPars, 1 );
+    p = Cec3_Start( pAig, pPars, 1, nSides );
     fOk = Cec3_Run( p );
     Cec3_Stop( p );
     if ( fOk )
     {
-        p = Cec3_Start( pAig, pPars, 0 );
+        p = Cec3_Start( pAig, pPars, 0, nSides );
         fOk = Cec3_Run( p );
         Cec3_Stop( p );
     }
     if ( fOwnFanout )
         Gia_ManStaticFanoutStop( pAig );
     if ( fOk && pPars->fKissatCert )
-        fOk = Cec3_Check( pAig, pPars );
+        fOk = nSides >= -1 ? Cec4_Check( pAig, pPars ) : Cec3_Check( pAig, pPars );
     if ( !fOk )
     {
         ABC_FREE( pAig->pReprs );
         ABC_FREE( pAig->pNexts );
-        Abc_Print( -1, "scorr3: no reduction returned.\n" );
+        Abc_Print( -1, "%s: no reduction returned.\n", pName );
         return NULL;
     }
     pTemp = Gia_ManCorrReduce( pAig );
@@ -1945,10 +2472,26 @@ Gia_Man_t * Cec_ManLSCorrespondence3( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     }
     Gia_ManStop( pTemp );
     if ( pPars->fVerbose )
-        Abc_Print( 1, "scorr3: ANDs %d -> %d  registers %d -> %d  total=%.3f sec\n", Gia_ManAndNum( pAig ),
+        Abc_Print( 1, "%s: ANDs %d -> %d  registers %d -> %d  total=%.3f sec\n", pName, Gia_ManAndNum( pAig ),
                    Gia_ManAndNum( pNew ), Gia_ManRegNum( pAig ), Gia_ManRegNum( pNew ),
                    Cec3_Seconds( Abc_Clock() - clk ) );
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs the original lazy correspondence engine with CBS.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Cec_ManLSCorrespondence3( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
+{
+    return Cec_ManLSCorrespondenceShared( pAig, pPars, -2 );
 }
 
 ////////////////////////////////////////////////////////////////////////

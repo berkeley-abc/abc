@@ -512,6 +512,7 @@ static int Abc_CommandAbc9Lcorr              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Scorr              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Scorr2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Scorr3             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Scorr4             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Sresub             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Drw                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Resub2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -543,6 +544,7 @@ static int Abc_CommandAbc9If                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Iff                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Iiff               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9If3                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If2Old             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Sif                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Jf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -550,6 +552,7 @@ static int Abc_CommandAbc9Kf                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Lf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Mf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Nf2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Nf3                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Nf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Of                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Simap              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1388,6 +1391,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&scorr",        Abc_CommandAbc9Scorr,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&scorr2",       Abc_CommandAbc9Scorr2,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&scorr3",       Abc_CommandAbc9Scorr3,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&scorr4",       Abc_CommandAbc9Scorr4,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sresub",       Abc_CommandAbc9Sresub,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&drw",          Abc_CommandAbc9Drw,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&resub2",       Abc_CommandAbc9Resub2,       0 );
@@ -1419,6 +1423,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&iff",          Abc_CommandAbc9Iff,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&iiff",         Abc_CommandAbc9Iiff,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if2",          Abc_CommandAbc9If2,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&if3",          Abc_CommandAbc9If3,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if2old",       Abc_CommandAbc9If2Old,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sif",          Abc_CommandAbc9Sif,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&jf",           Abc_CommandAbc9Jf,           0 );
@@ -1426,6 +1431,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&lf",           Abc_CommandAbc9Lf,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mf",           Abc_CommandAbc9Mf,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&nf2",          Abc_CommandAbc9Nf2,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&nf3",          Abc_CommandAbc9Nf3,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&nf",           Abc_CommandAbc9Nf,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&of",           Abc_CommandAbc9Of,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&simap",        Abc_CommandAbc9Simap,        0 );
@@ -43341,6 +43347,73 @@ usage:
 
 /**Function*************************************************************
 
+  Synopsis    [Computes correspondence with selected inductive constraints.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Scorr4( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Cec_ManLSCorrespondence4( Gia_Man_t *, Cec_ParCor_t *, int, int );
+    Cec_ParCor_t Pars;
+    Gia_Man_t * pNew;
+    int c, nSides = 4, fRewrite = 0;
+    Cec_ManCorSetDefaultParams( &Pars );
+    // Match the default proof budget of network-level scorr.
+    Pars.nBTLimit = 1000;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "FCSrkvh")) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+        case 'C':
+        case 'S':
+        {
+            char * pEnd, * pArg;
+            long Value;
+            if ( globalUtilOptind >= argc ) goto usage;
+            pArg = argv[globalUtilOptind++];
+            Value = strtol( pArg, &pEnd, 10 );
+            if ( pEnd == pArg || *pEnd || Value < (c == 'F' ? 1 : c == 'S' ? -1 : 0) || Value > 1000000 ) goto usage;
+            if ( c == 'F' ) Pars.nFrames = (int)Value;
+            else if ( c == 'C' ) Pars.nBTLimit = (int)Value;
+            else nSides = (int)Value;
+            break;
+        }
+        case 'r': fRewrite ^= 1; break;
+        case 'k': Pars.fKissatCert ^= 1; break;
+        case 'v': Pars.fVerbose ^= 1; break;
+        default: goto usage;
+        }
+    }
+    if ( globalUtilOptind != argc ) goto usage;
+    if ( !pAbc->pGia ) { Abc_Print(-1,"&scorr4: There is no AIG.\n"); return 1; }
+    if ( !Gia_ManRegNum(pAbc->pGia) ) { Abc_Print(0,"The network is combinational.\n"); return 0; }
+    if ( Gia_ManRegBoxNum(pAbc->pGia) ) { Abc_Print(-1,"&scorr4: register boxes are not supported.\n"); return 1; }
+    pNew = Cec_ManLSCorrespondence4( pAbc->pGia, &Pars, nSides, fRewrite );
+    if ( !pNew ) return 1;
+    Abc_FrameUpdateGia( pAbc, pNew );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: &scorr4 [-FCS num] [-rkvh]\n" );
+    Abc_Print( -2, "\t         performs signal correspondence computation\n" );
+    Abc_Print( -2, "\t-C num : max conflicts at a node (0 = unlimited) [default = %d]\n", Pars.nBTLimit );
+    Abc_Print( -2, "\t-F num : the number of timeframes in inductive case (at least 1) [default = %d]\n", Pars.nFrames );
+    Abc_Print( -2, "\t-S num : max inductive side constraints per query (0=none, -1=all) [default = %d]\n", nSides );
+    Abc_Print( -2, "\t-r     : toggle level-preserving &drw preprocessing [default = %s]\n", fRewrite? "yes": "no" );
+    Abc_Print( -2, "\t-k     : toggle Kissat base/step audits and CEC of optional rewriting [default = %s]\n", Pars.fKissatCert? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", Pars.fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs sequential root resubstitution.]
 
 ***********************************************************************/
@@ -47346,6 +47419,107 @@ usage:
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9If3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    If3_Par_t Pars, * pPars = &Pars;
+    Gia_Man_t * pNew;
+    char * pEnd;
+    long Value;
+    double Delay;
+    int c;
+    If3_ManSetDefaultPars( pPars );
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "KCFARDmadrspvh")) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+        case 'C':
+        case 'F':
+        case 'A':
+        case 'R':
+            if ( globalUtilOptind >= argc ) goto usage;
+            Value = strtol( argv[globalUtilOptind], &pEnd, 10 );
+            if ( pEnd == argv[globalUtilOptind] || *pEnd || Value < 0 || Value > 1000 ) goto usage;
+            globalUtilOptind++;
+            if ( c == 'K' )
+            {
+                if ( Value < 2 || Value > 6 ) goto usage;
+                pPars->nLutSize = (int)Value;
+            }
+            else if ( c == 'C' )
+            {
+                if ( Value < 1 || Value > 32 ) goto usage;
+                pPars->nCutsMax = (int)Value;
+            }
+            else if ( c == 'F' ) pPars->nFlowIters = (int)Value;
+            else if ( c == 'A' ) pPars->nAreaIters = (int)Value;
+            else pPars->nExploreIters = (int)Value;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc ) goto usage;
+            Delay = strtod( argv[globalUtilOptind], &pEnd );
+            if ( pEnd == argv[globalUtilOptind] || *pEnd || !(Delay > 0 && Delay < 1.0e10) ) goto usage;
+            globalUtilOptind++;
+            pPars->DelayTarget = (float)Delay;
+            break;
+        case 'm': pPars->fCutMin ^= 1; break;
+        case 'a': pPars->fArea ^= 1; break;
+        case 'd': pPars->fDiverse ^= 1; break;
+        case 'r': pPars->fReverse ^= 1; break;
+        case 's': pPars->fSynthesis ^= 1; break;
+        case 'p': pPars->fPack ^= 1; break;
+        case 'v': pPars->fVerbose ^= 1; break;
+        default: goto usage;
+        }
+    }
+    if ( globalUtilOptind != argc ) goto usage;
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Empty GIA network.\n" );
+        return 1;
+    }
+    pNew = If3_ManPerformMapping( pAbc->pGia, pPars );
+    if ( pNew == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9If3(): LUT mapping has failed.\n" );
+        return 1;
+    }
+    Abc_FrameUpdateGia( pAbc, pNew );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: &if3 [-KCFAR num] [-D float] [-madrspvh]\n" );
+    Abc_Print( -2, "\t           performs delay-constrained LUT area recovery on the GIA\n" );
+    Abc_Print( -2, "\t           uses construction-proved alternatives and LUT-directed resynthesis\n" );
+    Abc_Print( -2, "\t           selected covers may be remapped with 12 cuts and one recovery round\n" );
+    Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 <= num <= 6) [default = %d]\n", pPars->nLutSize );
+    Abc_Print( -2, "\t-C num   : initial mapping cut limit (1 <= num <= 32) [default = %d]\n", pPars->nCutsMax );
+    Abc_Print( -2, "\t-F num   : initial mapping area flow rounds [default = %d]\n", pPars->nFlowIters );
+    Abc_Print( -2, "\t-A num   : initial mapping exact area recovery rounds [default = %d]\n", pPars->nAreaIters );
+    Abc_Print( -2, "\t-R num   : the number of causal sharing recovery rounds [default = %d]\n", pPars->nExploreIters );
+    Abc_Print( -2, "\t-D float : sets the mapping delay constraint [default = best found]\n" );
+    Abc_Print( -2, "\t-m       : toggles truth-table cuts and support minimization [default = %s]\n", pPars->fCutMin ? "yes" : "no" );
+    Abc_Print( -2, "\t-a       : toggles area-only mapping [default = %s]\n", pPars->fArea ? "yes" : "no" );
+    Abc_Print( -2, "\t-d       : toggles retaining a delay alternative [default = %s]\n", pPars->fDiverse ? "yes" : "no" );
+    Abc_Print( -2, "\t-r       : toggles reverse exact-area recovery [default = %s]\n", pPars->fReverse ? "yes" : "no" );
+    Abc_Print( -2, "\t-s       : toggles synthesis alternatives for plain AIGs [default = %s]\n", pPars->fSynthesis ? "yes" : "no" );
+    Abc_Print( -2, "\t-p       : toggles LUT-network resynthesis [default = %s]\n", pPars->fPack ? "yes" : "no" );
+    Abc_Print( -2, "\t-v       : toggles printing verbose information [default = %s]\n", pPars->fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Runs the legacy MPM mapping command.]
 
   Description []
@@ -48460,6 +48634,102 @@ usage:
     Abc_Print( -2, "\t-p       : toggles pin permutations [default = %s]\n", pPars->fPinPerm ? "yes" : "no" );
     Abc_Print( -2, "\t-q       : toggles quick matching [default = %s]\n", pPars->fPinQuick ? "yes" : "no" );
     Abc_Print( -2, "\t-t       : toggles library preprocessing for constant/repeated pins [default = %s]\n", fTied ? "yes" : "no" );
+    Abc_Print( -2, "\t-v       : toggles printing verbose information [default = %s]\n", pPars->fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs standard-cell mapping with structural area recovery.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Nf3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Jf_Par_t Pars, * pPars = &Pars;
+    Gia_Man_t * pNew;
+    char * pEnd;
+    long Value;
+    double Delay;
+    int c, fSynthesis = 1, nRecover = 1;
+    Nf3_ManSetDefaultPars( pPars );
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "KCFARDasvh")) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+        case 'C':
+        case 'F':
+        case 'A':
+        case 'R':
+            if ( globalUtilOptind >= argc ) goto usage;
+            Value = strtol( argv[globalUtilOptind], &pEnd, 10 );
+            if ( pEnd == argv[globalUtilOptind] || *pEnd || Value < 0 || Value > 1000 ) goto usage;
+            globalUtilOptind++;
+            if ( c == 'K' )
+            {
+                if ( Value < 2 || Value > 6 ) goto usage;
+                pPars->nLutSize = (int)Value;
+            }
+            else if ( c == 'C' )
+            {
+                if ( Value < 2 || Value > pPars->nCutNumMax ) goto usage;
+                pPars->nCutNum = (int)Value;
+            }
+            else if ( c == 'F' ) { if ( Value < 1 ) goto usage; pPars->nRounds = (int)Value; }
+            else if ( c == 'A' ) pPars->nRoundsEla = (int)Value;
+            else nRecover = (int)Value;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc ) goto usage;
+            Delay = strtod( argv[globalUtilOptind], &pEnd );
+            if ( pEnd == argv[globalUtilOptind] || *pEnd || !(Delay >= 1.0/SCL_NUM && Delay < (double)SCL_INFINITY/SCL_NUM) ) goto usage;
+            globalUtilOptind++;
+            pPars->MapDelayTarget = (int)(Delay * SCL_NUM);
+            break;
+        case 'a': pPars->fAreaOnly ^= 1; break;
+        case 's': fSynthesis ^= 1; break;
+        case 'v': pPars->fVerbose ^= 1; break;
+        default: goto usage;
+        }
+    }
+    if ( globalUtilOptind != argc ) goto usage;
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Empty GIA network.\n" );
+        return 1;
+    }
+    if ( Abc_FrameReadLibGen() == NULL )
+    {
+        Abc_Print( -1, "Current library is not available.\n" );
+        return 1;
+    }
+    pNew = Nf3_ManPerformMapping( pAbc->pGia, pPars, fSynthesis, nRecover );
+    if ( pNew == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Nf3(): standard-cell mapping has failed.\n" );
+        return 1;
+    }
+    Abc_FrameUpdateGia( pAbc, pNew );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: &nf3 [-KCFAR num] [-D float] [-asvh]\n" );
+    Abc_Print( -2, "\t           performs standard-cell mapping with structural area recovery\n" );
+    Abc_Print( -2, "\t-K num   : the maximum cut size (2 <= num <= 6) [default = %d]\n", pPars->nLutSize );
+    Abc_Print( -2, "\t-C num   : the maximum retained cuts (2 <= num <= %d) [default = %d]\n", pPars->nCutNumMax, pPars->nCutNum );
+    Abc_Print( -2, "\t-F num   : maximum delay and area flow rounds [default = %d]\n", pPars->nRounds );
+    Abc_Print( -2, "\t-A num   : maximum exact area recovery rounds [default = %d]\n", pPars->nRoundsEla );
+    Abc_Print( -2, "\t-R num   : cell recovery rounds (2+ allow two-cell decompositions) [default = %d]\n", nRecover );
+    Abc_Print( -2, "\t-D float : sets the mapping delay constraint [default = best found]\n" );
+    Abc_Print( -2, "\t-a       : toggles area-only mapping (ignores delay constraints) [default = %s]\n", pPars->fAreaOnly ? "yes" : "no" );
+    Abc_Print( -2, "\t-s       : toggles construction-proved synthesis choices [default = %s]\n", fSynthesis ? "yes" : "no" );
     Abc_Print( -2, "\t-v       : toggles printing verbose information [default = %s]\n", pPars->fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     return 1;

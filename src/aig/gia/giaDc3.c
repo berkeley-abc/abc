@@ -1285,12 +1285,12 @@ static void Dc3_LabelReplace( Vec_Int_t * v, int nObjs, int Id, int Lit )
   SeeAlso     []
 
 ***********************************************************************/
-static Gia_Man_t * Dc3_Run( Gia_Man_t * pGia, int fKeepLevel, int fVerbose, Gia_Man_t ** ppSnapshot, Vec_Ptr_t * vLabels )
+static Gia_Man_t * Dc3_Run( Gia_Man_t * pGia, int fKeepLevel, int fVerbose, Gia_Man_t ** ppSnapshot, Vec_Ptr_t * vLabels, int fMore )
 {
     Dc3_Man_t * p;
     Gia_Man_t * pNew;
     Vec_Int_t *vCiLevels, *vVisit, *vParents = NULL;
-    int Round, Pos, PrevAnds, GainF, GainW, Cost;
+    int Round, Pos, PrevAnds, GainF, GainW, Cost, StartAnds;
     Drf_Cut_t Cut;
     Dc3_Neighbor_t * Neighbor;
     Dcr_Cut_t Cut4;
@@ -1322,10 +1322,13 @@ static Gia_Man_t * Dc3_Run( Gia_Man_t * pGia, int fKeepLevel, int fVerbose, Gia_
         p->nNeighborBins *= 2;
     p->pNeighbors = ABC_CALLOC( Dc3_Neighbor_t, p->nNeighborBins );
     p->pRecipes = ABC_ALLOC( Dc3_Recipe_t, DC3_RECIPE_LIMIT );
+    StartAnds = p->F.M.nAnds;
     for ( Round = 0; Round < DC3_PASSES; Round++ )
     {
-        // Choice synthesis keeps two distinct states without the full area script.
-        if ( vLabels && (Round == 1 || Round == 3) ) continue;
+        // The ordinary choice flow retains its three-pass schedule. Area
+        // mapping can spend the extra passes after at least 1/16 gain.
+        if ( vLabels && (Round == 1 || Round == 3) &&
+             (!fMore || (long long)16*p->F.M.nAnds > (long long)15*StartAnds) ) continue;
         Clock = fVerbose ? Abc_Clock() : 0;
         PrevAnds = p->F.M.nAnds;
         p->fZeros = Round >= 2;
@@ -1716,7 +1719,7 @@ Gia_Man_t * Gia_ManDc3( Gia_Man_t * p, int fKeep, int fVerbose )
     if ( !p || Gia_ManHasChoices( p ) || Gia_ManMuxNum( p ) || Gia_ManXorNum( p ) || Gia_ManBufNum( p ) ) return NULL;
     if ( Gia_ManIsSeqWithBoxes( p ) && !Gia_ManIsNormalized( p ) ) return NULL;
     q = Dcb_Balance( p );
-    r = Dc3_Run( q, fKeep, fVerbose, NULL, NULL );
+    r = Dc3_Run( q, fKeep, fVerbose, NULL, NULL, 0 );
     Gia_ManStop( q );
     if ( !r ) return NULL;
     q = Rsub_ManPerform( r, 10, 1, 1, fKeep, fVerbose );
@@ -1738,7 +1741,7 @@ Gia_Man_t * Gia_ManDc3( Gia_Man_t * p, int fKeep, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDc3Snapshots( Gia_Man_t * p, int fKeep, int fVerbose, Gia_Man_t ** ppSnapshot, Vec_Ptr_t * vLabels )
+Gia_Man_t * Gia_ManDc3SnapshotsMore( Gia_Man_t * p, int fKeep, int fVerbose, Gia_Man_t ** ppSnapshot, Vec_Ptr_t * vLabels, int fMore )
 {
     Gia_Man_t * q, * r;
     Gia_Obj_t * pObj;
@@ -1754,9 +1757,25 @@ Gia_Man_t * Gia_ManDc3Snapshots( Gia_Man_t * p, int fKeep, int fVerbose, Gia_Man
     Gia_ManForEachObj( p, pObj, i )
         if ( !Gia_ObjIsCo(pObj) ) Vec_IntWriteEntry( v, i, (int)pObj->Value );
     Vec_PtrPush( vLabels, v );
-    r = Dc3_Run( q, fKeep, fVerbose, ppSnapshot, vLabels );
+    r = Dc3_Run( q, fKeep, fVerbose, ppSnapshot, vLabels, fMore );
     Gia_ManStop( q );
     return r;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Produces snapshots with the original choice-synthesis effort.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDc3Snapshots( Gia_Man_t * p, int fKeep, int fVerbose, Gia_Man_t ** ppSnapshot, Vec_Ptr_t * vLabels )
+{
+    return Gia_ManDc3SnapshotsMore( p, fKeep, fVerbose, ppSnapshot, vLabels, 0 );
 }
 
 ABC_NAMESPACE_IMPL_END

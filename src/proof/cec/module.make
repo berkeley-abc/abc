@@ -5,6 +5,7 @@ SRC +=    src/proof/cec/cecCec.c \
     src/proof/cec/cecCorr.c \
     src/proof/cec/cecCorr2.c \
     src/proof/cec/cecCorr3.c \
+    src/proof/cec/cecCorr4.c \
     src/proof/cec/cecCorrCert.c \
     src/proof/cec/cecCorrDyn.c \
     src/proof/cec/cecCorrIncr.c \

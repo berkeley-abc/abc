@@ -177,6 +177,8 @@ Solver::Solver() :
   #ifdef CGLUCOSE3_EXP
   jhead= 0;
   jftr = 0;
+  skipUnitJustification = false;
+  useConeFanouts = false;
   travId = 0;
   travId_prev = 0;
   coneRoot0 = -2;
@@ -1428,6 +1430,12 @@ lbool Solver::solve_()
 
     #ifdef CGLUCOSE3_EXP
     ResetJustData(false);
+    // A circuit-only client may declare that its permanent gate units are
+    // proved circuit consequences, rather than additional constraints.
+    // Every input completion satisfies such units; do not justify the
+    // growing prefix again for each incremental query. Other clients keep
+    // the original behavior, including justification of asserted gates.
+    if ( skipUnitJustification ) jhead = trail.size();
     #endif
 
     if(incremental && certifiedUNSAT) {
@@ -1781,6 +1789,11 @@ void Solver::reset()
     travId = 0;
     travId_prev = 0;
     coneRefs.clear(false);
+    coneRoots.clear(false);
+    useConeFanouts = false;
+    coneFanoutHeads.clear(false);
+    coneFanoutNext.clear(false);
+    coneFanoutPrev.clear(false);
     coneRoot0 = -2;
     coneRoot1 = -1;
     var2TravId   .shrink_(var2TravId.size());

@@ -416,6 +416,23 @@ extern abctime              Cec_ScorrProfMax;    // slowest single per-PO solve 
 extern ABC_INT64_T          Cec_ScorrConfLimit;  // total conflict cap for the current correspondence call
 extern ABC_INT64_T          Cec_ScorrConfUsed;   // exact conflicts/backtracks consumed by that call
 extern int                  Cec_ScorrConfStop;   // the total conflict cap has been reached
+//=== cecCorr3.c ============================================================
+extern Gia_Man_t *          Cec_ManLSCorrespondenceShared( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nSides );
+//=== cecCorr4.c ============================================================
+// The scorr4 backend shares the persistent unroller and refinement engine.
+typedef struct Cec4_Sat_t_ Cec4_Sat_t;
+extern Cec4_Sat_t *          Cec4_SatStart( int nSides, int nConfs );
+extern void                 Cec4_SatStop( Cec4_Sat_t * p );
+extern void                 Cec4_SatPrepare( Cec4_Sat_t * p, Gia_Man_t * pCore, Vec_Int_t * vSides, int Care, void * pData, int (*pBuild)(void *, int) );
+extern Vec_Int_t *          Cec4_SatSelect( Cec4_Sat_t * p, int Lit );
+extern int                  Cec4_SatRefine( Cec4_Sat_t * p );
+extern int                  Cec4_SatSolve( Cec4_Sat_t * p, Vec_Int_t * vModel, int nSpent );
+extern int                  Cec4_SatProven( Cec4_Sat_t * p, int Lit );
+extern int                  Cec4_SatConflicts( Cec4_Sat_t * p );
+extern int                  Cec4_SatConditional( Cec4_Sat_t * p );
+extern void                 Cec4_SatDependencies( Cec4_Sat_t * p, Vec_Int_t * vDeps );
+extern int                  Cec4_Check( Gia_Man_t * pAig, Cec_ParCor_t * pPars );
+extern void                 Cec4_SatPrint( Cec4_Sat_t * p );
 /*=== cecCorrCert.c =========================================================*/
 extern int                  Cec_ManCorrKissatCertify( Gia_Man_t * pSrm, Vec_Int_t * vOutputs, Vec_Int_t ** pvCexStore, Vec_Str_t ** pvStatus, int * piOut, int fVerbose );
 /*=== cecCorrIncr.c ============================================================*/

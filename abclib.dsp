@@ -6122,11 +6122,19 @@ SOURCE=.\src\aig\gia\giaIf2.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaIf3.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaNf2.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaNf2Lib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaNf3.c
 # End Source File
 # Begin Source File
 
@@ -7018,6 +7026,10 @@ SOURCE=.\src\proof\cec\cecCorr2.c
 # Begin Source File
 
 SOURCE=.\src\proof\cec\cecCorr3.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\cec\cecCorr4.c
 # End Source File
 # Begin Source File
 
