@@ -74,8 +74,9 @@ static inline int Pdr2_ManSatSolve( Pdr2_Man_t * p, Gip_Solver_t * pSat, int * p
 
   Synopsis    [Creates a solver over the transition relation.]
 
-  Description [Type 0: plain. Type 1: with the initial states (all
-  registers 0) as unit clauses. Type 2: with the lemmas of frame infinity.]
+  Description [Type 0: plain. Type 1: with the initial states as unit
+  clauses (the flops with a defined initial value). Type 2: with the
+  lemmas of frame infinity.]
 
   SideEffects []
 
@@ -93,7 +94,9 @@ Gip_Solver_t * Pdr2_ManNewSolver( Pdr2_Man_t * p, int Type )
         int i, Lit;
         for ( i = 0; i < p->nRegs; i++ )
         {
-            Lit = Abc_Var2Lit( p->pLoVar[i], 1 );
+            if ( p->pInit[i] == 2 )
+                continue;
+            Lit = Abc_Var2Lit( p->pLoVar[i], !p->pInit[i] );
             Gip_SolverAddLemmaId( pSat, &Lit, 1, p->IdInit );
         }
     }
@@ -275,20 +278,20 @@ int Pdr2_ManSolveContained( Pdr2_Man_t * p, Gip_Solver_t * pSat, Pdr2_Cube_t * p
 ***********************************************************************/
 int Pdr2_ManInductiveCore( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCore )
 {
-    int i, Lit, fHasPos = 0, iNew = -1;
+    int i, Lit, fNonInit = 0, iNew = -1;
     assert( pSat == p->pLastSolver );
     Vec_IntClear( vCore );
     Vec_IntForEachEntry( p->vRelInd, Lit, i )
         if ( Gip_SolverUnsatHas( pSat, Pdr2_LitLi(p, Lit) ) )
         {
             Vec_IntPush( vCore, Lit );
-            if ( !Abc_LitIsCompl(Lit) )
-                fHasPos = 1;
+            if ( Pdr2_ManLitIsNonInit(p, Lit) )
+                fNonInit = 1;
         }
-    if ( fHasPos )
+    if ( fNonInit )
         return 1;
     Vec_IntForEachEntry( p->vRelInd, Lit, i )
-        if ( !Abc_LitIsCompl(Lit) )
+        if ( Pdr2_ManLitIsNonInit(p, Lit) )
         {
             iNew = i;
             break;

@@ -33965,8 +33965,9 @@ int Abc_CommandPdr2( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( Abc_NtkLatchNum(pNtk) == 0 )
     {
+        // (a dummy flop initialized to 0, so that the initial values stay all 0)
         pNtkFlop = Abc_NtkDup( pNtk );
-        Abc_NtkAddLatch( pNtkFlop, Abc_AigConst1(pNtkFlop), ABC_INIT_ONE );
+        Abc_NtkAddLatch( pNtkFlop, Abc_ObjNot(Abc_AigConst1(pNtkFlop)), ABC_INIT_ZERO );
     }
     // run the procedure
     pNtkUsed = pNtkFlop ? pNtkFlop : pNtk;

@@ -163,12 +163,15 @@ static void Pdr2_ManExtend( Pdr2_Man_t * p )
     Vec_PtrPush( p->vFrames, vFrame );
     if ( k == 0 )
     {
-        // frame 0 holds the initial-state cubes (one positive literal per flop)
+        // frame 0 holds the cubes excluded by the initial states (one literal opposite to the
+        // initial value per flop with a defined one)
         int i, Lit;
         for ( i = 0; i < p->nRegs; i++ )
         {
             Pdr2_Cube_t * pCube;
-            Lit = Abc_Var2Lit( i, 0 );
+            if ( p->pInit[i] == 2 )
+                continue;
+            Lit = Abc_Var2Lit( i, p->pInit[i] );
             pCube = Pdr2_CubeAlloc( &Lit, 1 );
             Vec_PtrPush( vFrame, Pdr2_LemAlloc( p, pCube, NULL, 0 ) );
             Pdr2_CubeDeref( pCube );
@@ -575,7 +578,7 @@ static int Pdr2_ManDown( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube, char * p
     p->nDowns++;
     while ( 1 )
     {
-        if ( Pdr2_LitsAreInit(vCur) )
+        if ( Pdr2_LitsAreInit(p, vCur) )
             break;
         // cached counterexamples to induction
         fFail = 0;
@@ -672,7 +675,7 @@ static int Pdr2_ManTrivialBlockRec( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vLem
     int RetValue, Result = 0, iPushed;
     if ( iFrame == 0 )
         return 0;
-    if ( Pdr2_LitsAreInit(vLemma) )
+    if ( Pdr2_LitsAreInit(p, vLemma) )
         return 0;
     if ( *pLimit == 0 )
         return 0;
@@ -752,7 +755,7 @@ static int Pdr2_ManCtgDown( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube, char 
     p->nDowns++;
     while ( 1 )
     {
-        if ( Pdr2_LitsAreInit(vCur) )
+        if ( Pdr2_LitsAreInit(p, vCur) )
             break;
         Vec_IntClear( vOrd );
         Vec_IntAppend( vOrd, vCur );
@@ -778,7 +781,7 @@ static int Pdr2_ManCtgDown( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube, char 
         // the lifted counterexample to induction
         Pdr2_ManGetPred( p, 0, vPred, vInputs );
         Pdr2_ManAbsProject( p, vPred, NULL );
-        if ( nCtgs < Par.nMax && iFrame > 1 && !Pdr2_LitsAreInit(vPred) )
+        if ( nCtgs < Par.nMax && iFrame > 1 && !Pdr2_LitsAreInit(p, vPred) )
         {
             // blocking the CTG adds lemmas to the solvers, so the fixed domain is released meanwhile
             Pdr2_ManUnsetMicDomain( p, pSat );
@@ -1002,7 +1005,7 @@ static void Pdr2_ManMicTreb( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube )
                 Vec_IntForEachEntry( vCube, Lit2, k )
                     if ( Lit2 != Lit )
                         Vec_IntPush( vTry, Lit2 );
-                if ( !Pdr2_LitsAreInit(vTry) )
+                if ( !Pdr2_LitsAreInit(p, vTry) )
                 {
                     Pdr2_ManSortByAct( p, vTry, 0 );
                     RetValue = Pdr2_ManSolveRelative( p, pSat, vTry, 1, NULL );
@@ -1215,7 +1218,7 @@ static int Pdr2_ManBlock( Pdr2_Man_t * p )
             break;
         }
         // an obligation containing an initial state is a counterexample (if it is not spurious)
-        if ( Pdr2_CubeIsInit(pObl->pState) )
+        if ( Pdr2_CubeIsInit(p, pObl->pState) )
         {
             RetValue = p->fAbsActive ? Pdr2_ManAbsCheckCex( p, pObl ) : 1;
             if ( RetValue == -1 )
@@ -1684,23 +1687,112 @@ static void Pdr2_ManImportInf( Pdr2_Man_t * pTo, Pdr2_Man_t * pFrom )
 
 /**Function*************************************************************
 
-  Synopsis    [Runs a bounded BMC stage on the concrete design.]
+  Synopsis    [Derives the design with all-zero initial values.]
 
-  Description [Returns 0 with a counterexample in ppCex, 1 if all
-  reachable states were visited, and -1 if undecided. The stage has a
-  wall-time budget and also respects the remaining global deadline.]
+  Description [For the engines that assume them (the BMC stage). A flop
+  initialized to 1 is complemented. A flop with a don't-care initial value
+  is replaced in the first frame by a new primary input (added after the
+  others, in the order of the flops), selected by a new last register that
+  is 0 in the first frame and 1 after it. Returns the number of the new
+  inputs in *pnNewPis.]
 
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-static int Pdr2_ManBmcStage( Aig_Man_t * pAig, Pdr2_Par_t * pPars, abctime timeGlobal, Abc_Cex_t ** ppCex )
+static Aig_Man_t * Pdr2_ManDupZeroInit( Aig_Man_t * pAig, char * pInit, int * pnNewPis )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj, * pFirst;
+    Vec_Ptr_t * vNewPis = Vec_PtrAlloc( 100 );
+    int i, k = 0;
+    pNew = Aig_ManStart( Aig_ManObjNumMax(pAig) + 2 * Aig_ManRegNum(pAig) + 2 );
+    pNew->pName = Abc_UtilStrsav( pAig->pName );
+    Aig_ManConst1(pAig)->pData = Aig_ManConst1( pNew );
+    Saig_ManForEachPi( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreateCi( pNew );
+    // the inputs giving the first-frame values of the don't-care flops
+    Saig_ManForEachLo( pAig, pObj, i )
+        if ( pInit[i] == 2 )
+            Vec_PtrPush( vNewPis, Aig_ObjCreateCi(pNew) );
+    Saig_ManForEachLo( pAig, pObj, i )
+        pObj->pData = Aig_NotCond( Aig_ObjCreateCi(pNew), pInit[i] == 1 );
+    if ( Vec_PtrSize(vNewPis) )
+    {
+        pFirst = Aig_ObjCreateCi( pNew );
+        Saig_ManForEachLo( pAig, pObj, i )
+            if ( pInit[i] == 2 )
+                pObj->pData = Aig_Mux( pNew, pFirst, (Aig_Obj_t *)pObj->pData, (Aig_Obj_t *)Vec_PtrEntry(vNewPis, k++) );
+    }
+    Aig_ManForEachNode( pAig, pObj, i )
+        pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    Saig_ManForEachPo( pAig, pObj, i )
+        Aig_ObjCreateCo( pNew, Aig_ObjChild0Copy(pObj) );
+    Saig_ManForEachLi( pAig, pObj, i )
+        Aig_ObjCreateCo( pNew, Aig_NotCond(Aig_ObjChild0Copy(pObj), pInit[i] == 1) );
+    if ( Vec_PtrSize(vNewPis) )
+        Aig_ObjCreateCo( pNew, Aig_ManConst1(pNew) );
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(pAig) + (Vec_PtrSize(vNewPis) > 0) );
+    Aig_ManCleanup( pNew );
+    *pnNewPis = Vec_PtrSize( vNewPis );
+    Vec_PtrFree( vNewPis );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Maps a counterexample of Pdr2_ManDupZeroInit() back.]
+
+  Description [The inputs of the original design keep their values; the
+  initial state takes the defined initial values and, for the don't-care
+  flops, the values of the new inputs in the first frame.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static Abc_Cex_t * Pdr2_ManCexFromZeroInit( Aig_Man_t * pAig, char * pInit, Abc_Cex_t * pCexZero )
+{
+    int nPis = Saig_ManPiNum(pAig), nRegs = Aig_ManRegNum(pAig);
+    Abc_Cex_t * pCex = Abc_CexAlloc( nRegs, nPis, pCexZero->iFrame + 1 );
+    int i, f, k = 0;
+    pCex->iPo    = pCexZero->iPo;
+    pCex->iFrame = pCexZero->iFrame;
+    for ( i = 0; i < nRegs; i++ )
+        if ( pInit[i] == 2 ? Abc_InfoHasBit(pCexZero->pData, pCexZero->nRegs + nPis + k++) : pInit[i] == 1 )
+            Abc_InfoSetBit( pCex->pData, i );
+    for ( f = 0; f <= pCex->iFrame; f++ )
+        for ( i = 0; i < nPis; i++ )
+            if ( Abc_InfoHasBit(pCexZero->pData, pCexZero->nRegs + f * pCexZero->nPis + i) )
+                Abc_InfoSetBit( pCex->pData, nRegs + f * nPis + i );
+    return pCex;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs a bounded BMC stage on the concrete design.]
+
+  Description [Returns 0 with a counterexample in ppCex, 1 if all
+  reachable states were visited, and -1 if undecided. The stage has a
+  wall-time budget and also respects the remaining global deadline. BMC
+  assumes all-zero initial values: with other initial values (pInit),
+  it runs on the design of Pdr2_ManDupZeroInit() and the counterexample
+  is mapped back.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Pdr2_ManBmcStage( Aig_Man_t * pAigOrig, char * pInit, Pdr2_Par_t * pPars, abctime timeGlobal, Abc_Cex_t ** ppCex )
 {
     Saig_ParBmc_t Pars;
     Abc_Cex_t * pCex = NULL;
+    Aig_Man_t * pAig = pAigOrig;
     abctime clk = Abc_Clock();
-    int RetValue, nTime = pPars->nBmcTime;
+    int i, RetValue, nTime = pPars->nBmcTime, nNewPis = 0;
     *ppCex = NULL;
     if ( timeGlobal )
     {
@@ -1709,6 +1801,11 @@ static int Pdr2_ManBmcStage( Aig_Man_t * pAig, Pdr2_Par_t * pPars, abctime timeG
             return -1;
         nTime = Abc_MinInt( nTime, Left );
     }
+    for ( i = 0; i < Aig_ManRegNum(pAigOrig); i++ )
+        if ( pInit[i] )
+            break;
+    if ( i < Aig_ManRegNum(pAigOrig) )
+        pAig = Pdr2_ManDupZeroInit( pAigOrig, pInit, &nNewPis );
     Saig_ParBmcSetDefaultParams( &Pars );
     Pars.nTimeOut = nTime;
     Pars.fSilent  = 1;
@@ -1720,6 +1817,16 @@ static int Pdr2_ManBmcStage( Aig_Man_t * pAig, Pdr2_Par_t * pPars, abctime timeG
     }
     else if ( RetValue == 0 )
         RetValue = -1;
+    if ( pAig != pAigOrig )
+    {
+        if ( pCex )
+        {
+            Abc_Cex_t * pCexOrig = Pdr2_ManCexFromZeroInit( pAigOrig, pInit, pCex );
+            Abc_CexFree( pCex );
+            pCex = pCexOrig;
+        }
+        Aig_ManStop( pAig );
+    }
     if ( pPars->fVerbose )
         Abc_Print( 1, "BMC stage (%d sec): %s at frame %d.  Time = %.2f sec\n", nTime,
             pCex ? "counterexample" : RetValue == 1 ? "all reachable states visited" : "no counterexample",
@@ -1737,7 +1844,10 @@ static int Pdr2_ManBmcStage( Aig_Man_t * pAig, Pdr2_Par_t * pPars, abctime timeG
   in doubling propagation budgets: CTG, abstraction with dynamic
   generalization, and abstraction with CTG. Each run resumes its own
   state. A time-limited BMC stage follows the first unfinished slice.
-  Invariant sharing is optional and limited to runs 0 and 1.]
+  Invariant sharing is optional and limited to runs 0 and 1. The initial
+  value of each flop is given in vInit as 0, 1, or 2 (don't-care); NULL
+  means all 0. The counterexample and the invariant refer to the flops of
+  the design in their original polarities.]
 
   SideEffects []
 
@@ -1745,6 +1855,10 @@ static int Pdr2_ManBmcStage( Aig_Man_t * pAig, Pdr2_Par_t * pPars, abctime timeG
 
 ***********************************************************************/
 int Pdr2_ManSolve( Aig_Man_t * pAig, Pdr2_Par_t * pPars )
+{
+    return Pdr2_ManSolveInit( pAig, NULL, pPars );
+}
+int Pdr2_ManSolveInit( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
 {
     static const char * pRunNames[5] = { "dynamic generalization", "CTG generalization", "abstraction with dynamic generalization",
         "CTG generalization with weakening by simulation", "abstraction with CTG generalization" };
@@ -1756,12 +1870,31 @@ int Pdr2_ManSolve( Aig_Man_t * pAig, Pdr2_Par_t * pPars )
     abctime timeGlobal = pPars->nTimeOut ? timeStart + (abctime)pPars->nTimeOut * CLOCKS_PER_SEC : 0;
     double Budget[5];
     char RunName[5][80];
+    char * pInit, * pInitGated = NULL;
     int fGatedRun[5] = { 0, 0, 0, 0, 0 }, Order[5];
-    int RetValue = -1, fOrPos = 0, fPreproc = 0, fAlternate, nRuns, nAbsRuns, iPhase = 0, k = 0, j, fBmcDone = 0;
+    int RetValue = -1, fOrPos = 0, fPreproc = 0, fAlternate, nRuns, nAbsRuns, iPhase = 0, k = 0, j, fBmcDone = 0, fInitZero = 1;
     if ( Saig_ManConstrNum(pAig) > 0 )
     {
         Abc_Print( 1, "Pdr2_ManSolve(): Constraints are not supported.\n" );
         return -1;
+    }
+    if ( vInit && Vec_IntSize(vInit) != Aig_ManRegNum(pAig) )
+    {
+        Abc_Print( 1, "Pdr2_ManSolve(): The number of initial values (%d) differs from the number of flops (%d).\n", Vec_IntSize(vInit), Aig_ManRegNum(pAig) );
+        return -1;
+    }
+    // the initial values (the flops of all the designs below come first, in the same order)
+    pInit = ABC_CALLOC( char, Aig_ManRegNum(pAig) + 1 );
+    for ( j = 0; vInit && j < Vec_IntSize(vInit); j++ )
+    {
+        if ( Vec_IntEntry(vInit, j) < 0 || Vec_IntEntry(vInit, j) > 2 )
+        {
+            Abc_Print( 1, "Pdr2_ManSolve(): The initial value of flop %d is %d (expected 0, 1, or 2 for don't-care).\n", j, Vec_IntEntry(vInit, j) );
+            ABC_FREE( pInit );
+            return -1;
+        }
+        pInit[j] = (char)Vec_IntEntry( vInit, j );
+        fInitZero &= pInit[j] == 0;
     }
     if ( Saig_ManPoNum(pAig) != 1 )
     {
@@ -1770,7 +1903,9 @@ int Pdr2_ManSolve( Aig_Man_t * pAig, Pdr2_Par_t * pPars )
     }
     if ( pPars->fPreproc && Saig_ManPiNum(pAigUsed) == 0 && pPars->fVerbose )
         Abc_Print( 1, "Preprocessing (scorr) is skipped: the design has no primary inputs.\n" );
-    if ( pPars->fPreproc && Saig_ManPiNum(pAigUsed) > 0 )
+    else if ( pPars->fPreproc && !fInitZero && pPars->fVerbose )
+        Abc_Print( 1, "Preprocessing (scorr) is skipped: it assumes that all initial values are 0.\n" );
+    if ( pPars->fPreproc && Saig_ManPiNum(pAigUsed) > 0 && fInitZero )
     {
         // sequentially equivalent simplification: the counterexample inputs carry over
         Ssw_Pars_t SswPars;
@@ -1858,10 +1993,10 @@ int Pdr2_ManSolve( Aig_Man_t * pAig, Pdr2_Par_t * pPars )
             if ( fGatedRun[k] )
             {
                 if ( pAigGated == NULL )
-                    pAigGated = Pdr2_ManDupGatedInit( pAigUsed );
+                    pAigGated = Pdr2_ManDupGatedInit( pAigUsed, pInit, &pInitGated );
                 pAigRun[k] = pAigGated;
             }
-            pMan[k] = Pdr2_ManStart( pAigRun[k], &Pars[k] );
+            pMan[k] = Pdr2_ManStart( pAigRun[k], fGatedRun[k] ? pInitGated : pInit, &Pars[k] );
             pMan[k]->timeStart  = timeStart;
             pMan[k]->timeGlobal = timeGlobal;
             pMan[k]->fAlternate = fAlternate && !Pars[k].fUseAbs;  // (the explosion trigger is for the plain dynamic run)
@@ -1904,7 +2039,7 @@ int Pdr2_ManSolve( Aig_Man_t * pAig, Pdr2_Par_t * pPars )
         Budget[k] *= 2;
         // after the first slice (the examples that finish there pay nothing), a short BMC run
         // catches shallow counterexamples of designs on which every PDR frame is expensive
-        if ( iPhase == 0 && pPars->nBmcTime > 0 && pPars->nFrameMax == 0 && (RetValue = Pdr2_ManBmcStage( pAigUsed, pPars, timeGlobal, &pCexBmc )) != -1 )
+        if ( iPhase == 0 && pPars->nBmcTime > 0 && pPars->nFrameMax == 0 && (RetValue = Pdr2_ManBmcStage( pAigUsed, pInit, pPars, timeGlobal, &pCexBmc )) != -1 )
         {
             fBmcDone = 1;
             break;
@@ -1923,14 +2058,29 @@ int Pdr2_ManSolve( Aig_Man_t * pAig, Pdr2_Par_t * pPars )
         if ( (fGatedRun[k] && !pCexBmc) || fPreproc )
         {
             // the counterexample refers to the transformed design, which has the same
-            // primary inputs: keep the input sequence, drop the register values
+            // primary inputs: keep the input sequence; the initial state takes the defined
+            // initial values and, for the don't-care flops (only in the gated design, whose
+            // first flops are those of the design), the values chosen by the run
             Abc_Cex_t * pCexOrig = Abc_CexDup( pCex, Aig_ManRegNum(pAig) );
+            for ( j = 0; j < Aig_ManRegNum(pAig); j++ )
+                if ( pInit[j] == 2 ? fGatedRun[k] && Abc_InfoHasBit(pCex->pData, j) : pInit[j] == 1 )
+                    Abc_InfoSetBit( pCexOrig->pData, j );
             Abc_CexFree( pCex );
             pCex = pCexOrig;
         }
         if ( Saig_ManPoNum(pAig) != 1 )
             pCex->iPo = Saig_ManFindFailedPoCex( pAig, pCex );
-        if ( !Saig_ManVerifyCex( pAig, pCex ) )
+        // the trace must start in an initial state (the simulation takes any register values)
+        for ( j = 0; j < Aig_ManRegNum(pAig); j++ )
+            if ( pInit[j] != 2 && Abc_InfoHasBit(pCex->pData, j) != pInit[j] )
+                break;
+        if ( j < Aig_ManRegNum(pAig) )
+        {
+            Abc_Print( 1, "Pdr2_ManSolve(): The counterexample does not start in an initial state (flop %d).\n", j );
+            Abc_CexFree( pCex );
+            RetValue = -1;
+        }
+        else if ( !Saig_ManVerifyCex( pAig, pCex ) )
         {
             Abc_Print( 1, "Pdr2_ManSolve(): Counterexample verification has FAILED.\n" );
             Abc_CexFree( pCex );
@@ -1988,6 +2138,8 @@ int Pdr2_ManSolve( Aig_Man_t * pAig, Pdr2_Par_t * pPars )
         Aig_ManStop( pAigGated );
     if ( fOrPos )
         Aig_ManStop( pAigUsed );
+    ABC_FREE( pInitGated );
+    ABC_FREE( pInit );
     return RetValue;
 }
 
