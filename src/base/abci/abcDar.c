@@ -3273,13 +3273,31 @@ int Abc_NtkDarPdr2( Abc_Ntk_t * pNtk, Pdr2_Par_t * pPars )
     int RetValue = -1;
     abctime clk = Abc_Clock();
     Aig_Man_t * pMan;
+    Abc_Obj_t * pLatch;
+    Vec_Int_t * vInit = Vec_IntAlloc( Abc_NtkLatchNum(pNtk) );
+    Vec_Ptr_t * vTypes = Vec_PtrAlloc( Abc_NtkLatchNum(pNtk) );
+    int i;
+    // pdr2 takes the initial values (0, 1, or 2 for don't-care) as they are: the latches are
+    // made 0-initialized for the conversion (which would complement those initialized to 1
+    // and set the don't-care values to 0), and their values are restored afterwards
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+    {
+        Vec_IntPush( vInit, Abc_LatchIsInit1(pLatch) ? 1 : Abc_LatchIsInitDc(pLatch) ? 2 : 0 );
+        Vec_PtrPush( vTypes, pLatch->pData );
+        Abc_LatchSetInit0( pLatch );
+    }
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+        pLatch->pData = Vec_PtrEntry( vTypes, i );
+    Vec_PtrFree( vTypes );
     if ( pMan == NULL )
     {
         Abc_Print( 1, "Converting network into AIG has failed.\n" );
+        Vec_IntFree( vInit );
         return -1;
     }
-    RetValue = Pdr2_ManSolve( pMan, pPars );
+    RetValue = Pdr2_ManSolveInit( pMan, vInit, pPars );
+    Vec_IntFree( vInit );
     if ( !pPars->fSilent )
     {
         if ( RetValue == 1 )

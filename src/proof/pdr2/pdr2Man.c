@@ -42,7 +42,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Pdr2_Man_t * Pdr2_ManStart( Aig_Man_t * pAig, Pdr2_Par_t * pPars )
+Pdr2_Man_t * Pdr2_ManStart( Aig_Man_t * pAig, char * pInit, Pdr2_Par_t * pPars )
 {
     Pdr2_Man_t * p;
     Aig_Obj_t * pObj;
@@ -54,6 +54,11 @@ Pdr2_Man_t * Pdr2_ManStart( Aig_Man_t * pAig, Pdr2_Par_t * pPars )
     p->pAig      = pAig;
     p->nRegs     = Saig_ManRegNum( pAig );
     p->nPis      = Saig_ManPiNum( pAig );
+    // the initial values (NULL = all 0)
+    p->pInit     = ABC_CALLOC( char, p->nRegs + 1 );
+    p->pInitState = ABC_CALLOC( char, p->nRegs + 1 );
+    if ( pInit )
+        memcpy( p->pInit, pInit, (size_t)p->nRegs );
     p->timeStart = Abc_Clock();
     p->timeLimit = pPars->nTimeOut ? p->timeStart + (abctime)pPars->nTimeOut * CLOCKS_PER_SEC : 0;
     // SAT infrastructure: static CNF over the whole AIG, variable == object ID
@@ -195,6 +200,8 @@ void Pdr2_ManStop( Pdr2_Man_t * p )
     ABC_FREE( p->pLiVar );
     ABC_FREE( p->pPiVar );
     ABC_FREE( p->pAct );
+    ABC_FREE( p->pInit );
+    ABC_FREE( p->pInitState );
     ABC_FREE( p->pAbs );
     ABC_FREE( p->pAbsUsed );
     ABC_FREE( p->pAbsVals );
@@ -1012,12 +1019,39 @@ void Pdr2_ManShufflePtr( Pdr2_Man_t * p, Vec_Ptr_t * vPtrs )
 
 /**Function*************************************************************
 
+  Synopsis    [Completes a cube intersecting the initial states into one of them.]
+
+  Description [The flops with a defined initial value take it (the literals
+  of the cube agree with it); a don't-care flop takes its value in the cube
+  if it has one and 0 otherwise. The counterexample and the simulation of
+  the abstraction checks use the same initial state.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Pdr2_ManInitState( Pdr2_Man_t * p, Pdr2_Cube_t * pCube, char * pState )
+{
+    int i;
+    for ( i = 0; i < p->nRegs; i++ )
+        pState[i] = p->pInit[i] == 1;
+    for ( i = 0; i < pCube->nLits; i++ )
+    {
+        assert( !Pdr2_ManLitIsNonInit(p, pCube->Lits[i]) );
+        pState[Abc_Lit2Var(pCube->Lits[i])] = !Abc_LitIsCompl(pCube->Lits[i]);
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Derives the counterexample from the obligation chain.]
 
   Description [The chain starts at the obligation that reached the initial
   states and follows pNext to the bad state. Each obligation carries the
   input values that take its state into the next state (or into the
-  property failure for the last one).]
+  property failure for the last one). The register values of the
+  counterexample are the initial state (Pdr2_ManInitState).]
 
   SideEffects []
 
@@ -1035,6 +1069,10 @@ Abc_Cex_t * Pdr2_ManDeriveCex( Pdr2_Man_t * p )
     pCex = Abc_CexAlloc( p->nRegs, p->nPis, nFrames );
     pCex->iPo    = 0;
     pCex->iFrame = nFrames - 1;
+    Pdr2_ManInitState( p, p->pCexObl->pState, p->pInitState );
+    for ( i = 0; i < p->nRegs; i++ )
+        if ( p->pInitState[i] )
+            Abc_InfoSetBit( pCex->pData, i );
     for ( pObl = p->pCexObl, f = 0; pObl; pObl = pObl->pNext, f++ )
         Vec_IntForEachEntry( pObl->vInputs, Lit, i )
             if ( !Abc_LitIsCompl(Lit) )
@@ -1106,7 +1144,7 @@ int Pdr2_ManVerifyInvariant( Pdr2_Man_t * p )
     p->propLimit = p->propSlice = 0;
     Vec_PtrForEachEntry( Pdr2_Cube_t *, vInv, pCube, i )
     {
-        if ( Pdr2_CubeIsInit(pCube) )
+        if ( Pdr2_CubeIsInit(p, pCube) )
         {
             Abc_Print( 1, "Invariant check failed: cube %d intersects the initial states.\n", i );
             fOk = 0;
@@ -1164,21 +1202,39 @@ int Pdr2_ManVerifyInvariant( Pdr2_Man_t * p )
 
   Synopsis    [Writes the AIG of the design into an AIGER file.]
 
-  Description [Returns 1 on success, 0 if the file could not be written.]
+  Description [The initial values of the flops are written in the latch
+  lines (AIGER 1.9: "next init", where init is 0, 1, or the latch literal
+  itself for a don't-care value; 0 is the default and is omitted). Returns
+  1 on success, 0 if the file could not be written.]
 
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-static int Pdr2_ManWriteDesign( Aig_Man_t * pAig, char * pFileName )
+static int Pdr2_ManWriteDesign( Aig_Man_t * pAig, char * pInit, char * pFileName )
 {
     Vec_Str_t * vBuffer = Ioa_WriteAigerIntoMemoryStr( pAig );
     FILE * pFile = fopen( pFileName, "wb" );
-    int fOk = pFile != NULL;
+    char * pCur = Vec_StrArray( vBuffer ), * pEnd = pCur + Vec_StrSize( vBuffer ), * pLine;
+    int i, fOk = pFile != NULL;
     if ( pFile )
     {
-        fOk &= fwrite( Vec_StrArray(vBuffer), 1, Vec_StrSize(vBuffer), pFile ) == (size_t)Vec_StrSize(vBuffer);
+        // the header line, then one latch line per flop (the binary format writes them as text)
+        pLine = (char *)memchr( pCur, '\n', (size_t)(pEnd - pCur) ) + 1;
+        fOk &= fwrite( pCur, 1, (size_t)(pLine - pCur), pFile ) == (size_t)(pLine - pCur);
+        for ( i = 0; i < Aig_ManRegNum(pAig); i++ )
+        {
+            pCur = pLine;
+            pLine = (char *)memchr( pCur, '\n', (size_t)(pEnd - pCur) ) + 1;
+            fOk &= fwrite( pCur, 1, (size_t)(pLine - 1 - pCur), pFile ) == (size_t)(pLine - 1 - pCur);
+            if ( pInit[i] == 1 )
+                fprintf( pFile, " 1" );
+            else if ( pInit[i] == 2 )
+                fprintf( pFile, " %d", 2 * (Saig_ManPiNum(pAig) + 1 + i) );
+            fprintf( pFile, "\n" );
+        }
+        fOk &= fwrite( pLine, 1, (size_t)(pEnd - pLine), pFile ) == (size_t)(pEnd - pLine);
         fOk &= fclose( pFile ) == 0;
     }
     Vec_StrFree( vBuffer );
@@ -1190,12 +1246,13 @@ static int Pdr2_ManWriteDesign( Aig_Man_t * pAig, char * pFileName )
   Synopsis    [Dumps the invariant as a PLA file (one cube per blocked cube).]
 
   Description [The cubes are over the flops of the design the winning run
-  worked on, which differs from the input design: the conversion into an
-  AIG complements the flops initialized to 1 and adds a flop to a
-  combinational network, the abstraction runs add a reset flop, and -q
-  merges and removes flops (fTransformed). The design is therefore always
-  written next to the invariant (as <name>_design.aig, flops in the same
-  order). Returns 1 if both files were written.]
+  worked on, in their original polarities. This is the input design, with
+  its initial values, for the plain runs; it differs from it when a
+  combinational network gets a flop, the abstraction runs add a reset
+  flop, or -q merges and removes flops (fTransformed). The design is
+  therefore always written next to the invariant (as <name>_design.aig,
+  flops in the same order, with their initial values). Returns 1 if both
+  files were written.]
 
   SideEffects []
 
@@ -1215,7 +1272,7 @@ int Pdr2_ManDumpInvariant( Pdr2_Man_t * p, int fTransformed )
     if ( (pDot = strrchr(pDesign, '.')) && !strchr(pDot, '/') )
         *pDot = 0;
     strcat( pDesign, "_design.aig" );
-    if ( !Pdr2_ManWriteDesign( p->pAig, pDesign ) )
+    if ( !Pdr2_ManWriteDesign( p->pAig, p->pInit, pDesign ) )
     {
         Abc_Print( 1, "Cannot write the design into file \"%s\"; the invariant is not dumped.\n", pDesign );
         ABC_FREE( pDesign );

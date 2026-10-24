@@ -112,6 +112,8 @@ struct Pdr2_Man_t_
     Aig_Man_t *   pAig;
     int           nRegs;
     int           nPis;
+    char *        pInit;         // per flop: the initial value, 0, 1 or 2 (don't-care)
+    char *        pInitState;    // per flop: scratch for an initial state (Pdr2_ManInitState)
     // solver infrastructure
     Cnf_Man_t *   pCnfMan;
     Gip_Ctx_t *   pCtx;
@@ -286,19 +288,21 @@ static inline int          Pdr2_LitLi( Pdr2_Man_t * p, int Lit )          { retu
 static inline word         Pdr2_LitSign( int Lit )                        { return (word)1 << (Lit & 63);                               }
 // value of a flop literal (current state) in a SAT model: GIP_TRUE/GIP_FALSE/GIP_NONE
 static inline int          Pdr2_ManLitValue( Pdr2_Man_t * p, Gip_Solver_t * pSat, int Lit ) { return Gip_SolverLitValue( pSat, Pdr2_LitLo(p, Lit) ); }
-// the cube intersects the (all-zero) initial states iff it has no positive literal
-static inline int          Pdr2_CubeIsInit( Pdr2_Cube_t * pCube )         { int i; for ( i = 0; i < pCube->nLits; i++ ) if ( !Abc_LitIsCompl(pCube->Lits[i]) ) return 0; return 1; }
+// a flop literal excludes the initial states iff its flop has a defined initial value opposite to it
+// (a literal of a don't-care flop never does); a cube intersects them iff no literal excludes them
+static inline int          Pdr2_ManLitIsNonInit( Pdr2_Man_t * p, int Lit ) { return p->pInit[Abc_Lit2Var(Lit)] == Abc_LitIsCompl(Lit);    }
+static inline int          Pdr2_CubeIsInit( Pdr2_Man_t * p, Pdr2_Cube_t * pCube ) { int i; for ( i = 0; i < pCube->nLits; i++ ) if ( Pdr2_ManLitIsNonInit(p, pCube->Lits[i]) ) return 0; return 1; }
 // the global deadline only (not the slice limit: work that does not count propagations must not
 // stop at slice ends, or a resumed run would not follow the trajectory of an uninterrupted one)
 static inline int          Pdr2_ManPastDeadline( Pdr2_Man_t * p )         { return p->timeLimit && Abc_Clock() > p->timeLimit;          }
-static inline int          Pdr2_LitsAreInit( Vec_Int_t * vLits )          { int i, Lit; Vec_IntForEachEntry( vLits, Lit, i ) if ( !Abc_LitIsCompl(Lit) ) return 0; return 1; }
+static inline int          Pdr2_LitsAreInit( Pdr2_Man_t * p, Vec_Int_t * vLits ) { int i, Lit; Vec_IntForEachEntry( vLits, Lit, i ) if ( Pdr2_ManLitIsNonInit(p, Lit) ) return 0; return 1; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 // pdr2Man.c
-extern Pdr2_Man_t *       Pdr2_ManStart( Aig_Man_t * pAig, Pdr2_Par_t * pPars );
+extern Pdr2_Man_t *       Pdr2_ManStart( Aig_Man_t * pAig, char * pInit, Pdr2_Par_t * pPars );
 extern void               Pdr2_ManStop( Pdr2_Man_t * p );
 extern Pdr2_Cube_t *      Pdr2_CubeAlloc( int * pLits, int nLits );
 extern Pdr2_Cube_t *      Pdr2_CubeAllocVec( Vec_Int_t * vLits );
@@ -334,6 +338,7 @@ extern unsigned           Pdr2_ManRandom( Pdr2_Man_t * p );
 extern int                Pdr2_ManRandomBool( Pdr2_Man_t * p, double Prob );
 extern void               Pdr2_ManShuffle( Pdr2_Man_t * p, Vec_Int_t * vLits );
 extern void               Pdr2_ManShufflePtr( Pdr2_Man_t * p, Vec_Ptr_t * vPtrs );
+extern void               Pdr2_ManInitState( Pdr2_Man_t * p, Pdr2_Cube_t * pCube, char * pState );
 extern Abc_Cex_t *        Pdr2_ManDeriveCex( Pdr2_Man_t * p );
 extern int                Pdr2_ManVerifyInvariant( Pdr2_Man_t * p );
 extern int                Pdr2_ManDumpInvariant( Pdr2_Man_t * p, int fTransformed );
@@ -356,7 +361,7 @@ extern void               Pdr2_ManSimWeaken( Pdr2_Man_t * p, Vec_Int_t * vCube, 
 extern void               Pdr2_ManAbsProject( Pdr2_Man_t * p, Vec_Int_t * vCube, Vec_Int_t * vPpis );
 extern void               Pdr2_ManAbsCleanup( Pdr2_Man_t * p );
 extern void               Pdr2_ManAbsStart( Pdr2_Man_t * p );
-extern Aig_Man_t *        Pdr2_ManDupGatedInit( Aig_Man_t * pAig );
+extern Aig_Man_t *        Pdr2_ManDupGatedInit( Aig_Man_t * pAig, char * pInit, char ** ppInitNew );
 extern int                Pdr2_ManAbsCheckCex( Pdr2_Man_t * p, Pdr2_Obl_t * pObl );
 // pdr2Core.c
 extern int                Pdr2_ManSolveInt( Pdr2_Man_t * p );
