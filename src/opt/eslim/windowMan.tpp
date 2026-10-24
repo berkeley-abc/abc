@@ -25,6 +25,7 @@
 #include <numeric>
 #include <unordered_map>
 #include <iostream>
+#include <cassert>
 
 #ifdef ABC_USE_PTHREADS
   #include <thread>
@@ -39,6 +40,7 @@ namespace eSLIM {
 
   template <typename SynthesisEngine, typename SelectionStrategy>
   void WindowMan<SynthesisEngine, SelectionStrategy>::applyeSLIM(eSLIMCirMan& es_man, eSLIMConfig& cfg, eSLIMLog& log) {
+    assert (es_man.getNofGates() > 0);
     int v = cfg.verbosity_level;
     cfg.verbosity_level = 0;
     WindowMan win_man(es_man, cfg, log);
@@ -53,9 +55,10 @@ namespace eSLIM {
   template <typename SynthesisEngine, typename SelectionStrategy>
   WindowMan<SynthesisEngine, SelectionStrategy>::WindowMan(eSLIMCirMan& es_man, const eSLIMConfig& cfg, eSLIMLog& log)
             : es_man(es_man), cfg(cfg), log(log) {
-    if (cfg.fix_seed) {
-      rng.seed(cfg.seed);
-    }
+    // if (cfg.fix_seed) {
+    //   rng.seed(cfg.seed);
+    // }
+    rng.seed(cfg.seed);
   }
 
   template <typename SynthesisEngine, typename SelectionStrategy>

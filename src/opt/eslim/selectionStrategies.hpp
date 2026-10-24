@@ -38,6 +38,9 @@ namespace eSLIM {
   struct SubcircuitValidator {
     public:
       SubcircuitValidator(const eSLIMConfig& cf);
+      // Checks that do not require the TFI/TFO marks or the forbidden pairs,
+      // i.e. can be run on a bare subcircuit (created by getSubcircuitBare).
+      bool precheck(const Subcircuit& candidate) const;
       bool check(const Subcircuit& candidate) const;
 
     private:

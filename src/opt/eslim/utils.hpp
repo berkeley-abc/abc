@@ -26,10 +26,13 @@
 #include <unordered_set>
 
 #include "misc/util/abc_global.h"
+#include "misc/util/utilTruth.h"
 
 #if __cplusplus >= 202002L
   // C++20 (and later) code
   #include <bit>
+#elif defined(_WIN64)
+  #include <intrin.h>
 #endif
 
 #if __cplusplus >= 202002L
@@ -42,20 +45,7 @@
 #elif defined(_WIN64)
   #define popcount(x) __popcnt64(x)
 #else
-
-  inline int popcount64Impl(ABC_UINT64_T x) {
-    // Constants are 64-bit masks
-    const ABC_UINT64_T m1 = 0x5555555555555555;
-    const ABC_UINT64_T m2 = 0x3333333333333333; 
-    const ABC_UINT64_T m3 = 0x0F0F0F0F0F0F0F0F; 
-    const ABC_UINT64_T m4 = 0x0101010101010101; 
-    x = x - ((x >> 1) & m1);
-    x = (x & m2) + ((x >> 2) & m2);
-    x = (x + (x >> 4)) & m3;
-    return (x * m4) >> 56;
-  }
-  #define popcount(x) popcount64Impl(x)
-
+  #define popcount(x) Abc_TtCountOnes(x)
 #endif
 
 ABC_NAMESPACE_CXX_HEADER_START
@@ -68,29 +58,9 @@ namespace eSLIM {
       }
       return std::countr_zero(tt);
     #elif defined(__GNUC__)
-      return __builtin_ffsl(tt) - 1;
-    // #elif defined(_MSC_VER)
-    #elif defined(_WIN64)
-      if (tt == 0) {
-        return -1;
-      }
-      int x = 0;
-      bool status = _BitScanForward64(x, tt);
-      return x;
+      return __builtin_ffsll(tt) - 1;
     #else
-      if (tt == 0) {
-        return -1;
-      }
-      ABC_UINT64_T lsb = tt & -tt;
-      const ABC_UINT64_T debruijn = 0x03f79d71b4cb0a89ULL;
-      ABC_UINT64_T scrambled = (lsb * debruijn) >> 58;
-      const int index64[64] = {
-        0,   1, 48,  2, 57, 49, 28,  3, 61, 58, 50, 42, 29, 17,  4, 62,
-        55, 59, 36, 53, 51, 43, 22, 30, 18, 12,  5, 63, 35, 56, 60, 54,
-        37, 52, 44, 27, 23, 31, 19,  8, 13,  6, 64, 32, 47, 38, 45, 21,
-        26, 24, 39, 16,  7, 64, 33, 46, 20, 25, 41, 15, 64, 34, 40, 64
-      };
-      return index64[scrambled];
+      return Abc_Tt6FirstBit(tt);
     #endif
   }
 
@@ -99,7 +69,7 @@ namespace eSLIM {
     int gate_size = 2;
     
     bool apply_strash = true;                                   
-    bool fix_seed = false;    
+    // bool fix_seed = false;    
     bool fill_subcircuits = false;                              
     bool trial_limit_active = true;
     bool allow_xors = false;            
@@ -183,7 +153,7 @@ namespace eSLIM {
     int sz = size + 1;
     nof_analyzed_circuits_per_size.resize(sz);
     nof_replaced_circuits_per_size.resize(sz);
-    nof_reduced_circuits_per_size.resize(size);
+    nof_reduced_circuits_per_size.resize(sz);
     cummulative_sat_runtimes_per_size.resize(sz);
     nof_sat_calls_per_size.resize(sz);
     cummulative_unsat_runtimes_per_size.resize(sz);

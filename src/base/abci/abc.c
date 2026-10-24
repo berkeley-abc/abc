@@ -63218,14 +63218,14 @@ int Abc_CommandAbc9eSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
               goto usage;
           break;
         case 'W':
-          if ( globalUtilOptind >= argc + 1)
+          if ( globalUtilOptind + 1 >= argc)
           {
               Abc_Print( -1, "Command line switch \"-W\" should be followed by two integers.\n" );
               goto usage;
           }
           params.nWindows = atoi(argv[globalUtilOptind]);
           globalUtilOptind++;
-          if (params.nWindows < 0) 
+          if (params.nWindows <= 0) 
             goto usage;
           params.window_size = atoi(argv[globalUtilOptind]);
           if (params.window_size <= 0)
@@ -63287,12 +63287,17 @@ int Abc_CommandAbc9eSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
   }
 
   pTemp = applyeSLIM(pAbc->pGia, &params);
+  if (pTemp == NULL) {
+    Abc_Print( -1, "eSLIM could not process the given circuit.\n" );
+    return 1;
+  }
     
   Abc_FrameUpdateGia( pAbc, pTemp );
   return 0;
 
 
   usage:
+    seteSLIMParams(&params); // show the correct default values
     Abc_Print( -2, "usage: &eslim [-CDIPRSTVWXZ <num>] [-cfhistx]\n" );
     Abc_Print( -2, "\t           circuit optimization using exact synthesis and the SAT-based local improvement method (SLIM)\n" );
     Abc_Print( -2, "\t-C <num> : approximate Boolean relations by only considering the frist C levels in the cone \n");
@@ -63445,14 +63450,14 @@ int Abc_CommandAbc9elSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
               goto usage;
           break;
         case 'W':
-          if ( globalUtilOptind >= argc + 1)
+          if ( globalUtilOptind + 1 >= argc)
           {
               Abc_Print( -1, "Command line switch \"-W\" should be followed by two integers.\n" );
               goto usage;
           }
           params.nWindows = atoi(argv[globalUtilOptind]);
           globalUtilOptind++;
-          if (params.nWindows < 0) 
+          if (params.nWindows <= 0) 
             goto usage;
           params.window_size = atoi(argv[globalUtilOptind]);
           if (params.window_size <= 0)
@@ -63501,6 +63506,10 @@ int Abc_CommandAbc9elSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
           goto usage;
       }
   }
+  if (params.nWindows > 0 && params.synthesis_approach != 0) {
+    Abc_Print( -1, "Windows can only be used with area minimization\n" );
+    return 1;
+  }
 
   pNtk = Abc_FrameReadNtk(pAbc);
   if ( pNtk == NULL )
@@ -63520,11 +63529,16 @@ int Abc_CommandAbc9elSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
 
   params.aig = 0;
   pNtknew = applyelSLIM(pNtk, &params);
+  if (pNtknew == NULL) {
+    Abc_Print( -1, "eSLIM could not process the given circuit.\n" );
+    return 1;
+  }
   Abc_FrameReplaceCurrentNetwork( pAbc, pNtknew );
     
   return 0;
 
   usage:
+    seteSLIMParams(&params); // show the correct default values
     Abc_Print( -2, "usage: elslim [-CDGIPRSTVWXZ <num>] [-cfhist]\n" );
     Abc_Print( -2, "\t           Lut optimization using exact synthesis and the SAT-based local improvement method (SLIM)\n" );
     Abc_Print( -2, "\t-C <num> : approximate Boolean relations by only considering the frist C levels in the cone \n");
