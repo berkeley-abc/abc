@@ -1027,7 +1027,7 @@ void Abc_NodeComplement( Abc_Obj_t * pNode )
 
 /**Function*************************************************************
 
-  Synopsis    [Changes the polarity of one fanin.]
+  Synopsis    [Changes the polarity of a fanin at the given position.]
 
   Description []
                
@@ -1036,15 +1036,9 @@ void Abc_NodeComplement( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeComplementInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin )
+void Abc_NodeComplementInputAt( Abc_Obj_t * pNode, int iFanin )
 {
-    int iFanin;
-    if ( (iFanin = Vec_IntFind( &pNode->vFanins, pFanin->Id )) == -1 )
-    {
-        printf( "Node %s should be among", Abc_ObjName(pFanin) );
-        printf( " the fanins of node %s...\n", Abc_ObjName(pNode) );
-        return;
-    }
+    assert( iFanin >= 0 && iFanin < Abc_ObjFaninNum(pNode) );
     if ( Abc_NtkHasSop(pNode->pNtk) )
         Abc_SopComplementVar( (char *)pNode->pData, iFanin );
     else if ( Abc_NtkHasAig(pNode->pNtk) )
@@ -1065,6 +1059,29 @@ void Abc_NodeComplementInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin )
 #endif
     else
         assert( 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Changes the polarity of the first matching fanin.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeComplementInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin )
+{
+    int iFanin;
+    if ( (iFanin = Vec_IntFind( &pNode->vFanins, pFanin->Id )) == -1 )
+    {
+        printf( "Node %s should be among", Abc_ObjName(pFanin) );
+        printf( " the fanins of node %s...\n", Abc_ObjName(pNode) );
+        return;
+    }
+    Abc_NodeComplementInputAt( pNode, iFanin );
 }
 
 

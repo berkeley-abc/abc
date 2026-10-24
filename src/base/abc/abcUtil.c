@@ -1170,15 +1170,25 @@ int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, int fDuplicate )
                 // change polarity of the driver
                 assert( Abc_ObjIsNode(pDriver) );
                 Abc_NodeComplement( pDriver );
+                Abc_NtkIncrementTravId( pNtk );
                 Abc_ObjForEachFanout( pDriver, pNode, k )
                 {
+                    int iFanin;
+                    // A repeated fanin also repeats this node in the fanout list.
+                    if ( Abc_NodeIsTravIdCurrent(pNode) )
+                        continue;
+                    Abc_NodeSetTravIdCurrent(pNode);
                     if ( Abc_ObjIsCo(pNode) )
                     {
                         assert( Abc_ObjFaninC0(pNode) );
                         Abc_ObjXorFaninC( pNode, 0 );
                     }
                     else if ( Abc_ObjIsNode(pNode) )
-                        Abc_NodeComplementInput( pNode, pDriver );
+                    {
+                        Abc_ObjForEachFanin( pNode, pFanin, iFanin )
+                            if ( pFanin == pDriver )
+                                Abc_NodeComplementInputAt( pNode, iFanin );
+                    }
                     else assert( 0 );
                 }
                 nDupChange++;
