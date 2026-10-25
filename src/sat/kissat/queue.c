@@ -43,7 +43,7 @@ void kissat_check_queue (kissat *solver) {
   bool passed_search_idx = false;
   const bool focused = !solver->stable;
   for (unsigned idx = queue->first, prev = DISCONNECT; !DISCONNECTED (idx);
-       idx = links[idx].next) {
+       idx = links[prev = idx].next) {
     if (!DISCONNECTED (prev))
       KISSAT_assert (links[prev].stamp < links[idx].stamp);
     if (focused && passed_search_idx)

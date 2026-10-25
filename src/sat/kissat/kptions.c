@@ -283,7 +283,7 @@ void kissat_options_usage (void) {
   check_ranges ();
   check_name_length ();
   check_table_sorted ();
-  format format;
+  kormat format;
   memset (&format, 0, sizeof format);
 #define OPTION(N, V, L, H, D) \
   do { \
@@ -359,7 +359,7 @@ static bool ignore_embedded_option_for_fuzzing (const char *name) {
   return false;
 }
 
-void kissat_print_embedded_option_list () {
+void kissat_print_embedded_option_list (void) {
 #define OPTION(N, V, L, H, D) \
   if (!ignore_embedded_option_for_fuzzing (#N)) \
     printf ("c --%s=%d\n", #N, (int) (V));

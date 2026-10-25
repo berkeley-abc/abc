@@ -3658,8 +3658,9 @@ static void merge_condeq (closure *closure, unsigned cond, litpairs *condeq,
     KISSAT_assert (!NEGATED (lhs));
     while (q != end_not_condeq && q->lits[0] < lhs)
       q++;
-    while (q != end_not_condeq && q->lits[0] == lhs) {
-      litpair not_cond_pair = *q++;
+    const litpair *q2 = q;
+    while (q2 != end_not_condeq && q2->lits[0] == lhs) {
+      litpair not_cond_pair = *q2++;
       const unsigned else_lit = not_cond_pair.lits[1];
       new_ite_gate (closure, lhs, cond, then_lit, else_lit);
       if (solver->inconsistent)

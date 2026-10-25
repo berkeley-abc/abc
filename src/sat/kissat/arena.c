@@ -49,8 +49,7 @@ reference kissat_allocate_clause (kissat *solver, size_t size) {
                       ,
                       LD_MAX_ARENA, sizeof (ward),
                       FORMAT_BYTES (MAX_ARENA * sizeof (ward)));
-      kissat_stack_enlarge (solver, (chars *) &solver->arena,
-                            sizeof (ward));
+      ENLARGE_STACK (solver->arena);
       capacity = CAPACITY_STACK (solver->arena);
       available = capacity - res;
     } while (needed > available);
