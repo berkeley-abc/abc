@@ -2024,7 +2024,7 @@ int Scl_CommandReadConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
         switch ( c )
         {
         case 'n':
-            fVerbose ^= 1;
+            fUseNewFormat ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
