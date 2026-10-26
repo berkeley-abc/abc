@@ -29,10 +29,15 @@ static inline void kissat_fast_binary_assign (
 static inline void
 kissat_fast_assign_reference (kissat *solver, value *values,
                               assigned *assigned, unsigned lit,
-                              reference ref, clause *reason) {
+                              reference ref, clause *reason, unsigned lower) {
   KISSAT_assert (reason == kissat_dereference_clause (solver, ref));
-  const unsigned level =
+  // The propagated false literal supplies a lower bound on the reason level.
+  KISSAT_assert (lower <= solver->level);
+  const unsigned level = lower == solver->level ? lower :
       kissat_assignment_level (solver, values, assigned, lit, reason);
+  KISSAT_assert (level ==
+                kissat_assignment_level (solver, values, assigned, lit, reason));
+  KISSAT_assert (lower <= level);
   KISSAT_assert (level <= solver->level);
   KISSAT_assert (ref != DECISION_REASON);
   KISSAT_assert (ref != UNIT_REASON);

@@ -93,12 +93,17 @@ kissat_assignment_level (kissat *solver, value *values, assigned *assigned,
     const unsigned other_idx = IDX (other);
     struct assigned *a = assigned + other_idx;
     const unsigned level = a->level;
-    if (res < level)
+    KISSAT_assert (level <= solver->level);
+    if (res < level) {
       res = level;
-  }
 #ifdef KISSAT_NDEBUG
-  (void) solver;
+      // No assigned literal can exceed the current decision level.
+      // Debug builds scan the whole reason to check the shortcut as well.
+      if (res == solver->level)
+        break;
 #endif
+    }
+  }
   return res;
 }
 
