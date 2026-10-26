@@ -2147,6 +2147,10 @@ SOURCE=.\src\sat\bmc\bmcBmcS.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcCas.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcCexCare.c
 # End Source File
 # Begin Source File
