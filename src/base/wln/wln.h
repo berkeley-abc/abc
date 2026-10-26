@@ -108,6 +108,8 @@ static inline int          Wln_ObjIsTable( Wln_Ntk_t * p, int i )               
 
 static inline int          Wln_ObjFaninNum( Wln_Ntk_t * p, int i )               { return p->vFanins[i].nSize;                                                }
 static inline int *        Wln_ObjFanins( Wln_Ntk_t * p, int i )                 { return Wln_ObjFaninNum(p, i) > 2 ? p->vFanins[i].pArray[0]    : p->vFanins[i].Array;    }
+// Constants store a string ID in the inline payload, but have no graph fanins.
+static inline int          Wln_ObjConstId( Wln_Ntk_t * p, int i )               { assert(Wln_ObjIsConst(p, i)); return Wln_ObjFanins(p, i)[0];                 }
 static inline int          Wln_ObjFanin( Wln_Ntk_t * p, int i, int f )           { int n = Wln_ObjFaninNum(p, i); assert(f >= 0 && f < n); if (f < 0 || f >= n) abort(); return n > 2 ? p->vFanins[i].pArray[0][f] : p->vFanins[i].Array[f]; }
 static inline void         Wln_ObjSetFanin( Wln_Ntk_t * p, int i, int f, int v ) { Wln_ObjFanins( p, i )[f] = v;                                              }
 static inline int          Wln_ObjFanin0( Wln_Ntk_t * p, int i )                 { return Wln_ObjFanin( p, i, 0 );                                            }
@@ -247,6 +249,11 @@ extern int            Wln_ObjCreateCo( Wln_Ntk_t * p, int iFanin );
 extern void           Wln_ObjPrint( Wln_Ntk_t * p, int iObj );
 /*=== wlcRetime.c ========================================================*/
 extern Vec_Int_t *    Wln_NtkRetime( Wln_Ntk_t * p, int fIgnoreIO, int fSkipSimple, int fVerbose );
+// Restricted forward-only guidance. Allowed is indexed by WLN object; existing %retime is unchanged.
+extern Vec_Int_t *    Wln_NtkRetimeForward( Wln_Ntk_t * p, const unsigned char * pAllowed, int nSteps, int fVerbose );
+// Restricted guidance: direction 0 = forward, 1 = backward, 2 = either.
+// FF vertices are zero-delay identities; their virtual moves are not recorded.
+extern Vec_Int_t *    Wln_NtkRetimeRestricted( Wln_Ntk_t * p, const unsigned char * pAllowed, int nSteps, int direction, int fVerbose );
 extern void           Wln_NtkRetimeCreateDelayInfo( Wln_Ntk_t * pNtk );
 /*=== wlcWriteVer.c ========================================================*/
 extern void           Wln_WriteVer( Wln_Ntk_t * p, char * pFileName );

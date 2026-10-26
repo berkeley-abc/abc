@@ -902,6 +902,175 @@ control ties are reported. A retained source cell is not a target unless selecte
 Do not introduce an implicit zero-initialization assumption before legalization. Use `@map_dff -c -m`
 to disable constant-register folding and register merging when preserving correspondence is required.
 
+## Word-level retiming
+
+`@retime` is an experimental SN-to-SN transformation, forward-only by default. It reuses
+the WLN retiming search underlying `%retime` and replays its guidance on SN.
+The search moves whole critical frontiers, with heuristic termination. It uses
+the paper's edge-link representation, but does not implement its priority queue
+or guarantee minimum perturbation or globally minimum delay. `-L` counts nonempty
+operator batches per clock/edge domain, not individual registers. Virtual moves
+through zero-delay flop vertices do not consume this budget, so `-b -L 1` can
+perform one real backward batch.
+
+```text
+@slang pipeline.sv
+@retime -n                 # Preview estimated delay and guidance without mutation
+@retime                    # Apply the best improving guidance prefix
+@retime -b                 # Backward only, computing initial state with SAT
+@retime -a                 # Allow either direction, preserving initial state
+@retime -i -b              # Backward only, without computing initial state
+@retime -i -a              # Allow either direction, without computing initial state
+@retime -a -G 120          # Allow at most 20% more register bits in this module
+@retime -a -C 50000        # Optional conflict cap per initialization/reset SAT query
+@retime -M datapath -v      # Work on one module definition, leaving children fixed
+@check
+@write pipeline_retimed.v
+&sec -T 30 pipeline.sv pipeline_retimed.v
+```
+
+By default, only fully initialized registers can move. Partially initialized and
+uninitialized registers remain fixed unless `-i` is supplied. Enabled registers
+and registers with synchronous or asynchronous reset/set can move in either
+direction. Registers moved together must have the same clock signal and edge,
+enable, reset/set signals, polarities, and synchronous/asynchronous control kinds.
+Different control classes never combine. Clock/edge domains are visited one at a
+time, with all other registers fixed. Each pass optimizes the data cones around
+its movable registers, including side-input arrival times. An unrelated domain's
+longer path does not prevent this pass from improving. Each command performs one
+domain sweep; repeated calls can find further improvements because the search
+is heuristic. Applied moves print a reminder that another call may help; a
+single call does not claim to reach a fixed point. Scalar Boolean wrappers such as
+`en === 1` are recognized when comparing controls; arbitrary expressions are not
+proved equivalent. Enables and control priority are retained, rather than removed.
+Data width and signedness must match the register for it to move. Registers with
+variable reset values remain fixed. Derived clocks are supported conservatively:
+their entire combinational cones and any registers driving clocks remain fixed.
+Scalar clock aliases through LOOP pairs are recognized. Native latches, memories,
+LOOP pairs, instances, and library gates are fixed boundaries;
+the selected module is not implicitly flattened. Replacing a shared definition
+affects every instance of that definition and preserves its port interface.
+
+Operator delays are cached maximum AND-level counts from their bit-blasted
+MiniAIG implementations, with independent nonconstant inputs and the original
+literal constants. Zero-level operators retain a minimum of one unit.
+Register vertices have zero combinational delay: the edge links carry their
+state, and virtual moves through these identity vertices are omitted from SN
+replay. These are not physical delays or exact port-specific timing arcs.
+This model is enabled only by `Wln_NtkRetimeRestricted`. The legacy `%retime`
+and `Wln_NtkRetime` entry points retain their original flop delays (one by
+default, or the supplied delay), source/sink selection, and progress output.
+All RTL operators contribute their delay, including wide operators, division,
+remainder, power, priority muxes, and wildcard comparisons. Timing characterization
+is separate from move eligibility: these latter operations cannot be crossed,
+and moves remain bounded to 256 output bits, 64 fanins, and 1024 total input/output
+bits. LUT truth tables are included in the characterization cache key.
+`-L steps` limits nonempty guidance batches per domain (default 1000).
+Very deep graphs are refused to protect the recursive WLN traversal.
+
+`-G percent` optionally caps the selected module's register bits relative to its
+count at the start of the command: `100` forbids growth, and `120` allows 20%
+growth, rounded down to whole bits. Zero, the default, imposes no area limit.
+The count includes fixed registers and latches, shared registers retained by
+data/control fanouts, and registers from every clock domain in that module.
+Registers inside child instances are not counted. Each replayed batch is checked
+as a whole after accounting for retirement. At the first batch exceeding the
+cap, that batch and subsequent batches are discarded, and the best earlier
+improving legal prefix is replayed. Later domains share the original ceiling.
+This conservative cutoff may miss a later solution that first grows and then
+shrinks the register count. Preview uses the same rule without installing changes.
+The command reports register-bit counts before and after the sweep.
+
+The reported objective is the maximum **segment delay** over the selected module.
+Every latch, LOOP, memory, and opaque output starts at arrival zero; its inputs
+terminate segments. Retiming cannot cross these boundaries. In particular, this
+model permits designs with combinational feedback represented by LOOP pairs,
+but does not measure delay through a loop or model latch transparency/time
+borrowing. Fixed combinational RTL operators do not cut timing paths.
+
+By default, for each forward move, the new register's initialization is evaluated through
+the operator. For example, moving a zero-initialized register across NOT creates
+an all-ones-initialized register. Only consumed registers whose outputs become
+unused are retired; surviving fanout branches retain their original state.
+Backward moves compute a compatible initial state with ABC's built-in MiniSAT
+solver, using the same MiniAIG preimage helper as reset synthesis. Consumed output
+registers must agree on their initial value. These SAT queries default to no time
+or conflict limit (zero means unlimited). `-C conflicts` optionally bounds each
+initialization or reset query; exceeding it skips the move with a diagnostic.
+The conflict budget is not a wall-clock timeout. With the default of zero, a
+difficult unsatisfiable preimage can take a long time. Each move solves
+`f(new_input_initial_values) = old_output_initial_value` and assigns the solution
+to the new registers. No startup muxes or additional initialization logic are
+inserted. Unknown or partially initialized registers remain fixed without `-i`.
+`-b` selects backward-only search; `-a` allows either direction. They cannot be
+combined. A backward move consumes all registered output fanouts of an operator
+and inserts one register on each nonconstant input. Unregistered
+fanouts prevent the move. Clock polarity, input widths, and signedness are preserved.
+
+Reset is functional behavior, independent of power-up initialization. Forward moves
+evaluate reset values through the cached operator MiniAIG. Backward moves require
+all consumed output registers to agree on their reset value and solve a local SAT
+preimage for the new input registers. Initial values and reset values are solved
+independently; reset synthesis also runs with `-i`.
+The prototype's input slots stay fixed during replay. If a forward move exposes
+a constant on one of those slots, backward SAT constrains its original input
+bits to that constant and skips creating a register there.
+An incompatible output state, an unsatisfiable preimage, or an interrupted
+SAT query excludes that operator and restarts guidance from the
+original module. It never silently discards required initialization. This
+conservative local search does not backtrack over earlier choices of initial or
+reset values, so a different earlier solution could permit additional moves.
+Each excluded operator restarts the full search for its clock domain, so many
+infeasible operators can increase runtime even when individual SAT queries are easy.
+The native SET pin
+always forces all ones; moves requiring another preset value are likewise excluded.
+Combined reset/set controls retain SN's reset-before-set-before-enable priority.
+
+`@retime -i` explicitly treats moved state as don't-care and skips initial-state
+computation altogether. It accepts otherwise eligible registers with absent, partial, or full
+initialization, but gives every new register **no initial value or validity mask**.
+Known initial bits on moved state are also ignored; registers retained for other
+fanouts keep their original initialization. The command warns that its objective
+is to reduce the estimated longest combinational-path delay and that initial
+behavior is not guaranteed. It does not solve or encode an initial-state relation.
+Initialization mode does not relax the control requirements.
+Preview (`@retime -i -n`) emits the warning without changing SN.
+
+Preview and searches with no domain improvement leave the design untouched. A
+domain can improve while the reported module maximum stays unchanged because a
+different domain or fixed segment still dominates. The completed sweep is checked
+against the module maximum and discarded if that maximum increases. Successful replay
+is checked and installed transactionally, advancing the SN revision without
+changing the current GIA. Replay failures identify the guidance entry and reason.
+Preview also validates replay and reset assignments for the complete domain sweep
+on a private module. A failure in a later domain discards all earlier staged moves.
+Unused combinational cones left behind by control extraction do not participate
+in guidance. Reconstruction drops these cones and unreferenced constants, including
+retired-register placeholders, while retaining initialization and control logic.
+Retimed registers do not inherit old state-pairing identities.
+For default retiming, use sequential equivalence with the actual known
+initialization, not positional CEC or a blanket zero-initialization assumption.
+For `-i`, verification needs an explicitly justified initial-state relation or a
+startup protocol which removes dependence on initial state; independently forcing
+both designs to zero is not such a justification. Memory/opaque boundaries need
+an appropriate external verification model.
+
+The retiming implementation is C and uses ABC's existing MiniAIG, WLN, and MiniSAT
+code in process. It adds no Python, external solver, or other runtime dependency.
+Reading `.sn` and running `@retime` require only ABC; importing Verilog uses the
+optional compiled `sn` frontend.
+The retiming regression suite is maintained locally for development and is not
+included in the production source distribution.
+
+Compatibility fixes accompanying this work also affect shared helpers:
+filtered module duplication now preserves module flags (including blackbox)
+and retained-object annotations for `@map_ff` and boundary extraction.
+`%retime` reports errors with a failing command status, so scripts stop on those
+errors, and writes `temp_ndr.v` only with `-d`. NDR reads return the successfully
+converted network; constant duplication/string lookup and abbreviated flop
+control records no longer access missing fanins. The legacy timing model and
+progress output remain unchanged.
+
 ## Source files
 
 The package uses ABC-style filenames:
@@ -928,6 +1097,7 @@ snMiniAig.h   unmapped MiniAIG reconstruction
 snMiniLut.h   MiniLUT analysis and SN_LUT reconstruction
 snMiniGate.h  mini-mapping and SN_GATE reconstruction
 snCom.c       ABC manager ownership and command handlers
+snRetime.c/h  forward/backward retiming, operator delays, control classes, and SAT initialization
 ```
 
 The external frontend must compile against this directory through a configured include path. Representation changes

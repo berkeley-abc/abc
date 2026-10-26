@@ -29,6 +29,8 @@
 #include "snBlast.h"
 #include "snGia.h"
 #include "snRead.h"
+#include "snRetime.h"
+#include <errno.h>
 #include "snLowerMem.h"
 #include "snCheck.h"
 #include "snAigCost.h"
@@ -117,6 +119,7 @@ static int Sn_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandMapCell( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandSlang( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Sn_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandCheck( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandMapMem( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandLowerMem( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1094,6 +1097,7 @@ void Sn_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New word level", "@aig_cost", Sn_CommandAigCost, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@partition", Sn_CommandPartition, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@collapse", Sn_CommandCollapse, 0 );
+    Cmd_CommandAdd( pAbc, "New word level", "@retime", Sn_CommandRetime, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@map_mem", Sn_CommandMapMem, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@lower_mem", Sn_CommandLowerMem, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@map_dsp", Sn_CommandMapDsp, 0 );
@@ -1260,6 +1264,89 @@ usage:
     Abc_Print( -2, "\t-p      : preserve constant and unused state for positional CEC [default = no]\n" );
     Abc_Print( -2, "\t-v      : print the external command and frontend timing\n" );
     Abc_Print( -2, "\t-h      : print the command usage\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Retimes the selected SN module transactionally.]
+
+***********************************************************************/
+static int Sn_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Sn_Man_t * current, * work;
+    sn_module_id_t module;
+    const char * name = NULL;
+    int c, preview = 0, ignore_init = 0, direction = 0, verbose = 0, steps = 1000, result;
+    int growth = 0, conflicts = 0;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "M:L:G:C:abinvh")) != EOF )
+    {
+        switch (c) {
+        case 'M': name = globalUtilOptarg; break;
+        case 'L': case 'G': case 'C': {
+            char * end;
+            long value;
+            errno = 0;
+            value = strtol(globalUtilOptarg, &end, 10);
+            if (!*globalUtilOptarg || *end || errno == ERANGE || value < 0 || value > INT_MAX) goto usage;
+            if (c == 'L') { if (value < 1 || value > 100000) goto usage; steps = (int)value; }
+            if (c == 'G') { if (value && (value < 100 || value > 100000)) goto usage; growth = (int)value; }
+            if (c == 'C') conflicts = (int)value;
+            break;
+        }
+        case 'i': ignore_init ^= 1; break;
+        case 'a': if (direction) goto usage; direction = 2; break;
+        case 'b': if (direction) goto usage; direction = 1; break;
+        case 'n': preview ^= 1; break;
+        case 'v': verbose ^= 1; break;
+        default: goto usage;
+        }
+    }
+    if (argc != globalUtilOptind) goto usage;
+    if (!Sn_CommandCheckDesign(pAbc)) return 1;
+    current = Sn_AbcGetMan(pAbc);
+    module = current->Top;
+    if (name) {
+        module = SN_INVALID_ID;
+        for (size_t i = 0; i < current->pDesign->modules.size; ++i)
+            if (!strcmp(name, sn_name_get(&current->pDesign->names,
+                       sn_design_get_module(current->pDesign, (sn_module_id_t)i)->name))) { module = (sn_module_id_t)i; break; }
+        if (module == SN_INVALID_ID) { fprintf(pAbc->Err, "@retime: module '%s' not found.\n", name); return 1; }
+    }
+    work = Sn_ManDup(current);
+    if (!work) return 1;
+    result = Sn_DesignRetimeWithLimits(work->pDesign, module, preview, steps, ignore_init, direction, verbose,
+                                      growth, conflicts, pAbc->Out, pAbc->Err);
+    if (!result || !sn_design_check(work->pDesign, pAbc->Err, false)) { Sn_ManFree(work); return 1; }
+    if (preview || result == 1) { Sn_ManFree(work); return 0; }
+    Sn_ManAdvanceRevision(work);
+    Sn_AbcUpdateMan(pAbc, work);
+    return 0;
+usage:
+    Abc_Print(-2, "usage: @retime [-M module] [-L steps] [-G percent] [-C conflicts] [-abinvh]\n"
+                 "         retiming of registers with matching clock/reset/set/enable controls\n"
+                 "  -M name : selected module definition (default: current top); children unchanged\n"
+                 "  -L num  : maximum nonempty guidance batches per clock/edge domain, 1..100000 (default: 1000)\n"
+                 "  -G num  : maximum register bits as percent of input, 100..100000 (default: 0 = unlimited)\n"
+                 "  -C num  : maximum conflicts per initial/reset SAT query (default: 0 = unlimited)\n"
+                 "  -i      : treat moved state as don't-care; skip initial-state computation\n"
+                 "  -b      : backward only; default is forward only\n"
+                 "  -a      : allow both directions; cannot combine with -b\n"
+                 "  -n      : preview only; leave SN and GIA unchanged\n"
+                 "  -v      : print detailed WLN guidance\n"
+                 "  -h      : print usage\n"
+                 "Default: move only fully initialized registers and compute their new initial values.\n"
+                 "Backward moves solve initial values with SAT; infeasible moves are skipped.\n"
+                 "SAT time and conflict limits default to zero (unlimited); -C optionally limits conflicts.\n"
+                 "A batch exceeding -G is discarded; the best earlier legal prefix is kept.\n"
+                 "With -i, known initial bits may be lost and new registers are uninitialized.\n"
+                 "Sync and async controls are preserved; different control classes never move together.\n"
+                 "Reset values are computed even with -i; infeasible reset/set moves are skipped.\n"
+                 "Clock/edge domains are visited separately; clock cones are fixed.\n"
+                 "Latches, LOOP pairs and opaque objects are fixed boundaries with zero output arrival.\n"
+                 "All RTL operators contribute AIG-level delay (minimum 1), including fixed operators.\n"
+                 "The estimate is maximum segment delay between boundaries, not delay through them.\n");
     return 1;
 }
 

@@ -303,9 +303,9 @@ int Wln_ObjDup( Wln_Ntk_t * pNew, Wln_Ntk_t * p, int iObj )
     Wln_ObjForEachFanin( p, iObj, iFanin, i )
         Wln_ObjAddFanin( pNew, iObjNew, Wln_ObjCopy(p, iFanin) );
     if ( Wln_ObjIsConst(p, iObj) )
-        Wln_ObjSetConst( pNew, iObjNew, Wln_ObjFanin0(p, iObj) );
+        Wln_ObjSetConst( pNew, iObjNew, Wln_ObjConstId(p, iObj) );
     else if ( Wln_ObjIsSlice(p, iObj) || Wln_ObjIsRotate(p, iObj) || Wln_ObjIsTable(p, iObj) )
-        Wln_ObjSetFanin( pNew, iObjNew, 1, Wln_ObjFanin1(p, iObj) );
+        Wln_ObjSetFanin( pNew, iObjNew, 1, Wln_ObjFanins(p, iObj)[1] ); // metadata, not a second fanin
     Wln_ObjSetCopy( p, iObj, iObjNew );
     return iObjNew;
 }
@@ -448,4 +448,3 @@ void Wln_NtkStaticFanoutTest( Wln_Ntk_t * p )
 
 
 ABC_NAMESPACE_IMPL_END
-

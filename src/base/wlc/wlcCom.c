@@ -1495,7 +1495,7 @@ usage:
 ******************************************************************************/
 int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Wln_NtkRetimeTest( char * pFileName, int fIgnoreIO, int fSkipSimple, int fDump, int fVerbose );
+    extern int Wln_NtkRetimeTest( char * pFileName, int fIgnoreIO, int fSkipSimple, int fDump, int fVerbose );
     FILE * pFile;
     char * pFileName = NULL;
     int fIgnoreIO = 0;
@@ -1528,12 +1528,12 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Vec_Int_t * vMoves;
         Wln_Ntk_t * pNtk = Wln_NtkFromNdr( pAbc->pNdr, fDump );
-        Wln_NtkRetimeCreateDelayInfo( pNtk );
         if ( pNtk == NULL )
         {
-            printf( "Transforming NDR into internal represnetation has failed.\n" );
-            return 0;
+            printf( "Transforming NDR into internal representation has failed.\n" );
+            return 1;
         }
+        Wln_NtkRetimeCreateDelayInfo( pNtk );
         vMoves = Wln_NtkRetime( pNtk, fIgnoreIO, fSkipSimple, fVerbose );
         Wln_NtkFree( pNtk );
         ABC_FREE( pAbc->pNdrArray );
@@ -1544,7 +1544,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( argc != globalUtilOptind + 1 )
     {
         printf( "Abc_CommandRetime(): Input file name should be given on the command line.\n" );
-        return 0;
+        return 1;
     }
     // get the file name
     pFileName = argv[globalUtilOptind];
@@ -1554,16 +1554,15 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".ndr", NULL, NULL, NULL, NULL )) )
             Abc_Print( 1, "Did you mean \"%s\"?", pFileName );
         Abc_Print( 1, "\n" );
-        return 0;
+        return 1;
     }
     fclose( pFile );
-    Wln_NtkRetimeTest( pFileName, fIgnoreIO, fSkipSimple, fDump, fVerbose );
-    return 0;
+    return !Wln_NtkRetimeTest( pFileName, fIgnoreIO, fSkipSimple, fDump, fVerbose );
 usage:
-    Abc_Print( -2, "usage: %%retime [-isdvh]\n" );
+    Abc_Print( -2, "usage: %%retime [-isdvh] [file.ndr]\n" );
     Abc_Print( -2, "\t         performs retiming for the NDR design\n" );
     Abc_Print( -2, "\t-i     : toggle ignoring delays of IO paths [default = %s]\n", fIgnoreIO? "yes": "no" );
-    Abc_Print( -2, "\t-s     : toggle printing simple nodes [default = %s]\n", !fSkipSimple? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle skipping simple nodes in recorded moves [default = %s]\n", fSkipSimple? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle dumping the network in Verilog [default = %s]\n", fDump? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

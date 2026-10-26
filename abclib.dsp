@@ -1247,6 +1247,14 @@ SOURCE=.\src\base\sn\snRead.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\sn\snRetime.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snRetime.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\sn\snSec.c
 # End Source File
 # Begin Source File

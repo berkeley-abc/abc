@@ -1028,6 +1028,33 @@ static inline void sn_module_set_blackbox(sn_module_t* module, bool blackbox)
         module->flags &= ~((uint32_t)SN_MODULE_BLACKBOX);
 }
 
+// Copy storage without renumbering objects. Both modules must use the same
+// design-wide name and constant IDs; the target keeps its own identity.
+static inline void sn_module_dup_contents(sn_module_t* new_module, const sn_module_t* old_module)
+{
+    new_module->flags = old_module->flags;
+    new_module->fanouts_valid = old_module->fanouts_valid;
+    new_module->interface_locked = old_module->interface_locked;
+    new_module->copy_module = old_module->copy_module;
+#define SN_DUP_MODULE_VECTOR(type, field) sn_vec_dup(type, &new_module->field, &old_module->field)
+    SN_DUP_MODULE_VECTOR(sn_obj_type_t, obj_types);
+    SN_DUP_MODULE_VECTOR(uint32_t, width_signed);
+    SN_DUP_MODULE_VECTOR(sn_fanin_count_t, fanin_counts);
+    SN_DUP_MODULE_VECTOR(uint32_t, fanin_offsets);
+    SN_DUP_MODULE_VECTOR(uint32_t, obj_data);
+    SN_DUP_MODULE_VECTOR(uint32_t, name_ids);
+    SN_DUP_MODULE_VECTOR(sn_obj_id_t, fanins);
+    for (uint32_t type = 0; type < SN_OBJ_TYPE_COUNT; type++)
+        sn_vec_dup(sn_obj_id_t, &new_module->type_objects[type], &old_module->type_objects[type]);
+    SN_DUP_MODULE_VECTOR(sn_source_record_t, source_records);
+    SN_DUP_MODULE_VECTOR(sn_attribute_record_t, attribute_records);
+    SN_DUP_MODULE_VECTOR(uint32_t, fanout_counts);
+    SN_DUP_MODULE_VECTOR(uint32_t, fanout_offsets);
+    SN_DUP_MODULE_VECTOR(sn_obj_id_t, fanouts);
+    SN_DUP_MODULE_VECTOR(sn_obj_id_t, copy_ids);
+#undef SN_DUP_MODULE_VECTOR
+}
+
 // Deep-copy semantic state, including payload IDs. The derived constant hash buckets are left
 // empty and rebuilt lazily, matching binary roundtrip behavior. Fanout caches and optional object-copy maps are
 // preserved because callers may intentionally retain them between transformations.
@@ -1050,27 +1077,7 @@ static inline sn_design_t* sn_design_dup(const sn_design_t* source)
         sn_module_id_t new_id = sn_design_add_module(target, sn_name_get(&source->names, old_module->name));
         assert(new_id == module_id);
         sn_module_t* new_module = sn_design_get_module(target, new_id);
-        new_module->flags = old_module->flags;
-        new_module->fanouts_valid = old_module->fanouts_valid;
-        new_module->interface_locked = old_module->interface_locked;
-        new_module->copy_module = old_module->copy_module;
-#define SN_DUP_MODULE_VECTOR(type, field) sn_vec_dup(type, &new_module->field, &old_module->field)
-        SN_DUP_MODULE_VECTOR(sn_obj_type_t, obj_types);
-        SN_DUP_MODULE_VECTOR(uint32_t, width_signed);
-        SN_DUP_MODULE_VECTOR(sn_fanin_count_t, fanin_counts);
-        SN_DUP_MODULE_VECTOR(uint32_t, fanin_offsets);
-        SN_DUP_MODULE_VECTOR(uint32_t, obj_data);
-        SN_DUP_MODULE_VECTOR(uint32_t, name_ids);
-        SN_DUP_MODULE_VECTOR(sn_obj_id_t, fanins);
-        for (uint32_t type = 0; type < SN_OBJ_TYPE_COUNT; type++)
-            sn_vec_dup(sn_obj_id_t, &new_module->type_objects[type], &old_module->type_objects[type]);
-        SN_DUP_MODULE_VECTOR(sn_source_record_t, source_records);
-        SN_DUP_MODULE_VECTOR(sn_attribute_record_t, attribute_records);
-        SN_DUP_MODULE_VECTOR(uint32_t, fanout_counts);
-        SN_DUP_MODULE_VECTOR(uint32_t, fanout_offsets);
-        SN_DUP_MODULE_VECTOR(sn_obj_id_t, fanouts);
-        SN_DUP_MODULE_VECTOR(sn_obj_id_t, copy_ids);
-#undef SN_DUP_MODULE_VECTOR
+        sn_module_dup_contents(new_module, old_module);
     }
     return target;
 }
@@ -2774,10 +2781,10 @@ static inline void sn_module_dup_obj_metadata(sn_module_t* target, sn_obj_id_t n
     sn_module_dup_obj_annotations(target, new_object, source, old_object);
 }
 
-// Whole-module reordering already has a complete object map. Traverse sparse
-// annotations once, not once per object (quadratic for mapped designs with one
-// correspondence record per flop). Module-level records were copied separately.
-static inline void sn_module_dup_all_obj_annotations(sn_module_t* target, const sn_module_t* source)
+// Traverse sparse annotations once using the complete object map. Only filtered
+// duplication may omit explicitly removed objects. Module records are copied separately.
+static inline void sn_module_dup_all_obj_annotations_filtered(sn_module_t* target, const sn_module_t* source,
+                                                               const uint8_t* remove)
 {
     assert(target != source && target->design == source->design);
     assert(source->copy_ids.size == source->obj_types.size);
@@ -2785,6 +2792,7 @@ static inline void sn_module_dup_all_obj_annotations(sn_module_t* target, const 
     {
         sn_source_record_t record = sn_vec_at(sn_source_record_t, &source->source_records, i);
         if (record.object == SN_INVALID_ID) continue;
+        if (remove && remove[record.object]) continue;
         record.object = sn_vec_at(sn_obj_id_t, &source->copy_ids, record.object);
         assert(record.object != SN_INVALID_ID);
         *sn_vec_push(sn_source_record_t, &target->source_records) = record;
@@ -2793,10 +2801,16 @@ static inline void sn_module_dup_all_obj_annotations(sn_module_t* target, const 
     {
         sn_attribute_record_t record = sn_vec_at(sn_attribute_record_t, &source->attribute_records, i);
         if (record.object == SN_INVALID_ID) continue;
+        if (remove && remove[record.object]) continue;
         record.object = sn_vec_at(sn_obj_id_t, &source->copy_ids, record.object);
         assert(record.object != SN_INVALID_ID);
         *sn_vec_push(sn_attribute_record_t, &target->attribute_records) = record;
     }
+}
+
+static inline void sn_module_dup_all_obj_annotations(sn_module_t* target, const sn_module_t* source)
+{
+    sn_module_dup_all_obj_annotations_filtered(target, source, NULL);
 }
 
 static inline sn_module_id_t sn_design_dup_module_topo(sn_design_t* design, sn_module_id_t source_module_id,

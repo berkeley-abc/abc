@@ -43,6 +43,7 @@ struct Wln_Ret_t_
     Vec_Int_t         vMoves;       // retiming moves (paired with delay)
     int               nClasses;     // the number of flop classes
     int               DelayMax;     // critical delay at any time
+    int               fTransparentFfs; // zero-delay FF identity vertices
 };
 
 static inline int *   Wln_RetFanins( Wln_Ret_t * p, int i )  { return Vec_IntEntryP( &p->vFanins,  Vec_IntEntry(&p->vFanins, i) );  }
@@ -99,6 +100,8 @@ void Wln_RetPrint( Wln_Ret_t * p, int fVerbose )
     if ( !fVerbose )
     {
         int nPrints = 0, nLimit = 5;
+        if ( p->fTransparentFfs )
+            return;
         printf( "The following %d objects have non-trivial delays:\n", nLimit );
         Wln_NtkForEachObj( p->pNtk, iObj )
         {
@@ -137,7 +140,7 @@ int Wln_RetComputeFfClasses( Wln_Ntk_t * pNtk, Vec_Int_t * vClasses )
     {
         Vec_IntClear( vFlop );
         for ( k = 1; k <= 6; k++ )
-            Vec_IntPush( vFlop, Wln_ObjFanin(pNtk, iObj, k) );
+            Vec_IntPush( vFlop, k < Wln_ObjFaninNum(pNtk, iObj) ? Wln_ObjFanin(pNtk, iObj, k) : 0 );
         Vec_IntWriteEntry( vClasses, iObj, Hsh_VecManAdd(p, vFlop) );
     }
     nClasses = Hsh_VecSize( p );
@@ -146,7 +149,7 @@ int Wln_RetComputeFfClasses( Wln_Ntk_t * pNtk, Vec_Int_t * vClasses )
     printf( "Detected %d flops and %d flop classes.\n", Wln_NtkFfNum(pNtk), nClasses );
     return nClasses;
 }
-Wln_Ret_t * Wln_RetAlloc( Wln_Ntk_t * pNtk )
+Wln_Ret_t * Wln_RetAlloc( Wln_Ntk_t * pNtk, int fVerbose )
 {
     Wln_Ret_t * p; int k, iObj, iFanin, fFirst = 1;
     Vec_Int_t * vRefsCopy = Vec_IntAlloc(0);
@@ -155,7 +158,7 @@ Wln_Ret_t * Wln_RetAlloc( Wln_Ntk_t * pNtk )
     Wln_NtkCreateRefs( pNtk );
     // print objects without fanout
     Wln_NtkForEachObj( pNtk, iObj )
-        if ( Wln_ObjRefs(pNtk, iObj) == 0 && !Wln_ObjIsCio(pNtk, iObj) )
+        if ( fVerbose && Wln_ObjRefs(pNtk, iObj) == 0 && !Wln_ObjIsCio(pNtk, iObj) )
         {
             if ( fFirst )
             {
@@ -306,19 +309,41 @@ int Wln_RetPropDelay( Wln_Ret_t * p )
 //    printf( "Sinks: " );
 //    Vec_IntPrint( &p->vSinks );
 
+    if ( p->fTransparentFfs )
+    {
+        // Keep the end of a zero-delay chain, not every tied predecessor.
+        // In particular, backward search first moves the edge register through
+        // its zero-delay FF vertex before reaching the actual logic operator.
+        int i, nKeep = 0;
+        Vec_IntForEachEntry( &p->vSinks, iObj, i )
+        {
+            int k, iFanout, * pLink, fContinues = 0;
+            Wln_RetForEachFanout( p, iObj, iFanout, pLink, k )
+                if ( !pLink[0] && !Wln_ObjIsCio(p->pNtk, iFanout) &&
+                     Vec_IntEntry(&p->vNodeDelays, iFanout) == 0 &&
+                     Vec_IntEntry(&p->vPathDelays, iFanout) == DelayMax )
+                    fContinues = 1;
+            if ( !fContinues )
+                Vec_IntWriteEntry( &p->vSinks, nKeep++, iObj );
+        }
+        Vec_IntShrink( &p->vSinks, nKeep );
+    }
     return DelayMax;
 }
 
 void Wln_RetFindSources_rec( Wln_Ret_t * p, int iObj )
 {
-    int k, iFanin, * pLink, FaninDelay;
+    int k, iFanin, * pLink, FaninDelay, fContinues = 0;
     if ( Wln_ObjIsCi(p->pNtk, iObj) || Wln_ObjCheckTravId(p->pNtk, iObj) )
         return;
     FaninDelay = Vec_IntEntry( &p->vPathDelays, iObj ) - Vec_IntEntry( &p->vNodeDelays, iObj );
     Wln_RetForEachFanin( p, iObj, iFanin, pLink, k )
         if ( !pLink[0] && Vec_IntEntry(&p->vPathDelays, iFanin) == FaninDelay )
+        {
             Wln_RetFindSources_rec( p, iFanin );
-    if ( FaninDelay == 0 )
+            if ( !Wln_ObjIsCi(p->pNtk, iFanin) ) fContinues = 1;
+        }
+    if ( FaninDelay == 0 && (!p->fTransparentFfs || !fContinues) )
         Vec_IntPush( &p->vSources, iObj );
 }
 void Wln_RetFindSources( Wln_Ret_t * p )
@@ -397,10 +422,13 @@ int * Wln_RetHeadToTail( Wln_Ret_t * p, int * pHead )
 {
     int * pLink;
     assert( pHead[0] );
-    pLink = Vec_IntEntryP( &p->vEdgeLinks, pHead[0] );
-    if ( pLink[0] == 0 )
-        return pHead;
-    return Wln_RetHeadToTail( p, pLink );
+    while ( 1 )
+    {
+        pLink = Vec_IntEntryP( &p->vEdgeLinks, pHead[0] );
+        if ( pLink[0] == 0 )
+            return pHead;
+        pHead = pLink;
+    }
 }
 
 static inline int Wln_RetCheckForwardOne( Wln_Ret_t * p, int iObj )
@@ -554,28 +582,29 @@ void Wln_RetRetimeBackward( Wln_Ret_t * p, Vec_Int_t * vSet )
 }
 void Wln_RetAddToMoves( Wln_Ret_t * p, Vec_Int_t * vSet, int Delay, int fForward, int nMoves, int fSkipSimple, int fVerbose )
 {
-    int i, iObj;
+    int i, iObj, fPrint = fVerbose || !p->fTransparentFfs;
     if ( vSet == NULL )
     {
-        printf( "Move %4d : Recording initial state     (delay = %6d)\n", nMoves, Delay );
+        if ( fPrint ) printf( "Move %4d : Recording initial state     (delay = %6d)\n", nMoves, Delay );
         Vec_IntPushTwo( &p->vMoves, Delay, 0 );
         return;
     }
-    printf( "Move %4d : Recording %s retiming (delay = %6d) :", nMoves, fForward ? "forward " : "backward", Delay );
+    if ( fPrint ) printf( "Move %4d : Recording %s retiming (delay = %6d) :", nMoves, fForward ? "forward " : "backward", Delay );
     Vec_IntPush( &p->vMoves, Delay );
     Vec_IntForEachEntry( vSet, iObj, i )
     {
         int NameId = Vec_IntEntry( &p->pNtk->vNameIds, iObj );
-        if ( fSkipSimple && (Wln_ObjIsFf(p->pNtk, iObj) || Wln_ObjType(p->pNtk, iObj) == ABC_OPER_SLICE || Wln_ObjType(p->pNtk, iObj) == ABC_OPER_CONCAT) )
+        if ( (fSkipSimple && Wln_ObjIsFf(p->pNtk, iObj)) ||
+             (fSkipSimple == 1 && (Wln_ObjType(p->pNtk, iObj) == ABC_OPER_SLICE || Wln_ObjType(p->pNtk, iObj) == ABC_OPER_CONCAT)) )
             continue;
         Vec_IntPush( &p->vMoves, fForward ? -NameId : NameId );
         if ( fVerbose )
             printf( " %d (NameID = %d)  ", fForward ? -iObj : iObj, fForward ? -NameId : NameId );
     }
     Vec_IntPush( &p->vMoves, 0 );
-    if ( !fVerbose )
+    if ( fPrint && !fVerbose )
         printf( " %3d retimed objects", Vec_IntSize(vSet) );
-    printf( "\n" );
+    if ( fPrint ) printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -620,15 +649,25 @@ void Wln_NtkRetimeCreateDelayInfo( Wln_Ntk_t * pNtk )
         printf( "Assuming default delays: 10 units for most nodes and 1 unit for bit-slice, concat, and buffers driving COs.\n" );
     }
 }
-Vec_Int_t * Wln_NtkRetime_int( Wln_Ntk_t * pNtk, int fSkipSimple, int fVerbose )
+static Vec_Int_t * Wln_NtkRetime_int( Wln_Ntk_t * pNtk, int fSkipSimple, int fVerbose,
+                                    const unsigned char * pAllowed, int nSteps, int direction )
 {
-    Wln_Ret_t * p = Wln_RetAlloc( pNtk );
+    Wln_Ret_t * p = Wln_RetAlloc( pNtk, fVerbose || !pAllowed );
     Vec_Int_t * vSources = &p->vSources;
     Vec_Int_t * vSinks   = &p->vSinks;
     Vec_Int_t * vFront   = &p->vFront;
     Vec_Int_t * vMoves   = Vec_IntAlloc(0);
-    int nMoves = 0, fPrevFwd = 0, fPrevBwd = 0, nCountIncrease = 0;
+    int nMoves = 0, nBatches = 0, fPrevFwd = 0, fPrevBwd = 0, nCountIncrease = 0;
     int DelayInit = 0, DelayBest = 0, nChange = 0;
+    // Restricted callers keep state only on links. Preserve the legacy delay
+    // model (including user-supplied FF delays) for %retime and NDR callers.
+    p->fTransparentFfs = pAllowed != NULL;
+    if ( p->fTransparentFfs )
+    {
+        int i, iObj;
+        Wln_NtkForEachFf( pNtk, iObj, i )
+            Vec_IntWriteEntry( &p->vNodeDelays, iObj, 0 );
+    }
     Wln_RetPrint( p, fVerbose );
     Wln_RetMarkChanges( p, NULL );
     p->DelayMax = DelayInit = DelayBest = Wln_RetPropDelay( p );
@@ -637,14 +676,27 @@ Vec_Int_t * Wln_NtkRetime_int( Wln_Ntk_t * pNtk, int fSkipSimple, int fVerbose )
     while ( Vec_IntSize(vSources) || Vec_IntSize(vSinks) )
     {
         int DelayMaxPrev = p->DelayMax;
+        int nEntries = Vec_IntSize(&p->vMoves);
         int fForward  = Vec_IntSize(vSources) && Wln_RetCheckForward( p, vSources );
         int fBackward = Vec_IntSize(vSinks)   && Wln_RetCheckBackward( p, vSinks );
+        if ( pAllowed )
+        {
+            int i, iObj;
+            if ( direction == 0 ) fBackward = 0;
+            if ( direction == 1 ) fForward = 0;
+            Vec_IntForEachEntry( vSources, iObj, i )
+                if ( !pAllowed[iObj] ) fForward = 0;
+            Vec_IntForEachEntry( vSinks, iObj, i )
+                if ( !pAllowed[iObj] ) fBackward = 0;
+            if ( nBatches >= nSteps ) break;
+            if ( p->DelayMax == 0 ) break;
+        }
         Vec_IntSort( vSources, 0 );
         Vec_IntSort( vSinks, 0 );
 
         if ( !fForward && !fBackward )
         {
-            printf( "Cannot retime forward and backward.\n" );
+            printf( "%s\n", pAllowed ? "Cannot retime in the permitted directions." : "Cannot retime forward and backward." );
             break;
         }
         if ( Vec_IntTwoCountCommon(vSources, vSinks) )
@@ -677,6 +729,9 @@ Vec_Int_t * Wln_NtkRetime_int( Wln_Ntk_t * pNtk, int fSkipSimple, int fVerbose )
         if ( fVerbose )
             printf( "\n" );
         Wln_RetAddToMoves( p, vFront, p->DelayMax, fForward, nMoves, fSkipSimple, fVerbose );
+        // Virtual moves through FF identities record only delay and terminator.
+        // They must not consume the restricted caller's operator-batch budget.
+        nBatches += Vec_IntSize(&p->vMoves) > nEntries + 2;
         if ( fVerbose )
         {
             printf( "Sinks: " );
@@ -709,9 +764,9 @@ Vec_Int_t * Wln_NtkRetime_int( Wln_Ntk_t * pNtk, int fSkipSimple, int fVerbose )
     }
     else
     {
-        printf( "Retiming instruction contains %d moves and %d total retimed objects.\n", nMoves, Vec_IntSize(vMoves)-2*nMoves-2 );
+        printf( "Retiming instruction contains %d moves and %d total retimed objects.\n", pAllowed ? nBatches : nMoves, Vec_IntSize(vMoves)-2*nMoves-2 );
         printf( "Initial delay = %d.  The best delay achieved = %d.  Improvement = %d. (%6.2f %%)\n", 
-            DelayInit, DelayBest, DelayInit - DelayBest, 100.0 * (DelayInit - DelayBest) / DelayInit );
+            DelayInit, DelayBest, DelayInit - DelayBest, DelayInit ? 100.0 * (DelayInit - DelayBest) / DelayInit : 0.0 );
     }
     return vMoves;
 }
@@ -719,7 +774,29 @@ Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fIgnoreIO, int fSkipSimple, int
 {
     if ( fIgnoreIO )
         Wln_RetMarkPaths( pNtk, fVerbose );
-    return Wln_NtkRetime_int( pNtk, fSkipSimple, fVerbose );
+    return Wln_NtkRetime_int( pNtk, fSkipSimple, fVerbose, NULL, 0, 2 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes restricted forward-only retiming guidance.]
+
+***********************************************************************/
+Vec_Int_t * Wln_NtkRetimeForward( Wln_Ntk_t * pNtk, const unsigned char * pAllowed, int nSteps, int fVerbose )
+{
+    assert( pAllowed && nSteps > 0 );
+    return Wln_NtkRetimeRestricted( pNtk, pAllowed, nSteps, 0, fVerbose );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes retiming guidance with allowed objects and directions.]
+
+***********************************************************************/
+Vec_Int_t * Wln_NtkRetimeRestricted( Wln_Ntk_t * pNtk, const unsigned char * pAllowed, int nSteps, int direction, int fVerbose )
+{
+    assert( pAllowed && nSteps > 0 && direction >= 0 && direction <= 2 );
+    return Wln_NtkRetime_int( pNtk, 2, fVerbose, pAllowed, nSteps, direction );
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -728,4 +805,3 @@ Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fIgnoreIO, int fSkipSimple, int
 
 
 ABC_NAMESPACE_IMPL_END
-
