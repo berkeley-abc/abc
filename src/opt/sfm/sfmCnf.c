@@ -206,7 +206,7 @@ void Sfm_TranslateCnf( Vec_Wec_t * vRes, Vec_Str_t * vCnf, Vec_Int_t * vFaninMap
     Vec_Int_t * vClause;
     signed char Entry;
     int i, Lit;
-    assert( Vec_StrEntry(vCnf, 1) != -1 || Vec_IntSize(vFaninMap) == 1 );
+    assert( (signed char)Vec_StrEntry(vCnf, 1) != -1 || Vec_IntSize(vFaninMap) == 1 );
     Vec_WecClear( vRes );
     vClause = Vec_WecPushLevel( vRes );
     Vec_StrForEachEntry( vCnf, Entry, i )

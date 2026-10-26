@@ -773,7 +773,8 @@ void Gia_ManSimProfile( Gia_Man_t * pGia )
 void Gia_ManPatSatImprove( Gia_Man_t * p, int nWords0, int fVerbose )
 {
     extern Vec_Int_t * Cbs2_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvStatus, int fVerbose );
-    int i, Status, Counts[3] = {0};
+    int i, Counts[3] = {0};
+    signed char Status;  // -1 has to stay -1 where plain char is unsigned
     Gia_Man_t * pGia;
     Vec_Wrd_t * vSimsIn = NULL;
     Vec_Str_t * vStatus = NULL;

@@ -954,7 +954,8 @@ static int Cec_ManTrivialSatSplit( Gia_Man_t * pAig, Cec_ManSim_t * pSim,
 ***********************************************************************/
 int Gia_ManCheckRefinements2( Gia_Man_t * p, Vec_Str_t * vStatus, Vec_Int_t * vOutputs, Cec_ManSim_t * pSim, int fRings )
 {
-    int i, status, iRepr, iObj;
+    int i, iRepr, iObj;
+    signed char status;  // -1 has to stay -1 where plain char is unsigned
     int Counter = 0;
     assert( 2 * Vec_StrSize(vStatus) == Vec_IntSize(vOutputs) );
     Vec_StrForEachEntry( vStatus, status, i )
@@ -1071,7 +1072,8 @@ Gia_Man_t * Gia_ManCorr2Reduce( Gia_Man_t * p )
 void Cec_Man2RefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIter, abctime Time )
 {
     int nLits, CounterX = 0, Counter0 = 0, Counter = 0;
-    int i, Entry, nProve = 0, nDispr = 0, nFail = 0;
+    int i, nProve = 0, nDispr = 0, nFail = 0;
+    signed char Entry;  // -1 has to stay -1 where plain char is unsigned
     for ( i = 1; i < Gia_ManObjNum(p); i++ )
     {
         if ( Gia_ObjIsNone(p, i) )
@@ -1386,7 +1388,8 @@ static int Cec_ManIncrOracleCheck( Gia_Man_t * pSrm, Vec_Int_t * vOutputs, int i
     Vec_Str_t * vStatus = NULL;
     Vec_Int_t * vCexStore;
     int i, iStart, iChosen = -1, iChosenLits = -1;
-    int Out, nLits, Lit, iRepr, iObj, nSat = 0, nUnknown = 0;
+    int Out, nLits, iRepr, iObj, nSat = 0, nUnknown = 0;
+    signed char Lit;  // -1 has to stay -1 where plain char is unsigned
     assert( Vec_IntSize(vOutputs) == 2 * Gia_ManCoNum(pSrm) );
     Cec_ManSatSetDefaultParams( &ParsSat );
     ParsSat.nBTLimit = 0;
