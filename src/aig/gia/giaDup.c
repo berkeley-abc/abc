@@ -23,6 +23,7 @@
 #include "misc/vec/vecWec.h"
 #include "proof/cec/cec.h"
 #include "misc/util/utilTruth.h"
+#include "misc/util/utilNam.h"
 #include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -3609,6 +3610,65 @@ Gia_Man_t * Gia_ManTransformDualOutput( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Renames flop outputs that share names with other POs.]
+
+  Description [When a flop is normalized to have const-0 init value, the PO
+  with the name of its output is no longer driven by it. The PO keeps its
+  name, and the flop output gets a new unique name, as "undc" and "zero" do.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManRenameFlopOutputs( Gia_Man_t * p )
+{
+    Abc_Nam_t * pNames;
+    Vec_Int_t * vId2Ro;
+    Gia_Obj_t * pObj;
+    char ** ppName, * pName, * pSuffix;
+    int i, k, Id, iRo, iLitRo, fFound;
+    if ( p->vNamesIn == NULL || p->vNamesOut == NULL || Gia_ManRegNum(p) == 0 ||
+         Vec_PtrSize(p->vNamesIn) < Gia_ManCiNum(p) || Vec_PtrSize(p->vNamesOut) < Gia_ManPoNum(p) )
+        return;
+    pNames = Abc_NamStart( Vec_PtrSize(p->vNamesIn) + Vec_PtrSize(p->vNamesOut), 16 );
+    vId2Ro = Vec_IntStartFull( Vec_PtrSize(p->vNamesIn) + Vec_PtrSize(p->vNamesOut) + 1 );
+    Gia_ManForEachRo( p, pObj, i )
+        if ( (pName = (char *)Vec_PtrEntry(p->vNamesIn, Gia_ManPiNum(p) + i)) )
+            Vec_IntWriteEntry( vId2Ro, Abc_NamStrFindOrAdd(pNames, pName, NULL), i );
+    Vec_PtrForEachEntry( char *, p->vNamesIn, pName, k )
+        if ( pName )
+            Abc_NamStrFindOrAdd( pNames, pName, NULL );
+    Vec_PtrForEachEntry( char *, p->vNamesOut, pName, k )
+        if ( pName )
+            Abc_NamStrFindOrAdd( pNames, pName, NULL );
+    Gia_ManForEachPo( p, pObj, i )
+    {
+        if ( (pName = (char *)Vec_PtrEntry(p->vNamesOut, i)) == NULL )
+            continue;
+        Id = Abc_NamStrFind( pNames, pName );
+        if ( (iRo = Vec_IntEntry(vId2Ro, Id)) == -1 )
+            continue;
+        iLitRo = Gia_Obj2Lit( p, Gia_ManRo(p, iRo) );
+        if ( Gia_ObjFaninLit0p(p, pObj) == iLitRo )
+            continue;
+        Vec_IntWriteEntry( vId2Ro, Id, -1 );
+        ppName  = (char **)Vec_PtrEntryP( p->vNamesIn, Gia_ManPiNum(p) + iRo );
+        pSuffix = Gia_ObjFaninLit0p(p, pObj) == Abc_LitNot(iLitRo) ? (char *)"_inv" : (char *)"_lo";
+        pName   = ABC_ALLOC( char, strlen(*ppName) + strlen(pSuffix) + 12 );
+        sprintf( pName, "%s%s", *ppName, pSuffix );
+        // add a number to the name until it is not used
+        for ( k = 1; Abc_NamStrFindOrAdd(pNames, pName, &fFound), fFound; k++ )
+            sprintf( pName, "%s%s%d", *ppName, pSuffix, k );
+        ABC_FREE( *ppName );
+        *ppName = pName;
+    }
+    Vec_IntFree( vId2Ro );
+    Abc_NamStop( pNames );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs 'zero' and 'undc' operation.]
 
   Description [The init string specifies 0/1/X for each flop.]
@@ -3738,6 +3798,7 @@ Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit, int nNewPis, int fG
             Vec_PtrPush( vNamesOut, Abc_UtilStrsav("init_reset") );
         pNew->vNamesOut = vNamesOut;
     }
+    Gia_ManRenameFlopOutputs( pNew );
     ABC_FREE( pPiLits );
     return pNew;
 }

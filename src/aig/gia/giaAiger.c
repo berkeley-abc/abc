@@ -1213,6 +1213,7 @@ static Gia_Man_t * Gia_AigerReadFromMemoryInt( char * pContents, int nFileSize, 
             Vec_PtrFree( vNamesRegIn );
             vNamesRegIn = NULL;
         }
+        Gia_ManRenameFlopOutputs( pNew );
     }
     if ( vNamesNode && Gia_ManObjNum(pNew) != Vec_PtrSize(vNamesNode) )
         Abc_Print( 0, "The size of the node name array does not match the number of objects. Names are not entered.\n" );

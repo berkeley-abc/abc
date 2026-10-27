@@ -35952,6 +35952,9 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         pGia->vNamesIn  = Abc_NtkCollectCiNames( pAbc->pNtkCur );
         pGia->vNamesOut = Abc_NtkCollectCoNames( pAbc->pNtkCur );
+        // Abc_NtkToDar() has complemented the 1-valued flops of a strashed network
+        if ( Abc_NtkIsStrash(pAbc->pNtkCur) )
+            Gia_ManRenameFlopOutputs( pGia );
     }
     // Normalize initialization after copying names so new terminals are named, too.
     if ( !Abc_NtkIsStrash(pAbc->pNtkCur) && !fGiaSimple && !fMapped )
