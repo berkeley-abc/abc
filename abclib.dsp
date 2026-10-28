@@ -4497,6 +4497,110 @@ SOURCE=.\src\opt\eslim\utils.hpp
 SOURCE=.\src\opt\eslim\windowMan.hpp
 # End Source File
 # End Group
+# Begin Group "eslim2"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\eslim2Area.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\areaEngine.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\cadicalSolver.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\eslim2Delay.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\delayEngine.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\eSLIM2.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\eSLIM2.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\eSLIM2Man.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\eSLIM2Man.tpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\eslim2CirMan.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\eslim2CirMan.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\eslim2Cmd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\eslim2Relation.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\relationGeneration.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\eslim2Synth.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\relationSynthesiser.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\selectionStrategies.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\selectionStrategies.tpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\eslim2Subcircuit.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\subcircuit.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\synthesisEngines.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\tabooList.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\utils.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\windowMan.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\windowMan.tpp
+# End Source File
+# End Group
 # End Group
 # Begin Group "map"
 
