@@ -34,7 +34,7 @@ OS := $(shell uname -s)
 
 MODULES := \
 	$(wildcard src/ext*) \
-	src/base/abc src/base/abci src/base/cmd src/base/io src/base/main src/base/exor \
+	src/base/abc src/base/abcc src/base/abci src/base/cmd src/base/io src/base/main src/base/exor \
 	src/base/ver src/base/wlc src/base/wln src/base/sn src/base/parter src/base/acb src/base/pla src/base/test \
 	src/map/mapper src/map/mio src/map/super src/map/if src/map/if/acd \
 	src/map/amap src/map/cov src/map/scl src/map/mpm src/map/emap \
@@ -199,11 +199,25 @@ OBJ := \
 	$(patsubst %.c, %.o,  $(filter %.c, $(SRC)))  \
 	$(patsubst %.y, %.o,  $(filter %.y, $(SRC)))
 
+# Keep command objects distinct from same-named abci objects in incremental archives.
+ABCC_OBJ := $(filter-out src/base/abcc/abc.o,$(filter src/base/abcc/%.o,$(OBJ)))
+OBJ := $(filter-out $(ABCC_OBJ),$(OBJ)) $(patsubst src/base/abcc/%.o,src/base/abcc/abcc_%.o,$(ABCC_OBJ))
+
 LIBOBJ := $(filter-out src/base/main/main.o,$(OBJ))
 
 DEP := $(OBJ:.o=.d)
 
 # implicit rules
+
+src/base/abcc/abcc_%.o: src/base/abcc/%.c
+	@mkdir -p $(dir $@)
+	@echo "$(MSG_PREFIX)\`\` Compiling:" $(LOCAL_PATH)/$<
+	$(VERBOSE)$(CC) -c $(OPTFLAGS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) $< -o $@
+
+src/base/abcc/abcc_%.d: src/base/abcc/%.c
+	@mkdir -p $(dir $@)
+	@echo "$(MSG_PREFIX)\`\` Generating dependency:" $(LOCAL_PATH)/$<
+	$(VERBOSE)$(ABCSRC)/depends.sh "$(CC)" src/base/abcc $(OPTFLAGS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) -MT abcc_$*.o $< > $@
 
 %.o: %.c
 	@mkdir -p $(dir $@)

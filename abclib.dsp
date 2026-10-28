@@ -190,13 +190,112 @@ SOURCE=.\src\base\abc\abcSop.c
 SOURCE=.\src\base\abc\abcUtil.c
 # End Source File
 # End Group
-# Begin Group "abci"
+# Begin Group "abcc"
 
 # PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\src\base\abci\abc.c
+SOURCE=.\src\base\abcc\abc.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abc.obj"
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcPrint.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcPrint.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcIo.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcIo.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcNet.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcNet.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcLogic.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcLogic.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcRewrite.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcRewrite.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcResub.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcResub.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcSweep.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcSweep.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcMapLut.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcMapLut.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcMapCell.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcMapCell.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcSeq.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcSeq.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcCec.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcCec.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcVerify.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcVerify.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcAbstract.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcAbstract.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcSat.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcSat.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcExact.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcExact.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcArith.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcArith.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcSim.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcSim.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcGen.c
+# ADD CPP /Fo"$(INTDIR)\abcc_abcGen.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcc\abcc.h
+# End Source File
+# End Group
+# Begin Group "abci"
+
+# PROP Default_Filter ""
 # Begin Source File
 
 SOURCE=.\src\base\abci\abcAttach.c
@@ -4543,10 +4642,6 @@ SOURCE=.\src\opt\eslim2\eslim2CirMan.cpp
 # Begin Source File
 
 SOURCE=.\src\opt\eslim2\eslim2CirMan.hpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\eslim2\eslim2Cmd.c
 # End Source File
 # Begin Source File
 
