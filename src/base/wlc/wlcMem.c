@@ -240,7 +240,7 @@ void Wlc_NtkPrintMemory( Wlc_Ntk_t * p )
 {
     Vec_Int_t * vMemory;
     vMemory = Wlc_NtkCollectMemory( p, 1 );
-    printf( "Memory subsystem is composed of the following objects:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Memory subsystem is composed of the following objects:\n" );
     Wlc_NtkPrintNodeArray( p, vMemory );
     Vec_IntFree( vMemory );
 }
@@ -595,7 +595,7 @@ Wlc_Ntk_t * Wlc_NtkAbstractMemory( Wlc_Ntk_t * p, Vec_Int_t * vMemObjs, Vec_Int_
             Wlc_ObjAddFanins( pNew, pObjNew, vFanins );
             Wlc_ObjSetCo( pNew, pObjNew, 0 );
         }
-        printf( "Memory abstraction created %d miter outputs.\n", Wlc_NtkPoNum(pNew) );
+        fprintf( Abc_FrameGlobalGetOut(), "Memory abstraction created %d miter outputs.\n", Wlc_NtkPoNum(pNew) );
         Wlc_NtkForEachCo( p, pObj, i )
             if ( pObj->fIsFi && !pObj->Mark )
                 Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), pObj->fIsFi );
@@ -704,8 +704,8 @@ Vec_Int_t * Wlc_NtkDeriveFirstTotal( Wlc_Ntk_t * p, Vec_Int_t * vMemObjs, Vec_In
     if ( fVerbose )
     Vec_IntForEachEntry( vFirstTotal, iFanin, i )
     {
-        printf( "Obj %5d  Fanin %5d : ", i/3, i%3 );
-        printf( "%16s : %d(%d)\n", Wlc_ObjName(p, Vec_IntEntry(vMemObjs, i/3)), iFanin >> 10, iFanin & 0x3FF );
+        fprintf( Abc_FrameGlobalGetOut(), "Obj %5d  Fanin %5d : ", i/3, i%3 );
+        fprintf( Abc_FrameGlobalGetOut(), "%16s : %d(%d)\n", Wlc_ObjName(p, Vec_IntEntry(vMemObjs, i/3)), iFanin >> 10, iFanin & 0x3FF );
     }
     return vFirstTotal;
 }
@@ -759,10 +759,10 @@ Vec_Wrd_t * Wlc_NtkConvertCex( Vec_Int_t * vFirstTotal, Gia_Man_t * pAbs, Abc_Ce
     Vec_WrdForEachEntry( vValues, Value, k )
     {
         if ( k % Vec_IntSize(vFirstTotal) == 0 )
-            printf( "Frame %d:\n", k/Vec_IntSize(vFirstTotal) );
-        printf( "Obj %5d  Fanin %5d : ", k/3, k%3 );
-        Extra_PrintBinary( stdout, (unsigned *)&Value, 32 );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Frame %d:\n", k/Vec_IntSize(vFirstTotal) );
+        fprintf( Abc_FrameGlobalGetOut(), "Obj %5d  Fanin %5d : ", k/3, k%3 );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&Value, 32 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return vValues;
 }
@@ -909,33 +909,33 @@ Vec_Int_t * Wlc_NtkFindConflict( Wlc_Ntk_t * p, Vec_Int_t * vMemObjs, Vec_Wrd_t 
 void Wlc_NtkPrintConflict( Wlc_Ntk_t * p, Vec_Int_t * vTrace )
 {
     int Entry, i;
-    printf( "Memory semantics failure trace:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Memory semantics failure trace:\n" );
     Vec_IntForEachEntry( vTrace, Entry, i )
-        printf( "%3d: entry %9d : obj %5d with name %16s in frame %d\n", i, Entry, Entry >> 11, Wlc_ObjName(p, Entry>>11), (Entry >> 1) & 0x3FF );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d: entry %9d : obj %5d with name %16s in frame %d\n", i, Entry, Entry >> 11, Wlc_ObjName(p, Entry>>11), (Entry >> 1) & 0x3FF );
 }
 void Wlc_NtkPrintCex( Wlc_Ntk_t * p, Wlc_Ntk_t * pAbs, Abc_Cex_t * pCex )
 {
     Wlc_Obj_t * pObj; int i, k, f, nBits = pCex ? pCex->nRegs : 0;
     if ( pCex == NULL )
     {
-        printf( "The CEX is NULL.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The CEX is NULL.\n" );
         return;
     }
     for ( f = 0; f <= pCex->iFrame; f++ )
     {
-        printf( "Frame%02d ", f );
+        fprintf( Abc_FrameGlobalGetOut(), "Frame%02d ", f );
         Wlc_NtkForEachPi( pAbs, pObj, i )
         {
-            printf( "PI%d:", i );
+            fprintf( Abc_FrameGlobalGetOut(), "PI%d:", i );
             //printf( "%d(%d):", nBits, Wlc_ObjRange(pObj) );
             for ( k = 0; k < Wlc_ObjRange(pObj); k++ )
-                printf( "%d", Abc_InfoHasBit(pCex->pData,  nBits++) );
-            printf( " " );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_InfoHasBit(pCex->pData,  nBits++) );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
         }
-        printf( "FF:" );
+        fprintf( Abc_FrameGlobalGetOut(), "FF:" );
         for ( k = 0; nBits < pCex->nPis; k++ )
-            printf( "%d", Abc_InfoHasBit(pCex->pData, nBits++) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_InfoHasBit(pCex->pData, nBits++) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
 }
@@ -976,7 +976,7 @@ Wlc_Ntk_t * Wlc_NtkMemAbstractTest( Wlc_Ntk_t * p )
     Vec_IntFree( vNodeFrames );
 
     nDcBits     = Wlc_CountDcs( pNewFull->pInits );
-    printf( "iFirstMemPi = %d  iFirstCi = %d  iFirstMemCi = %d  nDcBits = %d\n", iFirstMemPi, iFirstCi, iFirstMemCi, nDcBits );
+    fprintf( Abc_FrameGlobalGetOut(), "iFirstMemPi = %d  iFirstCi = %d  iFirstMemCi = %d  nDcBits = %d\n", iFirstMemPi, iFirstCi, iFirstMemCi, nDcBits );
 
     Vec_IntFreeP( &vMemObjs );
     Vec_IntFreeP( &vMemFanins );
@@ -1036,7 +1036,7 @@ int Wlc_NtkMemAbstract( Wlc_Ntk_t * p, int nIterMax, int fDumpAbs, int fPdrVerbo
         Aig_ManStop( pAig );
 
         if ( fVerbose )
-            printf( "\nITERATIONS %d:\n", nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "\nITERATIONS %d:\n", nIters );
         if ( fVerbose )
             Wlc_NtkPrintCex( p, pNew, pCex );
         Wlc_NtkFree( pNew );
@@ -1045,7 +1045,7 @@ int Wlc_NtkMemAbstract( Wlc_Ntk_t * p, int nIterMax, int fDumpAbs, int fPdrVerbo
         {
             char * pFileName = "mem_abs.aig";
             Gia_AigerWrite( pAbs, pFileName, 0, 0, 0 );
-            printf( "Iteration %3d: Dumped abstraction in file \"%s\" after finding CEX in frame %d.\n", nIters, pFileName, pCex ? pCex->iFrame : -1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Iteration %3d: Dumped abstraction in file \"%s\" after finding CEX in frame %d.\n", nIters, pFileName, pCex ? pCex->iFrame : -1 );
         }
 
         // check if proved or undecided
@@ -1083,15 +1083,15 @@ int Wlc_NtkMemAbstract( Wlc_Ntk_t * p, int nIterMax, int fDumpAbs, int fPdrVerbo
 
     // report the result
     if ( fVerbose )
-        printf( "\n" );
-    printf( "Abstraction " );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Abstraction " );
     if ( RetValue == 0 && pCex )
-        printf( "resulted in a real CEX in frame %d", pCex->iFrame );
+        fprintf( Abc_FrameGlobalGetOut(), "resulted in a real CEX in frame %d", pCex->iFrame );
     else if ( RetValue == 1 )
-        printf( "is successfully proved" );
+        fprintf( Abc_FrameGlobalGetOut(), "is successfully proved" );
     else 
-        printf( "timed out" );
-    printf( " after %d iterations. ", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "timed out" );
+    fprintf( Abc_FrameGlobalGetOut(), " after %d iterations. ", nIters );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Abc_CexFreeP( &pCex ); // return CEX in the future
     return RetValue;
@@ -1140,13 +1140,13 @@ void Wlc_NtkExploreMem2( Wlc_Ntk_t * p, int nFrames )
             continue;
         Vec_IntClear( vCollect );
         nVisited = Wlc_NtkExploreMem2_rec( p, pObj, vCollect, nFrames );
-        printf( "Obj %6d : ", Wlc_ObjId(p, pObj) );
-        printf( "Visit = %6d  ", nVisited );
-        printf( "Pair = %6d  ", Vec_IntSize(vCollect)/2 );
+        fprintf( Abc_FrameGlobalGetOut(), "Obj %6d : ", Wlc_ObjId(p, pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "Visit = %6d  ", nVisited );
+        fprintf( Abc_FrameGlobalGetOut(), "Pair = %6d  ", Vec_IntSize(vCollect)/2 );
         if ( Vec_IntSize(vCollect)/2 < 10 )
             Vec_IntForEachEntryDouble( vCollect, Entry, Frame, k )
-                printf( "%d(%d) ", Entry, Frame );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%d(%d) ", Entry, Frame );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_IntFree( vMemObjsClean );
     Vec_IntFree( vCollect );
@@ -1196,11 +1196,11 @@ void Wlc_NtkExploreMem( Wlc_Ntk_t * p, int nFrames )
             continue;
         Vec_IntClear( vCollect );
         Wlc_NtkExploreMem_rec( p, pObj, vCollect, nFrames );
-        printf( "Read port %6d : ", Wlc_ObjId(p, pObj) );
-        printf( "Inputs = %6d  ", Vec_IntSize(vCollect) );
+        fprintf( Abc_FrameGlobalGetOut(), "Read port %6d : ", Wlc_ObjId(p, pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "Inputs = %6d  ", Vec_IntSize(vCollect) );
         Vec_IntForEachEntry( vCollect, iObj, k )
-            printf( "%d(%s) ", iObj, Wlc_ObjName(p, iObj) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d(%s) ", iObj, Wlc_ObjName(p, iObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_IntFree( vMemObjsClean );
     Vec_IntFree( vCollect );
@@ -1468,7 +1468,7 @@ Wlc_Ntk_t * Wlc_NtkAbstractMem( Wlc_Ntk_t * p, int nFrames, int fVerbose )
             Wlc_ObjAddFanins( pNew, pObjNew, vFanins );
             Wlc_ObjSetCo( pNew, pObjNew, 0 );
         }
-        printf( "Memory abstraction created %d miter outputs.\n", Wlc_NtkPoNum(pNew) );
+        fprintf( Abc_FrameGlobalGetOut(), "Memory abstraction created %d miter outputs.\n", Wlc_NtkPoNum(pNew) );
         Wlc_NtkForEachCo( p, pObj, i )
             if ( pObj->fIsFi && !pObj->Mark )
                 Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), pObj->fIsFi );

@@ -87,7 +87,7 @@ Abc_Ntk_t * Abc_NtkSopEsopCover( Abc_Ntk_t * pNtk, int nFaninMax, int nCubesMax,
     // make sure that everything is okay
     if ( pNtkNew && !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkCov: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCov: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -124,7 +124,7 @@ void Abc_NtkCovCovers( Cov_Man_t * p, Abc_Ntk_t * pNtk, int fVerbose )
     for ( i = 0; ; i++ )
     {
         if ( fVerbose )
-        printf( "Iter %d : ", i+1 );
+        fprintf( Abc_FrameGlobalGetOut(), "Iter %d : ", i+1 );
         if ( Abc_NtkCovCoversOne(p, pNtk, fVerbose) )
             break;
     }
@@ -164,7 +164,7 @@ int Abc_NtkCovCoversOne( Cov_Man_t * p, Abc_Ntk_t * pNtk, int fVerbose )
     vBoundary = Vec_PtrAlloc( 100 );
 
     // start from the COs and mark visited nodes using pObj->fMarkB
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -219,7 +219,7 @@ int Abc_NtkCovCoversOne( Cov_Man_t * p, Abc_Ntk_t * pNtk, int fVerbose )
 
 if ( fVerbose )
 {
-    printf( "Outs = %4d (%4d) Node = %6d (%6d) Max = %6d  Bound = %4d  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Outs = %4d (%4d) Node = %6d (%6d) Max = %6d  Bound = %4d  ", 
         Counter, Abc_NtkCoNum(pNtk), p->nSupps, Abc_NtkNodeNum(pNtk), p->nSuppsMax, p->nBoundary );
 ABC_PRT( "T", Abc_Clock() - clk );
 }

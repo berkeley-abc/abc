@@ -53,7 +53,7 @@ void Extra_ReorderTest( DdManager * dd, DdNode * Func )
 //Extra_DumpDot( dd, &Temp, 1, "afterReo.dot", 0 );
 
     Temp1 = Extra_ReorderCudd(dd, Func, NULL );           Cudd_Ref( Temp1 );
-printf( "Initial = %d. Final = %d. Cudd = %d.\n", Cudd_DagSize(Func), Cudd_DagSize(Temp), Cudd_DagSize(Temp1)  );
+fprintf( Abc_FrameGlobalGetOut(), "Initial = %d. Final = %d. Cudd = %d.\n", Cudd_DagSize(Func), Cudd_DagSize(Temp), Cudd_DagSize(Temp1) );
     Cudd_RecursiveDeref( dd, Temp1 );
     Cudd_RecursiveDeref( dd, Temp );
  
@@ -83,7 +83,7 @@ void Extra_ReorderTestArray( DdManager * dd, DdNode * Funcs[], int nFuncs )
     Extra_ReorderArray( pReo, dd, Funcs, FuncsRes, nFuncs, pOrder );  
     Extra_ReorderQuit( pReo );
 
-printf( "Initial = %d. Final = %d.\n", Cudd_SharingSize(Funcs,nFuncs), Cudd_SharingSize(FuncsRes,nFuncs) );
+fprintf( Abc_FrameGlobalGetOut(), "Initial = %d. Final = %d.\n", Cudd_SharingSize(Funcs,nFuncs), Cudd_SharingSize(FuncsRes,nFuncs) );
 
     for ( i = 0; i < nFuncs; i++ )
         Cudd_RecursiveDeref( dd, FuncsRes[i] );
@@ -137,9 +137,9 @@ DdNode * Extra_ReorderCudd( DdManager * dd, DdNode * aFunc, int pPermuteReo[] )
 //    assert( Cudd_DagSize(aFunc) == Cudd_DagSize(aFuncReorder)  );
 
     // perform the reordering
-printf( "Nodes before = %d.\n", Cudd_DagSize(aFuncReorder) );
+fprintf( Abc_FrameGlobalGetOut(), "Nodes before = %d.\n", Cudd_DagSize(aFuncReorder) );
     Cudd_ReduceHeap( ddReorder, CUDD_REORDER_SYMM_SIFT, 1 );
-printf( "Nodes before = %d.\n", Cudd_DagSize(aFuncReorder) );
+fprintf( Abc_FrameGlobalGetOut(), "Nodes before = %d.\n", Cudd_DagSize(aFuncReorder) );
 
     // determine the reverse variable permutation
     for ( lev = 0; lev < dd->size; lev++ )
@@ -242,8 +242,8 @@ int Extra_addReorderTest( DdManager * dd, DdNode * aF )
     nNodesEnd = Cudd_DagSize( aFmin );
     Cudd_RecursiveDeref( s_ddmin, aFmin );
 
-    printf( "Classical reordering of ADDs: Before = %d. After = %d.\n", nNodesBeg, nNodesEnd );
-    printf( "Classical variable reordering time = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
+    fprintf( Abc_FrameGlobalGetOut(), "Classical reordering of ADDs: Before = %d. After = %d.\n", nNodesBeg, nNodesEnd );
+    fprintf( Abc_FrameGlobalGetOut(), "Classical variable reordering time = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
     return nNodesEnd;
 }
 

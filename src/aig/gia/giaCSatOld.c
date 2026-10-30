@@ -677,18 +677,18 @@ int Cbs0_ManSolve( Cbs0_Man_t * p, Gia_Obj_t * pObj )
 ***********************************************************************/
 void Cbs0_ManSatPrintStats( Cbs0_Man_t * p )
 {
-    printf( "CO = %8d  ", Gia_ManCoNum(p->pAig) );
-    printf( "AND = %8d  ", Gia_ManAndNum(p->pAig) );
-    printf( "Conf = %6d  ", p->Pars.nBTLimit );
-    printf( "JustMax = %5d  ", p->Pars.nJustLimit );
-    printf( "\n" );
-    printf( "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "CO = %8d  ", Gia_ManCoNum(p->pAig) );
+    fprintf( Abc_FrameGlobalGetOut(), "AND = %8d  ", Gia_ManAndNum(p->pAig) );
+    fprintf( Abc_FrameGlobalGetOut(), "Conf = %6d  ", p->Pars.nBTLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "JustMax = %5d  ", p->Pars.nJustLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatUnsat, p->nSatTotal? 100.0*p->nSatUnsat/p->nSatTotal :0.0, p->nSatUnsat? 1.0*p->nConfUnsat/p->nSatUnsat :0.0 );
     ABC_PRTP( "Time", p->timeSatUnsat, p->timeTotal );
-    printf( "Sat   calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Sat   calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatSat,   p->nSatTotal? 100.0*p->nSatSat/p->nSatTotal :0.0, p->nSatSat? 1.0*p->nConfSat/p->nSatSat : 0.0 );
     ABC_PRTP( "Time", p->timeSatSat,   p->timeTotal );
-    printf( "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatUndec, p->nSatTotal? 100.0*p->nSatUndec/p->nSatTotal :0.0, p->nSatUndec? 1.0*p->nConfUndec/p->nSatUndec : 0.0 );
     ABC_PRTP( "Time", p->timeSatUndec, p->timeTotal );
     ABC_PRT( "Total time", p->timeTotal );
@@ -736,7 +736,7 @@ Vec_Int_t * Cbs_ManSolveMiter( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvStat
         {
             if ( Gia_ObjFaninC0(pRoot) )
             {
-                printf( "Constant 1 output of SRM!!!\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Constant 1 output of SRM!!!\n" );
                 Cec_ManSatAddToStore( vCexStore, vCex, i ); // trivial counter-example
                 Vec_StrPush( vStatus, 0 );
             }

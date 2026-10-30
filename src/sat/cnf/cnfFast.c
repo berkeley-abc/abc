@@ -356,7 +356,7 @@ static void Cnf_ComputeClausesInt( Aig_Man_t * p, Aig_Obj_t * pRoot,
         return;
     }
     if ( Vec_PtrSize(vLeaves) > 6 )
-        printf( "FastCnfGeneration:  Internal error!!!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "FastCnfGeneration:  Internal error!!!\n" );
     assert( Vec_PtrSize(vLeaves) <= 6 );
 
     Truth = Cnf_CutDeriveTruth( p, vLeaves, vNodes );
@@ -529,7 +529,7 @@ void Cnf_DeriveFastMark( Aig_Man_t * p )
     Aig_ManForEachCo( p, pObj, i )
         Counter += !Aig_ObjFanin0(pObj)->fMarkA;
     if ( Counter )
-    printf( "PO-driver rule is violated %d times.\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "PO-driver rule is violated %d times.\n", Counter );
 
     // check that the AND-gates are fine
     Counter = 0;
@@ -551,7 +551,7 @@ void Cnf_DeriveFastMark( Aig_Man_t * p )
         }
     }
     if ( Counter )
-    printf( "AND-gate rule is violated %d times.\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "AND-gate rule is violated %d times.\n", Counter );
 
     Vec_PtrFree( vLeaves );
     Vec_PtrFree( vNodes );
@@ -581,9 +581,9 @@ int Cnf_CutCountClauses( Aig_Man_t * p, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes,
         Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         {
             if ( Aig_ObjFaninC0(pObj) && !Aig_ObjFanin0(pObj)->fMarkA )
-                printf( "Unusual 1!\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Unusual 1!\n" );
             if ( Aig_ObjFaninC1(pObj) && !Aig_ObjFanin1(pObj)->fMarkA )
-                printf( "Unusual 2!\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Unusual 2!\n" );
             continue;
 
             assert( !Aig_ObjFaninC0(pObj) || Aig_ObjFanin0(pObj)->fMarkA );
@@ -645,7 +645,7 @@ int Cnf_CountCnfSize( Aig_Man_t * p )
         nClauses += nSize;
     }
 //    printf( "\n" );
-    printf( "Vars = %d  Clauses = %d\n", nVars, nClauses );
+    fprintf( Abc_FrameGlobalGetOut(), "Vars = %d  Clauses = %d\n", nVars, nClauses );
 
     Vec_PtrFree( vLeaves );
     Vec_PtrFree( vNodes );

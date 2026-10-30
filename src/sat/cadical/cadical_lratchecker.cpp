@@ -466,9 +466,9 @@ void LratChecker::add_original_clause (int64_t id, bool,
     LratCheckerClause **p = find (id), *d = *p;
     if (d) {
       fatal_message_start ();
-      fputs ("different clause with id ", stderr);
-      fprintf (stderr, "%" PRId64, id);
-      fputs (" already present\n", stderr);
+      fputs ("different clause with id ", Abc_FrameGlobalGetErr());
+      fprintf( Abc_FrameGlobalGetErr(),  "%" PRId64, id);
+      fputs (" already present\n", Abc_FrameGlobalGetErr());
       fatal_message_end ();
     }
   }
@@ -497,9 +497,9 @@ void LratChecker::add_derived_clause (int64_t id, bool, int w,
     LratCheckerClause **p = find (id), *d = *p;
     if (d) {
       fatal_message_start ();
-      fputs ("different clause with id ", stderr);
-      fprintf (stderr, "%" PRId64, id);
-      fputs (" already present\n", stderr);
+      fputs ("different clause with id ", Abc_FrameGlobalGetErr());
+      fprintf( Abc_FrameGlobalGetErr(),  "%" PRId64, id);
+      fputs (" already present\n", Abc_FrameGlobalGetErr());
       fatal_message_end ();
     }
   }
@@ -520,10 +520,10 @@ void LratChecker::add_derived_clause (int64_t id, bool, int w,
     }
 #endif
     fatal_message_start ();
-    fputs ("failed to check derived clause:\n", stderr);
+    fputs ("failed to check derived clause:\n", Abc_FrameGlobalGetErr());
     for (const auto &lit : imported_clause)
-      fprintf (stderr, "%d ", lit);
-    fputc ('0', stderr);
+      fprintf( Abc_FrameGlobalGetErr(),  "%d ", lit);
+    fputc( '0', Abc_FrameGlobalGetErr() );
     fatal_message_end ();
   } else
     insert ();
@@ -542,7 +542,7 @@ void LratChecker::add_assumption_clause (int64_t id, const vector<int> &c,
       continue;
     fatal_message_start ();
     fputs ("clause contains non assumptions or constraint literals\n",
-           stderr);
+           Abc_FrameGlobalGetErr());
     fatal_message_end ();
   }
   add_derived_clause (id, true, 0, c, chain);
@@ -574,7 +574,7 @@ void LratChecker::conclude_unsat (ConclusionType conclusion,
                                   const vector<int64_t> &ids) {
   if (concluded) {
     fatal_message_start ();
-    fputs ("already concluded\n", stderr);
+    fputs ("already concluded\n", Abc_FrameGlobalGetErr());
     fatal_message_end ();
   }
   concluded = true;
@@ -582,19 +582,19 @@ void LratChecker::conclude_unsat (ConclusionType conclusion,
     LratCheckerClause **p = find (ids.back ()), *d = *p;
     if (!d || d->size) {
       fatal_message_start ();
-      fputs ("empty clause not in proof\n", stderr);
+      fputs ("empty clause not in proof\n", Abc_FrameGlobalGetErr());
       fatal_message_end ();
     }
     return;
   } else if (conclusion == ASSUMPTIONS) {
     if (ids.size () != 1 || assumption_clauses.size () != 1) {
       fatal_message_start ();
-      fputs ("expected exactly one assumption clause\n", stderr);
+      fputs ("expected exactly one assumption clause\n", Abc_FrameGlobalGetErr());
       fatal_message_end ();
     }
     if (ids.back () != assumption_clauses.back ()) {
       fatal_message_start ();
-      fputs ("conclusion is not an assumption clause\n", stderr);
+      fputs ("conclusion is not an assumption clause\n", Abc_FrameGlobalGetErr());
       fatal_message_end ();
     }
     return;
@@ -602,15 +602,15 @@ void LratChecker::conclude_unsat (ConclusionType conclusion,
     CADICAL_assert (conclusion == CONSTRAINT);
     if (constraint.size () != ids.size ()) {
       fatal_message_start ();
-      fputs ("not complete conclusion given for constraint\n", stderr);
-      fputs ("The constraint contains the literals: ", stderr);
+      fputs ("not complete conclusion given for constraint\n", Abc_FrameGlobalGetErr());
+      fputs ("The constraint contains the literals: ", Abc_FrameGlobalGetErr());
       for (auto c : constraint) {
-        fprintf (stderr, "%d ", c);
+        fprintf( Abc_FrameGlobalGetErr(),  "%d ", c);
       }
 
-      fputs ("\nThe ids are: ", stderr);
+      fputs ("\nThe ids are: ", Abc_FrameGlobalGetErr());
       for (auto c : ids) {
-        fprintf (stderr, "%" PRId64 " ", c);
+        fprintf( Abc_FrameGlobalGetErr(),  "%" PRId64 " ", c);
       }
       fatal_message_end ();
     }
@@ -619,7 +619,7 @@ void LratChecker::conclude_unsat (ConclusionType conclusion,
                      id) != assumption_clauses.end ())
         continue;
       fatal_message_start ();
-      fputs ("assumption clause for constraint missing\n", stderr);
+      fputs ("assumption clause for constraint missing\n", Abc_FrameGlobalGetErr());
       fatal_message_end ();
     }
   }
@@ -642,10 +642,10 @@ void LratChecker::delete_clause (int64_t id, bool, const vector<int> &c) {
       int lit = *(dp + i);
       if (!mark (lit)) {        // should never happen since ids
         fatal_message_start (); // are unique.
-        fputs ("deleted clause not in proof:\n", stderr);
+        fputs ("deleted clause not in proof:\n", Abc_FrameGlobalGetErr());
         for (const auto &lit : imported_clause)
-          fprintf (stderr, "%d ", lit);
-        fputc ('0', stderr);
+          fprintf( Abc_FrameGlobalGetErr(),  "%d ", lit);
+        fputc( '0', Abc_FrameGlobalGetErr() );
         fatal_message_end ();
       }
     }
@@ -668,10 +668,10 @@ void LratChecker::delete_clause (int64_t id, bool, const vector<int> &c) {
       collect_garbage_clauses ();
   } else {
     fatal_message_start ();
-    fputs ("deleted clause not in proof:\n", stderr);
+    fputs ("deleted clause not in proof:\n", Abc_FrameGlobalGetErr());
     for (const auto &lit : imported_clause)
-      fprintf (stderr, "%d ", lit);
-    fputc ('0', stderr);
+      fprintf( Abc_FrameGlobalGetErr(),  "%d ", lit);
+    fputc( '0', Abc_FrameGlobalGetErr() );
     fatal_message_end ();
   }
   imported_clause.clear ();
@@ -695,10 +695,10 @@ void LratChecker::weaken_minus (int64_t id, const vector<int> &c) {
       int lit = *(dp + i);
       if (!mark (lit)) {        // should never happen since ids
         fatal_message_start (); // are unique.
-        fputs ("deleted clause not in proof:\n", stderr);
+        fputs ("deleted clause not in proof:\n", Abc_FrameGlobalGetErr());
         for (const auto &lit : imported_clause)
-          fprintf (stderr, "%d ", lit);
-        fputc ('0', stderr);
+          fprintf( Abc_FrameGlobalGetErr(),  "%d ", lit);
+        fputc( '0', Abc_FrameGlobalGetErr() );
         fatal_message_end ();
       }
     }
@@ -706,10 +706,10 @@ void LratChecker::weaken_minus (int64_t id, const vector<int> &c) {
       mark (lit) = false;
   } else {
     fatal_message_start ();
-    fputs ("weakened clause not in proof:\n", stderr);
+    fputs ("weakened clause not in proof:\n", Abc_FrameGlobalGetErr());
     for (const auto &lit : imported_clause)
-      fprintf (stderr, "%d ", lit);
-    fputc ('0', stderr);
+      fprintf( Abc_FrameGlobalGetErr(),  "%d ", lit);
+    fputc( '0', Abc_FrameGlobalGetErr() );
     fatal_message_end ();
   }
   imported_clause.clear ();
@@ -723,10 +723,10 @@ void LratChecker::restore_clause (int64_t id, const vector<int> &c) {
   LOG (c, "LRAT CHECKER check of restoration of clause[%" PRId64 "]", id);
   if (clauses_to_reconstruct.find (id) == end (clauses_to_reconstruct)) {
     fatal_message_start ();
-    fputs ("restoring clauses not deleted previously:\n", stderr);
+    fputs ("restoring clauses not deleted previously:\n", Abc_FrameGlobalGetErr());
     for (const auto &lit : c)
-      fprintf (stderr, "%d ", lit);
-    fputc ('0', stderr);
+      fprintf( Abc_FrameGlobalGetErr(),  "%d ", lit);
+    fputc( '0', Abc_FrameGlobalGetErr() );
     fatal_message_end ();
   }
   vector<int> e = c;
@@ -744,14 +744,14 @@ void LratChecker::restore_clause (int64_t id, const vector<int> &c) {
   if (!eq) {
     fatal_message_start ();
     fputs ("restoring clause that is different than the one imported:\n",
-           stderr);
+           Abc_FrameGlobalGetErr());
     for (const auto &lit : c)
-      fprintf (stderr, "%d ", lit);
-    fputc ('0', stderr);
-    fputs ("vs:\n", stderr);
+      fprintf( Abc_FrameGlobalGetErr(),  "%d ", lit);
+    fputc( '0', Abc_FrameGlobalGetErr() );
+    fputs ("vs:\n", Abc_FrameGlobalGetErr());
     for (const auto &lit : d)
-      fprintf (stderr, "%d ", lit);
-    fputc ('0', stderr);
+      fprintf( Abc_FrameGlobalGetErr(),  "%d ", lit);
+    fputc( '0', Abc_FrameGlobalGetErr() );
     fatal_message_end ();
   }
 
@@ -775,10 +775,10 @@ void LratChecker::finalize_clause (int64_t id, const vector<int> &c) {
       int lit = *(dp + i);
       if (!mark (lit)) {        // should never happen since ids
         fatal_message_start (); // are unique.
-        fputs ("deleted clause not in proof:\n", stderr);
+        fputs ("deleted clause not in proof:\n", Abc_FrameGlobalGetErr());
         for (const auto &lit : imported_clause)
-          fprintf (stderr, "%d ", lit);
-        fputc ('0', stderr);
+          fprintf( Abc_FrameGlobalGetErr(),  "%d ", lit);
+        fputc( '0', Abc_FrameGlobalGetErr() );
         fatal_message_end ();
       }
     }
@@ -787,10 +787,10 @@ void LratChecker::finalize_clause (int64_t id, const vector<int> &c) {
 
   } else {
     fatal_message_start ();
-    fputs ("deleted clause not in proof:\n", stderr);
+    fputs ("deleted clause not in proof:\n", Abc_FrameGlobalGetErr());
     for (const auto &lit : imported_clause)
-      fprintf (stderr, "%d ", lit);
-    fputc ('0', stderr);
+      fprintf( Abc_FrameGlobalGetErr(),  "%d ", lit);
+    fputc( '0', Abc_FrameGlobalGetErr() );
     fatal_message_end ();
   }
   imported_clause.clear ();
@@ -806,9 +806,9 @@ void LratChecker::report_status (int, int64_t) {
          "deleted");
   } else {
     fatal_message_start ();
-    fputs ("finalize check failed ", stderr);
-    fprintf (stderr, "%" PRIu64, num_clauses);
-    fputs (" are not finalized", stderr);
+    fputs ("finalize check failed ", Abc_FrameGlobalGetErr());
+    fprintf( Abc_FrameGlobalGetErr(),  "%" PRIu64, num_clauses);
+    fputs (" are not finalized", Abc_FrameGlobalGetErr());
     fatal_message_end ();
   }
   STOP (checking);
@@ -823,12 +823,12 @@ void LratChecker::dump () {
       for (unsigned i = 0; i < c->size; i++)
         if (abs (c->literals[i]) > max_var)
           max_var = abs (c->literals[i]);
-  printf ("p cnf %d %" PRIu64 "\n", max_var, num_clauses);
+  fprintf ( Abc_FrameGlobalGetOut(), "p cnf %d %" PRIu64 "\n", max_var, num_clauses);
   for (uint64_t i = 0; i < size_clauses; i++)
     for (LratCheckerClause *c = clauses[i]; c; c = c->next) {
       for (unsigned i = 0; i < c->size; i++)
-        printf ("%d ", c->literals[i]);
-      printf ("0\n");
+        fprintf ( Abc_FrameGlobalGetOut(), "%d ", c->literals[i]);
+      fprintf ( Abc_FrameGlobalGetOut(), "0\n");
     }
 }
 

@@ -353,8 +353,8 @@ void Amap_CreateRulesForGate( Amap_Lib_t * pLib, Amap_Gat_t * pGate )
 if ( pLib->fVerbose )
 //if ( pGate->fMux )
 {
-printf( "\nProcessing library gate %4d: %10s ", pGate->Id, pGate->pName );
-Kit_DsdPrint( stdout, pNtk );
+fprintf( Abc_FrameGlobalGetOut(), "\nProcessing library gate %4d: %10s ", pGate->Id, pGate->pName );
+Kit_DsdPrint( Abc_FrameGlobalGetOut(), pNtk );
 }
     vNods = Amap_CreateRulesFromDsd( pLib, pNtk );
     if ( vNods )
@@ -373,8 +373,8 @@ Kit_DsdPrint( stdout, pNtk );
             {
 if ( pLib->fVerbose )
 {
-                printf( "Cound not prepare gate \"%s\": ", pGate->pName );
-                Kit_DsdPrint( stdout, pNtk );
+                fprintf( Abc_FrameGlobalGetOut(), "Cound not prepare gate \"%s\": ", pGate->pName );
+                Kit_DsdPrint( Abc_FrameGlobalGetOut(), pNtk );
 }
                 continue;
             }
@@ -439,7 +439,7 @@ void Amap_LibCreateRules( Amap_Lib_t * pLib, int fVeryVerbose )
             continue;
         if ( pGate->pFunc == NULL )
         {
-            printf( "Amap_LibCreateRules(): Skipping gate %s (%s).\n", pGate->pName, pGate->pForm );
+            fprintf( Abc_FrameGlobalGetOut(), "Amap_LibCreateRules(): Skipping gate %s (%s).\n", pGate->pName, pGate->pForm );
             continue;
         }
         Amap_CreateRulesForGate( pLib, pGate );

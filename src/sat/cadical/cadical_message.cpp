@@ -10,7 +10,7 @@ namespace CaDiCaL {
 #ifndef CADICAL_QUIET
 /*------------------------------------------------------------------------*/
 
-void Internal::print_prefix () { fputs (prefix.c_str (), stdout); }
+void Internal::print_prefix () { fputs (prefix.c_str (), Abc_FrameGlobalGetOut()); }
 
 void Internal::vmessage (const char *fmt, va_list &ap) {
 #ifdef LOGGING
@@ -19,9 +19,9 @@ void Internal::vmessage (const char *fmt, va_list &ap) {
     if (opts.quiet)
       return;
   print_prefix ();
-  vprintf (fmt, ap);
-  fputc ('\n', stdout);
-  fflush (stdout);
+  vfprintf ( Abc_FrameGlobalGetOut(), fmt, ap);
+  fputc ('\n', Abc_FrameGlobalGetOut());
+  fflush (Abc_FrameGlobalGetOut());
 }
 
 void Internal::message (const char *fmt, ...) {
@@ -44,8 +44,8 @@ void Internal::message () {
     if (opts.quiet)
       return;
   print_prefix ();
-  fputc ('\n', stdout);
-  fflush (stdout);
+  fputc ('\n', Abc_FrameGlobalGetOut());
+  fflush (Abc_FrameGlobalGetOut());
 }
 
 /*------------------------------------------------------------------------*/
@@ -57,9 +57,9 @@ void Internal::vverbose (int level, const char *fmt, va_list &ap) {
     if (opts.quiet || level > opts.verbose)
       return;
   print_prefix ();
-  vprintf (fmt, ap);
-  fputc ('\n', stdout);
-  fflush (stdout);
+  vfprintf ( Abc_FrameGlobalGetOut(), fmt, ap);
+  fputc ('\n', Abc_FrameGlobalGetOut());
+  fflush (Abc_FrameGlobalGetOut());
 }
 
 void Internal::verbose (int level, const char *fmt, ...) {
@@ -76,8 +76,8 @@ void Internal::verbose (int level) {
     if (opts.quiet || level > opts.verbose)
       return;
   print_prefix ();
-  fputc ('\n', stdout);
-  fflush (stdout);
+  fputc ('\n', Abc_FrameGlobalGetOut());
+  fflush (Abc_FrameGlobalGetOut());
 }
 
 /*------------------------------------------------------------------------*/
@@ -92,15 +92,15 @@ void Internal::section (const char *title) {
     MSG ();
   print_prefix ();
   tout.blue ();
-  fputs ("--- [ ", stdout);
+  fputs ("--- [ ", Abc_FrameGlobalGetOut());
   tout.blue (true);
-  fputs (title, stdout);
+  fputs (title, Abc_FrameGlobalGetOut());
   tout.blue ();
-  fputs (" ] ", stdout);
+  fputs (" ] ", Abc_FrameGlobalGetOut());
   for (int i = strlen (title) + strlen (prefix.c_str ()) + 9; i < 78; i++)
-    fputc ('-', stdout);
+    fputc ('-', Abc_FrameGlobalGetOut());
   tout.normal ();
-  fputc ('\n', stdout);
+  fputc ('\n', Abc_FrameGlobalGetOut());
   MSG ();
 }
 
@@ -113,13 +113,13 @@ void Internal::phase (const char *phase, const char *fmt, ...) {
     if (opts.quiet || (!force_phase_messages && opts.verbose < 2))
       return;
   print_prefix ();
-  printf ("[%s] ", phase);
+  fprintf ( Abc_FrameGlobalGetOut(), "[%s] ", phase);
   va_list ap;
   va_start (ap, fmt);
-  vprintf (fmt, ap);
+  vfprintf ( Abc_FrameGlobalGetOut(), fmt, ap);
   va_end (ap);
-  fputc ('\n', stdout);
-  fflush (stdout);
+  fputc ('\n', Abc_FrameGlobalGetOut());
+  fflush (Abc_FrameGlobalGetOut());
 }
 
 void Internal::phase (const char *phase, int64_t count, const char *fmt,
@@ -130,13 +130,13 @@ void Internal::phase (const char *phase, int64_t count, const char *fmt,
     if (opts.quiet || (!force_phase_messages && opts.verbose < 2))
       return;
   print_prefix ();
-  printf ("[%s-%" PRId64 "] ", phase, count);
+  fprintf ( Abc_FrameGlobalGetOut(), "[%s-%" PRId64 "] ", phase, count);
   va_list ap;
   va_start (ap, fmt);
-  vprintf (fmt, ap);
+  vfprintf ( Abc_FrameGlobalGetOut(), fmt, ap);
   va_end (ap);
-  fputc ('\n', stdout);
-  fflush (stdout);
+  fputc ('\n', Abc_FrameGlobalGetOut());
+  fflush (Abc_FrameGlobalGetOut());
 }
 
 /*------------------------------------------------------------------------*/
@@ -144,43 +144,43 @@ void Internal::phase (const char *phase, int64_t count, const char *fmt,
 /*------------------------------------------------------------------------*/
 
 void Internal::warning (const char *fmt, ...) {
-  fflush (stdout);
+  fflush (Abc_FrameGlobalGetOut());
   terr.bold ();
-  fputs ("cadical: ", stderr);
+  fputs ("cadical: ", Abc_FrameGlobalGetErr());
   terr.red (1);
-  fputs ("warning:", stderr);
+  fputs ("warning:", Abc_FrameGlobalGetErr());
   terr.normal ();
-  fputc (' ', stderr);
+  fputc (' ', Abc_FrameGlobalGetErr());
   va_list ap;
   va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
+  vfprintf (Abc_FrameGlobalGetErr(), fmt, ap);
   va_end (ap);
-  fputc ('\n', stderr);
-  fflush (stderr);
+  fputc ('\n', Abc_FrameGlobalGetErr());
+  fflush (Abc_FrameGlobalGetErr());
 }
 
 /*------------------------------------------------------------------------*/
 
 void Internal::error_message_start () {
-  fflush (stdout);
+  fflush (Abc_FrameGlobalGetOut());
   terr.bold ();
-  fputs ("cadical: ", stderr);
+  fputs ("cadical: ", Abc_FrameGlobalGetErr());
   terr.red (1);
-  fputs ("error:", stderr);
+  fputs ("error:", Abc_FrameGlobalGetErr());
   terr.normal ();
-  fputc (' ', stderr);
+  fputc (' ', Abc_FrameGlobalGetErr());
 }
 
 void Internal::error_message_end () {
-  fputc ('\n', stderr);
-  fflush (stderr);
+  fputc ('\n', Abc_FrameGlobalGetErr());
+  fflush (Abc_FrameGlobalGetErr());
   // TODO add possibility to use call back instead.
   exit (1);
 }
 
 void Internal::verror (const char *fmt, va_list &ap) {
   error_message_start ();
-  vfprintf (stderr, fmt, ap);
+  vfprintf (Abc_FrameGlobalGetErr(), fmt, ap);
   error_message_end ();
 }
 
@@ -194,18 +194,18 @@ void Internal::error (const char *fmt, ...) {
 /*------------------------------------------------------------------------*/
 
 void fatal_message_start () {
-  fflush (stdout);
+  fflush (Abc_FrameGlobalGetOut());
   terr.bold ();
-  fputs ("cadical: ", stderr);
+  fputs ("cadical: ", Abc_FrameGlobalGetErr());
   terr.red (1);
-  fputs ("fatal error:", stderr);
+  fputs ("fatal error:", Abc_FrameGlobalGetErr());
   terr.normal ();
-  fputc (' ', stderr);
+  fputc (' ', Abc_FrameGlobalGetErr());
 }
 
 void fatal_message_end () {
-  fputc ('\n', stderr);
-  fflush (stderr);
+  fputc ('\n', Abc_FrameGlobalGetErr());
+  fflush (Abc_FrameGlobalGetErr());
   abort ();
 }
 
@@ -213,7 +213,7 @@ void fatal (const char *fmt, ...) {
   fatal_message_start ();
   va_list ap;
   va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
+  vfprintf (Abc_FrameGlobalGetErr(), fmt, ap);
   va_end (ap);
   fatal_message_end ();
   abort ();

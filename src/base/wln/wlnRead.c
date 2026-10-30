@@ -228,26 +228,26 @@ void Rtl_NtkPrintOpers( Rtl_Ntk_t * p )
             nBlack++;
         else
             nUser++;
-    printf( "There are %d instances in this network:\n", Rtl_NtkCellNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "There are %d instances in this network:\n", Rtl_NtkCellNum(p) );
     if ( nBlack )
-        printf( "  %s (%d)", "blackbox", nBlack );
+        fprintf( Abc_FrameGlobalGetOut(), "  %s (%d)", "blackbox", nBlack );
     if ( nUser )
-        printf( "  %s (%d)", "user", nUser );
+        fprintf( Abc_FrameGlobalGetOut(), "  %s (%d)", "user", nUser );
     for ( i = 0; i < ABC_OPER_LAST; i++ )
         if ( Counts[i] )
-            printf( "  %s (%d)", Abc_OperName(i), Counts[i] );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "  %s (%d)", Abc_OperName(i), Counts[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Rtl_NtkPrintStats( Rtl_Ntk_t * p, int nNameSymbs )
 {
     int Counts[4] = {0};     Rtl_NtkCountPio( p, Counts );
-    printf( "%*s : ",        nNameSymbs, Rtl_NtkName(p) );
-    printf( "PI = %5d (%5d)  ", Counts[0], Counts[1] );
-    printf( "PO = %5d (%5d)  ", Counts[2], Counts[3] );
-    printf( "Wire = %6d   ", Rtl_NtkWireNum(p) );
-    printf( "Cell = %6d   ", Rtl_NtkCellNum(p) );
-    printf( "Con = %6d",     Rtl_NtkConNum(p) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "%*s : ",        nNameSymbs, Rtl_NtkName(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "PI = %5d (%5d)  ", Counts[0], Counts[1] );
+    fprintf( Abc_FrameGlobalGetOut(), "PO = %5d (%5d)  ", Counts[2], Counts[3] );
+    fprintf( Abc_FrameGlobalGetOut(), "Wire = %6d   ", Rtl_NtkWireNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Cell = %6d   ", Rtl_NtkCellNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Con = %6d",     Rtl_NtkConNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     //Rtl_NtkPrintOpers( p );
 }
 
@@ -267,10 +267,10 @@ void Rtl_NtkPrintHieStats( Rtl_Ntk_t * p, int nOffset )
     Vec_Int_t * vFound = Vec_IntAlloc( 100 );
     int i, * pCell;
     for ( i = 0; i < 5*(nOffset-1); i++ )
-        printf( " " );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
     if ( nOffset )
-        printf( "|--> " );
-    printf( "%s\n", Rtl_NtkName(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "|--> " );
+    fprintf( Abc_FrameGlobalGetOut(), "%s\n", Rtl_NtkName(p) );
     Rtl_NtkForEachCell( p, pCell, i )
         if ( Rtl_CellModule(pCell) >= ABC_INFINITY )
         {
@@ -286,11 +286,11 @@ void Rtl_NtkPrintHieStats( Rtl_Ntk_t * p, int nOffset )
 void Rtl_LibPrintHieStats( Rtl_Lib_t * p )
 {
     Rtl_Ntk_t * pNtk; int i;
-    printf( "Hierarchy found in \"%s\":\n", p->pSpec );
+    fprintf( Abc_FrameGlobalGetOut(), "Hierarchy found in \"%s\":\n", p->pSpec );
     Vec_PtrForEachEntry( Rtl_Ntk_t *, p->vNtks, pNtk, i )
     {
-        printf( "\n" );
-        printf( "MODULE %d: ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "MODULE %d: ", i );
         Rtl_NtkPrintHieStats( pNtk, 0 );  
     }
 }
@@ -386,7 +386,7 @@ int Rtl_LibFindTwoModules( Rtl_Lib_t * p, int Name1, int Name2 )
 void Rtl_LibPrintStats( Rtl_Lib_t * p )
 {
     Rtl_Ntk_t * pNtk; int i, nSymbs = 0;
-    printf( "Modules found in \"%s\":\n", p->pSpec );
+    fprintf( Abc_FrameGlobalGetOut(), "Modules found in \"%s\":\n", p->pSpec );
     Vec_PtrForEachEntry( Rtl_Ntk_t *, p->vNtks, pNtk, i )
         nSymbs = Abc_MaxInt( nSymbs, strlen(Rtl_NtkName(pNtk)) );
     Vec_PtrForEachEntry( Rtl_Ntk_t *, p->vNtks, pNtk, i )
@@ -904,33 +904,33 @@ void Rtl_NtkPrintCellOrder( Rtl_Ntk_t * p )
     int i, iCell;
     Vec_IntForEachEntry( &p->vOrder, iCell, i )
     {
-        printf( "%4d :  ", i );
-        printf( "Cell %4d  ", iCell );
+        fprintf( Abc_FrameGlobalGetOut(), "%4d :  ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Cell %4d  ", iCell );
         if ( iCell < p->nInputs )
-            printf( "Type  Input " );
+            fprintf( Abc_FrameGlobalGetOut(), "Type  Input " );
         else if ( iCell < p->nInputs + Rtl_NtkCellNum(p) )
         {
             int * pCell = Rtl_NtkCell( p, iCell - p->nInputs );
-            printf( "Type  %4d  ", Rtl_CellType(pCell) );
-            printf( "%16s ",       Rtl_CellTypeStr(p, pCell) );
-            printf( "%16s ",       Rtl_CellNameStr(p, pCell) );
+            fprintf( Abc_FrameGlobalGetOut(), "Type  %4d  ", Rtl_CellType(pCell) );
+            fprintf( Abc_FrameGlobalGetOut(), "%16s ",       Rtl_CellTypeStr(p, pCell) );
+            fprintf( Abc_FrameGlobalGetOut(), "%16s ",       Rtl_CellNameStr(p, pCell) );
         }
         else
-            printf( "Type  Connection " );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Type  Connection " );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void Rtl_NtkPrintUnusedCells( Rtl_Ntk_t * p )
 {
     int i, * pCell;
-    printf( "\n*** Printing unused cells:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n*** Printing unused cells:\n" );
     Rtl_NtkForEachCell( p, pCell, i )
     {
         if ( pCell[7] )
             continue;
-        printf( "Unused cell %s           %s\n", Rtl_CellTypeStr(p, pCell), Rtl_CellNameStr(p, pCell) );
+        fprintf( Abc_FrameGlobalGetOut(), "Unused cell %s           %s\n", Rtl_CellTypeStr(p, pCell), Rtl_CellNameStr(p, pCell) );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Rtl_NtkOrderCells( Rtl_Ntk_t * p )
 {
@@ -1000,7 +1000,7 @@ Vec_Int_t * Rtl_NtkReadFile( char * pFileName, Abc_Nam_t * p )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName );
         return NULL;
     }
     pBuffer = ABC_ALLOC( char, MAX_LINE );
@@ -1102,9 +1102,9 @@ void Rtl_NtkPrintCell( Rtl_Ntk_t * p, int * pCell )
         fprintf( Rtl_NtkFile(p), "  attribute %s %s\n", Rtl_NtkStr(p, Par), Rtl_NtkStr(p, Val) );  }
         fprintf( Rtl_NtkFile(p), "  cell %s %s\n", Rtl_NtkStr(p, Rtl_CellType(pCell)), Rtl_NtkStr(p, pCell[1]) );
     Rtl_CellForEachParam( p, pCell, Par, Val, i )
-        fprintf( Rtl_NtkFile(p), "    parameter" ), Rtl_NtkPrintSig(p, Par), Rtl_NtkPrintSig(p, Val), printf( "\n" );
+        fprintf( Rtl_NtkFile(p), "    parameter" ), Rtl_NtkPrintSig(p, Par), Rtl_NtkPrintSig(p, Val), fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Rtl_CellForEachConnect( p, pCell, Par, Val, i ) {
-        fprintf( Rtl_NtkFile(p), "    connect" ), Rtl_NtkPrintSig(p, Par), Rtl_NtkPrintSig(p, Val), printf( "\n" ); }
+        fprintf( Rtl_NtkFile(p), "    connect" ), Rtl_NtkPrintSig(p, Par), Rtl_NtkPrintSig(p, Val), fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
         fprintf( Rtl_NtkFile(p), "  end\n" );
 }
 void Rtl_NtkPrintConnection( Rtl_Ntk_t * p, int * pCon )
@@ -1134,7 +1134,7 @@ void Rtl_LibPrint( char * pFileName, Rtl_Lib_t * p )
     p->pFile = pFileName ? fopen( pFileName, "wb" ) : stdout;
     if ( p->pFile == NULL )
     {
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
     else
@@ -1405,8 +1405,8 @@ void Rtl_NtkReportUndefs( Rtl_Ntk_t * p )
             Vec_IntAddToEntry( vCounts, iName, 1 );
         }
     Vec_IntForEachEntry( vNames, iName, i )
-        printf( "  %s (%d)", Rtl_NtkStr(p, iName), Vec_IntEntry(vCounts, i) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "  %s (%d)", Rtl_NtkStr(p, iName), Vec_IntEntry(vCounts, i) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_IntFree( vNames );
     Vec_IntFree( vCounts );
 }
@@ -1423,7 +1423,7 @@ int Rtl_NtkSetParents( Rtl_Ntk_t * p )
     }
     if ( !nUndef )
         return 0;
-    printf( "Module \"%s\" has %d blackbox instances: ", Rtl_NtkName(p), nUndef );
+    fprintf( Abc_FrameGlobalGetOut(), "Module \"%s\" has %d blackbox instances: ", Rtl_NtkName(p), nUndef );
     Rtl_NtkReportUndefs( p );
     return nUndef;
 }
@@ -1853,7 +1853,7 @@ void Rtl_NtkBlastHierarchy( Gia_Man_t * pNew, Rtl_Ntk_t * p, int * pCell )
         Vec_IntForEachEntry( &p->vBitTemp, Val, k )
             Vec_IntWriteEntry( &p->vBitTemp, k, Gia_ManAppendBuf(pNew, Val) );
         Vec_IntPush( pNew->vBarBufs, (nOuts << 16) | Abc_Var2Lit(pModel->NameId, 1) );
-        printf( "Added %d input buffers and %d output buffers for module %s.\n", nIns, nOuts, Rtl_NtkName(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "Added %d input buffers and %d output buffers for module %s.\n", nIns, nOuts, Rtl_NtkName(pModel) );
     }
     Rtl_CellForEachOutput( p, pCell, Par, Val, k )
         nBits += Rtl_NtkInsertSignalRange( p, Val, Vec_IntArray(&p->vBitTemp)+nBits, Vec_IntSize(&p->vBitTemp)-nBits );
@@ -1918,17 +1918,17 @@ char * Rtl_ShortenName( char * pName, int nSize )
 }
 void Rtl_NtkPrintBufOne( Rtl_Lib_t * p, int Lit )
 {
-    printf( "%s (%c%d)  ", Rtl_LibStr(p, Abc_Lit2Var(Lit&0xFFFF)), Abc_LitIsCompl(Lit)? 'o' : 'i', Lit >> 16 );
+    fprintf( Abc_FrameGlobalGetOut(), "%s (%c%d)  ", Rtl_LibStr(p, Abc_Lit2Var(Lit&0xFFFF)), Abc_LitIsCompl(Lit)? 'o' : 'i', Lit >> 16 );
 }
 void Rtl_NtkPrintBufs( Rtl_Ntk_t * p, Vec_Int_t * vBufs )
 {
     int i, Lit;
     if ( Vec_IntSize(vBufs) )
-        printf( "Found %d buffers (%d groups):  ", p->pGia->nBufs, Vec_IntSize(vBufs) );
+        fprintf( Abc_FrameGlobalGetOut(), "Found %d buffers (%d groups):  ", p->pGia->nBufs, Vec_IntSize(vBufs) );
     Vec_IntForEachEntry( vBufs, Lit, i )
         Rtl_NtkPrintBufOne( p->pLib, Lit );
     if ( Vec_IntSize(vBufs) )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 Gia_Man_t * Rtl_NtkBlast( Rtl_Ntk_t * p )
 {
@@ -1955,7 +1955,7 @@ Gia_Man_t * Rtl_NtkBlast( Rtl_Ntk_t * p )
         else if ( Rtl_CellModule(pCell) < ABC_OPER_LAST )
             Rtl_NtkBlastOperator( pNew, p, pCell );
         else
-            printf( "Cannot blast black box %s in module %s.\n", Rtl_NtkStr(p, Rtl_CellType(pCell)), Rtl_NtkName(p) );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot blast black box %s in module %s.\n", Rtl_NtkStr(p, Rtl_CellType(pCell)), Rtl_NtkName(p) );
     }
     Gia_ManHashStop( pNew );
     Rtl_NtkBlastOutputs( pNew, p );
@@ -1967,10 +1967,10 @@ Gia_Man_t * Rtl_NtkBlast( Rtl_Ntk_t * p )
         char Buffer[100]; static int counter = 0;
         sprintf( Buffer, "old%02d.aig", counter++ );
         Gia_AigerWrite( pNew, Buffer, 0, 0, 0 );
-        printf( "Dumped \"%s\" with AIG for module %-20s : ", Buffer, Rtl_ShortenName(Rtl_NtkName(p), 20) );
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped \"%s\" with AIG for module %-20s : ", Buffer, Rtl_ShortenName(Rtl_NtkName(p), 20) );
     }
     else
-        printf( "Derived AIG for module %-20s : ", Rtl_ShortenName(Rtl_NtkName(p), 20) );
+        fprintf( Abc_FrameGlobalGetOut(), "Derived AIG for module %-20s : ", Rtl_ShortenName(Rtl_NtkName(p), 20) );
     Gia_ManPrintStats( pNew, NULL );
     return pNew;
 }
@@ -2084,7 +2084,7 @@ void Rtl_NtkBlastMap( Rtl_Ntk_t * p, int nBits )
         if ( !Rtl_NtkBlastCons(p) )
             break;
     if ( i == 100 )
-        printf( "Mapping connections did not succeed after %d iterations.\n", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Mapping connections did not succeed after %d iterations.\n", i );
 //    else
 //        printf( "Mapping connections converged after %d iterations.\n", i );
 }
@@ -2168,7 +2168,7 @@ void Rtl_NtkBlast2_rec( Rtl_Ntk_t * p, int iBit, int * pDriver )
         else if ( Rtl_CellModule(pCell) < ABC_OPER_LAST )
             Rtl_NtkBlastOperator( p->pGia, p, pCell );
         else
-            printf( "Cannot blast black box %s in module %s.\n", Rtl_NtkStr(p, Rtl_CellType(pCell)), Rtl_NtkName(p) );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot blast black box %s in module %s.\n", Rtl_NtkStr(p, Rtl_CellType(pCell)), Rtl_NtkName(p) );
     }
 }
 Gia_Man_t * Rtl_NtkBlast2( Rtl_Ntk_t * p )
@@ -2177,7 +2177,7 @@ Gia_Man_t * Rtl_NtkBlast2( Rtl_Ntk_t * p )
     Gia_Man_t * pTemp;
     int i, b, nBits = Rtl_NtkRangeWires( p );
     Vec_IntFill( &p->vLits, nBits, -1 );
-printf( "Blasting %s...\r", Rtl_NtkName(p) );
+fprintf( Abc_FrameGlobalGetOut(), "Blasting %s...\r", Rtl_NtkName(p) );
     Rtl_NtkMapWires( p, 0 );
     Rtl_NtkBlastMap( p, nBits );
     assert( p->pGia == NULL );
@@ -2205,10 +2205,10 @@ printf( "Blasting %s...\r", Rtl_NtkName(p) );
         char Buffer[100]; static int counter = 0;
         sprintf( Buffer, "old%02d.aig", counter++ );
         Gia_AigerWrite( p->pGia, Buffer, 0, 0, 0 );
-        printf( "Dumped \"%s\" with AIG for module %-20s : ", Buffer, Rtl_ShortenName(Rtl_NtkName(p), 20) );
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped \"%s\" with AIG for module %-20s : ", Buffer, Rtl_ShortenName(Rtl_NtkName(p), 20) );
     }
     else
-        printf( "Derived AIG for module %-20s : ", Rtl_ShortenName(Rtl_NtkName(p), 20) );
+        fprintf( Abc_FrameGlobalGetOut(), "Derived AIG for module %-20s : ", Rtl_ShortenName(Rtl_NtkName(p), 20) );
     Gia_ManPrintStats( p->pGia, NULL );
     return p->pGia;
 }
@@ -2271,7 +2271,7 @@ void Rtl_LibSetReplace( Rtl_Lib_t * p, Vec_Wec_t * vGuide )
         int iNtk  = Rtl_LibFindTwoModules( p, Name1, Name2 );
         if ( iNtk == -1 )
         {
-            printf( "Cannot find networks \"%s\" and \"%s\" in the design.\n", Rtl_LibStr(p, Name1), Rtl_LibStr(p, Name2) ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot find networks \"%s\" and \"%s\" in the design.\n", Rtl_LibStr(p, Name1), Rtl_LibStr(p, Name2) ); 
             break;
         }
         if ( Type != Rtl_LibStrId(p, "equal") )
@@ -2282,9 +2282,9 @@ void Rtl_LibSetReplace( Rtl_Lib_t * p, Vec_Wec_t * vGuide )
         pNtk2 = Rtl_LibNtk(p, iNtk2);
         pNtk1->iCopy = iNtk2;
         if ( iNtk1 == iNtk2 )
-            printf( "Preparing to prove \"%s\".\n", Rtl_NtkName(pNtk1) );
+            fprintf( Abc_FrameGlobalGetOut(), "Preparing to prove \"%s\".\n", Rtl_NtkName(pNtk1) );
         else
-            printf( "Preparing to replace \"%s\" by \"%s\".\n", Rtl_NtkName(pNtk1), Rtl_NtkName(pNtk2) );
+            fprintf( Abc_FrameGlobalGetOut(), "Preparing to replace \"%s\" by \"%s\".\n", Rtl_NtkName(pNtk1), Rtl_NtkName(pNtk2) );
     }
 }
 
@@ -2305,7 +2305,7 @@ void Rtl_LibPreprocess( Rtl_Lib_t * pLib )
     abctime clk = Abc_Clock(); 
     Rtl_Ntk_t * p1 = NULL, * p2 = NULL, * p;
     int i, k, Status, fFound = 0;
-    printf( "Performing preprocessing for verification.\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Performing preprocessing for verification.\n" );
     // find similar modules
     Vec_PtrForEachEntry( Rtl_Ntk_t *, pLib->vNtks, p1, i )
     Vec_PtrForEachEntry( Rtl_Ntk_t *, pLib->vNtks, p2, k )
@@ -2319,7 +2319,7 @@ void Rtl_LibPreprocess( Rtl_Lib_t * pLib )
         Status = Cec_ManVerifyTwo( p1->pGia, p2->pGia, 0 );
         if ( Status != 1 )
             continue;
-        printf( "Proved equivalent modules: %s == %s\n", Rtl_NtkName(p1), Rtl_NtkName(p2) );
+        fprintf( Abc_FrameGlobalGetOut(), "Proved equivalent modules: %s == %s\n", Rtl_NtkName(p1), Rtl_NtkName(p2) );
         // inline
         if ( Gia_ManAndNum(p1->pGia) > Gia_ManAndNum(p2->pGia) )
             ABC_SWAP( Gia_Man_t *, p1->pGia, p2->pGia );
@@ -2331,7 +2331,7 @@ void Rtl_LibPreprocess( Rtl_Lib_t * pLib )
     }
 finish:
     if ( fFound == 0 )
-        printf( "Preprocessing not succeded.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Preprocessing not succeded.\n" );
     Abc_PrintTime( 1, "Preprocessing time", Abc_Clock() - clk );
     // blast AIGs again
     Vec_PtrForEachEntry( Rtl_Ntk_t *, pLib->vNtks, p, i )
@@ -2349,12 +2349,12 @@ void Rtl_LibSolve( Rtl_Lib_t * pLib, void * pNtk )
     Gia_Man_t * pSwp  = Cec4_ManSimulateTest3( pGia2, 1000000, 0 );
     int RetValue = Gia_ManAndNum(pSwp);
     char * pFileName = "miter_to_solve.aig";
-    printf( "Dumped the miter into file \"%s\".\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Dumped the miter into file \"%s\".\n", pFileName );
     Gia_AigerWrite( pGia2, pFileName, 0, 0, 0 );
     Gia_ManStop( pSwp );
     Gia_ManStop( pGia2 );
     if ( RetValue == 0 )
-        printf( "Verification problem solved after SAT sweeping!  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification problem solved after SAT sweeping!  " );
     else
     {
         Gia_Man_t * pCopy = Gia_ManDup( pTop->pGia );
@@ -2363,9 +2363,9 @@ void Rtl_LibSolve( Rtl_Lib_t * pLib, void * pNtk )
         Status = Cec_ManVerifySimple( pCopy );
         Gia_ManStop( pCopy );
         if ( Status == 1 )
-            printf( "Verification problem solved after CEC!  " );
+            fprintf( Abc_FrameGlobalGetOut(), "Verification problem solved after CEC!  " );
         else
-            printf( "Verification problem is NOT solved (miter has %d nodes)!  ", RetValue );
+            fprintf( Abc_FrameGlobalGetOut(), "Verification problem is NOT solved (miter has %d nodes)!  ", RetValue );
     }
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
@@ -2387,11 +2387,11 @@ void Wln_SolveEqual( Rtl_Lib_t * p, int iNtk1, int iNtk2 )
     abctime clk = Abc_Clock(); 
     Rtl_Ntk_t * pNtk1 = Rtl_LibNtk( p, iNtk1 );
     Rtl_Ntk_t * pNtk2 = Rtl_LibNtk( p, iNtk2 );
-    printf( "\nProving equivalence of \"%s\" and \"%s\"...\n", Rtl_NtkName(pNtk1), Rtl_NtkName(pNtk2) );
+    fprintf( Abc_FrameGlobalGetOut(), "\nProving equivalence of \"%s\" and \"%s\"...\n", Rtl_NtkName(pNtk1), Rtl_NtkName(pNtk2) );
     if ( Gia_ManCiNum(pNtk1->pGia) != Gia_ManCiNum(pNtk2->pGia) || 
          Gia_ManCoNum(pNtk1->pGia) != Gia_ManCoNum(pNtk2->pGia) )
     {
-        printf( "The number of inputs/outputs does not match.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of inputs/outputs does not match.\n" );
     }
     else if ( 1 )
     {
@@ -2414,9 +2414,9 @@ void Wln_SolveEqual( Rtl_Lib_t * p, int iNtk1, int iNtk2 )
     {
         int Status = Cec_ManVerifyTwo( pNtk1->pGia, pNtk2->pGia, 0 );
         if ( Status == 1 )
-            printf( "The networks are equivalent.  " );
+            fprintf( Abc_FrameGlobalGetOut(), "The networks are equivalent.  " );
         else
-            printf( "The networks are NOT equivalent.  " );
+            fprintf( Abc_FrameGlobalGetOut(), "The networks are NOT equivalent.  " );
     }
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
@@ -2482,7 +2482,7 @@ Gia_Man_t * Gia_ManReduceBuffers( Rtl_Lib_t * pLib, Gia_Man_t * p )
     //Vec_Int_t * vOne = Gia_ManCollectBufs( p, 0,      1280/2 );
     //Vec_Int_t * vTwo = Gia_ManCollectBufs( p, 1280/2, 1280/2 );
     int i, One, Two;
-    printf( "Reducing %d buffers... Size(vOne) = %d. Size(vTwo) = %d. \n", p->nBufs, Vec_IntSize(vOne), Vec_IntSize(vTwo) );
+    fprintf( Abc_FrameGlobalGetOut(), "Reducing %d buffers... Size(vOne) = %d. Size(vTwo) = %d. \n", p->nBufs, Vec_IntSize(vOne), Vec_IntSize(vTwo) );
     assert( p->nBufs == 1280 );
     Vec_IntForEachEntryTwo( vOne, vTwo, One, Two, i )
         Vec_IntWriteEntry( vMap, Two, One );
@@ -2502,7 +2502,7 @@ void Wln_SolveInverse( Rtl_Lib_t * p, int iNtk1, int iNtk2 )
     abctime clk = Abc_Clock(); 
     Rtl_Ntk_t * pNtk1 = Rtl_LibNtk( p, iNtk1 );
     Rtl_Ntk_t * pNtk2 = Rtl_LibNtk( p, iNtk2 );
-    int Res = printf( "\nProving inverse equivalence of \"%s\" and \"%s\".\n", Rtl_NtkName(pNtk1), Rtl_NtkName(pNtk2) );
+    int Res = fprintf( Abc_FrameGlobalGetOut(), "\nProving inverse equivalence of \"%s\" and \"%s\".\n", Rtl_NtkName(pNtk1), Rtl_NtkName(pNtk2) );
     int nOuts1, iFirst1 = Gia_ManFindFirst( pNtk1, &nOuts1 );
     int nOuts2, iFirst2 = Gia_ManFindFirst( pNtk2, &nOuts2 );
     Gia_Man_t * pGia1 = Gia_ManMoveSharedFirst( pNtk1->pGia, iFirst1, nOuts1 );
@@ -2513,9 +2513,9 @@ void Wln_SolveInverse( Rtl_Lib_t * p, int iNtk1, int iNtk2 )
         Gia_Man_t * pGia  = Gia_ManMiterInverse( pGia1, pGia2, 0, 0 );
         //Gia_Man_t * pGia2 = Gia_ManReduceBuffers( p, pGia );
         Gia_Man_t * pGia2 = Gia_ManDupNoBuf( pGia );
-        printf( "Dumping inverse miter into file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Dumping inverse miter into file \"%s\".\n", pFileName );
         Gia_AigerWrite( pGia2, pFileName, 0, 0, 0 );
-        printf( "Dumped the miter into file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped the miter into file \"%s\".\n", pFileName );
         if ( Abc_NtkFromGiaCollapse( pGia2 ) )
             Abc_Print( 1, "Networks are equivalent after collapsing.  " );
         else
@@ -2536,9 +2536,9 @@ void Wln_SolveInverse( Rtl_Lib_t * p, int iNtk1, int iNtk2 )
     {
         int Status = Cec_ManVerifyTwoInv( pGia1, pGia2, 0 );
         if ( Status == 1 )
-            printf( "The networks are equivalent.  " );
+            fprintf( Abc_FrameGlobalGetOut(), "The networks are equivalent.  " );
         else
-            printf( "The networks are NOT equivalent.  " );
+            fprintf( Abc_FrameGlobalGetOut(), "The networks are NOT equivalent.  " );
     }
     Res = 0;
     Gia_ManStopP( &pGia1 );
@@ -2548,7 +2548,7 @@ void Wln_SolveInverse( Rtl_Lib_t * p, int iNtk1, int iNtk2 )
 void Wln_SolveProperty( Rtl_Lib_t * p, int iNtk )
 {
     Rtl_Ntk_t * pNtk = Rtl_LibNtk( p, iNtk );
-    printf( "\nProving property \"%s\".\n", Rtl_NtkName(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "\nProving property \"%s\".\n", Rtl_NtkName(pNtk) );
     Rtl_NtkPrintBufs( pNtk, pNtk->pGia->vBarBufs );
     Rtl_LibSolve( p, pNtk );
 }
@@ -2563,7 +2563,7 @@ Vec_Int_t * Wln_ReadNtkRoots( Rtl_Lib_t * p, Vec_Wec_t * vGuide )
         int iNtk  = Rtl_LibFindTwoModules( p, Name1, Name2 );
         if ( iNtk == -1 )
         {
-            printf( "Cannot find networks \"%s\" and \"%s\" in the design.\n", Rtl_LibStr(p, Name1), Rtl_LibStr(p, Name2) ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot find networks \"%s\" and \"%s\" in the design.\n", Rtl_LibStr(p, Name1), Rtl_LibStr(p, Name2) ); 
             break;
         }
 /*
@@ -2601,13 +2601,13 @@ void Wln_SolveWithGuidance( char * pFileName, Rtl_Lib_t * p )
         int iNtk  = Rtl_LibFindTwoModules( p, Name1, Name2 );
         if ( iNtk == -1 )
         {
-            printf( "Cannot find networks \"%s\" and \"%s\" in the design.\n", Rtl_LibStr(p, Name1), Rtl_LibStr(p, Name2) ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot find networks \"%s\" and \"%s\" in the design.\n", Rtl_LibStr(p, Name1), Rtl_LibStr(p, Name2) ); 
             break;
         }
         iNtk1 = iNtk >> 16;
         iNtk2 = iNtk & 0xFFFF;
         if ( Prove != Rtl_LibStrId(p, "prove") )
-            printf( "Unknown task in line %d.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Unknown task in line %d.\n", i );
         //else if ( iNtk1 == -1 )
         //    printf( "Network %s cannot be found in this design.\n", Rtl_LibStr(p, Name1) );
         else
@@ -2671,14 +2671,14 @@ Gia_Man_t * Rtl_ReduceInverse( Rtl_Lib_t * pLib, Gia_Man_t * p )
             Vec_IntPushUnique( vPairs, (Vec_IntEntry(vMap, Gia_ObjFaninId0(pObj, i)) << 16) | (Vec_IntEntry(vMap, i) & 0xFFFF) );
     if ( fVerbose )
     {
-        printf( "Connected boundaries:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Connected boundaries:\n" );
         Vec_IntForEachEntry( vPairs, Entry, i )
         {
-            printf( "%2d -> %2d : ", Entry >> 16, Entry & 0xFFFF );
+            fprintf( Abc_FrameGlobalGetOut(), "%2d -> %2d : ", Entry >> 16, Entry & 0xFFFF );
             Rtl_NtkPrintBufOne( pLib, Vec_IntEntry(p->vBarBufs, Entry >> 16) );
-            printf( " -> "  );
+            fprintf( Abc_FrameGlobalGetOut(), " -> " );
             Rtl_NtkPrintBufOne( pLib, Vec_IntEntry(p->vBarBufs, Entry & 0xFFFF) );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     while ( fChange )
@@ -2704,14 +2704,14 @@ Gia_Man_t * Rtl_ReduceInverse( Rtl_Lib_t * pLib, Gia_Man_t * p )
 //        printf( "%d %d\n", Entry >> 16, Entry & 0xFFFF );
     if ( fVerbose )
     {
-        printf( "Transformed boundaries:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Transformed boundaries:\n" );
         Vec_IntForEachEntry( vPairs, Entry, i )
         {
-            printf( "%2d -> %2d : ", Entry >> 16, Entry & 0xFFFF );
+            fprintf( Abc_FrameGlobalGetOut(), "%2d -> %2d : ", Entry >> 16, Entry & 0xFFFF );
             Rtl_NtkPrintBufOne( pLib, Vec_IntEntry(p->vBarBufs, Entry >> 16) );
-            printf( " -> "  );
+            fprintf( Abc_FrameGlobalGetOut(), " -> " );
             Rtl_NtkPrintBufOne( pLib, Vec_IntEntry(p->vBarBufs, Entry & 0xFFFF) );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     Vec_IntForEachEntry( vPairs, Entry, i )
@@ -2782,7 +2782,7 @@ int Rtl_LibReturnNtk( Rtl_Lib_t * p, char * pModule )
     int iNtk   = NameId ? Rtl_LibFindModule( p, NameId )  : -1;
     if ( iNtk == -1 )
     {
-        printf( "Cannot find module \"%s\" in the current design.\n", pModule );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot find module \"%s\" in the current design.\n", pModule );
         return -1;
     }
     return iNtk;
@@ -2815,7 +2815,7 @@ Gia_Man_t * Rtl_LibCollapse( Rtl_Lib_t * p, char * pTopModule, int fRev, int fVe
     ABC_FREE( pName );
     if ( iNtk == -1 )
     {
-        printf( "Cannot find top module \"%s\".\n", pTopModule ? pTopModule : "" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot find top module \"%s\".\n", pTopModule ? pTopModule : "" );
         return NULL;
     }
     else
@@ -2849,7 +2849,7 @@ Gia_Man_t * Rtl_LibCollapse( Rtl_Lib_t * p, char * pTopModule, int fRev, int fVe
         //Gia_AigerWrite( pGia, "temp_miter.aig", 0, 0, 0 );
         if ( pTop->pGia->vBarBufs )
             pGia->vBarBufs = Vec_IntDup( pTop->pGia->vBarBufs );
-        printf( "Derived global AIG for the top module \"%s\".  ", Rtl_NtkStr(pTop, NameId) );
+        fprintf( Abc_FrameGlobalGetOut(), "Derived global AIG for the top module \"%s\".  ", Rtl_NtkStr(pTop, NameId) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         Rtl_NtkPrintBufs( pTop, pGia->vBarBufs );
         Rtl_LibBlastClean( p );
@@ -2908,7 +2908,7 @@ void Wln_LibGraftOne( Rtl_Lib_t * p, char ** pModules, int nModules, int fInv, i
         int iNtk  = Rtl_LibFindTwoModules( p, Name1, Name2 ); 
         if ( iNtk == -1 )
         {
-            printf( "Cannot find networks \"%s\" and \"%s\" in the design.\n", Rtl_LibStr(p, Name1), Rtl_LibStr(p, Name2) ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot find networks \"%s\" and \"%s\" in the design.\n", Rtl_LibStr(p, Name1), Rtl_LibStr(p, Name2) ); 
             return;
         }
         else
@@ -2920,7 +2920,7 @@ void Wln_LibGraftOne( Rtl_Lib_t * p, char ** pModules, int nModules, int fInv, i
             assert( iNtk1 != iNtk2 );
             if ( fInv )
             {
-                printf( "Setting \"%s\" (appearing %d times) and \"%s\" (appearing %d times) as inverse-equivalent.\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "Setting \"%s\" (appearing %d times) and \"%s\" (appearing %d times) as inverse-equivalent.\n", 
                     Rtl_NtkName(pNtk1), Rtl_LibCountInsts(p, pNtk1), Rtl_NtkName(pNtk2), Rtl_LibCountInsts(p, pNtk2) );
                 if ( p->vInverses == NULL )
                     p->vInverses = Vec_IntAlloc( 10 );
@@ -2928,7 +2928,7 @@ void Wln_LibGraftOne( Rtl_Lib_t * p, char ** pModules, int nModules, int fInv, i
             }
             else
             {
-                printf( "Replacing \"%s\" (appearing %d times) by \"%s\" (appearing %d times).\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "Replacing \"%s\" (appearing %d times) by \"%s\" (appearing %d times).\n", 
                     Rtl_NtkName(pNtk1), Rtl_LibCountInsts(p, pNtk1), Rtl_NtkName(pNtk2), Rtl_LibCountInsts(p, pNtk2) );
                 pNtk1->iCopy = iNtk2;
             //    Rtl_LibSetReplace( p, vGuide );
@@ -2966,7 +2966,7 @@ void Wln_LibMarkHierarchy( Rtl_Lib_t * p, char ** ppModule, int nModules, int fV
             continue;
         pNtk = Rtl_LibNtk( p, iNtk );
         pNtk->fRoot = 1;
-        printf( "Marking module \"%s\" (appearing %d times in the hierarchy).\n", ppModule[i], Rtl_LibCountInsts(p, pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(), "Marking module \"%s\" (appearing %d times in the hierarchy).\n", ppModule[i], Rtl_LibCountInsts(p, pNtk) );
     }
 }
 

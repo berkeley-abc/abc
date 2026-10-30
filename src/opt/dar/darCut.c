@@ -45,10 +45,10 @@ ABC_NAMESPACE_IMPL_START
 void Dar_CutPrint( Dar_Cut_t * pCut )
 {
     unsigned i;
-    printf( "{" );
+    fprintf( Abc_FrameGlobalGetOut(), "{" );
     for ( i = 0; i < pCut->nLeaves; i++ )
-        printf( " %d", pCut->pLeaves[i] );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", pCut->pLeaves[i] );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 
 /**Function*************************************************************
@@ -66,7 +66,7 @@ void Dar_ObjCutPrint( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
     Dar_Cut_t * pCut;
     int i;
-    printf( "Cuts for node %d:\n", pObj->Id );
+    fprintf( Abc_FrameGlobalGetOut(), "Cuts for node %d:\n", pObj->Id );
     Dar_ObjForEachCut( pObj, pCut, i )
         Dar_CutPrint( pCut );
 //    printf( "\n" );

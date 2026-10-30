@@ -315,9 +315,9 @@ int Abc_TtGetCM6Pat( word * p, int nVars, int nFVars, Vec_Int_t * vTable, Vec_Wr
 
 void Abc_TtPrintPat( word * pPat, int nVars, int nMyu )
 {
-    printf( "ACD i-sets with %d variables and column multiplicity %d:\n", nVars, nMyu );
+    fprintf( Abc_FrameGlobalGetOut(), "ACD i-sets with %d variables and column multiplicity %d:\n", nVars, nMyu );
     for ( int m = 0; m < nMyu; m++ )
-        Extra_PrintBinary( stdout, (unsigned *)&pPat[m], (1 << nVars) ), printf("\n");
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&pPat[m], (1 << nVars) ), fprintf(Abc_FrameGlobalGetOut(), "\n");
 }
 int Abc_TtCheck1Shared( word * pPat, int nVars, int nFVars, int nMyu )
 {
@@ -335,14 +335,14 @@ int Abc_TtCheck1Shared( word * pPat, int nVars, int nFVars, int nMyu )
             if ( m < nMyu )
                 break;
         }
-        if ( fVerbose ) printf( "%d : %2d %2d  %2d\n", v, Counts[0], Counts[1], nMyuMax );
+        if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "%d : %2d %2d  %2d\n", v, Counts[0], Counts[1], nMyuMax );
         if ( n == 2 ) {
             //Abc_TtPrintPat( pPat, nVars-nFVars, nMyu );
             //printf( "%d : %2d %2d  %2d\n", v, Counts[0], Counts[1], nMyuMax );
             return nRails - 1;
         }
     }
-    if ( fVerbose ) printf( "Not found\n" );
+    if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Not found\n" );
     return nRails;
 }
 int Abc_TtGetCMInt( word * p, int nVars, int nFVars, Vec_Int_t * vCounts, Vec_Int_t * vTable, Vec_Wrd_t * vStore, Vec_Int_t * vUsed, word * pPat )
@@ -435,10 +435,10 @@ void Abc_TtPermGenTest()
     int fact = Abc_TtFactorial( nVars );
     for ( i = 0; i < fact; i++ )
     {
-        printf( "%3d :", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d :", i );
         for ( k = 0; k < nVars; k++ )
-            printf( " %d", currPerm[k] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " %d", currPerm[k] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         Abc_TtPermGen( currPerm, nVars, NULL, 0 );
     }
 }
@@ -496,11 +496,11 @@ Vec_Int_t * Abc_GenChasePairs( int N, int T )
                 continue;
             Vec_IntPushTwo( vPairs, b[z], a[z] );
             if ( 0 ) {
-                printf( "%3d : ", Count++ );
-                for (j = T - 1; j > -1; j--) printf("%x", b[j]);
-                printf( "  %d <-> %d  ", b[z], a[z] );
-                for (j = T - 1; j > -1; j--) printf("%x", a[j]);
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%3d : ", Count++ );
+                for (j = T - 1; j > -1; j--) fprintf(Abc_FrameGlobalGetOut(), "%x", b[j]);
+                fprintf( Abc_FrameGlobalGetOut(), "  %d <-> %d  ", b[z], a[z] );
+                for (j = T - 1; j > -1; j--) fprintf(Abc_FrameGlobalGetOut(), "%x", a[j]);
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
             break;
         }
@@ -511,13 +511,13 @@ Vec_Int_t * Abc_GenChasePairs( int N, int T )
 void Abc_GenChasePrint( int Count, int * pPerm, int nVars, int nFVars, int Var0, int Var1 )
 {
     int k;
-    printf( "%3d :  ", Count++ );
+    fprintf( Abc_FrameGlobalGetOut(), "%3d :  ", Count++ );
     for ( k = nVars-1; k >= nFVars; k-- )
-        printf( "%d", pPerm[k] );
-    printf( " " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", pPerm[k] );
+    fprintf( Abc_FrameGlobalGetOut(), " " );
     for ( k = nFVars-1; k >= 0; k-- )
-        printf( "%d", pPerm[k] );
-    printf( "  %d <-> %d\n", Var0, Var1 );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", pPerm[k] );
+    fprintf( Abc_FrameGlobalGetOut(), "  %d <-> %d\n", Var0, Var1 );
 }
 void Abc_GenChaseTest()
 {
@@ -590,8 +590,8 @@ void Abc_BSEvalOneTest( word * pT, int nVars, int nLVars, int fVerbose )
             p->vPairs[p->nVars][p->nLVars] = Abc_GenChasePairs( nVars, nLVars );
     }
     int Best = Abc_TtGetCM( pT, nVars, nVars-nLVars, p->vCounts, p->vTable, p->vStore, p->vUsed, 0 );
-    printf( "Function: " ); Extra_PrintHex( stdout, (unsigned *)pT, nVars ); printf( "\n" );
-    printf( "The column multiplicity of the %d-var function with bound-sets of size %d is %d.\n", nVars, nLVars, Best );
+    fprintf( Abc_FrameGlobalGetOut(), "Function: " ); Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)pT, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "The column multiplicity of the %d-var function with bound-sets of size %d is %d.\n", nVars, nLVars, Best );
     Abc_BSEvalFree(p);
 }
 int Abc_BSEvalBest( Abc_BSEval_t * p, word * pIn, word * pBest, word * pBest2, int nVars, int nCVars, int nFVars, int fVerbose, int * pPermBest, int * pPermBest2, int fShared, int nJRatio )
@@ -629,16 +629,16 @@ int Abc_BSEvalBest( Abc_BSEval_t * p, word * pIn, word * pBest, word * pBest2, i
         }
         if ( fVerbose )
         {
-            printf( "%3d : ", i/2 );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d : ", i/2 );
             for ( k = nCVars-1; k >= 0; k-- )
-                printf( " %d", nVars-nCVars+k );
-            printf( " " );
+                fprintf( Abc_FrameGlobalGetOut(), " %d", nVars-nCVars+k );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
             for ( k = nPermVars-1; k >= nFVars; k-- )
-                printf( " %d", Pla2Var[k] );
-            printf( " " );
+                fprintf( Abc_FrameGlobalGetOut(), " %d", Pla2Var[k] );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
             for ( k = nFVars-1; k >= 0; k-- )
-                printf( " %d", Pla2Var[k] );
-            printf( "  : Myu = %3d", CostThis );
+                fprintf( Abc_FrameGlobalGetOut(), " %d", Pla2Var[k] );
+            fprintf( Abc_FrameGlobalGetOut(), "  : Myu = %3d", CostThis );
             //printf( "\n" );
         }
         if ( 0 ) {
@@ -647,11 +647,11 @@ int Abc_BSEvalBest( Abc_BSEval_t * p, word * pIn, word * pBest, word * pBest2, i
             if ( CostThis > (1 << nRails) ) {
                 extern int Abc_SharedEvalBest( Abc_BSEval_t * p, word * pTruth, int nVars, int nCVars, int nFVars, int MyuMin, int nRails, int fVerbose, int * pSetShared, int * pSetSize, word * pPat );
                 int nRailsMin = Abc_SharedEvalBest( p, pIn, nVars, nCVars, nFVars, CostThis, nRails, 0, &Shared, &nSetSize, p->pPat );
-                printf( "  RailMin = %d. Shared = %2d. ", nRailsMin, Shared );
+                fprintf( Abc_FrameGlobalGetOut(), "  RailMin = %d. Shared = %2d. ", nRailsMin, Shared );
             }
         }
         if ( fVerbose )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         int iPlace0 = Var2Pla[Var0];
         int iPlace1 = Var2Pla[Var1];
@@ -697,14 +697,14 @@ void Abc_BSEvalBestTest( word * pIn, int nVars, int nLVars, int fShared, int fVe
     word * pFun = ABC_ALLOC( word, Abc_TtWordNum(nVars) );
     word * pFun2 = ABC_ALLOC( word, Abc_TtWordNum(nVars) );
     int Best = Abc_BSEvalBest( p, pIn, pFun, pFun2, nVars, 0, nVars-nLVars, fVerbose, pPerm, pPerm2, fShared, 0 );
-    printf( "The minimum %s of the %d-var function with bound-sets of size %d is %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "The minimum %s of the %d-var function with bound-sets of size %d is %d.\n", 
         fShared ? "number of rails" : "column multiplicity", nVars, nLVars, Best );
-    printf( "Original: " ); Extra_PrintHex( stdout, (unsigned *)pIn,  nVars ); printf( "\n" );
-    printf( "Permuted: " ); Extra_PrintHex( stdout, (unsigned *)pFun, nVars ); printf( "\n" );
-    printf( "Permutation is " );
+    fprintf( Abc_FrameGlobalGetOut(), "Original: " ); Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)pIn,  nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Permuted: " ); Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)pFun, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Permutation is " );
     for ( i = 0; i < nVars; i++ )
-        printf( "%d ", pPerm[i] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", pPerm[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     ABC_FREE( pFun );
     ABC_FREE( pFun2 );
     Abc_BSEvalFree(p);
@@ -751,17 +751,17 @@ void Abc_BSEvalBestGen( int nVars, int nLVars, int nFuncs, int nMints, int fTryA
             }
         }
         if ( fVerbose ) {
-            printf( "Function %5d ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Function %5d ", i );
             if ( nMints )
-                printf( "with %d positive minterms ", nMints );
+                fprintf( Abc_FrameGlobalGetOut(), "with %d positive minterms ", nMints );
             if ( nVars <= 8 ) {
-                printf( "has truth table: " );
-                Extra_PrintHex( stdout, (unsigned *)pFun, nVars );
+                fprintf( Abc_FrameGlobalGetOut(), "has truth table: " );
+                Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)pFun, nVars );
             }
             if ( fTryAll )
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             else 
-                printf( "  " );
+                fprintf( Abc_FrameGlobalGetOut(), "  " );
         }
         
         if ( fTryAll )
@@ -769,7 +769,7 @@ void Abc_BSEvalBestGen( int nVars, int nLVars, int nFuncs, int nMints, int fTryA
         else 
             Count = Abc_TtGetCM( pFun, nVars, nVars-nLVars, p->vCounts, p->vTable, p->vStore, p->vUsed, fShared );
         if ( fVerbose )
-            printf( "Myu = %d\n", Count );        
+            fprintf( Abc_FrameGlobalGetOut(), "Myu = %d\n", Count );        
         Vec_IntAddToEntry( vCounts[0], Count, 1 );
         Vec_IntAddToEntry( vCounts[1], Abc_Base2Log(Count), 1 );
     }
@@ -777,27 +777,27 @@ void Abc_BSEvalBestGen( int nVars, int nLVars, int nFuncs, int nMints, int fTryA
     ABC_FREE( pFun2 );
     Abc_BSEvalFree(p);
     if ( nMints )
-        printf( "Generated %d random %d-var functions with %d positive minterms.\n", nFuncs, nVars, nMints );
+        fprintf( Abc_FrameGlobalGetOut(), "Generated %d random %d-var functions with %d positive minterms.\n", nFuncs, nVars, nMints );
     else
-        printf( "Generated %d random %d-var functions.\n", nFuncs, nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "Generated %d random %d-var functions.\n", nFuncs, nVars );
     if ( fShared ) {
-        printf( "Distribution of the %s number of rails for bound set size %d with one shared variable:\n", fTryAll ? "MINIMUM": "ORIGINAL", nLVars );
+        fprintf( Abc_FrameGlobalGetOut(), "Distribution of the %s number of rails for bound set size %d with one shared variable:\n", fTryAll ? "MINIMUM": "ORIGINAL", nLVars );
         assert( Vec_IntSum(vCounts[0]) == nFuncs );
         Vec_IntForEachEntry( vCounts[0], Count, i )
-            if ( Count ) printf( "%d=%d (%.2f %%)  ", i, Count, 100.0*Count/nFuncs );
-        printf( "\n" );
+            if ( Count ) fprintf( Abc_FrameGlobalGetOut(), "%d=%d (%.2f %%)  ", i, Count, 100.0*Count/nFuncs );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     else {
-        printf( "Distribution of the %s column multiplicity for bound set size %d with no shared variables:\n", fTryAll ? "MINIMUM": "ORIGINAL", nLVars );
+        fprintf( Abc_FrameGlobalGetOut(), "Distribution of the %s column multiplicity for bound set size %d with no shared variables:\n", fTryAll ? "MINIMUM": "ORIGINAL", nLVars );
         assert( Vec_IntSum(vCounts[0]) == nFuncs );
         Vec_IntForEachEntry( vCounts[0], Count, i )
-            if ( Count ) printf( "%d=%d (%.2f %%)  ", i, Count, 100.0*Count/nFuncs );
-        printf( "\n" );
-        printf( "Distribution of the %s number of rails for bound set size %d with no shared variables:\n", fTryAll ? "MINIMUM": "ORIGINAL", nLVars );
+            if ( Count ) fprintf( Abc_FrameGlobalGetOut(), "%d=%d (%.2f %%)  ", i, Count, 100.0*Count/nFuncs );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Distribution of the %s number of rails for bound set size %d with no shared variables:\n", fTryAll ? "MINIMUM": "ORIGINAL", nLVars );
         assert( Vec_IntSum(vCounts[1]) == nFuncs );
         Vec_IntForEachEntry( vCounts[1], Count, i )
-            if ( Count ) printf( "%d=%d (%.2f %%)  ", i, Count, 100.0*Count/nFuncs );
-        printf( "\n" );
+            if ( Count ) fprintf( Abc_FrameGlobalGetOut(), "%d=%d (%.2f %%)  ", i, Count, 100.0*Count/nFuncs );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_IntFree( vCounts[0] );
     Vec_IntFree( vCounts[1] );
@@ -961,10 +961,10 @@ word Abc_TtFindBVarsSVars( word * pTruth, int nVars, int nRVars, int nRails, int
     if ( pMyu ) *pMyu = MyuMin;
 
     if ( fVerbose ) {
-        printf( "Best perm: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Best perm: " );
         for ( v = 0; v < nVars; v++ )
-            printf( "%d ", pPermBest[v] );
-        printf( "  Myu = %d.  ", MyuMin );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", pPermBest[v] );
+        fprintf( Abc_FrameGlobalGetOut(), "  Myu = %d.  ", MyuMin );
     }
 
     int Shared = 0, nSetSize = 0, nRailsMin = Abc_Base2Log( MyuMin );
@@ -981,7 +981,7 @@ word Abc_TtFindBVarsSVars( word * pTruth, int nVars, int nRVars, int nRails, int
     Abc_BSEvalFree(p);
 
     if ( fVerbose )
-        printf( "Myu min = %d.  Rail min = %d. Shared = %x.\n", MyuMin, nRailsMin, Shared );
+        fprintf( Abc_FrameGlobalGetOut(), "Myu min = %d.  Rail min = %d. Shared = %x.\n", MyuMin, nRailsMin, Shared );
 
     if ( nRailsMin > nRails )
         return 0;
@@ -1070,7 +1070,7 @@ void Abc_BSEvalSet( Abc_BSEval_t * p, Vec_Wec_t * vSets, word * pTruth, int nVar
     for ( i = 0; i < nVars; i++ )
         Abc_TtMoveVar( pCopy, nVars, Var2Pla, Pla2Var, i, i );
     if ( !Abc_TtEqual(pCopy, pTruth, nWords) )
-        printf( "Internal truth table check failed.\n" ); 
+        fprintf( Abc_FrameGlobalGetOut(), "Internal truth table check failed.\n" ); 
 }
 void Vec_WecAppend( Vec_Wec_t * vBase, Vec_Wec_t * vNew )
 {
@@ -1097,11 +1097,11 @@ Vec_Wec_t * Abc_TtFindBVars3( Abc_BSEval_t * p, word * pTruth, int nVars, int nC
         Vec_WecAppend( vAllSets, vSets );
         if ( 0 ) 
         {
-            printf( "Iteration %d :\n", Iter );
+            fprintf( Abc_FrameGlobalGetOut(), "Iteration %d :\n", Iter );
             Vec_WecPrint( vSets, 0 );
-            printf( "Variables: " );
+            fprintf( Abc_FrameGlobalGetOut(), "Variables: " );
             Vec_IntPrint( vVars );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         Vec_IntFree( vVars );
     }
@@ -1178,16 +1178,16 @@ Vec_Wrd_t * Abc_TtFindBVarsSVars2( Abc_BSEval_t * p, word * pTruth, int nVars, i
 
             if ( fVerbose )
             {
-                printf( "%3d : ", i/2 );
+                fprintf( Abc_FrameGlobalGetOut(), "%3d : ", i/2 );
                 for ( k = nCVars-1; k >= 0; k-- )
-                    printf( " %d", nVars-nCVars+k );
-                printf( " " );
+                    fprintf( Abc_FrameGlobalGetOut(), " %d", nVars-nCVars+k );
+                fprintf( Abc_FrameGlobalGetOut(), " " );
                 for ( k = nPermVars-1; k >= nFVars; k-- )
-                    printf( " %d", Pla2Var[k] );
-                printf( " " );
+                    fprintf( Abc_FrameGlobalGetOut(), " %d", Pla2Var[k] );
+                fprintf( Abc_FrameGlobalGetOut(), " " );
                 for ( k = nFVars-1; k >= 0; k-- )
-                    printf( " %d", Pla2Var[k] );
-                printf( "  : Myu = %3d", MyuThis );
+                    fprintf( Abc_FrameGlobalGetOut(), " %d", Pla2Var[k] );
+                fprintf( Abc_FrameGlobalGetOut(), "  : Myu = %3d", MyuThis );
             }
             if ( MyuThis <= MyuOrigBest + nMyuIncrease ) {
                 int Shared = 0, nSetSize = 0;
@@ -1200,7 +1200,7 @@ Vec_Wrd_t * Abc_TtFindBVarsSVars2( Abc_BSEval_t * p, word * pTruth, int nVars, i
                             nRailsMin = nRailsMinNew;
                     }
                     if ( fVerbose )
-                        printf( "  RailsMyu = %3d. RailsMin = %3d. Shared = %2d. SetSize = %d.", Abc_Base2Log(MyuThis), nRailsMin, SharedThis, nSetSizeThis );
+                        fprintf( Abc_FrameGlobalGetOut(), "  RailsMyu = %3d. RailsMin = %3d. Shared = %2d. SetSize = %d.", Abc_Base2Log(MyuThis), nRailsMin, SharedThis, nSetSizeThis );
                     if ( nRailsMin <= nRails ) {
                         MyuThis  = 1 << nRailsMin;
                         Shared   = SharedThis;
@@ -1217,12 +1217,12 @@ Vec_Wrd_t * Abc_TtFindBVarsSVars2( Abc_BSEval_t * p, word * pTruth, int nVars, i
                     else
                         Vec_WrdFill( vRes, 1, Result );
                     if ( fVerbose )
-                        printf( " <== best" );
+                        fprintf( Abc_FrameGlobalGetOut(), " <== best" );
                 }
                 nBSets++;
             }        
             if ( fVerbose )
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         Vec_WecFree( vAllSets );
     }
@@ -1233,16 +1233,16 @@ Vec_Wrd_t * Abc_TtFindBVarsSVars2( Abc_BSEval_t * p, word * pTruth, int nVars, i
             if ( pMyu ) *pMyu = Abc_MinInt( *pMyu, MyuThis );
             if ( fVerbose )
             {
-                printf( "%3d : ", i/2 );
+                fprintf( Abc_FrameGlobalGetOut(), "%3d : ", i/2 );
                 for ( k = nCVars-1; k >= 0; k-- )
-                    printf( " %d", nVars-nCVars+k );
-                printf( " " );
+                    fprintf( Abc_FrameGlobalGetOut(), " %d", nVars-nCVars+k );
+                fprintf( Abc_FrameGlobalGetOut(), " " );
                 for ( k = nPermVars-1; k >= nFVars; k-- )
-                    printf( " %d", Pla2Var[k] );
-                printf( " " );
+                    fprintf( Abc_FrameGlobalGetOut(), " %d", Pla2Var[k] );
+                fprintf( Abc_FrameGlobalGetOut(), " " );
                 for ( k = nFVars-1; k >= 0; k-- )
-                    printf( " %d", Pla2Var[k] );
-                printf( "  : Myu = %3d", MyuThis );
+                    fprintf( Abc_FrameGlobalGetOut(), " %d", Pla2Var[k] );
+                fprintf( Abc_FrameGlobalGetOut(), "  : Myu = %3d", MyuThis );
             }
             if ( MyuThis <= MyuOrigBest + nMyuIncrease ) {
                 int Shared = 0, nSetSize = 0;
@@ -1255,7 +1255,7 @@ Vec_Wrd_t * Abc_TtFindBVarsSVars2( Abc_BSEval_t * p, word * pTruth, int nVars, i
                             nRailsMin = nRailsMinNew;
                     }
                     if ( fVerbose )
-                        printf( "  RailsMyu = %3d. RailsMin = %3d. Shared = %2d. SetSize = %d.", Abc_Base2Log(MyuThis), nRailsMin, SharedThis, nSetSizeThis );
+                        fprintf( Abc_FrameGlobalGetOut(), "  RailsMyu = %3d. RailsMin = %3d. Shared = %2d. SetSize = %d.", Abc_Base2Log(MyuThis), nRailsMin, SharedThis, nSetSizeThis );
                     if ( nRailsMin <= nRails ) {
                         MyuThis  = 1 << nRailsMin;
                         Shared   = SharedThis;
@@ -1272,19 +1272,19 @@ Vec_Wrd_t * Abc_TtFindBVarsSVars2( Abc_BSEval_t * p, word * pTruth, int nVars, i
                     else
                         Vec_WrdFill( vRes, 1, Result );
                     if ( fVerbose )
-                        printf( " <== best" );
+                        fprintf( Abc_FrameGlobalGetOut(), " <== best" );
                 }
                 nBSets++;
             }        
             if ( fVerbose )
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             Abc_TtExchangeVars( pCopy, nVars, Var2Pla, Pla2Var, Var0, Var1 );
         }
     }
     for ( i = 0; i < nPermVars; i++ )
         Abc_TtMoveVar( pCopy, nVars, Var2Pla, Pla2Var, i, i );
     if ( !Abc_TtEqual(pCopy, pTruth, nWords) )
-        printf( "Internal truth table check failed.\n" ); 
+        fprintf( Abc_FrameGlobalGetOut(), "Internal truth table check failed.\n" ); 
 
 //    Abc_BSEvalFree(p);
     if ( MyuBest > (1 << nRails) ) {
@@ -1292,7 +1292,7 @@ Vec_Wrd_t * Abc_TtFindBVarsSVars2( Abc_BSEval_t * p, word * pTruth, int nVars, i
         return NULL;
     }
     if ( fVerbose )
-        printf( "Tried %d bound-sets and collected %d solutions with MyuMin = %d and SharedSize = %d.\n", nBSets, Vec_WrdSize(vRes), MyuBest, nSetSizeBest );    
+        fprintf( Abc_FrameGlobalGetOut(), "Tried %d bound-sets and collected %d solutions with MyuMin = %d and SharedSize = %d.\n", nBSets, Vec_WrdSize(vRes), MyuBest, nSetSizeBest );    
     return vRes;
 }
 

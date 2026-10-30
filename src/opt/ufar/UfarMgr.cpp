@@ -1520,7 +1520,7 @@ void UfarManager::_shrink_final_abstraction() {
     int num_other_pis = compute_bit_level_pi_num(pNtkWithChoices) - num_sel_pis;
 
     Gia_Man_t * pMiter = GetInvMiter(pNtkWithChoices, "inv.pla");
-    printf("Miter stat: pi = %d, ff = %d, and = %d, po = %d\n", Gia_ManPiNum(pMiter), Gia_ManRegNum(pMiter), Gia_ManAndNum(pMiter), Gia_ManPoNum(pMiter));
+    fprintf( Abc_FrameGlobalGetOut(), "Miter stat: pi = %d, ff = %d, and = %d, po = %d\n", Gia_ManPiNum(pMiter), Gia_ManRegNum(pMiter), Gia_ManAndNum(pMiter), Gia_ManPoNum(pMiter) );
 
     vector<unsigned> vec_core_choices;
     compute_core_using_sat(pMiter, vec_core_choices, 1, num_sel_pis, num_other_pis, false, NULL, params.fSatMin);
@@ -1947,7 +1947,7 @@ void UfarManager::DumpParams() const {
 
 void UfarManager::DumpMgrInfo() const {
     cout << "Operators : " << endl;
-    for(unsigned i = 0; i < _vec_op_ids.size(); i++, printf("\n")) {
+    for(unsigned i = 0; i < _vec_op_ids.size(); i++, fprintf( Abc_FrameGlobalGetOut(), "\n" )) {
         cout << "OP_ID = " << i << " : ";
         cout << _vec_orig_names[_vec_op_ids[i]] << " = ";
         cout << _vec_orig_names[Wlc_ObjFaninId0(Wlc_NtkObj(_pOrigNtk, _vec_op_ids[i]))] << " * ";

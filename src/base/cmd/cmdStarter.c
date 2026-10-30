@@ -76,9 +76,9 @@ void * Abc_RunThread( void * pCommand )
     // perform the call
     if ( system( (char *)pCommand ) )
     {
-        fprintf( stderr, "The following command has returned non-zero exit status:\n" );
-        fprintf( stderr, "\"%s\"\n\n", (char *)pCommand );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetErr(),  "The following command has returned non-zero exit status:\n" );
+        fprintf( Abc_FrameGlobalGetErr(),  "\"%s\"\n\n", (char *)pCommand );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     free( pCommand );
 
@@ -117,7 +117,7 @@ void Cmd_RunStarter( char * pFileName, char * pBinary, char * pCommand, int nCor
     // check the number of cores
     if ( nCores < 2 )
     {
-        fprintf( stdout, "The number of cores (%d) should be more than 1.\n", nCores ); 
+        fprintf( Abc_FrameGlobalGetOut(), "The number of cores (%d) should be more than 1.\n", nCores ); 
         return; 
     }
 
@@ -125,7 +125,7 @@ void Cmd_RunStarter( char * pFileName, char * pBinary, char * pCommand, int nCor
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     { 
-        fprintf( stdout, "Input file \"%s\" cannot be opened.\n", pFileName ); 
+        fprintf( Abc_FrameGlobalGetOut(), "Input file \"%s\" cannot be opened.\n", pFileName ); 
         return; 
     }
 
@@ -171,8 +171,8 @@ void Cmd_RunStarter( char * pFileName, char * pBinary, char * pCommand, int nCor
             pFileTemp = fopen( Buffer, "rb" );
             if ( pFileTemp == NULL )
             {
-                fprintf( stdout, "Starter cannot open file \"%s\".\n", Buffer );
-                fflush( stdout );
+                fprintf( Abc_FrameGlobalGetOut(), "Starter cannot open file \"%s\".\n", Buffer );
+                fflush( Abc_FrameGlobalGetOut() );
                 ABC_FREE( pThreadIds );
                 ABC_FREE( Buffer );
                 fclose( pFile );
@@ -206,8 +206,8 @@ void Cmd_RunStarter( char * pFileName, char * pBinary, char * pCommand, int nCor
         else
             BufferCopy = Abc_UtilStrsav( Buffer );
         if ( fVerbose ) {
-            fprintf( stdout, "Calling:  %s\n", (char *)BufferCopy );  
-            fflush( stdout );
+            fprintf( Abc_FrameGlobalGetOut(), "Calling:  %s\n", (char *)BufferCopy );
+            fflush( Abc_FrameGlobalGetOut() );
         }
 
         // wait till there is an empty thread
@@ -257,9 +257,9 @@ void Cmd_RunStarter( char * pFileName, char * pBinary, char * pCommand, int nCor
     // cleanup
 //    status = pthread_mutex_destroy(&mutex);   assert(status == 0);
 //    mutex = PTHREAD_MUTEX_INITIALIZER;
-    fprintf( stdout, "Finished processing commands in file \"%s\".  ", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished processing commands in file \"%s\".  ", pFileName );
     Abc_PrintTime( 1, "Total wall time", Abc_Clock() - clk );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 #endif // pthreads are used

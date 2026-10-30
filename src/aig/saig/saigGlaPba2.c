@@ -310,7 +310,7 @@ int Aig_Gla3CreateSatSolver( Aig_Gla3Man_t * p )
     assert( nVars == Vec_IntSize(p->vVar2Inf) );
     assert( Vec_IntSize(p->vCla2Obj) == (int)p->pSat->stats.clauses+1 );
     if ( p->fVerbose )
-        printf( "The resulting SAT problem contains %d variables and %d clauses.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "The resulting SAT problem contains %d variables and %d clauses.\n", 
             p->pSat->size, p->pSat->stats.clauses );
     return RetValue;
 }
@@ -401,19 +401,19 @@ Vec_Int_t * Aig_Gla3ManUnsatCore( sat_solver2 * pSat, int nConfMax, int fVerbose
     RetValue = sat_solver2_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( RetValue == l_Undef )
     {
-        printf( "Conflict limit is reached.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Conflict limit is reached.\n" );
         return NULL;
     }
     if ( RetValue == l_True )
     {
-        printf( "The BMC problem is SAT.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The BMC problem is SAT.\n" );
         if ( piRetValue )
             *piRetValue = 0;
         return NULL;
     }
     if ( fVerbose )
     {
-        printf( "SAT solver returned UNSAT after %7d conflicts.      ", (int)pSat->stats.conflicts );
+        fprintf( Abc_FrameGlobalGetOut(), "SAT solver returned UNSAT after %7d conflicts.      ", (int)pSat->stats.conflicts );
         Abc_PrintTime( 1, "Time", clock() - clk );
     }
     assert( RetValue == l_False );
@@ -423,7 +423,7 @@ Vec_Int_t * Aig_Gla3ManUnsatCore( sat_solver2 * pSat, int nConfMax, int fVerbose
     vCore = (Vec_Int_t *)Sat_ProofCore( pSat );
     if ( fVerbose )
     {
-        printf( "SAT core contains %8d clauses (out of %8d).   ", Vec_IntSize(vCore), sat_solver2_nclauses(pSat) );
+        fprintf( Abc_FrameGlobalGetOut(), "SAT core contains %8d clauses (out of %8d).   ", Vec_IntSize(vCore), sat_solver2_nclauses(pSat) );
         Abc_PrintTime( 1, "Time", clock() - clk );
     }
     return vCore;
@@ -472,8 +472,8 @@ Vec_Int_t * Aig_Gla3ManCollect( Aig_Gla3Man_t * p, Vec_Int_t * vCore )
             if ( Vec_IntEntry( p->vVec2Use, v * p->nFramesMax + f ) )
                 Vec_IntAddToEntry( vCounts, f, 1 );
         Vec_IntForEachEntry( vCounts, Entry, f )
-            printf( "%d ", Entry );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Entry );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         Vec_IntFree( vCounts );
     }
     return vResult;
@@ -502,9 +502,9 @@ Vec_Int_t * Aig_Gla3ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, in
     if ( fVerbose )
     {
         if ( TimeLimit )
-            printf( "Abstracting from frame %d to frame %d with timeout %d sec.\n", nStart, nFramesMax, TimeLimit );
+            fprintf( Abc_FrameGlobalGetOut(), "Abstracting from frame %d to frame %d with timeout %d sec.\n", nStart, nFramesMax, TimeLimit );
         else
-            printf( "Abstracting from frame %d to frame %d with no timeout.\n", nStart, nFramesMax );
+            fprintf( Abc_FrameGlobalGetOut(), "Abstracting from frame %d to frame %d with no timeout.\n", nStart, nFramesMax );
     }
 
     // start the solver
@@ -512,7 +512,7 @@ Vec_Int_t * Aig_Gla3ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, in
     p = Aig_Gla3ManStart( pAig, nStart, nFramesMax, fVerbose );
     if ( !Aig_Gla3CreateSatSolver( p ) )
     {
-        printf( "Error!  SAT solver became UNSAT.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Error!  SAT solver became UNSAT.\n" );
         Aig_Gla3ManStop( p );
         return NULL;
     }

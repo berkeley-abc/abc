@@ -203,7 +203,7 @@ Vec_Vec_t * Cgt_ManDecideSimple( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nO
         {
             // check if this is indeed a clock-gate
             if ( nOdcMax == 0 && !Ssw_SmlCheckXorImplication( pSml, pObjLi, pObjLo, pCand ) )
-                printf( "Clock gate candidate is invalid!\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Clock gate candidate is invalid!\n" );
             // find its characteristic number
             nHitsCur = Ssw_SmlNodeCountOnesReal( pSml, pCand );
             if ( nHitsMax < nHitsCur )
@@ -223,11 +223,11 @@ Vec_Vec_t * Cgt_ManDecideSimple( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nO
     Ssw_SmlStop( pSml );
     if ( fVerbose )
     {
-        printf( "Gating signals = %6d. Gated flops = %6d. (Total flops = %6d.)\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Gating signals = %6d. Gated flops = %6d. (Total flops = %6d.)\n", 
             Vec_VecSizeSize(vGatesAll), Counter, Saig_ManRegNum(pAig) );
 //        printf( "Gated transitions = %5.2f %%. (%5.2f %%.) ", 
 //            100.0*nTransSaved/nTransTotal, Cgt_ManComputeCoverage(pAig, vGates) );
-        printf( "Gated transitions = %5.2f %%. ", Cgt_ManComputeCoverage(pAig, vGates) );
+        fprintf( Abc_FrameGlobalGetOut(), "Gated transitions = %5.2f %%. ", Cgt_ManComputeCoverage(pAig, vGates) );
         ABC_PRT( "Time", Abc_Clock() - clk );
     }
 /*
@@ -281,9 +281,9 @@ Vec_Vec_t * Cgt_ManDecideArea( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nOdc
 //    printf( "\n" );
     if ( fVerbose )
     {
-        printf( "Gating signals = %6d. Gated flops = %6d. (Total flops = %6d.)\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Gating signals = %6d. Gated flops = %6d. (Total flops = %6d.)\n", 
             Vec_VecSizeSize(vGatesAll), Counter, Saig_ManRegNum(pAig) );
-        printf( "Complete gates = %6d. Gated transitions = %5.2f %%. ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Complete gates = %6d. Gated transitions = %5.2f %%. ", 
             Vec_PtrSize(vCompletes), Cgt_ManComputeCoverage(pAig, vGates) );
         ABC_PRT( "Time", Abc_Clock() - clk );
     }

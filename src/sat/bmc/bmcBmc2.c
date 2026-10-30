@@ -232,7 +232,7 @@ Vec_Ptr_t * Abs_ManTernarySimulate( Aig_Man_t * p, int nFramesMax, int fVerbose 
             {
                 if ( fVerbose )
                 {
-                    printf( "Ternary sim found non-zero output in frame %d.  Used %5.2f MB.  ", 
+                    fprintf( Abc_FrameGlobalGetOut(), "Ternary sim found non-zero output in frame %d.  Used %5.2f MB.  ", 
                         f, 0.25 * (f+1) * Aig_ManObjNum(p) / (1<<20) );
                     ABC_PRT( "Time", Abc_Clock() - clk );
                 }
@@ -241,7 +241,7 @@ Vec_Ptr_t * Abs_ManTernarySimulate( Aig_Man_t * p, int nFramesMax, int fVerbose 
     }
     if ( fVerbose )
     {
-        printf( "Ternary sim proved all outputs in the first %d frames.  Used %5.2f MB.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Ternary sim proved all outputs in the first %d frames.  Used %5.2f MB.  ", 
             nFramesLimit, 0.25 * nFramesLimit * Aig_ManObjNum(p) / (1<<20) );
         ABC_PRT( "Time", Abc_Clock() - clk );
     }
@@ -657,7 +657,7 @@ void Saig_BmcLoadCnf( Saig_Bmc_t * p, Cnf_Dat_t * pCnf )
                 break;
     }
     if ( i < pCnf->nClauses )
-        printf( "SAT solver became UNSAT after adding clauses.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "SAT solver became UNSAT after adding clauses.\n" );
 }
 
 /**Function*************************************************************
@@ -725,7 +725,7 @@ Abc_Cex_t * Saig_BmcGenerateCounterExample( Saig_Bmc_t * p )
     // verify the counter example
     if ( !Saig_ManVerifyCex( p->pAig, pCex ) )
     {
-        printf( "Saig_BmcGenerateCounterExample(): Counter-example is invalid.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Saig_BmcGenerateCounterExample(): Counter-example is invalid.\n" );
         Abc_CexFree( pCex );
         pCex = NULL;
     }
@@ -854,10 +854,10 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
 */
     if ( fVerbose )
     {
-        printf( "Running \"bmc2\". AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Running \"bmc2\". AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 
             Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), Saig_ManRegNum(pAig),
             Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig) );
-        printf( "Params: FramesMax = %d. NodesDelta = %d. ConfMaxOne = %d. ConfMaxAll = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Params: FramesMax = %d. NodesDelta = %d. ConfMaxOne = %d. ConfMaxAll = %d.\n", 
             nFramesMax, nNodesMax, nConfMaxOne, nConfMaxAll );
     } 
     nFramesMax = nFramesMax ? nFramesMax : ABC_INFINITY;
@@ -893,13 +893,13 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         RetValue = Saig_BmcSolveTargets( p, nStart, &nOutsSolved );
         if ( fVerbose )
         {
-            printf( "%4d : F =%5d. O =%4d.  And =%8d. Var =%8d. Conf =%7d. ", 
+            fprintf( Abc_FrameGlobalGetOut(), "%4d : F =%5d. O =%4d.  And =%8d. Var =%8d. Conf =%7d. ", 
                 Iter, p->iFrameLast, p->iOutputLast, Aig_ManNodeNum(p->pFrm), p->nSatVars, 
                 p->pSat ? (int)p->pSat->stats.conflicts : satoko_conflictnum(p->pSat2) );   
-            printf( "%4.0f MB",     4.0*(p->iFrameLast+1)*p->nObjs/(1<<20) );
-            printf( "%9.2f sec", (float)(Abc_Clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
-            printf( "\n" );
-            fflush( stdout );
+            fprintf( Abc_FrameGlobalGetOut(), "%4.0f MB",     4.0*(p->iFrameLast+1)*p->nObjs/(1<<20) );
+            fprintf( Abc_FrameGlobalGetOut(), "%9.2f sec", (float)(Abc_Clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
+            fflush( Abc_FrameGlobalGetOut() );
         }
         if ( RetValue != l_False )
             break;
@@ -907,7 +907,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         if ( nTimeOut && Abc_Clock() > nTimeToStop )
         {
             if ( !fSilent )
-                printf( "Reached timeout (%d seconds).\n",  nTimeOut );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds).\n",  nTimeOut );
             if ( piFrames )
                 *piFrames = p->iFrameLast-1;
             Saig_BmcManStop( p );
@@ -949,17 +949,17 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         if ( RetValue != l_True )
         {
             if ( p->iFrameLast >= p->nFramesMax )
-                printf( "Reached limit on the number of timeframes (%d).\n", p->nFramesMax );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached limit on the number of timeframes (%d).\n", p->nFramesMax );
             else if ( p->nConfMaxAll && (p->pSat ? (int)p->pSat->stats.conflicts : satoko_conflictnum(p->pSat2)) > p->nConfMaxAll )
-                printf( "Reached global conflict limit (%d).\n", p->nConfMaxAll );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached global conflict limit (%d).\n", p->nConfMaxAll );
             else if ( nTimeOut && Abc_Clock() > nTimeToStop )
-                printf( "Reached timeout (%d seconds).\n", nTimeOut );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds).\n", nTimeOut );
             else
-                printf( "Reached local conflict limit (%d).\n", p->nConfMaxOne );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached local conflict limit (%d).\n", p->nConfMaxOne );
         }
     }
     Saig_BmcManStop( p );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
     return Status;
 }
 

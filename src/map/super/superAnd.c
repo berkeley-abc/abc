@@ -126,7 +126,7 @@ void Super2_Precompute( int nInputs, int nLevels, int fVerbose )
     pLibCur = Super2_LibFirst( pMan, nInputs );
 
     // perform the computation of supergates
-printf( "Computing supergates for %d inputs and %d levels:\n", nInputs, nLevels );
+fprintf( Abc_FrameGlobalGetOut(), "Computing supergates for %d inputs and %d levels:\n", nInputs, nLevels );
     for ( Level = 1; Level <= nLevels; Level++ )
     {
 clk = Abc_Clock();
@@ -134,13 +134,13 @@ clk = Abc_Clock();
         pLibNext->nLevels = Level;
         Super2_LibStop( pLibCur );
         pLibCur = pLibNext;
-printf( "Level %d:  Tried = %7d.  Computed = %7d.  ", Level, pMan->nTried, pLibCur->nGates );
+fprintf( Abc_FrameGlobalGetOut(), "Level %d:  Tried = %7d.  Computed = %7d.  ", Level, pMan->nTried, pLibCur->nGates );
 ABC_PRT( "Runtime", Abc_Clock() - clk );
-fflush( stdout );
+fflush( Abc_FrameGlobalGetOut() );
     }
 
-printf( "Writing the output file...\n" );
-fflush( stdout );
+fprintf( Abc_FrameGlobalGetOut(), "Writing the output file...\n" );
+fflush( Abc_FrameGlobalGetOut() );
     // write them into a file
     Super2_LibWrite( pLibCur );
     Super2_LibStop( pLibCur );
@@ -352,10 +352,10 @@ Super2_Lib_t * Super2_LibCompute( Super2_Man_t * pMan, Super2_Lib_t * pLib )
 
         if ( stmm_lookup( pMan->tTable, (char *)(ABC_PTRUINT_T)uTruthR, (char **)&pGate2 ) )
         {
-            printf( "New gate:\n" );
-            Super2_LibWriteGate( stdout, pLibNew, pGate1 );
-            printf( "Gate in the table:\n" );
-            Super2_LibWriteGate( stdout, pLibNew, pGate2 );
+            fprintf( Abc_FrameGlobalGetOut(), "New gate:\n" );
+            Super2_LibWriteGate( Abc_FrameGlobalGetOut(), pLibNew, pGate1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Gate in the table:\n" );
+            Super2_LibWriteGate( Abc_FrameGlobalGetOut(), pLibNew, pGate2 );
             assert( 0 );
         }
         stmm_insert( pMan->tTable, (char *)(ABC_PTRUINT_T)uTruthR, (char *)(ABC_PTRUINT_T)pGate1 );
@@ -370,8 +370,8 @@ Super2_Lib_t * Super2_LibCompute( Super2_Man_t * pMan, Super2_Lib_t * pLib )
     {
         if ( pLib->i && pLib->i % 300 == 0 )
         {
-            printf( "Tried %5d first gates...\n", pLib->i );
-            fflush( stdout );
+            fprintf( Abc_FrameGlobalGetOut(), "Tried %5d first gates...\n", pLib->i );
+            fflush( Abc_FrameGlobalGetOut() );
         }
 
         Super2_LibForEachGate2( pLib, pGate2 )
@@ -467,7 +467,7 @@ void Super2_LibWrite( Super2_Lib_t * pLib )
 
     if ( pLib->nLevels > 5 )
     {
-        printf( "Cannot write file for %d levels.\n", pLib->nLevels );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot write file for %d levels.\n", pLib->nLevels );
         return;
     }
 
@@ -498,8 +498,8 @@ ABC_PRT( "Sorting", Abc_Clock() - clk );
         Super2_LibWriteGate( pFile, pLib, pGate );
     fclose( pFile );
 
-    printf( "The supergates are written into file \"%s\" ", FileName );
-    printf( "(%0.2f MB).\n", ((double)Extra_FileSize(FileName))/(1<<20) );
+    fprintf( Abc_FrameGlobalGetOut(), "The supergates are written into file \"%s\" ", FileName );
+    fprintf( Abc_FrameGlobalGetOut(), "(%0.2f MB).\n", ((double)Extra_FileSize(FileName))/(1<<20) );
 }
 
 /**Function*************************************************************
@@ -641,7 +641,7 @@ char * Super2_LibWriteGate_rec( Super2_Gate_t * pGate, int fInv, int Level )
         {
             sprintf( pBuffer2, "%c%s%s%c", (fInv? '<': '('), pBranch, pBuffer1, (fInv? '>': ')') );
             if ( RetValue == 0 )
-                printf( "Strange!\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Strange!\n" );
         }
     }
     return pBuffer2;

@@ -149,7 +149,7 @@ void Extra_ProgressBarShow( ProgressBar * p, char * pString )
     for ( i++  ; i <= p->posTotal; i++ )
         fprintf( p->pFile, " " );
     fprintf( p->pFile, "\r" );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 /**Function*************************************************************
@@ -173,7 +173,7 @@ void Extra_ProgressBarClean( ProgressBar * p )
     for ( i = 0; i <= p->posTotal; i++ )
         fprintf( p->pFile, " " );
     fprintf( p->pFile, "\r" );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 ////////////////////////////////////////////////////////////////////////

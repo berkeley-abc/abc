@@ -319,48 +319,48 @@ void Aig_ObjPrint( Aig_Man_t * p, Aig_Obj_t * pObj )
     Aig_Obj_t * pTemp;
     if ( pObj == NULL )
     {
-        printf( "Object is NULL." );
+        fprintf( Abc_FrameGlobalGetOut(), "Object is NULL." );
         return;
     }
     if ( Aig_IsComplement(pObj) )
     {
-        printf( "Compl " );
+        fprintf( Abc_FrameGlobalGetOut(), "Compl " );
         pObj = Aig_Not(pObj);
     }
     assert( !Aig_IsComplement(pObj) );
-    printf( "Node %4d : ", Aig_ObjId(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "Node %4d : ", Aig_ObjId(pObj) );
     if ( Aig_ObjIsConst1(pObj) )
-        printf( "constant 1" );
+        fprintf( Abc_FrameGlobalGetOut(), "constant 1" );
     else if ( Aig_ObjIsCi(pObj) )
-        printf( "PI" );
+        fprintf( Abc_FrameGlobalGetOut(), "PI" );
     else if ( Aig_ObjIsCo(pObj) )
-        printf( "PO( %4d%s )", Aig_ObjFanin0(pObj)->Id, (Aig_ObjFaninC0(pObj)? "\'" : " ") );
+        fprintf( Abc_FrameGlobalGetOut(), "PO( %4d%s )", Aig_ObjFanin0(pObj)->Id, (Aig_ObjFaninC0(pObj)? "\'" : " ") );
     else if ( Aig_ObjIsBuf(pObj) )
-        printf( "BUF( %d%s )", Aig_ObjFanin0(pObj)->Id, (Aig_ObjFaninC0(pObj)? "\'" : " ") );
+        fprintf( Abc_FrameGlobalGetOut(), "BUF( %d%s )", Aig_ObjFanin0(pObj)->Id, (Aig_ObjFaninC0(pObj)? "\'" : " ") );
     else
-        printf( "AND( %4d%s, %4d%s )", 
+        fprintf( Abc_FrameGlobalGetOut(), "AND( %4d%s, %4d%s )", 
             Aig_ObjFanin0(pObj)->Id, (Aig_ObjFaninC0(pObj)? "\'" : " "), 
             Aig_ObjFanin1(pObj)->Id, (Aig_ObjFaninC1(pObj)? "\'" : " ") );
-    printf( " (refs = %3d)", Aig_ObjRefs(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), " (refs = %3d)", Aig_ObjRefs(pObj) );
     if ( fShowFanouts && p->pFanData )
     {
         Aig_Obj_t * pFanout;
         int i;
         int iFan = -1; // Suppress "might be used uninitialized"
-        printf( "\nFanouts:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\nFanouts:\n" );
         Aig_ObjForEachFanout( p, pObj, pFanout, iFan, i )
         {
-            printf( "    " );
-            printf( "Node %4d : ", Aig_ObjId(pFanout) );
+            fprintf( Abc_FrameGlobalGetOut(), "    " );
+            fprintf( Abc_FrameGlobalGetOut(), "Node %4d : ", Aig_ObjId(pFanout) );
             if ( Aig_ObjIsCo(pFanout) )
-                printf( "PO( %4d%s )", Aig_ObjFanin0(pFanout)->Id, (Aig_ObjFaninC0(pFanout)? "\'" : " ") );
+                fprintf( Abc_FrameGlobalGetOut(), "PO( %4d%s )", Aig_ObjFanin0(pFanout)->Id, (Aig_ObjFaninC0(pFanout)? "\'" : " ") );
             else if ( Aig_ObjIsBuf(pFanout) )
-                printf( "BUF( %d%s )", Aig_ObjFanin0(pFanout)->Id, (Aig_ObjFaninC0(pFanout)? "\'" : " ") );
+                fprintf( Abc_FrameGlobalGetOut(), "BUF( %d%s )", Aig_ObjFanin0(pFanout)->Id, (Aig_ObjFaninC0(pFanout)? "\'" : " ") );
             else
-                printf( "AND( %4d%s, %4d%s )", 
+                fprintf( Abc_FrameGlobalGetOut(), "AND( %4d%s, %4d%s )", 
                     Aig_ObjFanin0(pFanout)->Id, (Aig_ObjFaninC0(pFanout)? "\'" : " "), 
                     Aig_ObjFanin1(pFanout)->Id, (Aig_ObjFaninC1(pFanout)? "\'" : " ") );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         return;
     }
@@ -368,15 +368,15 @@ void Aig_ObjPrint( Aig_Man_t * p, Aig_Obj_t * pObj )
     if ( p->pEquivs && p->pEquivs[pObj->Id] )
     {
         // print equivalence class
-        printf( "  { %4d ", pObj->Id );
+        fprintf( Abc_FrameGlobalGetOut(), "  { %4d ", pObj->Id );
         for ( pTemp = p->pEquivs[pObj->Id]; pTemp; pTemp = p->pEquivs[pTemp->Id] )
-            printf( " %4d%s", pTemp->Id, (pTemp->fPhase != pObj->fPhase)? "\'" : " " );
-        printf( " }" );
+            fprintf( Abc_FrameGlobalGetOut(), " %4d%s", pTemp->Id, (pTemp->fPhase != pObj->fPhase)? "\'" : " " );
+        fprintf( Abc_FrameGlobalGetOut(), " }" );
         return;
     }
     // this is a secondary node
     if ( p->pReprs && p->pReprs[pObj->Id] )
-        printf( "  class of %d", pObj->Id );
+        fprintf( Abc_FrameGlobalGetOut(), "  class of %d", pObj->Id );
 }
 
 /**Function*************************************************************
@@ -443,7 +443,7 @@ int Aig_ManPropagateBuffers( Aig_Man_t * p, int fUpdateLevel )
         // stop if a cycle occured
         if ( nSteps > 1000000 )
         {
-            printf( "Error: A cycle is encountered while propagating buffers.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Error: A cycle is encountered while propagating buffers.\n" );
             break;
         }
     }
@@ -480,7 +480,7 @@ void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, in
     assert( pObjOld != Aig_ObjFanin1(pObjNewR) );
     if ( pObjOld == Aig_ObjFanin0(pObjNewR) || pObjOld == Aig_ObjFanin1(pObjNewR) )
     {
-        printf( "Aig_ObjReplace(): Internal error!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ObjReplace(): Internal error!\n" );
         exit(1);
     }
     // recursively delete the old node - but leave the object there

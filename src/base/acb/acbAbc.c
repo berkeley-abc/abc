@@ -143,7 +143,7 @@ Abc_Ntk_t * Acb_NtkToAbc( Abc_Ntk_t * pNtk, Acb_Ntk_t * p )
         Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), Abc_NtkObj(pNtkNew, Acb_ObjCopy(p, iFanin)) );
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Acb_NtkToAbc: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Acb_NtkToAbc: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -206,7 +206,7 @@ Acb_Ntk_t * Acb_NtkFromNdr( char * pFileName, void * pModule, Abc_Nam_t * pNames
         for ( k = 0; k < nArray; k++ )
         {
             if ( Vec_IntEntry(vMap, pArray[k]) == 0 )
-                printf( "Cannot find fanin %d of node \"%s\".\n", k, pName );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot find fanin %d of node \"%s\".\n", k, pName );
             Acb_ObjAddFanin( pNtk, ObjId, Vec_IntEntry(vMap, pArray[k]) );
         }
         Acb_ObjSetWeight( pNtk, ObjId, vWeights ? Vec_IntEntry(vWeights, NameId) : 1 );
@@ -220,7 +220,7 @@ Acb_Ntk_t * Acb_NtkFromNdr( char * pFileName, void * pModule, Abc_Nam_t * pNames
         ObjId  = Acb_ObjAlloc( pNtk, ABC_OPER_CO, 1, 0 );
         if ( Vec_IntEntry(vMap, pArray[0]) == 0 )
         {
-            printf( "Adding constant 0 driver to non-driven PO \"%s\".\n", pName );
+            fprintf( Abc_FrameGlobalGetOut(), "Adding constant 0 driver to non-driven PO \"%s\".\n", pName );
             Vec_IntWriteEntry( vMap, pArray[0], Token0 );
         }
         Acb_ObjAddFanin( pNtk, ObjId, Vec_IntEntry(vMap, pArray[0]) );

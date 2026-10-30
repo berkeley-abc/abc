@@ -154,7 +154,7 @@ Vec_Ptr_t *gatherMonotoneSignals(Aig_Man_t *pAig)
     Aig_ManForEachNode( pAig, pObj, i )
     {
         Aig_ObjPrint( pAig, pObj );
-        printf("\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\n");
     }
     
     return NULL;

@@ -943,7 +943,7 @@ static inline Gia_Man_t * Gia_ManBalanceInt( Gia_Man_t * p, int nLutSize, int nC
             nLevelMax = Abc_MaxInt( nLevelMax, Bal_ObjDelay(pMan, Gia_ObjFaninId0p(pNew, pObj)) );
 //            printf( "%d=%d ", i, Bal_ObjDelay(pMan, Gia_ObjFaninId0p(pNew, pObj)) );
         }
-        printf( "Best delay = %d\n", nLevelMax );
+        fprintf( Abc_FrameGlobalGetOut(), "Best delay = %d\n", nLevelMax );
     }
 
 //    assert( Gia_ManObjNum(pNew) <= Gia_ManObjNum(p) );

@@ -145,7 +145,7 @@ Vec_Int_t * Gia_ManSimDeriveResets( Gia_Man_t * pGia )
 //    printf( "\n" );
     Vec_IntFree( vCountLits );
 
-    printf( "Logic0 = %d (%d). Logic1 = %d (%d). ", Counter0, CounterPi0, Counter1, CounterPi1 );
+    fprintf( Abc_FrameGlobalGetOut(), "Logic0 = %d (%d). Logic1 = %d (%d). ", Counter0, CounterPi0, Counter1, CounterPi1 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return vResult;
 }
@@ -672,7 +672,7 @@ Vec_Int_t * Gia_ManSimReadFile( char * pFileIn )
     FILE * pFile = fopen( pFileIn, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open input file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file.\n" );
         return NULL;
     }
     vPat = Vec_IntAlloc( 1000 );
@@ -688,7 +688,7 @@ int Gia_ManSimWriteFile( char * pFileOut, Vec_Int_t * vPat, int nOuts )
     FILE * pFile = fopen( pFileOut, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open output file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file.\n" );
         return 0;
     }
     assert( Vec_IntSize(vPat) % nOuts == 0 );
@@ -737,14 +737,14 @@ void Gia_ManSimSimulatePattern( Gia_Man_t * p, char * pFileIn, char * pFileOut )
         return;
     if ( Vec_IntSize(vPat) % Gia_ManPiNum(p) )
     {
-        printf( "The number of 0s and 1s in the input file (%d) does not evenly divide by the number of primary inputs (%d).\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "The number of 0s and 1s in the input file (%d) does not evenly divide by the number of primary inputs (%d).\n", 
             Vec_IntSize(vPat), Gia_ManPiNum(p) );
         Vec_IntFree( vPat );
         return;
     }
     vPatOut = Gia_ManSimSimulateOne( p, vPat );
     if ( Gia_ManSimWriteFile( pFileOut, vPatOut, Gia_ManPoNum(p) ) )
-        printf( "Output patterns are written into file \"%s\".\n", pFileOut );
+        fprintf( Abc_FrameGlobalGetOut(), "Output patterns are written into file \"%s\".\n", pFileOut );
     Vec_IntFree( vPat );
     Vec_IntFree( vPatOut );
 }
@@ -1247,19 +1247,19 @@ void Gia_ManSimOneBit( Gia_Man_t * p, Vec_Int_t * vValues )
         pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
 
     Gia_ManForEachCi( p, pObj, k )
-        printf( "%d", k % 10 );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", k % 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Gia_ManForEachCi( p, pObj, k )
-        printf( "%d", Vec_IntEntry(vValues, k) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Vec_IntEntry(vValues, k) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     Gia_ManForEachCo( p, pObj, k )
-        printf( "%d", k % 10 );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", k % 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Gia_ManForEachCo( p, pObj, k )
-        printf( "%d", pObj->fMark0 );
-    printf( "\n" );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", pObj->fMark0 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Gia_ManSimOneBitTest2( Gia_Man_t * p )
 {
@@ -1384,7 +1384,7 @@ void Gia_ManSimOneBitTest( Gia_Man_t * p )
         for ( k = 0; k < Vec_IntSize(vValues); k++ )
             Vec_IntWriteEntry( vValues, k, Vec_IntEntry(vValues, k) ^ (rand()&1) );
 
-        printf( "Values = %d   ", Vec_IntSum(vValues) );
+        fprintf( Abc_FrameGlobalGetOut(), "Values = %d   ", Vec_IntSum(vValues) );
         Gia_ManSimOneBit( p, vValues );
     }
 }

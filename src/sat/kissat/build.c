@@ -25,13 +25,13 @@ const char *kissat_version (void) { return VERSION; }
 #define PREFIX(COLORS) \
   do { \
     if (prefix) \
-      fputs (prefix, stdout); \
+      fputs (prefix, Abc_FrameGlobalGetOut()); \
     COLOR (COLORS); \
   } while (0)
 
 #define NL() \
   do { \
-    fputs ("\n", stdout); \
+    fputs ("\n", Abc_FrameGlobalGetOut()); \
     COLOR (NORMAL); \
   } while (0)
 
@@ -42,17 +42,17 @@ void kissat_build (const char *prefix) {
 
   PREFIX (MAGENTA);
   if (ID)
-    printf ("Version %s %s", VERSION, ID);
+    fprintf ( Abc_FrameGlobalGetOut(), "Version %s %s", VERSION, ID);
   else
-    printf ("Version %s", VERSION);
+    fprintf ( Abc_FrameGlobalGetOut(), "Version %s", VERSION);
   NL ();
 
   PREFIX (MAGENTA);
-  printf ("%s", COMPILER);
+  fprintf ( Abc_FrameGlobalGetOut(), "%s", COMPILER);
   NL ();
 
   PREFIX (MAGENTA);
-  printf ("%s", BUILD);
+  fprintf ( Abc_FrameGlobalGetOut(), "%s", BUILD);
   NL ();
 }
 
@@ -62,7 +62,7 @@ void kissat_banner (const char *prefix, const char *name) {
     connected_to_terminal = false;
 
   PREFIX (BOLD MAGENTA);
-  printf ("%s", name);
+  fprintf ( Abc_FrameGlobalGetOut(), "%s", name);
   NL ();
 
   PREFIX (BOLD MAGENTA);
@@ -70,7 +70,7 @@ void kissat_banner (const char *prefix, const char *name) {
 
   for (const char **p = kissat_copyright (), *line; (line = *p); p++) {
     PREFIX (BOLD MAGENTA);
-    fputs (line, stdout);
+    fputs (line, Abc_FrameGlobalGetOut());
     NL ();
   }
 

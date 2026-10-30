@@ -219,7 +219,7 @@ void Hop_TableProfile( Hop_Man_t * p )
         for ( pEntry = p->pTable[i]; pEntry; pEntry = pEntry->pNext )
             Counter++;
         if ( Counter ) 
-            printf( "%d ", Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Counter );
     }
 }
 

@@ -516,15 +516,15 @@ int Cof_ManCountRemoved( Cof_Man_t * p, Cof_Obj_t * pRoot, int fConst1 )
 ***********************************************************************/
 void Cof_ManPrintHighFanoutOne( Cof_Man_t * p, Cof_Obj_t * pObj )
 {
-    printf( "%7d : ",     pObj->Id );
-    printf( "i/o/c =%2d %5d %5d  ",  Cof_ObjFaninNum(pObj), Cof_ObjFanoutNum(pObj), 2*pObj->nFanoutsM );
-    printf( "l =%4d  ",   Cof_ObjLevel(p, pObj) );
-    printf( "s =%5d  ",   Cof_ManSuppSize(p, &pObj, 1) );
-    printf( "TFI =%7d  ", Cof_ManTfiSize(p, &pObj, 1) );
-    printf( "TFO =%7d  ", Cof_ManTfoSize(p, &pObj, 1) );
-    printf( "C0 =%6d  ",  Cof_ManCountRemoved(p, pObj, 0) );
-    printf( "C1 =%6d",    Cof_ManCountRemoved(p, pObj, 1) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "%7d : ",     pObj->Id );
+    fprintf( Abc_FrameGlobalGetOut(), "i/o/c =%2d %5d %5d  ",  Cof_ObjFaninNum(pObj), Cof_ObjFanoutNum(pObj), 2*pObj->nFanoutsM );
+    fprintf( Abc_FrameGlobalGetOut(), "l =%4d  ",   Cof_ObjLevel(p, pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "s =%5d  ",   Cof_ManSuppSize(p, &pObj, 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "TFI =%7d  ", Cof_ManTfiSize(p, &pObj, 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "TFO =%7d  ", Cof_ManTfoSize(p, &pObj, 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "C0 =%6d  ",  Cof_ManCountRemoved(p, pObj, 0) );
+    fprintf( Abc_FrameGlobalGetOut(), "C1 =%6d",    Cof_ManCountRemoved(p, pObj, 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -692,44 +692,44 @@ void Cof_ManPrintFanio( Cof_Man_t * p )
             Vec_IntAddToEntry( vMffcs, 60 + nMffcs/1000000, 1 );
     }
 
-    printf( "The distribution of fanins, fanouts. and MFFCs in the network:\n" );
-    printf( "         Number    Nodes with fanin   Nodes with fanout   Nodes with MFFC\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "The distribution of fanins, fanouts. and MFFCs in the network:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "         Number    Nodes with fanin   Nodes with fanout   Nodes with MFFC\n" );
 
     for ( k = 0; k < nSizeMax; k++ )
     {
         if ( vFanins->pArray[k] == 0 && vFanouts->pArray[k] == 0 && vMffcs->pArray[k] == 0 )
             continue;
         if ( k < 10 )
-            printf( "%15d : ", k );
+            fprintf( Abc_FrameGlobalGetOut(), "%15d : ", k );
         else
         {
             sprintf( Buffer, "%d - %d", (int)pow((double)10, k/10) * (k%10), (int)pow((double)10, k/10) * (k%10+1) - 1 ); 
-            printf( "%15s : ", Buffer );
+            fprintf( Abc_FrameGlobalGetOut(), "%15s : ", Buffer );
         }
         if ( vFanins->pArray[k] == 0 )
-            printf( "              " );
+            fprintf( Abc_FrameGlobalGetOut(), "              " );
         else
-            printf( "%11d   ", vFanins->pArray[k] );
-        printf( "    " );
+            fprintf( Abc_FrameGlobalGetOut(), "%11d   ", vFanins->pArray[k] );
+        fprintf( Abc_FrameGlobalGetOut(), "    " );
         if ( vFanouts->pArray[k] == 0 )
-            printf( "              " );
+            fprintf( Abc_FrameGlobalGetOut(), "              " );
         else
-            printf( "%12d  ", vFanouts->pArray[k] );
-        printf( "    " );
+            fprintf( Abc_FrameGlobalGetOut(), "%12d  ", vFanouts->pArray[k] );
+        fprintf( Abc_FrameGlobalGetOut(), "    " );
         if ( vMffcs->pArray[k] == 0 )
-            printf( "               " );
+            fprintf( Abc_FrameGlobalGetOut(), "               " );
         else
-            printf( "  %12d  ", vMffcs->pArray[k] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "  %12d  ", vMffcs->pArray[k] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_IntFree( vFanins );
     Vec_IntFree( vFanouts );
     Vec_IntFree( vMffcs );
 
-    printf( "Fanins: Max = %d. Ave = %.2f.  Fanouts: Max = %d. Ave =  %.2f.  MFFCs: Max = %d. Ave =  %.2f.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Fanins: Max = %d. Ave = %.2f.  Fanouts: Max = %d. Ave =  %.2f.  MFFCs: Max = %d. Ave =  %.2f.\n", 
         nFaninsMax,  1.0*nFaninsAll /Cof_ManNodeNum(p), 
         nFanoutsMax, 1.0*nFanoutsAll/Cof_ManNodeNum(p), 
-        nMffcsMax,   1.0*nMffcsAll  /nMffcNodes  );
+        nMffcsMax,   1.0*nMffcsAll  /nMffcNodes );
 }
 
 /**Function*************************************************************
@@ -784,14 +784,14 @@ Gia_Man_t * Gia_ManDupCofInt( Gia_Man_t * p, int iVar )
     int i, iCofVar = -1;
     if ( !(iVar > 0 && iVar < Gia_ManObjNum(p)) )
     {
-        printf( "Gia_ManDupCof(): Variable %d is out of range (%d; %d).\n", iVar, 0, Gia_ManObjNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "Gia_ManDupCof(): Variable %d is out of range (%d; %d).\n", iVar, 0, Gia_ManObjNum(p) );
         return NULL;
     }
     // find the cofactoring variable
     pPivot = Gia_ManObj( p, iVar );
     if ( !Gia_ObjIsCand(pPivot) )
     {
-        printf( "Gia_ManDupCof(): Variable %d should be a CI or an AND node.\n", iVar );
+        fprintf( Abc_FrameGlobalGetOut(), "Gia_ManDupCof(): Variable %d should be a CI or an AND node.\n", iVar );
         return NULL;
     }
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
@@ -940,12 +940,12 @@ Gia_Man_t * Gia_ManDupCofAllInt( Gia_Man_t * p, Vec_Int_t * vSigs, int fVerbose 
     int iVar;
     if ( fVerbose )
     { 
-        printf( "Cofactoring %d signals.\n", Vec_IntSize(vSigs) );
+        fprintf( Abc_FrameGlobalGetOut(), "Cofactoring %d signals.\n", Vec_IntSize(vSigs) );
         Gia_ManPrintStats( p, NULL );
     }
     if ( Vec_IntSize( vSigs ) > 200 )
     {
-        printf( "Too many signals to cofactor.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Too many signals to cofactor.\n" );
         return NULL;
     }
     pAig = Gia_ManDup( p );
@@ -965,7 +965,7 @@ Gia_Man_t * Gia_ManDupCofAllInt( Gia_Man_t * p, Vec_Int_t * vSigs, int fVerbose 
         Gia_ManStop( pCof );
         pAig = pNew;
         if ( fVerbose )
-            printf( "Cofactored variable %d.\n", iVar );
+            fprintf( Abc_FrameGlobalGetOut(), "Cofactored variable %d.\n", iVar );
         if ( fVerbose )
             Gia_ManPrintStats( pAig, NULL );
     }
@@ -1054,29 +1054,29 @@ void Gia_ManPrintDsdMatrix( Gia_Man_t * p, int iIn )
     Gia_Man_t * pNew = Gia_ManDsdMatrix( p, iIn ); int i, j, fFirst = 1, Count = 0;
     Gia_Man_t * pSweep = Cec4_ManSimulateTest3( pNew, 0, 0 );  
     Gia_ManStop( pNew );
-    printf( "%4c : ", ' ' );
+    fprintf( Abc_FrameGlobalGetOut(), "%4c : ", ' ' );
     for ( j = 0; j < Gia_ManPiNum(p); j++ )
-        printf( "%4d", j );
-    printf( "\n" );
-    for ( i = 0; i < Gia_ManPiNum(p); i++, printf("\n"), fFirst = 1 )
+        fprintf( Abc_FrameGlobalGetOut(), "%4d", j );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    for ( i = 0; i < Gia_ManPiNum(p); i++, fprintf( Abc_FrameGlobalGetOut(), "\n" ), fFirst = 1 )
     for ( j = 0; j < Gia_ManPiNum(p); j++ ) 
     {
         if ( fFirst )
-            printf( "%4d : ", i ), fFirst = 0;
+            fprintf( Abc_FrameGlobalGetOut(),  "%4d : ", i  ), fFirst = 0;
         if ( i == iIn )
             continue;
         if ( j == iIn )
-            printf( "%4c", ' ' );
+            fprintf( Abc_FrameGlobalGetOut(), "%4c", ' ' );
         else
         {
             if ( j > i ) {
                 if ( Gia_ObjFaninLit0p(pSweep, Gia_ManPo(pSweep, Count++)) == 0 )
-                    printf( "%4c", '.' );
+                    fprintf( Abc_FrameGlobalGetOut(), "%4c", '.' );
                 else
-                    printf( "%4c", '+' );
+                    fprintf( Abc_FrameGlobalGetOut(), "%4c", '+' );
             }
             else
-                printf( "%4c", ' ' );
+                fprintf( Abc_FrameGlobalGetOut(), "%4c", ' ' );
         }
     }
     assert( Count == Gia_ManPoNum(pSweep) );

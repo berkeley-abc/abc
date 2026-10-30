@@ -683,7 +683,7 @@ void Dar_LibIncrementScore( int Class, int Out, int Gain )
 void Dar_LibDumpPriorities()
 {
     int i, k, Out, Out2, Counter = 0, Printed = 0;
-    printf( "\nOutput priorities (total = %d):\n", s_DarLib->nSubgrTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "\nOutput priorities (total = %d):\n", s_DarLib->nSubgrTotal );
     for ( i = 0; i < 222; i++ )
     {
 //        printf( "Class%d: ", i );
@@ -693,16 +693,16 @@ void Dar_LibDumpPriorities()
             Out2 = k == 0 ? Out : s_DarLib->pPrios[i][k-1];
             assert( s_DarLib->pScore[i][Out2] >= s_DarLib->pScore[i][Out] );
 //            printf( "%d(%d), ", Out, s_DarLib->pScore[i][Out] );
-            printf( "%d, ", Out );
+            fprintf( Abc_FrameGlobalGetOut(), "%d, ", Out );
             Printed++;
             if ( ++Counter == 15 )
             {
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 Counter = 0;
             }
         }
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     assert( Printed == s_DarLib->nSubgrTotal );
 }
 
@@ -793,17 +793,17 @@ void Dar_LibObjPrint_rec( Dar_LibObj_t * pObj )
 {
     if ( pObj->fTerm )
     {
-        printf( "%c", 'a' + (int)(pObj - s_DarLib->pObjs) );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + (int)(pObj - s_DarLib->pObjs) );
         return;
     }
-    printf( "(" );
+    fprintf( Abc_FrameGlobalGetOut(), "(" );
     Dar_LibObjPrint_rec( Dar_LibObj(s_DarLib, pObj->Fan0) );
     if ( pObj->fCompl0 )
-        printf( "\'" );
+        fprintf( Abc_FrameGlobalGetOut(), "\'" );
     Dar_LibObjPrint_rec( Dar_LibObj(s_DarLib, pObj->Fan1) );
     if ( pObj->fCompl0 )
-        printf( "\'" );
-    printf( ")" );
+        fprintf( Abc_FrameGlobalGetOut(), "\'" );
+    fprintf( Abc_FrameGlobalGetOut(), ")" );
 }
 
 

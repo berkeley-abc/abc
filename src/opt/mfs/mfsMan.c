@@ -112,36 +112,36 @@ void Mfs_ManPrint( Mfs_Man_t * p )
 {
     if ( p->pPars->fResub )
     {
-        printf( "Nodes = %d. Try = %d. Resub = %d. Div = %d. SAT calls = %d. Timeouts = %d. MaxDivs = %d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes = %d. Try = %d. Resub = %d. Div = %d. SAT calls = %d. Timeouts = %d. MaxDivs = %d.\n",
             p->nTotalNodesBeg, p->nNodesTried, p->nNodesResub, p->nTotalDivs, p->nSatCalls, p->nTimeOuts, p->nMaxDivs );
 
-        printf( "Attempts :   " );
-        printf( "Remove %6d out of %6d (%6.2f %%)   ", p->nRemoves, p->nTryRemoves, 100.0*p->nRemoves/Abc_MaxInt(1, p->nTryRemoves) );
-        printf( "Resub  %6d out of %6d (%6.2f %%)   ", p->nResubs,  p->nTryResubs,  100.0*p->nResubs /Abc_MaxInt(1, p->nTryResubs)  );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Attempts :   " );
+        fprintf( Abc_FrameGlobalGetOut(), "Remove %6d out of %6d (%6.2f %%)   ", p->nRemoves, p->nTryRemoves, 100.0*p->nRemoves/Abc_MaxInt(1, p->nTryRemoves) );
+        fprintf( Abc_FrameGlobalGetOut(), "Resub  %6d out of %6d (%6.2f %%)   ", p->nResubs,  p->nTryResubs,  100.0*p->nResubs /Abc_MaxInt(1, p->nTryResubs) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-        printf( "Reduction:   " );
-        printf( "Nodes  %6d out of %6d (%6.2f %%)   ", p->nTotalNodesBeg-p->nTotalNodesEnd, p->nTotalNodesBeg, 100.0*(p->nTotalNodesBeg-p->nTotalNodesEnd)/Abc_MaxInt(1, p->nTotalNodesBeg) );
-        printf( "Edges  %6d out of %6d (%6.2f %%)   ", p->nTotalEdgesBeg-p->nTotalEdgesEnd, p->nTotalEdgesBeg, 100.0*(p->nTotalEdgesBeg-p->nTotalEdgesEnd)/Abc_MaxInt(1, p->nTotalEdgesBeg) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Reduction:   " );
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes  %6d out of %6d (%6.2f %%)   ", p->nTotalNodesBeg-p->nTotalNodesEnd, p->nTotalNodesBeg, 100.0*(p->nTotalNodesBeg-p->nTotalNodesEnd)/Abc_MaxInt(1, p->nTotalNodesBeg) );
+        fprintf( Abc_FrameGlobalGetOut(), "Edges  %6d out of %6d (%6.2f %%)   ", p->nTotalEdgesBeg-p->nTotalEdgesEnd, p->nTotalEdgesBeg, 100.0*(p->nTotalEdgesBeg-p->nTotalEdgesEnd)/Abc_MaxInt(1, p->nTotalEdgesBeg) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         if (p->pPars->fPower)
-            printf( "Power( %5.2f, %4.2f%%) \n",
+            fprintf( Abc_FrameGlobalGetOut(), "Power( %5.2f, %4.2f%%) \n",
                  p->TotalSwitchingBeg - p->TotalSwitchingEnd,
                  100.0*(p->TotalSwitchingBeg-p->TotalSwitchingEnd)/p->TotalSwitchingBeg );
         if ( p->pPars->fSwapEdge )
-            printf( "Swappable edges = %d. Total edges = %d. Ratio = %5.2f.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "Swappable edges = %d. Total edges = %d. Ratio = %5.2f.\n",
                 p->nNodesResub, Abc_NtkGetTotalFanins(p->pNtk), 1.00 * p->nNodesResub / Abc_NtkGetTotalFanins(p->pNtk) );
 //        printf( "Average ratio of DCs in the resubed nodes = %.2f.\n", 1.0*p->nDcMints/(64 * p->nNodesResub) );
     }
     else
     {
-        printf( "Nodes = %d. Try = %d. Total mints = %d. Local DC mints = %d. Ratio = %5.2f.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes = %d. Try = %d. Total mints = %d. Local DC mints = %d. Ratio = %5.2f.\n", 
             p->nTotalNodesBeg, p->nNodesTried, p->nMintsTotal, p->nMintsTotal-p->nMintsCare, 
             1.0 * (p->nMintsTotal-p->nMintsCare) / p->nMintsTotal );
 //        printf( "Average ratio of sequential DCs in the global space = %5.2f.\n", 
 //            1.0-(p->dTotalRatios/p->nNodesTried) );
-        printf( "Nodes resyn = %d. Ratio = %5.2f.  Total AIG node gain = %d. Timeouts = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes resyn = %d. Ratio = %5.2f.  Total AIG node gain = %d. Timeouts = %d.\n", 
             p->nNodesDec, 1.0 * p->nNodesDec / p->nNodesTried, p->nNodesGained, p->nTimeOuts );
     }
 

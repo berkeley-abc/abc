@@ -358,14 +358,14 @@ void If_ManStop( If_Man_t * p )
         ABC_FREE( pName );
         FILE * pFile = fopen( pFileName, "wb" );
         if ( pFile == NULL )
-            printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         else {
             int nBytes = If_ManDumpData( p, pFile );
             //int nBytes2 = sizeof(int) * (If_ManAndNum(p) * p->pPars->nCutsMax * p->pPars->nLutSize + If_ManCoNum(p) + p->nLevelMax + 1);
             //nBytes2 += sizeof(int) * (If_ManAndNum(p) * p->pPars->nCutsMax);
             //assert( nBytes == nBytes2 );
             fclose( pFile );
-            printf( "Finished writing cut information into file \"%s\" (%.3f MB).\n", pFileName, 1.0 * nBytes / (1<<20) );
+            fprintf( Abc_FrameGlobalGetOut(), "Finished writing cut information into file \"%s\" (%.3f MB).\n", pFileName, 1.0 * nBytes / (1<<20) );
         }
     }
     else if ( p->pPars->fDumpFile && p->pPars->fTruth ) 
@@ -378,14 +378,14 @@ void If_ManStop( If_Man_t * p )
         for ( int i = 7; i <= p->pPars->nLutSize; i++ ) {
             nUnique = Vec_MemEntryNum(p->vTtMem[i]);
             nChunks = (nUnique + nChunkSize - 1) / nChunkSize;
-            printf( "LutSize = %2d  Unique = %7d  Chunks = %7d\n", i, nUnique, nChunks );            
+            fprintf( Abc_FrameGlobalGetOut(), "LutSize = %2d  Unique = %7d  Chunks = %7d\n", i, nUnique, nChunks );            
             sprintf( pBuffer, "%s%02d_%02d", i == 7 ? "":"__", i, nChunks );
             strcat( pFileName, pBuffer );
         }
         strcat( pFileName, ".bin" );
         FILE * pFile = fopen( pFileName, "wb" );
         if ( pFile == NULL )
-            printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         else {
             for ( int i = 7; i <= p->pPars->nLutSize; i++ ) {
                 nUnique = Vec_MemEntryNum(p->vTtMem[i]);
@@ -402,7 +402,7 @@ void If_ManStop( If_Man_t * p )
                 nBytes += nChunks * nChunkSize * nEntrySize * sizeof(word);                
             }
             fclose( pFile );
-            printf( "Finished writing truth tables into file \"%s\" (%.3f MB).\n", pFileName, 1.0 * nBytes / (1<<20) );
+            fprintf( Abc_FrameGlobalGetOut(), "Finished writing truth tables into file \"%s\" (%.3f MB).\n", pFileName, 1.0 * nBytes / (1<<20) );
         }
     }
 
@@ -417,11 +417,11 @@ void If_ManStop( If_Man_t * p )
             nUnique += Vec_MemEntryNum(p->vTtMem[i]);
         for ( i = 6; i <= Abc_MaxInt(6,p->pPars->nLutSize); i++ )
             nMemTotal += (int)Vec_MemMemory(p->vTtMem[i]);
-        printf( "Unique truth tables = %d   Memory = %.2f MB   ", nUnique, 1.0 * nMemTotal / (1<<20) ); 
+        fprintf( Abc_FrameGlobalGetOut(), "Unique truth tables = %d   Memory = %.2f MB   ", nUnique, 1.0 * nMemTotal / (1<<20) ); 
         Abc_PrintTime( 1, "Time", p->timeCache[4] );
         if ( p->nCacheMisses )
         {
-            printf( "Cache hits = %d. Cache misses = %d  (%.2f %%)\n", p->nCacheHits, p->nCacheMisses, 100.0 * p->nCacheMisses / (p->nCacheHits + p->nCacheMisses) ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Cache hits = %d. Cache misses = %d  (%.2f %%)\n", p->nCacheHits, p->nCacheMisses, 100.0 * p->nCacheMisses / (p->nCacheHits + p->nCacheMisses) ); 
             Abc_PrintTime( 1, "Non-DSD   ", p->timeCache[0] );
             Abc_PrintTime( 1, "DSD hits  ", p->timeCache[1] );
             Abc_PrintTime( 1, "DSD misses", p->timeCache[2] );
@@ -441,7 +441,7 @@ void If_ManStop( If_Man_t * p )
     if ( p->pIfDsdMan )
         p->pIfDsdMan = NULL;
     if ( p->pPars->fUseDsd && (p->nCountNonDec[0] || p->nCountNonDec[1]) )
-        printf( "NonDec0 = %d.  NonDec1 = %d.\n", p->nCountNonDec[0], p->nCountNonDec[1] );
+        fprintf( Abc_FrameGlobalGetOut(), "NonDec0 = %d.  NonDec1 = %d.\n", p->nCountNonDec[0], p->nCountNonDec[1] );
     Vec_IntFreeP( &p->vCoAttrs );
     Vec_PtrFree( p->vCis );
     Vec_PtrFree( p->vCos );

@@ -275,7 +275,7 @@ static void Abc_TtStoreWrite(char * pFileName, Rpo_TtStore_t * p, int fBinary) {
     int i, nBytes = 8 * Abc_Truth6WordNum(p->nVars);
     pFile = fopen(pFileName, "wb");
     if (pFile == NULL) {
-        printf("Cannot open file \"%s\" for writing.\n", pFileName);
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName);
         return;
     }
     for (i = 0; i < p->nFuncs; i++) {
@@ -424,10 +424,10 @@ void Abc_TruthRpoTest(char * pFileName, int nVarNum, int nThreshold, int fVerbos
  ***********************************************************************/
 int Abc_RpoTest(char * pFileName, int nVarNum,int nThreshold, int fVerbose) {
     if (fVerbose) {
-        printf("Using truth tables from file \"%s\"...\n", pFileName);
+        fprintf( Abc_FrameGlobalGetOut(), "Using truth tables from file \"%s\"...\n", pFileName);
     }
     Abc_TruthRpoTest(pFileName, nVarNum, nThreshold, fVerbose);
-    fflush(stdout);
+    fflush( Abc_FrameGlobalGetOut() );
     return 0;
 }
 

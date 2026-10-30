@@ -136,12 +136,12 @@ void Sym_ManPrintStats( Sym_Man_t * p )
 {
 //    printf( "Inputs = %5d. Outputs = %5d. Sim words = %5d.\n", 
 //        Abc_NtkCiNum(p->pNtk), Abc_NtkCoNum(p->pNtk), p->nSimWords );
-    printf( "Total symm         = %8d.\n", p->nPairsSymm );
-    printf( "Structural symm    = %8d.\n", p->nPairsSymmStr );
-    printf( "Total non-sym      = %8d.\n", p->nPairsNonSymm );
-    printf( "Total var pairs    = %8d.\n", p->nPairsTotal );
-    printf( "Sat runs SAT       = %8d.\n", p->nSatRunsSat );
-    printf( "Sat runs UNSAT     = %8d.\n", p->nSatRunsUnsat );
+    fprintf( Abc_FrameGlobalGetOut(), "Total symm         = %8d.\n", p->nPairsSymm );
+    fprintf( Abc_FrameGlobalGetOut(), "Structural symm    = %8d.\n", p->nPairsSymmStr );
+    fprintf( Abc_FrameGlobalGetOut(), "Total non-sym      = %8d.\n", p->nPairsNonSymm );
+    fprintf( Abc_FrameGlobalGetOut(), "Total var pairs    = %8d.\n", p->nPairsTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Sat runs SAT       = %8d.\n", p->nSatRunsSat );
+    fprintf( Abc_FrameGlobalGetOut(), "Sat runs UNSAT     = %8d.\n", p->nSatRunsUnsat );
     ABC_PRT( "Structural  ", p->timeStruct );
     ABC_PRT( "Simulation  ", p->timeSim );
     ABC_PRT( "Matrix      ", p->timeMatr );
@@ -234,10 +234,10 @@ void Sim_ManPrintStats( Sim_Man_t * p )
 {
 //    printf( "Inputs = %5d. Outputs = %5d. Sim words = %5d.\n", 
 //        Abc_NtkCiNum(p->pNtk), Abc_NtkCoNum(p->pNtk), p->nSimWords );
-    printf( "Total func supps   = %8d.\n", Sim_UtilCountSuppSizes(p, 0) );
-    printf( "Total struct supps = %8d.\n", Sim_UtilCountSuppSizes(p, 1) );
-    printf( "Sat runs SAT       = %8d.\n", p->nSatRunsSat );
-    printf( "Sat runs UNSAT     = %8d.\n", p->nSatRunsUnsat );
+    fprintf( Abc_FrameGlobalGetOut(), "Total func supps   = %8d.\n", Sim_UtilCountSuppSizes(p, 0) );
+    fprintf( Abc_FrameGlobalGetOut(), "Total struct supps = %8d.\n", Sim_UtilCountSuppSizes(p, 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "Sat runs SAT       = %8d.\n", p->nSatRunsSat );
+    fprintf( Abc_FrameGlobalGetOut(), "Sat runs UNSAT     = %8d.\n", p->nSatRunsUnsat );
     ABC_PRT( "Simulation  ", p->timeSim );
     ABC_PRT( "Traversal   ", p->timeTrav );
     ABC_PRT( "Fraiging    ", p->timeFraig );

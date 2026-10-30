@@ -220,10 +220,10 @@ Vec_Wec_t * Sbd_ManWindowRoots( Gia_Man_t * p, int nTfoLevels, int nTfoFanMax )
     {
         if ( !Gia_ObjIsAnd(Gia_ManObj(p, i)) )
             continue;
-        printf( "Node %3d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %3d : ", i );
         Vec_IntForEachEntry( vNodes, Fan, k )
-            printf( "%d%s ", Abc_Lit2Var(Fan), Abc_LitIsCompl(Fan)? "*":"" );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d%s ", Abc_Lit2Var(Fan), Abc_LitIsCompl(Fan)? "*":"" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     return vTfos;
@@ -608,7 +608,7 @@ int Sbd_ManCheckConst( Sbd_Man_t * p, int Pivot )
     nCares[1] = nCares[1] < nMintCount ? nMintCount - nCares[1] : 0;
 
     if ( p->pPars->fVeryVerbose )
-        printf( "Computing %d offset and %d onset minterms for node %d.\n", nCares[0], nCares[1], Pivot );
+        fprintf( Abc_FrameGlobalGetOut(), "Computing %d offset and %d onset minterms for node %d.\n", nCares[0], nCares[1], Pivot );
 
     if ( Vec_IntSize(p->vLits) >= nCares[0] + nCares[1] )
         Vec_IntShrink( p->vLits, nCares[0] + nCares[1] );
@@ -635,12 +635,12 @@ int Sbd_ManCheckConst( Sbd_Man_t * p, int Pivot )
     {
         Vec_Int_t * vPis = Vec_WecEntry(p->vDivLevels, 0);
         int i, k, Ind;
-        printf( "Additional minterms:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Additional minterms:\n" );
         Vec_IntForEachEntry( p->vLits, Ind, k )
         {
             for ( i = 0; i < Vec_IntSize(vPis); i++ )
-                printf( "%d", Abc_TtGetBit( (word *)Vec_PtrEntry(vSims, Vec_IntEntry(p->vWinObjs, i)), Ind ) );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtGetBit( (word *)Vec_PtrEntry(vSims, Vec_IntEntry(p->vWinObjs, i)), Ind ) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     Vec_PtrFree( vSims );
@@ -649,7 +649,7 @@ int Sbd_ManCheckConst( Sbd_Man_t * p, int Pivot )
     if ( RetValue >= 0 )
     {
         if ( p->pPars->fVeryVerbose )
-            printf( "Found stuck-at-%d node %d.\n", RetValue, Pivot );
+            fprintf( Abc_FrameGlobalGetOut(), "Found stuck-at-%d node %d.\n", RetValue, Pivot );
         Vec_IntWriteEntry( p->vLutLevs, Pivot, 0 );
         p->nLuts[0]++;
         return RetValue;
@@ -695,10 +695,10 @@ static inline void Sbd_TransposeMatrix64( word A[64] )
 static inline void Sbd_PrintMatrix64( word A[64] )
 {
     int j, k;
-    for ( j = 0; j < 64; j++, printf("\n") )
+    for ( j = 0; j < 64; j++, fprintf( Abc_FrameGlobalGetOut(), "\n") )
     for ( k = 0; k < 64; k++ )
-        printf( "%d", (int)((A[j] >> k) & 1) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", (int)((A[j] >> k) & 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -718,56 +718,56 @@ void Sbd_ManPrintObj( Sbd_Man_t * p, int Pivot )
     int i, k, k0, k1, Id, Bit0, Bit1;
 
     Vec_IntForEachEntryStop( p->vWinObjs, Id, i, nDivs )
-        printf( "%3d : ", Id ), Extra_PrintBinary( stdout, (unsigned *)Sbd_ObjSim0(p, Id), 64 ), printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "%3d : ", Id ), Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)Sbd_ObjSim0(p, Id), 64 ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     assert( p->Pivot == Pivot );
     Vec_IntClear( p->vCounts[0] );
     Vec_IntClear( p->vCounts[1] );
 
-    printf( "Node %d.  Useful divisors = %d.\n", Pivot, Vec_IntSize(p->vDivValues) );
-    printf( "Lev : " );
+    fprintf( Abc_FrameGlobalGetOut(), "Node %d.  Useful divisors = %d.\n", Pivot, Vec_IntSize(p->vDivValues) );
+    fprintf( Abc_FrameGlobalGetOut(), "Lev : " );
     Vec_IntForEachEntryStop( p->vWinObjs, Id, i, nDivs )
     {
         if ( i == nDivs-1 )
-            printf( " " );
-        printf( "%d", Vec_IntEntry(p->vLutLevs, Id) );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Vec_IntEntry(p->vLutLevs, Id) );
     }
-    printf( "\n" );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     if ( nDivs > 99 )
     {
-        printf( "    : " );
+        fprintf( Abc_FrameGlobalGetOut(), "    : " );
         Vec_IntForEachEntryStop( p->vWinObjs, Id, i, nDivs )
         {
             if ( i == nDivs-1 )
-                printf( " " );
-            printf( "%d", Id / 100 );
+                fprintf( Abc_FrameGlobalGetOut(), " " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Id / 100 );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     if ( nDivs > 9 )
     {
-        printf( "    : " );
+        fprintf( Abc_FrameGlobalGetOut(), "    : " );
         Vec_IntForEachEntryStop( p->vWinObjs, Id, i, nDivs )
         {
             if ( i == nDivs-1 )
-                printf( " " );
-            printf( "%d", (Id % 100) / 10 );
+                fprintf( Abc_FrameGlobalGetOut(), " " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", (Id % 100) / 10 );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     if ( nDivs > 0 )
     {
-        printf( "    : " );
+        fprintf( Abc_FrameGlobalGetOut(), "    : " );
         Vec_IntForEachEntryStop( p->vWinObjs, Id, i, nDivs )
         {
             if ( i == nDivs-1 )
-                printf( " " );
-            printf( "%d", Id % 10 );
+                fprintf( Abc_FrameGlobalGetOut(), " " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Id % 10 );
         }
-        printf( "\n" );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     // sampling matrix
@@ -776,7 +776,7 @@ void Sbd_ManPrintObj( Sbd_Man_t * p, int Pivot )
         if ( !Abc_TtGetBit(Sbd_ObjSim2(p, Pivot), k) )
             continue;
 
-        printf( "%3d : ", k );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : ", k );
         Vec_IntForEachEntryStop( p->vWinObjs, Id, i, nDivs )
         {
             word * pSims = Sbd_ObjSim0( p, Id );
@@ -785,13 +785,13 @@ void Sbd_ManPrintObj( Sbd_Man_t * p, int Pivot )
             {
                 if ( Abc_TtGetBit(pCtrl, k) )
                     Vec_IntPush( p->vCounts[Abc_TtGetBit(pSims, k)], k );
-                printf( " " );
+                fprintf( Abc_FrameGlobalGetOut(), " " );
             }
-            printf( "%c", Abc_TtGetBit(pCtrl, k) ? '0' + Abc_TtGetBit(pSims, k) : '.' );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", Abc_TtGetBit(pCtrl, k) ? '0' + Abc_TtGetBit(pSims, k) : '.' );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-        printf( "%3d : ", k );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : ", k );
         Vec_IntForEachEntryStop( p->vWinObjs, Id, i, nDivs )
         {
             word * pSims = Sbd_ObjSim0( p, Id );
@@ -800,39 +800,39 @@ void Sbd_ManPrintObj( Sbd_Man_t * p, int Pivot )
             {
                 if ( Abc_TtGetBit(pCtrl, k) )
                     Vec_IntPush( p->vCounts[Abc_TtGetBit(pSims, k)], k );
-                printf( " " );
+                fprintf( Abc_FrameGlobalGetOut(), " " );
             }
-            printf( "%c", Abc_TtGetBit(pCtrl, k) ? '0' + Abc_TtGetBit(pSims, k) : '.' );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", Abc_TtGetBit(pCtrl, k) ? '0' + Abc_TtGetBit(pSims, k) : '.' );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-        printf( "Sims: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Sims: " );
         Vec_IntForEachEntryStop( p->vWinObjs, Id, i, nDivs )
         {
             word * pSims = Sbd_ObjSim0( p, Id );
             //word * pCtrl = Sbd_ObjSim2( p, Id );
             if ( i == nDivs-1 )
-                printf( " " );
-            printf( "%c", '0' + Abc_TtGetBit(pSims, k) );
+                fprintf( Abc_FrameGlobalGetOut(), " " );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", '0' + Abc_TtGetBit(pSims, k) );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-        printf( "Ctrl: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Ctrl: " );
         Vec_IntForEachEntryStop( p->vWinObjs, Id, i, nDivs )
         {
             //word * pSims = Sbd_ObjSim0( p, Id );
             word * pCtrl = Sbd_ObjSim2( p, Id );
             if ( i == nDivs-1 )
-                printf( " " );
-            printf( "%c", '0' + Abc_TtGetBit(pCtrl, k) );
+                fprintf( Abc_FrameGlobalGetOut(), " " );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", '0' + Abc_TtGetBit(pCtrl, k) );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
 
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // covering table
-    printf( "Exploring %d x %d covering table.\n", Vec_IntSize(p->vCounts[0]), Vec_IntSize(p->vCounts[1]) );
+    fprintf( Abc_FrameGlobalGetOut(), "Exploring %d x %d covering table.\n", Vec_IntSize(p->vCounts[0]), Vec_IntSize(p->vCounts[1]) );
 //
 //     Vec_IntForEachEntryStop( p->vCounts[0], Bit0, k0, Abc_MinInt(Vec_IntSize(p->vCounts[0]), 8) )
 //     Vec_IntForEachEntryStop( p->vCounts[1], Bit1, k1, Abc_MinInt(Vec_IntSize(p->vCounts[1]), 8) )
@@ -864,8 +864,8 @@ void Sbd_ManPrintObj( Sbd_Man_t * p, int Pivot )
         if ( Vec_WrdPushUnique( p->vMatrix, Row ) )
             continue;
         for ( i = 0; i < nDivs; i++ )
-            printf( "%d", (int)((Row >> i) & 1) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", (int)((Row >> i) & 1) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -874,13 +874,13 @@ void Sbd_ManMatrPrint( Sbd_Man_t * p, word Cover[], int nCol, int nRows )
     int i, k;
     for ( i = 0; i <= nCol; i++ )
     {
-        printf( "%2d : ", i );
-        printf( "%d ", i == nCol ? Vec_IntEntry(p->vLutLevs, p->Pivot) : Vec_IntEntry(p->vLutLevs, Vec_IntEntry(p->vWinObjs, Vec_IntEntry(p->vDivVars, i))) );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", i == nCol ? Vec_IntEntry(p->vLutLevs, p->Pivot) : Vec_IntEntry(p->vLutLevs, Vec_IntEntry(p->vWinObjs, Vec_IntEntry(p->vDivVars, i))) );
         for ( k = 0; k < nRows; k++ )
-            printf( "%d", (int)((Cover[i] >> k) & 1) );
-        printf( "\n"); 
+            fprintf( Abc_FrameGlobalGetOut(), "%d", (int)((Cover[i] >> k) & 1) );
+        fprintf( Abc_FrameGlobalGetOut(),  "\n"); 
     }
-    printf( "\n");
+    fprintf( Abc_FrameGlobalGetOut(),  "\n");
 }
 static inline void Sbd_ManCoverReverseOrder( word Cover[64] )
 {
@@ -898,10 +898,10 @@ static inline int Sbd_ManAddCube1( int nRowLimit, word Cover[], int nRows, word 
     int n, m;
     if ( 0 )
     {
-        printf( "Adding cube: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Adding cube: " );
         for ( n = 0; n < nRowLimit; n++ )
-            printf( "%d", (int)((Cube >> n) & 1) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", (int)((Cube >> n) & 1) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // do not add contained Cube
     assert( nRows <= nRowLimit );
@@ -1085,7 +1085,7 @@ int Sbd_ManExplore( Sbd_Man_t * p, int Pivot, word * pTruth )
     int RetValue = 0, Status;
 
     if ( p->pPars->fVerbose )
-        printf( "Node %d.  Useful divisors = %d.\n", Pivot, nDivs );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %d.  Useful divisors = %d.\n", Pivot, nDivs );
 
     if ( fVerbose )
         Sbd_ManPrintObj( p, Pivot );
@@ -1127,21 +1127,21 @@ int Sbd_ManExplore( Sbd_Man_t * p, int Pivot, word * pTruth )
     }
 
     if ( p->pPars->fVerbose )
-        printf( "Generated matrix with %d x %d entries.\n", nCubes[0], nCubes[1] );
+        fprintf( Abc_FrameGlobalGetOut(), "Generated matrix with %d x %d entries.\n", nCubes[0], nCubes[1] );
 
     if ( p->pPars->fVerbose )
     for ( n = 0; n < 2; n++ )
     {
-        printf( "%s:\n", n ? "Onset" : "Offset" );
-        for ( i = 0; i < nCubes[n]; i++, printf( "\n" ) )
+        fprintf( Abc_FrameGlobalGetOut(), "%s:\n", n ? "Onset" : "Offset" );
+        for ( i = 0; i < nCubes[n]; i++, fprintf( Abc_FrameGlobalGetOut(),  "\n" ) )
             for ( k = 0; k < 64; k++ )
                 if ( Abc_TtGetBit(&Cubes[n][0][i], k) )
-                    printf( "0" );
+                    fprintf( Abc_FrameGlobalGetOut(), "0" );
                 else if ( Abc_TtGetBit(&Cubes[n][1][i], k) )
-                    printf( "1" );
+                    fprintf( Abc_FrameGlobalGetOut(), "1" );
                 else 
-                    printf( "." );
-        printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "." );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     // create covering table
@@ -1157,7 +1157,7 @@ int Sbd_ManExplore( Sbd_Man_t * p, int Pivot, word * pTruth )
     Sbd_ManCoverReverseOrder( Cover );
 
     if ( p->pPars->fVerbose )
-        printf( "Generated cover with %d entries.\n", nRows );
+        fprintf( Abc_FrameGlobalGetOut(), "Generated cover with %d entries.\n", nRows );
 
     //if ( p->pPars->fVerbose )
     //Sbd_PrintMatrix64( Cover );
@@ -1177,14 +1177,14 @@ int Sbd_ManExplore( Sbd_Man_t * p, int Pivot, word * pTruth )
         if ( !Sbd_ManFindCands( p, Cover, nDivs ) )
         {
             if ( p->pPars->fVerbose )
-                printf( "Cannot find a feasible cover.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot find a feasible cover.\n" );
             p->timeCov += Abc_Clock() - clk;
             return RetValue;
         }
         p->timeCov += Abc_Clock() - clk;
     
         if ( p->pPars->fVerbose )
-            printf( "Candidate support:  " ),
+            fprintf( Abc_FrameGlobalGetOut(),  "Candidate support:  " ),
             Vec_IntPrint( p->vDivSet );
 
         clk = Abc_Clock();
@@ -1200,16 +1200,16 @@ int Sbd_ManExplore( Sbd_Man_t * p, int Pivot, word * pTruth )
             if ( p->pPars->fVerbose )
             {
                 int i;
-                printf( "Node %d:  SAT.\n", Pivot );
+                fprintf( Abc_FrameGlobalGetOut(), "Node %d:  SAT.\n", Pivot );
                 for ( i = 0; i < nDivs; i++ )
-                    printf( "%d", i % 10 );
-                printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d", i % 10 );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 for ( i = 0; i < nDivs; i++ )
-                    printf( "%c", (Vec_IntEntry(p->vDivValues, i) & 0x4) ? '0' + (Vec_IntEntry(p->vDivValues, i) & 1) : 'x' );
-                printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "%c", (Vec_IntEntry(p->vDivValues, i) & 0x4) ? '0' + (Vec_IntEntry(p->vDivValues, i) & 1) : 'x' );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 for ( i = 0; i < nDivs; i++ )
-                    printf( "%c", (Vec_IntEntry(p->vDivValues, i) & 0x8) ? '0' + ((Vec_IntEntry(p->vDivValues, i) >> 1) & 1) : 'x' );
-                printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "%c", (Vec_IntEntry(p->vDivValues, i) & 0x8) ? '0' + ((Vec_IntEntry(p->vDivValues, i) >> 1) & 1) : 'x' );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
             // add row to the covering table
             for ( i = 0; i < nDivs; i++ )
@@ -1222,8 +1222,8 @@ int Sbd_ManExplore( Sbd_Man_t * p, int Pivot, word * pTruth )
         {
             if ( p->pPars->fVerbose )
             {
-                printf( "Node %d:  UNSAT.\n", Pivot );
-                Extra_PrintBinary( stdout, (unsigned *)pTruth, 1 << Vec_IntSize(p->vDivSet) ), printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Node %d:  UNSAT.\n", Pivot );
+                Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)pTruth, 1 << Vec_IntSize(p->vDivSet) ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
             RetValue = 1;
             break;
@@ -1261,7 +1261,7 @@ int Sbd_ManExplore2( Sbd_Man_t * p, int Pivot, word * pTruth )
     if ( RetValue >= 0 )
     {
         if ( p->pPars->fVeryVerbose )
-            printf( "Found stuck-at-%d node %d.\n", RetValue, Pivot );
+            fprintf( Abc_FrameGlobalGetOut(), "Found stuck-at-%d node %d.\n", RetValue, Pivot );
         Vec_IntClear( p->vDivSet );
         *pTruth = RetValue ? ~(word)0 : 0;
         p->nLuts[0]++;
@@ -1296,14 +1296,14 @@ int Sbd_ManExplore2( Sbd_Man_t * p, int Pivot, word * pTruth )
         if ( !Sbd_ManFindCands( p, CoverCols, nDivs ) )
         {
             if ( p->pPars->fVeryVerbose )
-                printf( "Cannot find a feasible cover.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot find a feasible cover.\n" );
             p->timeCov += Abc_Clock() - clk;
             return 0;
         }
         p->timeCov += Abc_Clock() - clk;
 
         if ( p->pPars->fVeryVerbose )
-            printf( "Candidate support:  " ),
+            fprintf( Abc_FrameGlobalGetOut(),  "Candidate support:  " ),
             Vec_IntPrint( p->vDivSet );
 
         clk = Abc_Clock();
@@ -1319,19 +1319,19 @@ int Sbd_ManExplore2( Sbd_Man_t * p, int Pivot, word * pTruth )
             if ( p->pPars->fVeryVerbose )
             {
                 int i;
-                printf( "Node %d:  SAT.\n", Pivot );
+                fprintf( Abc_FrameGlobalGetOut(), "Node %d:  SAT.\n", Pivot );
                 for ( i = 0; i < nDivs; i++ )
-                    printf( "%d", Vec_IntEntry(p->vLutLevs, Vec_IntEntry(p->vWinObjs, Vec_IntEntry(p->vDivVars, i))) );
-                printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d", Vec_IntEntry(p->vLutLevs, Vec_IntEntry(p->vWinObjs, Vec_IntEntry(p->vDivVars, i))) );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 for ( i = 0; i < nDivs; i++ )
-                    printf( "%d", i % 10 );
-                printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d", i % 10 );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 for ( i = 0; i < nDivs; i++ )
-                    printf( "%c", (Vec_IntEntry(p->vDivValues, i) & 0x4) ? '0' + (Vec_IntEntry(p->vDivValues, i) & 1) : 'x' );
-                printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "%c", (Vec_IntEntry(p->vDivValues, i) & 0x4) ? '0' + (Vec_IntEntry(p->vDivValues, i) & 1) : 'x' );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 for ( i = 0; i < nDivs; i++ )
-                    printf( "%c", (Vec_IntEntry(p->vDivValues, i) & 0x8) ? '0' + ((Vec_IntEntry(p->vDivValues, i) >> 1) & 1) : 'x' );
-                printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "%c", (Vec_IntEntry(p->vDivValues, i) & 0x8) ? '0' + ((Vec_IntEntry(p->vDivValues, i) >> 1) & 1) : 'x' );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
             // add row to the covering table
             for ( i = 0; i < nDivs; i++ )
@@ -1344,8 +1344,8 @@ int Sbd_ManExplore2( Sbd_Man_t * p, int Pivot, word * pTruth )
         {
             if ( p->pPars->fVeryVerbose )
             {
-                printf( "Node %d:  UNSAT.   ", Pivot );
-                Extra_PrintBinary( stdout, (unsigned *)pTruth, 1 << Vec_IntSize(p->vDivSet) ), printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Node %d:  UNSAT.   ", Pivot );
+                Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)pTruth, 1 << Vec_IntSize(p->vDivSet) ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
             p->nLuts[1]++;
             RetValue = 1;
@@ -1591,6 +1591,7 @@ int Sbd_ManExploreCut( Sbd_Man_t * p, int Pivot, int nLeaves, int * pLeaves, int
         {
             if ( p->pPars->fVerbose )
                 printf( "The cut at node %d is not topological.\n", p->Pivot );
+                fprintf( Abc_FrameGlobalGetOut(), "The cut at node %d is not topological.\n", p->Pivot );
             return 0;
         }
         assert( Status == l_False );
@@ -2004,7 +2005,7 @@ void Sbd_ManMergeTest( Sbd_Man_t * p )
     int Node;
     Gia_ManForEachAndId( p->pGia, Node )
         Sbd_ManMergeCuts( p, Node );
-    printf( "Delay %d.\n", Sbd_ManDelay(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Delay %d.\n", Sbd_ManDelay(p) );
 }
 
 void Sbd_ManFindCut_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
@@ -2084,7 +2085,7 @@ int Sbd_ManImplement( Sbd_Man_t * p, int Pivot, word Truth )
     assert( Vec_IntEntry(p->vMirrors, Pivot) == -1 );
     Vec_IntWriteEntry( p->vMirrors, Pivot, iLit );
     if ( p->pPars->fVerbose )
-        printf( "Replacing node %d by literal %d.\n", Pivot, iLit );
+        fprintf( Abc_FrameGlobalGetOut(), "Replacing node %d by literal %d.\n", Pivot, iLit );
     // translate literals into variables
     Vec_IntForEachEntry( p->vLits, Entry, i )
         Vec_IntWriteEntry( p->vLits, i, Abc_Lit2Var(Entry) );
@@ -2171,7 +2172,7 @@ int Sbd_ManImplement2( Sbd_Man_t * p, int Pivot, int nStrs, Sbd_Str_t * pStrs )
     assert( Vec_IntEntry(p->vMirrors, Pivot) == -1 );
     Vec_IntWriteEntry( p->vMirrors, Pivot, iLit );
     if ( p->pPars->fVeryVerbose )
-        printf( "Replacing node %d by literal %d.\n", Pivot, iLit );
+        fprintf( Abc_FrameGlobalGetOut(), "Replacing node %d by literal %d.\n", Pivot, iLit );
 
     // extend data-structure to accommodate new nodes
     assert( Vec_IntSize(p->vLutLevs) == iObjLast );
@@ -2800,9 +2801,9 @@ static Gia_Man_t * Sbd_NtkPerformDelay( Gia_Man_t * pGia, Sbd_Par_t * pPars, int
     p->timeTotal = Abc_Clock() - p->timeTotal;
     if ( p->pPars->fVerbose )
     {
-        printf( "K = %d. S = %d. N = %d. P = %d.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "K = %d. S = %d. N = %d. P = %d.  ", 
             p->pPars->nLutSize, p->pPars->nLutNum, p->pPars->nCutSize, p->pPars->nCutNum );
-        printf( "Try = %d. Use = %d.  C = %d. 1 = %d. 2 = %d. 3a = %d. 3b = %d.  Lev = %d.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Try = %d. Use = %d.  C = %d. 1 = %d. 2 = %d. 3a = %d. 3b = %d.  Lev = %d.  ", 
             p->nTried, p->nUsed, p->nLuts[0], p->nLuts[1], p->nLuts[2], p->nLuts[3], p->nLuts[4], fRecover ? Sbd_ManLutLevel(pNew) : Sbd_ManDelay(p) );
         Abc_PrintTime( 1, "Time", p->timeTotal );
     }

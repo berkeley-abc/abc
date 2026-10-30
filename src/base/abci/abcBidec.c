@@ -126,7 +126,7 @@ void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose )
     if ( pPars->nVarsMax > 15 )
     {
         if ( fVerbose )
-        printf( "Resynthesis is not performed for nodes with more than 15 inputs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Resynthesis is not performed for nodes with more than 15 inputs.\n" );
         pPars->nVarsMax = 15;
     }
     vTruth = Vec_IntAlloc( 0 );
@@ -144,7 +144,7 @@ void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose )
     Vec_IntFree( vTruth );
     if ( fVerbose )
     {
-    printf( "Total gain in AIG nodes = %d.  ", nGainTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Total gain in AIG nodes = %d.  ", nGainTotal );
     ABC_PRT( "Total runtime", Abc_Clock() - clk );
     }
 }

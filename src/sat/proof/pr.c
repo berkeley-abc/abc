@@ -213,7 +213,7 @@ void Pr_ManResize( Pr_Man_t * p, int nVarsNew )
 ***********************************************************************/
 void Pr_ManFree( Pr_Man_t * p )
 {
-    printf( "Runtime stats:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Runtime stats:\n" );
 ABC_PRT( "Reading ", p->timeRead  );
 ABC_PRT( "BCP     ", p->timeBcp   );
 ABC_PRT( "Trace   ", p->timeTrace );
@@ -325,7 +325,7 @@ int Pr_ManAddClause( Pr_Man_t * p, lit * pBeg, lit * pEnd, int fRoot, int fClaus
     if ( pClause->nLits == 0 )
     {
         if ( p->pEmpty )
-            printf( "More than one empty clause!\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "More than one empty clause!\n" );
         p->pEmpty = pClause;
     }
     return 1;
@@ -438,9 +438,9 @@ void Extra_PrintBinary_( FILE * pFile, unsigned Sign[], int nBits )
 ***********************************************************************/
 void Pr_ManPrintInterOne( Pr_Man_t * p, Pr_Cls_t * pClause )
 {
-    printf( "Clause %2d :  ", pClause->Id );
-    Extra_PrintBinary_( stdout, &pClause->uTruth, (1 << p->nVarsAB) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Clause %2d :  ", pClause->Id );
+    Extra_PrintBinary_( Abc_FrameGlobalGetOut(), &pClause->uTruth, (1 << p->nVarsAB) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 
@@ -607,10 +607,10 @@ p->timeBcp += Abc_Clock() - clk;
 void Pr_ManPrintClause( Pr_Cls_t * pClause )
 {
     int i;
-    printf( "Clause ID = %d. Proof = %d. {", pClause->Id, (int)pClause->pProof );
+    fprintf( Abc_FrameGlobalGetOut(), "Clause ID = %d. Proof = %d. {", pClause->Id, (int)pClause->pProof );
     for ( i = 0; i < (int)pClause->nLits; i++ )
-        printf( " %d", pClause->pLits[i] );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", pClause->pLits[i] );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 
 /**Function*************************************************************
@@ -627,10 +627,10 @@ void Pr_ManPrintClause( Pr_Cls_t * pClause )
 void Pr_ManPrintResolvent( lit * pResLits, int nResLits )
 {
     int i;
-    printf( "Resolvent: {" );
+    fprintf( Abc_FrameGlobalGetOut(), "Resolvent: {" );
     for ( i = 0; i < nResLits; i++ )
-        printf( " %d", pResLits[i] );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", pResLits[i] );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 
 /**Function*************************************************************
@@ -742,9 +742,9 @@ int Pr_ManProofTraceOne( Pr_Man_t * p, Pr_Cls_t * pConflict, Pr_Cls_t * pFinal )
                 if ( lit_var(p->pResLits[v1]) == Var )
                     break;
             if ( v1 == p->nResLits )
-                printf( "Recording clause %d: Cannot find variable %d in the temporary resolvent.\n", pFinal->Id, Var );
+                fprintf( Abc_FrameGlobalGetOut(), "Recording clause %d: Cannot find variable %d in the temporary resolvent.\n", pFinal->Id, Var );
             if ( p->pResLits[v1] != lit_neg(pReason->pLits[0]) )
-                printf( "Recording clause %d: The resolved variable %d is in the wrong polarity.\n", pFinal->Id, Var );
+                fprintf( Abc_FrameGlobalGetOut(), "Recording clause %d: The resolved variable %d is in the wrong polarity.\n", pFinal->Id, Var );
             // remove this variable from the resolvent
             assert( lit_var(p->pResLits[v1]) == Var );
             p->nResLits--;
@@ -760,7 +760,7 @@ int Pr_ManProofTraceOne( Pr_Man_t * p, Pr_Cls_t * pConflict, Pr_Cls_t * pFinal )
                 if ( v1 == p->nResLits ) 
                 {
                     if ( p->nResLits == p->nResLitsAlloc )
-                        printf( "Recording clause %d: Ran out of space for intermediate resolvent.\n, pFinal->Id" );
+                        fprintf( Abc_FrameGlobalGetOut(), "Recording clause %d: Ran out of space for intermediate resolvent.\n, pFinal->Id" );
                     p->pResLits[ p->nResLits++ ] = pReason->pLits[v2];
                     continue;
                 }
@@ -768,7 +768,7 @@ int Pr_ManProofTraceOne( Pr_Man_t * p, Pr_Cls_t * pConflict, Pr_Cls_t * pFinal )
                 if ( p->pResLits[v1] == pReason->pLits[v2] )
                     continue;
                 // the literal is different
-                printf( "Recording clause %d: Trying to resolve the clause with more than one opposite literal.\n", pFinal->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "Recording clause %d: Trying to resolve the clause with more than one opposite literal.\n", pFinal->Id );
             }
         }
 
@@ -799,7 +799,7 @@ int Pr_ManProofTraceOne( Pr_Man_t * p, Pr_Cls_t * pConflict, Pr_Cls_t * pFinal )
         }
         if ( v1 < p->nResLits )
         {
-            printf( "Recording clause %d: The final resolvent is wrong.\n", pFinal->Id );
+            fprintf( Abc_FrameGlobalGetOut(), "Recording clause %d: The final resolvent is wrong.\n", pFinal->Id );
             Pr_ManPrintClause( pConflict );
             Pr_ManPrintResolvent( p->pResLits, p->nResLits );
             Pr_ManPrintClause( pFinal );
@@ -834,7 +834,7 @@ int Pr_ManProofRecordOne( Pr_Man_t * p, Pr_Cls_t * pClause )
     // empty clause never ends up there
     assert( pClause->nLits > 0 );
     if ( pClause->nLits == 0 )
-        printf( "Error: Empty clause is attempted.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Error: Empty clause is attempted.\n" );
 
     // add assumptions to the trail
     assert( !pClause->fRoot );
@@ -882,7 +882,7 @@ int Pr_ManProofRecordOne( Pr_Man_t * p, Pr_Cls_t * pClause )
     {
         // construct the proof
         p->pEmpty->pProof = (void *)Pr_ManProofTraceOne( p, pConflict, p->pEmpty );
-        printf( "Found last conflict after adding unit clause number %d!\n", pClause->Id );
+        fprintf( Abc_FrameGlobalGetOut(), "Found last conflict after adding unit clause number %d!\n", pClause->Id );
         return 0;
     }
 
@@ -938,7 +938,7 @@ int Pr_ManProcessRoots( Pr_Man_t * p )
         if ( !Pr_ManEnqueue( p, pClause->pLits[0], pClause ) )
         {
             // detected root level conflict
-            printf( "Pr_ManProcessRoots(): Detected a root-level conflict\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Pr_ManProcessRoots(): Detected a root-level conflict\n" );
             assert( 0 );
             return 0;
         }
@@ -949,7 +949,7 @@ int Pr_ManProcessRoots( Pr_Man_t * p )
     if ( pClause )
     {
         // detected root level conflict
-        printf( "Pr_ManProcessRoots(): Detected a root-level conflict\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Pr_ManProcessRoots(): Detected a root-level conflict\n" );
         assert( 0 );
         return 0;
     }
@@ -1008,7 +1008,7 @@ void Pr_ManPrepareInter( Pr_Man_t * p )
     for ( v = 0; v < p->nVars; v++ )
         if ( p->pVarTypes[v] == -1 )
             p->pVarTypes[v] -= p->nVarsAB++;
-printf( "There are %d global variables.\n", p->nVarsAB );
+fprintf( Abc_FrameGlobalGetOut(), "There are %d global variables.\n", p->nVarsAB );
 
     // set interpolants for root clauses
     Pr_ManForEachClauseRoot( p, pClause )
@@ -1081,7 +1081,7 @@ int Pr_ManProofWrite( Pr_Man_t * p )
 
     if ( p->nClausesA )
     {
-        printf( "Interpolant:  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Interpolant:  " );
     }
 
 
@@ -1118,7 +1118,7 @@ Pr_Man_t * Pr_ManProofRead( char * pFileName )
     pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
     {
-        printf( "Count not open input file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Count not open input file \"%s\".\n", pFileName );
         return NULL;
     }
 
@@ -1135,7 +1135,7 @@ Pr_Man_t * Pr_ManProofRead( char * pFileName )
             RetValue = sscanf( pBuffer + 1, "%d %d %d %d", &nVars, &nClauses, &nRoots, &nClausesA );
             if ( RetValue != 3 && RetValue != 4 )
             {
-                printf( "Wrong input file format.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Wrong input file format.\n" );
             }
             p = Pr_ManAlloc( nVars );
             pArray = (int *)ABC_ALLOC( char, sizeof(int) * (nVars + 10) );
@@ -1166,7 +1166,7 @@ Pr_Man_t * Pr_ManProofRead( char * pFileName )
         // add the clause
         if ( !Pr_ManAddClause( p, (unsigned *)pArray, (unsigned *)pArray + nNumbers, Counter < nRoots, Counter < nClausesA ) )
         {
-            printf( "Bad clause number %d.\n", Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "Bad clause number %d.\n", Counter );
             return NULL;
         }
         // count the clauses
@@ -1174,7 +1174,7 @@ Pr_Man_t * Pr_ManProofRead( char * pFileName )
     }
     // check the number of clauses
     if ( Counter != nClauses )
-        printf( "Expected %d clauses but read %d.\n", nClauses, Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Expected %d clauses but read %d.\n", nClauses, Counter );
 
     // finish
     if ( pArray ) ABC_FREE( pArray );
@@ -1244,7 +1244,7 @@ p->timeRead = Abc_Clock() - clk;
         1.0*(p->Counter-p->nRoots)/(p->nClauses-p->nRoots),
         nUsed, 1.0*nUsed/(p->nClauses-p->nRoots)  );
 */
-    printf( "Vars = %d. Roots = %d. Learned = %d. Resol steps = %d.  Ave = %.2f.  Mem = %.2f MB\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Vars = %d. Roots = %d. Learned = %d. Resol steps = %d.  Ave = %.2f.  Mem = %.2f MB\n", 
         p->nVars, p->nRoots, p->nClauses-p->nRoots, p->Counter,  
         1.0*(p->Counter-p->nRoots)/(p->nClauses-p->nRoots), 
         1.0*Pr_ManMemoryReport(p)/(1<<20) );

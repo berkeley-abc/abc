@@ -27,13 +27,13 @@ kissat_abort (void)
 // clang-format on
 
 static void typed_error_message_start (const char *type) {
-  fflush (stdout);
+  fflush( Abc_FrameGlobalGetOut() );
   TERMINAL (stderr, 2);
   COLOR (BOLD);
-  fputs ("kissat: ", stderr);
+  fputs ("kissat: ", Abc_FrameGlobalGetErr());
   COLOR (RED);
-  fputs (type, stderr);
-  fputs (": ", stderr);
+  fputs (type, Abc_FrameGlobalGetErr());
+  fputs (": ", Abc_FrameGlobalGetErr());
   COLOR (NORMAL);
 }
 
@@ -43,9 +43,9 @@ void kissat_fatal_message_start (void) {
 
 static void vprint_error (const char *type, const char *fmt, va_list *ap) {
   typed_error_message_start (type);
-  vfprintf (stderr, fmt, *ap);
-  fputc ('\n', stderr);
-  fflush (stderr);
+  vfprintf( Abc_FrameGlobalGetErr(),  fmt, *ap);
+  fputc( '\n', Abc_FrameGlobalGetErr() );
+  fflush( Abc_FrameGlobalGetErr() );
 }
 
 void kissat_error (const char *fmt, ...) {

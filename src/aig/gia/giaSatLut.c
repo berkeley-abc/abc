@@ -608,21 +608,21 @@ void Sbl_ManUpdateMapping( Sbl_Man_t * p )
 static int Sbl_ManPrintCut( word CutI1, word CutI2, word CutN1, word CutN2 )
 {
     int b, Count = 0; 
-    printf( "{ " );
+    fprintf( Abc_FrameGlobalGetOut(), "{ " );
     for ( b = 0; b < 64; b++ )
         if ( (CutI1 >> b) & 1 )
-            printf( "i%d ", b ), Count++;
+            fprintf( Abc_FrameGlobalGetOut(),  "i%d ", b  ), Count++;
     for ( b = 0; b < 64; b++ )
         if ( (CutI2 >> b) & 1 )
-            printf( "i%d ", 64+b ), Count++;
-    printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(),  "i%d ", 64+b  ), Count++;
+    fprintf( Abc_FrameGlobalGetOut(), " " );
     for ( b = 0; b < 64; b++ )
         if ( (CutN1 >> b) & 1 )
-            printf( "n%d ", b ), Count++;
+            fprintf( Abc_FrameGlobalGetOut(),  "n%d ", b  ), Count++;
     for ( b = 0; b < 64; b++ )
         if ( (CutN2 >> b) & 1 )
-            printf( "n%d ", 64+b ), Count++;
-    printf( "};\n" );
+            fprintf( Abc_FrameGlobalGetOut(),  "n%d ", 64+b  ), Count++;
+    fprintf( Abc_FrameGlobalGetOut(), "};\n" );
     return Count;
 }
 static int Sbl_ManFindAndPrintCut( Sbl_Man_t * p, int c )
@@ -983,7 +983,7 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
     if ( Count == 0 )
     {
         if ( p->fVeryVerbose )
-        printf( "Obj %d: Window with less than %d nodes does not exist.\n", iPivot, p->nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "Obj %d: Window with less than %d nodes does not exist.\n", iPivot, p->nVars );
         p->nSmallWins++;
         return 0;
     }
@@ -991,25 +991,25 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
     if ( nEntries == Hsh_VecSize(p->pHash) )
     {
         if ( p->fVeryVerbose )
-        printf( "Obj %d: This window was already tried.\n", iPivot );
+        fprintf( Abc_FrameGlobalGetOut(), "Obj %d: This window was already tried.\n", iPivot );
         p->nHashWins++;
         return 0;
     }
     if ( p->fVeryVerbose )
-    printf( "\nObj = %6d : Leaf = %2d.  AND = %2d.  Root = %2d.    LUT = %2d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "\nObj = %6d : Leaf = %2d.  AND = %2d.  Root = %2d.    LUT = %2d.\n", 
         iPivot, Vec_IntSize(p->vLeaves), Vec_IntSize(p->vAnds), Vec_IntSize(p->vRoots), Vec_IntSize(p->vNodes) ); 
 
     if ( Vec_IntSize(p->vLeaves) > 128 || Vec_IntSize(p->vAnds) > p->nVars )
     {
         if ( p->fVeryVerbose )
-        printf( "Obj %d: Encountered window with %d inputs and %d internal nodes.\n", iPivot, Vec_IntSize(p->vLeaves), Vec_IntSize(p->vAnds) );
+        fprintf( Abc_FrameGlobalGetOut(), "Obj %d: Encountered window with %d inputs and %d internal nodes.\n", iPivot, Vec_IntSize(p->vLeaves), Vec_IntSize(p->vAnds) );
         p->nLargeWins++;
         return 0;
     }
     if ( Vec_IntSize(p->vAnds) < 10 )
     {
         if ( p->fVeryVerbose )
-        printf( "Skipping.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Skipping.\n" );
         return 0;
     }
 
@@ -1019,7 +1019,7 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
     Sbl_ManCreateCnf( p );
 
     if ( p->fVeryVeryVerbose )
-    printf( "All clauses = %d.  Multi clauses = %d.  Binary clauses = %d.  Other clauses = %d.\n\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "All clauses = %d.  Multi clauses = %d.  Binary clauses = %d.  Other clauses = %d.\n\n", 
         sat_solver_nclauses(p->pSat), Vec_IntSize(p->vAnds), Vec_WrdSize(p->vCutsI1) - Vec_IntSize(p->vAnds), 
         sat_solver_nclauses(p->pSat) - Vec_WrdSize(p->vCutsI1) );
 
@@ -1042,7 +1042,7 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
         int Count = 0, LitCount = 0;
         int nConfBef, nConfAft;
         if ( p->fVeryVerbose )
-            printf( "Trying to find mapping with %d LUTs.\n", StartSol-fKeepTrying );
+            fprintf( Abc_FrameGlobalGetOut(), "Trying to find mapping with %d LUTs.\n", StartSol-fKeepTrying );
     //    for ( i = Vec_IntSize(p->vSolInit)-5; i < nVars; i++ )
     //        Vec_IntPush( p->vAssump, Abc_Var2Lit(Vec_IntEntry(p->vCardVars, i), 1) );
         Vec_IntWriteEntry( p->vAssump, 0, Abc_Var2Lit(Vec_IntEntry(p->vCardVars, StartSol-fKeepTrying), 1) );
@@ -1068,15 +1068,15 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
             if ( p->fVeryVeryVerbose )
             {
                 for ( i = 0; i < Vec_IntSize(p->vAnds); i++ )
-                    printf( "%d", sat_solver_var_value(p->pSat, i) );
-                printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d", sat_solver_var_value(p->pSat, i) );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 for ( i = 0; i < Vec_IntSize(p->vAnds); i++ )
                     if ( sat_solver_var_value(p->pSat, i) )
                     {
-                        printf( "%d=%d ", i, sat_solver_var_value(p->pSat, i) );
+                        fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, sat_solver_var_value(p->pSat, i) );
                         Count++;
                     }
-                printf( "Count = %d\n", Count );
+                fprintf( Abc_FrameGlobalGetOut(), "Count = %d\n", Count );
             }
 //            for ( i = p->FirstVar; i < sat_solver_nvars(p->pSat); i++ )
 //                printf( "%d", sat_solver_var_value(p->pSat, i) );
@@ -1087,7 +1087,7 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
                 if ( sat_solver_var_value(p->pSat, i) )
                 {
                     if ( p->fVeryVeryVerbose )
-                        printf( "Cut %3d : Node = %3d %6d  ", Count++, Vec_IntEntry(p->vCutsObj, i-p->FirstVar), Vec_IntEntry(p->vAnds, Vec_IntEntry(p->vCutsObj, i-p->FirstVar)) );
+                        fprintf( Abc_FrameGlobalGetOut(), "Cut %3d : Node = %3d %6d  ", Count++, Vec_IntEntry(p->vCutsObj, i-p->FirstVar), Vec_IntEntry(p->vAnds, Vec_IntEntry(p->vCutsObj, i-p->FirstVar)) );
                     if ( p->fVeryVeryVerbose )
                         LitCount += Sbl_ManFindAndPrintCut( p, i-p->FirstVar );
                     Vec_IntPush( p->vSolCur, i-p->FirstVar );
@@ -1107,10 +1107,10 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
                 int iLit, value;
                 if ( p->fVeryVerbose )
                 {
-                    printf( "Critical path of length (%d) is detected:   ", Vec_IntSize(p->vPath) );
+                    fprintf( Abc_FrameGlobalGetOut(), "Critical path of length (%d) is detected:   ", Vec_IntSize(p->vPath) );
                     Vec_IntForEachEntry( p->vPath, iLit, i )
-                        printf( "%d=%d ", i, Vec_IntEntry(p->vAnds, Abc_Lit2Var(iLit)) );
-                    printf( "\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, Vec_IntEntry(p->vAnds, Abc_Lit2Var(iLit)) );
+                    fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 }
                 // add the clause
                 value = sat_solver_addclause( p->pSat, Vec_IntArray(p->vPath), Vec_IntLimit(p->vPath)  );
@@ -1128,20 +1128,20 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
         if ( p->fVeryVerbose )
         {
             if ( status == l_False )
-                printf( "UNSAT " );
+                fprintf( Abc_FrameGlobalGetOut(), "UNSAT " );
             else if ( status == l_True )
-                printf( "SAT   " );
+                fprintf( Abc_FrameGlobalGetOut(), "SAT   " );
             else 
-                printf( "UNDEC " );
-            printf( "confl =%8d.    ", nConfAft - nConfBef );
+                fprintf( Abc_FrameGlobalGetOut(), "UNDEC " );
+            fprintf( Abc_FrameGlobalGetOut(), "confl =%8d.    ", nConfAft - nConfBef );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk2 );
 
-            printf( "Total " );
-            printf( "confl =%8d.    ", nConfTotal );
+            fprintf( Abc_FrameGlobalGetOut(), "Total " );
+            fprintf( Abc_FrameGlobalGetOut(), "confl =%8d.    ", nConfTotal );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             if ( p->fVeryVeryVerbose && status == l_True )
-                printf( "LitCount = %d.\n", LitCount );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "LitCount = %d.\n", LitCount );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         if ( nIters == 10 )
         {
@@ -1164,7 +1164,7 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
         else
             nDelayCur = Sbl_ManCreateTiming( p, p->DelayMax );
         if ( p->fVerbose )
-        printf( "Object %5d : Saved %2d nodes  (Conf =%8d)  Iter =%3d  Delay = %d  Edges = %4d\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Object %5d : Saved %2d nodes  (Conf =%8d)  Iter =%3d  Delay = %d  Edges = %4d\n", 
             iPivot, Vec_IntSize(p->vSolInit)-Vec_IntSize(p->vSolBest), nConfTotal, nIters, nDelayCur, nEdgesCur );
         p->timeTotal += Abc_Clock() - p->timeStart;
         p->nImproved++;
@@ -1179,7 +1179,7 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
 }
 void Sbl_ManPrintRuntime( Sbl_Man_t * p )
 {
-    printf( "Runtime breakdown:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Runtime breakdown:\n" );
     p->timeOther = p->timeTotal - p->timeWin - p->timeCut - p->timeSat - p->timeTime;
     ABC_PRTP( "Win   ", p->timeWin  ,   p->timeTotal );
     ABC_PRTP( "Cut   ", p->timeCut  ,   p->timeTotal );
@@ -1204,7 +1204,7 @@ void Gia_ManLutSat( Gia_Man_t * pGia, int LutSize, int nNumber, int nImproves, i
     p->fVerbose     = fVerbose | fVeryVerbose;
     p->fVeryVerbose = fVeryVerbose;
     if ( p->fVerbose )
-    printf( "Parameters: WinSize = %d AIG nodes.  Conf = %d.  DelayMax = %d.\n", p->nVars, p->nBTLimit, p->DelayMax );
+    fprintf( Abc_FrameGlobalGetOut(), "Parameters: WinSize = %d AIG nodes.  Conf = %d.  DelayMax = %d.\n", p->nVars, p->nBTLimit, p->DelayMax );
     // determine delay limit
     if ( fDelay && pGia->vEdge1 && p->DelayMax == 0 )
         p->DelayMax = Gia_ManEvalEdgeDelay( pGia );
@@ -1219,7 +1219,7 @@ void Gia_ManLutSat( Gia_Man_t * pGia, int LutSize, int nNumber, int nImproves, i
     }
     Gia_ManComputeOneWin( pGia, -1, NULL, NULL, NULL, NULL );
     if ( p->fVerbose )
-    printf( "Tried = %d. Used = %d. HashWin = %d. SmallWin = %d. LargeWin = %d. IterOut = %d.  SAT runs = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Tried = %d. Used = %d. HashWin = %d. SmallWin = %d. LargeWin = %d. IterOut = %d.  SAT runs = %d.\n", 
         p->nTried, p->nImproved, p->nHashWins, p->nSmallWins, p->nLargeWins, p->nIterOuts, p->nRuns );
     if ( p->fVerbose )
     Sbl_ManPrintRuntime( p );
@@ -1273,18 +1273,18 @@ Vec_Int_t * Gia_RunKadical( char * pFileNameIn, char * pFileNameOut, int Seed, i
     if ( system( pCommand ) == -1 )
 #endif
     {
-        fprintf( stdout, "Command \"%s\" did not succeed.\n", pCommand );
+        fprintf( Abc_FrameGlobalGetOut(), "Command \"%s\" did not succeed.\n", pCommand  );
         return 0;
     }
     vRes = Exa4_ManParse( pFileNameOut );
     if ( fVerbose )
     {
         if ( vRes )
-            printf( "The problem has a solution. " ), *pStatus = 0;
+            fprintf( Abc_FrameGlobalGetOut(),  "The problem has a solution. "  ), *pStatus = 0;
         else if ( vRes == NULL && TimeOut == 0 )
-            printf( "The problem has no solution. " ), *pStatus = 1;
+            fprintf( Abc_FrameGlobalGetOut(),  "The problem has no solution. "  ), *pStatus = 1;
         else if ( vRes == NULL )
-            printf( "The problem has no solution or reached a resource limit after %d sec. ", TimeOut ), *pStatus = -1;
+            fprintf( Abc_FrameGlobalGetOut(),  "The problem has no solution or reached a resource limit after %d sec. ", TimeOut  ), *pStatus = -1;
         Abc_PrintTime( 1, "SAT solver time", Abc_Clock() - clkTotal );
     }
     return vRes;
@@ -1518,29 +1518,29 @@ void Gia_ManSimplePrintMapping( Vec_Int_t * vRes, int nIns )
 {    
     int i, k, nObjs = Vec_IntSize(vRes)/7, nSteps = Abc_Base10Log(nObjs);
     int nCard = Vec_IntSum(vRes) - nIns; char NumStr[10];
-    printf( "Solution with cardinality %d:\n", nCard );
+    fprintf( Abc_FrameGlobalGetOut(), "Solution with cardinality %d:\n", nCard );
     for ( k = 0; k < nSteps; k++ ) {        
-        printf( "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );
         for ( i = 0; i < nObjs; i++ ) {            
             sprintf( NumStr, "%02d", i );
-            printf( "%c", NumStr[k] );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", NumStr[k] );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     for ( k = 0; k < 7; k++ ) {
-        printf( "%c ", "pnPNi01"[k] );
+        fprintf( Abc_FrameGlobalGetOut(), "%c ", "pnPNi01"[k] );
         for ( i = 0; i < nObjs; i++ )
             if ( Vec_IntEntry( vRes, i*7+k ) == 0 )
-                printf( " " );
+                fprintf( Abc_FrameGlobalGetOut(), " " );
             else
-                printf( "1" );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "1" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 int Gia_ManDumpCnf( char * pFileName, Vec_Str_t * vStr, int nVars )
 {
     FILE * pFile = fopen( pFileName, "wb" );
-    if ( pFile == NULL ) { printf( "Cannot open input file \"%s\".\n", pFileName ); return 0; }
+    if ( pFile == NULL ) { fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\".\n", pFileName ); return 0; }
     fprintf( pFile, "p knf %d %d\n%s\n", nVars, Vec_StrCountEntry(vStr, '\n'), Vec_StrArray(vStr) );
     fclose( pFile );
     return 1;
@@ -1554,7 +1554,7 @@ int Gia_ManDumpCnf2( Vec_Str_t * vStr, int nVars, int argc, char ** argv, abctim
     Vec_StrPrintF( vFileName, ".cnf" );
     Vec_StrPush( vFileName, '\0' );
     FILE * pFile = fopen( Vec_StrArray(vFileName), "wb" );
-    if ( pFile == NULL ) { printf( "Cannot open output file \"%s\".\n", Vec_StrArray(vFileName) ); Vec_StrFree(vFileName); return 0; }
+    if ( pFile == NULL ) { fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", Vec_StrArray(vFileName) ); Vec_StrFree(vFileName); return 0; }
     Vec_StrFree(vFileName);
     fprintf( pFile, "c This file was generated by ABC command: \"" );
     fprintf( pFile, "%s", argv[0] );
@@ -1589,7 +1589,7 @@ int Gia_ManSimpleMapping( Gia_Man_t * p, int nBound, int Seed, int nBTLimit, int
         return 0;
     }
     if ( fVerbose )
-        printf( "SAT variables = %d. SAT clauses = %d. Cardinality bound = %d. Conflict limit = %d. Timeout = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "SAT variables = %d. SAT clauses = %d. Cardinality bound = %d. Conflict limit = %d. Timeout = %d.\n", 
             nVars, Vec_StrCountEntry(vStr, '\n'), nBound, nBTLimit, nTimeout );
     Vec_Int_t * vRes = Gia_RunKadical( pFileNameI, pFileNameO, Seed, nBTLimit, nTimeout, fVerbose, &Status );
     unlink( pFileNameI );
@@ -1694,7 +1694,7 @@ Vec_Int_t * Gia_ManKSatGenLevels( char * pGuide, int nIns, int nNodes )
     for ( i = 0; pGuide[i]; i++ )
         Count += pGuide[i] - '0';
     if ( Count != nNodes ) {
-        printf( "Guidance %s has %d nodes while the problem has %d nodes.\n", pGuide, Count, nNodes );
+        fprintf( Abc_FrameGlobalGetOut(), "Guidance %s has %d nodes while the problem has %d nodes.\n", pGuide, Count, nNodes );
         return NULL;
     }
     int FirstPrev = 0;
@@ -2019,18 +2019,18 @@ Gia_Man_t * Gia_ManDeriveKSatMapping( Vec_Int_t * vRes, int * pMap, int nIns, in
             *Vec_IntEntryP(vGuide, Abc_Lit2Var(pCopy[i+1])) ^= 8 | (2*Gia_KSatValInv(pMap, i, vRes));
         if ( fVerbose ) {
             if ( i == nIns+nNodes-1 )
-                printf( " F = " );
+                fprintf( Abc_FrameGlobalGetOut(), " F = " );
             else
-                printf( "%2d = ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%2d = ", i );
             if ( iFan0 == iFan1 )
-                printf( "INV( %d )\n", iFan0 );
+                fprintf( Abc_FrameGlobalGetOut(), "INV( %d )\n", iFan0 );
             else if ( Gia_KSatValAnd(pMap, i, vRes) ) 
-                printf( "%sAND( %d, %d )\n", Gia_KSatValInv(pMap, i, vRes) ? "N":"", iFan0, iFan1 );
+                fprintf( Abc_FrameGlobalGetOut(), "%sAND( %d, %d )\n", Gia_KSatValInv(pMap, i, vRes) ? "N":"", iFan0, iFan1 );
             else 
-                printf( "%sOR( %d, %d )\n", Gia_KSatValInv(pMap, i, vRes) ? "N":"", iFan0, iFan1 );
+                fprintf( Abc_FrameGlobalGetOut(), "%sOR( %d, %d )\n", Gia_KSatValInv(pMap, i, vRes) ? "N":"", iFan0, iFan1 );
             nSave += (iFan0 == iFan1) || !Gia_KSatValInv(pMap, i, vRes);
             if ( i == nIns+nNodes-1 )
-                printf( "Solution cost = %d\n", 2*(2*nNodes - nSave) );
+                fprintf( Abc_FrameGlobalGetOut(), "Solution cost = %d\n", 2*(2*nNodes - nSave) );
         }
     }
     Gia_ManAppendCo( pNew, pCopy[nIns+nNodes] );
@@ -2067,7 +2067,7 @@ Gia_Man_t * Gia_ManKSatMapping( word Truth, int nIns, int nNodes, int nBound, in
         return NULL;
     }
     if ( fVerbose )
-        printf( "Vars = %d. Nodes = %d. Cardinality bound = %d.  SAT vars = %d. SAT clauses = %d. Conflict limit = %d. Timeout = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Vars = %d. Nodes = %d. Cardinality bound = %d.  SAT vars = %d. SAT clauses = %d. Conflict limit = %d. Timeout = %d.\n", 
             nIns, nNodes, nBound,  nVars, Vec_StrCountEntry(vStr, '\n'), nBTLimit, nTimeout );
     Vec_Int_t * vRes = Gia_RunKadical( pFileNameI, pFileNameO, Seed, nBTLimit, nTimeout, 1, &Status );
     unlink( pFileNameI );
@@ -2078,7 +2078,7 @@ Gia_Man_t * Gia_ManKSatMapping( word Truth, int nIns, int nNodes, int nBound, in
         return 0;
     Vec_IntDrop( vRes, 0 );
     pNew = Gia_ManDeriveKSatMapping( vRes, pMap, nIns, nNodes, fVerbose );
-    printf( "Verification %s.  ", Truth == Gia_ManGetTruth(pNew) ? "passed" : "failed" );
+    fprintf( Abc_FrameGlobalGetOut(), "Verification %s.  ", Truth == Gia_ManGetTruth(pNew) ? "passed" : "failed" );
     Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );
     Vec_IntFree( vRes );
     ABC_FREE( pMap );

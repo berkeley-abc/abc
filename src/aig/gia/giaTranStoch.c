@@ -169,7 +169,7 @@ Gia_Man_t * Gia_ManTranStochOpt1( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) 
       pGia = pNew;
     }
     if ( p->nVerbose )
-      printf( "*                ite %d : #nodes = %5d\n", i, Gia_ManAndNum( pGia ) );
+      fprintf( Abc_FrameGlobalGetOut(), "*                ite %d : #nodes = %5d\n", i, Gia_ManAndNum( pGia ) );
     i++;
   } while ( n > Gia_ManAndNum( pGia ) );
   return pGia;
@@ -216,7 +216,7 @@ Gia_Man_t * Gia_ManTranStochOpt2( Gia_ManTranStochParam * p ) {
       Abc_NtkDelete( pNtk );
     }
     if ( p->nVerbose )
-      printf( "*         hop %d        : #nodes = %5d\n", i, Gia_ManAndNum( pGia ) );
+      fprintf( Abc_FrameGlobalGetOut(), "*         hop %d        : #nodes = %5d\n", i, Gia_ManAndNum( pGia ) );
   }
   Gia_ManStop( pGia );
   return pBest;
@@ -230,7 +230,7 @@ Gia_Man_t * Gia_ManTranStochOpt3( Gia_ManTranStochParam * p ) {
     p->nSeed = 1234 * (i + p->nSeedBase);
     pNew = Gia_ManTranStochOpt2( p );
     if ( p->nRestarts && p->nVerbose )
-      printf( "*  res %2d              : #nodes = %5d\n", i, Gia_ManAndNum( pNew ) );
+      fprintf( Abc_FrameGlobalGetOut(), "*  res %2d              : #nodes = %5d\n", i, Gia_ManAndNum( pNew ) );
     if ( n > Gia_ManAndNum( pNew ) ) {
       n = Gia_ManAndNum( pNew );
       Gia_ManStop( pBest );
@@ -347,11 +347,11 @@ Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nS
   if ( nThreads == 1 ) {
     Vec_PtrForEachEntry( Gia_Man_t *, vpStarts, pStart, i ) {
       if ( p->nVerbose )
-        printf( "*begin starting point %d: #nodes = %5d\n", i + j, Gia_ManAndNum( pStart ) );
+        fprintf( Abc_FrameGlobalGetOut(), "*begin starting point %d: #nodes = %5d\n", i + j, Gia_ManAndNum( pStart ) );
       p->pStart = pStart;
       pNew = Gia_ManTranStochOpt3( p );
       if ( p->nVerbose )
-        printf( "*end   starting point %d: #nodes = %5d\n", i + j, Gia_ManAndNum( pNew ) );
+        fprintf( Abc_FrameGlobalGetOut(), "*end   starting point %d: #nodes = %5d\n", i + j, Gia_ManAndNum( pNew ) );
       if ( Gia_ManAndNum( pBest ) > Gia_ManAndNum( pNew ) ) {
         Gia_ManStop( pBest );
         pBest = pNew;
@@ -393,7 +393,7 @@ Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nS
               continue;
             if ( ThData[i].pRes != NULL ) {
               if( nVerbose )
-                printf( "*sp %d res %4d        : #nodes = %5d\n", ThData[i].nSp, ThData[i].nIte, Gia_ManAndNum( ThData[i].pRes ) );
+                fprintf( Abc_FrameGlobalGetOut(), "*sp %d res %4d        : #nodes = %5d\n", ThData[i].nSp, ThData[i].nIte, Gia_ManAndNum( ThData[i].pRes ) );
               if ( Gia_ManAndNum( pBest ) > Gia_ManAndNum( ThData[i].pRes ) ) {
                 Gia_ManStop( pBest );
                 pBest = ThData[i].pRes;
@@ -428,7 +428,7 @@ Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nS
         }
         if ( ThData[i].pRes != NULL ) {
           if( nVerbose )
-            printf( "*sp %d res %4d        : #nodes = %5d\n", ThData[i].nSp, ThData[i].nIte, Gia_ManAndNum( ThData[i].pRes ) );
+            fprintf( Abc_FrameGlobalGetOut(), "*sp %d res %4d        : #nodes = %5d\n", ThData[i].nSp, ThData[i].nIte, Gia_ManAndNum( ThData[i].pRes ) );
           if ( Gia_ManAndNum( pBest ) > Gia_ManAndNum( ThData[i].pRes ) ) {
             Gia_ManStop( pBest );
             pBest = ThData[i].pRes;
@@ -453,13 +453,13 @@ Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nS
     pthread_mutex_destroy( &QueueMutex );
     pthread_mutex_destroy( &mutex );
 #else
-    printf( "ERROR: pthread is off" );
+    fprintf( Abc_FrameGlobalGetOut(), "ERROR: pthread is off" );
 #endif
     Vec_PtrForEachEntry( Gia_Man_t *, vpStarts, pStart, i )
       Gia_ManStop( pStart );
   }
   if ( nVerbose )
-    printf( "best: %d\n", Gia_ManAndNum( pBest ) );
+    fprintf( Abc_FrameGlobalGetOut(), "best: %d\n", Gia_ManAndNum( pBest ) );
   Vec_PtrFree( vpStarts );
   ABC_FREE( pBest->pName );
   ABC_FREE( pBest->pSpec );

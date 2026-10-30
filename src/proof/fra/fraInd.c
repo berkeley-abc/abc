@@ -285,13 +285,13 @@ Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
     if ( fPrintParts )
     {
         // print partitions
-        printf( "Simple partitioning. %d partitions are saved:\n", Vec_PtrSize(vResult) );
+        fprintf( Abc_FrameGlobalGetOut(), "Simple partitioning. %d partitions are saved:\n", Vec_PtrSize(vResult) );
         Vec_PtrForEachEntry( Vec_Int_t *, vResult, vPart, i )
         {
             sprintf( Buffer, "part%03d.aig", i );
             pTemp = Aig_ManRegCreatePart( pAig, vPart, &nCountPis, &nCountRegs, NULL );
             Ioa_WriteAiger( pTemp, Buffer, 0, 0 );
-            printf( "part%03d.aig : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "part%03d.aig : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d.\n", 
                 i, Vec_IntSize(vPart), Aig_ManCiNum(pTemp)-Vec_IntSize(vPart), nCountPis, nCountRegs, Aig_ManNodeNum(pTemp) );
             Aig_ManStop( pTemp );
         }
@@ -309,7 +309,7 @@ Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
         pNew = Fra_FraigInduction( pTemp, pPars );
         nClasses = Aig_TransferMappedClasses( pAig, pTemp, pMapBack );
         if ( fVerbose )
-            printf( "%3d : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d. It = %3d. Cl = %5d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "%3d : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d. It = %3d. Cl = %5d.\n", 
                 i, Vec_IntSize(vPart), Aig_ManCiNum(pTemp)-Vec_IntSize(vPart), nCountPis, nCountRegs, Aig_ManNodeNum(pTemp), pPars->nIters, nClasses );
         Aig_ManStop( pNew );
         Aig_ManStop( pTemp );
@@ -376,7 +376,7 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, Fra_Ssw_t * pParams )
     if ( pParams->fWriteImps && pParams->nPartSize > 0 )
     {
         pParams->nPartSize = 0;
-        printf( "Partitioning was disabled to allow implication writing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Partitioning was disabled to allow implication writing.\n" );
     }
     // perform partitioning
     if ( (pParams->nPartSize > 0 && pParams->nPartSize < Aig_ManRegNum(pManAig))
@@ -414,7 +414,7 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, Fra_Ssw_t * pParams )
         if ( pPars->nFramesP > 0 )
         {
             pPars->nFramesP = 0;
-            printf( "Fra_FraigInduction(): Prefix cannot be used.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Fra_FraigInduction(): Prefix cannot be used.\n" );
         }
         p->pSml = Fra_SmlStart( pManAig, 0, pPars->nFramesK + 1, pPars->nSimWords );
         Fra_SmlSimulate( p, 1 );
@@ -425,7 +425,7 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, Fra_Ssw_t * pParams )
         // bug:  r iscas/blif/s1238.blif    ; st; ssw -v
         // refine the classes with more simulation rounds
 if ( pPars->fVerbose )
-printf( "Simulating %d AIG nodes for %d cycles ... ", Aig_ManNodeNum(pManAig), pPars->nFramesP + 32 );
+fprintf( Abc_FrameGlobalGetOut(), "Simulating %d AIG nodes for %d cycles ... ", Aig_ManNodeNum(pManAig), pPars->nFramesP + 32 );
         p->pSml = Fra_SmlSimulateSeq( pManAig, pPars->nFramesP, 32, 1, 1  ); //pPars->nFramesK + 1, 1 );  
 if ( pPars->fVerbose ) 
 {
@@ -448,7 +448,7 @@ ABC_PRT( "Time", Abc_Clock() - clk );
     if ( pParams->TimeLimit != 0.0 && Abc_Clock() > TimeToStop )
     {
         if ( !pParams->fSilent )
-            printf( "Fra_FraigInduction(): Runtime limit exceeded.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Fra_FraigInduction(): Runtime limit exceeded.\n" );
         goto finish;
     }
 
@@ -480,7 +480,7 @@ ABC_PRT( "Time", Abc_Clock() - clk );
         if ( pParams->TimeLimit != 0.0 && Abc_Clock() > TimeToStop )
         {
             if ( !pParams->fSilent )
-                printf( "Fra_FraigInduction(): Runtime limit exceeded.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Fra_FraigInduction(): Runtime limit exceeded.\n" );
             goto finish;
         }
 
@@ -508,12 +508,12 @@ p->timeTrav += Abc_Clock() - clk2;
         p->nSatVars = pCnf->nVars;
         assert( p->pSat != NULL );
         if ( p->pSat == NULL )
-            printf( "Fra_FraigInduction(): Computed CNF is not valid.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Fra_FraigInduction(): Computed CNF is not valid.\n" );
         if ( pPars->fUseImps )
         {
             Fra_ImpAddToSolver( p, p->pCla->vImps, pCnf->pVarNums );
             if ( p->pSat == NULL )
-                printf( "Fra_FraigInduction(): Adding implicationsn to CNF led to a conflict.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Fra_FraigInduction(): Adding implicationsn to CNF led to a conflict.\n" );
         }
 
         // set the pointers to the manager
@@ -542,14 +542,14 @@ p->timeTrav += Abc_Clock() - clk2;
         // report the intermediate results
         if ( pPars->fVerbose )
         {
-            printf( "%3d : C = %6d. Cl = %6d.  L = %6d. LR = %6d.  ", 
+            fprintf( Abc_FrameGlobalGetOut(), "%3d : C = %6d. Cl = %6d.  L = %6d. LR = %6d.  ", 
                 nIter, Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), 
                 Fra_ClassesCountLits(p->pCla), p->pManFraig->nAsserts );
             if ( p->pCla->vImps )
-                printf( "I = %6d. ", Vec_IntSize(p->pCla->vImps) );
+                fprintf( Abc_FrameGlobalGetOut(), "I = %6d. ", Vec_IntSize(p->pCla->vImps) );
             if ( p->pPars->fUse1Hot )
-                printf( "1h = %6d. ", Fra_OneHotCount(p, p->vOneHots) );
-            printf( "NR = %6d. ", Aig_ManNodeNum(p->pManFraig) );
+                fprintf( Abc_FrameGlobalGetOut(), "1h = %6d. ", Fra_OneHotCount(p, p->vOneHots) );
+            fprintf( Abc_FrameGlobalGetOut(), "NR = %6d. ", Aig_ManNodeNum(p->pManFraig) );
 //            printf( "\n" );
         } 
 
@@ -574,7 +574,7 @@ clk2 = Abc_Clock();
 //        printf( "Recent SAT called = %d. Skipped = %d.\n", p->nSatCallsRecent, p->nSatCallsSkipped );
         assert( p->vTimeouts == NULL );
         if ( p->vTimeouts )
-           printf( "Fra_FraigInduction(): SAT solver timed out!\n" );
+           fprintf( Abc_FrameGlobalGetOut(), "Fra_FraigInduction(): SAT solver timed out!\n" );
         // check if refinement has happened
 //        p->pCla->fRefinement = (int)(nLitsOld != Fra_ClassesCountLits(p->pCla));
         if ( p->pCla->fRefinement && 
@@ -582,7 +582,7 @@ clk2 = Abc_Clock();
             nImpsOld == (p->pCla->vImps? Vec_IntSize(p->pCla->vImps) : 0) && 
             nHotsOld == (p->vOneHots? Fra_OneHotCount(p, p->vOneHots) : 0) )
         {
-            printf( "Fra_FraigInduction(): Internal error. The result may not verify.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Fra_FraigInduction(): Internal error. The result may not verify.\n" );
             break;
         }
     }
@@ -607,7 +607,7 @@ clk2 = Abc_Clock();
         extern void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
         Aig_Man_t * pNew;
         char * pFileName = Ioa_FileNameGenericAppend( p->pManAig->pName, "_care.aig" );
-        printf( "Care one-hotness clauses will be written into file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Care one-hotness clauses will be written into file \"%s\".\n", pFileName );
         pManAigNew = Aig_ManDupOrdered( pManAig );
         pNew = Fra_OneHotCreateExdc( p, p->vOneHots );
         Ioa_WriteAiger( pNew, pFileName, 0, 1 );
@@ -678,9 +678,9 @@ int Fra_FraigInductionTest( char * pFileName, Fra_Ssw_t * pParams )
     }
     if ( pParams->fVerbose )
     {
-        printf( "Original AIG: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Original AIG: " );
         Aig_ManPrintStats( pMan );
-        printf( "Reduced  AIG: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Reduced  AIG: " );
         Aig_ManPrintStats( pNew );
     }
     Aig_ManStop( pNew );
@@ -697,7 +697,7 @@ int Fra_FraigInductionTest( char * pFileName, Fra_Ssw_t * pParams )
     fclose( pFile );
     if ( pParams->fVerbose )
     {
-        printf( "Result: %d pairs of seq equiv nodes are written into file \"%s\".\n", Counter, pFilePairs );
+        fprintf( Abc_FrameGlobalGetOut(), "Result: %d pairs of seq equiv nodes are written into file \"%s\".\n", Counter, pFilePairs );
     }
     Aig_ManStop( pMan );
     return 1;

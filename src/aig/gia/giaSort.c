@@ -162,7 +162,7 @@ void Gia_SortTest()
     int * pArray;
     abctime clk = Abc_Clock();
 
-    printf( "Sorting %d integers\n", nSize );
+    fprintf( Abc_FrameGlobalGetOut(), "Sorting %d integers\n", nSize );
     pArray = Gia_SortGetTest( nSize );
 clk = Abc_Clock();
     qsort( pArray, (size_t)nSize, 4, (int (*)(const void *, const void *)) num_cmp1 );

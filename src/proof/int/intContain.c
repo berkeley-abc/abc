@@ -325,7 +325,7 @@ int Inter_ManCheckUniqueness( Aig_Man_t * p, sat_solver * pSat, Cnf_Dat_t * pCnf
         if ( v == Aig_ManRegNum(p) )
             Counter++;
     }
-    printf( "Uniquness does not hold in %d frames.\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Uniquness does not hold in %d frames.\n", Counter );
 
     Fra_SmlStop( pSml );
     ABC_FREE( pCounterEx );

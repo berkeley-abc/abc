@@ -102,7 +102,7 @@ static inline int Abc_ReadPlaResubParams( char * pFileName, int * pnIns, int * p
 {
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL ) {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file \"%s\" for reading.\n", pFileName );
         return 0;
     }
     int nLineSize = 1000000, iLine = 0;
@@ -124,7 +124,7 @@ static inline int Abc_ReadPlaResubParams( char * pFileName, int * pnIns, int * p
     if ( *pnPats == 0 )
         *pnPats = iLine;
     else if ( *pnPats != iLine )
-        printf( "The number of lines in the file (%d) does not match the number listed in .p (%d).\n", iLine, *pnPats );
+        fprintf( Abc_FrameGlobalGetOut(),  "The number of lines in the file (%d) does not match the number listed in .p (%d).\n", iLine, *pnPats );
     fclose(pFile);
     free( pBuffer );
     return 1;
@@ -133,7 +133,7 @@ static inline int Abc_ReadPlaResubData( Abc_RData_t * p, char * pFileName )
 {
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL ) {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file \"%s\" for reading.\n", pFileName );
         return 0;
     }
     int i, iLine = 0, nDashes = 0, MaxLineSize = p->nIns+p->nOuts+10000;
@@ -171,7 +171,7 @@ static inline int Abc_ReadPlaResubData( Abc_RData_t * p, char * pFileName )
         }
     }
     if ( nDashes )
-        printf( "Several (%d) don't-care literals in the input part are replaced by zeros \"%s\" \n", nDashes, pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Several (%d) don't-care literals in the input part are replaced by zeros \"%s\" \n", nDashes, pFileName );
     assert ( iLine == p->nPats );
     ABC_FREE(pBuffer);
     fclose(pFile);
@@ -190,7 +190,7 @@ static inline void Abc_WritePla( Abc_RData_t * p, char * pFileName, int fRel )
 {
     FILE * pFile = fopen( pFileName, "wb" ); int i, k;
     if ( pFile == NULL ) {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file \"%s\" for writing.\n", pFileName );
         return;
     }
     assert(  fRel || Vec_WrdSize(p->vSimsOut) == 2*p->nOuts*p->nSimWords );

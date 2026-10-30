@@ -113,8 +113,8 @@ static inline void Vi_Grow(vi *v) {
     int newcap = (v->cap < 4) ? 8 : (v->cap / 2) * 3;
     v->ptr = (int *)realloc(v->ptr, sizeof(int) * newcap);
     if (v->ptr == NULL) {
-        printf("Failed to realloc memory from %.1f MB to %.1f MB.\n", 4.0 * v->cap / (1 << 20), (float)4.0 * newcap / (1 << 20));
-        fflush(stdout);
+        fprintf( Abc_FrameGlobalGetOut(), "Failed to realloc memory from %.1f MB to %.1f MB.\n", 4.0 * v->cap / (1 << 20), (float)4.0 * newcap / (1 << 20) );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     v->cap = newcap;
 }
@@ -199,11 +199,11 @@ static inline void Vi_Reverse(vi *v) {
 }
 
 static inline void Vi_Print(vi *v) {
-    printf("Array with %d entries:", v->size);
+    fprintf( Abc_FrameGlobalGetOut(), "Array with %d entries:", v->size );
     int i, entry;
     Vi_ForEachEntry(v, entry, i)
-        printf(" %d", entry);
-    printf("\n");
+        fprintf( Abc_FrameGlobalGetOut(), " %d", entry );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 static inline void Vi_SelectSort(vi *v) {

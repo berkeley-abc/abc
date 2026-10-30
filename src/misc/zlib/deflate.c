@@ -1615,16 +1615,16 @@ local void check_match(deflate_state *s, IPos start, IPos match, int length) {
         len--;
     }
     if (zmemcmp(back, here, len) != EQUAL) {
-        fprintf(stderr, " start %u, match %d, length %d\n",
+        fprintf( Abc_FrameGlobalGetErr(), " start %u, match %d, length %d\n",
                 start, (int)match, length);
         do {
-            fprintf(stderr, "(%02x %02x)", *back++, *here++);
+            fprintf( Abc_FrameGlobalGetErr(), "(%02x %02x)", *back++, *here++);
         } while (--len != 0);
         z_error("invalid match");
     }
     if (z_verbose > 1) {
-        fprintf(stderr,"\\[%d,%d]", start - match, length);
-        do { putc(s->window[start++], stderr); } while (--length != 0);
+        fprintf( Abc_FrameGlobalGetErr(), "\\[%d,%d]", start - match, length);
+        do { putc(s->window[start++], Abc_FrameGlobalGetErr()); } while (--length != 0);
     }
 }
 #else
@@ -1643,7 +1643,7 @@ local void check_match(deflate_state *s, IPos start, IPos match, int length) {
                 (last)); \
    s->block_start = s->strstart; \
    flush_pending(s->strm); \
-   Tracev((stderr,"[FLUSH]")); \
+   Tracev((Abc_FrameGlobalGetErr(),"[FLUSH]")); \
 }
 
 /* Same but force premature exit if necessary. */
@@ -1938,7 +1938,7 @@ local block_state deflate_fast(deflate_state *s, int flush) {
             }
         } else {
             /* No match, output a literal byte */
-            Tracevv((stderr,"%c", s->window[s->strstart]));
+            Tracevv((Abc_FrameGlobalGetErr(),"%c", s->window[s->strstart]));
             _tr_tally_lit(s, s->window[s->strstart], bflush);
             s->lookahead--;
             s->strstart++;
@@ -2050,7 +2050,7 @@ local block_state deflate_slow(deflate_state *s, int flush) {
              * single literal. If there was a match but the current match
              * is longer, truncate the previous match to a single literal.
              */
-            Tracevv((stderr,"%c", s->window[s->strstart - 1]));
+            Tracevv((Abc_FrameGlobalGetErr(),"%c", s->window[s->strstart - 1]));
             _tr_tally_lit(s, s->window[s->strstart - 1], bflush);
             if (bflush) {
                 FLUSH_BLOCK_ONLY(s, 0);
@@ -2069,7 +2069,7 @@ local block_state deflate_slow(deflate_state *s, int flush) {
     }
     Assert (flush != Z_NO_FLUSH, "no flush?");
     if (s->match_available) {
-        Tracevv((stderr,"%c", s->window[s->strstart - 1]));
+        Tracevv((Abc_FrameGlobalGetErr(),"%c", s->window[s->strstart - 1]));
         _tr_tally_lit(s, s->window[s->strstart - 1], bflush);
         s->match_available = 0;
     }
@@ -2139,7 +2139,7 @@ local block_state deflate_rle(deflate_state *s, int flush) {
             s->match_length = 0;
         } else {
             /* No match, output a literal byte */
-            Tracevv((stderr,"%c", s->window[s->strstart]));
+            Tracevv((Abc_FrameGlobalGetErr(),"%c", s->window[s->strstart]));
             _tr_tally_lit(s, s->window[s->strstart], bflush);
             s->lookahead--;
             s->strstart++;
@@ -2176,7 +2176,7 @@ local block_state deflate_huff(deflate_state *s, int flush) {
 
         /* Output a literal byte */
         s->match_length = 0;
-        Tracevv((stderr,"%c", s->window[s->strstart]));
+        Tracevv((Abc_FrameGlobalGetErr(),"%c", s->window[s->strstart]));
         _tr_tally_lit(s, s->window[s->strstart], bflush);
         s->lookahead--;
         s->strstart++;

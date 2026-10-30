@@ -872,7 +872,7 @@ void Dau_DsdTest3()
     char * p = Dau_DsdPerform( t );
     word t2 = Dau_Dsd6ToTruth( p );
     if ( t != t2 )
-        printf( "Verification failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification failed.\n" );
 }
 
 
@@ -1236,22 +1236,22 @@ static inline unsigned Dau_Dsd6FindSupports( Dau_Dsd_t * p, word  * pTruth, int 
 static inline void Dau_DsdPrintSupports( unsigned uSupp, int nVars )
 {
     int v, Value;
-    printf( "Cofactor supports: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Cofactor supports: " );
     for ( v = nVars - 1; v >= 0; v-- )
     {
         Value = ((uSupp >> (2*v)) & 3);
         if ( Value == 1 )
-            printf( "01" );
+            fprintf( Abc_FrameGlobalGetOut(), "01" );
         else if ( Value == 2 )
-            printf( "10" );
+            fprintf( Abc_FrameGlobalGetOut(), "10" );
         else if ( Value == 3 )
-            printf( "11" );
+            fprintf( Abc_FrameGlobalGetOut(), "11" );
         else 
-            printf( "00" );
+            fprintf( Abc_FrameGlobalGetOut(), "00" );
         if ( v )
-            printf( "-" );
+            fprintf( Abc_FrameGlobalGetOut(), "-" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 // checks decomposability with respect to the pair (v, u)
 static inline int Dau_Dsd6DecomposeDoubleVarsOne( Dau_Dsd_t * p, word  * pTruth, int * pVars, int nVars, int v, int u )
@@ -1971,7 +1971,7 @@ void Dau_DsdPrintFromTruth( word * pTruth, int nVarsInit )
     word pTemp[DAU_MAX_WORD];
     Abc_TtCopy( pTemp, pTruth, Abc_TtWordNum(nVarsInit), 0 );
     Dau_DsdDecompose( pTemp, nVarsInit, 0, 1, pRes );
-    fprintf( stdout, "%s\n", pRes );
+    fprintf( Abc_FrameGlobalGetOut(), "%s\n", pRes  );
 }
 void Dau_DsdPrintFromTruth2( word * pTruth, int nVarsInit )
 {
@@ -1979,7 +1979,7 @@ void Dau_DsdPrintFromTruth2( word * pTruth, int nVarsInit )
     word pTemp[DAU_MAX_WORD];
     Abc_TtCopy( pTemp, pTruth, Abc_TtWordNum(nVarsInit), 0 );
     Dau_DsdDecompose( pTemp, nVarsInit, 0, 1, pRes );
-    fprintf( stdout, "%s", pRes );
+    fprintf( Abc_FrameGlobalGetOut(), "%s", pRes  );
 }
 
 void Dau_DsdTest44()
@@ -2080,12 +2080,12 @@ void Dau_DsdTest555()
     //        Kit_DsdPrintFromTruth( (unsigned *)&t, 6 );
     //        printf( "  " );
     //        Kit_DsdPrintFromTruth( (unsigned *)&t2, 6 );
-                printf( "%s -> %s \n", pBuffer, pRes );
-                printf( "Verification failed.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%s -> %s \n", pBuffer, pRes );
+                fprintf( Abc_FrameGlobalGetOut(), "Verification failed.\n" );
             }
         }
     }
-    printf( "Finished trying %d decompositions.  ", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished trying %d decompositions.  ", Counter );
     Abc_PrintTime( 1, "Time", clkDec );
     Abc_PrintTime( 1, "Total", Abc_Clock() - clk );
 

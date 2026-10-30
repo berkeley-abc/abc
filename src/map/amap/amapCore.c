@@ -77,7 +77,7 @@ Vec_Ptr_t * Amap_ManTest( Aig_Man_t * pAig, Amap_Par_t * pPars )
     pLib = (Amap_Lib_t *)Abc_FrameReadLibGen2();
     if ( pLib == NULL )
     {
-        printf( "Library is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Library is not available.\n" );
         return NULL;
     }
     p = Amap_ManStart( Aig_ManNodeNum(pAig) );

@@ -1880,7 +1880,7 @@ int Cec_ManLSCorrAnalyzeDependence( Gia_Man_t * p, Vec_Int_t * vEquivs, Vec_Str_
             Count1++;
         pObj->fMark1 = 0;
     }
-    printf( "%5d -> %5d (%3d)  ", Count0, Count1, Iter );
+    fprintf( Abc_FrameGlobalGetOut(), "%5d -> %5d (%3d)  ", Count0, Count1, Iter );
     return 0;
 }
 
@@ -2435,8 +2435,8 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         if ( pPars->fStopWhenGone && Gia_ManPoNum(pAig) == 1 && !Gia_ObjIsConst( pAig, Gia_ObjFaninId0p(pAig, Gia_ManPo(pAig, 0)) ) )
         {
             pPars->fIncomplete = 1;
-            printf( "Iterative refinement is stopped after iteration %d\n", r );
-            printf( "because the property output is no longer a candidate constant.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Iterative refinement is stopped after iteration %d\n", r );
+            fprintf( Abc_FrameGlobalGetOut(), "because the property output is no longer a candidate constant.\n" );
             Cec_ManSimStop( pSim );
             Cec_DynSrmFree( pDynSrm );
             Cec_IncrMgrFree( pMgr );
@@ -2450,8 +2450,8 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
             if ( r > 4 && nPrev[0] - nCur <= 4*pPars->nLimitMax )
             {
                 pPars->fIncomplete = 1;
-                printf( "Iterative refinement is stopped after iteration %d\n", r );
-                printf( "because refinement does not proceed quickly.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Iterative refinement is stopped after iteration %d\n", r );
+                fprintf( Abc_FrameGlobalGetOut(), "because refinement does not proceed quickly.\n" );
                 Cec_ManSimStop( pSim );
                 Cec_DynSrmFree( pDynSrm );
                 Cec_IncrMgrFree( pMgr );
@@ -2865,7 +2865,7 @@ Vec_Int_t * Gia_ManFindStopFlops( Gia_Man_t * p, int nFlopIncFreq, int fVerbose 
     if ( fVerbose )
     {
         Abc_PrintTime( 1, "Support computation", Abc_Clock() - clk );
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
     }
 
     Gia_ManForEachRi( p, pObj, i )
@@ -2924,8 +2924,8 @@ Vec_Int_t * Gia_ManFindStopFlops( Gia_Man_t * p, int nFlopIncFreq, int fVerbose 
     }
     if ( fVerbose && vRes ) 
     {
-        printf( "Detected %d sequence%s containing %d flops.\n", nItems, nItems > 1 ? "s":"", Vec_IntSize(vRes) );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "Detected %d sequence%s containing %d flops.\n", nItems, nItems > 1 ? "s":"", Vec_IntSize(vRes) );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     Vec_IntFree( vNexts );
     Vec_IntFree( vAvail );

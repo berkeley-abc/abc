@@ -330,7 +330,7 @@ Vec_Int_t * cadical_solve_cnf( Cnf_Dat_t * pCnf, char * pArgs, int nConfs, int n
     Vec_Int_t * vRes = NULL;
     int i, * pBeg, * pEnd, RetValue;    
     if ( fVerbose )
-        printf( "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+        fprintf( Abc_FrameGlobalGetOut(), "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
     cadical_solver *pSat = cadical_solver_new();
     cadical_solver_setnvars(pSat, pCnf->nVars);
     assert(cadical_solver_nvars(pSat) == pCnf->nVars);
@@ -343,11 +343,11 @@ Vec_Int_t * cadical_solve_cnf( Cnf_Dat_t * pCnf, char * pArgs, int nConfs, int n
     }
     RetValue = cadical_solver_solve(pSat, NULL, NULL, 0, 0, 0, 0);
     if ( RetValue == 1 )
-      printf( "Result: Satisfiable.  " );
+      fprintf( Abc_FrameGlobalGetOut(), "Result: Satisfiable.  " );
     else if ( RetValue == -1 )
-      printf( "Result: Unsatisfiable.  " );
+      fprintf( Abc_FrameGlobalGetOut(), "Result: Unsatisfiable.  " );
     else
-      printf( "Result: Undecided.  " );
+      fprintf( Abc_FrameGlobalGetOut(), "Result: Undecided.  " );
     if ( RetValue == 1 ) {
         vRes = Vec_IntAlloc( pCnf->nVars );
         for ( i = 0; i < pCnf->nVars; i++ )

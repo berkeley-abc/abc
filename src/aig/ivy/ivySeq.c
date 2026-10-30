@@ -119,7 +119,7 @@ Rwt_ManAddTimeTotal( pManRwt, Abc_Clock() - clkStart );
 //        printf( "Ivy_ManRewritePre(): The check has failed.\n" );
     // check
     if ( !Ivy_ManCheck(p) )
-        printf( "Ivy_ManRewritePre(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManRewritePre(): The check has failed.\n" );
     return 1;
 }
 
@@ -284,14 +284,14 @@ p->timeRes += Abc_Clock() - clk;
     // report the progress
     if ( fVeryVerbose && GainBest > 0 )
     {
-        printf( "Node %6d :   ", Ivy_ObjId(pNode) );
-        printf( "Fanins = %d. ", p->vFanins->nSize );
-        printf( "Save = %d.  ", nNodesSaveCur );
-        printf( "Add = %d.  ",  nNodesSaveCur-GainBest );
-        printf( "GAIN = %d.  ", GainBest );
-        printf( "Cone = %d.  ", p->pGraph? Dec_GraphNodeNum((Dec_Graph_t *)p->pGraph) : 0 );
-        printf( "Class = %d.  ", p->pMap[uTruthBest] );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %6d :   ", Ivy_ObjId(pNode) );
+        fprintf( Abc_FrameGlobalGetOut(), "Fanins = %d. ", p->vFanins->nSize );
+        fprintf( Abc_FrameGlobalGetOut(), "Save = %d.  ", nNodesSaveCur );
+        fprintf( Abc_FrameGlobalGetOut(), "Add = %d.  ",  nNodesSaveCur-GainBest );
+        fprintf( Abc_FrameGlobalGetOut(), "GAIN = %d.  ", GainBest );
+        fprintf( Abc_FrameGlobalGetOut(), "Cone = %d.  ", p->pGraph? Dec_GraphNodeNum((Dec_Graph_t *)p->pGraph) : 0 );
+        fprintf( Abc_FrameGlobalGetOut(), "Class = %d.  ", p->pMap[uTruthBest] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return GainBest;
 }
@@ -965,10 +965,10 @@ void Ivy_CutPrintForNode( Ivy_Cut_t * pCut )
 {
     int i;
     assert( pCut->nSize > 0 );
-    printf( "%d : {", pCut->nSize );
+    fprintf( Abc_FrameGlobalGetOut(), "%d : {", pCut->nSize );
     for ( i = 0; i < pCut->nSize; i++ )
-        printf( " %d", pCut->pArray[i] );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", pCut->pArray[i] );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 
 /**Function*************************************************************
@@ -985,7 +985,7 @@ void Ivy_CutPrintForNode( Ivy_Cut_t * pCut )
 void Ivy_CutPrintForNodes( Ivy_Store_t * pCutStore )
 {
     int i;
-    printf( "Node %d\n", pCutStore->pCuts[0].pArray[0] );
+    fprintf( Abc_FrameGlobalGetOut(), "Node %d\n", pCutStore->pCuts[0].pArray[0] );
     for ( i = 0; i < pCutStore->nCuts; i++ )
         Ivy_CutPrintForNode( pCutStore->pCuts + i );
 }
@@ -1114,7 +1114,7 @@ void Ivy_CutComputeAll( Ivy_Man_t * p, int nInputs )
     abctime clk = Abc_Clock();
     if ( nInputs > IVY_CUT_INPUT )
     {
-        printf( "Cannot compute cuts for more than %d inputs.\n", IVY_CUT_INPUT );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot compute cuts for more than %d inputs.\n", IVY_CUT_INPUT );
         return;
     }
     nNodeTotal = nNodeOver = 0;
@@ -1129,7 +1129,7 @@ void Ivy_CutComputeAll( Ivy_Man_t * p, int nInputs )
         nNodeOver   += pStore->fSatur;
         nNodeTotal++;
     }
-    printf( "All = %6d. Minus = %6d. Triv = %6d.   Node = %6d. Satur = %6d.  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "All = %6d. Minus = %6d. Triv = %6d.   Node = %6d. Satur = %6d.  ", 
         nCutsTotal, nCutsTotalM, Ivy_ManPiNum(p) + Ivy_ManNodeNum(p), nNodeTotal, nNodeOver );
     ABC_PRT( "Time", Abc_Clock() - clk );
 }

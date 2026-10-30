@@ -387,7 +387,7 @@ if ( p->pPars->fVeryVerbose )
 {
 Abc_Print( 1, "Trying to justify cube " );
 if ( pCube )
-    Pdr_SetPrint( stdout, pCube, Aig_ManRegNum(p->pAig), NULL );
+    Pdr_SetPrint( Abc_FrameGlobalGetOut(), pCube, Aig_ManRegNum(p->pAig), NULL );
 else
     Abc_Print( 1, "<prop=fail>" );
 Abc_Print( 1, " in frame %d.\n", k );

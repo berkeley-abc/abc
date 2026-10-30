@@ -152,7 +152,7 @@ void Abc_FrameGiaInputMiniAig( Abc_Frame_t * pAbc, void * p )
 {
     Gia_Man_t * pGia;
     if ( pAbc == NULL )
-        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" );
     Gia_ManStopP( &pAbc->pGiaMiniAig );
     Vec_IntFreeP( &pAbc->vCopyMiniAig );
     pGia = Gia_ManFromMiniAig( (Mini_Aig_t *)p, &pAbc->vCopyMiniAig, 0 );
@@ -164,10 +164,10 @@ void * Abc_FrameGiaOutputMiniAig( Abc_Frame_t * pAbc )
 {
     Gia_Man_t * pGia;
     if ( pAbc == NULL )
-        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" );
     pGia = Abc_FrameReadGia( pAbc );
     if ( pGia == NULL )
-        printf( "Current network in ABC framework is not defined.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current network in ABC framework is not defined.\n" );
     return Gia_ManToMiniAig( pGia );
 }
 
@@ -213,7 +213,7 @@ void Gia_ManReadMiniAigNames( char * pFileName, Gia_Man_t * pGia )
         }
         Vec_PtrFreeFree( vTemp );
         fclose( pFile );
-        printf( "Read ILO names into file \"%s\".\n", filename3 );
+        fprintf( Abc_FrameGlobalGetOut(), "Read ILO names into file \"%s\".\n", filename3 );
     }
     ABC_FREE( filename3 );
 }
@@ -516,7 +516,7 @@ void Abc_FrameGiaInputMiniLut( Abc_Frame_t * pAbc, void * p )
 {
     Gia_Man_t * pGia;
     if ( pAbc == NULL )
-        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" );
     pGia = Gia_ManFromMiniLut( (Mini_Lut_t *)p, NULL );
     Abc_FrameUpdateGia( pAbc, pGia );
 //    Gia_ManDelete( pGia );
@@ -524,7 +524,7 @@ void Abc_FrameGiaInputMiniLut( Abc_Frame_t * pAbc, void * p )
 void Abc_FrameGiaInputMiniLut2( Abc_Frame_t * pAbc, void * p )
 {
     if ( pAbc == NULL )
-        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" );
     Vec_IntFreeP( &pAbc->vCopyMiniLut );
     Gia_ManStopP( &pAbc->pGiaMiniLut );
     pAbc->pGiaMiniLut = Gia_ManFromMiniLut2( (Mini_Lut_t *)p, &pAbc->vCopyMiniLut );
@@ -535,12 +535,12 @@ void * Abc_FrameGiaOutputMiniLut( Abc_Frame_t * pAbc )
     Mini_Lut_t * pRes = NULL;
     Gia_Man_t * pGia;
     if ( pAbc == NULL )
-        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" );
     Gia_ManStopP( &pAbc->pGiaMiniLut );
     Vec_IntFreeP( &pAbc->vCopyMiniLut );
     pGia = Abc_FrameReadGia( pAbc );
     if ( pGia == NULL )
-        printf( "Current network in ABC framework is not defined.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current network in ABC framework is not defined.\n" );
     pRes = Gia_ManToMiniLut( pGia );
     pAbc->pGiaMiniLut = Gia_ManFromMiniLut( pRes, &pAbc->vCopyMiniLut );
     return pRes;
@@ -549,20 +549,20 @@ char * Abc_FrameGiaOutputMiniLutAttr( Abc_Frame_t * pAbc, void * pMiniLut )
 {
     Gia_Man_t * pGia;
     if ( pAbc == NULL )
-        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" );
     pGia = Abc_FrameReadGia( pAbc );
     if ( pGia == NULL )
-        printf( "Current network in ABC framework is not defined.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current network in ABC framework is not defined.\n" );
     return Gia_ManToMiniLutAttr( pGia, pMiniLut );
 }
 int * Abc_FrameGiaOutputMiniLutObj( Abc_Frame_t * pAbc )
 {
     int * pRes = NULL;
     if ( pAbc == NULL )
-        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" );
     pAbc->vMiniLutObjs = Gia_ManDeriveBoxMapping( Abc_FrameReadGia( pAbc ) );
     if ( pAbc->vMiniLutObjs == NULL )
-        printf( "MiniLut objects are not defined.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "MiniLut objects are not defined.\n" );
     pRes = Vec_IntReleaseArray( pAbc->vMiniLutObjs );
     Vec_IntFreeP( &pAbc->vMiniLutObjs );    
     return pRes;
@@ -692,9 +692,9 @@ void Gia_ManNameMapVerify( Gia_Man_t * p, Gia_Man_t * p1, Gia_Man_t * p2, Vec_In
             iObj1 = Gia_ObjReprSelf(p, Abc_Lit2Var(pObjAig->Value));
             iObj2 = Gia_ObjReprSelf(p, Abc_Lit2Var(pObjLut->Value));
             if ( iObj1 != iObj2 )
-                printf( "Found functional mismatch for LutId %d and AigId %d.\n", iLut, iObj );
+                fprintf( Abc_FrameGlobalGetOut(), "Found functional mismatch for LutId %d and AigId %d.\n", iLut, iObj );
             if ( (pObjLut->fPhase ^ Abc_LitIsCompl(iLitLut)) != (pObjAig->fPhase ^ Abc_LitIsCompl(iLitAig) ^ fCompl) )
-                printf( "Found phase mismatch for LutId %d and AigId %d.\n", iLut, iObj );
+                fprintf( Abc_FrameGlobalGetOut(), "Found phase mismatch for LutId %d and AigId %d.\n", iLut, iObj );
         }
 }
 int * Abc_FrameReadMiniLutNameMapping( Abc_Frame_t * pAbc )
@@ -704,9 +704,9 @@ int * Abc_FrameReadMiniLutNameMapping( Abc_Frame_t * pAbc )
     Gia_Man_t * pGia, * pTemp;
     int * pRes = NULL;
     if ( pAbc->pGiaMiniAig == NULL )
-        printf( "GIA derived from MiniAig is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "GIA derived from MiniAig is not available.\n" );
     if ( pAbc->pGiaMiniLut == NULL )
-        printf( "GIA derived from MiniLut is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "GIA derived from MiniLut is not available.\n" );
     if ( pAbc->pGiaMiniAig == NULL || pAbc->pGiaMiniLut == NULL )
         return NULL;
     pGia = Gia_ManDup2( pAbc->pGiaMiniAig, pAbc->pGiaMiniLut );
@@ -731,7 +731,7 @@ int * Abc_FrameReadMiniLutSwitching( Abc_Frame_t * pAbc )
     int i, iObj, * pRes = NULL;
     if ( pAbc->pGiaMiniLut == NULL )
     {
-        printf( "GIA derived from MiniLut is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "GIA derived from MiniLut is not available.\n" );
         return NULL;
     }
     vSwitching = Gia_ManComputeSwitchProbs( pAbc->pGiaMiniLut, 48, 16, 0 );
@@ -748,7 +748,7 @@ int * Abc_FrameReadMiniLutSwitching2( Abc_Frame_t * pAbc, int fRandPiFactor )
     int i, iObj, * pRes = NULL;
     if ( pAbc->pGiaMiniLut == NULL )
     {
-        printf( "GIA derived from MiniLut is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "GIA derived from MiniLut is not available.\n" );
         return NULL;
     }
     vSwitching = Gia_ManComputeSwitchProbs2( pAbc->pGiaMiniLut, 48, 16, 0, fRandPiFactor );
@@ -765,7 +765,7 @@ int * Abc_FrameReadMiniLutSwitchingPo( Abc_Frame_t * pAbc )
     int i, iObj, * pRes = NULL;
     if ( pAbc->pGiaMiniAig == NULL )
     {
-        printf( "GIA derived from MiniAIG is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "GIA derived from MiniAIG is not available.\n" );
         return NULL;
     }
     vSwitching = Gia_ManComputeSwitchProbs( pAbc->pGiaMiniAig, 48, 16, 0 );
@@ -838,14 +838,14 @@ int * Abc_FrameReadMiniAigEquivClasses( Abc_Frame_t * pAbc )
     Vec_Int_t * vRes;
     int * pRes;
     if ( pAbc->pGiaMiniAig == NULL )
-        printf( "GIA derived from MiniAig is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "GIA derived from MiniAig is not available.\n" );
     if ( pAbc->vCopyMiniAig == NULL )
-        printf( "Mapping of MiniAig nodes is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Mapping of MiniAig nodes is not available.\n" );
     if ( pAbc->pGia2 == NULL )
-        printf( "Internal GIA with equivalence classes is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Internal GIA with equivalence classes is not available.\n" );
     if ( pAbc->pGia2->pReprs == NULL )
     {
-        printf( "Equivalence classes of internal GIA are not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Equivalence classes of internal GIA are not available.\n" );
         return NULL;
     }
     else if ( 0 )
@@ -853,10 +853,10 @@ int * Abc_FrameReadMiniAigEquivClasses( Abc_Frame_t * pAbc )
         int i;
         for ( i = 1; i < Gia_ManObjNum(pAbc->pGia2); i++ )
             if ( Gia_ObjHasRepr(pAbc->pGia2, i) )
-                printf( "Obj %3d : Repr %3d   Proved %d   Failed %d\n", i, Gia_ObjRepr(pAbc->pGia2, i), Gia_ObjProved(pAbc->pGia2, i), Gia_ObjFailed(pAbc->pGia2, i) );
+                fprintf( Abc_FrameGlobalGetOut(), "Obj %3d : Repr %3d   Proved %d   Failed %d\n", i, Gia_ObjRepr(pAbc->pGia2, i), Gia_ObjProved(pAbc->pGia2, i), Gia_ObjFailed(pAbc->pGia2, i) );
     }
     if ( Gia_ManObjNum(pAbc->pGia2) != Gia_ManObjNum(pAbc->pGiaMiniAig) )
-        printf( "Internal GIA with equivalence classes is not directly derived from MiniAig.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Internal GIA with equivalence classes is not directly derived from MiniAig.\n" );
     // derive the set of equivalent node pairs
     vRes = Gia_ManMapEquivAfterScorr( pAbc->pGia2, pAbc->vCopyMiniAig );
     pRes = Vec_IntReleaseArray( vRes );
@@ -983,12 +983,12 @@ void Gia_MiniAigVerify( Abc_Frame_t * pAbc, char * pFileName )
     // dump miter for verification
     pGia = Gia_MiniAigMiter( p, pEquivs );
     Gia_AigerWrite( pGia, pFileMiter, 0, 0, 0 );
-    printf( "Dumped miter AIG in file \"%s\".\n", pFileMiter );
+    fprintf( Abc_FrameGlobalGetOut(), "Dumped miter AIG in file \"%s\".\n", pFileMiter );
     Gia_ManStop( pGia );
     // dump reduced AIG
     pGia = Gia_MiniAigReduce( p, pEquivs );
     Gia_AigerWrite( pGia, pFileReduced, 0, 0, 0 );
-    printf( "Dumped reduced AIG in file \"%s\".\n", pFileReduced );
+    fprintf( Abc_FrameGlobalGetOut(), "Dumped reduced AIG in file \"%s\".\n", pFileReduced );
     Gia_ManStop( pGia );
     // cleanup
     ABC_FREE( pEquivs );
@@ -1056,10 +1056,10 @@ Vec_Wec_t * Gia_MiniAigSuperGates( Mini_Aig_t * p )
 void Gia_MiniAigSuperPrintDouble( Vec_Int_t * p, int nPis )
 {
     int i, Entry;
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_IntForEachEntry( p, Entry, i )
-        printf( "%d(%d) ", Entry%nPis, Entry/nPis );
-    printf( "  Total = %d\n", Vec_IntSize(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d(%d) ", Entry%nPis, Entry/nPis );
+    fprintf( Abc_FrameGlobalGetOut(), "  Total = %d\n", Vec_IntSize(p) );
 }
 int Gia_MiniAigSuperMerge( Vec_Int_t * p, int nPis )
 {
@@ -1092,7 +1092,7 @@ int Gia_MiniAigSuperPreprocess( Mini_Aig_t * p, Vec_Wec_t * vSuper, int nPis, in
     {
         Vec_IntSort( vRes, 0 );
         if ( fVerbose ) 
-            printf( "\nOutput %d\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "\nOutput %d\n", i );
         if ( fVerbose )
             Gia_MiniAigSuperPrintDouble( vRes, nPis );
         for ( nIters = 1; Gia_MiniAigSuperMerge(vRes, nPis); nIters++ )
@@ -1103,7 +1103,7 @@ int Gia_MiniAigSuperPreprocess( Mini_Aig_t * p, Vec_Wec_t * vSuper, int nPis, in
         Multi = Abc_MaxInt( Multi, nIters );
     }
     if ( fVerbose )
-        printf( "Multi = %d.\n", Multi );
+        fprintf( Abc_FrameGlobalGetOut(), "Multi = %d.\n", Multi );
     return Multi;
 }
 
@@ -1174,7 +1174,7 @@ Vec_Int_t * Gia_MiniAigProcessFile()
     char * pFileName = "test.txt";
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
-        printf( "Cannot open the file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the file.\n" );
     else
     {
         int nLines = 0, nLinesAll = 0;
@@ -1195,8 +1195,8 @@ Vec_Int_t * Gia_MiniAigProcessFile()
             }
         }
         fclose( pFile );
-        printf( "Collected %d (out of %d) lines.\n", nLines, nLinesAll );
-        printf( "Entries = %d\n", Vec_IntSize(vTriples) );
+        fprintf( Abc_FrameGlobalGetOut(), "Collected %d (out of %d) lines.\n", nLines, nLinesAll );
+        fprintf( Abc_FrameGlobalGetOut(), "Entries = %d\n", Vec_IntSize(vTriples) );
     }
     return vTriples;
 }
@@ -1358,10 +1358,10 @@ void Abc_FrameSetRetimingData( Abc_Frame_t * pAbc, int * pRst, int * pSet, int *
     int * pSetNew = ABC_CALLOC( int, nRegs );
     int * pEnaNew = ABC_CALLOC( int, nRegs );
     if ( pAbc == NULL )
-        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" );
     pGia = Abc_FrameReadGia( pAbc );
     if ( pGia == NULL )
-        printf( "Current network in ABC framework is not defined.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current network in ABC framework is not defined.\n" );
     else {
         assert( nRegs == Gia_ManRegNum(pGia) );
         memmove( pRstNew, pRst, sizeof(int)*nRegs ); 
@@ -1369,7 +1369,7 @@ void Abc_FrameSetRetimingData( Abc_Frame_t * pAbc, int * pRst, int * pSet, int *
         memmove( pEnaNew, pEna, sizeof(int)*nRegs ); 
     }
     if ( pAbc->vCopyMiniAig == NULL )
-        printf( "Mapping of MiniAig nodes is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Mapping of MiniAig nodes is not available.\n" );
     else {
         Abc_FrameRemapLits( pRstNew, nRegs, pAbc->vCopyMiniAig );
         Abc_FrameRemapLits( pSetNew, nRegs, pAbc->vCopyMiniAig );

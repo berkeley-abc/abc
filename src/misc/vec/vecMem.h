@@ -289,7 +289,7 @@ static inline void Vec_MemDump( FILE * pFile, Vec_Mem_t * pVec )
     word * pEntry;
     int i, w, d;
     if ( pFile == stdout )
-        printf( "Memory vector has %d entries: \n", Vec_MemEntryNum(pVec) );
+        fprintf( Abc_FrameGlobalGetOut(),  "Memory vector has %d entries: \n", Vec_MemEntryNum(pVec)  );
     Vec_MemForEachEntry( pVec, pEntry, i )
     {
         for ( w = pVec->nEntrySize - 1; w >= 0; w-- )
@@ -350,9 +350,9 @@ static void Vec_MemHashProfile( Vec_Mem_t * p )
         int * pSpot = Vec_IntEntryP( p->vTable, e );
         for ( ; *pSpot != -1; pSpot = Vec_IntEntryP(p->vNexts, *pSpot) )
             Count++;
-        printf( "%d ", Count );
+        fprintf( Abc_FrameGlobalGetOut(),  "%d ", Count  );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(),  "\n"  );
 }
 static void Vec_MemHashResize( Vec_Mem_t * p )
 {
@@ -463,9 +463,9 @@ static inline void Vec_MemDumpTruthTables( Vec_Mem_t * p, char * pName, int nLut
     Vec_MemDump( pFile, p );
     if ( pFile != stdout )
         fclose( pFile );
-    printf( "Dumped %d %d-var truth tables into file \"%s\" (%.2f MB).\n", 
+    fprintf( Abc_FrameGlobalGetOut(),  "Dumped %d %d-var truth tables into file \"%s\" (%.2f MB).\n", 
         Vec_MemEntryNum(p), nLutSize, pName ? pFileName : "stdout",
-        8.0 * Vec_MemEntryNum(p) * Vec_MemEntrySize(p) / (1 << 20) );
+        8.0 * Vec_MemEntryNum(p) * Vec_MemEntrySize(p) / (1 << 20)  );
 }
 
 ABC_NAMESPACE_HEADER_END

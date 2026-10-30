@@ -178,7 +178,7 @@ Abc_Ntk_t * Abc_NtkFromGlobalBdds( Abc_Ntk_t * pNtk, int fReverse )
     // make sure the new manager has the same number of inputs
     Cudd_bddIthVar( (DdManager *)pNtkNew->pManFunc, dd->size-1 );
     // process the POs
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -216,7 +216,7 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, i
     if ( fVerbose )
     {
         DdManager * dd = (DdManager *)Abc_NtkGlobalBddMan( pNtk );
-        printf( "Shared BDD size = %6d nodes.  ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+        fprintf( Abc_FrameGlobalGetOut(), "Shared BDD size = %6d nodes.  ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
         ABC_PRT( "BDD construction time", Abc_Clock() - clk );
     }
     if ( fDumpOrder ) 
@@ -237,7 +237,7 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, i
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkCollapse: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCollapse: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -732,14 +732,14 @@ Vec_Str_t * Abc_NtkClpGiaOne( Gia_Man_t * p, int iCo, int nCubeLim, int nBTLimit
     extern Vec_Str_t * Bmc_CollapseOneOld( Gia_Man_t * p, int nCubeLim, int nBTLimit, int fCanon, int fReverse, int fVerbose );
     Gia_Man_t * pGia  = Gia_ManDupCones( p, &iCo, 1, 1 );
     if ( fVerbose )
-        printf( "Output %4d:  Supp = %4d. Cone =%6d.\n", iCo, Vec_IntSize(vSupp), Gia_ManAndNum(pGia) );
+        fprintf( Abc_FrameGlobalGetOut(), "Output %4d:  Supp = %4d. Cone =%6d.\n", iCo, Vec_IntSize(vSupp), Gia_ManAndNum(pGia) );
     vSop = Bmc_CollapseOneOld( pGia, nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
     Gia_ManStop( pGia );
     if ( vSop == NULL )
         return NULL;
     Abc_NtkCollapseReduce( vSop, vSupp, vClass, vSupps );
     if ( fVerbose )
-        printf( "Supp new = %4d. Sop = %4d.  ", Vec_IntSize(vSupp), Vec_StrSize(vSop)/(Vec_IntSize(vSupp) +3) );
+        fprintf( Abc_FrameGlobalGetOut(), "Supp new = %4d. Sop = %4d.  ", Vec_IntSize(vSupp), Vec_StrSize(vSop)/(Vec_IntSize(vSupp) +3) );
     if ( fVerbose )
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return vSop; 
@@ -765,7 +765,7 @@ Vec_Str_t * Abc_NtkClpGiaOne2( Cnf_Dat_t * pCnf, Gia_Man_t * p, int iCo, int nCu
     pSat = Abc_NtkClpDeriveSatSolver( pCnf, iCoObjId, vSuppObjs, vAnds, vMap, NULL, NULL, NULL );
     Vec_IntFree( vSuppObjs );
     if ( fVerbose )
-        printf( "Output %4d:  Supp = %4d. Cone =%6d.\n", iCo, Vec_IntSize(vSupp), Vec_IntSize(vAnds) );
+        fprintf( Abc_FrameGlobalGetOut(), "Output %4d:  Supp = %4d. Cone =%6d.\n", iCo, Vec_IntSize(vSupp), Vec_IntSize(vAnds) );
 //    vSop = Bmc_CollapseOne_int3( pSat, pSat1, pSat2, pSat3, Vec_IntSize(vSupp), nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
 //    vSop = Bmc_CollapseOne_int2( pSat, pSat1, Vec_IntSize(vSupp), nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
     vSop = Bmc_CollapseOne_int( pSat, Vec_IntSize(vSupp), nCubeLim, nBTLimit, fCanon, fReverse, fVerbose );
@@ -778,7 +778,7 @@ Vec_Str_t * Abc_NtkClpGiaOne2( Cnf_Dat_t * pCnf, Gia_Man_t * p, int iCo, int nCu
         return NULL;
     Abc_NtkCollapseReduce( vSop, vSupp, vClass, vSupps );
     if ( fVerbose )
-        printf( "Supp new = %4d. Sop = %4d.  ", Vec_IntSize(vSupp), Vec_StrSize(vSop)/(Vec_IntSize(vSupp) +3) );
+        fprintf( Abc_FrameGlobalGetOut(), "Supp new = %4d. Sop = %4d.  ", Vec_IntSize(vSupp), Vec_StrSize(vSop)/(Vec_IntSize(vSupp) +3) );
     if ( fVerbose )
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return vSop; 
@@ -797,7 +797,7 @@ Vec_Ptr_t * Abc_GiaDeriveSops( Abc_Ntk_t * pNtkNew, Gia_Man_t * p, Vec_Wec_t * v
     vClasses = Gia_ManIsoStrashReduceInt( p, vSupps, 0 );
     if ( fVerbose )
     {
-        printf( "Considering %d (out of %d) outputs. ", Vec_WecSize(vClasses), Gia_ManCoNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "Considering %d (out of %d) outputs. ", Vec_WecSize(vClasses), Gia_ManCoNum(p) );
         Abc_PrintTime( 1, "Reduction time", Abc_Clock() - clk );
     }
     // derive representatives
@@ -814,7 +814,7 @@ Vec_Ptr_t * Abc_GiaDeriveSops( Abc_Ntk_t * pNtkNew, Gia_Man_t * p, Vec_Wec_t * v
         pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 1, 0, 0, 0 );
     }
     vSopsRepr = Vec_PtrStart( Vec_IntSize(vReprs) );
-    pProgress = Extra_ProgressBarStart( stdout, Vec_IntSize(vReprs) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Vec_IntSize(vReprs) );
     Extra_ProgressBarUpdate( pProgress, 0, NULL );
     for ( i = 0; i < Vec_IntSize(vReprs); i++ )
     {
@@ -888,7 +888,7 @@ Abc_Ntk_t * Abc_NtkFromSopsInt( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, in
         word Cost = (word)nNodeMax * (word)nSuppMax * (word)nCubeLim;
         if ( Cost > (word)nCostMax )
         {
-            printf( "Cost of the largest output cone exceeded the limit (%d * %d * %d  >  %d).\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Cost of the largest output cone exceeded the limit (%d * %d * %d  >  %d).\n", 
                 nNodeMax, nSuppMax, nCubeLim, nCostMax );
             Gia_ManStop( pGia );
             Vec_WecFree( vSupps );
@@ -951,7 +951,7 @@ Abc_Ntk_t * Abc_NtkCollapseSat( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, in
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkCollapseSat: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCollapseSat: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }

@@ -724,7 +724,7 @@ void Cec2_ManDestroy( Cec2_Man_t * p )
         ABC_PRTP( "Rollback   ", p->timeExtra,     timeTotal );
         ABC_PRTP( "Other      ", timeOther,        timeTotal );
         ABC_PRTP( "TOTAL      ", timeTotal,        timeTotal );
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
     }
 
     Vec_WrdFreeP( &p->pAig->vSims );
@@ -775,7 +775,7 @@ void Cec2_ManVerify( Gia_Man_t * p, int iObj0, int iObj1, int fPhase, satoko_t *
     Value0 = Cec2_ManVerify_rec( p, iObj0, pSat );
     Value1 = Cec2_ManVerify_rec( p, iObj1, pSat );
     if ( (Value0 ^ Value1) == fPhase )
-        printf( "CEX verification FAILED for obj %d and obj %d.\n", iObj0, iObj1 );
+        fprintf( Abc_FrameGlobalGetOut(), "CEX verification FAILED for obj %d and obj %d.\n", iObj0, iObj1 );
 //    else
 //        printf( "CEX verification succeeded for obj %d and obj %d.\n", iObj0, iObj1 );;
 }
@@ -908,9 +908,9 @@ void Cec2_ManPrintStats( Gia_Man_t * p, Cec2_Par_t * pPars, Cec2_Man_t * pMan )
 {
     if ( !pPars->fVerbose )
         return;
-    printf( "S =%5d ", pMan ? pMan->nSatSat   : 0 );
-    printf( "U =%5d ", pMan ? pMan->nSatUnsat : 0 );
-    printf( "F =%5d ", pMan ? pMan->nSatUndec : 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "S =%5d ", pMan ? pMan->nSatSat   : 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "U =%5d ", pMan ? pMan->nSatUnsat : 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "F =%5d ", pMan ? pMan->nSatUndec : 0 );
     Gia_ManEquivPrintClasses( p, pPars->fVeryVerbose, 0 );
 }
 int Cec2_ManPerformSweeping( Gia_Man_t * p, Cec2_Par_t * pPars, Gia_Man_t ** ppNew )
@@ -998,7 +998,7 @@ int Cec2_ManPerformSweeping( Gia_Man_t * p, Cec2_Par_t * pPars, Gia_Man_t ** ppN
         {
             int Fails = Cec2_ManSimulate( p, pMan->vCexTriples, pMan );
             if ( Fails && pPars->fVerbose )
-                printf( "Failed to resimulate %d times with pattern = %d  (total = %d).\n", Fails, pMan->nPatterns, pPars->nSimWords * 64 );
+                fprintf( Abc_FrameGlobalGetOut(), "Failed to resimulate %d times with pattern = %d  (total = %d).\n", Fails, pMan->nPatterns, pPars->nSimWords * 64 );
             if ( pPars->fIsMiter && !Cec2_ManSimulateCos(p) ) // cex detected
                 break;
         }

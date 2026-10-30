@@ -101,7 +101,7 @@ void Ivy_ManHaigStart( Ivy_Man_t * p, int fVerbose )
 
     if ( fVerbose )
     {
-        printf( "Starting : " );
+        fprintf( Abc_FrameGlobalGetOut(), "Starting : " );
         Ivy_ManPrintStats( p->pHaig );
     }
 
@@ -355,24 +355,24 @@ void Ivy_ManHaigPostprocess( Ivy_Man_t * p, int fVerbose )
 
     if ( fVerbose )
     {
-        printf( "Final    : " );
+        fprintf( Abc_FrameGlobalGetOut(), "Final    : " );
         Ivy_ManPrintStats( p );
-        printf( "HAIG     : " );
+        fprintf( Abc_FrameGlobalGetOut(), "HAIG     : " );
         Ivy_ManPrintStats( p->pHaig );
 
         // print choice node stats
         nChoiceNodes = Ivy_ManHaigCountChoices( p, &nChoices );
-        printf( "Total choice nodes = %d. Total choices = %d. Skipped classes = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Total choice nodes = %d. Total choices = %d. Skipped classes = %d.\n", 
             nChoiceNodes, nChoices, p->pHaig->nClassesSkip ); 
     }
 
     if ( Ivy_ManIsAcyclic( p->pHaig ) )
     {
         if ( fVerbose )
-            printf( "HAIG is acyclic\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "HAIG is acyclic\n" );
     }
     else
-        printf( "HAIG contains a cycle\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "HAIG contains a cycle\n" );
 
 //    if ( fVerbose )
 //        Ivy_ManHaigSimulate( p );
@@ -416,7 +416,7 @@ static inline Ivy_Init_t Ivy_ManHaigSimulateChoice( Ivy_Init_t In0, Ivy_Init_t I
     assert( In0 != IVY_INIT_NONE && In1 != IVY_INIT_NONE );
     if ( (In0 == IVY_INIT_0 && In1 == IVY_INIT_1) || (In0 == IVY_INIT_1 && In1 == IVY_INIT_0) )
     {
-         printf( "Compatibility fails.\n" );
+         fprintf( Abc_FrameGlobalGetOut(), "Compatibility fails.\n" );
          return IVY_INIT_0;
     }
     if ( In0 == IVY_INIT_DC && In1 == IVY_INIT_DC )
@@ -454,14 +454,14 @@ void Ivy_ManHaigSimulate( Ivy_Man_t * p )
 
 if ( fVerbose )
 Ivy_ManForEachPi( p, pObj, i )
-printf( "Setting PI %d\n", pObj->Id );
+fprintf( Abc_FrameGlobalGetOut(), "Setting PI %d\n", pObj->Id );
 
     // collect latches and nodes in the DFS order
     vNodes = Ivy_ManDfsSeq( p, &vLatches );
 
 if ( fVerbose )
 Ivy_ManForEachNodeVec( p, vNodes, pObj, i )
-printf( "Collected node %d with fanins %d and %d\n", pObj->Id, Ivy_ObjFanin0(pObj)->Id, Ivy_ObjFanin1(pObj)->Id );
+fprintf( Abc_FrameGlobalGetOut(), "Collected node %d with fanins %d and %d\n", pObj->Id, Ivy_ObjFanin0(pObj)->Id, Ivy_ObjFanin1(pObj)->Id );
 
     // set the PI values
     Ivy_ManConst1(p)->Init = IVY_INIT_1;
@@ -483,13 +483,13 @@ printf( "Collected node %d with fanins %d and %d\n", pObj->Id, Ivy_ObjFanin0(pOb
         Counter = 0;
         Ivy_ManForEachNodeVec( p, vLatches, pObj, i )
             Counter += ( pObj->Init == IVY_INIT_DC );
-        printf( "Iter %d : Non-determinate = %d\n", k, Counter );    
+        fprintf( Abc_FrameGlobalGetOut(), "Iter %d : Non-determinate = %d\n", k, Counter );    
         
         // simulate the internal nodes
         Ivy_ManForEachNodeVec( p, vNodes, pObj, i )
         {
 if ( fVerbose )
-printf( "Processing node %d with fanins %d and %d\n", pObj->Id, Ivy_ObjFanin0(pObj)->Id, Ivy_ObjFanin1(pObj)->Id );
+fprintf( Abc_FrameGlobalGetOut(), "Processing node %d with fanins %d and %d\n", pObj->Id, Ivy_ObjFanin0(pObj)->Id, Ivy_ObjFanin1(pObj)->Id );
             In0 = Ivy_InitNotCond( (Ivy_Init_t)Ivy_ObjFanin0(pObj)->Init, Ivy_ObjFaninC0(pObj) );
             In1 = Ivy_InitNotCond( (Ivy_Init_t)Ivy_ObjFanin1(pObj)->Init, Ivy_ObjFaninC1(pObj) );
             pObj->Init = Ivy_ManHaigSimulateAnd( In0, In1 );
@@ -497,13 +497,13 @@ printf( "Processing node %d with fanins %d and %d\n", pObj->Id, Ivy_ObjFanin0(pO
             if ( pObj->pEquiv && Ivy_ObjRefs(pObj) > 0 )
             {
 if ( fVerbose )
-printf( "Processing choice node %d\n", pObj->Id );
+fprintf( Abc_FrameGlobalGetOut(), "Processing choice node %d\n", pObj->Id );
                 In0 = (Ivy_Init_t)pObj->Init;
                 assert( !Ivy_IsComplement(pObj->pEquiv) );
                 for ( pTemp = pObj->pEquiv; pTemp != pObj; pTemp = Ivy_Regular(pTemp->pEquiv) )
                 {
 if ( fVerbose )
-printf( "Processing secondary node %d\n", pTemp->Id );
+fprintf( Abc_FrameGlobalGetOut(), "Processing secondary node %d\n", pTemp->Id );
                     In1 = Ivy_InitNotCond( (Ivy_Init_t)pTemp->Init, Ivy_IsComplement(pTemp->pEquiv) );
                     In0 = Ivy_ManHaigSimulateChoice( In0, In1 );
                 }
@@ -516,7 +516,7 @@ printf( "Processing secondary node %d\n", pTemp->Id );
         {
             pObj->Level = Ivy_ObjFanin0(pObj)->Init;
 if ( fVerbose )
-printf( "Using latch %d with fanin %d\n", pObj->Id, Ivy_ObjFanin0(pObj)->Id );
+fprintf( Abc_FrameGlobalGetOut(), "Using latch %d with fanin %d\n", pObj->Id, Ivy_ObjFanin0(pObj)->Id );
         }
         Ivy_ManForEachNodeVec( p, vLatches, pObj, i )
             pObj->Init = pObj->Level, pObj->Level = 0;

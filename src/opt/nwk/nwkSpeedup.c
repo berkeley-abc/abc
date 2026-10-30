@@ -225,11 +225,11 @@ Aig_Man_t * Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, in
     tDelta = fUseLutLib ? tArrival*Percentage/100.0 : 1.0;
     if ( fVerbose )
     {
-        printf( "Max delay = %.2f. Delta = %.2f. ", tArrival, tDelta );
-        printf( "Using %s model. ", fUseLutLib? "LUT library" : "unit-delay" );
+        fprintf( Abc_FrameGlobalGetOut(), "Max delay = %.2f. Delta = %.2f. ", tArrival, tDelta );
+        fprintf( Abc_FrameGlobalGetOut(), "Using %s model. ", fUseLutLib? "LUT library" : "unit-delay" );
         if ( fUseLutLib )
-            printf( "Percentage = %d. ", Percentage );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Percentage = %d. ", Percentage );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // mark the timing critical nodes and edges
     puTCEdges = ABC_ALLOC( unsigned, Nwk_ManObjNumMax(pNtk) );
@@ -250,7 +250,7 @@ Aig_Man_t * Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, in
                     Counter++;
             CounterRes += Aig_WordCountOnes( puTCEdges[pNode->Id] );
         }
-        printf( "Edges: Total = %7d. 0-slack = %7d. Critical = %7d. Ratio = %4.2f\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Edges: Total = %7d. 0-slack = %7d. Critical = %7d. Ratio = %4.2f\n", 
             Nwk_ManGetTotalFanins(pNtk), Counter, CounterRes, Counter? 1.0*CounterRes/Counter : 0.0 );
     }
     // start the resulting network
@@ -301,11 +301,11 @@ Aig_Man_t * Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, in
         // print the results
         if ( fVeryVerbose )
         {
-        printf( "%5d Node %5d : %d %2d %2d  ", Counter, pNode->Id, 
+        fprintf( Abc_FrameGlobalGetOut(), "%5d Node %5d : %d %2d %2d  ", Counter, pNode->Id, 
             nTimeCris, Vec_PtrSize(vTimeCries), Vec_PtrSize(vTimeFanins) );
         Nwk_ObjForEachFanin( pNode, pFanin, k )
-            printf( "%d(%.2f)%s ", pFanin->Id, Nwk_ObjSlack(pFanin), (puTCEdges[pNode->Id] & (1<<k))? "*":"" );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d(%.2f)%s ", pFanin->Id, Nwk_ObjSlack(pFanin), (puTCEdges[pNode->Id] & (1<<k))? "*":"" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         // add the node to choices
         if ( Vec_PtrSize(vTimeCries) == 0 || Vec_PtrSize(vTimeCries) > Degree )
@@ -345,7 +345,7 @@ Aig_Man_t * Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, in
     Vec_PtrFree( vTimeFanins );
     ABC_FREE( puTCEdges );
     if ( fVerbose )
-        printf( "Nodes: Total = %7d. 0-slack = %7d. Workable = %7d. Ratio = %4.2f\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes: Total = %7d. 0-slack = %7d. Workable = %7d. Ratio = %4.2f\n", 
         Nwk_ManNodeNum(pNtk), Counter, CounterRes, Counter? 1.0*CounterRes/Counter : 0.0 ); 
 
     // remove invalid choice nodes

@@ -63,7 +63,7 @@ Abc_Ntk_t * Io_ReadBench( char * pFileName, int fCheck )
     // make sure that everything is okay with the network structure
     if ( fCheck && !Abc_NtkCheckRead( pNtk ) )
     {
-        printf( "Io_ReadBench: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_ReadBench: The network check has failed.\n" );
         Abc_NtkDelete( pNtk );
         return NULL;
     }
@@ -98,14 +98,14 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
 
     // go through the lines of the file
     vString = Vec_StrAlloc( 100 );
-    pProgress = Extra_ProgressBarStart( stdout, Extra_FileReaderGetFileSize(p) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Extra_FileReaderGetFileSize(p) );
     for ( iLine = 0; (vTokens = (Vec_Ptr_t *)Extra_FileReaderGetTokens(p)); iLine++ )
     {
         Extra_ProgressBarUpdate( pProgress, Extra_FileReaderGetCurPosition(p), NULL );
 
         if ( vTokens->nSize == 1 )
         {
-            printf( "%s: Wrong input file format.\n", Extra_FileReaderGetFileName(p) );
+            fprintf( Abc_FrameGlobalGetOut(), "%s: Wrong input file format.\n", Extra_FileReaderGetFileName(p) );
             Vec_StrFree( vString );
             Abc_NtkDelete( pNtk );
             return NULL;
@@ -163,7 +163,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                 // check the number of inputs
                 if ( nNames > 15 )
                 {
-                    printf( "%s: Currently cannot read truth tables with more than 8 inputs (%d).\n", Extra_FileReaderGetFileName(p), nNames );
+                    fprintf( Abc_FrameGlobalGetOut(), "%s: Currently cannot read truth tables with more than 8 inputs (%d).\n", Extra_FileReaderGetFileName(p), nNames );
                     Vec_StrFree( vString );
                     Abc_NtkDelete( pNtk );
                     return NULL;
@@ -172,7 +172,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                 pString = (char *)vTokens->pArray[2];
                 if ( strncmp( pString, "0x", 2 ) )
                 {
-                    printf( "%s: The LUT signature (%s) does not look like a hexadecimal beginning with \"0x\".\n", Extra_FileReaderGetFileName(p), pString );
+                    fprintf( Abc_FrameGlobalGetOut(), "%s: The LUT signature (%s) does not look like a hexadecimal beginning with \"0x\".\n", Extra_FileReaderGetFileName(p), pString );
                     Vec_StrFree( vString );
                     Abc_NtkDelete( pNtk );
                     return NULL;
@@ -192,7 +192,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                 // read the hex number from the string
                 if ( !Extra_ReadHexadecimal( uTruth, pString, nNames ) )
                 {
-                    printf( "%s: Reading hexadecimal number (%s) has failed.\n", Extra_FileReaderGetFileName(p), pString );
+                    fprintf( Abc_FrameGlobalGetOut(), "%s: Reading hexadecimal number (%s) has failed.\n", Extra_FileReaderGetFileName(p), pString );
                     Vec_StrFree( vString );
                     Abc_NtkDelete( pNtk );
                     return NULL;
@@ -221,7 +221,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                         Abc_ObjSetData( pNode, Abc_SopCreateInv((Mem_Flex_t *)pNtk->pManFunc) );
                     else
                     {
-                        printf( "%s: Reading truth table (%s) of single-input node has failed.\n", Extra_FileReaderGetFileName(p), pString );
+                        fprintf( Abc_FrameGlobalGetOut(), "%s: Reading truth table (%s) of single-input node has failed.\n", Extra_FileReaderGetFileName(p), pString );
                         Vec_StrFree( vString );
                         Abc_NtkDelete( pNtk );
                         return NULL;
@@ -260,7 +260,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                     Abc_ObjSetData( pNode, Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, " 1\n" ) );
                 else
                 {
-                    printf( "Io_ReadBenchNetwork(): Cannot determine gate type \"%s\" in line %d.\n", pType, Extra_FileReaderGetLineNumber(p, 0) );
+                    fprintf( Abc_FrameGlobalGetOut(), "Io_ReadBenchNetwork(): Cannot determine gate type \"%s\" in line %d.\n", pType, Extra_FileReaderGetLineNumber(p, 0) );
                     Vec_StrFree( vString );
                     Abc_NtkDelete( pNtk );
                     return NULL;
@@ -281,7 +281,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
     {
         if ( Abc_ObjFaninNum(pNet) == 0 )
         {
-            printf( "Io_ReadBenchNetwork(): Adding constant 0 fanin to non-driven net \"1\".\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Io_ReadBenchNetwork(): Adding constant 0 fanin to non-driven net \"1\".\n" );
             Io_ReadCreateConst( pNtk, "1", 0 );
         }
     }
@@ -295,7 +295,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
     {
         if ( Abc_ObjFaninNum(pNet) == 0 )
         {
-            printf( "Io_ReadBenchNetwork(): Adding constant 1 fanin to non-driven net \"2\".\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Io_ReadBenchNetwork(): Adding constant 1 fanin to non-driven net \"2\".\n" );
             Io_ReadCreateConst( pNtk, "2", 1 );
         }
     }
@@ -307,13 +307,13 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
     {
         if ( !Abc_NtkToBdd(pNtk) )
         {
-            printf( "Io_ReadBenchNetwork(): Converting to BDD has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Io_ReadBenchNetwork(): Converting to BDD has failed.\n" );
             Abc_NtkDelete( pNtk );
             return NULL;
         }
         if ( !Abc_NtkToSop(pNtk, -1, ABC_INFINITY) )
         {
-            printf( "Io_ReadBenchNetwork(): Converting to SOP has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Io_ReadBenchNetwork(): Converting to SOP has failed.\n" );
             Abc_NtkDelete( pNtk );
             return NULL;
         }
@@ -343,7 +343,7 @@ void Io_ReadBenchInit( Abc_Ntk_t * pNtk, char * pFileName )
     pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
     {
-        printf( "Io_ReadBenchInit(): Failed to open file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_ReadBenchInit(): Failed to open file \"%s\".\n", pFileName );
         return;
     }
     while ( fgets( pBuffer, 999, pFile ) )
@@ -353,13 +353,13 @@ void Io_ReadBenchInit( Abc_Ntk_t * pNtk, char * pFileName )
         Num = Nm_ManFindIdByName( pNtk->pManName, pToken, ABC_OBJ_BO );
         if ( Num < 0 )
         {
-            printf( "Io_ReadBenchInit(): Cannot find register with output %s.\n", pToken );
+            fprintf( Abc_FrameGlobalGetOut(), "Io_ReadBenchInit(): Cannot find register with output %s.\n", pToken );
             continue;
         }
         pObj = Abc_ObjFanin0( Abc_NtkObj( pNtk, Num ) );
         if ( !Abc_ObjIsLatch(pObj) )
         {
-            printf( "Io_ReadBenchInit(): The signal is not a register output %s.\n", pToken );
+            fprintf( Abc_FrameGlobalGetOut(), "Io_ReadBenchInit(): The signal is not a register output %s.\n", pToken );
             continue;
         }
         // assign the new init state
@@ -372,7 +372,7 @@ void Io_ReadBenchInit( Abc_Ntk_t * pNtk, char * pFileName )
             Abc_LatchSetInitDc( pObj );
         else
         {
-            printf( "Io_ReadBenchInit(): The signal %s has unknown initial value (%s).\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Io_ReadBenchInit(): The signal %s has unknown initial value (%s).\n", 
                 Abc_ObjName(Abc_ObjFanout0(pObj)), pToken );
             continue;
         }

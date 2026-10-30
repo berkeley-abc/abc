@@ -464,7 +464,7 @@ Sfm_Lib_t * Sfm_LibPrepare( int nVars, int fTwo, int fDelay, int fVerbose, int f
         else if ( Dau_DsdDecompose(&uTruth, pCell1->nFanins, 0, 0, pRes) <= 3 )
             pCell1->Type = 2;
         else if ( fLibVerbose )
-            printf( "Skipping gate \"%s\" with non-DSD function %s\n", pCell1->pName, pRes );
+            fprintf( Abc_FrameGlobalGetOut(), "Skipping gate \"%s\" with non-DSD function %s\n", pCell1->pName, pRes );
     }
     // generate permutations
     for ( i = 2; i <= nVars; i++ )
@@ -532,7 +532,7 @@ Sfm_Lib_t * Sfm_LibPrepare( int nVars, int fTwo, int fDelay, int fVerbose, int f
         ABC_FREE( pPerm[i] );
     if ( fVerbose )
     {
-        printf( "Library processing: Var = %d. Cell = %d.  Fun = %d. Obj = %d. Ave = %.2f.  Skip = %d. Rem = %d.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Library processing: Var = %d. Cell = %d.  Fun = %d. Obj = %d. Ave = %.2f.  Skip = %d. Rem = %d.  ", 
             nVars, p->nCells, Vec_MemEntryNum(p->vTtMem)-2, 
             p->nObjs-p->nObjRemoved, 1.0*(p->nObjs-p->nObjRemoved)/(Vec_MemEntryNum(p->vTtMem)-2), 
             p->nObjSkipped, p->nObjRemoved );
@@ -543,20 +543,20 @@ Sfm_Lib_t * Sfm_LibPrepare( int nVars, int fTwo, int fDelay, int fVerbose, int f
 void Sfm_LibPrintGate( Mio_Cell2_t * pCell, char * pFanins, Mio_Cell2_t * pCell2, char * pFanins2 )
 {
     int k;
-    printf( " %-20s(", pCell->pName );
+    fprintf( Abc_FrameGlobalGetOut(), " %-20s(", pCell->pName );
     for ( k = 0; k < (int)pCell->nFanins; k++ )
         if ( pFanins[k] == (char)16 )
             Sfm_LibPrintGate( pCell2, pFanins2, NULL, NULL );
         else
-            printf( " %c", 'a' + pFanins[k] );
-    printf( " )" );
+            fprintf( Abc_FrameGlobalGetOut(), " %c", 'a' + pFanins[k] );
+    fprintf( Abc_FrameGlobalGetOut(), " )" );
 }
 void Sfm_LibPrintObj( Sfm_Lib_t * p, Sfm_Fun_t * pObj )
 {
     Mio_Cell2_t * pCellB = p->pCells + (int)pObj->pFansB[0];
     Mio_Cell2_t * pCellT = p->pCells + (int)pObj->pFansT[0];
     int i, nFanins = pCellB->nFanins + (pCellT == p->pCells ? 0 : pCellT->nFanins - 1);
-    printf( "F = %d  A =%6.2f  ", nFanins, Scl_Int2Flt(pObj->Area) );
+    fprintf( Abc_FrameGlobalGetOut(), "F = %d  A =%6.2f  ", nFanins, Scl_Int2Flt(pObj->Area) );
     if ( pCellT == p->pCells )
         Sfm_LibPrintGate( pCellB, pObj->pFansB + 1, NULL, NULL );
     else
@@ -567,7 +567,7 @@ void Sfm_LibPrintObj( Sfm_Lib_t * p, Sfm_Fun_t * pObj )
         int Offset  = Vec_IntEntry( &p->vProfs, Sfm_LibFunId(p, pObj) );
         int * pProf = Vec_IntEntryP( &p->vStore, Offset );
         for ( i = 0; i < nFanins; i++ )
-            printf( "%6.2f ", Scl_Int2Flt(pProf[i]) );
+            fprintf( Abc_FrameGlobalGetOut(), "%6.2f ", Scl_Int2Flt(pProf[i]) );
     }
 }
 void Sfm_LibPrint( Sfm_Lib_t * p )
@@ -578,15 +578,15 @@ void Sfm_LibPrint( Sfm_Lib_t * p )
         if ( i < 2 || Vec_IntEntry(&p->vHits, i) == 0 )
             continue;
         nFanins = Abc_TtSupportSize(pTruth, p->nVars);
-        printf( "%8d : ", i );
-        printf( "Num =%5d  ", Vec_IntEntry(&p->vCounts, i) );
-        printf( "Hit =%4d  ", Vec_IntEntry(&p->vHits, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "%8d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Num =%5d  ", Vec_IntEntry(&p->vCounts, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "Hit =%4d  ", Vec_IntEntry(&p->vHits, i) );
         Sfm_LibForEachSuper( p, pObj, i )
         {
             Sfm_LibPrintObj( p, pObj );
             break;
         }
-        printf( "    " );
+        fprintf( Abc_FrameGlobalGetOut(), "    " );
         Dau_DsdPrintFromTruth( pTruth, nFanins );
     }
 }
@@ -596,7 +596,7 @@ void Sfm_LibTest()
     int fVerbose = 1;
     if ( Abc_FrameReadLibGen() == NULL )
     {
-        printf( "There is no current library.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There is no current library.\n" );
         return;
     }
     p = Sfm_LibPrepare( 7, 1, 1, 1, fVerbose );
@@ -652,7 +652,7 @@ int Sfm_LibFindDelayMatches( Sfm_Lib_t * p, word * pTruth, int * pFanins, int nF
         // print functions not found in the library
         if ( p->fVerbose || nFanins > 6 )
         {
-            printf( "Not found in the precomputed library: " );
+            fprintf( Abc_FrameGlobalGetOut(), "Not found in the precomputed library: " );
             Dau_DsdPrintFromTruth( pTruth, nFanins );
         }
         return 0;

@@ -261,7 +261,7 @@ Gia_Man_t * Gia_ManSeqStructSweep( Gia_Man_t * p, int fConst, int fEquiv, int fV
     if ( Gia_ManRegNum(p) == 0 )
         return Gia_ManCleanup( p );
     if ( fVerbose )
-        printf( "Performing sequential cleanup.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Performing sequential cleanup.\n" );
     p = Gia_ManSeqCleanup( pTemp = p );
     if ( fVerbose )
         Gia_ManReportImprovement( pTemp, p );
@@ -273,7 +273,7 @@ Gia_Man_t * Gia_ManSeqStructSweep( Gia_Man_t * p, int fConst, int fEquiv, int fV
         Gia_ManStop( pTemp );
     }
     if ( fVerbose && fEquiv )
-        printf( "Merging combinationally equivalent flops.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Merging combinationally equivalent flops.\n" );
     if ( fEquiv )
     while ( 1 )
     {

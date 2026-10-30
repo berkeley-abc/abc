@@ -177,15 +177,15 @@ void Ivy_MultiPrint( Ivy_Man_t * p, Ivy_Eva_t * pEvals, int nLeaves, int nEvals 
     for ( i = nLeaves; i < nEvals; i++ )
     {
         pEval = pEvals + i;
-        printf( "%2d  (id = %5d)  : |", i-nLeaves, Ivy_ObjId(pEval->pArg) );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d  (id = %5d)  : |", i-nLeaves, Ivy_ObjId(pEval->pArg) );
         for ( k = 0; k < nLeaves; k++ )
         {
             if ( pEval->Mask & (1 << k) )
-                printf( "+" );
+                fprintf( Abc_FrameGlobalGetOut(), "+" );
             else
-                printf( " " );
+                fprintf( Abc_FrameGlobalGetOut(), " " );
         }
-        printf( "|  Lev = %d.\n", Ivy_ObjLevel(pEval->pArg) );
+        fprintf( Abc_FrameGlobalGetOut(), "|  Lev = %d.\n", Ivy_ObjLevel(pEval->pArg) );
     }
 }
 
@@ -234,7 +234,7 @@ int Ivy_MultiCover( Ivy_Man_t * p, Ivy_Eva_t * pEvals, int nLeaves, int nEvals, 
     uFound = 0;
     // solve the covering problem
     if ( fVerbose )
-    printf( "Solution:  " );
+    fprintf( Abc_FrameGlobalGetOut(), "Solution:  " );
     Vec_PtrClear( vSols );
     for ( i = 0; i < nLimit; i++ )
     {
@@ -279,9 +279,9 @@ int Ivy_MultiCover( Ivy_Man_t * p, Ivy_Eva_t * pEvals, int nLeaves, int nEvals, 
         if ( fVerbose )
         {
             if ( BestK < nLeaves )
-                printf( "L(%d) ", BestK );
+                fprintf( Abc_FrameGlobalGetOut(), "L(%d) ", BestK );
             else
-                printf( "%d ", BestK - nLeaves );
+                fprintf( Abc_FrameGlobalGetOut(), "%d ", BestK - nLeaves );
         }
         // update the found set
         Vec_PtrPush( vSols, pEvalBest->pArg );
@@ -292,13 +292,13 @@ int Ivy_MultiCover( Ivy_Man_t * p, Ivy_Eva_t * pEvals, int nLeaves, int nEvals, 
     if ( uFound == uMaskAll )
     {
         if ( fVerbose )
-            printf( "  Found \n\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "  Found \n\n" );
         return 1;
     }
     else
     {
         if ( fVerbose )
-            printf( "  Not found \n\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "  Not found \n\n" );
         return 0;
     }
 }

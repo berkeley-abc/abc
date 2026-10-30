@@ -56,7 +56,7 @@ IN pcover *Fp, *Dp;
         /* Check essentiality */
         if (essen_cube(F, D, p)) {
             if (debug & ESSEN)
-            printf("ESSENTIAL: %s\n", pc1(p));
+            fprintf( Abc_FrameGlobalGetOut(), "ESSENTIAL: %s\n", pc1(p) );
             E = sf_addset(E, p);
             RESET(p, ACTIVE);
             F->active_count--;

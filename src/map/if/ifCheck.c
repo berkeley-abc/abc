@@ -152,10 +152,10 @@ void If_ManCutCheck( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut )
     int i;
     if ( pCut == NULL )
     {
-        printf( "DecStr  = %9d (%6.2f %%).\n", nDecStruct,   100.0*nDecStruct/nDecCalls );
-        printf( "DecStr2 = %9d (%6.2f %%).\n", nDecStruct2,  100.0*nDecStruct2/nDecCalls );
-        printf( "DecFunc = %9d (%6.2f %%).\n", nDecFunction, 100.0*nDecFunction/nDecCalls );
-        printf( "Total   = %9d (%6.2f %%).\n", nDecCalls,    100.0*nDecCalls/nDecCalls );
+        fprintf( Abc_FrameGlobalGetOut(), "DecStr  = %9d (%6.2f %%).\n", nDecStruct,   100.0*nDecStruct/nDecCalls );
+        fprintf( Abc_FrameGlobalGetOut(), "DecStr2 = %9d (%6.2f %%).\n", nDecStruct2,  100.0*nDecStruct2/nDecCalls );
+        fprintf( Abc_FrameGlobalGetOut(), "DecFunc = %9d (%6.2f %%).\n", nDecFunction, 100.0*nDecFunction/nDecCalls );
+        fprintf( Abc_FrameGlobalGetOut(), "Total   = %9d (%6.2f %%).\n", nDecCalls,    100.0*nDecCalls/nDecCalls );
         return;
     }
     assert( If_ObjIsAnd(pObj) );

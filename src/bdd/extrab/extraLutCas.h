@@ -130,7 +130,7 @@ Vec_Ptr_t * Abc_LutBddScan( DdManager * dd, DdNode * bFunc, int nVars )
     Vec_PtrPush( vRes, bFunc );
     int v, Level = Cudd_ReadPerm( dd, Cudd_NodeReadIndex(bFunc) );
     for ( v = 0; v < dd->size; v++ )
-        printf( "%2d : perm = %d  invperm = %d\n", v, dd->perm[v], dd->invperm[v] );
+        fprintf( Abc_FrameGlobalGetOut(),  "%2d : perm = %d  invperm = %d\n", v, dd->perm[v], dd->invperm[v]  );
     for ( v = 0; v < nVars; v++ )
     {
         int i, LevelCur = Level + v;
@@ -201,9 +201,9 @@ char * Abc_NtkPrecomputeData()
             assert( Counts[1] == nOnes );
         }
     }
-    for ( i = 0; i < 16; i++, printf("\n") )
-    for ( printf("%x : ", i), k = 0; k < 16; k++ )
-        printf( "%x=%x ", k, (int)pRes[i*256+k] );    
+    for ( i = 0; i < 16; i++, fprintf( Abc_FrameGlobalGetOut(), "\n" ) )
+    for ( fprintf( Abc_FrameGlobalGetOut(), "%x : ", i ), k = 0; k < 16; k++ )
+        fprintf( Abc_FrameGlobalGetOut(),  "%x=%x ", k, (int)pRes[i*256+k] );    
     return pRes;
 }
 
@@ -311,7 +311,7 @@ void Abc_LutCasPrintDsd( DdManager * dd, DdNode * bFunc, int fVerbose )
         Vec_Ptr_t * vNamesCo = Abc_LutCasFakeNames( 1 );
         char ** ppNamesCi = (char **)Vec_PtrArray( vNamesCi );
         char ** ppNamesCo = (char **)Vec_PtrArray( vNamesCo );
-        Dsd_TreePrint( stdout, pManDsd, ppNamesCi, ppNamesCo, 0, -1, 0 );
+        Dsd_TreePrint( Abc_FrameGlobalGetOut(), pManDsd, ppNamesCi, ppNamesCo, 0, -1, 0 );
         Vec_PtrFreeFree( vNamesCi );
         Vec_PtrFreeFree( vNamesCo );
     }
@@ -344,7 +344,7 @@ static inline word * Abc_LutCascade( Mini_Aig_t * p, int nLutSize, int nLuts, in
     char * pTruth = Abc_LutBddToTruth( vTemp );
 
     int BoundSet = Abc_NtkDecPatDecompose( nLutSize, nRails, pTruth, pPermInfo );
-    printf( "Pattern %s : Bound set = %d\n", pTruth, BoundSet );
+    fprintf( Abc_FrameGlobalGetOut(),  "Pattern %s : Bound set = %d\n", pTruth, BoundSet );
 
     ABC_FREE( pTruth );
     Vec_PtrFree( vTemp );
@@ -353,7 +353,7 @@ static inline word * Abc_LutCascade( Mini_Aig_t * p, int nLutSize, int nLuts, in
     Extra_StopManager( dd );
     ABC_FREE( pPermInfo );
 
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(),  "\n" );
     word * pLuts = NULL;
     return pLuts;
 }

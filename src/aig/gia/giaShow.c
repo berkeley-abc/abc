@@ -85,14 +85,14 @@ void Gia_ShowPath( Gia_Man_t * p, char * pFileName )
     {
         ABC_FREE( pLevels );
         Vec_BitFree( vPath );
-        fprintf( stdout, "Cannot visualize AIG with more than %d critical nodes.\n", NODE_MAX );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot visualize AIG with more than %d critical nodes.\n", NODE_MAX  );
         return;
     }
     if ( (pFile = fopen( pFileName, "w" )) == NULL )
     {
         ABC_FREE( pLevels );
         Vec_BitFree( vPath );
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the intermediate file \"%s\".\n", pFileName  );
         return;
     }
 
@@ -345,12 +345,12 @@ void Gia_WriteDotAigSimple( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold )
 
     if ( Gia_ManAndNum(p) > NODE_MAX )
     {
-        fprintf( stdout, "Cannot visualize AIG with more than %d nodes.\n", NODE_MAX );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot visualize AIG with more than %d nodes.\n", NODE_MAX  );
         return;
     }
     if ( (pFile = fopen( pFileName, "w" )) == NULL )
     {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the intermediate file \"%s\".\n", pFileName  );
         return;
     }
 
@@ -682,12 +682,12 @@ void Gia_WriteDotAig( Gia_Man_t * p, char * pFileName, Vec_Int_t * vBold, Vec_In
 
     if ( Gia_ManAndNum(p) > NODE_MAX )
     {
-        fprintf( stdout, "Cannot visualize AIG with more than %d nodes.\n", NODE_MAX );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot visualize AIG with more than %d nodes.\n", NODE_MAX  );
         return;
     }
     if ( (pFile = fopen( pFileName, "w" )) == NULL )
     {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the intermediate file \"%s\".\n", pFileName  );
         return;
     }
 
@@ -1133,7 +1133,7 @@ void Gia_ManShow( Gia_Man_t * pMan, Vec_Int_t * vBold, int fAdders, int fFadds, 
     // check that the file can be opened
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
     {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the intermediate file \"%s\".\n", FileNameDot  );
         return;
     }
     fclose( pFile );

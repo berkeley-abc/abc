@@ -592,9 +592,9 @@ void Aig_MuxTest()
         Aig_ObjCreateCo( p, pObj );
     Vec_PtrFree( vNodes );
 
-    printf( "Number of nodes = %6d.\n", Aig_ManObjNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Number of nodes = %6d.\n", Aig_ManObjNum(p) );
     Aig_ManCleanup( p );
-    printf( "Number of nodes = %6d.\n", Aig_ManObjNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Number of nodes = %6d.\n", Aig_ManObjNum(p) );
     Aig_ManDumpBlif( p, "test1.blif", NULL, NULL );
     Aig_ManStop( p );
 }

@@ -92,7 +92,7 @@ static inline void TimePrint( char* Message )
     static int timeBegin;
     double time = 1.0*(Abc_Clock() - timeBegin)/CLOCKS_PER_SEC ;
     if ( Message != NULL)
-        printf("%s = %f sec.\n", Message, time);
+        fprintf( Abc_FrameGlobalGetOut(), "%s = %f sec.\n", Message, time );
     timeBegin = Abc_Clock();
 }
 

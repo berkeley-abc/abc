@@ -219,16 +219,16 @@ static inline void Hsh_Int1ManHashArrayTest()
 {
     Hsh_Int1Man_t * p = Hsh_Int1ManStart( 10 );
 
-    printf( "Entry = %d.   Hashed = %d.\n", 5, Hsh_Int1ManAdd(p, 5 ) );
-    printf( "Entry = %d.   Hashed = %d.\n", 7, Hsh_Int1ManAdd(p, 7 ) );
-    printf( "Entry = %d.   Hashed = %d.\n", 7, Hsh_Int1ManAdd(p, 7 ) );
-    printf( "Entry = %d.   Hashed = %d.\n", 7, Hsh_Int1ManAdd(p, 7 ) );
-    printf( "Entry = %d.   Hashed = %d.\n", 8, Hsh_Int1ManAdd(p, 8 ) );
-    printf( "Entry = %d.   Hashed = %d.\n", 5, Hsh_Int1ManAdd(p, 5 ) );
-    printf( "Entry = %d.   Hashed = %d.\n", 3, Hsh_Int1ManAdd(p, 3 ) );
-    printf( "Entry = %d.   Hashed = %d.\n", 4, Hsh_Int1ManAdd(p, 4 ) );
+    fprintf( Abc_FrameGlobalGetOut(),  "Entry = %d.   Hashed = %d.\n", 5, Hsh_Int1ManAdd(p, 5 )  );
+    fprintf( Abc_FrameGlobalGetOut(),  "Entry = %d.   Hashed = %d.\n", 7, Hsh_Int1ManAdd(p, 7 )  );
+    fprintf( Abc_FrameGlobalGetOut(),  "Entry = %d.   Hashed = %d.\n", 7, Hsh_Int1ManAdd(p, 7 )  );
+    fprintf( Abc_FrameGlobalGetOut(),  "Entry = %d.   Hashed = %d.\n", 7, Hsh_Int1ManAdd(p, 7 )  );
+    fprintf( Abc_FrameGlobalGetOut(),  "Entry = %d.   Hashed = %d.\n", 8, Hsh_Int1ManAdd(p, 8 )  );
+    fprintf( Abc_FrameGlobalGetOut(),  "Entry = %d.   Hashed = %d.\n", 5, Hsh_Int1ManAdd(p, 5 )  );
+    fprintf( Abc_FrameGlobalGetOut(),  "Entry = %d.   Hashed = %d.\n", 3, Hsh_Int1ManAdd(p, 3 )  );
+    fprintf( Abc_FrameGlobalGetOut(),  "Entry = %d.   Hashed = %d.\n", 4, Hsh_Int1ManAdd(p, 4 )  );
 
-    printf( "Size = %d.\n", Hsh_Int1ManEntryNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "Size = %d.\n", Hsh_Int1ManEntryNum(p)  );
 
     Hsh_Int1ManStop( p );
 }

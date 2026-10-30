@@ -191,7 +191,7 @@ int Llb4_Nonlin4SweepCutpoints( Aig_Man_t * pAig, Vec_Int_t * vOrder, int nBddLi
     Extra_StopManager( dd );
 //    Aig_ManCleanMarkA( pAig );
     if ( fVerbose )
-    printf( "Added %d cut points.  Used %d high fanout points.\n", Counter, Counter1 );
+    fprintf( Abc_FrameGlobalGetOut(), "Added %d cut points.  Used %d high fanout points.\n", Counter, Counter1 );
     return Counter + Counter1;
 }
 
@@ -364,10 +364,10 @@ void Llb_Nonlin4SweepPrint( Vec_Ptr_t * vFuncs )
 {
     DdNode * bFunc;
     int i;
-    printf( "(%d) ", Vec_PtrSize(vFuncs) );
+    fprintf( Abc_FrameGlobalGetOut(), "(%d) ", Vec_PtrSize(vFuncs) );
     Vec_PtrForEachEntry( DdNode *, vFuncs, bFunc, i )
-        printf( "%d ", Cudd_DagSize(bFunc) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Cudd_DagSize(bFunc) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -438,7 +438,7 @@ DdManager * Llb4_Nonlin4SweepGroups( Aig_Man_t * pAig, Vec_Int_t * vOrder, int n
 
 if ( fVerbose )
 {
-printf( "Groups: " );
+fprintf( Abc_FrameGlobalGetOut(), "Groups: " );
 Llb_Nonlin4SweepPrint( *pvGroups );
 }
 
@@ -494,14 +494,14 @@ void Llb_Nonlin4SweepPrintSuppProfile( DdManager * dd, Aig_Man_t * pAig, Vec_Int
 
     if ( fVerbose )
     {
-    printf( "Groups =%3d  ", Vec_PtrSize(vGroups) );
-    printf( "Variables: all =%4d ",  nSuppAll );
-    printf( "pi =%4d ",  nSuppPi );
-    printf( "po =%4d ",  nSuppPo );
-    printf( "lo =%4d ",  nSuppLo );
-    printf( "li =%4d ",  nSuppLi );
-    printf( "and =%4d",  nSuppAnd );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Groups =%3d  ", Vec_PtrSize(vGroups) );
+    fprintf( Abc_FrameGlobalGetOut(), "Variables: all =%4d ",  nSuppAll );
+    fprintf( Abc_FrameGlobalGetOut(), "pi =%4d ",  nSuppPi );
+    fprintf( Abc_FrameGlobalGetOut(), "po =%4d ",  nSuppPo );
+    fprintf( Abc_FrameGlobalGetOut(), "lo =%4d ",  nSuppLo );
+    fprintf( Abc_FrameGlobalGetOut(), "li =%4d ",  nSuppLi );
+    fprintf( Abc_FrameGlobalGetOut(), "and =%4d",  nSuppAnd );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 

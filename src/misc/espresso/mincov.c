@@ -24,9 +24,9 @@ static void select_essential();
 static int verify_cover();
 
 #define fail(why) {\
-    (void) fprintf(stderr, "Fatal error: file %s, line %d\n%s\n",\
+    (void) fprintf( Abc_FrameGlobalGetErr(), "Fatal error: file %s, line %d\n%s\n",\
     __FILE__, __LINE__, why);\
-    (void) fflush(stdout);\
+    (void) fflush( Abc_FrameGlobalGetOut() );\
     abort();\
 }
 
@@ -83,19 +83,19 @@ int debug_level;    /* how deep in the recursion to provide info */
 
     if (stats.debug) {
     if (stats.no_branching) {
-        (void) printf("**** heuristic covering ...\n");
-        (void) printf("lower bound = %d\n", stats.lower_bound);
+        (void) fprintf( Abc_FrameGlobalGetOut(), "**** heuristic covering ...\n" );
+        (void) fprintf( Abc_FrameGlobalGetOut(), "lower bound = %d\n", stats.lower_bound );
     }
-    (void) printf("matrix     = %d by %d with %d elements (%4.3f%%)\n",
-        A->nrows, A->ncols, nelem, sparsity * 100.0);
-    (void) printf("cover size = %d elements\n", best->row->length);
-    (void) printf("cover cost = %d\n", best->cost);
-    (void) printf("time       = %s\n", 
-            util_print_time(util_cpu_time() - stats.start_time));
-    (void) printf("components = %d\n", stats.comp_count);
-    (void) printf("gimpel     = %d\n", stats.gimpel_count);
-    (void) printf("nodes      = %d\n", stats.nodes);
-    (void) printf("max_depth  = %d\n", stats.max_depth);
+    (void) fprintf( Abc_FrameGlobalGetOut(), "matrix     = %d by %d with %d elements (%4.3f%%)\n",
+        A->nrows, A->ncols, nelem, sparsity * 100.0 );
+    (void) fprintf( Abc_FrameGlobalGetOut(), "cover size = %d elements\n", best->row->length );
+    (void) fprintf( Abc_FrameGlobalGetOut(), "cover cost = %d\n", best->cost );
+    (void) fprintf( Abc_FrameGlobalGetOut(), "time       = %s\n", 
+            util_print_time(util_cpu_time() - stats.start_time) );
+    (void) fprintf( Abc_FrameGlobalGetOut(), "components = %d\n", stats.comp_count );
+    (void) fprintf( Abc_FrameGlobalGetOut(), "gimpel     = %d\n", stats.gimpel_count );
+    (void) fprintf( Abc_FrameGlobalGetOut(), "nodes      = %d\n", stats.nodes );
+    (void) fprintf( Abc_FrameGlobalGetOut(), "max_depth  = %d\n", stats.max_depth );
     }
 
     sol = sm_row_dup(best->row);
@@ -168,27 +168,27 @@ stats_t *stats;
     }
 
     if (debug) {
-        (void) printf("ABSMIN[%2d]%s", depth, stats->component ? "*" : " ");
-        (void) printf(" %3dx%3d sel=%3d bnd=%3d lb=%3d %12s ",
+        (void) fprintf( Abc_FrameGlobalGetOut(), "ABSMIN[%2d]%s", depth, stats->component ? "*" : " " );
+        (void) fprintf( Abc_FrameGlobalGetOut(), " %3dx%3d sel=%3d bnd=%3d lb=%3d %12s ",
             A->nrows, A->ncols, select->cost + stats->gimpel, 
         bound + stats->gimpel, lb_new + stats->gimpel, 
-        util_print_time(util_cpu_time()-stats->start_time));
+        util_print_time(util_cpu_time()-stats->start_time) );
     }
 
     /* Check for bounding based on no better solution possible */
     if (lb_new >= bound) {
-    if (debug) (void) printf("bounded\n");
+    if (debug) (void) fprintf( Abc_FrameGlobalGetOut(), "bounded\n" );
     best = NIL(solution_t);
 
 
     /* Check for new best solution */
     } else if (A->nrows == 0) {
     best = solution_dup(select);
-    if (debug) (void) printf("BEST\n");
+    if (debug) (void) fprintf( Abc_FrameGlobalGetOut(), "BEST\n" );
     if (stats->debug && stats->component == 0) {
-            (void) printf("new 'best' solution %d at level %d (time is %s)\n", 
+            (void) fprintf( Abc_FrameGlobalGetOut(), "new 'best' solution %d at level %d (time is %s)\n", 
         best->cost + stats->gimpel, depth, 
-        util_print_time(util_cpu_time() - stats->start_time));
+        util_print_time(util_cpu_time() - stats->start_time) );
         }
 
 
@@ -200,7 +200,7 @@ stats_t *stats;
         L = R;
         R = A1;
     }
-    if (debug) (void) printf("comp %d %d\n", L->nrows, R->nrows);
+    if (debug) (void) fprintf( Abc_FrameGlobalGetOut(), "comp %d %d\n", L->nrows, R->nrows );
     stats->comp_count++;
 
     /* Solve problem for L */
@@ -228,7 +228,7 @@ stats_t *stats;
 
     /* We've tried as hard as possible, but now we must split and recur */
     } else {
-    if (debug) (void) printf("pick=%d\n", pick);
+    if (debug) (void) fprintf( Abc_FrameGlobalGetOut(), "pick=%d\n", pick );
 
         /* Assume we choose this column to be in the covering set */
     A1 = sm_dup(A);

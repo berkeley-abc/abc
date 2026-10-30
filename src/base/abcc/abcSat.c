@@ -144,7 +144,7 @@ int Abc_CommandRunSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
     if ( fKissat + fWalk != 1 ) {
-        printf( "Exactly one SAT solver should be selected.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Exactly one SAT solver should be selected.\n" );
         return 1;   
     }
     if ( argc != globalUtilOptind + 1 )
@@ -152,7 +152,7 @@ int Abc_CommandRunSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     pFileCnf = argv[globalUtilOptind];
     pFile = fopen( pFileCnf, "rb" );
     if ( pFile == NULL ) {
-        printf( "The file \"%s\" cannot be found.\n", pFileCnf );
+        fprintf( Abc_FrameGlobalGetOut(), "The file \"%s\" cannot be found.\n", pFileCnf );
         return 1;
     }
     fclose( pFile );
@@ -168,11 +168,11 @@ int Abc_CommandRunSat( Abc_Frame_t * pAbc, int argc, char ** argv )
 #else
         if (system(pCommand) == -1) {
 #endif
-            fprintf(stdout, "Command \"%s\" did not succeed.\n", pCommand);
+            fprintf(Abc_FrameGlobalGetOut(), "Command \"%s\" did not succeed.\n", pCommand);
             return 0;
         }
     }
-    printf( "Performed %d iterations of SAT solving. ", nIters );
+    fprintf( Abc_FrameGlobalGetOut(), "Performed %d iterations of SAT solving. ", nIters );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return 0;
 
@@ -423,7 +423,7 @@ int Abc_CommandMinisat( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern int MainSat(int argc, char** argv);
     MainSat( argc, argv );
 #else
-    printf( "This command is currently disabled.\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "This command is currently disabled.\n" );
 #endif
     return 1;
 }
@@ -445,7 +445,7 @@ int Abc_CommandMinisimp( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern int MainSimp(int argc, char** argv);
     MainSimp( argc, argv );
 #else
-    printf( "This command is currently disabled.\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "This command is currently disabled.\n" );
 #endif
     return 1;
 }
@@ -711,7 +711,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         FILE * pFile = fopen( pFileName, "rb" );
         if ( pFile == NULL )
         {
-            printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
             return 0;
         }
         fclose( pFile );
@@ -892,7 +892,7 @@ int Abc_CommandXSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         FILE * pFile = fopen( pFileName, "rb" );
         if ( pFile == NULL )
         {
-            printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
             return 0;
         }
         xSAT_SolverParseDimacs( pFile, &p );

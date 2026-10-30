@@ -1452,64 +1452,64 @@ void Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     if ( pObj == NULL )
     {
-        printf( "Object is NULL." );
+        fprintf( Abc_FrameGlobalGetOut(), "Object is NULL." );
         return;
     }
     if ( Gia_IsComplement(pObj) )
     {
-        printf( "Compl " );
+        fprintf( Abc_FrameGlobalGetOut(), "Compl " );
         pObj = Gia_Not(pObj);
     }
     assert( !Gia_IsComplement(pObj) );
-    printf( "Obj %4d : ", Gia_ObjId(p, pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "Obj %4d : ", Gia_ObjId(p, pObj) );
     if ( Gia_ObjIsConst0(pObj) )
-        printf( "constant 0" );
+        fprintf( Abc_FrameGlobalGetOut(), "constant 0" );
     else if ( Gia_ObjIsPi(p, pObj) )
-        printf( "PI" );
+        fprintf( Abc_FrameGlobalGetOut(), "PI" );
     else if ( Gia_ObjIsPo(p, pObj) )
-        printf( "PO( %4d%s )", Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " ") );
+        fprintf( Abc_FrameGlobalGetOut(), "PO( %4d%s )", Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " ") );
     else if ( Gia_ObjIsCi(pObj) )
-        printf( "RO( %4d%s )", Gia_ObjFaninId0p(p, Gia_ObjRoToRi(p, pObj)), (Gia_ObjFaninC0(Gia_ObjRoToRi(p, pObj))? "\'" : " ") );
+        fprintf( Abc_FrameGlobalGetOut(), "RO( %4d%s )", Gia_ObjFaninId0p(p, Gia_ObjRoToRi(p, pObj)), (Gia_ObjFaninC0(Gia_ObjRoToRi(p, pObj))? "\'" : " ") );
     else if ( Gia_ObjIsCo(pObj) )
-        printf( "RI( %4d%s )", Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " ") );
+        fprintf( Abc_FrameGlobalGetOut(), "RI( %4d%s )", Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " ") );
 //    else if ( Gia_ObjIsBuf(pObj) )
 //        printf( "BUF( %d%s )", Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " ") );
     else if ( Gia_ObjIsXor(pObj) )
-        printf( "XOR( %4d%s, %4d%s )", 
+        fprintf( Abc_FrameGlobalGetOut(), "XOR( %4d%s, %4d%s )", 
             Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " "), 
             Gia_ObjFaninId1p(p, pObj), (Gia_ObjFaninC1(pObj)? "\'" : " ") );
     else if ( Gia_ObjIsMuxId(p, Gia_ObjId(p, pObj)) )
-        printf( "MUX( %4d%s, %4d%s, %4d%s )", 
+        fprintf( Abc_FrameGlobalGetOut(), "MUX( %4d%s, %4d%s, %4d%s )", 
             Gia_ObjFaninId2p(p, pObj), (Gia_ObjFaninC2(p, pObj)? "\'" : " "), 
             Gia_ObjFaninId1p(p, pObj), (Gia_ObjFaninC1(pObj)? "\'" : " "), 
             Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " ") );
     else
-        printf( "AND( %4d%s, %4d%s )", 
+        fprintf( Abc_FrameGlobalGetOut(), "AND( %4d%s, %4d%s )", 
             Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " "), 
             Gia_ObjFaninId1p(p, pObj), (Gia_ObjFaninC1(pObj)? "\'" : " ") );
     if ( p->pRefs )
-        printf( " (refs = %3d)", Gia_ObjRefNum(p, pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), " (refs = %3d)", Gia_ObjRefNum(p, pObj) );
     if ( pObj->fMark0 )
-        printf( " mark0" );
+        fprintf( Abc_FrameGlobalGetOut(), " mark0" );
     if ( pObj->fMark1 )
-        printf( " mark1" );
+        fprintf( Abc_FrameGlobalGetOut(), " mark1" );
     if ( Gia_ManHasMapping(p) && Gia_ObjIsLut(p, Gia_ObjId(p, pObj)) )
     {
         int i, iFan;
-        printf( " Cut = { " );
+        fprintf( Abc_FrameGlobalGetOut(), " Cut = { " );
         Gia_LutForEachFanin( p, Gia_ObjId(p, pObj), iFan, i )
-            printf( "%d ", iFan );
-        printf( "}" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", iFan );
+        fprintf( Abc_FrameGlobalGetOut(), "}" );
     }
     if ( Gia_ManHasMapping2(p) && Gia_ObjIsLut2(p, Gia_ObjId(p, pObj)) )
     {
         int i, iFan;
-        printf( " Cut = { " );
+        fprintf( Abc_FrameGlobalGetOut(), " Cut = { " );
         Gia_LutForEachFanin2( p, Gia_ObjId(p, pObj), iFan, i )
-            printf( "%d ", iFan );
-        printf( "}" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", iFan );
+        fprintf( Abc_FrameGlobalGetOut(), "}" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 /*
     if ( p->pRefs )
     {
@@ -1539,7 +1539,7 @@ void Gia_ManPrint( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
     int i;
-    printf( "GIA manager has %d ANDs, %d XORs, %d MUXes.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "GIA manager has %d ANDs, %d XORs, %d MUXes.\n", 
         Gia_ManAndNum(p) - Gia_ManXorNum(p) - Gia_ManMuxNum(p), Gia_ManXorNum(p), Gia_ManMuxNum(p) ); 
     Gia_ManForEachObj( p, pObj, i )
         Gia_ObjPrint( p, pObj );
@@ -1558,7 +1558,7 @@ void Gia_ManPrintCo_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
 void Gia_ManPrintCo( Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     assert( Gia_ObjIsCo(pObj) );
-    printf( "TFI cone of CO number %d:\n", Gia_ObjCioId(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "TFI cone of CO number %d:\n", Gia_ObjCioId(pObj) );
     Gia_ManPrintCo_rec( p, Gia_ObjFanin0(pObj) );
     Gia_ObjPrint( p, pObj );
 }
@@ -1581,7 +1581,7 @@ void Gia_ManPrintCone( Gia_Man_t * p, Gia_Obj_t * pObj, int * pLeaves, int nLeav
     for ( i = 0; i < nLeaves; i++ )
         Vec_IntPush( vNodes, pLeaves[i] );
     Gia_ManPrintCollect_rec( p, pObj, vNodes );
-    printf( "GIA logic cone for node %d:\n", Gia_ObjId(p, pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "GIA logic cone for node %d:\n", Gia_ObjId(p, pObj) );
     Gia_ManForEachObjVec( vNodes, p, pObj, i )
         Gia_ObjPrint( p, pObj );
 }
@@ -1593,7 +1593,7 @@ void Gia_ManPrintConeMulti( Gia_Man_t * p, Vec_Int_t * vObjs, Vec_Int_t * vLeave
     Vec_IntAppend( vNodes, vLeaves );
     Gia_ManForEachObjVec( vObjs, p, pObj, i )
         Gia_ManPrintCollect_rec( p, pObj, vNodes );
-    printf( "GIA logic cone for %d nodes:\n", Vec_IntSize(vObjs) );
+    fprintf( Abc_FrameGlobalGetOut(), "GIA logic cone for %d nodes:\n", Vec_IntSize(vObjs) );
     Gia_ManForEachObjVec( vNodes, p, pObj, i )
         Gia_ObjPrint( p, pObj );
 }
@@ -1616,7 +1616,7 @@ void Gia_ManPrintCone2( Gia_Man_t * p, Gia_Obj_t * pObj )
     int i;
     vNodes = Vec_IntAlloc( 100 );
     Gia_ManPrintCollect2_rec( p, pObj, vNodes );
-    printf( "GIA logic cone for node %d:\n", Gia_ObjId(p, pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "GIA logic cone for node %d:\n", Gia_ObjId(p, pObj) );
     Gia_ManForEachObjVec( vNodes, p, pObj, i )
         Gia_ObjPrint( p, pObj );
     Vec_IntFree( vNodes );
@@ -1692,7 +1692,7 @@ unsigned * Gia_ManComputePoTruthTables( Gia_Man_t * p, int nBytesMax )
     Gia_Obj_t * pObj;
     abctime clk = Abc_Clock();
     int i;
-    printf( "Var = %d. Words = %d. Truths = %d.\n", nVars, nTruthWords, nTruths );
+    fprintf( Abc_FrameGlobalGetOut(), "Var = %d. Words = %d. Truths = %d.\n", nVars, nTruthWords, nTruths );
     vObjs = Vec_IntAlloc( nTruths );
     Gia_ManIncrementTravId( p );
     Gia_ManForEachPo( p, pObj, i )
@@ -1711,7 +1711,7 @@ unsigned * Gia_ManComputePoTruthTables( Gia_Man_t * p, int nBytesMax )
     nTotalNodes += Vec_IntSize( vObjs );
     Vec_IntFree( vObjs );
 
-    printf( "Rounds = %d. Objects = %d. Total = %d.   ", nRounds, Gia_ManObjNum(p), nTotalNodes );
+    fprintf( Abc_FrameGlobalGetOut(), "Rounds = %d. Objects = %d. Total = %d.   ", nRounds, Gia_ManObjNum(p), nTotalNodes );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     return NULL;
@@ -1735,7 +1735,7 @@ int Gia_ManCompare( Gia_Man_t * p1, Gia_Man_t * p2 )
     int i;
     if ( Gia_ManObjNum(p1) != Gia_ManObjNum(p2) )
     {
-        printf( "AIGs have different number of objects.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "AIGs have different number of objects.\n" );
         return 0;
     }
     Gia_ManCleanValue( p1 );
@@ -1745,14 +1745,14 @@ int Gia_ManCompare( Gia_Man_t * p1, Gia_Man_t * p2 )
         pObj2 = Gia_ManObj( p2, i );
         if ( memcmp( pObj1, pObj2, sizeof(Gia_Obj_t) ) )
         {
-            printf( "Objects %d are different.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Objects %d are different.\n", i );
             return 0;
         }
         if ( p1->pReprs && p2->pReprs )
         {
             if ( memcmp( &p1->pReprs[i], &p2->pReprs[i], sizeof(Gia_Rpr_t) ) )
             {
-                printf( "Representatives of objects %d are different.\n", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Representatives of objects %d are different.\n", i );
                 return 0;
             }
         }
@@ -1924,11 +1924,11 @@ int Gia_ManHasChoices_very_old( Gia_Man_t * p )
 //    printf( "\n" );
     if ( Counter1 == 0 )
     {
-        printf( "Warning: AIG has repr data-strucure but not reprs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: AIG has repr data-strucure but not reprs.\n" );
         return 0;
     }
-    printf( "%d nodes have reprs.\n", Counter1 );
-    printf( "%d nodes have nexts.\n", Counter2 );
+    fprintf( Abc_FrameGlobalGetOut(), "%d nodes have reprs.\n", Counter1 );
+    fprintf( Abc_FrameGlobalGetOut(), "%d nodes have nexts.\n", Counter2 );
     // check if there are any internal nodes without fanout
     // make sure all nodes without fanout have representatives
     // make sure all nodes with fanout have no representatives
@@ -1957,12 +1957,12 @@ int Gia_ManHasChoices_very_old( Gia_Man_t * p )
         return 0;
     if ( nFailNoRepr )
     {
-        printf( "Gia_ManHasChoices_very_old(): Error: %d internal nodes have no fanout and no repr.\n", nFailNoRepr );
+        fprintf( Abc_FrameGlobalGetOut(), "Gia_ManHasChoices_very_old(): Error: %d internal nodes have no fanout and no repr.\n", nFailNoRepr );
 //        return 0;
     }
     if ( nFailHaveRepr )
     {
-        printf( "Gia_ManHasChoices_very_old(): Error: %d internal nodes have both fanout and repr.\n", nFailHaveRepr );
+        fprintf( Abc_FrameGlobalGetOut(), "Gia_ManHasChoices_very_old(): Error: %d internal nodes have both fanout and repr.\n", nFailHaveRepr );
 //        return 0;
     }
 //    printf( "Gia_ManHasChoices_very_old(): AIG has %d choice nodes with %d choices.\n", nChoiceNodes, nChoices );
@@ -2091,7 +2091,7 @@ Vec_Int_t * Gia_ManPoXSim( Gia_Man_t * p, int nFrames, int fVerbose )
         {
             Gia_ManForEachPo( p, pObj, k )
                 Gia_ObjTerSimPrint( pObj );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         Gia_ManForEachPo( p, pObj, k )
             if ( Vec_IntEntry(vRes, k) == nFrames && Gia_ObjTerSimGetX(pObj) )
@@ -2102,9 +2102,9 @@ Vec_Int_t * Gia_ManPoXSim( Gia_Man_t * p, int nFrames, int fVerbose )
     if ( fVerbose )
     {
         if ( nLeft == 0 )
-            printf( "Simulation converged after %d frames.\n", f+1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Simulation converged after %d frames.\n", f+1 );
         else
-            printf( "Simulation terminated after %d frames.\n", nFrames );
+            fprintf( Abc_FrameGlobalGetOut(), "Simulation terminated after %d frames.\n", nFrames );
     }        
 //    Vec_IntPrint( vRes );
     return vRes;
@@ -2190,14 +2190,14 @@ void Gia_AigerWriteLut( Gia_Man_t * p, char * pFileName )
     {
         FILE * pFile = fopen( pFileName, "wb" );
         if ( pFile == NULL )
-            printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         else
         {
             int nSize1 = nLuts * sizeof(Gia_MapLut_t);
             int nSize2 = fwrite( pLuts, 1, nSize1, pFile );
             (void)nSize2;
             assert( nSize1 == nSize2 );
-            printf( "Successfully dumped %d bytes of binary data.\n", nSize1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Successfully dumped %d bytes of binary data.\n", nSize1 );
         }
         fclose( pFile );
     }
@@ -2490,7 +2490,7 @@ Vec_Int_t * Gia_ManComputeDistanceInt( Gia_Man_t * p, int iTarg, Vec_Int_t * vOb
     for ( i = 0; ; i++ )
     {
         if ( fVerbose )
-            printf( "Ring %2d : %6d\n", i, Vec_IntSize(vDists)-Vec_IntCountZero(vDists) );        
+            fprintf( Abc_FrameGlobalGetOut(), "Ring %2d : %6d\n", i, Vec_IntSize(vDists)-Vec_IntCountZero(vDists) );        
         Gia_ManCollectRing( p, vStart, vNexts, vDists );
         if ( Vec_IntSize(vNexts) == 0 )
             break;
@@ -2533,7 +2533,7 @@ void Gia_ComputeTest()
     char * pFileName = "data.txt";
     FILE * pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
-        { printf( "Input file \"%s\" cannot be opened.\n", pFileName ); return; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Input file \"%s\" cannot be opened.\n", pFileName ); return; }
     while ( fgets( Line, 1000, pFile ) != NULL )
     {
         if ( !strstr(Line, "xxx") )
@@ -2547,7 +2547,7 @@ void Gia_ComputeTest()
         //printf( "%s", pStart + 4 );
         Total += -atof( pStart + 4 );
     }
-    printf( "Total = %.2f\n", Total );
+    fprintf( Abc_FrameGlobalGetOut(), "Total = %.2f\n", Total );
     fclose( pFile );
 }
 
@@ -2771,7 +2771,7 @@ Gia_Man_t * Gia_ManComputeDepTest( Gia_Man_t * p )
     abctime clk = Abc_Clock();
     int i;
     for ( i = 0; i < Gia_ManCiNum(p); i++ )
-        printf( "%3d : %3d\n", i, Gia_ManComputeDep(p, i, 0) );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : %3d\n", i, Gia_ManComputeDep(p, i, 0) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return Gia_ManDup(p);
 }
@@ -2842,7 +2842,7 @@ void Gia_ManDumpSuppFile( Vec_Str_t * p, char * pFileName )
 {
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
     else
     {
         int nOuts = Vec_StrCountEntry(p, '\n');
@@ -2851,7 +2851,7 @@ void Gia_ManDumpSuppFile( Vec_Str_t * p, char * pFileName )
         int nSize2 = fwrite( Vec_StrArray(p), 1, nSize1, pFile );
         (void)nSize2;
         assert( nSize1 == nSize2 );
-        printf( "Successfully dumped file \"%s\" with support data for %d outputs and %d inputs.\n", pFileName, nOuts, nIns );
+        fprintf( Abc_FrameGlobalGetOut(), "Successfully dumped file \"%s\" with support data for %d outputs and %d inputs.\n", pFileName, nOuts, nIns );
     }
     fclose( pFile );
 }
@@ -2972,7 +2972,7 @@ Gia_Man_t * Gia_ManConvertSupp( Gia_Man_t * p )
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     if ( fVerbose )
-        printf( "Transformed %d outputs,  ", Gia_ManPoNum(pNew) );
+        fprintf( Abc_FrameGlobalGetOut(), "Transformed %d outputs,  ", Gia_ManPoNum(pNew) );
     if ( fVerbose )
         Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
     return pNew;
@@ -3028,7 +3028,7 @@ Gia_Man_t * Gia_ManTransformCond2( Gia_Man_t * p )
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     if ( fVerbose )
-        printf( "Created %d outputs.  ", Gia_ManPoNum(pNew) );
+        fprintf( Abc_FrameGlobalGetOut(), "Created %d outputs.  ", Gia_ManPoNum(pNew) );
     if ( fVerbose )
         Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
     return pNew;
@@ -3142,7 +3142,7 @@ void Gia_ManWriteSol( Gia_Man_t * p, char * pFileName )
     FILE * pFile = fopen( pFileName2, "wb" );
     ABC_FREE( pBasicName );
     if ( pFile == NULL )
-        printf( "Cannot open output file \"%s\".\n", pFileName2 );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName2 );
     else
     {
         Gia_Obj_t * pObj; int i;
@@ -3151,7 +3151,7 @@ void Gia_ManWriteSol( Gia_Man_t * p, char * pFileName )
         Gia_ManForEachCo( p, pObj, i )
             fprintf( pFile, "%d %d ", Gia_ObjFaninLit0p(p, pObj), Gia_ObjFaninLit0p(p, pObj) );
         fclose( pFile );   
-        printf( "Finished writing solution file \"%s\".\n", pFileName2 );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished writing solution file \"%s\".\n", pFileName2 );
     }
     ABC_FREE( pFileName2 );
 }
@@ -3159,7 +3159,7 @@ void Gia_ManWriteResub( Gia_Man_t * p, char * pFileName )
 {
     FILE * pFile = fopen( pFileName, "wb" ); 
     if ( pFile == NULL )
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
     else
     {
         Vec_Wrd_t * vSimsPi = Vec_WrdStartTruthTables( Gia_ManCiNum(p) );
@@ -3180,7 +3180,7 @@ void Gia_ManWriteResub( Gia_Man_t * p, char * pFileName )
         fclose( pFile );
         Vec_WrdFree( vSimsPi );
         Vec_WrdFree( vSimsPo );
-        printf( "Finished writing resub file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished writing resub file \"%s\".\n", pFileName );
         Gia_ManWriteSol( p, pFileName );
     }
 }
@@ -3200,20 +3200,20 @@ void Gia_ManWriteResub( Gia_Man_t * p, char * pFileName )
 void Gia_ManPrintArray( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj; int i, nSize = Gia_ManObjNum(p);
-    printf( "static int s_ArraySize = %d;\n", nSize );
-    printf( "static int s_ArrayData[%d] = {\n", 2*nSize );
-    printf( "    0, 0," );
-    printf( "\n    " );
+    fprintf( Abc_FrameGlobalGetOut(), "static int s_ArraySize = %d;\n", nSize );
+    fprintf( Abc_FrameGlobalGetOut(), "static int s_ArrayData[%d] = {\n", 2*nSize );
+    fprintf( Abc_FrameGlobalGetOut(), "    0, 0," );
+    fprintf( Abc_FrameGlobalGetOut(), "\n    " );
     Gia_ManForEachCi( p, pObj, i )
-        printf( "0, 0,  " );
-    printf( "\n    " );
+        fprintf( Abc_FrameGlobalGetOut(), "0, 0,  " );
+    fprintf( Abc_FrameGlobalGetOut(), "\n    " );
     Gia_ManForEachAnd( p, pObj, i )
-        printf( "%d, %d,  ", Gia_ObjFaninLit0p(p, pObj), Gia_ObjFaninLit1p(p, pObj) );
-    printf( "\n    " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d, %d,  ", Gia_ObjFaninLit0p(p, pObj), Gia_ObjFaninLit1p(p, pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n    " );
     Gia_ManForEachCo( p, pObj, i )
-        printf( "%d, %d,  ", Gia_ObjFaninLit0p(p, pObj), Gia_ObjFaninLit0p(p, pObj) );
-    printf( "\n" );
-    printf( "};\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d, %d,  ", Gia_ObjFaninLit0p(p, pObj), Gia_ObjFaninLit0p(p, pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "};\n" );
 
 }
 
@@ -3275,8 +3275,8 @@ void Gia_ManTestProblem()
     for ( k = 0; k < nMints; k++ )
     {
         for ( c = 0; c < nPairs; c++ )
-           printf( "%2d ", M[k][c] );
-        printf( "%3f\n", Value[k] );
+           fprintf( Abc_FrameGlobalGetOut(), "%2d ", M[k][c] );
+        fprintf( Abc_FrameGlobalGetOut(), "%3f\n", Value[k] );
     }
 
     // solve
@@ -3286,10 +3286,10 @@ void Gia_ManTestProblem()
         float Error = 0;
         for ( k = 0; k < nMints; k++ )
             Error += Value[k] > 0 ? Value[k] : -Value[k];
-        printf( "Round %3d : Error = %5f    ", i, Error );
+        fprintf( Abc_FrameGlobalGetOut(), "Round %3d : Error = %5f    ", i, Error );
         for ( c = 0; c < nPairs; c++ )
-            printf( "%2f ", Solution[c] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%2f ", Solution[c] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         //if ( Error < 1 )
         //   Delta /= 10;
@@ -3304,10 +3304,10 @@ void Gia_ManTestProblem()
                    Count--;
             if ( Count == 0 )
                continue;
-            printf( "Count = %3d  ", Count );
+            fprintf( Abc_FrameGlobalGetOut(), "Count = %3d  ", Count );
             if ( Count > 0 )
             {
-                printf( "Increasing %d by %f\n", c, Delta );
+                fprintf( Abc_FrameGlobalGetOut(), "Increasing %d by %f\n", c, Delta );
                 Solution[c] += Delta;
                 for ( k = 0; k < nMints; k++ )
                     if ( M[k][c] > 0 )
@@ -3317,7 +3317,7 @@ void Gia_ManTestProblem()
             }
             else
             {
-                printf( "Reducing %d by %f\n", c, Delta );
+                fprintf( Abc_FrameGlobalGetOut(), "Reducing %d by %f\n", c, Delta );
                 Solution[c] -= Delta;
                 for ( k = 0; k < nMints; k++ )
                     if ( M[k][c] > 0 )
@@ -3490,7 +3490,7 @@ Gia_Man_t * Gia_ManCreateDualOutputMiter( Gia_Man_t * p0, Gia_Man_t * p1 )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManForEachCo( p1, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-    printf( "The two AIGs have %d structurally equivalent nodes.\n", Gia_ManAndNum(p0) + Gia_ManAndNum(p1) - Gia_ManAndNum(pNew) );
+    fprintf( Abc_FrameGlobalGetOut(), "The two AIGs have %d structurally equivalent nodes.\n", Gia_ManAndNum(p0) + Gia_ManAndNum(p1) - Gia_ManAndNum(pNew) );
     // there should be no dangling nodes (otherwise, the second AIG may not be structurally hashed)
     int nDangling = Gia_ManMarkDangling(pNew);
     (void)nDangling;
@@ -3554,10 +3554,10 @@ void Gia_ManFindMutualEquivsTest()
     Gia_Man_t * p0 = Gia_AigerRead( "p0.aig", 0, 0, 0 );
     Gia_Man_t * p1 = Gia_AigerRead( "p1.aig", 0, 0, 0 );    
     Vec_Int_t * vPairs = Gia_ManFindMutualEquivs( p0, p1, 0, 0 );
-    printf( "Pair     Aig0 node     Aig1 node\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Pair     Aig0 node     Aig1 node\n" );
     int i, Obj0, Obj1;
     Vec_IntForEachEntryDouble( vPairs, Obj0, Obj1, i )
-        printf( "%3d      %6d       %6d\n", i/2, Obj0, Obj1 );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d      %6d       %6d\n", i/2, Obj0, Obj1 );
     Gia_ManStop( p0 );
     Gia_ManStop( p1 );
     Vec_IntFree( vPairs );
@@ -3804,10 +3804,10 @@ static void Gia_ManPrintPathOne( Gia_Man_t * p, Vec_Int_t * vPreds, int Source, 
         if ( Vec_IntEntry(vPreds, Id) < 0 )
             break;
     }
-    printf( "    %s[%d] %s", Gia_ManPrintPathKind(p, 1, Source), Gia_ManPrintPathTermIndex(p, 1, Source), Gia_ManPrintPathName(p, 1, Source, pBuffer0, 1, 0) );
+    fprintf( Abc_FrameGlobalGetOut(), "    %s[%d] %s", Gia_ManPrintPathKind(p, 1, Source), Gia_ManPrintPathTermIndex(p, 1, Source), Gia_ManPrintPathName(p, 1, Source, pBuffer0, 1, 0) );
     Vec_IntForEachEntryReverse( vPath, Id, i )
-        printf( " -> AND %d", Id );
-    printf( " -> %s[%d] %s\n", Gia_ManPrintPathKind(p, 0, Sink), Gia_ManPrintPathTermIndex(p, 0, Sink), Gia_ManPrintPathName(p, 0, Sink, pBuffer1, 1, 0) );
+        fprintf( Abc_FrameGlobalGetOut(), " -> AND %d", Id );
+    fprintf( Abc_FrameGlobalGetOut(), " -> %s[%d] %s\n", Gia_ManPrintPathKind(p, 0, Sink), Gia_ManPrintPathTermIndex(p, 0, Sink), Gia_ManPrintPathName(p, 0, Sink, pBuffer1, 1, 0) );
     ABC_FREE( pBuffer );
     Vec_IntFree( vPath );
 }
@@ -3924,8 +3924,8 @@ void Gia_ManPrintPath( Gia_Man_t * p, int nPathsMax, int fVerbose, int fSummary 
         nSourceNameW = Abc_MaxInt( nSourceNameW, (int)strlen(Buffer7) );
         nSinkTermW   = Abc_MaxInt( nSinkTermW,   (int)strlen(Buffer8) );
     }
-    printf( "Grouped critical combinational paths:\n" );
-    printf( " rank paths   lev    %-*s %-*s   %-*s %s\n", nSourceTermW, "source", nSourceNameW, "", nSinkTermW, "sink", "" );
+    fprintf( Abc_FrameGlobalGetOut(), "Grouped critical combinational paths:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), " rank paths   lev    %-*s %-*s   %-*s %s\n", nSourceTermW, "source", nSourceNameW, "", nSinkTermW, "sink", "" );
     Vec_IntForEachEntry( vGroupStarts, iBeg, i )
     {
         char * pSourceName, * pSourceLeaf, * pSinkNameBeg, * pSinkNameEnd, * pSinkLeafBeg, * pSinkLeafEnd;
@@ -3952,21 +3952,21 @@ void Gia_ManPrintPath( Gia_Man_t * p, int nPathsMax, int fVerbose, int fSummary 
             sprintf( Buffer4, "%d", iBeg + 1 );
         else
             sprintf( Buffer4, "%d..%d", iBeg + 1, iEnd + 1 );
-        printf( "%5d %-7s %3d    %-*s %-*s   %-*s %s\n", i + 1, Buffer4, pLevels[iBeg], nSourceTermW, Buffer6, nSourceNameW, Buffer7, nSinkTermW, Buffer8, Buffer9 );
+        fprintf( Abc_FrameGlobalGetOut(), "%5d %-7s %3d    %-*s %-*s   %-*s %s\n", i + 1, Buffer4, pLevels[iBeg], nSourceTermW, Buffer6, nSourceNameW, Buffer7, nSinkTermW, Buffer8, Buffer9 );
     }
     if ( fVerbose )
     {
-        printf( "\nAIG paths:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\nAIG paths:\n" );
         Vec_IntForEachEntry( vGroupStarts, iBeg, i )
             Gia_ManPrintPathOne( p, vPreds, pSources[iBeg], pSinks[iBeg], pDrivers[iBeg], nNameSize );
     }
     if ( fSummary )
     {
-        printf( "\nEndpoint summary:\n" );
-        printf( "  PI->PO : paths = %7d  max levels = %6d\n", Counts[0], MaxLevels[0] );
-        printf( "  PI->RI : paths = %7d  max levels = %6d\n", Counts[1], MaxLevels[1] );
-        printf( "  RO->PO : paths = %7d  max levels = %6d\n", Counts[2], MaxLevels[2] );
-        printf( "  RO->RI : paths = %7d  max levels = %6d\n", Counts[3], MaxLevels[3] );
+        fprintf( Abc_FrameGlobalGetOut(), "\nEndpoint summary:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "  PI->PO : paths = %7d  max levels = %6d\n", Counts[0], MaxLevels[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "  PI->RI : paths = %7d  max levels = %6d\n", Counts[1], MaxLevels[1] );
+        fprintf( Abc_FrameGlobalGetOut(), "  RO->PO : paths = %7d  max levels = %6d\n", Counts[2], MaxLevels[2] );
+        fprintf( Abc_FrameGlobalGetOut(), "  RO->RI : paths = %7d  max levels = %6d\n", Counts[3], MaxLevels[3] );
     }
     ABC_FREE( pLevels );
     ABC_FREE( pSources );

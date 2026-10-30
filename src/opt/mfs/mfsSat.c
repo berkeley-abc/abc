@@ -122,9 +122,9 @@ int Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode )
 
     if ( p->pPars->fVeryVerbose )
     {
-        printf( "Node %4d : Care = %2d. Total = %2d.  ", pNode->Id, p->nCares, (1<<p->nFanins) );
-        Extra_PrintBinary( stdout, p->uCare, (1<<p->nFanins) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %4d : Care = %2d. Total = %2d.  ", pNode->Id, p->nCares, (1<<p->nFanins) );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), p->uCare, (1<<p->nFanins) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     // map the care 

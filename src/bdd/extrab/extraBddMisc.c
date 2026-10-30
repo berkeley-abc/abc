@@ -227,7 +227,7 @@ void Extra_StopManager( DdManager * dd )
     RetValue = Cudd_CheckZeroRef( dd );
     if ( RetValue > 10 )
 //    if ( RetValue )
-        printf( "\nThe number of referenced nodes = %d\n\n", RetValue );
+        fprintf( Abc_FrameGlobalGetOut(), "\nThe number of referenced nodes = %d\n\n", RetValue );
 //  Cudd_PrintInfo( dd, stdout );
     Cudd_Quit( dd );
 }
@@ -254,17 +254,17 @@ void Extra_bddPrint( DdManager * dd, DdNode * F )
 
     if ( F == NULL )
     {
-        printf("NULL");
+        fprintf( Abc_FrameGlobalGetOut(), "NULL");
         return;
     }
     if ( F == b0 )
     {
-        printf("Constant 0");
+        fprintf( Abc_FrameGlobalGetOut(), "Constant 0");
         return;
     }
     if ( F == b1 )
     {
-        printf("Constant 1");
+        fprintf( Abc_FrameGlobalGetOut(), "Constant 1");
         return;
     }
 
@@ -274,14 +274,14 @@ void Extra_bddPrint( DdManager * dd, DdNode * F )
             fFirstCube = 0;
         else
 //          Output << " + ";
-            printf( " + " );
+            fprintf( Abc_FrameGlobalGetOut(), " + " );
 
         for ( i = 0; i < nVars; i++ )
             if ( Cube[i] == 0 )
-                printf( "[%d]'", i );
+                fprintf( Abc_FrameGlobalGetOut(), "[%d]'", i );
 //              printf( "%c'", (char)('a'+i) );
             else if ( Cube[i] == 1 )
-                printf( "[%d]", i );
+                fprintf( Abc_FrameGlobalGetOut(), "[%d]", i );
 //              printf( "%c", (char)('a'+i) );
     }
 
@@ -937,7 +937,7 @@ DdNode * Extra_zddPrimes( DdManager * dd, DdNode * F )
         dd->reordered = 0;
         res = extraZddPrimes(dd, F);
         if ( dd->reordered == 1 )
-            printf("\nReordering in Extra_zddPrimes()\n");
+            fprintf( Abc_FrameGlobalGetOut(), "\nReordering in Extra_zddPrimes()\n");
     } while (dd->reordered == 1);
     return(res);
 
@@ -2273,15 +2273,15 @@ Counter = 0;
 clk = Abc_Clock();
     bRes2 = Extra_bddAndPermute( ddF, bF, ddG, bG2, NULL );      Cudd_Ref( bRes2 );
 Abc_PrintTime( 1, "Runtime of new procedure", Abc_Clock() - clk );
-printf( "Recursive calls = %d\n", Counter );
-printf( "|F| =%6d  |G| =%6d  |H| =%6d  |F|*|G| =%9d  ", 
+fprintf( Abc_FrameGlobalGetOut(), "Recursive calls = %d\n", Counter );
+fprintf( Abc_FrameGlobalGetOut(), "|F| =%6d  |G| =%6d  |H| =%6d  |F|*|G| =%9d  ", 
        Cudd_DagSize(bF), Cudd_DagSize(bG), Cudd_DagSize(bRes2), 
        Cudd_DagSize(bF) * Cudd_DagSize(bG) );
 
     if ( bRes1 == bRes2 )
-        printf( "Result verified.\n\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Result verified.\n\n" );
     else
-        printf( "Result is incorrect.\n\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Result is incorrect.\n\n" );
 
     Cudd_RecursiveDeref( ddF, bRes1 );
     Cudd_RecursiveDeref( ddF, bRes2 );
@@ -2312,7 +2312,7 @@ void Extra_zddDumpPla( DdManager * dd, DdNode * F, int nVars, char * pFileName )
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         return;
     }
     fprintf( pFile, "# PLA file dumped by Extra_zddDumpPla() in ABC\n" );
@@ -2574,7 +2574,7 @@ void Extra_ZddTest()
         DdNode * zRandSet = Extra_zddRandomSet( dd, N, K, 0.5 );  Cudd_Ref(zRandSet);
         Size = Cudd_zddDagSize(zRandSet);
         //Cudd_zddPrintMinterm( dd, zRandSet );
-        printf( "N = %5d  K = %5d  BddSize = %6d   MemBdd = %8.3f MB   MemBit = %8.3f MB   Ratio = %8.3f %%\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "N = %5d  K = %5d  BddSize = %6d   MemBdd = %8.3f MB   MemBit = %8.3f MB   Ratio = %8.3f %%\n", 
             N, K, Size, 20.0*Size/(1<<20), 0.125 * N * K /(1<<20), 100.0*(0.125 * N * K)/(20.0*Size) );
         Cudd_RecursiveDerefZdd( dd, zRandSet );
     }

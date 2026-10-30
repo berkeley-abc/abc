@@ -242,12 +242,12 @@ Gia_Man_t * Gia_ManPerformBidec( Gia_Man_t * p, int fVerbose )
     pPars->fVerbose = fVerbose;
     if ( pPars->nVarsMax < 2 )
     {
-        printf( "Resynthesis is not performed when nodes have less than 2 inputs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Resynthesis is not performed when nodes have less than 2 inputs.\n" );
         return NULL;
     }
     if ( pPars->nVarsMax > 15 )
     {
-        printf( "Resynthesis is not performed when nodes have more than 15 inputs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Resynthesis is not performed when nodes have more than 15 inputs.\n" );
         return NULL;
     }
     vLeaves  = Vec_IntAlloc( 0 );
@@ -281,7 +281,7 @@ Gia_Man_t * Gia_ManPerformBidec( Gia_Man_t * p, int fVerbose )
     {
         pNew = Gia_ManCleanup( pTemp = pNew );
         if ( Gia_ManAndNum(pNew) != Gia_ManAndNum(pTemp) )
-            printf( "Gia_ManPerformBidec() node count before and after: %6d and %6d.\n", Gia_ManAndNum(pNew), Gia_ManAndNum(pTemp) );
+            fprintf( Abc_FrameGlobalGetOut(), "Gia_ManPerformBidec() node count before and after: %6d and %6d.\n", Gia_ManAndNum(pNew), Gia_ManAndNum(pTemp) );
         Gia_ManStop( pTemp );
     }
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );

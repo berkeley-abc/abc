@@ -111,7 +111,7 @@ Vec_Int_t * Acec_CollectXorTops( Gia_Man_t * p )
         {
             if ( fFirstXor )
             {
-                printf( "XORs do not form a continuous sequence\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "XORs do not form a continuous sequence\n" );
                 Vec_IntFreeP( &vRootXorSet );
                 break;
             }
@@ -122,7 +122,7 @@ Vec_Int_t * Acec_CollectXorTops( Gia_Man_t * p )
         fXor1 = Gia_ObjRecognizeExor(Gia_Regular(pFan1), &pFan10, &pFan11);
         if ( fXor0 == fXor1 )
         {
-            printf( "Both inputs of top level XOR have XOR/non-XOR\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Both inputs of top level XOR have XOR/non-XOR\n" );
             Vec_IntFreeP( &vRootXorSet );
             break;
         }
@@ -133,12 +133,12 @@ Vec_Int_t * Acec_CollectXorTops( Gia_Man_t * p )
     }
     for ( i = 0; 4*i < Vec_IntSize(vRootXorSet); i++ )
     {
-        printf( "%2d : ", i );
-        printf( "%4d <- ", Vec_IntEntry(vRootXorSet, 4*i) );
-        printf( "%4d ", Vec_IntEntry(vRootXorSet, 4*i+1) );
-        printf( "%4d ", Vec_IntEntry(vRootXorSet, 4*i+2) );
-        printf( "%4d ", Vec_IntEntry(vRootXorSet, 4*i+3) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%4d <- ", Vec_IntEntry(vRootXorSet, 4*i) );
+        fprintf( Abc_FrameGlobalGetOut(), "%4d ", Vec_IntEntry(vRootXorSet, 4*i+1) );
+        fprintf( Abc_FrameGlobalGetOut(), "%4d ", Vec_IntEntry(vRootXorSet, 4*i+2) );
+        fprintf( Abc_FrameGlobalGetOut(), "%4d ", Vec_IntEntry(vRootXorSet, 4*i+3) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return vRootXorSet;
 }
@@ -173,7 +173,7 @@ int Acec_DetectLitPolarity( Gia_Man_t * p, int Node, int Leaf )
     if ( Lit0 != -1 && Lit1 != -1 )
     {
         assert( Lit0 == Lit1 );
-        printf( "Problem for leaf %d\n", Leaf );
+        fprintf( Abc_FrameGlobalGetOut(), "Problem for leaf %d\n", Leaf );
         return Lit0;
     }
     return Lit0 != -1 ? Lit0 : Lit1;
@@ -227,10 +227,10 @@ void Acec_DetectComputeSupports( Gia_Man_t * p, Vec_Int_t * vRootXorSet )
 
         Vec_IntSort( vSupp, 0 );
 
-        printf( "Out %4d : %4d  \n", i, Vec_IntEntry(vRootXorSet, 4*i+1) );
+        fprintf( Abc_FrameGlobalGetOut(), "Out %4d : %4d  \n", i, Vec_IntEntry(vRootXorSet, 4*i+1) );
         Vec_IntPrint( vSupp );
 
-        printf( "Cone:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cone:\n" );
         Vec_IntForEachEntry( vNods, Node, k )
             Gia_ObjPrint( p, Gia_ManObj(p, Node) );
 
@@ -240,9 +240,9 @@ void Acec_DetectComputeSupports( Gia_Man_t * p, Vec_Int_t * vRootXorSet )
             Vec_IntPush( vPols, Acec_DetectLitPolarity(p, Vec_IntEntry(vRootXorSet, 4*i+1), Node) );
 
         Vec_IntForEachEntryTwo( vSupp, vPols, Node, Pol, k )
-            printf( "%d(%d)  ", Node, Abc_LitIsCompl(Pol) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d(%d)  ", Node, Abc_LitIsCompl(Pol) );
 
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         Vec_IntPrint( vSupp );
     }
@@ -326,7 +326,7 @@ Gia_Man_t * Acec_DetectAdditional( Gia_Man_t * p, int fVerbose )
     else
         pNew = Gia_ManDup( p );
 
-    printf( "Detected %d top XORs.  ", vRootXorSet ? Vec_IntSize(vRootXorSet)/4 : 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d top XORs.  ", vRootXorSet ? Vec_IntSize(vRootXorSet)/4 : 0 );
     Vec_IntFreeP( &vRootXorSet );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
@@ -380,7 +380,7 @@ Vec_Int_t * Acec_RewriteTop( Gia_Man_t * p, Acec_Box_t * pBox )
     }
     assert( Vec_IntSize(vRes) >= Gia_ManCoNum(p) );
     Vec_IntShrink( vRes, Gia_ManCoNum(p) );
-    printf( "Added %d adders for replace CLAs.  ", Count );
+    fprintf( Abc_FrameGlobalGetOut(), "Added %d adders for replace CLAs.  ", Count );
     return vRes;
 }
 Gia_Man_t * Acec_RewriteReplace( Gia_Man_t * p, Vec_Int_t * vRes )
@@ -425,7 +425,7 @@ Gia_Man_t * Acec_ManDecla( Gia_Man_t * pGia, int fBooth, int fVerbose )
     Vec_BitFreeP( &vIgnore );
     if ( pBox == NULL ) // cannot match
     {
-        printf( "Cannot find arithmetic boxes.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot find arithmetic boxes.\n" );
         return Gia_ManDup( pGia );
     }
     vResult = Acec_RewriteTop( pGia, pBox );

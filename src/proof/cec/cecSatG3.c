@@ -199,11 +199,11 @@ void Cec5_EvalPatterns( Gia_Man_t * p, Vec_Int_t * vPats, int nPats )
         int CountThis = Abc_TtCountOnesVec( Vec_WrdEntryP(vSimsPo, i*nWords), nWords );
         if ( CountThis == 0 )
             continue;
-        printf( "%d ", CountThis );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", CountThis );
         nErrors += CountThis;
         Count++;
     }
-    printf( "\nDetected %d error POs with %d errors (average %.2f).\n", Count, nErrors, 1.0*nErrors/Abc_MaxInt(1, Count) );
+    fprintf( Abc_FrameGlobalGetOut(), "\nDetected %d error POs with %d errors (average %.2f).\n", Count, nErrors, 1.0*nErrors/Abc_MaxInt(1, Count) );
     Vec_WrdFree( vSimsPi );
     Vec_WrdFree( vSimsPo );
 }
@@ -309,7 +309,7 @@ void Cec5_ManDestroy( Cec5_Man_t * p )
         ABC_PRTP( "Resim local  ", p->timeResimLoc,  timeTotal );
         ABC_PRTP( "Other        ", timeOther,        timeTotal );
         ABC_PRTP( "TOTAL        ", timeTotal,        timeTotal );
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     //printf( "Recorded %d patterns with %d literals (average %.2f).\n", 
     //    p->pAig->nBitPats, Vec_IntSize(p->pAig->vPats) - 2*p->pAig->nBitPats, 1.0*Vec_IntSize(p->pAig->vPats)/Abc_MaxInt(1, p->pAig->nBitPats)-2 );
@@ -1055,10 +1055,10 @@ void Cec5_ManPrintTfiConeStats( Gia_Man_t * p )
         Gia_ClassForEachObj1( p, i, k )
             Vec_IntPush( vRoots, k );
         Gia_ManCollectTfi( p, vRoots, vNodes );
-        printf( "Class %6d : ", i );
-        printf( "Roots = %6d  ", Vec_IntSize(vRoots) );
-        printf( "Nodes = %6d  ", Vec_IntSize(vNodes) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Class %6d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Roots = %6d  ", Vec_IntSize(vRoots) );
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes = %6d  ", Vec_IntSize(vNodes) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_IntFree( vRoots );
     Vec_IntFree( vNodes );
@@ -1086,17 +1086,17 @@ void Cec5_ManPrintStats( Gia_Man_t * p, Cec_ParFra_t * pPars, Cec5_Man_t * pMan,
     nLits = Gia_ManObjNum(p) - Counter - CounterX;
     if ( fSim )
     {
-        printf( "Sim %4d : ",     pMan->nItersSim++ + pMan->nItersSat );
-        printf( "%6.2f %%  ", 100.0*nLits/Gia_ManCandNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "Sim %4d : ",     pMan->nItersSim++ + pMan->nItersSat );
+        fprintf( Abc_FrameGlobalGetOut(), "%6.2f %%  ", 100.0*nLits/Gia_ManCandNum(p) );
     }
     else
     {
-        printf( "SAT %4d : ",     pMan->nItersSim + pMan->nItersSat++ );
-        printf( "%6.2f %%  ", 100.0*pMan->nAndNodes/Gia_ManAndNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "SAT %4d : ",     pMan->nItersSim + pMan->nItersSat++ );
+        fprintf( Abc_FrameGlobalGetOut(), "%6.2f %%  ", 100.0*pMan->nAndNodes/Gia_ManAndNum(p) );
     }
-    printf( "P =%7d  ",   pMan ? pMan->nSatUnsat : 0 );
-    printf( "D =%7d  ",   pMan ? pMan->nSatSat   : 0 );
-    printf( "F =%8d  ",   pMan ? pMan->nSatUndec : 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "P =%7d  ",   pMan ? pMan->nSatUnsat : 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "D =%7d  ",   pMan ? pMan->nSatSat   : 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "F =%8d  ",   pMan ? pMan->nSatUndec : 0 );
     //printf( "Last =%6d  ", pMan ? pMan->iLastConst : 0 );
     Abc_Print( 1, "cst =%9d  cls =%8d  lit =%9d   ",  Counter0, Counter, nLits );
     Abc_PrintTime( 1, "Time", clkThis );
@@ -1106,10 +1106,10 @@ void Cec5_ManPrintClasses2( Gia_Man_t * p )
     int i, k;
     Gia_ManForEachClass0( p, i )
     {
-        printf( "Class %d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Class %d : ", i );
         Gia_ClassForEachObj1( p, i, k )
-            printf( "%d ", k );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", k );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void Cec5_ManPrintClasses( Gia_Man_t * p )
@@ -1117,7 +1117,7 @@ void Cec5_ManPrintClasses( Gia_Man_t * p )
     int k, Count = 0;
     Gia_ClassForEachObj1( p, 0, k )
         Count++;
-    printf( "Const0 class has %d entries.\n", Count );
+    fprintf( Abc_FrameGlobalGetOut(), "Const0 class has %d entries.\n", Count );
 }
 
 
@@ -1154,7 +1154,7 @@ void Cec5_ManVerify( Gia_Man_t * p, int iObj0, int iObj1, int fPhase, sat_solver
     Value0 = Cec5_ManVerify_rec( p, iObj0, pSat );
     Value1 = Cec5_ManVerify_rec( p, iObj1, pSat );
     if ( (Value0 ^ Value1) == fPhase )
-        printf( "CEX verification FAILED for obj %d and obj %d.\n", iObj0, iObj1 );
+        fprintf( Abc_FrameGlobalGetOut(), "CEX verification FAILED for obj %d and obj %d.\n", iObj0, iObj1 );
 //    else
 //        printf( "CEX verification succeeded for obj %d and obj %d.\n", iObj0, iObj1 );;
 }
@@ -1193,7 +1193,7 @@ void Cec5_ManCexVerify( Gia_Man_t * p, int iObj0, int iObj1, int fPhase )
     Value0 = Cec5_ManCexVerify_rec( p, iObj0 );
     Value1 = Cec5_ManCexVerify_rec( p, iObj1 );
     if ( (Value0 ^ Value1) == fPhase )
-        printf( "CEX verification FAILED for obj %d and obj %d.\n", iObj0, iObj1 );
+        fprintf( Abc_FrameGlobalGetOut(), "CEX verification FAILED for obj %d and obj %d.\n", iObj0, iObj1 );
 //    else
 //        printf( "CEX verification succeeded for obj %d and obj %d.\n", iObj0, iObj1 );;
 }
@@ -1267,7 +1267,7 @@ int Cec5_ManPackAddPattern( Gia_Man_t * p, Vec_Int_t * vLits, int fExtend )
     {
         p->iPatsPi = k;
         if ( !Cec5_ManPackAddPatternTry( p, p->iPatsPi, vLits ) )
-            printf( "Internal error.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Internal error.\n" );
         else if ( fExtend )
             Cec5_ManPackAddPatterns( p, p->iPatsPi, vLits );
         return 64 * p->nSimWords;
@@ -1884,15 +1884,15 @@ int Cec5_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
     Cec5_Man_t * pMan = Cec5_ManCreate( p, pPars ); 
     pMan->approxLim = approxLim;
     if( pMan->simBatchFactor != subBatchSz ){
-        printf("overwrite default batch size: from %3d to %3d\n", pMan->simBatchFactor, subBatchSz);
+        fprintf( Abc_FrameGlobalGetOut(), "overwrite default batch size: from %3d to %3d\n", pMan->simBatchFactor, subBatchSz);
         pMan->simBatchFactor = subBatchSz;
     }
     if( pMan->adaRecycle != adaRecycle ){
-        printf("overwrite default adaptive recycle: from %3d to %3d\n", pMan->adaRecycle, adaRecycle);
+        fprintf( Abc_FrameGlobalGetOut(), "overwrite default adaptive recycle: from %3d to %3d\n", pMan->adaRecycle, adaRecycle);
         pMan->adaRecycle = adaRecycle;
     }
     if ( pPars->fVerbose )
-        printf( "Solver type = %d. Simulate %d words in %d rounds. SAT with %d confs. Recycle after %d SAT calls.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Solver type = %d. Simulate %d words in %d rounds. SAT with %d confs. Recycle after %d SAT calls.\n", 
             pPars->jType, pPars->nWords, pPars->nRounds, pPars->nBTLimit, pPars->nCallsRecycle );
 
     if( fPrep )
@@ -1983,7 +1983,7 @@ int Cec5_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
         pCbs->Pars.nPropLimit  = 100;
 
         if( pPars->fVerbose ){
-            printf("cbs: clim = %4d jlim = %4d\n"
+            fprintf( Abc_FrameGlobalGetOut(), "cbs: clim = %4d jlim = %4d\n"
                 , pCbs->Pars.nBTLimit
                 , pCbs->Pars.nJustLimit );
         }
@@ -2110,7 +2110,7 @@ resume:
     }
 finalize:
     if ( pPars->fVerbose )
-        printf( "SAT calls = %d:  P = %d (0=%d a=%.2f m=%d)  D = %d (0=%d a=%.2f m=%d)  F = %d   Sim = %d  Recyc = %d  Xor = %.2f %%\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "SAT calls = %d:  P = %d (0=%d a=%.2f m=%d)  D = %d (0=%d a=%.2f m=%d)  F = %d   Sim = %d  Recyc = %d  Xor = %.2f %%\n", 
             pMan->nSatUnsat + pMan->nSatSat + pMan->nSatUndec, 
             pMan->nSatUnsat, pMan->nConflicts[1][0], (float)pMan->nConflicts[1][1]/Abc_MaxInt(1, pMan->nSatUnsat-pMan->nConflicts[1][0]), pMan->nConflicts[1][2],
             pMan->nSatSat,   pMan->nConflicts[0][0], (float)pMan->nConflicts[0][1]/Abc_MaxInt(1, pMan->nSatSat  -pMan->nConflicts[0][0]), pMan->nConflicts[0][2],  

@@ -784,10 +784,10 @@ static int Cec_SproveExecutePlan( Gia_Man_t * p, Cec_SprovePlan_t * pPlan, Wlc_N
     Abc_CexFreeP( &p->pCexComb );
     Abc_CexFreeP( &p->pCexSeq );
     if ( !fSilent && fVerbose )
-        printf( "Solving verification problem with the following parameters:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Solving verification problem with the following parameters:\n" );
     if ( !fSilent && fVerbose )
-        printf( "Processes = %d   TimeOut = %d sec   Verbose = %d.\n", pPlan->nProcs, pPlan->nTimeOut, fVerbose );
-    fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "Processes = %d   TimeOut = %d sec   Verbose = %d.\n", pPlan->nProcs, pPlan->nTimeOut, fVerbose );
+    fflush( Abc_FrameGlobalGetOut() );
     Cec_SproveTraceOpen( &Trace, p, pPlan, pReplayFile );
     if ( pPlan->fUseUif && pPlan->fPersistentUif && pWlc != NULL )
     {
@@ -846,7 +846,7 @@ static int Cec_SproveExecutePlan( Gia_Man_t * p, Cec_SprovePlan_t * pPlan, Wlc_N
             Gia_Man_t * pAfter = Cec_SproveGetNet( pStage->ReduceNetOut, p, pScorr, pScorr2 );
             if ( pAfter )
             {
-                printf( "Reduced the miter from %d to %d nodes. ",
+                fprintf( Abc_FrameGlobalGetOut(), "Reduced the miter from %d to %d nodes. ",
                     Gia_ManAndNum(Cec_SproveGetNet(pStage->ReduceNetIn, p, pScorr, pScorr2)), Gia_ManAndNum(pAfter) );
                 Abc_PrintTime( 1, "Time", clkStage );
             }
@@ -871,17 +871,17 @@ static int Cec_SproveExecutePlan( Gia_Man_t * p, Cec_SprovePlan_t * pPlan, Wlc_N
         char * pProbName = p->pSpec ? p->pSpec : Gia_ManName(p);
         if ( RetValue != -1 && RetEngine < 0 )
             RetEngine = PAR_ENGINE_SCORR1;
-        printf( "Problem \"%s\" is ", pProbName ? pProbName : "(none)" );
+        fprintf( Abc_FrameGlobalGetOut(), "Problem \"%s\" is ", pProbName ? pProbName : "(none)" );
         if ( RetValue == 0 )
-            printf( "SATISFIABLE (solved by %s).", Cec_SolveEngineName(RetEngine) );
+            fprintf( Abc_FrameGlobalGetOut(), "SATISFIABLE (solved by %s).", Cec_SolveEngineName(RetEngine) );
         else if ( RetValue == 1 )
-            printf( "UNSATISFIABLE (solved by %s).", Cec_SolveEngineName(RetEngine) );
+            fprintf( Abc_FrameGlobalGetOut(), "UNSATISFIABLE (solved by %s).", Cec_SolveEngineName(RetEngine) );
         else if ( RetValue == -1 )
-            printf( "UNDECIDED." );
+            fprintf( Abc_FrameGlobalGetOut(), "UNDECIDED." );
         else assert( 0 );
-        printf( "   " );
+        fprintf( Abc_FrameGlobalGetOut(), "   " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     Cec_SproveTraceWrite( &Trace, "FINAL result=%s winner=%s total=%llu",
         Cec_SproveResultName(RetValue), RetEngine >= 0 ? Cec_SolveEngineName(RetEngine) : "none",
@@ -916,7 +916,7 @@ int Cec_GiaProveOne( Gia_Man_t * p, int iEngine, int nTimeOut, int fVerbose, Par
     if ( iEngine != PAR_ENGINE_UFAR && iEngine != PAR_ENGINE_GLA && Gia_ManRegNum(p) == 0 )
     {
         if ( fVerbose )
-            printf( "Engine %d (%-5s) skipped because the current miter is combinational.\n", iEngine, Cec_SolveEngineName(iEngine) );
+            fprintf( Abc_FrameGlobalGetOut(), "Engine %d (%-5s) skipped because the current miter is combinational.\n", iEngine, Cec_SolveEngineName(iEngine) );
         if ( pThData && pThData->pTrace )
             Cec_SproveTraceWrite( pThData->pTrace, "STOP kind=engine stage=%d net=%s engine=%s worker=%d result=undecided stop=skip t=%llu",
                 pThData->StageId, Cec_SproveNetName(pThData->NetId), Cec_SolveEngineName(iEngine), pThData->WorkerId,
@@ -925,7 +925,7 @@ int Cec_GiaProveOne( Gia_Man_t * p, int iEngine, int nTimeOut, int fVerbose, Par
     }
     //abctime clkStop = nTimeOut * CLOCKS_PER_SEC + Abc_Clock();
     if ( fVerbose )
-    printf( "Calling engine %d (%-5s) with timeout %d sec.\n", iEngine, Cec_SolveEngineName(iEngine), nTimeOut );
+    fprintf( Abc_FrameGlobalGetOut(), "Calling engine %d (%-5s) with timeout %d sec.\n", iEngine, Cec_SolveEngineName(iEngine), nTimeOut );
     Abc_CexFreeP( &p->pCexSeq );
     if ( iEngine == 0 )
     {
@@ -1070,7 +1070,7 @@ int Cec_GiaProveOne( Gia_Man_t * p, int iEngine, int nTimeOut, int fVerbose, Par
             Cec_SproveClockToMs( Cec_SproveTraceTime(pThData->pTrace) ),
             Cec_SproveClockToMs( Abc_Clock() - clk ) );
     if ( fVerbose ) {
-        printf( "Engine %d (%-5s) finished and %ssolved the problem.   ", iEngine, Cec_SolveEngineName(iEngine), RetValue != -1 ? "    " : "not " );
+        fprintf( Abc_FrameGlobalGetOut(), "Engine %d (%-5s) finished and %ssolved the problem.   ", iEngine, Cec_SolveEngineName(iEngine), RetValue != -1 ? "    " : "not " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     return RetValue;

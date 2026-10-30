@@ -366,8 +366,8 @@ clk = Abc_Clock();
         nFramesReal = atoi( Abc_FrameReadFlag("seqsimframes") );
     if ( nFramesReal <= nPref )
     {
-        printf( "The total number of frames (%d) should exceed prefix (%d).\n", nFramesReal, nPref );
-        printf( "Setting the total number of frames to be %d.\n", nFrames );
+        fprintf( Abc_FrameGlobalGetOut(), "The total number of frames (%d) should exceed prefix (%d).\n", nFramesReal, nPref );
+        fprintf( Abc_FrameGlobalGetOut(), "Setting the total number of frames to be %d.\n", nFrames );
         nFramesReal = nFrames;
     }
 //printf( "Simulating %d frames.\n", nFramesReal );

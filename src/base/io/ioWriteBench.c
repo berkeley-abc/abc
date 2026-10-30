@@ -57,13 +57,13 @@ int Io_WriteBench( Abc_Ntk_t * pNtk, const char * pFileName )
     assert( Abc_NtkIsSopNetlist(pNtk) );
     if ( !Io_WriteBenchCheckNames(pNtk) )
     {
-        fprintf( stdout, "Io_WriteBench(): Signal names in this benchmark contain parentheses making them impossible to reproduce in the BENCH format. Use \"short_names\".\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteBench(): Signal names in this benchmark contain parentheses making them impossible to reproduce in the BENCH format. Use \"short_names\".\n" );
         return 0;
     }
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteBench(): Cannot open the output file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteBench(): Cannot open the output file.\n" );
         return 0;
     }
     fprintf( pFile, "# Benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
@@ -72,7 +72,7 @@ int Io_WriteBench( Abc_Ntk_t * pNtk, const char * pFileName )
     // write EXDC network if it exists
     pExdc = Abc_NtkExdc( pNtk );
     if ( pExdc )
-        printf( "Io_WriteBench: EXDC is not written (warning).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteBench: EXDC is not written (warning).\n" );
     // finalize the file
     fclose( pFile );
     return 1;
@@ -105,7 +105,7 @@ int Io_WriteBenchOne( FILE * pFile, Abc_Ntk_t * pNtk )
             Abc_ObjName(Abc_ObjFanout0(Abc_ObjFanout0(pNode))), Abc_ObjName(Abc_ObjFanin0(Abc_ObjFanin0(pNode))) );
 
     // write internal nodes
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -179,13 +179,13 @@ int Io_WriteBenchLut( Abc_Ntk_t * pNtk, char * pFileName )
     assert( Abc_NtkIsAigNetlist(pNtk) );
     if ( !Io_WriteBenchCheckNames(pNtk) )
     {
-        fprintf( stdout, "Io_WriteBenchLut(): Signal names in this benchmark contain parentheses making them impossible to reproduce in the BENCH format. Use \"short_names\".\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteBenchLut(): Signal names in this benchmark contain parentheses making them impossible to reproduce in the BENCH format. Use \"short_names\".\n" );
         return 0;
     }
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteBench(): Cannot open the output file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteBench(): Cannot open the output file.\n" );
         return 0;
     }
     fprintf( pFile, "# Benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
@@ -194,7 +194,7 @@ int Io_WriteBenchLut( Abc_Ntk_t * pNtk, char * pFileName )
     // write EXDC network if it exists
     pExdc = Abc_NtkExdc( pNtk );
     if ( pExdc )
-        printf( "Io_WriteBench: EXDC is not written (warning).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteBench: EXDC is not written (warning).\n" );
     // finalize the file
     fclose( pFile );
     return 1;
@@ -229,7 +229,7 @@ int Io_WriteBenchLutOne( FILE * pFile, Abc_Ntk_t * pNtk )
 //Abc_NtkLevel(pNtk);
     // write internal nodes
     vMemory = Vec_IntAlloc( 10000 );
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );

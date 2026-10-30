@@ -288,8 +288,8 @@ void Bmcg_ManPrintFrame( Bmcg_Man_t * p, int f, int nClauses, int Solver, abctim
         Abc_Print( 1, "S = %3d. ",  Solver );
     Abc_Print( 1, "%4.0f MB",       1.0*((int)Gia_ManMemory(p->pFrames) + Vec_IntMemory(&p->vFr2Sat))/(1<<20) );
     Abc_Print( 1, "%9.2f sec  ",    (float)(Abc_Clock() - clkStart)/(float)(CLOCKS_PER_SEC) );
-    printf( "\n" );
-    fflush( stdout );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 void Bmcg_ManPrintTime( Bmcg_Man_t * p )
 {
@@ -415,7 +415,7 @@ int Bmcg_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                         int nOutDigits = Abc_Base10Log( Gia_ManPoNum(pGia) );
                         Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).  ",  
                             nOutDigits, i, f+k, nOutDigits, pPars->nFailOuts, nOutDigits, Gia_ManPoNum(pGia) );
-                        fflush( stdout );
+                        fflush( Abc_FrameGlobalGetOut() );
                     }
                     if( pPars->pFuncOnFrameDone )
                         pPars->pFuncOnFrameDone(f+k, i, 1);
@@ -431,7 +431,7 @@ int Bmcg_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     p->timeOth = Abc_Clock() - clkStart - p->timeUnf - p->timeCnf - p->timeSmp - p->timeSat;
     if ( !pPars->fNotVerbose ) {
         if ( RetValue == -1 && !pPars->fNotVerbose )
-            printf( "No output failed in %d frames.  ", f + (k < pPars->nFramesAdd ? k+1 : 0) );
+            fprintf( Abc_FrameGlobalGetOut(), "No output failed in %d frames.  ", f + (k < pPars->nFramesAdd ? k+1 : 0) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
     }
     Bmcg_ManPrintTime( p );

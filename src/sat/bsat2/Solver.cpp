@@ -651,10 +651,10 @@ lbool Solver::search(int nof_conflicts)
                 max_learnts             *= learntsize_inc;
 
                 if (verbosity >= 1)
-                    printf("| %9d | %7d %8d %8d | %8d %8d %6.0f | %6.3f %% |\n", 
+                    fprintf( Abc_FrameGlobalGetOut(), "| %9d | %7d %8d %8d | %8d %8d %6.0f | %6.3f %% |\n", 
                            (int)conflicts, 
                            (int)dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]), nClauses(), (int)clauses_literals, 
-                           (int)max_learnts, nLearnts(), ((double)((int64_t)learnts_literals))/nLearnts(), progressEstimate()*100);
+                           (int)max_learnts, nLearnts(), ((double)((int64_t)learnts_literals))/nLearnts(), progressEstimate()*100 );
             }
 
         }else{
@@ -764,10 +764,10 @@ lbool Solver::solve_()
     lbool   status            = l_Undef;
 
     if (verbosity >= 1){
-        printf("============================[ Search Statistics ]==============================\n");
-        printf("| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n");
-        printf("|           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |          |\n");
-        printf("===============================================================================\n");
+        fprintf( Abc_FrameGlobalGetOut(), "============================[ Search Statistics ]==============================\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "|           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |          |\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "===============================================================================\n" );
     }
 
     // Search:
@@ -780,7 +780,7 @@ lbool Solver::solve_()
     }
 
     if (verbosity >= 1)
-        printf("===============================================================================\n");
+        fprintf( Abc_FrameGlobalGetOut(), "===============================================================================\n" );
 
 
     if (status == l_True){
@@ -868,7 +868,7 @@ void Solver::toDimacs(FILE* f, const vec<Lit>& assumps)
         toDimacs(f, ca[clauses[i]], map, max);
 
     if (verbosity > 0)
-        printf("Wrote %d clauses with %d variables.\n", cnt, max);
+        fprintf( Abc_FrameGlobalGetOut(), "Wrote %d clauses with %d variables.\n", cnt, max );
 }
 
 
@@ -920,8 +920,8 @@ void Solver::garbageCollect()
 
     relocAll(to);
     if (verbosity >= 2)
-        printf("|  Garbage collection:   %12d bytes => %12d bytes             |\n", 
-               ca.size()*ClauseAllocator::Unit_Size, to.size()*ClauseAllocator::Unit_Size);
+        fprintf( Abc_FrameGlobalGetOut(), "|  Garbage collection:   %12d bytes => %12d bytes             |\n", 
+               ca.size()*ClauseAllocator::Unit_Size, to.size()*ClauseAllocator::Unit_Size );
     to.moveTo(ca);
 }
 

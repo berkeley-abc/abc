@@ -144,12 +144,12 @@ sm_matrix *table;
     file = ALLOC(char, strlen(filename)+20);
     (void) sprintf(file, "%s.primes", filename);
     if ((fp_primes = fopen(file, "w")) == NULL) {
-        (void) fprintf(stderr, "espresso: Unable to open %s\n", file);
+        (void) fprintf( Abc_FrameGlobalGetErr(), "espresso: Unable to open %s\n", file);
         fp_primes = stdout;
     }
     (void) sprintf(file, "%s.pi", filename);
     if ((fp_pi_table = fopen(file, "w")) == NULL) {
-        (void) fprintf(stderr, "espresso: Unable to open %s\n", file);
+        (void) fprintf( Abc_FrameGlobalGetErr(), "espresso: Unable to open %s\n", file);
         fp_pi_table = stdout;
     }
     FREE(file);

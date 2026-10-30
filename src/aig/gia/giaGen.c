@@ -84,7 +84,7 @@ void Gia_DeriveAigTest()
     int nInputs = Gia_ManReadCifar10File( pFileName, &vSimsIn, &vSimsOut, &nExamples );
     Gia_Man_t * pThis = Gia_DeriveAig( vSimsIn, vSimsOut );
     Gia_AigerWrite( pThis, "examples64.aig", 0, 0, 0 );
-    printf( "Dumped file \"%s\".\n", "examples64.aig" );
+    fprintf( Abc_FrameGlobalGetOut(), "Dumped file \"%s\".\n", "examples64.aig" );
     Gia_ManStop( pThis );
     Vec_WrdFree( vSimsIn );
     Vec_StrFree( vSimsOut );
@@ -316,8 +316,8 @@ void Gia_ManDumpFiles( Gia_Man_t * p, int nCexesT, int nCexesV, int Seed, char *
 
         Res = 0;
     }
-    printf( "Finished dumping files \"%s\" and \"%s\".\n", pFileNameOutTX, pFileNameOutTY );
-    printf( "Finished dumping files \"%s\" and \"%s\".\n", pFileNameOutVX, pFileNameOutVY );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping files \"%s\" and \"%s\".\n", pFileNameOutTX, pFileNameOutTY );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping files \"%s\" and \"%s\".\n", pFileNameOutVX, pFileNameOutVY );
 
     sprintf( pFileNameOut, "%s.flist", pFileName ? pFileName : Gia_ManName(p) );
     {
@@ -327,7 +327,7 @@ void Gia_ManDumpFiles( Gia_Man_t * p, int nCexesT, int nCexesV, int Seed, char *
         fprintf( pFile, "%s\n", pFileNameOutVX );
         fprintf( pFile, "%s\n", pFileNameOutVY );
         fclose( pFile );
-        printf( "Finished dumping file list \"%s\".\n", pFileNameOut );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished dumping file list \"%s\".\n", pFileNameOut );
     }
 }
 
@@ -387,7 +387,7 @@ void Gia_ManDumpPlaFiles( Gia_Man_t * p, int nCexesT, int nCexesV, int Seed, cha
 
         Res = 0;
     }
-    printf( "Finished dumping files: \"%s.{train, valid, test}.pla\".\n", pFileName ? pFileName : Gia_ManName(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping files: \"%s.{train, valid, test}.pla\".\n", pFileName ? pFileName : Gia_ManName(p) );
 }
 
 /**Function*************************************************************
@@ -422,7 +422,7 @@ int Gia_ManSimParamRead( char * pFileName, int * pnIns, int * pnWords )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName );
         return 0;
     }
     while ( (c = fgetc(pFile)) != EOF )
@@ -437,7 +437,7 @@ int Gia_ManSimParamRead( char * pFileName, int * pnIns, int * pnWords )
                     nIns = Count;
                 else if ( nIns != Count )
                 {
-                    printf( "The number of symbols (%d) does not match other lines (%d).\n", Count, nIns );
+                    fprintf( Abc_FrameGlobalGetOut(), "The number of symbols (%d) does not match other lines (%d).\n", Count, nIns );
                     fclose( pFile );
                     return 0;
                 }
@@ -454,7 +454,7 @@ int Gia_ManSimParamRead( char * pFileName, int * pnIns, int * pnWords )
     }
     if ( nLines % 64 > 0 )
     {
-        printf( "The number of lines (%d) is not divisible by 64.\n", nLines );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of lines (%d) is not divisible by 64.\n", nLines );
         fclose( pFile );
         return 0;
     }
@@ -470,7 +470,7 @@ void Gia_ManSimFileRead( char * pFileName, int nIns, int nWords, Vec_Wrd_t * vSi
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName );
         return;
     }
     assert( Vec_WrdSize(vSimsIn) % nWords == 0 );
@@ -499,7 +499,7 @@ void Gia_ManSimFileRead( char * pFileName, int nIns, int nWords, Vec_Wrd_t * vSi
     }
     assert( nPats == 64*nWords );
     fclose( pFile );
-    printf( "Finished reading %d simulation patterns for %d inputs. Probability of 1 at the output is %6.2f %%.\n", 64*nWords, nIns, 100.0*Vec_IntSum(vValues)/nPats );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished reading %d simulation patterns for %d inputs. Probability of 1 at the output is %6.2f %%.\n", 64*nWords, nIns, 100.0*Vec_IntSum(vValues)/nPats );
 }
 void Gia_ManCompareValues( Gia_Man_t * p, Vec_Wrd_t * vSimsIn, Vec_Int_t * vValues, char * pDumpFile )
 {
@@ -513,14 +513,14 @@ void Gia_ManCompareValues( Gia_Man_t * p, Vec_Wrd_t * vSimsIn, Vec_Int_t * vValu
         if ( Abc_TtGetBit(pSims, i) == Value )
             Count++;
     Guess = (Vec_IntSum(vValues) > nWords * 32) ? Vec_IntSum(vValues) : nWords * 64 - Vec_IntSum(vValues);
-    printf( "Total = %6d.  Errors = %6d.  Correct = %6d.  (%6.2f %%)   Naive guess = %6d.  (%6.2f %%)\n", 
+    fprintf( Abc_FrameGlobalGetOut(),  "Total = %6d.  Errors = %6d.  Correct = %6d.  (%6.2f %%)   Naive guess = %6d.  (%6.2f %%)\n", 
         Vec_IntSize(vValues), Vec_IntSize(vValues) - Count, 
         Count, 100.0*Count/Vec_IntSize(vValues),
-        Guess, 100.0*Guess/Vec_IntSize(vValues));
+        Guess, 100.0*Guess/Vec_IntSize(vValues) );
     if ( pDumpFile == NULL )
         return;
     Gia_ManSimLogStats( p, pDumpFile, Vec_IntSize(vValues), Count, Guess );
-    printf( "Finished dumping statistics into file \"%s\".\n", pDumpFile );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping statistics into file \"%s\".\n", pDumpFile );
 }
 
 /**Function*************************************************************
@@ -542,7 +542,7 @@ void Gia_ManReadSimFile( char * pFileName, int * pnIns, int * pnOuts, int * pnPa
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName );
         return;
     }
     while ( fgets( pBuffer, 1000, pFile ) != NULL )
@@ -559,13 +559,13 @@ void Gia_ManReadSimFile( char * pFileName, int * pnIns, int * pnOuts, int * pnPa
         else if ( pTemp[1] == 'p' )
         {
             if ( atoi(pTemp+2) % 64 == 0 )
-                printf( "Expecting the number of patterns divisible by 64.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Expecting the number of patterns divisible by 64.\n" );
             nPats = atoi(pTemp+2) / 64;
         }
     }
     if ( nIns == -1 || nOuts == -1 || nPats == -1 )
     {
-        printf( "Some of the parameters (inputs, outputs, patterns) is not specified.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Some of the parameters (inputs, outputs, patterns) is not specified.\n" );
         fclose( pFile );
         return;
     }
@@ -594,7 +594,7 @@ void Gia_ManReadSimFile( char * pFileName, int * pnIns, int * pnOuts, int * pnPa
         iPat++;
     }
     if ( iPat != nPats )
-        printf( "The number of patterns does not match.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of patterns does not match.\n" );
     fclose( pFile );
     *pnIns = nIns;
     *pnOuts = nOuts;
@@ -708,13 +708,13 @@ void Gia_ManCompareValues2( int nInputs, Gia_Man_t * p, Vec_Wrd_t * vSimsIn, Vec
         nPositives += (int)(ValueGold > 0);
     }
     ABC_FREE( ppSims );
-    printf( "Total = %6d.  Positive = %6d.  (%6.2f %%)     Errors = %e.  Guess = %e.  (%6.2f %%)\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Total = %6d.  Positive = %6d.  (%6.2f %%)     Errors = %e.  Guess = %e.  (%6.2f %%)\n", 
         Vec_StrSize(vValues), nPositives, 100.0*nPositives/Vec_StrSize(vValues),
-        ErrorTotal,           GuessTotal, 100.0*ErrorTotal/GuessTotal   );
+        ErrorTotal,           GuessTotal, 100.0*ErrorTotal/GuessTotal );
     if ( pDumpFile == NULL )
         return;
     Gia_ManSimLogStats2( p, pDumpFile, Vec_StrSize(vValues), nPositives, ErrorTotal, GuessTotal );
-    printf( "Finished dumping statistics into file \"%s\".\n", pDumpFile );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping statistics into file \"%s\".\n", pDumpFile );
 }
 
 /**Function*************************************************************
@@ -736,7 +736,7 @@ void Gia_ManTestWordFileUnused( Gia_Man_t * p, char * pFileName, char * pDumpFil
     if ( Gia_ManCiNum(p) == 8*nInputs )
         Gia_ManCompareValues2( nInputs, p, vSimsIn, vSimsOut, pDumpFile );
     else
-        printf( "The number of inputs in the AIG (%d) and in the file (%d) does not match.\n", Gia_ManCiNum(p), 8*nInputs );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of inputs in the AIG (%d) and in the file (%d) does not match.\n", Gia_ManCiNum(p), 8*nInputs );
     Vec_WrdFree( vSimsIn );
     Vec_StrFree( vSimsOut );
 }
@@ -761,7 +761,7 @@ void Gia_ManTestOneFile( Gia_Man_t * p, char * pFileName, char * pDumpFile )
         return;
     if ( nIns != Gia_ManCiNum(p) )
     {
-        printf( "The number of inputs in the file \"%s\" (%d) does not match the AIG (%d).\n", pFileName, nIns, Gia_ManCiNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of inputs in the file \"%s\" (%d) does not match the AIG (%d).\n", pFileName, nIns, Gia_ManCiNum(p) );
         return;
     }
     vSimsIn = Vec_WrdStart( nIns * nWords );
@@ -793,7 +793,7 @@ int Gia_ManReadCifar10File( char * pFileName, Vec_Wrd_t ** pvSimsIn, Vec_Str_t *
     int nWordsOut = (nExamples + 63) / 64; int e;
     if ( nFileSize % (nPixels + 1) )
     {
-        printf( "The input file \"%s\" with image data does not appear to be in CIFAR10 format.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "The input file \"%s\" with image data does not appear to be in CIFAR10 format.\n", pFileName );
         return 0;
     }
     else
@@ -806,7 +806,7 @@ int Gia_ManReadCifar10File( char * pFileName, Vec_Wrd_t ** pvSimsIn, Vec_Str_t *
         (void)Value;
         fclose( pFile );
         assert( Value == nFileSize );
-        printf( "Successfully read %5.2f MB (%d images) from file \"%s\".\n", (float)nFileSize/(1<<20), nExamples, pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Successfully read %5.2f MB (%d images) from file \"%s\".\n", (float)nFileSize/(1<<20), nExamples, pFileName );
         for ( e = 0; e < nExamples; e++ )
         {
             Vec_StrPush( vSimsOut, (char)pBuffer[e*(nPixels + 1)] );
@@ -876,7 +876,7 @@ Vec_Str_t * Gia_ManSimulateAll( Gia_Man_t * p, Vec_Wrd_t * vSimsIn, Vec_Str_t * 
         Count = Gia_ManSimulateBatch( p, vSimsIn2, vRes, vSimsOut, b, Limit );
         Vec_WrdFree( vSimsIn2 );
         if ( fVerbose )
-        printf( "Finished simulating word %4d (out of %4d). Correct = %2d. (Limit = %2d.)\n", b, nWordsOut, Count, Limit );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished simulating word %4d (out of %4d). Correct = %2d. (Limit = %2d.)\n", b, nWordsOut, Count, Limit );
     }
     assert( Vec_StrSize(vRes) == nExamples );
     return vRes;
@@ -891,14 +891,14 @@ void Gia_ManCompareCifar10Values( Gia_Man_t * p, Vec_Str_t * vRes, Vec_Str_t * v
         if ( ValueReal == ValueGold )
             Count++;
     }
-    printf( "Summary: Total = %6d.  Errors = %6d.  Correct = %6d. (%6.2f %%)   Naive guess = %6d. (%6.2f %%)\n", 
+    fprintf( Abc_FrameGlobalGetOut(),  "Summary: Total = %6d.  Errors = %6d.  Correct = %6d. (%6.2f %%)   Naive guess = %6d. (%6.2f %%)\n", 
         nExamples, nExamples - Count, 
         Count, 100.0*Count/nExamples,
-        Guess, 100.0*Guess/nExamples);
+        Guess, 100.0*Guess/nExamples );
     if ( pDumpFile == NULL )
         return;
     Gia_ManSimLogStats( p, pDumpFile, nExamples, Count, Guess );
-    printf( "Finished dumping statistics into file \"%s\".\n", pDumpFile );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping statistics into file \"%s\".\n", pDumpFile );
 }
 void Gia_ManTestWordFile( Gia_Man_t * p, char * pFileName, char * pDumpFile, int fVerbose )
 {
@@ -911,7 +911,7 @@ void Gia_ManTestWordFile( Gia_Man_t * p, char * pFileName, char * pDumpFile, int
     int pLimitFileSizes[3] = {10000, 100000, 1000000};
     for ( i = 0; i < 3; i++ )
         if ( p->pSpec && !strncmp(p->pSpec, pKnownFileNames[i], 5) && Gia_ManAndNum(p) > pLimitFileSizes[i] )
-            printf( "Warning: The input file \"%s\" contains more than %d internal and-nodes.\n", pKnownFileNames[i], pLimitFileSizes[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "Warning: The input file \"%s\" contains more than %d internal and-nodes.\n", pKnownFileNames[i], pLimitFileSizes[i] );
     if ( nInputs == Gia_ManCiNum(p) )
     {
         Vec_Str_t * vRes = Gia_ManSimulateAll( p, vSimsIn, vSimsOut, nExamples, fVerbose );
@@ -919,7 +919,7 @@ void Gia_ManTestWordFile( Gia_Man_t * p, char * pFileName, char * pDumpFile, int
         Vec_StrFree( vRes );
     }
     else
-        printf( "The primary input counts in the AIG (%d) and in the image data (%d) do not match.\n", Gia_ManCiNum(p), nInputs );
+        fprintf( Abc_FrameGlobalGetOut(), "The primary input counts in the AIG (%d) and in the image data (%d) do not match.\n", Gia_ManCiNum(p), nInputs );
     Vec_WrdFree( vSimsIn );
     Vec_StrFree( vSimsOut );
     Abc_PrintTime( 1, "Total checking time", Abc_Clock() - clk );
@@ -977,7 +977,7 @@ void Gia_ManSumEnum( int n, Vec_Int_t * vDec )
             if ( CountBest > CountCur )
                 CountBest = CountCur, iBest = c0;
         }
-        printf( " %8d", CountBest );
+        fprintf( Abc_FrameGlobalGetOut(), " %8d", CountBest );
         //printf( " %8s", Vec_StrEntryP(vRes,iBest) );
         //printf( " %.3f", (float)CountBest/(3*b*((1<<n)-1)) );
     }
@@ -1002,14 +1002,14 @@ Vec_Int_t * Gia_ManSumGenDec( int n )
 void Gia_ManSumEnumTest()
 {
     Vec_Int_t * vDec = Gia_ManSumGenDec( 16 );
-    printf( "    " );
+    fprintf( Abc_FrameGlobalGetOut(), "    " );
     for ( int b = 1; b <= 256; b <<= 1 )
-        printf( " %8d", b );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %8d", b );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( int i = 1; i <= 15; i++ ) {
-        printf( "%2d :", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d :", i );
         Gia_ManSumEnum( i, vDec );        
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_IntFree( vDec );
 }
@@ -1030,7 +1030,7 @@ void Gia_ManGenNeuronDumpVerilog( Vec_Wrd_t * vData, int nIBits, int nOBits )
 {
     FILE * pFile = fopen( "temp.v", "wb" );
     if ( pFile == NULL ) {
-        printf( "Cannot open output file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file.\n" );
         return;
     }
     fprintf( pFile, "module neuron_%d_%d_%d ( input [%d:0] i, output [%d:0] o );\n", 
@@ -1041,7 +1041,7 @@ void Gia_ManGenNeuronDumpVerilog( Vec_Wrd_t * vData, int nIBits, int nOBits )
         fprintf( pFile, "\n         + %d'h%lX * i[%d:%d]", nOBits, Data, nIBits*(i+1)-1, nIBits*i );
     fprintf( pFile, ";\nendmodule\n\n" );
     fclose( pFile );
-    printf( "Dumped the neuron specification into file \"temp.v\".\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Dumped the neuron specification into file \"temp.v\".\n" );
 }
 void Gia_ManGenNeuronAdder( Gia_Man_t * p, int nLits, int * pLitsA, int * pLitsB, int Carry, Vec_Int_t * vRes )
 {
@@ -1428,18 +1428,18 @@ void Gia_ManGenPrint( int nVars, int ** p )
 {
   int i, k;
   for ( i = nVars-1; i >= 0; i-- )
-    printf( "%2d ", i );
-  printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "%2d ", i );
+  fprintf( Abc_FrameGlobalGetOut(), "\n" );
   for ( i = 0; i < nVars; i++ ) {
     for ( k = nVars-1; k >= 0; k-- )
         if ( p[i][k] >= 0 )
             break;
     for ( k = nVars-1; k >= 0; k-- )
       if ( p[i][k] == -1 )
-        printf( " - " );
+        fprintf( Abc_FrameGlobalGetOut(), " - " );
       else
-        printf( "%2d ", p[i][k] );
-    printf("\n");
+        fprintf( Abc_FrameGlobalGetOut(), "%2d ", p[i][k] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
   }
 }
 void Gia_ManGenPrefix( Gia_Man_t * pNew, int * p, int * g, int p2, int g2 )
@@ -1500,22 +1500,22 @@ Gia_Man_t * Gia_ManGenAdder( int nVars, int fSK, int fBK, int fHC, int fMM, int 
     extern void Wlc_BlastFullAdder( Gia_Man_t * pNew, int a, int b, int c, int * pc, int * ps );
     int i, k, nBits = Abc_Base2Log(nVars), nVarsAlloc = (1 << nBits) + 2;
     int ** pStore = fMM ? NULL : (int **)Extra_ArrayAlloc( nVarsAlloc, nVarsAlloc, 4 );
-    printf( "Generating %d-bit ", nVars );
+    fprintf( Abc_FrameGlobalGetOut(), "Generating %d-bit ", nVars );
     if ( fMM )
-        printf("M/M ");
+        fprintf( Abc_FrameGlobalGetOut(), "M/M " );
     else
     {
         Gia_ManGenPrep( nVars+2, pStore );
         if ( fSK )
-            Gia_ManGenSK( nVars, pStore ), printf("Sklansky ");
+            Gia_ManGenSK( nVars, pStore ), fprintf( Abc_FrameGlobalGetOut(), "Sklansky " );
         else if ( fBK )
-            Gia_ManGenBK( nVars, pStore ), printf("Brent-Kung ");
+            Gia_ManGenBK( nVars, pStore ), fprintf( Abc_FrameGlobalGetOut(), "Brent-Kung " );
         else if ( fHC )
-            Gia_ManGenHC( nVars, pStore ), printf("Huan-Carlsson ");
+            Gia_ManGenHC( nVars, pStore ), fprintf( Abc_FrameGlobalGetOut(), "Huan-Carlsson " );
         else
-            Gia_ManGenRca( nVars, pStore ), printf("ripple-carry ");
+            Gia_ManGenRca( nVars, pStore ), fprintf( Abc_FrameGlobalGetOut(), "ripple-carry " );
     }
-    printf( "adder with%s carry-in and carry-out\n", fCarries ? "":"out" );
+    fprintf( Abc_FrameGlobalGetOut(), "adder with%s carry-in and carry-out\n", fCarries ? "":"out" );
     if ( fVerbose && !fMM ) Gia_ManGenPrint( nVars, pStore );
     Gia_Man_t * p = Gia_ManStart( 1000 ), * pTemp;
     p->pName = Abc_UtilStrsav( "adder" );    

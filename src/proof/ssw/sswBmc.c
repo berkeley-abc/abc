@@ -143,7 +143,7 @@ int Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbo
         Abc_Print( 1, "AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n",
             Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), Saig_ManRegNum(pAig),
             Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig) );
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     // perform dynamic unrolling
     RetValue = -1;
@@ -205,7 +205,7 @@ int Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbo
                 pSat->nSatVars, Aig_ManNodeNum(pFrm->pFrames) );
             ABC_PRT( "T", Abc_Clock() - clkPart );
             clkPart = Abc_Clock();
-            fflush( stdout );
+            fflush( Abc_FrameGlobalGetOut() );
         }
         if ( RetValue != 1 )
             break;

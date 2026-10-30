@@ -461,12 +461,12 @@ int Raig_ManSimulate( Aig_Man_t * pAig, int nWords, int nIters, int TimeLimit, i
     Status = Sec_MiterStatus( pAig );
     if ( Status.nSat > 0 )
     {
-        printf( "Miter is trivially satisfiable (output %d).\n", Status.iOut );
+        fprintf( Abc_FrameGlobalGetOut(), "Miter is trivially satisfiable (output %d).\n", Status.iOut );
         return 1;
     }
     if ( Status.nUndec == 0 )
     {
-        printf( "Miter is trivially unsatisfiable.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Miter is trivially unsatisfiable.\n" );
         return 0;
     }
     Aig_ManRandom( 1 );
@@ -479,8 +479,8 @@ int Raig_ManSimulate( Aig_Man_t * pAig, int nWords, int nIters, int TimeLimit, i
         RetValue = Raig_ManSimulateRound( p, fMiter, i==0, &iPat );
         if ( fVerbose )
         {
-            printf( "Frame %4d out of %4d and timeout %3d sec. ", i+1, nIters, TimeLimit );
-            printf("Time = %7.2f sec\r", (1.0*Abc_Clock()-clkTotal)/CLOCKS_PER_SEC);
+            fprintf( Abc_FrameGlobalGetOut(), "Frame %4d out of %4d and timeout %3d sec. ", i+1, nIters, TimeLimit );
+            fprintf( Abc_FrameGlobalGetOut(), "Time = %7.2f sec\r", (1.0*Abc_Clock()-clkTotal)/CLOCKS_PER_SEC );
         }
         if ( RetValue > 0 )
         {
@@ -488,18 +488,18 @@ int Raig_ManSimulate( Aig_Man_t * pAig, int nWords, int nIters, int TimeLimit, i
             assert( pAig->pSeqModel == NULL );
             pAig->pSeqModel = Raig_ManGenerateCounter( pAig, i, iOut, nWords, iPat, p->vCis2Ids );
             if ( fVerbose )
-            printf( "Miter is satisfiable after simulation (output %d).\n", iOut );
+            fprintf( Abc_FrameGlobalGetOut(), "Miter is satisfiable after simulation (output %d).\n", iOut );
             break;
         }
         if ( (Abc_Clock() - clk)/CLOCKS_PER_SEC >= TimeLimit )
         {
-            printf( "No bug detected after %d frames with time limit %d seconds.\n", i+1, TimeLimit );
+            fprintf( Abc_FrameGlobalGetOut(), "No bug detected after %d frames with time limit %d seconds.\n", i+1, TimeLimit );
             break;
         }
     }
     if ( fVerbose )
     {
-        printf( "Maxcut = %8d.  AigMem = %7.2f MB.  SimMem = %7.2f MB.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Maxcut = %8d.  AigMem = %7.2f MB.  SimMem = %7.2f MB.  ", 
             p->nMemsMax, 
             1.0*(p->nObjs * 16)/(1<<20), 
             1.0*(p->nMemsMax * 4 * (nWords+1))/(1<<20) );

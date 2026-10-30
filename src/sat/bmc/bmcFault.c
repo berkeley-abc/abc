@@ -304,13 +304,13 @@ void Cnf_AddCardinConstrTest()
         if ( status != l_True )
             break;
         Vec_IntClear( vVars );
-        printf( "%3d : ", Count++ );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : ", Count++ );
         for ( i = 0; i < nVars; i++ )
         {
             Vec_IntPush( vVars, Abc_Var2Lit(i, sat_solver_var_value(pSat, i)) );
-            printf( "%d", sat_solver_var_value(pSat, i) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", sat_solver_var_value(pSat, i) );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         status = sat_solver_addclause( pSat, Vec_IntArray(vVars), Vec_IntArray(vVars) + Vec_IntSize(vVars) );
         if ( status == 0 )
             break;
@@ -601,12 +601,12 @@ int Gia_FormStrCount( char * pStr, int * pnVars, int * pnPars )
     int i, Counter = 0;
     if ( pStr[0] != '(' )
     {
-        printf( "The first symbol should be the opening parenthesis \"(\".\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The first symbol should be the opening parenthesis \"(\".\n" );
         return 1;
     }
     if ( pStr[strlen(pStr)-1] != ')' )
     {
-        printf( "The last symbol should be the closing parenthesis \")\".\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The last symbol should be the closing parenthesis \")\".\n" );
         return 1;
     }
     for ( i = 0; pStr[i]; i++ )
@@ -616,7 +616,7 @@ int Gia_FormStrCount( char * pStr, int * pnVars, int * pnPars )
             Counter--;
     if ( Counter != 0 )
     {
-        printf( "The number of opening and closing parentheses is not equal.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of opening and closing parentheses is not equal.\n" );
         return 1;
     }
     *pnVars = 0;
@@ -637,20 +637,20 @@ int Gia_FormStrCount( char * pStr, int * pnVars, int * pnPars )
         {
             if ( pStr[i+1] < 'a' || pStr[i+1] > 'z' )
             {
-                printf( "Expecting alphabetic symbol (instead of \"%c\") after negation (~)\n",  pStr[i+1] );
+                fprintf( Abc_FrameGlobalGetOut(), "Expecting alphabetic symbol (instead of \"%c\") after negation (~)\n",  pStr[i+1] );
                 return 1;
             }
         }
         else 
         {
-            printf( "Unknown symbol (%c) in the formula (%s)\n", pStr[i], pStr );
+            fprintf( Abc_FrameGlobalGetOut(), "Unknown symbol (%c) in the formula (%s)\n", pStr[i], pStr );
             return 1;
         }
     }
     if ( *pnVars != FFTEST_MAX_VARS )
-        { printf( "The number of input variables (%d) should be 2\n", *pnVars ); return 1; }
+        { fprintf( Abc_FrameGlobalGetOut(), "The number of input variables (%d) should be 2\n", *pnVars ); return 1; }
     if ( *pnPars < 1 || *pnPars > FFTEST_MAX_PARS )
-        { printf( "The number of parameters should be between 1 and %d\n", FFTEST_MAX_PARS ); return 1; }
+        { fprintf( Abc_FrameGlobalGetOut(), "The number of parameters should be between 1 and %d\n", FFTEST_MAX_PARS ); return 1; }
     return 0;
 }
 void Gia_FormStrTransform( char * pStr, char * pForm )
@@ -705,13 +705,13 @@ void Gia_ManPrintFormula_rec( char * pBeg, char * pEnd )
     if ( pBeg + 1 == pEnd )
     {
         if ( pBeg[0] >= 'a' && pBeg[0] <= 'b' )
-            printf( "%c", pBeg[0] );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", pBeg[0] );
         else if ( pBeg[0] >= 'A' && pBeg[0] <= 'B' )
-            printf( "~%c", pBeg[0]-'A'+'a' );
+            fprintf( Abc_FrameGlobalGetOut(), "~%c", pBeg[0]-'A'+'a' );
         else if ( pBeg[0] >= 'p' && pBeg[0] <= 'w' ) // pqrstuvw
-            printf( "%c", pBeg[0] );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", pBeg[0] );
         else if ( pBeg[0] >= 'P' && pBeg[0] <= 'W' )
-            printf( "~%c", pBeg[0]-'A'+'a' );
+            fprintf( Abc_FrameGlobalGetOut(), "~%c", pBeg[0]-'A'+'a' );
         return;
     }
     if ( pBeg[0] == '(' )
@@ -727,46 +727,46 @@ void Gia_ManPrintFormula_rec( char * pBeg, char * pEnd )
     }
     // get first part
     pEndNew  = Gia_ManFormulaEndToken( pBeg );
-    printf( "(" );
+    fprintf( Abc_FrameGlobalGetOut(), "(" );
     Gia_ManPrintFormula_rec( pBeg, pEndNew );
-    printf( ")" );
+    fprintf( Abc_FrameGlobalGetOut(), ")" );
     Oper     = pEndNew[0];
     // derive the formula
     if ( Oper == '&' )
-        printf( "&" );
+        fprintf( Abc_FrameGlobalGetOut(), "&" );
     else if ( Oper == '|' )
-        printf( "|" );
+        fprintf( Abc_FrameGlobalGetOut(), "|" );
     else if ( Oper == '^' )
-        printf( "^" );
+        fprintf( Abc_FrameGlobalGetOut(), "^" );
     else if ( Oper == '?' )
-        printf( "?" );
+        fprintf( Abc_FrameGlobalGetOut(), "?" );
     else assert( 0 );
     // get second part
     pBeg     = pEndNew + 1;
     pEndNew  = Gia_ManFormulaEndToken( pBeg );
-    printf( "(" );
+    fprintf( Abc_FrameGlobalGetOut(), "(" );
     Gia_ManPrintFormula_rec( pBeg, pEndNew );
-    printf( ")" );
+    fprintf( Abc_FrameGlobalGetOut(), ")" );
     if ( Oper == '?' )
     {
-        printf( ":" );
+        fprintf( Abc_FrameGlobalGetOut(), ":" );
         // get third part
         assert( Oper == '?' );
         assert( pEndNew[0] == ':' );
         pBeg     = pEndNew + 1;
         pEndNew  = Gia_ManFormulaEndToken( pBeg );
-        printf( "(" );
+        fprintf( Abc_FrameGlobalGetOut(), "(" );
         Gia_ManPrintFormula_rec( pBeg, pEndNew );
-        printf( ")" );
+        fprintf( Abc_FrameGlobalGetOut(), ")" );
     }
 }
 void Gia_ManPrintFormula( char * pStr )
 {
-    printf( "Using formula: " );
-    printf( "(" );
+    fprintf( Abc_FrameGlobalGetOut(), "Using formula: " );
+    fprintf( Abc_FrameGlobalGetOut(), "(" );
     Gia_ManPrintFormula_rec( pStr, pStr + strlen(pStr) );
-    printf( ")" );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), ")" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -1145,7 +1145,7 @@ int Gia_ManDumpUntests( Gia_Man_t * pM, Cnf_Dat_t * pCnf, sat_solver * pSat, int
     {
         status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( status == l_Undef )
-            printf( "Timeout reached after dumping %d untestable faults.\n", nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "Timeout reached after dumping %d untestable faults.\n", nIters );
         if ( status == l_Undef )
             break;
         if ( status == l_False )
@@ -1163,11 +1163,11 @@ int Gia_ManDumpUntests( Gia_Man_t * pM, Cnf_Dat_t * pCnf, sat_solver * pSat, int
         {
             if ( fVerbose )
             {
-                printf( "Untestable fault %4d : ", ++Count );
+                fprintf( Abc_FrameGlobalGetOut(), "Untestable fault %4d : ", ++Count );
                 Vec_IntForEachEntry( vLits, Value, i )
                     if ( Abc_LitIsCompl(Value) )
-                        printf( "%d ", i );
-                printf( "\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "%d ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
             Vec_IntForEachEntry( vLits, Value, i )
                 if ( Abc_LitIsCompl(Value) )
@@ -1200,7 +1200,7 @@ Vec_Int_t * Gia_ManGetTestPatterns( char * pFileName )
     Vec_Int_t * vTests; int c;
     if ( pFile == NULL )
     {
-        printf( "Cannot open input file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\".\n", pFileName );
         return NULL;
     }
     vTests = Vec_IntAlloc( 10000 );
@@ -1210,7 +1210,7 @@ Vec_Int_t * Gia_ManGetTestPatterns( char * pFileName )
             continue;
         if ( c != '0' && c != '1' )
         {
-            printf( "Wrong symbol (%c) in the input file.\n", c );
+            fprintf( Abc_FrameGlobalGetOut(), "Wrong symbol (%c) in the input file.\n", c );
             Vec_IntFreeP( &vTests );
             break;
         }
@@ -1286,7 +1286,7 @@ int Gia_ManFaultAnalyze( sat_solver * pSat, Vec_Int_t * vPars, Vec_Int_t * vMap,
                 Vec_IntWriteEntry( vLits, i, 0 );
         assert( Vec_IntEntry(vLits, v) == 0 );
     }
-    printf( "Iteration %3d has determined %5d (out of %5d) parameters after %6d SAT calls.  ", Iter, Vec_IntSize(vMap) - Vec_IntCountPositive(vMap), Vec_IntSize(vPars), nRuns );
+    fprintf( Abc_FrameGlobalGetOut(), "Iteration %3d has determined %5d (out of %5d) parameters after %6d SAT calls.  ", Iter, Vec_IntSize(vMap) - Vec_IntCountPositive(vMap), Vec_IntSize(vPars), nRuns );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return nUnsats;
 }
@@ -1344,7 +1344,7 @@ int Gia_ManFaultDumpNewFaults( Gia_Man_t * pM, int nFuncVars, Vec_Int_t * vTests
     // dump the new faults
     clk = Abc_Clock();
     nNewFaults = Gia_ManDumpUntests( pC, pCnf2, pSat, nFuncVars, pFileName, pPars->fVerbose );
-    printf( "Dumped %d new multiple faults into file \"%s\".  ", nNewFaults, pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Dumped %d new multiple faults into file \"%s\".  ", nNewFaults, pFileName );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     // cleanup
@@ -1376,7 +1376,7 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
 
     if ( Vec_IntSize(vTests) && (Vec_IntSize(vTests) % nFuncVars != 0) )
     {
-        printf( "The number of symbols in the input patterns (%d) does not divide evenly on the number of test variables (%d).\n", Vec_IntSize(vTests), nFuncVars );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of symbols in the input patterns (%d) does not divide evenly on the number of test variables (%d).\n", Vec_IntSize(vTests), nFuncVars );
         Vec_IntFree( vTests );
         return 0;
     }
@@ -1451,9 +1451,9 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
         int nTests = Vec_IntSize(vTests) / nFuncVars;
         assert( Vec_IntSize(vTests) % nFuncVars == 0 );
         if ( pPars->pFileName )
-            printf( "Reading %d pre-computed test patterns from file \"%s\".\n", Vec_IntSize(vTests) / nFuncVars, pPars->pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Reading %d pre-computed test patterns from file \"%s\".\n", Vec_IntSize(vTests) / nFuncVars, pPars->pFileName );
         else
-            printf( "Reading %d pre-computed test patterns from previous rounds.\n", Vec_IntSize(vTests) / nFuncVars );
+            fprintf( Abc_FrameGlobalGetOut(), "Reading %d pre-computed test patterns from previous rounds.\n", Vec_IntSize(vTests) / nFuncVars );
         for ( Iter = 0; Iter < nTests; Iter++ )
         {
             if ( fWarmUp )
@@ -1464,16 +1464,16 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
                 if ( status == l_Undef )
                 {
                     if ( pPars->fVerbose )
-                        printf( "\n" );
-                    printf( "Timeout reached after %d seconds and adding %d tests.\n", pPars->nTimeOut, Iter );
+                        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Timeout reached after %d seconds and adding %d tests.\n", pPars->nTimeOut, Iter );
                     Vec_IntShrink( vTests, Iter * nFuncVars );
                     return 0;
                 }
                 if ( status == l_False )
                 {
                     if ( pPars->fVerbose )
-                        printf( "\n" );
-                    printf( "The problem is UNSAT after adding %d tests.\n", Iter );
+                        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "The problem is UNSAT after adding %d tests.\n", Iter );
                     Vec_IntShrink( vTests, Iter * nFuncVars );
                     return 0;
                 }
@@ -1485,17 +1485,17 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
             if ( !Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars, 0, pM ) )
             {
                 if ( pPars->fVerbose )
-                    printf( "\n" );
-                printf( "The problem is UNSAT after adding %d tests.\n", Iter );
+                    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "The problem is UNSAT after adding %d tests.\n", Iter );
                 Vec_IntShrink( vTests, Iter * nFuncVars );
                 return 0;
             }
             if ( pPars->fVerbose )
             {
-                printf( "Iter%6d : ",       Iter );
-                printf( "Var =%10d  ",      sat_solver_nvars(pSat) );
-                printf( "Clause =%10d  ",   sat_solver_nclauses(pSat) );
-                printf( "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
+                fprintf( Abc_FrameGlobalGetOut(), "Iter%6d : ",       Iter );
+                fprintf( Abc_FrameGlobalGetOut(), "Var =%10d  ",      sat_solver_nvars(pSat) );
+                fprintf( Abc_FrameGlobalGetOut(), "Clause =%10d  ",   sat_solver_nclauses(pSat) );
+                fprintf( Abc_FrameGlobalGetOut(), "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
                 //Abc_PrintTime( 1, "Time", clkSat );
                 ABC_PRTr( "Solver time", clkSat );
             }
@@ -1509,16 +1509,16 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
             if ( status == l_Undef )
             {
                 if ( pPars->fVerbose )
-                    printf( "\n" );
-                printf( "Timeout reached after %d seconds and %d iterations.\n", pPars->nTimeOut, Iter );
+                    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Timeout reached after %d seconds and %d iterations.\n", pPars->nTimeOut, Iter );
                 Vec_IntShrink( vTests, Iter * nFuncVars );
                 return 0;
             }
             if ( status == l_False )
             {
                 if ( pPars->fVerbose )
-                    printf( "\n" );
-                printf( "The problem is UNSAT after %d iterations.\n", Iter );
+                    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "The problem is UNSAT after %d iterations.\n", Iter );
                 Vec_IntShrink( vTests, Iter * nFuncVars );
                 return 0;
             }
@@ -1528,15 +1528,15 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
             if ( !Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars, 0, pM ) )
             {
                 if ( pPars->fVerbose )
-                    printf( "\n" );
-                printf( "The problem is UNSAT after adding %d tests.\n", Iter );
+                    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "The problem is UNSAT after adding %d tests.\n", Iter );
                 Vec_IntShrink( vTests, Iter * nFuncVars );
                 return 0;
             }
         }
     }
 
-    printf( "Using miter with:  AIG nodes = %6d.  CNF variables = %6d.  CNF clauses = %8d.\n", Gia_ManAndNum(pM), pCnf->nVars, pCnf->nClauses );
+    fprintf( Abc_FrameGlobalGetOut(), "Using miter with:  AIG nodes = %6d.  CNF variables = %6d.  CNF clauses = %8d.\n", Gia_ManAndNum(pM), pCnf->nVars, pCnf->nClauses );
     return 1;
 }
 
@@ -1567,33 +1567,33 @@ void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars )
 
     // select algorithm
     if ( pPars->Algo == 0 )
-        printf( "FFTEST is computing test patterns for fault model \"%s\"...\n", pPars->pFormStr );
+        fprintf( Abc_FrameGlobalGetOut(), "FFTEST is computing test patterns for fault model \"%s\"...\n", pPars->pFormStr );
     else if ( pPars->Algo == 1 )
-        printf( "FFTEST is computing test patterns for %sdelay faults...\n", pPars->fBasic ? "single " : "" );
+        fprintf( Abc_FrameGlobalGetOut(), "FFTEST is computing test patterns for %sdelay faults...\n", pPars->fBasic ? "single " : "" );
     else if ( pPars->Algo == 2 )
-        printf( "FFTEST is computing test patterns for %sstuck-at faults...\n", pPars->fBasic ? "single " : "" );
+        fprintf( Abc_FrameGlobalGetOut(), "FFTEST is computing test patterns for %sstuck-at faults...\n", pPars->fBasic ? "single " : "" );
     else if ( pPars->Algo == 3 )
-        printf( "FFTEST is computing test patterns for %scomplement faults...\n", pPars->fBasic ? "single " : "" );
+        fprintf( Abc_FrameGlobalGetOut(), "FFTEST is computing test patterns for %scomplement faults...\n", pPars->fBasic ? "single " : "" );
     else if ( pPars->Algo == 4 )
-        printf( "FFTEST is computing test patterns for %sfunctionally observable faults...\n", pPars->fBasic ? "single " : "" );
+        fprintf( Abc_FrameGlobalGetOut(), "FFTEST is computing test patterns for %sfunctionally observable faults...\n", pPars->fBasic ? "single " : "" );
     else
     {
-        printf( "Unrecognized algorithm (%d).\n", pPars->Algo );
+        fprintf( Abc_FrameGlobalGetOut(), "Unrecognized algorithm (%d).\n", pPars->Algo );
         return;
     }
 
-    printf( "Options: " );
-    printf( "Untestable faults = %s. ", pPars->fCheckUntest || pPars->fDumpDelay ? "yes": "no" );
+    fprintf( Abc_FrameGlobalGetOut(), "Options: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Untestable faults = %s. ", pPars->fCheckUntest || pPars->fDumpDelay ? "yes": "no" );
     if ( pPars->nCardConstr )
-        printf( "Using %sstrict cardinality %d. ", pPars->fNonStrict ? "non-" : "", pPars->nCardConstr );
+        fprintf( Abc_FrameGlobalGetOut(), "Using %sstrict cardinality %d. ", pPars->fNonStrict ? "non-" : "", pPars->nCardConstr );
     if ( pPars->fFfOnly )
-        printf( "Faults at FF outputs only = yes. " );
+        fprintf( Abc_FrameGlobalGetOut(), "Faults at FF outputs only = yes. " );
     if ( pPars->nTimeOut )
-        printf( "Runtime limit = %d sec.  ", pPars->nTimeOut );
+        fprintf( Abc_FrameGlobalGetOut(), "Runtime limit = %d sec.  ", pPars->nTimeOut );
     if ( p != pG && pG->pSpec )
-        printf( "Golden model = %s. ", pG->pSpec );
-    printf( "Verbose = %s. ", pPars->fVerbose ? "yes": "no" );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Golden model = %s. ", pG->pSpec );
+    fprintf( Abc_FrameGlobalGetOut(), "Verbose = %s. ", pPars->fVerbose ? "yes": "no" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // select algorithm
     if ( pPars->Algo == 0 )
@@ -1651,7 +1651,7 @@ void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars )
             // recompute
             if ( !Gia_ManFaultPrepare(p, pG, pPars, nFuncVars, vMap, vTests, vLits, &pM, &pCnf, &pSat, 0) )
             {
-                printf( "This should never happen.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "This should never happen.\n" );
                 return;
             }
             Vec_IntFreeP( &vPars );
@@ -1662,25 +1662,25 @@ void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars )
         clkSat += Abc_Clock() - clk;
         if ( pPars->fVerbose )
         {
-            printf( "Iter%6d : ",       Iter );
-            printf( "Var =%10d  ",      sat_solver_nvars(pSat) );
-            printf( "Clause =%10d  ",   sat_solver_nclauses(pSat) );
-            printf( "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter%6d : ",       Iter );
+            fprintf( Abc_FrameGlobalGetOut(), "Var =%10d  ",      sat_solver_nvars(pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Clause =%10d  ",   sat_solver_nclauses(pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
             //Abc_PrintTime( 1, "Time", clkSat );
             ABC_PRTr( "Solver time", clkSat );
         }
         if ( status == l_Undef )
         {
             if ( pPars->fVerbose )
-                printf( "\n" );
-            printf( "Timeout reached after %d seconds and %d iterations.\n", pPars->nTimeOut, Iter );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Timeout reached after %d seconds and %d iterations.\n", pPars->nTimeOut, Iter );
             goto finish;
         }
         if ( status == l_False )
         {
             if ( pPars->fVerbose )
-                printf( "\n" );
-            printf( "The problem is UNSAT after %d iterations.  ", Iter );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The problem is UNSAT after %d iterations.  ", Iter );
             break;
         }
         assert( status == l_True );
@@ -1694,7 +1694,7 @@ void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars )
         if ( pPars->fDumpNewFaults )
         {
             if ( Vec_IntSize(vTests) == 0 )
-                printf( "The input test patterns are not given.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "The input test patterns are not given.\n" );
             else
                 Gia_ManFaultDumpNewFaults( pM, nFuncVars, vTests, vLits, pPars );
             goto finish_all;
@@ -1704,8 +1704,8 @@ void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars )
         if ( !Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars, 0, pM ) )
         {
             if ( pPars->fVerbose )
-                printf( "\n" );
-            printf( "The problem is UNSAT after adding %d tests.\n", Iter );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The problem is UNSAT after adding %d tests.\n", Iter );
             break;
         }
     }
@@ -1723,12 +1723,12 @@ finish:
         if ( pPars->fDumpDelay && pPars->Algo == 1 )
         {
             Gia_ManDumpTestsDelay( vTests, Iter, pFileName, p );
-            printf( "Dumping %d pairs of test patterns (total %d pattern) into file \"%s\".\n", Vec_IntSize(vTests) / nFuncVars, 2*Vec_IntSize(vTests) / nFuncVars, pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Dumping %d pairs of test patterns (total %d pattern) into file \"%s\".\n", Vec_IntSize(vTests) / nFuncVars, 2*Vec_IntSize(vTests) / nFuncVars, pFileName );
         }
         else
         {
             Gia_ManDumpTests( vTests, Iter, pFileName );
-            printf( "Dumping %d test patterns into file \"%s\".\n", Vec_IntSize(vTests) / nFuncVars, pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Dumping %d test patterns into file \"%s\".\n", Vec_IntSize(vTests) / nFuncVars, pFileName );
         }
     }
 
@@ -1782,18 +1782,18 @@ finish:
             clkSat += Abc_Clock() - clk;
             if ( pPars->fVerbose )
             {
-                printf( "Iter%6d : ",       Iter2 );
-                printf( "Var =%10d  ",      sat_solver_nvars(pSat) );
-                printf( "Clause =%10d  ",   sat_solver_nclauses(pSat) );
-                printf( "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
+                fprintf( Abc_FrameGlobalGetOut(), "Iter%6d : ",       Iter2 );
+                fprintf( Abc_FrameGlobalGetOut(), "Var =%10d  ",      sat_solver_nvars(pSat) );
+                fprintf( Abc_FrameGlobalGetOut(), "Clause =%10d  ",   sat_solver_nclauses(pSat) );
+                fprintf( Abc_FrameGlobalGetOut(), "Conflict =%10d  ", sat_solver_nconflicts(pSat) );
                 //Abc_PrintTime( 1, "Time", clkSat );
                 ABC_PRTr( "Solver time", clkSat );
             }
             if ( status == l_Undef )
             {
                 if ( pPars->fVerbose )
-                    printf( "\n" );
-                printf( "Timeout reached after %d seconds and %d iterations.\n", pPars->nTimeOut, Iter2 );
+                    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Timeout reached after %d seconds and %d iterations.\n", pPars->nTimeOut, Iter2 );
                 goto finish;
             }
             if ( Iter2 == Iter )
@@ -1805,28 +1805,28 @@ finish:
                 Vec_IntPush( vLits, Vec_IntEntry(vTests, Iter2*nFuncVars + i) );
             if ( !Gia_ManFaultAddOne( pM, pCnf, pSat, vLits, nFuncVars, 0, pM ) )
             {
-                printf( "The problem is UNSAT after adding %d tests.\n", Iter2 );
+                fprintf( Abc_FrameGlobalGetOut(), "The problem is UNSAT after adding %d tests.\n", Iter2 );
                 goto finish;
             }
         }
         assert( Iter2 == Iter );
         if ( pPars->fVerbose )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         if ( p == pG )
         {
             if ( status == l_True )
-                printf( "There are untestable faults.  " );
+                fprintf( Abc_FrameGlobalGetOut(), "There are untestable faults.  " );
             else if ( status == l_False )
-                printf( "There is no untestable faults.  " );
+                fprintf( Abc_FrameGlobalGetOut(), "There is no untestable faults.  " );
             else assert( 0 );
             Abc_PrintTime( 1, "Fault computation runtime", Abc_Clock() - clkTotal );
         }
         else
         {
             if ( status == l_True )
-                printf( "The circuit is rectifiable.  " );
+                fprintf( Abc_FrameGlobalGetOut(), "The circuit is rectifiable.  " );
             else if ( status == l_False )
-                printf( "The circuit is not rectifiable (or equivalent to the golden one).  " );
+                fprintf( Abc_FrameGlobalGetOut(), "The circuit is not rectifiable (or equivalent to the golden one).  " );
             else assert( 0 );
             Abc_PrintTime( 1, "Rectification runtime", Abc_Clock() - clkTotal );
         }
@@ -1837,9 +1837,9 @@ finish:
             char * pFileName = p->pSpec ? Extra_FileNameGenericAppend(p->pSpec, "_untest.txt") : (char *)"untest.txt";
             int nUntests = Gia_ManDumpUntests( pM, pCnf, pSat, nFuncVars, pFileName, pPars->fVerbose );
             if ( p == pG )
-                printf( "Dumped %d untestable multiple faults into file \"%s\".  ", nUntests, pFileName );
+                fprintf( Abc_FrameGlobalGetOut(), "Dumped %d untestable multiple faults into file \"%s\".  ", nUntests, pFileName );
             else
-                printf( "Dumped %d ways of rectifying the circuit into file \"%s\".  ", nUntests, pFileName );
+                fprintf( Abc_FrameGlobalGetOut(), "Dumped %d ways of rectifying the circuit into file \"%s\".  ", nUntests, pFileName );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
     }

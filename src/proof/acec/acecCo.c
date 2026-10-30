@@ -180,7 +180,7 @@ Vec_Int_t * Gia_PolynCoreOrder( Gia_Man_t * pGia, Vec_Int_t * vAdds, Vec_Int_t *
     vOrder = Gia_PolynCoreOrder_int( pGia, vAdds, vMap, vRoots, pvIns );
     Vec_IntFree( vRoots );
     Vec_WecFree( vMap );
-    printf( "Collected %d boxes.\n", Vec_IntSize(vOrder) );
+    fprintf( Abc_FrameGlobalGetOut(), "Collected %d boxes.\n", Vec_IntSize(vOrder) );
     return vOrder;
 }
 
@@ -303,10 +303,10 @@ void Gia_PolynCorePrintCones( Gia_Man_t * pGia, Vec_Int_t * vLeaves, int fVerbos
     {
         Vec_IntForEachEntry( vLeaves, iObj, i )
         {
-            printf( "%4d : ", i );
-            printf( "Supp = %3d  ", Gia_ManSuppSize(pGia, &iObj, 1) );
-            printf( "Cone = %3d  ", Gia_ManConeSize(pGia, &iObj, 1) );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d : ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Supp = %3d  ", Gia_ManSuppSize(pGia, &iObj, 1) );
+            fprintf( Abc_FrameGlobalGetOut(), "Cone = %3d  ", Gia_ManConeSize(pGia, &iObj, 1) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     else
@@ -317,7 +317,7 @@ void Gia_PolynCorePrintCones( Gia_Man_t * pGia, Vec_Int_t * vLeaves, int fVerbos
             SuppMax = Abc_MaxInt( SuppMax, Gia_ManSuppSize(pGia, &iObj, 1) );
             ConeMax = Abc_MaxInt( ConeMax, Gia_ManConeSize(pGia, &iObj, 1) );
         }
-        printf( "Remaining cones:  Count = %d.  SuppMax = %d.  ConeMax = %d.\n", Vec_IntSize(vLeaves), SuppMax, ConeMax );
+        fprintf( Abc_FrameGlobalGetOut(), "Remaining cones:  Count = %d.  SuppMax = %d.  ConeMax = %d.\n", Vec_IntSize(vLeaves), SuppMax, ConeMax );
     }
 }
 
@@ -396,7 +396,7 @@ Gia_Man_t * Gia_PolynCoreDetectTest_int( Gia_Man_t * pGia, Vec_Int_t * vAddCos, 
 
     //Gia_ManShow( pGia, vNodes, 0 );
     
-    printf( "Detected %d FAs/HAs. Roots = %d. Leaves = %d. Nodes = %d. Adds = %d. ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d FAs/HAs. Roots = %d. Leaves = %d. Nodes = %d. Adds = %d. ", 
         Vec_IntSize(vAdds)/6, Vec_IntSize(vLeaves), Vec_IntSize(vRoots), Vec_IntSize(vNodes), Vec_IntSize(vOrder) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
@@ -415,7 +415,7 @@ Gia_Man_t * Gia_PolynCoreDetectTest( Gia_Man_t * pGia, int fAddExtra, int fAddCo
 {
     Vec_Int_t * vAddCos = fAddExtra ? Gia_PolynAddHaRoots( pGia ) : Vec_IntAlloc(0);
     Gia_Man_t * pNew = Gia_PolynCoreDetectTest_int( pGia, vAddCos, fAddCones, fVerbose );
-    printf( "On top of %d COs, created %d new adder outputs.\n", Gia_ManCoNum(pGia), Vec_IntSize(vAddCos) );
+    fprintf( Abc_FrameGlobalGetOut(), "On top of %d COs, created %d new adder outputs.\n", Gia_ManCoNum(pGia), Vec_IntSize(vAddCos) );
     Vec_IntFree( vAddCos );
     return pNew;
 }

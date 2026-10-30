@@ -292,10 +292,10 @@ int If_CutSopBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
             if ( Two + 2 < Max && Max + 3 < Delay )
             {
                 for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
-                    printf( "%3d ", pTimes[i] );
+                    fprintf( Abc_FrameGlobalGetOut(), "%3d ", pTimes[i] );
                 for ( ; i < p->pPars->nLutSize; i++ )
-                    printf( "    " );
-                printf( "-> %3d   ", Delay );
+                    fprintf( Abc_FrameGlobalGetOut(), "    " );
+                fprintf( Abc_FrameGlobalGetOut(), "-> %3d   ", Delay );
                 Dau_DsdPrintFromTruth( If_CutTruthW(p, pCut), If_CutLeaveNum(pCut) );
                 Kit_TruthIsopPrintCover( vCover, If_CutLeaveNum(pCut), Abc_LitIsCompl(If_CutTruthLit(pCut)) ^ pCut->fCompl );
                 {
@@ -303,10 +303,10 @@ int If_CutSopBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
                     int pIsop[64];
                     vIsop.nCap = vIsop.nSize = Abc_Tt6Esop( *If_CutTruthW(p, pCut), pCut->nLeaves, pIsop );
                     vIsop.pArray = pIsop;
-                    printf( "ESOP (%d -> %d)\n", Vec_IntSize(vCover), vIsop.nSize );
+                    fprintf( Abc_FrameGlobalGetOut(), "ESOP (%d -> %d)\n", Vec_IntSize(vCover), vIsop.nSize );
                     Kit_TruthIsopPrintCover( &vIsop, If_CutLeaveNum(pCut), 0 );
                 }
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
         }
         return Delay;

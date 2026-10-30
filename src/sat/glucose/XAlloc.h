@@ -26,6 +26,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <stdio.h>
 
 #include <misc/util/abc_namespaces.h>
+#include <misc/util/abc_global.h>
 
 ABC_NAMESPACE_CXX_HEADER_START
 
@@ -36,7 +37,7 @@ namespace Gluco {
 
 static inline void fatal_out_of_memory()
 {
-    fputs("Out of memory\n", stderr);
+    fputs("Out of memory\n", Abc_FrameGlobalGetErr());
     abort();
 }
 

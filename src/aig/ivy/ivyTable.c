@@ -256,7 +256,7 @@ void Ivy_TableProfile( Ivy_Man_t * p )
             Counter++;
         else if ( Counter )
         {
-            printf( "%d ", Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Counter );
             Counter = 0;
         }
     }

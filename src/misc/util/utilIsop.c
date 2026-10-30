@@ -493,7 +493,7 @@ static inline void Abc_IsopVerify( word * pFunc, int nVars, word * pRes, Vec_Int
 {
     Abc_IsopBuildTruth( vCover, nVars, pRes, fXor, fCompl );
     if ( !Abc_TtEqual( pFunc, pRes, Abc_TtWordNum(nVars) ) )
-        printf( "Verification failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification failed.\n" );
 //    else
 //        printf( "Verification succeeded.\n" );
 }
@@ -630,7 +630,7 @@ void Abc_IsopPrintCover( Vec_Int_t * vCover, int nVars, int fCompl )
     int i, k, Entry, Literal;
     if ( Vec_IntSize(vCover) == 0 || (Vec_IntSize(vCover) == 1 && Vec_IntEntry(vCover, 0) == 0) )
     {
-        printf( "Constant %d\n", Vec_IntSize(vCover) );
+        fprintf( Abc_FrameGlobalGetOut(), "Constant %d\n", Vec_IntSize(vCover) );
         return;
     }
     Vec_IntForEachEntry( vCover, Entry, i )
@@ -639,14 +639,14 @@ void Abc_IsopPrintCover( Vec_Int_t * vCover, int nVars, int fCompl )
         {
             Literal = 3 & (Entry >> (k << 1));
             if ( Literal == 1 ) // neg literal
-                printf( "0" );
+                fprintf( Abc_FrameGlobalGetOut(), "0" );
             else if ( Literal == 2 ) // pos literal
-                printf( "1" );
+                fprintf( Abc_FrameGlobalGetOut(), "1" );
             else if ( Literal == 0 ) 
-                printf( "-" );
+                fprintf( Abc_FrameGlobalGetOut(), "-" );
             else assert( 0 );
         }
-        printf( " %d\n", !fCompl );
+        fprintf( Abc_FrameGlobalGetOut(), " %d\n", !fCompl );
     }
 }
 void Abc_IsopPrint( word * t, int nVars, Vec_Int_t * vCover, int fTryBoth )
@@ -1003,7 +1003,7 @@ void Abc_IsopTestNew()
     word Cost = Abc_EsopCheck( &t, nVars, Abc_Cube2Cost(ABC_ISOP_MAX_CUBE), Vec_IntArray(vCover) );
     vCover->nSize = Abc_CostCubes(Cost);
     assert( vCover->nSize <= vCover->nCap );
-    printf( "Cubes = %d.  Lits = %d.\n", Abc_CostCubes(Cost), Abc_CostLits(Cost) );
+    fprintf( Abc_FrameGlobalGetOut(), "Cubes = %d.  Lits = %d.\n", Abc_CostCubes(Cost), Abc_CostLits(Cost) );
     Abc_IsopPrintCover( vCover, nVars, 0 );
     Abc_IsopVerify( &copy, nVars, &r, vCover, 1, 0 );
     Vec_IntFree( vCover );
@@ -1048,7 +1048,7 @@ int Abc_IsopTest( word * pFunc, int nVars, Vec_Int_t * vCover )
     vCover->nSize = Abc_CostCubes(Cost);
     assert( vCover->nSize <= vCover->nCap );
     if ( fVerbose )
-    printf( "%5d %7d  ", Abc_CostCubes(Cost), Abc_CostLits(Cost) );
+    fprintf( Abc_FrameGlobalGetOut(), "%5d %7d  ", Abc_CostCubes(Cost), Abc_CostLits(Cost) );
 //    Abc_IsopVerify( pFunc, nVars, pRes, vCover, 0, 0 );
     TotalCost[0] += Abc_CostCubes(Cost);
     TotalTime[0] += Abc_Clock() - clk;
@@ -1061,7 +1061,7 @@ int Abc_IsopTest( word * pFunc, int nVars, Vec_Int_t * vCover )
     vCover->nSize = Abc_CostCubes(Cost);
     assert( vCover->nSize <= vCover->nCap );
     if ( fVerbose )
-    printf( "%5d %7d  ", Abc_CostCubes(Cost), Abc_CostLits(Cost) );
+    fprintf( Abc_FrameGlobalGetOut(), "%5d %7d  ", Abc_CostCubes(Cost), Abc_CostLits(Cost) );
 //    Abc_IsopVerify( pFunc, nVars, pRes, vCover, 0, 1 );
     TotalCost[1] += Abc_CostCubes(Cost);
     TotalTime[1] += Abc_Clock() - clk;
@@ -1118,14 +1118,14 @@ int Abc_IsopTest( word * pFunc, int nVars, Vec_Int_t * vCover )
     clk = Abc_Clock();
     Cost = Abc_Isop( pFunc, nVars, ABC_ISOP_MAX_CUBE, vCover, 1 );
     if ( fVerbose )
-    printf( "%5d %7d   ", Vec_IntSize(vCover), Abc_IsopCountLits(vCover, nVars) );
+    fprintf( Abc_FrameGlobalGetOut(), "%5d %7d   ", Vec_IntSize(vCover), Abc_IsopCountLits(vCover, nVars) );
     TotalCost[5] += Vec_IntSize(vCover);
     TotalTime[5] += Abc_Clock() - clk;
 
     if ( fVerbose )
-    printf( "  | %8d %8d %8d %8d %8d %8d", (int)TotalCost[0], (int)TotalCost[1], (int)TotalCost[2], (int)TotalCost[3], (int)TotalCost[4], (int)TotalCost[5] );
+    fprintf( Abc_FrameGlobalGetOut(), "  | %8d %8d %8d %8d %8d %8d", (int)TotalCost[0], (int)TotalCost[1], (int)TotalCost[2], (int)TotalCost[3], (int)TotalCost[4], (int)TotalCost[5] );
     if ( fVerbose )
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 //Abc_IsopPrintCover( vCover, nVars, 0 );
     return 1; 
 }

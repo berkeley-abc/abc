@@ -57,7 +57,7 @@ int Sim_ComputeTwoVarSymms( Abc_Ntk_t * pNtk, int fVerbose )
     p = Sym_ManStart( pNtk, fVerbose );
     p->nPairsTotal = p->nPairsRem = Sim_UtilCountAllPairs( p->vSuppFun, p->nSimWords, p->vPairsTotal );
     if ( fVerbose )
-        printf( "Total = %8d.  Sym = %8d.  NonSym = %8d.  Remaining = %8d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Total = %8d.  Sym = %8d.  NonSym = %8d.  Remaining = %8d.\n", 
                p->nPairsTotal, p->nPairsSymm, p->nPairsNonSymm, p->nPairsRem );
 
     // detect symmetries using circuit structure
@@ -68,7 +68,7 @@ p->timeStruct = Abc_Clock() - clk;
     Sim_UtilCountPairsAll( p );
     p->nPairsSymmStr = p->nPairsSymm;
     if ( fVerbose )
-        printf( "Total = %8d.  Sym = %8d.  NonSym = %8d.  Remaining = %8d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Total = %8d.  Sym = %8d.  NonSym = %8d.  Remaining = %8d.\n", 
             p->nPairsTotal, p->nPairsSymm, p->nPairsNonSymm, p->nPairsRem );
 
     // detect symmetries using simulation
@@ -86,7 +86,7 @@ p->timeStruct = Abc_Clock() - clk;
         if ( i % 500 != 0 )
             continue;
         if ( fVerbose )
-            printf( "Total = %8d.  Sym = %8d.  NonSym = %8d.  Remaining = %8d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Total = %8d.  Sym = %8d.  NonSym = %8d.  Remaining = %8d.\n", 
                 p->nPairsTotal, p->nPairsSymm, p->nPairsNonSymm, p->nPairsRem );
     }
 
@@ -120,14 +120,14 @@ p->timeStruct = Abc_Clock() - clk;
         if ( i % 50 != 0 )
             continue;
         if ( fVerbose )
-            printf( "Total = %8d.  Sym = %8d.  NonSym = %8d.  Remaining = %8d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Total = %8d.  Sym = %8d.  NonSym = %8d.  Remaining = %8d.\n", 
                 p->nPairsTotal, p->nPairsSymm, p->nPairsNonSymm, p->nPairsRem );
     }
 
     // count the number of pairs
     Sim_UtilCountPairsAll( p );
     if ( fVerbose )
-        printf( "Total = %8d.  Sym = %8d.  NonSym = %8d.  Remaining = %8d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Total = %8d.  Sym = %8d.  NonSym = %8d.  Remaining = %8d.\n", 
             p->nPairsTotal, p->nPairsSymm, p->nPairsNonSymm, p->nPairsRem );
 //    Sim_UtilCountPairsAllPrint( p );
 

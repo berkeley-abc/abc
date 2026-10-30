@@ -382,20 +382,20 @@ void Internal::find_and_gate (Eliminator &eliminator, int pivot) {
     if (opts.log) {
       Logger::print_log_prefix (this);
       tout.magenta ();
-      printf ("found arity %u AND gate %d = ", arity, -pivot);
+      fprintf ( Abc_FrameGlobalGetOut(), "found arity %u AND gate %d = ", arity, -pivot);
       bool first = true;
       for (const auto &lit : *c) {
         if (lit == -pivot)
           continue;
         CADICAL_assert (lit != pivot);
         if (!first)
-          fputs (" & ", stdout);
-        printf ("%d", -lit);
+          fputs (" & ", Abc_FrameGlobalGetOut());
+        fprintf ( Abc_FrameGlobalGetOut(), "%d", -lit);
         first = false;
       }
-      fputc ('\n', stdout);
+      fputc( '\n', Abc_FrameGlobalGetOut() );
       tout.normal ();
-      fflush (stdout);
+      fflush( Abc_FrameGlobalGetOut() );
     }
 #endif
     stats.elimands++;
@@ -695,20 +695,20 @@ void Internal::find_xor_gate (Eliminator &eliminator, int pivot) {
     if (opts.log) {
       Logger::print_log_prefix (this);
       tout.magenta ();
-      printf ("found arity %u XOR gate %d = ", arity, -pivot);
+      fprintf ( Abc_FrameGlobalGetOut(), "found arity %u XOR gate %d = ", arity, -pivot);
       bool first = true;
       for (const auto &lit : *d) {
         if (lit == pivot)
           continue;
         CADICAL_assert (lit != -pivot);
         if (!first)
-          fputs (" ^ ", stdout);
-        printf ("%d", lit);
+          fputs (" ^ ", Abc_FrameGlobalGetOut());
+        fprintf ( Abc_FrameGlobalGetOut(), "%d", lit);
         first = false;
       }
-      fputc ('\n', stdout);
+      fputc( '\n', Abc_FrameGlobalGetOut() );
       tout.normal ();
-      fflush (stdout);
+      fflush( Abc_FrameGlobalGetOut() );
     }
 #endif
     stats.elimgates++;

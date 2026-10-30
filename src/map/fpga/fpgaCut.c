@@ -141,7 +141,7 @@ void Fpga_MappingCuts( Fpga_Man_t * p )
 
     // compute the cuts for the internal nodes
     nNodes = p->vAnds->nSize;
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     pTable = Fpga_CutTableStart( p );
     for ( i = 0; i < nNodes; i++ )
     {
@@ -158,7 +158,7 @@ void Fpga_MappingCuts( Fpga_Man_t * p )
     if ( p->fVerbose )
     {
         nCuts = Fpga_CutCountAll(p);
-        printf( "Nodes = %6d. Total %d-cuts = %d. Cuts per node = %.1f. ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes = %6d. Total %d-cuts = %d. Cuts per node = %.1f. ", 
                p->nNodes, p->nVarsMax, nCuts, ((float)nCuts)/p->nNodes );
         ABC_PRT( "Time", clock() - clk );
     }
@@ -846,7 +846,7 @@ void Fpga_CutListPrint( Fpga_Man_t * pMan, Fpga_Node_t * pRoot )
     int Counter;
     for ( Counter = 0, pTemp = pRoot->pCuts; pTemp; pTemp = pTemp->pNext, Counter++ )
     {
-        printf( "%2d : ", Counter + 1 );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : ", Counter + 1 );
         Fpga_CutPrint_( pMan, pTemp, pRoot );
     }
 }
@@ -868,7 +868,7 @@ void Fpga_CutListPrint2( Fpga_Man_t * pMan, Fpga_Node_t * pRoot )
     int Counter;
     for ( Counter = 0, pTemp = pRoot->pCuts; pTemp; pTemp = pTemp->pNext, Counter++ )
     {
-        printf( "%2d : ", Counter + 1 );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : ", Counter + 1 );
         Fpga_CutPrint_( pMan, pTemp, pRoot );
     }
 }
@@ -887,11 +887,11 @@ void Fpga_CutListPrint2( Fpga_Man_t * pMan, Fpga_Node_t * pRoot )
 void Fpga_CutPrint_( Fpga_Man_t * pMan, Fpga_Cut_t * pCut, Fpga_Node_t * pRoot )
 {
     int i;
-    printf( "(%3d)  {", pRoot->Num );
+    fprintf( Abc_FrameGlobalGetOut(), "(%3d)  {", pRoot->Num );
     for ( i = 0; i < pMan->nVarsMax; i++ )
         if ( pCut->ppLeaves[i] )
-            printf( " %3d", pCut->ppLeaves[i]->Num );
-    printf( " }\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " %3d", pCut->ppLeaves[i]->Num );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 
 

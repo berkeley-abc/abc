@@ -100,28 +100,28 @@ Wln_Ntk_t * Wln_NtkFromWlc( Wlc_Ntk_t * p )
         // print flop init state
         if ( 1 )
         {
-            printf( "Flop %3d init state: %d\'b", i-Wlc_NtkPiNum(p), Wlc_ObjRange(pObj) );
+            fprintf( Abc_FrameGlobalGetOut(), "Flop %3d init state: %d\'b", i-Wlc_NtkPiNum(p), Wlc_ObjRange(pObj) );
             if ( j == Wlc_ObjRange(pObj) )
             {
                 int Count = 0;
                 for ( n = 0; n < Wlc_ObjRange(pObj); n++ )
                     Count += p->pInits[iBit+n] == '0';
                 if ( Count == Wlc_ObjRange(pObj) )
-                    printf( "0" );
+                    fprintf( Abc_FrameGlobalGetOut(), "0" );
                 else
                     for ( n = 0; n < Wlc_ObjRange(pObj); n++ )
-                        printf( "%c", p->pInits[iBit+n] );
+                        fprintf( Abc_FrameGlobalGetOut(), "%c", p->pInits[iBit+n] );
             }
             else
             {
                 int Count = 0;
                 for ( n = 0; n < Wlc_ObjRange(pObj); n++ )
                     Count += p->pInits[iBit+n] == 'x';
-                printf( "x" );
+                fprintf( Abc_FrameGlobalGetOut(), "x" );
                 if ( Count != Wlc_ObjRange(pObj) )
-                    printf( " (range %d)", Wlc_ObjRange(pObj) );
+                    fprintf( Abc_FrameGlobalGetOut(), " (range %d)", Wlc_ObjRange(pObj) );
             }
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         Type = j == Wlc_ObjRange(pObj) ? ABC_OPER_CONST : ABC_OPER_CI; 
         iOutId = Wln_ObjAlloc( pNew, Type, pObj->Signed, pObj->End, pObj->Beg );

@@ -33,8 +33,8 @@
 #ifdef DO_PRINT_HASH
 #define PRINT_HASH(H) \
   do { \
-    printf ("c PRINT_HASH %32s () = %020" PRIu64 "\n", __func__, H); \
-    fflush (stdout); \
+    fprintf ( Abc_FrameGlobalGetOut(), "c PRINT_HASH %32s () = %020" PRIu64 "\n", __func__, H); \
+    fflush( Abc_FrameGlobalGetOut() ); \
   } while (0)
 #else
 #define PRINT_HASH(...) \
@@ -125,8 +125,8 @@ static uint64_t hash_network_addresses () {
                           NI_NUMERICHOST)) {
           uint64_t tmp = hash_string (buffer);
 #ifdef DO_PRINT_HASH
-          printf ("c PRINT_HASH %35s = %020" PRIu64 "\n", buffer, tmp);
-          fflush (stdout);
+          fprintf ( Abc_FrameGlobalGetOut(), "c PRINT_HASH %35s = %020" PRIu64 "\n", buffer, tmp);
+          fflush( Abc_FrameGlobalGetOut() );
 #endif
           res ^= tmp;
           res *= 10000000000000000051ul;
@@ -223,8 +223,8 @@ Random::Random () : state (1) {
   add (hash_process ());
   add (hash_time ());
 #ifdef DO_PRINT_HASH
-  printf ("c PRINT_HASH %32s    = %020" PRIu64 "\n", "combined", state);
-  fflush (stdout);
+  fprintf ( Abc_FrameGlobalGetOut(), "c PRINT_HASH %32s    = %020" PRIu64 "\n", "combined", state);
+  fflush( Abc_FrameGlobalGetOut() );
 #endif
 }
 

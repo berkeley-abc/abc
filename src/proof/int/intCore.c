@@ -100,12 +100,12 @@ int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, 
     }
     assert( Saig_ManPoNum(pAig)-Saig_ManConstrNum(pAig) == 1 );
     if ( pPars->fVerbose && Saig_ManConstrNum(pAig) )
-        printf( "Performing interpolation with %d constraints...\n", Saig_ManConstrNum(pAig) );
+        fprintf( Abc_FrameGlobalGetOut(), "Performing interpolation with %d constraints...\n", Saig_ManConstrNum(pAig) );
 
     if ( Inter_ManCheckInitialState(pAig) )
     {
         *piFrame = -1;
-        printf( "Property trivially fails in the initial state.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Property trivially fails in the initial state.\n" );
         return 0;
     }
 /*
@@ -128,7 +128,7 @@ clk = Abc_Clock();
 p->timeCnf += Abc_Clock() - clk;    
     if ( pPars->fVerbose )
     { 
-        printf( "AIG: PI/PO/Reg = %d/%d/%d. And = %d. Lev = %d.  CNF: Var/Cla = %d/%d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "AIG: PI/PO/Reg = %d/%d/%d. And = %d. Lev = %d.  CNF: Var/Cla = %d/%d.\n",
             Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), Saig_ManRegNum(pAig), 
             Aig_ManAndNum(pAig), Aig_ManLevelNum(pAig),
             p->pCnfAig->nVars, p->pCnfAig->nClauses );
@@ -173,7 +173,7 @@ p->timeCnf += Abc_Clock() - clk;
         // report statistics
         if ( pPars->fVerbose )
         {
-            printf( "Step = %2d. Frames = 1 + %d. And = %5d. Lev = %5d.  ", 
+            fprintf( Abc_FrameGlobalGetOut(), "Step = %2d. Frames = 1 + %d. And = %5d. Lev = %5d.  ", 
                 s+1, p->nFrames, Aig_ManNodeNum(p->pFrames), Aig_ManLevelNum(p->pFrames) );
             ABC_PRT( "Time", Abc_Clock() - clk2 );
         }
@@ -204,7 +204,7 @@ p->timeEqu += Abc_Clock() - clk;
             if ( pPars->nFramesMax && p->nFrames + i >= pPars->nFramesMax )
             { 
                 if ( pPars->fVerbose )
-                    printf( "Reached limit (%d) on the number of timeframes.\n", pPars->nFramesMax );
+                    fprintf( Abc_FrameGlobalGetOut(), "Reached limit (%d) on the number of timeframes.\n", pPars->nFramesMax );
                 p->timeTotal = Abc_Clock() - clkTotal;
                 Inter_ManStop( p, 0 );
                 Inter_CheckStop( pCheck );
@@ -225,7 +225,7 @@ p->timeEqu += Abc_Clock() - clk;
 
             if ( pPars->fVerbose )
             {
-                printf( "   I = %2d. Bmc =%3d. IntAnd =%6d. IntLev =%5d. Conf =%6d.  ", 
+                fprintf( Abc_FrameGlobalGetOut(), "   I = %2d. Bmc =%3d. IntAnd =%6d. IntLev =%5d. Conf =%6d.  ", 
                     i+1, i + 1 + p->nFrames, Aig_ManNodeNum(p->pInter), Aig_ManLevelNum(p->pInter), p->nConfCur );
                 ABC_PRT( "Time", Abc_Clock() - clk );
             }
@@ -236,7 +236,7 @@ p->timeEqu += Abc_Clock() - clk;
                 if ( i == 0 ) // real counterexample
                 {
                     if ( pPars->fVerbose )
-                        printf( "Found a real counterexample in frame %d.\n", p->nFrames );
+                        fprintf( Abc_FrameGlobalGetOut(), "Found a real counterexample in frame %d.\n", p->nFrames );
                     p->timeTotal = Abc_Clock() - clkTotal;
                     *piFrame = p->nFrames;
 //                    pAig->pSeqModel = (Abc_Cex_t *)Inter_ManGetCounterExample( pAig, p->nFrames+1, pPars->fVerbose );
@@ -249,9 +249,9 @@ p->timeEqu += Abc_Clock() - clk;
                         pParsBmc->fVerbose   = pPars->fVerbose;
                         RetValue = Saig_ManBmcScalable( pAig, pParsBmc );
                         if ( RetValue == 1 )
-                            printf( "Error: The problem should be SAT but it is UNSAT.\n" );
+                            fprintf( Abc_FrameGlobalGetOut(), "Error: The problem should be SAT but it is UNSAT.\n" );
                         else if ( RetValue == -1 )
-                            printf( "Error: The problem timed out.\n" );
+                            fprintf( Abc_FrameGlobalGetOut(), "Error: The problem timed out.\n" );
                     }
                     Inter_ManStop( p, 0 );
                     Inter_CheckStop( pCheck );
@@ -267,13 +267,13 @@ p->timeEqu += Abc_Clock() - clk;
                 if ( pPars->nSecLimit && Abc_Clock() > nTimeNewOut ) // timed out
                 {
                     if ( pPars->fVerbose )
-                        printf( "Reached timeout (%d seconds).\n",  pPars->nSecLimit );
+                        fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds).\n",  pPars->nSecLimit );
                 }
                 else
                 {
                     assert( p->nConfCur >= p->nConfLimit );
                     if ( pPars->fVerbose )
-                        printf( "Reached limit (%d) on the number of conflicts.\n", p->nConfLimit );
+                        fprintf( Abc_FrameGlobalGetOut(), "Reached limit (%d) on the number of conflicts.\n", p->nConfLimit );
                 }
                 p->timeTotal = Abc_Clock() - clkTotal;
                 Inter_ManStop( p, 0 );
@@ -293,7 +293,7 @@ clk = Abc_Clock();
                 Aig_ManStop( pAigTemp );
                 if ( p->pInterNew == NULL )
                 {
-                    printf( "Reached timeout (%d seconds) during rewriting.\n",  pPars->nSecLimit );
+                    fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during rewriting.\n",  pPars->nSecLimit );
                     p->timeTotal = Abc_Clock() - clkTotal;
                     Inter_ManStop( p, 1 );
                     Inter_CheckStop( pCheck );
@@ -307,7 +307,7 @@ p->timeRwr += Abc_Clock() - clk;
             { 
 //                printf( "interpolant is constant 0\n" );
                 if ( pPars->fVerbose )
-                    printf( "The problem is trivially true for all states.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "The problem is trivially true for all states.\n" );
                 p->timeTotal = Abc_Clock() - clkTotal;
                 Inter_ManStop( p, 1 );
                 Inter_CheckStop( pCheck );
@@ -353,7 +353,7 @@ p->timeEqu += Abc_Clock() - clk - timeTemp;
             if ( Status ) // contained
             {
                 if ( pPars->fVerbose )
-                    printf( "Proved containment of interpolants.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Proved containment of interpolants.\n" );
                 p->timeTotal = Abc_Clock() - clkTotal;
                 Inter_ManStop( p, 1 );
                 Inter_CheckStop( pCheck );
@@ -361,7 +361,7 @@ p->timeEqu += Abc_Clock() - clk - timeTemp;
             }
             if ( pPars->nSecLimit && Abc_Clock() > nTimeNewOut )
             {
-                printf( "Reached timeout (%d seconds).\n",  pPars->nSecLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds).\n",  pPars->nSecLimit );
                 p->timeTotal = Abc_Clock() - clkTotal;
                 Inter_ManStop( p, 1 );
                 Inter_CheckStop( pCheck );

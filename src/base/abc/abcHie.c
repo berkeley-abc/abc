@@ -218,7 +218,7 @@ Abc_Ntk_t * Abc_NtkFlattenLogicHierarchy2( Abc_Ntk_t * pNtk )
     // recursively flatten hierarchy, create internal logic, add new PI/PO names if there are black boxes
     Counter = -1;
     Abc_NtkFlattenLogicHierarchy2_rec( pNtkNew, pNtk, &Counter );
-    printf( "Hierarchy reader flattened %d instances of logic boxes and left %d black boxes.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Hierarchy reader flattened %d instances of logic boxes and left %d black boxes.\n", 
         Counter, Abc_NtkBlackboxNum(pNtkNew) );
 
     if ( pNtk->pDesign )
@@ -238,10 +238,10 @@ Abc_Ntk_t * Abc_NtkFlattenLogicHierarchy2( Abc_Ntk_t * pNtk )
 //    Abc_ManTimeDup( pNtk, pNtkNew );
     // duplicate EXDC 
     if ( pNtk->pExdc )
-        printf( "EXDC is not transformed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "EXDC is not transformed.\n" );
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        fprintf( stdout, "Abc_NtkFlattenLogicHierarchy2(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFlattenLogicHierarchy2(): Network check has failed.\n"  );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -471,32 +471,32 @@ void Abc_NtkPrintBoxInfo( Abc_Ntk_t * pNtk )
         }
 
 //        Abc_NtkPrintStats( pModel, 0, 0, 0, 0, 0, 0, 0, 0, 0 );
-        printf( "MODULE  " );
-        printf( "%-30s : ", Abc_NtkName(pModel) );
-        printf( "PI=%6d ", Abc_NtkPiNum(pModel) );
-        printf( "PO=%6d ", Abc_NtkPoNum(pModel) );
-        printf( "BB=%6d ", Abc_NtkBoxNum(pModel) );
-        printf( "ND=%6d ", Abc_NtkNodeNum(pModel) ); // sans constants
-        printf( "Lev=%5d ", Abc_NtkLevel(pModel) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "MODULE  " );
+        fprintf( Abc_FrameGlobalGetOut(), "%-30s : ", Abc_NtkName(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "PI=%6d ", Abc_NtkPiNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "PO=%6d ", Abc_NtkPoNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "BB=%6d ", Abc_NtkBoxNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "ND=%6d ", Abc_NtkNodeNum(pModel) ); // sans constants
+        fprintf( Abc_FrameGlobalGetOut(), "Lev=%5d ", Abc_NtkLevel(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         Vec_IntForEachEntry( vCounts, Num, k )
             if ( Num )
-                printf( "%15d : %s\n", Num, Abc_NtkName((Abc_Ntk_t *)Vec_PtrEntry(vMods, k)) );
+                fprintf( Abc_FrameGlobalGetOut(), "%15d : %s\n", Num, Abc_NtkName((Abc_Ntk_t *)Vec_PtrEntry(vMods, k)) );
     }
     Vec_IntFree( vCounts );
     Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
     {
         if ( Abc_NtkBoxNum(pModel) != 0 )
             continue;
-        printf( "MODULE   " );
-        printf( "%-30s : ", Abc_NtkName(pModel) );
-        printf( "PI=%6d ", Abc_NtkPiNum(pModel) );
-        printf( "PO=%6d ", Abc_NtkPoNum(pModel) );
-        printf( "BB=%6d ", Abc_NtkBoxNum(pModel) );
-        printf( "ND=%6d ", Abc_NtkNodeNum(pModel) );
-        printf( "Lev=%5d ", Abc_NtkLevel(pModel) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "MODULE   " );
+        fprintf( Abc_FrameGlobalGetOut(), "%-30s : ", Abc_NtkName(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "PI=%6d ", Abc_NtkPiNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "PO=%6d ", Abc_NtkPoNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "BB=%6d ", Abc_NtkBoxNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "ND=%6d ", Abc_NtkNodeNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "Lev=%5d ", Abc_NtkLevel(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -551,7 +551,7 @@ Abc_Ntk_t * Abc_NtkFlattenLogicHierarchy( Abc_Ntk_t * pNtk )
     vPref = Vec_StrAlloc( 1000 );
     Vec_StrPrintStr( vPref, Abc_NtkName(pNtk) );
     Abc_NtkFlattenLogicHierarchy_rec( pNtkNew, pNtk, &Counter, vPref );
-    printf( "Hierarchy reader flattened %d instances of logic boxes and left %d black boxes.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Hierarchy reader flattened %d instances of logic boxes and left %d black boxes.\n", 
         Counter, Abc_NtkBlackboxNum(pNtkNew) );
     Vec_StrFree( vPref );
 
@@ -572,10 +572,10 @@ Abc_Ntk_t * Abc_NtkFlattenLogicHierarchy( Abc_Ntk_t * pNtk )
 //    Abc_ManTimeDup( pNtk, pNtkNew );
     // duplicate EXDC 
     if ( pNtk->pExdc )
-        printf( "EXDC is not transformed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "EXDC is not transformed.\n" );
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        fprintf( stdout, "Abc_NtkFlattenLogicHierarchy(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFlattenLogicHierarchy(): Network check has failed.\n"  );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -664,7 +664,7 @@ Abc_Ntk_t * Abc_NtkConvertBlackboxes( Abc_Ntk_t * pNtk )
     // check integrity
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        fprintf( stdout, "Abc_NtkConvertBlackboxes(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkConvertBlackboxes(): Network check has failed.\n"  );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -719,13 +719,13 @@ Abc_Ntk_t * Abc_NtkInsertNewLogic( Abc_Ntk_t * pNtkH, Abc_Ntk_t * pNtkL )
         pNetL = Abc_NtkFindNet( pNtkL, Abc_ObjName(pNetH) );
         if ( pNetL == NULL || !Abc_ObjIsPi( Abc_ObjFanin0(pNetL) ) )
         {
-            printf( "Error in Abc_NtkInsertNewLogic(): There is no PI corresponding to the PI %s.\n", Abc_ObjName(pNetH) );
+            fprintf( Abc_FrameGlobalGetOut(), "Error in Abc_NtkInsertNewLogic(): There is no PI corresponding to the PI %s.\n", Abc_ObjName(pNetH) );
             Abc_NtkDelete( pNtkNew );
             return NULL;
         }
         if ( pNetL->pCopy )
         {
-            printf( "Error in Abc_NtkInsertNewLogic(): Primary input %s is repeated twice.\n", Abc_ObjName(pNetH) );
+            fprintf( Abc_FrameGlobalGetOut(), "Error in Abc_NtkInsertNewLogic(): Primary input %s is repeated twice.\n", Abc_ObjName(pNetH) );
             Abc_NtkDelete( pNtkNew );
             return NULL;
         }
@@ -747,13 +747,13 @@ Abc_Ntk_t * Abc_NtkInsertNewLogic( Abc_Ntk_t * pNtkH, Abc_Ntk_t * pNtkL )
             pNetL = Abc_NtkFindNet( pNtkL, Abc_ObjName(pNetH) );
             if ( pNetL == NULL || !Abc_ObjIsPi( Abc_ObjFanin0(pNetL) ) )
             {
-                printf( "Error in Abc_NtkInsertNewLogic(): There is no PI corresponding to the inpout %s of blackbox %s.\n", Abc_ObjName(pNetH), Abc_ObjName(pObjH) );
+                fprintf( Abc_FrameGlobalGetOut(), "Error in Abc_NtkInsertNewLogic(): There is no PI corresponding to the inpout %s of blackbox %s.\n", Abc_ObjName(pNetH), Abc_ObjName(pObjH) );
                 Abc_NtkDelete( pNtkNew );
                 return NULL;
             }
             if ( pNetL->pCopy )
             {
-                printf( "Error in Abc_NtkInsertNewLogic(): Box output %s is repeated twice.\n", Abc_ObjName(pNetH) );
+                fprintf( Abc_FrameGlobalGetOut(), "Error in Abc_NtkInsertNewLogic(): Box output %s is repeated twice.\n", Abc_ObjName(pNetH) );
                 Abc_NtkDelete( pNtkNew );
                 return NULL;
             }
@@ -769,7 +769,7 @@ Abc_Ntk_t * Abc_NtkInsertNewLogic( Abc_Ntk_t * pNtkH, Abc_Ntk_t * pNtkL )
         pNetL = Abc_NtkFindNet( pNtkL, Abc_ObjName(pNetH) );
         if ( pNetL == NULL || !Abc_ObjIsPo( Abc_ObjFanout0(pNetL) ) )
         {
-            printf( "Error in Abc_NtkInsertNewLogic(): There is no PO corresponding to the PO %s.\n", Abc_ObjName(pNetH) );
+            fprintf( Abc_FrameGlobalGetOut(), "Error in Abc_NtkInsertNewLogic(): There is no PO corresponding to the PO %s.\n", Abc_ObjName(pNetH) );
             Abc_NtkDelete( pNtkNew );
             return NULL;
         }
@@ -789,7 +789,7 @@ Abc_Ntk_t * Abc_NtkInsertNewLogic( Abc_Ntk_t * pNtkH, Abc_Ntk_t * pNtkL )
             pNetL = Abc_NtkFindNet( pNtkL, Abc_ObjName(pNetH) );
             if ( pNetL == NULL || !Abc_ObjIsPo( Abc_ObjFanout0(pNetL) ) )
             {
-                printf( "There is no PO corresponding to the input %s of blackbox %s.\n", Abc_ObjName(pNetH), Abc_ObjName(pObjH) );
+                fprintf( Abc_FrameGlobalGetOut(), "There is no PO corresponding to the input %s of blackbox %s.\n", Abc_ObjName(pNetH), Abc_ObjName(pObjH) );
                 Abc_NtkDelete( pNtkNew );
                 return NULL;
             }
@@ -827,7 +827,7 @@ Abc_Ntk_t * Abc_NtkInsertNewLogic( Abc_Ntk_t * pNtkH, Abc_Ntk_t * pNtkL )
     // check integrity
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        fprintf( stdout, "Abc_NtkInsertNewLogic(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkInsertNewLogic(): Network check has failed.\n"  );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }

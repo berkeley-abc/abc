@@ -345,11 +345,11 @@ void Sfm_ComputeInterpolantCheck( Sfm_Ntk_t * p )
         uTruth = Sfm_ComputeInterpolant( p );
 
         if ( uTruth == SFM_SAT_SAT )
-            printf( "The problem is SAT.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The problem is SAT.\n" );
         else if ( uTruth == SFM_SAT_UNDEC )
-            printf( "The problem is UNDEC.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The problem is UNDEC.\n" );
         else
-            Kit_DsdPrintFromTruth( (unsigned *)&uTruth, 2 ), printf( "\n" );
+            Kit_DsdPrintFromTruth( (unsigned *)&uTruth, 2 ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 

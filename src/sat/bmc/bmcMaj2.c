@@ -104,7 +104,7 @@ static void Maj_ManConnect( int VarCons[MAJ_NOBJS][3], int nVars, int nObjs, int
                 {
                     VarCons[i+Index][v] = i;
                     if ( fVerbose )
-                    printf( "%d -> %d  ", i, i+Index );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d -> %d  ", i, i+Index );
                     break;
                 }
             if ( v >= 0 )
@@ -129,7 +129,7 @@ static void Maj_ManConnect( int VarCons[MAJ_NOBJS][3], int nVars, int nObjs, int
                 {
                     VarCons[i+Index][v] = i;
                     if ( fVerbose )
-                    printf( "+%d -> %d  ", i, i+Index );
+                    fprintf( Abc_FrameGlobalGetOut(), "+%d -> %d  ", i, i+Index );
                     break;
                 }
             }
@@ -140,7 +140,7 @@ static void Maj_ManConnect( int VarCons[MAJ_NOBJS][3], int nVars, int nObjs, int
             r--;
     }
     if ( fVerbose )
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 static void Maj_ManConnect2( int VarCons[MAJ_NOBJS][3], int nVars, int nObjs, int nRands )
 {
@@ -197,17 +197,17 @@ static int Maj_ManMarkup( Maj_Man_t * p )
             }
         }
     }
-    printf( "The number of parameter variables = %d.\n", p->iVar );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of parameter variables = %d.\n", p->iVar );
     if ( !p->fVerbose )
         return p->iVar;
     // printout
-    printf( "     " );
+    fprintf( Abc_FrameGlobalGetOut(), "     " );
     for ( i = p->nVars + 2; i < p->nObjs; i++ )
-        printf( "   Node %2d    ", i  );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "   Node %2d    ", i );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( m = 0; m < p->nObjs; m++ )
     {
-        printf( "%2d : ", m );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : ", m );
         for ( i = p->nVars + 2; i < p->nObjs; i++ )
         {
             for ( j = 0; j < p->nObjs; j++ )
@@ -216,13 +216,13 @@ static int Maj_ManMarkup( Maj_Man_t * p )
                     continue;
                 for ( k = 0; k < 3; k++ )
                     if ( p->VarMarks[i][k][j] )
-                        printf( "%3d ", p->VarMarks[i][k][j] );
+                        fprintf( Abc_FrameGlobalGetOut(), "%3d ", p->VarMarks[i][k][j] );
                     else
-                        printf( "%3c ", '.' );
-                printf( "  " );
+                        fprintf( Abc_FrameGlobalGetOut(), "%3c ", '.' );
+                fprintf( Abc_FrameGlobalGetOut(), "  " );
             }
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return p->iVar;
 }
@@ -329,22 +329,22 @@ static inline int Maj_ManEval( Maj_Man_t * p )
 static void Maj_ManPrintSolution( Maj_Man_t * p )
 {
     int i, k, iVar;
-    printf( "Realization of %d-input majority using %d MAJ3 gates:\n", p->nVars, p->nNodes );
+    fprintf( Abc_FrameGlobalGetOut(), "Realization of %d-input majority using %d MAJ3 gates:\n", p->nVars, p->nNodes );
 //    for ( i = p->nVars + 2; i < p->nObjs; i++ )
     for ( i = p->nObjs - 1; i >= p->nVars + 2; i-- )
     {
-        printf( "%02d = MAJ(", i-2 );
+        fprintf( Abc_FrameGlobalGetOut(), "%02d = MAJ(", i-2 );
         for ( k = 2; k >= 0; k-- )
         {
             iVar = Maj_ManFindFanin( p, i, k );
             if ( iVar >= 2 && iVar < p->nVars + 2 )
-                printf( " %c", 'a'+iVar-2 );
+                fprintf( Abc_FrameGlobalGetOut(), " %c", 'a'+iVar-2 );
             else if ( iVar < 2 )
-                printf( " %d", iVar );
+                fprintf( Abc_FrameGlobalGetOut(), " %d", iVar );
             else
-                printf( " %02d", iVar-2 );
+                fprintf( Abc_FrameGlobalGetOut(), " %02d", iVar-2 );
         }
-        printf( " )\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " )\n" );
     }
 }
 
@@ -467,28 +467,28 @@ int Maj_ManExactSynthesis2( int nVars, int nNodes, int fUseConst, int fUseLine, 
     int status = Maj_ManAddCnfStart( p );
     assert( status );
     if ( fVerbose )
-    printf( "Running exact synthesis for %d-input majority with %d MAJ3 gates...\n", p->nVars, p->nNodes );
+    fprintf( Abc_FrameGlobalGetOut(), "Running exact synthesis for %d-input majority with %d MAJ3 gates...\n", p->nVars, p->nNodes );
     for ( i = 0; iMint != -1; i++ )
     {
         abctime clk = Abc_Clock();
         if ( !Maj_ManAddCnf( p, iMint ) )
         {
-            printf( "The problem has no solution after %2d iterations.  ", i+1 );
+            fprintf( Abc_FrameGlobalGetOut(), "The problem has no solution after %2d iterations.  ", i+1 );
             break;
         }
         status = sat_solver_solve( p->pSat, NULL, NULL, 0, 0, 0, 0 );
         if ( fVerbose )
         {
-            printf( "Iter %3d : ", i );
-            Extra_PrintBinary( stdout, (unsigned *)&iMint, p->nVars );
-            printf( "  Var =%5d  ", p->iVar );
-            printf( "Cla =%6d  ", sat_solver_nclauses(p->pSat) );
-            printf( "Conf =%9d  ", sat_solver_nconflicts(p->pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %3d : ", i );
+            Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&iMint, p->nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "  Var =%5d  ", p->iVar );
+            fprintf( Abc_FrameGlobalGetOut(), "Cla =%6d  ", sat_solver_nclauses(p->pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Conf =%9d  ", sat_solver_nconflicts(p->pSat) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
         if ( status == l_False )
         {
-            printf( "The problem has no solution after %2d iterations.  ", i+1 );
+            fprintf( Abc_FrameGlobalGetOut(), "The problem has no solution after %2d iterations.  ", i+1 );
             break;
         }
         iMint = Maj_ManEval( p );
@@ -578,17 +578,17 @@ static int Exa_ManMarkup( Exa_Man_t * p )
         }
     }
     if ( !p->pPars->fSilent )
-        printf( "The number of parameter variables = %d.\n", p->iVar );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of parameter variables = %d.\n", p->iVar );
     return p->iVar;
     // printout
     for ( i = p->nVars; i < p->nObjs; i++ )
     {
-        printf( "Node %d\n", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %d\n", i );
         for ( j = 0; j < p->nObjs; j++ )
         {
             for ( k = 0; k < 2; k++ )
-                printf( "%3d ", p->VarMarks[i][k][j] );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%3d ", p->VarMarks[i][k][j] );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     return p->iVar;
@@ -695,7 +695,7 @@ static void Exa_ManPrintSolution( Exa_Man_t * p, int fCompl )
 {
     int i, k, iVar;
     char Name[16];
-    printf( "Realization of given %d-input function using %d two-input gates:\n", p->nVars, p->nNodes );
+    fprintf( Abc_FrameGlobalGetOut(), "Realization of given %d-input function using %d two-input gates:\n", p->nVars, p->nNodes );
 //    for ( i = p->nVars + 2; i < p->nObjs; i++ )
     for ( i = p->nObjs - 1; i >= p->nVars; i-- )
     {
@@ -704,15 +704,15 @@ static void Exa_ManPrintSolution( Exa_Man_t * p, int fCompl )
         int Val2 = sat_solver_var_value(p->pSat, iVarStart+1);
         int Val3 = sat_solver_var_value(p->pSat, iVarStart+2);
         if ( i == p->nObjs - 1 && fCompl )
-            printf( "%s = 4\'b%d%d%d1(", Exa_ManObjName(p, i, Name), !Val3, !Val2, !Val1 );
+            fprintf( Abc_FrameGlobalGetOut(), "%s = 4\'b%d%d%d1(", Exa_ManObjName(p, i, Name), !Val3, !Val2, !Val1 );
         else
-            printf( "%s = 4\'b%d%d%d0(", Exa_ManObjName(p, i, Name), Val3, Val2, Val1 );
+            fprintf( Abc_FrameGlobalGetOut(), "%s = 4\'b%d%d%d0(", Exa_ManObjName(p, i, Name), Val3, Val2, Val1 );
         for ( k = 1; k >= 0; k-- )
         {
             iVar = Exa_ManFindFanin( p, i, k );
-            printf( " %s", Exa_ManObjName(p, iVar, Name) );
+            fprintf( Abc_FrameGlobalGetOut(), " %s", Exa_ManObjName(p, iVar, Name) );
         }
-        printf( " )\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " )\n" );
     }
 }
 static inline int Exa_ManPermFanin( Exa_Man_t * p, int i, int k )
@@ -762,7 +762,7 @@ static inline int Exa_ManPermFanin( Exa_Man_t * p, int i, int k )
 static void Exa_ManPrintPermFanin( Exa_Man_t * p, int iFanin )
 {
     char Name[16];
-    printf( "%s ", Exa_ManObjName(p, iFanin, Name) );
+    fprintf( Abc_FrameGlobalGetOut(), "%s ", Exa_ManObjName(p, iFanin, Name) );
 }
 static void Exa_ManPrintFixedPerm( Exa_Man_t * p )
 {
@@ -770,31 +770,31 @@ static void Exa_ManPrintFixedPerm( Exa_Man_t * p )
     char Name[16];
     if ( (p->pPars->pPermStr == NULL && p->pPars->pPermFans == NULL) || p->pPars->fSilent )
         return;
-    printf( "Using fixed input assignment provided by the user %s:\n", p->pPars->pPermStr ? p->pPars->pPermStr : "" );
+    fprintf( Abc_FrameGlobalGetOut(), "Using fixed input assignment provided by the user %s:\n", p->pPars->pPermStr ? p->pPars->pPermStr : "" );
     for ( i = p->nObjs - 1; i >= p->nVars; i-- )
     {
-        printf( "%s : ", Exa_ManObjName(p, i, Name) );
+        fprintf( Abc_FrameGlobalGetOut(), "%s : ", Exa_ManObjName(p, i, Name) );
         for ( k = 1; k >= 0; k-- )
             Exa_ManPrintPermFanin( p, Exa_ManPermFanin(p, i, k) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 static void Exa_ManPrintPerm( Exa_Man_t * p )
 {
     int i, k, iVar;
     char Name[16];
-    printf( "The variable permutation is \"" );
+    fprintf( Abc_FrameGlobalGetOut(), "The variable permutation is \"" );
     for ( i = p->nVars; i < p->nObjs; i++ )
     {
         if ( i > p->nVars )
-            printf( "_" );
+            fprintf( Abc_FrameGlobalGetOut(), "_" );
         for ( k = 1; k >= 0; k-- )
         {
             iVar = Exa_ManFindFanin( p, i, k );
-            printf( "%s", Exa_ManObjName(p, iVar, Name) );
+            fprintf( Abc_FrameGlobalGetOut(), "%s", Exa_ManObjName(p, iVar, Name) );
         }
     }
-    printf( "\".\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\".\n" );
 }
 static void Exa_ManSaveSolution( Exa_Man_t * p )
 {
@@ -828,7 +828,7 @@ static int Exa_ManAddPermConstr( Exa_Man_t * p )
                         return 0;
                     continue;
                 }
-                printf( "Cannot force node %s fanin %d to object %s because this connection is not available.\n", Exa_ManObjName(p, i, Name0), k, Exa_ManObjName(p, iVar, Name1) );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot force node %s fanin %d to object %s because this connection is not available.\n", Exa_ManObjName(p, i, Name0), k, Exa_ManObjName(p, iVar, Name1) );
                 return 0;
             }
             Lit = Abc_Var2Lit( p->VarMarks[i][k][iVar], 0 );
@@ -1002,7 +1002,7 @@ int Exa_ManExactSynthesis2( Bmc_EsPar_t * pPars )
         return 0;
     }
     if ( !pPars->fSilent )
-        printf( "Running exact synthesis for %d-input function with %d two-input gates...\n", p->nVars, p->nNodes );
+        fprintf( Abc_FrameGlobalGetOut(), "Running exact synthesis for %d-input function with %d two-input gates...\n", p->nVars, p->nNodes );
     for ( i = 0; iMint != -1; i++ )
     {
         abctime clk = Abc_Clock();
@@ -1011,17 +1011,17 @@ int Exa_ManExactSynthesis2( Bmc_EsPar_t * pPars )
         status = sat_solver_solve( p->pSat, NULL, NULL, 0, 0, 0, 0 );
         if ( pPars->fVerbose )
         {
-            printf( "Iter %3d : ", i );
-            Extra_PrintBinary( stdout, (unsigned *)&iMint, p->nVars );
-            printf( "  Var =%5d  ", p->iVar );
-            printf( "Cla =%6d  ", sat_solver_nclauses(p->pSat) );
-            printf( "Conf =%9d  ", sat_solver_nconflicts(p->pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %3d : ", i );
+            Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&iMint, p->nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "  Var =%5d  ", p->iVar );
+            fprintf( Abc_FrameGlobalGetOut(), "Cla =%6d  ", sat_solver_nclauses(p->pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Conf =%9d  ", sat_solver_nconflicts(p->pSat) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
         if ( status == l_False )
         {
             if ( !pPars->fSilent )
-                printf( "The problem has no solution.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "The problem has no solution.\n" );
             break;
         }
         iMint = Exa_ManEval( p );
@@ -1130,19 +1130,19 @@ static int Exa3_ManMarkup( Exa3_Man_t * p )
             }
         }
     }
-    printf( "The number of parameter variables = %d.\n", p->iVar );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of parameter variables = %d.\n", p->iVar );
     return p->iVar;
     // printout
 //    for ( i = p->nVars; i < p->nObjs; i++ )
     for ( i = p->nObjs - 1; i >= p->nVars; i-- )
     {
-        printf( "       Node %2d\n", i );
+        fprintf( Abc_FrameGlobalGetOut(), "       Node %2d\n", i );
         for ( j = 0; j < p->nObjs; j++ )
         {
-            printf( "Fanin %2d : ", j );
+            fprintf( Abc_FrameGlobalGetOut(), "Fanin %2d : ", j );
             for ( k = 0; k < p->nLutSize; k++ )
-                printf( "%3d ", p->VarMarks[i][k][j] );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%3d ", p->VarMarks[i][k][j] );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     return p->iVar;
@@ -1187,7 +1187,7 @@ static void Exa3_ManInitPolarity( Exa3_Man_t * p )
                 p->pSat->polarity[iVar] = 1;
             }
             iVar = p->VarMarks[i][0][i-1];
-            if ( iVar <= 0 ) printf( "Variable mapping error.\n" ), fflush(stdout);
+            if ( iVar <= 0 ) fprintf( Abc_FrameGlobalGetOut(),  "Variable mapping error.\n" ), fflush( Abc_FrameGlobalGetOut() );
             assert( iVar > 0 );
             p->pSat->polarity[iVar] = 1;
             //intf( "Setting var %d.\n", iVar );
@@ -1290,7 +1290,7 @@ static inline int Exa3_ManEval( Exa3_Man_t * p )
 static void Exa3_ManPrintSolution( Exa3_Man_t * p, int fCompl )
 {
     int i, k, iVar;
-    printf( "Realization of given %d-input function using %d %d-input LUTs:\n", p->nVars, p->nNodes, p->nLutSize );
+    fprintf( Abc_FrameGlobalGetOut(), "Realization of given %d-input function using %d %d-input LUTs:\n", p->nVars, p->nNodes, p->nLutSize );
     for ( i = p->nObjs - 1; i >= p->nVars; i-- )
     {
         int Val, iVarStart = 1 + p->LutMask*(i - p->nVars);
@@ -1303,29 +1303,29 @@ static void Exa3_ManPrintSolution( Exa3_Man_t * p, int fCompl )
 //        else
 //            printf( "%02d = 4\'b%d%d%d0(", i, Val3, Val2, Val1 );
 
-        printf( "%02d = %d\'b", i, 1 << p->nLutSize );
+        fprintf( Abc_FrameGlobalGetOut(), "%02d = %d\'b", i, 1 << p->nLutSize );
         for ( k = p->LutMask - 1; k >= 0; k-- )
         {
             Val = sat_solver_var_value(p->pSat, iVarStart+k); 
             if ( i == p->nObjs - 1 && fCompl )
-                printf( "%d", !Val );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", !Val );
             else
-                printf( "%d", Val );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", Val );
         }
         if ( i == p->nObjs - 1 && fCompl )
-            printf( "1(" );
+            fprintf( Abc_FrameGlobalGetOut(), "1(" );
         else
-            printf( "0(" );
+            fprintf( Abc_FrameGlobalGetOut(), "0(" );
 
         for ( k = p->nLutSize - 1; k >= 0; k-- )
         {
             iVar = Exa3_ManFindFanin( p, i, k );
             if ( iVar >= 0 && iVar < p->nVars )
-                printf( " %c", 'a'+iVar );
+                fprintf( Abc_FrameGlobalGetOut(), " %c", 'a'+iVar );
             else
-                printf( " %02d", iVar );
+                fprintf( Abc_FrameGlobalGetOut(), " %02d", iVar );
         }
-        printf( " )\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " )\n" );
     }
 }
 
@@ -1386,7 +1386,7 @@ static void Exa3_ManDumpBlif( Exa3_Man_t * p, int fCompl )
     }
     fprintf( pFile, ".end\n\n" );
     fclose( pFile );
-    printf( "Finished dumping the resulting LUT network into file \"%s\".\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping the resulting LUT network into file \"%s\".\n", pFileName );
     ABC_FREE( pStr );
 }
 static void Exa3_ManDumpVerilogName( Exa3_Man_t * p, char * pBase )
@@ -1419,7 +1419,7 @@ static int Exa3_ManDumpCascadeVerilog( Exa3_Man_t * p, int fCompl )
     FILE * pFile;
     if ( p->nLutSize > 6 )
     {
-        printf( "Vivado LUT cascade dumping supports only LUTs with up to 6 inputs. Falling back to BLIF dumping.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Vivado LUT cascade dumping supports only LUTs with up to 6 inputs. Falling back to BLIF dumping.\n" );
         return 0;
     }
     Exa3_ManDumpVerilogName( p, pBase );
@@ -1477,7 +1477,7 @@ static int Exa3_ManDumpCascadeVerilog( Exa3_Man_t * p, int fCompl )
     }
     fprintf( pFile, "endmodule\n\n" );
     fclose( pFile );
-    printf( "Finished dumping the resulting LUT cascade into file \"%s\".\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping the resulting LUT cascade into file \"%s\".\n", pFileName );
     return 1;
 }
 static int Exa3_ManDumpVerilog( Exa3_Man_t * p, int fCompl )
@@ -1489,7 +1489,7 @@ static int Exa3_ManDumpVerilog( Exa3_Man_t * p, int fCompl )
     FILE * pFile;
     if ( p->nLutSize > 6 )
     {
-        printf( "Vivado LUT dumping supports only LUTs with up to 6 inputs. Skipping Verilog dump.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Vivado LUT dumping supports only LUTs with up to 6 inputs. Skipping Verilog dump.\n" );
         return 0;
     }
     Exa3_ManDumpVerilogName( p, pBase );
@@ -1537,7 +1537,7 @@ static int Exa3_ManDumpVerilog( Exa3_Man_t * p, int fCompl )
     }
     fprintf( pFile, "endmodule\n\n" );
     fclose( pFile );
-    printf( "Finished dumping the resulting LUT network into file \"%s\".\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping the resulting LUT network into file \"%s\".\n", pFileName );
     return 1;
 }
 
@@ -1702,7 +1702,7 @@ void Exa3_ManExactSynthesis2( Bmc_EsPar_t * pPars )
         word * pFun = Abc_TtSymFunGenerate( pPars->pSymStr, pPars->nVars );
         pPars->pTtStr = ABC_CALLOC( char, pPars->nVars > 2 ? (1 << (pPars->nVars-2)) + 1 : 2 );
         Extra_PrintHexadecimalString( pPars->pTtStr, (unsigned *)pFun, pPars->nVars );
-        printf( "Generated symmetric function: %s\n", pPars->pTtStr );
+        fprintf( Abc_FrameGlobalGetOut(), "Generated symmetric function: %s\n", pPars->pTtStr );
         ABC_FREE( pFun );
     }    
     if ( pPars->pTtStr )
@@ -1714,7 +1714,7 @@ void Exa3_ManExactSynthesis2( Bmc_EsPar_t * pPars )
     if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, p->nWords ); }
     status = Exa3_ManAddCnfStart( p, pPars->fOnlyAnd );
     assert( status );
-    printf( "Running exact synthesis for %d-input function with %d %d-input LUTs...\n", p->nVars, p->nNodes, p->nLutSize );
+    fprintf( Abc_FrameGlobalGetOut(), "Running exact synthesis for %d-input function with %d %d-input LUTs...\n", p->nVars, p->nNodes, p->nLutSize );
     abctime nTimeToStop = pPars->RuntimeLim ? pPars->RuntimeLim * CLOCKS_PER_SEC + Abc_Clock(): 0;
     sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
     for ( i = 0; iMint != -1; i++ )
@@ -1725,22 +1725,22 @@ void Exa3_ManExactSynthesis2( Bmc_EsPar_t * pPars )
         status = sat_solver_solve( p->pSat, NULL, NULL, 0, 0, 0, 0 );
         if ( pPars->fVerbose )
         {
-            printf( "Iter %3d : ", i );
-            Extra_PrintBinary( stdout, (unsigned *)&iMint, p->nVars );
-            printf( "  Var =%5d  ", p->iVar );
-            printf( "Cla =%6d  ", sat_solver_nclauses(p->pSat) );
-            printf( "Conf =%9d  ", sat_solver_nconflicts(p->pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %3d : ", i );
+            Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&iMint, p->nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "  Var =%5d  ", p->iVar );
+            fprintf( Abc_FrameGlobalGetOut(), "Cla =%6d  ", sat_solver_nclauses(p->pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Conf =%9d  ", sat_solver_nconflicts(p->pSat) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
         if ( nTimeToStop && Abc_Clock() > nTimeToStop ) 
         {
-            printf( "Runtime limit (%d sec) is reached.  ", pPars->RuntimeLim );
+            fprintf( Abc_FrameGlobalGetOut(), "Runtime limit (%d sec) is reached.  ", pPars->RuntimeLim );
             status = l_Undef;
             break;
         }
         if ( status == l_False )
         {
-            printf( "The problem has no solution.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The problem has no solution.\n" );
             break;
         }
         iMint = Exa3_ManEval( p );

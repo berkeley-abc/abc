@@ -108,7 +108,7 @@ Abc_Ntk_t * Res_WndStrash( Res_Win_t * p )
     Abc_NtkAddDummyPoNames( pAig );
     // check the resulting network
     if ( !Abc_NtkCheck( pAig ) )
-        fprintf( stdout, "Res_WndStrash(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Res_WndStrash(): Network check has failed.\n"  );
     return pAig;
 }
 

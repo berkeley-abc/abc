@@ -362,7 +362,7 @@ void Sbd_ManSolverPrint( Vec_Int_t * vSop )
     {
         if ( Entry == -1 )
         {
-            printf( "%s\n", Cube );
+            fprintf( Abc_FrameGlobalGetOut(), "%s\n", Cube );
             for ( v = 0; v < nVars; v++ )
                 Cube[v] = '-';
             continue;
@@ -379,15 +379,15 @@ void Sbd_ManSolveSelect( Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int
     int PivotVar = Vec_IntEntry(vObj2Var, Pivot);
     int FreeVar = Vec_IntSize(vWinObjs) + Vec_IntSize(vTfo) + Vec_IntSize(vRoots);
     int Status = Sbd_ManSolve2( pSat, PivotVar, FreeVar, vDivVars, vDivValues, vTemp, vSop );
-    printf( "Pivot = %4d. Divs = %4d.  ", Pivot, Vec_IntSize(vDivVars) );
+    fprintf( Abc_FrameGlobalGetOut(), "Pivot = %4d. Divs = %4d.  ", Pivot, Vec_IntSize(vDivVars) );
     if ( Status == 0 )
-        printf( "UNSAT.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "UNSAT.\n" );
     else
     {
         int nVars, pInds[64];
         word Supp = Sbd_ManSolverSupp( vSop, pInds, &nVars );
         //Sbd_ManSolverPrint( vSop );
-        printf( "SAT with %d vars and %d cubes.\n", nVars, Vec_IntCountEntry(vSop, -1) );
+        fprintf( Abc_FrameGlobalGetOut(), "SAT with %d vars and %d cubes.\n", nVars, Vec_IntCountEntry(vSop, -1) );
         Supp = 0;
     }
     Vec_IntFree( vTemp );

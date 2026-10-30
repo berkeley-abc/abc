@@ -386,16 +386,16 @@ SUCCESS:
     // print the report
     if ( g_CoverInfo.Verbosity == 2 )
     {
-    printf( "ExLink-%d", 2 );
-    printf( ": Que= %5d", s_cEnquequed );
-    printf( "  Att= %4d", s_cAttempts );
-    printf( "  Resh= %4d", s_cReshapes );
-    printf( "  NoResh= %4d", s_cAttempts - s_cReshapes );
-    printf( "  Cubes= %3d", g_CoverInfo.nCubesInUse );
-    printf( "  (%d)", s_nCubesBefore - g_CoverInfo.nCubesInUse );
-    printf( "  Lits= %5d", CountLiterals() );
-    printf( "  QCost = %6d", CountQCost() );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "ExLink-%d", 2 );
+    fprintf( Abc_FrameGlobalGetOut(), ": Que= %5d", s_cEnquequed );
+    fprintf( Abc_FrameGlobalGetOut(), "  Att= %4d", s_cAttempts );
+    fprintf( Abc_FrameGlobalGetOut(), "  Resh= %4d", s_cReshapes );
+    fprintf( Abc_FrameGlobalGetOut(), "  NoResh= %4d", s_cAttempts - s_cReshapes );
+    fprintf( Abc_FrameGlobalGetOut(), "  Cubes= %3d", g_CoverInfo.nCubesInUse );
+    fprintf( Abc_FrameGlobalGetOut(), "  (%d)", s_nCubesBefore - g_CoverInfo.nCubesInUse );
+    fprintf( Abc_FrameGlobalGetOut(), "  Lits= %5d", CountLiterals() );
+    fprintf( Abc_FrameGlobalGetOut(), "  QCost = %6d", CountQCost() );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     // return the number of cubes gained in the process
@@ -505,16 +505,16 @@ END_OF_LOOP: {}
     // print the report
     if ( g_CoverInfo.Verbosity == 2 )
     {
-    printf( "ExLink-%d", 3 );
-    printf( ": Que= %5d", s_cEnquequed );
-    printf( "  Att= %4d", s_cAttempts );
-    printf( "  Resh= %4d", s_cReshapes );
-    printf( "  NoResh= %4d", s_cAttempts - s_cReshapes );
-    printf( "  Cubes= %3d", g_CoverInfo.nCubesInUse );
-    printf( "  (%d)", s_nCubesBefore - g_CoverInfo.nCubesInUse );
-    printf( "  Lits= %5d", CountLiterals() );
-    printf( "  QCost = %6d", CountQCost() );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "ExLink-%d", 3 );
+    fprintf( Abc_FrameGlobalGetOut(), ": Que= %5d", s_cEnquequed );
+    fprintf( Abc_FrameGlobalGetOut(), "  Att= %4d", s_cAttempts );
+    fprintf( Abc_FrameGlobalGetOut(), "  Resh= %4d", s_cReshapes );
+    fprintf( Abc_FrameGlobalGetOut(), "  NoResh= %4d", s_cAttempts - s_cReshapes );
+    fprintf( Abc_FrameGlobalGetOut(), "  Cubes= %3d", g_CoverInfo.nCubesInUse );
+    fprintf( Abc_FrameGlobalGetOut(), "  (%d)", s_nCubesBefore - g_CoverInfo.nCubesInUse );
+    fprintf( Abc_FrameGlobalGetOut(), "  Lits= %5d", CountLiterals() );
+    fprintf( Abc_FrameGlobalGetOut(), "  QCost = %6d", CountQCost() );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     // return the number of cubes gained in the process
@@ -616,16 +616,16 @@ END_OF_LOOP: {}
     // print the report
     if ( g_CoverInfo.Verbosity == 2 )
     {
-    printf( "ExLink-%d", 4 );
-    printf( ": Que= %5d", s_cEnquequed );
-    printf( "  Att= %4d", s_cAttempts );
-    printf( "  Resh= %4d", s_cReshapes );
-    printf( "  NoResh= %4d", s_cAttempts - s_cReshapes );
-    printf( "  Cubes= %3d", g_CoverInfo.nCubesInUse );
-    printf( "  (%d)", s_nCubesBefore - g_CoverInfo.nCubesInUse );
-    printf( "  Lits= %5d", CountLiterals() );
-    printf( "  QCost = %6d", CountQCost() );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "ExLink-%d", 4 );
+    fprintf( Abc_FrameGlobalGetOut(), ": Que= %5d", s_cEnquequed );
+    fprintf( Abc_FrameGlobalGetOut(), "  Att= %4d", s_cAttempts );
+    fprintf( Abc_FrameGlobalGetOut(), "  Resh= %4d", s_cReshapes );
+    fprintf( Abc_FrameGlobalGetOut(), "  NoResh= %4d", s_cAttempts - s_cReshapes );
+    fprintf( Abc_FrameGlobalGetOut(), "  Cubes= %3d", g_CoverInfo.nCubesInUse );
+    fprintf( Abc_FrameGlobalGetOut(), "  (%d)", s_nCubesBefore - g_CoverInfo.nCubesInUse );
+    fprintf( Abc_FrameGlobalGetOut(), "  Lits= %5d", CountLiterals() );
+    fprintf( Abc_FrameGlobalGetOut(), "  QCost = %6d", CountQCost() );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     // return the number of cubes gained in the process

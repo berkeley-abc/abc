@@ -62,8 +62,8 @@ void Abc_NtkBmc( Abc_Ntk_t * pNtk, int nFrames, int fInit, int fVerbose )
     pParams->fVerbose = 0;
     pParams->fProve = 0;
     pFraig = Ivy_FraigPerform( pFrames, pParams );
-printf( "Frames have %6d nodes.  ", Ivy_ManNodeNum(pFrames) );
-printf( "Fraig has %6d nodes.\n", Ivy_ManNodeNum(pFraig) );
+fprintf( Abc_FrameGlobalGetOut(), "Frames have %6d nodes.  ", Ivy_ManNodeNum(pFrames) );
+fprintf( Abc_FrameGlobalGetOut(), "Fraig has %6d nodes.\n", Ivy_ManNodeNum(pFraig) );
     // report the classes
 //    if ( fVerbose )
 //        Abc_NtkBmcReport( pMan, pFrames, pFraig, vMapping, nFrames );
@@ -107,7 +107,7 @@ void Abc_NtkBmcReport( Ivy_Man_t * pMan, Ivy_Man_t * pFrames, Ivy_Man_t * pFraig
         assert(pFirst2);
         assert(pFirst3);
         if ( f )
-            printf( "Frame %3d :  Strash = %5d  Fraig = %5d\n", f, pFirst2->Id - Prev2, pFirst3->Id - Prev3 );
+            fprintf( Abc_FrameGlobalGetOut(), "Frame %3d :  Strash = %5d  Fraig = %5d\n", f, pFirst2->Id - Prev2, pFirst3->Id - Prev3 );
         Prev2 = pFirst2->Id;
         Prev3 = pFirst3->Id;   
     }

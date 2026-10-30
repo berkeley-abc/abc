@@ -1160,7 +1160,7 @@ Vec_Int_t * Ssw_RarRandomPermFlop( int nFlops, int nUnused )
     Vec_Int_t * vPerm;
     int i, k, * pArray;
     srand( 1 );
-    printf( "Generating random permutation of %d flops.\n", nFlops );
+    fprintf( Abc_FrameGlobalGetOut(), "Generating random permutation of %d flops.\n", nFlops );
     vPerm = Vec_IntStartNatural( nFlops );
     pArray = Vec_IntArray( vPerm );
     for ( i = 0; i < nFlops; i++ )
@@ -1168,7 +1168,7 @@ Vec_Int_t * Ssw_RarRandomPermFlop( int nFlops, int nUnused )
         k = rand() % nFlops;
         ABC_SWAP( int, pArray[i], pArray[k] );
     }
-    printf( "Randomly adding %d unused flops.\n", nUnused );
+    fprintf( Abc_FrameGlobalGetOut(), "Randomly adding %d unused flops.\n", nUnused );
     for ( i = 0; i < nUnused; i++ )
     {
         k = rand() % Vec_IntSize(vPerm);

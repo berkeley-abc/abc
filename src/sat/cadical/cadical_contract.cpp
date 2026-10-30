@@ -18,11 +18,11 @@ void require_solver_pointer_to_be_non_zero (const void *ptr,
   if (ptr)
     return;
   fatal_message_start ();
-  fprintf (stderr,
+  fprintf(Abc_FrameGlobalGetErr(), 
            "invalid API usage of '%s' in '%s': "
            "solver 'this' pointer zero (not initialized)\n",
            function_name, file_name);
-  fflush (stderr);
+  fflush (Abc_FrameGlobalGetErr());
   abort ();
 }
 

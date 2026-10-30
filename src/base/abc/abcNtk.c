@@ -573,7 +573,7 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
             Abc_ObjAddFanin( pObj->pCopy, Abc_ObjChild0Copy(pObj) );
         // get the number of nodes before and after
         if ( Abc_NtkNodeNum(pNtk) != Abc_NtkNodeNum(pNtkNew) )
-            printf( "Warning: Structural hashing during duplication reduced %d nodes (this is a minor bug).\n",
+            fprintf( Abc_FrameGlobalGetOut(), "Warning: Structural hashing during duplication reduced %d nodes (this is a minor bug).\n",
                 Abc_NtkNodeNum(pNtk) - Abc_NtkNodeNum(pNtkNew) );
     }
     else
@@ -612,7 +612,7 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
         pNtkNew->pWLoadUsed = Abc_UtilStrsav( pNtk->pWLoadUsed );
     // check correctness
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkDup(): Network check has failed.\n" );
     pNtk->pCopy = pNtkNew;
     return pNtkNew;
 }
@@ -653,7 +653,7 @@ Abc_Ntk_t * Abc_NtkDupDfs( Abc_Ntk_t * pNtk )
         pNtkNew->pWLoadUsed = Abc_UtilStrsav( pNtk->pWLoadUsed );
     // check correctness
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkDup(): Network check has failed.\n" );
     pNtk->pCopy = pNtkNew;
     return pNtkNew;
 }
@@ -697,7 +697,7 @@ Abc_Ntk_t * Abc_NtkDupDfsNoBarBufs( Abc_Ntk_t * pNtk )
         pNtkNew->pWLoadUsed = Abc_UtilStrsav( pNtk->pWLoadUsed );
     // check correctness
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkDup(): Network check has failed.\n" );
     pNtk->pCopy = pNtkNew;
     return pNtkNew;
 }
@@ -729,7 +729,7 @@ Abc_Ntk_t * Abc_NtkRestrashWithLatches( Abc_Ntk_t * pNtk, int nLatches )
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkAig ) )
     {
-        printf( "Abc_NtkStrash: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkStrash: The network check has failed.\n" );
         Abc_NtkDelete( pNtkAig );
         return NULL;
     }
@@ -872,7 +872,7 @@ Abc_Ntk_t * Abc_NtkDouble( Abc_Ntk_t * pNtk )
 
     // perform the final check
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkDup(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -930,7 +930,7 @@ Abc_Ntk_t * Abc_NtkBottom( Abc_Ntk_t * pNtk, int Level )
 
     // perform the final check
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkBottom(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkBottom(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -989,7 +989,7 @@ Abc_Ntk_t * Abc_NtkAttachBottom( Abc_Ntk_t * pNtkTop, Abc_Ntk_t * pNtkBottom )
     Abc_NtkDelete( pNtkBottom );
     // return the network
     if ( !Abc_NtkCheck( pNtkTop ) )
-        fprintf( stdout, "Abc_NtkAttachBottom(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkAttachBottom(): Network check has failed.\n" );
     return pNtkTop;
 }
 
@@ -1059,7 +1059,7 @@ Abc_Ntk_t * Abc_NtkCreateCone( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, char * pNode
     Vec_PtrFree( vNodes );
 
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkCreateCone(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCreateCone(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -1139,7 +1139,7 @@ Abc_Ntk_t * Abc_NtkCreateConeArray( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, int fU
     }
 
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkCreateConeArray(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCreateConeArray(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -1193,7 +1193,7 @@ void Abc_NtkAppendToCone( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, Vec_Ptr_t * vRo
 
     // do not add the COs
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkAppendToCone(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkAppendToCone(): Network check has failed.\n" );
 }
 
 /**Function*************************************************************
@@ -1264,7 +1264,7 @@ Abc_Ntk_t * Abc_NtkCreateMffc( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, char * pNode
     Vec_PtrFree( vSupp );
 
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkCreateMffc(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCreateMffc(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -1324,7 +1324,7 @@ Abc_Ntk_t * Abc_NtkCreateTarget( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, Vec_Int_t
     Abc_ObjAddFanin( pNodePo, pFinal );
     Abc_ObjAssignName( pNodePo, "miter", NULL );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkCreateTarget(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCreateTarget(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -1362,7 +1362,7 @@ Abc_Ntk_t * Abc_NtkCreateFromNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
     Abc_ObjAddFanin( pNodePo, pNode->pCopy );
     Abc_ObjAssignName( pNodePo, Abc_ObjName(pNode), NULL );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkCreateFromNode(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCreateFromNode(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -1397,7 +1397,7 @@ Abc_Ntk_t * Abc_NtkCreateFromRange( Abc_Ntk_t * pNtk )
     Abc_ObjAddFanin( pNodePo, pNodeNew );
     Abc_ObjAssignName( pNodePo, "range", NULL );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkCreateFromNode(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCreateFromNode(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -1438,7 +1438,7 @@ Abc_Ntk_t * Abc_NtkCreateWithNode( char * pSop )
     Abc_ObjAddFanin( pNodePo, pNode );
     Abc_ObjAssignName( pNodePo, "F", NULL );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkCreateWithNode(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCreateWithNode(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -1485,7 +1485,7 @@ Abc_Ntk_t * Abc_NtkCreateWithNodes( Vec_Ptr_t * vSop )
         Abc_ObjAssignName( pNodePo, Buffer, NULL );
     }
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkCreateWithNode(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCreateWithNode(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -1534,7 +1534,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
 //        assert( pObj->fMarkB == 0 );
 //        assert( pObj->fMarkC == 0 );
         if ( !fWarning && (pObj->fMarkA || pObj->fMarkB || pObj->fMarkC) )
-            { printf( "Flags A, B, or C are not zero.\n" ), fWarning = 1; }
+            { fprintf( Abc_FrameGlobalGetOut(),  "Flags A, B, or C are not zero.\n" ), fWarning = 1; }
     }
     // free the nodes
     if ( pNtk->pMmStep == NULL )
@@ -1688,18 +1688,18 @@ void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
     // print the warning
     if ( vNets->nSize > 0 )
     {
-        printf( "Warning: Constant-0 drivers added to %d non-driven nets in network \"%s\":\n", Vec_PtrSize(vNets), pNtk->pName );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Constant-0 drivers added to %d non-driven nets in network \"%s\":\n", Vec_PtrSize(vNets), pNtk->pName );
         Vec_PtrForEachEntry( Abc_Obj_t *, vNets, pNet, i )
         {
-            printf( "%s%s", (i? ", ": ""), Abc_ObjName(pNet) );
+            fprintf( Abc_FrameGlobalGetOut(), "%s%s", (i? ", ": ""), Abc_ObjName(pNet) );
             if ( i == 3 )
             {
                 if ( Vec_PtrSize(vNets) > 3 )
-                    printf( " ..." );
+                    fprintf( Abc_FrameGlobalGetOut(), " ..." );
                 break;
             }
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_PtrFree( vNets );
 }
@@ -1794,7 +1794,7 @@ void Abc_NtkMakeComb( Abc_Ntk_t * pNtk, int fRemoveLatches )
     assert( Abc_NtkBiNum(pNtk) == 0 );
 
     if ( !Abc_NtkCheck( pNtk ) )
-        fprintf( stdout, "Abc_NtkMakeComb(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkMakeComb(): Network check has failed.\n"  );
 }
 
 /**Function*************************************************************
@@ -1815,17 +1815,17 @@ void Abc_NtkMakeSeq( Abc_Ntk_t * pNtk, int nLatchesToAdd )
     assert( Abc_NtkBoxNum(pNtk) == 0 );
     if ( !Abc_NtkIsComb(pNtk) )
     {
-        printf( "The network is a not a combinational one.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The network is a not a combinational one.\n" );
         return;
     }
     if ( nLatchesToAdd >= Abc_NtkPiNum(pNtk) )
     {
-        printf( "The number of latches is more or equal than the number of PIs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of latches is more or equal than the number of PIs.\n" );
         return;
     }
     if ( nLatchesToAdd >= Abc_NtkPoNum(pNtk) )
     {
-        printf( "The number of latches is more or equal than the number of POs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of latches is more or equal than the number of POs.\n" );
         return;
     }
 
@@ -1869,7 +1869,7 @@ void Abc_NtkMakeSeq( Abc_Ntk_t * pNtk, int nLatchesToAdd )
     }
 
     if ( !Abc_NtkCheck( pNtk ) )
-        fprintf( stdout, "Abc_NtkMakeSeq(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkMakeSeq(): Network check has failed.\n" );
 }
 
 
@@ -1915,13 +1915,13 @@ Abc_Ntk_t * Abc_NtkSelectPos( Abc_Ntk_t * pNtkInit, Vec_Int_t * vPoIds )
     // clean the network
     if ( Abc_NtkIsStrash(pNtk) ) {
         Abc_AigCleanup( (Abc_Aig_t *)pNtk->pManFunc );
-        if ( Abc_NtkLatchNum(pNtk) ) printf( "Run sequential cleanup (\"scl\") to get rid of dangling logic.\n" );
+        if ( Abc_NtkLatchNum(pNtk) ) fprintf( Abc_FrameGlobalGetOut(), "Run sequential cleanup (\"scl\") to get rid of dangling logic.\n" );
     }
     else {
-        if ( Abc_NtkLatchNum(pNtk) ) printf( "Run sequential cleanup (\"st; scl\") to get rid of dangling logic.\n" );
+        if ( Abc_NtkLatchNum(pNtk) ) fprintf( Abc_FrameGlobalGetOut(), "Run sequential cleanup (\"st; scl\") to get rid of dangling logic.\n" );
     }
     if ( !Abc_NtkCheck( pNtk ) )
-        fprintf( stdout, "Abc_NtkMakeComb(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkMakeComb(): Network check has failed.\n" );
     return pNtk;
 }
 
@@ -1947,7 +1947,7 @@ Abc_Ntk_t * Abc_NtkMakeOnePo( Abc_Ntk_t * pNtkInit, int Output, int nRange )
     assert( Abc_NtkHasOnlyLatchBoxes(pNtkInit) );
     if ( Output < 0 || Output >= Abc_NtkPoNum(pNtkInit) )
     {
-        printf( "PO index is incorrect.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "PO index is incorrect.\n" );
         return NULL;
     }
 
@@ -1977,15 +1977,15 @@ Abc_Ntk_t * Abc_NtkMakeOnePo( Abc_Ntk_t * pNtkInit, int Output, int nRange )
     if ( Abc_NtkIsStrash(pNtk) )
     {
         Abc_AigCleanup( (Abc_Aig_t *)pNtk->pManFunc );
-        if ( Abc_NtkLatchNum(pNtk) ) printf( "Run sequential cleanup (\"scl\") to get rid of dangling logic.\n" );
+        if ( Abc_NtkLatchNum(pNtk) ) fprintf( Abc_FrameGlobalGetOut(), "Run sequential cleanup (\"scl\") to get rid of dangling logic.\n" );
     }
     else
     {
-        if ( Abc_NtkLatchNum(pNtk) ) printf( "Run sequential cleanup (\"st; scl\") to get rid of dangling logic.\n" );
+        if ( Abc_NtkLatchNum(pNtk) ) fprintf( Abc_FrameGlobalGetOut(), "Run sequential cleanup (\"st; scl\") to get rid of dangling logic.\n" );
     }
 
     if ( !Abc_NtkCheck( pNtk ) )
-        fprintf( stdout, "Abc_NtkMakeComb(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkMakeComb(): Network check has failed.\n" );
     return pNtk;
 }
 
@@ -2102,7 +2102,7 @@ void Abc_NtkDropSatOutputs( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCexes, int fVerbose )
 //            Nm_ManDeleteIdName( pNtk->pManName, Abc_ObjId(pObj) );
     }
     if ( fVerbose )
-        printf( "Logic cones of %d POs have been replaced by constant 0.\n", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Logic cones of %d POs have been replaced by constant 0.\n", Counter );
     Counter = Abc_AigCleanup( (Abc_Aig_t *)pNtk->pManFunc );
 //    printf( "Cleanup removed %d nodes.\n", Counter );
 }
@@ -2214,7 +2214,7 @@ Vec_Int_t * Abc_NtkReadSignalPerm2( char * pFileName, int nSignals )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open input file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\".\n", pFileName );
         return NULL;
     }
     vSignals = Vec_IntAlloc( nSignals );
@@ -2225,7 +2225,7 @@ Vec_Int_t * Abc_NtkReadSignalPerm2( char * pFileName, int nSignals )
         iFlop = atoi( Buffer );
         if ( iFlop < 0 || iFlop >= nSignals )
         {
-            printf( "The zero-based signal ID (%d) is out of range.\n", iFlop );
+            fprintf( Abc_FrameGlobalGetOut(), "The zero-based signal ID (%d) is out of range.\n", iFlop );
             fclose( pFile );
             Vec_IntFree( vSignals );
             return NULL;
@@ -2235,7 +2235,7 @@ Vec_Int_t * Abc_NtkReadSignalPerm2( char * pFileName, int nSignals )
     fclose( pFile );
     if ( Vec_IntSize(vSignals) != nSignals )
     {
-        printf( "The number of indexes read in from file (%d) is different from the number of signals in the circuit (%d).\n", Vec_IntSize(vSignals), nSignals );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of indexes read in from file (%d) is different from the number of signals in the circuit (%d).\n", Vec_IntSize(vSignals), nSignals );
         Vec_IntFree( vSignals );
         return NULL;
     }
@@ -2249,7 +2249,7 @@ Vec_Int_t * Abc_NtkReadSignalPerm( char * pFileName, int nSignals )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open input file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\".\n", pFileName );
         return NULL;
     }
     vSignals = Vec_IntAlloc( nSignals );
@@ -2257,7 +2257,7 @@ Vec_Int_t * Abc_NtkReadSignalPerm( char * pFileName, int nSignals )
     {
         if ( Num <= 0 || Num > nSignals )
         {
-            printf( "The one-based signal ID (%d) is out of range (%d).\n", Num, nSignals );
+            fprintf( Abc_FrameGlobalGetOut(), "The one-based signal ID (%d) is out of range (%d).\n", Num, nSignals );
             fclose( pFile );
             Vec_IntFree( vSignals );
             return NULL;
@@ -2267,7 +2267,7 @@ Vec_Int_t * Abc_NtkReadSignalPerm( char * pFileName, int nSignals )
     fclose( pFile );
     if ( Vec_IntSize(vSignals) != nSignals )
     {
-        printf( "The number of indexes read in from file (%d) is different from the number of signals in the circuit (%d).\n", Vec_IntSize(vSignals), nSignals );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of indexes read in from file (%d) is different from the number of signals in the circuit (%d).\n", Vec_IntSize(vSignals), nSignals );
         Vec_IntFree( vSignals );
         return NULL;
     }
@@ -2494,7 +2494,7 @@ void Abc_NtkUnpermute( Abc_Ntk_t * pNtk )
     int i, * pInputs, * pOutputs, * pFlops;
     if ( pNtk->vObjPerm == NULL )
     {
-        printf( "Abc_NtkUnpermute(): Initial permutation is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkUnpermute(): Initial permutation is not available.\n" );
         return;
     }
     assert( Abc_NtkBoxNum(pNtk) == Abc_NtkLatchNum(pNtk) );
@@ -2572,7 +2572,7 @@ Abc_Ntk_t * Abc_NtkNodeDup( Abc_Ntk_t * pNtkInit, int nLimit, int fVerbose )
                 Abc_ObjPatchFanin( pFanout, pObj, pObjNew );
         }
         if ( fVerbose )
-            printf( "Duplicated %d nodes.\n", Vec_PtrSize(vNodes) );
+            fprintf( Abc_FrameGlobalGetOut(), "Duplicated %d nodes.\n", Vec_PtrSize(vNodes) );
     }
     while ( Vec_PtrSize(vNodes) > 0 );
     Vec_PtrFree( vFanouts );

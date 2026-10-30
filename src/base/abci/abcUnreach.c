@@ -71,7 +71,7 @@ int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNtk, int fVerbose )
     if ( dd == NULL )
         return 0;
     if ( fVerbose )
-        printf( "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+        fprintf( Abc_FrameGlobalGetOut(), "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
 
     // create the transition relation (dereferenced global BDDs)
     bRelation = Abc_NtkTransitionRelation( dd, pNtk, fVerbose );              Cudd_Ref( bRelation );
@@ -86,11 +86,11 @@ int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNtk, int fVerbose )
     if ( fReorder )
     {
         if ( fVerbose )
-            fprintf( stdout, "BDD nodes in the unreachable states before reordering %d.\n", Cudd_DagSize(bUnreach) );
+            fprintf( Abc_FrameGlobalGetOut(), "BDD nodes in the unreachable states before reordering %d.\n", Cudd_DagSize(bUnreach) );
         Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 1 );
         Cudd_AutodynDisable( dd );
         if ( fVerbose )
-            fprintf( stdout, "BDD nodes in the unreachable states after reordering %d.\n", Cudd_DagSize(bUnreach) );
+            fprintf( Abc_FrameGlobalGetOut(), "BDD nodes in the unreachable states after reordering %d.\n", Cudd_DagSize(bUnreach) );
     }
 
     // allocate ZDD variables
@@ -106,7 +106,7 @@ int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNtk, int fVerbose )
     // make sure that everything is okay
     if ( pNtk->pExdc && !Abc_NtkCheck( pNtk->pExdc ) )
     {
-        printf( "Abc_NtkExtractSequentialDcs: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkExtractSequentialDcs: The network check has failed.\n" );
         Abc_NtkDelete( pNtk->pExdc );
         return 0;
     }
@@ -166,11 +166,11 @@ DdNode * Abc_NtkTransitionRelation( DdManager * dd, Abc_Ntk_t * pNtk, int fVerbo
     if ( fReorder )
     {
         if ( fVerbose )
-            fprintf( stdout, "BDD nodes in the transition relation before reordering %d.\n", Cudd_DagSize(bRel) );
+            fprintf( Abc_FrameGlobalGetOut(), "BDD nodes in the transition relation before reordering %d.\n", Cudd_DagSize(bRel) );
         Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 100 );
         Cudd_AutodynDisable( dd );
         if ( fVerbose )
-            fprintf( stdout, "BDD nodes in the transition relation after reordering %d.\n", Cudd_DagSize(bRel) );
+            fprintf( Abc_FrameGlobalGetOut(), "BDD nodes in the transition relation after reordering %d.\n", Cudd_DagSize(bRel) );
     }
     Cudd_Deref( bRel );
     return bRel;
@@ -268,8 +268,8 @@ DdNode * Abc_NtkComputeUnreachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * b
     if ( fVerbose )
     {
         nMints = (int)Cudd_CountMinterm(dd, bReached, Abc_NtkLatchNum(pNtk) );
-        fprintf( stdout, "Reachability analysis completed in %d iterations.\n", nIters );
-        fprintf( stdout, "The number of minterms in the reachable state set = %d. (%6.2f %%)\n", nMints, 100.0*nMints/(1<<Abc_NtkLatchNum(pNtk)) );
+        fprintf( Abc_FrameGlobalGetOut(), "Reachability analysis completed in %d iterations.\n", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of minterms in the reachable state set = %d. (%6.2f %%)\n", nMints, 100.0*nMints/(1<<Abc_NtkLatchNum(pNtk)) );
     }
 //ABC_PRB( dd, bReached );
     Cudd_Deref( bReached );
@@ -344,7 +344,7 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
     // transform the network to the SOP representation
     if ( !Abc_NtkBddToSop( pNtkNew, -1, ABC_INFINITY, 1 ) )
     {
-        printf( "Abc_NtkConstructExdc(): Converting to SOPs has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkConstructExdc(): Converting to SOPs has failed.\n" );
         return NULL;
     }
     return pNtkNew;

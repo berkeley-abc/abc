@@ -307,14 +307,14 @@ void Saig_TsiPrintTraces( Saig_Tsim_t * p, int nWords, int nPrefix, int nLoop )
     unsigned * pState;
     int nRegs = p->pAig->nRegs;
     int Value, i, k, Counter = 0;
-    printf( "Ternary traces for each flop:\n" );
-    printf( "      : " );
+    fprintf( Abc_FrameGlobalGetOut(), "Ternary traces for each flop:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "      : " );
     for ( i = 0; i < Vec_PtrSize(p->vStates) - nLoop - 1; i++ )
-        printf( "%d", i%10 );
-    printf( "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", i%10 );
+    fprintf( Abc_FrameGlobalGetOut(), "  " );
     for ( i = 0; i < nLoop; i++ )
-        printf( "%d", i%10 );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", i%10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( i = 0; i < nRegs; i++ )
     {
 /*
@@ -332,22 +332,22 @@ void Saig_TsiPrintTraces( Saig_Tsim_t * p, int nWords, int nPrefix, int nLoop )
 
         // print trace
 //        printf( "%5d : %5d %5d  ", Counter, i, Saig_ManLo(p->pAig, i)->Id );
-        printf( "%5d : ", Counter++ );
+        fprintf( Abc_FrameGlobalGetOut(), "%5d : ", Counter++ );
         Vec_PtrForEachEntryStop( unsigned *, p->vStates, pState, k, Vec_PtrSize(p->vStates)-1 )
         {
             Value = (Abc_InfoHasBit( pState, 2 * i + 1 ) << 1) | Abc_InfoHasBit( pState, 2 * i );
             if ( Value == SAIG_XVS0 )
-                printf( "0" );
+                fprintf( Abc_FrameGlobalGetOut(), "0" );
             else if ( Value == SAIG_XVS1 )
-                printf( "1" );
+                fprintf( Abc_FrameGlobalGetOut(), "1" );
             else if ( Value == SAIG_XVSX )
-                printf( "x" );
+                fprintf( Abc_FrameGlobalGetOut(), "x" );
             else
                 assert( 0 );
             if ( k == nPrefix - 1 )
-                printf( "  " );
+                fprintf( Abc_FrameGlobalGetOut(), "  " );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -460,15 +460,15 @@ void Saig_TsiStatePrint( Saig_Tsim_t * p, unsigned * pState )
     {
         Value = (Abc_InfoHasBit( pState, 2 * i + 1 ) << 1) | Abc_InfoHasBit( pState, 2 * i );
         if ( Value == SAIG_XVS0 )
-            printf( "0" ), nZeros++;
+            fprintf( Abc_FrameGlobalGetOut(), "0"  ), nZeros++;
         else if ( Value == SAIG_XVS1 )
-            printf( "1" ), nOnes++;
+            fprintf( Abc_FrameGlobalGetOut(), "1"  ), nOnes++;
         else if ( Value == SAIG_XVSX )
-            printf( "x" ), nDcs++;
+            fprintf( Abc_FrameGlobalGetOut(), "x"  ), nDcs++;
         else
             assert( 0 );
     }
-    printf( " (0=%5d, 1=%5d, x=%5d)\n", nZeros, nOnes, nDcs );
+    fprintf( Abc_FrameGlobalGetOut(), " (0=%5d, 1=%5d, x=%5d)\n", nZeros, nOnes, nDcs );
 }
 
 /**Function*************************************************************
@@ -569,7 +569,7 @@ Saig_Tsim_t * Saig_ManReachableTernary( Aig_Man_t * p, Vec_Int_t * vInits, int f
         if ( Saig_TsiStateLookup( pTsi, pState, pTsi->nWords ) )
         {
             if ( fVerbose )
-                printf( "Ternary simulation converged after %d iterations.\n", f );
+                fprintf( Abc_FrameGlobalGetOut(), "Ternary simulation converged after %d iterations.\n", f );
             return pTsi;
         }
         // insert this state
@@ -593,7 +593,7 @@ Saig_Tsim_t * Saig_ManReachableTernary( Aig_Man_t * p, Vec_Int_t * vInits, int f
             nCounter += (Saig_ObjGetXsim(pObjLo) == SAIG_XVS0);
         }
     }
-    printf( "Saig_ManReachableTernary(): Did not reach a fixed point after %d iterations (not a bug).\n", TSIM_MAX_ROUNDS );
+    fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReachableTernary(): Did not reach a fixed point after %d iterations (not a bug).\n", TSIM_MAX_ROUNDS );
     Saig_TsiStop( pTsi );
     return NULL;
 }
@@ -628,28 +628,28 @@ void Saig_ManAnalizeControl( Aig_Man_t * p, int Reg )
     }
     if ( pAnd == NULL )
     {
-        printf( "Register is not found.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Register is not found.\n" );
         return;
     }
-    printf( "Clock-like register: \n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Clock-like register: \n" );
     Aig_ObjPrint( p, pReg );
-    printf( "\n" );
-    printf( "Control register: \n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Control register: \n" );
     Aig_ObjPrint( p, pCtrl );
-    printf( "\n" );
-    printf( "Their fanout: \n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Their fanout: \n" );
     Aig_ObjPrint( p, pAnd );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
  
     // find the fanouts of pAnd
-    printf( "Fanouts of the fanout: \n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Fanouts of the fanout: \n" );
     Aig_ManForEachObj( p, pObj, i )
         if ( Aig_ObjFanin0(pObj) == pAnd || Aig_ObjFanin1(pObj) == pAnd )
         {
             Aig_ObjPrint( p, pObj );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -701,10 +701,10 @@ int Saig_ManFindRegisters( Saig_Tsim_t * pTsi, int nFrames, int fIgnore, int fVe
         Vec_IntWriteEntry( pTsi->vNonXRegs, r++, Reg );
         if ( fVerbose )
         {
-            printf( "Register %5d has generator: [", Reg );
+            fprintf( Abc_FrameGlobalGetOut(), "Register %5d has generator: [", Reg );
             for ( k = 0; k < nFrames; k++ )
-                Saig_XsimPrint( stdout, Values[k] );
-            printf( "]\n" );
+                Saig_XsimPrint( Abc_FrameGlobalGetOut(), Values[k] );
+            fprintf( Abc_FrameGlobalGetOut(), "]\n" );
 
             if ( fVerbose )
             Saig_ManAnalizeControl( pTsi->pAig, Reg );
@@ -712,7 +712,7 @@ int Saig_ManFindRegisters( Saig_Tsim_t * pTsi, int nFrames, int fIgnore, int fVe
     }
     Vec_IntShrink( pTsi->vNonXRegs, r );
     if ( fVerbose )
-        printf( "Found %3d useful registers.\n", Vec_IntSize(pTsi->vNonXRegs) );
+        fprintf( Abc_FrameGlobalGetOut(), "Found %3d useful registers.\n", Vec_IntSize(pTsi->vNonXRegs) );
     return Vec_IntSize(pTsi->vNonXRegs);
 }
 
@@ -889,7 +889,7 @@ int Saig_ManPhasePrefixLength( Aig_Man_t * p, int fVerbose, int fVeryVerbose, Ve
 
     // print statistics
     if ( fVerbose )
-        printf( "Lead = %5d. Loop = %5d.  Total flops = %5d. Binary flops = %5d.\n", nPrefix, nFrames, p->nRegs, nNonXRegs );
+        fprintf( Abc_FrameGlobalGetOut(), "Lead = %5d. Loop = %5d.  Total flops = %5d. Binary flops = %5d.\n", nPrefix, nFrames, p->nRegs, nNonXRegs );
     if ( fVeryVerbose )
         Saig_TsiPrintTraces( pTsi, pTsi->nWords, nPrefix, nFrames );
     Saig_TsiStop( pTsi );
@@ -926,25 +926,25 @@ Aig_Man_t * Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrame
     // print statistics
     if ( fVerbose )
     {
-        printf( "Lead = %5d. Loop = %5d.  Total flops = %5d. Binary flops = %5d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Lead = %5d. Loop = %5d.  Total flops = %5d. Binary flops = %5d.\n", 
             pTsi->nPrefix, pTsi->nCycle, p->nRegs, pTsi->nNonXRegs );
         if ( pTsi->nNonXRegs < 100 && Vec_PtrSize(pTsi->vStates) < 80 )
             Saig_TsiPrintTraces( pTsi, pTsi->nWords, pTsi->nPrefix, pTsi->nCycle );
     }
     if ( fPrint )
-        printf( "Print-out finished. Phase assignment is not performed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Print-out finished. Phase assignment is not performed.\n" );
     else if ( nFrames < 2 )
-        printf( "The number of frames is less than 2. Phase assignment is not performed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of frames is less than 2. Phase assignment is not performed.\n" );
     else if ( nFrames > 256 )
-        printf( "The number of frames is more than 256. Phase assignment is not performed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of frames is more than 256. Phase assignment is not performed.\n" );
     else if ( pTsi->nCycle == 1 )
-        printf( "The cycle of ternary states is trivial. Phase abstraction cannot be done.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The cycle of ternary states is trivial. Phase abstraction cannot be done.\n" );
     else if ( pTsi->nCycle % nFrames != 0 )
-        printf( "The cycle (%d) is not modulo the number of frames (%d). Phase abstraction cannot be done.\n", pTsi->nCycle, nFrames );
+        fprintf( Abc_FrameGlobalGetOut(), "The cycle (%d) is not modulo the number of frames (%d). Phase abstraction cannot be done.\n", pTsi->nCycle, nFrames );
     else if ( pTsi->nNonXRegs == 0 )
-        printf( "All registers have X-valued states. Phase abstraction cannot be done.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "All registers have X-valued states. Phase abstraction cannot be done.\n" );
     else if ( !Saig_ManFindRegisters( pTsi, nFrames, fIgnore, fVerbose ) )
-        printf( "There is no registers to abstract with %d frames.\n", nFrames );
+        fprintf( Abc_FrameGlobalGetOut(), "There is no registers to abstract with %d frames.\n", nFrames );
     else
         pNew = Saig_ManPerformAbstraction( pTsi, nFrames, fVerbose );
     Saig_TsiStop( pTsi );
@@ -982,7 +982,7 @@ Aig_Man_t * Saig_ManPhaseAbstractAuto( Aig_Man_t * p, int fVerbose )
     // print statistics
     if ( fVerbose )
     {
-        printf( "Lead = %5d. Loop = %5d.  Total flops = %5d. Binary flops = %5d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Lead = %5d. Loop = %5d.  Total flops = %5d. Binary flops = %5d.\n", 
             pTsi->nPrefix, pTsi->nCycle, p->nRegs, pTsi->nNonXRegs );
         if ( pTsi->nNonXRegs < 100 && Vec_PtrSize(pTsi->vStates) < 80 )
             Saig_TsiPrintTraces( pTsi, pTsi->nWords, pTsi->nPrefix, pTsi->nCycle );
@@ -990,7 +990,7 @@ Aig_Man_t * Saig_ManPhaseAbstractAuto( Aig_Man_t * p, int fVerbose )
     nFrames = pTsi->nCycle;
     if ( fPrint )
     {
-        printf( "Print-out finished. Phase assignment is not performed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Print-out finished. Phase assignment is not performed.\n" );
     }
     else if ( nFrames < 2 )
     {
@@ -1051,7 +1051,7 @@ Abc_Cex_t * Saig_PhaseTranslateCex( Aig_Man_t * p, Abc_Cex_t * pCex )
     // or the unrolled CEX went through transformations that change the PI count
     if ( pCex->nPis % Saig_ManPiNum(p) != 0 )
     {
-        printf( "The PI count in the AIG and in the CEX do not match.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The PI count in the AIG and in the CEX do not match.\n" );
         return NULL;
     }
     // get the number of unrolled frames

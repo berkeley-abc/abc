@@ -229,19 +229,19 @@ void Dau_EnumTest()
 
     Vec_PtrForEachEntry( Vec_Ptr_t *, vSets, vOne, v )
     {
-        printf( "VARIABLE NUMBER %d:\n", v );
+        fprintf( Abc_FrameGlobalGetOut(), "VARIABLE NUMBER %d:\n", v );
         Vec_PtrForEachEntry( char *, vOne, pName, k )
-            printf( "%s\n", pName );
+            fprintf( Abc_FrameGlobalGetOut(), "%s\n", pName );
         if ( v == 4 )
             break;
     }
     Vec_PtrForEachEntry( Vec_Ptr_t *, vSets, vOne, v )
     {
-        printf( "%d=%d ", v, Vec_PtrSize(vOne) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", v, Vec_PtrSize(vOne) );
         Vec_PtrFreeFree( vOne );
     }
     Vec_PtrFree( vSets );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 ////////////////////////////////////////////////////////////////////////

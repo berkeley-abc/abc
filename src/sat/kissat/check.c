@@ -43,11 +43,11 @@ void kissat_check_satisfying_assignment (kissat *solver) {
     if (satisfied)
       continue;
     kissat_fatal_message_start ();
-    fputs ("unsatisfied clause:\n", stderr);
+    fputs ("unsatisfied clause:\n", Abc_FrameGlobalGetErr());
     for (q = p; (lit = *q); q++)
-      fprintf (stderr, "%d ", lit);
-    fputs ("0\n", stderr);
-    fflush (stderr);
+      fprintf( Abc_FrameGlobalGetErr(), "%d ", lit);
+    fputs ("0\n", Abc_FrameGlobalGetOut());
+    fflush( Abc_FrameGlobalGetErr() );
     kissat_abort ();
   }
   LOG ("assignment satisfies all %zu original clauses", count);
@@ -621,11 +621,11 @@ static void remove_line (kissat *solver, checker *checker, size_t size) {
   bucket *bucket = find_line (solver, checker, size, true);
   if (!bucket) {
     kissat_fatal_message_start ();
-    fputs ("trying to remove non-existing clause:\n", stderr);
+    fputs ("trying to remove non-existing clause:\n", Abc_FrameGlobalGetOut());
     for (all_stack (unsigned, lit, checker->imported))
-      fprintf (stderr, "%d ", export_checker (checker, lit));
-    fputs ("0\n", stderr);
-    fflush (stderr);
+      fprintf( Abc_FrameGlobalGetErr(), "%d ", export_checker (checker, lit));
+    fputs ("0\n", Abc_FrameGlobalGetOut());
+    fflush( Abc_FrameGlobalGetErr() );
     kissat_abort ();
   }
   unwatch_line (solver, checker, bucket);
@@ -883,11 +883,11 @@ static void check_line (kissat *solver, checker *checker) {
       checker->blocked++;
     } else {
       kissat_fatal_message_start ();
-      fputs ("failed to check clause:\n", stderr);
+      fputs ("failed to check clause:\n", Abc_FrameGlobalGetOut());
       for (all_stack (unsigned, lit, checker->imported))
-        fprintf (stderr, "%d ", export_checker (checker, lit));
-      fputs ("0\n", stderr);
-      fflush (stderr);
+        fprintf( Abc_FrameGlobalGetErr(), "%d ", export_checker (checker, lit));
+      fputs ("0\n", Abc_FrameGlobalGetOut());
+      fflush( Abc_FrameGlobalGetErr() );
       kissat_abort ();
     }
   }
@@ -1020,21 +1020,21 @@ void kissat_remove_checker_internal (kissat *solver, size_t size,
 }
 
 void dump_line (bucket *bucket) {
-  printf ("bucket[%p]", (void *) bucket);
+  fprintf ( Abc_FrameGlobalGetOut(), "bucket[%p]", (void *) bucket);
   for (unsigned i = 0; i < bucket->size; i++)
-    printf (" %u", bucket->lits[i]);
-  fputc ('\n', stdout);
+    fprintf ( Abc_FrameGlobalGetOut(), " %u", bucket->lits[i]);
+  fputc( '\n', Abc_FrameGlobalGetOut() );
 }
 
 void dump_checker (kissat *solver) {
   checker *checker = solver->checker;
-  printf ("%s\n", checker->inconsistent ? "inconsistent" : "consistent");
-  printf ("vars %u\n", checker->vars);
-  printf ("size %u\n", checker->size);
-  printf ("buckets %u\n", checker->buckets);
-  printf ("hashed %u\n", checker->hashed);
+  fprintf ( Abc_FrameGlobalGetOut(), "%s\n", checker->inconsistent ? "inconsistent" : "consistent");
+  fprintf ( Abc_FrameGlobalGetOut(), "vars %u\n", checker->vars);
+  fprintf ( Abc_FrameGlobalGetOut(), "size %u\n", checker->size);
+  fprintf ( Abc_FrameGlobalGetOut(), "buckets %u\n", checker->buckets);
+  fprintf ( Abc_FrameGlobalGetOut(), "hashed %u\n", checker->hashed);
   for (unsigned i = 0; i < SIZE_STACK (checker->trail); i++)
-    printf ("trail[%u] %u\n", i, PEEK_STACK (checker->trail, i));
+    fprintf ( Abc_FrameGlobalGetOut(), "trail[%u] %u\n", i, PEEK_STACK (checker->trail, i));
   for (unsigned h = 0; h < checker->hashed; h++)
     for (bucket *bucket = checker->table[h]; bucket; bucket = bucket->next)
       dump_line (bucket);

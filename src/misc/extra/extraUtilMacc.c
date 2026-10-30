@@ -128,11 +128,11 @@ unsigned * Macc_ConstMultGenerate( int nBits )
         if ( (i & 1) == 0 )
             pPlace[i] = ~0;
     // collect trivial
-    printf( "Generating numbers using %d adders:\n", 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "Generating numbers using %d adders:\n", 0 );
     for ( i = 0; i < nBits; i++ )
     {
         Vec_WecPush( vDivs, 0, 1<<i );
-        printf( "%d = %d << %d\n", 1<<i, 1, i );
+        fprintf( Abc_FrameGlobalGetOut(), "%d = %d << %d\n", 1<<i, 1, i );
     }
     // generate for each adder count
     for ( n = 1; n < nBits; n++ )
@@ -144,7 +144,7 @@ unsigned * Macc_ConstMultGenerate( int nBits )
         if ( a == (1 << nBits) )
             break;
 
-        printf( "Generating numbers using %d adders:\n", n );
+        fprintf( Abc_FrameGlobalGetOut(), "Generating numbers using %d adders:\n", n );
         vThree = Vec_WecEntry( vDivs, n );
         for ( a = 0; a < nBits; a++ )
         for ( b = 0; b < nBits; b++ )
@@ -163,7 +163,7 @@ unsigned * Macc_ConstMultGenerate( int nBits )
                         Vec_IntPush( vThree, New );
 
                     pPlace[Mask & New] = (One << 16) | Two;
-                    printf( "%d = %d + %d\n", New, One, Two );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d = %d + %d\n", New, One, Two );
                 }
                 New = One - Two;
                 if ( New >= -Bound && New < Bound && pPlace[Mask & New] == 0 )
@@ -172,7 +172,7 @@ unsigned * Macc_ConstMultGenerate( int nBits )
                         Vec_IntPush( vThree, New );
 
                     pPlace[Mask & New] = (One << 16) | Two | (1 << 15);
-                    printf( "%d = %d - %d\n", New, One, Two );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d = %d - %d\n", New, One, Two );
                 }
                 New = Two - One;
                 if ( New >= -Bound && New < Bound && pPlace[Mask & New] == 0 )
@@ -181,10 +181,10 @@ unsigned * Macc_ConstMultGenerate( int nBits )
                         Vec_IntPush( vThree, New );
 
                     pPlace[Mask & New] = (Two << 16) | One | (1 << 15);
-                    printf( "%d = %d - %d\n", New, Two, One );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d = %d - %d\n", New, Two, One );
                 }
             }
-            printf( "Adding one incrementor:\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Adding one incrementor:\n" );
             Vec_IntForEachEntry( vThree, One, i )
             {
                 if ( One < 0 )
@@ -193,7 +193,7 @@ unsigned * Macc_ConstMultGenerate( int nBits )
                 if ( pPlace[Mask & New] == 0 )
                 {
                     pPlace[Mask & New] = One << 16;
-                    printf( "-%d = ~%d + 1\n", One, One );
+                    fprintf( Abc_FrameGlobalGetOut(), "-%d = ~%d + 1\n", One, One );
                 }
             }
         }

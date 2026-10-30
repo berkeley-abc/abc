@@ -885,15 +885,15 @@ print_partition(struct coloring *left, struct coloring *right, int n, Abc_Ntk_t 
 {
         int i, j;        
 
-        printf("top = |");
+        fprintf( Abc_FrameGlobalGetOut(), "top = |");
         for(i = 0; i < n; i += (left->clen[i]+1)) {
             for(j = 0; j < (left->clen[i]+1); j++) {
-                if (fNames) printf("%s ", getVertexName(pNtk, left->lab[i+j]));
-                else        printf("%d ", left->lab[i+j]);
+                if (fNames) fprintf( Abc_FrameGlobalGetOut(), "%s ", getVertexName(pNtk, left->lab[i+j]));
+                else        fprintf( Abc_FrameGlobalGetOut(), "%d ", left->lab[i+j]);
             }
-            if((i+left->clen[i]+1) < n) printf("|");
+            if((i+left->clen[i]+1) < n) fprintf( Abc_FrameGlobalGetOut(), "|");
         }
-        printf("|\n");
+        fprintf( Abc_FrameGlobalGetOut(), "|\n");
 
         /*printf("(cfront = {");
         for (i = 0; i < n; i++)
@@ -902,15 +902,15 @@ print_partition(struct coloring *left, struct coloring *right, int n, Abc_Ntk_t 
 
         if (right == NULL) return 1;
 
-        printf("bot = |");
+        fprintf( Abc_FrameGlobalGetOut(), "bot = |");
         for(i = 0; i < n; i += (right->clen[i]+1)) {
             for(j = 0; j < (right->clen[i]+1); j++) {
-                if (fNames) printf("%s ", getVertexName(pNtk, right->lab[i+j]));
-                else        printf("%d ", right->lab[i+j]);
+                if (fNames) fprintf( Abc_FrameGlobalGetOut(), "%s ", getVertexName(pNtk, right->lab[i+j]));
+                else        fprintf( Abc_FrameGlobalGetOut(), "%d ", right->lab[i+j]);
             }
-            if((i+right->clen[i]+1) < n) printf("|");
+            if((i+right->clen[i]+1) < n) fprintf( Abc_FrameGlobalGetOut(), "|");
         }
-        printf("|\n");
+        fprintf( Abc_FrameGlobalGetOut(), "|\n");
 
         /*printf("(cfront = {");
         for (i = 0; i < n; i++)
@@ -1708,7 +1708,7 @@ descend_leftmost(struct saucy *s)
         else
             target = min = select_smallest_max_connected_cell(s, Abc_NtkPoNum(s->pNtk), s->n);
         if (s->fPrintTree) 
-            printf("%s->%s\n", getVertexName(s->pNtk, s->left.lab[min]), getVertexName(s->pNtk, s->left.lab[min]));     
+            fprintf( Abc_FrameGlobalGetOut(), "%s->%s\n", getVertexName(s->pNtk, s->left.lab[min]), getVertexName(s->pNtk, s->left.lab[min]));     
         s->splitvar[s->lev] = s->left.lab[min];
         s->start[s->lev] = target;
         s->splitlev[s->lev] = s->nsplits;
@@ -1813,7 +1813,7 @@ descend_left(struct saucy *s)
 
         if (s->fPrintTree) {
             //printf("in level %d: %d->%d\n", s->lev, s->left.lab[lmin], s->right.lab[rmin]);
-            printf("in level %d: %s->%s\n", s->lev, getVertexName(s->pNtk, s->left.lab[lmin]), getVertexName(s->pNtk, s->right.lab[rmin]));
+            fprintf( Abc_FrameGlobalGetOut(), "in level %d: %s->%s\n", s->lev, getVertexName(s->pNtk, s->left.lab[lmin]), getVertexName(s->pNtk, s->right.lab[rmin]));
         }
 
         /* Check if we need to refine on the left */
@@ -2131,13 +2131,13 @@ backtrack_bad(struct saucy *s)
             min = backtrack_loop(s);            
             if (!s->lev) {
                 if (s->fPrintTree)
-                    printf("Backtrack by SAT from level %d to %d\n", oldLev, 0);
+                    fprintf( Abc_FrameGlobalGetOut(), "Backtrack by SAT from level %d to %d\n", oldLev, 0);
                 return -1;
             }
         }
         if (s->fPrintTree)          
             if (s->lev < oldLev) 
-                printf("Backtrack by SAT from level %d to %d\n", oldLev, s->lev);
+                fprintf( Abc_FrameGlobalGetOut(), "Backtrack by SAT from level %d to %d\n", oldLev, s->lev);
     }
     tmp = s->nsplits;
     s->nsplits = s->splitlev[old];
@@ -2258,7 +2258,7 @@ do_search(struct saucy *s)
 
     if (s->fPrintTree && s->lev > 0) {
         //printf("in level %d: %d->%d\n", s->lev, s->left.lab[s->splitwho[s->nsplits]], s->right.lab[min]);
-        printf("in level %d: %s->%s\n", s->lev, getVertexName(s->pNtk, s->left.lab[s->splitwho[s->nsplits]]), getVertexName(s->pNtk, s->right.lab[min]));
+        fprintf( Abc_FrameGlobalGetOut(), "in level %d: %s->%s\n", s->lev, getVertexName(s->pNtk, s->left.lab[s->splitwho[s->nsplits]]), getVertexName(s->pNtk, s->right.lab[min]));
     }   
 
     /* Keep going while there are tree nodes to expand */
@@ -2289,10 +2289,10 @@ do_search(struct saucy *s)
         ++s->stats->bads;
         min = backtrack_bad(s);
         if (s->fPrintTree) {
-            printf("BAD NODE\n");
+            fprintf( Abc_FrameGlobalGetOut(), "BAD NODE\n");
             if (s->lev > 0) {
                 //printf("in level %d: %d->%d\n", s->lev, s->left.lab[s->splitwho[s->nsplits]], s->right.lab[min]);     
-                printf("in level %d: %s->%s\n", s->lev, getVertexName(s->pNtk, s->left.lab[s->splitwho[s->nsplits]]), getVertexName(s->pNtk, s->right.lab[min]));                               
+                fprintf( Abc_FrameGlobalGetOut(), "in level %d: %s->%s\n", s->lev, getVertexName(s->pNtk, s->left.lab[s->splitwho[s->nsplits]]), getVertexName(s->pNtk, s->right.lab[min]));                               
             }
         }
     }
@@ -2442,17 +2442,17 @@ saucy_search(
     s->refineBySim2 = refineBySim2_init;    
 
     //print_partition(&s->left, NULL, s->n, s->pNtk, 1);
-    printf("Initial Refine by Dependency graph ... ");
+    fprintf( Abc_FrameGlobalGetOut(), "Initial Refine by Dependency graph ... ");
     refineByDepGraph(s, &s->left);
     //print_partition(&s->left, NULL, s->n, s->pNtk, 1);
-    printf("done!\n");
+    fprintf( Abc_FrameGlobalGetOut(), "done!\n");
     
-    printf("Initial Refine by Simulation ... ");
+    fprintf( Abc_FrameGlobalGetOut(), "Initial Refine by Simulation ... ");
     if (REFINE_BY_SIM_1) s->refineBySim1(s, &s->left);
     //print_partition(&s->left, NULL, s->n, s->pNtk, 1);
     if (REFINE_BY_SIM_2) s->refineBySim2(s, &s->left);
     //print_partition(&s->left, NULL, s->n, s->pNtk, 1);
-    printf("done!\n\t--------------------\n");
+    fprintf( Abc_FrameGlobalGetOut(), "done!\n\t--------------------\n");
 
     /* Descend along the leftmost branch and compute zeta */
     s->refineBySim1 = refineBySim1_left;
@@ -3166,8 +3166,8 @@ analyzeConflict( Abc_Ntk_t * pNtk, int * pModel, int fVerbose )
 
     if (fVerbose) {
         Abc_NtkForEachCi( pNtk, pNode, i )
-            printf(" %s=%d", Abc_ObjName(pNode), pModel[i]);
-        printf("\n");
+            fprintf( Abc_FrameGlobalGetOut(), " %s=%d", Abc_ObjName(pNode), pModel[i]);
+        fprintf( Abc_FrameGlobalGetOut(), "\n");
     }
 
     ABC_FREE( pValues );    
@@ -3193,7 +3193,7 @@ Abc_NtkCecSat_saucy( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pModel )
     pMiter = Abc_NtkMiter( pNtk1, pNtk2, 1, 0, 0, 0 );
     if ( pMiter == NULL )
     {
-        printf( "Miter computation has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Miter computation has failed.\n" );
         exit(1);
     }
     RetValue = Abc_NtkMiterIsConstant( pMiter );
@@ -3220,14 +3220,14 @@ Abc_NtkCecSat_saucy( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pModel )
     Abc_NtkDelete( pMiter );
     if ( pCnf == NULL )
     {
-        printf( "Renoding for CNF has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Renoding for CNF has failed.\n" );
         exit(1);
     }
 
     /* solve the CNF using the SAT solver */
     RetValue = Abc_NtkMiterSat( pCnf, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)nInsLimit, 0, NULL, NULL );
     if ( RetValue == -1 ) {
-        printf( "Networks are undecided (SAT solver timed out).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are undecided (SAT solver timed out).\n" );
         exit(1);
     }
     /*else if ( RetValue == 0 )
@@ -3268,9 +3268,9 @@ void saucyGateWay( Abc_Ntk_t * pNtkOrig, Abc_Obj_t * pNodePo, FILE * gFile, int 
     s = saucy_alloc( pNtk );    
 
     /******* Getting Dependencies *******/  
-    printf("Build functional dependency graph (dependency stats are below) ... ");      
+    fprintf( Abc_FrameGlobalGetOut(), "Build functional dependency graph (dependency stats are below) ... ");      
     getDependencies( pNtk, s->iDep, s->oDep );
-    printf("\t--------------------\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\t--------------------\n");
     /************************************/
 
     /* Finding toplogical orde */
@@ -3313,7 +3313,7 @@ void saucyGateWay( Abc_Ntk_t * pNtkOrig, Abc_Obj_t * pNodePo, FILE * gFile, int 
 
     /* Set the output file for generators */
     if (gFile == NULL)
-        s->gFile = stdout;
+        s->gFile = Abc_FrameGlobalGetOut();
     else
         s->gFile = gFile;
 
@@ -3324,12 +3324,12 @@ void saucyGateWay( Abc_Ntk_t * pNtkOrig, Abc_Obj_t * pNodePo, FILE * gFile, int 
     s->fLookForSwaps = fLookForSwaps;
 
     saucy_search(pNtk, s, 0, colors, &stats);   
-    print_stats(stdout, stats);
+    print_stats(Abc_FrameGlobalGetOut(), stats);
     if (fBooleanMatching) {
         if (stats.grpsize_base > 1 || stats.grpsize_exp > 0)
-            printf("*** Networks are equivalent ***\n");
+            fprintf( Abc_FrameGlobalGetOut(), "*** Networks are equivalent ***\n");
         else
-            printf("*** Networks are NOT equivalent ***\n");
+            fprintf( Abc_FrameGlobalGetOut(), "*** Networks are NOT equivalent ***\n");
     }
     saucy_free(s);
     Abc_NtkDelete(pNtk);

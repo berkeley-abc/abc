@@ -125,7 +125,7 @@ Abc_Ntk_t * Io_ReadBlifAsAig( char * pFileName, int fCheck )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Io_Blif(): The file is unavailable (absent or open).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_Blif(): The file is unavailable (absent or open).\n" );
         return 0;
     }
     fclose( pFile );
@@ -144,7 +144,7 @@ Abc_Ntk_t * Io_ReadBlifAsAig( char * pFileName, int fCheck )
     // construct the network
     pAig = Io_BlifParse( p );
     if ( p->sError[0] )
-        fprintf( stdout, "%s\n", p->sError );
+        fprintf( Abc_FrameGlobalGetOut(), "%s\n", p->sError );
     if ( pAig == NULL )
         return NULL;
     Io_BlifFree( p );
@@ -152,7 +152,7 @@ Abc_Ntk_t * Io_ReadBlifAsAig( char * pFileName, int fCheck )
     // make sure that everything is okay with the network structure
     if ( fCheck && !Abc_NtkCheckRead( pAig ) )
     {
-        printf( "Io_Blif: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_Blif: The network check has failed.\n" );
         Abc_NtkDelete( pAig );
         return NULL;
     }
@@ -437,7 +437,7 @@ static char * Io_BlifLoadFile( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Io_BlifLoadFile(): The file is unavailable (absent or open).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_BlifLoadFile(): The file is unavailable (absent or open).\n" );
         return NULL;
     }
     fseek( pFile, 0, SEEK_END );  
@@ -445,7 +445,7 @@ static char * Io_BlifLoadFile( char * pFileName )
     if ( nFileSize == 0 )
     {
         fclose( pFile );
-        printf( "Io_BlifLoadFile(): The file is empty.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_BlifLoadFile(): The file is empty.\n" );
         return NULL;
     }
     pContents = ABC_ALLOC( char, nFileSize + 10 );
@@ -535,7 +535,7 @@ static void Io_BlifReadPreparse( Io_BlifMan_t * p )
             pCur--;
             if ( pCur[strlen(pCur)-1] == '\r' )
                 pCur[strlen(pCur)-1] = 0;
-            fprintf( stdout, "Line %d: Skipping line \"%s\".\n", Io_BlifGetLine(p, pCur), pCur );
+            fprintf( Abc_FrameGlobalGetOut(), "Line %d: Skipping line \"%s\".\n", Io_BlifGetLine(p, pCur), pCur );
         }
     }
 
@@ -679,7 +679,7 @@ static int Io_BlifParseOutputs( Io_BlifMan_t * p, char * pLine )
     {
         pObj = Io_BlifHashFindOrAdd( p, pToken );
         if ( pObj->fPo )
-            fprintf( stdout, "Line %d: Primary output (%s) is defined more than once (warning only).\n", Io_BlifGetLine(p, pToken), pToken );
+            fprintf( Abc_FrameGlobalGetOut(), "Line %d: Primary output (%s) is defined more than once (warning only).\n", Io_BlifGetLine(p, pToken), pToken );
         pObj->fPo = 1;
         Vec_PtrPush( p->vPos, pObj );
     }
@@ -1005,8 +1005,8 @@ static int Io_BlifParseConstruct( Io_BlifMan_t * p )
     }
     p->nTablesLeft = Vec_PtrSize(p->vNames) - p->nTablesRead; 
     if ( p->nTablesLeft ) 
-        printf( "The number of dangling tables = %d.\n", p->nTablesLeft );
-    printf( "AND nodes = %6d.  Estimate = %6d.\n", Abc_NtkNodeNum(p->pAig), Io_BlifEstimateAndNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of dangling tables = %d.\n", p->nTablesLeft );
+    fprintf( Abc_FrameGlobalGetOut(), "AND nodes = %6d.  Estimate = %6d.\n", Abc_NtkNodeNum(p->pAig), Io_BlifEstimateAndNum(p) );
     return 1;
 }
 

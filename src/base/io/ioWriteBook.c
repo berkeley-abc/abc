@@ -79,7 +79,7 @@ void Io_WriteBookLogic( Abc_Ntk_t * pNtk, char * FileName )
     pNtkTemp = Abc_NtkToNetlist(pNtk);
     if ( pNtkTemp == NULL )
     {
-        fprintf( stdout, "Writing BOOK has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Writing BOOK has failed.\n" );
         return;
     }
     Io_WriteBook( pNtkTemp, FileName );
@@ -120,7 +120,7 @@ void Io_WriteBook( Abc_Ntk_t * pNtk, char * FileName )
     if ( (pFileNodes == NULL) || (pFileNets == NULL) || (pFileAux == NULL) )
     {
         fclose( pFileAux );
-        fprintf( stdout, "Io_WriteBook(): Cannot open the output files.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteBook(): Cannot open the output files.\n" );
         return;
     }
     fprintf( pFileAux, "RowBasedPlacement : %s.nodes %s.nets %s.scl %s.pl %s.wts", 
@@ -192,8 +192,8 @@ unsigned Io_NtkWriteNodes( FILE * pFile, Abc_Ntk_t * pNtk )
     // write the forehead
     numTerms=Abc_NtkPiNum(pNtk)+Abc_NtkPoNum(pNtk);
     numNodes=numTerms+Abc_NtkNodeNum(pNtk)+Abc_NtkLatchNum(pNtk);
-    printf("NumNodes : %d\t", numNodes );
-    printf("NumTerminals : %d\n", numTerms );
+    fprintf( Abc_FrameGlobalGetOut(), "NumNodes : %d\t", numNodes );
+    fprintf( Abc_FrameGlobalGetOut(), "NumTerminals : %d\n", numTerms );
     fprintf( pFile, "UCLA    nodes    1.0\n");
     fprintf( pFile, "NumNodes : %d\n", numNodes );
     fprintf( pFile, "NumTerminals : %d\n", numTerms );
@@ -209,7 +209,7 @@ unsigned Io_NtkWriteNodes( FILE * pFile, Abc_Ntk_t * pNtk )
         }
     }
     // write each internal node
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkNodeNum(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkNodeNum(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -411,14 +411,14 @@ void Io_NtkWriteNets( FILE * pFile, Abc_Ntk_t * pNtk )
     // write the head
     Abc_NtkForEachNet( pNtk, pNet, i )
     numPin+=Abc_ObjFaninNum(pNet)+Abc_ObjFanoutNum(pNet);
-    printf( "NumNets  : %d\t", Abc_NtkNetNum(pNtk) );
-    printf( "NumPins      : %d\n\n", numPin );
+    fprintf( Abc_FrameGlobalGetOut(), "NumNets  : %d\t", Abc_NtkNetNum(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "NumPins      : %d\n\n", numPin );
     fprintf( pFile, "UCLA    nets    1.0\n");
     fprintf( pFile, "NumNets : %d\n", Abc_NtkNetNum(pNtk) );
     fprintf( pFile, "NumPins : %d\n", numPin );
 
     // write nets
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkNetNum(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkNetNum(pNtk) );
     Abc_NtkForEachNet( pNtk, pNet, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -527,18 +527,18 @@ void Io_NtkBuildLayout( FILE * pFileScl, FILE * pFilePl, Abc_Ntk_t * pNtk, doubl
     double layoutWidth = Abc_Rint(targetLayoutArea/layoutHeight);
     double actualLayoutArea = layoutWidth * layoutHeight;
 
-    printf( "Core cell height(==site height) is %d\n", coreHeight );
-    printf( "Total core cell width is %d giving an ave width of %f\n", totalWidth, (double)(totalWidth/numCoreCells));
-    printf( "Target Dimensions:\n" );
-    printf( "  Area  :   %f\n", targetLayoutArea );
-    printf( "  WS%%   :   %f\n", whiteSpace );
-    printf( "  AR    :   %f\n", aspectRatio );
-    printf( "Actual Dimensions:\n" );
-    printf( "  Width :   %f\n", layoutWidth );
-    printf( "  Height:   %f (%d rows)\n", layoutHeight, numCoreRows);
-    printf( "  Area  :   %f\n", actualLayoutArea );
-    printf( "  WS%%   :   %f\n", 100*(actualLayoutArea-coreCellArea)/actualLayoutArea );
-    printf( "  AR    :   %f\n\n", layoutWidth/layoutHeight );    
+    fprintf( Abc_FrameGlobalGetOut(), "Core cell height(==site height) is %d\n", coreHeight );
+    fprintf( Abc_FrameGlobalGetOut(),  "Total core cell width is %d giving an ave width of %f\n", totalWidth, (double)(totalWidth/numCoreCells));
+    fprintf( Abc_FrameGlobalGetOut(), "Target Dimensions:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "  Area  :   %f\n", targetLayoutArea );
+    fprintf( Abc_FrameGlobalGetOut(), "  WS%%   :   %f\n", whiteSpace );
+    fprintf( Abc_FrameGlobalGetOut(), "  AR    :   %f\n", aspectRatio );
+    fprintf( Abc_FrameGlobalGetOut(), "Actual Dimensions:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "  Width :   %f\n", layoutWidth );
+    fprintf( Abc_FrameGlobalGetOut(),  "  Height:   %f (%d rows)\n", layoutHeight, numCoreRows);
+    fprintf( Abc_FrameGlobalGetOut(), "  Area  :   %f\n", actualLayoutArea );
+    fprintf( Abc_FrameGlobalGetOut(), "  WS%%   :   %f\n", 100*(actualLayoutArea-coreCellArea)/actualLayoutArea );
+    fprintf( Abc_FrameGlobalGetOut(), "  AR    :   %f\n\n", layoutWidth/layoutHeight );    
 
     Io_NtkWriteScl( pFileScl, numCoreRows, layoutWidth ); 
     Io_NtkWritePl( pFilePl, pNtk, numTerms, layoutHeight, layoutWidth );
@@ -620,12 +620,12 @@ void Io_NtkWritePl( FILE * pFile, Abc_Ntk_t * pNtk, unsigned numTerms, double la
     vOrderedTerms=Io_NtkOrderingPads( pNtk, vTerms );
     assert( termsOnTop+termsOnBottom+termsOnLeft+termsOnRight == (unsigned)Vec_PtrSize(vOrderedTerms) );
 
-    printf( "Done constructing layout region\n" );
-    printf( "Terminals: %d\n", numTerms );
-    printf( "  Top:     %d\n", termsOnTop );
-    printf( "  Bottom:  %d\n", termsOnBottom );
-    printf( "  Left:    %d\n", termsOnLeft );
-    printf( "  Right:   %d\n", termsOnRight );
+    fprintf( Abc_FrameGlobalGetOut(), "Done constructing layout region\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Terminals: %d\n", numTerms );
+    fprintf( Abc_FrameGlobalGetOut(), "  Top:     %d\n", termsOnTop );
+    fprintf( Abc_FrameGlobalGetOut(), "  Bottom:  %d\n", termsOnBottom );
+    fprintf( Abc_FrameGlobalGetOut(), "  Left:    %d\n", termsOnLeft );
+    fprintf( Abc_FrameGlobalGetOut(), "  Right:   %d\n", termsOnRight );
 
     fprintf( pFile, "UCLA    pl    1.0\n\n" );
 
@@ -735,7 +735,7 @@ Vec_Ptr_t * Io_NtkOrderingPads( Abc_Ntk_t * pNtk, Vec_Ptr_t * vTerms )
     pOrdered[i]=0; 
    
     pNextTerm = (Abc_Obj_t *)Vec_PtrEntry(vTerms, termIdx++);
-    pProgress = Extra_ProgressBarStart( stdout, numTerms );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), numTerms );
     while( termCount < numTerms && termIdx < numTerms )
     {
     if( pOrdered[Abc_ObjId(pNextTerm)] && !newNeighbor )

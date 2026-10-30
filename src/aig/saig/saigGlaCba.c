@@ -281,7 +281,7 @@ Aig_Man_t * Aig_Gla1DeriveAbs( Aig_Gla1Man_t * p )
     // clean up
     RetValue = Aig_ManCleanup( pNew );
     if ( RetValue > 0 )
-        printf( "Aig_Gla1DeriveAbs(): Internal error! Object count mismatch.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_Gla1DeriveAbs(): Internal error! Object count mismatch.\n" );
     assert( RetValue == 0 );
     return pNew;
 }
@@ -630,10 +630,10 @@ Abc_Cex_t * Aig_Gla1DeriveCex( Aig_Gla1Man_t * p, int iFrame )
 void Aig_Gla1PrintAbstr( Aig_Gla1Man_t * p, int f, int r, int v, int c )
 {
     if ( r == 0 )
-        printf( "== %3d ==", f );
+        fprintf( Abc_FrameGlobalGetOut(), "== %3d ==", f );
     else
-        printf( "         " );
-    printf( " %4d  PI =%6d  PPI =%6d  FF =%6d  Node =%6d  Var =%7d  Conf =%6d\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "         " );
+    fprintf( Abc_FrameGlobalGetOut(), " %4d  PI =%6d  PPI =%6d  FF =%6d  Node =%6d  Var =%7d  Conf =%6d\n", 
         r, Vec_IntSize(p->vPis), Vec_IntSize(p->vPPis), Vec_IntSize(p->vFlops), Vec_IntSize(p->vNodes), v, c );
 }
 
@@ -698,9 +698,9 @@ Vec_Int_t * Aig_Gla1ManPerform( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, i
     if ( fVerbose )
     {
         if ( TimeLimit )
-            printf( "Abstracting from frame %d to frame %d with timeout %d sec.\n", nStart, nFramesMax, TimeLimit );
+            fprintf( Abc_FrameGlobalGetOut(), "Abstracting from frame %d to frame %d with timeout %d sec.\n", nStart, nFramesMax, TimeLimit );
         else
-            printf( "Abstracting from frame %d to frame %d with no timeout.\n", nStart, nFramesMax );
+            fprintf( Abc_FrameGlobalGetOut(), "Abstracting from frame %d to frame %d with no timeout.\n", nStart, nFramesMax );
     }
 
     // start the solver
@@ -724,7 +724,7 @@ Vec_Int_t * Aig_Gla1ManPerform( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, i
         Aig_ManForEachObjVec( p->vAssigned, pAig, pObj, i )
             if ( Vec_IntEntry(p->vIncluded, Aig_ObjId(pObj)) )
                 if ( !Aig_Gla1ObjAddToSolver( p, pObj, f ) )
-                    printf( "Error!  SAT solver became UNSAT.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Error!  SAT solver became UNSAT.\n" );
 
         // skip checking if we are not supposed to
         if ( f < nStart )
@@ -751,16 +751,16 @@ Vec_Int_t * Aig_Gla1ManPerform( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, i
                 if ( fVerbose )
                 {
                     if ( r == 0 )
-                        printf( "== %3d ==", f );
+                        fprintf( Abc_FrameGlobalGetOut(), "== %3d ==", f );
                     else
-                        printf( "         " );
+                        fprintf( Abc_FrameGlobalGetOut(), "         " );
                     if ( TimeLimit && clock() > nTimeToStop )
-                        printf( "       SAT solver timed out after %d seconds.\n", TimeLimit );
+                        fprintf( Abc_FrameGlobalGetOut(), "       SAT solver timed out after %d seconds.\n", TimeLimit );
                     else if ( RetValue != l_False )
-                        printf( "       SAT solver returned UNDECIDED after %5d conflicts.\n", nConfAft - nConfBef );
+                        fprintf( Abc_FrameGlobalGetOut(), "       SAT solver returned UNDECIDED after %5d conflicts.\n", nConfAft - nConfBef );
                     else
                     {
-                        printf( "       SAT solver returned UNSAT after %5d conflicts.  ", nConfAft - nConfBef );
+                        fprintf( Abc_FrameGlobalGetOut(), "       SAT solver returned UNSAT after %5d conflicts.  ", nConfAft - nConfBef );
                         Abc_PrintTime( 1, "Total time", clock() - clkTotal );
                     }
                 }
@@ -774,7 +774,7 @@ Vec_Int_t * Aig_Gla1ManPerform( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, i
             // verify the counter-example
             RetValue = Saig_ManVerifyCex( pAbs, pCex );
             if ( RetValue == 0 )
-                printf( "Error!  CEX is invalid.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Error!  CEX is invalid.\n" );
             // perform refinement
             vPPiRefine = Saig_ManCbaFilterInputs( pAbs, Vec_IntSize(p->vPis), pCex, 0 );
             Vec_IntForEachEntry( vPPiRefine, Entry, i )
@@ -785,7 +785,7 @@ Vec_Int_t * Aig_Gla1ManPerform( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, i
                 Vec_IntWriteEntry( p->vIncluded, Aig_ObjId(pObj), 1 );
                 for ( g = 0; g <= f; g++ )
                     if ( !Aig_Gla1ObjAddToSolver( p, pObj, g ) )
-                        printf( "Error!  SAT solver became UNSAT.\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "Error!  SAT solver became UNSAT.\n" );
             }
             if ( Vec_IntSize(vPPiRefine) == 0 )
             {
@@ -810,11 +810,11 @@ Vec_Int_t * Aig_Gla1ManPerform( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, i
     }
     p->timeTotal = clock() - clkTotal;
     if ( f == nFramesMax )
-        printf( "Finished %d frames without exceeding conflict limit (%d).\n", f, nConfLimit );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished %d frames without exceeding conflict limit (%d).\n", f, nConfLimit );
     else if ( p->vIncluded == NULL )
-        printf( "The problem is SAT in frame %d. The CEX is currently not produced.\n", f );
+        fprintf( Abc_FrameGlobalGetOut(), "The problem is SAT in frame %d. The CEX is currently not produced.\n", f );
     else
-        printf( "Ran out of conflict limit (%d) at frame %d.\n", nConfLimit, f );
+        fprintf( Abc_FrameGlobalGetOut(), "Ran out of conflict limit (%d) at frame %d.\n", nConfLimit, f );
     *piFrame = f;
     // print stats
     if ( fVerbose )

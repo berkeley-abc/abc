@@ -199,7 +199,7 @@ int Msat_OrderCheck( Msat_Order_t * p )
             Counter++;
     }
     if ( Counter > 0 )
-        printf( "%d(%d) ", Counter, p->rVars.nItems );
+        fprintf( Abc_FrameGlobalGetOut(), "%d(%d) ", Counter, p->rVars.nItems );
 
     // we may also check other unassigned variables in the cone
     // to make sure that if they are not in J-boundary, 

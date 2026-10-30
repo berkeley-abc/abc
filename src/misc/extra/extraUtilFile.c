@@ -306,12 +306,12 @@ int Extra_FileCheck( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Extra_FileCheck():  File \"%s\" does not exist.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Extra_FileCheck():  File \"%s\" does not exist.\n", pFileName );
         return 0;
     }
     fseek( pFile, 0, SEEK_END );
     if ( ftell( pFile ) == 0 )
-        printf( "Extra_FileCheck():  File \"%s\" is empty.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Extra_FileCheck():  File \"%s\" is empty.\n", pFileName );
     fclose( pFile );
     return 1;
 }
@@ -334,7 +334,7 @@ int Extra_FileSize( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Extra_FileSize(): The file is unavailable (absent or open).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Extra_FileSize(): The file is unavailable (absent or open).\n" );
         return 0;
     }
     fseek( pFile, 0, SEEK_END );  
@@ -715,9 +715,9 @@ void Extra_PrintSymbols( FILE * pFile, char Char, int nTimes, int fPrintNewLine 
 {
     int i;
     for ( i = 0; i < nTimes; i++ )
-        printf( "%c", Char );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", Char );
     if ( fPrintNewLine )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -809,14 +809,14 @@ void Extra_FileSort( char * pFileName, char * pFileNameOut )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Extra_FileSort(): Cannot open file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Extra_FileSort(): Cannot open file \"%s\".\n", pFileName );
         return;
     }
     pContents = Extra_FileRead( pFile );
     fclose( pFile );
     if ( pContents == NULL )
     {
-        printf( "Extra_FileSort(): Cannot read contents of file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Extra_FileSort(): Cannot read contents of file \"%s\".\n", pFileName );
         return;
     }
     // count end of lines
@@ -844,7 +844,7 @@ void Extra_FileSort( char * pFileName, char * pFileNameOut )
     free( pLines );
     free( pContents );
     // report the result
-    printf( "The file after sorting is \"%s\".\n", pFileNameOut );
+    fprintf( Abc_FrameGlobalGetOut(), "The file after sorting is \"%s\".\n", pFileNameOut );
 }
 
 
@@ -868,14 +868,14 @@ void Extra_FileLineNumAdd( char * pFileName, char * pFileNameOut )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Extra_FileLineNumAdd(): Cannot open file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Extra_FileLineNumAdd(): Cannot open file \"%s\".\n", pFileName );
         return;
     }
     pFile2 = fopen( pFileNameOut, "wb" );
     if ( pFile2 == NULL )
     {
         fclose( pFile );
-        printf( "Extra_FileLineNumAdd(): Cannot open file \"%s\".\n", pFileNameOut );
+        fprintf( Abc_FrameGlobalGetOut(), "Extra_FileLineNumAdd(): Cannot open file \"%s\".\n", pFileNameOut );
         return;
     }
     for ( iLine = 0; fgets( Buffer, 1000, pFile ); iLine++ )
@@ -886,7 +886,7 @@ void Extra_FileLineNumAdd( char * pFileName, char * pFileNameOut )
     fclose( pFile );
     fclose( pFile2 );
     // report the result
-    printf( "The resulting file is \"%s\".\n", pFileNameOut );
+    fprintf( Abc_FrameGlobalGetOut(), "The resulting file is \"%s\".\n", pFileNameOut );
 }
 
 /**Function*************************************************************

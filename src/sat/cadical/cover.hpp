@@ -24,12 +24,12 @@
   do { \
     if (!(COND)) \
       break; \
-    fprintf (stderr, \
+    fprintf ( Abc_FrameGlobalGetErr(), \
              "%scadical%s: %s:%d: %s: Coverage goal %s`%s'%s reached.\n", \
              terr.bold_code (), terr.normal_code (), __FUNCTION__, \
              __LINE__, __FILE__, terr.green_code (), #COND, \
              terr.normal_code ()); \
-    fflush (stderr); \
+    fflush (Abc_FrameGlobalGetErr()); \
     abort (); \
   } while (0)
 

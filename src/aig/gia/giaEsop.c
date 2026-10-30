@@ -117,7 +117,7 @@ void Eso_ManCoverPrint( Eso_Man_t * p, Vec_Int_t * vEsop )
     int i, k, Lit, Cube;
     if ( Vec_IntSize(vEsop) == 0 )
     {
-        printf( "Const 0\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Const 0\n" );
         return;
     }
     assert( p->nVars >= 0 && p->nVars <= INT_MAX - 4 );
@@ -129,18 +129,18 @@ void Eso_ManCoverPrint( Eso_Man_t * p, Vec_Int_t * vEsop )
     Vec_IntForEachEntry( vEsop, Cube, i )
     {
         if ( Cube == p->Cube1 )
-            printf( "%s", Vec_StrArray(vStr) );
+            fprintf( Abc_FrameGlobalGetOut(), "%s", Vec_StrArray(vStr) );
         else 
         {
             vCube = Eso_ManCube( p, Cube );
             Vec_IntForEachEntry( vCube, Lit, k )
                 Vec_StrWriteEntry( vStr, Abc_Lit2Var(Lit), (char)(Abc_LitIsCompl(Lit)?'0':'1') );
-            printf( "%s", Vec_StrArray(vStr) );
+            fprintf( Abc_FrameGlobalGetOut(), "%s", Vec_StrArray(vStr) );
             Vec_IntForEachEntry( vCube, Lit, k )
                 Vec_StrWriteEntry( vStr, Abc_Lit2Var(Lit), '-' );
         }
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_StrFree( vStr );
 }
 Vec_Wec_t * Eso_ManCoverDerive( Eso_Man_t * p, Vec_Ptr_t * vCover )
@@ -511,7 +511,7 @@ Gia_Man_t * Eso_ManCompute( Gia_Man_t * pGia, int fVerbose, Vec_Wec_t ** pvRes )
         vEsop1 = Vec_WecEntry( p->vEsops, Gia_ObjFaninId0p(pGia, pObj) );
         vEsop1 = Eso_ManTransformOne( p, vEsop1, Gia_ObjFaninC0(pObj), p->vCube1 );
         if ( fVerbose )
-            printf( "Output %3d:  ESOP has %5d cubes\n", i, Vec_IntSize(vEsop1) );
+            fprintf( Abc_FrameGlobalGetOut(), "Output %3d:  ESOP has %5d cubes\n", i, Vec_IntSize(vEsop1) );
 //        if ( fVerbose )
 //            Eso_ManCoverPrint( p, vEsop1 );
         Vec_PtrPush( vCover, Vec_IntDup(vEsop1) );
@@ -519,7 +519,7 @@ Gia_Man_t * Eso_ManCompute( Gia_Man_t * pGia, int fVerbose, Vec_Wec_t ** pvRes )
     }
     if ( fVerbose )
     {
-        printf( "Outs = %d.  Cubes = %d.  Used = %d.  Hashed = %d. ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Outs = %d.  Cubes = %d.  Used = %d.  Hashed = %d. ", 
             Gia_ManCoNum(pGia), nCubes, nCubesUsed, Hsh_VecSize(p->pHash) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }

@@ -154,7 +154,7 @@ Res6_Man_t * Res6_ManRead( char * pFileName )
     Res6_Man_t * p = NULL;
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
-        printf( "Cannot open input file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\".\n", pFileName );
     else
     {
         int i, k, nIns, nNodes, nOuts, nPats;
@@ -162,12 +162,12 @@ Res6_Man_t * Res6_ManRead( char * pFileName )
         char * pLine = fgets( Buffer, 100, pFile );
         if ( pLine == NULL )
         {
-            printf( "Cannot read the header line of input file \"%s\".\n", pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot read the header line of input file \"%s\".\n", pFileName );
             return NULL;
         }
         if ( 5 != sscanf(pLine, "%s %d %d %d %d", Temp, &nIns, &nNodes, &nOuts, &nPats) )
         {
-            printf( "Cannot read the parameters from the header of input file \"%s\".\n", pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot read the parameters from the header of input file \"%s\".\n", pFileName );
             return NULL;
         }
         p = Res6_ManStart( nIns, nNodes, nOuts, nPats );
@@ -177,7 +177,7 @@ Res6_Man_t * Res6_ManRead( char * pFileName )
             char * pNext = fgets( pLine, nPats + 100, pFile );
             if ( pNext == NULL )
             {
-                printf( "Cannot read line %d of input file \"%s\".\n", i, pFileName );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot read line %d of input file \"%s\".\n", i, pFileName );
                 Res6_ManStop( p );
                 ABC_FREE( pLine );
                 fclose( pFile );
@@ -194,7 +194,7 @@ Res6_Man_t * Res6_ManRead( char * pFileName )
             char * pNext = fgets( pLine, nPats + 100, pFile );
             if ( pNext == NULL )
             {
-                printf( "Cannot read line %d of input file \"%s\".\n", i, pFileName );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot read line %d of input file \"%s\".\n", i, pFileName );
                 Res6_ManStop( p );
                 ABC_FREE( pLine );
                 fclose( pFile );
@@ -213,7 +213,7 @@ void Res6_ManWrite( char * pFileName, Res6_Man_t * p )
 {
     FILE * pFile = fopen( pFileName, "wb" ); 
     if ( pFile == NULL )
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
     else
     {
         int i, k;
@@ -235,11 +235,11 @@ void Res6_ManWrite( char * pFileName, Res6_Man_t * p )
 void Res6_ManPrintProblem( Res6_Man_t * p, int fVerbose )
 {
     int i, nInputs = (p->nIns && p->nIns < 6) ? p->nIns : 6;
-    printf( "Problem:   In = %d  Div = %d  Out  = %d  Pat = %d\n", p->nIns, p->nDivs - p->nIns - 1, p->nOuts, p->nPats );
+    fprintf( Abc_FrameGlobalGetOut(), "Problem:   In = %d  Div = %d  Out  = %d  Pat = %d\n", p->nIns, p->nDivs - p->nIns - 1, p->nOuts, p->nPats );
     if ( !fVerbose )
         return;
-    printf( "%02d : %s\n", 0, "const0" );
-    printf( "%02d : %s\n", 1, "const1" );
+    fprintf( Abc_FrameGlobalGetOut(), "%02d : %s\n", 0, "const0" );
+    fprintf( Abc_FrameGlobalGetOut(), "%02d : %s\n", 1, "const1" );
     for ( i = 1; i < p->nDivs; i++ )
     {
         if ( nInputs < 6 )
@@ -247,14 +247,14 @@ void Res6_ManPrintProblem( Res6_Man_t * p, int fVerbose )
             *p->ppLits[2*i+0] = Abc_Tt6Stretch( *p->ppLits[2*i+0], nInputs );
             *p->ppLits[2*i+1] = Abc_Tt6Stretch( *p->ppLits[2*i+1], nInputs );
         }
-        printf("%02d : ", 2*i+0), Dau_DsdPrintFromTruth2(p->ppLits[2*i+0], nInputs), printf( "\n" );
-        printf("%02d : ", 2*i+1), Dau_DsdPrintFromTruth2(p->ppLits[2*i+1], nInputs), printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%02d : ", 2*i+0 ), Dau_DsdPrintFromTruth2(p->ppLits[2*i+0], nInputs), fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%02d : ", 2*i+1 ), Dau_DsdPrintFromTruth2(p->ppLits[2*i+1], nInputs), fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     for ( i = 0; i < (1 << p->nOuts); i++ )
     {
         if ( nInputs < 6 )
             *p->ppSets[i] = Abc_Tt6Stretch( *p->ppSets[i], nInputs );
-        printf("%02d : ", i), Dau_DsdPrintFromTruth2(p->ppSets[i], nInputs), printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%02d : ", i ), Dau_DsdPrintFromTruth2(p->ppSets[i], nInputs), fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 static inline Vec_Int_t * Res6_ManReadSol( char * pFileName )
@@ -262,7 +262,7 @@ static inline Vec_Int_t * Res6_ManReadSol( char * pFileName )
     Vec_Int_t * vRes = NULL; int Num;
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
-        printf( "Cannot open input file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\".\n", pFileName );
     else
     {
         while ( fgetc(pFile) != '\n' );
@@ -277,7 +277,7 @@ static inline void Res6_ManWriteSol( char * pFileName, Vec_Int_t * p )
 {
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
     else
     {
         int i, iLit;
@@ -309,12 +309,12 @@ static inline int Res6_LitChar( int iLit, int nDivs )
 static inline void Res6_LitPrint( int iLit, int nDivs )
 {
     if ( iLit < 2 )
-        printf( "%d", iLit );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", iLit );
     else
     {
-        printf( "%c%c", Res6_LitSign(iLit), Res6_LitChar(iLit, nDivs) );
+        fprintf( Abc_FrameGlobalGetOut(), "%c%c", Res6_LitSign(iLit), Res6_LitChar(iLit, nDivs) );
         if ( Abc_Lit2Var(iLit) >= nDivs || nDivs >= 28 )
-            printf( "%d", Abc_Lit2Var(iLit) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_Lit2Var(iLit) );
     }
 }
 Vec_Int_t * Res6_FindSupport( Vec_Int_t * vSol, int nDivs )
@@ -334,23 +334,23 @@ void Res6_PrintSuppSims( Vec_Int_t * vSol, word ** ppLits, int nWords, int nDivs
     {
         for ( k = 0; k < 64*nWords; k++ )
             if ( Abc_TtGetBit(ppLits[2*iObj+1], k) )
-                printf( "0" );
+                fprintf( Abc_FrameGlobalGetOut(), "0" );
             else if ( Abc_TtGetBit(ppLits[2*iObj], k) )
-                printf( "1" );
+                fprintf( Abc_FrameGlobalGetOut(), "1" );
             else
-                printf( "-" );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "-" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     for ( k = 0; k < 64*nWords; k++ )
     {
         Vec_IntForEachEntry( vSupp, iObj, i )
             if ( Abc_TtGetBit(ppLits[2*iObj+1], k) )
-                printf( "0" );
+                fprintf( Abc_FrameGlobalGetOut(), "0" );
             else if ( Abc_TtGetBit(ppLits[2*iObj+0], k) )
-                printf( "1" );
+                fprintf( Abc_FrameGlobalGetOut(), "1" );
             else
-                printf( "-" );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "-" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         if ( k == 9 )
             break;
     }
@@ -367,18 +367,18 @@ void Res6_PrintSolution( Vec_Int_t * vSol, int nDivs )
 {
     int iNode, nNodes = Vec_IntSize(vSol)/2-1;
     assert( Vec_IntSize(vSol) % 2 == 0 );
-    printf( "Solution:  In = %d  Div = %d  Node = %d  Out = %d\n", Res6_FindSupportSize(vSol, nDivs), nDivs-1, nNodes, 1 );
+    fprintf( Abc_FrameGlobalGetOut(), "Solution:  In = %d  Div = %d  Node = %d  Out = %d\n", Res6_FindSupportSize(vSol, nDivs), nDivs-1, nNodes, 1 );
     for ( iNode = 0; iNode <= nNodes; iNode++ )
     {
         int * pLits = Vec_IntEntryP( vSol, 2*iNode );
-        printf( "x%-2d = ", nDivs + iNode );
+        fprintf( Abc_FrameGlobalGetOut(), "x%-2d = ", nDivs + iNode );
         Res6_LitPrint( pLits[0], nDivs );
         if ( pLits[0] != pLits[1] )
         {
-            printf( "  %c ", pLits[0] < pLits[1] ? '&' : '^' );
+            fprintf( Abc_FrameGlobalGetOut(), "  %c ", pLits[0] < pLits[1] ? '&' : '^' );
             Res6_LitPrint( pLits[1], nDivs );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 int Res6_FindGetCost( Res6_Man_t * p, int iDiv )
@@ -400,7 +400,7 @@ int Res6_FindBestDiv( Res6_Man_t * p, int * pCost )
     for ( d = 0; d < 2*p->nDivs; d++ )
     {
         int Cost = Res6_FindGetCost( p, d );
-        printf( "Div = %d  Cost = %d\n", d, Cost );
+        fprintf( Abc_FrameGlobalGetOut(), "Div = %d  Cost = %d\n", d, Cost );
         if ( CostBest >= Cost )
             CostBest = Cost, dBest = d;
     }
@@ -447,9 +447,9 @@ void Res6_ManResubVerify( Res6_Man_t * p, Vec_Int_t * vSol )
 {
     int Cost = Res6_FindBestEval( p, vSol, 0 );
     if ( Cost == 0 )
-        printf( "Verification successful.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification successful.\n" );
     else
-        printf( "Verification FAILED with %d errors on %d patterns.\n", Cost, p->nPats );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification FAILED with %d errors on %d patterns.\n", Cost, p->nPats );
 }
 void Res6_ManResubCheck( char * pFileNameRes, char * pFileNameSol, int fVerbose )
 {
@@ -516,26 +516,26 @@ void Res6_ManResubVerifyPla( Res6_Man_t * p, Vec_Int_t * vSol )
 {
     int Cost = Res6_FindBestEvalPla( p, vSol );
     if ( Cost == 0 )
-        printf( "Verification successful.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification successful.\n" );
     else
-        printf( "Verification FAILED with %d errors on %d patterns.\n", Cost, p->nPats );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification FAILED with %d errors on %d patterns.\n", Cost, p->nPats );
 }
 void Res6_PrintSolutionPla( Vec_Int_t * vSol, int nSuppSize, int nDivs )
 {
     int iNode, nNodes = Vec_IntSize(vSol)/2-1;
     assert( Vec_IntSize(vSol) % 2 == 0 );
-    printf( "Solution:  In = %d  Div = %d  Node = %d  Out = %d\n", nSuppSize, nDivs-1, nNodes, 1 );
+    fprintf( Abc_FrameGlobalGetOut(), "Solution:  In = %d  Div = %d  Node = %d  Out = %d\n", nSuppSize, nDivs-1, nNodes, 1 );
     for ( iNode = 0; iNode <= nNodes; iNode++ )
     {
         int * pLits = Vec_IntEntryP( vSol, 2*iNode );
-        printf( "x%-2d = ", 1+nSuppSize+iNode );
+        fprintf( Abc_FrameGlobalGetOut(), "x%-2d = ", 1+nSuppSize+iNode );
         Res6_LitPrint( pLits[0], 1+nSuppSize );
         if ( pLits[0] != pLits[1] )
         {
-            printf( "  %c ", pLits[0] < pLits[1] ? '&' : '^' );
+            fprintf( Abc_FrameGlobalGetOut(), "  %c ", pLits[0] < pLits[1] ? '&' : '^' );
             Res6_LitPrint( pLits[1], 1+nSuppSize );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void Res6_ManResubCheckPla( char * pFileName, int fVerbose )

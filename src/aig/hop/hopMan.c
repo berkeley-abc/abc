@@ -149,13 +149,13 @@ int Hop_ManCleanup( Hop_Man_t * p )
 ***********************************************************************/
 void Hop_ManPrintStats( Hop_Man_t * p )
 {
-    printf( "PI/PO = %d/%d. ", Hop_ManPiNum(p), Hop_ManPoNum(p) );
-    printf( "A = %7d. ",       Hop_ManAndNum(p) );
-    printf( "X = %5d. ",       Hop_ManExorNum(p) );
-    printf( "Cre = %7d. ",     p->nCreated );
-    printf( "Del = %7d. ",     p->nDeleted );
-    printf( "Lev = %3d. ",     Hop_ManCountLevels(p) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "PI/PO = %d/%d. ", Hop_ManPiNum(p), Hop_ManPoNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "A = %7d. ",       Hop_ManAndNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "X = %5d. ",       Hop_ManExorNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Cre = %7d. ",     p->nCreated );
+    fprintf( Abc_FrameGlobalGetOut(), "Del = %7d. ",     p->nDeleted );
+    fprintf( Abc_FrameGlobalGetOut(), "Lev = %3d. ",     Hop_ManCountLevels(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 

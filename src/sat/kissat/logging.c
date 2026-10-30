@@ -12,17 +12,17 @@ static void begin_logging (kissat *solver, const char *prefix,
                            const char *fmt, va_list *ap) {
   TERMINAL (stdout, 1);
   KISSAT_assert (GET_OPTION (log));
-  fputs (solver->prefix, stdout);
+  fputs ( solver->prefix, Abc_FrameGlobalGetOut() );
   COLOR (MAGENTA);
-  printf ("%s %u ", prefix, solver->level);
-  vprintf (fmt, *ap);
+  fprintf ( Abc_FrameGlobalGetOut(), "%s %u ", prefix, solver->level);
+  vfprintf ( Abc_FrameGlobalGetOut(), fmt, *ap);
 }
 
 static void end_logging (void) {
   TERMINAL (stdout, 1);
-  fputc ('\n', stdout);
+  fputc( '\n', Abc_FrameGlobalGetOut() );
   COLOR (NORMAL);
-  fflush (stdout);
+  fflush( Abc_FrameGlobalGetOut() );
 }
 
 void kissat_begin_logging (kissat *solver, const char *prefix,
@@ -97,10 +97,10 @@ static void log_lits (kissat *solver, size_t size, const unsigned *lits,
                       const unsigned *counts) {
   for (size_t i = 0; i < size; i++) {
     const unsigned lit = lits[i];
-    fputc (' ', stdout);
-    fputs (LOGLIT (lit), stdout);
+    fputc( ' ', Abc_FrameGlobalGetOut() );
+    fputs ( LOGLIT (lit), Abc_FrameGlobalGetOut() );
     if (counts)
-      printf ("#%u", counts[lit]);
+      fprintf ( Abc_FrameGlobalGetOut(), "#%u", counts[lit]);
   }
 }
 
@@ -108,8 +108,8 @@ static void log_reprs (kissat *solver, size_t size, const unsigned *lits,
                        const unsigned *repr) {
   for (size_t i = 0; i < size; i++) {
     const unsigned lit = lits[i];
-    fputc (' ', stdout);
-    fputs (LOGREPR (lit, repr), stdout);
+    fputc( ' ', Abc_FrameGlobalGetOut() );
+    fputs ( LOGREPR (lit, repr), Abc_FrameGlobalGetOut() );
   }
 }
 
@@ -119,7 +119,7 @@ void kissat_log_lits (kissat *solver, const char *prefix, size_t size,
   va_start (ap, fmt);
   begin_logging (solver, prefix, fmt, &ap);
   va_end (ap);
-  printf (" size %zu clause", size);
+  fprintf ( Abc_FrameGlobalGetOut(), " size %zu clause", size);
   log_lits (solver, size, lits, 0);
   end_logging ();
 }
@@ -130,9 +130,9 @@ void kissat_log_litset (kissat *solver, const char *prefix, size_t size,
   va_start (ap, fmt);
   begin_logging (solver, prefix, fmt, &ap);
   va_end (ap);
-  printf (" size %zu literal set {", size);
+  fprintf ( Abc_FrameGlobalGetOut(), " size %zu literal set {", size);
   log_lits (solver, size, lits, 0);
-  fputs (" }", stdout);
+  fputs ( " }", Abc_FrameGlobalGetOut() );
   end_logging ();
 }
 
@@ -146,19 +146,19 @@ void kissat_log_litpart (kissat *solver, const char *prefix, size_t size,
   for (size_t i = 0; i < size; i++)
     if (lits[i] == INVALID_LIT)
       classes++;
-  printf (" %zu literals %zu classes literal partition [", size - classes,
+  fprintf ( Abc_FrameGlobalGetOut(), " %zu literals %zu classes literal partition [", size - classes,
           classes);
   for (size_t i = 0; i < size; i++) {
     const unsigned lit = lits[i];
     if (lit == INVALID_LIT) {
       if (i + 1 != size)
-        fputs (" |", stdout);
+        fputs (" |", Abc_FrameGlobalGetOut() );
     } else {
-      fputc (' ', stdout);
-      fputs (LOGLIT (lit), stdout);
+      fputc ( ' ', Abc_FrameGlobalGetOut() );
+      fputs (LOGLIT (lit), Abc_FrameGlobalGetOut());
     }
   }
-  fputs (" ]", stdout);
+  fputs ( "]", Abc_FrameGlobalGetOut() );
   end_logging ();
 }
 
@@ -171,8 +171,8 @@ void kissat_log_counted_ref_lits (kissat *solver, const char *prefix,
   va_start (ap, fmt);
   begin_logging (solver, prefix, fmt, &ap);
   va_end (ap);
-  printf (" size %zu clause", size);
-  printf ("[%u]", ref);
+  fprintf ( Abc_FrameGlobalGetOut(), " size %zu clause", size);
+  fprintf ( Abc_FrameGlobalGetOut(), "[%u]", ref);
   log_lits (solver, size, lits, counts);
   end_logging ();
 }
@@ -185,7 +185,7 @@ void kissat_log_counted_lits (kissat *solver, const char *prefix,
   va_start (ap, fmt);
   begin_logging (solver, prefix, fmt, &ap);
   va_end (ap);
-  printf (" size %zu literals", size);
+  fprintf ( Abc_FrameGlobalGetOut(), " size %zu literals", size);
   log_lits (solver, size, lits, counts);
   end_logging ();
 }
@@ -197,7 +197,7 @@ void kissat_log_resolvent (kissat *solver, const char *prefix,
   begin_logging (solver, prefix, fmt, &ap);
   va_end (ap);
   const size_t size = SIZE_STACK (solver->resolvent);
-  printf (" size %zu resolvent", size);
+  fprintf ( Abc_FrameGlobalGetOut(), " size %zu resolvent", size);
   const unsigned *const lits = BEGIN_STACK (solver->resolvent);
   log_lits (solver, size, lits, 0);
   end_logging ();
@@ -209,9 +209,9 @@ void kissat_log_ints (kissat *solver, const char *prefix, size_t size,
   va_start (ap, fmt);
   begin_logging (solver, prefix, fmt, &ap);
   va_end (ap);
-  printf (" size %zu external literals clause", size);
+  fprintf ( Abc_FrameGlobalGetOut(), " size %zu external literals clause", size);
   for (size_t i = 0; i < size; i++)
-    printf (" %d", lits[i]);
+    fprintf ( Abc_FrameGlobalGetOut(), " %d", lits[i]);
   end_logging ();
 }
 
@@ -222,9 +222,9 @@ void kissat_log_unsigneds (kissat *solver, const char *prefix, size_t size,
   va_start (ap, fmt);
   begin_logging (solver, prefix, fmt, &ap);
   va_end (ap);
-  printf (" size %zu clause", size);
+  fprintf ( Abc_FrameGlobalGetOut(), " size %zu clause", size);
   for (size_t i = 0; i < size; i++)
-    printf (" %u", lits[i]);
+    fprintf ( Abc_FrameGlobalGetOut(), " %u", lits[i]);
   end_logging ();
 }
 
@@ -232,24 +232,24 @@ static void log_gate (kissat *solver, size_t id, const char *type,
                       const char *op, const char *empty_rhs_constant,
                       const unsigned *repr, unsigned lhs, size_t size,
                       const unsigned *rhs) {
-  printf (" arity %zu %s gate", size, type);
+  fprintf ( Abc_FrameGlobalGetOut(), " arity %zu %s gate", size, type);
   if (id != INVALID_GATE_ID)
-    printf ("[%zu]", id);
-  fputc (' ', stdout);
+    fprintf ( Abc_FrameGlobalGetOut(), "[%zu]", id);
+  fputc( ' ', Abc_FrameGlobalGetOut() );
   if (lhs == INVALID_LIT)
-    fputs ("<LHS>", stdout);
+    fputs ("<LHS>", Abc_FrameGlobalGetOut());
   else
-    fputs (LOGREPR (lhs, repr), stdout);
+    fputs (LOGREPR (lhs, repr), Abc_FrameGlobalGetOut());
   if (size)
     for (size_t i = 0; i < size; i++) {
-      fputc (' ', stdout);
-      fputs (i ? op : ":=", stdout);
-      fputc (' ', stdout);
-      fputs (LOGREPR (rhs[i], repr), stdout);
+      fputc( ' ', Abc_FrameGlobalGetOut() );
+      fputs (i ? op : ":=", Abc_FrameGlobalGetOut());
+      fputc( ' ', Abc_FrameGlobalGetOut() );
+      fputs (LOGREPR (rhs[i], repr), Abc_FrameGlobalGetOut());
     }
   else {
-    fputs (" := ", stdout);
-    fputs (empty_rhs_constant, stdout);
+    fputs (" := ", Abc_FrameGlobalGetOut());
+    fputs (empty_rhs_constant, Abc_FrameGlobalGetOut());
   }
 }
 
@@ -283,20 +283,20 @@ void kissat_log_ite_gate (kissat *solver, const char *prefix, size_t id,
   va_start (ap, fmt);
   begin_logging (solver, prefix, fmt, &ap);
   va_end (ap);
-  printf (" ITE gate");
+  fprintf ( Abc_FrameGlobalGetOut(), " ITE gate");
   if (id != INVALID_GATE_ID)
-    printf ("[%zu]", id);
-  fputc (' ', stdout);
+    fprintf ( Abc_FrameGlobalGetOut(), "[%zu]", id);
+  fputc( ' ', Abc_FrameGlobalGetOut() );
   if (lhs == INVALID_LIT)
-    fputs ("<LHS>", stdout);
+    fputs ("<LHS>", Abc_FrameGlobalGetOut());
   else
-    fputs (LOGREPR (lhs, repr), stdout);
-  fputs (" := ", stdout);
-  fputs (LOGREPR (cond, repr), stdout);
-  fputs (" ? ", stdout);
-  fputs (LOGREPR (then_lit, repr), stdout);
-  fputs (" : ", stdout);
-  fputs (LOGREPR (else_lit, repr), stdout);
+    fputs (LOGREPR (lhs, repr), Abc_FrameGlobalGetOut());
+  fputs (" := ", Abc_FrameGlobalGetOut());
+  fputs (LOGREPR (cond, repr), Abc_FrameGlobalGetOut());
+  fputs (" ? ", Abc_FrameGlobalGetOut());
+  fputs (LOGREPR (then_lit, repr), Abc_FrameGlobalGetOut());
+  fputs (" : ", Abc_FrameGlobalGetOut());
+  fputs (LOGREPR (else_lit, repr), Abc_FrameGlobalGetOut());
   end_logging ();
 }
 
@@ -310,35 +310,35 @@ void kissat_log_extensions (kissat *solver, const char *prefix, size_t size,
   va_end (ap);
   const extension *const begin = BEGIN_STACK (solver->extend);
   const size_t pos = exts - begin;
-  printf (" extend[%zu]", pos);
-  printf (" %d", exts[0].lit);
+  fprintf ( Abc_FrameGlobalGetOut(), " extend[%zu]", pos);
+  fprintf ( Abc_FrameGlobalGetOut(), " %d", exts[0].lit);
   if (size > 1)
-    fputs (" :", stdout);
+    fputs (" :", Abc_FrameGlobalGetOut());
   for (size_t i = 1; i < size; i++)
-    printf (" %d", exts[i].lit);
+    fprintf ( Abc_FrameGlobalGetOut(), " %d", exts[i].lit);
   end_logging ();
 }
 
 static void log_clause (kissat *solver, const clause *c) {
-  fputc (' ', stdout);
+  fputc( ' ', Abc_FrameGlobalGetOut() );
   if (c == &solver->conflict) {
-    fputs ("static ", stdout);
-    fputs (c->redundant ? "redundant" : "irredundant", stdout);
-    fputs (" binary conflict clause", stdout);
+    fputs ("static ", Abc_FrameGlobalGetOut());
+    fputs (c->redundant ? "redundant" : "irredundant", Abc_FrameGlobalGetOut());
+    fputs (" binary conflict clause", Abc_FrameGlobalGetOut());
   } else {
     if (c->redundant)
-      printf ("redundant glue %u", c->glue);
+      fprintf ( Abc_FrameGlobalGetOut(), "redundant glue %u", c->glue);
     else
-      fputs ("irredundant", stdout);
-    printf (" size %u", c->size);
+      fputs ("irredundant", Abc_FrameGlobalGetOut());
+    fprintf ( Abc_FrameGlobalGetOut(), " size %u", c->size);
     if (c->reason)
-      fputs (" reason", stdout);
+      fputs (" reason", Abc_FrameGlobalGetOut());
     if (c->garbage)
-      fputs (" garbage", stdout);
-    fputs (" clause", stdout);
+      fputs (" garbage", Abc_FrameGlobalGetOut());
+    fputs (" clause", Abc_FrameGlobalGetOut());
     if (kissat_clause_in_arena (solver, c)) {
       reference ref = kissat_reference_clause (solver, c);
-      printf ("[%u]", ref);
+      fprintf ( Abc_FrameGlobalGetOut(), "[%u]", ref);
     }
   }
 }
@@ -379,7 +379,7 @@ void kissat_log_repr_clause (kissat *solver, const char *prefix,
 }
 
 static void log_binary (kissat *solver, unsigned a, unsigned b) {
-  printf (" binary clause %s %s", LOGLIT (a), LOGLIT (b));
+  fprintf ( Abc_FrameGlobalGetOut(), " binary clause %s %s", LOGLIT (a), LOGLIT (b));
 }
 
 void kissat_log_binary (kissat *solver, const char *prefix, unsigned a,
@@ -398,7 +398,7 @@ void kissat_log_unary (kissat *solver, const char *prefix, unsigned a,
   va_start (ap, fmt);
   begin_logging (solver, prefix, fmt, &ap);
   va_end (ap);
-  printf (" unary clause %s", LOGLIT (a));
+  fprintf ( Abc_FrameGlobalGetOut(), " unary clause %s", LOGLIT (a));
   end_logging ();
 }
 
@@ -438,15 +438,15 @@ void kissat_log_xor (kissat *solver, const char *prefix, unsigned lit,
   va_start (ap, fmt);
   begin_logging (solver, prefix, fmt, &ap);
   va_end (ap);
-  printf (" size %u XOR gate ", size);
-  fputs (kissat_log_lit (solver, lit), stdout);
-  printf (" =");
+  fprintf ( Abc_FrameGlobalGetOut(), " size %u XOR gate ", size);
+  fputs (kissat_log_lit (solver, lit), Abc_FrameGlobalGetOut());
+  fprintf ( Abc_FrameGlobalGetOut(), " =");
   for (unsigned i = 0; i < size; i++) {
     if (i)
-      fputs (" ^ ", stdout);
+      fputs (" ^ ", Abc_FrameGlobalGetOut());
     else
-      fputc (' ', stdout);
-    fputs (kissat_log_lit (solver, lits[i]), stdout);
+      fputc( ' ', Abc_FrameGlobalGetOut() );
+    fputs (kissat_log_lit (solver, lits[i]), Abc_FrameGlobalGetOut());
   }
   end_logging ();
 }

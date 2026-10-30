@@ -196,11 +196,11 @@ ABC_NAMESPACE_IMPL_START
 
 static void kissat_printf_usage (const char *option, const char *fmt, ...) {
   va_list ap;
-  printf ("  %-26s ", option);
+  fprintf ( Abc_FrameGlobalGetOut(), "  %-26s ", option);
   va_start (ap, fmt);
-  vprintf (fmt, ap);
+  vfprintf ( Abc_FrameGlobalGetOut(), fmt, ap);
   va_end (ap);
-  fputc ('\n', stdout);
+  fputc( '\n', Abc_FrameGlobalGetOut() );
 }
 
 static void check_ranges (void) {
@@ -362,7 +362,7 @@ static bool ignore_embedded_option_for_fuzzing (const char *name) {
 void kissat_print_embedded_option_list (void) {
 #define OPTION(N, V, L, H, D) \
   if (!ignore_embedded_option_for_fuzzing (#N)) \
-    printf ("c --%s=%d\n", #N, (int) (V));
+    fprintf ( Abc_FrameGlobalGetOut(), "c --%s=%d\n", #N, (int) (V));
   OPTIONS
 #undef OPTION
 }
@@ -394,7 +394,7 @@ static bool ignore_range_option_for_fuzzing (const char *name) {
 void kissat_print_option_range_list (void) {
 #define OPTION(N, V, L, H, D) \
   if (!ignore_range_option_for_fuzzing (#N)) \
-    printf ("%s %d %d %d\n", #N, (int) (L), (int) (V), (int) (H));
+    fprintf ( Abc_FrameGlobalGetOut(), "%s %d %d %d\n", #N, (int) (L), (int) (V), (int) (H));
   OPTIONS
 #undef OPTION
 }

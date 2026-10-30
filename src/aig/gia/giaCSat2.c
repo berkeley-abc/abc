@@ -603,20 +603,20 @@ static inline void Cbs2_ManPrintClause( Cbs2_Man_t * p, int Level, int hClause )
 {
     int i, iLit;
     assert( Cbs2_QueIsEmpty( &p->pClauses ) );
-    printf( "Level %2d : ", Level );
+    fprintf( Abc_FrameGlobalGetOut(), "Level %2d : ", Level );
     Cbs2_ClauseForEachEntry( p, hClause, iLit, i )
-        printf( "%c%d ", Abc_LitIsCompl(iLit) ? '-':'+', Abc_Lit2Var(iLit) );
+        fprintf( Abc_FrameGlobalGetOut(), "%c%d ", Abc_LitIsCompl(iLit) ? '-':'+', Abc_Lit2Var(iLit) );
 //        printf( "%d=%d(%d) ", iObj, Cbs2_VarValue(p, Abc_Lit2Var(iLit)), Cbs2_VarDecLevel(p, Abc_Lit2Var(iLit)) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 static inline void Cbs2_ManPrintCube( Cbs2_Man_t * p, int Level, int hClause )
 {
     int i, iObj;
     assert( Cbs2_QueIsEmpty( &p->pClauses ) );
-    printf( "Level %2d : ", Level );
+    fprintf( Abc_FrameGlobalGetOut(), "Level %2d : ", Level );
     Cbs2_ClauseForEachEntry( p, hClause, iObj, i )
-        printf( "%c%d ", Cbs2_VarValue(p, iObj)? '+':'-', iObj );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%c%d ", Cbs2_VarValue(p, iObj)? '+':'-', iObj );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 static inline void Cbs2_ManBumpClause( Cbs2_Man_t * p, int hClause )
 {
@@ -1448,18 +1448,18 @@ int Cbs2_ManSolve2( Cbs2_Man_t * p, int iLit, int iLit2 )
 ***********************************************************************/
 void Cbs2_ManSatPrintStats( Cbs2_Man_t * p )
 {
-    printf( "CO = %8d  ", Gia_ManCoNum(p->pAig) );
-    printf( "AND = %8d  ", Gia_ManAndNum(p->pAig) );
-    printf( "Conf = %6d  ", p->Pars.nBTLimit );
-    printf( "JustMax = %5d  ", p->Pars.nJustLimit );
-    printf( "\n" );
-    printf( "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "CO = %8d  ", Gia_ManCoNum(p->pAig) );
+    fprintf( Abc_FrameGlobalGetOut(), "AND = %8d  ", Gia_ManAndNum(p->pAig) );
+    fprintf( Abc_FrameGlobalGetOut(), "Conf = %6d  ", p->Pars.nBTLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "JustMax = %5d  ", p->Pars.nJustLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatUnsat, p->nSatTotal? 100.0*p->nSatUnsat/p->nSatTotal :0.0, p->nSatUnsat? 1.0*p->nConfUnsat/p->nSatUnsat :0.0 );
     ABC_PRTP( "Time", p->timeSatUnsat, p->timeTotal );
-    printf( "Sat   calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Sat   calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatSat,   p->nSatTotal? 100.0*p->nSatSat/p->nSatTotal :0.0, p->nSatSat? 1.0*p->nConfSat/p->nSatSat : 0.0 );
     ABC_PRTP( "Time", p->timeSatSat,   p->timeTotal );
-    printf( "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatUndec, p->nSatTotal? 100.0*p->nSatUndec/p->nSatTotal :0.0, p->nSatUndec? 1.0*p->nConfUndec/p->nSatUndec : 0.0 );
     ABC_PRTP( "Time", p->timeSatUndec, p->timeTotal );
     ABC_PRT( "Total time", p->timeTotal );
@@ -1479,10 +1479,10 @@ void Cbs2_ManSatPrintStats( Cbs2_Man_t * p )
 void Cbs2_ObjPrintFanouts( Cbs2_Man_t * p, int iObj )
 {
     int iFanLit;
-    printf( "Fanouts of node %d: ", iObj );
+    fprintf( Abc_FrameGlobalGetOut(), "Fanouts of node %d: ", iObj );
     Cbs2_ObjForEachFanout( p, iObj, iFanLit )
-        printf( "%d ", Abc_Lit2Var(iFanLit) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Abc_Lit2Var(iFanLit) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 void Cbs2_ManPrintFanouts( Cbs2_Man_t * p )
@@ -1656,7 +1656,7 @@ Vec_Int_t * Cbs2_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvS
     if ( fVerbose )
     {
 //    printf( "RecCalls = %8d.  RecClause = %8d.  RecNonChro = %8d.\n", p->nRecCall, p->nRecClause, p->nRecNonChro );
-    printf( "Prop1 = %d.  Prop2 = %d.  Prop3 = %d.  ClaConf = %d.   FailJ = %d.  FailC = %d.   ", p->nPropCalls[0], p->nPropCalls[1], p->nPropCalls[2], p->nClauseConf, p->nFails[0], p->nFails[1] );
+    fprintf( Abc_FrameGlobalGetOut(), "Prop1 = %d.  Prop2 = %d.  Prop3 = %d.  ClaConf = %d.   FailJ = %d.  FailC = %d.   ", p->nPropCalls[0], p->nPropCalls[1], p->nPropCalls[2], p->nClauseConf, p->nFails[0], p->nFails[1] );
     Abc_PrintTime( 1, "JFront", p->timeJFront );
     }
 

@@ -95,7 +95,7 @@ void Parse_StackFnPush( Parse_StackFn_t * p, void * bFunc )
 {
     if ( p->Top >= p->Size )
     {
-        printf( "Parse_StackFnPush(): Stack size is too small!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Parse_StackFnPush(): Stack size is too small!\n" );
         return;
     }
     p->pData[ p->Top++ ] = bFunc;
@@ -116,7 +116,7 @@ void * Parse_StackFnPop( Parse_StackFn_t * p )
 {
     if ( p->Top == 0 )
     {
-        printf( "Parse_StackFnPush(): Trying to extract data from the empty stack!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Parse_StackFnPush(): Trying to extract data from the empty stack!\n" );
         return NULL;
     }
     return p->pData[ --p->Top ];
@@ -194,7 +194,7 @@ void Parse_StackOpPush( Parse_StackOp_t * p, int Oper )
 {
     if ( p->Top >= p->Size )
     {
-        printf( "Parse_StackOpPush(): Stack size is too small!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Parse_StackOpPush(): Stack size is too small!\n" );
         return;
     }
     p->pData[ p->Top++ ] = Oper;
@@ -215,7 +215,7 @@ int Parse_StackOpPop( Parse_StackOp_t * p )
 {
     if ( p->Top == 0 )
     {
-        printf( "Parse_StackOpPush(): Trying to extract data from the empty stack!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Parse_StackOpPush(): Trying to extract data from the empty stack!\n" );
         return -1;
     }
     return p->pData[ --p->Top ];

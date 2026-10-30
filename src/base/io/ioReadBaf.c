@@ -123,12 +123,12 @@ Abc_Ntk_t * Io_ReadBaf( char * pFileName, int fCheck )
         ABC_FREE( pContents );
         Vec_PtrFree( vNodes );
         Abc_NtkDelete( pNtkNew );
-        printf( "Warning: Internal reader error.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Internal reader error.\n" );
         return NULL;
     }
 
     // create the AND gates
-    pProgress = Extra_ProgressBarStart( stdout, nAnds );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nAnds );
     for ( i = 0; i < nAnds; i++ )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -159,7 +159,7 @@ Abc_Ntk_t * Io_ReadBaf( char * pFileName, int fCheck )
     // check the result
     if ( fCheck && !Abc_NtkCheckRead( pNtkNew ) )
     {
-        printf( "Io_ReadBaf: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_ReadBaf: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }

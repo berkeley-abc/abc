@@ -460,7 +460,7 @@ void Gia_ManCheckIntegrityWithBoxes( Gia_Man_t * p )
             nCountCarry++;
     Vec_IntFree( vCarryOuts );
     if ( nCountReg || nCountCarry )
-        printf( "Warning: AIG with boxes has internal fanout in %d complex flops and %d carries.\n", nCountReg, nCountCarry );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: AIG with boxes has internal fanout in %d complex flops and %d carries.\n", nCountReg, nCountCarry );
     ABC_FREE( p->pRefs );
 }
 
@@ -478,18 +478,18 @@ void Gia_ManCheckIntegrityWithBoxes( Gia_Man_t * p )
 void Gia_ManFraigPrintDebugInfo( Gia_Man_t * p )
 {
     if ( p->vRegClasses )
-        printf( "Gia_ManFraigSelectReprs: vRegClasses with %d entries\n", Vec_IntSize(p->vRegClasses) );
+        fprintf( Abc_FrameGlobalGetOut(), "Gia_ManFraigSelectReprs: vRegClasses with %d entries\n", Vec_IntSize(p->vRegClasses) );
     if ( p->vFlopClasses )
-        printf( "Gia_ManFraigSelectReprs: vFlopClasses with %d entries\n", Vec_IntSize(p->vFlopClasses) );
+        fprintf( Abc_FrameGlobalGetOut(), "Gia_ManFraigSelectReprs: vFlopClasses with %d entries\n", Vec_IntSize(p->vFlopClasses) );
 
     // Debug: Show all CIs and their types
     // In unnormalized AIG with boxes: flop outputs are the last nFlops CIs
-    printf( "Circuit has %d CIs (PiNum=%d, RegBoxNum=%d)\n",
+    fprintf( Abc_FrameGlobalGetOut(), "Circuit has %d CIs (PiNum=%d, RegBoxNum=%d)\n",
             Gia_ManCiNum(p), Gia_ManPiNum(p), Gia_ManRegBoxNum(p) );
     int nTotalCis = Gia_ManCiNum(p);
     int nFlops = Gia_ManRegBoxNum(p);
     int nFirstFlop = nTotalCis - nFlops;  // First flop CI index
-    printf( "  -> First %d CIs are PIs/box outputs, last %d CIs are flop outputs\n",
+    fprintf( Abc_FrameGlobalGetOut(), "  -> First %d CIs are PIs/box outputs, last %d CIs are flop outputs\n",
             nFirstFlop, nFlops );
 
     Gia_Obj_t * pCiObj;
@@ -499,7 +499,7 @@ void Gia_ManFraigPrintDebugInfo( Gia_Man_t * p )
         int CiId = Gia_ObjCioId(pCiObj);
         const char* type = (CiId >= nFirstFlop) ? "FlopOut" : "PI/BoxOut";
         int typeId = (CiId >= nFirstFlop) ? (CiId - nFirstFlop) : CiId;
-        printf( "  CI obj %d: CiId=%d (%s %d)\n", Gia_ObjId(p, pCiObj), CiId, type, typeId );
+        fprintf( Abc_FrameGlobalGetOut(), "  CI obj %d: CiId=%d (%s %d)\n", Gia_ObjId(p, pCiObj), CiId, type, typeId );
     }
 }
 
@@ -548,7 +548,7 @@ void Gia_ManFraigMarkRestrictedBoxOutputs( Gia_Man_t * p, int fVerbose )
                 {
                     pCi->fMark1 = 1; // Mark this box output as unmergeable
                     if ( fVerbose )
-                        printf( "Marking box output (obj %d, CiId %d) for flop %d as unmergeable\n",
+                        fprintf( Abc_FrameGlobalGetOut(), "Marking box output (obj %d, CiId %d) for flop %d as unmergeable\n",
                                 Gia_ObjId(p, pCi), targetCiId, i );
                     break;
                 }
@@ -573,12 +573,12 @@ void Gia_ManFraigPrintEquivInfo( Gia_Man_t * p, Gia_Obj_t * pObj, int i,
                                   int iLitClp, int iReprClp )
 {
     const char* typeStr = Gia_ObjIsCi(pObj) ? "CI" : (Gia_ObjIsAnd(pObj) ? "AND" : "OTHER");
-    printf( "Found equiv: obj %d (%s) repr %d - iLitClp=%d iReprClp=%d\n",
+    fprintf( Abc_FrameGlobalGetOut(), "Found equiv: obj %d (%s) repr %d - iLitClp=%d iReprClp=%d\n",
             i, typeStr, pClp2Gia[iReprClp], iLitClp, iReprClp );
 
     // Also show the representative's type
     const char* reprTypeStr = Gia_ObjIsCi(pReprObj) ? "CI" : (Gia_ObjIsAnd(pReprObj) ? "AND" : "OTHER");
-    printf( "  Representative obj %d is %s\n", pClp2Gia[iReprClp], reprTypeStr );
+    fprintf( Abc_FrameGlobalGetOut(), "  Representative obj %d is %s\n", pClp2Gia[iReprClp], reprTypeStr );
 
     // If this is a CI, show more details
     if ( Gia_ObjIsCi(pObj) )
@@ -589,13 +589,13 @@ void Gia_ManFraigPrintEquivInfo( Gia_Man_t * p, Gia_Obj_t * pObj, int i,
         int nFlops = Gia_ManRegBoxNum(p);
         int nFirstFlop = nTotalCis - nFlops; // First flop CI index
 
-        printf( "  -> obj %d: CiId=%d, TotalCIs=%d, nFlops=%d, FirstFlopCI=%d\n",
+        fprintf( Abc_FrameGlobalGetOut(), "  -> obj %d: CiId=%d, TotalCIs=%d, nFlops=%d, FirstFlopCI=%d\n",
                 i, CiId, nTotalCis, nFlops, nFirstFlop );
 
         if ( CiId >= nFirstFlop )
-            printf( "  -> This is Flop output %d\n", CiId - nFirstFlop );
+            fprintf( Abc_FrameGlobalGetOut(), "  -> This is Flop output %d\n", CiId - nFirstFlop );
         else
-            printf( "  -> This is PI/BoxOut %d\n", CiId );
+            fprintf( Abc_FrameGlobalGetOut(), "  -> This is PI/BoxOut %d\n", CiId );
     }
 }
 
@@ -617,21 +617,21 @@ int Gia_ManFraigCheckFlopRestrictions( Gia_Man_t * p, Gia_Obj_t * pObj, int i,
     // First check if either CI feeds restricted flops (marked with fMark1)
     Gia_Obj_t * pReprObj = Gia_ManObj(p, pClp2Gia[iReprClp]);
     if ( fVerbose && Gia_ObjIsCi(pObj) )
-        printf( "  Checking obj %d: fMark1=%d\n", i, pObj->fMark1 );
+        fprintf( Abc_FrameGlobalGetOut(), "  Checking obj %d: fMark1=%d\n", i, pObj->fMark1 );
     if ( fVerbose && Gia_ObjIsCi(pReprObj) )
-        printf( "  Checking repr %d: fMark1=%d\n", pClp2Gia[iReprClp], pReprObj->fMark1 );
+        fprintf( Abc_FrameGlobalGetOut(), "  Checking repr %d: fMark1=%d\n", pClp2Gia[iReprClp], pReprObj->fMark1 );
 
     if ( Gia_ObjIsCi(pObj) && pObj->fMark1 )
     {
         if ( fVerbose )
-            printf( "  -> Skipping equiv: obj %d feeds restricted flop\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "  -> Skipping equiv: obj %d feeds restricted flop\n", i );
         (*pnSkipped)++;
         return 1;
     }
     if ( Gia_ObjIsCi(pReprObj) && pReprObj->fMark1 )
     {
         if ( fVerbose )
-            printf( "  -> Skipping equiv: repr %d feeds restricted flop\n", pClp2Gia[iReprClp] );
+            fprintf( Abc_FrameGlobalGetOut(), "  -> Skipping equiv: repr %d feeds restricted flop\n", pClp2Gia[iReprClp] );
         (*pnSkipped)++;
         return 1;
     }
@@ -652,7 +652,7 @@ int Gia_ManFraigCheckFlopRestrictions( Gia_Man_t * p, Gia_Obj_t * pObj, int i,
         int CiIdCur = Gia_ObjCioId(pObj);
 
         if ( fVerbose )
-            printf( "  Checking CI: obj %d, CiId %d, nTotalCis=%d, nFlops=%d, FirstFlopCI=%d\n",
+            fprintf( Abc_FrameGlobalGetOut(), "  Checking CI: obj %d, CiId %d, nTotalCis=%d, nFlops=%d, FirstFlopCI=%d\n",
                     i, CiIdCur, nTotalCis, nFlops, nFirstFlop );
 
         // Check if current object is a flop output (last nFlops CIs)
@@ -673,7 +673,7 @@ int Gia_ManFraigCheckFlopRestrictions( Gia_Man_t * p, Gia_Obj_t * pObj, int i,
         if ( iFlopCur >= 0 && iFlopRepr >= 0 )
         {
             if ( fVerbose )
-                printf( "Checking flop merge: flop %d and flop %d\n", iFlopCur, iFlopRepr );
+                fprintf( Abc_FrameGlobalGetOut(), "Checking flop merge: flop %d and flop %d\n", iFlopCur, iFlopRepr );
 
             // Check vRegClasses (clock domains) first
             if ( p->vRegClasses )
@@ -685,13 +685,13 @@ int Gia_ManFraigCheckFlopRestrictions( Gia_Man_t * p, Gia_Obj_t * pObj, int i,
                 int DomainRepr = Vec_IntEntry(p->vRegClasses, iFlopRepr);
 
                 if ( fVerbose )
-                    printf( "  Clock domains: %d and %d\n", DomainCur, DomainRepr );
+                    fprintf( Abc_FrameGlobalGetOut(), "  Clock domains: %d and %d\n", DomainCur, DomainRepr );
 
                 // Skip merging if either is in domain 0 or domains don't match
                 if ( DomainCur == 0 || DomainRepr == 0 || DomainCur != DomainRepr )
                 {
                     if ( fVerbose )
-                        printf( "  -> Skipping due to clock domain restriction\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "  -> Skipping due to clock domain restriction\n" );
                     (*pnSkipped)++;
                     return 1; // Skip this merging
                 }
@@ -707,13 +707,13 @@ int Gia_ManFraigCheckFlopRestrictions( Gia_Man_t * p, Gia_Obj_t * pObj, int i,
                 int ClassRepr = Vec_IntEntry(p->vFlopClasses, iFlopRepr);
 
                 if ( fVerbose )
-                    printf( "  Merge classes: %d and %d\n", ClassCur, ClassRepr );
+                    fprintf( Abc_FrameGlobalGetOut(), "  Merge classes: %d and %d\n", ClassCur, ClassRepr );
 
                 // Skip merging if classes don't match or class is 0 (unmergeable)
                 if ( ClassCur == 0 || ClassRepr == 0 || ClassCur != ClassRepr )
                 {
                     if ( fVerbose )
-                        printf( "  -> Skipping due to merge class restriction\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "  -> Skipping due to merge class restriction\n" );
                     (*pnSkipped)++;
                     return 1; // Skip this merging
                 }
@@ -763,7 +763,7 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pClp, int fVerbose, in
             nReprs++;
     }
     if ( fVerbose )
-        printf( "Computed %d const objects and %d other objects.\n", nConsts, nReprs );
+        fprintf( Abc_FrameGlobalGetOut(), "Computed %d const objects and %d other objects.\n", nConsts, nReprs );
     nConsts = nReprs = 0;
 
     // mark flop input boxes
@@ -784,14 +784,14 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pClp, int fVerbose, in
     if ( p->vRegClasses || p->vFlopClasses )
         Gia_ManFraigMarkRestrictedBoxOutputs( p, fVerbose );
     if ( fVerbose )
-        printf( "Fixed %d flop inputs and %d box/box connections (out of %d non-flop boxes).\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Fixed %d flop inputs and %d box/box connections (out of %d non-flop boxes).\n", 
             Gia_ManRegBoxNum(p), Vec_IntSize(vCarryOuts), Gia_ManNonRegBoxNum(p) );
     Vec_IntFree( vCarryOuts );
 
     // collect equivalent node info
     pFlopTypes[0] = pFlopTypes[1] = pFlopTypes[2] = 0;
     if ( fVerbose )
-        printf( "Checking flop equivalences in collapsed circuit:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Checking flop equivalences in collapsed circuit:\n" );
     Gia_ManForEachRo( pClp, pObj, i )
     {
         Gia_Obj_t * pRepr = Gia_ObjReprObj(pClp, i);
@@ -799,13 +799,13 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pClp, int fVerbose, in
         {
             if ( fVerbose )
             {
-                printf( "  Flop %d (clp obj %d) has repr obj %d", i - Gia_ManPiNum(pClp),
+                fprintf( Abc_FrameGlobalGetOut(), "  Flop %d (clp obj %d) has repr obj %d", i - Gia_ManPiNum(pClp),
                         i, Gia_ObjId(pClp, pRepr) );
                 if ( pRepr == Gia_ManConst0(pClp) )
-                    printf( " (const 0)");
+                    fprintf( Abc_FrameGlobalGetOut(),  " (const 0)" );
                 else if ( Gia_ObjIsRo(pClp, pRepr) )
-                    printf( " (another flop: %d)", Gia_ObjCioId(pRepr) - (Gia_ManPiNum(pClp) - Gia_ManRegNum(pClp)) );
-                printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), " (another flop: %d)", Gia_ObjCioId(pRepr) - (Gia_ManPiNum(pClp) - Gia_ManRegNum(pClp)) );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
             if ( pRepr == Gia_ManConst0(pClp) )
                 pFlopTypes[0]++;
@@ -865,9 +865,9 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pClp, int fVerbose, in
     }
     if ( fVerbose )
     {
-        printf( "Found %d const objects and %d other objects.\n", nConsts, nReprs );
+        fprintf( Abc_FrameGlobalGetOut(), "Found %d const objects and %d other objects.\n", nConsts, nReprs );
         if ( (p->vRegClasses || p->vFlopClasses) && nSkipped > 0 )
-            printf( "Skipped %d flop mergings due to clock domain or merge class restrictions.\n", nSkipped );
+            fprintf( Abc_FrameGlobalGetOut(), "Skipped %d flop mergings due to clock domain or merge class restrictions.\n", nSkipped );
     }
     return pReprs;
 }
@@ -1012,8 +1012,8 @@ Gia_Man_t * Gia_ManSweepWithBoxesAndDomains( Gia_Man_t * p, void * pParsS, int f
         pFlopTypes[2] = nFlops - nFlopsNew - (pFlopTypes[0] + pFlopTypes[1]);
         if ( fVerbEquivs )
         {
-            printf( "Domain %2d : %5d -> %5d :  ", iDom, nFlops, nFlopsNew );
-            printf( "EqConst =%4d.  EqFlop =%4d.  Dangling =%4d.  Unused =%4d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Domain %2d : %5d -> %5d :  ", iDom, nFlops, nFlopsNew );
+            fprintf( Abc_FrameGlobalGetOut(), "EqConst =%4d.  EqFlop =%4d.  Dangling =%4d.  Unused =%4d.\n", 
                 pFlopTypes[0], pFlopTypes[1], Abc_MaxInt(0, pFlopTypes[2]), Abc_MaxInt(0, -pFlopTypes[2]) );
             //Gia_ManPrintStats( pNew, NULL );
         }
@@ -1050,9 +1050,9 @@ Gia_Man_t * Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, 
     if ( fVerbose )
     {
         if ( p->vRegClasses )
-            printf( "Input has vRegClasses with %d entries\n", Vec_IntSize(p->vRegClasses) );
+            fprintf( Abc_FrameGlobalGetOut(), "Input has vRegClasses with %d entries\n", Vec_IntSize(p->vRegClasses) );
         if ( p->vFlopClasses )
-            printf( "Input has vFlopClasses with %d entries\n", Vec_IntSize(p->vFlopClasses) );
+            fprintf( Abc_FrameGlobalGetOut(), "Input has vFlopClasses with %d entries\n", Vec_IntSize(p->vFlopClasses) );
     }
     // consider seq synthesis with multiple clock domains
     if ( pParsC == NULL && Gia_ManClockDomainNum(p) > 1 )
@@ -1090,8 +1090,8 @@ Gia_Man_t * Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, 
     pFlopTypes[2] = nFlops - nFlopsNew - (pFlopTypes[0] + pFlopTypes[1]);
     if ( fVerbEquivs )
     {
-        printf( "Domain %2d : %5d -> %5d :  ", 1, nFlops, nFlopsNew );
-        printf( "EqConst =%4d.  EqFlop =%4d.  Dangling =%4d.  Unused =%4d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Domain %2d : %5d -> %5d :  ", 1, nFlops, nFlopsNew );
+        fprintf( Abc_FrameGlobalGetOut(), "EqConst =%4d.  EqFlop =%4d.  Dangling =%4d.  Unused =%4d.\n", 
             pFlopTypes[0], pFlopTypes[1], Abc_MaxInt(0, pFlopTypes[2]), Abc_MaxInt(0, -pFlopTypes[2]) );
     }
     // normalize the result

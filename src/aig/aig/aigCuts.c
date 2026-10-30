@@ -105,10 +105,10 @@ void Aig_ManCutStop( Aig_ManCut_t * p )
 void Aig_CutPrint( Aig_Cut_t * pCut )
 {
     int i;
-    printf( "{" );
+    fprintf( Abc_FrameGlobalGetOut(), "{" );
     for ( i = 0; i < pCut->nFanins; i++ )
-        printf( " %d", pCut->pFanins[i] );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", pCut->pFanins[i] );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 
 /**Function*************************************************************
@@ -126,7 +126,7 @@ void Aig_ObjCutPrint( Aig_ManCut_t * p, Aig_Obj_t * pObj )
 {
     Aig_Cut_t * pCut;
     int i;
-    printf( "Cuts for node %d:\n", pObj->Id );
+    fprintf( Abc_FrameGlobalGetOut(), "Cuts for node %d:\n", pObj->Id );
     Aig_ObjForEachCut( p, pObj, pCut, i )
         if ( pCut->nFanins )
             Aig_CutPrint( pCut );
@@ -648,9 +648,9 @@ Aig_ManCut_t * Aig_ComputeCuts( Aig_Man_t * pAig, int nCutsMax, int nLeafMax, in
     {
         int nCuts, nCutsK;
         nCuts = Aig_ManCutCount( p, &nCutsK );
-        printf( "Nodes = %6d. Total cuts = %6d. %d-input cuts = %6d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes = %6d. Total cuts = %6d. %d-input cuts = %6d.\n",
             Aig_ManObjNum(pAig), nCuts, nLeafMax, nCutsK );
-        printf( "Cut size = %2d. Truth size = %2d. Total mem = %5.2f MB  ",
+        fprintf( Abc_FrameGlobalGetOut(), "Cut size = %2d. Truth size = %2d. Total mem = %5.2f MB  ",
             p->nCutSize, 4*p->nTruthWords, 1.0*Aig_MmFixedReadMemUsage(p->pMemCuts)/(1<<20) );
         ABC_PRT( "Runtime", Abc_Clock() - clk );
 /*

@@ -167,7 +167,7 @@ int Abc_NtkHaigCountFans( Hop_Man_t * p )
         if ( Hop_ObjRefs(pObj) > 0 )
             Counter++;
     }
-    printf( "The number of class members with fanouts = %5d.\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of class members with fanouts = %5d.\n", Counter );
     return Counter;
 }
 
@@ -254,7 +254,7 @@ Hop_Man_t * Abc_NtkHaigReconstruct( Hop_Man_t * p )
     // check the new manager
     if ( !Hop_ManCheck(pNew) )
     {
-        printf( "Abc_NtkHaigReconstruct: Check for History AIG has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkHaigReconstruct: Check for History AIG has failed.\n" );
         Hop_ManStop(pNew);
         return NULL;
     }
@@ -408,7 +408,7 @@ Abc_Ntk_t * Abc_NtkHaigRecreateAig( Abc_Ntk_t * pNtk, Hop_Man_t * p )
     // check correctness of the network
     if ( !Abc_NtkCheck( pNtkAig ) )
     {
-        printf( "Abc_NtkHaigUse: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkHaigUse: The network check has failed.\n" );
         Abc_NtkDelete( pNtkAig );
         return NULL;
     }
@@ -432,11 +432,11 @@ void Abc_NtkHaigResetReprsOld( Hop_Man_t * pMan )
 
     // collect members of the classes and make them point to reprs
     vMembers = Abc_NtkHaigCollectMembers( pMan );
-    printf( "Collected %6d class members.\n", Vec_PtrSize(vMembers) );
+    fprintf( Abc_FrameGlobalGetOut(), "Collected %6d class members.\n", Vec_PtrSize(vMembers) );
 
     // create classes
     vClasses = Abc_NtkHaigCreateClasses( vMembers );
-    printf( "Collected %6d classes. (Ave = %5.2f)\n", Vec_PtrSize(vClasses), 
+    fprintf( Abc_FrameGlobalGetOut(), "Collected %6d classes. (Ave = %5.2f)\n", Vec_PtrSize(vClasses), 
         (float)(Vec_PtrSize(vMembers))/Vec_PtrSize(vClasses) );
 
     Vec_PtrFree( vMembers );

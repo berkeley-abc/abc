@@ -269,9 +269,9 @@ int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
 
     if ( pParams->fVerbose )
     {
-        printf( "RESOURCE LIMITS: Iterations = %d. Rewriting = %s. Fraiging = %s.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "RESOURCE LIMITS: Iterations = %d. Rewriting = %s. Fraiging = %s.\n",
             pParams->nItersMax, pParams->fUseRewriting? "yes":"no", pParams->fUseFraiging? "yes":"no" );
-        printf( "Miter = %d (%3.1f).  Rwr = %d (%3.1f).  Fraig = %d (%3.1f).  Last = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Miter = %d (%3.1f).  Rwr = %d (%3.1f).  Fraig = %d (%3.1f).  Last = %d.\n", 
             pParams->nMiteringLimitStart,  pParams->nMiteringLimitMulti, 
             pParams->nRewritingLimitStart, pParams->nRewritingLimitMulti,
             pParams->nFraigingLimitStart,  pParams->nFraigingLimitMulti, pParams->nMiteringLimitLast );
@@ -310,10 +310,10 @@ int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
     {
         if ( pParams->fVerbose )
         {
-            printf( "ITERATION %2d : Confs = %6d. FraigBTL = %3d. \n", nIter+1, 
+            fprintf( Abc_FrameGlobalGetOut(), "ITERATION %2d : Confs = %6d. FraigBTL = %3d. \n", nIter+1, 
                  (int)(pParams->nMiteringLimitStart * pow(pParams->nMiteringLimitMulti,nIter)), 
                  (int)(pParams->nFraigingLimitStart * pow(pParams->nFraigingLimitMulti,nIter)) );
-            fflush( stdout );
+            fflush( Abc_FrameGlobalGetOut() );
         }
 
         // try rewriting
@@ -355,7 +355,7 @@ int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
         if ( (pParams->nTotalBacktrackLimit && pParams->nTotalBacktracksMade >= pParams->nTotalBacktrackLimit) ||
              (pParams->nTotalInspectLimit   && pParams->nTotalInspectsMade   >= pParams->nTotalInspectLimit) )
         {
-            printf( "Reached global limit on conflicts/inspects. Quitting.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Reached global limit on conflicts/inspects. Quitting.\n" );
             *ppManAig = pManAig;
             return -1;
         }
@@ -645,14 +645,14 @@ void Ivy_FraigPrint( Ivy_FraigMan_t * p )
 {
     double nMemory;
     nMemory = (double)Ivy_ManObjNum(p->pManAig)*p->nSimWords*sizeof(unsigned)/(1<<20);
-    printf( "SimWords = %d. Rounds = %d. Mem = %0.2f MB.  ", p->nSimWords, p->nSimRounds, nMemory );
-    printf( "Classes: Beg = %d. End = %d.\n", p->nClassesBeg, p->nClassesEnd );
+    fprintf( Abc_FrameGlobalGetOut(), "SimWords = %d. Rounds = %d. Mem = %0.2f MB.  ", p->nSimWords, p->nSimRounds, nMemory );
+    fprintf( Abc_FrameGlobalGetOut(), "Classes: Beg = %d. End = %d.\n", p->nClassesBeg, p->nClassesEnd );
 //    printf( "Limits: BTNode = %d. BTMiter = %d.\n", p->pParams->nBTLimitNode, p->pParams->nBTLimitMiter );
-    printf( "Proof = %d. Counter-example = %d. Fail = %d. FailReal = %d. Zero = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Proof = %d. Counter-example = %d. Fail = %d. FailReal = %d. Zero = %d.\n", 
         p->nSatProof, p->nSatCallsSat, p->nSatFails, p->nSatFailsReal, p->nClassesZero );
-    printf( "Final = %d. Miter = %d. Total = %d. Mux = %d. (Exor = %d.) SatVars = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Final = %d. Miter = %d. Total = %d. Mux = %d. (Exor = %d.) SatVars = %d.\n", 
         Ivy_ManNodeNum(p->pManFraig), p->nNodesMiter, Ivy_ManNodeNum(p->pManAig), 0, 0, p->nSatVars );
-    if ( p->pSat ) Sat_SolverPrintStats( stdout, p->pSat );
+    if ( p->pSat ) Sat_SolverPrintStats( Abc_FrameGlobalGetOut(), p->pSat );
     ABC_PRT( "AIG simulation  ", p->timeSim  );
     ABC_PRT( "AIG traversal   ", p->timeTrav  );
     ABC_PRT( "SAT solving     ", p->timeSat   );
@@ -1426,10 +1426,10 @@ p->timeRef += Abc_Clock() - clk;
 void Ivy_FraigPrintClass( Ivy_Obj_t * pClass )
 {
     Ivy_Obj_t * pObj;
-    printf( "Class {" );
+    fprintf( Abc_FrameGlobalGetOut(), "Class {" );
     Ivy_FraigForEachClassNode( pClass, pObj )
-        printf( " %d(%d)%c", pObj->Id, pObj->Level, pObj->fPhase? '+' : '-' );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d(%d)%c", pObj->Id, pObj->Level, pObj->fPhase? '+' : '-' );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 
 /**Function*************************************************************
@@ -1469,7 +1469,7 @@ void Ivy_FraigPrintSimClasses( Ivy_FraigMan_t * p )
     Ivy_FraigForEachEquivClass( p->lClasses.pHead, pClass )
     {
 //        Ivy_FraigPrintClass( pClass );
-        printf( "%d ", Ivy_FraigCountClassNodes( pClass ) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Ivy_FraigCountClassNodes( pClass ) );
     }
 //    printf( "\n" );
 }
@@ -1760,7 +1760,7 @@ void Ivy_FraigResimulate( Ivy_FraigMan_t * p )
     if ( p->pManFraig->pData )
         return;
     if ( nChanges < 1 )
-        printf( "Error: A counter-example did not refine classes!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Error: A counter-example did not refine classes!\n" );
     assert( nChanges >= 1 );
 //printf( "Refined classes! = %5d.   Changes = %4d.\n", p->lClasses.nItems, nChanges );
     if ( !p->pParams->fPatScores )
@@ -1797,7 +1797,7 @@ void Ivy_FraigMiterPrint( Ivy_Man_t * pNtk, char * pString, abctime clk, int fVe
 {
     if ( !fVerbose )
         return;
-    printf( "Nodes = %7d.  Levels = %4d.  ", Ivy_ManNodeNum(pNtk), Ivy_ManLevels(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes = %7d.  Levels = %4d.  ", Ivy_ManNodeNum(pNtk), Ivy_ManLevels(pNtk) );
     ABC_PRT( pString, Abc_Clock() - clk );
 }
 
@@ -1894,7 +1894,7 @@ void Ivy_FraigMiterProve( Ivy_FraigMan_t * p )
         if ( pObjNew == p->pManFraig->pConst1 )
         {
             if ( fVerbose )
-                printf( "Output %2d (out of %2d) is constant 1.  ", i, Ivy_ManPoNum(p->pManAig) );
+                fprintf( Abc_FrameGlobalGetOut(), "Output %2d (out of %2d) is constant 1.  ", i, Ivy_ManPoNum(p->pManAig) );
             // assing constant 0 model
             p->pManFraig->pData = ABC_ALLOC( int, Ivy_ManPiNum(p->pManFraig) );
             memset( p->pManFraig->pData, 0, sizeof(int) * Ivy_ManPiNum(p->pManFraig) );
@@ -1904,14 +1904,14 @@ void Ivy_FraigMiterProve( Ivy_FraigMan_t * p )
         if ( pObjNew == Ivy_Not(p->pManFraig->pConst1) )
         {
             if ( fVerbose )
-                printf( "Output %2d (out of %2d) is already constant 0.  ", i, Ivy_ManPoNum(p->pManAig) );
+                fprintf( Abc_FrameGlobalGetOut(), "Output %2d (out of %2d) is already constant 0.  ", i, Ivy_ManPoNum(p->pManAig) );
             continue;
         }
         // check if the output can be constant 0
         if ( Ivy_Regular(pObjNew)->fPhase != (unsigned)Ivy_IsComplement(pObjNew) )
         {
             if ( fVerbose )
-                printf( "Output %2d (out of %2d) cannot be constant 0.  ", i, Ivy_ManPoNum(p->pManAig) );
+                fprintf( Abc_FrameGlobalGetOut(), "Output %2d (out of %2d) cannot be constant 0.  ", i, Ivy_ManPoNum(p->pManAig) );
             // assing constant 0 model
             p->pManFraig->pData = ABC_ALLOC( int, Ivy_ManPiNum(p->pManFraig) );
             memset( p->pManFraig->pData, 0, sizeof(int) * Ivy_ManPiNum(p->pManFraig) );
@@ -1930,7 +1930,7 @@ void Ivy_FraigMiterProve( Ivy_FraigMan_t * p )
         if ( RetValue == 1 )  // proved equivalent
         {
             if ( fVerbose )
-                printf( "Output %2d (out of %2d) was proved constant 0.  ", i, Ivy_ManPoNum(p->pManAig) );
+                fprintf( Abc_FrameGlobalGetOut(), "Output %2d (out of %2d) was proved constant 0.  ", i, Ivy_ManPoNum(p->pManAig) );
             // set the constant miter
             Ivy_ObjFanin0(pObj)->pEquiv = Ivy_NotCond( p->pManFraig->pConst1, !Ivy_ObjFaninC0(pObj) );
             continue;
@@ -1938,12 +1938,12 @@ void Ivy_FraigMiterProve( Ivy_FraigMan_t * p )
         if ( RetValue == -1 ) // failed
         {
             if ( fVerbose )
-                printf( "Output %2d (out of %2d) has timed out at %d backtracks.  ", i, Ivy_ManPoNum(p->pManAig), p->pParams->nBTLimitMiter );
+                fprintf( Abc_FrameGlobalGetOut(), "Output %2d (out of %2d) has timed out at %d backtracks.  ", i, Ivy_ManPoNum(p->pManAig), p->pParams->nBTLimitMiter );
             continue;
         }
         // proved satisfiable
         if ( fVerbose )
-            printf( "Output %2d (out of %2d) was proved NOT a constant 0.  ", i, Ivy_ManPoNum(p->pManAig) );
+            fprintf( Abc_FrameGlobalGetOut(), "Output %2d (out of %2d) was proved NOT a constant 0.  ", i, Ivy_ManPoNum(p->pManAig) );
         // create the model
         p->pManFraig->pData = Ivy_FraigCreateModel(p);
         break;
@@ -1972,7 +1972,7 @@ void Ivy_FraigSweep( Ivy_FraigMan_t * p )
 p->nClassesZero = p->lClasses.pHead? (Ivy_ObjIsConst1(p->lClasses.pHead) ? Ivy_FraigCountClassNodes(p->lClasses.pHead) : 0) : 0;
 p->nClassesBeg  = p->lClasses.nItems;
     // duplicate internal nodes
-    p->pProgress = Extra_ProgressBarStart( stdout, Ivy_ManNodeNum(p->pManAig) );
+    p->pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Ivy_ManNodeNum(p->pManAig) );
     Ivy_ManForEachNode( p->pManAig, pObj, i )
     {
         Extra_ProgressBarUpdate( p->pProgress, k++, NULL );
@@ -2081,8 +2081,8 @@ void Ivy_FraigPrintActivity( Ivy_FraigMan_t * p )
 {
     int i;
     for ( i = 0; i < p->nSatVars; i++ )
-        printf( "%d %d  ", i, (int)p->pSat->activity[i] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d %d  ", i, (int)p->pSat->activity[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -2799,13 +2799,13 @@ int Ivy_FraigNodesAreEquivBdd( Ivy_Obj_t * pObj1, Ivy_Obj_t * pObj2 )
         bFunc = Ivy_FraigNodesAreEquivBdd_int( dd, bTemp = bFunc, vFront, Level ); Cudd_Ref( bFunc );
         Cudd_RecursiveDeref( dd, bTemp );
         if ( bFunc == Cudd_ReadLogicZero(dd) ) // proved
-            {printf( "%d", Iter ); break;}
+            {fprintf( Abc_FrameGlobalGetOut(), "%d", Iter ); break;}
         if ( Cudd_DagSize(bFunc) > 1000 )
-            {printf( "b" ); break;}
+            {fprintf( Abc_FrameGlobalGetOut(), "b" ); break;}
         if ( dd->size > 120 )
-            {printf( "s" ); break;}
+            {fprintf( Abc_FrameGlobalGetOut(), "s" ); break;}
         if ( Iter > 50 )
-            {printf( "i" ); break;}
+            {fprintf( Abc_FrameGlobalGetOut(), "i" ); break;}
     }
     if ( bFunc == Cudd_ReadLogicZero(dd) ) // unsat
         RetValue = 1;
@@ -2952,11 +2952,11 @@ Counter++;
     }
     Vec_IntFree( vLeaves );
     if ( RetValue == 1 )
-        printf( "UNSAT\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "UNSAT\n" );
     else if ( RetValue == 0 )
-        printf( "SAT\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "SAT\n" );
     else if ( RetValue == -1 )
-        printf( "UNDEC\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "UNDEC\n" );
 
 //    p->pModel = (int *)pMan->pData, pMan2->pData = NULL;
     Aig_ManStop( pMan );

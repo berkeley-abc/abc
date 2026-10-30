@@ -79,7 +79,7 @@ void Saig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
     int i;
     if ( Aig_ManCoNum(p) == 0 )
     {
-        printf( "Aig_ManDumpBlif(): AIG manager does not have POs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDumpBlif(): AIG manager does not have POs.\n" );
         return;
     }
     Aig_ManSetCioIds( p );
@@ -87,7 +87,7 @@ void Saig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        printf( "Saig_ManDumpBlif(): Cannot open file for writing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Saig_ManDumpBlif(): Cannot open file for writing.\n" );
         return;
     }
     fprintf( pFile, "# BLIF file written by procedure Saig_ManDumpBlif()\n" );
@@ -255,17 +255,17 @@ Aig_Man_t * Saig_ManReadBlif( char * pFileName )
     pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
     {
-        printf( "Saig_ManReadBlif(): Cannot open file for reading.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Cannot open file for reading.\n" );
         return NULL;
     }
     // skip through the comments
     for ( i = 0; (pToken = Saig_ManReadToken( pFile )) && pToken[0] != '.'; i++ );
     if ( pToken == NULL ) 
-        { printf( "Saig_ManReadBlif(): Error 1.\n" ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 1.\n" ); return NULL; }
     // get he model
     pToken = Saig_ManReadToken( pFile );
     if ( pToken == NULL ) 
-        { printf( "Saig_ManReadBlif(): Error 2.\n" ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 2.\n" ); return NULL; }
     // start the package
     p = Aig_ManStart( 10000 );
     p->pName = Abc_UtilStrsav( pToken );
@@ -273,29 +273,29 @@ Aig_Man_t * Saig_ManReadBlif( char * pFileName )
     // count PIs
     pToken = Saig_ManReadToken( pFile );
     if ( pToken == NULL || strcmp( pToken, ".inputs" ) ) 
-        { printf( "Saig_ManReadBlif(): Error 3.\n" ); Aig_ManStop(p); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 3.\n" ); Aig_ManStop(p); return NULL; }
     for ( nPis = 0; (pToken = Saig_ManReadToken( pFile )) && pToken[0] != '.'; nPis++ );
     // count POs
     if ( pToken == NULL || strcmp( pToken, ".outputs" ) ) 
-        { printf( "Saig_ManReadBlif(): Error 4.\n" ); Aig_ManStop(p); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 4.\n" ); Aig_ManStop(p); return NULL; }
     for ( nPos = 0; (pToken = Saig_ManReadToken( pFile )) && pToken[0] != '.'; nPos++ );
     // count latches
     if ( pToken == NULL ) 
-        { printf( "Saig_ManReadBlif(): Error 5.\n" ); Aig_ManStop(p); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 5.\n" ); Aig_ManStop(p); return NULL; }
     for ( nRegs = 0; strcmp( pToken, ".latch" ) == 0; nRegs++ )
     {
         pToken = Saig_ManReadToken( pFile );
         if ( pToken == NULL ) 
-            { printf( "Saig_ManReadBlif(): Error 6.\n" ); Aig_ManStop(p); return NULL; }
+            { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 6.\n" ); Aig_ManStop(p); return NULL; }
         pToken = Saig_ManReadToken( pFile );
         if ( pToken == NULL ) 
-            { printf( "Saig_ManReadBlif(): Error 7.\n" ); Aig_ManStop(p); return NULL; }
+            { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 7.\n" ); Aig_ManStop(p); return NULL; }
         pToken = Saig_ManReadToken( pFile );
         if ( pToken == NULL ) 
-            { printf( "Saig_ManReadBlif(): Error 8.\n" ); Aig_ManStop(p); return NULL; }
+            { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 8.\n" ); Aig_ManStop(p); return NULL; }
         pToken = Saig_ManReadToken( pFile );
         if ( pToken == NULL ) 
-            { printf( "Saig_ManReadBlif(): Error 9.\n" ); Aig_ManStop(p); return NULL; }
+            { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 9.\n" ); Aig_ManStop(p); return NULL; }
     }
     // create PIs and LOs
     for ( i = 0; i < nPis + nRegs; i++ )
@@ -311,11 +311,11 @@ Aig_Man_t * Saig_ManReadBlif( char * pFileName )
             // read 1
             pToken = Saig_ManReadToken( pFile );
             if ( pToken == NULL || strcmp( pToken, "1" ) ) 
-                { printf( "Saig_ManReadBlif(): Error 10.\n" ); Aig_ManStop(p); return NULL; }
+                { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 10.\n" ); Aig_ManStop(p); return NULL; }
             // read next
             pToken = Saig_ManReadToken( pFile );
             if ( pToken == NULL ) 
-                { printf( "Saig_ManReadBlif(): Error 11.\n" ); Aig_ManStop(p); return NULL; }
+                { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 11.\n" ); Aig_ManStop(p); return NULL; }
             continue;
         }
         pFanin0 = Saig_ManReadNode( p, pNum2Id, pToken );
@@ -327,18 +327,18 @@ Aig_Man_t * Saig_ManReadBlif( char * pFileName )
             // read complemented attribute
             pToken = Saig_ManReadToken( pFile );
             if ( pToken == NULL ) 
-                { printf( "Saig_ManReadBlif(): Error 12.\n" ); Aig_ManStop(p); return NULL; }
+                { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 12.\n" ); Aig_ManStop(p); return NULL; }
             if ( pToken[0] == '0' )
                 pFanin0 = Aig_Not(pFanin0);
             // read 1
             pToken = Saig_ManReadToken( pFile );
             if ( pToken == NULL || strcmp( pToken, "1" ) ) 
-                { printf( "Saig_ManReadBlif(): Error 13.\n" ); Aig_ManStop(p); return NULL; }
+                { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 13.\n" ); Aig_ManStop(p); return NULL; }
             Aig_ObjCreateCo( p, pFanin0 );
             // read next
             pToken = Saig_ManReadToken( pFile );
             if ( pToken == NULL ) 
-                { printf( "Saig_ManReadBlif(): Error 14.\n" ); Aig_ManStop(p); return NULL; }
+                { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 14.\n" ); Aig_ManStop(p); return NULL; }
             continue;
         }
 
@@ -359,7 +359,7 @@ Aig_Man_t * Saig_ManReadBlif( char * pFileName )
         // get the complemented attributes
         pToken = Saig_ManReadToken( pFile );
         if ( pToken == NULL ) 
-            { printf( "Saig_ManReadBlif(): Error 15.\n" ); Aig_ManStop(p); return NULL; }
+            { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 15.\n" ); Aig_ManStop(p); return NULL; }
         if ( pToken[0] == '0' )
             pFanin0 = Aig_Not(pFanin0);
         if ( pToken[1] == '0' )
@@ -367,23 +367,23 @@ Aig_Man_t * Saig_ManReadBlif( char * pFileName )
         // read 1
         pToken = Saig_ManReadToken( pFile );
         if ( pToken == NULL || strcmp( pToken, "1" ) ) 
-            { printf( "Saig_ManReadBlif(): Error 16.\n" ); Aig_ManStop(p); return NULL; }
+            { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 16.\n" ); Aig_ManStop(p); return NULL; }
         // read next
         pToken = Saig_ManReadToken( pFile );
         if ( pToken == NULL ) 
-            { printf( "Saig_ManReadBlif(): Error 17.\n" ); Aig_ManStop(p); return NULL; }
+            { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 17.\n" ); Aig_ManStop(p); return NULL; }
 
         // create new node
         pNode = Aig_And( p, pFanin0, pFanin1 );
         if ( Aig_IsComplement(pNode) )
-            { printf( "Saig_ManReadBlif(): Error 18.\n" ); Aig_ManStop(p); return NULL; }
+            { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 18.\n" ); Aig_ManStop(p); return NULL; }
         // set mapping
         pNum2Id[ Number ] = pNode->Id;
     }
     if ( pToken == NULL || strcmp( pToken, ".end" ) ) 
-        { printf( "Saig_ManReadBlif(): Error 19.\n" ); Aig_ManStop(p); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 19.\n" ); Aig_ManStop(p); return NULL; }
     if ( nPos + nRegs != Aig_ManCoNum(p) ) 
-        { printf( "Saig_ManReadBlif(): Error 20.\n" ); Aig_ManStop(p); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Error 20.\n" ); Aig_ManStop(p); return NULL; }
     // add non-node objects to the mapping
     Aig_ManForEachCi( p, pNode, i )
         pNum2Id[pNode->Id] = pNode->Id;
@@ -392,7 +392,7 @@ Aig_Man_t * Saig_ManReadBlif( char * pFileName )
     // check the new manager
     Aig_ManSetRegNum( p, nRegs );
     if ( !Aig_ManCheck(p) )
-        printf( "Saig_ManReadBlif(): Check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Saig_ManReadBlif(): Check has failed.\n" );
     return p;
 }
 

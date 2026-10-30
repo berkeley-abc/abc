@@ -50,7 +50,7 @@ int Ioa_FileSize( char * pFileName )
     pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
     {
-        printf( "Ioa_FileSize(): The file is unavailable (absent or open).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Ioa_FileSize(): The file is unavailable (absent or open).\n" );
         return 0;
     }
     fseek( pFile, 0, SEEK_END );  

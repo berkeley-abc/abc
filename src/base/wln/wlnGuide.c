@@ -54,8 +54,8 @@ void Wln_PrintGuidance( Vec_Wec_t * vGuide, Abc_Nam_t * p )
     Vec_WecForEachLevel( vGuide, vLevel, i )
     {
         Vec_IntForEachEntry( vLevel, Obj, k )
-            printf( "%s ", Obj >= 0 ? Abc_NamStr(p, Obj) : "[unknown]" );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%s ", Obj >= 0 ? Abc_NamStr(p, Obj) : "[unknown]" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 Vec_Wec_t * Wln_ReadGuidance( char * pFileName, Abc_Nam_t * p )
@@ -80,7 +80,7 @@ Vec_Wec_t * Wln_ReadGuidance( char * pFileName, Abc_Nam_t * p )
     }
     fclose( pFile );
     if ( Vec_WecSize(vTokens) == 0 )
-        printf( "Guidance is empty.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Guidance is empty.\n" );
     //Wln_PrintGuidance( vTokens, p );
     ABC_FREE( pBuffer );
     return vTokens;

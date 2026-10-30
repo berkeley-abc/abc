@@ -87,7 +87,7 @@ void Bmc_ComputeSimTest( Gia_Man_t * p )
     Vec_Int_t * vPat2 = Vec_IntAlloc( Gia_ManCiNum(p) );
     Vec_WrdFreeP( &p->vSims );
     p->vSims = Vec_WrdStart( Gia_ManObjNum(p) );
-    printf( "Number of patterns = %d.\n", nPats );
+    fprintf( Abc_FrameGlobalGetOut(), "Number of patterns = %d.\n", nPats );
     for ( i = 0; i < nPats; i++ )
     {
         Vec_IntClear( vPat );
@@ -122,59 +122,59 @@ void Bmc_ComputeSimTest( Gia_Man_t * p )
     Vec_WrdFreeP( &p->vSims );
 
 
-    printf( "\n" );
-    printf( "      " );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "      " );
     for ( v = 0; v < Gia_ManCiNum(p); v++ )
-        printf( "%3c ", 'a'+v );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%3c ", 'a'+v );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( "Off0  " );
+    fprintf( Abc_FrameGlobalGetOut(), "Off0  " );
     for ( v = 0; v < Gia_ManCiNum(p); v++ )
-        printf( "%3d ", PatCount[v][0][0] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d ", PatCount[v][0][0] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( "Off1  " );
+    fprintf( Abc_FrameGlobalGetOut(), "Off1  " );
     for ( v = 0; v < Gia_ManCiNum(p); v++ )
-        printf( "%3d ", PatCount[v][0][1] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d ", PatCount[v][0][1] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( "On0   " );
+    fprintf( Abc_FrameGlobalGetOut(), "On0   " );
     for ( v = 0; v < Gia_ManCiNum(p); v++ )
-        printf( "%3d ", PatCount[v][1][0] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d ", PatCount[v][1][0] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( "On1   " );
+    fprintf( Abc_FrameGlobalGetOut(), "On1   " );
     for ( v = 0; v < Gia_ManCiNum(p); v++ )
-        printf( "%3d ", PatCount[v][1][1] );
-    printf( "\n" );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d ", PatCount[v][1][1] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( "Diff  " );
+    fprintf( Abc_FrameGlobalGetOut(), "Diff  " );
     for ( v = 0; v < Gia_ManCiNum(p); v++ )
-        printf( "%3d ", DiffCount[v] );
-    printf( "\n" );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d ", DiffCount[v] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     for ( i = 0; i < 2; i++ )
     {
-        printf( "      " );
+        fprintf( Abc_FrameGlobalGetOut(), "      " );
         for ( v = 0; v < Gia_ManCiNum(p); v++ )
-            printf( "%3c ", 'a'+v );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%3c ", 'a'+v );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         for ( v = 0; v < Gia_ManCiNum(p); v++ )
         {
-            printf( " %c    ", 'a'+v );
+            fprintf( Abc_FrameGlobalGetOut(), " %c    ", 'a'+v );
             for ( w = 0; w < Gia_ManCiNum(p); w++ )
             {
                 if ( Count[i][v][w] )
-                    printf( "%3d ", Count[i][v][w] );
+                    fprintf( Abc_FrameGlobalGetOut(), "%3d ", Count[i][v][w] );
                 else
-                    printf( "  . " );
+                    fprintf( Abc_FrameGlobalGetOut(), "  . " );
             }
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -761,10 +761,10 @@ Vec_Str_t * Bmc_CollapseOneInt2( Gia_Man_t * p, int nCubeLim, int nBTLimit, int 
         // print minterm
         if ( fPrintMinterm )
         {
-            printf( "Mint: " );
+            fprintf( Abc_FrameGlobalGetOut(), "Mint: " );
             Vec_IntForEachEntry( vLits, iLit, n )
-                printf( "%d", !Abc_LitIsCompl(iLit) );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", !Abc_LitIsCompl(iLit) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         // expand the values
         status = Bmc_CollapseExpand( pSat[1], fCanon ? pSat[2] : pSat[0], vLits, vNums, vCube, nBTLimit, fCanon, -1 );
@@ -1004,11 +1004,11 @@ cleanup:
     if ( fVeryVerbose )
     {
         int fProfile = 0;
-        printf( "Processed output with %d supp vars. ", nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "Processed output with %d supp vars. ", nVars );
         if ( vRes == NULL )
-            printf( "The resulting SOP exceeded %d cubes.\n", nCubeLim );
+            fprintf( Abc_FrameGlobalGetOut(), "The resulting SOP exceeded %d cubes.\n", nCubeLim );
         else 
-            printf( "The best cover contains %d cubes.\n", Vec_StrSize(vRes)/(nVars +3) );
+            fprintf( Abc_FrameGlobalGetOut(), "The best cover contains %d cubes.\n", Vec_StrSize(vRes)/(nVars +3) );
         Abc_PrintTime( 1, "Onset  minterm", Time[0][0] );
         Abc_PrintTime( 1, "Onset  expand ", Time[0][1] );
         Abc_PrintTime( 1, "Offset minterm", Time[1][0] );
@@ -1174,11 +1174,11 @@ cleanup:
     if ( fVeryVerbose )
     {
         int fProfile = 0;
-        printf( "Processed output with %d supp vars. ", nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "Processed output with %d supp vars. ", nVars );
         if ( vRes == NULL )
-            printf( "The resulting SOP exceeded %d cubes.\n", nCubeLim );
+            fprintf( Abc_FrameGlobalGetOut(), "The resulting SOP exceeded %d cubes.\n", nCubeLim );
         else 
-            printf( "The best cover contains %d cubes.\n", Vec_StrSize(vRes)/(nVars +3) );
+            fprintf( Abc_FrameGlobalGetOut(), "The best cover contains %d cubes.\n", Vec_StrSize(vRes)/(nVars +3) );
         Abc_PrintTime( 1, "Onset  minterm", Time[0][0] );
         Abc_PrintTime( 1, "Onset  expand ", Time[0][1] );
         Abc_PrintTime( 1, "Offset minterm", Time[1][0] );
@@ -1352,11 +1352,11 @@ cleanup:
     if ( fVeryVerbose )
     {
         int fProfile = 0;
-        printf( "Processed output with %d supp vars. ", nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "Processed output with %d supp vars. ", nVars );
         if ( vRes == NULL )
-            printf( "The resulting SOP exceeded %d cubes.\n", nCubeLim );
+            fprintf( Abc_FrameGlobalGetOut(), "The resulting SOP exceeded %d cubes.\n", nCubeLim );
         else 
-            printf( "The best cover contains %d cubes.\n", Vec_StrSize(vRes)/(nVars +3) );
+            fprintf( Abc_FrameGlobalGetOut(), "The best cover contains %d cubes.\n", Vec_StrSize(vRes)/(nVars +3) );
         Abc_PrintTime( 1, "Onset  minterm", Time[0][0] );
         Abc_PrintTime( 1, "Onset  expand ", Time[0][1] );
         Abc_PrintTime( 1, "Offset minterm", Time[1][0] );
@@ -1508,11 +1508,11 @@ cleanup:
     if ( fVeryVerbose )
     {
         int fProfile = 0;
-        printf( "Processed output with %d supp vars. ", nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "Processed output with %d supp vars. ", nVars );
         if ( vRes == NULL )
-            printf( "The resulting SOP exceeded %d cubes.\n", nCubeLim );
+            fprintf( Abc_FrameGlobalGetOut(), "The resulting SOP exceeded %d cubes.\n", nCubeLim );
         else 
-            printf( "The best cover contains %d cubes.\n", Vec_StrSize(vRes)/(nVars +3) );
+            fprintf( Abc_FrameGlobalGetOut(), "The best cover contains %d cubes.\n", Vec_StrSize(vRes)/(nVars +3) );
         Abc_PrintTime( 1, "Onset  minterm", Time[0][0] );
         Abc_PrintTime( 1, "Onset  expand ", Time[0][1] );
         Abc_PrintTime( 1, "Offset minterm", Time[1][0] );

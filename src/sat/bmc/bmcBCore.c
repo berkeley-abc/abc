@@ -66,7 +66,7 @@ Vec_Int_t * Bmc_ManBCoreCollectPivots( Gia_Man_t * p, char * pName, Vec_Int_t * 
         if ( iVar > 0 && iVar < Gia_ManObjNum(p) )
             Gia_ManObj( p, iVar )->fMark0 = 1;
         else
-            printf( "Cannot find object with Id %d in the given AIG.\n", iVar );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot find object with Id %d in the given AIG.\n", iVar );
     Vec_IntForEachEntryDouble( vVarMap, iVar, iFrame, i )
         if ( Gia_ManObj( p, iVar )->fMark0 )
             Vec_IntPush( vPivots, Abc_Lit2Var(i) );
@@ -223,19 +223,19 @@ void Bmc_ManBCorePerform( Gia_Man_t * p, Bmc_BCorePar_t * pPars )
     {
         Vec_IntFree( vVarMap );
         sat_solver_delete( pSat );
-        printf( "Timeout of conflict limit is reached.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Timeout of conflict limit is reached.\n" );
         return;
     }
     if ( RetValue == l_True )
     {
         Vec_IntFree( vVarMap );
         sat_solver_delete( pSat );
-        printf( "The BMC problem is SAT.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The BMC problem is SAT.\n" );
         return;
     }
     if ( pPars->fVerbose )
     {
-        printf( "SAT solver returned UNSAT after %7d conflicts.      ", (int)pSat->stats.conflicts );
+        fprintf( Abc_FrameGlobalGetOut(), "SAT solver returned UNSAT after %7d conflicts.      ", (int)pSat->stats.conflicts );
         Abc_PrintTime( 1, "Time", clock() - clk );
     }
     assert( RetValue == l_False );
@@ -248,7 +248,7 @@ void Bmc_ManBCorePerform( Gia_Man_t * p, Bmc_BCorePar_t * pPars )
     Intp_ManFree( pManProof );
     if ( pPars->fVerbose )
     {
-        printf( "UNSAT core contains %d (out of %d) learned clauses.   ", Vec_IntSize(vCore), sat_solver_nconflicts(pSat) );
+        fprintf( Abc_FrameGlobalGetOut(), "UNSAT core contains %d (out of %d) learned clauses.   ", Vec_IntSize(vCore), sat_solver_nconflicts(pSat) );
         Abc_PrintTime( 1, "Time", clock() - clk );
     }
     // write the problem

@@ -495,7 +495,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                 else 
                 {
                     //assert( 0 );
-                    printf( "Failed to write node \"%s\" with unknown operator type (%d).\n", Wlc_ObjName(p, i), pObj->Type );
+                    fprintf( Abc_FrameGlobalGetOut(), "Failed to write node \"%s\" with unknown operator type (%d).\n", Wlc_ObjName(p, i), pObj->Type );
                     fprintf( pFile, "???\n" );
                     continue;
                 }
@@ -600,7 +600,7 @@ void Wlc_WriteVer( Wlc_Ntk_t * p, char * pFileName, int fAddCos, int fNoFlops )
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Wlc_WriteVer(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Wlc_WriteVer(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
     fprintf( pFile, "// Benchmark \"%s\" from file \"%s\" written by ABC on %s\n", p->pName, p->pSpec ? p->pSpec : "unknown", Extra_TimeStamp() );

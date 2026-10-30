@@ -66,7 +66,7 @@ Abc_Ntk_t * Io_ReadEqn( char * pFileName, int fCheck )
     // make sure that everything is okay with the network structure
     if ( fCheck && !Abc_NtkCheckRead( pNtk ) )
     {
-        printf( "Io_ReadEqn: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_ReadEqn: The network check has failed.\n" );
         Abc_NtkDelete( pNtk );
         return NULL;
     }
@@ -102,7 +102,7 @@ Abc_Ntk_t * Io_ReadEqnNetwork( Extra_FileReader_t * p )
 
     // go through the lines of the file
     vVars  = Vec_PtrAlloc( 100 );
-    pProgress = Extra_ProgressBarStart( stdout, Extra_FileReaderGetFileSize(p) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Extra_FileReaderGetFileSize(p) );
     for ( iLine = 0; (vTokens = (Vec_Ptr_t *)Extra_FileReaderGetTokens(p)); iLine++ )
     {
         Extra_ProgressBarUpdate( pProgress, Extra_FileReaderGetCurPosition(p), NULL );
@@ -115,7 +115,7 @@ Abc_Ntk_t * Io_ReadEqnNetwork( Extra_FileReader_t * p )
         // if the number of tokens is different from two, error
         if ( vTokens->nSize != 2 )
         {
-            printf( "%s: Wrong input file format.\n", Extra_FileReaderGetFileName(p) );
+            fprintf( Abc_FrameGlobalGetOut(), "%s: Wrong input file format.\n", Extra_FileReaderGetFileName(p) );
             Abc_NtkDelete( pNtk );
             return NULL;
         }
@@ -159,7 +159,7 @@ Abc_Ntk_t * Io_ReadEqnNetwork( Extra_FileReader_t * p )
             // create the node
             pNode = Io_ReadCreateNode( pNtk, pNodeName, (char **)Vec_PtrArray(vVars), Vec_PtrSize(vVars) );
             // derive the function
-            pNode->pData = Parse_FormulaParserEqn( stdout, pFormula, vVars, (Hop_Man_t *)pNtk->pManFunc );
+            pNode->pData = Parse_FormulaParserEqn( Abc_FrameGlobalGetOut(), pFormula, vVars, (Hop_Man_t *)pNtk->pManFunc );
             // remove the cubes
             ABC_FREE( pFormulaCopy );
         }

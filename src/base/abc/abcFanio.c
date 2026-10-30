@@ -116,12 +116,12 @@ void Abc_ObjDeleteFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
     assert( pObj->Id >= 0 && pFanin->Id >= 0 );
     if ( !Vec_IntRemove( &pObj->vFanins, pFanin->Id ) )
     {
-        printf( "The obj %d is not found among the fanins of obj %d ...\n", pFanin->Id, pObj->Id );
+        fprintf( Abc_FrameGlobalGetOut(), "The obj %d is not found among the fanins of obj %d ...\n", pFanin->Id, pObj->Id );
         return;
     }
     if ( !Vec_IntRemove( &pFanin->vFanouts, pObj->Id ) )
     {
-        printf( "The obj %d is not found among the fanouts of obj %d ...\n", pObj->Id, pFanin->Id );
+        fprintf( Abc_FrameGlobalGetOut(), "The obj %d is not found among the fanouts of obj %d ...\n", pObj->Id, pFanin->Id );
         return;
     }
 }
@@ -182,8 +182,8 @@ void Abc_ObjPatchFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFaninOld, Abc_Obj_t * pFa
     assert( pObj->pNtk == pFaninNewR->pNtk );
     if ( (iFanin = Vec_IntFind( &pObj->vFanins, pFaninOld->Id )) == -1 )
     {
-        printf( "Node %s is not among", Abc_ObjName(pFaninOld) );
-        printf( " the fanins of node %s...\n", Abc_ObjName(pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %s is not among", Abc_ObjName(pFaninOld) );
+        fprintf( Abc_FrameGlobalGetOut(), " the fanins of node %s...\n", Abc_ObjName(pObj) );
         return;
     }
 
@@ -202,8 +202,8 @@ void Abc_ObjPatchFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFaninOld, Abc_Obj_t * pFa
     // update the fanout of the fanin
     if ( !Vec_IntRemove( &pFaninOld->vFanouts, pObj->Id ) )
     {
-        printf( "Node %s is not among", Abc_ObjName(pObj) );
-        printf( " the fanouts of its old fanin %s...\n", Abc_ObjName(pFaninOld) );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %s is not among", Abc_ObjName(pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), " the fanouts of its old fanin %s...\n", Abc_ObjName(pFaninOld) );
 //        return;
     }
     Vec_IntPushMem( pObj->pNtk->pMmStep, &pFaninNewR->vFanouts, pObj->Id );
@@ -255,15 +255,15 @@ Abc_Obj_t * Abc_ObjInsertBetween( Abc_Obj_t * pNodeIn, Abc_Obj_t * pNodeOut, Abc
     // find pNodeOut among the fanouts of pNodeIn
     if ( (iFanoutIndex = Vec_IntFind( &pNodeIn->vFanouts, pNodeOut->Id )) == -1 )
     {
-        printf( "Node %s is not among", Abc_ObjName(pNodeOut) );
-        printf( " the fanouts of node %s...\n", Abc_ObjName(pNodeIn) );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %s is not among", Abc_ObjName(pNodeOut) );
+        fprintf( Abc_FrameGlobalGetOut(), " the fanouts of node %s...\n", Abc_ObjName(pNodeIn) );
         return NULL;
     }
     // find pNodeIn among the fanins of pNodeOut
     if ( (iFaninIndex = Vec_IntFind( &pNodeOut->vFanins, pNodeIn->Id )) == -1 )
     {
-        printf( "Node %s is not among", Abc_ObjName(pNodeIn) );
-        printf( " the fanins of node %s...\n", Abc_ObjName(pNodeOut) );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %s is not among", Abc_ObjName(pNodeIn) );
+        fprintf( Abc_FrameGlobalGetOut(), " the fanins of node %s...\n", Abc_ObjName(pNodeOut) );
         return NULL;
     }
     // create the new node

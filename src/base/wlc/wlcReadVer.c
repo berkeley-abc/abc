@@ -151,7 +151,7 @@ void Wlc_PrsPrintErrorMessage( Wlc_Prs_t * p )
 {
     if ( p->sError[0] == 0 )
         return;
-    fprintf( stdout, "%s", p->sError );
+    fprintf( Abc_FrameGlobalGetOut(), "%s", p->sError  );
 }
 
 /**Function*************************************************************
@@ -339,14 +339,14 @@ int Wlc_PrsPrepare( Wlc_Prs_t * p )
         Wlc_PrsForEachLine( p, pTemp, i )
         {
             if ( Wlc_PrsStrCmp( pTemp, "module" ) )
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             if ( !Wlc_PrsStrCmp( pTemp, "module" ) && !Wlc_PrsStrCmp( pTemp, "endmodule" ) )
-                printf( "    " );
-            printf( "%c", pTemp[0] );
+                fprintf( Abc_FrameGlobalGetOut(), "    " );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", pTemp[0] );
             for ( k = 1; pTemp[k]; k++ )
                 if ( pTemp[k] != ' ' || pTemp[k-1] != ' ' )
-                    printf( "%c", pTemp[k] );
-            printf( ";\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "%c", pTemp[k] );
+            fprintf( Abc_FrameGlobalGetOut(), ";\n" );
         }
 /*    
         // print the line types
@@ -859,7 +859,7 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
                 pStr = Wlc_PrsSkipSpaces( pStr );
             }
             if ( pStr[0] )
-                printf( "Warning: Trailing symbols \"%s\" in line %d.\n", pStr, Wlc_PrsFindLine(p, pStr) );
+                fprintf( Abc_FrameGlobalGetOut(), "Warning: Trailing symbols \"%s\" in line %d.\n", pStr, Wlc_PrsFindLine(p, pStr) );
         }
     }
     // make sure there is nothing left there
@@ -1076,7 +1076,7 @@ startword:
                     if ( Wlc_PrsCheckBitConst0(p->pNtk, NameIdArst) )
                         continue;
                     p->pNtk->fAsyncRst = 1;
-                    printf( "Detected async reset \"%s\".\n", Abc_NamStr(p->pNtk->pManName, NameIdArst) );
+                    fprintf( Abc_FrameGlobalGetOut(), "Detected async reset \"%s\".\n", Abc_NamStr(p->pNtk->pManName, NameIdArst) );
                     break;
                 }
             }
@@ -1097,7 +1097,7 @@ startword:
                     pName += strlen(pName) + 1;
                 }
                 assert( Vec_IntSize(&p->pNtk->vPoPairs) % 2 == 0 );
-                printf( "Finished parsing %d output pairs to be checked for equivalence.\n", Vec_IntSize(&p->pNtk->vPoPairs)/2 );
+                fprintf( Abc_FrameGlobalGetOut(), "Finished parsing %d output pairs to be checked for equivalence.\n", Vec_IntSize(&p->pNtk->vPoPairs)/2 );
             }
             break;
         }
@@ -1261,7 +1261,7 @@ startword:
             if ( nValues < Vec_IntSize(p->vFanins) - 1 ) // may occur if default is not there
             {
                 //return Wlc_PrsWriteErrorMessage( p, pStart, "The number of values in the case statement is wrong.", pName );
-                printf( "Warning:  The number of values in the case statement is wrong.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Warning:  The number of values in the case statement is wrong.\n" );
                 Vec_IntShrink(p->vFanins,nValues+1);
             }
             else if ( nValues > Vec_IntSize(p->vFanins) - 1 )
@@ -1269,7 +1269,7 @@ startword:
             if ( Wlc_ObjRange(pObj) == 1 )
             {
 //                return Wlc_PrsWriteErrorMessage( p, pStart, "Always-statement with 1-bit control is not bit-blasted correctly.", pName );
-                printf( "Warning:  Case-statement with 1-bit control is treated as a 2:1 MUX (correct for unsigned signals only).\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Warning:  Case-statement with 1-bit control is treated as a 2:1 MUX (correct for unsigned signals only).\n" );
             }
             pObj = Wlc_NtkObj( p->pNtk, NameIdOut );
             Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_MUX );
@@ -1306,7 +1306,7 @@ startword:
                             Vec_IntFree( vFanins );
                             continue;
                         }
-                        printf( "Detected async reset.\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "Detected async reset.\n" );
                         p->pNtk->fAsyncRst = 1;
                         Vec_IntFree( vFanins );
                         continue;
@@ -1354,12 +1354,12 @@ startword:
             //    printf( "Warning!  Flop input \"%s\" has bit-width (%d) that differs from the flop declaration (%d)\n", Abc_NamStr(p->pNtk->pManName, NameIdIn), Wlc_ObjRange(pObj), nBits );
             // save flop init value
             if ( NameId == -1 )
-                printf( "Initial value of flop \"%s\" is not specified. Zero is assumed.\n", Abc_NamStr(p->pNtk->pManName, NameIdOut) );
+                fprintf( Abc_FrameGlobalGetOut(), "Initial value of flop \"%s\" is not specified. Zero is assumed.\n", Abc_NamStr(p->pNtk->pManName, NameIdOut) );
             else
             {
                 pObj = Wlc_NtkObj( p->pNtk, NameId );
                 if ( nBits != Wlc_ObjRange(pObj) )
-                    printf( "Warning!  Flop init signal \"%s\" bit-width (%d) is different from the flop declaration (%d)\n", Abc_NamStr(p->pNtk->pManName, NameId), Wlc_ObjRange(pObj), nBits );
+                    fprintf( Abc_FrameGlobalGetOut(), "Warning!  Flop init signal \"%s\" bit-width (%d) is different from the flop declaration (%d)\n", Abc_NamStr(p->pNtk->pManName, NameId), Wlc_ObjRange(pObj), nBits );
             }
             if ( p->pNtk->vInits == NULL )
                 p->pNtk->vInits = Vec_IntAlloc( 100 );
@@ -1470,15 +1470,15 @@ startword:
             Vec_IntPush( &p->pNtk->vFfs, NameIdIn );
             // compare bit-width
             if ( Wlc_ObjRange(Wlc_NtkObj(p->pNtk, NameIdIn)) != nBits )
-                printf( "Warning!  Flop input \"%s\" bit-width (%d) is different from that of flop output (%d)\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "Warning!  Flop input \"%s\" bit-width (%d) is different from that of flop output (%d)\n", 
                     Abc_NamStr(p->pNtk->pManName, NameId), Wlc_ObjRange(Wlc_NtkObj(p->pNtk, NameIdIn)), nBits );
             // save flop init value
             if ( NameId == -1 )
-                printf( "Initial value of flop \"%s\" is not specified. Zero is assumed.\n", Abc_NamStr(p->pNtk->pManName, NameIdOut) );
+                fprintf( Abc_FrameGlobalGetOut(), "Initial value of flop \"%s\" is not specified. Zero is assumed.\n", Abc_NamStr(p->pNtk->pManName, NameIdOut) );
             else
             {
                 if ( Wlc_ObjRange(Wlc_NtkObj(p->pNtk, NameId)) != nBits )
-                    printf( "Warning!  Flop init signal \"%s\" bit-width (%d) is different from that of flop output (%d)\n", 
+                    fprintf( Abc_FrameGlobalGetOut(), "Warning!  Flop init signal \"%s\" bit-width (%d) is different from that of flop output (%d)\n", 
                         Abc_NamStr(p->pNtk->pManName, NameId), Wlc_ObjRange(Wlc_NtkObj(p->pNtk, NameId)), nBits );
             }
             if ( p->pNtk->vInits == NULL )
@@ -1682,18 +1682,18 @@ startword:
     }
     if ( p->nNonZero[0] )
     {
-        printf( "Warning: Input file contains %d objects with non-zero-based ranges.\n", p->nNonZero[0] );
-        printf( "For example, signal with range [%d:%d] is declared in line %d.\n", p->nNonZero[1], p->nNonZero[2], p->nNonZero[3] );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Input file contains %d objects with non-zero-based ranges.\n", p->nNonZero[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "For example, signal with range [%d:%d] is declared in line %d.\n", p->nNonZero[1], p->nNonZero[2], p->nNonZero[3] );
     }
     if ( p->nNegative[0] )
     {
-        printf( "Warning: Input file contains %d objects with negative ranges.\n", p->nNegative[0] );
-        printf( "For example, signal with range [%d:%d] is declared in line %d.\n", p->nNegative[1], p->nNegative[2], p->nNegative[3] );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Input file contains %d objects with negative ranges.\n", p->nNegative[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "For example, signal with range [%d:%d] is declared in line %d.\n", p->nNegative[1], p->nNegative[2], p->nNegative[3] );
     }
     if ( p->nReverse[0] )
     {
-        printf( "Warning: Input file contains %d objects with reversed ranges.\n", p->nReverse[0] );
-        printf( "For example, signal with range [%d:%d] is declared in line %d.\n", p->nReverse[1], p->nReverse[2], p->nReverse[3] );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Input file contains %d objects with reversed ranges.\n", p->nReverse[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "For example, signal with range [%d:%d] is declared in line %d.\n", p->nReverse[1], p->nReverse[2], p->nReverse[3] );
     }
     return 1;
 }
@@ -1715,7 +1715,7 @@ Wlc_Ntk_t * Wlc_ReadVer( char * pFileName, char * pStr, int fInter )
     {
         if ( fInter )
         {
-            printf( "Finished deriving interface for module \"%s\".\n", p->pNtk->pName );
+            fprintf( Abc_FrameGlobalGetOut(), "Finished deriving interface for module \"%s\".\n", p->pNtk->pName );
             pNtk = p->pNtk;  p->pNtk = NULL;
             pNtk->pSpec = Abc_UtilStrsav( pFileName );
             if ( Vec_IntSize(&pNtk->vNameIds) == 0 ) 

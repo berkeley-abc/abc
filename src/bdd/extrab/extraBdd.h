@@ -203,7 +203,7 @@ extern DdNode *     Extra_bddTuples( DdManager * dd, int K, DdNode * bVarsN );
 extern DdNode *      extraBddTuples( DdManager * dd, DdNode * bVarsK, DdNode * bVarsN );
 
 #ifndef ABC_PRB
-#define ABC_PRB(dd,f)       printf("%s = ", #f); Extra_bddPrint(dd,f); printf("\n")
+#define ABC_PRB(dd,f)       fprintf( Abc_FrameGlobalGetOut(), "%s = ", #f ); Extra_bddPrint(dd,f); fprintf( Abc_FrameGlobalGetOut(), "\n" )
 #endif
 
 /*=== extraMaxMin.c ==============================================================*/
@@ -354,6 +354,8 @@ extern DdNode *     extraZddGetSingletonsBoth( DdManager * dd, DdNode * bVars );
 
 ABC_NAMESPACE_HEADER_END
 
+extern ABC_DLL FILE *             Abc_FrameGlobalGetOut();
+extern ABC_DLL FILE *             Abc_FrameGlobalGetErr();
 
 
 #endif /* __EXTRA_H__ */

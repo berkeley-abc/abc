@@ -118,12 +118,12 @@ Vec_Wrd_t * Gia_ManDeriveTruths( Gia_Man_t * p, Vec_Wrd_t * vSims, Vec_Wrd_t * v
             if ( !Value0 && !Value1 )
                 continue;
             if ( Value0 && Value1 )
-                printf( "Internal error: Onset and Offset overlap.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Internal error: Onset and Offset overlap.\n" );
             assert( !Value0 || !Value1 );
             Abc_TtSetBit( pTruth[Value1], iMint );
         }
         if ( Abc_TtCountOnesVecMask(pTruth[0], pTruth[1], nTtWords, 0) )
-            printf( "Verification for function %d failed for %d minterm pairs.\n", f,
+            fprintf( Abc_FrameGlobalGetOut(), "Verification for function %d failed for %d minterm pairs.\n", f,
                 Abc_TtCountOnesVecMask(pTruth[0], pTruth[1], nTtWords, 0) );
     }
     if ( Vec_IntSize(vSet) < 6 )
@@ -289,20 +289,20 @@ int Gia_ManEvalSolutionOne( Gia_Man_t * p, Vec_Wrd_t * vSims, Vec_Wrd_t * vIsfs,
     int nNodesMin   = Abc_MinInt( Abc_MinInt(nNodesResub, nNodesBidec), Abc_MinInt(nNodesIsop, nNodesBdd) );
     if ( fVerbose )
     {
-        printf( "Size = %2d  ", nVars );
-        printf( "Resub =%3d  ", nNodesResub );
-        printf( "Bidec =%3d  ", nNodesBidec );
-        printf( "Isop =%3d  ",  nNodesIsop );
-        printf( "Bdd =%3d  ",   nNodesBdd );
+        fprintf( Abc_FrameGlobalGetOut(), "Size = %2d  ", nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "Resub =%3d  ", nNodesResub );
+        fprintf( Abc_FrameGlobalGetOut(), "Bidec =%3d  ", nNodesBidec );
+        fprintf( Abc_FrameGlobalGetOut(), "Isop =%3d  ",  nNodesIsop );
+        fprintf( Abc_FrameGlobalGetOut(), "Bdd =%3d  ",   nNodesBdd );
         Abc_TtIsfPrint( pTruth[0], pTruth[1], nTtWords ); 
         if ( nVars <= 6 )
         {
-            printf( "  " );
-            Extra_PrintHex( stdout, (unsigned*)pTruth[0], nVars );
-            printf( "  " );
-            Extra_PrintHex( stdout, (unsigned*)pTruth[1], nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "  " );
+            Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned*)pTruth[0], nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "  " );
+            Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned*)pTruth[1], nVars );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_WrdFree( vTruths );
     if ( nNodesMin > 500 )

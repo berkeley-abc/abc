@@ -142,13 +142,13 @@ clk = Abc_Clock();
         if ( R < 5.0 )
             continue;
 
-        printf( "%6d : ", i );
-        printf( "S = %5d. ", Vec_IntSize(vSup) );
-        printf( "SNew = %5d. ", Vec_IntSize(vSupNew) );
-        printf( "R = %7.2f. ", R );
-        printf( "Over = %5d. ", CountOver );
-        printf( "Quant = %5d. ", CountQuant );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "S = %5d. ", Vec_IntSize(vSup) );
+        fprintf( Abc_FrameGlobalGetOut(), "SNew = %5d. ", Vec_IntSize(vSupNew) );
+        fprintf( Abc_FrameGlobalGetOut(), "R = %7.2f. ", R );
+        fprintf( Abc_FrameGlobalGetOut(), "Over = %5d. ", CountOver );
+        fprintf( Abc_FrameGlobalGetOut(), "Quant = %5d. ", CountQuant );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 /*
         Vec_IntForEachEntry( vSupNew, Entry, k )
             printf( "%d ", Entry );
@@ -159,7 +159,7 @@ clk = Abc_Clock();
 ABC_PRT( "Scanning", Abc_Clock() - clk );
 
     // print cumulative statistics
-    printf( "PIs = %6d. POs = %6d. Lim = %3d.   AveS = %3d. SN = %3d. R = %4.2f Max = %5d.\n",
+    fprintf( Abc_FrameGlobalGetOut(), "PIs = %6d. POs = %6d. Lim = %3d.   AveS = %3d. SN = %3d. R = %4.2f Max = %5d.\n",
         Aig_ManCiNum(p), Aig_ManCoNum(p), nComLim,
         nTotalSupp/Aig_ManCoNum(p), nTotalSupp2/Aig_ManCoNum(p),
         Ratio/Aig_ManCoNum(p), Largest );
@@ -249,9 +249,9 @@ clk = Abc_Clock();
         Counter = 0;
         for ( m = 0; m < Aig_ManCiNum(p); m++ )
             Counter += pSupp[m];
-        printf( "%d(%d) ", Vec_IntSize(vSup), Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "%d(%d) ", Vec_IntSize(vSup), Counter );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 ABC_PRT( "Extension ", Abc_Clock() - clk );
 
     ABC_FREE( pSupp );

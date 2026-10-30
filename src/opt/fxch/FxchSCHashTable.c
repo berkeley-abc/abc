@@ -371,12 +371,12 @@ unsigned int Fxch_SCHashTableMemory( Fxch_SCHashTable_t* pHashTable )
 void Fxch_SCHashTablePrint( Fxch_SCHashTable_t* pHashTable )
 {
     int Memory;
-    printf( "SubCube Hash Table at %p\n", ( void* )pHashTable );
-    printf("%20s %20s\n", "nEntries",
+    fprintf( Abc_FrameGlobalGetOut(), "SubCube Hash Table at %p\n", ( void* )pHashTable );
+    fprintf( Abc_FrameGlobalGetOut(), "%20s %20s\n", "nEntries",
                           "Memory Usage (MB)" );
 
     Memory = Fxch_SCHashTableMemory( pHashTable );
-    printf("%20d %18.2f\n", pHashTable->nEntries,
+    fprintf( Abc_FrameGlobalGetOut(), "%20d %18.2f\n", pHashTable->nEntries,
                             ( ( double ) Memory / 1048576 ) );
 }
 ////////////////////////////////////////////////////////////////////////

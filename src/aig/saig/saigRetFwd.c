@@ -222,7 +222,7 @@ Aig_Man_t * Saig_ManRetimeForward( Aig_Man_t * p, int nMaxIters, int fVerbose )
         pNew = Saig_ManRetimeForwardOne( pTemp = pNew, &nRegFixed, &nRegMoves );
         if ( fVerbose )
         {
-            printf( "%2d : And = %6d. Reg = %5d. Unret = %5d. Move = %6d. ", 
+            fprintf( Abc_FrameGlobalGetOut(), "%2d : And = %6d. Reg = %5d. Unret = %5d. Move = %6d. ", 
                 i + 1, Aig_ManNodeNum(pTemp), Aig_ManRegNum(pTemp), nRegFixed, nRegMoves );
             ABC_PRT( "Time", Abc_Clock() - clk );
         }

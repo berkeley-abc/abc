@@ -134,11 +134,11 @@ void Aig_ManPackPrintCare( Aig_ManPack_t * p )
 void Aig_ManPackFree( Aig_ManPack_t * p )
 {
 //    Aig_ManPackPrintCare( p );
-    printf( "Patterns: " );
-    printf( "Total = %6d. ",   p->nPatTotal );
-    printf( "Skipped = %6d. ", p->nPatSkip );
-    printf( "Cares = %6.2f %%  ", 100.0*Aig_ManPackCountCares(p)/Aig_ManCiNum(p->pAig)/64 );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Patterns: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Total = %6d. ",   p->nPatTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Skipped = %6d. ", p->nPatSkip );
+    fprintf( Abc_FrameGlobalGetOut(), "Cares = %6.2f %%  ", 100.0*Aig_ManPackCountCares(p)/Aig_ManCiNum(p->pAig)/64 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_WrdFree( p->vSigns );
     Vec_WrdFree( p->vPiPats );
     Vec_WrdFree( p->vPiCare );
@@ -242,11 +242,11 @@ void Aig_ManPackPrintStats( Aig_ManPack_t * p )
     for ( i = 0; i <= 32; i++ )
     {
         Total += Counts[i];
-        printf( "%2d : ", i );
-        printf( "%6d  ", Counts[i] );
-        printf( "%6.1f %%", 100.0*Counts[i]/Aig_ManNodeNum(p->pAig) );
-        printf( "%6.1f %%", 100.0*Total/Aig_ManNodeNum(p->pAig) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d  ", Counts[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%6.1f %%", 100.0*Counts[i]/Aig_ManNodeNum(p->pAig) );
+        fprintf( Abc_FrameGlobalGetOut(), "%6.1f %%", 100.0*Total/Aig_ManNodeNum(p->pAig) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 

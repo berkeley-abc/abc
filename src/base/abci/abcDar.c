@@ -857,14 +857,14 @@ static void Abc_NtkFromMappedGiaPrint5Decs( Abc_Ntk_t * pNtk )
         if ( !Abc_Tt5FindAndDec( Truth, &iVar, &fCompl, &Truth4 ) )
         {
             Abc_Print( 1, "%05d : ", Abc_ObjId(pObj) );
-            Abc_TtPrintHexRev( stdout, &Truth, 5 );
+            Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), &Truth, 5 );
             Abc_Print( 1, " = <none>\n" );
             continue;
         }
         Abc_Print( 1, "%05d : ", Abc_ObjId(pObj) );
-        Abc_TtPrintHexRev( stdout, &Truth, 5 );
+        Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), &Truth, 5 );
         Abc_Print( 1, " = %cx%d & ", fCompl ? '~' : ' ', iVar );
-        Abc_TtPrintHexRev( stdout, &Truth4, 4 );
+        Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), &Truth4, 4 );
         Abc_Print( 1, "\n" );
     }
     Vec_IntFree( vTruth );
@@ -1084,9 +1084,9 @@ Abc_Ntk_t * Abc_NtkFromMappedGiaInt( Gia_Man_t * p, int fFindEnables, int fUseBu
     if ( fVerbose && nDupGates && !Abc_FrameReadFlag("silentmode") )
     {
         if ( !fDuplicate )
-            printf( "Added %d buffers/inverters to decouple the CO drivers.\n", nDupGates );
+            fprintf( Abc_FrameGlobalGetOut(), "Added %d buffers/inverters to decouple the CO drivers.\n", nDupGates );
         else
-            printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
+            fprintf( Abc_FrameGlobalGetOut(), "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
     }
     // remove const node if it is not used
     if ( !Abc_ObjIsNone(pConst0) && Abc_ObjFanoutNum(pConst0) == 0 )
@@ -1273,9 +1273,9 @@ Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p, int fUseBuffs )
         if ( fVerbose && nDupGates && !Abc_FrameReadFlag("silentmode") )
         {
             if ( fUseBuffs )
-                printf( "Added %d buffers/inverters to decouple the CO drivers.\n", nDupGates );
+                fprintf( Abc_FrameGlobalGetOut(), "Added %d buffers/inverters to decouple the CO drivers.\n", nDupGates );
             else
-                printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
+                fprintf( Abc_FrameGlobalGetOut(), "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
         }
     }
 
@@ -1440,9 +1440,9 @@ Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
                 int Counter = 0;
                 for ( pNode = Abc_ObjEquiv(pNode); pNode; pNode = Abc_ObjEquiv(pNode) )
                     Counter++;
-                printf( "%d ", Counter );
+                fprintf( Abc_FrameGlobalGetOut(), "%d ", Counter );
             }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return pNtkNew;
 }
@@ -2255,7 +2255,7 @@ ABC_PRT( "Time", Abc_Clock() - clkTotal );
         Abc_Print( 1, "Networks are UNDECIDED.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
     return RetValue;
 }
 

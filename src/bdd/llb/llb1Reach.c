@@ -390,7 +390,7 @@ DdNode * Llb_ManComputeImage( Llb_Man_t * p, DdNode * bInit, int fBackward )
             int ObjId = Vec_IntEntry( p->vVar2Obj, bTemp->index );
             Aig_Obj_t * pObj = Aig_ManObj( p->pAig, ObjId );
             if ( !Saig_ObjIsLi(p->pAig, pObj) )
-                printf( "Var %d assigned to obj %d that is not LI\n", bTemp->index, ObjId );
+                fprintf( Abc_FrameGlobalGetOut(), "Var %d assigned to obj %d that is not LI\n", bTemp->index, ObjId );
         }
         Cudd_RecursiveDeref( p->dd, bCube );
     }
@@ -630,7 +630,7 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
     if ( p->ddR->bFunc == NULL )
     {
         if ( !p->pPars->fSilent )
-            printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+            fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
         p->pPars->iFrame = -1;
         return -1;
     }
@@ -665,7 +665,7 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
         if ( p->pPars->TimeLimit && Abc_Clock() > p->pPars->TimeTarget )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout during image computation (%d seconds).\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout during image computation (%d seconds).\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->dd,  bCurrent );  bCurrent = NULL;
             Cudd_RecursiveDeref( p->dd,  bConstrCs ); bConstrCs = NULL;
@@ -679,7 +679,7 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
         if ( bTemp == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during ring transfer.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during ring transfer.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->dd,  bCurrent );  bCurrent = NULL;
             Cudd_RecursiveDeref( p->dd,  bConstrCs ); bConstrCs = NULL;
@@ -730,7 +730,7 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
         if ( bNext == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->dd,  bCurrent );   bCurrent = NULL;
             Cudd_RecursiveDeref( p->dd,  bConstrCs );  bConstrCs = NULL;
@@ -757,7 +757,7 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
         if ( bNext == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->dd,  bTemp );  
             Cudd_RecursiveDeref( p->dd,  bConstrCs );  bConstrCs = NULL;
@@ -807,7 +807,7 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
         if ( bCurrent == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation in transfer 2.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation in transfer 2.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->ddG, bTemp );  
             Cudd_RecursiveDeref( p->dd,  bConstrCs );  bConstrCs = NULL;
@@ -834,11 +834,11 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
 
         if ( p->pPars->fVerbose )
         {
-            fprintf( stdout, "F =%5d : ",    nIters );
-            fprintf( stdout, "Im =%6d  ",    nBddSize );
-            fprintf( stdout, "(%4d %3d)   ", Cudd_ReadReorderings(p->dd),  Cudd_ReadGarbageCollections(p->dd) );
-            fprintf( stdout, "Rea =%6d  ",   Cudd_DagSize(bReached) );
-            fprintf( stdout, "(%4d%4d)   ",  Cudd_ReadReorderings(p->ddG), Cudd_ReadGarbageCollections(p->ddG) );
+            fprintf( Abc_FrameGlobalGetOut(), "F =%5d : ",    nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "Im =%6d  ",    nBddSize );
+            fprintf( Abc_FrameGlobalGetOut(), "(%4d %3d)   ", Cudd_ReadReorderings(p->dd),  Cudd_ReadGarbageCollections(p->dd) );
+            fprintf( Abc_FrameGlobalGetOut(), "Rea =%6d  ",   Cudd_DagSize(bReached) );
+            fprintf( Abc_FrameGlobalGetOut(), "(%4d%4d)   ",  Cudd_ReadReorderings(p->ddG), Cudd_ReadGarbageCollections(p->ddG) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk2 );
         }
 /*
@@ -866,16 +866,16 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
     {
         double nMints = Cudd_CountMinterm(p->ddG, bReached, Saig_ManRegNum(p->pAig) );
         if ( nIters >= p->pPars->nIterMax || nBddSize > p->pPars->nBddMax )
-            fprintf( stdout, "Reachability analysis is stopped after %d frames.\n", nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "Reachability analysis is stopped after %d frames.\n", nIters );
         else
-            fprintf( stdout, "Reachability analysis completed after %d frames.\n", nIters );
-        fprintf( stdout, "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Saig_ManRegNum(p->pAig)) );
-        fflush( stdout ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Reachability analysis completed after %d frames.\n", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Saig_ManRegNum(p->pAig)) );
+        fflush( Abc_FrameGlobalGetOut() ); 
     }
     if ( nIters >= p->pPars->nIterMax || nBddSize > p->pPars->nBddMax )
     {
         if ( !p->pPars->fSilent )
-            printf( "Verified only for states reachable in %d frames.  ", nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "Verified only for states reachable in %d frames.  ", nIters );
         p->pPars->iFrame = p->pPars->nIterMax;
         Cudd_RecursiveDeref( p->ddG, bReached );
         return -1; // undecided
@@ -890,7 +890,7 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
     else
         Cudd_RecursiveDeref( p->ddG, bReached );
     if ( !p->pPars->fSilent )
-        printf( "The miter is proved unreachable after %d iterations.  ", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "The miter is proved unreachable after %d iterations.  ", nIters );
     p->pPars->iFrame = nIters - 1;
     return 1; // unreachable
 }

@@ -181,10 +181,10 @@ int lifting;            /* whether to perform lifting or not */
     pcube *L1, *R1;
 
     if (debug & COMPL) {
-    (void) printf("compl_merge: left %d, right %d\n", L->count, R->count);
-    (void) printf("%s (cl)\n%s (cr)\nLeft is\n", pc1(cl), pc2(cr));
+    (void) fprintf( Abc_FrameGlobalGetOut(), "compl_merge: left %d, right %d\n", L->count, R->count );
+    (void) fprintf( Abc_FrameGlobalGetOut(), "%s (cl)\n%s (cr)\nLeft is\n", pc1(cl), pc2(cr) );
     cprint(L);
-    (void) printf("Right is\n");
+    (void) fprintf( Abc_FrameGlobalGetOut(), "Right is\n" );
     cprint(R);
     }
 
@@ -247,7 +247,7 @@ int lifting;            /* whether to perform lifting or not */
     }
 
     if (debug & COMPL) {
-    (void) printf("Result %d\n", Tbar->count);
+    (void) fprintf( Abc_FrameGlobalGetOut(), "Result %d\n", Tbar->count );
     if (verbose_debug)
         cprint(Tbar);
     }

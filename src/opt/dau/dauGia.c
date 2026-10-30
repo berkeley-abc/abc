@@ -485,7 +485,7 @@ int Dsm_ManTruthToGia( void * p, word * pTruth, Vec_Int_t * vLeaves, Vec_Int_t *
 ***********************************************************************/
 void Dsm_ManReportStats()
 {
-    printf( "Calls = %d. NonDSD = %d. Non1Step = %d.\n", m_Calls, m_NonDsd, m_Non1Step );
+    fprintf( Abc_FrameGlobalGetOut(), "Calls = %d. NonDSD = %d. Non1Step = %d.\n", m_Calls, m_NonDsd, m_Non1Step );
     m_Calls = m_NonDsd = m_Non1Step = 0;
 }
 

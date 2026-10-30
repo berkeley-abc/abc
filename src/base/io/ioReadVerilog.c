@@ -61,11 +61,11 @@ Abc_Ntk_t * Io_ReadVerilog( char * pFileName, int fCheck )
     pNtk = (Abc_Ntk_t *)Vec_PtrEntry( pDesign->vTops, 0 );
     if ( RetValue > 1 )
     {
-        printf( "Warning: The design has %d root-level modules: ", Vec_PtrSize(pDesign->vTops) );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The design has %d root-level modules: ", Vec_PtrSize(pDesign->vTops) );
         Vec_PtrForEachEntry( Abc_Ntk_t *, pDesign->vTops, pTemp, i )
-            printf( " %s", Abc_NtkName(pTemp) );
-        printf( "\n" );
-        printf( "The first one (%s) will be used.\n", pNtk->pName );
+            fprintf( Abc_FrameGlobalGetOut(), " %s", Abc_NtkName(pTemp) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The first one (%s) will be used.\n", pNtk->pName );
     }
 
     // extract the master network

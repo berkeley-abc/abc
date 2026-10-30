@@ -104,7 +104,7 @@ static int load_augmented_matrix(const char *path, double **outMatrix, int *outE
             if (feof(fp)) {
                 break;
             }
-            fprintf(stderr, "Failed to read line from input file.\n");
+            fprintf( Abc_FrameGlobalGetErr(), "Failed to read line from input file.\n");
             free(data);
             fclose(fp);
             return 0;
@@ -127,7 +127,7 @@ static int load_augmented_matrix(const char *path, double **outMatrix, int *outE
                 size_t new_capacity = capacity == 0 ? 64 : capacity * 2;
                 double *tmp = (double *)realloc(data, new_capacity * sizeof(double));
                 if (!tmp) {
-                    fprintf(stderr, "Out of memory while loading matrix.\n");
+                    fprintf( Abc_FrameGlobalGetErr(), "Out of memory while loading matrix.\n");
                     free(data);
                     free(line);
                     fclose(fp);
@@ -151,7 +151,7 @@ static int load_augmented_matrix(const char *path, double **outMatrix, int *outE
         if (row_width == -1) {
             row_width = columns;
         } else if (columns != row_width) {
-            fprintf(stderr, "Row %d has %d entries, expected %d.\n", rows + 1, columns, row_width);
+            fprintf( Abc_FrameGlobalGetErr(), "Row %d has %d entries, expected %d.\n", rows + 1, columns, row_width);
             free(data);
             fclose(fp);
             return 0;
@@ -163,19 +163,19 @@ static int load_augmented_matrix(const char *path, double **outMatrix, int *outE
     fclose(fp);
 
     if (rows == 0) {
-        fprintf(stderr, "Input file is empty or contains no data rows.\n");
+        fprintf( Abc_FrameGlobalGetErr(), "Input file is empty or contains no data rows.\n");
         free(data);
         return 0;
     }
 
     if (row_width <= 1) {
-        fprintf(stderr, "Each row must contain at least two numbers.\n");
+        fprintf( Abc_FrameGlobalGetErr(), "Each row must contain at least two numbers.\n");
         free(data);
         return 0;
     }
 
     if ((size_t)rows * (size_t)row_width != count) {
-        fprintf(stderr, "Internal error: unexpected data size.\n");
+        fprintf( Abc_FrameGlobalGetErr(), "Internal error: unexpected data size.\n");
         free(data);
         return 0;
     }
@@ -534,7 +534,7 @@ static int try_integer_solution(
 // Gaussian-elimination-based solver that optionally searches for integer solutions.
 double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
     if (!pMatrix || nEqus <= 0 || nVars <= 0) {
-        fprintf(stderr, "Invalid matrix dimensions provided to solver.\n");
+        fprintf( Abc_FrameGlobalGetErr(), "Invalid matrix dimensions provided to solver.\n");
         return NULL;
     }
 
@@ -559,14 +559,14 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
 
     matrix_copy = (double *)malloc(matrix_bytes);
     if (!matrix_copy) {
-        fprintf(stderr, "Unable to allocate memory for solver workspace.\n");
+        fprintf( Abc_FrameGlobalGetErr(), "Unable to allocate memory for solver workspace.\n");
         goto cleanup;
     }
     memcpy(matrix_copy, pMatrix, matrix_bytes);
 
     pivot_cols = (int *)malloc((size_t)nEqus * sizeof(int));
     if (!pivot_cols) {
-        fprintf(stderr, "Unable to allocate memory for pivot tracking.\n");
+        fprintf( Abc_FrameGlobalGetErr(), "Unable to allocate memory for pivot tracking.\n");
         goto cleanup;
     }
     for (int i = 0; i < nEqus; ++i) {
@@ -629,14 +629,14 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
             }
         }
         if (zero_row && fabs(matrix_copy[r * row_len + nVars]) > EPSILON) {
-            printf("Verification: inconsistent system detected.\n");
+            fprintf(Abc_FrameGlobalGetOut(), "Verification: inconsistent system detected.\n");
             goto cleanup;
         }
     }
 
     pivot_column_used = (int *)calloc((size_t)nVars, sizeof(int));
     if (!pivot_column_used) {
-        fprintf(stderr, "Unable to allocate memory for pivot metadata.\n");
+        fprintf( Abc_FrameGlobalGetErr(), "Unable to allocate memory for pivot metadata.\n");
         goto cleanup;
     }
     for (int r = 0; r < rank; ++r) {
@@ -656,7 +656,7 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
     if (free_count > 0) {
         free_cols = (int *)malloc((size_t)free_count * sizeof(int));
         if (!free_cols) {
-            fprintf(stderr, "Unable to allocate memory for free column list.\n");
+            fprintf( Abc_FrameGlobalGetErr(), "Unable to allocate memory for free column list.\n");
             goto cleanup;
         }
         int idx = 0;
@@ -683,7 +683,7 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
     workspace = (double *)malloc((size_t)nVars * sizeof(double));
     rounded = (double *)malloc((size_t)nVars * sizeof(double));
     if (!solution || !workspace || !rounded) {
-        fprintf(stderr, "Unable to allocate solver buffers.\n");
+        fprintf( Abc_FrameGlobalGetErr(), "Unable to allocate solver buffers.\n");
         goto cleanup;
     }
 
@@ -699,7 +699,7 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
             solution);
     } else {
         if (free_count >= 6) {
-            printf("Warning: large nullspace (%d free variables); integer search radius +/-20 may be expensive.\n", free_count);
+            fprintf(Abc_FrameGlobalGetOut(), "Warning: large nullspace (%d free variables); integer search radius +/-20 may be expensive.\n", free_count);
         }
         if (!try_integer_solution(
                 matrix_copy,
@@ -729,20 +729,20 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
                 workspace,
                 solution);
             if (require_nonzero_integer && require_distinct_first_four) {
-                printf("Note: integer solution meeting non-negative and distinct-first-four constraints not found; returning floating-point solution.\n");
+                fprintf(Abc_FrameGlobalGetOut(), "Note: integer solution meeting non-negative and distinct-first-four constraints not found; returning floating-point solution.\n");
             } else if (require_nonzero_integer) {
-                printf("Note: non-negative integer solution with mixed zero/positive entries not found; returning floating-point solution.\n");
+                fprintf(Abc_FrameGlobalGetOut(), "Note: non-negative integer solution with mixed zero/positive entries not found; returning floating-point solution.\n");
             } else if (require_distinct_first_four) {
-                printf("Note: integer solution with distinct first four variables not found; returning floating-point solution.\n");
+                fprintf(Abc_FrameGlobalGetOut(), "Note: integer solution with distinct first four variables not found; returning floating-point solution.\n");
             } else {
-                printf("Note: integer solution not found; returning floating-point solution.\n");
+                fprintf(Abc_FrameGlobalGetOut(), "Note: integer solution not found; returning floating-point solution.\n");
             }
         }
     }
 
     max_residual = 0.0;
     if (!verify_solution(pMatrix, nEqus, nVars, solution, VERIFY_TOLERANCE, &max_residual)) {
-        printf("Verification: failure (max residual = %.6f)\n", max_residual);
+        fprintf(Abc_FrameGlobalGetOut(), "Verification: failure (max residual = %.6f)\n", max_residual);
         goto cleanup;
     }
     //printf("Verification: success (max residual = %.6f)\n", max_residual);

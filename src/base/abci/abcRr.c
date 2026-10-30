@@ -116,7 +116,7 @@ int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFa
     Abc_NtkCleanCopy(pNtk);
     nNodes = Abc_NtkObjNumMax(pNtk);
     Abc_NtkRRSimulateStart(pNtk);
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -228,7 +228,7 @@ int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFa
     // check
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Abc_NtkRR: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRR: The network check has failed.\n" );
         return 0;
     }
     return 1;
@@ -298,11 +298,11 @@ void Abc_RRManStop( Abc_RRMan_t * p )
 void Abc_RRManPrintStats( Abc_RRMan_t * p )
 {
     double Ratio = 100.0*(p->nNodesOld  - Abc_NtkNodeNum(p->pNtk))/p->nNodesOld;
-    printf( "Redundancy removal statistics:\n" );
-    printf( "Edges tried     = %6d.\n", p->nEdgesTried );
-    printf( "Edges removed   = %6d. (%5.2f %%)\n", p->nEdgesRemoved, 100.0*p->nEdgesRemoved/p->nEdgesTried );
-    printf( "Node gain       = %6d. (%5.2f %%)\n", p->nNodesOld  - Abc_NtkNodeNum(p->pNtk), Ratio );
-    printf( "Level gain      = %6d.\n", p->nLevelsOld - Abc_AigLevel(p->pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "Redundancy removal statistics:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Edges tried     = %6d.\n", p->nEdgesTried );
+    fprintf( Abc_FrameGlobalGetOut(), "Edges removed   = %6d. (%5.2f %%)\n", p->nEdgesRemoved, 100.0*p->nEdgesRemoved/p->nEdgesTried );
+    fprintf( Abc_FrameGlobalGetOut(), "Node gain       = %6d. (%5.2f %%)\n", p->nNodesOld  - Abc_NtkNodeNum(p->pNtk), Ratio );
+    fprintf( Abc_FrameGlobalGetOut(), "Level gain      = %6d.\n", p->nLevelsOld - Abc_AigLevel(p->pNtk) );
     ABC_PRT( "Windowing      ", p->timeWindow );
     ABC_PRT( "Miter          ", p->timeMiter );
     ABC_PRT( "    Construct  ", p->timeMiter - p->timeProve );
@@ -691,7 +691,7 @@ Abc_Ntk_t * Abc_NtkWindow( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vC
         pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
     // compare the number of nodes before and after
     if ( Vec_PtrSize(vCone) != Abc_NtkNodeNum(pNtkNew) )
-        printf( "Warning: Structural hashing during windowing reduced %d nodes (this is a bug).\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Structural hashing during windowing reduced %d nodes (this is a bug).\n",
             Vec_PtrSize(vCone) - Abc_NtkNodeNum(pNtkNew) );
     // create the POs
     Vec_PtrForEachEntry( Abc_Obj_t *, vRoots, pObj, i )
@@ -705,7 +705,7 @@ Abc_Ntk_t * Abc_NtkWindow( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vC
     // check
     if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkWindow: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkWindow: The network check has failed.\n" );
         return NULL;
     }
     return pNtkNew;

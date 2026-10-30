@@ -102,11 +102,11 @@ void Fpga_CutFree( Fpga_Man_t * p, Fpga_Cut_t * pCut )
 void Fpga_CutPrint( Fpga_Man_t * p, Fpga_Node_t * pRoot, Fpga_Cut_t * pCut )
 {
     int i;
-    printf( "CUT:  Delay = %4.2f. Area = %4.2f. Nodes = %d -> {", 
+    fprintf( Abc_FrameGlobalGetOut(), "CUT:  Delay = %4.2f. Area = %4.2f. Nodes = %d -> {", 
         pCut->tArrival, pCut->aFlow, pRoot->Num );
     for ( i = 0; i < pCut->nLeaves; i++ )
-        printf( " %d", pCut->ppLeaves[i]->Num );
-    printf( " } \n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", pCut->ppLeaves[i]->Num );
+    fprintf( Abc_FrameGlobalGetOut(), " } \n" );
 }
 
 /**Function*************************************************************

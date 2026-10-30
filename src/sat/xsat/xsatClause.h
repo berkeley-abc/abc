@@ -95,10 +95,10 @@ static inline void xSAT_ClausePrint( xSAT_Clause_t * pCla )
 {
     int i;
 
-    printf("{ ");
+    fprintf( Abc_FrameGlobalGetOut(), "{ " );
     for ( i = 0; i < pCla->nSize; i++ )
-        printf("%d ", pCla->pData[i].Lit );
-    printf("}\n");
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", pCla->pData[i].Lit  );
+    fprintf( Abc_FrameGlobalGetOut(), "}\n" );
 }
 
 ABC_NAMESPACE_HEADER_END

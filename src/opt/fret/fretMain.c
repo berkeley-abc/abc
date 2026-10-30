@@ -98,39 +98,39 @@ Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose,
   pManMR->pInitToOrig = NULL;
   pManMR->sizeInitToOrig = 0;
 
-  vprintf("Flow-based minimum-register retiming...\n");  
+  vfprintf( Abc_FrameGlobalGetOut(), "Flow-based minimum-register retiming...\n");  
 
   if (!Abc_NtkHasOnlyLatchBoxes(pNtk)) {
-    printf("\tERROR: Can not retime with black/white boxes\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\tERROR: Can not retime with black/white boxes\n");
     return pNtk;
   }
 
   if (maxDelay) {
-    vprintf("\tmax delay constraint = %d\n", maxDelay);
+    vfprintf( Abc_FrameGlobalGetOut(), "\tmax delay constraint = %d\n", maxDelay);
     if (maxDelay < (i = Abc_NtkLevel(pNtk))) {
-      printf("ERROR: max delay constraint (%d) must be > current max delay (%d)\n", maxDelay, i);
+      fprintf( Abc_FrameGlobalGetOut(), "ERROR: max delay constraint (%d) must be > current max delay (%d)\n", maxDelay, i);
       return pNtk;
     }
   }
 
   // print info about type of network
-  vprintf("\tnetlist type = ");
-  if (Abc_NtkIsNetlist( pNtk )) { vprintf("netlist/"); }
-  else if (Abc_NtkIsLogic( pNtk )) { vprintf("logic/"); }
-  else if (Abc_NtkIsStrash( pNtk )) { vprintf("strash/"); }
-  else { vprintf("***unknown***/"); }
-  if (Abc_NtkHasSop( pNtk )) { vprintf("sop\n"); }
-  else if (Abc_NtkHasBdd( pNtk )) { vprintf("bdd\n"); }
-  else if (Abc_NtkHasAig( pNtk )) { vprintf("aig\n"); }
-  else if (Abc_NtkHasMapping( pNtk )) { vprintf("mapped\n"); }
-  else { vprintf("***unknown***\n"); }
+  vfprintf( Abc_FrameGlobalGetOut(), "\tnetlist type = ");
+  if (Abc_NtkIsNetlist( pNtk )) { vfprintf( Abc_FrameGlobalGetOut(), "netlist/"); }
+  else if (Abc_NtkIsLogic( pNtk )) { vfprintf( Abc_FrameGlobalGetOut(), "logic/"); }
+  else if (Abc_NtkIsStrash( pNtk )) { vfprintf( Abc_FrameGlobalGetOut(), "strash/"); }
+  else { vfprintf( Abc_FrameGlobalGetOut(), "***unknown***/"); }
+  if (Abc_NtkHasSop( pNtk )) { vfprintf( Abc_FrameGlobalGetOut(), "sop\n"); }
+  else if (Abc_NtkHasBdd( pNtk )) { vfprintf( Abc_FrameGlobalGetOut(), "bdd\n"); }
+  else if (Abc_NtkHasAig( pNtk )) { vfprintf( Abc_FrameGlobalGetOut(), "aig\n"); }
+  else if (Abc_NtkHasMapping( pNtk )) { vfprintf( Abc_FrameGlobalGetOut(), "mapped\n"); }
+  else { vfprintf( Abc_FrameGlobalGetOut(), "***unknown***\n"); }
 
-  vprintf("\tinitial reg count = %d\n", Abc_NtkLatchNum(pNtk));
-  vprintf("\tinitial levels = %d\n", Abc_NtkLevel(pNtk));
+  vfprintf( Abc_FrameGlobalGetOut(), "\tinitial reg count = %d\n", Abc_NtkLatchNum(pNtk));
+  vfprintf( Abc_FrameGlobalGetOut(), "\tinitial levels = %d\n", Abc_NtkLevel(pNtk));
 
   // remove bubbles from latch boxes
   if (pManMR->fVerbose) Abc_FlowRetime_PrintInitStateInfo(pNtk);
-  vprintf("\tpushing bubbles out of latch boxes\n");
+  vfprintf( Abc_FrameGlobalGetOut(), "\tpushing bubbles out of latch boxes\n");
   Abc_NtkForEachLatch( pNtk, pObj, i )
     Abc_FlowRetime_RemoveLatchBubbles(pObj);
   if (pManMR->fVerbose) Abc_FlowRetime_PrintInitStateInfo(pNtk);
@@ -203,8 +203,8 @@ Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose,
   }
   
   i = Abc_NtkLevel(pNtk);
-  vprintf("\tfinal reg count = %d\n", Abc_NtkLatchNum(pNtk));
-  vprintf("\tfinal levels = %d\n", i);
+  vfprintf( Abc_FrameGlobalGetOut(), "\tfinal reg count = %d\n", Abc_NtkLatchNum(pNtk));
+  vfprintf( Abc_FrameGlobalGetOut(), "\tfinal levels = %d\n", i);
 
 #if defined(DEBUG_CHECK)
   Abc_NtkDoCheck( pNtk );
@@ -241,7 +241,7 @@ Abc_FlowRetime_MainLoop( ) {
     if (pManMR->iteration == pManMR->nMaxIters) break;
     pManMR->subIteration = 0;
 
-    vprintf("\tforward iteration %d\n", pManMR->iteration);
+    vfprintf( Abc_FrameGlobalGetOut(), "\tforward iteration %d\n", pManMR->iteration);
     last = Abc_NtkLatchNum( pNtk );
 
     Abc_FlowRetime_MarkBlocks( pNtk );
@@ -260,7 +260,7 @@ Abc_FlowRetime_MainLoop( ) {
     cut = Abc_FlowRetime_ImplementCut( pNtk );
 
 #if defined (DEBUG_PRINT_LEVELS)
-    vprintf("\t\tlevels = %d\n", Abc_NtkLevel(pNtk));
+    vfprintf( Abc_FrameGlobalGetOut(), "\t\tlevels = %d\n", Abc_NtkLevel(pNtk));
 #endif
 
     Abc_FlowRetime_ClearFlows( 1 );
@@ -290,7 +290,7 @@ Abc_FlowRetime_MainLoop( ) {
       if ( pNtk != pNtkCopy )
         Abc_NtkDelete( pNtk );
       pNtk = pManMR->pNtk = Abc_FlowRetime_NtkDup( pNtkCopy );
-      vprintf("\trestoring network. regs = %d\n", Abc_NtkLatchNum( pNtk ));
+      vfprintf( Abc_FrameGlobalGetOut(), "\trestoring network. regs = %d\n", Abc_NtkLatchNum( pNtk ));
     }
 
     if (pManMR->fComputeInitState) {
@@ -301,7 +301,7 @@ Abc_FlowRetime_MainLoop( ) {
       if (pManMR->iteration == pManMR->nMaxIters) break;
       pManMR->subIteration = 0;
 
-      vprintf("\tbackward iteration %d\n", pManMR->iteration);
+      vfprintf( Abc_FrameGlobalGetOut(), "\tbackward iteration %d\n", pManMR->iteration);
       last = Abc_NtkLatchNum( pNtk );
 
       Abc_FlowRetime_AddInitBias( );
@@ -322,7 +322,7 @@ Abc_FlowRetime_MainLoop( ) {
       cut = Abc_FlowRetime_ImplementCut( pNtk );
 
 #if defined(DEBUG_PRINT_LEVELS)
-      vprintf("\t\tlevels = %d\n", Abc_NtkLevelReverse(pNtk));
+      vfprintf( Abc_FrameGlobalGetOut(), "\t\tlevels = %d\n", Abc_NtkLevelReverse(pNtk));
 #endif      
 
       Abc_FlowRetime_ClearFlows( 1 );
@@ -338,7 +338,7 @@ Abc_FlowRetime_MainLoop( ) {
       break;
     } else {
       if (!pManMR->fGuaranteeInitState) {
-        printf("WARNING: no equivalent init state. setting all initial states to don't-cares\n");
+        fprintf( Abc_FrameGlobalGetOut(), "WARNING: no equivalent init state. setting all initial states to don't-cares\n");
         Abc_NtkForEachLatch( pNtk, pObj, i ) Abc_LatchSetInitDc( pObj );
         break;
       }
@@ -498,14 +498,14 @@ Abc_FlowRetime_PushFlows( Abc_Ntk_t * pNtk, int fVerbose ) {
       if (srcDist == (int)FDATA(pObj)->e_dist &&
           dfsfast_e( pObj, NULL )) {
 #ifdef DEBUG_PRINT_FLOWS
-        printf("\n\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\n\n");
 #endif
         flow++;
       }
     }
   }
 
-  if (fVerbose) vprintf("\t\tmax-flow1 = %d \t", flow);
+  if (fVerbose) vfprintf( Abc_FrameGlobalGetOut(), "\t\tmax-flow1 = %d \t", flow);
 
   // (ii) complete max-flow computation
   // also, marks source-reachable nodes
@@ -514,7 +514,7 @@ Abc_FlowRetime_PushFlows( Abc_Ntk_t * pNtk, int fVerbose ) {
     Abc_NtkForEachLatch( pNtk, pObj, i ) {
       if (dfsplain_e( pObj, NULL )) {
 #ifdef DEBUG_PRINT_FLOWS
-        printf("\n\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\n\n");
 #endif
         flow++;
         Abc_NtkForEachObj( pNtk, pObj2, j )
@@ -523,7 +523,7 @@ Abc_FlowRetime_PushFlows( Abc_Ntk_t * pNtk, int fVerbose ) {
     }
   } while (flow > last);
   
-  if (fVerbose) vprintf("max-flow2 = %d\n", flow);
+  if (fVerbose) vfprintf( Abc_FrameGlobalGetOut(), "max-flow2 = %d\n", flow);
 
 //  PRT( "time", clock() - clk );
   return flow;
@@ -584,8 +584,8 @@ Abc_FlowRetime_FixLatchBoxes( Abc_Ntk_t *pNtk, Vec_Ptr_t *vBoxIns ) {
       assert(Abc_ObjFanoutNum(pBo) == 0);
     } else if (Abc_ObjIsLatch(pBo)) {
     } else {
-      Abc_ObjPrint(stdout, pBi);
-      Abc_ObjPrint(stdout, pBo);
+      Abc_ObjPrint(Abc_FrameGlobalGetOut(), pBi);
+      Abc_ObjPrint(Abc_FrameGlobalGetOut(), pBo);
       assert(0);
     }
   }
@@ -665,7 +665,7 @@ Abc_FlowRetime_VerifyPathLatencies( Abc_Ntk_t * pNtk ) {
   Abc_Obj_t *pObj;
   fPathError = 0;
 
-  vprintf("\t\tVerifying latency along all paths...");
+  vfprintf( Abc_FrameGlobalGetOut(), "\t\tVerifying latency along all paths...");
 
   Abc_NtkForEachObj( pNtk, pObj, i ) {
     if (Abc_ObjIsBo(pObj)) {
@@ -676,15 +676,15 @@ Abc_FlowRetime_VerifyPathLatencies( Abc_Ntk_t * pNtk ) {
 
     if (fPathError) {
       if (Abc_ObjFaninNum(pObj) > 0) {
-        printf("fanin ");
+        fprintf( Abc_FrameGlobalGetOut(), "fanin ");
         print_node(Abc_ObjFanin0(pObj));
       }
-      printf("\n");
+      fprintf( Abc_FrameGlobalGetOut(), "\n");
       exit(0);
     }
   }
 
-  vprintf(" ok\n");
+  vfprintf( Abc_FrameGlobalGetOut(), " ok\n");
 
   Abc_NtkForEachObj( pNtk, pObj, i ) {
     pObj->fMarkA = 0;
@@ -715,16 +715,16 @@ Abc_FlowRetime_VerifyPathLatencies_rec( Abc_Obj_t * pObj, int markD ) {
       if ( Abc_ObjIsBo(pNext) ||
            (pManMR->fIsForward && Abc_ObjIsPo(pNext)) ) {
         if (!markD && !Abc_ObjIsLatch(pObj)) {
-          printf("\nERROR: no-latch path (end)\n");
+          fprintf( Abc_FrameGlobalGetOut(), "\nERROR: no-latch path (end)\n");
           print_node(pNext);
-          printf("\n");
+          fprintf( Abc_FrameGlobalGetOut(), "\n");
           fPathError = 1;
         }
       } else if (!pManMR->fIsForward && Abc_ObjIsPo(pNext)) {
         if (markD || Abc_ObjIsLatch(pObj)) {
-          printf("\nERROR: extra-latch path to outputs\n");
+          fprintf( Abc_FrameGlobalGetOut(), "\nERROR: extra-latch path to outputs\n");
           print_node(pNext);
-          printf("\n");
+          fprintf( Abc_FrameGlobalGetOut(), "\n");
           fPathError = 1;
         }
       } else {
@@ -737,7 +737,7 @@ Abc_FlowRetime_VerifyPathLatencies_rec( Abc_Obj_t * pObj, int markD ) {
 
       if (fPathError) {
         print_node(pObj);
-        printf("\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\n");
         return 0;
       }
     }
@@ -746,15 +746,15 @@ Abc_FlowRetime_VerifyPathLatencies_rec( Abc_Obj_t * pObj, int markD ) {
   if (!fCare) return -1;
 
   if (markC && markD) {
-    printf("\nERROR: mult-latch path\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\nERROR: mult-latch path\n");
     print_node(pObj);
-    printf("\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\n");
     fPathError = 1;
   }
   if (!markC && !markD) {
-    printf("\nERROR: no-latch path (inter)\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\nERROR: no-latch path (inter)\n");
     print_node(pObj);
-    printf("\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\n");
     fPathError = 1;
   }
 
@@ -904,7 +904,7 @@ Abc_FlowRetime_ImplementCut( Abc_Ntk_t * pNtk ) {
   Vec_PtrFree( vMove );
   Vec_PtrFree( vBoxIns );
 
-  vprintf("\t\tmin-cut = %d (unmoved = %d)\n", cut, unmoved);
+  vfprintf( Abc_FrameGlobalGetOut(), "\t\tmin-cut = %d (unmoved = %d)\n", cut, unmoved);
   return cut;
 }
 
@@ -956,14 +956,14 @@ print_node(Abc_Obj_t *pObj) {
   if (pObj->fMarkC)
     strcat(m, "C");
 
-  printf("node %d type=%d lev=%d tedge=%d (%x%s) fanouts {", Abc_ObjId(pObj), Abc_ObjType(pObj),
+  fprintf( Abc_FrameGlobalGetOut(), "node %d type=%d lev=%d tedge=%d (%x%s) fanouts {", Abc_ObjId(pObj), Abc_ObjType(pObj),
          pObj->Level, Vec_PtrSize(FTIMEEDGES(pObj)), FDATA(pObj)->mark, m);
   Abc_ObjForEachFanout( pObj, pNext, i )
-    printf("%d[%d](%d),", Abc_ObjId(pNext), Abc_ObjType(pNext), FDATA(pNext)->mark);
-  printf("} fanins {");
+    fprintf( Abc_FrameGlobalGetOut(), "%d[%d](%d),", Abc_ObjId(pNext), Abc_ObjType(pNext), FDATA(pNext)->mark);
+  fprintf( Abc_FrameGlobalGetOut(), "} fanins {");
   Abc_ObjForEachFanin( pObj, pNext, i )
-    printf("%d[%d](%d),", Abc_ObjId(pNext), Abc_ObjType(pNext), FDATA(pNext)->mark);
-  printf("}\n");
+    fprintf( Abc_FrameGlobalGetOut(), "%d[%d](%d),", Abc_ObjId(pNext), Abc_ObjType(pNext), FDATA(pNext)->mark);
+  fprintf( Abc_FrameGlobalGetOut(), "}\n");
 }
 
 void
@@ -980,13 +980,13 @@ print_node2(Abc_Obj_t *pObj) {
   if (pObj->fMarkC)
     strcat(m, "C");
 
-  printf("node %d type=%d %s fanouts {", Abc_ObjId(pObj), Abc_ObjType(pObj), m);
+  fprintf( Abc_FrameGlobalGetOut(), "node %d type=%d %s fanouts {", Abc_ObjId(pObj), Abc_ObjType(pObj), m);
   Abc_ObjForEachFanout( pObj, pNext, i )
-    printf("%d ,", Abc_ObjId(pNext));
-  printf("} fanins {");
+    fprintf( Abc_FrameGlobalGetOut(), "%d ,", Abc_ObjId(pNext));
+  fprintf( Abc_FrameGlobalGetOut(), "} fanins {");
   Abc_ObjForEachFanin( pObj, pNext, i )
-    printf("%d ,", Abc_ObjId(pNext));
-  printf("} ");
+    fprintf( Abc_FrameGlobalGetOut(), "%d ,", Abc_ObjId(pNext));
+  fprintf( Abc_FrameGlobalGetOut(), "} ");
 }
 
 void
@@ -1003,16 +1003,16 @@ print_node3(Abc_Obj_t *pObj) {
   if (pObj->fMarkC)
     strcat(m, "C");
 
-  printf("\nnode %d type=%d mark=%d %s\n", Abc_ObjId(pObj), Abc_ObjType(pObj), FDATA(pObj)->mark, m);
-  printf("fanouts\n");
+  fprintf( Abc_FrameGlobalGetOut(), "\nnode %d type=%d mark=%d %s\n", Abc_ObjId(pObj), Abc_ObjType(pObj), FDATA(pObj)->mark, m);
+  fprintf( Abc_FrameGlobalGetOut(), "fanouts\n");
   Abc_ObjForEachFanout( pObj, pNext, i ) {
     print_node(pNext);
-    printf("\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\n");
   }
-  printf("fanins\n");
+  fprintf( Abc_FrameGlobalGetOut(), "fanins\n");
   Abc_ObjForEachFanin( pObj, pNext, i ) {
     print_node(pNext);
-    printf("\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\n");
   }
 }
 
@@ -1204,7 +1204,7 @@ Abc_Ntk_t * Abc_FlowRetime_NtkSilentRestrash( Abc_Ntk_t * pNtk, int fCleanup )
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkAig ) )
       {
-        printf( "Abc_NtkStrash: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkStrash: The network check has failed.\n" );
         Abc_NtkDelete( pNtkAig );
         return NULL;
       }
@@ -1357,7 +1357,7 @@ static void Abc_ObjPrintNeighborhood_rec( Abc_Obj_t *pObj, Vec_Ptr_t *vNodes, in
   pObj->fMarkC = 1;
   Vec_PtrPush( vNodes, pObj );
 
-  Abc_ObjPrint( stdout, pObj );
+  Abc_ObjPrint( Abc_FrameGlobalGetOut(), pObj );
 
   Abc_ObjForEachFanout(pObj, pObj2, i) {
     Abc_ObjPrintNeighborhood_rec( pObj2, vNodes, depth-1 );

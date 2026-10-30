@@ -263,12 +263,12 @@ void Llb_ManClusterOne( Llb_Mtr_t * p, int iCol1, int iCol2 )
 
     if ( fVerbose )
     {
-        printf( "Combining %d and %d\n", iCol1, iCol2 );
+        fprintf( Abc_FrameGlobalGetOut(), "Combining %d and %d\n", iCol1, iCol2 );
         for ( iVar = 0; iVar < p->nRows; iVar++ )
         {
             if ( p->pMatrix[iCol1][iVar] == 0 && p->pMatrix[iCol2][iVar] == 0 )
                 continue;
-            printf( "%3d : %c%c\n", iVar, 
+            fprintf( Abc_FrameGlobalGetOut(), "%3d : %c%c\n", iVar, 
                 p->pMatrix[iCol1][iVar]? '*':' ', 
                 p->pMatrix[iCol2][iVar]? '*':' ' );
         }

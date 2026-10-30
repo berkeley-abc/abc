@@ -718,7 +718,7 @@ void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPar
     Gia_ManLevelNum( pAig );
     Gia_ManIncrementTravId( pAig );
     p = Cec_ManSatCreate( pAig, pPars );
-    pProgress = Bar_ProgressStart( stdout, Gia_ManPoNum(pAig) );
+    pProgress = Bar_ProgressStart( Abc_FrameGlobalGetOut(), Gia_ManPoNum(pAig) );
     Gia_ManForEachCo( pAig, pObj, i )
     {
         if ( Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) )
@@ -923,7 +923,7 @@ Vec_Str_t * Cec_ManSatSolveSeq( Vec_Ptr_t * vPatts, Gia_Man_t * pAig, Cec_ParSat
     Gia_ManIncrementTravId( pAig );
     p = Cec_ManSatCreate( pAig, pPars );
     vStatus = Vec_StrAlloc( Gia_ManPoNum(pAig) );
-    pProgress = Bar_ProgressStart( stdout, Gia_ManPoNum(pAig) );
+    pProgress = Bar_ProgressStart( Abc_FrameGlobalGetOut(), Gia_ManPoNum(pAig) );
     Gia_ManForEachCo( pAig, pObj, i )
     {
         Bar_ProgressUpdate( pProgress, i, "SAT..." );
@@ -1118,7 +1118,7 @@ Vec_Int_t * Cec_ManSatSolveMiterOutVals( Gia_Man_t * pAig, Cec_ParSat_t * pPars,
     }
     // perform solving
     p = Cec_ManSatCreate( pAig, pPars );
-    pProgress = Bar_ProgressStart( stdout, Gia_ManPoNum(pAig) );
+    pProgress = Bar_ProgressStart( Abc_FrameGlobalGetOut(), Gia_ManPoNum(pAig) );
     Gia_ManForEachCo( pAig, pObj, i )
     {
         Vec_IntClear( p->vCex );

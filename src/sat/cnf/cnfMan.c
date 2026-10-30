@@ -302,7 +302,7 @@ void Cnf_DataWriteIntoFileGz(Cnf_Dat_t *p, char *pFileName, int fReadable, Vec_I
     pFile = gzopen(pFileName, "wb");
     if (pFile == NULL)
     {
-        printf("Cnf_WriteIntoFile(): Output file cannot be opened.\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Cnf_WriteIntoFile(): Output file cannot be opened.\n");
         return;
     }
     gzprintf(pFile, "c Result of efficient AIG-to-CNF conversion using package CNF\n");
@@ -337,7 +337,7 @@ void Cnf_DataWriteIntoFileInvGz(Cnf_Dat_t *p, char *pFileName, int fReadable, Ve
     pFile = gzopen(pFileName, "wb");
     if (pFile == NULL)
     {
-        printf("Cnf_WriteIntoFile(): Output file cannot be opened.\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Cnf_WriteIntoFile(): Output file cannot be opened.\n");
         return;
     }
     gzprintf(pFile, "c Result of efficient AIG-to-CNF conversion using package CNF\n");
@@ -396,7 +396,7 @@ void Cnf_DataWriteIntoFile(Cnf_Dat_t *p, char *pFileName, int fReadable, Vec_Int
     pFile = fopen(pFileName, "w");
     if (pFile == NULL)
     {
-        printf("Cnf_WriteIntoFile(): Output file cannot be opened.\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Cnf_WriteIntoFile(): Output file cannot be opened.\n");
         return;
     }
     fprintf(pFile, "c Result of efficient AIG-to-CNF conversion using package CNF\n");
@@ -436,7 +436,7 @@ void Cnf_DataWriteIntoFileInv(Cnf_Dat_t *p, char *pFileName, int fReadable, Vec_
     pFile = fopen(pFileName, "w");
     if (pFile == NULL)
     {
-        printf("Cnf_WriteIntoFile(): Output file cannot be opened.\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Cnf_WriteIntoFile(): Output file cannot be opened.\n");
         return;
     }
     fprintf(pFile, "c Result of efficient AIG-to-CNF conversion using package CNF\n");

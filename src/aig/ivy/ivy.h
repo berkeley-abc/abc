@@ -552,6 +552,9 @@ extern int             Ivy_CutTruthPrint( Ivy_Man_t * p, Ivy_Cut_t * pCut, unsig
 
 ABC_NAMESPACE_HEADER_END
 
+extern ABC_DLL FILE *             Abc_FrameGlobalGetOut();
+extern ABC_DLL FILE *             Abc_FrameGlobalGetErr();
+
 
 
 #endif

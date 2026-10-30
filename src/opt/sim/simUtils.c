@@ -617,7 +617,7 @@ int Sim_UtilCountPairsOnePrint( Extra_BitMat_t * pMat, Vec_Int_t * vSupport )
     Vec_IntForEachEntry( vSupport, i, Index1 )
     Vec_IntForEachEntryStart( vSupport, k, Index2, Index1+1 )
         if ( Extra_BitMatrixLookup1( pMat, i, k ) )
-            printf( "(%d,%d) ", i, k );
+            fprintf( Abc_FrameGlobalGetOut(), "(%d,%d) ", i, k );
     return 0;
 }
 
@@ -639,9 +639,9 @@ void Sim_UtilCountPairsAllPrint( Sym_Man_t * p )
 clk = Abc_Clock();
     for ( i = 0; i < p->nOutputs; i++ )
     {
-        printf( "Output %2d :", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Output %2d :", i );
         Sim_UtilCountPairsOnePrint( (Extra_BitMat_t *)Vec_PtrEntry(p->vMatrSymms, i), Vec_VecEntryInt(p->vSupports, i) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 p->timeCount += Abc_Clock() - clk;
 }

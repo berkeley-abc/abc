@@ -333,7 +333,7 @@ Gia_Man_t * Gia_ManCollapseTest( Gia_Man_t * p, int fVerbose )
     Cudd_zddVarsFromBddVars( ddNew, 2 );
 //    Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 100 );
     if ( fVerbose )
-    printf( "Ins = %d. Outs = %d.  Shared BDD nodes = %d.  Peak live nodes = %d. Peak nodes = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Ins = %d. Outs = %d.  Shared BDD nodes = %d.  Peak live nodes = %d. Peak nodes = %d.\n", 
         Gia_ManCiNum(p), Gia_ManCoNum(p), 
         Cudd_SharingSize( (DdNode **)Vec_PtrArray(vFuncs), Vec_PtrSize(vFuncs) ),
         Cudd_ReadPeakLiveNodeCount(dd), (int)Cudd_ReadNodeCount(dd) );
@@ -346,7 +346,7 @@ Gia_Man_t * Gia_ManCollapseTest( Gia_Man_t * p, int fVerbose )
         Vec_Ptr_t * vNamesCo = Gia_GetFakeNames( Gia_ManCoNum(p), 1 );
         char ** ppNamesCi = (char **)Vec_PtrArray( vNamesCi );
         char ** ppNamesCo = (char **)Vec_PtrArray( vNamesCo );
-        Dsd_TreePrint( stdout, pManDsd, ppNamesCi, ppNamesCo, 0, -1, 0 );
+        Dsd_TreePrint( Abc_FrameGlobalGetOut(), pManDsd, ppNamesCi, ppNamesCo, 0, -1, 0 );
         Vec_PtrFreeFree( vNamesCi );
         Vec_PtrFreeFree( vNamesCo );
     }
@@ -384,10 +384,10 @@ void Gia_ManPrintDsdOne( Dsd_Manager_t * pManDsd, int Output, int OffSet )
     Vec_Str_t * vStr = Vec_StrAlloc( 100 );
     Dsd_TreePrint4( vStr, pManDsd, Output );
     for ( int i = 0; i < OffSet; i++ )
-        printf( " " );
-    printf( "Supp %2d  nDsd %2d  %s\n", Dsd_TreeSuppSize(pManDsd, Output), Dsd_TreeNonDsdMax(pManDsd, Output), Vec_StrArray(vStr) );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
+    fprintf( Abc_FrameGlobalGetOut(), "Supp %2d  nDsd %2d  %s\n", Dsd_TreeSuppSize(pManDsd, Output), Dsd_TreeNonDsdMax(pManDsd, Output), Vec_StrArray(vStr) );
     Vec_StrFree( vStr );
-    fflush( stdout );      
+    fflush( Abc_FrameGlobalGetOut() );      
 }
 void Gia_ManPrintDsd( Dsd_Manager_t * pManDsd, int Output, int nOutputs, int OffSet )
 {
@@ -432,7 +432,7 @@ void Gia_ManCheckDsd( Gia_Man_t * p, int OffSet, int fVerbose )
         Vec_Ptr_t * vNamesCo = Gia_GetFakeNames( Gia_ManCoNum(p), 1 );
         char ** ppNamesCi = (char **)Vec_PtrArray( vNamesCi );
         char ** ppNamesCo = (char **)Vec_PtrArray( vNamesCo );
-        Dsd_TreePrint( stdout, pManDsd, ppNamesCi, ppNamesCo, 0, -1, OffSet );
+        Dsd_TreePrint( Abc_FrameGlobalGetOut(), pManDsd, ppNamesCi, ppNamesCo, 0, -1, OffSet );
         Vec_PtrFreeFree( vNamesCi );
         Vec_PtrFreeFree( vNamesCo );
     }
@@ -478,7 +478,7 @@ void Gia_ManRecurDsd( Gia_Man_t * p, int fVerbose )
     }
     Dsd_Decompose( pManDsd, (DdNode **)Vec_PtrArray(vFuncs), Vec_PtrSize(vFuncs) );
 
-    printf( "Function:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Function:\n" );
     Gia_ManPrintDsd( pManDsd, 0, Vec_PtrSize(vFuncs), 0 );
 
     for ( int i = 0; i < 5 && Dsd_TreeNonDsdMax(pManDsd, -1) > 0; i++ ) 
@@ -497,7 +497,7 @@ void Gia_ManRecurDsd( Gia_Man_t * p, int fVerbose )
         assert( iBestV >= 0 );
         vFuncs = Gia_ManRecurDsdCof( dd, vAux = vFuncs, iBestV );
         Gia_ManCollapseDeref( dd, vAux );        
-        printf( "Cofactoring variable %c:\n", (int)(iBestV >= 26 ? 'A' - 26 : 'a') + iBestV );
+        fprintf( Abc_FrameGlobalGetOut(), "Cofactoring variable %c:\n", (int)(iBestV >= 26 ? 'A' - 26 : 'a') + iBestV );
         Dsd_Decompose( pManDsd, (DdNode **)Vec_PtrArray(vFuncs), Vec_PtrSize(vFuncs) );
         Gia_ManPrintDsd( pManDsd, -1, Vec_PtrSize(vFuncs), (i+1)*2 );
     }

@@ -92,7 +92,7 @@ static void open_libs( void ** libHandles ) {
 
           // make sure we don't overflow the handle array
           if (curr_lib >= MAX_LIBS) {
-            printf("Warning: maximum number of ABC libraries (%d) exceeded.  Not loading %s.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "Warning: maximum number of ABC libraries (%d) exceeded.  Not loading %s.\n",
                    MAX_LIBS,
                    dp->d_name);
           }
@@ -107,10 +107,10 @@ static void open_libs( void ** libHandles ) {
             
             // did the load succeed?
             if (libHandles[curr_lib] != 0) {
-              printf("Loaded ABC library: %s (Abc library extension #%d)\n", szPrefixed, curr_lib);
+              fprintf( Abc_FrameGlobalGetOut(), "Loaded ABC library: %s (Abc library extension #%d)\n", szPrefixed, curr_lib);
               curr_lib++;
             } else {
-              printf("Warning: failed to load ABC library %s:\n\t%s\n", szPrefixed, dlerror());
+              fprintf( Abc_FrameGlobalGetOut(), "Warning: failed to load ABC library %s:\n\t%s\n", szPrefixed, dlerror());
             }
             
             ABC_FREE(szPrefixed);
@@ -143,7 +143,7 @@ static void close_libs( void ** libHandles ) {
     int i;
     for (i = 0; libHandles[i] != 0; i++) {
         if (dlclose(libHandles[i]) != 0) {
-            printf("Warning: failed to close library %d\n", i);
+            fprintf( Abc_FrameGlobalGetOut(), "Warning: failed to close library %d\n", i);
         }
         libHandles[i] = 0;
     }
@@ -155,7 +155,7 @@ static void close_libs( void ** libHandles ) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 static void * get_fnct_ptr( void ** libHandles, int lib_num, char * sym_name ) {
 #ifdef WIN32
-    printf("Warning: get_fnct_ptr WIN32 not implemented.\n");
+    fprintf( Abc_FrameGlobalGetOut(), "Warning: get_fnct_ptr WIN32 not implemented.\n");
     return 0;
 #else
     return dlsym(libHandles[lib_num], sym_name);
@@ -171,7 +171,7 @@ static void call_inits( void ** libHandles, Abc_Frame_t * pAbc ) {
     for (i = 0; libHandles[i] != 0; i++) {
         init_func = (lib_init_end_func) get_fnct_ptr(libHandles, i, "abc_init");
         if (init_func == 0) {
-            printf("Warning: Failed to initialize library %d.\n", i);
+            fprintf( Abc_FrameGlobalGetOut(), "Warning: Failed to initialize library %d.\n", i);
         } else {
             (*init_func)(pAbc);
         }
@@ -187,7 +187,7 @@ static void call_ends( void ** libHandles, Abc_Frame_t * pAbc ) {
     for (i = 0; libHandles[i] != 0; i++) {
         end_func = (lib_init_end_func) get_fnct_ptr(libHandles, i, "abc_end");
         if (end_func == 0) {
-            printf("Warning: Failed to end library %d.\n", i);
+            fprintf( Abc_FrameGlobalGetOut(), "Warning: Failed to end library %d.\n", i);
         } else {
             (*end_func)(pAbc);
         }

@@ -88,7 +88,7 @@ static int parseInt(B& in) {
     skipWhitespace(in);
     if      (*in == '-') neg = true, ++in;
     else if (*in == '+') ++in;
-    if (*in < '0' || *in > '9') fprintf(stderr, "PARSE ERROR! Unexpected char: %c\n", *in), exit(3);
+    if (*in < '0' || *in > '9') fprintf( Abc_FrameGlobalGetErr(), "PARSE ERROR! Unexpected char: %c\n", *in), exit(3);
     while (*in >= '0' && *in <= '9')
         val = val*10 + (*in - '0'),
         ++in;

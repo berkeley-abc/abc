@@ -61,11 +61,11 @@ static inline void Tt_Print(word *p, int nWords) {
     for (k = nDigits - 1; k >= 0; k--) {
         Digit = (int)((p[k / 16] >> ((k % 16) * 4)) & 15);
         if (Digit < 10)
-            printf("%d", Digit);
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Digit );
         else
-            printf("%c", 'A' + Digit - 10);
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'A' + Digit - 10 );
     }
-    printf("\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 static inline int Tt_CountOnes(word x) {

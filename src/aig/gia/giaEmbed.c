@@ -255,7 +255,7 @@ Emb_Man_t * Emb_ManStartSimple( Gia_Man_t * pGia )
     assert( hHandle == p->nObjData );
     assert( p->nObjs == Gia_ManObjNum(pGia) );
     if ( hHandle != p->nObjData )
-        printf( "Emb_ManStartSimple(): Fatal error in internal representation.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Emb_ManStartSimple(): Fatal error in internal representation.\n" );
     // make sure the fanin/fanout counters are correct
     Gia_ManForEachObj( pGia, pObj, i )
     {
@@ -593,7 +593,7 @@ Emb_Man_t * Emb_ManStart( Gia_Man_t * pGia )
     assert( nObjs   == p->nObjs );
     assert( hHandle == p->nObjData );
     if ( hHandle != p->nObjData )
-        printf( "Emb_ManStart(): Fatal error in internal representation.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Emb_ManStart(): Fatal error in internal representation.\n" );
     // make sure the fanin/fanout counters are correct
     Gia_ManForEachObj( pGia, pObj, i )
     {
@@ -623,16 +623,16 @@ void Emb_ManPrintStats( Emb_Man_t * p )
 {
 //    if ( p->pName )
 //        printf( "%8s : ", p->pName );
-    printf( "i/o =%7d/%7d  ", Emb_ManPiNum(p), Emb_ManPoNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "i/o =%7d/%7d  ", Emb_ManPiNum(p), Emb_ManPoNum(p) );
     if ( Emb_ManRegNum(p) )
-        printf( "ff =%7d  ", Emb_ManRegNum(p) );
-    printf( "node =%8d  ", Emb_ManNodeNum(p) );
-    printf( "obj =%8d  ", Emb_ManObjNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "ff =%7d  ", Emb_ManRegNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "node =%8d  ", Emb_ManNodeNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "obj =%8d  ", Emb_ManObjNum(p) );
 //    printf( "lev =%5d  ", Emb_ManLevelNum(p) );
 //    printf( "cut =%5d  ", Emb_ManCrossCut(p) );
-    printf( "mem =%5.2f MB", 4.0*p->nObjData/(1<<20) );
+    fprintf( Abc_FrameGlobalGetOut(), "mem =%5.2f MB", 4.0*p->nObjData/(1<<20) );
 //    printf( "obj =%5d  ", Emb_ManObjNum(p) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
 //    Emb_ManSatExperiment( p );
 }
@@ -737,36 +737,36 @@ void Emb_ManPrintFanio( Emb_Man_t * p )
             Vec_IntAddToEntry( vFanouts, 60 + nFanouts/1000000, 1 );
     }
 
-    printf( "The distribution of fanins and fanouts in the network:\n" );
-    printf( "         Number   Nodes with fanin  Nodes with fanout\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "The distribution of fanins and fanouts in the network:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "         Number   Nodes with fanin  Nodes with fanout\n" );
     for ( k = 0; k < nSizeMax; k++ )
     {
         if ( vFanins->pArray[k] == 0 && vFanouts->pArray[k] == 0 )
             continue;
         if ( k < 10 )
-            printf( "%15d : ", k );
+            fprintf( Abc_FrameGlobalGetOut(), "%15d : ", k );
         else
         {
             sprintf( Buffer, "%d - %d", (int)pow((double)10, k/10) * (k%10), (int)pow((double)10, k/10) * (k%10+1) - 1 ); 
-            printf( "%15s : ", Buffer );
+            fprintf( Abc_FrameGlobalGetOut(), "%15s : ", Buffer );
         }
         if ( vFanins->pArray[k] == 0 )
-            printf( "              " );
+            fprintf( Abc_FrameGlobalGetOut(), "              " );
         else
-            printf( "%12d  ", vFanins->pArray[k] );
-        printf( "    " );
+            fprintf( Abc_FrameGlobalGetOut(), "%12d  ", vFanins->pArray[k] );
+        fprintf( Abc_FrameGlobalGetOut(), "    " );
         if ( vFanouts->pArray[k] == 0 )
-            printf( "              " );
+            fprintf( Abc_FrameGlobalGetOut(), "              " );
         else
-            printf( "%12d  ", vFanouts->pArray[k] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%12d  ", vFanouts->pArray[k] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_IntFree( vFanins );
     Vec_IntFree( vFanouts );
 
-    printf( "Fanins: Max = %d. Ave = %.2f.  Fanouts: Max = %d. Ave =  %.2f.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Fanins: Max = %d. Ave = %.2f.  Fanouts: Max = %d. Ave =  %.2f.\n", 
         nFaninsMax,  1.0*nFaninsAll/Emb_ManNodeNum(p), 
-        nFanoutsMax, 1.0*nFanoutsAll/Emb_ManNodeNum(p)  );
+        nFanoutsMax, 1.0*nFanoutsAll/Emb_ManNodeNum(p) );
 }
 
 /**Function*************************************************************
@@ -845,7 +845,7 @@ void Gia_ManTestDistanceInternal( Emb_Man_t * p )
     Emb_ManResetTravId( p );
     // compute distances from several randomly selected PIs
     clk = Abc_Clock();
-    printf( "From inputs: " );
+    fprintf( Abc_FrameGlobalGetOut(), "From inputs: " );
     for ( i = 0; i < nAttempts; i++ )
     {
         iNode = Gia_ManRandom( 0 ) % Emb_ManCiNum(p);
@@ -856,12 +856,12 @@ void Gia_ManTestDistanceInternal( Emb_Man_t * p )
         if ( !Emb_ObjIsNode(pNext) )
             { i--; continue; }
         Dist = Emb_ManComputeDistance_old( p, pPivot );
-        printf( "%d ", Dist );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Dist );
     }
     ABC_PRT( "Time", Abc_Clock() - clk );
     // compute distances from several randomly selected POs
     clk = Abc_Clock();
-    printf( "From outputs: " );
+    fprintf( Abc_FrameGlobalGetOut(), "From outputs: " );
     for ( i = 0; i < nAttempts; i++ )
     {
         iNode = Gia_ManRandom( 0 ) % Emb_ManCoNum(p);
@@ -870,12 +870,12 @@ void Gia_ManTestDistanceInternal( Emb_Man_t * p )
         if ( !Emb_ObjIsNode(pNext) )
             { i--; continue; }
         Dist = Emb_ManComputeDistance_old( p, pPivot );
-        printf( "%d ", Dist );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Dist );
     }
     ABC_PRT( "Time", Abc_Clock() - clk );
     // compute distances from several randomly selected nodes
     clk = Abc_Clock();
-    printf( "From nodes: " );
+    fprintf( Abc_FrameGlobalGetOut(), "From nodes: " );
     for ( i = 0; i < nAttempts; i++ )
     {
         iNode = Gia_ManRandom( 0 ) % Gia_ManObjNum(p->pGia);
@@ -885,7 +885,7 @@ void Gia_ManTestDistanceInternal( Emb_Man_t * p )
         if ( !Emb_ObjIsNode(pPivot) )
             { i--; continue; }
         Dist = Emb_ManComputeDistance_old( p, pPivot );
-        printf( "%d ", Dist );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Dist );
     }
     ABC_PRT( "Time", Abc_Clock() - clk );
 }
@@ -1584,7 +1584,7 @@ void Emb_ManPlacementRefine( Emb_Man_t * p, int nIters, int fVerbose )
         // evaluate cost
         if ( fVerbose )
         {
-        printf( "%2d : HPWL = %e  ", Iter+1, CostThis );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : HPWL = %e  ", Iter+1, CostThis );
         ABC_PRT( "Time", Abc_Clock() - clk );
         }
     }
@@ -1614,8 +1614,8 @@ void Emb_ManPrintSolutions( Emb_Man_t * p, int nSols )
     {
         pSol = Emb_ManSol( p, i );
         for ( k = 0; k < p->nObjs; k++ )
-            printf( "%4d ", (int)(100 * pSol[k]) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d ", (int)(100 * pSol[k]) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -1704,7 +1704,7 @@ void Emb_ManDumpGnuplot( Emb_Man_t * p, char * pName, int fDumpLarge, int fShowI
     int i, k;
     if ( p->pPlacement == NULL )
     {
-        printf( "Emb_ManDumpGnuplot(): Placement is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Emb_ManDumpGnuplot(): Placement is not available.\n" );
         return;
     }
     sprintf( Buffer, "%s%s", pDirectory, Gia_FileNameGenericAppend(pName, ".plt") ); 
@@ -1803,7 +1803,7 @@ clk = Abc_Clock();
         p = Emb_ManStart( pGia );
         if ( pPars->fVerbose )
         {
-            printf( "Clustered: " );
+            fprintf( Abc_FrameGlobalGetOut(), "Clustered: " );
             Emb_ManPrintStats( p );
         }
     }

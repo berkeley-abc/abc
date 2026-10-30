@@ -144,18 +144,18 @@ void Extra_BitMatrixStop( Extra_BitMat_t * p )
 void Extra_BitMatrixPrint( Extra_BitMat_t * pMat )
 {
     int i, k, nVars;
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     nVars = Extra_BitMatrixReadSize( pMat );
     for ( i = 0; i < nVars; i++ )
     {
         for ( k = 0; k <= i; k++ )
-            printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
         for ( k = i+1; k < nVars; k++ )
             if ( Extra_BitMatrixLookup1( pMat, i, k ) )
-                printf( "1" );
+                fprintf( Abc_FrameGlobalGetOut(), "1" );
             else
-                printf( "." );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "." );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 

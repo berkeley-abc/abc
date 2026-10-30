@@ -88,7 +88,7 @@ void Abc_GenCountHits1( Vec_Bit_t * vMap, Vec_Int_t * vPrimes, int nVars )
                 Count++;
             }
     }
-    printf( "Dist1 pairs = %d. ", Count/2 );
+    fprintf( Abc_FrameGlobalGetOut(), "Dist1 pairs = %d. ", Count/2 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 Vec_Int_t * Abc_GenPrimes( int nVars )
@@ -105,7 +105,7 @@ Vec_Int_t * Abc_GenPrimes( int nVars )
     for ( n = 2; n < nBits; n++ )
         if ( !Vec_BitEntry(vMap, n) )
             Vec_IntPush( vPrimes, n );
-    printf( "Primes up to 2^%d = %d\n", nVars, Vec_IntSize(vPrimes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Primes up to 2^%d = %d\n", nVars, Vec_IntSize(vPrimes) );
     Abc_GenCountHits1( vMap, vPrimes, nVars );
     Vec_BitFree( vMap );
     return vPrimes;
@@ -117,7 +117,7 @@ void Abc_GenPrimesTest()
     Vec_Int_t * vPrimes = Abc_GenPrimes( nVars );
     Abc_GenCountDump( vPrimes, nVars, "primes18.pla" );
     //Vec_IntPrint( vPrimes );
-    printf( "Primes up to 2^%d = %d\n", nVars, Vec_IntSize(vPrimes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Primes up to 2^%d = %d\n", nVars, Vec_IntSize(vPrimes) );
 
     Vec_IntFree( vPrimes );
 }
@@ -230,7 +230,7 @@ static inline void  Tab_ManPrintCube( Tab_Man_t * p, int c, int Var )
 //        if ( i == Var + 1 )
 //            printf( "-" );
 //        else
-            printf( "%d", !Abc_LitIsCompl(pCube[i]) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", !Abc_LitIsCompl(pCube[i]) );
 }
 static inline void  Tab_ManHashAdd( Tab_Man_t * p, int Value, int Cube, int VarA, int VarB )
 {
@@ -250,20 +250,20 @@ static inline void  Tab_ManHashAdd( Tab_Man_t * p, int Value, int Cube, int VarA
 }
 static inline void  Tab_ManPrintEntry( Tab_Man_t * p, int e )
 {
-    printf( "Entry %10d : ", e );
-    printf( "Cube %6d  ", p->pTable[e].Cube );
-    printf( "Value %12u  ", Tab_ManHashValueCube(p, p->pTable[e].Cube, p->pTable[e].VarA) % p->nTable );
+    fprintf( Abc_FrameGlobalGetOut(), "Entry %10d : ", e );
+    fprintf( Abc_FrameGlobalGetOut(), "Cube %6d  ", p->pTable[e].Cube );
+    fprintf( Abc_FrameGlobalGetOut(), "Value %12u  ", Tab_ManHashValueCube(p, p->pTable[e].Cube, p->pTable[e].VarA) % p->nTable );
     Tab_ManPrintCube( p, p->pTable[e].Cube, p->pTable[e].VarA );
-    printf( "   " );
+    fprintf( Abc_FrameGlobalGetOut(), "   " );
     if ( p->pTable[e].VarA != 0xFFFF )
-        printf( "%2d ", p->pTable[e].VarA );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d ", p->pTable[e].VarA );
     else
-        printf( "   " );
+        fprintf( Abc_FrameGlobalGetOut(), "   " );
     if ( p->pTable[e].VarB != 0xFFFF )
-        printf( "%2d ", p->pTable[e].VarB );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d ", p->pTable[e].VarB );
     else
-        printf( "   " );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "   " );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 } 
 static inline void  Tab_ManHashCollectBin( Tab_Man_t * p, int Bin, Vec_Int_t * vBin )
 {
@@ -308,7 +308,7 @@ Tab_Man_t * Tab_ManAlloc( int nVars, int nCubes )
     p->pCubes  = ABC_CALLOC( int, p->nCubes * (p->nVars + 1) );
     p->pValues = ABC_CALLOC( word, p->nCubes );
 //    p->pTable  = ABC_CALLOC( Tab_Ent_t, (p->Mask + 1) );
-    printf( "Allocated %.2f MB for cube structure.\n", 4.0 * p->nCubes * (p->nVars + 2) / (1 << 20) );
+    fprintf( Abc_FrameGlobalGetOut(), "Allocated %.2f MB for cube structure.\n", 4.0 * p->nCubes * (p->nVars + 2) / (1 << 20) );
     return p;
 }
 void Tab_ManFree( Tab_Man_t * p )
@@ -371,9 +371,9 @@ int Tab_ManCubeFree( int * pCube1, int * pCube2, Vec_Int_t * vCubeFree )
     while ( pBeg2 < pEnd2 )
         Vec_IntPush( vCubeFree, Abc_Var2Lit(*pBeg2++, fAttr1) );
     if ( Vec_IntSize(vCubeFree) == 0 )
-        printf( "The SOP has duplicated cubes.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The SOP has duplicated cubes.\n" );
     else if ( Vec_IntSize(vCubeFree) == 1 )
-        printf( "The SOP has contained cubes.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The SOP has contained cubes.\n" );
 //    else if ( Vec_IntSize(vCubeFree) == 2 && Abc_Lit2Var(Abc_Lit2Var(Vec_IntEntry(vCubeFree, 0))) == Abc_Lit2Var(Abc_Lit2Var(Vec_IntEntry(vCubeFree, 1))) )
 //        printf( "The SOP has distance-1 cubes or it is not a prime cover.  Please make sure the result verifies.\n" );
     assert( !Abc_LitIsCompl(Vec_IntEntry(vCubeFree, 0)) );
@@ -506,12 +506,12 @@ Vec_Int_t * Tab_ManCollectDist1( Tab_Man_t * p, int Dist2 )
     Vec_BitFree( vPres );
     // count useful
     nUseful = Vec_BitCount( vMarks );
-printf( "Items = %d. Bits = %d.   Useful = %d.   \n", nItems, nBits, nUseful );
+fprintf( Abc_FrameGlobalGetOut(), "Items = %d. Bits = %d.   Useful = %d.   \n", nItems, nBits, nUseful );
 
     // add to the hash table
     p->nTable = Abc_PrimeCudd(nUseful);
     p->pTable = ABC_FALLOC( Tab_Ent_t, p->nTable );
-printf( "Table %d\n", p->nTable );
+fprintf( Abc_FrameGlobalGetOut(), "Table %d\n", p->nTable );
     Tab_ManForEachCube( p, pCube, c )
     {
         // cube
@@ -583,9 +583,9 @@ void Tab_DecomposeTest()
     Vec_Int_t * vPrimes = Abc_GenPrimes( nVars );
     Tab_Man_t * p = Tab_ManAlloc( nVars, Vec_IntSize(vPrimes) );
     Tab_ManStart( p, vPrimes );
-    printf( "Created %d cubes dependent on %d variables.\n", p->nCubes, p->nVars );
+    fprintf( Abc_FrameGlobalGetOut(), "Created %d cubes dependent on %d variables.\n", p->nCubes, p->nVars );
     vPairs = Tab_ManCollectDist1( p, 0 );
-    printf( "Collected %d pairs.\n", Vec_IntSize(vPairs)/2 );
+    fprintf( Abc_FrameGlobalGetOut(), "Collected %d pairs.\n", Vec_IntSize(vPairs)/2 );
     Vec_IntFree( vPairs );
     Tab_ManFree( p );
     Vec_IntFree( vPrimes );

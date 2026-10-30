@@ -792,10 +792,10 @@ static void Exa9_ManPrintSolution( Exa9_Man_t * p )
         Exa9_ManFindFanin( p, i, 1, &c1 );
         nInv += c0 + c1;
     }
-    printf( "Realization of given %d-input function using %d two-input and-nodes and %d inverters:\n", p->nVars, p->nNodes, nInv );
+    fprintf( Abc_FrameGlobalGetOut(), "Realization of given %d-input function using %d two-input and-nodes and %d inverters:\n", p->nVars, p->nNodes, nInv );
     if ( iOutObj <= p->nVars ) sprintf( Buf0, "%c", 'a'+iOutObj-1 );
     else sprintf( Buf0, "%c", 'A'+iOutObj-p->nVars-1 );
-    printf( "F =%s%s\n", cOut ? " !" : "  ", Buf0 );
+    fprintf( Abc_FrameGlobalGetOut(), "F =%s%s\n", cOut ? " !" : "  ", Buf0 );
     for ( i = p->nObjs; i > p->nVars; i-- )
     {
         i0 = Exa9_ManFindFanin( p, i, 0, &c0 );
@@ -804,7 +804,7 @@ static void Exa9_ManPrintSolution( Exa9_Man_t * p )
         else sprintf( Buf0, "%c", 'A'+i0-p->nVars-1 );
         if ( i1 <= p->nVars ) sprintf( Buf1, "%c", 'a'+i1-1 );
         else sprintf( Buf1, "%c", 'A'+i1-p->nVars-1 );
-        printf( "%c =%s%s  & %s%s\n", 'A'+i-p->nVars-1, c0 ? " !" : "  ", Buf0, c1 ? " !" : "  ", Buf1 );
+        fprintf( Abc_FrameGlobalGetOut(), "%c =%s%s  & %s%s\n", 'A'+i-p->nVars-1, c0 ? " !" : "  ", Buf0, c1 ? " !" : "  ", Buf1 );
     }
 }
 static void Exa9_ManDumpBlif( Exa9_Man_t * p )
@@ -842,7 +842,7 @@ static void Exa9_ManDumpBlif( Exa9_Man_t * p )
     fprintf( pFile, "%d 1\n", cOut ? 0 : 1 );
     fprintf( pFile, ".end\n\n" );
     fclose( pFile );
-    if ( !p->pPars->fSilent ) printf( "Finished dumping the resulting network into file \"%s\".\n", pFileName );
+    if ( !p->pPars->fSilent ) fprintf( Abc_FrameGlobalGetOut(), "Finished dumping the resulting network into file \"%s\".\n", pFileName );
     ABC_FREE( pStr );
 }
 
@@ -877,14 +877,14 @@ int Exa9_ManExactSynthesis( Bmc_EsPar_t * pPars )
         word * pFun = Abc_TtSymFunGenerate( pPars->pSymStr, pPars->nVars );
         pPars->pTtStr = ABC_CALLOC( char, pPars->nVars > 2 ? (1 << (pPars->nVars-2)) + 1 : 2 );
         Extra_PrintHexadecimalString( pPars->pTtStr, (unsigned *)pFun, pPars->nVars );
-        if ( !pPars->fSilent ) printf( "Generated symmetric function: %s\n", pPars->pTtStr );
+        if ( !pPars->fSilent ) fprintf( Abc_FrameGlobalGetOut(), "Generated symmetric function: %s\n", pPars->pTtStr );
         ABC_FREE( pFun );
     }
     if ( pPars->pTtStr )
         Abc_TtReadHex( pTruth, pPars->pTtStr );
     else assert( 0 );
     if ( pPars->fUseIncr && !pPars->fSilent )
-        printf( "Warning: Ignoring incremental option when using Kissat.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Ignoring incremental option when using Kissat.\n" );
     pPars->fUseIncr = 0;
     p = Exa9_ManAlloc( pPars, pTruth );
     if ( pPars->fVerbose && !pPars->fSilent ) {
@@ -892,7 +892,7 @@ int Exa9_ManExactSynthesis( Bmc_EsPar_t * pPars )
         int nAux    = Exa9_ManCountAuxTotal( p );
         int nTotal  = nStruct + nAux + p->nValVars;
         const char * pAlgo = p->pPars->n1HotAlgo == 1 ? "seq" : (p->pPars->n1HotAlgo == 2 ? "bim" : (p->pPars->n1HotAlgo == 3 ? "cmd" : "naive"));
-        printf( "Variables: Structure = %6d.  Uniqueness (%s) = %6d.  Internal = %6d.  Total = %6d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Variables: Structure = %6d.  Uniqueness (%s) = %6d.  Internal = %6d.  Total = %6d.\n", 
             nStruct, pAlgo, nAux, p->nValVars, nTotal );
         //if ( pPars->Seed > 0 )
         //    printf( "Kissat seed set to %d.\n", pPars->Seed );
@@ -913,11 +913,11 @@ int Exa9_ManExactSynthesis( Bmc_EsPar_t * pPars )
             clausesPerMint += 2 * p->nObjs; // output selector
             const char * pAlgo = p->pPars->n1HotAlgo == 1 ? "seq" : (p->pPars->n1HotAlgo == 2 ? "bim" : (p->pPars->n1HotAlgo == 3 ? "cmd" : "naive"));
             int internalTotal = clausesPerMint * p->nMints;
-            printf( "Clauses:   Structure = %6d.  Uniqueness (%s) = %6d.  Internal = %6d.  Total = %6d.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "Clauses:   Structure = %6d.  Uniqueness (%s) = %6d.  Internal = %6d.  Total = %6d.\n",
                 p->nClausesStart, pAlgo, p->nClausesHot, internalTotal, p->nClausesStart + p->nClausesHot + internalTotal );
         }
         if ( !pPars->fSilent ) 
-            printf( "Running exact synthesis for %d-input function with %d two-input and-nodes...\n", p->nVars, p->nNodes );
+            fprintf( Abc_FrameGlobalGetOut(), "Running exact synthesis for %d-input function with %d two-input and-nodes...\n", p->nVars, p->nNodes );
         int iMint;
         Vec_Int_t * vMints = Vec_IntAlloc( p->nMints );
         for ( iMint = 0; iMint < p->nMints; iMint++ )
@@ -963,7 +963,7 @@ int Exa9_ManExactSynthesis( Bmc_EsPar_t * pPars )
     {
         int DiffMint = Exa9_ManEval( p );
         if ( DiffMint != -1 )
-            printf( "******** Warning: Verification detected a mismatch at minterm %d.\n", DiffMint );
+            fprintf( Abc_FrameGlobalGetOut(), "******** Warning: Verification detected a mismatch at minterm %d.\n", DiffMint );
         Exa9_ManPrintSolution( p );
         if ( pPars->fDumpBlif )
             Exa9_ManDumpBlif( p );
@@ -972,14 +972,14 @@ int Exa9_ManExactSynthesis( Bmc_EsPar_t * pPars )
     else if ( status == KISSAT_UNSAT )
     {
         if ( !p->pPars->fSilent )
-            printf( "The problem has no solution.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The problem has no solution.\n" );
         Res = 2;
     }
     else
     {
         Res = 0;
         if ( pPars->RuntimeLim )
-            printf( "The solver timed out after %d sec.\n", pPars->RuntimeLim );
+            fprintf( Abc_FrameGlobalGetOut(), "The solver timed out after %d sec.\n", pPars->RuntimeLim );
     }
     if ( !pPars->fSilent )
         Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
@@ -997,10 +997,10 @@ int Exa9_ManExactSynthesisIter( Bmc_EsPar_t * pPars )
     int nNodeMax = pPars->nNodes, Result = 0;
     for ( int n = nNodeMin; n <= nNodeMax; n++ ) {
         //printf( "\nTrying M = %d:\n", n );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         pPars->nNodes = n;
         Result = Exa9_ManExactSynthesis(pPars);
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
         if ( Result == 1 )
             break;
     }

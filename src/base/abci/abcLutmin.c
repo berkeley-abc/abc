@@ -108,7 +108,7 @@ void Abc_NtkCheckAbsorb( Abc_Ntk_t * pNtk, int nLutSize )
 //            printf( "%d ", Abc_ObjId(pObj) );
             Counter2++;
         }
-    printf( "Absorted = %6d. (%6.2f %%)   Fully = %6d. (%6.2f %%)  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Absorted = %6d. (%6.2f %%)   Fully = %6d. (%6.2f %%)  ", 
         Counter,  100.0 * Counter  / Abc_NtkNodeNum(pNtk), 
         Counter2, 100.0 * Counter2 / Abc_NtkNodeNum(pNtk) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -389,16 +389,16 @@ Abc_Obj_t * Abc_NtkCreateCofLut( Abc_Ntk_t * pNtkNew, DdManager * dd, DdNode * b
 if ( fVerbose )
 {
 Extra_bddPrint( dd, bCof );
-printf( "\n" );
-printf( "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
     // transfer the function
     bFuncNew = Extra_bddMove( dd, bCof, -Level );  Cudd_Ref( bFuncNew );
 if ( fVerbose )
 {
 Extra_bddPrint( dd, bFuncNew );
-printf( "\n" );
-printf( "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
     pNodeNew->pData = Extra_TransferLevelByLevel( dd, (DdManager *)pNtkNew->pManFunc, bFuncNew );  Cudd_Ref( (DdNode *)pNodeNew->pData );
 //Extra_bddPrint( pNtkNew->pManFunc, pNodeNew->pData );
@@ -744,7 +744,7 @@ void Abc_NtkBddCollectProfile( DdManager * dd, DdNode * aFunc, Vec_Wec_t * vNode
             for ( lev = Start+1; lev <= i; lev++ )
                 pProf[lev]++;
         }
-    printf( "  Size = %5d  ", Vec_IntSize(vHighest) );
+    fprintf( Abc_FrameGlobalGetOut(), "  Size = %5d  ", Vec_IntSize(vHighest) );
     Vec_IntFree( vHighest );
 }
 void Abc_NtkBddTestProfile( DdManager * dd, DdNode * aFunc )
@@ -752,10 +752,10 @@ void Abc_NtkBddTestProfile( DdManager * dd, DdNode * aFunc )
     Vec_Wec_t * vNodes = Abc_NtkBddCollectInt( dd, aFunc );
     int i, Total = 0, Profile[100]; assert( dd->size < 100 );
     Abc_NtkBddCollectProfile( dd, aFunc, vNodes, Profile );
-    printf( "   " );
+    fprintf( Abc_FrameGlobalGetOut(), "   " );
     for ( i = 0; i <= dd->size; i++ )
-        printf( "%3d", Profile[i] ), Total += Profile[i];
-    printf( "  Total = %d\n", Total );
+        fprintf( Abc_FrameGlobalGetOut(),  "%3d", Profile[i] ), Total += Profile[i];
+    fprintf( Abc_FrameGlobalGetOut(), "  Total = %d\n", Total );
     Vec_WecFree( vNodes );
 }
 Vec_Wec_t * Abc_NtkBddCollectCofs( DdManager * dd, DdNode * aFunc, Vec_Wec_t * vNodes )
@@ -916,77 +916,77 @@ Vec_Wec_t * Abc_NtkBddCollecInfo3( DdManager * dd, DdNode * aFunc )
 void Abc_NtkBddPrintInfo1( Vec_Wec_t * vInfo, Vec_Wec_t * vCofs )
 {
     Vec_Int_t * vLevel; int i, k, Obj;
-    printf( "Cofactor counts:\n" );
-    printf( "     : " );
+    fprintf( Abc_FrameGlobalGetOut(), "Cofactor counts:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "     : " );
     Vec_WecForEachLevel( vCofs, vLevel, i )
-        printf( " %2d", i );
-    printf( "\n" );
-    printf( "     : " );
+        fprintf( Abc_FrameGlobalGetOut(), " %2d", i );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "     : " );
     Vec_WecForEachLevel( vCofs, vLevel, i )
-        printf( " %2d", Vec_IntSize(vLevel) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %2d", Vec_IntSize(vLevel) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_WecForEachLevel( vInfo, vLevel, i ) {
-        printf( "%2d %c : ", i, 'a'+i );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d %c : ", i, 'a'+i );
         Vec_IntForEachEntry( vLevel, Obj, k )
             if ( k <= i )
-                printf( "  -" );
+                fprintf( Abc_FrameGlobalGetOut(), "  -" );
             else
-                printf( " %2d", Obj );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " %2d", Obj );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void Abc_NtkBddPrintInfo2( Vec_Wec_t * vInfo, Vec_Wec_t * vCofs )
 {
     Vec_Int_t * vLevel; int i, k, Obj;
-    printf( "Cofactor counts:\n" );
-    printf( "     : " );
+    fprintf( Abc_FrameGlobalGetOut(), "Cofactor counts:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "     : " );
     Vec_WecForEachLevel( vCofs, vLevel, i )
-        printf( " %2d", i );
-    printf( "\n" );    
-    printf( "     : " );
+        fprintf( Abc_FrameGlobalGetOut(), " %2d", i );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );    
+    fprintf( Abc_FrameGlobalGetOut(), "     : " );
     Vec_WecForEachLevel( vCofs, vLevel, i )
-        printf( " %2d", Vec_IntSize(vLevel) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %2d", Vec_IntSize(vLevel) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     int c = 0, Limit = Vec_IntSize(Vec_WecEntry(vInfo, 0))-1;
     for ( int a = 0;   a < Limit; a++ ) 
     for ( int b = a+1; b < Limit; b++ ) {
         Vec_Int_t * vLevel = Vec_WecEntry(vInfo, c++);
-        printf( "  %c%c : ", 'a'+a, 'a'+b );
+        fprintf( Abc_FrameGlobalGetOut(), "  %c%c : ", 'a'+a, 'a'+b );
         int Limit = Abc_MaxInt(a,b);
         Vec_IntForEachEntry( vLevel, Obj, k )
             if ( k <= Limit )
-                printf( "  -" );
+                fprintf( Abc_FrameGlobalGetOut(), "  -" );
             else
-                printf( " %2d", Obj );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " %2d", Obj );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     assert( c == Vec_WecSize(vInfo) );
 }
 void Abc_NtkBddPrintInfo3( Vec_Wec_t * vInfo, Vec_Wec_t * vCofs )
 {
     Vec_Int_t * vLevel; int i, k, Obj;
-    printf( "Cofactor counts:\n" );
-    printf( "     : " );
+    fprintf( Abc_FrameGlobalGetOut(), "Cofactor counts:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "     : " );
     Vec_WecForEachLevel( vCofs, vLevel, i )
-        printf( " %2d", i );
-    printf( "\n" );    
-    printf( "     : " );
+        fprintf( Abc_FrameGlobalGetOut(), " %2d", i );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );    
+    fprintf( Abc_FrameGlobalGetOut(), "     : " );
     Vec_WecForEachLevel( vCofs, vLevel, i )
-        printf( " %2d", Vec_IntSize(vLevel) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %2d", Vec_IntSize(vLevel) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     int d = 0, Limit = Vec_IntSize(Vec_WecEntry(vInfo, 0))-1;
     for ( int a = 0;   a < Limit; a++ ) 
     for ( int b = a+1; b < Limit; b++ ) 
     for ( int c = b+1; c < Limit; c++ ) {
         Vec_Int_t * vLevel = Vec_WecEntry(vInfo, d++);
-        printf( " %c%c%c : ", 'a'+a, 'a'+b, 'a'+c );
+        fprintf( Abc_FrameGlobalGetOut(), " %c%c%c : ", 'a'+a, 'a'+b, 'a'+c );
         int Limit = Abc_MaxInt(a,Abc_MaxInt(b,c));
         Vec_IntForEachEntry( vLevel, Obj, k )
             if ( k <= Limit )
-                printf( "  -" );
+                fprintf( Abc_FrameGlobalGetOut(), "  -" );
             else
-                printf( " %2d", Obj );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " %2d", Obj );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     assert( d == Vec_WecSize(vInfo) );
 }
@@ -1004,20 +1004,20 @@ void Abc_NtkBddDecExploreOne( DdManager * dd, DdNode * bFunc, int iOrder )
     DdNode * aFuncNew = Cudd_BddToAdd( ddNew, bFuncNew ); Cudd_Ref( aFuncNew );
     //Extra_ProfileWidth( ddNew, aFuncNew, pProfile, -1 );
     if ( iOrder )
-        printf( "Random order %2d: ", iOrder );
+        fprintf( Abc_FrameGlobalGetOut(), "Random order %2d: ", iOrder );
     else
-        printf( "Natural order:   " );
-    printf( "BDD size = %3d  ", Cudd_DagSize(aFuncNew) );
+        fprintf( Abc_FrameGlobalGetOut(), "Natural order:   " );
+    fprintf( Abc_FrameGlobalGetOut(), "BDD size = %3d  ", Cudd_DagSize(aFuncNew) );
     for ( i = 0; i < dd->size; i++ )
-        printf( " %c", 'a' + Vec_IntEntry(vPermInv, ddNew->invperm[i]) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %c", 'a' + Vec_IntEntry(vPermInv, ddNew->invperm[i]) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     //Abc_NtkBddTestProfile( ddNew, aFuncNew );
 
     Vec_Wec_t * vNodes = Abc_NtkBddCollectInt( ddNew, aFuncNew );
-    printf( "Nodes by level:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes by level:\n" );
     Vec_WecPrint( vNodes, 0 );
     Vec_Wec_t * vCofs = Abc_NtkBddCollectCofs( ddNew, aFuncNew, vNodes );
-    printf( "Cofactors by level:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Cofactors by level:\n" );
     Vec_WecPrint( vCofs, 0 );
     Vec_Wec_t * vInfo1 = Abc_NtkBddCollecInfo1( ddNew, aFuncNew );
     Abc_NtkBddPrintInfo1( vInfo1, vCofs );
@@ -1025,7 +1025,7 @@ void Abc_NtkBddDecExploreOne( DdManager * dd, DdNode * bFunc, int iOrder )
     Abc_NtkBddPrintInfo2( vInfo2, vCofs );
     Vec_Wec_t * vInfo3 = Abc_NtkBddCollecInfo3( ddNew, aFuncNew );
     Abc_NtkBddPrintInfo3( vInfo3, vCofs );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_WecFree( vNodes );
     Vec_WecFree( vCofs );
     Vec_WecFree( vInfo1 );
@@ -1075,7 +1075,7 @@ Abc_Obj_t * Abc_NtkBddDecompose( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int nLu
         if ( pNodeNew != NULL )
         {
             if ( fVerbose )
-            printf( "Decomposing %d-input node %d using MUX.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "Decomposing %d-input node %d using MUX.\n",
                 Abc_ObjFaninNum(pNode), Abc_ObjId(pNode) );
             return pNodeNew;
         }
@@ -1093,7 +1093,7 @@ Abc_Obj_t * Abc_NtkBddDecompose( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int nLu
         Vec_PtrFree( vCofs );
         vCofs = Abc_NtkBddCofactors( dd, (DdNode *)pNode->pData, 2 );
         if ( fVerbose )
-        printf( "Decomposing %d-input node %d using cofactoring with %d cofactors (myu = %d).\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Decomposing %d-input node %d using cofactoring with %d cofactors (myu = %d).\n",
             Abc_ObjFaninNum(pNode), Abc_ObjId(pNode), Vec_PtrSize(vCofs), Vec_PtrSize(vUniq) );
         // implement the cofactors
         pCofs[0] = Abc_ObjFanin(pNode, 0)->pCopy;
@@ -1112,7 +1112,7 @@ Abc_Obj_t * Abc_NtkBddDecompose( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int nLu
     else
     {
         if ( fVerbose )
-        printf( "Decomposing %d-input node %d using Curtis with %d unique columns.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Decomposing %d-input node %d using Curtis with %d unique columns.\n",
             Abc_ObjFaninNum(pNode), Abc_ObjId(pNode), Vec_PtrSize(vUniq) );
         pNodeNew = Abc_NtkBddCurtis( pNtkNew, pNode, vCofs, vUniq );
     }
@@ -1201,12 +1201,12 @@ Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fReorder, int
     int i;
     if ( nLutSize < 4 )
     {
-        printf( "The LUT count (%d) should be at least 4.\n", nLutSize );
+        fprintf( Abc_FrameGlobalGetOut(), "The LUT count (%d) should be at least 4.\n", nLutSize );
         return NULL;
     }
     if ( nLutSize > 6 )
     {
-        printf( "The LUT count (%d) should not exceed 6.\n", nLutSize );
+        fprintf( Abc_FrameGlobalGetOut(), "The LUT count (%d) should not exceed 6.\n", nLutSize );
         return NULL;
     }
     // create internal representation
@@ -1226,9 +1226,9 @@ Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fReorder, int
     for ( i = 0; Abc_NtkGetFaninMax(pNtkNew) > nLutSize; i++ )
     {
         if ( fVerbose )
-            printf( "*** Iteration %d:\n", i+1 );
+            fprintf( Abc_FrameGlobalGetOut(), "*** Iteration %d:\n", i+1 );
         if ( fVerbose )
-            printf( "Decomposing network with %d nodes and %d max fanin count for K = %d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Decomposing network with %d nodes and %d max fanin count for K = %d.\n", 
                 Abc_NtkNodeNum(pNtkNew), Abc_NtkGetFaninMax(pNtkNew), nLutSize );
         pNtkNew = Abc_NtkLutminInt( pTemp = pNtkNew, nLutSize, fReorder, fVerbose );
         Abc_NtkDelete( pTemp );
@@ -1240,7 +1240,7 @@ Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fReorder, int
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkLutmin: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkLutmin: The network check has failed.\n" );
         return 0;
     }
     return pNtkNew;

@@ -257,7 +257,7 @@ void Aig_ManFactorAlgebraicTest( Aig_Man_t * p )
     pRes = Aig_ManFactorAlgebraic( p, iPoA, iPoB, Value );
     Aig_ManShow( p, 0, NULL );
     Aig_ObjPrint( p, pRes );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 /*
     printf( "Results:\n" );
     Aig_ManForEachObj( p, pObj, i )
@@ -692,9 +692,9 @@ void Aig_ManSupportMinimizationTest()
     pRes  = Aig_ManSupportMinimization( p, pCond, pFunc, &Status );
     assert( Status == 0 );
 
-    Aig_ObjPrint( p, Aig_Regular(pRes) );                printf( "\n" );
-    Aig_ObjPrint( p, Aig_ObjFanin0(Aig_Regular(pRes)) ); printf( "\n" );
-    Aig_ObjPrint( p, Aig_ObjFanin1(Aig_Regular(pRes)) ); printf( "\n" );
+    Aig_ObjPrint( p, Aig_Regular(pRes) );                fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    Aig_ObjPrint( p, Aig_ObjFanin0(Aig_Regular(pRes)) ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    Aig_ObjPrint( p, Aig_ObjFanin1(Aig_Regular(pRes)) ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     Aig_ManStop( p );
 }
@@ -717,12 +717,12 @@ void Aig_ManSupportMinimizationTest2()
     pRes  = Aig_ManSupportMinimization( p, node13, node11, &Status );
     assert( Status == 0 );
 
-    printf( "Compl = %d  ", Aig_IsComplement(pRes) );
-    Aig_ObjPrint( p, Aig_Regular(pRes) );                printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Compl = %d  ", Aig_IsComplement(pRes) );
+    Aig_ObjPrint( p, Aig_Regular(pRes) );                fprintf( Abc_FrameGlobalGetOut(), "\n" );
     if ( Aig_ObjIsNode(Aig_Regular(pRes)) )
     {
-        Aig_ObjPrint( p, Aig_ObjFanin0(Aig_Regular(pRes)) ); printf( "\n" );
-        Aig_ObjPrint( p, Aig_ObjFanin1(Aig_Regular(pRes)) ); printf( "\n" );
+        Aig_ObjPrint( p, Aig_ObjFanin0(Aig_Regular(pRes)) ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        Aig_ObjPrint( p, Aig_ObjFanin1(Aig_Regular(pRes)) ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     Aig_ManStop( p );

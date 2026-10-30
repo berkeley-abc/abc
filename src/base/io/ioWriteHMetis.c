@@ -38,7 +38,7 @@ void Io_WriteHMetis( Abc_Ntk_t *pNtk, char *pFileName, int fSkipPo, int fWeightE
     Vec_Ptr_t *vHyperEdges = Vec_PtrAlloc( 1000 );
     if ( pFHMetis == NULL )
     {
-        fprintf( stdout, "Io_WriteHMetis(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteHMetis(): Cannot open the output file \"%s\".\n", pFileName );
         Vec_PtrFree( vHyperEdges );
         return;
     }

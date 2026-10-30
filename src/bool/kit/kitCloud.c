@@ -273,7 +273,7 @@ unsigned * Kit_TruthCompose( CloudManager * dd, unsigned * pTruth, int nVars,
     // convert it into nodes
     RetValue = Kit_CreateCloud( dd, pFunc, vNodes );
     if ( RetValue == 0 )
-        printf( "Kit_TruthCompose(): Internal failure!!!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Kit_TruthCompose(): Internal failure!!!\n" );
     // verify the result
 //    pFan0 = Kit_CloudToTruth( vNodes, nVars, vStore, 0 );
 //    if ( !Kit_TruthIsEqual( pTruth, pFan0, nVars ) )

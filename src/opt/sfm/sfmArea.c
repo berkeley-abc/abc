@@ -117,7 +117,7 @@ Vec_Int_t * Abc_NtkPrecomputeCellPairs( Mio_Cell2_t * pCells, int nCells )
     for ( i = 1; i <= 6; i++ )
         ABC_FREE( pPerm[i] );
     if ( Count )
-        printf( "In this library, %d cell pairs have equal functions (for example, %s and %s).\n", Count/2, pCells[iGate1].pName, pCells[iGate2].pName );
+        fprintf( Abc_FrameGlobalGetOut(), "In this library, %d cell pairs have equal functions (for example, %s and %s).\n", Count/2, pCells[iGate1].pName, pCells[iGate2].pName );
     return vInfo;
 }
 Vec_Int_t * Abc_NtkPrecomputeFirsts( Mio_Cell2_t * pCells, int nCells )
@@ -138,7 +138,7 @@ int Abc_NtkPrecomputePrint( Mio_Cell2_t * pCells, int nCells, Vec_Int_t * vInfo 
     for ( i = 2; i < nCells; i++ )
     {
         int nFanins = pCells[i].nFanins;
-        printf( "%3d : %8s   Fanins = %d   ", i, pCells[i].pName, nFanins );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : %8s   Fanins = %d   ", i, pCells[i].pName, nFanins );
         Dau_DsdPrintFromTruth( &pCells[i].uTruth, nFanins );
         for ( n = 0; n <= nFanins; n++, Index += 3 )
         {
@@ -147,12 +147,12 @@ int Abc_NtkPrecomputePrint( Mio_Cell2_t * pCells, int nCells, Vec_Int_t * vInfo 
             int Diff   = Vec_IntEntry( vInfo, Index+2 );
             if ( iCellA == -1 )
                 continue;
-            printf( "%d : {", n );
+            fprintf( Abc_FrameGlobalGetOut(), "%d : {", n );
             for ( v = 0; v < nFanins; v++ )
-                printf( " %d ", (iPerm >> (v << 2)) & 15 );
-            printf( "}  Index = %d  ", Index );
+                fprintf( Abc_FrameGlobalGetOut(), " %d ", (iPerm >> (v << 2)) & 15 );
+            fprintf( Abc_FrameGlobalGetOut(), "}  Index = %d  ", Index );
 
-            printf( "Gain = %6.2f  ", Scl_Int2Flt(Diff) );
+            fprintf( Abc_FrameGlobalGetOut(), "Gain = %6.2f  ", Scl_Int2Flt(Diff) );
             Dau_DsdPrintFromTruth( &pCells[iCellA].uTruth, pCells[iCellA].nFanins );
             nRecUsed++;
         }
@@ -168,7 +168,7 @@ void Abc_NtkPrecomputeCellPairsTest()
     int nRecUsed = Abc_NtkPrecomputePrint( pCells, nCells, vInfo );
     // iterate through the cells
     Vec_Int_t * vFirst = Abc_NtkPrecomputeFirsts( pCells, nCells );
-    printf( "Used records = %d.  All records = %d.\n", nRecUsed, Vec_IntSize(vInfo)/3 - nRecUsed );
+    fprintf( Abc_FrameGlobalGetOut(), "Used records = %d.  All records = %d.\n", nRecUsed, Vec_IntSize(vInfo)/3 - nRecUsed );
     assert( nCells == Vec_IntSize(vFirst) );
     Vec_IntFree( vFirst );
     Vec_IntFree( vInfo );
@@ -464,7 +464,7 @@ static void Abc_NtkChangePerformInt( Abc_Ntk_t * pNtk, int fVerbose, Sfm_Tim_t *
     ABC_FREE( pCells );
 
     if ( fVerbose )
-        printf( "Total gain in area = %6.2f after %d changes (including %d inverters). ", Scl_Int2Flt(GainAll), Count, CountInv );
+        fprintf( Abc_FrameGlobalGetOut(), "Total gain in area = %6.2f after %d changes (including %d inverters). ", Scl_Int2Flt(GainAll), Count, CountInv );
     if ( fVerbose )
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }

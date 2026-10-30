@@ -34,7 +34,7 @@ static char * file_open(const char *fname)
     int ret;
 
     if (file == NULL) {
-        printf("Couldn't open file: %s\n", fname);
+        fprintf( Abc_FrameGlobalGetOut(), "Couldn't open file: %s\n", fname);
         return NULL;
     }
     fseek(file, 0, SEEK_END);
@@ -75,7 +75,7 @@ static int read_int(char **token)
         (*token)++;
 
     if (!isdigit(**token)) {
-        printf("Parsing error. Unexpected char: %c.\n", **token);
+        fprintf( Abc_FrameGlobalGetOut(), "Parsing error. Unexpected char: %c.\n", **token);
         exit(EXIT_FAILURE);
     }
     while (isdigit(**token)) {
@@ -136,13 +136,13 @@ int satoko_parse_dimacs(char *fname, satoko_t **solver)
             p = satoko_create();
         } else {
             if (lits == NULL) {
-                printf("There is no parameter line.\n");
+                fprintf( Abc_FrameGlobalGetOut(), "There is no parameter line.\n");
                 satoko_free(buffer);
                 return -1;
             }
             read_clause(&token, lits);
             if (!satoko_add_clause(p, (int*)vec_uint_data(lits), vec_uint_size(lits))) {
-                printf("Unable to add clause: ");
+                fprintf( Abc_FrameGlobalGetOut(), "Unable to add clause: ");
                 vec_uint_print(lits);
                 return SATOKO_ERR;
             }

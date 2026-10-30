@@ -199,16 +199,16 @@ void Acec_MultFuncTest6()
     word Truth = ABC_CONST(0xfedcba9876543210);
     word Canon = Extra_TruthCanonNPN3( Truth, 6, vRes );
 
-    Extra_PrintHex( stdout, (unsigned*)&Truth, 6 );  printf( "\n" );
-    Extra_PrintHex( stdout, (unsigned*)&Canon, 6 );  printf( "\n" );
+    Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned*)&Truth, 6 );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned*)&Canon, 6 );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( "Members = %d.\n", Vec_WrdSize(vRes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Members = %d.\n", Vec_WrdSize(vRes) );
     Vec_WrdForEachEntry( vRes, Entry, i )
     {
-        Extra_PrintHex( stdout, (unsigned*)&Entry, 6 );  
-        printf( ", " );
+        Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned*)&Entry, 6 );  
+        fprintf( Abc_FrameGlobalGetOut(), ", " );
         if ( i % 8 == 7 )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     Vec_WrdFree( vRes );
@@ -271,16 +271,16 @@ void Acec_MultFuncTest5()
     unsigned Truth = 0xF335ACC0;
     unsigned Canon = Extra_TruthCanonNPN2( Truth, 5, vRes );
 
-    Extra_PrintHex( stdout, (unsigned*)&Truth, 5 );  printf( "\n" );
-    Extra_PrintHex( stdout, (unsigned*)&Canon, 5 );  printf( "\n" );
+    Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned*)&Truth, 5 );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned*)&Canon, 5 );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( "Members = %d.\n", Vec_IntSize(vRes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Members = %d.\n", Vec_IntSize(vRes) );
     Vec_IntForEachEntry( vRes, Entry, i )
     {
-        Extra_PrintHex( stdout, (unsigned*)&Entry, 5 );  
-        printf( ", " );
+        Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned*)&Entry, 5 );  
+        fprintf( Abc_FrameGlobalGetOut(), ", " );
         if ( i % 8 == 7 )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     Vec_IntFree( vRes );
@@ -299,16 +299,16 @@ void Acec_MultFuncTest4()
     //unsigned Truth = 0xACC0;
     unsigned Canon = Extra_TruthCanonNPN2( Truth, 4, vRes );
 
-    Extra_PrintHex( stdout, (unsigned*)&Truth, 4 );  printf( "\n" );
-    Extra_PrintHex( stdout, (unsigned*)&Canon, 4 );  printf( "\n" );
+    Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned*)&Truth, 4 );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned*)&Canon, 4 );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( "Members = %d.\n", Vec_IntSize(vRes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Members = %d.\n", Vec_IntSize(vRes) );
     Vec_IntForEachEntry( vRes, Entry, i )
     {
-        Extra_PrintHex( stdout, (unsigned*)&Entry, 4 );  
-        printf( ", " );
+        Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned*)&Entry, 4 );  
+        fprintf( Abc_FrameGlobalGetOut(), ", " );
         if ( i % 12 == 11 )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     Vec_IntFree( vRes );
@@ -372,12 +372,12 @@ Vec_Int_t * Acec_MultDetectInputs1( Gia_Man_t * p, Vec_Wec_t * vLeafLits, Vec_We
             iObj = Abc_Lit2Var(iLit);
             if ( Vec_IntEntry(vCounts, Gia_ObjFaninId0(Gia_ManObj(p, iObj), iObj)) < 2 )
             {
-                printf( "Skipping %d.\n", iObj );
+                fprintf( Abc_FrameGlobalGetOut(), "Skipping %d.\n", iObj );
                 continue;
             }
             if ( Vec_IntEntry(vCounts, Gia_ObjFaninId1(Gia_ManObj(p, iObj), iObj)) < 2 )
             {
-                printf( "Skipping %d.\n", iObj );
+                fprintf( Abc_FrameGlobalGetOut(), "Skipping %d.\n", iObj );
                 continue;
             }
             Vec_IntAddToEntry( vRanks, Gia_ObjFaninId0(Gia_ManObj(p, iObj), iObj), i );
@@ -394,7 +394,7 @@ Vec_Int_t * Acec_MultDetectInputs1( Gia_Man_t * p, Vec_Wec_t * vLeafLits, Vec_We
         if ( !Vec_IntEntry(vRanks, i) )
             continue;
         Vec_IntPush( vItems, i );
-        printf( "Obj = %3d  Occurs = %3d  Ranks = %3d\n", i, Count, Vec_IntEntry(vRanks, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "Obj = %3d  Occurs = %3d  Ranks = %3d\n", i, Count, Vec_IntEntry(vRanks, i) );
     }
     // sort items by rank cost
     Vec_IntSelectSortCost( Vec_IntArray(vItems), Vec_IntSize(vItems), vRanks );
@@ -441,12 +441,12 @@ Vec_Int_t * Acec_MultDetectInputs( Gia_Man_t * p, Vec_Wec_t * vLeafLits, Vec_Wec
     ABC_FREE( p->pRefs );
     Gia_ManCreateRefs( p );
     Gia_ManForEachCiId( p, iObj, i )
-        printf( "%d=%d ", iObj, Gia_ObjRefNumId(p, iObj) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", iObj, Gia_ObjRefNumId(p, iObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Gia_ManForEachAndId( p, iObj )
         if ( Gia_ObjRefNumId(p, iObj) >= 4 )
-            printf( "%d=%d ", iObj, Gia_ObjRefNumId(p, iObj) );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", iObj, Gia_ObjRefNumId(p, iObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     Vec_WecForEachLevel( vLeafLits, vLevel, i )
         Vec_IntForEachEntry( vLevel, iLit, k )
@@ -454,14 +454,14 @@ Vec_Int_t * Acec_MultDetectInputs( Gia_Man_t * p, Vec_Wec_t * vLeafLits, Vec_Wec
             word Truth = Gia_ObjComputeTruth6Cis( p, iLit, vSupp, vTemp );
             if ( Vec_IntSize(vSupp) >= 0 )
             {
-                printf( "Leaf = %4d : ", Abc_Lit2Var(iLit) );
-                printf( "Rank = %2d  ", i );
-                printf( "Supp = %2d  ", Vec_IntSize(vSupp) );
-                Extra_PrintHex( stdout, (unsigned*)&Truth, Vec_IntSize(vSupp) );
-                if ( Vec_IntSize(vSupp) == 4 ) printf( "    " );
-                if ( Vec_IntSize(vSupp) == 3 ) printf( "      " );
-                if ( Vec_IntSize(vSupp) <= 2 ) printf( "       " );
-                printf( "  " );
+                fprintf( Abc_FrameGlobalGetOut(), "Leaf = %4d : ", Abc_Lit2Var(iLit) );
+                fprintf( Abc_FrameGlobalGetOut(), "Rank = %2d  ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Supp = %2d  ", Vec_IntSize(vSupp) );
+                Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned*)&Truth, Vec_IntSize(vSupp) );
+                if ( Vec_IntSize(vSupp) == 4 ) fprintf( Abc_FrameGlobalGetOut(), "    " );
+                if ( Vec_IntSize(vSupp) == 3 ) fprintf( Abc_FrameGlobalGetOut(), "      " );
+                if ( Vec_IntSize(vSupp) <= 2 ) fprintf( Abc_FrameGlobalGetOut(), "       " );
+                fprintf( Abc_FrameGlobalGetOut(), "  " );
                 Vec_IntPrint( vSupp );
                 /*
                 if ( Truth == 0xF335ACC0F335ACC0 )
@@ -480,13 +480,13 @@ Vec_Int_t * Acec_MultDetectInputs( Gia_Man_t * p, Vec_Wec_t * vLeafLits, Vec_Wec
                 Vec_IntAddToEntry( vCounts, Entry, 1 );
             }
             if ( k == Vec_IntSize(vLevel)-1 )
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
 
     Vec_IntForEachEntry( vCounts, Entry, j )
         if ( Entry )
-            printf( "%d=%d(%.2f) ", j, Entry, 1.0*Vec_IntEntry(vRanks, j)/Entry );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d=%d(%.2f) ", j, Entry, 1.0*Vec_IntEntry(vRanks, j)/Entry );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     Vec_IntFree( vSupp );
     Vec_WrdFree( vTemp );
@@ -555,7 +555,7 @@ Vec_Bit_t * Acec_MultMarkPPs( Gia_Man_t * p )
         }
     }
     Gia_ManCleanMark0(p);
-    printf( "Collected %d pps.\n", nProds );
+    fprintf( Abc_FrameGlobalGetOut(), "Collected %d pps.\n", nProds );
     Vec_IntFree( vSupp );
     Vec_WrdFree( vTemp );
     return vRes;
@@ -647,7 +647,7 @@ Vec_Int_t * Acec_MultFindPPs( Gia_Man_t * p )
         */
     }
     Gia_ManCleanMark0(p);
-    printf( "Collected %d pps and %d nodes.\n", nProds, Vec_IntSize(vBold) );
+    fprintf( Abc_FrameGlobalGetOut(), "Collected %d pps and %d nodes.\n", nProds, Vec_IntSize(vBold) );
 
     Vec_IntFree( vSupp );
     Vec_WrdFree( vTemp );

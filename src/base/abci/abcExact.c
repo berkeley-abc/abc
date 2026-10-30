@@ -160,8 +160,8 @@ static inline void Abc_DebugPrint( const char* str, int fCond )
 {
     if ( fCond )
     {
-        printf( "%s", str );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "%s", str );
+        fflush( Abc_FrameGlobalGetOut() );
     }
 }
 
@@ -169,8 +169,8 @@ static inline void Abc_DebugPrintInt( const char* fmt, int n, int fCond )
 {
     if ( fCond )
     {
-        printf( fmt, n );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), fmt, n );
+        fflush( Abc_FrameGlobalGetOut() );
     }
 }
 
@@ -178,8 +178,8 @@ static inline void Abc_DebugPrintIntInt( const char* fmt, int n1, int n2, int fC
 {
     if ( fCond )
     {
-        printf( fmt, n1, n2 );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), fmt, n1, n2 );
+        fflush( Abc_FrameGlobalGetOut() );
     }
 }
 
@@ -189,8 +189,8 @@ static inline void Abc_DebugErase( int n, int fCond )
     if ( fCond )
     {
         for ( i = 0; i < n; ++i )
-            printf( "\b" );
-        fflush( stdout );
+            fprintf( Abc_FrameGlobalGetOut(), "\b" );
+        fflush( Abc_FrameGlobalGetOut() );
     }
 }
 
@@ -480,13 +480,13 @@ static inline void Ses_StorePrintEntry( Ses_TruthEntry_t * pEntry, Ses_TimesEntr
 {
     int i;
 
-    printf( "f = " );
-    Abc_TtPrintHexRev( stdout, pEntry->pTruth, pEntry->nVars );
-    printf( ", n = %d", pEntry->nVars );
-    printf( ", arrival =" );
+    fprintf( Abc_FrameGlobalGetOut(), "f = " );
+    Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), pEntry->pTruth, pEntry->nVars );
+    fprintf( Abc_FrameGlobalGetOut(), ", n = %d", pEntry->nVars );
+    fprintf( Abc_FrameGlobalGetOut(), ", arrival =" );
     for ( i = 0; i < pEntry->nVars; ++i )
-        printf( " %d", pTiEntry->pArrTimeProfile[i] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", pTiEntry->pArrTimeProfile[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 static inline void Ses_StorePrintDebugEntry( Ses_Store_t * pStore, word * pTruth, int nVars, int * pNormalArrTime, int nMaxDepth, char * pSol, int nStartGates )
@@ -573,7 +573,7 @@ static void Ses_StoreWrite( Ses_Store_t * pStore, const char * pFilename, int fS
     pFile = fopen( pFilename, "wb" );
     if (pFile == NULL)
     {
-        printf( "cannot open file \"%s\" for writing\n", pFilename );
+        fprintf( Abc_FrameGlobalGetOut(), "cannot open file \"%s\" for writing\n", pFilename );
         return;
     }
 
@@ -830,14 +830,14 @@ static void Ses_StoreRead( Ses_Store_t * pStore, const char * pFilename, int fSy
 
     if ( pStore->szDBName )
     {
-        printf( "cannot read from database when szDBName is set" );
+        fprintf( Abc_FrameGlobalGetOut(), "cannot read from database when szDBName is set" );
         return;
     }
 
     pFile = fopen( pFilename, "rb" );
     if (pFile == NULL)
     {
-        printf( "cannot open file \"%s\" for reading\n", pFilename );
+        fprintf( Abc_FrameGlobalGetOut(), "cannot open file \"%s\" for reading\n", pFilename );
         return;
     }
 
@@ -873,7 +873,7 @@ static void Ses_StoreRead( Ses_Store_t * pStore, const char * pFilename, int fSy
 
     fclose( pFile );
 
-    printf( "read %lu entries from file\n", (long)nEntries );
+    fprintf( Abc_FrameGlobalGetOut(), "read %lu entries from file\n", (long)nEntries );
 }
 
 // computes top decomposition of variables wrt. to AND and OR
@@ -1072,7 +1072,7 @@ static void Ses_ManCreateVars( Ses_Man_t * pSes, int nGates )
 
     if ( pSes->fSatVerbose )
     {
-        printf( "create variables for network with %d functions over %d variables and %d/%d gates\n", pSes->nSpecFunc, pSes->nSpecVars, nGates, pSes->nMaxGates );
+        fprintf( Abc_FrameGlobalGetOut(), "create variables for network with %d functions over %d variables and %d/%d gates\n", pSes->nSpecFunc, pSes->nSpecVars, nGates, pSes->nMaxGates );
     }
 
     pSes->nGates      = nGates;
@@ -1381,7 +1381,7 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
                 Vec_IntPush( pSes->vAssump, Abc_Var2Lit( Ses_ManGateVar( pSes, pSes->nGates - 1 - i, 1, 1 ), 1 ) );
                 break;
             default:
-                printf( "func: %d\n", pSes->pStairDecFunc[i] );
+                fprintf( Abc_FrameGlobalGetOut(), "func: %d\n", pSes->pStairDecFunc[i] );
                 assert( 0 );
             }
         }
@@ -1464,7 +1464,7 @@ static int Ses_ManCreateClauses( Ses_Man_t * pSes )
                      ( !pSes->pArrTimeProfile || ( pSes->pArrTimeProfile[p] <= pSes->pArrTimeProfile[q] ) ) )
                 {
                     if ( pSes->fSatVerbose )
-                        printf( "variables %d and %d are symmetric\n", p, q );
+                        fprintf( Abc_FrameGlobalGetOut(), "variables %d and %d are symmetric\n", p, q );
                     for ( i = 0; i < pSes->nGates; ++i )
                         for ( j = 0; j < q; ++j )
                         {
@@ -1572,8 +1572,8 @@ static inline int Ses_ManSolve( Ses_Man_t * pSes )
 
     if ( pSes->fSatVerbose )
     {
-        printf( "SAT   CL: %7d   VA: %5d", sat_solver_nclauses( pSes->pSat ), sat_solver_nvars( pSes->pSat ) );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "SAT   CL: %7d   VA: %5d", sat_solver_nclauses( pSes->pSat ), sat_solver_nvars( pSes->pSat ) );
+        fflush( Abc_FrameGlobalGetOut() );
     }
 
     timeStart = Abc_Clock();
@@ -1581,7 +1581,7 @@ static inline int Ses_ManSolve( Ses_Man_t * pSes )
     timeDelta = Abc_Clock() - timeStart;
 
     if ( pSes->fSatVerbose )
-        printf( "   RE:   %2d   ST: %4.f   CO: %7.0f   DE: %6.0f    PR: %6.0f\n",
+        fprintf( Abc_FrameGlobalGetOut(), "   RE:   %2d   ST: %4.f   CO: %7.0f   DE: %6.0f    PR: %6.0f\n",
                 status,
                 Sat_Wrd2Dbl( pSes->pSat->stats.starts ), Sat_Wrd2Dbl( pSes->pSat->stats.conflicts ),
                 Sat_Wrd2Dbl( pSes->pSat->stats.decisions ), Sat_Wrd2Dbl( pSes->pSat->stats.propagations ) );
@@ -1610,7 +1610,7 @@ static inline int Ses_ManSolve( Ses_Man_t * pSes )
             //Sat_SolverWriteDimacs( pSes->pSat, "/tmp/test.cnf", Vec_IntArray( pSes->vAssump ), Vec_IntLimit( pSes->vAssump ), 1 );
             //exit( 42 );
 
-            printf( "resource limit reached\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "resource limit reached\n" );
         }
         return 2;
     }
@@ -1663,14 +1663,14 @@ static char * Ses_ManExtractSolution( Ses_Man_t * pSes )
         *p++ = 2;
 
         if ( pSes->fExtractVerbose )
-            printf( "add gate %d with operation %d", pSes->nSpecVars + i, nOp );
+            fprintf( Abc_FrameGlobalGetOut(), "add gate %d with operation %d", pSes->nSpecVars + i, nOp );
 
         for ( k = 0; k < pSes->nSpecVars + i; ++k )
             for ( j = 0; j < k; ++j )
                 if ( sat_solver_var_value( pSes->pSat, Ses_ManSelectVar( pSes, i, j, k ) ) )
                 {
                     if ( pSes->fExtractVerbose )
-                        printf( " and operands %d and %d", j, k );
+                        fprintf( Abc_FrameGlobalGetOut(), " and operands %d and %d", j, k );
                     *p++ = j;
                     *p++ = k;
                     k = pSes->nSpecVars + i;
@@ -1681,11 +1681,11 @@ static char * Ses_ManExtractSolution( Ses_Man_t * pSes )
         {
             if ( pSes->nMaxDepth > 0 )
             {
-                printf( " and depth vector " );
+                fprintf( Abc_FrameGlobalGetOut(), " and depth vector " );
                 for ( j = 0; j <= pSes->nArrTimeMax + i; ++j )
-                    printf( "%d", sat_solver_var_value( pSes->pSat, Ses_ManDepthVar( pSes, i, j ) ) );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d", sat_solver_var_value( pSes->pSat, Ses_ManDepthVar( pSes, i, j ) ) );
             }
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
 
@@ -1730,12 +1730,12 @@ static char * Ses_ManExtractSolution( Ses_Man_t * pSes )
                     }
                 *p++ = d;
                 if ( pSes->pArrTimeProfile && pSes->fExtractVerbose )
-                    printf( "output %d points to gate %d and has normalized delay %d (nArrTimeDelta = %d)\n", h, pSes->nSpecVars + i, d, pSes->nArrTimeDelta );
+                    fprintf( Abc_FrameGlobalGetOut(), "output %d points to gate %d and has normalized delay %d (nArrTimeDelta = %d)\n", h, pSes->nSpecVars + i, d, pSes->nArrTimeDelta );
                 for ( l = 0; l < pSes->nSpecVars; ++l )
                 {
                     d = ( pSes->nMaxDepth != -1 ) ? pPerm[i * pSes->nSpecVars + l] : 0;
                     if ( pSes->pArrTimeProfile && pSes->fExtractVerbose )
-                        printf( "  pin-to-pin arrival time from input %d is %d (pArrTimeProfile = %d)\n", l, d, pSes->pArrTimeProfile[l] );
+                        fprintf( Abc_FrameGlobalGetOut(), "  pin-to-pin arrival time from input %d is %d (pArrTimeProfile = %d)\n", l, d, pSes->pArrTimeProfile[l] );
                     *p++ = d;
                 }
             }
@@ -1818,7 +1818,7 @@ static Abc_Ntk_t * Ses_ManExtractNtk( char const * pSol )
     Vec_PtrFree( pGates );
 
     if ( !Abc_NtkCheck( pNtk ) )
-        printf( "Ses_ManExtractSolution(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Ses_ManExtractSolution(): Network check has failed.\n" );
 
     return pNtk;
 }
@@ -1904,7 +1904,7 @@ static Gia_Man_t * Ses_ManExtractGia( char const * pSol )
 ***********************************************************************/
 static void Ses_ManPrintRuntime( Ses_Man_t * pSes )
 {
-    printf( "Runtime breakdown:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Runtime breakdown:\n" );
     ABC_PRTP( "Sat     ",  pSes->timeSat,      pSes->timeTotal );
     ABC_PRTP( " Sat    ",  pSes->timeSatSat,   pSes->timeTotal );
     ABC_PRTP( " Unsat  ",  pSes->timeSatUnsat, pSes->timeTotal );
@@ -1917,23 +1917,23 @@ static inline void Ses_ManPrintFuncs( Ses_Man_t * pSes )
 {
     int h;
 
-    printf( "find optimum circuit for %d %d-variable functions:\n", pSes->nSpecFunc, pSes->nSpecVars );
+    fprintf( Abc_FrameGlobalGetOut(), "find optimum circuit for %d %d-variable functions:\n", pSes->nSpecFunc, pSes->nSpecVars );
     for ( h = 0; h < pSes->nSpecFunc; ++h )
     {
-        printf( "  func %d: ", h + 1 );
-        Abc_TtPrintHexRev( stdout, &pSes->pSpec[h << 2], pSes->nSpecVars );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "  func %d: ", h + 1 );
+        Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), &pSes->pSpec[h << 2], pSes->nSpecVars );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     if ( pSes->nMaxDepth != -1 )
     {
-        printf( "  max depth = %d\n", pSes->nMaxDepth );
+        fprintf( Abc_FrameGlobalGetOut(), "  max depth = %d\n", pSes->nMaxDepth );
         if ( pSes->pArrTimeProfile )
         {
-            printf( "  arrival times =" );
+            fprintf( Abc_FrameGlobalGetOut(), "  arrival times =" );
             for ( h = 0; h < pSes->nSpecVars; ++h )
-                printf( " %d", pSes->pArrTimeProfile[h] );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " %d", pSes->pArrTimeProfile[h] );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
 }
@@ -1944,29 +1944,29 @@ static inline void Ses_ManPrintVars( Ses_Man_t * pSes )
 
     for ( i = 0; i < pSes->nGates; ++i )
         for ( t = 0; t < pSes->nRows; ++t )
-            printf( "x(%d, %d) : %d\n", i, t, Ses_ManSimVar( pSes, i, t ) );
+            fprintf( Abc_FrameGlobalGetOut(), "x(%d, %d) : %d\n", i, t, Ses_ManSimVar( pSes, i, t ) );
 
     for ( h = 0; h < pSes->nSpecFunc; ++h )
         for ( i = 0; i < pSes->nGates; ++i )
-            printf( "h(%d, %d) : %d\n", h, i, Ses_ManOutputVar( pSes, h, i ) );
+            fprintf( Abc_FrameGlobalGetOut(), "h(%d, %d) : %d\n", h, i, Ses_ManOutputVar( pSes, h, i ) );
 
     for ( i = 0; i < pSes->nGates; ++i )
         for ( p = 0; p <= 1; ++p )
             for ( q = 0; q <= 1; ++ q)
             {
                 if ( p == 0 && q == 0 ) { continue; }
-                printf( "f(%d, %d, %d) : %d\n", i, p, q, Ses_ManGateVar( pSes, i, p, q ) );
+                fprintf( Abc_FrameGlobalGetOut(), "f(%d, %d, %d) : %d\n", i, p, q, Ses_ManGateVar( pSes, i, p, q ) );
             }
 
     for ( i = 0; i < pSes->nGates; ++i )
         for ( j = 0; j < pSes->nSpecVars + i; ++j )
             for ( k = j + 1; k < pSes->nSpecVars + i; ++k )
-                printf( "s(%d, %d, %d) : %d\n", i, j, k, Ses_ManSelectVar( pSes, i, j, k ) );
+                fprintf( Abc_FrameGlobalGetOut(), "s(%d, %d, %d) : %d\n", i, j, k, Ses_ManSelectVar( pSes, i, j, k ) );
 
     if ( pSes->nMaxDepth > 0 )
         for ( i = 0; i < pSes->nGates; ++i )
             for ( j = 0; j <= i; ++j )
-                printf( "d(%d, %d) : %d\n", i, j, Ses_ManDepthVar( pSes, i, j ) );
+                fprintf( Abc_FrameGlobalGetOut(), "d(%d, %d) : %d\n", i, j, Ses_ManDepthVar( pSes, i, j ) );
 
 }
 
@@ -2014,7 +2014,7 @@ static int Ses_CheckDepthConsistency( Ses_Man_t * pSes )
         if ( pSes->pArrTimeProfile[l] >= pSes->nMaxDepth )
         {
             if ( pSes->fReasonVerbose )
-                printf( "give up due to impossible arrival time (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
+                fprintf( Abc_FrameGlobalGetOut(), "give up due to impossible arrival time (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
             return 0;
         }
         else if ( pSes->nSpecFunc == 1 && pSes->pArrTimeProfile[l] + 1 == pSes->nMaxDepth )
@@ -2022,7 +2022,7 @@ static int Ses_CheckDepthConsistency( Ses_Man_t * pSes )
             if ( ( pSes->fDecStructure == 1 && pSes->nSpecVars > 2 ) || pSes->fDecStructure == 2 )
             {
                 if ( pSes->fReasonVerbose )
-                    printf( "give up due to impossible decomposition (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
+                    fprintf( Abc_FrameGlobalGetOut(), "give up due to impossible decomposition (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
                 return 0;
             }
 
@@ -2032,7 +2032,7 @@ static int Ses_CheckDepthConsistency( Ses_Man_t * pSes )
             if ( !( ( pSes->pDecVars >> l ) & 1 ) )
             {
                 if ( pSes->fReasonVerbose )
-                    printf( "give up due to impossible decomposition (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
+                    fprintf( Abc_FrameGlobalGetOut(), "give up due to impossible decomposition (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
                 return 0;
             }
         }
@@ -2055,7 +2055,7 @@ static int Ses_CheckDepthConsistency( Ses_Man_t * pSes )
                         if ( fAdded > 1 || ( nLevel + 1 < pSes->nSpecVars ) )
                         {
                             if ( pSes->fReasonVerbose )
-                                printf( "give up due to impossible decomposition at level %d", nLevel );
+                                fprintf( Abc_FrameGlobalGetOut(), "give up due to impossible decomposition at level %d", nLevel );
                             return 0;
                         }
                     }
@@ -2074,7 +2074,7 @@ static int Ses_CheckDepthConsistency( Ses_Man_t * pSes )
         {
             if ( pSes->fReasonVerbose )
             {
-                printf( "give up due to impossible stair decomposition at level %d: ", nLevel );
+                fprintf( Abc_FrameGlobalGetOut(), "give up due to impossible stair decomposition at level %d: ", nLevel );
                 Vec_IntPrint( pSes->vStairDecVars );
             }
             return 0;
@@ -2093,7 +2093,7 @@ static int Ses_CheckDepthConsistency( Ses_Man_t * pSes )
             if ( ++i > fMaxGatesLevel2 )
             {
                 if ( pSes->fReasonVerbose )
-                    printf( "give up due to impossible decomposition at second level (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
+                    fprintf( Abc_FrameGlobalGetOut(), "give up due to impossible decomposition at second level (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
                 return 0;
             }
 
@@ -2106,7 +2106,7 @@ static int Ses_CheckDepthConsistency( Ses_Man_t * pSes )
                 if ( ++i > 1 )
                 {
                     if ( pSes->fReasonVerbose )
-                        printf( "give up due to impossible decomposition at third level (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
+                        fprintf( Abc_FrameGlobalGetOut(), "give up due to impossible decomposition at third level (depth = %d, input = %d, arrival time = %d)", pSes->nMaxDepth, l, pSes->pArrTimeProfile[l] );
                     return 0;
                 }
     }
@@ -2121,7 +2121,7 @@ static int Ses_CheckGatesConsistency( Ses_Man_t * pSes, int nGates )
     if ( pSes->nMaxDepth != -1 && nGates >= ( 1 << pSes->nMaxDepth ) )
     {
         if ( pSes->fReasonVerbose )
-            printf( "give up due to impossible depth (depth = %d, gates = %d)", pSes->nMaxDepth, nGates );
+            fprintf( Abc_FrameGlobalGetOut(), "give up due to impossible depth (depth = %d, gates = %d)", pSes->nMaxDepth, nGates );
         return 0;
     }
 
@@ -2129,14 +2129,14 @@ static int Ses_CheckGatesConsistency( Ses_Man_t * pSes, int nGates )
     if ( pSes->nMaxDepth != -1 && pSes->pArrTimeProfile && nGates > pSes->nMaxGates )
     {
         if ( pSes->fReasonVerbose )
-            printf( "give up due to impossible depth and arrival times (depth = %d, gates = %d)", pSes->nMaxDepth, nGates );
+            fprintf( Abc_FrameGlobalGetOut(), "give up due to impossible depth and arrival times (depth = %d, gates = %d)", pSes->nMaxDepth, nGates );
         return 0;
     }
 
     if ( pSes->fDecStructure && nGates >= ( 1 << ( pSes->nMaxDepth - 1 ) ) + 1 )
     {
         if ( pSes->fReasonVerbose )
-            printf( "give up due to impossible depth in AND-dec structure (depth = %d, gates = %d)", pSes->nMaxDepth, nGates );
+            fprintf( Abc_FrameGlobalGetOut(), "give up due to impossible depth in AND-dec structure (depth = %d, gates = %d)", pSes->nMaxDepth, nGates );
         return 0;
     }
 
@@ -2144,7 +2144,7 @@ static int Ses_CheckGatesConsistency( Ses_Man_t * pSes, int nGates )
     if ( nGates >= ( 1 << pSes->nSpecVars ) )
     {
         if ( pSes->fReasonVerbose )
-            printf( "give up due to impossible number of gates" );
+            fprintf( Abc_FrameGlobalGetOut(), "give up due to impossible number of gates" );
         return 0;
     }
 
@@ -2366,7 +2366,7 @@ static char * Ses_ManFindMinimumSize( Ses_Man_t * pSes )
       {
         if ( pSes->fVerbose )
         {
-          printf( "try with %d gates\n", i );
+          fprintf( Abc_FrameGlobalGetOut(), "try with %d gates\n", i );
         }
 
         memset( pSes->pTtValues, ~0, 4 * sizeof( word ) );
@@ -2591,7 +2591,7 @@ void Abc_ExactTest( int fVerbose )
     Abc_ExactTestSingleOutput( fVerbose );
     Abc_ExactTestSingleOutputAIG( fVerbose );
 
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 
@@ -2632,7 +2632,7 @@ void Abc_ExactStart( int nBTLimit, int fMakeAIG, int fVerbose, int fVeryVerbose,
         }
     }
     else
-        printf( "BMS manager already started\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "BMS manager already started\n" );
 }
 // stop exact store manager
 void Abc_ExactStop( const char * pFilename )
@@ -2646,7 +2646,7 @@ void Abc_ExactStop( const char * pFilename )
         Ses_StoreClean( s_pSesStore );
     }
     else
-        printf( "BMS manager has not been started\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "BMS manager has not been started\n" );
 }
 // show statistics about store manager
 void Abc_ExactStats()
@@ -2655,52 +2655,52 @@ void Abc_ExactStats()
 
     if ( !s_pSesStore )
     {
-        printf( "BMS manager has not been started\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "BMS manager has not been started\n" );
         return;
     }
 
-    printf( "-------------------------------------------------------------------------------------------------------------------------------\n" );
-    printf( "                                    0         1         2         3         4         5         6         7         8     total\n" );
-    printf( "-------------------------------------------------------------------------------------------------------------------------------\n" );
-    printf( "number of considered cuts :" );
+    fprintf( Abc_FrameGlobalGetOut(), "-------------------------------------------------------------------------------------------------------------------------------\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "                                    0         1         2         3         4         5         6         7         8     total\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "-------------------------------------------------------------------------------------------------------------------------------\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "number of considered cuts :" );
     for ( i = 0; i < 9; ++i )
-        printf( "%10lu", s_pSesStore->pCutCount[i] );
-    printf( "%10lu\n", s_pSesStore->nCutCount );
-    printf( " - trivial                :" );
+        fprintf( Abc_FrameGlobalGetOut(), "%10lu", s_pSesStore->pCutCount[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "%10lu\n", s_pSesStore->nCutCount );
+    fprintf( Abc_FrameGlobalGetOut(), " - trivial                :" );
     for ( i = 0; i < 9; ++i )
-        printf( "%10lu", s_pSesStore->pSynthesizedTrivial[i] );
-    printf( "%10lu\n", s_pSesStore->nSynthesizedTrivial );
-    printf( " - synth (imp)            :" );
+        fprintf( Abc_FrameGlobalGetOut(), "%10lu", s_pSesStore->pSynthesizedTrivial[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "%10lu\n", s_pSesStore->nSynthesizedTrivial );
+    fprintf( Abc_FrameGlobalGetOut(), " - synth (imp)            :" );
     for ( i = 0; i < 9; ++i )
-        printf( "%10lu", s_pSesStore->pSynthesizedImp[i] );
-    printf( "%10lu\n", s_pSesStore->nSynthesizedImp );
-    printf( " - synth (res)            :" );
+        fprintf( Abc_FrameGlobalGetOut(), "%10lu", s_pSesStore->pSynthesizedImp[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "%10lu\n", s_pSesStore->nSynthesizedImp );
+    fprintf( Abc_FrameGlobalGetOut(), " - synth (res)            :" );
     for ( i = 0; i < 9; ++i )
-        printf( "%10lu", s_pSesStore->pSynthesizedRL[i] );
-    printf( "%10lu\n", s_pSesStore->nSynthesizedRL );
-    printf( " - not synth (imp)        :" );
+        fprintf( Abc_FrameGlobalGetOut(), "%10lu", s_pSesStore->pSynthesizedRL[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "%10lu\n", s_pSesStore->nSynthesizedRL );
+    fprintf( Abc_FrameGlobalGetOut(), " - not synth (imp)        :" );
     for ( i = 0; i < 9; ++i )
-        printf( "%10lu", s_pSesStore->pUnsynthesizedImp[i] );
-    printf( "%10lu\n", s_pSesStore->nUnsynthesizedImp );
-    printf( " - not synth (res)        :" );
+        fprintf( Abc_FrameGlobalGetOut(), "%10lu", s_pSesStore->pUnsynthesizedImp[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "%10lu\n", s_pSesStore->nUnsynthesizedImp );
+    fprintf( Abc_FrameGlobalGetOut(), " - not synth (res)        :" );
     for ( i = 0; i < 9; ++i )
-        printf( "%10lu", s_pSesStore->pUnsynthesizedRL[i] );
-    printf( "%10lu\n", s_pSesStore->nUnsynthesizedRL );
-    printf( " - cache hits             :" );
+        fprintf( Abc_FrameGlobalGetOut(), "%10lu", s_pSesStore->pUnsynthesizedRL[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "%10lu\n", s_pSesStore->nUnsynthesizedRL );
+    fprintf( Abc_FrameGlobalGetOut(), " - cache hits             :" );
     for ( i = 0; i < 9; ++i )
-        printf( "%10lu", s_pSesStore->pCacheHits[i] );
-    printf( "%10lu\n", s_pSesStore->nCacheHits );
-    printf( "-------------------------------------------------------------------------------------------------------------------------------\n" );
-    printf( "number of entries         : %d\n", s_pSesStore->nEntriesCount );
-    printf( "number of valid entries   : %d\n", s_pSesStore->nValidEntriesCount );
-    printf( "number of invalid entries : %d\n", s_pSesStore->nEntriesCount - s_pSesStore->nValidEntriesCount );
-    printf( "-------------------------------------------------------------------------------------------------------------------------------\n" );
-    printf( "number of SAT calls       : %lu\n", s_pSesStore->nSatCalls );
-    printf( "number of UNSAT calls     : %lu\n", s_pSesStore->nUnsatCalls );
-    printf( "number of UNDEF calls     : %lu\n", s_pSesStore->nUndefCalls );
+        fprintf( Abc_FrameGlobalGetOut(), "%10lu", s_pSesStore->pCacheHits[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "%10lu\n", s_pSesStore->nCacheHits );
+    fprintf( Abc_FrameGlobalGetOut(), "-------------------------------------------------------------------------------------------------------------------------------\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "number of entries         : %d\n", s_pSesStore->nEntriesCount );
+    fprintf( Abc_FrameGlobalGetOut(), "number of valid entries   : %d\n", s_pSesStore->nValidEntriesCount );
+    fprintf( Abc_FrameGlobalGetOut(), "number of invalid entries : %d\n", s_pSesStore->nEntriesCount - s_pSesStore->nValidEntriesCount );
+    fprintf( Abc_FrameGlobalGetOut(), "-------------------------------------------------------------------------------------------------------------------------------\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "number of SAT calls       : %lu\n", s_pSesStore->nSatCalls );
+    fprintf( Abc_FrameGlobalGetOut(), "number of UNSAT calls     : %lu\n", s_pSesStore->nUnsatCalls );
+    fprintf( Abc_FrameGlobalGetOut(), "number of UNDEF calls     : %lu\n", s_pSesStore->nUndefCalls );
 
-    printf( "-------------------------------------------------------------------------------------------------------------------------------\n" );
-    printf( "Runtime breakdown:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "-------------------------------------------------------------------------------------------------------------------------------\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Runtime breakdown:\n" );
     ABC_PRTP( "Exact    ", s_pSesStore->timeExact,                          s_pSesStore->timeTotal );
     ABC_PRTP( " Sat     ", s_pSesStore->timeSat,                            s_pSesStore->timeTotal );
     ABC_PRTP( "  Sat    ", s_pSesStore->timeSatSat,                         s_pSesStore->timeTotal );
@@ -2725,7 +2725,7 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
     /* some checks */
     if ( nVars < 0 || nVars > 8 )
     {
-        printf( "invalid truth table size %d\n", nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "invalid truth table size %d\n", nVars );
         assert( 0 );
         *Cost = ABC_INFINITY;
         return ABC_INFINITY;
@@ -2772,14 +2772,14 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
     {
         if ( s_pSesStore->fVeryVerbose )
         {
-            printf( ANSI_COLOR_CYAN );
-            Abc_TtPrintHexRev( stdout, pTruth, nVars );
-            printf( ANSI_COLOR_RESET );
-            printf( " [%d", pNormalArrTime[0] );
+            fprintf( Abc_FrameGlobalGetOut(), ANSI_COLOR_CYAN );
+            Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), pTruth, nVars );
+            fprintf( Abc_FrameGlobalGetOut(), ANSI_COLOR_RESET );
+            fprintf( Abc_FrameGlobalGetOut(), " [%d", pNormalArrTime[0] );
             for ( l = 1; l < nVars; ++l )
-                printf( " %d", pNormalArrTime[l] );
-            printf( "]@%d:", AigLevel );
-            fflush( stdout );
+                fprintf( Abc_FrameGlobalGetOut(), " %d", pNormalArrTime[l] );
+            fprintf( Abc_FrameGlobalGetOut(), "]@%d:", AigLevel );
+            fflush( Abc_FrameGlobalGetOut() );
         }
 
         nMaxDepth = pNormalArrTime[0];
@@ -2800,16 +2800,16 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
         {
             if ( s_pSesStore->fVeryVerbose )
             {
-                printf( " %d", pSes->nMaxDepth );
-                fflush( stdout );
+                fprintf( Abc_FrameGlobalGetOut(), " %d", pSes->nMaxDepth );
+                fflush( Abc_FrameGlobalGetOut() );
             }
 
             if ( ( pSol2 = Ses_ManFindMinimumSize( pSes ) ) != NULL )
             {
                 if ( s_pSesStore->fVeryVerbose )
                 {
-                    if ( pSes->nMaxDepth >= 10 ) printf( "\b" );
-                    printf( "\b" ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET, pSes->nMaxDepth );
+                    if ( pSes->nMaxDepth >= 10 ) fprintf( Abc_FrameGlobalGetOut(), "\b" );
+                    fprintf( Abc_FrameGlobalGetOut(), "\b" ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET, pSes->nMaxDepth );
                 }
                 if ( pSol )
                     ABC_FREE( pSol );
@@ -2820,15 +2820,15 @@ int Abc_ExactDelayCost( word * pTruth, int nVars, int * pArrTimeProfile, char * 
             {
                 if ( s_pSesStore->fVeryVerbose )
                 {
-                    if ( pSes->nMaxDepth >= 10 ) printf( "\b" );
-                    printf( "\b%s%d" ANSI_COLOR_RESET, pSes->fHitResLimit ? ANSI_COLOR_RED : ANSI_COLOR_YELLOW, pSes->nMaxDepth );
+                    if ( pSes->nMaxDepth >= 10 ) fprintf( Abc_FrameGlobalGetOut(), "\b" );
+                    fprintf( Abc_FrameGlobalGetOut(), "\b%s%d" ANSI_COLOR_RESET, pSes->fHitResLimit ? ANSI_COLOR_RED : ANSI_COLOR_YELLOW, pSes->nMaxDepth );
                 }
                 break;
             }
         }
 
         if ( s_pSesStore->fVeryVerbose )
-            printf( "        \n" );
+            fprintf( Abc_FrameGlobalGetOut(), "        \n" );
 
         /* log unsuccessful case for debugging */
         if ( s_pSesStore->pDebugEntries && pSes->fHitResLimit )

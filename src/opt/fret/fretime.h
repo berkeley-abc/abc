@@ -135,7 +135,7 @@ typedef struct MinRegMan_t_ {
 
 extern MinRegMan_t *pManMR;
 
-#define vprintf if (pManMR->fVerbose) printf 
+#define vfprintf if (pManMR->fVerbose) fprintf 
 
 static inline void FSETPRED(Abc_Obj_t *pObj, Abc_Obj_t *pPred) {
   assert(!Abc_ObjIsLatch(pObj)); // must preserve field to maintain init state linkage

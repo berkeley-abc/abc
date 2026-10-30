@@ -637,7 +637,7 @@ int Min_LitJustify( Min_Man_t * p, int iLit )
     if ( Res )
     {
         if ( fCheck && Min_LitVerify(p, iLit, &p->vPat) != 1 )
-            printf( "Verification FAILED for literal %d.\n", iLit );
+            fprintf( Abc_FrameGlobalGetOut(), "Verification FAILED for literal %d.\n", iLit );
         //else
         //    printf( "Verification succeeded for literal %d.\n", iLit );
     }
@@ -720,7 +720,7 @@ Vec_Int_t * Min_TargGenerateCexes( Min_Man_t * p, Vec_Int_t * vCoErrs, int nCexe
                 nCexesGenSim0++;
                 if ( nCexesGenSim0 > nCexesGenSim*10 )
                 {
-                    printf( "**** Skipping output %d (out of %d)\n", Min_ObjCioId(p, iObj), Min_ManCoNum(p) );
+                    fprintf( Abc_FrameGlobalGetOut(), "**** Skipping output %d (out of %d)\n", Min_ObjCioId(p, iObj), Min_ManCoNum(p) );
                     break;
                 }
             }
@@ -739,13 +739,13 @@ Vec_Int_t * Min_TargGenerateCexes( Min_Man_t * p, Vec_Int_t * vCoErrs, int nCexe
         CountPos++;
 
         if ( nCexesGenSim0 == 0 && t == nCexes )
-            printf( "#### Output %d (out of %d)\n", Min_ObjCioId(p, iObj), Min_ManCoNum(p) );
+            fprintf( Abc_FrameGlobalGetOut(), "#### Output %d (out of %d)\n", Min_ObjCioId(p, iObj), Min_ManCoNum(p) );
     }
     //printf( "\n" );
     if ( fVerbose )
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     if ( fVerbose )
-    printf( "Got %d unique CEXes using %d sim (%d) and %d SAT (%d) runs (ave size %.1f). PO = %d  ErrPO = %d  SatPO = %d  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Got %d unique CEXes using %d sim (%d) and %d SAT (%d) runs (ave size %.1f). PO = %d  ErrPO = %d  SatPO = %d  ", 
         Count, nRuns[0], nCountCexes[0], nRuns[1], nCountCexes[1], 
         1.0*Vec_IntSize(vPats)/Abc_MaxInt(1, Count)-2, Min_ManCoNum(p), CountPos, CountPosSat );
     if ( fVerbose )
@@ -968,7 +968,7 @@ Vec_Wec_t * Min_ManComputeCexes( Gia_Man_t * p, Vec_Int_t * vOuts0, int nMaxTrie
             assert( Gia_ObjIsCo(pObj) );
             if ( Gia_ObjFaninId0p(p, pObj) == 0 ) {
                 if ( fVerbose )
-                    printf( "Output %d is driven by constant %d.\n", Gia_ObjCioId(pObj), Gia_ObjFaninC0(pObj) );
+                    fprintf( Abc_FrameGlobalGetOut(), "Output %d is driven by constant %d.\n", Gia_ObjCioId(pObj), Gia_ObjFaninC0(pObj) );
                 continue;
             }
             abctime clk = Abc_Clock();
@@ -1032,14 +1032,14 @@ Vec_Wec_t * Min_ManComputeCexes( Gia_Man_t * p, Vec_Int_t * vOuts0, int nMaxTrie
             Vec_IntFree( vMap );
             if ( fVerbose )
             {
-                printf( "SAT solving for output %3d (cexes = %5d) : ", i, nCurrCexes );
+                fprintf( Abc_FrameGlobalGetOut(), "SAT solving for output %3d (cexes = %5d) : ", i, nCurrCexes );
                 Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             }
         }
     }
     clkSat = Abc_Clock() - clkSat - clkSim;
     if ( fVerbose )
-        printf( "Used simulation for %d and SAT for %d outputs (out of %d).\n", nSimOuts, nSatOuts, nOuts );
+        fprintf( Abc_FrameGlobalGetOut(), "Used simulation for %d and SAT for %d outputs (out of %d).\n", nSimOuts, nSatOuts, nOuts );
     if ( fVerbose )
         Abc_PrintTime( 1, "Simulation time  ", clkSim );
     if ( fVerbose )
@@ -1127,7 +1127,7 @@ Vec_Wrd_t * Min_ManBitPack( Gia_Man_t * p, int nWords0, Vec_Wec_t * vCexes, int 
     else
         vReload = Min_ReloadCexes( vCexes, nMinCexes );
     if ( fVerbose )
-        printf( "Packing: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Packing: " );
     for ( w = nWords0 ? nWords0 : 1; nWords0 ? w <= nWords0 : fFailed > 0; w++ )
     {
         int i, iPatUsed, iPat = 0;
@@ -1155,15 +1155,15 @@ Vec_Wrd_t * Min_ManBitPack( Gia_Man_t * p, int nWords0, Vec_Wec_t * vCexes, int 
             nTotal++;
         }
         if ( fVerbose )
-            printf( "W = %d (F = %d)  ", w, fFailed );
+            fprintf( Abc_FrameGlobalGetOut(), "W = %d (F = %d)  ", w, fFailed );
 //        printf( "Failed patterns = %d\n", fFailed );
     }
     if ( fVerbose )
-        printf( "Total = %d\n", nTotal );
+        fprintf( Abc_FrameGlobalGetOut(), "Total = %d\n", nTotal );
     if ( fVerbose )
     {
         nBits = Abc_TtCountOnesVec( Vec_WrdLimit(vSimsPi), Vec_WrdSize(vSimsPi) );
-        printf( "Bit-packing is using %d words and %d bits.  Density =%8.4f %%.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Bit-packing is using %d words and %d bits.  Density =%8.4f %%.  ", 
             Vec_WrdSize(vSimsPi)/Gia_ManCiNum(p), nBits, 100.0*nBits/64/Vec_WrdSize(vSimsPi) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
@@ -1235,22 +1235,22 @@ void Patt_ManProfileErrors( Vec_Int_t * vOutErrs, Vec_Int_t * vPatErrs )
     assert( nErrors1 == nErrors2 );
     // errors/error_outputs/error_patterns
     //printf( "\nError statistics:\n" );
-    printf( "Errors =%6d  ", nErrors1 );
-    printf( "ErrPOs =%5d  (Ave = %5.2f)    ",  nOuts-ErrOuts[0], 1.0*nErrors1/Abc_MaxInt(1, nOuts-ErrOuts[0]) );
-    printf( "Patterns =%5d  (Ave = %5.2f)   ", nPats, 1.0*nErrors1/nPats );
-    printf( "Density =%8.4f %%\n",             100.0*nErrors1/nPats/Abc_MaxInt(1, nOuts-ErrOuts[0]) );
+    fprintf( Abc_FrameGlobalGetOut(), "Errors =%6d  ", nErrors1 );
+    fprintf( Abc_FrameGlobalGetOut(), "ErrPOs =%5d  (Ave = %5.2f)    ",  nOuts-ErrOuts[0], 1.0*nErrors1/Abc_MaxInt(1, nOuts-ErrOuts[0]) );
+    fprintf( Abc_FrameGlobalGetOut(), "Patterns =%5d  (Ave = %5.2f)   ", nPats, 1.0*nErrors1/nPats );
+    fprintf( Abc_FrameGlobalGetOut(), "Density =%8.4f %%\n",             100.0*nErrors1/nPats/Abc_MaxInt(1, nOuts-ErrOuts[0]) );
     // how many times each output fails
-    printf( "Outputs: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Outputs: " );
     for ( i = 0; i <= ERR_REPT_SIZE; i++ )
         if ( ErrOuts[i] )
-            printf( "%s%d=%d ", i == ERR_REPT_SIZE? ">" : "", i, ErrOuts[i] );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%s%d=%d ", i == ERR_REPT_SIZE? ">" : "", i, ErrOuts[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     // how many times each patterns fails an output
-    printf( "Patterns: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Patterns: " );
     for ( i = 0; i <= ERR_REPT_SIZE; i++ )
         if ( ErrPats[i] )
-            printf( "%s%d=%d ", i == ERR_REPT_SIZE? ">" : "", i, ErrPats[i] );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%s%d=%d ", i == ERR_REPT_SIZE? ">" : "", i, ErrPats[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 int Patt_ManProfileErrorsOne( Vec_Wrd_t * vErrors, int nOuts )
 {
@@ -1312,17 +1312,17 @@ Vec_Wrd_t * Gia_ManCollectSims( Gia_Man_t * pSwp, int nWords, Vec_Int_t * vOuts,
             Patt_ManProfileErrorsOne( vSimsPo, Vec_IntSize(vOuts) );
         if ( fVeryVerbose )
         {
-            printf( "Unsolved = %4d  ", Vec_IntSize(vOuts) );
+            fprintf( Abc_FrameGlobalGetOut(), "Unsolved = %4d  ", Vec_IntSize(vOuts) );
             Gia_ManPrintStats( pSwp2, NULL );
             Vec_IntForEachEntry( vOuts, iObj, i )
             {
-                printf( "%4d : ", i );
-                printf( "Out = %5d  ",    Vec_IntEntry(vMap, i) );
-                printf( "SimAll =%8d  ",  Vec_IntEntry(vStats[0], i) );
-                printf( "SimGood =%8d  ", Vec_IntEntry(vStats[1], i) );
-                printf( "PatsAll =%8d  ", Vec_IntEntry(vStats[2], i) );
-                printf( "Count = %5d  ",  Vec_IntEntry(vCounts, i) );
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%4d : ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Out = %5d  ",    Vec_IntEntry(vMap, i) );
+                fprintf( Abc_FrameGlobalGetOut(), "SimAll =%8d  ",  Vec_IntEntry(vStats[0], i) );
+                fprintf( Abc_FrameGlobalGetOut(), "SimGood =%8d  ", Vec_IntEntry(vStats[1], i) );
+                fprintf( Abc_FrameGlobalGetOut(), "PatsAll =%8d  ", Vec_IntEntry(vStats[2], i) );
+                fprintf( Abc_FrameGlobalGetOut(), "Count = %5d  ",  Vec_IntEntry(vCounts, i) );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 if ( i == 20 )
                     break;
             }
@@ -1346,12 +1346,12 @@ Vec_Wrd_t * Min_ManCollect( Gia_Man_t * p, int nConf, int nConf2, int nMaxTries,
     extern Gia_Man_t *    Cec4_ManSimulateTest4( Gia_Man_t * p, int nBTLimit, int nBTLimitPo, int fVerbose );
     Gia_Man_t * pSwp    = Cec4_ManSimulateTest4( p, nConf, nConf2, 0 );
     abctime clkSweep    = Abc_Clock() - clk;
-    int nArgs           = fVerbose ? printf( "Generating patterns: Conf = %d (%d). Tries = %d. Pats = %d. Sim = %d. SAT = %d.\n", 
-                          nConf, nConf2, nMaxTries, nMinCexes, fUseSim, fUseSat ) : 0;
+    int nArgs           = fVerbose ? fprintf( Abc_FrameGlobalGetOut(),  "Generating patterns: Conf = %d (%d). Tries = %d. Pats = %d. Sim = %d. SAT = %d.\n", 
+                          nConf, nConf2, nMaxTries, nMinCexes, fUseSim, fUseSat  ) : 0;
     Vec_Int_t * vOuts   = Min_ManGetUnsolved( pSwp );
     Vec_Wrd_t * vSimsPi = vOuts ? Gia_ManCollectSims( pSwp, 0, vOuts, nMaxTries, nMinCexes, fUseSim, fUseSat, fVerbose, fVeryVerbose ) : NULL;
     if ( vOuts == NULL )
-        printf( "There is no satisfiable outputs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There is no satisfiable outputs.\n" );
     if ( fVerbose )
         Abc_PrintTime( 1, "Sweep time", clkSweep );
     if ( fVerbose )
@@ -1383,7 +1383,7 @@ void Gia_GenerateCexesDumpBlif( char * pFileName, Gia_Man_t * p, Vec_Wec_t * vCe
     extern Vec_Ptr_t * Gia_GetFakeNames( int nNames, int fCaps );
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL ) {
-        printf( "Cannot open output file name \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file name \"%s\".\n", pFileName );
         return;
     }
     int fFakeIns = 0, fFakeOuts = 0;
@@ -1432,7 +1432,7 @@ void Gia_GenerateCexesDumpBlif( char * pFileName, Gia_Man_t * p, Vec_Wec_t * vCe
     }
     fprintf( pFile, ".end\n\n" );
     fclose( pFile );
-    printf( "Information about %d sat, %d unsat, and %d undecided primary outputs was written into BLIF file \"%s\".\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Information about %d sat, %d unsat, and %d undecided primary outputs was written into BLIF file \"%s\".\n", 
         nOuts[1], nOuts[0], Gia_ManCoNum(p)-nOuts[1]-nOuts[0], pFileName );    
     free( pLine );
 
@@ -1443,7 +1443,7 @@ void Gia_GenerateCexesDumpFile( char * pFileName, Gia_Man_t * p, Vec_Wec_t * vCe
 {
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL ) {
-        printf( "Cannot open output file name \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file name \"%s\".\n", pFileName );
         return;
     }
     Gia_Obj_t * pObj; 
@@ -1478,7 +1478,7 @@ void Gia_GenerateCexesDumpFile( char * pFileName, Gia_Man_t * p, Vec_Wec_t * vCe
             nOuts[1]++;
         }
     }
-    printf( "Information about %d sat, %d unsat, and %d undecided primary outputs was written into file \"%s\".\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Information about %d sat, %d unsat, and %d undecided primary outputs was written into file \"%s\".\n", 
         nOuts[1], nOuts[0], Gia_ManCoNum(p)-nOuts[1]-nOuts[0], pFileName );
     fclose( pFile );
     free( pLine );

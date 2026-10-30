@@ -172,7 +172,7 @@ int Abc_FrameSetLutLibrary( Abc_Frame_t * pAbc, char * pLutLibString )
     If_LibLut_t * pLib = If_LibLutReadString( pLutLibString );
     if ( pLib == NULL )
     {
-        fprintf( stdout, "Reading LUT library from string has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Reading LUT library from string has failed.\n" );
         return 0;
     }
     // replace the current library

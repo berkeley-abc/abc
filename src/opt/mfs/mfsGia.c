@@ -232,7 +232,7 @@ int Abc_NtkMfsTryResubOnceGia( Mfs_Man_t * p, int * pCands, int nCands )
     {
         p->nTimeOuts++;
         if ( fVeryVerbose )
-        printf( "t" );
+        fprintf( Abc_FrameGlobalGetOut(), "t" );
 //        p->nSatUndec++;
 //        p->nConfUndec += p->Pars.nBTThis;
 //        Cec_ManSatAddToStore( vCexStore, NULL, i ); // timeout
@@ -241,7 +241,7 @@ int Abc_NtkMfsTryResubOnceGia( Mfs_Man_t * p, int * pCands, int nCands )
     else if ( status == 1 )
     {
         if ( fVeryVerbose )
-        printf( "u" );
+        fprintf( Abc_FrameGlobalGetOut(), "u" );
 //        p->nSatUnsat++;
 //        p->nConfUnsat += p->Pars.nBTThis;
 //        p->timeSatUnsat += clock() - clk;
@@ -250,7 +250,7 @@ int Abc_NtkMfsTryResubOnceGia( Mfs_Man_t * p, int * pCands, int nCands )
     {
         p->nSatCexes++;
         if ( fVeryVerbose )
-        printf( "s" );
+        fprintf( Abc_FrameGlobalGetOut(), "s" );
 //        p->nSatSat++;
 //        p->nConfSat += p->Pars.nBTThis;
 //        Gia_SatVerifyPattern( pAig, pRoot, vCex, vVisit );

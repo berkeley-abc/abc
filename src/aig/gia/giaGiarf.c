@@ -475,7 +475,7 @@ void Gia_ResimulateAndRefine( Hcd_Man_t * p, int i )
         Gia_Resimulate_rec( p, iObj );
     RetValue = Hcd_ManClassRefineOne( p, i );
     if ( RetValue == 0 )
-        printf( "!!! no refinement !!!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "!!! no refinement !!!\n" );
 //    assert( RetValue );
 }
 
@@ -732,7 +732,7 @@ void Gia_GiarfPrintClasses( Gia_Man_t * pGia )
         nTotal  += Gia_ObjReprObj(pGia, i) != NULL;
         nBoth   += Gia_ObjFailed(pGia, i) && Gia_ObjProved(pGia, i);
     }
-    printf( "nFails = %7d.  nProves = %7d.  nBoth = %7d.  nTotal = %7d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "nFails = %7d.  nProves = %7d.  nBoth = %7d.  nTotal = %7d.\n", 
         nFails, nProves, nBoth, nTotal );
 }
 
@@ -996,7 +996,7 @@ int Gia_ComputeEquivalencesLevel( Hcd_Man_t * p, Gia_Man_t * pGiaLev, Vec_Ptr_t 
     }
     Vec_PtrFree( vClasses );
     Vec_PtrFree( vOldRootsNew );
-    printf( "nSaved = %d   nRecords = %d   nUndec = %d   nClassRefs = %d   nMiniSat = %d   nTas = %d\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "nSaved = %d   nRecords = %d   nUndec = %d   nClassRefs = %d   nMiniSat = %d   nTas = %d\n", 
         nSaved, nRecords, nUndec, nClassRefs, nMiniSat, nTsat );
     ABC_PRT( "Tas    ",  timeTsat );
     ABC_PRT( "MiniSat",  timeMiniSat );
@@ -1057,12 +1057,12 @@ void Gia_ComputeEquivalences( Gia_Man_t * pGia, int nBTLimit, int fUseMiniSat, i
     for ( Lev = 1; Lev < nLevels; Lev++ )
     {
         clk = clock();
-        printf( "LEVEL %3d  (out of %3d)   ", Lev, nLevels );
+        fprintf( Abc_FrameGlobalGetOut(), "LEVEL %3d  (out of %3d)   ", Lev, nLevels );
         pGiaLev = Gia_GenerateReducedLevel( pGia, Lev, &vRoots );
         nIters = Gia_ComputeEquivalencesLevel( p, pGiaLev, vRoots, Lev, fUseMiniSat );
         Gia_ManStop( pGiaLev );
         Vec_PtrFree( vRoots );
-        printf( "Iters = %3d   " );
+        fprintf( Abc_FrameGlobalGetOut(), "Iters = %3d   " );
         ABC_PRT( "Time", clock() - clk );
     }
     Gia_GiarfPrintClasses( pGia );

@@ -154,7 +154,7 @@ Ivy_Man_t * Ivy_ManDup( Ivy_Man_t * p )
     assert( Ivy_ManLatchNum(p) == Ivy_ManLatchNum(pNew) );
     // check the resulting network
     if ( !Ivy_ManCheck(pNew) )
-        printf( "Ivy_ManMakeSeq(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManMakeSeq(): The check has failed.\n" );
     return pNew;
 }
 
@@ -219,7 +219,7 @@ Ivy_Man_t * Ivy_ManFrames( Ivy_Man_t * pMan, int nLatches, int nFrames, int fIni
     *pvMapping = vMapping;
     // check the resulting network
     if ( !Ivy_ManCheck(pNew) )
-        printf( "Ivy_ManFrames(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManFrames(): The check has failed.\n" );
     return pNew;
 }
 
@@ -433,8 +433,8 @@ int Ivy_ManPropagateBuffers( Ivy_Man_t * p, int fUpdateLevel )
         Ivy_NodeFixBufferFanins( p, pNode, fUpdateLevel );
         if ( nSteps > NodeBeg * LimitFactor )
         {
-            printf( "Structural hashing is not finished after %d forward latch moves.\n", NodeBeg * LimitFactor );
-            printf( "This circuit cannot be forward-retimed completely. Quitting.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Structural hashing is not finished after %d forward latch moves.\n", NodeBeg * LimitFactor );
+            fprintf( Abc_FrameGlobalGetOut(), "This circuit cannot be forward-retimed completely. Quitting.\n" );
             break;
         }
     }
@@ -455,17 +455,17 @@ int Ivy_ManPropagateBuffers( Ivy_Man_t * p, int fUpdateLevel )
 ***********************************************************************/
 void Ivy_ManPrintStats( Ivy_Man_t * p )
 {
-    printf( "PI/PO = %d/%d ", Ivy_ManPiNum(p), Ivy_ManPoNum(p) );
-    printf( "A = %7d. ",       Ivy_ManAndNum(p) );
-    printf( "L = %5d. ",       Ivy_ManLatchNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "PI/PO = %d/%d ", Ivy_ManPiNum(p), Ivy_ManPoNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "A = %7d. ",       Ivy_ManAndNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "L = %5d. ",       Ivy_ManLatchNum(p) );
 //    printf( "X = %d. ",       Ivy_ManExorNum(p) );
 //    printf( "B = %3d. ",       Ivy_ManBufNum(p) );
-    printf( "MaxID = %7d. ",   Ivy_ManObjIdMax(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "MaxID = %7d. ",   Ivy_ManObjIdMax(p) );
 //    printf( "Cre = %d. ",     p->nCreated );
 //    printf( "Del = %d. ",     p->nDeleted );
-    printf( "Lev = %3d. ",     Ivy_ManLatchNum(p)? -1 : Ivy_ManLevels(p) );
-    printf( "\n" );
-    fflush( stdout );
+    fprintf( Abc_FrameGlobalGetOut(), "Lev = %3d. ",     Ivy_ManLatchNum(p)? -1 : Ivy_ManLevels(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 /**Function*************************************************************
@@ -535,12 +535,12 @@ void Ivy_ManMakeSeq( Ivy_Man_t * p, int nLatches, int * pInits )
     // perform hashing by propagating the buffers
     Ivy_ManPropagateBuffers( p, 0 );
     if ( Ivy_ManBufNum(p) )
-        printf( "The number of remaining buffers is %d.\n", Ivy_ManBufNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of remaining buffers is %d.\n", Ivy_ManBufNum(p) );
     // fix the levels
     Ivy_ManResetLevels( p );
     // check the resulting network
     if ( !Ivy_ManCheck(p) )
-        printf( "Ivy_ManMakeSeq(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManMakeSeq(): The check has failed.\n" );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -165,8 +165,8 @@ void reoUnitsAddToFreeUnitList( reo_man * p )
     // check that we still have chunks left
     if ( p->nMemChunks == p->nMemChunksAlloc )
     {
-        printf( "reoUnitsAddToFreeUnitList(): Memory manager ran out of memory!\n" );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "reoUnitsAddToFreeUnitList(): Memory manager ran out of memory!\n" );
+        fflush( Abc_FrameGlobalGetOut() );
         return;
     }
     // allocate the next chunk

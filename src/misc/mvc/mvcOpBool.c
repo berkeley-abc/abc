@@ -124,7 +124,7 @@ int Mvc_CoverBooleanEqual( Mvc_Data_t * p, Mvc_Cover_t * pCover1, Mvc_Cover_t * 
     if ( Mvc_CoverReadCubeNum( pSharp ) )
     {
 Mvc_CoverContain( pSharp );
-printf( "Sharp \n" );
+fprintf( Abc_FrameGlobalGetOut(), "Sharp \n" );
 Mvc_CoverPrint( pSharp );
         Mvc_CoverFree( pSharp );
         return 0;
@@ -135,7 +135,7 @@ Mvc_CoverPrint( pSharp );
     if ( Mvc_CoverReadCubeNum( pSharp ) )
     {
 Mvc_CoverContain( pSharp );
-printf( "Sharp \n" );
+fprintf( Abc_FrameGlobalGetOut(), "Sharp \n" );
 Mvc_CoverPrint( pSharp );
         Mvc_CoverFree( pSharp );
         return 0;

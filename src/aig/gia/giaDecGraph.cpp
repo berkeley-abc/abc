@@ -811,7 +811,7 @@ TruthTable TruthTable::cofactor(uint32_t variable, bool negative) {
     TruthTable rtt(nBits());
 
     if (variable >= nVars()) {
-        fprintf(stderr, "[Error] TruthTable::cofactor: variable (%d) must be less than %d\n", variable, nVars());
+        fprintf( Abc_FrameGlobalGetErr(), "[Error] TruthTable::cofactor: variable (%d) must be less than %d\n", variable, nVars());
         exit(-1);
     }
 
@@ -1007,42 +1007,42 @@ void TruthTable::assign(int offset, uint64_t value) {
 
 void TruthTable::print(Format format) {
     if (empty()) {
-        printf("Empty TruthTable\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Empty TruthTable\n" );
         return;
     }
 
     if (format == Format::BIN) {
-        printf("0b");
+        fprintf( Abc_FrameGlobalGetOut(), "0b" );
     } else if (format == Format::HEX) {
-        printf("0x");
+        fprintf( Abc_FrameGlobalGetOut(), "0x" );
     }
-    printf("%s\n", str(format).c_str());
+    fprintf( Abc_FrameGlobalGetOut(), "%s\n", str(format).c_str() );
     return;
 }
 
 void TruthTable::printReverse(Format format) {
     if (empty()) {
-        printf("Empty TruthTable\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Empty TruthTable\n" );
         return;
     }
 
     if (format == Format::BIN) {
-        printf("0b");
+        fprintf( Abc_FrameGlobalGetOut(), "0b" );
     } else if (format == Format::HEX) {
-        printf("0x");
+        fprintf( Abc_FrameGlobalGetOut(), "0x" );
     }
-    printf("%s\n", strReverse(format).c_str());
+    fprintf( Abc_FrameGlobalGetOut(), "%s\n", strReverse(format).c_str() );
     return;
 }
 
 void TruthTable::printPosition(void) {
     if (empty()) {
-        printf("Empty TruthTable\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Empty TruthTable\n" );
         return;
     }
 
     for (const auto &i : irange(nVars())) {
-        printf("Place: %d -> Var[%ld]\n", i, _data->place_to_variable[i]);
+        fprintf( Abc_FrameGlobalGetOut(), "Place: %d -> Var[%ld]\n", i, _data->place_to_variable[i] );
     }
 }
 
@@ -1997,17 +1997,17 @@ void DecisionDiagram::printRec(int root_, int space) {
     printRec(getNode(root).right, space);
 
     // Print current node after space
-    printf("\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for (int i = 11; i < space; i++)
-        printf(" ");
+        fprintf( Abc_FrameGlobalGetOut(), " " );
     if (root == const0Node()) {
         if (is_complement) {
-            printf("CONST1\n");
+            fprintf( Abc_FrameGlobalGetOut(), "CONST1\n" );
         } else {
-            printf("CONST0\n");
+            fprintf( Abc_FrameGlobalGetOut(), "CONST0\n" );
         }
     } else {
-        printf("%sMUX[%2d](%2d)\n", (is_complement) ? "~" : "", getNode(root).decisionVariable, root);
+        fprintf( Abc_FrameGlobalGetOut(), "%sMUX[%2d](%2d)\n", (is_complement) ? "~" : "", getNode(root).decisionVariable, root );
     }
 
     // Process left child
@@ -2023,12 +2023,12 @@ void DecisionDiagram::print(void) {
 
 void DecisionDiagram::writeVerilog(const char* filename) {
     if (roots.size() == 0) {
-        printf("[ERROR] Empty network\n");
+        fprintf( Abc_FrameGlobalGetOut(), "[ERROR] Empty network\n" );
         return;
     }
     FILE* f = fopen(filename, "w");
     if (f == NULL) {
-        printf("[ERROR] Cannot open file %s\n", filename);
+        fprintf( Abc_FrameGlobalGetOut(), "[ERROR] Cannot open file %s\n", filename );
         return;
     }
     fprintf(f, "module decision_diagram(");
@@ -2094,7 +2094,7 @@ void DecisionDiagram::writeVerilog(const char* filename) {
 
 void DecisionDiagram::buildAig(Gia_Man_t *pAig) {
     if (roots.size() == 0) {
-        printf("[ERROR] Empty network\n");
+        fprintf( Abc_FrameGlobalGetOut(), "[ERROR] Empty network\n" );
         return;
     }
 

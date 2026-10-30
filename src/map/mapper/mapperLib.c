@@ -110,7 +110,7 @@ clk = Abc_Clock();
         if ( pExcludeFile != 0 )
         {
             Map_SuperLibFree( p );
-            printf ("Error: Exclude file support not present for old format. Stop.\n");
+            fprintf ( Abc_FrameGlobalGetOut(), "Error: Exclude file support not present for old format. Stop.\n");
             return NULL;
         }
         if ( !Map_LibraryRead( p, pFileName ) )
@@ -124,7 +124,7 @@ clk = Abc_Clock();
     // report the stats
     if ( fVerbose ) 
     {
-        printf( "Loaded %d unique %d-input supergates from \"%s\".  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Loaded %d unique %d-input supergates from \"%s\".  ", 
             p->nSupersReal, p->nVarsMax, pFileName );
         ABC_PRT( "Time", Abc_Clock() - clk );
     }
@@ -246,7 +246,7 @@ int Map_SuperLibDeriveFromGenlib2( Mio_Library_t * pLib, int fVerbose )
     // assuming that it terminated successfully
     if ( Cmd_CommandExecute( pAbc, pFileName ) )
     {
-        fprintf( stdout, "Cannot execute command \"read_super %s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot execute command \"read_super %s\".\n", pFileName );
         return 0;
     }
     return 1;

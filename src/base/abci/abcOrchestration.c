@@ -201,7 +201,7 @@ Rwr_ManAddTimeCuts( pManRwr, Abc_Clock() - clk );
     //printf("nNodes: %d\n", nNodes);
     if ( pGain_rw ) *pGain_rw = Vec_IntAlloc(1);
 
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     fpt = fopen("rewrite_id_nGain.csv", "w");
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
@@ -267,10 +267,10 @@ Rwr_ManAddTimeTotal( pManRwr, Abc_Clock() - clkStart );
         Abc_NtkLevel( pNtk );
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Abc_NtkRewrite3: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRewrite3: The network check has failed.\n" );
         return 0;
     }
-        printf( "Abc_NtkRewrite3: success : %d; fail : %d\n", success, fail );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRewrite3: success : %d; fail : %d\n", success, fail );
     return 1;
 }
 
@@ -413,13 +413,13 @@ p->timeEval += Abc_Clock() - clk;
 
     if ( fVeryVerbose )
     {
-        printf( "Node %6s : ",  Abc_ObjName(pNode) );
-        printf( "Cone = %2d. ", vFanins->nSize );
-        printf( "FF = %2d. ",   1 + Dec_GraphNodeNum(pFForm) );
-        printf( "MFFC = %2d. ", nNodesSaved );
-        printf( "Add = %2d. ",  nNodesAdded );
-        printf( "GAIN = %2d. ", p->nLastGain );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %6s : ",  Abc_ObjName(pNode) );
+        fprintf( Abc_FrameGlobalGetOut(), "Cone = %2d. ", vFanins->nSize );
+        fprintf( Abc_FrameGlobalGetOut(), "FF = %2d. ",   1 + Dec_GraphNodeNum(pFForm) );
+        fprintf( Abc_FrameGlobalGetOut(), "MFFC = %2d. ", nNodesSaved );
+        fprintf( Abc_FrameGlobalGetOut(), "Add = %2d. ",  nNodesAdded );
+        fprintf( Abc_FrameGlobalGetOut(), "GAIN = %2d. ", p->nLastGain );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return pFForm;
 }
@@ -454,10 +454,10 @@ void Abc_NtkManRefStop_1( Abc_ManRef_t * p )
 
 void Abc_NtkManRefPrintStats_1( Abc_ManRef_t * p )
 {   
-    printf( "Refactoring statistics:\n" );
-    printf( "Nodes considered  = %8d.\n", p->nNodesConsidered );
-    printf( "Nodes refactored  = %8d.\n", p->nNodesRefactored );
-    printf( "Gain              = %8d. (%6.2f %%).\n", p->nNodesBeg-p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg );
+    fprintf( Abc_FrameGlobalGetOut(), "Refactoring statistics:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes considered  = %8d.\n", p->nNodesConsidered );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes refactored  = %8d.\n", p->nNodesRefactored );
+    fprintf( Abc_FrameGlobalGetOut(), "Gain              = %8d. (%6.2f %%).\n", p->nNodesBeg-p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg );
     ABC_PRT( "Cuts       ", p->timeCut );
     ABC_PRT( "Resynthesis", p->timeRes );
     ABC_PRT( "    BDD    ", p->timeTru );
@@ -493,7 +493,7 @@ int Abc_NtkRefactor3( Abc_Ntk_t * pNtk, Vec_Int_t **pGain_ref, int nNodeSizeMax,
     //printf("nNodes: %d\n", nNodes);
     if (pGain_ref) *pGain_ref = Vec_IntAlloc(1);
 
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     fpt = fopen("refactor_id_nGain.csv", "w");
 
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -533,7 +533,7 @@ pManRef->timeNtk += Abc_Clock() - clk;
         Dec_GraphFree( pFForm );
     }
     fclose(fpt);
-    printf("size of vector: %d\n", (**pGain_ref).nSize);
+    fprintf( Abc_FrameGlobalGetOut(), "size of vector: %d\n", (**pGain_ref).nSize);
     //printf("nGain in vector: %d\n", (**pGain_ref).pArray[20]);
     Extra_ProgressBarStop( pProgress );
 pManRef->timeTotal = Abc_Clock() - clkStart;
@@ -552,7 +552,7 @@ pManRef->timeTotal = Abc_Clock() - clkStart;
             Abc_NtkLevel( pNtk );
         if ( !Abc_NtkCheck( pNtk ) )
         {
-            printf( "Abc_NtkRefactor: The network check has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRefactor: The network check has failed.\n" );
             return 0;
         }
     }
@@ -609,7 +609,7 @@ int Abc_NtkResubstitute3( Abc_Ntk_t * pNtk, Vec_Int_t **pGain_res, int nCutMax, 
     //printf("nNodes: %d\n", nNodes);
     if (pGain_res) *pGain_res = Vec_IntAlloc(1);
 
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     fpt = fopen("resub_id_nGain.csv", "w");
 
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -688,7 +688,7 @@ pManRes->timeNtk += Abc_Clock() - clk;
 
     }
     fclose(fpt);
-    printf("size of vector %d\n", (**pGain_res).nSize);
+    fprintf( Abc_FrameGlobalGetOut(), "size of vector %d\n", (**pGain_res).nSize);
     //printf("nGain in vector: %d\n", (**pGain_res).pArray[20]);
     Extra_ProgressBarStop( pProgress );
 pManRes->timeTotal = Abc_Clock() - clkStart;
@@ -723,7 +723,7 @@ pManRes->timeTotal = Abc_Clock() - clkStart;
     // check
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Abc_NtkRefactor: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRefactor: The network check has failed.\n" );
         return 0;
     }
 s_ResubTime = Abc_Clock() - clkStart;
@@ -824,17 +824,17 @@ void Abc_ManResubStop( Abc_ManRes_t * p )
 ***********************************************************************/
 void Abc_ManResubPrint( Abc_ManRes_t * p )
 {
-    printf( "Used constants    = %6d.             ", p->nUsedNodeC );          ABC_PRT( "Cuts  ", p->timeCut );
-    printf( "Used replacements = %6d.             ", p->nUsedNode0 );          ABC_PRT( "Resub ", p->timeRes );
-    printf( "Used single ORs   = %6d.             ", p->nUsedNode1Or );        ABC_PRT( " Div  ", p->timeDiv );
-    printf( "Used single ANDs  = %6d.             ", p->nUsedNode1And );       ABC_PRT( " Mffc ", p->timeMffc );
-    printf( "Used double ORs   = %6d.             ", p->nUsedNode2Or );        ABC_PRT( " Sim  ", p->timeSim );
-    printf( "Used double ANDs  = %6d.             ", p->nUsedNode2And );       ABC_PRT( " 1    ", p->timeRes1 );
-    printf( "Used OR-AND       = %6d.             ", p->nUsedNode2OrAnd );     ABC_PRT( " D    ", p->timeResD );
-    printf( "Used AND-OR       = %6d.             ", p->nUsedNode2AndOr );     ABC_PRT( " 2    ", p->timeRes2 );
-    printf( "Used OR-2ANDs     = %6d.             ", p->nUsedNode3OrAnd );     ABC_PRT( "Truth ", p->timeTruth ); //ABC_PRT( " 3    ", p->timeRes3 );
-    printf( "Used AND-2ORs     = %6d.             ", p->nUsedNode3AndOr );     ABC_PRT( "AIG   ", p->timeNtk );
-    printf( "TOTAL             = %6d.             ", p->nUsedNodeC +
+    fprintf( Abc_FrameGlobalGetOut(), "Used constants    = %6d.             ", p->nUsedNodeC );          ABC_PRT( "Cuts  ", p->timeCut );
+    fprintf( Abc_FrameGlobalGetOut(), "Used replacements = %6d.             ", p->nUsedNode0 );          ABC_PRT( "Resub ", p->timeRes );
+    fprintf( Abc_FrameGlobalGetOut(), "Used single ORs   = %6d.             ", p->nUsedNode1Or );        ABC_PRT( " Div  ", p->timeDiv );
+    fprintf( Abc_FrameGlobalGetOut(), "Used single ANDs  = %6d.             ", p->nUsedNode1And );       ABC_PRT( " Mffc ", p->timeMffc );
+    fprintf( Abc_FrameGlobalGetOut(), "Used double ORs   = %6d.             ", p->nUsedNode2Or );        ABC_PRT( " Sim  ", p->timeSim );
+    fprintf( Abc_FrameGlobalGetOut(), "Used double ANDs  = %6d.             ", p->nUsedNode2And );       ABC_PRT( " 1    ", p->timeRes1 );
+    fprintf( Abc_FrameGlobalGetOut(), "Used OR-AND       = %6d.             ", p->nUsedNode2OrAnd );     ABC_PRT( " D    ", p->timeResD );
+    fprintf( Abc_FrameGlobalGetOut(), "Used AND-OR       = %6d.             ", p->nUsedNode2AndOr );     ABC_PRT( " 2    ", p->timeRes2 );
+    fprintf( Abc_FrameGlobalGetOut(), "Used OR-2ANDs     = %6d.             ", p->nUsedNode3OrAnd );     ABC_PRT( "Truth ", p->timeTruth ); //ABC_PRT( " 3    ", p->timeRes3 );
+    fprintf( Abc_FrameGlobalGetOut(), "Used AND-2ORs     = %6d.             ", p->nUsedNode3AndOr );     ABC_PRT( "AIG   ", p->timeNtk );
+    fprintf( Abc_FrameGlobalGetOut(), "TOTAL             = %6d.             ", p->nUsedNodeC +
                                                      p->nUsedNode0 +
                                                      p->nUsedNode1Or +
                                                      p->nUsedNode1And +
@@ -843,12 +843,11 @@ void Abc_ManResubPrint( Abc_ManRes_t * p )
                                                      p->nUsedNode2OrAnd +
                                                      p->nUsedNode2AndOr +
                                                      p->nUsedNode3OrAnd +
-                                                     p->nUsedNode3AndOr
-                                                   );                          ABC_PRT( "TOTAL ", p->timeTotal );
-    printf( "Total leaves   = %8d.\n", p->nTotalLeaves );
-    printf( "Total divisors = %8d.\n", p->nTotalDivs );
+                                                     p->nUsedNode3AndOr );                          ABC_PRT( "TOTAL ", p->timeTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Total leaves   = %8d.\n", p->nTotalLeaves );
+    fprintf( Abc_FrameGlobalGetOut(), "Total divisors = %8d.\n", p->nTotalDivs );
 //    printf( "Total gain     = %8d.\n", p->nTotalGain );
-    printf( "Gain           = %8d. (%6.2f %%).\n", p->nNodesBeg-p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg );
+    fprintf( Abc_FrameGlobalGetOut(), "Gain           = %8d. (%6.2f %%).\n", p->nNodesBeg-p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg );
 }
 
 
@@ -984,33 +983,33 @@ void Abc_ManResubPrintDivs( Abc_ManRes_t * p, Abc_Obj_t * pRoot, Vec_Ptr_t * vLe
     {
         if ( i < Vec_PtrSize(vLeaves) )
         {
-            printf( "%6d : %c\n", pNode->Id, 'a'+i );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d : %c\n", pNode->Id, 'a'+i );
             continue;
         }
-        printf( "%6d : %2d = ", pNode->Id, i );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : %2d = ", pNode->Id, i );
         // find the first fanin
         Vec_PtrForEachEntry( Abc_Obj_t *, p->vDivs, pFanin, k )
             if ( Abc_ObjFanin0(pNode) == pFanin )
                 break;
         if ( k < Vec_PtrSize(vLeaves) )
-            printf( "%c", 'a' + k );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + k );
         else
-            printf( "%d", k );
-        printf( "%s ", Abc_ObjFaninC0(pNode)? "\'" : "" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", k );
+        fprintf( Abc_FrameGlobalGetOut(), "%s ", Abc_ObjFaninC0(pNode)? "\'" : "" );
         // find the second fanin
         Vec_PtrForEachEntry( Abc_Obj_t *, p->vDivs, pFanin, k )
             if ( Abc_ObjFanin1(pNode) == pFanin )
                 break;
         if ( k < Vec_PtrSize(vLeaves) )
-            printf( "%c", 'a' + k );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + k );
         else
-            printf( "%d", k );
-        printf( "%s ", Abc_ObjFaninC1(pNode)? "\'" : "" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", k );
+        fprintf( Abc_FrameGlobalGetOut(), "%s ", Abc_ObjFaninC1(pNode)? "\'" : "" );
         if ( pNode == pRoot )
-            printf( " root" );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " root" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 
@@ -2466,7 +2465,7 @@ int Abc_CutVolumeCheck_rec_1( Abc_Obj_t * pObj )
     Abc_NodeSetTravIdCurrent(pObj);
     // report the error
     if ( Abc_ObjIsCi(pObj) )
-        printf( "Abc_CutVolumeCheck() ERROR: The set of nodes is not a cut!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_CutVolumeCheck() ERROR: The set of nodes is not a cut!\n" );
     // count the number of nodes in the leaves
     return 1 + Abc_CutVolumeCheck_rec_1( Abc_ObjFanin0(pObj) ) +
         Abc_CutVolumeCheck_rec_1( Abc_ObjFanin1(pObj) );
@@ -2739,7 +2738,7 @@ Rwr_ManAddTimeCuts( pManRwr, Abc_Clock() - clk );
     if (pGain_rwr) *pGain_rwr = Vec_IntAlloc(1);
     for(int i=0; i < nNodes; i++){Vec_IntPush(DecisionMask, atoi("-1"));}
 
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     fpt = fopen(DecisionFile, "w");
 
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -3221,7 +3220,7 @@ pManRef->timeTotal = Abc_Clock() - clkStart;
         Abc_NtkLevel( pNtk );
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Abc_NtkOchestraction: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkOchestraction: The network check has failed.\n" );
         return 0;
     }
 s_ResubTime = Abc_Clock() - clkStart;
@@ -3311,7 +3310,7 @@ Rwr_ManAddTimeCuts( pManRwr, Abc_Clock() - clk );
     //if (pGain_ref) *pGain_ref = Vec_IntAlloc(1);
     //if (pGain_rwr) *pGain_rwr = Vec_IntAlloc(1);
 
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
 
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
@@ -3511,7 +3510,7 @@ pManRef->timeTotal = Abc_Clock() - clkStart;
     // check
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Abc_NtkOchestraction: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkOchestraction: The network check has failed.\n" );
         return 0;
     }
 s_ResubTime = Abc_Clock() - clkStart;
@@ -3608,7 +3607,7 @@ Rwr_ManAddTimeCuts( pManRwr, Abc_Clock() - clk );
     if (pGain_ref) *pGain_ref = Vec_IntAlloc(1);
     if (pGain_rwr) *pGain_rwr = Vec_IntAlloc(1);
 
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     fpt = fopen("Ochestration_id_ops_nGain.csv", "w");
 
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -4338,7 +4337,7 @@ pManRef->timeTotal = Abc_Clock() - clkStart;
     // check
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Abc_NtkOchestraction: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkOchestraction: The network check has failed.\n" );
         return 0;
     }
 s_ResubTime = Abc_Clock() - clkStart;
@@ -4431,7 +4430,7 @@ Rwr_ManAddTimeCuts( pManRwr, Abc_Clock() - clk );
     if (pGain_ref) *pGain_ref = Vec_IntAlloc(1);
     if (pGain_rwr) *pGain_rwr = Vec_IntAlloc(1);
 
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     fpt = fopen("Ochestration_id_ops_nGain.csv", "w");
 
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -4707,7 +4706,7 @@ pManRef->timeTotal = Abc_Clock() - clkStart;
     // check
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Abc_NtkOchestraction: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkOchestraction: The network check has failed.\n" );
         return 0;
     }
 s_ResubTime = Abc_Clock() - clkStart;
@@ -4799,7 +4798,7 @@ Rwr_ManAddTimeCuts( pManRwr, Abc_Clock() - clk );
     if (pGain_ref) *pGain_ref = Vec_IntAlloc(1);
     if (pGain_rwr) *pGain_rwr = Vec_IntAlloc(1);
 
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     fpt = fopen("Ochestration_id_ops_nGain.csv", "w");
 
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -5104,7 +5103,7 @@ pManRef->timeTotal = Abc_Clock() - clkStart;
     // check
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Abc_NtkOchestraction: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkOchestraction: The network check has failed.\n" );
         return 0;
     }
 s_ResubTime = Abc_Clock() - clkStart;
@@ -5195,7 +5194,7 @@ Rwr_ManAddTimeCuts( pManRwr, Abc_Clock() - clk );
     //if (pGain_ref) *pGain_ref = Vec_IntAlloc(1);
     //if (pGain_rwr) *pGain_rwr = Vec_IntAlloc(1);
 
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     //fpt = fopen("GNN_Embedding.csv", "w");
     f_el = fopen(edgelistFile, "w");
     f_feats = fopen(featFile, "w");
@@ -5345,7 +5344,7 @@ pManRef->timeTotal = Abc_Clock() - clkStart;
     // check
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Abc_NtkOchestraction: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkOchestraction: The network check has failed.\n" );
         return 0;
     }
 s_ResubTime = Abc_Clock() - clkStart;
@@ -5445,7 +5444,7 @@ Rwr_ManAddTimeCuts( pManRwr, Abc_Clock() - clk );
     if (pGain_rwr) *pGain_rwr = Vec_IntAlloc(1);
     Vec_Int_t  *Valid_Ops = Vec_IntAlloc(1);
 
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     fpt = fopen(DecisionFile, "w");
 
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -5653,7 +5652,7 @@ pManRef->timeTotal = Abc_Clock() - clkStart;
     // check
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Abc_NtkOchestraction: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkOchestraction: The network check has failed.\n" );
         return 0;
     }
     nNodes_after = Abc_NtkObjNumMax(pNtk);

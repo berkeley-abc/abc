@@ -111,7 +111,7 @@ void Saig_ManPrintConeOne( Aig_Man_t * p, Aig_Obj_t * pObj )
     // get the current support
     vCur = Saig_ManSupport( p, vPrev );  
     Vec_PtrClear( vPrev );
-    printf( "    PO %3d  ", Aig_ObjCioId(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "    PO %3d  ", Aig_ObjCioId(pObj) );
     // continue computing supports as long as there are now nodes
     vTotal = Vec_PtrAlloc( 100 );
     for ( s = 0; ; s++ )
@@ -132,14 +132,14 @@ void Saig_ManPrintConeOne( Aig_Man_t * p, Aig_Obj_t * pObj )
         }
         assert( nCurNew + nCurPrev + nCurOld == Vec_PtrSize(vCur) );
         // print the result
-        printf( "%d:%d %d=%d+%d+%d  ", s, Vec_PtrSize(vTotal), Vec_PtrSize(vCur), nCurNew, nCurPrev, nCurOld ); 
+        fprintf( Abc_FrameGlobalGetOut(), "%d:%d %d=%d+%d+%d  ", s, Vec_PtrSize(vTotal), Vec_PtrSize(vCur), nCurNew, nCurPrev, nCurOld ); 
         if ( nCurNew == 0 )
             break;
         // compute one more step
         Vec_PtrFree( vPrev );
         vCur = Saig_ManSupport( p, vPrev = vCur );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_PtrFree( vPrev );
     Vec_PtrFree( vCur );
     Vec_PtrFree( vTotal );
@@ -160,13 +160,13 @@ void Saig_ManPrintCones( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
     int i;
-    printf( "The format of this print-out: For each PO, x:a b=c+d+e, where \n" );
-    printf( "- x is the time-frame counting back from the PO\n" );
-    printf( "- a is the total number of registers in the COI of the PO so far\n" );
-    printf( "- b is the number of registers in the COI of the PO in this time-frame\n" );
-    printf( "- c is the number of registers in b that are new (appear for the first time)\n" );
-    printf( "- d is the number of registers in b in common with the previous time-frame\n" );
-    printf( "- e is the number of registers in b in common with other time-frames\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "The format of this print-out: For each PO, x:a b=c+d+e, where \n" );
+    fprintf( Abc_FrameGlobalGetOut(), "- x is the time-frame counting back from the PO\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "- a is the total number of registers in the COI of the PO so far\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "- b is the number of registers in the COI of the PO in this time-frame\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "- c is the number of registers in b that are new (appear for the first time)\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "- d is the number of registers in b in common with the previous time-frame\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "- e is the number of registers in b in common with other time-frames\n" );
     Aig_ManSetCioIds( p );
     Saig_ManForEachPo( p, pObj, i )
         Saig_ManPrintConeOne( p, pObj );

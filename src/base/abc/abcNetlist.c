@@ -82,7 +82,7 @@ Abc_Ntk_t * Abc_NtkToLogic( Abc_Ntk_t * pNtk )
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkToLogic( pNtk->pExdc );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkToLogic(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkToLogic(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -167,7 +167,7 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
     if ( !Abc_NtkLogicHasSimpleCos(pNtk) )
     {
         if ( !Abc_FrameReadFlag("silentmode") )
-            printf( "Abc_NtkLogicToNetlist() warning: The network is converted to have simple COs.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkLogicToNetlist() warning: The network is converted to have simple COs.\n" );
         Abc_NtkLogicMakeSimpleCos( pNtk, 0 );
     }
 
@@ -234,7 +234,7 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkToNetlist( pNtk->pExdc );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkLogicToNetlist(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkLogicToNetlist(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -324,7 +324,7 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
             pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
     }
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkAigToLogicSop(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkAigToLogicSop(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -347,7 +347,7 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
     int i, k;
     assert( Abc_NtkIsStrash(pNtk) );
     if ( Abc_NtkGetChoiceNum(pNtk) )
-        printf( "Warning: Choice nodes are skipped.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Choice nodes are skipped.\n" );
     // start the network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     // collect the nodes to be used (marks all nodes with current TravId)
@@ -393,9 +393,9 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
     // duplicate the EXDC Ntk
     if ( pNtk->pExdc )
-        printf( "Warning: The EXDc network is skipped.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The EXDc network is skipped.\n" );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkAigToLogicSopBench(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkAigToLogicSopBench(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -418,7 +418,7 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopNand( Abc_Ntk_t * pNtk )
     int i, k;
     assert( Abc_NtkIsStrash(pNtk) );
     if ( Abc_NtkGetChoiceNum(pNtk) )
-        printf( "Warning: Choice nodes are skipped.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Choice nodes are skipped.\n" );
     // convert complemented edges
     Abc_NtkForEachObj( pNtk, pObj, i )
         Abc_ObjForEachFanin( pObj, pFanin, k )
@@ -474,9 +474,9 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopNand( Abc_Ntk_t * pNtk )
                 Abc_ObjXorFaninC( pObj, k );
     // duplicate the EXDC Ntk
     if ( pNtk->pExdc )
-        printf( "Warning: The EXDc network is skipped.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The EXDc network is skipped.\n" );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkAigToLogicSopBench(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkAigToLogicSopBench(): Network check has failed.\n" );
     return pNtkNew;
 }
 

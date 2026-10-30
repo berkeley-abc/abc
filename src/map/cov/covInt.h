@@ -368,10 +368,10 @@ static inline int Min_CubesDistOne( Min_Cube_t * pCube0, Min_Cube_t * pCube1, Mi
     }
     if ( fFound == 0 )
     {
-        printf( "\n" );
-        Min_CubeWrite( stdout, pCube0 );
-        Min_CubeWrite( stdout, pCube1 );
-        printf( "Error: Min_CubesDistOne() looks at two equal cubes!\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "\n" );
+        Min_CubeWrite( Abc_FrameGlobalGetOut(), pCube0 );
+        Min_CubeWrite( Abc_FrameGlobalGetOut(), pCube1 );
+        fprintf( Abc_FrameGlobalGetOut(),  "Error: Min_CubesDistOne() looks at two equal cubes!\n" );
     }
     return 1;
 }
@@ -434,10 +434,10 @@ static inline int Min_CubesDistTwo( Min_Cube_t * pCube0, Min_Cube_t * pCube1, in
     }
     if ( Var0 == -1 || Var1 == -1 )
     {
-        printf( "\n" );
-        Min_CubeWrite( stdout, pCube0 );
-        Min_CubeWrite( stdout, pCube1 );
-        printf( "Error: Min_CubesDistTwo() looks at two equal cubes or dist1 cubes!\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "\n" );
+        Min_CubeWrite( Abc_FrameGlobalGetOut(), pCube0 );
+        Min_CubeWrite( Abc_FrameGlobalGetOut(), pCube1 );
+        fprintf( Abc_FrameGlobalGetOut(),  "Error: Min_CubesDistTwo() looks at two equal cubes or dist1 cubes!\n" );
     }
     return 0;
 }

@@ -65,7 +65,7 @@ Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
     pFile = fopen( FileName, "r" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open LUT library file \"%s\".\n", FileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open LUT library file \"%s\".\n", FileName );
         return NULL;
     }
 
@@ -83,7 +83,7 @@ Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
             continue;
         if ( i != atoi(pToken) )
         {
-            printf( "Error in the LUT library file \"%s\".\n", FileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Error in the LUT library file \"%s\".\n", FileName );
             ABC_FREE( p );
             return NULL;
         }
@@ -100,7 +100,7 @@ Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
         // check for out-of-bound
         if ( k > i )
         {
-            printf( "LUT %d has too many pins (%d). Max allowed is %d.\n", i, k, i );
+            fprintf( Abc_FrameGlobalGetOut(), "LUT %d has too many pins (%d). Max allowed is %d.\n", i, k, i );
             return NULL;
         }
 
@@ -110,7 +110,7 @@ Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
 
         if ( i == FPGA_MAX_LUTSIZE )
         {
-            printf( "Skipping LUTs of size more than %d.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Skipping LUTs of size more than %d.\n", i );
             return NULL;
         }
         i++;
@@ -130,10 +130,10 @@ Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
             for ( k = 0; k < i; k++ )
             {
                 if ( p->pLutDelays[i][k] <= 0.0 )
-                    printf( "Warning: Pin %d of LUT %d has delay %f. Pin delays should be non-negative numbers. Technology mapping may not work correctly.\n", 
+                    fprintf( Abc_FrameGlobalGetOut(), "Warning: Pin %d of LUT %d has delay %f. Pin delays should be non-negative numbers. Technology mapping may not work correctly.\n", 
                         k, i, p->pLutDelays[i][k] );
                 if ( k && p->pLutDelays[i][k-1] > p->pLutDelays[i][k] )
-                    printf( "Warning: Pin %d of LUT %d has delay %f. Pin %d of LUT %d has delay %f. Pin delays should be in non-decreasing order. Technology mapping may not work correctly.\n", 
+                    fprintf( Abc_FrameGlobalGetOut(), "Warning: Pin %d of LUT %d has delay %f. Pin %d of LUT %d has delay %f. Pin delays should be in non-decreasing order. Technology mapping may not work correctly.\n", 
                         k-1, i, p->pLutDelays[i][k-1], 
                         k, i, p->pLutDelays[i][k] );
             }
@@ -143,7 +143,7 @@ Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
         for ( i = 1; i <= p->LutMax; i++ )
         {
             if ( p->pLutDelays[i][0] <= 0.0 )
-                printf( "Warning: LUT %d has delay %f. Pin delays should be non-negative numbers. Technology mapping may not work correctly.\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "Warning: LUT %d has delay %f. Pin delays should be non-negative numbers. Technology mapping may not work correctly.\n", 
                     i, p->pLutDelays[i][0] );
         }
     }
@@ -205,21 +205,21 @@ void Fpga_LutLibFree( Fpga_LutLib_t * pLutLib )
 void Fpga_LutLibPrint( Fpga_LutLib_t * pLutLib )
 {
     int i, k;
-    printf( "# The area/delay of k-variable LUTs:\n" );
-    printf( "# k    area     delay\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "# The area/delay of k-variable LUTs:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "# k    area     delay\n" );
     if ( pLutLib->fVarPinDelays )
     {
         for ( i = 1; i <= pLutLib->LutMax; i++ )
         {
-            printf( "%d   %7.2f  ", i, pLutLib->pLutAreas[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "%d   %7.2f  ", i, pLutLib->pLutAreas[i] );
             for ( k = 0; k < i; k++ )
-                printf( " %7.2f", pLutLib->pLutDelays[i][k] );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " %7.2f", pLutLib->pLutDelays[i][k] );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     else
         for ( i = 1; i <= pLutLib->LutMax; i++ )
-            printf( "%d   %7.2f   %7.2f\n", i, pLutLib->pLutAreas[i], pLutLib->pLutDelays[i][0] );
+            fprintf( Abc_FrameGlobalGetOut(), "%d   %7.2f   %7.2f\n", i, pLutLib->pLutAreas[i], pLutLib->pLutDelays[i][0] );
 }
 
 /**Function*************************************************************

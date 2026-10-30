@@ -63,7 +63,7 @@ static void parse_DIMACS_main(B& in, Solver& S) {
                 // if (clauses > 4000000)
                 //     S.eliminate(true);
             }else{
-                printf("PARSE ERROR! Unexpected char: %c\n", *in), exit(3);
+                fprintf( Abc_FrameGlobalGetOut(), "PARSE ERROR! Unexpected char: %c\n", *in), exit(3);
             }
         } else if (*in == 'c' || *in == 'p')
             skipLine(in);
@@ -73,9 +73,9 @@ static void parse_DIMACS_main(B& in, Solver& S) {
             S.addClause_(lits); }
     }
     if (vars != S.nVars())
-        fprintf(stderr, "WARNING! DIMACS header mismatch: wrong number of variables.\n");
+        fprintf( Abc_FrameGlobalGetErr(), "WARNING! DIMACS header mismatch: wrong number of variables.\n");
     if (cnt  != clauses)
-        fprintf(stderr, "WARNING! DIMACS header mismatch: wrong number of clauses.\n");
+        fprintf( Abc_FrameGlobalGetErr(), "WARNING! DIMACS header mismatch: wrong number of clauses.\n");
 }
 
 // Inserts problem into solver.

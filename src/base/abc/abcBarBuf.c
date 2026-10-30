@@ -61,13 +61,13 @@ int Abc_NtkCheckSingleInstance( Abc_Ntk_t * pNtk )
                 continue;
             if ( Abc_NtkLatchNum(pModel) > 0 )
             {
-                printf( "Network \"%s\" contains %d flops.\n",                     
+                fprintf( Abc_FrameGlobalGetOut(), "Network \"%s\" contains %d flops.\n",                     
                     Abc_NtkName(pNtk), Abc_NtkLatchNum(pModel) );
                 RetValue = 0;
             }
             if ( pModel->fHieVisited )
             {
-                printf( "Network \"%s\" contains box \"%s\" whose model \"%s\" is instantiated more than once.\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "Network \"%s\" contains box \"%s\" whose model \"%s\" is instantiated more than once.\n", 
                     Abc_NtkName(pNtk), Abc_ObjName(pBox), Abc_NtkName(pModel) );
                 RetValue = 0;
             }
@@ -230,7 +230,7 @@ Abc_Ntk_t * Abc_NtkToBarBufs( Abc_Ntk_t * pNtk )
         Abc_NtkForEachCo( pTemp, pObj, k )
             Abc_ObjAddFanin( pObj->pCopy, Abc_NtkToBarBufs_rec(pNtkNew, Abc_ObjFanin0(pObj)) );
     pNtkNew->nBarBufs = Abc_NtkLatchNum(pNtkNew);
-    printf( "Hierarchy reader flattened %d instances of logic boxes and introduced %d barbufs.\n", nBoxes, pNtkNew->nBarBufs );
+    fprintf( Abc_FrameGlobalGetOut(), "Hierarchy reader flattened %d instances of logic boxes and introduced %d barbufs.\n", nBoxes, pNtkNew->nBarBufs );
     return pNtkNew;
 }
 

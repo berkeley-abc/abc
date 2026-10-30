@@ -512,7 +512,7 @@ int Dsd_TreeCollectDecomposableVars_rec( DdManager * dd, Dsd_Node_t * pNode, int
     if ( !fSkipThisNode && (pNode->Type == DSD_NODE_OR || pNode->Type == DSD_NODE_EXOR || pNode->nDecs <= 4) )
     {
 if ( fVerbose )
-printf( "Node of type <%d> (OR=6,EXOR=8,RAND=1): ", pNode->Type );
+fprintf( Abc_FrameGlobalGetOut(), "Node of type <%d> (OR=6,EXOR=8,RAND=1): ", pNode->Type );
 
         for ( i = 0; i < pNode->nDecs; i++ )
         {
@@ -525,11 +525,11 @@ printf( "Node of type <%d> (OR=6,EXOR=8,RAND=1): ", pNode->Type );
                     (*nVars)++;
                     
 if ( fVerbose )
-printf( "%d ", pTemp->S->index );
+fprintf( Abc_FrameGlobalGetOut(), "%d ", pTemp->S->index );
             }
         }
 if ( fVerbose )
-printf( "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     else
         fSkipThisNode = 1;

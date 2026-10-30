@@ -671,7 +671,7 @@ static inline void Acb_NtkAdd( Acb_Man_t * p, Acb_Ntk_t * pNtk )
     int fFound, NtkId = Abc_NamStrFindOrAdd( p->pMods, Acb_NtkName(pNtk), &fFound );
     (void)NtkId;
     if ( fFound )
-        printf( "Network with name \"%s\" already exists.\n", Acb_NtkName(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(),  "Network with name \"%s\" already exists.\n", Acb_NtkName(pNtk) );
     else
         assert( NtkId == pNtk->Id );
 }
@@ -679,7 +679,7 @@ static inline void Acb_NtkUpdate( Acb_Man_t * p, Acb_Ntk_t * pNtk )
 {
     int fFound, NtkId = Abc_NamStrFindOrAdd( p->pMods, Acb_NtkName(pNtk), &fFound );
     if ( !fFound )
-        printf( "Network with name \"%s\" does not exist.\n", Acb_NtkName(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(),  "Network with name \"%s\" does not exist.\n", Acb_NtkName(pNtk) );
     else
     {
         Acb_NtkFree( Acb_ManNtk(p, NtkId) );
@@ -778,31 +778,31 @@ static inline int Acb_NtkMemory( Acb_Ntk_t * p )
 }
 static inline void Acb_NtkPrintStats( Acb_Ntk_t * p )
 {
-    printf( "pi =%5d  ",   Acb_NtkPiNum(p) );
-    printf( "po =%5d  ",   Acb_NtkPoNum(p) );
-    printf( "ff =%5d  ",   Acb_NtkRegNum(p) );
-    printf( "node =%5d  ", Acb_NtkNodeNum(p) );
-    printf( "box =%5d  ",  Acb_NtkBoxNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "pi =%5d  ",   Acb_NtkPiNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "po =%5d  ",   Acb_NtkPoNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "ff =%5d  ",   Acb_NtkRegNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "node =%5d  ", Acb_NtkNodeNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "box =%5d  ",  Acb_NtkBoxNum(p) );
     //printf( "topo =%4s  ", Acb_NtkIsTopoOrder(p) ? "yes" : "no" );
-    printf( "  %s ",       Acb_NtkName(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "  %s ",       Acb_NtkName(p) );
     if ( Vec_IntSize(&p->vNtkObjs) )
-        printf( "-> %s",   Acb_NtkName(Acb_NtkNtk(p, Vec_IntEntry(&p->vNtkObjs, 0))) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "-> %s",   Acb_NtkName(Acb_NtkNtk(p, Vec_IntEntry(&p->vNtkObjs, 0))) );
+    fprintf( Abc_FrameGlobalGetOut(),  "\n" );
 //    Vec_StrIntPrint( &p->vObjType );
 }
 static inline void Acb_NtkPrint( Acb_Ntk_t * p )
 {
     int i, Type;
-    printf( "Interface (%d):\n", Acb_NtkCioNum(p) );
-    printf( "Objects (%d):\n", Acb_NtkObjNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "Interface (%d):\n", Acb_NtkCioNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "Objects (%d):\n", Acb_NtkObjNum(p) );
     Acb_NtkForEachObjType( p, Type, i )
     {
-        printf( "%6d : ", i );
-        printf( "Type =%3d  ", Type );
-        printf( "Fanins = %d  ", Acb_ObjFaninNum(p, i) );
+        fprintf( Abc_FrameGlobalGetOut(),  "%6d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(),  "Type =%3d  ", Type );
+        fprintf( Abc_FrameGlobalGetOut(),  "Fanins = %d  ", Acb_ObjFaninNum(p, i) );
         if ( Acb_NtkHasObjNames(p) && Acb_ObjName(p, i) )
-            printf( "%s", Acb_ObjNameStr(p, i) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(),  "%s", Acb_ObjNameStr(p, i) );
+        fprintf( Abc_FrameGlobalGetOut(),  "\n" );
     }
 }
 
@@ -999,20 +999,20 @@ static inline void Acb_ManPrintStats( Acb_Man_t * p, int nModules, int fVerbose 
     Acb_Ntk_t * pNtk; int i, nPrims, nUsers;
     Acb_Ntk_t * pRoot = Acb_ManRoot( p );
     Acb_ManBoxNumRec( p, &nPrims, &nUsers );
-    printf( "%-12s : ",     Acb_ManName(p) );
-    printf( "pi =%5d  ",    Acb_NtkCiNum(pRoot) );
-    printf( "po =%5d  ",    Acb_NtkCoNum(pRoot) );
-    printf( "mod =%5d  ",   Acb_ManNtkNum(p) );
-    printf( "box =%5d  ",   nPrims + nUsers );
-    printf( "prim =%5d  ",  nPrims );
-    printf( "user =%5d  ",  nUsers );
-    printf( "mem =%6.3f MB", 1.0*Acb_ManMemory(p)/(1<<20) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(),  "%-12s : ",     Acb_ManName(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "pi =%5d  ",    Acb_NtkCiNum(pRoot) );
+    fprintf( Abc_FrameGlobalGetOut(),  "po =%5d  ",    Acb_NtkCoNum(pRoot) );
+    fprintf( Abc_FrameGlobalGetOut(),  "mod =%5d  ",   Acb_ManNtkNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "box =%5d  ",   nPrims + nUsers );
+    fprintf( Abc_FrameGlobalGetOut(),  "prim =%5d  ",  nPrims );
+    fprintf( Abc_FrameGlobalGetOut(),  "user =%5d  ",  nUsers );
+    fprintf( Abc_FrameGlobalGetOut(),  "mem =%6.3f MB", 1.0*Acb_ManMemory(p)/(1<<20) );
+    fprintf( Abc_FrameGlobalGetOut(),  "\n" );
     Acb_ManForEachNtk( p, pNtk, i )
     {
         if ( i == nModules+1 )
             break;
-        printf( "Module %5d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(),  "Module %5d : ", i );
         Acb_NtkPrintStats( pNtk );
     }
 }
@@ -1039,6 +1039,9 @@ extern int         Acb_NtkCreateNode( Acb_Ntk_t * p, word uTruth, Vec_Int_t * vS
 extern void        Acb_NtkUpdateNode( Acb_Ntk_t * p, int Pivot, word uTruth, Vec_Int_t * vSupp );
 
 extern Acb_Ntk_t * Acb_VerilogSimpleRead( char * pFileName, char * pFileNameW );
+
+extern ABC_DLL FILE *             Abc_FrameGlobalGetOut();
+extern ABC_DLL FILE *             Abc_FrameGlobalGetErr();
 
 ABC_NAMESPACE_HEADER_END
 

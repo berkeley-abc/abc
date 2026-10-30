@@ -157,7 +157,7 @@ void Bar_ProgressShow( Bar_Progress_t * p, char * pString )
     for ( i++  ; i <= p->posTotal; i++ )
         fprintf( p->pFile, " " );
     fprintf( p->pFile, "\r" );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 /**Function*************************************************************
@@ -181,7 +181,7 @@ void Bar_ProgressClean( Bar_Progress_t * p )
     for ( i = 0; i <= p->posTotal; i++ )
         fprintf( p->pFile, " " );
     fprintf( p->pFile, "\r" );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -55,8 +55,8 @@ DdNode * Cudd_bddTransferPermute( DdManager * ddSource, DdManager * ddDestinatio
 ///                      debugging macros                            ///
 ////////////////////////////////////////////////////////////////////////
 
-#define PRD(p)       printf( "\nDECOMPOSITION TREE:\n\n" ); PrintDecEntry( (p), 0 ) 
-#define PRB_(f)       printf( #f " = " ); Cudd_bddPrint(dd,f); printf( "\n" )
+#define PRD(p)       fprintf( Abc_FrameGlobalGetOut(), "\nDECOMPOSITION TREE:\n\n" ); PrintDecEntry( (p), 0 ) 
+#define PRB_(f)       fprintf( Abc_FrameGlobalGetOut(), #f " = " ); Cudd_bddPrint(dd,f); printf( "\n" )
 #define PRK(f,n)     Cudd_PrintKMap(stdout,dd,(f),Cudd_Not(f),(n),NULL,0); printf( "K-map for function" #f "\n\n" )
 #define PRK2(f,g,n)  Cudd_PrintKMap(stdout,dd,(f),(g),(n),NULL,0); printf( "K-map for function <" #f ", " #g ">\n\n" ) 
 
@@ -166,9 +166,9 @@ int Abc_CascadeExperiment( char * pFileGeneric, DdManager * dd, DdNode ** pOutpu
 //  Cudd_ReduceHeap(dd, CUDD_REORDER_SYMM_SIFT,1);
 //  Cudd_ReduceHeap(dd, CUDD_REORDER_SYMM_SIFT,1);
     if ( fVerbose )
-    printf( "MTBDD reordered = %6d nodes\n", Cudd_DagSize( aFunc ) );
+    fprintf( Abc_FrameGlobalGetOut(), "MTBDD reordered = %6d nodes\n", Cudd_DagSize( aFunc ) );
     if ( fVerbose )
-    printf( "Variable reordering time = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
+    fprintf( Abc_FrameGlobalGetOut(), "Variable reordering time = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
 //  printf( "\n" );
 //  printf( "Variable order is: " );
 //  for ( i = 0; i < dd->size; i++ )
@@ -533,11 +533,11 @@ DdNode * GetSingleOutputFunction( DdManager * dd, DdNode ** pbOuts, int nOuts, D
 
     // convert to the ADD
 if ( fVerbose )
-printf( "Single BDD size = %6d nodes\n", Cudd_DagSize(bResult) );
+fprintf( Abc_FrameGlobalGetOut(), "Single BDD size = %6d nodes\n", Cudd_DagSize(bResult) );
     aResult = Cudd_BddToAdd( dd, bResult );  Cudd_Ref( aResult );
     Cudd_RecursiveDeref( dd, bResult );
 if ( fVerbose )
-printf( "MTBDD           = %6d nodes\n", Cudd_DagSize(aResult) );
+fprintf( Abc_FrameGlobalGetOut(), "MTBDD           = %6d nodes\n", Cudd_DagSize(aResult) );
     Cudd_Deref( aResult );
     return aResult;
 }
@@ -951,10 +951,10 @@ void WriteDDintoBLIFfileReorder( DdManager * dd, FILE * pFile, DdNode * Func, ch
     bFmin = Cudd_bddTransfer( dd, s_ddmin, Func );  Cudd_Ref( bFmin );
 
     // reorder
-    printf( "Nodes before = %d.   ", Cudd_DagSize(bFmin) ); 
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes before = %d.   ", Cudd_DagSize(bFmin) ); 
     Cudd_ReduceHeap(s_ddmin,CUDD_REORDER_SYMM_SIFT,1);
 //  Cudd_ReduceHeap(s_ddmin,CUDD_REORDER_SYMM_SIFT_CONV,1);
-    printf( "Nodes after  = %d.  \n", Cudd_DagSize(bFmin) ); 
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes after  = %d.  \n", Cudd_DagSize(bFmin) ); 
     ///////////////////////////////////////////////////////////////
 
 

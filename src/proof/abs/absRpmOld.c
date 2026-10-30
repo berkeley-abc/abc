@@ -146,7 +146,7 @@ Gia_Man_t * Abs_RpmPerformOld( Gia_Man_t * p, int fVerbose )
     int nFlopsOld = Gia_ManRegNum(p);
     if ( fVerbose )
     {
-        printf( "Original AIG:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Original AIG:\n" );
         Gia_ManPrintStats( p, NULL );
     }
 
@@ -154,7 +154,7 @@ Gia_Man_t * Abs_RpmPerformOld( Gia_Man_t * p, int fVerbose )
     pNew = Gia_ManDupTrimmed( p, 1, 0, 0, -1 );
     if ( fVerbose )
     {
-        printf( "After PI trimming:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "After PI trimming:\n" );
         Gia_ManPrintStats( pNew, NULL );
     }
     // transform GIA
@@ -162,7 +162,7 @@ Gia_Man_t * Abs_RpmPerformOld( Gia_Man_t * p, int fVerbose )
     Gia_ManStop( pTmp );
     if ( fVerbose )
     {
-        printf( "After PI-2-FF transformation:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "After PI-2-FF transformation:\n" );
         Gia_ManPrintStats( pNew, NULL );
     }
 
@@ -177,7 +177,7 @@ Gia_Man_t * Abs_RpmPerformOld( Gia_Man_t * p, int fVerbose )
     Aig_ManStop( pMan );
     if ( fVerbose )
     {
-        printf( "After min-area retiming:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "After min-area retiming:\n" );
         Gia_ManPrintStats( pNew, NULL );
     }
 
@@ -186,7 +186,7 @@ Gia_Man_t * Abs_RpmPerformOld( Gia_Man_t * p, int fVerbose )
     Gia_ManStop( pTmp );
     if ( fVerbose )
     {
-        printf( "After FF-2-PI transformation:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "After FF-2-PI transformation:\n" );
         Gia_ManPrintStats( pNew, NULL );
     }
     return pNew;

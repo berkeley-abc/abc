@@ -518,7 +518,7 @@ int If_CommandPrintBox( Abc_Frame_t * pAbc, int argc, char **argv )
         goto usage;
 
     // set the new network
-    If_LibBoxPrint( stdout, (If_LibBox_t *)Abc_FrameReadLibBox() );
+    If_LibBoxPrint( Abc_FrameGlobalGetOut(), (If_LibBox_t *)Abc_FrameReadLibBox() );
     return 0;
 
 usage:

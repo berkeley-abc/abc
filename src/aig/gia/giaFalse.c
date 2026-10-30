@@ -76,11 +76,11 @@ void Gia_ManFalseRebuildOne( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Int_t * vHook,
     }
     if ( fVeryVerbose )
     {
-        printf( "Eliminated path: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Eliminated path: " );
         Vec_IntPrint( vHook );
         Gia_ManForEachObjVec( vHook, p, pObj, i )
         {
-            printf( "Level %3d : ", Gia_ObjLevel(p, pObj) );
+            fprintf( Abc_FrameGlobalGetOut(), "Level %3d : ", Gia_ObjLevel(p, pObj) );
             Gia_ObjPrint( p, pObj );
         }
     }
@@ -102,7 +102,7 @@ Gia_Man_t * Gia_ManFalseRebuild( Gia_Man_t * p, Vec_Wec_t * vHooks, int fVerbose
             if ( Vec_WecLevelSize(vHooks, i) > 0 )
             {
                 if ( fVeryVerbose )
-                    printf( "Path %d : ", Counter++ );
+                    fprintf( Abc_FrameGlobalGetOut(), "Path %d : ", Counter++ );
                 Gia_ManFalseRebuildOne( pNew, p, Vec_WecEntry(vHooks, i), fVerbose, fVeryVerbose );
             }
             else
@@ -255,19 +255,19 @@ void Gia_ManCheckFalseOne( Gia_Man_t * p, int iOut, int nTimeOut, Vec_Wec_t * vH
     }
     if ( fVerbose )
     {
-        printf( "PO %6d : Level = %3d  ", iOut, Gia_ObjLevel(p, pPivot) );
+        fprintf( Abc_FrameGlobalGetOut(), "PO %6d : Level = %3d  ", iOut, Gia_ObjLevel(p, pPivot) );
         if ( status == l_Undef )
-            printf( "Timeout reached after %d seconds. ", nTimeOut );
+            fprintf( Abc_FrameGlobalGetOut(), "Timeout reached after %d seconds. ", nTimeOut );
         else if ( status == l_True )
-            printf( "There is no false path. " );
+            fprintf( Abc_FrameGlobalGetOut(), "There is no false path. " );
         else
         {
-            printf( "False path contains %d nodes (out of %d):  ", nLits, Vec_IntSize(vPath) );
-            printf( "top = %d  ", Vec_IntEntry(vPath, Abc_Lit2Var(pLits[0])) );
+            fprintf( Abc_FrameGlobalGetOut(), "False path contains %d nodes (out of %d):  ", nLits, Vec_IntSize(vPath) );
+            fprintf( Abc_FrameGlobalGetOut(), "top = %d  ", Vec_IntEntry(vPath, Abc_Lit2Var(pLits[0])) );
             if ( fVeryVerbose )
                 for ( i = 0; i < nLits; i++ )
-                    printf( "%d ", Abc_Lit2Var(pLits[i]) );
-            printf( "  " );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d ", Abc_Lit2Var(pLits[i]) );
+            fprintf( Abc_FrameGlobalGetOut(), "  " );
         }
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
     }
@@ -300,7 +300,7 @@ Gia_Man_t * Gia_ManCheckFalse2( Gia_Man_t * p, int nSlackMax, int nTimeOut, int 
     while ( Vec_QueTopPriority(vPrio) >= p->nLevels - nSlackMax )
         Gia_ManCheckFalseOne( p, Vec_QuePop(vPrio), nTimeOut, vHooks, fVerbose, fVeryVerbose );
     if ( fVerbose )
-    printf( "Collected %d non-overlapping false paths.\n", Vec_WecSizeUsed(vHooks) );
+    fprintf( Abc_FrameGlobalGetOut(), "Collected %d non-overlapping false paths.\n", Vec_WecSizeUsed(vHooks) );
     // reconstruct the AIG
     pNew = Gia_ManFalseRebuild( p, vHooks, fVerbose, fVeryVerbose );
     // cleanup
@@ -432,18 +432,18 @@ Gia_Man_t * Gia_ManCheckOne( Gia_Man_t * p, int iOut, int iObj, int nTimeOut, in
     }
     if ( fVerbose )
     {
-        printf( "PO %6d : Level = %3d  ", iOut, Gia_ObjLevelId(p, iObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "PO %6d : Level = %3d  ", iOut, Gia_ObjLevelId(p, iObj) );
         if ( status == l_Undef )
-            printf( "Timeout reached after %d seconds. ", nTimeOut );
+            fprintf( Abc_FrameGlobalGetOut(), "Timeout reached after %d seconds. ", nTimeOut );
         else if ( status == l_True )
-            printf( "There is no false path. " );
+            fprintf( Abc_FrameGlobalGetOut(), "There is no false path. " );
         else
         {
-            printf( "False path contains %d nodes (out of %d):  ", Vec_IntSize(vLits), Vec_IntSize(vPath) );
+            fprintf( Abc_FrameGlobalGetOut(), "False path contains %d nodes (out of %d):  ", Vec_IntSize(vLits), Vec_IntSize(vPath) );
             if ( fVeryVerbose )
                 for ( i = nLits-1; i >= 0; i-- )
-                    printf( "%d ", Vec_IntEntry(vPath, Abc_Lit2Var(pLits[i])) );
-            printf( "  " );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d ", Vec_IntEntry(vPath, Abc_Lit2Var(pLits[i])) );
+            fprintf( Abc_FrameGlobalGetOut(), "  " );
         }
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
     }
@@ -491,7 +491,7 @@ Gia_Man_t * Gia_ManCheckFalseAll( Gia_Man_t * p, int nSlackMax, int nTimeOut, in
             break;
     }
 //    if ( fVerbose )
-        printf( "Performed %d attempts and %d changes.\n", Tried, Changed );
+        fprintf( Abc_FrameGlobalGetOut(), "Performed %d attempts and %d changes.\n", Tried, Changed );
     return p;
 }
 Gia_Man_t * Gia_ManCheckFalse( Gia_Man_t * p, int nSlackMax, int nTimeOut, int fVerbose, int fVeryVerbose )
@@ -538,7 +538,7 @@ Gia_Man_t * Gia_ManCheckFalse( Gia_Man_t * p, int nSlackMax, int nTimeOut, int f
             break;
     }
 //    if ( fVerbose )
-        printf( "Performed %d attempts and %d changes.\n", Tried, Changed );
+        fprintf( Abc_FrameGlobalGetOut(), "Performed %d attempts and %d changes.\n", Tried, Changed );
     Vec_IntFree( vTried );
     return p;
 }

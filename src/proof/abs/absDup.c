@@ -305,16 +305,16 @@ void Gia_ManPrintFlopClasses( Gia_Man_t * p )
         return;
     if ( Vec_IntSize(p->vFlopClasses) != Gia_ManRegBoxNum(p) )
     {
-        printf( "Gia_ManPrintFlopClasses(): The number of flop map entries differs from the number of flops.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Gia_ManPrintFlopClasses(): The number of flop map entries differs from the number of flops.\n" );
         return;
     }
     Counter0 = Vec_IntCountEntry( p->vFlopClasses, 0 );
     Counter1 = Vec_IntCountEntry( p->vFlopClasses, 1 );
-    printf( "Flop-level abstraction:  Excluded FFs = %d  Included FFs = %d  (%.2f %%) ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Flop-level abstraction:  Excluded FFs = %d  Included FFs = %d  (%.2f %%) ", 
         Counter0, Counter1, 100.0*Counter1/(Counter0 + Counter1 + 1) );
     if ( Counter0 + Counter1 < Gia_ManRegBoxNum(p) )
-        printf( "and there are other FF classes..." );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "and there are other FF classes..." );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -336,13 +336,13 @@ void Gia_ManPrintGateClasses( Gia_Man_t * p )
         return;
     if ( Vec_IntSize(p->vGateClasses) != Gia_ManObjNum(p) )
     {
-        printf( "Gia_ManPrintGateClasses(): The number of flop map entries differs from the number of flops.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Gia_ManPrintGateClasses(): The number of flop map entries differs from the number of flops.\n" );
         return;
     }
     // create additional arrays
     Gia_ManGlaCollect( p, p->vGateClasses, &vPis, &vPPis, &vFlops, &vNodes );
     nTotal = 1 + Vec_IntSize(vFlops) + Vec_IntSize(vNodes);
-    printf( "Gate-level abstraction:  PI = %d  PPI = %d  FF = %d (%.2f %%)  AND = %d (%.2f %%)  Obj = %d (%.2f %%)\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Gate-level abstraction:  PI = %d  PPI = %d  FF = %d (%.2f %%)  AND = %d (%.2f %%)  Obj = %d (%.2f %%)\n", 
         Vec_IntSize(vPis), Vec_IntSize(vPPis), 
         Vec_IntSize(vFlops), 100.0*Vec_IntSize(vFlops)/(Gia_ManRegNum(p)+1), 
         Vec_IntSize(vNodes), 100.0*Vec_IntSize(vNodes)/(Gia_ManAndNum(p)+1), 
@@ -386,7 +386,7 @@ void Gia_ManPrintObjClasses( Gia_Man_t * p )
     nObjMask = (1 << nObjBits) - 1;
     assert( Gia_ManObjNum(p) <= nObjMask );
     // print info about frames
-    printf( "Frame   Core   F0   F1   F2   F3 ...\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Frame   Core   F0   F1   F2   F3 ...\n" );
     for ( i = 0; i < nFrames; i++ )
     {
         iStart = Vec_IntEntry( vAbs, i+1 );
@@ -409,26 +409,26 @@ void Gia_ManPrintObjClasses( Gia_Man_t * p )
         }
         assert( pCountAll[0] == (iStop - iStart) );
 //        printf( "%5d%5d  ", pCountAll[0], pCountUni[0] ); 
-        printf( "%3d :", i );
-        printf( "%7d", pCountAll[0] ); 
+        fprintf( Abc_FrameGlobalGetOut(), "%3d :", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%7d", pCountAll[0] ); 
         if ( i >= 10 )
         {
             for ( k = 0; k < 4; k++ )
-                printf( "%5d", pCountAll[k+1] ); 
-            printf( "  ..." );
+                fprintf( Abc_FrameGlobalGetOut(), "%5d", pCountAll[k+1] ); 
+            fprintf( Abc_FrameGlobalGetOut(), "  ..." );
             for ( k = i-4; k <= i; k++ )
-                printf( "%5d", pCountAll[k+1] ); 
+                fprintf( Abc_FrameGlobalGetOut(), "%5d", pCountAll[k+1] ); 
         }
         else
         {
             for ( k = 0; k <= i; k++ )
                 if ( k <= i )
-                    printf( "%5d", pCountAll[k+1] ); 
+                    fprintf( Abc_FrameGlobalGetOut(), "%5d", pCountAll[k+1] ); 
         }
 //        for ( k = 0; k < nFrames; k++ )
 //            if ( k <= i )
 //                printf( "%5d", pCountAll[k+1] ); 
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     assert( iStop == Vec_IntSize(vAbs) );
     Vec_IntFree( vSeens );

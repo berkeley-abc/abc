@@ -148,10 +148,10 @@ class DoubleOption : public Option
         if (end == NULL) 
             return false;
         else if (tmp >= range.end && (!range.end_inclusive || tmp != range.end)){
-            fprintf(stderr, "ERROR! value <%s> is too large for option \"%s\".\n", span, name);
+            fprintf( Abc_FrameGlobalGetErr(), "ERROR! value <%s> is too large for option \"%s\".\n", span, name);
             exit(1);
         }else if (tmp <= range.begin && (!range.begin_inclusive || tmp != range.begin)){
-            fprintf(stderr, "ERROR! value <%s> is too small for option \"%s\".\n", span, name);
+            fprintf( Abc_FrameGlobalGetErr(), "ERROR! value <%s> is too small for option \"%s\".\n", span, name);
             exit(1); }
 
         value = tmp;
@@ -161,7 +161,7 @@ class DoubleOption : public Option
     }
 
     virtual void help (bool verbose = false){
-        fprintf(stderr, "  -%-12s = %-8s %c%4.2g .. %4.2g%c (default: %g)\n", 
+        fprintf( Abc_FrameGlobalGetErr(), "  -%-12s = %-8s %c%4.2g .. %4.2g%c (default: %g)\n", 
                 name, type_name, 
                 range.begin_inclusive ? '[' : '(', 
                 range.begin,
@@ -169,8 +169,8 @@ class DoubleOption : public Option
                 range.end_inclusive ? ']' : ')', 
                 value);
         if (verbose){
-            fprintf(stderr, "\n        %s\n", description);
-            fprintf(stderr, "\n");
+            fprintf( Abc_FrameGlobalGetErr(), "\n        %s\n", description);
+            fprintf( Abc_FrameGlobalGetErr(), "\n");
         }
     }
 };
@@ -206,10 +206,10 @@ class IntOption : public Option
         if (end == NULL) 
             return false;
         else if (tmp > range.end){
-            fprintf(stderr, "ERROR! value <%s> is too large for option \"%s\".\n", span, name);
+            fprintf( Abc_FrameGlobalGetErr(), "ERROR! value <%s> is too large for option \"%s\".\n", span, name);
             exit(1);
         }else if (tmp < range.begin){
-            fprintf(stderr, "ERROR! value <%s> is too small for option \"%s\".\n", span, name);
+            fprintf( Abc_FrameGlobalGetErr(), "ERROR! value <%s> is too small for option \"%s\".\n", span, name);
             exit(1); }
 
         value = tmp;
@@ -218,22 +218,22 @@ class IntOption : public Option
     }
 
     virtual void help (bool verbose = false){
-        fprintf(stderr, "  -%-12s = %-8s [", name, type_name);
+        fprintf( Abc_FrameGlobalGetErr(), "  -%-12s = %-8s [", name, type_name);
         if (range.begin == INT32_MIN)
-            fprintf(stderr, "imin");
+            fprintf( Abc_FrameGlobalGetErr(), "imin");
         else
-            fprintf(stderr, "%4d", range.begin);
+            fprintf( Abc_FrameGlobalGetErr(), "%4d", range.begin);
 
-        fprintf(stderr, " .. ");
+        fprintf( Abc_FrameGlobalGetErr(), " .. ");
         if (range.end == INT32_MAX)
-            fprintf(stderr, "imax");
+            fprintf( Abc_FrameGlobalGetErr(), "imax");
         else
-            fprintf(stderr, "%4d", range.end);
+            fprintf( Abc_FrameGlobalGetErr(), "%4d", range.end);
 
-        fprintf(stderr, "] (default: %d)\n", value);
+        fprintf( Abc_FrameGlobalGetErr(), "] (default: %d)\n", value);
         if (verbose){
-            fprintf(stderr, "\n        %s\n", description);
-            fprintf(stderr, "\n");
+            fprintf( Abc_FrameGlobalGetErr(), "\n        %s\n", description);
+            fprintf( Abc_FrameGlobalGetErr(), "\n");
         }
     }
 };
@@ -328,10 +328,10 @@ class StringOption : public Option
     }
 
     virtual void help (bool verbose = false){
-        fprintf(stderr, "  -%-10s = %8s\n", name, type_name);
+        fprintf( Abc_FrameGlobalGetErr(), "  -%-10s = %8s\n", name, type_name);
         if (verbose){
-            fprintf(stderr, "\n        %s\n", description);
-            fprintf(stderr, "\n");
+            fprintf( Abc_FrameGlobalGetErr(), "\n        %s\n", description);
+            fprintf( Abc_FrameGlobalGetErr(), "\n");
         }
     }    
 };
@@ -369,16 +369,16 @@ class BoolOption : public Option
 
     virtual void help (bool verbose = false){
 
-        fprintf(stderr, "  -%s, -no-%s", name, name);
+        fprintf( Abc_FrameGlobalGetErr(), "  -%s, -no-%s", name, name);
 
         for (uint32_t i = 0; i < 32 - strlen(name)*2; i++)
-            fprintf(stderr, " ");
+            fprintf( Abc_FrameGlobalGetErr(), " ");
 
-        fprintf(stderr, " ");
-        fprintf(stderr, "(default: %s)\n", value ? "on" : "off");
+        fprintf( Abc_FrameGlobalGetErr(), " ");
+        fprintf( Abc_FrameGlobalGetErr(), "(default: %s)\n", value ? "on" : "off");
         if (verbose){
-            fprintf(stderr, "\n        %s\n", description);
-            fprintf(stderr, "\n");
+            fprintf( Abc_FrameGlobalGetErr(), "\n        %s\n", description);
+            fprintf( Abc_FrameGlobalGetErr(), "\n");
         }
     }
 };

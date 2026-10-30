@@ -454,7 +454,7 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
-    if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, fCheck ) )
+    if ( !Abc_NtkPrepareTwoNtks( Abc_FrameGlobalGetOut(), pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, fCheck ) )
         return 1;
     if ( Abc_NtkLatchNum(pNtk1) == 0 || Abc_NtkLatchNum(pNtk2) == 0 )
     {
@@ -846,7 +846,7 @@ int Abc_CommandAbSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         pArgvNew = argv + globalUtilOptind;
         nArgcNew = argc - globalUtilOptind;
-        if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
+        if ( !Abc_NtkPrepareTwoNtks( Abc_FrameGlobalGetOut(), pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
             return 1;
         if ( Abc_NtkLatchNum(pNtk1) == 0 || Abc_NtkLatchNum(pNtk2) == 0 )
         {
@@ -969,7 +969,7 @@ int Abc_CommandSimSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         pArgvNew = argv + globalUtilOptind;
         nArgcNew = argc - globalUtilOptind;
-        if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
+        if ( !Abc_NtkPrepareTwoNtks( Abc_FrameGlobalGetOut(), pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
             return 1;
         if ( Abc_NtkLatchNum(pNtk1) == 0 || Abc_NtkLatchNum(pNtk2) == 0 )
         {

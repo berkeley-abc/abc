@@ -43,7 +43,7 @@ btor2parser_malloc (size_t size)
   void *res = malloc (size);
   if (!res)
   {
-    fprintf (stderr, "[btor2parser] memory allocation failed\n");
+    fprintf( Abc_FrameGlobalGetErr(), "[btor2parser] memory allocation failed\n");
     abort ();
   }
   return res;
@@ -57,7 +57,7 @@ btor2parser_realloc (void *ptr, size_t size)
   void *res = realloc (ptr, size);
   if (!res)
   {
-    fprintf (stderr, "[btor2parser] memory reallocation failed\n");
+    fprintf( Abc_FrameGlobalGetErr(), "[btor2parser] memory reallocation failed\n");
     abort ();
   }
   return res;

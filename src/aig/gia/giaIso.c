@@ -164,30 +164,30 @@ void Gia_IsoPrintClasses( Gia_IsoMan_t * p )
 {
     int fVerbose = 0;
     int i, k, iBegin, nSize;
-    printf( "The total of %d classes:\n", Vec_IntSize(p->vClasses)/2 );
+    fprintf( Abc_FrameGlobalGetOut(), "The total of %d classes:\n", Vec_IntSize(p->vClasses)/2 );
     Vec_IntForEachEntryDouble( p->vClasses, iBegin, nSize, i )
     {
-        printf( "%5d : (%3d,%3d)  ", i/2, iBegin, nSize );
+        fprintf( Abc_FrameGlobalGetOut(), "%5d : (%3d,%3d)  ", i/2, iBegin, nSize );
         if ( fVerbose )
         {
-            printf( "{" );
+            fprintf( Abc_FrameGlobalGetOut(), "{" );
             for ( k = 0; k < nSize; k++ )
-                printf( " %3d,%08x", Gia_IsoGetItem(p, iBegin+k), Gia_IsoGetValue(p, iBegin+k) );
-            printf( " }" );
+                fprintf( Abc_FrameGlobalGetOut(), " %3d,%08x", Gia_IsoGetItem(p, iBegin+k), Gia_IsoGetValue(p, iBegin+k) );
+            fprintf( Abc_FrameGlobalGetOut(), " }" );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void Gia_IsoPrint( Gia_IsoMan_t * p, int Iter, abctime Time )
 {
-    printf( "Iter %4d :  ", Iter );
-    printf( "Entries =%8d.  ", p->nEntries );
+    fprintf( Abc_FrameGlobalGetOut(), "Iter %4d :  ", Iter );
+    fprintf( Abc_FrameGlobalGetOut(), "Entries =%8d.  ", p->nEntries );
 //    printf( "Classes =%8d.  ", Vec_IntSize(p->vClasses)/2 );
-    printf( "Uniques =%8d.  ", p->nUniques );
-    printf( "Singles =%8d.  ", p->nSingles );
-    printf( "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
-    printf( "\n" );
-    fflush( stdout );
+    fprintf( Abc_FrameGlobalGetOut(), "Uniques =%8d.  ", p->nUniques );
+    fprintf( Abc_FrameGlobalGetOut(), "Singles =%8d.  ", p->nSingles );
+    fprintf( Abc_FrameGlobalGetOut(), "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 /**Function*************************************************************
@@ -548,7 +548,7 @@ void Gia_IsoAssignOneClass2( Gia_IsoMan_t * p )
     }
     Vec_IntShrink( p->vClasses, Vec_IntSize(p->vClasses) - 2 );
 
-    printf( "Broke ties in class %d of size %d at level %d.\n", i/2, nSize, p->pLevels[Gia_IsoGetItem(p, iBegin)] );
+    fprintf( Abc_FrameGlobalGetOut(), "Broke ties in class %d of size %d at level %d.\n", i/2, nSize, p->pLevels[Gia_IsoGetItem(p, iBegin)] );
 }
 
 void Gia_IsoAssignOneClass3( Gia_IsoMan_t * p )
@@ -581,7 +581,7 @@ void Gia_IsoAssignOneClass3( Gia_IsoMan_t * p )
         p->nSingles++;
         p->nEntries--;
     }
-    printf( "Broke ties in last class of size %d at level %d.\n", nSize, p->pLevels[Gia_IsoGetItem(p, iBegin)] );
+    fprintf( Abc_FrameGlobalGetOut(), "Broke ties in last class of size %d at level %d.\n", nSize, p->pLevels[Gia_IsoGetItem(p, iBegin)] );
 }
 
 void Gia_IsoAssignOneClass( Gia_IsoMan_t * p, int fVerbose )
@@ -612,7 +612,7 @@ void Gia_IsoAssignOneClass( Gia_IsoMan_t * p, int fVerbose )
             p->nEntries--;
         }
         if ( fVerbose )
-            printf( "Broke ties in class of size %d at level %d.\n", nSize, p->pLevels[Gia_IsoGetItem(p, iBegin)] );
+            fprintf( Abc_FrameGlobalGetOut(), "Broke ties in class of size %d at level %d.\n", nSize, p->pLevels[Gia_IsoGetItem(p, iBegin)] );
     }
     Vec_IntShrink( p->vClasses, Shrink );
 }
@@ -659,8 +659,8 @@ void Gia_IsoReportTopmost( Gia_IsoMan_t * p )
             pObj = Gia_ManObj( p->pGia, Gia_IsoGetItem(p, iBegin+k) );
             if ( !Gia_ObjIsTravIdCurrent(p->pGia, pObj) )
             {
-                printf( "%5d : ", ++Counter );
-                printf( "Obj %6d : Level = %4d.  iBegin = %4d.  Size = %4d.\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "%5d : ", ++Counter );
+                fprintf( Abc_FrameGlobalGetOut(), "Obj %6d : Level = %4d.  iBegin = %4d.  Size = %4d.\n", 
                     Gia_ObjId(p->pGia, pObj), p->pLevels[Gia_ObjId(p->pGia, pObj)], iBegin, nSize );
                 break;
             }
@@ -1111,7 +1111,7 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, Vec_P
         return NULL;
     }
     nClasses = Vec_IntCountNonTrivial( vEquivs, &nUsedPos );
-    printf( "Reduced %d outputs to %d candidate   classes (%d outputs are in %d non-trivial classes).  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Reduced %d outputs to %d candidate   classes (%d outputs are in %d non-trivial classes).  ", 
         Gia_ManPoNum(p), Vec_PtrSize(vEquivs), nUsedPos, nClasses );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( fEstimate )
@@ -1130,14 +1130,14 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, Vec_P
             Vec_PtrPush( vEquivs2, Vec_IntDup(vLevel) );
             for ( k = 0; k < Vec_IntSize(vLevel); k++ )
                 if ( ++Counter % 100 == 0 )
-                    printf( "%6d finished...\r", Counter );
+                    fprintf( Abc_FrameGlobalGetOut(), "%6d finished...\r", Counter );
             continue;
         }
 
         if ( fVerbose )
         {
             iPo = Vec_IntEntry(vLevel, 0);
-            printf( "%6d %6d %6d : ", i, Vec_IntSize(vLevel), iPo );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d %6d %6d : ", i, Vec_IntSize(vLevel), iPo );
             pPart = Gia_ManDupCones( p, &iPo, 1, 1 );
             Gia_ManPrintStats(pPart, NULL);
             Gia_ManStop( pPart );
@@ -1148,7 +1148,7 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, Vec_P
         Vec_IntForEachEntry( vLevel, iPo, k )
         {
             if ( ++Counter % 100 == 0 )
-                printf( "%6d finished...\r", Counter );
+                fprintf( Abc_FrameGlobalGetOut(), "%6d finished...\r", Counter );
             assert( pvPiPerms == NULL || Vec_PtrArray(*pvPiPerms)[iPo] == NULL );
             vStr = Gia_ManIsoFindString( p, iPo, 0, pvPiPerms ? (Vec_Int_t **)Vec_PtrArray(*pvPiPerms) + iPo : NULL );
 
@@ -1208,14 +1208,14 @@ Gia_Man_t * Gia_ManIsoReduce( Gia_Man_t * pInit, Vec_Ptr_t ** pvPosEquivs, Vec_P
     // report the results
     nClasses = Vec_IntCountNonTrivial( vEquivs, &nUsedPos );
     if ( !fDualOut )
-        printf( "Reduced %d outputs to %d equivalence classes (%d outputs are in %d non-trivial classes).  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Reduced %d outputs to %d equivalence classes (%d outputs are in %d non-trivial classes).  ", 
             Gia_ManPoNum(p), Vec_PtrSize(vEquivs), nUsedPos, nClasses );
     else
-        printf( "Reduced %d dual outputs to %d dual outputs.  ", Gia_ManPoNum(p)/2, Gia_ManPoNum(pPart)/2 );
+        fprintf( Abc_FrameGlobalGetOut(), "Reduced %d dual outputs to %d dual outputs.  ", Gia_ManPoNum(p)/2, Gia_ManPoNum(pPart)/2 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( fVerbose )
     {
-        printf( "Nontrivial classes:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Nontrivial classes:\n" );
         Vec_VecPrintInt( (Vec_Vec_t *)vEquivs, 1 );
     }
     if ( pvPosEquivs )
@@ -1243,11 +1243,11 @@ void Gia_IsoTestOld( Gia_Man_t * p, int fVerbose )
     Vec_Ptr_t * vEquivs;
     abctime clk = Abc_Clock(); 
     vEquivs = Gia_IsoDeriveEquivPos( p, 0, fVerbose );
-    printf( "Reduced %d outputs to %d.  ", Gia_ManPoNum(p), vEquivs ? Vec_PtrSize(vEquivs) : 1 );
+    fprintf( Abc_FrameGlobalGetOut(), "Reduced %d outputs to %d.  ", Gia_ManPoNum(p), vEquivs ? Vec_PtrSize(vEquivs) : 1 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( fVerbose && vEquivs && Gia_ManPoNum(p) != Vec_PtrSize(vEquivs) )
     {
-        printf( "Nontrivial classes:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Nontrivial classes:\n" );
 //        Vec_VecPrintInt( (Vec_Vec_t *)vEquivs, 1 );
     }
     Vec_VecFreeP( (Vec_Vec_t **)&vEquivs );
@@ -1288,7 +1288,7 @@ void Gia_IsoTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose )
     assert( Gia_ManRegNum(p) > 0 );
     // generate random permutation of PIs
     vPiPerm = Gia_IsoTestGenPerm( Gia_ManPiNum(p) );
-    printf( "Considering random permutation of the primary inputs of the AIG:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Considering random permutation of the primary inputs of the AIG:\n" );
     Vec_IntPrint( vPiPerm );
     // create AIG with two primary outputs (original and permuted)
     pPerm = Gia_ManDupPerm( p, vPiPerm );
@@ -1307,13 +1307,13 @@ void Gia_IsoTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose )
 
     // check that original CEX and the resulting CEX is valid
     if ( Gia_ManVerifyCex(p, pCex, 0) )
-        printf( "CEX for the init AIG is valid.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "CEX for the init AIG is valid.\n" );
     else
-        printf( "CEX for the init AIG is not valid.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "CEX for the init AIG is not valid.\n" );
     if ( Gia_ManVerifyCex(pPerm, pCexNew, 0) )
-        printf( "CEX for the perm AIG is valid.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "CEX for the perm AIG is valid.\n" );
     else
-        printf( "CEX for the perm AIG is not valid.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "CEX for the perm AIG is not valid.\n" );
     // delete
     Gia_ManStop( pAig );
     Gia_ManStop( pDouble );

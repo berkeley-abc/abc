@@ -150,7 +150,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Io_ReadBlifMv(): The file is unavailable (absent or open).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_ReadBlifMv(): The file is unavailable (absent or open).\n" );
         return 0;
     }
     fclose( pFile );
@@ -179,7 +179,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     if ( !p->sError[0] && Io_MvReadInterfaces( p ) )
         pDesign = Io_MvParse( p );
     if ( p->sError[0] )
-        fprintf( stdout, "%s\n", p->sError );
+        fprintf( Abc_FrameGlobalGetOut(), "%s\n", p->sError );
     Io_MvFree( p );
     if ( pDesign == NULL )
         return NULL;
@@ -192,7 +192,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
         {
             if ( !Abc_NtkCheckRead( pNtk ) )
             {
-                printf( "Io_ReadBlifMv: The network check has failed for model %s.\n", pNtk->pName );
+                fprintf( Abc_FrameGlobalGetOut(), "Io_ReadBlifMv: The network check has failed for model %s.\n", pNtk->pName );
                 Abc_DesFree( pDesign, NULL );
                 return NULL;
             }
@@ -222,7 +222,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     RetValue = Abc_DesFindTopLevelModels( pDesign );
     pNtk = (Abc_Ntk_t *)Vec_PtrEntry( pDesign->vTops, 0 );
     if ( RetValue > 1 )
-        printf( "Warning: The design has %d root-level modules. The first one (%s) will be used.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The design has %d root-level modules. The first one (%s) will be used.\n",
             Vec_PtrSize(pDesign->vTops), pNtk->pName );
 
     // extract the master network
@@ -668,7 +668,7 @@ static char * Io_MvLoadFile( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Io_MvLoadFile(): The file is unavailable (absent or open).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_MvLoadFile(): The file is unavailable (absent or open).\n" );
         return NULL;
     }
     fseek( pFile, 0, SEEK_END );  
@@ -676,7 +676,7 @@ static char * Io_MvLoadFile( char * pFileName )
     if ( nFileSize == 0 )
     {
         fclose( pFile );
-        printf( "Io_MvLoadFile(): The file is empty.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_MvLoadFile(): The file is empty.\n" );
         return NULL;
     }
     pContents = ABC_ALLOC( char, nFileSize + 10 );
@@ -830,7 +830,7 @@ static void Io_MvReadPreparse( Io_MvMan_t * p )
         else if ( !strncmp(pCur, "exdc", 4) )
         {
 //            fprintf( stdout, "Line %d: The design contains EXDC network (warning only).\n", Io_MvGetLine(p, pCur) );
-            fprintf( stdout, "Warning: The design contains EXDC network.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Warning: The design contains EXDC network.\n" );
             if ( p->pLatest )
                 Vec_PtrPush( p->vModels, p->pLatest );
             p->pLatest = Io_MvModAlloc();
@@ -856,7 +856,7 @@ static void Io_MvReadPreparse( Io_MvMan_t * p )
             pCur--;
             if ( pCur[strlen(pCur)-1] == '\r' )
                 pCur[strlen(pCur)-1] = 0;
-            fprintf( stdout, "Line %d: Skipping line \"%s\".\n", Io_MvGetLine(p, pCur), pCur );
+            fprintf( Abc_FrameGlobalGetOut(), "Line %d: Skipping line \"%s\".\n", Io_MvGetLine(p, pCur), pCur );
         }
     }
 }
@@ -909,7 +909,7 @@ static int Io_MvReadInterfaces( Io_MvMan_t * p )
         // report the results
 #ifdef IO_VERBOSE_OUTPUT
         if ( Vec_PtrSize(p->vModels) > 1 )
-            printf( "Parsed %-32s: PI =%6d  PO =%6d  ND =%8d  FF =%6d  B =%6d\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Parsed %-32s: PI =%6d  PO =%6d  ND =%8d  FF =%6d  B =%6d\n", 
                 pMod->pNtk->pName, Abc_NtkPiNum(pMod->pNtk), Abc_NtkPoNum(pMod->pNtk),
                 Vec_PtrSize(pMod->vNames), Vec_PtrSize(pMod->vLatches), Vec_PtrSize(pMod->vSubckts) );
 #endif
@@ -940,7 +940,7 @@ static Abc_Des_t * Io_MvParse( Io_MvMan_t * p )
     { 
 #ifdef IO_VERBOSE_OUTPUT
         if ( Vec_PtrSize(p->vModels) > 1 )
-            printf( "Parsing model %s...\n", pMod->pNtk->pName );
+            fprintf( Abc_FrameGlobalGetOut(), "Parsing model %s...\n", pMod->pNtk->pName );
 #endif
 
         // check if there any MV lines
@@ -1032,30 +1032,30 @@ static Abc_Des_t * Io_MvParse( Io_MvMan_t * p )
             Abc_NtkForEachLatch( pMod->pNtk, pObj, k )
                 pObj->pNext = NULL;
             // print the result
-            printf( "Parsed %d groups of 1-hot registers: { ", Vec_PtrSize(pMod->pNtk->vOnehots) );
+            fprintf( Abc_FrameGlobalGetOut(), "Parsed %d groups of 1-hot registers: { ", Vec_PtrSize(pMod->pNtk->vOnehots) );
             Vec_PtrForEachEntry( Vec_Int_t *, pMod->pNtk->vOnehots, vLine, k )
-                printf( "%d ", Vec_IntSize(vLine) );
-            printf( "}\n" );
-            printf( "The total number of 1-hot registers = %d. (%.2f %%)\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "%d ", Vec_IntSize(vLine) );
+            fprintf( Abc_FrameGlobalGetOut(), "}\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The total number of 1-hot registers = %d. (%.2f %%)\n", 
                 Vec_VecSizeSize( (Vec_Vec_t *)pMod->pNtk->vOnehots ), 
                 100.0 * Vec_VecSizeSize( (Vec_Vec_t *)pMod->pNtk->vOnehots ) / Abc_NtkLatchNum(pMod->pNtk) );
             {
                 extern void Abc_GenOneHotIntervals( char * pFileName, int nPis, int nRegs, Vec_Ptr_t * vOnehots );
                 char * pFileName = Extra_FileNameGenericAppend( pMod->pMan->pFileName, "_1h.blif" );
                 Abc_GenOneHotIntervals( pFileName, Abc_NtkPiNum(pMod->pNtk), Abc_NtkLatchNum(pMod->pNtk), pMod->pNtk->vOnehots );
-                printf( "One-hotness condition is written into file \"%s\".\n", pFileName );
+                fprintf( Abc_FrameGlobalGetOut(), "One-hotness condition is written into file \"%s\".\n", pFileName );
             }
         }
         if ( Vec_PtrSize(pMod->vFlops) )
         {
-            printf( "Warning: The parser converted %d .flop lines into .latch lines\n", Vec_PtrSize(pMod->vFlops) );
-            printf( "(information about set, reset, enable of the flops may be lost).\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Warning: The parser converted %d .flop lines into .latch lines\n", Vec_PtrSize(pMod->vFlops) );
+            fprintf( Abc_FrameGlobalGetOut(), "(information about set, reset, enable of the flops may be lost).\n" );
         }
 
     }
     if ( p->nNDnodes )
 //        printf( "Warning: The parser added %d PIs to replace non-deterministic nodes.\n", p->nNDnodes );
-        printf( "Warning: The parser added %d constant 0 nodes to replace non-deterministic nodes.\n", p->nNDnodes );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The parser added %d constant 0 nodes to replace non-deterministic nodes.\n", p->nNDnodes );
     // return the network
     pDesign = p->pDesign;
     p->pDesign = NULL;
@@ -1255,7 +1255,7 @@ static int Io_MvParseLineLatch( Io_MvMod_t * p, char * pLine )
         else
         {
             if ( Vec_PtrSize(vTokens) > 6 )
-                printf( "Warning: Line %d has .latch directive with unrecognized entries (the total of %d entries).\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "Warning: Line %d has .latch directive with unrecognized entries (the total of %d entries).\n", 
                     Io_MvGetLine(p->pMan, pToken), Vec_PtrSize(vTokens) ); 
             if ( Vec_PtrSize(vTokens) == 4 || Vec_PtrSize(vTokens) == 6 )
             {
@@ -1553,9 +1553,9 @@ static Vec_Int_t * Io_MvParseLineOnehot( Io_MvMod_t * p, char * pLine )
 //        Vec_PtrPush( vResult, Abc_ObjName(pNet) );
         Vec_IntPush( vResult, (int)(ABC_PTRINT_T)Abc_ObjFanin0(pTerm)->pNext );
 //        printf( "%d(%d) ", (int)Abc_ObjFanin0(pTerm)->pNext, ((int)Abc_ObjFanin0(pTerm)->pData) -1 );
-        printf( "%d", ((int)(ABC_PTRINT_T)Abc_ObjFanin0(pTerm)->pData)-1 );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", ((int)(ABC_PTRINT_T)Abc_ObjFanin0(pTerm)->pData)-1 );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     return vResult;
 }
 

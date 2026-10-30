@@ -101,7 +101,7 @@ void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, abctime Time )
     Abc_Print( 1, "%s", fClose ? "\n":"\r" );
     if ( fClose )
         p->nQueMax = 0, p->nCexes = 0;
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 /**Function*************************************************************
@@ -252,7 +252,7 @@ void Pdr_ManPrintClauses( Pdr_Man_t * p, int kStart )
         Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCube, i )
         {
             Abc_Print( 1, "C=%4d. F=%4d ", Counter++, k );
-            Pdr_SetPrint( stdout, pCube, Aig_ManRegNum(p->pAig), NULL );  
+            Pdr_SetPrint( Abc_FrameGlobalGetOut(), pCube, Aig_ManRegNum(p->pAig), NULL );  
             Abc_Print( 1, "\n" ); 
         }
     }

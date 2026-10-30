@@ -146,7 +146,7 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
         }
         else
         {
-            printf( "Cannot parse formula \"%s\" of gate \"%s\".\n", pGate->pForm, pGate->pName );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot parse formula \"%s\" of gate \"%s\".\n", pGate->pForm, pGate->pName );
             return 1;
         }
         Cudd_Ref( pGate->bFunc );
@@ -157,7 +157,7 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
     nPins = Mio_GateCollectNames( pGate->pForm, pPinNames );
     if ( nPins == 0 )
     {
-        printf( "Cannot read formula \"%s\" of gate \"%s\".\n", pGate->pForm, pGate->pName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot read formula \"%s\" of gate \"%s\".\n", pGate->pForm, pGate->pName );
         return 1;
     }
 
@@ -207,7 +207,7 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
                 }
                 if ( i == nPins )
                 {
-                    printf( "Cannot find pin name \"%s\" in the formula \"%s\" of gate \"%s\".\n", 
+                    fprintf( Abc_FrameGlobalGetOut(), "Cannot find pin name \"%s\" in the formula \"%s\" of gate \"%s\".\n", 
                         pPin->pName, pGate->pForm, pGate->pName );
                     return 1;
                 }
@@ -218,7 +218,7 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
         for ( i = 0; i < nPins; i++ )
             if ( pPinNames[i] )
             {
-                printf( "Name \"%s\" appears in the formula \"%s\" of gate \"%s\" but there is no such pin.\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "Name \"%s\" appears in the formula \"%s\" of gate \"%s\" but there is no such pin.\n", 
                     pPinNames[i], pGate->pForm, pGate->pName );
                 return 1;
             }
@@ -236,7 +236,7 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
     }
 
     // derive the formula as the BDD
-    pGate->bFunc = Parse_FormulaParser( stdout, pGate->pForm, nPins, 0, pPinNames, dd, dd->vars );
+    pGate->bFunc = Parse_FormulaParser( Abc_FrameGlobalGetOut(), pGate->pForm, nPins, 0, pPinNames, dd, dd->vars );
     if ( pGate->bFunc == NULL )
         return 1;
     Cudd_Ref( pGate->bFunc );

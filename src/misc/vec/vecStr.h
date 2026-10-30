@@ -606,10 +606,10 @@ static inline char Vec_StrPop( Vec_Str_t * p )
 static inline void Vec_StrIntPrint( Vec_Str_t * p )
 {
     int i;
-    printf( "Vector has %d entries: {", Vec_StrSize(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "Vector has %d entries: {", Vec_StrSize(p)  );
     for ( i = 0; i < Vec_StrSize(p); i++ )
-        printf( " %d", (int)Vec_StrEntry(p, i) );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  " %d", (int)Vec_StrEntry(p, i)  );
+    fprintf( Abc_FrameGlobalGetOut(),  " }\n"  );
 }
 
 /**Function*************************************************************

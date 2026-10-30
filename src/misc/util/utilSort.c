@@ -973,8 +973,8 @@ void Abc_QuickSortTest()
     if ( fVerbose )
     {
         for ( i = 0; i < nSize; i++ )
-            printf( "(%d,%d) ", (int)(pData1[i] >> 32), (int)pData1[i] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "(%d,%d) ", (int)(pData1[i] >> 32), (int)pData1[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // create new numbers
     clk = Abc_Clock();
@@ -984,8 +984,8 @@ void Abc_QuickSortTest()
     if ( fVerbose )
     {
         for ( i = 0; i < nSize; i++ )
-            printf( "(%d,%d) ", (int)(pData2[i] >> 32), (int)pData2[i] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "(%d,%d) ", (int)(pData2[i] >> 32), (int)pData2[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     ABC_FREE( pData1 );
     ABC_FREE( pData2 );

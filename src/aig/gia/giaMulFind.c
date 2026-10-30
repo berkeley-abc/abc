@@ -203,14 +203,14 @@ int Gia_ManMulFindOne( Gia_Man_t * p, Vec_Wec_t * vXors, Vec_Int_t * vSet, Vec_I
         if ( !((Vec_IntFind(vA, Obj1) >= 0 && Vec_IntFind(vB, Obj2) >= 0) ||
                (Vec_IntFind(vA, Obj2) >= 0 && Vec_IntFind(vB, Obj1) >= 0)) ) {
             if ( fVerbose )
-            printf( "Internal verification failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Internal verification failed.\n" );
             Vec_IntFree( vObjs );
             Vec_IntClear( vA );
             Vec_IntClear( vB );
             return 0;
         }
     if ( fVerbose )
-    printf( "Generated system with %d+%d+%d=%d variables and %d equations.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Generated system with %d+%d+%d=%d variables and %d equations.\n", 
         Vec_IntSize(vA),Vec_IntSize(vB),Vec_IntSize(vSet), 
         Vec_IntSize(vA)+Vec_IntSize(vB)+Vec_IntSize(vSet), Vec_IntSize(vObjs)/2 );
     Vec_IntFree( vObjs );
@@ -621,7 +621,7 @@ Vec_Wec_t * Gia_ManMulFindBInputs( Gia_Man_t * p, Vec_Wec_t * vCuts4, Vec_Wec_t 
             Vec_IntForEachEntryStart( vTemp, Obj, k, 1 )
                 Vec_IntAddToEntry( vCnt, Vec_IntFind(vAll, Obj), 1 );
         if ( Vec_IntCountEntry(vCnt, 1) != 2 || Vec_IntCountEntry(vCnt, 2) != GroupSize-1 || Vec_IntCountEntry(vCnt, GroupSize) != 2 ) {
-            printf( "Detection of group %d failed.\n", g );
+            fprintf( Abc_FrameGlobalGetOut(), "Detection of group %d failed.\n", g );
             continue;
         }
         Vec_Int_t * vIn1 = Vec_WecPushLevel( vRes );
@@ -845,48 +845,48 @@ Vec_Wec_t * Gia_ManMulFindB( Gia_Man_t * p, Vec_Wec_t * vCuts4, Vec_Wec_t * vCut
 void Gia_ManMulFindPrintSet( Vec_Int_t * vSet, int fLit, int fSkipLast )
 {
     int i, Temp, Limit = Vec_IntSize(vSet) - fSkipLast;
-    printf( "{" );
+    fprintf( Abc_FrameGlobalGetOut(), "{" );
     if ( Vec_IntSize(vSet) > 16 ) {
         Vec_IntForEachEntryStop( vSet, Temp, i, 4 ) {
             if ( Temp == -1 )
-                printf( "n/a%s", i < Limit-1 ? " ":"" );
+                fprintf( Abc_FrameGlobalGetOut(), "n/a%s", i < Limit-1 ? " ":"" );
             else
-                printf( "%s%d%s", (fLit & Abc_LitIsCompl(Temp)) ? "~":"", fLit ? Abc_Lit2Var(Temp) : Temp, i < Limit-1 ? " ":"" );
+                fprintf( Abc_FrameGlobalGetOut(), "%s%d%s", (fLit & Abc_LitIsCompl(Temp)) ? "~":"", fLit ? Abc_Lit2Var(Temp) : Temp, i < Limit-1 ? " ":"" );
         }
-        printf( "... " );
+        fprintf( Abc_FrameGlobalGetOut(), "... " );
         Vec_IntForEachEntryStartStop( vSet, Temp, i, Limit-4, Limit ) {
             if ( Temp == -1 )
-                printf( "n/a%s", i < Limit-1 ? " ":"" );
+                fprintf( Abc_FrameGlobalGetOut(), "n/a%s", i < Limit-1 ? " ":"" );
             else
-                printf( "%s%d%s", (fLit & Abc_LitIsCompl(Temp)) ? "~":"", fLit ? Abc_Lit2Var(Temp) : Temp, i < Limit-1 ? " ":"" );
+                fprintf( Abc_FrameGlobalGetOut(), "%s%d%s", (fLit & Abc_LitIsCompl(Temp)) ? "~":"", fLit ? Abc_Lit2Var(Temp) : Temp, i < Limit-1 ? " ":"" );
         }
     }
     else {
         Vec_IntForEachEntryStop( vSet, Temp, i, Limit ) {
             if ( Temp == -1 )
-                printf( "n/a%s", i < Limit-1 ? " ":"" );
+                fprintf( Abc_FrameGlobalGetOut(), "n/a%s", i < Limit-1 ? " ":"" );
             else
-                printf( "%s%d%s", (fLit & Abc_LitIsCompl(Temp)) ? "~":"", fLit ? Abc_Lit2Var(Temp) : Temp, i < Limit-1 ? " ":"" );
+                fprintf( Abc_FrameGlobalGetOut(), "%s%d%s", (fLit & Abc_LitIsCompl(Temp)) ? "~":"", fLit ? Abc_Lit2Var(Temp) : Temp, i < Limit-1 ? " ":"" );
         }
     }
-    printf( "}" );
+    fprintf( Abc_FrameGlobalGetOut(), "}" );
 }
 void Gia_ManMulFindPrintOne( Vec_Wec_t * vTerms, int m, int fBooth, int fInputLits )
 {
     Vec_Int_t * vIn0 = Vec_WecEntry(vTerms, 3*m+0);
     Vec_Int_t * vIn1 = Vec_WecEntry(vTerms, 3*m+1);
     Vec_Int_t * vOut = Vec_WecEntry(vTerms, 3*m+2);
-    printf( "%sooth %s%ssigned %d x %d: ", 
+    fprintf( Abc_FrameGlobalGetOut(), "%sooth %s%ssigned %d x %d: ", 
         fBooth==1 ? "B" : "Non-b", 
         fBooth>=1 ? "radix-4 " : "", 
         Vec_IntEntryLast(vOut) ? "" : "un", 
         Vec_IntSize(vIn0), Vec_IntSize(vIn1) );
     Gia_ManMulFindPrintSet( vIn0, fInputLits, 0 );
-    printf( " * " );
+    fprintf( Abc_FrameGlobalGetOut(), " * " );
     Gia_ManMulFindPrintSet( vIn1, fInputLits, 0 );
-    printf( " = " );
+    fprintf( Abc_FrameGlobalGetOut(), " = " );
     Gia_ManMulFindPrintSet( vOut, 1, 1 );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Gia_ManMulFind( Gia_Man_t * p, int nCutNum, int fVerbose )
 {
@@ -896,7 +896,7 @@ void Gia_ManMulFind( Gia_Man_t * p, int nCutNum, int fVerbose )
     Vec_Wec_t * vCuts5 = (Vec_Wec_t *)Vec_PtrEntry(vAll, 2);
     Vec_Wec_t * vTermsB = Gia_ManMulFindB( p, vCuts4, vCuts5, fVerbose );
     Vec_Wec_t * vTermsA = Gia_ManMulFindA( p, vCuts3, fVerbose ); 
-    printf( "Detected %d booth and %d non-booth multipliers.\n", Vec_WecSize(vTermsB)/3, Vec_WecSize(vTermsA)/3 );
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d booth and %d non-booth multipliers.\n", Vec_WecSize(vTermsB)/3, Vec_WecSize(vTermsA)/3 );
     for ( m = 0; m < Vec_WecSize(vTermsA)/3; m++ )
         Gia_ManMulFindPrintOne( vTermsA, m, 0, 0 );
     for ( m = 0; m < Vec_WecSize(vTermsB)/3; m++ )

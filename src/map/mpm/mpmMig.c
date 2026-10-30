@@ -56,7 +56,7 @@ Mig_Man_t * Mig_ManStart()
 void Mig_ManStop( Mig_Man_t * p )
 {
     if ( 0 )
-    printf( "Subject graph uses %d pages of %d objects with %d entries. Total memory = %.2f MB.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Subject graph uses %d pages of %d objects with %d entries. Total memory = %.2f MB.\n", 
         Vec_PtrSize(&p->vPages), MIG_MASK + 1, p->nObjs,
         1.0 * Vec_PtrSize(&p->vPages) * (MIG_MASK + 1) * 16 / (1 << 20) );
     // attributes
@@ -190,7 +190,7 @@ int Mig_ManSuppSizeTest( Mig_Man_t * p )
     Mig_ManForEachObj( p, pObj )
         if ( Mig_ObjIsNode(pObj) )
             Counter += (Mig_ManSuppSizeOne(pObj) <= 16);
-    printf( "Nodes with small support %d (out of %d)\n", Counter, Mig_ManNodeNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes with small support %d (out of %d)\n", Counter, Mig_ManNodeNum(p) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return Counter;
 }

@@ -678,7 +678,7 @@ void Abc_NtkRedirectCiCo( Abc_Ntk_t * pNtk )
         Count++;
     }
     if ( Count )
-        printf( "Redirected %d POs from buffers to PIs with the same name.\n", Count );
+        fprintf( Abc_FrameGlobalGetOut(), "Redirected %d POs from buffers to PIs with the same name.\n", Count );
 }
 void Abc_NtkMoveNames( Abc_Ntk_t * pNtk, Abc_Ntk_t * pOld )
 {
@@ -823,7 +823,7 @@ void Abc_NtkUpdateNameIds( Abc_Ntk_t * p )
         fseek( pFile, Vec_IntEntry(vStarts, iVar), SEEK_SET );
         fprintf( pFile, "%s%d", fCompl? "-":"", i );
     }
-    printf( "Saved %d names into file \"%s\".\n", Vec_IntSize(vStarts)-1, pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Saved %d names into file \"%s\".\n", Vec_IntSize(vStarts)-1, pFileName );
     fclose( pFile );
     Vec_IntFree( vStarts );
     Vec_IntFreeP( &p->vNameIds );

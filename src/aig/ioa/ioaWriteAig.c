@@ -409,14 +409,14 @@ void Ioa_WriteAigerBufferTest( Aig_Man_t * pMan, char * pFileName, int fWriteSym
     int nSize;
     if ( Aig_ManCoNum(pMan) == 0 )
     {
-        printf( "AIG cannot be written because it has no POs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "AIG cannot be written because it has no POs.\n" );
         return;
     }
     // start the output stream
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Ioa_WriteAiger(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Ioa_WriteAiger(): Cannot open the output file \"%s\".\n", pFileName  );
         return;
     }
     // write the buffer
@@ -454,7 +454,7 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
 
     if ( Aig_ManCoNum(pMan) == 0 )
     {
-        printf( "AIG cannot be written because it has no POs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "AIG cannot be written because it has no POs.\n" );
         return;
     }
 
@@ -463,7 +463,7 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Ioa_WriteAiger(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Ioa_WriteAiger(): Cannot open the output file \"%s\".\n", pFileName  );
         return;
     }
 /*
@@ -548,7 +548,7 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
         Pos = Ioa_WriteAigerEncode( pBuffer, Pos, uLit1 - uLit0 );
         if ( Pos > nBufferSize - 10 )
         {
-            printf( "Ioa_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Ioa_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
             fclose( pFile );
             return;
         }

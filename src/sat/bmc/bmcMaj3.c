@@ -134,25 +134,25 @@ void Maj3_ManVarMapPrint( Maj3_Man_t * p )
     int i, k, Firsts[MAJ3_OBJS], Levels[MAJ3_OBJS];
     Maj3_ManFirstAndLevel( p->vLevels, Firsts, Levels, p->nVars, p->nObjs );
     // print
-    printf( "Variable map for problem with %d inputs, %d nodes and %d levels: ", p->nVars, p->nNodes, Vec_IntSize(p->vLevels) );
+    fprintf( Abc_FrameGlobalGetOut(), "Variable map for problem with %d inputs, %d nodes and %d levels: ", p->nVars, p->nNodes, Vec_IntSize(p->vLevels) );
     Vec_IntPrint( p->vLevels );
-    printf( "    " );
-    printf( "      " );
+    fprintf( Abc_FrameGlobalGetOut(), "    " );
+    fprintf( Abc_FrameGlobalGetOut(), "      " );
     for ( i = 0; i < p->nObjs; i++ )
-        printf( "%3d  ", i );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d  ", i );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( i = p->nObjs-1; i >= p->nVars; i-- )
     {
-        printf( " %2d ", i );
-        printf( " %2d   ", Levels[i] );
+        fprintf( Abc_FrameGlobalGetOut(), " %2d ", i );
+        fprintf( Abc_FrameGlobalGetOut(), " %2d   ", Levels[i] );
         for ( k = 0; k < p->nObjs; k++ )
             if ( p->VarMarks[i][k] == -1 )
-                printf( "  .  " );
+                fprintf( Abc_FrameGlobalGetOut(), "  .  " );
             else if ( p->VarMarks[i][k] == 1 )
-                printf( "  +  " );
+                fprintf( Abc_FrameGlobalGetOut(), "  +  " );
             else 
-                printf( "%3d%c ", p->VarMarks[i][k], bmcg_sat_solver_read_cex_varvalue(p->pSat, p->VarMarks[i][k]) ? '+' : ' ' );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%3d%c ", p->VarMarks[i][k], bmcg_sat_solver_read_cex_varvalue(p->pSat, p->VarMarks[i][k]) ? '+' : ' ' );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -194,22 +194,22 @@ static inline int Maj3_ManFindFanin( Maj3_Man_t * p, int i, int * pFanins )
 static inline void Maj3_ManPrintSolution( Maj3_Man_t * p )
 {
     int i, k, iVar, nFanins, pFanins[MAJ3_OBJS];
-    printf( "Realization of %d-input majority using %d MAJ3 gates:\n", p->nVars, p->nNodes );
+    fprintf( Abc_FrameGlobalGetOut(), "Realization of %d-input majority using %d MAJ3 gates:\n", p->nVars, p->nNodes );
 //    for ( i = p->nVars; i < p->nObjs; i++ )
     for ( i = p->nObjs - 1; i >= p->nVars; i-- )
     {
-        printf( "%02d = MAJ(", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%02d = MAJ(", i );
         nFanins = Maj3_ManFindFanin( p, i, pFanins );
         assert( nFanins == 3 );
         for ( k = 0; k < 3; k++ )
         {
             iVar = pFanins[k];
             if ( iVar >= 0 && iVar < p->nVars )
-                printf( " %c", 'a'+iVar );
+                fprintf( Abc_FrameGlobalGetOut(), " %c", 'a'+iVar );
             else
-                printf( " %02d", iVar );
+                fprintf( Abc_FrameGlobalGetOut(), " %02d", iVar );
         }
-        printf( " )\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " )\n" );
     }
 }
 static inline int Maj3_ManEval( Maj3_Man_t * p )
@@ -268,8 +268,8 @@ void Maj3_PrintClause( int * pLits, int nLits )
 {
     int i;
     for ( i = 0; i < nLits; i++ )
-        printf( "%c%d ", Abc_LitIsCompl(pLits[i]) ? '-' : '+', Abc_Lit2Var(pLits[i]) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%c%d ", Abc_LitIsCompl(pLits[i]) ? '-' : '+', Abc_Lit2Var(pLits[i]) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 int Maj3_ManAddCnfStart( Maj3_Man_t * p )
 {
@@ -452,7 +452,7 @@ int Maj3_ManExactSynthesis( int nVars, int nNodes, int fVerbose, Vec_Int_t * vLe
 {
     Maj3_Man_t * p;  abctime clkTotal = Abc_Clock();
     int i, status, nLazy, nLazyAll = 0, iMint = 0;
-    printf( "Running exact synthesis for %d-input majority with %d MAJ3 gates...\n", nVars, nNodes );
+    fprintf( Abc_FrameGlobalGetOut(), "Running exact synthesis for %d-input majority with %d MAJ3 gates...\n", nVars, nNodes );
     p = Maj3_ManAlloc( nVars, nNodes, vLevels );
     for ( i = 0; iMint != -1; i++ )
     {
@@ -464,7 +464,7 @@ int Maj3_ManExactSynthesis( int nVars, int nNodes, int fVerbose, Vec_Int_t * vLe
             nLazy = Maj3_ManAddConstraintsLazy( p );
             if ( nLazy == -1 )
             {
-                printf( "Became UNSAT after adding lazy constraints.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Became UNSAT after adding lazy constraints.\n" );
                 status = GLUCOSE_UNSAT;
                 break;
             }
@@ -475,17 +475,17 @@ int Maj3_ManExactSynthesis( int nVars, int nNodes, int fVerbose, Vec_Int_t * vLe
         }
         if ( fVerbose )
         {
-            printf( "Iter %3d : ", i );
-            Extra_PrintBinary( stdout, (unsigned *)&iMint, p->nVars );
-            printf( "  Var =%5d  ", p->iVar );
-            printf( "Cla =%6d  ", bmcg_sat_solver_clausenum(p->pSat) );
-            printf( "Conf =%9d  ", bmcg_sat_solver_conflictnum(p->pSat) );
-            printf( "Lazy =%9d  ", nLazyAll );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %3d : ", i );
+            Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&iMint, p->nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "  Var =%5d  ", p->iVar );
+            fprintf( Abc_FrameGlobalGetOut(), "Cla =%6d  ", bmcg_sat_solver_clausenum(p->pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Conf =%9d  ", bmcg_sat_solver_conflictnum(p->pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Lazy =%9d  ", nLazyAll );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
         if ( status == GLUCOSE_UNSAT )
         {
-            printf( "The problem has no solution.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The problem has no solution.\n" );
             break;
         }
         iMint = Maj3_ManEval( p );
@@ -705,33 +705,33 @@ int Zyx_ManAddCnfStart( Zyx_Man_t * p )
 void Zyx_ManPrintVarMap( Zyx_Man_t * p, int fSat )
 {
     int i, k, nTopoVars = 0;
-    printf( "      " );
+    fprintf( Abc_FrameGlobalGetOut(), "      " );
     for ( k = 0; k < p->nObjs-1; k++ )
-        printf( "%3d  ", k );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d  ", k );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( i = p->nObjs-1; i >= p->pPars->nVars; i-- )
     {
-        printf( "%3d   ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d   ", i );
         for ( k = 0; k < p->nObjs-1; k++ )
         {
             int iVar = Zyx_TopoVar(p, i, k);
             if ( Vec_IntEntry(p->vVarValues, iVar) == -1 )
                 printf( "%3d%c ", iVar, (fSat && bmcg_sat_solver_read_cex_varvalue(p->pSat, iVar)) ? '*' : ' ' ), nTopoVars++;
             else
-                printf( "%3d  ", Vec_IntEntry(p->vVarValues, iVar) );
+                fprintf( Abc_FrameGlobalGetOut(), "%3d  ", Vec_IntEntry(p->vVarValues, iVar) );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     if ( fSat ) return;
-    printf( "Using %d active functionality vars and %d active topology vars (out of %d SAT vars).\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Using %d active functionality vars and %d active topology vars (out of %d SAT vars).\n", 
         p->pPars->fMajority ? 0 : p->pPars->nNodes * p->LutMask, nTopoVars, bmcg_sat_solver_varnum(p->pSat) );
 }
 void Zyx_PrintClause( int * pLits, int nLits )
 {
     int i;
     for ( i = 0; i < nLits; i++ )
-        printf( "%c%d ", Abc_LitIsCompl(pLits[i]) ? '-' : '+', Abc_Lit2Var(pLits[i]) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%c%d ", Abc_LitIsCompl(pLits[i]) ? '-' : '+', Abc_Lit2Var(pLits[i]) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -1141,7 +1141,7 @@ static void Zyx_ManPrintSolutionFile( Zyx_Man_t * p, int fCompl, int fFirst )
     pFile = fopen( FileName, fFirst ? "wb" : "ab" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open input file \"%s\".\n", FileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\".\n", FileName );
         return;
     }
     for ( i = p->pPars->nVars; i < p->nObjs; i++ )
@@ -1166,34 +1166,34 @@ static void Zyx_ManPrintSolutionFile( Zyx_Man_t * p, int fCompl, int fFirst )
     }
     fprintf( pFile, "\n" );
     fclose( pFile );
-    printf( "Dumped solution into file \"%s\".\n", FileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Dumped solution into file \"%s\".\n", FileName );
 }
 static void Zyx_ManPrintSolution( Zyx_Man_t * p, int fCompl, int fFirst )
 {
     int i, k;
-    printf( "Realization of given %d-input function using %d %d-input %s:\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Realization of given %d-input function using %d %d-input %s:\n", 
         p->pPars->nVars, p->pPars->nNodes, p->pPars->nLutSize, p->pPars->fMajority ? "MAJ-gates" : "LUTs" );
     for ( i = p->nObjs - 1; i >= p->pPars->nVars; i-- )
     {
-        printf( "%02d = ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%02d = ", i );
         if ( p->pPars->fMajority )
-            printf( "MAJ3" );
+            fprintf( Abc_FrameGlobalGetOut(), "MAJ3" );
         else
         {
-            printf( "%d\'b", 1 << p->pPars->nLutSize );
+            fprintf( Abc_FrameGlobalGetOut(), "%d\'b", 1 << p->pPars->nLutSize );
             for ( k = p->LutMask; k >= 0; k-- )
-                printf( "%d", bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_FuncVar(p, i, k)) ^ (i == p->nObjs - 1 && fCompl) );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_FuncVar(p, i, k)) ^ (i == p->nObjs - 1 && fCompl) );
         }
-        printf( "(" );
+        fprintf( Abc_FrameGlobalGetOut(), "(" );
         for ( k = 0; k < i; k++ )
             if ( bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_TopoVar(p, i, k)) )
             {
                 if ( k >= 0 && k < p->pPars->nVars )
-                    printf( " %c", 'a'+k );
+                    fprintf( Abc_FrameGlobalGetOut(), " %c", 'a'+k );
                 else
-                    printf( " %02d", k );
+                    fprintf( Abc_FrameGlobalGetOut(), " %02d", k );
             }
-        printf( " )\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " )\n" );
     }
     if ( !p->pPars->fMajority )
         Zyx_ManPrintSolutionFile( p, fCompl, fFirst );
@@ -1249,17 +1249,17 @@ static inline void Zyx_ManEvalStats( Zyx_Man_t * p )
 {
     int i;
     for ( i = 0; i < (1 << p->pPars->nVars); i++ )
-        printf( "%d=%d ", i, p->Counts[i] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, p->Counts[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 static inline void Zyx_ManPrint( Zyx_Man_t * p, int Iter, int iMint, int nLazyAll, abctime clk )
 {
-    printf( "Iter %6d : ", Iter );
-    Extra_PrintBinary( stdout, (unsigned *)&iMint, p->pPars->nVars );
-    printf( "  " );
-    printf( "Cla =%9d  ", bmcg_sat_solver_clausenum(p->pSat) );
-    printf( "Lazy =%6d  ", nLazyAll );
-    printf( "Conf =%9d  ", bmcg_sat_solver_conflictnum(p->pSat) );
+    fprintf( Abc_FrameGlobalGetOut(), "Iter %6d : ", Iter );
+    Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&iMint, p->pPars->nVars );
+    fprintf( Abc_FrameGlobalGetOut(), "  " );
+    fprintf( Abc_FrameGlobalGetOut(), "Cla =%9d  ", bmcg_sat_solver_clausenum(p->pSat) );
+    fprintf( Abc_FrameGlobalGetOut(), "Lazy =%6d  ", nLazyAll );
+    fprintf( Abc_FrameGlobalGetOut(), "Conf =%9d  ", bmcg_sat_solver_conflictnum(p->pSat) );
     Abc_PrintTime( 1, "Time", clk );
     //Zyx_ManEvalStats( p );
     //Abc_PrintTime( 1, "Eval", p->clkEval );
@@ -1277,7 +1277,7 @@ void Zyx_ManExactSynthesis( Bmc_EsPar_t * pPars )
     assert( pPars->nVars <= 12 );
     assert( pPars->nLutSize <= 6 );
     p = Zyx_ManAlloc( pPars, pPars->fMajority ? NULL : pTruth );
-    printf( "Running exact synthesis for %d-input function with %d %d-input %s...\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Running exact synthesis for %d-input function with %d %d-input %s...\n", 
         p->pPars->nVars, p->pPars->nNodes, p->pPars->nLutSize, p->pPars->fMajority ? "MAJ-gates" : "LUTs" );
     for ( Iter = 0 ; ; Iter++ )
     {
@@ -1286,7 +1286,7 @@ void Zyx_ManExactSynthesis( Bmc_EsPar_t * pPars )
             int nLazy = Zyx_ManAddCnfLazyTopo( p );
             if ( nLazy == -1 )
             {
-                printf( "Became UNSAT after adding lazy constraints.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Became UNSAT after adding lazy constraints.\n" );
                 status = GLUCOSE_UNSAT;
                 break;
             }
@@ -1322,7 +1322,7 @@ void Zyx_ManExactSynthesis( Bmc_EsPar_t * pPars )
         }
         if ( pPars->fUseIncr ? !Zyx_ManAddCnfLazyFunc2(p, iMint) : !Zyx_ManAddCnfLazyFunc(p, iMint) )
         {
-            printf( "Became UNSAT after adding constraints for minterm %d\n", iMint );
+            fprintf( Abc_FrameGlobalGetOut(), "Became UNSAT after adding constraints for minterm %d\n", iMint );
             status = GLUCOSE_UNSAT;
             break;
         }
@@ -1338,13 +1338,13 @@ void Zyx_ManExactSynthesis( Bmc_EsPar_t * pPars )
     if ( pPars->fVerbose )
         Zyx_ManPrint( p, Iter, iMint, nLazyAll, Abc_Clock() - clkTotal );
     if ( pPars->fEnumSols )
-        printf( "Finished enumerating %d solutions.\n", nSols );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished enumerating %d solutions.\n", nSols );
     else if ( iMint == -1 )
         Zyx_ManPrintSolution( p, fCompl, 1 );
     else
-        printf( "The problem has no solution.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The problem has no solution.\n" );
     //Zyx_ManEvalStats( p );
-    printf( "Added = %d.  Tried = %d.  ", p->nUsed[1], p->nUsed[0] );
+    fprintf( Abc_FrameGlobalGetOut(), "Added = %d.  Tried = %d.  ", p->nUsed[1], p->nUsed[0] );
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
     Zyx_ManFree( p );
 }
@@ -1388,7 +1388,7 @@ int Zyx_TestGetTruthTablePars( char * pFileName, word * pTruth, int * nVars, int
     else
     {
         ABC_FREE( pBuffer );
-        printf( "Invalid truth table size.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Invalid truth table size.\n" );
         return 0;
     }
     Abc_TtReadHex( pTruth, pBuffer );
@@ -1398,7 +1398,7 @@ int Zyx_TestGetTruthTablePars( char * pFileName, word * pTruth, int * nVars, int
     if ( *pCur == 0 )
     {
         ABC_FREE( pBuffer );
-        printf( "Expecting \'-\' after truth table before LUT size.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Expecting \'-\' after truth table before LUT size.\n" );
         return 0;
     }
     // read node count
@@ -1407,7 +1407,7 @@ int Zyx_TestGetTruthTablePars( char * pFileName, word * pTruth, int * nVars, int
     if ( *pCur == 0 )
     {
         ABC_FREE( pBuffer );
-        printf( "Expecting \'-\' after LUT size before node count.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Expecting \'-\' after LUT size before node count.\n" );
         return 0;
     }
     *nNodes = atoi(pCur);
@@ -1437,12 +1437,12 @@ int Zyx_TestReadNode( char * pLine, Vec_Wrd_t * vTruths, int nVars, int nLutSize
         return 0;
     if ( (int)strlen(pLine) != 1 + nLutSize + (1 << nLutSize) )
     {
-        printf( "Node representation has %d chars (expecting %d chars).\n", (int)strlen(pLine), 1 + nLutSize + (1 << nLutSize) );
+        fprintf( Abc_FrameGlobalGetOut(), "Node representation has %d chars (expecting %d chars).\n", (int)strlen(pLine), 1 + nLutSize + (1 << nLutSize) );
         return 0;
     }
     if ( pLine[0] != 'A' + iObj )
     {
-        printf( "The output node in line %s is not correct.\n", pLine );
+        fprintf( Abc_FrameGlobalGetOut(), "The output node in line %s is not correct.\n", pLine );
         return 0;
     }
     pTruth  = pLine + 1;
@@ -1470,24 +1470,24 @@ void Zyx_TestExact( char * pFileName )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open input file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\".\n", pFileName );
         return;
     }
     if ( !Zyx_TestGetTruthTablePars( pFileName, pSpec, &nVars, &nLutSize, &nNodes ) )
         return;
     if ( nVars > 8 )
     {
-        printf( "This tester does not support functions with more than 8 inputs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "This tester does not support functions with more than 8 inputs.\n" );
         return;
     }
     if ( nLutSize > 6 )
     {
-        printf( "This tester does not support nodes with more than 6 inputs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "This tester does not support nodes with more than 6 inputs.\n" );
         return;
     }
     if ( nNodes > 16 )
     {
-        printf( "This tester does not support structures with more than 16 inputs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "This tester does not support structures with more than 16 inputs.\n" );
         return;
     }
     vInfo = Zyx_TestCreateTruthTables( nVars, nNodes );
@@ -1497,18 +1497,18 @@ void Zyx_TestExact( char * pFileName )
             continue;
         if ( iObj != nVars + nNodes )
         {
-            printf( "The number of nodes in the structure is not correct.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The number of nodes in the structure is not correct.\n" );
             break;
         }
         nStrs++;
         pImpl = Zyx_TestTruth( vInfo, iObj-1, Abc_TtWordNum(nVars) );
         if ( Abc_TtEqual( pImpl, pSpec, Abc_TtWordNum(nVars) ) )
-            printf( "Structure %3d : Verification successful.\n", nStrs );
+            fprintf( Abc_FrameGlobalGetOut(), "Structure %3d : Verification successful.\n", nStrs );
         else
         {
-            printf( "Structure %3d : Verification FAILED.\n", nStrs );
-            printf( "Implementation: " ); Dau_DsdPrintFromTruth( pImpl, nVars );
-            printf( "Specification:  " ); Dau_DsdPrintFromTruth( pSpec, nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "Structure %3d : Verification FAILED.\n", nStrs );
+            fprintf( Abc_FrameGlobalGetOut(), "Implementation: " ); Dau_DsdPrintFromTruth( pImpl, nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "Specification:  " ); Dau_DsdPrintFromTruth( pSpec, nVars );
         }
         iObj = nVars - 1;
     }

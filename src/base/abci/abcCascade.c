@@ -365,10 +365,10 @@ void Abc_ResPrint( DdManager * dd, DdNode * bFunc, int nInputs, unsigned uParts[
         Cost = Abc_ResCost( dd, bFunc, uParts[i], &nCofs, &fCheck );
         CostAll += Cost;
         for ( k = 0; k < nInputs; k++ )
-            printf( "%c", (uParts[i] & (1 << k))? 'a' + k : '-' );
-        printf( " %2d %d-%d %6d   ", nCofs, Abc_Base2Log(nCofs), fCheck, Cost );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", (uParts[i] & (1 << k))? 'a' + k : '-' );
+        fprintf( Abc_FrameGlobalGetOut(), " %2d %d-%d %6d   ", nCofs, Abc_Base2Log(nCofs), fCheck, Cost );
     }
-    printf( "%4d\n", CostAll );
+    fprintf( Abc_FrameGlobalGetOut(), "%4d\n", CostAll );
 }
 
 /**Function*************************************************************
@@ -394,8 +394,8 @@ void Abc_ResPrintAllCofs( DdManager * dd, DdNode * bFunc, int nInputs, int nCofM
         if ( nCofs > nCofMax )
             continue;
         for ( k = 0; k < nInputs; k++ )
-            printf( "%c", (i & (1 << k))? 'a' + k : '-' );
-        printf( "  n=%2d  c=%2d  l=%d-%d   %6d\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "%c", (i & (1 << k))? 'a' + k : '-' );
+        fprintf( Abc_FrameGlobalGetOut(), "  n=%2d  c=%2d  l=%d-%d   %6d\n", 
             Extra_WordCountOnes(i), nCofs, Abc_Base2Log(nCofs), fCheck, Cost );
     }
 }
@@ -458,13 +458,13 @@ void Abc_ResPartition( DdManager * dd, DdNode * bFunc, int nInputs )
     unsigned uParts[10];
     int i, fChange = 1;
     int nSuppSize = Cudd_SupportSize( dd, bFunc );
-    printf( "Ins =%3d. Outs =%2d. Nodes =%3d. Supp =%2d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Ins =%3d. Outs =%2d. Nodes =%3d. Supp =%2d.\n", 
         nInputs, dd->size-nInputs, Cudd_DagSize(bFunc), nSuppSize );
 //Abc_ResPrintAllCofs( dd, bFunc, nInputs, 4 );
 
     if ( nSuppSize <= 6 )
     {
-        printf( "Support is less or equal than 6\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Support is less or equal than 6\n" );
         return;
     }
     if ( nInputs <= 12 )
@@ -475,7 +475,7 @@ void Abc_ResPartition( DdManager * dd, DdNode * bFunc, int nInputs )
         {
             if ( i ) 
             {
-                printf( "Randomizing... \n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Randomizing... \n" );
                 Abc_ResSwapRandom( dd, bFunc, nInputs, uParts, 2, 20 );
                 Abc_ResPrint( dd, bFunc, nInputs, uParts, 2 );
             }
@@ -495,7 +495,7 @@ void Abc_ResPartition( DdManager * dd, DdNode * bFunc, int nInputs )
         {
             if ( i ) 
             {
-                printf( "Randomizing... \n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Randomizing... \n" );
                 Abc_ResSwapRandom( dd, bFunc, nInputs, uParts, 3, 20 );
                 Abc_ResPrint( dd, bFunc, nInputs, uParts, 3 );
             }
@@ -519,7 +519,7 @@ void Abc_ResPartition( DdManager * dd, DdNode * bFunc, int nInputs )
         {
             if ( i )
             {
-                printf( "Randomizing... \n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Randomizing... \n" );
                 Abc_ResSwapRandom( dd, bFunc, nInputs, uParts, 4, 20 );
                 Abc_ResPrint( dd, bFunc, nInputs, uParts, 4 );
             }
@@ -618,9 +618,9 @@ int Abc_NtkBddCofCount( DdManager * dd, DdNode * bFunc, DdNode ** pbVars, int nV
 void Abc_NtkExploreCofs2( DdManager * dd, DdNode * bFunc, DdNode ** pbVars, int nIns, int nLutSize )
 {
     int i;
-    printf( "Inputs = %2d.  Nodes = %2d.  LutSize = %2d.\n", nIns, Cudd_DagSize(bFunc), nLutSize );
+    fprintf( Abc_FrameGlobalGetOut(), "Inputs = %2d.  Nodes = %2d.  LutSize = %2d.\n", nIns, Cudd_DagSize(bFunc), nLutSize );
     for ( i = 0; i <= nIns - nLutSize; i++ )
-        printf( "[%2d %2d] : %3d\n", i, i+nLutSize-1, Abc_NtkBddCofCount(dd, bFunc, dd->vars+i, nLutSize) );
+        fprintf( Abc_FrameGlobalGetOut(), "[%2d %2d] : %3d\n", i, i+nLutSize-1, Abc_NtkBddCofCount(dd, bFunc, dd->vars+i, nLutSize) );
 }
 
 /**Function*************************************************************
@@ -665,12 +665,12 @@ void Abc_NtkExploreCofs( DdManager * dd, DdNode * bFunc, DdNode ** pbVars, int n
         {
             if ( (i & (1 << k)) == 0 )
             {
-                printf( "-" );
+                fprintf( Abc_FrameGlobalGetOut(), "-" );
                 continue;
             }
-            printf( "%c", k + 'a' );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", k + 'a' );
         }
-        printf( " : %2d\n", nCofs );
+        fprintf( Abc_FrameGlobalGetOut(), " : %2d\n", nCofs );
     }
 
     Cudd_RecursiveDeref( ddNew, bFuncNew );
@@ -981,7 +981,7 @@ Abc_Ntk_t * Abc_NtkCreateFromCharFunc( Abc_Ntk_t * pNtk, DdManager * dd, DdNode 
     Abc_ObjAddFanin( pNodePo, pNodeNew );
     Abc_ObjAssignName( pNodePo, "out", NULL );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkCreateFromCharFunc(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCreateFromCharFunc(): Network check has failed.\n"  );
     return pNtkNew;
 }
 

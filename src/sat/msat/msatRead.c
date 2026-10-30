@@ -146,7 +146,7 @@ static int Msat_ReadInt( char ** pIn )
     else if ( **pIn == '+' ) 
         (*pIn)++;
     if ( **pIn < '0' || **pIn > '9' ) 
-        fprintf(stderr, "PARSE ERROR! Unexpected char: %c\n", **pIn), 
+        fprintf( Abc_FrameGlobalGetErr(), "PARSE ERROR! Unexpected char: %c\n", **pIn), 
         exit(1);
     while ( **pIn >= '0' && **pIn <= '9' )
         val = val*10 + (**pIn - '0'),
@@ -180,7 +180,7 @@ static void Msat_ReadClause( char ** pIn, Msat_Solver_t * p, Msat_IntVec_t * pLi
         sign = (parsed_lit > 0);
         if ( var >= nVars )
         {
-            printf( "Variable %d is larger than the number of allocated variables (%d).\n", var+1, nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "Variable %d is larger than the number of allocated variables (%d).\n", var+1, nVars );
             exit(1);
         }
         Msat_IntVecPush( pLits, MSAT_VAR2LIT(var, !sign) );
@@ -231,7 +231,7 @@ static int  Msat_ReadDimacs( char * pText, Msat_Solver_t ** pS, int  fVerbose )
         {
             if ( p == NULL )
             {
-                printf( "There is no parameter line.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "There is no parameter line.\n" );
                 exit(1);
             }
             Msat_ReadClause( &pIn, p, pLits );

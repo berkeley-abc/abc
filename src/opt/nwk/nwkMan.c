@@ -100,9 +100,9 @@ void Nwk_ManPrintLutSizes( Nwk_Man_t * p, If_LibLut_t * pLutLib )
     int i, Counters[256] = {0};
     Nwk_ManForEachNode( p, pObj, i )
         Counters[Nwk_ObjFaninNum(pObj)]++;
-    printf( "LUTs by size: " );
+    fprintf( Abc_FrameGlobalGetOut(), "LUTs by size: " );
     for ( i = 0; i <= pLutLib->LutMax; i++ )
-        printf( "%d:%d ", i, Counters[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%d:%d ", i, Counters[i] );
 }
 
 /**Function*************************************************************
@@ -249,24 +249,24 @@ void Nwk_ManPrintStats( Nwk_Man_t * pNtk, If_LibLut_t * pLutLib, int fSaveBest, 
     }
 
     pNtk->pLutLib = pLutLib;
-    printf( "%-15s : ",      pNtk->pName );
-    printf( "pi = %5d  ",    Nwk_ManPiNum(pNtk) );
-    printf( "po = %5d  ",    Nwk_ManPoNum(pNtk) );
-    printf( "ci = %5d  ",    Nwk_ManCiNum(pNtk) );
-    printf( "co = %5d  ",    Nwk_ManCoNum(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "%-15s : ",      pNtk->pName );
+    fprintf( Abc_FrameGlobalGetOut(), "pi = %5d  ",    Nwk_ManPiNum(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "po = %5d  ",    Nwk_ManPoNum(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "ci = %5d  ",    Nwk_ManCiNum(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "co = %5d  ",    Nwk_ManCoNum(pNtk) );
 //    printf( "lat = %5d  ",   Ntl_ManLatchNum(pNtl) );
-    printf( "node = %5d  ",  Nwk_ManNodeNum(pNtk) );
-    printf( "edge = %5d  ",  Nwk_ManGetTotalFanins(pNtk) );
-    printf( "aig = %6d  ",   Nwk_ManGetAigNodeNum(pNtk) );
-    printf( "lev = %3d  ",   Nwk_ManLevel(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "node = %5d  ",  Nwk_ManNodeNum(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "edge = %5d  ",  Nwk_ManGetTotalFanins(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "aig = %6d  ",   Nwk_ManGetAigNodeNum(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "lev = %3d  ",   Nwk_ManLevel(pNtk) );
 //    printf( "lev2 = %3d  ",  Nwk_ManLevelBackup(pNtk) );
-    printf( "delay = %5.2f  ", Nwk_ManDelayTraceLut(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "delay = %5.2f  ", Nwk_ManDelayTraceLut(pNtk) );
     if ( fPower )
-        printf( "power = %7.2f   ", Nwl_ManComputeTotalSwitching(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(), "power = %7.2f   ", Nwl_ManComputeTotalSwitching(pNtk) );
     Nwk_ManPrintLutSizes( pNtk, pLutLib );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 //    Nwk_ManDelayTracePrint( pNtk, pLutLib );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 ////////////////////////////////////////////////////////////////////////

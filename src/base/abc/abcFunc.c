@@ -201,7 +201,7 @@ int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
     // start the functionality manager
     nFaninsMax = Abc_NtkGetFaninMax( pNtk );
     if ( nFaninsMax == 0 )
-        printf( "Warning: The network has only constant nodes.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The network has only constant nodes.\n" );
     dd = Cudd_Init( nFaninsMax, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
 
     // start temporary manager for reordered local functions
@@ -223,7 +223,7 @@ int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
             DdNode * pFunc = Abc_ConvertSopToBdd( ddTemp, (char *)pNode->pData, NULL );
             if ( pFunc == NULL )
             {
-                printf( "Abc_NtkSopToBdd: Error while converting SOP into BDD.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkSopToBdd: Error while converting SOP into BDD.\n" );
                 return 0;
             }
             Cudd_Ref( pFunc );
@@ -250,7 +250,7 @@ int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
             pNode->pData = Abc_ConvertSopToBdd( dd, (char *)pNode->pData, NULL );
             if ( pNode->pData == NULL )
             {
-                printf( "Abc_NtkSopToBdd: Error while converting SOP into BDD.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkSopToBdd: Error while converting SOP into BDD.\n" );
                 return 0;
             }
             Cudd_Ref( (DdNode *)pNode->pData );
@@ -384,7 +384,7 @@ char * Abc_ConvertBddToSop( Mem_Flex_t * pMan, DdManager * dd, DdNode * bFuncOn,
     if ( nCubes > ABC_MAX_CUBES )
     {
         Cudd_RecursiveDerefZdd( dd, zCover );
-        printf( "The number of cubes exceeded the predefined limit (%d).\n", ABC_MAX_CUBES );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of cubes exceeded the predefined limit (%d).\n", ABC_MAX_CUBES );
         return NULL;
     }
 
@@ -407,12 +407,12 @@ char * Abc_ConvertBddToSop( Mem_Flex_t * pMan, DdManager * dd, DdNode * bFuncOn,
         if ( bFuncOn == bFuncOnDc )
         {
             if ( bFuncNew != bFuncOn )
-                printf( "Verification failed.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Verification failed.\n" );
         }
         else
         {
             if ( !Cudd_bddLeq(dd, bFuncOn, bFuncNew) || !Cudd_bddLeq(dd, bFuncNew, bFuncOnDc) )
-                printf( "Verification failed.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Verification failed.\n" );
         }
         Cudd_RecursiveDeref( dd, bFuncNew );
     }
@@ -492,9 +492,9 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fMode, int nCubeLimit, int fCubeSort 
         // check the support
         if ( Abc_ObjFaninNum(pNode) != Abc_SopGetVarNum((char *)pNode->pNext) )
         {
-            printf( "Node %d with level %d has %d fanins but its SOP has support size %d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Node %d with level %d has %d fanins but its SOP has support size %d.\n", 
                 pNode->Id, pNode->Level, Abc_ObjFaninNum(pNode), Abc_SopGetVarNum((char *)pNode->pNext) );
-            fflush( stdout );
+            fflush( Abc_FrameGlobalGetOut() );
         }
         assert( Abc_ObjFaninNum(pNode) == Abc_SopGetVarNum((char *)pNode->pNext) );
     }
@@ -635,7 +635,7 @@ void Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk )
     // start the BDD package
     nFaninsMax = Abc_NtkGetFaninMax( pNtk );
     if ( nFaninsMax == 0 )
-        printf( "Warning: The network has only constant nodes.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The network has only constant nodes.\n" );
     dd = Cudd_Init( nFaninsMax, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
 
     // change the cover of negated nodes
@@ -727,7 +727,7 @@ int Abc_NtkAigToBdd( Abc_Ntk_t * pNtk )
     // start the functionality manager
     nFaninsMax = Abc_NtkGetFaninMax( pNtk );
     if ( nFaninsMax == 0 )
-        printf( "Warning: The network has only constant nodes.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The network has only constant nodes.\n" );
 
     dd = Cudd_Init( nFaninsMax, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
 
@@ -750,7 +750,7 @@ int Abc_NtkAigToBdd( Abc_Ntk_t * pNtk )
         pFunc = Abc_ConvertAigToBdd( ddTemp, (Hop_Obj_t *)pNode->pData );
         if ( pFunc == NULL )
         {
-            printf( "Abc_NtkAigToBdd: Error while converting AIG into BDD.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkAigToBdd: Error while converting AIG into BDD.\n" );
             return 0;
         }
         Cudd_Ref( pFunc );
@@ -907,7 +907,7 @@ int Abc_NtkSopToAig( Abc_Ntk_t * pNtk )
         if ( pNode->pData == NULL )
         {
             Hop_ManStop( pMan );
-            printf( "Abc_NtkSopToAig: Error while converting SOP into AIG.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkSopToAig: Error while converting SOP into AIG.\n" );
             return 0;
         }
     }

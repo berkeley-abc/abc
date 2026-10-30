@@ -104,7 +104,7 @@ static Aig_Obj_t * Cudd2_GetArg( void * pArg )
     assert( s_pCuddMan != NULL );
     if ( ! st__lookup( s_pCuddMan->pTable, (char *)Aig_Regular(pArg), (char **)&pNode ) )
     {
-        printf( "Cudd2_GetArg(): An argument BDD is not in the hash table.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cudd2_GetArg(): An argument BDD is not in the hash table.\n" );
         return NULL;
     }
     return Aig_NotCond( pNode, Aig_IsComplement(pArg) );

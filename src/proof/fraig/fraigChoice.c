@@ -74,7 +74,7 @@ void Fraig_ManAddChoices( Fraig_Man_t * pMan, int fVerbose, int nLimit )
     nInputs      = Fraig_ManReadInputNum( pMan );
     nMaxNodes    = nInputs + nLimit * ( nNodesBefore - nInputs );
 
-    printf ("Limit = %d, Before = %d\n", nMaxNodes, nNodesBefore );
+    fprintf ( Abc_FrameGlobalGetOut(), "Limit = %d, Before = %d\n", nMaxNodes, nNodesBefore );
 
     if (0) 
     {
@@ -231,9 +231,9 @@ Fraig_ManCheckConsistency( pMan );
 Fraig_ManCheckConsistency( pMan );
 
     nNodesAfter = Fraig_ManReadNodeNum( pMan );
-    printf ( "Nodes before = %6d. Nodes with associative choices = %6d. Increase = %4.2f %%.\n", 
+    fprintf ( Abc_FrameGlobalGetOut(),  "Nodes before = %6d. Nodes with associative choices = %6d. Increase = %4.2f %%.\n", 
             nNodesBefore, nNodesAfter, ((float)(nNodesAfter - nNodesBefore)) * 100.0/(nNodesBefore - nInputs) );
-    printf ( "Distributive = %d\n", nDistributive );
+    fprintf ( Abc_FrameGlobalGetOut(),  "Distributive = %d\n", nDistributive );
 
 }
 

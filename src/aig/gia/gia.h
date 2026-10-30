@@ -725,10 +725,10 @@ static inline Gia_Obj_t * Gia_ManAppendObj( Gia_Man_t * p )
     {
         int nObjNew = Abc_MinInt( 2 * p->nObjsAlloc, (1 << 29) );
         if ( p->nObjs == (1 << 29) )
-            printf( "Hard limit on the number of nodes (2^29) is reached. Quitting...\n" ), exit(1);
+            fprintf( Abc_FrameGlobalGetOut(),  "Hard limit on the number of nodes (2^29) is reached. Quitting...\n"  ), exit(1);
         assert( p->nObjs < nObjNew );
         if ( p->fVerbose )
-            printf("Extending GIA object storage: %d -> %d.\n", p->nObjsAlloc, nObjNew );
+            fprintf( Abc_FrameGlobalGetOut(), "Extending GIA object storage: %d -> %d.\n", p->nObjsAlloc, nObjNew  );
         assert( p->nObjsAlloc > 0 );
         p->pObjs = ABC_REALLOC( Gia_Obj_t, p->pObjs, nObjNew );
         memset( p->pObjs + p->nObjsAlloc, 0, sizeof(Gia_Obj_t) * (nObjNew - p->nObjsAlloc) );
@@ -1034,11 +1034,11 @@ static inline void Gia_ObjTerSimRo( Gia_Man_t * p, Gia_Obj_t * pObj )
 static inline void Gia_ObjTerSimPrint( Gia_Obj_t * pObj )
 {
     if ( Gia_ObjTerSimGet0(pObj) )
-        printf( "0" );
+        fprintf( Abc_FrameGlobalGetOut(),  "0"  );
     else if ( Gia_ObjTerSimGet1(pObj) )
-        printf( "1" );
+        fprintf( Abc_FrameGlobalGetOut(),  "1"  );
     else if ( Gia_ObjTerSimGetX(pObj) )
-        printf( "X" );
+        fprintf( Abc_FrameGlobalGetOut(),  "X"  );
 }
 
 static inline int Gia_AigerReadInt( unsigned char * pPos )
@@ -1957,6 +1957,9 @@ extern Gia_Man_t*           Bnd_ManCutBoundary( Gia_Man_t *p, Vec_Int_t* vEI, Ve
 extern int                  Gia_ObjCheckMffc( Gia_Man_t * p, Gia_Obj_t * pRoot, int Limit, Vec_Int_t * vNodes, Vec_Int_t * vLeaves, Vec_Int_t * vInners );
 
 ABC_NAMESPACE_HEADER_END
+
+extern ABC_DLL FILE *       Abc_FrameGlobalGetOut();
+extern ABC_DLL FILE *       Abc_FrameGlobalGetErr();
 
 
 #endif

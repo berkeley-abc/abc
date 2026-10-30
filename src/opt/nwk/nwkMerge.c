@@ -100,7 +100,7 @@ void Nwk_ManGraphReportMemoryUsage( Nwk_Grf_t * p )
     p->nMemBytes2 = 
         sizeof(Nwk_Vrt_t) * p->nVerts + 
         sizeof(int) * 2 * p->nEdges;
-    printf( "Memory usage stats:  Preprocessing = %.2f MB.  Solving = %.2f MB.\n",
+    fprintf( Abc_FrameGlobalGetOut(), "Memory usage stats:  Preprocessing = %.2f MB.  Solving = %.2f MB.\n",
         1.0 * p->nMemBytes1 / (1<<20), 1.0 * p->nMemBytes2 / (1<<20) );
 }
 
@@ -546,11 +546,11 @@ int Nwk_ManGraphListLength( Nwk_Grf_t * p, int List )
     Nwk_ListForEachVertex( p, List, pThis )
     {
         if ( fVerbose && Counter < 20 )
-            printf( "%d ", p->pVerts[pThis->pEdges[0]]->nEdges );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", p->pVerts[pThis->pEdges[0]]->nEdges );
         Counter++;
     }
     if ( fVerbose )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     return Counter;
 }
 
@@ -710,7 +710,7 @@ int Nwk_ManLutMergeGraphTest( char * pFileName )
     ABC_PRT( "Reading", Abc_Clock() - clk );
     clk = Abc_Clock();
     Nwk_ManGraphSolve( p );
-    printf( "GRAPH: Nodes = %6d. Edges = %6d.  Pairs = %6d.  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "GRAPH: Nodes = %6d. Edges = %6d.  Pairs = %6d.  ", 
         p->nVerts, p->nEdges, Vec_IntSize(p->vPairs)/2 );
     ABC_PRT( "Solving", Abc_Clock() - clk );
     nPairs = Vec_IntSize(p->vPairs)/2;
@@ -1005,7 +1005,7 @@ Vec_Int_t * Nwk_ManLutMerge( Nwk_Man_t * pNtk, void * pParsInit )
             Nwk_ManGraphHashEdge( p, Nwk_ObjId(pLut), Nwk_ObjId(pCand) );
         // print statistics about this node
         if ( pPars->fVeryVerbose )
-        printf( "Node %6d : Fanins = %d. Fanouts = %3d.  Cand1 = %3d. Cand2 = %3d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Node %6d : Fanins = %d. Fanouts = %3d.  Cand1 = %3d. Cand2 = %3d.\n",
             Nwk_ObjId(pLut), Nwk_ObjFaninNum(pLut), Nwk_ObjFaninNum(pLut), 
             Vec_PtrSize(vCands1), Vec_PtrSize(vCands2) );
     }
@@ -1015,7 +1015,7 @@ Vec_Int_t * Nwk_ManLutMerge( Nwk_Man_t * pNtk, void * pParsInit )
     Vec_PtrFree( vCands2 );
     if ( pPars->fVerbose )
     {
-        printf( "Mergable LUTs = %6d. Total cands = %6d. ", p->nVertsMax, nCands );
+        fprintf( Abc_FrameGlobalGetOut(), "Mergable LUTs = %6d. Total cands = %6d. ", p->nVertsMax, nCands );
         ABC_PRT( "Deriving graph", Abc_Clock() - clk );
     }
     // solve the graph problem
@@ -1023,7 +1023,7 @@ Vec_Int_t * Nwk_ManLutMerge( Nwk_Man_t * pNtk, void * pParsInit )
     Nwk_ManGraphSolve( p );
     if ( pPars->fVerbose )
     {
-        printf( "GRAPH: Nodes = %6d. Edges = %6d.  Pairs = %6d.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "GRAPH: Nodes = %6d. Edges = %6d.  Pairs = %6d.  ", 
             p->nVerts, p->nEdges, Vec_IntSize(p->vPairs)/2 );
         ABC_PRT( "Solving", Abc_Clock() - clk );
         Nwk_ManGraphReportMemoryUsage( p );

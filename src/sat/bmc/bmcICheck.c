@@ -207,7 +207,7 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fEmpty,
     assert( Gia_ManRegNum(p) > 0 );
 
     if ( fVerbose )
-    printf( "Solving M-inductiveness for design %s with %d AND nodes and %d flip-flops:\n",
+    fprintf( Abc_FrameGlobalGetOut(), "Solving M-inductiveness for design %s with %d AND nodes and %d flip-flops:\n",
         Gia_ManName(p), Gia_ManAndNum(p), Gia_ManRegNum(p) );
 
     // create miter
@@ -243,12 +243,12 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fEmpty,
         status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( status == l_Undef )
         {
-            printf( "Timeout reached after %d seconds.\n", nTimeOut );
+            fprintf( Abc_FrameGlobalGetOut(), "Timeout reached after %d seconds.\n", nTimeOut );
             break;
         }
         if ( status == l_True )
         {
-            printf( "The problem is satisfiable (the current set is not M-inductive).\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The problem is satisfiable (the current set is not M-inductive).\n" );
             break;
         }
         assert( status == l_False );
@@ -274,7 +274,7 @@ void Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fEmpty,
         }
         // report the results
         if ( fVerbose )
-        printf( "M =%4d :  AIG =%8d.  SAT vars =%8d.  SAT conf =%8d.  S =%6d. (%6.2f %%)  ",
+        fprintf( Abc_FrameGlobalGetOut(), "M =%4d :  AIG =%8d.  SAT vars =%8d.  SAT conf =%8d.  S =%6d. (%6.2f %%)  ",
             nFramesMax, (nFramesMax+1) * Gia_ManAndNum(pMiter), 
             Gia_ManRegNum(p) + Gia_ManCoNum(p) + sat_solver_nvars(pSat), 
             sat_solver_nconflicts(pSat), nLitsUsed, 100.0 * nLitsUsed / Gia_ManRegNum(p) );
@@ -408,8 +408,8 @@ int Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fRev
     status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( status == l_True )
     {
-        printf( "I = %4d :  ", nFramesMax );
-        printf( "Problem is satisfiable.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "I = %4d :  ", nFramesMax );
+        fprintf( Abc_FrameGlobalGetOut(), "Problem is satisfiable.\n" );
         sat_solver_delete( pSat );
         Cnf_DataFree( pCnf );
         Gia_ManStop( pMiter );
@@ -417,7 +417,7 @@ int Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fRev
     }
     if ( status == l_Undef )
     {
-        printf( "ICheck: Timeout reached after %d seconds.                                                                          \n", nTimeOut );
+        fprintf( Abc_FrameGlobalGetOut(), "ICheck: Timeout reached after %d seconds.                                                                          \n", nTimeOut );
         RetValue = 1;
         goto cleanup;
     }
@@ -445,7 +445,7 @@ int Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fRev
         status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( status == l_Undef )
         {
-            printf( "ICheck: Timeout reached after %d seconds.                                                                          \n", nTimeOut );
+            fprintf( Abc_FrameGlobalGetOut(), "ICheck: Timeout reached after %d seconds.                                                                          \n", nTimeOut );
             RetValue = 1;
             goto cleanup;
         }
@@ -458,24 +458,24 @@ int Bmc_PerformISearchOne( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fRev
         //printf( "Round %d:  ", o );
         if ( fVerbose )
         {
-            printf( "I = %4d :  AIG =%8d.  SAT vars =%8d.  SAT conf =%8d.  S =%6d. (%6.2f %%)  ",
+            fprintf( Abc_FrameGlobalGetOut(), "I = %4d :  AIG =%8d.  SAT vars =%8d.  SAT conf =%8d.  S =%6d. (%6.2f %%)  ",
                 i, (nFramesMax+1) * Gia_ManAndNum(pMiter), 
                 Gia_ManRegNum(p) + Gia_ManCoNum(p) + sat_solver_nvars(pSat), 
                 sat_solver_nconflicts(pSat), nLitsUsed, 100.0 * nLitsUsed / Gia_ManRegNum(p) );
             ABC_PRTr( "Time", Abc_Clock() - clkStart );
-            fflush( stdout );
+            fflush( Abc_FrameGlobalGetOut() );
         }
     }
     // report the results
     //printf( "Round %d:  ", o );
     if ( fVerbose )
     {
-        printf( "M = %4d :  AIG =%8d.  SAT vars =%8d.  SAT conf =%8d.  S =%6d. (%6.2f %%)  ",
+        fprintf( Abc_FrameGlobalGetOut(), "M = %4d :  AIG =%8d.  SAT vars =%8d.  SAT conf =%8d.  S =%6d. (%6.2f %%)  ",
             nFramesMax, (nFramesMax+1) * Gia_ManAndNum(pMiter), 
             Gia_ManRegNum(p) + Gia_ManCoNum(p) + sat_solver_nvars(pSat), 
             sat_solver_nconflicts(pSat), nLitsUsed, 100.0 * nLitsUsed / Gia_ManRegNum(p) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
     }
 cleanup:
     // cleanup
@@ -491,9 +491,9 @@ Vec_Int_t * Bmc_PerformISearch( Gia_Man_t * p, int nFramesMax, int nTimeOut, int
     Vec_Int_t * vLits, * vFlops;
     int i, f;
     if ( fVerbose )
-    printf( "Solving M-inductiveness for design %s with %d AND nodes and %d flip-flops with %s %s flop order:\n",
+    fprintf( Abc_FrameGlobalGetOut(), "Solving M-inductiveness for design %s with %d AND nodes and %d flip-flops with %s %s flop order:\n",
         Gia_ManName(p), Gia_ManAndNum(p), Gia_ManRegNum(p), fReverse ? "reverse":"direct", fBackTopo ? "backward":"natural" );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 
     // collect positive literals
     vLits = Vec_IntAlloc( Gia_ManCoNum(p) );
@@ -514,11 +514,11 @@ Vec_Int_t * Bmc_PerformISearch( Gia_Man_t * p, int nFramesMax, int nTimeOut, int
         for ( i = 0; i < Gia_ManRegNum(p); i++ )
             if ( !Abc_LitIsCompl(Vec_IntEntry(vLits, i)) )
                 nLitsUsed++;
-        printf( "The set contains %d (out of %d) next-state functions with 0-based numbers:\n", nLitsUsed, Gia_ManRegNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "The set contains %d (out of %d) next-state functions with 0-based numbers:\n", nLitsUsed, Gia_ManRegNum(p) );
         for ( i = 0; i < Gia_ManRegNum(p); i++ )
             if ( !Abc_LitIsCompl(Vec_IntEntry(vLits, i)) )
-                printf( "%d ", i );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%d ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }       
     // save flop indexes
     vFlops = Vec_IntAlloc( Gia_ManRegNum(p) );

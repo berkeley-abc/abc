@@ -740,20 +740,20 @@ void glucose_print_stats(SimpSolver& s, abctime clk)
 {
     double cpu_time = (double)(unsigned)clk / CLOCKS_PER_SEC;
     double mem_used = memUsed();
-    printf("c restarts              : %d (%d conflicts on average)\n",         (int)s.starts, s.starts > 0 ? (int)(s.conflicts/s.starts) : 0);
-    printf("c blocked restarts      : %d (multiple: %d) \n",                   (int)s.nbstopsrestarts, (int)s.nbstopsrestartssame);
-    printf("c last block at restart : %d\n",                                   (int)s.lastblockatrestart);
-    printf("c nb ReduceDB           : %-12d\n",                                (int)s.nbReduceDB);
-    printf("c nb removed Clauses    : %-12d\n",                                (int)s.nbRemovedClauses);
-    printf("c nb learnts DL2        : %-12d\n",                                (int)s.nbDL2);
-    printf("c nb learnts size 2     : %-12d\n",                                (int)s.nbBin);
-    printf("c nb learnts size 1     : %-12d\n",                                (int)s.nbUn);
-    printf("c conflicts             : %-12d  (%.0f /sec)\n",                   (int)s.conflicts,    s.conflicts   /cpu_time);
-    printf("c decisions             : %-12d  (%4.2f %% random) (%.0f /sec)\n", (int)s.decisions,    (float)s.rnd_decisions*100 / (float)s.decisions, s.decisions   /cpu_time);
-    printf("c propagations          : %-12d  (%.0f /sec)\n",                   (int)s.propagations, s.propagations/cpu_time);
-    printf("c conflict literals     : %-12d  (%4.2f %% deleted)\n",            (int)s.tot_literals, (s.max_literals - s.tot_literals)*100 / (double)s.max_literals);
-    printf("c nb reduced Clauses    : %-12d\n", (int)s.nbReducedClauses);
-    if (mem_used != 0) printf("Memory used           : %.2f MB\n", mem_used);
+    fprintf( Abc_FrameGlobalGetOut(), "c restarts              : %d (%d conflicts on average)\n",         (int)s.starts, s.starts > 0 ? (int)(s.conflicts/s.starts) : 0);
+    fprintf( Abc_FrameGlobalGetOut(), "c blocked restarts      : %d (multiple: %d) \n",                   (int)s.nbstopsrestarts, (int)s.nbstopsrestartssame);
+    fprintf( Abc_FrameGlobalGetOut(), "c last block at restart : %d\n",                                   (int)s.lastblockatrestart);
+    fprintf( Abc_FrameGlobalGetOut(), "c nb ReduceDB           : %-12d\n",                                (int)s.nbReduceDB);
+    fprintf( Abc_FrameGlobalGetOut(), "c nb removed Clauses    : %-12d\n",                                (int)s.nbRemovedClauses);
+    fprintf( Abc_FrameGlobalGetOut(), "c nb learnts DL2        : %-12d\n",                                (int)s.nbDL2);
+    fprintf( Abc_FrameGlobalGetOut(), "c nb learnts size 2     : %-12d\n",                                (int)s.nbBin);
+    fprintf( Abc_FrameGlobalGetOut(), "c nb learnts size 1     : %-12d\n",                                (int)s.nbUn);
+    fprintf( Abc_FrameGlobalGetOut(), "c conflicts             : %-12d  (%.0f /sec)\n",                   (int)s.conflicts,    s.conflicts   /cpu_time);
+    fprintf( Abc_FrameGlobalGetOut(), "c decisions             : %-12d  (%4.2f %% random) (%.0f /sec)\n", (int)s.decisions,    (float)s.rnd_decisions*100 / (float)s.decisions, s.decisions   /cpu_time);
+    fprintf( Abc_FrameGlobalGetOut(), "c propagations          : %-12d  (%.0f /sec)\n",                   (int)s.propagations, s.propagations/cpu_time);
+    fprintf( Abc_FrameGlobalGetOut(), "c conflict literals     : %-12d  (%4.2f %% deleted)\n",            (int)s.tot_literals, (s.max_literals - s.tot_literals)*100 / (double)s.max_literals);
+    fprintf( Abc_FrameGlobalGetOut(), "c nb reduced Clauses    : %-12d\n", (int)s.nbReducedClauses);
+    if (mem_used != 0) fprintf( Abc_FrameGlobalGetOut(), "Memory used           : %.2f MB\n", mem_used);
     //printf("c CPU time              : %.2f sec\n", cpu_time);
 }
 
@@ -833,24 +833,24 @@ void Glucose_SolveCnf( char * pFileName, Glucose_Pars * pPars, int fDumpCnf )
 
     if ( pPars->verb )
     {
-        printf("c ============================[ Problem Statistics ]=============================\n");
-        printf("c |                                                                             |\n");
-        printf("c |  Number of variables:  %12d                                         |\n", S.nVars());
-        printf("c |  Number of clauses:    %12d                                         |\n", S.nClauses());
+        fprintf( Abc_FrameGlobalGetOut(), "c ============================[ Problem Statistics ]=============================\n");
+        fprintf( Abc_FrameGlobalGetOut(), "c |                                                                             |\n");
+        fprintf( Abc_FrameGlobalGetOut(), "c |  Number of variables:  %12d                                         |\n", S.nVars());
+        fprintf( Abc_FrameGlobalGetOut(), "c |  Number of clauses:    %12d                                         |\n", S.nClauses());
     }
     
     if ( pPars->pre ) 
     {
         S.eliminate(true);
-        printf( "c Simplification removed %d variables and %d clauses.  ", S.eliminated_vars, S.eliminated_clauses );
+        fprintf( Abc_FrameGlobalGetOut(),  "c Simplification removed %d variables and %d clauses.  ", S.eliminated_vars, S.eliminated_clauses );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
         if ( fDumpCnf )
         {
             char * pFileCnf = Extra_FileNameGenericAppend( pFileName, "_out.cnf" );
             S.toDimacs(pFileCnf);
-            printf( "Finished dumping CNF after preprocessing into file \"%s\".\n", pFileCnf );
-            printf( "SAT solving is not performed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(),  "Finished dumping CNF after preprocessing into file \"%s\".\n", pFileCnf );
+            fprintf( Abc_FrameGlobalGetOut(),  "SAT solving is not performed.\n" );
             return;
         }
     }
@@ -858,7 +858,7 @@ void Glucose_SolveCnf( char * pFileName, Glucose_Pars * pPars, int fDumpCnf )
     vec<Lit> dummy;
     lbool ret = S.solveLimited(dummy, 0);
     if ( pPars->verb ) glucose_print_stats(S, Abc_Clock() - clk);
-    printf(ret == l_True ? "SATISFIABLE" : ret == l_False ? "UNSATISFIABLE" : "INDETERMINATE");
+    fprintf( Abc_FrameGlobalGetOut(), ret == l_True ? "SATISFIABLE" : ret == l_False ? "UNSATISFIABLE" : "INDETERMINATE");
     Abc_PrintTime( 1, "      Time", Abc_Clock() - clk );
 }
 
@@ -889,7 +889,7 @@ Vec_Int_t * Glucose_SolverFromAig( Gia_Man_t * p, SimpSolver& s )
         s.addClause(*lits);
     }
     Vec_Int_t * vCnfIds = Vec_IntAllocArrayCopy(pCnf->pVarNums, Gia_ManObjNum(p));
-    printf( "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+    fprintf( Abc_FrameGlobalGetOut(),  "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Cnf_DataFree(pCnf);
     return vCnfIds;
@@ -1026,7 +1026,7 @@ Vec_Str_t * bmcg_sat_solver_sop( Gia_Man_t * p, int CubeLimit )
 void bmcg_sat_solver_print_sop( Gia_Man_t * p )
 {
     Vec_Str_t * vSop = bmcg_sat_solver_sop( p, 0 );
-    printf( "%s", Vec_StrArray(vSop) );
+    fprintf( Abc_FrameGlobalGetOut(),  "%s", Vec_StrArray(vSop) );
     Vec_StrFree( vSop );
 }
 void bmcg_sat_solver_print_sop_lit( Gia_Man_t * p, int Lit )
@@ -1042,7 +1042,7 @@ void bmcg_sat_solver_print_sop_lit( Gia_Man_t * p, int Lit )
     Vec_IntFree( vCisUsed );
     bmcg_sat_solver_print_sop( pNew );
     Gia_ManStop( pNew );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(),  "\n" );
 }
 
 /**Function*************************************************************
@@ -1374,9 +1374,9 @@ void Glucose_QuantifyAigTest( Gia_Man_t * p )
     Abc_PrintTime( 1, "Time2", clk2d );
 
     if ( bmcg_sat_solver_equiv_overlap_check( pSats[2], p, iRes1, iRes2, 1 ) )
-        printf( "Verification passed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "Verification passed.\n" );
     else
-        printf( "Verification FAILED.\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "Verification FAILED.\n" );
 
     Gia_ManAppendCo( p, iRes1 );
     Gia_ManAppendCo( p, iRes2 );
@@ -1393,13 +1393,13 @@ int bmcg_sat_solver_quantify_test( bmcg_sat_solver * pSats[], Gia_Man_t * p, int
 
     bmcg_sat_solver * pSat = bmcg_sat_solver_start();
     if ( bmcg_sat_solver_equiv_overlap_check( pSat, p, Res1, Res2, 1 ) )
-        printf( "Verification passed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "Verification passed.\n" );
     else
     {
-        printf( "Verification FAILED.\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "Verification FAILED.\n" );
         bmcg_sat_solver_print_sop_lit( p, Res1 );
         bmcg_sat_solver_print_sop_lit( p, Res2 );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "\n" );
     }
     return Res1;
 }
@@ -1472,7 +1472,7 @@ void Glucose_CheckTwoNodesTest( Gia_Man_t * p )
             Gia_ObjFaninLit0p(p, Gia_ManPo(p, 1)), 
             n );
         bmcg_sat_solver_reset( pSat );
-        printf( "%s %s.\n", n ? "Equivalence" : "Overlap", Res ? "holds" : "fails" );
+        fprintf( Abc_FrameGlobalGetOut(),  "%s %s.\n", n ? "Equivalence" : "Overlap", Res ? "holds" : "fails" );
     }
     bmcg_sat_solver_stop( pSat );
 }
@@ -1505,16 +1505,16 @@ int Glucose_SolveAig(Gia_Man_t * p, Glucose_Pars * pPars)
 
     if (pPars->verb)
     {
-        printf("c ============================[ Problem Statistics ]=============================\n");
-        printf("c |                                                                             |\n");
-        printf("c |  Number of variables:  %12d                                         |\n", S.nVars());
-        printf("c |  Number of clauses:    %12d                                         |\n", S.nClauses());
+        fprintf( Abc_FrameGlobalGetOut(), "c ============================[ Problem Statistics ]=============================\n");
+        fprintf( Abc_FrameGlobalGetOut(), "c |                                                                             |\n");
+        fprintf( Abc_FrameGlobalGetOut(), "c |  Number of variables:  %12d                                         |\n", S.nVars());
+        fprintf( Abc_FrameGlobalGetOut(), "c |  Number of clauses:    %12d                                         |\n", S.nClauses());
     }
 
     if (pPars->pre) 
     {
         S.eliminate(true);
-        printf( "c Simplification removed %d variables and %d clauses.  ", S.eliminated_vars, S.eliminated_clauses );
+        fprintf( Abc_FrameGlobalGetOut(),  "c Simplification removed %d variables and %d clauses.  ", S.eliminated_vars, S.eliminated_clauses );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     
@@ -1522,7 +1522,7 @@ int Glucose_SolveAig(Gia_Man_t * p, Glucose_Pars * pPars)
     lbool ret = S.solveLimited(dummy, 0);
 
     if ( pPars->verb ) glucose_print_stats(S, Abc_Clock() - clk);
-    printf(ret == l_True ? "SATISFIABLE" : ret == l_False ? "UNSATISFIABLE" : "INDETERMINATE");
+    fprintf( Abc_FrameGlobalGetOut(), ret == l_True ? "SATISFIABLE" : ret == l_False ? "UNSATISFIABLE" : "INDETERMINATE");
     Abc_PrintTime( 1, "      Time", Abc_Clock() - clk );
 
     // port counterexample

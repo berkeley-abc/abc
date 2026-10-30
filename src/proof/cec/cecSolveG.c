@@ -622,7 +622,7 @@ clk2 = Abc_Clock();
             break;
     }
     p->timeTotal = Abc_Clock() - clk;
-    printf("Recycles %d\n", p->nRecycles);
+    fprintf( Abc_FrameGlobalGetOut(), "Recycles %d\n", p->nRecycles);
     Bar_ProgressStop( pProgress );
     if ( pPars->fVerbose )
         Cec_ManSatPrintStats( p );

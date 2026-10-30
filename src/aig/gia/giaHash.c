@@ -209,8 +209,8 @@ void Gia_ManHashProfile( Gia_Man_t * p )
 {
     int iEntry;
     int i, Counter, Limit;
-    printf( "Table size = %d. Entries = %d. ", Vec_IntSize(&p->vHTable), Gia_ManAndNum(p) );
-    printf( "Hits = %d. Misses = %d.\n", (int)p->nHashHit, (int)p->nHashMiss );
+    fprintf( Abc_FrameGlobalGetOut(), "Table size = %d. Entries = %d. ", Vec_IntSize(&p->vHTable), Gia_ManAndNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Hits = %d. Misses = %d.\n", (int)p->nHashHit, (int)p->nHashMiss );
     Limit = Abc_MinInt( 1000, Vec_IntSize(&p->vHTable) );
     for ( i = 0; i < Limit; i++ )
     {
@@ -220,9 +220,9 @@ void Gia_ManHashProfile( Gia_Man_t * p )
               iEntry = iEntry? Vec_IntEntry(&p->vHash, iEntry) : 0 )
             Counter++;
         if ( Counter ) 
-            printf( "%d ", Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Counter );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -875,8 +875,8 @@ int Gia_ManMultiInputPerm( Gia_Man_t * pNew, int * pVars, int nVars, int * pPerm
     if ( fPrint )
     {
         for ( i = 0; i < nVars; i++ )
-            printf( "%d ", pPerm[i] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", pPerm[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     while ( 1 )
     {
@@ -911,8 +911,8 @@ int Gia_ManMultiInputPerm( Gia_Man_t * pNew, int * pVars, int nVars, int * pPerm
         if ( fPrint )
         {
             for ( i = 0; i < nVars; i++ )
-                printf( "%d ", pPerm[i] );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%d ", pPerm[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     iLit = pVars[0];
@@ -979,8 +979,8 @@ void Gia_ManUsePerm( int * pTree, int nBits, int * pPerm )
     if ( fPrint )
     {
         for ( i = 0; i < nVars; i++ )
-            printf( "%d ", pPerm[i] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", pPerm[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     for ( i = 0; i < nBits; i++ )
     {
@@ -1002,8 +1002,8 @@ void Gia_ManUsePerm( int * pTree, int nBits, int * pPerm )
     if ( fPrint )
     {
         for ( i = 0; i < nVars; i++ )
-            printf( "%d ", pPerm[i] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", pPerm[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 int Gia_ManFindCond( int * pLits, int nBits, int iLate1, int iLate2 )
@@ -1102,8 +1102,8 @@ int Gia_ManDecomp( Gia_Man_t * pNew, int * pTree, int nBits, int * pPerm )
         {
             int i;
             for ( i = 0; i < (1<<nBits); i++ )
-                printf( "%d ", pPerm[nBits+i] );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%d ", pPerm[nBits+i] );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         if ( pPerm[nBits+iLate1] > BaseValue && pPerm[nBits+iLate2] > BaseValue && pPerm[nBits+iLate3] > BaseValue && pPerm[nBits+iLate4] == BaseValue )
             return Gia_ManDecompThree( pNew, pTree, nBits, pPerm, iLate1, iLate2, iLate3 );

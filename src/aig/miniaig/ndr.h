@@ -521,7 +521,7 @@ static inline void Ndr_WriteVerilog( char * pFileName, void * pDesign, char ** p
     Ndr_Data_t * p = (Ndr_Data_t *)pDesign; int Mod;
 
     FILE * pFile = pFileName ? fopen( pFileName, "wb" ) : stdout;
-    if ( pFile == NULL ) { printf( "Cannot open file \"%s\" for writing.\n", pFileName ? pFileName : "stdout" ); return; }
+    if ( pFile == NULL ) { fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file \"%s\" for writing.\n", pFileName ? pFileName : "stdout"  ); return; }
 
     Ndr_DesForEachMod( p, Mod )
         Ndr_WriteVerilogModule( pFile, p, Mod, pNames, fSimple );
@@ -613,7 +613,7 @@ static inline void * Ndr_Read( char * pFileName )
 {
     Ndr_Data_t * p; int nFileSize, RetValue;
     FILE * pFile = fopen( pFileName, "rb" );
-    if ( pFile == NULL ) { printf( "Cannot open file \"%s\" for reading.\n", pFileName ); return NULL; }
+    if ( pFile == NULL ) { fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file \"%s\" for reading.\n", pFileName  ); return NULL; }
     // check file size
     fseek( pFile, 0, SEEK_END );
     nFileSize = ftell( pFile ); 
@@ -637,7 +637,7 @@ static inline void Ndr_Write( char * pFileName, void * pDesign )
 {
     Ndr_Data_t * p = (Ndr_Data_t *)pDesign; int RetValue;
     FILE * pFile = fopen( pFileName, "wb" );
-    if ( pFile == NULL ) { printf( "Cannot open file \"%s\" for writing.\n", pFileName ? pFileName : "stdout" ); return; }
+    if ( pFile == NULL ) { fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file \"%s\" for writing.\n", pFileName ? pFileName : "stdout"  ); return; }
     RetValue = (int)fwrite( p->pBody, 4, p->pBody[0], pFile );
     RetValue = (int)fwrite( p->pHead, 1, p->pBody[0], pFile );
     fclose( pFile );

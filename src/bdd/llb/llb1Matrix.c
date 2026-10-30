@@ -212,12 +212,12 @@ void Llb_MtrPrint( Llb_Mtr_t * p, int fOrder )
     for ( i = 0; i < p->nRows; i++ )
     {
         iRow = pOrder ? pOrder[i] : i;
-        printf( "%3d : ", iRow );
-        printf( "%3d ", p->pRowSums[iRow] );
-        printf( "%3s ", Llb_MtrVarName(p, iRow) );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : ", iRow );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d ", p->pRowSums[iRow] );
+        fprintf( Abc_FrameGlobalGetOut(), "%3s ", Llb_MtrVarName(p, iRow) );
         for ( iCol = 0; iCol < p->nCols; iCol++ )
-            printf( "%c", p->pMatrix[iCol][iRow] ? '*' : ' ' );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", p->pMatrix[iCol][iRow] ? '*' : ' ' );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     ABC_FREE( pOrder );
 }
@@ -267,7 +267,7 @@ void Llb_MtrPrintMatrixStats( Llb_Mtr_t * p )
     }
     ABC_FREE( pGrp1 );
     ABC_FREE( pGrp2 );
-    printf( "[%4d x %4d]  Life-span =%6.2f  Max-cut =%5d\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "[%4d x %4d]  Life-span =%6.2f  Max-cut =%5d\n", 
         p->nCols, p->nRows, 1.0*Span/p->nRows, nCutSizeMax );
     if ( nCutSize )
         Abc_Print( -1, "Cut size is not zero (%d).\n", nCutSize );

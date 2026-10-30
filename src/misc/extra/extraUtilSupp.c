@@ -107,9 +107,9 @@ void Abc_SuppVerify( Vec_Wrd_t * p, word * pMatrix, int nVars, int nVarsMin )
         if ( *pEntry1 == *pEntry2 )
             Counter++;
     if ( Counter )
-        printf( "The total of %d pairs fail verification.\n", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "The total of %d pairs fail verification.\n", Counter );
     else
-        printf( "Verification successful.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification successful.\n" );
     Vec_WrdFree( pNew );
 }
 
@@ -174,8 +174,8 @@ void Abc_SuppPrintMask( word uMask, int nBits )
 {
     int i;
     for ( i = 0; i < nBits; i++ )
-        printf( "%d", (int)((uMask >> i) & 1) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", (int)((uMask >> i) & 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Abc_SuppGenProfile( Vec_Wrd_t * p, int nBits, int * pCounts )
 {
@@ -190,7 +190,7 @@ void Abc_SuppPrintProfile( Vec_Wrd_t * p, int nBits )
     int k, Counts[64] = {0};
     Abc_SuppGenProfile( p, nBits, Counts );
     for ( k = 0; k < nBits; k++ )
-        printf( "%2d : %6d  %6.2f %%\n", k, Counts[k], 100.0 * Counts[k] / Vec_WrdSize(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : %6d  %6.2f %%\n", k, Counts[k], 100.0 * Counts[k] / Vec_WrdSize(p) );
 }
 int Abc_SuppGenFindBest( Vec_Wrd_t * p, int nBits, int * pMerit )
 {
@@ -245,8 +245,8 @@ int Abc_SuppMinimize( word * pMatrix, Vec_Wrd_t * p, int nBits, int fVerbose )
         if ( !fVerbose )
             continue;
         // print stats
-        printf( "%2d : ", i );
-        printf( "%6d  ", Vec_WrdSize(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d  ", Vec_WrdSize(p) );
         Abc_SuppPrintMask( pMatrix[i], nBits );
 //        printf( "\n" );
     }
@@ -273,15 +273,15 @@ void Abc_SuppTest( int nOnes, int nVars, int fUseSimple, int fCheck, int fVerbos
     Vec_Wrd_t * vRes = Abc_SuppGen( nOnes, nVars );
     Vec_Wrd_t * vPairs = fUseSimple ? Abc_SuppGenPairs2( nOnes, nVars ) : Abc_SuppGenPairs( vRes, nVars );
     assert( nVars < 100 );
-    printf( "M = %2d  N = %2d : ", nOnes, nVars );
-    printf( "K = %6d   ",  Vec_WrdSize(vRes) );
-    printf( "Total = %12.0f  ", 0.5 * Vec_WrdSize(vRes) * (Vec_WrdSize(vRes) - 1) );
-    printf( "Distinct = %8d  ",  Vec_WrdSize(vPairs) );
+    fprintf( Abc_FrameGlobalGetOut(), "M = %2d  N = %2d : ", nOnes, nVars );
+    fprintf( Abc_FrameGlobalGetOut(), "K = %6d   ",  Vec_WrdSize(vRes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Total = %12.0f  ", 0.5 * Vec_WrdSize(vRes) * (Vec_WrdSize(vRes) - 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "Distinct = %8d  ",  Vec_WrdSize(vPairs) );
     Abc_PrintTime( 1, "Reduction time", Abc_Clock() - clk );
     // solve the problem
     clk = Abc_Clock();
     nVarsMin = Abc_SuppMinimize( Matrix, vPairs, nVars, fVerbose );
-    printf( "Solution with %d variables found.  ", nVarsMin );
+    fprintf( Abc_FrameGlobalGetOut(), "Solution with %d variables found.  ", nVarsMin );
     Abc_PrintTime( 1, "Covering time", Abc_Clock() - clk );
     if ( fCheck )
         Abc_SuppVerify( vRes, Matrix, nVars, nVarsMin );
@@ -308,14 +308,14 @@ Vec_Wrd_t * Abc_SuppReadMin( char * pFileName, int * pnVars )
     char * pCur, * pToken, * pStart = "INPUT F-COVER";
     char * pStr = Extra_FileReadContents( pFileName );
     if ( pStr == NULL )
-        { printf( "Cannot open input file (%s).\n", pFileName ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file (%s).\n", pFileName ); return NULL; }
     pCur = strstr( pStr, pStart );
     if ( pCur == NULL )
-        { printf( "Cannot find beginning of cube cover (%s).\n", pStart ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Cannot find beginning of cube cover (%s).\n", pStart ); return NULL; }
     pToken = strtok( pCur + strlen(pStart), " \t\r\n," );
     nCubes = atoi( pToken );
     if ( nCubes < 1 || nCubes > 1000000 )
-        { printf( "The number of cubes in not in the range [1; 1000000].\n" ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "The number of cubes in not in the range [1; 1000000].\n" ); return NULL; }
     vRes = Vec_WrdAlloc( 1000 );
     uCube = 0; iVar = 0;
     while ( (pToken = strtok(NULL, " \t\r\n,")) != NULL )
@@ -325,11 +325,11 @@ Vec_Wrd_t * Abc_SuppReadMin( char * pFileName, int * pnVars )
             if ( !strncmp(pToken, "INPUT", strlen("INPUT")) )
                 break;
             if ( iVar > 64 )
-                { printf( "The number of inputs (%d) is too high.\n", iVar ); Vec_WrdFree(vRes); return NULL; }
+                { fprintf( Abc_FrameGlobalGetOut(), "The number of inputs (%d) is too high.\n", iVar ); Vec_WrdFree(vRes); return NULL; }
             if ( nVars == -1 )
                 nVars = iVar;
             else if ( nVars != iVar )
-                { printf( "The number of inputs (%d) does not match declaration (%d).\n", nVars, iVar ); Vec_WrdFree(vRes); return NULL; }
+                { fprintf( Abc_FrameGlobalGetOut(), "The number of inputs (%d) does not match declaration (%d).\n", nVars, iVar ); Vec_WrdFree(vRes); return NULL; }
             Vec_WrdPush( vRes, uCube );
             uCube = 0; iVar = 0;
             continue;
@@ -337,14 +337,14 @@ Vec_Wrd_t * Abc_SuppReadMin( char * pFileName, int * pnVars )
         if ( pToken[1] == '0' && pToken[0] == '1' ) // value 1
             uCube |= (((word)1) << iVar);
         else if ( pToken[1] != '1' || pToken[0] != '0' ) // value 0
-            { printf( "Strange literal representation (%s) of cube %d.\n", pToken, nCubes ); Vec_WrdFree(vRes); return NULL; }
+            { fprintf( Abc_FrameGlobalGetOut(), "Strange literal representation (%s) of cube %d.\n", pToken, nCubes ); Vec_WrdFree(vRes); return NULL; }
         iVar++;
     }
     ABC_FREE( pStr );
     if ( Vec_WrdSize(vRes) != nCubes )
-        { printf( "The number of cubes (%d) does not match declaration (%d).\n", Vec_WrdSize(vRes), nCubes ); Vec_WrdFree(vRes); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "The number of cubes (%d) does not match declaration (%d).\n", Vec_WrdSize(vRes), nCubes ); Vec_WrdFree(vRes); return NULL; }
     else
-        printf( "Successfully parsed function with %d inputs and %d cubes.\n", nVars, nCubes );
+        fprintf( Abc_FrameGlobalGetOut(), "Successfully parsed function with %d inputs and %d cubes.\n", nVars, nCubes );
     *pnVars = nVars;
     return vRes;
 }
@@ -375,7 +375,7 @@ Vec_Wrd_t * Abc_SuppDiffMatrix( Vec_Wrd_t * vCubes )
 //    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 //    vRes = Vec_WrdUniqifyHash( vPairs, 1 );
     vRes = Vec_WrdDup( vPairs );
-    printf( "Successfully generated diff matrix with %10d rows (%6.2f %%).  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Successfully generated diff matrix with %10d rows (%6.2f %%).  ", 
         Vec_WrdSize(vRes), 100.0 * Vec_WrdSize(vRes) / Vec_WrdSize(vPairs) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Vec_WrdFree( vPairs );
@@ -443,7 +443,7 @@ void Abc_SuppProfile( Vec_Wec_t * pS, Vec_Wec_t * pD, int nVars )
 {
     int v;
     for ( v = 0; v < nVars; v++ )
-        printf( "%2d : S = %3d  D = %3d\n", v, Vec_WecLevelSize(pS, v), Vec_WecLevelSize(pD, v) );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : S = %3d  D = %3d\n", v, Vec_WecLevelSize(pS, v), Vec_WecLevelSize(pD, v) );
 }
 int Abc_SuppSolve( Vec_Wrd_t * p, int nVars )
 {
@@ -517,7 +517,7 @@ void Abc_SuppReadMinTest( char * pFileName )
     clk = Abc_Clock();
 //    nVarsMin = Abc_SuppMinimize( Matrix, vPairs, nVars, fVerbose );
     nVarsMin = Abc_SuppSolve( vPairs, nVars );
-    printf( "Solution with %d variables found.  ", nVarsMin );
+    fprintf( Abc_FrameGlobalGetOut(), "Solution with %d variables found.  ", nVarsMin );
     Abc_PrintTime( 1, "Covering time", Abc_Clock() - clk );
 
     Vec_WrdFreeP( &vPairs );

@@ -168,14 +168,14 @@ void Rwt_ManPrintStats( Rwt_Man_t * p )
     for ( i = 0; i < 222; i++ )
         Counter += (p->nScores[i] > 0);
 
-    printf( "Rewriting statistics:\n" );
-    printf( "Total cuts tries  = %8d.\n", p->nCutsGood );
-    printf( "Bad cuts found    = %8d.\n", p->nCutsBad );
-    printf( "Total subgraphs   = %8d.\n", p->nSubgraphs );
-    printf( "Used NPN classes  = %8d.\n", Counter );
-    printf( "Nodes considered  = %8d.\n", p->nNodesConsidered );
-    printf( "Nodes rewritten   = %8d.\n", p->nNodesRewritten );
-    printf( "Calculated gain   = %8d.\n", p->nNodesGained     );
+    fprintf( Abc_FrameGlobalGetOut(), "Rewriting statistics:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Total cuts tries  = %8d.\n", p->nCutsGood );
+    fprintf( Abc_FrameGlobalGetOut(), "Bad cuts found    = %8d.\n", p->nCutsBad );
+    fprintf( Abc_FrameGlobalGetOut(), "Total subgraphs   = %8d.\n", p->nSubgraphs );
+    fprintf( Abc_FrameGlobalGetOut(), "Used NPN classes  = %8d.\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes considered  = %8d.\n", p->nNodesConsidered );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes rewritten   = %8d.\n", p->nNodesRewritten );
+    fprintf( Abc_FrameGlobalGetOut(), "Calculated gain   = %8d.\n", p->nNodesGained     );
     ABC_PRT( "Start       ", p->timeStart );
     ABC_PRT( "Cuts        ", p->timeCut );
     ABC_PRT( "Truth       ", p->timeTruth );

@@ -182,24 +182,24 @@ void Bmc_LoadTest( Gia_Man_t * pGia, int fLoadCnf, int fVerbose )
             Lit = Abc_Var2Lit( Bmc_LoadAddCnf_rec(p, Gia_ObjFaninId0p(pGia, pObj)), Gia_ObjFaninC0(pObj) );
         if ( fVerbose )
         {
-            printf( "Frame%4d :  ", i );
-            printf( "Vars = %6d  ", Vec_IntSize(p->vSat2Id) );
-            printf( "Clas = %6d  ", sat_solver_nclauses(p->pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Frame%4d :  ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Vars = %6d  ", Vec_IntSize(p->vSat2Id) );
+            fprintf( Abc_FrameGlobalGetOut(), "Clas = %6d  ", sat_solver_nclauses(p->pSat) );
         }
         status = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( fVerbose )
         {
-            printf( "Conf = %6d  ", sat_solver_nconflicts(p->pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Conf = %6d  ", sat_solver_nconflicts(p->pSat) );
             if ( status == l_False )
-                printf( "UNSAT  " );
+                fprintf( Abc_FrameGlobalGetOut(), "UNSAT  " );
             else if ( status == l_True )
-                printf( "SAT    " );
+                fprintf( Abc_FrameGlobalGetOut(), "SAT    " );
             else // if ( status == l_Undec )
-                printf( "UNDEC  " );
+                fprintf( Abc_FrameGlobalGetOut(), "UNDEC  " );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
     }
-    printf( "Callbacks = %d.  Loadings = %d.\n", p->nCallBacks1, p->nCallBacks2 );
+    fprintf( Abc_FrameGlobalGetOut(), "Callbacks = %d.  Loadings = %d.\n", p->nCallBacks1, p->nCallBacks2 );
     Bmc_LoadStop( p );
 }
 

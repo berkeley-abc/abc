@@ -277,19 +277,19 @@ void Cut_CutPrint( Cut_Cut_t * pCut, int fSeq )
 {
     int i;
     assert( pCut->nLeaves > 0 );
-    printf( "%d : {", pCut->nLeaves );
+    fprintf( Abc_FrameGlobalGetOut(), "%d : {", pCut->nLeaves );
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
     {
         if ( fSeq )
         {
-            printf( " %d", pCut->pLeaves[i] >> CUT_SHIFT );
+            fprintf( Abc_FrameGlobalGetOut(), " %d", pCut->pLeaves[i] >> CUT_SHIFT );
             if ( pCut->pLeaves[i] & CUT_MASK )
-                printf( "(%d)", pCut->pLeaves[i] & CUT_MASK );
+                fprintf( Abc_FrameGlobalGetOut(), "(%d)", pCut->pLeaves[i] & CUT_MASK );
         }
         else
-            printf( " %d", pCut->pLeaves[i] );
+            fprintf( Abc_FrameGlobalGetOut(), " %d", pCut->pLeaves[i] );
     }
-    printf( " }" );
+    fprintf( Abc_FrameGlobalGetOut(), " }" );
 //    printf( "\nSign = " );
 //    Extra_PrintBinary( stdout, &pCut->uSign, 32 );
 }
@@ -309,7 +309,7 @@ void Cut_CutPrintList( Cut_Cut_t * pList, int fSeq )
 {
     Cut_Cut_t * pCut;
     for ( pCut = pList; pCut; pCut = pCut->pNext )
-        Cut_CutPrint( pCut, fSeq ), printf( "\n" );
+        Cut_CutPrint( pCut, fSeq ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -325,33 +325,33 @@ void Cut_CutPrintList( Cut_Cut_t * pList, int fSeq )
 ***********************************************************************/
 void Cut_CutPrintMerge( Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
 {
-    printf( "\n" );
-    printf( "%d : %5d %5d %5d %5d %5d\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "%d : %5d %5d %5d %5d %5d\n", 
         pCut0->nLeaves, 
         pCut0->nLeaves > 0 ? pCut0->pLeaves[0] : -1, 
         pCut0->nLeaves > 1 ? pCut0->pLeaves[1] : -1, 
         pCut0->nLeaves > 2 ? pCut0->pLeaves[2] : -1, 
         pCut0->nLeaves > 3 ? pCut0->pLeaves[3] : -1, 
-        pCut0->nLeaves > 4 ? pCut0->pLeaves[4] : -1
+        pCut0->nLeaves > 4 ? pCut0->pLeaves[4] : -1 
         );
-    printf( "%d : %5d %5d %5d %5d %5d\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "%d : %5d %5d %5d %5d %5d\n", 
         pCut1->nLeaves, 
         pCut1->nLeaves > 0 ? pCut1->pLeaves[0] : -1, 
         pCut1->nLeaves > 1 ? pCut1->pLeaves[1] : -1, 
         pCut1->nLeaves > 2 ? pCut1->pLeaves[2] : -1, 
         pCut1->nLeaves > 3 ? pCut1->pLeaves[3] : -1, 
-        pCut1->nLeaves > 4 ? pCut1->pLeaves[4] : -1
+        pCut1->nLeaves > 4 ? pCut1->pLeaves[4] : -1 
         );
     if ( pCut == NULL )
-        printf( "Cannot merge\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot merge\n" );
     else
-        printf( "%d : %5d %5d %5d %5d %5d\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "%d : %5d %5d %5d %5d %5d\n", 
             pCut->nLeaves, 
             pCut->nLeaves > 0 ? pCut->pLeaves[0] : -1, 
             pCut->nLeaves > 1 ? pCut->pLeaves[1] : -1, 
             pCut->nLeaves > 2 ? pCut->pLeaves[2] : -1, 
             pCut->nLeaves > 3 ? pCut->pLeaves[3] : -1, 
-            pCut->nLeaves > 4 ? pCut->pLeaves[4] : -1
+            pCut->nLeaves > 4 ? pCut->pLeaves[4] : -1 
             );
 }
 

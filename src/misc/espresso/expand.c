@@ -94,7 +94,7 @@ IN bool nonsparse;              /* expand non-sparse variables only */
         expand1(R, F, RAISE, FREESET, OVEREXPANDED_CUBE, SUPER_CUBE,
         INIT_LOWER, &num_covered, p);
         if (debug & EXPAND)
-        printf("EXPAND: %s (covered %d)\n", pc1(p), num_covered);
+        fprintf( Abc_FrameGlobalGetOut(), "EXPAND: %s (covered %d)\n", pc1(p), num_covered );
         (void) set_copy(p, RAISE);
         SET(p, PRIME);
         RESET(p, COVERED);        /* not really necessary */
@@ -147,7 +147,7 @@ pcube c;            /* The cube to be expanded */
     int bestindex;
 
     if (debug & EXPAND1)
-    printf("\nEXPAND1:    \t%s\n", pc1(c));
+    fprintf( Abc_FrameGlobalGetOut(), "\nEXPAND1:    \t%s\n", pc1(c) );
 
     /* initialize BB and CC */
     SET(c, PRIME);        /* don't try to cover ourself */
@@ -245,7 +245,7 @@ exit_if: ;
     }
 
     if (debug & EXPAND1)
-    printf("ESSEN_PARTS:\tRAISE=%s FREESET=%s\n", pc1(RAISE), pc2(FREESET));
+    fprintf( Abc_FrameGlobalGetOut(), "ESSEN_PARTS:\tRAISE=%s FREESET=%s\n", pc1(RAISE), pc2(FREESET) );
 }
 
 /*
@@ -272,8 +272,8 @@ pcube RAISE, FREESET;
     (void) set_diff(FREESET, FREESET, xraise);       /* remove from free set */
 
     if (debug & EXPAND1)
-    printf("ESSEN_RAISING:\tRAISE=%s FREESET=%s\n",
-        pc1(RAISE), pc2(FREESET));
+    fprintf( Abc_FrameGlobalGetOut(), "ESSEN_RAISING:\tRAISE=%s FREESET=%s\n",
+        pc1(RAISE), pc2(FREESET) );
 }
 
 /*
@@ -360,7 +360,7 @@ pcube FREESET;
     FREE(count);
 
     if (debug & EXPAND1)
-    printf("MOST_FREQUENT:\tbest=%d FREESET=%s\n", best_part, pc2(FREESET));
+    fprintf( Abc_FrameGlobalGetOut(), "MOST_FREQUENT:\tbest=%d FREESET=%s\n", best_part, pc2(FREESET) );
     return best_part;
 }
 
@@ -462,8 +462,8 @@ loop:
     }
     }
     if (debug & EXPAND1)
-    printf("SELECT_FEASIBLE: started with %d pfcc, ended with %d fcc\n",
-        lastfeas, numfeas);
+    fprintf( Abc_FrameGlobalGetOut(), "SELECT_FEASIBLE: started with %d pfcc, ended with %d fcc\n",
+        lastfeas, numfeas );
 
     /* Exit here if there are no feasibly covered cubes */
     if (numfeas == 0) {
@@ -504,7 +504,7 @@ loop:
     (void) set_or(RAISE, RAISE, bestfeas);
     (void) set_diff(FREESET, FREESET, RAISE);
     if (debug & EXPAND1)
-    printf("FEASIBLE:  \tRAISE=%s FREESET=%s\n", pc1(RAISE), pc2(FREESET));
+    fprintf( Abc_FrameGlobalGetOut(), "FEASIBLE:  \tRAISE=%s FREESET=%s\n", pc1(RAISE), pc2(FREESET) );
     essen_parts(BB, CC, RAISE, FREESET);
     goto loop;
 /* NOTREACHED */
@@ -611,7 +611,7 @@ pcube RAISE, FREESET;
     (void) set_copy(FREESET, cube.emptyset);    /* free set is empty */
     BB->active_count = 0;            /* BB satisfied */
     if (debug & EXPAND1) {
-    printf("MINCOV:    \tRAISE=%s FREESET=%s\n", pc1(RAISE), pc2(FREESET));
+    fprintf( Abc_FrameGlobalGetOut(), "MINCOV:    \tRAISE=%s FREESET=%s\n", pc1(RAISE), pc2(FREESET) );
     }
     sf_free(B);
     set_free(xlower);

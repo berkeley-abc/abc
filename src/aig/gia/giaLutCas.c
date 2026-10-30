@@ -205,7 +205,7 @@ Gia_Man_t * Gia_ManGenLutCas( Gia_Man_t * p, char * pPermStr, int nVars, int nLu
         if ( pPerm[v] == '*' )
             nParams2 += Abc_Base2Log(nVars);
     if ( fVerbose ) 
-        printf( "Generating AIG with %d parameters (%d functional + %d structural) and %d inputs using fanin assignment \"%s\".\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Generating AIG with %d parameters (%d functional + %d structural) and %d inputs using fanin assignment \"%s\".\n", 
             nParams+nParams2, nParams, nParams2, nVars, pPerm );
     Gia_Man_t * pNew = Gia_ManStart( nParams + nVars );
     pNew->pName = Abc_UtilStrsav( pPerm );

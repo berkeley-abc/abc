@@ -82,7 +82,7 @@ static inline int Abc_BddUniqueCreateInt( Abc_BddMan * p, int Var, int Then, int
         if ( (int)p->pVars[*q] == Var && p->pObjs[*q+*q] == Then && p->pObjs[*q+*q+1] == Else )
             return Abc_Var2Lit(*q, 0);
     if ( p->nObjs == p->nObjsAlloc )
-        printf( "Aborting because the number of nodes exceeded %d.\n", p->nObjsAlloc ), fflush(stdout);
+        fprintf( Abc_FrameGlobalGetOut(), "Aborting because the number of nodes exceeded %d.\n", p->nObjsAlloc ), fflush( Abc_FrameGlobalGetOut() );
     assert( p->nObjs < p->nObjsAlloc );     
     *q = p->nObjs++;
     p->pVars[*q] = Var;
@@ -169,9 +169,9 @@ Abc_BddMan * Abc_BddManAlloc( int nVars, int nObjs )
 }
 void Abc_BddManFree( Abc_BddMan * p )
 {
-    printf( "BDD stats: Var = %d  Obj = %d  Alloc = %d  Hit = %d  Miss = %d  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "BDD stats: Var = %d  Obj = %d  Alloc = %d  Hit = %d  Miss = %d  ", 
         p->nVars, p->nObjs, p->nObjsAlloc, p->nCacheLookups-p->nCacheMisses, p->nCacheMisses );
-    printf( "Mem = %.2f MB\n", 4.0*(int)(p->nMemory/(1<<20)) );
+    fprintf( Abc_FrameGlobalGetOut(), "Mem = %.2f MB\n", 4.0*(int)(p->nMemory/(1<<20)) );
     ABC_FREE( p->pUnique );
     ABC_FREE( p->pNexts );
     ABC_FREE( p->pCache );
@@ -297,8 +297,8 @@ void Abc_BddPrint_rec( Abc_BddMan * p, int a, int * pPath )
         int i;
         for ( i = 0; i < p->nVars; i++ )
             if ( pPath[i] == 0 || pPath[i] == 1 )
-                printf( "%c%d", pPath[i] ? '+' : '-', i );
-        printf( " " );
+                fprintf( Abc_FrameGlobalGetOut(), "%c%d", pPath[i] ? '+' : '-', i );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
         return; 
     }
     pPath[Abc_BddVar(p, a)] =  0;
@@ -310,10 +310,10 @@ void Abc_BddPrint_rec( Abc_BddMan * p, int a, int * pPath )
 void Abc_BddPrint( Abc_BddMan * p, int a )
 {
     int * pPath = ABC_FALLOC( int, p->nVars );
-    printf( "BDD %d = ", a );
+    fprintf( Abc_FrameGlobalGetOut(), "BDD %d = ", a );
     Abc_BddPrint_rec( p, a, pPath );
     ABC_FREE( pPath );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Abc_BddPrintTest( Abc_BddMan * p )
 {
@@ -325,7 +325,7 @@ void Abc_BddPrintTest( Abc_BddMan * p )
     int bAndCD = Abc_BddAnd( p, bVarC, bVarD );
     int bFunc  = Abc_BddOr( p, bAndAB, bAndCD );
     Abc_BddPrint( p, bFunc );
-    printf( "Nodes = %d\n", Abc_BddCountNodes(p, bFunc) );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes = %d\n", Abc_BddCountNodes(p, bFunc) );
 }
 
 
@@ -372,7 +372,7 @@ void Abc_BddGiaTest( Gia_Man_t * pGia, int fVerbose )
             Abc_BddPrint( p, pObj->Value );
         Vec_IntPush( vNodes, pObj->Value );
     }
-    printf( "Shared nodes = %d.\n", Abc_BddCountNodesArray2(p, vNodes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Shared nodes = %d.\n", Abc_BddCountNodesArray2(p, vNodes) );
     Vec_IntFree( vNodes );
     Abc_BddManFree( p );
 }

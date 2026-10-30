@@ -358,7 +358,7 @@ double Abc_NtkGetMappedArea( Abc_Ntk_t * pNtk )
 //        assert( pObj->pData );
         if ( pObj->pData == NULL )
         {
-            printf( "Node without mapping is encountered.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Node without mapping is encountered.\n" );
             continue;
         }
         TotalArea += Mio_GateReadArea( (Mio_Gate_t *)pObj->pData );
@@ -1057,12 +1057,12 @@ void Abc_NtkLogicMakeSimpleCosTest( Abc_Ntk_t * pNtk, int fDuplicate )
     for ( i = 0; i < nObjs; i++ )
         Counts[pType[i]]++;
     for ( i = 0; i < 4; i++ )
-        printf( "%d = %d     ", i, Counts[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%d = %d     ", i, Counts[i] );
     for ( i = 0; i < 2; i++ )
-        printf( "c%d = %d     ", i, Consts[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "c%d = %d     ", i, Consts[i] );
     for ( i = 0; i < 2; i++ )
-        printf( "i%d = %d    ", i, Inputs[i] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "i%d = %d    ", i, Inputs[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     ABC_FREE( pType );
 }
 
@@ -2060,7 +2060,7 @@ int Abc_NtkCrossCut( Abc_Ntk_t * pNtk )
         nCutSize--;
     }
     assert( nCutSize == 0 );
-    printf( "Max cross cut size = %6d.  Ratio = %6.2f %%\n", nCutSizeMax, 100.0 * nCutSizeMax/Abc_NtkObjNum(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "Max cross cut size = %6d.  Ratio = %6.2f %%\n", nCutSizeMax, 100.0 * nCutSizeMax/Abc_NtkObjNum(pNtk) );
     return nCutSizeMax;
 }
 
@@ -2170,7 +2170,7 @@ void Abc_NtkCompareCones( Abc_Ntk_t * pNtk )
             pTemp->fMarkA = 1;
         }
         // print statistics
-        printf( "%4d CO %5d :  Supp = %5d.  Lev = %3d.  Cone = %5d.  Rev = %5d.  COs = %3d (%3d).\n",
+        fprintf( Abc_FrameGlobalGetOut(), "%4d CO %5d :  Supp = %5d.  Lev = %3d.  Cone = %5d.  Rev = %5d.  COs = %3d (%3d).\n",
             Iter, pPerms[i], Vec_PtrSize(vSupp), Abc_ObjLevel(Abc_ObjFanin0(pObj)), Vec_PtrSize(vNodes), Counter, CounterCos, CounterCosNew );
 
         if ( Vec_PtrSize(vSupp) < 10 )
@@ -2225,7 +2225,7 @@ void Abc_NtkCompareSupports( Abc_Ntk_t * pNtk )
         {
             vSupp = Abc_NtkNodeSupport( pNtk, &pTemp, 1 );
             if ( nNodesOld != Vec_PtrSize(vSupp) )
-                printf( "Choice orig = %3d  Choice new = %3d\n", nNodesOld, Vec_PtrSize(vSupp) );
+                fprintf( Abc_FrameGlobalGetOut(), "Choice orig = %3d  Choice new = %3d\n", nNodesOld, Vec_PtrSize(vSupp) );
             Vec_PtrFree( vSupp );
         }
     }
@@ -2271,8 +2271,8 @@ void Abc_NtkPrintCiLevels( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj;
     int i;
     Abc_NtkForEachCi( pNtk, pObj, i )
-        printf( "%c=%d ", 'a'+i, pObj->Level );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%c=%d ", 'a'+i, pObj->Level );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 
@@ -2392,7 +2392,7 @@ Abc_Ntk_t * Abc_NtkAddBuffsInt( Abc_Ntk_t * pNtkInit, int fReverse, int nImprove
                 }
             }
             if ( fVerbose )
-                printf( "Shifted %5d nodes down with total gain %5d.\n", Counter, TotalGain );
+                fprintf( Abc_FrameGlobalGetOut(), "Shifted %5d nodes down with total gain %5d.\n", Counter, TotalGain );
             if ( Counter == 0 )
                 break;
         }
@@ -2427,7 +2427,7 @@ Abc_Ntk_t * Abc_NtkAddBuffsInt( Abc_Ntk_t * pNtkInit, int fReverse, int nImprove
                 }
             } 
             if ( fVerbose )
-                printf( "Shifted %5d nodes up with total gain %5d.\n", Counter, TotalGain );
+                fprintf( Abc_FrameGlobalGetOut(), "Shifted %5d nodes up with total gain %5d.\n", Counter, TotalGain );
             if ( Counter == 0 )
                 break;
         }
@@ -2604,7 +2604,7 @@ Abc_Ntk_t * Abc_NtkSopToCubes( Abc_Ntk_t * pNtk, int fXor )
     Abc_NtkFinalize( pNtk, pNtkNew );
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkSopToCubes: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkSopToCubes: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -2676,7 +2676,7 @@ void Abc_NtkReverseTopoOrder( Abc_Ntk_t * p )
         Abc_NtkIncrementTravId( p );        
         Abc_NtkReverseTopoOrder_rec( pObj, 1 );
     }
-    printf( "Nodes = %d.   Size = %d.  Ratio = %f.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes = %d.   Size = %d.  Ratio = %f.\n", 
         Abc_NtkNodeNum(p), Vec_IntSize(p->vTopo), 1.0*Vec_IntSize(p->vTopo)/Abc_NtkNodeNum(p) );
 }
 
@@ -2783,7 +2783,7 @@ Abc_Ntk_t * Abc_NtkFromPla( char ** pPlas, int nInputs, int nOutputs )
         assert( Abc_SopGetVarNum((char*)pNode->pData) == nInputs );
     }
     if ( !Abc_NtkCheck( pNtkSop ) )
-        fprintf( stdout, "Abc_NtkFromPla(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFromPla(): Network check has failed.\n"  );
     // perform fast_extract
     Abc_NtkSetDefaultFxParams( p );
     Abc_NtkFastExtract( pNtkSop, p );
@@ -2870,7 +2870,7 @@ Abc_Ntk_t * Abc_NtkSplitSop( Abc_Ntk_t * pNtk, int nCubesMax, int fVerbose )
     Abc_NtkFinalize( pNtk, pNtkNew );
     // check correctness
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkDup(): Network check has failed.\n"  );
     pNtk->pCopy = pNtkNew;
     return pNtkNew;
 }
@@ -2902,12 +2902,12 @@ int Abc_NtkIsTopo( Abc_Ntk_t * pNtk )
         if ( k != Abc_ObjFaninNum(pObj) )
         {
             if ( Counter++ == 0 )
-                printf( "Node %d is out of topo order.\n", Abc_ObjId(pObj) );
+                fprintf( Abc_FrameGlobalGetOut(), "Node %d is out of topo order.\n", Abc_ObjId(pObj) );
         }
         Abc_NodeSetTravIdCurrent(pObj);
     }
     if ( Counter )
-        printf( "Topological order does not hold for %d internal nodes.\n", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Topological order does not hold for %d internal nodes.\n", Counter );
     return (int)(Counter == 0);
 }
 
@@ -3370,9 +3370,9 @@ void Abc_PrintAT( Vec_Int_t * vRanks )
     int i, Entry;
     Vec_IntForEachEntryReverse( vRanks, Entry, i )
         if ( Entry == 0 )
-            printf( "    " );
+            fprintf( Abc_FrameGlobalGetOut(), "    " );
         else
-            printf( "%4d", Entry );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d", Entry );
     //printf( "\n" );
 }
 int Abc_NtkMatchGpcPattern( Vec_Int_t * vRanks, int i, char * pGPC )
@@ -3439,9 +3439,9 @@ int Abc_NtkCheckGpc( char * pGPC, char * pGPC0 )
         Sum[1] += (1 << k) * Abc_TtReadHexDigit(pOut[1+k]);
     //printf( "GPC %s has input sum %d and output sum %d\n", pGPC0, Sum[0], Sum[1] );
     if ( Sum[0]+1 > (1 << Abc_Base2Log(Sum[1]+1)) )
-        printf( "The largest value of GPC inputs (%d) exceeds the capacity of outputs (%d) for GPC %s.\n", Sum[0], Sum[1], pGPC0 );
+        fprintf( Abc_FrameGlobalGetOut(), "The largest value of GPC inputs (%d) exceeds the capacity of outputs (%d) for GPC %s.\n", Sum[0], Sum[1], pGPC0 );
     else if ( Sum[1]+1 > (1 << Abc_Base2Log(Sum[0]+1)) )
-        printf( "The largest value of GPC outputs (%d) exceeds the capacity of inputs (%d) for GPC %s.\n", Sum[1], Sum[0], pGPC0 );
+        fprintf( Abc_FrameGlobalGetOut(), "The largest value of GPC outputs (%d) exceeds the capacity of inputs (%d) for GPC %s.\n", Sum[1], Sum[0], pGPC0 );
     else 
         RetValue = 1;
     return RetValue;
@@ -3460,10 +3460,10 @@ void Abc_NtkATMap( int nXVars, int nYVars, int nAdder, char ** pGPCs0, int nGPCs
     for ( x = 0; x < nXVars; x++ )
         Sum += (1 << x) * nYVars;
     nBits = Abc_Base2Log( Sum+1 );
-    printf( "Rectangular adder tree (X=%d Y=%d Sum=%d Out=%d) mapped with", nXVars, nYVars, Sum, nBits );
+    fprintf( Abc_FrameGlobalGetOut(), "Rectangular adder tree (X=%d Y=%d Sum=%d Out=%d) mapped with", nXVars, nYVars, Sum, nBits );
     for ( i = 0; i < nGPCs; i++ )
-        printf( " GPC%d=%s", i, pGPCs0[i] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " GPC%d=%s", i, pGPCs0[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_Int_t * vLevel;
     Vec_Int_t * vRank[3] = { Vec_IntAlloc(100), Vec_IntAlloc(100), Vec_IntAlloc(100) };
     Vec_Wec_t ** vGPCs = ABC_ALLOC( Vec_Wec_t *, nGPCs );
@@ -3473,13 +3473,13 @@ void Abc_NtkATMap( int nXVars, int nYVars, int nAdder, char ** pGPCs0, int nGPCs
     for ( x = 0; x < nXVars; x++ )
         Vec_IntAddToEntry( vRank[0], x, nYVars );
     if ( fVerbose ) {
-        printf( "Ranks: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Ranks: " );
         for ( i = nBits-1; i >= 0; i-- )
-            printf( "%4d", i );
-        printf( "       : " );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d", i );
+        fprintf( Abc_FrameGlobalGetOut(), "       : " );
         for ( i = nBits-1; i >= 0; i-- )
-            printf( "%4d", i );
-        printf( "  LUT6\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d", i );
+        fprintf( Abc_FrameGlobalGetOut(), "  LUT6\n" );
     }
     for ( n = 0; n < nGPCs; n++ ) 
     for ( i = 0, fFinished = 0; !fFinished; i++ ) 
@@ -3500,25 +3500,25 @@ void Abc_NtkATMap( int nXVars, int nYVars, int nAdder, char ** pGPCs0, int nGPCs
                 Vec_IntAddToEntry( vRank[0], x, Entry );
         }
         if ( fVerbose && (fAdded || Vec_IntFindMax(vRank[2]) <= nAdder ) ) {
-            printf( "Lev%02d: ", iLevel++ );
+            fprintf( Abc_FrameGlobalGetOut(), "Lev%02d: ", iLevel++ );
             Abc_PrintAT( vRank[2] ); 
             if ( fAdded ) {
-                printf( "   GPC%d: ", n );
+                fprintf( Abc_FrameGlobalGetOut(), "   GPC%d: ", n );
                 Abc_PrintAT( vLevel ); 
-                printf( "  %4d", Vec_IntSum(vLevel) * nGPCluts[n] );
+                fprintf( Abc_FrameGlobalGetOut(), "  %4d", Vec_IntSum(vLevel) * nGPCluts[n] );
             }
             else if ( Vec_IntFindMax(vRank[2]) <= nAdder ) {
-                printf( "   ADD%d: ", nAdder );
+                fprintf( Abc_FrameGlobalGetOut(), "   ADD%d: ", nAdder );
                 for ( x = 0; x < nBits; x++ )
                     if ( Vec_IntEntry(vRank[2], x) > 1 )
                         break;
                 for ( i = nBits-1; i >= x; i-- )
-                    printf( "%4d", 1 );
+                    fprintf( Abc_FrameGlobalGetOut(), "%4d", 1 );
                 for ( ; i >= 0; i-- )
-                    printf( "    " );
-                printf( "  %4d", (nBits-x)*(nAdder == 4 ? 2 : 1) );    
+                    fprintf( Abc_FrameGlobalGetOut(), "    " );
+                fprintf( Abc_FrameGlobalGetOut(), "  %4d", (nBits-x)*(nAdder == 4 ? 2 : 1) );    
             }
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         if ( fAdded ) {
             if ( fReturn ) {
@@ -3532,22 +3532,22 @@ void Abc_NtkATMap( int nXVars, int nYVars, int nAdder, char ** pGPCs0, int nGPCs
         }
     }
     if ( Vec_IntFindMax(vRank[0]) > nAdder )
-        printf( "Synthesis of the adder tree is incomplete. Try using the full adder \"3:11:1\" as the last GPC.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Synthesis of the adder tree is incomplete. Try using the full adder \"3:11:1\" as the last GPC.\n" );
     else if ( fVerbose && Vec_IntFindMax(vRank[0]) <= nAdder ) {
-        printf( "Lev%02d: ", iLevel++ );
+        fprintf( Abc_FrameGlobalGetOut(), "Lev%02d: ", iLevel++ );
         for ( i = nBits-1; i >= 0; i-- )
-            printf( "%4d", 1 );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d", 1 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    printf( "Statistics:  " ); 
+    fprintf( Abc_FrameGlobalGetOut(), "Statistics:  " ); 
     for ( n = 0; n < nGPCs; n++ )
-        printf( "GPC%d = %d.  ", n, Vec_WecSum(vGPCs[n]) );
+        fprintf( Abc_FrameGlobalGetOut(), "GPC%d = %d.  ", n, Vec_WecSum(vGPCs[n]) );
     for ( x = 0; x < nBits; x++ )
         if ( Vec_IntEntry(vRank[0], x) > 1 )
             break;
     nRcaLuts = (nBits-x)*(nAdder == 4 ? 2 : 1);
-    printf( "ADD%d = %d.  ", nAdder, nRcaLuts );    
-    printf( "Total LUT count = %d.  ", nLuts+nRcaLuts );
+    fprintf( Abc_FrameGlobalGetOut(), "ADD%d = %d.  ", nAdder, nRcaLuts );    
+    fprintf( Abc_FrameGlobalGetOut(), "Total LUT count = %d.  ", nLuts+nRcaLuts );
     for ( i = 0; i < 3; i++ )
         Vec_IntFree( vRank[i] );
     for ( i = 0; i < nGPCs; i++ )
