@@ -1219,7 +1219,8 @@ static int Cec_DynSrmTasRetryBatch( Cec_DynSrm_t * p, int nConfs,
     Vec_Str_t * vStatus = NULL;
     Vec_Int_t * vStore;
     abctime clk = Abc_ClockHr();
-    int i, iStart = 0, iLocal, iOrig, nLits, Status, nResolved = 0;
+    int i, iStart = 0, iLocal, iOrig, nLits, nResolved = 0;
+    signed char Status;  // -1 has to stay -1 where plain char is unsigned
     assert( Vec_IntSize(vRoots) == Vec_IntSize(vRootToOrig) );
     if ( p->pTas == NULL )
         p->pTas = Tas_ManAlloc( p->pCore, nConfs );
@@ -1285,7 +1286,8 @@ Vec_Int_t * Cec_DynSrmSolveBmcAdaptive( Cec_DynSrm_t * p, int nConfs,
     Vec_Int_t * vTasStore, * vTasStarts, * vFinalStore;
     abctime clk;
     abctime tProfSetup = 0, tProfSolve = 0, tProfMax = 0;
-    int i, Status, nRoots = Vec_IntSize(p->vOutLits), nProbe, nProbeResolved;
+    int i, nRoots = Vec_IntSize(p->vOutLits), nProbe, nProbeResolved;
+    signed char Status;  // -1 has to stay -1 where plain char is unsigned
     int nProfCalls = 0;
     int nFrames = Abc_MaxInt( 1, p->nFramesTotal );
     int nCore = Gia_ManObjNum( p->pCore );
