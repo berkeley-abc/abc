@@ -126,4 +126,5 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaUnate.c \
     src/aig/gia/giaUtil.c \
     src/aig/gia/giaBound.c \
-    src/aig/gia/giaDecGraph.cpp
+    src/aig/gia/giaDecGraph.cpp \
+    src/aig/gia/giaDecGraph2.cpp

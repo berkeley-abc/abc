@@ -1557,6 +1557,8 @@ extern Gia_Man_t *         If2_ManPerformMapping( Gia_Man_t * pGia, If2_Par_t * 
 //=== giaIf3.c ============================================================
 extern void                If3_ManSetDefaultPars( If3_Par_t * pPars );
 extern Gia_Man_t *         If3_ManPerformMapping( Gia_Man_t * pGia, If3_Par_t * pPars );
+//=== giaDc3.c ============================================================
+extern Gia_Man_t *         Gia_ManDc3( Gia_Man_t * pGia, int fKeepLevel, int fVerbose );
 //=== giaDch2.c ===========================================================
 extern Gia_Man_t *         Gia_ManDch2Construct( Gia_Man_t * pGia, int fKeepLevel, int fVerbose );
 extern Gia_Man_t *         Gia_ManDch2DeriveChoices( Gia_Man_t * pGia );
@@ -1915,6 +1917,9 @@ extern Vec_Int_t *         Tas_ManSolveRoots( Tas_Man_t * p, Vec_Int_t * vRootLi
 /*=== giaDecGraph.c ===========================================================*/
 extern Gia_Man_t*          Gia_ManDecGraph( Gia_Man_t* p );
 extern Gia_Man_t*          Gia_ManDecGraphFromFile( char* pFileName );
+/*=== giaDecGraph2.cpp ========================================================*/
+extern Gia_Man_t*          Gia_ManDecGraph2( Gia_Man_t* p, int fQuality, int fVerbose );
+extern Gia_Man_t*          Gia_ManDecGraph2FromFile( char* pFileName, int fQuality, int fVerbose );
 
 /*=== giaBound.c ===========================================================*/
 typedef struct Bnd_Man_t_  Bnd_Man_t;

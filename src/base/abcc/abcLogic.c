@@ -81,6 +81,7 @@ static int Abc_CommandAbc9Extract            ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Sopb               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Dsdb               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9DecGraph           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9DecGraph2          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9QVar               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatFx              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatClp             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -156,6 +157,7 @@ void Abc_InitLogic( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&sopb",         Abc_CommandAbc9Sopb,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&dsdb",         Abc_CommandAbc9Dsdb,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&dg"          , Abc_CommandAbc9DecGraph,     0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&dg2"         , Abc_CommandAbc9DecGraph2,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&qvar",         Abc_CommandAbc9QVar,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satfx",        Abc_CommandAbc9SatFx,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satclp",       Abc_CommandAbc9SatClp,       0 );
@@ -4504,6 +4506,94 @@ usage:
     Abc_Print( -2, "\t-f       : read from file (in IWLS format) [default = %s]\n" , fFile ? "yes" : "no");
     Abc_Print( -2, "\t-h       : prints the command usage\n\n");
     Abc_Print( -2, "\t           This command was contributed by Jiun-Hao Chen from National Taiwan University.\n" );
+    Abc_Print( -2, "\t           For more info, please refer to the paper: Jiun-Hao Chen and Jie-Hong R. Jiang,\n");
+    Abc_Print( -2, "\t           \"Circuit learning for multi-output Boolean functions\", Proc. IWLS 2025.\n");
+    Abc_Print( -2, "\t           https://people.eecs.berkeley.edu/~alanmi/publications/other/iwls25_dg.pdf\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs experimental multi-output circuit learning.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9DecGraph2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pTemp;
+    char * pFileName = NULL;
+    int c, fFile = 0, fQuality = 0, fVerbose = 0;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "fqvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'f':
+            fFile ^= 1;
+            break;
+        case 'q':
+            fQuality ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+        default:
+            goto usage;
+        }
+    }
+#ifndef ABC_USE_CUDD
+    if ( fQuality )
+    {
+        Abc_Print( -1, "&dg2 -q requires ABC's bundled CUDD package.\n" );
+        return 1;
+    }
+#endif
+    if ( argc != globalUtilOptind + fFile )
+        goto usage;
+    if ( !fFile && pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Empty GIA network.\n" );
+        return 1;
+    }
+    if ( fFile && argc == globalUtilOptind + 1 )
+    {
+        FILE * pFile = fopen( argv[globalUtilOptind], "rb" );
+        if ( pFile == NULL )
+        {
+            Abc_Print( -1, "&dg2: Cannot open file \"%s\" for reading truth tables.\n", argv[globalUtilOptind] );
+            return 1;
+        }
+        fclose( pFile );
+        pFileName = argv[globalUtilOptind];
+    }
+    if ( pFileName ) {
+        pTemp = Gia_ManDecGraph2FromFile( pFileName, fQuality, fVerbose );
+    } else {
+        pTemp = Gia_ManDecGraph2( pAbc->pGia, fQuality, fVerbose );
+    }
+    if ( pTemp == NULL )
+        return 1;
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &dg2 [-fqvh] [file]\n" );
+    Abc_Print( -2, "\t           combinational multi-output circuit learning (up to 16 inputs)\n" );
+    Abc_Print( -2, "\t-f       : read from file (in IWLS format) [default = %s]\n" , fFile ? "yes" : "no");
+    Abc_Print( -2, "\t-q       : toggle area optimization using shared input/output bases [default = %s]\n", fQuality ? "yes" : "no" );
+    Abc_Print( -2, "\t-v       : toggle printing quality-mode progress [default = %s]\n", fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-h       : prints the command usage\n\n");
+    Abc_Print( -2, "\t           Quality mode uses &dc3; equal-area results prefer fewer levels.\n" );
+    Abc_Print( -2, "\t           Levels are otherwise unconstrained.\n" );
+    Abc_Print( -2, "\t           Floating-point ties can change AIGs across platforms/compiler flags.\n" );
+    Abc_Print( -2, "\t           Based on &dg, contributed by Jiun-Hao Chen from National Taiwan University.\n" );
     Abc_Print( -2, "\t           For more info, please refer to the paper: Jiun-Hao Chen and Jie-Hong R. Jiang,\n");
     Abc_Print( -2, "\t           \"Circuit learning for multi-output Boolean functions\", Proc. IWLS 2025.\n");
     Abc_Print( -2, "\t           https://people.eecs.berkeley.edu/~alanmi/publications/other/iwls25_dg.pdf\n");

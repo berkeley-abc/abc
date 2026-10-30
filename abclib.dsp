@@ -6873,6 +6873,10 @@ SOURCE=.\src\aig\gia\giaDecGraph.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaDecGraph2.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaAgi.c
 # End Source File
 # Begin Source File
