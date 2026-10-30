@@ -6649,6 +6649,10 @@ SOURCE=.\src\aig\gia\giaNewTt.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaNewTt2.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaNf.c
 # End Source File
 # Begin Source File
@@ -6858,6 +6862,18 @@ SOURCE=.\src\aig\gia\giaTransduction.h
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaTranStoch.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaTransduction2.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaTransduction2.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaTranStoch2.c
 # End Source File
 # Begin Source File
 

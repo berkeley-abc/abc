@@ -68,6 +68,7 @@ static int Abc_CommandAbc9Drf                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9LNetOpt            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Ttopt              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Transduction       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9TranStoch2         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9TranStoch          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Rrr                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Rewire             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -129,6 +130,7 @@ void Abc_InitRewrite( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&lnetopt",      Abc_CommandAbc9LNetOpt,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&ttopt",        Abc_CommandAbc9Ttopt,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&transduction", Abc_CommandAbc9Transduction, 0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&transtoch2"  , Abc_CommandAbc9TranStoch2,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&transtoch"   , Abc_CommandAbc9TranStoch,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&rrr",          Abc_CommandAbc9Rrr,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&rewire"      , Abc_CommandAbc9Rewire,       0 );
@@ -3576,6 +3578,240 @@ usage:
     Abc_Print( -2, "\t-o       : toggles starting from the given AIG [default = %s]\n", fOriginalOnly? "yes": "no" );
     Abc_Print( -2, "\t-n       : toggles printing with a new line [default = %s]\n", fNewLine? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n" );
+    Abc_Print( -2, "\t<file>   : AIGER specifying external don't-cares\n" );
+    Abc_Print( -2, "\t\n" );
+    Abc_Print( -2, "\t           This command was contributed by Yukio Miyasaka.\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs the single-threaded experimental transduction flow.]
+
+***********************************************************************/
+int Abc_CommandAbc9TranStoch2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManTranStoch2( Gia_Man_t * pGia, int nRestarts, int nHops, int nSeedBase, int fMspf, int fMerge, int fResetHop, int fZeroCostHop, int fRefactor, int fTruth, int fSingle, int fOriginalOnly, int fNewLine, Gia_Man_t * pExdc, int nVerbose, int nCandidates, int nMspfRestarts, int fHybrid, int fLocal, int nTime );
+    Gia_Man_t * pTemp, * pExdc = NULL;
+    char * pEnd;
+    long Value;
+    int c, nRestarts = 0, nHops = 10, nSeedBase = 0, fMspf = 1, fMerge = 1, fResetHop = 1, fZeroCostHop = 0, fRefactor = 0, fTruth = 2, fSingle = 0, fOriginalOnly = 0, fNewLine = 0, nVerbose = 1;
+    int nCandidates = 0, nMspfRestarts = 0, fHybrid = 0, fLocal = 0, nTime = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NMRVCBTmgrzftbsonqlh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+        case 'B':
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-%c\" should be followed by a non-negative integer.\n", c );
+                goto usage;
+            }
+            Value = strtol( argv[globalUtilOptind], &pEnd, 10 );
+            if ( pEnd == argv[globalUtilOptind] || *pEnd || Value < 0 || Value > 1000000 )
+            {
+                Abc_Print( -1, "Expected an integer between 0 and 1000000.\n" );
+                goto usage;
+            }
+            if ( c == 'C' )
+                nCandidates = (int)Value;
+            else if ( c == 'B' )
+                nMspfRestarts = (int)Value;
+            else
+                nTime = (int)Value;
+            globalUtilOptind++;
+            break;
+        case 'l':
+            fLocal ^= 1;
+            break;
+        case 'q':
+            fHybrid ^= 1;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by a non-negative integer.\n" );
+                goto usage;
+            }
+            Value = strtol( argv[globalUtilOptind], &pEnd, 10 );
+            if ( pEnd == argv[globalUtilOptind] || *pEnd || Value < 0 || Value > 1000000 )
+            {
+                Abc_Print( -1, "Expected an integer between 0 and 1000000.\n" );
+                goto usage;
+            }
+            nRestarts = (int)Value;
+            globalUtilOptind++;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by a non-negative integer.\n" );
+                goto usage;
+            }
+            Value = strtol( argv[globalUtilOptind], &pEnd, 10 );
+            if ( pEnd == argv[globalUtilOptind] || *pEnd || Value < 0 || Value > 1000000 )
+            {
+                Abc_Print( -1, "Expected an integer between 0 and 1000000.\n" );
+                goto usage;
+            }
+            nHops = (int)Value;
+            globalUtilOptind++;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by a non-negative integer.\n" );
+                goto usage;
+            }
+            Value = strtol( argv[globalUtilOptind], &pEnd, 10 );
+            if ( pEnd == argv[globalUtilOptind] || *pEnd || Value < 0 || Value > 1000000 )
+            {
+                Abc_Print( -1, "Expected an integer between 0 and 1000000.\n" );
+                goto usage;
+            }
+            nSeedBase = (int)Value;
+            globalUtilOptind++;
+            break;
+        case 'V':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-V\" should be followed by a non-negative integer.\n" );
+                goto usage;
+            }
+            Value = strtol( argv[globalUtilOptind], &pEnd, 10 );
+            if ( pEnd == argv[globalUtilOptind] || *pEnd || Value < 0 || Value > 1000000 )
+            {
+                Abc_Print( -1, "Expected an integer between 0 and 1000000.\n" );
+                goto usage;
+            }
+            nVerbose = (int)Value;
+            globalUtilOptind++;
+            break;
+        case 'm':
+            fMspf ^= 1;
+            break;
+        case 'g':
+            fMerge ^= 1;
+            break;
+        case 'r':
+            fResetHop ^= 1;
+            break;
+        case 'z':
+            fZeroCostHop ^= 1;
+            break;
+        case 'f':
+            fRefactor ^= 1;
+            break;
+        case 'b':
+            fTruth = 0;
+            break;
+        case 't':
+            fTruth = 1;
+            break;
+        case 's':
+            fSingle ^= 1;
+            break;
+        case 'o':
+            fOriginalOnly ^= 1;
+            break;
+        case 'n':
+            fNewLine ^= 1;
+            break;
+        case 'h':
+        default:
+            goto usage;
+        }
+    }
+    if ( nRestarts < 0 || nHops < 0 || nSeedBase < 0 || nVerbose < 0 )
+        goto usage;
+    if ( argc > globalUtilOptind + 1 )
+    {
+        Abc_Print( -1, "Wrong number of arguments.\n" );
+        goto usage;
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Empty GIA network.\n" );
+        return 1;
+    }
+    if ( Gia_ManCiNum(pAbc->pGia) > 1023 )
+    {
+        Abc_Print( -1, "Transduction supports at most 1023 inputs.\n" );
+        return 1;
+    }
+    if ( Gia_ManRegNum(pAbc->pGia) )
+    {
+        Abc_Print( -1, "This command requires a combinational AIG.\n" );
+        return 1;
+    }
+    if ( fTruth == 1 && Gia_ManCiNum(pAbc->pGia) > 16 )
+    {
+        Abc_Print( -1, "Truth-table mode supports at most 16 inputs.\n" );
+        return 1;
+    }
+    if ( argc == globalUtilOptind + 1 )
+    {
+        FILE * pFile = fopen( argv[globalUtilOptind], "rb" );
+        if ( pFile == NULL )
+        {
+            Abc_Print( -1, "Cannot open input file \"%s\". ", argv[globalUtilOptind] );
+            return 1;
+        }
+        fclose( pFile );
+        pExdc = Gia_AigerRead( argv[globalUtilOptind], 0, 0, 0 );
+        if ( pExdc == NULL )
+        {
+            Abc_Print( -1, "Reading AIGER has failed.\n" );
+            return 1;
+        }
+    }
+
+    if ( pExdc && (Gia_ManRegNum(pExdc) || Gia_ManCiNum(pExdc) != Gia_ManCiNum(pAbc->pGia) ||
+        (Gia_ManCoNum(pExdc) != 1 && Gia_ManCoNum(pExdc) != Gia_ManCoNum(pAbc->pGia))) )
+    {
+        Abc_Print( -1, "EXDC must have matching inputs and either one or matching outputs.\n" );
+        Gia_ManStop( pExdc );
+        return 1;
+    }
+    pTemp = Gia_ManTranStoch2( pAbc->pGia, nRestarts, nHops, nSeedBase, fMspf, fMerge, fResetHop, fZeroCostHop, fRefactor, fTruth, fSingle, fOriginalOnly, fNewLine, pExdc, nVerbose, nCandidates, nMspfRestarts, fHybrid, fLocal, nTime );
+    if ( pExdc != NULL )
+        Gia_ManStop( pExdc );
+    if ( pTemp == NULL )
+        return 1;
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &transtoch2 [-NMRVCBT num] [-mgrzftbsonqlh] <file>\n" );
+    Abc_Print( -2, "\t           single-threaded transduction with randomized parameters\n" );
+    Abc_Print( -2, "\t-N num   : number of restarts [default = %d]\n", nRestarts );
+    Abc_Print( -2, "\t-M num   : number of hops (if; mfs2; strash) [default = %d]\n", nHops );
+    Abc_Print( -2, "\t-R num   : random seed [default = %d]\n", nSeedBase );
+    Abc_Print( -2, "\t-V num   : verbosity level [default = %d]\n", nVerbose);
+    Abc_Print( -2, "\t-T num   : soft time budget in seconds, 0 = unlimited [default = %d]\n", nTime );
+    Abc_Print( -2, "\t-C num   : costly internal-fanin trials per target, 0 = unlimited [default = %d]\n", nCandidates );
+    Abc_Print( -2, "\t-B num   : MSPF restarts per pass before CSPF closure, 0 = unlimited [default = %d]\n", nMspfRestarts );
+    Abc_Print( -2, "\t-l       : local fanin trials in all phases, with MSPF cleanup [default = %s]\n", fLocal ? "yes" : "no" );
+    Abc_Print( -2, "\t-q       : hybrid CSPF trials when MSPF is enabled [default = %s]\n", fHybrid ? "yes" : "no" );
+    Abc_Print( -2, "\t-m       : toggles using MSPF instead of CSPF [default = %s]\n", fMspf? "yes": "no" );
+    Abc_Print( -2, "\t-g       : toggles using ResubShared [default = %s]\n", fMerge? "yes": "no" );
+    Abc_Print( -2, "\t-r       : toggles resetting hop count when new minimum is found [default = %s]\n", fResetHop? "yes": "no" );
+    Abc_Print( -2, "\t-z       : toggles using \"drf -z\" instead of \"if;mfs2;st\" for hop [default = %s]\n", fZeroCostHop? "yes": "no" );
+    Abc_Print( -2, "\t-f       : toggles using \"drf -z\" instead of \"&dc2\" for ite [default = %s]\n", fRefactor? "yes": "no" );
+    Abc_Print( -2, "\t-t       : force truth tables (at most 16 inputs)\n" );
+    Abc_Print( -2, "\t-b       : force BDDs (default: truth tables up to 12 inputs, BDDs otherwise)\n" );
+    Abc_Print( -2, "\t-s       : toggles starting from the smallest starting point [default = %s]\n", fSingle? "yes": "no" );
+    Abc_Print( -2, "\t-o       : toggles starting from the given AIG [default = %s]\n", fOriginalOnly? "yes": "no" );
+    Abc_Print( -2, "\t-n       : toggles printing with a new line [default = %s]\n", fNewLine? "yes": "no" );
+    Abc_Print( -2, "\t-h       : prints the command usage\n" );
+    Abc_Print( -2, "\t           Search-policy and time-budget options also retain the smallest intermediate AIG.\n" );
+    Abc_Print( -2, "\t           Time budgets use wall time on Linux and CPU time elsewhere; load affects results.\n" );
+    Abc_Print( -2, "\t           Local trials use maximum care even during CSPF preparation.\n" );
+    Abc_Print( -2, "\t           Alternative starts need CUDD and at most 16 inputs.\n" );
+    Abc_Print( -2, "\t           Uses the platform C random generator; seeds may differ across platforms.\n" );
     Abc_Print( -2, "\t<file>   : AIGER specifying external don't-cares\n" );
     Abc_Print( -2, "\t\n" );
     Abc_Print( -2, "\t           This command was contributed by Yukio Miyasaka.\n" );
