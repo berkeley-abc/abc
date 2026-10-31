@@ -26,6 +26,9 @@ CMake marks the option PRIVATE, including for the static and PIC libraries.
 Neither `abc_global.h` nor standalone headers include this private header.
 The host application retains its own libc calls. `abc_io.h` declares the small
 routing interface without redefining standard names.
+The forced header reads the Windows CRT's extra declarations and the C++ file
+stream definitions before installing macros. This leaves standard-library
+declarations and qualified stdio calls inside file streams untouched.
 Each routed print resolves its destination with a thread-local frame lookup;
 it does not cache a frame across commands or nested entry scopes.
 

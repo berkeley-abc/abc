@@ -17,6 +17,7 @@
 #include "io_test.h"
 #include "misc/util/abc_io.h"
 #include "misc/util/abc_print.h"
+#include <fstream>
 #include <iomanip>
 #include <thread>
 
@@ -49,6 +50,20 @@ void IoTestEmitBinary( void )
 {
     Abc_PrintString( stdout, std::string("BIN:A\0B\r\n\032Z\n", 12), true );
     ABC_PRINT_STREAM( stdout, true, "DEC:" << 42 << '\n' );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Keeps C++ file output separate from a captured console.]
+
+***********************************************************************/
+void IoTestEmitCppFile( const char * pFileName )
+{
+    std::ofstream File( pFileName, std::ios::binary );
+    IO_CHECK( File.is_open() );
+    File << "ordinary C++ file\n";
+    File.close();
+    IO_CHECK( File.good() );
 }
 
 ABC_NAMESPACE_IMPL_END

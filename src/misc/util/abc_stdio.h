@@ -21,8 +21,14 @@
 
 // Force-include only when compiling ABC. Never include from public headers.
 // Read the C++ declarations before defining macros, including their #undefs.
+#ifdef _WIN32
+// The Microsoft CRT also declares perror in stdlib.h.
+#include <stdlib.h>
+#endif
 #ifdef __cplusplus
 #include <cstdio>
+// libc++ file streams call std::fwrite and std::fflush in inline definitions.
+#include <fstream>
 #ifdef _WIN32
 // Parse string formatting before vecStr.h installs its legacy vsnprintf alias.
 #include <string>

@@ -26,6 +26,7 @@ extern void IoTestEmitC( const char * pTag );
 extern void IoTestEmitCpp( const char * pTag );
 extern void IoTestEmitBinary( void );
 extern void IoTestEmitFile( FILE * pFile );
+extern void IoTestEmitCppFile( const char * pFileName );
 
 ABC_NAMESPACE_HEADER_END
 

@@ -315,6 +315,7 @@ static void IoTestParallel( Abc_Frame_t * pFrames[2], const std::string & Load )
 ***********************************************************************/
 static void IoTestScopes( Abc_Frame_t * pFrames[2] )
 {
+    std::string Path = IoTestPath();
     FILE * pFile = Abc_IoTempFile();
     IO_CHECK( pFile != NULL );
     Abc_Frame_t * pPrevious = Abc_FrameEnter( pFrames[0] );
@@ -325,6 +326,7 @@ static void IoTestScopes( Abc_Frame_t * pFrames[2] )
     Abc_FrameLeave( pOuter );
     IoTestEmitCpp( "restored_alpha" );
     IoTestEmitFile( pFile );
+    IoTestEmitCppFile( Path.c_str() );
     // Host calls must still reach the real console while ABC capture is active.
     std::printf( "HOST stdout\n" );
     std::fprintf( stderr, "HOST stderr\n" );
@@ -347,8 +349,14 @@ static void IoTestScopes( Abc_Frame_t * pFrames[2] )
     IO_CHECK( Beta.find("restored_alpha") == std::string::npos );
     IO_CHECK( Alpha.find("HOST ") == std::string::npos && Beta.find("HOST ") == std::string::npos );
     IO_CHECK( Alpha.find("ordinary file") == std::string::npos );
+    IO_CHECK( Alpha.find("ordinary C++ file") == std::string::npos );
     IO_CHECK( IoTestRead(pFile) == "ordinary file\ndata" );
     IO_CHECK( std::fclose(pFile) == 0 );
+    pFile = std::fopen( Path.c_str(), "rb" );
+    IO_CHECK( pFile != NULL );
+    IO_CHECK( IoTestRead(pFile) == "ordinary C++ file\n" );
+    IO_CHECK( std::fclose(pFile) == 0 );
+    IO_CHECK( std::remove(Path.c_str()) == 0 );
     IO_CHECK( IoTestCommand(pFrames[0], "echo AFTER_COPY") == 0 );
     IO_CHECK( IoTestLog(pFrames[0]) == Alpha + "AFTER_COPY \n" );
 }
