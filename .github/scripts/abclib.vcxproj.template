@@ -41,6 +41,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>src</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:strictStrings- %(AdditionalOptions)</AdditionalOptions>
+      <ForcedIncludeFiles Condition="'$(ABC_USE_STDIO_REDIRECT)'=='1'">$(MSBuildProjectDirectory)\src\misc\util\abc_stdio.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Lib>
       <OutputFile>$(OutDir)abcr.lib</OutputFile>
