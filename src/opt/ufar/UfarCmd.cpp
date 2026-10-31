@@ -5,6 +5,7 @@
  *      Author: Yen-Sheng Ho
  */
 
+#include "misc/util/abc_print.h"
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -110,7 +111,7 @@ static void Ufar_DumpStatusLog( const string & FileName, int RetValue, const str
     pFile = fopen( FileName.c_str(), "wb" );
     if ( pFile == NULL )
     {
-        cout << "Cannot open file \"" << FileName << "\" for writing." << endl;
+        { printf( "Cannot open file \"%s\" for writing.\n", FileName.c_str() ); fflush( stdout ); }
         return;
     }
     if ( RetValue == 1 )
@@ -444,7 +445,7 @@ int Ufar_ProveWithTimeout( Wlc_Ntk_t * pNtk, int nTimeOut, int fVerbose, int (*p
         Ufar_AddOptions( opt_mgr, manager.params );
         if ( !Ufar_TokenizeArgs(pParseArgs, Tokens) )
         {
-            cout << "Cannot parse internal %ufar option string." << endl;
+            { printf( "Cannot parse internal %%ufar option string.\n" ); fflush( stdout ); }
             return -1;
         }
         Argv.reserve( Tokens.size() + 1 );
@@ -495,7 +496,7 @@ int Ufar_ProveWithTimeout( Wlc_Ntk_t * pNtk, int nTimeOut, int fVerbose, int (*p
         Wlc_Ntk_t * pCur = pUse;
         if ( Wlc_NtkPoNum(pCur) != 2 )
         {
-            cout << "CrossStats requires dual outputs before mitering.\n";
+            printf( "CrossStats requires dual outputs before mitering.\n" );
             if ( pUse != pNtk )
                 Wlc_NtkFree( pUse );
             return -1;
@@ -543,11 +544,11 @@ int Ufar_ProveWithTimeout( Wlc_Ntk_t * pNtk, int nTimeOut, int fVerbose, int (*p
             else if ( fR )  nR++;
             else            nN++;
         }
-        cout << "UIF_PROVE : CrossStats: L=" << nL
+        ABC_PRINT_STREAM( stdout, true, "UIF_PROVE : CrossStats: L=" << nL
              << " R=" << nR
              << " BOTH=" << nB
              << " NONE=" << nN
-             << " TOTAL=" << (nL + nR + nB + nN) << endl;
+             << " TOTAL=" << (nL + nR + nB + nN) << "\n" );
         if ( pUse != pNtk )
             Wlc_NtkFree( pUse );
         return -1;
@@ -605,7 +606,7 @@ static int Abc_CommandAnalyzeCex( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     if ( pAbc->pCex == NULL )
         {
-        cout << "There is no CEX.\n";
+        printf( "There is no CEX.\n" );
         return 0;
     }
 
@@ -618,7 +619,7 @@ static int Abc_CommandAnalyzeCex( Abc_Frame_t * pAbc, int argc, char ** argv )
 static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     if (Wlc_AbcGetNtk(pAbc) == NULL) {
-        cout << "There is no current design.\n";
+        printf( "There is no current design.\n" );
         return 0;
     }
     // Make each %ufar invocation stateless: always start from factory defaults.
@@ -632,8 +633,8 @@ static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv 
     Ufar_AddOptions( opt_mgr, ufar_manager.params );
     if(!opt_mgr.Parse(argc, argv)) {
         opt_mgr.PrintUsage();
-        cout << "\n       This command was developed by Yen-Sheng Ho at UC Berkeley in 2015.\n";
-        cout << "       https://people.eecs.berkeley.edu/~alanmi/publications/2016/fmcad16_uif.pdf \n"; 
+        printf( "\n       This command was developed by Yen-Sheng Ho at UC Berkeley in 2015.\n" );
+        printf( "       https://people.eecs.berkeley.edu/~alanmi/publications/2016/fmcad16_uif.pdf \n" );
         return 0;
     }
     Ufar_ApplyOptions( opt_mgr, ufar_manager.params, set_op_types, firstAigDumpFile, dumpLogFile, fNeedMiter, fCrossStats, UnderSize );
@@ -642,7 +643,7 @@ static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv 
     LogT::prefix = "UIF_PROVE";
     string statusName = Ufar_GetStatusName( Wlc_AbcGetNtk(pAbc) );
     if (!UFAR::HasOperator(Wlc_AbcGetNtk(pAbc), set_op_types)) {
-        cout << "There is no operator for UIF.\n";
+        printf( "There is no operator for UIF.\n" );
         return 0;
     }
 
@@ -652,7 +653,7 @@ static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv 
 
     if (fNeedMiter) {
         if (Wlc_NtkPoNum(Wlc_AbcGetNtk(pAbc)) != 2) {
-            cout << "The current design doesn't have dual outputs.\n";
+            printf( "The current design doesn't have dual outputs.\n" );
             return 0;
         }
         pNew = UFAR::CreateMiter(Wlc_AbcGetNtk(pAbc), 0);
@@ -669,7 +670,7 @@ static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv 
         Wlc_Ntk_t * pCur = Wlc_AbcGetNtk(pAbc);
         if ( Wlc_NtkPoNum(pCur) != 2 )
         {
-            cout << "CrossStats requires dual outputs before mitering.\n";
+            printf( "CrossStats requires dual outputs before mitering.\n" );
             return 0;
         }
         int nObjs = Wlc_NtkObjNumMax(pCur);
@@ -716,11 +717,11 @@ static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv 
             else if ( fR )  nR++;
             else            nN++;
         }
-        cout << "UIF_PROVE : CrossStats: L=" << nL
+        ABC_PRINT_STREAM( stdout, true, "UIF_PROVE : CrossStats: L=" << nL
              << " R=" << nR
              << " BOTH=" << nB
              << " NONE=" << nN
-             << " TOTAL=" << (nL + nR + nB + nN) << endl;
+             << " TOTAL=" << (nL + nR + nB + nN) << "\n" );
         //fflush(stdout);
         //exit(1);
         return 0;
@@ -867,19 +868,19 @@ static int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 #endif
 #if 0
      if (  Wlc_AbcGetNtk(pAbc) == NULL ) {
-         cout << "There is no current design.\n";
+         printf( "There is no current design.\n" );
          return 0;
      }
 
      if (Wlc_NtkPoNum(Wlc_AbcGetNtk(pAbc)) != 2) {
-         cout << "The current design doesn't have dual outputs.\n";
+         printf( "The current design doesn't have dual outputs.\n" );
          return 0;
      }
 
      set<unsigned> set_op_types;
      set_op_types.insert(WLC_OBJ_ARI_MULTI);
      if (!UFAR::HasOperator(Wlc_AbcGetNtk(pAbc), set_op_types)) {
-         cout << "There is no operator for UIF.\n";
+         printf( "There is no operator for UIF.\n" );
          return 0;
      }
 

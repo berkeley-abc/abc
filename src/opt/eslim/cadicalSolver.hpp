@@ -20,6 +20,7 @@
 
 #ifndef ABC__OPT__ESLIM__SATINTERFACE_h
 #define ABC__OPT__ESLIM__SATINTERFACE_h
+#include "misc/util/abc_print.h"
 
 #include <vector>
 #include <algorithm>
@@ -128,7 +129,7 @@ namespace eSLIM {
     int status = solver.solve();
     last_runtime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
     if (solver.state() == CaDiCaL::INVALID) {
-      std::cerr<<"Solver is in invalid state"<<std::endl;
+      { fprintf( stderr, "Solver is in invalid state\n" ); fflush( stderr ); }
       return -1;
     }
     solver.disconnect_terminator();
@@ -150,7 +151,7 @@ namespace eSLIM {
     int status = solver.solve();
     last_runtime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
     if (solver.state() == CaDiCaL::INVALID) {
-      std::cerr<<"Solver is in invalid state"<<std::endl;
+      { fprintf( stderr, "Solver is in invalid state\n" ); fflush( stderr ); }
       return -1;
     }
     solver.disconnect_terminator();

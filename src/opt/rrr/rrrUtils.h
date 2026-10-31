@@ -1,4 +1,5 @@
 #pragma once
+#include "misc/util/abc_print.h"
 
 #include <iostream>
 #include <iomanip>
@@ -84,12 +85,12 @@ namespace rrr {
 
   void PrintComplementedEdges(std::function<void(std::function<void(int, bool)> const &)> const &ForEachEdge) {
     std::string delim;
-    std::cout << "[";
+    printf( "[" );
     ForEachEdge([&] (int id, bool c) {
-      std::cout << delim << (c? "!": "") << id;
+      ABC_PRINT_STREAM( stdout, false, delim << (c? "!": "") << id );
       delim = ", ";
     });
-    std::cout << "]";
+    printf( "]" );
   }
 
   /* }}} */
@@ -230,7 +231,7 @@ namespace rrr {
   /* {{{ Print others */
 
   static inline void PrintWarning(std::string message) {
-    std::cerr << "[w] " << message << std::endl;
+    ABC_PRINT_STREAM( stderr, true, "[w] " << message << "\n" );
   }
 
   /* }}} */

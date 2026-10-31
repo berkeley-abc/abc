@@ -17,6 +17,7 @@
   Revision    [$Id: eslim2Relation.cpp,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
+#include "misc/util/abc_print.h"
 
 #include <cassert>
 #include <algorithm>
@@ -68,7 +69,7 @@ namespace eSLIM2 {
     if (cfg.tune_relation_solver) {
       const bool configured = solver.setOption("lucky", 0);
       if (!configured)
-        std::cerr << "eSLIM2: cannot disable CaDiCaL lucky phases; using solver defaults.\n";
+        { fprintf( stderr, "eSLIM2: cannot disable CaDiCaL lucky phases; using solver defaults.\n" ); fflush( stderr ); }
       assert(configured);
     }
     setupEncoding();

@@ -17,6 +17,7 @@
   Revision    [$Id: eSLIM.cpp,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
+#include "misc/util/abc_print.h"
 
 #include <random>
 
@@ -202,7 +203,7 @@ namespace eSLIM {
     if (!params->fix_seed) {
       config.seed = std::random_device{}();
       if (config.verbosity_level > 0) {
-        std::cout << "Set seed: " << config.seed << "\n";
+        ABC_PRINT_STREAM( stdout, false, "Set seed: " << config.seed << "\n" );
       }
     }
   }
@@ -214,7 +215,7 @@ namespace eSLIM {
     if (!params->fix_seed) {
       config.seed = std::random_device{}();
       if (config.verbosity_level > 0) {
-        std::cout << "Set seed: " << config.seed << "\n";
+        ABC_PRINT_STREAM( stdout, false, "Set seed: " << config.seed << "\n" );
       }
     }
   }
@@ -282,10 +283,10 @@ namespace eSLIM {
       int size_iteration_start = es_man.getNofGates();
       int delay_iteration_start = es_man.getDepth();
       if (config.verbosity_level > 0) {
-        std::cout << "Start eslim run " << i + 1 << "\n";
+        ABC_PRINT_STREAM( stdout, false, "Start eslim run " << i + 1 << "\n" );
       }
       if (es_man.getNofGates() == 0) {
-        std::cout << "Cannot further reduce the given circuit.\n";
+        printf( "Cannot further reduce the given circuit.\n" );
         printLog();
         return;
       }
@@ -295,7 +296,7 @@ namespace eSLIM {
       area_change_eslim += size_eslim - size_iteration_start;
       delay_change_eslim += delay_eslim - delay_iteration_start;
       if (config.verbosity_level > 0) {
-        std::cout << "eslim -- size: " << size_eslim << " delay: " << delay_eslim << "\n";
+        ABC_PRINT_STREAM( stdout, false, "eslim -- size: " << size_eslim << " delay: " << delay_eslim << "\n" );
       }
       runInprocessing();
       if constexpr ( !std::is_same_v<EmptyInprocessor, Inprocessor> ) {
@@ -304,7 +305,7 @@ namespace eSLIM {
         area_change_inprocessing += size_inprocessing - size_eslim;
         delay_change_inprocessing += delay_inprocessing - delay_eslim;
         if (config.verbosity_level > 0) {
-          std::cout << "inprocessing -- size: " << size_inprocessing << " delay: " << delay_inprocessing << "\n";
+          ABC_PRINT_STREAM( stdout, false, "inprocessing -- size: " << size_inprocessing << " delay: " << delay_inprocessing << "\n" );
         }
       }
       // if (config.fix_seed) {
@@ -317,15 +318,15 @@ namespace eSLIM {
 
   template <typename Approach, typename Inprocessor>
   void eSLIMRun<Approach, Inprocessor>::printSettings() {
-    std::cout << "Apply eSLIM (timeout: " << config.timeout << ") ";
-    std::cout << nruns << " times.\n";
+    ABC_PRINT_STREAM( stdout, false, "Apply eSLIM (timeout: " << config.timeout << ") " );
+    ABC_PRINT_STREAM( stdout, false, nruns << " times.\n" );
     if constexpr ( !std::is_same_v<EmptyInprocessor, Inprocessor> ) {
-      std::cout << "Apply inprocessing\n";
+      printf( "Apply inprocessing\n" );
     }
     if (config.iterations > 0) {
-      std::cout << "Stop eSLIM runs after " << config.iterations << " iterations.\n";
+      ABC_PRINT_STREAM( stdout, false, "Stop eSLIM runs after " << config.iterations << " iterations.\n" );
     }
-    std::cout << "Consider subcircuits with up to " << config.subcircuit_max_size << " gates.\n";
+    ABC_PRINT_STREAM( stdout, false, "Consider subcircuits with up to " << config.subcircuit_max_size << " gates.\n" );
     printf("When expanding subcircuits, select gates with a probability of %.2f %%.\n", 100 * config.expansion_probability);
   }
 
@@ -336,81 +337,81 @@ namespace eSLIM {
       int delay = es_man.getDepth();
       int total_area_change = area_change_eslim + area_change_inprocessing;
       int total_delay_change = delay_change_eslim + delay_change_inprocessing;
-      std::cout << "Final size: " << size << " change: " << total_area_change << "\n";
-      std::cout << "Final depth: " << delay << " change: " << total_delay_change << "\n";
+      ABC_PRINT_STREAM( stdout, false, "Final size: " << size << " change: " << total_area_change << "\n" );
+      ABC_PRINT_STREAM( stdout, false, "Final depth: " << delay << " change: " << total_delay_change << "\n" );
 
 
       if constexpr ( !std::is_same_v<EmptyInprocessor, Inprocessor> ) {
 
         if (area_change_eslim <= 0) {
-          std::cout << "#Gates reduced by eSLIM: " << -area_change_eslim << "\n";
+          ABC_PRINT_STREAM( stdout, false, "#Gates reduced by eSLIM: " << -area_change_eslim << "\n" );
         } else {
-          std::cout << "#Gates introduced by eSLIM: " << area_change_eslim << "\n";
+          ABC_PRINT_STREAM( stdout, false, "#Gates introduced by eSLIM: " << area_change_eslim << "\n" );
         }
         if (area_change_inprocessing <= 0) {
-          std::cout << "#Gates reduced by inprocessing: " << -area_change_inprocessing << "\n";
+          ABC_PRINT_STREAM( stdout, false, "#Gates reduced by inprocessing: " << -area_change_inprocessing << "\n" );
         } else {
-          std::cout << "#Gates introduced by inprocessing: " << area_change_inprocessing << "\n";
+          ABC_PRINT_STREAM( stdout, false, "#Gates introduced by inprocessing: " << area_change_inprocessing << "\n" );
         }
         if (delay_change_eslim <= 0) {
-          std::cout << "Delay reduction eSLIM: " << -delay_change_eslim << "\n";
+          ABC_PRINT_STREAM( stdout, false, "Delay reduction eSLIM: " << -delay_change_eslim << "\n" );
         } else {
-          std::cout << "Delay increase eSLIM: " << delay_change_eslim << "\n";
+          ABC_PRINT_STREAM( stdout, false, "Delay increase eSLIM: " << delay_change_eslim << "\n" );
         }
         if (delay_change_inprocessing <= 0) {
-          std::cout << "Delay reduction inprocessing: " << -delay_change_inprocessing << "\n";
+          ABC_PRINT_STREAM( stdout, false, "Delay reduction inprocessing: " << -delay_change_inprocessing << "\n" );
         } else {
-          std::cout << "Delay increase inprocessing: " << delay_change_inprocessing << "\n";
+          ABC_PRINT_STREAM( stdout, false, "Delay increase inprocessing: " << delay_change_inprocessing << "\n" );
         }
       }
     }
     if (config.verbosity_level > 1) {
-      std::cout << "Total #iterations: " << log.iteration_count << "\n";
-      std::cout << "Total relation generation time (s): " << log.relation_generation_time << "\n";
-      std::cout << "Total synthesis time (s): " << log.synthesis_time << "\n";
-      std::cout << "#Iterations with forbidden pairs: " << log.subcircuits_with_forbidden_pairs << "\n";
+      ABC_PRINT_STREAM( stdout, false, "Total #iterations: " << log.iteration_count << "\n" );
+      ABC_PRINT_STREAM( stdout, false, "Total relation generation time (s): " << log.relation_generation_time << "\n" );
+      ABC_PRINT_STREAM( stdout, false, "Total synthesis time (s): " << log.synthesis_time << "\n" );
+      ABC_PRINT_STREAM( stdout, false, "#Iterations with forbidden pairs: " << log.subcircuits_with_forbidden_pairs << "\n" );
       printf("Relation generation: #SAT-calls: %llu, Total SAT-time: %.2f sec, Max SAT-time: %.4f sec ",  
             static_cast<unsigned long long>(log.nof_sat_calls_relation_generation), log.cummulative_sat_runtime_relation_generation, log.max_sat_runtime_relation_generation);
       if (log.nof_sat_calls_relation_generation > 0) {
         printf("Avg. SAT-time: %.4f sec\n", log.cummulative_sat_runtime_relation_generation/log.nof_sat_calls_relation_generation);
       } else {
-        std::cout << "Avg. SAT-time: -\n";
+        printf( "Avg. SAT-time: -\n" );
       }
       printf("Synthesis: #SAT-calls: %llu, Total SAT-time: %.2f sec, Max SAT-time: %.4f sec ",  
             static_cast<unsigned long long>(log.nof_sat_calls_synthesis), log.cummulative_sat_runtime_synthesis / 1000, log.max_sat_runtime_synthesis / 1000);  
       if (log.nof_sat_calls_synthesis > 0) {
         printf("Avg. SAT-time: %.4f sec\n", log.cummulative_sat_runtime_synthesis / (log.nof_sat_calls_synthesis*1000));
       } else {
-        std::cout << "Avg. SAT-time: -\n";
+        printf( "Avg. SAT-time: -\n" );
       }
     }
     if (config.verbosity_level > 2) {
       for (int i = 2; i < log.nof_analyzed_circuits_per_size.size(); i++) {
         int replaced = log.nof_replaced_circuits_per_size.size() > i ? log.nof_replaced_circuits_per_size[i] : 0;
         int reduced = log.nof_reduced_circuits_per_size.size() > i ? log.nof_reduced_circuits_per_size[i] : 0;
-        std::cout << "#gates: " << i << " - #analysed: " << log.nof_analyzed_circuits_per_size[i] << " - #replaced: " << replaced << " - #reduced: " << reduced;
-        std::cout << " - avg. relation time: ";
+        ABC_PRINT_STREAM( stdout, false, "#gates: " << i << " - #analysed: " << log.nof_analyzed_circuits_per_size[i] << " - #replaced: " << replaced << " - #reduced: " << reduced );
+        printf( " - avg. relation time: " );
         if (log.nof_relation_generations_per_size[i] == 0) {
-          std::cout << "-";
+          printf( "-" );
         } else {
           printf("%.2f sec",  static_cast<double>(log.cummulative_relation_generation_times_per_size[i]) / (log.nof_relation_generations_per_size[i]));
         }
-        std::cout << "\n";
+        printf( "\n" );
       }
       for (int i = 0; i < log.nof_sat_calls_per_size.size(); i++) {
-        std::cout << "#gates: " << i << " - avg. sat time: ";
+        ABC_PRINT_STREAM( stdout, false, "#gates: " << i << " - avg. sat time: " );
         if (log.nof_sat_calls_per_size[i] == 0) {
-          std::cout << "-";
+          printf( "-" );
         } else {
           printf("%.2f sec",  static_cast<double>(log.cummulative_sat_runtimes_per_size[i]) / (1000 * log.nof_sat_calls_per_size[i]));
         }
-        std::cout << " / avg. unsat time: ";
+        printf( " / avg. unsat time: " );
         if (log.nof_unsat_calls_per_size[i] == 0) {
-          std::cout << "-";
+          printf( "-" );
         } else {
           printf("%.2f sec",  static_cast<double>(log.cummulative_unsat_runtimes_per_size[i]) / (1000 * log.nof_unsat_calls_per_size[i]));
         }
-        std::cout << "\n";
+        printf( "\n" );
       }
     }
   }
@@ -638,19 +639,19 @@ Circuitrepresentation* runeSLIM(Circuitrepresentation * cir, const eSLIM_ParamSt
 
 Gia_Man_t* applyeSLIM(Gia_Man_t * pGia, const eSLIM_ParamStruct* params) {
   if (Gia_ManHasDangling(pGia)) {
-    std::cout << "Warning: Circuit must not contain dangling nodes.\n";
+    printf( "Warning: Circuit must not contain dangling nodes.\n" );
     return NULL;
   } 
   if (Gia_ManRegNum(pGia) > 0) {
-    std::cout << "Warning: Only combinatorial circuits are supported.\n";
+    printf( "Warning: Only combinatorial circuits are supported.\n" );
     return NULL;
   }
   if (Gia_ManMuxNum(pGia) > 0) {
-    std::cout << "Warning: Structural Muxes are not supported.\n";
+    printf( "Warning: Structural Muxes are not supported.\n" );
     return NULL;
   }
   if (Gia_ManXorNum(pGia) > 0) {
-    std::cout << "Warning: Structural XORs are not supported.\n";
+    printf( "Warning: Structural XORs are not supported.\n" );
     return NULL;
   }
 
@@ -665,11 +666,11 @@ Abc_Ntk_t* applyelSLIM(Abc_Ntk_t * ntk, const eSLIM_ParamStruct* params) {
   // Using more fanins would also make the synthesis encoding harder, and thus larger gates would likely not be helpful anyway.
   // We might generalise the implementation to support gates with more fanins in the future.
   if (Abc_NtkGetFaninMax(ntk) > 6) {
-    std::cout << "Warning: Currently only networks whose gates have at most 6 fanins are supported.\n";
+    printf( "Warning: Currently only networks whose gates have at most 6 fanins are supported.\n" );
     return NULL;
   }
   if (!Abc_NtkIsComb(ntk)) {
-    std::cout << "Warning: Only combinatorial circuits are supported.\n";
+    printf( "Warning: Only combinatorial circuits are supported.\n" );
     return NULL;
   }
   return runeSLIM(ntk, params);

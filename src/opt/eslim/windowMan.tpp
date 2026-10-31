@@ -17,6 +17,8 @@
   Revision    [$Id: eSLIM.cpp,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
+#include "misc/util/abc_print.h"
+#include "misc/util/abc_io.h"
 
 #include <random>
 #include <algorithm>
@@ -117,8 +119,12 @@ namespace eSLIM {
     #ifdef ABC_USE_PTHREADS
       std::vector<std::thread> eslim_threads;
       eslim_threads.reserve(nwindows);
+      FILE *out = Abc_IoReadOut(), *err = Abc_IoReadErr();
       for (int i = 0; i < nwindows; i++) {
-        std::thread esman_thread(eSLIM_Man<SynthesisEngine, SelectionStrategy>::applyeSLIM, std::ref(windows[i]), std::ref(cfg), std::ref(wlogs[i]));
+        std::thread esman_thread([this, i, out, err]() {
+          Abc_IoSetWorkerStreams(out, err);
+          eSLIM_Man<SynthesisEngine, SelectionStrategy>::applyeSLIM(windows[i], cfg, wlogs[i]);
+        });
         eslim_threads.push_back(std::move(esman_thread));
 
       }
@@ -126,7 +132,7 @@ namespace eSLIM {
         t.join();
       }
     #else
-      std::cout << "PThreads not available, minimize random window.\n";
+      printf( "PThreads not available, minimize random window.\n" );
       std::uniform_int_distribution<> udist(0, windows.size() - 1);
       int wid = udist(rng);
       eSLIM_Man<SynthesisEngine, SelectionStrategy>::applyeSLIM(windows[wid], cfg, wlogs[wid]);

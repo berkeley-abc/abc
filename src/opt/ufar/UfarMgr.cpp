@@ -4,6 +4,7 @@
  *  Created on: Aug 25, 2015
  *      Author: Yen-Sheng Ho
  */
+#include "misc/util/abc_print.h"
 
 #include <cstdio>
 #include <fstream>
@@ -68,7 +69,7 @@ static void split(const string &s, char delim, vector<string>& elems) {
 
 static void set_state_b(vector<bool>& vec_b_state, const string& str_state) {
     if (vec_b_state.size() != str_state.size()) {
-        cerr << "Invalid initial states for B.\n" ;
+        { fprintf( stderr, "Invalid initial states for B.\n" ); fflush( stderr ); }
         return;
     }
 
@@ -586,13 +587,13 @@ static void bit_print (word value) {
     int n_bits = 0;
     while(n_bits < 64) {
         if ((value & 1) == 1)
-            cout << "1";
+            printf( "1" );
         else
-            cout << "0";
+            printf( "0" );
         value >>= 1;
         n_bits++;
     }
-    cout << endl;
+    { printf( "\n" ); fflush( stdout ); }
 }
 
 void SimUifPairFinder::_count_matches(Vec_Ptr_t * vRes, int range) {
@@ -1925,7 +1926,7 @@ void UfarManager::GetOperatorsInCex(Abc_Cex_t *pCex, VecVecStr* pRes) {
             int range = Wlc_ObjRange(Wlc_NtkPo(_pAbsWithAuxPos, i));
             string bit_str = string(cur_po_vals.begin() + pos, cur_po_vals.begin() + pos + range);
             if (!pRes) {
-                cout << "PO[" << i << "]@" << f << " = " << string(bit_str.rbegin(), bit_str.rend()) << endl;
+                ABC_PRINT_STREAM( stdout, true, "PO[" << i << "]@" << f << " = " << string(bit_str.rbegin(), bit_str.rend()) << "\n" );
             } else {
                 pRes->back().push_back(bit_str);
             }
@@ -1937,22 +1938,22 @@ void UfarManager::GetOperatorsInCex(Abc_Cex_t *pCex, VecVecStr* pRes) {
 
 void UfarManager::DumpParams() const {
     unsigned n_setw = 15;
-    cout << "Parameters : " << endl;
-    cout << "     " << setw(n_setw) << left << "cexmin" << " : " << (params.fCexMin ? "yes" : "no") << endl;
-    cout << "     " << setw(n_setw) << left << "allwb" << " : " << (params.fAllWb ? "yes" : "no") << endl;
-    cout << "     " << setw(n_setw) << left << "crossonly" << " : " << (params.fCrossOnly ? "yes" : "no") << endl;
-    cout << "     " << setw(n_setw) << left << "initnear" << " : " << params.nInitNearMults << endl;
-    cout << "     " << setw(n_setw) << left << "iLogLevel" << " : " << params.iVerbosity << endl;
+    { printf( "Parameters : \n" ); fflush( stdout ); }
+    ABC_PRINT_STREAM( stdout, true, "     " << setw(n_setw) << left << "cexmin" << " : " << (params.fCexMin ? "yes" : "no") << "\n" );
+    ABC_PRINT_STREAM( stdout, true, "     " << setw(n_setw) << left << "allwb" << " : " << (params.fAllWb ? "yes" : "no") << "\n" );
+    ABC_PRINT_STREAM( stdout, true, "     " << setw(n_setw) << left << "crossonly" << " : " << (params.fCrossOnly ? "yes" : "no") << "\n" );
+    ABC_PRINT_STREAM( stdout, true, "     " << setw(n_setw) << left << "initnear" << " : " << params.nInitNearMults << "\n" );
+    ABC_PRINT_STREAM( stdout, true, "     " << setw(n_setw) << left << "iLogLevel" << " : " << params.iVerbosity << "\n" );
 }
 
 void UfarManager::DumpMgrInfo() const {
-    cout << "Operators : " << endl;
+    { printf( "Operators : \n" ); fflush( stdout ); }
     for(unsigned i = 0; i < _vec_op_ids.size(); i++, printf("\n")) {
-        cout << "OP_ID = " << i << " : ";
-        cout << _vec_orig_names[_vec_op_ids[i]] << " = ";
-        cout << _vec_orig_names[Wlc_ObjFaninId0(Wlc_NtkObj(_pOrigNtk, _vec_op_ids[i]))] << " * ";
-        cout << _vec_orig_names[Wlc_ObjFaninId1(Wlc_NtkObj(_pOrigNtk, _vec_op_ids[i]))] ;
-        cout << (_vec_op_blackbox_marks[i] ? " (black)" : "") ;
+        ABC_PRINT_STREAM( stdout, false, "OP_ID = " << i << " : " );
+        ABC_PRINT_STREAM( stdout, false, _vec_orig_names[_vec_op_ids[i]] << " = " );
+        ABC_PRINT_STREAM( stdout, false, _vec_orig_names[Wlc_ObjFaninId0(Wlc_NtkObj(_pOrigNtk, _vec_op_ids[i]))] << " * " );
+        ABC_PRINT_STREAM( stdout, false, _vec_orig_names[Wlc_ObjFaninId1(Wlc_NtkObj(_pOrigNtk, _vec_op_ids[i]))] );
+        ABC_PRINT_STREAM( stdout, false, (_vec_op_blackbox_marks[i] ? " (black)" : "") );
     }
 }
 
@@ -1962,7 +1963,7 @@ void UfarManager::_dump_states(const std::string& file) {
     fs.open((file + "_s").c_str(), fstream::out);
 
     if(!fs.is_open()) {
-        cerr << "Cannot open the file for dumping states.\n";
+        { fprintf( stderr, "Cannot open the file for dumping states.\n" ); fflush( stderr ); }
         return;
     }
 
@@ -1985,7 +1986,7 @@ void UfarManager::_read_states(const std::string &file) {
     fs.open(file.c_str(), fstream::in);
 
     if(!fs.is_open()) {
-        cerr << "Cannot open the file for reading states.\n";
+        { fprintf( stderr, "Cannot open the file for reading states.\n" ); fflush( stderr ); }
         return;
     }
 

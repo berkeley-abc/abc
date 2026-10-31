@@ -9,6 +9,7 @@
 #define SRC_EXT2_UTIL_UTIL_H_
 
 /* http://stackoverflow.com/questions/6168107/how-to-implement-a-good-debug-logging-feature-in-a-project */
+#include "misc/util/abc_print.h"
 
 #include <iostream>
 #include <sstream>
@@ -66,7 +67,8 @@ class LogT {
         }
 
         ~LogT() {
-            std::cout << _buffer.str() << std::endl;
+            _buffer << '\n';
+            Abc_PrintString(stdout, _buffer.str(), true);
         }
 
         static unsigned loglevel;

@@ -17,6 +17,7 @@
   Revision    [$Id: windowMan.tpp,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
+#include "misc/util/abc_print.h"
 
 #include <random>
 #include <algorithm>
@@ -50,7 +51,7 @@ namespace eSLIM2 {
     win_man.setupWindows();
     if (!win_man.nwindows) {
       if (cfg.verbosity_level > 0)
-        std::cout << "eSLIM2: using one core for the whole circuit.\n";
+        printf( "eSLIM2: using one core for the whole circuit.\n" );
       eSLIM2_Man<SynthesisEngine, SelectionStrategy>::applyeSLIM2(es_man, cfg, log);
       return;
     }
@@ -80,7 +81,7 @@ namespace eSLIM2 {
     unsigned requested = cfg.ncores;
 #ifndef ABC_USE_PTHREADS
     if (requested > 1)
-      std::cout << "eSLIM2: thread support is unavailable; using one core.\n";
+      printf( "eSLIM2: thread support is unavailable; using one core.\n" );
     requested = 1;
 #endif
     const unsigned gates = es_man.getNofGates();
@@ -179,7 +180,7 @@ namespace eSLIM2 {
     for (unsigned i = 1; i < nworkers; ++i) {
       pthread_t thread;
       if (pthread_create(&thread, nullptr, &WindowMan::runWorker, this)) {
-        std::cout << "eSLIM2: could not create another worker; continuing with " << active << " cores.\n";
+        ABC_PRINT_STREAM( stdout, false, "eSLIM2: could not create another worker; continuing with " << active << " cores.\n" );
         break;
       }
       threads.push_back(thread);
@@ -187,7 +188,7 @@ namespace eSLIM2 {
     }
 #endif
     if (cfg.verbosity_level > 0)
-      std::cout << "eSLIM2: optimizing " << nwindows << " windows on " << active << " cores.\n";
+      ABC_PRINT_STREAM( stdout, false, "eSLIM2: optimizing " << nwindows << " windows on " << active << " cores.\n" );
     runWorker(this);
 #ifdef ABC_USE_PTHREADS
     for (auto thread : threads) {
@@ -260,7 +261,7 @@ namespace eSLIM2 {
       }
       if (!valid) {
         if (cfg.verbosity_level > 0)
-          std::cout << "eSLIM2: retaining original window " << wid << " to preserve its bounds.\n";
+          ABC_PRINT_STREAM( stdout, false, "eSLIM2: retaining original window " << wid << " to preserve its bounds.\n" );
         win = eSLIM2CirMan(es_man, scirs[wid]);
       }
     }

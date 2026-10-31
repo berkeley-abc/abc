@@ -20,6 +20,7 @@
 
 #ifndef ABC__OPT__ESLIM2__SATINTERFACE_h
 #define ABC__OPT__ESLIM2__SATINTERFACE_h
+#include "misc/util/abc_print.h"
 
 #include <vector>
 #include <algorithm>
@@ -150,7 +151,7 @@ namespace eSLIM2 {
     // Always disconnect the stack-allocated terminator, including error paths.
     solver.disconnect_terminator();
     if (solver.state() == CaDiCaL::INVALID) {
-      std::cerr << "Solver is in invalid state" << std::endl;
+      { fprintf( stderr, "Solver is in invalid state\n" ); fflush( stderr ); }
       return -1;
     }
     return status;

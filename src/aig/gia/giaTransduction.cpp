@@ -25,6 +25,7 @@
 #pragma warning(disable : 4786) // warning C4786: identifier was truncated to '255' characters in the browser information
 #endif
 #endif
+#include "misc/util/abc_print.h"
 
 #include "giaTransduction.h"
 #include "giaNewBdd.h"
@@ -81,7 +82,7 @@ Gia_Man_t *Gia_ManTransductionBdd(Gia_Man_t *pGia, int nType, int fMspf, int nRa
     break;
   }
   default:
-    std::cout << "Unknown transduction type " << nType << std::endl;
+    ABC_PRINT_STREAM( stdout, true, "Unknown transduction type " << nType << "\n" );
   }
   assert(t.Verify());
   assert(count == t.CountWires());
@@ -137,7 +138,7 @@ Gia_Man_t *Gia_ManTransductionTt(Gia_Man_t *pGia, int nType, int fMspf, int nRan
     break;
   }
   default:
-    std::cout << "Unknown transduction type " << nType << std::endl;
+    ABC_PRINT_STREAM( stdout, true, "Unknown transduction type " << nType << "\n" );
   }
   assert(t.Verify());
   assert(count == t.CountWires());
