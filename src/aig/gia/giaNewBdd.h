@@ -20,6 +20,7 @@
 
 #ifndef ABC__aig__gia__giaNewBdd_h
 #define ABC__aig__gia__giaNewBdd_h
+#include "misc/util/abc_print.h"
 
 #include <cstdlib>
 #include <limits>
@@ -49,7 +50,7 @@ namespace NewBdd {
   static inline cac  CacHash(lit Arg0, lit Arg1)  { return Arg0 + 4256249 * Arg1;            }
 
   static inline void fatal_error(const char* message) {
-    std::cerr << message << std::endl;
+    ABC_PRINT_STREAM( stderr, true, message << "\n" );
     std::abort();
   }
 
@@ -74,7 +75,7 @@ namespace NewBdd {
         fatal_error("Memout (nCacheMax) in init");
       nSize = (cac)1 << nCacheSizeLog;
       if(nVerbose)
-        std::cout << "Allocating " << nSize << " cache entries" << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "Allocating " << nSize << " cache entries" << "\n" );
       vCache.resize(nSize * 3);
       Mask = nSize - 1;
       nLookups = 0;
@@ -84,17 +85,17 @@ namespace NewBdd {
     }
     ~Cache() {
       if(nVerbose)
-        std::cout << "Free " << nSize << " cache entries" << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "Free " << nSize << " cache entries" << "\n" );
     }
     inline lit Lookup(lit x, lit y) {
       nLookups++;
       if(nLookups > nThold) {
         double NewHitRate = (double)nHits / nLookups;
         if(nVerbose >= 2)
-          std::cout << "Cache Hits: " << std::setw(10) << nHits << ", "
+          ABC_PRINT_STREAM( stdout, true, "Cache Hits: " << std::setw(10) << nHits << ", "
                     << "Lookups: " << std::setw(10) << nLookups << ", "
                     << "Rate: " << std::setw(10) << NewHitRate
-                    << std::endl;
+                    << "\n" );
         if(NewHitRate > HitRate)
           Resize();
         if(nSize == nMax)
@@ -109,12 +110,12 @@ namespace NewBdd {
       cac i = (CacHash(x, y) & Mask) * 3;
       if(vCache[i] == x && vCache[i + 1] == y) {
         if(nVerbose >= 3)
-          std::cout << "Cache hit: "
+          ABC_PRINT_STREAM( stdout, true, "Cache hit: "
                     << "x = " << std::setw(10) << x << ", "
                     << "y = " << std::setw(10) << y << ", "
                     << "z = " << std::setw(10) << vCache[i + 2] << ", "
                     << "hash = " << std::hex << (CacHash(x, y) & Mask) << std::dec
-                    << std::endl;
+                    << "\n" );
         nHits++;
         return vCache[i + 2];
       }
@@ -126,12 +127,12 @@ namespace NewBdd {
       vCache[i + 1] = y;
       vCache[i + 2] = z;
       if(nVerbose >= 3)
-        std::cout << "Cache ent: "
+        ABC_PRINT_STREAM( stdout, true, "Cache ent: "
                   << "x = " << std::setw(10) << x << ", "
                   << "y = " << std::setw(10) << y << ", "
                   << "z = " << std::setw(10) << z << ", "
                   << "hash = " << std::hex << (CacHash(x, y) & Mask) << std::dec
-                  << std::endl;
+                  << "\n" );
     }
     inline void Clear() {
       std::fill(vCache.begin(), vCache.end(), 0);
@@ -140,7 +141,7 @@ namespace NewBdd {
       cac nSizeOld = nSize;
       nSize <<= 1;
       if(nVerbose >= 2)
-        std::cout << "Reallocating " << nSize << " cache entries" << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "Reallocating " << nSize << " cache entries" << "\n" );
       vCache.resize(nSize * 3);
       Mask = nSize - 1;
       for(cac j = 0; j < nSizeOld; j++) {
@@ -151,12 +152,12 @@ namespace NewBdd {
           vCache[hash + 1] = vCache[i + 1];
           vCache[hash + 2] = vCache[i + 2];
           if(nVerbose >= 3)
-            std::cout << "Cache mov: "
+            ABC_PRINT_STREAM( stdout, true, "Cache mov: "
                       << "x = " << std::setw(10) << vCache[i] << ", "
                       << "y = " << std::setw(10) << vCache[i + 1] << ", "
                       << "z = " << std::setw(10) << vCache[i + 2] << ", "
                       << "hash = " << std::hex << (CacHash(vCache[i], vCache[i + 1]) & Mask) << std::dec
-                      << std::endl;
+                      << "\n" );
         }
       }
     }
@@ -339,7 +340,7 @@ namespace NewBdd {
       else
         nObjsAlloc = (bvar)nObjsAllocLit;
       if(nVerbose >= 2)
-        std::cout << "Reallocating " << nObjsAlloc << " nodes" << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "Reallocating " << nObjsAlloc << " nodes" << "\n" );
       vVars.resize(nObjsAlloc);
       vObjs.resize((lit)nObjsAlloc * 2);
       vNexts.resize(nObjsAlloc);
@@ -361,7 +362,7 @@ namespace NewBdd {
         return;
       }
       if(nVerbose >= 2)
-        std::cout << "Reallocating " << nUniqueSize << " unique table entries for Var " << v << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "Reallocating " << nUniqueSize << " unique table entries for Var " << v << "\n" );
       vvUnique[v].resize(nUniqueSize);
       vUniqueMasks[v] = nUniqueSize - 1;
       for(uniq i = 0; i < nUniqueSizeOld; i++) {
@@ -389,7 +390,7 @@ namespace NewBdd {
     }
     bool Gbc() {
       if(nVerbose >= 2)
-        std::cout << "Garbage collect" << std::endl;
+        { printf( "Garbage collect\n" ); fflush( stdout ); }
       if(!vEdges.empty()) {
         for(bvar a = (bvar)nVars + 1; a < nObjs; a++)
           if(!EdgeOfBvar(a) && VarOfBvar(a) != VarMax())
@@ -430,13 +431,13 @@ namespace NewBdd {
       if(!vOneCounts.empty())
         vOneCounts[*p] = OneCount(x1) / 2 + OneCount(x0) / 2;
       if(nVerbose >= 3) {
-        std::cout << "Create node " << std::setw(10) << *p << ": "
+        ABC_PRINT_STREAM( stdout, false, "Create node " << std::setw(10) << *p << ": "
                   << "Var = " << std::setw(6) << v << ", "
                   << "Then = " << std::setw(10) << x1 << ", "
-                  << "Else = " << std::setw(10) << x0;
+                  << "Else = " << std::setw(10) << x0 );
         if(!vOneCounts.empty())
-          std::cout << ", Ones = " << std::setw(10) << vOneCounts[*q];
-        std::cout << std::endl;
+          ABC_PRINT_STREAM( stdout, false, ", Ones = " << std::setw(10) << vOneCounts[*q] );
+        { printf( "\n" ); fflush( stdout ); }
       }
       vUniqueCounts[v]++;
       if(vUniqueCounts[v] > vUniqueTholds[v]) {
@@ -601,13 +602,13 @@ namespace NewBdd {
         bvar diff = 0;
         bvar thold = count * (MaxGrowth - 1);
         if(fReoVerbose)
-          std::cout << "Sift " << sift_order[v] << " : Level = " << lev << " Count = " << count << " Thold = " << thold << std::endl;
+          ABC_PRINT_STREAM( stdout, true, "Sift " << sift_order[v] << " : Level = " << lev << " Count = " << count << " Thold = " << thold << "\n" );
         if(UpFirst) {
           lev--;
           for(; lev >= 0; lev--) {
             diff += Swap(lev);
             if(fReoVerbose)
-              std::cout << "\tSwap " << lev << " : Diff = " << diff << " Thold = " << thold << std::endl;
+              ABC_PRINT_STREAM( stdout, true, "\tSwap " << lev << " : Diff = " << diff << " Thold = " << thold << "\n" );
             if(diff < min_diff)
               min_lev = lev, min_diff = diff, thold = (count + diff) * (MaxGrowth - 1);
             else if(diff > thold) {
@@ -620,7 +621,7 @@ namespace NewBdd {
         for(; lev < (bvar)nVars - 1; lev++) {
           diff += Swap(lev);
           if(fReoVerbose)
-            std::cout << "\tSwap " << lev << " : Diff = " << diff << " Thold = " << thold << std::endl;
+            ABC_PRINT_STREAM( stdout, true, "\tSwap " << lev << " : Diff = " << diff << " Thold = " << thold << "\n" );
           if(diff <= min_diff)
             min_lev = lev + 1, min_diff = diff, thold = (count + diff) * (MaxGrowth - 1);
           else if(diff > thold) {
@@ -633,13 +634,13 @@ namespace NewBdd {
           for(; lev >= min_lev; lev--) {
             diff += Swap(lev);
             if(fReoVerbose)
-              std::cout << "\tSwap " << lev << " : Diff = " << diff << " Thold = " << thold << std::endl;
+              ABC_PRINT_STREAM( stdout, true, "\tSwap " << lev << " : Diff = " << diff << " Thold = " << thold << "\n" );
           }
         } else {
           for(; lev >= 0; lev--) {
             diff += Swap(lev);
             if(fReoVerbose)
-              std::cout << "\tSwap " << lev << " : Diff = " << diff << " Thold = " << thold << std::endl;
+              ABC_PRINT_STREAM( stdout, true, "\tSwap " << lev << " : Diff = " << diff << " Thold = " << thold << "\n" );
             if(diff <= min_diff)
               min_lev = lev, min_diff = diff, thold = (count + diff) * (MaxGrowth - 1);
             else if(diff > thold) {
@@ -651,12 +652,12 @@ namespace NewBdd {
           for(; lev < min_lev; lev++) {
             diff += Swap(lev);
             if(fReoVerbose)
-              std::cout << "\tSwap " << lev << " : Diff = " << diff << " Thold = " << thold << std::endl;
+              ABC_PRINT_STREAM( stdout, true, "\tSwap " << lev << " : Diff = " << diff << " Thold = " << thold << "\n" );
           }
         }
         count += min_diff;
         if(fReoVerbose)
-          std::cout << "Sifted " << sift_order[v] << " : Level = " << min_lev << " Count = " << count << " Thold = " << thold << std::endl;
+          ABC_PRINT_STREAM( stdout, true, "Sifted " << sift_order[v] << " : Level = " << min_lev << " Count = " << count << " Thold = " << thold << "\n" );
       }
     }
 
@@ -690,7 +691,7 @@ namespace NewBdd {
         fatal_error("Memout (nUniqueSize) in init");
       // allocation
       if(nVerbose)
-        std::cout << "Allocating " << nObjsAlloc << " nodes and " << nVars << " x " << nUniqueSize << " unique table entries" << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "Allocating " << nObjsAlloc << " nodes and " << nVars << " x " << nUniqueSize << " unique table entries" << "\n" );
       vVars.resize(nObjsAlloc);
       vObjs.resize((lit)nObjsAlloc * 2);
       vNexts.resize(nObjsAlloc);
@@ -740,22 +741,22 @@ namespace NewBdd {
     }
     ~Man() {
       if(nVerbose) {
-        std::cout << "Free " << nObjsAlloc << " nodes (" << nObjs << " live nodes)" << std::endl;
-        std::cout << "Free {";
+        ABC_PRINT_STREAM( stdout, true, "Free " << nObjsAlloc << " nodes (" << nObjs << " live nodes)" << "\n" );
+        printf( "Free {" );
         std::string delim;
         for(var v = 0; v < nVars; v++) {
-          std::cout << delim << vvUnique[v].size();
+          printf( "%s%zu", delim.c_str(), vvUnique[v].size() );
           delim = ", ";
         }
-        std::cout << "} unique table entries" << std::endl;
+        { printf( "} unique table entries\n" ); fflush( stdout ); }
         if(!vRefs.empty())
-          std::cout << "Free " << vRefs.size() << " refs" << std::endl;
+          { printf( "Free %zu refs\n", vRefs.size() ); fflush( stdout ); }
       }
       delete cache;
     }
     void Reorder() {
       if(nVerbose >= 2)
-        std::cout << "Reorder" << std::endl;
+        { printf( "Reorder\n" ); fflush( stdout ); }
       int nGbc_ = nGbc;
       nGbc = 0;
       CountEdges();
@@ -853,12 +854,12 @@ namespace NewBdd {
       bvar nLive = 1;
       for(var v = 0; v < nVars; v++)
         nLive += vUniqueCounts[v];
-      std::cout << "ref: " << std::setw(10) << (vRefs.empty()? 0: CountNodes()) << ", "
+      ABC_PRINT_STREAM( stdout, true, "ref: " << std::setw(10) << (vRefs.empty()? 0: CountNodes()) << ", "
                 << "used: " << std::setw(10) << nObjs << ", "
                 << "live: " << std::setw(10) << nLive << ", "
                 << "dead: " << std::setw(10) << nRemoved << ", "
                 << "alloc: " << std::setw(10) << nObjsAlloc
-                << std::endl;
+                << "\n" );
     }
   };
 

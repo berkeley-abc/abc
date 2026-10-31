@@ -17,6 +17,7 @@
   Revision    [$Id: eslim2Subcircuit.cpp,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
+#include "misc/util/abc_print.h"
 
 #include <algorithm>
 #include <set>
@@ -120,34 +121,34 @@ namespace eSLIM2 {
   }
 
   void Subcircuit::print() const {
-    std::cout << "Inputs:";
+    printf( "Inputs:" );
     for (int i : inputs) {
-      std::cout << " " << i;
+      ABC_PRINT_STREAM( stdout, false, " " << i );
     }
-    std::cout << "\nOutputs:";
+    printf( "\nOutputs:" );
     for (int o : outputs) {
-      std::cout << " " << o;
+      ABC_PRINT_STREAM( stdout, false, " " << o );
     }
-    std::cout << "\nArrival times:";
+    printf( "\nArrival times:" );
     for (int ar : arrival_times) {
-      std::cout << " " << ar;
+      ABC_PRINT_STREAM( stdout, false, " " << ar );
     }
-    std::cout << "\nRemaining times:";
+    printf( "\nRemaining times:" );
     for (int re : remaining_times) {
-      std::cout << " " << re;
+      ABC_PRINT_STREAM( stdout, false, " " << re );
     }
-    std::cout << "\nNodes:";
+    printf( "\nNodes:" );
     for (int n : nodes) {
-      std::cout << " " << n;
+      ABC_PRINT_STREAM( stdout, false, " " << n );
     }
-    std::cout << "\nForbidden pairs:";
+    printf( "\nForbidden pairs:" );
     for (const auto & [out,inps] : forbidden_pairs) {
-      std::cout << "\n" << out << " :";
+      ABC_PRINT_STREAM( stdout, false, "\n" << out << " :" );
       for (int inp : inps) {
-        std::cout << " " << inp;
+        ABC_PRINT_STREAM( stdout, false, " " << inp );
       }
     }
-    std::cout << "\n";
+    printf( "\n" );
   }
 
 }

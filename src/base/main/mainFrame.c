@@ -23,6 +23,8 @@
 #include "bool/dec/dec.h"
 #include "map/if/if.h"
 #include "aig/miniaig/ndr.h"
+#include "misc/util/abc_io.h"
+#include <errno.h>
 
 #ifdef ABC_USE_CUDD
 #include "bdd/extrab/extraBdd.h"
@@ -129,7 +131,13 @@ int         Abc_FrameIsBatchMode()                           { return s_GlobalFr
 void        Abc_FrameSetBatchMode( int Mode )                { if ( s_GlobalFrame ) s_GlobalFrame->fBatchMode = Mode;             } 
 
 int         Abc_FrameIsBridgeMode()                          { return s_GlobalFrame ? s_GlobalFrame->fBridgeMode : 0;             } 
-void        Abc_FrameSetBridgeMode()                         { if ( s_GlobalFrame ) s_GlobalFrame->fBridgeMode = 1;               } 
+void        Abc_FrameSetBridgeMode()
+{
+    if ( s_GlobalFrame && s_GlobalFrame->pLog )
+        fprintf( s_GlobalFrame->Err, "Cannot enable bridge mode for a captured frame.\n" );
+    else if ( s_GlobalFrame )
+        s_GlobalFrame->fBridgeMode = 1;
+}
 
 char *      Abc_FrameReadDrivingCell()                       { return s_GlobalFrame->pDrivingCell;    }              
 float       Abc_FrameReadMaxLoad()                           { return s_GlobalFrame->MaxLoad;         }      
@@ -274,6 +282,14 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     ABC_FREE( p->pBoxes );
     
 
+    if ( p->pLog )
+    {
+        fclose( p->pLog );
+        p->pLog = NULL;
+        p->Out = stdout;
+        p->Err = stderr;
+    }
+    Abc_FrameSetOutputStreams( p, NULL, NULL );
     if ( s_GlobalFrame == p )
         s_GlobalFrame = NULL;
     ABC_FREE( p );
@@ -392,6 +408,79 @@ FILE * Abc_FrameReadOut( Abc_Frame_t * p )
 FILE * Abc_FrameReadErr( Abc_Frame_t * p )
 {
     return p->Err;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Installs borrowed streams; returns 0 for a captured frame.]
+
+  Description [Close replaced streams only if ABC opened them. Retained
+  streams keep their ownership, even when swapped or used for both outputs.
+  The caller must keep borrowed streams open until all workers have joined.]
+
+***********************************************************************/
+int Abc_FrameSetOutputStreams( Abc_Frame_t * p, FILE * pOut, FILE * pErr )
+{
+    int fOwnOut, fOwnErr;
+    if ( p->pLog )
+    {
+        errno = EBUSY;
+        return 0;
+    }
+    pOut = pOut ? pOut : stdout;
+    pErr = pErr ? pErr : stderr;
+    fOwnOut = (p->fOwnOut && pOut == p->Out) || (p->fOwnErr && pOut == p->Err);
+    fOwnErr = (p->fOwnOut && pErr == p->Out) || (p->fOwnErr && pErr == p->Err);
+    if ( p->fOwnOut && p->Out != pOut && p->Out != pErr )
+        fclose( p->Out );
+    if ( p->fOwnErr && p->Err != p->Out && p->Err != pOut && p->Err != pErr )
+        fclose( p->Err );
+    p->Out = pOut;
+    p->Err = pErr;
+    p->fOwnOut = fOwnOut;
+    p->fOwnErr = fOwnErr && pErr != pOut;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Tests whether the frame owns an isolated combined log.]
+
+***********************************************************************/
+int Abc_FrameHasLog( Abc_Frame_t * p )
+{
+    return p->pLog != NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Copies a quiescent log without changing its write position.]
+
+***********************************************************************/
+int Abc_FrameCopyLog( Abc_Frame_t * p, FILE * pFile )
+{
+    char Buffer[4096];
+    fpos_t Pos;
+    size_t nBytes;
+    int fOk = 1;
+    if ( p->pLog == NULL || pFile == NULL || pFile == p->pLog )
+    {
+        errno = EINVAL;
+        return 0;
+    }
+    if ( (fflush)(p->pLog) || fgetpos(p->pLog, &Pos) || fseek(p->pLog, 0, SEEK_SET) )
+        return 0;
+    while ( (nBytes = fread(Buffer, 1, sizeof(Buffer), p->pLog)) != 0 )
+        if ( (fwrite)(Buffer, 1, nBytes, pFile) != nBytes )
+        {
+            fOk = 0;
+            break;
+        }
+    if ( ferror(p->pLog) || (fflush)(pFile) )
+        fOk = 0;
+    if ( fsetpos(p->pLog, &Pos) )
+        fOk = 0;
+    return fOk;
 }
 
 /**Function*************************************************************
@@ -655,6 +744,36 @@ Abc_Frame_t * Abc_FrameCreate()
 {
     Abc_Frame_t * pAbc = Abc_FrameAllocate();
     Abc_Frame_t * pPrevious = Abc_FrameEnter( pAbc );
+    Abc_FrameInit( pAbc );
+    Abc_FrameLeave( pPrevious );
+    return pAbc;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates a frame owning an isolated temporary log file.]
+
+  Description [Returns NULL if capture is unavailable or log creation fails.
+  Both streams, including initialization messages, go into the owned log.
+  Frames are initialized/destroyed serially; workers must join before copying
+  the log or destroying its frame. Ordinary Abc_FrameCreate is unchanged.]
+
+***********************************************************************/
+Abc_Frame_t * Abc_FrameCreateWithLog( void )
+{
+    Abc_Frame_t * pAbc, * pPrevious;
+    FILE * pLog;
+    if ( !Abc_IoIsEnabled() )
+    {
+        errno = ENOSYS;
+        return NULL;
+    }
+    pLog = Abc_IoTempFile();
+    if ( pLog == NULL )
+        return NULL;
+    pAbc = Abc_FrameAllocate();
+    pAbc->Out = pAbc->Err = pAbc->pLog = pLog;
+    pPrevious = Abc_FrameEnter( pAbc );
     Abc_FrameInit( pAbc );
     Abc_FrameLeave( pPrevious );
     return pAbc;

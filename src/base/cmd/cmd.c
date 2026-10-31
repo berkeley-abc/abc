@@ -912,6 +912,11 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     else
     {
+        if ( Abc_FrameHasLog(pAbc) && (!strcmp(argv[1], "abcout") || !strcmp(argv[1], "abcerr")) )
+        {
+            fprintf( pAbc->Err, "Output streams belong to this instance's log and cannot be redirected.\n" );
+            return 1;
+        }
         key = argv[1];
         if ( st__delete( pAbc->tFlags, &key, &value ) )
         {
@@ -925,26 +930,30 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
 
         if ( strcmp( argv[1], "abcout" ) == 0 )
         {
-            if ( pAbc->Out != stdout )
-                fclose( pAbc->Out );
+            FILE * pNew;
             if ( strcmp( flag_value, "" ) == 0 )
                 flag_value = "-";
-            pAbc->Out = CmdFileOpen( pAbc, flag_value, "w", NULL, 0 );
-            if ( pAbc->Out == NULL )
-                pAbc->Out = stdout;
+            // Report open failures before closing the old output stream.
+            // Flush first in case the replacement truncates the same file.
+            (fflush)( pAbc->Out );
+            (fflush)( pAbc->Err );
+            pNew = CmdFileOpen( pAbc, flag_value, "w", NULL, 0 );
+            Abc_FrameSetOutputStreams( pAbc, pNew, pAbc->Err );
+            pAbc->fOwnOut = pNew && pNew != stdout && pNew != stderr;
 #if HAVE_SETVBUF
             setvbuf( pAbc->Out, ( char * ) NULL, _IOLBF, 0 );
 #endif
         }
         if ( strcmp( argv[1], "abcerr" ) == 0 )
         {
-            if ( pAbc->Err != stderr )
-                fclose( pAbc->Err );
+            FILE * pNew;
             if ( strcmp( flag_value, "" ) == 0 )
                 flag_value = "-";
-            pAbc->Err = CmdFileOpen( pAbc, flag_value, "w", NULL, 0 );
-            if ( pAbc->Err == NULL )
-                pAbc->Err = stderr;
+            (fflush)( pAbc->Out );
+            (fflush)( pAbc->Err );
+            pNew = CmdFileOpen( pAbc, flag_value, "w", NULL, 0 );
+            Abc_FrameSetOutputStreams( pAbc, pAbc->Out, pNew );
+            pAbc->fOwnErr = pNew && pNew != stdout && pNew != stderr;
 #if HAVE_SETVBUF
             setvbuf( pAbc->Err, ( char * ) NULL, _IOLBF, 0 );
 #endif

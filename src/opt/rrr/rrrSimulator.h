@@ -1,4 +1,5 @@
 #pragma once
+#include "misc/util/abc_print.h"
 
 #include <algorithm>
 #include <random>
@@ -196,10 +197,10 @@ namespace rrr {
 
   template <typename Ntk>
   inline void Simulator<Ntk>::Print(int n, citr x) const {
-    std::cout << std::bitset<64>(*x);
+    ABC_PRINT_STREAM( stdout, false, std::bitset<64>(*x) );
     x++;
     for(int i = 1; i < n; i++, x++) {
-      std::cout << std::endl << std::string(10, ' ') << std::bitset<64>(*x);
+      ABC_PRINT_STREAM( stdout, true, "\n" << std::string(10, ' ') << std::bitset<64>(*x) );
     }
   }
   
@@ -379,14 +380,14 @@ namespace rrr {
   void Simulator<Ntk>::Simulate() {
     time_point timeStart = GetCurrentTime();
     if(nVerbose) {
-      std::cout << "simulating" << std::endl;
+      { printf( "simulating\n" ); fflush( stdout ); }
     }
     pNtk->ForEachInt([&](int id) {
       SimulateNode(vValues, id);
       if(nVerbose) {
-        std::cout << "node " << std::setw(3) << id << ": ";
+        ABC_PRINT_STREAM( stdout, false, "node " << std::setw(3) << id << ": " );
         Print(nWords, vValues.begin() + id * nWords);
-        std::cout << std::endl;
+        { printf( "\n" ); fflush( stdout ); }
       }
     });
     durationSimulation += Duration(timeStart, GetCurrentTime());
@@ -396,14 +397,14 @@ namespace rrr {
   void Simulator<Ntk>::Resimulate() {
     time_point timeStart = GetCurrentTime();
     if(nVerbose) {
-      std::cout << "resimulating" << std::endl;
+      { printf( "resimulating\n" ); fflush( stdout ); }
     }
     pNtk->ForEachTfosUpdate(sUpdates, false, [&](int fo) {
       bool fUpdated = ResimulateNode(vValues, fo);
       if(nVerbose) {
-        std::cout << "node " << std::setw(3) << fo << ": ";
+        ABC_PRINT_STREAM( stdout, false, "node " << std::setw(3) << fo << ": " );
         Print(nWords, vValues.begin() + fo * nWords);
-        std::cout << std::endl;
+        { printf( "\n" ); fflush( stdout ); }
       }
       return fUpdated;
     });
@@ -424,14 +425,14 @@ namespace rrr {
   void Simulator<Ntk>::SimulateOneWord(int offset) {
     time_point timeStart = GetCurrentTime();
     if(nVerbose) {
-      std::cout << "simulating word " << offset << std::endl;
+      ABC_PRINT_STREAM( stdout, true, "simulating word " << offset << "\n" );
     }
     pNtk->ForEachInt([&](int id) {
       SimulateOneWordNode(vValues, id, offset);
       if(nVerbose) {
-        std::cout << "node " << std::setw(3) << id << ": ";
+        ABC_PRINT_STREAM( stdout, false, "node " << std::setw(3) << id << ": " );
         Print(1, vValues.begin() + id * nWords + offset);
-        std::cout << std::endl;
+        { printf( "\n" ); fflush( stdout ); }
       }
     });
     durationSimulation += Duration(timeStart, GetCurrentTime());
@@ -444,7 +445,7 @@ namespace rrr {
   template <typename Ntk>
   void Simulator<Ntk>::GenerateRandomStimuli() {
     if(nVerbose) {
-      std::cout << "generating random stimuli" << std::endl;
+      { printf( "generating random stimuli\n" ); fflush( stdout ); }
     }
     std::mt19937_64 rng;
     pNtk->ForEachPi([&](int id) {
@@ -452,9 +453,9 @@ namespace rrr {
         vValues[id * nWords + i] = rng();
       }
       if(nVerbose) {
-        std::cout << "node " << std::setw(3) << id << ": ";
+        ABC_PRINT_STREAM( stdout, false, "node " << std::setw(3) << id << ": " );
         Print(nWords, vValues.begin() + id * nWords);
-        std::cout << std::endl;
+        { printf( "\n" ); fflush( stdout ); }
       }
     });
     Clear(nWords * pNtk->GetNumPis(), vAssignedStimuli.begin());
@@ -480,14 +481,14 @@ namespace rrr {
     target = id;
     time_point timeStart = GetCurrentTime();
     if(nVerbose) {
-      std::cout << "computing careset of " << target << std::endl;
+      ABC_PRINT_STREAM( stdout, true, "computing careset of " << target << "\n" );
     }
     if(pNtk->IsPoDriver(target)) {
       Fill(nWords, care.begin());
       if(nVerbose) {
-        std::cout << "care " << std::setw(3) << target << ": ";
+        ABC_PRINT_STREAM( stdout, false, "care " << std::setw(3) << target << ": " );
         Print(nWords, care.begin());
-        std::cout << std::endl;
+        { printf( "\n" ); fflush( stdout ); }
       }
       durationCare += Duration(timeStart, GetCurrentTime());
       return;
@@ -496,9 +497,9 @@ namespace rrr {
     pNtk->ForEachTfo(target, false, [&](int id) {
       SimulateNode(vValues2, id, target);
       if(nVerbose) {
-        std::cout << "node " << std::setw(3) << id << ": ";
+        ABC_PRINT_STREAM( stdout, false, "node " << std::setw(3) << id << ": " );
         Print(nWords, vValues2.begin() + id * nWords);
-        std::cout << std::endl;
+        { printf( "\n" ); fflush( stdout ); }
       }
     });
     /* alternative version that updates only affected TFO
@@ -520,9 +521,9 @@ namespace rrr {
       }
     });
     if(nVerbose) {
-      std::cout << "care " << std::setw(3) << target << ": ";
+      ABC_PRINT_STREAM( stdout, false, "care " << std::setw(3) << target << ": " );
       Print(nWords, care.begin());
-      std::cout << std::endl;
+      { printf( "\n" ); fflush( stdout ); }
     }
     durationCare += Duration(timeStart, GetCurrentTime());
   }
@@ -785,11 +786,11 @@ namespace rrr {
   template <typename Ntk>
   void Simulator<Ntk>::AddCex(std::vector<VarValue> const &vCex) {
     if(nVerbose) {
-      std::cout << "cex: ";
+      printf( "cex: " );
       for(VarValue c: vCex) {
-        std::cout << GetVarValueChar(c);
+        printf( "%c", GetVarValueChar(c) );
       }
-      std::cout << std::endl;
+      { printf( "\n" ); fflush( stdout ); }
     }
     // record care pi indices
     assert(int_size(vCex) == pNtk->GetNumPis());
@@ -843,7 +844,7 @@ namespace rrr {
         iBit++;
       }
       if(nVerbose) {
-        std::cout << "fusing into stimulus word " << iWord << " bit " << iBit << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "fusing into stimulus word " << iWord << " bit " << iBit << "\n" );
       }
       vPackedCount[iWord * 64 + iBit]++;
     } else {
@@ -851,7 +852,7 @@ namespace rrr {
       iWord = iPivot / 64;
       iBit = iPivot % 64;
       if(nVerbose) {
-        std::cout << "resetting stimulus word " << iWord << " bit " << iBit << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "resetting stimulus word " << iWord << " bit " << iBit << "\n" );
       }
       if(vPackedCount[iWord * 64 + iBit]) {
         // this can be zero only when stats has been reset
@@ -879,12 +880,12 @@ namespace rrr {
       }
       vAssignedStimuli[idx * nWords + iWord] |= mask;
       if(nVerbose) {
-        std::cout << "node " << std::setw(3) << id << ": ";
+        ABC_PRINT_STREAM( stdout, false, "node " << std::setw(3) << id << ": " );
         Print(1, vValues.begin() + id * nWords + iWord);
-        std::cout << std::endl;
-        std::cout << "asgn " << std::setw(3) << id << ": ";
+        { printf( "\n" ); fflush( stdout ); }
+        ABC_PRINT_STREAM( stdout, false, "asgn " << std::setw(3) << id << ": " );
         Print(1, vAssignedStimuli.begin() + idx * nWords + iWord);
-        std::cout << std::endl;
+        { printf( "\n" ); fflush( stdout ); }
       }
     }
     // simulate
@@ -893,7 +894,7 @@ namespace rrr {
     time_point timeStart = GetCurrentTime();
     if(target != -1 && !pNtk->IsPoDriver(target)) {
       if(nVerbose) {
-        std::cout << "recomputing careset of " << target << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "recomputing careset of " << target << "\n" );
       }
       vValues2.resize(vValues.size());
       pNtk->ForEachPi([&](int id) {
@@ -905,9 +906,9 @@ namespace rrr {
       pNtk->ForEachTfo(target, false, [&](int id) {
         SimulateOneWordNode(vValues2, id, iWord, target);
         if(nVerbose) {
-          std::cout << "node " << std::setw(3) << id << ": ";
+          ABC_PRINT_STREAM( stdout, false, "node " << std::setw(3) << id << ": " );
           Print(1, vValues2.begin() + id * nWords + iWord);
-          std::cout << std::endl;
+          { printf( "\n" ); fflush( stdout ); }
         }
       });
       Clear(1, care.begin() + iWord);
@@ -916,9 +917,9 @@ namespace rrr {
         care[iWord] = care[iWord] | (vValues[fi * nWords + iWord] ^ vValues2[fi * nWords + iWord]);
       });
       if(nVerbose) {
-        std::cout << "care " << std::setw(3) << target << ": ";
+        ABC_PRINT_STREAM( stdout, false, "care " << std::setw(3) << target << ": " );
         Print(1, care.begin() + iWord);
-        std::cout << std::endl;
+        { printf( "\n" ); fflush( stdout ); }
       }
     }
     durationCare += Duration(timeStart, GetCurrentTime());
