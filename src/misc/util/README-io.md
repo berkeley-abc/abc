@@ -39,10 +39,12 @@ perror, and fflush. A NULL fflush argument keeps libc's flush-all semantics.
 Ordinary FILE arguments pass through. Function-like macros leave format
 attributes alone, and wrappers retain compiler format checking.
 
-Two small compatibility adjustments are needed: SN's existing POSIX feature
+Small compatibility adjustments are needed: SN's existing POSIX feature
 selection is also passed on the compile command, ahead of the forced header;
 the fret package explicitly undefines vprintf before installing its unrelated
-legacy verbosity shorthand (which still calls the routed printf).
+legacy verbosity shorthand (which still calls the routed printf). Six bundled
+BDD printing calls keep conditional directives outside the argument lists so
+MSVC can expand the interception macros. Their formats and arguments are unchanged.
 
 The standard stream macros themselves are unchanged. In ordinary frames, bridge
 mode bypasses routing: protocol headers and direct descriptor writes must use
