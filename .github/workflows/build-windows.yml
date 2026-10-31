@@ -8,7 +8,12 @@ jobs:
 
   build-windows:
 
+    strategy:
+      fail-fast: false
+      matrix:
+        capture: ["OFF", "ON"]
     runs-on: windows-2025
+    timeout-minutes: 30
 
     steps:
 
@@ -60,7 +65,7 @@ jobs:
 
     - name: Build
       run: |
-        msbuild abcspace.sln /m /nologo /v:m /p:Configuration=Release /p:Platform=Win32 /p:UseMultiToolTask=true
+        msbuild abcspace.sln /m:4 /nologo /v:m /p:Configuration=Release /p:Platform=Win32 /p:UseMultiToolTask=true /p:ABC_USE_STDIO_REDIRECT=${{ matrix.capture == 'ON' && '1' || '0' }}
         if ($LASTEXITCODE -ne 0) { throw "Build failed with exit code $LASTEXITCODE" }
 
     - name: Test Executable
@@ -68,6 +73,21 @@ jobs:
         copy lib\x86\pthreadVC2.dll _TEST\
         .\_TEST\abc.exe -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
         if ($LASTEXITCODE -ne 0) { throw "Test failed with exit code $LASTEXITCODE" }
+
+    - name: Configure output-routing tests against the built library
+      run: |
+        cmake -S test/io -B build-io -A Win32 -T v143 -DABC_IO_LIBRARY="$pwd/lib/abcr.lib" -DABC_USE_STDIO_REDIRECT=${{ matrix.capture }}
+        if ($LASTEXITCODE -ne 0) { throw "Test configuration failed with exit code $LASTEXITCODE" }
+
+    - name: Build output-routing tests
+      run: |
+        cmake --build build-io --config Release --parallel 4
+        if ($LASTEXITCODE -ne 0) { throw "Test build failed with exit code $LASTEXITCODE" }
+
+    - name: Test console output and concurrent instance logs
+      run: |
+        ctest --test-dir build-io -C Release --output-on-failure -R '^io_routing$'
+        if ($LASTEXITCODE -ne 0) { throw "Output-routing tests failed with exit code $LASTEXITCODE" }
 
     - name: Stage Executable
       run: |
@@ -77,5 +97,5 @@ jobs:
     - name: Upload package artifact
       uses: actions/upload-artifact@v4
       with:
-        name: package-windows
+        name: ${{ matrix.capture == 'OFF' && 'package-windows' || 'package-windows-io' }}
         path: staging/
