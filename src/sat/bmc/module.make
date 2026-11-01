@@ -25,6 +25,7 @@ SRC +=    src/sat/bmc/bmcBCore.c \
     src/sat/bmc/bmcLoad.c \
     src/sat/bmc/bmcMaj.c \
     src/sat/bmc/bmcMaj2.c \
+    src/sat/bmc/bmcTwo.c \
     src/sat/bmc/bmcMaj3.c \
     src/sat/bmc/bmcMaj7.c \
     src/sat/bmc/bmcMaj8.c \

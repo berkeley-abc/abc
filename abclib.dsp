@@ -2322,6 +2322,10 @@ SOURCE=.\src\sat\bmc\bmcMaj2.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcTwo.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcMaj3.c
 # End Source File
 # Begin Source File

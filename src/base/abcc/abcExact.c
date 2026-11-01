@@ -34,6 +34,7 @@ static int Abc_CommandBmsStop                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandBmsPs                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMajExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTwoExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+extern int Abc_CommandTwoExact2              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLutExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 extern int Abc_CommandCasExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAndExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -65,6 +66,7 @@ void Abc_InitExact( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_ps",     Abc_CommandBmsPs,            0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "majexact",   Abc_CommandMajExact,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "twoexact",   Abc_CommandTwoExact,         0 );
+    Cmd_CommandAdd( pAbc, "Exact synthesis", "twoexact2",  Abc_CommandTwoExact2,        0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "lutexact",   Abc_CommandLutExact,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "casexact",   Abc_CommandCasExact,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "andexact",   Abc_CommandAndExact,         0 );
