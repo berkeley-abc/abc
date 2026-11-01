@@ -7078,7 +7078,7 @@ Gate *Closure::new_ite_gate (int lhs, int cond, int then_lit, int else_lit,
   LOG ("ITE gate %d = %d ? %d : %d", lhs, cond, then_lit, else_lit);
 
   bool negate_lhs = false;
-  Gate *g = new Gate;
+  Gate *g = new Gate ();
   g->lhs = lhs;
   g->tag = Gate_Type::ITE_Gate;
   g->rhs = {rhs};
