@@ -87,6 +87,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaRsb.c \
     src/aig/gia/giaRex.c \
     src/aig/gia/giaRrr.cpp \
+    src/aig/gia/giaRrr2.cpp \
     src/aig/gia/giaSatEdge.c \
     src/aig/gia/giaSatLE.c \
     src/aig/gia/giaSatLut.c \
