@@ -1,0 +1,20 @@
+.model adder_tree
+.inputs a0 a1 a2 a3
+.outputs sum high tail0 tail1
+.names a0 a1 a2 sum
+001 1
+010 1
+100 1
+111 1
+.names a0 a1 a2 carry
+11- 1
+1-1 1
+-11 1
+.names carry a3 high
+01 1
+10 1
+.names a0 tail0
+1 1
+.names a3 tail1
+1 1
+.end
