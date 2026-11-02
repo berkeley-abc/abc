@@ -172,11 +172,11 @@ Vec_Ptr_t * Gia_ManUnrollAbs( Gia_Man_t * p, int nFrames )
     if ( fVerbose )
     {
         Prev = 1;
-        printf( "Tents: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Tents: " );
         Vec_IntForEachEntryStart( vLimit, Entry, k, 1 )
-            printf( "%d=%d ", k, Entry-Prev ), Prev = Entry;
-        printf( "  Unused=%d", Gia_ManObjNum(p) - Gia_ManObjNum(pNew) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(),  "%d=%d ", k, Entry-Prev  ), Prev = Entry;
+        fprintf( Abc_FrameGlobalGetOut(), "  Unused=%d", Gia_ManObjNum(p) - Gia_ManObjNum(pNew) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // create abstraction
     vFrames = Vec_PtrAlloc( Vec_IntSize(vLimit) );
@@ -287,10 +287,10 @@ Gia_ManUnr_t * Gia_ManUnrStart( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
     // print verbose output
     if ( pPars->fVerbose )
     {
-        printf( "Convergence = %d.  Dangling objects = %d.  Average degree = %.3f   ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Convergence = %d.  Dangling objects = %d.  Average degree = %.3f   ", 
             Vec_IntSize(p->vLimit) - 1,
             Gia_ManObjNum(pAig) - Gia_ManObjNum(p->pOrder),
-            1.0*Vec_IntSize(p->vStore)/Gia_ManObjNum(p->pOrder) - 1.0  );
+            1.0*Vec_IntSize(p->vStore)/Gia_ManObjNum(p->pOrder) - 1.0 );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     return p;
@@ -746,7 +746,7 @@ Gia_Man_t * Gia_ManFramesInit( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
         vAnds = (Vec_Int_t *)Vec_PtrEntry( p->vAnds, f );
         vOuts = (Vec_Int_t *)Vec_PtrEntry( p->vOuts, f );
         if ( pPars->fVerbose )
-            printf( "Frame %3d : CI = %6d. AND = %6d. CO = %6d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Frame %3d : CI = %6d. AND = %6d. CO = %6d.\n", 
             f, Vec_IntSize(vIns), Vec_IntSize(vAnds), Vec_IntSize(vOuts) );
         if ( fUseAllPis )
         {
@@ -816,12 +816,12 @@ Gia_Man_t * Gia_ManFramesInit( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
     {
         pFrames = Gia_ManDupMarked( pTemp = pFrames );
         if ( pPars->fVerbose )
-            printf( "Before cleanup = %d nodes. After cleanup = %d nodes.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Before cleanup = %d nodes. After cleanup = %d nodes.\n", 
                 Gia_ManAndNum(pTemp), Gia_ManAndNum(pFrames) );
         Gia_ManStop( pTemp );
     }
     else if ( pPars->fVerbose )
-            printf( "Before cleanup = %d nodes. After cleanup = %d nodes.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Before cleanup = %d nodes. After cleanup = %d nodes.\n", 
                 Gia_ManAndNum(pFrames), Gia_ManAndNum(pFrames) );
     return pFrames;
 }
@@ -916,12 +916,12 @@ Gia_Man_t * Gia_ManFrames( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
     {
         pFrames = Gia_ManDupMarked( pTemp = pFrames );
         if ( pPars->fVerbose )
-            printf( "Before cleanup = %d nodes. After cleanup = %d nodes.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Before cleanup = %d nodes. After cleanup = %d nodes.\n", 
                 Gia_ManAndNum(pTemp), Gia_ManAndNum(pFrames) );
         Gia_ManStop( pTemp );
     }
     else if ( pPars->fVerbose )
-            printf( "Before cleanup = %d nodes. After cleanup = %d nodes.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Before cleanup = %d nodes. After cleanup = %d nodes.\n", 
                 Gia_ManAndNum(pFrames), Gia_ManAndNum(pFrames) );
     return pFrames;
 }
@@ -945,7 +945,7 @@ Gia_Man_t * Gia_ManFramesInitSpecial( Gia_Man_t * pAig, int nFrames, int fVerbos
     int i, f;
     assert( Gia_ManRegNum(pAig) > 0 );
     if ( nFrames > 0 )
-        printf( "Computing specialized unrolling with %d frames...\n", nFrames );
+        fprintf( Abc_FrameGlobalGetOut(), "Computing specialized unrolling with %d frames...\n", nFrames );
     pFrames = Gia_ManStart( Gia_ManObjNum(pAig) );
     pFrames->pName = Abc_UtilStrsav( pAig->pName );
     pFrames->pSpec = Abc_UtilStrsav( pAig->pSpec );
@@ -955,7 +955,7 @@ Gia_Man_t * Gia_ManFramesInitSpecial( Gia_Man_t * pAig, int nFrames, int fVerbos
     {
         if ( fVerbose && (f % 100 == 0) )
         {
-            printf( "%6d : ", f );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d : ", f );
             Gia_ManPrintStats( pFrames, NULL );
         }
         Gia_ManForEachRo( pAig, pObj, i )
@@ -973,13 +973,13 @@ Gia_Man_t * Gia_ManFramesInitSpecial( Gia_Man_t * pAig, int nFrames, int fVerbos
             pObj->Value = Gia_ObjFanin0Copy(pObj);
     }
     if ( fVerbose )
-        printf( "Computed prefix of %d frames.\n", f );
+        fprintf( Abc_FrameGlobalGetOut(), "Computed prefix of %d frames.\n", f );
     Gia_ManForEachRi( pAig, pObj, i )
         Gia_ManAppendCo( pFrames, pObj->Value );
     Gia_ManHashStop( pFrames );
     pFrames = Gia_ManCleanup( pTemp = pFrames );
     if ( fVerbose )
-        printf( "Before cleanup = %d nodes. After cleanup = %d nodes.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Before cleanup = %d nodes. After cleanup = %d nodes.\n", 
             Gia_ManAndNum(pTemp), Gia_ManAndNum(pFrames) );
     Gia_ManStop( pTemp );
     return pFrames;

@@ -150,10 +150,10 @@ static inline lit *    clause_end( clause * c )                     { return c->
 static inline void     clause_print_( clause * c )               
 { 
     int i;
-    printf( "{ " );
+    fprintf( Abc_FrameGlobalGetOut(),  "{ "  );
     for ( i = 0; i < clause_size(c); i++ )
-        printf( "%d ", (clause_begin(c)[i] & 1)? -(clause_begin(c)[i] >> 1) : clause_begin(c)[i] >> 1 );
-    printf( "}\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "%d ", (clause_begin(c)[i] & 1)? -(clause_begin(c)[i] >> 1) : clause_begin(c)[i] >> 1 );
+    fprintf( Abc_FrameGlobalGetOut(),  "}\n" );
 }
 
 ////////////////////////////////////////////////////////////////////////

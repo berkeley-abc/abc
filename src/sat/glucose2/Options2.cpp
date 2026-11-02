@@ -46,7 +46,7 @@ void Gluco2::parseOptions(int& argc, char** argv, bool strict)
 
             if (!parsed_ok) {
                 if (strict && match(argv[i], "-"))
-                    fprintf(stderr, "ERROR! Unknown flag \"%s\". Use '--%shelp' for help.\n", argv[i], Option::getHelpPrefixString()), exit(1);
+                    fprintf( Abc_FrameGlobalGetErr(), "ERROR! Unknown flag \"%s\". Use '--%shelp' for help.\n", argv[i], Option::getHelpPrefixString()), exit(1);
                 else
                     argv[j++] = argv[i];
             }
@@ -63,7 +63,7 @@ void Gluco2::printUsageAndExit (int argc, char** argv, bool verbose)
 {
     const char* usage = Option::getUsageString();
     if (usage != NULL)
-        fprintf(stderr, usage, argv[0]);
+        fprintf( Abc_FrameGlobalGetErr(), usage, argv[0]);
 
     sort(Option::getOptionList(), Option::OptionLt());
 
@@ -75,9 +75,9 @@ void Gluco2::printUsageAndExit (int argc, char** argv, bool verbose)
         const char* type = Option::getOptionList()[i]->type_name;
 
         if (cat != prev_cat)
-            fprintf(stderr, "\n%s OPTIONS:\n\n", cat);
+            fprintf( Abc_FrameGlobalGetErr(), "\n%s OPTIONS:\n\n", cat);
         else if (type != prev_type)
-            fprintf(stderr, "\n");
+            fprintf( Abc_FrameGlobalGetErr(), "\n");
 
         Option::getOptionList()[i]->help(verbose);
 
@@ -85,10 +85,10 @@ void Gluco2::printUsageAndExit (int argc, char** argv, bool verbose)
         prev_type = Option::getOptionList()[i]->type_name;
     }
 
-    fprintf(stderr, "\nHELP OPTIONS:\n\n");
-    fprintf(stderr, "  --%shelp        Print help message.\n", Option::getHelpPrefixString());
-    fprintf(stderr, "  --%shelp-verb   Print verbose help message.\n", Option::getHelpPrefixString());
-    fprintf(stderr, "\n");
+    fprintf( Abc_FrameGlobalGetErr(), "\nHELP OPTIONS:\n\n");
+    fprintf( Abc_FrameGlobalGetErr(), "  --%shelp        Print help message.\n", Option::getHelpPrefixString());
+    fprintf( Abc_FrameGlobalGetErr(), "  --%shelp-verb   Print verbose help message.\n", Option::getHelpPrefixString());
+    fprintf( Abc_FrameGlobalGetErr(), "\n");
     exit(0);
 }
 

@@ -81,7 +81,7 @@ void Gia_ManPrintMuxStats( Gia_Man_t * p )
     Abc_Print( 1, "mux =%8d %6.2f %%   ", nMuxes, 300.0*nMuxes/nTotal );
     Abc_Print( 1, "and =%8d %6.2f %%   ", nAnds,  100.0*nAnds/nTotal );
     Abc_Print( 1, "obj =%8d  ", Gia_ManAndNotBufNum(p) );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 /**Function*************************************************************
@@ -441,32 +441,32 @@ void Gia_MuxStructPrint_rec( Gia_Man_t * p, int iObj, int fFirst )
     if ( !fFirst && (!Gia_ObjIsMuxId(p, iObj) || Gia_ObjRefNumId(p, iObj) > 0) )
     {
 //        printf( "%d", iObj );
-        printf( "<%02d>", Gia_ObjLevelId(p, iObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "<%02d>", Gia_ObjLevelId(p, iObj) );
         return;
     }
     iCtrl = Gia_ObjFaninId2p(p, pObj);
-    printf( " [(" );
+    fprintf( Abc_FrameGlobalGetOut(), " [(" );
     if ( Gia_ObjIsMuxId(p, iCtrl) && Gia_ObjRefNumId(p, iCtrl) == 0 )
         Gia_MuxStructPrint_rec( p, iCtrl, 0 );
     else
     {
-        printf( "%d", iCtrl );
-        printf( "<%d>", Gia_ObjLevelId(p, iCtrl) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", iCtrl );
+        fprintf( Abc_FrameGlobalGetOut(), "<%d>", Gia_ObjLevelId(p, iCtrl) );
     }
-    printf( ")" );
+    fprintf( Abc_FrameGlobalGetOut(), ")" );
     if ( Gia_ObjFaninC2(p, pObj) )
     {
         Gia_MuxStructPrint_rec( p, Gia_ObjFaninId0p(p, pObj), 0 );
-        printf( "|" );
+        fprintf( Abc_FrameGlobalGetOut(), "|" );
         Gia_MuxStructPrint_rec( p, Gia_ObjFaninId1p(p, pObj), 0 );
-        printf( "]" );
+        fprintf( Abc_FrameGlobalGetOut(), "]" );
     }
     else
     {
         Gia_MuxStructPrint_rec( p, Gia_ObjFaninId1p(p, pObj), 0 );
-        printf( "|" );
+        fprintf( Abc_FrameGlobalGetOut(), "|" );
         Gia_MuxStructPrint_rec( p, Gia_ObjFaninId0p(p, pObj), 0 );
-        printf( "]" );
+        fprintf( Abc_FrameGlobalGetOut(), "]" );
     }
 }
 void Gia_MuxStructPrint( Gia_Man_t * p, int iObj )
@@ -477,7 +477,7 @@ void Gia_MuxStructPrint( Gia_Man_t * p, int iObj )
     Gia_MuxStructPrint_rec( p, iObj, 1 );
     Count2 = Gia_MuxRef( p, iObj );
     assert( Count1 == Count2 );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -627,19 +627,19 @@ int Gia_ManMuxProfile( Mux_Man_t * p, int fWidth )
     Total = Vec_IntCountPositive(vCounts);
     if ( Total == 0 )
         return 0;
-    printf( "The distribution of MUX tree %s:\n", fWidth ? "widths" : "sizes"  );
+    fprintf( Abc_FrameGlobalGetOut(), "The distribution of MUX tree %s:\n", fWidth ? "widths" : "sizes" );
     Counter = 0;
     Vec_IntForEachEntry( vCounts, Entry, i )
     {
         if ( !Entry ) continue;
         if ( ++Counter == 12 )
-            printf( "\n" ), Counter = 0;
-        printf( "  %d=%d", i, Entry );
+            fprintf( Abc_FrameGlobalGetOut(),  "\n"  ), Counter = 0;
+        fprintf( Abc_FrameGlobalGetOut(), "  %d=%d", i, Entry );
     }
-    printf( "\nSummary: " );
-    printf( "Max = %d  ", Vec_IntFindMax(vCounts) );
-    printf( "Ave = %.2f", 1.0*Vec_IntSum(vCounts)/Total );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\nSummary: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Max = %d  ", Vec_IntFindMax(vCounts) );
+    fprintf( Abc_FrameGlobalGetOut(), "Ave = %.2f", 1.0*Vec_IntSum(vCounts)/Total );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_IntFree( vCounts );
     return 1;
 }
@@ -695,8 +695,8 @@ void Gia_ManMuxProfiling( Gia_Man_t * p )
     Vec_StrFree( vStr );
     Vec_IntFree( vFans );
 
-    printf( "MUX structure profile for AIG \"%s\":\n", p->pName );
-    printf( "Total MUXes = %d.  Total trees = %d.  Unique trees = %d.  Memory = %.2f MB   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "MUX structure profile for AIG \"%s\":\n", p->pName );
+    fprintf( Abc_FrameGlobalGetOut(), "Total MUXes = %d.  Total trees = %d.  Unique trees = %d.  Memory = %.2f MB   ", 
         Gia_ManMuxNum(pNew), Vec_WecSizeSize(pMan->vTops), Vec_WecSize(pMan->vTops)-1, 
         1.0*Abc_NamMemUsed(pMan->pNames)/(1<<20) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -706,14 +706,14 @@ void Gia_ManMuxProfiling( Gia_Man_t * p )
         Gia_ManMuxProfile( pMan, 1 );
 
         // short the first ones
-        printf( "The first %d structures: \n", 10 );
+        fprintf( Abc_FrameGlobalGetOut(), "The first %d structures: \n", 10 );
         Vec_WecForEachLevelStartStop( pMan->vTops, vVec, i, 1, Abc_MinInt(Vec_WecSize(pMan->vTops), 10) )
         {
             char * pTemp = Abc_NamStr(pMan->pNames, i);
-            printf( "%5d : ", i );
-            printf( "Occur = %4d   ", Vec_IntSize(vVec) );
-            printf( "Size = %4d   ", atoi(pTemp) );
-            printf( "%s\n", pTemp );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d : ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Occur = %4d   ", Vec_IntSize(vVec) );
+            fprintf( Abc_FrameGlobalGetOut(), "Size = %4d   ", atoi(pTemp) );
+            fprintf( Abc_FrameGlobalGetOut(), "%s\n", pTemp );
         }
 
         // print trees for the first one
@@ -724,7 +724,7 @@ void Gia_ManMuxProfiling( Gia_Man_t * p )
             if ( Vec_IntSize(vVec) > 5 && atoi(pTemp) > 5 )
             {
                 int k, Entry;
-                printf( "For example, structure %d has %d MUXes and bit-width %d:\n", i, atoi(pTemp), Vec_IntSize(vVec) );
+                fprintf( Abc_FrameGlobalGetOut(), "For example, structure %d has %d MUXes and bit-width %d:\n", i, atoi(pTemp), Vec_IntSize(vVec) );
                 Vec_IntForEachEntry( vVec, Entry, k )
                     Gia_MuxStructPrint( pNew, Entry );
                 if ( ++Counter == 5 )
@@ -789,7 +789,7 @@ void Gia_ManProfileStructuresTest( Gia_Man_t * p )
 {
     int i;
     for ( i = 0; i < GIA_END; i++ )
-        printf( "%d = %s\n", i, GIA_TYPE_STRINGS[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%d = %s\n", i, GIA_TYPE_STRINGS[i] );
 }
 
 
@@ -873,14 +873,14 @@ void Gia_ManProfilePrintOne( Gia_Man_t * p, int i, Vec_Int_t * vArray )
     nFanins = Gia_ObjIsRo(p, pObj) ? 1 : Gia_ObjFaninNum(p, pObj);
     nFanouts = Gia_ObjFanoutNum(p, pObj);
 
-    printf( "%6d : ", i );
+    fprintf( Abc_FrameGlobalGetOut(), "%6d : ", i );
     for ( k = 0; k < nFanins; k++ )
-        printf( "  %5s", GIA_TYPE_STRINGS[Vec_IntEntry(vArray, k + 1)] );
+        fprintf( Abc_FrameGlobalGetOut(), "  %5s", GIA_TYPE_STRINGS[Vec_IntEntry(vArray, k + 1)] );
     for (      ; k < 3; k++ )
-        printf( "  %5s", "" );
-    printf( "  ->" );
-    printf( " %5s", GIA_TYPE_STRINGS[Vec_IntEntry(vArray, 0)] );
-    printf( "  ->" );
+        fprintf( Abc_FrameGlobalGetOut(), "  %5s", "" );
+    fprintf( Abc_FrameGlobalGetOut(), "  ->" );
+    fprintf( Abc_FrameGlobalGetOut(), " %5s", GIA_TYPE_STRINGS[Vec_IntEntry(vArray, 0)] );
+    fprintf( Abc_FrameGlobalGetOut(), "  ->" );
     if ( nFanouts > 0 )
     {
         int Count = 1, Prev = Vec_IntEntry(vArray, 1 + nFanins);
@@ -888,15 +888,15 @@ void Gia_ManProfilePrintOne( Gia_Man_t * p, int i, Vec_Int_t * vArray )
         {
             if ( Prev != Vec_IntEntry(vArray, k + 1 + nFanins) )
             {
-                printf( "  %d x %s", Count, GIA_TYPE_STRINGS[Prev] );
+                fprintf( Abc_FrameGlobalGetOut(), "  %d x %s", Count, GIA_TYPE_STRINGS[Prev] );
                 Prev = Vec_IntEntry(vArray, k + 1 + nFanins);
                 Count = 0;
             }
             Count++;
         }
-        printf( "  %d x %s", Count, GIA_TYPE_STRINGS[Prev] );
+        fprintf( Abc_FrameGlobalGetOut(), "  %d x %s", Count, GIA_TYPE_STRINGS[Prev] );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 Vec_Int_t * Gia_ManProfileHash( Gia_Man_t * p, Vec_Int_t * vCode, Vec_Int_t * vCodeOffsets )
@@ -986,7 +986,7 @@ void Gia_ManProfileStructuresInt( Gia_Man_t * p, int nLimit, int fVerbose )
     // print the results
     if ( fVerbose )
     {
-        printf( "Showing TFI/node/TFO structures for all nodes:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Showing TFI/node/TFO structures for all nodes:\n" );
         Gia_ManForEachObj( p, pObj, i )
         {
             Gia_ManProfileCollect( p, i, vCode, vCodeOffsets, vArray );
@@ -1013,15 +1013,15 @@ void Gia_ManProfileStructuresInt( Gia_Man_t * p, int nLimit, int fVerbose )
     }
     // sort the counts
     pPerm = Abc_MergeSortCost( Vec_IntArray(vCount), Vec_IntSize(vCount) );
-    printf( "Showing TFI/node/TFO structures that appear more than %d times.\n", nLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "Showing TFI/node/TFO structures that appear more than %d times.\n", nLimit );
     for ( i = 0; i < nClasses-1; i++ )
     {
         if ( nLimit > -Vec_IntEntry(vCount, pPerm[i]) )
             break;
-        printf( "%6d : ", i );
-        printf( "%6d : ", pPerm[i] );
-        printf( "Weight =%6d  ",   -Vec_IntEntry(vCount, pPerm[i]) );
-        printf( "First obj =" );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : ", pPerm[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "Weight =%6d  ",   -Vec_IntEntry(vCount, pPerm[i]) );
+        fprintf( Abc_FrameGlobalGetOut(), "First obj =" );
         // print the object
         Gia_ManProfileCollect( p, Vec_IntEntry(vFirst, pPerm[i]), vCode, vCodeOffsets, vArray );
         Gia_ManProfilePrintOne( p, Vec_IntEntry(vFirst, pPerm[i]), vArray );

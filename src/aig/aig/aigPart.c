@@ -591,7 +591,7 @@ void Aig_ManPartitionPrint( Aig_Man_t * p, Vec_Ptr_t * vPartsAll, Vec_Ptr_t * vP
     Vec_PtrForEachEntry( Vec_Int_t *, vPartSuppsAll, vOne, i )
     {
         nOutputs = Vec_IntSize((Vec_Int_t *)Vec_PtrEntry(vPartsAll, i));
-        printf( "%d=(%d,%d) ", i, Vec_IntSize(vOne), nOutputs );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=(%d,%d) ", i, Vec_IntSize(vOne), nOutputs );
         Counter += nOutputs;
         if ( i == Vec_PtrSize(vPartsAll) - 1 )
             break;
@@ -770,7 +770,7 @@ clk = Abc_Clock();
     Aig_ManPartitionCompact( vPartsAll, vPartSuppsAll, nSuppSizeLimit );
     if ( fVerbose )
 //    Aig_ManPartitionPrint( p, vPartsAll, vPartSuppsAll );
-    printf( "Created %d partitions.\n", Vec_PtrSize(vPartsAll) );
+    fprintf( Abc_FrameGlobalGetOut(), "Created %d partitions.\n", Vec_PtrSize(vPartsAll) );
 
 if ( fVerbose )
 {
@@ -899,7 +899,7 @@ clk = Abc_Clock();
     Aig_ManPartitionCompact( vPartsAll, vPartSuppsAll, nSuppSizeLimit );
     if ( fVerbose )
 //    Aig_ManPartitionPrint( p, vPartsAll, vPartSuppsAll );
-    printf( "Created %d partitions.\n", Vec_PtrSize(vPartsAll) );
+    fprintf( Abc_FrameGlobalGetOut(), "Created %d partitions.\n", Vec_PtrSize(vPartsAll) );
 
 if ( fVerbose )
 {
@@ -1314,7 +1314,7 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int nCon
             ppData[k] = pObj->pData;
         // report the process
         if ( fVerbose )
-        printf( "Part %4d  (out of %4d)  PI = %5d. PO = %5d. And = %6d. Lev = %4d.\r", 
+        fprintf( Abc_FrameGlobalGetOut(), "Part %4d  (out of %4d)  PI = %5d. PO = %5d. And = %6d. Lev = %4d.\r", 
             i+1, Vec_PtrSize(vParts), Aig_ManCiNum(pAigPart), Aig_ManCoNum(pAigPart), 
             Aig_ManNodeNum(pAigPart), Aig_ManLevelNum(pAigPart) );
         // compute equivalence classes (to be stored in pNew->pReprs)
@@ -1330,7 +1330,7 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int nCon
         Aig_ManStop( pAigPart );
     }
     if ( fVerbose )
-    printf( "                                                                                          \r" );
+    fprintf( Abc_FrameGlobalGetOut(), "                                                                                          \r" );
     Vec_VecFree( (Vec_Vec_t *)vParts );
     Vec_IntFree( vPartSupp );
 
@@ -1407,7 +1407,7 @@ Aig_Man_t * Aig_ManFraigPartitioned( Aig_Man_t * pAig, int nPartSize, int nConfM
             ppData[k] = pObj->pData;
         // report the process
         if ( fVerbose )
-        printf( "Part %4d  (out of %4d)  PI = %5d. PO = %5d. And = %6d. Lev = %4d.\r", 
+        fprintf( Abc_FrameGlobalGetOut(), "Part %4d  (out of %4d)  PI = %5d. PO = %5d. And = %6d. Lev = %4d.\r", 
             i+1, Vec_PtrSize(vParts), Aig_ManCiNum(pAigPart), Aig_ManCoNum(pAigPart), 
             Aig_ManNodeNum(pAigPart), Aig_ManLevelNum(pAigPart) );
         // compute equivalence classes (to be stored in pNew->pReprs)
@@ -1423,7 +1423,7 @@ Aig_Man_t * Aig_ManFraigPartitioned( Aig_Man_t * pAig, int nPartSize, int nConfM
         Aig_ManStop( pAigPart );
     }
     if ( fVerbose )
-    printf( "                                                                                          \r" );
+    fprintf( Abc_FrameGlobalGetOut(), "                                                                                          \r" );
     Vec_VecFree( (Vec_Vec_t *)vParts );
 
     // clear the PI numbers
@@ -1539,13 +1539,13 @@ void Aig_ManChoiceEval( Aig_Man_t * p )
         Counter = 0;
         for ( pTemp = pNode; pTemp; pTemp = Aig_ObjEquiv(p, pTemp) )
             Counter++;
-        printf( "Choice node = %5d. Level = %2d. Choices = %d. { ", pNode->Id, pNode->Level, Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Choice node = %5d. Level = %2d. Choices = %d. { ", pNode->Id, pNode->Level, Counter );
         for ( pTemp = pNode; pTemp; pTemp = Aig_ObjEquiv(p, pTemp) )
         {
             Counter = Aig_NodeMffcSupp( p, pTemp, 0, vSupp );
-            printf( "S=%d N=%d L=%d  ", Vec_PtrSize(vSupp), Counter, pTemp->Level );
+            fprintf( Abc_FrameGlobalGetOut(), "S=%d N=%d L=%d  ", Vec_PtrSize(vSupp), Counter, pTemp->Level );
         }
-        printf( "}\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "}\n" );
     }
     Vec_PtrFree( vSupp );
 }

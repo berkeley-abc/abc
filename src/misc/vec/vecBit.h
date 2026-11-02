@@ -642,10 +642,10 @@ static inline void Vec_BitReset( Vec_Bit_t * p )
 static inline void Vec_BitPrint( Vec_Bit_t * p )
 {
     int i, Entry;
-    printf( "Vector has %d entries: {", Vec_BitSize(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "Vector has %d entries: {", Vec_BitSize(p)  );
     Vec_BitForEachEntry( p, Entry, i )
-        printf( " %d", Entry );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  " %d", Entry  );
+    fprintf( Abc_FrameGlobalGetOut(),  " }\n"  );
 }
 
 ABC_NAMESPACE_HEADER_END

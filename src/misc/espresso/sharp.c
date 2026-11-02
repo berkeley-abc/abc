@@ -65,10 +65,10 @@ int first, last, level;
     right = cb_recur_sharp(c, T, middle+1, last, level+1);
     temp = cv_intersect(left, right);
     if ((debug & SHARP) && level < 4) {
-        printf("# SHARP[%d]: %4d = %4d x %4d, time = %s\n",
+        fprintf( Abc_FrameGlobalGetOut(), "# SHARP[%d]: %4d = %4d x %4d, time = %s\n",
         level, temp->count, left->count, right->count,
-        print_time(ptime() - start_time));
-        (void) fflush(stdout);
+        print_time(ptime() - start_time) );
+        (void) fflush( Abc_FrameGlobalGetOut() );
     }
     free_cover(left);
     free_cover(right);

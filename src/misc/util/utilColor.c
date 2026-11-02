@@ -54,18 +54,18 @@ void Abc_ColorTest()
 #ifdef WIN32
     int x, y;
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    printf( "Background     00   01   02   03   04   05   06   07   08   09   10   11   12   13   14   15\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Background     00   01   02   03   04   05   06   07   08   09   10   11   12   13   14   15\n" );
     for ( y = 0; y < 16; y++ )
     {
-        printf( "Foreground %02d", y );
+        fprintf( Abc_FrameGlobalGetOut(), "Foreground %02d", y );
         for ( x = 0; x < 16; x++ )
         {
-            printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
             SetConsoleTextAttribute( hConsole, (WORD)(16 * x + y) );
-            printf( " Hi " );
+            fprintf( Abc_FrameGlobalGetOut(), " Hi " );
             SetConsoleTextAttribute( hConsole, 7 );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 #else
 /*
@@ -90,28 +90,28 @@ void Abc_ColorTest()
   bg[LightGray] = '[0;47m'
 */
     int x, y;
-    printf( "Background       " );
+    fprintf( Abc_FrameGlobalGetOut(), "Background       " );
     for ( x = 0; x < 8; x++ )
-        printf( "  [1;4%dm", x );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "  [1;4%dm", x );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( y = 0; y < 2; y++ )
     {
-        printf( "Foreground [%dm   ", y );
+        fprintf( Abc_FrameGlobalGetOut(), "Foreground [%dm   ", y );
         for ( x = 0; x < 8; x++ )
-            printf( "  \033[%d;3%dm\033[%dm  Hi  \033[0m", y&1, y>>1, x );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "  \033[%d;3%dm\033[%dm  Hi  \033[0m", y&1, y>>1, x );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     for ( y = 0; y < 16; y++ )
     {
-        printf( "Foreground [%d;3%dm", y&1, y>>1 );
+        fprintf( Abc_FrameGlobalGetOut(), "Foreground [%d;3%dm", y&1, y>>1 );
         for ( x = 0; x < 8; x++ )
-            printf( "  \033[%d;3%dm\033[1;4%dm  Hi  \033[0m", y&1, y>>1, x );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "  \033[%d;3%dm\033[1;4%dm  Hi  \033[0m", y&1, y>>1, x );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    printf( "\033[4mUnderlined\033[0m\n" );
-    printf( "\033[5mBlinking  \033[0m\n" );
-    printf( "\033[7mInverted  \033[0m\n" );
-    printf( "\033[8mConcealed \033[0m\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\033[4mUnderlined\033[0m\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\033[5mBlinking  \033[0m\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\033[7mInverted  \033[0m\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\033[8mConcealed \033[0m\n" );
 #endif
 }
 

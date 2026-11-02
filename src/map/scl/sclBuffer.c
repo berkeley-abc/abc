@@ -95,7 +95,7 @@ void Abc_SclReportDupFanins( Abc_Ntk_t * pNtk )
         Abc_ObjForEachFanin( pObj, pFanin, k )
             Abc_ObjForEachFanin( pObj, pFanin2, k2 )
                 if ( k != k2 && pFanin == pFanin2 )
-                    printf( "Node %d has dup fanin %d.\n", i, Abc_ObjId(pFanin) );    
+                    fprintf( Abc_FrameGlobalGetOut(), "Node %d has dup fanin %d.\n", i, Abc_ObjId(pFanin) );    
 }
 
 /**Function*************************************************************
@@ -225,7 +225,7 @@ Abc_Ntk_t * Abc_SclBufferPhase( Abc_Ntk_t * pNtk, int fVerbose )
         }
     }
     if ( fVerbose )
-        printf( "Added %d inverters (%.2f %% fanins) (%.2f %% compl fanins).\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Added %d inverters (%.2f %% fanins) (%.2f %% compl fanins).\n", 
             Counter, 100.0 * Counter / Total, 100.0 * Counter2 / Total );
     Vec_IntFree( vInvs );
     Vec_IntFillExtra( pNtk->vPhases, Abc_NtkObjNumMax(pNtk), 0 );
@@ -263,11 +263,11 @@ Abc_Ntk_t * Abc_SclUnBufferPhase( Abc_Ntk_t * pNtk, int fVerbose )
         }
     }
     if ( fVerbose )
-        printf( "Saved %d (%.2f %%) fanin phase bits.  ", Counter, 100.0 * Counter / Total );
+        fprintf( Abc_FrameGlobalGetOut(), "Saved %d (%.2f %%) fanin phase bits.  ", Counter, 100.0 * Counter / Total );
     // duplicate network in topo order
     pNtkNew = Abc_NtkDupDfs( pNtk );
     if ( fVerbose )
-        printf( "Max depth = %d.\n", Abc_SclCountMaxPhases(pNtkNew) );
+        fprintf( Abc_FrameGlobalGetOut(), "Max depth = %d.\n", Abc_SclCountMaxPhases(pNtkNew) );
     Abc_SclReportDupFanins( pNtkNew );
     return pNtkNew;
 }
@@ -304,7 +304,7 @@ int Abc_SclCheckNtk( Abc_Ntk_t * p, int fVerbose )
             break;
     }
     if ( fFlag && fVerbose )
-        printf( "The network is in topo order and no dangling nodes.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The network is in topo order and no dangling nodes.\n" );
     return fFlag;
 }
 
@@ -404,10 +404,10 @@ Abc_Obj_t * Abc_SclPerformBufferingOne( Abc_Obj_t * pObj, int Degree, int fUseIn
         Abc_ObjPatchFanin( pFanout, pObj, pBuffer );
     if ( fVerbose )
     {
-        printf( "%5d : ", Abc_ObjId(pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "%5d : ", Abc_ObjId(pObj) );
         Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pFanout, i )
-            printf( "%d%s ", Abc_ObjLevel(pFanout), i == Degree-1 ? "  " : "" );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d%s ", Abc_ObjLevel(pFanout), i == Degree-1 ? "  " : "" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_PtrFree( vFanouts );
     Abc_ObjAddFanin( pBuffer, pObj );
@@ -465,9 +465,9 @@ Abc_Ntk_t * Abc_SclPerformBuffering( Abc_Ntk_t * p, int DegreeR, int Degree, int
     assert( Abc_NtkHasMapping(p) );
     if ( fUseInvs )
     {
-        printf( "Warning!!! Using inverters instead of buffers.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning!!! Using inverters instead of buffers.\n" );
         if ( p->vPhases == NULL )
-            printf( "The phases are not given. The result will not verify.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The phases are not given. The result will not verify.\n" );
     }
     // remember CI levels
     vCiLevs = Vec_IntAlloc( Abc_NtkCiNum(p) );
@@ -724,9 +724,9 @@ Buf_Man_t * Buf_ManStart( Abc_Ntk_t * pNtk, int FanMin, int FanMax, int fBufPis 
 }
 void Buf_ManStop( Buf_Man_t * p )
 {
-    printf( "Sep = %d. Dup = %d. Br0 = %d. Br1 = %d. BrC = %d.  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Sep = %d. Dup = %d. Br0 = %d. Br1 = %d. BrC = %d.  ", 
         p->nSeparate, p->nDuplicate, p->nBranch0, p->nBranch1, p->nBranchCrit );
-    printf( "Orig = %d. Add = %d. Rem = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Orig = %d. Add = %d. Rem = %d.\n", 
         p->nObjStart, Abc_NtkObjNumMax(p->pNtk) - p->nObjStart, 
         p->nObjAlloc - Abc_NtkObjNumMax(p->pNtk) );
     Vec_PtrFree( p->vFanouts );
@@ -783,13 +783,13 @@ void Abc_BufPrintOne( Buf_Man_t * p, int iPivot )
     int i, Slack;
     pObj = Abc_NtkObj( p->pNtk, iPivot );
     vOrder = Abc_BufSortByDelay( p, iPivot );
-    printf( "Node %5d  Fi = %d  Fo = %3d  Lev = %3d : {", iPivot, Abc_ObjFaninNum(pObj), Abc_ObjFanoutNum(pObj), Abc_ObjLevel(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "Node %5d  Fi = %d  Fo = %3d  Lev = %3d : {", iPivot, Abc_ObjFaninNum(pObj), Abc_ObjFanoutNum(pObj), Abc_ObjLevel(pObj) );
     Abc_NtkForEachObjVec( vOrder, p->pNtk, pFanout, i )
     {
         Slack = Abc_BufEdgeSlack( p, pObj, pFanout );
-        printf( " %d(%d)", Abc_ObjId(pFanout), Slack );
+        fprintf( Abc_FrameGlobalGetOut(), " %d(%d)", Abc_ObjId(pFanout), Slack );
     }
-    printf( " }\n" );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 
 /**Function*************************************************************
@@ -817,7 +817,7 @@ void Abc_BufReplaceBufsByInvs( Abc_Ntk_t * pNtk )
         Abc_ObjPatchFanin( pObj, Abc_ObjFanin0(pObj), pInv );
         Counter++;
     }
-    printf( "Replaced %d buffers by invertor pairs.\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Replaced %d buffers by invertor pairs.\n", Counter );
 }
 
 /**Function*************************************************************
@@ -879,7 +879,7 @@ void Abc_BufPerformOne( Buf_Man_t * p, int iPivot, int fSkipDup, int fVerbose )
 if ( fVerbose )
 {
 //Abc_BufPrintOne( p, iPivot );
-printf( "ObjId = %6d : %-10s   FI = %d. FO =%4d.  Crit =%4d.  ", 
+fprintf( Abc_FrameGlobalGetOut(), "ObjId = %6d : %-10s   FI = %d. FO =%4d.  Crit =%4d.  ", 
     Abc_ObjId(pObj), Mio_GateReadName((Mio_Gate_t *)pObj->pData), Abc_ObjFaninNum(pObj), Abc_ObjFanoutNum(pObj), nCrit );
 }
     // consider three cases
@@ -898,7 +898,7 @@ printf( "ObjId = %6d : %-10s   FI = %d. FO =%4d.  Crit =%4d.  ",
         Abc_SclTimeIncUpdateLevel( pBuffer );
         p->nSeparate++;
 if ( fVerbose )
-printf( "Adding buffer\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Adding buffer\n" );
     }
     else if ( !fSkipDup && nCrit > 0 && Abc_ObjIsNode(pObj) && Abc_ObjFanoutNum(pObj) > p->nFanMin )//&& Abc_ObjLevel(pObj) < 4 )//&& Abc_ObjFaninNum(pObj) < 2 )
     {
@@ -922,7 +922,7 @@ printf( "Adding buffer\n" );
         p->nDuplicate++;
 //        printf( "Duplicating %s on level %d\n", Mio_GateReadName((Mio_Gate_t *)pObj->pData), Abc_ObjLevel(pObj) );
 if ( fVerbose )
-printf( "Duplicating node\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Duplicating node\n" );
     }
     else if ( (nCrit > 0 && Abc_ObjFanoutNum(pObj) > 8) || Abc_ObjFanoutNum(pObj) > p->nFanMax )
     {
@@ -946,7 +946,7 @@ printf( "Duplicating node\n" );
             for ( i = 0; i < nDegree; i++ )
                 Abc_NtkCreateNodeInv( p->pNtk, pObj );
 if ( fVerbose )
-printf( "Adding %d inverters\n", nDegree );
+fprintf( Abc_FrameGlobalGetOut(), "Adding %d inverters\n", nDegree );
         }
         else
         {
@@ -954,7 +954,7 @@ printf( "Adding %d inverters\n", nDegree );
             for ( i = 0; i < nDegree; i++ )
                 Abc_NtkCreateNodeBuf( p->pNtk, pObj );
 if ( fVerbose )
-printf( "Adding %d buffers\n", nDegree );
+fprintf( Abc_FrameGlobalGetOut(), "Adding %d buffers\n", nDegree );
         }
         // connect inverters
         Vec_PtrForEachEntry( Abc_Obj_t *, p->vFanouts, pFanout, i )
@@ -978,7 +978,7 @@ printf( "Adding %d buffers\n", nDegree );
     else
     {
 if ( fVerbose )
-printf( "Doing nothing\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Doing nothing\n" );
     }
 //    if ( DelayMax != p->DelayMax )
 //        printf( "%d (%.2f)  ", p->DelayMax, 1.0 * p->DelayMax * p->DelayInv / BUF_SCALE );

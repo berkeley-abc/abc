@@ -82,7 +82,7 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
         {
             Weight1 = Fxu_HeapSingleReadMaxWeight( p->pHeapSingle );
             if ( pData->fVerbose )
-                printf( "Div %5d : Best single = %5d.%s", Counter++, Weight1, fScrollLines?"\n":"\r" );
+                fprintf( Abc_FrameGlobalGetOut(), "Div %5d : Best single = %5d.%s", Counter++, Weight1, fScrollLines?"\n":"\r" );
             if ( Weight1 > pData->WeightMin || (Weight1 == 0 && pData->fUse0) )
                 Fxu_UpdateSingle( p );
             else
@@ -97,7 +97,7 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
         {
             Weight2 = Fxu_HeapDoubleReadMaxWeight( p->pHeapDouble );
             if ( pData->fVerbose )
-                printf( "Div %5d : Best double = %5d.%s", Counter++, Weight2, fScrollLines?"\n":"\r" );
+                fprintf( Abc_FrameGlobalGetOut(), "Div %5d : Best double = %5d.%s", Counter++, Weight2, fScrollLines?"\n":"\r" );
             if ( Weight2 > pData->WeightMin || (Weight2 == 0 && pData->fUse0) )
                 Fxu_UpdateDouble( p );
             else
@@ -114,7 +114,7 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
             Weight2 = Fxu_HeapDoubleReadMaxWeight( p->pHeapDouble );
 
             if ( pData->fVerbose )
-                printf( "Div %5d : Best double = %5d. Best single = %5d.%s", Counter++, Weight2, Weight1, fScrollLines?"\n":"\r" );
+                fprintf( Abc_FrameGlobalGetOut(), "Div %5d : Best double = %5d. Best single = %5d.%s", Counter++, Weight2, Weight1, fScrollLines?"\n":"\r" );
 //Fxu_Select( p, &pSingle, &pDouble );
 
             if ( Weight1 >= Weight2 )
@@ -145,7 +145,7 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
             // select the best single and double
             Weight3 = Fxu_Select( p, &pSingle, &pDouble );
             if ( pData->fVerbose )
-                printf( "Div %5d : Best double = %5d. Best single = %5d. Best complement = %5d.%s", 
+                fprintf( Abc_FrameGlobalGetOut(), "Div %5d : Best double = %5d. Best single = %5d. Best complement = %5d.%s", 
                     Counter++, Weight2, Weight1, Weight3, fScrollLines?"\n":"\r" );
 
             if ( Weight3 > pData->WeightMin || (Weight3 == 0 && pData->fUse0) )
@@ -157,7 +157,7 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
     }
 
     if ( pData->fVerbose )
-        printf( "Total single = %3d. Total double = %3d. Total compl = %3d.                    \n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Total single = %3d. Total double = %3d. Total compl = %3d.                    \n", 
         p->nDivs1, p->nDivs2, p->nDivs3 );
 
     // create the new covers
@@ -166,7 +166,7 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
     Fxu_MatrixDelete( p );
 //    printf( "Memory usage after deallocation:   Total = %d. Peak = %d.\n", s_MemoryTotal, s_MemoryPeak );
     if ( pData->nNodesNew == pData->nNodesExt )
-        printf( "Warning: The limit on the number of extracted divisors has been reached.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The limit on the number of extracted divisors has been reached.\n" );
     return pData->nNodesNew;
 }
 

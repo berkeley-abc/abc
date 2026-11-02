@@ -68,7 +68,7 @@ Cut_Man_t * Cut_ManStart( Cut_Params_t * pParams )
         if ( pParams->fTruth && pParams->nVarsMax > 5 )
         {
             pParams->fTruth = 0;
-            printf( "Skipping computation of truth tables for sequential cuts with more than 5 inputs.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Skipping computation of truth tables for sequential cuts with more than 5 inputs.\n" );
         }
     }
     // entry size
@@ -78,7 +78,7 @@ Cut_Man_t * Cut_ManStart( Cut_Params_t * pParams )
         if ( pParams->nVarsMax > 14 )
         {
             pParams->fTruth = 0;
-            printf( "Skipping computation of truth table for more than %d inputs.\n", 14 );
+            fprintf( Abc_FrameGlobalGetOut(), "Skipping computation of truth table for more than %d inputs.\n", 14 );
         }
         else
         {
@@ -159,25 +159,25 @@ void Cut_ManPrintStats( Cut_Man_t * p )
         Cut_CutRecycle( p, p->pReady );
         p->pReady = NULL;
     }
-    printf( "Cut computation statistics:\n" );
-    printf( "Current cuts      = %8d. (Trivial = %d.)\n", p->nCutsCur-p->nCutsTriv, p->nCutsTriv );
-    printf( "Peak cuts         = %8d.\n", p->nCutsPeak );
-    printf( "Total allocated   = %8d.\n", p->nCutsAlloc );
-    printf( "Total deallocated = %8d.\n", p->nCutsDealloc );
-    printf( "Cuts filtered     = %8d.\n", p->nCutsFilter );
-    printf( "Nodes saturated   = %8d. (Max cuts = %d.)\n", p->nCutsLimit, p->pParams->nKeepMax );
-    printf( "Cuts per node     = %8.1f\n", ((float)(p->nCutsCur-p->nCutsTriv))/p->nNodes );
-    printf( "The cut size      = %8d bytes.\n", p->EntrySize );
-    printf( "Peak memory       = %8.2f MB.\n", (float)p->nCutsPeak * p->EntrySize / (1<<20) );
-    printf( "Total nodes       = %8d.\n", p->nNodes );
+    fprintf( Abc_FrameGlobalGetOut(), "Cut computation statistics:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Current cuts      = %8d. (Trivial = %d.)\n", p->nCutsCur-p->nCutsTriv, p->nCutsTriv );
+    fprintf( Abc_FrameGlobalGetOut(), "Peak cuts         = %8d.\n", p->nCutsPeak );
+    fprintf( Abc_FrameGlobalGetOut(), "Total allocated   = %8d.\n", p->nCutsAlloc );
+    fprintf( Abc_FrameGlobalGetOut(), "Total deallocated = %8d.\n", p->nCutsDealloc );
+    fprintf( Abc_FrameGlobalGetOut(), "Cuts filtered     = %8d.\n", p->nCutsFilter );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes saturated   = %8d. (Max cuts = %d.)\n", p->nCutsLimit, p->pParams->nKeepMax );
+    fprintf( Abc_FrameGlobalGetOut(), "Cuts per node     = %8.1f\n", ((float)(p->nCutsCur-p->nCutsTriv))/p->nNodes );
+    fprintf( Abc_FrameGlobalGetOut(), "The cut size      = %8d bytes.\n", p->EntrySize );
+    fprintf( Abc_FrameGlobalGetOut(), "Peak memory       = %8.2f MB.\n", (float)p->nCutsPeak * p->EntrySize / (1<<20) );
+    fprintf( Abc_FrameGlobalGetOut(), "Total nodes       = %8d.\n", p->nNodes );
     if ( p->pParams->fDag || p->pParams->fTree )
     {
-    printf( "DAG nodes         = %8d.\n", p->nNodesDag );
-    printf( "Tree nodes        = %8d.\n", p->nNodes - p->nNodesDag );
+    fprintf( Abc_FrameGlobalGetOut(), "DAG nodes         = %8d.\n", p->nNodesDag );
+    fprintf( Abc_FrameGlobalGetOut(), "Tree nodes        = %8d.\n", p->nNodes - p->nNodesDag );
     }
-    printf( "Nodes w/o cuts    = %8d.\n", p->nNodesNoCuts );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes w/o cuts    = %8d.\n", p->nNodesNoCuts );
     if ( p->pParams->fMap && !p->pParams->fSeq )
-    printf( "Mapping delay     = %8d.\n", p->nDelayMin );
+    fprintf( Abc_FrameGlobalGetOut(), "Mapping delay     = %8d.\n", p->nDelayMin );
 
     ABC_PRT( "Merge ", p->timeMerge );
     ABC_PRT( "Union ", p->timeUnion );

@@ -156,50 +156,50 @@ void Miaig::printNode(int i) {
     if (!_data) return;
     int iLit, k;
     if (i == 0) {
-        printf("Const0\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Const0\n" );
     } else if (i <= nIns()) {
-        printf("Pi%d", i);
+        fprintf( Abc_FrameGlobalGetOut(), "Pi%d", i );
         if (!_data->pvFanouts) {
-            printf("\n"); return;
+            fprintf( Abc_FrameGlobalGetOut(), "\n" ); return;
         }
-        printf(" Fanouts: {");
+        fprintf( Abc_FrameGlobalGetOut(), " Fanouts: {" );
         Miaig_ForEachObjFanout(i, iLit, k)
-            printf(" %d", iLit); // this is a variable
-        printf(" }");
+            fprintf( Abc_FrameGlobalGetOut(), " %d", iLit ); // this is a variable
+        fprintf( Abc_FrameGlobalGetOut(), " }" );
         if (!_data->pRequire) {
-            printf("\n"); return;
+            fprintf( Abc_FrameGlobalGetOut(), "\n" ); return;
         }
-        printf(" Require: %d\n", objRequire(i));
+        fprintf( Abc_FrameGlobalGetOut(), " Require: %d\n", objRequire(i) );
     } else if (i < nObjs() - nOuts()) {
-        printf("Node%d Level: %d Fanins: {", i, objLevel(i));
+        fprintf( Abc_FrameGlobalGetOut(), "Node%d Level: %d Fanins: {", i, objLevel(i) );
         Miaig_ForEachObjFanin(i, iLit, k)
-            printf(" %s%d", Rw_LitIsCompl(iLit) ? "~" : "", Rw_Lit2Var(iLit)); // this is a literal
-        printf(" }");
+            fprintf( Abc_FrameGlobalGetOut(), " %s%d", Rw_LitIsCompl(iLit) ? "~" : "", Rw_Lit2Var(iLit) ); // this is a literal
+        fprintf( Abc_FrameGlobalGetOut(), " }" );
         if (!_data->pvFanouts) {
-            printf("\n"); return;
+            fprintf( Abc_FrameGlobalGetOut(), "\n" ); return;
         }
-        printf(" Fanouts: {");
+        fprintf( Abc_FrameGlobalGetOut(), " Fanouts: {" );
         Miaig_ForEachObjFanout(i, iLit, k)
-            printf(" %d", iLit); // this is a variable
-        printf(" }");
+            fprintf( Abc_FrameGlobalGetOut(), " %d", iLit ); // this is a variable
+        fprintf( Abc_FrameGlobalGetOut(), " }" );
         if (!_data->pRequire) {
-            printf("\n"); return;
+            fprintf( Abc_FrameGlobalGetOut(), "\n" ); return;
         }
-        printf(" Require: %d\n", objRequire(i));
+        fprintf( Abc_FrameGlobalGetOut(), " Require: %d\n", objRequire(i) );
     } else {
-        printf("Po%d ", i - nObjs() + nOuts());
+        fprintf( Abc_FrameGlobalGetOut(), "Po%d ", i - nObjs() + nOuts() );
         Miaig_ForEachObjFanin(i, iLit, k)
-            printf(" %s%d", Rw_LitIsCompl(iLit) ? "~" : "", Rw_Lit2Var(iLit));
+            fprintf( Abc_FrameGlobalGetOut(), " %s%d", Rw_LitIsCompl(iLit) ? "~" : "", Rw_Lit2Var(iLit) );
         if (!_data->pRequire) {
-            printf("\n"); return;
+            fprintf( Abc_FrameGlobalGetOut(), "\n" ); return;
         }
-        printf(" Require: %d\n", objRequire(i));
+        fprintf( Abc_FrameGlobalGetOut(), " Require: %d\n", objRequire(i) );
     }
 }
 
 void Miaig::print(void) {
     int i;
-    printf("\nAIG printout:\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\nAIG printout:\n" );
     Miaig_ForEachObj(i) {
         printNode(i);
     }
@@ -317,7 +317,7 @@ void Miaig::setExc(Gia_Man_t *pExc) {
     assert(Gia_ManCiNum(pExc) == nIns());
     assert(Gia_ManCoNum(pExc) == nOuts() || Gia_ManCoNum(pExc) == 1);
     if (Gia_ManCoNum(pExc) != nOuts() && Gia_ManCoNum(pExc) == 1) {
-        printf("[Warning] The external careset has only a single output that will be applied to all other outputs.\n");
+        fprintf( Abc_FrameGlobalGetOut(), "[Warning] The external careset has only a single output that will be applied to all other outputs.\n" );
     }
     if (!_data->pExc) {
         _data->pExc = (word *)malloc(sizeof(word) * nWords() * nOuts());
@@ -385,7 +385,7 @@ float Miaig::countMappedDelay(int reset, int nMappedMode, int fDch) {
         pNtkMapped = Gia_ManRewireMapNf(pGia);
         Gia_ManStop(pGia);
     } else if (nMappedMode == 2) { // &simap
-        printf("[Warning] The &simap mode is not supported for delay optimization.\n");
+        fprintf( Abc_FrameGlobalGetOut(), "[Warning] The &simap mode is not supported for delay optimization.\n" );
     }
     if (pNtkMapped) {
         delay = Abc_NtkDelayTrace(pNtkMapped, 0, 0, 0);
@@ -555,7 +555,7 @@ void Miaig::checkTiming(vi *vCiArrs, vi *vCoReqs) {
     int iObj;
     Miaig_ForEachOutput(iObj) {
         if (objLevel(iObj) > objRequire(iObj)) {
-            printf("Timing error: output %d has arrival %d but require %d.\n", iObj, objLevel(iObj), objRequire(iObj));
+            fprintf( Abc_FrameGlobalGetOut(), "Timing error: output %d has arrival %d but require %d.\n", iObj, objLevel(iObj), objRequire(iObj) );
             exit(1);
         }
     }
@@ -603,7 +603,7 @@ void Miaig::verifyRefs(void) {
         derefObj(i);
     for (i = 0; i < nObjs(); i++)
         if (objRef(i))
-            printf("Ref count of node %d is incorrect (%d).\n", i, objRef(i));
+            fprintf( Abc_FrameGlobalGetOut(), "Ref count of node %d is incorrect (%d).\n", i, objRef(i) );
     initializeRefs();
 }
 
@@ -976,7 +976,7 @@ void Miaig::initializeTruth(void) {
     _data->pProd = (word *)calloc(sizeof(word), nWords());
     float MemMB = 8.0 * nWords() * (3 * nObjs() + 2) / (1 << 20);
     if (MemMB > 100.0)
-        printf("Allocated %d truth tables of %d-variable functions (%.2f MB),\n", 3 * nObjs() + 2, nIns(), MemMB);
+        fprintf( Abc_FrameGlobalGetOut(), "Allocated %d truth tables of %d-variable functions (%.2f MB),\n", 3 * nObjs() + 2, nIns(), MemMB );
     nTravIds()++;
     Miaig_ForEachInput(i)
         Tt_ElemInit(objTruth(i, 0), i - 1, nWords());
@@ -995,18 +995,18 @@ void Miaig::truthUpdate(vi *vTfo, word *pExc, int fCheck) {
         Vi_ForEachEntry(vTfo, iTemp, i) {
             truthSimNode(iTemp);
             if (fCheck && objIsPo(iTemp) && !Tt_Equal(objTruth(iTemp, 2), objTruth(iTemp, 0), nWords()))
-                printf("Verification failed at output %d.\n", iTemp - (nObjs() - nOuts())), nFails++;
+                fprintf( Abc_FrameGlobalGetOut(), "Verification failed at output %d.\n", iTemp - (nObjs() - nOuts()) ), nFails++;
         }
     } else {
         Vi_ForEachEntry(vTfo, iTemp, i) {
             truthSimNode(iTemp);
             if (fCheck && objIsPo(iTemp) && !Tt_EqualOnCare(pExc + objPoIdx(iTemp) * nWords(), objTruth(iTemp, 2), objTruth(iTemp, 0), nWords())) {
-                printf("Verification failed at output %d.\n", iTemp - (nObjs() - nOuts())), nFails++;
+                fprintf( Abc_FrameGlobalGetOut(), "Verification failed at output %d.\n", iTemp - (nObjs() - nOuts()) ), nFails++;
             }
         }
     }
     if (fCheck && nFails)
-        printf("Verification failed for %d outputs after updating node %d.\n", nFails, Vi_Read(vTfo, 0));
+        fprintf( Abc_FrameGlobalGetOut(), "Verification failed for %d outputs after updating node %d.\n", nFails, Vi_Read(vTfo, 0) );
 }
 
 int Miaig::computeTfo_rec(int iObj) {
@@ -1180,7 +1180,7 @@ int Miaig::checkConst(int iObj, word *pCare, word *pExc, int fCheck, int fVerbos
         Vi_Fill(objFanins(iObj), 1, 0); // const0
         refObj(iObj);
         truthUpdate(_data->vTfo, pExc, fCheck);
-        if (fVerbose) printf("Detected Const0 at node %d.\n", iObj);
+        if (fVerbose) fprintf( Abc_FrameGlobalGetOut(), "Detected Const0 at node %d.\n", iObj );
         return 1;
     }
     if (!Tt_IntersectC(pCare, pFunc, 1, nWords())) {
@@ -1193,7 +1193,7 @@ int Miaig::checkConst(int iObj, word *pCare, word *pExc, int fCheck, int fVerbos
         Vi_Fill(objFanins(iObj), 1, 1); // const1
         refObj(iObj);
         truthUpdate(_data->vTfo, pExc, fCheck);
-        if (fVerbose) printf("Detected Const1 at node %d.\n", iObj);
+        if (fVerbose) fprintf( Abc_FrameGlobalGetOut(), "Detected Const1 at node %d.\n", iObj );
         return 1;
     }
     return 0;
@@ -1272,7 +1272,7 @@ int Miaig::expandOne(int iObj, int nAddedMax, int nDist, int nExpandableLevel, w
         // new fanin can be added if its offset does not intersect with the node's onset
         for (n = 0; n < 2; n++)
             if (!Tt_IntersectC(pOnset, objTruth(i, 0), !n, nWords())) {
-                if (fVerbose) printf("Adding node %d fanin %d\n", iObj, Rw_Var2Lit(i, n));
+                if (fVerbose) fprintf( Abc_FrameGlobalGetOut(), "Adding node %d fanin %d\n", iObj, Rw_Var2Lit(i, n) );
                 appendFanin(iObj, Rw_Var2Lit(i, n));
                 objRef(i)++;
                 nAdded++;
@@ -1344,7 +1344,7 @@ int Miaig::reduceOne(int iObj, int fOnlyConst, int fOnlyBuffer, int fHeuristic, 
         if (Tt_EqualOnCare(pCare, pFunc, _data->pProd, nWords())) {
             setFanin(iObj, iLit);
             truthUpdate(_data->vTfo, pExc, fCheck);
-            if (fVerbose) printf("Reducing node %d fanin count from %d to %d.\n", iObj, nFans, objFaninNum(iObj));
+            if (fVerbose) fprintf( Abc_FrameGlobalGetOut(), "Reducing node %d fanin count from %d to %d.\n", iObj, nFans, objFaninNum(iObj) );
             return nFans - 1;
         }
     }
@@ -1386,7 +1386,7 @@ int Miaig::reduceOne(int iObj, int fOnlyConst, int fOnlyBuffer, int fHeuristic, 
         }
         refObj(iObj);
         truthUpdate(_data->vTfo, pExc, fCheck);
-        if (fVerbose) printf("Reducing node %d fanin count from %d to %d.\n", iObj, nFans, objFaninNum(iObj));
+        if (fVerbose) fprintf( Abc_FrameGlobalGetOut(), "Reducing node %d fanin count from %d to %d.\n", iObj, nFans, objFaninNum(iObj) );
         return nFans - Vi_Size(_data->vOrderF);
     }
     return 0;
@@ -1523,10 +1523,10 @@ Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth,
     float initCost = ((&pRoot)->*Miaig_ObjectiveFunction)(0, nMappedMode, fDch);
     float bestCost = initCost;
     int iterNotImproveAfterRestart = 0;
-    if (nVerbose && maxLevel) printf("Max level         : %5d\n", maxLevel);
-    if (nVerbose) printf("Initial target    : %5g (AND2 = %5g Level = %3g)\n", bestCost, this->countAnd2(1), this->countLevel());
+    if (nVerbose && maxLevel) fprintf( Abc_FrameGlobalGetOut(), "Max level         : %5d\n", maxLevel );
+    if (nVerbose) fprintf( Abc_FrameGlobalGetOut(), "Initial target    : %5g (AND2 = %5g Level = %3g)\n", bestCost, this->countAnd2(1), this->countLevel() );
     for (iter = 0; nIters ? iter < nIters : 1; iter++) {
-        if (nVerbose) printf("\rIteration %7d(%zu) : %5g (AND2 = %5g Level = %3g) -> ", iter + 1, pBests.size(), ((&pRoot)->*Miaig_ObjectiveFunction)(0, nMappedMode, fDch), pRoot.countAnd2(), pRoot.countLevel());
+        if (nVerbose) fprintf( Abc_FrameGlobalGetOut(), "\rIteration %7d(%zu) : %5g (AND2 = %5g Level = %3g) -> ", iter + 1, pBests.size(), ((&pRoot)->*Miaig_ObjectiveFunction)(0, nMappedMode, fDch), pRoot.countAnd2(), pRoot.countLevel() );
         if (nTimeOut && nTimeOut < 1.0 * (Time_Clock() - clkStart) / CLOCKS_PER_SEC) break;
         if (bestCost == 0) break;
         pNew = (fTiming) ? pRoot.dupExtend(nFaninMax, nGrowth) : pRoot.dupMulti(nFaninMax, nGrowth);
@@ -1543,7 +1543,7 @@ Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth,
         if (maxLevel ? pNew.countLevel() > maxLevel : 0) {
         } else if (bestCost >= newTarget) {
             if ((bestCost > newTarget) || (fTiming && (pNew.countAnd2() < pBest.countAnd2()))) {
-                if (nVerbose) printf("%5g (AND2 = %5g Level = %3g) ", newTarget, pNew.countAnd2(), pNew.countLevel());
+                if (nVerbose) fprintf( Abc_FrameGlobalGetOut(), "%5g (AND2 = %5g Level = %3g) ", newTarget, pNew.countAnd2(), pNew.countLevel() );
                 if (nVerbose) Time_PrintEndl("Elapsed time", Time_Clock() - clkStart);
                 bestCost = newTarget;
                 pBests = {pNew.dup(0, 0, fMapped), pNew.dup(0, 0, fMapped)};
@@ -1574,7 +1574,7 @@ Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth,
         pRoot = randomRead(pRoots);
     }
     if (nVerbose) Time_PrintEndl("Total solving time", Time_Clock() - clkStart);
-    if (nVerbose) printf("Cumulatively reduced %s by %.2f %% (%g -> %g) after %d iterations.\n", fTiming ? "delay" : "area", 100.0*(initCost - bestCost) / (initCost), initCost, bestCost, iter);
+    if (nVerbose) fprintf( Abc_FrameGlobalGetOut(), "Cumulatively reduced %s by %.2f %% (%g -> %g) after %d iterations.\n", fTiming ? "delay" : "area", 100.0*(initCost - bestCost) / (initCost), initCost, bestCost, iter );
     return improved ? pBest : randomReadExcept(pBests, pInit);
 }
 

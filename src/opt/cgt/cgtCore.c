@@ -218,7 +218,7 @@ p->timePrepare += Abc_Clock() - clk;
     iStop = iStart + nOutputs;
     if ( p->pPars->fVeryVerbose )
     {
-        printf( "%5d : D =%4d. C =%5d. Var =%6d. Pr =%5d. Cex =%5d. F =%4d. Saved =%6d. ",
+        fprintf( Abc_FrameGlobalGetOut(), "%5d : D =%4d. C =%5d. Var =%6d. Pr =%5d. Cex =%5d. F =%4d. Saved =%6d. ",
             iStart, iStop-iStart, Aig_ManCoNum(p->pPart)-nOutputs, p->pSat->size, 
             p->nCallsUnsat-nCallsUnsat, 
             p->nCallsSat  -nCallsSat, 
@@ -259,7 +259,7 @@ Vec_Vec_t * Cgt_ClockGatingCandidates( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_
     p->pFrame = Cgt_ManDeriveAigForGating( p );
 p->timeAig += Abc_Clock() - clk;
     assert( Aig_ManCoNum(p->pFrame) == Saig_ManRegNum(p->pAig) );
-    pProgress = Bar_ProgressStart( stdout, Aig_ManCoNum(p->pFrame) );
+    pProgress = Bar_ProgressStart( Abc_FrameGlobalGetOut(), Aig_ManCoNum(p->pFrame) );
     for ( iStart = 0; iStart < Aig_ManCoNum(p->pFrame); )
     {
         Bar_ProgressUpdate( pProgress, iStart, NULL );
@@ -310,7 +310,7 @@ Aig_Man_t * Cgt_ClockGating( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pP
     {
 //        printf( "After  CG: " );
 //        Aig_ManPrintStats( pGated );
-        printf( "Nodes: Before CG = %6d. After CG = %6d. (%6.2f %%).  Total after CG = %6d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes: Before CG = %6d. After CG = %6d. (%6.2f %%).  Total after CG = %6d.\n", 
             Aig_ManNodeNum(pAig), nNodesUsed, 
             100.0*nNodesUsed/Aig_ManNodeNum(pAig), 
             Aig_ManNodeNum(pGated) );

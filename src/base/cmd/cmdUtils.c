@@ -789,7 +789,7 @@ void CmdPrintTable( st__table * tTable, int fAliases )
         if ( fAliases )
             CmdCommandAliasPrint( Abc_FrameGetGlobalFrame(), (Abc_Alias *)value );
         else
-            fprintf( stdout, "%-15s %-15s\n", ppNames[i], value );
+            fprintf( Abc_FrameGlobalGetOut(), "%-15s %-15s\n", ppNames[i], value );
     }
     ABC_FREE( ppNames );
 }
@@ -868,11 +868,11 @@ void Gia_ManKissatCall( Abc_Frame_t * pAbc, char * pFileName, char * pArgs, int 
         strcat( Command, pFileName );
     }
     if ( fVerbose )
-        printf( "Running command:  %s\n", Command );
+        fprintf( Abc_FrameGlobalGetOut(), "Running command:  %s\n", Command );
     if ( Util_SignalSystem( Command ) == -1 )
     {
-        fprintf( stdout, "The following command has returned a strange exit status:\n" );
-        fprintf( stdout, "\"%s\"\n", Command );
+        fprintf( Abc_FrameGlobalGetOut(), "The following command has returned a strange exit status:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\"%s\"\n", Command );
     }
 }
 

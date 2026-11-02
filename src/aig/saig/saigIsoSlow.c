@@ -344,10 +344,10 @@ void Iso_ReadPrimes( char * pFileName )
     // write out
     for ( i = 0; i < 64; i++ )
     {
-        printf( "    " );
+        fprintf( Abc_FrameGlobalGetOut(), "    " );
         for ( j = 0; j < 16; j++ )
-            printf( "%d,", Nums[i*16+j] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d,", Nums[i*16+j] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -373,10 +373,10 @@ void Iso_FindNumbers()
     // write out
     for ( i = 0; i < 128; i++ )
     {
-        printf( "    " );
+        fprintf( Abc_FrameGlobalGetOut(), "    " );
         for ( j = 0; j < 8; j++ )
-            printf( "0x%08x,", Nums[i*8+j] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "0x%08x,", Nums[i*8+j] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -890,9 +890,9 @@ void Iso_ManPrintClasseSizes( Iso_Man_t * p )
         Counter = 0;
         for ( pTemp = pIso; pTemp; pTemp = Iso_ManObj(p, pTemp->iClass) )
             Counter++;
-        printf( "%d ", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Counter );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -914,36 +914,36 @@ void Iso_ManPrintClasses( Iso_Man_t * p, int fVerbose, int fVeryVerbose )
 
     // count unique objects
     if ( fVerbose )
-        printf( "Total objects =%7d.  Entries =%7d.  Classes =%7d.  Singles =%7d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Total objects =%7d.  Entries =%7d.  Classes =%7d.  Singles =%7d.\n", 
             p->nObjs, p->nEntries, p->nClasses, p->nSingles );
 
     if ( !fVeryVerbose )
         return;
 
-    printf( "Non-trivial classes:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Non-trivial classes:\n" );
     Vec_PtrForEachEntry( Iso_Obj_t *, p->vClasses, pIso, i )
     {
         if ( fOnlyCis && pIso->Level > 0 )
             continue;
 
-        printf( "%5d : {", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%5d : {", i );
         for ( pTemp = pIso; pTemp; pTemp = Iso_ManObj(p, pTemp->iClass) )
         {
             if ( fOnlyCis )
-                printf( " %d", Aig_ObjCioId( Iso_AigObj(p, pTemp) ) );
+                fprintf( Abc_FrameGlobalGetOut(), " %d", Aig_ObjCioId( Iso_AigObj(p, pTemp) ) );
             else
             {
                 Aig_Obj_t * pObj = Iso_AigObj(p, pTemp);
                 if ( Aig_ObjIsNode(pObj) )
-                    printf( " %d{%s%d(%d),%s%d(%d)}", Iso_ObjId(p, pTemp), 
+                    fprintf( Abc_FrameGlobalGetOut(), " %d{%s%d(%d),%s%d(%d)}", Iso_ObjId(p, pTemp), 
                         Aig_ObjFaninC0(pObj)? "-": "+", Aig_ObjFaninId0(pObj), Aig_ObjLevel(Aig_ObjFanin0(pObj)), 
                         Aig_ObjFaninC1(pObj)? "-": "+", Aig_ObjFaninId1(pObj), Aig_ObjLevel(Aig_ObjFanin1(pObj)) );
                 else
-                    printf( " %d", Iso_ObjId(p, pTemp) );
+                    fprintf( Abc_FrameGlobalGetOut(), " %d", Iso_ObjId(p, pTemp) );
             }
-            printf( "(%d)", pTemp->Level );
+            fprintf( Abc_FrameGlobalGetOut(), "(%d)", pTemp->Level );
         }        
-        printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " }\n" );
     }
 }
 
@@ -1048,7 +1048,7 @@ void Iso_ManBreakTies( Iso_Man_t * p, int fVerbose )
     pIso = (Iso_Obj_t *)Vec_PtrEntry( p->vClasses, 0 );
     LevelStart = pIso->Level;
     if ( fVerbose )
-        printf( "Best level %d\n", LevelStart ); 
+        fprintf( Abc_FrameGlobalGetOut(), "Best level %d\n", LevelStart ); 
     Vec_PtrForEachEntry( Iso_Obj_t *, p->vClasses, pIso, i )
     {
         if ( (int)pIso->Level < LevelStart )

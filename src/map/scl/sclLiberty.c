@@ -160,7 +160,7 @@ int Scl_LibertyParseDump( Scl_Tree_t * p, char * pFileName )
         pFile = fopen( pFileName, "w" );
         if ( pFile == NULL )
         {
-            printf( "Scl_LibertyParseDump(): The output file is unavailable (absent or open).\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Scl_LibertyParseDump(): The output file is unavailable (absent or open).\n" );
             return 0;
         }
     }
@@ -545,7 +545,7 @@ long Scl_LibertyFileSize( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Scl_LibertyFileSize(): The input file is unavailable (absent or open).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Scl_LibertyFileSize(): The input file is unavailable (absent or open).\n" );
         return 0;
     }
     fseek( pFile, 0, SEEK_END );  
@@ -591,7 +591,7 @@ char * Scl_LibertyFileContents( char * pFileName, long * nContents )
         long RetValue = 0;
         pContents = Io_LibLoadFileGz(  pFileName, nContents );
         if(pContents == NULL) {
-            printf( "Scl_LibertyFileContents(): The input file is unavailable (absent or open).\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Scl_LibertyFileContents(): The input file is unavailable (absent or open).\n" );
             return NULL;
         }
         else {
@@ -617,7 +617,7 @@ void Scl_LibertyStringDump( char * pFileName, Vec_Str_t * vStr )
     long RetValue = 0;
     if ( pFile == NULL )
     {
-        printf( "Scl_LibertyStringDump(): The output file is unavailable.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Scl_LibertyStringDump(): The output file is unavailable.\n" );
         return;
     }
     RetValue = fwrite( Vec_StrArray(vStr), 1, Vec_StrSize(vStr), pFile );
@@ -663,7 +663,7 @@ void Scl_LibertyStop( Scl_Tree_t * p, int fVerbose )
 {
     if ( fVerbose )
     {
-        printf( "Memory = %7.2f MB. ", 1.0 * (p->nContents + p->nItermAlloc * sizeof(Scl_Item_t))/(1<<20) );
+        fprintf( Abc_FrameGlobalGetOut(), "Memory = %7.2f MB. ", 1.0 * (p->nContents + p->nItermAlloc * sizeof(Scl_Item_t))/(1<<20) );
         ABC_PRT( "Time", Abc_Clock() - p->clkStart );
     }
     Vec_StrFree( p->vBuffer );
@@ -683,13 +683,13 @@ Scl_Tree_t * Scl_LibertyParse( char * pFileName, int fVerbose )
     Scl_LibertyWipeOutComments( p->pContents, p->pContents+p->nContents );
     if ( (!Scl_LibertyBuildItem( p, &pPos, p->pContents + p->nContents )) == 0 )
     {
-        if ( p->pError ) printf( "%s", p->pError );
-        printf( "Parsing failed.  " );
+        if ( p->pError ) fprintf( Abc_FrameGlobalGetOut(), "%s", p->pError );
+        fprintf( Abc_FrameGlobalGetOut(), "Parsing failed.  " );
         Abc_PrintTime( 1, "Parsing time", Abc_Clock() - p->clkStart );
     }
     else if ( fVerbose )
     {
-        printf( "Parsing finished successfully.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Parsing finished successfully.  " );
         Abc_PrintTime( 1, "Parsing time", Abc_Clock() - p->clkStart );
     }
     return p;
@@ -856,22 +856,22 @@ Vec_Str_t * Scl_LibertyReadGenlibStr( Scl_Tree_t * p, int fVerbose, SC_DontUse d
     {
         if ( Scl_LibertyReadCellIsFlop(p, pCell) )
         {
-            if ( fVerbose )  printf( "Scl_LibertyReadGenlib() skipped sequential cell \"%s\".\n", Scl_LibertyReadString(p, pCell->Head) );
+            if ( fVerbose )  fprintf( Abc_FrameGlobalGetOut(), "Scl_LibertyReadGenlib() skipped sequential cell \"%s\".\n", Scl_LibertyReadString(p, pCell->Head) );
             continue;
         }
         if ( Scl_LibertyReadCellIsDontUse(p, pCell, dont_use) )
         {
-            if ( fVerbose )  printf( "Scl_LibertyReadGenlib() skipped cell \"%s\" due to dont_use attribute.\n", Scl_LibertyReadString(p, pCell->Head) );
+            if ( fVerbose )  fprintf( Abc_FrameGlobalGetOut(), "Scl_LibertyReadGenlib() skipped cell \"%s\" due to dont_use attribute.\n", Scl_LibertyReadString(p, pCell->Head) );
             continue;
         }
         if ( Scl_LibertyReadCellIsThreeState(p, pCell) )
         {
-            if ( fVerbose )  printf( "Scl_LibertyReadGenlib() skipped three-state cell \"%s\".\n", Scl_LibertyReadString(p, pCell->Head) );
+            if ( fVerbose )  fprintf( Abc_FrameGlobalGetOut(), "Scl_LibertyReadGenlib() skipped three-state cell \"%s\".\n", Scl_LibertyReadString(p, pCell->Head) );
             continue;
         }
         if ( Scl_LibertyReadCellOutputNum(p, pCell) == 0 )
         {
-            if ( fVerbose )  printf( "Scl_LibertyReadGenlib() skipped cell \"%s\" without logic function.\n", Scl_LibertyReadString(p, pCell->Head) );
+            if ( fVerbose )  fprintf( Abc_FrameGlobalGetOut(), "Scl_LibertyReadGenlib() skipped cell \"%s\" without logic function.\n", Scl_LibertyReadString(p, pCell->Head) );
             continue;
         }
         // iterate through output pins
@@ -881,7 +881,7 @@ Vec_Str_t * Scl_LibertyReadGenlibStr( Scl_Tree_t * p, int fVerbose, SC_DontUse d
                 continue;
             if ( !strcmp(pFormula, "0") || !strcmp(pFormula, "1") )
             {
-                if ( fVerbose ) printf( "Scl_LibertyReadGenlib() skipped cell \"%s\" with constant formula \"%s\".\n", Scl_LibertyReadString(p, pCell->Head), pFormula );
+                if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Scl_LibertyReadGenlib() skipped cell \"%s\" with constant formula \"%s\".\n", Scl_LibertyReadString(p, pCell->Head), pFormula );
                 break;
             }
             Vec_StrPrintStr( vStr, "GATE " );
@@ -923,11 +923,11 @@ Vec_Str_t * Scl_LibertyReadGenlibStr( Scl_Tree_t * p, int fVerbose, SC_DontUse d
 ***********************************************************************/
 //#define SCL_DEBUG
 #ifdef SCL_DEBUG
-static inline void Vec_StrPutI_( Vec_Str_t * vOut, int Val )     {  printf( "%d ",  Val );        Vec_StrPutI( vOut, Val );  }
-static inline void Vec_StrPutW_( Vec_Str_t * vOut, word Val )    {  printf( "%lu ", (long)Val );  Vec_StrPutW( vOut, Val );  }
-static inline void Vec_StrPutF_( Vec_Str_t * vOut, float Val )   {  printf( "%f ",  Val );        Vec_StrPutF( vOut, Val );  }
-static inline void Vec_StrPutS_( Vec_Str_t * vOut, char * Val )  {  printf( "%s ",  Val );        Vec_StrPutS( vOut, Val );  }
-static inline void Vec_StrPut_( Vec_Str_t * vOut )               {  printf( "\n" ); }
+static inline void Vec_StrPutI_( Vec_Str_t * vOut, int Val )     {  fprintf( Abc_FrameGlobalGetOut(), "%d ",  Val );        Vec_StrPutI( vOut, Val );  }
+static inline void Vec_StrPutW_( Vec_Str_t * vOut, word Val )    {  fprintf( Abc_FrameGlobalGetOut(), "%lu ", (long)Val );  Vec_StrPutW( vOut, Val );  }
+static inline void Vec_StrPutF_( Vec_Str_t * vOut, float Val )   {  fprintf( Abc_FrameGlobalGetOut(), "%f ",  Val );        Vec_StrPutF( vOut, Val );  }
+static inline void Vec_StrPutS_( Vec_Str_t * vOut, char * Val )  {  fprintf( Abc_FrameGlobalGetOut(), "%s ",  Val );        Vec_StrPutS( vOut, Val );  }
+static inline void Vec_StrPut_( Vec_Str_t * vOut )               {  fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
 #else
 static inline void Vec_StrPutI_( Vec_Str_t * vOut, int Val )     { Vec_StrPutI( vOut, Val );  }
 static inline void Vec_StrPutW_( Vec_Str_t * vOut, word Val )    { Vec_StrPutW( vOut, Val );  }
@@ -985,7 +985,7 @@ int Scl_LibertyReadTimeUnit( Scl_Tree_t * p )
             return 12;
         break;
     }
-    printf( "Liberty parser cannot read \"time_unit\".  Assuming   time_unit : \"1ns\".\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Liberty parser cannot read \"time_unit\".  Assuming   time_unit : \"1ns\".\n" );
     return 9;
 }
 float Scl_LibertyReadNomVoltage( Scl_Tree_t * p )
@@ -1024,7 +1024,7 @@ void Scl_LibertyReadLoadUnit( Scl_Tree_t * p, Vec_Str_t * vOut )
         else break;
         return;
     }
-    printf( "Liberty parser cannot read \"capacitive_load_unit\". Assuming   capacitive_load_unit(1, pf).\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Liberty parser cannot read \"capacitive_load_unit\". Assuming   capacitive_load_unit(1, pf).\n" );
     Vec_StrPutF_( vOut, 1.0 );
     Vec_StrPutI_( vOut, 12 );
 }
@@ -1242,7 +1242,7 @@ int Scl_LibertyScanTable( Scl_Tree_t * p, Vec_Ptr_t * vOut, Scl_Item_t * pTiming
                 assert(vValues == NULL), vValues = Scl_LibertyReadFloatVec( Scl_LibertyReadString(p, pItem->Head) );
         }
         if ( vIndex1 == NULL || vIndex2 == NULL || vValues == NULL )
-            { printf( "Incomplete table specification\n" ); return 0; }
+            { fprintf( Abc_FrameGlobalGetOut(), "Incomplete table specification\n" ); return 0; }
         // dump the table
         vInd1 = vIndex1;
         vInd2 = vIndex2;
@@ -1266,7 +1266,7 @@ int Scl_LibertyScanTable( Scl_Tree_t * p, Vec_Ptr_t * vOut, Scl_Item_t * pTiming
                 break;
             }
             else
-            { printf( "Cannot read \"scalar\" template\n" ); return 0; }
+            { fprintf( Abc_FrameGlobalGetOut(), "Cannot read \"scalar\" template\n" ); return 0; }
     }
     else
     {
@@ -1279,7 +1279,7 @@ int Scl_LibertyScanTable( Scl_Tree_t * p, Vec_Ptr_t * vOut, Scl_Item_t * pTiming
                 break;
             }
         if ( iPlace == -1 )
-            { printf( "Template cannot be found in the template library\n" ); return 0; }
+            { fprintf( Abc_FrameGlobalGetOut(), "Template cannot be found in the template library\n" ); return 0; }
         // read the numbers
         Scl_ItemForEachChild( p, pTable, pItem )
         {
@@ -1455,7 +1455,7 @@ int Scl_LibertyReadTable( Scl_Tree_t * p, Vec_Str_t * vOut, Scl_Item_t * pTiming
                 assert(vValues == NULL), vValues = Scl_LibertyReadFloatVec( Scl_LibertyReadString(p, pItem->Head) );
         }
         if ( vIndex1 == NULL || vIndex2 == NULL || vValues == NULL )
-            { printf( "Incomplete table specification\n" ); return 0; }
+            { fprintf( Abc_FrameGlobalGetOut(), "Incomplete table specification\n" ); return 0; }
         // dump the table
         vInd1 = vIndex1;
         vInd2 = vIndex2;
@@ -1490,7 +1490,7 @@ int Scl_LibertyReadTable( Scl_Tree_t * p, Vec_Str_t * vOut, Scl_Item_t * pTiming
                 break;
             }
         if ( iPlace == -1 )
-            { printf( "Template cannot be found in the template library\n" ); return 0; }
+            { fprintf( Abc_FrameGlobalGetOut(), "Template cannot be found in the template library\n" ); return 0; }
         // read the numbers
         Scl_ItemForEachChild( p, pTable, pItem )
         {
@@ -1578,17 +1578,17 @@ void Scl_LibertyPrintTemplates( Vec_Ptr_t * vRes )
 {
     Vec_Flt_t * vArray; int i;
     assert( Vec_PtrSize(vRes) % 4 == 0 );
-    printf( "There are %d slew/load templates\n", Vec_PtrSize(vRes) % 4 );
+    fprintf( Abc_FrameGlobalGetOut(), "There are %d slew/load templates\n", Vec_PtrSize(vRes) % 4 );
     Vec_PtrForEachEntry( Vec_Flt_t *, vRes, vArray, i )
     {
         if ( i % 4 == 0 )
-            printf( "%s\n", (char *)vArray );
+            fprintf( Abc_FrameGlobalGetOut(), "%s\n", (char *)vArray );
         else if ( i % 4 == 1 )
-            printf( "%d\n", (int)(vArray != NULL) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d\n", (int)(vArray != NULL) );
         else if ( i % 4 == 2 || i % 4 == 3 )
             Vec_FltPrint( vArray );
         if ( i % 4 == 3 )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 Vec_Ptr_t * Scl_LibertyReadTemplates( Scl_Tree_t * p )
@@ -1689,37 +1689,37 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
     {
         if ( Scl_LibertyReadCellIsFlop(p, pCell) )
         {
-            if ( fVeryVerbose )  printf( "Scl_LibertyReadGenlib() skipped sequential cell \"%s\".\n", Scl_LibertyReadString(p, pCell->Head) );
+            if ( fVeryVerbose )  fprintf( Abc_FrameGlobalGetOut(), "Scl_LibertyReadGenlib() skipped sequential cell \"%s\".\n", Scl_LibertyReadString(p, pCell->Head) );
             nSkipped[0]++;
             continue;
         }
         if ( Scl_LibertyReadCellIsDontUse(p, pCell, dont_use) )
         {
-            if ( fVeryVerbose )  printf( "Scl_LibertyReadGenlib() skipped cell \"%s\" due to dont_use attribute.\n", Scl_LibertyReadString(p, pCell->Head) );
+            if ( fVeryVerbose )  fprintf( Abc_FrameGlobalGetOut(), "Scl_LibertyReadGenlib() skipped cell \"%s\" due to dont_use attribute.\n", Scl_LibertyReadString(p, pCell->Head) );
             nSkipped[3]++;
             continue;
         }
         if ( Scl_LibertyReadCellIsThreeState(p, pCell) )
         {
-            if ( fVeryVerbose )  printf( "Scl_LibertyReadGenlib() skipped three-state cell \"%s\".\n", Scl_LibertyReadString(p, pCell->Head) );
+            if ( fVeryVerbose )  fprintf( Abc_FrameGlobalGetOut(), "Scl_LibertyReadGenlib() skipped three-state cell \"%s\".\n", Scl_LibertyReadString(p, pCell->Head) );
             nSkipped[1]++;
             continue;
         }
         if ( (Counter = Scl_LibertyReadCellOutputNum(p, pCell)) == 0 )
         {
-            if ( fVeryVerbose )  printf( "Scl_LibertyReadGenlib() skipped cell \"%s\" without logic function.\n", Scl_LibertyReadString(p, pCell->Head) );
+            if ( fVeryVerbose )  fprintf( Abc_FrameGlobalGetOut(), "Scl_LibertyReadGenlib() skipped cell \"%s\" without logic function.\n", Scl_LibertyReadString(p, pCell->Head) );
             nSkipped[2]++;
             continue;
         }
         if ( Counter > 2 )
         {
-            if ( fVeryVerbose )  printf( "Scl_LibertyReadGenlib() skipped cell \"%s\" with more than two outputs.\n", Scl_LibertyReadString(p, pCell->Head) );
+            if ( fVeryVerbose )  fprintf( Abc_FrameGlobalGetOut(), "Scl_LibertyReadGenlib() skipped cell \"%s\" with more than two outputs.\n", Scl_LibertyReadString(p, pCell->Head) );
             nSkipped[4]++;
             continue;
         }
         if ( fSkipMultiOuts && Counter > 1 )
         {
-            if ( fVeryVerbose )  printf( "Scl_LibertyReadGenlib() skipped cell \"%s\" with two outputs.\n", Scl_LibertyReadString(p, pCell->Head) );
+            if ( fVeryVerbose )  fprintf( Abc_FrameGlobalGetOut(), "Scl_LibertyReadGenlib() skipped cell \"%s\" with two outputs.\n", Scl_LibertyReadString(p, pCell->Head) );
             nSkipped[5]++;
             continue;
         }
@@ -1822,16 +1822,16 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
                     // some cells only have 'rise' or 'fall' but not both - here we work around this
                     if ( !Scl_LibertyReadTable( p, vOut, pTiming, "cell_rise",           vTemples ) )
                         if ( !Scl_LibertyReadTable( p, vOut, pTiming, "cell_fall",       vTemples ) )
-                                { printf( "Table cannot be found\n" ); return NULL; }                              
+                                { fprintf( Abc_FrameGlobalGetOut(), "Table cannot be found\n" ); return NULL; }                              
                     if ( !Scl_LibertyReadTable( p, vOut, pTiming, "cell_fall",           vTemples ) )
                         if ( !Scl_LibertyReadTable( p, vOut, pTiming, "cell_rise",       vTemples ) )
-                                { printf( "Table cannot be found\n" ); return NULL; }                              
+                                { fprintf( Abc_FrameGlobalGetOut(), "Table cannot be found\n" ); return NULL; }                              
                     if ( !Scl_LibertyReadTable( p, vOut, pTiming, "rise_transition",     vTemples ) )
                         if ( !Scl_LibertyReadTable( p, vOut, pTiming, "fall_transition", vTemples ) )
-                                { printf( "Table cannot be found\n" ); return NULL; }                              
+                                { fprintf( Abc_FrameGlobalGetOut(), "Table cannot be found\n" ); return NULL; }                              
                     if ( !Scl_LibertyReadTable( p, vOut, pTiming, "fall_transition",     vTemples ) )
                         if ( !Scl_LibertyReadTable( p, vOut, pTiming, "rise_transition", vTemples ) )
-                                { printf( "Table cannot be found\n" ); return NULL; }  
+                                { fprintf( Abc_FrameGlobalGetOut(), "Table cannot be found\n" ); return NULL; }  
                     vPowers = Scl_LibertyReadPinPowerAll( p, pPin, pName );
                     Scl_LibertyWritePowerTable( p, vOut, vPowers, "rise_power", "power", vTemples );
                     Scl_LibertyWritePowerTable( p, vOut, vPowers, "fall_power", "power", vTemples );
@@ -1864,16 +1864,16 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
                     // some cells only have 'rise' or 'fall' but not both - here we work around this
                     if ( !Scl_LibertyScanTable( p, vTables[0], pTiming, "cell_rise",           vTemples ) )
                         if ( !Scl_LibertyScanTable( p, vTables[0], pTiming, "cell_fall",       vTemples ) )
-                                { printf( "Table cannot be found\n" ); return NULL; }                              
+                                { fprintf( Abc_FrameGlobalGetOut(), "Table cannot be found\n" ); return NULL; }                              
                     if ( !Scl_LibertyScanTable( p, vTables[1], pTiming, "cell_fall",           vTemples ) )
                         if ( !Scl_LibertyScanTable( p, vTables[1], pTiming, "cell_rise",       vTemples ) )
-                                { printf( "Table cannot be found\n" ); return NULL; }                              
+                                { fprintf( Abc_FrameGlobalGetOut(), "Table cannot be found\n" ); return NULL; }                              
                     if ( !Scl_LibertyScanTable( p, vTables[2], pTiming, "rise_transition",     vTemples ) )
                         if ( !Scl_LibertyScanTable( p, vTables[2], pTiming, "fall_transition", vTemples ) )
-                                { printf( "Table cannot be found\n" ); return NULL; }                              
+                                { fprintf( Abc_FrameGlobalGetOut(), "Table cannot be found\n" ); return NULL; }                              
                     if ( !Scl_LibertyScanTable( p, vTables[3], pTiming, "fall_transition",     vTemples ) )
                         if ( !Scl_LibertyScanTable( p, vTables[3], pTiming, "rise_transition", vTemples ) )
-                                { printf( "Table cannot be found\n" ); return NULL; }  
+                                { fprintf( Abc_FrameGlobalGetOut(), "Table cannot be found\n" ); return NULL; }  
                 }
                 Vec_PtrFree( vTimings );
                 // compute worse case of the tables
@@ -1881,7 +1881,7 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
                 {
                     Vec_Flt_t * vInd0, * vInd1, * vValues;
                     if ( !Scl_LibertyComputeWorstCase( vTables[k], &vInd0, &vInd1, &vValues ) )
-                        { printf( "Table indexes have different values\n" ); return NULL; }  
+                        { fprintf( Abc_FrameGlobalGetOut(), "Table indexes have different values\n" ); return NULL; }  
                     Vec_VecFree( (Vec_Vec_t *)vTables[k] );
                     Scl_LibertyDumpTables( vOut, vInd0, vInd1, vValues );
                     Vec_FltFree( vInd0 );
@@ -1915,9 +1915,9 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
     }
     if ( fVerbose )
     {
-        printf( "Library \"%s\" from \"%s\" has %d cells ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Library \"%s\" from \"%s\" has %d cells ", 
             Scl_LibertyReadString(p, Scl_LibertyRoot(p)->Head), p->pFileName, nCells );
-        printf( "(%d skipped: %d seq; %d tri-state; %d no func; %d dont_use; %d with 2 outputs; %d with 3+ outputs).  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "(%d skipped: %d seq; %d tri-state; %d no func; %d dont_use; %d with 2 outputs; %d with 3+ outputs).  ", 
             nSkipped[0]+nSkipped[1]+nSkipped[2]+nSkipped[3]+nSkipped[4]+nSkipped[5], 
             nSkipped[0],nSkipped[1],nSkipped[2],nSkipped[3],nSkipped[5],nSkipped[4] );
         Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );

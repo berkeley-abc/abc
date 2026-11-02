@@ -2050,24 +2050,24 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         If_DsdMan_t * p = (If_DsdMan_t *)Abc_FrameReadManDsd();
         if ( pPars->pLutStruct && pPars->pLutStruct[2] != 0 )
         {
-            printf( "DSD only works for LUT structures XY.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "DSD only works for LUT structures XY.\n" );
             return 0;
         }
         if ( p && pPars->nLutSize > If_DsdManVarNum(p) )
         {
-            printf( "DSD manager has incompatible number of variables.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "DSD manager has incompatible number of variables.\n" );
             return 0;
         }
         if ( p && LutSize != If_DsdManLutSize(p) && !pPars->fDsdBalance )
         {
-            printf( "DSD manager has different LUT size.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "DSD manager has different LUT size.\n" );
             return 0;
         }
         if ( p == NULL )
         {
             if ( LutSize > DAU_MAX_VAR || pPars->nLutSize > DAU_MAX_VAR )
             {
-                printf( "Size of required DSD manager (%d) exceeds the precompiled limit (%d) (change parameter DAU_MAX_VAR).\n", LutSize, DAU_MAX_VAR );
+                fprintf( Abc_FrameGlobalGetOut(), "Size of required DSD manager (%d) exceeds the precompiled limit (%d) (change parameter DAU_MAX_VAR).\n", LutSize, DAU_MAX_VAR );
                 return 0;
             }
             Abc_FrameSetManDsd( If_DsdManAlloc(pPars->nLutSize, LutSize) );
@@ -2078,12 +2078,12 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( !Abc_NtkRecIsRunning3() )
         {
-            printf( "LMS manager is not running (use \"rec_start3\").\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "LMS manager is not running (use \"rec_start3\").\n" );
             return 0;
         }
         if ( Abc_NtkRecInputNum3() != pPars->nLutSize )
         {
-            printf( "The number of library inputs (%d) is different from the K parameters (%d).\n", Abc_NtkRecInputNum3(), pPars->nLutSize );
+            fprintf( Abc_FrameGlobalGetOut(), "The number of library inputs (%d) is different from the K parameters (%d).\n", Abc_NtkRecInputNum3(), pPars->nLutSize );
             return 0;
         }
     }
@@ -2092,12 +2092,12 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( !Abc_ExactIsRunning() )
         {
-            printf( "BMS manager is not running (use \"bms_start\").\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "BMS manager is not running (use \"bms_start\").\n" );
             return 0;
         }
         if ( Abc_ExactInputNum() < pPars->nLutSize )
         {
-            printf( "The number of library inputs (%d) is smaller than the K parameters (%d).\n", Abc_ExactInputNum(), pPars->nLutSize );
+            fprintf( Abc_FrameGlobalGetOut(), "The number of library inputs (%d) is smaller than the K parameters (%d).\n", Abc_ExactInputNum(), pPars->nLutSize );
             return 0;
         }
     }
@@ -2312,7 +2312,7 @@ int Abc_CommandIfif( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( pPars->DelayWire >= pPars->pLutDelays[c] )
         {
             fError = 1;
-            printf(" Wire delay (%.2f) exceeds pin+wire delay (%.2f) for pin %d in the LUT library.\n", pPars->DelayWire, pPars->pLutDelays[c], c );
+            fprintf(Abc_FrameGlobalGetOut(), "Wire delay (%.2f) exceeds pin+wire delay (%.2f) for pin %d in the LUT library.\n", pPars->DelayWire, pPars->pLutDelays[c], c );
         }
     }
     if ( fError )
@@ -3382,24 +3382,24 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         If_DsdMan_t * p = (If_DsdMan_t *)Abc_FrameReadManDsd();
         if ( pPars->pLutStruct && pPars->pLutStruct[2] != 0 )
         {
-            printf( "DSD only works for LUT structures XY.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "DSD only works for LUT structures XY.\n" );
             return 0;
         }
         if ( p && pPars->nLutSize > If_DsdManVarNum(p) )
         {
-            printf( "DSD manager has incompatible number of variables.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "DSD manager has incompatible number of variables.\n" );
             return 0;
         }
         if ( p && LutSize != If_DsdManLutSize(p) && !pPars->fDsdBalance )
         {
-            printf( "DSD manager has different LUT size.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "DSD manager has different LUT size.\n" );
             return 0;
         }
         if ( p == NULL )
         {
             if ( LutSize > DAU_MAX_VAR || pPars->nLutSize > DAU_MAX_VAR )
             {
-                printf( "Size of required DSD manager (%d) exceeds the precompiled limit (%d) (change parameter DAU_MAX_VAR).\n", LutSize, DAU_MAX_VAR );
+                fprintf( Abc_FrameGlobalGetOut(), "Size of required DSD manager (%d) exceeds the precompiled limit (%d) (change parameter DAU_MAX_VAR).\n", LutSize, DAU_MAX_VAR );
                 return 0;
             }
             Abc_FrameSetManDsd( If_DsdManAlloc(pPars->nLutSize, LutSize) );
@@ -3420,7 +3420,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         if ( Abc_NtkRecInputNum3() != pPars->nLutSize )
         {
-            printf( "The number of library inputs (%d) different from the K parameters (%d).\n", Abc_NtkRecInputNum3(), pPars->nLutSize );
+            fprintf( Abc_FrameGlobalGetOut(), "The number of library inputs (%d) different from the K parameters (%d).\n", Abc_NtkRecInputNum3(), pPars->nLutSize );
             return 0;
         }
     }
@@ -4644,7 +4644,7 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "This feature works only for LUT size equal to 4, 5, and 6.\n" );
             return 1;
         }
-        printf( "Using cut grouping for %d-LUTs. Considering cuts up to %d.\n", pPars->nLutSize, 2*pPars->nLutSize + 1 );
+        fprintf( Abc_FrameGlobalGetOut(), "Using cut grouping for %d-LUTs. Considering cuts up to %d.\n", pPars->nLutSize, 2*pPars->nLutSize + 1 );
         pPars->nLutSize = 2*pPars->nLutSize + 1;
     }
     pNew = Lf_ManPerformMapping( pAbc->pGia, pPars );

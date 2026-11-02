@@ -224,10 +224,10 @@ static inline void xSAT_SolverPrintClauses( xSAT_Solver_t * s )
 
 static inline void xSAT_SolverPrintState( xSAT_Solver_t * s )
 {
-    printf( "starts        : %10d\n", s->Stats.nStarts );
-    printf( "conflicts     : %10ld\n", s->Stats.nConflicts );
-    printf( "decisions     : %10ld\n", s->Stats.nDecisions );
-    printf( "propagations  : %10ld\n", s->Stats.nPropagations );
+    fprintf( Abc_FrameGlobalGetOut(),  "starts        : %10d\n", s->Stats.nStarts );
+    fprintf( Abc_FrameGlobalGetOut(),  "conflicts     : %10ld\n", s->Stats.nConflicts );
+    fprintf( Abc_FrameGlobalGetOut(),  "decisions     : %10ld\n", s->Stats.nDecisions );
+    fprintf( Abc_FrameGlobalGetOut(),  "propagations  : %10ld\n", s->Stats.nPropagations );
 }
 
 

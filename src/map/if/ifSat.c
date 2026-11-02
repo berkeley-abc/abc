@@ -243,7 +243,7 @@ int If_ManSatCheckXY( void * pSat, int nLutSize, word * pTruth, int nVars, unsig
             Dau_DsdPrintFromTruth( &Res,    nVars );
             Dau_DsdPrintFromTruth( pTBound, nSSet+nBSet );
             Dau_DsdPrintFromTruth( pTFree,  nSSet+nFSet+1 );
-            printf( "Verification failed!\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Verification failed!\n" );
         }
     }
     return 1;

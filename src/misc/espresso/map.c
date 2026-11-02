@@ -87,7 +87,7 @@ pcover T;
 
     for(outnum = 0; outnum < numout; outnum++) {
     output_offset = outnum * largest_input_ind;
-    printf("\n\nOutput space # %d\n", outnum);
+    fprintf( Abc_FrameGlobalGetOut(), "\n\nOutput space # %d\n", outnum );
     for(l = 0; l <= MAX(cube.num_binary_vars - 8, 0); l++) {
         other_input_offset = l * 256;
         for(k = 0; k < 16; k++) {
@@ -102,7 +102,7 @@ pcover T;
             if ((j+1)%4 == 0)
             putchar(' ');
             if ((j+1)%8 == 0)
-            printf("  ");
+            fprintf( Abc_FrameGlobalGetOut(), "  " );
         }
         if (some_output)
             putchar('\n');

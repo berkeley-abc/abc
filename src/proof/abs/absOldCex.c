@@ -575,7 +575,7 @@ void Saig_ManCbaShrink( Saig_ManCba_t * p )
     Vec_VecForEachLevelInt( p->vReg2Frame, vLevel, k )
     {
         vLevel2 = Vec_VecEntryInt( p->vReg2Value, k );
-        printf( "Level = %4d   StateBits = %4d (%6.2f %%)  CareBits = %4d (%6.2f %%)\n", k, 
+        fprintf( Abc_FrameGlobalGetOut(), "Level = %4d   StateBits = %4d (%6.2f %%)  CareBits = %4d (%6.2f %%)\n", k, 
             Vec_IntSize(vLevel)/2, 100.0 * (Vec_IntSize(vLevel)/2) / Aig_ManRegNum(p->pAig),
             Vec_IntSize(vLevel2),  100.0 * Vec_IntSize(vLevel2) / Aig_ManRegNum(p->pAig) );
     }
@@ -625,11 +625,11 @@ static inline void Saig_ObjCexMinSim( Aig_Obj_t * pObj )
 static inline void Saig_ObjCexMinPrint( Aig_Obj_t * pObj )
 {
     if ( Saig_ObjCexMinGet0(pObj) )
-        printf( "0" );
+        fprintf( Abc_FrameGlobalGetOut(), "0" );
     else if ( Saig_ObjCexMinGet1(pObj) )
-        printf( "1" );
+        fprintf( Abc_FrameGlobalGetOut(), "1" );
     else if ( Saig_ObjCexMinGetX(pObj) )
-        printf( "X" );
+        fprintf( Abc_FrameGlobalGetOut(), "X" );
 }
 
 /**Function*************************************************************
@@ -739,7 +739,7 @@ Abc_Cex_t * Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int 
     if ( fVerbose )
     {
         Vec_Int_t * vRes = Saig_ManCbaReason2Inputs( p, vReasons );
-        printf( "Frame PIs = %4d (essential = %4d)   AIG PIs = %4d (essential = %4d)   ",
+        fprintf( Abc_FrameGlobalGetOut(), "Frame PIs = %4d (essential = %4d)   AIG PIs = %4d (essential = %4d)   ",
             Aig_ManCiNum(p->pFrames), Vec_IntSize(vReasons), 
             Saig_ManPiNum(p->pAig) - p->nInputs, Vec_IntSize(vRes) );
         Vec_IntFree( vRes );
@@ -752,12 +752,12 @@ ABC_PRT( "Time", Abc_Clock() - clk );
 
 if ( fVerbose )
 {
-printf( "Real " );
+fprintf( Abc_FrameGlobalGetOut(), "Real " );
 Abc_CexPrintStats( pCex );
 }
 if ( fVerbose )
 {
-printf( "Care " );
+fprintf( Abc_FrameGlobalGetOut(), "Care " );
 Abc_CexPrintStats( pCare );
 }
 /*
@@ -789,7 +789,7 @@ Vec_Int_t * Saig_ManCbaFilterInputs( Aig_Man_t * pAig, int iFirstFlopPi, Abc_Cex
     abctime clk;
     if ( Saig_ManPiNum(pAig) != pCex->nPis )
     {
-        printf( "Saig_ManCbaFilterInputs(): The PI count of AIG (%d) does not match that of cex (%d).\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Saig_ManCbaFilterInputs(): The PI count of AIG (%d) does not match that of cex (%d).\n", 
             Aig_ManCiNum(pAig), pCex->nPis );
         return NULL;
     }
@@ -801,7 +801,7 @@ clk = Abc_Clock();
     vRes = Saig_ManCbaReason2Inputs( p, vReasons );
     if ( fVerbose )
     {
-        printf( "Frame PIs = %4d (essential = %4d)   AIG PIs = %4d (essential = %4d)   ",
+        fprintf( Abc_FrameGlobalGetOut(), "Frame PIs = %4d (essential = %4d)   AIG PIs = %4d (essential = %4d)   ",
             Aig_ManCiNum(p->pFrames), Vec_IntSize(vReasons), 
             Saig_ManPiNum(p->pAig) - p->nInputs, Vec_IntSize(vRes) );
 ABC_PRT( "Time", Abc_Clock() - clk );
@@ -837,13 +837,13 @@ Vec_Int_t * Saig_ManCbaPerform( Aig_Man_t * pAbs, int nInputs, Saig_ParBmc_t * p
     RetValue = Saig_ManBmcScalable( pAbs, pPars );
     if ( RetValue == -1 ) // time out - nothing to add
     {
-        printf( "Resource limit is reached during BMC.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Resource limit is reached during BMC.\n" );
         assert( pAbs->pSeqModel == NULL );
         return Vec_IntAlloc( 0 );
     }
     if ( pAbs->pSeqModel == NULL )
     {
-        printf( "BMC did not detect a CEX with the given depth.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "BMC did not detect a CEX with the given depth.\n" );
         return Vec_IntAlloc( 0 );
     }
     if ( pPars->fVerbose )
@@ -857,7 +857,7 @@ Vec_Int_t * Saig_ManCbaPerform( Aig_Man_t * pAbs, int nInputs, Saig_ParBmc_t * p
     }
     if ( pPars->fVerbose )
     {
-        printf( "Adding %d registers to the abstraction (total = %d).  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Adding %d registers to the abstraction (total = %d).  ", 
             Vec_IntSize(vAbsFfsToAdd), Aig_ManRegNum(pAbs)+Vec_IntSize(vAbsFfsToAdd) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }

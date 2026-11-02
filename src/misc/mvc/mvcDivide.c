@@ -415,17 +415,17 @@ void Mvc_CoverVerifyDivision( Mvc_Cover_t * pCover, Mvc_Cover_t * pDiv, Mvc_Cove
     pDiff = Mvc_CoverAlgebraicSubtract( pCover, pProd );
 
     if ( Mvc_CoverAlgebraicEqual( pDiff, pRem ) )
-        printf( "Verification OKAY!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification OKAY!\n" );
     else
     {
-        printf( "Verification FAILED!\n" );
-        printf( "pCover:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification FAILED!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "pCover:\n" );
         Mvc_CoverPrint( pCover );
-        printf( "pDiv:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "pDiv:\n" );
         Mvc_CoverPrint( pDiv );
-        printf( "pRem:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "pRem:\n" );
         Mvc_CoverPrint( pRem );
-        printf( "pQuo:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "pQuo:\n" );
         Mvc_CoverPrint( pQuo );
     }
 

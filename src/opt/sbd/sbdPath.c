@@ -161,7 +161,7 @@ void Sbc_ManDelayTrace( Gia_Man_t * p )
     int nLuts = 0, nNodes = 0, nEdges = 0, nEdgesAll = 0;
     if ( !Gia_ManHasMapping(p) )
     {
-        printf( "No mapping is available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "No mapping is available.\n" );
         return;
     }
     assert( Gia_ManHasMapping(p) );
@@ -193,7 +193,7 @@ void Sbc_ManDelayTrace( Gia_Man_t * p )
 
     ABC_FREE( pLevels );
     Vec_BitFree( vPath );
-    printf( "AIG = %d. LUT = %d. Lev = %d.   Path nodes = %d.  Path edges = %d. (%d.)\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "AIG = %d. LUT = %d. Lev = %d.   Path nodes = %d.  Path edges = %d. (%d.)\n", 
         Gia_ManAndNum(p), nLuts, nLevels, nNodes, nEdges, nEdgesAll );
 }
 

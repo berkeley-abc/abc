@@ -343,7 +343,7 @@ int Gia_ManCountRanks( Gia_Man_t * p )
             Gia_ManCountRanks_rec( p, iObj, vRoots, vRanks, vCands, t );
     }
     Vec_IntWriteEntry( vCands, 0, 0 );
-    printf( "Tents = %6d.   Cands = %6d.  %10.2f %%\n", t, Vec_IntSum(vCands), 100.0*Vec_IntSum(vCands)/Gia_ManCandNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Tents = %6d.   Cands = %6d.  %10.2f %%\n", t, Vec_IntSum(vCands), 100.0*Vec_IntSum(vCands)/Gia_ManCandNum(p) );
     Vec_IntFree( vRoots );
     Vec_IntFree( vRanks );
     Vec_IntFree( vCands );
@@ -595,8 +595,8 @@ void Bmcs_ManPrintFrame( Bmcs_Man_t * p, int f, int nClauses, int Solver, abctim
         Abc_Print( 1, "S = %3d. ",  Solver );
     Abc_Print( 1, "%4.0f MB",       1.0*((int)Gia_ManMemory(p->pFrames) + Vec_IntMemory(&p->vFr2Sat))/(1<<20) );
     Abc_Print( 1, "%9.2f sec  ",    (float)(Abc_Clock() - clkStart)/(float)(CLOCKS_PER_SEC) );
-    printf( "\n" );
-    fflush( stdout );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 void Bmcs_ManPrintTime( Bmcs_Man_t * p )
 {
@@ -688,7 +688,7 @@ int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                         int nOutDigits = Abc_Base10Log( Gia_ManPoNum(pGia) );
                         Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).  ",  
                             nOutDigits, i, f+k, nOutDigits, pPars->nFailOuts, nOutDigits, Gia_ManPoNum(pGia) );
-                        fflush( stdout );
+                        fflush( Abc_FrameGlobalGetOut() );
                     }
                     if( pPars->pFuncOnFrameDone)
                         pPars->pFuncOnFrameDone(f+k, i, 1);
@@ -703,7 +703,7 @@ int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     }
     p->timeOth = Abc_Clock() - clkStart - p->timeUnf - p->timeCnf - p->timeSat;
     if ( RetValue == -1 && !pPars->fNotVerbose )
-        printf( "No output failed in %d frames.  ", f + (k < pPars->nFramesAdd ? k+1 : 0) );
+        fprintf( Abc_FrameGlobalGetOut(), "No output failed in %d frames.  ", f + (k < pPars->nFramesAdd ? k+1 : 0) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
     Bmcs_ManPrintTime( p );
     Bmcs_ManStop( p );
@@ -879,7 +879,7 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                         int nOutDigits = Abc_Base10Log( Gia_ManPoNum(pGia) );
                         Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).  ",  
                             nOutDigits, i, f+k, nOutDigits, pPars->nFailOuts, nOutDigits, Gia_ManPoNum(pGia) );
-                        fflush( stdout );
+                        fflush( Abc_FrameGlobalGetOut() );
                     }
                     if( pPars->pFuncOnFrameDone )
                         pPars->pFuncOnFrameDone(f+k, i, 1);
@@ -901,7 +901,7 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     }
     p->timeOth = Abc_Clock() - clkStart - p->timeUnf - p->timeCnf - p->timeSat;
     if ( RetValue == -1 && !pPars->fNotVerbose )
-        printf( "No output failed in %d frames.  ", f + (k < pPars->nFramesAdd ? k+1 : 0) );
+        fprintf( Abc_FrameGlobalGetOut(), "No output failed in %d frames.  ", f + (k < pPars->nFramesAdd ? k+1 : 0) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
     Bmcs_ManPrintTime( p );
     Bmcs_ManStop( p );

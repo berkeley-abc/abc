@@ -137,7 +137,7 @@ pManRst->timeCut += Abc_Clock() - clk;
 
     // resynthesize each node once
     nNodes = Abc_NtkObjNumMax(pNtk);
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -197,7 +197,7 @@ pManRst->timeTotal = Abc_Clock() - clkStart;
     // check
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Abc_NtkRefactor: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRefactor: The network check has failed.\n" );
         return 0;
     }
     return 1;
@@ -270,7 +270,7 @@ void Abc_RestructNodeDivisors( Abc_ManRst_t * p, Abc_Obj_t * pRoot, int nNodesSa
         printf( "\n" );
     }
 */
-    printf( "%d\n", Vec_PtrSize(p->vDecs)-nNodesSaved-Vec_PtrSize(p->vLeaves) );
+    fprintf( Abc_FrameGlobalGetOut(), "%d\n", Vec_PtrSize(p->vDecs)-nNodesSaved-Vec_PtrSize(p->vLeaves) );
 }
 
 
@@ -459,14 +459,14 @@ p->timeEval += Abc_Clock() - clk;
     // report the progress
     if ( fVeryVerbose )
     {
-        printf( "Node %6s : ",  Abc_ObjName(pRoot) );
-        printf( "Cone = %2d. ", p->vLeaves->nSize );
-        printf( "BDD = %2d. ",  Cudd_DagSize(bFunc) );
-        printf( "FF = %2d. ",   1 + Dec_GraphNodeNum(pGraph) );
-        printf( "MFFC = %2d. ", nNodesSaved );
-        printf( "Add = %2d. ",  nNodesAdded );
-        printf( "GAIN = %2d. ", p->nLastGain );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %6s : ",  Abc_ObjName(pRoot) );
+        fprintf( Abc_FrameGlobalGetOut(), "Cone = %2d. ", p->vLeaves->nSize );
+        fprintf( Abc_FrameGlobalGetOut(), "BDD = %2d. ",  Cudd_DagSize(bFunc) );
+        fprintf( Abc_FrameGlobalGetOut(), "FF = %2d. ",   1 + Dec_GraphNodeNum(pGraph) );
+        fprintf( Abc_FrameGlobalGetOut(), "MFFC = %2d. ", nNodesSaved );
+        fprintf( Abc_FrameGlobalGetOut(), "Add = %2d. ",  nNodesAdded );
+        fprintf( Abc_FrameGlobalGetOut(), "GAIN = %2d. ", p->nLastGain );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Cudd_RecursiveDeref( p->dd, bFunc );
     return pGraph;
@@ -1072,12 +1072,12 @@ void Abc_NtkManRstStop( Abc_ManRst_t * p )
 ***********************************************************************/
 void Abc_NtkManRstPrintStats( Abc_ManRst_t * p )
 {
-    printf( "Refactoring statistics:\n" );
-    printf( "Nodes considered   = %8d.\n", p->nNodesConsidered   );
-    printf( "Cuts considered    = %8d.\n", p->nCutsConsidered    );
-    printf( "Cuts explored      = %8d.\n", p->nCutsExplored      );
-    printf( "Nodes restructured = %8d.\n", p->nNodesRestructured );
-    printf( "Calculated gain    = %8d.\n", p->nNodesGained       );
+    fprintf( Abc_FrameGlobalGetOut(), "Refactoring statistics:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes considered   = %8d.\n", p->nNodesConsidered );
+    fprintf( Abc_FrameGlobalGetOut(), "Cuts considered    = %8d.\n", p->nCutsConsidered );
+    fprintf( Abc_FrameGlobalGetOut(), "Cuts explored      = %8d.\n", p->nCutsExplored );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes restructured = %8d.\n", p->nNodesRestructured );
+    fprintf( Abc_FrameGlobalGetOut(), "Calculated gain    = %8d.\n", p->nNodesGained );
     ABC_PRT( "Cuts       ", p->timeCut );
     ABC_PRT( "Resynthesis", p->timeRes );
     ABC_PRT( "    BDD    ", p->timeBdd );
@@ -1474,8 +1474,8 @@ Dec_Graph_t * Abc_NodeResubstitute( Abc_ManRst_t * p, Abc_Obj_t * pNode, Cut_Cut
     nCuts = 0;
     for ( pCut = pCutList; pCut; pCut = pCut->pNext )
         nCuts += (int)(pCut->nLeaves > 3);
-    printf( "-----------------------------------\n" );
-    printf( "Node %6d : Factor-cuts = %5d.\n", pNode->Id, nCuts );
+    fprintf( Abc_FrameGlobalGetOut(), "-----------------------------------\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Node %6d : Factor-cuts = %5d.\n", pNode->Id, nCuts );
 
     // go through the interesting cuts
     for ( pCut = pCutList; pCut; pCut = pCut->pNext )

@@ -200,7 +200,7 @@ void reoProfileWidthStart( reo_man * p )
             p->pPlanes[v].statsWidth = p->pPlanes[v-1].statsWidth + pWidthStart[v] - pWidthStop[v];
         p->pPlanes[v].statsCost = p->pPlanes[v].statsWidth;
         p->nWidthCur += p->pPlanes[v].statsWidth;
-        printf( "Level %2d: Width = %5d.\n", v, p->pPlanes[v].statsWidth );
+        fprintf( Abc_FrameGlobalGetOut(), "Level %2d: Width = %5d.\n", v, p->pPlanes[v].statsWidth );
     }
     p->nWidthBeg = p->nWidthCur;
     ABC_FREE( pWidthStart );
@@ -288,7 +288,7 @@ void reoProfileWidthStart2( reo_man * p )
 ******************************************************************************/
 void reoProfileNodesPrint( reo_man * p )
 {
-    printf( "NODES: Total = %6d. Average = %6.2f.\n", p->nNodesCur, p->nNodesCur / (float)p->nSupp );
+    fprintf( Abc_FrameGlobalGetOut(), "NODES: Total = %6d. Average = %6.2f.\n", p->nNodesCur, p->nNodesCur / (float)p->nSupp );
 }
 
 /**Function********************************************************************
@@ -304,7 +304,7 @@ void reoProfileNodesPrint( reo_man * p )
 ******************************************************************************/
 void reoProfileAplPrint( reo_man * p )
 {
-    printf( "APL: Total = %8.2f. Average =%6.2f.\n", p->nAplCur, p->nAplCur / (float)p->nSupp );
+    fprintf( Abc_FrameGlobalGetOut(), "APL: Total = %8.2f. Average =%6.2f.\n", p->nAplCur, p->nAplCur / (float)p->nSupp );
 }
 
 /**Function********************************************************************
@@ -328,16 +328,16 @@ void reoProfileWidthPrint( reo_man * p )
     TotalWidth = 0;
     for ( i = 0; i <= p->nSupp; i++ )
     {
-        printf( "Level = %2d. Width = %3d.\n", i, p->pPlanes[i].statsWidth );
+        fprintf( Abc_FrameGlobalGetOut(), "Level = %2d. Width = %3d.\n", i, p->pPlanes[i].statsWidth );
         if ( WidthMax < p->pPlanes[i].statsWidth )
              WidthMax = p->pPlanes[i].statsWidth;
         TotalWidth += p->pPlanes[i].statsWidth;
     }
     assert( p->nWidthCur == TotalWidth );
-    printf( "WIDTH: " );
-    printf( "Maximum = %5d.  ", WidthMax );
-    printf( "Total = %7d.  ", p->nWidthCur );
-    printf( "Average = %6.2f.\n", TotalWidth / (float)p->nSupp );
+    fprintf( Abc_FrameGlobalGetOut(), "WIDTH: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Maximum = %5d.  ", WidthMax );
+    fprintf( Abc_FrameGlobalGetOut(), "Total = %7d.  ", p->nWidthCur );
+    fprintf( Abc_FrameGlobalGetOut(), "Average = %6.2f.\n", TotalWidth / (float)p->nSupp );
 }
 
 /**Function********************************************************************

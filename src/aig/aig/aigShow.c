@@ -52,12 +52,12 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
 
     if ( Aig_ManNodeNum(pMan) > 200 )
     {
-        fprintf( stdout, "Cannot visualize AIG with more than 200 nodes.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot visualize AIG with more than 200 nodes.\n"  );
         return;
     }
     if ( (pFile = fopen( pFileName, "w" )) == NULL )
     {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the intermediate file \"%s\".\n", pFileName  );
         return;
     }
 
@@ -348,7 +348,7 @@ void Aig_ManShow( Aig_Man_t * pMan, int fHaig, Vec_Ptr_t * vBold )
     // check that the file can be opened
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
     {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the intermediate file \"%s\".\n", FileNameDot  );
         return;
     }
     fclose( pFile );

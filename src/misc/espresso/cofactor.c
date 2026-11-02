@@ -278,9 +278,9 @@ IN int debug_flag;
         set_insert(cright, i);
 
     if (debug & debug_flag) {
-    (void) printf("BINATE_SPLIT_SELECT: split against %d\n", best);
+    (void) fprintf( Abc_FrameGlobalGetOut(), "BINATE_SPLIT_SELECT: split against %d\n", best );
     if (verbose_debug)
-        (void) printf("cl=%s\ncr=%s\n", pc1(cleft), pc2(cright));
+        (void) fprintf( Abc_FrameGlobalGetOut(), "cl=%s\ncr=%s\n", pc1(cleft), pc2(cright) );
     }
     return best;
 }

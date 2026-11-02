@@ -338,12 +338,12 @@ void Map_SuperTableSortSupergates( Map_HashTable_t * p, int nSupersMax )
     {
         if ( ppSupers[i]->nUsed == 0 )
             break;
-        printf( "%5d : ",        ppSupers[i]->nUsed );
-        printf( "%5d   ",        ppSupers[i]->Num );
-        printf( "A = %5.2f   ",  ppSupers[i]->Area );
-        printf( "D = %5.2f   ",  ppSupers[i]->tDelayMax.Rise );
-        printf( "%s",            ppSupers[i]->pFormula );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%5d : ",        ppSupers[i]->nUsed );
+        fprintf( Abc_FrameGlobalGetOut(), "%5d   ",        ppSupers[i]->Num );
+        fprintf( Abc_FrameGlobalGetOut(), "A = %5.2f   ",  ppSupers[i]->Area );
+        fprintf( Abc_FrameGlobalGetOut(), "D = %5.2f   ",  ppSupers[i]->tDelayMax.Rise );
+        fprintf( Abc_FrameGlobalGetOut(), "%s",            ppSupers[i]->pFormula );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     ABC_FREE( ppSupers );
 }

@@ -49,7 +49,7 @@ Aig_Man_t * Saig_ManDupOrpos( Aig_Man_t * pAig )
     int i;
     if ( pAig->nConstrs > 0 )
     {
-        printf( "The AIG manager should have no constraints.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The AIG manager should have no constraints.\n" );
         return NULL;
     }
     // start the new manager
@@ -95,7 +95,7 @@ Aig_Man_t * Saig_ManCreateEquivMiter( Aig_Man_t * pAig, Vec_Int_t * vPairs, int 
     int i;
     if ( pAig->nConstrs > 0 )
     {
-        printf( "The AIG manager should have no constraints.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The AIG manager should have no constraints.\n" );
         return NULL;
     }
     // start the new manager
@@ -352,7 +352,7 @@ Vec_Int_t * Saig_ManReturnFailingState( Aig_Man_t * pAig, Abc_Cex_t * p, int fNe
     if ( RetValue == 0 )
     {
         Aig_ManCleanMarkB(pAig);
-        printf( "CEX does fail the given sequential miter.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "CEX does fail the given sequential miter.\n" );
         return NULL;
     }
     vState = Vec_IntAlloc( Aig_ManRegNum(pAig) );
@@ -418,7 +418,7 @@ Abc_Cex_t * Saig_ManExtendCex( Aig_Man_t * pAig, Abc_Cex_t * p )
     RetValue = Aig_ManCo(pAig, p->iPo)->fMarkB;
     Aig_ManCleanMarkB(pAig);
     if ( RetValue == 0 )
-        printf( "Saig_ManExtendCex(): The counter-example is invalid!!!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Saig_ManExtendCex(): The counter-example is invalid!!!\n" );
     return pNew;
 }
 

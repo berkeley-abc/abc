@@ -478,24 +478,24 @@ Abc_Obj_t * Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName )
     // find the internal node
     if ( pName[0] != 'n' )
     {
-        printf( "Name \"%s\" is not found among CO or node names (internal names often look as \"n<num>\").\n", pName );
+        fprintf( Abc_FrameGlobalGetOut(), "Name \"%s\" is not found among CO or node names (internal names often look as \"n<num>\").\n", pName );
         return NULL;
     }
     Num = atoi( pName + 1 );
     if ( Num < 0 || Num >= Abc_NtkObjNumMax(pNtk) )
     {
-        printf( "The node \"%s\" with ID %d is not in the current network.\n", pName, Num );
+        fprintf( Abc_FrameGlobalGetOut(), "The node \"%s\" with ID %d is not in the current network.\n", pName, Num );
         return NULL;
     }
     pObj = Abc_NtkObj( pNtk, Num );
     if ( pObj == NULL )
     {
-        printf( "The node \"%s\" with ID %d has been removed from the current network.\n", pName, Num );
+        fprintf( Abc_FrameGlobalGetOut(), "The node \"%s\" with ID %d has been removed from the current network.\n", pName, Num );
         return NULL;
     }
     if ( !Abc_ObjIsNode(pObj) )
     {
-        printf( "Object with ID %d is not a node.\n", Num );
+        fprintf( Abc_FrameGlobalGetOut(), "Object with ID %d is not a node.\n", Num );
         return NULL;
     }
     return pObj;

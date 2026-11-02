@@ -93,7 +93,7 @@ void Io_WriteBaf( Abc_Ntk_t * pNtk, char * pFileName )
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteBaf(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteBaf(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
 
@@ -137,7 +137,7 @@ void Io_WriteBaf( Abc_Ntk_t * pNtk, char * pFileName )
     nAnds = 0;
     nBufferSize = Abc_NtkNodeNum(pNtk) * 2 + Abc_NtkCoNum(pNtk);
     pBufferNode = ABC_ALLOC( unsigned, nBufferSize );
-    pProgress = Extra_ProgressBarStart( stdout, nBufferSize );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nBufferSize );
     Abc_AigForEachAnd( pNtk, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, nAnds, NULL );

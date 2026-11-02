@@ -2106,7 +2106,7 @@ void Extra_TruthExpandGeneratePermTable()
     int i, k, nOnes, Last1, First0;
     int iOne, iZero;
 
-    printf( "\nstatic char Cases[256] = {\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\nstatic char Cases[256] = {\n" );
     for ( i = 0; i < 256; i++ )
     {
         nOnes = 0;
@@ -2122,21 +2122,21 @@ void Extra_TruthExpandGeneratePermTable()
                 First0 = k;
         }
         if ( Last1 + 1 == First0 || i == 255 )
-            printf( "     %d%s", 0, (i==255? " ":",") );
+            fprintf( Abc_FrameGlobalGetOut(), "     %d%s", 0, (i==255? " ":",") );
         else if ( nOnes == 1 )
-            printf( "     %d,", Last1 );
+            fprintf( Abc_FrameGlobalGetOut(), "     %d,", Last1 );
         else
-            printf( "    -%d,", 1 );
-        printf( " // " );
-        Extra_PrintBinary( stdout, (unsigned*)&i, 8 );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "    -%d,", 1 );
+        fprintf( Abc_FrameGlobalGetOut(), " // " );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned*)&i, 8 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    printf( "};\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "};\n" );
 
-    printf( "\nstatic char Perms[256][8] = {\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\nstatic char Perms[256][8] = {\n" );
     for ( i = 0; i < 256; i++ )
     {
-        printf( "    {" );
+        fprintf( Abc_FrameGlobalGetOut(), "    {" );
         nOnes = 0;
         for ( k = 0; k < 8; k++ )
             if ( i & (1 << k) )
@@ -2145,15 +2145,15 @@ void Extra_TruthExpandGeneratePermTable()
         iZero = nOnes;
         for ( k = 0; k < 8; k++ )
             if ( i & (1 << k) )
-                printf( "%s %d", (k==0? "":","), iOne++ );
+                fprintf( Abc_FrameGlobalGetOut(), "%s %d", (k==0? "":","), iOne++ );
             else
-                printf( "%s %d", (k==0? "":","), iZero++ );
+                fprintf( Abc_FrameGlobalGetOut(), "%s %d", (k==0? "":","), iZero++ );
         assert( iOne + iZero == 8 );
-        printf( " }%s // ", (i==255? " ":",") );
-        Extra_PrintBinary( stdout, (unsigned*)&i, 8 );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " }%s // ", (i==255? " ":",") );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned*)&i, 8 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    printf( "};\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "};\n" );
 }
 
 /**Function*************************************************************
@@ -2184,9 +2184,9 @@ int * Extra_GreyCodeSchedule( int n )
         for ( b = 0; b < (1<<n); b++ )
         {
             uSign ^= (1 << pRes[b]);
-            printf( "%3d %3d  ", b, pRes[b] );
-            Extra_PrintBinary( stdout, &uSign, n );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d %3d  ", b, pRes[b] );
+            Extra_PrintBinary( Abc_FrameGlobalGetOut(), &uSign, n );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     return pRes;
@@ -2241,10 +2241,10 @@ int * Extra_PermSchedule( int n )
         for ( b = 0; b < nFact; b++ )
         {
             ABC_SWAP( int, Perm[pRes[b]], Perm[pRes[b]+1] );
-            printf( "%3d %3d    ", b, pRes[b] );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d %3d    ", b, pRes[b] );
             for ( i = 0; i < n; i++ )
-                printf( "%d", Perm[i] );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", Perm[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     return pRes;
@@ -2422,8 +2422,8 @@ word * Extra_NpnRead( char * pFileName, int nFuncs )
     assert( i == nFuncs );
     for ( i = 0; i < Abc_MinInt(nFuncs, 10); i++ )
     {
-        printf( "Line %d : ", i );
-        Extra_PrintHex( stdout, (unsigned *)(pFuncs + i), 6 ), printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Line %d : ", i );
+        Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)(pFuncs + i), 6 ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return pFuncs;
 }
@@ -2478,8 +2478,8 @@ void Extra_NpnTest2()
     ABC_FREE( pPerm );
     ABC_FREE( pComp );
 
-    Extra_PrintHex( stdout, (unsigned *)&t,    6 ), printf( "\n" );
-    Extra_PrintHex( stdout, (unsigned *)&tMin, 6 ), printf( "\n" );
+    Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&t,    6 ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&tMin, 6 ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Extra_NpnTest()
 {
@@ -2513,9 +2513,9 @@ void Extra_NpnTest()
     {
         pFuncs[i] = Extra_Truth6MinimumExact( pFuncs[i], pComp, pPerm );
         if ( i % 10000 == 0 )
-            printf( "%d\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "%d\n", i );
     }
-    printf( "Finished deriving minimum form\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished deriving minimum form\n" );
 /*
     // sort them by value
     qsort( (void *)pFuncs, (size_t)nFuncs, sizeof(word), (int(*)(const void *,const void *))CompareWords );
@@ -2528,8 +2528,8 @@ void Extra_NpnTest()
 */
     for ( i = 0; i < Abc_MinInt(nFuncs, 10); i++ )
     {
-        printf( "Line %d : ", i );
-        Extra_PrintHex( stdout, (unsigned *)(pFuncs + i), 6 ), printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Line %d : ", i );
+        Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)(pFuncs + i), 6 ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     ABC_FREE( pPerm );
     ABC_FREE( pComp );
@@ -2553,7 +2553,7 @@ void Extra_NtkPrintBin( word * pT, int nBits )
 {
     int i;
     for ( i = nBits - 1; i >= 0; i-- )
-        printf( "%d", (int)((*pT >> i) & 1) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", (int)((*pT >> i) & 1) );
 }
 void Extra_NtkPowerTest()
 {
@@ -2567,9 +2567,9 @@ void Extra_NtkPowerTest()
         word wi = (word)i, wj = (word)j;
         Extra_NtkPrintBin( &wi, n );
         Extra_NtkPrintBin( &wj, n );
-        printf( " " );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
         Extra_NtkPrintBin( (word *)&t, 64 );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -2691,7 +2691,7 @@ void Extra_BitMatrixShow( Vec_Wrd_t * vSims, int nWords )
             Abc_Print( 1, "\n" );
         for ( k = 0; k < nWords; k++ )
         {
-            Extra_PrintBinary2( stdout, (unsigned *)Vec_WrdEntryP(vSims, i*nWords+k), 64 );
+            Extra_PrintBinary2( Abc_FrameGlobalGetOut(), (unsigned *)Vec_WrdEntryP(vSims, i*nWords+k), 64 );
             Abc_Print( 1, " " );
         }
         Abc_Print( 1, "\n" );
@@ -2714,9 +2714,9 @@ void Extra_BitMatrixTransposeTest()
     Extra_BitMatrixTransposeSimple( vSimsIn, nWordsIn, vSimsOut2, nWordsOut );
 
     if ( memcmp( Vec_WrdArray(vSimsOut), Vec_WrdArray(vSimsOut2), sizeof(word)*Vec_WrdSize(vSimsOut) ) )
-        printf( "Verification failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification failed.\n" );
     else
-        printf( "Verification succeeded.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification succeeded.\n" );
 
     //Extra_BitMatrixShow( vSimsIn,   nWordsIn );
     //Extra_BitMatrixShow( vSimsOut,  nWordsOut );

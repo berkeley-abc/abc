@@ -74,9 +74,9 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
  
     if ( pParams->fVerbose )
     {
-        printf( "RESOURCE LIMITS: Iterations = %d. Rewriting = %s. Fraiging = %s.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "RESOURCE LIMITS: Iterations = %d. Rewriting = %s. Fraiging = %s.\n",
             pParams->nItersMax, pParams->fUseRewriting? "yes":"no", pParams->fUseFraiging? "yes":"no" );
-        printf( "Miter = %d (%3.1f).  Rwr = %d (%3.1f).  Fraig = %d (%3.1f).  Last = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Miter = %d (%3.1f).  Rwr = %d (%3.1f).  Fraig = %d (%3.1f).  Last = %d.\n", 
             pParams->nMiteringLimitStart,  pParams->nMiteringLimitMulti, 
             pParams->nRewritingLimitStart, pParams->nRewritingLimitMulti,
             pParams->nFraigingLimitStart,  pParams->nFraigingLimitMulti, pParams->nMiteringLimitLast );
@@ -97,10 +97,10 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
     {
         if ( pParams->fVerbose )
         {
-            printf( "ITERATION %2d : Confs = %6d. FraigBTL = %3d. \n", nIter+1, 
+            fprintf( Abc_FrameGlobalGetOut(), "ITERATION %2d : Confs = %6d. FraigBTL = %3d. \n", nIter+1, 
                  (int)(pParams->nMiteringLimitStart * pow(pParams->nMiteringLimitMulti,nIter)), 
                  (int)(pParams->nFraigingLimitStart * pow(pParams->nFraigingLimitMulti,nIter)) );
-            fflush( stdout );
+            fflush( Abc_FrameGlobalGetOut() );
         }
 
         // try brute-force SAT
@@ -118,7 +118,7 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
         if ( (pParams->nTotalBacktrackLimit && pParams->nTotalBacktracksMade >= pParams->nTotalBacktrackLimit) ||
              (pParams->nTotalInspectLimit   && pParams->nTotalInspectsMade   >= pParams->nTotalInspectLimit) )
         {
-            printf( "Reached global limit on conflicts/inspects. Quitting.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Reached global limit on conflicts/inspects. Quitting.\n" );
             *ppNtk = pNtk;
             return -1;
         }
@@ -183,7 +183,7 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
             if ( (pParams->nTotalBacktrackLimit && pParams->nTotalBacktracksMade >= pParams->nTotalBacktrackLimit) ||
                  (pParams->nTotalInspectLimit   && pParams->nTotalInspectsMade   >= pParams->nTotalInspectLimit) )
             {
-                printf( "Reached global limit on conflicts/inspects. Quitting.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached global limit on conflicts/inspects. Quitting.\n" );
                 *ppNtk = pNtk;
                 return -1;
             }
@@ -197,8 +197,8 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
     {
         if ( pParams->fVerbose )
         {
-            printf( "Attempting BDDs with node limit %d ...\n", pParams->nBddSizeLimit );
-            fflush( stdout );
+            fprintf( Abc_FrameGlobalGetOut(), "Attempting BDDs with node limit %d ...\n", pParams->nBddSizeLimit );
+            fflush( Abc_FrameGlobalGetOut() );
         }
         clk = Abc_Clock();
         pNtk = Abc_NtkCollapse( pNtkTemp = pNtk, pParams->nBddSizeLimit, 0, pParams->fBddReorder, 0, 0, 0 );
@@ -217,8 +217,8 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
     {
         if ( pParams->fVerbose )
         {
-            printf( "Attempting SAT with conflict limit %d ...\n", pParams->nMiteringLimitLast );
-            fflush( stdout );
+            fprintf( Abc_FrameGlobalGetOut(), "Attempting SAT with conflict limit %d ...\n", pParams->nMiteringLimitLast );
+            fflush( Abc_FrameGlobalGetOut() );
         }
         clk = Abc_Clock();
         nInspectLimit = pParams->nTotalInspectLimit? pParams->nTotalInspectLimit - pParams->nTotalInspectsMade : 0;
@@ -317,7 +317,7 @@ void Abc_NtkMiterPrint( Abc_Ntk_t * pNtk, char * pString, abctime clk, int fVerb
 {
     if ( !fVerbose )
         return;
-    printf( "Nodes = %7d.  Levels = %4d.  ", Abc_NtkNodeNum(pNtk), 
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes = %7d.  Levels = %4d.  ", Abc_NtkNodeNum(pNtk), 
         Abc_NtkIsStrash(pNtk)? Abc_AigLevel(pNtk) : Abc_NtkLevel(pNtk) );
     ABC_PRT( pString, Abc_Clock() - clk );
 }

@@ -286,10 +286,10 @@ Vec_Ptr_t * Aig_ManRegProjectOnehots( Aig_Man_t * pAig, Aig_Man_t * pPart, Vec_P
     // print out
     if ( vOnehotsPart && fVerbose )
     {
-        printf( "Partition contains %d groups of 1-hot registers: { ", Vec_PtrSize(vOnehotsPart) );
+        fprintf( Abc_FrameGlobalGetOut(), "Partition contains %d groups of 1-hot registers: { ", Vec_PtrSize(vOnehotsPart) );
         Vec_PtrForEachEntry( Vec_Int_t *, vOnehotsPart, vGroup, k )
-            printf( "%d ", Vec_IntSize(vGroup) );
-        printf( "}\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Vec_IntSize(vGroup) );
+        fprintf( Abc_FrameGlobalGetOut(), "}\n" );
     }
     return vOnehotsPart;
 }
@@ -450,7 +450,7 @@ Vec_Ptr_t * Aig_ManRegPartitionSmart( Aig_Man_t * pAig, int nPartSize )
         }
         // add this partition to the set
         Vec_PtrPush( p->vParts, Vec_IntDup(p->vRegs) );        
-printf( "Part %3d  SUMMARY:  Free = %4d. Total = %4d. Ratio = %6.2f. Unique = %4d.\n", i,
+fprintf( Abc_FrameGlobalGetOut(), "Part %3d  SUMMARY:  Free = %4d. Total = %4d. Ratio = %6.2f. Unique = %4d.\n", i,
                 Vec_IntSize(p->vFreeVars), Vec_IntSize(p->vRegs), 
                 1.0*Vec_IntSize(p->vFreeVars)/Vec_IntSize(p->vRegs), Vec_IntSize(p->vUniques) );
 //printf( "\n" ); 
@@ -478,8 +478,8 @@ Vec_Ptr_t * Aig_ManRegPartitionSimple( Aig_Man_t * pAig, int nPartSize, int nOve
     int i, Counter;
     if ( nOverSize >= nPartSize )
     {
-        printf( "Overlap size (%d) is more or equal than the partition size (%d).\n", nOverSize, nPartSize );
-        printf( "Adjusting it to be equal to half of the partition size.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Overlap size (%d) is more or equal than the partition size (%d).\n", nOverSize, nPartSize );
+        fprintf( Abc_FrameGlobalGetOut(), "Adjusting it to be equal to half of the partition size.\n" );
         nOverSize = nPartSize/2;
     }
     assert( nOverSize < nPartSize );
@@ -517,8 +517,8 @@ void Aig_ManPartDivide( Vec_Ptr_t * vResult, Vec_Int_t * vDomain, int nPartSize,
     assert( nPartSize && Vec_IntSize(vDomain) > nPartSize );
     if ( nOverSize >= nPartSize )
     {
-        printf( "Overlap size (%d) is more or equal than the partition size (%d).\n", nOverSize, nPartSize );
-        printf( "Adjusting it to be equal to half of the partition size.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Overlap size (%d) is more or equal than the partition size (%d).\n", nOverSize, nPartSize );
+        fprintf( Abc_FrameGlobalGetOut(), "Adjusting it to be equal to half of the partition size.\n" );
         nOverSize = nPartSize/2;
     }
     assert( nOverSize < nPartSize );
@@ -556,7 +556,7 @@ void Aig_ManRegPartitionTraverse_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t
         if ( pObj->iData >= Aig_ManCiNum(p) - Aig_ManRegNum(p) )
         {
             Vec_PtrPush( vLos, pObj );
-            printf( "%d ", pObj->iData - (Aig_ManCiNum(p) - Aig_ManRegNum(p)) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", pObj->iData - (Aig_ManCiNum(p) - Aig_ManRegNum(p)) );
         }
         return;
     }
@@ -591,12 +591,12 @@ Vec_Ptr_t * Aig_ManRegPartitionTraverse( Aig_Man_t * p )
     Aig_ManForEachLiSeq( p, pObj, i )
     {
         ++Counter;
-        printf( "Latch %d: ", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Latch %d: ", Counter );
         Aig_ManRegPartitionTraverse_rec( p, Aig_ObjFanin0(pObj), vLos );
-printf( "%d=%d \n", Counter, Vec_PtrSize(vLos)-nPrev );
+fprintf( Abc_FrameGlobalGetOut(), "%d=%d \n", Counter, Vec_PtrSize(vLos)-nPrev );
         nPrev = Vec_PtrSize(vLos);
     }
-    printf( "Total collected = %d. Total regs = %d.\n", Vec_PtrSize(vLos), Aig_ManRegNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Total collected = %d. Total regs = %d.\n", Vec_PtrSize(vLos), Aig_ManRegNum(p) );
     return vLos;
 }
 

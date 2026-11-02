@@ -100,7 +100,7 @@ int Saig_ManAddUniqueness( sat_solver * pSat, Vec_Int_t * vState, int nRegs, int
         if ( pStateI[v] >= 0 && pStateK[v] == -1 )
         {
             if ( fVerbose )
-                printf( "Cannot constrain an incomplete state.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot constrain an incomplete state.\n" );
             return 0;
         }
     // add XORs
@@ -113,7 +113,7 @@ int Saig_ManAddUniqueness( sat_solver * pSat, Vec_Int_t * vState, int nRegs, int
             if ( RetValue == 0 )
             {
                 if ( fVerbose )
-                    printf( "SAT solver became UNSAT after adding a uniqueness constraint.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "SAT solver became UNSAT after adding a uniqueness constraint.\n" );
                 return 1;
             }
         }
@@ -129,7 +129,7 @@ int Saig_ManAddUniqueness( sat_solver * pSat, Vec_Int_t * vState, int nRegs, int
     if ( RetValue == 0 )
     {
         if ( fVerbose )
-            printf( "SAT solver became UNSAT after adding a uniqueness constraint.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "SAT solver became UNSAT after adding a uniqueness constraint.\n" );
         return 1;
     }
     return 0;
@@ -180,7 +180,7 @@ int Saig_ManInduction( Aig_Man_t * p, int nTimeOut, int nFramesMax, int nConfMax
     RetValue = -1;
     nSatVarNum = 0;
     if ( fVerbose )
-        printf( "Induction parameters: FramesMax = %5d. ConflictMax = %6d.\n", nFramesMax, nConfMax );
+        fprintf( Abc_FrameGlobalGetOut(), "Induction parameters: FramesMax = %5d. ConflictMax = %6d.\n", nFramesMax, nConfMax );
     for ( f = 0; ; f++ )
     { 
         if ( f > 0 )
@@ -283,7 +283,7 @@ int Saig_ManInduction( Aig_Man_t * p, int nTimeOut, int nFramesMax, int nConfMax
             {
                 nConstrs++;
                 if ( fVeryVerbose )
-                    printf( "Adding constaint for state %2d and state %2d.\n", i, iLast-1 );
+                    fprintf( Abc_FrameGlobalGetOut(), "Adding constaint for state %2d and state %2d.\n", i, iLast-1 );
                 if ( Saig_ManAddUniqueness( pSat, vState, Aig_ManRegNum(p), i, iLast-1, &nSatVarNum, &nClauses, fVerbose ) )
                     break;
             }
@@ -301,7 +301,7 @@ nextrun:
         status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfMax, 0, 0, 0 );
         if ( fVerbose )
         {
-            printf( "Frame %4d : PI =%5d. PO =%5d. AIG =%5d. Var =%7d. Clau =%7d. Conf =%7d. ",
+            fprintf( Abc_FrameGlobalGetOut(), "Frame %4d : PI =%5d. PO =%5d. AIG =%5d. Var =%7d. Clau =%7d. Conf =%7d. ",
                 f, Aig_ManCiNum(pAigPart), Aig_ManCoNum(pAigPart), Aig_ManNodeNum(pAigPart), 
                 nSatVarNum, nClauses, (int)pSat->stats.conflicts-nConfPrev );
             ABC_PRT( "Time", Abc_Clock() - clk );
@@ -320,12 +320,12 @@ nextrun:
             Vec_IntForEachEntry( vState, iReg, i )
             {
                 if ( i && (i % Aig_ManRegNum(p)) == 0 )
-                    printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 if ( (i % Aig_ManRegNum(p)) == 0 )
-                    printf( "       State %3d : ", i/Aig_ManRegNum(p) );
-                printf( "%c", (iReg >= 0) ? ('0' + sat_solver_var_value(pSat, iReg)) : 'x' );
+                    fprintf( Abc_FrameGlobalGetOut(), "       State %3d : ", i/Aig_ManRegNum(p) );
+                fprintf( Abc_FrameGlobalGetOut(), "%c", (iReg >= 0) ? ('0' + sat_solver_var_value(pSat, iReg)) : 'x' );
             }
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         if ( nFramesMax && f == nFramesMax - 1 )
         {
@@ -360,7 +360,7 @@ nextrun:
                     nConstrs++;
                     fAdded = 1;
                     if ( fVeryVerbose )
-                        printf( "Adding constaint for state %2d and state %2d.\n", i, k );
+                        fprintf( Abc_FrameGlobalGetOut(), "Adding constaint for state %2d and state %2d.\n", i, k );
                     if ( Saig_ManAddUniqueness( pSat, vState, Aig_ManRegNum(p), i, k, &nSatVarNum, &nClauses, fVerbose ) )
                         break;
                 }
@@ -379,13 +379,13 @@ nextrun:
     if ( fVerbose )
     {
         if ( nTimeToStop && Abc_Clock() >= nTimeToStop )
-            printf( "Timeout (%d sec) was reached during iteration %d.\n", nTimeOut, f+1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Timeout (%d sec) was reached during iteration %d.\n", nTimeOut, f+1 );
         else if ( status == l_Undef )
-            printf( "Conflict limit (%d) was reached during iteration %d.\n", nConfMax, f+1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Conflict limit (%d) was reached during iteration %d.\n", nConfMax, f+1 );
         else if ( fUnique || fUniqueAll )
-            printf( "Completed %d iterations and added %d uniqueness constraints.\n", f+1, nConstrs );
+            fprintf( Abc_FrameGlobalGetOut(), "Completed %d iterations and added %d uniqueness constraints.\n", f+1, nConstrs );
         else
-            printf( "Completed %d iterations.\n", f+1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Completed %d iterations.\n", f+1 );
     }
     // cleanup
     sat_solver_delete( pSat );

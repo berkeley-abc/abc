@@ -4249,27 +4249,27 @@ static size_t propagate_units_and_equivalences (closure *closure) {
 static void dump_closure_literal (closure *closure, unsigned ilit) {
   kissat *const solver = closure->solver;
   const int elit = kissat_export_literal (solver, ilit);
-  printf ("%u(%d)", ilit, elit);
+  fprintf ( Abc_FrameGlobalGetOut(), "%u(%d)", ilit, elit);
   unsigned repr_ilit = find_repr (closure, ilit);
   if (repr_ilit != ilit) {
     const int repr_elit = kissat_export_literal (solver, repr_ilit);
-    printf ("[%u(%d)]", repr_ilit, repr_elit);
+    fprintf ( Abc_FrameGlobalGetOut(), "[%u(%d)]", repr_ilit, repr_elit);
   }
   const int value = VALUE (ilit);
   KISSAT_assert (!solver->level);
   if (value)
-    printf ("@0=%d", value);
+    fprintf ( Abc_FrameGlobalGetOut(), "@0=%d", value);
 }
 
 static void dump_units (closure *closure) {
   unsigned_array *trail = &closure->solver->trail;
   size_t i = 0, propagate = closure->units - trail->begin;
   for (all_stack (unsigned, lit, *trail)) {
-    printf ("trail[%zu] ", i);
+    fprintf ( Abc_FrameGlobalGetOut(), "trail[%zu] ", i);
     dump_closure_literal (closure, lit);
     if (i == propagate)
-      fputs (" <-- next unit to propagate", stdout);
-    fputc ('\n', stdout);
+      fputs (" <-- next unit to propagate", Abc_FrameGlobalGetOut());
+    fputc( '\n', Abc_FrameGlobalGetOut() );
     i++;
   }
 }
@@ -4280,7 +4280,7 @@ static void dump_equivalences (closure *closure) {
     unsigned lit = LIT (idx);
     unsigned repr = closure->repr[lit];
     if (repr != lit)
-      printf ("repr[%u(%d)] = %u(%d)\n", lit,
+      fprintf ( Abc_FrameGlobalGetOut(), "repr[%u(%d)] = %u(%d)\n", lit,
               kissat_export_literal (solver, lit), repr,
               kissat_export_literal (solver, repr));
   }
@@ -4303,14 +4303,14 @@ static void dump_gate (closure *closure, gate *g) {
     str = "UNKNOWN";
     break;
   }
-  printf ("%p %s gate[%zu] ", (void *) g, str, g->id);
+  fprintf ( Abc_FrameGlobalGetOut(), "%p %s gate[%zu] ", (void *) g, str, g->id);
   dump_closure_literal (closure, g->lhs);
-  fputs (" := ", stdout);
+  fputs (" := ", Abc_FrameGlobalGetOut());
   if (g->tag == ITE_GATE) {
     dump_closure_literal (closure, g->rhs[0]);
-    fputs (" ? ", stdout);
+    fputs (" ? ", Abc_FrameGlobalGetOut());
     dump_closure_literal (closure, g->rhs[1]);
-    fputs (" : ", stdout);
+    fputs (" : ", Abc_FrameGlobalGetOut());
     dump_closure_literal (closure, g->rhs[2]);
   } else {
     bool first = true;
@@ -4318,16 +4318,16 @@ static void dump_gate (closure *closure, gate *g) {
       if (first)
         first = false;
       else if (g->tag == AND_GATE)
-        fputs (" & ", stdout);
+        fputs (" & ", Abc_FrameGlobalGetOut());
       else
-        fputs (" ^ ", stdout);
+        fputs (" ^ ", Abc_FrameGlobalGetOut());
       dump_closure_literal (closure, rhs);
     }
   }
-  fputs (g->indexed ? " removed" : " indexed", stdout);
+  fputs (g->indexed ? " removed" : " indexed", Abc_FrameGlobalGetOut());
   if (g->garbage)
-    fputs (" garbage", stdout);
-  fputc ('\n', stdout);
+    fputs (" garbage", Abc_FrameGlobalGetOut());
+  fputc( '\n', Abc_FrameGlobalGetOut() );
 }
 
 #define LESS_GATE(G, H) ((G)->id < (H)->id)

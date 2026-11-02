@@ -2886,7 +2886,7 @@ int Abc_CommandInter( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
-    if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
+    if ( !Abc_NtkPrepareTwoNtks( Abc_FrameGlobalGetOut(), pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
         return 1;
     if ( nArgcNew == 0 )
     {
@@ -4410,12 +4410,12 @@ int Abc_CommandAbc9Dsdb( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( nLutSize > DAU_MAX_VAR )
     {
-        printf( "Abc_CommandAbc9Dsdb(): Size of the required DSD manager (%d) exceeds the precompiled limit (%d) (change parameter DAU_MAX_VAR).\n", nLutSize, DAU_MAX_VAR );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_CommandAbc9Dsdb(): Size of the required DSD manager (%d) exceeds the precompiled limit (%d) (change parameter DAU_MAX_VAR).\n", nLutSize, DAU_MAX_VAR );
         return 0;
     }
     if ( Abc_FrameReadManDsd2() && nLutSize > If_DsdManVarNum((If_DsdMan_t*)Abc_FrameReadManDsd2()) )
     {
-        printf( "Abc_CommandAbc9Dsdb(): Incompatible size of the DSD manager (run \"dsd_free -b\").\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_CommandAbc9Dsdb(): Incompatible size of the DSD manager (run \"dsd_free -b\").\n" );
         return 0;
     }
     if ( nLevelMax || nTimeWindow )
@@ -4826,7 +4826,7 @@ int Abc_CommandAbc9SatClp( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     vSop = Bmc_CollapseOne( pAbc->pGia, nCubeLim, nBTLimit, fCanon, 0, fVerbose );
-    printf( "%s\n", Vec_StrArray(vSop) );
+    fprintf( Abc_FrameGlobalGetOut(), "%s\n", Vec_StrArray(vSop) );
     Vec_StrFree( vSop );
     return 0;
 
@@ -4990,7 +4990,7 @@ int Abc_CommandAbc9Exorcism( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtk = Io_ReadPla( pFileNameIn, 0, 0, 0, 1, 1 );
         if ( pNtk == NULL )
         {
-            printf( "Reading PLA file has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Reading PLA file has failed.\n" );
             return 1;
         }
         nInputs = Abc_NtkCiNum( pNtk );
@@ -4998,7 +4998,7 @@ int Abc_CommandAbc9Exorcism( Abc_Frame_t * pAbc, int argc, char ** argv )
         vEsop = Abc_ExorcismNtk2Esop( pNtk );
         if ( vEsop == NULL )
         {
-            printf( "Converting PLA to ESOP failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Converting PLA to ESOP failed.\n" );
             return 1;
         }
     }
@@ -5182,13 +5182,13 @@ int Abc_CommandAbc9FunAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc == globalUtilOptind ) {
         vVars = Vec_IntStartNatural( nVars );
-        printf( "Abstracting the first %d variables of the AIG.\n", nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "Abstracting the first %d variables of the AIG.\n", nVars );
     }
     else {
         vVars = Vec_IntAlloc( argc );
         for ( c = globalUtilOptind; c < argc; c++ )
             Vec_IntPush( vVars, atoi(argv[c]) );
-        printf( "Abstracting variables: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Abstracting variables: " );
         Vec_IntPrint( vVars );
     }
     if ( fPrint ) {
@@ -5279,13 +5279,13 @@ int Abc_CommandAbc9DsdInfo( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fDsd ) 
     {
         if ( iIn == -1 ) {
-            printf( "Function = " );
+            fprintf( Abc_FrameGlobalGetOut(), "Function = " );
             Gia_ManCheckDsd( pAbc->pGia, 0, fVerbose );
             if ( fAll ) {
                 for ( iIn = 0; iIn < Gia_ManPiNum(pAbc->pGia); iIn++ )
                     for ( c = 0; c < 2; c++ ) {
                         Gia_Man_t * pTemp = Gia_ManDupCofactorVar( pAbc->pGia, iIn, c );
-                        printf( "Cof(%c=%d) = ", 'a' + iIn, c );
+                        fprintf( Abc_FrameGlobalGetOut(), "Cof(%c=%d) = ", 'a' + iIn, c );
                         Gia_ManCheckDsd( pTemp, 12, fVerbose );
                         Gia_ManStop( pTemp );
                     }                
@@ -5294,13 +5294,13 @@ int Abc_CommandAbc9DsdInfo( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         for ( c = 0; c < 2; c++ ) {
             Gia_Man_t * pTemp = Gia_ManDupCofactorVar( pAbc->pGia, iIn, c );
-            printf( "    Cof(%c=%d) = ", 'a' + iIn, c );
+            fprintf( Abc_FrameGlobalGetOut(), "    Cof(%c=%d) = ", 'a' + iIn, c );
             Gia_ManCheckDsd( pTemp, 0, fVerbose );
             if ( fAll ) {
                 for ( int iIn2 = 0; iIn2 < Gia_ManPiNum(pAbc->pGia); iIn2++ ) if ( iIn2 != iIn )
                     for ( int c2 = 0; c2 < 2; c2++ ) {
                         Gia_Man_t * pTemp2 = Gia_ManDupCofactorVar( pTemp, iIn2, c2 );
-                        printf( "Cof(%c=%d,%c=%d) = ", 'a' + iIn, c, 'a' + iIn2, c2 );
+                        fprintf( Abc_FrameGlobalGetOut(), "Cof(%c=%d,%c=%d) = ", 'a' + iIn, c, 'a' + iIn2, c2 );
                         Gia_ManCheckDsd( pTemp2, 12, fVerbose );
                         Gia_ManStop( pTemp2 );
                     }
@@ -5445,7 +5445,7 @@ int Abc_CommandAbc9FunTrace( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( nBooth ) {
             vTtMem = Dau_CollectBoothFunctions( nBooth );
-            printf( "Generated %d %d-input booth radix-%d encoder functions.\n", 1<<(nBooth-1), nBooth+1, 1<<nBooth );
+            fprintf( Abc_FrameGlobalGetOut(), "Generated %d %d-input booth radix-%d encoder functions.\n", 1<<(nBooth-1), nBooth+1, 1<<nBooth );
             nCutSize = nBooth+1;
         }
         else {
@@ -5462,7 +5462,7 @@ int Abc_CommandAbc9FunTrace( Abc_Frame_t * pAbc, int argc, char ** argv )
                 return 0;            
             }
             vTtMem = Abc_TruthDecRead( pFuncFileName, nCutSize );
-            printf( "Finished reading %d %d-input function from file \"%s\".  ", nFileSize / 8 / Abc_Truth6WordNum(nCutSize), nCutSize, pFuncFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Finished reading %d %d-input function from file \"%s\".  ", nFileSize / 8 / Abc_Truth6WordNum(nCutSize), nCutSize, pFuncFileName );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
         }
         Gia_ManMatchCuts( vTtMem, pAbc->pGia, nCutSize, nCutNum, fVerbose );
@@ -5519,7 +5519,7 @@ int Abc_CommandAbc9FunTrace( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_ManMatchCuts( vTtMem, pAbc->pGia, nVars, nCutNum, fVerbose );
     if ( pFuncFileName ) {
         Abc_TtStoreDump( pFuncFileName, vTtMem, 8 * Vec_MemEntrySize(vTtMem) );
-        printf( "Dumped %d NPN class member functions into file \"%s\".\n", Vec_MemEntryNum(vTtMem), pFuncFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped %d NPN class member functions into file \"%s\".\n", Vec_MemEntryNum(vTtMem), pFuncFileName );
     }
     Vec_MemHashFree( vTtMem );
     Vec_MemFree( vTtMem );

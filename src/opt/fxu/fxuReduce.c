@@ -98,14 +98,14 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
     {
         ABC_FREE( pnLitsDiff );
         ABC_FREE( pnPairCounters );
-        printf( "The SOPs of the nodes contain duplicated cubes. Run \"bdd; sop\" before \"fx\".\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The SOPs of the nodes contain duplicated cubes. Run \"bdd; sop\" before \"fx\".\n" );
         return 0;
     }
     if ( pnPairCounters[1] != 0 )
     {
         ABC_FREE( pnLitsDiff );
         ABC_FREE( pnPairCounters );
-        printf( "The SOPs of the nodes are not SCC-free. Run \"bdd; sop\" before \"fx\".\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The SOPs of the nodes are not SCC-free. Run \"bdd; sop\" before \"fx\".\n" );
         return 0;
     }
     assert( pnPairCounters[0] == 0 ); // otherwise, covers are not dup-free

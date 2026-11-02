@@ -305,7 +305,7 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         sprintf( Command, "source -x %s", pFileName );
         if ( Cmd_CommandExecute( pAbc, Command ) )
         {
-            fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot execute command \"%s\".\n", Command );
             return 1;
         }
         return 0;
@@ -727,7 +727,7 @@ int Abc_NtkReadCexFile( char * pFileName, Abc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, 
     pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open log file for reading \"%s\".\n" , pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open log file for reading \"%s\".\n" , pFileName );
         return -1;
     }
 
@@ -786,7 +786,7 @@ int Abc_NtkReadCexFile( char * pFileName, Abc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, 
                         nRegs = Vec_IntSize(vNums);
                         state = 3;
                     } else {
-                        printf( "ERROR: Bad aiger status line.\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "ERROR: Bad aiger status line.\n" );
                         return -1;
                     }
                 }
@@ -810,7 +810,7 @@ int Abc_NtkReadCexFile( char * pFileName, Abc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, 
                 nRegs = Vec_IntSize(vNums);
                 if ( nRegs < nRegsNtk )
                 {
-                    printf( "WARNING: Register number is smaller than in Ntk. Appending.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "WARNING: Register number is smaller than in Ntk. Appending.\n" );
                     for (i=0; i<nRegsNtk-nRegs;i++) {
                         Vec_IntPush( vNums, 0 );
                     }
@@ -818,7 +818,7 @@ int Abc_NtkReadCexFile( char * pFileName, Abc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, 
                 }
                 else if ( nRegs > nRegsNtk )
                 {
-                    printf( "WARNING: Register number is larger than in Ntk. Truncating.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "WARNING: Register number is larger than in Ntk. Truncating.\n" );
                     Vec_IntShrink( vNums, nRegsNtk );
                     nRegs = nRegsNtk;
                 }
@@ -841,45 +841,45 @@ int Abc_NtkReadCexFile( char * pFileName, Abc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, 
     fclose( pFile );
 
     if (usedX && !xMode)
-        printf( "Warning: Using 0 instead of x in latches or primary inputs\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Using 0 instead of x in latches or primary inputs\n" );
     int iFrameCex = nFrames;
     if ( nRegs < 0 )
     {
         if (status == 0 || *fOldFormat == 0)
-            printf( "Counter-example is not available.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Counter-example is not available.\n" );
         else
-            printf( "ERROR: Cannot read register number.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "ERROR: Cannot read register number.\n" );
         Vec_IntFree( vNums );
         return -1;
     }
     if ( nRegs != nRegsNtk )
     {
-        printf( "ERROR: Register number not coresponding to Ntk.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ERROR: Register number not coresponding to Ntk.\n" );
         Vec_IntFree( vNums );
         return -1;
     }
     if ( Vec_IntSize(vNums)-nRegs == 0 )
     {
-        printf( "ERROR: Cannot read counter example.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ERROR: Cannot read counter example.\n" );
         Vec_IntFree( vNums );
         return -1;
     }
     if ( (Vec_IntSize(vNums)-nRegs) % (iFrameCex + 1) != 0 )
     {
-        printf( "ERROR: Incorrect number of bits.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ERROR: Incorrect number of bits.\n" );
         Vec_IntFree( vNums );
         return -1;
     }
     int nPi = (Vec_IntSize(vNums)-nRegs)/(iFrameCex + 1);
     if ( nPi != Abc_NtkPiNum(pNtk) )
     {
-        printf( "ERROR: Number of primary inputs not coresponding to Ntk.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ERROR: Number of primary inputs not coresponding to Ntk.\n" );
         Vec_IntFree( vNums );
         return -1;
     }
     if ( iPo >= Abc_NtkPoNum(pNtk) )
     {
-        printf( "WARNING: PO that failed verification not coresponding to Ntk, using first PO instead.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "WARNING: PO that failed verification not coresponding to Ntk, using first PO instead.\n" );
         iPo = 0;
     }
     Abc_NtkForEachLatch( pNtk, pObj, i ) {
@@ -996,7 +996,7 @@ int IoCommandReadCex( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameClearVerifStatus( pAbc );
     pAbc->Status = Abc_NtkReadCexFile( pFileName, pNtk, &pCex, &pCexCare, &pAbc->nFrames, &fOldFormat, fXMode);
     if ( fOldFormat && !fCheck )
-        printf( "WARNING: Old witness format detected and checking is disabled. Reading might have failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "WARNING: Old witness format detected and checking is disabled. Reading might have failed.\n" );
 
     if ( fCheck && pAbc->Status==1) {
         extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
@@ -1005,7 +1005,7 @@ int IoCommandReadCex( Abc_Frame_t * pAbc, int argc, char ** argv )
         verified = Bmc_CexCareVerify( pAig, pCex, pCexCare, false );
         if (!verified)
         {
-            printf( "Checking CEX for any PO.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Checking CEX for any PO.\n" );
             int verified = Bmc_CexCareVerifyAnyPo( pAig, pCex, pCexCare, false );
             Aig_ManStop( pAig );
             if (verified < 0)
@@ -1307,7 +1307,7 @@ int IoCommandReadInit( Abc_Frame_t * pAbc, int argc, char ** argv )
         pFileName = Extra_FileNameGenericAppend( pNtk->pSpec, ".init" );
     else
     {
-        printf( "File name should be given on the command line.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "File name should be given on the command line.\n" );
         return 1;
     }
 
@@ -1381,7 +1381,7 @@ int IoCommandReadPla( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtk = Io_ReadPla( pFileName, fZeros, fBoth, fOnDc, fSkipPrepro, fCheck );
         if ( pNtk == NULL )
         {
-            printf( "Reading PLA file has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Reading PLA file has failed.\n" );
             return 1;
         }
         pNtk = Abc_NtkToLogic( pTemp = pNtk );
@@ -1517,7 +1517,7 @@ int IoCommandReadTruth( Abc_Frame_t * pAbc, int argc, char ** argv )
         FILE * pFile = fopen( argv[globalUtilOptind], "rb" );
         if ( pFile == NULL )
         {
-            printf( "The file \"%s\" cannot be found.\n", argv[globalUtilOptind] );
+            fprintf( Abc_FrameGlobalGetOut(), "The file \"%s\" cannot be found.\n", argv[globalUtilOptind] );
             return 1;
         }
         else 
@@ -1605,7 +1605,7 @@ int IoCommandReadCnf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pFile = fopen( argv[globalUtilOptind], "rb" );
     if ( pFile == NULL )
     {
-        printf( "The file \"%s\" cannot be found.\n", argv[globalUtilOptind] );
+        fprintf( Abc_FrameGlobalGetOut(), "The file \"%s\" cannot be found.\n", argv[globalUtilOptind] );
         return 1;
     }
     else 
@@ -2344,7 +2344,7 @@ int IoCommandWriteAiger( Abc_Frame_t * pAbc, int argc, char **argv )
     // call the corresponding file writer
     if ( !Abc_NtkIsStrash(pAbc->pNtkCur) )
     {
-        fprintf( stdout, "Writing this format is only possible for structurally hashed AIGs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Writing this format is only possible for structurally hashed AIGs.\n" );
         return 1;
     }
     if ( fUnique )
@@ -2694,7 +2694,7 @@ int IoCommandWriteBench( Abc_Frame_t * pAbc, int argc, char **argv )
         Abc_NtkDelete( pNtkTemp );
     }
     else
-        printf( "There is no current network.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There is no current network.\n" );
     return 0;
 
 usage:
@@ -2871,7 +2871,7 @@ int IoCommandWriteCnf( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( Abc_NtkIsStrash(pAbc->pNtkCur) && fAllPrimes )
     {
         fAllPrimes = 0;
-        printf( "Warning: Selected option to write all primes has no effect when deriving CNF from AIG.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Selected option to write all primes has no effect when deriving CNF from AIG.\n" );
     }
     // call the corresponding file writer
     if ( (fFastAlgo || fNewAlgo) && !Abc_NtkIsStrash(pAbc->pNtkCur) )
@@ -2983,7 +2983,7 @@ int IoCommandWriteCnf2( Abc_Frame_t * pAbc, int argc, char **argv )
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         return 0;
     }
     fclose( pFile );
@@ -3103,7 +3103,7 @@ void Abc_NtkDumpOneCexSpecial( FILE * pFile, Abc_Ntk_t * pNtk, Abc_Cex_t * pCex 
     Aig_ManStop( pAig );
     if( pCare == NULL )   
     {
-        printf( "Counter-example minimization has failed.\n" ); 
+        fprintf( Abc_FrameGlobalGetOut(), "Counter-example minimization has failed.\n" ); 
         return;
     }
     // output flop values (unaffected by the minimization)
@@ -3164,7 +3164,7 @@ void Abc_NtkDumpOneCex( FILE * pFile, Abc_Ntk_t * pNtk, Abc_Cex_t * pCex,
                 if ( Abc_NtkPoNum( pNtk ) == 1 )
                     pCare = Bmc_CexCareSatBasedMinimize( pAig, Saig_ManPiNum(pAig), pCex, fHighEffort, fCheckCex, fVerbose );
                 else
-                    printf( "SAT-based CEX minimization requires having a single PO.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "SAT-based CEX minimization requires having a single PO.\n" );
             }
             else if ( fCexInfo )
             {
@@ -3175,7 +3175,7 @@ void Abc_NtkDumpOneCex( FILE * pFile, Abc_Ntk_t * pNtk, Abc_Cex_t * pCex,
                 Abc_Cex_t * pCexEss;
 
                 if ( fCheckCex && !Bmc_CexVerify( p, pCex, pCexCare ) )
-                    printf( "Counter-example care-set verification has failed.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Counter-example care-set verification has failed.\n" );
 
                 pCexEss = Bmc_CexEssentialBits( p, pCexStates, pCexCare, fVerbose );
 
@@ -3183,7 +3183,7 @@ void Abc_NtkDumpOneCex( FILE * pFile, Abc_Ntk_t * pNtk, Abc_Cex_t * pCex,
                 pCare = Bmc_CexCareBits( p, pCexStates, pCexImpl, pCexEss, 0, fVerbose );
 
                 if ( fCheckCex && !Bmc_CexVerify( p, pCex, pCare ) )
-                    printf( "Counter-example min-set verification has failed.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Counter-example min-set verification has failed.\n" );
                 Abc_CexFreeP( &pCexStates );
                 Abc_CexFreeP( &pCexImpl );
                 Abc_CexFreeP( &pCexCare );
@@ -3193,7 +3193,7 @@ void Abc_NtkDumpOneCex( FILE * pFile, Abc_Ntk_t * pNtk, Abc_Cex_t * pCex,
                 pCare = Bmc_CexCareMinimize( pAig, Saig_ManPiNum(pAig), pCex, 4, fCheckCex, fVerbose );
             Aig_ManStop( pAig );
             if(pCare == NULL)
-                printf( "Counter-example minimization has failed.\n" ); 
+                fprintf( Abc_FrameGlobalGetOut(), "Counter-example minimization has failed.\n" ); 
         }
         if (fNames)
         {
@@ -3209,7 +3209,7 @@ void Abc_NtkDumpOneCex( FILE * pFile, Abc_Ntk_t * pNtk, Abc_Cex_t * pCex,
                     break;
             if ( iPivotPi == Abc_NtkPiNum(pNtk) )
             {
-                fprintf( stdout, "IoCommandWriteCex(): Cannot find special PI required by switch \"-z\".\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "IoCommandWriteCex(): Cannot find special PI required by switch \"-z\".\n" );
                 return;
             }
             // count X-valued flops
@@ -3367,7 +3367,7 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     if ( argc != globalUtilOptind + 1 )
     {
-        printf( "File name is missing on the command line.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "File name is missing on the command line.\n" );
         goto usage;
     }
 
@@ -3390,7 +3390,7 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
         pFile = fopen( pFileName, "w" );
         if ( pFile == NULL )
         {
-            fprintf( stdout, "IoCommandWriteCex(): Cannot open the output file \"%s\".\n", pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "IoCommandWriteCex(): Cannot open the output file \"%s\".\n", pFileName );
             return 1;
         }
         if ( pAbc->pCex )
@@ -3421,7 +3421,7 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
         int i;
         if ( pFile == NULL )
         {
-            fprintf( stdout, "IoCommandWriteCex(): Cannot open the output file \"%s\".\n", pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "IoCommandWriteCex(): Cannot open the output file \"%s\".\n", pFileName );
             return 1;
         }
         if ( fNames )
@@ -3699,7 +3699,7 @@ int IoCommandWriteHMetis( Abc_Frame_t * pAbc, int argc, char **argv )
     // call the corresponding file writer
     if ( !Abc_NtkIsStrash(pAbc->pNtkCur) )
     {
-        fprintf( stdout, "Writing this format is only possible for structurally hashed AIGs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Writing this format is only possible for structurally hashed AIGs.\n" );
         return 1;
     }
     Io_WriteHMetis( pAbc->pNtkCur, pFileName, fSkipPo, fWeightEdges, fVerbose );
@@ -3783,7 +3783,7 @@ int IoCommandWriteList( Abc_Frame_t * pAbc, int argc, char **argv )
     int fUseHost;
     int c;
 
-    printf( "This command currently does not work.\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "This command currently does not work.\n" );
     return 0;
 
     fUseHost = 1;
@@ -4021,7 +4021,7 @@ int IoCommandWriteSortCnf( Abc_Frame_t * pAbc, int argc, char **argv )
             case 'N':
                 if ( globalUtilOptind >= argc )
                 {
-                    fprintf( stdout, "Command line switch \"-N\" should be followed by an integer.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Command line switch \"-N\" should be followed by an integer.\n" );
                     goto usage;
                 }
                 nVars = atoi(argv[globalUtilOptind]);
@@ -4032,7 +4032,7 @@ int IoCommandWriteSortCnf( Abc_Frame_t * pAbc, int argc, char **argv )
             case 'Q':
                 if ( globalUtilOptind >= argc )
                 {
-                    fprintf( stdout, "Command line switch \"-Q\" should be followed by an integer.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Command line switch \"-Q\" should be followed by an integer.\n" );
                     goto usage;
                 }
                 nQueens = atoi(argv[globalUtilOptind]);
@@ -4106,33 +4106,33 @@ int IoCommandWriteTruth( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     if ( pAbc->pNtkCur == NULL )
     {
-        printf( "Current network is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current network is not available.\n" );
         return 0;
     }
     if ( !Abc_NtkIsLogic(pNtk) )
     {
-        printf( "Current network should not an AIG. Run \"logic\".\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current network should not an AIG. Run \"logic\".\n" );
         return 0;
     }
     if ( Abc_NtkPoNum(pNtk) != 1 )
     {
-        printf( "Current network should have exactly one primary output.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current network should have exactly one primary output.\n" );
         return 0;
     }
     if ( Abc_NtkNodeNum(pNtk) != 1 )
     {
-        printf( "Current network should have exactly one node.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current network should have exactly one node.\n" );
         return 0;
     }
     pNode = Abc_ObjFanin0( Abc_NtkPo(pNtk, 0) );
     if ( Abc_ObjFaninNum(pNode) == 0 )
     { 
-        printf( "Can only write logic function with 0 inputs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Can only write logic function with 0 inputs.\n" );
         return 0;
     }
     if ( Abc_ObjFaninNum(pNode) > 16 )
     { 
-        printf( "Can only write logic function with no more than 16 inputs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Can only write logic function with no more than 16 inputs.\n" );
         return 0;
     }
     if ( argc != globalUtilOptind + 1 )
@@ -4147,7 +4147,7 @@ int IoCommandWriteTruth( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( pFile == NULL )
     {
         Vec_IntFree( vTruth );
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         return 0;
     }
     if ( fHex )
@@ -4267,7 +4267,7 @@ int IoCommandWriteTruths( Abc_Frame_t * pAbc, int argc, char **argv )
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         return 0;
     }
     nBytes = 8 * Abc_Truth6WordNum( Gia_ManPiNum(pAbc->pGia) );

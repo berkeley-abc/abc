@@ -72,7 +72,7 @@ int Abc_NtkRetimeLValue( Abc_Ntk_t * pNtk, int nIterLimit, int fVerbose )
 //    Abc_NtkLogicMakeSimpleCos( pNtk, 0 );
     // check for correctness
     if ( !Abc_NtkCheck( pNtk ) )
-        fprintf( stdout, "Abc_NtkRetimeLValue(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRetimeLValue(): Network check has failed.\n"  );
     // return the number of latches saved
     return nLatches - Abc_NtkLatchNum(pNtk);
 }
@@ -107,7 +107,7 @@ Vec_Int_t * Abc_NtkRetimeGetLags( Abc_Ntk_t * pNtk, int nIterLimit, int fVerbose
     {
         Vec_PtrFree( vLatches );
         Vec_PtrFree( vNodes );
-        printf( "Abc_NtkRetimeGetLags() error: The upper bound on the clock period cannot be computed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRetimeGetLags() error: The upper bound on the clock period cannot be computed.\n" );
         return Vec_IntStart( Abc_NtkObjNumMax(pNtk) + 1 );
     }
  
@@ -143,7 +143,7 @@ clkIter = Abc_Clock() - clk;
 
     // print the result
 //    if ( fVerbose )
-    printf( "The best clock period is %3d. (Currently, network is not modified.)\n", FiBest );
+    fprintf( Abc_FrameGlobalGetOut(), "The best clock period is %3d. (Currently, network is not modified.)\n", FiBest );
 /*
     {
         FILE * pTable;
@@ -219,9 +219,9 @@ int Abc_NtkRetimeForPeriod( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vL
     if ( fVerbose )
     {
         if ( !fConverged )
-            printf( "Period = %3d.  Iterations = %3d.    Infeasible %s\n", Fi, c, (c > nMaxIters)? "(timeout)" : "" );
+            fprintf( Abc_FrameGlobalGetOut(), "Period = %3d.  Iterations = %3d.    Infeasible %s\n", Fi, c, (c > nMaxIters)? "(timeout)" : "" );
         else
-            printf( "Period = %3d.  Iterations = %3d.      Feasible\n",    Fi, c );
+            fprintf( Abc_FrameGlobalGetOut(), "Period = %3d.  Iterations = %3d.      Feasible\n",    Fi, c );
     }
 /*
     // check if any AND gates have infinite delay
@@ -383,13 +383,13 @@ int Abc_NtkRetimeUsingLags( Abc_Ntk_t * pNtk, Vec_Int_t * vLags, int fVerbose )
         }
     } while ( fChanges );
     if ( fVerbose )
-        printf( "Total latch moves = %d.\n", nTotalMoves );
+        fprintf( Abc_FrameGlobalGetOut(), "Total latch moves = %d.\n", nTotalMoves );
     // check if there are remaining lags
     Counter = 0;
     Abc_NtkForEachNode( pNtk, pObj, i )
         Counter += (Vec_IntEntry( vLags, pObj->Id ) != 0);
     if ( Counter )
-        printf( "Warning! The number of nodes with unrealized lag = %d.\n", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning! The number of nodes with unrealized lag = %d.\n", Counter );
     return 1;
 }
 

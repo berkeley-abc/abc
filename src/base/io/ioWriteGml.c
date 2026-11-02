@@ -55,7 +55,7 @@ void Io_WriteGml( Abc_Ntk_t * pNtk, char * pFileName )
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteGml(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteGml(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
     fprintf( pFile, "# GML for \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );

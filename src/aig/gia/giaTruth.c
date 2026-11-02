@@ -207,13 +207,13 @@ void Gia_Truth6ToGiaTest( Gia_Man_t * p )
                 Vec_IntWriteEntry( vMap, CioId, -1 );
             }
             if ( Truth != TruthNew )
-                printf( "Error for output %d.\n", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Error for output %d.\n", i );
             Count++;
             //Dau_DsdPrintFromTruth( &Truth, Vec_IntSize(vSupp) );
         }
     }
     Gia_ManHashStop( p );
-    printf( "Finished processing %d outputs.\n", Count );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished processing %d outputs.\n", Count );
     Vec_IntFree( vSupp );
     Vec_IntFree( vMap );
 }
@@ -801,7 +801,7 @@ Gia_Man_t * Gia_ManIsoNpnReduce( Gia_Man_t * p, Vec_Ptr_t ** pvPosEquivs, int fV
     // report and return    
     if ( fVerbose )
     { 
-        printf( "Nontrivial classes:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Nontrivial classes:\n" );
         Vec_WecPrint( vPosEquivs, 1 );
     }
     if ( pvPosEquivs )
@@ -862,8 +862,8 @@ void Gia_ManNodeFunctionProfile( Gia_Man_t * p, int nVars )
     for ( i = 0; i < Vec_MemEntryNum(pTtMem); i++ ) {
         word * pCanon = Vec_MemReadEntry( pTtMem, i );
         int Count     = Vec_IntEntry( vCounts, i );
-        Abc_TtPrintHexRev( stdout, pCanon, nVars );
-        printf( " %d\n", Count );
+        Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), pCanon, nVars );
+        fprintf( Abc_FrameGlobalGetOut(), " %d\n", Count );
     }
     Gia_ObjComputeTruthTableStop( p );
     Vec_IntFree( vLeaves );

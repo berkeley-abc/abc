@@ -59,7 +59,7 @@ Gia_Man_t * Gia_ManMapShrink4( Gia_Man_t * p, int fKeepLevel, int fVerbose )
     assert( Gia_ManHasMapping(p) );
     if ( Gia_ManLutSizeMax( p ) > 4 )
     {
-        printf( "Resynthesis is not performed when nodes have more than 4 inputs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Resynthesis is not performed when nodes have more than 4 inputs.\n" );
         return NULL;
     }
     pLutClass   = ABC_CALLOC( int, Gia_ManObjNum(p) );
@@ -128,7 +128,7 @@ Gia_Man_t * Gia_ManMapShrink4( Gia_Man_t * p, int fKeepLevel, int fVerbose )
     {
         pNew = Gia_ManCleanup( pTemp = pNew );
         if ( fVerbose && Gia_ManAndNum(pNew) != Gia_ManAndNum(pTemp) )
-            printf( "Gia_ManMapShrink4() node reduction after sweep %6d -> %6d.\n", Gia_ManAndNum(pTemp), Gia_ManAndNum(pNew) );
+            fprintf( Abc_FrameGlobalGetOut(), "Gia_ManMapShrink4() node reduction after sweep %6d -> %6d.\n", Gia_ManAndNum(pTemp), Gia_ManAndNum(pNew) );
         Gia_ManStop( pTemp );
     }
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
@@ -138,7 +138,7 @@ Gia_Man_t * Gia_ManMapShrink4( Gia_Man_t * p, int fKeepLevel, int fVerbose )
     Vec_IntFree( vLeavesBest );
     if ( fVerbose )
     {
-        printf( "Total gain in AIG nodes = %d.  ", Gia_ManObjNum(p)-Gia_ManObjNum(pNew) );
+        fprintf( Abc_FrameGlobalGetOut(), "Total gain in AIG nodes = %d.  ", Gia_ManObjNum(p)-Gia_ManObjNum(pNew) );
         ABC_PRT( "Total runtime", Abc_Clock() - clk );
     }
     ABC_FREE( pLutClass );

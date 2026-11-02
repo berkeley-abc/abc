@@ -576,10 +576,10 @@ void Checker::add_derived_clause (int64_t id, bool, int,
     LOG ("CHECKER ignoring satisfied derived clause");
   else if (!check () && !check_blocked ()) { // needed for ER proof support
     fatal_message_start ();
-    fputs ("failed to check derived clause:\n", stderr);
+    fputs ("failed to check derived clause:\n", Abc_FrameGlobalGetErr());
     for (const auto &lit : unsimplified)
-      fprintf (stderr, "%d ", lit);
-    fputc ('0', stderr);
+      fprintf( Abc_FrameGlobalGetErr(),  "%d ", lit);
+    fputc( '0', Abc_FrameGlobalGetErr() );
     fatal_message_end ();
   } else
     add_clause ("derived");
@@ -614,10 +614,10 @@ void Checker::delete_clause (int64_t id, bool, const vector<int> &c) {
       d->size = 0;
     } else {
       fatal_message_start ();
-      fputs ("deleted clause not in proof:\n", stderr);
+      fputs ("deleted clause not in proof:\n", Abc_FrameGlobalGetErr());
       for (const auto &lit : unsimplified)
-        fprintf (stderr, "%d ", lit);
-      fputc ('0', stderr);
+        fprintf( Abc_FrameGlobalGetErr(),  "%d ", lit);
+      fputc( '0', Abc_FrameGlobalGetErr() );
       fatal_message_end ();
     }
   }

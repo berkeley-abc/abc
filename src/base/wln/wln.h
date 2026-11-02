@@ -264,6 +264,9 @@ extern void           Rtl_LibFree( Rtl_Lib_t * p );
 
 ABC_NAMESPACE_HEADER_END
 
+extern ABC_DLL FILE *             Abc_FrameGlobalGetOut();
+extern ABC_DLL FILE *             Abc_FrameGlobalGetErr();
+
 #endif
 
 ////////////////////////////////////////////////////////////////////////

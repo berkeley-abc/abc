@@ -264,24 +264,24 @@ void Fraig_VarsStudy( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew 
     // mark the TFI of pNew
     p->nTravIds++;
     NumPis = Fraig_MarkTfi_rec( p, pNew );
-    printf( "(%d)(%d,%d):", NumPis, pOld->Level, pNew->Level );
+    fprintf( Abc_FrameGlobalGetOut(), "(%d)(%d,%d):", NumPis, pOld->Level, pNew->Level );
 
     // check if the old is in the TFI
     if ( pOld->TravId == p->nTravIds )
     {
-        printf( "* " );
+        fprintf( Abc_FrameGlobalGetOut(), "* " );
         return;
     }
 
     // count the boundary of nodes in pOld
     p->nTravIds++;
     NumCut = Fraig_MarkTfi2_rec( p, pOld );
-    printf( "%d", NumCut );
+    fprintf( Abc_FrameGlobalGetOut(), "%d", NumCut );
 
     // check if the new is contained in the old's support
     p->nTravIds++;
     fContain = Fraig_MarkTfi3_rec( p, pNew );
-    printf( "%c ", fContain? '+':'-' );
+    fprintf( Abc_FrameGlobalGetOut(), "%c ", fContain? '+':'-' );
 }
 
 
@@ -359,7 +359,7 @@ p->timeTrav += Abc_Clock() - clk;
 //    ABC_PRT( "Time", Abc_Clock() - clk );
 
     if ( fVerbose )
-        printf( "%d(%d) - ", Fraig_CountPis(p,p->vVarsInt), Msat_IntVecReadSize(p->vVarsInt) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d(%d) - ", Fraig_CountPis(p,p->vVarsInt), Msat_IntVecReadSize(p->vVarsInt) );
 
 
     // prepare variable activity
@@ -424,7 +424,7 @@ if ( fVerbose )
 //            printf( "*" );
 //        printf( "s(%d)", pNew->Level );
         if ( fSwitch )
-             printf( "s(%d)", pNew->Level );
+             fprintf( Abc_FrameGlobalGetOut(), "s(%d)", pNew->Level );
         p->nSatCounter++;
         return 0;
     }
@@ -442,7 +442,7 @@ p->time3 += Abc_Clock() - clk;
         pNew->fFailTfo = 1;
 //        p->nSatFails++;
         if ( fSwitch )
-             printf( "T(%d)", pNew->Level );
+             fprintf( Abc_FrameGlobalGetOut(), "T(%d)", pNew->Level );
         p->nSatFailsReal++;
         return 0;
     }
@@ -502,7 +502,7 @@ if ( fVerbose )
 //            printf( "*" );
 //        printf( "s(%d)", pNew->Level );
         if ( fSwitch )
-             printf( "s(%d)", pNew->Level );
+             fprintf( Abc_FrameGlobalGetOut(), "s(%d)", pNew->Level );
         return 0;
     }
     else // if ( RetValue1 == MSAT_UNKNOWN )
@@ -513,7 +513,7 @@ p->time3 += Abc_Clock() - clk;
 //            printf( "*" );
 //        printf( "T(%d)", pNew->Level );
         if ( fSwitch )
-             printf( "T(%d)", pNew->Level );
+             fprintf( Abc_FrameGlobalGetOut(), "T(%d)", pNew->Level );
 
         // mark the node as the failed node
         pOld->fFailTfo = 1;
@@ -531,7 +531,7 @@ p->time3 += Abc_Clock() - clk;
 //    printf( "u(%d)", pNew->Level );
 
     if ( fSwitch )
-         printf( "u(%d)", pNew->Level );
+         fprintf( Abc_FrameGlobalGetOut(), "u(%d)", pNew->Level );
 
     return 1;
 }
@@ -575,7 +575,7 @@ clk = Abc_Clock();
 p->timeTrav += Abc_Clock() - clk;
 
     if ( fVerbose )
-        printf( "%d(%d) - ", Fraig_CountPis(p,p->vVarsInt), Msat_IntVecReadSize(p->vVarsInt) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d(%d) - ", Fraig_CountPis(p,p->vVarsInt), Msat_IntVecReadSize(p->vVarsInt) );
 
 
     // get the complemented attribute
@@ -1414,7 +1414,7 @@ void Fraig_DetectFanoutFreeConeMux( Fraig_Man_t * pMan, Fraig_Node_t * pNode )
 //    nCubes = Fraig_CutSopCountCubes( pMan, vFanins, vInside );
     nCubes = 0;
 
-printf( "%d(%d)", vFanins->nSize, nCubes );
+fprintf( Abc_FrameGlobalGetOut(), "%d(%d)", vFanins->nSize, nCubes );
     Fraig_NodeVecFree( vFanins );
     Fraig_NodeVecFree( vInside );
 }

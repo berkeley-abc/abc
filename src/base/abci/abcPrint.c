@@ -409,7 +409,7 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
         if ( Abc_NtkIsLogic(pNtk) && Abc_NtkGetFaninMax(pNtk) <= 6 )
             Abc_Print( 1,"  glitch =%7.2f %%", Abc_NtkMfsTotalGlitching(pNtk, 4000, 8, 0) );
         else
-            printf( "\nCurrently computes glitching only for K-LUT networks with K <= 6." );
+            fprintf( Abc_FrameGlobalGetOut(), "\nCurrently computes glitching only for K-LUT networks with K <= 6." );
     }
     if ( fPrintMem )
         Abc_Print( 1,"  mem =%5.2f MB", Abc_NtkMemory(pNtk)/(1<<20) );
@@ -503,7 +503,7 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
         fclose( pTable );
     }
 
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
     if ( pNtk->pExdc )
         Abc_NtkPrintStats( pNtk->pExdc, fFactored, fSaveBest, fDumpResult, fUseLutLib, fPrintMuxes, fPower, fGlitch, fSkipBuf, fSkipSmall, fPrintMem );
 }
@@ -1142,11 +1142,11 @@ void Abc_NodePrintFactor( FILE * pFile, Abc_Obj_t * pNode, int fUseRealNames )
     if ( fUseRealNames )
     {
         vNamesIn = Abc_NodeGetFaninNames(pNode);
-        Dec_GraphPrint( stdout, pGraph, (char **)vNamesIn->pArray, Abc_ObjName(pNode) );
+        Dec_GraphPrint( Abc_FrameGlobalGetOut(), pGraph, (char **)vNamesIn->pArray, Abc_ObjName(pNode) );
         Abc_NodeFreeNames( vNamesIn );
     }
     else
-        Dec_GraphPrint( stdout, pGraph, (char **)NULL, Abc_ObjName(pNode) );
+        Dec_GraphPrint( Abc_FrameGlobalGetOut(), pGraph, (char **)NULL, Abc_ObjName(pNode) );
     Dec_GraphFree( pGraph );
 }
 void Abc_NtkPrintFactor( FILE * pFile, Abc_Ntk_t * pNtk, int fUseRealNames )
@@ -1258,24 +1258,24 @@ void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListN
     if ( fOutputs )
     {
         Abc_NtkLevel(pNtk);
-        printf( "Outputs by level: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Outputs by level: " );
         Abc_NtkForEachCo( pNtk, pNode, k )
-            printf( "%d=%d ", k, Abc_ObjFanin0(pNode)->Level );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", k, Abc_ObjFanin0(pNode)->Level );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         return;        
     }
     if ( fListNodes )
     {
         int nLevels;
         nLevels = Abc_NtkLevel(pNtk);
-        printf( "Nodes by level:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes by level:\n" );
         for ( i = 0; i <= nLevels; i++ )
         {
-            printf( "%2d : ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "%2d : ", i );
             Abc_NtkForEachNode( pNtk, pNode, k )
                 if ( (int)pNode->Level == i )
-                    printf( " %s", Abc_NodeGetPrintName(pNode) );
-            printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), " %s", Abc_NodeGetPrintName(pNode) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         return;
     }
@@ -1313,7 +1313,7 @@ void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListN
         for ( i = 0; i < nIntervals; i++ )
         {
             nOutsSum += pLevelCounts[i];
-            printf( "[%8.2f - %8.2f] :   COs = %4d.   %5.1f %%\n",
+            fprintf( Abc_FrameGlobalGetOut(), "[%8.2f - %8.2f] :   COs = %4d.   %5.1f %%\n",
                 DelayDelta * i, DelayDelta * (i+1), pLevelCounts[i], 100.0 * nOutsSum/nOutsTotal );
         }
         ABC_FREE( pLevelCounts );
@@ -1342,7 +1342,7 @@ void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListN
             if ( pLevelCounts[i] )
             {
                 nOutsSum += pLevelCounts[i];
-                printf( "Level = %4d.  COs = %4d.   %5.1f %%\n", i, pLevelCounts[i], 100.0 * nOutsSum/nOutsTotal );
+                fprintf( Abc_FrameGlobalGetOut(), "Level = %4d.  COs = %4d.   %5.1f %%\n", i, pLevelCounts[i], 100.0 * nOutsSum/nOutsTotal );
             }
         ABC_FREE( pLevelCounts );
         return;
@@ -1428,12 +1428,12 @@ void Abc_NodePrintKMap( Abc_Obj_t * pNode, int fUseRealNames )
     if ( fUseRealNames )
     {
         vNamesIn = Abc_NodeGetFaninNames(pNode);
-        Extra_PrintKMap( stdout, (DdManager *)pNode->pNtk->pManFunc, (DdNode *)pNode->pData, Cudd_Not(pNode->pData),
+        Extra_PrintKMap( Abc_FrameGlobalGetOut(), (DdManager *)pNode->pNtk->pManFunc, (DdNode *)pNode->pData, Cudd_Not(pNode->pData),
             Abc_ObjFaninNum(pNode), NULL, 0, (char **)vNamesIn->pArray );
         Abc_NodeFreeNames( vNamesIn );
     }
     else
-        Extra_PrintKMap( stdout, (DdManager *)pNode->pNtk->pManFunc, (DdNode *)pNode->pData, Cudd_Not(pNode->pData),
+        Extra_PrintKMap( Abc_FrameGlobalGetOut(), (DdManager *)pNode->pNtk->pManFunc, (DdNode *)pNode->pData, Cudd_Not(pNode->pData),
             Abc_ObjFaninNum(pNode), NULL, 0, NULL );
 #endif
 }
@@ -1506,7 +1506,7 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary, int fUpdateProfile )
             if ( Mio_GateReadPinNum(ppGates[i]) > 1 )
                 TotalDiff += Abc_AbsInt( Mio_GateReadProfile(ppGates[i]) - Mio_GateReadProfile2(ppGates[i]) );
             Area = Counter * Mio_GateReadArea( ppGates[i] );
-            printf( "%-*s   Fanin = %2d   Instance = %8d   Area = %10.2f   %6.2f %%   %8d  %8d   %s\n",
+            fprintf( Abc_FrameGlobalGetOut(), "%-*s   Fanin = %2d   Instance = %8d   Area = %10.2f   %6.2f %%   %8d  %8d   %s\n",
                 nGateNameLen, Mio_GateReadName( ppGates[i] ),
                 Mio_GateReadPinNum( ppGates[i] ),
                 Counter, Area, 100.0 * Area / AreaTotal,
@@ -1514,7 +1514,7 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary, int fUpdateProfile )
                 Mio_GateReadProfile2(ppGates[i]),
                 Mio_GateReadForm(ppGates[i]) );
         }
-        printf( "%-*s                Instance = %8d   Area = %10.2f   %6.2f %%   AbsDiff = %d\n",
+        fprintf( Abc_FrameGlobalGetOut(), "%-*s                Instance = %8d   Area = %10.2f   %6.2f %%   AbsDiff = %d\n",
             nGateNameLen, "TOTAL",
             CounterTotal, AreaTotal, 100.0, TotalDiff );
         return;
@@ -1528,7 +1528,7 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary, int fUpdateProfile )
     {
         if ( !Abc_NtkBddToSop(pNtk, -1, ABC_INFINITY, 1) )
         {
-            printf( "Abc_NtkPrintGates(): Converting to SOPs has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkPrintGates(): Converting to SOPs has failed.\n" );
             return;
         }
     }
@@ -1559,13 +1559,13 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary, int fUpdateProfile )
             CountOther++;
         CounterTotal++;
     }
-    printf( "Const        = %8d    %6.2f %%\n", CountConst  ,  100.0 * CountConst   / CounterTotal );
-    printf( "Buffer       = %8d    %6.2f %%\n", CountBuf    ,  100.0 * CountBuf     / CounterTotal );
-    printf( "Inverter     = %8d    %6.2f %%\n", CountInv    ,  100.0 * CountInv     / CounterTotal );
-    printf( "And          = %8d    %6.2f %%\n", CountAnd    ,  100.0 * CountAnd     / CounterTotal );
-    printf( "Or           = %8d    %6.2f %%\n", CountOr     ,  100.0 * CountOr      / CounterTotal );
-    printf( "Other        = %8d    %6.2f %%\n", CountOther  ,  100.0 * CountOther   / CounterTotal );
-    printf( "TOTAL        = %8d    %6.2f %%\n", CounterTotal,  100.0 * CounterTotal / CounterTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Const        = %8d    %6.2f %%\n", CountConst  ,  100.0 * CountConst   / CounterTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Buffer       = %8d    %6.2f %%\n", CountBuf    ,  100.0 * CountBuf     / CounterTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Inverter     = %8d    %6.2f %%\n", CountInv    ,  100.0 * CountInv     / CounterTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "And          = %8d    %6.2f %%\n", CountAnd    ,  100.0 * CountAnd     / CounterTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Or           = %8d    %6.2f %%\n", CountOr     ,  100.0 * CountOr      / CounterTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Other        = %8d    %6.2f %%\n", CountOther  ,  100.0 * CountOther   / CounterTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "TOTAL        = %8d    %6.2f %%\n", CounterTotal,  100.0 * CounterTotal / CounterTotal );
 
     // convert the network back into BDDs if this is how it was
     if ( fHasBdds )
@@ -1579,14 +1579,14 @@ void Abc_NtkPrintGates2( Abc_Ntk_t * pNtk )
         if ( Abc_ObjFaninNum(pNode) < 2 )
             continue;
         word uTruth = Mio_GateReadTruth((Mio_Gate_t *)pNode->pData);
-        printf( "Node %d : ", Abc_ObjId(pNode) );
-        printf( "Fanins %d : ", Abc_ObjFaninNum(pNode) );
-        printf( "Gate %10s : ", Mio_GateReadName((Mio_Gate_t *)pNode->pData) );
-        printf( "Func " );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %d : ", Abc_ObjId(pNode) );
+        fprintf( Abc_FrameGlobalGetOut(), "Fanins %d : ", Abc_ObjFaninNum(pNode) );
+        fprintf( Abc_FrameGlobalGetOut(), "Gate %10s : ", Mio_GateReadName((Mio_Gate_t *)pNode->pData) );
+        fprintf( Abc_FrameGlobalGetOut(), "Func " );
         for ( int i = 0; i < (1 << nFaninMax)-(1 << Abc_ObjFaninNum(pNode)); i++ )
-            printf( " " );
-        Extra_PrintBinary( stdout, (unsigned *)&uTruth, 1 << Abc_ObjFaninNum(pNode) );
-        printf( "\n" );        
+            fprintf( Abc_FrameGlobalGetOut(), " " );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&uTruth, 1 << Abc_ObjFaninNum(pNode) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );        
     }
 }
 
@@ -1608,8 +1608,8 @@ void Abc_NtkPrintSharing( Abc_Ntk_t * pNtk )
     int i, k, m, n, Counter;
 
     // print the template
-    printf( "Statistics about sharing of logic nodes among the CO pairs.\n" );
-    printf( "(CO1,CO2)=NumShared : " );
+    fprintf( Abc_FrameGlobalGetOut(), "Statistics about sharing of logic nodes among the CO pairs.\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "(CO1,CO2)=NumShared : " );
     // go though the CO pairs
     Abc_NtkForEachCo( pNtk, pObj1, i )
     {
@@ -1628,7 +1628,7 @@ void Abc_NtkPrintSharing( Abc_Ntk_t * pNtk )
             Vec_PtrForEachEntry( Abc_Obj_t *, vNodes2, pNode2, n )
                 Counter += pNode2->fMarkA;
             // print
-            printf( "(%d,%d)=%d ", i, k, Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "(%d,%d)=%d ", i, k, Counter );
             Vec_PtrFree( vNodes2 );
         }
         // unmark the nodes
@@ -1636,7 +1636,7 @@ void Abc_NtkPrintSharing( Abc_Ntk_t * pNtk )
             pNode1->fMarkA = 0;
         Vec_PtrFree( vNodes1 );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -1663,13 +1663,13 @@ void Abc_NtkPrintStrSupports( Abc_Ntk_t * pNtk, int fMatrix )
     Vec_Ptr_t * vSupp, * vNodes;
     Abc_Obj_t * pObj;
     int i, k, nPis;
-    printf( "Structural support info:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Structural support info:\n" );
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
         vSupp  = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
         vNodes = Abc_NtkDfsNodes( pNtk, &pObj, 1 );
         nPis   = Abc_NtkCountPis( vSupp );
-        printf( "%5d  %20s :  Cone = %5d.  Supp = %5d. (PIs = %5d. FFs = %5d.)\n",
+        fprintf( Abc_FrameGlobalGetOut(), "%5d  %20s :  Cone = %5d.  Supp = %5d. (PIs = %5d. FFs = %5d.)\n",
             i, Abc_ObjName(pObj), vNodes->nSize, vSupp->nSize, nPis, vSupp->nSize - nPis );
         Vec_PtrFree( vNodes );
         Vec_PtrFree( vSupp );
@@ -1683,7 +1683,7 @@ void Abc_NtkPrintStrSupports( Abc_Ntk_t * pNtk, int fMatrix )
     Abc_NtkForEachCi( pNtk, pObj, k )
         pObj->fMarkA = 0;
 
-    printf( "Actual support info:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Actual support info:\n" );
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
         vSupp  = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
@@ -1692,8 +1692,8 @@ void Abc_NtkPrintStrSupports( Abc_Ntk_t * pNtk, int fMatrix )
         Vec_PtrFree( vSupp );
 
         Abc_NtkForEachCi( pNtk, pObj, k )
-            printf( "%d", pObj->fMarkA );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", pObj->fMarkA );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         Abc_NtkForEachCi( pNtk, pObj, k )
             pObj->fMarkA = 0;
@@ -1829,15 +1829,15 @@ void Abc_NtkPrintMiter( Abc_Ntk_t * pNtk )
         else
             nUndec++;
     }
-    printf( "Miter:  I =%6d", nPis );
-    printf( "  N =%7d", Abc_NtkNodeNum(pNtk) );
-    printf( "  ? =%7d", nUndec );
-    printf( "  U =%6d", nUnsat );
-    printf( "  S =%6d", nSat );
+    fprintf( Abc_FrameGlobalGetOut(), "Miter:  I =%6d", nPis );
+    fprintf( Abc_FrameGlobalGetOut(), "  N =%7d", Abc_NtkNodeNum(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "  ? =%7d", nUndec );
+    fprintf( Abc_FrameGlobalGetOut(), "  U =%6d", nUnsat );
+    fprintf( Abc_FrameGlobalGetOut(), "  S =%6d", nSat );
     Time = Abc_Clock() - Time;
-    printf(" %7.2f sec\n", (float)(Time)/(float)(CLOCKS_PER_SEC));
+    fprintf( Abc_FrameGlobalGetOut(), " %7.2f sec\n", (float)(Time)/(float)(CLOCKS_PER_SEC));
     if ( iOut >= 0 )
-        printf( "The first satisfiable output is number %d (%s).\n", iOut, Abc_ObjName( Abc_NtkPo(pNtk, iOut) ) );
+        fprintf( Abc_FrameGlobalGetOut(), "The first satisfiable output is number %d (%s).\n", iOut, Abc_ObjName( Abc_NtkPo(pNtk, iOut) ) );
 }
 
 /**Function*************************************************************
@@ -1860,12 +1860,12 @@ void Abc_NtkPrintPoEquivs( Abc_Ntk_t * pNtk )
         pDriver = Abc_ObjFanin0(pObj);
         if ( Abc_NtkIsStrash(pNtk) && pDriver == Abc_AigConst1(pNtk) )
         {
-            printf( "%s = Const%d\n", Abc_ObjName(pObj), !Abc_ObjFaninC0(pObj) );
+            fprintf( Abc_FrameGlobalGetOut(), "%s = Const%d\n", Abc_ObjName(pObj), !Abc_ObjFaninC0(pObj) );
             continue;
         }
         else if ( !Abc_NtkIsStrash(pNtk) && Abc_NodeIsConst(pDriver) )
         {
-            printf( "%s = Const%d\n", Abc_ObjName(pObj), Abc_NodeIsConst1(pDriver) );
+            fprintf( Abc_FrameGlobalGetOut(), "%s = Const%d\n", Abc_ObjName(pObj), Abc_NodeIsConst1(pDriver) );
             continue;
         }
         iRepr = Vec_IntEntry( vMap, Abc_ObjId(pDriver) );
@@ -1875,7 +1875,7 @@ void Abc_NtkPrintPoEquivs( Abc_Ntk_t * pNtk )
             continue;
         }
         pRepr = Abc_NtkCo(pNtk, iRepr);
-        printf( "%s = %s%s\n", Abc_ObjName(pObj), Abc_ObjFaninC0(pRepr) == Abc_ObjFaninC0(pObj) ? "" : "!", Abc_ObjName(pRepr) );
+        fprintf( Abc_FrameGlobalGetOut(), "%s = %s%s\n", Abc_ObjName(pObj), Abc_ObjFaninC0(pRepr) == Abc_ObjFaninC0(pObj) ? "" : "!", Abc_ObjName(pRepr) );
     }
     Vec_IntFree( vMap );
 }
@@ -1920,7 +1920,7 @@ float Abc_NtkMfsTotalGlitchingLut( Abc_Ntk_t * pNtk, int nPats, int Prob, int fV
     assert( Abc_NtkGetFaninMax(pNtk) <= 6 );
     if ( Abc_NtkGetFaninMax(pNtk) > 6 )
     {
-        printf( "Abc_NtkMfsTotalGlitching() This procedure works only for mapped networks with LUTs size up to 6 inputs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkMfsTotalGlitching() This procedure works only for mapped networks with LUTs size up to 6 inputs.\n" );
         return -1.0;
     }
     Abc_NtkToAig( pNtk );
@@ -1993,7 +1993,7 @@ float Abc_NtkMfsTotalGlitching( Abc_Ntk_t * pNtk, int nPats, int Prob, int fVerb
     assert( Abc_NtkIsMappedLogic(pNtk) );
     if ( nFaninMax > 16 )
     {
-        printf( "Abc_NtkMfsTotalGlitching() This procedure works only for mapped networks with LUTs size up to 6 inputs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkMfsTotalGlitching() This procedure works only for mapped networks with LUTs size up to 6 inputs.\n" );
         return -1.0;
     }
     vNodes = Abc_NtkDfs( pNtk, 0 );
@@ -2058,61 +2058,61 @@ void Abc_Show6VarFunc( word F0, word F1 )
 
     // output minterms above
     for ( s = 0; s < 4; s++ )
-        printf( " " );
-    printf( " " );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
+    fprintf( Abc_FrameGlobalGetOut(), " " );
     for ( h = 0; h < 8; h++ )
     {
         for ( s = 0; s < 3; s++ )
-            printf( "%d",  ((Cells[h] >> (2-s)) & 1) );
-        printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d",  ((Cells[h] >> (2-s)) & 1) );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // output horizontal line above
     for ( s = 0; s < 4; s++ )
-        printf( " " );
-    printf( "+" );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
+    fprintf( Abc_FrameGlobalGetOut(), "+" );
     for ( h = 0; h < 8; h++ )
     {
         for ( s = 0; s < 3; s++ )
-            printf( "-" );
-        printf( "+" );
+            fprintf( Abc_FrameGlobalGetOut(), "-" );
+        fprintf( Abc_FrameGlobalGetOut(), "+" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // output lines with function values
     for ( v = 0; v < 8; v++ )
     {
         for ( s = 0; s < 3; s++ )
-            printf( "%d",  ((Cells[v] >> (2-s)) & 1) );
-        printf( " |" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d",  ((Cells[v] >> (2-s)) & 1) );
+        fprintf( Abc_FrameGlobalGetOut(), " |" );
 
         for ( h = 0; h < 8; h++ )
         {
-            printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
             if ( ((F0 >> ((Cells[v]*8)+Cells[h])) & 1) )
-                printf( "0" );
+                fprintf( Abc_FrameGlobalGetOut(), "0" );
             else if ( ((F1 >> ((Cells[v]*8)+Cells[h])) & 1) )
-                printf( "1" );
+                fprintf( Abc_FrameGlobalGetOut(), "1" );
             else
-                printf( " " );
-            printf( " |" );
+                fprintf( Abc_FrameGlobalGetOut(), " " );
+            fprintf( Abc_FrameGlobalGetOut(), " |" );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         // output horizontal line above
         for ( s = 0; s < 4; s++ )
-            printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
 //        printf( "%c", v == 7 ? '+' : '|' );
-        printf( "+" );
+        fprintf( Abc_FrameGlobalGetOut(), "+" );
         for ( h = 0; h < 8; h++ )
         {
             for ( s = 0; s < 3; s++ )
-                printf( "-" );
+                fprintf( Abc_FrameGlobalGetOut(), "-" );
 //            printf( "%c", v == 7 ? '+' : '|' );
-            printf( "%c", (v == 7 || h == 7) ? '+' : '|' );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", (v == 7 || h == 7) ? '+' : '|' );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -2132,12 +2132,12 @@ void Abc_NtkShow6VarFunc( char * pF0, char * pF1 )
     word F0, F1;
     if ( strlen(pF0) != 16 )
     {
-        printf( "Wrong length (%d) of 6-var truth table.\n", (int)strlen(pF0) );
+        fprintf( Abc_FrameGlobalGetOut(), "Wrong length (%d) of 6-var truth table.\n", (int)strlen(pF0) );
         return;
     }
     if ( strlen(pF1) != 16 )
     {
-        printf( "Wrong length (%d) of 6-var truth table.\n", (int)strlen(pF1) );
+        fprintf( Abc_FrameGlobalGetOut(), "Wrong length (%d) of 6-var truth table.\n", (int)strlen(pF1) );
         return;
     }
     Extra_ReadHexadecimal( (unsigned *)&F0, pF0, 6 );

@@ -259,17 +259,17 @@ Abc_Cex_t * Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nRealPis, Abc_Cex_t * pCe
     Vec_Int_t * vPriosIn, * vPriosFf;
     if ( pCex->nPis != Gia_ManPiNum(p) )
     {
-        printf( "Given CEX does to have same number of inputs as the AIG.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Given CEX does to have same number of inputs as the AIG.\n" );
         return NULL;
     }
     if ( pCex->nRegs != Gia_ManRegNum(p) )
     {
-        printf( "Given CEX does to have same number of flops as the AIG.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Given CEX does to have same number of flops as the AIG.\n" );
         return NULL;
     }
     if ( !(pCex->iPo >= 0 && pCex->iPo < Gia_ManPoNum(p)) )
     {
-        printf( "Given CEX has PO whose index is out of range for the AIG.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Given CEX has PO whose index is out of range for the AIG.\n" );
         return NULL;
     }
     assert( pCex->nPis == Gia_ManPiNum(p) );
@@ -277,7 +277,7 @@ Abc_Cex_t * Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nRealPis, Abc_Cex_t * pCe
     assert( pCex->iPo >= 0 && pCex->iPo < Gia_ManPoNum(p) );
     if ( fVerbose )
     {
-        printf( "Original :    " );
+        fprintf( Abc_FrameGlobalGetOut(), "Original :    " );
         Bmc_CexPrint( pCex, nRealPis, 0 );
     }
     vPriosIn = Vec_IntAlloc( pCex->nPis  * (pCex->iFrame + 1) );
@@ -368,7 +368,7 @@ Abc_Cex_t * Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nRealPis, Abc_Cex_t * pCe
         assert( Vec_IntSize(vPriosFf) == pCex->nRegs * (pCex->iFrame + 1) );
         if ( !Abc_LitIsCompl(Gia_ManPo(p, pCex->iPo)->Value) )
         {
-            printf( "Counter-example is invalid.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Counter-example is invalid.\n" );
             Vec_IntFree( vPriosIn );
             Vec_IntFree( vPriosFf );
             return NULL;
@@ -377,13 +377,13 @@ Abc_Cex_t * Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nRealPis, Abc_Cex_t * pCe
         if ( fVerbose )
         {
             if ( k == 0 )
-                printf( "PI-  PPI-:    " );
+                fprintf( Abc_FrameGlobalGetOut(), "PI-  PPI-:    " );
             else if ( k == 1 )
-                printf( "PI+  PPI-:    " );
+                fprintf( Abc_FrameGlobalGetOut(), "PI+  PPI-:    " );
             else if ( k == 2 )
-                printf( "PI-  PPI+:    " );
+                fprintf( Abc_FrameGlobalGetOut(), "PI-  PPI+:    " );
             else if ( k == 3 )
-                printf( "PI+  PPI+:    " );
+                fprintf( Abc_FrameGlobalGetOut(), "PI+  PPI+:    " );
             else assert( 0 );
             Bmc_CexPrint( pCexMin[k], nRealPis, 0 );
         }
@@ -407,7 +407,7 @@ Abc_Cex_t * Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nRealPis, Abc_Cex_t * pCe
     if ( fVerbose )
     {
         //Abc_Cex_t * pTotal = Bmc_CexCareTotal( pCexMin, nTryCexes );
-        printf( "Final    :    " );
+        fprintf( Abc_FrameGlobalGetOut(), "Final    :    " );
         Bmc_CexPrint( pCexBest, nRealPis, 0 );
         //printf( "Total    :    " );
         //Bmc_CexPrint( pTotal, nRealPis, 0 );
@@ -418,9 +418,9 @@ Abc_Cex_t * Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nRealPis, Abc_Cex_t * pCe
             Abc_CexFreeP( &pCexMin[k] );
     // verify and return
     if ( !Bmc_CexVerify( p, pCex, pCexBest ) )
-        printf( "Counter-example verification has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Counter-example verification has failed.\n" );
     else if ( fCheck ) 
-        printf( "Counter-example verification succeeded.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Counter-example verification succeeded.\n" );
     return pCexBest;
 }
 Abc_Cex_t * Bmc_CexCareMinimize( Aig_Man_t * p, int nRealPis, Abc_Cex_t * pCex, int nTryCexes, int fCheck, int fVerbose )
@@ -461,16 +461,16 @@ int Bmc_CexCareVerify( Aig_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexMin, int
     Gia_Man_t * pGia = Gia_ManFromAigSimple( p );
     if ( fVerbose )
     {
-        printf( "Original :    " );
+        fprintf( Abc_FrameGlobalGetOut(), "Original :    " );
         Bmc_CexPrint( pCex, Gia_ManPiNum(pGia), 0 );
-        printf( "Minimized:    " );
+        fprintf( Abc_FrameGlobalGetOut(), "Minimized:    " );
         Bmc_CexPrint( pCexMin, Gia_ManPiNum(pGia), 0 );
     }
     result = Bmc_CexVerify( pGia, pCex, pCexMin );
     if ( !result )
-        printf( "Counter-example verification has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Counter-example verification has failed.\n" );
     else 
-        printf( "Counter-example verification succeeded.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Counter-example verification succeeded.\n" );
     Gia_ManStop( pGia );
     return result;
 }
@@ -500,16 +500,16 @@ int Bmc_CexCareVerifyAnyPo( Aig_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexMin
     Gia_Man_t * pGia = Gia_ManFromAigSimple( p );
     if ( fVerbose )
     {
-        printf( "Original :    " );
+        fprintf( Abc_FrameGlobalGetOut(), "Original :    " );
         Bmc_CexPrint( pCex, Gia_ManPiNum(pGia), 0 );
-        printf( "Minimized:    " );
+        fprintf( Abc_FrameGlobalGetOut(), "Minimized:    " );
         Bmc_CexPrint( pCexMin, Gia_ManPiNum(pGia), 0 );
     }
     iPo = Bmc_CexVerifyAnyPo( pGia, pCex, pCexMin );
     if ( iPo < 0 )
-        printf( "Counter-example verification has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Counter-example verification has failed.\n" );
     else
-        printf( "Counter-example verification succeeded.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Counter-example verification succeeded.\n" );
     Gia_ManStop( pGia );
     return iPo;
 }

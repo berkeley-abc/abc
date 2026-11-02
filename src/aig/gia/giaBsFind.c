@@ -182,8 +182,8 @@ int count_unique_subsets(int* sorted_subsets, int num_subsets, int subset_size, 
     }
     
     double percentage = (unique_count * 100.0) / num_subsets;
-    printf("%s: %d unique subsets out of %d (%.1f%%)\n", 
-           label, unique_count, num_subsets, percentage);
+    fprintf( Abc_FrameGlobalGetOut(), "%s: %d unique subsets out of %d (%.1f%%)\n", 
+           label, unique_count, num_subsets, percentage );
     
     return unique_count;
 }
@@ -237,13 +237,13 @@ int genetic_subset_selection(int N, int K, int B, int L,
         }
 
         if ( verbose ) {
-            printf( "Iter %d\n", generation );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %d\n", generation );
             for (int i = 0; i < B; i++ ) {
-                printf( "Subset %2d : {", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Subset %2d : {", i );
                 for (int k = 0; k < K; k++ )
-                    printf( " %2d", (&current_generation[i * subset_size])[k+1] );
-                printf( " }  " );
-                printf( "Cost %2d\n", (&current_generation[i * subset_size])[K+1] );
+                    fprintf( Abc_FrameGlobalGetOut(), " %2d", (&current_generation[i * subset_size])[k+1] );
+                fprintf( Abc_FrameGlobalGetOut(), " }  " );
+                fprintf( Abc_FrameGlobalGetOut(), "Cost %2d\n", (&current_generation[i * subset_size])[K+1] );
             }
         }
         
@@ -287,13 +287,13 @@ int genetic_subset_selection(int N, int K, int B, int L,
     if ( print_unique ) count_unique_subsets(all_best_subsets, total_best_count, subset_size, "All best subsets");
       
     if ( verbose ) {
-        printf( "Final best\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Final best\n" );
         for (int i = 0; i < B; i++ ) {
-            printf( "Subset %2d : {", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Subset %2d : {", i );
             for (int k = 0; k < K; k++ )
-                printf( " %2d", (&all_best_subsets[i * subset_size])[k+1] );
-            printf( " }  " );
-            printf( "Cost %2d\n", (&all_best_subsets[i * subset_size])[K+1] );
+                fprintf( Abc_FrameGlobalGetOut(), " %2d", (&all_best_subsets[i * subset_size])[k+1] );
+            fprintf( Abc_FrameGlobalGetOut(), " }  " );
+            fprintf( Abc_FrameGlobalGetOut(), "Cost %2d\n", (&all_best_subsets[i * subset_size])[K+1] );
         }
     }
     
@@ -565,7 +565,7 @@ int Gia_ManBsFindBest( Gia_Man_t * pGia, int nWords, int nLutSize, int nBest, in
     Abc_Random(1);
     BsFind_UserData_t * p = Gia_ManBsFindMyuFunctionStart( pGia, nWords, nLutSize );
     int nIters = 0, Res = genetic_subset_selection( Gia_ManCiNum(pGia), nLutSize, nBest, nIterMax, fVerbose, Gia_ManBsFindMyuFunction, NULL, &nIters, (void *)p );
-    printf( "The best Myu %d was found after considering %d bound-sets in %d iterations.  ", Res, nIters*nBest*(nBest-1)/2, nIters );
+    fprintf( Abc_FrameGlobalGetOut(), "The best Myu %d was found after considering %d bound-sets in %d iterations.  ", Res, nIters*nBest*(nBest-1)/2, nIters );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Gia_ManBsFindMyuFunctionStop( p );
     return Res;

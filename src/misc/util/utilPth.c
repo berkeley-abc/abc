@@ -149,7 +149,7 @@ void Util_ProcessThreads( int (*pUserFunc)(void *), void * vData, int nProcs, in
     pthread_t WorkerThread[PAR_THR_MAX];
     Vec_Ptr_t * vStack = NULL;
     int i, status;
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
     if ( nProcs <= 2 ) {
         void * pData; int i;
         Vec_PtrForEachEntry( void *, (Vec_Ptr_t *)vData, pData, i )

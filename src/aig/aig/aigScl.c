@@ -108,7 +108,7 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManRemap(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManRemap(): The check has failed.\n" );
     return pNew;
 }
 
@@ -327,7 +327,7 @@ int Aig_ManCountMergeRegs( Aig_Man_t * p )
         Aig_ObjSetTravIdCurrent(p, pFanin);
         Counter++;
     }
-    printf( "Regs = %d. Fanins = %d. Const0 = %d. Const1 = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Regs = %d. Fanins = %d. Const0 = %d. Const1 = %d.\n", 
         Aig_ManRegNum(p), Counter, Const0, Const1 );
     return 0;
 }
@@ -458,7 +458,7 @@ Aig_Man_t * Aig_ManReduceLaches( Aig_Man_t * p, int fVerbose )
     Vec_Ptr_t * vMap;
     int nSaved, nCur;
     if ( fVerbose )
-        printf( "Performing combinational register sweep:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Performing combinational register sweep:\n" );
     for ( nSaved = 0; (nCur = Aig_ManReduceLachesCount(p)); nSaved += nCur )
     {
 //        printf( "Reducible = %d\n", nCur );
@@ -494,7 +494,7 @@ void Aig_ManComputeSccs( Aig_Man_t * p )
     int i, k, m, iOut, iIn, nComps;
     if ( Aig_ManRegNum(p) == 0 )
     {
-        printf( "The network is combinational.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The network is combinational.\n" );
         return;
     }
     // get structural supports for each output
@@ -572,10 +572,10 @@ void Aig_ManComputeSccs( Aig_Man_t * p )
         }
         if ( Vec_IntSize(vComp) == Aig_ManRegNum(p) )
         {
-            printf( "There is only one SCC of registers in this network.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "There is only one SCC of registers in this network.\n" );
             break;
         }
-        printf( "SCC #%d contains %5d registers.\n", nComps+1, Vec_IntSize(vComp) );
+        fprintf( Abc_FrameGlobalGetOut(), "SCC #%d contains %5d registers.\n", nComps+1, Vec_IntSize(vComp) );
     }
     ABC_FREE( pVarsTot );
     Vec_IntFree( vComp );
@@ -623,7 +623,7 @@ Aig_Man_t * Aig_ManSclPart( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, 
             pNew = Aig_ManScl( pTemp, fLatchConst, fLatchEqual, 0, -1, -1, fVerbose, 0 );
             nClasses = Aig_TransferMappedClasses( pAig, pTemp, pMapBack );
             if ( fVerbose )
-                printf( "%3d : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d. It = %3d. Cl = %5d\n",
+                fprintf( Abc_FrameGlobalGetOut(), "%3d : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d. It = %3d. Cl = %5d\n",
                         i, Vec_IntSize(vPart), Aig_ManCiNum(pTemp)-Vec_IntSize(vPart), nCountPis, nCountRegs, Aig_ManNodeNum(pTemp), 0, nClasses );
             Aig_ManStop( pNew );
         }

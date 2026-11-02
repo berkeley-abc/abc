@@ -277,14 +277,14 @@ void Rtm_ObjAddFirst2( Rtm_Man_t * p, Rtm_Edg_t * pEdge, Rtm_Init_t Val )
 void Rtm_PrintEdge( Rtm_Man_t * p, Rtm_Edg_t * pEdge ) 
 {
 //    unsigned LData = pEdge->LData;
-    printf( "%d : ", (int)pEdge->nLats );
+    fprintf( Abc_FrameGlobalGetOut(), "%d : ", (int)pEdge->nLats );
 /*
     if ( pEdge->nLats > 10 )
         Extra_PrintBinary( stdout, p->pExtra + pEdge->LData, 2*(pEdge->nLats+1) );
     else
         Extra_PrintBinary( stdout, &LData, 2*(pEdge->nLats+1) );
 */
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 
@@ -816,7 +816,7 @@ Aig_Man_t * Rtm_ManToAig( Rtm_Man_t * pRtm )
     // remove useless nodes
     Aig_ManCleanup( pNew );
     if ( !Aig_ManCheck( pNew ) )
-        printf( "Rtm_ManToAig: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Rtm_ManToAig: The network check has failed.\n" );
     return pNew;
 }
 
@@ -854,7 +854,7 @@ clk = Abc_Clock();
         nAutos = Rtm_ManMarkAutoBwd( pRtm );
     if ( fVerbose )
     {
-        printf( "Detected %d autonomous objects. ", nAutos );
+        fprintf( Abc_FrameGlobalGetOut(), "Detected %d autonomous objects. ", nAutos );
         ABC_PRT( "Time", Abc_Clock() - clk );
     }
 
@@ -943,9 +943,9 @@ clk = Abc_Clock();
 
     if ( fVerbose )
     {
-        printf( "Performed %d %s latch moves of max depth %d and max latch count %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Performed %d %s latch moves of max depth %d and max latch count %d.\n", 
             Vec_PtrSize(vQueue), fForward? "fwd":"bwd", DegreeMax, Rtm_ManLatchMax(pRtm) );
-        printf( "Memory usage = %d.  ", pRtm->nExtraCur );
+        fprintf( Abc_FrameGlobalGetOut(), "Memory usage = %d.  ", pRtm->nExtraCur );
         ABC_PRT( "Time", Abc_Clock() - clk );
     }
     Vec_PtrFree( vQueue );

@@ -650,6 +650,8 @@ extern void            Kit_TruthPrintProfile( unsigned * pTruth, int nVars );
 
 ABC_NAMESPACE_HEADER_END
 
+extern ABC_DLL FILE *             Abc_FrameGlobalGetOut();
+extern ABC_DLL FILE *             Abc_FrameGlobalGetErr();
 
 
 #endif

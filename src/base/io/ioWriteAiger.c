@@ -283,7 +283,7 @@ void Io_WriteAiger_old( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, i
         {
             if ( !fCompact )
                 break;
-            fprintf( stdout, "Io_WriteAiger(): Cannot write AIGER format with non-0 latch init values. Run \"zero\".\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Io_WriteAiger(): Cannot write AIGER format with non-0 latch init values. Run \"zero\".\n" );
             return;
         }
 
@@ -291,7 +291,7 @@ void Io_WriteAiger_old( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, i
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteAiger(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteAiger(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
 
@@ -361,7 +361,7 @@ void Io_WriteAiger_old( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, i
     Pos = 0;
     nBufferSize = 6 * Abc_NtkNodeNum(pNtk) + 100; // skeptically assuming 3 chars per one AIG edge
     pBuffer = ABC_ALLOC( unsigned char, nBufferSize );
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkObjNumMax(pNtk) );
     Abc_AigForEachAnd( pNtk, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -379,7 +379,7 @@ void Io_WriteAiger_old( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, i
         Pos = Io_WriteAigerEncode( pBuffer, Pos, (unsigned)(uLit1 - uLit0) );
         if ( Pos > nBufferSize - 10 )
         {
-            printf( "Io_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Io_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
             fclose( pFile );
             return;
         }
@@ -444,7 +444,7 @@ void Io_WriteAigerGz( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
     pFile = gzopen( pFileName, "wb" ); // if pFileName doesn't end in ".gz" then this acts as a passthrough to fopen
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteAigerGz(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteAigerGz(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
 
@@ -504,7 +504,7 @@ void Io_WriteAigerGz( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
     Pos = 0;
     nBufferSize = 6 * Abc_NtkNodeNum(pNtk) + 100; // skeptically assuming 3 chars per one AIG edge
     pBuffer = ABC_ALLOC( unsigned char, nBufferSize );
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkObjNumMax(pNtk) );
     Abc_AigForEachAnd( pNtk, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -522,7 +522,7 @@ void Io_WriteAigerGz( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
         Pos = Io_WriteAigerEncode( pBuffer, Pos, uLit1 - uLit0 );
         if ( Pos > nBufferSize - 10 )
         {
-            printf( "Io_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Io_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
             gzclose( pFile );
             return;
         }
@@ -604,7 +604,7 @@ int fprintfBz2Aig( bz2file * b, char * fmt, ... ) {
         }
         BZ2_bzWrite( &bzError, b->b, b->buf, b->nBytes );
         if (bzError == BZ_IO_ERROR) {
-            fprintf( stdout, "Ioa_WriteBlif(): I/O error writing to compressed stream.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Ioa_WriteBlif(): I/O error writing to compressed stream.\n" );
             return -1;
         }
         return b->nBytes;
@@ -655,7 +655,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
         {
             if ( !fCompact )
                 break;
-            fprintf( stdout, "Io_WriteAiger(): Cannot write AIGER format with non-0 latch init values. Run \"zero\".\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Io_WriteAiger(): Cannot write AIGER format with non-0 latch init values. Run \"zero\".\n" );
             return;
         }
 
@@ -674,7 +674,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
     b.f = fopen( pFileName, "wb" ); 
     if ( b.f == NULL )
     {
-        fprintf( stdout, "Io_WriteAiger(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteAiger(): Cannot open the output file \"%s\".\n", pFileName );
         ABC_FREE(b.buf);
         return;
     }
@@ -682,7 +682,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
         b.b = BZ2_bzWriteOpen( &bzError, b.f, 9, 0, 0 );
         if ( bzError != BZ_OK ) {
             BZ2_bzWriteClose( &bzError, b.b, 0, NULL, NULL );
-            fprintf( stdout, "Io_WriteAiger(): Cannot start compressed stream.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Io_WriteAiger(): Cannot start compressed stream.\n" );
             fclose( b.f );
             ABC_FREE(b.buf);
             return;
@@ -751,7 +751,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
         {
             BZ2_bzWrite( &bzError, b.b, Vec_StrArray(vBinary), Vec_StrSize(vBinary) );
             if (bzError == BZ_IO_ERROR) {
-                fprintf( stdout, "Io_WriteAiger(): I/O error writing to compressed stream.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Io_WriteAiger(): I/O error writing to compressed stream.\n" );
                 fclose( b.f );
                 ABC_FREE(b.buf);
                 Vec_StrFree( vBinary );
@@ -767,7 +767,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
     Pos = 0;
     nBufferSize = 6 * Abc_NtkNodeNum(pNtk) + 100; // skeptically assuming 3 chars per one AIG edge
     pBuffer = ABC_ALLOC( unsigned char, nBufferSize );
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkObjNumMax(pNtk) );
     Abc_AigForEachAnd( pNtk, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -785,7 +785,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
         Pos = Io_WriteAigerEncode( pBuffer, Pos, (unsigned)(uLit1 - uLit0) );
         if ( Pos > nBufferSize - 10 )
         {
-            printf( "Io_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Io_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
             fclose( b.f );
             ABC_FREE(b.buf);
             Extra_ProgressBarStop( pProgress );
@@ -802,7 +802,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
     {
         BZ2_bzWrite( &bzError, b.b, pBuffer, Pos );
         if (bzError == BZ_IO_ERROR) {
-            fprintf( stdout, "Io_WriteAiger(): I/O error writing to compressed stream.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Io_WriteAiger(): I/O error writing to compressed stream.\n" );
             fclose( b.f );
             ABC_FREE(b.buf);
             return;
@@ -843,7 +843,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
     if (b.b) {
         BZ2_bzWriteClose( &bzError, b.b, 0, NULL, NULL );
         if (bzError == BZ_IO_ERROR) {
-            fprintf( stdout, "Io_WriteAiger(): I/O error closing compressed stream.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Io_WriteAiger(): I/O error closing compressed stream.\n" );
             fclose( b.f );
             ABC_FREE(b.buf);
             return;
@@ -896,7 +896,7 @@ void Io_WriteAigerCex( Abc_Cex_t * pCex, Abc_Ntk_t * pNtk, void * pG, char * pFi
     }
     else
     {
-        printf( "AIG parameters do not match those of the CEX.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "AIG parameters do not match those of the CEX.\n" );
         return;
     }
 

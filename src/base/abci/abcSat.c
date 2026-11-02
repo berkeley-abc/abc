@@ -130,7 +130,7 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsL
     }
     // free the sat_solver
     if ( fVerbose )
-        Sat_SolverPrintStats( stdout, pSat );
+        Sat_SolverPrintStats( Abc_FrameGlobalGetOut(), pSat );
 
     if ( pNumConfs )
         *pNumConfs = (int)pSat->stats.conflicts;
@@ -720,7 +720,7 @@ int Abc_NodeAddClauses( sat_solver * pSat, char * pSop0, char * pSop1, Abc_Obj_t
         RetValue = sat_solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
         if ( !RetValue ) 
         {
-            printf( "The CNF is trivially UNSAT.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The CNF is trivially UNSAT.\n" );
             return 0;
         }
         return 1;
@@ -746,7 +746,7 @@ int Abc_NodeAddClauses( sat_solver * pSat, char * pSop0, char * pSop1, Abc_Obj_t
         RetValue = sat_solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
         if ( !RetValue ) 
         {
-            printf( "The CNF is trivially UNSAT.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The CNF is trivially UNSAT.\n" );
             return 0;
         }
     }
@@ -771,7 +771,7 @@ int Abc_NodeAddClauses( sat_solver * pSat, char * pSop0, char * pSop1, Abc_Obj_t
         RetValue = sat_solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
         if ( !RetValue ) 
         {
-            printf( "The CNF is trivially UNSAT.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The CNF is trivially UNSAT.\n" );
             return 0;
         }
     }
@@ -803,7 +803,7 @@ int Abc_NodeAddClausesTop( sat_solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVa
         RetValue = sat_solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
         if ( !RetValue ) 
         {
-            printf( "The CNF is trivially UNSAT.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The CNF is trivially UNSAT.\n" );
             return 0;
         }
 
@@ -813,7 +813,7 @@ int Abc_NodeAddClausesTop( sat_solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVa
         RetValue = sat_solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
         if ( !RetValue ) 
         {
-            printf( "The CNF is trivially UNSAT.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The CNF is trivially UNSAT.\n" );
             return 0;
         }
     }
@@ -825,7 +825,7 @@ int Abc_NodeAddClausesTop( sat_solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVa
         RetValue = sat_solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
         if ( !RetValue ) 
         {
-            printf( "The CNF is trivially UNSAT.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The CNF is trivially UNSAT.\n" );
             return 0;
         }
 
@@ -835,7 +835,7 @@ int Abc_NodeAddClausesTop( sat_solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVa
         RetValue = sat_solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
         if ( !RetValue ) 
         {
-            printf( "The CNF is trivially UNSAT.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The CNF is trivially UNSAT.\n" );
             return 0;
         }
     }
@@ -845,7 +845,7 @@ int Abc_NodeAddClausesTop( sat_solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVa
     RetValue = sat_solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
     if ( !RetValue ) 
     {
-        printf( "The CNF is trivially UNSAT.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The CNF is trivially UNSAT.\n" );
         return 0;
     }
     return 1;
@@ -947,7 +947,7 @@ void Abc_NtkWriteSorterCnf( char * pFileName, int nVars, int nQueens )
 
     if ( nQueens <= 0 && nQueens >= nVars )
     {
-        printf( "The number of queens (Q = %d) should belong to the interval: 0 < Q < %d.\n", nQueens, nQueens);
+        fprintf( Abc_FrameGlobalGetOut(),  "The number of queens (Q = %d) should belong to the interval: 0 < Q < %d.\n", nQueens, nQueens);
         return;
     }
     assert( nQueens > 0 && nQueens < nVars );
@@ -956,14 +956,14 @@ void Abc_NtkWriteSorterCnf( char * pFileName, int nVars, int nQueens )
     sprintf( Command, "gen -s -N %d sorter%d.blif", nVars, nVars );
     if ( Cmd_CommandExecute( (Abc_Frame_t *)pAbc, Command ) )
     {
-        fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot execute command \"%s\".\n", Command );
         return;
     }
     // read the file
     sprintf( Command, "read sorter%d.blif; strash", nVars );
     if ( Cmd_CommandExecute( (Abc_Frame_t *)pAbc, Command ) )
     {
-        fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot execute command \"%s\".\n", Command );
         return;
     }
 

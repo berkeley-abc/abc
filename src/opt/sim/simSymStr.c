@@ -419,7 +419,7 @@ void Sim_SymmsTrans( Vec_Int_t * vSymms )
         }
 
     }
-    printf( "Trans = %d.\n", nTrans );
+    fprintf( Abc_FrameGlobalGetOut(), "Trans = %d.\n", nTrans );
 }
 
 

@@ -111,7 +111,7 @@ void Io_WriteList( Abc_Ntk_t * pNtk, char * pFileName, int fUseHost )
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteList(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteList(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
 
@@ -230,7 +230,7 @@ void Io_WriteCellNet( Abc_Ntk_t * pNtk, char * pFileName )
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteCellNet(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteCellNet(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
 

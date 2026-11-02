@@ -316,7 +316,7 @@ int Bmc_ChainTest( Gia_Man_t * p, int nFrameMax, int nConfMax, int fVerbose, int
         if ( Gia_ManPoNum(pNew) == 0 )
         {
             if ( fVerbose )
-                printf( "Finished all POs.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Finished all POs.\n" );
             break;
         }
         // run BMC till the first failure
@@ -326,7 +326,7 @@ int Bmc_ChainTest( Gia_Man_t * p, int nFrameMax, int nConfMax, int fVerbose, int
         if ( pCex == NULL )
         {
             if ( fVerbose )
-                printf( "BMC could not detect a failed output in %d frames with %d conflicts.\n", nFrameMax, nConfMax );
+                fprintf( Abc_FrameGlobalGetOut(), "BMC could not detect a failed output in %d frames with %d conflicts.\n", nFrameMax, nConfMax );
             break;
         }
         assert( !Iter || pCex->iFrame > 0 );
@@ -360,17 +360,17 @@ int Bmc_ChainTest( Gia_Man_t * p, int nFrameMax, int nConfMax, int fVerbose, int
         if ( fVerbose )
         {
             int nNonConst = Gia_ManCountNonConst0(pNew);
-            printf( "Iter %4d : ",    Iter+1 );
-            printf( "Depth =%5d  ",   DepthTotal );
-            printf( "FailPo =%5d  ",  Vec_IntSize(vOutputs) );
-            printf( "UndecPo =%5d ",  nNonConst );
-            printf( "(%6.2f %%)  ",   100.0 * nNonConst / Gia_ManPoNum(pNew) );
-            printf( "AIG =%8d  ",     Gia_ManAndNum(pNew) );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %4d : ",    Iter+1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Depth =%5d  ",   DepthTotal );
+            fprintf( Abc_FrameGlobalGetOut(), "FailPo =%5d  ",  Vec_IntSize(vOutputs) );
+            fprintf( Abc_FrameGlobalGetOut(), "UndecPo =%5d ",  nNonConst );
+            fprintf( Abc_FrameGlobalGetOut(), "(%6.2f %%)  ",   100.0 * nNonConst / Gia_ManPoNum(pNew) );
+            fprintf( Abc_FrameGlobalGetOut(), "AIG =%8d  ",     Gia_ManAndNum(pNew) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
         Vec_IntFree( vOutputs );
     }
-    printf( "Completed a CEX chain with %d segments, %d frames, and %d failed POs (out of %d). ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Completed a CEX chain with %d segments, %d frames, and %d failed POs (out of %d). ", 
         Iter, DepthTotal, Gia_ManPoNum(pNew) - Gia_ManCountNonConst0(pNew), Gia_ManPoNum(pNew) );
     if ( fVerbose )
     {
@@ -383,7 +383,7 @@ int Bmc_ChainTest( Gia_Man_t * p, int nFrameMax, int nConfMax, int fVerbose, int
     }
     Gia_ManStop( pNew );
     if ( pvCexes )
-        printf( "Total number of CEXes collected = %d.\n", Vec_PtrSize(*pvCexes) );
+        fprintf( Abc_FrameGlobalGetOut(), "Total number of CEXes collected = %d.\n", Vec_PtrSize(*pvCexes) );
     return 0;
 }
 

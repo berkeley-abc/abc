@@ -25,6 +25,8 @@
 #include "bool/lucky/lucky.h"
 #include "opt/dau/dau.h"
 
+#include "base/abc/abc.h"
+
 ABC_NAMESPACE_IMPL_START
 
 
@@ -173,10 +175,10 @@ void Abc_TruthNpnPrint( char * pCanonPermInit, unsigned uCanonPhase, int nVars )
     assert( nVars <= 16 );
     for ( i = 0; i < nVars; i++ )
         pCanonPerm[i] = pCanonPermInit ? pCanonPermInit[i] : 'a' + i;
-    printf( "   %c = ( ", Abc_InfoHasBit(&uCanonPhase, nVars) ? 'Z':'z' );
+    fprintf( Abc_FrameGlobalGetOut(), "   %c = ( ", Abc_InfoHasBit(&uCanonPhase, nVars) ? 'Z':'z' );
     for ( i = 0; i < nVars; i++ )
-        printf( "%c%s", pCanonPerm[i] + ('A'-'a') * Abc_InfoHasBit(&uCanonPhase, pCanonPerm[i]-'a'), i == nVars-1 ? "":"," );
-    printf( " )  " );
+        fprintf( Abc_FrameGlobalGetOut(), "%c%s", pCanonPerm[i] + ('A'-'a') * Abc_InfoHasBit(&uCanonPhase, pCanonPerm[i]-'a'), i == nVars-1 ? "":"," );
+    fprintf( Abc_FrameGlobalGetOut(), " )  " );
 }
 
 /**Function*************************************************************
@@ -229,19 +231,19 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
 
     assert( p->nVars <= 16 );
     if ( pAlgoName )
-        printf( "Applying %-20s to %8d func%s of %2d vars...  ",  
+        fprintf( Abc_FrameGlobalGetOut(), "Applying %-20s to %8d func%s of %2d vars...  ",  
             pAlgoName, p->nFuncs, (p->nFuncs == 1 ? "":"s"), p->nVars );
     if ( fVerbose )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     if ( NpnType == 0 )
     {
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
-                printf( "%7d : ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%7d : ", i );
             if ( fVerbose )
-                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), printf( "\n" );
+                Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)p->pFuncs[i], p->nVars ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     else if ( NpnType == 1 )
@@ -252,10 +254,10 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
-                printf( "%7d : ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%7d : ", i );
             simpleMinimal(p->pFuncs[i], pAuxWord, pAuxWord1, pi, p->nVars);
             if ( fVerbose )
-                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), printf( "\n" );
+                Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         freePermInfoPtr(pi);
     }
@@ -264,11 +266,11 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
-                printf( "%7d : ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%7d : ", i );
             resetPCanonPermArray(pCanonPerm, p->nVars);
             uCanonPhase = Kit_TruthSemiCanonicize( (unsigned *)p->pFuncs[i], pAux, p->nVars, pCanonPerm );
             if ( fVerbose )
-                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), printf( "\n" );
+                Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     else if ( NpnType == 3 )
@@ -276,11 +278,11 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
-                printf( "%7d : ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%7d : ", i );
             resetPCanonPermArray(pCanonPerm, p->nVars);
             uCanonPhase = luckyCanonicizer_final_fast( p->pFuncs[i], p->nVars, pCanonPerm );
             if ( fVerbose )
-                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), printf( "\n" );
+                Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     else if ( NpnType == 4 )
@@ -288,11 +290,11 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
-                printf( "%7d : ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%7d : ", i );
             resetPCanonPermArray(pCanonPerm, p->nVars);
             uCanonPhase = luckyCanonicizer_final_fast1( p->pFuncs[i], p->nVars, pCanonPerm );
             if ( fVerbose )
-                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), printf( "\n" );
+                Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     else if ( NpnType == 5 )
@@ -300,10 +302,10 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
-                printf( "%7d : ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%7d : ", i );
             uCanonPhase = Abc_TtCanonicize( p->pFuncs[i], p->nVars, pCanonPerm );
             if ( fVerbose )
-                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), printf( "\n" );
+                Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     else if ( NpnType == 6 )
@@ -311,10 +313,10 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
-                printf( "%7d : ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%7d : ", i );
             uCanonPhase = Abc_TtCanonicizePhase( p->pFuncs[i], p->nVars );
             if ( fVerbose )
-                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(NULL, uCanonPhase, p->nVars), printf( "\n" );
+                Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(NULL, uCanonPhase, p->nVars), fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     else if ( NpnType == 7 )
@@ -324,11 +326,11 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
-                printf( "%7d : ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%7d : ", i );
             uCanonPhase = Abc_TtCanonicizeHie( pMan, p->pFuncs[i], p->nVars, pCanonPerm, fExact );
             if ( fVerbose )
 //                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(NULL, uCanonPhase, p->nVars), printf( "\n" );
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         // nClasses = Abc_TtManNumClasses( pMan );
 		Abc_TtHieManStop( pMan );
@@ -340,10 +342,10 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
 		for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
-                printf( "%7d : ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%7d : ", i );
             uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeAda, pMan, p->pFuncs[i], p->nVars, pCanonPerm, fHigh*100 + iEnumThres);
             if ( fVerbose )
-                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), printf( "\n" );
+                Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
 		Abc_TtHieManStop(pMan);
     }
@@ -353,7 +355,7 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
 		for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
-                printf( "%7d : ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%7d : ", i );
             if ( NpnType == 9 )
                 uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeAda, pMan, p->pFuncs[i], p->nVars, pCanonPerm,  125); // -A 8, adjustable algorithm (heuristic)
             else if ( NpnType == 10 )
@@ -361,7 +363,7 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
             else if ( NpnType == 11 )
                 uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeCA,  pMan, p->pFuncs[i], p->nVars, pCanonPerm,    1); // -A 10, new cost-aware exact algorithm
             if ( fVerbose )
-                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), printf( "\n" );
+                Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
 		Abc_TtHieManStop(pMan);
     }
@@ -370,15 +372,15 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
-                printf( "%7d : ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%7d : ", i );
             uCanonPhase = Abc_TtCanonicizePerm( p->pFuncs[i], p->nVars, pCanonPerm );
             if ( fVerbose )
-                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), printf( "\n" );
+                Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     else assert( 0 );
     clk = Abc_Clock() - clk;
-    printf( "Classes =%9d  ", Abc_TruthNpnCountUnique(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Classes =%9d  ", Abc_TruthNpnCountUnique(p) );
     Abc_PrintTime( 1, "Time", clk );
 }
 
@@ -415,7 +417,7 @@ void Abc_TruthNpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes,
             pFileNameOut = Extra_FileNameGenericAppend( pFileName, "_out.txt" );
         Abc_TtStoreWrite( pFileNameOut, p, fBinary );
         if ( fVerbose )
-            printf( "The resulting functions are written into file \"%s\".\n", pFileNameOut );
+            fprintf( Abc_FrameGlobalGetOut(), "The resulting functions are written into file \"%s\".\n", pFileNameOut );
     }
 
     // delete data-structure
@@ -438,12 +440,12 @@ void Abc_TruthNpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes,
 int Abc_NpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes, int fBinary, int fVerbose )
 {
     if ( fVerbose )
-        printf( "Using truth tables from file \"%s\"...\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Using truth tables from file \"%s\"...\n", pFileName );
     if ( NpnType >= 0 && NpnType <= 12 )
         Abc_TruthNpnTest( pFileName, NpnType, nVarNum, fDumpRes, fBinary, fVerbose );
     else
-        printf( "Unknown canonical form value (%d).\n", NpnType );
-    fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "Unknown canonical form value (%d).\n", NpnType );
+    fflush( Abc_FrameGlobalGetOut() );
     return 0;
 }
 

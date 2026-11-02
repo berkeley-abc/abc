@@ -523,7 +523,7 @@ Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay,
     // check if profile is entered
     fProfile = Mio_LibraryHasProfile( pLib );
     if ( fProfile )
-        printf( "Mio_CollectRoots(): Using gate profile to select gates for mapping.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Mio_CollectRoots(): Using gate profile to select gates for mapping.\n" );
     // for each functionality, select gate with the smallest area
     // if equal areas, select gate with lexicographically smaller name
     Mio_LibraryForEachGate( pLib, pGate )
@@ -555,7 +555,7 @@ Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay,
         assert( iGate < nGates );
         ppGates[ iGate++ ] = pGate;
         if ( fVerbose )
-            printf( "Selected gate %3d:   %-20s  A = %7.2f  D = %7.2f  %3s = %-s\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Selected gate %3d:   %-20s  A = %7.2f  D = %7.2f  %3s = %-s\n", 
                 iGate+1, pGate->pName, pGate->dArea, pGate->dDelayMax, pGate->pOutName, pGate->pForm );
     }
     // sort by delay
@@ -661,13 +661,13 @@ Mio_Cell_t * Mio_CollectRootsNew( Mio_Library_t * pLib, int nInputs, int * pnGat
         Mio_CollectCopy( ppCells + iCell++, pGate );
     }
     if ( ppCells[0].pName == NULL )
-        { printf( "Error: Cannot find constant 0 gate in the library.\n" ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Error: Cannot find constant 0 gate in the library.\n" ); return NULL; }
     if ( ppCells[1].pName == NULL )
-        { printf( "Error: Cannot find constant 1 gate in the library.\n" ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Error: Cannot find constant 1 gate in the library.\n" ); return NULL; }
     if ( ppCells[2].pName == NULL )
-        { printf( "Error: Cannot find buffer gate in the library.\n" );     return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Error: Cannot find buffer gate in the library.\n" );     return NULL; }
     if ( ppCells[3].pName == NULL )
-        { printf( "Error: Cannot find inverter gate in the library.\n" );   return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Error: Cannot find inverter gate in the library.\n" );   return NULL; }
     // sort by delay
     if ( iCell > 5 ) 
     {
@@ -699,11 +699,11 @@ Mio_Cell_t * Mio_CollectRootsNew( Mio_Library_t * pLib, int nInputs, int * pnGat
         for ( i = 0; i < iCell; i++ )
         {
             Mio_Cell_t * pCell = ppCells + i;
-            printf( "%4d : ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d : ", i );
             if ( pCell->pName == NULL )
-                printf( "None\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "None\n" );
             else
-                printf( "%-20s   In = %d   N = %3d   A = %12.6f   D = %12.6f\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "%-20s   In = %d   N = %3d   A = %12.6f   D = %12.6f\n", 
                     pCell->pName, pCell->nFanins, pCounts[i], pCell->Area, Mio_CellDelayAve(pCell) );
         }
         ABC_FREE( pCounts );
@@ -818,13 +818,13 @@ Mio_Cell2_t * Mio_CollectRootsNew2( Mio_Library_t * pLib, int nInputs, int * pnG
     }
     ABC_FREE( ppCells0 );
     if ( ppCells[0].pName == NULL )
-        { printf( "Error: Cannot find constant 0 gate in the library.\n" ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Error: Cannot find constant 0 gate in the library.\n" ); return NULL; }
     if ( ppCells[1].pName == NULL )
-        { printf( "Error: Cannot find constant 1 gate in the library.\n" ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Error: Cannot find constant 1 gate in the library.\n" ); return NULL; }
     if ( ppCells[2].pName == NULL )
-        { printf( "Error: Cannot find buffer gate in the library.\n" );     return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Error: Cannot find buffer gate in the library.\n" );     return NULL; }
     if ( ppCells[3].pName == NULL )
-        { printf( "Error: Cannot find inverter gate in the library.\n" );   return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Error: Cannot find inverter gate in the library.\n" );   return NULL; }
     // sort by delay
     if ( iCell > 5 ) 
     {
@@ -861,11 +861,11 @@ Mio_Cell2_t * Mio_CollectRootsNew2( Mio_Library_t * pLib, int nInputs, int * pnG
         for ( i = 0; i < iCell; i++ )
         {
             Mio_Cell2_t * pCell = ppCells + i;
-            printf( "%4d : ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d : ", i );
             if ( pCell->pName == NULL )
-                printf( "None\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "None\n" );
             else
-                printf( "%-20s   In = %d   N = %3d   A = %12.6f   D = %12.6f\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "%-20s   In = %d   N = %3d   A = %12.6f   D = %12.6f\n", 
                     pCell->pName, pCell->nFanins, pCounts[i], pCell->AreaF, Scl_Int2Flt(pCell->iDelayAve) );
         }
         ABC_FREE( pCounts );
@@ -1175,7 +1175,7 @@ void Mio_DeriveGateDelays( Mio_Gate_t * pGate,
         }
         if ( k != nPins )
         {
-            printf ("DEBUG: problem gate is %s\n", Mio_GateReadName( pGate ));
+            fprintf ( Abc_FrameGlobalGetOut(), "DEBUG: problem gate is %s\n", Mio_GateReadName( pGate ));
         }
         assert( k == nPins );
         if ( DelayMax < ptDelaysRes[i] )
@@ -1435,14 +1435,14 @@ void Nf_ManPrepareLibrary( Mio_Library_t * pLib )
         nClasses += Vec_WrdSize(vResult);
         nTotal = (1 << (pSizes[i]+1)) * Extra_Factorial(pSizes[i]);
 
-        printf( "%6d : ", i );
-        printf( "%16s : ", Mio_GateReadName( ppGates[i] ) );
-        printf( "%48s : ", Mio_GateReadForm( ppGates[i] ) );
-        printf( "Inputs = %2d   ", pSizes[i] );
-        printf( "Total = %6d  ", nTotal );
-        printf( "Classes = %6d ", Vec_WrdSize(vResult) );
-        printf( "Configs = %8.2f ", 1.0*nTotal/Vec_WrdSize(vResult) );
-        printf( "%6.2f %%  ", 100.0*Vec_WrdSize(vResult)/nTotal );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%16s : ", Mio_GateReadName( ppGates[i] ) );
+        fprintf( Abc_FrameGlobalGetOut(), "%48s : ", Mio_GateReadForm( ppGates[i] ) );
+        fprintf( Abc_FrameGlobalGetOut(), "Inputs = %2d   ", pSizes[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "Total = %6d  ", nTotal );
+        fprintf( Abc_FrameGlobalGetOut(), "Classes = %6d ", Vec_WrdSize(vResult) );
+        fprintf( Abc_FrameGlobalGetOut(), "Configs = %8.2f ", 1.0*nTotal/Vec_WrdSize(vResult) );
+        fprintf( Abc_FrameGlobalGetOut(), "%6.2f %%  ", 100.0*Vec_WrdSize(vResult)/nTotal );
         Dau_DsdPrintFromTruth( &pTruths[i], pSizes[i] );
 //        printf( "\n" );
     }
@@ -1456,7 +1456,7 @@ void Nf_ManPrepareLibrary( Mio_Library_t * pLib )
     for ( i = 2; i <= 6; i++ )
         ABC_FREE( pPerm[i] );
 
-    printf( "Classes = %d.  ", nClasses );
+    fprintf( Abc_FrameGlobalGetOut(), "Classes = %d.  ", nClasses );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
@@ -1466,7 +1466,7 @@ void Nf_ManPrepareLibraryTest2()
     if ( pLib != NULL )
         Nf_ManPrepareLibrary( pLib );
     else
-        printf( "Standard cell library is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Standard cell library is not available.\n" );
 
 }
 
@@ -1489,12 +1489,12 @@ void Mio_LibraryTransferCellIds()
     int CellId;
     if ( pScl == NULL )
     {
-        printf( "SC library cannot be found.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "SC library cannot be found.\n" );
         return;
     }
     if ( pLib == NULL )
     {
-        printf( "Genlib library cannot be found.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Genlib library cannot be found.\n" );
         return;
     }
     Mio_LibraryForEachGate( pLib, pGate )
@@ -1503,7 +1503,7 @@ void Mio_LibraryTransferCellIds()
             continue;
         CellId = Abc_SclCellFind( pScl, Mio_GateReadName(pGate) );
         if ( CellId < 0 )
-            printf( "Cannot find cell ID of gate %s.\n", Mio_GateReadName(pGate) );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot find cell ID of gate %s.\n", Mio_GateReadName(pGate) );
         else
             Mio_GateSetCell( pGate, CellId );
     }
@@ -1536,7 +1536,7 @@ void Mio_LibraryReadProfile( FILE * pFile, Mio_Library_t * pLib )
         pGate = Mio_LibraryReadGateByName( pLib, pToken, NULL );
         if ( pGate == NULL )
         {
-            printf( "Cannot find gate \"%s\" in library \"%s\".\n", pToken, Mio_LibraryReadName(pLib) );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot find gate \"%s\" in library \"%s\".\n", pToken, Mio_LibraryReadName(pLib) );
             continue;
         }
         // read profile
@@ -1581,7 +1581,7 @@ void Mio_LibraryTransferProfile( Mio_Library_t * pLibDst, Mio_Library_t * pLibSr
                         break;
                 if ( pGateDst == NULL )
                 {
-                    printf( "Cannot find gate \"%s\" in library \"%s\".\n", Mio_GateReadName(pGateSrc), Mio_LibraryReadName(pLibDst) );
+                    fprintf( Abc_FrameGlobalGetOut(), "Cannot find gate \"%s\" in library \"%s\".\n", Mio_GateReadName(pGateSrc), Mio_LibraryReadName(pLibDst) );
                     continue;
                 }
             }
@@ -1606,7 +1606,7 @@ void Mio_LibraryTransferProfile2( Mio_Library_t * pLibDst, Mio_Library_t * pLibS
                         break;
                 if ( pGateDst == NULL )
                 {
-                    printf( "Cannot find gate \"%s\" in library \"%s\".\n", Mio_GateReadName(pGateSrc), Mio_LibraryReadName(pLibDst) );
+                    fprintf( Abc_FrameGlobalGetOut(), "Cannot find gate \"%s\" in library \"%s\".\n", Mio_GateReadName(pGateSrc), Mio_LibraryReadName(pLibDst) );
                     continue;
                 }
             }
@@ -1638,7 +1638,7 @@ void Mio_LibraryHashGates( Mio_Library_t * pLib )
     Mio_LibraryForEachGate( pLib, pGate )
         if ( pGate->pTwin )
         {
-            printf( "Gates with multiple outputs are not supported.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Gates with multiple outputs are not supported.\n" );
             return;
         }
     if ( pLib->tName2Gate )
@@ -1740,7 +1740,7 @@ void Mio_LibraryShortNames( Mio_Library_t * pLib )
     }
     Mio_LibraryHashGates( pLib );
     // update library name
-    printf( "Renaming library \"%s\" into \"%s%d\".\n", pLib->pName, "lib", Mio_LibraryReadGateNum(pLib) );
+    fprintf( Abc_FrameGlobalGetOut(), "Renaming library \"%s\" into \"%s%d\".\n", pLib->pName, "lib", Mio_LibraryReadGateNum(pLib) );
     ABC_FREE( pLib->pName );
     sprintf( Buffer, "lib%d", Mio_LibraryReadGateNum(pLib) );
     pLib->pName = Abc_UtilStrsav( Buffer );

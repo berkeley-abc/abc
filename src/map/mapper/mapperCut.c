@@ -183,7 +183,7 @@ void Map_MappingCuts( Map_Man_t * p )
 
     // compute the cuts for the internal nodes
     nNodes = p->vMapObjs->nSize;
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     pTable = Map_CutTableStart( p );
     for ( i = 0; i < nNodes; i++ )
     {
@@ -202,7 +202,7 @@ void Map_MappingCuts( Map_Man_t * p )
     if ( p->fVerbose )
     {
         nCuts = Map_MappingCountAllCuts(p);
-        printf( "Nodes = %6d.  Total %d-feasible cuts = %10d.  Per node = %.1f. ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes = %6d.  Total %d-feasible cuts = %10d.  Per node = %.1f. ", 
                p->nNodes, p->nVarsMax, nCuts, ((float)nCuts)/p->nNodes );
         ABC_PRT( "Time", Abc_Clock() - clk );
     }
@@ -747,7 +747,7 @@ void Map_CutListPrint( Map_Man_t * pMan, Map_Node_t * pRoot )
     int Counter;
     for ( Counter = 0, pTemp = pRoot->pCuts; pTemp; pTemp = pTemp->pNext, Counter++ )
     {
-        printf( "%2d : ", Counter + 1 );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : ", Counter + 1 );
         Map_CutPrint_( pMan, pTemp, pRoot );
     }
 }
@@ -769,7 +769,7 @@ void Map_CutListPrint2( Map_Man_t * pMan, Map_Node_t * pRoot )
     int Counter;
     for ( Counter = 0, pTemp = pRoot->pCuts; pTemp; pTemp = pTemp->pNext, Counter++ )
     {
-        printf( "%2d : ", Counter + 1 );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : ", Counter + 1 );
         Map_CutPrint_( pMan, pTemp, pRoot );
     }
 }
@@ -788,11 +788,11 @@ void Map_CutListPrint2( Map_Man_t * pMan, Map_Node_t * pRoot )
 void Map_CutPrint_( Map_Man_t * pMan, Map_Cut_t * pCut, Map_Node_t * pRoot )
 {
     int i;
-    printf( "(%3d)  {", pRoot->Num );
+    fprintf( Abc_FrameGlobalGetOut(), "(%3d)  {", pRoot->Num );
     for ( i = 0; i < pMan->nVarsMax; i++ )
         if ( pCut->ppLeaves[i] )
-            printf( " %3d", pCut->ppLeaves[i]->Num );
-    printf( " }\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " %3d", pCut->ppLeaves[i]->Num );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 
 

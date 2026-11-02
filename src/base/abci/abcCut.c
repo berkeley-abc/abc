@@ -70,7 +70,7 @@ void Abc_NtkCutsSubtractFanunt( Abc_Ntk_t * pNtk )
             Counter++;
         }
     }
-    printf("Subtracted %d fanouts\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Subtracted %d fanouts\n", Counter );
 }
 
 /**Function*************************************************************
@@ -103,7 +103,7 @@ void Abc_NtkCutsAddFanunt( Abc_Ntk_t * pNtk )
             Counter++;
         }
     }
-    printf("Added %d fanouts\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Added %d fanouts\n", Counter );
 }
 
 /**Function*************************************************************
@@ -538,11 +538,11 @@ void Abc_NtkPrintCuts( void * p, Abc_Ntk_t * pNtk, int fSeq )
     Cut_Cut_t * pList;
     Abc_Obj_t * pObj;
     int i;
-    printf( "Cuts of the network:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Cuts of the network:\n" );
     Abc_NtkForEachObj( pNtk, pObj, i )
     {
         pList = (Cut_Cut_t *)Abc_NodeReadCuts( (Cut_Man_t *)p, pObj );
-        printf( "Node %s:\n", Abc_ObjName(pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %s:\n", Abc_ObjName(pObj) );
         Cut_CutPrintList( pList, fSeq );
     }
 }
@@ -564,7 +564,7 @@ void Abc_NtkPrintCuts_( void * p, Abc_Ntk_t * pNtk, int fSeq )
     Abc_Obj_t * pObj;
     pObj = Abc_NtkObj( pNtk, 2 * Abc_NtkObjNum(pNtk) / 3 );
     pList = (Cut_Cut_t *)Abc_NodeReadCuts( (Cut_Man_t *)p, pObj );
-    printf( "Node %s:\n", Abc_ObjName(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "Node %s:\n", Abc_ObjName(pObj) );
     Cut_CutPrintList( pList, fSeq );
 }
 
@@ -623,7 +623,7 @@ Vec_Int_t * Abc_NtkGetNodeAttributes( Abc_Ntk_t * pNtk )
         }
     }
 */
-    printf( "Total nodes = %d. Total MFFC nodes = %d.\n", nNodesTotal, nMffcsTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Total nodes = %d. Total MFFC nodes = %d.\n", nNodesTotal, nMffcsTotal );
     return vAttrs; 
 }
 

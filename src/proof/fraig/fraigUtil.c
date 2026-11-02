@@ -321,22 +321,22 @@ int Fraig_ManCheckConsistency( Fraig_Man_t * p )
         if ( Fraig_NodeIsVar(pNode) )
         {
             if ( pNode->pRepr )
-                printf( "Primary input %d is a secondary node.\n", pNode->Num );
+                fprintf( Abc_FrameGlobalGetOut(), "Primary input %d is a secondary node.\n", pNode->Num );
         }
         else if ( Fraig_NodeIsConst(pNode) )
         {
             if ( pNode->pRepr )
-                printf( "Constant 1 %d is a secondary node.\n", pNode->Num );
+                fprintf( Abc_FrameGlobalGetOut(), "Constant 1 %d is a secondary node.\n", pNode->Num );
         }
         else
         {
             if ( pNode->pRepr )
-                printf( "Internal node %d is a secondary node.\n", pNode->Num );
+                fprintf( Abc_FrameGlobalGetOut(), "Internal node %d is a secondary node.\n", pNode->Num );
             if ( Fraig_Regular(pNode->p1)->pRepr )
-                printf( "Internal node %d has first fanin %d that is a secondary node.\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "Internal node %d has first fanin %d that is a secondary node.\n", 
                     pNode->Num, Fraig_Regular(pNode->p1)->Num );
             if ( Fraig_Regular(pNode->p2)->pRepr )
-                printf( "Internal node %d has second fanin %d that is a secondary node.\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "Internal node %d has second fanin %d that is a secondary node.\n", 
                     pNode->Num, Fraig_Regular(pNode->p2)->Num );
         }
     }
@@ -367,23 +367,23 @@ void Fraig_PrintNode( Fraig_Man_t * p, Fraig_Node_t * pNode )
         pTemp = vNodes->pArray[i];
         if ( Fraig_NodeIsVar(pTemp) )
         {
-            printf( "%3d : PI          ", pTemp->Num );
-            Fraig_PrintBinary( stdout, (unsigned *)&pTemp->puSimR, 20 );
-            printf( "   " );
-            Fraig_PrintBinary( stdout, (unsigned *)&pTemp->puSimD, 20 );
-            printf( "  %d\n", pTemp->fInv );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d : PI          ", pTemp->Num );
+            Fraig_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&pTemp->puSimR, 20 );
+            fprintf( Abc_FrameGlobalGetOut(), "   " );
+            Fraig_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&pTemp->puSimD, 20 );
+            fprintf( Abc_FrameGlobalGetOut(), "  %d\n", pTemp->fInv );
             continue;
         }
 
         fCompl1 = Fraig_IsComplement(pTemp->p1);
         fCompl2 = Fraig_IsComplement(pTemp->p2);
-        printf( "%3d : %c%3d %c%3d   ", pTemp->Num,
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : %c%3d %c%3d   ", pTemp->Num,
             (fCompl1? '-':'+'), Fraig_Regular(pTemp->p1)->Num,
             (fCompl2? '-':'+'), Fraig_Regular(pTemp->p2)->Num );
-        Fraig_PrintBinary( stdout, (unsigned *)&pTemp->puSimR, 20 );
-        printf( "   " );
-        Fraig_PrintBinary( stdout, (unsigned *)&pTemp->puSimD, 20 );
-        printf( "  %d\n", pTemp->fInv );
+        Fraig_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&pTemp->puSimR, 20 );
+        fprintf( Abc_FrameGlobalGetOut(), "   " );
+        Fraig_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&pTemp->puSimD, 20 );
+        fprintf( Abc_FrameGlobalGetOut(), "  %d\n", pTemp->fInv );
     }
     Fraig_NodeVecFree( vNodes );
 }
@@ -540,8 +540,8 @@ void Fraig_ManReportChoices( Fraig_Man_t * pMan )
                 nChoices++;
         }
     }
-    printf( "Maximum level: Original = %d. Reduced due to choices = %d.\n", LevelMax1, LevelMax2 );
-    printf( "Choice stats:  Choice nodes = %d. Total choices = %d.\n", nChoiceNodes, nChoices );
+    fprintf( Abc_FrameGlobalGetOut(), "Maximum level: Original = %d. Reduced due to choices = %d.\n", LevelMax1, LevelMax2 );
+    fprintf( Abc_FrameGlobalGetOut(), "Choice stats:  Choice nodes = %d. Total choices = %d.\n", nChoiceNodes, nChoices );
 }
 
 /**Function*************************************************************
@@ -860,7 +860,7 @@ int Fraig_ManPrintRefs( Fraig_Man_t * pMan )
 //            printf( "Node %6d : nRefs = %2d   Level = %3d.\n", pNode->Num, pNode->nRefs, pNode->Level );
         }
     }
-    printf( "Total nodes = %d. Referenced nodes = %d.\n", pMan->vNodes->nSize, vPivots->nSize );
+    fprintf( Abc_FrameGlobalGetOut(), "Total nodes = %d. Referenced nodes = %d.\n", pMan->vNodes->nSize, vPivots->nSize );
 
 clk = Abc_Clock();
     // count implications
@@ -883,7 +883,7 @@ clk = Abc_Clock();
                 Counter++;
             }
         }
-    printf( "Number of candidate pairs = %d.  Proved = %d.\n", Counter, nProved );
+    fprintf( Abc_FrameGlobalGetOut(), "Number of candidate pairs = %d.  Proved = %d.\n", Counter, nProved );
 //ABC_PRT( "Time", Abc_Clock() - clk );
     return 0;
 }

@@ -412,7 +412,7 @@ pset_family A;
     register pset p;
     register int i;
     foreachi_set(A, i, p)
-    printf("A[%d] = %s\n", i, ps1(p));
+    fprintf( Abc_FrameGlobalGetOut(), "A[%d] = %s\n", i, ps1(p) );
 }
 
 /* sf_bm_print -- print a set_family as a bit-matrix */
@@ -423,7 +423,7 @@ pset_family A;
     register pset p;
     register int i;
     foreachi_set(A, i, p)
-    printf("[%4d] %s\n", i, pbv1(p, A->sf_size));
+    fprintf( Abc_FrameGlobalGetOut(), "[%4d] %s\n", i, pbv1(p, A->sf_size) );
 }
 
 

@@ -436,20 +436,20 @@ void kissat_print_glue_usage (struct kissat *);
 
 #define PRINT_STAT(NAME, PRIMARY, SECONDARY, UNITS, TYPE) \
   do { \
-    printf ("%s%-" SFW1 "s %" SFW2 PRIu64 " ", solver->prefix, NAME ":", \
+    fprintf ( Abc_FrameGlobalGetOut(), "%s%-" SFW1 "s %" SFW2 PRIu64 " ", solver->prefix, NAME ":", \
             (uint64_t) PRIMARY); \
     const double SAVED_SECONDARY = (double) (SECONDARY); \
     const char *SAVED_UNITS = (const char *) (UNITS); \
     const char *SAVED_TYPE = (const char *) (TYPE); \
     if (SAVED_TYPE && SAVED_SECONDARY >= 0) { \
       if (SAVED_UNITS) \
-        printf ("%" SFW34 ".0f %-2s", SAVED_SECONDARY, SAVED_UNITS); \
+        fprintf ( Abc_FrameGlobalGetOut(), "%" SFW34 ".0f %-2s", SAVED_SECONDARY, SAVED_UNITS); \
       else \
-        printf ("%" SFW34EXTENDED ".2f", SAVED_SECONDARY); \
-      fputc (' ', stdout); \
-      fputs (SAVED_TYPE, stdout); \
+        fprintf ( Abc_FrameGlobalGetOut(), "%" SFW34EXTENDED ".2f", SAVED_SECONDARY); \
+      fputc( ' ', Abc_FrameGlobalGetOut() ); \
+      fputs (SAVED_TYPE, Abc_FrameGlobalGetOut()); \
     } \
-    fputc ('\n', stdout); \
+    fputc( '\n', Abc_FrameGlobalGetOut() ); \
   } while (0)
 
 #endif

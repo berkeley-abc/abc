@@ -200,7 +200,7 @@ Abc_Ntk_t * Abc_NtkCovDerive( Cov_Man_t * p, Abc_Ntk_t * pNtk )
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkCovDerive: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCovDerive: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -373,7 +373,7 @@ Abc_Ntk_t * Abc_NtkCovDeriveClean( Cov_Man_t * p, Abc_Ntk_t * pNtk )
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkCovDeriveInv: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCovDeriveInv: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -443,10 +443,10 @@ Abc_Obj_t * Abc_NtkCovDerive_rec( Cov_Man_t * p, Abc_Ntk_t * pNtkNew, Abc_Obj_t 
     // print the support of this node
     if ( fVerbose )
     {
-        printf( "{ " );
+        fprintf( Abc_FrameGlobalGetOut(), "{ " );
         Vec_IntForEachEntry( vSupp, Entry, i )
-            printf( "%d ", Entry );
-        printf( "}  cubes = %d\n", Min_CoverCountCubes( pCover ) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Entry );
+        fprintf( Abc_FrameGlobalGetOut(), "}  cubes = %d\n", Min_CoverCountCubes( pCover ) );
     }
     // process the fanins
     Vec_IntForEachEntry( vSupp, Entry, i )
@@ -528,7 +528,7 @@ Abc_Ntk_t * Abc_NtkCovDeriveRegular( Cov_Man_t * p, Abc_Ntk_t * pNtk )
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkCovDerive: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCovDerive: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }

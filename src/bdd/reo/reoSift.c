@@ -164,7 +164,7 @@ void reoReorderSift( reo_man * p )
                 q++;    // change q to point to the position of this var in the order
                 // sanity check: the number of nodes on the back pass should be the same
                 if ( p->pVarCosts[q] != REO_HIGH_VALUE && fabs( p->pVarCosts[q] - CostCurrent ) > REO_COST_EPSILON )
-                    printf("reoReorderSift(): Error! On the backward move, the costs are different.\n");
+                    fprintf( Abc_FrameGlobalGetOut(), "reoReorderSift(): Error! On the backward move, the costs are different.\n");
                 p->pVarCosts[q] = CostCurrent;
                 // update the lower bound (assuming that for level q-1 it is set correctly)
                 p->pPlanes[q].statsCostAbove = p->pPlanes[q-1].statsCostAbove + p->pPlanes[q-1].statsCost;
@@ -207,8 +207,8 @@ void reoReorderSift( reo_man * p )
                 // sanity check: the number of nodes on the back pass should be the same
                 if ( fabs( p->pVarCosts[q-1] - CostCurrent ) > REO_COST_EPSILON )
                 {
-                    printf("reoReorderSift():  Error! On the return move, the costs are different.\n" );
-                    fflush(stdout);
+                    fprintf( Abc_FrameGlobalGetOut(), "reoReorderSift():  Error! On the return move, the costs are different.\n" );
+                    fflush( Abc_FrameGlobalGetOut() );
                 }
             }
         }
@@ -270,7 +270,7 @@ void reoReorderSift( reo_man * p )
                 // now q points to the position of this var in the order
                 // sanity check: the number of nodes on the back pass should be the same
                 if ( p->pVarCosts[q] != REO_HIGH_VALUE && fabs( p->pVarCosts[q] - CostCurrent ) > REO_COST_EPSILON )
-                    printf("reoReorderSift(): Error! On the backward move, the costs are different.\n");
+                    fprintf( Abc_FrameGlobalGetOut(), "reoReorderSift(): Error! On the backward move, the costs are different.\n");
                 p->pVarCosts[q] = CostCurrent;
                 // update the lower bound (assuming that for level q+1 it is set correctly)
                 p->pPlanes[q].statsCostBelow = p->pPlanes[q+1].statsCostBelow + p->pPlanes[q+1].statsCost;
@@ -317,8 +317,8 @@ void reoReorderSift( reo_man * p )
                 // sanity check: the number of nodes on the back pass should be the same
                 if ( fabs( p->pVarCosts[q+1] - CostCurrent ) > REO_COST_EPSILON )
                 {
-                    printf("reoReorderSift(): Error! On the return move, the costs are different.\n" );
-                    fflush(stdout);
+                    fprintf( Abc_FrameGlobalGetOut(), "reoReorderSift(): Error! On the return move, the costs are different.\n" );
+                    fflush( Abc_FrameGlobalGetOut() );
                 }
             }
         }

@@ -343,7 +343,7 @@ void Seg_ManCreateCnf( Seg_Man_t * p, int fTwo, int fVerbose )
     }
     assert( Count == p->nVars );
     if ( fVerbose )
-    printf( "Delay constraints = %d. ", sat_solver_nclauses(p->pSat) - nConstr );
+    fprintf( Abc_FrameGlobalGetOut(), "Delay constraints = %d. ", sat_solver_nclauses(p->pSat) - nConstr );
     nConstr = sat_solver_nclauses(p->pSat);
 /*
     // delay relationship constraints
@@ -399,7 +399,7 @@ void Seg_ManCreateCnf( Seg_Man_t * p, int fTwo, int fVerbose )
         assert( value );
     }
     if ( fVerbose )
-    printf( "Edge constraints = %d. ", sat_solver_nclauses(p->pSat) - nConstr );
+    fprintf( Abc_FrameGlobalGetOut(), "Edge constraints = %d. ", sat_solver_nclauses(p->pSat) - nConstr );
     if ( fVerbose )
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
@@ -450,7 +450,7 @@ void Seg_ManComputeDelay( Gia_Man_t * pGia, int DelayInit, int nFanouts, int fTw
     int DelayStart = DelayInit ? DelayInit : p->DelayMax;
 
     if ( fVerbose )
-    printf( "Running SatEdge with starting delay %d and edge %d (edge vars %d, total vars %d)\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Running SatEdge with starting delay %d and edge %d (edge vars %d, total vars %d)\n", 
         DelayStart, fTwo+1, p->FirstVar, sat_solver_nvars(p->pSat) );
     Seg_ManCreateCnf( p, fTwo, fVerbose );
     //Sat_SolverWriteDimacs( p->pSat, "test_edge.cnf", NULL, NULL, 0 );
@@ -474,7 +474,7 @@ void Seg_ManComputeDelay( Gia_Man_t * pGia, int DelayInit, int nFanouts, int fTw
         }
         if ( i < Gia_ManCoNum(p->pGia) )
         {
-            printf( "Proved UNSAT for delay %d.  ", Delay );
+            fprintf( Abc_FrameGlobalGetOut(), "Proved UNSAT for delay %d.  ", Delay );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             break;
         }
@@ -492,7 +492,7 @@ void Seg_ManComputeDelay( Gia_Man_t * pGia, int DelayInit, int nFanouts, int fTw
                 int Count = 0;
                 for ( i = 0; i < p->nVars; i++ )
                     Count += sat_solver_var_value(p->pSat, i);
-                printf( "Solution with delay %2d and %5d edges exists. Conf = %8d.  ", Delay, Count, nConfs );
+                fprintf( Abc_FrameGlobalGetOut(), "Solution with delay %2d and %5d edges exists. Conf = %8d.  ", Delay, Count, nConfs );
                 Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             }
             // save the result
@@ -501,12 +501,12 @@ void Seg_ManComputeDelay( Gia_Man_t * pGia, int DelayInit, int nFanouts, int fTw
             if ( fVeryVerbose )
             {
                 for ( i = 0; i < p->nVars; i++ )
-                    printf( "%d=%d ", i, sat_solver_var_value(p->pSat, i) );
-                printf( "   " );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, sat_solver_var_value(p->pSat, i) );
+                fprintf( Abc_FrameGlobalGetOut(), "   " );
 
                 for ( i = p->nVars; i < sat_solver_nvars(p->pSat); i++ )
-                    printf( "%d=%d ", i, sat_solver_var_value(p->pSat, i) );
-                printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, sat_solver_var_value(p->pSat, i) );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
         }
         else
@@ -514,9 +514,9 @@ void Seg_ManComputeDelay( Gia_Man_t * pGia, int DelayInit, int nFanouts, int fTw
             if ( fVerbose )
             {
                 if ( status == l_False )
-                    printf( "Proved UNSAT for delay %d.  ", Delay );
+                    fprintf( Abc_FrameGlobalGetOut(), "Proved UNSAT for delay %d.  ", Delay );
                 else
-                    printf( "Resource limit reached for delay %d.  ", Delay );
+                    fprintf( Abc_FrameGlobalGetOut(), "Resource limit reached for delay %d.  ", Delay );
                 Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             }
             break;

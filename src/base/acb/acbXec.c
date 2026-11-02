@@ -104,7 +104,7 @@ int * Acb_NtkSolveCadicalLimit( Gia_Man_t * p, int fUseHeavyOpt, int fVerbose, i
             *pStatus = ACB_XEC_EQ;
         if ( pLabel )
         {
-            printf( "The networks are equivalent by %s.  ", pLabel );
+            fprintf( Abc_FrameGlobalGetOut(), "The networks are equivalent by %s.  ", pLabel );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
         return NULL;
@@ -171,10 +171,10 @@ int * Acb_NtkSolveCadicalLimit( Gia_Man_t * p, int fUseHeavyOpt, int fVerbose, i
         }
         if ( fRunSolve && fVerbose )
         {
-            printf( "CaDiCaL CNF: Var = %d. Cla = %d. PO = %d.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "CaDiCaL CNF: Var = %d. Cla = %d. PO = %d.\n",
                 pCnf->nVars, pCnf->nClauses + 1, Gia_ManCoNum(pGia) );
             if ( nSatTimeLimit > 0 )
-                printf( "CaDiCaL SAT runtime limit: %d sec.\n", nSatTimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "CaDiCaL SAT runtime limit: %d sec.\n", nSatTimeLimit );
         }
         if ( fRunSolve )
         {
@@ -182,7 +182,7 @@ int * Acb_NtkSolveCadicalLimit( Gia_Man_t * p, int fUseHeavyOpt, int fVerbose, i
             fSolvedSat = Status == ACB_SAT_SAT;
         }
         if ( fVerbose )
-            printf( "CaDiCaL stats: conflicts = %d. learned = %d.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "CaDiCaL stats: conflicts = %d. learned = %d.\n",
                 cadical_solver_nconflicts(pSat), cadical_solver_nlearned(pSat) );
     }
     if ( Status == ACB_SAT_UNSAT )
@@ -191,7 +191,7 @@ int * Acb_NtkSolveCadicalLimit( Gia_Man_t * p, int fUseHeavyOpt, int fVerbose, i
             *pStatus = ACB_XEC_EQ;
         if ( pLabel )
         {
-            printf( "The networks are equivalent by %s.  ", pLabel );
+            fprintf( Abc_FrameGlobalGetOut(), "The networks are equivalent by %s.  ", pLabel );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
     }
@@ -209,7 +209,7 @@ int * Acb_NtkSolveCadicalLimit( Gia_Man_t * p, int fUseHeavyOpt, int fVerbose, i
             }
         if ( pLabel )
         {
-            printf( "The networks are NOT equivalent by %s.  ", pLabel );
+            fprintf( Abc_FrameGlobalGetOut(), "The networks are NOT equivalent by %s.  ", pLabel );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
     }
@@ -219,7 +219,7 @@ int * Acb_NtkSolveCadicalLimit( Gia_Man_t * p, int fUseHeavyOpt, int fVerbose, i
             *pStatus = ACB_XEC_UNDEC;
         if ( fVerbose && pLabel )
         {
-            printf( "The networks are UNDECIDED by %s.  ", pLabel );
+            fprintf( Abc_FrameGlobalGetOut(), "The networks are UNDECIDED by %s.  ", pLabel );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
     }
@@ -249,7 +249,7 @@ int Acb_XecGiaSolveSmallConeExhaustive( Gia_Man_t * p, int fVerbose, int nTotalL
     if ( nHiVars >= 63 )
     {
         if ( fVerbose )
-            printf( "Skipping small-cone exhaustive word proof: CI = %d needs more than 2^63 simulation words.\n", nCis );
+            fprintf( Abc_FrameGlobalGetOut(), "Skipping small-cone exhaustive word proof: CI = %d needs more than 2^63 simulation words.\n", nCis );
         return ACB_XEC_UNDEC;
     }
     nWordsChunk = nCis >= 31 ? 4096 : (nCis >= 28 ? 8192 : 16384);
@@ -260,14 +260,14 @@ int Acb_XecGiaSolveSmallConeExhaustive( Gia_Man_t * p, int fVerbose, int nTotalL
     if ( nWordsTotal > nWordBudget )
     {
         if ( fVerbose )
-            printf( "Skipping small-cone exhaustive word proof: CI = %d needs %llu words, budget = %llu words.\n",
+            fprintf( Abc_FrameGlobalGetOut(), "Skipping small-cone exhaustive word proof: CI = %d needs %llu words, budget = %llu words.\n",
                 nCis, (unsigned long long)nWordsTotal, (unsigned long long)nWordBudget );
         return ACB_XEC_UNDEC;
     }
     nObjs = Gia_ManObjNum(p);
     vSims = Vec_WrdStart( nObjs * nWordsChunk );
     if ( fVerbose )
-        printf( "Trying small-cone exhaustive word proof: CI = %d. AND = %d. chunks = %llu x %d words. limit = %d sec.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Trying small-cone exhaustive word proof: CI = %d. AND = %d. chunks = %llu x %d words. limit = %d sec.\n",
             nCis, Gia_ManAndNum(p), (unsigned long long)((nWordsTotal + nWordsChunk - 1) / nWordsChunk), nWordsChunk, nTotalLimit );
     for ( iWordBase = 0; iWordBase < nWordsTotal && !fDone; iWordBase += nWordsChunk )
     {
@@ -306,7 +306,7 @@ int Acb_XecGiaSolveSmallConeExhaustive( Gia_Man_t * p, int fVerbose, int nTotalL
     }
     if ( fVerbose )
     {
-        printf( "Small-cone exhaustive word proof: %s. checked words = %llu/%llu. ",
+        fprintf( Abc_FrameGlobalGetOut(), "Small-cone exhaustive word proof: %s. checked words = %llu/%llu. ",
             Status == ACB_XEC_EQ ? "UNSAT" : "UNDECIDED",
             (unsigned long long)nWordsDone, (unsigned long long)nWordsTotal );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -323,7 +323,7 @@ Gia_Man_t * Acb_XecGiaSmallConeXorRewrite( Gia_Man_t * p, int fVerbose )
     if ( Gia_ManCoNum(p) != 1 || Gia_ManCiNum(p) > 64 || nAndStart > 8000 )
         return NULL;
     if ( fVerbose )
-        printf( "Small-cone XOR structural rewrite: CI = %d. AND = %d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Small-cone XOR structural rewrite: CI = %d. AND = %d.\n",
             Gia_ManCiNum(p), nAndStart );
     pAig = Gia_ManToAig( p, 0 );
     if ( pAig == NULL )
@@ -348,7 +348,7 @@ Gia_Man_t * Acb_XecGiaSmallConeXorRewrite( Gia_Man_t * p, int fVerbose )
     }
     if ( fVerbose )
     {
-        printf( "Small-cone XOR structural rewrite: AND = %d -> %d. Lev = %d -> %d. ",
+        fprintf( Abc_FrameGlobalGetOut(), "Small-cone XOR structural rewrite: AND = %d -> %d. Lev = %d -> %d. ",
             nAndStart, Gia_ManAndNum(pGia), Gia_ManLevelNum(p), Gia_ManLevelNum(pGia) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }

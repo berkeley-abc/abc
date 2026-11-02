@@ -18,12 +18,12 @@ ABC_NAMESPACE_CXX_HEADER_START
 #define CONTRACT_VIOLATED(...) \
   do { \
     fatal_message_start (); \
-    fprintf (stderr, \
+    fprintf (Abc_FrameGlobalGetErr(), \
              "invalid API usage of '%s' in '%s': ", __PRETTY_FUNCTION__, \
              __FILE__); \
-    fprintf (stderr, __VA_ARGS__); \
-    fputc ('\n', stderr); \
-    fflush (stderr); \
+    fprintf (Abc_FrameGlobalGetErr(), __VA_ARGS__); \
+    fputc( '\n', Abc_FrameGlobalGetErr() ); \
+    fflush (Abc_FrameGlobalGetErr()); \
     abort (); \
   } while (0)
 

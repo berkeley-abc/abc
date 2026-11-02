@@ -174,7 +174,7 @@ int Saig_ManDetectConstr( Aig_Man_t * p, int iOut, Vec_Ptr_t ** pvOuts, Vec_Ptr_
     }
     if ( Aig_IsComplement(pObj) || !Aig_ObjIsNode(pObj) )
     {
-        printf( "The output is not an AND.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The output is not an AND.\n" );
         return 0;
     }
     vSuper = Saig_DetectConstrCollectSuper( pObj );
@@ -184,7 +184,7 @@ int Saig_ManDetectConstr( Aig_Man_t * p, int iOut, Vec_Ptr_t ** pvOuts, Vec_Ptr_
         nFlops += Saig_ObjIsLo( p, Aig_Regular(pObj) );
     if ( nFlops == 0 )
     {
-        printf( "There is no flop outputs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There is no flop outputs.\n" );
         Vec_PtrFree( vSuper );
         return 0;
     }
@@ -208,14 +208,14 @@ int Saig_ManDetectConstr( Aig_Man_t * p, int iOut, Vec_Ptr_t ** pvOuts, Vec_Ptr_
  //           assert( Vec_PtrFind( vSuper2, pObj ) >= 0 );
             if ( Aig_IsComplement(pObj) )
             {
-                printf( "Special flop input is complemented.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Special flop input is complemented.\n" );
                 Vec_PtrFreeP( &vUnique );
                 Vec_PtrFree( vSuper2 );
                 break;
             }
             if ( Vec_PtrFind( vSuper2, pObj ) == -1 )
             {
-                printf( "Cannot find special flop about the inputs of OR gate.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot find special flop about the inputs of OR gate.\n" );
                 Vec_PtrFreeP( &vUnique );
                 Vec_PtrFree( vSuper2 );
                 break;
@@ -229,12 +229,12 @@ int Saig_ManDetectConstr( Aig_Man_t * p, int iOut, Vec_Ptr_t ** pvOuts, Vec_Ptr_
     Vec_PtrFree( vSuper );
     if ( vUnique == NULL )
     {
-        printf( "There is no structural constraints.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There is no structural constraints.\n" );
         return 0;
     }
     // vUnique contains unique entries
     // vSuper2 contains the supergate
-    printf( "Output %d : Structural analysis found %d original properties and %d constraints.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Output %d : Structural analysis found %d original properties and %d constraints.\n", 
         iOut, Vec_PtrSize(vUnique), Vec_PtrSize(vSuper2) );
     // remember the number of constraints
     RetValue = Vec_PtrSize(vSuper2);
@@ -323,7 +323,7 @@ Aig_Man_t * Saig_ManDupUnfoldConstrs( Aig_Man_t * pAig )
     }
     if ( i < Vec_PtrSize(vConsAll) )
     {
-        printf( "Collected constraints are not compatible.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Collected constraints are not compatible.\n" );
         Vec_VecFree( (Vec_Vec_t *)vOutsAll );
         Vec_VecFree( (Vec_Vec_t *)vConsAll );
         return Aig_ManDupDfs( pAig );

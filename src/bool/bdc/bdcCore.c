@@ -114,9 +114,9 @@ void Bdc_ManFree( Bdc_Man_t * p )
 {
     if ( p->pPars->fVerbose )
     {
-        printf( "Bi-decomposition stats: Calls = %d.  Nodes = %d. Reuse = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Bi-decomposition stats: Calls = %d.  Nodes = %d. Reuse = %d.\n", 
             p->numCalls, p->numNodes, p->numReuse );
-        printf( "ANDs = %d.  ORs = %d.  Weak = %d.  Muxes = %d.  Memory = %.2f K\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "ANDs = %d.  ORs = %d.  Weak = %d.  Muxes = %d.  Memory = %.2f K\n", 
             p->numAnds, p->numOrs, p->numWeaks, p->numMuxes, 4.0 * Vec_IntSize(p->vMemory) / (1<<10) );
         ABC_PRT( "Cache", p->timeCache );
         ABC_PRT( "Check", p->timeCheck );
@@ -200,22 +200,22 @@ void Bdc_ManDecPrintSimple( Bdc_Man_t * p )
 {
     Bdc_Fun_t * pNode;
     int i;
-    printf( " 0 : Const 1\n" );
+    fprintf( Abc_FrameGlobalGetOut(), " 0 : Const 1\n" );
     for ( i = 1; i < p->nNodes; i++ )
     {
-        printf( " %d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), " %d : ", i );
         pNode = p->pNodes + i;
         if ( pNode->Type == BDC_TYPE_PI )
-            printf( "PI   " );
+            fprintf( Abc_FrameGlobalGetOut(), "PI   " );
         else
         {
-            printf( "%s%d &", Bdc_IsComplement(pNode->pFan0)? "-":"", Bdc_FunId(p,Bdc_Regular(pNode->pFan0)) );
-            printf( " %s%d   ", Bdc_IsComplement(pNode->pFan1)? "-":"", Bdc_FunId(p,Bdc_Regular(pNode->pFan1)) );
+            fprintf( Abc_FrameGlobalGetOut(), "%s%d &", Bdc_IsComplement(pNode->pFan0)? "-":"", Bdc_FunId(p,Bdc_Regular(pNode->pFan0)) );
+            fprintf( Abc_FrameGlobalGetOut(), " %s%d   ", Bdc_IsComplement(pNode->pFan1)? "-":"", Bdc_FunId(p,Bdc_Regular(pNode->pFan1)) );
         }
 //        Extra_PrintBinary( stdout, pNode->puFunc, (1<<p->nVars) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    printf( "Root = %s%d.\n", Bdc_IsComplement(p->pRoot)? "-":"", Bdc_FunId(p,Bdc_Regular(p->pRoot)) );
+    fprintf( Abc_FrameGlobalGetOut(), "Root = %s%d.\n", Bdc_IsComplement(p->pRoot)? "-":"", Bdc_FunId(p,Bdc_Regular(p->pRoot)) );
 }
 
 /**Function*************************************************************
@@ -233,27 +233,27 @@ void Bdc_ManDecPrintSimple( Bdc_Man_t * p )
 void Bdc_ManDecPrint_rec( Bdc_Man_t * p, Bdc_Fun_t * pNode )
 {
     if ( pNode->Type == BDC_TYPE_PI )
-        printf( "%c", 'a' + Bdc_FunId(p,pNode) - 1 );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + Bdc_FunId(p,pNode) - 1 );
     else if ( pNode->Type == BDC_TYPE_AND )
     {
         Bdc_Fun_t * pNode0 = Bdc_FuncFanin0( pNode );
         Bdc_Fun_t * pNode1 = Bdc_FuncFanin1( pNode );
 
         if ( Bdc_IsComplement(pNode0) )
-            printf( "!" );
+            fprintf( Abc_FrameGlobalGetOut(), "!" );
         if ( Bdc_IsComplement(pNode0) && Bdc_Regular(pNode0)->Type != BDC_TYPE_PI )
-            printf( "(" );
+            fprintf( Abc_FrameGlobalGetOut(), "(" );
         Bdc_ManDecPrint_rec( p, Bdc_Regular(pNode0) );
         if ( Bdc_IsComplement(pNode0) && Bdc_Regular(pNode0)->Type != BDC_TYPE_PI )
-            printf( ")" );
+            fprintf( Abc_FrameGlobalGetOut(), ")" );
 
         if ( Bdc_IsComplement(pNode1) )
-            printf( "!" );
+            fprintf( Abc_FrameGlobalGetOut(), "!" );
         if ( Bdc_IsComplement(pNode1) && Bdc_Regular(pNode1)->Type != BDC_TYPE_PI )
-            printf( "(" );
+            fprintf( Abc_FrameGlobalGetOut(), "(" );
         Bdc_ManDecPrint_rec( p, Bdc_Regular(pNode1) );
         if ( Bdc_IsComplement(pNode1) && Bdc_Regular(pNode1)->Type != BDC_TYPE_PI )
-            printf( ")" );
+            fprintf( Abc_FrameGlobalGetOut(), ")" );
     }
     else assert( 0 );
 }
@@ -261,20 +261,20 @@ void Bdc_ManDecPrint( Bdc_Man_t * p )
 {
     Bdc_Fun_t * pRoot = Bdc_Regular(p->pRoot);
 
-    printf( "F = " );
+    fprintf( Abc_FrameGlobalGetOut(), "F = " );
     if ( pRoot->Type == BDC_TYPE_CONST1 ) // constant 0
-        printf( "Constant %d", !Bdc_IsComplement(p->pRoot) );
+        fprintf( Abc_FrameGlobalGetOut(), "Constant %d", !Bdc_IsComplement(p->pRoot) );
     else if ( pRoot->Type == BDC_TYPE_PI ) // literal
-        printf( "%s%d", Bdc_IsComplement(p->pRoot) ? "!" : "", Bdc_FunId(p,pRoot)-1 );
+        fprintf( Abc_FrameGlobalGetOut(), "%s%d", Bdc_IsComplement(p->pRoot) ? "!" : "", Bdc_FunId(p,pRoot)-1 );
     else
     {
         if ( Bdc_IsComplement(p->pRoot) )
-            printf( "!(" );
+            fprintf( Abc_FrameGlobalGetOut(), "!(" );
         Bdc_ManDecPrint_rec( p, pRoot );
         if ( Bdc_IsComplement(p->pRoot) )
-            printf( ")" );
+            fprintf( Abc_FrameGlobalGetOut(), ")" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -324,7 +324,7 @@ int Bdc_ManDecompose( Bdc_Man_t * p, unsigned * puFunc, unsigned * puCare, int n
     if ( p->pRoot == NULL )
         return -1;
     if ( !Bdc_ManNodeVerify( p, pIsf, p->pRoot ) )
-        printf( "Bdc_ManDecompose(): Internal verification failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Bdc_ManDecompose(): Internal verification failed.\n" );
 //    assert( Bdc_ManNodeVerify( p, pIsf, p->pRoot ) );
     return p->nNodesNew;
 }
@@ -359,7 +359,7 @@ void Bdc_ManDecomposeTest( unsigned uTruth, int nVars )
     p = Bdc_ManAlloc( pPars );
     RetValue = Bdc_ManDecompose( p, &uFunc, &uCare, nVars, NULL, 1000 );
     Total += RetValue;
-    printf( "%5d : Nodes = %5d. Total = %8d.\n", ++Counter, RetValue, Total );
+    fprintf( Abc_FrameGlobalGetOut(), "%5d : Nodes = %5d. Total = %8d.\n", ++Counter, RetValue, Total );
 //    Bdc_ManDecPrint( p );
     Bdc_ManFree( p );
 }

@@ -140,7 +140,7 @@ int Fra_FraigSec( Aig_Man_t * p, Fra_Sec_t * pParSec, Aig_Man_t ** ppResult )
     pPars->fVerbose = pParSec->fVeryVerbose;
     if ( pParSec->fVerbose )
     {
-        printf( "Original miter:       Latches = %5d. Nodes = %6d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Original miter:       Latches = %5d. Nodes = %6d.\n", 
             Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
     }
 //Aig_ManDumpBlif( pNew, "after.blif", NULL, NULL );
@@ -153,7 +153,7 @@ clk = Abc_Clock();
     pNew = Aig_ManConstReduce( pNew, 0, -1, -1, 0, 0 );
     if ( pParSec->fVerbose )
     {
-        printf( "Sequential cleanup:   Latches = %5d. Nodes = %6d. ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Sequential cleanup:   Latches = %5d. Nodes = %6d. ", 
             Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 ABC_PRT( "Time", Abc_Clock() - clk );
     }
@@ -172,7 +172,7 @@ clk = Abc_Clock();
         Aig_ManStop( pTemp );
         if ( pParSec->fVerbose )
         {
-            printf( "Phase abstraction:    Latches = %5d. Nodes = %6d. ", 
+            fprintf( Abc_FrameGlobalGetOut(), "Phase abstraction:    Latches = %5d. Nodes = %6d. ", 
                 Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 ABC_PRT( "Time", Abc_Clock() - clk );
         }
@@ -187,7 +187,7 @@ clk = Abc_Clock();
     Aig_ManStop( pTemp );
     if ( pParSec->fVerbose )
     {
-        printf( "Forward retiming:     Latches = %5d. Nodes = %6d. ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Forward retiming:     Latches = %5d. Nodes = %6d. ", 
             Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 ABC_PRT( "Time", Abc_Clock() - clk );
     }
@@ -228,9 +228,9 @@ clk = Abc_Clock();
     if ( pTemp->pSeqModel )
     {
         if ( !Saig_ManVerifyCex( pTemp, pTemp->pSeqModel ) )
-            printf( "Fra_FraigSec(): Counter-example verification has FAILED.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Fra_FraigSec(): Counter-example verification has FAILED.\n" );
         if ( Saig_ManPiNum(p) != Saig_ManPiNum(pTemp) )
-            printf( "The counter-example is invalid because of phase abstraction.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The counter-example is invalid because of phase abstraction.\n" );
         else
         {
         ABC_FREE( p->pSeqModel );
@@ -245,12 +245,12 @@ clk = Abc_Clock();
             RetValue = 0;
             if ( !pParSec->fSilent )
             {
-                printf( "Networks are NOT EQUIVALENT after simulation.   " );
+                fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT after simulation.   " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
             }
             if ( pParSec->fReportSolution && !pParSec->fRecursive )
             {
-            printf( "SOLUTION: FAIL       " );
+            fprintf( Abc_FrameGlobalGetOut(), "SOLUTION: FAIL       " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
             }
             Aig_ManStop( pTemp );
@@ -265,7 +265,7 @@ ABC_PRT( "Time", Abc_Clock() - clkTotal );
 
     if ( pParSec->fVerbose )
     {
-        printf( "Latch-corr (I=%3d):   Latches = %5d. Nodes = %6d. ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Latch-corr (I=%3d):   Latches = %5d. Nodes = %6d. ", 
             nIter, Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 ABC_PRT( "Time", Abc_Clock() - clk );
     }
@@ -294,7 +294,7 @@ clk = Abc_Clock();
     Aig_ManStop( pTemp );
     if ( pParSec->fVerbose )
     {
-        printf( "Fraiging:             Latches = %5d. Nodes = %6d. ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Fraiging:             Latches = %5d. Nodes = %6d. ", 
             Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 ABC_PRT( "Time", Abc_Clock() - clk );
     }
@@ -335,7 +335,7 @@ clk = Abc_Clock();
     Aig_ManStop( pTemp );
     if ( pParSec->fVerbose )
     {
-    printf( "Min-reg retiming:     Latches = %5d. Nodes = %6d. ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Min-reg retiming:     Latches = %5d. Nodes = %6d. ", 
         Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 ABC_PRT( "Time", Abc_Clock() - clk );
     }
@@ -376,7 +376,7 @@ clk = Abc_Clock();
         if ( RetValue == -1 && pPars2->nConflicts > pPars2->nBTLimitGlobal )
         {
             if ( !pParSec->fSilent )
-                printf( "Global conflict limit (%d) exceeded.\n", pPars2->nBTLimitGlobal );
+                fprintf( Abc_FrameGlobalGetOut(), "Global conflict limit (%d) exceeded.\n", pPars2->nBTLimitGlobal );
             RetValue = -1;
             TimeOut = 1;
             goto finish;
@@ -403,7 +403,7 @@ clk = Abc_Clock();
         RetValue = Fra_FraigMiterStatus( pNew );
         if ( pParSec->fVerbose )
         { 
-            printf( "K-step (K=%2d,I=%3d):  Latches = %5d. Nodes = %6d. ", 
+            fprintf( Abc_FrameGlobalGetOut(), "K-step (K=%2d,I=%3d):  Latches = %5d. Nodes = %6d. ", 
                 nFrames, pPars2->nIters, Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 ABC_PRT( "Time", Abc_Clock() - clk );
         }
@@ -425,7 +425,7 @@ clk = Abc_Clock();
         Aig_ManStop( pTemp );
         if ( pParSec->fVerbose )
         {
-            printf( "Min-reg retiming:     Latches = %5d. Nodes = %6d. ", 
+            fprintf( Abc_FrameGlobalGetOut(), "Min-reg retiming:     Latches = %5d. Nodes = %6d. ", 
                 Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 ABC_PRT( "Time", Abc_Clock() - clk );
         }
@@ -443,7 +443,7 @@ clk = Abc_Clock();
         Aig_ManStop( pTemp );
         if ( pParSec->fVerbose )
         {
-            printf( "Rewriting:            Latches = %5d. Nodes = %6d. ", 
+            fprintf( Abc_FrameGlobalGetOut(), "Rewriting:            Latches = %5d. Nodes = %6d. ", 
                 Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 ABC_PRT( "Time", Abc_Clock() - clk );
         } 
@@ -455,7 +455,7 @@ clk = Abc_Clock();
         pSml = Fra_SmlSimulateSeq( pNew, 0, 128 * nFrames, 1 + 16/(1+Aig_ManNodeNum(pNew)/1000), 1  ); 
         if ( pParSec->fVerbose )
         {
-            printf( "Seq simulation  :     Latches = %5d. Nodes = %6d. ", 
+            fprintf( Abc_FrameGlobalGetOut(), "Seq simulation  :     Latches = %5d. Nodes = %6d. ", 
                 Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 ABC_PRT( "Time", Abc_Clock() - clk );
         }
@@ -464,7 +464,7 @@ ABC_PRT( "Time", Abc_Clock() - clk );
             pNew->pSeqModel = Fra_SmlGetCounterExample( pSml );
             // transfer to the original manager
             if ( Saig_ManPiNum(p) != Saig_ManPiNum(pNew) )
-                printf( "The counter-example is invalid because of phase abstraction.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "The counter-example is invalid because of phase abstraction.\n" );
             else
             {
             ABC_FREE( p->pSeqModel );
@@ -477,12 +477,12 @@ ABC_PRT( "Time", Abc_Clock() - clk );
             RetValue = 0;
             if ( !pParSec->fSilent )
             {
-                printf( "Networks are NOT EQUIVALENT after simulation.   " );
+                fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT after simulation.   " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
             }
             if ( pParSec->fReportSolution && !pParSec->fRecursive )
             {
-            printf( "SOLUTION: FAIL       " );
+            fprintf( Abc_FrameGlobalGetOut(), "SOLUTION: FAIL       " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
             }
             return RetValue;
@@ -521,7 +521,7 @@ clk = Abc_Clock();
                 if ( Aig_ObjFanin0(pObjPo) == Aig_ManConst1(pNew) )
                     continue;
                 if ( pPars->fVerbose )
-                    printf( "Solving output %2d (out of %2d):\n", i, Saig_ManPoNum(pNew) );
+                    fprintf( Abc_FrameGlobalGetOut(), "Solving output %2d (out of %2d):\n", i, Saig_ManPoNum(pNew) );
                 pTemp = Aig_ManDupOneOutput( pNew, i, 1 );
                 pTemp = Aig_ManScl( pAux = pTemp, 1, 1, 0, -1, -1, 0, 0 );
                 Aig_ManStop( pAux );
@@ -551,12 +551,12 @@ clk = Abc_Clock();
                     Counter++;
 //                Aig_ManPrintStats( pTemp );
                 Aig_ManStop( pTemp );
-                printf( "Solving output %3d (out of %3d) using interpolation.\r", i, Saig_ManPoNum(pNew) );
+                fprintf( Abc_FrameGlobalGetOut(), "Solving output %3d (out of %3d) using interpolation.\r", i, Saig_ManPoNum(pNew) );
             }
             Aig_ManCleanup( pNew );
             if ( pCex == NULL )
             {
-                printf( "Interpolation left %d (out of %d) outputs unsolved              \n", Counter, Saig_ManPoNum(pNew) );
+                fprintf( Abc_FrameGlobalGetOut(), "Interpolation left %d (out of %d) outputs unsolved              \n", Counter, Saig_ManPoNum(pNew) );
                 if ( Counter )
                     RetValue = -1;
             }
@@ -581,11 +581,11 @@ clk = Abc_Clock();
         if ( pParSec->fVerbose )
         {
         if ( RetValue == 1 )
-            printf( "Property proved using interpolation.  " );
+            fprintf( Abc_FrameGlobalGetOut(), "Property proved using interpolation.  " );
         else if ( RetValue == 0 )
-            printf( "Property DISPROVED in frame %d using interpolation.  ", Depth );
+            fprintf( Abc_FrameGlobalGetOut(), "Property DISPROVED in frame %d using interpolation.  ", Depth );
         else if ( RetValue == -1 )
-            printf( "Property UNDECIDED after interpolation.  " );
+            fprintf( Abc_FrameGlobalGetOut(), "Property UNDECIDED after interpolation.  " );
         else
             assert( 0 ); 
 ABC_PRT( "Time", Abc_Clock() - clk );
@@ -618,7 +618,7 @@ ABC_PRT( "Time", Abc_Clock() - clk );
         pPars->nTimeOut = pParSec->nPdrTimeout;
         pPars->fVerbose = pParSec->fVerbose;
         if ( pParSec->fVerbose )
-            printf( "Running property directed reachability...\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Running property directed reachability...\n" );
         RetValue = Pdr_ManSolve( pNew, pPars );
         if ( pNew->pSeqModel )
             pNew->pSeqModel->iPo = Saig_ManFindFailedPoCex( pNew, pNew->pSeqModel );
@@ -630,12 +630,12 @@ finish:
     {
         if ( !pParSec->fSilent )
         {
-            printf( "Networks are equivalent.  " );
+            fprintf( Abc_FrameGlobalGetOut(), "Networks are equivalent.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
         }
         if ( pParSec->fReportSolution && !pParSec->fRecursive )
         {
-        printf( "SOLUTION: PASS       " );
+        fprintf( Abc_FrameGlobalGetOut(), "SOLUTION: PASS       " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
         }
     }
@@ -654,12 +654,12 @@ ABC_PRT( "Time", Abc_Clock() - clkTotal );
         }
         if ( !pParSec->fSilent )
         {
-            printf( "Networks are NOT EQUIVALENT.  " );
+            fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
         }
         if ( pParSec->fReportSolution && !pParSec->fRecursive )
         {
-        printf( "SOLUTION: FAIL       " );
+        fprintf( Abc_FrameGlobalGetOut(), "SOLUTION: FAIL       " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
         }
     }
@@ -672,12 +672,12 @@ ABC_PRT( "Time", Abc_Clock() - clkTotal );
         ///////////////////////////////////
         if ( !pParSec->fSilent )
         {
-            printf( "Networks are UNDECIDED.   " );
+            fprintf( Abc_FrameGlobalGetOut(), "Networks are UNDECIDED.   " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
         }
         if ( pParSec->fReportSolution && !pParSec->fRecursive )
         {
-        printf( "SOLUTION: UNDECIDED  " );
+        fprintf( Abc_FrameGlobalGetOut(), "SOLUTION: UNDECIDED  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
         }
         if ( !TimeOut && !pParSec->fSilent )
@@ -687,13 +687,13 @@ ABC_PRT( "Time", Abc_Clock() - clkTotal );
             pParSec->nSMnumber = Counter;
             sprintf( pFileName, "sm%02d.aig", Counter++ );
             Ioa_WriteAiger( pNew, pFileName, 0, 0 );
-            printf( "The unsolved reduced miter is written into file \"%s\".\n", pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "The unsolved reduced miter is written into file \"%s\".\n", pFileName );
         }
     }
     if ( pNew->pSeqModel )
     {
         if ( Saig_ManPiNum(p) != Saig_ManPiNum(pNew) )
-            printf( "The counter-example is invalid because of phase abstraction.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The counter-example is invalid because of phase abstraction.\n" );
         else
         {
         ABC_FREE( p->pSeqModel );

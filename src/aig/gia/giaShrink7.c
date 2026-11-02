@@ -140,11 +140,11 @@ int Unm_ManPrintPairStats( Hash_IntMan_t * pHash, int nTotal0, int nPairs0, int 
 //        printf( "(%4d, %4d) %d\n", Hash_IntObjData0(pHash, i), Hash_IntObjData1(pHash, i), nRefs );
 
     }
-    printf( "Statistics for pairs appearing less than 20 times:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Statistics for pairs appearing less than 20 times:\n" );
     for ( i = 0; i < 21; i++ )
         if ( Counter[i] > 0 )
-            printf( "%3d : %7d  %7.2f %%\n", i, Counter[i], 100.0 * Counter[i] * i / Abc_MaxInt(nTotal, 1) );
-    printf( "Pairs:  Total = %8d    Init = %8d %7.2f %%    Final = %8d %7.2f %%    Real = %8d %7.2f %%\n", nTotal0, 
+            fprintf( Abc_FrameGlobalGetOut(), "%3d : %7d  %7.2f %%\n", i, Counter[i], 100.0 * Counter[i] * i / Abc_MaxInt(nTotal, 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "Pairs:  Total = %8d    Init = %8d %7.2f %%    Final = %8d %7.2f %%    Real = %8d %7.2f %%\n", nTotal0, 
         nPairs0,  100.0 * nPairs0 / Abc_MaxInt(nTotal0, 1), 
         nPairs, 100.0 * nPairs / Abc_MaxInt(nTotal0, 1), 
         nPairs1, 100.0 * nPairs1 / Abc_MaxInt(nTotal0, 1) );
@@ -215,7 +215,7 @@ Vec_Int_t * Unm_ManFindUsedNodes( Vec_Int_t * vPairs, int nObjs )
         if ( Vec_StrEntry( vMarks, i ) )
             Vec_IntPush( vNodes, i );
     Vec_StrFree( vMarks );
-    printf( "The number of used nodes = %d\n", Vec_IntSize(vNodes) );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of used nodes = %d\n", Vec_IntSize(vNodes) );
     return vNodes;
 }
 // computes truth table for selected nodes

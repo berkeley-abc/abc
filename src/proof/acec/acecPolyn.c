@@ -146,16 +146,16 @@ void Pln_ManPrintFinal( Pln_Man_t * p, int fVerbose, int fVeryVerbose )
     {
         if ( i % 4 == 0 )
             continue;
-        printf( "%-6d : ", i/4 );
+        fprintf( Abc_FrameGlobalGetOut(), "%-6d : ", i/4 );
         vArray = Hsh_VecReadEntry( p->pHashC, iConst );
         Vec_IntForEachEntry( vArray, Entry, k )
-            printf( "%s%d", Entry < 0 ? "-" : "+", (1 << (Abc_AbsInt(Entry)-1)) );
+            fprintf( Abc_FrameGlobalGetOut(), "%s%d", Entry < 0 ? "-" : "+", (1 << (Abc_AbsInt(Entry)-1)) );
         vArray = Hsh_VecReadEntry( p->pHashM, iMono );
         Vec_IntForEachEntry( vArray, Entry, k )
-            printf( " * %d", Entry );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " * %d", Entry );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    printf( "HashC = %d. HashM = %d.  Total = %d. Used = %d.  ", Hsh_VecSize(p->pHashC), Hsh_VecSize(p->pHashM), p->nBuilds, Vec_IntSize(vPairs)/4 );
+    fprintf( Abc_FrameGlobalGetOut(), "HashC = %d. HashM = %d.  Total = %d. Used = %d.  ", Hsh_VecSize(p->pHashC), Hsh_VecSize(p->pHashM), p->nBuilds, Vec_IntSize(vPairs)/4 );
     Vec_IntFree( vPairs );
 }
 
@@ -392,12 +392,12 @@ void Gia_PolynBuild( Gia_Man_t * pGia, Vec_Int_t * vOrder, int fSigned, int fVer
         if ( LevPrev != LevCur )
         {
             if ( Vec_BitEntry( vPres, LevCur ) && fVerbose )
-                printf( "Repeating entry %d\n", LevCur );
+                fprintf( Abc_FrameGlobalGetOut(), "Repeating entry %d\n", LevCur );
             else
                 Vec_BitSetEntry( vPres, LevCur, 1 );
 
             if ( fVeryVerbose )
-                printf( "Line%5d   Iter%10d : Obj =%6d.  Order =%6d.  HashC =%6d. HashM =%10d.  Total =%10d. Used =%10d.\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "Line%5d   Iter%10d : Obj =%6d.  Order =%6d.  HashC =%6d. HashM =%10d.  Total =%10d. Used =%10d.\n", 
                     Line++, Iter, LevCur, Vec_IntEntry(p->vOrder, LevCur), Hsh_VecSize(p->pHashC), Hsh_VecSize(p->pHashM), p->nBuilds, p->nUsed );
         }
         LevPrev = LevCur;

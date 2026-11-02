@@ -85,7 +85,7 @@ int Map_Mapping( Map_Man_t * p )
     p->AreaBase = Map_MappingGetArea( p );
 if ( p->fVerbose )
 {
-printf( "Delay    : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
+fprintf( Abc_FrameGlobalGetOut(), "Delay    : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
                     fShowSwitching? "Switch" : "Delay", 
                     fShowSwitching? Map_MappingGetSwitching(p) : p->fRequiredGlo, 
                     Map_MappingGetAreaFlow(p), p->AreaBase, 0.0 );
@@ -115,7 +115,7 @@ ABC_PRT( "Time", p->timeMatch );
         p->AreaFinal = Map_MappingGetArea( p );
 if ( p->fVerbose )
 {
-printf( "AreaFlow : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
+fprintf( Abc_FrameGlobalGetOut(), "AreaFlow : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
                     fShowSwitching? "Switch" : "Delay", 
                     fShowSwitching? Map_MappingGetSwitching(p) : p->fRequiredGlo, 
                     Map_MappingGetAreaFlow(p), p->AreaFinal, 
@@ -141,7 +141,7 @@ ABC_PRT( "Time", Abc_Clock() - clk );
         p->AreaFinal = Map_MappingGetArea( p );
 if ( p->fVerbose )
 {
-printf( "Area     : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
+fprintf( Abc_FrameGlobalGetOut(), "Area     : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
                     fShowSwitching? "Switch" : "Delay", 
                     fShowSwitching? Map_MappingGetSwitching(p) : p->fRequiredGlo, 
                     0.0, p->AreaFinal, 
@@ -167,7 +167,7 @@ ABC_PRT( "Time", Abc_Clock() - clk );
         p->AreaFinal = Map_MappingGetArea( p );
 if ( p->fVerbose )
 {
-printf( "Area     : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
+fprintf( Abc_FrameGlobalGetOut(), "Area     : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
                     fShowSwitching? "Switch" : "Delay", 
                     fShowSwitching? Map_MappingGetSwitching(p) : p->fRequiredGlo, 
                     0.0, p->AreaFinal, 
@@ -193,7 +193,7 @@ ABC_PRT( "Time", Abc_Clock() - clk );
         p->AreaFinal = Map_MappingGetArea( p );
 if ( p->fVerbose )
 {
-printf( "Switching: %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
+fprintf( Abc_FrameGlobalGetOut(), "Switching: %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
                     fShowSwitching? "Switch" : "Delay", 
                     fShowSwitching? Map_MappingGetSwitching(p) : p->fRequiredGlo, 
                     0.0, p->AreaFinal, 
@@ -211,7 +211,7 @@ ABC_PRT( "Time", Abc_Clock() - clk );
         p->AreaFinal = Map_MappingGetArea( p );
 if ( p->fVerbose )
 {
-printf( "Switching: %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
+fprintf( Abc_FrameGlobalGetOut(), "Switching: %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
                     fShowSwitching? "Switch" : "Delay", 
                     fShowSwitching? Map_MappingGetSwitching(p) : p->fRequiredGlo, 
                     0.0, p->AreaFinal, 

@@ -144,7 +144,7 @@ void Bus_ManReadInOutLoads( Bus_Man_t * p )
     {
         int iCell = Abc_SclCellFind( p->pLib, Abc_FrameReadDrivingCell() );
         if ( iCell == -1 )
-            printf( "Cannot find the default PI driving cell (%s) in the library.\n", Abc_FrameReadDrivingCell() );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot find the default PI driving cell (%s) in the library.\n", Abc_FrameReadDrivingCell() );
         else
         {
 //            printf( "Default PI driving cell is specified (%s).\n", Abc_FrameReadDrivingCell() );
@@ -234,27 +234,27 @@ void Abc_NtkPrintFanoutProfile( Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanout;
     int i;
-    printf( "Obj %6d fanouts (%d):\n", Abc_ObjId(pObj), Abc_ObjFanoutNum(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "Obj %6d fanouts (%d):\n", Abc_ObjId(pObj), Abc_ObjFanoutNum(pObj) );
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
-        printf( "%3d : time = %7.2f ps   load = %7.2f ff  ", i, Bus_SclObjETime(pFanout), Bus_SclObjCin(pFanout) );
-        printf( "%s\n", Abc_ObjFaninPhase( pFanout, Abc_NodeFindFanin(pFanout, pObj) ) ? "*" : " " );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : time = %7.2f ps   load = %7.2f ff  ", i, Bus_SclObjETime(pFanout), Bus_SclObjCin(pFanout) );
+        fprintf( Abc_FrameGlobalGetOut(), "%s\n", Abc_ObjFaninPhase( pFanout, Abc_NodeFindFanin(pFanout, pObj) ) ? "*" : " " );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Abc_NtkPrintFanoutProfileVec( Abc_Obj_t * pObj, Vec_Ptr_t * vFanouts )
 {
     Abc_Obj_t * pFanout;
     int i;
-    printf( "Fanout profile (%d):\n", Vec_PtrSize(vFanouts) );
+    fprintf( Abc_FrameGlobalGetOut(), "Fanout profile (%d):\n", Vec_PtrSize(vFanouts) );
     Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pFanout, i )
     {
-        printf( "%3d : time = %7.2f ps   load = %7.2f ff  ", i, Bus_SclObjETime(pFanout), Bus_SclObjCin(pFanout) );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : time = %7.2f ps   load = %7.2f ff  ", i, Bus_SclObjETime(pFanout), Bus_SclObjCin(pFanout) );
         if ( pObj->pNtk->vPhases )
-            printf( "%s", (pObj && Abc_ObjFanoutNum(pObj) == Vec_PtrSize(vFanouts) && Abc_ObjFaninPhase( pFanout, Abc_NodeFindFanin(pFanout, pObj) )) ? "*" : " " );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%s", (pObj && Abc_ObjFanoutNum(pObj) == Vec_PtrSize(vFanouts) && Abc_ObjFaninPhase( pFanout, Abc_NodeFindFanin(pFanout, pObj) )) ? "*" : " " );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -311,7 +311,7 @@ void Bus_SclCheckSortedFanout( Vec_Ptr_t * vFanouts )
         pNext = (Abc_Obj_t *)Vec_PtrEntry(vFanouts, i+1);
         if ( Bus_SclCompareFanouts( &pObj, &pNext ) != -1 )
         {
-            printf( "Fanouts %d and %d are out of order.\n", i, i+1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Fanouts %d and %d are out of order.\n", i, i+1 );
             Abc_NtkPrintFanoutProfileVec( NULL, vFanouts );
             return;
         }
@@ -332,13 +332,13 @@ void Bus_SclCheckSortedFanout( Vec_Ptr_t * vFanouts )
 void Abc_SclOneNodePrint( Bus_Man_t * p, Abc_Obj_t * pObj )
 {
     SC_Cell * pCell = Abc_SclObjCell(pObj);
-    printf( "%s%7d :  ",        (Abc_ObjFaninNum(pObj) == 0) ? " Inv" : "Node", Abc_ObjId(pObj) );
-    printf( "%d/%2d   ",        Abc_ObjFaninNum(pObj) ? Abc_ObjFaninNum(pObj) : 1, Abc_ObjFanoutNum(pObj) );
-    printf( "%12s ",            pCell->pName );
-    printf( "(%2d/%2d)  ",      pCell->Order, pCell->nGates );
-    printf( "gain =%5d  ",      (int)(100.0 * Bus_SclObjLoad(pObj) / SC_CellPinCapAve(pCell)) );
-    printf( "dept =%7.0f ps  ", Bus_SclObjDept(pObj) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "%s%7d :  ",        (Abc_ObjFaninNum(pObj) == 0) ? " Inv" : "Node", Abc_ObjId(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "%d/%2d   ",        Abc_ObjFaninNum(pObj) ? Abc_ObjFaninNum(pObj) : 1, Abc_ObjFanoutNum(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "%12s ",            pCell->pName );
+    fprintf( Abc_FrameGlobalGetOut(), "(%2d/%2d)  ",      pCell->Order, pCell->nGates );
+    fprintf( Abc_FrameGlobalGetOut(), "gain =%5d  ",      (int)(100.0 * Bus_SclObjLoad(pObj) / SC_CellPinCapAve(pCell)) );
+    fprintf( Abc_FrameGlobalGetOut(), "dept =%7.0f ps  ", Bus_SclObjDept(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 Abc_Obj_t * Abc_SclAddOneInv( Bus_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFanouts, float Gain )
 {
@@ -419,7 +419,7 @@ void Abc_SclBufSize( Bus_Man_t * p, float Gain )
             continue;
         if ( 2 * nObjsOld < Abc_NtkObjNumMax(p->pNtk) )
         {
-            printf( "Buffering could not be completed because the gain value (%d) is too low.\n", p->pPars->GainRatio );
+            fprintf( Abc_FrameGlobalGetOut(), "Buffering could not be completed because the gain value (%d) is too low.\n", p->pPars->GainRatio );
             break;
         }
         // compute load
@@ -498,7 +498,7 @@ void Abc_SclBufSize( Bus_Man_t * p, float Gain )
     }
     if ( p->pPars->fVerbose )
     {
-        printf( "WireLoads = %d  Degree = %d  Target slew =%4d ps   Gain2 =%5d  Buf = %6d  Delay =%7.0f ps   ", 
+        fprintf( Abc_FrameGlobalGetOut(), "WireLoads = %d  Degree = %d  Target slew =%4d ps   Gain2 =%5d  Buf = %6d  Delay =%7.0f ps   ", 
             p->pPars->fUseWireLoads, p->pPars->nDegree, p->pPars->Slew, p->pPars->GainRatio, 
             Abc_NtkObjNumMax(p->pNtk) - nObjsOld, DeptMax );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );

@@ -364,7 +364,7 @@ int Mio_CommandReadLiberty( Abc_Frame_t * pAbc, int argc, char **argv )
         Vec_StrFree( vStr );
         Vec_StrFree( vStr2 );
         if ( !RetValue )
-            printf( "Reading library has filed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Reading library has filed.\n" );
     }
     return 0;
 
@@ -477,7 +477,7 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
     if ( fVerbose )
-        printf( "Entered genlib library with %d gates from file \"%s\".\n", Mio_LibraryReadGateNum(pLib), pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Entered genlib library with %d gates from file \"%s\".\n", Mio_LibraryReadGateNum(pLib), pFileName );
 
     // convert the library if needed
     if ( fShortNames )
@@ -561,12 +561,12 @@ int Mio_CommandWriteGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     if ( Abc_FrameReadLibGen() == NULL )
     {
-        printf( "Library is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Library is not available.\n" );
         return 1;
     }
     if ( argc != globalUtilOptind + 1 )
     {
-        printf( "The file name is not given.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The file name is not given.\n" );
         return 1;
     }
 
@@ -574,7 +574,7 @@ int Mio_CommandWriteGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        printf( "Error! Cannot open file \"%s\" for writing the library.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Error! Cannot open file \"%s\" for writing the library.\n", pFileName );
         return 1;
     }
     if ( fVerilog )
@@ -582,7 +582,7 @@ int Mio_CommandWriteGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     else
         Mio_WriteLibrary( pFile, (Mio_Library_t *)Abc_FrameReadLibGen(), 0, 0, fSelected );
     fclose( pFile );
-    printf( "The current genlib library is written into file \"%s\".\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "The current genlib library is written into file \"%s\".\n", pFileName );
     return 0;
 
 usage:
@@ -642,10 +642,10 @@ int Mio_CommandPrintGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     if ( Abc_FrameReadLibGen() == NULL )
     {
-        printf( "Library is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Library is not available.\n" );
         return 1;
     }
-    Mio_WriteLibrary( stdout, (Mio_Library_t *)Abc_FrameReadLibGen(), 0, fShort, fSelected );
+    Mio_WriteLibrary( Abc_FrameGlobalGetOut(), (Mio_Library_t *)Abc_FrameReadLibGen(), 0, fShort, fSelected );
     return 0;
 
 usage:
@@ -763,12 +763,12 @@ int Mio_CommandWriteProfile( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     if ( Abc_FrameReadLibGen() == NULL )
     {
-        printf( "Library is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Library is not available.\n" );
         return 1;
     }
     if ( argc != globalUtilOptind + 1 )
     {
-        printf( "The file name is not given.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The file name is not given.\n" );
         return 1;
     }
 
@@ -776,12 +776,12 @@ int Mio_CommandWriteProfile( Abc_Frame_t * pAbc, int argc, char **argv )
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        printf( "Error! Cannot open file \"%s\" for writing the library.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Error! Cannot open file \"%s\" for writing the library.\n", pFileName );
         return 1;
     }
     Mio_LibraryWriteProfile( pFile, (Mio_Library_t *)Abc_FrameReadLibGen() );
     fclose( pFile );
-    printf( "The current profile is written into file \"%s\".\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "The current profile is written into file \"%s\".\n", pFileName );
     return 0;
 
 usage:
@@ -838,10 +838,10 @@ int Mio_CommandPrintProfile( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     if ( Abc_FrameReadLibGen() == NULL )
     {
-        printf( "Library is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Library is not available.\n" );
         return 1;
     }
-    Mio_LibraryWriteProfile( stdout, (Mio_Library_t *)Abc_FrameReadLibGen() );
+    Mio_LibraryWriteProfile( Abc_FrameGlobalGetOut(), (Mio_Library_t *)Abc_FrameReadLibGen() );
     return 0;
 
 usage:

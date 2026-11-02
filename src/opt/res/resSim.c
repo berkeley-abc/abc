@@ -549,8 +549,8 @@ void Res_SimPrintOutPatterns( Res_Sim_t * p, Abc_Ntk_t * pAig )
     Abc_NtkForEachPo( pAig, pObj, i )
     {
         pInfo2 = (unsigned *)Vec_PtrEntry( p->vOuts, i );
-        Extra_PrintBinary( stdout, pInfo2, p->nPatsOut );
-        printf( "\n" );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), pInfo2, p->nPatsOut );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -569,8 +569,8 @@ void Res_SimPrintNodePatterns( Res_Sim_t * p, Abc_Ntk_t * pAig )
 {
     unsigned * pInfo;
     pInfo = (unsigned *)Vec_PtrEntry( p->vPats, Abc_NtkPo(p->pAig, 1)->Id );
-    Extra_PrintBinary( stdout, pInfo, p->nPats );
-    printf( "\n" );
+    Extra_PrintBinary( Abc_FrameGlobalGetOut(), pInfo, p->nPats );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -604,9 +604,9 @@ void Res_SimCountResults( Res_Sim_t * p, int * pnDcs, int * pnOnes, int * pnZero
     nTotal += *pnOnes;
     if ( fVerbose )
     {
-        printf( "Dc = %7.2f %%  ",  100.0*(*pnDcs)  /nTotal );
-        printf( "On = %7.2f %%  ",  100.0*(*pnOnes) /nTotal );
-        printf( "Off = %7.2f %%  ", 100.0*(*pnZeros)/nTotal );
+        fprintf( Abc_FrameGlobalGetOut(), "Dc = %7.2f %%  ",  100.0*(*pnDcs)  /nTotal );
+        fprintf( Abc_FrameGlobalGetOut(), "On = %7.2f %%  ",  100.0*(*pnOnes) /nTotal );
+        fprintf( Abc_FrameGlobalGetOut(), "Off = %7.2f %%  ", 100.0*(*pnZeros)/nTotal );
     }
 }
 
@@ -670,10 +670,10 @@ void Res_SimCollectPatterns( Res_Sim_t * p, int fVerbose )
     }
     if ( fVerbose )
     {
-        printf( "|  " );
-        printf( "On = %3d  ", p->nPats1 );
-        printf( "Off = %3d  ", p->nPats0 );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "|  " );
+        fprintf( Abc_FrameGlobalGetOut(), "On = %3d  ", p->nPats1 );
+        fprintf( Abc_FrameGlobalGetOut(), "Off = %3d  ", p->nPats0 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -732,7 +732,7 @@ int Res_SimPrepare( Res_Sim_t * p, Abc_Ntk_t * pAig, int nTruePis, int fVerbose 
 {
     int i, nOnes = 0, nZeros = 0, nDcs = 0;
     if ( fVerbose )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     // prepare the manager
     Res_SimAdjust( p, pAig, nTruePis );
     // estimate the number of patterns

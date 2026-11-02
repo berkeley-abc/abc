@@ -177,7 +177,7 @@ void Cut_CellLoad()
     pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\".\n", pFileName );
         return;
     }
    // start the manager
@@ -214,7 +214,7 @@ void Cut_CellLoad()
         if ( !Cut_CellTableLookup( p, pCell ) ) // new cell
             p->nGood++;
     }
-    printf( "Read %d cells from file \"%s\". Added %d cells to the table.\n", p->nTotal, pFileName, p->nGood );
+    fprintf( Abc_FrameGlobalGetOut(), "Read %d cells from file \"%s\". Added %d cells to the table.\n", p->nTotal, pFileName, p->nGood );
     fclose( pFile );
 //    return p;
 }
@@ -401,18 +401,18 @@ void Cut_CellPrecompute()
         }
     }
 
-    printf( "BASIC: Total = %d. Good = %d. Entry = %d. ", (int)p->nTotal, (int)p->nGood, (int)sizeof(Cut_Cell_t) );
+    fprintf( Abc_FrameGlobalGetOut(), "BASIC: Total = %d. Good = %d. Entry = %d. ", (int)p->nTotal, (int)p->nGood, (int)sizeof(Cut_Cell_t) );
     ABC_PRT( "Time", Abc_Clock() - clk );
-    printf( "Cells:  " );
+    fprintf( Abc_FrameGlobalGetOut(), "Cells:  " );
     for ( i = 0; i <= 9; i++ )
-        printf( "%d=%d ", i, p->nVarCounts[i] );
-    printf( "\nDiffs:  " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, p->nVarCounts[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\nDiffs:  " );
     for ( i = 0; i <= 9; i++ )
-        printf( "%d=%d ", i, p->nSymGroups[i] );
-    printf( "\nEquals: " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, p->nSymGroups[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\nEquals: " );
     for ( i = 0; i <= 9; i++ )
-        printf( "%d=%d ", i, p->nSymGroupsE[i] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, p->nSymGroupsE[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // continue adding new cells using support
     for ( k = CUT_CELL_MVAR; k > 3; k-- )
@@ -485,18 +485,18 @@ void Cut_CellPrecompute()
 //p->timeTable += Abc_Clock() - clk2;
         }
 
-        printf( "VAR %d: Total = %d. Good = %d. Entry = %d. ", k, p->nTotal, p->nGood, (int)sizeof(Cut_Cell_t) );
+        fprintf( Abc_FrameGlobalGetOut(), "VAR %d: Total = %d. Good = %d. Entry = %d. ", k, p->nTotal, p->nGood, (int)sizeof(Cut_Cell_t) );
         ABC_PRT( "Time", Abc_Clock() - clk );
-        printf( "Cells:  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Cells:  " );
         for ( i = 0; i <= 9; i++ )
-            printf( "%d=%d ", i, p->nVarCounts[i] );
-        printf( "\nDiffs:  " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, p->nVarCounts[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "\nDiffs:  " );
         for ( i = 0; i <= 9; i++ )
-            printf( "%d=%d ", i, p->nSymGroups[i] );
-        printf( "\nEquals: " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, p->nSymGroups[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "\nEquals: " );
         for ( i = 0; i <= 9; i++ )
-            printf( "%d=%d ", i, p->nSymGroupsE[i] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, p->nSymGroupsE[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 //    printf( "\n" );
     ABC_PRT( "Supp ", p->timeSupp );
@@ -845,7 +845,7 @@ void Cut_CellDumpToFile()
 
     if ( p == NULL )
     {
-        printf( "Cut_CellDumpToFile: Cell manager is not defined.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cut_CellDumpToFile: Cell manager is not defined.\n" );
         return;
     }
 
@@ -879,28 +879,28 @@ void Cut_CellDumpToFile()
         }
     }
 
-    printf( "Functions found = %10d.  Functions not found = %10d.\n", p->nCellFound, p->nCellNotFound );
+    fprintf( Abc_FrameGlobalGetOut(), "Functions found = %10d.  Functions not found = %10d.\n", p->nCellFound, p->nCellNotFound );
     for ( k = 0; k <= CUT_CELL_MVAR; k++ )
     {
-        printf( "%3d  : ", k );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d  : ", k );
         for ( i = 0; i < 5; i++ ) 
-            printf( "%8d ", NumUsed[k][i] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%8d ", NumUsed[k][i] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    printf( "Box usage:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Box usage:\n" );
     for ( k = 0; k < 22; k++ )
     {
-        printf( "%3d  : ", k );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d  : ", k );
         for ( i = 0; i < 5; i++ ) 
-            printf( "%8d ", BoxUsed[k][i] );
-        printf( "  %s", s_NP3Names[k] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%8d ", BoxUsed[k][i] );
+        fprintf( Abc_FrameGlobalGetOut(), "  %s", s_NP3Names[k] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        printf( "Cut_CellDumpToFile: Cannout open output file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cut_CellDumpToFile: Cannout open output file.\n" );
         return;
     }
 
@@ -918,7 +918,7 @@ void Cut_CellDumpToFile()
     }
     fclose( pFile );
 
-    printf( "Library composed of %d functions is written into file \"%s\".  ", Counter, pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Library composed of %d functions is written into file \"%s\".  ", Counter, pFileName );
 
     ABC_PRT( "Time", Abc_Clock() - clk );
 }
@@ -948,7 +948,7 @@ int Cut_CellTruthLookup( unsigned * pTruth, int nVars )
     // cell manager is not defined
     if ( p == NULL )
     {
-        printf( "Cut_CellTruthLookup: Cell manager is not defined.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cut_CellTruthLookup: Cell manager is not defined.\n" );
         return 0;
     }
 

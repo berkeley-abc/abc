@@ -171,15 +171,15 @@ IN pPLA PLA;
 {
     register pcube last, p;
 
-    (void) printf(".option unmerged\n");
+    (void) fprintf( Abc_FrameGlobalGetOut(), ".option unmerged\n" );
     makeup_labels(PLA);
-    pls_label(PLA, stdout);
-    pls_group(PLA, stdout);
-    (void) printf(".p %d\n", PLA->F->count);
+    pls_label(PLA, Abc_FrameGlobalGetOut());
+    pls_group(PLA, Abc_FrameGlobalGetOut());
+    (void) fprintf( Abc_FrameGlobalGetOut(), ".p %d\n", PLA->F->count );
     foreach_set(PLA->F, last, p) {
-    print_expanded_cube(stdout, p, PLA->phase);
+    print_expanded_cube(Abc_FrameGlobalGetOut(), p, PLA->phase);
     }
-    (void) printf(".end\n");
+    (void) fprintf( Abc_FrameGlobalGetOut(), ".end\n" );
 }
 
 
@@ -247,7 +247,7 @@ pPLA PLA;
 
     /* Write a single equation for each output */
     for(i = 0; i < cube.part_size[cube.output]; i++) {
-    (void) printf("%s = ", OUTLABEL(i));
+    (void) fprintf( Abc_FrameGlobalGetOut(), "%s = ", OUTLABEL(i) );
     col = strlen(OUTLABEL(i)) + 3;
     firstor = TRUE;
 
@@ -255,9 +255,9 @@ pPLA PLA;
     foreach_set(PLA->F, last, p)
         if (is_in_set(p, i + cube.first_part[cube.output])) {
         if (firstor)
-            (void) printf("("), col += 1;
+            (void) fprintf( Abc_FrameGlobalGetOut(), "(" ), col += 1;
         else
-            (void) printf(" | ("), col += 4;
+            (void) fprintf( Abc_FrameGlobalGetOut(), " | (" ), col += 4;
         firstor = FALSE;
         firstand = TRUE;
 
@@ -266,17 +266,17 @@ pPLA PLA;
             if ((x=GETINPUT(p, var)) != DASH) {
             len = strlen(INLABEL(var));
             if (col+len > 72)
-                (void) printf("\n    "), col = 4;
+                (void) fprintf( Abc_FrameGlobalGetOut(), "\n    " ), col = 4;
             if (! firstand)
-                (void) printf("&"), col += 1;
+                (void) fprintf( Abc_FrameGlobalGetOut(), "&" ), col += 1;
             firstand = FALSE;
             if (x == ZERO)
-                (void) printf("!"), col += 1;
-            (void) printf("%s", INLABEL(var)), col += len;
+                (void) fprintf( Abc_FrameGlobalGetOut(), "!" ), col += 1;
+            (void) fprintf( Abc_FrameGlobalGetOut(), "%s", INLABEL(var) ), col += len;
             }
-        (void) printf(")"), col += 1;
+        (void) fprintf( Abc_FrameGlobalGetOut(), ")" ), col += 1;
         }
-    (void) printf(";\n\n");
+    (void) fprintf( Abc_FrameGlobalGetOut(), ";\n\n" );
     }
 }
 
@@ -393,12 +393,12 @@ int level;
     cnt = CUBELISTSIZE(T);
     temp = new_cube();
     if (verbose_debug && level == 0)
-    (void) printf("\n");
-    (void) printf("%s[%d]: ord(T)=%d\n", name, level, cnt);
+    (void) fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    (void) fprintf( Abc_FrameGlobalGetOut(), "%s[%d]: ord(T)=%d\n", name, level, cnt );
     if (verbose_debug) {
-    (void) printf("cofactor=%s\n", pc1(T[0]));
+    (void) fprintf( Abc_FrameGlobalGetOut(), "cofactor=%s\n", pc1(T[0]) );
     for(T1 = T+2, cnt = 1; (p = *T1++) != (pcube) NULL; cnt++)
-        (void) printf("%4d. %s\n", cnt, pc1(set_or(temp, p, T[0])));
+        (void) fprintf( Abc_FrameGlobalGetOut(), "%4d. %s\n", cnt, pc1(set_or(temp, p, T[0])) );
     }
     free_cube(temp);
 }
@@ -413,11 +413,11 @@ int num;
     register pcube p, last;
 
     if (verbose_debug && num == 0)
-    (void) printf("\n");
-    (void) printf("%s[%d]: ord(T)=%d\n", name, num, T->count);
+    (void) fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    (void) fprintf( Abc_FrameGlobalGetOut(), "%s[%d]: ord(T)=%d\n", name, num, T->count );
     if (verbose_debug)
     foreach_set(T, last, p)
-        (void) printf("%4d. %s\n", cnt++, pc1(p));
+        (void) fprintf( Abc_FrameGlobalGetOut(), "%4d. %s\n", cnt++, pc1(p) );
 }
 
 
@@ -427,7 +427,7 @@ pcover T;
     register pcube p, last;
 
     foreach_set(T, last, p)
-    (void) printf("%s\n", pc1(p));
+    (void) fprintf( Abc_FrameGlobalGetOut(), "%s\n", pc1(p) );
 }
 
 

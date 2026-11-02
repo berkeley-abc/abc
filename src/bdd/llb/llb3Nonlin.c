@@ -99,32 +99,32 @@ int Llb_NonlinFindBestVar( DdManager * dd, DdNode * bFunc, Aig_Man_t * pAig )
         iVar = Aig_ObjId(pObj);
 
 if ( fVerbose )
-printf( "Var =%3d : ", iVar );
+fprintf( Abc_FrameGlobalGetOut(), "Var =%3d : ", iVar );
         bVar = Cudd_bddIthVar(dd, iVar);
 
         bCof = Cudd_bddAnd( dd, bFunc, Cudd_Not(bVar) );          Cudd_Ref( bCof );
         Size0 = Cudd_DagSize(bCof);
 if ( fVerbose )
-printf( "Supp0 =%3d  ",  Cudd_SupportSize(dd, bCof) );
+fprintf( Abc_FrameGlobalGetOut(), "Supp0 =%3d  ",  Cudd_SupportSize(dd, bCof) );
 if ( fVerbose )
-printf( "Size0 =%6d   ", Size0 );
+fprintf( Abc_FrameGlobalGetOut(), "Size0 =%6d   ", Size0 );
         Cudd_RecursiveDeref( dd, bCof );
 
         bCof = Cudd_bddAnd( dd, bFunc, bVar );                    Cudd_Ref( bCof );
         Size1 = Cudd_DagSize(bCof);
 if ( fVerbose )
-printf( "Supp1 =%3d  ",  Cudd_SupportSize(dd, bCof) );
+fprintf( Abc_FrameGlobalGetOut(), "Supp1 =%3d  ",  Cudd_SupportSize(dd, bCof) );
 if ( fVerbose )
-printf( "Size1 =%6d   ", Size1 );
+fprintf( Abc_FrameGlobalGetOut(), "Size1 =%6d   ", Size1 );
         Cudd_RecursiveDeref( dd, bCof );
 
         iValue = Abc_MaxInt(Size0, Size1) - Abc_MinInt(Size0, Size1) + Size0 + Size1 - Size;
 if ( fVerbose )
-printf( "D =%6d  ", Size0 + Size1 - Size );
+fprintf( Abc_FrameGlobalGetOut(), "D =%6d  ", Size0 + Size1 - Size );
 if ( fVerbose )
-printf( "B =%6d  ", Abc_MaxInt(Size0, Size1) - Abc_MinInt(Size0, Size1) );
+fprintf( Abc_FrameGlobalGetOut(), "B =%6d  ", Abc_MaxInt(Size0, Size1) - Abc_MinInt(Size0, Size1) );
 if ( fVerbose )
-printf( "S =%6d\n", iValue );
+fprintf( Abc_FrameGlobalGetOut(), "S =%6d\n", iValue );
         if ( Size0 > 1 && Size1 > 1 && iValueBest > iValue )
         {
             iValueBest = iValue;
@@ -132,7 +132,7 @@ printf( "S =%6d\n", iValue );
             Size0Best  = Size0;
         }
     }
-    printf( "BestVar = %4d/%4d.  Value =%6d.  Orig =%6d. Size0 =%6d. ", 
+    fprintf( Abc_FrameGlobalGetOut(), "BestVar = %4d/%4d.  Value =%6d.  Orig =%6d. Size0 =%6d. ", 
         iVarBest, Aig_ObjId(Saig_ManLo(pAig,iVarBest)), iValueBest, Size, Size0Best );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return iVarBest;
@@ -153,10 +153,10 @@ printf( "S =%6d\n", iValue );
 void Llb_NonlinTrySubsetting( DdManager * dd, DdNode * bFunc )
 {
     DdNode * bNew;
-    printf( "Original = %6d.  SuppSize = %3d.    ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Original = %6d.  SuppSize = %3d.    ", 
         Cudd_DagSize(bFunc), Cudd_SupportSize(dd, bFunc) );
     bNew = Cudd_SubsetHeavyBranch( dd, bFunc, Cudd_SupportSize(dd, bFunc), 1000 );  Cudd_Ref( bNew );
-    printf( "Result   = %6d.  SuppSize = %3d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Result   = %6d.  SuppSize = %3d.\n", 
         Cudd_DagSize(bNew), Cudd_SupportSize(dd, bNew) );
     Cudd_RecursiveDeref( dd, bNew );
 }
@@ -367,24 +367,24 @@ int Llb_NonlinReoHook( DdManager * dd, char * Type, void * Method )
     Aig_Man_t * pAig = (Aig_Man_t *)dd->bFunc;
     Aig_Obj_t * pObj;
     int i;
-    printf( "Order: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Order: " );
     for ( i = 0; i < Cudd_ReadSize(dd); i++ )
     {
         pObj = Aig_ManObj( pAig, i );
         if ( pObj == NULL )
             continue;
         if ( Saig_ObjIsPi(pAig, pObj) )
-            printf( "pi" );
+            fprintf( Abc_FrameGlobalGetOut(), "pi" );
         else if ( Saig_ObjIsLo(pAig, pObj) )
-            printf( "lo" );
+            fprintf( Abc_FrameGlobalGetOut(), "lo" );
         else if ( Saig_ObjIsPo(pAig, pObj) )
-            printf( "po" );
+            fprintf( Abc_FrameGlobalGetOut(), "po" );
         else if ( Saig_ObjIsLi(pAig, pObj) )
-            printf( "li" );
+            fprintf( Abc_FrameGlobalGetOut(), "li" );
         else continue;
-        printf( "%d=%d ", i, dd->perm[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, dd->perm[i] );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     return 1;
 }
 
@@ -451,7 +451,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
     if ( p->ddR->bFunc == NULL )
     {
         if ( !p->pPars->fSilent )
-            printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+            fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
         p->pPars->iFrame = -1;
         return -1;
     }
@@ -462,7 +462,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
     if ( p->dd == NULL )
     {
         if ( !p->pPars->fSilent )
-            printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+            fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
         p->pPars->iFrame = -1;
         return -1;
     }
@@ -476,7 +476,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         if ( p->pPars->TimeLimit && Abc_Clock() > p->pPars->TimeTarget )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Llb_NonlinImageQuit();
             return -1;
@@ -487,7 +487,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         if ( bTemp == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during ring transfer.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during ring transfer.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Llb_NonlinImageQuit();
             return -1;
@@ -523,7 +523,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         if ( bNext == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation in quantification.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation in quantification.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Llb_NonlinImageQuit();
             return -1;
@@ -541,7 +541,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         if ( p->ddG->bFunc2 == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->dd,  bNext );  
             Llb_NonlinImageQuit();
@@ -564,7 +564,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         if ( p->dd == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             return -1;
         }
@@ -576,7 +576,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         if ( p->ddG->bFunc2 == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->ddG, bTemp );  
             Llb_NonlinImageQuit();
@@ -594,7 +594,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         if ( p->ddG->bFunc == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->ddG, bTemp );  
             Llb_NonlinImageQuit();
@@ -615,7 +615,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         if ( p->dd->bFunc == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation in transfer 2.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation in transfer 2.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Llb_NonlinImageQuit();
             return -1;
@@ -626,15 +626,15 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         // report the results
         if ( p->pPars->fVerbose )
         {
-            printf( "I =%3d : ",   nIters );
-            printf( "Fr =%7d ",    nBddSize0 );
-            printf( "Im =%7d  ",   nBddSize );
-            printf( "(%4d %4d)  ", p->ddLocReos, p->ddLocGrbs );
-            printf( "Rea =%6d  ",  Cudd_DagSize(p->ddG->bFunc) );
-            printf( "(%4d %4d)  ", Cudd_ReadReorderings(p->ddG), Cudd_ReadGarbageCollections(p->ddG) );
-            printf( "S =%4d ",     nSuppMax );
-            printf( "cL =%5d ",    NumCmp );
-            printf( "cG =%5d ",    Llb_NonlinCompPerms( p->ddG, p->pOrderG ) );
+            fprintf( Abc_FrameGlobalGetOut(), "I =%3d : ",   nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "Fr =%7d ",    nBddSize0 );
+            fprintf( Abc_FrameGlobalGetOut(), "Im =%7d  ",   nBddSize );
+            fprintf( Abc_FrameGlobalGetOut(), "(%4d %4d)  ", p->ddLocReos, p->ddLocGrbs );
+            fprintf( Abc_FrameGlobalGetOut(), "Rea =%6d  ",  Cudd_DagSize(p->ddG->bFunc) );
+            fprintf( Abc_FrameGlobalGetOut(), "(%4d %4d)  ", Cudd_ReadReorderings(p->ddG), Cudd_ReadGarbageCollections(p->ddG) );
+            fprintf( Abc_FrameGlobalGetOut(), "S =%4d ",     nSuppMax );
+            fprintf( Abc_FrameGlobalGetOut(), "cL =%5d ",    NumCmp );
+            fprintf( Abc_FrameGlobalGetOut(), "cG =%5d ",    Llb_NonlinCompPerms( p->ddG, p->pOrderG ) );
             Abc_PrintTime( 1, "T", Abc_Clock() - clk2 );
             memcpy( p->pOrderG, p->ddG->perm, sizeof(int) * p->ddG->size );
         }
@@ -650,7 +650,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         if ( nIters == p->pPars->nIterMax - 1 )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached limit on the number of timeframes (%d).\n",  p->pPars->nIterMax );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached limit on the number of timeframes (%d).\n",  p->pPars->nIterMax );
             p->pPars->iFrame = nIters;
             Llb_NonlinImageQuit();
             return -1;
@@ -663,22 +663,22 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
     {
         double nMints = Cudd_CountMinterm(p->ddG, p->ddG->bFunc, Saig_ManRegNum(p->pAig) );
         if ( nIters >= p->pPars->nIterMax || nBddSize > p->pPars->nBddMax )
-            printf( "Reachability analysis is stopped after %d frames.\n", nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "Reachability analysis is stopped after %d frames.\n", nIters );
         else
-            printf( "Reachability analysis completed after %d frames.\n", nIters );
-        printf( "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Saig_ManRegNum(p->pAig)) );
-        fflush( stdout ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Reachability analysis completed after %d frames.\n", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Saig_ManRegNum(p->pAig)) );
+        fflush( Abc_FrameGlobalGetOut() ); 
     }
     if ( nIters >= p->pPars->nIterMax || nBddSize > p->pPars->nBddMax )
     {
         if ( !p->pPars->fSilent )
-            printf( "Verified only for states reachable in %d frames.  ", nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "Verified only for states reachable in %d frames.  ", nIters );
         p->pPars->iFrame = p->pPars->nIterMax;
         return -1; // undecided
     }
     // report
     if ( !p->pPars->fSilent )
-        printf( "The miter is proved unreachable after %d iterations.  ", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "The miter is proved unreachable after %d iterations.  ", nIters );
     p->pPars->iFrame = nIters - 1;
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return 1; // unreachable

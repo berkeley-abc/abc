@@ -30,7 +30,7 @@ void Aig_ProcedureTest()
 
     if ( !Aig_ManCheck( p ) )
     {
-        printf( "Check has failed\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Check has failed\n" );
     }
 
     Aig_ManDumpBlif( p, "aig_test_file.blif", NULL, NULL );

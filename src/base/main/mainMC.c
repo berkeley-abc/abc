@@ -69,23 +69,23 @@ int main( int argc, char * argv[] )
 
     if ( argc != 2 )
     {
-        printf( "  Expecting one command-line argument (an input file in AIGER format).\n" );
-        printf( "  usage: %s <file.aig>\n", argv[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "  Expecting one command-line argument (an input file in AIGER format).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "  usage: %s <file.aig>\n", argv[0] );
         return 0;
     }
     pFile = fopen( argv[1], "r" );
     if ( pFile == NULL )
     {
-        printf( "  Cannot open input AIGER file \"%s\".\n", argv[1] );
-        printf( "  usage: %s <file.aig>\n", argv[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "  Cannot open input AIGER file \"%s\".\n", argv[1] );
+        fprintf( Abc_FrameGlobalGetOut(), "  usage: %s <file.aig>\n", argv[0] );
         return 0;
     }
     fclose( pFile );
     pAig = Ioa_ReadAiger( argv[1], 1 );
     if ( pAig == NULL )
     {
-        printf( "  Parsing the AIGER file \"%s\" has failed.\n", argv[1] );
-        printf( "  usage: %s <file.aig>\n", argv[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "  Parsing the AIGER file \"%s\" has failed.\n", argv[1] );
+        fprintf( Abc_FrameGlobalGetOut(), "  usage: %s <file.aig>\n", argv[0] );
         return 0;
     }
 
@@ -138,14 +138,14 @@ int main( int argc, char * argv[] )
         fprintf( pFile, "1" );
         if ( fEnableCounter  )
         {
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         if ( pAig->pSeqModel )
         Fra_SmlWriteCounterExample( pFile, pAig, pAig->pSeqModel );
         }
 
         if ( fEnableComment )
         {
-        printf( "  # File %10s.  ", argv[1] );
+        fprintf( Abc_FrameGlobalGetOut(), "  # File %10s.  ", argv[1] );
         PRT( "Time", clock() - clkTotal );
         }
 
@@ -161,10 +161,10 @@ int main( int argc, char * argv[] )
 
         if ( fEnableComment )
         {
-        printf( "  # File %10s.  ", argv[1] );
+        fprintf( Abc_FrameGlobalGetOut(), "  # File %10s.  ", argv[1] );
         PRT( "Time", clock() - clkTotal );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         if ( pFile != stdout )
             fclose(pFile);
@@ -178,10 +178,10 @@ int main( int argc, char * argv[] )
 
         if ( fEnableComment )
         {
-        printf( "  # File %10s.  ", argv[1] );
+        fprintf( Abc_FrameGlobalGetOut(), "  # File %10s.  ", argv[1] );
         PRT( "Time", clock() - clkTotal );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         if ( pFile != stdout )
             fclose(pFile);

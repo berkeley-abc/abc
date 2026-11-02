@@ -116,7 +116,7 @@ void Wlc_NtkReport( Wlc_Ntk_t * p, Abc_Cex_t * pCex, char * pName, int Radix )
     NameId = Abc_NamStrFind( p->pManName, pName );
     if ( NameId <= 0 )
     {
-        printf( "Cannot find \"%s\" among nodes of the network.\n", pName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot find \"%s\" among nodes of the network.\n", pName );
         return;
     }
     // get the primary input
@@ -126,13 +126,13 @@ void Wlc_NtkReport( Wlc_Ntk_t * p, Abc_Cex_t * pCex, char * pName, int Radix )
     // find the PI
     if ( i == Vec_IntSize(&p->vValues) )
     {
-        printf( "Cannot find \"%s\" among primary inputs of the network.\n", pName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot find \"%s\" among primary inputs of the network.\n", pName );
         return;
     }
     // print value
     assert( Radix == 2 || Radix == 10 || Radix == 16 );
     vNum = Wlc_ConvertToRadix( pCex->pData, Start, nBits, Radix );
-    printf( "((%s %s%s))\n", pName, Radix == 16 ? "#x" : (Radix == 2 ? "#b" : ""), Vec_StrArray(vNum) );
+    fprintf( Abc_FrameGlobalGetOut(), "((%s %s%s))\n", pName, Radix == 16 ? "#x" : (Radix == 2 ? "#b" : ""), Vec_StrArray(vNum) );
     Vec_StrFree( vNum );
 }
 
@@ -204,13 +204,13 @@ int Wlc_StdinProcessSmt( Abc_Frame_t * pAbc, char * pCmd )
     }
     // solver finished
     if ( Abc_FrameReadProbStatus(pAbc) == -1 )
-        printf( "undecided\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "undecided\n" );
     else if ( Abc_FrameReadProbStatus(pAbc) == 1 )
-        printf( "unsat\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "unsat\n" );
     else if ( Abc_FrameReadProbStatus(pAbc) == 0 )
-        printf( "sat\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "sat\n" );
     else assert( 0 );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
     // wait for stdin for give directions
     while ( (vInput = Wlc_StdinCollectQuery()) != NULL )
     {
@@ -241,7 +241,7 @@ int Wlc_StdinProcessSmt( Abc_Frame_t * pAbc, char * pCmd )
         // report value of this variable
         Wlc_NtkReport( (Wlc_Ntk_t *)pAbc->pAbcWlc, (Abc_Cex_t *)Abc_FrameReadCex(pAbc), pName, 16 );
         Vec_StrFree( vInput );
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     return 1;
 }

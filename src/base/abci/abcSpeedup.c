@@ -113,7 +113,7 @@ float Abc_NtkDelayTraceLut( Abc_Ntk_t * pNtk, int fUseLutLib )
     pLutLib = fUseLutLib?  (If_LibLut_t *)Abc_FrameReadLibLut() : NULL;
     if ( pLutLib && pLutLib->LutMax < Abc_NtkGetFaninMax(pNtk) )
     {
-        printf( "The max LUT size (%d) is less than the max fanin count (%d).\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "The max LUT size (%d) is less than the max fanin count (%d).\n", 
             pLutLib->LutMax, Abc_NtkGetFaninMax(pNtk) );
         return -ABC_INFINITY;
     }
@@ -251,7 +251,7 @@ void Abc_NtkDelayTracePrint( Abc_Ntk_t * pNtk, int fUseLutLib, int fVerbose )
     pLutLib = fUseLutLib?  (If_LibLut_t *)Abc_FrameReadLibLut() : NULL;
     if ( pLutLib && pLutLib->LutMax < Abc_NtkGetFaninMax(pNtk) )
     {
-        printf( "The max LUT size (%d) is less than the max fanin count (%d).\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "The max LUT size (%d) is less than the max fanin count (%d).\n", 
             pLutLib->LutMax, Abc_NtkGetFaninMax(pNtk) );
         return;
     }
@@ -277,12 +277,12 @@ void Abc_NtkDelayTracePrint( Abc_Ntk_t * pNtk, int fUseLutLib, int fVerbose )
         pCounters[(int)Num]++;
     }
     // print the results
-    printf( "Max delay = %6.2f. Delay trace using %s model:\n", tArrival, fUseLutLib? "LUT library" : "unit-delay" );
+    fprintf( Abc_FrameGlobalGetOut(), "Max delay = %6.2f. Delay trace using %s model:\n", tArrival, fUseLutLib? "LUT library" : "unit-delay" );
     Nodes = 0;
     for ( i = 0; i < nSteps; i++ )
     {
         Nodes += pCounters[i];
-        printf( "%3d %s : %5d  (%6.2f %%)\n", fUseLutLib? 5*(i+1) : i+1, 
+        fprintf( Abc_FrameGlobalGetOut(), "%3d %s : %5d  (%6.2f %%)\n", fUseLutLib? 5*(i+1) : i+1, 
             fUseLutLib? "%":"lev", Nodes, 100.0*Nodes/Abc_NtkNodeNum(pNtk) );
     }
     ABC_FREE( pCounters );
@@ -529,11 +529,11 @@ Abc_Ntk_t * Abc_NtkSpeedup( Abc_Ntk_t * pNtk, int fUseLutLib, int Percentage, in
     tDelta = fUseLutLib ? tArrival*Percentage/100.0 : 1.0;
     if ( fVerbose )
     {
-        printf( "Max delay = %.2f. Delta = %.2f. ", tArrival, tDelta );
-        printf( "Using %s model. ", fUseLutLib? "LUT library" : "unit-delay" );
+        fprintf( Abc_FrameGlobalGetOut(), "Max delay = %.2f. Delta = %.2f. ", tArrival, tDelta );
+        fprintf( Abc_FrameGlobalGetOut(), "Using %s model. ", fUseLutLib? "LUT library" : "unit-delay" );
         if ( fUseLutLib )
-            printf( "Percentage = %d. ", Percentage );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Percentage = %d. ", Percentage );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // mark the timing critical nodes and edges
     puTCEdges = ABC_ALLOC( unsigned, Abc_NtkObjNumMax(pNtk) );
@@ -554,7 +554,7 @@ Abc_Ntk_t * Abc_NtkSpeedup( Abc_Ntk_t * pNtk, int fUseLutLib, int Percentage, in
                     Counter++;
             CounterRes += Extra_WordCountOnes( puTCEdges[pNode->Id] );
         }
-        printf( "Edges: Total = %7d. 0-slack = %7d. Critical = %7d. Ratio = %4.2f\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Edges: Total = %7d. 0-slack = %7d. Critical = %7d. Ratio = %4.2f\n", 
             Abc_NtkGetTotalFanins(pNtk), Counter, CounterRes, 1.0*CounterRes/Counter );
     }
     // start the resulting network
@@ -603,11 +603,11 @@ Abc_Ntk_t * Abc_NtkSpeedup( Abc_Ntk_t * pNtk, int fUseLutLib, int Percentage, in
         // print the results
         if ( fVeryVerbose )
         {
-        printf( "%5d Node %5d : %d %2d %2d  ", Counter, pNode->Id, 
+        fprintf( Abc_FrameGlobalGetOut(), "%5d Node %5d : %d %2d %2d  ", Counter, pNode->Id, 
             nTimeCris, Vec_PtrSize(vTimeCries), Vec_PtrSize(vTimeFanins) );
         Abc_ObjForEachFanin( pNode, pFanin, k )
-            printf( "%d(%.2f)%s ", pFanin->Id, Abc_ObjSlack(pFanin), (puTCEdges[pNode->Id] & (1<<k))? "*":"" );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d(%.2f)%s ", pFanin->Id, Abc_ObjSlack(pFanin), (puTCEdges[pNode->Id] & (1<<k))? "*":"" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         // add the node to choices
         if ( Vec_PtrSize(vTimeCries) == 0 || Vec_PtrSize(vTimeCries) > Degree )
@@ -647,7 +647,7 @@ Abc_Ntk_t * Abc_NtkSpeedup( Abc_Ntk_t * pNtk, int fUseLutLib, int Percentage, in
     Vec_PtrFree( vTimeFanins );
     ABC_FREE( puTCEdges );
     if ( fVerbose )
-        printf( "Nodes: Total = %7d. 0-slack = %7d. Workable = %7d. Ratio = %4.2f\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes: Total = %7d. 0-slack = %7d. Workable = %7d. Ratio = %4.2f\n", 
             Abc_NtkNodeNum(pNtk), Counter, CounterRes, 1.0*CounterRes/Counter ); 
 
     // remove invalid choice nodes
@@ -767,18 +767,18 @@ void Abc_NtkPowerPrint( Abc_Ntk_t * pNtk, Vec_Int_t * vProbs )
             Probs[0] += ProbThis;
         }
     }
-    printf( "Node  distribution: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Node  distribution: " );
     for ( i = 0; i < 6; i++ )
-        printf( "n%d%d = %6.2f%%  ", i, i+1, 100.0 * Counter[i]/nNodes );
-    printf( "\n" );
-    printf( "Power distribution: " );
+        fprintf( Abc_FrameGlobalGetOut(), "n%d%d = %6.2f%%  ", i, i+1, 100.0 * Counter[i]/nNodes );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Power distribution: " );
     for ( i = 0; i < 6; i++ )
-        printf( "p%d%d = %6.2f%%  ", i, i+1, 100.0 * Probs[i]/TotalProb );
-    printf( "\n" );
-    printf( "Total probs = %7.2f. ", TotalProb );
-    printf( "Total edges = %d. ", nEdges );
-    printf( "Average = %7.2f. ", TotalProb / nEdges );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "p%d%d = %6.2f%%  ", i, i+1, 100.0 * Probs[i]/TotalProb );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Total probs = %7.2f. ", TotalProb );
+    fprintf( Abc_FrameGlobalGetOut(), "Total edges = %d. ", nEdges );
+    fprintf( Abc_FrameGlobalGetOut(), "Average = %7.2f. ", TotalProb / nEdges );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -900,11 +900,11 @@ Abc_Ntk_t * Abc_NtkPowerdown( Abc_Ntk_t * pNtk, int fUseLutLib, int Percentage, 
         // print the results
         if ( fVeryVerbose )
         {
-        printf( "%5d Node %5d : %d %2d %2d  ", Counter, pNode->Id, 
+        fprintf( Abc_FrameGlobalGetOut(), "%5d Node %5d : %d %2d %2d  ", Counter, pNode->Id, 
             nTimeCris, Vec_PtrSize(vTimeCries), Vec_PtrSize(vTimeFanins) );
         Abc_ObjForEachFanin( pNode, pFanin, k )
-            printf( "%d(%.2f)%s ", pFanin->Id, pProb[pFanin->Id], (puPCEdges[pNode->Id] & (1<<k))? "*":"" );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d(%.2f)%s ", pFanin->Id, pProb[pFanin->Id], (puPCEdges[pNode->Id] & (1<<k))? "*":"" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         // add the node to choices
         if ( Vec_PtrSize(vTimeCries) == 0 || Vec_PtrSize(vTimeCries) > Degree )
@@ -947,7 +947,7 @@ Abc_Ntk_t * Abc_NtkPowerdown( Abc_Ntk_t * pNtk, int fUseLutLib, int Percentage, 
     Vec_PtrFree( vTimeFanins );
     ABC_FREE( puPCEdges );
     if ( fVerbose )
-        printf( "Nodes: Total = %7d. Power-critical = %7d. Workable = %7d. Ratio = %4.2f\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes: Total = %7d. Power-critical = %7d. Workable = %7d. Ratio = %4.2f\n", 
             Abc_NtkNodeNum(pNtk), Counter, CounterRes, 1.0*CounterRes/Counter ); 
 
     // remove invalid choice nodes

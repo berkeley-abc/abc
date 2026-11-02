@@ -107,7 +107,7 @@ Rwr_ManAddTimeCuts( pManRwr, Abc_Clock() - clk );
     // resynthesize each node once
     pManRwr->nNodesBeg = Abc_NtkNodeNum(pNtk);
     nNodes = Abc_NtkObjNumMax(pNtk);
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -188,7 +188,7 @@ Rwr_ManAddTimeTotal( pManRwr, Abc_Clock() - clkStart );
         // check
         if ( !Abc_NtkCheck( pNtk ) )
         {
-            printf( "Abc_NtkRewrite: The network check has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRewrite: The network check has failed.\n" );
             return 0;
         }
     }
@@ -251,14 +251,14 @@ void Abc_NodePrintCuts( Abc_Obj_t * pNode )
     Cut_Cut_t * pCut;
     int k;
 
-    printf( "\nNode %s\n", Abc_ObjName(pNode) );
+    fprintf( Abc_FrameGlobalGetOut(), "\nNode %s\n", Abc_ObjName(pNode) );
     vCuts = (Vec_Ptr_t *)pNode->pCopy;
     Vec_PtrForEachEntry( Cut_Cut_t *, vCuts, pCut, k )
     {
-        Extra_PrintBinary( stdout, (unsigned *)&pCut->uSign, 16 ); 
-        printf( "   " );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&pCut->uSign, 16 ); 
+        fprintf( Abc_FrameGlobalGetOut(), "   " );
         Cut_CutPrint( pCut, 0 );   
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -284,33 +284,33 @@ void Abc_ManRewritePrintDivs( Vec_Ptr_t * vDivs, int nLeaves )
     {
         if ( i < nLeaves )
         {
-            printf( "%6d : %c\n", pNode->Id, 'a'+i );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d : %c\n", pNode->Id, 'a'+i );
             continue;
         }
-        printf( "%6d : %2d = ", pNode->Id, i );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : %2d = ", pNode->Id, i );
         // find the first fanin
         Vec_PtrForEachEntry( Abc_Obj_t *, vDivs, pFanin, k )
             if ( Abc_ObjFanin0(pNode) == pFanin )
                 break;
         if ( k < nLeaves )
-            printf( "%c", 'a' + k );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + k );
         else
-            printf( "%d", k );
-        printf( "%s ", Abc_ObjFaninC0(pNode)? "\'" : "" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", k );
+        fprintf( Abc_FrameGlobalGetOut(), "%s ", Abc_ObjFaninC0(pNode)? "\'" : "" );
         // find the second fanin
         Vec_PtrForEachEntry( Abc_Obj_t *, vDivs, pFanin, k )
             if ( Abc_ObjFanin1(pNode) == pFanin )
                 break;
         if ( k < nLeaves )
-            printf( "%c", 'a' + k );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + k );
         else
-            printf( "%d", k );
-        printf( "%s ", Abc_ObjFaninC1(pNode)? "\'" : "" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", k );
+        fprintf( Abc_FrameGlobalGetOut(), "%s ", Abc_ObjFaninC1(pNode)? "\'" : "" );
         if ( pNode == pRoot )
-            printf( " root" );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " root" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -415,7 +415,7 @@ void Abc_RwrExpWithCut( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves )
         Abc_ObjRegular(pObj)->fMarkA = 0;
         Abc_ObjRegular(pObj)->fMarkB = 0;
     }
-    printf( "(%d,%d:%d) ", CountA, CountB, CountA+CountB-Vec_PtrSize(vLeaves) );
+    fprintf( Abc_FrameGlobalGetOut(), "(%d,%d:%d) ", CountA, CountB, CountA+CountB-Vec_PtrSize(vLeaves) );
 }
 
 

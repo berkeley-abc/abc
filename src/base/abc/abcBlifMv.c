@@ -232,13 +232,13 @@ int Abc_NodeStrashBlifMv( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
             if ( *pSop == '!' )
             {
                 ABC_FREE( pValues );
-                printf( "Abc_NodeStrashBlifMv(): Cannot handle complement in the MV function of node %s.\n", Abc_ObjName(Abc_ObjFanout0(pObj)) );
+                fprintf( Abc_FrameGlobalGetOut(), "Abc_NodeStrashBlifMv(): Cannot handle complement in the MV function of node %s.\n", Abc_ObjName(Abc_ObjFanout0(pObj)) );
                 return 0;
             }
             if ( *pSop == '{' )
             {
                 ABC_FREE( pValues );
-                printf( "Abc_NodeStrashBlifMv(): Cannot handle braces in the MV function of node %s.\n", Abc_ObjName(Abc_ObjFanout0(pObj)) );
+                fprintf( Abc_FrameGlobalGetOut(), "Abc_NodeStrashBlifMv(): Cannot handle braces in the MV function of node %s.\n", Abc_ObjName(Abc_ObjFanout0(pObj)) );
                 return 0;
             }
             // get the value set
@@ -706,7 +706,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
     // check integrity
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        fprintf( stdout, "Abc_NtkStrashBlifMv(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkStrashBlifMv(): Network check has failed.\n"  );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -887,7 +887,7 @@ Abc_Ntk_t * Abc_NtkSkeletonBlifMv( Abc_Ntk_t * pNtk )
     // check integrity
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        fprintf( stdout, "Abc_NtkSkeletonBlifMv(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkSkeletonBlifMv(): Network check has failed.\n"  );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -966,7 +966,7 @@ int Abc_NtkConvertToBlifMv( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsNetlist(pNtk) );
     if ( !Abc_NtkToBdd(pNtk) )
     {
-        printf( "Converting logic functions to BDDs has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Converting logic functions to BDDs has failed.\n" );
         return 0;
     }
 

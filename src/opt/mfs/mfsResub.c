@@ -123,18 +123,18 @@ p->timeGia += Abc_Clock() - clk;
     if ( RetValue == l_False )
     {
         if ( fVeryVerbose )
-        printf( "U " );
+        fprintf( Abc_FrameGlobalGetOut(), "U " );
         return 1;
     }
     if ( RetValue != l_True )
     {
         if ( fVeryVerbose )
-        printf( "T " );
+        fprintf( Abc_FrameGlobalGetOut(), "T " );
         p->nTimeOuts++;
         return -1;
     }
     if ( fVeryVerbose )
-    printf( "S " );
+    fprintf( Abc_FrameGlobalGetOut(), "S " );
     p->nSatCexes++;
     // store the counter-example
     Vec_IntForEachEntry( p->vProjVarsSat, iVar, i )
@@ -180,7 +180,7 @@ int Abc_NtkMfsSolveSatResub( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int f
     if ( p->pPars->fVeryVerbose )
     {
 //        printf( "\n" );
-        printf( "%5d : Lev =%3d. Leaf =%3d. Node =%3d. Divs =%3d.  Fanin = %4d (%d/%d), MFFC = %d\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "%5d : Lev =%3d. Leaf =%3d. Node =%3d. Divs =%3d.  Fanin = %4d (%d/%d), MFFC = %d\n", 
             pNode->Id, pNode->Level, Vec_PtrSize(p->vSupp), Vec_PtrSize(p->vNodes), Vec_PtrSize(p->vDivs)-Abc_ObjFaninNum(pNode), 
             Abc_ObjFaninId(pNode, iFanin), iFanin, Abc_ObjFaninNum(pNode), 
             Abc_ObjFanoutNum(Abc_ObjFanin(pNode, iFanin)) == 1 ? Abc_NodeMffcLabel(Abc_ObjFanin(pNode, iFanin), NULL) : 0 );
@@ -203,7 +203,7 @@ int Abc_NtkMfsSolveSatResub( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int f
     if ( RetValue == 1 )
     {
         if ( p->pPars->fVeryVerbose )
-            printf( "Node %d: Fanin %d can be removed.\n", pNode->Id, iFanin );
+            fprintf( Abc_FrameGlobalGetOut(), "Node %d: Fanin %d can be removed.\n", pNode->Id, iFanin );
         p->nNodesResub++;
         p->nNodesGainedLevel++;
         if ( fSkipUpdate )
@@ -227,28 +227,28 @@ p->timeInt += Abc_Clock() - clk;
     if ( fVeryVerbose )
     {
         for ( i = 0; i < 9; i++ )
-            printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
         for ( i = 0; i < Vec_PtrSize(p->vDivs)-Abc_ObjFaninNum(pNode); i++ )
-            printf( "%d", i % 10 );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", i % 10 );
         for ( i = 0; i < Abc_ObjFaninNum(pNode); i++ )
             if ( i == iFanin )
-                printf( "*" );
+                fprintf( Abc_FrameGlobalGetOut(), "*" );
             else
-                printf( "%c", 'a' + i );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + i );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     iVar = -1;
     while ( 1 ) 
     {
         if ( fVeryVerbose )
         {
-            printf( "%3d: %3d ", p->nCexes, iVar );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d: %3d ", p->nCexes, iVar );
             for ( i = 0; i < Vec_PtrSize(p->vDivs); i++ )
             {
                 pData = (unsigned *)Vec_PtrEntry( p->vDivCexes, i );
-                printf( "%d", Abc_InfoHasBit(pData, p->nCexes-1) );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_InfoHasBit(pData, p->nCexes-1) );
             }
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
 
         // find the next divisor to try
@@ -280,7 +280,7 @@ p->timeInt += Abc_Clock() - clk;
         if ( RetValue == 1 )
         {
             if ( p->pPars->fVeryVerbose )
-                printf( "Node %d: Fanin %d can be replaced by divisor %d.\n", pNode->Id, iFanin, iVar );
+                fprintf( Abc_FrameGlobalGetOut(), "Node %d: Fanin %d can be replaced by divisor %d.\n", pNode->Id, iFanin, iVar );
             p->nNodesResub++;
             p->nNodesGainedLevel++;
             if ( fSkipUpdate )
@@ -301,7 +301,7 @@ p->timeInt += Abc_Clock() - clk;
             break;
     }
     if ( p->pPars->fVeryVerbose )
-        printf( "Node %d: Cannot find replacement for fanin %d.\n", pNode->Id, iFanin );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %d: Cannot find replacement for fanin %d.\n", pNode->Id, iFanin );
     return 0;
 }
 
@@ -333,8 +333,8 @@ int Abc_NtkMfsSolveSatResub2( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int 
     p->nCexes = 0;
     if ( fVeryVerbose )
     {
-        printf( "\n" );
-        printf( "Node %5d : Level = %2d. Divs = %3d.  Fanins = %d/%d (out of %d). MFFC = %d\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %5d : Level = %2d. Divs = %3d.  Fanins = %d/%d (out of %d). MFFC = %d\n", 
             pNode->Id, pNode->Level, Vec_PtrSize(p->vDivs)-Abc_ObjFaninNum(pNode), 
             iFanin, iFanin2, Abc_ObjFaninNum(pNode), 
             Abc_ObjFanoutNum(Abc_ObjFanin(pNode, iFanin)) == 1 ? Abc_NodeMffcLabel(Abc_ObjFanin(pNode, iFanin), NULL) : 0 );
@@ -357,7 +357,7 @@ int Abc_NtkMfsSolveSatResub2( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int 
     if ( RetValue == 1 )
     {
         if ( fVeryVerbose )
-        printf( "Node %d: Fanins %d/%d can be removed.\n", pNode->Id, iFanin, iFanin2 );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %d: Fanins %d/%d can be removed.\n", pNode->Id, iFanin, iFanin2 );
         p->nNodesResub++;
         p->nNodesGainedLevel++;
 clk = Abc_Clock();
@@ -374,15 +374,15 @@ p->timeInt += Abc_Clock() - clk;
     if ( fVeryVerbose )
     {
         for ( i = 0; i < 11; i++ )
-            printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
         for ( i = 0; i < Vec_PtrSize(p->vDivs)-Abc_ObjFaninNum(pNode); i++ )
-            printf( "%d", i % 10 );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", i % 10 );
         for ( i = 0; i < Abc_ObjFaninNum(pNode); i++ )
             if ( i == iFanin || i == iFanin2 )
-                printf( "*" );
+                fprintf( Abc_FrameGlobalGetOut(), "*" );
             else
-                printf( "%c", 'a' + i );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + i );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     iVar = iVar2 = -1;
     while ( 1 )
@@ -391,13 +391,13 @@ p->timeInt += Abc_Clock() - clk;
 #endif
         if ( fVeryVerbose )
         {
-            printf( "%3d: %2d %2d ", p->nCexes, iVar, iVar2 );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d: %2d %2d ", p->nCexes, iVar, iVar2 );
             for ( i = 0; i < Vec_PtrSize(p->vDivs); i++ )
             {
                 pData = (unsigned *)Vec_PtrEntry( p->vDivCexes, i );
-                printf( "%d", Abc_InfoHasBit(pData, p->nCexes-1) );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_InfoHasBit(pData, p->nCexes-1) );
             }
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
 
         // find the next divisor to try
@@ -451,7 +451,7 @@ p->timeInt += Abc_Clock() - clk;
         if ( RetValue == 1 )
         {
             if ( fVeryVerbose )
-            printf( "Node %d: Fanins %d/%d can be replaced by divisors %d/%d.\n", pNode->Id, iFanin, iFanin2, iVar, iVar2 );
+            fprintf( Abc_FrameGlobalGetOut(), "Node %d: Fanins %d/%d can be replaced by divisors %d/%d.\n", pNode->Id, iFanin, iFanin2, iVar, iVar2 );
             p->nNodesResub++;
             p->nNodesGainedLevel++;
 clk = Abc_Clock();

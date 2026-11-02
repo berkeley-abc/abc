@@ -91,7 +91,7 @@ Ssc_Man_t * Ssc_ManStart( Gia_Man_t * pAig, Gia_Man_t * pCare, Ssc_Pars_t * pPar
     Ssc_ManStartSolver( p );
     if ( p->pSat == NULL )
     {
-        printf( "Constraints are UNSAT after propagation.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Constraints are UNSAT after propagation.\n" );
         Ssc_ManStop( p );
         return (Ssc_Man_t *)(ABC_PTRINT_T)1;
     }
@@ -100,13 +100,13 @@ Ssc_Man_t * Ssc_ManStart( Gia_Man_t * pAig, Gia_Man_t * pCare, Ssc_Pars_t * pPar
     p->vPivot = Ssc_ManFindPivotSat( p );
     if ( p->vPivot == (Vec_Int_t *)(ABC_PTRINT_T)1 )
     {
-        printf( "Constraints are UNSAT.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Constraints are UNSAT.\n" );
         Ssc_ManStop( p );
         return (Ssc_Man_t *)(ABC_PTRINT_T)1;
     }
     if ( p->vPivot == NULL )
     {
-        printf( "Conflict limit is reached while trying to find one SAT assignment.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Conflict limit is reached while trying to find one SAT assignment.\n" );
         Ssc_ManStop( p );
         return NULL;
     }
@@ -116,7 +116,7 @@ Ssc_Man_t * Ssc_ManStart( Gia_Man_t * pAig, Gia_Man_t * pCare, Ssc_Pars_t * pPar
     Gia_ManSetPhasePattern( p->pCare, p->vPivot );
     if ( Gia_ManCheckCoPhase(p->pCare) )
     {
-        printf( "Computed reference pattern violates %d constraints (this is a bug!).\n", Gia_ManCheckCoPhase(p->pCare) );
+        fprintf( Abc_FrameGlobalGetOut(), "Computed reference pattern violates %d constraints (this is a bug!).\n", Gia_ManCheckCoPhase(p->pCare) );
         Ssc_ManStop( p );
         return NULL;
     }
@@ -241,11 +241,11 @@ int Ssc_PerformVerification( Gia_Man_t * p0, Gia_Man_t * p1, Gia_Man_t * pC )
     Gia_ManStop( pMiter );
     // report the results
     if ( Status == 1 )
-        printf( "Verification succeeded.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification succeeded.\n" );
     else if ( Status == 0 )
-        printf( "Verification failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification failed.\n" );
     else if ( Status == -1 )
-        printf( "Verification undecided.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification undecided.\n" );
     else assert( 0 );
     return Status;
 }
@@ -282,7 +282,7 @@ clk = Abc_Clock();
     if ( p == NULL ) // timeout
         return Gia_ManDup( pAig );
     if ( p->pPars->fVerbose )
-        printf( "Care set produced %d hits out of %d.\n", Ssc_GiaEstimateCare(p->pFraig, 5), 640 );
+        fprintf( Abc_FrameGlobalGetOut(), "Care set produced %d hits out of %d.\n", Ssc_GiaEstimateCare(p->pFraig, 5), 640 );
     // perform simulation 
     while ( 1 ) 
     {
@@ -389,7 +389,7 @@ p->timeSimSat += Abc_Clock() - clk;
     pResult = Gia_ManEquivReduce( pAig, 0, 0, 1, 0 );
     if ( pResult == NULL )
     {
-        printf( "There is no equivalences.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There is no equivalences.\n" );
         ABC_FREE( pAig->pReprs );
         ABC_FREE( pAig->pNexts );
         pResult = Gia_ManDup( pAig );
@@ -441,9 +441,9 @@ Gia_Man_t * Ssc_PerformSweepingConstr( Gia_Man_t * p, Ssc_Pars_t * pPars )
     }
     if ( pPars->fVerbose )
     {
-        printf( "User AIG: " );
+        fprintf( Abc_FrameGlobalGetOut(), "User AIG: " );
         Gia_ManPrintStats( pAig, NULL );
-        printf( "Care AIG: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Care AIG: " );
         Gia_ManPrintStats( pCare, NULL );
     }
 

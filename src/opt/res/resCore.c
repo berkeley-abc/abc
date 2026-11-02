@@ -124,25 +124,25 @@ void Res_ManFree( Res_Man_t * p )
 {
     if ( p->pPars->fVerbose )
     {
-        printf( "Reduction in nodes = %5d. (%.2f %%) ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Reduction in nodes = %5d. (%.2f %%) ", 
             p->nTotalNodes-p->nTotalNodes2, 
             100.0*(p->nTotalNodes-p->nTotalNodes2)/p->nTotalNodes );
-        printf( "Reduction in edges = %5d. (%.2f %%) ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Reduction in edges = %5d. (%.2f %%) ", 
             p->nTotalNets-p->nTotalNets2, 
             100.0*(p->nTotalNets-p->nTotalNets2)/p->nTotalNets );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-        printf( "Winds = %d. ", p->nWins );
-        printf( "Nodes = %d. (Ave = %5.1f)  ", p->nWinNodes, 1.0*p->nWinNodes/p->nWins );
-        printf( "Divs = %d. (Ave = %5.1f)  ",  p->nDivNodes, 1.0*p->nDivNodes/p->nWins );
-        printf( "\n" );
-        printf( "WinsTriv = %d. ", p->nWinsTriv );
-        printf( "SimsEmpt = %d. ", p->nSimEmpty );
-        printf( "Const = %d. ", p->nConstsUsed );
-        printf( "WindUsed = %d. ", p->nWinsUsed );
-        printf( "Cands = %d. ", p->nCandSets );
-        printf( "Proved = %d.", p->nProvedSets );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Winds = %d. ", p->nWins );
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes = %d. (Ave = %5.1f)  ", p->nWinNodes, 1.0*p->nWinNodes/p->nWins );
+        fprintf( Abc_FrameGlobalGetOut(), "Divs = %d. (Ave = %5.1f)  ",  p->nDivNodes, 1.0*p->nDivNodes/p->nWins );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "WinsTriv = %d. ", p->nWinsTriv );
+        fprintf( Abc_FrameGlobalGetOut(), "SimsEmpt = %d. ", p->nSimEmpty );
+        fprintf( Abc_FrameGlobalGetOut(), "Const = %d. ", p->nConstsUsed );
+        fprintf( Abc_FrameGlobalGetOut(), "WindUsed = %d. ", p->nWinsUsed );
+        fprintf( Abc_FrameGlobalGetOut(), "Cands = %d. ", p->nCandSets );
+        fprintf( Abc_FrameGlobalGetOut(), "Proved = %d.", p->nProvedSets );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         ABC_PRTP( "Windowing  ", p->timeWin,      p->timeTotal );
         ABC_PRTP( "Divisors   ", p->timeDiv,      p->timeTotal );
@@ -234,7 +234,7 @@ int Abc_NtkResynthesize( Abc_Ntk_t * pNtk, Res_Par_t * pPars )
     // convert into the AIG
     if ( !Abc_NtkToAig(pNtk) )
     {
-        fprintf( stdout, "Converting to BDD has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Converting to BDD has failed.\n"  );
         Res_ManFree( p );
         return 0;
     }
@@ -246,7 +246,7 @@ int Abc_NtkResynthesize( Abc_Ntk_t * pNtk, Res_Par_t * pPars )
 
     // try resynthesizing nodes in the topological order
     nNodesOld = Abc_NtkObjNumMax(pNtk);
-    pProgress = Extra_ProgressBarStart( stdout, nNodesOld );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodesOld );
     Abc_NtkForEachObj( pNtk, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -267,8 +267,8 @@ p->timeWin += Abc_Clock() - clk;
 
         if ( p->pPars->fVeryVerbose )
         {
-            printf( "%5d (lev=%2d) : ", pObj->Id, pObj->Level );
-            printf( "Win = %3d/%3d/%4d/%3d   ", 
+            fprintf( Abc_FrameGlobalGetOut(), "%5d (lev=%2d) : ", pObj->Id, pObj->Level );
+            fprintf( Abc_FrameGlobalGetOut(), "Win = %3d/%3d/%4d/%3d   ", 
                 Vec_PtrSize(p->pWin->vLeaves), 
                 Vec_PtrSize(p->pWin->vBranches),
                 Vec_PtrSize(p->pWin->vNodes), 
@@ -286,8 +286,8 @@ p->timeDiv += Abc_Clock() - clk;
 
         if ( p->pPars->fVeryVerbose )
         {
-            printf( "D = %3d ", Vec_PtrSize(p->pWin->vDivs) );
-            printf( "D+ = %3d ", p->pWin->nDivsPlus );
+            fprintf( Abc_FrameGlobalGetOut(), "D = %3d ", Vec_PtrSize(p->pWin->vDivs) );
+            fprintf( Abc_FrameGlobalGetOut(), "D+ = %3d ", p->pWin->nDivsPlus );
         }
 
         // create the AIG for the window
@@ -298,8 +298,8 @@ p->timeAig += Abc_Clock() - clk;
 
         if ( p->pPars->fVeryVerbose )
         {
-            printf( "AIG = %4d ", Abc_NtkNodeNum(p->pAig) );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "AIG = %4d ", Abc_NtkNodeNum(p->pAig) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
  
         // prepare simulation info
@@ -409,7 +409,7 @@ p->timeTotal = Abc_Clock() - clkTotal;
     // check the resulting network
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        fprintf( stdout, "Abc_NtkResynthesize(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkResynthesize(): Network check has failed.\n"  );
         return 0;
     }
     return 1;

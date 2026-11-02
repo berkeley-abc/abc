@@ -386,9 +386,9 @@ Vec_Mem_t * If_DeriveHashTable6( int nVars, word uTruth )
                 printf( "\n" );
         }
 */
-        Extra_PrintHex( stdout, (unsigned*)&uTruth, nVars );  printf( "\n" );
-        Extra_PrintHex( stdout, (unsigned*)&Canon,  nVars );  printf( "\n" );
-        printf( "Members = %d.\n", Vec_MemEntryNum(vTtMem6) );
+        Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned*)&uTruth, nVars );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned*)&Canon,  nVars );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Members = %d.\n", Vec_MemEntryNum(vTtMem6) );
     }
     return vTtMem6;
 }

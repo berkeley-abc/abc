@@ -713,15 +713,15 @@ static inline void Sdb_StoStoreResult( Sdb_Sto_t * p, int iObj, Sdb_Cut_t ** pCu
 static inline void Sdb_CutPrint( Sdb_Sto_t * p, int iObj, Sdb_Cut_t * pCut )
 {
     int i, nDigits = Abc_Base10Log(Gia_ManObjNum(p->pGia)); 
-    if ( pCut == NULL ) { printf( "No cut.\n" ); return; }
-    printf( "%d  {", pCut->nLeaves );
+    if ( pCut == NULL ) { fprintf( Abc_FrameGlobalGetOut(), "No cut.\n" ); return; }
+    fprintf( Abc_FrameGlobalGetOut(), "%d  {", pCut->nLeaves );
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
-        printf( " %*d", nDigits, pCut->pLeaves[i] );
+        fprintf( Abc_FrameGlobalGetOut(), " %*d", nDigits, pCut->pLeaves[i] );
     for ( ; i < (int)p->nCutSize; i++ )
-        printf( " %*s", nDigits, " " );
-    printf( "  }  Cost = %3d  CostL = %3d  Tree = %d  ", 
+        fprintf( Abc_FrameGlobalGetOut(), " %*s", nDigits, " " );
+    fprintf( Abc_FrameGlobalGetOut(), "  }  Cost = %3d  CostL = %3d  Tree = %d  ", 
         pCut->Cost, pCut->CostLev, pCut->nTreeLeaves );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Sdb_StoMergeCuts( Sdb_Sto_t * p, int iObj )
 {
@@ -764,10 +764,10 @@ void Sdb_StoMergeCuts( Sdb_Sto_t * p, int iObj )
     // debug printout
     if ( 0 )
     {
-        printf( "*** Obj = %4d  NumCuts = %4d\n", iObj, nCutsR );
+        fprintf( Abc_FrameGlobalGetOut(), "*** Obj = %4d  NumCuts = %4d\n", iObj, nCutsR );
         for ( i = 0; i < nCutsR; i++ )
             Sdb_CutPrint( p, iObj, pCutsR[i] );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // verify
     assert( nCutsR > 0 && nCutsR < nCutNum );
@@ -900,7 +900,7 @@ Vec_Int_t * Sdb_StoFindInputs( Vec_Wec_t * vCuts, int Front )
     if ( fVerbose )
     Vec_IntForEachEntry( vCounts, Entry, k )
         if ( Entry )
-            printf( "%5d %5d\n", k, Entry );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d %5d\n", k, Entry );
     // collect first part
     MinValue = ABC_INFINITY;
     Vec_IntForEachEntry( vCounts, Entry, k )
@@ -972,10 +972,10 @@ int Sdb_StoIterCutsOne( Sdb_Sto_t * p, int iObj, int CutSize, int ** ppCut )
             {
                 if ( fVerbose )
                 {
-                    printf( "Object %d has %d-input cut:  ", iObj, pCut[0] );
+                    fprintf( Abc_FrameGlobalGetOut(), "Object %d has %d-input cut:  ", iObj, pCut[0] );
                     for ( k = 1; k <= pCut[0]; k++ )
-                        printf( "%d ", pCut[k] );
-                    printf( "\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "%d ", pCut[k] );
+                    fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 }
                 *ppCut = pCut;
                 return 1; // five-input
@@ -991,10 +991,10 @@ int Sdb_StoIterCutsOne( Sdb_Sto_t * p, int iObj, int CutSize, int ** ppCut )
             {
                 if ( fVerbose )
                 {
-                    printf( "Object %d has %d-input cut:  ", iObj, pCut[0] );
+                    fprintf( Abc_FrameGlobalGetOut(), "Object %d has %d-input cut:  ", iObj, pCut[0] );
                     for ( k = 1; k <= pCut[0]; k++ )
-                        printf( "%d ", pCut[k] );
-                    printf( "\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "%d ", pCut[k] );
+                    fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 }
                 *ppCut = pCut;
                 return 2; // front
@@ -1010,10 +1010,10 @@ int Sdb_StoIterCutsOne( Sdb_Sto_t * p, int iObj, int CutSize, int ** ppCut )
             {
                 if ( fVerbose )
                 {
-                    printf( "Object %d has %d-input cut:  ", iObj, pCut[0] );
+                    fprintf( Abc_FrameGlobalGetOut(), "Object %d has %d-input cut:  ", iObj, pCut[0] );
                     for ( k = 1; k <= pCut[0]; k++ )
-                        printf( "%d ", pCut[k] );
-                    printf( "\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "%d ", pCut[k] );
+                    fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 }
                 *ppCut = pCut;
                 return 3; // back unsigned
@@ -1029,10 +1029,10 @@ int Sdb_StoIterCutsOne( Sdb_Sto_t * p, int iObj, int CutSize, int ** ppCut )
             {
                 if ( fVerbose )
                 {
-                    printf( "Object %d has %d-input cut:  ", iObj, pCut[0] );
+                    fprintf( Abc_FrameGlobalGetOut(), "Object %d has %d-input cut:  ", iObj, pCut[0] );
                     for ( k = 1; k <= pCut[0]; k++ )
-                        printf( "%d ", pCut[k] );
-                    printf( "\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "%d ", pCut[k] );
+                    fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 }
                 *ppCut = pCut;
                 return 4; // back signed
@@ -1059,7 +1059,7 @@ Vec_Int_t * Sdb_StoIterCuts( Sdb_Sto_t * p )
             Vec_IntPush( v5Cut, pCut[k] );
     }
     Limit = Vec_WecSize( v5Cuts );
-    printf( "Detected %d  5-cuts.\n", Vec_WecSize(v5Cuts) );
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d  5-cuts.\n", Vec_WecSize(v5Cuts) );
     vAll = Sdb_StoFindAll( v5Cuts );
     Gia_ManForEachAnd( p->pGia, pObj, iObj )
     {
@@ -1088,11 +1088,11 @@ Vec_Int_t * Sdb_StoIterCuts( Sdb_Sto_t * p )
     Vec_WecPrint( v5Cuts, 0 );
 
     if ( iNewFront )
-        printf( "Front  = %d\n", iNewFront );
+        fprintf( Abc_FrameGlobalGetOut(), "Front  = %d\n", iNewFront );
     if ( iNewBack )
-        printf( "Back   = %d\n", iNewBack );
+        fprintf( Abc_FrameGlobalGetOut(), "Back   = %d\n", iNewBack );
     if ( iSigned )
-        printf( "Sign   = %d\n", iSigned );
+        fprintf( Abc_FrameGlobalGetOut(), "Sign   = %d\n", iSigned );
 
     vRes = Sdb_StoFindInputs( v5Cuts, iNewFront );
 
@@ -1182,14 +1182,14 @@ Vec_Int_t * Sdb_StoComputeCutsDetect( Gia_Man_t * pGia )
         Sdb_StoComputeCutsNode( p, iObj );
     if ( p->fVerbose )
     {
-        printf( "Running cut computation with CutSize = %d  CutNum = %d:\n", p->nCutSize, p->nCutNum );
-        printf( "CutPair = %.0f  ",         p->CutCount[0] );
-        printf( "Merge = %.0f (%.2f %%)  ", p->CutCount[1], 100.0*p->CutCount[1]/p->CutCount[0] );
-        printf( "Eval = %.0f (%.2f %%)  ",  p->CutCount[2], 100.0*p->CutCount[2]/p->CutCount[0] );
-        printf( "Cut = %.0f (%.2f %%)  ",   p->CutCount[3], 100.0*p->CutCount[3]/p->CutCount[0] );
-        printf( "Cut/Node = %.2f  ",        p->CutCount[3] / Gia_ManAndNum(p->pGia) );
-        printf( "\n" );
-        printf( "Over = %4d  ",             p->nCutsOver );
+        fprintf( Abc_FrameGlobalGetOut(), "Running cut computation with CutSize = %d  CutNum = %d:\n", p->nCutSize, p->nCutNum );
+        fprintf( Abc_FrameGlobalGetOut(), "CutPair = %.0f  ",         p->CutCount[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "Merge = %.0f (%.2f %%)  ", p->CutCount[1], 100.0*p->CutCount[1]/p->CutCount[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "Eval = %.0f (%.2f %%)  ",  p->CutCount[2], 100.0*p->CutCount[2]/p->CutCount[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "Cut = %.0f (%.2f %%)  ",   p->CutCount[3], 100.0*p->CutCount[3]/p->CutCount[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "Cut/Node = %.2f  ",        p->CutCount[3] / Gia_ManAndNum(p->pGia) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Over = %4d  ",             p->nCutsOver );
         Abc_PrintTime( 0, "Time", Abc_Clock() - p->clkStart );
     }
     vRes = Sdb_StoIterCuts( p );

@@ -312,26 +312,26 @@ void Gia_ManSatPartPrint( Gia_Man_t * p, Gia_Obj_t * pObj, int Step )
     assert( pObj->fMark0 == 0 );
     pFanin = Gia_ObjFanin0(pObj);
     if ( pFanin->fMark0 )
-        printf( "%s%d", Gia_ObjFaninC0(pObj)?"!":"", Gia_ObjId(p,pFanin) );
+        fprintf( Abc_FrameGlobalGetOut(), "%s%d", Gia_ObjFaninC0(pObj)?"!":"", Gia_ObjId(p,pFanin) );
     else
     {
         if ( Gia_ObjFaninC0(pObj) )
-            printf( "(" );
+            fprintf( Abc_FrameGlobalGetOut(), "(" );
         Gia_ManSatPartPrint(p, pFanin, Step + Gia_ObjFaninC0(pObj));
         if ( Gia_ObjFaninC0(pObj) )
-            printf( ")" );
+            fprintf( Abc_FrameGlobalGetOut(), ")" );
     }
-    printf( "%s", (Step & 1)? " + " : "*" );
+    fprintf( Abc_FrameGlobalGetOut(), "%s", (Step & 1)? " + " : "*" );
     pFanin = Gia_ObjFanin1(pObj);
     if ( pFanin->fMark0 )
-        printf( "%s%d", Gia_ObjFaninC1(pObj)?"!":"", Gia_ObjId(p,pFanin) );
+        fprintf( Abc_FrameGlobalGetOut(), "%s%d", Gia_ObjFaninC1(pObj)?"!":"", Gia_ObjId(p,pFanin) );
     else
     {
         if ( Gia_ObjFaninC1(pObj) )
-            printf( "(" );
+            fprintf( Abc_FrameGlobalGetOut(), "(" );
         Gia_ManSatPartPrint(p, pFanin, Step + Gia_ObjFaninC1(pObj));
         if ( Gia_ObjFaninC1(pObj) )
-            printf( ")" );
+            fprintf( Abc_FrameGlobalGetOut(), ")" );
     }
 }
 
@@ -399,22 +399,22 @@ void Gia_ManSatExperiment( Gia_Man_t * p )
         if ( 0 )
         {
             Gia_ManSatPartCountClauses( p, pObj, &Num0, &Num1 );
-            printf( "%8d :  And = %3d.  Lev = %2d. Clauses = %3d. (%3d + %3d).\n", i, nNodes, nLevels, Num0+Num1, Num0, Num1 );
+            fprintf( Abc_FrameGlobalGetOut(), "%8d :  And = %3d.  Lev = %2d. Clauses = %3d. (%3d + %3d).\n", i, nNodes, nLevels, Num0+Num1, Num0, Num1 );
             Gia_ManSatPartPrint( p, pObj, 0 );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
 
         pObj->fMark0 = 1;
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Gia_ManForEachObj( p, pObj, i )
         pObj->fMark0 = 0;
     Gia_ManSatStop( pMan );
     for ( i = 0; i < 2*GIA_LIMIT+2; i++ )
-        printf( "%2d=%6d  %7.2f %%  %7.2f %%\n", i, nCount[i], 100.0*nCount[i]/nCountAll, 100.0*i*nCount[i]/Gia_ManAndNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d=%6d  %7.2f %%  %7.2f %%\n", i, nCount[i], 100.0*nCount[i]/nCountAll, 100.0*i*nCount[i]/Gia_ManAndNum(p) );
     ABC_PRMn( "MemoryEst", 4*nWords );
     ABC_PRMn( "MemoryReal", 4*nWords2 );
-    printf( "%5.2f bpn  ", 4.0*nWords2/Gia_ManObjNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "%5.2f bpn  ", 4.0*nWords2/Gia_ManObjNum(p) );
     ABC_PRT( "Time", clock() - clk );
 }
 

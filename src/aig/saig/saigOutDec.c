@@ -84,7 +84,7 @@ Vec_Ptr_t * Saig_ManFindPrimes( Aig_Man_t * pAig, int nLits, int fVerbose )
             Vec_IntPush( vCube, toLitCond(Aig_ObjId(pObj0), pObj0->fPhase) );
             Vec_PtrPush( vPrimes, vCube );
             if ( fVerbose )
-            printf( "Adding prime %d%c\n", Aig_ObjId(pObj0),  pObj0->fPhase?'-':'+' );
+            fprintf( Abc_FrameGlobalGetOut(), "Adding prime %d%c\n", Aig_ObjId(pObj0),  pObj0->fPhase?'-':'+' );
             Vec_IntWriteEntry( vMarks, i0, 1 );
         }
     }
@@ -115,7 +115,7 @@ Vec_Ptr_t * Saig_ManFindPrimes( Aig_Man_t * pAig, int nLits, int fVerbose )
                     Vec_IntPush( vCube, toLitCond(Aig_ObjId(pObj1), fCompl1 ^ pObj1->fPhase) );
                     Vec_PtrPush( vPrimes, vCube );
                     if ( fVerbose )
-                    printf( "Adding prime %d%c %d%c\n", 
+                    fprintf( Abc_FrameGlobalGetOut(), "Adding prime %d%c %d%c\n", 
                         Aig_ObjId(pObj0), (fCompl0 ^ pObj0->fPhase)?'-':'+', 
                         Aig_ObjId(pObj1), (fCompl1 ^ pObj1->fPhase)?'-':'+' );
                     break;
@@ -125,7 +125,7 @@ Vec_Ptr_t * Saig_ManFindPrimes( Aig_Man_t * pAig, int nLits, int fVerbose )
     }
     nNodes2 = Vec_PtrSize(vPrimes) - nNodes1;
 
-    printf( "Property cone size = %6d    1-lit primes = %5d    2-lit primes = %5d\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Property cone size = %6d    1-lit primes = %5d    2-lit primes = %5d\n", 
         Vec_PtrSize(vNodes), nNodes1, nNodes2 );
 
     // clean up

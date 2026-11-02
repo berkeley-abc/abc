@@ -513,7 +513,7 @@ void Fxu_ListDoubleDelPair( Fxu_Double * pDiv, Fxu_Pair * pLink )
 ***********************************************************************/
 void Fxu_ListDoubleAddPairPlace( Fxu_Double * pDiv, Fxu_Pair * pPair, Fxu_Pair * pPairSpot )
 {
-    printf( "Fxu_ListDoubleAddPairPlace() is called!\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Fxu_ListDoubleAddPairPlace() is called!\n" );
 }
 
 

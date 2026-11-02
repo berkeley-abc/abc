@@ -368,29 +368,29 @@ void Gia_ManPrintInitClasses( Vec_Int_t * vInits )
         Counts[Value]++;
     for ( i = 0; i < 6; i++ )
         if ( Counts[i] )
-            printf( "%d = %d  ", i, Counts[i] );
-    printf( "  " );
-    printf( "B = %d  ", Counts[0] + Counts[1] );
-    printf( "X = %d  ", Counts[2] + Counts[3] );
-    printf( "Q = %d\n", Counts[4] + Counts[5] );
+            fprintf( Abc_FrameGlobalGetOut(), "%d = %d  ", i, Counts[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "  " );
+    fprintf( Abc_FrameGlobalGetOut(), "B = %d  ", Counts[0] + Counts[1] );
+    fprintf( Abc_FrameGlobalGetOut(), "X = %d  ", Counts[2] + Counts[3] );
+    fprintf( Abc_FrameGlobalGetOut(), "Q = %d\n", Counts[4] + Counts[5] );
     Vec_IntForEachEntry( vInits, Value, i )
     {
         Counts[Value]++;
         if ( Value == 0 )
-            printf( "0" );
+            fprintf( Abc_FrameGlobalGetOut(), "0" );
         else if ( Value == 1 )
-            printf( "1" );
+            fprintf( Abc_FrameGlobalGetOut(), "1" );
         else if ( Value == 2 )
-            printf( "2" );
+            fprintf( Abc_FrameGlobalGetOut(), "2" );
         else if ( Value == 3 )
-            printf( "3" );
+            fprintf( Abc_FrameGlobalGetOut(), "3" );
         else if ( Value == 4 )
-            printf( "4" );
+            fprintf( Abc_FrameGlobalGetOut(), "4" );
         else if ( Value == 5 )
-            printf( "5" );
+            fprintf( Abc_FrameGlobalGetOut(), "5" );
         else assert( 0 );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     
 }
 
@@ -438,10 +438,10 @@ void Gia_ManPrintChoiceStats( Gia_Man_t * p )
 ***********************************************************************/
 int Gia_ManPrintEdges( Gia_Man_t * p )
 {
-    printf( "Edges (Q=2)    :                " );
-    printf( "edge =%8d  ", (Vec_IntCountPositive(p->vEdge1) + Vec_IntCountPositive(p->vEdge2))/2 );
-    printf( "lev =%5.1f",  0.1*Gia_ManEvalEdgeDelay(p) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Edges (Q=2)    :                " );
+    fprintf( Abc_FrameGlobalGetOut(), "edge =%8d  ", (Vec_IntCountPositive(p->vEdge1) + Vec_IntCountPositive(p->vEdge2))/2 );
+    fprintf( Abc_FrameGlobalGetOut(), "lev =%5.1f",  0.1*Gia_ManEvalEdgeDelay(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     return 0;
 }
 
@@ -569,7 +569,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     if ( Gia_ManXorNum(p) && p->pMuxes == NULL )
         Abc_Print( 1, "  xor = %d", Gia_ManXorNum(p) );
     if ( pPars && pPars->fMuxXor )
-        printf( "\nXOR/MUX " ), Gia_ManPrintMuxStats( p );
+        fprintf( Abc_FrameGlobalGetOut(),  "\nXOR/MUX "  ), Gia_ManPrintMuxStats( p );
     if ( pPars && pPars->fSwitch )
     {
         static ABC_THREAD_LOCAL int nPiPo = 0;
@@ -737,17 +737,17 @@ void Gia_ManPrintStatsMiter( Gia_Man_t * p, int fVerbose )
     Gia_ManLevelNum( p );
     Gia_ManCreateRefs( p );
     vProb = Gia_ManPrintOutputProb( p );
-    printf( "Statistics for each outputs of the miter:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Statistics for each outputs of the miter:\n" );
     Gia_ManForEachPo( p, pObj, i )
     {
         iObjId = Gia_ObjId(p, pObj);
-        printf( "%4d : ", i );
-        printf( "Level = %5d  ",  Gia_ObjLevelId(p, iObjId) );
-        printf( "Supp = %5d  ",   Gia_ManSuppSize(p, &iObjId, 1) );
-        printf( "Cone = %5d  ",   Gia_ManConeSize(p, &iObjId, 1) );
-        printf( "Mffc = %5d  ",   Gia_NodeMffcSize(p, Gia_ObjFanin0(pObj)) );
-        printf( "Prob = %8.4f  ", Vec_FltEntry(vProb, iObjId) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%4d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Level = %5d  ",  Gia_ObjLevelId(p, iObjId) );
+        fprintf( Abc_FrameGlobalGetOut(), "Supp = %5d  ",   Gia_ManSuppSize(p, &iObjId, 1) );
+        fprintf( Abc_FrameGlobalGetOut(), "Cone = %5d  ",   Gia_ManConeSize(p, &iObjId, 1) );
+        fprintf( Abc_FrameGlobalGetOut(), "Mffc = %5d  ",   Gia_NodeMffcSize(p, Gia_ObjFanin0(pObj)) );
+        fprintf( Abc_FrameGlobalGetOut(), "Prob = %8.4f  ", Vec_FltEntry(vProb, iObjId) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_FltFree( vProb );
 }
@@ -926,7 +926,7 @@ void Gia_ManPrintNpnClasses( Gia_Man_t * p )
         pVec = Vec_IntArray( vPairs );
         nTopShow = Abc_MinInt( nTopShow, Vec_IntSize(vPairs)/3 );
         for ( i = 0; i < 3*nTopShow; i += 3 )
-            printf( "%3d : (%3d %3d) x %3d\n", i/3, pVec[i+0], pVec[i+1], pVec[i+2] );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d : (%3d %3d) x %3d\n", i/3, pVec[i+0], pVec[i+1], pVec[i+2] );
         Vec_IntFree( vPairs );
     }    
     ABC_FREE( pLutClass );
@@ -1242,7 +1242,7 @@ void Gia_ManDfsSlacksPrint( Gia_Man_t * p )
     int i, Entry, nRange, nTotal;
     if ( Vec_IntSize(vSlacks) == 0 )
     {
-        printf( "Network contains no internal objects.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Network contains no internal objects.\n" );
         Vec_IntFree( vSlacks );
         return;
     }
@@ -1261,11 +1261,11 @@ void Gia_ManDfsSlacksPrint( Gia_Man_t * p )
     assert( nTotal > 0 );
     Vec_IntForEachEntry( vCounts, Entry, i )
     {
-        printf( "Slack range %3d = ", i );
-        printf( "[%4d, %4d)   ", 10*i, 10*(i+1) );
-        printf( "Nodes = %5d  ", Entry );
-        printf( "(%6.2f %%) ", 100.0*Entry/nTotal );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Slack range %3d = ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "[%4d, %4d)   ", 10*i, 10*(i+1) );
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes = %5d  ", Entry );
+        fprintf( Abc_FrameGlobalGetOut(), "(%6.2f %%) ", 100.0*Entry/nTotal );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_IntFree( vSlacks );
     Vec_IntFree( vCounts );
@@ -1477,7 +1477,7 @@ void Gia_ManDumpVerilogNoInter( Gia_Man_t * p, char * pFileName, Vec_Int_t * vOb
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
 
@@ -1657,7 +1657,7 @@ void Gia_ManDumpVerilogNoInterAssign( Gia_Man_t * p, char * pFileName, Vec_Int_t
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
 
@@ -2009,7 +2009,7 @@ void Gia_ManDumpInterface( Gia_Man_t * p, char * pFileName )
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
 
@@ -2133,7 +2133,7 @@ void Gia_ManDumpInterfaceAssign( Gia_Man_t * p, char * pFileName )
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
 
@@ -2278,7 +2278,7 @@ void Gia_ManDumpVerilogNand( Gia_Man_t * p, char * pFileName )
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
     assert( Gia_ManRegNum(p) == 0 );
@@ -2361,28 +2361,28 @@ void Gia_GenSandwich( char ** pFNames, int nFNames, char * pFileName )
     {
         FILE * pFile = fopen( pFNames[i], "rb" );
         if ( pFile == NULL ) {
-            printf( "Cannot open input file \"%s\".\n", pFNames[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\".\n", pFNames[i] );
             Gia_FreeMany( pGias, nFNames );
             return;
         }
         fclose( pFile );
         pGias[i] = Gia_AigerRead( pFNames[i], 0, 0, 0 );
         if ( pGias[i] == NULL ) {
-            printf( "Failed to read an AIG from file \"%s\".\n", pFNames[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "Failed to read an AIG from file \"%s\".\n", pFNames[i] );
             Gia_FreeMany( pGias, nFNames );
             return;
         }
     }
     for ( i = 0; i < nFNames-1; i++ ) 
         if ( Gia_ManPoNum(pGias[i]) < Gia_ManPiNum(pGias[i+1]) ) {
-            printf( "AIG in file \"%s\" has fewer outputs than inputs of AIG in file \"%s\".\n", pFNames[i], pFNames[i+1] );
+            fprintf( Abc_FrameGlobalGetOut(), "AIG in file \"%s\" has fewer outputs than inputs of AIG in file \"%s\".\n", pFNames[i], pFNames[i+1] );
             Gia_FreeMany( pGias, nFNames );
             return;
         }
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
         Gia_FreeMany( pGias, nFNames );        
         return;
     }
@@ -2409,10 +2409,10 @@ void Gia_GenSandwich( char ** pFNames, int nFNames, char * pFileName )
         Vec_PtrFreeFree( pGias[i]->vNamesIn );  pGias[i]->vNamesIn = NULL;
         Vec_PtrFreeFree( pGias[i]->vNamesOut ); pGias[i]->vNamesOut = NULL;
         Gia_ManDumpVerilog( pGias[i], Extra_FileNameGenericAppend(pGias[i]->pSpec, ".v"), NULL, 0, 0, 1, 0, 0 );
-        printf( "Dumped Verilog file \"%s\"\n", Extra_FileNameGenericAppend(pGias[i]->pSpec, ".v") );        
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped Verilog file \"%s\"\n", Extra_FileNameGenericAppend(pGias[i]->pSpec, ".v") );        
     }
     Gia_FreeMany( pGias, nFNames );
-    printf( "Dumped hierarchical design into file \"%s\"\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Dumped hierarchical design into file \"%s\"\n", pFileName );
 }
 
 /**Function*************************************************************
@@ -2451,14 +2451,14 @@ Gia_Man_t * Gia_GenPutOnTop( char ** pFNames, int nFNames )
     {
         FILE * pFile = fopen( pFNames[i], "rb" );
         if ( pFile == NULL ) {
-            printf( "Cannot open input file \"%s\".\n", pFNames[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\".\n", pFNames[i] );
             Gia_FreeMany( pGias, nFNames );
             return NULL;
         }
         fclose( pFile );
         pGias[i] = Gia_AigerRead( pFNames[i], 0, 0, 0 );
         if ( pGias[i] == NULL ) {
-            printf( "Failed to read an AIG from file \"%s\".\n", pFNames[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "Failed to read an AIG from file \"%s\".\n", pFNames[i] );
             Gia_FreeMany( pGias, nFNames );
             return NULL;
         }

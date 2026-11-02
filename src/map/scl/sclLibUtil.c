@@ -74,7 +74,7 @@ int Abc_SclHashCells( SC_Lib * p )
         pPlace = Abc_SclHashLookup( p, pCell->pName );
         if ( *pPlace != -1 )
         {
-            printf( "There are two standard cells with the same name (%s).\n", pCell->pName );
+            fprintf( Abc_FrameGlobalGetOut(), "There are two standard cells with the same name (%s).\n", pCell->pName );
             return 0;
         }
         *pPlace = i;
@@ -232,7 +232,7 @@ void Abc_SclShortNames( SC_Lib * p )
     ABC_FREE( p->pBins );
     Abc_SclHashCells( p );
     // update library name
-    printf( "Renaming library \"%s\" into \"%s%d\".\n", p->pName, "lib", SC_LibCellNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Renaming library \"%s\" into \"%s%d\".\n", p->pName, "lib", SC_LibCellNum(p) );
     ABC_FREE( p->pName );
     sprintf( Buffer, "lib%d", SC_LibCellNum(p) );
     p->pName = Abc_UtilStrsav( Buffer );
@@ -629,7 +629,7 @@ void Abc_SclMarkSkippedCells( SC_Lib * p )
         CellId = Abc_SclCellFind( p, pName );
         if ( CellId == -1 )
         {
-            printf( "Cannot find cell \"%s\" in the library \"%s\".\n", pName, p->pName );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot find cell \"%s\" in the library \"%s\".\n", pName, p->pName );
             continue;
         }
         pCell = SC_LibCell( p, CellId );
@@ -637,7 +637,7 @@ void Abc_SclMarkSkippedCells( SC_Lib * p )
         nSkipped++;
     }
     fclose( pFile );
-    printf( "Marked %d cells for skipping in the library \"%s\".\n", nSkipped, p->pName );
+    fprintf( Abc_FrameGlobalGetOut(), "Marked %d cells for skipping in the library \"%s\".\n", nSkipped, p->pName );
 }
 void Abc_SclPrintCells( SC_Lib * p, float SlewInit, float Gain, int fInvOnly, int fShort )
 {
@@ -647,12 +647,12 @@ void Abc_SclPrintCells( SC_Lib * p, float SlewInit, float Gain, int fInvOnly, in
     float Slew = (SlewInit == 0) ? Abc_SclComputeAverageSlew(p) : SlewInit;
     float LD = 0, PD = 0;
     assert( Vec_PtrSize(&p->vCellClasses) > 0 );
-    printf( "Library \"%s\" ", p->pName );
-    printf( "has %d cells in %d classes.  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Library \"%s\" ", p->pName );
+    fprintf( Abc_FrameGlobalGetOut(), "has %d cells in %d classes.  ", 
         Vec_PtrSize(&p->vCells), Vec_PtrSize(&p->vCellClasses) );
     if ( !fShort )
-        printf( "Delay estimate is based on slew %.2f ps and gain %.2f.", Slew, Gain );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Delay estimate is based on slew %.2f ps and gain %.2f.", Slew, Gain );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Abc_SclMarkSkippedCells( p );
     // find the longest name
     SC_LibForEachCellClass( p, pRepr, k )
@@ -667,42 +667,42 @@ void Abc_SclPrintCells( SC_Lib * p, float SlewInit, float Gain, int fInvOnly, in
         {
             if ( i == pRepr->n_inputs )
             {
-                printf( "Class%4d : ",   k );
-                printf( "Cells =%3d   ", Abc_SclClassCellNum(pRepr) );
-                printf( "Ins =%2d  ",    pRepr->n_inputs );
-                printf( "Outs =%2d  ",   pRepr->n_outputs );
+                fprintf( Abc_FrameGlobalGetOut(), "Class%4d : ",   k );
+                fprintf( Abc_FrameGlobalGetOut(), "Cells =%3d   ", Abc_SclClassCellNum(pRepr) );
+                fprintf( Abc_FrameGlobalGetOut(), "Ins =%2d  ",    pRepr->n_inputs );
+                fprintf( Abc_FrameGlobalGetOut(), "Outs =%2d  ",   pRepr->n_outputs );
             }
             else
-                printf( "                                            " );
+                fprintf( Abc_FrameGlobalGetOut(), "                                            " );
             if ( pPin->func_text )
-                printf( "%-30s", pPin->func_text  );
-            printf( "    "  );
+                fprintf( Abc_FrameGlobalGetOut(), "%-30s", pPin->func_text  );
+            fprintf( Abc_FrameGlobalGetOut(), "    "  );
             Kit_DsdPrintFromTruth( (unsigned *)Vec_WrdArray(&pPin->vFunc), pRepr->n_inputs );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
             if ( fShort )
                 continue;
             SC_RingForEachCell( pRepr, pCell, j )
             {
-                printf( "  %3d ",           j+1 );
-                printf( "%s",               pCell->fSkip ? "s" : " " );
-                printf( " : " );
-                printf( "%-*s  ",           nLength, pCell->pName );
-                printf( "%2d   ",           pCell->drive_strength );
-                printf( "A =%8.2f  ",       pCell->area );
-                printf( "L =%8.2f  ",       pCell->leakage );
+                fprintf( Abc_FrameGlobalGetOut(), "  %3d ",           j+1 );
+                fprintf( Abc_FrameGlobalGetOut(), "%s",               pCell->fSkip ? "s" : " " );
+                fprintf( Abc_FrameGlobalGetOut(), " : " );
+                fprintf( Abc_FrameGlobalGetOut(), "%-*s  ",           nLength, pCell->pName );
+                fprintf( Abc_FrameGlobalGetOut(), "%2d   ",           pCell->drive_strength );
+                fprintf( Abc_FrameGlobalGetOut(), "A =%8.2f  ",       pCell->area );
+                fprintf( Abc_FrameGlobalGetOut(), "L =%8.2f  ",       pCell->leakage );
                 if ( pCell->n_outputs == 1 )
                 {
                     if ( Abc_SclComputeParametersCell( p, pCell, Slew, &LD, &PD ) )
                     {
-                        printf( "D =%6.1f ps  ",    0.01 * Gain * LD + PD );
-                        printf( "LD =%6.1f ps  ",   LD );
-                        printf( "PD =%6.1f ps    ", PD );
-                        printf( "C =%5.1f ff  ",    SC_CellPinCapAve(pCell) );
-                        printf( "Cm =%5.0f ff    ", SC_CellPin(pCell, pCell->n_inputs)->max_out_cap );
-                        printf( "Sm =%5.1f ps ",    SC_CellPin(pCell, pCell->n_inputs)->max_out_slew );
+                        fprintf( Abc_FrameGlobalGetOut(), "D =%6.1f ps  ",    0.01 * Gain * LD + PD );
+                        fprintf( Abc_FrameGlobalGetOut(), "LD =%6.1f ps  ",   LD );
+                        fprintf( Abc_FrameGlobalGetOut(), "PD =%6.1f ps    ", PD );
+                        fprintf( Abc_FrameGlobalGetOut(), "C =%5.1f ff  ",    SC_CellPinCapAve(pCell) );
+                        fprintf( Abc_FrameGlobalGetOut(), "Cm =%5.0f ff    ", SC_CellPin(pCell, pCell->n_inputs)->max_out_cap );
+                        fprintf( Abc_FrameGlobalGetOut(), "Sm =%5.1f ps ",    SC_CellPin(pCell, pCell->n_inputs)->max_out_slew );
                     }
                 }
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
             break;
         }
@@ -863,9 +863,9 @@ Mio_Library_t * Abc_SclDeriveGenlibSimple( void * pScl )
     Mio_Library_t * pLib = Mio_LibraryRead( p->pFileName, Vec_StrArray(vStr), NULL, 0, 0 );  
     Vec_StrFree( vStr );
     if ( pLib )
-        printf( "Derived GENLIB library \"%s\" with %d gates.\n", p->pName, SC_LibCellNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "Derived GENLIB library \"%s\" with %d gates.\n", p->pName, SC_LibCellNum(p) );
     else
-        printf( "Reading library has filed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Reading library has filed.\n" );
     return pLib;
 }
 
@@ -916,7 +916,7 @@ Vec_Str_t * Abc_SclProduceGenlibStr( SC_Lib * p, float Slew, float Gain, int nGa
                 {
                     float Delay = Abc_SclComputeDelayClassPin( p, pRepr, k, Slew, Gain );
                     if ( Delay <= 0 ) {
-                        printf( "Cell %s cannot be used because delay of a pin is <= 0.\n", pRepr->pName );
+                        fprintf( Abc_FrameGlobalGetOut(), "Cell %s cannot be used because delay of a pin is <= 0.\n", pRepr->pName );
                         break;
                     }
                 }
@@ -1080,14 +1080,14 @@ void Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float SlewInit, float Gain
     pFile = fopen( FileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", FileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", FileName );
         return;
     }
     vStr = Abc_SclProduceGenlibStr( p, Slew, Gain, nGatesMin, 0, &nCellCount );
     fprintf( pFile, "%s", Vec_StrArray(vStr) );
     Vec_StrFree( vStr );
     fclose( pFile );
-    printf( "Written GENLIB library with %d gates into file \"%s\".\n", nCellCount, FileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Written GENLIB library with %d gates into file \"%s\".\n", nCellCount, FileName );
 }
 Mio_Library_t * Abc_SclDeriveGenlib( void * pScl, void * pMio, float SlewInit, float Gain, int nGatesMin, int fVerbose )
 {
@@ -1103,9 +1103,9 @@ Mio_Library_t * Abc_SclDeriveGenlib( void * pScl, void * pMio, float SlewInit, f
     pLib = Mio_LibraryRead( p->pFileName, Vec_StrArray(vStr), NULL, 0, 0 );  
     Vec_StrFree( vStr );
     if ( !pLib )
-        printf( "Reading library has filed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Reading library has filed.\n" );
     else if ( fVerbose )
-        printf( "Derived GENLIB library \"%s\" with %d gates using slew %.2f ps and gain %.2f.\n", p->pName, nCellCount, Slew, Gain );
+        fprintf( Abc_FrameGlobalGetOut(), "Derived GENLIB library \"%s\" with %d gates using slew %.2f ps and gain %.2f.\n", p->pName, nCellCount, Slew, Gain );
     return pLib;
 }
 
@@ -1135,9 +1135,9 @@ void Abc_SclInstallGenlib( void * pScl, float SlewInit, float Gain, int fUseAll,
     Vec_StrFree( vStr );
     Vec_StrFree( vStr2 );
     if ( !RetValue )
-        printf( "Reading library has filed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Reading library has filed.\n" );
     else if ( Gain != 0 )
-        printf( "Derived GENLIB library \"%s\" with %d gates using slew %.2f ps and gain %.2f.\n", p->pName, nGateCount, Slew, Gain );
+        fprintf( Abc_FrameGlobalGetOut(), "Derived GENLIB library \"%s\" with %d gates using slew %.2f ps and gain %.2f.\n", p->pName, nGateCount, Slew, Gain );
 //    else
 //        printf( "Derived unit-delay GENLIB library \"%s\" with %d gates.\n", p->pName, nGateCount );
 }

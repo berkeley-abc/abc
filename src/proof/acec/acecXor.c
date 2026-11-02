@@ -55,11 +55,11 @@ void Acec_CheckXors( Gia_Man_t * p, Vec_Int_t * vXors )
             Vec_IntAddToEntry( vCount2, Vec_IntEntry(vXors, 4*i), 1 );
     Vec_IntForEachEntry( vCount2, Entry, i )
         if ( Entry > 1 )
-            printf( "*** Obj %d has %d two-input XOR cuts.\n", i, Entry ), Count++;
+            fprintf( Abc_FrameGlobalGetOut(),  "*** Obj %d has %d two-input XOR cuts.\n", i, Entry ), Count++;
         else if ( Entry == 1 && Gia_ObjRecognizeExor(Gia_ManObj(p, i), &pFan0, &pFan1) )
-            printf( "*** Obj %d cannot be recognized as XOR.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "*** Obj %d cannot be recognized as XOR.\n", i );
     if ( Count == 0 )
-        printf( "*** There no multiple two-input XOR cuts.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "*** There no multiple two-input XOR cuts.\n" );
     Vec_IntFree( vCount2 );
 }
 
@@ -215,7 +215,7 @@ Vec_Int_t * Acec_RankTrees( Gia_Man_t * p, Vec_Int_t * vXors, Vec_Int_t * vXorRo
                 Vec_IntPush( vDoubles, Node );
 
             if ( Entry != -1 && Gia_ObjIsAnd(Gia_ManObj(p, Node)))
-            printf( "Xor node %d belongs to Tree %d and Tree %d.\n", Node, Entry, Rank );
+            fprintf( Abc_FrameGlobalGetOut(), "Xor node %d belongs to Tree %d and Tree %d.\n", Node, Entry, Rank );
         }
     }
     // remove duplicated entries
@@ -279,7 +279,7 @@ void Acec_CheckBoothPPs( Gia_Man_t * p, Vec_Wec_t * vLitLeaves )
             else
                 CountNB++;
 
-        printf( "Rank %2d : Lits = %5d    PI = %d  Booth = %5d  Non-Booth = %5d\n", i, Vec_IntSize(vLevel), CountPI, CountB, CountNB );
+        fprintf( Abc_FrameGlobalGetOut(), "Rank %2d : Lits = %5d    PI = %d  Booth = %5d  Non-Booth = %5d\n", i, Vec_IntSize(vLevel), CountPI, CountB, CountNB );
     }
     Vec_BitFree( vMarked );
 }
@@ -389,7 +389,7 @@ Acec_Box_t * Acec_ProduceBox( Gia_Man_t * p, int fVerbose )
 
     //Ree_ManPrintAdders( vAdds, 1 );
     if ( fVerbose )
-        printf( "Detected %d full-adders and %d half-adders.  Found %d XOR-cuts.  ", Ree_ManCountFadds(vAdds), Vec_IntSize(vAdds)/6-Ree_ManCountFadds(vAdds), Vec_IntSize(vXors)/4 );
+        fprintf( Abc_FrameGlobalGetOut(), "Detected %d full-adders and %d half-adders.  Found %d XOR-cuts.  ", Ree_ManCountFadds(vAdds), Vec_IntSize(vAdds)/6-Ree_ManCountFadds(vAdds), Vec_IntSize(vXors)/4 );
     if ( fVerbose )
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
@@ -459,7 +459,7 @@ void Gia_ManTestXor( Gia_Man_t * p )
                 pObj->fCompl0 = pObj->fCompl1;
             }
             vSims2 = Gia_ManSimPatSimOut( p, vSimsPi, 1 );
-            printf( "%2d %2d : %5d\n", i, n, Abc_TtCountOnesVecXor(Vec_WrdArray(vSims), Vec_WrdArray(vSims2), Vec_WrdSize(vSims2)) );
+            fprintf( Abc_FrameGlobalGetOut(), "%2d %2d : %5d\n", i, n, Abc_TtCountOnesVecXor(Vec_WrdArray(vSims), Vec_WrdArray(vSims2), Vec_WrdSize(vSims2)) );
             Vec_WrdFree( vSims2 );
             *pObj = Obj;
         }

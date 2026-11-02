@@ -70,7 +70,7 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
     pGenlib = (Mio_Library_t *)Abc_FrameReadLibGen();
     if ( pGenlib == NULL )
     {
-        printf( "The current library is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The current library is not available.\n" );
         return 0;
     }
 
@@ -111,7 +111,7 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
         }
         else if ( nFanins > 6 )
         {
-            printf( "Cannot attach gate with more than 6 inputs to node %s.\n", Abc_ObjName(pNode) );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot attach gate with more than 6 inputs to node %s.\n", Abc_ObjName(pNode) );
             ABC_FREE( puTruthGates[0] );
             ABC_FREE( puTruthGates );
             ABC_FREE( ppGates );
@@ -120,7 +120,7 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
         }
         else if ( !Abc_NodeAttach( pNode, ppGates, puTruthGates, nGates, uTruths, pPerms, nPerms ) )
         {
-            printf( "Could not attach the library gate to node %s.\n", Abc_ObjName(pNode) );
+            fprintf( Abc_FrameGlobalGetOut(), "Could not attach the library gate to node %s.\n", Abc_ObjName(pNode) );
             ABC_FREE( puTruthGates[0] );
             ABC_FREE( puTruthGates );
             ABC_FREE( ppGates );
@@ -138,7 +138,7 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
     {
         if ( pNode->pCopy == NULL )
         {
-            printf( "Some elementary gates (constant, buffer, or inverter) are missing in the library.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Some elementary gates (constant, buffer, or inverter) are missing in the library.\n" );
             return 0;
         }
     }
@@ -150,12 +150,12 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
     Extra_MmFlexStop( (Extra_MmFlex_t *)pNtk->pManFunc );
     pNtk->pManFunc = pGenlib;
 
-    printf( "Library gates are successfully attached to the nodes.\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Library gates are successfully attached to the nodes.\n" );
 
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Abc_NtkAttach: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkAttach: The network check has failed.\n" );
         return 0;
     }
     return 1;

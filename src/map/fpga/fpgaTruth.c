@@ -157,7 +157,7 @@ int Fpga_CutVolume( Fpga_Cut_t * pCut )
         pCut->fMark = 0;
     }
     Volume = vVisited->nSize;
-    printf( "%d ", Volume );
+    fprintf( Abc_FrameGlobalGetOut(), "%d ", Volume );
     Fpga_NodeVecFree( vVisited );
     return Volume;
 }

@@ -9,10 +9,10 @@ ABC_NAMESPACE_HEADER_START
     if ((COND)) \
       break; \
     kissat_fatal_message_start (); \
-    fprintf (stderr, "calling '%s': ", __func__); \
-    fprintf (stderr, __VA_ARGS__); \
-    fputc ('\n', stderr); \
-    fflush (stderr); \
+    fprintf( Abc_FrameGlobalGetErr(), "calling '%s': ", __func__); \
+    fprintf( Abc_FrameGlobalGetErr(), __VA_ARGS__); \
+    fputc( '\n', Abc_FrameGlobalGetErr() ); \
+    fflush( Abc_FrameGlobalGetErr() ); \
     kissat_abort (); \
   } while (0)
 

@@ -771,11 +771,11 @@ void Fxch_ManPrintDivs( Fxch_Man_t* pFxchMan )
 
 void Fxch_ManPrintStats( Fxch_Man_t* pFxchMan )
 {
-    printf( "Cubes =%8d  ", Vec_WecSizeUsed( pFxchMan->vCubes ) );
-    printf( "Lits  =%8d  ", Vec_WecSizeUsed( pFxchMan->vLits ) );
-    printf( "Divs  =%8d  ", Hsh_VecSize( pFxchMan->pDivHash ) );
-    printf( "Divs+ =%8d  ", Vec_QueSize( pFxchMan->vDivPrio ) );
-    printf( "Extr  =%7d  \n", pFxchMan->nExtDivs );
+    fprintf( Abc_FrameGlobalGetOut(), "Cubes =%8d  ", Vec_WecSizeUsed( pFxchMan->vCubes ) );
+    fprintf( Abc_FrameGlobalGetOut(), "Lits  =%8d  ", Vec_WecSizeUsed( pFxchMan->vLits ) );
+    fprintf( Abc_FrameGlobalGetOut(), "Divs  =%8d  ", Hsh_VecSize( pFxchMan->pDivHash ) );
+    fprintf( Abc_FrameGlobalGetOut(), "Divs+ =%8d  ", Vec_QueSize( pFxchMan->vDivPrio ) );
+    fprintf( Abc_FrameGlobalGetOut(), "Extr  =%7d  \n", pFxchMan->nExtDivs );
 }
 
 ////////////////////////////////////////////////////////////////////////

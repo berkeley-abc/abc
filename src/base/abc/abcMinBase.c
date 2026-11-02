@@ -141,7 +141,7 @@ int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
         if ( !Vec_StrEntry(vSupport, i) )
         {
             if ( !Vec_IntRemove( &pFanin->vFanouts, pNode->Id ) )
-                printf( "The obj %d is not found among the fanouts of obj %d ...\n", pNode->Id, iFanin );
+                fprintf( Abc_FrameGlobalGetOut(), "The obj %d is not found among the fanouts of obj %d ...\n", pNode->Id, iFanin );
             continue;
         }
         Vec_IntForEachEntryStop( &pNode->vFanins, iFanin2, j, k )
@@ -151,7 +151,7 @@ int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
         if ( j == k )
             Vec_IntWriteEntry( &pNode->vFanins, k++, iFanin );
         else if ( !Vec_IntRemove( &pFanin->vFanouts, pNode->Id ) )
-            printf( "The obj %d is not found among the fanouts of obj %d ...\n", pNode->Id, iFanin );
+            fprintf( Abc_FrameGlobalGetOut(), "The obj %d is not found among the fanouts of obj %d ...\n", pNode->Id, iFanin );
 
         // i-th variable becomes equivalent to j-th variable (can be itself)
         pbVars[i] = Cudd_bddIthVar( dd, j );
@@ -509,7 +509,7 @@ int Abc_NtkEliminate( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose
     // convert network to BDD representation
     if ( !Abc_NtkToBdd(pNtk) )
     {
-        fprintf( stdout, "Converting to BDD has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Converting to BDD has failed.\n" );
         return 0;
     }
     // prepare nodes for sweeping
@@ -541,7 +541,7 @@ int Abc_NtkEliminate( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose
         Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pFanout, k )
         {
             if ( fVerbose )
-                printf( "Collapsing fanin %5d (supp =%2d) into fanout %5d (supp =%2d) ",
+                fprintf( Abc_FrameGlobalGetOut(), "Collapsing fanin %5d (supp =%2d) into fanout %5d (supp =%2d) ",
                     Abc_ObjId(pNode), Abc_ObjFaninNum(pNode), Abc_ObjId(pFanout), Abc_ObjFaninNum(pFanout) ); 
             RetValue = Abc_NodeCollapse( pNode, pFanout, vFanins, pPermFanin, pPermFanout );
             assert( RetValue );
@@ -549,7 +549,7 @@ int Abc_NtkEliminate( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose
             {
                 Abc_Obj_t * pNodeNew = Abc_NtkObj( pNtk, Abc_NtkObjNumMax(pNtk) - 1 );
                 if ( pNodeNew )
-                    printf( "resulting in node %5d (supp =%2d).\n", Abc_ObjId(pNodeNew), Abc_ObjFaninNum(pNodeNew) );
+                    fprintf( Abc_FrameGlobalGetOut(), "resulting in node %5d (supp =%2d).\n", Abc_ObjId(pNodeNew), Abc_ObjFaninNum(pNodeNew) );
             }
         }
     }
@@ -676,7 +676,7 @@ int Abc_NtkEliminate1One( Abc_Ntk_t * pNtk, int ElimValue, int nMaxSize, int fRe
     // convert network to BDD representation
     if ( !Abc_NtkToAig(pNtk) )
     {
-        fprintf( stdout, "Converting to AIG has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Converting to AIG has failed.\n" );
         return 0;
     }
     // get the nodes in the given order
@@ -712,7 +712,7 @@ int Abc_NtkEliminate1One( Abc_Ntk_t * pNtk, int ElimValue, int nMaxSize, int fRe
         Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pFanout, k )
         {
             if ( fVerbose )
-                printf( "Collapsing fanin %5d (supp =%2d) into fanout %5d (supp =%2d) ",
+                fprintf( Abc_FrameGlobalGetOut(), "Collapsing fanin %5d (supp =%2d) into fanout %5d (supp =%2d) ",
                     Abc_ObjId(pNode), Abc_ObjFaninNum(pNode), Abc_ObjId(pFanout), Abc_ObjFaninNum(pFanout) ); 
             RetValue = Abc_NodeCollapse1( pNode, pFanout, vFanins, pPermFanin, pPermFanout );
             assert( RetValue );
@@ -720,7 +720,7 @@ int Abc_NtkEliminate1One( Abc_Ntk_t * pNtk, int ElimValue, int nMaxSize, int fRe
             {
                 Abc_Obj_t * pNodeNew = Abc_NtkObj( pNtk, Abc_NtkObjNumMax(pNtk) - 1 );
                 if ( pNodeNew )
-                    printf( "resulting in node %5d (supp =%2d).\n", Abc_ObjId(pNodeNew), Abc_ObjFaninNum(pNodeNew) );
+                    fprintf( Abc_FrameGlobalGetOut(), "resulting in node %5d (supp =%2d).\n", Abc_ObjId(pNodeNew), Abc_ObjFaninNum(pNodeNew) );
             }
         }
     }
@@ -801,7 +801,7 @@ int Abc_NtkEliminateSpecial( Abc_Ntk_t * pNtk, int nMaxSize, int fVerbose )
     // convert network to BDD representation
     if ( !Abc_NtkToBdd(pNtk) )
     {
-        fprintf( stdout, "Converting to BDD has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Converting to BDD has failed.\n" );
         return 0;
     }
 
@@ -813,7 +813,7 @@ int Abc_NtkEliminateSpecial( Abc_Ntk_t * pNtk, int nMaxSize, int fVerbose )
     // convert network to SOPs
     if ( !Abc_NtkToSop(pNtk, -1, ABC_INFINITY) )
     {
-        fprintf( stdout, "Converting to SOP has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Converting to SOP has failed.\n" );
         return 0;
     }
 
@@ -848,7 +848,7 @@ int Abc_NtkEliminateSpecial( Abc_Ntk_t * pNtk, int nMaxSize, int fVerbose )
     // convert network to BDD representation
     if ( !Abc_NtkToBdd(pNtk) )
     {
-        fprintf( stdout, "Converting to BDD has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Converting to BDD has failed.\n" );
         return 0;
     }
 
@@ -866,7 +866,7 @@ int Abc_NtkEliminateSpecial( Abc_Ntk_t * pNtk, int nMaxSize, int fVerbose )
         Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pFanout, k )
         {
             if ( fVerbose )
-                printf( "Collapsing fanin %5d (supp =%2d) into fanout %5d (supp =%2d) ",
+                fprintf( Abc_FrameGlobalGetOut(), "Collapsing fanin %5d (supp =%2d) into fanout %5d (supp =%2d) ",
                     Abc_ObjId(pNode), Abc_ObjFaninNum(pNode), Abc_ObjId(pFanout), Abc_ObjFaninNum(pFanout) ); 
             RetValue = Abc_NodeCollapse( pNode, pFanout, vFanins, pPermFanin, pPermFanout );
             assert( RetValue );
@@ -874,7 +874,7 @@ int Abc_NtkEliminateSpecial( Abc_Ntk_t * pNtk, int nMaxSize, int fVerbose )
             {
                 Abc_Obj_t * pNodeNew = Abc_NtkObj( pNtk, Abc_NtkObjNumMax(pNtk) - 1 );
                 if ( pNodeNew )
-                    printf( "resulting in node %5d (supp =%2d).\n", Abc_ObjId(pNodeNew), Abc_ObjFaninNum(pNodeNew) );
+                    fprintf( Abc_FrameGlobalGetOut(), "resulting in node %5d (supp =%2d).\n", Abc_ObjId(pNodeNew), Abc_ObjFaninNum(pNodeNew) );
             }
         }
     }

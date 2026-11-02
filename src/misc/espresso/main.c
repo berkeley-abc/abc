@@ -82,7 +82,7 @@ char *argv[];
             }
         }
         if (option_table[j].name == 0) {
-            (void) fprintf(stderr, "%s: bad subcommand \"%s\"\n",
+            (void) fprintf( Abc_FrameGlobalGetErr(), "%s: bad subcommand \"%s\"\n",
             argv[0], util_optarg);
             exit(1);
         }
@@ -96,7 +96,7 @@ char *argv[];
             }
         }
         if (pla_types[j].key == 0) {
-            (void) fprintf(stderr, "%s: bad output type \"%s\"\n",
+            (void) fprintf( Abc_FrameGlobalGetErr(), "%s: bad output type \"%s\"\n",
             argv[0], util_optarg);
             exit(1);
         }
@@ -110,7 +110,7 @@ char *argv[];
             }
         }
         if (esp_opt_table[j].name == 0) {
-            (void) fprintf(stderr, "%s: bad espresso option \"%s\"\n",
+            (void) fprintf( Abc_FrameGlobalGetErr(), "%s: bad espresso option \"%s\"\n",
             argv[0], util_optarg);
             exit(1);
         }
@@ -131,7 +131,7 @@ char *argv[];
             }
         }
         if (debug_table[j].name == 0) {
-            (void) fprintf(stderr, "%s: bad debug type \"%s\"\n",
+            (void) fprintf( Abc_FrameGlobalGetErr(), "%s: bad debug type \"%s\"\n",
             argv[0], util_optarg);
             exit(1);
         }
@@ -155,7 +155,7 @@ char *argv[];
 
         case 'r':        /* -r selects range (outputs or vars) */
         if (sscanf(util_optarg, "%d-%d", &first, &last) < 2) {
-            (void) fprintf(stderr, "%s: bad output range \"%s\"\n",
+            (void) fprintf( Abc_FrameGlobalGetErr(), "%s: bad output range \"%s\"\n",
             argv[0], util_optarg);
             exit(1);
         }
@@ -170,12 +170,12 @@ char *argv[];
     /* provide version information and summaries */
     if (summary || trace) {
     /* echo command line and arguments */
-    printf("#");
+    fprintf( Abc_FrameGlobalGetOut(), "#" );
     for(i = 0; i < argc; i++) {
-        printf(" %s", argv[i]);
+        fprintf( Abc_FrameGlobalGetOut(), " %s", argv[i] );
     }
-    printf("\n");
-    printf("# %s\n", VERSION);
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "# %s\n", VERSION );
     }
 
     /* the remaining arguments are argv[util_optind ... argc-1] */
@@ -225,8 +225,8 @@ char *argv[];
     do {
         EXEC(PLA->F=espresso(PLA->F,PLA->D,PLA->R),"ESPRESSO   ",PLA->F);
         if (print_solution) {
-        fprint_pla(stdout, PLA, out_type);
-        (void) fflush(stdout);
+        fprint_pla(Abc_FrameGlobalGetOut(), PLA, out_type);
+        (void) fflush( Abc_FrameGlobalGetOut() );
         }
         pla_type = PLA->pla_type;
         free_PLA(PLA);
@@ -346,8 +346,8 @@ char *argv[];
     break;
 
     case KEY_taut:                /* tautology check */
-    printf("ON-set is%sa tautology\n",
-        tautology(cube1list(PLA->F)) ? " " : " not ");
+    fprintf( Abc_FrameGlobalGetOut(), "ON-set is%sa tautology\n",
+        tautology(cube1list(PLA->F)) ? " " : " not " );
     print_solution = FALSE;
     break;
 
@@ -415,10 +415,10 @@ char *argv[];
     case KEY_PLA_verify:        /* check two PLAs for equivalence */
     EXECUTE(error = PLA_verify(PLA, PLA1), VERIFY_TIME, PLA->F, cost);
     if (error) {
-        printf("PLA comparison failed; the PLA's are not equivalent\n");
+        fprintf( Abc_FrameGlobalGetOut(), "PLA comparison failed; the PLA's are not equivalent\n" );
         exit(1);
     } else {
-        printf("PLA's compared equal\n");
+        fprintf( Abc_FrameGlobalGetOut(), "PLA's compared equal\n" );
         exit(0);
     }
     break;    /* silly */
@@ -427,10 +427,10 @@ char *argv[];
     Fold = PLA->F;    Dold = PLA->D;    F = PLA1->F;
     EXECUTE(error=verify(F, Fold, Dold), VERIFY_TIME, PLA->F, cost);
     if (error) {
-        printf("PLA comparison failed; the PLA's are not equivalent\n");
+        fprintf( Abc_FrameGlobalGetOut(), "PLA comparison failed; the PLA's are not equivalent\n" );
         exit(1);
     } else {
-        printf("PLA's compared equal\n");
+        fprintf( Abc_FrameGlobalGetOut(), "PLA's compared equal\n" );
         exit(0);
     }    
     break;    /* silly */
@@ -502,7 +502,7 @@ char *argv[];
 
     /* Output the solution */
     if (print_solution) {
-    EXECUTE(fprint_pla(stdout, PLA, out_type), WRITE_TIME, PLA->F, cost);
+    EXECUTE(fprint_pla(Abc_FrameGlobalGetOut(), PLA, out_type), WRITE_TIME, PLA->F, cost);
     }
 
     /* Crash and burn if there was a verify error */
@@ -541,7 +541,7 @@ int out_type;
     if (strcmp(fname, "-") == 0) {
         fp = stdin;
     } else if ((fp = fopen(argv[opt], "r")) == NULL) {
-        (void) fprintf(stderr, "%s: Unable to open %s\n", argv[0], fname);
+        (void) fprintf( Abc_FrameGlobalGetErr(), "%s: Unable to open %s\n", argv[0], fname);
         exit(1);
     }
     }
@@ -554,7 +554,7 @@ int out_type;
     }
 
     if (read_pla(fp, needs_dcset, needs_offset, input_type, PLA) == EOF) {
-    (void) fprintf(stderr, "%s: Unable to find PLA on file %s\n", argv[0], fname);
+    (void) fprintf( Abc_FrameGlobalGetErr(), "%s: Unable to find PLA on file %s\n", argv[0], fname);
     exit(1);
     }
     (*PLA)->filename = util_strsav(fname);
@@ -576,9 +576,9 @@ runtime()
     for(i = 0; i < TIME_COUNT; i++) {
     if (total_calls[i] != 0) {
         temp = 100 * total_time[i];
-        printf("# %s\t%2d call(s) for %s (%2ld.%01ld%%)\n",
+        fprintf( Abc_FrameGlobalGetOut(), "# %s\t%2d call(s) for %s (%2ld.%01ld%%)\n",
         total_name[i], total_calls[i], print_time(total_time[i]),
-            temp/total, (10 * (temp%total)) / total);
+            temp/total, (10 * (temp%total)) / total );
     }
     }
 }
@@ -607,49 +607,49 @@ init_runtime()
 subcommands()
 {
     int i, col;
-    printf("                ");
+    fprintf( Abc_FrameGlobalGetOut(), "                " );
     col = 16;
     for(i = 0; option_table[i].name != 0; i++) {
     if ((col + strlen(option_table[i].name) + 1) > 76) {
-        printf(",\n                ");
+        fprintf( Abc_FrameGlobalGetOut(), ",\n                " );
         col = 16;
     } else if (i != 0) {
-        printf(", ");
+        fprintf( Abc_FrameGlobalGetOut(), ", " );
     }
-    printf("%s", option_table[i].name);
+    fprintf( Abc_FrameGlobalGetOut(), "%s", option_table[i].name );
     col += strlen(option_table[i].name) + 2;
     }
-    printf("\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 
 usage()
 {
-    printf("%s\n\n", VERSION);
-    printf("SYNOPSIS: espresso [options] [file]\n\n");
-    printf("  -d        Enable debugging\n");
-    printf("  -e[opt]   Select espresso option:\n");
-    printf("                fast, ness, nirr, nunwrap, onset, pos, strong,\n");
-    printf("                eat, eatdots, kiss, random\n");
-    printf("  -o[type]  Select output format:\n");
-    printf("                f, fd, fr, fdr, pleasure, eqntott, kiss, cons\n");
-    printf("  -rn-m     Select range for subcommands:\n");
-    printf("                d1merge: first and last variables (0 ... m-1)\n");
-    printf("                minterms: first and last variables (0 ... m-1)\n");
-    printf("                opoall: first and last outputs (0 ... m-1)\n");
-    printf("  -s        Provide short execution summary\n");
-    printf("  -t        Provide longer execution trace\n");
-    printf("  -x        Suppress printing of solution\n");
-    printf("  -v[type]  Verbose debugging detail (-v '' for all)\n");
-    printf("  -D[cmd]   Execute subcommand 'cmd':\n");
+    fprintf( Abc_FrameGlobalGetOut(), "%s\n\n", VERSION );
+    fprintf( Abc_FrameGlobalGetOut(), "SYNOPSIS: espresso [options] [file]\n\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "  -d        Enable debugging\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "  -e[opt]   Select espresso option:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "                fast, ness, nirr, nunwrap, onset, pos, strong,\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "                eat, eatdots, kiss, random\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "  -o[type]  Select output format:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "                f, fd, fr, fdr, pleasure, eqntott, kiss, cons\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "  -rn-m     Select range for subcommands:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "                d1merge: first and last variables (0 ... m-1)\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "                minterms: first and last variables (0 ... m-1)\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "                opoall: first and last outputs (0 ... m-1)\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "  -s        Provide short execution summary\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "  -t        Provide longer execution trace\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "  -x        Suppress printing of solution\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "  -v[type]  Verbose debugging detail (-v '' for all)\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "  -D[cmd]   Execute subcommand 'cmd':\n" );
     subcommands();
-    printf("  -Sn       Select strategy for subcommands:\n");
-    printf("                opo: bit2=exact bit1=repeated bit0=skip sparse\n");
-    printf("                opoall: 0=minimize, 1=exact\n");
-    printf("                pair: 0=algebraic, 1=strongd, 2=espresso, 3=exact\n");
-    printf("                pairall: 0=minimize, 1=exact, 2=opo\n");
-    printf("                so_espresso: 0=minimize, 1=exact\n");
-    printf("                so_both: 0=minimize, 1=exact\n");
+    fprintf( Abc_FrameGlobalGetOut(), "  -Sn       Select strategy for subcommands:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "                opo: bit2=exact bit1=repeated bit0=skip sparse\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "                opoall: 0=minimize, 1=exact\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "                pair: 0=algebraic, 1=strongd, 2=espresso, 3=exact\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "                pairall: 0=minimize, 1=exact, 2=opo\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "                so_espresso: 0=minimize, 1=exact\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "                so_both: 0=minimize, 1=exact\n" );
 }
 
 /*
@@ -676,8 +676,8 @@ int *out_type;
             break;
         }
         if (option_table[j].name == 0) {
-        (void) fprintf(stderr,
-         "espresso: bad keyword \"%s\" following -do\n",argv[i+1]);
+        (void) fprintf( Abc_FrameGlobalGetErr(),
+        "espresso: bad keyword \"%s\" following -do\n",argv[i+1]);
         exit(1);
         }
         break;
@@ -694,8 +694,8 @@ int *out_type;
             break;
         }
         if (pla_types[j].key == 0) {
-        (void) fprintf(stderr,
-           "espresso: bad keyword \"%s\" following -out\n",argv[i+1]);
+        (void) fprintf( Abc_FrameGlobalGetErr(), 
+            "espresso: bad keyword \"%s\" following -out\n",argv[i+1]);
         exit(1);
         }
         break;

@@ -76,7 +76,7 @@ void Abc_NtkImplementCiOrder( Abc_Ntk_t * pNtk, char * pFileName, int fReverse, 
         pObj = Abc_NtkFindCi( pNtk, Buffer );
         if ( pObj == NULL || !Abc_ObjIsCi(pObj) )
         {
-            printf( "Name \"%s\" is not a PI name. Cannot use this order.\n", Buffer );
+            fprintf( Abc_FrameGlobalGetOut(), "Name \"%s\" is not a PI name. Cannot use this order.\n", Buffer );
             Vec_PtrFree( vSupp );
             fclose( pFile );
             return;
@@ -86,7 +86,7 @@ void Abc_NtkImplementCiOrder( Abc_Ntk_t * pNtk, char * pFileName, int fReverse, 
     fclose( pFile );
     if ( Vec_PtrSize(vSupp) != Abc_NtkCiNum(pNtk) )
     {
-        printf( "The number of names in the order (%d) is not the same as the number of PIs (%d).\n", Vec_PtrSize(vSupp), Abc_NtkCiNum(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of names in the order (%d) is not the same as the number of PIs (%d).\n", Vec_PtrSize(vSupp), Abc_NtkCiNum(pNtk) );
         Vec_PtrFree( vSupp );
         return;
     }

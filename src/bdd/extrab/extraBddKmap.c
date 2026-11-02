@@ -223,17 +223,17 @@ void Extra_PrintKMap(
         return;
     }
     if ( nVars == 0 )
-        { printf( "Function is constant %d.\n", !Cudd_IsComplement(OnSet) ); return; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Function is constant %d.\n", !Cudd_IsComplement(OnSet) ); return; }
 
     // print truth table for debugging
     if ( fPrintTruth )
     {
         DdNode * bCube, * bPart;
-        printf( "Truth table: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Truth table: " );
         if ( nVars == 0 )
-            printf( "Constant" );
+            fprintf( Abc_FrameGlobalGetOut(), "Constant" );
         else if ( nVars == 1 )
-            printf( "1-var function" );
+            fprintf( Abc_FrameGlobalGetOut(), "1-var function" );
         else
         {
 //            printf( "0x" );
@@ -249,12 +249,12 @@ void Extra_PrintKMap(
                     Cudd_RecursiveDeref( dd, bCube );
                 }
                 if ( Value < 10 )
-                    fprintf( stdout, "%d", Value );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d", Value );
                 else
-                    fprintf( stdout, "%c", 'a' + Value-10 );
+                    fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + Value-10 );
             }
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
 

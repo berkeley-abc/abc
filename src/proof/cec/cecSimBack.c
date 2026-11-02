@@ -47,22 +47,22 @@ int Cec_ObjSatVerify( Gia_Man_t * p, Gia_Obj_t * pRoot, int Value )
 {
     Gia_Obj_t * pObj;
     int i, RetValue = 1;
-    printf( "Obj = %4d  Value = %d  ", Gia_ObjId(p, pRoot), Value );
+    fprintf( Abc_FrameGlobalGetOut(), "Obj = %4d  Value = %d  ", Gia_ObjId(p, pRoot), Value );
     Gia_ObjTerSimSet0( Gia_ManConst0(p) );
     Gia_ManForEachCi( p, pObj, i )
         if ( !Gia_ObjIsTravIdCurrent(p, pObj) )
-            Gia_ObjTerSimSetX( pObj ), printf( "x" );
+            Gia_ObjTerSimSetX( pObj ), fprintf( Abc_FrameGlobalGetOut(), "x" );
         else if ( pObj->fMark0 )
-            Gia_ObjTerSimSet1( pObj ), printf( "1" );
+            Gia_ObjTerSimSet1( pObj ), fprintf( Abc_FrameGlobalGetOut(), "1" );
         else
-            Gia_ObjTerSimSet0( pObj ), printf( "0" );
-    printf( " " );
+            Gia_ObjTerSimSet0( pObj ), fprintf( Abc_FrameGlobalGetOut(), "0" );
+    fprintf( Abc_FrameGlobalGetOut(), " " );
     Gia_ManForEachAnd( p, pObj, i )
         Gia_ObjTerSimAnd( pObj );
     if ( Value ? Gia_ObjTerSimGet1(pRoot) : Gia_ObjTerSimGet0(pRoot) )
-        printf( "Verification successful.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification successful.\n" );
     else
-        printf( "Verification failed.\n" ), RetValue = 0;
+        fprintf( Abc_FrameGlobalGetOut(),  "Verification failed.\n" ), RetValue = 0;
     return RetValue;
 }
 
@@ -181,7 +181,7 @@ void Cec_ManSimBack( Gia_Man_t * p )
         Count += (int)(Res > 0);
     }
     Vec_WrdFree( vValues );
-    printf( "Obj = %6d.  SAT = %6d.  ", Gia_ManAndNum(p), Count );
+    fprintf( Abc_FrameGlobalGetOut(), "Obj = %6d.  SAT = %6d.  ", Gia_ManAndNum(p), Count );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 

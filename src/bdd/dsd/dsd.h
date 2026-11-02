@@ -129,6 +129,8 @@ extern DdNode *        Dsd_TreeGetPrimeFunction( DdManager * dd, Dsd_Node_t * pN
 
 ABC_NAMESPACE_HEADER_END
 
+extern ABC_DLL FILE *             Abc_FrameGlobalGetOut();
+extern ABC_DLL FILE *             Abc_FrameGlobalGetErr();
 
 
 #endif

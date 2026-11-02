@@ -172,8 +172,8 @@ void Ssw_SignalCorrespondenceArray( Vec_Ptr_t * vGias, Ssw_Pars_t * pPars )
     Cec_ParCor_t CorPars, * pCorPars = &CorPars;
     Cec_ManCorSetDefaultParams( pCorPars );
     if ( pPars->fVerbose )
-        printf( "Running concurrent &scorr with %d processes.\n", nProcs );
-    fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "Running concurrent &scorr with %d processes.\n", nProcs );
+    fflush( Abc_FrameGlobalGetOut() );
     if ( pPars->nProcs < 2 )
         return Ssw_SignalCorrespondenceArray1( vGias, pPars );
     // subtract manager thread

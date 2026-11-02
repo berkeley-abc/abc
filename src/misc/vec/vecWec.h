@@ -609,10 +609,10 @@ static inline void Vec_WecPrint( Vec_Wec_t * p, int fSkipSingles )
     {
         if ( fSkipSingles && Vec_IntSize(vVec) == 1 )
             continue;
-        printf( " %4d : {", i );
+        fprintf( Abc_FrameGlobalGetOut(),  " %4d : {", i  );
         Vec_IntForEachEntry( vVec, Entry, k )
-            printf( " %d", Entry );
-        printf( " }\n" );
+            fprintf( Abc_FrameGlobalGetOut(),  " %d", Entry  );
+        fprintf( Abc_FrameGlobalGetOut(),  " }\n"  );
     }
 }
 static inline void Vec_WecPrintLits( Vec_Wec_t * p )
@@ -621,10 +621,10 @@ static inline void Vec_WecPrintLits( Vec_Wec_t * p )
     int i, k, iLit;
     Vec_WecForEachLevel( p, vVec, i )
     {
-        printf( " %4d : %2d  {", i, Vec_IntSize(vVec) );
+        fprintf( Abc_FrameGlobalGetOut(),  " %4d : %2d  {", i, Vec_IntSize(vVec)  );
         Vec_IntForEachEntry( vVec, iLit, k )
-            printf( " %c%d", Abc_LitIsCompl(iLit) ? '-' : '+', Abc_Lit2Var(iLit) );
-        printf( " }\n" );
+            fprintf( Abc_FrameGlobalGetOut(),  " %c%d", Abc_LitIsCompl(iLit) ? '-' : '+', Abc_Lit2Var(iLit)  );
+        fprintf( Abc_FrameGlobalGetOut(),  " }\n"  );
     }
 }
 
@@ -826,7 +826,7 @@ static inline void Vec_WecDumpBin( char * pFileName, Vec_Wec_t * p, int fVerbose
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file \"%s\" for writing.\n", pFileName  );
         return;
     }
     nSize = Vec_WecSize(p);
@@ -839,9 +839,9 @@ static inline void Vec_WecDumpBin( char * pFileName, Vec_Wec_t * p, int fVerbose
     }
     fclose( pFile );
     if ( RetValue != (int)sizeof(int)*(Vec_WecSizeSize(p)+Vec_WecSize(p)+1) )
-        printf( "Error writing data into file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "Error writing data into file.\n"  );
     if ( fVerbose )
-        printf( "Written %d integer arrays into file \"%s\".\n", Vec_WecSize(p), pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Written %d integer arrays into file \"%s\".\n", Vec_WecSize(p), pFileName  );
 }
 static inline Vec_Wec_t * Vec_WecReadBin( char * pFileName, int fVerbose )
 {
@@ -849,20 +849,20 @@ static inline Vec_Wec_t * Vec_WecReadBin( char * pFileName, int fVerbose )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file \"%s\" for reading.\n", pFileName  );
         return NULL;
     }
     fseek( pFile, 0, SEEK_END );
     nSize = ftell( pFile );
     if ( nSize == 0 )
     {
-        printf( "The input file is empty.\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "The input file is empty.\n"  );
         fclose( pFile );
         return NULL;
     }
     if ( nSize % sizeof(int) > 0 )
     {
-        printf( "Cannot read file with integers because it is not aligned at 4 bytes (remainder = %d).\n", (int)(nSize % sizeof(int)) );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot read file with integers because it is not aligned at 4 bytes (remainder = %d).\n", (int)(nSize % sizeof(int))  );
         fclose( pFile );
         return NULL;
     }
@@ -880,7 +880,7 @@ static inline Vec_Wec_t * Vec_WecReadBin( char * pFileName, int fVerbose )
     }
     fclose( pFile );
     if ( fVerbose )
-        printf( "Read %d integer arrays from file \"%s\".\n", Vec_WecSize(p), pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Read %d integer arrays from file \"%s\".\n", Vec_WecSize(p), pFileName  );
     return p;
 }
 

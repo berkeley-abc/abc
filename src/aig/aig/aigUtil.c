@@ -658,22 +658,22 @@ void Aig_ObjPrintVerilog( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, i
 void Aig_ObjPrintVerbose( Aig_Obj_t * pObj, int fHaig )
 {
     assert( !Aig_IsComplement(pObj) );
-    printf( "Node %d : ", pObj->Id );
+    fprintf( Abc_FrameGlobalGetOut(), "Node %d : ", pObj->Id );
     if ( Aig_ObjIsConst1(pObj) )
-        printf( "constant 1" );
+        fprintf( Abc_FrameGlobalGetOut(), "constant 1" );
     else if ( Aig_ObjIsCi(pObj) )
-        printf( "CI" );
+        fprintf( Abc_FrameGlobalGetOut(), "CI" );
     else if ( Aig_ObjIsCo(pObj) )
     {
-        printf( "CO( " );
-        printf( "%d%s )", 
+        fprintf( Abc_FrameGlobalGetOut(), "CO( " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d%s )", 
             Aig_ObjFanin0(pObj)->Id, (Aig_ObjFaninC0(pObj)? "\'" : " ") );
     }
     else
-        printf( "AND( %d%s, %d%s )", 
+        fprintf( Abc_FrameGlobalGetOut(), "AND( %d%s, %d%s )", 
             Aig_ObjFanin0(pObj)->Id, (Aig_ObjFaninC0(pObj)? "\'" : " "), 
             Aig_ObjFanin1(pObj)->Id, (Aig_ObjFaninC1(pObj)? "\'" : " ") );
-    printf( " (refs = %3d)", Aig_ObjRefs(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), " (refs = %3d)", Aig_ObjRefs(pObj) );
 }
 void Aig_ObjPrintVerboseCone( Aig_Man_t * p, Aig_Obj_t * pRoot, int fHaig )
 {
@@ -683,8 +683,8 @@ void Aig_ObjPrintVerboseCone( Aig_Man_t * p, Aig_Obj_t * pRoot, int fHaig )
     int i;
     vNodes = Aig_ManDfsArray( p, &pRoot, 1 );
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
-        Aig_ObjPrintVerbose( pObj, fHaig ), printf( "\n" );
-    printf( "\n" );
+        Aig_ObjPrintVerbose( pObj, fHaig ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_PtrFree( vNodes );
 
 }
@@ -705,14 +705,14 @@ void Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig )
     Vec_Ptr_t * vNodes;
     Aig_Obj_t * pObj;
     int i;
-    printf( "PIs: " );
+    fprintf( Abc_FrameGlobalGetOut(), "PIs: " );
     Aig_ManForEachCi( p, pObj, i )
-        printf( " %p", pObj );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %p", pObj );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     vNodes = Aig_ManDfs( p, 0 );
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
-        Aig_ObjPrintVerbose( pObj, fHaig ), printf( "\n" );
-    printf( "\n" );
+        Aig_ObjPrintVerbose( pObj, fHaig ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_PtrFree( vNodes );
 }
 
@@ -734,7 +734,7 @@ void Aig_ManDump( Aig_Man_t * p )
     // dump the logic into a file
     sprintf( FileName, "aigbug\\%03d.blif", ++Counter );
     Aig_ManDumpBlif( p, FileName, NULL, NULL );
-    printf( "Intermediate AIG with %d nodes was written into file \"%s\".\n", Aig_ManNodeNum(p), FileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Intermediate AIG with %d nodes was written into file \"%s\".\n", Aig_ManNodeNum(p), FileName );
 }
 
 /**Function*************************************************************
@@ -756,7 +756,7 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec
     int i, nDigits, Counter = 0;
     if ( Aig_ManCoNum(p) == 0 )
     {
-        printf( "Aig_ManDumpBlif(): AIG manager does not have POs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDumpBlif(): AIG manager does not have POs.\n" );
         return;
     }
     // check if constant is used
@@ -871,7 +871,7 @@ void Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName )
     int i, nDigits, Counter = 0;
     if ( Aig_ManCoNum(p) == 0 )
     {
-        printf( "Aig_ManDumpBlif(): AIG manager does not have POs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDumpBlif(): AIG manager does not have POs.\n" );
         return;
     }
     // check if constant is used
@@ -1049,8 +1049,8 @@ void Aig_ManPrintControlFanouts( Aig_Man_t * p )
 
     pCtrl = Aig_ManCi( p, Aig_ManCiNum(p) - 1 );
 
-    printf( "Control signal:\n" );
-    Aig_ObjPrint( p, pCtrl ); printf( "\n\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Control signal:\n" );
+    Aig_ObjPrint( p, pCtrl ); fprintf( Abc_FrameGlobalGetOut(), "\n\n" );
 
     Aig_ManForEachObj( p, pObj, i )
     {
@@ -1061,15 +1061,15 @@ void Aig_ManPrintControlFanouts( Aig_Man_t * p )
         pFanin1 = Aig_ObjFanin1(pObj);
         if ( pFanin0 == pCtrl && Aig_ObjIsCi(pFanin1) )
         {
-            Aig_ObjPrint( p, pObj ); printf( "\n" );
-            Aig_ObjPrint( p, pFanin1 ); printf( "\n" );
-            printf( "\n" );
+            Aig_ObjPrint( p, pObj ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+            Aig_ObjPrint( p, pFanin1 ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         if ( pFanin1 == pCtrl && Aig_ObjIsCi(pFanin0) )
         {
-            Aig_ObjPrint( p, pObj ); printf( "\n" );
-            Aig_ObjPrint( p, pFanin0 ); printf( "\n" );
-            printf( "\n" );
+            Aig_ObjPrint( p, pObj ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+            Aig_ObjPrint( p, pFanin0 ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
 }
@@ -1428,9 +1428,9 @@ void Aig_ManCounterExampleValueTest( Aig_Man_t * pAig, Abc_Cex_t * pCex )
 {
     Aig_Obj_t * pObj = Aig_ManObj( pAig, Aig_ManObjNumMax(pAig)/2 );
     int iFrame = Abc_MaxInt( 0, pCex->iFrame - 1 );
-    printf( "\nUsing counter-example, which asserts output %d in frame %d.\n", pCex->iPo, pCex->iFrame );
+    fprintf( Abc_FrameGlobalGetOut(), "\nUsing counter-example, which asserts output %d in frame %d.\n", pCex->iPo, pCex->iFrame );
     Aig_ManCounterExampleValueStart( pAig, pCex );
-    printf( "Value of object %d in frame %d is %d.\n", Aig_ObjId(pObj), iFrame,
+    fprintf( Abc_FrameGlobalGetOut(), "Value of object %d in frame %d is %d.\n", Aig_ObjId(pObj), iFrame,
         Aig_ManCounterExampleValueLookup(pAig, Aig_ObjId(pObj), iFrame) );
     Aig_ManCounterExampleValueStop( pAig );
 }

@@ -464,15 +464,15 @@ Gia_Man_t * Bmc_GiaTargetStates( Gia_Man_t * p, Abc_Cex_t * pCex, int iFrBeg, in
     Vec_Bit_t * vInitNew;
 
     if ( iFrBeg < 0 )
-        { printf( "Starting frame is less than 0.\n" ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Starting frame is less than 0.\n" ); return NULL; }
     if ( iFrEnd < 0 )
-        { printf( "Stopping frame is less than 0.\n" ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Stopping frame is less than 0.\n" ); return NULL; }
     if ( iFrBeg > pCex->iFrame )
-        { printf( "Starting frame is more than the last frame of CEX (%d).\n", pCex->iFrame ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Starting frame is more than the last frame of CEX (%d).\n", pCex->iFrame ); return NULL; }
     if ( iFrEnd > pCex->iFrame )
-        { printf( "Stopping frame is more than the last frame of CEX (%d).\n", pCex->iFrame ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Stopping frame is more than the last frame of CEX (%d).\n", pCex->iFrame ); return NULL; }
     if ( iFrBeg > iFrEnd )
-        { printf( "Starting frame (%d) should be less than stopping frame (%d).\n", iFrBeg, iFrEnd ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Starting frame (%d) should be less than stopping frame (%d).\n", iFrBeg, iFrEnd ); return NULL; }
     assert( iFrBeg >= 0 && iFrBeg <= pCex->iFrame );
     assert( iFrEnd >= 0 && iFrEnd <= pCex->iFrame );
     assert( iFrBeg < iFrEnd );

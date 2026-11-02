@@ -80,7 +80,7 @@ Abc_Ntk_t * Abc_NtkBalance( Abc_Ntk_t * pNtk, int fDuplicate, int fSelective, in
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkAig ) )
     {
-        printf( "Abc_NtkBalance: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkBalance: The network check has failed.\n" );
         Abc_NtkDelete( pNtkAig );
         return NULL;
     }
@@ -113,7 +113,7 @@ void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, int fDuplicat
     // allocate temporary storage for supergates
     vStorage = Vec_VecStart( 10 );
     // perform balancing of POs
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkCoNum(pNtk) );
     if ( pNtk->nBarBufs == 0 )
     {
         Abc_NtkForEachCo( pNtk, pNode, i )
@@ -264,7 +264,7 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_
         vSuper->pArray[i] = Abc_ObjNotCond( pNodeNew, Abc_ObjIsComplement((Abc_Obj_t *)vSuper->pArray[i]) );
     }
     if ( vSuper->nSize < 2 )
-        printf( "BUG!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "BUG!\n" );
     // sort the new nodes by level in the decreasing order
     Vec_PtrSort( vSuper, (int (*)(const void *, const void *))Abc_NodeCompareLevelsDecrease );
     // balance the nodes
@@ -432,7 +432,7 @@ Vec_Ptr_t * Abc_NodeBalanceConeExor( Abc_Obj_t * pNode )
         return NULL;
     vSuper = Vec_PtrAlloc( 10 );
     Abc_NodeBalanceConeExor_rec( pNode, vSuper, 1 );
-    printf( "%d ", Vec_PtrSize(vSuper) );
+    fprintf( Abc_FrameGlobalGetOut(), "%d ", Vec_PtrSize(vSuper) );
     Vec_PtrFree( vSuper );
     return NULL;
 }
@@ -616,7 +616,7 @@ void Abc_NtkMarkCriticalNodes( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
         if ( Abc_ObjRequiredLevel(pNode) - pNode->Level <= 1 )
             pNode->fMarkA = 1, Counter++;
-    printf( "The number of nodes on the critical paths = %6d  (%5.2f %%)\n", Counter, 100.0 * Counter / Abc_NtkNodeNum(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of nodes on the critical paths = %6d  (%5.2f %%)\n", Counter, 100.0 * Counter / Abc_NtkNodeNum(pNtk) );
 }
 
 

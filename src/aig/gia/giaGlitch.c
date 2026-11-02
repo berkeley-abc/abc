@@ -195,15 +195,15 @@ void Gli_ManPrintObjects( Gli_Man_t * p )
     int i, k;
     Gli_ManForEachObj( p, pObj, i )
     {
-        printf( "Node %d \n", pObj->Handle );
-        printf( "Fanins: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %d \n", pObj->Handle );
+        fprintf( Abc_FrameGlobalGetOut(), "Fanins: " );
         Gli_ObjForEachFanin( pObj, pNext, k )
-            printf( "%d ", pNext->Handle );
-        printf( "\n" );
-        printf( "Fanouts: " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", pNext->Handle );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Fanouts: " );
         Gli_ObjForEachFanout( pObj, pNext, k )
-            printf( "%d ", pNext->Handle );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", pNext->Handle );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -771,7 +771,7 @@ void Gli_ManSwitchesAndGlitches( Gli_Man_t * p, int nPatterns, float PiTransProb
     }
     if ( fVerbose )
     {
-        printf( "Simulated %d patterns.  Input transition probability %.2f.  ", nPatterns, PiTransProb );
+        fprintf( Abc_FrameGlobalGetOut(), "Simulated %d patterns.  Input transition probability %.2f.  ", nPatterns, PiTransProb );
         ABC_PRMn( "Memory", 4*p->nObjData );
         ABC_PRT( "Time", Abc_Clock() - clk );
     }

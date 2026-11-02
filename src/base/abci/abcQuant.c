@@ -239,7 +239,7 @@ Abc_Ntk_t * Abc_NtkTransRel( Abc_Ntk_t * pNtk, int fInputs, int fVerbose )
     // check consistency of the network
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkTransRel: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkTransRel: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -376,7 +376,7 @@ Abc_Ntk_t * Abc_NtkReachability( Abc_Ntk_t * pNtkRel, int nIters, int fVerbose )
         if ( Abc_ObjFanin0(Abc_NtkPo(pNtkNext,0)) == Abc_AigConst1(pNtkNext) )
         {
             fFixedPoint = 1;
-            printf( "Fixed point is reached!\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Fixed point is reached!\n" );
             Abc_NtkDelete( pNtkNext );
             break;
         }
@@ -397,14 +397,14 @@ Abc_Ntk_t * Abc_NtkReachability( Abc_Ntk_t * pNtkRel, int nIters, int fVerbose )
         // print statistics
         if ( fVerbose )
         {
-            printf( "I = %3d : Reach = %6d  Fr = %6d  FrM = %6d  %7.2f %%   ", 
+            fprintf( Abc_FrameGlobalGetOut(), "I = %3d : Reach = %6d  Fr = %6d  FrM = %6d  %7.2f %%   ", 
                 i + 1, Abc_NtkNodeNum(pNtkReached), nNodesOld, nNodesNew, 100.0*(nNodesNew-nNodesPrev)/nNodesPrev );
             ABC_PRT( "T", Abc_Clock() - clk );
         }
         nNodesPrev = Abc_NtkNodeNum(pNtkFront);
     }
     if ( !fFixedPoint )
-        fprintf( stdout, "Reachability analysis stopped after %d iterations.\n", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "Reachability analysis stopped after %d iterations.\n", nIters );
 
     // complement the output to represent the set of unreachable states
     Abc_ObjXorFaninC( Abc_NtkPo(pNtkReached,0), 0 );
@@ -420,7 +420,7 @@ Abc_Ntk_t * Abc_NtkReachability( Abc_Ntk_t * pNtkRel, int nIters, int fVerbose )
     // check consistency of the network
     if ( !Abc_NtkCheck( pNtkReached ) )
     {
-        printf( "Abc_NtkReachability: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkReachability: The network check has failed.\n" );
         Abc_NtkDelete( pNtkReached );
         return NULL;
     }

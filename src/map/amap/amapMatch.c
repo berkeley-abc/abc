@@ -536,7 +536,7 @@ void Amap_ManMatchNode( Amap_Man_t * p, Amap_Obj_t * pNode, int fFlow, int fRefs
         Amap_CutAreaDeref( p, &pNode->Best );
 
     if ( fVerbose )
-        printf( "\nNode %d (%d)\n", pNode->Id, pNode->Level );
+        fprintf( Abc_FrameGlobalGetOut(), "\nNode %d (%d)\n", pNode->Id, pNode->Level );
 
     pMBestA->pCut = pMBestD->pCut = NULL;
     Amap_NodeForEachCut( pNode, pCut, i )
@@ -558,12 +558,12 @@ void Amap_ManMatchNode( Amap_Man_t * p, Amap_Obj_t * pNode, int fFlow, int fRefs
 
             if ( fVeryVerbose ) 
             {
-                printf( "Cut %2d (%d) :  ", i, pCut->nFans );
-                printf( "Gate %10s  ",      Amap_LibGate(p->pLib, pMThis->pSet->iGate)->pName );
-                printf( "%s  ",             pMThis->pSet->fInv ? "inv" : "   " );
-                printf( "Delay %5.2f  ",    pMThis->Delay );
-                printf( "Area %5.2f  ",     pMThis->Area );
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Cut %2d (%d) :  ", i, pCut->nFans );
+                fprintf( Abc_FrameGlobalGetOut(), "Gate %10s  ",      Amap_LibGate(p->pLib, pMThis->pSet->iGate)->pName );
+                fprintf( Abc_FrameGlobalGetOut(), "%s  ",             pMThis->pSet->fInv ? "inv" : "   " );
+                fprintf( Abc_FrameGlobalGetOut(), "Delay %5.2f  ",    pMThis->Delay );
+                fprintf( Abc_FrameGlobalGetOut(), "Area %5.2f  ",     pMThis->Area );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
         }
     }
@@ -575,26 +575,26 @@ void Amap_ManMatchNode( Amap_Man_t * p, Amap_Obj_t * pNode, int fFlow, int fRefs
 
     if ( fVerbose )
     {
-        printf( "BEST MATCHA:  " );
-        printf( "Gate %10s  ",    Amap_LibGate(p->pLib, pMBestA->pSet->iGate)->pName );
-        printf( "%s  ",           pMBestA->pSet->fInv ? "inv" : "   " );
-        printf( "Delay %5.2f  ",  pMBestA->Delay );
-        printf( "Area %5.2f  ",   pMBestA->Area );
-        printf( "\n" ); 
+        fprintf( Abc_FrameGlobalGetOut(), "BEST MATCHA:  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Gate %10s  ",    Amap_LibGate(p->pLib, pMBestA->pSet->iGate)->pName );
+        fprintf( Abc_FrameGlobalGetOut(), "%s  ",           pMBestA->pSet->fInv ? "inv" : "   " );
+        fprintf( Abc_FrameGlobalGetOut(), "Delay %5.2f  ",  pMBestA->Delay );
+        fprintf( Abc_FrameGlobalGetOut(), "Area %5.2f  ",   pMBestA->Area );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" ); 
 
-        printf( "BEST MATCHD:  " );
-        printf( "Gate %10s  ",    Amap_LibGate(p->pLib, pMBestD->pSet->iGate)->pName );
-        printf( "%s  ",           pMBestD->pSet->fInv ? "inv" : "   " );
-        printf( "Delay %5.2f  ",  pMBestD->Delay );
-        printf( "Area %5.2f  ",   pMBestD->Area );
-        printf( "\n" ); 
+        fprintf( Abc_FrameGlobalGetOut(), "BEST MATCHD:  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Gate %10s  ",    Amap_LibGate(p->pLib, pMBestD->pSet->iGate)->pName );
+        fprintf( Abc_FrameGlobalGetOut(), "%s  ",           pMBestD->pSet->fInv ? "inv" : "   " );
+        fprintf( Abc_FrameGlobalGetOut(), "Delay %5.2f  ",  pMBestD->Delay );
+        fprintf( Abc_FrameGlobalGetOut(), "Area %5.2f  ",   pMBestD->Area );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" ); 
 
-        printf( "BEST MATCH :  " );
-        printf( "Gate %10s  ",    Amap_LibGate(p->pLib, pMBest->pSet->iGate)->pName );
-        printf( "%s  ",           pMBest->pSet->fInv ? "inv" : "   " );
-        printf( "Delay %5.2f  ",  pMBest->Delay );
-        printf( "Area %5.2f  ",   pMBest->Area );
-        printf( "\n" ); 
+        fprintf( Abc_FrameGlobalGetOut(), "BEST MATCH :  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Gate %10s  ",    Amap_LibGate(p->pLib, pMBest->pSet->iGate)->pName );
+        fprintf( Abc_FrameGlobalGetOut(), "%s  ",           pMBest->pSet->fInv ? "inv" : "   " );
+        fprintf( Abc_FrameGlobalGetOut(), "Delay %5.2f  ",  pMBest->Delay );
+        fprintf( Abc_FrameGlobalGetOut(), "Area %5.2f  ",   pMBest->Area );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" ); 
     }
 
     pNode->fPolar = pMBest->pCut->fInv ^ pMBest->pSet->fInv;
@@ -632,7 +632,7 @@ void Amap_ManMatch( Amap_Man_t * p, int fFlow, int fRefs )
     nInvs = Amap_ManCountInverters( p );
 if ( p->pPars->fVerbose )
 {
-    printf( "Area =%9.2f. Gate =%9.2f. Inv =%9.2f. (%6d.) Delay =%6.2f. ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Area =%9.2f. Gate =%9.2f. Inv =%9.2f. (%6d.) Delay =%6.2f. ", 
         Area + nInvs * p->fAreaInv, 
         Area, nInvs * p->fAreaInv, nInvs,
         Amap_ManMaxDelay(p) );

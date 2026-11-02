@@ -695,15 +695,15 @@ int Abc_FlowRetime_RefineConstraints( ) {
   Abc_Obj_t *pObj;
   int maxTighten = 99999;
 
-  vprintf("\t\tsubiter %d : constraints = {cons, exact} = %d, %d\n", 
+  vfprintf( Abc_FrameGlobalGetOut(), "\t\tsubiter %d : constraints = {cons, exact} = %d, %d\n", 
          pManMR->subIteration, pManMR->nConservConstraints, pManMR->nExactConstraints);
 
   // 1. overconstrained
   pManMR->constraintMask = BLOCK | CONSERVATIVE;
-  vprintf("\t\trefinement: over ");
-  fflush(stdout);
+  vfprintf( Abc_FrameGlobalGetOut(), "\t\trefinement: over ");
+  fflush( Abc_FrameGlobalGetOut() );
   flow = Abc_FlowRetime_PushFlows( pNtk, 0 );
-  vprintf("= %d ", flow);
+  vfprintf( Abc_FrameGlobalGetOut(), "= %d ", flow);
 
   // remember nodes
   if (pManMR->fIsForward) {
@@ -717,18 +717,18 @@ int Abc_FlowRetime_RefineConstraints( ) {
   }
 
   if (pManMR->fConservTimingOnly) {
-    vprintf(" done\n");
+    vfprintf( Abc_FrameGlobalGetOut(), " done\n");
     return 0;
   }
 
   // 2. underconstrained
   pManMR->constraintMask = BLOCK;
   Abc_FlowRetime_ClearFlows( 0 );
-  vprintf("under = ");
-  fflush(stdout);
+  vfprintf( Abc_FrameGlobalGetOut(), "under = ");
+  fflush( Abc_FrameGlobalGetOut() );
   flow = Abc_FlowRetime_PushFlows( pNtk, 0 );
-  vprintf("%d refined nodes = ", flow);
-  fflush(stdout);
+  vfprintf( Abc_FrameGlobalGetOut(), "%d refined nodes = ", flow);
+  fflush( Abc_FrameGlobalGetOut() );
 
   // find area-limiting constraints
   if (pManMR->fIsForward) {
@@ -755,7 +755,7 @@ int Abc_FlowRetime_RefineConstraints( ) {
     }
   }
   
-  vprintf("%d\n", count);
+  vfprintf( Abc_FrameGlobalGetOut(), "%d\n", count);
   
   return (count > 0);
 }

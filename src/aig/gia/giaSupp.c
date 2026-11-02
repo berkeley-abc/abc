@@ -89,7 +89,7 @@ void Gia_ManSuppStop( Gia_ManMin_t * p )
     Vec_IntFreeP( &p->vCleared );
     Vec_PtrFreeP( &p->vFuncs );
     Vec_IntFreeP( &p->vSupp );
-    printf( "Refs = %d. \n", Cudd_CheckZeroRef( p->dd ) );
+    fprintf( Abc_FrameGlobalGetOut(), "Refs = %d. \n", Cudd_CheckZeroRef( p->dd ) );
     Cudd_Quit( p->dd );
     ABC_FREE( p );
 }
@@ -321,7 +321,7 @@ Gia_Man_t * Gia_ManSupportAndTest( Gia_Man_t * pGia )
         else assert( 0 );
 
         if ( i % 10000 == 0 )
-            printf( "%d\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "%d\n", i );
     }
     Gia_ManSuppStop( pMan );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(pGia) );

@@ -106,12 +106,12 @@ int Cmd_CommandHandleSpecial( Abc_Frame_t * pAbc, const char * sCommand )
     int DepthNew   = (pNtk && Abc_NtkHasMapping(pNtk)) ? Abc_NtkLevel(pNtk)         : 0, Depth   = 0;
     if ( strstr(sCommand, "#PS") ) 
     {
-        printf( "pi=%d ",   piCountNew );
-        printf( "po=%d ",   poCountNew );
-        printf( "fn=%d ",   ndCountNew );
-        printf( "ma=%.1f ", AreaNew    );
-        printf( "de=%d ",   DepthNew   );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "pi=%d ",   piCountNew );
+        fprintf( Abc_FrameGlobalGetOut(), "po=%d ",   poCountNew );
+        fprintf( Abc_FrameGlobalGetOut(), "fn=%d ",   ndCountNew );
+        fprintf( Abc_FrameGlobalGetOut(), "ma=%.1f ", AreaNew    );
+        fprintf( Abc_FrameGlobalGetOut(), "de=%d ",   DepthNew   );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         return 1;
     }
     if ( strstr(sCommand, "#CEC") ) 
@@ -119,7 +119,7 @@ int Cmd_CommandHandleSpecial( Abc_Frame_t * pAbc, const char * sCommand )
         //int proofStatus = Abc_NtkVerifyUsingCec(pNtk);
         int proofStatus = 1;
         // -1 (undecided), 0 (different), 1 (equivalent)
-        printf( "proofStatus=%d\n", proofStatus );
+        fprintf( Abc_FrameGlobalGetOut(), "proofStatus=%d\n", proofStatus );
         return 1;
     }
     if ( strstr(sCommand, "#ASSERT") ) 
@@ -173,7 +173,7 @@ int Cmd_CommandHandleSpecial( Abc_Frame_t * pAbc, const char * sCommand )
             else return 0;
         }
         else return 0;
-        printf( "%s\n", Status ? "succeeded" : "failed" );
+        fprintf( Abc_FrameGlobalGetOut(), "%s\n", Status ? "succeeded" : "failed" );
         return 1;
     }
     return 0;

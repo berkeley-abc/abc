@@ -750,6 +750,9 @@ extern int             acd2_decompose( word * pTruth, unsigned nVars, int lutSiz
 
 ABC_NAMESPACE_HEADER_END
 
+extern ABC_DLL FILE *  Abc_FrameGlobalGetOut();
+extern ABC_DLL FILE *  Abc_FrameGlobalGetErr();
+
 #endif
 
 ////////////////////////////////////////////////////////////////////////

@@ -176,13 +176,13 @@ inline void Solver::justCheck(){
 		if( !isJReason(x) )
 			continue;
 		if( lit_Undef != (lit = gateJustFanin(x)) ){
-			printf("\t%8d is not justified (value=%d, level=%3d)\n", x, l_True == value(x)? 1: 0, vardata[x].level), nJustFail ++ ;
+			fprintf( Abc_FrameGlobalGetOut(), "\t%8d is not justified (value=%d, level=%3d)\n", x, l_True == value(x)? 1: 0, vardata[x].level), nJustFail ++ ;
 
 			assert(false);
 		}
 	}
 	if( nJustFail )
-		printf("%d just-fails\n", nJustFail);
+		fprintf( Abc_FrameGlobalGetOut(), "%d just-fails\n", nJustFail);
 }
 /**
 inline void Solver::delVarFaninLits( Var v ){

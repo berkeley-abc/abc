@@ -294,7 +294,7 @@ Gia_Man_t * Abc_NtkTestTimDeriveGia( Abc_Ntk_t * pNtk, int fVerbose )
         curPi++;
         curPo += Abc_ObjFaninNum(pObj);
         if ( fVerbose )
-            printf( "Selecting node %6d as white boxes with %d inputs and %d output.\n", i, Abc_ObjFaninNum(pObj), 1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Selecting node %6d as white boxes with %d inputs and %d output.\n", i, Abc_ObjFaninNum(pObj), 1 );
     }
 
     // construct GIA
@@ -452,9 +452,9 @@ void Gia_ManVerifyChoices( Gia_Man_t * p )
         Gia_ClassForEachObj1( p, iRepr, iNode )
         {
             if ( Gia_ObjIsHead(p, iNode) )
-                printf( "Member %d of choice class %d is a representative.\n", iNode, iRepr ), fProb = 1;
+                fprintf( Abc_FrameGlobalGetOut(),  "Member %d of choice class %d is a representative.\n", iNode, iRepr ), fProb = 1;
             if ( Gia_ManObj( p, iNode )->fMark0 == 1 )
-                printf( "Node %d participates in more than one choice node.\n", iNode ), fProb = 1;
+                fprintf( Abc_FrameGlobalGetOut(),  "Node %d participates in more than one choice node.\n", iNode ), fProb = 1;
             Gia_ManObj( p, iNode )->fMark0 = 1;
         }
     Gia_ManCleanMark0(p);
@@ -464,14 +464,14 @@ void Gia_ManVerifyChoices( Gia_Man_t * p )
         if ( Gia_ObjIsAnd(pObj) )
         {
             if ( Gia_ObjHasRepr(p, Gia_ObjFaninId0(pObj, i)) )
-                printf( "Fanin 0 of AND node %d has a repr.\n", i ), fProb = 1;
+                fprintf( Abc_FrameGlobalGetOut(),  "Fanin 0 of AND node %d has a repr.\n", i ), fProb = 1;
             if ( Gia_ObjHasRepr(p, Gia_ObjFaninId1(pObj, i)) )
-                printf( "Fanin 1 of AND node %d has a repr.\n", i ), fProb = 1;
+                fprintf( Abc_FrameGlobalGetOut(),  "Fanin 1 of AND node %d has a repr.\n", i ), fProb = 1;
         }
         else if ( Gia_ObjIsCo(pObj) )
         {
             if ( Gia_ObjHasRepr(p, Gia_ObjFaninId0(pObj, i)) )
-                printf( "Fanin 0 of CO node %d has a repr.\n", i ), fProb = 1;
+                fprintf( Abc_FrameGlobalGetOut(),  "Fanin 0 of CO node %d has a repr.\n", i ), fProb = 1;
         }
     }
 //    if ( !fProb )
@@ -577,7 +577,7 @@ void Abc_NtkTestTimByWritingFile( Gia_Man_t * pGia, char * pFileName )
 
     // compare resulting managers
     if ( Gia_ManCompare( pGia, pGia2 ) )
-        printf( "Verification suceessful.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification suceessful.\n" );
 
     Gia_ManStop( pGia2 );
 }
@@ -606,7 +606,7 @@ void Abc_NtkTestTim( Abc_Ntk_t * pNtk, int fVerbose )
     // create GIA manager (pGia) with hierarhy/timing manager attached (pGia->pManTime)
     // while assuming that some nodes are white boxes (see Abc_NodeIsWhiteBox)
     pGia = Abc_NtkTestTimDeriveGia( pNtk, fVerbose );
-    printf( "Created GIA manager for network with %d white boxes.\n", Tim_ManBoxNum((Tim_Man_t *)pGia->pManTime) );
+    fprintf( Abc_FrameGlobalGetOut(), "Created GIA manager for network with %d white boxes.\n", Tim_ManBoxNum((Tim_Man_t *)pGia->pManTime) );
 
     // print the timing manager
     if ( fVerbose )

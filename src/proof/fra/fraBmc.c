@@ -334,17 +334,17 @@ void Fra_BmcPerform( Fra_Man_t * p, int nPref, int nDepth )
     // report the results
     if ( p->pPars->fVerbose )
     {
-        printf( "Original AIG = %d. Init %d frames = %d. Fraig = %d.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Original AIG = %d. Init %d frames = %d. Fraig = %d.  ", 
             Aig_ManNodeNum(p->pBmc->pAig), p->pBmc->nFramesAll, 
             Aig_ManNodeNum(p->pBmc->pAigFrames), Aig_ManNodeNum(p->pBmc->pAigFraig) );
         ABC_PRT( "Time", Abc_Clock() - clk );
-        printf( "Before BMC: " );  
+        fprintf( Abc_FrameGlobalGetOut(), "Before BMC: " );  
 //        Fra_ClassesPrint( p->pCla, 0 );
-        printf( "Const = %5d. Class = %5d. Lit = %5d. ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Const = %5d. Class = %5d. Lit = %5d. ", 
             Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), Fra_ClassesCountLits(p->pCla) );
         if ( p->pCla->vImps )
-            printf( "Imp = %5d. ", nImpsOld );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Imp = %5d. ", nImpsOld );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // refine the classes
     p->pCla->pFuncNodeIsConst   = Fra_BmcNodeIsConst;
@@ -356,13 +356,13 @@ void Fra_BmcPerform( Fra_Man_t * p, int nPref, int nDepth )
     // report the results
     if ( p->pPars->fVerbose )
     {
-        printf( "After  BMC: " );  
+        fprintf( Abc_FrameGlobalGetOut(), "After  BMC: " );  
 //        Fra_ClassesPrint( p->pCla, 0 );
-        printf( "Const = %5d. Class = %5d. Lit = %5d. ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Const = %5d. Class = %5d. Lit = %5d. ", 
             Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), Fra_ClassesCountLits(p->pCla) );
         if ( p->pCla->vImps )
-            printf( "Imp = %5d. ", Vec_IntSize(p->pCla->vImps) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Imp = %5d. ", Vec_IntSize(p->pCla->vImps) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // free the BMC manager
     Fra_BmcStop( p->pBmc );  
@@ -396,10 +396,10 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
     pBmc->pAigFrames = Fra_BmcFrames( pBmc, 1 );
     if ( fVerbose )
     {
-        printf( "AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 
             Aig_ManCiNum(pAig)-Aig_ManRegNum(pAig), Aig_ManCoNum(pAig)-Aig_ManRegNum(pAig), Aig_ManRegNum(pAig),
             Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig) );
-        printf( "Time-frames (%d):  PI/PO = %d/%d.  Node = %6d. Lev = %5d.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Time-frames (%d):  PI/PO = %d/%d.  Node = %6d. Lev = %5d.  ", 
             nFrames, Aig_ManCiNum(pBmc->pAigFrames), Aig_ManCoNum(pBmc->pAigFrames), 
             Aig_ManNodeNum(pBmc->pAigFrames), Aig_ManLevelNum(pBmc->pAigFrames) );
         ABC_PRT( "Time", Abc_Clock() - clk );
@@ -411,7 +411,7 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
         Aig_ManStop( pAigTemp );
         if ( fVerbose )
         {
-            printf( "Time-frames after rewriting:  Node = %6d. Lev = %5d.  ", 
+            fprintf( Abc_FrameGlobalGetOut(), "Time-frames after rewriting:  Node = %6d. Lev = %5d.  ", 
                 Aig_ManNodeNum(pBmc->pAigFrames), Aig_ManLevelNum(pBmc->pAigFrames) );
             ABC_PRT( "Time", Abc_Clock() - clk );
         }
@@ -434,7 +434,7 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
     }
     if ( fVerbose )
     {
-        printf( "Fraiged init frames: Node = %6d. Lev = %5d.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Fraiged init frames: Node = %6d. Lev = %5d.  ", 
             pBmc->pAigFraig? Aig_ManNodeNum(pBmc->pAigFraig) : -1,
             pBmc->pAigFraig? Aig_ManLevelNum(pBmc->pAigFraig) : -1 );
         ABC_PRT( "Time", Abc_Clock() - clk );

@@ -96,13 +96,13 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, Mio_Library_t* userLib, double DelayTa
     // quit if there is no library
     if ( pLib == NULL )
     {
-        printf( "The current library is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The current library is not available.\n" );
         return 0;
     }
     if ( AreaMulti != 0.0 )
-        fUseMulti = 1, printf( "The cell areas are multiplied by the factor: <num_fanins> ^ (%.2f).\n", AreaMulti );
+        fUseMulti = 1, fprintf( Abc_FrameGlobalGetOut(), "The cell areas are multiplied by the factor: <num_fanins> ^ (%.2f).\n", AreaMulti );
     if ( DelayMulti != 0.0 )
-        fUseMulti = 1, printf( "The cell delays are multiplied by the factor: <num_fanins> ^ (%.2f).\n", DelayMulti );
+        fUseMulti = 1, fprintf( Abc_FrameGlobalGetOut(), "The cell delays are multiplied by the factor: <num_fanins> ^ (%.2f).\n", DelayMulti );
 
     // penalize large gates by increasing their area
     if ( AreaMulti != 0.0 )
@@ -114,11 +114,11 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, Mio_Library_t* userLib, double DelayTa
     if ( fUseMulti || Abc_FrameReadLibSuper() == NULL )
     {
         if ( fVerbose )
-            printf( "Converting \"%s\" into supergate library \"%s\".\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Converting \"%s\" into supergate library \"%s\".\n", 
                 Mio_LibraryReadName(pLib), Extra_FileNameGenericAppend(Mio_LibraryReadName(pLib), ".super") );
         // compute supergate library to be used for mapping
         if ( Mio_LibraryHasProfile(pLib) )
-            printf( "Abc_NtkMap(): Genlib library has profile.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkMap(): Genlib library has profile.\n" );
         Map_SuperLibDeriveFromGenlib( pLib, fVerbose );
     }
 
@@ -130,7 +130,7 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, Mio_Library_t* userLib, double DelayTa
 
     // print a warning about choice nodes
     if ( fVerbose && Abc_NtkGetChoiceNum( pNtk ) )
-        printf( "Performing mapping with choices.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Performing mapping with choices.\n" );
 
     // compute switching activity
     fShowSwitching |= fSwitching;
@@ -178,7 +178,7 @@ ABC_PRT( "Total runtime", Abc_Clock() - clkTotal );
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkMap: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkMap: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -453,7 +453,7 @@ Abc_Obj_t * Abc_NodeFromMap_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int
     {
         pNodeNew = fPhase? Abc_NtkCreateNodeConst1(pNtkNew) : Abc_NtkCreateNodeConst0(pNtkNew);
         if ( pNodeNew->pData == NULL )
-            printf( "Error creating mapped network: Library does not have a constant %d gate.\n", fPhase );
+            fprintf( Abc_FrameGlobalGetOut(), "Error creating mapped network: Library does not have a constant %d gate.\n", fPhase );
         return pNodeNew;
     }
 
@@ -552,7 +552,7 @@ Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk )
     // check that the library is available
     if ( Abc_FrameReadLibGen() == NULL )
     {
-        printf( "The current library is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The current library is not available.\n" );
         return 0;
     }
 
@@ -566,7 +566,7 @@ Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk )
 
     // print a warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )
-        printf( "Performing mapping with choices.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Performing mapping with choices.\n" );
 
     // perform the mapping
     pMan = Abc_NtkToMap( pNtk, -1, 1, NULL, 0 );
@@ -587,7 +587,7 @@ Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk )
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkMap: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkMap: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -627,7 +627,7 @@ Abc_Ntk_t * Abc_NtkFromMapSuperChoice( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     pNtkNew  = Abc_NtkMulti( pNtkNew2, 0, 20, 0, 0, 1, 0 );
     if ( !Abc_NtkBddToSop( pNtkNew, -1, ABC_INFINITY, 1 ) )
     {
-        printf( "Abc_NtkFromMapSuperChoice(): Converting to SOPs has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFromMapSuperChoice(): Converting to SOPs has failed.\n" );
         return NULL;
     }
 
@@ -655,7 +655,7 @@ Abc_Ntk_t * Abc_NtkFromMapSuperChoice( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     }
 
     // assign the mapping of the required phase to the POs
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -907,12 +907,12 @@ Vec_Int_t * Abc_NtkWriteMiniMapping( Abc_Ntk_t * pNtk )
 Abc_Ntk_t * Abc_NtkFromMiniMapping( int *pArray )
 {
     if ( !pArray ) {
-        printf("Mapping is not available.\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Mapping is not available.\n");
         return NULL;
     }
     Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
     if ( !pLib ) {
-        printf("Library is not available.\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Library is not available.\n");
         return NULL;
     }
     Abc_Ntk_t *pNtkMapped = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_MAP, 1 );
@@ -972,7 +972,7 @@ Abc_Ntk_t * Abc_NtkFromMiniMapping( int *pArray )
     }
 
     if ( !Abc_NtkCheck( pNtkMapped ) ) {
-        fprintf( stdout, "Abc_NtkFromMiniMapping(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFromMiniMapping(): Network check has failed.\n" );
     }
 
     return pNtkMapped;
@@ -1008,7 +1008,7 @@ int Abc_NtkWriteToFile( char * pFileName, Abc_Ntk_t * pNtk )
 {
     Vec_Int_t * vRes = Abc_NtkWriteMiniMapping( pNtk );
     FILE * pFile = fopen( pFileName, "wb" );
-    if ( pFile == NULL ) { printf( "Cannot open input file \"%s\" for writing.\n", pFileName ); return 0; }
+    if ( pFile == NULL ) { fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\" for writing.\n", pFileName ); return 0; }
     int nSize = fwrite( Vec_IntArray(vRes), sizeof(int), Vec_IntSize(vRes), pFile );
     (void)nSize;
     assert( nSize == Vec_IntSize(vRes) );
@@ -1038,36 +1038,36 @@ void Abc_NtkPrintMiniMapping( int * pArray )
     nCos = pArray[1];
     nNodes = pArray[2];
     nFlops = pArray[3];
-    printf( "Mapped network has %d CIs, %d COs, %d gates, and %d flops.\n", nCis, nCos, nNodes, nFlops );
-    printf( "The first %d object IDs (from 0 to %d) are reserved for the CIs.\n", nCis, nCis - 1 );
+    fprintf( Abc_FrameGlobalGetOut(), "Mapped network has %d CIs, %d COs, %d gates, and %d flops.\n", nCis, nCos, nNodes, nFlops );
+    fprintf( Abc_FrameGlobalGetOut(), "The first %d object IDs (from 0 to %d) are reserved for the CIs.\n", nCis, nCis - 1 );
     for ( i = 0; i < nNodes; i++ )
     {
         nLeaves = pArray[Pos++];
-        printf( "Node %d has %d fanins {", nCis + i, nLeaves );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %d has %d fanins {", nCis + i, nLeaves );
         for ( k = 0; k < nLeaves; k++ )
-            printf( " %d", pArray[Pos++] );
-        printf( " }\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " %d", pArray[Pos++] );
+        fprintf( Abc_FrameGlobalGetOut(), " }\n" );
     }
     for ( i = 0; i < nCos; i++ )
-        printf( "CO %d is driven by node %d\n", i, pArray[Pos++] );
+        fprintf( Abc_FrameGlobalGetOut(), "CO %d is driven by node %d\n", i, pArray[Pos++] );
     pBuffer = (char *)(pArray + Pos);
     for ( i = 0; i < nNodes; i++ )
     {
         pName = pBuffer;
         pBuffer += strlen(pName) + 1;
-        printf( "Node %d has gate \"%s\"\n", nCis + i, pName );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %d has gate \"%s\"\n", nCis + i, pName );
     }
     for ( i = 0; i < nCis; i++ )
     {
         pName = pBuffer;
         pBuffer += strlen(pName) + 1;
-        printf( "CI %d has name \"%s\"\n", i, pName );
+        fprintf( Abc_FrameGlobalGetOut(), "CI %d has name \"%s\"\n", i, pName );
     }
     for ( i = 0; i < nCos; i++ )
     {
         pName = pBuffer;
         pBuffer += strlen(pName) + 1;
-        printf( "CO %d has name \"%s\"\n", i, pName );
+        fprintf( Abc_FrameGlobalGetOut(), "CO %d has name \"%s\"\n", i, pName );
     }
 }
 
@@ -1086,7 +1086,7 @@ void Abc_NtkInputMiniMapping( Abc_Frame_t * pAbc, void *p )
 {
     Abc_Ntk_t * pNtk;
     if ( pAbc == NULL )
-        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" );
     pNtk = Abc_NtkFromMiniMapping( (int *)p );
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
 }
@@ -1109,12 +1109,12 @@ int * Abc_NtkOutputMiniMapping( Abc_Frame_t * pAbc )
     Vec_Int_t * vMapping;
     int * pArray;
     if ( pAbc == NULL )
-        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" );
     pNtk = Abc_FrameReadNtk( pAbc );
     if ( pNtk == NULL )
-        printf( "Current network in ABC framework is not defined.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current network in ABC framework is not defined.\n" );
     if ( !Abc_NtkHasMapping(pNtk) )
-        printf( "Current network in ABC framework is not mapped.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current network in ABC framework is not mapped.\n" );
     // derive mini-mapping
     vMapping = Abc_NtkWriteMiniMapping( pNtk );
     pArray = Vec_IntArray( vMapping );
@@ -1141,7 +1141,7 @@ void Abc_NtkTestMiniMapping( Abc_Ntk_t * p )
     Vec_Int_t * vMapping;
     vMapping = Abc_NtkWriteMiniMapping( p );
     Abc_NtkPrintMiniMapping( Vec_IntArray(vMapping) );
-    printf( "Array has size %d ints.\n", Vec_IntSize(vMapping) );
+    fprintf( Abc_FrameGlobalGetOut(), "Array has size %d ints.\n", Vec_IntSize(vMapping) );
     Vec_IntFree( vMapping );
 }
 
@@ -1163,18 +1163,18 @@ void Abc_NtkSetCiArrivalTime( Abc_Frame_t * pAbc, int iCi, float Rise, float Fal
     Abc_Obj_t * pNode;
     if ( pAbc == NULL )
     {
-        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" );
         return;
     }
     pNtk = Abc_FrameReadNtk( pAbc );
     if ( pNtk == NULL )
     {
-        printf( "Current network in ABC framework is not defined.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current network in ABC framework is not defined.\n" );
         return;
     }
     if ( iCi < 0 || iCi >= Abc_NtkCiNum(pNtk) )
     {
-        printf( "CI index is not valid.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "CI index is not valid.\n" );
         return;
     }
     pNode = Abc_NtkCi( pNtk, iCi );
@@ -1187,18 +1187,18 @@ void Abc_NtkSetCoRequiredTime( Abc_Frame_t * pAbc, int iCo, float Rise, float Fa
     Abc_Obj_t * pNode;
     if ( pAbc == NULL )\
     {
-        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" );
         return;
     }
     pNtk = Abc_FrameReadNtk( pAbc );
     if ( pNtk == NULL )
     {
-        printf( "Current network in ABC framework is not defined.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current network in ABC framework is not defined.\n" );
         return;
     }
     if ( iCo < 0 || iCo >= Abc_NtkCoNum(pNtk) )
     {
-        printf( "CO index is not valid.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "CO index is not valid.\n" );
         return;
     }
     pNode = Abc_NtkCo( pNtk, iCo );
@@ -1222,13 +1222,13 @@ void Abc_NtkSetAndGateDelay( Abc_Frame_t * pAbc, float Delay )
     Abc_Ntk_t * pNtk;
     if ( pAbc == NULL )
     {
-        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" );
         return;
     }
     pNtk = Abc_FrameReadNtk( pAbc );
     if ( pNtk == NULL )
     {
-        printf( "Current network in ABC framework is not defined.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current network in ABC framework is not defined.\n" );
         return;
     }
     pNtk->AndGateDelay = Delay;

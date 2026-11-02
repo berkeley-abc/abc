@@ -123,7 +123,7 @@ void Aig_ManInterFast( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose )
         Lits[1] = toLitCond( pCnfOff->pVarNums[pObj2->Id], 0 );
         status = sat_solver_solve( pSat, Lits, Lits+2, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( status != l_False )
-            printf( "The incremental SAT problem is not UNSAT.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The incremental SAT problem is not UNSAT.\n" );
     }
     Cnf_DataFree( pCnfOn );
     Cnf_DataFree( pCnfOff );
@@ -253,7 +253,7 @@ Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fRelation
     sat_solver_delete( pSat );
     if ( pSatCnf == NULL )
     {
-        printf( "The SAT problem is not unsat.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The SAT problem is not unsat.\n" );
         Vec_IntFree( vVarsAB );
         return NULL;
     }

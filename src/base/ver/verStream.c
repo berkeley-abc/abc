@@ -81,7 +81,7 @@ Ver_Stream_t * Ver_StreamAlloc( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Ver_StreamAlloc(): Cannot open input file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Ver_StreamAlloc(): Cannot open input file \"%s\".\n", pFileName );
         return NULL;
     }
     // start the file reader    
@@ -332,7 +332,7 @@ void Ver_StreamSkipChars( Ver_Stream_t * p, char * pCharsToSkip )
         p->fStop = 1;
         return;
     }
-    printf( "Ver_StreamSkipSymbol() failed to parse the file \"%s\".\n", p->pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Ver_StreamSkipSymbol() failed to parse the file \"%s\".\n", p->pFileName );
 }
 
 /**Function*************************************************************
@@ -379,7 +379,7 @@ void Ver_StreamSkipToChars( Ver_Stream_t * p, char * pCharsToStop )
         p->fStop = 1;
         return;
     }
-    printf( "Ver_StreamSkipToSymbol() failed to parse the file \"%s\".\n", p->pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Ver_StreamSkipToSymbol() failed to parse the file \"%s\".\n", p->pFileName );
 }
 
 /**Function*************************************************************
@@ -416,7 +416,7 @@ char * Ver_StreamGetWord( Ver_Stream_t * p, char * pCharsToStop )
             p->pChars[p->nChars++] = *pChar;
             if ( p->nChars == VER_WORD_SIZE )
             {
-                printf( "Ver_StreamGetWord(): The buffer size is exceeded.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Ver_StreamGetWord(): The buffer size is exceeded.\n" );
                 return NULL;
             }
             // count the lines
@@ -437,7 +437,7 @@ char * Ver_StreamGetWord( Ver_Stream_t * p, char * pCharsToStop )
         p->pChars[p->nChars] = 0;
         return p->pChars;
     }
-    printf( "Ver_StreamGetWord() failed to parse the file \"%s\".\n", p->pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Ver_StreamGetWord() failed to parse the file \"%s\".\n", p->pFileName );
     return NULL;
 }
 

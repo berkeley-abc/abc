@@ -53,7 +53,7 @@ void Io_WriteEqn( Abc_Ntk_t * pNtk, char * pFileName )
 
     assert( Abc_NtkIsAigNetlist(pNtk) );
     if ( Abc_NtkLatchNum(pNtk) > 0 )
-        printf( "Warning: only combinational portion is being written.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: only combinational portion is being written.\n" );
 
     // check that the names are fine for the EQN format
     if ( !Io_NtkWriteEqnCheck(pNtk) )
@@ -63,7 +63,7 @@ void Io_WriteEqn( Abc_Ntk_t * pNtk, char * pFileName )
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteEqn(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteEqn(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
     fprintf( pFile, "# Equations for \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
@@ -246,8 +246,8 @@ int Io_NtkWriteEqnCheck( Abc_Ntk_t * pNtk )
     }
     if ( RetValue == 0 )
     {
-        printf( "The network cannot be written in the EQN format because object %d has name \"%s\".\n", i, pName );
-        printf( "Consider renaming the objects using command \"short_names\" and trying again.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The network cannot be written in the EQN format because object %d has name \"%s\".\n", i, pName );
+        fprintf( Abc_FrameGlobalGetOut(), "Consider renaming the objects using command \"short_names\" and trying again.\n" );
     }
     return RetValue;
 }

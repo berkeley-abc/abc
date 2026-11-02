@@ -228,14 +228,14 @@ int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int 
     // report the progress
     if ( fVeryVerbose && GainBest > 0 )
     {
-        printf( "Node %6s :   ", Abc_ObjName(pNode) );
-        printf( "Fanins = %d. ", p->vFanins->nSize );
-        printf( "Save = %d.  ", nNodesSaveCur );
-        printf( "Add = %d.  ",  nNodesSaveCur-GainBest );
-        printf( "GAIN = %d.  ", GainBest );
-        printf( "Cone = %d.  ", p->pGraph? Dec_GraphNodeNum((Dec_Graph_t *)p->pGraph) : 0 );
-        printf( "Class = %d.  ", p->pMap[uTruthBest] );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %6s :   ", Abc_ObjName(pNode) );
+        fprintf( Abc_FrameGlobalGetOut(), "Fanins = %d. ", p->vFanins->nSize );
+        fprintf( Abc_FrameGlobalGetOut(), "Save = %d.  ", nNodesSaveCur );
+        fprintf( Abc_FrameGlobalGetOut(), "Add = %d.  ",  nNodesSaveCur-GainBest );
+        fprintf( Abc_FrameGlobalGetOut(), "GAIN = %d.  ", GainBest );
+        fprintf( Abc_FrameGlobalGetOut(), "Cone = %d.  ", p->pGraph? Dec_GraphNodeNum((Dec_Graph_t *)p->pGraph) : 0 );
+        fprintf( Abc_FrameGlobalGetOut(), "Class = %d.  ", p->pMap[uTruthBest] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return GainBest;
 }
@@ -576,17 +576,17 @@ void Rwr_ScoresReport( Rwr_Man_t * p )
         if ( Gains[iNew] == 0 )
             break;
         vSubgraphs = Vec_VecEntry( p->vClasses, iNew );
-        printf( "CLASS %3d: Subgr = %3d. Total gain = %6d.  ", iNew, Vec_PtrSize(vSubgraphs), Gains[iNew] );
+        fprintf( Abc_FrameGlobalGetOut(), "CLASS %3d: Subgr = %3d. Total gain = %6d.  ", iNew, Vec_PtrSize(vSubgraphs), Gains[iNew] );
         uTruth = (unsigned)p->pMapInv[iNew];
-        Extra_PrintBinary( stdout, &uTruth, 16 );
-        printf( "  " );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), &uTruth, 16 );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );
         Ivy_TruthDsdComputePrint( (unsigned)p->pMapInv[iNew] | ((unsigned)p->pMapInv[iNew] << 16) );
         Vec_PtrForEachEntry( Rwr_Node_t *, vSubgraphs, pNode, k )
         {
             if ( pNode->nScore == 0 )
                 continue;
-            printf( "    %2d: S=%5d. A=%5d. G=%6d. ", k, pNode->nScore, pNode->nAdded, pNode->nGain );
-            Dec_GraphPrint( stdout, (Dec_Graph_t *)pNode->pNext, NULL, NULL );
+            fprintf( Abc_FrameGlobalGetOut(), "    %2d: S=%5d. A=%5d. G=%6d. ", k, pNode->nScore, pNode->nAdded, pNode->nGain );
+            Dec_GraphPrint( Abc_FrameGlobalGetOut(), (Dec_Graph_t *)pNode->pNext, NULL, NULL );
         }
     }
 }

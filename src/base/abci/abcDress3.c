@@ -147,12 +147,12 @@ Gia_Man_t * Abc_NtkAigToGiaTwo( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fByNam
                 Vec_IntPush( vMap2, Index++ );
         }
         // report
-        printf( "Matched %d vars by name.", nCommon );
+        fprintf( Abc_FrameGlobalGetOut(), "Matched %d vars by name.", nCommon );
         if ( nCommon != Abc_NtkCiNum(pNtk1) )
-            printf( " Netlist1 has %d unmatched vars.", Abc_NtkCiNum(pNtk1) - nCommon );
+            fprintf( Abc_FrameGlobalGetOut(), " Netlist1 has %d unmatched vars.", Abc_NtkCiNum(pNtk1) - nCommon );
         if ( nCommon != Abc_NtkCiNum(pNtk2) )
-            printf( " Netlist2 has %d unmatched vars.", Abc_NtkCiNum(pNtk2) - nCommon );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " Netlist2 has %d unmatched vars.", Abc_NtkCiNum(pNtk2) - nCommon );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     else
     {
@@ -160,12 +160,12 @@ Gia_Man_t * Abc_NtkAigToGiaTwo( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fByNam
         vMap2 = Vec_IntStartNatural( Abc_NtkCiNum(pNtk2) );
         Index = Abc_MaxInt( Vec_IntSize(vMap1), Vec_IntSize(vMap2) );
         // report
-        printf( "Matched %d vars by order.", Abc_MinInt(Abc_NtkCiNum(pNtk1), Abc_NtkCiNum(pNtk2)) );
+        fprintf( Abc_FrameGlobalGetOut(), "Matched %d vars by order.", Abc_MinInt(Abc_NtkCiNum(pNtk1), Abc_NtkCiNum(pNtk2)) );
         if ( Abc_NtkCiNum(pNtk1) < Abc_NtkCiNum(pNtk2) )
-            printf( " The last %d vars of Netlist2 are unmatched vars.", Abc_NtkCiNum(pNtk2) - Abc_NtkCiNum(pNtk1) );
+            fprintf( Abc_FrameGlobalGetOut(), " The last %d vars of Netlist2 are unmatched vars.", Abc_NtkCiNum(pNtk2) - Abc_NtkCiNum(pNtk1) );
         if ( Abc_NtkCiNum(pNtk1) > Abc_NtkCiNum(pNtk2) )
-            printf( " The last %d vars of Netlist1 are unmatched vars.", Abc_NtkCiNum(pNtk1) - Abc_NtkCiNum(pNtk2) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " The last %d vars of Netlist1 are unmatched vars.", Abc_NtkCiNum(pNtk1) - Abc_NtkCiNum(pNtk2) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // create new manager
     p = Gia_ManStart( 10000 );
@@ -259,7 +259,7 @@ void Abc_NtkDumpEquivFile( char * pFileName, Vec_Int_t * vClasses, Abc_Ntk_t * p
 {
     int i, c, k, Entry;
     FILE * pFile = fopen( pFileName, "wb" );
-    if ( pFile == NULL ) { printf( "Cannot open file %s for writing.\n", pFileName ); return; }
+    if ( pFile == NULL ) { fprintf( Abc_FrameGlobalGetOut(), "Cannot open file %s for writing.\n", pFileName ); return; }
     fprintf( pFile, "# Node equivalences computed by ABC for networks \"%s\" and \"%s\" on %s\n\n", Abc_NtkName(pNtks[0]), Abc_NtkName(pNtks[1]), Extra_TimeStamp() );
     for ( i = c = 0; i < Vec_IntSize(vClasses); c++, i += 1 + Vec_IntEntry(vClasses, i) )
     {
@@ -294,7 +294,7 @@ void Abc_NtkDumpEquiv( Abc_Ntk_t * pNtks[2], char * pFileName, int nConfs, int f
     // derive shared AIG for the two networks
     Gia_Man_t * pGia = Abc_NtkAigToGiaTwo( pNtks[0], pNtks[1], fByName );
     if ( fVerbose )
-        printf( "Computing equivalences for networks \"%s\" and \"%s\" with conflict limit %d.\n", Abc_NtkName(pNtks[0]), Abc_NtkName(pNtks[1]), nConfs );
+        fprintf( Abc_FrameGlobalGetOut(), "Computing equivalences for networks \"%s\" and \"%s\" with conflict limit %d.\n", Abc_NtkName(pNtks[0]), Abc_NtkName(pNtks[1]), nConfs );
     // compute equivalences in this AIG
     pTemp = Gia_ManComputeGiaEquivs( pGia, nConfs, fVerbose );
     Gia_ManStop( pTemp );

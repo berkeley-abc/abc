@@ -429,14 +429,14 @@ void Res_SimReportOne( Res_Sim_t * p )
         else
             nOnes++;
     }
-    printf( "On = %3d (%7.2f %%)  ",  nOnes,  100.0*nOnes/p->nPats );
-    printf( "Off = %3d (%7.2f %%)  ", nZeros, 100.0*nZeros/p->nPats );
-    printf( "Dc = %3d (%7.2f %%)  ",  nDcs,   100.0*nDcs/p->nPats );
-    printf( "P0 = %3d ", p->nPats0 );
-    printf( "P1 = %3d ", p->nPats1 );
+    fprintf( Abc_FrameGlobalGetOut(), "On = %3d (%7.2f %%)  ",  nOnes,  100.0*nOnes/p->nPats );
+    fprintf( Abc_FrameGlobalGetOut(), "Off = %3d (%7.2f %%)  ", nZeros, 100.0*nZeros/p->nPats );
+    fprintf( Abc_FrameGlobalGetOut(), "Dc = %3d (%7.2f %%)  ",  nDcs,   100.0*nDcs/p->nPats );
+    fprintf( Abc_FrameGlobalGetOut(), "P0 = %3d ", p->nPats0 );
+    fprintf( Abc_FrameGlobalGetOut(), "P1 = %3d ", p->nPats1 );
     if ( p->nPats0 < 4 || p->nPats1 < 4 )
-        printf( "*" );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "*" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -458,8 +458,8 @@ void Res_SimPrintOutPatterns( Res_Sim_t * p, Abc_Ntk_t * pAig )
     Abc_NtkForEachPo( pAig, pObj, i )
     {
         pInfo2 = Vec_PtrEntry( p->vOuts, i );
-        Extra_PrintBinary( stdout, pInfo2, p->nPatsOut );
-        printf( "\n" );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), pInfo2, p->nPatsOut );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 

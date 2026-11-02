@@ -319,23 +319,23 @@ void Nf_StoPrintOne( Nf_Man_t * p, int Count, int t, int i, int GateId, Nf_Cfg_t
     Mio_Cell2_t * pC = p->pCells + GateId;
     word * pTruth = Vec_MemReadEntry(p->vTtMem, t);
     int k, nSuppSize = Abc_TtSupportSize(pTruth, 6);
-    printf( "%6d : ", Count );
-    printf( "%6d : ", t );
-    printf( "%6d : ", i );
-    printf( "Gate %16s  ",   pC->pName );
-    printf( "Area =%8.2f  ", pC->AreaF );
-    printf( "In = %d   ",    pC->nFanins );
+    fprintf( Abc_FrameGlobalGetOut(), "%6d : ", Count );
+    fprintf( Abc_FrameGlobalGetOut(), "%6d : ", t );
+    fprintf( Abc_FrameGlobalGetOut(), "%6d : ", i );
+    fprintf( Abc_FrameGlobalGetOut(), "Gate %16s  ",   pC->pName );
+    fprintf( Abc_FrameGlobalGetOut(), "Area =%8.2f  ", pC->AreaF );
+    fprintf( Abc_FrameGlobalGetOut(), "In = %d   ",    pC->nFanins );
     if ( Mat.fCompl )
-        printf( " compl " );
+        fprintf( Abc_FrameGlobalGetOut(), " compl " );
     else
-        printf( "       " );
+        fprintf( Abc_FrameGlobalGetOut(), "       " );
     for ( k = 0; k < (int)pC->nFanins; k++ )
     {
         int fComplF = (Mat.Phase >> k) & 1;
         int iFanin  = (Mat.Perm >> (3*k)) & 7;
-        printf( "%c", 'a' + iFanin - fComplF * ('a' - 'A') );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + iFanin - fComplF * ('a' - 'A') );
     }
-    printf( "  " );
+    fprintf( Abc_FrameGlobalGetOut(), "  " );
     Dau_DsdPrintFromTruth( pTruth, nSuppSize );
 }
 void Nf_StoPrint( Nf_Man_t * p, int fVerbose )
@@ -353,7 +353,7 @@ void Nf_StoPrint( Nf_Man_t * p, int fVerbose )
             //    Nf_StoPrintOne( p, Count, t, i/2, GateId, Pf_Int2Mat(Entry) );
         }
     }
-    printf( "Gates = %d.  Truths = %d.  Matches = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Gates = %d.  Truths = %d.  Matches = %d.\n", 
         p->nCells, Vec_MemEntryNum(p->vTtMem), Count );
 }
 
@@ -531,17 +531,17 @@ static inline int Nf_CutCreateUnit( Nf_Cut_t * p, int i )
 static inline void Nf_CutPrint( Nf_Man_t * p, Nf_Cut_t * pCut )
 {
     int i, nDigits = Abc_Base10Log(Gia_ManObjNum(p->pGia)); 
-    printf( "%d  {", pCut->nLeaves );
+    fprintf( Abc_FrameGlobalGetOut(), "%d  {", pCut->nLeaves );
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
-        printf( " %*d", nDigits, pCut->pLeaves[i] );
+        fprintf( Abc_FrameGlobalGetOut(), " %*d", nDigits, pCut->pLeaves[i] );
     for ( ; i < (int)p->pPars->nLutSize; i++ )
-        printf( " %*s", nDigits, " " );
-    printf( "  }   Useless = %d. D = %4d  A = %9.4f  F = %6d  ", 
+        fprintf( Abc_FrameGlobalGetOut(), " %*s", nDigits, " " );
+    fprintf( Abc_FrameGlobalGetOut(), "  }   Useless = %d. D = %4d  A = %9.4f  F = %6d  ", 
         pCut->Useless, pCut->Delay, pCut->Flow, pCut->iFunc );
     if ( p->vTtMem )
         Dau_DsdPrintFromTruth( Vec_MemReadEntry(p->vTtMem, Abc_Lit2Var(pCut->iFunc)), pCut->nLeaves );
     else
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 static inline int Nf_ManPrepareCuts( Nf_Cut_t * pCuts, Nf_Man_t * p, int iObj, int fAddUnit )
 {
@@ -944,10 +944,10 @@ void Nf_ObjMergeOrder( Nf_Man_t * p, int iObj )
 //    if ( iObj % 10000 == 0 )
 //    if ( iObj == 1090 )
     {
-        printf( "*** Obj = %d  Useful = %d\n", iObj, Nf_ManCountUseful(pCutsR, nCutsR) );
+        fprintf( Abc_FrameGlobalGetOut(), "*** Obj = %d  Useful = %d\n", iObj, Nf_ManCountUseful(pCutsR, nCutsR) );
         for ( i = 0; i < nCutsR; i++ )
             Nf_CutPrint( p, pCutsR[i] );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     } 
     // verify
     assert( nCutsR > 0 && nCutsR < nCutNum );
@@ -1015,34 +1015,34 @@ void Nf_ManPrintStats( Nf_Man_t * p, char * pTitle )
 {
     if ( !p->pPars->fVerbose )
         return;
-    printf( "%s :  ", pTitle );
-    printf( "Delay =%8.2f  ",  Scl_Int2Flt(p->pPars->MapDelay) );
-    printf( "Area =%12.2f  ",  p->pPars->MapAreaF );
-    printf( "Gate =%6d  ",    (int)p->pPars->Area );
-    printf( "Inv =%6d  ",     (int)p->nInvs );
-    printf( "Edge =%7d  ",    (int)p->pPars->Edge );
+    fprintf( Abc_FrameGlobalGetOut(), "%s :  ", pTitle );
+    fprintf( Abc_FrameGlobalGetOut(), "Delay =%8.2f  ",  Scl_Int2Flt(p->pPars->MapDelay) );
+    fprintf( Abc_FrameGlobalGetOut(), "Area =%12.2f  ",  p->pPars->MapAreaF );
+    fprintf( Abc_FrameGlobalGetOut(), "Gate =%6d  ",    (int)p->pPars->Area );
+    fprintf( Abc_FrameGlobalGetOut(), "Inv =%6d  ",     (int)p->nInvs );
+    fprintf( Abc_FrameGlobalGetOut(), "Edge =%7d  ",    (int)p->pPars->Edge );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 void Nf_ManPrintInit( Nf_Man_t * p )
 {
     int nChoices;
     if ( !p->pPars->fVerbose )
         return;
-    printf( "LutSize = %d  ", p->pPars->nLutSize );
-    printf( "CutNum = %d  ",  p->pPars->nCutNum );
-    printf( "Iter = %d  ",    p->pPars->nRounds );//+ p->pPars->nRoundsEla );
-    printf( "Coarse = %d   ", p->pPars->fCoarsen );
-    printf( "Cells = %d  ",   p->nCells );
-    printf( "Funcs = %d  ",   Vec_MemEntryNum(p->vTtMem) );
-    printf( "Matches = %d  ", Vec_WecSizeSize(p->vTt2Match)/2 );
-    printf( "And = %d  ",     Gia_ManAndNum(p->pGia) );
+    fprintf( Abc_FrameGlobalGetOut(), "LutSize = %d  ", p->pPars->nLutSize );
+    fprintf( Abc_FrameGlobalGetOut(), "CutNum = %d  ",  p->pPars->nCutNum );
+    fprintf( Abc_FrameGlobalGetOut(), "Iter = %d  ",    p->pPars->nRounds );//+ p->pPars->nRoundsEla );
+    fprintf( Abc_FrameGlobalGetOut(), "Coarse = %d   ", p->pPars->fCoarsen );
+    fprintf( Abc_FrameGlobalGetOut(), "Cells = %d  ",   p->nCells );
+    fprintf( Abc_FrameGlobalGetOut(), "Funcs = %d  ",   Vec_MemEntryNum(p->vTtMem) );
+    fprintf( Abc_FrameGlobalGetOut(), "Matches = %d  ", Vec_WecSizeSize(p->vTt2Match)/2 );
+    fprintf( Abc_FrameGlobalGetOut(), "And = %d  ",     Gia_ManAndNum(p->pGia) );
     nChoices = Gia_ManChoiceNum( p->pGia );
     if ( nChoices )
-    printf( "Choices = %d  ", nChoices );
-    printf( "\n" );
-    printf( "Computing cuts...\r" );
-    fflush( stdout );
+    fprintf( Abc_FrameGlobalGetOut(), "Choices = %d  ", nChoices );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Computing cuts...\r" );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 void Nf_ManPrintQuit( Nf_Man_t * p )
 {
@@ -1054,22 +1054,22 @@ void Nf_ManPrintQuit( Nf_Man_t * p )
         p->CutCount[0] = 1;
     if ( !p->pPars->fVerbose )
         return;
-    printf( "CutPair = %.0f  ",         p->CutCount[0] );
-    printf( "Merge = %.0f (%.1f)  ",    p->CutCount[1], 1.0*p->CutCount[1]/Gia_ManAndNum(p->pGia) );
-    printf( "Eval = %.0f (%.1f)  ",     p->CutCount[2], 1.0*p->CutCount[2]/Gia_ManAndNum(p->pGia) );
-    printf( "Cut = %.0f (%.1f)  ",      p->CutCount[3], 1.0*p->CutCount[3]/Gia_ManAndNum(p->pGia) );
-    printf( "Use = %.0f (%.1f)  ",      p->CutCount[4], 1.0*p->CutCount[4]/Gia_ManAndNum(p->pGia) );
-    printf( "Mat = %.0f (%.1f)  ",      p->CutCount[5], 1.0*p->CutCount[5]/Gia_ManAndNum(p->pGia) );
+    fprintf( Abc_FrameGlobalGetOut(), "CutPair = %.0f  ",         p->CutCount[0] );
+    fprintf( Abc_FrameGlobalGetOut(), "Merge = %.0f (%.1f)  ",    p->CutCount[1], 1.0*p->CutCount[1]/Gia_ManAndNum(p->pGia) );
+    fprintf( Abc_FrameGlobalGetOut(), "Eval = %.0f (%.1f)  ",     p->CutCount[2], 1.0*p->CutCount[2]/Gia_ManAndNum(p->pGia) );
+    fprintf( Abc_FrameGlobalGetOut(), "Cut = %.0f (%.1f)  ",      p->CutCount[3], 1.0*p->CutCount[3]/Gia_ManAndNum(p->pGia) );
+    fprintf( Abc_FrameGlobalGetOut(), "Use = %.0f (%.1f)  ",      p->CutCount[4], 1.0*p->CutCount[4]/Gia_ManAndNum(p->pGia) );
+    fprintf( Abc_FrameGlobalGetOut(), "Mat = %.0f (%.1f)  ",      p->CutCount[5], 1.0*p->CutCount[5]/Gia_ManAndNum(p->pGia) );
 //    printf( "Equ = %d (%.2f %%)  ",     p->nCutUseAll,  100.0*p->nCutUseAll /p->CutCount[0] );
-    printf( "\n" );
-    printf( "Gia = %.2f MB  ",          MemGia );
-    printf( "Man = %.2f MB  ",          MemMan ); 
-    printf( "Cut = %.2f MB   ",         MemCuts );
-    printf( "TT = %.2f MB  ",           MemTt ); 
-    printf( "Total = %.2f MB   ",       MemGia + MemMan + MemCuts + MemTt ); 
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Gia = %.2f MB  ",          MemGia );
+    fprintf( Abc_FrameGlobalGetOut(), "Man = %.2f MB  ",          MemMan ); 
+    fprintf( Abc_FrameGlobalGetOut(), "Cut = %.2f MB   ",         MemCuts );
+    fprintf( Abc_FrameGlobalGetOut(), "TT = %.2f MB  ",           MemTt ); 
+    fprintf( Abc_FrameGlobalGetOut(), "Total = %.2f MB   ",       MemGia + MemMan + MemCuts + MemTt ); 
 //    printf( "\n" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 
@@ -1088,37 +1088,37 @@ void Nf_ManCutMatchPrint( Nf_Man_t * p, int iObj, char * pStr, Nf_Mat_t * pM )
 {
     Mio_Cell2_t * pCell;
     int i, * pCut;
-    printf( "%5d %s : ", iObj, pStr );
+    fprintf( Abc_FrameGlobalGetOut(), "%5d %s : ", iObj, pStr );
     if ( pM->CutH == 0 )
     {
-        printf( "Unassigned\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Unassigned\n" );
         return;
     }
     pCell = Nf_ManCell( p, pM->Gate );
     pCut = Nf_CutFromHandle( Nf_ObjCutSet(p, iObj), pM->CutH );
-    printf( "D =%6.2f  ", Scl_Int2Flt(pM->D) );
-    printf( "A =%6.2f  ", pM->F );
-    printf( "C = %d ", pM->fCompl );
+    fprintf( Abc_FrameGlobalGetOut(), "D =%6.2f  ", Scl_Int2Flt(pM->D) );
+    fprintf( Abc_FrameGlobalGetOut(), "A =%6.2f  ", pM->F );
+    fprintf( Abc_FrameGlobalGetOut(), "C = %d ", pM->fCompl );
 //    printf( "B = %d ", pM->fBest );
-    printf( "  " );
-    printf( "Cut = {" );
+    fprintf( Abc_FrameGlobalGetOut(), "  " );
+    fprintf( Abc_FrameGlobalGetOut(), "Cut = {" );
     for ( i = 0; i < (int)pCell->nFanins; i++ )
-        printf( "%4d ", Nf_CutLeaves(pCut)[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%4d ", Nf_CutLeaves(pCut)[i] );
     for ( ; i < 6; i++ )
-        printf( "     " );
-    printf( "}  " );
-    printf( "%10s ", pCell->pName );
-    printf( "%d  ", pCell->nFanins );
-    printf( "{" );
+        fprintf( Abc_FrameGlobalGetOut(), "     " );
+    fprintf( Abc_FrameGlobalGetOut(), "}  " );
+    fprintf( Abc_FrameGlobalGetOut(), "%10s ", pCell->pName );
+    fprintf( Abc_FrameGlobalGetOut(), "%d  ", pCell->nFanins );
+    fprintf( Abc_FrameGlobalGetOut(), "{" );
     for ( i = 0; i < (int)pCell->nFanins; i++ )
-        printf( "%6.2f ", Scl_Int2Flt(pCell->iDelays[i]) );
+        fprintf( Abc_FrameGlobalGetOut(), "%6.2f ", Scl_Int2Flt(pCell->iDelays[i]) );
     for ( ; i < 6; i++ )
-        printf( "       " );
-    printf( " } " );
+        fprintf( Abc_FrameGlobalGetOut(), "       " );
+    fprintf( Abc_FrameGlobalGetOut(), " } " );
     for ( i = 0; i < (int)pCell->nFanins; i++ )
-        printf( "%s%d ", Nf_CfgCompl(pM->Cfg, i) ? "!":" ", Nf_CfgVar(pM->Cfg, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "%s%d ", Nf_CfgCompl(pM->Cfg, i) ? "!":" ", Nf_CfgVar(pM->Cfg, i) );
     for ( ; i < 6; i++ )
-        printf( "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );
     Dau_DsdPrintFromTruth( &pCell->uTruth, pCell->nFanins );
 }
 void Nf_ManCutMatchOne( Nf_Man_t * p, int iObj, int * pCut, int * pCutSet )
@@ -1375,13 +1375,13 @@ void Nf_ManCutMatch( Nf_Man_t * p, int iObj )
     }
 
     if ( pDp->D == SCL_INFINITY )
-        printf( "Object %d has pDp unassigned.\n", iObj );
+        fprintf( Abc_FrameGlobalGetOut(), "Object %d has pDp unassigned.\n", iObj );
     if ( pDn->D == SCL_INFINITY )
-        printf( "Object %d has pDn unassigned.\n", iObj );
+        fprintf( Abc_FrameGlobalGetOut(), "Object %d has pDn unassigned.\n", iObj );
     if ( pAp->D == SCL_INFINITY )
-        printf( "Object %d has pAp unassigned.\n", iObj );
+        fprintf( Abc_FrameGlobalGetOut(), "Object %d has pAp unassigned.\n", iObj );
     if ( pAn->D == SCL_INFINITY )
-        printf( "Object %d has pAn unassigned.\n", iObj );
+        fprintf( Abc_FrameGlobalGetOut(), "Object %d has pAn unassigned.\n", iObj );
 /*
     pDp->F = Abc_MinFloat( pDp->F, FLT_MAX/SCL_NUM );
     pDn->F = Abc_MinFloat( pDn->F, FLT_MAX/SCL_NUM );
@@ -1473,7 +1473,7 @@ void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
         p->pPars->MapDelay = Abc_MaxInt( p->pPars->MapDelay, Required );
     }
     if ( p->Iter && MapDelayOld < p->pPars->MapDelay && p->pGia->vOutReqs == NULL )
-        printf( "******** Critical delay violation %.2f -> %.2f ********\n", Scl_Int2Flt(MapDelayOld), Scl_Int2Flt(p->pPars->MapDelay) ); 
+        fprintf( Abc_FrameGlobalGetOut(), "******** Critical delay violation %.2f -> %.2f ********\n", Scl_Int2Flt(MapDelayOld), Scl_Int2Flt(p->pPars->MapDelay) ); 
     p->pPars->MapDelay = Abc_MaxInt( p->pPars->MapDelay, MapDelayOld );
     // check delay target
     if ( p->pPars->MapDelayTarget == 0 && p->pPars->nRelaxRatio )
@@ -1553,18 +1553,18 @@ void Nf_ManPrintMatches( Nf_Man_t * p )
         Nf_Mat_t * pDn = Nf_ObjMatchD( p, i, 1 );
         Nf_Mat_t * pAn = Nf_ObjMatchA( p, i, 1 );
 
-        printf( "%5d : ", i );
-        printf( "Dp = %6.2f  ", Scl_Int2Flt(pDp->D) );
-        printf( "Dn = %6.2f  ", Scl_Int2Flt(pDn->D) );
-        printf( "  " );
-        printf( "Ap = %6.2f  ", Scl_Int2Flt(pAp->D) );
-        printf( "An = %6.2f  ", Scl_Int2Flt(pAn->D) );
-        printf( "  " );
-        printf( "Dp = %8s ", Nf_ManCell(p, pDp->Gate)->pName );
-        printf( "Dn = %8s ", Nf_ManCell(p, pDn->Gate)->pName );
-        printf( "Ap = %8s ", Nf_ManCell(p, pAp->Gate)->pName );
-        printf( "An = %8s ", Nf_ManCell(p, pAn->Gate)->pName );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%5d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Dp = %6.2f  ", Scl_Int2Flt(pDp->D) );
+        fprintf( Abc_FrameGlobalGetOut(), "Dn = %6.2f  ", Scl_Int2Flt(pDn->D) );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Ap = %6.2f  ", Scl_Int2Flt(pAp->D) );
+        fprintf( Abc_FrameGlobalGetOut(), "An = %6.2f  ", Scl_Int2Flt(pAn->D) );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Dp = %8s ", Nf_ManCell(p, pDp->Gate)->pName );
+        fprintf( Abc_FrameGlobalGetOut(), "Dn = %8s ", Nf_ManCell(p, pDn->Gate)->pName );
+        fprintf( Abc_FrameGlobalGetOut(), "Ap = %8s ", Nf_ManCell(p, pAp->Gate)->pName );
+        fprintf( Abc_FrameGlobalGetOut(), "An = %8s ", Nf_ManCell(p, pAn->Gate)->pName );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     }
 }
@@ -2087,14 +2087,14 @@ void Nf_ManComputeMappingEla( Nf_Man_t * p )
             // print area recover progress
             if ( fVerbose && Nf_ManCell(p, pM->Gate)->pName != Nf_ManCell(p, pMb->Gate)->pName )
             {
-                printf( "%4d (%d)  ", i, c );
-                printf( "%8s ->%8s  ",         Nf_ManCell(p, pM->Gate)->pName, Nf_ManCell(p, pMb->Gate)->pName );
-                printf( "%d -> %d  ",          Nf_ManCell(p, pM->Gate)->nFanins, Nf_ManCell(p, pMb->Gate)->nFanins );
-                printf( "D: %7.2f -> %7.2f  ", Scl_Int2Flt(pM->D), Scl_Int2Flt(pMb->D) );
-                printf( "R: %7.2f  ",          Required == SCL_INFINITY ? 9999.99 : Scl_Int2Flt(Required) );
-                printf( "A: %7.2f -> %7.2f  ", Scl_Int2Flt((int)AreaBef), Scl_Int2Flt((int)AreaAft) );
-                printf( "G: %7.2f (%7.2f) ",   Scl_Int2Flt((int)AreaBef - (int)AreaAft), Scl_Int2Flt((int)Gain) );
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%4d (%d)  ", i, c );
+                fprintf( Abc_FrameGlobalGetOut(), "%8s ->%8s  ",         Nf_ManCell(p, pM->Gate)->pName, Nf_ManCell(p, pMb->Gate)->pName );
+                fprintf( Abc_FrameGlobalGetOut(), "%d -> %d  ",          Nf_ManCell(p, pM->Gate)->nFanins, Nf_ManCell(p, pMb->Gate)->nFanins );
+                fprintf( Abc_FrameGlobalGetOut(), "D: %7.2f -> %7.2f  ", Scl_Int2Flt(pM->D), Scl_Int2Flt(pMb->D) );
+                fprintf( Abc_FrameGlobalGetOut(), "R: %7.2f  ",          Required == SCL_INFINITY ? 9999.99 : Scl_Int2Flt(Required) );
+                fprintf( Abc_FrameGlobalGetOut(), "A: %7.2f -> %7.2f  ", Scl_Int2Flt((int)AreaBef), Scl_Int2Flt((int)AreaAft) );
+                fprintf( Abc_FrameGlobalGetOut(), "G: %7.2f (%7.2f) ",   Scl_Int2Flt((int)AreaBef - (int)AreaAft), Scl_Int2Flt((int)Gain) );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
             // set best match
             assert( pMb->fBest );
@@ -2265,13 +2265,13 @@ void Nf_ManDumpMatchesPrint( Gia_Man_t * pGia, Vec_Int_t * vStore, int nCutSize,
         for ( n = 0; n < 2; n++ )
         {
             int * pNodeStore = pData + (2 * iObj + n) * nCutSize * nMaxMatches;
-            printf( "Node %d (%s) polarity %d has %d matches:\n", iObj, Gia_ObjIsCo(pObj) ? "CO" : "AND", n, nMaxMatches );
+            fprintf( Abc_FrameGlobalGetOut(), "Node %d (%s) polarity %d has %d matches:\n", iObj, Gia_ObjIsCo(pObj) ? "CO" : "AND", n, nMaxMatches );
             for ( f = 0; f < nCutSize; f++ )
             {
-                printf( "  Input %d:", f );
+                fprintf( Abc_FrameGlobalGetOut(), "  Input %d:", f );
                 for ( m = 0; m < nMaxMatches; m++ )
-                    printf( " %4d", pNodeStore[f * nMaxMatches + m] );
-                printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), " %4d", pNodeStore[f * nMaxMatches + m] );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
         }
     }
@@ -2299,7 +2299,7 @@ void Nf_ManDumpMatchesBin( Nf_Man_t * p, int nMaxMatches )
     pFileBin   = fopen( pFileNameBin,   "wb" );
     pFileGates = fopen( pFileNameGates, "wb" );
     if ( pFileBin == NULL || pFileGates == NULL ) {
-        printf( "Cannot open match dump files \"%s\" and \"%s\".\n", pFileNameBin, pFileNameGates );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open match dump files \"%s\" and \"%s\".\n", pFileNameBin, pFileNameGates );
         if ( pFileBin ) fclose( pFileBin );
         if ( pFileGates ) fclose( pFileGates );
         ABC_FREE( pFileNameBin );
@@ -2385,7 +2385,7 @@ void Nf_ManDumpMatchesBin( Nf_Man_t * p, int nMaxMatches )
     }
     fwrite( pData, 4, Vec_IntSize(vStore), pFileBin );
     if ( p->pPars->fVerbose )
-        printf( "Dumped %d matches (limit %d) into binary file \"%s\" (%.2f MB).\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped %d matches (limit %d) into binary file \"%s\" (%.2f MB).\n", 
             nMatches, nMaxMatches, pFileNameBin, Vec_IntMemory(vStore)/(1<<20) );
     fclose( pFileBin );
     fclose( pFileGates );
@@ -2541,7 +2541,7 @@ int Nf_ManExtractWindow( void * pMan, Vec_Int_t * vRoots, Vec_Wec_t * vCuts, Vec
     int c, iObj;
     if ( 2*Gia_ManAndNum(p->pGia) + Gia_ManCiNum(p->pGia) > nVars )
     {
-        printf( "The number of variables is too large: 2*%d + %d = %d > %d.\n", Gia_ManAndNum(p->pGia), Gia_ManCiNum(p->pGia), 2*Gia_ManAndNum(p->pGia) + Gia_ManCiNum(p->pGia), nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of variables is too large: 2*%d + %d = %d > %d.\n", Gia_ManAndNum(p->pGia), Gia_ManCiNum(p->pGia), 2*Gia_ManAndNum(p->pGia) + Gia_ManCiNum(p->pGia), nVars );
         return 0;
     }
     *pInvArea = p->InvAreaW;
@@ -2729,8 +2729,8 @@ Gia_Man_t * Nf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars, Mio_Lib
 //        Nf_StoPrint( p, pPars->fVeryVerbose );
     if ( pPars->fVerbose && pPars->fCoarsen )
     {
-        printf( "Initial " );  Gia_ManPrintMuxStats( pGia );  printf( "\n" );
-        printf( "Derived " );  Gia_ManPrintMuxStats( pCls );  printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Initial " );  Gia_ManPrintMuxStats( pGia );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Derived " );  Gia_ManPrintMuxStats( pCls );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Nf_ManPrintInit( p );
     Nf_ManComputeCuts( p );

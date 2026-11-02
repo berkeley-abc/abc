@@ -305,7 +305,7 @@ Aig_Man_t * Saig_ManDualRail( Aig_Man_t * p, int fMiter )
     Aig_ManCleanup( pNew );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupSimple(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_ManDupSimple(): The check has failed.\n" );
     return pNew;
 }
 
@@ -502,13 +502,13 @@ int Saig_ManDemiterSimple( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAi
         if ( Aig_ObjIsConst1( pFanin ) )
         {
             if ( !Aig_ObjFaninC0(pObj) )
-                printf( "The output number %d of the miter is constant 1.\n", i );
+                fprintf( Abc_FrameGlobalGetOut(), "The output number %d of the miter is constant 1.\n", i );
             Counter++;
             continue;
         }
         if ( !Aig_ObjIsNode(pFanin) || !Aig_ObjRecognizeExor( pFanin, &pObj0, &pObj1 ) )
         {
-            printf( "The miter cannot be demitered.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The miter cannot be demitered.\n" );
             Vec_PtrFree( vSet0 );
             Vec_PtrFree( vSet1 );
             return 0;
@@ -776,7 +776,7 @@ int Saig_ManDemiterSimpleDiff_old( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t
         if ( Aig_ObjIsConst1( pFanin ) )
         {
             if ( !Aig_ObjFaninC0(pObj) )
-                printf( "The output number %d of the miter is constant 1.\n", i );
+                fprintf( Abc_FrameGlobalGetOut(), "The output number %d of the miter is constant 1.\n", i );
             Counter++;
             continue;
         } 
@@ -788,7 +788,7 @@ int Saig_ManDemiterSimpleDiff_old( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t
             Vec_PtrFree( vSet1 );
             return 0;
 */
-            printf( "The output number %d cannot be demitered.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "The output number %d cannot be demitered.\n", i );
             continue;
         }
         if ( Aig_ObjFaninC0(pObj) )
@@ -946,7 +946,7 @@ int Saig_ManDemiter( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 )
 
         if ( (pFlop0->fMarkA && pFlop0->fMarkB) || (pFlop1->fMarkA && pFlop1->fMarkB) || 
              (pFlop0->fMarkA && pFlop1->fMarkA) || (pFlop0->fMarkB && pFlop1->fMarkB)  )
-            printf( "Output pair %4d: Difficult case...\n", i/2 );
+            fprintf( Abc_FrameGlobalGetOut(), "Output pair %4d: Difficult case...\n", i/2 );
 
         if ( pFlop0->fMarkB )
         {
@@ -976,7 +976,7 @@ int Saig_ManDemiter( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 )
         if ( pObj->fMarkA && pObj->fMarkB )
             Counter++;
     if ( Counter > 0 )
-        printf( "The miters contains %d flops reachable from both AIGs.\n", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "The miters contains %d flops reachable from both AIGs.\n", Counter );
 
     // produce two miters
     if ( ppAig0 )
@@ -1111,38 +1111,38 @@ int Ssw_SecSpecial( Aig_Man_t * pPart0, Aig_Man_t * pPart1, int nFrames, int fVe
     // report the miter
     if ( RetValue == 1 )
     {
-        printf( "Networks are equivalent.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are equivalent.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     else if ( RetValue == 0 )
     {
-        printf( "Networks are NOT EQUIVALENT.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT.  " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
         if ( pMiterCec->pData == NULL )
-            printf( "Counter-example is not available.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Counter-example is not available.\n" );
         else
         {
             iOut = Ssw_SecCexResimulate( pMiterCec, (int *)pMiterCec->pData, &nOuts );
             if ( iOut == -1 )
-                printf( "Counter-example verification has failed.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Counter-example verification has failed.\n" );
             else 
             {
                 if ( iOut < Saig_ManPoNum(pPart0) * nFrames )
-                    printf( "Primary output %d has failed in frame %d.\n", 
+                    fprintf( Abc_FrameGlobalGetOut(), "Primary output %d has failed in frame %d.\n", 
                         iOut%Saig_ManPoNum(pPart0), iOut/Saig_ManPoNum(pPart0) );
                 else
-                    printf( "Flop input %d has failed in the last frame.\n", 
+                    fprintf( Abc_FrameGlobalGetOut(), "Flop input %d has failed in the last frame.\n", 
                         iOut - Saig_ManPoNum(pPart0) * nFrames );
-                printf( "The counter-example detected %d incorrect POs or flop inputs.\n", nOuts );
+                fprintf( Abc_FrameGlobalGetOut(), "The counter-example detected %d incorrect POs or flop inputs.\n", nOuts );
             }
         }
     }
     else
     {
-        printf( "Networks are UNDECIDED.   " );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are UNDECIDED.   " );
 ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
     Aig_ManStop( pMiterCec );
     return RetValue;
 }
@@ -1163,7 +1163,7 @@ int Ssw_SecSpecialMiter( Aig_Man_t * p0, Aig_Man_t * p1, int nFrames, int fVerbo
     Aig_Man_t * pPart0, * pPart1;
     int RetValue;
     if ( fVerbose )
-        printf( "Performing sequential verification using combinational A/B miter.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Performing sequential verification using combinational A/B miter.\n" );
     // consider the case when a miter is given
     if ( p1 == NULL )
     {
@@ -1174,14 +1174,14 @@ int Ssw_SecSpecialMiter( Aig_Man_t * p0, Aig_Man_t * p1, int nFrames, int fVerbo
         // demiter the miter
         if ( !Saig_ManDemiterSimpleDiff( p0, &pPart0, &pPart1 ) )
         {
-            printf( "Demitering has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Demitering has failed.\n" );
             return -1;
         }
         if ( Aig_ManRegNum(pPart0) != Aig_ManRegNum(pPart1) )
         {
             Aig_ManStop( pPart0 );
             Aig_ManStop( pPart1 );
-            printf( "After demitering AIGs have different number of flops. Quitting.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "After demitering AIGs have different number of flops. Quitting.\n" );
             return -1;
         }
     }
@@ -1237,58 +1237,58 @@ int Saig_ManDemiterNew( Aig_Man_t * pMan )
     {
         if ( pMan->nConstrs && i >= Saig_ManPoNum(pMan) - pMan->nConstrs )
             break;
-        printf( "Output %3d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Output %3d : ", i );
         if ( Aig_ObjIsConst1(Aig_ObjFanin0(pObj)) )
         {
             if ( !Aig_ObjFaninC0(pObj) )
-                printf( "Const1\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Const1\n" );
             else
-                printf( "Const0\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Const0\n" );
             continue;
         }
         if ( !Aig_ObjIsNode(Aig_ObjFanin0(pObj)) )
         {
-            printf( "Terminal\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Terminal\n" );
             continue;
         }
         // check AND
         if ( !Aig_ObjFaninC0(pObj) )
         { 
-            printf( "AND  " );
+            fprintf( Abc_FrameGlobalGetOut(), "AND  " );
             if ( Aig_ObjRecognizeExor(Aig_ObjFanin0(pObj), &pFan0, &pFan1) )
-                printf( " Yes" );
+                fprintf( Abc_FrameGlobalGetOut(), " Yes" );
             else
-                printf( " No" );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " No" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
             continue;
         }
         // check OR
         Aig_ObjCollectSuper( Aig_ObjFanin0(pObj), vSuper );
-        printf( "OR with %d inputs    ", Vec_PtrSize(vSuper) );
+        fprintf( Abc_FrameGlobalGetOut(), "OR with %d inputs    ", Vec_PtrSize(vSuper) );
         if ( Vec_PtrSize(vSuper) == 2 )
         {
             if ( Aig_ObjRecognizeExor(Aig_ObjFanin0(pObj), &pFan0, &pFan1) )
             {
-                printf( " Yes" );
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " Yes" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
                 vSupp0 = Aig_Support( pMan, Aig_Regular(pFan0) );
                 Vec_PtrForEachEntry( Aig_Obj_t *, vSupp0, pTemp, k )
                     if ( Saig_ObjIsLo(pMan, pTemp) )
-                        printf( " %d", Aig_ObjCioId(pTemp) );
-                printf( "\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), " %d", Aig_ObjCioId(pTemp) );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 Vec_PtrFree( vSupp0 );
 
                 vSupp1 = Aig_Support( pMan, Aig_Regular(pFan1) );
                 Vec_PtrForEachEntry( Aig_Obj_t *, vSupp1, pTemp, k )
                     if ( Saig_ObjIsLo(pMan, pTemp) )
-                        printf( " %d", Aig_ObjCioId(pTemp) );
-                printf( "\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), " %d", Aig_ObjCioId(pTemp) );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 Vec_PtrFree( vSupp1 );
             }
             else
-                printf( " No" );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " No" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
             continue;
         }
 /*
@@ -1302,7 +1302,7 @@ int Saig_ManDemiterNew( Aig_Man_t * pMan )
             else
                 printf( " No" );
 */
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_PtrFree( vSuper );
     return 1;

@@ -1389,7 +1389,7 @@ static inline void Vec_WrdDumpBool( char * pFileName, Vec_Wrd_t * p, int nWords,
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file \"%s\" for writing.\n", pFileName  );
         return;
     }
     assert( Vec_WrdSize(p) % nWords == 0 );
@@ -1397,7 +1397,7 @@ static inline void Vec_WrdDumpBool( char * pFileName, Vec_Wrd_t * p, int nWords,
         Vec_WrdDumpBoolOne( pFile, Vec_WrdEntryP(p, i*nWords), nBits, fReverse );
     fclose( pFile );
     if ( fVerbose )
-        printf( "Written %d bits of simulation data for %d objects into file \"%s\".\n", nBits, Vec_WrdSize(p)/nWords, pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Written %d bits of simulation data for %d objects into file \"%s\".\n", nBits, Vec_WrdSize(p)/nWords, pFileName  );
 }
 
 /**Function*************************************************************
@@ -1415,10 +1415,10 @@ static inline void Vec_WrdPrintBin( Vec_Wrd_t * p, int nWords )
 {
     int i, k, nNodes = Vec_WrdSize(p) / nWords;
     assert( Vec_WrdSize(p) % nWords == 0 );
-    printf( "The array contains %d bit-strings of %d bits:\n", nNodes, 64*nWords );
-    for ( i = 0; i < nNodes; i++, printf("\n") )
+    fprintf( Abc_FrameGlobalGetOut(),  "The array contains %d bit-strings of %d bits:\n", nNodes, 64*nWords  );
+    for ( i = 0; i < nNodes; i++, fprintf( Abc_FrameGlobalGetOut(), "\n" ) )
         for ( k = 0; k < 64*nWords; k++ )
-            printf( "%d", Abc_InfoHasBit((unsigned*)Vec_WrdEntryP(p, i*nWords), k) );
+            fprintf( Abc_FrameGlobalGetOut(),  "%d", Abc_InfoHasBit((unsigned*)Vec_WrdEntryP(p, i*nWords), k)  );
 }
 
 /**Function*************************************************************
@@ -1449,9 +1449,9 @@ static inline void Vec_WrdPrintHex( Vec_Wrd_t * p, int nWords )
 {
     int i, nNodes = Vec_WrdSize(p) / nWords;
     assert( Vec_WrdSize(p) % nWords == 0 );
-    printf( "The array contains %d bit-strings of %d bits:\n", nNodes, 64*nWords );
+    fprintf( Abc_FrameGlobalGetOut(),  "The array contains %d bit-strings of %d bits:\n", nNodes, 64*nWords  );
     for ( i = 0; i < nNodes; i++ )
-        Vec_WrdDumpHexOne( stdout, Vec_WrdEntryP(p, i*nWords), nWords );
+        Vec_WrdDumpHexOne( Abc_FrameGlobalGetOut(), Vec_WrdEntryP(p, i*nWords), nWords );
 }
 static inline void Vec_WrdDumpHex( char * pFileName, Vec_Wrd_t * p, int nWords, int fVerbose )
 {
@@ -1459,7 +1459,7 @@ static inline void Vec_WrdDumpHex( char * pFileName, Vec_Wrd_t * p, int nWords, 
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file \"%s\" for writing.\n", pFileName  );
         return;
     }
     assert( Vec_WrdSize(p) % nWords == 0 );
@@ -1467,7 +1467,7 @@ static inline void Vec_WrdDumpHex( char * pFileName, Vec_Wrd_t * p, int nWords, 
         Vec_WrdDumpHexOne( pFile, Vec_WrdEntryP(p, i*nWords), nWords );
     fclose( pFile );
     if ( fVerbose )
-        printf( "Written %d words of simulation data for %d objects into file \"%s\".\n", nWords, Vec_WrdSize(p)/nWords, pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Written %d words of simulation data for %d objects into file \"%s\".\n", nWords, Vec_WrdSize(p)/nWords, pFileName  );
 }
 static inline int Vec_WrdReadHexOne( char c )
 {
@@ -1489,7 +1489,7 @@ static inline Vec_Wrd_t * Vec_WrdReadHex( char * pFileName, int * pnWords, int f
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file \"%s\" for reading.\n", pFileName  );
         return NULL;
     }
     p = Vec_WrdAlloc( 1000 );
@@ -1521,7 +1521,7 @@ static inline Vec_Wrd_t * Vec_WrdReadHex( char * pFileName, int * pnWords, int f
     if ( pnWords )
         *pnWords = nWords;
     if ( fVerbose )
-        printf( "Read %d words of simulation data for %d objects.\n", nWords, Vec_WrdSize(p)/nWords );
+        fprintf( Abc_FrameGlobalGetOut(),  "Read %d words of simulation data for %d objects.\n", nWords, Vec_WrdSize(p)/nWords  );
     return p;
 }
 
@@ -1542,15 +1542,15 @@ static inline void Vec_WrdDumpBin( char * pFileName, Vec_Wrd_t * p, int fVerbose
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file \"%s\" for writing.\n", pFileName  );
         return;
     }
     RetValue = fwrite( Vec_WrdArray(p), 1, 8*Vec_WrdSize(p), pFile );
     fclose( pFile );
     if ( RetValue != 8*Vec_WrdSize(p) )
-        printf( "Error reading data from file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "Error reading data from file.\n"  );
     if ( fVerbose )
-        printf( "Written %d words of simulation data into file \"%s\".\n", Vec_WrdSize(p), pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Written %d words of simulation data into file \"%s\".\n", Vec_WrdSize(p), pFileName  );
 }
 static inline Vec_Wrd_t * Vec_WrdReadBin( char * pFileName, int fVerbose )
 {
@@ -1558,20 +1558,20 @@ static inline Vec_Wrd_t * Vec_WrdReadBin( char * pFileName, int fVerbose )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file \"%s\" for reading.\n", pFileName  );
         return NULL;
     }
     fseek( pFile, 0, SEEK_END );
     nSize = ftell( pFile );
     if ( nSize == 0 )
     {
-        printf( "The input file is empty.\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "The input file is empty.\n"  );
         fclose( pFile );
         return NULL;
     }
     if ( nSize % 8 > 0 )
     {
-        printf( "Cannot read file with simulation data that is not aligned at 8 bytes (remainder = %d).\n", nSize % 8 );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot read file with simulation data that is not aligned at 8 bytes (remainder = %d).\n", nSize % 8  );
         fclose( pFile );
         return NULL;
     }
@@ -1580,9 +1580,9 @@ static inline Vec_Wrd_t * Vec_WrdReadBin( char * pFileName, int fVerbose )
     RetValue = fread( Vec_WrdArray(p), 1, nSize, pFile );
     fclose( pFile );
     if ( RetValue != nSize )
-        printf( "Error reading data from file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "Error reading data from file.\n"  );
     if ( fVerbose )
-        printf( "Read %d words of simulation data from file \"%s\".\n", nSize/8, pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Read %d words of simulation data from file \"%s\".\n", nSize/8, pFileName  );
     return p;
 }
 

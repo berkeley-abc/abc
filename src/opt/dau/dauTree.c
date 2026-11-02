@@ -483,30 +483,30 @@ void Dss_NtkPrint_rec( Dss_Ntk_t * p, Dss_Obj_t * pObj )
     int i;
     assert( !Dss_IsComplement(pObj) );
     if ( pObj->Type == DAU_DSD_VAR )
-        { printf( "%c", 'a' + pObj->iVar ); return; }
+        { fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + pObj->iVar ); return; }
     if ( pObj->Type == DAU_DSD_PRIME )
-        Abc_TtPrintHexRev( stdout, Dss_ObjTruth(pObj), pObj->nFans );
-    printf( "%c", OpenType[pObj->Type] );
+        Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), Dss_ObjTruth(pObj), pObj->nFans );
+    fprintf( Abc_FrameGlobalGetOut(), "%c", OpenType[pObj->Type] );
     Dss_ObjForEachFanin( p->vObjs, pObj, pFanin, i )
     {
-        printf( "%s", Dss_ObjFaninC(pObj, i) ? "!":"" );
+        fprintf( Abc_FrameGlobalGetOut(), "%s", Dss_ObjFaninC(pObj, i) ? "!":"" );
         Dss_NtkPrint_rec( p, pFanin );
     }
-    printf( "%c", CloseType[pObj->Type] );
+    fprintf( Abc_FrameGlobalGetOut(), "%c", CloseType[pObj->Type] );
 }
 void Dss_NtkPrint( Dss_Ntk_t * p )
 {
     if ( Dss_Regular(p->pRoot)->Type == DAU_DSD_CONST0 )
-        printf( "%d", Dss_IsComplement(p->pRoot) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Dss_IsComplement(p->pRoot) );
     else
     {
-        printf( "%s", Dss_IsComplement(p->pRoot) ? "!":"" );        
+        fprintf( Abc_FrameGlobalGetOut(), "%s", Dss_IsComplement(p->pRoot) ? "!":"" );        
         if ( Dss_Regular(p->pRoot)->Type == DAU_DSD_VAR )
-            printf( "%c", 'a' + Dss_Regular(p->pRoot)->iVar );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + Dss_Regular(p->pRoot)->iVar );
         else
             Dss_NtkPrint_rec( p, Dss_Regular(p->pRoot) );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -829,9 +829,9 @@ void Dss_ManHashProfile( Dss_Man_t * p )
         for ( pSpot = p->pBins + i; *pSpot; pSpot = (unsigned *)Vec_IntEntryP(p->vNexts, pObj->Id), Counter++ )
              pObj = Dss_VecObj( p->vObjs, *pSpot );
         if ( Counter )
-            printf( "%d ", Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Counter );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 static inline unsigned Dss_ObjHashKey( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits, word * pTruth )
 {
@@ -920,9 +920,9 @@ void Dss_ManCacheProfile( Dss_Man_t * p )
         for ( pSpot = p->pCache + i; *pSpot; pSpot = &(*pSpot)->pNext, Counter++ )
             ;
         if ( Counter )
-            printf( "%d ", Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Counter );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 Dss_Ent_t ** Dss_ManCacheLookup( Dss_Man_t * p, Dss_Ent_t * pEnt )
 {
@@ -1063,7 +1063,7 @@ void Dss_ManDump( Dss_Man_t * p )
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\".\n", pFileName );
         return;
     }
     Dss_VecForEachObj( p->vObjs, pObj, i )
@@ -1089,10 +1089,10 @@ void Dss_ManPrint( char * pFileName, Dss_Man_t * p )
     int CountNonDsd = 0, CountNonDsdStr = 0;
     int i, clk = Abc_Clock();
     FILE * pFile;
-    pFile = pFileName ? fopen( pFileName, "wb" ) : stdout;
+    pFile = pFileName ? fopen( pFileName, "wb" ) : Abc_FrameGlobalGetOut();
     if ( pFileName && pFile == NULL )
     {
-        printf( "cannot open output file\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "cannot open output file\n" );
         return;
     }
     Dss_VecForEachObj( p->vObjs, pObj, i )
@@ -1411,10 +1411,10 @@ Dss_Fun_t * Dss_ManOperationFun( Dss_Man_t * p, int * iDsd, int nFansTot )
 void Dss_EntPrint( Dss_Ent_t * p, Dss_Fun_t * pFun )
 {
     int i;
-    printf( "%d %d ", p->iDsd0, p->iDsd1 );
+    fprintf( Abc_FrameGlobalGetOut(), "%d %d ", p->iDsd0, p->iDsd1 );
     for ( i = 0; i < (int)p->nShared; i++ )
-        printf( "%d=%d ", p->pShared[2*i], p->pShared[2*i+1] );
-    printf( "-> %d   ", pFun->iDsd );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", p->pShared[2*i], p->pShared[2*i+1] );
+    fprintf( Abc_FrameGlobalGetOut(), "-> %d   ", pFun->iDsd );
 }
 
 /**Function*************************************************************
@@ -1551,15 +1551,15 @@ int Dss_ManMerge( Dss_Man_t * p, int * iDsd, int * nFans, int ** pFans, unsigned
     Counter++;
     if ( DAU_MAX_VAR < nKLutSize )
     {
-        printf( "Parameter DAU_MAX_VAR (%d) smaller than LUT size (%d).\n", DAU_MAX_VAR, nKLutSize );
+        fprintf( Abc_FrameGlobalGetOut(), "Parameter DAU_MAX_VAR (%d) smaller than LUT size (%d).\n", DAU_MAX_VAR, nKLutSize );
         return -1;
     }
     assert( iDsd[0] <= iDsd[1] );
 
 if ( fVerbose )
 {
-Dss_ManPrintOne( stdout, p, iDsd[0], pFans[0] );
-Dss_ManPrintOne( stdout, p, iDsd[1], pFans[1] );
+Dss_ManPrintOne( Abc_FrameGlobalGetOut(), p, iDsd[0], pFans[0] );
+Dss_ManPrintOne( Abc_FrameGlobalGetOut(), p, iDsd[1], pFans[1] );
 } 
 
     // constant argument
@@ -1640,8 +1640,8 @@ p->timeEnd += Abc_Clock() - clk;
 
 if ( fVerbose )
 {
-Dss_ManPrintOne( stdout, p, pFun->iDsd, pPermResInt );
-printf( "\n" );
+Dss_ManPrintOne( Abc_FrameGlobalGetOut(), p, pFun->iDsd, pPermResInt );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 if ( Counter == 43418 )
@@ -1659,7 +1659,7 @@ if ( Counter == 43418 )
             int s;
     //        Kit_DsdPrintFromTruth( pTruthOne, p->nVars );  printf( "\n" );
     //        Kit_DsdPrintFromTruth( pTruth, p->nVars );     printf( "\n" );
-            printf( "Verification failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Verification failed.\n" );
             s = 0;
         }
     }
@@ -1703,13 +1703,13 @@ int Mpm_FuncCompute( Dss_Man_t * p, int iDsd0, int iDsd1, Vec_Str_t * vShared, i
     assert( iDsd0 <= iDsd1 );
     if ( DAU_MAX_VAR < *pnLeaves )
     {
-        printf( "Parameter DAU_MAX_VAR (%d) smaller than LUT size (%d).\n", DAU_MAX_VAR, *pnLeaves );
+        fprintf( Abc_FrameGlobalGetOut(), "Parameter DAU_MAX_VAR (%d) smaller than LUT size (%d).\n", DAU_MAX_VAR, *pnLeaves );
         return -1;
     }
     if ( fVerbose )
     {
-        Dss_ManPrintOne( stdout, p, iDsd0, NULL );
-        Dss_ManPrintOne( stdout, p, iDsd1, NULL );
+        Dss_ManPrintOne( Abc_FrameGlobalGetOut(), p, iDsd0, NULL );
+        Dss_ManPrintOne( Abc_FrameGlobalGetOut(), p, iDsd1, NULL );
     } 
 
 clk = Abc_Clock();
@@ -1740,8 +1740,8 @@ p->timeDec += Abc_Clock() - clk;
 
     if ( fVerbose )
     {
-        Dss_ManPrintOne( stdout, p, pFun->iDsd, NULL );
-        printf( "\n" );
+        Dss_ManPrintOne( Abc_FrameGlobalGetOut(), p, pFun->iDsd, NULL );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
 /*
@@ -1995,20 +1995,20 @@ void Dau_DsdTest444()
     iRes[2] = 1 ^ Dss_ManOperation( p, DAU_DSD_AND, iRes, 2, NULL, NULL );
     iRes[3] = Dss_ManOperation( p, DAU_DSD_AND, iLit2, 3, NULL, NULL );
 
-    Dss_ManPrintOne( stdout, p, iRes[0], NULL );
-    Dss_ManPrintOne( stdout, p, iRes[2], NULL );
-    Dss_ManPrintOne( stdout, p, iRes[3], NULL );
+    Dss_ManPrintOne( Abc_FrameGlobalGetOut(), p, iRes[0], NULL );
+    Dss_ManPrintOne( Abc_FrameGlobalGetOut(), p, iRes[2], NULL );
+    Dss_ManPrintOne( Abc_FrameGlobalGetOut(), p, iRes[3], NULL );
 
-    Dss_ManPrintOne( stdout, p, iRes[2], pPermLits1 );
-    Dss_ManPrintOne( stdout, p, iRes[3], pPermLits2 );
+    Dss_ManPrintOne( Abc_FrameGlobalGetOut(), p, iRes[2], pPermLits1 );
+    Dss_ManPrintOne( Abc_FrameGlobalGetOut(), p, iRes[3], pPermLits2 );
 
     iRes[4] = Dss_ManMerge( p, iRes+2, nFans, pPermLits, uMaskShared, 6, pPermRes, NULL );
 
     for ( i = 0; i < 6; i++ )
         pPermResInt[i] = pPermRes[i];
 
-    Dss_ManPrintOne( stdout, p, iRes[4], NULL );
-    Dss_ManPrintOne( stdout, p, iRes[4], pPermResInt );
+    Dss_ManPrintOne( Abc_FrameGlobalGetOut(), p, iRes[4], NULL );
+    Dss_ManPrintOne( Abc_FrameGlobalGetOut(), p, iRes[4], pPermResInt );
 
     Dss_ManFree( p );
 }

@@ -100,7 +100,7 @@ void Npn_TruthPermute_rec( char * pStr, int mid, int end )
     int i;
     if ( mid == end ) 
     {
-        printf( "%03d: %s\n", count++, pTemp );
+        fprintf( Abc_FrameGlobalGetOut(), "%03d: %s\n", count++, pTemp );
         return ;
     }
     for ( i = mid; i <= end; i++ )

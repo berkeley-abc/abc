@@ -1178,8 +1178,8 @@ void Internal::print_statistics () {
 
 void Internal::dump (Clause *c) {
   for (const auto &lit : *c)
-    printf ("%d ", lit);
-  printf ("0\n");
+    fprintf ( Abc_FrameGlobalGetOut(), "%d ", lit);
+  fprintf ( Abc_FrameGlobalGetOut(), "0\n");
 }
 
 void Internal::dump () {
@@ -1190,18 +1190,18 @@ void Internal::dump () {
   for (const auto &c : clauses)
     if (!c->garbage)
       m++;
-  printf ("p cnf %d %" PRId64 "\n", max_var, m);
+  fprintf ( Abc_FrameGlobalGetOut(), "p cnf %d %" PRId64 "\n", max_var, m);
   for (auto idx : vars) {
     const int tmp = fixed (idx);
     if (tmp)
-      printf ("%d 0\n", tmp < 0 ? -idx : idx);
+      fprintf ( Abc_FrameGlobalGetOut(), "%d 0\n", tmp < 0 ? -idx : idx);
   }
   for (const auto &c : clauses)
     if (!c->garbage)
       dump (c);
   for (const auto &lit : assumptions)
-    printf ("%d 0\n", lit);
-  fflush (stdout);
+    fprintf ( Abc_FrameGlobalGetOut(), "%d 0\n", lit);
+  fflush( Abc_FrameGlobalGetOut() );
 }
 
 /*------------------------------------------------------------------------*/

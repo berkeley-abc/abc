@@ -314,9 +314,9 @@ void Acec_GenerateNpnTable()
         Table[i] = Extra_TruthCanonNPN( i, 3 );
     for ( i = 0; i < 256; i++ )
     {
-        printf( "{" );
-        Extra_PrintHex( stdout, (unsigned *)&Table[i], 3 );
-        printf( ", " );
+        fprintf( Abc_FrameGlobalGetOut(), "{" );
+        Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&Table[i], 3 );
+        fprintf( Abc_FrameGlobalGetOut(), ", " );
         // find the class
         for ( k = 0; k < nClasses; k++ )
             if ( Table[i] == Classes[k] )
@@ -325,9 +325,9 @@ void Acec_GenerateNpnTable()
             Classes[nClasses++] = Table[i];
         Map[i] = k;
         // print
-        printf( "%2d}, // ", k );
-        Extra_PrintHex( stdout, (unsigned *)&i, 3 );
-        printf( " = %3d\n", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d}, // ", k );
+        Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&i, 3 );
+        fprintf( Abc_FrameGlobalGetOut(), " = %3d\n", i );
     }
 }
 
@@ -386,22 +386,22 @@ void Acec_StatsCollect( Gia_Man_t * p, int fVerbose )
     }
     Vec_WrdFree( vTruths );
     // print statistics
-    printf( "fi / fo" );
+    fprintf( Abc_FrameGlobalGetOut(), "fi / fo" );
     for ( i = 0; i < 14; i++ )
-        printf( "%6d ", i );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d ", i );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( i = 0; i < 14; i++ )
     {
-        printf( "%6d ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d ", i );
         for ( k = 0; k < 14; k++ )
             if ( Map[(i << 4) | k] )
-                printf( "%6d ", Map[(i << 4) | k] );
+                fprintf( Abc_FrameGlobalGetOut(), "%6d ", Map[(i << 4) | k] );
             else
-                printf( "%6s ", "." );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%6s ", "." );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // print class formulas
-    printf( "\nClasses:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\nClasses:\n" );
     for ( i = 0; i < 14; i++ )
     {
         for ( k = 0; k < 256; k++ )
@@ -409,7 +409,7 @@ void Acec_StatsCollect( Gia_Man_t * p, int fVerbose )
                 break;
         assert( k < 256 );
         Class = Dar_LibReturnClass( (Npn3Table[k][0] << 8) | Npn3Table[k][0] );
-        printf( "%2d : %s\n", i, pNames[Class] );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : %s\n", i, pNames[Class] );
     }
 }
 

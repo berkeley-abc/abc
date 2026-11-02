@@ -1450,15 +1450,15 @@ static inline void Abc_TtPrintHex( word * pTruth, int nVars )
     word * pThis, * pLimit = pTruth + Abc_TtWordNum(nVars);
     int k;
     if ( nVars < 2 )
-        printf( "%c", Abc_TtPrintDigit((int)pTruth[0] & 15) );
+        fprintf( Abc_FrameGlobalGetOut(),  "%c", Abc_TtPrintDigit((int)pTruth[0] & 15)  );
     else
     {
         assert( nVars >= 2 );
         for ( pThis = pTruth; pThis < pLimit; pThis++ )
             for ( k = 0; k < 16; k++ )
-                printf( "%c", Abc_TtPrintDigit((int)(pThis[0] >> (k << 2)) & 15) );
+                fprintf( Abc_FrameGlobalGetOut(),  "%c", Abc_TtPrintDigit((int)(pThis[0] >> (k << 2)) & 15)  );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(),  "\n"  );
 }
 static inline void Abc_TtPrintHexRev( FILE * pFile, word * pTruth, int nVars )
 {
@@ -1480,15 +1480,15 @@ static inline void Abc_TtPrintHexSpecial( word * pTruth, int nVars )
     word * pThis;
     int k;
     if ( nVars < 2 )
-        printf( "%c", Abc_TtPrintDigit((int)pTruth[0] & 15) );
+        fprintf( Abc_FrameGlobalGetOut(),  "%c", Abc_TtPrintDigit((int)pTruth[0] & 15)  );
     else
     {
         assert( nVars >= 2 );
         for ( pThis = pTruth + Abc_TtWordNum(nVars) - 1; pThis >= pTruth; pThis-- )
             for ( k = 0; k < 16; k++ )
-                printf( "%c", Abc_TtPrintDigit((int)(pThis[0] >> (k << 2)) & 15) );
+                fprintf( Abc_FrameGlobalGetOut(),  "%c", Abc_TtPrintDigit((int)(pThis[0] >> (k << 2)) & 15)  );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(),  "\n"  );
 }
 static inline int Abc_TtWriteHexRev( char * pStr, word * pTruth, int nVars )
 {
@@ -1614,7 +1614,7 @@ static inline word Abc_TtReadBin64( char * pString )
     (void)Len;
     int Res = Abc_TtReadBin( &Word, 1, pString );
     if ( Res == 0 ) {
-        printf( "Reading binary string \"%s\" has failed.\n", pString );
+        fprintf( Abc_FrameGlobalGetOut(),  "Reading binary string \"%s\" has failed.\n", pString  );
         Word = ~(word)0;
     }
     return Word;
@@ -1636,14 +1636,14 @@ static inline void Abc_TtPrintBits( word * pTruth, int nBits )
 {
     int k;
     for ( k = 0; k < nBits; k++ )
-        printf( "%d", (int)((pTruth[k >> 6] >> (k & 63)) & 1) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "%d", (int)((pTruth[k >> 6] >> (k & 63)) & 1)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "\n"  );
 }
 static inline void Abc_TtPrintBits2( word * pTruth, int nBits )
 {
     int k;
     for ( k = nBits-1; k >= 0; k-- )
-        printf( "%d", (int)((pTruth[k >> 6] >> (k & 63)) & 1) );
+        fprintf( Abc_FrameGlobalGetOut(),  "%d", (int)((pTruth[k >> 6] >> (k & 63)) & 1)  );
     //printf( "\n" );
 }
 static inline void Abc_TtPrintBinary( word * pTruth, int nVars )
@@ -1653,8 +1653,8 @@ static inline void Abc_TtPrintBinary( word * pTruth, int nVars )
     assert( nVars >= 2 );
     for ( pThis = pTruth; pThis < pLimit; pThis++ )
         for ( k = 0; k < Limit; k++ )
-            printf( "%d", Abc_InfoHasBit( (unsigned *)pThis, k ) );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(),  "%d", Abc_InfoHasBit( (unsigned *)pThis, k )  );
+    fprintf( Abc_FrameGlobalGetOut(),  "\n"  );
 }
 static inline void Abc_TtPrintBinary1( FILE * pFile, word * pTruth, int nVars )
 {
@@ -2448,9 +2448,9 @@ static inline void Abc_TtIsfPrint( word * pOff, word * pOn, int nWords )
     int nOffset = Abc_TtCountOnesVec(pOff, nWords);
     int nOnset  = Abc_TtCountOnesVec(pOn, nWords);
     int nDcset  = nTotal - nOffset - nOnset;
-    printf( "OFF =%6d (%6.2f %%)  ", nOffset, 100.0*nOffset/nTotal );
-    printf( "ON =%6d (%6.2f %%)  ",  nOnset,  100.0*nOnset/nTotal );
-    printf( "DC =%6d (%6.2f %%)",    nDcset,  100.0*nDcset/nTotal );
+    fprintf( Abc_FrameGlobalGetOut(),  "OFF =%6d (%6.2f %%)  ", nOffset, 100.0*nOffset/nTotal  );
+    fprintf( Abc_FrameGlobalGetOut(),  "ON =%6d (%6.2f %%)  ",  nOnset,  100.0*nOnset/nTotal  );
+    fprintf( Abc_FrameGlobalGetOut(),  "DC =%6d (%6.2f %%)",    nDcset,  100.0*nDcset/nTotal  );
 }
 
 /**Function*************************************************************
@@ -3108,7 +3108,7 @@ static inline int Abc_Tt6EsopVerify( word t, int nVars )
     int nCubes = Abc_Tt6Esop( t, nVars, pCover );
     word t2 = Abc_Tt6EsopBuild( nVars, pCover, nCubes );
     if ( t != t2 )
-        printf( "Verification failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "Verification failed.\n"  );
     return nCubes;
 }
 
@@ -3347,7 +3347,7 @@ static inline void Unm_ManCheckTest2()
             Res = Abc_TtCheckDsdAnd( t, iVar0, iVar1, &Out );
             if ( Res == -1 )
             {
-                printf( "No decomposition\n" );
+                fprintf( Abc_FrameGlobalGetOut(),  "No decomposition\n"  );
                 continue;
             }
 
@@ -3366,9 +3366,9 @@ static inline void Unm_ManCheckTest2()
 //            Kit_DsdPrintFromTruth( (unsigned *)&t1, 6 ), printf( "\n" );
 
             if ( t1 != t )
-                printf( "Verification failed.\n" );
+                fprintf( Abc_FrameGlobalGetOut(),  "Verification failed.\n"  );
             else
-                printf( "Verification succeeded.\n" );
+                fprintf( Abc_FrameGlobalGetOut(),  "Verification succeeded.\n"  );
         }
     }
 }
@@ -3398,7 +3398,7 @@ static inline void Unm_ManCheckTest()
             Res = Abc_TtCheckDsdMux( t, iCtrl, &Out );
             if ( Res == -1 )
             {
-                printf( "No decomposition\n" );
+                fprintf( Abc_FrameGlobalGetOut(),  "No decomposition\n"  );
                 continue;
             }
 
@@ -3422,9 +3422,9 @@ static inline void Unm_ManCheckTest()
 //            Kit_DsdPrintFromTruth( (unsigned *)&t1, 6 ), printf( "\n" );
 
             if ( t1 != t )
-                printf( "Verification failed.\n" );
+                fprintf( Abc_FrameGlobalGetOut(),  "Verification failed.\n"  );
             else
-                printf( "Verification succeeded.\n" );
+                fprintf( Abc_FrameGlobalGetOut(),  "Verification succeeded.\n"  );
         }
     }
 }
@@ -3536,9 +3536,9 @@ static inline void Abc_TtPrintVarSet( int Mask, int nVars )
     int i;
     for ( i = 0; i < nVars; i++ )
         if ( (Mask >> i) & 1 )
-            printf( "1" );
+            fprintf( Abc_FrameGlobalGetOut(),  "1"  );
         else
-            printf( "." );
+            fprintf( Abc_FrameGlobalGetOut(),  "."  );
 }
 static inline void Abc_TtPrintBiDec( word * pTruth, int nVars )
 {
@@ -3548,9 +3548,9 @@ static inline void Abc_TtPrintBiDec( word * pTruth, int nVars )
     {
         Abc_TtComputeGraph( pTruth, v, nVars, pGraph );
         Abc_TtPrintVarSet( pGraph[v], nVars );
-        printf( "    " );
+        fprintf( Abc_FrameGlobalGetOut(),  "    "  );
         Abc_TtPrintVarSet( pGraph[v] >> 16, nVars );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "\n"  );
     }
 }
 static inline int Abc_TtVerifyBiDec( word * pTruth, int nVars, int This, int That, int nSuppLim, word wThis, word wThat )
@@ -3623,7 +3623,7 @@ static inline void Abc_TtDeriveBiDec( word * pTruth, int nVars, int This, int Th
     pThis[0] = Abc_TtDeriveBiDecOne( pTruth, nVars, This );
     pThat[0] = Abc_TtDeriveBiDecOne( pTruth, nVars, That );
     if ( !Abc_TtVerifyBiDec(pTruth, nVars, This, That, nSuppLim, pThis[0], pThat[0] ) )
-        printf( "Bi-decomposition verification failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "Bi-decomposition verification failed.\n"  );
 }
 // detect simple case of decomposition with topmost AND gate
 static inline int Abc_TtCheckBiDecSimple( word * pTruth, int nVars, int nSuppLim )
@@ -3734,15 +3734,15 @@ static inline void Abc_TtProcessBiDecTest( word * pTruth, int nVars, int nSuppLi
     //nThis = Abc_TtBitCount16(resThis);
     //nThat = Abc_TtBitCount16(resThat);
 
-    printf( "Variable sets:    " );
+    fprintf( Abc_FrameGlobalGetOut(),  "Variable sets:    "  );
     Abc_TtPrintVarSet( resThis, nVars );
-    printf( "    " );
+    fprintf( Abc_FrameGlobalGetOut(),  "    "  );
     Abc_TtPrintVarSet( resThat, nVars );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(),  "\n"  );
     Abc_TtDeriveBiDec( pTemp, nVars, resThis, resThat, nSuppLim, &This, &That );
 //    Dau_DsdPrintFromTruth( &This, nThis );
 //    Dau_DsdPrintFromTruth( &That, nThat );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(),  "\n"  );
 }
 static inline void Abc_TtProcessBiDecExperiment()
 {

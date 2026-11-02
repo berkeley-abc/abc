@@ -80,7 +80,7 @@ static Vec_Bit_t * Wlc_NtkAbsMarkOpers( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bi
         }
     }
     if ( fVerbose )
-        printf( "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away.\n", Count[0], Count[1], Count[2], Count[3] );
+        fprintf( Abc_FrameGlobalGetOut(), "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away.\n", Count[0], Count[1], Count[2], Count[3] );
     return vLeaves;
 }
 
@@ -324,7 +324,7 @@ int Wlc_NtkAbsCore2( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         Wlc_Ntk_t * pAbs;
 
         if ( pPars->fVerbose )
-            printf( "\nIteration %d:\n", nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "\nIteration %d:\n", nIters );
 
         // get abstracted GIA and the set of pseudo-PIs (vPisNew)
         pAbs = Wlc_NtkAbs( p, pPars, vUnmark, &vPisNew, pPars->fVerbose );
@@ -348,7 +348,7 @@ int Wlc_NtkAbsCore2( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         }
         if ( pPars->fVerbose )
         {
-            printf( "Derived abstraction with %d objects and %d PPIs. Bit-blasted AIG stats are:\n", Wlc_NtkObjNum(pAbs), Vec_IntSize(vPisNew) ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Derived abstraction with %d objects and %d PPIs. Bit-blasted AIG stats are:\n", Wlc_NtkObjNum(pAbs), Vec_IntSize(vPisNew) ); 
             Gia_ManPrintStats( pGia, NULL );
         }
         Wlc_NtkFree( pAbs );
@@ -381,22 +381,22 @@ int Wlc_NtkAbsCore2( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         // update the set of objects to be un-abstracted
         nNodes = Wlc_NtkRemoveFromAbstraction( p, vRefine, vUnmark );
         if ( pPars->fVerbose )
-            printf( "Refinement of CEX in frame %d came up with %d un-abstacted PPIs, whose MFFCs include %d objects.\n", pCex->iFrame, Vec_IntSize(vRefine), nNodes );
+            fprintf( Abc_FrameGlobalGetOut(), "Refinement of CEX in frame %d came up with %d un-abstacted PPIs, whose MFFCs include %d objects.\n", pCex->iFrame, Vec_IntSize(vRefine), nNodes );
         Vec_IntFree( vRefine );
         Abc_CexFree( pCex );
     }
     Vec_BitFree( vUnmark );
     // report the result
     if ( pPars->fVerbose )
-        printf( "\n" );
-    printf( "Abstraction " );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Abstraction " );
     if ( RetValue == 0 )
-        printf( "resulted in a real CEX" );
+        fprintf( Abc_FrameGlobalGetOut(), "resulted in a real CEX" );
     else if ( RetValue == 1 )
-        printf( "is successfully proved" );
+        fprintf( Abc_FrameGlobalGetOut(), "is successfully proved" );
     else 
-        printf( "timed out" );
-    printf( " after %d iterations. ", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "timed out" );
+    fprintf( Abc_FrameGlobalGetOut(), " after %d iterations. ", nIters );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return RetValue;
 }

@@ -326,7 +326,7 @@ namespace eSLIM {
       std::cout << "Stop eSLIM runs after " << config.iterations << " iterations.\n";
     }
     std::cout << "Consider subcircuits with up to " << config.subcircuit_max_size << " gates.\n";
-    printf("When expanding subcircuits, select gates with a probability of %.2f %%.\n", 100 * config.expansion_probability);
+    fprintf( Abc_FrameGlobalGetOut(), "When expanding subcircuits, select gates with a probability of %.2f %%.\n", 100 * config.expansion_probability );
   }
 
   template <typename Approach, typename Inprocessor>
@@ -369,17 +369,17 @@ namespace eSLIM {
       std::cout << "Total relation generation time (s): " << log.relation_generation_time << "\n";
       std::cout << "Total synthesis time (s): " << log.synthesis_time << "\n";
       std::cout << "#Iterations with forbidden pairs: " << log.subcircuits_with_forbidden_pairs << "\n";
-      printf("Relation generation: #SAT-calls: %llu, Total SAT-time: %.2f sec, Max SAT-time: %.4f sec ",  
+      fprintf(Abc_FrameGlobalGetOut(), "Relation generation: #SAT-calls: %llu, Total SAT-time: %.2f sec, Max SAT-time: %.4f sec ",  
             static_cast<unsigned long long>(log.nof_sat_calls_relation_generation), log.cummulative_sat_runtime_relation_generation, log.max_sat_runtime_relation_generation);
       if (log.nof_sat_calls_relation_generation > 0) {
-        printf("Avg. SAT-time: %.4f sec\n", log.cummulative_sat_runtime_relation_generation/log.nof_sat_calls_relation_generation);
+        fprintf(Abc_FrameGlobalGetOut(), "Avg. SAT-time: %.4f sec\n", log.cummulative_sat_runtime_relation_generation/log.nof_sat_calls_relation_generation);
       } else {
         std::cout << "Avg. SAT-time: -\n";
       }
-      printf("Synthesis: #SAT-calls: %llu, Total SAT-time: %.2f sec, Max SAT-time: %.4f sec ",  
+      fprintf( Abc_FrameGlobalGetOut(), "Synthesis: #SAT-calls: %llu, Total SAT-time: %.2f sec, Max SAT-time: %.4f sec ",  
             static_cast<unsigned long long>(log.nof_sat_calls_synthesis), log.cummulative_sat_runtime_synthesis / 1000, log.max_sat_runtime_synthesis / 1000);  
       if (log.nof_sat_calls_synthesis > 0) {
-        printf("Avg. SAT-time: %.4f sec\n", log.cummulative_sat_runtime_synthesis / (log.nof_sat_calls_synthesis*1000));
+        fprintf( Abc_FrameGlobalGetOut(), "Avg. SAT-time: %.4f sec\n", log.cummulative_sat_runtime_synthesis / (log.nof_sat_calls_synthesis*1000));
       } else {
         std::cout << "Avg. SAT-time: -\n";
       }
@@ -393,7 +393,7 @@ namespace eSLIM {
         if (log.nof_relation_generations_per_size[i] == 0) {
           std::cout << "-";
         } else {
-          printf("%.2f sec",  static_cast<double>(log.cummulative_relation_generation_times_per_size[i]) / (log.nof_relation_generations_per_size[i]));
+          fprintf( Abc_FrameGlobalGetOut(), "%.2f sec",  static_cast<double>(log.cummulative_relation_generation_times_per_size[i]) / (log.nof_relation_generations_per_size[i]) );
         }
         std::cout << "\n";
       }
@@ -402,13 +402,13 @@ namespace eSLIM {
         if (log.nof_sat_calls_per_size[i] == 0) {
           std::cout << "-";
         } else {
-          printf("%.2f sec",  static_cast<double>(log.cummulative_sat_runtimes_per_size[i]) / (1000 * log.nof_sat_calls_per_size[i]));
+          fprintf( Abc_FrameGlobalGetOut(), "%.2f sec",  static_cast<double>(log.cummulative_sat_runtimes_per_size[i]) / (1000 * log.nof_sat_calls_per_size[i]) );
         }
         std::cout << " / avg. unsat time: ";
         if (log.nof_unsat_calls_per_size[i] == 0) {
           std::cout << "-";
         } else {
-          printf("%.2f sec",  static_cast<double>(log.cummulative_unsat_runtimes_per_size[i]) / (1000 * log.nof_unsat_calls_per_size[i]));
+          fprintf( Abc_FrameGlobalGetOut(), "%.2f sec",  static_cast<double>(log.cummulative_unsat_runtimes_per_size[i]) / (1000 * log.nof_unsat_calls_per_size[i]) );
         }
         std::cout << "\n";
       }

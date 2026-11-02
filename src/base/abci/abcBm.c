@@ -312,7 +312,7 @@ int oSplitByDep(Abc_Ntk_t *pNtk, Vec_Int_t** oDep, Vec_Int_t** oMatch, int* oGro
             Vec_IntPushUniqueOrder(sortedArray, encode);
 
             if( encode < 0)
-                printf("WARNING! Integer overflow!");
+                fprintf( Abc_FrameGlobalGetOut(), "WARNING! Integer overflow!");
 
             //printf("%d ", Vec_IntEntry(array, j));
         }                
@@ -950,7 +950,7 @@ int Abc_NtkMiterSatBm( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nIn
     }
     // free the sat_solver
     if ( fVerbose )
-        Sat_SolverPrintStats( stdout, pSat );
+        Sat_SolverPrintStats( Abc_FrameGlobalGetOut(), pSat );
 
     if ( pNumConfs )
         *pNumConfs = (int)pSat->stats.conflicts;
@@ -1008,7 +1008,7 @@ int Abc_NtkBmSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Vec_Ptr_t * iMatchPairs,
 
     if ( pMiter == NULL )
     {
-        printf("Miter computation has failed.");        
+        fprintf( Abc_FrameGlobalGetOut(), "Miter computation has failed.");        
         return -1;
     }
     RetValue = Abc_NtkMiterIsConstant( pMiter );
@@ -1038,7 +1038,7 @@ int Abc_NtkBmSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Vec_Ptr_t * iMatchPairs,
     Abc_NtkDelete( pMiter );
     if ( pCnf == NULL )
     {        
-        printf("Renoding for CNF has failed.");    
+        fprintf( Abc_FrameGlobalGetOut(), "Renoding for CNF has failed.");    
         return -1;
     }
 
@@ -1085,9 +1085,9 @@ int checkEquivalence( Abc_Ntk_t * pNtk1, Vec_Int_t* matchedInputs1, Vec_Int_t * 
     result = Abc_NtkBmSat(pNtk1, pNtk2, iMatchPairs, oMatchPairs, NULL, 0);
 
     if( result )
-        printf("*** Circuits are equivalent ***\n");
+        fprintf( Abc_FrameGlobalGetOut(), "*** Circuits are equivalent ***\n");
     else
-        printf("*** Circuits are NOT equivalent ***\n");
+        fprintf( Abc_FrameGlobalGetOut(), "*** Circuits are NOT equivalent ***\n");
 
     Vec_PtrFree( iMatchPairs );
     Vec_PtrFree( oMatchPairs );    
@@ -1836,28 +1836,28 @@ void bmGateWay( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int p_equivalence )
     /************* Strashing ************/    
     pNtk1 = Abc_NtkStrash( pNtk1, 0, 0, 0 );    
     pNtk2 = Abc_NtkStrash( pNtk2, 0, 0, 0 );            
-    printf("Network  strashing is done!\n");    
+    fprintf( Abc_FrameGlobalGetOut(), "Network  strashing is done!\n");    
     /************************************/    
     
     /******* Getting Dependencies *******/    
     getDependencies(pNtk1, iDep1, oDep1);
     getDependencies(pNtk2, iDep2, oDep2);            
-    printf("Getting dependencies is done!\n");    
+    fprintf( Abc_FrameGlobalGetOut(), "Getting dependencies is done!\n");    
     /************************************/
 
     /***** Intializing match lists ******/    
     initMatchList(pNtk1, iDep1, oDep1, iMatch1, &iLastItem1, oMatch1, &oLastItem1, iGroup1, oGroup1, p_equivalence);            
     initMatchList(pNtk2, iDep2, oDep2, iMatch2, &iLastItem2, oMatch2, &oLastItem2, iGroup2, oGroup2, p_equivalence);    
-    printf("Initializing match lists is done!\n");        
+    fprintf( Abc_FrameGlobalGetOut(), "Initializing match lists is done!\n");        
     /************************************/
 
     if( !checkListConsistency(iMatch1, oMatch1, iMatch2, oMatch2, iLastItem1, oLastItem1, iLastItem2, oLastItem2) )
     {
-        fprintf( stdout, "I/O dependencies of two circuits are different.\n");
+        fprintf( Abc_FrameGlobalGetOut(), "I/O dependencies of two circuits are different.\n" );
         goto freeAndExit;
     }        
 
-    printf("Refining IOs by dependencies ...");                
+    fprintf( Abc_FrameGlobalGetOut(), "Refining IOs by dependencies ...");                
     // split match lists further by checking dependencies
     do
     {
@@ -1896,14 +1896,14 @@ void bmGateWay( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int p_equivalence )
             
             if(!checkListConsistency(iMatch1, oMatch1, iMatch2, oMatch2, iLastItem1, oLastItem1, iLastItem2, oLastItem2))
             {
-                fprintf( stdout, "I/O dependencies of two circuits are different.\n");
+                fprintf( Abc_FrameGlobalGetOut(), "I/O dependencies of two circuits are different.\n" );
                 goto freeAndExit;
             }        
         }while(iNumOfItemsAdded != 0 || oNumOfItemsAdded != 0);
 
     }while(0);
 
-    printf(" done!\n");
+    fprintf( Abc_FrameGlobalGetOut(), " done!\n");
 
     initTime = ((float)(Abc_Clock() - clk)/(float)(CLOCKS_PER_SEC));    
     clk = Abc_Clock();
@@ -1911,7 +1911,7 @@ void bmGateWay( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int p_equivalence )
     topOrder1 = findTopologicalOrder(pNtk1);
     topOrder2 = findTopologicalOrder(pNtk2);
 
-    printf("Refining IOs by simulation ...");                
+    fprintf( Abc_FrameGlobalGetOut(), "Refining IOs by simulation ...");                
 
     do
     {
@@ -1926,7 +1926,7 @@ void bmGateWay( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int p_equivalence )
                 
                 if(Vec_IntSize(iMatch1[i]) != Vec_IntSize(iMatch2[i]))
                 {
-                    fprintf( stdout, "Input refinement by simulation finds two circuits different.\n");                
+                    fprintf( Abc_FrameGlobalGetOut(), "Input refinement by simulation finds two circuits different.\n" );                
                     goto freeAndExit;
                 }
                 
@@ -1948,25 +1948,25 @@ void bmGateWay( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int p_equivalence )
             if(ioSuccess1 != ioSuccess2 ||
                !checkListConsistency(iMatch1, oMatch1, iMatch2, oMatch2, iLastItem1, oLastItem1, iLastItem2, oLastItem2))
             {
-                fprintf( stdout, "Input refinement by simulation finds two circuits different.\n");                
+                fprintf( Abc_FrameGlobalGetOut(), "Input refinement by simulation finds two circuits different.\n" );                
                 goto freeAndExit;
             }
         }while(counter <= 200);                
         
     }while(0);    
 
-    printf(" done!\n");
+    fprintf( Abc_FrameGlobalGetOut(), " done!\n");
     
     simulTime = (float)(Abc_Clock() - clk)/(float)(CLOCKS_PER_SEC);
-    printf("SAT-based search started ...\n");
+    fprintf( Abc_FrameGlobalGetOut(), "SAT-based search started ...\n");
 
     satTime = refineBySAT(pNtk1, iMatch1, iGroup1, iDep1, &iLastItem1, oMatch1, oGroup1, oDep1, &oLastItem1, observability1,
                                   pNtk2, iMatch2, iGroup2, iDep2, &iLastItem2, oMatch2, oGroup2, oDep2, &oLastItem2, observability2);
 
-    printf( "Init Time = %4.2f\n", initTime );    
-    printf( "Simulation Time = %4.2f\n", simulTime );
-    printf( "SAT Time = %4.2f\n", satTime );
-    printf( "Overall Time = %4.2f\n", initTime + simulTime + satTime );
+    fprintf( Abc_FrameGlobalGetOut(), "Init Time = %4.2f\n", initTime );    
+    fprintf( Abc_FrameGlobalGetOut(), "Simulation Time = %4.2f\n", simulTime );
+    fprintf( Abc_FrameGlobalGetOut(), "SAT Time = %4.2f\n", satTime );
+    fprintf( Abc_FrameGlobalGetOut(), "Overall Time = %4.2f\n", initTime + simulTime + satTime );
     
 freeAndExit:
 

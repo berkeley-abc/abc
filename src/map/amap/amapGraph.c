@@ -335,7 +335,7 @@ void Amap_ManCreate( Amap_Man_t * p, Aig_Man_t * pAig )
     if ( p->pPars->fVerbose )
     {
         if ( 1.0 * Aig_ManObjNum(pAig) * sizeof(Amap_Obj_t) / (1<<30) > 0.1 )
-        printf( "Warning: Mapper allocates %.3f GB for subject graph with %d objects.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Mapper allocates %.3f GB for subject graph with %d objects.\n", 
             1.0 * Aig_ManObjNum(pAig) * sizeof(Amap_Obj_t) / (1<<30), Aig_ManObjNum(pAig) );
     }
     // create PIs and remember them in the old nodes
@@ -386,7 +386,7 @@ void Amap_ManCreate( Amap_Man_t * p, Aig_Man_t * pAig )
     Aig_ManForEachCo( pAig, pObj, i )
         pObj->pData = Amap_ManCreatePo( p, (Amap_Obj_t *)Aig_ObjChild0Copy(pObj) );
     if ( p->pPars->fVerbose )
-        printf( "Performing mapping with %d given and %d created choices.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Performing mapping with %d given and %d created choices.\n", 
             p->nChoicesGiven, p->nChoicesAdded );
 }
 

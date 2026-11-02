@@ -240,8 +240,8 @@ void Nwk_ObjPatchFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFaninOld, Nwk_Obj_t * pFa
     iFanin = Nwk_ObjFindFanin( pObj, pFaninOld );
     if ( iFanin == -1 )
     {
-        printf( "Nwk_ObjPatchFanin(); Error! Node %d is not among", pFaninOld->Id );
-        printf( " the fanins of node %d...\n", pObj->Id );
+        fprintf( Abc_FrameGlobalGetOut(), "Nwk_ObjPatchFanin(); Error! Node %d is not among", pFaninOld->Id );
+        fprintf( Abc_FrameGlobalGetOut(), " the fanins of node %d...\n", pObj->Id );
         return;
     }
     pObj->pFanio[iFanin] = pFaninNew;

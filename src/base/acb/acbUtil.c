@@ -258,7 +258,7 @@ Vec_Int_t * Acb_NamesToIds( Acb_Ntk_t * pNtk, Vec_Int_t * vNamesInv, Vec_Ptr_t *
         int NameId = Acb_NtkStrId(pNtk, pName);
         int iObjId = 0;
         if ( NameId < 1 )
-            printf( "Cannot find name \"%s\" in the network \"%s\".\n", pName, pNtk->pDesign->pName );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot find name \"%s\" in the network \"%s\".\n", pName, pNtk->pDesign->pName );
         else
             iObjId = Vec_IntEntry( vNamesInv, NameId );
         Vec_IntPush( vRes, iObjId );
@@ -497,13 +497,13 @@ void Acb_NtkPrintPaths( Acb_Ntk_t * p )
     int iObj;
     Acb_NtkForEachObj( p, iObj )
     {
-        printf( "Obj = %5d :   ",   iObj );
-        printf( "LevelD = %5d  ",   Acb_ObjLevelD(p, iObj) );
-        printf( "LevelR = %5d    ", Acb_ObjLevelR(p, iObj) );
-        printf( "PathD = %5d  ",    Acb_ObjPathD(p, iObj) );
-        printf( "PathR = %5d    ",  Acb_ObjPathR(p, iObj) );
-        printf( "Paths = %5d  ",    Acb_ObjPathD(p, iObj) * Acb_ObjPathR(p, iObj) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Obj = %5d :   ",   iObj );
+        fprintf( Abc_FrameGlobalGetOut(), "LevelD = %5d  ",   Acb_ObjLevelD(p, iObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "LevelR = %5d    ", Acb_ObjLevelR(p, iObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "PathD = %5d  ",    Acb_ObjPathD(p, iObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "PathR = %5d    ",  Acb_ObjPathR(p, iObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "Paths = %5d  ",    Acb_ObjPathD(p, iObj) * Acb_ObjPathR(p, iObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -527,7 +527,7 @@ void Abc_NtkComputePaths( Abc_Ntk_t * p )
     Acb_Ntk_t * pNtk = Acb_NtkFromAbc( p );
     Acb_NtkCreateFanout( pNtk );
     Acb_NtkCleanObjCounts( pNtk );
-    printf( "Computed %d paths.\n", Acb_NtkComputePaths(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "Computed %d paths.\n", Acb_NtkComputePaths(pNtk) );
     Acb_NtkPrintPaths( pNtk );
     Acb_ManFree( pNtk->pDesign );
 }
@@ -629,10 +629,10 @@ void Acb_NtkUpdateTiming( Acb_Ntk_t * p, int iObj )
 void Acb_NtkPrintNode( Acb_Ntk_t * p, int iObj )
 {
     int k, iFanin, * pFanins; 
-    printf( "Node %5d : ", iObj );
+    fprintf( Abc_FrameGlobalGetOut(), "Node %5d : ", iObj );
     Acb_ObjForEachFaninFast( p, iObj, pFanins, iFanin, k )
-        printf( "%d ", iFanin );
-    printf( "LevelD = %d. LevelR = %d.\n", Acb_ObjLevelD(p, iObj), Acb_ObjLevelR(p, iObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", iFanin );
+    fprintf( Abc_FrameGlobalGetOut(), "LevelD = %d. LevelR = %d.\n", Acb_ObjLevelD(p, iObj), Acb_ObjLevelR(p, iObj) );
 }
 int Acb_NtkCreateNode( Acb_Ntk_t * p, word uTruth, Vec_Int_t * vSupp )
 {
@@ -1083,14 +1083,14 @@ void Acb_NtkInsert( char * pFileNameIn, char * pFileNameOut, Vec_Ptr_t * vNames,
     FILE * pFile = fopen( pFileNameOut, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open output file \"%s\".\n", pFileNameOut );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileNameOut );
         return;
     }
     pBuffer = Extra_FileReadContents( pFileNameIn );
     if ( pBuffer == NULL )
     {
         fclose( pFile );
-        printf( "Cannot open input file \"%s\".\n", pFileNameIn );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\".\n", pFileNameIn );
         return;
     }
     if ( fSkipMffc )
@@ -1190,7 +1190,7 @@ void Acb_Ntk4DumpWeightsInt( Acb_Ntk_t * pNtk, Vec_Int_t * vObjs, char * pFileNa
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Canont open input file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Canont open input file \"%s\".\n", pFileName );
         return;
     }
     vStart = Vec_IntAlloc( 100 );

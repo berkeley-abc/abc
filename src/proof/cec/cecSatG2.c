@@ -189,11 +189,11 @@ void Cec4_EvalPatterns( Gia_Man_t * p, Vec_Int_t * vPats, int nPats )
         int CountThis = Abc_TtCountOnesVec( Vec_WrdEntryP(vSimsPo, i*nWords), nWords );
         if ( CountThis == 0 )
             continue;
-        printf( "%d ", CountThis );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", CountThis );
         nErrors += CountThis;
         Count++;
     }
-    printf( "\nDetected %d error POs with %d errors (average %.2f).\n", Count, nErrors, 1.0*nErrors/Abc_MaxInt(1, Count) );
+    fprintf( Abc_FrameGlobalGetOut(), "\nDetected %d error POs with %d errors (average %.2f).\n", Count, nErrors, 1.0*nErrors/Abc_MaxInt(1, Count) );
     Vec_WrdFree( vSimsPi );
     Vec_WrdFree( vSimsPo );
 }
@@ -319,7 +319,7 @@ void Cec4_ManDestroy( Cec4_Man_t * p )
         ABC_PRTP( "Resim local  ", p->timeResimLoc,  timeTotal );
         ABC_PRTP( "Other        ", timeOther,        timeTotal );
         ABC_PRTP( "TOTAL        ", timeTotal,        timeTotal );
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     //printf( "Recorded %d patterns with %d literals (average %.2f).\n", 
     //    p->pAig->nBitPats, Vec_IntSize(p->pAig->vPats) - 2*p->pAig->nBitPats, 1.0*Vec_IntSize(p->pAig->vPats)/Abc_MaxInt(1, p->pAig->nBitPats)-2 );
@@ -1042,10 +1042,10 @@ void Cec4_ManPrintTfiConeStats( Gia_Man_t * p )
         Gia_ClassForEachObj1( p, i, k )
             Vec_IntPush( vRoots, k );
         Gia_ManCollectTfi( p, vRoots, vNodes );
-        printf( "Class %6d : ", i );
-        printf( "Roots = %6d  ", Vec_IntSize(vRoots) );
-        printf( "Nodes = %6d  ", Vec_IntSize(vNodes) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Class %6d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Roots = %6d  ", Vec_IntSize(vRoots) );
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes = %6d  ", Vec_IntSize(vNodes) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_IntFree( vRoots );
     Vec_IntFree( vNodes );
@@ -1073,17 +1073,17 @@ void Cec4_ManPrintStats( Gia_Man_t * p, Cec_ParFra_t * pPars, Cec4_Man_t * pMan,
     nLits = Gia_ManObjNum(p) - Counter - CounterX;
     if ( fSim )
     {
-        printf( "Sim %4d : ",     pMan->nItersSim++ + pMan->nItersSat );
-        printf( "%6.2f %%  ", 100.0*nLits/Gia_ManCandNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "Sim %4d : ",     pMan->nItersSim++ + pMan->nItersSat );
+        fprintf( Abc_FrameGlobalGetOut(), "%6.2f %%  ", 100.0*nLits/Gia_ManCandNum(p) );
     }
     else
     {
-        printf( "SAT %4d : ",     pMan->nItersSim + pMan->nItersSat++ );
-        printf( "%6.2f %%  ", 100.0*pMan->nAndNodes/Gia_ManAndNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "SAT %4d : ",     pMan->nItersSim + pMan->nItersSat++ );
+        fprintf( Abc_FrameGlobalGetOut(), "%6.2f %%  ", 100.0*pMan->nAndNodes/Gia_ManAndNum(p) );
     }
-    printf( "P =%7d  ",   pMan ? pMan->nSatUnsat : 0 );
-    printf( "D =%7d  ",   pMan ? pMan->nSatSat   : 0 );
-    printf( "F =%8d  ",   pMan ? pMan->nSatUndec : 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "P =%7d  ",   pMan ? pMan->nSatUnsat : 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "D =%7d  ",   pMan ? pMan->nSatSat   : 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "F =%8d  ",   pMan ? pMan->nSatUndec : 0 );
     //printf( "Last =%6d  ", pMan ? pMan->iLastConst : 0 );
     Abc_Print( 1, "cst =%9d  cls =%8d  lit =%9d   ",  Counter0, Counter, nLits );
     Abc_PrintTime( 1, "Time", clkThis );
@@ -1093,10 +1093,10 @@ void Cec4_ManPrintClasses2( Gia_Man_t * p )
     int i, k;
     Gia_ManForEachClass0( p, i )
     {
-        printf( "Class %d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Class %d : ", i );
         Gia_ClassForEachObj1( p, i, k )
-            printf( "%d ", k );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", k );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void Cec4_ManPrintClasses( Gia_Man_t * p )
@@ -1104,7 +1104,7 @@ void Cec4_ManPrintClasses( Gia_Man_t * p )
     int k, Count = 0;
     Gia_ClassForEachObj1( p, 0, k )
         Count++;
-    printf( "Const0 class has %d entries.\n", Count );
+    fprintf( Abc_FrameGlobalGetOut(), "Const0 class has %d entries.\n", Count );
 }
 
 
@@ -1141,7 +1141,7 @@ void Cec4_ManVerify( Gia_Man_t * p, int iObj0, int iObj1, int fPhase, sat_solver
     Value0 = Cec4_ManVerify_rec( p, iObj0, pSat );
     Value1 = Cec4_ManVerify_rec( p, iObj1, pSat );
     if ( (Value0 ^ Value1) == fPhase )
-        printf( "CEX verification FAILED for obj %d and obj %d.\n", iObj0, iObj1 );
+        fprintf( Abc_FrameGlobalGetOut(), "CEX verification FAILED for obj %d and obj %d.\n", iObj0, iObj1 );
 //    else
 //        printf( "CEX verification succeeded for obj %d and obj %d.\n", iObj0, iObj1 );;
 }
@@ -1180,7 +1180,7 @@ void Cec4_ManCexVerify( Gia_Man_t * p, int iObj0, int iObj1, int fPhase )
     Value0 = Cec4_ManCexVerify_rec( p, iObj0 );
     Value1 = Cec4_ManCexVerify_rec( p, iObj1 );
     if ( (Value0 ^ Value1) == fPhase )
-        printf( "CEX verification FAILED for obj %d and obj %d.\n", iObj0, iObj1 );
+        fprintf( Abc_FrameGlobalGetOut(), "CEX verification FAILED for obj %d and obj %d.\n", iObj0, iObj1 );
 //    else
 //        printf( "CEX verification succeeded for obj %d and obj %d.\n", iObj0, iObj1 );;
 }
@@ -1254,7 +1254,7 @@ int Cec4_ManPackAddPattern( Gia_Man_t * p, Vec_Int_t * vLits, int fExtend )
     {
         p->iPatsPi = k;
         if ( !Cec4_ManPackAddPatternTry( p, p->iPatsPi, vLits ) )
-            printf( "Internal error.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Internal error.\n" );
         else if ( fExtend )
             Cec4_ManPackAddPatterns( p, p->iPatsPi, vLits );
         return 64 * p->nSimWords;
@@ -1822,7 +1822,7 @@ void Cec4_ManSimulateDumpInfo( Cec4_Man_t * pMan )
     Vec_Wrd_t * vSims = NULL, * vSimsPi = NULL;
     FILE * pFile = fopen( pMan->pPars->pDumpName, "wb" );
     if ( pFile == NULL ) {
-        printf( "Cannot open file \"%s\" for writing primary output information.\n", pMan->pPars->pDumpName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing primary output information.\n", pMan->pPars->pDumpName );
         return;
     }
     vSimsPi = Vec_WrdDup( pMan->pAig->vSimsPi );
@@ -1852,7 +1852,7 @@ void Cec4_ManSimulateDumpInfo( Cec4_Man_t * pMan )
         }
         fprintf( pFile, "\n" );
     }
-    printf( "Information about %d sat, %d unsat, and %d undecided primary outputs was written into file \"%s\".\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Information about %d sat, %d unsat, and %d undecided primary outputs was written into file \"%s\".\n", 
         nOuts[1], nOuts[0], Gia_ManCoNum(pMan->pAig)-nOuts[1]-nOuts[0], pMan->pPars->pDumpName );
     fclose( pFile );
     Vec_WrdFree( vSims );
@@ -1865,7 +1865,7 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
     Gia_Obj_t * pObj, * pRepr; 
     int i, fSimulate = 1, Id;
     if ( pPars->fVerbose )
-        printf( "Solver type = %d. Simulate %d words in %d rounds. SAT with %d confs. Recycle after %d SAT calls.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Solver type = %d. Simulate %d words in %d rounds. SAT with %d confs. Recycle after %d SAT calls.\n", 
             pPars->jType, pPars->nWords, pPars->nRounds, pPars->nBTLimit, pPars->nCallsRecycle );
 
     // this is currently needed to have a correct mapping
@@ -2028,7 +2028,7 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
     }
 finalize:
     if ( pPars->fVerbose )
-        printf( "SAT calls = %d:  P = %d (0=%d a=%.2f m=%d)  D = %d (0=%d a=%.2f m=%d)  F = %d   Sim = %d  Recyc = %d  Xor = %.2f %%\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "SAT calls = %d:  P = %d (0=%d a=%.2f m=%d)  D = %d (0=%d a=%.2f m=%d)  F = %d   Sim = %d  Recyc = %d  Xor = %.2f %%\n", 
             pMan->nSatUnsat + pMan->nSatSat + pMan->nSatUndec, 
             pMan->nSatUnsat, pMan->nConflicts[1][0], (float)pMan->nConflicts[1][1]/Abc_MaxInt(1, pMan->nSatUnsat-pMan->nConflicts[1][0]), pMan->nConflicts[1][2],
             pMan->nSatSat,   pMan->nConflicts[0][0], (float)pMan->nConflicts[0][1]/Abc_MaxInt(1, pMan->nSatSat  -pMan->nConflicts[0][0]), pMan->nConflicts[0][2],  
@@ -2044,7 +2044,7 @@ finalize:
         Gia_AigerWrite( pM, pFileName, 0, 0, 0 );
         Gia_ManStop( pM );
         ABC_FREE( pBase );
-        printf( "Dumped miter \"%s\" with %d pairs.\n", pFileName, pMan->vPairs ? Vec_IntSize(pMan->vPairs)/2 : -1 );
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped miter \"%s\" with %d pairs.\n", pFileName, pMan->vPairs ? Vec_IntSize(pMan->vPairs)/2 : -1 );
     }
     if ( pPars->pDumpName )
         Cec4_ManSimulateDumpInfo( pMan );
@@ -2186,7 +2186,7 @@ Vec_Int_t * Cec4_ManComputeMapping( Gia_Man_t * p, Gia_Man_t * pAig, int fVerbos
     }
     ABC_FREE( pAig2Abc );
     if ( fVerbose )
-        printf( "Found %d const reprs and %d other reprs.\n", nConsts, nReprs );
+        fprintf( Abc_FrameGlobalGetOut(), "Found %d const reprs and %d other reprs.\n", nConsts, nReprs );
     return vReprs;
 }
 void Cec4_ManVerifyEquivs( Gia_Man_t * p, Vec_Int_t * vRes, int fVerbose )
@@ -2213,9 +2213,9 @@ void Cec4_ManVerifyEquivs( Gia_Man_t * p, Vec_Int_t * vRes, int fVerbose )
     Vec_WrdFree( vSimsCi );
     Vec_WrdFree( vSims );
     if ( nFails )
-        printf( "Verification failed at %d nodes.\n", nFails );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification failed at %d nodes.\n", nFails );
     else if ( fVerbose )
-        printf( "Verification succeeded for all (%d) nodes.\n", Gia_ManCandNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification succeeded for all (%d) nodes.\n", Gia_ManCandNum(p) );
 }
 void Cec4_ManConvertToLits( Gia_Man_t * p, Vec_Int_t * vRes )
 {
@@ -2351,12 +2351,12 @@ char * extractSOP( DdManager * dd, DdNode * bFunc, int nFanins, int polarity, in
 
     if ( pSop == NULL || nFanins != Abc_SopGetVarNum( pSop )){
         if ( pSop == NULL )
-          printf("SOP generation failed.\n");
+          fprintf( Abc_FrameGlobalGetOut(), "SOP generation failed.\n");
         else {
           ABC_FREE( pSop );
-          printf( "Node has %d fanins but its SOP has support size %d.\n", nFanins, Abc_SopGetVarNum( pSop ));
+          fprintf( Abc_FrameGlobalGetOut(),  "Node has %d fanins but its SOP has support size %d.\n", nFanins, Abc_SopGetVarNum( pSop ));
         }
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
         Vec_StrFree( vCube );
         return NULL;
     }
@@ -2903,7 +2903,7 @@ int evaluate_equiv_classes(Gia_Man_t * p, int verbose){
     }
 
     if (verbose)
-      printf("**Quality = %d\n", quality);
+      fprintf( Abc_FrameGlobalGetOut(), "**Quality = %d\n", quality);
 
     return quality;
 }
@@ -2988,7 +2988,7 @@ void executeRandomSim( Gia_Man_t * p, Cec4_Man_t * pMan , int dynSim, int nMaxIt
       Cec4_ManSimulate( p, pMan );
       int quality = evaluate_equiv_classes(p, 0);
       if (verbose)
-        printf("Time elapsed: %f (classes size: %d)\n", (float)(clock() - start_time)/CLOCKS_PER_SEC, quality);
+        fprintf( Abc_FrameGlobalGetOut(), "Time elapsed: %f (classes size: %d)\n", (float)(clock() - start_time)/CLOCKS_PER_SEC, quality);
       numClass = totalNumClasses(p);
       iNumber++;
       Gia_ManForEachCiId( p, Id, j ){
@@ -3008,7 +3008,7 @@ void executeRandomSim( Gia_Man_t * p, Cec4_Man_t * pMan , int dynSim, int nMaxIt
       int quality = evaluate_equiv_classes(p, 0);
       Cec_RemoveNonLutNodes( p );
       if (verbose)
-        printf("Time elapsed: %f (classes size: %d)\n", (float)(clock() - start_time)/CLOCKS_PER_SEC, quality);
+        fprintf( Abc_FrameGlobalGetOut(), "Time elapsed: %f (classes size: %d)\n", (float)(clock() - start_time)/CLOCKS_PER_SEC, quality);
       Gia_ManForEachCiId( p, Id, j ){
         Vec_Wrd_t * vSimPI = (Vec_Wrd_t *) Vec_PtrEntry( vSimSave, j );
         word * pSim = Cec4_ObjSim( p, Id );
@@ -3690,7 +3690,7 @@ int computeNetworkValues(Gia_Man_t * p, Cec_ParSimGen_t * pPars, int ObjId ,  ch
     assert(  *netValid > 0 );
 
     if( Gia_ObjIsCi( Gia_ManObj(p, ObjId) ) ){
-      printf("[ERROR] It is not possible to call computeNetworkValues for PIs");
+      fprintf( Abc_FrameGlobalGetOut(), "[ERROR] It is not possible to call computeNetworkValues for PIs");
       return -1;
     }
     char * pSopBoth[2]; int nCubesBoth[2];
@@ -3979,7 +3979,7 @@ int computeInputVectors(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pPar
         char difference_valid = orig_netValid ^ netValid;
         if( difference_valid == orig_netValid){
           if(pPars->fVeryVerbose)
-            printf("FAILED 0 out of %d - node %d (gold = %d valid = %d)\n", outGold_bitwidth, jLut, jLutGold, netValid);
+            fprintf( Abc_FrameGlobalGetOut(), "FAILED 0 out of %d - node %d (gold = %d valid = %d)\n", outGold_bitwidth, jLut, jLutGold, netValid);
         } else if( difference_valid != 0){
           int jjj = 0, iLut;
           Vec_IntForEachEntry( modifiedLuts, iLut, jjj ){
@@ -4003,7 +4003,7 @@ int computeInputVectors(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pPar
             }
           }
           if(pPars->fVeryVerbose)
-            printf("SUCCESSFUL %d out of %d - node %d (gold = %d valid = %d)\n", outGold_bitwidth - different, outGold_bitwidth, jLut, jLutGold, netValid);
+            fprintf( Abc_FrameGlobalGetOut(), "SUCCESSFUL %d out of %d - node %d (gold = %d valid = %d)\n", outGold_bitwidth - different, outGold_bitwidth, jLut, jLutGold, netValid);
         } else {
           if(lastjGold != jLutGold){
             success += 1;
@@ -4012,7 +4012,7 @@ int computeInputVectors(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pPar
           memcpy(networkValues1s, networkValues1sCopy, sizeof(char) * Gia_ManObjNum(p));
           memcpy(networkValuesNotSet, networkValuesNotSetCopy, sizeof(char) * Gia_ManObjNum(p));
           if(pPars->fVeryVerbose)
-            printf("SUCCESSFUL %d out of %d - node %d (gold = %d valid = %d)\n", outGold_bitwidth, outGold_bitwidth, jLut, jLutGold, netValid);
+            fprintf( Abc_FrameGlobalGetOut(), "SUCCESSFUL %d out of %d - node %d (gold = %d valid = %d)\n", outGold_bitwidth, outGold_bitwidth, jLut, jLutGold, netValid);
         }
 
 
@@ -4036,7 +4036,7 @@ int computeInputVectors(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pPar
         }
         validAssignments = ~( luts_values ^ out_gold_values ) & networkValid;
         if(pPars->fVeryVerbose)
-          printf("(1) SUCCESSFUL %d out of %d - node %d (gold = %d valid = %d)\n", numOnes, outGold_bitwidth, jLut, jLutGold, validAssignments);
+          fprintf( Abc_FrameGlobalGetOut(), "(1) SUCCESSFUL %d out of %d - node %d (gold = %d valid = %d)\n", numOnes, outGold_bitwidth, jLut, jLutGold, validAssignments);
       }
 
       iii++;
@@ -4057,7 +4057,7 @@ int computeInputVectors(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pPar
       kth_bit += outGold_bitwidth;
       p->iData = (kth_bit << 16) | jth_word;
       if( pPars->fVerbose || pPars->fVeryVerbose){
-        printf("**Exporting simulation values in file sim_values.txt\n");
+        fprintf( Abc_FrameGlobalGetOut(), "**Exporting simulation values in file sim_values.txt\n");
         exportSimValues( p, "sim_values.txt" );
       }
     }
@@ -4102,7 +4102,7 @@ void executeControlledSim(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pP
     pPars->outGold = outGold;
     Vec_Ptr_t * vNodesWatchList = NULL; 
     if(pPars->fUseWatchlist){
-      printf("**Activating watchlist feauture\n");
+      fprintf( Abc_FrameGlobalGetOut(), "**Activating watchlist feauture\n");
     }
     while( existsOneClass(p) && outer_loop_condition ){
       luts_order = extractNthClass(p, nthClass);
@@ -4118,7 +4118,7 @@ void executeControlledSim(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pP
       status = computeInputVectors(p, pMan, pPars, luts_order, outGold, pPars->bitwidthOutgold, vLutsFaninCones, vNodesWatchList, vSimSave, experimentID);
       if( status == -1 ){
         if(pPars->fVerbose || pPars->fVeryVerbose)
-          printf("FAILED - no valid input vectors found for class %d\n", nthClass);
+          fprintf( Abc_FrameGlobalGetOut(), "FAILED - no valid input vectors found for class %d\n", nthClass);
         nthClass++;
       } else {
         numClasses = totalNumClasses(p);
@@ -4130,7 +4130,7 @@ void executeControlledSim(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pP
         outGold = generateOutGoldValues(p); // generate a new outgold since the classes are updated
         pPars->outGold = outGold;
         if(pPars->fVerbose || pPars->fVeryVerbose)
-          printf("SUCCESSFUL - input vectors found for class %d\n", nthClass);
+          fprintf( Abc_FrameGlobalGetOut(), "SUCCESSFUL - input vectors found for class %d\n", nthClass);
         //nthClass = 0;
       }
 
@@ -4154,12 +4154,12 @@ void executeControlledSim(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pP
       outer_loop_condition = iTrials < 3; 
       clock_t end_time = clock();
       if ( (float)(end_time - start_time)/CLOCKS_PER_SEC > pPars->timeOutSim){ // hard limit of 1000 sec
-        printf("Timeout of %f sec reached\n", pPars->timeOutSim);
+        fprintf( Abc_FrameGlobalGetOut(), "Timeout of %f sec reached\n", pPars->timeOutSim);
         break;
       }
       if(pPars->fVerbose || pPars->fVeryVerbose){
         int quality = evaluate_equiv_classes(p, 0);
-        printf("Time elapsed: %f (classes quality: %d)\n", (float)(clock() - start_time)/CLOCKS_PER_SEC, quality);
+        fprintf( Abc_FrameGlobalGetOut(), "Time elapsed: %f (classes quality: %d)\n", (float)(clock() - start_time)/CLOCKS_PER_SEC, quality);
       }
     }
 
@@ -4250,7 +4250,7 @@ void Cec4_CallSATsolver(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParFra_t * pPars){
         }
     }
 
-    printf( "SAT calls = %d:  P = %d (0=%d a=%.2f m=%d)  D = %d (0=%d a=%.2f m=%d)  F = %d   Sim = %d  Recyc = %d  Xor = %.2f %%\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "SAT calls = %d:  P = %d (0=%d a=%.2f m=%d)  D = %d (0=%d a=%.2f m=%d)  F = %d   Sim = %d  Recyc = %d  Xor = %.2f %%\n", 
             pMan->nSatUnsat + pMan->nSatSat + pMan->nSatUndec, 
             pMan->nSatUnsat, pMan->nConflicts[1][0], (float)pMan->nConflicts[1][1]/Abc_MaxInt(1, pMan->nSatUnsat-pMan->nConflicts[1][0]), pMan->nConflicts[1][2],
             pMan->nSatSat,   pMan->nConflicts[0][0], (float)pMan->nConflicts[0][1]/Abc_MaxInt(1, pMan->nSatSat  -pMan->nConflicts[0][0]), pMan->nConflicts[0][2],  
@@ -4276,13 +4276,13 @@ void printEncodedCube( char pCube, char pDCs, int nFanins ){
     int i;
     for (i = 0; i < nFanins; i++){
       if ( pCube & (1 << i) )
-        printf("1");
+        fprintf( Abc_FrameGlobalGetOut(), "1");
       else if ( pDCs & (1 << i) )
-        printf("-");
+        fprintf( Abc_FrameGlobalGetOut(), "-");
       else
-        printf("0");
+        fprintf( Abc_FrameGlobalGetOut(), "0");
     }
-    printf("\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\n");
 
 }
 
@@ -4327,9 +4327,9 @@ void printISOPLUT(Gia_Man_t * pMan, int ObjId){
     assert( Gia_ObjIsLut(pMan, ObjId));
     char * pSop[2]; int nCubes[2];
     getISOPObjId( pMan, ObjId, pSop, nCubes );
-    printf("Negative Polarity\n");
+    fprintf( Abc_FrameGlobalGetOut(), "Negative Polarity\n");
     printISOP( pSop[0], nCubes[0], Gia_ObjLutSize(pMan, ObjId) );
-    printf("Positive Polarity\n");
+    fprintf( Abc_FrameGlobalGetOut(), "Positive Polarity\n");
     printISOP( pSop[1], nCubes[1], Gia_ObjLutSize(pMan, ObjId) );
 
 }
@@ -4361,12 +4361,12 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
       pIfPars->nLutSize = 6;
       pMapped = Gia_ManPerformMapping( p, pIfPars );
       if(pPars->fVerbose)
-        printf("Performing LUT-mapping\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Performing LUT-mapping\n");
     } else {
       pMapped = Gia_ManDup( p );
       Gia_ManDupMapping( pMapped, p );
       if(pPars->fVerbose)
-        printf("Using already mapped network\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Using already mapped network\n");
     }
     pCECPars = (Cec_ParFra_t *) malloc(sizeof( Cec_ParFra_t )); // parameters of CEC
     pManSim = Cec4_ManCreate( pMapped, pCECPars );
@@ -4412,7 +4412,7 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
     } else if (pPars->nMaxIter == -1){
       executeRandomSim( pMapped, pManSim, 1, pPars->nMaxIter, vSimPisSave, pPars->fVeryVerbose);
     } else {
-      printf("Invalid number of iterations %d\n", pPars->nMaxIter);
+      fprintf( Abc_FrameGlobalGetOut(), "Invalid number of iterations %d\n", pPars->nMaxIter);
       return NULL;
     }
 
@@ -4426,7 +4426,7 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
     if(pPars->fVerbose || pPars->fVeryVerbose){
       // IMPORTANT: the number of classes changes due to the previous operation
       evaluate_equiv_classes(pMapped, 1);
-      printf("**Printing Class information before running the Sim algos in file pre_classes.txt**\n");
+      fprintf( Abc_FrameGlobalGetOut(), "**Printing Class information before running the Sim algos in file pre_classes.txt**\n");
       exportEquivClasses(pMapped, "pre_classes.txt");
     }
     //Cec4_ManPrintClasses2(pMapped);
@@ -4436,11 +4436,11 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
     
     float implicationSuccessRate = (float)pPars->nImplicationSuccess / (float)pPars->nImplicationExecution;
     float implicationSuccessCheckRate = (float)pPars->nImplicationSuccessChecks / (float)pPars->nImplicationTotalChecks;
-    printf("Time elapsed: %f (implication time %f - %f successful recursions - %f successful checks)\n", (double)(clock() - begin) / CLOCKS_PER_SEC, pPars->fImplicationTime, implicationSuccessRate, implicationSuccessCheckRate);
+    fprintf( Abc_FrameGlobalGetOut(), "Time elapsed: %f (implication time %f - %f successful recursions - %f successful checks)\n", (double)(clock() - begin) / CLOCKS_PER_SEC, pPars->fImplicationTime, implicationSuccessRate, implicationSuccessCheckRate);
 
     //Cec4_ManPrintClasses2(pMapped);
     if(pPars->fVerbose || pPars->fVeryVerbose){
-      printf("**Printing Class information before running the Sim algos in file post_classes.txt**\n");
+      fprintf( Abc_FrameGlobalGetOut(), "**Printing Class information before running the Sim algos in file post_classes.txt**\n");
       exportEquivClasses(pMapped, "post_classes.txt");
       evaluate_equiv_classes(pMapped, 1);
     }

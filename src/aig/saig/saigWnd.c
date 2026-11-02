@@ -496,7 +496,7 @@ Aig_Man_t * Saig_ManWindowInsert( Aig_Man_t * p, Aig_Obj_t * pObj, int nDist, Ai
     if ( Saig_ManPiNum(pWndTest) != Saig_ManPiNum(pWnd) ||
          Saig_ManPoNum(pWndTest) != Saig_ManPoNum(pWnd) )
     {
-        printf( "The window cannot be reinserted because PI/PO counts do not match.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The window cannot be reinserted because PI/PO counts do not match.\n" );
         Aig_ManStop( pWndTest );
         Vec_PtrFree( vNodes );
         Aig_ManFanoutStop( p );

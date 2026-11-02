@@ -92,7 +92,7 @@ int Abc_NtkRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly,
 //    Abc_NtkLogicMakeSimpleCos( pNtk, 0 );
     // check for correctness
     if ( !Abc_NtkCheck( pNtk ) )
-        fprintf( stdout, "Abc_NtkRetimeMinArea(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRetimeMinArea(): Network check has failed.\n"  );
     // return the number of latches saved
     return nLatches - Abc_NtkLatchNum(pNtk);
 }
@@ -392,7 +392,7 @@ Abc_Ntk_t * Abc_NtkRetimeMinAreaConstructNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMin
     Abc_NtkAddDummyPiNames( pNtkNew );
     Abc_NtkAddDummyPoNames( pNtkNew );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkRetimeMinAreaConstructNtk(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRetimeMinAreaConstructNtk(): Network check has failed.\n"  );
     return pNtkNew;
 }
 

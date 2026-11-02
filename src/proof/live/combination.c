@@ -32,10 +32,10 @@ void listCombination(int n, int t)
     while(1)
     {
         //visit combination
-        printf("Comb-%3d : ", ++combCounter);
+        fprintf( Abc_FrameGlobalGetOut(), "Comb-%3d : ", ++combCounter);
         for( i=t; i>0; i--)
-            printf("vC[%d] = %d ", i, Vec_IntEntry(vC, i));
-        printf("\n");
+            fprintf( Abc_FrameGlobalGetOut(), "vC[%d] = %d ", i, Vec_IntEntry(vC, i));
+        fprintf( Abc_FrameGlobalGetOut(), "\n");
 
         j = 1;
         while( Vec_IntEntry( vC, j ) + 1 == Vec_IntEntry( vC, j+1 ) )
@@ -169,7 +169,7 @@ Aig_Man_t *generateDisjunctiveTester( Abc_Ntk_t *pNtk, Aig_Man_t *pAig, int comb
     vCandidateMonotoneSignals = findHintOutputs(pNtk);
     if( vCandidateMonotoneSignals == NULL )
     {
-        printf("\nTraget Signal Set is Empty: Duplicating given AIG\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\nTraget Signal Set is Empty: Duplicating given AIG\n");
         combN_internal = 0;
     }
     else

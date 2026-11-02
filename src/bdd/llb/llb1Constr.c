@@ -66,19 +66,19 @@ void Llb_ManPrintEntries( Aig_Man_t * p, Vec_Int_t * vCands )
     int i, Entry;
     if ( vCands == NULL )
     {
-        printf( "There is no hints.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There is no hints.\n" );
         return;
     }
     Entry = Llb_ManCountEntries(vCands);
-    printf( "\n*** Using %d hint%s:\n", Entry, (Entry != 1 ? "s":"") );
+    fprintf( Abc_FrameGlobalGetOut(), "\n*** Using %d hint%s:\n", Entry, (Entry != 1 ? "s":"") );
     Vec_IntForEachEntry( vCands, Entry, i )
     {
         if ( Entry != 0 && Entry != 1 )
             continue;
-        printf( "%c", Entry ? '+' : '-' );
-        printf( "%-6d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", Entry ? '+' : '-' );
+        fprintf( Abc_FrameGlobalGetOut(), "%-6d : ", i );
         Aig_ObjPrint( p, Aig_ManObj(p, i) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -270,7 +270,7 @@ Vec_Int_t * Llb_ManDeriveConstraints( Aig_Man_t * p )
     Vec_Int_t * vNodes;
     if ( Saig_ManPoNum(p) != 1 )
     {
-        printf( "The AIG has %d property outputs.\n", Saig_ManPoNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "The AIG has %d property outputs.\n", Saig_ManPoNum(p) );
         return NULL;
     }
     assert( Saig_ManPoNum(p) == 1 );

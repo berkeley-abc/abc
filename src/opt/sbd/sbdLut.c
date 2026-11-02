@@ -129,17 +129,17 @@ void Sbd_ProblemPrintSolution( int nStrs, Sbd_Str_t * pStr0, Vec_Int_t * vLits )
 {
     Sbd_Str_t * pStr;
     int m, nIters, iLit = 0;
-    printf( "Solution found:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Solution found:\n" );
     for ( pStr = pStr0; pStr < pStr0 + nStrs; pStr++ )
     {
         nIters = pStr->fLut ? 1 << pStr->nVarIns : pStr->nVarIns;
-        printf( "%s%d : ", pStr->fLut ? "LUT":"SEL", (int)(pStr-pStr0) );
+        fprintf( Abc_FrameGlobalGetOut(), "%s%d : ", pStr->fLut ? "LUT":"SEL", (int)(pStr-pStr0) );
         for ( m = 0; m < nIters; m++, iLit++ )
-            printf( "%d", !Abc_LitIsCompl(Vec_IntEntry(vLits, iLit)) );
-        printf( "    {" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", !Abc_LitIsCompl(Vec_IntEntry(vLits, iLit)) );
+        fprintf( Abc_FrameGlobalGetOut(), "    {" );
         for ( m = 0; m < pStr->nVarIns; m++ )
-            printf( " %d", pStr->VarIns[m] );
-        printf( " }\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " %d", pStr->VarIns[m] );
+        fprintf( Abc_FrameGlobalGetOut(), " }\n" );
     }
     assert( iLit == Vec_IntSize(vLits) );
 }
@@ -271,10 +271,10 @@ int Sbd_ProblemSolve( Gia_Man_t * p, Vec_Int_t * vMirrors,
 
         if ( fVerbose )
         {
-            printf( "Iter %3d : ", nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %3d : ", nIters );
             for ( i = 0; i < nPars; i++ )
-                printf( "%d", !Abc_LitIsCompl(Vec_IntEntry(vLits, i)) );
-            printf( "    " );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", !Abc_LitIsCompl(Vec_IntEntry(vLits, i)) );
+            fprintf( Abc_FrameGlobalGetOut(), "    " );
         }
 
         Vec_IntClear( vLits );
@@ -288,13 +288,13 @@ int Sbd_ProblemSolve( Gia_Man_t * p, Vec_Int_t * vMirrors,
             status = sat_solver_addclause( pSatQbf, &iLit, &iLit + 1 );
             assert( status );
             if ( fVerbose )
-                printf( "%d", sat_solver_var_value(pSatCec, iVar) );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", sat_solver_var_value(pSatCec, iVar) );
         }
         iLit = Abc_Var2Lit( pVarsQbf[nVars], sat_solver_var_value(pSatCec, VarCecOut) );
         status = sat_solver_addclause( pSatQbf, &iLit, &iLit + 1 );
         assert( status );
         if ( fVerbose )
-            printf( " %d\n", !sat_solver_var_value(pSatCec, VarCecOut) );
+            fprintf( Abc_FrameGlobalGetOut(), " %d\n", !sat_solver_var_value(pSatCec, VarCecOut) );
         // add clauses to the QBF problem
         if ( !Sbd_ProblemAddClauses( pSatQbf, nVars, nStrs, pVarsQbf, pStr0 ) )
             break; // solution does not exist

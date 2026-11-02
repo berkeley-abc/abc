@@ -236,10 +236,10 @@ static inline void vec_flt_print(vec_flt_t *p)
 {
     unsigned i;
     assert(p != NULL);
-    fprintf(stdout, "Vector has %u(%u) entries: {", p->size, p->cap);
+    fprintf( Abc_FrameGlobalGetOut(), "Vector has %u(%u) entries: {", p->size, p->cap);
     for (i = 0; i < p->size; i++)
-        fprintf(stdout, " %f", p->data[i]);
-    fprintf(stdout, " }\n");
+        fprintf( Abc_FrameGlobalGetOut(), " %f", p->data[i]);
+    fprintf( Abc_FrameGlobalGetOut(), " }\n");
 }
 
 ABC_NAMESPACE_HEADER_END

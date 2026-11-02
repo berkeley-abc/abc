@@ -386,27 +386,27 @@ void Abc_NtkSharePrint( Abc_ShaMan_t * p )
             pBuffer[ObjId] = '1';
             pCounters[ObjId]++;
         }
-        printf( "%4d%3d: %s\n", Vec_IntEntry(vInput, 0), Vec_IntEntry(vInput, 1), pBuffer );
+        fprintf( Abc_FrameGlobalGetOut(), "%4d%3d: %s\n", Vec_IntEntry(vInput, 0), Vec_IntEntry(vInput, 1), pBuffer );
     }
 
     for ( i = 0; i < Vec_IntSize(p->vObj2Lit); i++ )
         if ( pCounters[i] > 0 )
-            printf( "%d=%d ", i, pCounters[i] ); 
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, pCounters[i] ); 
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     nTotal = 0;
     for ( i = 0; i < p->nStartCols; i++ )
         nTotal += pCounters[i] - 1;
-    printf( "Total = %d.  ", nTotal );
-    printf( "Gates = %d.\n", Vec_IntSize(p->vObj2Lit) - p->nStartCols + nTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Total = %d.  ", nTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Gates = %d.\n", Vec_IntSize(p->vObj2Lit) - p->nStartCols + nTotal );
 
     ABC_FREE( pCounters );
     ABC_FREE( pBuffer );
 
-    printf( "Bucket contents: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Bucket contents: " );
     Vec_PtrForEachEntry( Vec_Ptr_t *, p->vBuckets, vBucket, i )
-        printf( "%d ", Vec_PtrSize(vBucket) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Vec_PtrSize(vBucket) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -429,7 +429,7 @@ void Abc_NtkDumpBlif( Abc_Ntk_t * p )
     pFile = fopen( "multi_and.blif", "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open output file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file.\n" );
         return;
     }
     fprintf( pFile, ".model %s\n", "multi_and" );
@@ -647,7 +647,7 @@ Abc_Ntk_t * Abc_NtkUpdateNetwork( Abc_ShaMan_t * p, int fAnd )
     }
 
     if ( p->fVerbose )
-        printf( "Total gates collected = %d.  Total gates constructed = %d.\n", p->nFoundGates, p->nCountGates );
+        fprintf( Abc_FrameGlobalGetOut(), "Total gates collected = %d.  Total gates constructed = %d.\n", p->nFoundGates, p->nCountGates );
 
     // create map of originals
     vMap2Repl = Vec_IntStartFull( Abc_NtkObjNumMax(p->pNtk) );

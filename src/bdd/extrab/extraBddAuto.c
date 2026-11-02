@@ -172,8 +172,8 @@ DdNode * Extra_bddSpaceFromFunctionFast( DdManager * dd, DdNode * bFunc )
     // make sure the manager has enough variables
     if ( 2*nSupp > dd->size )
     {
-        printf( "Cannot derive linear space, because DD manager does not have enough variables.\n" );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot derive linear space, because DD manager does not have enough variables.\n" );
+        fflush( Abc_FrameGlobalGetOut() );
         ABC_FREE( pSupport );
         return NULL;
     }

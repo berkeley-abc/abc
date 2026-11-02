@@ -54,7 +54,7 @@ Vec_Int_t * Gia_PolynFindOrder( Gia_Man_t * pGia, Vec_Int_t * vFadds, Vec_Int_t 
     // collect the last XOR
     Vec_IntFreeP( &pGia->vXors );
     pGia->vXors = Gia_PolynCollectLastXor( pGia, fVerbose );
-    printf( "Collected %d topmost XORs\n", Vec_IntSize(pGia->vXors) );
+    fprintf( Abc_FrameGlobalGetOut(), "Collected %d topmost XORs\n", Vec_IntSize(pGia->vXors) );
     //Vec_IntPrint( p->vXors );
     Vec_IntForEachEntry( pGia->vXors, iAnd, i )
     {
@@ -65,14 +65,14 @@ Vec_Int_t * Gia_PolynFindOrder( Gia_Man_t * pGia, Vec_Int_t * vFadds, Vec_Int_t 
         Vec_IntWriteEntry( vMap, Gia_ObjFaninId1(pAnd, iAnd), 1 );
         Vec_IntPush( vRecord, Abc_Var2Lit2(iAnd, 3) );
         if ( fVeryVerbose )
-            printf( "Recognizing %d => XXXOR(%d %d)\n", iAnd, Gia_ObjFaninId0(pAnd, iAnd), Gia_ObjFaninId1(pAnd, iAnd) );
+            fprintf( Abc_FrameGlobalGetOut(), "Recognizing %d => XXXOR(%d %d)\n", iAnd, Gia_ObjFaninId0(pAnd, iAnd), Gia_ObjFaninId1(pAnd, iAnd) );
     }
 
     // detect FAs and HAs
     for ( Iter = 0; fFoundAll; Iter++ )
     {
         if ( fVeryVerbose )
-            printf( "Iteration %d\n", Iter );
+            fprintf( Abc_FrameGlobalGetOut(), "Iteration %d\n", Iter );
 
         // check if we can extract FADDs
         fFoundAll = 0;
@@ -93,7 +93,7 @@ Vec_Int_t * Gia_PolynFindOrder( Gia_Man_t * pGia, Vec_Int_t * vFadds, Vec_Int_t 
                     fFound = 1;
                     fFoundAll = 1;
                     if ( fVeryVerbose )
-                        printf( "Recognizing (%d %d) => FA(%d %d %d)\n", iXor, iMaj, Vec_IntEntry(vFadds, 5*i+0), Vec_IntEntry(vFadds, 5*i+1), Vec_IntEntry(vFadds, 5*i+2)  );
+                        fprintf( Abc_FrameGlobalGetOut(), "Recognizing (%d %d) => FA(%d %d %d)\n", iXor, iMaj, Vec_IntEntry(vFadds, 5*i+0), Vec_IntEntry(vFadds, 5*i+1), Vec_IntEntry(vFadds, 5*i+2) );
                 }
             }
         } while ( fFound );
@@ -115,7 +115,7 @@ Vec_Int_t * Gia_PolynFindOrder( Gia_Man_t * pGia, Vec_Int_t * vFadds, Vec_Int_t 
                     fFound = 1;
                     fFoundAll = 1;
                     if ( fVeryVerbose )
-                        printf( "Recognizing (%d %d) => HA(%d %d)\n", iXor, iMaj, Gia_ObjFaninId0(pAnd, iMaj), Gia_ObjFaninId1(pAnd, iMaj) );
+                        fprintf( Abc_FrameGlobalGetOut(), "Recognizing (%d %d) => HA(%d %d)\n", iXor, iMaj, Gia_ObjFaninId0(pAnd, iMaj), Gia_ObjFaninId1(pAnd, iMaj) );
                 }
             }
             break; // only one iter!
@@ -174,7 +174,7 @@ Vec_Int_t * Gia_PolynFindOrder( Gia_Man_t * pGia, Vec_Int_t * vFadds, Vec_Int_t 
         Gia_Man_t * pNew;
         pNew = Gia_ManDupAndCones( pGia, Vec_IntArray(vLeft), Vec_IntSize(vLeft), 0 );
         Gia_AigerWrite( pNew, "leftover.aig", 0, 0, 0 );
-        printf( "Leftover AIG with %d nodes is dumped into file \"%s\".\n", Gia_ManAndNum(pNew), "leftover.aig" );
+        fprintf( Abc_FrameGlobalGetOut(), "Leftover AIG with %d nodes is dumped into file \"%s\".\n", Gia_ManAndNum(pNew), "leftover.aig" );
         Gia_ManStop( pNew );
     }
     Vec_IntFree( vLeft );

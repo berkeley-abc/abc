@@ -72,7 +72,7 @@ void Abc_NtkGenFaultList( Abc_Ntk_t * pNtk, char * pFileName, int fStuckAt )
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         return;
     }
     assert( Abc_NtkIsMappedLogic(pNtk) );
@@ -92,7 +92,7 @@ void Abc_NtkGenFaultList( Abc_Ntk_t * pNtk, char * pFileName, int fStuckAt )
             if ( pGate != pGateObj && Mio_GateReadPinNum(pGate) == nInputs )
                 fprintf( pFile, "%d %s %s\n", Count, Abc_ObjName(pObj), Mio_GateReadName(pGate) ), Count++;
     }
-    printf( "Generated fault list \"%s\" for network \"%s\" with %d nodes and %d %sfaults.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Generated fault list \"%s\" for network \"%s\" with %d nodes and %d %sfaults.\n", 
         pFileName, Abc_NtkName(pNtk), Abc_NtkNodeNum(pNtk), Count-1, fStuckAt ? "stuck-at ":"" );
     fclose( pFile );
 }
@@ -113,7 +113,7 @@ int Io_ReadFinTypeMapped( Mio_Library_t * pLib, char * pThis )
     Mio_Gate_t * pGate = Mio_LibraryReadGateByName( pLib, pThis, NULL );
     if ( pGate == NULL )
     {
-        printf( "Cannot find gate \"%s\" in the current library.\n", pThis );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot find gate \"%s\" in the current library.\n", pThis );
         return ABC_FIN_NONE;
     }
     return Mio_GateReadCell( pGate );
@@ -173,7 +173,7 @@ Vec_Int_t * Io_ReadFins( Abc_Ntk_t * pNtk, char * pFileName, int fVerbose )
     FILE * pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open input file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\" for reading.\n", pFileName );
         return NULL;
     }
     // map CI/node names into their IDs
@@ -187,7 +187,7 @@ Vec_Int_t * Io_ReadFins( Abc_Ntk_t * pNtk, char * pFileName, int fVerbose )
         Abc_NamStrFindOrAdd( pNam, Abc_ObjName(pObj), &fFound );
         if ( fFound )
         {
-            printf( "The same name \"%s\" appears twice among CIs and internal nodes.\n", Abc_ObjName(pObj) );
+            fprintf( Abc_FrameGlobalGetOut(), "The same name \"%s\" appears twice among CIs and internal nodes.\n", Abc_ObjName(pObj) );
             goto finish;
         }
         Vec_IntPush( vMap, Abc_ObjId(pObj) );
@@ -204,7 +204,7 @@ Vec_Int_t * Io_ReadFins( Abc_Ntk_t * pNtk, char * pFileName, int fVerbose )
             break;
         if ( nLines++ != atoi(pToken) )
         {
-            printf( "Line numbers are not consecutive. Quitting.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Line numbers are not consecutive. Quitting.\n" );
             Vec_IntFreeP( &vPairs );
             goto finish;
         }
@@ -213,7 +213,7 @@ Vec_Int_t * Io_ReadFins( Abc_Ntk_t * pNtk, char * pFileName, int fVerbose )
         iObj = Abc_NamStrFind( pNam, pToken );
         if ( !iObj )
         {
-            printf( "Cannot find object with name \"%s\".\n", pToken );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot find object with name \"%s\".\n", pToken );
             continue;
         }
         // read type
@@ -229,18 +229,18 @@ Vec_Int_t * Io_ReadFins( Abc_Ntk_t * pNtk, char * pFileName, int fVerbose )
             Type = Io_ReadFinType( pToken );
         if ( Type == ABC_FIN_NONE )
         {
-            printf( "Cannot read type \"%s\" of object \"%s\".\n", pToken, Abc_ObjName(Abc_NtkObj(pNtk, iObj)) );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot read type \"%s\" of object \"%s\".\n", pToken, Abc_ObjName(Abc_NtkObj(pNtk, iObj)) );
             continue;
         }
         Vec_IntPushTwo( vPairs, Vec_IntEntry(vMap, iObj), Type );
     }
     assert( Vec_IntSize(vPairs) == 2 * nLines );
-    printf( "Finished reading %d lines from the fault list file \"%s\".\n", nLines - 1, pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished reading %d lines from the fault list file \"%s\".\n", nLines - 1, pFileName );
 
     // verify the reader by printing the results
     if ( fVerbose )
         Vec_IntForEachEntryDoubleStart( vPairs, iObj, Type, i, 2 )
-            printf( "%-10d%-10s%-10s\n", i/2, Abc_ObjName(Abc_NtkObj(pNtk, iObj)), Io_WriteFinType(Type) );
+            fprintf( Abc_FrameGlobalGetOut(), "%-10d%-10s%-10s\n", i/2, Abc_ObjName(Abc_NtkObj(pNtk, iObj)), Io_WriteFinType(Type) );
 
 finish:
     Vec_IntFree( vMap );
@@ -1144,7 +1144,7 @@ Vec_Wec_t * Abc_NtkDetectFinClasses( Abc_Ntk_t * pNtk, int fVerbose )
     int i, iObj, nCalls;
     if ( pNtk->vFins == NULL )
     {
-        printf( "Current network does not have the required info.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current network does not have the required info.\n" );
         return NULL;
     }
     assert( Abc_NtkIsSopLogic(pNtk) || Abc_NtkIsMappedLogic(pNtk) );
@@ -1153,7 +1153,7 @@ Vec_Wec_t * Abc_NtkDetectFinClasses( Abc_Ntk_t * pNtk, int fVerbose )
         iObj = Abc_NtkFinCheckTypesOk(pNtk);
         if ( iObj )
         {
-            printf( "Current network contains unsupported gate types (for example, see node \"%s\").\n", Abc_ObjName(Abc_NtkObj(pNtk, iObj)) );
+            fprintf( Abc_FrameGlobalGetOut(), "Current network contains unsupported gate types (for example, see node \"%s\").\n", Abc_ObjName(Abc_NtkObj(pNtk, iObj)) );
             return NULL;
         }
         vTypes   = Abc_NtkFinComputeTypes( pNtk );
@@ -1163,7 +1163,7 @@ Vec_Wec_t * Abc_NtkDetectFinClasses( Abc_Ntk_t * pNtk, int fVerbose )
         iObj = Abc_NtkFinCheckTypesOk2(pNtk);
         if ( iObj )
         {
-            printf( "Current network has mismatch between mapped gate size and fault gate size (for example, see node \"%s\").\n", Abc_ObjName(Abc_NtkObj(pNtk, iObj)) );
+            fprintf( Abc_FrameGlobalGetOut(), "Current network has mismatch between mapped gate size and fault gate size (for example, see node \"%s\").\n", Abc_ObjName(Abc_NtkObj(pNtk, iObj)) );
             return NULL;
         }
     }
@@ -1187,7 +1187,7 @@ Vec_Wec_t * Abc_NtkDetectFinClasses( Abc_Ntk_t * pNtk, int fVerbose )
         vList = Abc_NtkFinCreateList( vMap, vClass );
         nCalls = Abc_NtkFinRefinement( pNtk, vTypes, vCoSet, vCiSet, vNodeSet, vPairs, vList, vMap2, vResult );
         if ( fVerbose )
-            printf( "Group %4d :  Obj =%4d. Fins =%4d.  CI =%5d. CO =%5d. Node =%6d.  SAT calls =%5d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Group %4d :  Obj =%4d. Fins =%4d.  CI =%5d. CO =%5d. Node =%6d.  SAT calls =%5d.\n", 
                 i, Vec_IntSize(vClass), Vec_IntSize(vList), Vec_IntSize(vCiSet), Vec_IntSize(vCoSet), Vec_IntSize(vNodeSet), nCalls );
         Vec_IntFree( vList );
     }
@@ -1225,7 +1225,7 @@ void Abc_NtkPrintFinResults( Vec_Wec_t * vClasses )
     int i, k, Entry;
     Vec_WecForEachLevel( vClasses, vClass, i )
         Vec_IntForEachEntryStart( vClass, Entry, k, 1 )
-            printf( "%d %d\n", Vec_IntEntry(vClass, 0), Entry );
+            fprintf( Abc_FrameGlobalGetOut(), "%d %d\n", Vec_IntEntry(vClass, 0), Entry );
 }
 
 /**Function*************************************************************
@@ -1246,7 +1246,7 @@ void Abc_NtkDetectClassesTest( Abc_Ntk_t * pNtk, int fSeq, int fVerbose, int fVe
     if ( fSeq ) 
         Abc_NtkFrameExtend( pNtk );
     vResult = Abc_NtkDetectFinClasses( pNtk, fVerbose );
-    printf( "Computed %d equivalence classes with %d item pairs.  ", Vec_WecSize(vResult), Abc_NtkFinCountPairs(vResult) );
+    fprintf( Abc_FrameGlobalGetOut(), "Computed %d equivalence classes with %d item pairs.  ", Vec_WecSize(vResult), Abc_NtkFinCountPairs(vResult) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( fVeryVerbose )
         Vec_WecPrint( vResult, 1 );

@@ -402,7 +402,7 @@ int Amap_LibParseEquations( Amap_Lib_t * p, int fVerbose )
     int i, nPinMax;
     nPinMax = Amap_LibNumPinsMax(p);
     if ( nPinMax > AMAP_MAXINS )
-        printf( "Gates with more than %d inputs will be ignored.\n", AMAP_MAXINS );
+        fprintf( Abc_FrameGlobalGetOut(), "Gates with more than %d inputs will be ignored.\n", AMAP_MAXINS );
     vTruth = Vec_IntAlloc( 1 << 16 );
     vNames = Vec_PtrAlloc( 100 );
     pMan = Hop_ManStart();
@@ -418,7 +418,7 @@ int Amap_LibParseEquations( Amap_Lib_t * p, int fVerbose )
                 pGate->pFunc[0] = ~0;
             else
             {
-                printf( "Cannot parse formula \"%s\" of gate \"%s\" with no pins.\n", pGate->pForm, pGate->pName );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot parse formula \"%s\" of gate \"%s\" with no pins.\n", pGate->pForm, pGate->pName );
                 break;
             }
             continue;
@@ -428,14 +428,14 @@ int Amap_LibParseEquations( Amap_Lib_t * p, int fVerbose )
         Vec_PtrClear( vNames );
         Amap_GateForEachPin( pGate, pPin )
             Vec_PtrPush( vNames, pPin->pName );
-        pObj = Amap_ParseFormula( stdout, pGate->pForm, vNames, pMan, pGate->pName );
+        pObj = Amap_ParseFormula( Abc_FrameGlobalGetOut(), pGate->pForm, vNames, pMan, pGate->pName );
         if ( pObj == NULL )
             break;
         pTruth = Hop_ManConvertAigToTruth( pMan, pObj, pGate->nPins, vTruth, 0 );
         if ( Kit_TruthSupportSize(pTruth, pGate->nPins) < (int)pGate->nPins )
         {
             if ( fVerbose )
-                printf( "Skipping gate \"%s\" because its output \"%s\" does not depend on all input variables.\n", pGate->pName, pGate->pForm );
+                fprintf( Abc_FrameGlobalGetOut(), "Skipping gate \"%s\" because its output \"%s\" does not depend on all input variables.\n", pGate->pName, pGate->pForm );
             continue;
         }
         pGate->pFunc = (unsigned *)Aig_MmFlexEntryFetch( p->pMemGates, sizeof(unsigned)*Abc_TruthWordNum(pGate->nPins) );

@@ -100,8 +100,8 @@ void size_stamp(T, name)
 IN pcover T;
 IN char *name;
 {
-    (void) printf("# %s\tCost is %s\n", name, print_cost(T));
-    (void) fflush(stdout);
+    (void) fprintf( Abc_FrameGlobalGetOut(), "# %s\tCost is %s\n", name, print_cost(T) );
+    (void) fflush( Abc_FrameGlobalGetOut() );
 }
 
 
@@ -111,9 +111,9 @@ pcover T;
 char *name;
 long time;
 {
-    (void) printf("# %s\tTime was %s, cost is %s\n",
-    name, print_time(time), print_cost(T));
-    (void) fflush(stdout);
+    (void) fprintf( Abc_FrameGlobalGetOut(), "# %s\tTime was %s, cost is %s\n",
+    name, print_time(time), print_cost(T) );
+    (void) fflush( Abc_FrameGlobalGetOut() );
 }
 
 
@@ -129,9 +129,9 @@ pcost cost;
     total_calls[i]++;
     cover_cost(T, cost);
     if (trace) {
-    (void) printf("# %s\tTime was %s, cost is %s\n",
-        total_name[i], print_time(time), fmt_cost(cost));
-    (void) fflush(stdout);
+    (void) fprintf( Abc_FrameGlobalGetOut(), "# %s\tTime was %s, cost is %s\n",
+        total_name[i], print_time(time), fmt_cost(cost) );
+    (void) fflush( Abc_FrameGlobalGetOut() );
     }
 }
 
@@ -140,7 +140,7 @@ pcost cost;
 void fatal(s)
 char *s;
 {
-    (void) fprintf(stderr, "espresso: %s\n", s);
+    (void) fprintf( Abc_FrameGlobalGetErr(), "espresso: %s\n", s);
     exit(1);
 }
 ABC_NAMESPACE_IMPL_END

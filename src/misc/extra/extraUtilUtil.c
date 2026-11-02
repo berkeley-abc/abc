@@ -120,7 +120,7 @@ int Extra_UtilGetopt( int argc, char *argv[], const char *optstring )
     c = *pScanStr++;
     place = strchr(optstring, c);
     if (place == NULL || c == ':') {
-        (void) fprintf(stderr, "%s: unknown option %c\n", argv[0], c);
+        (void) fprintf( Abc_FrameGlobalGetErr(), "%s: unknown option %c\n", argv[0], c);
         return '?';
     }
     if (*++place == ':') 
@@ -134,7 +134,7 @@ int Extra_UtilGetopt( int argc, char *argv[], const char *optstring )
         {
             if (globalUtilOptind >= argc) 
             {
-                (void) fprintf(stderr, "%s: %c requires an argument\n", 
+                (void) fprintf( Abc_FrameGlobalGetErr(), "%s: %c requires an argument\n", 
                     argv[0], c);
                 return '?';
             }
@@ -336,8 +336,8 @@ char * Extra_UtilFileSearch(char *file, char *path, char *mode)
 /* MMout_of_memory -- out of memory for lazy people, flush and exit */
 void Extra_UtilMMout_Of_Memory( long size ) 
 {
-    (void) fflush(stdout);
-    (void) fprintf(stderr, "\nout of memory allocating %u bytes\n",
+    (void) fflush( Abc_FrameGlobalGetOut() );
+    (void) fprintf( Abc_FrameGlobalGetErr(), "\nout of memory allocating %u bytes\n",
            (unsigned) size);
     assert( 0 );
     exit(1);

@@ -105,7 +105,7 @@ Vec_Int_t * Pla_GenPrimes( int nVars )
     for ( n = 2; n < nBits; n++ )
         if ( Vec_BitEntry(vMap, n) )
             Vec_IntPush( vPrimes, n );
-    printf( "Primes up to 2^%d = %d\n", nVars, Vec_IntSize(vPrimes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Primes up to 2^%d = %d\n", nVars, Vec_IntSize(vPrimes) );
 //    Abc_GenCountHits1( vMap, vPrimes, nVars );
     Vec_BitFree( vMap );
     return vPrimes;
@@ -286,7 +286,7 @@ int Pla_ManDist1NumTest( Pla_Man_t * p )
 {
     abctime clk = Abc_Clock();
     int Count = Pla_ManDist1Num( p );
-    printf( "Found %d pairs among %d cubes using cube pair enumeration.  ", Count, Pla_ManCubeNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Found %d pairs among %d cubes using cube pair enumeration.  ", Count, Pla_ManCubeNum(p) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return 1;
 }

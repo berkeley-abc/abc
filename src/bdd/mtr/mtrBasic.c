@@ -424,7 +424,7 @@ Mtr_PrintTree(
   MtrNode * node)
 {
     if (node == NULL) return;
-    (void) fprintf(stdout,
+    (void) fprintf( Abc_FrameGlobalGetOut(),
 #if SIZEOF_VOID_P == 8
     "N=0x%-8lx C=0x%-8lx Y=0x%-8lx E=0x%-8lx P=0x%-8lx F=%x L=%u S=%u\n",
     (unsigned long) node, (unsigned long) node->child,

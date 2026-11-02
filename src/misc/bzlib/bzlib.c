@@ -51,7 +51,7 @@ ABC_NAMESPACE_IMPL_START
 #ifndef BZ_NO_STDIO
 void BZ2_bz__AssertH__fail ( int errcode )
 {
-   fprintf(stderr, 
+   fprintf( Abc_FrameGlobalGetErr(),
       "\n\nbzip2/libbzip2: internal error number %d.\n"
       "This is a bug in bzip2/libbzip2, %s.\n"
       "Please report it to: bzip2-devel@sourceware.org.  If this happened\n"
@@ -65,7 +65,7 @@ void BZ2_bz__AssertH__fail ( int errcode )
    );
 
    if (errcode == 1007) {
-   fprintf(stderr,
+   fprintf( Abc_FrameGlobalGetErr(),
       "\n*** A special note about internal error number 1007 ***\n"
       "\n"
       "Experience suggests that a common cause of i.e. 1007\n"

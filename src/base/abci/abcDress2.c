@@ -363,14 +363,14 @@ void Abc_NtkDressPrintEquivs( Vec_Ptr_t * vRes )
     int i, k, Entry;
     Vec_PtrForEachEntry( Vec_Int_t *, vRes, vClass, i )
     {
-        printf( "Class %5d : ", i );
-        printf( "Num =%5d    ", Vec_IntSize(vClass) );
+        fprintf( Abc_FrameGlobalGetOut(), "Class %5d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Num =%5d    ", Vec_IntSize(vClass) );
         Vec_IntForEachEntry( vClass, Entry, k )
-            printf( "%5d%c%d ", 
+            fprintf( Abc_FrameGlobalGetOut(), "%5d%c%d ", 
                 Abc_ObjEquivId2ObjId(Entry), 
                 Abc_ObjEquivId2Polar(Entry)? '-':'+', 
                 Abc_ObjEquivId2NtkId(Entry) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -422,12 +422,12 @@ void Abc_NtkDressPrintStats( Vec_Ptr_t * vRes, int nNodes0, int nNodes1, abctime
         PairsAll += Abc_MinInt(Neg[0] + Pos[0], Neg[1] + Pos[1]);
         PairsOne += Abc_MinInt(Neg[0], Neg[1]) + Abc_MinInt(Pos[0], Pos[1]);
     }
-    printf( "Total number of equiv classes                = %7d.\n", Vec_PtrSize(vRes) );
-    printf( "Participating nodes from both networks       = %7d.\n", NegAll[0]+PosAll[0]+NegAll[1]+PosAll[1] );
-    printf( "Participating nodes from the first network   = %7d. (%7.2f %% of nodes)\n", NegAll[0]+PosAll[0], 100.0*(NegAll[0]+PosAll[0])/(nNodes0+1) );
-    printf( "Participating nodes from the second network  = %7d. (%7.2f %% of nodes)\n", NegAll[1]+PosAll[1], 100.0*(NegAll[1]+PosAll[1])/(nNodes1+1) );
-    printf( "Node pairs (any polarity)                    = %7d. (%7.2f %% of names can be moved)\n", PairsAll, 100.0*PairsAll/(nNodes0+1) );
-    printf( "Node pairs (same polarity)                   = %7d. (%7.2f %% of names can be moved)\n", PairsOne, 100.0*PairsOne/(nNodes0+1) );
+    fprintf( Abc_FrameGlobalGetOut(), "Total number of equiv classes                = %7d.\n", Vec_PtrSize(vRes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Participating nodes from both networks       = %7d.\n", NegAll[0]+PosAll[0]+NegAll[1]+PosAll[1] );
+    fprintf( Abc_FrameGlobalGetOut(), "Participating nodes from the first network   = %7d. (%7.2f %% of nodes)\n", NegAll[0]+PosAll[0], 100.0*(NegAll[0]+PosAll[0])/(nNodes0+1) );
+    fprintf( Abc_FrameGlobalGetOut(), "Participating nodes from the second network  = %7d. (%7.2f %% of nodes)\n", NegAll[1]+PosAll[1], 100.0*(NegAll[1]+PosAll[1])/(nNodes1+1) );
+    fprintf( Abc_FrameGlobalGetOut(), "Node pairs (any polarity)                    = %7d. (%7.2f %% of names can be moved)\n", PairsAll, 100.0*PairsAll/(nNodes0+1) );
+    fprintf( Abc_FrameGlobalGetOut(), "Node pairs (same polarity)                   = %7d. (%7.2f %% of names can be moved)\n", PairsOne, 100.0*PairsOne/(nNodes0+1) );
     ABC_PRT( "Total runtime", Time );
 }
 
@@ -490,7 +490,7 @@ void Abc_NtkDress2Transfer( Abc_Ntk_t * pNtk0, Abc_Ntk_t * pNtk1, Vec_Ptr_t * vR
     }
     if ( fVerbose )
     {
-        printf( "Total number of names assigned  = %5d. (Dir = %5d. Compl = %5d.)\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Total number of names assigned  = %5d. (Dir = %5d. Compl = %5d.)\n", 
             Counter + CounterInv, Counter, CounterInv );
     }
 }

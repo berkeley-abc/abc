@@ -60,19 +60,19 @@ static inline void xorInPlace( word * pOut, word * pIn2, int nWords)
 
 static inline void dsc_debug_node(Dsc_node_t * pNode, int nVars, const int TRUTH_WORDS) {
     int i;
-    printf("Node:\t%s\n",pNode->exp);
-    printf("\tneg cof:\t");Abc_TtPrintHexRev(stdout, pNode->pNegCof, nVars);
-    printf("\tpos cof:\t");Abc_TtPrintHexRev(stdout, pNode->pPosCof, nVars);
-    printf("\tbool diff:\t");Abc_TtPrintHexRev(stdout, pNode->pBoolDiff, nVars);
-    printf("\toff:\t");
+    fprintf( Abc_FrameGlobalGetOut(), "Node:\t%s\n",pNode->exp);
+    fprintf( Abc_FrameGlobalGetOut(), "\tneg cof:\t");Abc_TtPrintHexRev(Abc_FrameGlobalGetOut(), pNode->pNegCof, nVars);
+    fprintf( Abc_FrameGlobalGetOut(), "\tpos cof:\t");Abc_TtPrintHexRev(Abc_FrameGlobalGetOut(), pNode->pPosCof, nVars);
+    fprintf( Abc_FrameGlobalGetOut(), "\tbool diff:\t");Abc_TtPrintHexRev(Abc_FrameGlobalGetOut(), pNode->pBoolDiff, nVars);
+    fprintf( Abc_FrameGlobalGetOut(), "\toff:\t");
     for (i=1;i<=(int)pNode->off[0];i++) {
-        printf("%c%c", (pNode->off[i] & 1U) ? ' ' : '!', 'a'+(pNode->off[i] >> 1));
+        fprintf( Abc_FrameGlobalGetOut(), "%c%c", (pNode->off[i] & 1U) ? ' ' : '!', 'a'+(pNode->off[i] >> 1));
     }
-    printf("\ton:\t");
+    fprintf( Abc_FrameGlobalGetOut(), "\ton:\t");
     for (i=1;i<=(int)pNode->on[0];i++) {
-        printf("%c%c", (pNode->on[i] & 1U) ? ' ' : '!', 'a'+(pNode->on[i] >> 1));
+        fprintf( Abc_FrameGlobalGetOut(), "%c%c", (pNode->on[i] & 1U) ? ' ' : '!', 'a'+(pNode->on[i] >> 1));
     }
-    printf("\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\n");
 }
 
 static inline int dsc_and_test(Dsc_node_t *ni, Dsc_node_t *nj, const int TRUTH_WORDS, int* ci, int* cj) {
@@ -431,7 +431,7 @@ extern int Dsc_Decompose(word * pTruth, const int nVarsInit, char * const pRes, 
                 ABC_FREE(pool);
             return 0;
         } else {
-            printf("DSC ERROR: Final DSC node found, but differs from target function.\n");
+            fprintf( Abc_FrameGlobalGetOut(), "DSC ERROR: Final DSC node found, but differs from target function.\n");
             if (NEED_POOL_ALLOC)
                 ABC_FREE(pool);
             return -1;

@@ -328,11 +328,11 @@ void Abc_NodeMffcConeSuppPrint( Abc_Obj_t * pNode )
     Abc_NodeDeref_rec( pNode );
     Abc_NodeMffcConeSupp( pNode, vCone, vSupp );
     Abc_NodeRef_rec( pNode );
-    printf( "Node = %6s : Supp = %3d  Cone = %3d  (", 
+    fprintf( Abc_FrameGlobalGetOut(), "Node = %6s : Supp = %3d  Cone = %3d  (", 
         Abc_ObjName(pNode), Vec_PtrSize(vSupp), Vec_PtrSize(vCone) );
     Vec_PtrForEachEntry( Abc_Obj_t *, vCone, pObj, i )
-        printf( " %s", Abc_ObjName(pObj) );
-    printf( " )\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %s", Abc_ObjName(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), " )\n" );
     Vec_PtrFree( vCone );
     Vec_PtrFree( vSupp );
 }

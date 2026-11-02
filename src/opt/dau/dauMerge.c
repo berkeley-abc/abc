@@ -109,7 +109,7 @@ static inline void Dau_DsdMergeStorePrintDefs( Dau_Sto_t * pS )
     int i;
     for ( i = 0; i < DAU_MAX_VAR; i++ )
         if ( pS->pStore[i][0] )
-            printf( "%c = %s\n", 'a' + i, pS->pStore[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "%c = %s\n", 'a' + i, pS->pStore[i] );
 }
 
 /**Function*************************************************************
@@ -277,15 +277,15 @@ static inline void Dau_DsdMergeInlineDefinitions( char * pDsd, int * pMatches, D
 static inline void Dau_DsdMergePrintWithStatus( char * p, int * pStatus )
 {
     int i;
-    printf( "%s\n", p );
+    fprintf( Abc_FrameGlobalGetOut(), "%s\n", p );
     for ( i = 0; p[i]; i++ )
         if ( !(p[i] == '(' || p[i] == '[' || p[i] == '<' || p[i] == '{' || (p[i] >= 'a' && p[i] <= 'z')) )
-            printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
         else if ( pStatus[i] >= 0 )
-            printf( "%d", pStatus[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", pStatus[i] );
         else
-            printf( "-" );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "-" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 int Dau_DsdMergeStatus_rec( char * pStr, char ** p, int * pMatches, int nShared, int * pStatus )
 {
@@ -607,11 +607,11 @@ char * Dau_DsdMerge( char * pDsd0i, int * pPerm0, char * pDsd1i, int * pPerm1, i
     Dau_DsdMergeCopy( pDsd0i, fCompl0, pDsd0 );
     Dau_DsdMergeCopy( pDsd1i, fCompl1, pDsd1 );
 if ( fVerbose )
-printf( "\nAfter copying:\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\nAfter copying:\n" );
 if ( fVerbose )
-printf( "%s\n", pDsd0 );
+fprintf( Abc_FrameGlobalGetOut(), "%s\n", pDsd0 );
 if ( fVerbose )
-printf( "%s\n", pDsd1 );
+fprintf( Abc_FrameGlobalGetOut(), "%s\n", pDsd1 );
     // handle constants
     if ( Dau_DsdIsConst(pDsd0) || Dau_DsdIsConst(pDsd1) )
     {
@@ -634,11 +634,11 @@ printf( "%s\n", pDsd1 );
     Dau_DsdMergeReplace( pDsd0, pMatches0, pPerm0 );
     Dau_DsdMergeReplace( pDsd1, pMatches1, pPerm1 );
 if ( fVerbose )
-printf( "After replacement:\n" );
+fprintf( Abc_FrameGlobalGetOut(), "After replacement:\n" );
 if ( fVerbose )
-printf( "%s\n", pDsd0 );
+fprintf( Abc_FrameGlobalGetOut(), "%s\n", pDsd0 );
 if ( fVerbose )
-printf( "%s\n", pDsd1 );
+fprintf( Abc_FrameGlobalGetOut(), "%s\n", pDsd1 );
 
 
     if ( fCheck )
@@ -659,17 +659,17 @@ printf( "%s\n", pDsd1 );
     {
         sprintf( pRes, "(%s%s)", pDsd0, pDsd1 );
 if ( fVerbose )
-printf( "Disjoint:\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Disjoint:\n" );
 if ( fVerbose )
-printf( "%s\n", pRes );
+fprintf( Abc_FrameGlobalGetOut(), "%s\n", pRes );
 
         Dau_DsdMergeMatches( pRes, pMatches );
         Dau_DsdRemoveBraces( pRes, pMatches );
         Dau_DsdNormalize( pRes );
 if ( fVerbose )
-printf( "Normalized:\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Normalized:\n" );
 if ( fVerbose )
-printf( "%s\n", pRes );
+fprintf( Abc_FrameGlobalGetOut(), "%s\n", pRes );
 
         return pRes;
     }
@@ -682,7 +682,7 @@ printf( "%s\n", pRes );
     Dau_DsdMergeStatus( pDsd0, pMatches0, nVarsShared, pStatus0 );
     Dau_DsdMergeStatus( pDsd1, pMatches1, nVarsShared, pStatus1 );
 if ( fVerbose )
-printf( "Individual status:\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Individual status:\n" );
 if ( fVerbose )
 Dau_DsdMergePrintWithStatus( pDsd0, pStatus0 );
 if ( fVerbose )
@@ -694,16 +694,16 @@ Dau_DsdMergePrintWithStatus( pDsd1, pStatus1 );
     Dau_DsdMergeSubstitute( pS, pDsd0, pMatches0, pStatus0 );
     strcpy( pDsd0, pS->pOutput );
 if ( fVerbose )
-printf( "Substitutions:\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Substitutions:\n" );
 if ( fVerbose )
-printf( "%s\n", pDsd0 );
+fprintf( Abc_FrameGlobalGetOut(), "%s\n", pDsd0 );
 
     // perform substitutions
     Dau_DsdMergeStoreCleanOutput( pS );
     Dau_DsdMergeSubstitute( pS, pDsd1, pMatches1, pStatus1 );
     strcpy( pDsd1, pS->pOutput );
 if ( fVerbose )
-printf( "%s\n", pDsd1 );
+fprintf( Abc_FrameGlobalGetOut(), "%s\n", pDsd1 );
 if ( fVerbose )
 Dau_DsdMergeStorePrintDefs( pS );
 
@@ -723,35 +723,35 @@ Dau_DsdMergeStorePrintDefs( pS );
         return pRes;
     }
 if ( fVerbose )
-printf( "Decomposition:\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Decomposition:\n" );
 if ( fVerbose )
-printf( "%s\n", pS->pOutput );
+fprintf( Abc_FrameGlobalGetOut(), "%s\n", pS->pOutput );
     // substitute definitions
     Dau_DsdMergeMatches( pS->pOutput, pMatches );
     Dau_DsdMergeInlineDefinitions( pS->pOutput, pMatches, pS, pRes, nVarsShared );
 if ( fVerbose )
-printf( "Inlining:\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Inlining:\n" );
 if ( fVerbose )
-printf( "%s\n", pRes );
+fprintf( Abc_FrameGlobalGetOut(), "%s\n", pRes );
     // perform variable replacement
     Dau_DsdMergeMatches( pRes, pMatches );
     Dau_DsdMergeReplace( pRes, pMatches, pNew2Old );
     Dau_DsdRemoveBraces( pRes, pMatches );
 if ( fVerbose )
-printf( "Replaced:\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Replaced:\n" );
 if ( fVerbose )
-printf( "%s\n", pRes );
+fprintf( Abc_FrameGlobalGetOut(), "%s\n", pRes );
     Dau_DsdNormalize( pRes );
 if ( fVerbose )
-printf( "Normalized:\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Normalized:\n" );
 if ( fVerbose )
-printf( "%s\n", pRes );
+fprintf( Abc_FrameGlobalGetOut(), "%s\n", pRes );
 
     if ( fCheck )
     {
         pt = Dau_DsdToTruth( pRes, nVars );
         if ( !Abc_TtEqual( pParts[2], pt, Abc_TtWordNum(nVars) ) )
-            printf( "Dau_DsdMerge(): Verification failed!\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Dau_DsdMerge(): Verification failed!\n" );
     }
 
     return pRes;

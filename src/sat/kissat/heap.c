@@ -98,11 +98,11 @@ void kissat_enlarge_heap (kissat *solver, heap *heap, unsigned new_vars) {
 
 static void dump_heap (heap *heap) {
   for (unsigned i = 0; i < SIZE_STACK (heap->stack); i++)
-    printf ("heap.stack[%u] = %u\n", i, PEEK_STACK (heap->stack, i));
+    fprintf ( Abc_FrameGlobalGetOut(), "heap.stack[%u] = %u\n", i, PEEK_STACK (heap->stack, i));
   for (unsigned i = 0; i < heap->vars; i++)
-    printf ("heap.pos[%u] = %u\n", i, heap->pos[i]);
+    fprintf ( Abc_FrameGlobalGetOut(), "heap.pos[%u] = %u\n", i, heap->pos[i]);
   for (unsigned i = 0; i < heap->vars; i++)
-    printf ("heap.score[%u] = %g\n", i, heap->score[i]);
+    fprintf ( Abc_FrameGlobalGetOut(), "heap.score[%u] = %g\n", i, heap->score[i]);
 }
 
 void kissat_dump_heap (heap *heap) { dump_heap (heap); }

@@ -182,9 +182,9 @@ void Gia_ManDeriveOneTest( Gia_Man_t * p )
         for ( i = 0; i < Gia_ManCiNum(p); i++ )
         {
             Vec_IntWriteEntry( vValues, i, sat_solver_var_value(pSat, iPoVarBeg+i) );
-            printf( "%d", sat_solver_var_value(pSat, iPoVarBeg+i) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", sat_solver_var_value(pSat, iPoVarBeg+i) );
         }
-        printf( " : " );
+        fprintf( Abc_FrameGlobalGetOut(), " : " );
 
         pNew = Gia_ManDeriveOne( p, vValues );
         // assign variables
@@ -202,9 +202,9 @@ void Gia_ManDeriveOneTest( Gia_Man_t * p )
         Vec_IntPush( vLits, Abc_Var2Lit(Gia_ObjFanin0(pRoot)->Value, !Gia_ObjFaninC0(pRoot)) );
         if ( fVerbose )
         {
-            printf( "Iter = %5d : ", nIter );
-            printf( "And = %4d ", Gia_ManAndNum(pNew) );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter = %5d : ", nIter );
+            fprintf( Abc_FrameGlobalGetOut(), "And = %4d ", Gia_ManAndNum(pNew) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         Gia_ManStop( pNew );
     }

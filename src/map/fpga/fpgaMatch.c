@@ -76,7 +76,7 @@ int Fpga_MappingMatches( Fpga_Man_t * p, int fDelayOriented )
 
     // match LUTs with nodes in the topological order
     nNodes = p->vAnds->nSize;
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     for ( i = 0; i < nNodes; i++ )
     {
         pNode = p->vAnds->pArray[i];
@@ -123,7 +123,7 @@ int Fpga_MatchNode( Fpga_Man_t * p, Fpga_Node_t * pNode, int fDelayOriented )
     // make sure that at least one cut other than the trivial is present
     if ( pNode->pCuts->pNext == NULL )
     {
-        printf( "\nError: A node in the mapping graph does not have feasible cuts.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\nError: A node in the mapping graph does not have feasible cuts.\n" );
         return 0;
     }
 
@@ -205,7 +205,7 @@ int Fpga_MappingMatchesArea( Fpga_Man_t * p )
 
     // match LUTs with nodes in the topological order
     nNodes = p->vAnds->nSize;
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     for ( i = 0; i < nNodes; i++ )
     {
         pNode = p->vAnds->pArray[i];
@@ -273,7 +273,7 @@ int Fpga_MatchNodeArea( Fpga_Man_t * p, Fpga_Node_t * pNode )
     // make sure that at least one cut other than the trivial is present
     if ( pNode->pCuts->pNext == NULL )
     {
-        printf( "\nError: A node in the mapping graph does not have feasible cuts.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\nError: A node in the mapping graph does not have feasible cuts.\n" );
         return 0;
     }
 
@@ -358,7 +358,7 @@ int Fpga_MappingMatchesSwitch( Fpga_Man_t * p )
 
     // match LUTs with nodes in the topological order
     nNodes = p->vAnds->nSize;
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     for ( i = 0; i < nNodes; i++ )
     {
         pNode = p->vAnds->pArray[i];
@@ -394,7 +394,7 @@ int Fpga_MatchNodeSwitch( Fpga_Man_t * p, Fpga_Node_t * pNode )
     // make sure that at least one cut other than the trivial is present
     if ( pNode->pCuts->pNext == NULL )
     {
-        printf( "\nError: A node in the mapping graph does not have feasible cuts.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\nError: A node in the mapping graph does not have feasible cuts.\n" );
         return 0;
     }
 
@@ -788,7 +788,7 @@ float Fpga_FindBestNode( Fpga_Man_t * p, Fpga_NodeVec_t * vNodes, Fpga_Node_t **
         assert( CutArea1 == CutArea3 );
     }
     if ( Gain == 0 )
-        printf( "Returning no gain.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Returning no gain.\n" );
 
     return Gain;
 }

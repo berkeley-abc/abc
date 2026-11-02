@@ -97,7 +97,7 @@ struct Bbr_ImageVar_t_
 #define     b1              (dd)->one
 
 #ifndef ABC_PRB
-#define ABC_PRB(dd,f)       printf("%s = ", #f); Bbr_bddPrint(dd,f); printf("\n")
+#define ABC_PRB(dd,f)       fprintf( Abc_FrameGlobalGetOut(), "%s = ", #f); Bbr_bddPrint(dd,f); fprintf( Abc_FrameGlobalGetOut(), "\n")
 #endif
 
 /**AutomaticStart*************************************************************/
@@ -264,13 +264,13 @@ DdNode * Bbr_bddImageCompute( Bbr_ImageTree_t * pTree, DdNode * bCare )
         bRem = Cudd_bddExistAbstract( dd, bSupp, pTree->bCareSupp );  Cudd_Ref( bRem );
         if ( bRem != b1 )
         {
-printf( "Original care set support: " );
+fprintf( Abc_FrameGlobalGetOut(), "Original care set support: " );
 ABC_PRB( dd, pTree->bCareSupp );
-printf( "Current care set support: " );
+fprintf( Abc_FrameGlobalGetOut(), "Current care set support: " );
 ABC_PRB( dd, bSupp );
             Cudd_RecursiveDeref( dd, bSupp );
             Cudd_RecursiveDeref( dd, bRem );
-            printf( "The care set depends on some vars that were not in the care set during scheduling.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The care set depends on some vars that were not in the care set during scheduling.\n" );
             return NULL;
         }
         Cudd_RecursiveDeref( dd, bRem );
@@ -354,17 +354,17 @@ void Bbr_bddPrint( DdManager * dd, DdNode * F )
 
     if ( F == NULL )
     {
-        printf("NULL");
+        fprintf( Abc_FrameGlobalGetOut(), "NULL");
         return;
     }
     if ( F == b0 )
     {
-        printf("Constant 0");
+        fprintf( Abc_FrameGlobalGetOut(), "Constant 0");
         return;
     }
     if ( F == b1 )
     {
-        printf("Constant 1");
+        fprintf( Abc_FrameGlobalGetOut(), "Constant 1");
         return;
     }
 
@@ -374,14 +374,14 @@ void Bbr_bddPrint( DdManager * dd, DdNode * F )
             fFirstCube = 0;
         else
 //          Output << " + ";
-            printf( " + " );
+            fprintf( Abc_FrameGlobalGetOut(), " + " );
 
         for ( i = 0; i < nVars; i++ )
             if ( Cube[i] == 0 )
-                printf( "[%d]'", i );
+                fprintf( Abc_FrameGlobalGetOut(), "[%d]'", i );
 //              printf( "%c'", (char)('a'+i) );
             else if ( Cube[i] == 1 )
-                printf( "[%d]", i );
+                fprintf( Abc_FrameGlobalGetOut(), "[%d]", i );
 //              printf( "%c", (char)('a'+i) );
     }
 
@@ -1058,13 +1058,13 @@ void Bbr_bddImagePrintLatchDependency(
     bVarsCs = Cudd_Support( dd, bCare );                       Cudd_Ref( bVarsCs );
     bVarsNs = Cudd_bddComputeCube( dd, pbVars, NULL, nVars );  Cudd_Ref( bVarsNs );
 
-    printf( "The latch dependency matrix:\n" );
-    printf( "Partitions = %d   Variables: total = %d  non-quantifiable = %d\n",
+    fprintf( Abc_FrameGlobalGetOut(), "The latch dependency matrix:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Partitions = %d   Variables: total = %d  non-quantifiable = %d\n",
         nParts, dd->size, nVars );
-    printf( "     : " );
+    fprintf( Abc_FrameGlobalGetOut(), "     : " );
     for ( i = 0; i < dd->size; i++ )
-        printf( "%d", i % 10 );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", i % 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     for ( i = 0; i < nParts; i++ )
         Bbr_bddImagePrintLatchDependencyOne( dd, pbParts[i], bVarsCs, bVarsNs, i );
@@ -1093,22 +1093,22 @@ void Bbr_bddImagePrintLatchDependencyOne(
     DdNode * bSupport;
     int v;
     bSupport = Cudd_Support( dd, bFunc );  Cudd_Ref( bSupport );
-    printf( " %3d : ", iPart );
+    fprintf( Abc_FrameGlobalGetOut(), " %3d : ", iPart );
     for ( v = 0; v < dd->size; v++ )
     {
         if ( Cudd_bddLeq( dd, bSupport, dd->vars[v] ) )
         {
             if ( Cudd_bddLeq( dd, bVarsCs, dd->vars[v] ) )
-                printf( "c" );
+                fprintf( Abc_FrameGlobalGetOut(), "c" );
             else if ( Cudd_bddLeq( dd, bVarsNs, dd->vars[v] ) ) 
-                printf( "n" );
+                fprintf( Abc_FrameGlobalGetOut(), "n" );
             else
-                printf( "i" );
+                fprintf( Abc_FrameGlobalGetOut(), "i" );
         }
         else
-            printf( "." );
+            fprintf( Abc_FrameGlobalGetOut(), "." );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Cudd_RecursiveDeref( dd, bSupport );
 }
 
@@ -1126,7 +1126,7 @@ void Bbr_bddImagePrintLatchDependencyOne(
 ***********************************************************************/
 void Bbr_bddImagePrintTree( Bbr_ImageTree_t * pTree )
 {
-    printf( "The quantification scheduling tree:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "The quantification scheduling tree:\n" );
     Bbr_bddImagePrintTree_rec( pTree->pRoot, 1 );
 }
 
@@ -1150,30 +1150,30 @@ void Bbr_bddImagePrintTree_rec( Bbr_ImageNode_t * pNode, int Offset )
 
     if ( pNode->pNode1 == NULL )
     {
-        printf( "<%d> ", pNode->pPart->iPart );
+        fprintf( Abc_FrameGlobalGetOut(), "<%d> ", pNode->pPart->iPart );
         if ( Cube != NULL )
         {
             ABC_PRB( pNode->dd, Cube );
         }
         else
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         return;
     }
 
-    printf( "<*> " );
+    fprintf( Abc_FrameGlobalGetOut(), "<*> " );
     if ( Cube != NULL )
     {
         ABC_PRB( pNode->dd, Cube );
     }
     else
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     for ( i = 0; i < Offset; i++ )
-        printf( "    " );
+        fprintf( Abc_FrameGlobalGetOut(), "    " );
     Bbr_bddImagePrintTree_rec( pNode->pNode1, Offset + 1 );
 
     for ( i = 0; i < Offset; i++ )
-        printf( "    " );
+        fprintf( Abc_FrameGlobalGetOut(), "    " );
     Bbr_bddImagePrintTree_rec( pNode->pNode2, Offset + 1 );
 }
 

@@ -235,7 +235,7 @@ void Amap_ManCutSaveStored( Amap_Man_t * p, Amap_Obj_t * pNode )
     Aig_MmFlexRestart( p->pMemTemp );
     for ( i = 0; i < 2*p->pLib->nNodes; i++ )
         if ( p->ppCutsTemp[i] != NULL )
-            printf( "Amap_ManCutSaveStored(): Error!\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Amap_ManCutSaveStored(): Error!\n" );
     pNode->pData = (Amap_Cut_t *)pBuffer;
     pNode->nCuts = Abc_MinInt( nCuts, nMaxCuts-1 );
     assert( nCuts < (1<<20) );
@@ -301,20 +301,20 @@ void Amap_ManPrintCuts( Amap_Obj_t * pNode )
 {
     Amap_Cut_t * pCut;
     int c, i;
-    printf( "NODE %5d : Type = ", pNode->Id );
+    fprintf( Abc_FrameGlobalGetOut(), "NODE %5d : Type = ", pNode->Id );
     if ( pNode->Type == AMAP_OBJ_AND )
-        printf( "AND" );
+        fprintf( Abc_FrameGlobalGetOut(), "AND" );
     else if ( pNode->Type == AMAP_OBJ_XOR )
-        printf( "XOR" );
+        fprintf( Abc_FrameGlobalGetOut(), "XOR" );
     else if ( pNode->Type == AMAP_OBJ_MUX )
-        printf( "MUX" );
-    printf( "  Cuts = %d\n", pNode->nCuts );
+        fprintf( Abc_FrameGlobalGetOut(), "MUX" );
+    fprintf( Abc_FrameGlobalGetOut(), "  Cuts = %d\n", pNode->nCuts );
     Amap_NodeForEachCut( pNode, pCut, c )
     {
-        printf( "%3d :  Mat= %3d  Inv=%d  ", c, pCut->iMat, pCut->fInv );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d :  Mat= %3d  Inv=%d  ", c, pCut->iMat, pCut->fInv );
         for ( i = 0; i < (int)pCut->nFans; i++ )
-            printf( "%d%c ", Abc_Lit2Var(pCut->Fans[i]), Abc_LitIsCompl(pCut->Fans[i])?'-':'+' );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d%c ", Abc_Lit2Var(pCut->Fans[i]), Abc_LitIsCompl(pCut->Fans[i])?'-':'+' );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -518,10 +518,10 @@ void Amap_ManMerge( Amap_Man_t * p )
         Amap_ManMergeNodeCuts( p, pObj );
     if ( p->pPars->fVerbose )
     {
-        printf( "AIG object is %d bytes.  ", (int)sizeof(Amap_Obj_t) );
-        printf( "Internal AIG = %5.2f MB.  Cuts = %5.2f MB.  CutsMax = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "AIG object is %d bytes.  ", (int)sizeof(Amap_Obj_t) );
+        fprintf( Abc_FrameGlobalGetOut(), "Internal AIG = %5.2f MB.  Cuts = %5.2f MB.  CutsMax = %d.\n", 
             1.0*Amap_ManObjNum(p)*sizeof(Amap_Obj_t)/(1<<20), 1.0*p->nBytesUsed/(1<<20), p->pPars->nCutsMax );
-        printf( "Node =%6d. Try =%9d. Try3 =%10d. Used =%7d. R =%6.2f.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Node =%6d. Try =%9d. Try3 =%10d. Used =%7d. R =%6.2f.  ", 
             Amap_ManNodeNum(p), p->nCutsTried, p->nCutsTried3, p->nCutsUsed, 
             1.0*p->nCutsUsed/Amap_ManNodeNum(p) );
 ABC_PRT( "Time ", Abc_Clock() - clk );

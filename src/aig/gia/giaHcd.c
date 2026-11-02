@@ -651,7 +651,7 @@ Aig_Man_t * Hcd_ComputeChoices( Aig_Man_t * pAig, int nBTLimit, int fSynthesis, 
     {
         extern int Dch_DeriveChoiceCountReprs( Aig_Man_t * pAig );
         extern int Dch_DeriveChoiceCountEquivs( Aig_Man_t * pAig );
-        printf( "Choices   : Reprs = %5d. Equivs = %5d. Choices = %5d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Choices   : Reprs = %5d. Equivs = %5d. Choices = %5d.\n", 
             Dch_DeriveChoiceCountReprs( pAigNew ), 
             Dch_DeriveChoiceCountEquivs( pAigNew ), 
             Aig_ManChoiceNum( pAigNew ) );

@@ -92,7 +92,7 @@ bool Config::set (Options &opts, const char *name) {
 /*------------------------------------------------------------------------*/
 
 void Config::usage () {
-#define CONFIG(N, D) printf ("  %-14s " D "\n", "--" #N);
+#define CONFIG(N, D) fprintf ( Abc_FrameGlobalGetOut(), "  %-14s " D "\n", "--" #N);
   CONFIGS
 #undef CONFIG
 }

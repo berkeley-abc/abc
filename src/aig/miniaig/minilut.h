@@ -68,6 +68,9 @@ struct Mini_Lut_t_
         ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
          ((type *) malloc(sizeof(type) * (num))))
 
+extern FILE *             Abc_FrameGlobalGetOut();
+extern FILE *             Abc_FrameGlobalGetErr();
+
 // compute truth table size measured in unsigned's
 static int  Mini_LutWordNum( int LutSize ) 
 {
@@ -179,37 +182,37 @@ static void Mini_LutPrintStats( Mini_Lut_t * p )
     nNodes = 0;
     Mini_LutForEachNode( p, i )
         nNodes++;
-    printf( "PI = %d. PO = %d. LUT = %d. FF = %d.\n", nPis, nPos, nNodes, p->nRegs );
+    fprintf( Abc_FrameGlobalGetOut(),  "PI = %d. PO = %d. LUT = %d. FF = %d.\n", nPis, nPos, nNodes, p->nRegs  );
 }
 static void Mini_LutPrint( Mini_Lut_t * p )
 {
     int i, k, Fan;
-    printf( "MiniLUT statistics: " );
+    fprintf( Abc_FrameGlobalGetOut(),  "MiniLUT statistics: "  );
     Mini_LutPrintStats( p );
-    printf( "Printout of nodes:\n" );
+    fprintf( Abc_FrameGlobalGetOut(),  "Printout of nodes:\n"  );
     for ( i = 0; i < p->nSize; i++ )
     {
-        printf( "%6d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(),  "%6d : ", i  );
         if ( Mini_LutNodeIsConst(p, i) )
-            printf( "Const%d", i );
+            fprintf( Abc_FrameGlobalGetOut(),  "Const%d", i  );
         else if ( Mini_LutNodeIsPi(p, i) )
-            printf( "PI" );
+            fprintf( Abc_FrameGlobalGetOut(),  "PI"  );
         else if ( Mini_LutNodeIsPo(p, i) )
-            printf( "PO" );
+            fprintf( Abc_FrameGlobalGetOut(),  "PO"  );
         else if ( Mini_LutNodeIsNode(p, i) )
         {
-            printf( "LUT%d  Fanins:", p->LutSize );
+            fprintf( Abc_FrameGlobalGetOut(),  "LUT%d  Fanins:", p->LutSize  );
             Mini_LutForEachFanin( p, i, Fan, k )
-                printf( " %6d", Fan );
+                fprintf( Abc_FrameGlobalGetOut(),  " %6d", Fan  );
             while ( k++ < p->LutSize )
-                printf( "       " );
-            printf( "   Function: " );
+                fprintf( Abc_FrameGlobalGetOut(),  "       "  );
+            fprintf( Abc_FrameGlobalGetOut(),  "   Function: "  );
             for ( k = 31; k >= 0; k-- )
-                printf( "%c", '0' + ((p->pTruths[i] >> k) & 1) );
+                fprintf( Abc_FrameGlobalGetOut(),  "%c", '0' + ((p->pTruths[i] >> k) & 1)  );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "\n"  );
     }
-    printf( "End of printout.\n" );
+    fprintf( Abc_FrameGlobalGetOut(),  "End of printout.\n"  );
 }
 
 // serialization
@@ -220,7 +223,7 @@ static void Mini_LutDump( Mini_Lut_t * p, char * pFileName )
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file for writing \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file for writing \"%s\".\n", pFileName  );
         return;
     }
     RetValue = (int)fwrite( &p->nSize,   sizeof(int), 1, pFile );
@@ -238,7 +241,7 @@ static Mini_Lut_t * Mini_LutLoad( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file for reading \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file for reading \"%s\".\n", pFileName  );
         return NULL;
     }
     RetValue = (int)fread( &nSize, sizeof(int), 1, pFile );
@@ -292,14 +295,14 @@ static int Mini_LutCheck( Mini_Lut_t * p )
             if ( iFaninVar == MINI_LUT_NULL )
                 continue;
             if ( iFaninVar >= p->LutSize * i )
-                printf( "Fanin %d of LUT node %d is not in a topological order.\n", k, i ), status = 0;
+                fprintf( Abc_FrameGlobalGetOut(),  "Fanin %d of LUT node %d is not in a topological order.\n", k, i  ), status = 0;
         }
     }
     Mini_LutForEachPo( p, i )
     {
         iFaninVar = Mini_LutNodeFanin( p, i, 0 );
         if ( iFaninVar >= p->LutSize * i )
-            printf( "Fanin %d of PO node %d is not in a topological order.\n", k, i ), status = 0;
+            fprintf( Abc_FrameGlobalGetOut(),  "Fanin %d of PO node %d is not in a topological order.\n", k, i  ), status = 0;
     }
     return status;
 }

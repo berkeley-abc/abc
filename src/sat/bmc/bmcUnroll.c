@@ -140,10 +140,10 @@ void Unr_ManProfileRanks( Vec_Int_t * vRanks )
     {
         if ( Count == 0 )
             continue;
-        printf( "%2d : %8d  (%6.2f %%)\n", i, Count, 100.0 * Count / Vec_IntSize(vRanks) );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : %8d  (%6.2f %%)\n", i, Count, 100.0 * Count / Vec_IntSize(vRanks) );
         nExtras += Count * i;
     }
-    printf( "Extra space = %d (%6.2f %%)  ", nExtras, 100.0 * nExtras / Vec_IntSize(vRanks) );
+    fprintf( Abc_FrameGlobalGetOut(), "Extra space = %d (%6.2f %%)  ", nExtras, 100.0 * nExtras / Vec_IntSize(vRanks) );
     Vec_IntFree( vCounts );
 }
 
@@ -296,7 +296,7 @@ void Unr_ManSetup( Unr_Man_t * p, int fVerbose )
     if ( fVerbose )
     {
         Unr_ManProfileRanks( p->vRanks );
-        printf( "Memory usage = %6.2f MB  ", 4.0 * nInts / (1<<20) );
+        fprintf( Abc_FrameGlobalGetOut(), "Memory usage = %6.2f MB  ", 4.0 * nInts / (1<<20) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     Vec_IntFreeP( &p->vOrder );

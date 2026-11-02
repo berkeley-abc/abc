@@ -129,7 +129,7 @@ static char * Abc_FileRead( char * pFileName )
     pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName );
         return NULL;
     }
     // get the file size, in bytes
@@ -171,7 +171,7 @@ static void Abc_TruthGetParams( char * pFileName, int * pnVars, int * pnTruths )
         if ( pContents[i] == ' ' || pContents[i] == '\n' || pContents[i] == '\r' )
             break;
     if ( pContents[i] == 0 )
-        printf( "Strange, the input file does not have spaces and new-lines...\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Strange, the input file does not have spaces and new-lines...\n" );
 
     // account for the fact that truth tables may have "0x" at the beginning of each line
     if ( pContents[0] == '0' && pContents[1] == 'x' )
@@ -183,7 +183,7 @@ static void Abc_TruthGetParams( char * pFileName, int * pnVars, int * pnTruths )
             break;
     if ( nVars < 2 || nVars > 16 )
     {
-        printf( "Does not look like the input file contains truth tables...\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Does not look like the input file contains truth tables...\n" );
         return;
     }
     if ( pnVars )
@@ -243,7 +243,7 @@ static void Abc_TruthStoreWrite( char * pFileName, Abc_TtStore_t * p )
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         return;
     }
     for ( i = 0; i < p->nFuncs; i++ )
@@ -261,7 +261,7 @@ static void WriteToFile(char * pFileName, Abc_TtStore_t * p, word* a)
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         return;
     }
     for ( i = 0; i < p->nFuncs; i++ )
@@ -279,7 +279,7 @@ static void WriteToFile1(char * pFileName, Abc_TtStore_t * p, word** a)
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         return;
     }
     for ( i = 0; i < p->nFuncs; i++ )
@@ -300,7 +300,7 @@ static void WriteToFile2(char * pFileName, Abc_TtStore_t * p, word* a)
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         return;
     }
     for ( i = 0; i < p->nFuncs; i++ )

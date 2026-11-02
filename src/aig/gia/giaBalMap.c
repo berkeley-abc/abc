@@ -202,7 +202,7 @@ Vec_Int_t * Gia_ManFindLatest( Gia_Man_t * p, int LevelMax, int nTimeWindow )
         if ( nTimeWindow )
             LevelMax = (int)((1.0 - 0.01 * nTimeWindow) * nLevels);
         if ( nLevels < LevelMax )
-            printf( "The maximum mapped level (%d) is less than the target level (%d).\n", nLevels, LevelMax );
+            fprintf( Abc_FrameGlobalGetOut(), "The maximum mapped level (%d) is less than the target level (%d).\n", nLevels, LevelMax );
         Gia_ManForEachCo( p, pObj, i )
             if ( pLevels[Gia_ObjFaninId0p(p, pObj)] >= LevelMax )
                 Vec_IntPush( vOuts, i );
@@ -214,7 +214,7 @@ Vec_Int_t * Gia_ManFindLatest( Gia_Man_t * p, int LevelMax, int nTimeWindow )
         if ( nTimeWindow )
             LevelMax = (int)((1.0 - 0.01 * nTimeWindow) * nLevels);
         if ( nLevels < LevelMax )
-            printf( "The maximum AIG level (%d) is less than the target level (%d).\n", nLevels, LevelMax );
+            fprintf( Abc_FrameGlobalGetOut(), "The maximum AIG level (%d) is less than the target level (%d).\n", nLevels, LevelMax );
         Gia_ManForEachCo( p, pObj, i )
             if ( Gia_ObjLevel(p, pObj) >= LevelMax )
                 Vec_IntPush( vOuts, i );
@@ -240,7 +240,7 @@ Gia_Man_t * Gia_ManExtractWindow( Gia_Man_t * p, int LevelMax, int nTimeWindow, 
     assert( !LevelMax != !nTimeWindow );
     vOuts = Gia_ManFindLatest( p, LevelMax, nTimeWindow );
     if ( fVerbose )
-        printf( "Collected %d outputs to extract.\n", Vec_IntSize(vOuts) );
+        fprintf( Abc_FrameGlobalGetOut(), "Collected %d outputs to extract.\n", Vec_IntSize(vOuts) );
     if ( Vec_IntSize(vOuts) == 0 )
     {
         Vec_IntFree( vOuts );
@@ -269,7 +269,7 @@ Gia_Man_t * Gia_ManPerformSopBalanceWin( Gia_Man_t * p, int LevelMax, int nTimeW
     assert( !LevelMax != !nTimeWindow );
     vOuts = Gia_ManFindLatest( p, LevelMax, nTimeWindow );
     if ( fVerbose )
-        printf( "Collected %d outputs to extract.\n", Vec_IntSize(vOuts) );
+        fprintf( Abc_FrameGlobalGetOut(), "Collected %d outputs to extract.\n", Vec_IntSize(vOuts) );
     if ( Vec_IntSize(vOuts) == 0 )
     {
         Vec_IntFree( vOuts );
@@ -302,7 +302,7 @@ Gia_Man_t * Gia_ManPerformDsdBalanceWin( Gia_Man_t * p, int LevelMax, int nTimeW
     assert( !LevelMax != !nTimeWindow );
     vOuts = Gia_ManFindLatest( p, LevelMax, nTimeWindow );
     if ( fVerbose )
-        printf( "Collected %d outputs to extract.\n", Vec_IntSize(vOuts) );
+        fprintf( Abc_FrameGlobalGetOut(), "Collected %d outputs to extract.\n", Vec_IntSize(vOuts) );
     if ( Vec_IntSize(vOuts) == 0 )
     {
         Vec_IntFree( vOuts );

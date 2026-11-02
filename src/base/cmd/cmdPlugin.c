@@ -161,7 +161,7 @@ Vec_Str_t * Abc_ManReadFile( char * pFileName )
     pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\".\n", pFileName );
         return NULL;
     }
     vStr = Vec_StrAlloc( 100 );

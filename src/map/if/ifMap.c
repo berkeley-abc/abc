@@ -741,7 +741,7 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
     }
     else
     {
-        pProgress = Extra_ProgressBarStart( stdout, If_ManObjNum(p) );
+        pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), If_ManObjNum(p) );
         If_ManForEachNode( p, pObj, i )
         {
             Extra_ProgressBarUpdate( pProgress, i, pLabel );

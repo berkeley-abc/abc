@@ -399,9 +399,9 @@ finish:
             (int (*)(const void *, const void *)) Sml_CompareMaxId );
 if ( p->pPars->fVerbose )
 {
-printf( "Implications: All = %d. Try = %d. NonSeq = %d. Comb = %d. Res = %d.\n", 
+fprintf( Abc_FrameGlobalGetOut(), "Implications: All = %d. Try = %d. NonSeq = %d. Comb = %d. Res = %d.\n", 
     nImpsTotal, nImpsTried, nImpsNonSeq, nImpsComb, nImpsCollected );
-printf( "Implication weight: Min = %d. Pivot = %d. Max = %d.   ", 
+fprintf( Abc_FrameGlobalGetOut(), "Implication weight: Min = %d. Pivot = %d. Max = %d.   ", 
        CostMin, CostRange, CostMax );
 ABC_PRT( "Time", Abc_Clock() - clk );
 }
@@ -554,7 +554,7 @@ int Fra_ImpCheckForNode( Fra_Man_t * p, Vec_Int_t * vImps, Aig_Obj_t * pNode, in
             if ( RetValue == 0 )
                 Fra_SmlResimulate( p );
             if ( Vec_IntEntry(vImps, i) != 0 )
-                printf( "Fra_ImpCheckForNode(): Implication is not refined!\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Fra_ImpCheckForNode(): Implication is not refined!\n" );
             assert( Vec_IntEntry(vImps, i) == 0 );
         }
     }

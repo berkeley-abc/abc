@@ -93,13 +93,13 @@ int Abc_NtkFastExtract( Abc_Ntk_t * pNtk, Fxu_Data_t * p )
     // get the network in the SOP form
     if ( !Abc_NtkToSop(pNtk, -1, ABC_INFINITY) )
     {
-        printf( "Abc_NtkFastExtract(): Converting to SOPs has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFastExtract(): Converting to SOPs has failed.\n" );
         return 0;
     }
     // check if the network meets the requirements
     if ( !Abc_NtkFxuCheck(pNtk) )
     {
-        printf( "Abc_NtkFastExtract: Nodes have duplicated or complemented fanins. FXU is not performed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFastExtract: Nodes have duplicated or complemented fanins. FXU is not performed.\n" );
         return 0;
     }
     // sweep removes useless nodes
@@ -113,11 +113,11 @@ int Abc_NtkFastExtract( Abc_Ntk_t * pNtk, Fxu_Data_t * p )
         Abc_NtkFxuReconstruct( pNtk, p );
         // make sure everything is okay
         if ( !Abc_NtkCheck( pNtk ) )
-            printf( "Abc_NtkFastExtract: The network check has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFastExtract: The network check has failed.\n" );
         return 1;
     }
     else
-        printf( "Warning: The network has not been changed by \"fx\".\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The network has not been changed by \"fx\".\n" );
     return 0;
 }
 

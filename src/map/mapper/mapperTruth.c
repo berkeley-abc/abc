@@ -52,7 +52,7 @@ void Map_MappingTruths( Map_Man_t * pMan )
     int nNodes, i;
     // compute the cuts for the POs
     nNodes = pMan->vMapObjs->nSize;
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     for ( i = 0; i < nNodes; i++ )
     {
         pNode = pMan->vMapObjs->pArray[i];

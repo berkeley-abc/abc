@@ -234,26 +234,26 @@ int Abc_AigCheck( Abc_Aig_t * pMan )
         {
             if ( !Abc_AigNodeIsConst(pObj) )
             {
-                printf( "Abc_AigCheck: The AIG has non-standard constant nodes.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Abc_AigCheck: The AIG has non-standard constant nodes.\n" );
                 return 0;
             }
             continue;
         }
         if ( nFanins == 1 )
         {
-            printf( "Abc_AigCheck: The AIG has single input nodes.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_AigCheck: The AIG has single input nodes.\n" );
             return 0;
         }
         if ( nFanins > 2 )
         {
-            printf( "Abc_AigCheck: The AIG has non-standard nodes.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_AigCheck: The AIG has non-standard nodes.\n" );
             return 0;
         }
         if ( pObj->Level != 1 + (unsigned)Abc_MaxInt( Abc_ObjFanin0(pObj)->Level, Abc_ObjFanin1(pObj)->Level ) )
-            printf( "Abc_AigCheck: Node \"%s\" has level that does not agree with the fanin levels.\n", Abc_ObjName(pObj) );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_AigCheck: Node \"%s\" has level that does not agree with the fanin levels.\n", Abc_ObjName(pObj) );
         pAnd = Abc_AigAndLookup( pMan, Abc_ObjChild0(pObj), Abc_ObjChild1(pObj) );
         if ( pAnd != pObj )
-            printf( "Abc_AigCheck: Node \"%s\" is not in the structural hashing table.\n", Abc_ObjName(pObj) );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_AigCheck: Node \"%s\" is not in the structural hashing table.\n", Abc_ObjName(pObj) );
     }
     // count the number of nodes in the table
     Counter = 0;
@@ -262,7 +262,7 @@ int Abc_AigCheck( Abc_Aig_t * pMan )
             Counter++;
     if ( Counter != Abc_NtkNodeNum(pMan->pNtkAig) )
     {
-        printf( "Abc_AigCheck: The number of nodes in the structural hashing table is wrong.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_AigCheck: The number of nodes in the structural hashing table is wrong.\n" );
         return 0;
     }
     // if the node is a choice node, nodes in its class should not have fanouts
@@ -271,8 +271,8 @@ int Abc_AigCheck( Abc_Aig_t * pMan )
             for ( pAnd = (Abc_Obj_t *)pObj->pData; pAnd; pAnd = (Abc_Obj_t *)pAnd->pData )
                 if ( Abc_ObjFanoutNum(pAnd) > 0 )
                 {
-                    printf( "Abc_AigCheck: Representative %s", Abc_ObjName(pAnd) );
-                    printf( " of choice node %s has %d fanouts.\n", Abc_ObjName(pObj), Abc_ObjFanoutNum(pAnd) );
+                    fprintf( Abc_FrameGlobalGetOut(), "Abc_AigCheck: Representative %s", Abc_ObjName(pAnd) );
+                    fprintf( Abc_FrameGlobalGetOut(), " of choice node %s has %d fanouts.\n", Abc_ObjName(pObj), Abc_ObjFanoutNum(pAnd) );
                     return 0;
                 }
     return 1;
@@ -1298,21 +1298,21 @@ void Abc_AigPrintNode( Abc_Obj_t * pNode )
     Abc_Obj_t * pNodeR = Abc_ObjRegular(pNode);
     if ( Abc_ObjIsCi(pNodeR) )
     {
-        printf( "CI %4s%s.\n", Abc_ObjName(pNodeR), Abc_ObjIsComplement(pNode)? "\'" : "" );
+        fprintf( Abc_FrameGlobalGetOut(), "CI %4s%s.\n", Abc_ObjName(pNodeR), Abc_ObjIsComplement(pNode)? "\'" : "" );
         return;
     }
     if ( Abc_AigNodeIsConst(pNodeR) )
     {
-        printf( "Constant 1 %s.\n", Abc_ObjIsComplement(pNode)? "(complemented)" : ""  );
+        fprintf( Abc_FrameGlobalGetOut(), "Constant 1 %s.\n", Abc_ObjIsComplement(pNode)? "(complemented)" : "" );
         return;
     }
     // print the node's function
-    printf( "%7s%s", Abc_ObjName(pNodeR),                Abc_ObjIsComplement(pNode)? "\'" : "" );
-    printf( " = " );
-    printf( "%7s%s", Abc_ObjName(Abc_ObjFanin0(pNodeR)), Abc_ObjFaninC0(pNodeR)?     "\'" : "" );
-    printf( " * " );
-    printf( "%7s%s", Abc_ObjName(Abc_ObjFanin1(pNodeR)), Abc_ObjFaninC1(pNodeR)?     "\'" : "" );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "%7s%s", Abc_ObjName(pNodeR),                Abc_ObjIsComplement(pNode)? "\'" : "" );
+    fprintf( Abc_FrameGlobalGetOut(), " = " );
+    fprintf( Abc_FrameGlobalGetOut(), "%7s%s", Abc_ObjName(Abc_ObjFanin0(pNodeR)), Abc_ObjFaninC0(pNodeR)?     "\'" : "" );
+    fprintf( Abc_FrameGlobalGetOut(), " * " );
+    fprintf( Abc_FrameGlobalGetOut(), "%7s%s", Abc_ObjName(Abc_ObjFanin1(pNodeR)), Abc_ObjFaninC1(pNodeR)?     "\'" : "" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 
@@ -1387,7 +1387,7 @@ void Abc_AigCheckFaninOrder( Abc_Aig_t * pMan )
             {
 //                int i0 = Abc_ObjRegular(Abc_ObjChild0(pEnt))->Id;
 //                int i1 = Abc_ObjRegular(Abc_ObjChild1(pEnt))->Id;
-                printf( "Node %d has incorrect ordering of fanins.\n", pEnt->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "Node %d has incorrect ordering of fanins.\n", pEnt->Id );
             }
         }
 }
@@ -1503,7 +1503,7 @@ int Abc_AigCountNext( Abc_Aig_t * pMan )
             Counter += (pAnd->pNext != NULL);
             CounterTotal++;
         }
-    printf( "Counter = %d.  Nodes = %d.  Ave = %6.2f\n", Counter, CounterTotal, 1.0 * CounterTotal/pMan->nBins );
+    fprintf( Abc_FrameGlobalGetOut(), "Counter = %d.  Nodes = %d.  Ave = %6.2f\n", Counter, CounterTotal, 1.0 * CounterTotal/pMan->nBins );
     return Counter;
 }
 
@@ -1514,7 +1514,7 @@ int Abc_AigCountNext( Abc_Aig_t * pMan )
 
 void Abc_NtkHelloWorld( Abc_Ntk_t * pNtk )
 {
-    printf( "Hello, World!\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Hello, World!\n" );
 }
 
 

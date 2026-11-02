@@ -89,16 +89,16 @@ void Pas_ManVerifyPhaseOne( Gia_Man_t * p, Vec_Int_t * vAdds, int iBox, Vec_Bit_
     if ( fFadd ) // FADD
     {
         if ( TruthXor != 0x96 )
-            printf( "Fadd %d sum is wrong.\n", iBox );
+            fprintf( Abc_FrameGlobalGetOut(), "Fadd %d sum is wrong.\n", iBox );
         if ( TruthMaj != 0xE8 )
-            printf( "Fadd %d carry is wrong.\n", iBox );
+            fprintf( Abc_FrameGlobalGetOut(), "Fadd %d carry is wrong.\n", iBox );
     }
     else
     {
         if ( TruthXor != 0x66 )
-            printf( "Hadd %d sum is wrong.\n", iBox );
+            fprintf( Abc_FrameGlobalGetOut(), "Hadd %d sum is wrong.\n", iBox );
         if ( TruthMaj != 0x88 )
-            printf( "Hadd %d carry is wrong.\n", iBox );
+            fprintf( Abc_FrameGlobalGetOut(), "Hadd %d carry is wrong.\n", iBox );
     }
 }
 void Pas_ManVerifyPhase( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vOrder, Vec_Bit_t * vPhase )
@@ -187,7 +187,7 @@ int Pas_ManComputeCuts( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vOrder, Ve
     {
         int Carry = Vec_IntEntry(vAdds, 6*i+4);
         if ( Vec_BitEntry(vUnique, Carry) )
-            printf( "Carry %d participates more than once.\n", Carry );
+            fprintf( Abc_FrameGlobalGetOut(), "Carry %d participates more than once.\n", Carry );
         Vec_BitWriteEntry( vUnique, Carry, 1 );
         Vec_IntWriteEntry( vMap, Carry, i );
         // mark driven 
@@ -211,18 +211,18 @@ int Pas_ManComputeCuts( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vOrder, Ve
         vPhase = Pas_ManPhase( p, vAdds, vMap, vRoots, &vConstPhase );
         Pas_ManVerifyPhase( p, vAdds, vOrder, vPhase );
 
-        printf( "Outputs: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Outputs: " );
         Vec_IntForEachEntry( vOuts, Entry, i )
-            printf( "%d(%d) ", Entry, Vec_BitEntry(vPhase, Entry) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d(%d) ", Entry, Vec_BitEntry(vPhase, Entry) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-        printf( "Inputs: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Inputs: " );
         Vec_IntForEachEntry( vIns, Entry, i )
         {
-            printf( "%d(%d) ", Entry, Vec_BitEntry(vPhase, Entry) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d(%d) ", Entry, Vec_BitEntry(vPhase, Entry) );
             nCompls += Vec_BitEntry(vPhase, Entry);
         }
-        printf( "   Compl = %d\n", nCompls );
+        fprintf( Abc_FrameGlobalGetOut(), "   Compl = %d\n", nCompls );
 
         Vec_BitFreeP( &vPhase );
         Vec_BitFreeP( &vConstPhase );
@@ -254,7 +254,7 @@ void Pas_ManComputeCutsTest( Gia_Man_t * p )
     Vec_Int_t * vOrder = Gia_PolynCoreOrder( p, vAdds, NULL, &vIns, &vOuts );
     int nTrees, nFadds = Ree_ManCountFadds( vAdds );
     //Ree_ManPrintAdders( vAdds, 1 );
-    printf( "Detected %d FAs and %d HAs.  Collected %d adders.  ", nFadds, Vec_IntSize(vAdds)/6-nFadds, Vec_IntSize(vOrder) );
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d FAs and %d HAs.  Collected %d adders.  ", nFadds, Vec_IntSize(vAdds)/6-nFadds, Vec_IntSize(vOrder) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // detect trees
     clk = Abc_Clock();
@@ -264,7 +264,7 @@ void Pas_ManComputeCutsTest( Gia_Man_t * p )
     Vec_IntFree( vIns );
     Vec_IntFree( vOuts );
 
-    printf( "Detected %d adder trees. ", nTrees );
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d adder trees. ", nTrees );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 

@@ -112,7 +112,7 @@ int Sbm_ManCheckSol( Sbm_Man_t * p, Vec_Int_t * vSol )
     Vec_IntForEachEntry( p->vRoots, Lit, i )
     {
         if ( Vec_IntEntry(p->vLit2Used, Lit) == 0 )
-            printf( "Output literal %d has no cut.\n", Lit ), RetValue = 0;
+            fprintf( Abc_FrameGlobalGetOut(),  "Output literal %d has no cut.\n", Lit  ), RetValue = 0;
     }
     // check internal nodes
     Vec_IntForEachEntry( p->vSolCuts, Cut, i )
@@ -125,10 +125,10 @@ int Sbm_ManCheckSol( Sbm_Man_t * p, Vec_Int_t * vSol )
             {
                 assert( Abc_LitIsCompl(Lit) );
                 if ( Vec_IntEntry(p->vLit2Used, Vec_WecSize(p->vObjCuts) + Abc_Lit2Var(Lit)-1) == 0 )
-                    printf( "Inverter of input %d of cut %d is not mapped.\n", Abc_Lit2Var(Lit)-1, Cut ), RetValue = 0;
+                    fprintf( Abc_FrameGlobalGetOut(),  "Inverter of input %d of cut %d is not mapped.\n", Abc_Lit2Var(Lit)-1, Cut  ), RetValue = 0;
             }
             else if ( Vec_IntEntry(p->vLit2Used, Lit - p->LitShift) == 0 )
-                printf( "Internal literal %d of cut %d is not mapped.\n", Lit - p->LitShift, Cut ), RetValue = 0;
+                fprintf( Abc_FrameGlobalGetOut(),  "Internal literal %d of cut %d is not mapped.\n", Lit - p->LitShift, Cut  ), RetValue = 0;
         // create polarity
         Vec_IntPush( p->vPolar, p->FirstVar + Cut ); // cut variable
     }
@@ -403,15 +403,15 @@ static inline void Sbm_AddSorter( sat_solver * p, int * pVars, int i, int k, int
     {
         int v;
         for ( v = 0; v < i; v++ )
-            printf( " " );
-        printf( "<" );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
+        fprintf( Abc_FrameGlobalGetOut(), "<" );
         for ( v = i+1; v < k; v++ )
-            printf( "-" );
-        printf( ">" );
+            fprintf( Abc_FrameGlobalGetOut(), "-" );
+        fprintf( Abc_FrameGlobalGetOut(), ">" );
         for ( v = k+1; v < 8; v++ )
-            printf( " " );
-        printf( "    " );
-        printf( "[%3d :%3d ] -> [%3d :%3d ]\n", pVars[i], pVars[k], iVar1, iVar2 );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
+        fprintf( Abc_FrameGlobalGetOut(), "    " );
+        fprintf( Abc_FrameGlobalGetOut(), "[%3d :%3d ] -> [%3d :%3d ]\n", pVars[i], pVars[k], iVar1, iVar2 );
     }
 //    sat_solver_add_and1( p, iVar1, pVars[i], pVars[k], 1, 1, 1 );
 //    sat_solver_add_and2( p, iVar2, pVars[i], pVars[k], 0, 0, 0 );
@@ -477,20 +477,20 @@ void Sbm_AddCardinConstrTest()
     int nVarsReal = sat_solver_nvars( pSat );
 
     int Lit = Abc_Var2Lit( Vec_IntEntry(vVars, K), 1 );
-    printf( "LogN = %d. N = %3d.   Vars = %5d. Clauses = %6d.  Comb = %d.\n", LogN, nVars, nVarsReal, sat_solver_nclauses(pSat), nVars * (nVars-1)/2 + nVars + 1 );
+    fprintf( Abc_FrameGlobalGetOut(), "LogN = %d. N = %3d.   Vars = %5d. Clauses = %6d.  Comb = %d.\n", LogN, nVars, nVarsReal, sat_solver_nclauses(pSat), nVars * (nVars-1)/2 + nVars + 1 );
     while ( 1 )
     {
         int i, status = sat_solver_solve( pSat, &Lit, &Lit+1, 0, 0, 0, 0 );
         if ( status != l_True )
             break;
         Vec_IntClear( vLits );
-        printf( "%3d : ", Count++ );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : ", Count++ );
         for ( i = 0; i < nVars; i++ )
         {
             Vec_IntPush( vLits, Abc_Var2Lit(i, sat_solver_var_value(pSat, i)) );
-            printf( "%d", sat_solver_var_value(pSat, i) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", sat_solver_var_value(pSat, i) );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         status = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + nVars );
         if ( status == 0 )
             break;
@@ -582,7 +582,7 @@ int Sbm_ManTestSat( void * pMan )
 //    Vec_WecPrint( p->vObjCuts, 0 );
 //    printf( "\n" );
     Vec_IntPrint( p->vSolCuts );
-    printf( "All clauses = %d.  Multi clauses = %d.  Binary clauses = %d.  Other clauses = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "All clauses = %d.  Multi clauses = %d.  Binary clauses = %d.  Other clauses = %d.\n", 
         sat_solver_nclauses(p->pSat), Vec_WecSize(p->vObjCuts), Vec_WecSizeSize(p->vCuts), 
         sat_solver_nclauses(p->pSat) - Vec_WecSize(p->vObjCuts) - Vec_WecSizeSize(p->vCuts) );
 
@@ -606,7 +606,7 @@ int Sbm_ManTestSat( void * pMan )
 //    StartSol = 30;
     while ( fKeepTrying && StartSol-fKeepTrying > 0 )
     {
-        printf( "Trying to find mapping with %d gates.\n", StartSol-fKeepTrying );
+        fprintf( Abc_FrameGlobalGetOut(), "Trying to find mapping with %d gates.\n", StartSol-fKeepTrying );
     //    for ( i = Vec_IntSize(p->vSolCuts)-5; i < nVars; i++ )
     //        Vec_IntPush( p->vAssump, Abc_Var2Lit(Vec_IntEntry(p->vCardVars, i), 1) );
         Vec_IntWriteEntry( p->vAssump, 0, Abc_Var2Lit(Vec_IntEntry(p->vCardVars, StartSol-fKeepTrying), 1) );
@@ -617,19 +617,19 @@ int Sbm_ManTestSat( void * pMan )
         {
             word AreaNew = 0;
             int Count = 0;
-            printf( "AND Lits = %d.  Inputs = %d.  Vars = %d.  All vars = %d.\n", Vec_WecSize(p->vObjCuts), p->nInputs, Vec_WecSize(p->vObjCuts) + p->nInputs, nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "AND Lits = %d.  Inputs = %d.  Vars = %d.  All vars = %d.\n", Vec_WecSize(p->vObjCuts), p->nInputs, Vec_WecSize(p->vObjCuts) + p->nInputs, nVars );
 //            for ( i = 0; i < nVars; i++ )
 //                printf( "%d", sat_solver_var_value(p->pSat, i) );
 //            printf( "\n" );
             for ( i = 0; i < nVars; i++ )
                 if ( sat_solver_var_value(p->pSat, i) )
                 {
-                    printf( "%d=%d ", i, sat_solver_var_value(p->pSat, i) );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, sat_solver_var_value(p->pSat, i) );
                     Count++;
                     if ( i >= Vec_WecSize(p->vObjCuts) )
                         AreaNew += InvArea;
                 }
-            printf( "Count = %d\n", Count );
+            fprintf( Abc_FrameGlobalGetOut(), "Count = %d\n", Count );
 //            for ( i = p->FirstVar; i < sat_solver_nvars(p->pSat); i++ )
 //                printf( "%d", sat_solver_var_value(p->pSat, i) );
 //            printf( "\n" );
@@ -638,22 +638,22 @@ int Sbm_ManTestSat( void * pMan )
                 if ( sat_solver_var_value(p->pSat, i) )
                 {
                     Vec_Int_t * vCutOne = Vec_WecEntry(p->vCuts, i-p->FirstVar);
-                    printf( "%2d : Cut %3d  (Gate %2d)  ", Count, i-p->FirstVar, Vec_IntEntry(p->vCutGates, i-p->FirstVar) );
+                    fprintf( Abc_FrameGlobalGetOut(), "%2d : Cut %3d  (Gate %2d)  ", Count, i-p->FirstVar, Vec_IntEntry(p->vCutGates, i-p->FirstVar) );
                     Vec_IntForEachEntry( vCutOne, Lit, k )
-                        printf( "%d(%d) ", Lit - 2*(p->nInputs+1), Abc_Lit2Var(Lit) );
-                    printf( "\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "%d(%d) ", Lit - 2*(p->nInputs+1), Abc_Lit2Var(Lit) );
+                    fprintf( Abc_FrameGlobalGetOut(), "\n" );
                     Count++;
                     AreaNew += Vec_WrdEntry(p->vCutAreas, i-p->FirstVar);
                 }
-            printf( "Area = %7.2f\n", Scl_Int2Flt((int)AreaNew) );
+            fprintf( Abc_FrameGlobalGetOut(), "Area = %7.2f\n", Scl_Int2Flt((int)AreaNew) );
         }
         if ( status == l_False )
-            printf( "UNSAT " ), fKeepTrying = 0;
+            fprintf( Abc_FrameGlobalGetOut(),  "UNSAT "  ), fKeepTrying = 0;
         else if ( status == l_True )
-            printf( "SAT   " ), fKeepTrying++;
+            fprintf( Abc_FrameGlobalGetOut(),  "SAT   "  ), fKeepTrying++;
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk2 );
         Abc_PrintTime( 1, "Total time", Abc_Clock() - clk );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Sbm_ManStop( p );
     return 1;

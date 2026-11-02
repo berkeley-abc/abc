@@ -223,7 +223,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
     if ( Abc_Clock() > p->pPars->TimeTarget )
     {
         if ( !p->pPars->fSilent )
-            printf( "Reached timeout (%d seconds) before image computation.\n", p->pPars->TimeLimit );
+            fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) before image computation.\n", p->pPars->TimeLimit );
         p->pPars->iFrame = -1;
         return -1;
     }
@@ -241,7 +241,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         if ( bTemp == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) while computing bad states.\n", p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) while computing bad states.\n", p->pPars->TimeLimit );
             p->pPars->iFrame = -1;
             return -1;
         }
@@ -258,7 +258,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         {
             Cudd_RecursiveDeref( p->ddG, bReached );
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during transfer 0.\n", p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during transfer 0.\n", p->pPars->TimeLimit );
             p->pPars->iFrame = -1;
             return -1;
         }
@@ -271,7 +271,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         if ( p->ddR->bFunc == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) while computing bad states.\n", p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) while computing bad states.\n", p->pPars->TimeLimit );
             p->pPars->iFrame = -1;
             return -1;
         }
@@ -291,7 +291,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         if ( p->pPars->TimeLimit && Abc_Clock() > p->pPars->TimeTarget )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->dd,  bCurrent );  bCurrent = NULL;
             Cudd_RecursiveDeref( p->ddG, bReached );  bReached = NULL;
@@ -303,7 +303,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         if ( bTemp == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->dd,  bCurrent );  bCurrent = NULL;
             Cudd_RecursiveDeref( p->ddG, bReached );  bReached = NULL;
@@ -339,7 +339,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         if ( bNext == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->dd,  bCurrent );   bCurrent = NULL;
             Cudd_RecursiveDeref( p->ddG, bReached );   bReached = NULL;
@@ -358,7 +358,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         if ( bNext == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->dd,  bTemp );  
             Cudd_RecursiveDeref( p->ddG, bReached );   bReached = NULL;
@@ -380,7 +380,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         if ( bCurrent == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation in transfer 2.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation in transfer 2.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->ddG, bNext );  
             Cudd_RecursiveDeref( p->ddG, bReached );   bReached = NULL;
@@ -397,7 +397,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         if ( bCurrent == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during image computation in transfer 2.\n",  p->pPars->TimeLimit );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) during image computation in transfer 2.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->ddG, bTemp );  
             Cudd_RecursiveDeref( p->ddG, bReached );   bReached = NULL;
@@ -416,17 +416,17 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         {
             double nMints = Cudd_CountMinterm(p->ddG, bReached, Saig_ManRegNum(p->pAig) );
 //            Extra_bddPrint( p->ddG, bReached );printf( "\n" );
-            fprintf( stdout, "        Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Saig_ManRegNum(p->pAig)) );
-            fflush( stdout ); 
+            fprintf( Abc_FrameGlobalGetOut(), "        Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Saig_ManRegNum(p->pAig)) );
+            fflush( Abc_FrameGlobalGetOut() ); 
         }
         if ( p->pPars->fVerbose )
         {
-            fprintf( stdout, "F =%3d : ",    nIters );
-            fprintf( stdout, "Image =%6d  ", nBddSize );
-            fprintf( stdout, "(%4d%4d)  ", 
+            fprintf( Abc_FrameGlobalGetOut(), "F =%3d : ",    nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "Image =%6d  ", nBddSize );
+            fprintf( Abc_FrameGlobalGetOut(), "(%4d%4d)  ", 
                 Cudd_ReadReorderings(p->dd),  Cudd_ReadGarbageCollections(p->dd) );
-            fprintf( stdout, "Reach =%6d  ", Cudd_DagSize(bReached) );
-            fprintf( stdout, "(%4d%4d)  ", 
+            fprintf( Abc_FrameGlobalGetOut(), "Reach =%6d  ", Cudd_DagSize(bReached) );
+            fprintf( Abc_FrameGlobalGetOut(), "(%4d%4d)  ", 
                 Cudd_ReadReorderings(p->ddG), Cudd_ReadGarbageCollections(p->ddG) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk2 );
         }
@@ -435,7 +435,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         if ( nIters == p->pPars->nIterMax - 1 )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached limit on the number of timeframes (%d).\n",  p->pPars->nIterMax );
+                fprintf( Abc_FrameGlobalGetOut(), "Reached limit on the number of timeframes (%d).\n",  p->pPars->nIterMax );
             p->pPars->iFrame = nIters;
             Cudd_RecursiveDeref( p->dd,  bCurrent );  bCurrent = NULL;
             Cudd_RecursiveDeref( p->ddG, bReached );  bReached = NULL;
@@ -454,23 +454,23 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
     {
         double nMints = Cudd_CountMinterm(p->ddG, bReached, Saig_ManRegNum(p->pAig) );
         if ( nIters >= p->pPars->nIterMax )
-            fprintf( stdout, "Reachability analysis is stopped after %d frames.\n", nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "Reachability analysis is stopped after %d frames.\n", nIters );
         else
-            fprintf( stdout, "Reachability analysis completed after %d frames.\n", nIters );
-        fprintf( stdout, "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Saig_ManRegNum(p->pAig)) );
-        fflush( stdout ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Reachability analysis completed after %d frames.\n", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Saig_ManRegNum(p->pAig)) );
+        fflush( Abc_FrameGlobalGetOut() ); 
     }
     if ( p->pPars->fDumpReached )
     {
         Llb_ManDumpReached( p->ddG, bReached, p->pAig->pName, "reached.blif" );
-        printf( "Reached states with %d BDD nodes are dumpted into file \"reached.blif\".\n", Cudd_DagSize(bReached) );
+        fprintf( Abc_FrameGlobalGetOut(), "Reached states with %d BDD nodes are dumpted into file \"reached.blif\".\n", Cudd_DagSize(bReached) );
     }
     Cudd_RecursiveDeref( p->ddG, bReached );
     if ( nIters >= p->pPars->nIterMax )
     {
         if ( !p->pPars->fSilent )
         {
-            printf( "Verified only for states reachable in %d frames.  ", nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "Verified only for states reachable in %d frames.  ", nIters );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
         p->pPars->iFrame = p->pPars->nIterMax;
@@ -478,7 +478,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
     }
     if ( !p->pPars->fSilent )
     {
-        printf( "The miter is proved unreachable after %d iterations.  ", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "The miter is proved unreachable after %d iterations.  ", nIters );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     p->pPars->iFrame = nIters - 1;
@@ -702,7 +702,7 @@ int Llb_CoreExperiment( Aig_Man_t * pInit, Aig_Man_t * pAig, Gia_ParLlb_t * pPar
     if ( p->vDdMans == NULL )
     {
         if ( !pPars->fSilent )
-            printf( "Reached timeout (%d seconds) while deriving the partitions.\n", pPars->TimeLimit );
+            fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) while deriving the partitions.\n", pPars->TimeLimit );
         Llb_CoreStop( p );
         return -1;
     }
@@ -746,7 +746,7 @@ int Llb_ManReachMinCut( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
     if ( pPars->TimeLimit && Abc_Clock() > pPars->TimeTarget )
     {
         if ( !pPars->fSilent )
-            printf( "Reached timeout (%d seconds) after partitioning.\n", pPars->TimeLimit );
+            fprintf( Abc_FrameGlobalGetOut(), "Reached timeout (%d seconds) after partitioning.\n", pPars->TimeLimit );
 
         Vec_VecFree( (Vec_Vec_t *)vResult );
         Aig_ManFanoutStop( p );

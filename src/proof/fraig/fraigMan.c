@@ -85,24 +85,24 @@ void Prove_ParamsSetDefault( Prove_Params_t * pParams )
 ***********************************************************************/
 void Prove_ParamsPrint( Prove_Params_t * pParams )
 {
-    printf( "CEC enging parameters:\n" );
-    printf( "Fraiging enabled: %s\n", pParams->fUseFraiging? "yes":"no" );
-    printf( "Rewriting enabled: %s\n", pParams->fUseRewriting? "yes":"no" );
-    printf( "BDD construction enabled: %s\n", pParams->fUseBdds? "yes":"no" );
-    printf( "Verbose output enabled: %s\n", pParams->fVerbose? "yes":"no" );
-    printf( "Solver iterations: %d\n", pParams->nItersMax );
-    printf( "Starting mitering limit: %d\n", pParams->nMiteringLimitStart );
-    printf( "Multiplicative coeficient for mitering: %.2f\n", pParams->nMiteringLimitMulti );
-    printf( "Starting number of rewriting iterations: %d\n", pParams->nRewritingLimitStart );
-    printf( "Multiplicative coeficient for rewriting: %.2f\n", pParams->nRewritingLimitMulti );
-    printf( "Starting number of conflicts in fraiging: %.2f\n", pParams->nFraigingLimitMulti );
-    printf( "Multiplicative coeficient for fraiging: %.2f\n", pParams->nRewritingLimitMulti );
-    printf( "BDD size limit for bailing out: %d\n", pParams->nBddSizeLimit );
-    printf( "BDD reordering enabled: %s\n", pParams->fBddReorder? "yes":"no" );
-    printf( "Last-gasp mitering limit: %d\n", pParams->nMiteringLimitLast );
-    printf( "Total conflict limit: %d\n", (int)pParams->nTotalBacktrackLimit );
-    printf( "Total inspection limit: %d\n", (int)pParams->nTotalInspectLimit );
-    printf( "Parameter dump complete.\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "CEC enging parameters:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Fraiging enabled: %s\n", pParams->fUseFraiging? "yes":"no" );
+    fprintf( Abc_FrameGlobalGetOut(), "Rewriting enabled: %s\n", pParams->fUseRewriting? "yes":"no" );
+    fprintf( Abc_FrameGlobalGetOut(), "BDD construction enabled: %s\n", pParams->fUseBdds? "yes":"no" );
+    fprintf( Abc_FrameGlobalGetOut(), "Verbose output enabled: %s\n", pParams->fVerbose? "yes":"no" );
+    fprintf( Abc_FrameGlobalGetOut(), "Solver iterations: %d\n", pParams->nItersMax );
+    fprintf( Abc_FrameGlobalGetOut(), "Starting mitering limit: %d\n", pParams->nMiteringLimitStart );
+    fprintf( Abc_FrameGlobalGetOut(), "Multiplicative coeficient for mitering: %.2f\n", pParams->nMiteringLimitMulti );
+    fprintf( Abc_FrameGlobalGetOut(), "Starting number of rewriting iterations: %d\n", pParams->nRewritingLimitStart );
+    fprintf( Abc_FrameGlobalGetOut(), "Multiplicative coeficient for rewriting: %.2f\n", pParams->nRewritingLimitMulti );
+    fprintf( Abc_FrameGlobalGetOut(), "Starting number of conflicts in fraiging: %.2f\n", pParams->nFraigingLimitMulti );
+    fprintf( Abc_FrameGlobalGetOut(), "Multiplicative coeficient for fraiging: %.2f\n", pParams->nRewritingLimitMulti );
+    fprintf( Abc_FrameGlobalGetOut(), "BDD size limit for bailing out: %d\n", pParams->nBddSizeLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "BDD reordering enabled: %s\n", pParams->fBddReorder? "yes":"no" );
+    fprintf( Abc_FrameGlobalGetOut(), "Last-gasp mitering limit: %d\n", pParams->nMiteringLimitLast );
+    fprintf( Abc_FrameGlobalGetOut(), "Total conflict limit: %d\n", (int)pParams->nTotalBacktrackLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "Total inspection limit: %d\n", (int)pParams->nTotalInspectLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "Parameter dump complete.\n" );
 }
 
 /**Function*************************************************************
@@ -346,11 +346,11 @@ void Fraig_ManPrintStats( Fraig_Man_t * p )
     double nMemory;
     nMemory = ((double)(p->vInputs->nSize + p->vNodes->nSize) * 
         (sizeof(Fraig_Node_t) + sizeof(unsigned)*(p->nWordsRand + p->nWordsDyna) /*+ p->nSuppWords*sizeof(unsigned)*/))/(1<<20);
-    printf( "Words: Random = %d. Dynamic = %d. Used = %d. Memory = %0.2f MB.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Words: Random = %d. Dynamic = %d. Used = %d. Memory = %0.2f MB.\n", 
         p->nWordsRand, p->nWordsDyna, p->iWordPerm, nMemory );
-    printf( "Proof = %d. Counter-example = %d. Fail = %d. FailReal = %d. Zero = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Proof = %d. Counter-example = %d. Fail = %d. FailReal = %d. Zero = %d.\n", 
         p->nSatProof, p->nSatCounter, p->nSatFails, p->nSatFailsReal, p->nSatZeros );
-    printf( "Nodes: Final = %d. Total = %d. Mux = %d. (Exor = %d.) ClaVars = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes: Final = %d. Total = %d. Mux = %d. (Exor = %d.) ClaVars = %d.\n", 
         Fraig_CountNodes(p,0), p->vNodes->nSize, Fraig_ManCountMuxes(p), Fraig_ManCountExors(p), p->nVarsClauses );
     if ( p->pSat ) Msat_SolverPrintStats( p->pSat );
     Fraig_PrintTime( "AIG simulation  ", p->timeSims  );
@@ -363,7 +363,7 @@ void Fraig_ManPrintStats( Fraig_Man_t * p )
     if ( p->time2 > 0 ) { Fraig_PrintTime( "time2", p->time2 ); }
     if ( p->time3 > 0 ) { Fraig_PrintTime( "time3", p->time3 ); }
     if ( p->time4 > 0 ) { Fraig_PrintTime( "time4", p->time4 ); }
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 /**Function*************************************************************

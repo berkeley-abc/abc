@@ -207,7 +207,7 @@ void Ivy_FastMapStop( Ivy_Man_t * pAig )
 ***********************************************************************/
 void Ivy_FastMapPrint( Ivy_Man_t * pAig, int Delay, int Area, abctime Time, char * pStr )
 {
-    printf( "%s : Delay = %3d. Area = %6d. ", pStr, Delay, Area );
+    fprintf( Abc_FrameGlobalGetOut(), "%s : Delay = %3d. Area = %6d. ", pStr, Delay, Area );
     ABC_PRT( "Time", Time );
 }
 

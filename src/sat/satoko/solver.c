@@ -468,10 +468,10 @@ static inline void solver_reduce_cdb(solver_t *s)
     satoko_free(learnts_cls);
 
     if (s->opts.verbose) {
-        printf("reduceDB: Keeping %7d out of %7d clauses (%5.2f %%) \n",
+        fprintf( Abc_FrameGlobalGetOut(), "reduceDB: Keeping %7d out of %7d clauses (%5.2f %%) \n",
                vec_uint_size(s->learnts), n_learnts,
                100.0 * vec_uint_size(s->learnts) / n_learnts);
-        fflush(stdout);
+        fflush( Abc_FrameGlobalGetOut() );
     }
     if (cdb_wasted(s->all_clauses) > cdb_size(s->all_clauses) * s->opts.garbage_max_ratio)
         solver_garbage_collect(s);
@@ -698,25 +698,25 @@ void solver_debug_check_trail(solver_t *s)
     unsigned i;
     unsigned *array;
     vec_uint_t *trail_dup = vec_uint_alloc(0);
-    fprintf(stdout, "[Satoko] Checking for trail(%u) inconsistencies...\n", vec_uint_size(s->trail));
+    fprintf( Abc_FrameGlobalGetOut(), "[Satoko] Checking for trail(%u) inconsistencies...\n", vec_uint_size(s->trail));
     vec_uint_duplicate(trail_dup, s->trail);
     vec_uint_sort(trail_dup, 1);
     array = vec_uint_data(trail_dup);
     for (i = 1; i < vec_uint_size(trail_dup); i++) {
         if (array[i - 1] == lit_compl(array[i])) {
-            fprintf(stdout, "[Satoko] Inconsistent trail: %u %u\n", array[i - 1], array[i]);
+            fprintf( Abc_FrameGlobalGetOut(), "[Satoko] Inconsistent trail: %u %u\n", array[i - 1], array[i]);
             assert(0);
             return;
         }
     }
     for (i = 0; i < vec_uint_size(trail_dup); i++) {
         if (var_value(s, lit2var(array[i])) != lit_polarity(array[i])) {
-            fprintf(stdout, "[Satoko] Inconsistent trail assignment: %u, %u\n", vec_char_at(s->assigns, lit2var(array[i])), array[i]);
+            fprintf( Abc_FrameGlobalGetOut(), "[Satoko] Inconsistent trail assignment: %u, %u\n", vec_char_at(s->assigns, lit2var(array[i])), array[i]);
             assert(0);
             return;
         }
     }
-    fprintf(stdout, "[Satoko] Trail OK.\n");
+    fprintf( Abc_FrameGlobalGetOut(), "[Satoko] Trail OK.\n");
     vec_uint_print(trail_dup);
     vec_uint_free(trail_dup);
 
@@ -726,7 +726,7 @@ void solver_debug_check_clauses(solver_t *s)
 {
     unsigned cref, i;
 
-    fprintf(stdout, "[Satoko] Checking clauses (%d)...\n", vec_uint_size(s->originals));
+    fprintf( Abc_FrameGlobalGetOut(), "[Satoko] Checking clauses (%d)...\n", vec_uint_size(s->originals));
     vec_uint_foreach(s->originals, cref, i) {
         unsigned j;
         struct clause *clause = clause_fetch(s, cref);
@@ -738,19 +738,19 @@ void solver_debug_check_clauses(solver_t *s)
         }
         if (j == clause->size) {
             vec_uint_print(s->trail);
-            fprintf(stdout, "[Satoko] FOUND UNSAT CLAUSE]: (%d) ", i);
+            fprintf( Abc_FrameGlobalGetOut(), "[Satoko] FOUND UNSAT CLAUSE]: (%d) ", i);
             clause_print(clause);
             assert(0);
         }
     }
-    fprintf(stdout, "[Satoko] All SAT - OK\n");
+    fprintf( Abc_FrameGlobalGetOut(), "[Satoko] All SAT - OK\n");
 }
 
 void solver_debug_check(solver_t *s, int result)
 {
     unsigned cref, i;
     solver_debug_check_trail(s);
-    fprintf(stdout, "[Satoko] Checking clauses (%d)... \n", vec_uint_size(s->originals));
+    fprintf( Abc_FrameGlobalGetOut(), "[Satoko] Checking clauses (%d)... \n", vec_uint_size(s->originals));
     vec_uint_foreach(s->originals, cref, i) {
         unsigned j;
         struct clause *clause = clause_fetch(s, cref);
@@ -760,12 +760,12 @@ void solver_debug_check(solver_t *s, int result)
             }
         }
         if (result == SATOKO_SAT && j == clause->size) {
-            fprintf(stdout, "[Satoko] FOUND UNSAT CLAUSE: (%d) ", i);
+            fprintf( Abc_FrameGlobalGetOut(), "[Satoko] FOUND UNSAT CLAUSE: (%d) ", i);
             clause_print(clause);
             assert(0);
         }
     }
-    fprintf(stdout, "[Satoko] All SAT - OK\n");
+    fprintf( Abc_FrameGlobalGetOut(), "[Satoko] All SAT - OK\n");
 }
 
 ABC_NAMESPACE_IMPL_END

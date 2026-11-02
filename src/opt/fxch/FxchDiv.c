@@ -450,21 +450,21 @@ void Fxch_DivPrint( Fxch_Man_t* pFxchMan,
     int i,
         Lit;
 
-    printf( "Div %7d : ", iDiv );
-    printf( "Weight %12.5f  ", Vec_FltEntry( pFxchMan->vDivWeights, iDiv ) );
+    fprintf( Abc_FrameGlobalGetOut(), "Div %7d : ", iDiv );
+    fprintf( Abc_FrameGlobalGetOut(), "Weight %12.5f  ", Vec_FltEntry( pFxchMan->vDivWeights, iDiv ) );
 
     Vec_IntForEachEntry( vDiv, Lit, i )
         if ( !Abc_LitIsCompl( Lit ) )
-            printf( "%d(1)", Abc_Lit2Var( Lit ) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d(1)", Abc_Lit2Var( Lit ) );
 
-    printf( " + " );
+    fprintf( Abc_FrameGlobalGetOut(), " + " );
 
     Vec_IntForEachEntry( vDiv, Lit, i )
         if ( Abc_LitIsCompl( Lit ) )
-            printf( "%d(2)", Abc_Lit2Var( Lit ) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d(2)", Abc_Lit2Var( Lit ) );
 
-    printf( " Lits =%7d  ", pFxchMan->nLits );
-    printf( "Divs =%8d  \n", Hsh_VecSize( pFxchMan->pDivHash ) );
+    fprintf( Abc_FrameGlobalGetOut(), " Lits =%7d  ", pFxchMan->nLits );
+    fprintf( Abc_FrameGlobalGetOut(), "Divs =%8d  \n", Hsh_VecSize( pFxchMan->pDivHash ) );
 }
 
 int Fxch_DivIsNotConstant1( Vec_Int_t* vDiv )

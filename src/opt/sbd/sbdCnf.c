@@ -50,9 +50,9 @@ void Sbd_PrintCnf( Vec_Str_t * vCnf )
     {
         Lit = (int)Entry;
         if ( Lit == -1 )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         else
-            printf( "%s%d ", Abc_LitIsCompl(Lit) ? "-":"", Abc_Lit2Var(Lit) );
+            fprintf( Abc_FrameGlobalGetOut(), "%s%d ", Abc_LitIsCompl(Lit) ? "-":"", Abc_Lit2Var(Lit) );
     }
 }
 

@@ -160,11 +160,11 @@ void Wlc_NtkSaveOneNode( Wlc_Ntk_t * p, Wlc_Obj_t * pWlcObj, Gia_Man_t * pGia, V
         if ( fCompl ) Abc_TtNot( pInfoObj, nWords );
         Entry = Vec_MemHashInsert( vTtMem, pInfoObj );
         if ( fCompl ) Abc_TtNot( pInfoObj, nWords );
-        printf( "%2d(%d) ", Entry, fCompl ^ Abc_LitIsCompl(iLit) );
-        Extra_PrintHex( stdout, (unsigned*)pInfoObj, 8 );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d(%d) ", Entry, fCompl ^ Abc_LitIsCompl(iLit) );
+        Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned*)pInfoObj, 8 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Wlc_NtkFindOneNode( Wlc_Ntk_t * p, Wlc_Obj_t * pWlcObj, Gia_Man_t * pGia, Vec_Mem_t * vTtMem )
 {
@@ -180,7 +180,7 @@ void Wlc_NtkFindOneNode( Wlc_Ntk_t * p, Wlc_Obj_t * pWlcObj, Gia_Man_t * pGia, V
         if ( fCompl ) Abc_TtNot( pInfoObj, nWords );
         Entry = *Vec_MemHashLookup( vTtMem, pInfoObj );
         if ( Entry > 0 )
-            printf( "Obj %4d.  Range = %2d.  Bit %2d.  Entry %d(%d).  %s\n", Wlc_ObjId(p, pWlcObj), Wlc_ObjRange(pWlcObj), k, Entry, fCompl ^ Abc_LitIsCompl(iLit), Wlc_ObjName(p, Wlc_ObjId(p, pWlcObj)) );
+            fprintf( Abc_FrameGlobalGetOut(), "Obj %4d.  Range = %2d.  Bit %2d.  Entry %d(%d).  %s\n", Wlc_ObjId(p, pWlcObj), Wlc_ObjRange(pWlcObj), k, Entry, fCompl ^ Abc_LitIsCompl(iLit), Wlc_ObjName(p, Wlc_ObjId(p, pWlcObj)) );
         if ( fCompl ) Abc_TtNot( pInfoObj, nWords );
         //printf( "%2d ", Entry );
         //Extra_PrintHex( stdout, (unsigned*)pInfoObj, 8 );
@@ -217,13 +217,13 @@ Wlc_Ntk_t * Wlc_NtkGraftMulti( Wlc_Ntk_t * p, int fVerbose )
     // check if there are multipliers
     if ( nMultiLHS == 0 && nMultiRHS == 0 )
     {
-        printf( "No multipliers are present.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "No multipliers are present.\n" );
         return NULL;
     }
     // compare multipliers
     if ( nMultiLHS > 0 && nMultiRHS > 0 )
     {
-        printf( "Multipliers are present in both sides of the miter.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Multipliers are present in both sides of the miter.\n" );
         return NULL;
     }
     // swap if wrong side
@@ -456,7 +456,7 @@ Vec_Int_t * Sbc_ManWlcNodes2( Wlc_Ntk_t * pNtk, Gia_Man_t * p, Vec_Int_t * vGiaL
                 continue;
             Vec_IntWriteEntry( vMap, Abc_Lit2Var(iLitGia), -1 );
             iLitOut = Abc_LitNotCond( iLitOut, Abc_LitIsCompl(iLitGia) );
-            printf( "Matched out %d in phase %d with object %d (%s) bit %d (out of %d).\n", Abc_Lit2Var(iLitOut), Abc_LitIsCompl(iLitOut), i, Wlc_ObjName(pNtk, Wlc_ObjId(pNtk, pObj)), k, nBits );
+            fprintf( Abc_FrameGlobalGetOut(), "Matched out %d in phase %d with object %d (%s) bit %d (out of %d).\n", Abc_Lit2Var(iLitOut), Abc_LitIsCompl(iLitOut), i, Wlc_ObjName(pNtk, Wlc_ObjId(pNtk, pObj)), k, nBits );
             Vec_IntPushUnique( vRes, i );
         }
     }
@@ -466,17 +466,17 @@ Vec_Int_t * Sbc_ManWlcNodes2( Wlc_Ntk_t * pNtk, Gia_Man_t * p, Vec_Int_t * vGiaL
     pObj   = Wlc_NtkObj( pNtk, Vec_IntEntryLast(vRes) );
     iFirst = Vec_IntEntry( &pNtk->vCopies, Wlc_ObjId(pNtk, pObj) );
     nBits  = Wlc_ObjRange(pObj);
-    printf( "Considering object %d (%s):\n", Wlc_ObjId(pNtk, pObj), Wlc_ObjName(pNtk, Wlc_ObjId(pNtk, pObj)) );
+    fprintf( Abc_FrameGlobalGetOut(), "Considering object %d (%s):\n", Wlc_ObjId(pNtk, pObj), Wlc_ObjName(pNtk, Wlc_ObjId(pNtk, pObj)) );
     for ( k = 0; k < nBits; k++ )
     {
         int iLitGia  = Vec_IntEntry( &pNtk->vBits, iFirst + k );
         int iLitOutP = Vec_IntFind( vGiaLits, iLitGia );
         int iLitOutN = Vec_IntFind( vGiaLits, Abc_LitNot(iLitGia) );
-        printf( "Matching bit %d with output %d / %d.\n", k, iLitOutP, iLitOutN );
+        fprintf( Abc_FrameGlobalGetOut(), "Matching bit %d with output %d / %d.\n", k, iLitOutP, iLitOutN );
         // print simulation signature
         {
             word * pInfoObj = Wlc_ObjSim( p, Abc_Lit2Var(iLitGia) );
-            Extra_PrintHex( stdout, (unsigned *)pInfoObj, 6 ); printf( "\n" );
+            Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)pInfoObj, 6 ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     return vRes;
@@ -498,17 +498,17 @@ int Sbc_ManWlcNodes( Wlc_Ntk_t * pNtk, Gia_Man_t * p, Vec_Int_t * vGia2Out, int 
             if ( iLitOut == -1 )
                 continue;
             iLitOut = Abc_LitNotCond( iLitOut, Abc_LitIsCompl(iLitGia) );
-            printf( "Matched node %5d (%10s) bit %3d (out of %3d) with output %3d(%d).\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Matched node %5d (%10s) bit %3d (out of %3d) with output %3d(%d).\n", 
                 i, Wlc_ObjName(pNtk, Wlc_ObjId(pNtk, pObj)), k, nBits, Abc_Lit2Var(iLitOut), Abc_LitIsCompl(iLitOut) );
             Vec_IntPushOrder( vMatched, Abc_Lit2Var(iLitOut) );
         }
         if ( Vec_IntSize(vMatched) > 0 )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         if ( Vec_IntSize(vMatched) == nOuts )
         {
             if ( iObjFound == -1 )
                 iObjFound = i;
-            printf( "Found object %d with all bits matched.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Found object %d with all bits matched.\n", i );
             /*
             for ( k = nBits-2; k < nBits; k++ )
             {
@@ -550,7 +550,7 @@ void Sbc_ManDetectMultTest( Wlc_Ntk_t * pNtk, int fVerbose )
     vIns = Sdb_StoComputeCutsDetect( p );
     if ( vIns == NULL || Vec_IntSize(vIns) == 0 || (Vec_IntSize(vIns) % 2) != 0 )
     {
-        printf( "Input identification did not work out.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Input identification did not work out.\n" );
         return;
     }
 

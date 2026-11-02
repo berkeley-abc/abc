@@ -178,7 +178,7 @@ int Sto_ManAddClause( Sto_Man_t * p, lit * pBeg, lit * pEnd )
         for ( i = pBeg + 1; i < pEnd; i++ )
             if ( lit_var(*(i-1)) == lit_var(*i) )
             {
-                printf( "The clause contains two literals of the same variable: %d and %d.\n", *(i-1), *i );
+                fprintf( Abc_FrameGlobalGetOut(), "The clause contains two literals of the same variable: %d and %d.\n", *(i-1), *i );
                 return 0;
             }
         // check the largest var size
@@ -213,7 +213,7 @@ int Sto_ManAddClause( Sto_Man_t * p, lit * pBeg, lit * pEnd )
     {
         if ( p->pEmpty )
         {
-            printf( "More than one empty clause!\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "More than one empty clause!\n" );
             return 0;
         }
         p->pEmpty = pClause;
@@ -311,7 +311,7 @@ void Sto_ManDumpClauses( Sto_Man_t * p, char * pFileName )
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        printf( "Error: Cannot open output file (%s).\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Error: Cannot open output file (%s).\n", pFileName );
         return;
     }
     // write the data
@@ -356,7 +356,7 @@ int Sto_ManLoadNumber( FILE * pFile, int * pNumber )
         // check that the char is a digit
         if ( (Char < '0' || Char > '9') && Char != '-' )
         {
-            printf( "Error: Wrong char (%c) in the input file.\n", Char );
+            fprintf( Abc_FrameGlobalGetOut(), "Error: Wrong char (%c) in the input file.\n", Char );
             return 0;
         }
         // check if this is a minus
@@ -394,7 +394,7 @@ Sto_Man_t * Sto_ManLoadClauses( char * pFileName )
     pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
     {
-        printf( "Error: Cannot open input file (%s).\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Error: Cannot open input file (%s).\n", pFileName );
         return NULL;
     }
 
@@ -416,7 +416,7 @@ Sto_Man_t * Sto_ManLoadClauses( char * pFileName )
             sscanf( pBuffer + 1, "%d %d %d %d", &p->nVars, &p->nClauses, &p->nRoots, &p->nClausesA );
             break;
         }
-        printf( "Warning: Skipping line: \"%s\"\n", pBuffer );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Skipping line: \"%s\"\n", pBuffer );
     }
 
     // read the clauses
@@ -439,7 +439,7 @@ Sto_Man_t * Sto_ManLoadClauses( char * pFileName )
         pLits[ nLits++ ] = lit_read(Number);
     }
     if ( nLits > 0 )
-        printf( "Error: The last clause was not saved.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Error: The last clause was not saved.\n" );
 
     // count clauses
     Counter = 0;
@@ -449,7 +449,7 @@ Sto_Man_t * Sto_ManLoadClauses( char * pFileName )
     // check the number of clauses
     if ( p->nClauses != Counter )
     {
-        printf( "Error: The actual number of clauses (%d) is different than declared (%d).\n", Counter, p->nClauses );
+        fprintf( Abc_FrameGlobalGetOut(), "Error: The actual number of clauses (%d) is different than declared (%d).\n", Counter, p->nClauses );
         Sto_ManFree( p );
         return NULL;
     }

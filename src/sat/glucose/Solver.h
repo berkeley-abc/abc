@@ -473,7 +473,7 @@ inline void     Solver::sat_solver_mark_cone(int var) {}
 
 inline void Solver::printLit(Lit l)
 {
-    printf("%s%d:%c", sign(l) ? "-" : "", var(l)+1, value(l) == l_True ? '1' : (value(l) == l_False ? '0' : 'X'));
+    fprintf( Abc_FrameGlobalGetOut(), "%s%d:%c", sign(l) ? "-" : "", var(l)+1, value(l) == l_True ? '1' : (value(l) == l_False ? '0' : 'X'));
 }
 
 
@@ -482,7 +482,7 @@ inline void Solver::printClause(CRef cr)
   Clause &c = ca[cr];
     for (int i = 0; i < c.size(); i++){
         printLit(c[i]);
-        printf(" ");
+        fprintf( Abc_FrameGlobalGetOut(), " ");
     }
 }
 
@@ -492,7 +492,7 @@ inline void Solver::printInitialClause(CRef cr)
     for (int i = 0; i < c.size(); i++){
       if(!isSelector(var(c[i]))) {
     printLit(c[i]);
-        printf(" ");
+        fprintf( Abc_FrameGlobalGetOut(), " ");
       }
     }
 }

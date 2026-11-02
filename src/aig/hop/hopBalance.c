@@ -76,7 +76,7 @@ Hop_Man_t * Hop_ManBalance( Hop_Man_t * p, int fUpdateLevel )
 //        printf( "Cleanup after balancing removed %d dangling nodes.\n", i );
     // check the resulting AIG
     if ( !Hop_ManCheck(pNew) )
-        printf( "Hop_ManBalance(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Hop_ManBalance(): The check has failed.\n" );
     return pNew;
 }
 
@@ -107,7 +107,7 @@ Hop_Obj_t * Hop_NodeBalance_rec( Hop_Man_t * pNew, Hop_Obj_t * pObjOld, Vec_Vec_
     if ( vSuper->nSize == 0 )
         return (Hop_Obj_t *)(pObjOld->pData = Hop_ManConst0(pNew));
     if ( Vec_PtrSize(vSuper) < 2 )
-        printf( "BUG!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "BUG!\n" );
     // for each old node, derive the new well-balanced node
     for ( i = 0; i < Vec_PtrSize(vSuper); i++ )
     {

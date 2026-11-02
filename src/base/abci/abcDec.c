@@ -28,6 +28,8 @@
 #include "misc/util/utilTruth.h"
 #include "opt/dsc/dsc.h"
 
+#include "base/abc/abc.h"
+
 ABC_NAMESPACE_IMPL_START
 
 
@@ -199,7 +201,7 @@ int Abc_FileSize( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName );
         return -1;
     }
     // get the file size, in bytes
@@ -228,7 +230,7 @@ char * Abc_FileRead( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName );
         return NULL;
     }
     // get the file size, in bytes
@@ -279,7 +281,7 @@ void Abc_TruthGetParams( char * pFileName, int * pnVars, int * pnTruths )
         if ( pContents[i] == ' ' || pContents[i] == '\n' || pContents[i] == '\r' )
             break;
     if ( pContents[i] == 0 )
-        printf( "Strange, the input file does not have spaces and new-lines...\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Strange, the input file does not have spaces and new-lines...\n" );
 
     // acount for the fact that truth tables may have "0x" at the beginning of each line
     if ( pContents[0] == '0' && pContents[1] == 'x' )
@@ -291,7 +293,7 @@ void Abc_TruthGetParams( char * pFileName, int * pnVars, int * pnTruths )
             break;
     if ( nVars < 2 || nVars > 16 )
     {
-        printf( "Does not look like the input file contains truth tables...\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Does not look like the input file contains truth tables...\n" );
         return;
     }
     if ( pnVars )
@@ -364,7 +366,7 @@ void Abc_TtStoreWrite( char * pFileName, Abc_TtStore_t * p, int fBinary )
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         return;
     }
     for ( i = 0; i < p->nFuncs; i++ )
@@ -455,7 +457,7 @@ void Abc_TtStoreLoadSave( char * pFileName )
 
     // delete data-structure
     Abc_TtStoreFree( p, -1 );
-    printf( "Input file \"%s\" was copied into output file \"%s\".\n", pFileInput, pFileOutput );
+    fprintf( Abc_FrameGlobalGetOut(), "Input file \"%s\" was copied into output file \"%s\".\n", pFileInput, pFileOutput );
 }
 
 /**Function*************************************************************
@@ -475,7 +477,7 @@ void Abc_TtStoreDump( char * pFileName, Vec_Mem_t * vTtMem, int nBytes )
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         return;
     }
     Vec_MemForEachEntry( vTtMem, pTruth, i )
@@ -528,7 +530,7 @@ void Abc_TtStoreLoadSaveBin( char * pFileName )
     ABC_FREE( pBuffer );
     fclose( pFileI );
     fclose( pFileO );
-    printf( "Input file \"%s\" was copied into output file \"%s\".\n", pFileInput, pFileOutput );
+    fprintf( Abc_FrameGlobalGetOut(), "Input file \"%s\" was copied into output file \"%s\".\n", pFileInput, pFileOutput );
 }
 
 /**Function*************************************************************
@@ -558,7 +560,7 @@ void Abc_TtStoreTest( char * pFileName )
 
     // delete data-structure
     Abc_TtStoreFree( p, -1 );
-    printf( "Input file \"%s\" was copied into output file \"%s\".\n", pFileInput, pFileOutput );
+    fprintf( Abc_FrameGlobalGetOut(), "Input file \"%s\" was copied into output file \"%s\".\n", pFileInput, pFileOutput );
 }
 
 /**Function*************************************************************
@@ -592,10 +594,10 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
             pAlgoName = "DSD ICCD'15";
 
     if ( pAlgoName )
-        printf( "Applying %-10s to %8d func%s of %2d vars...  ",  
+        fprintf( Abc_FrameGlobalGetOut(), "Applying %-10s to %8d func%s of %2d vars...  ",  
             pAlgoName, p->nFuncs, (p->nFuncs == 1 ? "":"s"), p->nVars );
     if ( fVerbose )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     if ( DecType == 1 )
     {
@@ -613,12 +615,12 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
 //            Abc_IsopTest( p->pFuncs[i], p->nVars, vCover );
 //            continue;
             if ( fVerbose )
-                printf( "%7d : ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%7d : ", i );
             pSopStr = Kit_PlaFromTruthNew( (unsigned *)p->pFuncs[i], p->nVars, vCover, vStr );
             pFForm = Dec_Factor( pSopStr );
             nNodes += Dec_GraphNodeNum( pFForm );
             if ( fVerbose )
-                Dec_GraphPrint( stdout, pFForm, NULL, NULL );
+                Dec_GraphPrint( Abc_FrameGlobalGetOut(), pFForm, NULL, NULL );
             Dec_GraphFree( pFForm );
         }
         Vec_IntFree( vCover );
@@ -634,7 +636,7 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
-                printf( "%7d :      ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%7d :      ", i );
             Bdc_ManDecompose( pManDec, (unsigned *)p->pFuncs[i], NULL, p->nVars, NULL, 1000 );
             nNodes += Bdc_ManAndNum( pManDec );
             if ( fVerbose )
@@ -650,10 +652,10 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
-                printf( "%7d :      ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%7d :      ", i );
             pNtk = Kit_DsdDecomposeMux( (unsigned *)p->pFuncs[i], p->nVars, 3 );
             if ( fVerbose )
-                Kit_DsdPrintExpanded( pNtk ), printf( "\n" );
+                Kit_DsdPrintExpanded( pNtk ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
             nNodes += Kit_DsdCountAigNodes( pNtk );
             Kit_DsdNtkFree( pNtk );
         }
@@ -664,10 +666,10 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
-                printf( "%7d :      ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%7d :      ", i );
             Dau_DsdDecompose( p->pFuncs[i], p->nVars, 0, 1, pDsd );
             if ( fVerbose )
-                printf( "%s\n", pDsd );
+                fprintf( Abc_FrameGlobalGetOut(), "%s\n", pDsd );
             nNodes += Dau_DsdCountAnds( pDsd );
         }
     }
@@ -678,10 +680,10 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
             extern void Dau_DecTrySets( word * pInit, int nVars, int fVerbose );
             int nSuppSize = Abc_TtSupportSize( p->pFuncs[i], p->nVars );
             if ( fVerbose )
-                printf( "%7d :      ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%7d :      ", i );
             Dau_DecTrySets( p->pFuncs[i], nSuppSize, fVerbose );
             if ( fVerbose )
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     } else if ( DecType == 6 )
     {
@@ -693,17 +695,17 @@ void Abc_TruthDecPerform( Abc_TtStore_t * p, int DecType, int fVerbose )
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
-                printf( "%7d :      ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%7d :      ", i );
             Dsc_Decompose(p->pFuncs[i], p->nVars, pDsd, mem_pool);
             if ( fVerbose )
-                printf( "%s\n", pDsd[0] ? pDsd : "NULL");
+                fprintf( Abc_FrameGlobalGetOut(),  "%s\n", pDsd[0] ? pDsd : "NULL");
             nNodes += Dsc_CountAnds( pDsd );
         }
         Dsc_free_pool(mem_pool);
     }
     else assert( 0 );
 
-    printf( "AIG nodes =%9d  ", nNodes );
+    fprintf( Abc_FrameGlobalGetOut(), "AIG nodes =%9d  ", nNodes );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
@@ -781,14 +783,14 @@ Vec_Mem_t * Abc_TruthDecRead( char * pFileName, int nVarNum )
 int Abc_DecTest( char * pFileName, int DecType, int nVarNum, int fVerbose )
 {
     if ( fVerbose )
-        printf( "Using truth tables from file \"%s\"...\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Using truth tables from file \"%s\"...\n", pFileName );
     if ( DecType == 0 )
         { if ( nVarNum < 0 ) Abc_TtStoreTest( pFileName ); }
     else if ( DecType >= 1 && DecType <= 6 )
         Abc_TruthDecTest( pFileName, DecType, nVarNum, fVerbose );
     else
-        printf( "Unknown decomposition type value (%d).\n", DecType );
-    fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "Unknown decomposition type value (%d).\n", DecType );
+    fflush( Abc_FrameGlobalGetOut() );
     return 0;
 }
 

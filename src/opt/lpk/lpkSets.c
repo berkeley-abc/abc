@@ -148,8 +148,8 @@ static void Lpk_PrintSetOne( int uSupport )
     unsigned k;
     for ( k = 0; k < 16; k++ )
         if ( uSupport & (1<<k) )
-            printf( "%c", 'a'+k );
-    printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'a'+k );
+    fprintf( Abc_FrameGlobalGetOut(), " " );
 }
 /**Function*************************************************************
 
@@ -166,13 +166,13 @@ static void Lpk_PrintSets( Vec_Int_t * vSets )
 {
     unsigned uSupport;
     int Number, i;
-    printf( "Subsets(%d): ", Vec_IntSize(vSets) );
+    fprintf( Abc_FrameGlobalGetOut(), "Subsets(%d): ", Vec_IntSize(vSets) );
     Vec_IntForEachEntry( vSets, Number, i )
     {
         uSupport = Number;
         Lpk_PrintSetOne( uSupport );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -298,15 +298,15 @@ void Lpk_MapSuppPrintSet( Lpk_Set_t * pSet, int i )
 {
     unsigned Entry;
     Entry = pSet->uSubset0 | pSet->uSubset1;
-    printf( "%2d : ", i );
-    printf( "Var = %c  ",  'a' + pSet->iVar );
-    printf( "Size = %2d  ", pSet->Size );
-    printf( "Over = %2d  ", pSet->Over );
-    printf( "SRed = %2d  ", pSet->SRed );
+    fprintf( Abc_FrameGlobalGetOut(), "%2d : ", i );
+    fprintf( Abc_FrameGlobalGetOut(), "Var = %c  ",  'a' + pSet->iVar );
+    fprintf( Abc_FrameGlobalGetOut(), "Size = %2d  ", pSet->Size );
+    fprintf( Abc_FrameGlobalGetOut(), "Over = %2d  ", pSet->Over );
+    fprintf( Abc_FrameGlobalGetOut(), "SRed = %2d  ", pSet->SRed );
     Lpk_PrintSetOne( Entry );
-    printf( "              " );
+    fprintf( Abc_FrameGlobalGetOut(), "              " );
     Lpk_PrintSetOne( Entry >> 16 );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -337,14 +337,14 @@ unsigned Lpk_MapSuppRedDecSelect( Lpk_Man_t * p, unsigned * pTruth, int nVars, i
     // collect decomposable subsets for each pair of cofactors
     if ( fVerbose )
     {
-        printf( "\nExploring support-reducing bound-sets of function:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\nExploring support-reducing bound-sets of function:\n" );
         Kit_DsdPrintFromTruth( pTruth, nVars );
     }
     nSets = 0;
     for ( i = 0; i < nVars; i++ )
     {
         if ( fVerbose )
-        printf( "Evaluating variable %c:\n", 'a'+i );
+        fprintf( Abc_FrameGlobalGetOut(), "Evaluating variable %c:\n", 'a'+i );
         // evaluate the cofactor pair
         Kit_TruthCofactor0New( pCof0, pTruth, nVars, i );
         Kit_TruthCofactor1New( pCof1, pTruth, nVars, i );
@@ -354,9 +354,9 @@ unsigned Lpk_MapSuppRedDecSelect( Lpk_Man_t * p, unsigned * pTruth, int nVars, i
         ppNtks[0] = Kit_DsdExpand( pTemp = ppNtks[0] );      Kit_DsdNtkFree( pTemp );
         ppNtks[1] = Kit_DsdExpand( pTemp = ppNtks[1] );      Kit_DsdNtkFree( pTemp );
         if ( fVerbose )
-        Kit_DsdPrint( stdout, ppNtks[0] );
+        Kit_DsdPrint( Abc_FrameGlobalGetOut(), ppNtks[0] );
         if ( fVerbose )
-        Kit_DsdPrint( stdout, ppNtks[1] );
+        Kit_DsdPrint( Abc_FrameGlobalGetOut(), ppNtks[1] );
         // compute subsets
         Lpk_ComputeSets( ppNtks[0], vSets0 );
         Lpk_ComputeSets( ppNtks[1], vSets1 );
@@ -374,7 +374,7 @@ unsigned Lpk_MapSuppRedDecSelect( Lpk_Man_t * p, unsigned * pTruth, int nVars, i
 
     // print the results
     if ( fVerbose )
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     if ( fVerbose )
     for ( i = 0; i < nSets; i++ )
         Lpk_MapSuppPrintSet( pStore + i, i );
@@ -412,13 +412,13 @@ unsigned Lpk_MapSuppRedDecSelect( Lpk_Man_t * p, unsigned * pTruth, int nVars, i
     if ( pSetBest == NULL )
     {
         if ( fVerbose )
-        printf( "Could not select a subset.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Could not select a subset.\n" );
         return 0;
     }
     else
     {
         if ( fVerbose )
-        printf( "Selected the following subset:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Selected the following subset:\n" );
         if ( fVerbose )
         Lpk_MapSuppPrintSet( pSetBest, pSetBest - pStore );
     }

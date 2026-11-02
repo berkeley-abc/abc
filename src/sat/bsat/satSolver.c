@@ -49,7 +49,7 @@ static void printlits(lit* begin, lit* end)
 {
     int i;
     for (i = 0; i < end - begin; i++)
-        printf(L_LIT" ",L_lit(begin[i]));
+        fprintf( Abc_FrameGlobalGetOut(), L_LIT" ",L_lit(begin[i]));
 }
 
 //=================================================================================================
@@ -607,7 +607,7 @@ static inline int sat_solver_enqueue(sat_solver* s, lit l, int from)
 //    }
 
 #ifdef VERBOSEDEBUG
-    printf(L_IND"enqueue("L_LIT")\n", L_ind, L_lit(l));
+    fprintf( Abc_FrameGlobalGetOut(), L_IND"enqueue("L_LIT")\n", L_ind, L_lit(l));
 #endif
     if (var_value(s, v) != varX)
         return var_value(s, v) == lit_sign(l);
@@ -635,7 +635,7 @@ static inline int sat_solver_enqueue(sat_solver* s, lit l, int from)
 */
         // New fact -- store it.
 #ifdef VERBOSEDEBUG
-        printf(L_IND"bind("L_LIT")\n", L_ind, L_lit(l));
+        fprintf( Abc_FrameGlobalGetOut(), L_IND"bind("L_LIT")\n", L_ind, L_lit(l));
 #endif
         var_set_value(s, v, lit_sign(l));
         var_set_level(s, v, sat_solver_dl(s));
@@ -651,8 +651,8 @@ static inline int sat_solver_decision(sat_solver* s, lit l){
     assert(s->qtail == s->qhead);
     assert(var_value(s, lit_var(l)) == varX);
 #ifdef VERBOSEDEBUG
-    printf(L_IND"assume("L_LIT")  ", L_ind, L_lit(l));
-    printf( "act = %.20f\n", s->activity[lit_var(l)] );
+    fprintf Abc_FrameGlobalGetOut(), (L_IND"assume("L_LIT")  ", L_ind, L_lit(l));
+    fprintf( Abc_FrameGlobalGetOut(), "act = %.20f\n", s->activity[lit_var(l)] );
 #endif
     veci_push(&s->trail_lim,s->qtail);
     return sat_solver_enqueue(s,l,0);
@@ -988,8 +988,8 @@ static void sat_solver_analyze(sat_solver* s, int h, veci* learnt)
 #endif
 
 #ifdef VERBOSEDEBUG
-    printf(L_IND"Learnt {", L_ind);
-    for (i = 0; i < veci_size(learnt); i++) printf(" "L_LIT, L_lit(lits[i]));
+    fprintf( Abc_FrameGlobalGetOut(), L_IND"Learnt {", L_ind);
+    for (i = 0; i < veci_size(learnt); i++) fprintf( Abc_FrameGlobalGetOut(), " "L_LIT, L_lit(lits[i]));
 #endif
     if (veci_size(learnt) > 1){
         int max_i = 1;
@@ -1009,7 +1009,7 @@ static void sat_solver_analyze(sat_solver* s, int h, veci* learnt)
 #ifdef VERBOSEDEBUG
     {
         int lev = veci_size(learnt) > 1 ? var_level(s, lit_var(lits[1])) : 0;
-        printf(" } at level %d\n", lev);
+        fprintf( Abc_FrameGlobalGetOut(), " } at level %d\n", lev);
     }
 #endif
 }
@@ -1740,8 +1740,8 @@ int sat_solver_addclause(sat_solver* s, lit* begin, lit* end)
     if ( s->fPrintClause )
     {
         for ( i = begin; i < end; i++ )
-            printf( "%s%d ", (*i)&1 ? "!":"", (*i)>>1 );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%s%d ", (*i)&1 ? "!":"", (*i)>>1 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     veci_resize( &s->temp_clause, 0 );
@@ -1809,8 +1809,8 @@ void luby_test()
 {
     int i;
     for ( i = 0; i < 20; i++ )
-        printf( "%d ", (int)luby(2,i) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", (int)luby(2,i) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts)
@@ -1858,7 +1858,7 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts)
             int blevel;
 
 #ifdef VERBOSEDEBUG
-            printf(L_IND"**CONFLICT**\n", L_ind);
+            fprintf( Abc_FrameGlobalGetOut(), L_IND"**CONFLICT**\n", L_ind);
 #endif
             s->stats.conflicts++; conflictC++;
             if (sat_solver_dl(s) == s->root_level){
@@ -1955,10 +1955,10 @@ int sat_solver_solve_internal(sat_solver* s)
     s->nCalls++;
 
     if (s->verbosity >= 1){
-        printf("==================================[MINISAT]===================================\n");
-        printf("| Conflicts |     ORIGINAL     |              LEARNT              | Progress |\n");
-        printf("|           | Clauses Literals |   Limit Clauses Literals  Lit/Cl |          |\n");
-        printf("==============================================================================\n");
+        fprintf( Abc_FrameGlobalGetOut(), "==================================[MINISAT]===================================\n");
+        fprintf( Abc_FrameGlobalGetOut(), "| Conflicts |     ORIGINAL     |              LEARNT              | Progress |\n");
+        fprintf( Abc_FrameGlobalGetOut(), "|           | Clauses Literals |   Limit Clauses Literals  Lit/Cl |          |\n");
+        fprintf( Abc_FrameGlobalGetOut(), "==============================================================================\n");
     }
 
     while (status == l_Undef){
@@ -1969,7 +1969,7 @@ int sat_solver_solve_internal(sat_solver* s)
         {
             double Ratio = (s->stats.learnts == 0)? 0.0 :
                 s->stats.learnts_literals / (double)s->stats.learnts;
-            printf("| %9.0f | %7.0f %8.0f | %7.0f %7.0f %8.0f %7.1f | %6.3f %% |\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "| %9.0f | %7.0f %8.0f | %7.0f %7.0f %8.0f %7.1f | %6.3f %% |\n", 
                 (double)s->stats.conflicts,
                 (double)s->stats.clauses, 
                 (double)s->stats.clauses_literals,
@@ -1978,7 +1978,7 @@ int sat_solver_solve_internal(sat_solver* s)
                 (double)s->stats.learnts_literals,
                 Ratio,
                 s->progress_estimate*100);
-            fflush(stdout);
+            fflush( Abc_FrameGlobalGetOut() );
         }
         nof_conflicts = (ABC_INT64_T)( 100 * luby(2, restart_iter++) );
         status = sat_solver_search(s, nof_conflicts);
@@ -1993,7 +1993,7 @@ int sat_solver_solve_internal(sat_solver* s)
             break;
     }
     if (s->verbosity >= 1)
-        printf("==============================================================================\n");
+        fprintf( Abc_FrameGlobalGetOut(), "==============================================================================\n");
 
     sat_solver_canceluntil(s,s->root_level);
     // save variable values
@@ -2091,7 +2091,7 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
     ////////////////////////////////////////////////
 
     if ( s->fVerbose )
-        printf( "Running SAT solver with parameters %d and %d and %d.\n", s->nLearntStart, s->nLearntDelta, s->nLearntRatio );
+        fprintf( Abc_FrameGlobalGetOut(), "Running SAT solver with parameters %d and %d and %d.\n", s->nLearntStart, s->nLearntDelta, s->nLearntRatio );
 
     sat_solver_set_resource_limits( s, nConfLimit, nInsLimit, nConfLimitGlobal, nInsLimitGlobal );
 
@@ -2194,7 +2194,7 @@ int sat_solver_solve_lexsat( sat_solver* s, int * pLits, int nLits )
         sat_solver_pop( s );
         pLits[iLitFail] = Abc_LitNot(pLits[iLitFail]);
         if ( !sat_solver_push(s, pLits[iLitFail]) )
-            printf( "sat_solver_solve_lexsat(): A satisfying assignment should exist.\n" ); // because we know that the problem is satisfiable
+            fprintf( Abc_FrameGlobalGetOut(), "sat_solver_solve_lexsat(): A satisfying assignment should exist.\n" ); // because we know that the problem is satisfiable
         // update other literals to be 000...0
         for ( i = iLitFail + 1; i < nLits; i++ )
             pLits[i] = Abc_LitNot( Abc_LitRegular(pLits[i]) );

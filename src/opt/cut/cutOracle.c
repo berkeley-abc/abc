@@ -101,7 +101,7 @@ Cut_Oracle_t * Cut_OracleStart( Cut_Man_t * pMan )
         if ( p->pParams->nVarsMax > 8 )
         {
             p->pParams->fTruth = 0;
-            printf( "Skipping computation of truth table for more than 8 inputs.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Skipping computation of truth table for more than 8 inputs.\n" );
         }
         else
         {
@@ -128,8 +128,8 @@ void Cut_OracleStop( Cut_Oracle_t * p )
 {
 //    if ( p->pParams->fVerbose )
     {
-        printf( "Cut computation statistics with oracle:\n" );
-        printf( "Current cuts      = %8d. (Trivial = %d.)\n", p->nCuts-p->nCutsTriv, p->nCutsTriv );
+        fprintf( Abc_FrameGlobalGetOut(), "Cut computation statistics with oracle:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current cuts      = %8d. (Trivial = %d.)\n", p->nCuts-p->nCutsTriv, p->nCutsTriv );
         ABC_PRT( "Total time ", p->timeTotal );
     }
 

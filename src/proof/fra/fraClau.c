@@ -611,13 +611,13 @@ void Fra_ClauPrintClause( Vec_Int_t * vSatCsVars, Vec_Int_t * vCex )
         else if ( VarM > VarN )
         {
             j++;
-            printf( "-" );
+            fprintf( Abc_FrameGlobalGetOut(), "-" );
         }
         else // if ( VarM == VarN )
         {
             i++;
             j++;
-            printf( "%d", !lit_sign(LitM) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", !lit_sign(LitM) );
         }
     }
     assert( i == Vec_IntSize(vCex) );
@@ -643,14 +643,14 @@ int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose, int fVeryVerbose )
     p = Fra_ClauStart( pMan );
     if ( p == NULL )
     {
-        printf( "The property is trivially inductive.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The property is trivially inductive.\n" );
         return 1;
     }
     // generate counter-examples and expand them
     for ( Iter = 0; !Fra_ClauCheckProperty( p, p->vCexMain0 ) && Iter < nIters; Iter++ )
     {
         if ( fVerbose )
-            printf( "%4d : ", Iter );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d : ", Iter );
         // remap clause into the test manager
         Fra_ClauRemapClause( p->pMapCsMainToCsTest, p->vCexMain0, p->vCexMain, 0 );
         if ( fVerbose && fVeryVerbose )
@@ -671,7 +671,7 @@ int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose, int fVeryVerbose )
                 RetValue = sat_solver_addclause( p->pSatMain, Vec_IntArray(p->vCexMain0), Vec_IntArray(p->vCexMain0) + Vec_IntSize(p->vCexMain0) );
                 if ( RetValue == 0 )
                 {
-                    printf( "\nProperty is proved after %d iterations.\n", Iter+1 );
+                    fprintf( Abc_FrameGlobalGetOut(), "\nProperty is proved after %d iterations.\n", Iter+1 );
                     return 0;
                 }
                 fFailed = 1;
@@ -681,21 +681,21 @@ int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose, int fVeryVerbose )
         if ( fFailed )
         {
             if ( fVerbose )
-                printf( " Reducing failed after %d iterations (BMC failed).\n", i );
+                fprintf( Abc_FrameGlobalGetOut(), " Reducing failed after %d iterations (BMC failed).\n", i );
             continue;
         }
         if ( Vec_IntSize(p->vCexMain) == 0 )
         {
             if ( fVerbose )
-                printf( " Reducing failed after %d iterations (nothing left).\n", i );
+                fprintf( Abc_FrameGlobalGetOut(), " Reducing failed after %d iterations (nothing left).\n", i );
             continue;
         }
         if ( fVerbose )
-            printf( "  " );
+            fprintf( Abc_FrameGlobalGetOut(), "  " );
         if ( fVerbose && fVeryVerbose )
             Fra_ClauPrintClause( p->vSatVarsTestCs, p->vCexMain );
         if ( fVerbose )
-            printf( " LitsInd = %3d.  ", Vec_IntSize(p->vCexMain) );
+            fprintf( Abc_FrameGlobalGetOut(), " LitsInd = %3d.  ", Vec_IntSize(p->vCexMain) );
         // minimize the inductive property
         Vec_IntClear( p->vCexBase );
         if ( Vec_IntSize(p->vCexMain) > 1 )
@@ -705,9 +705,9 @@ int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose, int fVeryVerbose )
         if ( fVerbose && fVeryVerbose )
             Fra_ClauPrintClause( p->vSatVarsTestCs, p->vCexMain );
         if ( fVerbose )
-            printf( " LitsRed = %3d.  ", Vec_IntSize(p->vCexMain) );
+            fprintf( Abc_FrameGlobalGetOut(), " LitsRed = %3d.  ", Vec_IntSize(p->vCexMain) );
         if ( fVerbose )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         // add the clause to the solver
         Fra_ClauRemapClause( p->pMapCsTestToCsMain, p->vCexMain, p->vCexAssm, 1 );
         RetValue = sat_solver_addclause( p->pSatMain, Vec_IntArray(p->vCexAssm), Vec_IntArray(p->vCexAssm) + Vec_IntSize(p->vCexAssm) );
@@ -727,10 +727,10 @@ int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose, int fVeryVerbose )
     // report the results
     if ( Iter == nIters )
     {
-        printf( "Property is not proved after %d iterations.\n", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "Property is not proved after %d iterations.\n", nIters );
         return 0;
     }
-    printf( "Property is proved after %d iterations.\n", Iter );
+    fprintf( Abc_FrameGlobalGetOut(), "Property is proved after %d iterations.\n", Iter );
     Fra_ClauStop( p );
     return 1;
 }

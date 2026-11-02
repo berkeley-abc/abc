@@ -735,10 +735,10 @@ static inline void Tas_ManPrintClause( Tas_Man_t * p, int Level, int hClause )
     Gia_Obj_t * pObj;
     int i;
     assert( Tas_QueIsEmpty( pQue ) );
-    printf( "Level %2d : ", Level );
+    fprintf( Abc_FrameGlobalGetOut(), "Level %2d : ", Level );
     for ( i = hClause; (pObj = pQue->pData[i]); i++ )
-        printf( "%d=%d(%d) ", Gia_ObjId(p->pAig, pObj), Tas_VarValue(pObj), Tas_VarDecLevel(p, pObj) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=%d(%d) ", Gia_ObjId(p->pAig, pObj), Tas_VarValue(pObj), Tas_VarDecLevel(p, pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -758,10 +758,10 @@ static inline void Tas_ManPrintClauseNew( Tas_Man_t * p, int Level, int hClause 
     Gia_Obj_t * pObj;
     int i;
     assert( Tas_QueIsEmpty( pQue ) );
-    printf( "Level %2d : ", Level );
+    fprintf( Abc_FrameGlobalGetOut(), "Level %2d : ", Level );
     for ( i = hClause; (pObj = pQue->pData[i]); i++ )
-        printf( "%c%d ", Tas_VarValue(pObj)? '+':'-', Gia_ObjId(p->pAig, pObj) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%c%d ", Tas_VarValue(pObj)? '+':'-', Gia_ObjId(p->pAig, pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -846,7 +846,7 @@ static inline void Tas_ManDeriveReason( Tas_Man_t * p, int Level )
     }
     assert( pQue->pData[pQue->iHead] != NULL );
     if ( pQue->pData[pQue->iHead] == NULL )
-        printf( "Tas_ManDeriveReason(): Failed to derive the clause!!!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Tas_ManDeriveReason(): Failed to derive the clause!!!\n" );
     pQue->iTail = k;
     // clear the marks
     Vec_PtrForEachEntry( Gia_Obj_t *, p->vTemp, pObj, i )
@@ -1502,18 +1502,18 @@ int Tas_ManSolveArray( Tas_Man_t * p, Vec_Ptr_t * vObjs )
 ***********************************************************************/
 void Tas_ManSatPrintStats( Tas_Man_t * p )
 {
-    printf( "CO = %8d  ", Gia_ManCoNum(p->pAig) );
-    printf( "AND = %8d  ", Gia_ManAndNum(p->pAig) );
-    printf( "Conf = %6d  ", p->Pars.nBTLimit );
-    printf( "JustMax = %5d  ", p->Pars.nJustLimit );
-    printf( "\n" );
-    printf( "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "CO = %8d  ", Gia_ManCoNum(p->pAig) );
+    fprintf( Abc_FrameGlobalGetOut(), "AND = %8d  ", Gia_ManAndNum(p->pAig) );
+    fprintf( Abc_FrameGlobalGetOut(), "Conf = %6d  ", p->Pars.nBTLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "JustMax = %5d  ", p->Pars.nJustLimit );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatUnsat, p->nSatTotal? 100.0*p->nSatUnsat/p->nSatTotal :0.0, p->nSatUnsat? 1.0*p->nConfUnsat/p->nSatUnsat :0.0 );
     ABC_PRTP( "Time", p->timeSatUnsat, p->timeTotal );
-    printf( "Sat   calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Sat   calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatSat,   p->nSatTotal? 100.0*p->nSatSat/p->nSatTotal :0.0, p->nSatSat? 1.0*p->nConfSat/p->nSatSat : 0.0 );
     ABC_PRTP( "Time", p->timeSatSat,   p->timeTotal );
-    printf( "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatUndec, p->nSatTotal? 100.0*p->nSatUndec/p->nSatTotal :0.0, p->nSatUndec? 1.0*p->nConfUndec/p->nSatUndec : 0.0 );
     ABC_PRTP( "Time", p->timeSatUndec, p->timeTotal );
     ABC_PRT( "Total time", p->timeTotal );
@@ -1807,7 +1807,7 @@ void Tas_ManSolveMiterNc2( Gia_Man_t * pAig, int nConfs, Gia_Man_t * pAigOld, Ve
         p->timeSatSat += Abc_Clock() - clk;
         i += Step;
     }
-    printf( "Tried = %d  Stored = %d\n", Tried, Stored );
+    fprintf( Abc_FrameGlobalGetOut(), "Tried = %d  Stored = %d\n", Tried, Stored );
     Vec_IntFree( vVisit );
     p->nSatTotal = Gia_ManPoNum(pAig);
     p->timeTotal = Abc_Clock() - clkTotal;

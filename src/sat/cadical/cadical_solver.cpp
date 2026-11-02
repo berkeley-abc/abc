@@ -449,11 +449,11 @@ Solver::~Solver () {
   // Need to log success of this API call manually.
   //
   if (logging) {
-    printf ("%s%sLOG %s%d%s API call %s'reset ()'%s succeeded%s\n",
+    fprintf ( Abc_FrameGlobalGetOut(), "%s%sLOG %s%d%s API call %s'reset ()'%s succeeded%s\n",
             prefix.c_str (), tout.log_code (), tout.emph_code (), level,
             tout.log_code (), tout.api_code (), tout.log_code (),
             tout.normal_code ());
-    fflush (stdout);
+    fflush( Abc_FrameGlobalGetOut() );
   }
 #endif
 }

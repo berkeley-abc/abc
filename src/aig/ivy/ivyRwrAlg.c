@@ -99,15 +99,15 @@ int Ivy_ManRewriteAlg( Ivy_Man_t * p, int fUpdateLevel, int fUseZeroCost )
         else
             Ivy_ObjReplace( pObj, pResult, 1, 0, 1 ), CountUsed++; 
     }
-    printf( "Used = %d. Undo = %d.\n", CountUsed, CountUndo );
+    fprintf( Abc_FrameGlobalGetOut(), "Used = %d. Undo = %d.\n", CountUsed, CountUndo );
     Vec_PtrFree( vFront );
     Vec_PtrFree( vCone );
     Vec_PtrFree( vSol );
     if ( vRequired ) Vec_IntFree( vRequired );
     if ( i = Ivy_ManCleanup(p) )
-        printf( "Cleanup after rewriting removed %d dangling nodes.\n", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Cleanup after rewriting removed %d dangling nodes.\n", i );
     if ( !Ivy_ManCheck(p) )
-        printf( "Ivy_ManRewriteAlg(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManRewriteAlg(): The check has failed.\n" );
     return 1;
 }
 
@@ -131,9 +131,9 @@ Ivy_Obj_t * Ivy_NodeRewriteAlg( Ivy_Obj_t * pObj, Vec_Ptr_t * vFront, Vec_Ptr_t 
     if ( fVerbose )
     {
         if ( Ivy_ObjIsExor(pObj) )
-            printf( "x " );
+            fprintf( Abc_FrameGlobalGetOut(), "x " );
         else
-            printf( "  " );
+            fprintf( Abc_FrameGlobalGetOut(), "  " );
     }
 
 /*       
@@ -169,7 +169,7 @@ Ivy_Obj_t * Ivy_NodeRewriteAlg( Ivy_Obj_t * pObj, Vec_Ptr_t * vFront, Vec_Ptr_t 
     Counter = 0;
     Vec_PtrForEachEntry( Ivy_Obj_t *, vCone, pTemp, k )
         Counter += (Ivy_ObjRefs(pTemp) > 0);
-    printf( "%5d : Leaves = %2d. Cone = %2d. ConeRef = %2d.   Mffc = %d.   Lev = %d.  LevR = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "%5d : Leaves = %2d. Cone = %2d. ConeRef = %2d.   Mffc = %d.   Lev = %d.  LevR = %d.\n", 
         pObj->Id, Vec_PtrSize(vFront), Vec_PtrSize(vCone), Counter-1, nMffc, Ivy_ObjLevel(pObj), LevelR );
     }
 /*

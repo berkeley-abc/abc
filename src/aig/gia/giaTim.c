@@ -170,7 +170,7 @@ Gia_Man_t * Gia_ManDupNormalize( Gia_Man_t * p, int fHashMapping )
         // copy flops last
         for ( i = nCIs - Gia_ManRegNum(p); i < nCIs; i++ )
             Gia_ManCi(p, i)->Value = Gia_ManAppendCi(pNew);
-        printf( "Warning: Shuffled CI order to be correct sequential AIG.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Shuffled CI order to be correct sequential AIG.\n" );
     }
     if ( fHashMapping ) Gia_ManHashAlloc( pNew );
     Gia_ManForEachAnd( p, pObj, i )
@@ -231,7 +231,7 @@ Gia_Man_t * Gia_ManDupUnshuffleInputs( Gia_Man_t * p )
     // copy new CIs last
     for ( i = nPis; i < nAll - Gia_ManRegNum(p); i++ )
         Gia_ManCi(p, i)->Value = Gia_ManAppendCi(pNew);
-    printf( "Warning: Unshuffled CI order to be correct AIG with boxes.\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Warning: Unshuffled CI order to be correct AIG with boxes.\n" );
     // other things
     Gia_ManForEachAnd( p, pObj, i )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
@@ -320,14 +320,14 @@ Vec_Int_t * Gia_ManOrderWithBoxes( Gia_Man_t * p )
             {
                 int iCiNum  = p->iData2;
                 int iBoxNum = Tim_ManBoxFindFromCiNum( pManTime, iCiNum );
-                printf( "The command has to terminate. Boxes are not in a topological order.\n" );
-                printf( "The following information may help debugging (numbers are 0-based):\n" );
-                printf( "Input %d of BoxA %d (1stCI = %d; 1stCO = %d) has TFI with CI %d,\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "The command has to terminate. Boxes are not in a topological order.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "The following information may help debugging (numbers are 0-based):\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Input %d of BoxA %d (1stCI = %d; 1stCO = %d) has TFI with CI %d,\n", 
                     k, i, Tim_ManBoxOutputFirst(pManTime, i), Tim_ManBoxInputFirst(pManTime, i), iCiNum );
-                printf( "which corresponds to output %d of BoxB %d (1stCI = %d; 1stCO = %d).\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "which corresponds to output %d of BoxB %d (1stCI = %d; 1stCO = %d).\n", 
                     iCiNum - Tim_ManBoxOutputFirst(pManTime, iBoxNum), iBoxNum, 
                     Tim_ManBoxOutputFirst(pManTime, iBoxNum), Tim_ManBoxInputFirst(pManTime, iBoxNum) );
-                printf( "In a correct topological order, BoxB should precede BoxA.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "In a correct topological order, BoxB should precede BoxA.\n" );
                 Vec_IntFree( vNodes );
                 p->iData2 = 0;
                 return NULL;
@@ -515,7 +515,7 @@ int Gia_ManLevelWithBoxes( Gia_Man_t * p )
             pObj = Gia_ManCo( p, curCo + k );
             if ( Gia_ManLevelWithBoxes_rec( p, Gia_ObjFanin0(pObj) ) )
             {
-                printf( "Boxes are not in a topological order. Switching to level computation without boxes.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Boxes are not in a topological order. Switching to level computation without boxes.\n" );
                 return Gia_ManLevelNum( p );
             }
             // set box input level
@@ -620,7 +620,7 @@ int Gia_ManLutLevelWithBoxes( Gia_Man_t * p )
             pObj = Gia_ManCo( p, curCo + k );
             if ( Gia_ManLutLevelWithBoxes_rec( p, Gia_ObjFanin0(pObj) ) )
             {
-                printf( "Boxes are not in a topological order. Switching to level computation without boxes.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Boxes are not in a topological order. Switching to level computation without boxes.\n" );
                 return Gia_ManLevelNum( p );
             }
             // set box input level
@@ -1054,9 +1054,9 @@ void Gia_ManVerifyVerifyNameMapping( Gia_Man_t * p, Gia_Man_t * p1, Gia_Man_t * 
             iReprSpec = Gia_ObjReprSelf( p, Abc_Lit2Var(pObjSpec->Value) );
             iReprImpl = Gia_ObjReprSelf( p, Abc_Lit2Var(pObjImpl->Value) );
             if ( iReprSpec != iReprImpl )
-                printf( "Found functional mismatch for ImplId %d and SpecId %d.\n", iImpl, iSpec );
+                fprintf( Abc_FrameGlobalGetOut(), "Found functional mismatch for ImplId %d and SpecId %d.\n", iImpl, iSpec );
             if ( (pObjImpl->fPhase ^ Abc_LitIsCompl(iLitImpl)) != (pObjSpec->fPhase ^ Abc_LitIsCompl(iLitSpec) ^ fCompl) )
-                printf( "Found phase mismatch for ImplId %d and SpecId %d.\n", iImpl, iSpec );
+                fprintf( Abc_FrameGlobalGetOut(), "Found phase mismatch for ImplId %d and SpecId %d.\n", iImpl, iSpec );
         }
 }
 
@@ -1081,12 +1081,12 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
     }
     if ( pFileSpec == NULL && pGia->pSpec == NULL )
     {
-        printf( "Spec file is not given. Use standard flow.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Spec file is not given. Use standard flow.\n" );
         return Status;
     }
     if ( Gia_ManBoxNum(pGia) && pGia->pAigExtra == NULL )
     {
-        printf( "Design has no box logic. Use standard flow.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Design has no box logic. Use standard flow.\n" );
         return Status;
     }
     // read original AIG
@@ -1101,7 +1101,7 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
     {
         Vec_IntFreeP( &vSpecIds );
         Gia_ManStop( pSpec );
-        printf( "Spec has no box logic. Use standard flow.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Spec has no box logic. Use standard flow.\n" );
         return Status;
     }
     // prepare miter
@@ -1119,7 +1119,7 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
             // specification cannot have fewer boxes than implementation
             if ( Gia_ManBoxNum(pSpec) < Gia_ManBoxNum(pGia) )
             {
-                printf( "Spec has less boxes than the design. Cannot proceed.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Spec has less boxes than the design. Cannot proceed.\n" );
                 Gia_ManStop( pSpec );
                 Vec_IntFreeP( &vSpecIds );
                 return Status;
@@ -1130,7 +1130,7 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
                 vBoxPres = Tim_ManAlignTwo( (Tim_Man_t *)pSpec->pManTime, (Tim_Man_t *)pGia->pManTime );
                 if ( vBoxPres == NULL )
                 {
-                    printf( "Boxes of spec and design cannot be aligned. Cannot proceed.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Boxes of spec and design cannot be aligned. Cannot proceed.\n" );
                     Gia_ManStop( pSpec );
                     Vec_IntFreeP( &vSpecIds );
                     return Status;
@@ -1156,7 +1156,7 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
         Gia_AigerWrite( pGia0, pFileName0, 0, 0, 0 );
         Gia_AigerWrite( pGia1, pFileName1, 0, 0, 0 );
         ABC_FREE( pNameGeneric );
-        printf( "Dumped two parts of the miter into files \"%s\" and \"%s\".\n", pFileName0, pFileName1 );
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped two parts of the miter into files \"%s\" and \"%s\".\n", pFileName0, pFileName1 );
         ABC_FREE( pFileName0 );
         ABC_FREE( pFileName1 );
     }

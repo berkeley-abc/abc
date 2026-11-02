@@ -320,16 +320,16 @@ void Abc_TtCountGenerate()
       3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8
     };
     int i, k, c;
-    printf("{ ");
-    for ( i = 0; i < 256; i++, printf(" },\n{ ") )
+    fprintf( Abc_FrameGlobalGetOut(), "{ ");
+    for ( i = 0; i < 256; i++, fprintf( Abc_FrameGlobalGetOut(), " },\n{ ") )
     for ( k = 0; k <  32; k++ )
     {
-        printf( "ABC_CONST(0x0%d", bit_count[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC_CONST(0x0%d", bit_count[i] );
         for ( c = 3; c >= 0; c-- )
-            printf( "0%d", (((k >> c) & 1) == 0) * bit_count[i]  );
+            fprintf( Abc_FrameGlobalGetOut(), "0%d", (((k >> c) & 1) == 0) * bit_count[i] );
         for ( c = 2; c >= 0; c-- )
-            printf( "0%d", bit_count[s_CMasks6[c] & i] );
-        printf( ")%s", k == 31 ? "":", " );
+            fprintf( Abc_FrameGlobalGetOut(), "0%d", bit_count[s_CMasks6[c] & i] );
+        fprintf( Abc_FrameGlobalGetOut(), ")%s", k == 31 ? "":", " );
     }
 }
 

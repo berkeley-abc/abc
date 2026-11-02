@@ -292,7 +292,7 @@ Iff_Man_t * Gia_ManIffPerform( Gia_Man_t * pGia, If_LibLut_t * pLib, Tim_Man_t *
         }
         else assert( 0 );
     }
-    printf( "Max delay = %.2f.  Count1 = %d.  Count2 = %d.  Count3 = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Max delay = %.2f.  Count1 = %d.  Count2 = %d.  Count3 = %d.\n", 
         arrMax, CountAll - Count2 - Count3, Count2, Count3 );
     return p;
 }
@@ -398,7 +398,7 @@ void Gia_ManIffTest( Gia_Man_t * pGia, If_LibLut_t * pLib, int fVerbose )
         else if ( pLib->LutMax == 10 )
             nDegree = 3;
         else
-            { printf( "LUT library for packing 4-LUTs should have 7 or 10 inputs.\n" ); return; }
+            { fprintf( Abc_FrameGlobalGetOut(), "LUT library for packing 4-LUTs should have 7 or 10 inputs.\n" ); return; }
     }
     else if ( nLutSize <= 6 )
     {
@@ -408,15 +408,15 @@ void Gia_ManIffTest( Gia_Man_t * pGia, If_LibLut_t * pLib, int fVerbose )
         else if ( pLib->LutMax == 16 )
             nDegree = 3;
         else
-            { printf( "LUT library for packing 6-LUTs should have 11 or 16 inputs.\n" ); return; }
+            { fprintf( Abc_FrameGlobalGetOut(), "LUT library for packing 6-LUTs should have 11 or 16 inputs.\n" ); return; }
     }
     else
     {
-        printf( "The LUT size is more than 6.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The LUT size is more than 6.\n" );
         return;
     }
     if ( fVerbose )
-        printf( "Performing %d-clustering with %d-LUTs:\n", nDegree, nLutSize );
+        fprintf( Abc_FrameGlobalGetOut(), "Performing %d-clustering with %d-LUTs:\n", nDegree, nLutSize );
     // create timing manager
     if ( pGia->pManTime == NULL )
         pGia->pManTime = pTemp = Tim_ManStart( Gia_ManCiNum(pGia), Gia_ManCoNum(pGia) );

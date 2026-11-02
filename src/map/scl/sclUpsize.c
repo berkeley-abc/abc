@@ -429,7 +429,7 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
     if ( Vec_QueSize(p->vNodeByGain) == 0 )
         return 0;
     if ( fVeryVerbose ) 
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // accept changes for that are half above the average and do not overlap
     Counter = 0;
@@ -508,9 +508,9 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
         // report
         if ( fVeryVerbose )
         {
-            printf( "Node %6d  Redir fanout %6d to fanin %6d.  Gain = %7.1f ps. ", 
+            fprintf( Abc_FrameGlobalGetOut(), "Node %6d  Redir fanout %6d to fanin %6d.  Gain = %7.1f ps. ", 
                 Abc_ObjId(pBuf), Abc_ObjId(pFanout), Abc_ObjId(pFanin), Vec_FltEntry(p->vNode2Gain, iNode) );
-            printf( "Gate %12s (%2d/%2d)  -> %12s (%2d/%2d) \n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Gate %12s (%2d/%2d)  -> %12s (%2d/%2d) \n", 
                 pCellOld->pName, pCellOld->Order, pCellOld->nGates, 
                 pCellNew->pName, pCellNew->Order, pCellNew->nGates );
         }
@@ -767,19 +767,19 @@ void Abc_SclUpsizePrintDiffs( SC_Man * p, SC_Lib * pLib, Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pObj, k )
     {
         if ( Abc_AbsFloat(p->pLoads[k].rise - pLoads[k].rise) > fDiff )
-            printf( "%6d : load rise differs %12.6f   %f %f\n", k, p->pLoads[k].rise-pLoads[k].rise, p->pLoads[k].rise, pLoads[k].rise );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d : load rise differs %12.6f   %f %f\n", k, p->pLoads[k].rise-pLoads[k].rise, p->pLoads[k].rise, pLoads[k].rise );
         if ( Abc_AbsFloat(p->pLoads[k].fall - pLoads[k].fall) > fDiff )
-            printf( "%6d : load fall differs %12.6f   %f %f\n", k, p->pLoads[k].fall-pLoads[k].fall, p->pLoads[k].fall, pLoads[k].fall );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d : load fall differs %12.6f   %f %f\n", k, p->pLoads[k].fall-pLoads[k].fall, p->pLoads[k].fall, pLoads[k].fall );
 
         if ( Abc_AbsFloat(p->pSlews[k].rise - pSlews[k].rise) > fDiff )
-            printf( "%6d : slew rise differs %12.6f   %f %f\n", k, p->pSlews[k].rise-pSlews[k].rise, p->pSlews[k].rise, pSlews[k].rise );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d : slew rise differs %12.6f   %f %f\n", k, p->pSlews[k].rise-pSlews[k].rise, p->pSlews[k].rise, pSlews[k].rise );
         if ( Abc_AbsFloat(p->pSlews[k].fall - pSlews[k].fall) > fDiff )
-            printf( "%6d : slew fall differs %12.6f   %f %f\n", k, p->pSlews[k].fall-pSlews[k].fall, p->pSlews[k].fall, pSlews[k].fall );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d : slew fall differs %12.6f   %f %f\n", k, p->pSlews[k].fall-pSlews[k].fall, p->pSlews[k].fall, pSlews[k].fall );
 
         if ( Abc_AbsFloat(p->pTimes[k].rise - pTimes[k].rise) > fDiff )
-            printf( "%6d : time rise differs %12.6f   %f %f\n", k, p->pTimes[k].rise-pTimes[k].rise, p->pTimes[k].rise, pTimes[k].rise );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d : time rise differs %12.6f   %f %f\n", k, p->pTimes[k].rise-pTimes[k].rise, p->pTimes[k].rise, pTimes[k].rise );
         if ( Abc_AbsFloat(p->pTimes[k].fall - pTimes[k].fall) > fDiff )
-            printf( "%6d : time fall differs %12.6f   %f %f\n", k, p->pTimes[k].fall-pTimes[k].fall, p->pTimes[k].fall, pTimes[k].fall );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d : time fall differs %12.6f   %f %f\n", k, p->pTimes[k].fall-pTimes[k].fall, p->pTimes[k].fall, pTimes[k].fall );
     }
 
 /*
@@ -809,23 +809,23 @@ if ( memcmp( pLoads, p->pLoads, sizeof(SC_Pair) * p->nObjs ) )
 ***********************************************************************/
 void Abc_SclUpsizePrint( SC_Man * p, int Iter, int win, int nPathPos, int nPathNodes, int nUpsizes, int nTFOs, int fVerbose )
 {
-    printf( "%4d ",          Iter );
-    printf( "Win:%3d. ",     win );
-    printf( "PO:%6d. ",      nPathPos );
-    printf( "Path:%7d. ",    nPathNodes );
-    printf( "Gate:%5d. ",    nUpsizes );
-    printf( "TFO:%7d. ",     nTFOs );
-    printf( "A: " );
-    printf( "%.2f ",         p->SumArea );
-    printf( "(%+5.1f %%)  ", 100.0 * (p->SumArea - p->SumArea0)/ p->SumArea0 );
-    printf( "D: " );
-    printf( "%.2f ps ",      p->MaxDelay );
-    printf( "(%+5.1f %%)  ", 100.0 * (p->MaxDelay - p->MaxDelay0)/ p->MaxDelay0 );
-    printf( "B: " );
-    printf( "%.2f ps ",      p->BestDelay );
-    printf( "(%+5.1f %%)",   100.0 * (p->BestDelay - p->MaxDelay0)/ p->MaxDelay0 );
-    printf( "%8.2f sec    ", 1.0*(Abc_Clock() - p->timeTotal)/(CLOCKS_PER_SEC) );
-    printf( "%c", fVerbose ? '\n' : '\r' );
+    fprintf( Abc_FrameGlobalGetOut(), "%4d ",          Iter );
+    fprintf( Abc_FrameGlobalGetOut(), "Win:%3d. ",     win );
+    fprintf( Abc_FrameGlobalGetOut(), "PO:%6d. ",      nPathPos );
+    fprintf( Abc_FrameGlobalGetOut(), "Path:%7d. ",    nPathNodes );
+    fprintf( Abc_FrameGlobalGetOut(), "Gate:%5d. ",    nUpsizes );
+    fprintf( Abc_FrameGlobalGetOut(), "TFO:%7d. ",     nTFOs );
+    fprintf( Abc_FrameGlobalGetOut(), "A: " );
+    fprintf( Abc_FrameGlobalGetOut(), "%.2f ",         p->SumArea );
+    fprintf( Abc_FrameGlobalGetOut(), "(%+5.1f %%)  ", 100.0 * (p->SumArea - p->SumArea0)/ p->SumArea0 );
+    fprintf( Abc_FrameGlobalGetOut(), "D: " );
+    fprintf( Abc_FrameGlobalGetOut(), "%.2f ps ",      p->MaxDelay );
+    fprintf( Abc_FrameGlobalGetOut(), "(%+5.1f %%)  ", 100.0 * (p->MaxDelay - p->MaxDelay0)/ p->MaxDelay0 );
+    fprintf( Abc_FrameGlobalGetOut(), "B: " );
+    fprintf( Abc_FrameGlobalGetOut(), "%.2f ps ",      p->BestDelay );
+    fprintf( Abc_FrameGlobalGetOut(), "(%+5.1f %%)",   100.0 * (p->BestDelay - p->MaxDelay0)/ p->MaxDelay0 );
+    fprintf( Abc_FrameGlobalGetOut(), "%8.2f sec    ", 1.0*(Abc_Clock() - p->timeTotal)/(CLOCKS_PER_SEC) );
+    fprintf( Abc_FrameGlobalGetOut(), "%c", fVerbose ? '\n' : '\r' );
 }
 
 /**Function*************************************************************
@@ -875,16 +875,16 @@ void Abc_SclUpsizePerformInt( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPa
     int nAllPos, nAllNodes, nAllTfos, nAllUpsizes;
     if ( pPars->fVerbose )
     {
-        printf( "Parameters: " );
-        printf( "Iters =%5d.  ",          pPars->nIters   );
-        printf( "Time win =%3d %%. ",     pPars->Window   );
-        printf( "Update ratio =%3d %%. ", pPars->Ratio    );
-        printf( "UseDept =%2d. ",         pPars->fUseDept );
-        printf( "UseWL =%2d. ",           pPars->fUseWireLoads );
-        printf( "Target =%5d ps. ",       pPars->DelayUser );
-        printf( "DelayGap =%3d ps. ",     pPars->DelayGap );
-        printf( "Timeout =%4d sec",       pPars->TimeOut  );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Parameters: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Iters =%5d.  ",          pPars->nIters   );
+        fprintf( Abc_FrameGlobalGetOut(), "Time win =%3d %%. ",     pPars->Window   );
+        fprintf( Abc_FrameGlobalGetOut(), "Update ratio =%3d %%. ", pPars->Ratio    );
+        fprintf( Abc_FrameGlobalGetOut(), "UseDept =%2d. ",         pPars->fUseDept );
+        fprintf( Abc_FrameGlobalGetOut(), "UseWL =%2d. ",           pPars->fUseWireLoads );
+        fprintf( Abc_FrameGlobalGetOut(), "Target =%5d ps. ",       pPars->DelayUser );
+        fprintf( Abc_FrameGlobalGetOut(), "DelayGap =%3d ps. ",     pPars->DelayGap );
+        fprintf( Abc_FrameGlobalGetOut(), "Timeout =%4d sec",       pPars->TimeOut  );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // increase window for larger networks
     if ( pPars->Window == 1 )
@@ -899,7 +899,7 @@ void Abc_SclUpsizePerformInt( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPa
     // perform upsizing
     nAllPos = nAllNodes = nAllTfos = nAllUpsizes = 0;
     if ( p->BestDelay <= pPars->DelayUser )
-        printf( "Current delay (%.2f ps) does not exceed the target delay (%.2f ps). Upsizing is not performed.\n", p->BestDelay, (float)pPars->DelayUser );
+        fprintf( Abc_FrameGlobalGetOut(), "Current delay (%.2f ps) does not exceed the target delay (%.2f ps). Upsizing is not performed.\n", p->BestDelay, (float)pPars->DelayUser );
     else
     for ( i = 0; i < pPars->nIters; i++ )
     {
@@ -991,7 +991,7 @@ void Abc_SclUpsizePerformInt( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPa
     if ( pPars->fVerbose )
         Abc_SclUpsizePrint( p, i, pPars->Window, nAllPos/(i?i:1), nAllNodes/(i?i:1), nAllUpsizes/(i?i:1), nAllTfos/(i?i:1), 1 );
     else
-        printf( "                                                                                                                                                  \r" );
+        fprintf( Abc_FrameGlobalGetOut(), "                                                                                                                                                  \r" );
     // report runtime
     p->timeTotal = Abc_Clock() - p->timeTotal;
     if ( pPars->fVerbose )
@@ -1006,7 +1006,7 @@ void Abc_SclUpsizePerformInt( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPa
     if ( pPars->fDumpStats )
         Abc_SclDumpStats( p, "stats2.txt", p->timeTotal );
     if ( nRuntimeLimit && Abc_Clock() > nRuntimeLimit )
-        printf( "Gate sizing timed out at %d seconds.\n", pPars->TimeOut );
+        fprintf( Abc_FrameGlobalGetOut(), "Gate sizing timed out at %d seconds.\n", pPars->TimeOut );
 
     // save the result and quit
     Abc_SclSclGates2MioGates( pLib, pNtk ); // updates gate pointers

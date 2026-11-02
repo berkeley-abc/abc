@@ -760,7 +760,7 @@ typedef uint_least32_t uint_fast32_t;
 
 #define DECL(us,bits) glue3(DECL,us,) (bits)
 
-#define TESTUMAX(bits) glue3(u,bits,) = ~glue3(u,bits,); if (glue3(UINT,bits,_MAX) != glue3(u,bits,)) printf ("Something wrong with UINT%d_MAX\n", bits)
+#define TESTUMAX(bits) glue3(u,bits,) = ~glue3(u,bits,); if (glue3(UINT,bits,_MAX) != glue3(u,bits,)) fprintf ( Abc_FrameGlobalGetOut(), "Something wrong with UINT%d_MAX\n", bits)
 
 int main () {
     DECL(I,8)
@@ -780,25 +780,25 @@ int main () {
     sprintf (str0, "%d %x\n", 0, ~0);
 
     sprintf (str1, "%d %x\n",  i8, ~0);
-    if (0 != strcmp (str0, str1)) printf ("Something wrong with i8 : %s\n", str1);
+    if (0 != strcmp (str0, str1)) fprintf ( Abc_FrameGlobalGetOut(), "Something wrong with i8 : %s\n", str1);
     sprintf (str1, "%u %x\n",  u8, ~0);
-    if (0 != strcmp (str0, str1)) printf ("Something wrong with u8 : %s\n", str1);
+    if (0 != strcmp (str0, str1)) fprintf ( Abc_FrameGlobalGetOut(), "Something wrong with u8 : %s\n", str1);
     sprintf (str1, "%d %x\n",  i16, ~0);
-    if (0 != strcmp (str0, str1)) printf ("Something wrong with i16 : %s\n", str1);
+    if (0 != strcmp (str0, str1)) fprintf ( Abc_FrameGlobalGetOut(), "Something wrong with i16 : %s\n", str1);
     sprintf (str1, "%u %x\n",  u16, ~0);
-    if (0 != strcmp (str0, str1)) printf ("Something wrong with u16 : %s\n", str1);
+    if (0 != strcmp (str0, str1)) fprintf ( Abc_FrameGlobalGetOut(), "Something wrong with u16 : %s\n", str1);
     sprintf (str1, "%" PRINTF_INT32_MODIFIER "d %x\n",  i32, ~0);
-    if (0 != strcmp (str0, str1)) printf ("Something wrong with i32 : %s\n", str1);
+    if (0 != strcmp (str0, str1)) fprintf ( Abc_FrameGlobalGetOut(), "Something wrong with i32 : %s\n", str1);
     sprintf (str1, "%" PRINTF_INT32_MODIFIER "u %x\n",  u32, ~0);
-    if (0 != strcmp (str0, str1)) printf ("Something wrong with u32 : %s\n", str1);
+    if (0 != strcmp (str0, str1)) fprintf ( Abc_FrameGlobalGetOut(), "Something wrong with u32 : %s\n", str1);
 #ifdef INT64_MAX
     sprintf (str1, "%" PRINTF_INT64_MODIFIER "d %x\n",  i64, ~0);
-    if (0 != strcmp (str0, str1)) printf ("Something wrong with i64 : %s\n", str1);
+    if (0 != strcmp (str0, str1)) fprintf ( Abc_FrameGlobalGetOut(), "Something wrong with i64 : %s\n", str1);
 #endif
     sprintf (str1, "%" PRINTF_INTMAX_MODIFIER "d %x\n",  imax, ~0);
-    if (0 != strcmp (str0, str1)) printf ("Something wrong with imax : %s\n", str1);
+    if (0 != strcmp (str0, str1)) fprintf ( Abc_FrameGlobalGetOut(), "Something wrong with imax : %s\n", str1);
     sprintf (str1, "%" PRINTF_INTMAX_MODIFIER "u %x\n",  umax, ~0);
-    if (0 != strcmp (str0, str1)) printf ("Something wrong with umax : %s\n", str1);
+    if (0 != strcmp (str0, str1)) fprintf ( Abc_FrameGlobalGetOut(), "Something wrong with umax : %s\n", str1);
 
     TESTUMAX(8);
     TESTUMAX(16);

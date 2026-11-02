@@ -270,13 +270,13 @@ static inline void Vec_QuePrint( Vec_Que_t * p )
     {
         for ( m = 0; m < k; m++ )
             if ( i+m < p->nSize )
-                printf( "%-5d", p->pHeap[i+m] );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(),  "%-5d", p->pHeap[i+m]  );
+        fprintf( Abc_FrameGlobalGetOut(),  "\n"  );
         for ( m = 0; m < k; m++ )
             if ( i+m < p->nSize )
-                printf( "%-5.0f", Vec_QuePrio(p, p->pHeap[i+m]) );
-        printf( "\n" );
-        printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(),  "%-5.0f", Vec_QuePrio(p, p->pHeap[i+m])  );
+        fprintf( Abc_FrameGlobalGetOut(),  "\n"  );
+        fprintf( Abc_FrameGlobalGetOut(),  "\n"  );
     }
 }
 

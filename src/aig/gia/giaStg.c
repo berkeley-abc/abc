@@ -52,14 +52,14 @@ void Gia_ManPrintStateEncoding( Vec_Vec_t * vCodes, int nBits )
     pBuffer[nBits] = 0;
     Vec_VecForEachLevelInt( vCodes, vVec, i )
     {
-        printf( "%6d : ", i+1 );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : ", i+1 );
         memset( pBuffer, '-', (size_t)nBits );
         Vec_IntForEachEntry( vVec, Bit, k )
         {
             assert( Bit < nBits );
             pBuffer[Bit] = '1';
         }
-        printf( "%s\n", pBuffer );
+        fprintf( Abc_FrameGlobalGetOut(), "%s\n", pBuffer );
     }
     ABC_FREE( pBuffer );
 }
@@ -450,13 +450,13 @@ Vec_Int_t * Gia_ManStgReadLines( char * pFileName, int * pnIns, int * pnOuts, in
     FILE * pFile;
     if ( !strcmp(pFileName + strlen(pFileName) - 3, "aig") )
     {
-        printf( "Input file \"%s\" has extension \"%s\".\n", pFileName, "aig" );
+        fprintf( Abc_FrameGlobalGetOut(), "Input file \"%s\" has extension \"%s\".\n", pFileName, "aig" );
         return NULL;
     }
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\".\n", pFileName );
         return NULL;
     }
     vLines = Vec_IntAlloc( 1000 );

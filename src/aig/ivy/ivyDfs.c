@@ -299,9 +299,9 @@ int Ivy_ManIsAcyclic_rec( Ivy_Man_t * p, Ivy_Obj_t * pObj )
     // check if the node is part of the combinational loop
     if ( Ivy_ObjIsTravIdCurrent(p, pObj) )
     {
-        fprintf( stdout, "Manager contains combinational loop!\n" );
-        fprintf( stdout, "Node \"%d\" is encountered twice on the following path:\n",  Ivy_ObjId(pObj) );
-        fprintf( stdout, " %d",  Ivy_ObjId(pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "Manager contains combinational loop!\n"  );
+        fprintf( Abc_FrameGlobalGetOut(), "Node \"%d\" is encountered twice on the following path:\n",  Ivy_ObjId(pObj)  );
+        fprintf( Abc_FrameGlobalGetOut(), " %d",  Ivy_ObjId(pObj)  );
         return 0;
     }
     // mark this node as a node on the current path
@@ -317,10 +317,10 @@ int Ivy_ManIsAcyclic_rec( Ivy_Man_t * p, Ivy_Obj_t * pObj )
             if ( !Ivy_ManIsAcyclic_rec(p, pTemp) )
             {
                 // return as soon as the loop is detected
-                fprintf( stdout, " -> (%d", Ivy_ObjId(pObj) );
+                fprintf( Abc_FrameGlobalGetOut(), " -> (%d", Ivy_ObjId(pObj)  );
                 for ( pTemp = pObj->pEquiv; pTemp != pObj; pTemp = Ivy_Regular(pTemp->pEquiv) )
-                    fprintf( stdout, " %d", Ivy_ObjId(pTemp) );
-                fprintf( stdout, ")" );
+                    fprintf( Abc_FrameGlobalGetOut(), " %d", Ivy_ObjId(pTemp)  );
+                fprintf( Abc_FrameGlobalGetOut(), ")"  );
                 return 0; 
             }
         }
@@ -337,14 +337,14 @@ int Ivy_ManIsAcyclic_rec( Ivy_Man_t * p, Ivy_Obj_t * pObj )
     if ( !Ivy_ManIsAcyclic_rec(p, Ivy_ObjFanin0(pObj)) )
     {
         // return as soon as the loop is detected
-        fprintf( stdout, " -> %d", Ivy_ObjId(pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), " -> %d", Ivy_ObjId(pObj)  );
         return 0;
     }
     // traverse the fanin's cone searching for the loop
     if ( Ivy_ObjIsNode(pObj) && !Ivy_ManIsAcyclic_rec(p, Ivy_ObjFanin1(pObj)) )
     {
         // return as soon as the loop is detected
-        fprintf( stdout, " -> %d", Ivy_ObjId(pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), " -> %d", Ivy_ObjId(pObj)  );
         return 0;
     }
     // mark this node as a visited node
@@ -388,7 +388,7 @@ int Ivy_ManIsAcyclic( Ivy_Man_t * p )
         if ( (fAcyclic = Ivy_ManIsAcyclic_rec(p, Ivy_ObjFanin0(pObj))) )
             continue;
         // stop as soon as the first loop is detected
-        fprintf( stdout, " (cone of %s \"%d\")\n", Ivy_ObjIsLatch(pObj)? "latch" : "PO", Ivy_ObjId(pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), " (cone of %s \"%d\")\n", Ivy_ObjIsLatch(pObj)? "latch" : "PO", Ivy_ObjId(pObj)  );
         break;
     }
     return fAcyclic;
@@ -463,7 +463,7 @@ int Ivy_ManSetLevels( Ivy_Man_t * p, int fHaig )
     {
         Ivy_ManForEachCi( p, pObj, i )
             if ( pObj->pEquiv )
-                printf( "CI %d has a choice, which will not be visualized.\n", pObj->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "CI %d has a choice, which will not be visualized.\n", pObj->Id );
     }
     // clean the levels
     Ivy_ManForEachObj( p, pObj, i )

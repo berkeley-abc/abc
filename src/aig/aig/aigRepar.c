@@ -181,7 +181,7 @@ void Aig_ManInterTest( Aig_Man_t * pMan, int fVerbose )
     Lit = toLitCond( 2*pCnf->nVars, 0 );
     status = sat_solver2_solve( pSat, &Lit, &Lit + 1, 0, 0, 0, 0 );
     assert( status == l_False );
-    Sat_Solver2PrintStats( stdout, pSat );
+    Sat_Solver2PrintStats( Abc_FrameGlobalGetOut(), pSat );
 
     // derive interpolant
 //    pInter = Sat_ProofInterpolant( pSat, vVars );
@@ -336,7 +336,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
         Lit = toLitCond( ShiftAssume + k, 1 ); // XOR output is 0 ==> p1 == p2
         status = sat_solver2_solve( pSat, &Lit, &Lit + 1, 0, 0, 0, 0 );
         assert( status == l_False );
-        Sat_Solver2PrintStats( stdout, pSat );
+        Sat_Solver2PrintStats( Abc_FrameGlobalGetOut(), pSat );
 
         // derive interpolant
         pInter = (Aig_Man_t *)Sat_ProofInterpolant( pSat, vVars );

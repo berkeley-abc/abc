@@ -72,11 +72,11 @@ static inline void watch_list_grow(struct watch_list *wl)
     struct watcher *watchers =
         satoko_realloc(struct watcher, wl->watchers, new_size);
     if (watchers == NULL) {
-        printf("Failed to realloc memory from %.1f MB to %.1f "
+        fprintf( Abc_FrameGlobalGetOut(), "Failed to realloc memory from %.1f MB to %.1f "
                "MB.\n",
                1.0 * wl->cap / (1 << 20),
-               1.0 * new_size / (1 << 20));
-        fflush(stdout);
+               1.0 * new_size / (1 << 20) );
+        fflush( Abc_FrameGlobalGetOut() );
         return;
     }
     wl->watchers = watchers;
@@ -181,11 +181,11 @@ static inline void vec_wl_push(vec_wl_t *vec_wl)
         memset(vec_wl->watch_lists + vec_wl->cap, 0,
                sizeof(struct watch_list) * (new_size - vec_wl->cap));
         if (vec_wl->watch_lists == NULL) {
-            printf("failed to realloc memory from %.1f mb to %.1f "
+            fprintf( Abc_FrameGlobalGetOut(), "failed to realloc memory from %.1f mb to %.1f "
                    "mb.\n",
                    1.0 * vec_wl->cap / (1 << 20),
-                   1.0 * new_size / (1 << 20));
-            fflush(stdout);
+                   1.0 * new_size / (1 << 20) );
+            fflush( Abc_FrameGlobalGetOut() );
         }
         vec_wl->cap = new_size;
     }

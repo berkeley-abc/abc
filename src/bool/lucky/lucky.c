@@ -275,9 +275,9 @@ void freeArrayB(word* b)
 
 void printCCtrInfo(cycleCtr* cCtr, int nFuncs)
 {
-    printf("maxNCycles = %d\n",cCtr->maxNCycles);
-    printf("minNCycles = %d\n",cCtr->minNCycles);
-    printf("average NCycles = %.3f\n",cCtr->totalCycles/(double)nFuncs);
+    fprintf( Abc_FrameGlobalGetOut(), "maxNCycles = %d\n",cCtr->maxNCycles);
+    fprintf( Abc_FrameGlobalGetOut(), "minNCycles = %d\n",cCtr->minNCycles);
+    fprintf( Abc_FrameGlobalGetOut(), "average NCycles = %.3f\n",cCtr->totalCycles/(double)nFuncs);
 }
 ////////////////////////////////////////New Faster versoin/////////////////////////////////////////////////////////
 
@@ -673,7 +673,7 @@ int main ()
         pAux = (word*)malloc(sizeof(word)*(p->nWords));
         pAux1 = (word*)malloc(sizeof(word)*(p->nWords));    
         pStore = (int*)malloc(sizeof(int)*(p->nVars));
-        printf("In %s Fs at start = %d\n",charArray[j],p->nFuncs);
+        fprintf( Abc_FrameGlobalGetOut(), "In %s Fs at start = %d\n",charArray[j],p->nFuncs);
         
         tempNF = p->nFuncs;
 
@@ -683,7 +683,7 @@ int main ()
         TimePrint("done with A");
 
         sortAndUnique(a, p);
-        printf("F left in A final = %d\n",p->nFuncs);
+        fprintf( Abc_FrameGlobalGetOut(), "F left in A final = %d\n",p->nFuncs);
         freeArray(a,p);
         TimePrint("Done with sort");
         

@@ -56,7 +56,7 @@ Mvc_Cover_t * Mvc_CoverAlgebraicMultiply( Mvc_Cover_t * pCover1, Mvc_Cover_t * p
     // check if the cubes are bit-wise disjoint
     Mvc_CubeBitDisjoint( CompResult, pCover1->pMask, pCover2->pMask );
     if ( !CompResult )
-        printf( "Mvc_CoverMultiply(): Cover supports are not disjoint!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Mvc_CoverMultiply(): Cover supports are not disjoint!\n" );
 
     // iterate through the cubes
     pCover = Mvc_CoverClone( pCover1 );

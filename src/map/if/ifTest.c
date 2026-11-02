@@ -74,7 +74,7 @@ void Gia_ParComputeSignature( Gia_Man_t * p, int nWords )
         for ( i = 0; i < p->iData; i++ )
             Sign ^= pData[i];
     }
-    Abc_TtPrintHexRev( stdout, &Sign, 6 );
+    Abc_TtPrintHexRev( Abc_FrameGlobalGetOut(), &Sign, 6 );
 }
  
 /**Function*************************************************************
@@ -288,7 +288,7 @@ void Gia_ParTestSimulate2( Gia_Man_t * p, int nWords, int nProcs )
     Vec_IntForEachEntry( vFanins, iFan, k )
         if ( iFan != 0 )
         {
-            printf( "%d -> %d    ", k, iFan );
+            fprintf( Abc_FrameGlobalGetOut(), "%d -> %d    ", k, iFan );
             Gia_ObjPrint( p, Gia_ManObj(p, k) );
         }
 //    assert( Vec_IntSum(vFanins) == 0 );
@@ -329,8 +329,8 @@ void Gia_ParTestSimulate2( Gia_Man_t * p, int nWords, int nProcs )
 void Gia_ParTest( Gia_Man_t * p, int nWords, int nProcs )
 {
     abctime clk;
-    printf( "Trying with %d words and %d threads.  ", nWords, nProcs );
-    printf( "Memory usage = %.2f MB\n", (8.0*nWords*Gia_ManObjNum(p))/(1<<20) );
+    fprintf( Abc_FrameGlobalGetOut(), "Trying with %d words and %d threads.  ", nWords, nProcs );
+    fprintf( Abc_FrameGlobalGetOut(), "Memory usage = %.2f MB\n", (8.0*nWords*Gia_ManObjNum(p))/(1<<20) );
     
     clk = Abc_Clock();
     Gia_ParTestSimulate( p, nWords );

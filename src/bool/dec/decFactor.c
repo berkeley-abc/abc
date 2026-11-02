@@ -383,8 +383,8 @@ int Dec_FactorVerify( char * pSop, Dec_Graph_t * pFForm )
     if ( bFunc1 != bFunc2 )
     {
         int s;
-        Extra_bddPrint( dd, bFunc1 ); printf("\n");
-        Extra_bddPrint( dd, bFunc2 ); printf("\n");
+        Extra_bddPrint( dd, bFunc1 ); fprintf( Abc_FrameGlobalGetOut(), "\n");
+        Extra_bddPrint( dd, bFunc2 ); fprintf( Abc_FrameGlobalGetOut(), "\n");
         s  = 0;
     }
     Cudd_RecursiveDeref( dd, bFunc1 );

@@ -211,21 +211,21 @@ int Abc_SclCheckOverlap( Abc_Ntk_t * pNtk, Vec_Int_t * vNodes )
 void Abc_SclDnsizePrint( SC_Man * p, int Iter, int nAttempts, int nOverlaps, int nChanges, int fVerbose )
 {
     if ( Iter == -1 )
-        printf( "Total : " );
+        fprintf( Abc_FrameGlobalGetOut(), "Total : " );
     else
-        printf( "%5d : ",    Iter );
-    printf( "Try =%6d  ",    nAttempts );
-    printf( "Over =%6d  ",   nOverlaps );
-    printf( "Fail =%6d  ",   nAttempts-nOverlaps-nChanges );
-    printf( "Win =%6d  ",    nChanges );
-    printf( "A: " );
-    printf( "%.2f ",         p->SumArea );
-    printf( "(%+5.1f %%)  ", 100.0 * (p->SumArea - p->SumArea0)/ p->SumArea0 );
-    printf( "D: " );
-    printf( "%.2f ps ",      p->MaxDelay );
-    printf( "(%+5.1f %%)  ", 100.0 * (p->MaxDelay - p->MaxDelay0)/ p->MaxDelay0 );
-    printf( "%8.2f sec    ", 1.0*(Abc_Clock() - p->timeTotal)/(CLOCKS_PER_SEC) );
-    printf( "%c", fVerbose ? '\n' : '\r' );
+        fprintf( Abc_FrameGlobalGetOut(), "%5d : ",    Iter );
+    fprintf( Abc_FrameGlobalGetOut(), "Try =%6d  ",    nAttempts );
+    fprintf( Abc_FrameGlobalGetOut(), "Over =%6d  ",   nOverlaps );
+    fprintf( Abc_FrameGlobalGetOut(), "Fail =%6d  ",   nAttempts-nOverlaps-nChanges );
+    fprintf( Abc_FrameGlobalGetOut(), "Win =%6d  ",    nChanges );
+    fprintf( Abc_FrameGlobalGetOut(), "A: " );
+    fprintf( Abc_FrameGlobalGetOut(), "%.2f ",         p->SumArea );
+    fprintf( Abc_FrameGlobalGetOut(), "(%+5.1f %%)  ", 100.0 * (p->SumArea - p->SumArea0)/ p->SumArea0 );
+    fprintf( Abc_FrameGlobalGetOut(), "D: " );
+    fprintf( Abc_FrameGlobalGetOut(), "%.2f ps ",      p->MaxDelay );
+    fprintf( Abc_FrameGlobalGetOut(), "(%+5.1f %%)  ", 100.0 * (p->MaxDelay - p->MaxDelay0)/ p->MaxDelay0 );
+    fprintf( Abc_FrameGlobalGetOut(), "%8.2f sec    ", 1.0*(Abc_Clock() - p->timeTotal)/(CLOCKS_PER_SEC) );
+    fprintf( Abc_FrameGlobalGetOut(), "%c", fVerbose ? '\n' : '\r' );
 }
 
 /**Function*************************************************************
@@ -249,14 +249,14 @@ void Abc_SclDnsizePerformInt( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPa
 
     if ( pPars->fVerbose )
     {
-        printf( "Parameters: " );
-        printf( "Iters =%5d.  ",          pPars->nIters    );
-        printf( "UseDept =%2d. ",         pPars->fUseDept  );
-        printf( "UseWL =%2d. ",           pPars->fUseWireLoads );
-        printf( "Target =%5d ps. ",       pPars->DelayUser );
-        printf( "DelayGap =%3d ps. ",     pPars->DelayGap );
-        printf( "Timeout =%4d sec",       pPars->TimeOut   );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Parameters: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Iters =%5d.  ",          pPars->nIters   );
+        fprintf( Abc_FrameGlobalGetOut(), "UseDept =%2d. ",         pPars->fUseDept );
+        fprintf( Abc_FrameGlobalGetOut(), "UseWL =%2d. ",           pPars->fUseWireLoads );
+        fprintf( Abc_FrameGlobalGetOut(), "Target =%5d ps. ",       pPars->DelayUser );
+        fprintf( Abc_FrameGlobalGetOut(), "DelayGap =%3d ps. ",     pPars->DelayGap );
+        fprintf( Abc_FrameGlobalGetOut(), "Timeout =%4d sec",       pPars->TimeOut   );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     // prepare the manager; collect init stats
@@ -323,7 +323,7 @@ void Abc_SclDnsizePerformInt( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPa
     Vec_IntFree( vEvals );
     Vec_IntFree( vTryLater );
     if ( !pPars->fVerbose )
-        printf( "                                                                                                                                                  \r" );
+        fprintf( Abc_FrameGlobalGetOut(), "                                                                                                                                                  \r" );
 
     // report runtime
     p->timeTotal = Abc_Clock() - p->timeTotal;
@@ -339,7 +339,7 @@ void Abc_SclDnsizePerformInt( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPa
     if ( pPars->fDumpStats )
         Abc_SclDumpStats( p, "stats2.txt", p->timeTotal );
     if ( nRuntimeLimit && Abc_Clock() > nRuntimeLimit )
-        printf( "Gate sizing timed out at %d seconds.\n", pPars->TimeOut );
+        fprintf( Abc_FrameGlobalGetOut(), "Gate sizing timed out at %d seconds.\n", pPars->TimeOut );
 
     // save the result and quit
     Abc_SclSclGates2MioGates( pLib, pNtk ); // updates gate pointers

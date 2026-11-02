@@ -48,12 +48,12 @@ static inline iword Time_Clock() {
 }
 
 static inline void Time_Print(const char *pStr, iword time) {
-    printf("%s = %10.2f sec", pStr, (float)1.0 * ((double)(time)) / ((double)CLOCKS_PER_SEC));
+    fprintf( Abc_FrameGlobalGetOut(), "%s = %10.2f sec", pStr, (float)1.0 * ((double)(time)) / ((double)CLOCKS_PER_SEC) );
 }
 
 static inline void Time_PrintEndl(const char *pStr, iword time) {
     Time_Print(pStr, time);
-    printf("\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 ABC_NAMESPACE_HEADER_END

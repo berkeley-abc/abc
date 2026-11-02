@@ -272,8 +272,8 @@ bool Solver::addClause_(vec<Lit>& ps)
 
     if ( 0 ) {
         for ( int i = 0; i < ps.size(); i++ )
-            printf( "%s%d ", (toInt(ps[i]) & 1) ? "-":"", toInt(ps[i]) >> 1 );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(),  "%s%d ", (toInt(ps[i]) & 1) ? "-":"", toInt(ps[i]) >> 1 );
+        fprintf( Abc_FrameGlobalGetOut(),  "\n" );
     }
 
     // Check if clause is satisfied and remove false/duplicate literals:
@@ -300,8 +300,8 @@ bool Solver::addClause_(vec<Lit>& ps)
 
     if ( 0 ) {
         for ( int i = 0; i < ps.size(); i++ )
-            printf( "%s%d ", (toInt(ps[i]) & 1) ? "-":"", toInt(ps[i]) >> 1 );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(),  "%s%d ", (toInt(ps[i]) & 1) ? "-":"", toInt(ps[i]) >> 1 );
+        fprintf( Abc_FrameGlobalGetOut(),  "\n" );
     }
     
     if (flag && (certifiedUNSAT)) {
@@ -1225,7 +1225,7 @@ lbool Solver::search(int nof_conflicts)
             var_decay += 0.01;
 
           if (verbosity >= 1 && conflicts%verbEveryConflicts==0){
-            printf("c | %8d   %7d    %5d | %7d %8d %8d | %5d %8d   %6d %8d | %6.3f %% \n", 
+            fprintf( Abc_FrameGlobalGetOut(), "c | %8d   %7d    %5d | %7d %8d %8d | %5d %8d   %6d %8d | %6.3f %% \n", 
                    (int)starts,(int)nbstopsrestarts, (int)(conflicts/starts), 
                    (int)dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]), nClauses(), (int)clauses_literals, 
                    (int)nbReduceDB, nLearnts(), (int)nbDL2,(int)nbRemovedClauses, progressEstimate()*100);
@@ -1367,21 +1367,21 @@ double Solver::progressEstimate() const
 
 void Solver::printIncrementalStats() {
 
-  printf("c---------- Glucose Stats -------------------------\n");
-  printf("c restarts              : %lld\n", (long long)starts);
-  printf("c nb ReduceDB           : %lld\n", (long long)nbReduceDB);
-  printf("c nb removed Clauses    : %lld\n", (long long)nbRemovedClauses);
-  printf("c nb learnts DL2        : %lld\n", (long long)nbDL2);
-  printf("c nb learnts size 2     : %lld\n", (long long)nbBin);
-  printf("c nb learnts size 1     : %lld\n", (long long)nbUn);
+  fprintf( Abc_FrameGlobalGetOut(), "c---------- Glucose Stats -------------------------\n");
+  fprintf( Abc_FrameGlobalGetOut(), "c restarts              : %lld\n", (long long)starts);
+  fprintf( Abc_FrameGlobalGetOut(), "c nb ReduceDB           : %lld\n", (long long)nbReduceDB);
+  fprintf( Abc_FrameGlobalGetOut(), "c nb removed Clauses    : %lld\n", (long long)nbRemovedClauses);
+  fprintf( Abc_FrameGlobalGetOut(), "c nb learnts DL2        : %lld\n", (long long)nbDL2);
+  fprintf( Abc_FrameGlobalGetOut(), "c nb learnts size 2     : %lld\n", (long long)nbBin);
+  fprintf( Abc_FrameGlobalGetOut(), "c nb learnts size 1     : %lld\n", (long long)nbUn);
 
-  printf("c conflicts             : %lld\n", (long long)conflicts);
-  printf("c decisions             : %lld\n", (long long)decisions);
-  printf("c propagations          : %lld\n", (long long)propagations);
+  fprintf( Abc_FrameGlobalGetOut(), "c conflicts             : %lld\n", (long long)conflicts);
+  fprintf( Abc_FrameGlobalGetOut(), "c decisions             : %lld\n", (long long)decisions);
+  fprintf( Abc_FrameGlobalGetOut(), "c propagations          : %lld\n", (long long)propagations);
 
-  printf("c SAT Calls             : %d in %g seconds\n", nbSatCalls,   totalTime4Sat);
-  printf("c UNSAT Calls           : %d in %g seconds\n", nbUnsatCalls, totalTime4Unsat);
-  printf("c--------------------------------------------------\n");
+  fprintf( Abc_FrameGlobalGetOut(), "c SAT Calls             : %d in %g seconds\n", nbSatCalls,   totalTime4Sat);
+  fprintf( Abc_FrameGlobalGetOut(), "c UNSAT Calls           : %d in %g seconds\n", nbUnsatCalls, totalTime4Unsat);
+  fprintf( Abc_FrameGlobalGetOut(), "c--------------------------------------------------\n");
 
 
 }
@@ -1396,7 +1396,7 @@ lbool Solver::solve_()
     #endif
 
     if(incremental && certifiedUNSAT) {
-        printf("Can not use incremental and certified unsat in the same time\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Can not use incremental and certified unsat in the same time\n");
         exit(-1);
     }
 
@@ -1411,23 +1411,23 @@ lbool Solver::solve_()
     
     lbool   status        = l_Undef;
     if(!incremental && verbosity>=1) {
-      printf("c ========================================[ MAGIC CONSTANTS ]==============================================\n");
-      printf("c | Constants are supposed to work well together :-)                                                      |\n");
-      printf("c | however, if you find better choices, please let us known...                                           |\n");
-      printf("c |-------------------------------------------------------------------------------------------------------|\n");
-    printf("c |                                |                                |                                     |\n"); 
-    printf("c | - Restarts:                    | - Reduce Clause DB:            | - Minimize Asserting:               |\n");
-    printf("c |   * LBD Queue    : %6d      |   * First     : %6d         |    * size < %3d                     |\n",lbdQueue.maxSize(),nbclausesbeforereduce,lbSizeMinimizingClause);
-    printf("c |   * Trail  Queue : %6d      |   * Inc       : %6d         |    * lbd  < %3d                     |\n",trailQueue.maxSize(),incReduceDB,lbLBDMinimizingClause);
-    printf("c |   * K            : %6.2f      |   * Special   : %6d         |                                     |\n",K,specialIncReduceDB);
-    printf("c |   * R            : %6.2f      |   * Protected :  (lbd)< %2d     |                                     |\n",R,lbLBDFrozenClause);
-    printf("c |                                |                                |                                     |\n"); 
-printf("c ==================================[ Search Statistics (every %6d conflicts) ]=========================\n",verbEveryConflicts);
-      printf("c |                                                                                                       |\n"); 
+      fprintf( Abc_FrameGlobalGetOut(), "c ========================================[ MAGIC CONSTANTS ]==============================================\n");
+      fprintf( Abc_FrameGlobalGetOut(), "c | Constants are supposed to work well together :-)                                                      |\n");
+      fprintf( Abc_FrameGlobalGetOut(), "c | however, if you find better choices, please let us known...                                           |\n");
+      fprintf( Abc_FrameGlobalGetOut(), "c |-------------------------------------------------------------------------------------------------------|\n");
+    fprintf( Abc_FrameGlobalGetOut(), "c |                                |                                |                                     |\n"); 
+    fprintf( Abc_FrameGlobalGetOut(), "c | - Restarts:                    | - Reduce Clause DB:            | - Minimize Asserting:               |\n");
+    fprintf( Abc_FrameGlobalGetOut(), "c |   * LBD Queue    : %6d      |   * First     : %6d         |    * size < %3d                     |\n",lbdQueue.maxSize(),nbclausesbeforereduce,lbSizeMinimizingClause);
+    fprintf( Abc_FrameGlobalGetOut(), "c |   * Trail  Queue : %6d      |   * Inc       : %6d         |    * lbd  < %3d                     |\n",trailQueue.maxSize(),incReduceDB,lbLBDMinimizingClause);
+    fprintf( Abc_FrameGlobalGetOut(), "c |   * K            : %6.2f      |   * Special   : %6d         |                                     |\n",K,specialIncReduceDB);
+    fprintf( Abc_FrameGlobalGetOut(), "c |   * R            : %6.2f      |   * Protected :  (lbd)< %2d     |                                     |\n",R,lbLBDFrozenClause);
+    fprintf( Abc_FrameGlobalGetOut(), "c |                                |                                |                                     |\n"); 
+fprintf( Abc_FrameGlobalGetOut(), "c ==================================[ Search Statistics (every %6d conflicts) ]=========================\n",verbEveryConflicts);
+      fprintf( Abc_FrameGlobalGetOut(), "c |                                                                                                       |\n"); 
 
-      printf("c |          RESTARTS           |          ORIGINAL         |              LEARNT              | Progress |\n");
-      printf("c |       NB   Blocked  Avg Cfc |    Vars  Clauses Literals |   Red   Learnts    LBD2  Removed |          | pol-inconsist\n");
-      printf("c =========================================================================================================\n");
+      fprintf( Abc_FrameGlobalGetOut(), "c |          RESTARTS           |          ORIGINAL         |              LEARNT              | Progress |\n");
+      fprintf( Abc_FrameGlobalGetOut(), "c |       NB   Blocked  Avg Cfc |    Vars  Clauses Literals |   Red   Learnts    LBD2  Removed |          | pol-inconsist\n");
+      fprintf( Abc_FrameGlobalGetOut(), "c =========================================================================================================\n");
     }
 
     // Search:
@@ -1440,7 +1440,7 @@ printf("c ==================================[ Search Statistics (every %6d confl
     }
 
     if (!incremental && verbosity >= 1)
-      printf("c =========================================================================================================\n");
+      fprintf( Abc_FrameGlobalGetOut(), "c =========================================================================================================\n");
 
 
     if (certifiedUNSAT){ // Want certified output
@@ -1544,7 +1544,7 @@ void Solver::toDimacs(const char *file, const vec<Lit>& assumps)
 {
     FILE* f = fopen(file, "wb");
     if (f == NULL)
-        fprintf(stderr, "could not open file %s\n", file), exit(1);
+        fprintf( Abc_FrameGlobalGetErr(), "could not open file %s\n", file), exit(1);
     toDimacs(f, assumps);
     fclose(f);
 }
@@ -1588,7 +1588,7 @@ void Solver::toDimacs(FILE* f, const vec<Lit>& assumps)
         toDimacs(f, ca[clauses[i]], map, max);
 
     if (verbosity > 0)
-        printf("Wrote %d clauses with %d variables.\n", cnt, max);
+        fprintf( Abc_FrameGlobalGetOut(), "Wrote %d clauses with %d variables.\n", cnt, max);
 }
 
 
@@ -1654,7 +1654,7 @@ void Solver::garbageCollect()
 
     relocAll(to);
     if (verbosity >= 2)
-        printf("|  Garbage collection:   %12d bytes => %12d bytes             |\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "|  Garbage collection:   %12d bytes => %12d bytes             |\n", 
                ca.size()*ClauseAllocator::Unit_Size, to.size()*ClauseAllocator::Unit_Size);
     to.moveTo(ca);
 }

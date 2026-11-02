@@ -24,6 +24,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <misc/util/abc_global.h>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -44,7 +45,7 @@ static inline int memReadStat(int field)
 
     for (; field >= 0; field--)
         if (fscanf(in, "%d", &value) != 1)
-            printf("ERROR! Failed to parse memory statistics from \"/proc\".\n"), exit(1);
+            fprintf( Abc_FrameGlobalGetOut(), "ERROR! Failed to parse memory statistics from \"/proc\".\n"), exit(1);
     fclose(in);
     return value;
 }

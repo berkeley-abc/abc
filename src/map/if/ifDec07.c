@@ -67,25 +67,25 @@ void If_DecPrintConfig( word z )
 {
    unsigned S[1];
    S[0] = (z & 0xffff) | ((z & 0xffff) << 16);
-   Extra_PrintBinary( stdout, S, 16 ); 
-   printf( " " );
+   Extra_PrintBinary( Abc_FrameGlobalGetOut(), S, 16 ); 
+   fprintf( Abc_FrameGlobalGetOut(), " " );
    Kit_DsdPrintFromTruth( S, 4 );
-   printf( " " );
-   printf( " %d", (int)((z >> 16) & 7) );
-   printf( " %d", (int)((z >> 20) & 7) );
-   printf( " %d", (int)((z >> 24) & 7) );
-   printf( " %d", (int)((z >> 28) & 7) );
-   printf( "   " );
+   fprintf( Abc_FrameGlobalGetOut(), " " );
+   fprintf( Abc_FrameGlobalGetOut(), " %d", (int)((z >> 16) & 7) );
+   fprintf( Abc_FrameGlobalGetOut(), " %d", (int)((z >> 20) & 7) );
+   fprintf( Abc_FrameGlobalGetOut(), " %d", (int)((z >> 24) & 7) );
+   fprintf( Abc_FrameGlobalGetOut(), " %d", (int)((z >> 28) & 7) );
+   fprintf( Abc_FrameGlobalGetOut(), "   " );
    S[0] = ((z >> 32) & 0xffff) | (((z >> 32) & 0xffff) << 16);
-   Extra_PrintBinary( stdout, S, 16 );
-   printf( " " );
+   Extra_PrintBinary( Abc_FrameGlobalGetOut(), S, 16 );
+   fprintf( Abc_FrameGlobalGetOut(), " " );
    Kit_DsdPrintFromTruth( S, 4 );
-   printf( " " );
-   printf( " %d", (int)((z >> 48) & 7) );
-   printf( " %d", (int)((z >> 52) & 7) );
-   printf( " %d", (int)((z >> 56) & 7) );
-   printf( " %d", (int)((z >> 60) & 7) );
-   printf( "\n" );
+   fprintf( Abc_FrameGlobalGetOut(), " " );
+   fprintf( Abc_FrameGlobalGetOut(), " %d", (int)((z >> 48) & 7) );
+   fprintf( Abc_FrameGlobalGetOut(), " %d", (int)((z >> 52) & 7) );
+   fprintf( Abc_FrameGlobalGetOut(), " %d", (int)((z >> 56) & 7) );
+   fprintf( Abc_FrameGlobalGetOut(), " %d", (int)((z >> 60) & 7) );
+   fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 // verification for 6-input function
@@ -134,10 +134,10 @@ void If_Dec6Verify( word t, word z )
     if ( r != t )
     {
         If_DecPrintConfig( z );
-        Kit_DsdPrintFromTruth( (unsigned*)&t, 6 ); printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)&t, 6 ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
 //        Kit_DsdPrintFromTruth( (unsigned*)&q, 6 ); printf( "\n" );
-        Kit_DsdPrintFromTruth( (unsigned*)&r, 6 ); printf( "\n" );
-        printf( "Verification failed!\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)&r, 6 ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification failed!\n" );
     }
 }
 // verification for 7-input function
@@ -184,9 +184,9 @@ void If_Dec7Verify( word t[2], word z )
     if ( r[0] != t[0] || r[1] != t[1] )
     {
         If_DecPrintConfig( z );
-        Kit_DsdPrintFromTruth( (unsigned*)t, 7 ); printf( "\n" );
-        Kit_DsdPrintFromTruth( (unsigned*)r, 7 ); printf( "\n" );
-        printf( "Verification failed!\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)t, 7 ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)r, 7 ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification failed!\n" );
     }
 }
 
@@ -829,25 +829,25 @@ static inline word If_Dec5CofCount2( word t, int x, int y, int * Pla2Var, word t
             word t1 = If_Dec6Truth( z );
             if ( t1 != t0 )
             {
-                printf( "\n" );
-                Kit_DsdPrintFromTruth( (unsigned *)&C2[0], 5 ); printf("\n");
-                Kit_DsdPrintFromTruth( (unsigned *)&C2[1], 5 ); printf("\n");
-                Kit_DsdPrintFromTruth( (unsigned *)&C2[2], 5 ); printf("\n");
-                Kit_DsdPrintFromTruth( (unsigned *)&C2[3], 5 ); printf("\n");
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                Kit_DsdPrintFromTruth( (unsigned *)&C2[0], 5 ); fprintf( Abc_FrameGlobalGetOut(), "\n");
+                Kit_DsdPrintFromTruth( (unsigned *)&C2[1], 5 ); fprintf( Abc_FrameGlobalGetOut(), "\n");
+                Kit_DsdPrintFromTruth( (unsigned *)&C2[2], 5 ); fprintf( Abc_FrameGlobalGetOut(), "\n");
+                Kit_DsdPrintFromTruth( (unsigned *)&C2[3], 5 ); fprintf( Abc_FrameGlobalGetOut(), "\n");
 
-                printf( "\n" );
-                Kit_DsdPrintFromTruth( (unsigned *)&D2[0], 5 ); printf("\n");
-                Kit_DsdPrintFromTruth( (unsigned *)&D2[1], 5 ); printf("\n");
-                Kit_DsdPrintFromTruth( (unsigned *)&D2[2], 5 ); printf("\n");
-                Kit_DsdPrintFromTruth( (unsigned *)&D2[3], 5 ); printf("\n");
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                Kit_DsdPrintFromTruth( (unsigned *)&D2[0], 5 ); fprintf( Abc_FrameGlobalGetOut(), "\n");
+                Kit_DsdPrintFromTruth( (unsigned *)&D2[1], 5 ); fprintf( Abc_FrameGlobalGetOut(), "\n");
+                Kit_DsdPrintFromTruth( (unsigned *)&D2[2], 5 ); fprintf( Abc_FrameGlobalGetOut(), "\n");
+                Kit_DsdPrintFromTruth( (unsigned *)&D2[3], 5 ); fprintf( Abc_FrameGlobalGetOut(), "\n");
 
-                printf( "\n" );
-                Kit_DsdPrintFromTruth( (unsigned *)&C, 5 ); printf("\n");
-                Kit_DsdPrintFromTruth( (unsigned *)&D, 5 ); printf("\n");
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                Kit_DsdPrintFromTruth( (unsigned *)&C, 5 ); fprintf( Abc_FrameGlobalGetOut(), "\n");
+                Kit_DsdPrintFromTruth( (unsigned *)&D, 5 ); fprintf( Abc_FrameGlobalGetOut(), "\n");
 
-                printf( "\n" );
-                Kit_DsdPrintFromTruth( (unsigned *)&t1, 5 ); printf("\n");
-                Kit_DsdPrintFromTruth( (unsigned *)&t0, 5 ); printf("\n");
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                Kit_DsdPrintFromTruth( (unsigned *)&t1, 5 ); fprintf( Abc_FrameGlobalGetOut(), "\n");
+                Kit_DsdPrintFromTruth( (unsigned *)&t0, 5 ); fprintf( Abc_FrameGlobalGetOut(), "\n");
             }
             assert( t1 == t0 );
         }
@@ -996,7 +996,7 @@ void If_Dec5PerformTest()
 //    t = If_Dec6Truth( s );
     t = ABC_CONST(0xB0F3B0FFB0F3B0FF);
 
-    Kit_DsdPrintFromTruth( (unsigned *)&t, 5 ); printf("\n");
+    Kit_DsdPrintFromTruth( (unsigned *)&t, 5 ); fprintf( Abc_FrameGlobalGetOut(), "\n");
 
     z = If_Dec5Perform( t, 1 );
     t1 = If_Dec6Truth( z );

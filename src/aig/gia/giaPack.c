@@ -195,7 +195,7 @@ void Gia_ManLutPacking( Gia_Man_t * p, int nBlockSize, int DelayRoute, int Delay
     Vec_IntFree( vStarts );
     Vec_IntFreeP( &p->vPacking );
     p->vPacking = vPacking;
-    printf( "Global delay = %d.\n", DelayMax );
+    fprintf( Abc_FrameGlobalGetOut(), "Global delay = %d.\n", DelayMax );
 }
 
 ////////////////////////////////////////////////////////////////////////

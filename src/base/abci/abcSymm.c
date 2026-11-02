@@ -79,7 +79,7 @@ void Abc_NtkSymmetriesUsingSandS( Abc_Ntk_t * pNtk, int fVerbose )
 {
 //    extern int Sim_ComputeTwoVarSymms( Abc_Ntk_t * pNtk, int fVerbose );
     int nSymms = Sim_ComputeTwoVarSymms( pNtk, fVerbose );
-    printf( "The total number of symmetries is %d.\n", nSymms );
+    fprintf( Abc_FrameGlobalGetOut(), "The total number of symmetries is %d.\n", nSymms );
 }
 
 /**Function*************************************************************
@@ -102,7 +102,7 @@ void Abc_NtkSymmetriesUsingBdds( Abc_Ntk_t * pNtk, int fNaive, int fReorder, int
     // compute the global functions
 clk = Abc_Clock();
     dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, fReorder, 0, fVerbose );
-    printf( "Shared BDD size = %d nodes.\n", Abc_NtkSizeOfGlobalBdds(pNtk) ); 
+    fprintf( Abc_FrameGlobalGetOut(), "Shared BDD size = %d nodes.\n", Abc_NtkSizeOfGlobalBdds(pNtk) ); 
     Cudd_AutodynDisable( dd );
     if ( !fGarbCollect )
         Cudd_DisableGarbageCollection( dd );
@@ -114,8 +114,8 @@ clk = Abc_Clock();
 clkSym = Abc_Clock() - clk;
     // undo the global functions
     Abc_NtkFreeGlobalBdds( pNtk, 1 );
-printf( "Statistics of BDD-based symmetry detection:\n" );
-printf( "Algorithm = %s. Reordering = %s. Garbage collection = %s.\n", 
+fprintf( Abc_FrameGlobalGetOut(), "Statistics of BDD-based symmetry detection:\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Algorithm = %s. Reordering = %s. Garbage collection = %s.\n", 
        fNaive? "naive" : "fast", fReorder? "yes" : "no", fGarbCollect? "yes" : "no" );
 ABC_PRT( "Constructing BDDs", clkBdd );
 ABC_PRT( "Computing symms  ", clkSym );
@@ -157,14 +157,14 @@ void Ntk_NetworkSymmsBdd( DdManager * dd, Abc_Ntk_t * pNtk, int fNaive, int fVer
         nSymms += pSymms->nSymms;
         if ( fVerbose )
         {
-            printf( "Output %6s (%d): ", Abc_ObjName(pNode), pSymms->nSymms );
+            fprintf( Abc_FrameGlobalGetOut(), "Output %6s (%d): ", Abc_ObjName(pNode), pSymms->nSymms );
             Ntk_NetworkSymmsPrint( pNtk, pSymms );
         }
 //Extra_SymmPairsPrint( pSymms );
         Extra_SymmPairsDissolve( pSymms );
     }
-    printf( "Total number of vars in functional supports = %8d.\n", nSupps );
-    printf( "Total number of two-variable symmetries     = %8d.\n", nSymms );
+    fprintf( Abc_FrameGlobalGetOut(), "Total number of vars in functional supports = %8d.\n", nSupps );
+    fprintf( Abc_FrameGlobalGetOut(), "Total number of two-variable symmetries     = %8d.\n", nSymms );
 }
 
 /**Function*************************************************************
@@ -213,21 +213,21 @@ void Ntk_NetworkSymmsPrint( Abc_Ntk_t * pNtk, Extra_SymmInfo_t * pSymms )
             if ( fStart == 1 )
             {  // start a new symmetry class
                 fStart = 0;
-                printf( "  { %s", pInputNames[ pSymms->pVars[i] ] );
+                fprintf( Abc_FrameGlobalGetOut(), "  { %s", pInputNames[ pSymms->pVars[i] ] );
                 // mark the var as taken
                 pVarTaken[i] = 1;
             }
-            printf( " %s", pInputNames[ pSymms->pVars[k] ] );
+            fprintf( Abc_FrameGlobalGetOut(), " %s", pInputNames[ pSymms->pVars[k] ] );
             // mark the var as taken
             pVarTaken[k] = 1;
         }
         if ( fStart == 0 )
         {
-            printf( " }" );
+            fprintf( Abc_FrameGlobalGetOut(), " }" );
             fStart = 1; 
         }   
     }   
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     ABC_FREE( pInputNames );
     ABC_FREE( pVarTaken );
@@ -312,7 +312,7 @@ void Ntk_SymFunGenerate( int nVars, int fVerbose )
     Vec_Mem_t * vTtMem = Vec_MemAlloc( Abc_Truth6WordNum(nVars), 12 );
     Vec_MemHashAlloc( vTtMem, 10000 );
     assert( !(nVars < 1 || nVars > 16) );
-    printf( "Generating truth tables of all symmetric functions of %d variables.\n", nVars );
+    fprintf( Abc_FrameGlobalGetOut(), "Generating truth tables of all symmetric functions of %d variables.\n", nVars );
     for ( m = 0; m < (1 << (nVars+1)); m++ )
     {
         word * pFun;
@@ -320,12 +320,12 @@ void Ntk_SymFunGenerate( int nVars, int fVerbose )
         for ( k = 0; k <= nVars; k++ )
             Ones[k] = '0' + ((m >> k) & 1);
         if ( fVerbose )
-            printf( "%s : ", Ones );
+            fprintf( Abc_FrameGlobalGetOut(), "%s : ", Ones );
         pFun = Abc_TtSymFunGenerate( Ones, nVars );
         if ( nVars < 6 )
             pFun[0] = Abc_Tt6Stretch( pFun[0], nVars );
         if ( fVerbose )
-            Extra_PrintHex( stdout, (unsigned *)pFun, nVars );
+            Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)pFun, nVars );
         Ntk_SymFunDeriveNpn( pFun, nVars, pComp );
         //int nClasses = Vec_MemEntryNum( vTtMem );
         Class = Vec_MemHashInsert( vTtMem, pFun );
@@ -333,14 +333,14 @@ void Ntk_SymFunGenerate( int nVars, int fVerbose )
         //printf( "Class %3d : %s\n", nClasses, Ones );
         if ( fVerbose )
         {
-            printf( " : NPN " );
-            Extra_PrintHex( stdout, (unsigned *)pFun, nVars );
-            printf( "  Class %3d", Class );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " : NPN " );
+            Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)pFun, nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "  Class %3d", Class );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         ABC_FREE( pFun );
     }
-    printf( "The number of different NPN classes is %d.\n", Vec_MemEntryNum(vTtMem) );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of different NPN classes is %d.\n", Vec_MemEntryNum(vTtMem) );
     Vec_MemHashFree( vTtMem );
     Vec_MemFreeP( &vTtMem );
     ABC_FREE( pComp );

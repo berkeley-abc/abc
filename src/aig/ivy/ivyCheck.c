@@ -51,7 +51,7 @@ int Ivy_ManCheck( Ivy_Man_t * p )
         // skip deleted nodes
         if ( Ivy_ObjId(pObj) != i )
         {
-            printf( "Ivy_ManCheck: Node with ID %d is listed as number %d in the array of objects.\n", pObj->Id, i );
+            fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManCheck: Node with ID %d is listed as number %d in the array of objects.\n", pObj->Id, i );
             return 0;
         }
         // consider the constant node and PIs
@@ -59,7 +59,7 @@ int Ivy_ManCheck( Ivy_Man_t * p )
         {
             if ( Ivy_ObjFaninId0(pObj) || Ivy_ObjFaninId1(pObj) || Ivy_ObjLevel(pObj) )
             {
-                printf( "Ivy_ManCheck: The AIG has non-standard constant or PI node with ID \"%d\".\n", pObj->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManCheck: The AIG has non-standard constant or PI node with ID \"%d\".\n", pObj->Id );
                 return 0;
             }
             continue;
@@ -68,7 +68,7 @@ int Ivy_ManCheck( Ivy_Man_t * p )
         {
             if ( Ivy_ObjFaninId1(pObj) )
             {
-                printf( "Ivy_ManCheck: The AIG has non-standard PO node with ID \"%d\".\n", pObj->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManCheck: The AIG has non-standard PO node with ID \"%d\".\n", pObj->Id );
                 return 0;
             }
             continue;
@@ -77,7 +77,7 @@ int Ivy_ManCheck( Ivy_Man_t * p )
         {
             if ( Ivy_ObjFanin1(pObj) )
             {
-                printf( "Ivy_ManCheck: The buffer with ID \"%d\" contains second fanin.\n", pObj->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManCheck: The buffer with ID \"%d\" contains second fanin.\n", pObj->Id );
                 return 0;
             }
             continue;
@@ -86,45 +86,45 @@ int Ivy_ManCheck( Ivy_Man_t * p )
         {
             if ( Ivy_ObjFanin1(pObj) )
             {
-                printf( "Ivy_ManCheck: The latch with ID \"%d\" contains second fanin.\n", pObj->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManCheck: The latch with ID \"%d\" contains second fanin.\n", pObj->Id );
                 return 0;
             }
             if ( Ivy_ObjInit(pObj) == IVY_INIT_NONE )
             {
-                printf( "Ivy_ManCheck: The latch with ID \"%d\" does not have initial state.\n", pObj->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManCheck: The latch with ID \"%d\" does not have initial state.\n", pObj->Id );
                 return 0;
             }
             pObj2 = Ivy_TableLookup( p, pObj );
             if ( pObj2 != pObj )
-                printf( "Ivy_ManCheck: Latch with ID \"%d\" is not in the structural hashing table.\n", pObj->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManCheck: Latch with ID \"%d\" is not in the structural hashing table.\n", pObj->Id );
             continue;
         }
         // consider the AND node
         if ( !Ivy_ObjFanin0(pObj) || !Ivy_ObjFanin1(pObj) )
         {
-            printf( "Ivy_ManCheck: The AIG has internal node \"%d\" with a NULL fanin.\n", pObj->Id );
+            fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManCheck: The AIG has internal node \"%d\" with a NULL fanin.\n", pObj->Id );
             return 0;
         }
         if ( Ivy_ObjFaninId0(pObj) >= Ivy_ObjFaninId1(pObj) )
         {
-            printf( "Ivy_ManCheck: The AIG has node \"%d\" with a wrong ordering of fanins.\n", pObj->Id );
+            fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManCheck: The AIG has node \"%d\" with a wrong ordering of fanins.\n", pObj->Id );
             return 0;
         }
         if ( Ivy_ObjLevel(pObj) != Ivy_ObjLevelNew(pObj) )
-            printf( "Ivy_ManCheck: Node with ID \"%d\" has level %d but should have level %d.\n", pObj->Id, Ivy_ObjLevel(pObj), Ivy_ObjLevelNew(pObj) );
+            fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManCheck: Node with ID \"%d\" has level %d but should have level %d.\n", pObj->Id, Ivy_ObjLevel(pObj), Ivy_ObjLevelNew(pObj) );
         pObj2 = Ivy_TableLookup( p, pObj );
         if ( pObj2 != pObj )
-            printf( "Ivy_ManCheck: Node with ID \"%d\" is not in the structural hashing table.\n", pObj->Id );
+            fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManCheck: Node with ID \"%d\" is not in the structural hashing table.\n", pObj->Id );
         if ( Ivy_ObjRefs(pObj) == 0 )
-            printf( "Ivy_ManCheck: Node with ID \"%d\" has no fanouts.\n", pObj->Id );
+            fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManCheck: Node with ID \"%d\" has no fanouts.\n", pObj->Id );
         // check fanouts
         if ( p->fFanout && Ivy_ObjRefs(pObj) != Ivy_ObjFanoutNum(p, pObj) )
-            printf( "Ivy_ManCheck: Node with ID \"%d\" has mismatch between the number of fanouts and refs.\n", pObj->Id );
+            fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManCheck: Node with ID \"%d\" has mismatch between the number of fanouts and refs.\n", pObj->Id );
     }
     // count the number of nodes in the table
     if ( Ivy_TableCountEntries(p) != Ivy_ManAndNum(p) + Ivy_ManExorNum(p) + Ivy_ManLatchNum(p) )
     {
-        printf( "Ivy_ManCheck: The number of nodes in the structural hashing table is wrong.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManCheck: The number of nodes in the structural hashing table is wrong.\n" );
         return 0;
     }
 //    if ( !Ivy_ManCheckFanouts(p) )
@@ -153,7 +153,7 @@ int Ivy_ManCheckFanoutNums( Ivy_Man_t * p )
         if ( Ivy_ObjIsNode(pObj) )
             Counter += (Ivy_ObjRefs(pObj) == 0);
     if ( Counter )
-        printf( "Sequential AIG has %d dangling nodes.\n", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Sequential AIG has %d dangling nodes.\n", Counter );
     return Counter;
 }
 
@@ -187,7 +187,7 @@ int Ivy_ManCheckFanouts( Ivy_Man_t * p )
                 break;
         if ( k == Vec_PtrSize(vFanouts) )
         {
-            printf( "Node %d is a fanin of node %d but the fanout is not there.\n", pFanin->Id, pObj->Id );
+            fprintf( Abc_FrameGlobalGetOut(), "Node %d is a fanin of node %d but the fanout is not there.\n", pFanin->Id, pObj->Id );
             RetValue = 0;
         }
 
@@ -199,7 +199,7 @@ int Ivy_ManCheckFanouts( Ivy_Man_t * p )
                 break;
         if ( k == Vec_PtrSize(vFanouts) )
         {
-            printf( "Node %d is a fanin of node %d but the fanout is not there.\n", pFanin->Id, pObj->Id );
+            fprintf( Abc_FrameGlobalGetOut(), "Node %d is a fanin of node %d but the fanout is not there.\n", pFanin->Id, pObj->Id );
             RetValue = 0;
         }
         // check that the previous fanout has the same fanin
@@ -210,7 +210,7 @@ int Ivy_ManCheckFanouts( Ivy_Man_t * p )
                  Ivy_ObjFanin1(pObj->pPrevFan0) != Ivy_ObjFanin0(pObj) && 
                  Ivy_ObjFanin1(pObj->pPrevFan0) != Ivy_ObjFanin1(pObj) )
             {
-                printf( "Node %d has prev %d without common fanin.\n", pObj->Id, pObj->pPrevFan0->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "Node %d has prev %d without common fanin.\n", pObj->Id, pObj->pPrevFan0->Id );
                 RetValue = 0;
             }
         }
@@ -222,7 +222,7 @@ int Ivy_ManCheckFanouts( Ivy_Man_t * p )
                  Ivy_ObjFanin1(pObj->pPrevFan1) != Ivy_ObjFanin0(pObj) && 
                  Ivy_ObjFanin1(pObj->pPrevFan1) != Ivy_ObjFanin1(pObj) )
             {
-                printf( "Node %d has prev %d without common fanin.\n", pObj->Id, pObj->pPrevFan1->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "Node %d has prev %d without common fanin.\n", pObj->Id, pObj->pPrevFan1->Id );
                 RetValue = 0;
             }
         }
@@ -233,7 +233,7 @@ int Ivy_ManCheckFanouts( Ivy_Man_t * p )
         Ivy_ObjForEachFanout( p, pObj, vFanouts, pFanout, k )
             if ( Ivy_ObjFanin0(pFanout) != pObj && Ivy_ObjFanin1(pFanout) != pObj )
             {
-                printf( "Node %d is a fanout of node %d but the fanin is not there.\n", pFanout->Id, pObj->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "Node %d is a fanout of node %d but the fanin is not there.\n", pFanout->Id, pObj->Id );
                 RetValue = 0;
             }
     }
@@ -264,7 +264,7 @@ int Ivy_ManCheckChoices( Ivy_Man_t * p )
         assert( !Ivy_IsComplement(pObj->pEquiv) );
         for ( pTemp = pObj->pEquiv; pTemp && pTemp != pObj; pTemp = Ivy_Regular(pTemp->pEquiv) )
             if ( Ivy_ObjRefs(pTemp) > 1 )
-                printf( "Node %d has member %d in its equiv class with %d fanouts.\n", pObj->Id, pTemp->Id, Ivy_ObjRefs(pTemp) );
+                fprintf( Abc_FrameGlobalGetOut(), "Node %d has member %d in its equiv class with %d fanouts.\n", pObj->Id, pTemp->Id, Ivy_ObjRefs(pTemp) );
     }
     return 1;
 }

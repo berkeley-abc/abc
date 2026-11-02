@@ -66,7 +66,7 @@ void Abc_NodeShowBddOne( DdManager * dd, DdNode * bFunc )
     FILE * pFile;
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
     {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the intermediate file \"%s\".\n", FileNameDot );
         return;
     }
     Cudd_DumpDot( dd, 1, (DdNode **)&bFunc, NULL, NULL, pFile );
@@ -99,7 +99,7 @@ void Abc_NodeShowBdd( Abc_Obj_t * pNode, int fCompl )
     // check that the file can be opened
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
     {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the intermediate file \"%s\".\n", FileNameDot );
         return;
     }
 
@@ -134,7 +134,7 @@ void Abc_NtkShowBdd( Abc_Ntk_t * pNtk, int fCompl, int fReorder )
     dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, fReorder, 0, 0 );
     if ( dd == NULL )
     {
-        printf( "Construction of global BDDs has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Construction of global BDDs has failed.\n" );
         return;
     }
     //printf( "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
@@ -149,7 +149,7 @@ void Abc_NtkShowBdd( Abc_Ntk_t * pNtk, int fCompl, int fReorder )
     // check that the file can be opened
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
     {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the intermediate file \"%s\".\n", FileNameDot );
         return;
     }
 
@@ -235,7 +235,7 @@ void Abc_NodeShowCut( Abc_Obj_t * pNode, int nNodeSizeMax, int nConeSizeMax )
     // check that the file can be opened
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
     {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the intermediate file \"%s\".\n", FileNameDot  );
         return;
     }
     // add the root node to the cone (for visualization)
@@ -273,7 +273,7 @@ void Abc_NtkShow( Abc_Ntk_t * pNtk0, int fGateNames, int fSeq, int fUseReverse, 
     assert( Abc_NtkIsStrash(pNtk0) || Abc_NtkIsLogic(pNtk0) );
     if ( Abc_NtkIsStrash(pNtk0) && Abc_NtkGetChoiceNum(pNtk0) )
     {
-        printf( "Temporarily visualization of AIGs with choice nodes is disabled.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Temporarily visualization of AIGs with choice nodes is disabled.\n" );
         return;
     }
     // create the file name
@@ -281,7 +281,7 @@ void Abc_NtkShow( Abc_Ntk_t * pNtk0, int fGateNames, int fSeq, int fUseReverse, 
     // check that the file can be opened
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
     {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the intermediate file \"%s\".\n", FileNameDot );
         return;
     }
     fclose( pFile );
@@ -351,7 +351,7 @@ void Abc_ShowFile( char * FileNameDot, int fKeepDot )
     // check if the input DOT file is okay
     if ( (pFile = fopen( FileNameDot, "r" )) == NULL )
     {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the intermediate file \"%s\".\n", FileNameDot );
         return;
     }
     fclose( pFile );
@@ -370,13 +370,13 @@ void Abc_ShowFile( char * FileNameDot, int fKeepDot )
 #endif
     if ( RetValue == -1 )
     {
-        fprintf( stdout, "Command \"%s\" did not succeed.\n", CommandDot );
+        fprintf( Abc_FrameGlobalGetOut(), "Command \"%s\" did not succeed.\n", CommandDot );
         return;
     }
     // check that the input PostScript file is okay
     if ( (pFile = fopen( FileNamePs, "r" )) == NULL )
     {
-        fprintf( stdout, "Cannot open intermediate file \"%s\".\n", FileNamePs );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open intermediate file \"%s\".\n", FileNamePs );
         return;
     }
     fclose( pFile ); 
@@ -397,7 +397,7 @@ void Abc_ShowFile( char * FileNameDot, int fKeepDot )
             if ( _spawnl( _P_NOWAIT, "C:\\Program Files\\Ghostgum\\gsview\\gsview64.exe", 
                 "C:\\Program Files\\Ghostgum\\gsview\\gsview64.exe", FileNamePs, NULL ) == -1 )
             {
-                fprintf( stdout, "Cannot find \"%s\".\n", pGsNameWin );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot find \"%s\".\n", pGsNameWin );
                 return;
             }
 #else
@@ -411,7 +411,7 @@ void Abc_ShowFile( char * FileNameDot, int fKeepDot )
         if ( system( CommandPs ) == -1 )
 #endif
         {
-            fprintf( stdout, "Cannot execute \"%s\".\n", CommandPs );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot execute \"%s\".\n", CommandPs );
             return;
         }
     }
@@ -462,7 +462,7 @@ void Abc_NtkWriteFlopDependency( Abc_Ntk_t * pNtk, char * pFileName )
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open input file %s.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file %s.\n", pFileName );
         return;
     }
     fprintf( pFile, "# Flop dependency for \"%s\" generated by ABC on %s\n", Abc_NtkName(pNtk), Extra_TimeStamp() );
@@ -517,7 +517,7 @@ void Abc_NtkShowFlopDependency( Abc_Ntk_t * pNtk )
     // check that the file can be opened
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
     {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the intermediate file \"%s\".\n", FileNameDot );
         return;
     }
     fclose( pFile );

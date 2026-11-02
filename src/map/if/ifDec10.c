@@ -76,15 +76,15 @@ static void If_Dec10PrintConfigOne( unsigned z )
 {
     unsigned t;
     t = (z & 0xffff) | ((z & 0xffff) << 16);
-    Extra_PrintBinary( stdout, &t, 16 ); 
-    printf( " " );
+    Extra_PrintBinary( Abc_FrameGlobalGetOut(), &t, 16 ); 
+    fprintf( Abc_FrameGlobalGetOut(), " " );
     Kit_DsdPrintFromTruth( &t, 4 );
-    printf( " " );
-    printf( " %d", (z >> 16) & 7 );
-    printf( " %d", (z >> 20) & 7 );
-    printf( " %d", (z >> 24) & 7 );
-    printf( " %d", (z >> 28) & 7 );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), " " );
+    fprintf( Abc_FrameGlobalGetOut(), " %d", (z >> 16) & 7 );
+    fprintf( Abc_FrameGlobalGetOut(), " %d", (z >> 20) & 7 );
+    fprintf( Abc_FrameGlobalGetOut(), " %d", (z >> 24) & 7 );
+    fprintf( Abc_FrameGlobalGetOut(), " %d", (z >> 28) & 7 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void If_Dec10PrintConfig( unsigned * pZ )
 {
@@ -132,9 +132,9 @@ void If_Dec10Verify( word * pF, int nVars, unsigned * pZ )
         if ( pN[k][w] != pF[w] )
         {
             If_Dec10PrintConfig( pZ );
-            Kit_DsdPrintFromTruth( (unsigned*)pF, nVars ); printf( "\n" );
-            Kit_DsdPrintFromTruth( (unsigned*)pN[k], nVars ); printf( "\n" );
-            printf( "Verification failed!\n" );
+            Kit_DsdPrintFromTruth( (unsigned*)pF, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+            Kit_DsdPrintFromTruth( (unsigned*)pN[k], nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Verification failed!\n" );
             break;
         }
 }

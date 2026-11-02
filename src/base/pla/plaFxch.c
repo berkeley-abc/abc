@@ -96,7 +96,7 @@ void Fxch_ManWriteBlif( char * pFileName, Vec_Wec_t * vCubes, Vec_Wrd_t * vDivs 
     int nVarsInit = Vec_WrdCountZero(vDivs);
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
     else
     {
         //char * pLits = "-01?";
@@ -146,7 +146,7 @@ void Fxch_ManWriteBlif( char * pFileName, Vec_Wec_t * vCubes, Vec_Wrd_t * vDivs 
         }
         fprintf( pFile, ".end\n\n" );
         fclose( pFile );
-        printf( "Written BLIF file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Written BLIF file \"%s\".\n", pFileName );
     }
 }
 
@@ -757,13 +757,13 @@ void Fxch_ManUpdate( Fxch_Man_t * p, int iDiv )
 ***********************************************************************/
 static void Fxch_PrintStats( Fxch_Man_t * p, abctime clk )
 {
-    printf( "Num =%6d  ", Vec_WrdSize(&p->vDivs) - p->nVars );
-    printf( "Cubes =%8d  ", Vec_WecSizeUsed(&p->vCubes) );
-    printf( "Lits  =%8d  ", p->nLits );
-    printf( "Divs  =%8d  ", Hash_IntManEntryNum(p->vHash) );
-    printf( "Divs+ =%8d  ", Vec_QueSize(p->vPrio) );
-    printf( "PairS =%6d  ", p->nPairsS );
-    printf( "PairD =%6d  ", p->nPairsD );
+    fprintf( Abc_FrameGlobalGetOut(), "Num =%6d  ", Vec_WrdSize(&p->vDivs) - p->nVars );
+    fprintf( Abc_FrameGlobalGetOut(), "Cubes =%8d  ", Vec_WecSizeUsed(&p->vCubes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Lits  =%8d  ", p->nLits );
+    fprintf( Abc_FrameGlobalGetOut(), "Divs  =%8d  ", Hash_IntManEntryNum(p->vHash) );
+    fprintf( Abc_FrameGlobalGetOut(), "Divs+ =%8d  ", Vec_QueSize(p->vPrio) );
+    fprintf( Abc_FrameGlobalGetOut(), "PairS =%6d  ", p->nPairsS );
+    fprintf( Abc_FrameGlobalGetOut(), "PairD =%6d  ", p->nPairsD );
     Abc_PrintTime( 1, "Time", clk );
 //    printf( "\n" );
 }
@@ -773,26 +773,26 @@ static inline void Fxch_PrintDivOne( Fxch_Man_t * p, int iDiv )
     int Lit0 = Hash_IntObjData0( p->vHash, iDiv );
     int Lit1 = Hash_IntObjData1( p->vHash, iDiv );
     assert( Lit0 >= 0 && Lit1 >= 0 && Lit0 < Lit1 );
-    printf( "Div %4d : ", iDiv );
-    printf( "Weight %12.5f  ", Vec_FltEntry(&p->vWeights, iDiv) );
-    printf( "Pairs = %5d  ",   Vec_IntSize(Vec_WecEntry(&p->vPairs, iDiv))/2 );
+    fprintf( Abc_FrameGlobalGetOut(), "Div %4d : ", iDiv );
+    fprintf( Abc_FrameGlobalGetOut(), "Weight %12.5f  ", Vec_FltEntry(&p->vWeights, iDiv) );
+    fprintf( Abc_FrameGlobalGetOut(), "Pairs = %5d  ",   Vec_IntSize(Vec_WecEntry(&p->vPairs, iDiv))/2 );
     for ( i = 0; i < Vec_WrdSize(&p->vDivs); i++ )
     {
         if ( i == Abc_Lit2Var(Lit0) )
-            printf( "%d", !Abc_LitIsCompl(Lit0) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", !Abc_LitIsCompl(Lit0) );
         else if ( i == Abc_Lit2Var(Lit1) )
-            printf( "%d", !Abc_LitIsCompl(Lit1) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", !Abc_LitIsCompl(Lit1) );
         else
-            printf( "-" );
+            fprintf( Abc_FrameGlobalGetOut(), "-" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 static void Fxch_PrintDivisors( Fxch_Man_t * p )
 {
     int iDiv;
     for ( iDiv = 1; iDiv < Vec_FltSize(&p->vWeights); iDiv++ )
         Fxch_PrintDivOne( p, iDiv );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 int Fxch_ManFastExtract( Fxch_Man_t * p, int fVerbose, int fVeryVerbose )

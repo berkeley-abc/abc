@@ -392,7 +392,7 @@ Tim_Man_t * Tim_ManReduce( Tim_Man_t * p, Vec_Int_t * vBoxesLeft, int nTermsDiff
                 continue;
             if ( i != (int)pDelayTable[0] && fWarning == 0 )
             {
-                printf( "Warning: Mismatch in delay-table number between the manager and the box.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Warning: Mismatch in delay-table number between the manager and the box.\n" );
                 fWarning = 1;
             }
             //assert( i == (int)pDelayTable[0] );
@@ -721,8 +721,8 @@ void Tim_ManPrint( Tim_Man_t * p )
     int i, j, k, TableX, TableY;
     if ( p == NULL )
         return;
-    printf( "TIMING MANAGER:\n" );
-    printf( "PI = %d. CI = %d. PO = %d. CO = %d. Box = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "TIMING MANAGER:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "PI = %d. CI = %d. PO = %d. CO = %d. Box = %d.\n", 
         Tim_ManPiNum(p), Tim_ManCiNum(p), Tim_ManPoNum(p), Tim_ManCoNum(p), Tim_ManBoxNum(p) );
 
     // print CI info
@@ -731,10 +731,10 @@ void Tim_ManPrint( Tim_Man_t * p )
         if ( pPrev->timeArr != pObj->timeArr || pPrev->timeReq != pObj->timeReq )
             break;
     if ( i == Tim_ManCiNum(p) )
-        printf( "All PIs     :  arrival = %5.3f  required = %5.3f\n", pPrev->timeArr, pPrev->timeReq );
+        fprintf( Abc_FrameGlobalGetOut(), "All PIs     :  arrival = %5.3f  required = %5.3f\n", pPrev->timeArr, pPrev->timeReq );
     else
         Tim_ManForEachPi( p, pObj, i )
-            printf( "PI%5d     :  arrival = %5.3f  required = %5.3f\n", i, pObj->timeArr, pObj->timeReq );
+            fprintf( Abc_FrameGlobalGetOut(), "PI%5d     :  arrival = %5.3f  required = %5.3f\n", i, pObj->timeArr, pObj->timeReq );
 
     // print CO info
     pPrev = p->pCos;
@@ -742,19 +742,19 @@ void Tim_ManPrint( Tim_Man_t * p )
         if ( pPrev->timeArr != pObj->timeArr || pPrev->timeReq != pObj->timeReq )
             break;
     if ( i == Tim_ManCoNum(p) )
-        printf( "All POs     :  arrival = %5.3f  required = %5.3f\n", pPrev->timeArr, pPrev->timeReq );
+        fprintf( Abc_FrameGlobalGetOut(), "All POs     :  arrival = %5.3f  required = %5.3f\n", pPrev->timeArr, pPrev->timeReq );
     else
     {
         int k = 0;
         Tim_ManForEachPo( p, pObj, i )
-            printf( "PO%5d     :  arrival = %5.3f  required = %5.3f\n", k++, pObj->timeArr, pObj->timeReq );
+            fprintf( Abc_FrameGlobalGetOut(), "PO%5d     :  arrival = %5.3f  required = %5.3f\n", k++, pObj->timeArr, pObj->timeReq );
     }
 
     // print box info
     if ( Tim_ManBoxNum(p) > 0 )
     Tim_ManForEachBox( p, pBox, i )
     {
-        printf( "*** Box %5d :  I =%4d. O =%4d. I1 =%6d. O1 =%6d. Table =%4d. Copy = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "*** Box %5d :  I =%4d. O =%4d. I1 =%6d. O1 =%6d. Table =%4d. Copy = %d.\n", 
             i, pBox->nInputs, pBox->nOutputs, 
             Tim_ManBoxInputFirst(p, i), Tim_ManBoxOutputFirst(p, i), 
             pBox->iDelayTable, pBox->iCopy );
@@ -765,10 +765,10 @@ void Tim_ManPrint( Tim_Man_t * p )
             if ( pPrev->timeArr != pObj->timeArr || pPrev->timeReq != pObj->timeReq )
                 break;
         if ( k == Tim_ManBoxInputNum(p, pBox->iBox) )
-            printf( "Box inputs  :  arrival = %5.3f  required = %5.3f\n", pPrev->timeArr, pPrev->timeReq );
+            fprintf( Abc_FrameGlobalGetOut(), "Box inputs  :  arrival = %5.3f  required = %5.3f\n", pPrev->timeArr, pPrev->timeReq );
         else
             Tim_ManBoxForEachInput( p, pBox, pObj, k )
-                printf( "box-in%4d :  arrival = %5.3f  required = %5.3f\n", k, pObj->timeArr, pObj->timeReq );
+                fprintf( Abc_FrameGlobalGetOut(), "box-in%4d :  arrival = %5.3f  required = %5.3f\n", k, pObj->timeArr, pObj->timeReq );
 
         // print box outputs
         pPrev = Tim_ManBoxOutput( p, pBox, 0 );
@@ -776,10 +776,10 @@ void Tim_ManPrint( Tim_Man_t * p )
             if ( pPrev->timeArr != pObj->timeArr || pPrev->timeReq != pObj->timeReq )
                 break;
         if ( k == Tim_ManBoxOutputNum(p, pBox->iBox) )
-            printf( "Box outputs :  arrival = %5.3f  required = %5.3f\n", pPrev->timeArr, pPrev->timeReq );
+            fprintf( Abc_FrameGlobalGetOut(), "Box outputs :  arrival = %5.3f  required = %5.3f\n", pPrev->timeArr, pPrev->timeReq );
         else
             Tim_ManBoxForEachOutput( p, pBox, pObj, k )
-                printf( "box-out%3d :  arrival = %5.3f  required = %5.3f\n", k, pObj->timeArr, pObj->timeReq );
+                fprintf( Abc_FrameGlobalGetOut(), "box-out%3d :  arrival = %5.3f  required = %5.3f\n", k, pObj->timeArr, pObj->timeReq );
 
         if ( i == 7 )
             break;
@@ -791,20 +791,20 @@ void Tim_ManPrint( Tim_Man_t * p )
     {
         if ( pTable == NULL )
             continue;
-        printf( "Delay table %d:\n", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Delay table %d:\n", i );
         assert( i == (int)pTable[0] );
         TableX = (int)pTable[1];
         TableY = (int)pTable[2];
-        for ( j = 0; j < TableY; j++, printf( "\n" ) )
+        for ( j = 0; j < TableY; j++, fprintf( Abc_FrameGlobalGetOut(), "\n" ) )
             for ( k = 0; k < TableX; k++ )
                 if ( pTable[3+j*TableX+k] == -ABC_INFINITY )
-                    printf( "%5s", "-" );
+                    fprintf( Abc_FrameGlobalGetOut(), "%5s", "-" );
                 else
-                    printf( "%5.0f", pTable[3+j*TableX+k] );
+                    fprintf( Abc_FrameGlobalGetOut(), "%5.0f", pTable[3+j*TableX+k] );
         if ( i == 7 )
             break;
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Tim_ManPrintBoxCopy( Tim_Man_t * p )
 {
@@ -812,14 +812,14 @@ void Tim_ManPrintBoxCopy( Tim_Man_t * p )
     int i;
     if ( p == NULL )
         return;
-    printf( "TIMING MANAGER:\n" );
-    printf( "PI = %d. CI = %d. PO = %d. CO = %d. Box = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "TIMING MANAGER:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "PI = %d. CI = %d. PO = %d. CO = %d. Box = %d.\n", 
         Tim_ManPiNum(p), Tim_ManCiNum(p), Tim_ManPoNum(p), Tim_ManCoNum(p), Tim_ManBoxNum(p) );
 
     if ( Tim_ManBoxNum(p) > 0 )
     Tim_ManForEachBox( p, pBox, i )
-        printf( "%d ", pBox->iCopy );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", pBox->iCopy );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -842,13 +842,13 @@ void Tim_ManPrintStats( Tim_Man_t * p, int nAnd2Delay )
     if ( p == NULL )
         return;
     Abc_Print( 1, "Hierarchy      :  " );
-    printf( "PI/CI = %d/%d   PO/CO = %d/%d   Box = %d   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "PI/CI = %d/%d   PO/CO = %d/%d   Box = %d   ", 
         Tim_ManPiNum(p), Tim_ManCiNum(p), 
         Tim_ManPoNum(p), Tim_ManCoNum(p), 
         Tim_ManBoxNum(p) );
     if ( nAnd2Delay )
-        printf( "delay(AND2) = %d", nAnd2Delay );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "delay(AND2) = %d", nAnd2Delay );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     if ( Tim_ManBoxNum(p) == 0 )
         return;
     IdMax = 0;
@@ -866,11 +866,11 @@ void Tim_ManPrintStats( Tim_Man_t * p, int nAnd2Delay )
     {
         if ( Count == 0 ) continue;
         pBox = (Tim_Box_t *)Vec_PtrEntry( vBoxes, i );
-        printf( "    Box %4d      ", i );
-        printf( "Num = %4d   ", Count );
-        printf( "Ins = %4d   ", pBox->nInputs );
-        printf( "Outs = %4d",   pBox->nOutputs );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "    Box %4d      ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Num = %4d   ", Count );
+        fprintf( Abc_FrameGlobalGetOut(), "Ins = %4d   ", pBox->nInputs );
+        fprintf( Abc_FrameGlobalGetOut(), "Outs = %4d",   pBox->nOutputs );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_IntFree( vCounts );
     Vec_PtrFree( vBoxes );

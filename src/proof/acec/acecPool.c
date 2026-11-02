@@ -271,8 +271,8 @@ void Acec_ManPrintRanks2( Vec_Int_t * vPairs )
 {
     int k, iObj, Rank;
     Vec_IntForEachEntryDouble( vPairs, iObj, Rank, k )
-        printf( "%d ", Rank );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Rank );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Acec_ManPrintRanks( Vec_Int_t * vPairs )
 {
@@ -285,8 +285,8 @@ void Acec_ManPrintRanks( Vec_Int_t * vPairs )
         RankMax = Abc_MaxInt( RankMax, Rank );
     }
     Vec_IntForEachEntryStartStop( vCounts, Count, Rank, 1, RankMax+1 )
-        printf( "%2d=%2d ", Rank, Count );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d=%2d ", Rank, Count );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_IntFree( vCounts );
 }
 
@@ -308,28 +308,28 @@ void Acec_ManProfile( Gia_Man_t * p, int fVerbose )
     Vec_Int_t * vXors, * vAdds = Ree_ManComputeCuts( p, &vXors, fVerbose );
 
     //Ree_ManPrintAdders( vAdds, 1 );
-    printf( "Detected %d full-adders and %d half-adders.  Found %d XOR-cuts.  ", Ree_ManCountFadds(vAdds), Vec_IntSize(vAdds)/6-Ree_ManCountFadds(vAdds), Vec_IntSize(vXors)/4 );
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d full-adders and %d half-adders.  Found %d XOR-cuts.  ", Ree_ManCountFadds(vAdds), Vec_IntSize(vAdds)/6-Ree_ManCountFadds(vAdds), Vec_IntSize(vXors)/4 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     clk = Abc_Clock();
     vBoxes = Acec_ManCollectBoxSets( p, vAdds, vXors );
-    printf( "Detected %d adder-tree%s.  ", Vec_WecSize(vBoxes)/5, Vec_WecSize(vBoxes)/5 > 1 ? "s":"" );
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d adder-tree%s.  ", Vec_WecSize(vBoxes)/5, Vec_WecSize(vBoxes)/5 > 1 ? "s":"" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     if ( fVerbose )
     for ( i = 0; 5*i < Vec_WecSize(vBoxes); i++ )
     {
-        printf( "Tree %3d : ",     i );
-        printf( "Xor = %4d  ",     Vec_IntSize(Vec_WecEntry(vBoxes,5*i+0)) );
-        printf( "Root = %4d  ",    Vec_IntSize(Vec_WecEntry(vBoxes,5*i+1)) );
+        fprintf( Abc_FrameGlobalGetOut(), "Tree %3d : ",     i );
+        fprintf( Abc_FrameGlobalGetOut(), "Xor = %4d  ",     Vec_IntSize(Vec_WecEntry(vBoxes,5*i+0)) );
+        fprintf( Abc_FrameGlobalGetOut(), "Root = %4d  ",    Vec_IntSize(Vec_WecEntry(vBoxes,5*i+1)) );
         //printf( "(Top = %5d)  ",   Vec_IntEntryLast(Vec_WecEntry(vBoxes,5*i+1)) );
-        printf( "Adder = %4d  ",   Vec_IntSize(Vec_WecEntry(vBoxes,5*i+2)) );
-        printf( "In = %4d  ",      Vec_IntSize(Vec_WecEntry(vBoxes,5*i+3))/2 );
-        printf( "Out = %4d  ",     Vec_IntSize(Vec_WecEntry(vBoxes,5*i+4))/2 );
-        printf( "\n" );
-        printf( "           Ins:  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Adder = %4d  ",   Vec_IntSize(Vec_WecEntry(vBoxes,5*i+2)) );
+        fprintf( Abc_FrameGlobalGetOut(), "In = %4d  ",      Vec_IntSize(Vec_WecEntry(vBoxes,5*i+3))/2 );
+        fprintf( Abc_FrameGlobalGetOut(), "Out = %4d  ",     Vec_IntSize(Vec_WecEntry(vBoxes,5*i+4))/2 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "           Ins:  " );
         Acec_ManPrintRanks( Vec_WecEntry(vBoxes,5*i+3) );
-        printf( "           Outs: " );
+        fprintf( Abc_FrameGlobalGetOut(), "           Outs: " );
         Acec_ManPrintRanks( Vec_WecEntry(vBoxes,5*i+4) );
     }
 
@@ -374,13 +374,13 @@ Vec_Int_t * Acec_ManPoolTopMost( Gia_Man_t * p, Vec_Int_t * vAdds )
     if ( fVerbose )
     Vec_IntForEachEntry( vTops, iTop, i )
     {
-        printf( "%4d : ", iTop );
+        fprintf( Abc_FrameGlobalGetOut(), "%4d : ", iTop );
         for ( k = 0; k < 3; k++ )
-            printf( "%4d ", Vec_IntEntry(vAdds, 6*iTop+k) );
-        printf( " -> " );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d ", Vec_IntEntry(vAdds, 6*iTop+k) );
+        fprintf( Abc_FrameGlobalGetOut(), " -> " );
         for ( k = 3; k < 5; k++ )
-            printf( "%4d ", Vec_IntEntry(vAdds, 6*iTop+k) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d ", Vec_IntEntry(vAdds, 6*iTop+k) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     Vec_BitFree( vMarks );
@@ -394,24 +394,24 @@ void Acec_ManPool( Gia_Man_t * p )
     abctime clk = Abc_Clock();
     Vec_Int_t * vAdds = Ree_ManComputeCuts( p, NULL, 1 );
     int i, nFadds = Ree_ManCountFadds( vAdds );
-    printf( "Detected %d FAs and %d HAs.  ", nFadds, Vec_IntSize(vAdds)/6-nFadds );
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d FAs and %d HAs.  ", nFadds, Vec_IntSize(vAdds)/6-nFadds );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     clk = Abc_Clock();
     nFadds = Ree_ManCountFadds( vAdds );
-    printf( "Detected %d FAs and %d HAs.  ", nFadds, Vec_IntSize(vAdds)/6-nFadds );
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d FAs and %d HAs.  ", nFadds, Vec_IntSize(vAdds)/6-nFadds );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     //Ree_ManPrintAdders( vAdds, 1 );
 
     // detect topmost nodes
     vTops = Acec_ManPoolTopMost( p, vAdds );
-    printf( "Detected %d topmost adder%s.\n", Vec_IntSize(vTops), Vec_IntSize(vTops) > 1 ? "s":"" );
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d topmost adder%s.\n", Vec_IntSize(vTops), Vec_IntSize(vTops) > 1 ? "s":"" );
 
     // collect adder trees
     vTrees = Gia_PolynCoreOrderArray( p, vAdds, vTops );
     Vec_WecForEachLevel( vTrees, vTree, i )
-        printf( "Adder %5d : Tree with %5d nodes.\n", Vec_IntEntry(vTops, i), Vec_IntSize(vTree) );
+        fprintf( Abc_FrameGlobalGetOut(), "Adder %5d : Tree with %5d nodes.\n", Vec_IntEntry(vTops, i), Vec_IntSize(vTree) );
 
     Vec_WecFree( vTrees );
     Vec_IntFree( vAdds );

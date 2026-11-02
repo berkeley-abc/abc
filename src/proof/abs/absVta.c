@@ -1230,7 +1230,7 @@ int Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nCo
         Abc_Print( 1, "%5.1f GB", (sat_solver2_memory_proof(p->pSat) + sat_solver2_memory(p->pSat, 0)) / (1<<30) );
         Abc_Print( 1, "\n" );
     }
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 
     if ( vCore )
     {
@@ -1398,7 +1398,7 @@ void Gia_VtaSendAbsracted( Vta_Man_t * p, int fVerbose )
     pAbs = Gia_ManDupAbsGates( p->pGia, p->pGia->vGateClasses );
     Vec_IntFreeP( &p->pGia->vGateClasses );
     // send it out
-    Gia_ManToBridgeAbsNetlist( stdout, pAbs, BRIDGE_ABS_NETLIST );
+    Gia_ManToBridgeAbsNetlist( Abc_FrameGlobalGetOut(), pAbs, BRIDGE_ABS_NETLIST );
     Gia_ManStop( pAbs );
 }
 void Gia_VtaSendCancel( Vta_Man_t * p, int fVerbose )
@@ -1407,7 +1407,7 @@ void Gia_VtaSendCancel( Vta_Man_t * p, int fVerbose )
     assert( Abc_FrameIsBridgeMode() );
 //    if ( fVerbose )
 //        Abc_Print( 1, "Cancelling previously sent model...\n" );
-    Gia_ManToBridgeBadAbs( stdout );
+    Gia_ManToBridgeBadAbs( Abc_FrameGlobalGetOut() );
 }
 
 /**Function*************************************************************
@@ -1503,12 +1503,12 @@ int Gia_VtaPerformInt( Gia_Man_t * pAig, Abs_Par_t * pPars )
     {
         if ( !Gia_ObjFaninC0(Gia_ManPo(pAig,0)) )
         {
-            printf( "Sequential miter is trivially UNSAT.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Sequential miter is trivially UNSAT.\n" );
             return 1;
         } 
         ABC_FREE( pAig->pCexSeq );
         pAig->pCexSeq = Abc_CexMakeTriv( Gia_ManRegNum(pAig), Gia_ManPiNum(pAig), 1, 0 );
-        printf( "Sequential miter is trivially SAT.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Sequential miter is trivially SAT.\n" );
         return 0;
     }
 
@@ -1670,7 +1670,7 @@ finish:
     if ( pCex == NULL )
     {
         if ( p->pPars->fVerbose && Status == -1 )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         if ( Vec_PtrSize(p->vCores) == 0 )
             Abc_Print( 1, "Abstraction is not produced because first frame is not solved.  " );
         else
@@ -1701,7 +1701,7 @@ finish:
     else
     {
         if ( p->pPars->fVerbose )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         ABC_FREE( p->pGia->pCexSeq );
         p->pGia->pCexSeq = pCex;
         if ( !Gia_ManVerifyCex( p->pGia, pCex, 0 ) )
@@ -1725,7 +1725,7 @@ finish:
     }
 
     Vga_ManStop( p );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
     return RetValue;
 }
 

@@ -183,13 +183,13 @@ static inline void Rf2_ObjPrint( Rf2_Man_t * p, Gia_Obj_t * pRoot )
     pInfo  = Rf2_ObjA( p, pRoot );
     Gia_ManForEachObjVec( p->vMap, p->pGia, pObj, i )
         if ( !Gia_ObjIsPi(p->pGia, pObj) )
-            printf( "%d", Abc_InfoHasBit(pInfo, i) );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_InfoHasBit(pInfo, i) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     pInfo  = Rf2_ObjN( p, pRoot );
     Gia_ManForEachObjVec( p->vMap, p->pGia, pObj, i )
         if ( !Gia_ObjIsPi(p->pGia, pObj) )
-            printf( "%d", !Abc_InfoHasBit(pInfo, i) );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", !Abc_InfoHasBit(pInfo, i) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
 }
 
@@ -231,13 +231,13 @@ void Rf2_ManStop( Rf2_Man_t * p, int fProfile )
         double MemGia = sizeof(Gia_Man_t) + sizeof(Gia_Obj_t) * p->pGia->nObjsAlloc + sizeof(int) * p->pGia->nTravIdsAlloc;
         double MemOther = sizeof(Rf2_Man_t) + sizeof(Rf2_Obj_t) * p->nObjsAlloc + sizeof(int) * Vec_IntCap(p->vObjs);
         clock_t timeOther = p->timeTotal - p->timeFwd - p->timeBwd - p->timeVer;
-        printf( "Abstraction refinement runtime statistics:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abstraction refinement runtime statistics:\n" );
         ABC_PRTP( "Sensetization", p->timeFwd,   p->timeTotal );
         ABC_PRTP( "Justification", p->timeBwd,   p->timeTotal );
         ABC_PRTP( "Verification ", p->timeVer,   p->timeTotal );
         ABC_PRTP( "Other        ", timeOther,    p->timeTotal );
         ABC_PRTP( "TOTAL        ", p->timeTotal, p->timeTotal );
-        printf( "Total calls = %d.  Average refine = %.1f. GIA mem = %.3f MB.  Other mem = %.3f MB.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Total calls = %d.  Average refine = %.1f. GIA mem = %.3f MB.  Other mem = %.3f MB.\n", 
             p->nCalls, 1.0*p->nRefines/p->nCalls, MemGia/(1<<20), MemOther/(1<<20) );
     }
     Vec_IntFree( p->vObjs );
@@ -370,7 +370,7 @@ int Rf2_ManSensitize( Rf2_Man_t * p )
     assert( iBit == p->pCex->nBits );
     pRnm = Rf2_ManObj( p, Gia_ManPo(p->pGia, 0), p->pCex->iFrame );
     if ( pRnm->Value != 1 )
-        printf( "Output value is incorrect.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Output value is incorrect.\n" );
     return pRnm->Prio;
 }
 
@@ -498,34 +498,34 @@ void Rf2_ManGatherFanins( Rf2_Man_t * p, int Depth )
     vUsed = Vec_IntStart( Vec_IntSize(p->vMap) );
 
     // evaluate collected
-    printf( "\nMap (%d): ", Vec_IntSize(p->vMap) );
+    fprintf( Abc_FrameGlobalGetOut(), "\nMap (%d): ", Vec_IntSize(p->vMap) );
     Gia_ManForEachObjVec( p->vMap, p->pGia, pObj, i )
     {
         vVec = Rf2_ObjVec( p, pObj );
         if ( Vec_IntSize(vVec) > 1 )
-            printf( "%d=%d ", i, Vec_IntSize(vVec) - 1 );
+            fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, Vec_IntSize(vVec) - 1 );
         Vec_IntForEachEntryStart( vVec, Entry, k, 1 )
             Vec_IntAddToEntry( vUsed, Entry, 1 );
         Vec_IntClear( vVec );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     // evaluate internal
-    printf( "Int (%d): ", Vec_IntSize(p->vFanins) );
+    fprintf( Abc_FrameGlobalGetOut(), "Int (%d): ", Vec_IntSize(p->vFanins) );
     Gia_ManForEachObjVec( p->vFanins, p->pGia, pObj, i )
     {
         vVec = Rf2_ObjVec( p, pObj );
         if ( Vec_IntSize(vVec) > 1 )
-            printf( "%d=%d ", i, Vec_IntSize(vVec) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, Vec_IntSize(vVec) );
         if ( Vec_IntSize(vVec) > 1 )
             Vec_IntForEachEntry( vVec, Entry, k )
                 Vec_IntAddToEntry( vUsed, Entry, 1 );
         Vec_IntClear( vVec );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     // evaluate PPIs    
     Vec_IntForEachEntry( vUsed, Entry, k )
-        printf( "%d ", Entry );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Entry );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     Vec_IntFree( vUsed );
 }
@@ -569,8 +569,8 @@ static inline void Rf2_ManPrintVector( Vec_Int_t * p, int Num )
     Vec_IntForEachEntry( p, Entry, i )
     {
         for ( k = 0; k < Num; k++ )
-            printf( "%c", '0' + ((Entry>>k) & 1) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", '0' + ((Entry>>k) & 1) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -593,7 +593,7 @@ static inline void Rf2_ManProcessVector( Vec_Int_t * p, int Limit )
 //    printf( "%d", Vec_IntSize(p) );
     if ( Start > 5 )
     {
-        printf( "Before: \n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Before: \n" );
         Rf2_ManPrintVector( p, 31 );
     }
 
@@ -616,7 +616,7 @@ static inline void Rf2_ManProcessVector( Vec_Int_t * p, int Limit )
 //    printf( "->%d ", Vec_IntSize(p) );
     if ( Start > 5 )
     {
-        printf( "After: \n" );
+        fprintf( Abc_FrameGlobalGetOut(), "After: \n" );
         Rf2_ManPrintVector( p, 31 );
         k = 0;
     }
@@ -643,7 +643,7 @@ int Rf2_ManAssignJustIds( Rf2_Man_t * p )
     Gia_ManForEachObjVec( p->vMap, p->pGia, pObj, i )
         if ( !Gia_ObjIsPi(p->pGia, pObj) ) // this is PPI
             Vec_VecPushInt( p->vGrp2Ppi, (k++ / nGroupSize), i );
-    printf( "Considering %d PPIs combined into %d groups of size %d.\n", k, (k-1)/nGroupSize+1, nGroupSize );
+    fprintf( Abc_FrameGlobalGetOut(), "Considering %d PPIs combined into %d groups of size %d.\n", k, (k-1)/nGroupSize+1, nGroupSize );
     return (k-1)/nGroupSize+1;
 }
 
@@ -674,14 +674,14 @@ static inline void Rf2_ManPrintVectorSpecial( Rf2_Man_t * p, Vec_Int_t * vVec )
             if ( !Gia_ObjIsPi(p->pGia, pObj) ) // this is PPI
             {
                 if ( (Entry >> (k++ / nGroupSize)) & 1 )
-                    printf( "1" ), Counter++;
+                    fprintf( Abc_FrameGlobalGetOut(),  "1" ), Counter++;
                 else
-                    printf( "0" );
+                    fprintf( Abc_FrameGlobalGetOut(), "0" );
             }
             else
-                printf( "-" );
+                fprintf( Abc_FrameGlobalGetOut(), "-" );
         }
-        printf( " %3d \n", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), " %3d \n", Counter );
     }
 }
 
@@ -774,7 +774,7 @@ Vec_Int_t * Rf2_ManPropagate( Rf2_Man_t * p, int Limit )
     }
     assert( iBit == p->pCex->nBits );
     if ( Gia_ManPo(p->pGia, 0)->fMark0 != 1 )
-        printf( "Output value is incorrect.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Output value is incorrect.\n" );
     return Rf2_ObjVec(p, Gia_ManPo(p->pGia, 0));
 }
 
@@ -843,9 +843,9 @@ void Rf2_ManBounds( Rf2_Man_t * p )
     }
     assert( iBit == p->pCex->nBits );
     if ( Gia_ManPo(p->pGia, 0)->fMark0 != 1 )
-        printf( "Output value is incorrect.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Output value is incorrect.\n" );
 
-    printf( "Bounds: \n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Bounds: \n" );
     Rf2_ObjPrint( p, Gia_ManPo(p->pGia, 0) );
 }
 
@@ -886,7 +886,7 @@ Vec_Int_t * Rf2_ManRefine( Rf2_Man_t * p, Abc_Cex_t * pCex, Vec_Int_t * vMap, in
     Rf2_ManPrintVectorSpecial( p, vJusts );
     if ( Vec_IntSize(vJusts) == 0 )
     {
-        printf( "Empty set of justifying subsets.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Empty set of justifying subsets.\n" );
         return NULL;
     }
 

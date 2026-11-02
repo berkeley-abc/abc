@@ -222,14 +222,14 @@ Vec_Ptr_t * Abc_NtkMaxFlow( Abc_Ntk_t * pNtk, int fForward, int fVerbose )
     vMinCut = Abc_NtkMaxFlowMinCut( pNtk, fForward );
     // verify the cut
     if ( !Abc_NtkMaxFlowVerifyCut(pNtk, vMinCut, fForward) )
-        printf( "Abc_NtkMaxFlow() error! The computed min-cut is not a cut!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkMaxFlow() error! The computed min-cut is not a cut!\n" );
     // make the cut retimable
     Abc_NtkMaxFlowMinCutUpdate( pNtk, vMinCut, fForward );
 
     // report the results
     if ( fVerbose )
     {
-    printf( "L = %6d. %s max-flow = %6d.  Min-cut = %6d.  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "L = %6d. %s max-flow = %6d.  Min-cut = %6d.  ", 
         Abc_NtkLatchNum(pNtk), fForward? "Forward " : "Backward", Flow, Vec_PtrSize(vMinCut) );
 ABC_PRT( "Time", Abc_Clock() - clk );
     }
@@ -722,15 +722,15 @@ void Abc_NtkMaxFlowPrintFlow( Abc_Ntk_t * pNtk, int fForward )
             assert( !Abc_ObjFanout0(pLatch)->fMarkA );
             if ( Abc_ObjGetPath(Abc_ObjFanout0(pLatch)) == NULL ) // no flow through this latch
                 continue;
-            printf( "Path = " );
+            fprintf( Abc_FrameGlobalGetOut(), "Path = " );
             for ( pNext = Abc_ObjFanout0(pLatch); pNext != (void *)1; pNext = Abc_ObjGetPath(pNext) )
             {
-                printf( "%s(%d) ", Abc_ObjName(pNext), pNext->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "%s(%d) ", Abc_ObjName(pNext), pNext->Id );
                 pPrev = pNext;
             }
             if ( !Abc_ObjIsPo(pPrev) )
-            printf( "%s(%d) ", Abc_ObjName(Abc_ObjFanout0(pPrev)), Abc_ObjFanout0(pPrev)->Id );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%s(%d) ", Abc_ObjName(Abc_ObjFanout0(pPrev)), Abc_ObjFanout0(pPrev)->Id );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     else
@@ -740,15 +740,15 @@ void Abc_NtkMaxFlowPrintFlow( Abc_Ntk_t * pNtk, int fForward )
             assert( !Abc_ObjFanin0(pLatch)->fMarkA );
             if ( Abc_ObjGetPath(Abc_ObjFanin0(pLatch)) == NULL ) // no flow through this latch
                 continue;
-            printf( "Path = " );
+            fprintf( Abc_FrameGlobalGetOut(), "Path = " );
             for ( pNext = Abc_ObjFanin0(pLatch); pNext != (void *)1; pNext = Abc_ObjGetPath(pNext) )
             {
-                printf( "%s(%d) ", Abc_ObjName(pNext), pNext->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "%s(%d) ", Abc_ObjName(pNext), pNext->Id );
                 pPrev = pNext;
             }
             if ( !Abc_ObjIsPi(pPrev) )
-            printf( "%s(%d) ", Abc_ObjName(Abc_ObjFanin0(pPrev)), Abc_ObjFanin0(pPrev)->Id );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%s(%d) ", Abc_ObjName(Abc_ObjFanin0(pPrev)), Abc_ObjFanin0(pPrev)->Id );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
 }
@@ -768,15 +768,15 @@ void Abc_NtkMaxFlowPrintCut( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut )
 {
     Abc_Obj_t * pObj;
     int i;
-    printf( "Min-cut: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Min-cut: " );
     Vec_PtrForEachEntry( Abc_Obj_t *, vMinCut, pObj, i )
-        printf( "%s(%d) ", Abc_ObjName(pObj), pObj->Id );
-    printf( "\n" );
-    printf( "Marked nodes: " );
+        fprintf( Abc_FrameGlobalGetOut(), "%s(%d) ", Abc_ObjName(pObj), pObj->Id );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Marked nodes: " );
     Abc_NtkForEachObj( pNtk, pObj, i )
         if ( pObj->fMarkA )
-            printf( "%s(%d) ", Abc_ObjName(pObj), pObj->Id );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%s(%d) ", Abc_ObjName(pObj), pObj->Id );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 

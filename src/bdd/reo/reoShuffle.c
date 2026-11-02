@@ -89,7 +89,7 @@ DdNode * reoShuffle( reo_man * p, DdManager * dd, DdNode * bFunc, int * pPerm, i
                 break;
         if ( k == p->nSupp )
         {
-            printf( "reoShuffle() Error: Cannot find a variable.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "reoShuffle() Error: Cannot find a variable.\n" );
             goto finish;
         }
         // move the variable up
@@ -99,7 +99,7 @@ DdNode * reoShuffle( reo_man * p, DdManager * dd, DdNode * bFunc, int * pPerm, i
             // check if the number of nodes is not too large
             if ( p->nNodesCur > 10000 )
             {
-                printf( "reoShuffle() Error: BDD size is too large.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "reoShuffle() Error: BDD size is too large.\n" );
                 goto finish;
             }
         }
@@ -127,8 +127,8 @@ DdNode * reoShuffle( reo_man * p, DdManager * dd, DdNode * bFunc, int * pPerm, i
         bFuncPerm = Cudd_bddPermute( dd, bFunc, pPermInv );  Cudd_Ref( bFuncPerm );
         if ( bFuncPerm != bFuncRes )
         {
-            printf( "REO: Internal verification has failed!\n" );
-            fflush( stdout );
+            fprintf( Abc_FrameGlobalGetOut(), "REO: Internal verification has failed!\n" );
+            fflush( Abc_FrameGlobalGetOut() );
         }
         Cudd_RecursiveDeref( dd, bFuncPerm );
     }
@@ -211,8 +211,8 @@ clk = Abc_Clock();
 //runtime2 += Abc_Clock() - clk;
         if ( bFuncPerm != Temp )
         {
-            printf( "REO: Internal verification has failed!\n" );
-            fflush( stdout );
+            fprintf( Abc_FrameGlobalGetOut(), "REO: Internal verification has failed!\n" );
+            fflush( Abc_FrameGlobalGetOut() );
         }
         Cudd_RecursiveDeref( dd, bFuncPerm );
     }

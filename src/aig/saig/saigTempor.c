@@ -99,7 +99,7 @@ Aig_Man_t * Saig_ManTemporDecompose( Aig_Man_t * pAig, int nFrames )
     int i;
     if ( pAig->nConstrs > 0 )
     {
-        printf( "The AIG manager should have no constraints.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The AIG manager should have no constraints.\n" );
         return NULL;
     }
     // create initialized timeframes
@@ -201,13 +201,13 @@ Aig_Man_t * Saig_ManTempor( Aig_Man_t * pAig, int nFrames, int TimeOut, int nCon
         if ( nFrames == 0 )
         {
             Vec_IntFreeP( &vTransSigs );
-            printf( "The leading sequence has length 0. Temporal decomposition is not performed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The leading sequence has length 0. Temporal decomposition is not performed.\n" );
             return NULL;
         }
         if ( nFrames == 1 )
         {
             Vec_IntFreeP( &vTransSigs );
-            printf( "The leading sequence has length 1. Temporal decomposition is not performed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The leading sequence has length 1. Temporal decomposition is not performed.\n" );
             return NULL;
         }
         if ( fUseTransSigs )
@@ -232,7 +232,7 @@ Aig_Man_t * Saig_ManTempor( Aig_Man_t * pAig, int nFrames, int TimeOut, int nCon
         if ( RetValue == 0 )
         {
             Vec_IntFreeP( &vTransSigs );
-            printf( "A cex found in the first %d frames.\n", nFrames );
+            fprintf( Abc_FrameGlobalGetOut(), "A cex found in the first %d frames.\n", nFrames );
             return NULL;
         }
         if ( nFramesFinished + 1 < nFrames )
@@ -241,11 +241,11 @@ Aig_Man_t * Saig_ManTempor( Aig_Man_t * pAig, int nFrames, int TimeOut, int nCon
             if ( iLastBefore < 1 || !fUseTransSigs )
             {
                 Vec_IntFreeP( &vTransSigs );
-                printf( "BMC for %d frames could not be completed. A cex may exist!\n", nFrames );
+                fprintf( Abc_FrameGlobalGetOut(), "BMC for %d frames could not be completed. A cex may exist!\n", nFrames );
                 return NULL;
             }
             assert( iLastBefore < nFramesFinished );
-            printf( "BMC succeeded to frame %d. Adjusting frame count to be (%d) based on the last transient signal.\n", nFramesFinished, iLastBefore );
+            fprintf( Abc_FrameGlobalGetOut(), "BMC succeeded to frame %d. Adjusting frame count to be (%d) based on the last transient signal.\n", nFramesFinished, iLastBefore );
             nFrames = iLastBefore;
         }
     }

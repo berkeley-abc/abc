@@ -111,7 +111,7 @@ void Msat_QueueInsert( Msat_Queue_t * p, int Lit )
         int i;
         assert( 0 );
         for ( i = 0; i < p->iLast; i++ )
-            printf( "entry = %2d  lit = %2d  var = %2d \n", i, p->pVars[i], p->pVars[i]/2 );
+            fprintf( Abc_FrameGlobalGetOut(), "entry = %2d  lit = %2d  var = %2d \n", i, p->pVars[i], p->pVars[i]/2 );
     }
     assert( p->iLast < p->nVars );
     p->pVars[p->iLast++] = Lit;

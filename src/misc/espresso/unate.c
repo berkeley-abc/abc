@@ -268,10 +268,10 @@ IN pset_family T;
         temp = unate_intersect(stack[n-1].sf, stack[n-2].sf, FALSE);
         lvl = MIN(stack[n-1].level, stack[n-2].level) - 1;
         if (debug & MINCOV && lvl < 10) {
-        printf("# EXACT_MINCOV[%d]: %4d = %4d x %4d, time = %s\n",
+        fprintf( Abc_FrameGlobalGetOut(), "# EXACT_MINCOV[%d]: %4d = %4d x %4d, time = %s\n",
             lvl, temp->count, stack[n-1].sf->count,
-            stack[n-2].sf->count, print_time(ptime() - start));
-        (void) fflush(stdout);
+            stack[n-2].sf->count, print_time(ptime() - start) );
+        (void) fflush( Abc_FrameGlobalGetOut() );
         }
         sf_free(stack[n-2].sf);
         sf_free(stack[n-1].sf);
@@ -287,7 +287,7 @@ IN pset_family T;
     INLINEset_diff(p, p1, p);
     set_free(p1);
     if (debug & MINCOV1) {
-    printf("MINCOV: family of all minimal coverings is\n");
+    fprintf( Abc_FrameGlobalGetOut(), "MINCOV: family of all minimal coverings is\n" );
     sf_print(temp);
     }
     sf_free(T);         /* this is the copy of T we made ... */

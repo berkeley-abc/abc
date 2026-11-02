@@ -621,7 +621,7 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
             if ( p->pPars->fVeryVerbose )
             {
                 Abc_Print( 1, "Adding cube " );
-                Pdr_SetPrint( stdout, pCubeMin, Aig_ManRegNum(p->pAig), NULL );
+                Pdr_SetPrint( Abc_FrameGlobalGetOut(), pCubeMin, Aig_ManRegNum(p->pAig), NULL );
                 Abc_Print( 1, " to frame %d.\n", l );
             }
             // set priority flops
@@ -653,9 +653,9 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
         //join
         if ( p->pPars->fVeryVerbose )
         {
-            printf("Cube:\n");
+            fprintf( Abc_FrameGlobalGetOut(), "Cube:\n");
             ZPdr_SetPrint( *ppCube );
-            printf("\nPred:\n");
+            fprintf( Abc_FrameGlobalGetOut(), "\nPred:\n");
             ZPdr_SetPrint( pPred );
         }
         *ppCube = ZPdr_SetIntersection( pCubeTmp = *ppCube, pPred, keep );
@@ -665,13 +665,13 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
             return 0;
         if ( p->pPars->fVeryVerbose )
         {
-            printf("Intersection:\n");
+            fprintf( Abc_FrameGlobalGetOut(), "Intersection:\n");
             ZPdr_SetPrint( *ppCube );
         }
         if ( Pdr_SetIsInit( *ppCube, -1 ) )
         {
             if ( p->pPars->fVeryVerbose )
-                printf ("Failed initiation\n");
+                fprintf ( Abc_FrameGlobalGetOut(), "Failed initiation\n");
             return 0;
         }
         RetValue = Pdr_ManCheckCube( p, k, *ppCube, &pPred, p->pPars->nConfLimit, 0, 1 );
@@ -805,7 +805,7 @@ int ZPdr_ManDown_Exhaustive( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_
             if ( p->pPars->fVeryVerbose )
             {
                 Abc_Print( 1, "Adding cube " );
-                Pdr_SetPrint( stdout, pCubeMin, Aig_ManRegNum(p->pAig), NULL );
+                Pdr_SetPrint( Abc_FrameGlobalGetOut(), pCubeMin, Aig_ManRegNum(p->pAig), NULL );
                 Abc_Print( 1, " to frame %d.\n", l );
             }
             // set priority flops for both cubes
@@ -869,9 +869,9 @@ int ZPdr_ManDown_Exhaustive( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_
         //join
         if ( p->pPars->fVeryVerbose )
         {
-            printf("Cube:\n");
+            fprintf( Abc_FrameGlobalGetOut(), "Cube:\n");
             ZPdr_SetPrint( *ppCube );
-            printf("\nPred:\n");
+            fprintf( Abc_FrameGlobalGetOut(), "\nPred:\n");
             ZPdr_SetPrint( pPred );
         }
         *ppCube = ZPdr_SetIntersection( pCubeTmp = *ppCube, pPred, keep );
@@ -881,13 +881,13 @@ int ZPdr_ManDown_Exhaustive( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_
             return 0;
         if ( p->pPars->fVeryVerbose )
         {
-            printf("Intersection:\n");
+            fprintf( Abc_FrameGlobalGetOut(), "Intersection:\n");
             ZPdr_SetPrint( *ppCube );
         }
         if ( Pdr_SetIsInit( *ppCube, -1 ) )
         {
             if ( p->pPars->fVeryVerbose )
-                printf ("Failed initiation\n");
+                fprintf ( Abc_FrameGlobalGetOut(), "Failed initiation\n");
             return 0;
         }
         RetValue = Pdr_ManCheckCube( p, k, *ppCube, &pPred, p->pPars->nConfLimit, 0, 1 );
@@ -1148,10 +1148,10 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
         *ppCubeMin = pCubeMin;
         if ( p->pPars->fVeryVerbose )
         {
-            printf("Cube:\n");
+            fprintf( Abc_FrameGlobalGetOut(), "Cube:\n");
             for ( i = 0; i < pCubeMin->nLits; i++)
-                printf ("%d ", pCubeMin->Lits[i]);
-            printf("\n");
+                fprintf ( Abc_FrameGlobalGetOut(), "%d ", pCubeMin->Lits[i]);
+            fprintf( Abc_FrameGlobalGetOut(), "\n");
         }
         p->tGeneral += Abc_Clock() - clk;
         return 1;
@@ -1321,10 +1321,10 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
     assert( ppCubeMin != NULL );
     if ( p->pPars->fVeryVerbose )
     {
-        printf("Cube:\n");
+        fprintf( Abc_FrameGlobalGetOut(), "Cube:\n");
         for ( i = 0; i < pCubeMin->nLits; i++)
-            printf ("%d ", pCubeMin->Lits[i]);
-        printf("\n");
+            fprintf ( Abc_FrameGlobalGetOut(), "%d ", pCubeMin->Lits[i]);
+        fprintf( Abc_FrameGlobalGetOut(), "\n");
     }
     *ppCubeMin = pCubeMin;
     p->tGeneral += Abc_Clock() - clk;
@@ -1426,7 +1426,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
             if ( p->pPars->fVeryVerbose )
             {
                 Abc_Print( 1, "Adding cube " );
-                Pdr_SetPrint( stdout, pCubeMin, Aig_ManRegNum(p->pAig), NULL );
+                Pdr_SetPrint( Abc_FrameGlobalGetOut(), pCubeMin, Aig_ManRegNum(p->pAig), NULL );
                 Abc_Print( 1, " to frame %d.\n", k );
             }
             // set priority flops
@@ -1508,7 +1508,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 Vec_IntWriteEntry( p->pPars->vOutMap, iFrame, 1 ); // unsat
                 p->pPars->nProveOuts++;
                 if ( p->pPars->fUseBridge )
-                    Gia_ManToBridgeResult( stdout, 1, NULL, iFrame );
+                    Gia_ManToBridgeResult( Abc_FrameGlobalGetOut(), 1, NULL, iFrame );
             }
     // create the first timeframe
     p->pPars->timeLastSolved = Abc_Clock();
@@ -1560,7 +1560,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     nOutDigits, p->iOutCur, iFrame, nOutDigits, p->pPars->nFailOuts, nOutDigits, Saig_ManPoNum(p->pAig) );
                 assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
                 if ( p->pPars->fUseBridge )
-                    Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
+                    Gia_ManToBridgeResult( Abc_FrameGlobalGetOut(), 0, pCexNew, pCexNew->iPo );
                 Vec_PtrWriteEntry( p->vCexes, p->iOutCur, pCexNew );
                 if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(p->iOutCur, p->pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, p->iOutCur) : NULL) )
                 {
@@ -1673,7 +1673,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                         if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, 0 );
                         assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
                         if ( p->pPars->fUseBridge )
-                            Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
+                            Gia_ManToBridgeResult( Abc_FrameGlobalGetOut(), 0, pCexNew, pCexNew->iPo );
                         Vec_PtrWriteEntry( p->vCexes, p->iOutCur, pCexNew );
                         if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(p->iOutCur, p->pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, p->iOutCur) : NULL) )
                         {
@@ -1790,7 +1790,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     {
                         Vec_IntWriteEntry( p->pPars->vOutMap, iFrame, 1 ); // unsat
                         if ( p->pPars->fUseBridge )
-                            Gia_ManToBridgeResult( stdout, 1, NULL, iFrame );
+                            Gia_ManToBridgeResult( Abc_FrameGlobalGetOut(), 1, NULL, iFrame );
                     }
             if ( p->pPars->nProveOuts == Saig_ManPoNum(p->pAig) )
                 return 1; // UNSAT
@@ -1898,7 +1898,7 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
         char * pFileName = pPars->pInvFileName ? pPars->pInvFileName : Extra_FileNameGenericAppend(p->pAig->pName, "_inv.pla");
         Abc_FrameSetInv( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
         Pdr_ManDumpClauses( p, pFileName, RetValue==1 );
-        printf( "Dumped inductive invariant in file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped inductive invariant in file \"%s\".\n", pFileName );
     }
     else if ( RetValue == 1 )
         Abc_FrameSetInv( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
@@ -1913,7 +1913,7 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
     if ( pPars->pFuncProgress && (RetValue == 0 || RetValue == 1) )
         pPars->pFuncProgress( pPars->pProgress, 1, (unsigned)RetValue );
     if ( pPars->fUseBridge )
-        Gia_ManToBridgeAbort( stdout, 7, (unsigned char *)"timeout" );
+        Gia_ManToBridgeAbort( Abc_FrameGlobalGetOut(), 7, (unsigned char *)"timeout" );
     return RetValue;
 }
 

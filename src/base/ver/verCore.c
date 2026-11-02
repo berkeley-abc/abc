@@ -113,7 +113,7 @@ Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Des_t * pGateLib )
         ABC_FREE( p );
         return NULL;
     }
-    p->Output    = stdout;
+    p->Output    = Abc_FrameGlobalGetOut();
     p->vNames    = Vec_PtrAlloc( 100 );
     p->vStackFn  = Vec_PtrAlloc( 100 );
     p->vStackOp  = Vec_IntAlloc( 100 );
@@ -211,7 +211,7 @@ void Ver_ParseInternal( Ver_Man_t * pMan )
     int i;
 
     // preparse the modeles
-    pMan->pProgress = Extra_ProgressBarStart( stdout, Ver_StreamGetFileSize(pMan->pReader) );
+    pMan->pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Ver_StreamGetFileSize(pMan->pReader) );
     while ( 1 )
     {
         // get the next token
@@ -2427,11 +2427,11 @@ void Ver_ParseReportUndefBoxes( Ver_Man_t * pMan )
             if ( pBox->pData && !Ver_NtkIsDefined((Abc_Ntk_t *)pBox->pData) )
                 ((Abc_Ntk_t *)pBox->pData)->fHiePath++;
     // print the stats
-    printf( "Warning: The design contains %d undefined object types interpreted as blackboxes:\n", nBoxes );
+    fprintf( Abc_FrameGlobalGetOut(), "Warning: The design contains %d undefined object types interpreted as blackboxes:\n", nBoxes );
     Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
         if ( !Ver_NtkIsDefined(pNtk) )
-            printf( "%s (%d)  ", Abc_NtkName(pNtk), pNtk->fHiePath );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%s (%d)  ", Abc_NtkName(pNtk), pNtk->fHiePath );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     // clean 
     Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
         pNtk->fHiePath = 0;
@@ -2856,7 +2856,7 @@ void Ver_ParsePrintLog( Ver_Man_t * pMan )
         }
     }
     fclose( pFile );
-    printf( "Hierarchy statistics can be found in log file \"%s\".\n", Buffer );
+    fprintf( Abc_FrameGlobalGetOut(), "Hierarchy statistics can be found in log file \"%s\".\n", Buffer );
 }
 
 

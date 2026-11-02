@@ -134,7 +134,7 @@ Abc_Ntk_t * Io_ReadBlif( char * pFileName, int fCheck )
     // make sure that everything is okay with the network structure
     if ( fCheck && !Abc_NtkCheckRead( pNtk ) )
     {
-        printf( "Io_ReadBlif: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_ReadBlif: The network check has failed.\n" );
         Abc_NtkDelete( pNtk );
         return NULL;
     }
@@ -264,7 +264,7 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
     }
     else if ( strcmp( (char *)p->vTokens->pArray[0], ".exdc" ) != 0 ) 
     {
-        printf( "%s: File parsing skipped after line %d (\"%s\").\n", p->pFileName, 
+        fprintf( Abc_FrameGlobalGetOut(), "%s: File parsing skipped after line %d (\"%s\").\n", p->pFileName, 
             Extra_FileReaderGetLineNumber(p->pReader, 0), (char*)p->vTokens->pArray[0] );
         Abc_NtkDelete(pNtk);
         p->pNtkCur = NULL;
@@ -273,7 +273,7 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
 
     // read the inputs/outputs
     if ( p->pNtkMaster == NULL )
-        pProgress = Extra_ProgressBarStart( stdout, Extra_FileReaderGetFileSize(p->pReader) );
+        pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Extra_FileReaderGetFileSize(p->pReader) );
     fTokensReady = fStatus = 0;
     for ( iLine = 0; fTokensReady || (p->vTokens = Io_ReadBlifGetTokens(p)); iLine++ )
     {
@@ -328,7 +328,7 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
             pNtk->pManFunc = NULL;
         }
         else
-            printf( "%s (line %d): Skipping directive \"%s\".\n", p->pFileName, 
+            fprintf( Abc_FrameGlobalGetOut(), "%s (line %d): Skipping directive \"%s\".\n", p->pFileName, 
                 Extra_FileReaderGetLineNumber(p->pReader, 0), pDirective );
         if ( p->vTokens == NULL ) // some files do not have ".end" in the end
             break;

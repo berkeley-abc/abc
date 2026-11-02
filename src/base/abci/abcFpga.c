@@ -105,7 +105,7 @@ Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, float DelayTarget, int fRecovery, int
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkFpga: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFpga: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -162,7 +162,7 @@ Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, float * pSwitching,
 
     // load the AIG into the mapper
     vNodes = Abc_AigDfs( pNtk, 0, 0 );
-    pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), vNodes->nSize );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -220,7 +220,7 @@ Abc_Ntk_t * Abc_NtkFromFpga( Fpga_Man_t * pMan, Abc_Ntk_t * pNtk )
 //    if ( Fpga_NodeReadRefs(Fpga_ManReadConst1(pMan)) > 0 )
         Fpga_NodeSetData0( Fpga_ManReadConst1(pMan), (char *)Abc_NtkCreateNodeConst1(pNtkNew) );
     // process the nodes in topological order
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -238,7 +238,7 @@ Abc_Ntk_t * Abc_NtkFromFpga( Fpga_Man_t * pMan, Abc_Ntk_t * pNtk )
     // decouple the PO driver nodes to reduce the number of levels
     nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, 1 );
     if ( nDupGates && Fpga_ManReadVerbose(pMan) )
-        printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
+        fprintf( Abc_FrameGlobalGetOut(), "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
     return pNtkNew;
 }
 

@@ -356,8 +356,8 @@ clk = Abc_Clock();
 
             if ( p->pPars->fStopWhenGone && Saig_ManPoNum(p->pAig) == 1 && !Ssw_ObjIsConst1Cand(p->pAig,Aig_ObjFanin0(Aig_ManCo(p->pAig,0))) )
             {
-                printf( "Iterative refinement is stopped after iteration %d\n", nIter );
-                printf( "because the property output is no longer a candidate constant.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Iterative refinement is stopped after iteration %d\n", nIter );
+                fprintf( Abc_FrameGlobalGetOut(), "because the property output is no longer a candidate constant.\n" );
                 // prepare to quit
                 p->nLitsEnd  = p->nLitsBeg;
                 p->nNodesEnd = p->nNodesBeg;
@@ -392,8 +392,8 @@ clk = Abc_Clock();
             int nCur = Ssw_ClassesCand1Num(p->ppClasses);
             if ( nIter > 4 && nPrev[0] - nCur <= 4*p->pPars->nLimitMax )
             {
-                printf( "Iterative refinement is stopped after iteration %d\n", nIter );
-                printf( "because the refinment is very slow.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Iterative refinement is stopped after iteration %d\n", nIter );
+                fprintf( Abc_FrameGlobalGetOut(), "because the refinment is very slow.\n" );
                 // prepare to quit
                 p->nLitsEnd  = p->nLitsBeg;
                 p->nNodesEnd = p->nNodesBeg;

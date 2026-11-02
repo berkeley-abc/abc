@@ -47,26 +47,26 @@ Ivy_Man_t * Ivy_ManResyn0( Ivy_Man_t * pMan, int fUpdateLevel, int fVerbose )
     abctime clk;
     Ivy_Man_t * pTemp;
 
-if ( fVerbose ) { printf( "Original:\n" ); }
+if ( fVerbose ) { fprintf( Abc_FrameGlobalGetOut(), "Original:\n" ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 clk = Abc_Clock();
     pMan = Ivy_ManBalance( pMan, fUpdateLevel );
-if ( fVerbose ) { printf( "\n" ); }
+if ( fVerbose ) { fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
 if ( fVerbose ) { ABC_PRT( "Balance", Abc_Clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 //    Ivy_ManRewriteAlg( pMan, fUpdateLevel, 0 );
 clk = Abc_Clock();
     Ivy_ManRewritePre( pMan, fUpdateLevel, 0, 0 );
-if ( fVerbose ) { printf( "\n" ); }
+if ( fVerbose ) { fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
 if ( fVerbose ) { ABC_PRT( "Rewrite", Abc_Clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 clk = Abc_Clock();
     pMan = Ivy_ManBalance( pTemp = pMan, fUpdateLevel );
     Ivy_ManStop( pTemp );
-if ( fVerbose ) { printf( "\n" ); }
+if ( fVerbose ) { fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
 if ( fVerbose ) { ABC_PRT( "Balance", Abc_Clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
     return pMan;
@@ -88,54 +88,54 @@ Ivy_Man_t * Ivy_ManResyn( Ivy_Man_t * pMan, int fUpdateLevel, int fVerbose )
     abctime clk;
     Ivy_Man_t * pTemp;
 
-if ( fVerbose ) { printf( "Original:\n" ); }
+if ( fVerbose ) { fprintf( Abc_FrameGlobalGetOut(), "Original:\n" ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 clk = Abc_Clock();
     pMan = Ivy_ManBalance( pMan, fUpdateLevel );
-if ( fVerbose ) { printf( "\n" ); }
+if ( fVerbose ) { fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
 if ( fVerbose ) { ABC_PRT( "Balance", Abc_Clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 //    Ivy_ManRewriteAlg( pMan, fUpdateLevel, 0 );
 clk = Abc_Clock();
     Ivy_ManRewritePre( pMan, fUpdateLevel, 0, 0 );
-if ( fVerbose ) { printf( "\n" ); }
+if ( fVerbose ) { fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
 if ( fVerbose ) { ABC_PRT( "Rewrite", Abc_Clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 clk = Abc_Clock();
     pMan = Ivy_ManBalance( pTemp = pMan, fUpdateLevel );
     Ivy_ManStop( pTemp );
-if ( fVerbose ) { printf( "\n" ); }
+if ( fVerbose ) { fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
 if ( fVerbose ) { ABC_PRT( "Balance", Abc_Clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 //    Ivy_ManRewriteAlg( pMan, fUpdateLevel, 1 );
 clk = Abc_Clock();
     Ivy_ManRewritePre( pMan, fUpdateLevel, 1, 0 );
-if ( fVerbose ) { printf( "\n" ); }
+if ( fVerbose ) { fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
 if ( fVerbose ) { ABC_PRT( "Rewrite", Abc_Clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 clk = Abc_Clock();
     pMan = Ivy_ManBalance( pTemp = pMan, fUpdateLevel );
     Ivy_ManStop( pTemp );
-if ( fVerbose ) { printf( "\n" ); }
+if ( fVerbose ) { fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
 if ( fVerbose ) { ABC_PRT( "Balance", Abc_Clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 //    Ivy_ManRewriteAlg( pMan, fUpdateLevel, 1 );
 clk = Abc_Clock();
     Ivy_ManRewritePre( pMan, fUpdateLevel, 1, 0 );
-if ( fVerbose ) { printf( "\n" ); }
+if ( fVerbose ) { fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
 if ( fVerbose ) { ABC_PRT( "Rewrite", Abc_Clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 clk = Abc_Clock();
     pMan = Ivy_ManBalance( pTemp = pMan, fUpdateLevel );
     Ivy_ManStop( pTemp );
-if ( fVerbose ) { printf( "\n" ); }
+if ( fVerbose ) { fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
 if ( fVerbose ) { ABC_PRT( "Balance", Abc_Clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
     return pMan;
@@ -157,12 +157,12 @@ Ivy_Man_t * Ivy_ManRwsat( Ivy_Man_t * pMan, int fVerbose )
     abctime clk;
     Ivy_Man_t * pTemp;
 
-if ( fVerbose ) { printf( "Original:\n" ); }
+if ( fVerbose ) { fprintf( Abc_FrameGlobalGetOut(), "Original:\n" ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 clk = Abc_Clock();
     Ivy_ManRewritePre( pMan, 0, 0, 0 );
-if ( fVerbose ) { printf( "\n" ); }
+if ( fVerbose ) { fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
 if ( fVerbose ) { ABC_PRT( "Rewrite", Abc_Clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
@@ -170,7 +170,7 @@ clk = Abc_Clock();
     pMan = Ivy_ManBalance( pTemp = pMan, 0 );
 //    pMan = Ivy_ManDup( pTemp = pMan );
     Ivy_ManStop( pTemp );
-if ( fVerbose ) { printf( "\n" ); }
+if ( fVerbose ) { fprintf( Abc_FrameGlobalGetOut(), "\n" ); }
 if ( fVerbose ) { ABC_PRT( "Balance", Abc_Clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 

@@ -31,16 +31,16 @@ void kissat_warning (kissat *solver, const char *fmt, ...) {
   if (verbosity (solver) < 0)
     return;
   TERMINAL (stdout, 1);
-  fputs (solver->prefix, stdout);
+  fputs (solver->prefix, Abc_FrameGlobalGetOut());
   COLOR (BOLD YELLOW);
-  fputs ("warning:", stdout);
+  fputs ("warning:", Abc_FrameGlobalGetOut());
   COLOR (NORMAL);
-  fputc (' ', stdout);
+  fputc( ' ', Abc_FrameGlobalGetOut() );
   va_list ap;
   va_start (ap, fmt);
-  vprintf (fmt, ap);
+  vfprintf ( Abc_FrameGlobalGetOut(), fmt, ap);
   va_end (ap);
-  fputc ('\n', stdout);
+  fputc( '\n', Abc_FrameGlobalGetOut() );
 #ifdef KISSAT_NOPTIONS
   (void) solver;
 #endif
@@ -50,32 +50,32 @@ void kissat_signal (kissat *solver, const char *type, int sig) {
   if (verbosity (solver) < 0)
     return;
   TERMINAL (stdout, 1);
-  fputs (solver->prefix, stdout);
+  fputs (solver->prefix, Abc_FrameGlobalGetOut());
   COLOR (BOLD RED);
-  printf ("%s signal %d (%s)", type, sig, kissat_signal_name (sig));
+  fprintf ( Abc_FrameGlobalGetOut(), "%s signal %d (%s)", type, sig, kissat_signal_name (sig));
   COLOR (NORMAL);
-  fputc ('\n', stdout);
-  fflush (stdout);
+  fputc( '\n', Abc_FrameGlobalGetOut() );
+  fflush( Abc_FrameGlobalGetOut() );
 }
 
 static void print_message (kissat *solver, const char *color,
                            const char *fmt, va_list *ap) {
   TERMINAL (stdout, 1);
-  fputs (solver->prefix, stdout);
+  fputs (solver->prefix, Abc_FrameGlobalGetOut());
   COLOR (color);
-  vprintf (fmt, *ap);
-  fputc ('\n', stdout);
+  vfprintf ( Abc_FrameGlobalGetOut(), fmt, *ap);
+  fputc( '\n', Abc_FrameGlobalGetOut() );
   COLOR (NORMAL);
-  fflush (stdout);
+  fflush( Abc_FrameGlobalGetOut() );
 }
 
 static void print_line (kissat *solver) {
   char ch;
   for (const char *p = solver->prefix; (ch = *p); p++)
     if (ch && (ch != ' ' || p[1]))
-      fputc (ch, stdout);
-  fputc ('\n', stdout);
-  fflush (stdout);
+      fputc( ch, Abc_FrameGlobalGetOut() );
+  fputc( '\n', Abc_FrameGlobalGetOut() );
+  fflush( Abc_FrameGlobalGetOut() );
 }
 
 int kissat_verbosity (kissat *solver) { return verbosity (solver); }
@@ -94,7 +94,7 @@ void kissat_line (kissat *solver) {
     print_line (solver);
 }
 
-void kissat_prefix (kissat *solver) { fputs (solver->prefix, stdout); }
+void kissat_prefix (kissat *solver) { fputs (solver->prefix, Abc_FrameGlobalGetOut()); }
 
 void kissat_verbose (kissat *solver, const char *fmt, ...) {
   if (verbosity (solver) < 1)
@@ -131,19 +131,19 @@ void kissat_section (kissat *solver, const char *name) {
     kissat_line (solver);
   else
     solver->sectioned = true;
-  fputs (solver->prefix, stdout);
+  fputs (solver->prefix, Abc_FrameGlobalGetOut());
   COLOR (BLUE);
-  fputs ("---- [ ", stdout);
+  fputs ("---- [ ", Abc_FrameGlobalGetOut());
   COLOR (BOLD BLUE);
-  fputs (name, stdout);
+  fputs (name, Abc_FrameGlobalGetOut());
   COLOR (NORMAL BLUE);
-  fputs (" ] ", stdout);
+  fputs (" ] ", Abc_FrameGlobalGetOut());
   for (size_t i = strlen (name); i < 66; i++)
-    fputc ('-', stdout);
+    fputc( '-', Abc_FrameGlobalGetOut() );
   COLOR (NORMAL);
-  fputc ('\n', stdout);
+  fputc( '\n', Abc_FrameGlobalGetOut() );
   print_line (solver);
-  fflush (stdout);
+  fflush( Abc_FrameGlobalGetOut() );
 }
 
 void kissat_phase (kissat *solver, const char *name, uint64_t count,
@@ -151,22 +151,22 @@ void kissat_phase (kissat *solver, const char *name, uint64_t count,
   if (verbosity (solver) < 1)
     return;
   TERMINAL (stdout, 1);
-  fputs (solver->prefix, stdout);
+  fputs (solver->prefix, Abc_FrameGlobalGetOut());
   if (solver->stable)
     COLOR (CYAN);
   else
     COLOR (BOLD CYAN);
-  printf ("[%s", name);
+  fprintf ( Abc_FrameGlobalGetOut(), "[%s", name);
   if (count != UINT64_MAX)
-    printf ("-%" PRIu64, count);
-  fputs ("] ", stdout);
+    fprintf ( Abc_FrameGlobalGetOut(), "-%" PRIu64, count);
+  fputs ("] ", Abc_FrameGlobalGetOut());
   va_list ap;
   va_start (ap, fmt);
-  vprintf (fmt, ap);
+  vfprintf ( Abc_FrameGlobalGetOut(), fmt, ap);
   va_end (ap);
   COLOR (NORMAL);
-  fputc ('\n', stdout);
-  fflush (stdout);
+  fputc( '\n', Abc_FrameGlobalGetOut() );
+  fflush( Abc_FrameGlobalGetOut() );
 }
 
 #else

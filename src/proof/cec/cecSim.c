@@ -127,7 +127,7 @@ void Cec_ManSVerifyTwo( Gia_Man_t * p, int iObj0, int iObj1 )
     Value0 = Cec_ManSVerify_rec( p, iObj0 );
     Value1 = Cec_ManSVerify_rec( p, iObj1 );
     if ( (Value0 ^ Value1) == Gia_ObjPhaseDiff(p, iObj0, iObj1) )
-        printf( "CEX verification FAILED for obj %d and obj %d.\n", iObj0, iObj1 );
+        fprintf( Abc_FrameGlobalGetOut(), "CEX verification FAILED for obj %d and obj %d.\n", iObj0, iObj1 );
 //    else
 //        printf( "CEX verification succeeded for obj %d and obj %d.\n", iObj0, iObj1 );;
 }
@@ -138,7 +138,7 @@ void Cec_ManSVerify( Cec_ManS_t * p, int iObj0, int iObj1 )
     word * pCare = Vec_WrdArray(p->vSims);
     if ( Vec_IntSize(p->vInputs) == 0 )
     {
-        printf( "No primary inputs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "No primary inputs.\n" );
         return;
     }
     Vec_IntForEachEntry( p->vInputs, iObj, i )
@@ -153,7 +153,7 @@ void Cec_ManSVerify( Cec_ManS_t * p, int iObj0, int iObj1 )
     nCares = Abc_TtCountOnesVec( pCare, p->nWords );
     if ( nCares == 64*p->nWords )
     {
-        printf( "No CEXes.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "No CEXes.\n" );
         return;
     }
     assert( Vec_IntSize(p->vInputs) > 0 );
@@ -167,7 +167,7 @@ void Cec_ManSVerify( Cec_ManS_t * p, int iObj0, int iObj1 )
             Gia_ManObj(p->pAig, iObj)->fMark1 = Abc_TtGetBit( Cec_ManSSim(p, iObj, 1), w );
         Cec_ManSVerifyTwo( p->pAig, iObj0, iObj1 );
     }
-    printf( "Considered %d CEXes of nodes %d and %d.\n", 64*p->nWords - nCares, iObj0, iObj1 );
+    fprintf( Abc_FrameGlobalGetOut(), "Considered %d CEXes of nodes %d and %d.\n", 64*p->nWords - nCares, iObj0, iObj1 );
 }
 
 /**Function*************************************************************
@@ -390,7 +390,7 @@ void Cec_ManSRunTest( Gia_Man_t * pAig )
     Gia_ManForEachClass0( p->pAig, i )
         Gia_ClassForEachObj1( p->pAig, i, k )
             Cec_ManSRunSim( p, i, k );
-    printf( "Detected %d CEXes.  ", p->nCexes );
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d CEXes.  ", p->nCexes );
     Abc_PrintTime( 1, "Time ", Abc_Clock() - clk );
     Abc_PrintTime( 1, "Sat  ", p->clkSat );
     Abc_PrintTime( 1, "Unsat", p->clkUnsat );

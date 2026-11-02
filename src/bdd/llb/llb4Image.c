@@ -230,20 +230,20 @@ void Llb_Nonlin4Print( Llb_Mgr_t * p )
     Llb_Prt_t * pPart;
     Llb_Var_t * pVar;
     int i, k;
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Llb_MgrForEachVar( p, pVar, i )
     {
-        printf( "Var %3d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Var %3d : ", i );
         Llb_VarForEachPart( p, pVar, pPart, k )
-            printf( "%d ", pPart->iPart );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", pPart->iPart );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Llb_MgrForEachPart( p, pPart, i )
     {
-        printf( "Part %3d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Part %3d : ", i );
         Llb_PartForEachVar( p, pPart, pVar, k )
-            printf( "%d ", pVar->iVar );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", pVar->iVar );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -336,11 +336,11 @@ int Llb_Nonlin4Quantify2( Llb_Mgr_t * p, Llb_Prt_t * pPart1, Llb_Prt_t * pPart2 
 
 if ( fVerbose )
 {
-printf( "\n" );
-printf( "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
 Llb_Nonlin4Print( p );
-printf( "Conjoining partitions %d and %d.\n", pPart1->iPart, pPart2->iPart );
-Extra_bddPrintSupport( p->dd, bCube );  printf( "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Conjoining partitions %d and %d.\n", pPart1->iPart, pPart2->iPart );
+Extra_bddPrintSupport( p->dd, bCube );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 liveBeg = p->dd->keys - p->dd->dead;
     bFunc = Cudd_bddAndAbstract( p->dd, pPart1->bFunc, pPart2->bFunc, bCube );  
@@ -403,7 +403,7 @@ liveEnd = p->dd->keys - p->dd->dead;
         else if ( Vec_IntSize(pVar->vParts) == 1 )
         {
             if ( fVerbose )
-                printf( "Adding partition %d because of var %d.\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "Adding partition %d because of var %d.\n", 
                     Llb_MgrPart(p, Vec_IntEntry(pVar->vParts,0))->iPart, pVar->iVar );
             Vec_PtrPushUnique( vSingles, Llb_MgrPart(p, Vec_IntEntry(pVar->vParts,0)) );
         }
@@ -417,7 +417,7 @@ liveEnd = p->dd->keys - p->dd->dead;
         else if ( Vec_IntSize(pVar->vParts) == 1 )
         {
             if ( fVerbose )
-                printf( "Adding partition %d because of var %d.\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "Adding partition %d because of var %d.\n", 
                     Llb_MgrPart(p, Vec_IntEntry(pVar->vParts,0))->iPart, pVar->iVar );
             Vec_PtrPushUnique( vSingles, Llb_MgrPart(p, Vec_IntEntry(pVar->vParts,0)) );
         }
@@ -431,7 +431,7 @@ Llb_Nonlin4Print( p );
     Vec_PtrForEachEntry( Llb_Prt_t *, vSingles, pTemp, i )
     {
 if ( fVerbose )
-printf( "Updating partitiong %d with singlton vars.\n", pTemp->iPart );
+fprintf( Abc_FrameGlobalGetOut(), "Updating partitiong %d with singlton vars.\n", pTemp->iPart );
         Llb_Nonlin4Quantify1( p, pTemp );
     }
 if ( fVerbose )

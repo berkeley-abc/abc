@@ -113,9 +113,9 @@ pPLA PLA;
     }
 
     if (trace || summary) {
-        printf("\nOPO loop for output #%d\n", i);
-        printf("PLA->phase is %s\n", pc1(PLA->phase));
-        printf("phase      is %s\n", pc1(phase));
+        fprintf( Abc_FrameGlobalGetOut(), "\nOPO loop for output #%d\n", i );
+        fprintf( Abc_FrameGlobalGetOut(), "PLA->phase is %s\n", pc1(PLA->phase) );
+        fprintf( Abc_FrameGlobalGetOut(), "phase      is %s\n", pc1(phase) );
     }
     set_free(phase);
     }
@@ -263,9 +263,9 @@ int offset, first, last;
     sr = opo_recur(T, D, select, offset, middle+1, last);
     temp = unate_intersect(sl, sr, level == 1);
     if (trace) {
-        printf("# OPO[%d]: %4d = %4d x %4d, time = %s\n", level - 1,
-        temp->count, sl->count, sr->count, print_time(ptime()));
-        (void) fflush(stdout);
+        fprintf( Abc_FrameGlobalGetOut(), "# OPO[%d]: %4d = %4d x %4d, time = %s\n", level - 1,
+        temp->count, sl->count, sr->count, print_time(ptime()) );
+        (void) fflush( Abc_FrameGlobalGetOut() );
     }
     free_cover(sl);
     free_cover(sr);
@@ -578,7 +578,7 @@ int opo_strategy;
 
     /* set the phase and minimize */
     (void) set_phase(PLA);
-    printf("# phase is %s\n", pc1(PLA->phase));
+    fprintf( Abc_FrameGlobalGetOut(), "# phase is %s\n", pc1(PLA->phase) );
     summary = TRUE;
     minimize(PLA);
 

@@ -105,7 +105,7 @@ void Bbr_StopManager( DdManager * dd )
     // check for remaining references in the package
     RetValue = Cudd_CheckZeroRef( dd );
     if ( RetValue > 0 )
-        printf( "\nThe number of referenced nodes = %d\n\n", RetValue );
+        fprintf( Abc_FrameGlobalGetOut(), "\nThe number of referenced nodes = %d\n\n", RetValue );
 //  Cudd_PrintInfo( dd, stdout );
     Cudd_Quit( dd );
 }
@@ -215,11 +215,11 @@ DdNode ** Aig_ManCreatePartitions( DdManager * dd, Aig_Man_t * p, int fReorder, 
     if ( fReorder )
     {
         if ( fVerbose )
-            fprintf( stdout, "BDD nodes in the partitions before reordering %d.\n", Cudd_SharingSize(pbParts,Saig_ManRegNum(p)) );
+            fprintf( Abc_FrameGlobalGetOut(), "BDD nodes in the partitions before reordering %d.\n", Cudd_SharingSize(pbParts,Saig_ManRegNum(p)) );
         Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 100 );
         Cudd_AutodynDisable( dd );
         if ( fVerbose )
-            fprintf( stdout, "BDD nodes in the partitions after reordering %d.\n", Cudd_SharingSize(pbParts,Saig_ManRegNum(p)) );
+            fprintf( Abc_FrameGlobalGetOut(), "BDD nodes in the partitions after reordering %d.\n", Cudd_SharingSize(pbParts,Saig_ManRegNum(p)) );
     }
     return pbParts;
 }
@@ -265,7 +265,7 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
     if ( pTree == NULL )
     {
         if ( !pPars->fSilent )
-            printf( "BDDs blew up during qualitification scheduling.  " );
+            fprintf( Abc_FrameGlobalGetOut(), "BDDs blew up during qualitification scheduling.  " );
         return -1;
     }
 
@@ -284,7 +284,7 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
         // check the runtime limit
         if ( pPars->TimeLimit && pPars->TimeLimit <= (Abc_Clock()-clk)/CLOCKS_PER_SEC )
         {
-            printf( "Reached timeout after image computation (%d seconds).\n",  pPars->TimeLimit );
+            fprintf( Abc_FrameGlobalGetOut(), "Reached timeout after image computation (%d seconds).\n",  pPars->TimeLimit );
             Vec_PtrFree( vOnionRings );
             // undo the image tree
             if ( pPars->fPartition )
@@ -303,7 +303,7 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
         if ( bNext == NULL )
         {
             if ( !pPars->fSilent )
-                printf( "BDDs blew up during image computation.  " );
+                fprintf( Abc_FrameGlobalGetOut(), "BDDs blew up during image computation.  " );
             if ( pPars->fPartition )
                 Bbr_bddImageTreeDelete( pTree );
             else
@@ -359,27 +359,27 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
         Cudd_RecursiveDeref( dd, bTemp );
         Cudd_RecursiveDeref( dd, bNext );
         if ( pPars->fVerbose )
-            fprintf( stdout, "Frame = %3d. BDD = %5d. ", nIters, nBddSize );
+            fprintf( Abc_FrameGlobalGetOut(), "Frame = %3d. BDD = %5d. ", nIters, nBddSize );
         if ( fInternalReorder && pPars->fReorder && nBddSize > nThreshold )
         {
             if ( pPars->fVerbose )
-                fprintf( stdout, "Reordering... Before = %5d. ", Cudd_DagSize(bReached) );
+                fprintf( Abc_FrameGlobalGetOut(), "Reordering... Before = %5d. ", Cudd_DagSize(bReached) );
             Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 100 );
             Cudd_AutodynDisable( dd );
             if ( pPars->fVerbose )
-                fprintf( stdout, "After = %5d.\r", Cudd_DagSize(bReached) );
+                fprintf( Abc_FrameGlobalGetOut(), "After = %5d.\r", Cudd_DagSize(bReached) );
             nThreshold *= 2;
         }
         if ( pPars->fVerbose )
 //            fprintf( stdout, "\r" );
-            fprintf( stdout, "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n"  );
 
         if ( pPars->fVerbose )
         {
             double nMints = Cudd_CountMinterm(dd, bReached, Saig_ManRegNum(p) );
 //            Extra_bddPrint( dd, bReached );printf( "\n" );
-            fprintf( stdout, "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Saig_ManRegNum(p)) );
-            fflush( stdout ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Saig_ManRegNum(p)) );
+            fflush( Abc_FrameGlobalGetOut() ); 
         }
 
     }
@@ -400,11 +400,11 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
     {
         double nMints = Cudd_CountMinterm(dd, bReached, Saig_ManRegNum(p) );
         if ( nIters > pPars->nIterMax || nBddSize > pPars->nBddMax )
-            fprintf( stdout, "Reachability analysis is stopped after %d frames.\n", nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "Reachability analysis is stopped after %d frames.\n", nIters );
         else
-            fprintf( stdout, "Reachability analysis completed after %d frames.\n", nIters );
-        fprintf( stdout, "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Saig_ManRegNum(p)) );
-        fflush( stdout );
+            fprintf( Abc_FrameGlobalGetOut(), "Reachability analysis completed after %d frames.\n", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Saig_ManRegNum(p)) );
+        fflush( Abc_FrameGlobalGetOut() );
     }
 //ABC_PRB( dd, bReached );
     Cudd_RecursiveDeref( dd, bReached );
@@ -412,14 +412,14 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
     //
     if ( fixedPoint ) {
       if ( !pPars->fSilent ) {
-        printf( "The miter is proved unreachable after %d iterations.  ", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "The miter is proved unreachable after %d iterations.  ", nIters );
       }
       pPars->iFrame = nIters - 1;
       return 1;
     }
     assert(nIters >= pPars->nIterMax || nBddSize >= pPars->nBddMax);
     if ( !pPars->fSilent )
-      printf( "Verified only for states reachable in %d frames.  ", nIters );
+      fprintf( Abc_FrameGlobalGetOut(), "Verified only for states reachable in %d frames.  ", nIters );
     pPars->iFrame = nIters - 1;
     return -1; // undecided
 }
@@ -452,16 +452,16 @@ int Aig_ManVerifyUsingBdds_int( Aig_Man_t * p, Saig_ParBbr_t * pPars )
     if ( dd == NULL )
     {
         if ( !pPars->fSilent )
-            printf( "The number of intermediate BDD nodes exceeded the limit (%d).\n", pPars->nBddMax );
+            fprintf( Abc_FrameGlobalGetOut(), "The number of intermediate BDD nodes exceeded the limit (%d).\n", pPars->nBddMax );
         return -1;
     }
     if ( pPars->fVerbose )
-        printf( "Shared BDD size is %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+        fprintf( Abc_FrameGlobalGetOut(), "Shared BDD size is %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
 
     // check the runtime limit
     if ( pPars->TimeLimit && pPars->TimeLimit <= (Abc_Clock()-clk)/CLOCKS_PER_SEC )
     {
-        printf( "Reached timeout after constructing global BDDs (%d seconds).\n",  pPars->TimeLimit );
+        fprintf( Abc_FrameGlobalGetOut(), "Reached timeout after constructing global BDDs (%d seconds).\n",  pPars->TimeLimit );
         Cudd_Quit( dd );
         return -1;
     }
@@ -525,7 +525,7 @@ int Aig_ManVerifyUsingBdds_int( Aig_Man_t * p, Saig_ParBbr_t * pPars )
     if ( !pPars->fSilent )
     {
     ABC_PRT( "Time", Abc_Clock() - clk );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
     }
     return RetValue;
 }

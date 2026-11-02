@@ -160,7 +160,7 @@ int Nwk_ManGetAigNodeNum( Nwk_Man_t * pNtk )
     {
         if ( pNode->pFunc == NULL )
         {
-            printf( "Nwk_ManGetAigNodeNum(): Local AIG of node %d is not assigned.\n", pNode->Id );
+            fprintf( Abc_FrameGlobalGetOut(), "Nwk_ManGetAigNodeNum(): Local AIG of node %d is not assigned.\n", pNode->Id );
             continue;
         }
         if ( Nwk_ObjFaninNum(pNode) < 2 )
@@ -227,20 +227,20 @@ void Nwk_ObjPrint( Nwk_Obj_t * pObj )
 {
     Nwk_Obj_t * pNext;
     int i;
-    printf( "ObjId = %5d.  ", pObj->Id );
+    fprintf( Abc_FrameGlobalGetOut(), "ObjId = %5d.  ", pObj->Id );
     if ( Nwk_ObjIsPi(pObj) )
-        printf( "PI" );
+        fprintf( Abc_FrameGlobalGetOut(), "PI" );
     if ( Nwk_ObjIsPo(pObj) )
-        printf( "PO" );
+        fprintf( Abc_FrameGlobalGetOut(), "PO" );
     if ( Nwk_ObjIsNode(pObj) )
-        printf( "Node" );
-    printf( "   Fanins = " );
+        fprintf( Abc_FrameGlobalGetOut(), "Node" );
+    fprintf( Abc_FrameGlobalGetOut(), "   Fanins = " );
     Nwk_ObjForEachFanin( pObj, pNext, i )
-        printf( "%d ", pNext->Id );
-    printf( "   Fanouts = " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", pNext->Id );
+    fprintf( Abc_FrameGlobalGetOut(), "   Fanouts = " );
     Nwk_ObjForEachFanout( pObj, pNext, i )
-        printf( "%d ", pNext->Id );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", pNext->Id );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -267,7 +267,7 @@ void Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vPiNames, 
     int i, k, nDigits;
     if ( Nwk_ManPoNum(pNtk) == 0 )
     {
-        printf( "Nwk_ManDumpBlif(): Network does not have POs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Nwk_ManDumpBlif(): Network does not have POs.\n" );
         return;
     }
     // collect nodes in the DFS order
@@ -418,34 +418,34 @@ void Nwk_ManPrintFanioNew( Nwk_Man_t * pNtk )
             Vec_IntAddToEntry( vFanouts, 60 + nFanouts/1000000, 1 );
     }
 
-    printf( "The distribution of fanins and fanouts in the network:\n" );
-    printf( "         Number   Nodes with fanin  Nodes with fanout\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "The distribution of fanins and fanouts in the network:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "         Number   Nodes with fanin  Nodes with fanout\n" );
     for ( k = 0; k < nSizeMax; k++ )
     {
         if ( vFanins->pArray[k] == 0 && vFanouts->pArray[k] == 0 )
             continue;
         if ( k < 10 )
-            printf( "%15d : ", k );
+            fprintf( Abc_FrameGlobalGetOut(), "%15d : ", k );
         else
         {
             sprintf( Buffer, "%d - %d", (int)pow((double)10, k/10) * (k%10), (int)pow((double)10, k/10) * (k%10+1) - 1 ); 
-            printf( "%15s : ", Buffer );
+            fprintf( Abc_FrameGlobalGetOut(), "%15s : ", Buffer );
         }
         if ( vFanins->pArray[k] == 0 )
-            printf( "              " );
+            fprintf( Abc_FrameGlobalGetOut(), "              " );
         else
-            printf( "%12d  ", vFanins->pArray[k] );
-        printf( "    " );
+            fprintf( Abc_FrameGlobalGetOut(), "%12d  ", vFanins->pArray[k] );
+        fprintf( Abc_FrameGlobalGetOut(), "    " );
         if ( vFanouts->pArray[k] == 0 )
-            printf( "              " );
+            fprintf( Abc_FrameGlobalGetOut(), "              " );
         else
-            printf( "%12d  ", vFanouts->pArray[k] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%12d  ", vFanouts->pArray[k] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_IntFree( vFanins );
     Vec_IntFree( vFanouts );
 
-    printf( "Fanins: Max = %d. Ave = %.2f.  Fanouts: Max = %d. Ave =  %.2f.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Fanins: Max = %d. Ave = %.2f.  Fanouts: Max = %d. Ave =  %.2f.\n", 
         nFaninsMax,  1.0*nFaninsAll/Nwk_ManNodeNum(pNtk), 
         nFanoutsMax, 1.0*nFanoutsAll/Nwk_ManNodeNum(pNtk)  );
 }
@@ -499,7 +499,7 @@ int Nwk_ManMinimumBaseNode( Nwk_Obj_t * pObj, Vec_Int_t * vTruth, int fVerbose )
             Nwk_ObjAddFanin( pObjNew, pFanin );
     pObjNew->pFunc = Hop_Remap( pNtk->pManHop, pObj->pFunc, uSupp, Nwk_ObjFaninNum(pObj) );
     if ( fVerbose )
-        printf( "Reducing node %d fanins from %d to %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Reducing node %d fanins from %d to %d.\n", 
             pObj->Id, Nwk_ObjFaninNum(pObj), Nwk_ObjFaninNum(pObjNew) );
     Nwk_ObjReplace( pObj, pObjNew );
     return 1;
@@ -525,7 +525,7 @@ int Nwk_ManMinimumBaseInt( Nwk_Man_t * pNtk, int fVerbose )
     Nwk_ManForEachNode( pNtk, pObj, i )
         Counter += Nwk_ManMinimumBaseNode( pObj, vTruth, fVerbose );
     if ( fVerbose && Counter )
-        printf( "Support minimization reduced support of %d nodes.\n", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Support minimization reduced support of %d nodes.\n", Counter );
     Vec_IntFree( vTruth );
     return Counter;
 }
@@ -569,7 +569,7 @@ void Nwk_ManMinimumBase( Nwk_Man_t * pNtk, int fVerbose )
     Nwk_ManForEachNode( pNtk, pObj, i )
         Counter += Nwk_ManMinimumBaseNode( pObj, vTruth, fVerbose );
     if ( fVerbose && Counter )
-        printf( "Support minimization reduced support of %d nodes.\n", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Support minimization reduced support of %d nodes.\n", Counter );
     Vec_IntFree( vTruth );
 }
 
@@ -621,7 +621,7 @@ void Nwk_ManRemoveDupFanins( Nwk_Man_t * pNtk, int fVerbose )
                 if ( pObj->pFanio[k] == pObj->pFanio[m] )
                 {
                     if ( fVerbose )
-                        printf( "Removing duplicated fanins of node %d (fanins %d and %d).\n", 
+                        fprintf( Abc_FrameGlobalGetOut(), "Removing duplicated fanins of node %d (fanins %d and %d).\n", 
                             pObj->Id, pObj->pFanio[k]->Id, pObj->pFanio[m]->Id );
                     Nwk_ManRemoveDupFaninsNode( pObj, k, m, vTruth );
                     fFound = 1;

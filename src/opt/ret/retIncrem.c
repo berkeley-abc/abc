@@ -90,7 +90,7 @@ int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int nDelayLim, int fForward, int
 //    Abc_NtkLogicMakeSimpleCos( pNtk, 0 );
     // check for correctness
     if ( !Abc_NtkCheck( pNtk ) )
-        fprintf( stdout, "Abc_NtkRetimeForward(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRetimeForward(): Network check has failed.\n"  );
     // return the number of latches saved
     return nLatches - Abc_NtkLatchNum(pNtk);
 }
@@ -187,7 +187,7 @@ int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st__table * tLatches, int nI
             // get its number in the original order
             if ( ! st__lookup_int( tLatches, (char *)pLatch, &Index ) )
             {
-                printf( "Abc_NtkRetimeFinalizeLatches(): Internal error.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRetimeFinalizeLatches(): Internal error.\n" );
                 return 0;
             }
             assert( pLatch == Vec_PtrEntry(vBoxesOld, Vec_PtrSize(vBoxesOld) - st__count(tLatches) + Index) );
@@ -260,7 +260,7 @@ int Abc_NtkRetimeOneWay( Abc_Ntk_t * pNtk, int fForward, int fVerbose )
                 nTotalMoves++;
                 if ( nTotalMoves >= nTotalMovesLimit )
                 {
-                    printf( "Stopped after %d latch moves.\n", nTotalMoves );
+                    fprintf( Abc_FrameGlobalGetOut(), "Stopped after %d latch moves.\n", nTotalMoves );
                     break;
                 }
             }

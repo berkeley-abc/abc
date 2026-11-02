@@ -507,7 +507,7 @@ void Fraig_TablePrintStatsS( Fraig_Man_t * pMan )
     Fraig_Node_t * pNode;
     int i, Counter;
 
-    printf( "Structural table. Table size = %d. Number of entries = %d.\n", pT->nBins, pT->nEntries );
+    fprintf( Abc_FrameGlobalGetOut(), "Structural table. Table size = %d. Number of entries = %d.\n", pT->nBins, pT->nEntries );
     for ( i = 0; i < pT->nBins; i++ )
     {
         Counter = 0;
@@ -515,12 +515,12 @@ void Fraig_TablePrintStatsS( Fraig_Man_t * pMan )
             Counter++;
         if ( Counter > 1 )
         {
-            printf( "%d ", Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Counter );
             if ( Counter > 50 )
-                printf( "{%d} ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "{%d} ", i );
         }
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -540,16 +540,16 @@ void Fraig_TablePrintStatsF( Fraig_Man_t * pMan )
     Fraig_Node_t * pNode;
     int i, Counter;
 
-    printf( "Functional table. Table size = %d. Number of entries = %d.\n", pT->nBins, pT->nEntries );
+    fprintf( Abc_FrameGlobalGetOut(), "Functional table. Table size = %d. Number of entries = %d.\n", pT->nBins, pT->nEntries );
     for ( i = 0; i < pT->nBins; i++ )
     {
         Counter = 0;
         Fraig_TableBinForEachEntryF( pT->pBins[i], pNode )
             Counter++;
         if ( Counter > 1 )
-            printf( "{%d} ", Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "{%d} ", Counter );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -569,7 +569,7 @@ void Fraig_TablePrintStatsF0( Fraig_Man_t * pMan )
     Fraig_Node_t * pNode;
     int i, Counter;
 
-    printf( "Zero-node table. Table size = %d. Number of entries = %d.\n", pT->nBins, pT->nEntries );
+    fprintf( Abc_FrameGlobalGetOut(), "Zero-node table. Table size = %d. Number of entries = %d.\n", pT->nBins, pT->nEntries );
     for ( i = 0; i < pT->nBins; i++ )
     {
         Counter = 0;
@@ -583,7 +583,7 @@ void Fraig_TablePrintStatsF0( Fraig_Man_t * pMan )
             printf( "Node %5d. Hash = %10d.\n", pNode->Num, pNode->uHashD );
 */
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************

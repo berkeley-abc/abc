@@ -82,11 +82,11 @@ void Inter_ManVerifyInterpolant1( Inta_Man_t * pMan, Sto_Man_t * pCnf, Aig_Man_t
     Aig_ManStop( pInterC );
     
     if ( RetValue1 && RetValue2 )
-        printf( "Im is correct.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Im is correct.\n" );
     if ( !RetValue1 )
-        printf( "Property A => Im fails.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Property A => Im fails.\n" );
     if ( !RetValue2 )
-        printf( "Property Im => !B fails.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Property Im => !B fails.\n" );
 
     Aig_ManStop( pLower );
     Aig_ManStop( pUpper );
@@ -126,11 +126,11 @@ void Inter_ManVerifyInterpolant2( Intb_Man_t * pMan, Sto_Man_t * pCnf, Aig_Man_t
     Aig_ManStop( pInterC );
     
     if ( RetValue1 && RetValue2 )
-        printf( "Ip is correct.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Ip is correct.\n" );
     if ( !RetValue1 )
-        printf( "Property A => Ip fails.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Property A => Ip fails.\n" );
     if ( !RetValue2 )
-        printf( "Property Ip => !B fails.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Property Ip => !B fails.\n" );
 
     Aig_ManStop( pLower );
     Aig_ManStop( pUpper );

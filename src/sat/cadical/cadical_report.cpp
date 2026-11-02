@@ -193,7 +193,7 @@ void Internal::report (char type, int verbose) {
 #undef REPORT
   if (!lim.report) {
     print_prefix ();
-    fputc ('\n', stdout);
+    fputc( '\n', Abc_FrameGlobalGetOut() );
     int pos = 4;
     for (int i = 0; i < n; i++) {
       int len = strlen (reports[i].buffer);
@@ -213,12 +213,12 @@ void Internal::report (char type, int verbose) {
       line[i] = 0;
       print_prefix ();
       tout.yellow ();
-      fputs (line, stdout);
+      fputs (line, Abc_FrameGlobalGetOut());
       tout.normal ();
-      fputc ('\n', stdout);
+      fputc( '\n', Abc_FrameGlobalGetOut() );
     }
     print_prefix ();
-    fputc ('\n', stdout);
+    fputc( '\n', Abc_FrameGlobalGetOut() );
     delete[] line;
     lim.report = 19;
   } else
@@ -291,7 +291,7 @@ void Internal::report (char type, int verbose) {
   default:
     break;
   }
-  fputc (type, stdout);
+  fputc( type, Abc_FrameGlobalGetOut() );
   if (stable || type == ']')
     tout.magenta ();
   else if (preprocessing || type == ')')
@@ -299,13 +299,13 @@ void Internal::report (char type, int verbose) {
   else if (type != 'L' && type != 'P')
     tout.normal ();
   for (int i = 0; i < n; i++) {
-    fputc (' ', stdout);
-    fputs (reports[i].buffer, stdout);
+    fputc( ' ', Abc_FrameGlobalGetOut() );
+    fputs (reports[i].buffer, Abc_FrameGlobalGetOut());
   }
   if (stable || type == 'L' || type == 'P' || type == ']')
     tout.normal ();
-  fputc ('\n', stdout);
-  fflush (stdout);
+  fputc( '\n', Abc_FrameGlobalGetOut() );
+  fflush( Abc_FrameGlobalGetOut() );
 }
 
 #else // ifndef CADICAL_QUIET

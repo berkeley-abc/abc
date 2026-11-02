@@ -277,13 +277,13 @@ DdNode * Extra_zddCreateSubsets(
 void Extra_zddPrintSubsets( int * pSubsets )
 {
     int i, k, Counter = 0;
-    printf( "The set contains %d subsets:\n", pSubsets[0] );
+    fprintf( Abc_FrameGlobalGetOut(), "The set contains %d subsets:\n", pSubsets[0] );
     for ( i = k = 0; i < pSubsets[0]; i++ )
     {
-        printf( "Subset %3d : {", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Subset %3d : {", Counter );
         for ( k++; pSubsets[k] != -1; k++ )
-            printf( " %d", pSubsets[k] );
-        printf( " }\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " %d", pSubsets[k] );
+        fprintf( Abc_FrameGlobalGetOut(), " }\n" );
         Counter++;
     }
 }
@@ -314,12 +314,12 @@ void Extra_zddTruncateTest()
     DdNode * zFunc = Extra_zddCreateSubsets( dd, pSubsets, nSubsets );  Cudd_Ref( zFunc );
     assert( nSubsets <= TEST_SET_MAX );
     // print the input ZDD
-    printf( "The initial ZDD representing %d subsets:\n", nSubsets );
+    fprintf( Abc_FrameGlobalGetOut(), "The initial ZDD representing %d subsets:\n", nSubsets );
     Cudd_zddPrintMinterm( dd, zFunc );
     // compute the result of truncation
     pOutput = Extra_zddTruncate( dd, zFunc, pVarProbs, ProbLimit );
     // print the resulting ZDD
-    printf( "The resulting ZDD representing %d subsets:\n", pOutput[0] );
+    fprintf( Abc_FrameGlobalGetOut(), "The resulting ZDD representing %d subsets:\n", pOutput[0] );
     // print the resulting subsets
     Extra_zddPrintSubsets( pOutput );
     // cleanup

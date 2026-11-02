@@ -26,6 +26,7 @@
 #include "misc/vec/vec.h"
 #include "misc/util/utilNam.h"
 #include "misc/extra/extra.h"
+#include "base/abc/abc.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -279,20 +280,20 @@ int Au_NtkMemUsage( Au_Ntk_t * p )
 }
 void Au_NtkPrintStats( Au_Ntk_t * p )
 {
-    printf( "%-30s:",        Au_NtkName(p) );
-    printf( " i/o =%6d/%6d", Au_NtkPiNum(p), Au_NtkPoNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "%-30s:",        Au_NtkName(p) );
+    fprintf( Abc_FrameGlobalGetOut(), " i/o =%6d/%6d", Au_NtkPiNum(p), Au_NtkPoNum(p) );
     if ( Au_NtkFlopNum(p) )
-        printf( "  lat =%5d",    Au_NtkFlopNum(p) );
-    printf( "  nd =%6d",     Au_NtkNodeNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "  lat =%5d",    Au_NtkFlopNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "  nd =%6d",     Au_NtkNodeNum(p) );
 //    if ( Au_NtkBoxNum(p) )
-        printf( "  box =%5d",    Au_NtkBoxNum(p) );
-    printf( "  obj =%7d",    Au_NtkObjNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "  box =%5d",    Au_NtkBoxNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "  obj =%7d",    Au_NtkObjNum(p) );
 //    printf( "  max =%7d",    Au_NtkObjNumMax(p) );
 //    printf( "  use =%7d",    p->nObjsUsed );
-    printf( " %5.1f %%",     100.0 * (Au_NtkObjNumMax(p) - Au_NtkObjNum(p)) / Au_NtkObjNumMax(p) );
-    printf( " %6.1f MB",     1.0 * Au_NtkMemUsage(p) / (1 << 20) );
-    printf( " %5.1f %%",     100.0 * (p->nObjsAlloc - p->nObjsUsed) / p->nObjsAlloc );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), " %5.1f %%",     100.0 * (Au_NtkObjNumMax(p) - Au_NtkObjNum(p)) / Au_NtkObjNumMax(p) );
+    fprintf( Abc_FrameGlobalGetOut(), " %6.1f MB",     1.0 * Au_NtkMemUsage(p) / (1 << 20) );
+    fprintf( Abc_FrameGlobalGetOut(), " %5.1f %%",     100.0 * (p->nObjsAlloc - p->nObjsUsed) / p->nObjsAlloc );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Au_NtkCleanCopy( Au_Ntk_t * p )
 {
@@ -395,13 +396,13 @@ void Au_ManPrintStats( Au_Man_t * p )
     Au_Ntk_t * pNtk;
     int i;
     if ( Vec_PtrSize(&p->vNtks) > 2 )
-        printf( "Design %-13s\n", Au_ManName(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "Design %-13s\n", Au_ManName(p) );
     Au_ManForEachNtk( p, pNtk, i )
         Au_NtkPrintStats( pNtk );
-    printf( "Different functions = %d. ", p->pFuncs ? Abc_NamObjNumMax(p->pFuncs) : 0 );
-    printf( "Memory = %.1f MB",  1.0 * Au_ManMemUsage(p) / (1 << 20) );
-    printf( " %5.1f %%",       100.0 * (Au_ManMemUsage(p) - Au_ManMemUsageUseful(p)) / Au_ManMemUsage(p) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Different functions = %d. ", p->pFuncs ? Abc_NamObjNumMax(p->pFuncs) : 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "Memory = %.1f MB",  1.0 * Au_ManMemUsage(p) / (1 << 20) );
+    fprintf( Abc_FrameGlobalGetOut(), " %5.1f %%",       100.0 * (Au_ManMemUsage(p) - Au_ManMemUsageUseful(p)) / Au_ManMemUsage(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 //    if ( p->pFuncs )
 //        Abc_NamPrint( p->pFuncs );
 }
@@ -524,15 +525,15 @@ void Au_ManCountThings( Au_Man_t * p )
 //        printf( "total %.0f nodes in model %s\n", pNtk->nNodes, Au_NtkName(pNtk) );
     }
     pNtk = Au_ManNtkRoot(p);
-    printf( "Total nodes = %15.0f. Total instances = %15.0f. Total ports = %15.0f.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Total nodes = %15.0f. Total instances = %15.0f. Total ports = %15.0f.\n", 
 //    printf( "Total nodes = %.2e. Total instances = %.2e. Total ports = %.2e.\n", 
         pNtk->nNodes, pNtk->nBoxes, pNtk->nPorts );
 //    printf( "Total ANDs  = %15.0f. Total XORs      = %15.0f. Total MUXes = %15.0f.\n", 
 //    printf( "Total ANDs  = %.2e. Total XORs      = %.2e. Total MUXes = %.2e.  ", 
 //        pNtk->nNodeAnds, pNtk->nNodeXors, pNtk->nNodeMuxs );
-    printf( "Total ANDs  = %15.0f.\n", pNtk->nNodeAnds );
-    printf( "Total XORs  = %15.0f.\n", pNtk->nNodeXors );
-    printf( "Total MUXes = %15.0f.\n", pNtk->nNodeMuxs );
+    fprintf( Abc_FrameGlobalGetOut(), "Total ANDs  = %15.0f.\n", pNtk->nNodeAnds );
+    fprintf( Abc_FrameGlobalGetOut(), "Total XORs  = %15.0f.\n", pNtk->nNodeXors );
+    fprintf( Abc_FrameGlobalGetOut(), "Total MUXes = %15.0f.\n", pNtk->nNodeMuxs );
 //    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
@@ -549,7 +550,7 @@ void Au_ManPrintBoxInfo( Au_Ntk_t * pNtk )
     int i, k, Num;
     if ( pNtk->pMan == NULL )
     {
-        printf( "There is no hierarchy information.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There is no hierarchy information.\n" );
         return;
     }
     vMods = &pNtk->pMan->vNtks;
@@ -590,32 +591,32 @@ void Au_ManPrintBoxInfo( Au_Ntk_t * pNtk )
         }
 
 //        Au_NtkPrintStats( pModel, 0, 0, 0, 0, 0, 0, 0 );
-        printf( "MODULE  " );
-        printf( "%-30s : ", Au_NtkName(pModel) );
-        printf( "PI=%6d ", Au_NtkPiNum(pModel) );
-        printf( "PO=%6d ", Au_NtkPoNum(pModel) );
-        printf( "BB=%6d ", Au_NtkBoxNum(pModel) );
-        printf( "ND=%6d ", Au_NtkNodeNum(pModel) ); // sans constants
+        fprintf( Abc_FrameGlobalGetOut(), "MODULE  " );
+        fprintf( Abc_FrameGlobalGetOut(), "%-30s : ", Au_NtkName(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "PI=%6d ", Au_NtkPiNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "PO=%6d ", Au_NtkPoNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "BB=%6d ", Au_NtkBoxNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "ND=%6d ", Au_NtkNodeNum(pModel) ); // sans constants
 //        printf( "Lev=%5d ", Au_NtkLevel(pModel) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         Vec_IntForEachEntry( vCounts, Num, k )
             if ( Num )
-                printf( "%15d : %s\n", Num, Au_NtkName((Au_Ntk_t *)Vec_PtrEntry(vMods, k)) );
+                fprintf( Abc_FrameGlobalGetOut(), "%15d : %s\n", Num, Au_NtkName((Au_Ntk_t *)Vec_PtrEntry(vMods, k)) );
     }
     Vec_IntFree( vCounts );
     Vec_PtrForEachEntryStart( Au_Ntk_t *, vMods, pModel, i, 1 )
     {
         if ( Au_NtkBoxNum(pModel) != 0 )
             continue;
-        printf( "MODULE  " );
-        printf( "%-30s : ", Au_NtkName(pModel) );
-        printf( "PI=%6d ", Au_NtkPiNum(pModel) );
-        printf( "PO=%6d ", Au_NtkPoNum(pModel) );
-        printf( "BB=%6d ", Au_NtkBoxNum(pModel) );
-        printf( "ND=%6d ", Au_NtkNodeNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "MODULE  " );
+        fprintf( Abc_FrameGlobalGetOut(), "%-30s : ", Au_NtkName(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "PI=%6d ", Au_NtkPiNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "PO=%6d ", Au_NtkPoNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "BB=%6d ", Au_NtkBoxNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "ND=%6d ", Au_NtkNodeNum(pModel) );
 //        printf( "Lev=%5d ", Au_NtkLevel(pModel) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 int Au_NtkCompareSign( Au_Ntk_t ** p1, Au_Ntk_t ** p2 )
@@ -632,7 +633,7 @@ void Au_ManPrintBoxInfoSorted( Au_Ntk_t * pNtk )
     int i;
     if ( pNtk->pMan == NULL )
     {
-        printf( "There is no hierarchy information.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There is no hierarchy information.\n" );
         return;
     }
     vMods = &pNtk->pMan->vNtks;
@@ -646,13 +647,13 @@ void Au_ManPrintBoxInfoSorted( Au_Ntk_t * pNtk )
     Vec_PtrSort( vModsNew, (int(*)(const void *, const void *))Au_NtkCompareSign );
     Vec_PtrForEachEntryStart( Au_Ntk_t *, vModsNew, pModel, i, 1 )
     {
-        printf( "MODULE  " );
-        printf( "%-30s : ", Au_NtkName(pModel) );
-        printf( "PI=%6d ", Au_NtkPiNum(pModel) );
-        printf( "PO=%6d ", Au_NtkPoNum(pModel) );
-        printf( "BB=%6d ", Au_NtkBoxNum(pModel) );
-        printf( "ND=%6d ", Au_NtkNodeNum(pModel) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "MODULE  " );
+        fprintf( Abc_FrameGlobalGetOut(), "%-30s : ", Au_NtkName(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "PI=%6d ", Au_NtkPiNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "PO=%6d ", Au_NtkPoNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "BB=%6d ", Au_NtkBoxNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "ND=%6d ", Au_NtkNodeNum(pModel) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_PtrFree( vModsNew );
 }
@@ -666,7 +667,7 @@ int Au_NtkCheckRecursive( Au_Ntk_t * pNtk )
 
     if ( pNtk->pMan == NULL )
     {
-        printf( "There is no hierarchy information.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There is no hierarchy information.\n" );
         return RetValue;
     }
 
@@ -676,7 +677,7 @@ int Au_NtkCheckRecursive( Au_Ntk_t * pNtk )
         Au_NtkForEachObj( pModel, pObj, k )
             if ( Au_ObjIsBox(pObj) && Au_ObjModel(pObj) == pModel )
             {
-                printf( "WARNING: Model \"%s\" contains a recursive definition.\n", Au_NtkName(pModel) );
+                fprintf( Abc_FrameGlobalGetOut(), "WARNING: Model \"%s\" contains a recursive definition.\n", Au_NtkName(pModel) );
                 RetValue = 1;
                 break;
             }
@@ -735,7 +736,7 @@ int Au_NtkSuppSizeTest( Au_Ntk_t * p )
     Au_NtkForEachObj( p, pObj, i )
         if ( Au_ObjIsNode(pObj) )
             Counter += (Au_ObjSuppSize(pObj) <= 16);
-    printf( "Nodes with small support %d (out of %d)\n", Counter, Au_NtkNodeNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes with small support %d (out of %d)\n", Counter, Au_NtkNodeNum(p) );
     return Counter;
 }
 
@@ -970,7 +971,7 @@ Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\".\n", pFileName );
         return NULL;
     }
     pBuffer = Extra_FileRead( pFile );
@@ -996,7 +997,7 @@ Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
             continue;
         if ( *pCur != '.' )
         {
-            printf( "Cannot read directive in line %d: \"%s\".\n", i, pBuffer + Line );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot read directive in line %d: \"%s\".\n", i, pBuffer + Line );
             continue;
         }
         Vec_IntClear( vFanins );
@@ -1085,7 +1086,7 @@ Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
                 Au_NtkCreatePo( pRoot, Num );
         }
         else if ( strcmp(pCur, ".end") )
-            printf( "Unknown directive in line %d: \"%s\".\n", i, pBuffer + Line );
+            fprintf( Abc_FrameGlobalGetOut(), "Unknown directive in line %d: \"%s\".\n", i, pBuffer + Line );
     }
     Vec_IntFree( vFanins );
     Vec_IntFree( vNum2Obj );
@@ -1136,7 +1137,7 @@ void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
         assert( Au_ObjCopy(pTerm) >= 0 );
     if ( strcmp(Au_NtkName(p), "ref_egcd") == 0 )
     {
-        printf( "Replacing one instance of recursive model \"%s\" by a black box.\n", "ref_egcd" );
+        fprintf( Abc_FrameGlobalGetOut(), "Replacing one instance of recursive model \"%s\" by a black box.\n", "ref_egcd" );
         Au_NtkForEachPo( p, pTerm, i )
             Au_ObjSetCopy( pTerm, Gia_ManAppendCi(pGia) );
         return;
@@ -1224,7 +1225,7 @@ Gia_Man_t * Au_NtkDeriveFlatGia( Au_Ntk_t * p )
     Gia_Man_t * pTemp, * pGia = NULL;
     Au_Obj_t * pTerm;
     int i;
-    printf( "Collapsing model \"%s\"...\n", Au_NtkName(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Collapsing model \"%s\"...\n", Au_NtkName(p) );
     Au_NtkCleanCopy( p );
     // start the network
     pGia = Gia_ManStart( (1<<16) );
@@ -1338,7 +1339,7 @@ void Au_NtkTerSimulate_rec( Au_Ntk_t * p )
     }
     if ( strcmp(Au_NtkName(p), "ref_egcd") == 0 )
     {
-        printf( "Replacing one instance of recursive model \"%s\" by a black box.\n", "ref_egcd" );
+        fprintf( Abc_FrameGlobalGetOut(), "Replacing one instance of recursive model \"%s\" by a black box.\n", "ref_egcd" );
         Au_NtkForEachPo( p, pTerm, i )
             Au_ObjSetXsim( pTerm, AU_VALX );
         return;
@@ -1404,7 +1405,7 @@ void Au_NtkTerSimulate( Au_Ntk_t * p )
     Au_Obj_t * pTerm;
     int i, Counter[2] = {0};
     assert( p->pMan->pFuncs == NULL );
-    printf( "Collapsing model \"%s\"...\n", Au_NtkName(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Collapsing model \"%s\"...\n", Au_NtkName(p) );
     // create PIs
     Au_NtkForEachPi( p, pTerm, i )
         Au_ObjSetXsim( pTerm, AU_VALX );
@@ -1420,9 +1421,9 @@ void Au_NtkTerSimulate( Au_Ntk_t * p )
         else if ( Au_ObjGetXsim(pTerm) == AU_VAL1 )
             Counter[1]++;
     // print results
-    printf( "Const0 outputs =%15d. Const1 outputs =%15d.  Total outputs =%15d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Const0 outputs =%15d. Const1 outputs =%15d.  Total outputs =%15d.\n", 
         Counter[0], Counter[1], Au_NtkPoNum(p) );
-    printf( "Const0 ports =  %.0f. Const1  ports =  %.0f. Non-const ports=  %.0f.  Total ports =  %.0f.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Const0 ports =  %.0f. Const1  ports =  %.0f. Non-const ports=  %.0f.  Total ports =  %.0f.\n", 
         p->pMan->nPortsC0, p->pMan->nPortsC1, p->pMan->nPortsNC, p->pMan->nPortsC0 + p->pMan->nPortsC1 + p->pMan->nPortsNC );
 }
 
@@ -1528,7 +1529,7 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
     {
         pNtk = Au_ManFindNtkP( pMan, pModelName );
         if ( pNtk == NULL )
-            printf( "Could not find module \"%s\".\n", pModelName );
+            fprintf( Abc_FrameGlobalGetOut(), "Could not find module \"%s\".\n", pModelName );
     }
     if ( pNtk == NULL )
         pNtk = (Au_Ntk_t *)pRoot->pData;
@@ -1579,12 +1580,12 @@ Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, char * pModelName, int fVerbos
     pNtk = Au_NtkParseCBlif( pFileName );
     if ( pNtk == NULL )
     {
-        printf( "Reading CBLIF file has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Reading CBLIF file has failed.\n" );
         return NULL;
     }
     if ( pNtk->pMan == NULL || pNtk->pMan->vNtks.pArray == NULL )
     {
-        printf( "There is no hierarchy information.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There is no hierarchy information.\n" );
         Au_NtkFree( pNtk );
         return NULL;
     }

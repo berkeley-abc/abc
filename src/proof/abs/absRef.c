@@ -291,13 +291,13 @@ void Rnm_ManStop( Rnm_Man_t * p, int fProfile )
         double MemGia = sizeof(Gia_Man_t) + sizeof(Gia_Obj_t) * p->pGia->nObjsAlloc + sizeof(int) * p->pGia->nTravIdsAlloc;
         double MemOther = sizeof(Rnm_Man_t) + sizeof(Rnm_Obj_t) * p->nObjsAlloc + sizeof(int) * Vec_IntCap(p->vObjs);
         abctime timeOther = p->timeTotal - p->timeFwd - p->timeBwd - p->timeVer;
-        printf( "Abstraction refinement runtime statistics:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abstraction refinement runtime statistics:\n" );
         ABC_PRTP( "Sensetization", p->timeFwd,   p->timeTotal );
         ABC_PRTP( "Justification", p->timeBwd,   p->timeTotal );
         ABC_PRTP( "Verification ", p->timeVer,   p->timeTotal );
         ABC_PRTP( "Other        ", timeOther,    p->timeTotal );
         ABC_PRTP( "TOTAL        ", p->timeTotal, p->timeTotal );
-        printf( "Total calls = %d.  Average refine = %.1f. GIA mem = %.3f MB.  Other mem = %.3f MB.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Total calls = %d.  Average refine = %.1f. GIA mem = %.3f MB.  Other mem = %.3f MB.\n", 
             p->nCalls, 1.0*p->nRefines/p->nCalls, MemGia/(1<<20), MemOther/(1<<20) );
     }
 
@@ -451,7 +451,7 @@ int Rnm_ManSensitize( Rnm_Man_t * p )
     assert( iBit == p->pCex->nBits );
     pRnm = Rnm_ManObj( p, Gia_ManPo(p->pGia, 0), p->pCex->iFrame );
     if ( pRnm->Value != 1 )
-        printf( "Output value is incorrect.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Output value is incorrect.\n" );
     return pRnm->Prio;
 }
 

@@ -500,7 +500,7 @@ void Kit_PlaToTruth( char * pSop, int nVars, Vec_Ptr_t * vVars, unsigned * pTemp
     assert( nVars >= 0 );
     if ( strlen(pSop) % (nVars + 3) != 0 )
     {
-        printf( "Kit_PlaToTruth(): SOP is represented incorrectly.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Kit_PlaToTruth(): SOP is represented incorrectly.\n" );
         return;
     }
     // iterate through the cubes

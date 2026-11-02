@@ -88,9 +88,9 @@ extern void WriteDDintoBLIFfileReorder( DdManager * dd, FILE * pFile, DdNode * F
 ///                      debugging macros                            ///
 ////////////////////////////////////////////////////////////////////////
 
-#define PRB_(f)       printf( #f " = " ); Cudd_bddPrint(dd,f); printf( "\n" )
-#define PRK(f,n)     Cudd_PrintKMap(stdout,dd,(f),Cudd_Not(f),(n),NULL,0); printf( "K-map for function" #f "\n\n" )
-#define PRK2(f,g,n)  Cudd_PrintKMap(stdout,dd,(f),(g),(n),NULL,0); printf( "K-map for function <" #f ", " #g ">\n\n" ) 
+#define PRB_(f)       fprintf( Abc_FrameGlobalGetOut(), #f " = " ); Cudd_bddPrint(dd,f); printf( "\n" )
+#define PRK(f,n)     Cudd_PrintKMap(Abc_FrameGlobalGetOut(),dd,(f),Cudd_Not(f),(n),NULL,0); pfrintf( Abc_FrameGlobalGetOut(),  "K-map for function" #f "\n\n" )
+#define PRK2(f,g,n)  Cudd_PrintKMap(Abc_FrameGlobalGetOut(),dd,(f),(g),(n),NULL,0); pfrintf( Abc_FrameGlobalGetOut(),  "K-map for function <" #f ", " #g ">\n\n" ) 
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -171,7 +171,7 @@ int CreateDecomposedNetwork( DdManager * dd, DdNode * aFunc, char ** pNames, int
         
         if ( p->nMulti >= nLutSize )
         {
-            printf( "The LUT size is too small\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The LUT size is too small\n" );
             return 0;
         }
 
@@ -285,7 +285,7 @@ int CreateDecomposedNetwork( DdManager * dd, DdNode * aFunc, char ** pNames, int
 //printf( "Stage %2d: Simple = %d\n", i+1, p->nSimple );
 
 if ( fVerbose )
-printf( "Stage %3d: In = %3d  InP = %3d  Cols = %5d  Multi = %2d  Simple = %2d  Level = %3d\n", 
+fprintf( Abc_FrameGlobalGetOut(), "Stage %3d: In = %3d  InP = %3d  Cols = %5d  Multi = %2d  Simple = %2d  Level = %3d\n", 
        i+1, p->nIns, p->nInsP, p->nCols, p->nMulti, p->nSimple, p->Level );
 
         // get the codes from the relation (these are not necessarily cubes)
@@ -329,10 +329,10 @@ printf( "Stage %3d: In = %3d  InP = %3d  Cols = %5d  Multi = %2d  Simple = %2d  
         }
     } 
     if ( fVerbose )
-    printf( "LUTs: Total = %5d. Final = %5d. Simple = %5d. (%6.2f %%)  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "LUTs: Total = %5d. Final = %5d. Simple = %5d. (%6.2f %%)  ", 
         nLutsTotal, nLutOutputs, nLutsTotal-nLutOutputs, 100.0*(nLutsTotal-nLutOutputs)/nLutsTotal );
     if ( fVerbose )
-    printf( "Memory = %6.2f MB\n", 1.0*nLutOutputs*(1<<nLutSize)/(1<<20) );
+    fprintf( Abc_FrameGlobalGetOut(), "Memory = %6.2f MB\n", 1.0*nLutOutputs*(1<<nLutSize)/(1<<20) );
 //  printf( "\n" );
 
 //fprintf( pTable, "%d ", nLutOutputsOrig );
@@ -340,8 +340,8 @@ printf( "Stage %3d: In = %3d  InP = %3d  Cols = %5d  Multi = %2d  Simple = %2d  
 
     if ( fVerbose )
     {
-    printf( "Pure decomposition time   = %.2f sec\n", (float)(Abc_Clock() - clk1 - EncodingTime)/(float)(CLOCKS_PER_SEC) );
-    printf( "Encoding time             = %.2f sec\n", (float)(EncodingTime)/(float)(CLOCKS_PER_SEC) );
+    fprintf( Abc_FrameGlobalGetOut(), "Pure decomposition time   = %.2f sec\n", (float)(Abc_Clock() - clk1 - EncodingTime)/(float)(CLOCKS_PER_SEC) );
+    fprintf( Abc_FrameGlobalGetOut(), "Encoding time             = %.2f sec\n", (float)(EncodingTime)/(float)(CLOCKS_PER_SEC) );
     }
 
 
@@ -371,7 +371,7 @@ printf( "Stage %3d: In = %3d  InP = %3d  Cols = %5d  Multi = %2d  Simple = %2d  
         fprintf( pFile, ".end\n" );
         fclose( pFile );
         if ( fVerbose )
-        printf( "Output file writing time  = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
+        fprintf( Abc_FrameGlobalGetOut(), "Output file writing time  = %.2f sec\n", (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC) );
     }
 
 

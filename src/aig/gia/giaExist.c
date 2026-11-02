@@ -91,7 +91,7 @@ void Gia_ManQuantVerify( Gia_Man_t * p, int iObj )
     {
         Gia_ManIncrementTravId( p );
         if ( Abc_TtGetBit(pInfo, i) != Gia_ManQuantVerify_rec(p, iObj, CiId) )
-            printf( "Mismatch at node %d related to CI %d (%d).\n", iObj, CiId, Abc_TtGetBit(pInfo, i) );
+            fprintf( Abc_FrameGlobalGetOut(), "Mismatch at node %d related to CI %d (%d).\n", iObj, CiId, Abc_TtGetBit(pInfo, i) );
     }
 }
 

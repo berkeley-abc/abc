@@ -196,26 +196,26 @@ static inline void xSat_FloatTest()
 //    Extra_PrintBinary( stdout, (int *)&c1, 32 ); printf( "\n" );
 //    Extra_PrintBinary( stdout, (int *)&f1, 32 ); printf( "\n" );
 
-    printf( "1 = %f\n",   xSat_Float2Float(c1) );
-    printf( "2 = %f\n",   xSat_Float2Float(c2) );
-    printf( "3 = %f\n",   xSat_Float2Float(c3) );
-    printf( "12 = %f\n",  xSat_Float2Float(c12) );
-    printf( "1.5 = %f\n", xSat_Float2Float(c1p5) );
-    printf( "2.5 = %f\n", xSat_Float2Float(c2p5) );
+    fprintf( Abc_FrameGlobalGetOut(),  "1 = %f\n",   xSat_Float2Float(c1)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "2 = %f\n",   xSat_Float2Float(c2)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "3 = %f\n",   xSat_Float2Float(c3)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "12 = %f\n",  xSat_Float2Float(c12)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "1.5 = %f\n", xSat_Float2Float(c1p5)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "2.5 = %f\n", xSat_Float2Float(c2p5)  );
 
-    printf( "Converted 1 = %f\n",   xSat_Float2Float(c1_) );
-    printf( "Converted 2 = %f\n",   xSat_Float2Float(c2_) );
-    printf( "Converted 3 = %f\n",   xSat_Float2Float(c3_) );
-    printf( "Converted 12 = %f\n",  xSat_Float2Float(c12_) );
-    printf( "Converted 1.5 = %f\n", xSat_Float2Float(c1p5_) );
-    printf( "Converted 2.5 = %f\n", xSat_Float2Float(c2p5_) );
+    fprintf( Abc_FrameGlobalGetOut(),  "Converted 1 = %f\n",   xSat_Float2Float(c1_)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "Converted 2 = %f\n",   xSat_Float2Float(c2_)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "Converted 3 = %f\n",   xSat_Float2Float(c3_)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "Converted 12 = %f\n",  xSat_Float2Float(c12_)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "Converted 1.5 = %f\n", xSat_Float2Float(c1p5_)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "Converted 2.5 = %f\n", xSat_Float2Float(c2p5_)  );
 
-    printf( "1.0 + 1.5 = %f\n", xSat_Float2Float(sum1) );
-    printf( "2.0 * 1.5 = %f\n", xSat_Float2Float(mul1) );
+    fprintf( Abc_FrameGlobalGetOut(),  "1.0 + 1.5 = %f\n", xSat_Float2Float(sum1)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "2.0 * 1.5 = %f\n", xSat_Float2Float(mul1)  );
 
-    printf( "1.5 + 2.5 = %f\n", xSat_Float2Float(sum2) );
-    printf( "1.5 * 2.5 = %f\n", xSat_Float2Float(mul2) );
-    printf( "12 / 2^2  = %f\n", xSat_Float2Float(xSat_FloatDiv(c12, 2)) );
+    fprintf( Abc_FrameGlobalGetOut(),  "1.5 + 2.5 = %f\n", xSat_Float2Float(sum2)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "1.5 * 2.5 = %f\n", xSat_Float2Float(mul2)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "12 / 2^2  = %f\n", xSat_Float2Float(xSat_FloatDiv(c12, 2))  );
 
     assert( xSat_Equal(sum1, c2p5) );
     assert( xSat_Equal(mul1, c3) );

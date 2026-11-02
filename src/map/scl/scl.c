@@ -2116,7 +2116,7 @@ int Scl_CommandWriteConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
         pFileName = Extra_FileNameGenericAppend( pCon->pFileName, "_out.constr" );
     else 
     {
-        printf( "Output file name should be given on the command line.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Output file name should be given on the command line.\n" );
         return 0;
     }
     // perform writing
@@ -2124,7 +2124,7 @@ int Scl_CommandWriteConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
         Scl_ConWrite( pCon, pFileName );
     else 
     {
-        printf( "Scl_CommandWriteConstr(): Unrecognized output file extension.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Scl_CommandWriteConstr(): Unrecognized output file extension.\n" );
         return 0;
     }
     return 0;

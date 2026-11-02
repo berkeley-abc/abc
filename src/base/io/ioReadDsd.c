@@ -93,14 +93,14 @@ int Io_ReadDsdStrSplit( char * pCur, char * pParts[], int * pTypeXor )
             // process parentheses
             if ( *pCur != '(' )
             {
-                printf( "Cannot find the opening parenthesis.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot find the opening parenthesis.\n" );
                 break;
             }
             // find the corresponding closing parenthesis
             pCur = Io_ReadDsdFindEnd( pCur );
             if ( pCur == NULL )
             {
-                printf( "Cannot find the closing parenthesis.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot find the closing parenthesis.\n" );
                 break;
             }
             pCur++;
@@ -111,7 +111,7 @@ int Io_ReadDsdStrSplit( char * pCur, char * pParts[], int * pTypeXor )
         // check symbol
         if ( *pCur != '*' && *pCur != '+' && *pCur != ',' )
         {
-            printf( "Wrong separating symbol.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Wrong separating symbol.\n" );
             break;
         }
         // remember the symbol
@@ -123,7 +123,7 @@ int Io_ReadDsdStrSplit( char * pCur, char * pParts[], int * pTypeXor )
     // check separating symbols
     if ( fAnd + fXor + fPri > 1 )
     {
-        printf( "Different types of separating symbol ennPartsed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Different types of separating symbol ennPartsed.\n" );
         return 0;
     }
     *pTypeXor = fXor;
@@ -205,7 +205,7 @@ Abc_Obj_t * Io_ReadDsd_rec( Abc_Ntk_t * pNtk, char * pCur, char * pSop )
         pEnd++;
     if ( *pEnd != '(' )
     {
-        printf( "Cannot find the end of hexadecimal truth table.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot find the end of hexadecimal truth table.\n" );
         return NULL;
     }
 
@@ -294,7 +294,7 @@ Abc_Ntk_t * Io_ReadDsd( char * pForm )
     // create the only PO
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        fprintf( stdout, "Io_ReadDsd(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_ReadDsd(): Network check has failed.\n" );
         Abc_NtkDelete( pNtk );
         return NULL;
     }

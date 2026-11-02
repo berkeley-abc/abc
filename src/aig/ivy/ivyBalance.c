@@ -81,7 +81,7 @@ Ivy_Man_t * Ivy_ManBalance( Ivy_Man_t * p, int fUpdateLevel )
     }
     // check the resulting AIG
     if ( !Ivy_ManCheck(pNew) )
-        printf( "Ivy_ManBalance(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManBalance(): The check has failed.\n" );
     return pNew;
 }
 
@@ -143,7 +143,7 @@ int Ivy_NodeBalance_rec( Ivy_Man_t * pNew, Ivy_Obj_t * pObjOld, Vec_Vec_t * vSto
         return pObjOld->TravId;
     }
     if ( vSuper->nSize < 2 )
-        printf( "BUG!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "BUG!\n" );
     // for each old node, derive the new well-balanced node
     for ( i = 0; i < vSuper->nSize; i++ )
     {

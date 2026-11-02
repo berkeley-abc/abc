@@ -96,11 +96,11 @@ void kissat_report (kissat *solver, bool verbose, char type) {
     if (solver->limits.reports > 1)
       kissat_line (solver);
     for (unsigned j = 0; j < ROWS; j++) {
-      fputs (solver->prefix, stdout);
+      fputs (solver->prefix, Abc_FrameGlobalGetOut());
       COLOR (CYAN);
-      fputs (rows[j], stdout);
+      fputs (rows[j], Abc_FrameGlobalGetOut());
       COLOR (NORMAL);
-      fputc ('\n', stdout);
+      fputc( '\n', Abc_FrameGlobalGetOut() );
     }
     kissat_line (solver);
   }
@@ -142,16 +142,16 @@ void kissat_report (kissat *solver, bool verbose, char type) {
   case ')':
     COLOR (BOLD YELLOW);
   }
-  fputc (type, stdout);
+  fputc( type, Abc_FrameGlobalGetOut() );
   COLOR (NORMAL);
   if (solver->preprocessing)
     COLOR (YELLOW);
   else if (solver->stable)
     COLOR (MAGENTA);
-  fputs (line, stdout);
+  fputs (line, Abc_FrameGlobalGetOut());
   COLOR (NORMAL);
-  fputc ('\n', stdout);
-  fflush (stdout);
+  fputc( '\n', Abc_FrameGlobalGetOut() );
+  fflush( Abc_FrameGlobalGetOut() );
 }
 
 #else

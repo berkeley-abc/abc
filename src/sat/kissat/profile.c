@@ -26,7 +26,7 @@ static inline bool less_profile (profile *p, profile *q) {
 }
 
 static void print_profile (kissat *solver, profile *p, double total) {
-  printf ("%s%14.2f %7.2f %%  %s\n", solver->prefix, p->time,
+  fprintf ( Abc_FrameGlobalGetOut(), "%s%14.2f %7.2f %%  %s\n", solver->prefix, p->time,
           kissat_percent (p->time, total), p->name);
 }
 
@@ -64,7 +64,7 @@ void kissat_profiles_print (kissat *solver) {
   const double total = named->total.time;
   for (size_t i = 0; i < size; i++)
     print_profile (solver, sorted[i], total);
-  printf ("%s=============================================\n",
+  fprintf ( Abc_FrameGlobalGetOut(), "%s=============================================\n",
           solver->prefix);
   print_profile (solver, &named->total, total);
 }

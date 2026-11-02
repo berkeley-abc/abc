@@ -157,9 +157,9 @@ void Cec_GiaSplitExplore( Gia_Man_t * p )
         if ( Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)) > 1 && 
              Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) > 1 )
              continue;
-        printf( "%5d : ", Counter++ );
-        printf( "%2d %2d    ", Gia_ObjRefNum(p, Gia_Regular(pFan0)),  Gia_ObjRefNum(p, Gia_Regular(pFan1)) );
-        printf( "%2d %2d  \n", Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)), Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) );
+        fprintf( Abc_FrameGlobalGetOut(), "%5d : ", Counter++ );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d %2d    ", Gia_ObjRefNum(p, Gia_Regular(pFan0)),  Gia_ObjRefNum(p, Gia_Regular(pFan1)) );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d %2d  \n", Gia_ObjRefNum(p, Gia_ObjFanin0(pObj)), Gia_ObjRefNum(p, Gia_ObjFanin1(pObj)) );
     }
 }
 
@@ -371,15 +371,15 @@ static inline void Cec_GiaSplitClean( Vec_Ptr_t * vStack )
 ***********************************************************************/
 void Cec_GiaSplitPrint( int nIter, int Depth, int nVars, int nConfs, int fStatus, double Prog, abctime clk )
 {
-    printf( "%4d : ",             nIter );
-    printf( "Depth =%3d  ",       Depth );
-    printf( "SatVar =%7d  ",      nVars );
-    printf( "SatConf =%7d   ",    nConfs );
-    printf( "%s   ",              fStatus ? (fStatus == 1 ? "UNSAT    " : "UNDECIDED") : "SAT      " );
-    printf( "Solved %8.4f %%   ", 100*Prog );
+    fprintf( Abc_FrameGlobalGetOut(), "%4d : ",             nIter );
+    fprintf( Abc_FrameGlobalGetOut(), "Depth =%3d  ",       Depth );
+    fprintf( Abc_FrameGlobalGetOut(), "SatVar =%7d  ",      nVars );
+    fprintf( Abc_FrameGlobalGetOut(), "SatConf =%7d   ",    nConfs );
+    fprintf( Abc_FrameGlobalGetOut(), "%s   ",              fStatus ? (fStatus == 1 ? "UNSAT    " : "UNDECIDED") : "SAT      " );
+    fprintf( Abc_FrameGlobalGetOut(), "Solved %8.4f %%   ", 100*Prog );
     Abc_PrintTime( 1, "Time", clk );
     //ABC_PRTr( "Time", Abc_Clock()-clk );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 void Cec_GiaSplitPrintRefs( Gia_Man_t * p )
 {
@@ -388,8 +388,8 @@ void Cec_GiaSplitPrintRefs( Gia_Man_t * p )
     if ( p->pRefs == NULL )
         Gia_ManCreateRefs( p ); 
     Gia_ManForEachPi( p, pObj, i )
-        printf( "%d ", Gia_ObjRefNum(p, pObj) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Gia_ObjRefNum(p, pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -420,13 +420,13 @@ int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, in
     if ( status == 0 )
     {
         if ( !fSilent )
-        printf( "The problem is SAT without cofactoring.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The problem is SAT without cofactoring.\n" );
         return 0;
     }
     if ( status == 1 )
     {
         if ( !fSilent )
-        printf( "The problem is UNSAT without cofactoring.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The problem is UNSAT without cofactoring.\n" );
         return 1;
     }
     assert( status == -1 );
@@ -449,7 +449,7 @@ int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, in
         if ( fVeryVerbose )
         {
 //            Cec_GiaSplitPrintRefs( pLast );
-            printf( "Var = %5d. Fanouts = %5d. Cost = %8d.  AndBefore = %6d.  AndAfter = %6d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Var = %5d. Fanouts = %5d. Cost = %8d.  AndBefore = %6d.  AndAfter = %6d.\n", 
                 iVar, nFanouts, Cost, Gia_ManAndNum(pLast), Gia_ManAndNum(pPart) );
 //            Cec_GiaSplitPrintRefs( pPart );
         }
@@ -513,15 +513,15 @@ int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, in
     if ( !fSilent )
     {
         if ( RetValue == 0 )
-            printf( "Problem is SAT " );
+            fprintf( Abc_FrameGlobalGetOut(), "Problem is SAT " );
         else if ( RetValue == 1 )
-            printf( "Problem is UNSAT " );
+            fprintf( Abc_FrameGlobalGetOut(), "Problem is UNSAT " );
         else if ( RetValue == -1 )
-            printf( "Problem is UNDECIDED " );
+            fprintf( Abc_FrameGlobalGetOut(), "Problem is UNDECIDED " );
         else assert( 0 );
-        printf( "after %d case-splits.  ", nIter );
+        fprintf( Abc_FrameGlobalGetOut(), "after %d case-splits.  ", nIter );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     return RetValue;
 }
@@ -581,10 +581,10 @@ int Cec_GiaSplitTestInt( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, 
     int nIter = 0, RetValue = -1, fWorkToDo = 1;
     Abc_CexFreeP( &p->pCexComb );
     if ( fVerbose )
-        printf( "Solving CEC problem by cofactoring with the following parameters:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Solving CEC problem by cofactoring with the following parameters:\n" );
     if ( fVerbose )
-        printf( "Processes = %d   TimeOut = %d sec   MaxIter = %d   LookAhead = %d   Verbose = %d.\n", nProcs, nTimeOut, nIterMax, LookAhead, fVerbose );
-    fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "Processes = %d   TimeOut = %d sec   MaxIter = %d   LookAhead = %d   Verbose = %d.\n", nProcs, nTimeOut, nIterMax, LookAhead, fVerbose );
+    fflush( Abc_FrameGlobalGetOut() );
     if ( nProcs == 1 )
         return Cec_GiaSplitTest2( p, nProcs, nTimeOut, nIterMax, LookAhead, fVerbose, fVeryVerbose, fSilent );
     // subtract manager thread
@@ -599,13 +599,13 @@ int Cec_GiaSplitTestInt( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, 
     if ( status == 0 )
     {
         if ( !fSilent )
-        printf( "The problem is SAT without cofactoring.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The problem is SAT without cofactoring.\n" );
         return 0;
     }
     if ( status == 1 )
     {
         if ( !fSilent )
-        printf( "The problem is UNSAT without cofactoring.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The problem is UNSAT without cofactoring.\n" );
         return 1;
     }
     assert( status == -1 );
@@ -666,7 +666,7 @@ int Cec_GiaSplitTestInt( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, 
                     if ( fVeryVerbose )
                     {
 //                        Cec_GiaSplitPrintRefs( pLast );
-                        printf( "Var = %5d. Fanouts = %5d. Cost = %8d.  AndBefore = %6d.  AndAfter = %6d.\n", 
+                        fprintf( Abc_FrameGlobalGetOut(), "Var = %5d. Fanouts = %5d. Cost = %8d.  AndBefore = %6d.  AndAfter = %6d.\n", 
                             iVar, nFanouts, Cost, Gia_ManAndNum(pLast), Gia_ManAndNum(pPart) );
 //                        Cec_GiaSplitPrintRefs( pPart );
                     }
@@ -725,15 +725,15 @@ finish:
     if ( !fSilent )
     {
         if ( RetValue == 0 )
-            printf( "Problem is SAT " );
+            fprintf( Abc_FrameGlobalGetOut(), "Problem is SAT " );
         else if ( RetValue == 1 )
-            printf( "Problem is UNSAT " );
+            fprintf( Abc_FrameGlobalGetOut(), "Problem is UNSAT " );
         else if ( RetValue == -1 )
-            printf( "Problem is UNDECIDED " );
+            fprintf( Abc_FrameGlobalGetOut(), "Problem is UNDECIDED " );
         else assert( 0 );
-        printf( "after %d case-splits.  ", nIter );
+        fprintf( Abc_FrameGlobalGetOut(), "after %d case-splits.  ", nIter );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     return RetValue;
 }
@@ -748,7 +748,7 @@ int Cec_GiaSplitTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, int
     {
         pOne = Gia_ManDupOutputGroup( p, i, i+1 );
         if ( fVerbose )
-            printf( "\nSolving output %d:\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "\nSolving output %d:\n", i );
         RetValue1 = Cec_GiaSplitTestInt( pOne, nProcs, nTimeOut, nIterMax, LookAhead,  fVerbose, fVeryVerbose, fSilent );
         Gia_ManStop( pOne );
         // collect the result
@@ -796,7 +796,7 @@ void Cec_GiaPrintCofStats( Gia_Man_t * p )
         pCtrl = Gia_Regular(pCtrl);
         Vec_IntAddToEntry( vMarks, Gia_ObjId(p, pCtrl), 1 );
     }
-    printf( "The AIG with %d candidate nodes (PI+AND) has %d unique MUX control drivers:\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "The AIG with %d candidate nodes (PI+AND) has %d unique MUX control drivers:\n", 
         Gia_ManCandNum(p), Vec_IntCountPositive(vMarks) );
     Gia_ManLevelNum( p );
     Gia_ManForEachCand( p, pObj, i )
@@ -805,13 +805,13 @@ void Cec_GiaPrintCofStats( Gia_Man_t * p )
             continue;
         pCof0 = Gia_ManDupCofactorObj( p, i, 0 );
         pCof1 = Gia_ManDupCofactorObj( p, i, 1 );
-        printf( "%6d :   ",          Count++ );
-        printf( "Obj = %6d   ",      i );
-        printf( "MUX refs = %5d   ", Vec_IntEntry(vMarks, i) );
-        printf( "Level = %5d   ",    Gia_ObjLevelId(p, i) );
-        printf( "Cof0 = %7d   ",     Gia_ManAndNum(pCof0) );
-        printf( "Cof1 = %7d   ",     Gia_ManAndNum(pCof1) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d :   ",          Count++ );
+        fprintf( Abc_FrameGlobalGetOut(), "Obj = %6d   ",      i );
+        fprintf( Abc_FrameGlobalGetOut(), "MUX refs = %5d   ", Vec_IntEntry(vMarks, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "Level = %5d   ",    Gia_ObjLevelId(p, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "Cof0 = %7d   ",     Gia_ManAndNum(pCof0) );
+        fprintf( Abc_FrameGlobalGetOut(), "Cof1 = %7d   ",     Gia_ManAndNum(pCof1) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         Gia_ManStop( pCof0 );
         Gia_ManStop( pCof1 );
     }
@@ -828,11 +828,11 @@ void Cec_GiaPrintCofStats2( Gia_Man_t * p )
     {
         pCof0 = Gia_ManDupCofactorVar( p, i, 0 );
         pCof1 = Gia_ManDupCofactorVar( p, i, 1 );
-        printf( "PI %5d :   ",   i );
-        printf( "Refs = %5d   ", Gia_ObjRefNum(p, pObj) );
-        printf( "Cof0 = %7d   ", Gia_ManAndNum(pCof0) );
-        printf( "Cof1 = %7d   ", Gia_ManAndNum(pCof1) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "PI %5d :   ",   i );
+        fprintf( Abc_FrameGlobalGetOut(), "Refs = %5d   ", Gia_ObjRefNum(p, pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "Cof0 = %7d   ", Gia_ManAndNum(pCof0) );
+        fprintf( Abc_FrameGlobalGetOut(), "Cof1 = %7d   ", Gia_ManAndNum(pCof1) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         Gia_ManStop( pCof0 );
         Gia_ManStop( pCof1 );
     }

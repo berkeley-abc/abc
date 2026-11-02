@@ -104,12 +104,12 @@ void Gia_ManPrintSignals( Gia_Man_t * p, int * pFreq, char * pStr )
             nTotal += pFreq[i];
             Counter++;
         }
-    printf( "%s (total = %d  driven = %d)\n", pStr, Counter, nTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "%s (total = %d  driven = %d)\n", pStr, Counter, nTotal );
     Counter = 0;
     for ( i = 0; i < Gia_ManObjNum(p); i++ )
         if ( pFreq[i] > 10 )
         {
-            printf( "%3d :   Obj = %6d   Refs = %6d   Freq = %6d\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "%3d :   Obj = %6d   Refs = %6d   Freq = %6d\n", 
                 ++Counter, i, Gia_ObjRefNum(p, Gia_ManObj(p,i)), pFreq[i] );
             Vec_IntPush( vObjs, i );
         }
@@ -196,7 +196,7 @@ void Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset, int fVerbose )
     Gia_ManCreateRefs( p );
     if ( fVerbose )
     {
-        printf( "Flops with set/reset = %6d. Flops with enable = %6d.\n", nHaveSetReset, nHaveEnable );
+        fprintf( Abc_FrameGlobalGetOut(), "Flops with set/reset = %6d. Flops with enable = %6d.\n", nHaveSetReset, nHaveEnable );
         if ( fSetReset )
         {
             Gia_ManPrintSignals( p, pSets, "Set signals" );
@@ -292,21 +292,21 @@ Vec_Int_t * Gia_ManDetectSeqSignalsWithFanout( Gia_Man_t * p, int nFanMax, int f
         if ( pSets[i] > nFanMax )
         {
             if ( fVerbose )
-                printf( "Adding set signal %d related to %d flops.\n", i, pSets[i] );
+                fprintf( Abc_FrameGlobalGetOut(), "Adding set signal %d related to %d flops.\n", i, pSets[i] );
             Vec_IntPushUnique( vResult, i );
         }
     for ( i = 1; i < Gia_ManObjNum(p); i++ )
         if ( pResets[i] > nFanMax )
         {
             if ( fVerbose )
-                printf( "Adding reset signal %d related to %d flops.\n", i, pResets[i] );
+                fprintf( Abc_FrameGlobalGetOut(), "Adding reset signal %d related to %d flops.\n", i, pResets[i] );
             Vec_IntPushUnique( vResult, i );
         }
     for ( i = 1; i < Gia_ManObjNum(p); i++ )
         if ( pEnables[i] > nFanMax )
         {
             if ( fVerbose )
-                printf( "Adding enable signal %d related to %d flops.\n", i, pEnables[i] );
+                fprintf( Abc_FrameGlobalGetOut(), "Adding enable signal %d related to %d flops.\n", i, pEnables[i] );
             Vec_IntPushUnique( vResult, i );
         }
     ABC_FREE( pSets );
@@ -456,14 +456,14 @@ Gia_Man_t * Gia_ManRemoveEnables2( Gia_Man_t * p )
         pNode = Gia_ObjFanin0(pFlopIn);
         if ( !Gia_ObjIsMuxType(pNode) )
         {
-            printf( "Cannot recognize enable of flop %d.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot recognize enable of flop %d.\n", i );
             continue;
         }
         pObjC = Gia_ObjRecognizeMux( pNode, &pObj1, &pObj0 );
         pFlopOut = Gia_ObjRiToRo( p, pFlopIn );
         if ( Gia_Regular(pObj0) != pFlopOut && Gia_Regular(pObj1) != pFlopOut )
         {
-            printf( "Cannot recognize self-loop of enable flop %d.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot recognize self-loop of enable flop %d.\n", i );
             continue;
         }
         if ( !Gia_ObjFaninC0(pFlopIn) )
@@ -528,7 +528,7 @@ Gia_Man_t * Gia_ManRemoveEnables( Gia_Man_t * p )
         pDriver = Gia_ObjFanin0(pFlopIn);
         if ( !Gia_ObjIsAnd(pDriver) )
         {
-            printf( "The flop driver %d is not a node.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "The flop driver %d is not a node.\n", i );
             Vec_PtrPush( vDatas, NULL );
             Vec_IntPush( vFlopClasses, 0 );
             Counter++;
@@ -536,7 +536,7 @@ Gia_Man_t * Gia_ManRemoveEnables( Gia_Man_t * p )
         }
         if ( !Gia_ObjFaninC0(pDriver) || !Gia_ObjFaninC1(pDriver) )
         {
-            printf( "The flop driver %d is not an OR gate.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "The flop driver %d is not an OR gate.\n", i );
             Vec_PtrPush( vDatas, NULL );
             Vec_IntPush( vFlopClasses, 0 );
             Counter++;
@@ -546,7 +546,7 @@ Gia_Man_t * Gia_ManRemoveEnables( Gia_Man_t * p )
         pFan1 = Gia_ObjFanin1(pDriver);
         if ( !Gia_ObjIsAnd(pFan0) || !Gia_ObjIsAnd(pFan1) )
         {
-            printf( "The flop driver fanin %d is not a node.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "The flop driver fanin %d is not a node.\n", i );
             Vec_PtrPush( vDatas, NULL );
             Vec_IntPush( vFlopClasses, 0 );
             Counter++;
@@ -557,7 +557,7 @@ Gia_Man_t * Gia_ManRemoveEnables( Gia_Man_t * p )
         if ( Gia_ObjChild0(pFan0) != pFlopOut && Gia_ObjChild1(pFan0) != pFlopOut && 
              Gia_ObjChild0(pFan1) != pFlopOut && Gia_ObjChild1(pFan1) != pFlopOut )
         {
-            printf( "The flop %d does not have a self-loop.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "The flop %d does not have a self-loop.\n", i );
             Vec_PtrPush( vDatas, NULL );
             Vec_IntPush( vFlopClasses, 0 );
             Counter++;
@@ -606,7 +606,7 @@ Gia_Man_t * Gia_ManRemoveEnables( Gia_Man_t * p )
     }
     assert( Vec_PtrSize( vDatas ) == Gia_ManRegNum(p) );
     assert( Vec_IntSize( vFlopClasses ) == Gia_ManRegNum(p) );
-    printf( "Detected %d classes.\n", Vec_PtrSize(vCtrls) - (Counter == 0) );
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d classes.\n", Vec_PtrSize(vCtrls) - (Counter == 0) );
     Vec_PtrFree( vCtrls );
     
 

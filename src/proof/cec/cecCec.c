@@ -225,7 +225,7 @@ int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose, int * piOutFail, abctime
         Abc_Print( 1, "Networks are UNDECIDED.  " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
     }
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
     Aig_ManStop( pMiterCec );
     return RetValue;
 }
@@ -337,7 +337,7 @@ int Cec_ManVerifyNaive( Gia_Man_t * p, Cec_ParCec_t * pPars )
     int nPairs = Gia_ManPoNum(p)/2;
     int nUnsats = 0, nSats = 0, nUndecs = 0, nTrivs = 0;
     int i, iVar0, iVar1, pLits[2], status, RetValue;
-    ProgressBar * pProgress = Extra_ProgressBarStart( stdout, nPairs );
+    ProgressBar * pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nPairs );
     assert( Gia_ManPoNum(p) % 2 == 0 );
     for ( i = 0; i < nPairs; i++ )
     {
@@ -353,7 +353,7 @@ int Cec_ManVerifyNaive( Gia_Man_t * p, Cec_ParCec_t * pPars )
         }
         if ( pPars->TimeLimit && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= pPars->TimeLimit )
         {
-            printf( "Timeout (%d sec) is reached.\n", pPars->TimeLimit );
+            fprintf( Abc_FrameGlobalGetOut(), "Timeout (%d sec) is reached.\n", pPars->TimeLimit );
             nUndecs = nPairs - nUnsats - nSats;
             break;
         }
@@ -374,7 +374,7 @@ int Cec_ManVerifyNaive( Gia_Man_t * p, Cec_ParCec_t * pPars )
         }
         else if ( status == l_True )
         {
-            printf( "Output %d is SAT.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Output %d is SAT.\n", i );
             nSats++;
             continue;
         }
@@ -394,7 +394,7 @@ int Cec_ManVerifyNaive( Gia_Man_t * p, Cec_ParCec_t * pPars )
         }
         else if ( status == l_True )
         {
-            printf( "Output %d is SAT.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Output %d is SAT.\n", i );
             nSats++;
             continue;
         }
@@ -406,7 +406,7 @@ int Cec_ManVerifyNaive( Gia_Man_t * p, Cec_ParCec_t * pPars )
         nUnsats++;
     }
     Extra_ProgressBarStop( pProgress );
-    printf( "UNSAT = %6d.  SAT = %6d.   UNDEC = %6d.  Trivial = %6d.  ", nUnsats, nSats, nUndecs, nTrivs );
+    fprintf( Abc_FrameGlobalGetOut(), "UNSAT = %6d.  SAT = %6d.   UNDEC = %6d.  Trivial = %6d.  ", nUnsats, nSats, nUndecs, nTrivs );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
     Cnf_DataFree( pCnf );
     sat_solver_delete( pSat );
@@ -528,7 +528,7 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
     // call other solver
     if ( pPars->fVerbose )
         Abc_Print( 1, "Calling the old CEC engine.\n" );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
     RetValue = Cec_ManVerifyOld( pNew, pPars->fVerbose, &pPars->iOutFail, clkTotal, pPars->fSilent );
     p->pCexComb = pNew->pCexComb; pNew->pCexComb = NULL;
     if ( p->pCexComb && !Gia_ManVerifyCex( p, p->pCexComb, 1 ) )

@@ -56,13 +56,13 @@ int Aig_ManVerifyTopoOrder( Aig_Man_t * p )
             pNext = Aig_ObjFanin0(pObj);
             if ( !Aig_ObjIsTravIdCurrent(p,pNext) )
             {
-                printf( "Node %d has fanin %d that is not in a topological order.\n", pObj->Id, pNext->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "Node %d has fanin %d that is not in a topological order.\n", pObj->Id, pNext->Id );
                 return 0;
             }
             pNext = Aig_ObjFanin1(pObj);
             if ( !Aig_ObjIsTravIdCurrent(p,pNext) )
             {
-                printf( "Node %d has fanin %d that is not in a topological order.\n", pObj->Id, pNext->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "Node %d has fanin %d that is not in a topological order.\n", pObj->Id, pNext->Id );
                 return 0;
             }
         }
@@ -71,7 +71,7 @@ int Aig_ManVerifyTopoOrder( Aig_Man_t * p )
             pNext = Aig_ObjFanin0(pObj);
             if ( !Aig_ObjIsTravIdCurrent(p,pNext) )
             {
-                printf( "Node %d has fanin %d that is not in a topological order.\n", pObj->Id, pNext->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "Node %d has fanin %d that is not in a topological order.\n", pObj->Id, pNext->Id );
                 return 0;
             }
         }
@@ -90,7 +90,7 @@ int Aig_ManVerifyTopoOrder( Aig_Man_t * p )
                         assert( Tim_ManBoxForCo( (Tim_Man_t *)p->pManTime, Aig_ObjCioId(pNext) ) == iBox ); 
                         if ( !Aig_ObjIsTravIdCurrent(p,pNext) )
                         {
-                            printf( "Box %d has input %d that is not in a topological order.\n", iBox, pNext->Id );
+                            fprintf( Abc_FrameGlobalGetOut(), "Box %d has input %d that is not in a topological order.\n", iBox, pNext->Id );
                             return 0;
                         }
                     }
@@ -798,7 +798,7 @@ int Aig_SupportSizeTest( Aig_Man_t * p )
     Aig_ManForEachObj( p, pObj, i )
         if ( Aig_ObjIsNode(pObj) )
             Counter += (Aig_SupportSize(p, pObj) <= 16);
-    printf( "Nodes with small support %d (out of %d)\n", Counter, Aig_ManNodeNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes with small support %d (out of %d)\n", Counter, Aig_ManNodeNum(p) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return Counter;
 }
@@ -982,7 +982,7 @@ Aig_Obj_t * Aig_Compose( Aig_Man_t * p, Aig_Obj_t * pRoot, Aig_Obj_t * pFunc, in
     // quit if the PI variable is not defined
     if ( iVar >= Aig_ManCiNum(p) )
     {
-        printf( "Aig_Compose(): The PI variable %d is not defined.\n", iVar );
+        fprintf( Abc_FrameGlobalGetOut(), "Aig_Compose(): The PI variable %d is not defined.\n", iVar );
         return NULL;
     }
     // recursively perform composition

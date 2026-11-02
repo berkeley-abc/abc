@@ -129,12 +129,12 @@ static char * Ioa_ReadLoadFileBz2Aig( char * pFileName, int * pFileSize )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Ioa_ReadLoadFileBz2(): The file is unavailable (absent or open).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Ioa_ReadLoadFileBz2(): The file is unavailable (absent or open).\n" );
         return NULL;
     }
     b = BZ2_bzReadOpen(&bzError,pFile,0,0,NULL,0);
     if (bzError != BZ_OK) {
-        printf( "Ioa_ReadLoadFileBz2(): BZ2_bzReadOpen() failed with error %d.\n",bzError );
+        fprintf( Abc_FrameGlobalGetOut(), "Ioa_ReadLoadFileBz2(): BZ2_bzReadOpen() failed with error %d.\n",bzError );
         return NULL;
     }
     do {
@@ -166,7 +166,7 @@ static char * Ioa_ReadLoadFileBz2Aig( char * pFileName, int * pFileSize )
         nFileSize = ftell( pFile );
         if ( nFileSize == 0 )
         {
-            printf( "Ioa_ReadLoadFileBz2(): The file is empty.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Ioa_ReadLoadFileBz2(): The file is empty.\n" );
             return NULL;
         }
         pContents = ABC_ALLOC( char, nFileSize + 10 );
@@ -174,7 +174,7 @@ static char * Ioa_ReadLoadFileBz2Aig( char * pFileName, int * pFileSize )
         RetValue = fread( pContents, nFileSize, 1, pFile );
     } else { 
         // Some other error.
-        printf( "Ioa_ReadLoadFileBz2(): Unable to read the compressed BLIF.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Ioa_ReadLoadFileBz2(): Unable to read the compressed BLIF.\n" );
         return NULL;
     }
     fclose( pFile );
@@ -265,7 +265,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     // check if the input file format is correct
     if ( strncmp(pContents, "aig", 3) != 0 || (pContents[3] != ' ' && pContents[3] != '2') )
     {
-        fprintf( stdout, "Wrong input file format.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Wrong input file format.\n" );
         ABC_FREE( pContents );
         return NULL;
     }
@@ -313,7 +313,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     }
     if ( *pCur != '\n' )
     {
-        fprintf( stdout, "The parameter line is in a wrong format.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The parameter line is in a wrong format.\n" );
         ABC_FREE( pContents );
         return NULL;
     }
@@ -322,13 +322,13 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     // check the parameters
     if ( nTotal != nInputs + nLatches + nAnds )
     {
-        fprintf( stdout, "The number of objects does not match.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of objects does not match.\n" );
         ABC_FREE( pContents );
         return NULL;
     }
     if ( nJust || nFair )
     {
-        fprintf( stdout, "Reading AIGER files with liveness properties is currently not supported.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Reading AIGER files with liveness properties is currently not supported.\n" );
         ABC_FREE( pContents );
         return NULL;
     }
@@ -336,9 +336,9 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     if ( nConstr )
     {
         if ( nConstr == 1 )
-            fprintf( stdout, "Warning: The last output is interpreted as a constraint.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Warning: The last output is interpreted as a constraint.\n" );
         else
-            fprintf( stdout, "Warning: The last %d outputs are interpreted as constraints.\n", nConstr );
+            fprintf( Abc_FrameGlobalGetOut(), "Warning: The last %d outputs are interpreted as constraints.\n", nConstr );
     }
 
     // allocate the empty AIG
@@ -396,7 +396,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     }
 
     // create the AND gates
-    pProgress = Extra_ProgressBarStart( stdout, nAnds );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nAnds );
     for ( i = 0; i < nAnds; i++ )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -444,7 +444,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
             }
             if ( *pCur != '\n' )
             {
-                fprintf( stdout, "The initial value of latch number %d is not recognized.\n", i );
+                fprintf( Abc_FrameGlobalGetOut(), "The initial value of latch number %d is not recognized.\n", i );
                 goto fail;
             }
             pCur++;
@@ -511,7 +511,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
             // get the node
             if ( iTerm >= Vec_PtrSize(vTerms) )
             {
-                fprintf( stdout, "The number of terminal is out of bound.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "The number of terminal is out of bound.\n" );
                 return NULL;
             }
             pObj = (Abc_Obj_t *)Vec_PtrEntry( vTerms, iTerm );
@@ -555,7 +555,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
 //        if ( Counter )
 //            printf( "Io_ReadAiger(): Added %d default names for nameless I/O/register objects.\n", Counter );
         if ( fNodeNames )
-            printf( "Io_ReadAiger(): The names of internal nodes are not supported. Ignoring %d node names.\n", fNodeNames );
+            fprintf( Abc_FrameGlobalGetOut(), "Io_ReadAiger(): The names of internal nodes are not supported. Ignoring %d node names.\n", fNodeNames );
     }
     else
     {
@@ -594,7 +594,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     // check the result
     if ( fCheck && !Abc_NtkCheckRead( pNtkNew ) )
     {
-        printf( "Io_ReadAiger: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_ReadAiger: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }

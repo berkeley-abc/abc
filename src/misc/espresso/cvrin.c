@@ -70,7 +70,7 @@ pPLA PLA;
         goto bad_char;
         case '\n':
         if (! line_length_error)
-            (void) fprintf(stderr, "product term(s) %s\n",
+            (void) fprintf( Abc_FrameGlobalGetErr(), "product term(s) %s\n",
             "span more than one line (warning only)");
         line_length_error = TRUE;
         lineno++;
@@ -128,7 +128,7 @@ pPLA PLA;
             break;
             }
         if (i > last) {
-            (void) fprintf(stderr,
+            (void) fprintf( Abc_FrameGlobalGetErr(),
 "declared size of variable %d (counting from variable 0) is too small\n", var);
             exit(-1);
         }
@@ -140,7 +140,7 @@ pPLA PLA;
             goto bad_char;
         case '\n':
             if (! line_length_error)
-            (void) fprintf(stderr, "product term(s) %s\n",
+            (void) fprintf( Abc_FrameGlobalGetErr(), "product term(s) %s\n",
                 "span more than one line (warning only)");
             line_length_error = TRUE;
             lineno++;
@@ -170,7 +170,7 @@ pPLA PLA;
         goto bad_char;
         case '\n':
         if (! line_length_error)
-            (void) fprintf(stderr, "product term(s) %s\n",
+            (void) fprintf( Abc_FrameGlobalGetErr(), "product term(s) %s\n",
             "span more than one line (warning only)");
         line_length_error = TRUE;
         lineno++;
@@ -201,8 +201,8 @@ pPLA PLA;
     return;
 
 bad_char:
-    (void) fprintf(stderr, "(warning): input line #%d ignored\n", lineno);
-    skip_line(fp, stdout, TRUE);
+    (void) fprintf( Abc_FrameGlobalGetErr(), "(warning): input line #%d ignored\n", lineno);
+    skip_line(fp, Abc_FrameGlobalGetOut(), TRUE);
     return;
 }
 void parse_pla(fp, PLA)
@@ -228,15 +228,15 @@ loop:
 
     case '#':
         (void) ungetc(ch, fp);
-        skip_line(fp, stdout, echo_comments);
+        skip_line(fp, Abc_FrameGlobalGetOut(), echo_comments);
         break;
 
     case '.':
         /* .i gives the cube input size (binary-functions only) */
         if (equal(get_word(fp, word), "i")) {
         if (cube.fullset != NULL) {
-            (void) fprintf(stderr, "extra .i ignored\n");
-            skip_line(fp, stdout, /* echo */ FALSE);
+            (void) fprintf( Abc_FrameGlobalGetErr(), "extra .i ignored\n");
+            skip_line(fp, Abc_FrameGlobalGetOut(), /* echo */ FALSE);
         } else {
             if (fscanf(fp, "%d", &cube.num_binary_vars) != 1)
             fatal("error reading .i");
@@ -247,8 +247,8 @@ loop:
         /* .o gives the cube output size (binary-functions only) */
         } else if (equal(word, "o")) {
         if (cube.fullset != NULL) {
-            (void) fprintf(stderr, "extra .o ignored\n");
-            skip_line(fp, stdout, /* echo */ FALSE);
+            (void) fprintf( Abc_FrameGlobalGetErr(), "extra .o ignored\n");
+            skip_line(fp, Abc_FrameGlobalGetOut(), /* echo */ FALSE);
         } else {
             if (cube.part_size == NULL)
             fatal(".o cannot appear before .i");
@@ -261,8 +261,8 @@ loop:
         /* .mv gives the cube size for a multiple-valued function */
         } else if (equal(word, "mv")) {
         if (cube.fullset != NULL) {
-            (void) fprintf(stderr, "extra .mv ignored\n");
-            skip_line(fp, stdout, /* echo */ FALSE);
+            (void) fprintf( Abc_FrameGlobalGetErr(), "extra .mv ignored\n");
+            skip_line(fp, Abc_FrameGlobalGetOut(), /* echo */ FALSE);
         } else {
             if (cube.part_size != NULL)
             fatal("cannot mix .i and .mv");
@@ -382,8 +382,8 @@ fatal("num_binary_vars (second field of .mv) cannot be negative");
         if (cube.fullset == NULL)
             fatal("PLA size must be declared before .phase");
         if (PLA->phase != NULL) {
-            (void) fprintf(stderr, "extra .phase ignored\n");
-            skip_line(fp, stdout, /* echo */ FALSE);
+            (void) fprintf( Abc_FrameGlobalGetErr(), "extra .phase ignored\n");
+            skip_line(fp, Abc_FrameGlobalGetOut(), /* echo */ FALSE);
         } else {
             do ch = getc(fp); while (ch == ' ' || ch == '\t');
             (void) ungetc(ch, fp);
@@ -400,7 +400,7 @@ fatal("num_binary_vars (second field of .mv) cannot be negative");
         } else if (equal(word, "pair")) {
         int j;
         if (PLA->pair != NULL) {
-            (void) fprintf(stderr, "extra .pair ignored\n");
+            (void) fprintf( Abc_FrameGlobalGetErr(), "extra .pair ignored\n");
         } else {
             ppair pair;
             PLA->pair = pair = ALLOC(pair_t, 1);
@@ -431,8 +431,8 @@ fatal("num_binary_vars (second field of .mv) cannot be negative");
         
         } else {
         if (echo_unknown_commands)
-            printf("%c%s ", ch, word);
-        skip_line(fp, stdout, echo_unknown_commands);
+            fprintf( Abc_FrameGlobalGetOut(), "%c%s ", ch, word );
+        skip_line(fp, Abc_FrameGlobalGetOut(), echo_unknown_commands);
         }
         break;
     default:
@@ -441,7 +441,7 @@ fatal("num_binary_vars (second field of .mv) cannot be negative");
 /*        fatal("unknown PLA size, need .i/.o or .mv");*/
         if (echo_comments)
             putchar('#');
-        skip_line(fp, stdout, echo_comments);
+        skip_line(fp, Abc_FrameGlobalGetOut(), echo_comments);
         break;
         }
         if (PLA->F == NULL) {
@@ -522,8 +522,8 @@ OUT pPLA *PLA_return;
     third = cube.num_vars - 3;
     second = cube.num_vars - 2;
     if (cube.part_size[third] != cube.part_size[second]) {
-        (void) fprintf(stderr," with .kiss option, third to last and second\n");
-        (void) fprintf(stderr, "to last variables must be the same size.\n");
+        (void) fprintf( Abc_FrameGlobalGetErr(), " with .kiss option, third to last and second\n");
+        (void) fprintf( Abc_FrameGlobalGetErr(), "to last variables must be the same size.\n");
         return EOF;
     }
     for(i = 0; i < cube.part_size[second]; i++) {
@@ -601,47 +601,47 @@ pPLA PLA;
     symbolic_list_t *p2;
     symbolic_t *p1;
 
-    printf("# PLA is %s", PLA->filename);
+    fprintf( Abc_FrameGlobalGetOut(), "# PLA is %s", PLA->filename );
     if (cube.num_binary_vars == cube.num_vars - 1)
-    printf(" with %d inputs and %d outputs\n",
-        cube.num_binary_vars, cube.part_size[cube.num_vars - 1]);
+    fprintf( Abc_FrameGlobalGetOut(), " with %d inputs and %d outputs\n",
+        cube.num_binary_vars, cube.part_size[cube.num_vars - 1] );
     else {
-    printf(" with %d variables (%d binary, mv sizes",
-        cube.num_vars, cube.num_binary_vars);
+    fprintf( Abc_FrameGlobalGetOut(), " with %d variables (%d binary, mv sizes",
+        cube.num_vars, cube.num_binary_vars );
     for(var = cube.num_binary_vars; var < cube.num_vars; var++)
-        printf(" %d", cube.part_size[var]);
-    printf(")\n");
+        fprintf( Abc_FrameGlobalGetOut(), " %d", cube.part_size[var] );
+    fprintf( Abc_FrameGlobalGetOut(), ")\n" );
     }
-    printf("# ON-set cost is  %s\n", print_cost(PLA->F));
-    printf("# OFF-set cost is %s\n", print_cost(PLA->R));
-    printf("# DC-set cost is  %s\n", print_cost(PLA->D));
+    fprintf( Abc_FrameGlobalGetOut(), "# ON-set cost is  %s\n", print_cost(PLA->F) );
+    fprintf( Abc_FrameGlobalGetOut(), "# OFF-set cost is %s\n", print_cost(PLA->R) );
+    fprintf( Abc_FrameGlobalGetOut(), "# DC-set cost is  %s\n", print_cost(PLA->D) );
     if (PLA->phase != NULL)
-    printf("# phase is %s\n", pc1(PLA->phase));
+    fprintf( Abc_FrameGlobalGetOut(), "# phase is %s\n", pc1(PLA->phase) );
     if (PLA->pair != NULL) {
-    printf("# two-bit decoders:");
+    fprintf( Abc_FrameGlobalGetOut(), "# two-bit decoders:" );
     for(i = 0; i < PLA->pair->cnt; i++)
-        printf(" (%d %d)", PLA->pair->var1[i], PLA->pair->var2[i]);
-    printf("\n");
+        fprintf( Abc_FrameGlobalGetOut(), " (%d %d)", PLA->pair->var1[i], PLA->pair->var2[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     if (PLA->symbolic != NIL(symbolic_t)) {
     for(p1 = PLA->symbolic; p1 != NIL(symbolic_t); p1 = p1->next) {
-        printf("# symbolic: ");
+        fprintf( Abc_FrameGlobalGetOut(), "# symbolic: " );
         for(p2=p1->symbolic_list; p2!=NIL(symbolic_list_t); p2=p2->next) {
-        printf(" %d", p2->variable);
+        fprintf( Abc_FrameGlobalGetOut(), " %d", p2->variable );
         }
-        printf("\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     }
     if (PLA->symbolic_output != NIL(symbolic_t)) {
     for(p1 = PLA->symbolic_output; p1 != NIL(symbolic_t); p1 = p1->next) {
-        printf("# output symbolic: ");
+        fprintf( Abc_FrameGlobalGetOut(), "# output symbolic: " );
         for(p2=p1->symbolic_list; p2!=NIL(symbolic_list_t); p2=p2->next) {
-        printf(" %d", p2->pos);
+        fprintf( Abc_FrameGlobalGetOut(), " %d", p2->pos );
         }
-        printf("\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     }
-    (void) fflush(stdout);
+    (void) fflush( Abc_FrameGlobalGetOut() );
 }
 
 

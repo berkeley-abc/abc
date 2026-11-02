@@ -278,14 +278,14 @@ void Fra_ManStop( Fra_Man_t * p )
 void Fra_ManPrint( Fra_Man_t * p )
 {
     double nMemory = 1.0*Aig_ManObjNumMax(p->pManAig)*(p->pSml->nWordsTotal*sizeof(unsigned)+6*sizeof(void*))/(1<<20);
-    printf( "SimWord = %d. Round = %d.  Mem = %0.2f MB.  LitBeg = %d.  LitEnd = %d. (%6.2f %%).\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "SimWord = %d. Round = %d.  Mem = %0.2f MB.  LitBeg = %d.  LitEnd = %d. (%6.2f %%).\n", 
         p->pPars->nSimWords, p->pSml->nSimRounds, nMemory, p->nLitsBeg, p->nLitsEnd, 100.0*p->nLitsEnd/(p->nLitsBeg?p->nLitsBeg:1) );
-    printf( "Proof = %d. Cex = %d. Fail = %d. FailReal = %d. C-lim = %d. ImpRatio = %6.2f %%\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Proof = %d. Cex = %d. Fail = %d. FailReal = %d. C-lim = %d. ImpRatio = %6.2f %%\n", 
         p->nSatProof, p->nSatCallsSat, p->nSatFails, p->nSatFailsReal, p->pPars->nBTLimitNode, Fra_ImpComputeStateSpaceRatio(p) );
-    printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
         p->nNodesBeg, p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/(p->nNodesBeg?p->nNodesBeg:1), 
         p->nRegsBeg, p->nRegsEnd, 100.0*(p->nRegsBeg-p->nRegsEnd)/(p->nRegsBeg?p->nRegsBeg:1) );
-    if ( p->pSat )             Sat_SolverPrintStats( stdout, p->pSat );
+    if ( p->pSat )             Sat_SolverPrintStats( Abc_FrameGlobalGetOut(), p->pSat );
     if ( p->pPars->fUse1Hot )  Fra_OneHotEstimateCoverage( p, p->vOneHots );
     ABC_PRT( "AIG simulation  ", p->pSml->timeSim  );
     ABC_PRT( "AIG traversal   ", p->timeTrav );
@@ -301,8 +301,8 @@ void Fra_ManPrint( Fra_Man_t * p )
     ABC_PRT( "TOTAL RUNTIME   ", p->timeTotal );
     if ( p->time1 ) { ABC_PRT( "time1           ", p->time1 ); }
     if ( p->nSpeculs )
-    printf( "Speculations = %d.\n", p->nSpeculs );
-    fflush( stdout );
+    fprintf( Abc_FrameGlobalGetOut(), "Speculations = %d.\n", p->nSpeculs );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -201,7 +201,7 @@ int Abc_CommandRunEco( Abc_Frame_t * pAbc, int argc, char ** argv )
         FILE * pFile = fopen( argv[globalUtilOptind+c], "rb" );
         if ( pFile == NULL )
         {
-            printf( "Cannot open input file \"%s\".\n", argv[globalUtilOptind+c] );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\".\n", argv[globalUtilOptind+c] );
             return 0;
         }
         else
@@ -376,7 +376,7 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
-    if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
+    if ( !Abc_NtkPrepareTwoNtks( Abc_FrameGlobalGetOut(), pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
         return 1;
 
     if ( fIgnoreNames )
@@ -1003,7 +1003,7 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
-    if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
+    if ( !Abc_NtkPrepareTwoNtks( Abc_FrameGlobalGetOut(), pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
         return 1;
 
     if ( fIgnoreNames )
@@ -1176,7 +1176,7 @@ int Abc_CommandDCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
     {
-        if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
+        if ( !Abc_NtkPrepareTwoNtks( Abc_FrameGlobalGetOut(), pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
             return 1;
     }
 
@@ -1290,7 +1290,7 @@ int Abc_CommandMatch( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         pArgvNew = argv + globalUtilOptind;
         nArgcNew = argc - globalUtilOptind;
-        if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
+        if ( !Abc_NtkPrepareTwoNtks( Abc_FrameGlobalGetOut(), pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
             return 1;
         if ( Abc_NtkLatchNum(pNtk1) == 0 || Abc_NtkLatchNum(pNtk2) == 0 )
         {
@@ -1888,9 +1888,9 @@ int Abc_CommandSaucy( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Obj_t * pNodePo;
         FILE * hadi = fopen("hadi.txt", "w");
         Abc_NtkForEachPo( pNtk, pNodePo, i ) {
-            printf("Output %s\n\n", Abc_ObjName(pNodePo));
+            fprintf(Abc_FrameGlobalGetOut(), "Output %s\n\n", Abc_ObjName(pNodePo));
             saucyGateWay( pNtk, pNodePo, gFile, 0, fLookForSwaps, fFixOutputs, fFixInputs, fQuiet, fPrintTree );
-            printf("----------------------------------------\n");
+            fprintf(Abc_FrameGlobalGetOut(), "----------------------------------------\n");
         }
         fclose(hadi);
     } else if (outputName != NULL) {
@@ -1921,7 +1921,7 @@ usage:
     Abc_Print( -2, "\t            (special case) name=all, compute symmetries for each\n" );
     Abc_Print( -2, "\t            output, but only one output at a time\n" );
     Abc_Print( -2, "\t            [default = compute symmetries by permuting all I/Os]\n" );
-    Abc_Print( -2, "\t-F <file> : print symmetry generators to file [default = stdout]\n");
+    Abc_Print( -2, "\t-F <file> : print symmetry generators to file [default = Abc_FrameGlobalGetOut()]\n");
     Abc_Print( -2, "\t-i        : permute just the inputs (fix the outputs) [default = no]\n");
     Abc_Print( -2, "\t-o        : permute just the outputs (fix the inputs) [default = no]\n");
     Abc_Print( -2, "\t-s        : only look for swaps of inputs [default = no]\n");
@@ -3279,7 +3279,7 @@ int Abc_CommandAbc9Verify( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         pFileSpec = argv[globalUtilOptind];
         Extra_FileNameCorrectPath( pFileSpec );
-        printf( "Taking spec from file \"%s\".\n", pFileSpec );
+        fprintf( Abc_FrameGlobalGetOut(), "Taking spec from file \"%s\".\n", pFileSpec );
     }
     Abc_FrameSetStatus( Gia_ManVerifyWithBoxes(pAbc->pGia, nBTLimit, nTimeLim, fSeq, fObjIdMap, fDumpFiles, fVerbose, pFileSpec) );
     return 0;
@@ -3896,9 +3896,9 @@ int Abc_CommandAbc9Demiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_ManStop( pPart1 );
         Gia_ManStop( pPart2 );
         if ( fDumpFilesTwo )
-            printf( "Two parts of the two-word miter are dumped into files \"%s\" and \"%s\".\n", pName0, pName1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Two parts of the two-word miter are dumped into files \"%s\" and \"%s\".\n", pName0, pName1 );
         else
-            printf( "Two parts of the dual-output miter are dumped into files \"%s\" and \"%s\".\n", pName0, pName1 );
+            fprintf( Abc_FrameGlobalGetOut(), "Two parts of the dual-output miter are dumped into files \"%s\" and \"%s\".\n", pName0, pName1 );
         return 0;
     }
     if ( Gia_ManPoNum(pAbc->pGia) != 1 )
@@ -4299,7 +4299,7 @@ int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc != globalUtilOptind + 1 )
     {
-        printf("%d\n", argc-globalUtilOptind);
+        fprintf(Abc_FrameGlobalGetOut(), "%d\n", argc-globalUtilOptind);
         Abc_Print( -1, "Abc_CommandAbc9BRecover(): AIG should be given on the command line.\n" );
         return 0;
     }
@@ -4374,7 +4374,7 @@ int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
 
         if ( !success )
         {
-            printf("Abc_CommandAbc9BRecover(): The generated boundary is invalid. The circuit is not changed.\n");
+            fprintf(Abc_FrameGlobalGetOut(), "Abc_CommandAbc9BRecover(): The generated boundary is invalid. The circuit is not changed.\n");
         }
     }
 
@@ -4386,19 +4386,19 @@ int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
         {
             if ( fEqOut )
             {
-                printf("Checking the equivalence of spec_out and impl_out\n");
+                fprintf(Abc_FrameGlobalGetOut(), "Checking the equivalence of spec_out and impl_out\n");
                 pMiter = Gia_ManMiter( pSpec_out, pImpl_out, 0, 1, 0, 0, 0 );
                 Bnd_ManSetEqOut( Cec_ManVerify( pMiter, pParsCec ) );
                 Gia_ManStop( pMiter );
             }
             else
             {
-                printf("Skip checking the equivalence of spec_out and impl_out\n");
+                fprintf(Abc_FrameGlobalGetOut(), "Skip checking the equivalence of spec_out and impl_out\n");
             }
         }
 
         // generate patched impl
-        if ( fVerbose ) printf("Generating patched impl\n");
+        if ( fVerbose ) fprintf(Abc_FrameGlobalGetOut(), "Generating patched impl\n");
         pPatched = Bnd_ManGenPatched1( pImpl_out, pSpec );
 
         // // generate patched spec just for debugging
@@ -4418,8 +4418,8 @@ int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
         // check if patched is equiv to spec
         if ( fVerbose ) 
         {
-            if ( fEq ) printf("Checking the equivalence of patched impl and spec\n");
-            else printf("Skip checking the equivalence of patched impl and spec\n");
+            if ( fEq ) fprintf(Abc_FrameGlobalGetOut(), "Checking the equivalence of patched impl and spec\n");
+            else fprintf(Abc_FrameGlobalGetOut(), "Skip checking the equivalence of patched impl and spec\n");
         }
         if ( fEq )
         {
@@ -4428,7 +4428,7 @@ int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
             Bnd_ManSetEqRes( success );
             if ( !success )
             {
-                printf("Failed. The generated AIG is not equivalent.\n");
+                fprintf(Abc_FrameGlobalGetOut(), "Failed. The generated AIG is not equivalent.\n");
             }
             Gia_ManStop( pMiter );
         }
@@ -4442,8 +4442,8 @@ int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pImpl_out ) Gia_ManStop( pImpl_out );
     if ( success )
     {
-        if ( fEq ) printf("Success. The generated hierarchical impl is equivalent. (box size: %d -> %d)\n", Bnd_ManGetNInternal(), Bnd_ManGetNInternal() + Bnd_ManGetNExtra() );
-        else printf("Success. But the equivalence in unknown (box size: %d -> %d)\n", Bnd_ManGetNInternal(), Bnd_ManGetNInternal() + Bnd_ManGetNExtra() );
+        if ( fEq ) fprintf(Abc_FrameGlobalGetOut(), "Success. The generated hierarchical impl is equivalent. (box size: %d -> %d)\n", Bnd_ManGetNInternal(), Bnd_ManGetNInternal() + Bnd_ManGetNExtra() );
+        else fprintf(Abc_FrameGlobalGetOut(), "Success. But the equivalence in unknown (box size: %d -> %d)\n", Bnd_ManGetNInternal(), Bnd_ManGetNInternal() + Bnd_ManGetNExtra() );
     }
     if (pPatched) Abc_FrameUpdateGia( pAbc, pPatched );
     Bnd_ManStop();
@@ -4519,7 +4519,7 @@ int Abc_CommandAbc9StrEco( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc != globalUtilOptind + 1 )
     {
-        printf("%d\n", argc-globalUtilOptind);
+        fprintf(Abc_FrameGlobalGetOut(), "%d\n", argc-globalUtilOptind);
         Abc_Print( -1, "Abc_CommandAbc9StrEco(): AIG should be given on the command line.\n" );
         return 0;
     }
@@ -4543,18 +4543,18 @@ int Abc_CommandAbc9StrEco( Abc_Frame_t * pAbc, int argc, char ** argv )
     }    
 
     // generate patched impl
-    if ( fVerbose ) printf("Generating patched impl\n");
+    if ( fVerbose ) fprintf(Abc_FrameGlobalGetOut(), "Generating patched impl\n");
     pPatched = Bnd_ManGenPatched2( pAbc->pGia, pPatch, fSkipStrash, fVerbose );
 
     if ( pPatched )
     {
         // check if patched is equiv to patch
-        if ( fVerbose ) printf("Checking the equivalence of patched impl and patch\n");
+        if ( fVerbose ) fprintf(Abc_FrameGlobalGetOut(), "Checking the equivalence of patched impl and patch\n");
         pMiter = Gia_ManMiter( pPatch, pPatched, 0, 1, 0, 0, 0 );
         success = Cec_ManVerify( pMiter, pParsCec );
         if( !success ) 
         {
-            printf("Failed. The patched circuit is not equivalent.\n");
+            fprintf(Abc_FrameGlobalGetOut(), "Failed. The patched circuit is not equivalent.\n");
         }
         Gia_ManStop( pMiter );
         Abc_FrameUpdateGia( pAbc, pPatched );
@@ -4563,7 +4563,7 @@ int Abc_CommandAbc9StrEco( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_ManStop( pPatch );
     if ( success )
     {
-        printf("Success. The patched circuit is equivalent.\n");
+        fprintf(Abc_FrameGlobalGetOut(), "Success. The patched circuit is equivalent.\n");
     }
 
     return 0;

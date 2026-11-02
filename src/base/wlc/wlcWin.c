@@ -143,16 +143,16 @@ void Wlc_WinProfileArith( Wlc_Ntk_t * p )
             if ( Wlc_ManCountArithmReal(p, vNodes) < 2 )
                 continue;
 
-            printf( "Arithmetic cone of node %d (%s):\n", Wlc_ObjId(p, pObj), Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
+            fprintf( Abc_FrameGlobalGetOut(), "Arithmetic cone of node %d (%s):\n", Wlc_ObjId(p, pObj), Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
             Wlc_NtkPrintNode( p, pObj );
             Vec_IntReverseOrder( vNodes );
             Wlc_NtkPrintNodeArray( p, vNodes );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
             Count++;
         }
     Wlc_NtkForEachObj( p, pObj, i )
         assert( pObj->Mark == 0 );
-    printf( "Finished printing %d arithmetic cones.\n", Count );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished printing %d arithmetic cones.\n", Count );
     Vec_IntFree( vLeaves );
     Vec_IntFree( vNodes );
 }

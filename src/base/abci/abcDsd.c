@@ -71,7 +71,7 @@ Abc_Ntk_t * Abc_NtkDsdGlobal( Abc_Ntk_t * pNtk, int fVerbose, int fPrint, int fS
     if ( dd == NULL )
         return NULL;
     if ( fVerbose )
-        printf( "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+        fprintf( Abc_FrameGlobalGetOut(), "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
     // transform the result of mapping into a BDD network
     pNtkNew = Abc_NtkDsdInternal( pNtk, fVerbose, fPrint, fShort );
     Extra_StopManager( dd );
@@ -82,7 +82,7 @@ Abc_Ntk_t * Abc_NtkDsdGlobal( Abc_Ntk_t * pNtk, int fVerbose, int fPrint, int fS
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkDsdGlobal: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkDsdGlobal: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -143,9 +143,9 @@ Abc_Ntk_t * Abc_NtkDsdInternal( Abc_Ntk_t * pNtk, int fVerbose, int fPrint, int 
         ppNamesCi = Abc_NtkCollectCioNames( pNtk, 0 );
         ppNamesCo = Abc_NtkCollectCioNames( pNtk, 1 );
         if ( fVerbose )
-            Dsd_TreePrint( stdout, pManDsd, ppNamesCi, ppNamesCo, fShort, -1, 0 );
+            Dsd_TreePrint( Abc_FrameGlobalGetOut(), pManDsd, ppNamesCi, ppNamesCo, fShort, -1, 0 );
         else
-            Dsd_TreePrint2( stdout, pManDsd, ppNamesCi, ppNamesCo, -1 );
+            Dsd_TreePrint2( Abc_FrameGlobalGetOut(), pManDsd, ppNamesCi, ppNamesCo, -1 );
         ABC_FREE( ppNamesCi );
         ABC_FREE( ppNamesCo );
     }
@@ -342,10 +342,10 @@ int Abc_NtkDsdLocal( Abc_Ntk_t * pNtk, int fVerbose, int fRecursive )
 
     if ( fVerbose )
     {
-        printf( "Number of non-decomposable functions:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Number of non-decomposable functions:\n" );
         for ( i = 3; i < 10; i++ )
-            printf( "Inputs = %d.  Functions = %6d.\n", i, pCounters[i] );
-        printf( "Inputs > %d.  Functions = %6d.\n", 9, pCounters[10] );
+            fprintf( Abc_FrameGlobalGetOut(), "Inputs = %d.  Functions = %6d.\n", i, pCounters[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "Inputs > %d.  Functions = %6d.\n", 9, pCounters[10] );
     }
 
     // stop the DSD manager
@@ -354,7 +354,7 @@ int Abc_NtkDsdLocal( Abc_Ntk_t * pNtk, int fVerbose, int fRecursive )
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Abc_NtkDsdRecursive: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkDsdRecursive: The network check has failed.\n" );
         return 0;
     }
     return 1;
@@ -686,7 +686,7 @@ Abc_Ntk_t * Abc_NtkSparsify( Abc_Ntk_t * pNtk, int nPerc, int fVerbose )
         return NULL;
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkSparsify: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkSparsify: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }

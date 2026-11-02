@@ -222,13 +222,13 @@ Dec_Graph_t * Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t *
     // report the progress
     if ( fVeryVerbose )
     {
-        printf( "Node %6s : ",  Abc_ObjName(pNode) );
-        printf( "Cone = %2d. ", vFanins->nSize );
-        printf( "FF = %2d. ",   1 + Dec_GraphNodeNum(pFForm) );
-        printf( "MFFC = %2d. ", nNodesSaved );
-        printf( "Add = %2d. ",  nNodesAdded );
-        printf( "GAIN = %2d. ", p->nLastGain );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %6s : ",  Abc_ObjName(pNode) );
+        fprintf( Abc_FrameGlobalGetOut(), "Cone = %2d. ", vFanins->nSize );
+        fprintf( Abc_FrameGlobalGetOut(), "FF = %2d. ",   1 + Dec_GraphNodeNum(pFForm) );
+        fprintf( Abc_FrameGlobalGetOut(), "MFFC = %2d. ", nNodesSaved );
+        fprintf( Abc_FrameGlobalGetOut(), "Add = %2d. ",  nNodesAdded );
+        fprintf( Abc_FrameGlobalGetOut(), "GAIN = %2d. ", p->nLastGain );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return pFForm;
 }
@@ -295,10 +295,10 @@ void Abc_NtkManRefStop( Abc_ManRef_t * p )
 ***********************************************************************/
 void Abc_NtkManRefPrintStats( Abc_ManRef_t * p )
 {
-    printf( "Refactoring statistics:\n" );
-    printf( "Nodes considered  = %8d.\n", p->nNodesConsidered );
-    printf( "Nodes refactored  = %8d.\n", p->nNodesRefactored );
-    printf( "Gain              = %8d. (%6.2f %%).\n", p->nNodesBeg-p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg );
+    fprintf( Abc_FrameGlobalGetOut(), "Refactoring statistics:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes considered  = %8d.\n", p->nNodesConsidered );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes refactored  = %8d.\n", p->nNodesRefactored );
+    fprintf( Abc_FrameGlobalGetOut(), "Gain              = %8d. (%6.2f %%).\n", p->nNodesBeg-p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg );
     ABC_PRT( "Cuts       ", p->timeCut );
     ABC_PRT( "Resynthesis", p->timeRes );
     ABC_PRT( "    BDD    ", p->timeTru );
@@ -353,7 +353,7 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nMinSaved, int nCon
     // resynthesize each node once
     pManRef->nNodesBeg = Abc_NtkNodeNum(pNtk);
     nNodes = Abc_NtkObjNumMax(pNtk);
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -413,7 +413,7 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nMinSaved, int nCon
         // check
         if ( !Abc_NtkCheck( pNtk ) )
         {
-            printf( "Abc_NtkRefactor: The network check has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRefactor: The network check has failed.\n" );
             return 0;
         }
     }

@@ -495,10 +495,10 @@ int verbose_mode;
      */
 
     if (cube.num_vars - cube.num_binary_vars != 2) {
-    (void) fprintf(stderr,
-    "use .symbolic and .symbolic-output to specify\n");
-    (void) fprintf(stderr,
-    "the present state and next state field information\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(),
+"use .symbolic and .symbolic-output to specify\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(),
+"the present state and next state field information\n");
     fatal("disassemble_pla: need two multiple-valued variables\n");
     }
 
@@ -506,10 +506,10 @@ int verbose_mode;
     nstates = cube.part_size[cube.num_binary_vars];
     nout = cube.part_size[cube.num_vars - 1];
     if (nout < nstates) {
-    (void) fprintf(stderr,
-        "use .symbolic and .symbolic-output to specify\n");
-    (void) fprintf(stderr,
-        "the present state and next state field information\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(),
+"use .symbolic and .symbolic-output to specify\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(),
+"the present state and next state field information\n");
     fatal("disassemble_pla: # outputs < # states\n");
     }
 
@@ -553,8 +553,8 @@ int verbose_mode;
         after = tF->count;
         F = sf_append(F, tF);
         if (verbose_mode) {
-        printf("# state EVERY to %d, before=%d after=%d\n",
-            i, before, after);
+        fprintf( Abc_FrameGlobalGetOut(), "# state EVERY to %d, before=%d after=%d\n",
+            i, before, after );
         }
     }
     }
@@ -576,7 +576,7 @@ int verbose_mode;
     after = go_nowhere->count;
     F = sf_append(F, go_nowhere);
     if (verbose_mode) {
-    printf("# state ANY to NOWHERE, before=%d after=%d\n", before, after);
+    fprintf( Abc_FrameGlobalGetOut(), "# state ANY to NOWHERE, before=%d after=%d\n", before, after );
     }
 
 
@@ -611,8 +611,8 @@ int verbose_mode;
         after = tF->count;
         F = sf_append(F, tF);
         if (verbose_mode) {
-            printf("# state %d to %d, before=%d after=%d\n",
-                i, j, before, after);
+            fprintf( Abc_FrameGlobalGetOut(), "# state %d to %d, before=%d after=%d\n",
+                i, j, before, after );
         }
         }
     }
@@ -639,7 +639,7 @@ int verbose_mode;
     cube_setup();
 
     foreach_set(PLA->F, last, p) {
-    kiss_print_cube(stdout, PLA, p, "~1");
+    kiss_print_cube(Abc_FrameGlobalGetOut(), PLA, p, "~1");
     }
 }
 ABC_NAMESPACE_IMPL_END

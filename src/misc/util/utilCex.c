@@ -201,15 +201,15 @@ Abc_Cex_t * Abc_CexMerge( Abc_Cex_t * pCex, Abc_Cex_t * pPart, int iFrBeg, int i
     int i, f, iBit;
 
     if ( iFrBeg < 0 )
-        { printf( "Starting frame is less than 0.\n" ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Starting frame is less than 0.\n" ); return NULL; }
     if ( iFrEnd < 0 )
-        { printf( "Stopping frame is less than 0.\n" ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Stopping frame is less than 0.\n" ); return NULL; }
     if ( iFrBeg > pCex->iFrame )
-        { printf( "Starting frame is more than the last frame of CEX (%d).\n", pCex->iFrame ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Starting frame is more than the last frame of CEX (%d).\n", pCex->iFrame ); return NULL; }
     if ( iFrEnd > pCex->iFrame )
-        { printf( "Stopping frame is more than the last frame of CEX (%d).\n", pCex->iFrame ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Stopping frame is more than the last frame of CEX (%d).\n", pCex->iFrame ); return NULL; }
     if ( iFrBeg > iFrEnd )
-        { printf( "Starting frame (%d) should be less than stopping frame (%d).\n", iFrBeg, iFrEnd ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Starting frame (%d) should be less than stopping frame (%d).\n", iFrBeg, iFrEnd ); return NULL; }
     assert( iFrBeg >= 0 && iFrBeg <= pCex->iFrame );
     assert( iFrEnd >= 0 && iFrEnd <= pCex->iFrame );
     assert( iFrBeg <= iFrEnd );
@@ -258,17 +258,17 @@ void Abc_CexPrintStats( Abc_Cex_t * p )
     int k, Counter = 0;
     if ( p == NULL )
     {
-        printf( "The counter example is NULL.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The counter example is NULL.\n" );
         return;
     }
     if ( p == (Abc_Cex_t *)(ABC_PTRINT_T)1 )
     {
-        printf( "The counter example is present but not available (pointer has value \"1\").\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The counter example is present but not available (pointer has value \"1\").\n" );
         return;
     }
     for ( k = 0; k < p->nBits; k++ )
         Counter += Abc_InfoHasBit(p->pData, k);
-    printf( "CEX: Po =%4d  Frame =%4d  FF = %d  PI = %d  Bit =%8d  1s =%8d (%5.2f %%)\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "CEX: Po =%4d  Frame =%4d  FF = %d  PI = %d  Bit =%8d  1s =%8d (%5.2f %%)\n", 
         p->iPo, p->iFrame, p->nRegs, p->nPis, p->nBits, 
         Counter, 100.0 * Counter / (p->nBits - p->nRegs) );
 }
@@ -277,12 +277,12 @@ void Abc_CexPrintStatsInputs( Abc_Cex_t * p, int nRealPis )
     int k, Counter = 0, CounterPi = 0, CounterPpi = 0;
     if ( p == NULL )
     {
-        printf( "The counter example is NULL.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The counter example is NULL.\n" );
         return;
     }
     if ( p == (Abc_Cex_t *)(ABC_PTRINT_T)1 )
     {
-        printf( "The counter example is present but not available (pointer has value \"1\").\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The counter example is present but not available (pointer has value \"1\").\n" );
         return;
     }
     assert( nRealPis <= p->nPis );
@@ -296,16 +296,16 @@ void Abc_CexPrintStatsInputs( Abc_Cex_t * p, int nRealPis )
         else
             CounterPpi += Abc_InfoHasBit(p->pData, k);
     }
-    printf( "CEX: Po =%4d  Fr =%4d  FF = %d  PI = %d  Bit =%7d  1 =%8d (%5.2f %%)", 
+    fprintf( Abc_FrameGlobalGetOut(), "CEX: Po =%4d  Fr =%4d  FF = %d  PI = %d  Bit =%7d  1 =%8d (%5.2f %%)", 
         p->iPo, p->iFrame, p->nRegs, p->nPis, p->nBits, 
         Counter,  100.0 * Counter    / ((p->iFrame + 1) * p->nPis ) );
     if ( nRealPis < p->nPis )
     {
-        printf( " 1pi =%8d (%5.2f %%) 1ppi =%8d (%5.2f %%)", 
+        fprintf( Abc_FrameGlobalGetOut(), " 1pi =%8d (%5.2f %%) 1ppi =%8d (%5.2f %%)", 
             CounterPi,  100.0 * CounterPi  / ((p->iFrame + 1) * nRealPis ), 
             CounterPpi, 100.0 * CounterPpi / ((p->iFrame + 1) * (p->nPis - nRealPis)) );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -324,25 +324,25 @@ void Abc_CexPrint( Abc_Cex_t * p )
     int i, f, k;
     if ( p == NULL )
     {
-        printf( "The counter example is NULL.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The counter example is NULL.\n" );
         return;
     }
     if ( p == (Abc_Cex_t *)(ABC_PTRINT_T)1 )
     {
-        printf( "The counter example is present but not available (pointer has value \"1\").\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The counter example is present but not available (pointer has value \"1\").\n" );
         return;
     }
     Abc_CexPrintStats( p );
-    printf( "State    : " );
+    fprintf( Abc_FrameGlobalGetOut(), "State    : " );
     for ( k = 0; k < p->nRegs; k++ )
-        printf( "%d", Abc_InfoHasBit(p->pData, k) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_InfoHasBit(p->pData, k) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( f = 0; f <= p->iFrame; f++ )
     {
-        printf( "Frame %3d : ", f );
+        fprintf( Abc_FrameGlobalGetOut(), "Frame %3d : ", f );
         for ( i = 0; i < p->nPis; i++ )
-            printf( "%d", Abc_InfoHasBit(p->pData, k++) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_InfoHasBit(p->pData, k++) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     assert( k == p->nBits );
 }

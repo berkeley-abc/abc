@@ -92,12 +92,12 @@ void Abc_NtkBddReorder( Abc_Ntk_t * pNtk, int fVerbose )
         if ( Abc_ObjFaninNum(pNode) < 3 )
             continue;
         if ( fVerbose )
-            fprintf( stdout, "%10s: ", Abc_ObjName(pNode) );
+            fprintf( Abc_FrameGlobalGetOut(), "%10s: ", Abc_ObjName(pNode)  );
         if ( fVerbose )
-            fprintf( stdout, "Before = %5d  BDD nodes.  ", Cudd_DagSize((DdNode *)pNode->pData) );
+            fprintf( Abc_FrameGlobalGetOut(), "Before = %5d  BDD nodes.  ", Cudd_DagSize((DdNode *)pNode->pData) );
         Abc_NodeBddReorder( p, pNode );
         if ( fVerbose )
-            fprintf( stdout, "After = %5d  BDD nodes.\n", Cudd_DagSize((DdNode *)pNode->pData) );
+            fprintf( Abc_FrameGlobalGetOut(), "After = %5d  BDD nodes.\n", Cudd_DagSize((DdNode *)pNode->pData) );
     }
     Extra_ReorderQuit( p );
 }

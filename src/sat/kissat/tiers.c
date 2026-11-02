@@ -126,33 +126,33 @@ void kissat_print_tier_usage_statistics (kissat *solver, bool stable) {
     if (glue < tier1)
       continue;
     if (glue <= prefix || suffix <= glue + 1) {
-      fputs (solver->prefix, stdout);
-      fputs (mode, stdout);
-      fputs (" glue ", stdout);
+      fputs (solver->prefix, Abc_FrameGlobalGetOut());
+      fputs (mode, Abc_FrameGlobalGetOut());
+      fputs (" glue ", Abc_FrameGlobalGetOut());
     }
     if (glue <= prefix || suffix <= glue) {
-      int len = printf ("%u", glue);
+      int len = fprintf ( Abc_FrameGlobalGetOut(), "%u", glue);
       while (len > 0 && len < glue_digits)
-        fputc (' ', stdout), len++;
-      fputs (" used ", stdout);
-      printf (fmt, used);
-      printf (" clauses %5.2f%% accumulated %5.2f%%",
+        fputc( ' ', Abc_FrameGlobalGetOut() ), len++;
+      fputs (" used ", Abc_FrameGlobalGetOut());
+      fprintf ( Abc_FrameGlobalGetOut(), fmt, used);
+      fprintf ( Abc_FrameGlobalGetOut(), " clauses %5.2f%% accumulated %5.2f%%",
               kissat_percent (used, total_used),
               kissat_percent (accumulated, total_used));
       if (glue == tier1)
-        fputs (" tier1", stdout);
+        fputs (" tier1", Abc_FrameGlobalGetOut());
       if (glue == tier2)
-        fputs (" tier2", stdout);
-      fputc ('\n', stdout);
+        fputs (" tier2", Abc_FrameGlobalGetOut());
+      fputc( '\n', Abc_FrameGlobalGetOut() );
     } else {
       accumulated_middle += used;
       if (glue + 1 == suffix) {
-        int len = printf ("%u-%u", prefix + 1, suffix - 1);
+        int len = fprintf ( Abc_FrameGlobalGetOut(), "%u-%u", prefix + 1, suffix - 1);
         while (len > 0 && len < glue_digits)
-          fputc (' ', stdout), len++;
-        fputs (" used ", stdout);
-        printf (fmt, accumulated_middle);
-        printf (" clauses %5.2f%% accumulated %5.2f%%\n",
+          fputc( ' ', Abc_FrameGlobalGetOut() ), len++;
+        fputs (" used ", Abc_FrameGlobalGetOut());
+        fprintf ( Abc_FrameGlobalGetOut(), fmt, accumulated_middle);
+        fprintf ( Abc_FrameGlobalGetOut(), " clauses %5.2f%% accumulated %5.2f%%\n",
                 kissat_percent (accumulated_middle, total_used),
                 kissat_percent (accumulated, total_used));
       }

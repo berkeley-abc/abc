@@ -117,7 +117,7 @@ void Mpm_ManStop( Mpm_Man_t * p )
         FILE * pFile = fopen( pFileName, "wb" );
         Vec_MemDump( pFile, p->vTtMem );
         fclose( pFile );
-        printf( "Dumped %d %d-var truth tables into file \"%s\" (%.2f MB).\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped %d %d-var truth tables into file \"%s\" (%.2f MB).\n", 
             Vec_MemEntryNum(p->vTtMem), p->nLutSize, pFileName,
             (16.0 * p->nTruWords + 1.0) * Vec_MemEntryNum(p->vTtMem) / (1 << 20) );
     }
@@ -166,14 +166,14 @@ void Mpm_ManStop( Mpm_Man_t * p )
 ***********************************************************************/
 void Mpm_ManPrintStatsInit( Mpm_Man_t * p )
 {
-    printf( "K = %d.  C = %d.  Cand = %d. XOR = %d. MUX = %d. Choice = %d.  CutMin = %d. Truth = %d. DSD = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "K = %d.  C = %d.  Cand = %d. XOR = %d. MUX = %d. Choice = %d.  CutMin = %d. Truth = %d. DSD = %d.\n", 
         p->nLutSize, p->nNumCuts, Mig_ManCandNum(p->pMig), 
         Mig_ManXorNum(p->pMig), Mig_ManMuxNum(p->pMig), p->pMig->nChoices, 
         p->pPars->fCutMin, p->pPars->fUseTruth, p->pPars->fUseDsd );
 }
 void Mpm_ManPrintStats( Mpm_Man_t * p )
 {
-    printf( "Memory usage:  Mig = %.2f MB  Map = %.2f MB  Cut = %.2f MB    Total = %.2f MB.  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Memory usage:  Mig = %.2f MB  Map = %.2f MB  Cut = %.2f MB    Total = %.2f MB.  ", 
         1.0 * Mig_ManObjNum(p->pMig) * sizeof(Mig_Obj_t) / (1 << 20), 
         1.0 * Mig_ManObjNum(p->pMig) * 48 / (1 << 20), 
         1.0 * Mmr_StepMemory(p->pManCuts) / (1 << 17), 
@@ -182,7 +182,7 @@ void Mpm_ManPrintStats( Mpm_Man_t * p )
         1.0 * Mmr_StepMemory(p->pManCuts) / (1 << 17) );
     if ( p->timeDerive )
     {
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         p->timeTotal = Abc_Clock() - p->timeTotal;
         p->timeOther = p->timeTotal - p->timeDerive;
 

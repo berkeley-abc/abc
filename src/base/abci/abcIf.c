@@ -126,7 +126,7 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
             if ( pNtk->AndGateDelay == 0.0 )
             {
                 pNtk->AndGateDelay = 1.0;
-                printf( "The AIG-node delay is not set. Assuming unit-delay.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "The AIG-node delay is not set. Assuming unit-delay.\n" );
             }
         }
         for ( c = 0; c < Abc_NtkCiNum(pNtk); c++ )
@@ -188,7 +188,7 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkIf: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkIf: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -223,7 +223,7 @@ If_Man_t * Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
 
     // print warning about excessive memory usage
     if ( 1.0 * Abc_NtkObjNum(pNtk) * pIfMan->nObjBytes / (1<<30) > 1.0 )
-        printf( "Warning: The mapper will allocate %.1f GB for to represent the subject graph with %d AIG nodes.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The mapper will allocate %.1f GB for to represent the subject graph with %d AIG nodes.\n", 
             1.0 * Abc_NtkObjNum(pNtk) * pIfMan->nObjBytes / (1<<30), Abc_NtkObjNum(pNtk) );
 
     // create PIs and remember them in the old nodes
@@ -241,7 +241,7 @@ If_Man_t * Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     }
 
     // load the AIG into the mapper
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkObjNumMax(pNtk) );
     vNodes = Abc_AigDfs( pNtk, 0, 0 );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
@@ -337,7 +337,7 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
 
     // process the nodes in topological order
     vCover = Vec_IntAlloc( 1 << 16 );
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, "Final" );
@@ -362,9 +362,9 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     if ( nDupGates && pIfMan->pPars->fVerbose && !Abc_FrameReadFlag("silentmode") )
     {
         if ( pIfMan->pPars->fUseBuffs )
-            printf( "Added %d buffers/inverters to decouple the CO drivers.\n", nDupGates );
+            fprintf( Abc_FrameGlobalGetOut(), "Added %d buffers/inverters to decouple the CO drivers.\n", nDupGates );
         else
-            printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
+            fprintf( Abc_FrameGlobalGetOut(), "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
     }
     return pNtkNew;
 }
@@ -796,7 +796,7 @@ Hop_Obj_t * Abc_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * 
     gFunc = Abc_NodeIfToHop2_rec( pHopMan, pIfMan, pIfObj, pIfMan->vTemp ); 
     if ( gFunc == (void *)1 )
     {
-        printf( "Abc_NodeIfToHop(): Computing local AIG has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NodeIfToHop(): Computing local AIG has failed.\n" );
         return NULL;
     }
     // clean the cuts

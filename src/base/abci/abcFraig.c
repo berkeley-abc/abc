@@ -62,7 +62,7 @@ Abc_Ntk_t * Abc_NtkFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int f
     Fraig_Man_t * pMan; 
     // check if EXDC is present
     if ( fExdc && pNtk->pExdc == NULL )
-        fExdc = 0, printf( "Warning: Networks has no EXDC.\n" );
+        fExdc = 0, fprintf( Abc_FrameGlobalGetOut(), "Warning: Networks has no EXDC.\n" );
     // perform fraiging
     pMan = (Fraig_Man_t *)Abc_NtkToFraig( pNtk, pParams, fAllNodes, fExdc ); 
     // add algebraic choices
@@ -82,7 +82,7 @@ Abc_Ntk_t * Abc_NtkFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int f
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkFraig: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFraig: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -124,7 +124,7 @@ void * Abc_NtkToFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int fExd
     // perform strashing
     vNodes = Abc_AigDfs( pNtk, fAllNodes, 0 );
     if ( !fInternal )
-        pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
+        pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), vNodes->nSize );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         if ( Abc_ObjFaninNum(pNode) == 0 )
@@ -290,7 +290,7 @@ Abc_Ntk_t * Abc_NtkFromFraig( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk )
     // set the constant node
     Fraig_NodeSetData1( Fraig_ManReadConst1(pMan), (Fraig_Node_t *)Abc_AigConst1(pNtkNew) );
     // process the nodes in topological order
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -419,7 +419,7 @@ Abc_Ntk_t * Abc_NtkFromFraig2( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk )
     // perform strashing
     Abc_AigSetNodePhases( pNtk );
     Abc_NtkIncrementTravId( pNtk );
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -488,13 +488,13 @@ Abc_Ntk_t * Abc_NtkFraigTrust( Abc_Ntk_t * pNtk )
 
     if ( !Abc_NtkIsSopLogic(pNtk) )
     {
-        printf( "Abc_NtkFraigTrust: Trust mode works for netlists and logic SOP networks.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFraigTrust: Trust mode works for netlists and logic SOP networks.\n" );
         return NULL;
     }
 
     if ( !Abc_NtkFraigTrustCheck(pNtk) )
     {
-        printf( "Abc_NtkFraigTrust: The network does not look like an AIG with choice nodes.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFraigTrust: The network does not look like an AIG with choice nodes.\n" );
         return NULL;
     }
     
@@ -505,12 +505,12 @@ Abc_Ntk_t * Abc_NtkFraigTrust( Abc_Ntk_t * pNtk )
     Abc_NtkReassignIds( pNtkNew );
 
     // print a warning about choice nodes
-    printf( "Warning: The resulting AIG contains %d choice nodes.\n", Abc_NtkGetChoiceNum( pNtkNew ) );
+    fprintf( Abc_FrameGlobalGetOut(), "Warning: The resulting AIG contains %d choice nodes.\n", Abc_NtkGetChoiceNum( pNtkNew ) );
 
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkFraigTrust: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFraigTrust: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -565,7 +565,7 @@ void Abc_NtkFraigTrustOne( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
 
     // perform strashing
     vNodes = Abc_NtkDfs( pNtk, 0 );
-    pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), vNodes->nSize );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -659,7 +659,7 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtkAdd )
     pNtk = Abc_NtkStrash( pNtkAdd, 0, 0, 0 );
     if ( pNtk == NULL )
     {
-        printf( "Abc_NtkFraigStore: Initial strashing has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFraigStore: Initial strashing has failed.\n" );
         return 0;
     }
     // get the network currently stored
@@ -686,8 +686,8 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtkAdd )
                 Vec_PtrFree( pNtk->vPos );   pNtk->vPos   = vPos;   vPos   = NULL;
                 Vec_PtrFree( pNtk->vBoxes ); pNtk->vBoxes = vBoxes; vBoxes = NULL;
                 Abc_NtkOrderCisCos( pNtk );
-                printf( "Trying to store the network with different primary inputs.\n" );
-                printf( "The previously stored networks are deleted and this one is added.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Trying to store the network with different primary inputs.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "The previously stored networks are deleted and this one is added.\n" );
                 Abc_NtkFraigStoreClean();
             }
             if ( vPis )   Vec_PtrFree( vPis );
@@ -724,7 +724,7 @@ Abc_Ntk_t * Abc_NtkFraigRestore( int nPatsRand, int nPatsDyna, int nBTLimit )
     vStore = Abc_FrameReadStore();
     if ( Vec_PtrSize(vStore) == 0 )
     {
-        printf( "There are no network currently in storage.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There are no network currently in storage.\n" );
         return NULL;
     }
 //    printf( "Currently stored %d networks will be fraiged.\n", Vec_PtrSize(vStore) );
@@ -818,7 +818,7 @@ void Abc_NtkFraigStoreCheck( Abc_Ntk_t * pFraig )
         {
             pNode1 = Abc_ObjFanin0( Abc_NtkPo(pFraig, k*nPoOrig+i) ); 
             if ( pNode0 != pNode1 )
-                printf( "Verification for PO #%d of network #%d has failed. The PO function is not used.\n", i+1, k+1 );
+                fprintf( Abc_FrameGlobalGetOut(), "Verification for PO #%d of network #%d has failed. The PO function is not used.\n", i+1, k+1 );
         }
     }
 }

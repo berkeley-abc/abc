@@ -449,7 +449,7 @@ clk = Abc_Clock();
     // sweep internal nodes
     p->fRefined = 0;
     if ( p->pPars->fVerbose )
-        pProgress = Bar_ProgressStart( stdout, Aig_ManObjNumMax(p->pAig) * p->pPars->nFramesK );
+        pProgress = Bar_ProgressStart( Abc_FrameGlobalGetOut(), Aig_ManObjNumMax(p->pAig) * p->pPars->nFramesK );
     for ( f = 0; f < p->pPars->nFramesK; f++ )
     {
         // sweep internal nodes
@@ -696,7 +696,7 @@ p->timeReduce += Abc_Clock() - clk;
     p->fRefined = 0;
     Ssw_ClassesClearRefined( p->ppClasses );
     if ( p->pPars->fVerbose )
-        pProgress = Bar_ProgressStart( stdout, Aig_ManObjNumMax(p->pAig) );
+        pProgress = Bar_ProgressStart( Abc_FrameGlobalGetOut(), Aig_ManObjNumMax(p->pAig) );
     Aig_ManForEachObj( p->pAig, pObj, i )
     {
         if ( Ssw_ManCallbackStop(p) )

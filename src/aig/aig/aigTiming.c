@@ -320,12 +320,12 @@ void Aig_ManVerifyLevel( Aig_Man_t * p )
     Aig_ManForEachNode( p, pObj, i )
         if ( Aig_ObjLevel(pObj) != Aig_ObjLevelNew(pObj) )
         {
-            printf( "Level of node %6d should be %4d instead of %4d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Level of node %6d should be %4d instead of %4d.\n", 
                 pObj->Id, Aig_ObjLevelNew(pObj), Aig_ObjLevel(pObj) );
             Counter++;
         }
     if ( Counter )
-    printf( "Levels of %d nodes are incorrect.\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Levels of %d nodes are incorrect.\n", Counter );
 }
 
 /**Function*************************************************************
@@ -347,12 +347,12 @@ void Aig_ManVerifyReverseLevel( Aig_Man_t * p )
     Aig_ManForEachNode( p, pObj, i )
         if ( Aig_ObjLevel(pObj) != Aig_ObjLevelNew(pObj) )
         {
-            printf( "Reverse level of node %6d should be %4d instead of %4d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Reverse level of node %6d should be %4d instead of %4d.\n", 
                 pObj->Id, Aig_ObjReverseLevelNew(p, pObj), Aig_ObjReverseLevel(p, pObj) );
             Counter++;
         }
     if ( Counter )
-    printf( "Reverse levels of %d nodes are incorrect.\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Reverse levels of %d nodes are incorrect.\n", Counter );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -336,7 +336,7 @@ float Nwk_ManDelayTraceLut( Nwk_Man_t * pNtk )
     // get the library
     if ( pLutLib && pLutLib->LutMax < Nwk_ManGetFaninMax(pNtk) )
     {
-        printf( "The max LUT size (%d) is less than the max fanin count (%d).\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "The max LUT size (%d) is less than the max fanin count (%d).\n", 
             pLutLib->LutMax, Nwk_ManGetFaninMax(pNtk) );
         return -TIM_ETERNITY;
     }
@@ -436,10 +436,10 @@ int Nwk_ManVerifyTiming(  Nwk_Man_t * pNtk )
         tArrival = Nwk_NodeComputeArrival( pObj, 1 );
         tRequired = Nwk_NodeComputeRequired( pObj, 1 );
         if ( !Nwk_ManTimeEqual( tArrival, Nwk_ObjArrival(pObj), (float)0.01 ) )
-            printf( "Nwk_ManVerifyTiming(): Object %d has different arrival time (%.2f) from computed (%.2f).\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Nwk_ManVerifyTiming(): Object %d has different arrival time (%.2f) from computed (%.2f).\n", 
                 pObj->Id, Nwk_ObjArrival(pObj), tArrival );
         if ( !Nwk_ManTimeEqual( tRequired, Nwk_ObjRequired(pObj), (float)0.01 ) )
-            printf( "Nwk_ManVerifyTiming(): Object %d has different required time (%.2f) from computed (%.2f).\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Nwk_ManVerifyTiming(): Object %d has different required time (%.2f) from computed (%.2f).\n", 
                 pObj->Id, Nwk_ObjRequired(pObj), tRequired );
     }
     return 1;
@@ -465,7 +465,7 @@ void Nwk_ManDelayTracePrint( Nwk_Man_t * pNtk )
     // get the library
     if ( pLutLib && pLutLib->LutMax < Nwk_ManGetFaninMax(pNtk) )
     {
-        printf( "The max LUT size (%d) is less than the max fanin count (%d).\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "The max LUT size (%d) is less than the max fanin count (%d).\n", 
             pLutLib->LutMax, Nwk_ManGetFaninMax(pNtk) );
         return;
     }
@@ -488,12 +488,12 @@ void Nwk_ManDelayTracePrint( Nwk_Man_t * pNtk )
         pCounters[(int)Num]++;
     }
     // print the results
-    printf( "Max delay = %6.2f. Delay trace using %s model:\n", tArrival, pLutLib? "LUT library" : "unit-delay" );
+    fprintf( Abc_FrameGlobalGetOut(), "Max delay = %6.2f. Delay trace using %s model:\n", tArrival, pLutLib? "LUT library" : "unit-delay" );
     Nodes = 0;
     for ( i = 0; i < nSteps; i++ )
     {
         Nodes += pCounters[i];
-        printf( "%3d %s : %5d  (%6.2f %%)\n", pLutLib? 5*(i+1) : i+1, 
+        fprintf( Abc_FrameGlobalGetOut(), "%3d %s : %5d  (%6.2f %%)\n", pLutLib? 5*(i+1) : i+1, 
             pLutLib? "%":"lev", Nodes, 100.0*Nodes/Nwk_ManNodeNum(pNtk) );
     }
     ABC_FREE( pCounters );
@@ -839,7 +839,7 @@ int Nwk_ManVerifyLevel( Nwk_Man_t * pNtk )
         LevelNew = Nwk_ObjLevelNew( pObj );
         if ( Nwk_ObjLevel(pObj) != LevelNew )
         {
-            printf( "Object %6d: Mismatch betweeh levels: Actual = %d. Correct = %d.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Object %6d: Mismatch betweeh levels: Actual = %d. Correct = %d.\n", 
                 i, Nwk_ObjLevel(pObj), LevelNew );
         }
     }

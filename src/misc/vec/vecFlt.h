@@ -746,10 +746,10 @@ static inline int Vec_FltEqual( Vec_Flt_t * p1, Vec_Flt_t * p2 )
 static inline void Vec_FltPrint( Vec_Flt_t * vVec )
 {
     int i; float Entry;
-    printf( "Vector has %d entries: {", Vec_FltSize(vVec) );
+    fprintf( Abc_FrameGlobalGetOut(),  "Vector has %d entries: {", Vec_FltSize(vVec)  );
     Vec_FltForEachEntry( vVec, Entry, i )
-        printf( " %f", Entry );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  " %f", Entry  );
+    fprintf( Abc_FrameGlobalGetOut(),  " }\n"  );
 }
 
 /**Function*************************************************************

@@ -547,7 +547,7 @@ int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int f
     {
         if ( Vec_PtrSize(p->vStates) >= nStatesMax )
         {
-            printf( "Reached the limit on states traversed (%d).  ", nStatesMax );
+            fprintf( Abc_FrameGlobalGetOut(), "Reached the limit on states traversed (%d).  ", nStatesMax );
             RetValue = -1;
             break;
         }
@@ -561,32 +561,32 @@ int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int f
         if ( Gia_ManAnalyzeResult( p, pState, fMiter, fDumpFile ) && fMiter )
         {
             RetValue = 0;
-            printf( "Miter failed in state %d after %d transitions.  ", 
+            fprintf( Abc_FrameGlobalGetOut(), "Miter failed in state %d after %d transitions.  ", 
                 p->iCurState, Vec_IntSize(p->vBugTrace)-1 );
             break;
         }
         if ( fVerbose && p->iCurState % 5000 == 0 )
         {
-            printf( "States =%10d. Reached =%10d. R = %5.3f. Depth =%6d. Mem =%9.2f MB.  ", 
+            fprintf( Abc_FrameGlobalGetOut(), "States =%10d. Reached =%10d. R = %5.3f. Depth =%6d. Mem =%9.2f MB.  ", 
                 p->iCurState, Vec_PtrSize(p->vStates), 1.0*p->iCurState/Vec_PtrSize(p->vStates), Gia_ManCountDepth(p), 
                 (1.0/(1<<20))*(1.0*Vec_PtrSize(p->vStates)*(sizeof(Gia_ObjEra_t) + sizeof(unsigned) * p->nWordsDat) + 
                    1.0*p->nBins*sizeof(unsigned) + 1.0*p->vStates->nCap * sizeof(void*)) );
             ABC_PRT( "Time", Abc_Clock() - clk );
         }
     }
-    printf( "Reachability analysis traversed %d states with depth %d.  ", p->iCurState-1, Gia_ManCountDepth(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Reachability analysis traversed %d states with depth %d.  ", p->iCurState-1, Gia_ManCountDepth(p) );
     ABC_PRT( "Time", Abc_Clock() - clk );
     if ( fDumpFile )
     {
         char * pFileName = "test.stg";
         FILE * pFile = fopen( pFileName, "wb" );
         if ( pFile == NULL )
-            printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         else
         {
             Gia_ManStgPrint( pFile, p->vStgDump, Gia_ManPiNum(pAig), Gia_ManPoNum(pAig), p->iCurState-1 );
             fclose( pFile );
-            printf( "Extracted STG was written into file \"%s\".\n", pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Extracted STG was written into file \"%s\".\n", pFileName );
         }
     }
     Gia_ManEraFree( p );

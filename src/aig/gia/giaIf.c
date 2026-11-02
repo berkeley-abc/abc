@@ -465,7 +465,7 @@ int Gia_ManCountDupLut( Gia_Man_t * p )
         }
     Gia_ManCleanMark01( p );
     if ( nCountDup + nCountPis + nCountMux )
-        printf( "Dup fanins = %d.  CI fanins = %d.  MUX fanins = %d.  Total = %d.  (%.2f %%)\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Dup fanins = %d.  CI fanins = %d.  MUX fanins = %d.  Total = %d.  (%.2f %%)\n", 
             nCountDup, nCountPis, nCountMux, nCountDup + nCountPis, 100.0 * (nCountDup + nCountPis + nCountMux) / Gia_ManLutNum(p) );
     return nCountDup + nCountPis;
 }
@@ -514,15 +514,15 @@ void Gia_ManPrintOutputLutStats( Gia_Man_t * p )
             Vec_IntAddToEntry( vLevels, Level, 1 );
         nTotalLuts += Vec_IntSize(vLuts);
     }
-    printf( "Level count statistics for %d AIG outputs:\n", Gia_ManCoNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Level count statistics for %d AIG outputs:\n", Gia_ManCoNum(p) );
     Vec_IntForEachEntry( vLevels, Value, i )
         if ( Value )
-            printf( "   %2d level : Function count = %8d (%6.2f %%)\n", i, Value, 100.0*Value/Gia_ManCoNum(p) );
-    printf( "LUT count statistics for %d AIG outputs:\n", Gia_ManCoNum(p) );
+            fprintf( Abc_FrameGlobalGetOut(), "   %2d level : Function count = %8d (%6.2f %%)\n", i, Value, 100.0*Value/Gia_ManCoNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "LUT count statistics for %d AIG outputs:\n", Gia_ManCoNum(p) );
     Vec_IntForEachEntry( vNodes, Value, i )
         if ( Value )
-            printf( "   %2d LUT%d  : Function count = %8d (%6.2f %%)\n", i, nLutSize, Value, 100.0*Value/Gia_ManCoNum(p) );
-    printf( "Sum total of LUT counts for all outputs = %d. Shared LUT count = %d.\n", nTotalLuts, Gia_ManLutNum(p) );
+            fprintf( Abc_FrameGlobalGetOut(), "   %2d LUT%d  : Function count = %8d (%6.2f %%)\n", i, nLutSize, Value, 100.0*Value/Gia_ManCoNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Sum total of LUT counts for all outputs = %d. Shared LUT count = %d.\n", nTotalLuts, Gia_ManLutNum(p) );
     Vec_IntFree( vLuts );
     Vec_IntFree( vNodes );
     Vec_IntFree( vLevels );
@@ -869,9 +869,9 @@ void If_ManCheckChoices( If_Man_t * pIfMan )
         If_ManCheckChoices_rec( pIfMan, If_ObjFanin0(pIfObj) );
     If_ManForEachNode( pIfMan, pIfObj, i )
         if ( !pIfObj->fDriver )
-            printf( "Object %d is dangling.\n", i ), fFound = 1;
+            fprintf( Abc_FrameGlobalGetOut(),  "Object %d is dangling.\n", i  ), fFound = 1;
     if ( !fFound )
-        printf( "There are no dangling objects.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There are no dangling objects.\n" );
     If_ManForEachObj( pIfMan, pIfObj, i )
         pIfObj->fDriver = 0;
 }
@@ -906,7 +906,7 @@ If_Man_t * Gia_ManToIf( Gia_Man_t * p, If_Par_t * pPars )
     pIfMan->pName = Abc_UtilStrsav( Gia_ManName(p) );
     // print warning about excessive memory usage
     if ( 1.0 * Gia_ManObjNum(p) * pIfMan->nObjBytes / (1<<30) > 1.0 )
-        printf( "Warning: The mapper will allocate %.1f GB for to represent the subject graph with %d AIG nodes.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The mapper will allocate %.1f GB for to represent the subject graph with %d AIG nodes.\n", 
             1.0 * Gia_ManObjNum(p) * pIfMan->nObjBytes / (1<<30), Gia_ManObjNum(p) );
     // load the AIG into the mapper
     Gia_ManFillValue( p );
@@ -1334,13 +1334,13 @@ int Gia_ManFromIfLogicNode( void * pIfMan, Gia_Man_t * pNew, int iObj, Vec_Int_t
     Length = strlen(pStr);
     if ( Length != 2 && Length != 3 )
     {
-        printf( "Wrong LUT struct (%s)\n", pStr );
+        fprintf( Abc_FrameGlobalGetOut(), "Wrong LUT struct (%s)\n", pStr );
         return -1;
     }
     for ( i = 0; i < Length; i++ )
         if ( pStr[i] - '0' < 3 || pStr[i] - '0' > 6 )
         {
-            printf( "The LUT size (%d) should belong to {3,4,5,6}.\n", pStr[i] - '0' );
+            fprintf( Abc_FrameGlobalGetOut(), "The LUT size (%d) should belong to {3,4,5,6}.\n", pStr[i] - '0' );
             return -1;
         }
 
@@ -1349,7 +1349,7 @@ int Gia_ManFromIfLogicNode( void * pIfMan, Gia_Man_t * pNew, int iObj, Vec_Int_t
     nLutRoot  =                   pStr[Length-1] - '0';
     if ( nLeaves > nLutLeaf - 1 + (nLutLeaf2 ? nLutLeaf2 - 1 : 0) + nLutRoot )
     {
-        printf( "The node size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
+        fprintf( Abc_FrameGlobalGetOut(), "The node size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
         return -1;
     }
 
@@ -1444,9 +1444,9 @@ int Gia_ManFromIfLogicNode( void * pIfMan, Gia_Man_t * pNew, int iObj, Vec_Int_t
             }
             else
             {
-                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
-                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
-                printf( "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
+                Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "    " );
+                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
                 return -1;
             }
         }
@@ -1458,9 +1458,9 @@ int Gia_ManFromIfLogicNode( void * pIfMan, Gia_Man_t * pNew, int iObj, Vec_Int_t
                 {
                     if ( !If_CluCheckXXExt( NULL, pRes, nLeaves, nLutLeaf, nLutRoot, pLut0, pLut1, &Func0, &Func1 ) )
                     {
-                        Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
-                        Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
-                        printf( "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
+                        Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "    " );
+                        Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
                         return -1;
                     }
                 }
@@ -1468,9 +1468,9 @@ int Gia_ManFromIfLogicNode( void * pIfMan, Gia_Man_t * pNew, int iObj, Vec_Int_t
                 {
                     if ( !If_CluCheckExt( NULL, pRes, nLeaves, nLutLeaf, nLutRoot, pLut0, pLut1, &Func0, &Func1 ) )
                     {
-                        Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
-                        Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
-                        printf( "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
+                        Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "    " );
+                        Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
                         return -1;
                     }
                 }
@@ -1479,9 +1479,9 @@ int Gia_ManFromIfLogicNode( void * pIfMan, Gia_Man_t * pNew, int iObj, Vec_Int_t
             {
                 if ( !If_CluCheckExt3( pIfMan, pRes, nLeaves, nLutLeaf, nLutLeaf2, nLutRoot, pLut0, pLut1, pLut2, &Func0, &Func1, &Func2 ) )
                 {
-                    Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
-                    Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
-                    printf( "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
+                    Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "    " );
+                    Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
                     return -1;
                 }
             }
@@ -1914,14 +1914,14 @@ void Gia_ManConfigPrint( word Truth4, word z, int nLeaves )
 {
     static ABC_THREAD_LOCAL int Count = 0;
     int i;
-    printf( "[%4d] Encoding (nLeaves=%d): ", Count++, nLeaves );
+    fprintf( Abc_FrameGlobalGetOut(), "[%4d] Encoding (nLeaves=%d): ", Count++, nLeaves );
     // Simple LUT4 case (Truth4 != 0, z == 0)
     if ( z == 0 )
     {
-        printf( "%04lX{", (unsigned long)(Truth4 & 0xFFFF) );
+        fprintf( Abc_FrameGlobalGetOut(), "%04lX{", (unsigned long)(Truth4 & 0xFFFF) );
         for ( i = 0; i < nLeaves && i < 4; i++ )
-            printf( "%c", 'a' + i );
-        printf( "} [Cell 0, LUT4]\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + i );
+        fprintf( Abc_FrameGlobalGetOut(), "} [Cell 0, LUT4]\n" );
         return;
     }
     if ( ((z >> 63) & 1) == 0 )
@@ -1929,36 +1929,36 @@ void Gia_ManConfigPrint( word Truth4, word z, int nLeaves )
         // Extract truth tables
         word Truth1 = z & 0xFFFF;
         word Truth2 = (z >> 32) & 0xFFFF;
-        printf( "h=%04lX{", (unsigned long)Truth1 );
+        fprintf( Abc_FrameGlobalGetOut(), "h=%04lX{", (unsigned long)Truth1 );
         // First LUT4 inputs from bits 16-31
         for ( i = 0; i < 4; i++ )
         {
             int v = (int)((z >> (16 + (i << 2))) & 7);
             if ( v == 6 && nLeaves == 5 )
-                printf( "0" );  // Constant 0 for 5-input cuts
+                fprintf( Abc_FrameGlobalGetOut(), "0" );  // Constant 0 for 5-input cuts
             else if ( v == 7 )
-                printf( "?" );  // Internal connection (shouldn't appear in first LUT)
+                fprintf( Abc_FrameGlobalGetOut(), "?" );  // Internal connection (shouldn't appear in first LUT)
             else if ( v <= 6 )
-                printf( "%c", 'a' + v );
+                fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + v );
             else
-                printf( "?" );
+                fprintf( Abc_FrameGlobalGetOut(), "?" );
         }
-        printf( "} ");
-        printf( "i=%04lX{", (unsigned long)Truth2 );
+        fprintf( Abc_FrameGlobalGetOut(),  "} " );
+        fprintf( Abc_FrameGlobalGetOut(), "i=%04lX{", (unsigned long)Truth2 );
         // Second LUT4 inputs from bits 48-63
         for ( i = 0; i < 4; i++ )
         {
             int v = (int)((z >> (48 + (i << 2))) & 7);
             if ( v == 6 && nLeaves == 5 )
-                printf( "0" );  // Constant 0 for 5-input cuts
+                fprintf( Abc_FrameGlobalGetOut(), "0" );  // Constant 0 for 5-input cuts
             else if ( v == 7 )
-                printf( "h" );  // Output of first LUT
+                fprintf( Abc_FrameGlobalGetOut(), "h" );  // Output of first LUT
             else if ( v <= 6 )
-                printf( "%c", 'a' + v );
+                fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + v );
             else
-                printf( "?" );
+                fprintf( Abc_FrameGlobalGetOut(), "?" );
         }
-        printf( "} [Cell 1, S44]\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "} [Cell 1, S44]\n" );
     }
     else
     {
@@ -1968,39 +1968,39 @@ void Gia_ManConfigPrint( word Truth4, word z, int nLeaves )
         // Extract truth tables
         word Truth1 = z & 0xFFFF;
         word Truth2 = (z >> 16) & 0xFFFF;
-        printf( "j=%04lX{", (unsigned long)Truth1 );
+        fprintf( Abc_FrameGlobalGetOut(), "j=%04lX{", (unsigned long)Truth1 );
         // First LUT4 inputs
         for ( i = 0; i < 4; i++ )
         {
             if ( Pla2Var[i] == 9 )
-                printf( "0" );  // Will be encoded as constant 0
+                fprintf( Abc_FrameGlobalGetOut(), "0" );  // Will be encoded as constant 0
             else if ( Pla2Var[i] < 9 )
-                printf( "%c", 'a' + Pla2Var[i] );
+                fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + Pla2Var[i] );
             else
-                printf( "?" );
+                fprintf( Abc_FrameGlobalGetOut(), "?" );
         }
-        printf( "} ");
-        printf( "k=%04lX{", (unsigned long)Truth2 );
+        fprintf( Abc_FrameGlobalGetOut(),  "} " );
+        fprintf( Abc_FrameGlobalGetOut(), "k=%04lX{", (unsigned long)Truth2 );
         // Second LUT4 inputs
         for ( i = 4; i < 8; i++ )
         {
             if ( Pla2Var[i] == 9 )
-                printf( "0" );  // Will be encoded as constant 0
+                fprintf( Abc_FrameGlobalGetOut(), "0" );  // Will be encoded as constant 0
             else if ( Pla2Var[i] < 9 )
-                printf( "%c", 'a' + Pla2Var[i] );
+                fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + Pla2Var[i] );
             else
-                printf( "?" );
+                fprintf( Abc_FrameGlobalGetOut(), "?" );
         }
-        printf( "} ");
+        fprintf( Abc_FrameGlobalGetOut(),  "} " );
         // final
-        printf( "l=<" );
+        fprintf( Abc_FrameGlobalGetOut(), "l=<" );
         if ( Pla2Var[8] == 9 )
-            printf( "0" );  // Will be encoded as constant 0
+            fprintf( Abc_FrameGlobalGetOut(), "0" );  // Will be encoded as constant 0
         else if ( Pla2Var[8] < 9 )
-            printf( "%c", 'a' + Pla2Var[8] );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + Pla2Var[8] );
         else
-            printf( "?" );
-        printf( "jk> [Cell 2, 9-input MUX]\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "?" );
+        fprintf( Abc_FrameGlobalGetOut(), "jk> [Cell 2, 9-input MUX]\n" );
     }
 }
 
@@ -2020,108 +2020,108 @@ void Gia_ManConfigPrint2( unsigned char * pConfigData, int nLeaves )
     unsigned char CellId = pConfigData[0];
     int i;
     static ABC_THREAD_LOCAL int Count = 0;
-    printf( "%6d : ", Count++ );  // Print instance number
-    printf( "[Cell %d with %d leaves]  ", CellId, nLeaves );
+    fprintf( Abc_FrameGlobalGetOut(), "%6d : ", Count++ );  // Print instance number
+    fprintf( Abc_FrameGlobalGetOut(), "[Cell %d with %d leaves]  ", CellId, nLeaves );
     if ( CellId == 0 )
     {
         assert( nLeaves <= 4 );
         // Extract 16-bit truth table
         word Truth = ((word)pConfigData[5] << 8) | pConfigData[6];
-        printf( "e=%04lX{", (unsigned long)Truth );
+        fprintf( Abc_FrameGlobalGetOut(), "e=%04lX{", (unsigned long)Truth );
         // Print as simple {abcd} since it's just a direct LUT4
         for ( i = 0; i < nLeaves; i++ )
-            printf( "%c", 'a' + i );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + i );
         for ( ; i < 4; i++ )
-            printf( "%c", '0' );
-        printf( "}\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", '0' );
+        fprintf( Abc_FrameGlobalGetOut(), "}\n" );
     }
     else if ( CellId == 1 )
     {
         // First LUT4
         word Truth1 = ((word)pConfigData[8] << 8) | pConfigData[9];
-        printf( "h=%04lX{", (unsigned long)Truth1 );
+        fprintf( Abc_FrameGlobalGetOut(), "h=%04lX{", (unsigned long)Truth1 );
         for ( i = 0; i < 4; i++ )
         {
             int v = pConfigData[1+i];
             if ( v == 0 )
-                printf( "0");
+                fprintf( Abc_FrameGlobalGetOut(),  "0" );
             else if ( v == 1 )
-                printf( "1");
+                fprintf( Abc_FrameGlobalGetOut(),  "1" );
             else if ( v >= 2 && v < 2 + nLeaves )
-                printf( "%c", 'a' + (v-2));
+                fprintf( Abc_FrameGlobalGetOut(),  "%c", 'a' + (v-2) );
             else
-                printf( "?");
+                fprintf( Abc_FrameGlobalGetOut(),  "?" );
         }
-        printf( "};");
+        fprintf( Abc_FrameGlobalGetOut(),  "};" );
         // Second LUT4
         word Truth2 = ((word)pConfigData[10] << 8) | pConfigData[11];
-        printf( "i=%04lX{", (unsigned long)Truth2 );
+        fprintf( Abc_FrameGlobalGetOut(), "i=%04lX{", (unsigned long)Truth2 );
         for ( i = 4; i < 7; i++ )
         {
             int v = pConfigData[1+i];
             if ( v == 0 )
-                printf( "0");
+                fprintf( Abc_FrameGlobalGetOut(),  "0" );
             else if ( v == 1 )
-                printf( "1");
+                fprintf( Abc_FrameGlobalGetOut(),  "1" );
             else if ( v >= 2 && v < 2 + nLeaves )
-                printf( "%c", 'a' + (v-2));
+                fprintf( Abc_FrameGlobalGetOut(),  "%c", 'a' + (v-2) );
             else if ( v == 9 )
-                printf( "h");  // Output of first LUT
+                fprintf( Abc_FrameGlobalGetOut(),  "h" );  // Output of first LUT
             else
-                printf( "?");
+                fprintf( Abc_FrameGlobalGetOut(),  "?" );
         }
-        printf( "h}\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "h}\n" );
     }
     else if ( CellId == 2 )
     {
         // First LUT4
         word Truth1 = ((word)pConfigData[10] << 8) | pConfigData[11];
-        printf( "j=%04lX{", (unsigned long)Truth1 );
+        fprintf( Abc_FrameGlobalGetOut(), "j=%04lX{", (unsigned long)Truth1 );
         for ( i = 0; i < 4; i++ )
         {
             int v = pConfigData[1+i];
             if ( v == 0 )
-                printf( "0");
+                fprintf( Abc_FrameGlobalGetOut(),  "0" );
             else if ( v == 1 )
-                printf( "1");
+                fprintf( Abc_FrameGlobalGetOut(),  "1" );
             else if ( v >= 2 && v < 2 + nLeaves )
-                printf( "%c", 'a' + (v-2));
+                fprintf( Abc_FrameGlobalGetOut(),  "%c", 'a' + (v-2) );
             else
-                printf( "?");
+                fprintf( Abc_FrameGlobalGetOut(),  "?" );
         }
-        printf( "};");
+        fprintf( Abc_FrameGlobalGetOut(),  "};" );
         // Second LUT4
         word Truth2 = ((word)pConfigData[12] << 8) | pConfigData[13];
-        printf( "k=%04lX{", (unsigned long)Truth2 );
+        fprintf( Abc_FrameGlobalGetOut(), "k=%04lX{", (unsigned long)Truth2 );
         for ( i = 4; i < 8; i++ )
         {
             int v = pConfigData[1+i];
             if ( v == 0 )
-                printf( "0");
+                fprintf( Abc_FrameGlobalGetOut(),  "0" );
             else if ( v == 1 )
-                printf( "1");
+                fprintf( Abc_FrameGlobalGetOut(),  "1" );
             else if ( v >= 2 && v < 2 + nLeaves )
-                printf( "%c", 'a' + (v-2));
+                fprintf( Abc_FrameGlobalGetOut(),  "%c", 'a' + (v-2) );
             else
-                printf( "?");
+                fprintf( Abc_FrameGlobalGetOut(),  "?" );
         }
-        printf( "};");
+        fprintf( Abc_FrameGlobalGetOut(),  "};" );
         // final node
-        printf( "l=<");
+        fprintf( Abc_FrameGlobalGetOut(),  "l=<" );
         int v = pConfigData[1+8];
         if ( v == 0 )
-            printf( "0");
+            fprintf( Abc_FrameGlobalGetOut(),  "0" );
         else if ( v == 1 )
-            printf( "1");
+            fprintf( Abc_FrameGlobalGetOut(),  "1" );
         else if ( v >= 2 && v < 2 + nLeaves )
-            printf( "%c", 'a' + (v-2));
+            fprintf( Abc_FrameGlobalGetOut(),  "%c", 'a' + (v-2) );
         else
-            printf( "?");
-        printf( "jk>\n" );
+            fprintf( Abc_FrameGlobalGetOut(),  "?" );
+        fprintf( Abc_FrameGlobalGetOut(), "jk>\n" );
     }
     else
     {
-        printf( "Unknown cell type %d!\n", CellId );
+        fprintf( Abc_FrameGlobalGetOut(), "Unknown cell type %d!\n", CellId );
     }
 }
 
@@ -2686,7 +2686,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
         if ( pFile == NULL )
         {
             Vec_StrFree( vConfigsStr );
-            printf( "Cannot open file \"%s\".\n", Buffer );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\".\n", Buffer );
             return pNew;
         }
         Vec_StrPush( vConfigsStr, '\0' );
@@ -2694,7 +2694,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
         status = fwrite( pStr, strlen(pStr), 1, pFile );
         Vec_StrFree( vConfigsStr );
         fclose( pFile );
-        printf( "Finished dumping configs into file \"%s\".\n", Buffer );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished dumping configs into file \"%s\".\n", Buffer );
     }
     return pNew;
 }
@@ -2903,12 +2903,12 @@ void Abc_FrameMiniAigSetCiArrivals( Abc_Frame_t * pAbc, int * pArrivals )
 {
     Gia_Man_t * pGia;
     if ( pArrivals == NULL )
-        { printf( "Arrival times are not given.\n" ); return; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Arrival times are not given.\n" ); return; }
     if ( pAbc == NULL )
-        { printf( "ABC framework is not initialized by calling Abc_Start().\n" ); return; }
+        { fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start().\n" ); return; }
     pGia = Abc_FrameReadGia( pAbc );
     if ( pGia == NULL )
-        { printf( "Current network in ABC framework is not defined.\n" ); return; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Current network in ABC framework is not defined.\n" ); return; }
     Vec_IntFreeP( &pGia->vCiArrs );
     pGia->vCiArrs = Vec_IntAllocArrayCopy( pArrivals, Gia_ManCiNum(pGia) );
 }
@@ -2916,12 +2916,12 @@ void Abc_FrameMiniAigSetCoRequireds( Abc_Frame_t * pAbc, int * pRequireds )
 {
     Gia_Man_t * pGia;
     if ( pRequireds == NULL )
-        { printf( "Required times are not given.\n" ); return; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Required times are not given.\n" ); return; }
     if ( pAbc == NULL )
-        { printf( "ABC framework is not initialized by calling Abc_Start().\n" ); return; }
+        { fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start().\n" ); return; }
     pGia = Abc_FrameReadGia( pAbc );
     if ( pGia == NULL )
-        { printf( "Current network in ABC framework is not defined.\n" ); return; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Current network in ABC framework is not defined.\n" ); return; }
     Vec_IntFreeP( &pGia->vCoReqs );
     pGia->vCoReqs = Vec_IntAllocArrayCopy( pRequireds, Gia_ManCoNum(pGia) );
 }
@@ -2930,12 +2930,12 @@ int * Abc_FrameMiniAigReadCoArrivals( Abc_Frame_t * pAbc )
     Vec_Int_t * vArrs; int * pArrs;
     Gia_Man_t * pGia;
     if ( pAbc == NULL )
-        { printf( "ABC framework is not initialized by calling Abc_Start()\n" ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" ); return NULL; }
     pGia = Abc_FrameReadGia( pAbc );
     if ( pGia == NULL )
-        { printf( "Current network in ABC framework is not defined.\n" ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Current network in ABC framework is not defined.\n" ); return NULL; }
     if ( pGia->vCoArrs == NULL )
-        { printf( "Current network in ABC framework has no CO arrival times.\n" ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "Current network in ABC framework has no CO arrival times.\n" ); return NULL; }
     vArrs = Vec_IntDup( pGia->vCoArrs );
     pArrs = Vec_IntReleaseArray( vArrs );
     Vec_IntFree( vArrs );
@@ -2945,10 +2945,10 @@ void Abc_FrameMiniAigSetAndGateDelay( Abc_Frame_t * pAbc, int Delay )
 {
     Gia_Man_t * pGia;
     if ( pAbc == NULL )
-        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" );
     pGia = Abc_FrameReadGia( pAbc );
     if ( pGia == NULL )
-        printf( "Current network in ABC framework is not defined.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current network in ABC framework is not defined.\n" );
     pGia->And2Delay = Delay;
 }
 
@@ -3255,14 +3255,14 @@ void Gia_ManTestStruct( Gia_Man_t * p )
         LutNDecomp[nFanins]++;
         if ( LutNDecomp[nFanins] > 10 )
             continue;
-        Kit_DsdPrintFromTruth( (unsigned *)pTruth, nFanins ); printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned *)pTruth, nFanins ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Gia_ObjComputeTruthTableStop( p );
 
-    printf( "LUT5 = %d    ", LutCount[5] );
-    printf( "LUT6 = %d  NonDec = %d (%.2f %%)    ", LutCount[6], LutNDecomp[6], 100.0 * LutNDecomp[6]/Abc_MaxInt(LutCount[6], 1) );
-    printf( "LUT7 = %d  NonDec = %d (%.2f %%)    ", LutCount[7], LutNDecomp[7], 100.0 * LutNDecomp[7]/Abc_MaxInt(LutCount[7], 1) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "LUT5 = %d    ", LutCount[5] );
+    fprintf( Abc_FrameGlobalGetOut(), "LUT6 = %d  NonDec = %d (%.2f %%)    ", LutCount[6], LutNDecomp[6], 100.0 * LutNDecomp[6]/Abc_MaxInt(LutCount[6], 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "LUT7 = %d  NonDec = %d (%.2f %%)    ", LutCount[7], LutNDecomp[7], 100.0 * LutNDecomp[7]/Abc_MaxInt(LutCount[7], 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************

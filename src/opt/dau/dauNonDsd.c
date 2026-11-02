@@ -392,31 +392,31 @@ void Dau_DecPrintSet( unsigned set, int nVars, int fNewLine )
     int v, Counter = 0;
     int nUnique = 0, nShared = 0, nFree = 0;
     Dau_DecSortSet( set, nVars, &nUnique, &nShared, &nFree );
-    printf( "S =%2d  D =%2d  C =%2d   ", nShared, nUnique+nShared, nShared+nFree+1 );
+    fprintf( Abc_FrameGlobalGetOut(), "S =%2d  D =%2d  C =%2d   ", nShared, nUnique+nShared, nShared+nFree+1 );
 
-    printf( "x=" );
+    fprintf( Abc_FrameGlobalGetOut(), "x=" );
     for ( v = 0; v < nVars; v++ )
     {
         int Value = ((set >> (v << 1)) & 3);
         if ( Value == 1 )
-            printf( "%c", 'a' + v ), Counter++;
+            fprintf( Abc_FrameGlobalGetOut(),  "%c", 'a' + v ), Counter++;
         else if ( Value == 3 )
-            printf( "%c", 'A' + v ), Counter++;
+            fprintf( Abc_FrameGlobalGetOut(),  "%c", 'A' + v ), Counter++;
         else assert( Value == 0 );
     }
-    printf( " y=x" );
+    fprintf( Abc_FrameGlobalGetOut(), " y=x" );
     for ( v = 0; v < nVars; v++ )
     {
         int Value = ((set >> (v << 1)) & 3);
         if ( Value == 0 )
-            printf( "%c", 'a' + v ), Counter++;
+            fprintf( Abc_FrameGlobalGetOut(),  "%c", 'a' + v ), Counter++;
         else if ( Value == 3 )
-            printf( "%c", 'A' + v ), Counter++;
+            fprintf( Abc_FrameGlobalGetOut(),  "%c", 'A' + v ), Counter++;
     }
     for ( ; Counter < 15; Counter++ )
-        printf( " " );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
     if ( fNewLine )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 unsigned Dau_DecReadSet( char * pStr )
 {
@@ -434,10 +434,10 @@ unsigned Dau_DecReadSet( char * pStr )
 void Dau_DecPrintSets( Vec_Int_t * vSets, int nVars )
 {
     int i, Entry;
-    printf( "The %d-variable set family contains %d sets:\n", nVars, Vec_IntSize(vSets) );
+    fprintf( Abc_FrameGlobalGetOut(), "The %d-variable set family contains %d sets:\n", nVars, Vec_IntSize(vSets) );
     Vec_IntForEachEntry( vSets, Entry, i )
         Dau_DecPrintSet( (unsigned)Entry, nVars, 1 );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -705,10 +705,10 @@ int Dau_DecVerify( word * pInit, int nVars, char * pDsdC, char * pDsdD )
         Abc_TtMux( pRes, pD, &pC1, &pC0, nWordsD );
     }
     if ( !Abc_TtEqual(pInit, pRes, nWordsD) )
-        printf( "      Verification failed" );
+        fprintf( Abc_FrameGlobalGetOut(), "      Verification failed" );
 //    else
 //        printf( "      Verification successful" );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     return 1;
 }
 int Dau_DecPerform6( word * p, int nVars, unsigned uSet )
@@ -721,7 +721,7 @@ int Dau_DecPerform6( word * p, int nVars, unsigned uSet )
     status = Dau_DecDecomposeSet( p, nVars, uSet, &tComp, &tDec0, pPermC, pPermD, &nVarsC, &nVarsD, &nVarsS );
     if ( !status )
     {
-        printf( "  Decomposition does not exist\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "  Decomposition does not exist\n" );
         return 0;
     }
     nVarsU = nVarsD - nVarsS;
@@ -760,9 +760,9 @@ int Dau_DecPerform6( word * p, int nVars, unsigned uSet )
         Dau_DecVarReplace( pDsdC, pPermC, nVarsC );
         // report
 //        printf( "  " );
-        printf( "%3d : ", Counter++ );
-        printf( "%24s  ", pDsdD );
-        printf( "%24s  ", pDsdC );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : ", Counter++ );
+        fprintf( Abc_FrameGlobalGetOut(), "%24s  ", pDsdD );
+        fprintf( Abc_FrameGlobalGetOut(), "%24s  ", pDsdC );
         Dau_DecVerify( p, nVars, pDsdC, pDsdD );
     }
     return 1;
@@ -807,7 +807,7 @@ int Dau_DecPerform( word * pInit, int nVars, unsigned uSet )
     ABC_FREE( pSched );
     if ( !status )
     {
-        printf( "  Decomposition does not exist\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "  Decomposition does not exist\n" );
         return 0;
     }
 //    Dau_DsdPrintFromTruth( stdout, pC, nVars+1 ); //printf( "\n" );
@@ -821,10 +821,10 @@ int Dau_DecPerform( word * pInit, int nVars, unsigned uSet )
     Dau_DecVarReplace( pDsdD, pPermD, nVarsD );
     Dau_DecVarReplace( pDsdC, pPermC, nVarsC );
     // report
-    printf( "     " );
-    printf( "%3d : ", 0 );
-    printf( "%24s  ", pDsdD );
-    printf( "%24s  ", pDsdC );
+    fprintf( Abc_FrameGlobalGetOut(), "     " );
+    fprintf( Abc_FrameGlobalGetOut(), "%3d : ", 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "%24s  ", pDsdD );
+    fprintf( Abc_FrameGlobalGetOut(), "%24s  ", pDsdC );
     Dau_DecVerify( pInit, nVars, pDsdC, pDsdD );
     return 1;
 }
@@ -840,11 +840,11 @@ void Dau_DecTrySets( word * pInit, int nVars, int fVerbose )
         return;
     }
     Dau_DsdPrintFromTruth( pInit, nVars ); 
-    printf( "This %d-variable function has %d decomposable variable sets:\n", nVars, Vec_IntSize(vSets) );
+    fprintf( Abc_FrameGlobalGetOut(), "This %d-variable function has %d decomposable variable sets:\n", nVars, Vec_IntSize(vSets) );
     Vec_IntForEachEntry( vSets, Entry, i )
     {
         unsigned uSet = (unsigned)Entry;
-        printf( "Set %4d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Set %4d : ", i );
         if ( nVars > 6 )
         {
             Dau_DecPrintSet( uSet, nVars, 0 );

@@ -3109,12 +3109,12 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtkRes = Abc_NtkRestrashRandom( pNtk );
         if ( pMapPermFile ) {
             if ( Abc_NtkObjNumMax(pNtkRes) != Abc_NtkObjNumMax(pNtk) ) {
-                printf( "Cannot output 1-to-1 node mapping because the networks have different node counts.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot output 1-to-1 node mapping because the networks have different node counts.\n" );
                 return 1;
             }
             FILE * pFile = fopen( pMapPermFile, "wb" );
             if ( pFile == NULL ) {
-                printf( "Cannot open output file \"%s\" to dump the permutation of internal nodes.\n", pMapPermFile );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\" to dump the permutation of internal nodes.\n", pMapPermFile );
                 return 1;
             }
             Abc_Obj_t * pObj; int i, iNode, Counter = 0;
@@ -3122,13 +3122,13 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
             int StartNew = Abc_NtkObjNumMax(pNtkRes) - Abc_NtkNodeNum(pNtkRes);
             Abc_NtkForEachNode( pNtk, pObj, i ) {
                 if ( Counter++ != i - StartOld ) {
-                    printf( "Cannot output 1-to-1 node mapping because node order is non-standard.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Cannot output 1-to-1 node mapping because node order is non-standard.\n" );
                     fclose( pFile );
                     return 1;
                 }
                 iNode = pObj->pCopy->Id - StartNew;
                 if ( iNode < 0 || iNode >= Abc_NtkNodeNum(pNtkRes) ) {
-                    printf( "Cannot output 1-to-1 node mapping because node IDs are out of order.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Cannot output 1-to-1 node mapping because node IDs are out of order.\n" );
                     fclose( pFile );
                     return 1;
                 }
@@ -3136,7 +3136,7 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             fprintf( pFile, "\n" );
             fclose( pFile );
-            printf( "Finished dumping the permutation of internal nodes into file \"%s\".\n", pMapPermFile );
+            fprintf( Abc_FrameGlobalGetOut(), "Finished dumping the permutation of internal nodes into file \"%s\".\n", pMapPermFile );
         }
     }
     else
@@ -3571,7 +3571,7 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         pTemp = Gia_ManDupMuxes( pAbc->pGia, Limit );
         if ( !Abc_FrameReadFlag("silentmode") )
-            printf( "Generated AND/XOR/MUX graph.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Generated AND/XOR/MUX graph.\n" );
     }
     else if ( fCollapse && pAbc->pGia->pAigExtra )
     {
@@ -3587,13 +3587,13 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
         else
             pTemp = Gia_ManDupCollapse( pAbc->pGia, pAbc->pGia->pAigExtra, NULL, 0 );
         if ( !Abc_FrameReadFlag("silentmode") )
-            printf( "Collapsed AIG with boxes and logic of the boxes.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Collapsed AIG with boxes and logic of the boxes.\n" );
     }
     else if ( pAbc->pGia->pMuxes )
     {
         pTemp = Gia_ManDupNoMuxes( pAbc->pGia, 0 );
         if ( !Abc_FrameReadFlag("silentmode") )
-            printf( "Generated AIG from AND/XOR/MUX graph.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Generated AIG from AND/XOR/MUX graph.\n" );
     }
     else
     {
@@ -4482,7 +4482,7 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
             Gia_AigerWrite( pOne, Buffer, 0, 0, 0 );
             Gia_ManStop( pOne );
         }
-        printf( "Dumped all outputs into individual AIGER files.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped all outputs into individual AIGER files.\n" );
         return 0;
     }
     if ( nLevelMax || nTimeWindow )
@@ -4896,7 +4896,7 @@ int Abc_CommandAbc9Window( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         int nCutSize = 6, nCuts = 30;
         extern void Gia_ManExploreCutsTest( Gia_Man_t * pGia, int nCutSize, int nCuts, int fVerbose );
-        printf( "Here are %d the most frequently appearing %d-cuts:\n", nCutSize, nCuts );
+        fprintf( Abc_FrameGlobalGetOut(), "Here are %d the most frequently appearing %d-cuts:\n", nCutSize, nCuts );
         Gia_ManExploreCutsTest( pAbc->pGia, nCutSize, nCuts, fVerbose );
         return 0;
     }

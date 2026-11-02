@@ -118,11 +118,11 @@ DdNode ** Abc_NtkCreatePartitions( DdManager * dd, Abc_Ntk_t * pNtk, int fReorde
     if ( fReorder )
     {
         if ( fVerbose )
-            fprintf( stdout, "BDD nodes in the partitions before reordering %d.\n", Cudd_SharingSize(pbParts,Abc_NtkLatchNum(pNtk)) );
+            fprintf( Abc_FrameGlobalGetOut(), "BDD nodes in the partitions before reordering %d.\n", Cudd_SharingSize(pbParts,Abc_NtkLatchNum(pNtk)) );
         Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 100 );
         Cudd_AutodynDisable( dd );
         if ( fVerbose )
-            fprintf( stdout, "BDD nodes in the partitions after reordering %d.\n", Cudd_SharingSize(pbParts,Abc_NtkLatchNum(pNtk)) );
+            fprintf( Abc_FrameGlobalGetOut(), "BDD nodes in the partitions after reordering %d.\n", Cudd_SharingSize(pbParts,Abc_NtkLatchNum(pNtk)) );
     }
     return pbParts;
 }
@@ -191,7 +191,7 @@ DdNode * Abc_NtkComputeReachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode ** pb
         // check the result
         if ( !Cudd_bddLeq( dd, bNext, Cudd_Not(bOutput) ) )
         {
-            printf( "The miter is proved REACHABLE in %d iterations.  ", nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "The miter is proved REACHABLE in %d iterations.  ", nIters );
             Cudd_RecursiveDeref( dd, bReached );
             bReached = NULL;
             break;
@@ -206,19 +206,19 @@ DdNode * Abc_NtkComputeReachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode ** pb
         Cudd_RecursiveDeref( dd, bTemp );
         Cudd_RecursiveDeref( dd, bNext );
         if ( fVerbose )
-            fprintf( stdout, "Iteration = %3d. BDD = %5d. ", nIters, nBddSize );
+            fprintf( Abc_FrameGlobalGetOut(), "Iteration = %3d. BDD = %5d. ", nIters, nBddSize );
         if ( fInternalReorder && fReorder && nBddSize > nThreshold )
         {
             if ( fVerbose )
-                fprintf( stdout, "Reordering... Before = %5d. ", Cudd_DagSize(bReached) );
+                fprintf( Abc_FrameGlobalGetOut(), "Reordering... Before = %5d. ", Cudd_DagSize(bReached) );
             Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 100 );
             Cudd_AutodynDisable( dd );
             if ( fVerbose )
-                fprintf( stdout, "After = %5d.\r", Cudd_DagSize(bReached) );
+                fprintf( Abc_FrameGlobalGetOut(), "After = %5d.\r", Cudd_DagSize(bReached) );
             nThreshold *= 2;
         }
         if ( fVerbose )
-            fprintf( stdout, "\r" );
+            fprintf( Abc_FrameGlobalGetOut(), "\r" );
     }
     Cudd_RecursiveDeref( dd, bNext );
     // undo the image tree
@@ -233,17 +233,17 @@ DdNode * Abc_NtkComputeReachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode ** pb
     {
         double nMints = Cudd_CountMinterm(dd, bReached, Abc_NtkLatchNum(pNtk) );
         if ( nIters > nIterMax || Cudd_DagSize(bReached) > nBddMax )
-            fprintf( stdout, "Reachability analysis is stopped after %d iterations.\n", nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "Reachability analysis is stopped after %d iterations.\n", nIters );
         else
-            fprintf( stdout, "Reachability analysis completed in %d iterations.\n", nIters );
-        fprintf( stdout, "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Abc_NtkLatchNum(pNtk)) );
-        fflush( stdout );
+            fprintf( Abc_FrameGlobalGetOut(), "Reachability analysis completed in %d iterations.\n", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Abc_NtkLatchNum(pNtk)) );
+        fflush( Abc_FrameGlobalGetOut() );
     }
 //ABC_PRB( dd, bReached );
     Cudd_Deref( bReached );
     if ( nIters > nIterMax || Cudd_DagSize(bReached) > nBddMax )
-         printf( "Verified ONLY FOR STATES REACHED in %d iterations. \n", nIters );
-    printf( "The miter is proved unreachable in %d iteration.  ", nIters );
+         fprintf( Abc_FrameGlobalGetOut(), "Verified ONLY FOR STATES REACHED in %d iterations. \n", nIters );
+    fprintf( Abc_FrameGlobalGetOut(), "The miter is proved unreachable in %d iteration.  ", nIters );
     return bReached;
 }
 
@@ -274,11 +274,11 @@ void Abc_NtkVerifyUsingBdds( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fP
     dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, nBddMax, 1, fReorder, 0, fVerbose );    
     if ( dd == NULL )
     {
-        printf( "The number of intermediate BDD nodes exceeded the limit (%d).\n", nBddMax );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of intermediate BDD nodes exceeded the limit (%d).\n", nBddMax );
         return;
     }
     if ( fVerbose )
-        printf( "Shared BDD size is %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+        fprintf( Abc_FrameGlobalGetOut(), "Shared BDD size is %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
 
     // save the output BDD
     bOutput = (DdNode *)Abc_ObjGlobalBdd(Abc_NtkPo(pNtk,0)); Cudd_Ref( bOutput );
@@ -291,7 +291,7 @@ void Abc_NtkVerifyUsingBdds( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fP
 
     // check the result
     if ( !Cudd_bddLeq( dd, bInitial, Cudd_Not(bOutput) ) )
-        printf( "The miter is proved REACHABLE in the initial state.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "The miter is proved REACHABLE in the initial state.  " );
     else
     {
         // compute the reachable states
@@ -313,7 +313,7 @@ void Abc_NtkVerifyUsingBdds( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fP
 
     // report the runtime
     ABC_PRT( "Time", Abc_Clock() - clk );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 #endif

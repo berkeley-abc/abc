@@ -51,8 +51,8 @@ void Gia_ManAigPrintPiLevels( Gia_Man_t * p )
     Gia_Obj_t * pObj;
     int i;
     Gia_ManForEachPi( p, pObj, i )
-        printf( "%d ", Gia_ObjLevel(p, pObj) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Gia_ObjLevel(p, pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -506,15 +506,15 @@ void Gia_ManPerformMap( int nAnds, int nLutSize, int nCutNum, int fMinAve, int f
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
     if ( fVerbose )
     {
-        printf( "MAPPING:\n" );
-        printf( "Mapping with &lf -k:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "MAPPING:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Mapping with &lf -k:\n" );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
     }
     sprintf( Command, "&unmap; &lf -K %d -C %d %s; &save", nLutSize, nCutNum, fMinAve?"-t":"" );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
     if ( fVerbose )
     {
-        printf( "Mapping with &lf:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Mapping with &lf:\n" );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
     }
     if ( (nLutSize == 4 && nAnds < 100000) || (nLutSize == 6 && nAnds < 2000) )
@@ -525,7 +525,7 @@ void Gia_ManPerformMap( int nAnds, int nLutSize, int nCutNum, int fMinAve, int f
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&save" );
         if ( fVerbose )
         {
-            printf( "Mapping with &if -sz -S %d%d -K %d -C %d %s:\n", nLutSize, nLutSize, 2*nLutSize-1, 2*nCutNum, fMinAve?"-t":"" );
+            fprintf( Abc_FrameGlobalGetOut(), "Mapping with &if -sz -S %d%d -K %d -C %d %s:\n", nLutSize, nLutSize, 2*nLutSize-1, 2*nCutNum, fMinAve?"-t":"" );
             Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
         }
     }
@@ -534,7 +534,7 @@ void Gia_ManPerformMap( int nAnds, int nLutSize, int nCutNum, int fMinAve, int f
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&put; mfs2 -W 4 -M 500 -C 7000; &get -m" );
     if ( fVerbose )
     {
-        printf( "Mapping final:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Mapping final:\n" );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
     }
 }
@@ -550,7 +550,7 @@ void Gia_ManPerformRound( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
         if ( fVerbose )
         {
-            printf( "Mapping with &dch -C 500; &if -K %d -C %d %s:\n", nLutSize, nCutNum, fMinAve?"-t":"" );
+            fprintf( Abc_FrameGlobalGetOut(), "Mapping with &dch -C 500; &if -K %d -C %d %s:\n", nLutSize, nCutNum, fMinAve?"-t":"" );
             Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
         }
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
@@ -564,7 +564,7 @@ void Gia_ManPerformRound( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
         if ( fVerbose )
         {
-            printf( "Mapping with &dch -C 500; &if -K %d -C %d %s:\n", nLutSize, nCutNum, fMinAve?"-t":"" );
+            fprintf( Abc_FrameGlobalGetOut(), "Mapping with &dch -C 500; &if -K %d -C %d %s:\n", nLutSize, nCutNum, fMinAve?"-t":"" );
             Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
         }
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
@@ -642,7 +642,7 @@ void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
 
     // perform synthesis
     if ( fVerbose )
-        printf( "Trying synthesis...\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Trying synthesis...\n" );
     if ( fIsMapped )
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm1 );
@@ -665,7 +665,7 @@ void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
     if ( fBalance )
     {
         if ( fVerbose )
-            printf( "Trying SOP balancing...\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Trying SOP balancing...\n" );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st; &sopb -R 10 -C 4" );
     }
 
@@ -693,7 +693,7 @@ void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
     if ( fBalance )
     {
         if ( fVerbose )
-            printf( "Trying SOP balancing...\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Trying SOP balancing...\n" );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st; &sopb -R 10" );
     }
 
@@ -721,7 +721,7 @@ void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
     if ( fBalance )
     {
         if ( fVerbose )
-            printf( "Trying SOP balancing...\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Trying SOP balancing...\n" );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st; &sopb -R 10" );
     }
 
@@ -771,14 +771,14 @@ void Gia_ManPerformFlow3( int nLutSize, int nCutNum, int fBalance, int fMinAve, 
     else
         sprintf( Comm3, "&st; &if -%s -K 6; &synch2; &if -C %d -K %d; %s&save; &load", Abc_NtkRecIsRunning3() ? "y" : "g", nCutNum, nLutSize, fUseMfs ? "&mfs; ":"" );
 
-    if ( fVerbose ) printf( "Trying simple synthesis with %s...\n", Abc_NtkRecIsRunning3() ? "LMS" : "SOP balancing" );
+    if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Trying simple synthesis with %s...\n", Abc_NtkRecIsRunning3() ? "LMS" : "SOP balancing" );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm1 );
     if ( fVerbose )
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
 
     if ( Gia_ManAndNum( Abc_FrameReadGia(Abc_FrameGetGlobalFrame()) ) < 200000 )
     {
-        if ( fVerbose ) printf( "Trying medium synthesis...\n" );
+        if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Trying medium synthesis...\n" );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm2 );
         if ( fVerbose )
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
@@ -786,13 +786,13 @@ void Gia_ManPerformFlow3( int nLutSize, int nCutNum, int fBalance, int fMinAve, 
 
     if ( Gia_ManAndNum( Abc_FrameReadGia(Abc_FrameGetGlobalFrame()) ) < 10000 )
     {
-        if ( fVerbose ) printf( "Trying harder synthesis...\n" );
+        if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Trying harder synthesis...\n" );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm3 );
         if ( fVerbose )
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
     }
 
-    if ( fVerbose ) printf( "Final result...\n" );
+    if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Final result...\n" );
     if ( fVerbose )
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
 }

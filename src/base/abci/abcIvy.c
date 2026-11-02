@@ -94,23 +94,23 @@ Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq, int fUseDc )
     {
         if ( !Abc_NtkBddToSop(pNtk, -1, ABC_INFINITY, 1) )
         {
-            printf( "Abc_NtkIvyBefore(): Converting to SOPs has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkIvyBefore(): Converting to SOPs has failed.\n" );
             return NULL;
         }
     }
     if ( fSeq && Abc_NtkCountSelfFeedLatches(pNtk) )
     {
-        printf( "Warning: The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtk) );
 //        return NULL;
     }
     // print warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )
-        printf( "Warning: The choice nodes in the initial AIG are removed by strashing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The choice nodes in the initial AIG are removed by strashing.\n" );
     // convert to the AIG manager
     pMan = Abc_NtkToIvy( pNtk );
     if ( !Ivy_ManCheck( pMan ) )
     {
-        printf( "AIG check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "AIG check has failed.\n" );
         Ivy_ManStop( pMan );
         return NULL;
     }
@@ -149,14 +149,14 @@ Abc_Ntk_t * Abc_NtkIvyAfter( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan, int fSeq, int f
         pNtkAig = Abc_NtkFromIvy( pNtk, pMan );
     // report the cleanup results
     if ( !fHaig && fCleanup && (nNodes = Abc_AigCleanup((Abc_Aig_t *)pNtkAig->pManFunc)) )
-        printf( "Warning: AIG cleanup removed %d nodes (this is not a bug).\n", nNodes );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: AIG cleanup removed %d nodes (this is not a bug).\n", nNodes );
     // duplicate EXDC 
     if ( pNtk->pExdc )
         pNtkAig->pExdc = Abc_NtkDup( pNtk->pExdc );
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkAig ) )
     {
-        printf( "Abc_NtkStrash: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkStrash: The network check has failed.\n" );
         Abc_NtkDelete( pNtkAig );
         return NULL;
     }
@@ -586,7 +586,7 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
             char pFileName[100];
             sprintf( pFileName, "cecmiter.aig" );
             Ioa_WriteAiger( pMan2, pFileName, 0, 0 );
-            printf( "Intermediate reduced miter is written into file \"%s\".\n", pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Intermediate reduced miter is written into file \"%s\".\n", pFileName );
         }
         RetValue = Fra_FraigSat( pMan2, pParams->nMiteringLimitLast, 0, 0, 0, 0, 0, 0, 0, pParams->fVerbose ); 
         pNtk->pModel = (int *)pMan2->pData, pMan2->pData = NULL;
@@ -599,8 +599,8 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
     {
         if ( pParams->fVerbose )
         {
-            printf( "Attempting BDDs with node limit %d ...\n", pParams->nBddSizeLimit );
-            fflush( stdout );
+            fprintf( Abc_FrameGlobalGetOut(), "Attempting BDDs with node limit %d ...\n", pParams->nBddSizeLimit );
+            fflush( Abc_FrameGlobalGetOut() );
         }
         pNtk = Abc_NtkCollapse( pNtkTemp = pNtk, pParams->nBddSizeLimit, 0, pParams->fBddReorder, 0, 0, 0 );
         if ( pNtk )   
@@ -644,26 +644,26 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
         if ( !Abc_NtkBddToSop(pNtk, -1, ABC_INFINITY, 1) )
         {
             Vec_IntFree( vInit );
-            printf( "Abc_NtkIvy(): Converting to SOPs has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkIvy(): Converting to SOPs has failed.\n" );
             return NULL;
         }
     }
     if ( Abc_NtkCountSelfFeedLatches(pNtk) )
     {
-        printf( "Warning: The network has %d self-feeding latches. Quitting.\n", Abc_NtkCountSelfFeedLatches(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The network has %d self-feeding latches. Quitting.\n", Abc_NtkCountSelfFeedLatches(pNtk) );
         return NULL;
     }
 
     // print warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )
-        printf( "Warning: The choice nodes in the initial AIG are removed by strashing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The choice nodes in the initial AIG are removed by strashing.\n" );
 
     // convert to the AIG manager
     pMan = Abc_NtkToIvy( pNtk );
     if ( !Ivy_ManCheck( pMan ) )
     {
         Vec_IntFree( vInit );
-        printf( "AIG check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "AIG check has failed.\n" );
         Ivy_ManStop( pMan );
         return NULL;
     }
@@ -783,7 +783,7 @@ Abc_Ntk_t * Abc_NtkFromIvy( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan )
     }
     Vec_IntFree( vNodes );
     if ( !Abc_NtkCheck( pNtk ) )
-        fprintf( stdout, "Abc_NtkFromIvy(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFromIvy(): Network check has failed.\n"  );
     return pNtk;
 }
 
@@ -881,7 +881,7 @@ Abc_Ntk_t * Abc_NtkFromIvySeq( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan, int fHaig 
     Vec_IntFree( vLatches );
     Vec_IntFree( vNodes );
     if ( !Abc_NtkCheck( pNtk ) )
-        fprintf( stdout, "Abc_NtkFromIvySeq(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFromIvySeq(): Network check has failed.\n" );
     return pNtk;
 }
 

@@ -3042,7 +3042,7 @@ int Abc_CommandSynch( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
     {
-        if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
+        if ( !Abc_NtkPrepareTwoNtks( Abc_FrameGlobalGetOut(), pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
             return 1;
         if ( Abc_NtkLatchNum(pNtk1) == 0 || Abc_NtkLatchNum(pNtk2) == 0 )
         {
@@ -3966,7 +3966,7 @@ int Abc_CommandAbc9Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( pAbc->pGia->pAigExtra == NULL )
         {
-            printf( "Timing manager is given but there is no GIA of boxes.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Timing manager is given but there is no GIA of boxes.\n" );
             return 0;
         }
         pTemp = Gia_ManSweepWithBoxes( pAbc->pGia, NULL, NULL, fConst, fEquiv, fVerbose, fVerboseFlops );
@@ -4085,7 +4085,7 @@ int Abc_CommandAbc9Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( pAbc->pGia->pAigExtra == NULL )
         {
-            printf( "Timing manager is given but there is no GIA of boxes.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Timing manager is given but there is no GIA of boxes.\n" );
             return 0;
         }
         pTemp = Gia_ManSweepWithBoxes( pAbc->pGia, NULL, pPars, 0, 0, pPars->fVerbose, pPars->fVerboseFlops );
@@ -4261,7 +4261,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( pAbc->pGia->pAigExtra == NULL )
         {
-            printf( "Timing manager is given but there is no GIA of boxes.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Timing manager is given but there is no GIA of boxes.\n" );
             return 0;
         }
         pTemp = Gia_ManSweepWithBoxes( pAbc->pGia, NULL, pPars, 0, 0, pPars->fVerbose, pPars->fVerboseFlops );
@@ -4504,7 +4504,7 @@ int Abc_CommandAbc9Scorr2( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( pAbc->pGia->pAigExtra == NULL )
         {
-            printf( "Timing manager is given but there is no GIA of boxes.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Timing manager is given but there is no GIA of boxes.\n" );
             return 0;
         }
         pTemp = Gia_ManSweepWithBoxes( pAbc->pGia, NULL, pPars, 0, 0, pPars->fVerbose, pPars->fVerboseFlops );

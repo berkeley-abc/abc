@@ -110,11 +110,11 @@ void Lpk_CreateCommonOrder( char pTable[][16], int piCofVar[], int nCBars, int p
     // print the scores
     if ( fVerbose )
     {
-        printf( "Scores: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Scores: " );
         for ( i = 0; i < nVars; i++ )
-            printf( "%c=%d ", 'a'+i, Score[i] );
-        printf( "   " );
-        printf( "Prios: " );
+            fprintf( Abc_FrameGlobalGetOut(), "%c=%d ", 'a'+i, Score[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "   " );
+        fprintf( Abc_FrameGlobalGetOut(), "Prios: " );
     }
 
     // derive variable priority
@@ -142,7 +142,7 @@ void Lpk_CreateCommonOrder( char pTable[][16], int piCofVar[], int nCBars, int p
             break;
         // give the next priority to all vars having this score
         if ( fVerbose )
-            printf( "%d=", PrioCount );
+            fprintf( Abc_FrameGlobalGetOut(), "%d=", PrioCount );
         for ( i = 0; i < nVars; i++ )
         {
             if ( pPres[i] == 0 )
@@ -152,14 +152,14 @@ void Lpk_CreateCommonOrder( char pTable[][16], int piCofVar[], int nCBars, int p
                 pPrios[i] = PrioCount;
                 pPres[i] = 0;
                 if ( fVerbose )
-                    printf( "%c", 'a'+i );
+                    fprintf( Abc_FrameGlobalGetOut(), "%c", 'a'+i );
             }
         }
         if ( fVerbose )
-            printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
     }
     if ( fVerbose )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -284,13 +284,13 @@ If_Obj_t * Lpk_MapTreeMulti_rec( Lpk_Man_t * p, Kit_DsdNtk_t ** ppNtks, int * pi
 
     // iterate over the nodes
     if ( p->pPars->fVeryVerbose )
-        printf( "Decision: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Decision: " );
     for ( i = 0; i < nSize; i++ )
     {
         if ( pDecision[i] )
         {
             if ( p->pPars->fVeryVerbose )
-                printf( "%d ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "%d ", i );
             assert( piLits[i] >= 0 );
             pObj = Kit_DsdNtkObj( ppNtks[i], Abc_Lit2Var(piLits[i]) );
             if ( pObj == NULL )
@@ -304,7 +304,7 @@ If_Obj_t * Lpk_MapTreeMulti_rec( Lpk_Man_t * p, Kit_DsdNtk_t ** ppNtks, int * pi
             piLitsNew[i] = piLits[i];
     }
     if ( p->pPars->fVeryVerbose )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // call again
     pResPrev = Lpk_MapTreeMulti_rec( p, ppNtks, piLitsNew, piCofVar, nCBars, ppLeaves, nLeaves, pPrio );
@@ -414,8 +414,8 @@ If_Obj_t * Lpk_MapTreeMulti( Lpk_Man_t * p, unsigned * pTruth, int nVars, If_Obj
         Kit_DsdNtkFree( pTemp );
         if ( fVerbose )
         {
-            printf( "Cof%d%d: ", nCBars, i );
-            Kit_DsdPrint( stdout, ppNtks[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "Cof%d%d: ", nCBars, i );
+            Kit_DsdPrint( Abc_FrameGlobalGetOut(), ppNtks[i] );
         }
     }
 
@@ -440,7 +440,7 @@ If_Obj_t * Lpk_MapTreeMulti( Lpk_Man_t * p, unsigned * pTruth, int nVars, If_Obj
         pPrios[i] = pPrios[i] * 256 + (16 - pFreqs[i]) * 16 + i;
 
     if ( fVerbose )
-        printf( "After restructuring with priority:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "After restructuring with priority:\n" );
 
     // transform all networks according to the variable order
     for ( i = 0; i < nSize; i++ )
@@ -454,8 +454,8 @@ If_Obj_t * Lpk_MapTreeMulti( Lpk_Man_t * p, unsigned * pTruth, int nVars, If_Obj
         // print the resulting networks
         if ( fVerbose )
         {
-            printf( "Cof%d%d: ", nCBars, i );
-            Kit_DsdPrint( stdout, ppNtks[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "Cof%d%d: ", nCBars, i );
+            Kit_DsdPrint( Abc_FrameGlobalGetOut(), ppNtks[i] );
         }
     }
  
@@ -478,7 +478,7 @@ If_Obj_t * Lpk_MapTreeMulti( Lpk_Man_t * p, unsigned * pTruth, int nVars, If_Obj
     p->fCofactoring = 0;
 
     if ( fVerbose )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // verify the transformations
     nSize = (1 << nCBars);
@@ -492,7 +492,7 @@ If_Obj_t * Lpk_MapTreeMulti( Lpk_Man_t * p, unsigned * pTruth, int nVars, If_Obj
             Kit_TruthMuxVar( ppCofs[k][i], ppCofs[k+1][2*i+0], ppCofs[k+1][2*i+1], nVars, piCofVar[k] );
     }
     if ( !Extra_TruthIsEqual( pTruth, ppCofs[0][0], nVars ) )
-        printf( "Verification failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification failed.\n" );
 
 
     // free the networks

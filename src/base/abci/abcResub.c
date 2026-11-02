@@ -171,10 +171,10 @@ int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, int nMinS
         ABC_FREE( pName );
         pManRes->pFile = fopen( pFileName, "wb" );
         if ( pManRes->pFile == NULL ) {
-            printf( "Cannot open output file \"%s\".\n", pFileName );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
             return 1;
         }
-        printf( "Collecting resub problems into binary file \"%s\" expected to take %.3f MB...\n", pFileName, 1.0*(1 << Log2Probs)*(1 << Log2Divs)*(1 << (nCutMax-3)) / (1 << 20) );
+        fprintf( Abc_FrameGlobalGetOut(), "Collecting resub problems into binary file \"%s\" expected to take %.3f MB...\n", pFileName, 1.0*(1 << Log2Probs)*(1 << Log2Divs)*(1 << (nCutMax-3)) / (1 << 20) );
     }
     if ( nLevelsOdc > 0 )
     pManOdc = Abc_NtkDontCareAlloc( nCutMax, nLevelsOdc, fVerbose, fVeryVerbose );
@@ -191,7 +191,7 @@ int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, int nMinS
     // resynthesize each node once
     pManRes->nNodesBeg = Abc_NtkNodeNum(pNtk);
     nNodes = Abc_NtkObjNumMax(pNtk);
-    pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nNodes );
     //clear markAB at the beginning
     Abc_NtkCleanMarkAB( pNtk );
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -272,8 +272,8 @@ pManRes->timeTotal = Abc_Clock() - clkStart;
         fclose( pManRes->pFile );
         pManRes->pFile = NULL;
         char pFileName[100]; sprintf( pFileName, "p%02dd%02dv%02d.bin", Log2Probs, nCutMax, Log2Divs );
-        printf( "Finished writing file \"%s\" containing %d (out of requested %d) resub problems,\n", pFileName, pManRes->nProbs, 1<<Log2Probs );
-        printf( "each having %d divisors with support size %d (including the on-set and the off-set).  ", 1<<Log2Divs, nCutMax );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished writing file \"%s\" containing %d (out of requested %d) resub problems,\n", pFileName, pManRes->nProbs, 1<<Log2Probs );
+        fprintf( Abc_FrameGlobalGetOut(), "each having %d divisors with support size %d (including the on-set and the off-set).  ", 1<<Log2Divs, nCutMax );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
     }
 
@@ -302,7 +302,7 @@ pManRes->timeTotal = Abc_Clock() - clkStart;
     // check
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Abc_NtkRefactor: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkRefactor: The network check has failed.\n" );
         return 0;
     }
 //s_ResubTime = Abc_Clock() - clkStart;
@@ -407,17 +407,17 @@ void Abc_ManResubStop( Abc_ManRes_t * p )
 ***********************************************************************/
 void Abc_ManResubPrint( Abc_ManRes_t * p )
 {
-    printf( "Used constants    = %6d.             ", p->nUsedNodeC );          ABC_PRT( "Cuts  ", p->timeCut );
-    printf( "Used replacements = %6d.             ", p->nUsedNode0 );          ABC_PRT( "Resub ", p->timeRes );
-    printf( "Used single ORs   = %6d.             ", p->nUsedNode1Or );        ABC_PRT( " Div  ", p->timeDiv );
-    printf( "Used single ANDs  = %6d.             ", p->nUsedNode1And );       ABC_PRT( " Mffc ", p->timeMffc );
-    printf( "Used double ORs   = %6d.             ", p->nUsedNode2Or );        ABC_PRT( " Sim  ", p->timeSim );
-    printf( "Used double ANDs  = %6d.             ", p->nUsedNode2And );       ABC_PRT( " 1    ", p->timeRes1 );
-    printf( "Used OR-AND       = %6d.             ", p->nUsedNode2OrAnd );     ABC_PRT( " D    ", p->timeResD );
-    printf( "Used AND-OR       = %6d.             ", p->nUsedNode2AndOr );     ABC_PRT( " 2    ", p->timeRes2 );
-    printf( "Used OR-2ANDs     = %6d.             ", p->nUsedNode3OrAnd );     ABC_PRT( "Truth ", p->timeTruth ); //ABC_PRT( " 3    ", p->timeRes3 );
-    printf( "Used AND-2ORs     = %6d.             ", p->nUsedNode3AndOr );     ABC_PRT( "AIG   ", p->timeNtk );
-    printf( "TOTAL             = %6d.             ", p->nUsedNodeC +
+    fprintf( Abc_FrameGlobalGetOut(), "Used constants    = %6d.             ", p->nUsedNodeC );          ABC_PRT( "Cuts  ", p->timeCut );
+    fprintf( Abc_FrameGlobalGetOut(), "Used replacements = %6d.             ", p->nUsedNode0 );          ABC_PRT( "Resub ", p->timeRes );
+    fprintf( Abc_FrameGlobalGetOut(), "Used single ORs   = %6d.             ", p->nUsedNode1Or );        ABC_PRT( " Div  ", p->timeDiv );
+    fprintf( Abc_FrameGlobalGetOut(), "Used single ANDs  = %6d.             ", p->nUsedNode1And );       ABC_PRT( " Mffc ", p->timeMffc );
+    fprintf( Abc_FrameGlobalGetOut(), "Used double ORs   = %6d.             ", p->nUsedNode2Or );        ABC_PRT( " Sim  ", p->timeSim );
+    fprintf( Abc_FrameGlobalGetOut(), "Used double ANDs  = %6d.             ", p->nUsedNode2And );       ABC_PRT( " 1    ", p->timeRes1 );
+    fprintf( Abc_FrameGlobalGetOut(), "Used OR-AND       = %6d.             ", p->nUsedNode2OrAnd );     ABC_PRT( " D    ", p->timeResD );
+    fprintf( Abc_FrameGlobalGetOut(), "Used AND-OR       = %6d.             ", p->nUsedNode2AndOr );     ABC_PRT( " 2    ", p->timeRes2 );
+    fprintf( Abc_FrameGlobalGetOut(), "Used OR-2ANDs     = %6d.             ", p->nUsedNode3OrAnd );     ABC_PRT( "Truth ", p->timeTruth ); //ABC_PRT( " 3    ", p->timeRes3 );
+    fprintf( Abc_FrameGlobalGetOut(), "Used AND-2ORs     = %6d.             ", p->nUsedNode3AndOr );     ABC_PRT( "AIG   ", p->timeNtk );
+    fprintf( Abc_FrameGlobalGetOut(), "TOTAL             = %6d.             ", p->nUsedNodeC +
                                                      p->nUsedNode0 +
                                                      p->nUsedNode1Or +
                                                      p->nUsedNode1And +
@@ -426,12 +426,11 @@ void Abc_ManResubPrint( Abc_ManRes_t * p )
                                                      p->nUsedNode2OrAnd +
                                                      p->nUsedNode2AndOr +
                                                      p->nUsedNode3OrAnd +
-                                                     p->nUsedNode3AndOr
-                                                   );                          ABC_PRT( "TOTAL ", p->timeTotal );
-    printf( "Total leaves   = %8d.\n", p->nTotalLeaves );
-    printf( "Total divisors = %8d.\n", p->nTotalDivs );
+                                                     p->nUsedNode3AndOr );                          ABC_PRT( "TOTAL ", p->timeTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Total leaves   = %8d.\n", p->nTotalLeaves );
+    fprintf( Abc_FrameGlobalGetOut(), "Total divisors = %8d.\n", p->nTotalDivs );
 //    printf( "Total gain     = %8d.\n", p->nTotalGain );
-    printf( "Gain           = %8d. (%6.2f %%).\n", p->nNodesBeg-p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg );
+    fprintf( Abc_FrameGlobalGetOut(), "Gain           = %8d. (%6.2f %%).\n", p->nNodesBeg-p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg );
 }
 
 
@@ -565,33 +564,33 @@ void Abc_ManResubPrintDivs( Abc_ManRes_t * p, Abc_Obj_t * pRoot, Vec_Ptr_t * vLe
     {
         if ( i < Vec_PtrSize(vLeaves) )
         {
-            printf( "%6d : %c\n", pNode->Id, 'a'+i );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d : %c\n", pNode->Id, 'a'+i );
             continue;
         }
-        printf( "%6d : %2d = ", pNode->Id, i );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : %2d = ", pNode->Id, i );
         // find the first fanin
         Vec_PtrForEachEntry( Abc_Obj_t *, p->vDivs, pFanin, k )
             if ( Abc_ObjFanin0(pNode) == pFanin )
                 break;
         if ( k < Vec_PtrSize(vLeaves) )
-            printf( "%c", 'a' + k );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + k );
         else
-            printf( "%d", k );
-        printf( "%s ", Abc_ObjFaninC0(pNode)? "\'" : "" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", k );
+        fprintf( Abc_FrameGlobalGetOut(), "%s ", Abc_ObjFaninC0(pNode)? "\'" : "" );
         // find the second fanin
         Vec_PtrForEachEntry( Abc_Obj_t *, p->vDivs, pFanin, k )
             if ( Abc_ObjFanin1(pNode) == pFanin )
                 break;
         if ( k < Vec_PtrSize(vLeaves) )
-            printf( "%c", 'a' + k );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + k );
         else
-            printf( "%d", k );
-        printf( "%s ", Abc_ObjFaninC1(pNode)? "\'" : "" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", k );
+        fprintf( Abc_FrameGlobalGetOut(), "%s ", Abc_ObjFaninC1(pNode)? "\'" : "" );
         if ( pNode == pRoot )
-            printf( " root" );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " root" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -612,7 +611,7 @@ void Abc_ManResubDumpInstance( Vec_Ptr_t * vDivs, int nLeaves, int nDivs, int nW
     sprintf( pFileName, "%s_%05d.pla", pRoot->pNtk->pName, pRoot->Id );
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL ) {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         return;
     }
     fprintf( pFile, "// Resub instance generated for node %d in network \"%s\" on %s\n", pRoot->Id, pRoot->pNtk->pName, Extra_TimeStamp() );
@@ -630,7 +629,7 @@ void Abc_ManResubDumpInstance( Vec_Ptr_t * vDivs, int nLeaves, int nDivs, int nW
     }
     fprintf( pFile, ".e\n" );    
     fclose( pFile );
-    printf( "Finished dumping file \"%s\" with %d divisors and %d patterns.\n", pFileName, nDivs, (1 << nLeaves) );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping file \"%s\" with %d divisors and %d patterns.\n", pFileName, nDivs, (1 << nLeaves) );
 }
 
 /**Function*************************************************************
@@ -2106,7 +2105,7 @@ int Abc_CutVolumeCheck_rec( Abc_Obj_t * pObj )
     Abc_NodeSetTravIdCurrent(pObj);
     // report the error
     if ( Abc_ObjIsCi(pObj) )
-        printf( "Abc_CutVolumeCheck() ERROR: The set of nodes is not a cut!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_CutVolumeCheck() ERROR: The set of nodes is not a cut!\n" );
     // count the number of nodes in the leaves
     return 1 + Abc_CutVolumeCheck_rec( Abc_ObjFanin0(pObj) ) +
         Abc_CutVolumeCheck_rec( Abc_ObjFanin1(pObj) );

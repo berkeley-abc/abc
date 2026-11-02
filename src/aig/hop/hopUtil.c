@@ -456,16 +456,16 @@ void Hop_ObjPrintVerilog( FILE * pFile, Hop_Obj_t * pObj, Vec_Vec_t * vLevels, i
 void Hop_ObjPrintVerbose( Hop_Obj_t * pObj, int fHaig )
 {
     assert( !Hop_IsComplement(pObj) );
-    printf( "Node %p : ", pObj );
+    fprintf( Abc_FrameGlobalGetOut(), "Node %p : ", pObj );
     if ( Hop_ObjIsConst1(pObj) )
-        printf( "constant 1" );
+        fprintf( Abc_FrameGlobalGetOut(), "constant 1" );
     else if ( Hop_ObjIsPi(pObj) )
-        printf( "PI" );
+        fprintf( Abc_FrameGlobalGetOut(), "PI" );
     else
-        printf( "AND( %p%s, %p%s )", 
+        fprintf( Abc_FrameGlobalGetOut(), "AND( %p%s, %p%s )", 
             Hop_ObjFanin0(pObj), (Hop_ObjFaninC0(pObj)? "\'" : " "), 
             Hop_ObjFanin1(pObj), (Hop_ObjFaninC1(pObj)? "\'" : " ") );
-    printf( " (refs = %3d)", Hop_ObjRefs(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), " (refs = %3d)", Hop_ObjRefs(pObj) );
 }
 
 /**Function*************************************************************
@@ -484,14 +484,14 @@ void Hop_ManPrintVerbose( Hop_Man_t * p, int fHaig )
     Vec_Ptr_t * vNodes;
     Hop_Obj_t * pObj;
     int i;
-    printf( "PIs: " );
+    fprintf( Abc_FrameGlobalGetOut(), "PIs: " );
     Hop_ManForEachPi( p, pObj, i )
-        printf( " %p", pObj );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %p", pObj );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     vNodes = Hop_ManDfs( p );
     Vec_PtrForEachEntry( Hop_Obj_t *, vNodes, pObj, i )
-        Hop_ObjPrintVerbose( pObj, fHaig ), printf( "\n" );
-    printf( "\n" );
+        Hop_ObjPrintVerbose( pObj, fHaig ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_PtrFree( vNodes );
 }
 
@@ -514,7 +514,7 @@ void Hop_ManDumpBlif( Hop_Man_t * p, char * pFileName )
     int i, nDigits, Counter = 0;
     if ( Hop_ManPoNum(p) == 0 )
     {
-        printf( "Hop_ManDumpBlif(): AIG manager does not have POs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Hop_ManDumpBlif(): AIG manager does not have POs.\n" );
         return;
     }
     // collect nodes in the DFS order

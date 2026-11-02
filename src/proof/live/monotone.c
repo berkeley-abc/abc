@@ -131,14 +131,14 @@ int checkSanityOfKnownMonotone( Vec_Int_t *vKnownMonotone, Vec_Int_t *vCandMonot
     int iElem, i;
 
     Vec_IntForEachEntry( vKnownMonotone, iElem, i )
-        printf("%d ", iElem);
-    printf("\n");
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", iElem);
+    fprintf( Abc_FrameGlobalGetOut(), "\n");
     Vec_IntForEachEntry( vCandMonotone, iElem, i )
-        printf("%d ", iElem);
-    printf("\n");
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", iElem);
+    fprintf( Abc_FrameGlobalGetOut(), "\n");
     Vec_IntForEachEntry( vHintMonotone, iElem, i )
-        printf("%d ", iElem);
-    printf("\n");
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", iElem);
+    fprintf( Abc_FrameGlobalGetOut(), "\n");
     return 1;
 }
 
@@ -215,7 +215,7 @@ Aig_Man_t *createMonotoneTester(Aig_Man_t *pAig, struct aigPoIndices *aigPoIndic
     }
 
     nRegCount = loCreated + loCopied;
-    printf("\nnRegCount = %d\n", nRegCount);
+    fprintf( Abc_FrameGlobalGetOut(), "\nnRegCount = %d\n", nRegCount);
 
     //********************************************************************
     // Step 7: create internal nodes
@@ -247,7 +247,7 @@ Aig_Man_t *createMonotoneTester(Aig_Man_t *pAig, struct aigPoIndices *aigPoIndic
         Vec_IntForEachEntry( vKnownMonotoneLocal, iElemHint, i )
         {
             iElem = (iElemHint - hintSingalBeginningMarkerLocal) + 1 + pendingSignalIndexLocal;
-            printf("\nProcessing knownMonotone = %d\n", iElem);
+            fprintf( Abc_FrameGlobalGetOut(), "\nProcessing knownMonotone = %d\n", iElem);
             pObjPo = Aig_ManCo( pAig, iElem );
             pObjDriver = Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pObjPo), Aig_ObjFaninC0(pObjPo));
             pObjDriverNew = !Aig_IsComplement(pObjDriver)? 
@@ -333,15 +333,15 @@ Aig_Man_t *createMonotoneTester(Aig_Man_t *pAig, struct aigPoIndices *aigPoIndic
         Aig_ObjCreateCo( pNewAig, pObj );
     }
 
-    printf("\npoCopied = %d, poCreated = %d\n", poCopied, poCreated);
-    printf("\nliCreated++ = %d\n", liCreated );
+    fprintf( Abc_FrameGlobalGetOut(), "\npoCopied = %d, poCreated = %d\n", poCopied, poCreated);
+    fprintf( Abc_FrameGlobalGetOut(), "\nliCreated++ = %d\n", liCreated );
     Aig_ManSetRegNum( pNewAig, nRegCount );
     Aig_ManCleanup( pNewAig );
     
     assert( Aig_ManCheck( pNewAig ) );
     assert( loCopied + loCreated == liCopied + liCreated );
 
-    printf("\nSaig_ManPoNum = %d\n", Saig_ManPoNum(pNewAig));
+    fprintf( Abc_FrameGlobalGetOut(), "\nSaig_ManPoNum = %d\n", Saig_ManPoNum(pNewAig));
     return pNewAig;
 }
 
@@ -368,7 +368,7 @@ Vec_Int_t *findNewMonotone( Aig_Man_t *pAig, struct aigPoIndices *aigPoIndicesAr
     oldPoNum = Aig_ManCoNum(pAig) - Aig_ManRegNum(pAig);
 
     vMonotoneIndex = Vec_IntAlloc(0);
-    printf("\nSaig_ManPoNum(pAigNew) = %d, poMarker = %d\n", Saig_ManPoNum(pAigNew), poMarker);
+    fprintf( Abc_FrameGlobalGetOut(), "\nSaig_ManPoNum(pAigNew) = %d, poMarker = %d\n", Saig_ManPoNum(pAigNew), poMarker);
     for( i=poMarker; i<Saig_ManPoNum(pAigNew); i++ )
     {
         pObjTargetPo = Aig_ManCo( pAigNew, i );
@@ -382,7 +382,7 @@ Vec_Int_t *findNewMonotone( Aig_Man_t *pAig, struct aigPoIndices *aigPoIndicesAr
         RetValue = Pdr_ManSolve( pAigNew, pPars );    
         if( RetValue == 1 )
         {
-            printf("\ni = %d, RetValue = %d : %s (Frame %d)\n", i - oldPoNum + hintSingalBeginningMarkerLocal, RetValue, "Property Proved", pCex? (pCex)->iFrame : -1 );
+            fprintf( Abc_FrameGlobalGetOut(), "\ni = %d, RetValue = %d : %s (Frame %d)\n", i - oldPoNum + hintSingalBeginningMarkerLocal, RetValue, "Property Proved", pCex? (pCex)->iFrame : -1 );
             Vec_IntPush( vMonotoneIndex, i - (pendingSignalIndexLocal + 1) + hintSingalBeginningMarkerLocal);
         }
         Aig_ObjChild0Flip( pObjTargetPo );
@@ -432,11 +432,11 @@ Vec_Int_t *findMonotoneSignals( Abc_Ntk_t *pNtk )
     pendingSignalIndex = findPendingSignal(pNtk);
     if( pendingSignalIndex == -1 )
     {
-        printf("\nNo Pending Signal Found\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\nNo Pending Signal Found\n");
         return NULL;
     }
     else
-        printf("Po[%d] = %s\n", pendingSignalIndex, Abc_ObjName( Abc_NtkPo(pNtk, pendingSignalIndex) ) );
+        fprintf( Abc_FrameGlobalGetOut(), "Po[%d] = %s\n", pendingSignalIndex, Abc_ObjName( Abc_NtkPo(pNtk, pendingSignalIndex) ) );
 
     /*******************************************/    
     //Finding the PO indices of all hint signals
@@ -447,7 +447,7 @@ Vec_Int_t *findMonotoneSignals( Abc_Ntk_t *pNtk )
     else
     {
         Vec_IntForEachEntry( vCandidateMonotoneSignals, iElem, i )
-            printf("Po[%d] = %s\n", iElem, Abc_ObjName( Abc_NtkPo(pNtk, iElem) ) );
+            fprintf( Abc_FrameGlobalGetOut(), "Po[%d] = %s\n", iElem, Abc_ObjName( Abc_NtkPo(pNtk, iElem) ) );
         hintSingalBeginningMarker = Vec_IntEntry( vCandidateMonotoneSignals, 0 );
         hintSingalEndMarker = Vec_IntEntry( vCandidateMonotoneSignals, Vec_IntSize(vCandidateMonotoneSignals) - 1 );
     }

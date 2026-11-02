@@ -97,7 +97,7 @@ int Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
         pNode->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)i;
 
     // write the cubes
-    pProgress = Extra_ProgressBarStart( stdout, nOutputs );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nOutputs );
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
         // prepare the output cube
@@ -179,7 +179,7 @@ int Io_WritePla( Abc_Ntk_t * pNtk, char * pFileName )
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WritePla(): Cannot open the output file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WritePla(): Cannot open the output file.\n" );
         return 0;
     }
     fprintf( pFile, "# Benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
@@ -188,7 +188,7 @@ int Io_WritePla( Abc_Ntk_t * pNtk, char * pFileName )
     // write EXDC network if it exists
     pExdc = Abc_NtkExdc( pNtk );
     if ( pExdc )
-        printf( "Io_WritePla: EXDC is not written (warning).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WritePla: EXDC is not written (warning).\n" );
     // finalize the file
     fclose( pFile );
     return 1;
@@ -251,9 +251,9 @@ int Io_WriteMoPlaOneInt( FILE * pFile, Abc_Ntk_t * pNtk, DdManager * dd, Vec_Ptr
         Cudd_RecursiveDeref( dd, bTemp );
         Cudd_RecursiveDeref( dd, bCube );
 
-        printf( "Trying %d output.\n", i );
-        printf( "Onset = %d nodes.\n", Cudd_DagSize(bOnset) );
-        printf( "Offset = %d nodes.\n", Cudd_DagSize(bOffset) );
+        fprintf( Abc_FrameGlobalGetOut(), "Trying %d output.\n", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Onset = %d nodes.\n", Cudd_DagSize(bOnset) );
+        fprintf( Abc_FrameGlobalGetOut(), "Offset = %d nodes.\n", Cudd_DagSize(bOffset) );
     }
 
     Cudd_zddVarsFromBddVars( dd, 2 );
@@ -296,8 +296,8 @@ int Io_WriteMoPlaOneInt( FILE * pFile, Abc_Ntk_t * pNtk, DdManager * dd, Vec_Ptr
     Cudd_RecursiveDeref( dd, bOnset );
     Cudd_RecursiveDeref( dd, bOffset );
     Cudd_RecursiveDerefZdd( dd, zCover );
-    printf( "Cover = %d nodes.\n", Cudd_DagSize(zCover) );
-    printf( "ISOP = %d\n", nCubes );
+    fprintf( Abc_FrameGlobalGetOut(), "Cover = %d nodes.\n", Cudd_DagSize(zCover) );
+    fprintf( Abc_FrameGlobalGetOut(), "ISOP = %d\n", nCubes );
 
     // write the header
     fprintf( pFile, ".i %d\n", nInputs );
@@ -394,7 +394,7 @@ int Io_WriteMoPlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
     if ( dd == NULL )
         return 0;
     if ( fVerbose )
-        printf( "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+        fprintf( Abc_FrameGlobalGetOut(), "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
 
     // complement the global functions
     vFuncsGlob = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
@@ -430,13 +430,13 @@ int Io_WriteMoPla( Abc_Ntk_t * pNtk, char * pFileName )
     assert( Abc_NtkIsStrash(pNtk) );
     if ( Abc_NtkCiNum(pNtk) > 16 )
     {
-        printf( "Cannot write multi-output PLA for more than 16 inputs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot write multi-output PLA for more than 16 inputs.\n" );
         return 0;
     }    
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WritePla(): Cannot open the output file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WritePla(): Cannot open the output file.\n" );
         return 0;
     }
     fprintf( pFile, "# Benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
@@ -516,7 +516,7 @@ int Io_WriteMoPlaOneM( FILE * pFile, Abc_Ntk_t * pNtk, int nMints )
         if ( dd == NULL )
             return 0;
         if ( fVerbose )
-            printf( "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+            fprintf( Abc_FrameGlobalGetOut(), "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
 
         // complement the global functions
         vFuncsGlob = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
@@ -526,9 +526,9 @@ int Io_WriteMoPlaOneM( FILE * pFile, Abc_Ntk_t * pNtk, int nMints )
         // get the output function
         bFunc = (DdNode *)Vec_PtrEntry(vFuncsGlob, 0);
         if ( bFunc == Cudd_ReadOne(dd) )
-            printf( "First primary output has constant 1 function.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "First primary output has constant 1 function.\n" );
         else if ( Cudd_Not(bFunc) == Cudd_ReadOne(dd) )
-            printf( "First primary output has constant 0 function.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "First primary output has constant 0 function.\n" );
         else
             Io_WriteMoPlaOneIntMintermsM( pFile, pNtk, dd, bFunc, nMints );
         Abc_NtkFreeGlobalBdds( pNtk, 0 );
@@ -548,8 +548,8 @@ int Io_WriteMoPlaOneM( FILE * pFile, Abc_Ntk_t * pNtk, int nMints )
             Io_WriteMoPlaOneIntMintermsM( pFile, pNtk, dd, bFunc, nMints );
         else
         {
-            printf( "Cannot write minterms because the size of the manager for local BDDs is not equal to\n" );
-            printf( "the number of primary inputs. (It is likely that the current network is not collapsed.)\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot write minterms because the size of the manager for local BDDs is not equal to\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "the number of primary inputs. (It is likely that the current network is not collapsed.)\n" );
         }
     }
     return 1;
@@ -561,7 +561,7 @@ int Io_WriteMoPlaM( Abc_Ntk_t * pNtk, char * pFileName, int nMints )
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteMoPlaM(): Cannot open the output file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteMoPlaM(): Cannot open the output file.\n" );
         return 0;
     }
     fprintf( pFile, "# Benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );

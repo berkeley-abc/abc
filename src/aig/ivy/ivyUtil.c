@@ -631,44 +631,44 @@ void Ivy_ObjPrintVerbose( Ivy_Man_t * p, Ivy_Obj_t * pObj, int fHaig )
     Ivy_Obj_t * pTemp;
     int fShowFanouts = 0;
     assert( !Ivy_IsComplement(pObj) );
-    printf( "Node %5d : ", Ivy_ObjId(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "Node %5d : ", Ivy_ObjId(pObj) );
     if ( Ivy_ObjIsConst1(pObj) )
-        printf( "constant 1" );
+        fprintf( Abc_FrameGlobalGetOut(), "constant 1" );
     else if ( Ivy_ObjIsPi(pObj) )
-        printf( "PI" );
+        fprintf( Abc_FrameGlobalGetOut(), "PI" );
     else if ( Ivy_ObjIsPo(pObj) )
-        printf( "PO" );
+        fprintf( Abc_FrameGlobalGetOut(), "PO" );
     else if ( Ivy_ObjIsLatch(pObj) )
-        printf( "latch (%d%s)", Ivy_ObjFanin0(pObj)->Id, (Ivy_ObjFaninC0(pObj)? "\'" : " ") );
+        fprintf( Abc_FrameGlobalGetOut(), "latch (%d%s)", Ivy_ObjFanin0(pObj)->Id, (Ivy_ObjFaninC0(pObj)? "\'" : " ") );
     else if ( Ivy_ObjIsBuf(pObj) )
-        printf( "buffer (%d%s)", Ivy_ObjFanin0(pObj)->Id, (Ivy_ObjFaninC0(pObj)? "\'" : " ") );
+        fprintf( Abc_FrameGlobalGetOut(), "buffer (%d%s)", Ivy_ObjFanin0(pObj)->Id, (Ivy_ObjFaninC0(pObj)? "\'" : " ") );
     else
-        printf( "AND( %5d%s, %5d%s )", 
+        fprintf( Abc_FrameGlobalGetOut(), "AND( %5d%s, %5d%s )", 
             Ivy_ObjFanin0(pObj)->Id, (Ivy_ObjFaninC0(pObj)? "\'" : " "), 
             Ivy_ObjFanin1(pObj)->Id, (Ivy_ObjFaninC1(pObj)? "\'" : " ") );
-    printf( " (refs = %3d)", Ivy_ObjRefs(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), " (refs = %3d)", Ivy_ObjRefs(pObj) );
     if ( fShowFanouts )
     {
         Vec_Ptr_t * vFanouts;
         Ivy_Obj_t * pFanout;
         int i;
         vFanouts = Vec_PtrAlloc( 10 );
-        printf( "\nFanouts:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\nFanouts:\n" );
         Ivy_ObjForEachFanout( p, pObj, vFanouts, pFanout, i )
         {
-            printf( "    " );
-            printf( "Node %5d : ", Ivy_ObjId(pFanout) );
+            fprintf( Abc_FrameGlobalGetOut(), "    " );
+            fprintf( Abc_FrameGlobalGetOut(), "Node %5d : ", Ivy_ObjId(pFanout) );
             if ( Ivy_ObjIsPo(pFanout) )
-                printf( "PO" );
+                fprintf( Abc_FrameGlobalGetOut(), "PO" );
             else if ( Ivy_ObjIsLatch(pFanout) )
-                printf( "latch (%d%s)", Ivy_ObjFanin0(pFanout)->Id, (Ivy_ObjFaninC0(pFanout)? "\'" : " ") );
+                fprintf( Abc_FrameGlobalGetOut(), "latch (%d%s)", Ivy_ObjFanin0(pFanout)->Id, (Ivy_ObjFaninC0(pFanout)? "\'" : " ") );
             else if ( Ivy_ObjIsBuf(pFanout) )
-                printf( "buffer (%d%s)", Ivy_ObjFanin0(pFanout)->Id, (Ivy_ObjFaninC0(pFanout)? "\'" : " ") );
+                fprintf( Abc_FrameGlobalGetOut(), "buffer (%d%s)", Ivy_ObjFanin0(pFanout)->Id, (Ivy_ObjFaninC0(pFanout)? "\'" : " ") );
             else
-                printf( "AND( %5d%s, %5d%s )", 
+                fprintf( Abc_FrameGlobalGetOut(), "AND( %5d%s, %5d%s )", 
                     Ivy_ObjFanin0(pFanout)->Id, (Ivy_ObjFaninC0(pFanout)? "\'" : " "), 
                     Ivy_ObjFanin1(pFanout)->Id, (Ivy_ObjFaninC1(pFanout)? "\'" : " ") );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         Vec_PtrFree( vFanouts );
         return;
@@ -676,9 +676,9 @@ void Ivy_ObjPrintVerbose( Ivy_Man_t * p, Ivy_Obj_t * pObj, int fHaig )
     if ( !fHaig )
     {
         if ( pObj->pEquiv == NULL )
-            printf( " HAIG node not given" );
+            fprintf( Abc_FrameGlobalGetOut(), " HAIG node not given" );
         else
-            printf( " HAIG node = %d%s", Ivy_Regular(pObj->pEquiv)->Id, (Ivy_IsComplement(pObj->pEquiv)? "\'" : " ") );
+            fprintf( Abc_FrameGlobalGetOut(), " HAIG node = %d%s", Ivy_Regular(pObj->pEquiv)->Id, (Ivy_IsComplement(pObj->pEquiv)? "\'" : " ") );
         return;
     }
     if ( pObj->pEquiv == NULL )
@@ -687,17 +687,17 @@ void Ivy_ObjPrintVerbose( Ivy_Man_t * p, Ivy_Obj_t * pObj, int fHaig )
     if ( Ivy_ObjRefs(pObj) > 0 )
     {
         // print equivalence class
-        printf( "  { %5d ", pObj->Id );
+        fprintf( Abc_FrameGlobalGetOut(), "  { %5d ", pObj->Id );
         assert( !Ivy_IsComplement(pObj->pEquiv) );
         for ( pTemp = pObj->pEquiv; pTemp != pObj; pTemp = Ivy_Regular(pTemp->pEquiv) )
-            printf( " %5d%s", pTemp->Id, (Ivy_IsComplement(pTemp->pEquiv)? "\'" : " ") );
-        printf( " }" );
+            fprintf( Abc_FrameGlobalGetOut(), " %5d%s", pTemp->Id, (Ivy_IsComplement(pTemp->pEquiv)? "\'" : " ") );
+        fprintf( Abc_FrameGlobalGetOut(), " }" );
         return;
     }
     // this is a secondary node
     for ( pTemp = Ivy_Regular(pObj->pEquiv); Ivy_ObjRefs(pTemp) == 0; pTemp = Ivy_Regular(pTemp->pEquiv) );
     assert( Ivy_ObjRefs(pTemp) > 0 );
-    printf( "  class of %d", pTemp->Id );
+    fprintf( Abc_FrameGlobalGetOut(), "  class of %d", pTemp->Id );
 }
 
 /**Function*************************************************************
@@ -716,22 +716,22 @@ void Ivy_ManPrintVerbose( Ivy_Man_t * p, int fHaig )
     Vec_Int_t * vNodes;
     Ivy_Obj_t * pObj;
     int i;
-    printf( "PIs: " );
+    fprintf( Abc_FrameGlobalGetOut(), "PIs: " );
     Ivy_ManForEachPi( p, pObj, i )
-        printf( " %d", pObj->Id );
-    printf( "\n" );
-    printf( "POs: " );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", pObj->Id );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "POs: " );
     Ivy_ManForEachPo( p, pObj, i )
-        printf( " %d", pObj->Id );
-    printf( "\n" );
-    printf( "Latches: " );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", pObj->Id );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Latches: " );
     Ivy_ManForEachLatch( p, pObj, i )
-        printf( " %d=%d%s", pObj->Id, Ivy_ObjFanin0(pObj)->Id, (Ivy_ObjFaninC0(pObj)? "\'" : " ") );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d=%d%s", pObj->Id, Ivy_ObjFanin0(pObj)->Id, (Ivy_ObjFaninC0(pObj)? "\'" : " ") );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     vNodes = Ivy_ManDfsSeq( p, NULL );
     Ivy_ManForEachNodeVec( p, vNodes, pObj, i )
-        Ivy_ObjPrintVerbose( p, pObj, fHaig ), printf( "\n" );
-    printf( "\n" );
+        Ivy_ObjPrintVerbose( p, pObj, fHaig ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_IntFree( vNodes );
 }
 
@@ -749,11 +749,11 @@ void Ivy_ManPrintVerbose( Ivy_Man_t * p, int fHaig )
 int Ivy_CutTruthPrint2( Ivy_Man_t * p, Ivy_Cut_t * pCut, unsigned uTruth )
 {
     int i;
-    printf( "Trying cut : {" );
+    fprintf( Abc_FrameGlobalGetOut(), "Trying cut : {" );
     for ( i = 0; i < pCut->nSize; i++ )
-        printf( " %6d(%d)", Ivy_LeafId(pCut->pArray[i]), Ivy_LeafLat(pCut->pArray[i]) );
-    printf( " }   " );
-    Extra_PrintBinary( stdout, &uTruth, 16 );  printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %6d(%d)", Ivy_LeafId(pCut->pArray[i]), Ivy_LeafLat(pCut->pArray[i]) );
+    fprintf( Abc_FrameGlobalGetOut(), " }   " );
+    Extra_PrintBinary( Abc_FrameGlobalGetOut(), &uTruth, 16 );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
     return 0;
 }
 
@@ -778,17 +778,17 @@ int Ivy_CutTruthPrint( Ivy_Man_t * p, Ivy_Cut_t * pCut, unsigned uTruth )
     int fVerbose = 0;
 
     if ( fVerbose )
-        printf( "Trying cut : {" );
+        fprintf( Abc_FrameGlobalGetOut(), "Trying cut : {" );
     for ( i = 0; i < pCut->nSize; i++ )
     {
         if ( fVerbose )
-            printf( " %6d(%d)", Ivy_LeafId(pCut->pArray[i]), Ivy_LeafLat(pCut->pArray[i]) );
+            fprintf( Abc_FrameGlobalGetOut(), " %6d(%d)", Ivy_LeafId(pCut->pArray[i]), Ivy_LeafLat(pCut->pArray[i]) );
         nLatches += Ivy_LeafLat(pCut->pArray[i]);
     }
     if ( fVerbose )
-        printf( " }   " );
+        fprintf( Abc_FrameGlobalGetOut(), " }   " );
     if ( fVerbose )
-        printf( "Latches = %d. ", nLatches );
+        fprintf( Abc_FrameGlobalGetOut(), "Latches = %d. ", nLatches );
 
     // check if there are latches on the fanout edges
     vArray = Vec_PtrAlloc( 100 );
@@ -807,10 +807,10 @@ int Ivy_CutTruthPrint( Ivy_Man_t * p, Ivy_Cut_t * pCut, unsigned uTruth )
     Vec_PtrSize( vArray );
     if ( fVerbose )
     {
-        printf( "Present = %d. ", nPresent );
+        fprintf( Abc_FrameGlobalGetOut(), "Present = %d. ", nPresent );
         if ( nLatches > nPresent )
-            printf( "Clauses = %d. ", 2*(nLatches - nPresent) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Clauses = %d. ", 2*(nLatches - nPresent) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return ( nLatches > nPresent ) ? 2*(nLatches - nPresent) : 0;
 }

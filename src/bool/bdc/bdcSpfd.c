@@ -114,12 +114,12 @@ extern void  Abc_Show6VarFunc( word F0, word F1 );
 void Bdc_SpfdPrint_rec( Bdc_Nod_t * pNode, int Level, Vec_Ptr_t * vLevels )
 {
     assert( Level > 0 );
-    printf( "(" );
+    fprintf( Abc_FrameGlobalGetOut(), "(" );
 
     if ( pNode->Type & 1 )
-        printf( "!" );
+        fprintf( Abc_FrameGlobalGetOut(), "!" );
     if ( pNode->iFan0g == 0 )
-        printf( "%c", 'a' + pNode->iFan0n );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + pNode->iFan0n );
     else
     {
         Bdc_Nod_t * pNode0 = (Bdc_Nod_t *)Vec_PtrEntry(vLevels, pNode->iFan0g);
@@ -127,21 +127,21 @@ void Bdc_SpfdPrint_rec( Bdc_Nod_t * pNode, int Level, Vec_Ptr_t * vLevels )
     }
 
     if ( pNode->Type & 4 )
-        printf( "+" );
+        fprintf( Abc_FrameGlobalGetOut(), "+" );
     else
-        printf( "*" );
+        fprintf( Abc_FrameGlobalGetOut(), "*" );
 
     if ( pNode->Type & 2 )
-        printf( "!" );
+        fprintf( Abc_FrameGlobalGetOut(), "!" );
     if ( pNode->iFan1g == 0 )
-        printf( "%c", 'a' + pNode->iFan1n );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + pNode->iFan1n );
     else
     {
         Bdc_Nod_t * pNode1 = (Bdc_Nod_t *)Vec_PtrEntry(vLevels, pNode->iFan1g);
         Bdc_SpfdPrint_rec( pNode1 + pNode->iFan1n, pNode->iFan1g, vLevels );
     }
 
-    printf( ")" );
+    fprintf( Abc_FrameGlobalGetOut(), ")" );
 }
 
 /**Function*************************************************************
@@ -158,10 +158,10 @@ void Bdc_SpfdPrint_rec( Bdc_Nod_t * pNode, int Level, Vec_Ptr_t * vLevels )
 void Bdc_SpfdPrint( Bdc_Nod_t * pNode, int Level, Vec_Ptr_t * vLevels, word Truth )
 {
     word Diff = Truth ^ pNode->Truth;
-    Extra_PrintHex( stdout, (unsigned *)&pNode->Truth, 6 ); printf( "   " );
-    Extra_PrintHex( stdout, (unsigned *)&Diff, 6 );         printf( "   " );
+    Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&pNode->Truth, 6 ); fprintf( Abc_FrameGlobalGetOut(), "   " );
+    Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&Diff, 6 );         fprintf( Abc_FrameGlobalGetOut(), "   " );
     Bdc_SpfdPrint_rec( pNode, Level, vLevels );
-    printf( "    %d\n", pNode->Weight );
+    fprintf( Abc_FrameGlobalGetOut(), "    %d\n", pNode->Weight );
 }
 
 /**Function*************************************************************
@@ -188,20 +188,20 @@ void Bdc_SpfdDecompose( word Truth, int nVars, int nCands, int nGatesMax )
     assert( nCands < (1<<12) );
     assert( (1<<(nVars-1))*(1<<(nVars-1)) < (1<<12) ); // max SPFD
 
-    printf( "Storage size = %d (%d * %d * %d * %d).\n", nSize, nCands, nCands, nGatesMax + 1, 5 );
+    fprintf( Abc_FrameGlobalGetOut(), "Storage size = %d (%d * %d * %d * %d).\n", nSize, nCands, nCands, nGatesMax + 1, 5 );
 
-    printf( "SPFD = %d.\n", Bdc_CountOnes(Truth) * Bdc_CountOnes(~Truth) );
+    fprintf( Abc_FrameGlobalGetOut(), "SPFD = %d.\n", Bdc_CountOnes(Truth) * Bdc_CountOnes(~Truth) );
 
     // consider elementary functions
     if ( Truth == 0 || Truth == ~0 )
     {
-        printf( "Function is a constant.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Function is a constant.\n" );
         return;
     }
     for ( i = 0; i < nVars; i++ )
         if ( Truth == Truths[i] || Truth == ~Truths[i] )
         {
-            printf( "Function is an elementary variable.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Function is an elementary variable.\n" );
             return;
         }
 
@@ -241,12 +241,12 @@ clk = Abc_Clock();
 //Bdc_SpfdPrint( pNode + i, 1, vLevels );
         if ( Truth == pNode[i].Truth || Truth == ~pNode[i].Truth )
         {
-            printf( "Function can be implemented using 1 gate.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Function can be implemented using 1 gate.\n" );
             pNode = NULL;
             goto cleanup;
         }
     }
-printf( "Selected %6d gates on level %2d.   ", c, 1 );
+fprintf( Abc_FrameGlobalGetOut(), "Selected %6d gates on level %2d.   ", c, 1 );
 Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
 
@@ -296,7 +296,7 @@ Bdc_SpfdPrint( pNode + i, 1, vLevels, Truth );
 
             if ( Truth == pNode[i].Truth || Truth == ~pNode[i].Truth )
             {
-                printf( "Function can be implemented using %d gates.\n", n );
+                fprintf( Abc_FrameGlobalGetOut(), "Function can be implemented using %d gates.\n", n );
                 Bdc_SpfdPrint( pNode + i, n, vLevels, Truth );
                 goto cleanup;
             }
@@ -304,7 +304,7 @@ Bdc_SpfdPrint( pNode + i, 1, vLevels, Truth );
         pPerm = Abc_MergeSortCost( Vec_IntArray(vWeight), c );
         assert( Vec_IntEntry(vWeight, pPerm[0]) <= Vec_IntEntry(vWeight, pPerm[c-1]) );
 
-        printf( "Best SPFD = %d.\n", Vec_IntEntry(vWeight, pPerm[c-1]) );
+        fprintf( Abc_FrameGlobalGetOut(), "Best SPFD = %d.\n", Vec_IntEntry(vWeight, pPerm[c-1]) );
 //        for ( i = 0; i < c; i++ )
 //printf( "%d ", Vec_IntEntry(vWeight, pPerm[i]) );
 
@@ -320,7 +320,7 @@ Bdc_SpfdPrint( pNode + i, 1, vLevels, Truth );
         Vec_PtrPush( vLevels, pNode2 );
         Vec_IntPush( vBegs, j );
 
-printf( "Selected %6d gates (out of %6d) on level %2d.   ", j, c, n );
+fprintf( Abc_FrameGlobalGetOut(), "Selected %6d gates (out of %6d) on level %2d.   ", j, c, n );
 Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
         for ( i = 0; i < 10; i++ )
@@ -597,7 +597,7 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
     word t0, t1, t;
     assert( nSize <= nFuncs );
 
-    printf( "Allocating %.2f MB of internal memory.\n", 1.0*sizeof(Bdc_Ent_t)*nFuncs/(1<<20) );
+    fprintf( Abc_FrameGlobalGetOut(), "Allocating %.2f MB of internal memory.\n", 1.0*sizeof(Bdc_Ent_t)*nFuncs/(1<<20) );
 
     p = (Bdc_Ent_t *)calloc( nFuncs, sizeof(Bdc_Ent_t) );
     memset( p, 255, sizeof(Bdc_Ent_t) );
@@ -605,7 +605,7 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
     for ( q = p; q < p+nFuncs; q++ )
        q->iList = 0;
     q = p + 1;
-    printf( "Added %d + %d + 0 = %d. Total = %8d.\n", 0, 0, 0, (int)(q-p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Added %d + %d + 0 = %d. Total = %8d.\n", 0, 0, 0, (int)(q-p) );
 
     vTruths  = Vec_WrdStart( nFuncs );
     vWeights = Vec_IntStart( nFuncs );
@@ -627,7 +627,7 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
         Vec_IntPush( vWeights, 0 );
     }
     Vec_IntPush( vStops, 7 );
-    printf( "Added %d + %d + 0 = %d. Total = %8d.\n", 0, 0, 0, (int)(q-p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Added %d + %d + 0 = %d. Total = %8d.\n", 0, 0, 0, (int)(q-p) );
 
     // create gates
     for ( n = 0; n < Limit; n++ )
@@ -646,7 +646,7 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
             pEnd1 = p + Vec_IntEntry( vStops, m+1 );
 
             clk2 = Abc_Clock();
-            printf( "Trying %7d  x %7d.  ", (int)(pEnd0-pBeg0), (int)(pEnd1-pBeg1) );
+            fprintf( Abc_FrameGlobalGetOut(), "Trying %7d  x %7d.  ", (int)(pEnd0-pBeg0), (int)(pEnd1-pBeg1) );
             for ( pThis0 = pBeg0; pThis0 < pEnd0; pThis0++ )
             for ( pThis1 = pBeg1; pThis1 < pEnd1; pThis1++ )
             if ( k < m || pThis1 > pThis0 )
@@ -678,11 +678,11 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
                 Vec_IntPush( vWeights, n+1 );
                 if ( q-p == nFuncs )
                 {
-                    printf( "Reached limit of %d functions.\n", nFuncs );
+                    fprintf( Abc_FrameGlobalGetOut(), "Reached limit of %d functions.\n", nFuncs );
                     goto finish;
                 }
             }
-            printf( "Added %d + %d + 1 = %d. Total = %8d.   ", k, m, n+1, (int)(q-p) );
+            fprintf( Abc_FrameGlobalGetOut(), "Added %d + %d + 1 = %d. Total = %8d.   ", k, m, n+1, (int)(q-p) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk2 );
         }
         Vec_IntPush( vStops, q-p );
@@ -853,8 +853,8 @@ word Bdc_SpfdFindBest( Vec_Wrd_t * vDivs, Vec_Int_t * vWeights, word F0, word F1
     }
     (*pCost) += Vec_IntEntry(vWeights, NumBest);
     assert( CostBest > 0 );
-    printf( "Selected %8d with cost %2d and weight %d: ", NumBest, 0, Vec_IntEntry(vWeights, NumBest) );
-    Extra_PrintHex( stdout, (unsigned *)&FuncBest, 6 ); printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Selected %8d with cost %2d and weight %d: ", NumBest, 0, Vec_IntEntry(vWeights, NumBest) );
+    Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&FuncBest, 6 ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
     return FuncBest;
 }
 
@@ -875,19 +875,19 @@ int Bdc_SpfdDecomposeTestOne( word t, Vec_Wrd_t * vDivs, Vec_Int_t * vWeights )
     word F0 = ~F1;
     word Func;
     int i, Cost = 0;
-    printf( "Trying: " );
-    Extra_PrintHex( stdout, (unsigned *)&t, 6 ); printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Trying: " );
+    Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&t, 6 ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
 //    Abc_Show6VarFunc( F0, F1 );   
     for ( i = 0; F0 && F1; i++ )
     {
-        printf( "*** ITER %2d   ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "*** ITER %2d   ", i );
         Func = Bdc_SpfdFindBest( vDivs, vWeights, F0, F1, &Cost );
         F0 &= ~Func;
         F1 &= ~Func;
 //        Abc_Show6VarFunc( F0, F1 );    
     }
     Cost += (i-1);
-    printf( "Produce solution with cost %2d (with adj cost %4d).\n", Cost, Bdc_SpfdAdjCost(t) );
+    fprintf( Abc_FrameGlobalGetOut(), "Produce solution with cost %2d (with adj cost %4d).\n", Cost, Bdc_SpfdAdjCost(t) );
     return Cost;
 }
 
@@ -941,7 +941,7 @@ void Bdc_SpfdDecomposeTest44()
         CostBest = Cost;
         tbest = tt;
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // try complemented output
     for ( i = 0; i < 6; i++ )
@@ -954,7 +954,7 @@ void Bdc_SpfdDecomposeTest44()
             tbest = tt;
         }
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // try complemented input
     for ( i = 0; i < 6; i++ )
@@ -1006,8 +1006,8 @@ void Bdc_SpfdDecomposeTest44()
     }
 */
 
-    printf( "Best solution found with cost %d.  ", CostBest );
-    Extra_PrintHex( stdout, (unsigned *)&tbest, 6 ); //printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Best solution found with cost %d.  ", CostBest );
+    Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&tbest, 6 ); //printf( "\n" );
     Abc_PrintTime( 1, "  Time", Abc_Clock() - clk );
 
     Vec_WrdFree( vDivs );
@@ -1053,7 +1053,7 @@ void Bdc_SpfdDecomposeTest3()
 //    Vec_WrdForEachEntry( v1K, EntryK, k )
 //        Counter += ((EntryM & EntryK) == EntryK);
 
-    printf( "Total = %8d.  ", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Total = %8d.  ", Counter );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
     clk = Abc_Clock();
@@ -1061,7 +1061,7 @@ void Bdc_SpfdDecomposeTest3()
     for ( k = 0; k < nSizeK; k++ )
     for ( i = 0; i < nSizeM; i++ )
         Counter += ((v1M->pArray[i] & v1K->pArray[k]) == v1K->pArray[k]);
-    printf( "Total = %8d.  ", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Total = %8d.  ", Counter );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
 }
@@ -1094,8 +1094,8 @@ void Bdc_SpfdDecomposeTest8()
 
     vDivs = Bdc_SpfdReadFiles5( &vWeights );
 
-    printf( "Best init = %4d.  ", Bdc_SpfdAdjCost(t) );
-    Extra_PrintHex( stdout, (unsigned *)&t, 6 ); //printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Best init = %4d.  ", Bdc_SpfdAdjCost(t) );
+    Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&t, 6 ); //printf( "\n" );
     Abc_PrintTime( 1, "  Time", Abc_Clock() - clk );
 
     Vec_WrdForEachEntry( vDivs, Func, i )
@@ -1108,8 +1108,8 @@ void Bdc_SpfdDecomposeTest8()
         }
     }
 
-    printf( "Best cost = %4d.  ", CostBest );
-    Extra_PrintHex( stdout, (unsigned *)&FuncBest, 6 ); //printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Best cost = %4d.  ", CostBest );
+    Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&FuncBest, 6 ); //printf( "\n" );
     Abc_PrintTime( 1, "  Time", Abc_Clock() - clk );
 
 Abc_Show6VarFunc( 0, t );
@@ -1117,7 +1117,7 @@ Abc_Show6VarFunc( 0, FuncBest );
 Abc_Show6VarFunc( 0, (FuncBest ^ t) );
 
     FuncBest ^= t;
-    Extra_PrintHex( stdout, (unsigned *)&FuncBest, 6 ); printf( "\n" );
+    Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&FuncBest, 6 ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
 }
 
@@ -1159,7 +1159,7 @@ void Bdc_SpfdDecomposeTest()
   Vec_WrdForEachEntry( v1M, EntryM, i )
   Vec_WrdForEachEntry( v1K, EntryK, k )
       Counter += ((EntryM & EntryK) == EntryK);
-  printf( "Total = %8d.  ", Counter );
+  fprintf( Abc_FrameGlobalGetOut(), "Total = %8d.  ", Counter );
   Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
   clk = Abc_Clock();
@@ -1170,7 +1170,7 @@ void Bdc_SpfdDecomposeTest()
   Vec_WrdForEachEntry( v1K, EntryK, k )
   Vec_WrdForEachEntry( v1M, EntryM, i )
       Counter += ((EntryM & EntryK) == EntryK);
-  printf( "Total = %8d.  ", Counter );
+  fprintf( Abc_FrameGlobalGetOut(), "Total = %8d.  ", Counter );
   Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 

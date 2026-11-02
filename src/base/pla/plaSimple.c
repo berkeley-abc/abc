@@ -47,7 +47,7 @@ void Pla_ManDumpPla( Pla_Man_t * p, char * pFileName )
     //int nVarsInit = Pla_ManDivNum(p) ? Vec_IntCountZero(&p->vDivs) : Pla_ManInNum(p);
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
     else
     {
         //char * pLits = "-01?";
@@ -77,7 +77,7 @@ void Pla_ManDumpPla( Pla_Man_t * p, char * pFileName )
         Vec_StrFree( vStr );
         fprintf( pFile, ".e\n\n" );
         fclose( pFile );
-        printf( "Written file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Written file \"%s\".\n", pFileName );
     }
 }
 void Pla_ManDumpBlif( Pla_Man_t * p, char * pFileName )
@@ -86,7 +86,7 @@ void Pla_ManDumpBlif( Pla_Man_t * p, char * pFileName )
     int nVarsInit = Pla_ManDivNum(p) ? Vec_IntCountZero(&p->vDivs) : Pla_ManInNum(p);
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
     else
     {
         //char * pLits = "-01?";
@@ -148,7 +148,7 @@ void Pla_ManDumpBlif( Pla_Man_t * p, char * pFileName )
         }
         fprintf( pFile, ".end\n\n" );
         fclose( pFile );
-        printf( "Written file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Written file \"%s\".\n", pFileName );
     }
 }
 
@@ -175,8 +175,8 @@ void Pla_PrintBinary( word * pT, int nBits )
 {
     int v;
     for ( v = 0; v < nBits; v++ )
-        printf( "%d", Pla_TtGetBit(pT, v) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Pla_TtGetBit(pT, v) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 Vec_Wrd_t * Pla_ManFxMinimize( word * pOn, int nVars )
 {
@@ -247,22 +247,22 @@ Vec_Wrd_t * Pla_ManFxMinimize( word * pOn, int nVars )
             continue;
         }
 
-    printf( "\n" );
-    printf( "Truth = %d. ", Pla_TtCountOnes(pOn, nWords) );
-    printf( "Cover = %d. ", Pla_TtCountOnes(pDc, nWords) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Truth = %d. ", Pla_TtCountOnes(pOn, nWords) );
+    fprintf( Abc_FrameGlobalGetOut(), "Cover = %d. ", Pla_TtCountOnes(pDc, nWords) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( "Count: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Count: " );
     for ( i = 0; i < 16; i++ )
         if ( Count[i] )
-            printf( "%d=%d ", i, Count[i] );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, Count[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( "Cubes: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Cubes: " );
     for ( i = 0; i < 16; i++ )
         if ( Cubes[i] )
-            printf( "%d=%d ", i, Cubes[i] );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, Cubes[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
 /*
     // extract cubes one at a time

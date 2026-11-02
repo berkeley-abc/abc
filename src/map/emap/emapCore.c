@@ -517,7 +517,7 @@ static int Emap_LibPrepare( Emap_Lib_t * p, Mio_Library_t * pMio )
     p->pGateInv = Mio_LibraryReadInv( pMio );
     if ( p->pGateInv == NULL )
     {
-        printf( "Cannot find inverter gate in the current GENLIB library.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot find inverter gate in the current GENLIB library.\n" );
         return 0;
     }
     p->InvArea = (float)Mio_GateReadArea( p->pGateInv );
@@ -1483,7 +1483,7 @@ static void Emap_ManComputeMogTuples( Abc_Ntk_t * pNtk, Emap_Obj_t * pMaps, Emap
         }
     }
     if ( getenv("ABC_EMAP_DEBUG_MOG") )
-        printf( "ABC emap MOG tuple setup: tuples=%d groups=%d mode=%s\n", pTuples->nSize, nGroups, fUseMffc ? "mffc" : "strict" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC emap MOG tuple setup: tuples=%d groups=%d mode=%s\n", pTuples->nSize, nGroups, fUseMffc ? "mffc" : "strict" );
     ABC_FREE( pLeafMarks );
     ABC_FREE( pDecs );
     if ( vMffcTouched )
@@ -1648,7 +1648,7 @@ static int Emap_NodeMatchMogArea( Abc_Ntk_t * pNtk, Emap_Obj_t * pMaps, Emap_Lib
             {
                 if ( getenv("ABC_EMAP_DEBUG_MOG") && pTuples->nAreaSamples < 8 )
                 {
-                    printf( "ABC emap MOG req sample %d: roots=(%d,%d) phases=(%d,%d) arr=(%.2f,%.2f) req=(%.2f,%.2f) invreq=(%.2f,%.2f)\n",
+                    fprintf( Abc_FrameGlobalGetOut(), "ABC emap MOG req sample %d: roots=(%d,%d) phases=(%d,%d) arr=(%.2f,%.2f) req=(%.2f,%.2f) invreq=(%.2f,%.2f)\n",
                         pTuples->nAreaSamples, pTuple->Obj0, pTuple->Obj1, pTuple->Phase0, pTuple->Phase1, Arr0, Arr1,
                         pRequired[2 * pTuple->Obj0 + pTuple->Phase0], pRequired[2 * pTuple->Obj1 + pTuple->Phase1],
                         pRequired[2 * pTuple->Obj0 + !pTuple->Phase0], pRequired[2 * pTuple->Obj1 + !pTuple->Phase1] );
@@ -1661,7 +1661,7 @@ static int Emap_NodeMatchMogArea( Abc_Ntk_t * pNtk, Emap_Obj_t * pMaps, Emap_Lib
             {
                 if ( getenv("ABC_EMAP_DEBUG_MOG") && pTuples->nAreaSamples < 8 )
                 {
-                    printf( "ABC emap MOG invreq sample %d: roots=(%d,%d) phases=(%d,%d) arr=(%.2f,%.2f) req=(%.2f,%.2f) invreq=(%.2f,%.2f)\n",
+                    fprintf( Abc_FrameGlobalGetOut(), "ABC emap MOG invreq sample %d: roots=(%d,%d) phases=(%d,%d) arr=(%.2f,%.2f) req=(%.2f,%.2f) invreq=(%.2f,%.2f)\n",
                         pTuples->nAreaSamples, pTuple->Obj0, pTuple->Obj1, pTuple->Phase0, pTuple->Phase1, Arr0, Arr1,
                         pRequired[2 * pTuple->Obj0 + pTuple->Phase0], pRequired[2 * pTuple->Obj1 + pTuple->Phase1],
                         pRequired[2 * pTuple->Obj0 + !pTuple->Phase0], pRequired[2 * pTuple->Obj1 + !pTuple->Phase1] );
@@ -2074,7 +2074,7 @@ static int Emap_ManRecoverMogsExactMffc( Abc_Ntk_t * pNtk, Emap_Obj_t * pMaps, E
         }
     }
     if ( getenv("ABC_EMAP_DEBUG_MOG") )
-        printf( "ABC emap MOG MFFC-exact trial: entries=%d tried=%d applied=%d area=%.2f delay=%.2f\n", nEntries, nTried, nApplied, AreaBest, DelayBest );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC emap MOG MFFC-exact trial: entries=%d tried=%d applied=%d area=%.2f delay=%.2f\n", nEntries, nTried, nApplied, AreaBest, DelayBest );
     *pAreaBest = AreaBest;
     *pDelayBest = DelayBest;
     ABC_FREE( pLeafMarks );
@@ -2333,7 +2333,7 @@ Abc_Ntk_t * Emap_ManMapAigStructural( Abc_Ntk_t * pNtk, Mio_Library_t * pMio, in
             nNodesFailed++;
     }
     if ( nNodesFailed )
-        printf( "Warning: %d AIG nodes did not receive a direct cut match.\n", nNodesFailed );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: %d AIG nodes did not receive a direct cut match.\n", nNodesFailed );
     if ( fUseMogs )
         Emap_ManComputeMogTuples( pNtk, pMaps, &Lib, &Tuples );
 
@@ -2360,7 +2360,7 @@ Abc_Ntk_t * Emap_ManMapAigStructural( Abc_Ntk_t * pNtk, Mio_Library_t * pMio, in
             Emap_ManRestoreBests( pNtk, pMaps, pBestRound );
             nMogsPacked = Emap_ManRecoverMogsTimed( pNtk, pMaps, &Lib, pMio, pRefs, DelayLimit, &AreaTimed );
             if ( getenv("ABC_EMAP_DEBUG_MOG") )
-                printf( "ABC emap MOG timed trial initial: applied=%d area=%.2f best=%.2f\n", nMogsPacked, AreaTimed, AreaBest );
+                fprintf( Abc_FrameGlobalGetOut(), "ABC emap MOG timed trial initial: applied=%d area=%.2f best=%.2f\n", nMogsPacked, AreaTimed, AreaBest );
             if ( nMogsPacked && AreaTimed < AreaBest - 0.001 )
             {
                 AreaBest = AreaTimed;
@@ -2373,7 +2373,7 @@ Abc_Ntk_t * Emap_ManMapAigStructural( Abc_Ntk_t * pNtk, Mio_Library_t * pMio, in
         nMogsPacked = Emap_ManRecoverMogsExact( pNtk, pMaps, &Lib, pRequired, pRefs );
         AreaCur = Emap_ManComputeActualMappedStats( pNtk, pMaps, &Lib, pMio, &DelayCur );
         if ( getenv("ABC_EMAP_DEBUG_MOG") )
-            printf( "ABC emap MOG exact trial initial: applied=%d area=%.2f delay=%.2f best=%.2f\n", nMogsPacked, AreaCur, DelayCur, AreaBest );
+            fprintf( Abc_FrameGlobalGetOut(), "ABC emap MOG exact trial initial: applied=%d area=%.2f delay=%.2f best=%.2f\n", nMogsPacked, AreaCur, DelayCur, AreaBest );
         if ( nMogsPacked && (fAreaMode || DelayCur <= DelayTarget + EMAP_DELAY_EPS) && AreaCur < AreaBest - 0.001 )
         {
             AreaBest = AreaCur;
@@ -2389,7 +2389,7 @@ Abc_Ntk_t * Emap_ManMapAigStructural( Abc_Ntk_t * pNtk, Mio_Library_t * pMio, in
             double DelayMffc = DelayBest;
             nMogsPacked = Emap_ManRecoverMogsExactMffc( pNtk, pMaps, &Lib, pMio, pRequired, pRefs, DelayLimit, &AreaMffc, &DelayMffc );
             if ( getenv("ABC_EMAP_DEBUG_MOG") )
-                printf( "ABC emap MOG MFFC exact trial initial: applied=%d area=%.2f delay=%.2f best=%.2f\n", nMogsPacked, AreaMffc, DelayMffc, AreaBest );
+                fprintf( Abc_FrameGlobalGetOut(), "ABC emap MOG MFFC exact trial initial: applied=%d area=%.2f delay=%.2f best=%.2f\n", nMogsPacked, AreaMffc, DelayMffc, AreaBest );
             if ( nMogsPacked && AreaMffc < AreaBest - 0.001 )
             {
                 AreaBest = AreaMffc;
@@ -2403,7 +2403,7 @@ Abc_Ntk_t * Emap_ManMapAigStructural( Abc_Ntk_t * pNtk, Mio_Library_t * pMio, in
         nMogsPacked = Emap_ManPackMogs( pNtk, pMaps, &Lib, pRequired, pRefs );
         AreaCur = Emap_ManComputeActualMappedStats( pNtk, pMaps, &Lib, pMio, &DelayCur );
         if ( getenv("ABC_EMAP_DEBUG_MOG") )
-            printf( "ABC emap MOG pack trial initial: applied=%d area=%.2f delay=%.2f best=%.2f\n", nMogsPacked, AreaCur, DelayCur, AreaBest );
+            fprintf( Abc_FrameGlobalGetOut(), "ABC emap MOG pack trial initial: applied=%d area=%.2f delay=%.2f best=%.2f\n", nMogsPacked, AreaCur, DelayCur, AreaBest );
         if ( nMogsPacked && (fAreaMode || DelayCur <= DelayTarget + EMAP_DELAY_EPS) && AreaCur < AreaBest - 0.001 )
         {
             AreaBest = AreaCur;
@@ -2465,7 +2465,7 @@ Abc_Ntk_t * Emap_ManMapAigStructural( Abc_Ntk_t * pNtk, Mio_Library_t * pMio, in
                 Emap_ManRestoreBests( pNtk, pMaps, pBestRound );
                 nMogsCur = Emap_ManRecoverMogsTimed( pNtk, pMaps, &Lib, pMio, pRefs, DelayLimit, &AreaTimed );
                 if ( getenv("ABC_EMAP_DEBUG_MOG") )
-                    printf( "ABC emap MOG timed trial round %d: applied=%d area=%.2f best=%.2f\n", r, nMogsCur, AreaTimed, AreaBest );
+                    fprintf( Abc_FrameGlobalGetOut(), "ABC emap MOG timed trial round %d: applied=%d area=%.2f best=%.2f\n", r, nMogsCur, AreaTimed, AreaBest );
                 if ( nMogsCur && AreaTimed < AreaBest - 0.001 )
                 {
                     AreaBest = AreaTimed;
@@ -2479,7 +2479,7 @@ Abc_Ntk_t * Emap_ManMapAigStructural( Abc_Ntk_t * pNtk, Mio_Library_t * pMio, in
             nMogsCur = Emap_ManRecoverMogsExact( pNtk, pMaps, &Lib, pRequired, pRefs );
             AreaCur = Emap_ManComputeActualMappedStats( pNtk, pMaps, &Lib, pMio, &DelayCur );
             if ( getenv("ABC_EMAP_DEBUG_MOG") )
-                printf( "ABC emap MOG exact trial round %d: applied=%d area=%.2f delay=%.2f best=%.2f\n", r, nMogsCur, AreaCur, DelayCur, AreaBest );
+                fprintf( Abc_FrameGlobalGetOut(), "ABC emap MOG exact trial round %d: applied=%d area=%.2f delay=%.2f best=%.2f\n", r, nMogsCur, AreaCur, DelayCur, AreaBest );
             if ( nMogsCur && (fAreaMode || DelayCur <= DelayTarget + EMAP_DELAY_EPS) && AreaCur < AreaBest - 0.001 )
             {
                 AreaBest = AreaCur;
@@ -2496,7 +2496,7 @@ Abc_Ntk_t * Emap_ManMapAigStructural( Abc_Ntk_t * pNtk, Mio_Library_t * pMio, in
                 double DelayMffc = DelayBest;
                 nMogsCur = Emap_ManRecoverMogsExactMffc( pNtk, pMaps, &Lib, pMio, pRequired, pRefs, DelayLimit, &AreaMffc, &DelayMffc );
                 if ( getenv("ABC_EMAP_DEBUG_MOG") )
-                    printf( "ABC emap MOG MFFC exact trial round %d: applied=%d area=%.2f delay=%.2f best=%.2f\n", r, nMogsCur, AreaMffc, DelayMffc, AreaBest );
+                    fprintf( Abc_FrameGlobalGetOut(), "ABC emap MOG MFFC exact trial round %d: applied=%d area=%.2f delay=%.2f best=%.2f\n", r, nMogsCur, AreaMffc, DelayMffc, AreaBest );
                 if ( nMogsCur && AreaMffc < AreaBest - 0.001 )
                 {
                     AreaBest = AreaMffc;
@@ -2511,7 +2511,7 @@ Abc_Ntk_t * Emap_ManMapAigStructural( Abc_Ntk_t * pNtk, Mio_Library_t * pMio, in
         nMogsCur = Emap_ManPackMogs( pNtk, pMaps, &Lib, pRequired, pRefs );
         AreaCur = Emap_ManComputeActualMappedStats( pNtk, pMaps, &Lib, pMio, &DelayCur );
         if ( getenv("ABC_EMAP_DEBUG_MOG") )
-            printf( "ABC emap MOG pack trial round %d: applied=%d area=%.2f delay=%.2f best=%.2f\n", r, nMogsCur, AreaCur, DelayCur, AreaBest );
+            fprintf( Abc_FrameGlobalGetOut(), "ABC emap MOG pack trial round %d: applied=%d area=%.2f delay=%.2f best=%.2f\n", r, nMogsCur, AreaCur, DelayCur, AreaBest );
         if ( nMogsCur && (fAreaMode || DelayCur <= DelayTarget + EMAP_DELAY_EPS) && AreaCur < AreaBest - 0.001 )
             {
                 AreaBest = AreaCur;
@@ -2527,7 +2527,7 @@ Abc_Ntk_t * Emap_ManMapAigStructural( Abc_Ntk_t * pNtk, Mio_Library_t * pMio, in
     Emap_ManRestoreBests( pNtk, pMaps, pBestSave );
     nMogsPacked = nMogsBest;
     if ( nNodesFailed )
-        printf( "Warning: %d AIG nodes did not receive an area-recovery match.\n", nNodesFailed );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: %d AIG nodes did not receive an area-recovery match.\n", nNodesFailed );
 
     pNtkNew = Emap_ManBuildMappedNtk( pNtk, pMaps, &Lib, pMio );
     if ( pNtkNew == NULL )
@@ -2545,19 +2545,19 @@ Abc_Ntk_t * Emap_ManMapAigStructural( Abc_Ntk_t * pNtk, Mio_Library_t * pMio, in
 
     if ( getenv("ABC_EMAP_DEBUG_MOG") )
     {
-        printf( "ABC emap MOG area: tuples=%d calls=%d candidates=%d accepts=%d reject_twin=%d reject_required=%d reject_flow=%d\n",
+        fprintf( Abc_FrameGlobalGetOut(), "ABC emap MOG area: tuples=%d calls=%d candidates=%d accepts=%d reject_twin=%d reject_required=%d reject_flow=%d\n",
             Tuples.nSize, Tuples.nAreaCalls, Tuples.nAreaCandidates, Tuples.nAreaAccepts,
             Tuples.nAreaRejectTwin, Tuples.nAreaRejectRequired, Tuples.nAreaRejectFlow );
-        printf( "ABC emap MOG local exact: calls=%d candidates=%d accepts=%d reject_unused=%d reject_twin=%d reject_shared=%d reject_required=%d reject_area=%d\n",
+        fprintf( Abc_FrameGlobalGetOut(), "ABC emap MOG local exact: calls=%d candidates=%d accepts=%d reject_unused=%d reject_twin=%d reject_shared=%d reject_required=%d reject_area=%d\n",
             Tuples.nExactLocalCalls, Tuples.nExactLocalCandidates, Tuples.nExactLocalAccepts,
             Tuples.nExactLocalRejectUnused, Tuples.nExactLocalRejectTwin, Tuples.nExactLocalRejectShared,
             Tuples.nExactLocalRejectRequired, Tuples.nExactLocalRejectArea );
-        printf( "ABC emap MOG local exact by arity: cand2=%d cand3=%d accept2=%d accept3=%d\n",
+        fprintf( Abc_FrameGlobalGetOut(), "ABC emap MOG local exact by arity: cand2=%d cand3=%d accept2=%d accept3=%d\n",
             Tuples.nExactLocalCand2, Tuples.nExactLocalCand3, Tuples.nExactLocalAccept2, Tuples.nExactLocalAccept3 );
     }
 
     if ( fVerbose )
-        printf( "ABC-native emap mapped %d AIG nodes using %d GENLIB truth variants, %d MOG variants, %d exact-cover changes, and packed %d MOG pairs in %s mode with delay target %.2f.\n", nNodesMapped, Lib.nCells, Lib.nMogs, nExactChangesBest, nMogsPacked, fAreaMode ? "area" : "delay", DelayTarget );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC-native emap mapped %d AIG nodes using %d GENLIB truth variants, %d MOG variants, %d exact-cover changes, and packed %d MOG pairs in %s mode with delay target %.2f.\n", nNodesMapped, Lib.nCells, Lib.nMogs, nExactChangesBest, nMogsPacked, fAreaMode ? "area" : "delay", DelayTarget );
 
     Emap_LibFree( &Lib );
     Emap_TuplesFree( &Tuples );

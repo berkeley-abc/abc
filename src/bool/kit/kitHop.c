@@ -92,8 +92,8 @@ int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * 
         pGraph = Kit_TruthToGraph( pTruth, nVars, vMemory );
     if ( pGraph == NULL )
     {
-        printf( "Kit_TruthToGia(): Converting truth table to AIG has failed for function:\n" );
-        Kit_DsdPrintFromTruth( pTruth, nVars ); printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Kit_TruthToGia(): Converting truth table to AIG has failed for function:\n" );
+        Kit_DsdPrintFromTruth( pTruth, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // derive the AIG for the decomposition tree
     iLit = Kit_GraphToGia( pMan, pGraph, vLeaves, fHash );
@@ -115,9 +115,9 @@ int Kit_TruthToGia2( Gia_Man_t * pMan, unsigned * pTruth0, unsigned * pTruth1, i
         pGraph = Kit_TruthToGraph2( pTruth0, pTruth1, nVars, vMemory );
     if ( pGraph == NULL )
     {
-        printf( "Kit_TruthToGia2(): Converting truth table to AIG has failed for function:\n" );
-        Kit_DsdPrintFromTruth( pTruth0, nVars ); printf( "\n" );
-        Kit_DsdPrintFromTruth( pTruth1, nVars ); printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Kit_TruthToGia2(): Converting truth table to AIG has failed for function:\n" );
+        Kit_DsdPrintFromTruth( pTruth0, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        Kit_DsdPrintFromTruth( pTruth1, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // derive the AIG for the decomposition tree
     iLit = Kit_GraphToGia( pMan, pGraph, vLeaves, fHash );
@@ -151,9 +151,9 @@ int Kit_IsopNodeNum( unsigned * pTruth0, unsigned * pTruth1, int nVars, Vec_Int_
         pGraph = Kit_TruthToGraph2( pTruth0, pTruth1, nVars, vMemory );
     if ( pGraph == NULL )
     {
-        printf( "Kit_TruthToGia2(): Converting truth table to AIG has failed for function:\n" );
-        Kit_DsdPrintFromTruth( pTruth0, nVars ); printf( "\n" );
-        Kit_DsdPrintFromTruth( pTruth1, nVars ); printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Kit_TruthToGia2(): Converting truth table to AIG has failed for function:\n" );
+        Kit_DsdPrintFromTruth( pTruth0, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        Kit_DsdPrintFromTruth( pTruth1, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // derive the AIG for the decomposition tree
     nNodes = Kit_GraphNodeNum( pGraph );
@@ -214,9 +214,9 @@ Vec_Int_t * Kit_IsopResub( unsigned * pTruth0, unsigned * pTruth1, int nVars, Ve
         pGraph = Kit_TruthToGraph2( pTruth0, pTruth1, nVars, vMemory );
     if ( pGraph == NULL )
     {
-        printf( "Kit_TruthToGia2(): Converting truth table to AIG has failed for function:\n" );
-        Kit_DsdPrintFromTruth( pTruth0, nVars ); printf( "\n" );
-        Kit_DsdPrintFromTruth( pTruth1, nVars ); printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Kit_TruthToGia2(): Converting truth table to AIG has failed for function:\n" );
+        Kit_DsdPrintFromTruth( pTruth0, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        Kit_DsdPrintFromTruth( pTruth1, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // derive the AIG for the decomposition tree
     nNodes = Kit_GraphNodeNum( pGraph );
@@ -284,8 +284,8 @@ Hop_Obj_t * Kit_TruthToHop( Hop_Man_t * pMan, unsigned * pTruth, int nVars, Vec_
         pGraph = Kit_TruthToGraph( pTruth, nVars, vMemory );
     if ( pGraph == NULL )
     {
-        printf( "Kit_TruthToHop(): Converting truth table to AIG has failed for function:\n" );
-        Kit_DsdPrintFromTruth( pTruth, nVars ); printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Kit_TruthToHop(): Converting truth table to AIG has failed for function:\n" );
+        Kit_DsdPrintFromTruth( pTruth, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // derive the AIG for the decomposition tree
     pObj = Kit_GraphToHop( pMan, pGraph );

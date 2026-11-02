@@ -39,6 +39,9 @@ extern permInfo* setPermInfoPtr(int var);
 extern void freePermInfoPtr(permInfo* x);
 extern void simpleMinimal(word* x, word* pAux,word* minimal, permInfo* pi, int nVars);
 
+extern ABC_DLL FILE *             Abc_FrameGlobalGetOut();
+extern ABC_DLL FILE *             Abc_FrameGlobalGetErr();
+
 ABC_NAMESPACE_HEADER_END
 
 #endif /* LUCKY_H_ */

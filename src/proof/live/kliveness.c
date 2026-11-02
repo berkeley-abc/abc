@@ -490,7 +490,7 @@ void deallocateMasterBarrierDisjunctVecPtrVecInt(Vec_Ptr_t *vMasterBarrierDisjun
             {
                 //Vec_IntFree(vInt);
                 Vec_IntForEachEntry( vInt, iElem, k )
-                    printf("%d - ", iElem);
+                    fprintf( Abc_FrameGlobalGetOut(), "%d - ", iElem);
                 //printf("Chung Chang j = %d\n", j);
             }
             Vec_PtrFree(vPtr);
@@ -588,7 +588,7 @@ int Abc_CommandCS_kLiveness( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if( !Abc_NtkIsStrash( pNtk ) )
     {
-        printf("The input network was not strashed, strashing....\n");
+        fprintf( Abc_FrameGlobalGetOut(), "The input network was not strashed, strashing....\n");
         pNtkTemp = Abc_NtkStrash( pNtk, 0, 0, 0 );
         pAig = Abc_NtkToDar( pNtkTemp, 0, 1 );
     }
@@ -610,7 +610,7 @@ int Abc_CommandCS_kLiveness( Abc_Frame_t * pAbc, int argc, char ** argv )
         vMasterBarrierDisjuncts = findDisjunctiveMonotoneSignals( pNtk );
         endTime = Abc_Clock();
         time_spent = (double)(endTime - beginTime)/CLOCKS_PER_SEC;
-        printf("pre-processing time = %f\n",time_spent); 
+        fprintf( Abc_FrameGlobalGetOut(), "pre-processing time = %f\n",time_spent); 
         return 0;
     }
 
@@ -623,7 +623,7 @@ int Abc_CommandCS_kLiveness( Abc_Frame_t * pAbc, int argc, char ** argv )
         vMasterBarrierDisjuncts = findDisjunctiveMonotoneSignals( pNtk );
         endTime = Abc_Clock();
         time_spent = (double)(endTime - beginTime)/CLOCKS_PER_SEC;
-        printf("pre-processing time = %f\n",time_spent); 
+        fprintf( Abc_FrameGlobalGetOut(), "pre-processing time = %f\n",time_spent); 
 
         assert( vMasterBarrierDisjuncts != NULL );
         assert( Vec_PtrSize(vMasterBarrierDisjuncts) > 0 );
@@ -638,7 +638,7 @@ int Abc_CommandCS_kLiveness( Abc_Frame_t * pAbc, int argc, char ** argv )
         vMasterBarrierDisjuncts = collectUserGivenDisjunctiveMonotoneSignals( pNtk );
         endTime = Abc_Clock();
         time_spent = (double)(endTime - beginTime)/CLOCKS_PER_SEC;
-        printf("pre-processing time = %f\n",time_spent); 
+        fprintf( Abc_FrameGlobalGetOut(), "pre-processing time = %f\n",time_spent); 
 
         assert( vMasterBarrierDisjuncts != NULL );
         assert( Vec_PtrSize(vMasterBarrierDisjuncts) > 0 );
@@ -704,13 +704,13 @@ int Abc_CommandCS_kLiveness( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
     usage:
-        fprintf( stdout, "usage: kcs [-cmgCh]\n" );
-            fprintf( stdout, "\timplements Claessen-Sorensson's k-Liveness algorithm\n" );
-        fprintf( stdout, "\t-c : verification with constraints, looks for POs prefixed with csSafetyInvar_\n");
-        fprintf( stdout, "\t-m : discovers monotone signals\n");
-            fprintf( stdout, "\t-g : verification with user-supplied barriers, looks for POs prefixed with csLevel1Stabil_\n");
-        fprintf( stdout, "\t-C : verification with discovered monotone signals\n");
-        fprintf( stdout, "\t-h : print usage\n");
+        fprintf( Abc_FrameGlobalGetOut(), "usage: kcs [-cmgCh]\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\timplements Claessen-Sorensson's k-Liveness algorithm\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\t-c : verification with constraints, looks for POs prefixed with csSafetyInvar_\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\t-m : discovers monotone signals\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\t-g : verification with user-supplied barriers, looks for POs prefixed with csLevel1Stabil_\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\t-C : verification with discovered monotone signals\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\t-h : print usage\n" );
             return 1;
 
 }
@@ -767,7 +767,7 @@ int Abc_CommandNChooseK( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if( !Abc_NtkIsStrash( pNtk ) )
     {
-        printf("The input network was not strashed, strashing....\n");
+        fprintf( Abc_FrameGlobalGetOut(), "The input network was not strashed, strashing....\n");
         pNtkTemp = Abc_NtkStrash( pNtk, 0, 0, 0 );
         pAig = Abc_NtkToDar( pNtkTemp, 0, 1 );
     }
@@ -780,20 +780,20 @@ int Abc_CommandNChooseK( Abc_Frame_t * pAbc, int argc, char ** argv )
 /**********************Code for generation of nCk outputs**/
     //combCount = countCombination(1000, 3);
     //pAigCombStabil = generateDisjunctiveTester( pNtk, pAig, 7, 2 );
-    printf("Enter parameterizedCombK = " );
+    fprintf( Abc_FrameGlobalGetOut(), "Enter parameterizedCombK = " );
     if( scanf("%d", &parameterizedCombK) != 1 )
     {
-        printf("\nFailed to read integer!\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\nFailed to read integer!\n" );
         return 0;
     }
-    printf("\n");
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     pAigCombStabil = generateGeneralDisjunctiveTester( pNtk, pAig, parameterizedCombK );
     Aig_ManPrintStats(pAigCombStabil);
     pNtkCombStabil = Abc_NtkFromAigPhase( pAigCombStabil );
     pNtkCombStabil->pName = Abc_UtilStrsav( pAigCombStabil->pName );
     if ( !Abc_NtkCheck( pNtkCombStabil ) )
-            fprintf( stdout, "Abc_NtkCreateCone(): Network check has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCreateCone(): Network check has failed.\n" );
     Abc_FrameSetCurrentNetwork( pAbc, pNtkCombStabil );
 
     Aig_ManStop( pAigCombStabil );
@@ -805,9 +805,9 @@ int Abc_CommandNChooseK( Abc_Frame_t * pAbc, int argc, char ** argv )
 /**********************************************************/
 
     usage:
-        fprintf( stdout, "usage: nck [-cmgCh]\n" );
-            fprintf( stdout, "\tgenerates combinatorial signals for stabilization\n" );
-        fprintf( stdout, "\t-h : print usage\n");
+        fprintf( Abc_FrameGlobalGetOut(), "usage: nck [-cmgCh]\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\tgenerates combinatorial signals for stabilization\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\t-h : print usage\n" );
             return 1;
 
 }

@@ -165,7 +165,7 @@ static inline void Fra_FraigNodeSpeculate( Fra_Man_t * p, Aig_Obj_t * pObj, Aig_
     // dump the logic into a file
     sprintf( FileName, "aig\\%03d.blif", ++Counter );
     Aig_ManDumpBlif( pTemp, FileName, NULL, NULL );
-    printf( "Speculation cone with %d nodes was written into file \"%s\".\n", Aig_ManNodeNum(pTemp), FileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Speculation cone with %d nodes was written into file \"%s\".\n", Aig_ManNodeNum(pTemp), FileName );
     // clean up
     Aig_ManStop( pTemp );
     Aig_ManForEachObj( p->pManFraig, pNode, i )
@@ -204,13 +204,13 @@ void Fra_FraigVerifyCounterEx( Fra_Man_t * p, Vec_Int_t * vCex )
     Vec_PtrForEachEntry( Aig_Obj_t *, p->pCla->vClasses1, pObj, i )
     {
         if ( pObj->fPhase != pObj->fMarkB )
-            printf( "The node %d is not constant under cex!\n", pObj->Id );
+            fprintf( Abc_FrameGlobalGetOut(), "The node %d is not constant under cex!\n", pObj->Id );
     }
     Vec_PtrForEachEntry( Aig_Obj_t **, p->pCla->vClasses, ppClass, i )
     {
         for ( c = 1; ppClass[c]; c++ )
             if ( (ppClass[0]->fPhase ^ ppClass[c]->fPhase) != (ppClass[0]->fMarkB ^ ppClass[c]->fMarkB) )
-                printf( "The nodes %d and %d are not equal under cex!\n", ppClass[0]->Id, ppClass[c]->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "The nodes %d and %d are not equal under cex!\n", ppClass[0]->Id, ppClass[c]->Id );
 //        for ( c = 0; ppClass[c]; c++ )
 //            if ( Fra_ObjFraig(ppClass[c],p->pPars->nFramesK) == Aig_ManConst1(p->pManFraig) )
 //                printf( "A member of non-constant class has a constant repr!\n" );
@@ -292,7 +292,7 @@ static inline void Fra_FraigNode( Fra_Man_t * p, Aig_Obj_t * pObj )
     if ( p->pManFraig->pData )
         return;
     if ( !p->pPars->nFramesK && Fra_ClassObjRepr(pObj) == pObjRepr )
-        printf( "Fra_FraigNode(): Error in class refinement!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Fra_FraigNode(): Error in class refinement!\n" );
     assert( p->pPars->nFramesK || Fra_ClassObjRepr(pObj) != pObjRepr );
 }
 

@@ -145,31 +145,31 @@ void Dau_DsdPrint( Dau_Dsd_t * p )
     int d, pVisits[DAU_MAX_VAR];
     if ( p->Type == DAU_DSD_CONST0 )
     {
-        printf( "%d\n", p->fCompl );
+        fprintf( Abc_FrameGlobalGetOut(), "%d\n", p->fCompl );
         return;
     }
     pVisits[0] = 1;
     for ( d = 0; p->Type; p++ )
     {
         if ( p->fCompl )
-            printf( "!" );
+            fprintf( Abc_FrameGlobalGetOut(), "!" );
         if ( p->Type == DAU_DSD_VAR )
         {
-            printf( "%c", 'a' + p->iVar );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + p->iVar );
             while ( d > 0 && --pVisits[d] == 0 )
-                printf( "%c", pTypes[d--] );
+                fprintf( Abc_FrameGlobalGetOut(), "%c", pTypes[d--] );
         }
         else
         {
             pVisits[++d] = p->nFans;
-            printf( "%c", OpenType[p->Type] );
-            printf( "%c", 'a' + p->Data );
-            printf( "%d", p->Depth );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", OpenType[p->Type] );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + p->Data );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", p->Depth );
             pTypes[d]  = CloseType[p->Type];
         }
     }
     assert( d == 0 );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 void Dau_DsdDepth( Dau_Dsd_t * p )

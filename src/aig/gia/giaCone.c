@@ -87,22 +87,22 @@ static inline void Opa_ManStop( Opa_Man_t * p )
 static inline void Opa_ManPrint( Opa_Man_t * p )
 {
     int i, k;
-    printf( "Groups:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Groups:\n" );
     for ( i = 0; i < Gia_ManPoNum(p->pGia); i++ )
     {
         if ( p->pvParts[i].nSize == 0 )
             continue;
-        printf( "%3d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : ", i );
         for ( k = 0; k < p->pvParts[i].nSize; k++ )
-            printf( "%d ", p->pvParts[i].pArray[k] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", p->pvParts[i].pArray[k] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 static inline void Opa_ManPrint2( Opa_Man_t * p )
 {
     Gia_Obj_t * pObj;
     int i, k, Count;
-    printf( "Groups %d: ", p->nParts );
+    fprintf( Abc_FrameGlobalGetOut(), "Groups %d: ", p->nParts );
     for ( i = 0; i < Gia_ManPoNum(p->pGia); i++ )
     {
         if ( p->pvParts[i].nSize == 0 )
@@ -111,9 +111,9 @@ static inline void Opa_ManPrint2( Opa_Man_t * p )
         Count = 0;
         Gia_ManForEachObjVec( p->pvParts + i, p->pGia, pObj, k )
             Count += Gia_ObjIsPo(p->pGia, pObj);
-        printf( "%d ", Count );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Count );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -181,7 +181,7 @@ void Opa_ManPerform( Gia_Man_t * pGia )
     {
         if ( i == Limit )
         {
-            printf( "%6d : %6d -> %6d\n", ++Count, i, p->nParts );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d : %6d -> %6d\n", ++Count, i, p->nParts );
             Limit = Vec_IntSize(p->vFront);
             if ( Count > 1 )
                 Opa_ManPrint2( p );
@@ -202,7 +202,7 @@ void Opa_ManPerform( Gia_Man_t * pGia )
         if ( Count == 5 )
             break;
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Opa_ManStop( p );
 }
 
@@ -374,7 +374,7 @@ Vec_Int_t * Gia_ManFindPivots( Gia_Man_t * p, int SelectShift, int fOnlyCis, int
     Vec_IntFree( vCount );
 
     if ( fVerbose )
-        printf( "Selected %d pivots with more than one fanout (out of %d CIs and ANDs).\n", Vec_IntSize(vWeights), Gia_ManCiNum(p) + Gia_ManAndNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "Selected %d pivots with more than one fanout (out of %d CIs and ANDs).\n", Vec_IntSize(vWeights), Gia_ManCiNum(p) + Gia_ManAndNum(p) );
 
     // permute
     Gia_ManRandom(1);
@@ -402,7 +402,7 @@ Vec_Int_t * Gia_ManFindPivots( Gia_Man_t * p, int SelectShift, int fOnlyCis, int
     {
         j = (i + SelectShift) % Vec_IntSize(vWeights);
         if ( fVerbose )
-            printf( "%2d : Pivot =%7d  Fanout =%7d\n", j, Vec_IntEntry(vPivots, pPerm[j]), Vec_IntEntry(vWeights, pPerm[j]) );
+            fprintf( Abc_FrameGlobalGetOut(), "%2d : Pivot =%7d  Fanout =%7d\n", j, Vec_IntEntry(vPivots, pPerm[j]), Vec_IntEntry(vWeights, pPerm[j]) );
         Vec_IntPush( vResult, Vec_IntEntry(vPivots, pPerm[j]) );
     }
 
@@ -435,7 +435,7 @@ Vec_Wrd_t * Gia_ManDeriveSigns( Gia_Man_t * p, Vec_Int_t * vPivots, int fVerbose
         pObj->Value = i;
 
     if ( fVerbose )
-        printf( "Signature propagation: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Signature propagation: " );
     vSigns = Vec_WrdStart( Gia_ManObjNum(p) );
     while ( fChange )
     {
@@ -461,10 +461,10 @@ Vec_Wrd_t * Gia_ManDeriveSigns( Gia_Man_t * p, Vec_Int_t * vPivots, int fVerbose
                 fChange = 1, Counter++;
         }
         if ( fVerbose )
-            printf( "%d ", Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Counter );
     }
     if ( fVerbose )
-       printf( "\n" );
+       fprintf( Abc_FrameGlobalGetOut(), "\n" );
     return vSigns;
 }
 
@@ -501,9 +501,9 @@ Vec_Ptr_t * Gia_ManHashOutputs( Gia_Man_t * p, Vec_Wrd_t * vSigns, int fVerbose 
     Vec_VecSort( (Vec_Vec_t *)vBins, 1 );
 
     if ( fVerbose )
-        printf( "Computed %d partitions:\n", Vec_PtrSize(vBins) );
+        fprintf( Abc_FrameGlobalGetOut(), "Computed %d partitions:\n", Vec_PtrSize(vBins) );
     if ( !fVerbose )
-        printf( "Listing partitions with more than 100 outputs:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Listing partitions with more than 100 outputs:\n" );
     Vec_PtrForEachEntry( Vec_Int_t *, vBins, vBin, i )
     {
         assert( Vec_IntSize(vBin) > 0 );
@@ -513,12 +513,12 @@ Vec_Ptr_t * Gia_ManHashOutputs( Gia_Man_t * p, Vec_Wrd_t * vSigns, int fVerbose 
             Gia_Obj_t * pObj = Gia_ManPo( p, PoNum );
             word Sign = Vec_WrdEntry( vSigns, Gia_ObjId(p, pObj) );
             // print
-            printf( "%3d ", i );
-            Extra_PrintBinary( stdout, (unsigned *)&Sign, 64 );
-            printf( "  " );
-            printf( "PO =%7d  ", Vec_IntSize(vBin) );
-            printf( "FF =%7d", Gia_ManCountFlops(p, vBin) );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d ", i );
+            Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&Sign, 64 );
+            fprintf( Abc_FrameGlobalGetOut(), "  " );
+            fprintf( Abc_FrameGlobalGetOut(), "PO =%7d  ", Vec_IntSize(vBin) );
+            fprintf( Abc_FrameGlobalGetOut(), "FF =%7d", Gia_ManCountFlops(p, vBin) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     return vBins;
@@ -573,7 +573,7 @@ Gia_Man_t * Gia_ManFindPoPartition( Gia_Man_t * p, int SelectShift, int fOnlyCis
     if ( pvPosEquivs )
     {
         *pvPosEquivs = vParts;
-        printf( "The algorithm divided %d POs into %d partitions.   ", Gia_ManPoNum(p), Vec_PtrSize(vParts) );
+        fprintf( Abc_FrameGlobalGetOut(), "The algorithm divided %d POs into %d partitions.   ", Gia_ManPoNum(p), Vec_PtrSize(vParts) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     else

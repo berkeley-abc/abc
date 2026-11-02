@@ -338,7 +338,7 @@ void Acb_NtkPushLogic( Acb_Ntk_t * p, int nLutSize, int fVerbose )
             if ( Acb_ObjFaninNum(p, iObj) == 1 )
                 Acb_ObjRemoveBufInv( p, iObj );
         }
-    printf( "Saved %d nodes after %d pushes.\n", nNodes - Acb_NtkNodeNum(p), nPushes );
+    fprintf( Abc_FrameGlobalGetOut(), "Saved %d nodes after %d pushes.\n", nNodes - Acb_NtkNodeNum(p), nPushes );
 }
 
 /**Function*************************************************************

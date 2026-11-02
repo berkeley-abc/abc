@@ -48,12 +48,12 @@ void Rnm_ManPrintSelected( Rnm_Man_t * p, Vec_Int_t * vNewPPis )
     int i, Counter = 0;
     Gia_ManForEachObjVec( p->vMap, p->pGia, pObj, i )
         if ( Gia_ObjIsPi(p->pGia, pObj) ) 
-            printf( "-" );
+            fprintf( Abc_FrameGlobalGetOut(), "-" );
         else if ( Vec_IntFind(vNewPPis, Gia_ObjId(p->pGia, pObj)) >= 0 )// this is PPI
             printf( "1" ), Counter++;
         else
-            printf( "0" );
-    printf( " %3d\n", Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "0" );
+    fprintf( Abc_FrameGlobalGetOut(), " %3d\n", Counter );
 }
 
 /**Function*************************************************************
@@ -87,23 +87,23 @@ void Ga2_StructAnalize( Gia_Man_t * p, Vec_Int_t * vFront, Vec_Int_t * vInter, V
     // explore selected
     Gia_ManForEachObjVec( vNewPPis, p, pObj, i )
     {
-        printf( "Selected PPI %3d : ", i+1 );
-        printf( "%6d ",  Gia_ObjId(p, pObj) );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Selected PPI %3d : ", i+1 );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d ",  Gia_ObjId(p, pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         vFanins = Ga2_ObjLeaves( p, pObj );
         Gia_ManForEachObjVec( vFanins, p, pFanin, k )
         {
-            printf( "    " );
-            printf( "%6d ", Gia_ObjId(p, pFanin) );
+            fprintf( Abc_FrameGlobalGetOut(), "    " );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d ", Gia_ObjId(p, pFanin) );
             if ( pFanin->fMark0 && pFanin->fMark1 )
-                printf( "selected PPI" );
+                fprintf( Abc_FrameGlobalGetOut(), "selected PPI" );
             else if ( pFanin->fMark0 && !pFanin->fMark1 )
-                printf( "frontier (original PI or PPI)" );
+                fprintf( Abc_FrameGlobalGetOut(), "frontier (original PI or PPI)" );
             else if ( !pFanin->fMark0 &&  pFanin->fMark1 )
-                printf( "abstracted node" );
+                fprintf( Abc_FrameGlobalGetOut(), "abstracted node" );
             else if ( !pFanin->fMark0 && !pFanin->fMark1 )
-                printf( "free variable" );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "free variable" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
 }
@@ -184,7 +184,7 @@ Vec_Int_t * Rnm_ManFilterSelected( Rnm_Man_t * p, Vec_Int_t * vOldPPis )
 
     // visualize
     if ( fVerbose )
-        printf( "*** Refinement %3d : PI+PPI =%4d. Old =%4d. New =%4d.   FF =%4d. Just =%4d. Shared =%4d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "*** Refinement %3d : PI+PPI =%4d. Old =%4d. New =%4d.   FF =%4d. Just =%4d. Shared =%4d.\n", 
             p->nRefId, Vec_IntSize(p->vMap), Vec_IntSize(vOldPPis), Vec_IntSize(vNewPPis), Counters[0], Counters[1], Counters[2] );
 
 //    Rnm_ManPrintSelected( p, vNewPPis );
@@ -292,7 +292,7 @@ Vec_Int_t * Rnm_ManFilterSelectedNew( Rnm_Man_t * p, Vec_Int_t * vOldPPis )
 
     // visualize
     if ( fVerbose )
-        printf( "*** Refinement %3d : PI+PPI =%4d. Old =%4d. New =%4d.   FF =%4d. Just =%4d. Shared =%4d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "*** Refinement %3d : PI+PPI =%4d. Old =%4d. New =%4d.   FF =%4d. Just =%4d. Shared =%4d.\n", 
             p->nRefId, Vec_IntSize(p->vMap), Vec_IntSize(vOldPPis), Vec_IntSize(vNewPPis), Counters[0], Counters[1], Counters[2] );
 
 //    Rnm_ManPrintSelected( p, vNewPPis );

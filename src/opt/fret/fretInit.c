@@ -141,10 +141,10 @@ Abc_FlowRetime_PrintInitStateInfo( Abc_Ntk_t * pNtk ) {
     else nOther++;
   }     
 
-  printf("\tinitial states {0,1,x} = {%d, %d, %d}", n0, n1, nDC);
+  fprintf( Abc_FrameGlobalGetOut(), "\tinitial states {0,1,x} = {%d, %d, %d}", n0, n1, nDC);
   if (nOther)
-    printf(" + %d UNKNOWN", nOther);
-  printf("\n");
+    fprintf( Abc_FrameGlobalGetOut(), " + %d UNKNOWN", nOther);
+  fprintf( Abc_FrameGlobalGetOut(), "\n");
 }
 
 
@@ -164,7 +164,7 @@ void Abc_FlowRetime_UpdateForwardInit( Abc_Ntk_t * pNtk ) {
   Abc_Obj_t *pObj, *pFanin;
   int i;
 
-  vprintf("\t\tupdating init state\n");
+  vfprintf( Abc_FrameGlobalGetOut(), "\t\tupdating init state\n");
 
   Abc_NtkIncrementTravId( pNtk );
 
@@ -562,7 +562,7 @@ int Abc_FlowRetime_SolveBackwardInit( Abc_Ntk_t * pNtk ) {
   if (pManMR->fSolutionIsDc) {
     Vec_PtrFree(vDelete);
     Abc_NtkForEachLatch( pNtk, pObj, i ) Abc_LatchSetInitDc( pObj );
-    vprintf("\tno init state computation: all-don't-care solution\n");
+    vfprintf( Abc_FrameGlobalGetOut(), "\tno init state computation: all-don't-care solution\n");
     return 1;
   }
 
@@ -590,11 +590,11 @@ int Abc_FlowRetime_SolveBackwardInit( Abc_Ntk_t * pNtk ) {
   Abc_NtkLevelReverse( pManMR->pInitNtk );
   Abc_NtkForEachObj( pManMR->pInitNtk, pObj, i ) 
     if (Abc_ObjLevel( pObj ) < 2)
-      Abc_ObjPrint(stdout, pObj);
+      Abc_ObjPrint(Abc_FrameGlobalGetOut(), pObj);
 #endif
   
-  vprintf("\tsolving for init state (%d nodes)... ", Abc_NtkObjNum(pManMR->pInitNtk));
-  fflush(stdout);
+  vfprintf( Abc_FrameGlobalGetOut(), "\tsolving for init state (%d nodes)... ", Abc_NtkObjNum(pManMR->pInitNtk));
+  fflush( Abc_FrameGlobalGetOut() );
 #ifdef ABC_USE_CUDD
   // convert SOPs to BDD
   if (Abc_NtkHasSop(pManMR->pInitNtk))
@@ -613,9 +613,9 @@ int Abc_FlowRetime_SolveBackwardInit( Abc_Ntk_t * pNtk ) {
   result = Abc_NtkMiterSat( pSatNtk, (ABC_INT64_T)500000, (ABC_INT64_T)50000000, 0, NULL, NULL );
 
   if (!result) { 
-    vprintf("SUCCESS\n");
+    vfprintf( Abc_FrameGlobalGetOut(), "SUCCESS\n");
   } else  {    
-    vprintf("FAILURE\n");
+    vfprintf( Abc_FrameGlobalGetOut(), "FAILURE\n");
     return 0;
   }
 
@@ -895,7 +895,7 @@ void Abc_FlowRetime_VerifyBackwardInit( Abc_Ntk_t * pNtk ) {
   Abc_Obj_t *pObj, *pFanin;
   int i;
 
-  vprintf("\t\tupdating init state\n");
+  vfprintf( Abc_FrameGlobalGetOut(), "\t\tupdating init state\n");
 
   Abc_NtkIncrementTravId( pNtk );
 
@@ -906,7 +906,7 @@ void Abc_FlowRetime_VerifyBackwardInit( Abc_Ntk_t * pNtk ) {
 
       if (FTEST(pObj, INIT_CARE)) {
         if(FTEST(pObj, INIT_CARE) != FTEST(pFanin, INIT_CARE)) {
-          printf("ERROR: expected val=%d care=%d and got val=%d care=%d\n",
+          fprintf( Abc_FrameGlobalGetOut(), "ERROR: expected val=%d care=%d and got val=%d care=%d\n",
                  FTEST(pObj, INIT_1)?1:0, FTEST(pObj, INIT_CARE)?1:0, 
                  FTEST(pFanin, INIT_1)?1:0, FTEST(pFanin, INIT_CARE)?1:0 );
 
@@ -1031,7 +1031,7 @@ void Abc_FlowRetime_ConstrainInit( ) {
 
   assert(pManMR->pInitNtk);
 
-  vprintf("\tsearch for initial state conflict...\n");
+  vfprintf( Abc_FrameGlobalGetOut(), "\tsearch for initial state conflict...\n");
 
   vNodes = Abc_NtkDfs(pManMR->pInitNtk, 0);
   n = Vec_PtrSize(vNodes);
@@ -1046,7 +1046,7 @@ void Abc_FlowRetime_ConstrainInit( ) {
 
   // grow initialization constraint
   do {
-    vprintf("\t\t");
+    vfprintf( Abc_FrameGlobalGetOut(), "\t\t");
 
     // find element to add to set...
     low = 0, high = Vec_PtrSize(vNodes);
@@ -1055,12 +1055,12 @@ void Abc_FlowRetime_ConstrainInit( ) {
       
       if (!Abc_FlowRetime_PartialSat( vNodes, mid )) {
         low = mid;
-        vprintf("-");
+        vfprintf( Abc_FrameGlobalGetOut(), "-");
       } else {
         high = mid;
-        vprintf("*");
+        vfprintf(Abc_FrameGlobalGetOut(), "*") ;
       }
-      fflush(stdout);
+      fflush( Abc_FrameGlobalGetOut() );
     }
       
 #if defined(DEBUG_CHECK)
@@ -1071,7 +1071,7 @@ void Abc_FlowRetime_ConstrainInit( ) {
     // mark its TFO
     pObj = (Abc_Obj_t*)Vec_PtrEntry( vNodes, low );
     Abc_NtkMarkCone_rec( pObj, 1 );
-    vprintf("   conflict term = %d ", low);
+    vfprintf( Abc_FrameGlobalGetOut(), "   conflict term = %d ", low);
 
 #if 0
     printf("init ------\n");
@@ -1084,7 +1084,7 @@ void Abc_FlowRetime_ConstrainInit( ) {
     // add node to constraint
     Abc_FlowRetime_GetInitToOrig( pObj, &pOrigObj, &lag );
     assert(pOrigObj);
-    vprintf(" <=> %d/%d\n", Abc_ObjId(pOrigObj), lag);
+    vfprintf( Abc_FrameGlobalGetOut(), " <=> %d/%d\n", Abc_ObjId(pOrigObj), lag);
 
 #if 0    
     printf("orig ------\n");
@@ -1225,7 +1225,7 @@ void Abc_FlowRetime_AddInitBias( ) {
   pManMR->pDataArray = ABC_REALLOC( Flow_Data_t, pManMR->pDataArray, pManMR->nNodes + (nConstraints*(pManMR->iteration+1)) );
   memset(pManMR->pDataArray + pManMR->nNodes, 0, sizeof(Flow_Data_t)*(nConstraints*(pManMR->iteration+1)));
 
-  vprintf("\t\tcreating %d bias structures\n", nConstraints);
+  vfprintf( Abc_FrameGlobalGetOut(), "\t\tcreating %d bias structures\n", nConstraints);
 
   Vec_PtrForEachEntry(InitConstraint_t*, pManMR->vInitConstraints, pConstraint, i ) {
     if (pConstraint->pBiasNode) continue;

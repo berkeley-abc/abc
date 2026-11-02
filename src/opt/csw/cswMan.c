@@ -102,10 +102,10 @@ void Csw_ManStop( Csw_Man_t * p )
     {
         int nNodesBeg = Aig_ManNodeNum(p->pManAig);
         int nNodesEnd = Aig_ManNodeNum(p->pManRes);
-        printf( "Beg = %7d.  End = %7d.  (%6.2f %%)  Try = %7d.  Cuts = %8d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Beg = %7d.  End = %7d.  (%6.2f %%)  Try = %7d.  Cuts = %8d.\n", 
             nNodesBeg, nNodesEnd, 100.0*(nNodesBeg-nNodesEnd)/nNodesBeg,
             p->nNodesTried, Csw_TableCountCuts( p ) );
-        printf( "Triv0 = %6d.  Triv1 = %6d.  Triv2 = %6d.  Cut-replace = %6d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Triv0 = %6d.  Triv1 = %6d.  Triv2 = %6d.  Cut-replace = %6d.\n", 
             p->nNodesTriv0, p->nNodesTriv1, p->nNodesTriv2, p->nNodesCuts );
         ABC_PRTP( "Cuts    ", p->timeCuts,     p->timeTotal );
         ABC_PRTP( "Hashing ", p->timeHash,     p->timeTotal );

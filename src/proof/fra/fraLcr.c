@@ -104,9 +104,9 @@ Fra_Lcr_t * Lcr_ManAlloc( Aig_Man_t * pAig )
 ***********************************************************************/
 void Lcr_ManPrint( Fra_Lcr_t * p )
 {
-    printf( "Iterations = %d.  LitBeg = %d.  LitEnd = %d. (%6.2f %%).\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Iterations = %d.  LitBeg = %d.  LitEnd = %d. (%6.2f %%).\n", 
         p->nIters, p->nLitsBeg, p->nLitsEnd, 100.0*p->nLitsEnd/p->nLitsBeg );
-    printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
         p->nNodesBeg, p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg, 
         p->nRegsBeg, p->nRegsEnd, 100.0*(p->nRegsBeg-p->nRegsEnd)/p->nRegsBeg );
     ABC_PRT( "AIG simulation  ", p->timeSim  );
@@ -552,7 +552,7 @@ Aig_Man_t * Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nC
     // simulate the AIG 
 clk2 = Abc_Clock();
 if ( fVerbose )
-printf( "Simulating AIG with %d nodes for %d cycles ...  ", Aig_ManNodeNum(pAig), nFramesP + 32 );
+fprintf( Abc_FrameGlobalGetOut(), "Simulating AIG with %d nodes for %d cycles ...  ", Aig_ManNodeNum(pAig), nFramesP + 32 );
     pSml = Fra_SmlSimulateSeq( pAig, nFramesP, 32, 1, 1  ); 
 if ( fVerbose ) 
 {
@@ -588,7 +588,7 @@ timeSim = Abc_Clock() - clk2;
     // partition the AIG for latch correspondence computation
 clk2 = Abc_Clock();
 if ( fVerbose )
-printf( "Partitioning AIG ...  " );
+fprintf( Abc_FrameGlobalGetOut(), "Partitioning AIG ...  " );
     pAigPart = Fra_LcrDeriveAigForPartitioning( p );
     p->vParts = (Vec_Ptr_t *)Aig_ManPartitionSmart( pAigPart, nPartSize, 0, NULL );
     Fra_LcrRemapPartitions( p->vParts, p->pCla, p->pInToOutPart, p->pInToOutNum );
@@ -621,7 +621,7 @@ p->timePart += Abc_Clock() - clk2;
                     Aig_ManStop( pAigPart );
                 Aig_ManCleanMarkA( pAig );
                 Aig_ManCleanMarkB( pAig );
-                printf( "Fra_FraigLatchCorrespondence(): Runtime limit exceeded.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Fra_FraigLatchCorrespondence(): Runtime limit exceeded.\n" );
                 goto finish;
             }
 clk2 = Abc_Clock();
@@ -647,7 +647,7 @@ ABC_PRT( "Time", Abc_Clock() - clk3 );
         // report the intermediate results
         if ( fVerbose )
         {
-            printf( "%3d : Const = %6d. Class = %6d.  L = %6d. Part = %3d.  ", 
+            fprintf( Abc_FrameGlobalGetOut(), "%3d : Const = %6d. Class = %6d.  L = %6d. Part = %3d.  ", 
                 nIter, Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), 
                 Fra_ClassesCountLits(p->pCla), Vec_PtrSize(p->vParts) );
             ABC_PRT( "T", Abc_Clock() - clk3 );

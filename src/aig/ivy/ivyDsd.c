@@ -201,7 +201,7 @@ int Ivy_TruthDsd( unsigned uTruth, Vec_Int_t * vTree )
         Vec_IntPush( vTree, Ivy_DecToInt(Node) );
     }
     if ( uTruth != Ivy_TruthDsdCompute(vTree) )
-        printf( "Verification failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification failed.\n" );
     return 1;
 }
 
@@ -681,9 +681,9 @@ void Ivy_TruthDsdComputePrint( unsigned uTruth )
     if ( vTree == NULL )
         vTree = Vec_IntAlloc( 12 );
     if ( Ivy_TruthDsd( uTruth, vTree ) )
-        Ivy_TruthDsdPrint( stdout, vTree );
+        Ivy_TruthDsdPrint( Abc_FrameGlobalGetOut(), vTree );
     else
-        printf( "Undecomposable\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Undecomposable\n" );
 }
 
 /**Function*************************************************************
@@ -712,12 +712,12 @@ void Ivy_TruthTestOne( unsigned uTruth )
     else
     {
 //        nTruthDsd++;
-        printf( "%5d : ", Counter++ );
-        Extra_PrintBinary( stdout, &uTruth, 32 );
-        printf( "  " );
-        Ivy_TruthDsdPrint( stdout, vTree );
+        fprintf( Abc_FrameGlobalGetOut(), "%5d : ", Counter++ );
+        Extra_PrintBinary( Abc_FrameGlobalGetOut(), &uTruth, 32 );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );
+        Ivy_TruthDsdPrint( Abc_FrameGlobalGetOut(), vTree );
         if ( uTruth != Ivy_TruthDsdCompute(vTree) )
-            printf( "Verification failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Verification failed.\n" );
     }
 //    Vec_IntFree( vTree );
 }

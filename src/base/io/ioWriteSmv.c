@@ -75,13 +75,13 @@ int Io_WriteSmv( Abc_Ntk_t * pNtk, char * pFileName )
     assert( Abc_NtkIsSopNetlist(pNtk) );
     if ( !Io_WriteSmvCheckNames(pNtk) )
     {
-        fprintf( stdout, "Io_WriteSmv(): Signal names in this benchmark contain parentheses making them impossible to reproduce in the SMV format. Use \"short_names\".\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteSmv(): Signal names in this benchmark contain parentheses making them impossible to reproduce in the SMV format. Use \"short_names\".\n" );
         return 0;
     }
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteSmv(): Cannot open the output file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteSmv(): Cannot open the output file.\n" );
         return 0;
     }
     fprintf( pFile, "-- benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
@@ -90,7 +90,7 @@ int Io_WriteSmv( Abc_Ntk_t * pNtk, char * pFileName )
     // write EXDC network if it exists
     pExdc = Abc_NtkExdc( pNtk );
     if ( pExdc )
-        printf( "Io_WriteSmv: EXDC is not written (warning).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Io_WriteSmv: EXDC is not written (warning).\n" );
     // finalize the file
     fclose( pFile );
     return 1;
@@ -137,7 +137,7 @@ int Io_WriteSmvOne( FILE * pFile, Abc_Ntk_t * pNtk )
     
     // write internal nodes
     fprintf( pFile, "DEFINE\n");
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );

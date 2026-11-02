@@ -89,7 +89,7 @@ Abc_Ntk_t * Abc_NtkFromMiniAig( Mini_Aig_t * p )
     Abc_NtkAddDummyPiNames( pNtk );
     Abc_NtkAddDummyPoNames( pNtk );
     if ( !Abc_NtkCheck( pNtk ) )
-        fprintf( stdout, "Abc_NtkFromMini(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFromMini(): Network check has failed.\n"  );
     // add latches
     if ( Mini_AigRegNum(p) > 0 )
     {
@@ -152,7 +152,7 @@ Mini_Aig_t * Abc_MiniAigFromNtk ( Abc_Ntk_t *pNtk )
         pNtk = pNtkRes = Abc_NtkStrash( pNtk, 0, 1, 0 );
         if ( pNtkRes == NULL )
         {
-            printf("Strashing has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Strashing has failed.\n" );
             return NULL;
         }
     }
@@ -176,7 +176,7 @@ void Abc_NtkInputMiniAig( Abc_Frame_t * pAbc, void * p )
 {
     Abc_Ntk_t * pNtk;
     if ( pAbc == NULL )
-        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" );
     pNtk = Abc_NtkFromMiniAig( (Mini_Aig_t *)p );
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
 //    Abc_NtkDelete( pNtk );
@@ -185,10 +185,10 @@ void * Abc_NtkOutputMiniAig( Abc_Frame_t * pAbc )
 {
     Abc_Ntk_t * pNtk;
     if ( pAbc == NULL )
-        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" );
     pNtk = Abc_FrameReadNtk( pAbc );
     if ( pNtk == NULL )
-        printf( "Current network in ABC framework is not defined.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current network in ABC framework is not defined.\n" );
     return Abc_NtkToMiniAig( pNtk );
 }
 void Abc_NtkSetFlopNum( Abc_Frame_t * pAbc, int nFlops )
@@ -196,10 +196,10 @@ void Abc_NtkSetFlopNum( Abc_Frame_t * pAbc, int nFlops )
     extern void Abc_NtkMakeSeq( Abc_Ntk_t * pNtk, int nFlops );
     Abc_Ntk_t * pNtk;
     if ( pAbc == NULL )
-        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "ABC framework is not initialized by calling Abc_Start()\n" );
     pNtk = Abc_FrameReadNtk( pAbc );
     if ( pNtk == NULL )
-        printf( "Current network in ABC framework is not defined.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Current network in ABC framework is not defined.\n" );
     Abc_NtkMakeSeq( pNtk, nFlops );
 }
 

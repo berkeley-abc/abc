@@ -531,7 +531,7 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fTwoSides, int fVerbose )
     {
 //        char * pName = Wlc_ObjName(p, i);
         if ( Wlc_ObjSign(pObj) > 0x1FFFFF )
-            printf( "Object %6d has range %d, which is reduced to %d in the statistics.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Object %6d has range %d, which is reduced to %d in the statistics.\n", 
                 i, Wlc_ObjRange(pObj), Wlc_ObjRange(pObj) & 0xFFFFF );
         if ( pObj->Beg )
         {
@@ -549,7 +549,7 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fTwoSides, int fVerbose )
             Sign = Wlc_NtkPrintDistribMakeSign( Wlc_ObjSign(pObj), Wlc_ObjSign(Wlc_ObjFanin0(p, pObj)), 0 );
         // 2-input types (including MUX)
         else if ( Wlc_ObjFaninNum(pObj) == 0 )
-            printf( "Object %d with name \"%s\" has type 0. Looks like it was declared by not defined...\n", i, Wlc_ObjName(p, i) );
+            fprintf( Abc_FrameGlobalGetOut(), "Object %d with name \"%s\" has type 0. Looks like it was declared by not defined...\n", i, Wlc_ObjName(p, i) );
         else if ( Wlc_ObjFaninNum(pObj) == 1 )
             Sign = Wlc_NtkPrintDistribMakeSign( Wlc_ObjSign(pObj), Wlc_ObjSign(Wlc_ObjFanin0(p, pObj)), 0 );
         else
@@ -653,28 +653,28 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fTwoSides, int fVerbose )
     }
     if ( nCountRange && Vec_IntSize(&p->vNameIds) > 0 )
     {
-        printf( "Warning: %d objects of the design have non-zero-based ranges.\n", nCountRange );
-        printf( "In particular, object %6d with name \"%s\" has range %d=[%d:%d]\n", Wlc_ObjId(p, pObjRange), 
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: %d objects of the design have non-zero-based ranges.\n", nCountRange );
+        fprintf( Abc_FrameGlobalGetOut(), "In particular, object %6d with name \"%s\" has range %d=[%d:%d]\n", Wlc_ObjId(p, pObjRange), 
             Abc_NamStr(p->pManName, Wlc_ObjNameId(p, Wlc_ObjId(p, pObjRange))), Wlc_ObjRange(pObjRange), pObjRange->End, pObjRange->Beg );
     }
     // print by occurrence
-    printf( "ID  :  name  occurrence%s    and2 (occurrence)<output_range>=<input_range>.<input_range> ...\n", fTwoSides ? "     Left Share Right":"" );
+    fprintf( Abc_FrameGlobalGetOut(), "ID  :  name  occurrence%s    and2 (occurrence)<output_range>=<input_range>.<input_range> ...\n", fTwoSides ? "     Left Share Right":"" );
     for ( i = 0; i < WLC_OBJ_NUMBER; i++ )
     {
         Vec_Wrd_t * vType  = (Vec_Wrd_t *)Vec_PtrEntry( vTypes, i );
         Vec_Wrd_t * vOccur = (Vec_Wrd_t *)Vec_PtrEntry( vOccurs, i );
         if ( p->nObjs[i] == 0 )
             continue;
-        printf( "%2d  :  %-8s  %6d", i, Wlc_Names[i], p->nObjs[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d  :  %-8s  %6d", i, Wlc_Names[i], p->nObjs[i] );
         if ( fTwoSides )
         {
             int nTotal = i == WLC_OBJ_PI ? Wlc_NtkCountRealPis(p) : p->nObjs[i];
-            printf( "   " );
-            printf( "%6d", nObjs[0][i] );
-            printf( "%6d", nObjs[0][i]+nObjs[1][i]-nTotal );
-            printf( "%6d", nObjs[1][i] );
+            fprintf( Abc_FrameGlobalGetOut(), "   " );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d", nObjs[0][i] );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d", nObjs[0][i]+nObjs[1][i]-nTotal );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d", nObjs[1][i] );
         }
-        printf( "%8d ", Vec_IntEntry(vAnds, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "%8d ", Vec_IntEntry(vAnds, i) );
         // sort by occurence
         Wlc_NtkPrintDistribSortOne( vTypes, vOccurs, i );
         Vec_WrdForEachEntry( vType, Sign, k )
@@ -682,19 +682,19 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fTwoSides, int fVerbose )
             Wlc_NtkPrintDistribFromSign( Sign, &s, &s0, &s1 );
             if ( ((k % 6) == 5 && s1) || ((k % 8) == 7 && !s1) )
             {
-                printf( "\n                                " );
+                fprintf( Abc_FrameGlobalGetOut(), "\n                                " );
                 if ( fTwoSides )
-                    printf( "                     " );
+                    fprintf( Abc_FrameGlobalGetOut(), "                     " );
             }
-            printf( "(%d)", (int)Vec_WrdEntry( vOccur, k ) );
-            printf( "%s%d",      Abc_LitIsCompl(s)?"-":"",  Abc_Lit2Var(s) );
+            fprintf( Abc_FrameGlobalGetOut(), "(%d)", (int)Vec_WrdEntry( vOccur, k ) );
+            fprintf( Abc_FrameGlobalGetOut(), "%s%d",      Abc_LitIsCompl(s)?"-":"",  Abc_Lit2Var(s) );
             if ( s0 )
-                printf( "=%s%d", Abc_LitIsCompl(s0)?"-":"", Abc_Lit2Var(s0) );
+                fprintf( Abc_FrameGlobalGetOut(), "=%s%d", Abc_LitIsCompl(s0)?"-":"", Abc_Lit2Var(s0) );
             if ( s1 )
-                printf( ".%s%d", Abc_LitIsCompl(s1)?"-":"", Abc_Lit2Var(s1) );
-            printf( " " );
+                fprintf( Abc_FrameGlobalGetOut(), ".%s%d", Abc_LitIsCompl(s1)?"-":"", Abc_Lit2Var(s1) );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_VecFree( (Vec_Vec_t *)vTypes );
     Vec_VecFree( (Vec_Vec_t *)vOccurs );
@@ -702,64 +702,64 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fTwoSides, int fVerbose )
 }
 void Wlc_NtkPrintNode( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )
 {
-    printf( "%8d  :  ", Wlc_ObjId(p, pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "%8d  :  ", Wlc_ObjId(p, pObj) );
     if ( Vec_IntSize(&p->vLevels) )
-        printf( "Lev = %2d  ", Vec_IntEntry(&p->vLevels, Wlc_ObjId(p,pObj)) );
-    printf( "%6d%s = ", Wlc_ObjRange(pObj), Wlc_ObjIsSigned(pObj) ? "s" : " " );
+        fprintf( Abc_FrameGlobalGetOut(), "Lev = %2d  ", Vec_IntEntry(&p->vLevels, Wlc_ObjId(p,pObj)) );
+    fprintf( Abc_FrameGlobalGetOut(), "%6d%s = ", Wlc_ObjRange(pObj), Wlc_ObjIsSigned(pObj) ? "s" : " " );
     if ( pObj->Type == WLC_OBJ_PI )
     {
-        printf( "            PI                   :    %-12s\n", Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
+        fprintf( Abc_FrameGlobalGetOut(), "            PI                   :    %-12s\n", Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
         return;
     }
     if ( pObj->Type == WLC_OBJ_FO )
     {
-        printf( "            FO                   :    %-12s = %-12s\n", Wlc_ObjName(p, Wlc_ObjId(p, pObj)), Wlc_ObjName(p, Wlc_ObjId(p, Wlc_ObjFo2Fi(p, pObj))) );
+        fprintf( Abc_FrameGlobalGetOut(), "            FO                   :    %-12s = %-12s\n", Wlc_ObjName(p, Wlc_ObjId(p, pObj)), Wlc_ObjName(p, Wlc_ObjId(p, Wlc_ObjFo2Fi(p, pObj))) );
         return;
     }
     if ( pObj->Type != WLC_OBJ_CONST && Wlc_ObjFaninNum(pObj) == 0 )
     {
-        printf( "Unknown object without fanins    :    %-12s\n", Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
+        fprintf( Abc_FrameGlobalGetOut(), "Unknown object without fanins    :    %-12s\n", Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
         return;
     }
     if ( pObj->Type != WLC_OBJ_CONST )
     {
-        printf( "%6d%s  %5s  ",  Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)), Wlc_ObjIsSigned(Wlc_ObjFanin0(p, pObj)) ? "s" : " ", Wlc_Names[(int)pObj->Type] );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d%s  %5s  ",  Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)), Wlc_ObjIsSigned(Wlc_ObjFanin0(p, pObj)) ? "s" : " ", Wlc_Names[(int)pObj->Type] );
         if ( Wlc_ObjFaninNum(pObj) > 1 )
-            printf( "%6d%s ",       Wlc_ObjRange(Wlc_ObjFanin1(p, pObj)), Wlc_ObjIsSigned(Wlc_ObjFanin1(p, pObj)) ? "s" : " " );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d%s ",       Wlc_ObjRange(Wlc_ObjFanin1(p, pObj)), Wlc_ObjIsSigned(Wlc_ObjFanin1(p, pObj)) ? "s" : " " );
         else
-            printf( "        " );
+            fprintf( Abc_FrameGlobalGetOut(), "        " );
         if ( Wlc_ObjFaninNum(pObj) > 2 )
-            printf( "%6d%s ",       Wlc_ObjRange(Wlc_ObjFanin2(p, pObj)), Wlc_ObjIsSigned(Wlc_ObjFanin2(p, pObj)) ? "s" : " " );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d%s ",       Wlc_ObjRange(Wlc_ObjFanin2(p, pObj)), Wlc_ObjIsSigned(Wlc_ObjFanin2(p, pObj)) ? "s" : " " );
         else
-            printf( "        " );
+            fprintf( Abc_FrameGlobalGetOut(), "        " );
     }
     else
-        printf( "                                " );
-    printf( " :    " );
-    printf( "%-12s",   Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
+        fprintf( Abc_FrameGlobalGetOut(), "                                " );
+    fprintf( Abc_FrameGlobalGetOut(), " :    " );
+    fprintf( Abc_FrameGlobalGetOut(), "%-12s",   Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
     if ( pObj->Type == WLC_OBJ_CONST )
     {
-        printf( " = %d\'%sh", Wlc_ObjRange(pObj), Wlc_ObjIsSigned(pObj) ? "s":"" );
+        fprintf( Abc_FrameGlobalGetOut(), " = %d\'%sh", Wlc_ObjRange(pObj), Wlc_ObjIsSigned(pObj) ? "s":"" );
         if ( pObj->fXConst )
         {
             int k;
             for ( k = 0; k < (Wlc_ObjRange(pObj) + 3) / 4; k++ )
-                printf( "x" );
+                fprintf( Abc_FrameGlobalGetOut(), "x" );
         }
         else
-            Abc_TtPrintHexArrayRev( stdout, (word *)Wlc_ObjConstValue(pObj), (Wlc_ObjRange(pObj) + 3) / 4 );
+            Abc_TtPrintHexArrayRev( Abc_FrameGlobalGetOut(), (word *)Wlc_ObjConstValue(pObj), (Wlc_ObjRange(pObj) + 3) / 4 );
     }
     else
     {
-        printf( " =  %-12s  %5s  ", Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)), Wlc_Names[(int)pObj->Type] );
+        fprintf( Abc_FrameGlobalGetOut(), " =  %-12s  %5s  ", Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)), Wlc_Names[(int)pObj->Type] );
         if ( Wlc_ObjFaninNum(pObj) > 1 )
-            printf( "%-12s ",       Wlc_ObjName(p, Wlc_ObjFaninId1(pObj)) );
+            fprintf( Abc_FrameGlobalGetOut(), "%-12s ",       Wlc_ObjName(p, Wlc_ObjFaninId1(pObj)) );
         else
-            printf( "             " );
+            fprintf( Abc_FrameGlobalGetOut(), "             " );
         if ( Wlc_ObjFaninNum(pObj) > 2 )
-            printf( "%-12s ",       Wlc_ObjName(p, Wlc_ObjFaninId2(pObj)) );
+            fprintf( Abc_FrameGlobalGetOut(), "%-12s ",       Wlc_ObjName(p, Wlc_ObjFaninId2(pObj)) );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Wlc_NtkPrintNodeArray( Wlc_Ntk_t * p, Vec_Int_t * vArray )
 {
@@ -772,25 +772,25 @@ void Wlc_NtkPrintNodes( Wlc_Ntk_t * p, int Type )
 {
     Wlc_Obj_t * pObj; 
     int i, Counter = 0;
-    printf( "Operation %s\n", Wlc_Names[Type] );
+    fprintf( Abc_FrameGlobalGetOut(), "Operation %s\n", Wlc_Names[Type] );
     Wlc_NtkForEachObj( p, pObj, i )
     {
         if ( (int)pObj->Type != Type )
             continue;
-        printf( "%8d  :", Counter++ );
+        fprintf( Abc_FrameGlobalGetOut(), "%8d  :", Counter++ );
         Wlc_NtkPrintNode( p, pObj );
     }
 }
 void Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fTwoSides, int fVerbose )
 {
     int i;
-    printf( "%-20s : ",        p->pName );
-    printf( "PI = %4d  ",      Wlc_NtkCountRealPis(p) ); //Wlc_NtkPiNum(p) );
-    printf( "PO = %4d  ",      Wlc_NtkPoNum(p) );
-    printf( "FF = %4d  ",      Wlc_NtkFfNum(p) );
-    printf( "Obj = %6d  ",     Wlc_NtkObjNum(p) - Wlc_NtkPiNum(p) - Wlc_NtkPoNum(p) - Wlc_NtkFfNum(p) );
-    printf( "Mem = %.3f MB",   1.0*Wlc_NtkMemUsage(p)/(1<<20) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "%-20s : ",        p->pName );
+    fprintf( Abc_FrameGlobalGetOut(), "PI = %4d  ",      Wlc_NtkCountRealPis(p) ); //Wlc_NtkPiNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "PO = %4d  ",      Wlc_NtkPoNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "FF = %4d  ",      Wlc_NtkFfNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Obj = %6d  ",     Wlc_NtkObjNum(p) - Wlc_NtkPiNum(p) - Wlc_NtkPoNum(p) - Wlc_NtkFfNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Mem = %.3f MB",   1.0*Wlc_NtkMemUsage(p)/(1<<20) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     if ( fDistrib )
     {
         Wlc_NtkPrintDistrib( p, fTwoSides, fVerbose );
@@ -798,15 +798,15 @@ void Wlc_NtkPrintStats( Wlc_Ntk_t * p, int fDistrib, int fTwoSides, int fVerbose
     }
     if ( !fVerbose )
         return;
-    printf( "Node type statistics:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Node type statistics:\n" );
     for ( i = 1; i < WLC_OBJ_NUMBER; i++ )
     {
         if ( !p->nObjs[i] )
             continue;
         if ( p->nAnds[0] && p->nAnds[i] )
-            printf( "%2d  :  %-8s  %6d  %7.2f %%\n", i, Wlc_Names[i], p->nObjs[i], 100.0*p->nAnds[i]/p->nAnds[0] );
+            fprintf( Abc_FrameGlobalGetOut(), "%2d  :  %-8s  %6d  %7.2f %%\n", i, Wlc_Names[i], p->nObjs[i], 100.0*p->nAnds[i]/p->nAnds[0] );
         else
-            printf( "%2d  :  %-8s  %6d\n", i, Wlc_Names[i], p->nObjs[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "%2d  :  %-8s  %6d\n", i, Wlc_Names[i], p->nObjs[i] );
     }
 }
 void Wlc_NtkPrintObjects( Wlc_Ntk_t * p )
@@ -1207,13 +1207,13 @@ void Wlc_NtkProfileCones( Wlc_Ntk_t * p )
     {
         Wlc_NtkMarkCone( p, i, 1, 0, 0 );
         nNodes = Wlc_NtkCountMarked( p, &nPis, &nFos, &nAdders, &nMults );
-        printf( "Cone %5d : ", i );
-        printf( "PI = %4d  ", nPis );
-        printf( "FO = %4d  ", nFos );
-        printf( "Node = %6d  ", nNodes );
-        printf( "Add/Sub = %4d  ", nAdders );
-        printf( "Mult = %4d  ", nMults );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cone %5d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "PI = %4d  ", nPis );
+        fprintf( Abc_FrameGlobalGetOut(), "FO = %4d  ", nFos );
+        fprintf( Abc_FrameGlobalGetOut(), "Node = %6d  ", nNodes );
+        fprintf( Abc_FrameGlobalGetOut(), "Add/Sub = %4d  ", nAdders );
+        fprintf( Abc_FrameGlobalGetOut(), "Mult = %4d  ", nMults );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Wlc_NtkCleanMarks( p );
 }

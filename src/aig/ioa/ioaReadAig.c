@@ -116,7 +116,7 @@ Aig_Man_t * Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
     // check if the input file format is correct
     if ( strncmp(pContents, "aig", 3) != 0 || (pContents[3] != ' ' && pContents[3] != '2') )
     {
-        fprintf( stdout, "Wrong input file format.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Wrong input file format.\n"  );
         return NULL;
     }
 
@@ -163,7 +163,7 @@ Aig_Man_t * Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
     }
     if ( *pCur != '\n' )
     {
-        fprintf( stdout, "The parameter line is in a wrong format.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The parameter line is in a wrong format.\n"  );
         return NULL;
     }
     pCur++;
@@ -171,21 +171,21 @@ Aig_Man_t * Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
     // check the parameters
     if ( nTotal != nInputs + nLatches + nAnds )
     {
-        fprintf( stdout, "The number of objects does not match.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of objects does not match.\n"  );
         return NULL;
     }
     if ( nJust || nFair )
     {
-        fprintf( stdout, "Reading AIGER files with liveness properties are currently not supported.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Reading AIGER files with liveness properties are currently not supported.\n"  );
         return NULL;
     }
 
     if ( nConstr )
     {
         if ( nConstr == 1 )
-            fprintf( stdout, "Warning: The last output is interpreted as a constraint.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Warning: The last output is interpreted as a constraint.\n"  );
         else
-            fprintf( stdout, "Warning: The last %d outputs are interpreted as constraints.\n", nConstr );
+            fprintf( Abc_FrameGlobalGetOut(), "Warning: The last %d outputs are interpreted as constraints.\n", nConstr  );
     }
 
     // allocate the empty AIG
@@ -410,7 +410,7 @@ Aig_Man_t * Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
     // check the result
     if ( fCheck && !Aig_ManCheck( pNew ) )
     {
-        printf( "Ioa_ReadAiger: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Ioa_ReadAiger: The network check has failed.\n" );
         Aig_ManStop( pNew );
         return NULL;
     }

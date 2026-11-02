@@ -93,7 +93,7 @@ static inline Vec_Int_t * Tab_TabFindBest( Tab_Tab_t * p, int nDivs )
         pEnt = p->pBins + pOrder[i];
         if ( i == nDivs || pEnt->Cost == 1 )
             break;
-        printf( "Lit0 = %5d.  Lit1 = %5d.  Lit2 = %5d.  Func = %s.  Cost = %3d.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Lit0 = %5d.  Lit1 = %5d.  Lit2 = %5d.  Func = %s.  Cost = %3d.\n",
             pEnt->LitA, pEnt->LitB, pEnt->LitC, pNames[pEnt->Func], pEnt->Cost );
         Vec_IntPushTwo( vDivs, pEnt->Func, pEnt->LitA );
         Vec_IntPushTwo( vDivs, pEnt->LitB, pEnt->LitC );
@@ -311,7 +311,7 @@ void Div_CubePrintOne( Vec_Int_t * vCube, Vec_Str_t * vStr, int nVars )
     Vec_StrFill( vStr, nVars, '-' );
     Vec_IntForEachEntry( vCube, Lit, i )
         Vec_StrWriteEntry( vStr, Abc_Lit2Var(Lit), (char)(Abc_LitIsCompl(Lit) ? '0' : '1') );
-    printf( "%s\n", Vec_StrArray(vStr) );
+    fprintf( Abc_FrameGlobalGetOut(), "%s\n", Vec_StrArray(vStr) );
 }
 void Div_CubePrint( Vec_Wec_t * p, int nVars )
 {
@@ -351,23 +351,23 @@ Vec_Int_t * Div_CubePairs( Vec_Wec_t * p, int nVars, int nDivs )
 
             if ( fVerbose )
             {
-                printf( "Pair %d:\n", Count++ );
+                fprintf( Abc_FrameGlobalGetOut(), "Pair %d:\n", Count++ );
                 Div_CubePrintOne( vCube1, vStr, nVars );
                 Div_CubePrintOne( vCube2, vStr, nVars );
-                printf( "Result = %d   ", nBase );
+                fprintf( Abc_FrameGlobalGetOut(), "Result = %d   ", nBase );
                 assert( nBase > 0 );
 
-                printf( "Type = %s  ", pNames[Type] );
-                printf( "LitA = %d ",  pLits[0] );
-                printf( "LitB = %d ",  pLits[1] );
-                printf( "LitC = %d ",  pLits[2] );
-                printf( "Phase = %d ", Phase );
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Type = %s  ", pNames[Type] );
+                fprintf( Abc_FrameGlobalGetOut(), "LitA = %d ",  pLits[0] );
+                fprintf( Abc_FrameGlobalGetOut(), "LitB = %d ",  pLits[1] );
+                fprintf( Abc_FrameGlobalGetOut(), "LitC = %d ",  pLits[2] );
+                fprintf( Abc_FrameGlobalGetOut(), "Phase = %d ", Phase );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
         }
     }
     // print the table
-    printf( "Divisors = %d.\n", pTab->nBins );
+    fprintf( Abc_FrameGlobalGetOut(), "Divisors = %d.\n", pTab->nBins );
     vDivs = Tab_TabFindBest( pTab, nDivs );
     // cleanup
     Vec_StrFree( vStr );
@@ -401,9 +401,9 @@ int Bmc_FxSolve( sat_solver * pSat, int iOut, int iAuxVar, Vec_Int_t * vVars, in
     if ( vCubes )
         Vec_WecClear( vCubes );
     if ( fDumpPla )
-    printf( ".i %d\n", Vec_IntSize(vVars) );
+    fprintf( Abc_FrameGlobalGetOut(), ".i %d\n", Vec_IntSize(vVars) );
     if ( fDumpPla )
-    printf( ".o %d\n", 1 );
+    fprintf( Abc_FrameGlobalGetOut(), ".o %d\n", 1 );
     while ( 1 ) 
     {
         // find onset minterm
@@ -558,18 +558,18 @@ int Bmc_FxSolve( sat_solver * pSat, int iOut, int iAuxVar, Vec_Int_t * vVars, in
         if ( vCubes )
             Vec_IntSort( vLevel, 0 );
         if ( fDumpPla )
-            printf( "%s 1\n", Vec_StrArray(vCube) );
+            fprintf( Abc_FrameGlobalGetOut(), "%s 1\n", Vec_StrArray(vCube) );
         status = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
         assert( status );
         nLits += Vec_IntSize(vLevel);
         nIter++;
     }
     if ( fDumpPla )
-    printf( ".e\n" );
+    fprintf( Abc_FrameGlobalGetOut(), ".e\n" );
     if ( fDumpPla )
-    printf( ".p %d\n\n", nIter );
+    fprintf( Abc_FrameGlobalGetOut(), ".p %d\n\n", nIter );
     if ( fVerbose )
-    printf( "Cubes = %d.  Reduced = %d.  Lits = %d\n", nIter, Total, nLits );
+    fprintf( Abc_FrameGlobalGetOut(), "Cubes = %d.  Reduced = %d.  Lits = %d\n", nIter, Total, nLits );
     if ( pCounter )
         *pCounter = nIter;
 //    assert( status == l_True );
@@ -614,12 +614,12 @@ int Bmc_FxCompute( Gia_Man_t * p )
     for ( n = 0; n < 2; n++ ) // 0=onset, 1=offset
 //    for ( n = 1; n >= 0; n-- ) // 0=onset, 1=offset
     {
-        printf( "Out %3d %sset ", o, n ? "off" : " on" );
+        fprintf( Abc_FrameGlobalGetOut(), "Out %3d %sset ", o, n ? "off" : " on" );
         RetValue = Bmc_FxSolve( pSat, Abc_Var2Lit(o, n), iAuxVarStart + 2*i*nOuts + Abc_Var2Lit(o, n), vVars, 0, 0, &nCounter, NULL );
         if ( RetValue == 0 )
-            printf( "Mismatch\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Mismatch\n" );
         if ( RetValue == -1 )
-            printf( "Timeout\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Timeout\n" );
         nCubes[i][n] += nCounter;
     }
     // cleanup
@@ -627,7 +627,7 @@ int Bmc_FxCompute( Gia_Man_t * p )
     sat_solver_delete( pSat );
     Cnf_DataFree( pCnf );
     Gia_ManStop( p2 );
-    printf( "Onset = %5d.   Offset = %5d.      Onset = %5d.   Offset = %5d.\n", nCubes[0][0], nCubes[0][1], nCubes[1][0], nCubes[1][1] );
+    fprintf( Abc_FrameGlobalGetOut(), "Onset = %5d.   Offset = %5d.      Onset = %5d.   Offset = %5d.\n", nCubes[0][0], nCubes[0][1], nCubes[1][0], nCubes[1][1] );
     return 1;
 }
 
@@ -691,12 +691,12 @@ int Bmc_FxComputeOne( Gia_Man_t * p, int nIterMax, int nDiv2Add )
         for ( n = iCiVarBeg; n < iCiVarCur; n++ )
             Vec_IntPush( vVar2Sat, n );
         // iterate through outputs
-        printf( "\nIteration %d (Aux = %d)\n", Iter, iAuxVarStart + Iter );
+        fprintf( Abc_FrameGlobalGetOut(), "\nIteration %d (Aux = %d)\n", Iter, iAuxVarStart + Iter );
         RetValue = Bmc_FxSolve( pSat, 0, iAuxVarStart + Iter, vVar2Sat, 1, 1, NULL, vCubes );
         if ( RetValue == 0 )
-            printf( "Mismatch\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Mismatch\n" );
         if ( RetValue == -1 )
-            printf( "Timeout\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Timeout\n" );
         // print cubes
         //Div_CubePrint( vCubes, nCiVars );
         vDivs = Div_CubePairs( vCubes, nCiVars, nDiv2Add );

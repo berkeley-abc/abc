@@ -80,20 +80,20 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
 
     if ( vNodes->nSize < 1 )
     {
-        printf( "The set has no nodes. DOT file is not written.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The set has no nodes. DOT file is not written.\n" );
         return;
     }
 
     if ( vNodes->nSize > Limit )
     {
-        printf( "The set has more than %d nodes. DOT file is not written.\n", Limit );
+        fprintf( Abc_FrameGlobalGetOut(), "The set has more than %d nodes. DOT file is not written.\n", Limit );
         return;
     }
 
     // start the stream
     if ( (pFile = fopen( pFileName, "w" )) == NULL )
     {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the intermediate file \"%s\".\n", pFileName );
         return;
     }
 
@@ -102,7 +102,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     {
         if ( !Abc_NtkBddToSop(pNtk, -1, ABC_INFINITY, 1) )
         {
-            printf( "Io_WriteDotNtk(): Converting to SOPs has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Io_WriteDotNtk(): Converting to SOPs has failed.\n" );
             return;
         }
     }
@@ -456,20 +456,20 @@ void Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
 
     if ( vNodes->nSize < 1 )
     {
-        printf( "The set has no nodes. DOT file is not written.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The set has no nodes. DOT file is not written.\n" );
         return;
     }
 
     if ( vNodes->nSize > Limit )
     {
-        printf( "The set has more than %d nodes. DOT file is not written.\n", Limit );
+        fprintf( Abc_FrameGlobalGetOut(), "The set has more than %d nodes. DOT file is not written.\n", Limit );
         return;
     }
 
     // start the stream
     if ( (pFile = fopen( pFileName, "w" )) == NULL )
     {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open the intermediate file \"%s\".\n", pFileName );
         return;
     }
 
@@ -478,7 +478,7 @@ void Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     {
         if ( !Abc_NtkBddToSop(pNtk, -1, ABC_INFINITY, 1) )
         {
-            printf( "Io_WriteDotNtk(): Converting to SOPs has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Io_WriteDotNtk(): Converting to SOPs has failed.\n" );
             return;
         }
     }

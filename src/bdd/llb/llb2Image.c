@@ -90,18 +90,18 @@ Vec_Ptr_t * Llb_ImgSupports( Aig_Man_t * p, Vec_Ptr_t * vDdMans, Vec_Int_t * vSt
             Counter += Vec_IntEntry(vOne, i);
         if ( Counter == 0 ) 
             continue;
-        printf( "Obj = %4d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Obj = %4d : ", i );
         if ( Saig_ObjIsPi(p,pObj) )
-            printf( "pi  " );
+            fprintf( Abc_FrameGlobalGetOut(), "pi  " );
         else if ( Saig_ObjIsLo(p,pObj) )
-            printf( "lo  " );
+            fprintf( Abc_FrameGlobalGetOut(), "lo  " );
         else if ( Saig_ObjIsLi(p,pObj) )
-            printf( "li  " );
+            fprintf( Abc_FrameGlobalGetOut(), "li  " );
         else if ( Aig_ObjIsNode(pObj) )
-            printf( "and " );
+            fprintf( Abc_FrameGlobalGetOut(), "and " );
         Vec_PtrForEachEntry( Vec_Int_t *, vSupps, vOne, k )
-            printf( "%d", Vec_IntEntry(vOne, i) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Vec_IntEntry(vOne, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return vSupps;
 }
@@ -153,19 +153,19 @@ void Llb_ImgSchedule( Vec_Ptr_t * vSupps, Vec_Ptr_t ** pvQuant0, Vec_Ptr_t ** pv
     if ( fVerbose )
     for ( i = 0; i < Vec_PtrSize(vSupps); i++ )
     {
-        printf( "%2d : Quant0 = ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : Quant0 = ", i );
         Vec_IntForEachEntry( (Vec_Int_t *)Vec_PtrEntry(*pvQuant0, i), Entry, k )
-            printf( "%d ", Entry );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Entry );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     if ( fVerbose )
     for ( i = 0; i < Vec_PtrSize(vSupps); i++ )
     {
-        printf( "%2d : Quant1 = ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : Quant1 = ", i );
         Vec_IntForEachEntry( (Vec_Int_t *)Vec_PtrEntry(*pvQuant1, i), Entry, k )
-            printf( "%d ", Entry );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Entry );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -400,14 +400,14 @@ DdNode * Llb_ImgComputeImage( Aig_Man_t * pAig, Vec_Ptr_t * vDdMans, DdManager *
     {
         clk = Abc_Clock();
 if ( fVerbose )
-printf( "   %2d : ", i );
+fprintf( Abc_FrameGlobalGetOut(), "   %2d : ", i );
         // transfer the BDD from the group manager to the main manager
         bGroup = Cudd_bddTransfer( ddPart, dd, ddPart->bFunc );                           
         if ( bGroup == NULL )
             return NULL;
         Cudd_Ref( bGroup );
 if ( fVerbose )
-printf( "Pt0 =%6d. Pt1 =%6d. ", Cudd_DagSize(ddPart->bFunc), Cudd_DagSize(bGroup) );
+fprintf( Abc_FrameGlobalGetOut(), "Pt0 =%6d. Pt1 =%6d. ", Cudd_DagSize(ddPart->bFunc), Cudd_DagSize(bGroup) );
         // perform partial product
         bCube  = Llb_ImgComputeCube( pAig, (Vec_Int_t *)Vec_PtrEntry(vQuant1, i+1), dd ); Cudd_Ref( bCube );
 //        bImage = Cudd_bddAndAbstract( dd, bTemp = bImage, bGroup, bCube );                
@@ -423,7 +423,7 @@ printf( "Pt0 =%6d. Pt1 =%6d. ", Cudd_DagSize(ddPart->bFunc), Cudd_DagSize(bGroup
         Cudd_Ref( bImage );
 
 if ( fVerbose )
-printf( "Im0 =%6d. Im1 =%6d. ", Cudd_DagSize(bTemp), Cudd_DagSize(bImage) );
+fprintf( Abc_FrameGlobalGetOut(), "Im0 =%6d. Im1 =%6d. ", Cudd_DagSize(bTemp), Cudd_DagSize(bImage) );
 //printf("\n"); Extra_bddPrintSupport(dd, bImage); printf("\n");
         Cudd_RecursiveDeref( dd, bTemp );
         Cudd_RecursiveDeref( dd, bCube );
@@ -433,7 +433,7 @@ printf( "Im0 =%6d. Im1 =%6d. ", Cudd_DagSize(bTemp), Cudd_DagSize(bImage) );
 //        Abc_Print( 1, "Reo =%6d.  ", Cudd_DagSize(bImage) );
 
 if ( fVerbose )
-printf( "Supp =%3d. ", Cudd_SupportSize(dd, bImage) );
+fprintf( Abc_FrameGlobalGetOut(), "Supp =%3d. ", Cudd_SupportSize(dd, bImage) );
 if ( fVerbose )
 Abc_PrintTime( 1, "T", Abc_Clock() - clk );
     }

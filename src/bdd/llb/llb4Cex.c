@@ -70,7 +70,7 @@ Abc_Cex_t * Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int
     pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     if ( pSat == NULL )
     {
-        printf( "Llb4_Nonlin4TransformCex(): Counter-example generation has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Llb4_Nonlin4TransformCex(): Counter-example generation has failed.\n" );
         Cnf_DataFree( pCnf );
         return NULL;
     }
@@ -78,7 +78,7 @@ Abc_Cex_t * Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int
     status = sat_solver_simplify(pSat);
     if ( status == 0 )
     {
-        printf( "Llb4_Nonlin4TransformCex(): SAT solver is invalid.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Llb4_Nonlin4TransformCex(): SAT solver is invalid.\n" );
         sat_solver_delete( pSat );
         Cnf_DataFree( pCnf );
         return NULL;
@@ -106,7 +106,7 @@ Abc_Cex_t * Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int
         // if the problem is SAT, get the counterexample
         if ( status != l_True )
         {
-            printf( "Llb4_Nonlin4TransformCex(): There is no transition between state %d and %d.\n", i-1, i );
+            fprintf( Abc_FrameGlobalGetOut(), "Llb4_Nonlin4TransformCex(): There is no transition between state %d and %d.\n", i-1, i );
             Vec_IntFree( vAssumps );
             sat_solver_delete( pSat );
             Cnf_DataFree( pCnf );
@@ -140,7 +140,7 @@ Abc_Cex_t * Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int
     status = sat_solver_addclause( pSat, Vec_IntArray(vAssumps), Vec_IntArray(vAssumps) + Vec_IntSize(vAssumps) );
     if ( status == 0 )
     {
-        printf( "Llb4_Nonlin4TransformCex(): The SAT solver is unsat after adding last clause.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Llb4_Nonlin4TransformCex(): The SAT solver is unsat after adding last clause.\n" );
         Vec_IntFree( vAssumps );
         sat_solver_delete( pSat );
         Cnf_DataFree( pCnf );
@@ -156,7 +156,7 @@ Abc_Cex_t * Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int
         (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( status != l_True )
     {
-        printf( "Llb4_Nonlin4TransformCex(): There is no last transition that makes the property fail.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Llb4_Nonlin4TransformCex(): There is no last transition that makes the property fail.\n" );
         Vec_IntFree( vAssumps );
         sat_solver_delete( pSat );
         Cnf_DataFree( pCnf );
@@ -181,7 +181,7 @@ Abc_Cex_t * Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int
         pCex->iPo = status;
     else
     {
-        printf( "Llb4_Nonlin4TransformCex(): Counter-example verification has FAILED.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Llb4_Nonlin4TransformCex(): Counter-example verification has FAILED.\n" );
         ABC_FREE( pCex );
         return NULL;
     }
@@ -283,7 +283,7 @@ Abc_Cex_t * Llb4_Nonlin4NormalizeCex( Aig_Man_t * pAigOrg, Aig_Man_t * pAigRpm, 
     // check parameters of the AIG
     if ( Saig_ManRegNum(pAigOrg) != Saig_ManRegNum(pAigRpm) )
     {
-        printf( "Llb4_Nonlin4NormalizeCex(): The number of flops in the original and reparametrized AIGs do not agree.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Llb4_Nonlin4NormalizeCex(): The number of flops in the original and reparametrized AIGs do not agree.\n" );
         return NULL;
     }
 /*
@@ -295,7 +295,7 @@ Abc_Cex_t * Llb4_Nonlin4NormalizeCex( Aig_Man_t * pAigOrg, Aig_Man_t * pAigRpm, 
 */
     if ( Saig_ManPiNum(pAigRpm) != pCexRpm->nPis )
     {
-        printf( "Llb4_Nonlin4NormalizeCex(): The number of PIs in the reparametrized AIG and in the CEX do not agree.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Llb4_Nonlin4NormalizeCex(): The number of PIs in the reparametrized AIG and in the CEX do not agree.\n" );
         return NULL;
     }
     // get the sequence of states

@@ -163,12 +163,12 @@ void Abc_NtkDfsSup_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes, Vec_Ptr_t * vSup,
     {
         if(iVerbose)
         {
-            printf("Encountered vSup Node: %s\n", Abc_ObjName(pNode));
-            printf("Whose fanins are:\n");
-            printf("    Fanin0: %s", Abc_ObjName(Abc_ObjFanin0(pNode)));
-            printf(" %d on comp\n", pNode->fCompl0);
-            printf("    Fanin1: %s", Abc_ObjName(Abc_ObjFanin1(pNode)));
-            printf(" %d on comp\n", pNode->fCompl1);
+            fprintf( Abc_FrameGlobalGetOut(), "Encountered vSup Node: %s\n", Abc_ObjName(pNode));
+            fprintf( Abc_FrameGlobalGetOut(), "Whose fanins are:\n");
+            fprintf( Abc_FrameGlobalGetOut(), "    Fanin0: %s", Abc_ObjName(Abc_ObjFanin0(pNode)));
+            fprintf( Abc_FrameGlobalGetOut(), " %d on comp\n", pNode->fCompl0);
+            fprintf( Abc_FrameGlobalGetOut(), "    Fanin1: %s", Abc_ObjName(Abc_ObjFanin1(pNode)));
+            fprintf( Abc_FrameGlobalGetOut(), " %d on comp\n", pNode->fCompl1);
         }
         return;
     }
@@ -177,9 +177,9 @@ void Abc_NtkDfsSup_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes, Vec_Ptr_t * vSup,
     {
         if(iVerbose)
         {
-            printf("  Node %s Fanin %d: ", Abc_ObjName(pNode), i);
-            printf("%s", Abc_ObjName(pFanin));
-            printf(" %d on comp\n", i == 0 ? pNode->fCompl0 : pNode->fCompl1);
+            fprintf( Abc_FrameGlobalGetOut(), "  Node %s Fanin %d: ", Abc_ObjName(pNode), i);
+            fprintf( Abc_FrameGlobalGetOut(), "%s", Abc_ObjName(pFanin));
+            fprintf( Abc_FrameGlobalGetOut(), " %d on comp\n", i == 0 ? pNode->fCompl0 : pNode->fCompl1);
         }
         Abc_NtkDfsSup_rec( Abc_ObjFanin0Ntk(pFanin), vNodes, vSup, iVerbose);
     }
@@ -219,12 +219,12 @@ void Abc_NtkDfsInvSup_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSup, int * countFlip)
         {
             if(i == 0)
             {
-                printf("Flipping edge on Node %s %d (Phase = %d)\n", Abc_ObjName(pNode), i, pFanin->fPhase );
+                fprintf( Abc_FrameGlobalGetOut(), "Flipping edge on Node %s %d (Phase = %d)\n", Abc_ObjName(pNode), i, pFanin->fPhase );
                 pNode->fCompl0 ^= 1;
             }
             else if(i == 1)
             {
-                printf("Flipping edge on Node %s %d (Phase = %d)\n", Abc_ObjName(pNode),i , pFanin->fPhase);
+                fprintf( Abc_FrameGlobalGetOut(), "Flipping edge on Node %s %d (Phase = %d)\n", Abc_ObjName(pNode),i , pFanin->fPhase);
                 pNode->fCompl1 ^= 1;
             }
             *countFlip = *countFlip + 1;
@@ -1213,7 +1213,7 @@ int Abc_NtkSuppSizeTest( Abc_Ntk_t * p )
     Abc_NtkForEachObj( p, pObj, i )
         if ( Abc_ObjIsNode(pObj) )
             Counter += (Abc_ObjSuppSize(pObj) <= 16);
-    printf( "Nodes with small support %d (out of %d)\n", Counter, Abc_NtkNodeNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes with small support %d (out of %d)\n", Counter, Abc_NtkNodeNum(p) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return Counter;
 }
@@ -1240,7 +1240,7 @@ void Abc_NtkSupportSum( Abc_Ntk_t * pNtk )
         nTotalSupps += Vec_PtrSize( vSupp );
         Vec_PtrFree( vSupp );
     }
-    printf( "Total supports = %d.\n", nTotalSupps );
+    fprintf( Abc_FrameGlobalGetOut(), "Total supports = %d.\n", nTotalSupps );
 }
 
 
@@ -1645,8 +1645,8 @@ int Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
     // check if the node is part of the combinational loop
     if ( Abc_NodeIsTravIdCurrent(pNode) )
     {
-        fprintf( stdout, "Network \"%s\" contains combinational loop!\n", Abc_NtkName(pNtk) );
-        fprintf( stdout, "Node \"%s\" is encountered twice on the following path to the COs:\n", Abc_ObjName(pNode) );
+        fprintf( Abc_FrameGlobalGetOut(), "Network \"%s\" contains combinational loop!\n", Abc_NtkName(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(), "Node \"%s\" is encountered twice on the following path to the COs:\n", Abc_ObjName(pNode) );
         return 0;
     }
     // mark this node as a node on the current path
@@ -1664,7 +1664,7 @@ int Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
         if ( (fAcyclic = Abc_NtkIsAcyclic_rec(pFanin)) )
             continue;
         // return as soon as the loop is detected
-        fprintf( stdout, " %s ->", Abc_ObjName(pFanin) );
+        fprintf( Abc_FrameGlobalGetOut(), " %s ->", Abc_ObjName(pFanin) );
         return 0;
     }
     // visit choices
@@ -1679,8 +1679,8 @@ int Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
             if ( (fAcyclic = Abc_NtkIsAcyclic_rec(pFanin)) )
                 continue;
             // return as soon as the loop is detected
-            fprintf( stdout, " %s", Abc_ObjName(pFanin) );
-            fprintf( stdout, " (choice of %s) -> ", Abc_ObjName(pNode) );
+            fprintf( Abc_FrameGlobalGetOut(), " %s", Abc_ObjName(pFanin) );
+            fprintf( Abc_FrameGlobalGetOut(), " (choice of %s) -> ", Abc_ObjName(pNode) );
             return 0;
         }
     }
@@ -1729,7 +1729,7 @@ int Abc_NtkIsAcyclic( Abc_Ntk_t * pNtk )
         if ( (fAcyclic = Abc_NtkIsAcyclic_rec(pNode)) )
             continue;
         // stop as soon as the first loop is detected
-        fprintf( stdout, " CO \"%s\"\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+        fprintf( Abc_FrameGlobalGetOut(), " CO \"%s\"\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
         break;
     }
     return fAcyclic;
@@ -1760,11 +1760,11 @@ int Abc_NtkIsAcyclicWithBoxes_rec( Abc_Obj_t * pNode )
     // check if the node is part of the combinational loop
     if ( Abc_NodeIsTravIdCurrent(pNode) )
     {
-        fprintf( stdout, "Network \"%s\" contains combinational loop!\n", Abc_NtkName(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(), "Network \"%s\" contains combinational loop!\n", Abc_NtkName(pNtk) );
         if ( Abc_ObjIsBox(pNode) )
-            fprintf( stdout, "Box \"%s\" is encountered twice on the following path to the COs:\n", Abc_ObjName(pNode) );
+            fprintf( Abc_FrameGlobalGetOut(), "Box \"%s\" is encountered twice on the following path to the COs:\n", Abc_ObjName(pNode) );
         else
-            fprintf( stdout, "Node \"%s\" is encountered twice on the following path to the COs:\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+            fprintf( Abc_FrameGlobalGetOut(), "Node \"%s\" is encountered twice on the following path to the COs:\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
         return 0;
     }
     // mark this node as a node on the current path
@@ -1787,7 +1787,7 @@ int Abc_NtkIsAcyclicWithBoxes_rec( Abc_Obj_t * pNode )
         if ( (fAcyclic = Abc_NtkIsAcyclicWithBoxes_rec(pFanin)) )
             continue;
         // return as soon as the loop is detected
-        fprintf( stdout, " %s ->", Abc_ObjName( Abc_ObjIsBox(pFanin) ? pFanin : Abc_ObjFanout0(pFanin) ) );
+        fprintf( Abc_FrameGlobalGetOut(), " %s ->", Abc_ObjName( Abc_ObjIsBox(pFanin) ? pFanin : Abc_ObjFanout0(pFanin) ) );
         return 0;
     }
     // mark this node as a visited node
@@ -1819,7 +1819,7 @@ int Abc_NtkIsAcyclicWithBoxes( Abc_Ntk_t * pNtk )
         if ( (fAcyclic = Abc_NtkIsAcyclicWithBoxes_rec(pNode)) )
             continue;
         // stop as soon as the first loop is detected
-        fprintf( stdout, " PO \"%s\"\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+        fprintf( Abc_FrameGlobalGetOut(), " PO \"%s\"\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
         break;
     }
     if ( fAcyclic )
@@ -1835,7 +1835,7 @@ int Abc_NtkIsAcyclicWithBoxes( Abc_Ntk_t * pNtk )
             if ( (fAcyclic = Abc_NtkIsAcyclicWithBoxes_rec(pNode)) )
                 continue;
             // stop as soon as the first loop is detected
-            fprintf( stdout, " PO \"%s\"\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+            fprintf( Abc_FrameGlobalGetOut(), " PO \"%s\"\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
             break;
         }
     }
@@ -1999,9 +1999,9 @@ int Abc_NtkPrintSubraphSizes( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsStrash(pNtk) );
     Abc_NtkForEachNode( pNtk, pObj, i )
         if ( Abc_ObjFanoutNum(pObj) > 1 && !Abc_NodeIsExorType(pObj) )
-            printf( "%d(%d) ", 1 + Abc_ObjSugraphSize(Abc_ObjFanin0(pObj)) + 
+            fprintf( Abc_FrameGlobalGetOut(), "%d(%d) ", 1 + Abc_ObjSugraphSize(Abc_ObjFanin0(pObj)) + 
                 Abc_ObjSugraphSize(Abc_ObjFanin1(pObj)), Abc_ObjFanoutNum(pObj) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     return 1;
 }
 

@@ -125,9 +125,9 @@ static inline void xSAT_WatchListPush( xSAT_WatchList_t * v, xSAT_Watcher_t e )
         v->pArray = ABC_REALLOC( xSAT_Watcher_t, v->pArray, newsize );
         if ( v->pArray == NULL )
         {
-            printf( "Failed to realloc memory from %.1f MB to %.1f MB.\n",
-                1.0 * v->nCap / (1<<20), 1.0 * newsize / (1<<20) );
-            fflush( stdout );
+            fprintf( Abc_FrameGlobalGetOut(),  "Failed to realloc memory from %.1f MB to %.1f MB.\n",
+                1.0 * v->nCap / (1<<20), 1.0 * newsize / (1<<20)  );
+            fflush( Abc_FrameGlobalGetOut() );
         }
         v->nCap = newsize;
     }
@@ -236,9 +236,9 @@ static inline void xSAT_VecWatchListPush( xSAT_VecWatchList_t* v )
         memset( v->pArray + v->nCap, 0, sizeof( xSAT_WatchList_t ) * ( newsize - v->nCap ) );
         if ( v->pArray == NULL )
         {
-            printf( "Failed to realloc memory from %.1f MB to %.1f MB.\n",
-                1.0 * v->nCap / (1<<20), 1.0 * newsize / (1<<20) );
-            fflush( stdout );
+            fprintf( Abc_FrameGlobalGetOut(),  "Failed to realloc memory from %.1f MB to %.1f MB.\n",
+                1.0 * v->nCap / (1<<20), 1.0 * newsize / (1<<20)  );
+            fflush( Abc_FrameGlobalGetOut() );
         }
         v->nCap = newsize;
     }

@@ -190,30 +190,30 @@ static inline void Xdbl_Test()
 //    Extra_PrintBinary( stdout, (int *)&c1, 32 ); printf( "\n" );
 //    Extra_PrintBinary( stdout, (int *)&f1, 32 ); printf( "\n" );
 
-    printf( "1 = %lf\n",   Xdbl_ToDouble(c1) );
-    printf( "2 = %lf\n",   Xdbl_ToDouble(c2) );
-    printf( "3 = %lf\n",   Xdbl_ToDouble(c3) );
-    printf( "12 = %lf\n",  Xdbl_ToDouble(c12) );
-    printf( "1.5 = %lf\n", Xdbl_ToDouble(c1p5) );
-    printf( "2.5 = %lf\n", Xdbl_ToDouble(c2p5) );
+    fprintf( Abc_FrameGlobalGetOut(),  "1 = %lf\n",   Xdbl_ToDouble(c1)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "2 = %lf\n",   Xdbl_ToDouble(c2)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "3 = %lf\n",   Xdbl_ToDouble(c3)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "12 = %lf\n",  Xdbl_ToDouble(c12)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "1.5 = %lf\n", Xdbl_ToDouble(c1p5)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "2.5 = %lf\n", Xdbl_ToDouble(c2p5)  );
 
-    printf( "Converted 1 = %lf\n",   Xdbl_ToDouble(c1_) );
-    printf( "Converted 2 = %lf\n",   Xdbl_ToDouble(c2_) );
-    printf( "Converted 3 = %lf\n",   Xdbl_ToDouble(c3_) );
-    printf( "Converted 12 = %lf\n",  Xdbl_ToDouble(c12_) );
-    printf( "Converted 1.5 = %lf\n", Xdbl_ToDouble(c1p5_) );
-    printf( "Converted 2.5 = %lf\n", Xdbl_ToDouble(c2p5_) );
+    fprintf( Abc_FrameGlobalGetOut(),  "Converted 1 = %lf\n",   Xdbl_ToDouble(c1_)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "Converted 2 = %lf\n",   Xdbl_ToDouble(c2_)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "Converted 3 = %lf\n",   Xdbl_ToDouble(c3_)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "Converted 12 = %lf\n",  Xdbl_ToDouble(c12_)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "Converted 1.5 = %lf\n", Xdbl_ToDouble(c1p5_)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "Converted 2.5 = %lf\n", Xdbl_ToDouble(c2p5_)  );
 
-    printf( "1.0 + 1.5 = %lf\n", Xdbl_ToDouble(sum1) );
-    printf( "2.0 * 1.5 = %lf\n", Xdbl_ToDouble(mul1) );
+    fprintf( Abc_FrameGlobalGetOut(),  "1.0 + 1.5 = %lf\n", Xdbl_ToDouble(sum1)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "2.0 * 1.5 = %lf\n", Xdbl_ToDouble(mul1)  );
 
-    printf( "1.5 + 2.5 = %lf\n", Xdbl_ToDouble(sum2) );
-    printf( "1.5 * 2.5 = %lf\n", Xdbl_ToDouble(mul2) );
-    printf( "12 / 2^2  = %lf\n", Xdbl_ToDouble(Xdbl_Div(c12, 2)) );
+    fprintf( Abc_FrameGlobalGetOut(),  "1.5 + 2.5 = %lf\n", Xdbl_ToDouble(sum2)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "1.5 * 2.5 = %lf\n", Xdbl_ToDouble(mul2)  );
+    fprintf( Abc_FrameGlobalGetOut(),  "12 / 2^2  = %lf\n", Xdbl_ToDouble(Xdbl_Div(c12, 2))  );
 
-    printf( "12 / 2^2  = %lf\n", Xdbl_ToDouble(Xdbl_Div(c12, 2)) );
+    fprintf( Abc_FrameGlobalGetOut(),  "12 / 2^2  = %lf\n", Xdbl_ToDouble(Xdbl_Div(c12, 2))  );
 
-    printf( "%.16lf * %.16lf = %.16lf (%.16lf)\n", Xdbl_ToDouble(a), Xdbl_ToDouble(b), Xdbl_ToDouble(ab), 1.2929725 * 10.28828287 );
+    fprintf( Abc_FrameGlobalGetOut(),  "%.16lf * %.16lf = %.16lf (%.16lf)\n", Xdbl_ToDouble(a), Xdbl_ToDouble(b), Xdbl_ToDouble(ab), 1.2929725 * 10.28828287  );
 
     assert( sum1 == c2p5 );
     assert( mul1 == c3 );

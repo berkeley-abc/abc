@@ -537,23 +537,23 @@ void printAllIntVectorsStabil(Vec_Ptr_t *vDisjunctions, Abc_Ntk_t *pNtk, char *f
 
     Vec_PtrForEachEntry(Vec_Int_t *, vDisjunctions, vElem, i)
     {    
-        printf("INT[%d] : ( ", i);
+        fprintf( Abc_FrameGlobalGetOut(), "INT[%d] : ( ", i);
         fprintf(fp, "( ");
         Vec_IntForEachEntry( vElem, iElem, j )
         {
             name = Abc_ObjName( Abc_NtkPo(pNtk, iElem));
             hintSubStr = strstr( name, "csLevel1Stabil");
             assert( hintSubStr );
-            printf("%s", hintSubStr);
+            fprintf( Abc_FrameGlobalGetOut(), "%s", hintSubStr);
             fprintf(fp, "%s", hintSubStr);
             if( j < Vec_IntSize(vElem) - 1 )
             {
-                printf(" || ");
+                fprintf( Abc_FrameGlobalGetOut(), " || ");
                 fprintf(fp, " || ");
             }
             else
             {
-                printf(" )\n");
+                fprintf( Abc_FrameGlobalGetOut(), " )\n");
                 fprintf(fp, " )\n");
             }
         }
@@ -629,7 +629,7 @@ Vec_Ptr_t *findDisjunctiveMonotoneSignals( Abc_Ntk_t *pNtk )
     pendingSignalIndex = findPendingSignal(pNtk);
     if( pendingSignalIndex == -1 )
     {
-        printf("\nNo Pending Signal Found\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\nNo Pending Signal Found\n");
         return NULL;
     }
     //else

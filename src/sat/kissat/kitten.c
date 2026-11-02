@@ -51,12 +51,12 @@ static const char * usage =
 typedef signed char value;
 
 static void die (const char *fmt, ...) {
-  fputs ("kitten: error: ", stderr);
+  fputs ("kitten: error: ", Abc_FrameGlobalGetErr());
   va_list ap;
   va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
+  vfprintf( Abc_FrameGlobalGetErr(),  fmt, ap);
   va_end (ap);
-  fputc ('\n', stderr);
+  fputc( '\n', Abc_FrameGlobalGetErr() );
   exit (1);
 }
 
@@ -358,51 +358,51 @@ static inline unsigned reference_klause (kitten *kitten, const klause *c) {
 #endif
 
 static void log_basic (kitten *, const char *, ...)
-    __attribute__ ((format (printf, 2, 3)));
+    __attribute__ ((format (fprintf, Abc_FrameGlobalGetOut(),  2, 3)));
 
 static void log_basic (kitten *kitten, const char *fmt, ...) {
   KISSAT_assert (logging);
-  printf ("c KITTEN %u ", kitten->level);
+  fprintf ( Abc_FrameGlobalGetOut(), "c KITTEN %u ", kitten->level);
   va_list ap;
   va_start (ap, fmt);
-  vprintf (fmt, ap);
+  vfprintf ( Abc_FrameGlobalGetOut(), fmt, ap);
   va_end (ap);
-  fputc ('\n', stdout);
-  fflush (stdout);
+  fputc( '\n', Abc_FrameGlobalGetOut() );
+  fflush( Abc_FrameGlobalGetOut() );
 }
 
 static void log_reference (kitten *, unsigned, const char *, ...)
-    __attribute__ ((format (printf, 3, 4)));
+    __attribute__ ((format (fprintf, Abc_FrameGlobalGetOut(),  3, 4)));
 
 static void log_reference (kitten *kitten, unsigned ref, const char *fmt,
                            ...) {
   klause *c = dereference_klause (kitten, ref);
   KISSAT_assert (logging);
-  printf ("c KITTEN %u ", kitten->level);
+  fprintf ( Abc_FrameGlobalGetOut(), "c KITTEN %u ", kitten->level);
   va_list ap;
   va_start (ap, fmt);
-  vprintf (fmt, ap);
+  vfprintf ( Abc_FrameGlobalGetOut(), fmt, ap);
   va_end (ap);
   if (is_learned_klause (c)) {
-    fputs (" learned", stdout);
+    fputs (" learned", Abc_FrameGlobalGetOut());
     if (c->aux)
-      printf ("[%u]", c->aux);
+      fprintf ( Abc_FrameGlobalGetOut(), "[%u]", c->aux);
   } else {
-    fputs (" original", stdout);
+    fputs (" original", Abc_FrameGlobalGetOut());
     if (c->aux != INVALID)
-      printf ("[%u]", c->aux);
+      fprintf ( Abc_FrameGlobalGetOut(), "[%u]", c->aux);
   }
-  printf (" size %u clause[%u]", c->size, ref);
+  fprintf ( Abc_FrameGlobalGetOut(), " size %u clause[%u]", c->size, ref);
   value *values = kitten->values;
   kar *vars = kitten->vars;
   for (all_literals_in_klause (lit, c)) {
-    printf (" %u", lit);
+    fprintf ( Abc_FrameGlobalGetOut(), " %u", lit);
     const value value = values[lit];
     if (value)
-      printf ("@%u=%d", vars[lit / 2].level, (int) value);
+      fprintf ( Abc_FrameGlobalGetOut(), "@%u=%d", vars[lit / 2].level, (int) value);
   }
-  fputc ('\n', stdout);
-  fflush (stdout);
+  fputc( '\n', Abc_FrameGlobalGetOut() );
+  fflush( Abc_FrameGlobalGetOut() );
 }
 
 #define LOG(...) \
@@ -613,13 +613,13 @@ static const char *status_to_string (int status) {
 }
 
 static void invalid_api_usage (const char *fun, const char *fmt, ...) {
-  fprintf (stderr, "kitten: fatal error: invalid API usage in '%s': ", fun);
+  fprintf( Abc_FrameGlobalGetErr(), "kitten: fatal error: invalid API usage in '%s': ", fun);
   va_list ap;
   va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
+  vfprintf( Abc_FrameGlobalGetErr(),  fmt, ap);
   va_end (ap);
-  fputc ('\n', stderr);
-  fflush (stderr);
+  fputc( '\n', Abc_FrameGlobalGetErr() );
+  fflush( Abc_FrameGlobalGetErr() );
   abort ();
 }
 
@@ -2261,13 +2261,13 @@ static double maximum_resident_set_size (void) {
 static void msg (const char *, ...) __attribute__ ((format (printf, 1, 2)));
 
 static void msg (const char *fmt, ...) {
-  fputs ("c ", stdout);
+  fputs ("c ", Abc_FrameGlobalGetOut());
   va_list ap;
   va_start (ap, fmt);
   vprintf (fmt, ap);
   va_end (ap);
-  fputc ('\n', stdout);
-  fflush (stdout);
+  fputc( '\n', Abc_FrameGlobalGetOut() );
+  fflush( Abc_FrameGlobalGetOut() );
 }
 
 #undef logging
@@ -2284,7 +2284,7 @@ struct parser {
 };
 
 static void parse_error (parser *parser, const char *msg) {
-  fprintf (stderr, "kitten: error: %s:%" PRIu64 ": parse error: %s\n",
+  fprintf( Abc_FrameGlobalGetErr(), "kitten: error: %s:%" PRIu64 ": parse error: %s\n",
            parser->path, parser->lineno, msg);
   exit (1);
 }
@@ -2474,8 +2474,8 @@ static void flush_line (line *line) {
   if (!line->size)
     return;
   for (size_t i = 0; i < line->size; i++)
-    fputc (line->buffer[i], stdout);
-  fputc ('\n', stdout);
+    fputc( line->buffer[i], Abc_FrameGlobalGetOut() );
+  fputc( '\n', Abc_FrameGlobalGetOut() );
   line->size = 0;
 }
 
@@ -2738,7 +2738,7 @@ int main (int argc, char **argv) {
   for (int i = 1; i < argc; i++) {
     const char *arg = argv[i];
     if (!strcmp (arg, "-h"))
-      fputs (usage, stdout), exit (0);
+      fputs (usage, Abc_FrameGlobalGetOut()), exit (0);
 #ifdef LOGGING
     else if (!strcmp (arg, "-l"))
       logging = true;
@@ -2820,12 +2820,12 @@ int main (int argc, char **argv) {
   int res = kitten_solve (kitten);
   if (res == 10) {
     printf ("s SATISFIABLE\n");
-    fflush (stdout);
+    fflush( Abc_FrameGlobalGetOut() );
     if (witness)
       print_witness (kitten, max_var);
   } else if (res == 20) {
     printf ("s UNSATISFIABLE\n");
-    fflush (stdout);
+    fflush( Abc_FrameGlobalGetOut() );
     if (output_path) {
       const unsigned original = kitten->statistics.original;
       const uint64_t learned = kitten->statistics.learned;
@@ -2879,8 +2879,8 @@ int main (int argc, char **argv) {
       fclose (output_file);
     }
   } else {
-    fputs ("s UNKNOWN\n", stdout);
-    fflush (stdout);
+    fputs ("s UNKNOWN\n", Abc_FrameGlobalGetOut());
+    fflush( Abc_FrameGlobalGetOut() );
   }
   RELEASE_STACK (originals);
   RELEASE_STACK (assumptions);

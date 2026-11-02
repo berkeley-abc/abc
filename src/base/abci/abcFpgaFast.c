@@ -72,7 +72,7 @@ Abc_Ntk_t * Abc_NtkFpgaFast( Abc_Ntk_t * pNtk, int nLutSize, int fRecovery, int 
     // make sure that the final network passes the test
     if ( pNtkNew != NULL && !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkFastMap: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFastMap: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }

@@ -71,7 +71,7 @@ Gia_Man_t * Int2_ManDupInit( Gia_Man_t * p, int fVerbose )
     // remove dangling
     pNew = Gia_ManCleanup( pTemp = pNew );
     if ( fVerbose )
-        printf( "Before cleanup = %d nodes. After cleanup = %d nodes.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Before cleanup = %d nodes. After cleanup = %d nodes.\n", 
             Gia_ManAndNum(pTemp), Gia_ManAndNum(pNew) );
     Gia_ManStop( pTemp );
     return pNew;
@@ -162,7 +162,7 @@ Gia_Man_t * Int2_ManFrameInit( Gia_Man_t * p, int nFrames, int fVerbose )
     // remove dangling
     pFrames = Gia_ManCleanup( pTemp = pFrames );
     if ( fVerbose )
-        printf( "Before cleanup = %d nodes. After cleanup = %d nodes.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Before cleanup = %d nodes. After cleanup = %d nodes.\n", 
             Gia_ManAndNum(pTemp), Gia_ManAndNum(pFrames) );
     Gia_ManStop( pTemp );
     return pFrames;

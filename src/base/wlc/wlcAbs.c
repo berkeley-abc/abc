@@ -803,7 +803,7 @@ static int Wlc_NtkUpdateBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Int_t ** p
     *pvBlacks = vBlacks;
 
     if ( pPars->fVerbose )
-        printf( "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away.\n", Count[0], Count[1], Count[2], Vec_IntSize( vBlacks ) - Count[0] - Count[1] - Count[2] );
+        fprintf( Abc_FrameGlobalGetOut(), "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away.\n", Count[0], Count[1], Count[2], Vec_IntSize( vBlacks ) - Count[0] - Count[1] - Count[2] );
 
     return 0;
 }
@@ -987,7 +987,7 @@ static Vec_Int_t * Wlc_NtkGetBlacks( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     if ( vMarks )
         Vec_BitFree( vMarks );
     if ( pPars->fVerbose )
-        printf( "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away (out of %d signals).\n", Count[0], Count[1], Count[2], Count[3], nTotal );
+        fprintf( Abc_FrameGlobalGetOut(), "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away (out of %d signals).\n", Count[0], Count[1], Count[2], Count[3], nTotal );
     return vBlacks;
 }
 
@@ -1039,7 +1039,7 @@ static Vec_Bit_t * Wlc_NtkAbsMarkOpers( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Vec_Bi
         }
     }
     if ( fVerbose )
-        printf( "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away.\n", Count[0], Count[1], Count[2], Count[3] );
+        fprintf( Abc_FrameGlobalGetOut(), "Abstraction engine marked %d adds/subs, %d muls/divs, %d muxes, and %d flops to be abstracted away.\n", Count[0], Count[1], Count[2], Count[3] );
     return vLeaves;
 }
 
@@ -1421,7 +1421,7 @@ Aig_Man_t * Wla_ManBitBlast( Wla_Man_t * pWla, Wlc_Ntk_t * pAbs )
     }
     if ( pWla->pPars->fVerbose )
     {
-        printf( "Derived abstraction with %d objects and %d PPIs. Bit-blasted AIG stats are:\n", Wlc_NtkObjNum(pAbs), Vec_IntSize(pWla->vBlacks) ); 
+        fprintf( Abc_FrameGlobalGetOut(), "Derived abstraction with %d objects and %d PPIs. Bit-blasted AIG stats are:\n", Wlc_NtkObjNum(pAbs), Vec_IntSize(pWla->vBlacks) ); 
         Gia_ManPrintStats( pWla->pGia, NULL );
     }
 
@@ -1614,13 +1614,13 @@ void Wla_ManRefine( Wla_Man_t * pWla )
     {
         nNodes = Wlc_NtkRemoveFromAbstraction( pWla->p, vRefine, pWla->vUnmark );
         if ( pWla->pPars->fVerbose )
-            printf( "Refinement of CEX in frame %d came up with %d un-abstacted PPIs, whose MFFCs include %d objects.\n", pWla->pCex->iFrame, Vec_IntSize(vRefine), nNodes );
+            fprintf( Abc_FrameGlobalGetOut(), "Refinement of CEX in frame %d came up with %d un-abstacted PPIs, whose MFFCs include %d objects.\n", pWla->pCex->iFrame, Vec_IntSize(vRefine), nNodes );
     }
     else
     {
         nNodes = Wlc_NtkUnmarkRefinement( pWla->p, vRefine, pWla->vUnmark );
         if ( pWla->pPars->fVerbose )
-            printf( "Refinement of CEX in frame %d came up with %d un-abstacted PPIs.\n", pWla->pCex->iFrame, Vec_IntSize(vRefine) );
+            fprintf( Abc_FrameGlobalGetOut(), "Refinement of CEX in frame %d came up with %d un-abstacted PPIs.\n", pWla->pCex->iFrame, Vec_IntSize(vRefine) );
 
     }
     /*
@@ -1708,7 +1708,7 @@ int Wla_ManSolve( Wla_Man_t * pWla, Wlc_Par_t * pPars )
     for ( pWla->nIters = 1; pWla->nIters < pPars->nIterMax; ++pWla->nIters )
     {
         if ( pPars->fVerbose )
-            printf( "\nIteration %d:\n", pWla->nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "\nIteration %d:\n", pWla->nIters );
 
         pAbs = Wla_ManCreateAbs( pWla );
 
@@ -1726,15 +1726,15 @@ int Wla_ManSolve( Wla_Man_t * pWla, Wlc_Par_t * pPars )
 
     // report the result
     if ( pPars->fVerbose )
-        printf( "\n" );
-    printf( "Abstraction " );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Abstraction " );
     if ( RetValue == 0 )
-        printf( "resulted in a real CEX" );
+        fprintf( Abc_FrameGlobalGetOut(), "resulted in a real CEX" );
     else if ( RetValue == 1 )
-        printf( "is successfully proved" );
+        fprintf( Abc_FrameGlobalGetOut(), "is successfully proved" );
     else 
-        printf( "timed out" );
-    printf( " after %d iterations. ", pWla->nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "timed out" );
+    fprintf( Abc_FrameGlobalGetOut(), " after %d iterations. ", pWla->nIters );
     tTotal = Abc_Clock() - clk;
     Abc_PrintTime( 1, "Time", tTotal );
 
@@ -1810,7 +1810,7 @@ int Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         Wlc_Ntk_t * pAbs;
 
         if ( pPars->fVerbose )
-            printf( "\nIteration %d:\n", nIters );
+            fprintf( Abc_FrameGlobalGetOut(), "\nIteration %d:\n", nIters );
 
         // get abstracted GIA and the set of pseudo-PIs (vPisNew)
         if ( pPars->fAbs2 )
@@ -1849,7 +1849,7 @@ int Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         }
         if ( pPars->fVerbose )
         {
-            printf( "Derived abstraction with %d objects and %d PPIs. Bit-blasted AIG stats are:\n", Wlc_NtkObjNum(pAbs), Vec_IntSize(vPisNew) ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Derived abstraction with %d objects and %d PPIs. Bit-blasted AIG stats are:\n", Wlc_NtkObjNum(pAbs), Vec_IntSize(vPisNew) ); 
             Gia_ManPrintStats( pGia, NULL );
         }
         Wlc_NtkFree( pAbs );
@@ -1882,7 +1882,7 @@ int Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         // update the set of objects to be un-abstracted
         nNodes = Wlc_NtkRemoveFromAbstraction( p, vRefine, vUnmark );
         if ( pPars->fVerbose )
-            printf( "Refinement of CEX in frame %d came up with %d un-abstacted PPIs, whose MFFCs include %d objects.\n", pCex->iFrame, Vec_IntSize(vRefine), nNodes );
+            fprintf( Abc_FrameGlobalGetOut(), "Refinement of CEX in frame %d came up with %d un-abstacted PPIs, whose MFFCs include %d objects.\n", pCex->iFrame, Vec_IntSize(vRefine), nNodes );
         Vec_IntFree( vRefine );
         Abc_CexFree( pCex );
     }
@@ -1890,15 +1890,15 @@ int Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     Vec_BitFreeP( &vUnmark );
     // report the result
     if ( pPars->fVerbose )
-        printf( "\n" );
-    printf( "Abstraction " );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Abstraction " );
     if ( RetValue == 0 )
-        printf( "resulted in a real CEX" );
+        fprintf( Abc_FrameGlobalGetOut(), "resulted in a real CEX" );
     else if ( RetValue == 1 )
-        printf( "is successfully proved" );
+        fprintf( Abc_FrameGlobalGetOut(), "is successfully proved" );
     else 
-        printf( "timed out" );
-    printf( " after %d iterations. ", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "timed out" );
+    fprintf( Abc_FrameGlobalGetOut(), " after %d iterations. ", nIters );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return RetValue;
 }

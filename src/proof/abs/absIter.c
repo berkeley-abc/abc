@@ -100,26 +100,26 @@ Gia_Man_t * Gia_ManShrinkGla( Gia_Man_t * p, int nFrameMax, int nTimeOut, int fU
                     continue;
             }        
             clk = Abc_Clock();
-            printf( "%5d : ", nTotal );
-            printf( "Obj =%7d   ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d : ", nTotal );
+            fprintf( Abc_FrameGlobalGetOut(), "Obj =%7d   ", i );
             Gia_ObjRemFromGla( p, pObj );
             iFrame = Gia_IterTryImprove( p, nTimeOut, iFrame0 );
             if ( nFrameMax )
                 assert( iFrame <= nFrameMax );
             else
                 assert( iFrame <= iFrame0 );
-            printf( "Frame =%6d   ", iFrame );
+            fprintf( Abc_FrameGlobalGetOut(), "Frame =%6d   ", iFrame );
             if ( iFrame < iFrame0 )
             {
                 pObj->fMark0 = 1;
                 Gia_ObjAddToGla( p, pObj );
-                printf( "           " );
+                fprintf( Abc_FrameGlobalGetOut(), "           " );
             }
             else
             {
                 fChanges = 1;
                 nRemoved++;
-                printf( "Removing   " );
+                fprintf( Abc_FrameGlobalGetOut(), "Removing   " );
                 Vec_IntWriteEntry( vGScopy, Gia_ObjId(p, pObj), 0 );
             }
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -133,8 +133,8 @@ Gia_Man_t * Gia_ManShrinkGla( Gia_Man_t * p, int nFrameMax, int nTimeOut, int fU
     }
     Gia_ManCleanMark0(p);
     Vec_IntFree( vGScopy );
-    printf( "Tried = %d.  ",     nTotal );
-    printf( "Removed = %d. (%.2f %%)  ",  nRemoved, 100.0 * nRemoved / Vec_IntCountPositive(p->vGateClasses) );
+    fprintf( Abc_FrameGlobalGetOut(), "Tried = %d.  ",     nTotal );
+    fprintf( Abc_FrameGlobalGetOut(), "Removed = %d. (%.2f %%)  ",  nRemoved, 100.0 * nRemoved / Vec_IntCountPositive(p->vGateClasses) );
     Abc_PrintTime( 1, "Time",  Abc_Clock() - clkTotal );
     return NULL;
 }

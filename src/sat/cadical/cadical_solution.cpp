@@ -20,10 +20,10 @@ void External::check_solution_on_learned_clause () {
     if (sol (internal->externalize (lit)) == lit)
       return;
   fatal_message_start ();
-  fputs ("learned clause unsatisfied by solution:\n", stderr);
+  fputs ("learned clause unsatisfied by solution:\n", Abc_FrameGlobalGetErr());
   for (const auto &lit : internal->clause)
-    fprintf (stderr, "%d ", lit);
-  fputc ('0', stderr);
+    fprintf( Abc_FrameGlobalGetErr(),  "%d ", lit);
+  fputc( '0', Abc_FrameGlobalGetErr() );
   fatal_message_end ();
 }
 
@@ -34,8 +34,8 @@ void External::check_solution_on_shrunken_clause (Clause *c) {
       return;
   fatal_message_start ();
   for (const auto &lit : *c)
-    fprintf (stderr, "%d ", lit);
-  fputc ('0', stderr);
+    fprintf( Abc_FrameGlobalGetErr(),  "%d ", lit);
+  fputc( '0', Abc_FrameGlobalGetErr() );
   fatal_message_end ();
 }
 

@@ -247,7 +247,7 @@ main(int argc, char **argv)
     usage(argv[0]);
     }
     if ((approach<0) || (approach>17)) {
-    (void) fprintf(stderr,"Invalid approach: %d \n",approach);
+    (void) fprintf( Abc_FrameGlobalGetErr(), "Invalid approach: %d \n",approach);
     usage(argv[0]);
     }
 
@@ -259,7 +259,7 @@ main(int argc, char **argv)
         (void) printf(" %s", argv[i]);
     }
     (void) printf("\n");
-    (void) fflush(stdout);
+    (void) fflush( Abc_FrameGlobalGetOut() );
     }
 
     /* Initialize manager and provide easy reference to terminals. */
@@ -293,7 +293,7 @@ main(int argc, char **argv)
         (void) printf(":name: %s: %d rows %d columns\n", file, m, n);
     }
     if (!ok) {
-        (void) fprintf(stderr, "Error reading matrix\n");
+        (void) fprintf( Abc_FrameGlobalGetErr(), "Error reading matrix\n");
         exit(1);
     }
 
@@ -483,43 +483,43 @@ main(int argc, char **argv)
 #ifndef DD_STATS
         retval = Cudd_EnableReorderingReporting(dd);
         if (retval == 0) {
-        (void) fprintf(stderr,"Error reported by Cudd_EnableReorderingReporting\n");
+        (void) fprintf( Abc_FrameGlobalGetErr(), "Error reported by Cudd_EnableReorderingReporting\n");
         exit(3);
         }
 #endif
 #ifdef DD_DEBUG
         retval = Cudd_DebugCheck(dd);
         if (retval != 0) {
-        (void) fprintf(stderr,"Error reported by Cudd_DebugCheck\n");
+        (void) fprintf( Abc_FrameGlobalGetErr(), "Error reported by Cudd_DebugCheck\n");
         exit(3);
         }
         retval = Cudd_CheckKeys(dd);
         if (retval != 0) {
-        (void) fprintf(stderr,"Error reported by Cudd_CheckKeys\n");
+        (void) fprintf( Abc_FrameGlobalGetErr(), "Error reported by Cudd_CheckKeys\n");
         exit(3);
         }
 #endif
         retval = Cudd_ReduceHeap(dd,(Cudd_ReorderingType)approach,5);
         if (retval == 0) {
-        (void) fprintf(stderr,"Error reported by Cudd_ReduceHeap\n");
+        (void) fprintf( Abc_FrameGlobalGetErr(), "Error reported by Cudd_ReduceHeap\n");
         exit(3);
         }
 #ifndef DD_STATS
         retval = Cudd_DisableReorderingReporting(dd);
         if (retval == 0) {
-        (void) fprintf(stderr,"Error reported by Cudd_DisableReorderingReporting\n");
+        (void) fprintf( Abc_FrameGlobalGetErr(), "Error reported by Cudd_DisableReorderingReporting\n");
         exit(3);
         }
 #endif
 #ifdef DD_DEBUG
         retval = Cudd_DebugCheck(dd);
         if (retval != 0) {
-        (void) fprintf(stderr,"Error reported by Cudd_DebugCheck\n");
+        (void) fprintf( Abc_FrameGlobalGetErr(), "Error reported by Cudd_DebugCheck\n");
         exit(3);
         }
         retval = Cudd_CheckKeys(dd);
         if (retval != 0) {
-        (void) fprintf(stderr,"Error reported by Cudd_CheckKeys\n");
+        (void) fprintf( Abc_FrameGlobalGetErr(), "Error reported by Cudd_CheckKeys\n");
         exit(3);
         }
 #endif
@@ -568,7 +568,7 @@ main(int argc, char **argv)
         retval = Cudd_DumpDot(dd,2,dfunc,NULL,(char **)onames,dfp);
         }
         if (retval != 1) {
-        (void) fprintf(stderr,"abnormal termination\n");
+        (void) fprintf( Abc_FrameGlobalGetErr(), "abnormal termination\n");
         exit(2);
         }
     }
@@ -610,8 +610,7 @@ main(int argc, char **argv)
     retval = Cudd_CheckZeroRef(dd);
     ok = retval != 0;  /* ok == 0 means O.K. */
     if (retval != 0) {
-    (void) fprintf(stderr,
-        "%d non-zero DD reference counts after dereferencing\n", retval);
+    (void) fprintf( Abc_FrameGlobalGetErr(), "%d non-zero DD reference counts after dereferencing\n", retval);
     }
 
     if (pr >= 0) {
@@ -653,40 +652,40 @@ main(int argc, char **argv)
 static void
 usage(char *prog)
 {
-    (void) fprintf(stderr, "usage: %s [options] [file]\n", prog);
-    (void) fprintf(stderr, "   -C\t\tuse CMU multiplication algorithm\n");
-    (void) fprintf(stderr, "   -D\t\tenable automatic dynamic reordering\n");
-    (void) fprintf(stderr, "   -H\t\tread matrix in Harwell format\n");
-    (void) fprintf(stderr, "   -M\t\tturns off memory allocation recording\n");
-    (void) fprintf(stderr, "   -P\t\tprint BDD heap profile\n");
-    (void) fprintf(stderr, "   -S n\t\tnumber of slots for each subtable\n");
-    (void) fprintf(stderr, "   -X n\t\ttarget maximum memory in bytes\n");
-    (void) fprintf(stderr, "   -a n\t\tchoose reordering approach (0-13)\n");
-    (void) fprintf(stderr, "   \t\t\t0: same as autoMethod\n");
-    (void) fprintf(stderr, "   \t\t\t1: no reordering (default)\n");
-    (void) fprintf(stderr, "   \t\t\t2: random\n");
-    (void) fprintf(stderr, "   \t\t\t3: pivot\n");
-    (void) fprintf(stderr, "   \t\t\t4: sifting\n");
-    (void) fprintf(stderr, "   \t\t\t5: sifting to convergence\n");
-    (void) fprintf(stderr, "   \t\t\t6: symmetric sifting\n");
-    (void) fprintf(stderr, "   \t\t\t7: symmetric sifting to convergence\n");
-    (void) fprintf(stderr, "   \t\t\t8-10: window of size 2-4\n");
-    (void) fprintf(stderr, "   \t\t\t11-13: window of size 2-4 to conv.\n");
-    (void) fprintf(stderr, "   \t\t\t14: group sifting\n");
-    (void) fprintf(stderr, "   \t\t\t15: group sifting to convergence\n");
-    (void) fprintf(stderr, "   \t\t\t16: simulated annealing\n");
-    (void) fprintf(stderr, "   \t\t\t17: genetic algorithm\n");
-    (void) fprintf(stderr, "   -b\t\tuse blif as format for dumps\n");
-    (void) fprintf(stderr, "   -c\t\tclear the cache after each matrix\n");
-    (void) fprintf(stderr, "   -d file\tdump DDs to file\n");
-    (void) fprintf(stderr, "   -g\t\tselect aggregation criterion (0,5,7)\n");
-    (void) fprintf(stderr, "   -h\t\tprints this message\n");
-    (void) fprintf(stderr, "   -k\t\tprint the variable permutation\n");
-    (void) fprintf(stderr, "   -m\t\tread multiple matrices (only with -H)\n");
-    (void) fprintf(stderr, "   -n n\t\tnumber of variables\n");
-    (void) fprintf(stderr, "   -p n\t\tcontrol verbosity\n");
-    (void) fprintf(stderr, "   -v n\t\tinitial variables in the unique table\n");
-    (void) fprintf(stderr, "   -x n\t\tinitial size of the cache\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "usage: %s [options] [file]\n", prog);
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -C\t\tuse CMU multiplication algorithm\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -D\t\tenable automatic dynamic reordering\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -H\t\tread matrix in Harwell format\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -M\t\tturns off memory allocation recording\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -P\t\tprint BDD heap profile\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -S n\t\tnumber of slots for each subtable\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -X n\t\ttarget maximum memory in bytes\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -a n\t\tchoose reordering approach (0-13)\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   \t\t\t0: same as autoMethod\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   \t\t\t1: no reordering (default)\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   \t\t\t2: random\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   \t\t\t3: pivot\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   \t\t\t4: sifting\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   \t\t\t5: sifting to convergence\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   \t\t\t6: symmetric sifting\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   \t\t\t7: symmetric sifting to convergence\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   \t\t\t8-10: window of size 2-4\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   \t\t\t11-13: window of size 2-4 to conv.\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   \t\t\t14: group sifting\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   \t\t\t15: group sifting to convergence\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   \t\t\t16: simulated annealing\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   \t\t\t17: genetic algorithm\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -b\t\tuse blif as format for dumps\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -c\t\tclear the cache after each matrix\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -d file\tdump DDs to file\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -g\t\tselect aggregation criterion (0,5,7)\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -h\t\tprints this message\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -k\t\tprint the variable permutation\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -m\t\tread multiple matrices (only with -H)\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -n n\t\tnumber of variables\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -p n\t\tcontrol verbosity\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -v n\t\tinitial variables in the unique table\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "   -x n\t\tinitial size of the cache\n");
     exit(2);
 } /* end of usage */
 
@@ -769,19 +768,19 @@ testWalsh(
 #ifdef DD_DEBUG
         retval = Cudd_DebugCheck(dd);
         if (retval != 0) {
-        (void) fprintf(stderr,"Error reported by Cudd_DebugCheck\n");
+        (void) fprintf( Abc_FrameGlobalGetErr(), "Error reported by Cudd_DebugCheck\n");
         return(0);
         }
 #endif
         retval = Cudd_ReduceHeap(dd,(Cudd_ReorderingType)approach,5);
         if (retval == 0) {
-        (void) fprintf(stderr,"Error reported by Cudd_ReduceHeap\n");
+        (void) fprintf( Abc_FrameGlobalGetErr(), "Error reported by Cudd_ReduceHeap\n");
         return(0);
         }
 #ifdef DD_DEBUG
         retval = Cudd_DebugCheck(dd);
         if (retval != 0) {
-        (void) fprintf(stderr,"Error reported by Cudd_DebugCheck\n");
+        (void) fprintf( Abc_FrameGlobalGetErr(), "Error reported by Cudd_DebugCheck\n");
         return(0);
         }
 #endif

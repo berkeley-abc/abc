@@ -1715,7 +1715,7 @@ void Gia_ManEquivFilter( Gia_Man_t * p, Vec_Int_t * vPoIds, int fVerbose )
     assert( Gia_ManPoNum(pSrm) == Gia_ManPoNum(p) + Vec_IntSize(vMap) );
     Gia_ManStop( pSrm );
     if ( fVerbose )
-        printf( "Design POs = %d. SRM POs = %d. Spec POs = %d. Disproved POs = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Design POs = %d. SRM POs = %d. Spec POs = %d. Disproved POs = %d.\n", 
             Gia_ManPoNum(p), Gia_ManPoNum(p) + Vec_IntSize(vMap), Vec_IntSize(vMap), Vec_IntSize(vPoIds) );
     // check if disproved POs satisfy the range
     Vec_IntSort( vPoIds, 0 );
@@ -1771,9 +1771,9 @@ void Gia_ManEquivFilterTest( Gia_Man_t * p )
     for ( i = 0; i < 10; i++ )
     {
         Vec_IntPush( vPoIds, Gia_ManPoNum(p) + 2 * i + 2 );
-        printf( "%d ", Gia_ManPoNum(p) + 2*i + 2 );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", Gia_ManPoNum(p) + 2*i + 2 );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Gia_ManEquivFilter( p, vPoIds, 1 );
     Vec_IntFree( vPoIds );
 }
@@ -2814,13 +2814,13 @@ void Gia_ManTransferTest( Gia_Man_t * p )
         pReprs[i].fProved = 0;
         //printf( "%5d :    %5d %5d    %5d %5d\n", i, *(int*)&p->pReprs[i], *(int*)&pReprs[i], (int)p->pNexts[i], (int)pNexts[i] );
     if ( memcmp(p->pReprs, pReprs, sizeof(int)*Gia_ManObjNum(p)) )
-        printf( "Verification of reprs failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification of reprs failed.\n" );
     else
-        printf( "Verification of reprs succeeded.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification of reprs succeeded.\n" );
     if ( memcmp(p->pNexts, pNexts, sizeof(int)*Gia_ManObjNum(p)) )
-        printf( "Verification of nexts failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification of nexts failed.\n" );
     else
-        printf( "Verification of nexts succeeded.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification of nexts succeeded.\n" );
     ABC_FREE( pNew->pReprs );
     ABC_FREE( pNew->pNexts );
     ABC_FREE( pReprs );

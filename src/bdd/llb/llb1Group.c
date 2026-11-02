@@ -399,7 +399,7 @@ void Llb_ManPrintSpan( Llb_Man_t * p )
                 Span++;
 
         SpanMax = Abc_MaxInt( SpanMax, Span );
-printf( "%d ", Span );
+fprintf( Abc_FrameGlobalGetOut(), "%d ", Span );
 
         Vec_PtrForEachEntry( Aig_Obj_t *, pGroup->vIns, pVar, k )
             if ( Vec_IntEntry(p->vVarEnds, pVar->Id) == i )
@@ -408,8 +408,8 @@ printf( "%d ", Span );
             if ( Vec_IntEntry(p->vVarEnds, pVar->Id) == i )
                 Span--;
     }
-printf( "\n" );
-printf( "Max = %d\n", SpanMax );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "Max = %d\n", SpanMax );
 }
 
 /**Function*************************************************************
@@ -456,12 +456,12 @@ void Llb_ManPrintHisto( Llb_Man_t * p )
     {
         if ( Vec_IntEntry(p->vObj2Var, i) < 0 )
             continue;
-        printf( "%3d :", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d :", i );
         for ( k = 0; k < Vec_IntEntry(p->vVarBegs, i); k++ )
-            printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
         for (      ; k <= Vec_IntEntry(p->vVarEnds, i); k++ )
-            printf( "%c", Llb_ManGroupHasVar(p, k, i)? '*':'-' );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", Llb_ManGroupHasVar(p, k, i)? '*':'-' );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 

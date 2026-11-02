@@ -179,7 +179,7 @@ Mop_Man_t * Mop_ManRead( char * pFileName )
             {
                 if ( !Mop_ManIsSopSymb(*pToken) )
                 {
-                    printf( "Cannot read cube %d (%s).\n", iCube+1, pTokenCopy );
+                    fprintf( Abc_FrameGlobalGetOut(), "Cannot read cube %d (%s).\n", iCube+1, pTokenCopy );
                     ABC_FREE( pBuffer );
                     Mop_ManStop( p );
                     return NULL;
@@ -211,20 +211,20 @@ void Mop_ManPrintOne( Mop_Man_t * p, int iCube )
     word * pCubeIn  = Mop_ManCubeIn( p, iCube );
     word * pCubeOut = Mop_ManCubeOut( p, iCube );
     for ( k = 0; k < p->nIns; k++ )
-        printf( "%c", Symb[Abc_TtGetQua(pCubeIn, k)] );
-    printf( " " );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", Symb[Abc_TtGetQua(pCubeIn, k)] );
+    fprintf( Abc_FrameGlobalGetOut(), " " );
     for ( k = 0; k < p->nOuts; k++ )
-        printf( "%d", Abc_TtGetBit(pCubeOut, k) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtGetBit(pCubeOut, k) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Mop_ManPrint( Mop_Man_t * p )
 {
     int i, iCube;
-    printf( ".%d\n", p->nIns );
-    printf( ".%d\n", p->nOuts );
+    fprintf( Abc_FrameGlobalGetOut(), ".%d\n", p->nIns );
+    fprintf( Abc_FrameGlobalGetOut(), ".%d\n", p->nOuts );
     Vec_IntForEachEntry( p->vCubes, iCube, i )
         Mop_ManPrintOne( p, iCube );
-    printf( ".e\n" );
+    fprintf( Abc_FrameGlobalGetOut(), ".e\n" );
 }
 
 /**Function*************************************************************
@@ -590,8 +590,8 @@ int Mop_ManMergeDist1All( Mop_Man_t * p, Vec_Wec_t * vGroups, Vec_Int_t * vStats
             continue;
         if ( i == 0 )
         {
-            printf( "Detected constant-1 cover.\n" );
-            fflush( stdout );
+            fprintf( Abc_FrameGlobalGetOut(), "Detected constant-1 cover.\n" );
+            fflush( Abc_FrameGlobalGetOut() );
             return -1;
         }
         nEqual  = Mop_ManRemoveIdentical( p, vGroup );
@@ -667,7 +667,7 @@ void Mop_ManReduce2( Mop_Man_t * p )
     Vec_IntFree( vStats );
     assert( Removed == Count1 + Count2 + Count3 );
     // report
-    printf( "Cubes: %d -> %d.  C = %d.  M = %d.  C = %d.  M = %d.  C = %d.  Output lits: %d -> %d.   ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Cubes: %d -> %d.  C = %d.  M = %d.  C = %d.  M = %d.  C = %d.  Output lits: %d -> %d.   ", 
         nCubes, Vec_IntSize(p->vCubes), Count1, Count2, Count3, Count4, Count5, nOutLits, nOutLits2 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
@@ -704,7 +704,7 @@ void Mop_ManReduce( Mop_Man_t * p )
     Mop_ManUnCreateGroups( p, vGroups );
     Vec_WecFree( vGroups );
     // report
-    printf( "Total = %d. Reduced %d equal and %d contained cubes. Output lits: %d -> %d.   ", Vec_IntSize(p->vCubes), nEqual, nContain, nOutLits, nOutLits2 );
+    fprintf( Abc_FrameGlobalGetOut(), "Total = %d. Reduced %d equal and %d contained cubes. Output lits: %d -> %d.   ", Vec_IntSize(p->vCubes), nEqual, nContain, nOutLits, nOutLits2 );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 

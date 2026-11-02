@@ -80,9 +80,9 @@ void Gem_PrintNode( Gem_Man_t * p, int f, char * pLabel, int fUpdate )
     int GroupsMod = pObj->Groups;
     if ( !p->fVerbose )
         return;
-    printf( "Node %6d : %s  Pred = %6d  Vars = %d  Nodes = %d  History = %d%d  Profile: ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Node %6d : %s  Pred = %6d  Vars = %d  Nodes = %d  History = %d%d  Profile: ", 
         f, pLabel, pObj->Predec, pObj->nVars, pObj->nNodes, pObj->History & 0xF, pObj->History >> 4 );
-    Extra_PrintBinary2( stdout, (unsigned*)&GroupsMod, p->nVars ); printf("%s\n", fUpdate?" *":"");
+    Extra_PrintBinary2( Abc_FrameGlobalGetOut(), (unsigned*)&GroupsMod, p->nVars ); fprintf( Abc_FrameGlobalGetOut(), "%s\n", fUpdate?" *":"" );
 }
 Gem_Man_t * Gem_ManAlloc( int nVars, int fVerbose )
 {
@@ -116,9 +116,9 @@ void Gem_ManRealloc( Gem_Man_t * p )
     int nObjNew = Abc_MinInt( 2 * p->nObjsAlloc, 0x7FFFFFFF );
     assert( p->nObjs == p->nObjsAlloc );
     if ( p->nObjs == 0x7FFFFFFF )
-        printf( "Hard limit on the number of nodes (0x7FFFFFFF) is reached. Quitting...\n" ), exit(1);
+        fprintf( Abc_FrameGlobalGetOut(), "Hard limit on the number of nodes (0x7FFFFFFF) is reached. Quitting...\n" ), exit(1);
     assert( p->nObjs < nObjNew );
-    printf("Extending object storage: %d -> %d.\n", p->nObjsAlloc, nObjNew );
+    fprintf( Abc_FrameGlobalGetOut(), "Extending object storage: %d -> %d.\n", p->nObjsAlloc, nObjNew  );
     p->pObjs = ABC_REALLOC( Gem_Obj_t, p->pObjs, nObjNew );
     memset( p->pObjs + p->nObjsAlloc, 0, sizeof(Gem_Obj_t) * (nObjNew - p->nObjsAlloc) );
     p->nObjsAlloc = nObjNew;
@@ -272,15 +272,15 @@ int Gem_FuncCheckMajority( Gem_Man_t * p, int f )
     {
         int nHalfVars = (pObj->nVars+1) >> 1;
         int Mask = Abc_Tt6Mask( nHalfVars );
-        printf( "Found symmetric %d-variable function: ", pObj->nVars );
-        Extra_PrintBinary2( stdout, (unsigned *)&Polar, pObj->nVars + 1 );
-        printf( "   " );
+        fprintf( Abc_FrameGlobalGetOut(), "Found symmetric %d-variable function: ", pObj->nVars );
+        Extra_PrintBinary2( Abc_FrameGlobalGetOut(), (unsigned *)&Polar, pObj->nVars + 1 );
+        fprintf( Abc_FrameGlobalGetOut(), "   " );
         if ( (pObj->nVars & 1) && Polar == (Mask << nHalfVars) )
         {
-            printf( "This is majority-%d.\n", pObj->nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "This is majority-%d.\n", pObj->nVars );
             return 0;
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return 0;
 }
@@ -352,7 +352,7 @@ int Gem_Enumerate( int nVars, int fDump, int fVerbose )
         // expand functions by adding a gate
         int nObjsStopPrev = nObjsStop;
         nObjsStop = p->nObjs;
-        printf( "Expanding  var %2d (functions = %10d)  ", v, p->nObjs );
+        fprintf( Abc_FrameGlobalGetOut(), "Expanding  var %2d (functions = %10d)  ", v, p->nObjs );
         Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
         for ( f = 0; f < nObjsStop; f++ )
             if ( v == (int)p->pObjs[f].nVars || (v > (int)p->pObjs[f].nVars && f >= nObjsStopPrev) )
@@ -360,7 +360,7 @@ int Gem_Enumerate( int nVars, int fDump, int fVerbose )
                     if ( (int)p->pObjs[f].Groups & (1 << i) )
                         Gem_FuncExpand( p, f, i );
         // reduce functions by adding a crossbar
-        printf( "Connecting var %2d (functions = %10d)  ", v, p->nObjs );
+        fprintf( Abc_FrameGlobalGetOut(), "Connecting var %2d (functions = %10d)  ", v, p->nObjs );
         Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
         for ( f = nObjsStop; f < p->nObjs; f++ )
             for ( i = 0; i < (int)p->pObjs[f].nVars; i++ )
@@ -370,7 +370,7 @@ int Gem_Enumerate( int nVars, int fDump, int fVerbose )
                             if ( Gem_FuncReduce( p, f, i, j ) )
                                 return Gem_ManFree( p );
     }
-    printf( "Finished          (functions = %10d)  ", p->nObjs );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished          (functions = %10d)  ", p->nObjs );
     Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
     if ( fDump ) Vec_MemDumpTruthTables( p->vTtMem, "enum", nVars );
     Gem_ManFree( p );

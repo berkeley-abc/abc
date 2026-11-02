@@ -114,13 +114,13 @@ int Gia_ManCountConst0Pos( Aig_Man_t * p )
 ***********************************************************************/
 void Gia_ManMultiReport( Aig_Man_t * p, char * pStr, int nTotalPo, int nTotalSize, abctime clkStart )
 {
-    printf( "%3s : ", pStr );
-    printf( "PI =%6d  ", Saig_ManPiNum(p) );
-    printf( "PO =%6d  ", Saig_ManPoNum(p) );
-    printf( "FF =%7d  ", Saig_ManRegNum(p) );
-    printf( "ND =%7d  ", Aig_ManNodeNum(p) );
-    printf( "Solved =%7d (%5.1f %%)  ", nTotalPo-Saig_ManPoNum(p), 100.0*(nTotalPo-Saig_ManPoNum(p))/Abc_MaxInt(1, nTotalPo) );
-    printf( "Size   =%7d (%5.1f %%)  ", Aig_ManObjNum(p),          100.0*Aig_ManObjNum(p)/Abc_MaxInt(1, nTotalSize) );
+    fprintf( Abc_FrameGlobalGetOut(), "%3s : ", pStr );
+    fprintf( Abc_FrameGlobalGetOut(), "PI =%6d  ", Saig_ManPiNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "PO =%6d  ", Saig_ManPoNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "FF =%7d  ", Saig_ManRegNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "ND =%7d  ", Aig_ManNodeNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Solved =%7d (%5.1f %%)  ", nTotalPo-Saig_ManPoNum(p), 100.0*(nTotalPo-Saig_ManPoNum(p))/Abc_MaxInt(1, nTotalPo) );
+    fprintf( Abc_FrameGlobalGetOut(), "Size   =%7d (%5.1f %%)  ", Aig_ManObjNum(p),          100.0*Aig_ManObjNum(p)/Abc_MaxInt(1, nTotalSize) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
 }
 
@@ -172,10 +172,10 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, Bmc_MulPar_t * pPars )
     int TimeOutLoc   = pPars->TimeOutLoc;
     int i, RetValue  = -1;
     if ( pPars->fVerbose )
-        printf( "MultiProve parameters: Global timeout = %d sec.  Local timeout = %d sec.  Time increase = %d %%.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "MultiProve parameters: Global timeout = %d sec.  Local timeout = %d sec.  Time increase = %d %%.\n", 
             pPars->TimeOutGlo, pPars->TimeOutLoc, pPars->TimeOutInc );
     if ( pPars->fVerbose )
-        printf( "Gap timeout = %d sec. Per-output timeout = %d msec. Use synthesis = %d. Dump final = %d. Verbose = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Gap timeout = %d sec. Per-output timeout = %d msec. Use synthesis = %d. Dump final = %d. Verbose = %d.\n", 
             pPars->TimeOutGap, pPars->TimePerOut, pPars->fUseSyn, pPars->fDumpFinal, pPars->fVerbose );
     // create output map
     vOutMap = Vec_IntStartNatural( Saig_ManPoNum(p) ); // maps current outputs into their original IDs
@@ -209,7 +209,7 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, Bmc_MulPar_t * pPars )
         // check timeout
         if ( nTimeToStop && Abc_Clock() + TimeOutLoc * CLOCKS_PER_SEC > nTimeToStop )
         {
-            printf( "Global timeout (%d sec) is reached.\n", pPars->TimeOutGlo );
+            fprintf( Abc_FrameGlobalGetOut(), "Global timeout (%d sec) is reached.\n", pPars->TimeOutGlo );
             break;
         }
 
@@ -241,14 +241,14 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, Bmc_MulPar_t * pPars )
         // check timeout
         if ( nTimeToStop && Abc_Clock() + TimeOutLoc * CLOCKS_PER_SEC > nTimeToStop )
         {
-            printf( "Global timeout (%d sec) is reached.\n", pPars->TimeOutGlo );
+            fprintf( Abc_FrameGlobalGetOut(), "Global timeout (%d sec) is reached.\n", pPars->TimeOutGlo );
             break;
         }
 
         // check gap timeout
         if ( pPars->TimeOutGap && pPars->TimeOutGap <= TimeOutLoc && nSolved == Vec_PtrCountZero(vCexes) )
         {
-            printf( "Gap timeout (%d sec) is reached.\n", pPars->TimeOutGap );
+            fprintf( Abc_FrameGlobalGetOut(), "Gap timeout (%d sec) is reached.\n", pPars->TimeOutGap );
             break;
         }
 
@@ -266,12 +266,12 @@ Vec_Ptr_t * Gia_ManMultiProveAig( Aig_Man_t * p, Bmc_MulPar_t * pPars )
     }
     Vec_IntFree( vOutMap );
     if ( pPars->fVerbose )
-        printf( "The number of POs proved UNSAT by synthesis = %d.\n", Gia_ManCountConst0Pos(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of POs proved UNSAT by synthesis = %d.\n", Gia_ManCountConst0Pos(p) );
     if ( pPars->fDumpFinal )
     {
         char * pFileName = Extra_FileNameGenericAppend( p->pName, "_out.aig" );
         Ioa_WriteAiger( p, pFileName, 0, 0 );
-        printf( "Final AIG was dumped into file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Final AIG was dumped into file \"%s\".\n", pFileName );
     }
     Aig_ManStop( p );
     return vCexes;

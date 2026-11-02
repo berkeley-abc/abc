@@ -587,14 +587,14 @@ do_check_tree (node, compar, error)
 
     if (comp_height != node->height)
     {
-        (void) printf ("Bad height for 0x%08x: computed=%d stored=%d\n",
+        (void) fprintf ( Abc_FrameGlobalGetOut(), "Bad height for 0x%08x: computed=%d stored=%d\n",
                        node, comp_height, node->height);
         ++*error;
     }
 
     if (bal > 1 || bal < -1)
     {
-        (void) printf ("Out of balance at node 0x%08x, balance = %d\n",
+        (void) fprintf ( Abc_FrameGlobalGetOut(), "Out of balance at node 0x%08x, balance = %d\n",
                        node, bal);
         ++*error;
     }
@@ -602,7 +602,7 @@ do_check_tree (node, compar, error)
     if (node->left != NIL (avl_node) &&
         (*compar) (node->left->key, node->key) > 0)
     {
-        (void) printf ("Bad ordering between 0x%08x and 0x%08x",
+        (void) fprintf ( Abc_FrameGlobalGetOut(), "Bad ordering between 0x%08x and 0x%08x",
                        node, node->left);
         ++*error;
     }
@@ -610,7 +610,7 @@ do_check_tree (node, compar, error)
     if (node->right != NIL (avl_node) &&
         (*compar) (node->key, node->right->key) > 0)
     {
-        (void) printf ("Bad ordering between 0x%08x and 0x%08x",
+        (void) fprintf ( Abc_FrameGlobalGetOut(), "Bad ordering between 0x%08x and 0x%08x",
                        node, node->right);
         ++*error;
     }

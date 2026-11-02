@@ -562,15 +562,15 @@ Vec_Int_t * Gia_ManSwiSimulate( Gia_Man_t * pAig, Gia_ParSwi_t * pPars )
     int i;
     abctime clk, clkTotal = Abc_Clock();
     if ( pPars->fProbOne && pPars->fProbTrans )
-        printf( "Conflict of options: Can either compute probability of 1, or probability of switching by observing transitions.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Conflict of options: Can either compute probability of 1, or probability of switching by observing transitions.\n" );
     // create manager
     clk = Abc_Clock();
     p = Gia_ManSwiCreate( pAig, pPars );
     if ( pPars->fVerbose )
     {
-        printf( "Obj = %8d (%8d). F = %6d. ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Obj = %8d (%8d). F = %6d. ", 
             pAig->nObjs, Gia_ManCiNum(pAig) + Gia_ManAndNum(pAig), p->pAig->nFront );
-        printf( "AIG = %7.2f MB. F-mem = %7.2f MB. Other = %7.2f MB.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "AIG = %7.2f MB. F-mem = %7.2f MB. Other = %7.2f MB.  ", 
             12.0*Gia_ManObjNum(p->pAig)/(1<<20), 
             4.0*p->nWords*p->pAig->nFront/(1<<20), 
             4.0*p->nWords*(Gia_ManCiNum(p->pAig) + Gia_ManCoNum(p->pAig))/(1<<20) );
@@ -591,7 +591,7 @@ Vec_Int_t * Gia_ManSwiSimulate( Gia_Man_t * pAig, Gia_ParSwi_t * pPars )
     }
     if ( pPars->fVerbose )
     {
-        printf( "Simulated %d frames with %d words. ", pPars->nIters, pPars->nWords );
+        fprintf( Abc_FrameGlobalGetOut(), "Simulated %d frames with %d words. ", pPars->nIters, pPars->nWords );
         ABC_PRT( "Simulation time", Abc_Clock() - clkTotal );
     }
     // derive the result
@@ -826,7 +826,7 @@ float Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbO
     {
         Gia_ManForEachObj( p, pObj, i )
         {
-            printf( "Switch %6.2f  ", pSwi[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "Switch %6.2f  ", pSwi[i] );
             Gia_ObjPrint( p, pObj );
         }
     }

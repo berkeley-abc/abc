@@ -111,10 +111,10 @@ void Slv_ManPrintFanouts( Slv_Man_t * p )
     int iObj, iFanLit;
     Slv_ManForEachObj( p, iObj )
     {
-        printf( "Fanouts of node %d: ", iObj );
+        fprintf( Abc_FrameGlobalGetOut(), "Fanouts of node %d: ", iObj );
         Slv_ObjForEachFanout( p, iObj, iFanLit )
-            printf( "%d ", Abc_Lit2Var(iFanLit) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Abc_Lit2Var(iFanLit) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 static inline int Slv_ManAppendObj( Slv_Man_t * p, int iLit0, int iLit1 )
@@ -280,11 +280,11 @@ void Gia_ManStructExperiment( Gia_Man_t * p )
             else
                 ABC_FREE( pTemp->pCexComb );
 
-        printf( "\nOut %6d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "\nOut %6d : ", i );
         if ( k == Vec_PtrSize(vGias) )
-            printf( "Equiv to none    " );
+            fprintf( Abc_FrameGlobalGetOut(), "Equiv to none    " );
         else
-            printf( "Equiv to %6d  ", k );
+            fprintf( Abc_FrameGlobalGetOut(), "Equiv to %6d  ", k );
         Gia_ManPrintStats( pTemp, NULL );
 
         if ( k == Vec_PtrSize(vGias) )
@@ -292,7 +292,7 @@ void Gia_ManStructExperiment( Gia_Man_t * p )
         else
             Gia_ManStop( pTemp );
     }
-    printf( "\nComputed %d classes.\n\n", Vec_PtrSize(vGias) );
+    fprintf( Abc_FrameGlobalGetOut(), "\nComputed %d classes.\n\n", Vec_PtrSize(vGias) );
     Vec_PtrForEachEntry( Gia_Man_t *, vGias, pTemp, i )
         Gia_ManStop( pTemp );
     Vec_PtrFree( vGias );
@@ -336,10 +336,10 @@ void Gia_EnumPerms_rec( int * pUsed, int nVars, int * pPerm, int nPerm, int * pC
         {
             if ( *pCount < 20 )
             {
-                printf( "%5d : ", (*pCount) );
+                fprintf( Abc_FrameGlobalGetOut(), "%5d : ", (*pCount) );
                 for ( i = 0; i < nVars; i += 2 )
-                    printf( "%d %d  ", pPerm[i], pPerm[i+1] );
-                printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d %d  ", pPerm[i], pPerm[i+1] );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
         }
         (*pCount)++;
@@ -373,21 +373,21 @@ void Gia_EnumPerms( int nVars )
     FILE * pFile = fopen( "pairset.pla", "wb" );
     assert( nVars % 2 == 0 );
 
-    printf( "Printing sets of pairs for %d objects:\n", nVars );
+    fprintf( Abc_FrameGlobalGetOut(), "Printing sets of pairs for %d objects:\n", nVars );
     Gia_EnumPerms_rec( pUsed, nVars, pPerm, 0, &Count, NULL, -1 ); 
     if ( Count > 20 )
-        printf( "...\n" );
-    printf( "Finished enumerating %d sets of pairs.\n", Count );
+        fprintf( Abc_FrameGlobalGetOut(), "...\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished enumerating %d sets of pairs.\n", Count );
 
     nLogVars = Abc_Base2Log( Count );
-    printf( "Need %d variables to encode %d sets.\n", nLogVars, Count );
+    fprintf( Abc_FrameGlobalGetOut(), "Need %d variables to encode %d sets.\n", nLogVars, Count );
     Count = 0;
     fprintf( pFile, ".i %d\n", nLogVars );
     fprintf( pFile, ".o %d\n", nVars*nVars );
     Gia_EnumPerms_rec( pUsed, nVars, pPerm, 0, &Count, pFile, nLogVars );   
     fprintf( pFile, ".e\n" );
     fclose( pFile );
-    printf( "Finished dumping file \"%s\".\n", "pairset.pla" );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished dumping file \"%s\".\n", "pairset.pla" );
 
     ABC_FREE( pUsed );
     ABC_FREE( pPerm );

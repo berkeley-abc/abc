@@ -605,22 +605,22 @@ void If_ObjPrint( If_Obj_t * pObj )
 {
     if ( pObj == NULL )
     {
-        printf( "Object is NULL." );
+        fprintf( Abc_FrameGlobalGetOut(), "Object is NULL." );
         return;
     }
-    printf( "Obj %4d : ", If_ObjId(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "Obj %4d : ", If_ObjId(pObj) );
     if ( If_ObjIsConst1(pObj) )
-        printf( "constant 1" );
+        fprintf( Abc_FrameGlobalGetOut(), "constant 1" );
     else if ( If_ObjIsCi(pObj) )
-        printf( "PI" );
+        fprintf( Abc_FrameGlobalGetOut(), "PI" );
     else if ( If_ObjIsCo(pObj) )
-        printf( "PO( %4d%s )", If_ObjId(If_ObjFanin0(pObj)), (If_ObjFaninC0(pObj)? "\'" : " ") );
+        fprintf( Abc_FrameGlobalGetOut(), "PO( %4d%s )", If_ObjId(If_ObjFanin0(pObj)), (If_ObjFaninC0(pObj)? "\'" : " ") );
     else
-        printf( "AND( %4d%s, %4d%s )", 
+        fprintf( Abc_FrameGlobalGetOut(), "AND( %4d%s, %4d%s )", 
             If_ObjId(If_ObjFanin0(pObj)), (If_ObjFaninC0(pObj)? "\'" : " "), 
             If_ObjId(If_ObjFanin1(pObj)), (If_ObjFaninC1(pObj)? "\'" : " ") );
-    printf( " (refs = %3d)", pObj->nVisitsCopy );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), " (refs = %3d)", pObj->nVisitsCopy );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 ////////////////////////////////////////////////////////////////////////

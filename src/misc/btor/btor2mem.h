@@ -39,7 +39,7 @@ btorsim_malloc (size_t size)
   res = malloc (size);
   if (!res)
   {
-    fprintf (stderr, "[btorsim] memory allocation failed\n");
+    fprintf( Abc_FrameGlobalGetErr(), "[btorsim] memory allocation failed\n");
     abort ();
   }
   return res;
@@ -52,7 +52,7 @@ btorsim_calloc (size_t nobj, size_t size)
   res = calloc (nobj, size);
   if (!res)
   {
-    fprintf (stderr, "[btorsim] memory allocation failed\n");
+    fprintf( Abc_FrameGlobalGetErr(), "[btorsim] memory allocation failed\n");
     abort ();
   }
   return res;
@@ -65,7 +65,7 @@ btorsim_realloc (void *p, size_t new_size)
   res = realloc (p, new_size);
   if (!res)
   {
-    fprintf (stderr, "[btorsim] memory allocation failed\n");
+    fprintf( Abc_FrameGlobalGetErr(), "[btorsim] memory allocation failed\n");
     abort ();
   }
   return res;

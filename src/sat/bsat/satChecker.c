@@ -52,11 +52,11 @@ void Sat_PrintClause( Vec_Vec_t * vClauses, int Clause )
 {
     Vec_Int_t * vClause;
     int i, Entry;
-    printf( "Clause %d:  {", Clause );
+    fprintf( Abc_FrameGlobalGetOut(), "Clause %d:  {", Clause );
     vClause = Vec_VecEntry( vClauses, Clause );
     Vec_IntForEachEntry( vClause, Entry, i )
-        printf( " %d", Entry );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", Entry );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 
 /**Function*************************************************************
@@ -87,7 +87,7 @@ int Sat_ProofResolve( Vec_Vec_t * vClauses, int Result, int Clause1, int Clause2
     }
     if ( Counter != 1 )
     {
-        printf( "Error: Clause %d = Resolve(%d, %d): The number of pivot vars is %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Error: Clause %d = Resolve(%d, %d): The number of pivot vars is %d.\n", 
             Result, Clause1, Clause2, Counter );
         Sat_PrintClause( vClauses, Clause1 );
         Sat_PrintClause( vClauses, Clause2 );
@@ -134,7 +134,7 @@ void Sat_ProofChecker( char * pFileName )
         Counter2 += (c == '*');
     }
     vClauses = Vec_VecStart( Counter+1 );
-    printf( "The proof contains %d roots and %d resolution steps.\n", Counter-Counter2, Counter2 );
+    fprintf( Abc_FrameGlobalGetOut(), "The proof contains %d roots and %d resolution steps.\n", Counter-Counter2, Counter2 );
     // read the clauses
     rewind( pFile );
     for ( i = 1 ; ; i++ )
@@ -153,7 +153,7 @@ void Sat_ProofChecker( char * pFileName )
             assert( Num == 0 );
             if ( !Sat_ProofResolve( vClauses, i, Clause1, Clause2 ) )
             {
-                printf( "Error detected in the resolution proof.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Error detected in the resolution proof.\n" );
                 Vec_VecFree( vClauses );
                 fclose( pFile );
                 return;
@@ -177,9 +177,9 @@ void Sat_ProofChecker( char * pFileName )
     }
     assert( i-1 == Counter );
     if ( Vec_IntSize( Vec_VecEntry(vClauses, Counter) ) != 0 )
-        printf( "The last clause is not empty.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The last clause is not empty.\n" );
     else
-        printf( "The empty clause is derived.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The empty clause is derived.\n" );
     Vec_VecFree( vClauses );
     fclose( pFile );
 }

@@ -232,7 +232,7 @@ Frc_Man_t * Frc_ManStartSimple( Gia_Man_t * pGia )
     assert( nNodes  == Frc_ManNodeNum(p) );
     assert( hHandle == p->nObjData );
     if ( hHandle != p->nObjData )
-        printf( "Frc_ManStartSimple(): Fatal error in internal representation.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Frc_ManStartSimple(): Fatal error in internal representation.\n" );
     // make sure the fanin/fanout counters are correct
     Gia_ManForEachObj( pGia, pObj, i )
     {
@@ -528,7 +528,7 @@ Frc_Man_t * Frc_ManStart( Gia_Man_t * pGia )
     assert( nObjs   == p->nObjs );
     assert( hHandle == p->nObjData );
     if ( hHandle != p->nObjData )
-        printf( "Frc_ManStart(): Fatal error in internal representation.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Frc_ManStart(): Fatal error in internal representation.\n" );
     // make sure the fanin/fanout counters are correct
     Gia_ManForEachObj( pGia, pObj, i )
     {
@@ -558,16 +558,16 @@ void Frc_ManPrintStats( Frc_Man_t * p )
 {
 //    if ( p->pName )
 //        printf( "%8s : ", p->pName );
-    printf( "i/o =%7d/%7d  ", Frc_ManPiNum(p), Frc_ManPoNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "i/o =%7d/%7d  ", Frc_ManPiNum(p), Frc_ManPoNum(p) );
     if ( Frc_ManRegNum(p) )
-        printf( "ff =%7d  ", Frc_ManRegNum(p) );
-    printf( "node =%8d  ", Frc_ManNodeNum(p) );
-    printf( "obj =%8d  ", Frc_ManObjNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "ff =%7d  ", Frc_ManRegNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "node =%8d  ", Frc_ManNodeNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "obj =%8d  ", Frc_ManObjNum(p) );
 //    printf( "lev =%5d  ", Frc_ManLevelNum(p) );
 //    printf( "cut =%5d  ", Frc_ManCrossCut(p) );
-    printf( "mem =%5.2f MB", 4.0*p->nObjData/(1<<20) );
+    fprintf( Abc_FrameGlobalGetOut(), "mem =%5.2f MB", 4.0*p->nObjData/(1<<20) );
 //    printf( "obj =%5d  ", Frc_ManObjNum(p) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -716,11 +716,11 @@ void Frc_ManCrossCutTest( Frc_Man_t * p, Vec_Int_t * vOrderInit )
     Vec_Int_t * vOrder;
 //    abctime clk = Abc_Clock();
     vOrder = vOrderInit? vOrderInit : Frc_ManCollectCos( p );
-    printf( "CrossCut = %6d\n", Frc_ManCrossCut( p, vOrder, 0 ) );
-    printf( "CrossCut = %6d\n", Frc_ManCrossCut( p, vOrder, 1 ) );
+    fprintf( Abc_FrameGlobalGetOut(), "CrossCut = %6d\n", Frc_ManCrossCut( p, vOrder, 0 ) );
+    fprintf( Abc_FrameGlobalGetOut(), "CrossCut = %6d\n", Frc_ManCrossCut( p, vOrder, 1 ) );
     Vec_IntReverseOrder( vOrder );
-    printf( "CrossCut = %6d\n", Frc_ManCrossCut( p, vOrder, 0 ) );
-    printf( "CrossCut = %6d\n", Frc_ManCrossCut( p, vOrder, 1 ) );
+    fprintf( Abc_FrameGlobalGetOut(), "CrossCut = %6d\n", Frc_ManCrossCut( p, vOrder, 0 ) );
+    fprintf( Abc_FrameGlobalGetOut(), "CrossCut = %6d\n", Frc_ManCrossCut( p, vOrder, 1 ) );
     Vec_IntReverseOrder( vOrder );
     if ( vOrder != vOrderInit )
         Vec_IntFree( vOrder );
@@ -952,8 +952,8 @@ void Frc_ManPlacementRefine( Frc_Man_t * p, int nIters, int fVerbose )
         // evaluate cost
         if ( fVerbose )
         {
-            printf( "%2d : Span = %e  ", Iter+1, CostThis );
-            printf( "Cut = %6d  (%5.2f %%)  CutR = %6d  ", nCutCur, 100.0*(nCutStart-nCutCur)/nCutStart, nCutCur2 );
+            fprintf( Abc_FrameGlobalGetOut(), "%2d : Span = %e  ", Iter+1, CostThis );
+            fprintf( Abc_FrameGlobalGetOut(), "Cut = %6d  (%5.2f %%)  CutR = %6d  ", nCutCur, 100.0*(nCutStart-nCutCur)/nCutStart, nCutCur2 );
             ABC_PRTn( "Total", Abc_Clock() - clk );
             ABC_PRT( "Sort", clk2Total );
 //        Frc_ManCrossCutTest( p, vCoOrder );
@@ -1072,7 +1072,7 @@ void For_ManFileExperiment()
     int RetValue;
 
     Size = (1 << Exp);
-    printf( "2^%d machine words (%d bytes).\n", Exp, (int)sizeof(int) * Size );
+    fprintf( Abc_FrameGlobalGetOut(), "2^%d machine words (%d bytes).\n", Exp, (int)sizeof(int) * Size );
 
     pBuffer = ABC_ALLOC( int, Size );
     for ( i = 0; i < Size; i++ )

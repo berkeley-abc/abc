@@ -154,7 +154,7 @@ void Json_Extract( char * pFileName, Abc_Nam_t * pStr, Vec_Wec_t * vObjs )
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         return;
     }
     fprintf( pFile, "# Data extracted from JSON file:\n" );
@@ -271,7 +271,7 @@ void Json_Write( char * pFileName, Abc_Nam_t * pStr, Vec_Wec_t * vObjs )
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing.\n", pFileName );
         return;
     }
     Json_Write_rec( pFile, pStr, vObjs, Vec_WecEntry(vObjs, 0), 1, 0, 1 );
@@ -317,7 +317,7 @@ Vec_Wec_t * Json_Read( char * pFileName, Abc_Nam_t ** ppStrs )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for reading.\n", pFileName );
         return NULL;
     }
     nFileSize = Extra_FileSize( pFileName );

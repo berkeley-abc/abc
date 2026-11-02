@@ -51,7 +51,7 @@ void Gia_ManAutomSimulate( Gia_Man_t * p, Vec_Int_t * vAlpha, char * pSim )
     int nFrames = strlen(pSim);
     int i, k;
     assert( Gia_ManPiNum(p) == nInputs );
-    printf( "Simulating string \"%s\":\n", pSim );
+    fprintf( Abc_FrameGlobalGetOut(), "Simulating string \"%s\":\n", pSim );
     Gia_ManCleanMark0(p);
     Gia_ManForEachRo( p, pObj, i )
         pObj->fMark0 = 0;
@@ -67,7 +67,7 @@ void Gia_ManAutomSimulate( Gia_Man_t * p, Vec_Int_t * vAlpha, char * pSim )
         Gia_ManForEachRiRo( p, pObjRi, pObjRo, k )
             pObjRo->fMark0 = pObjRi->fMark0;
 
-        printf( "Frame %d : %c %d\n", i, pSim[i], Gia_ManPo(p, 0)->fMark0 );
+        fprintf( Abc_FrameGlobalGetOut(), "Frame %d : %c %d\n", i, pSim[i], Gia_ManPo(p, 0)->fMark0 );
     }
     Gia_ManCleanMark0(p);
 }
@@ -142,20 +142,20 @@ void Gia_ManPrintAutom( char * pStr, Vec_Int_t * vStaTrans )
     int i = 0, nLength = strlen(pStr);
     for ( i = 0; i < nLength; i++ )
     {
-        printf( "%d \'%c\' ", i, pStr[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%d \'%c\' ", i, pStr[i] );
         if ( Vec_IntEntry(vStaTrans, i) >= 0 )
-            printf( "-> %d \'%c\' ", Vec_IntEntry(vStaTrans, i), pStr[Vec_IntEntry(vStaTrans, i)] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "-> %d \'%c\' ", Vec_IntEntry(vStaTrans, i), pStr[Vec_IntEntry(vStaTrans, i)] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 // prints states reachable through e-transitions
 void Gia_ManPrintReached( char * pStr, int iState, Vec_Int_t * vReached )
 {
     int i, Entry;
-    printf( "Reached from state %d \'%c\':  ", iState, pStr[iState] );
+    fprintf( Abc_FrameGlobalGetOut(), "Reached from state %d \'%c\':  ", iState, pStr[iState] );
     Vec_IntForEachEntry( vReached, Entry, i )
-        printf( "%d \'%c\'  ", Entry, pStr[Entry] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d \'%c\'  ", Entry, pStr[Entry] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 // collect states reachable from the given one by e-transitions
 void Gia_ManPrintReached_rec( char * pStr, Vec_Int_t * vStaTrans, int iState, Vec_Int_t * vReached, Vec_Int_t * vVisited, int TravId )
@@ -214,10 +214,10 @@ Gia_Man_t * Gia_ManRex2Gia( char * pStrInit, int fOrder, int fVerbose )
         Vec_IntSort( vAlphas, 0 );
 //    if ( fVerbose )
     {
-        printf( "Input variable order: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Input variable order: " );
         Vec_IntForEachEntry( vAlphas, Entry, k )
-            printf( "%c", (char)Entry );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", (char)Entry );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // start AIG
     pNew = Gia_ManStart( 1000 );
@@ -298,7 +298,7 @@ Gia_Man_t * Gia_ManRex2Gia( char * pStrInit, int fOrder, int fVerbose )
         if ( pStr[Entry] != '\0' )
             Vec_StrWriteEntry( vInit, Vec_IntEntry(vStr2Sta, Entry), '1' );
     if ( fVerbose )
-        printf( "Init state = %s\n", Vec_StrArray(vInit) );
+        fprintf( Abc_FrameGlobalGetOut(), "Init state = %s\n", Vec_StrArray(vInit) );
 
     // add outputs
     Vec_IntPushFirst( vStaLits, Vec_IntPop(vStaLits) );
@@ -446,8 +446,8 @@ void Gia_ManAutomWalkOne( Gia_Man_t * p, int nSteps, Vec_Wrd_t * vStates, Vec_In
             for ( k = 0; k < Gia_ManPiNum(p); k++ )
                 if ( (Output >> (63-k)) & 1 )
                 {
-                    printf( "%c", 'a' + k );
-                    printf( "!" );
+                    fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + k );
+                    fprintf( Abc_FrameGlobalGetOut(), "!" );
                 }            
             break;
         }
@@ -463,11 +463,11 @@ void Gia_ManAutomWalkOne( Gia_Man_t * p, int nSteps, Vec_Wrd_t * vStates, Vec_In
         iState = pNext[kMin];
 //Extra_PrintBinary( stdout, (unsigned *)&iState, 64 ); printf( "\n" );
         // print the transition
-        printf( "%c", 'a' + kMin );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + kMin );
         if ( (Output >> (63-kMin)) & 1 )
-            printf( "!" );
+            fprintf( Abc_FrameGlobalGetOut(), "!" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 // find flop variables pointed to by negative edges
 word Gia_ManAutomInit( Gia_Man_t * p )
@@ -498,17 +498,17 @@ void Gia_ManAutomWalk( Gia_Man_t * p, int nSteps, int nWalks, int fVerbose )
     Vec_Int_t * vCounts; int i; word Init;
     if ( Gia_ManPoNum(p) != 1 )
     {
-        printf( "AIG should have one primary output.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "AIG should have one primary output.\n" );
         return;
     }
     if ( Gia_ManPiNum(p) > 64 )
     {
-        printf( "Cannot simulate an automaton with more than 64 inputs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot simulate an automaton with more than 64 inputs.\n" );
         return;
     }
     if ( Gia_ManRegNum(p) > 64 )
     {
-        printf( "Cannot simulate an automaton with more than 63 states.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot simulate an automaton with more than 63 states.\n" );
         return;
     }
     vTemp   = Vec_WrdStart( Gia_ManObjNum(p) );
@@ -525,12 +525,12 @@ void Gia_ManAutomWalk( Gia_Man_t * p, int nSteps, int nWalks, int fVerbose )
         Vec_WrdForEachEntry( vStates, State, i )
         {
             State ^= Init;
-            printf( "%3d : ", i );
-            Extra_PrintBinary( stdout, (unsigned *)&State, 64 ); 
-            printf( " %d  ", Vec_IntEntry(vCounts, i) );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d : ", i );
+            Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)&State, 64 ); 
+            fprintf( Abc_FrameGlobalGetOut(), " %d  ", Vec_IntEntry(vCounts, i) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_WrdFree( vTemp );
     Vec_WrdFree( vStates );

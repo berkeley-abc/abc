@@ -635,13 +635,13 @@ void Abc_NtkPartitionPrint( Abc_Ntk_t * pNtk, Vec_Ptr_t * vPartsAll, Vec_Ptr_t *
     Vec_PtrForEachEntry( Vec_Int_t *, vPartSuppsAll, vOne, i )
     {
         nOutputs = Vec_IntSize((Vec_Int_t *)Vec_PtrEntry(vPartsAll, i));
-        printf( "%d=(%d,%d) ", i, Vec_IntSize(vOne), nOutputs );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=(%d,%d) ", i, Vec_IntSize(vOne), nOutputs );
         Counter += nOutputs;
         if ( i == Vec_PtrSize(vPartsAll) - 1 )
             break;
     }
 //    assert( Counter == Abc_NtkCoNum(pNtk) );
-    printf( "\nTotal = %d. Outputs = %d.\n", Counter, Abc_NtkCoNum(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "\nTotal = %d. Outputs = %d.\n", Counter, Abc_NtkCoNum(pNtk) );
 }
 
 /**Function*************************************************************
@@ -751,7 +751,7 @@ ABC_PRT( "Supps", Abc_Clock() - clk );
 clk = Abc_Clock();
     vPartsAll = Vec_PtrAlloc( 256 );
     vPartSuppsAll = Vec_PtrAlloc( 256 );
-    pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(vSupps) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Vec_PtrSize(vSupps) );
     Vec_PtrForEachEntry( Vec_Int_t *, vSupps, vOne, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -828,7 +828,7 @@ if ( fVerbose )
 ABC_PRT( "Comps", Abc_Clock() - clk );
 }
     if ( fVerbose )
-    printf( "Created %d partitions.\n", Vec_PtrSize(vPartsAll) );
+    fprintf( Abc_FrameGlobalGetOut(), "Created %d partitions.\n", Vec_PtrSize(vPartsAll) );
 //    Abc_NtkPartitionPrint( pNtk, vPartsAll, vPartSuppsAll );
 
     // cleanup
@@ -990,7 +990,7 @@ Hop_Man_t * Abc_NtkPartStartHop( Abc_Ntk_t * pNtk )
         Hop_ObjCreatePo( pMan, Hop_ObjChild0Next(pObj) );
     // check the new manager
     if ( !Hop_ManCheck(pMan) )
-        printf( "Abc_NtkPartStartHop: HOP manager check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkPartStartHop: HOP manager check has failed.\n" );
     return pMan;
 }
 
@@ -1031,7 +1031,7 @@ Abc_Ntk_t * Abc_NtkPartStitchChoices( Abc_Ntk_t * pNtk, Vec_Ptr_t * vParts )
             iNodeId = Nm_ManFindIdByNameTwoTypes( pNtkNew->pManName, Abc_ObjName(pObj), ABC_OBJ_PI, ABC_OBJ_BO );
             if ( iNodeId == -1 )
             {
-                printf( "Cannot find CI node %s in the original network.\n", Abc_ObjName(pObj) );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot find CI node %s in the original network.\n", Abc_ObjName(pObj) );
                 return NULL;
             }
             pObj->pCopy = Abc_NtkObj( pNtkNew, iNodeId );
@@ -1055,7 +1055,7 @@ Abc_Ntk_t * Abc_NtkPartStitchChoices( Abc_Ntk_t * pNtk, Vec_Ptr_t * vParts )
             iNodeId = Nm_ManFindIdByNameTwoTypes( pNtkNew->pManName, Abc_ObjName(pObj), ABC_OBJ_PO, ABC_OBJ_BI );
             if ( iNodeId == -1 )
             {
-                printf( "Cannot find CO node %s in the original network.\n", Abc_ObjName(pObj) );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot find CO node %s in the original network.\n", Abc_ObjName(pObj) );
                 return NULL;
             }
             pObj->pCopy = Abc_NtkObj( pNtkNew, iNodeId );
@@ -1085,7 +1085,7 @@ Abc_Ntk_t * Abc_NtkPartStitchChoices( Abc_Ntk_t * pNtk, Vec_Ptr_t * vParts )
     // check correctness of the new network
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
-        printf( "Abc_NtkPartStitchChoices: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkPartStitchChoices: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
@@ -1132,7 +1132,7 @@ Abc_Ntk_t * Abc_NtkFraigPartitioned( Vec_Ptr_t * vStore, void * pParams )
             Abc_NtkConvertCos( pNtk2, vOne, vOnePtr );
             Abc_NtkAppendToCone( pNtkAig, pNtk2, vOnePtr );
         }
-        printf( "Fraiging part %4d  (out of %4d)  PI = %5d. PO = %5d. And = %6d. Lev = %4d.\r", 
+        fprintf( Abc_FrameGlobalGetOut(), "Fraiging part %4d  (out of %4d)  PI = %5d. PO = %5d. And = %6d. Lev = %4d.\r", 
             i+1, Vec_PtrSize(vParts), Abc_NtkPiNum(pNtkAig), Abc_NtkPoNum(pNtkAig), 
             Abc_NtkNodeNum(pNtkAig), Abc_AigLevel(pNtkAig) );
         // fraig the partition
@@ -1140,7 +1140,7 @@ Abc_Ntk_t * Abc_NtkFraigPartitioned( Vec_Ptr_t * vStore, void * pParams )
         Vec_PtrPush( vFraigs, pNtkFraig );
         Abc_NtkDelete( pNtkAig );
     }
-    printf( "                                                                                          \r" );
+    fprintf( Abc_FrameGlobalGetOut(), "                                                                                          \r" );
     Vec_VecFree( (Vec_Vec_t *)vParts );
 
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "set progressbar" );
@@ -1191,7 +1191,7 @@ void Abc_NtkFraigPartitionedTime( Abc_Ntk_t * pNtk, void * pParams )
         Vec_PtrPush( vFraigs, pNtkFraig );
         Abc_NtkDelete( pNtkAig );
 
-        printf( "Finished part %5d (out of %5d)\r", i+1, Vec_PtrSize(vParts) );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished part %5d (out of %5d)\r", i+1, Vec_PtrSize(vParts) );
     }
     Vec_VecFree( (Vec_Vec_t *)vParts );
 
@@ -1316,10 +1316,10 @@ Abc_Ntk_t * Abc_NtkStochProcessOne( Abc_Ntk_t * p, char * pScript0, int Rand, in
     if ( system( (char *)Command ) )    
 #endif
     {
-        fprintf( stderr, "The following command has returned non-zero exit status:\n" );
-        fprintf( stderr, "\"%s\"\n", (char *)Command );
-        fprintf( stderr, "Sorry for the inconvenience.\n" );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetErr(),  "The following command has returned non-zero exit status:\n" );
+        fprintf( Abc_FrameGlobalGetErr(),  "\"%s\"\n", (char *)Command );
+        fprintf( Abc_FrameGlobalGetErr(),  "Sorry for the inconvenience.\n" );
+        fflush( Abc_FrameGlobalGetOut() );
         unlink( FileName );
         ABC_FREE( pScript );
         ABC_FREE( Command );
@@ -1649,7 +1649,7 @@ Vec_Int_t * Abc_NtkDeriveWinOuts( Abc_Ntk_t * pNtk, Vec_Int_t * vNodes )
             Vec_IntPush( vOuts, Abc_ObjId(pObj) );
     }
     if ( Vec_IntSize(vOuts) == 0 )
-        printf( "Window with %d internal nodes has no outputs (are these dangling nodes?).\n", Vec_IntSize(vNodes) );
+        fprintf( Abc_FrameGlobalGetOut(), "Window with %d internal nodes has no outputs (are these dangling nodes?).\n", Vec_IntSize(vNodes) );
     return vOuts;
 }
 Vec_Ptr_t * Abc_NtkDeriveWinOutsAll( Abc_Ntk_t * pNtk, Vec_Ptr_t * vvNodes )
@@ -1932,12 +1932,12 @@ void Abc_NtkStochMap( int nSuppMax, int nIters, int TimeOut, int Seed, int fOver
     for ( i = 0; i < 10+Seed; i++ )
         Abc_Random(0);
     if ( fVerbose ) {
-        printf( "Running %d iterations of the script \"%s\"", nIters, pScript );
+        fprintf( Abc_FrameGlobalGetOut(), "Running %d iterations of the script \"%s\"", nIters, pScript );
         if ( nProcs > 2 )
-            printf( " using %d concurrent threads.\n", nProcs-1 );
+            fprintf( Abc_FrameGlobalGetOut(), " using %d concurrent threads.\n", nProcs-1 );
         else
-            printf( " without concurrency.\n" );
-        fflush(stdout);
+            fprintf( Abc_FrameGlobalGetOut(), " without concurrency.\n" );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     Vec_Ptr_t * vIns = NULL, * vOuts = NULL, * vNodes = NULL;
     for ( i = 0; i < nIters; i++ )
@@ -1949,7 +1949,7 @@ void Abc_NtkStochMap( int nSuppMax, int nIters, int TimeOut, int Seed, int fOver
         Abc_Ntk_t * pNew   = Abc_NtkInsertPartitions( pNtk, vIns, vNodes, vOuts, vWins, fOverlap, vGains );
         Abc_FrameReplaceCurrentNetwork( Abc_FrameGetGlobalFrame(), pNew );
         if ( fVerbose )
-        printf( "Iteration %3d : Using %3d -> %3d partitions. Reducing area from %.2f to %.2f.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Iteration %3d : Using %3d -> %3d partitions. Reducing area from %.2f to %.2f.  ", 
             i, nPartsInit, Vec_PtrSize(vWins), Abc_NtkGetMappedArea(pNtk), Abc_NtkGetMappedArea(pNew) ); 
         if ( fVerbose )
         Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
@@ -1962,13 +1962,13 @@ void Abc_NtkStochMap( int nSuppMax, int nIters, int TimeOut, int Seed, int fOver
         if ( vNodes ) Vec_PtrFreeFunc( vNodes, (void (*)(void *)) Vec_IntFree );                
         if ( nTimeToStop && Abc_Clock() > nTimeToStop )
         {
-            printf( "Runtime limit (%d sec) is reached after %d iterations.\n", TimeOut, i );
+            fprintf( Abc_FrameGlobalGetOut(), "Runtime limit (%d sec) is reached after %d iterations.\n", TimeOut, i );
             break;
         }
     }
     aEnd = Abc_NtkGetMappedArea(Abc_FrameReadNtk(Abc_FrameGetGlobalFrame()));
     if ( fVerbose )
-    printf( "Cumulatively reduced area by %.2f %% after %d iterations.  ", 100.0*(aBeg - aEnd)/Abc_MaxFloat(aBeg, (float)1.0), nIters );
+    fprintf( Abc_FrameGlobalGetOut(), "Cumulatively reduced area by %.2f %% after %d iterations.  ", 100.0*(aBeg - aEnd)/Abc_MaxFloat(aBeg, (float)1.0), nIters );
     if ( fVerbose )
     Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );
 }

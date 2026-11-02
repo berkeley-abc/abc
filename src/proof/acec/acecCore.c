@@ -103,7 +103,7 @@ void Acec_VerifyClasses( Gia_Man_t * p, Vec_Wec_t * vLits, Vec_Wec_t * vReprs )
         Vec_PtrPush( vFunc, vTruths );
     }
     if ( nOvers )
-        printf( "Detected %d oversize support nodes.\n", nOvers );
+        fprintf( Abc_FrameGlobalGetOut(), "Detected %d oversize support nodes.\n", nOvers );
     Vec_IntFree( vSupp );
     Vec_WrdFree( vTemp );
     // verify the classes
@@ -119,18 +119,18 @@ void Acec_VerifyClasses( Gia_Man_t * p, Vec_Wec_t * vLits, Vec_Wec_t * vReprs )
             {
                 nErrors++;
                 if ( Truth != Truth2 && Truth != TRUTH_UNUSED && Truth2 != TRUTH_UNUSED )
-                    printf( "Rank %d:  Lit %d and %d do not pass verification.\n", i, k, j );
+                    fprintf( Abc_FrameGlobalGetOut(), "Rank %d:  Lit %d and %d do not pass verification.\n", i, k, j );
             }
             if ( Entry == Abc_LitNot(Entry2) )
             {
                 nErrors++;
                 if ( Truth != ~Truth2 && Truth != TRUTH_UNUSED && Truth2 != TRUTH_UNUSED )
-                    printf( "Rank %d:  Lit %d and %d do not pass verification.\n", i, k, j );
+                    fprintf( Abc_FrameGlobalGetOut(), "Rank %d:  Lit %d and %d do not pass verification.\n", i, k, j );
             }
         }
     }
     if ( nErrors )
-        printf( "Total errors in equivalence classes = %d.\n", nErrors );
+        fprintf( Abc_FrameGlobalGetOut(), "Total errors in equivalence classes = %d.\n", nErrors );
     Vec_VecFree( (Vec_Vec_t *)vFunc );
 }
 
@@ -206,7 +206,7 @@ void Acec_ComputeEquivClasses( Gia_Man_t * pOne, Gia_Man_t * pTwo, Vec_Int_t ** 
     *pvMap2 = Acec_CountRemap( pTwo, pBase );
     Gia_ManStop( pBase );
     Gia_ManStop( pRepr );
-    printf( "Finished computing equivalent nodes.  " );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished computing equivalent nodes.  " );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 void Acec_MatchBoxesSort( int * pArray, int nSize, int * pCostLits )
@@ -227,15 +227,15 @@ void Acec_MatchPrintEquivLits( Gia_Man_t * p, Vec_Wec_t * vLits, int * pCostLits
     Vec_Wrd_t * vTemp;
     Vec_Int_t * vLevel;
     int i, k, Entry;
-    printf( "Leaf literals and their classes:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Leaf literals and their classes:\n" );
     Vec_WecForEachLevel( vLits, vLevel, i )
     {
         if ( Vec_IntSize(vLevel) == 0 )
             continue;
-        printf( "Rank %2d : %2d  ", i, Vec_IntSize(vLevel) );
+        fprintf( Abc_FrameGlobalGetOut(), "Rank %2d : %2d  ", i, Vec_IntSize(vLevel) );
         Vec_IntForEachEntry( vLevel, Entry, k )
-            printf( "%s%d(%d) ", Abc_LitIsCompl(Entry) ? "-":"+", Abc_Lit2Var(Entry), Abc_Lit2LitL(pCostLits, Entry) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%s%d(%d) ", Abc_LitIsCompl(Entry) ? "-":"+", Abc_Lit2Var(Entry), Abc_Lit2LitL(pCostLits, Entry) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     if ( !fVerbose )
         return;
@@ -258,27 +258,27 @@ void Acec_MatchPrintEquivLits( Gia_Man_t * p, Vec_Wec_t * vLits, int * pCostLits
                 Gia_ManStop( pGia0 );
             }
 */
-            printf( "Rank = %4d : ", i );
-            printf( "Obj = %4d  ", Abc_Lit2Var(Entry) );
+            fprintf( Abc_FrameGlobalGetOut(), "Rank = %4d : ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Obj = %4d  ", Abc_Lit2Var(Entry) );
             if ( Vec_IntSize(vSupp) > 6  )
             {
-                printf( "Supp = %d.\n", Vec_IntSize(vSupp) );
+                fprintf( Abc_FrameGlobalGetOut(), "Supp = %d.\n", Vec_IntSize(vSupp) );
                 continue;
             }
             vSupp->nSize = Abc_Tt6MinBase( &Truth, vSupp->pArray, vSupp->nSize );
             if ( Vec_IntSize(vSupp) > 5  )
             {
-                printf( "Supp = %d.\n", Vec_IntSize(vSupp) );
+                fprintf( Abc_FrameGlobalGetOut(), "Supp = %d.\n", Vec_IntSize(vSupp) );
                 continue;
             }
-            Extra_PrintHex( stdout, (unsigned*)&Truth, Vec_IntSize(vSupp) );
-            if ( Vec_IntSize(vSupp) == 4 ) printf( "    " );
-            if ( Vec_IntSize(vSupp) == 3 ) printf( "      " );
-            if ( Vec_IntSize(vSupp) <= 2 ) printf( "       " );
-            printf( "  " );
+            Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned*)&Truth, Vec_IntSize(vSupp) );
+            if ( Vec_IntSize(vSupp) == 4 ) fprintf( Abc_FrameGlobalGetOut(), "    " );
+            if ( Vec_IntSize(vSupp) == 3 ) fprintf( Abc_FrameGlobalGetOut(), "      " );
+            if ( Vec_IntSize(vSupp) <= 2 ) fprintf( Abc_FrameGlobalGetOut(), "       " );
+            fprintf( Abc_FrameGlobalGetOut(), "  " );
             Vec_IntPrint( vSupp );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_IntFree( vSupp );
     Vec_WrdFree( vTemp );
@@ -350,7 +350,7 @@ void Acec_MoveDuplicates( Vec_Wec_t * vLits, Vec_Wec_t * vClasses )
             Counter++;
         }
     }
-    printf( "Moved %d pairs of PPs to normalize the matrix.\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Moved %d pairs of PPs to normalize the matrix.\n", Counter );
 }
 
 void Acec_MatchCheckShift( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Vec_Wec_t * vLits0, Vec_Wec_t * vLits1, Vec_Int_t * vMap0, Vec_Int_t * vMap1, Vec_Wec_t * vRoots0, Vec_Wec_t * vRoots1 )
@@ -365,14 +365,14 @@ void Acec_MatchCheckShift( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Vec_Wec_t * vLi
         Vec_WecInsertLevel( vLits0, 0 );
         Vec_WecInsertLevel( vRoots0, 0 );
         Vec_WecInsertLevel( vRes0, 0 );
-        printf( "Shifted one level up.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Shifted one level up.\n" );
     }
     else if ( nCommonMinus > nCommonPlus && nCommonMinus > nCommon )
     {
         Vec_WecInsertLevel( vLits1, 0 );
         Vec_WecInsertLevel( vRoots1, 0 );
         Vec_WecInsertLevel( vRes1, 0 );
-        printf( "Shifted one level down.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Shifted one level down.\n" );
     }
     Acec_MoveDuplicates( vLits0, vRes0 );
     Acec_MoveDuplicates( vLits1, vRes1 );
@@ -459,8 +459,8 @@ int Acec_MatchBoxes( Acec_Box_t * pBox0, Acec_Box_t * pBox1 )
         assert( Vec_IntSize(vShared1) + Vec_IntSize(vUnique1) == Vec_IntSize(vLevel1) );
     }
     nTotal = Vec_WecSizeSize(pBox0->vShared);
-    printf( "Box0: Matched %d entries out of %d.\n", nTotal, Vec_WecSizeSize(pBox0->vLeafLits) );
-    printf( "Box1: Matched %d entries out of %d.\n", nTotal, Vec_WecSizeSize(pBox1->vLeafLits) );
+    fprintf( Abc_FrameGlobalGetOut(), "Box0: Matched %d entries out of %d.\n", nTotal, Vec_WecSizeSize(pBox0->vLeafLits) );
+    fprintf( Abc_FrameGlobalGetOut(), "Box1: Matched %d entries out of %d.\n", nTotal, Vec_WecSizeSize(pBox1->vLeafLits) );
 
     //Acec_MatchPrintEquivLits( pBox0->pGia, pBox0->vShared, Vec_IntArray(vMap0), 0 );
     //Acec_MatchPrintEquivLits( pBox1->pGia, pBox1->vShared, Vec_IntArray(vMap1), 0 );
@@ -501,14 +501,14 @@ int Acec_Solve( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Acec_ParCec_t * pPars )
     Acec_Box_t * pBox0 = Acec_ProduceBox( pGia0, pPars->fVerbose );
     Acec_Box_t * pBox1 = Acec_ProduceBox( pGia1, pPars->fVerbose );
     if ( pBox0 == NULL || pBox1 == NULL ) // cannot match
-        printf( "Cannot find arithmetic boxes in both LHS and RHS. Trying regular CEC.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot find arithmetic boxes in both LHS and RHS. Trying regular CEC.\n" );
     else if ( !Acec_MatchBoxes( pBox0, pBox1 ) ) // cannot find matching
-        printf( "Cannot match arithmetic boxes in LHS and RHS. Trying regular CEC.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot match arithmetic boxes in LHS and RHS. Trying regular CEC.\n" );
     else 
     {
         pGia0n = Acec_InsertBox( pBox0, 0 );
         pGia1n = Acec_InsertBox( pBox1, 0 );
-        printf( "Matching of adder trees in LHS and RHS succeeded.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Matching of adder trees in LHS and RHS succeeded.  " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         // remove the last output
         Gia_ManPatchCoDriver( pGia0n, Gia_ManCoNum(pGia0n)-1, 0 );
@@ -534,7 +534,7 @@ int Acec_Solve( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Acec_ParCec_t * pPars )
         Gia_ManStop( pMiter );
     }
     else
-        printf( "Miter computation has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Miter computation has failed.\n" );
     if ( pGia0n != pGia0 )
         Gia_ManStop( pGia0n );
     if ( pGia1n != pGia1 )

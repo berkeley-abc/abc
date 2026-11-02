@@ -239,16 +239,16 @@ Vec_Int_t * Iso_StoCollectInfo( Iso_Sto_t * p, Aig_Obj_t * pPo )
         Iso_Dat2_t Data = { (unsigned)Entry & 0xFFFF };
         Iso_Dat_t * pData = (Iso_Dat_t *)&Data;
 
-        printf( "%6d : ", i );
-        printf( "Freq =%6d ", Entry >> 16 );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Freq =%6d ", Entry >> 16 );
 
-        printf( "FiNeg =%3d ", pData->nFiNeg );
-        printf( "FoNeg =%3d ", pData->nFoNeg );
-        printf( "FoPos =%3d ", pData->nFoPos );
-        printf( "Fi0L  =%3d ", pData->Fi0Lev );
-        printf( "Fi1L  =%3d ", pData->Fi1Lev );
-        printf( "Lev   =%3d ", pData->Level  );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "FiNeg =%3d ", pData->nFiNeg );
+        fprintf( Abc_FrameGlobalGetOut(), "FoNeg =%3d ", pData->nFoNeg );
+        fprintf( Abc_FrameGlobalGetOut(), "FoPos =%3d ", pData->nFoPos );
+        fprintf( Abc_FrameGlobalGetOut(), "Fi0L  =%3d ", pData->Fi0Lev );
+        fprintf( Abc_FrameGlobalGetOut(), "Fi1L  =%3d ", pData->Fi1Lev );
+        fprintf( Abc_FrameGlobalGetOut(), "Lev   =%3d ", pData->Level  );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return vInfo;
 }
@@ -328,14 +328,14 @@ Vec_Vec_t * Saig_IsoDetectFast( Aig_Man_t * pAig )
 
     // report the results
 //    Vec_VecPrintInt( (Vec_Vec_t *)vClasses );
-    printf( "Divided %d outputs into %d cand equiv classes.\n", Saig_ManPoNum(pAig), Vec_PtrSize(vClasses) );
+    fprintf( Abc_FrameGlobalGetOut(), "Divided %d outputs into %d cand equiv classes.\n", Saig_ManPoNum(pAig), Vec_PtrSize(vClasses) );
 
     Vec_PtrForEachEntry( Vec_Int_t *, vClasses, vLevel, i )
         if ( Vec_IntSize(vLevel) > 1 )
-            printf( "%d ", Vec_IntSize(vLevel) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Vec_IntSize(vLevel) );
         else
             nUnique++;
-    printf( " Unique = %d\n", nUnique );
+    fprintf( Abc_FrameGlobalGetOut(), " Unique = %d\n", nUnique );
 
 //    return (Vec_Vec_t *)vClasses;
     Vec_VecFree( (Vec_Vec_t *)vClasses );

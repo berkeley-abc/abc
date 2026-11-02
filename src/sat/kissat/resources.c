@@ -74,7 +74,7 @@ uint64_t kissat_current_resident_set_size (void) {
 void kissat_print_resources (kissat *solver) {
   uint64_t rss = kissat_maximum_resident_set_size ();
   double t = kissat_time (solver);
-  printf ("%s"
+  fprintf ( Abc_FrameGlobalGetOut(), "%s"
           "%-" SFW1 "s "
           "%" SFW2 PRIu64 " "
           "%-" SFW3 "s "
@@ -85,7 +85,7 @@ void kissat_print_resources (kissat *solver) {
 #ifdef METRICS
   statistics *statistics = &solver->statistics;
   uint64_t max_allocated = statistics->allocated_max + sizeof (kissat);
-  printf ("%s"
+  fprintf ( Abc_FrameGlobalGetOut(), "%s"
           "%-" SFW1 "s "
           "%" SFW2 PRIu64 " "
           "%-" SFW3 "s "
@@ -97,10 +97,10 @@ void kissat_print_resources (kissat *solver) {
   {
     format buffer;
     memset (&buffer, 0, sizeof buffer);
-    printf ("%sprocess-time: %30s %18.2f seconds\n", solver->prefix,
+    fprintf ( Abc_FrameGlobalGetOut(), "%sprocess-time: %30s %18.2f seconds\n", solver->prefix,
             kissat_format_time (&buffer, t), t);
   }
-  fflush (stdout);
+  fflush( Abc_FrameGlobalGetOut() );
 }
 
 #endif

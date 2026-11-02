@@ -149,9 +149,9 @@ void If_CluHashTableCheck( If_Man_t * p )
             RetValue = If_CutPerformCheck16( NULL, (unsigned *)pEntry->pTruth, 13, If_CluSupportSize(pEntry->pTruth, 13), "555" );
             if ( RetValue != Status ) 
             {
-                Kit_DsdPrintFromTruth( (unsigned*)pEntry->pTruth, 13 ); printf( "\n" );
+                Kit_DsdPrintFromTruth( (unsigned*)pEntry->pTruth, 13 ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 RetValue = If_CutPerformCheck16( NULL, (unsigned *)pEntry->pTruth, 13, If_CluSupportSize(pEntry->pTruth, 13), "555" );
-                printf( "Hash table problem!!!\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Hash table problem!!!\n" );
             }
         }
     }
@@ -169,7 +169,7 @@ void If_CluHashPrintStats( If_Man_t * p, int t )
             continue;
         if ( Counter < 10 )
             continue;
-        printf( "%d=%d ", i, Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, Counter );
     }
 }
 int If_CluHashFindMedian( If_Man_t * p, int t )
@@ -564,10 +564,10 @@ void If_CluSemiCanonicizeVerify( word * pTruth, word * pTruth0, int nVars, int *
     // compare
     if ( !If_CluEqual(pTruth0, pTruth, nVars) )
     {
-        Kit_DsdPrintFromTruth( (unsigned*)pTruth0, nVars ); printf( "\n" );
-        Kit_DsdPrintFromTruth( (unsigned*)pGunc, nVars ); printf( "\n" );
-        Kit_DsdPrintFromTruth( (unsigned*)pTruth, nVars ); printf( "\n" );
-        printf( "SemiCanonical verification FAILED!\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)pTruth0, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)pGunc, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)pTruth, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "SemiCanonical verification FAILED!\n" );
     }
 }
 
@@ -575,11 +575,11 @@ void If_CluSemiCanonicizeVerify( word * pTruth, word * pTruth0, int nVars, int *
 void If_CluPrintGroup( If_Grp_t * g )
 {
     int i;
-    printf( "Vars = %d   ", g->nVars );
-    printf( "Myu = %d   {", g->nMyu );
+    fprintf( Abc_FrameGlobalGetOut(), "Vars = %d   ", g->nVars );
+    fprintf( Abc_FrameGlobalGetOut(), "Myu = %d   {", g->nMyu );
     for ( i = 0; i < g->nVars; i++ )
-        printf( " %c", 'a' + g->pVars[i] );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %c", 'a' + g->pVars[i] );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 
 void If_CluPrintConfig( int nVars, If_Grp_t * g, If_Grp_t * r, word BStruth, word * pFStruth )
@@ -589,12 +589,12 @@ void If_CluPrintConfig( int nVars, If_Grp_t * g, If_Grp_t * r, word BStruth, wor
     if ( g->nVars < 6 )
         BStruth = If_CluAdjust( BStruth, g->nVars );
     Kit_DsdPrintFromTruth( (unsigned *)&BStruth, g->nVars );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     If_CluPrintGroup( r );
     if ( r->nVars < 6 )
         pFStruth[0] = If_CluAdjust( pFStruth[0], r->nVars );
     Kit_DsdPrintFromTruth( (unsigned *)pFStruth, r->nVars );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 
@@ -646,12 +646,12 @@ void If_CluVerify( word * pF, int nVars, If_Grp_t * g, If_Grp_t * r, word BStrut
 
     if ( !If_CluEqual(pTTRes, pF, nVars) )
     {
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         If_CluPrintConfig( nVars, g, r, BStruth, pFStruth );
-        Kit_DsdPrintFromTruth( (unsigned*)pTTRes, nVars ); printf( "\n" );
-        Kit_DsdPrintFromTruth( (unsigned*)pF, nVars ); printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)pTTRes, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)pF, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
 //        Extra_PrintHex( stdout, (unsigned *)pF, nVars ); printf( "\n" );
-        printf( "Verification FAILED!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification FAILED!\n" );
     }
 //    else
 //        printf( "Verification succeed!\n" );
@@ -682,20 +682,20 @@ void If_CluVerify3( word * pF, int nVars, If_Grp_t * g, If_Grp_t * g2, If_Grp_t 
 
     if ( !If_CluEqual(pTTRes, pF, nVars) )
     {
-        printf( "%d\n", nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "%d\n", nVars );
 //        If_CluPrintConfig( nVars, g, r, BStruth, pFStruth );
 //        Extra_PrintHex( stdout, (unsigned *)pF, nVars ); printf( "\n" );
 
-        Kit_DsdPrintFromTruth( (unsigned*)&BStruth, g->nVars );   printf( "    " ); If_CluPrintGroup(g);  // printf( "\n" );
-        Kit_DsdPrintFromTruth( (unsigned*)&BStruth2, g2->nVars ); printf( "    " ); If_CluPrintGroup(g2); // printf( "\n" );
-        Kit_DsdPrintFromTruth( (unsigned*)&FStruth, r->nVars );   printf( "    " ); If_CluPrintGroup(r);  // printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)&BStruth, g->nVars );   fprintf( Abc_FrameGlobalGetOut(), "    " ); If_CluPrintGroup(g);  // printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)&BStruth2, g2->nVars ); fprintf( Abc_FrameGlobalGetOut(), "    " ); If_CluPrintGroup(g2); // printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)&FStruth, r->nVars );   fprintf( Abc_FrameGlobalGetOut(), "    " ); If_CluPrintGroup(r);  // printf( "\n" );
 
-        Kit_DsdPrintFromTruth( (unsigned*)pTTWire, nVars ); printf( "\n" );
-        Kit_DsdPrintFromTruth( (unsigned*)pTTWire2, nVars ); printf( "\n" );
-        Kit_DsdPrintFromTruth( (unsigned*)pTTRes, nVars ); printf( "\n" );
-        Kit_DsdPrintFromTruth( (unsigned*)pF, nVars ); printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)pTTWire, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)pTTWire2, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)pTTRes, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)pF, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
 //        Extra_PrintHex( stdout, (unsigned *)pF, nVars ); printf( "\n" );
-        printf( "Verification FAILED!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification FAILED!\n" );
     }
 //    else
 //        printf( "Verification succeed!\n" );
@@ -878,7 +878,7 @@ void If_CluReverseOrder_old( word * pF, int nVars, int * V2P, int * P2V, int iVa
         Kit_DsdPrintFromTruth( (unsigned*)pG, nVars ); 
         printf( "\n" );
 */
-        printf( "%d ", nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", nVars );
     }
 }
 
@@ -1198,7 +1198,7 @@ void If_CluDeriveDisjoint4( word * pF, int nVars, int * V2P, int * P2V, If_Grp_t
 
     RetValue = If_CluCountCofs4( pF, nVars, g->nVars, pCofs );
     if ( RetValue != 3 && RetValue != 4 )
-        printf( "If_CluDeriveDisjoint4(): Error!!!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "If_CluDeriveDisjoint4(): Error!!!\n" );
 
     Cof0  = (pCofs[1][0] << (1 << nFSset)) | pCofs[0][0];
     Cof1  = (pCofs[3][0] << (1 << nFSset)) | pCofs[2][0];
@@ -1316,7 +1316,7 @@ If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int iVarStop, int
 
     if ( fVerbose )
     {
-        printf( "Iter %2d  ", -1 );
+        fprintf( Abc_FrameGlobalGetOut(), "Iter %2d  ", -1 );
         If_CluPrintGroup( g );
     }
 
@@ -1378,7 +1378,7 @@ If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int iVarStop, int
 
         if ( fVerbose )
         {
-            printf( "Iter %2d  ", r );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %2d  ", r );
             If_CluPrintGroup( g );
         }
 
@@ -1416,16 +1416,16 @@ void If_CluCheckGroup( word * pTruth, int nVars, If_Grp_t * g )
     // check the number of cofactors
     nCofs = If_CluCountCofs( pF, nVars, g->nVars, 0, NULL );
     if ( nCofs != g->nMyu )
-        printf( "Group check 0 has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Group check 0 has failed.\n" );
     // check compatible
     if ( nCofs > 2 )
     {
         nCofs = If_CluCountCofs( pF, nVars-1, g->nVars-1, 0, NULL );
         if ( nCofs > 2 )
-            printf( "Group check 1 has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Group check 1 has failed.\n" );
         nCofs = If_CluCountCofs( pF, nVars-1, g->nVars-1, (1 << (nVars-1)), NULL );
         if ( nCofs > 2 )
-            printf( "Group check 2 has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Group check 2 has failed.\n" );
     }
 }
 
@@ -1438,7 +1438,7 @@ void If_CluCheckPerm( word * pTruth, word * pF, int nVars, int * V2P, int * P2V 
         If_CluMoveVar( pF, nVars, V2P, P2V, i, i );
 
     if ( !If_CluEqual( pTruth, pF, nVars ) )
-        printf( "Permutation FAILED.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Permutation FAILED.\n" );
 //    else
 //        printf( "Permutation successful\n" );
 }
@@ -1988,7 +1988,7 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
         int Test = 0;
         if ( Test )
         {
-            Kit_DsdPrintFromTruth( (unsigned*)&pLeftOver, R2.nVars ); printf( "\n" );
+            Kit_DsdPrintFromTruth( (unsigned*)&pLeftOver, R2.nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
 
@@ -2087,24 +2087,24 @@ float If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float Wi
     // quit if parameters are wrong
     if ( strlen(pStr) != 2 )
     {
-        printf( "Wrong LUT struct (%s)\n", pStr );
+        fprintf( Abc_FrameGlobalGetOut(), "Wrong LUT struct (%s)\n", pStr );
         return ABC_INFINITY;
     }
     nLutLeaf = pStr[0] - '0';
     if ( nLutLeaf < 3 || nLutLeaf > 6 )
     {
-        printf( "Leaf size (%d) should belong to {3,4,5,6}.\n", nLutLeaf );
+        fprintf( Abc_FrameGlobalGetOut(), "Leaf size (%d) should belong to {3,4,5,6}.\n", nLutLeaf );
         return ABC_INFINITY;
     }
     nLutRoot = pStr[1] - '0';
     if ( nLutRoot < 3 || nLutRoot > 6 )
     {
-        printf( "Root size (%d) should belong to {3,4,5,6}.\n", nLutRoot );
+        fprintf( Abc_FrameGlobalGetOut(), "Root size (%d) should belong to {3,4,5,6}.\n", nLutRoot );
         return ABC_INFINITY;
     }
     if ( nLeaves > nLutLeaf + nLutRoot - 1 )
     {
-        printf( "The cut size (%d) is too large for the LUT structure %d%d.\n", If_CutLeaveNum(pCut), nLutLeaf, nLutRoot );
+        fprintf( Abc_FrameGlobalGetOut(), "The cut size (%d) is too large for the LUT structure %d%d.\n", If_CutLeaveNum(pCut), nLutLeaf, nLutRoot );
         return ABC_INFINITY;
     }
 
@@ -2235,13 +2235,13 @@ int If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth0, int nVars, int nLeav
     Length = strlen(pStr);
     if ( Length != 2 && Length != 3 )
     {
-        printf( "Wrong LUT struct (%s)\n", pStr );
+        fprintf( Abc_FrameGlobalGetOut(), "Wrong LUT struct (%s)\n", pStr );
         return 0;
     }
     for ( i = 0; i < Length; i++ )
         if ( pStr[i] - '0' < 3 || pStr[i] - '0' > 6 )
         {
-            printf( "The LUT size (%d) should belong to {3,4,5,6}.\n", pStr[i] - '0' );
+            fprintf( Abc_FrameGlobalGetOut(), "The LUT size (%d) should belong to {3,4,5,6}.\n", pStr[i] - '0' );
             return 0;
         }
 
@@ -2250,7 +2250,7 @@ int If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth0, int nVars, int nLeav
     nLutRoot  =                   pStr[Length-1] - '0';
     if ( nLeaves > nLutLeaf - 1 + (nLutLeaf2 ? nLutLeaf2 - 1 : 0) + nLutRoot )
     {
-        printf( "The cut size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
+        fprintf( Abc_FrameGlobalGetOut(), "The cut size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
         return 0;
     }
     // consider easy case
@@ -2317,7 +2317,7 @@ void If_CluTest()
     If_CluSemiCanonicizeVerify( &s, &t, nVars, pCanonPerm, uCanonPhase );
 */
 
-    Kit_DsdPrintFromTruth( (unsigned*)&t, nVars ); printf( "\n" );
+    Kit_DsdPrintFromTruth( (unsigned*)&t, nVars ); fprintf( Abc_FrameGlobalGetOut(), "\n" );
     G = If_CluCheck3( NULL, &t, nVars, nLutLeaf, nLutLeaf2, nLutRoot, &R, &G2, &Func0, &Func1, &Func2 );
     If_CluPrintGroup( &G );
     If_CluPrintGroup( &G2 );

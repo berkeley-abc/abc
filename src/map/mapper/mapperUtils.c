@@ -314,10 +314,10 @@ void Map_MappingPrintOutputArrivals( Map_Man_t * p )
         fPhase =!Map_IsComplement(p->pOutputs[pSorted[i]]);
         pTimes = pNode->tArrival + fPhase;
         // print out the best arrival time
-        printf( "Output  %-*s : ", MaxNameSize + 3, p->ppOutputNames[pSorted[i]] );
-        printf( "Delay = (%5.2f, %5.2f)  ", (double)pTimes->Rise, (double)pTimes->Fall );
-        printf( "%s", fPhase? "POS" : "NEG" );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Output  %-*s : ", MaxNameSize + 3, p->ppOutputNames[pSorted[i]] );
+        fprintf( Abc_FrameGlobalGetOut(), "Delay = (%5.2f, %5.2f)  ", (double)pTimes->Rise, (double)pTimes->Fall );
+        fprintf( Abc_FrameGlobalGetOut(), "%s", fPhase? "POS" : "NEG" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -436,21 +436,21 @@ int Map_ManCheckConsistency( Map_Man_t * p )
         if ( Map_NodeIsVar(pNode) )
         {
             if ( pNode->pRepr )
-                printf( "Primary input %d is a secondary node.\n", pNode->Num );
+                fprintf( Abc_FrameGlobalGetOut(), "Primary input %d is a secondary node.\n", pNode->Num );
         }
         else if ( Map_NodeIsConst(pNode) )
         {
             if ( pNode->pRepr )
-                printf( "Constant 1 %d is a secondary node.\n", pNode->Num );
+                fprintf( Abc_FrameGlobalGetOut(), "Constant 1 %d is a secondary node.\n", pNode->Num );
         }
         else
         {
             if ( pNode->pRepr )
-                printf( "Internal node %d is a secondary node.\n", pNode->Num );
+                fprintf( Abc_FrameGlobalGetOut(), "Internal node %d is a secondary node.\n", pNode->Num );
             if ( Map_Regular(pNode->p1)->pRepr )
-                printf( "Internal node %d has first fanin that is a secondary node.\n", pNode->Num );
+                fprintf( Abc_FrameGlobalGetOut(), "Internal node %d has first fanin that is a secondary node.\n", pNode->Num );
             if ( Map_Regular(pNode->p2)->pRepr )
-                printf( "Internal node %d has second fanin that is a secondary node.\n", pNode->Num );
+                fprintf( Abc_FrameGlobalGetOut(), "Internal node %d has second fanin that is a secondary node.\n", pNode->Num );
         }
     }
     Map_NodeVecFree( pVec );
@@ -731,7 +731,7 @@ float Map_MappingComputeDelayWithFanouts( Map_Man_t * p )
             Map_TimeCutComputeArrival( pNode, pNode->pCutBest[1], 1, MAP_FLOAT_LARGE );
     }
     Result = Map_TimeComputeArrivalMax(p);
-    printf( "Max arrival times with fanouts = %10.2f.\n", Result );
+    fprintf( Abc_FrameGlobalGetOut(), "Max arrival times with fanouts = %10.2f.\n", Result );
     return Result;
 }
 
@@ -864,8 +864,8 @@ void Map_MappingReportChoices( Map_Man_t * pMan )
                 nChoices++;
         }
     }
-    printf( "Maximum level: Original = %d. Reduced due to choices = %d.\n", LevelMax1, LevelMax2 );
-    printf( "Choice stats:  Choice nodes = %d. Total choices = %d.\n", nChoiceNodes, nChoices );
+    fprintf( Abc_FrameGlobalGetOut(), "Maximum level: Original = %d. Reduced due to choices = %d.\n", LevelMax1, LevelMax2 );
+    fprintf( Abc_FrameGlobalGetOut(), "Choice stats:  Choice nodes = %d. Total choices = %d.\n", nChoiceNodes, nChoices );
 }
 
 /**Function*************************************************************

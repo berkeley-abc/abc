@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include "misc/util/abc_global.h"
 
 #ifndef _VERIFIC_DATABASE_H_
 ABC_NAMESPACE_HEADER_START
@@ -243,7 +244,7 @@ static int Mini_AigLevelNum( Mini_Aig_t * p )
 }
 static void Mini_AigPrintStats( Mini_Aig_t * p )
 {
-    printf( "MiniAIG stats:  PI = %d  PO = %d  FF = %d  AND = %d\n", Mini_AigPiNum(p), Mini_AigPoNum(p), Mini_AigRegNum(p), Mini_AigAndNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "MiniAIG stats:  PI = %d  PO = %d  FF = %d  AND = %d\n", Mini_AigPiNum(p), Mini_AigPoNum(p), Mini_AigRegNum(p), Mini_AigAndNum(p)  );
 }
 
 // serialization
@@ -254,7 +255,7 @@ static void Mini_AigDump( Mini_Aig_t * p, char * pFileName )
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file for writing \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file for writing \"%s\".\n", pFileName  );
         return;
     }
     RetValue = (int)fwrite( &p->nSize, sizeof(int), 1, pFile );
@@ -270,7 +271,7 @@ static Mini_Aig_t * Mini_AigLoad( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file for reading \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Cannot open file for reading \"%s\".\n", pFileName  );
         return NULL;
     }
     RetValue = (int)fread( &nSize, sizeof(int), 1, pFile );
@@ -506,9 +507,9 @@ static int Mini_AigCheck( Mini_Aig_t * p )
         iFaninLit1 = Mini_AigNodeFanin1( p, i );
         // compare the fanin literals with the literal of the current node (2 * i)
         if ( iFaninLit0 >= 2 * i )
-            printf( "Fanin0 of AND node %d is not in a topological order.\n", i ), status = 0;
+            fprintf( Abc_FrameGlobalGetOut(),  "Fanin0 of AND node %d is not in a topological order.\n", i  ), status = 0;
         if ( iFaninLit1 >= 2 * i )
-            printf( "Fanin0 of AND node %d is not in a topological order.\n", i ), status = 0;
+            fprintf( Abc_FrameGlobalGetOut(),  "Fanin0 of AND node %d is not in a topological order.\n", i  ), status = 0;
     }
     Mini_AigForEachPo( p, i )
     {
@@ -516,7 +517,7 @@ static int Mini_AigCheck( Mini_Aig_t * p )
         iFaninLit0 = Mini_AigNodeFanin0( p, i );
         // compare the fanin literal with the literal of the current node (2 * i)
         if ( iFaninLit0 >= 2 * i )
-            printf( "Fanin0 of PO node %d is not in a topological order.\n", i ), status = 0;
+            fprintf( Abc_FrameGlobalGetOut(),  "Fanin0 of PO node %d is not in a topological order.\n", i  ), status = 0;
     }
     return status;
 }
@@ -527,7 +528,7 @@ static void Mini_AigDumpVerilog( char * pFileName, char * pModuleName, Mini_Aig_
     int i, k, iFaninLit0, iFaninLit1, Length = strlen(pModuleName), nPos = Mini_AigPoNum(p); 
     char * pObjIsPi = MINI_AIG_CALLOC( char, Mini_AigNodeNum(p) );
     FILE * pFile = fopen( pFileName, "wb" );
-    if ( pFile == NULL ) { printf( "Cannot open output file %s\n", pFileName ); MINI_AIG_FREE( pObjIsPi ); return; }
+    if ( pFile == NULL ) { fprintf( Abc_FrameGlobalGetOut(),  "Cannot open output file %s\n", pFileName  ); MINI_AIG_FREE( pObjIsPi ); return; }
     // write interface
     //fprintf( pFile, "// This MiniAIG dump was produced by ABC on %s\n\n", Extra_TimeStamp() );
     fprintf( pFile, "module %s (\n", pModuleName );
@@ -582,7 +583,7 @@ static void Mini_AigDumpBlif( char * pFileName, char * pModuleName, Mini_Aig_t *
     char * pObjIsPi = MINI_AIG_FALLOC( char, Mini_AigNodeNum(p) );
     FILE * pFile = fopen( pFileName, "wb" );
     assert( Mini_AigPiNum(p) <= 26 );
-    if ( pFile == NULL ) { printf( "Cannot open output file %s\n", pFileName ); MINI_AIG_FREE( pObjIsPi ); return; }
+    if ( pFile == NULL ) { fprintf( Abc_FrameGlobalGetOut(),  "Cannot open output file %s\n", pFileName  ); MINI_AIG_FREE( pObjIsPi ); return; }
     // write interface
     //fprintf( pFile, "// This MiniAIG dump was produced by ABC on %s\n\n", Extra_TimeStamp() );
     fprintf( pFile, ".model %s\n", pModuleName );
@@ -641,7 +642,7 @@ static void Mini_AigDumpBlif( char * pFileName, char * pModuleName, Mini_Aig_t *
     MINI_AIG_FREE( pObjIsPi );
     fclose( pFile );
     if ( fVerbose )
-        printf( "Written MiniAIG into the BLIF file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Written MiniAIG into the BLIF file \"%s\".\n", pFileName  );
 }
 
 
@@ -692,24 +693,24 @@ static int * Mini_AigerReadInt( char * pFileName, int * pnObjs, int * pnIns, int
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Mini_AigerRead(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Mini_AigerRead(): Cannot open the output file \"%s\".\n", pFileName );
         return NULL;
     }
     if ( fgetc(pFile) != 'a' || fgetc(pFile) != 'i' || fgetc(pFile) != 'g' )
     {
-        fprintf( stdout, "Mini_AigerRead(): Can only read binary AIGER.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Mini_AigerRead(): Can only read binary AIGER.\n" );
         fclose( pFile );
         return NULL;
     }
     if ( fscanf(pFile, "%d %d %d %d %d", &nTotal, &nIns, &nLatches, &nOuts, &nAnds) != 5 )
     {
-        fprintf( stdout, "Mini_AigerRead(): Cannot read the header line.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Mini_AigerRead(): Cannot read the header line.\n" );
         fclose( pFile );
         return NULL;
     }
     if ( nTotal != nIns + nLatches + nAnds )
     {
-        fprintf( stdout, "The number of objects does not match.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of objects does not match.\n" );
         fclose( pFile );
         return NULL;
     }
@@ -763,7 +764,7 @@ static Mini_Aig_t * Mini_AigerRead( char * pFileName, int fVerbose )
     p->nRegs  = nLatches;
     p->pArray = pObjs;
     if ( fVerbose )
-        printf( "Loaded MiniAIG from the AIGER file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Loaded MiniAIG from the AIGER file \"%s\".\n", pFileName  );
     return p;
 }
 
@@ -772,7 +773,7 @@ static void Mini_AigerWriteInt( char * pFileName, int * pObjs, int nObjs, int nI
     FILE * pFile = fopen( pFileName, "wb" ); int i;
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Mini_AigerWrite(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Mini_AigerWrite(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
     fprintf( pFile, "aig %d %d %d %d %d\n", nIns + nLatches + nAnds, nIns, nLatches, nOuts, nAnds );
@@ -806,16 +807,16 @@ static void Mini_AigerWrite( char * pFileName, Mini_Aig_t * p, int fVerbose )
     }
     Mini_AigerWriteInt( pFileName, p->pArray, p->nSize/2, nIns - p->nRegs, p->nRegs, nOuts - p->nRegs, nAnds );
     if ( fVerbose )
-        printf( "Written MiniAIG into the AIGER file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(),  "Written MiniAIG into the AIGER file \"%s\".\n", pFileName  );
 }
 static void Mini_AigerTest( char * pFileNameIn, char * pFileNameOut )
 {
     Mini_Aig_t * p = Mini_AigerRead( pFileNameIn, 1 );
     if ( p == NULL )
         return;
-    printf( "Finished reading input file \"%s\".\n", pFileNameIn );
+    fprintf( Abc_FrameGlobalGetOut(),  "Finished reading input file \"%s\".\n", pFileNameIn  );
     Mini_AigerWrite( pFileNameOut, p, 1 );
-    printf( "Finished writing output file \"%s\".\n", pFileNameOut );
+    fprintf( Abc_FrameGlobalGetOut(),  "Finished writing output file \"%s\".\n", pFileNameOut  );
     Mini_AigStop( p );
 }
 

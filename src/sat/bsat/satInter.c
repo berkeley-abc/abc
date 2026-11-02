@@ -307,10 +307,10 @@ ABC_PRT( "TOTAL   ", p->timeTotal );
 void Int_ManPrintClause( Int_Man_t * p, Sto_Cls_t * pClause )
 {
     int i;
-    printf( "Clause ID = %d. Proof = %d. {", pClause->Id, Int_ManProofGet(p, pClause) );
+    fprintf( Abc_FrameGlobalGetOut(), "Clause ID = %d. Proof = %d. {", pClause->Id, Int_ManProofGet(p, pClause) );
     for ( i = 0; i < (int)pClause->nLits; i++ )
-        printf( " %d", pClause->pLits[i] );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", pClause->pLits[i] );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 
 /**Function*************************************************************
@@ -327,10 +327,10 @@ void Int_ManPrintClause( Int_Man_t * p, Sto_Cls_t * pClause )
 void Int_ManPrintResolvent( lit * pResLits, int nResLits )
 {
     int i;
-    printf( "Resolvent: {" );
+    fprintf( Abc_FrameGlobalGetOut(), "Resolvent: {" );
     for ( i = 0; i < nResLits; i++ )
-        printf( " %d", pResLits[i] );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", pResLits[i] );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 
 /**Function*************************************************************
@@ -370,9 +370,9 @@ void Extra_PrintBinary__( FILE * pFile, unsigned Sign[], int nBits )
 ***********************************************************************/
 void Int_ManPrintInterOne( Int_Man_t * p, Sto_Cls_t * pClause )
 {
-    printf( "Clause %2d :  ", pClause->Id );
+    fprintf( Abc_FrameGlobalGetOut(), "Clause %2d :  ", pClause->Id );
     Extra_PrintBinary__( stdout, Int_ManTruthRead(p, pClause), (1 << p->nVarsAB) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 
@@ -659,9 +659,9 @@ int Int_ManProofTraceOne( Int_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pFin
                 if ( lit_var(p->pResLits[v1]) == Var )
                     break;
             if ( v1 == p->nResLits )
-                printf( "Recording clause %d: Cannot find variable %d in the temporary resolvent.\n", pFinal->Id, Var );
+                fprintf( Abc_FrameGlobalGetOut(), "Recording clause %d: Cannot find variable %d in the temporary resolvent.\n", pFinal->Id, Var );
             if ( p->pResLits[v1] != lit_neg(pReason->pLits[0]) )
-                printf( "Recording clause %d: The resolved variable %d is in the wrong polarity.\n", pFinal->Id, Var );
+                fprintf( Abc_FrameGlobalGetOut(), "Recording clause %d: The resolved variable %d is in the wrong polarity.\n", pFinal->Id, Var );
             // remove this variable from the resolvent
             assert( lit_var(p->pResLits[v1]) == Var );
             p->nResLits--;
@@ -677,7 +677,7 @@ int Int_ManProofTraceOne( Int_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pFin
                 if ( v1 == p->nResLits ) 
                 {
                     if ( p->nResLits == p->nResLitsAlloc )
-                        printf( "Recording clause %d: Ran out of space for intermediate resolvent.\n", pFinal->Id );
+                        fprintf( Abc_FrameGlobalGetOut(), "Recording clause %d: Ran out of space for intermediate resolvent.\n", pFinal->Id );
                     p->pResLits[ p->nResLits++ ] = pReason->pLits[v2];
                     continue;
                 }
@@ -685,7 +685,7 @@ int Int_ManProofTraceOne( Int_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pFin
                 if ( p->pResLits[v1] == pReason->pLits[v2] )
                     continue;
                 // the literal is different
-                printf( "Recording clause %d: Trying to resolve the clause with more than one opposite literal.\n", pFinal->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "Recording clause %d: Trying to resolve the clause with more than one opposite literal.\n", pFinal->Id );
             }
         }
 
@@ -716,7 +716,7 @@ int Int_ManProofTraceOne( Int_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pFin
         }
         if ( v1 < p->nResLits )
         {
-            printf( "Recording clause %d: The final resolvent is wrong.\n", pFinal->Id );
+            fprintf( Abc_FrameGlobalGetOut(), "Recording clause %d: The final resolvent is wrong.\n", pFinal->Id );
             Int_ManPrintClause( p, pConflict );
             Int_ManPrintResolvent( p->pResLits, p->nResLits );
             Int_ManPrintClause( p, pFinal );
@@ -775,7 +775,7 @@ int Int_ManProofRecordOne( Int_Man_t * p, Sto_Cls_t * pClause )
     // empty clause never ends up there
     assert( pClause->nLits > 0 );
     if ( pClause->nLits == 0 )
-        printf( "Error: Empty clause is attempted.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Error: Empty clause is attempted.\n" );
 
     // add assumptions to the trail
     assert( !pClause->fRoot );
@@ -852,7 +852,7 @@ int Int_ManProofRecordOne( Int_Man_t * p, Sto_Cls_t * pClause )
         // construct the proof
         Int_ManProofTraceOne( p, pConflict, p->pCnf->pEmpty );
         if ( p->fVerbose )
-            printf( "Found last conflict after adding unit clause number %d!\n", pClause->Id );
+            fprintf( Abc_FrameGlobalGetOut(), "Found last conflict after adding unit clause number %d!\n", pClause->Id );
         return 0;
     }
 
@@ -913,7 +913,7 @@ int Int_ManProcessRoots( Int_Man_t * p )
             // detected root level conflict
             Int_ManProofTraceOne( p, pClause, p->pCnf->pEmpty );
             if ( p->fVerbose )
-                printf( "Found root level conflict!\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Found root level conflict!\n" );
             return 0;
         }
     }
@@ -925,7 +925,7 @@ int Int_ManProcessRoots( Int_Man_t * p )
         // detected root level conflict
         Int_ManProofTraceOne( p, pClause, p->pCnf->pEmpty );
         if ( p->fVerbose )
-            printf( "Found root level conflict!\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Found root level conflict!\n" );
         return 0;
     }
 
@@ -1057,7 +1057,7 @@ int Int_ManInterpolate( Int_Man_t * p, Sto_Man_t * pCnf, int fVerbose, unsigned 
 
     if ( fVerbose )
     {
-    printf( "Vars = %d. Roots = %d. Learned = %d. Resol steps = %d.  Ave = %.2f.  Mem = %.2f MB\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Vars = %d. Roots = %d. Learned = %d. Resol steps = %d.  Ave = %.2f.  Mem = %.2f MB\n", 
         p->pCnf->nVars, p->pCnf->nRoots, p->pCnf->nClauses-p->pCnf->nRoots, p->Counter,  
         1.0*(p->Counter-p->pCnf->nRoots)/(p->pCnf->nClauses-p->pCnf->nRoots), 
         1.0*Sto_ManMemoryReport(p->pCnf)/(1<<20) );

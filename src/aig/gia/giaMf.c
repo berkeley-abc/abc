@@ -141,7 +141,7 @@ void Mf_ManTruthQuit()
 {
     if ( s_vTtMem == NULL )
         return;
-    printf( "TT = %d (%.2f %%)\n", Vec_MemEntryNum(s_vTtMem), 100.0 * Vec_MemEntryNum(s_vTtMem) / s_nCalls );
+    fprintf( Abc_FrameGlobalGetOut(), "TT = %d (%.2f %%)\n", Vec_MemEntryNum(s_vTtMem), 100.0 * Vec_MemEntryNum(s_vTtMem) / s_nCalls );
     Vec_MemHashFree( s_vTtMem );
     Vec_MemFree( s_vTtMem );
     s_vTtMem = NULL;
@@ -179,12 +179,12 @@ Vec_Wrd_t * Mf_ManTruthCollect( int Limit )
     }
     ABC_FREE( pPerm );
     ABC_FREE( pComp );
-    printf( "Original = %d.  ", Vec_WrdSize(vTruths) );
+    fprintf( Abc_FrameGlobalGetOut(), "Original = %d.  ", Vec_WrdSize(vTruths) );
     Vec_WrdFree( vTruths );
-    printf( "Total = %d.  ", Vec_WrdSize(vResult) );
+    fprintf( Abc_FrameGlobalGetOut(), "Total = %d.  ", Vec_WrdSize(vResult) );
     vTruths = Vec_WrdUniqifyHash( vResult, 1 );
     Vec_WrdFree( vResult );
-    printf( "Unique = %d.  ", Vec_WrdSize(vTruths) );
+    fprintf( Abc_FrameGlobalGetOut(), "Unique = %d.  ", Vec_WrdSize(vTruths) );
     Vec_WrdForEachEntry( vTruths, uTruth, k )
     {
         Mf_ManTruthCanonicize( &uTruth, 6 );
@@ -192,7 +192,7 @@ Vec_Wrd_t * Mf_ManTruthCollect( int Limit )
     }
     vResult = Vec_WrdUniqifyHash( vTruths, 1 );
     Vec_WrdFree( vTruths );
-    printf( "Unique = %d.  \n", Vec_WrdSize(vResult) );
+    fprintf( Abc_FrameGlobalGetOut(), "Unique = %d.  \n", Vec_WrdSize(vResult) );
     return vResult;
 }
 int Mf_ManTruthCount()
@@ -230,10 +230,10 @@ void Mf_ManProfileTruths( Mf_Man_t * p )
     {
         if ( Entry == 0 )
             continue;
-        printf( "%6d : ", Counter++ );
-        printf( "%6d : ", i );
-        printf( "Occur = %4d  ", Entry ); 
-        printf( "CNF size = %2d  ", Vec_IntEntry(&p->vCnfSizes, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : ", Counter++ );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Occur = %4d  ", Entry ); 
+        fprintf( Abc_FrameGlobalGetOut(), "CNF size = %2d  ", Vec_IntEntry(&p->vCnfSizes, i) );
         Dau_DsdPrintFromTruth( Vec_MemReadEntry(p->vTtMem, i), p->pPars->nLutSize );
     }
     Vec_IntFree( vCounts );
@@ -253,10 +253,10 @@ void Mf_ManProfileTruths( Mf_Man_t * p )
 static inline void Mf_CutPrintOne( int * pCut )
 {
     int i; 
-    printf( "%d {", Mf_CutSize(pCut) );
+    fprintf( Abc_FrameGlobalGetOut(), "%d {", Mf_CutSize(pCut) );
     for ( i = 1; i <= Mf_CutSize(pCut); i++ )
-        printf( " %d", pCut[i] );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", pCut[i] );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 static inline int Mf_CubeLit( int Cube, int iVar ) { return (Cube >> (iVar << 1)) & 3; }
 static inline int Mf_ManCountLits( int * pCnf, int nCubes, int nVars )
@@ -689,23 +689,23 @@ static inline int Mf_CutCreateUnit( Mf_Cut_t * p, int i )
 static inline void Mf_CutPrint( Mf_Man_t * p, Mf_Cut_t * pCut )
 {
     int i, nDigits = Abc_Base10Log(Gia_ManObjNum(p->pGia)); 
-    printf( "%d  {", pCut->nLeaves );
+    fprintf( Abc_FrameGlobalGetOut(), "%d  {", pCut->nLeaves );
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
-        printf( " %*d", nDigits, pCut->pLeaves[i] );
+        fprintf( Abc_FrameGlobalGetOut(), " %*d", nDigits, pCut->pLeaves[i] );
     for ( ; i < (int)p->pPars->nLutSize; i++ )
-        printf( " %*s", nDigits, " " );
-    printf( "  }   D = %4d  A = %9.4f  F = %6d  ", 
+        fprintf( Abc_FrameGlobalGetOut(), " %*s", nDigits, " " );
+    fprintf( Abc_FrameGlobalGetOut(), "  }   D = %4d  A = %9.4f  F = %6d  ", 
         pCut->Delay, pCut->Flow, pCut->iFunc );
     if ( p->vTtMem )
     {
         if ( p->pPars->fGenCnf )
-            printf( "CNF = %2d  ", Vec_IntEntry(&p->vCnfSizes, Abc_Lit2Var(pCut->iFunc)) );
+            fprintf( Abc_FrameGlobalGetOut(), "CNF = %2d  ", Vec_IntEntry(&p->vCnfSizes, Abc_Lit2Var(pCut->iFunc)) );
         if ( p->pPars->fGenLit )
-            printf( "Lit = %2d  ", Vec_IntEntry(&p->vCnfSizes, Abc_Lit2Var(pCut->iFunc)) );
+            fprintf( Abc_FrameGlobalGetOut(), "Lit = %2d  ", Vec_IntEntry(&p->vCnfSizes, Abc_Lit2Var(pCut->iFunc)) );
         Dau_DsdPrintFromTruth( Vec_MemReadEntry(p->vTtMem, Abc_Lit2Var(pCut->iFunc)), pCut->nLeaves );
     }
     else
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 static inline int Mf_ManPrepareCuts( Mf_Cut_t * pCuts, Mf_Man_t * p, int iObj, int fAddUnit )
 {
@@ -1106,10 +1106,10 @@ void Mf_ObjMergeOrder( Mf_Man_t * p, int iObj )
 //    if ( iObj % 1000 == 0 )
 //    if ( iObj == 474 )
     {
-        printf( "*** Obj = %d  FlowRefs = %.2f  MapRefs = %2d\n", iObj, pBest->nFlowRefs, pBest->nMapRefs );
+        fprintf( Abc_FrameGlobalGetOut(), "*** Obj = %d  FlowRefs = %.2f  MapRefs = %2d\n", iObj, pBest->nFlowRefs, pBest->nMapRefs );
         for ( i = 0; i < nCutsR; i++ )
             Mf_CutPrint( p, pCutsR[i] );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     } 
     // store the cutset
     pBest->Flow = pCutsR[0]->Flow;
@@ -1467,32 +1467,32 @@ void Mf_ManPrintStats( Mf_Man_t * p, char * pTitle )
 {
     if ( !p->pPars->fVerbose )
         return;
-    printf( "%s :  ", pTitle );
-    printf( "Level =%6lu   ",   (long)p->pPars->Delay );
-    printf( "Area =%9lu   ",  (long)p->pPars->Area );
-    printf( "Edge =%9lu   ",  (long)p->pPars->Edge );
+    fprintf( Abc_FrameGlobalGetOut(), "%s :  ", pTitle );
+    fprintf( Abc_FrameGlobalGetOut(), "Level =%6lu   ",   (long)p->pPars->Delay );
+    fprintf( Abc_FrameGlobalGetOut(), "Area =%9lu   ",  (long)p->pPars->Area );
+    fprintf( Abc_FrameGlobalGetOut(), "Edge =%9lu   ",  (long)p->pPars->Edge );
     if ( p->pPars->fGenCnf )
-        printf( "CNF =%9lu   ", (long)p->pPars->Clause );
+        fprintf( Abc_FrameGlobalGetOut(), "CNF =%9lu   ", (long)p->pPars->Clause );
     if ( p->pPars->fGenLit )
-        printf( "FFL =%9lu   ", (long)p->pPars->Clause );
+        fprintf( Abc_FrameGlobalGetOut(), "FFL =%9lu   ", (long)p->pPars->Clause );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 void Mf_ManPrintInit( Mf_Man_t * p )
 {
     if ( !p->pPars->fVerbose )
         return;
-    printf( "LutSize = %d  ", p->pPars->nLutSize );
-    printf( "CutNum = %d  ",  p->pPars->nCutNum );
-    printf( "Iter = %d  ",    p->pPars->nRounds + p->pPars->nRoundsEla );
-    printf( "Edge = %d  ",    p->pPars->fOptEdge );
-    printf( "CutMin = %d  ",  p->pPars->fCutMin );
-    printf( "Coarse = %d  ",  p->pPars->fCoarsen );
-    printf( "CNF = %d  ",     p->pPars->fGenCnf );
-    printf( "FFL = %d  ",     p->pPars->fGenLit );
-    printf( "\n" );
-    printf( "Computing cuts...\r" );
-    fflush( stdout );
+    fprintf( Abc_FrameGlobalGetOut(), "LutSize = %d  ", p->pPars->nLutSize );
+    fprintf( Abc_FrameGlobalGetOut(), "CutNum = %d  ",  p->pPars->nCutNum );
+    fprintf( Abc_FrameGlobalGetOut(), "Iter = %d  ",    p->pPars->nRounds + p->pPars->nRoundsEla );
+    fprintf( Abc_FrameGlobalGetOut(), "Edge = %d  ",    p->pPars->fOptEdge );
+    fprintf( Abc_FrameGlobalGetOut(), "CutMin = %d  ",  p->pPars->fCutMin );
+    fprintf( Abc_FrameGlobalGetOut(), "Coarse = %d  ",  p->pPars->fCoarsen );
+    fprintf( Abc_FrameGlobalGetOut(), "CNF = %d  ",     p->pPars->fGenCnf );
+    fprintf( Abc_FrameGlobalGetOut(), "FFL = %d  ",     p->pPars->fGenLit );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Computing cuts...\r" );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 void Mf_ManPrintQuit( Mf_Man_t * p, Gia_Man_t * pNew )
 {
@@ -1506,28 +1506,28 @@ void Mf_ManPrintQuit( Mf_Man_t * p, Gia_Man_t * pNew )
         p->CutCount[0] = 1;
     if ( !p->pPars->fVerbose )
         return;
-    printf( "CutPair = %.0f  ",         p->CutCount[0] );
-    printf( "Merge = %.0f (%.2f %%)  ", p->CutCount[1], 100.0*p->CutCount[1]/p->CutCount[0] );
-    printf( "Eval = %.0f (%.2f %%)  ",  p->CutCount[2], 100.0*p->CutCount[2]/p->CutCount[0] );
-    printf( "Cut = %.0f (%.2f %%)  ",   p->CutCount[3], 100.0*p->CutCount[3]/p->CutCount[0] );
-    printf( "\n" );
-    printf( "Gia = %.2f MB  ",          MemGia );
-    printf( "Man = %.2f MB  ",          MemMan ); 
-    printf( "Cut = %.2f MB   ",         MemCuts );
-    printf( "Map = %.2f MB  ",          MemMap ); 
-    printf( "TT = %.2f MB  ",           MemTt ); 
-    printf( "Total = %.2f MB",          MemGia + MemMan + MemCuts + MemMap + MemTt ); 
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "CutPair = %.0f  ",         p->CutCount[0] );
+    fprintf( Abc_FrameGlobalGetOut(), "Merge = %.0f (%.2f %%)  ", p->CutCount[1], 100.0*p->CutCount[1]/p->CutCount[0] );
+    fprintf( Abc_FrameGlobalGetOut(), "Eval = %.0f (%.2f %%)  ",  p->CutCount[2], 100.0*p->CutCount[2]/p->CutCount[0] );
+    fprintf( Abc_FrameGlobalGetOut(), "Cut = %.0f (%.2f %%)  ",   p->CutCount[3], 100.0*p->CutCount[3]/p->CutCount[0] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Gia = %.2f MB  ",          MemGia );
+    fprintf( Abc_FrameGlobalGetOut(), "Man = %.2f MB  ",          MemMan ); 
+    fprintf( Abc_FrameGlobalGetOut(), "Cut = %.2f MB   ",         MemCuts );
+    fprintf( Abc_FrameGlobalGetOut(), "Map = %.2f MB  ",          MemMap ); 
+    fprintf( Abc_FrameGlobalGetOut(), "TT = %.2f MB  ",           MemTt ); 
+    fprintf( Abc_FrameGlobalGetOut(), "Total = %.2f MB",          MemGia + MemMan + MemCuts + MemMap + MemTt ); 
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     if ( 1 )
     {
         int i;
         for ( i = 0; i <= p->pPars->nLutSize; i++ )
-            printf( "%d = %d  ", i, p->nCutCounts[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "%d = %d  ", i, p->nCutCounts[i] );
         if ( p->vTtMem )
-            printf( "TT = %d (%.2f %%)  ", Vec_MemEntryNum(p->vTtMem), 100.0 * Vec_MemEntryNum(p->vTtMem) / p->CutCount[2] );
+            fprintf( Abc_FrameGlobalGetOut(), "TT = %d (%.2f %%)  ", Vec_MemEntryNum(p->vTtMem), 100.0 * Vec_MemEntryNum(p->vTtMem) / p->CutCount[2] );
         Abc_PrintTime( 1, "Time",    Abc_Clock() - p->clkStart );
     }
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 void Mf_ManComputeCuts( Mf_Man_t * p )
 {
@@ -1721,7 +1721,7 @@ int Mf_ManMappingFromMapping( Mf_Man_t * p )
         }
     assert( pGia->vMapping == NULL );
     pGia->vMapping = vMapping;
-    printf( "Mapping is %.2fx larger than AIG manager.\n", 1.0*Vec_IntSize(vMapping)/Gia_ManObjNum(pGia) );
+    fprintf( Abc_FrameGlobalGetOut(), "Mapping is %.2fx larger than AIG manager.\n", 1.0*Vec_IntSize(vMapping)/Gia_ManObjNum(pGia) );
     return Count;
 }
 
@@ -1744,17 +1744,17 @@ void Mf_ManPrintFanoutProfile( Mf_Man_t * p, Vec_Int_t * vFanCounts )
     Vec_IntForEachEntry( vFanCounts, Count, i )
         if ( Count && Gia_ObjIsAnd(Gia_ManObj(pGia, i)) ) 
             Vec_IntAddToEntry( vCounts, Count, 1 );
-    printf( "\nFanout distribution for internal nodes:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\nFanout distribution for internal nodes:\n" );
     Vec_IntForEachEntry( vCounts, Count, i )
-        if ( Count ) printf( "Fanout = %5d : Nodes = %5d.\n", i, Count );
-    printf( "Total nodes with fanout = %d. Max fanout = %d.\n\n", Vec_IntCountPositive(vCounts), nMax );
+        if ( Count ) fprintf( Abc_FrameGlobalGetOut(), "Fanout = %5d : Nodes = %5d.\n", i, Count );
+    fprintf( Abc_FrameGlobalGetOut(), "Total nodes with fanout = %d. Max fanout = %d.\n\n", Vec_IntCountPositive(vCounts), nMax );
     Vec_IntFree( vCounts );
 }
 int Mf_ManPrintMfccStats( Mf_Man_t * p, int iObj )
 {
     Gia_Man_t * pGia = p->pGia0;
     int Area;
-    printf( "%5d : Level = %5d  Refs = %5d  Mffc = %5d\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "%5d : Level = %5d  Refs = %5d  Mffc = %5d\n", 
         iObj, Gia_ObjLevelId(pGia, iObj), Mf_ObjMapRefNum(p, iObj), (Area = Mf_CutAreaMffc(p, iObj)) );
     return Area;
 }
@@ -1772,10 +1772,10 @@ void Mf_ManOptimizationOne( Mf_Man_t * p, int iObj )
     Gia_ObjForEachFanoutStaticId( pGia, iObj, iFanout, i )
         assert( Mf_ObjMapRefNum(p, iFanout) > 0 );
     // print this pivot and its fanouts
-    printf( "\nPivot node = %d\n", iObj );
-    printf( "Pivot " ), Mf_ManPrintMfccStats( p, iObj );
+    fprintf( Abc_FrameGlobalGetOut(), "\nPivot node = %d\n", iObj );
+    fprintf( Abc_FrameGlobalGetOut(),  "Pivot "  ), Mf_ManPrintMfccStats( p, iObj );
     Gia_ObjForEachFanoutStaticId( pGia, iObj, iFanout, i )
-        printf( "Node  " ), nAreaSum += Mf_ManPrintMfccStats( p, iFanout );
+        fprintf( Abc_FrameGlobalGetOut(),  "Node  "  ), nAreaSum += Mf_ManPrintMfccStats( p, iFanout );
     // calculate the shared MFFC
     Gia_ObjForEachFanoutStaticId( pGia, iObj, iFanout, i )
         Mf_ObjMapRefInc( p, iFanout );
@@ -1784,8 +1784,8 @@ void Mf_ManOptimizationOne( Mf_Man_t * p, int iObj )
     nAreaBest = Mf_CutAreaRefed2Multi( p, iObj, ppCuts, nCuts );
     Gia_ObjForEachFanoutStaticId( pGia, iObj, iFanout, i )
         Mf_ObjMapRefDec( p, iFanout );
-    printf( "Sum of MFFC sizes = %d\n", nAreaSum );
-    printf( "Shared MFFC size  = %d\n", nAreaBest );
+    fprintf( Abc_FrameGlobalGetOut(), "Sum of MFFC sizes = %d\n", nAreaSum );
+    fprintf( Abc_FrameGlobalGetOut(), "Shared MFFC size  = %d\n", nAreaBest );
 }
 void Mf_ManOptimization( Mf_Man_t * p )
 {
@@ -1795,11 +1795,11 @@ void Mf_ManOptimization( Mf_Man_t * p )
     Gia_ManLevelNum( pGia );
     Gia_ManStaticMappingFanoutStart( pGia, NULL );
     Mf_ManPrintFanoutProfile( p, pGia->vFanoutNums );
-    printf( "\nIndividual logic cones for mapping with %d nodes:\n", nNodes );
+    fprintf( Abc_FrameGlobalGetOut(), "\nIndividual logic cones for mapping with %d nodes:\n", nNodes );
     Vec_IntForEachEntry( pGia->vFanoutNums, Count, i )
         if ( Count >= 2 && Count <= nOutMax && Gia_ObjIsAnd(Gia_ManObj(pGia, i)) )
             Mf_ManOptimizationOne( p, i );
-    printf( "\nFinished printing individual logic cones.\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\nFinished printing individual logic cones.\n" );
     Gia_ManStaticFanoutStop( pGia );
     Vec_IntFreeP( &pGia->vMapping );
 }
@@ -1838,8 +1838,8 @@ Gia_Man_t * Mf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
     p->pGia0 = pGia;
     if ( pPars->fVerbose && pPars->fCoarsen )
     {
-        printf( "Initial " );  Gia_ManPrintMuxStats( pGia );  printf( "\n" );
-        printf( "Derived " );  Gia_ManPrintMuxStats( pCls );  printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Initial " );  Gia_ManPrintMuxStats( pGia );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Derived " );  Gia_ManPrintMuxStats( pCls );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Mf_ManPrintInit( p );
     Mf_ManComputeCuts( p );
@@ -1913,7 +1913,7 @@ void Mf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int nLutSize, int fCnfObjId
     Cnf_DataWriteIntoFile( pCnf, pFileName, 0, NULL, NULL );
 //    if ( fVerbose )
     {
-        printf( "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+        fprintf( Abc_FrameGlobalGetOut(), "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     Cnf_DataFree(pCnf);

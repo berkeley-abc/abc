@@ -81,7 +81,7 @@ Aig_Obj_t * Saig_ManRetimeNodeFwd( Aig_Man_t * p, Aig_Obj_t * pObj, int fMakeBug
 
     if ( fMakeBug )
     {
-        printf( "Introducing bug during retiming.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Introducing bug during retiming.\n" );
         pInput1 = Aig_Not( pInput1 );
     }
 

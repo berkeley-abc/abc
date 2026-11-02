@@ -62,7 +62,7 @@ int Ssw_ManProfileConstraints( Aig_Man_t * p, int nWords, int nFrames, int fVerb
     int i, w, f, iFanin0, iFanin1, RetValue = 1;
     abctime clk = Abc_Clock();
     if ( fVerbose )
-        printf( "Simulating %d nodes and %d flops for %d frames with %d words... ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Simulating %d nodes and %d flops for %d frames with %d words... ", 
             Aig_ManNodeNum(p), Aig_ManRegNum(p), nFrames, nWords );
     Aig_ManRandom( 1 );
     vInfo = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p)+2, nWords );
@@ -190,7 +190,7 @@ int Ssw_ManProfileConstraints( Aig_Man_t * p, int nWords, int nFrames, int fVerb
                         break;
                 if ( w == nWords )
                     continue;
-                printf( "Primary output %d fails on some input patterns.\n", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Primary output %d fails on some input patterns.\n", i );
             }
             else
             {
@@ -208,13 +208,13 @@ int Ssw_ManProfileConstraints( Aig_Man_t * p, int nWords, int nFrames, int fVerb
         Saig_ManForEachPo( p, pObj, i )
         {
             if ( i < Saig_ManPoNum(p) - Saig_ManConstrNum(p) )
-                printf( "Primary output :  " );
+                fprintf( Abc_FrameGlobalGetOut(), "Primary output :  " );
             else
-                printf( "Constraint %3d :  ", i-(Saig_ManPoNum(p) - Saig_ManConstrNum(p))  );
-            printf( "ProbOne = %f  ",  (float)Vec_IntEntry(vProbs,  i)/(32*nWords*nFrames) );
-            printf( "ProbOneC = %f  ", (float)Vec_IntEntry(vProbs2, i)/(32*nWords*nFrames) );
-            printf( "AllZeroValue = %d ", Aig_ObjPhase(pObj) );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Constraint %3d :  ", i-(Saig_ManPoNum(p) - Saig_ManConstrNum(p)) );
+            fprintf( Abc_FrameGlobalGetOut(), "ProbOne = %f  ",  (float)Vec_IntEntry(vProbs,  i)/(32*nWords*nFrames) );
+            fprintf( Abc_FrameGlobalGetOut(), "ProbOneC = %f  ", (float)Vec_IntEntry(vProbs2, i)/(32*nWords*nFrames) );
+            fprintf( Abc_FrameGlobalGetOut(), "AllZeroValue = %d ", Aig_ObjPhase(pObj) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
 
@@ -366,7 +366,7 @@ void Saig_ManFilterUsingInd( Aig_Man_t * p, Vec_Vec_t * vCands, int nConfs, int 
     pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     // check candidates
     if ( fVerbose )
-        printf( "Filtered cands:  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Filtered cands:  " );
     Counter = 0;
     Vec_VecForEachLevel( vCands, vNodes, i )
     {
@@ -378,13 +378,13 @@ void Saig_ManFilterUsingInd( Aig_Man_t * p, Vec_Vec_t * vCands, int nConfs, int 
             {
                 Vec_PtrWriteEntry( vNodes, k2++, pObj );
                 if ( fVerbose )
-                    printf( "%d:%s%d  ", i, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
+                    fprintf( Abc_FrameGlobalGetOut(), "%d:%s%d  ", i, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
             }
         }
         Vec_PtrShrink( vNodes, k2 );
     }
     if ( fVerbose )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     // clean up
     Cnf_DataFree( pCnf );
     sat_solver_delete( pSat );
@@ -552,7 +552,7 @@ int Saig_DetectTryPolarity( sat_solver * pSat, int nConfs, int nProps, Cnf_Dat_t
     if ( *piPat == Vec_PtrReadWordsSimInfo(vInfo) * 32 )
     {
         if ( fVerbose )
-            printf( "Warning: Reached the limit on the number of patterns.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Warning: Reached the limit on the number of patterns.\n" );
         *piPat = 0;
     }
     return 0;
@@ -623,28 +623,28 @@ Vec_Vec_t * Ssw_ManFindDirectImplications( Aig_Man_t * p, int nFrames, int nConf
 
     if ( fVerbose )
     {
-        printf( "Found %3d candidates.\n", Vec_VecSizeSize(vCands) );
+        fprintf( Abc_FrameGlobalGetOut(), "Found %3d candidates.\n", Vec_VecSizeSize(vCands) );
         Vec_VecForEachLevel( vCands, vNodes, k )
         {
-            printf( "Level %d. Cands  =%d    ", k, Vec_PtrSize(vNodes) );
+            fprintf( Abc_FrameGlobalGetOut(), "Level %d. Cands  =%d    ", k, Vec_PtrSize(vNodes) );
 //            Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
 //                printf( "%d:%s%d ", k, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
 
     ABC_FREE( p->pObjCopies );
     Saig_ManFilterUsingInd( p, vCands, nConfs, nProps, fVerbose );
     if ( Vec_VecSizeSize(vCands) )
-        printf( "Found %3d constraints after filtering.\n", Vec_VecSizeSize(vCands) );
+        fprintf( Abc_FrameGlobalGetOut(), "Found %3d constraints after filtering.\n", Vec_VecSizeSize(vCands) );
     if ( fVerbose )
     {
         Vec_VecForEachLevel( vCands, vNodes, k )
         {
-            printf( "Level %d. Constr =%d    ", k, Vec_PtrSize(vNodes) );
+            fprintf( Abc_FrameGlobalGetOut(), "Level %d. Constr =%d    ", k, Vec_PtrSize(vNodes) );
 //            Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
 //                printf( "%d:%s%d ", k, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
 
@@ -678,7 +678,7 @@ Vec_Vec_t * Saig_ManDetectConstrFunc( Aig_Man_t * p, int nFrames, int nConfs, in
     assert( Saig_ManPoNum(p) == 1 );
     if ( Saig_ManPoNum(p) != 1 )
     {
-        printf( "The number of outputs is different from 1.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of outputs is different from 1.\n" );
         return NULL;
     }
 //printf( "Implications = %d.\n", Ssw_ManCountImplications(p, nFrames) );
@@ -688,8 +688,8 @@ Vec_Vec_t * Saig_ManDetectConstrFunc( Aig_Man_t * p, int nFrames, int nConfs, in
     assert( Aig_ManCoNum(pFrames) == 1 );
     if ( fVerbose )
     {
-        printf( "Detecting constraints with %d frames, %d conflicts, and %d propagations.\n", nFrames, nConfs, nProps );
-        printf( "Frames: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Detecting constraints with %d frames, %d conflicts, and %d propagations.\n", nFrames, nConfs, nProps );
+        fprintf( Abc_FrameGlobalGetOut(), "Frames: " );
         Aig_ManPrintStats( pFrames );
     }
 //    Aig_ManShow( pFrames, 0, NULL );
@@ -704,7 +704,7 @@ Vec_Vec_t * Saig_ManDetectConstrFunc( Aig_Man_t * p, int nFrames, int nConfs, in
     status = sat_solver_solve( pSat, &Lit, &Lit + 1, (ABC_INT64_T)nConfs, 0, 0, 0 );
     if ( status == l_False )
     {
-        printf( "The problem is trivially UNSAT (inductive with k=%d).\n", nFrames-1 );
+        fprintf( Abc_FrameGlobalGetOut(), "The problem is trivially UNSAT (inductive with k=%d).\n", nFrames-1 );
         Cnf_DataFree( pCnf );
         sat_solver_delete( pSat );
         Aig_ManStop( pFrames );
@@ -712,7 +712,7 @@ Vec_Vec_t * Saig_ManDetectConstrFunc( Aig_Man_t * p, int nFrames, int nConfs, in
     }
     if ( status == l_Undef )
     {
-        printf( "Solver could not solve the original problem.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Solver could not solve the original problem.\n" );
         Cnf_DataFree( pCnf );
         sat_solver_delete( pSat );
         Aig_ManStop( pFrames );
@@ -734,7 +734,7 @@ Vec_Vec_t * Saig_ManDetectConstrFunc( Aig_Man_t * p, int nFrames, int nConfs, in
 //    Aig_ManShow( p, 0, NULL );
 
     // consider the nodes for ci=>!Out and label when it holds
-    pProgress = Bar_ProgressStart( stdout, Aig_ManObjNumMax(pFrames) );
+    pProgress = Bar_ProgressStart( Abc_FrameGlobalGetOut(), Aig_ManObjNumMax(pFrames) );
     Aig_ManCleanMarkAB( pFrames );
     Aig_ManForEachObj( pFrames, pObj, i )
     {
@@ -774,7 +774,7 @@ Vec_Vec_t * Saig_ManDetectConstrFunc( Aig_Man_t * p, int nFrames, int nConfs, in
 
 //        printf( "\n" );
         if ( fVerbose )
-            printf( "Found %3d classes of candidates.\n", nCands );
+            fprintf( Abc_FrameGlobalGetOut(), "Found %3d classes of candidates.\n", nCands );
         vCands = Vec_VecAlloc( nFrames );
         for ( k = 0; k < nFrames; k++ )
         {
@@ -814,28 +814,28 @@ Vec_Vec_t * Saig_ManDetectConstrFunc( Aig_Man_t * p, int nFrames, int nConfs, in
 //        printf( "\n" );
         if ( fVerbose )
         {
-            printf( "Found %3d candidates.\n", Vec_VecSizeSize(vCands) );
+            fprintf( Abc_FrameGlobalGetOut(), "Found %3d candidates.\n", Vec_VecSizeSize(vCands) );
             Vec_VecForEachLevel( vCands, vNodes, k )
             {
-                printf( "Level %d. Cands  =%d    ", k, Vec_PtrSize(vNodes) );
+                fprintf( Abc_FrameGlobalGetOut(), "Level %d. Cands  =%d    ", k, Vec_PtrSize(vNodes) );
 //                Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
 //                    printf( "%d:%s%d ", k, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
         }
 
         ABC_FREE( p->pObjCopies );
         Saig_ManFilterUsingInd( p, vCands, nConfs, nProps, fVerbose );
         if ( Vec_VecSizeSize(vCands) )
-            printf( "Found %3d constraints after filtering.\n", Vec_VecSizeSize(vCands) );
+            fprintf( Abc_FrameGlobalGetOut(), "Found %3d constraints after filtering.\n", Vec_VecSizeSize(vCands) );
         if ( fVerbose )
         {
             Vec_VecForEachLevel( vCands, vNodes, k )
             {
-                printf( "Level %d. Constr =%d    ", k, Vec_PtrSize(vNodes) );
+                fprintf( Abc_FrameGlobalGetOut(), "Level %d. Constr =%d    ", k, Vec_PtrSize(vNodes) );
 //                Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
 //                    printf( "%d:%s%d ", k, Aig_IsComplement(pObj)? "!":"", Aig_ObjId(Aig_Regular(pObj)) );
-                printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
         }
     }

@@ -216,7 +216,7 @@ Gia_Man_t * Gia_ManInterTest( Gia_Man_t * p )
     Lit = toLitCond( 2*pCnf->nVars, 0 );
     status = sat_solver2_solve( pSat, &Lit, &Lit + 1, 0, 0, 0, 0 );
     assert( status == l_False );
-    Sat_Solver2PrintStats( stdout, pSat );
+    Sat_Solver2PrintStats( Abc_FrameGlobalGetOut(), pSat );
 
     // derive interpolant
     pInter = (Gia_Man_t *)Int2_ManReadInterpolant( pSat );

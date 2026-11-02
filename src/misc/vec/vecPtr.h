@@ -659,17 +659,17 @@ static inline void Vec_PtrCopy( Vec_Ptr_t * pDest, Vec_Ptr_t * pSour )
 static inline void Vec_PtrPrintNames( Vec_Ptr_t * p )
 {
     char * pName; int i;
-    printf( "Vector has %d entries: {", Vec_PtrSize(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "Vector has %d entries: {", Vec_PtrSize(p)  );
     Vec_PtrForEachEntry( char *, p, pName, i )
-        printf( "%s ", pName );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(),  "%s ", pName  );
+    fprintf( Abc_FrameGlobalGetOut(),  " }\n"  );
 }
 static inline void Vec_PtrPrintPointers( Vec_Ptr_t * p )
 {
     void * pTemp; int i;
-    printf( "Vector has %d pointer entries:\n", Vec_PtrSize(p) );
+    fprintf( Abc_FrameGlobalGetOut(),  "Vector has %d pointer entries:\n", Vec_PtrSize(p)  );
     Vec_PtrForEachEntry( void *, p, pTemp, i )
-        printf( "%2d = %p\n", i, pTemp );
+        fprintf( Abc_FrameGlobalGetOut(),  "%2d = %p\n", i, pTemp  );
 }
 
 /**Function*************************************************************

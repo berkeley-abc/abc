@@ -25,16 +25,16 @@ int kissat_has_configuration (const char *name) {
 
 void kissat_configuration_usage (void) {
 #define FMT "  --%-8s %s"
-  printf (FMT "\n", "basic",
+  fprintf ( Abc_FrameGlobalGetOut(), FMT "\n", "basic",
           "basic CDCL solving "
           "('--plain' but no restarts, minimize, reduce)");
-  printf (FMT "\n", "default", "default configuration");
-  printf (FMT "\n", "plain",
+  fprintf ( Abc_FrameGlobalGetOut(), FMT "\n", "default", "default configuration");
+  fprintf ( Abc_FrameGlobalGetOut(), FMT "\n", "plain",
           "plain CDCL solving without advanced techniques");
-  printf (FMT " ('--target=%d --restartint=%d')\n", "sat",
+  fprintf ( Abc_FrameGlobalGetOut(), FMT " ('--target=%d --restartint=%d')\n", "sat",
           "target satisfiable instances", (int) TARGET_SAT,
           (int) RESTARTINT_SAT);
-  printf (FMT " ('--stable=%d')\n", "unsat",
+  fprintf ( Abc_FrameGlobalGetOut(), FMT " ('--stable=%d')\n", "unsat",
           "target unsatisfiable instances", (int) STABLE_UNSAT);
 }
 

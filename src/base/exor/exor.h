@@ -182,4 +182,7 @@ typedef enum { DIST2, DIST3, DIST4 } cubedist;
 
 ABC_NAMESPACE_HEADER_END
 
+extern ABC_DLL FILE *             Abc_FrameGlobalGetOut();
+extern ABC_DLL FILE *             Abc_FrameGlobalGetErr();
+
 #endif

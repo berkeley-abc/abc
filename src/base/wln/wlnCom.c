@@ -124,7 +124,7 @@ int Abc_CommandGraft( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pLib == NULL )
     {
-        printf( "The design is not entered.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The design is not entered.\n" );
         return 1;
     }
     pArgvNew = argv + globalUtilOptind;
@@ -178,7 +178,7 @@ int Abc_CommandHierarchy( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pLib == NULL )
     {
-        printf( "The design is not entered.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The design is not entered.\n" );
         return 1;
     }
     pArgvNew = argv + globalUtilOptind;
@@ -247,7 +247,7 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pLib == NULL )
     {
-        printf( "The design is not entered.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The design is not entered.\n" );
         return 1;
     }
     pNew = Rtl_LibCollapse( pLib, pTopModule, fRev, fVerbose );
@@ -308,7 +308,7 @@ int Abc_CommandPrint( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pLib == NULL )
     {
-        printf( "The design is not entered.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The design is not entered.\n" );
         return 1;
     }
     Rtl_LibPrintStats( pLib );
@@ -371,7 +371,7 @@ int Abc_CommandSolve( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pLib == NULL )
     {
-        printf( "The design is not entered.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The design is not entered.\n" );
         return 1;
     }
     if ( argc == globalUtilOptind + 1 )
@@ -384,12 +384,12 @@ int Abc_CommandSolve( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 0;
         }
         fclose( pFile );
-        printf( "Using guidance from file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Using guidance from file \"%s\".\n", pFileName );
         Wln_SolveWithGuidance( pFileName, pLib );
     }
     else
     {
-        printf( "Solving the miter without guidance.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Solving the miter without guidance.\n" );
         if ( fOldBlast )
             Rtl_LibBlast( pLib );
         else

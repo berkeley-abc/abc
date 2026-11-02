@@ -669,7 +669,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the resulting AIG
     if ( !Aig_ManCheck(pNew) )
-        printf( "Dar_ManBalance(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Dar_ManBalance(): The check has failed.\n" );
     return pNew;
 }
 
@@ -720,7 +720,7 @@ void Dar_BalancePrintStats( Aig_Man_t * p )
     int i, k;
     if ( Aig_ManExorNum(p) == 0 )
     {
-        printf( "There is no EXOR gates.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There is no EXOR gates.\n" );
         return;
     }
     Aig_ManForEachExor( p, pObj, i )
@@ -741,15 +741,15 @@ void Dar_BalancePrintStats( Aig_Man_t * p )
             pTemp->fMarkB = 0;
         if ( Vec_PtrSize(vSuper) < 3 )
             continue;
-        printf( "  %d(", Vec_PtrSize(vSuper) );
+        fprintf( Abc_FrameGlobalGetOut(), "  %d(", Vec_PtrSize(vSuper) );
         Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pTemp, k )
-            printf( " %d", pTemp->Level );
-        printf( " )" );
+            fprintf( Abc_FrameGlobalGetOut(), " %d", pTemp->Level );
+        fprintf( Abc_FrameGlobalGetOut(), " )" );
     }
     Vec_PtrFree( vSuper );
     Aig_ManForEachObj( p, pObj, i )
         pObj->fMarkA = 0;
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 ////////////////////////////////////////////////////////////////////////

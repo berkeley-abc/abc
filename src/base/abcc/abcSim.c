@@ -1776,7 +1776,7 @@ int Abc_CommandAbc9MLGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
     if ( nArgcNew == 0 )
-        printf( "Default file names will be used.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Default file names will be used.\n" );
     else
         pFileName = pArgvNew[0];
     if ( nArgcNew != 0 && nArgcNew != 1 )
@@ -2381,7 +2381,7 @@ int Abc_CommandAbc9GenSim( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Random(1);
         Vec_WrdFreeP( &pAbc->pGia->vSimsPi );
         pAbc->pGia->vSimsPi = Vec_WrdStartRandom( Gia_ManCiNum(pAbc->pGia) * nWords );
-        printf( "Generated %d random patterns (%d 64-bit data words) for each input of the AIG.\n", 64*nWords, nWords );
+        fprintf( Abc_FrameGlobalGetOut(), "Generated %d random patterns (%d 64-bit data words) for each input of the AIG.\n", 64*nWords, nWords );
     }
     Gia_ManSimProfile( pAbc->pGia );
     return 0;
@@ -2997,7 +2997,7 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( Gia_ManCoNum(pGia) == 1 )
                 pPars->pFormStr = Gia_DeriveFormula( pGia, ppNamesIn );
             else
-                printf( "The formula BLIF file contains the network with more one output.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "The formula BLIF file contains the network with more one output.\n" );
             ABC_FREE( ppNamesIn );
             Gia_ManStop( pGia );
             Abc_NtkDelete( pNtk2 );
@@ -3026,7 +3026,7 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
                     break;
             }
         }
-        printf( "Using formula \"%s\" from file \"%s\".\n", pPars->pFormStr, pFileName2 );
+        fprintf( Abc_FrameGlobalGetOut(), "Using formula \"%s\" from file \"%s\".\n", pPars->pFormStr, pFileName2 );
     }
     if ( pPars->Algo == 0 && pPars->pFormStr == NULL )
     {
@@ -3090,7 +3090,7 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "Abc_CommandAbc9FFTest(): Old model and gold model have different number of POs.\n" );
             return 0;
         }
-        printf( "Entered spec AIG from file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Entered spec AIG from file \"%s\".\n", pFileName );
     }
     Gia_ManFaultTest( pAbc->pGia, pGold ? pGold : pAbc->pGia, pPars );
     Gia_ManStopP( &pGold );

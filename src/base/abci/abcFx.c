@@ -288,7 +288,7 @@ int Abc_NtkFxCheck( Abc_Ntk_t * pNtk )
 //        Abc_ObjPrint( stdout, pNode );
     Abc_NtkForEachNode( pNtk, pNode, i )
         if ( !Vec_IntCheckUniqueSmall( &pNode->vFanins ) ) {
-            printf( "Fanins of node %d: ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Fanins of node %d: ", i );
             Vec_IntPrint( &pNode->vFanins );
             return 0;
         }
@@ -314,7 +314,7 @@ int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int nNewNodesMax, int LitCountMax, int f
     // check unique fanins
     if ( !Abc_NtkFxCheck(pNtk) )
     {
-        printf( "Abc_NtkFastExtract: Nodes have duplicated fanins. FX is not performed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFastExtract: Nodes have duplicated fanins. FX is not performed.\n" );
         return 0;
     }
     // collect information about the covers
@@ -326,11 +326,11 @@ int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int nNewNodesMax, int LitCountMax, int f
         Abc_NtkFxInsert( pNtk, vCubes );
         Vec_WecFree( vCubes );
         if ( !Abc_NtkCheck( pNtk ) )
-            printf( "Abc_NtkFxPerform: The network check has failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFxPerform: The network check has failed.\n" );
         return 1;
     }
     else
-        printf( "Warning: The network has not been changed by \"fx\".\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The network has not been changed by \"fx\".\n" );
     Vec_WecFree( vCubes );
     return 0;
 }
@@ -442,23 +442,23 @@ static inline void Fx_PrintDivArray( Vec_Int_t * vDiv )
     int i, Lit;
     Vec_IntForEachEntry( vDiv, Lit, i )
         if ( !Abc_LitIsCompl(Lit) )
-            printf( "%d(1)", Abc_Lit2Var(Lit) );
-    printf( " + " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d(1)", Abc_Lit2Var(Lit) );
+    fprintf( Abc_FrameGlobalGetOut(), " + " );
     Vec_IntForEachEntry( vDiv, Lit, i )
         if ( Abc_LitIsCompl(Lit) )
-            printf( "%d(2)", Abc_Lit2Var(Lit) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d(2)", Abc_Lit2Var(Lit) );
 }
 static inline void Fx_PrintDiv( Fx_Man_t * p, int iDiv )
 {
     int i;
-    printf( "%4d : ", p->nDivs );
-    printf( "Div %7d : ", iDiv );
-    printf( "Weight %12.5f  ", Vec_FltEntry(p->vWeights, iDiv) );
+    fprintf( Abc_FrameGlobalGetOut(), "%4d : ", p->nDivs );
+    fprintf( Abc_FrameGlobalGetOut(), "Div %7d : ", iDiv );
+    fprintf( Abc_FrameGlobalGetOut(), "Weight %12.5f  ", Vec_FltEntry(p->vWeights, iDiv) );
     Fx_PrintDivArray( Hsh_VecReadEntry(p->pHash, iDiv) );
     for ( i = Vec_IntSize(Hsh_VecReadEntry(p->pHash, iDiv)) + 3; i < 16; i++ )
-        printf( " " );
-    printf( "Lits =%7d  ", p->nLits );
-    printf( "Divs =%8d  ", Hsh_VecSize(p->pHash) );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
+    fprintf( Abc_FrameGlobalGetOut(), "Lits =%7d  ", p->nLits );
+    fprintf( Abc_FrameGlobalGetOut(), "Divs =%8d  ", Hsh_VecSize(p->pHash) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->timeStart );
 }
 static void Fx_PrintDivisors( Fx_Man_t * p )
@@ -469,12 +469,12 @@ static void Fx_PrintDivisors( Fx_Man_t * p )
 }
 static void Fx_PrintStats( Fx_Man_t * p, abctime clk )
 {
-    printf( "Cubes =%8d  ", Vec_WecSizeUsed(p->vCubes) );
-    printf( "Lits  =%8d  ", Vec_WecSizeUsed(p->vLits) );
-    printf( "Divs  =%8d  ", Hsh_VecSize(p->pHash) );
-    printf( "Divs+ =%8d  ", Vec_QueSize(p->vPrio) );
-    printf( "Compl =%8d  ", p->nDivMux[1] );
-    printf( "Extr  =%7d  ", p->nDivs );
+    fprintf( Abc_FrameGlobalGetOut(), "Cubes =%8d  ", Vec_WecSizeUsed(p->vCubes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Lits  =%8d  ", Vec_WecSizeUsed(p->vLits) );
+    fprintf( Abc_FrameGlobalGetOut(), "Divs  =%8d  ", Hsh_VecSize(p->pHash) );
+    fprintf( Abc_FrameGlobalGetOut(), "Divs+ =%8d  ", Vec_QueSize(p->vPrio) );
+    fprintf( Abc_FrameGlobalGetOut(), "Compl =%8d  ", p->nDivMux[1] );
+    fprintf( Abc_FrameGlobalGetOut(), "Extr  =%7d  ", p->nDivs );
     Abc_PrintTime( 1, "Time", clk );
 }
 
@@ -597,7 +597,7 @@ int Fx_ManDivFindCubeFree( Vec_Int_t * vArr1, Vec_Int_t * vArr2, Vec_Int_t * vCu
     while ( pBeg2 < pEnd2 )
         Vec_IntPush( vCubeFree, Abc_Var2Lit(*pBeg2++, fAttr1) );
     if ( Vec_IntSize(vCubeFree) == 0 )
-        printf( "The SOP has duplicated cubes.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The SOP has duplicated cubes.\n" );
     else if ( Vec_IntSize(vCubeFree) == 1 )
         return -1;
     else if ( Vec_IntSize( vCubeFree ) == 3 )

@@ -143,7 +143,7 @@ void Super_Precompute( Mio_Library_t * pLibGen, int nVarsMax, int nLevels, int n
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {     
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
     vStr = Super_PrecomputeStr( pLibGen, nVarsMax, nLevels, nGatesMax, tDelayMax, tAreaMax, TimeLimit, fSkipInv, fVerbose );
@@ -156,8 +156,8 @@ void Super_Precompute( Mio_Library_t * pLibGen, int nVarsMax, int nLevels, int n
     // report the result of writing
     if ( fVerbose )
     {
-        printf( "The supergates are written using new format \"%s\" ", pFileName );
-        printf( "(%0.3f MB).\n", ((double)Extra_FileSize(pFileName))/(1<<20) );
+        fprintf( Abc_FrameGlobalGetOut(), "The supergates are written using new format \"%s\" ", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "(%0.3f MB).\n", ((double)Extra_FileSize(pFileName))/(1<<20) );
     }
 }
 
@@ -183,8 +183,8 @@ Vec_Str_t * Super_PrecomputeStr( Mio_Library_t * pLibGen, int nVarsMax, int nLev
     assert( nVarsMax < 7 );
     if ( nGatesMax && nGatesMax < nVarsMax )
     {
-        fprintf( stderr, "Erro! The number of supergates requested (%d) in less than the number of variables (%d).\n", nGatesMax, nVarsMax );
-        fprintf( stderr, "The library cannot be computed.\n" );
+        fprintf( Abc_FrameGlobalGetErr(),  "Erro! The number of supergates requested (%d) in less than the number of variables (%d).\n", nGatesMax, nVarsMax );
+        fprintf( Abc_FrameGlobalGetErr(),  "The library cannot be computed.\n" );
         return NULL;
     }
 
@@ -192,8 +192,8 @@ Vec_Str_t * Super_PrecomputeStr( Mio_Library_t * pLibGen, int nVarsMax, int nLev
     ppGates = Mio_CollectRoots( pLibGen, nVarsMax, tDelayMax, 0, &nGates, fVerbose );
     if ( nGatesMax && nGates >= nGatesMax )
     {
-        fprintf( stdout, "Warning! Genlib library contains more gates than can be computed.\n");
-        fprintf( stdout, "Only one-gate supergates are included in the supergate library.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning! Genlib library contains more gates than can be computed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Only one-gate supergates are included in the supergate library.\n" );
     }
 
     // start the manager
@@ -209,8 +209,8 @@ Vec_Str_t * Super_PrecomputeStr( Mio_Library_t * pLibGen, int nVarsMax, int nLev
 
     if ( nGates == 0 )
     {
-        fprintf( stderr, "Error: No genlib gates satisfy the limits criteria. Stop.\n");
-        fprintf( stderr, "Limits: max delay =  %.2f, max area =  %.2f, time limit = %d sec.\n", 
+        fprintf( Abc_FrameGlobalGetErr(),  "Error: No genlib gates satisfy the limits criteria. Stop.\n");
+        fprintf( Abc_FrameGlobalGetErr(),  "Limits: max delay =  %.2f, max area =  %.2f, time limit = %d sec.\n", 
             pMan->tDelayMax, pMan->tAreaMax, pMan->TimeLimit );
 
         // stop the manager
@@ -227,9 +227,9 @@ Vec_Str_t * Super_PrecomputeStr( Mio_Library_t * pLibGen, int nVarsMax, int nLev
     clockStart = Abc_Clock();
 if ( fVerbose )
 {
-    printf( "Computing supergates with %d inputs, %d levels, and %d max gates.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Computing supergates with %d inputs, %d levels, and %d max gates.\n", 
         pMan->nVarsMax, nLevels, nGatesMax );
-    printf( "Limits: max delay =  %.2f, max area =  %.2f, time limit = %d sec.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Limits: max delay =  %.2f, max area =  %.2f, time limit = %d sec.\n", 
         pMan->tDelayMax, pMan->tAreaMax, pMan->TimeLimit );
 }
 
@@ -242,18 +242,18 @@ clk = Abc_Clock();
         pMan->nLevels = Level;
 if ( fVerbose )
 {
-        printf( "Lev %d: Try =%12d. Add =%6d. Rem =%5d. Save =%6d. Lookups =%12d. Aliases =%12d. ",
+        fprintf( Abc_FrameGlobalGetOut(), "Lev %d: Try =%12d. Add =%6d. Rem =%5d. Save =%6d. Lookups =%12d. Aliases =%12d. ",
            Level, pMan->nTried, pMan->nAdded, pMan->nRemoved, pMan->nAdded - pMan->nRemoved, pMan->nLookups, pMan->nAliases );
 ABC_PRT( "Time", Abc_Clock() - clk );
-fflush( stdout );
+fflush( Abc_FrameGlobalGetOut() );
 }
     }
     pMan->Time = Abc_Clock() - clockStart;
 
 if ( fVerbose )
 {
-printf( "Writing the output file...\n" );
-fflush( stdout );
+fprintf( Abc_FrameGlobalGetOut(), "Writing the output file...\n" );
+fflush( Abc_FrameGlobalGetOut() );
 }
     // write them into a file
     vStr = Super_Write( pMan );
@@ -368,18 +368,18 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
     // sort the gates in the increasing order of maximum delay
     if ( pMan->nGates > 10000 )
     {
-        printf( "Sorting array of %d supergates...\r", pMan->nGates );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "Sorting array of %d supergates...\r", pMan->nGates );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     qsort( (void *)pMan->pGates, (size_t)pMan->nGates, sizeof(Super_Gate_t *), 
             (int (*)(const void *, const void *)) Super_DelayCompare );
     assert( Super_DelayCompare( pMan->pGates, pMan->pGates + pMan->nGates - 1 ) <= 0 );
     if ( pMan->nGates > 10000 )
     {
-        printf( "                                       \r" );
+        fprintf( Abc_FrameGlobalGetOut(), "                                       \r" );
     }
 
-    pProgress = Extra_ProgressBarStart( stdout, pMan->TimeLimit );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), pMan->TimeLimit );
     pMan->TimePrint = Abc_Clock() + CLOCKS_PER_SEC;
     ppGatesLimit = ABC_ALLOC( Super_Gate_t *, pMan->nGates );
     // go through the root gates
@@ -419,19 +419,19 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
 
         if ( pMan->fVerbose )
         {
-            printf ("Trying %d choices for %d inputs\r", t, Mio_GateReadPinNum(ppGates[k]) );
+            fprintf ( Abc_FrameGlobalGetOut(), "Trying %d choices for %d inputs\r", t, Mio_GateReadPinNum(ppGates[k]) );
         }
 
         // resort part of this range by area
         // now we can prune the search by going up in the list until we reach the limit on area
         // all the gates beyond this point can be skipped because their area can be only larger
         if ( nGatesLimit > 10000 )
-            printf( "Sorting array of %d supergates...\r", nGatesLimit );
+            fprintf( Abc_FrameGlobalGetOut(), "Sorting array of %d supergates...\r", nGatesLimit );
         qsort( (void *)ppGatesLimit, (size_t)nGatesLimit, sizeof(Super_Gate_t *), 
                 (int (*)(const void *, const void *)) Super_AreaCompare );
         assert( Super_AreaCompare( ppGatesLimit, ppGatesLimit + nGatesLimit - 1 ) <= 0 );
         if ( nGatesLimit > 10000 )
-            printf( "                                       \r" );
+            fprintf( Abc_FrameGlobalGetOut(), "                                       \r" );
 
         // consider the combinations of gates with the root gate on top
         AreaMio = (float)Mio_GateReadArea(ppGates[k]);
@@ -747,7 +747,7 @@ int Super_CheckTimeout( ProgressBar * pPro, Super_Man_t * pMan )
     }
     if ( pMan->TimeStop && TimeNow > pMan->TimeStop )
     {
-        printf ("Timeout!\n");
+        fprintf ( Abc_FrameGlobalGetOut(), "Timeout!\n");
         return 1;
     }
     pMan->nTried++;
@@ -990,7 +990,7 @@ Vec_Str_t * Super_Write( Super_Man_t * pMan )
 
     if ( pMan->nGates < 1 )
     {
-        printf( "The generated library is empty. No output file written.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The generated library is empty. No output file written.\n" );
         return NULL;
     }
 
@@ -1285,8 +1285,8 @@ void Super_WriteLibrary( Super_Man_t * pMan )
 
     if ( pMan->fVerbose )
     {
-        printf( "The supergates are written using old format \"%s\" ", FileName );
-        printf( "(%0.3f MB).\n", ((double)Extra_FileSize(FileName))/(1<<20) );
+        fprintf( Abc_FrameGlobalGetOut(), "The supergates are written using old format \"%s\" ", FileName );
+        fprintf( Abc_FrameGlobalGetOut(), "(%0.3f MB).\n", ((double)Extra_FileSize(FileName))/(1<<20) );
     }
 
     ABC_FREE( FileName );
@@ -1367,8 +1367,8 @@ void Super_WriteLibraryTreeFile( Super_Man_t * pMan )
 
 if ( pMan->fVerbose )
 {
-    printf( "The supergates are written using new format \"%s\" ", FileName );
-    printf( "(%0.3f MB).\n", ((double)Extra_FileSize(FileName))/(1<<20) );
+    fprintf( Abc_FrameGlobalGetOut(), "The supergates are written using new format \"%s\" ", FileName );
+    fprintf( Abc_FrameGlobalGetOut(), "(%0.3f MB).\n", ((double)Extra_FileSize(FileName))/(1<<20) );
 }
 
     ABC_FREE( FileName );
@@ -1453,7 +1453,7 @@ void Super_WriteLibraryTree( Super_Man_t * pMan )
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {     
-        printf( "Cannot open output file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open output file \"%s\".\n", pFileName );
         return;
     }
     vStr = Super_WriteLibraryTreeStr( pMan );
@@ -1463,8 +1463,8 @@ void Super_WriteLibraryTree( Super_Man_t * pMan )
     // report the result of writing
     if ( pMan->fVerbose )
     {
-        printf( "The supergates are written using new format \"%s\" ", pFileName );
-        printf( "(%0.3f MB).\n", ((double)Extra_FileSize(pFileName))/(1<<20) );
+        fprintf( Abc_FrameGlobalGetOut(), "The supergates are written using new format \"%s\" ", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "(%0.3f MB).\n", ((double)Extra_FileSize(pFileName))/(1<<20) );
     }
 }
 

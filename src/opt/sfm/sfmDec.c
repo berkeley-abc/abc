@@ -265,7 +265,7 @@ void Sfm_DecStop( Sfm_Dec_t * p )
     Abc_Obj_t * pObj; int i;
     Abc_NtkForEachNode( pNtk, pObj, i )
         if ( (int)pObj->Level != Abc_ObjLevelNew(pObj) )
-            printf( "Level count mismatch at node %d.\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Level count mismatch at node %d.\n", i );
     Sfm_LibStop( p->pLib );
     if ( p->pTim ) Sfm_TimStop( p->pTim );
     if ( p->pMit ) Sfm_MitStop( p->pMit );
@@ -589,31 +589,31 @@ void Sfm_DecPrint( Sfm_Dec_t * p, word Masks[2][SFM_SIM_WORDS] )
     for ( c = 0; c < 2; c++ )
     {
         Vec_Int_t * vLevel = Vec_WecEntry( &p->vObjFanins, p->iTarget );
-        printf( "%s-SET of object %d (divs = %d) with gate \"%s\" and fanins: ", 
+        fprintf( Abc_FrameGlobalGetOut(), "%s-SET of object %d (divs = %d) with gate \"%s\" and fanins: ", 
             c ? "OFF": "ON", p->iTarget, p->nDivs, 
             Mio_GateReadName((Mio_Gate_t *)Vec_PtrEntry(&p->vGateHands, Vec_IntEntry(&p->vObjGates,p->iTarget))) );
         Vec_IntForEachEntry( vLevel, Entry, i )
-            printf( "%d ", Entry );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Entry );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-        printf( "Implications: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Implications: " );
         Vec_IntForEachEntry( &p->vImpls[c], Entry, i )
-            printf( "%s%d(%d) ", Abc_LitIsCompl(Entry)? "!":"", Abc_Lit2Var(Entry), Sfm_DecFindCost(p, c, Entry, Masks[!c]) );
-        printf( "\n" );
-        printf( "     " );
+            fprintf( Abc_FrameGlobalGetOut(), "%s%d(%d) ", Abc_LitIsCompl(Entry)? "!":"", Abc_Lit2Var(Entry), Sfm_DecFindCost(p, c, Entry, Masks[!c]) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "     " );
         for ( i = 0; i < p->nDivs; i++ )
-            printf( "%d", (i / 10) % 10 );
-        printf( "\n" );
-        printf( "     " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", (i / 10) % 10 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "     " );
         for ( i = 0; i < p->nDivs; i++ )
-            printf( "%d", i % 10 );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", i % 10 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         for ( k = 0; k < p->nPats[c]; k++ )
         {
-            printf( "%2d : ", k );
+            fprintf( Abc_FrameGlobalGetOut(), "%2d : ", k );
             for ( i = 0; i < p->nDivs; i++ )
-                printf( "%d", Abc_TtGetBit(Sfm_DecDivPats(p, i, c), k) );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_TtGetBit(Sfm_DecDivPats(p, i, c), k) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         //printf( "\n" );
     }
@@ -878,16 +878,16 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
     assert( nAssump <= SFM_SUPP_MAX );
     if ( p->pPars->fVeryVerbose )
     {
-        printf( "\nObject %d\n", p->iTarget );
-        printf( "Divs = %d.  Nodes = %d.  Mffc = %d.  Mffc area = %.2f.    ", p->nDivs, Vec_IntSize(&p->vObjGates), p->nMffc, Scl_Int2Flt(p->AreaMffc) );
-        printf( "Pat0 = %d.  Pat1 = %d.    ", p->nPats[0], p->nPats[1] );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\nObject %d\n", p->iTarget );
+        fprintf( Abc_FrameGlobalGetOut(), "Divs = %d.  Nodes = %d.  Mffc = %d.  Mffc area = %.2f.    ", p->nDivs, Vec_IntSize(&p->vObjGates), p->nMffc, Scl_Int2Flt(p->AreaMffc) );
+        fprintf( Abc_FrameGlobalGetOut(), "Pat0 = %d.  Pat1 = %d.    ", p->nPats[0], p->nPats[1] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         if ( nAssump )
         {
-            printf( "Cofactor: " );
+            fprintf( Abc_FrameGlobalGetOut(), "Cofactor: " );
             for ( i = 0; i < nAssump; i++ )
-                printf( " %s%d", Abc_LitIsCompl(pAssump[i])? "!":"", Abc_Lit2Var(pAssump[i]) );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " %s%d", Abc_LitIsCompl(pAssump[i])? "!":"", Abc_Lit2Var(pAssump[i]) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
     }
     // check constant
@@ -910,7 +910,7 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
             p->timeSatUnsat += Abc_Clock() - clk;
             Abc_TtConst( pTruth, Abc_TtWordNum(p->pPars->nVarMax), c );
             if ( p->pPars->fVeryVerbose )
-                printf( "Found constant %d.\n", c );
+                fprintf( Abc_FrameGlobalGetOut(), "Found constant %d.\n", c );
             return 0;
         }
         assert( status == l_True );
@@ -1003,13 +1003,13 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
         Abc_TtUnit( pTruth, Abc_TtWordNum(p->pPars->nVarMax), Abc_LitIsCompl(Impls[0]) );
         pSupp[0] = Abc_Lit2Var(Impls[0]);
         if ( p->pPars->fVeryVerbose )
-            printf( "Found variable %s%d.\n", Abc_LitIsCompl(Impls[0]) ? "!":"", pSupp[0] );
+            fprintf( Abc_FrameGlobalGetOut(), "Found variable %s%d.\n", Abc_LitIsCompl(Impls[0]) ? "!":"", pSupp[0] );
         return 1;        
     }
     if ( nSuppAdd > p->pPars->nVarMax - 2 )
     {
         if ( p->pPars->fVeryVerbose )
-            printf( "The number of assumption is more than MFFC size.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The number of assumption is more than MFFC size.\n" );
         return -2;
     }
     // try using all implications at once
@@ -1071,7 +1071,7 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
             Abc_TtStretch6( pTruth, nFinal, p->pPars->nVarMax );
             p->nNodesAndOr++;
             if ( p->pPars->fVeryVerbose )
-                printf( "Found %d-input AND/OR gate.\n", nFinal );
+                fprintf( Abc_FrameGlobalGetOut(), "Found %d-input AND/OR gate.\n", nFinal );
             return nFinal;
         }
         assert( status == l_True );
@@ -1128,8 +1128,8 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
     if ( p->pPars->fVeryVerbose )
     {
         Sfm_DecPrint( p, Masks );
-        printf( "Best var %d\n", Var );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Best var %d\n", Var );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 cofactor:
     // cofactor the problem
@@ -1203,7 +1203,7 @@ int Sfm_DecPeformDec2( Sfm_Dec_t * p, Abc_Obj_t * pObj )
     p->fComplResult = 0;
     //Sfm_DecPrint( p, NULL );
     if ( fVeryVerbose )
-        printf( "\nNode %4d : MFFC %2d\n", p->iTarget, p->nMffc );
+        fprintf( Abc_FrameGlobalGetOut(), "\nNode %4d : MFFC %2d\n", p->iTarget, p->nMffc );
     assert( p->pPars->nDecMax <= SFM_DEC_MAX );
     Vec_IntClear( &p->vObjDec );
     for ( i = 0; i < nDecs; i++ )
@@ -1219,11 +1219,11 @@ int Sfm_DecPeformDec2( Sfm_Dec_t * p, Abc_Obj_t * pObj )
         if ( nSupp[i] == -2 )
         {
             if ( fVeryVerbose )
-                printf( "Dec  %d: Pat0 = %2d  Pat1 = %2d  NO DEC.\n", i, p->nPats[0], p->nPats[1] );
+                fprintf( Abc_FrameGlobalGetOut(), "Dec  %d: Pat0 = %2d  Pat1 = %2d  NO DEC.\n", i, p->nPats[0], p->nPats[1] );
             continue;
         }
         if ( fVeryVerbose )
-            printf( "Dec  %d: Pat0 = %2d  Pat1 = %2d  Supp = %d  ", i, p->nPats[0], p->nPats[1], nSupp[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "Dec  %d: Pat0 = %2d  Pat1 = %2d  Supp = %d  ", i, p->nPats[0], p->nPats[1], nSupp[i] );
         if ( fVeryVerbose )
             Dau_DsdPrintFromTruth( uTruth[i], nSupp[i] );
         if ( nSupp[i] < 2 )
@@ -1300,13 +1300,13 @@ int Sfm_DecPeformDec2( Sfm_Dec_t * p, Abc_Obj_t * pObj )
     if ( iBest == -1 )
     {
         if ( fVeryVerbose )
-            printf( "Best  : NO DEC.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Best  : NO DEC.\n" );
         p->nNoDecs++;
         //printf( "\n" );
         return -2;
     }
     if ( fVeryVerbose )
-        printf( "Best %d: %d  ", iBest, nSupp[iBest] );
+        fprintf( Abc_FrameGlobalGetOut(), "Best %d: %d  ", iBest, nSupp[iBest] );
     if ( fVeryVerbose )
       Dau_DsdPrintFromTruth( uTruth[iBest], nSupp[iBest] );
     // implement
@@ -1342,7 +1342,7 @@ int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
     p->DelayMin = 0;
     //Sfm_DecPrint( p, NULL );
     if ( fVeryVerbose )
-        printf( "\nNode %4d : MFFC %2d\n", p->iTarget, p->nMffc );
+        fprintf( Abc_FrameGlobalGetOut(), "\nNode %4d : MFFC %2d\n", p->iTarget, p->nMffc );
     // set limit on search for decompositions in delay-model
     assert( p->pPars->nDecMax <= SFM_DEC_MAX );
     Vec_IntClear( &p->vObjDec );
@@ -1361,23 +1361,23 @@ int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
         if ( nSupp[i] == -2 )
         {
             if ( fVeryVerbose )
-                printf( "Dec  %d: Pat0 = %2d  Pat1 = %2d  NO DEC.\n", i, p->nPats[0], p->nPats[1] );
+                fprintf( Abc_FrameGlobalGetOut(), "Dec  %d: Pat0 = %2d  Pat1 = %2d  NO DEC.\n", i, p->nPats[0], p->nPats[1] );
             continue;
         }
         if ( fVeryVerbose )
-            printf( "Dec  %d: Pat0 = %2d  Pat1 = %2d  Supp = %d  ", i, p->nPats[0], p->nPats[1], nSupp[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "Dec  %d: Pat0 = %2d  Pat1 = %2d  Supp = %d  ", i, p->nPats[0], p->nPats[1], nSupp[i] );
         if ( fVeryVerbose )
             Dau_DsdPrintFromTruth( uTruth[i], nSupp[i] );
         if ( p->pTim && nSupp[i] == 1 && uTruth[i][0] == ABC_CONST(0x5555555555555555) && DelayMin <= p->DelayInv + Sfm_ManReadObjDelay(p, Vec_IntEntry(&p->vObjMap, pSupp[i][0])) )
         {
             if ( fVeryVerbose )
-                printf( "Dec  %d: Pat0 = %2d  Pat1 = %2d  NO DEC.\n", i, p->nPats[0], p->nPats[1] );
+                fprintf( Abc_FrameGlobalGetOut(), "Dec  %d: Pat0 = %2d  Pat1 = %2d  NO DEC.\n", i, p->nPats[0], p->nPats[1] );
             continue;
         }
         if ( p->pMit && nSupp[i] == 1 && uTruth[i][0] == ABC_CONST(0x5555555555555555) )
         {
             if ( fVeryVerbose )
-                printf( "Dec  %d: Pat0 = %2d  Pat1 = %2d  NO DEC.\n", i, p->nPats[0], p->nPats[1] );
+                fprintf( Abc_FrameGlobalGetOut(), "Dec  %d: Pat0 = %2d  Pat1 = %2d  NO DEC.\n", i, p->nPats[0], p->nPats[1] );
             continue;
         }
         if ( nSupp[i] < 2 )
@@ -1450,12 +1450,12 @@ int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
     if ( iBest == -1 )
     {
         if ( fVeryVerbose )
-            printf( "Best  : NO DEC.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Best  : NO DEC.\n" );
         p->nNoDecs++;
         return -2;
     }
     if ( fVeryVerbose )
-        printf( "Best %d: %d  ", iBest, nSupp[iBest] );
+        fprintf( Abc_FrameGlobalGetOut(), "Best %d: %d  ", iBest, nSupp[iBest] );
 //    if ( fVeryVerbose )
 //        Dau_DsdPrintFromTruth( uTruth[iBest], nSupp[iBest] );
     RetValue = Sfm_LibImplementGatesDelay( p->pLib, pSupp[iBest], pGate1Best, pGate2Best, pFans1Best, pFans2Best, &p->vObjGates, &p->vObjFanins );
@@ -1560,9 +1560,9 @@ int Abc_NtkDfsOne_rec( Abc_Obj_t * pObj, Vec_Int_t * vTfi, int nLevelMin, int Ci
 void Sfm_DecAddNode( Abc_Obj_t * pObj, Vec_Int_t * vMap, Vec_Int_t * vGates, int fSkip, int fVeryVerbose )
 {
     if ( fVeryVerbose )
-        printf( "%d:%d(%d) ", Vec_IntSize(vMap), Abc_ObjId(pObj), pObj->iTemp );
+        fprintf( Abc_FrameGlobalGetOut(), "%d:%d(%d) ", Vec_IntSize(vMap), Abc_ObjId(pObj), pObj->iTemp );
     if ( fVeryVerbose )
-        Abc_ObjPrint( stdout, pObj );
+        Abc_ObjPrint( Abc_FrameGlobalGetOut(), pObj );
     Vec_IntPush( vMap, Abc_ObjId(pObj) );
     Vec_IntPush( vGates, fSkip ? -1 : Mio_GateReadValue((Mio_Gate_t *)pObj->pData) );
 }
@@ -1697,7 +1697,7 @@ int Sfm_DecExtract( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars, Abc_Obj_t * pPivot, Vec
     int i, k, nTfiSize, nDivs = -1;
     assert( Abc_ObjIsNode(pPivot) );
 if ( fVeryVerbose )
-printf( "\n\nTarget %d\n", Abc_ObjId(pPivot) );
+fprintf( Abc_FrameGlobalGetOut(), "\n\nTarget %d\n", Abc_ObjId(pPivot) );
     // collect TFO nodes
     Vec_IntClear( vTfo );
     Abc_NtkIncrementTravId( pNtk );
@@ -1722,7 +1722,7 @@ printf( "\n\nTarget %d\n", Abc_ObjId(pPivot) );
     Sfm_DecMarkMffc( pPivot, nLevelMin, pPars->nMffcMax, fVeryVerbose, vMffc, vInMffc, pTim, pMit );
     assert( Vec_IntSize(vMffc) <= pPars->nMffcMax );
 if ( fVeryVerbose )
-printf( "Mffc size = %d. Mffc area = %.2f. InMffc size = %d.\n", Vec_IntSize(vMffc), Scl_Int2Flt(Sfm_DecMffcArea(pNtk, vMffc)), Vec_IntSize(vInMffc) );
+fprintf( Abc_FrameGlobalGetOut(), "Mffc size = %d. Mffc area = %.2f. InMffc size = %d.\n", Vec_IntSize(vMffc), Scl_Int2Flt(Sfm_DecMffcArea(pNtk, vMffc)), Vec_IntSize(vInMffc) );
     // collect TFI(TFO)
     Abc_NtkForEachObjVec( vRoots, pNtk, pObj, i )
         Abc_NtkDfsOne_rec( pObj, vTfi, nLevelMin, SFM_MASK_INPUT );
@@ -1734,7 +1734,7 @@ printf( "Mffc size = %d. Mffc area = %.2f. InMffc size = %d.\n", Vec_IntSize(vMf
                     pFanin->iTemp = SFM_MASK_FANIN;
     // collect nodes supported only on TFI fanins and not MFFC
 if ( fVeryVerbose )
-printf( "\nDivs:\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\nDivs:\n" );
     Vec_IntClear( vMap );
     Vec_IntClear( vGates );
     Abc_NtkForEachObjVec( vTfi, pNtk, pObj, i )
@@ -1743,7 +1743,7 @@ printf( "\nDivs:\n" );
     nDivs = Vec_IntSize(vMap);
     // add other nodes that are not in TFO and not in MFFC
 if ( fVeryVerbose )
-printf( "\nSides:\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\nSides:\n" );
     Abc_NtkForEachObjVec( vTfi, pNtk, pObj, i )
         if ( pObj->iTemp == (SFM_MASK_PI | SFM_MASK_INPUT) || pObj->iTemp == SFM_MASK_FANIN )
             Sfm_DecAddNode( pObj, vMap, vGates, pObj->iTemp == SFM_MASK_FANIN, fVeryVerbose );
@@ -1782,13 +1782,13 @@ printf( "\nSides:\n" );
     }
     // add the TFO nodes
 if ( fVeryVerbose )
-printf( "\nTFO:\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\nTFO:\n" );
     Abc_NtkForEachObjVec( vTfi, pNtk, pObj, i )
         if ( pObj->iTemp >= SFM_MASK_MFFC )
             Sfm_DecAddNode( pObj, vMap, vGates, 0, fVeryVerbose );
     assert( Vec_IntSize(vMap) == Vec_IntSize(vGates) );
 if ( fVeryVerbose )
-printf( "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
     // create node IDs
     Vec_WecClear( vFanins );
     Abc_NtkForEachObjVec( vMap, pNtk, pObj, i )
@@ -1987,9 +1987,9 @@ static Abc_Obj_t * Sfm_DecApplyPhase( Sfm_Dec_t * p, Abc_Obj_t * pInv )
 void Sfm_DecPrintStats( Sfm_Dec_t * p )
 {
     int i;
-    printf( "Node = %d. Try = %d. Change = %d.   Const0 = %d. Const1 = %d. Buf = %d. Inv = %d. Gate = %d. AndOr = %d. Effort = %d.  NoDec = %d.\n",
+    fprintf( Abc_FrameGlobalGetOut(), "Node = %d. Try = %d. Change = %d.   Const0 = %d. Const1 = %d. Buf = %d. Inv = %d. Gate = %d. AndOr = %d. Effort = %d.  NoDec = %d.\n",
         p->nTotalNodesBeg, p->nNodesTried, p->nNodesChanged, p->nNodesConst0, p->nNodesConst1, p->nNodesBuf, p->nNodesInv, p->nNodesResyn, p->nNodesAndOr, p->nEfforts, p->nNoDecs );
-    printf( "MaxDiv = %d. MaxWin = %d.   AveDiv = %d. AveWin = %d.   Calls = %d. (Sat = %d. Unsat = %d.)  Over = %d.  T/O = %d.\n",
+    fprintf( Abc_FrameGlobalGetOut(), "MaxDiv = %d. MaxWin = %d.   AveDiv = %d. AveWin = %d.   Calls = %d. (Sat = %d. Unsat = %d.)  Over = %d.  T/O = %d.\n",
         p->nMaxDivs, p->nMaxWin, (int)(p->nAllDivs/Abc_MaxInt(1, p->nNodesTried)), (int)(p->nAllWin/Abc_MaxInt(1, p->nNodesTried)), p->nSatCalls, p->nSatCallsSat, p->nSatCallsUnsat, p->nSatCallsOver, p->nTimeOuts );
 
     if ( p->pPars->fArea )
@@ -2008,22 +2008,22 @@ void Sfm_DecPrintStats( Sfm_Dec_t * p )
     ABC_PRTP( "Other ", p->timeOther,           p->timeTotal );
     ABC_PRTP( "ALL   ", p->timeTotal,           p->timeTotal );
 
-    printf( "Cone sizes:  " );
+    fprintf( Abc_FrameGlobalGetOut(), "Cone sizes:  " );
     for ( i = 0; i <= SFM_SUPP_MAX; i++ )
         if ( p->nLuckySizes[i] )
-            printf( "%d=%d  ", i, p->nLuckySizes[i] );
-    printf( "  " );
+            fprintf( Abc_FrameGlobalGetOut(), "%d=%d  ", i, p->nLuckySizes[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "  " );
 
-    printf( "Gate sizes:  " );
+    fprintf( Abc_FrameGlobalGetOut(), "Gate sizes:  " );
     for ( i = 0; i <= SFM_SUPP_MAX; i++ )
         if ( p->nLuckyGates[i] )
-            printf( "%d=%d  ", i, p->nLuckyGates[i] );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d=%d  ", i, p->nLuckyGates[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( "Reduction:   " );
-    printf( "Nodes  %6d out of %6d (%6.2f %%)   ", p->nTotalNodesBeg-p->nTotalNodesEnd, p->nTotalNodesBeg, 100.0*(p->nTotalNodesBeg-p->nTotalNodesEnd)/Abc_MaxInt(1, p->nTotalNodesBeg) );
-    printf( "Edges  %6d out of %6d (%6.2f %%)   ", p->nTotalEdgesBeg-p->nTotalEdgesEnd, p->nTotalEdgesBeg, 100.0*(p->nTotalEdgesBeg-p->nTotalEdgesEnd)/Abc_MaxInt(1, p->nTotalEdgesBeg) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Reduction:   " );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes  %6d out of %6d (%6.2f %%)   ", p->nTotalNodesBeg-p->nTotalNodesEnd, p->nTotalNodesBeg, 100.0*(p->nTotalNodesBeg-p->nTotalNodesEnd)/Abc_MaxInt(1, p->nTotalNodesBeg) );
+    fprintf( Abc_FrameGlobalGetOut(), "Edges  %6d out of %6d (%6.2f %%)   ", p->nTotalEdgesBeg-p->nTotalEdgesEnd, p->nTotalEdgesBeg, 100.0*(p->nTotalEdgesBeg-p->nTotalEdgesEnd)/Abc_MaxInt(1, p->nTotalEdgesBeg) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Abc_NtkCountStats( Sfm_Dec_t * p, int Limit )
 {
@@ -2119,7 +2119,7 @@ clk = Abc_Clock();
         }
     }
     if ( p->pPars->fVeryVerbose )
-        printf( "\n\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n\n" );
 p->timeSat += Abc_Clock() - clk;
     if ( RetValue < 0 )
         return NULL;
@@ -2274,7 +2274,7 @@ clk = Abc_Clock();
                 }
             }
             if ( p->pPars->fVeryVerbose )
-                printf( "\n\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n\n" );
 p->timeSat += Abc_Clock() - clk;
             if ( RetValue < 0 )
             {
@@ -2300,7 +2300,7 @@ p->timeTime += Abc_Clock() - clk;
             assert( p->pMit || p->DelayMin == 0 || p->DelayMin == Sfm_ManReadObjDelay(p, Abc_ObjId(pObjNew)) );
             // report
             if ( pPars->fDelayVerbose )
-                printf( "Node %5d  %5d :  I =%3d.  Cand = %5d (%6.2f %%)   Old =%8.2f.  New =%8.2f.  Final =%8.2f.  WNS =%8.2f.\n", 
+                fprintf( Abc_FrameGlobalGetOut(), "Node %5d  %5d :  I =%3d.  Cand = %5d (%6.2f %%)   Old =%8.2f.  New =%8.2f.  Final =%8.2f.  WNS =%8.2f.\n", 
                     OldId, Abc_NtkObjNumMax(p->pNtk), i, Vec_IntSize(&p->vCands), 100.0 * Vec_IntSize(&p->vCands) / Abc_NtkNodeNum(p->pNtk),
                     Scl_Int2Flt(DelayOld), Scl_Int2Flt(Sfm_ManReadObjDelay(p, Abc_ObjId(pObjNew))), 
                     Scl_Int2Flt(Sfm_ManReadNtkDelay(p)), Scl_Int2Flt(Sfm_ManReadNtkMinSlack(p)) );
@@ -2329,36 +2329,36 @@ int Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     p = Sfm_DecStart( pPars, (Mio_Library_t *)pNtk->pManFunc, pNtk );
     if ( pPars->fVerbose )
     {
-        printf( "Remapping parameters: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Remapping parameters: " );
         if ( pPars->nTfoLevMax )
-            printf( "TFO = %d. ",     pPars->nTfoLevMax );
+            fprintf( Abc_FrameGlobalGetOut(), "TFO = %d. ",     pPars->nTfoLevMax );
         if ( pPars->nTfiLevMax )
-            printf( "TFI = %d. ",     pPars->nTfiLevMax );
+            fprintf( Abc_FrameGlobalGetOut(), "TFI = %d. ",     pPars->nTfiLevMax );
         if ( pPars->nFanoutMax )
-            printf( "FanMax = %d. ",  pPars->nFanoutMax );
+            fprintf( Abc_FrameGlobalGetOut(), "FanMax = %d. ",  pPars->nFanoutMax );
         if ( pPars->nWinSizeMax )
-            printf( "WinMax = %d. ",  pPars->nWinSizeMax );
+            fprintf( Abc_FrameGlobalGetOut(), "WinMax = %d. ",  pPars->nWinSizeMax );
         if ( pPars->nBTLimit )
-            printf( "Confl = %d. ",   pPars->nBTLimit );
+            fprintf( Abc_FrameGlobalGetOut(), "Confl = %d. ",   pPars->nBTLimit );
         if ( pPars->nMffcMin && pPars->fArea )
-            printf( "MffcMin = %d. ", pPars->nMffcMin );
+            fprintf( Abc_FrameGlobalGetOut(), "MffcMin = %d. ", pPars->nMffcMin );
         if ( pPars->nMffcMax && pPars->fArea )
-            printf( "MffcMax = %d. ", pPars->nMffcMax );
+            fprintf( Abc_FrameGlobalGetOut(), "MffcMax = %d. ", pPars->nMffcMax );
         if ( pPars->nDecMax )
-            printf( "DecMax = %d. ",  pPars->nDecMax );
+            fprintf( Abc_FrameGlobalGetOut(), "DecMax = %d. ",  pPars->nDecMax );
         if ( pPars->iNodeOne )
-            printf( "Pivot = %d. ",   pPars->iNodeOne );
+            fprintf( Abc_FrameGlobalGetOut(), "Pivot = %d. ",   pPars->iNodeOne );
         if ( !pPars->fArea )
-            printf( "Win = %d. ",     pPars->nTimeWin );
+            fprintf( Abc_FrameGlobalGetOut(), "Win = %d. ",     pPars->nTimeWin );
         if ( !pPars->fArea )
-            printf( "Delta = %.2f ps. ", Scl_Int2Flt(p->DeltaCrit) );
+            fprintf( Abc_FrameGlobalGetOut(), "Delta = %.2f ps. ", Scl_Int2Flt(p->DeltaCrit) );
         if ( pPars->fArea )
-            printf( "0-cost = %s. ",  pPars->fZeroCost ? "yes" : "no" );
+            fprintf( Abc_FrameGlobalGetOut(), "0-cost = %s. ",  pPars->fZeroCost ? "yes" : "no" );
         if ( pPars->fArea && pPars->fAreaTiming )
-            printf( "Delay limit = %.2f. ", Scl_Int2Flt(Sfm_TimReadNtkDelay(p->pTim)) );
-        printf( "Effort = %s. ",      pPars->fMoreEffort ? "yes" : "no" );
-        printf( "Sim = %s. ",         pPars->fUseSim ? "yes" : "no" );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Delay limit = %.2f. ", Scl_Int2Flt(Sfm_TimReadNtkDelay(p->pTim)) );
+        fprintf( Abc_FrameGlobalGetOut(), "Effort = %s. ",      pPars->fMoreEffort ? "yes" : "no" );
+        fprintf( Abc_FrameGlobalGetOut(), "Sim = %s. ",         pPars->fUseSim ? "yes" : "no" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // preparation steps
     Abc_NtkLevel( pNtk );

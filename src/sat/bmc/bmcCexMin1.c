@@ -554,7 +554,7 @@ Abc_Cex_t * Saig_ManCexMinPerform( Aig_Man_t * pAig, Abc_Cex_t * pCex )
     Aig_Man_t * pManNew = NULL;
     Vec_Vec_t * vFrameReas;
     vFrameReas = Saig_ManCexMinComputeReason( pAig, pCex, fReasonPi );
-    printf( "Reason size = %d.  Ave = %d.\n", Vec_VecSizeSize(vFrameReas), Vec_VecSizeSize(vFrameReas)/(pCex->iFrame + 1) );
+    fprintf( Abc_FrameGlobalGetOut(), "Reason size = %d.  Ave = %d.\n", Vec_VecSizeSize(vFrameReas), Vec_VecSizeSize(vFrameReas)/(pCex->iFrame + 1) );
 
     // try reducing the frames
     if ( !fReasonPi )
@@ -563,7 +563,7 @@ Abc_Cex_t * Saig_ManCexMinPerform( Aig_Man_t * pAig, Abc_Cex_t * pCex )
         pManNew = Saig_ManCexMinDupWithCubes( pAig, vFrameReas );
         Ioa_WriteAiger( pManNew, pFileName, 0, 0 );
         Aig_ManStop( pManNew );
-        printf( "Intermediate AIG is written into file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Intermediate AIG is written into file \"%s\".\n", pFileName );
     }
 
     // find reduced counter-example

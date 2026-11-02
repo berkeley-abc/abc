@@ -478,19 +478,19 @@ int Gia_ManTerRetire( Gia_ManTer_t * p, unsigned * pThis, unsigned * pPrev )
 void Gia_ManTerStatePrint( unsigned * pState, int nRegs, int iNum )
 {
     int i, nZeros = 0, nOnes = 0, nDcs = 0;
-    printf( " %4d : ", iNum );
+    fprintf( Abc_FrameGlobalGetOut(), " %4d : ", iNum );
     for ( i = 0; i < nRegs; i++ )
     {
         if ( Gia_ManTerSimInfoGet(pState, i) == GIA_ZER )
-            printf( "0" ), nZeros++;
+            fprintf( Abc_FrameGlobalGetOut(),  "0"  ), nZeros++;
         else if ( Gia_ManTerSimInfoGet(pState, i) == GIA_ONE )
-            printf( "1" ), nOnes++;
+            fprintf( Abc_FrameGlobalGetOut(),  "1"  ), nOnes++;
         else if ( Gia_ManTerSimInfoGet(pState, i) == GIA_UND )
-            printf( "x" ), nDcs++;
+            fprintf( Abc_FrameGlobalGetOut(),  "x"  ), nDcs++;
         else
             assert( 0 );
     }
-    printf( " (0=%4d, 1=%4d, x=%4d)\n", nZeros, nOnes, nDcs );
+    fprintf( Abc_FrameGlobalGetOut(), " (0=%4d, 1=%4d, x=%4d)\n", nZeros, nOnes, nDcs );
 }
 
 /**Function*************************************************************
@@ -519,7 +519,7 @@ void Gia_ManTerAnalyze2( Vec_Ptr_t * vStates, int nRegs )
     for ( i = 0; i < nRegs; i++ )
         if ( Gia_ManTerSimInfoGet(pStates, i) == GIA_ZER )
             nZeros++;
-    printf( "Found %d constant registers.\n", nZeros );
+    fprintf( Abc_FrameGlobalGetOut(), "Found %d constant registers.\n", nZeros );
     // detect non-ternary registers
     memset( pStates, 0, sizeof(int) * nStateWords );
     Vec_PtrForEachEntry( unsigned *, vStates, pTemp, i )
@@ -530,7 +530,7 @@ void Gia_ManTerAnalyze2( Vec_Ptr_t * vStates, int nRegs )
     for ( i = 0; i < nRegs; i++ )
         if ( Gia_ManTerSimInfoGet(pStates, i) == 0 )
             nConsts++;
-    printf( "Found %d non-ternary registers.\n", nConsts );
+    fprintf( Abc_FrameGlobalGetOut(), "Found %d non-ternary registers.\n", nConsts );
     // return the state back
     Vec_PtrPush( vStates, pStates );
 }
@@ -651,7 +651,7 @@ int * Gia_ManTerCreateMap( Gia_ManTer_t * p, int fVerbose )
         }
     Vec_IntFree( vMapKtoI );
     if ( fVerbose )
-        printf( "Transforming %d const and %d equiv registers.\n", Counter0, CounterE );
+        fprintf( Abc_FrameGlobalGetOut(), "Transforming %d const and %d equiv registers.\n", Counter0, CounterE );
     return pCi2Lit;
 }
 
@@ -679,9 +679,9 @@ Gia_ManTer_t * Gia_ManTerSimulate( Gia_Man_t * pAig, int fVerbose )
     p = Gia_ManTerCreate( pAig );
     if ( 0 )
     {
-        printf( "Obj = %8d (%8d). F = %6d. ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Obj = %8d (%8d). F = %6d. ", 
             pAig->nObjs, Gia_ManCiNum(pAig) + Gia_ManAndNum(pAig), p->pAig->nFront );
-        printf( "AIG = %7.2f MB. F-mem = %7.2f MB. Other = %7.2f MB.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "AIG = %7.2f MB. F-mem = %7.2f MB. Other = %7.2f MB.  ", 
             12.0*Gia_ManObjNum(p->pAig)/(1<<20), 
             4.0*Abc_BitWordNum(2 * p->pAig->nFront)/(1<<20), 
             4.0*Abc_BitWordNum(2 * (Gia_ManCiNum(pAig) + Gia_ManCoNum(pAig)))/(1<<20) );
@@ -719,7 +719,7 @@ Gia_ManTer_t * Gia_ManTerSimulate( Gia_Man_t * pAig, int fVerbose )
     }
     if ( fVerbose )
     {
-        printf( "Ternary simulation saturated after %d iterations. ", i+1 );
+        fprintf( Abc_FrameGlobalGetOut(), "Ternary simulation saturated after %d iterations. ", i+1 );
         ABC_PRT( "Time", Abc_Clock() - clkTotal );
     }
     return p;

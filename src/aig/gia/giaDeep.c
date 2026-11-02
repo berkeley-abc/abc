@@ -110,34 +110,34 @@ Gia_Man_t * Gia_ManDeepSynOne( int nNoImpr, int TimeOut, int nAnds, int Seed, in
         }
         if ( fChange && fVerbose )
         {
-            printf( "Iter %6d : ", i );
-            printf( "Time %8.2f sec : ", (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC );
-            printf( "And = %6d  ", Gia_ManAndNum(pNew) );
-            printf( "Lev = %3d  ", Gia_ManLevelNum(pNew) );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %6d : ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Time %8.2f sec : ", (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC );
+            fprintf( Abc_FrameGlobalGetOut(), "And = %6d  ", Gia_ManAndNum(pNew) );
+            fprintf( Abc_FrameGlobalGetOut(), "Lev = %3d  ", Gia_ManLevelNum(pNew) );
             if ( fChange ) 
-                printf( "<== best : " );
+                fprintf( Abc_FrameGlobalGetOut(), "<== best : " );
             else if ( fVerbose )
-                printf( "           " );
-            printf( "%s", Command );
-            printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "           " );
+            fprintf( Abc_FrameGlobalGetOut(), "%s", Command );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         if ( nTimeToStop && Abc_Clock() > nTimeToStop )
         {
             if ( !Abc_FrameIsBatchMode() )
-            printf( "Runtime limit (%d sec) is reached after %d iterations.\n", TimeOut, i );
+            fprintf( Abc_FrameGlobalGetOut(), "Runtime limit (%d sec) is reached after %d iterations.\n", TimeOut, i );
             break;
         }
         if ( i - iIterLast > nNoImpr )
         {
-            printf( "Completed %d iterations without improvement in %.2f seconds.\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Completed %d iterations without improvement in %.2f seconds.\n", 
                 nNoImpr, (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC );
             break;
         }
     }
     if ( i == IterMax )
-        printf( "Iteration limit (%d iters) is reached after %.2f seconds.\n", IterMax, (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC );
+        fprintf( Abc_FrameGlobalGetOut(), "Iteration limit (%d iters) is reached after %.2f seconds.\n", IterMax, (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC );
     else if ( nAnds && nAndsMin <= nAnds )
-        printf( "Quality goal (%d nodes <= %d nodes) is achieved after %d iterations and %.2f seconds.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Quality goal (%d nodes <= %d nodes) is achieved after %d iterations and %.2f seconds.\n", 
             nAndsMin, nAnds, i, (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC );
     return pNew;
 }
@@ -264,17 +264,17 @@ static void Gia_ManDeepSynParetoPrint( Vec_Ptr_t * vPareto )
 {
     Gia_Man_t * pTemp;
     int i, fFirst = 1;
-    printf( "Pareto points:" );
+    fprintf( Abc_FrameGlobalGetOut(), "Pareto points:" );
     Vec_PtrForEachEntry( Gia_Man_t *, vPareto, pTemp, i )
     {
         if ( pTemp == NULL )
             continue;
-        printf( "%s%d:%d", fFirst ? " " : " ", i, Gia_ManAndNum(pTemp) );
+        fprintf( Abc_FrameGlobalGetOut(), "%s%d:%d", fFirst ? " " : " ", i, Gia_ManAndNum(pTemp) );
         fFirst = 0;
     }
     if ( fFirst )
-        printf( " none" );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " none" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 static void Gia_ManDeepSynParetoSave( Vec_Ptr_t * vPareto, char * pBase )
@@ -363,18 +363,18 @@ Gia_Man_t * Gia_ManDeepSynOne2( int nNoImpr, int TimeOut, int nAnds, int Seed, i
         }
         if ( fChange && fVerbose )
         {
-            printf( "Iter %6d : ", i );
-            printf( "Time %8.2f sec : ", (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC );
-            printf( "Lev = %3d  ", nLevelsMin );
-            printf( "And = %6d  ", nAndsMin );
-            printf( "<== best : " );
-            printf( "%s", Command );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %6d : ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Time %8.2f sec : ", (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC );
+            fprintf( Abc_FrameGlobalGetOut(), "Lev = %3d  ", nLevelsMin );
+            fprintf( Abc_FrameGlobalGetOut(), "And = %6d  ", nAndsMin );
+            fprintf( Abc_FrameGlobalGetOut(), "<== best : " );
+            fprintf( Abc_FrameGlobalGetOut(), "%s", Command );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         if ( nTimeToStop && Abc_Clock() > nTimeToStop )
         {
             if ( !Abc_FrameIsBatchMode() )
-            printf( "Runtime limit (%d sec) is reached after %d iterations.\n", TimeOut, i );
+            fprintf( Abc_FrameGlobalGetOut(), "Runtime limit (%d sec) is reached after %d iterations.\n", TimeOut, i );
             break;
         }
         i++;
@@ -390,10 +390,10 @@ Gia_Man_t * Gia_ManDeepSynOne2( int nNoImpr, int TimeOut, int nAnds, int Seed, i
                 nLuts[k] = nKmin + (Abc_Random(0) % (nKmax - nKmin + 1));
             if ( fVerbose )
             {
-                printf( "Completed %d iterations without improvement. Trying %d outer iterations with ", nNoImpr, nOuter );
+                fprintf( Abc_FrameGlobalGetOut(), "Completed %d iterations without improvement. Trying %d outer iterations with ", nNoImpr, nOuter );
                 for ( k = 0; k < nOuter; k++ )
-                    printf( "%sK=%d", k ? ", " : "", nLuts[k] );
-                printf( ". Time = %.2f sec\n", (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC );
+                    fprintf( Abc_FrameGlobalGetOut(), "%sK=%d", k ? ", " : "", nLuts[k] );
+                fprintf( Abc_FrameGlobalGetOut(), ". Time = %.2f sec\n", (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC );
             }
             nNoImprCount = 0;
             for ( k = 0; k < nOuter && i < IterMax; k++ )
@@ -438,18 +438,18 @@ Gia_Man_t * Gia_ManDeepSynOne2( int nNoImpr, int TimeOut, int nAnds, int Seed, i
                 }
                 if ( fOuterChange && fVerbose )
                 {
-                    printf( "Iter %6d : ", i );
-                    printf( "Time %8.2f sec : ", (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC );
-                    printf( "Lev = %3d  ", nLevelsMin );
-                    printf( "And = %6d  ", nAndsMin );
-                    printf( "<== best : " );
-                    printf( "%s", Command );
-                    printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Iter %6d : ", i );
+                    fprintf( Abc_FrameGlobalGetOut(), "Time %8.2f sec : ", (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC );
+                    fprintf( Abc_FrameGlobalGetOut(), "Lev = %3d  ", nLevelsMin );
+                    fprintf( Abc_FrameGlobalGetOut(), "And = %6d  ", nAndsMin );
+                    fprintf( Abc_FrameGlobalGetOut(), "<== best : " );
+                    fprintf( Abc_FrameGlobalGetOut(), "%s", Command );
+                    fprintf( Abc_FrameGlobalGetOut(), "\n" );
                 }
                 if ( nTimeToStop && Abc_Clock() > nTimeToStop )
                 {
                     if ( !Abc_FrameIsBatchMode() )
-                    printf( "Runtime limit (%d sec) is reached after %d iterations.\n", TimeOut, i );
+                    fprintf( Abc_FrameGlobalGetOut(), "Runtime limit (%d sec) is reached after %d iterations.\n", TimeOut, i );
                     return pNew;
                 }
                 i++;
@@ -457,7 +457,7 @@ Gia_Man_t * Gia_ManDeepSynOne2( int nNoImpr, int TimeOut, int nAnds, int Seed, i
         }
     }
     if ( i == IterMax )
-        printf( "Iteration limit (%d iters) is reached after %.2f seconds.\n", IterMax, (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC );
+        fprintf( Abc_FrameGlobalGetOut(), "Iteration limit (%d iters) is reached after %.2f seconds.\n", IterMax, (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC );
     return pNew;
 }
 
@@ -511,7 +511,7 @@ Gia_Man_t * Gia_ManDeepSyn2( Gia_Man_t * pGia, int nIters, int nNoImpr, int Time
     for ( i = 0; i < nIters; i++ )
     {
         if ( fVerbose )
-            printf( "ITER %d (out of %d) running for %d seconds\n", i + 1, nIters, TimeOut );
+            fprintf( Abc_FrameGlobalGetOut(), "ITER %d (out of %d) running for %d seconds\n", i + 1, nIters, TimeOut );
         int nThisLev, nThisAnd;
         Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), Gia_ManDup(pInit) );
         pThis = Gia_ManDeepSynOne2( nNoImpr, TimeOut, nAnds, Seed+i, fUseTwo, fVerbose, vGias, vPareto );

@@ -240,14 +240,14 @@ void Aig_TableProfile( Aig_Man_t * p )
 {
     Aig_Obj_t * pEntry;
     int i, Counter;
-    printf( "Table size = %d. Entries = %d.\n", p->nTableSize, Aig_ManNodeNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Table size = %d. Entries = %d.\n", p->nTableSize, Aig_ManNodeNum(p) );
     for ( i = 0; i < p->nTableSize; i++ )
     {
         Counter = 0;
         for ( pEntry = p->pTable[i]; pEntry; pEntry = pEntry->pNext )
             Counter++;
         if ( Counter ) 
-            printf( "%d ", Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "%d ", Counter );
     }
 }
 

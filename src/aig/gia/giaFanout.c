@@ -417,10 +417,10 @@ void Gia_ManStaticFanoutTest( Gia_Man_t * p )
     Gia_ManForEachObj( p, pObj, i )
     {
         Gia_ObjPrint( p, pObj );
-        printf( "   Fanouts : " );
+        fprintf( Abc_FrameGlobalGetOut(), "   Fanouts : " );
         Gia_ObjForEachFanoutStatic( p, pObj, pFanout, k )
-            printf( "%5d ", Gia_ObjId(p, pFanout) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d ", Gia_ObjId(p, pFanout) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Gia_ManStaticFanoutStop( p );
 }

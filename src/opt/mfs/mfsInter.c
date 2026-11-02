@@ -355,7 +355,7 @@ Hop_Obj_t * Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands )
     // solve the problem
     status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)p->pPars->nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( fDumpFile )
-        printf( "File %s has UNSAT problem with %d conflicts.\n", FileName, (int)pSat->stats.conflicts );
+        fprintf( Abc_FrameGlobalGetOut(), "File %s has UNSAT problem with %d conflicts.\n", FileName, (int)pSat->stats.conflicts );
     if ( status != l_False )
     {
         p->nTimeOuts++;

@@ -125,9 +125,9 @@ static inline void Hash_IntManProfile( Hash_IntMan_t * p )
         Count = 0;
         for ( pObj = Hash_IntObj( p, Entry ); pObj; pObj = Hash_IntObj( p, pObj->iNext ) )
             Count++;
-        printf( "%d ", Count );
+        fprintf( Abc_FrameGlobalGetOut(),  "%d ", Count  );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(),  "\n"  );
 }
 
 /**Function*************************************************************

@@ -301,7 +301,7 @@ int Int2_ManPerformInterpolation( Gia_Man_t * pInit, Int2_ManPars_t * pPars )
             {
                 if ( i == 0 )
                 {
-                    printf( "Satisfiable in frame %d.\n", f );
+                    fprintf( Abc_FrameGlobalGetOut(), "Satisfiable in frame %d.\n", f );
                     Vec_IntFree( vCiMap );
                     sat_solver_delete( p->pSatPref ); p->pSatPref = NULL;
                     return 0;

@@ -109,13 +109,13 @@ double Msat_SolverProgressEstimate( Msat_Solver_t * p )
 ***********************************************************************/
 void Msat_SolverPrintStats( Msat_Solver_t * p )
 {
-    printf("C solver (%d vars; %d clauses; %d learned):\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "C solver (%d vars; %d clauses; %d learned):\n", 
         p->nVars, Msat_ClauseVecReadSize(p->vClauses), Msat_ClauseVecReadSize(p->vLearned) );
-    printf("starts        : %d\n", (int)p->Stats.nStarts);
-    printf("conflicts     : %d\n", (int)p->Stats.nConflicts);
-    printf("decisions     : %d\n", (int)p->Stats.nDecisions);
-    printf("propagations  : %d\n", (int)p->Stats.nPropagations);
-    printf("inspects      : %d\n", (int)p->Stats.nInspects);
+    fprintf( Abc_FrameGlobalGetOut(), "starts        : %d\n", (int)p->Stats.nStarts);
+    fprintf( Abc_FrameGlobalGetOut(), "conflicts     : %d\n", (int)p->Stats.nConflicts);
+    fprintf( Abc_FrameGlobalGetOut(), "decisions     : %d\n", (int)p->Stats.nDecisions);
+    fprintf( Abc_FrameGlobalGetOut(), "propagations  : %d\n", (int)p->Stats.nPropagations);
+    fprintf( Abc_FrameGlobalGetOut(), "inspects      : %d\n", (int)p->Stats.nInspects);
 }
 
 /**Function*************************************************************
@@ -172,7 +172,7 @@ int  Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTra
     while ( Status == MSAT_UNKNOWN )
     {
         if ( p->fVerbose )
-            printf("Solving -- conflicts=%d   learnts=%d   progress=%.4f %%\n", 
+            fprintf( Abc_FrameGlobalGetOut(), "Solving -- conflicts=%d   learnts=%d   progress=%.4f %%\n", 
                 (int)nConflictsLimit, (int)nLearnedLimit, p->dProgress*100);
         Status = Msat_SolverSearch( p, (int)nConflictsLimit, (int)nLearnedLimit, nBackTrackLimit, &Params );
         nConflictsLimit *= 1.5;

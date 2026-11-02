@@ -171,14 +171,14 @@ void Aig_ManCheckReprs( Aig_Man_t * p )
         if ( Aig_ObjRepr(p, pObj) == NULL )
             continue;
         if ( !Aig_ObjIsNode(pObj) )
-            printf( "Obj %d is not an AND but it has a repr %d.\n", i, Aig_ObjId(Aig_ObjRepr(p, pObj)) ), fProb = 1;
+            fprintf( Abc_FrameGlobalGetOut(),  "Obj %d is not an AND but it has a repr %d.\n", i, Aig_ObjId(Aig_ObjRepr(p, pObj)) ), fProb = 1;
         else if ( Aig_ObjRepr(p, Aig_ObjRepr(p, pObj)) )
-            printf( "Obj %d has repr %d with a repr %d.\n", i, Aig_ObjId(Aig_ObjRepr(p, pObj)), Aig_ObjId(Aig_ObjRepr(p, Aig_ObjRepr(p, pObj))) ), fProb = 1;
+            fprintf( Abc_FrameGlobalGetOut(),  "Obj %d has repr %d with a repr %d.\n", i, Aig_ObjId(Aig_ObjRepr(p, pObj)), Aig_ObjId(Aig_ObjRepr(p, Aig_ObjRepr(p, pObj))) ), fProb = 1;
     }
     if ( !fProb )
-        printf( "Representive verification successful.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Representive verification successful.\n" );
     else
-        printf( "Representive verification FAILED.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Representive verification FAILED.\n" );
     if ( !fPrintConst )
         return;
     // count how many representatives are const0 or a CI
@@ -189,7 +189,7 @@ void Aig_ManCheckReprs( Aig_Man_t * p )
         if ( Aig_ObjRepr(p, pObj) && Aig_ObjIsCi(Aig_ObjRepr(p, pObj)) )
             ClassCi++;
     }
-    printf( "Const0 nodes = %d.  ConstCI nodes = %d.\n", Class0, ClassCi );
+    fprintf( Abc_FrameGlobalGetOut(), "Const0 nodes = %d.  ConstCI nodes = %d.\n", Class0, ClassCi );
 }
 
 /**Function*************************************************************
@@ -213,34 +213,34 @@ void Dch_CheckChoices( Aig_Man_t * p, int fSkipRedSupps )
         if ( p->pEquivs[i] != NULL )
         {
             if ( pObj->fMarkA == 1 )
-                printf( "node %d participates in more than one choice class\n", i ), fProb = 1;
+                fprintf( Abc_FrameGlobalGetOut(),  "node %d participates in more than one choice class\n", i ), fProb = 1;
             pObj->fMarkA = 1;
             // check redundancy
             if ( fSkipRedSupps && Dch_ObjCheckSuppRed( p, pObj, p->pEquivs[i]) )
-                printf( "node %d and repr %d have diff supports\n", pObj->Id, p->pEquivs[i]->Id );
+                fprintf( Abc_FrameGlobalGetOut(), "node %d and repr %d have diff supports\n", pObj->Id, p->pEquivs[i]->Id );
             // consider the next one
             pObj = p->pEquivs[i];
             if ( p->pEquivs[Aig_ObjId(pObj)] == NULL )
             {
                 if ( pObj->fMarkA == 1 )
-                    printf( "repr %d has final node %d participates in more than one choice class\n", i, pObj->Id ), fProb = 1;
+                    fprintf( Abc_FrameGlobalGetOut(),  "repr %d has final node %d participates in more than one choice class\n", i, pObj->Id ), fProb = 1;
                 pObj->fMarkA = 1;
             }
             // consider the non-head ones
             if ( pObj->nRefs > 0 )
-                printf( "node %d belonging to choice has fanout %d\n", pObj->Id, pObj->nRefs );
+                fprintf( Abc_FrameGlobalGetOut(), "node %d belonging to choice has fanout %d\n", pObj->Id, pObj->nRefs );
         }
         if ( p->pReprs && p->pReprs[i] != NULL )
         {
             if ( pObj->nRefs > 0 )
-                printf( "node %d has representative %d and fanout count %d\n", pObj->Id, p->pReprs[i]->Id, pObj->nRefs ), fProb = 1;
+                fprintf( Abc_FrameGlobalGetOut(),  "node %d has representative %d and fanout count %d\n", pObj->Id, p->pReprs[i]->Id, pObj->nRefs ), fProb = 1;
         }
     }
     Aig_ManCleanMarkA( p );
     if ( !fProb )
-        printf( "Verification of choice AIG succeeded.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification of choice AIG succeeded.\n" );
     else
-        printf( "Verification of choice AIG FAILED.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification of choice AIG FAILED.\n" );
 }
 
 /**Function*************************************************************

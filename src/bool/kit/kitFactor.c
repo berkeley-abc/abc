@@ -327,7 +327,7 @@ void Kit_FactorTest( unsigned * pTruth, int nVars )
     if ( uTruthRes != pTruth[0] )
         printf( "Verification failed!" );
 */
-    printf( "Vars = %2d. Cubes = %3d. FFNodes = %3d. FF_memory = %3d.\n",
+    fprintf( Abc_FrameGlobalGetOut(), "Vars = %2d. Cubes = %3d. FFNodes = %3d. FF_memory = %3d.\n",
         nVars, Vec_IntSize(vCover), Kit_GraphNodeNum(pGraph), Vec_IntSize(vMemory) );
 
     Vec_IntFree( vMemory );

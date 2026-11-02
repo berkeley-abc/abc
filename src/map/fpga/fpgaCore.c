@@ -116,11 +116,11 @@ int Fpga_MappingPostProcess( Fpga_Man_t * p )
     aAreaTotalCur = Fpga_MappingSetRefsAndArea( p );
 if ( p->fVerbose )
 {
-printf( "Iteration %dD :  Area = %8.1f  ", Iter++, aAreaTotalCur );
+fprintf( Abc_FrameGlobalGetOut(), "Iteration %dD :  Area = %8.1f  ", Iter++, aAreaTotalCur );
 if ( fShowSwitching )
-printf( "Switch = %8.1f  ", Fpga_MappingGetSwitching(p,p->vMapping) );
+fprintf( Abc_FrameGlobalGetOut(), "Switch = %8.1f  ", Fpga_MappingGetSwitching(p,p->vMapping) );
 else
-printf( "Delay = %5.2f  ", Fpga_TimeComputeArrivalMax(p) );
+fprintf( Abc_FrameGlobalGetOut(), "Delay = %5.2f  ", Fpga_TimeComputeArrivalMax(p) );
 
 ABC_PRT( "Time", p->timeMatch );
 }
@@ -142,11 +142,11 @@ clk = clock();
         // for some reason, this works better on benchmarks
 if ( p->fVerbose )
 {
-printf( "Iteration %dF :  Area = %8.1f  ", Iter++, aAreaTotalCur );
+fprintf( Abc_FrameGlobalGetOut(), "Iteration %dF :  Area = %8.1f  ", Iter++, aAreaTotalCur );
 if ( fShowSwitching )
-printf( "Switch = %8.1f  ", Fpga_MappingGetSwitching(p,p->vMapping) );
+fprintf( Abc_FrameGlobalGetOut(), "Switch = %8.1f  ", Fpga_MappingGetSwitching(p,p->vMapping) );
 else
-printf( "Delay = %5.2f  ", Fpga_TimeComputeArrivalMax(p) );
+fprintf( Abc_FrameGlobalGetOut(), "Delay = %5.2f  ", Fpga_TimeComputeArrivalMax(p) );
 ABC_PRT( "Time", clock() - clk );
 }
     }
@@ -169,11 +169,11 @@ clk = clock();
         aAreaTotalCur = Fpga_MappingSetRefsAndArea( p );
 if ( p->fVerbose )
 {
-printf( "Iteration %d%s :  Area = %8.1f  ", Iter++, (p->fSwitching?"S":"A"), aAreaTotalCur );
+fprintf( Abc_FrameGlobalGetOut(), "Iteration %d%s :  Area = %8.1f  ", Iter++, (p->fSwitching?"S":"A"), aAreaTotalCur );
 if ( fShowSwitching )
-printf( "Switch = %8.1f  ", Fpga_MappingGetSwitching(p,p->vMapping) );
+fprintf( Abc_FrameGlobalGetOut(), "Switch = %8.1f  ", Fpga_MappingGetSwitching(p,p->vMapping) );
 else
-printf( "Delay = %5.2f  ", Fpga_TimeComputeArrivalMax(p) );
+fprintf( Abc_FrameGlobalGetOut(), "Delay = %5.2f  ", Fpga_TimeComputeArrivalMax(p) );
 ABC_PRT( "Time", clock() - clk );
 }
     }

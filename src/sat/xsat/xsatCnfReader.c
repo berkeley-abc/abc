@@ -114,7 +114,7 @@ static int xSAT_ReadInt( char ** pIn )
     else if ( **pIn == '+' )
         (*pIn)++;
     if ( !isdigit(**pIn) )
-        fprintf(stderr, "PARSE ERROR! Unexpected char: %c\n", **pIn),
+        fprintf( Abc_FrameGlobalGetErr(), "PARSE ERROR! Unexpected char: %c\n", **pIn),
         exit(1);
     while ( isdigit(**pIn) )
         val = val*10 + (**pIn - '0'),
@@ -192,7 +192,7 @@ static int xSAT_ParseDimacs( char * pText, xSAT_Solver_t ** pS )
         {
             if ( p == NULL )
             {
-                printf( "There is no parameter line.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "There is no parameter line.\n" );
                 exit(1);
             }
             xSAT_ReadClause( &pIn, p, vLits );

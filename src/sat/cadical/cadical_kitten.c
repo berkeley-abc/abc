@@ -19,12 +19,12 @@ ABC_NAMESPACE_IMPL_START
 typedef signed char value;
 
 static void die (const char *fmt, ...) {
-  fputs ("cadical_kitten: error: ", stderr);
+  fputs ("cadical_kitten: error: ", Abc_FrameGlobalGetErr());
   va_list ap;
   va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
+  vfprintf( Abc_FrameGlobalGetErr(),  fmt, ap);
   va_end (ap);
-  fputc ('\n', stderr);
+  fputc( '\n', Abc_FrameGlobalGetErr() );
   exit (1);
 }
 
@@ -274,75 +274,75 @@ static inline unsigned reference_klause (cadical_kitten *cadical_kitten, const k
 #define logging (cadical_kitten->logging)
 
 static void log_basic (cadical_kitten *, const char *, ...)
-    __attribute__ ((format (printf, 2, 3)));
+    __attribute__ ((format (fprintf, Abc_FrameGlobalGetOut(),  2, 3)));
 
 static void log_basic (cadical_kitten *cadical_kitten, const char *fmt, ...) {
   CADICAL_assert (logging);
-  printf ("c KITTEN %u ", cadical_kitten->level);
+  fprintf ( Abc_FrameGlobalGetOut(), "c KITTEN %u ", cadical_kitten->level);
   va_list ap;
   va_start (ap, fmt);
-  vprintf (fmt, ap);
+  vfprintf ( Abc_FrameGlobalGetOut(), fmt, ap);
   va_end (ap);
-  fputc ('\n', stdout);
-  fflush (stdout);
+  fputc( '\n', Abc_FrameGlobalGetOut() );
+  fflush( Abc_FrameGlobalGetOut() );
 }
 
 static void log_reference (cadical_kitten *, unsigned, const char *, ...)
-    __attribute__ ((format (printf, 3, 4)));
+    __attribute__ ((format (fprintf, Abc_FrameGlobalGetOut(),  3, 4)));
 
 static void log_reference (cadical_kitten *cadical_kitten, unsigned ref, const char *fmt,
                            ...) {
   klause *c = dereference_klause (cadical_kitten, ref);
   CADICAL_assert (logging);
-  printf ("c KITTEN %u ", cadical_kitten->level);
+  fprintf ( Abc_FrameGlobalGetOut(), "c KITTEN %u ", cadical_kitten->level);
   va_list ap;
   va_start (ap, fmt);
-  vprintf (fmt, ap);
+  vfprintf ( Abc_FrameGlobalGetOut(), fmt, ap);
   va_end (ap);
   if (is_learned_klause (c)) {
-    fputs (" learned", stdout);
+    fputs (" learned", Abc_FrameGlobalGetOut());
     if (c->aux)
-      printf ("[%u]", c->aux);
+      fprintf ( Abc_FrameGlobalGetOut(), "[%u]", c->aux);
   } else {
-    fputs (" original", stdout);
+    fputs (" original", Abc_FrameGlobalGetOut());
     if (c->aux != INVALID)
-      printf ("[%u]", c->aux);
+      fprintf ( Abc_FrameGlobalGetOut(), "[%u]", c->aux);
   }
-  printf (" size %u clause[%u]", c->size, ref);
+  fprintf ( Abc_FrameGlobalGetOut(), " size %u clause[%u]", c->size, ref);
   value *values = cadical_kitten->values;
   kar *vars = cadical_kitten->vars;
   for (all_literals_in_klause (lit, c)) {
-    printf (" %u", lit);
+    fprintf ( Abc_FrameGlobalGetOut(), " %u", lit);
     const value value = values[lit];
     if (value)
-      printf ("@%u=%d", vars[lit / 2].level, (int) value);
+      fprintf ( Abc_FrameGlobalGetOut(), "@%u=%d", vars[lit / 2].level, (int) value);
   }
-  fputc ('\n', stdout);
-  fflush (stdout);
+  fputc( '\n', Abc_FrameGlobalGetOut() );
+  fflush( Abc_FrameGlobalGetOut() );
 }
 
 static void log_literals (cadical_kitten *, unsigned *, unsigned, const char *, ...)
-    __attribute__ ((format (printf, 4, 5)));
+    __attribute__ ((format (fprintf, Abc_FrameGlobalGetOut(),  4, 5)));
 
 static void log_literals (cadical_kitten *cadical_kitten, unsigned *lits, unsigned size,
                           const char *fmt, ...) {
   CADICAL_assert (logging);
-  printf ("c KITTEN %u ", cadical_kitten->level);
+  fprintf ( Abc_FrameGlobalGetOut(), "c KITTEN %u ", cadical_kitten->level);
   va_list ap;
   va_start (ap, fmt);
-  vprintf (fmt, ap);
+  vfprintf ( Abc_FrameGlobalGetOut(), fmt, ap);
   va_end (ap);
   value *values = cadical_kitten->values;
   kar *vars = cadical_kitten->vars;
   for (unsigned i = 0; i < size; i++) {
     const unsigned lit = lits[i];
-    printf (" %u", lit);
+    fprintf ( Abc_FrameGlobalGetOut(), " %u", lit);
     const value value = values[lit];
     if (value)
-      printf ("@%u=%d", vars[lit / 2].level, (int) value);
+      fprintf ( Abc_FrameGlobalGetOut(), "@%u=%d", vars[lit / 2].level, (int) value);
   }
-  fputc ('\n', stdout);
-  fflush (stdout);
+  fputc( '\n', Abc_FrameGlobalGetOut() );
+  fflush( Abc_FrameGlobalGetOut() );
 }
 
 #define LOG(...) \
@@ -568,13 +568,13 @@ static const char *status_to_string (int status) {
 }
 
 static void invalid_api_usage (const char *fun, const char *fmt, ...) {
-  fprintf (stderr, "cadical_kitten: fatal error: invalid API usage in '%s': ", fun);
+  fprintf( Abc_FrameGlobalGetErr(), "cadical_kitten: fatal error: invalid API usage in '%s': ", fun);
   va_list ap;
   va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
+  vfprintf( Abc_FrameGlobalGetErr(),  fmt, ap);
   va_end (ap);
-  fputc ('\n', stderr);
-  fflush (stderr);
+  fputc( '\n', Abc_FrameGlobalGetErr() );
+  fflush( Abc_FrameGlobalGetErr() );
   abort ();
 }
 

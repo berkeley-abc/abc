@@ -150,14 +150,14 @@ int Abc_CommandATMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( nAdder < 2 || nAdder > 4 )
     {
-        printf( "The terminal adder should have 2, 3, or 4 bits.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The terminal adder should have 2, 3, or 4 bits.\n" );
         return 0;
     }
     pGPCs = argv + globalUtilOptind;
     nGPCs = argc - globalUtilOptind;
     if ( nGPCs == 0 )
     {
-        printf( "GPCs are not listed on the command line. The simplest GPC (full adder) will be used.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "GPCs are not listed on the command line. The simplest GPC (full adder) will be used.\n" );
         pGPCs = pGPCs0;
         nGPCs = 1;
     }
@@ -449,7 +449,7 @@ int Abc_CommandAbc9Polyn( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc >= globalUtilOptind + 1 )
     {
-        printf( "Trailing symbols on the command line (\"%s\").\n", argv[globalUtilOptind] );
+        fprintf( Abc_FrameGlobalGetOut(), "Trailing symbols on the command line (\"%s\").\n", argv[globalUtilOptind] );
         return 0;
     }
     if ( fOld )
@@ -872,7 +872,7 @@ int Abc_CommandAbc9GenNeuron( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     pTemp = Gia_ManGenNeuron( argv[globalUtilOptind], nBits, nLutSize, fDump, fVerbose );
     if ( fVerbose )
-        printf( "Generated %d-argument neuron with %d-bit inputs and %d-bit output.\n", Gia_ManCiNum(pTemp)/nBits, nBits, Gia_ManCoNum(pTemp) );
+        fprintf( Abc_FrameGlobalGetOut(), "Generated %d-argument neuron with %d-bit inputs and %d-bit output.\n", Gia_ManCiNum(pTemp)/nBits, nBits, Gia_ManCoNum(pTemp) );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
@@ -1067,7 +1067,7 @@ int Abc_CommandAbc9GenPrefix( Abc_Frame_t * pAbc, int argc, char ** argv )
          int nObjs = 0, nIns = 0, nLatches = 0, nOuts = 0, nAnds = 0;
          int * pObjs = adder_return_array( nBits, nFans, use_or, Seed, nIters, DelayRelax, fVerbose, fDumpVer, fDumpMiter,   &nObjs, &nIns, &nLatches, &nOuts, &nAnds );
          if ( pObjs == NULL ) {
-            printf( "Prefix tree with %d inputs and %d maximum fanout does not exist.\n", nBits, nFans );
+            fprintf( Abc_FrameGlobalGetOut(), "Prefix tree with %d inputs and %d maximum fanout does not exist.\n", nBits, nFans );
          } else {
             Gia_Man_t * pTemp = Gia_ManDupFromArray( pObjs, nObjs, nIns, nLatches, nOuts, nAnds );
             Abc_FrameUpdateGia( pAbc, pTemp );

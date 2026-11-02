@@ -83,7 +83,7 @@ void Wln_WriteNdr( Wln_Ntk_t * p, char * pFileName )
     void * pDesign = Wln_NtkToNdr( p );
     Ndr_Write( pFileName, pDesign );
     Ndr_Delete( pDesign );
-    printf( "Dumped the current design into file \"%s\".\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Dumped the current design into file \"%s\".\n", pFileName );
 }
 void Wln_NtkToNdrTest( Wln_Ntk_t * p )
 {
@@ -134,20 +134,20 @@ int Ndr_ObjGetRange( Ndr_Data_t * p, int Obj, int * End, int * Beg )
 void Ndr_NtkPrintObjects( Wln_Ntk_t * pNtk )
 {
     int k, iObj, iFanin;
-    printf( "Node IDs and their fanins:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Node IDs and their fanins:\n" );
     Wln_NtkForEachObj( pNtk, iObj )
     {
-        printf( "%5d = ", iObj );
+        fprintf( Abc_FrameGlobalGetOut(), "%5d = ", iObj );
         Wln_ObjForEachFanin( pNtk, iObj, iFanin, k )
-            printf( "%5d ", iFanin );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d ", iFanin );
         for (      ; k < 4; k++ )
-            printf( "      " );
-        printf( "    Name Id %d ", Wln_ObjNameId(pNtk, iObj) );
+            fprintf( Abc_FrameGlobalGetOut(), "      " );
+        fprintf( Abc_FrameGlobalGetOut(), "    Name Id %d ", Wln_ObjNameId(pNtk, iObj) );
         if ( Wln_ObjIsPi(pNtk, iObj) )
-            printf( "  pi  " );
+            fprintf( Abc_FrameGlobalGetOut(), "  pi  " );
         if ( Wln_ObjIsPo(pNtk, iObj) )
-            printf( "  po  " );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "  po  " );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void Wln_NtkCheckIntegrity( void * pData )
@@ -162,11 +162,11 @@ void Wln_NtkCheckIntegrity( void * pData )
         {
             int Type = Ndr_ObjReadBody( p, Obj, NDR_OPERTYPE );
             if ( Type != ABC_OPER_CO )
-                printf( "Internal object %d of type %s has no output name.\n", Obj, Abc_OperName(Type) );
+                fprintf( Abc_FrameGlobalGetOut(), "Internal object %d of type %s has no output name.\n", Obj, Abc_OperName(Type) );
             continue;
         }
         if ( Vec_IntGetEntry(vMap, NameId) > 0 )
-            printf( "Output name %d is used more than once (obj %d and obj %d).\n", NameId, Vec_IntGetEntry(vMap, NameId), Obj );
+            fprintf( Abc_FrameGlobalGetOut(), "Output name %d is used more than once (obj %d and obj %d).\n", NameId, Vec_IntGetEntry(vMap, NameId), Obj );
         Vec_IntSetEntry( vMap, NameId, Obj );
     }
     Ndr_ModForEachObj( p, Mod, Obj )
@@ -175,7 +175,7 @@ void Wln_NtkCheckIntegrity( void * pData )
         int i, * pArray, nArray  = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
         for ( i = 0; i < nArray; i++ )
             if ( Vec_IntGetEntry(vMap, pArray[i]) == 0 && !(Type == ABC_OPER_DFFRSE && (i >= 5 && i <= 7)) )
-                printf( "Input name %d appearing as fanin %d of obj %d is not used as output name in any object.\n", pArray[i], i, Obj );
+                fprintf( Abc_FrameGlobalGetOut(), "Input name %d appearing as fanin %d of obj %d is not used as output name in any object.\n", pArray[i], i, Obj );
     }
     Vec_IntFree( vMap );
 }
@@ -274,7 +274,7 @@ Wln_Ntk_t * Wln_NtkFromNdr( void * pData, int fDump )
     if ( fDump )
     {
         Wln_WriteVer( pNtk, "temp_ndr.v" );
-        printf( "Dumped design \"%s\" into file \"temp_ndr.v\".\n", pNtk->pName );
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped design \"%s\" into file \"temp_ndr.v\".\n", pNtk->pName );
     }
     if ( !Wln_NtkIsAcyclic(pNtk) )
     {
@@ -327,7 +327,7 @@ int Wln_NtkRetimeTest( char * pFileName, int fIgnoreIO, int fSkipSimple, int fDu
     Ndr_Delete( pData );
     if ( pNtk == NULL ) 
     {
-        printf( "Retiming network is not available.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Retiming network is not available.\n" );
         return 0;
     }
     Wln_NtkRetimeCreateDelayInfo( pNtk );

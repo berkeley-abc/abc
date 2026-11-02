@@ -261,7 +261,7 @@ Vec_Ptr_t * Aig_ManPartSplit( Aig_Man_t * p, Vec_Int_t * vNode2Part, Vec_Ptr_t *
     {
         if ( Vec_PtrSize(vNodes) == 0 )
         {
-            printf( "Aig_ManPartSplit(): Skipping partition # %d without nodes (warning).\n", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Aig_ManPartSplit(): Skipping partition # %d without nodes (warning).\n", i );
             continue;
         }
         pAig = Aig_ManPartSplitOne( p, vNodes, &vPio2IdOne );
@@ -517,13 +517,13 @@ int Aig_ManPartitionedSat( Aig_Man_t * p, int nAlgo, int nPartSize,
         vNode2Part = Aig_ManPartitionDfs( p, nPartSize, 1 );
         break;
     default:
-        printf( "Unknown partitioning algorithm.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Unknown partitioning algorithm.\n" );
         return -1;
     }
 
     if ( fVerbose )
     {
-    printf( "Partitioning derived %d partitions. ", Vec_IntFindMax(vNode2Part) + 1 );
+    fprintf( Abc_FrameGlobalGetOut(), "Partitioning derived %d partitions. ", Vec_IntFindMax(vNode2Part) + 1 );
     ABC_PRT( "Time", Abc_Clock() - clk );
     }
 
@@ -535,7 +535,7 @@ int Aig_ManPartitionedSat( Aig_Man_t * p, int nAlgo, int nPartSize,
 
     if ( fVerbose )
     {
-    printf( "Partions were transformed into AIGs. " );
+    fprintf( Abc_FrameGlobalGetOut(), "Partions were transformed into AIGs. " );
     ABC_PRT( "Time", Abc_Clock() - clk );
     }
 
@@ -574,7 +574,7 @@ clk = Abc_Clock();
         status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfRemaining, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( fVerbose )
         {
-            printf( "%4d : Aig = %6d. Vs = %7d. RootCs = %7d. LearnCs = %6d. ",
+            fprintf( Abc_FrameGlobalGetOut(), "%4d : Aig = %6d. Vs = %7d. RootCs = %7d. LearnCs = %6d. ",
                 i, nNodes += Aig_ManNodeNum(pAig), sat_solver_nvars(pSat), 
                 (int)pSat->stats.clauses, (int)pSat->stats.learnts );
 ABC_PRT( "Time", Abc_Clock() - clk );
@@ -592,7 +592,7 @@ ABC_PRT( "Time", Abc_Clock() - clk );
         nConfRemaining -= pSat->stats.conflicts;
         if ( nConfRemaining <= 0 )
         {
-            printf( "Exceeded the limit on the total number of conflicts (%d).\n", nConfTotal );
+            fprintf( Abc_FrameGlobalGetOut(), "Exceeded the limit on the total number of conflicts (%d).\n", nConfTotal );
             break;
         }
     }

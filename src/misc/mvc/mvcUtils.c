@@ -859,7 +859,7 @@ int Mvc_UtilsCheckUnusedZeros( Mvc_Cover_t * pCover )
                     (BITS_FULL << (32-pCube->nUnused)) );
         if( Unsigned )
         {
-            printf( "Cube %2d out of %2d contains dirty bits.\n", nCubes, 
+            fprintf( Abc_FrameGlobalGetOut(), "Cube %2d out of %2d contains dirty bits.\n", nCubes, 
                 Mvc_CoverReadCubeNum(pCover) );
         }
         nCubes++;

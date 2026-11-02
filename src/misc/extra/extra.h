@@ -413,6 +413,9 @@ extern ABC_THREAD_LOCAL int          globalUtilOptind;
 
 /**AutomaticEnd***************************************************************/
 
+extern ABC_DLL FILE *   Abc_FrameGlobalGetOut();
+extern ABC_DLL FILE *   Abc_FrameGlobalGetErr();
+
 
 
 ABC_NAMESPACE_HEADER_END

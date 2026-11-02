@@ -169,16 +169,16 @@ int Bmc_EcoSolve( sat_solver * pSat, int Root, Vec_Int_t * vVars )
         nFinal = sat_solver_final( pSat, &pFinal );
         Vec_IntClear( vLits );
         Vec_IntPush( vLits, Abc_LitNot(pLits[1]) ); // NOT(iNewLit)
-        printf( "Cube %d : ", nIter );
+        fprintf( Abc_FrameGlobalGetOut(), "Cube %d : ", nIter );
         for ( i = 0; i < nFinal; i++ )
         {
             if ( pFinal[i] == pLits[0] )
                 continue;
             Vec_IntPush( vLits, pFinal[i] );
             iVar = Vec_IntFind( vVars, Abc_Lit2Var(pFinal[i]) );   assert( iVar >= 0 );
-            printf( "%s%d ", Abc_LitIsCompl(pFinal[i]) ? "+":"-", iVar );
+            fprintf( Abc_FrameGlobalGetOut(), "%s%d ", Abc_LitIsCompl(pFinal[i]) ? "+":"-", iVar );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         status = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
         assert( status );
         nIter++;
@@ -271,14 +271,14 @@ void Bmc_EcoMiterTest()
     pFile = fopen( pFileGold, "r" );
     if ( pFile == NULL )
     {
-        printf( "File \"%s\" does not exist.\n", pFileGold );
+        fprintf( Abc_FrameGlobalGetOut(), "File \"%s\" does not exist.\n", pFileGold );
         return;
     }
     fclose( pFile );
     pFile = fopen( pFileOld, "r" );
     if ( pFile == NULL )
     {
-        printf( "File \"%s\" does not exist.\n", pFileOld );
+        fprintf( Abc_FrameGlobalGetOut(), "File \"%s\" does not exist.\n", pFileOld );
         return;
     }
     fclose( pFile );
@@ -295,11 +295,11 @@ void Bmc_EcoMiterTest()
     // find the patch
     RetValue = Bmc_EcoPatch( pMiter, Gia_ManCiNum(pGold), Gia_ManCoNum(pGold) );
     if ( RetValue == 1 )
-        printf( "Patch is computed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Patch is computed.\n" );
     if ( RetValue == 0 )
-        printf( "Cannot be patched.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot be patched.\n" );
     if ( RetValue == -1 )
-        printf( "Resource limit exceeded.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Resource limit exceeded.\n" );
     Gia_ManStop( pMiter );
 }
 

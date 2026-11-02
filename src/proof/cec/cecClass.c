@@ -307,7 +307,7 @@ int Cec_ManSimClassRefineOne_( Cec_ManSim_t * p, int i )
     s_Count = 0;
     Res = Cec_ManSimClassRefineOne_rec( p, i );
     if ( s_Count > 10 )
-    printf( "%d ", s_Count );
+    fprintf( Abc_FrameGlobalGetOut(), "%d ", s_Count );
     return Res;
 }
 int Cec_ManSimClassRefineOne( Cec_ManSim_t * p, int i )

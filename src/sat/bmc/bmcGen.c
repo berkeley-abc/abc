@@ -146,8 +146,8 @@ int Gia_ManTestSatEnum( Gia_Man_t * p )
     // print outputs
     pSimInfo = Gia_ManMoObj( p, Gia_ObjId(p, Gia_ManCo(p, 0)) );
     for ( i = 0; i < 64*nWords; i++ )
-        printf( "%d", Abc_InfoHasBit( (unsigned *)pSimInfo, i ) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_InfoHasBit( (unsigned *)pSimInfo, i ) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // iterate through the assignments
     for ( i = 0; i < 64*nWords; i++ )
@@ -168,12 +168,12 @@ int Gia_ManTestSatEnum( Gia_Man_t * p )
         clk2 = Abc_Clock();
         status = sat_solver_solve( pSat, NULL, NULL, 0, 0, 0, 0 );
         clkTotal += Abc_Clock() - clk2;
-        printf( "%c", status == l_True ? '+' : '-' );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", status == l_True ? '+' : '-' );
         if ( status == l_True )
             Count++;
     }
-    printf( "\n" );
-    printf( "Finished generating %d assignments.  ", Count );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished generating %d assignments.  ", Count );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Abc_PrintTime( 1, "SAT solver time", clkTotal );
 

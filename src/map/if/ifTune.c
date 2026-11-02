@@ -127,10 +127,10 @@ int Ifn_Prepare( Ifn_Ntk_t * p, word * pTruth, int nVars )
         p->Nodes[i].iFirst = p->nPars;
         p->nPars += (1 << p->Nodes[i].nFanins);
         if ( fVerbose )
-            printf( "Node %d  Start %d  Vars %d\n", i, p->Nodes[i].iFirst, (1 << p->Nodes[i].nFanins) );
+            fprintf( Abc_FrameGlobalGetOut(), "Node %d  Start %d  Vars %d\n", i, p->Nodes[i].iFirst, (1 << p->Nodes[i].nFanins) );
     }
     if ( fVerbose )
-        printf( "Groups start %d\n", p->nPars );
+        fprintf( Abc_FrameGlobalGetOut(), "Groups start %d\n", p->nPars );
     p->nParsVIni = p->nPars;
     p->nParsVNum = Abc_Base2Log(nVars);
     p->nPars    += p->nParsVNum * p->nInps;
@@ -142,19 +142,19 @@ void Ifn_NtkPrint( Ifn_Ntk_t * p )
 {
     int i, k; 
     if ( p == NULL )
-        printf( "String is empty.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "String is empty.\n" );
     if ( p == NULL )
         return;
     for ( i = p->nInps; i < p->nObjs; i++ )
     {
-        printf( "%c=", 'a'+i );
-        printf( "%c", Ifn_Symbs[p->Nodes[i].Type][0] );
+        fprintf( Abc_FrameGlobalGetOut(), "%c=", 'a'+i );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", Ifn_Symbs[p->Nodes[i].Type][0] );
         for ( k = 0; k < (int)p->Nodes[i].nFanins; k++ )
-            printf( "%c", 'a'+p->Nodes[i].Fanins[k] );
-        printf( "%c", Ifn_Symbs[p->Nodes[i].Type][1] );
-        printf( ";" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'a'+p->Nodes[i].Fanins[k] );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", Ifn_Symbs[p->Nodes[i].Type][1] );
+        fprintf( Abc_FrameGlobalGetOut(), ";" );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 int Ifn_NtkLutSizeMax( Ifn_Ntk_t * p )
 {
@@ -187,7 +187,7 @@ int Ifn_ErrorMessage( const char * format, ...  )
     va_start( args, format );
     pMessage = vnsprintf( format, args );
     va_end( args );
-    printf( "%s", pMessage );
+    fprintf( Abc_FrameGlobalGetOut(), "%s", pMessage );
     ABC_FREE( pMessage );
     return 0;
 }
@@ -656,8 +656,8 @@ void Ifn_ManSatPrintPerm( char * pPerms, int nVars )
 {
     int i;
     for ( i = 0; i < nVars; i++ )
-        printf( "%c", 'a' + pPerms[i] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + pPerms[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 int Ifn_ManSatCheckOne( sat_solver * pSat, Vec_Int_t * vPoVars, word * pTruth, int nVars, int * pPerm, int nInps, Vec_Int_t * vLits )
 {
@@ -908,111 +908,111 @@ void If_ManConfigPrint( unsigned char * pConfigData, int nLeaves )
     unsigned char CellId = pConfigData[0];
     int i;
     static ABC_THREAD_LOCAL int Count = 0;
-    printf( "[%4d] ", Count++ );  // Print instance number
+    fprintf( Abc_FrameGlobalGetOut(), "[%4d] ", Count++ );  // Print instance number
     if ( CellId == 0 )
     {
         assert( nLeaves <= 4 );
         // Extract 16-bit truth table
         word Truth = ((word)pConfigData[5] << 8) | pConfigData[6];
-        printf( "%04lX{", (unsigned long)Truth );
+        fprintf( Abc_FrameGlobalGetOut(), "%04lX{", (unsigned long)Truth );
         // Print as simple {abcd} since it's just a direct LUT4
         for ( i = 0; i < nLeaves; i++ )
-            printf( "%c", 'a' + i );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + i );
         for ( ; i < 4; i++ )
-            printf( "%c", '0' );
-        printf( "}" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", '0' );
+        fprintf( Abc_FrameGlobalGetOut(), "}" );
         // Pad with spaces if less than 4 inputs
         for ( i = nLeaves; i < 4; i++ )
-            printf( " " );
-        printf( " [Cell %d, %d leaves]\n", CellId, nLeaves );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
+        fprintf( Abc_FrameGlobalGetOut(), " [Cell %d, %d leaves]\n", CellId, nLeaves );
     }
     else if ( CellId == 1 )
     {
         // First LUT4
         word Truth1 = ((word)pConfigData[8] << 8) | pConfigData[9];
-        printf( "h=%04lX{", (unsigned long)Truth1 );
+        fprintf( Abc_FrameGlobalGetOut(), "h=%04lX{", (unsigned long)Truth1 );
         for ( i = 0; i < 4; i++ )
         {
             int v = pConfigData[1+i];
             if ( v == 0 )
-                printf( "0");
+                fprintf( Abc_FrameGlobalGetOut(), "0");
             else if ( v == 1 )
-                printf( "1");
+                fprintf( Abc_FrameGlobalGetOut(), "1");
             else if ( v >= 2 && v < 2 + nLeaves )
-                printf( "%c", 'a' + (v-2));
+                fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + (v-2));
             else
-                printf( "?");
+                fprintf( Abc_FrameGlobalGetOut(), "?");
         }
-        printf( "} ");
+        fprintf( Abc_FrameGlobalGetOut(), "} ");
         // Second LUT4
         word Truth2 = ((word)pConfigData[10] << 8) | pConfigData[11];
-        printf( "i=%04lX{", (unsigned long)Truth2 );
+        fprintf( Abc_FrameGlobalGetOut(), "i=%04lX{", (unsigned long)Truth2 );
         for ( i = 4; i < 7; i++ )
         {
             int v = pConfigData[1+i];
             if ( v == 0 )
-                printf( "0");
+                fprintf( Abc_FrameGlobalGetOut(), "0");
             else if ( v == 1 )
-                printf( "1");
+                fprintf( Abc_FrameGlobalGetOut(), "1");
             else if ( v >= 2 && v < 2 + nLeaves )
-                printf( "%c", 'a' + (v-2));
+                fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + (v-2));
             else if ( v == 9 )
-                printf( "h");  // Output of first LUT
+                fprintf( Abc_FrameGlobalGetOut(), "h"); // Output of first LUT
             else
-                printf( "?");
+                fprintf( Abc_FrameGlobalGetOut(), "?");
         }
-        printf( "h} [Cell %d, %d leaves]\n", CellId, nLeaves );
+        fprintf( Abc_FrameGlobalGetOut(), "h} [Cell %d, %d leaves]\n", CellId, nLeaves );
     }
     else if ( CellId == 2 )
     {
         // First LUT4
         word Truth1 = ((word)pConfigData[10] << 8) | pConfigData[11];
-        printf( "j=%04lX{", (unsigned long)Truth1 );
+        fprintf( Abc_FrameGlobalGetOut(), "j=%04lX{", (unsigned long)Truth1 );
         for ( i = 0; i < 4; i++ )
         {
             int v = pConfigData[1+i];
             if ( v == 0 )
-                printf( "0");
+                fprintf( Abc_FrameGlobalGetOut(), "0");
             else if ( v == 1 )
-                printf( "1");
+                fprintf( Abc_FrameGlobalGetOut(), "1");
             else if ( v >= 2 && v < 2 + nLeaves )
-                printf( "%c", 'a' + (v-2));
+                fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + (v-2));
             else
-                printf( "?");
+                fprintf( Abc_FrameGlobalGetOut(), "?");
         }
-        printf( "} ");
+        fprintf( Abc_FrameGlobalGetOut(), "} ");
         // Second LUT4
         word Truth2 = ((word)pConfigData[12] << 8) | pConfigData[13];
-        printf( "k=%04lX{", (unsigned long)Truth2 );
+        fprintf( Abc_FrameGlobalGetOut(), "k=%04lX{", (unsigned long)Truth2 );
         for ( i = 4; i < 8; i++ )
         {
             int v = pConfigData[1+i];
             if ( v == 0 )
-                printf( "0");
+                fprintf( Abc_FrameGlobalGetOut(), "0");
             else if ( v == 1 )
-                printf( "1");
+                fprintf( Abc_FrameGlobalGetOut(), "1");
             else if ( v >= 2 && v < 2 + nLeaves )
-                printf( "%c", 'a' + (v-2));
+                fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + (v-2));
             else
-                printf( "?");
+                fprintf( Abc_FrameGlobalGetOut(), "?");
         }
-        printf( "} ");
+        fprintf( Abc_FrameGlobalGetOut(), "} ");
         // final node
-        printf( "l=<");
+        fprintf( Abc_FrameGlobalGetOut(), "l=<");
         int v = pConfigData[1+8];
         if ( v == 0 )
-            printf( "0");
+            fprintf( Abc_FrameGlobalGetOut(), "0");
         else if ( v == 1 )
-            printf( "1");
+            fprintf( Abc_FrameGlobalGetOut(), "1");
         else if ( v >= 2 && v < 2 + nLeaves )
-            printf( "%c", 'a' + (v-2));
+            fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + (v-2));
         else
-            printf( "?");
-        printf( "jk> [Cell %d, %d leaves]\n", CellId, nLeaves );
+            fprintf( Abc_FrameGlobalGetOut(), "?");
+        fprintf( Abc_FrameGlobalGetOut(), "jk> [Cell %d, %d leaves]\n", CellId, nLeaves );
     }
     else
     {
-        printf( "Unknown cell type %d!\n", CellId );
+        fprintf( Abc_FrameGlobalGetOut(), "Unknown cell type %d!\n", CellId );
     }
 }
 
@@ -1333,8 +1333,8 @@ int Ifn_AddClause( sat_solver * pSat, int * pBeg, int * pEnd )
     if ( fVerbose )
     {
         for ( ; pBeg < pEnd; pBeg++ )
-            printf( "%c%d ", Abc_LitIsCompl(*pBeg) ? '-':'+', Abc_Lit2Var(*pBeg) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c%d ", Abc_LitIsCompl(*pBeg) ? '-':'+', Abc_Lit2Var(*pBeg) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return RetValue;
 }
@@ -1568,18 +1568,18 @@ int Ifn_NtkAddClauses( Ifn_Ntk_t * p, int * pValues, sat_solver * pSat )
 ***********************************************************************/
 void Ifn_NtkMatchPrintStatus( sat_solver * p, int Iter, int status, int iMint, int Value, abctime clk )
 {
-    printf( "Iter = %5d  ",  Iter );
-    printf( "Mint = %5d  ",  iMint );
-    printf( "Value = %2d  ", Value );
-    printf( "Var = %6d  ",   sat_solver_nvars(p) );
-    printf( "Cla = %6d  ",   sat_solver_nclauses(p) );
-    printf( "Conf = %6d  ",  sat_solver_nconflicts(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Iter = %5d  ",  Iter );
+    fprintf( Abc_FrameGlobalGetOut(), "Mint = %5d  ",  iMint );
+    fprintf( Abc_FrameGlobalGetOut(), "Value = %2d  ", Value );
+    fprintf( Abc_FrameGlobalGetOut(), "Var = %6d  ",   sat_solver_nvars(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Cla = %6d  ",   sat_solver_nclauses(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Conf = %6d  ",  sat_solver_nconflicts(p) );
     if ( status == l_False )
-        printf( "status = unsat" );
+        fprintf( Abc_FrameGlobalGetOut(), "status = unsat" );
     else if ( status == l_True )
-        printf( "status = sat  " );
+        fprintf( Abc_FrameGlobalGetOut(), "status = sat  " );
     else 
-        printf( "status = undec" );
+        fprintf( Abc_FrameGlobalGetOut(), "status = undec" );
     Abc_PrintTime( 1, "Time", clk );
 }
 void Ifn_NtkMatchPrintConfig( Ifn_Ntk_t * p, sat_solver * pSat )
@@ -1591,10 +1591,10 @@ void Ifn_NtkMatchPrintConfig( Ifn_Ntk_t * p, sat_solver * pSat )
             if ( p->Nodes[i].Type == IFN_DSD_PRIME && (int)p->Nodes[i].iFirst == v )
                 break;
         if ( i < p->nObjs )
-            printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
         else if ( v >= p->nParsVIni && (v - p->nParsVIni) % p->nParsVNum == 0 )
-            printf( " %d=", (v - p->nParsVIni) / p->nParsVNum );
-        printf( "%d", sat_solver_var_value(pSat, v) );
+            fprintf( Abc_FrameGlobalGetOut(), " %d=", (v - p->nParsVIni) / p->nParsVNum );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", sat_solver_var_value(pSat, v) );
     }
 }
 word Ifn_NtkMatchCollectPerm( Ifn_Ntk_t * p, sat_solver * pSat )
@@ -1631,8 +1631,8 @@ void Ifn_NtkMatchPrintPerm( word Perm, int nInps )
     int i;
     assert( nInps <= 16 );
     for ( i = 0; i < nInps; i++ )
-        printf( "%c", 'a' + Abc_TtGetHex(&Perm, i) );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", 'a' + Abc_TtGetHex(&Perm, i) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 int Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVerbose, int fVeryVerbose, word * pConfig )
 {
@@ -1699,10 +1699,10 @@ int Ifn_NtkMatch( Ifn_Ntk_t * p, word * pTruth, int nVars, int nConfls, int fVer
     assert( i < nIterMax );
     if ( fVerbose )
     {
-        printf( "%s  Iter =%4d. Confl = %6d.  ", RetValue ? "yes":"no ", i, sat_solver_nconflicts(pSat) );
+        fprintf( Abc_FrameGlobalGetOut(), "%s  Iter =%4d. Confl = %6d.  ", RetValue ? "yes":"no ", i, sat_solver_nconflicts(pSat) );
         if ( RetValue )
             Ifn_NtkMatchPrintConfig( p, pSat );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     sat_solver_delete( pSat );
 //    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );

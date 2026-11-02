@@ -24,7 +24,7 @@
 
 // HA: Added for printing messages
 #ifndef MSG 
-#define MSG(msg) (printf("%s = \n",(msg)));
+#define MSG(msg) (fprintf( Abc_FrameGlobalGetOut(), "%s = \n",(msg) ));
 #endif
 
 ////////////////////////////////////////////////////////////////////////

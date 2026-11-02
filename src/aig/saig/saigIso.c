@@ -205,7 +205,7 @@ int Iso_ManCheckMapping( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vMap2
         if ( pObj->pData == NULL )
         {
             if ( fVerbose )
-                printf( "Structural equivalence failed at node %d.\n", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Structural equivalence failed at node %d.\n", i );
             return 0;
         }
     }
@@ -213,7 +213,7 @@ int Iso_ManCheckMapping( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vMap2
     if ( Aig_ManCoNum(pAig1)-Aig_ManRegNum(pAig1) == 1 && Aig_ObjChild0Copy(Aig_ManCo(pAig2, 0)) != Aig_ObjChild0(Aig_ManCo(pAig1, 0)) )
     {
         if ( fVerbose )
-            printf( "Structural equivalence failed at primary output 0.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Structural equivalence failed at primary output 0.\n" );
         return 0;
     }
     return 1;    
@@ -280,10 +280,10 @@ Vec_Int_t * Iso_ManFindMapping( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t 
 //    s_Counter++;
 
     if ( fVerbose ) 
-        printf( "AIG1:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "AIG1:\n" );
     vPerm1 = vPerm1_ ? vPerm1_ : Saig_ManFindIsoPerm( pAig1, fVerbose );
     if ( fVerbose )
-        printf( "AIG1:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "AIG1:\n" );
     vPerm2 = vPerm2_ ? vPerm2_ : Saig_ManFindIsoPerm( pAig2, fVerbose );
     if ( vPerm1_ )
         assert( Vec_IntSize(vPerm1_) == Aig_ManCiNum(pAig1) );
@@ -347,13 +347,13 @@ Aig_Man_t * Iso_ManFilterPos_old( Aig_Man_t * pAig, int fVerbose )
     {
         if ( fVeryVerbose )
         {
-            printf( "AIG %4d : ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "AIG %4d : ", i );
             Aig_ManPrintStats( pPart );
         }
         Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pTemp, k )
         {
             if ( fVeryVerbose )
-                printf( "Comparing AIG %4d and AIG %4d.  ", Vec_IntEntry(vPos,k), i );
+                fprintf( Abc_FrameGlobalGetOut(), "Comparing AIG %4d and AIG %4d.  ", Vec_IntEntry(vPos,k), i );
             vMap = Iso_ManFindMapping( pTemp, pPart, 
                 (Vec_Int_t *)Vec_PtrEntry(vPerms, Vec_IntEntry(vPos,k)), 
                 (Vec_Int_t *)Vec_PtrEntry(vPerms, i),
@@ -361,14 +361,14 @@ Aig_Man_t * Iso_ManFilterPos_old( Aig_Man_t * pAig, int fVerbose )
             if ( vMap != NULL )
             {
                 if ( fVeryVerbose )
-                    printf( "Found match\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Found match\n" );
 //                if ( fVerbose )
 //                    printf( "Found match for AIG %4d and AIG %4d.\n", Vec_IntEntry(vPos,k), i );
                 Vec_IntFree( vMap );
                 break;
             }
             if ( fVeryVerbose )
-                printf( "No match.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "No match.\n" );
         }
         if ( k == Vec_PtrSize(vAigs) )
         {
@@ -437,7 +437,7 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fV
     for ( i = 0; i < nPos; i++ )
     {
         if ( i % 100 == 0 )
-            printf( "%6d finished...\r", i );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d finished...\r", i );
 
         clk2 = Abc_Clock();
         pPart = Saig_ManDupCones( pAig, &i, 1 );
@@ -563,11 +563,11 @@ Aig_Man_t * Saig_ManIsoReduce( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int f
     Aig_Man_t * pPart;
     abctime clk = Abc_Clock();
     pPart = Iso_ManFilterPos( pAig, pvPosEquivs, fVerbose );
-    printf( "Reduced %d outputs to %d outputs.  ", Saig_ManPoNum(pAig), Saig_ManPoNum(pPart) );
+    fprintf( Abc_FrameGlobalGetOut(), "Reduced %d outputs to %d outputs.  ", Saig_ManPoNum(pAig), Saig_ManPoNum(pPart) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( fVerbose && *pvPosEquivs && Saig_ManPoNum(pAig) != Vec_PtrSize(*pvPosEquivs) )
     {
-        printf( "Nontrivial classes:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Nontrivial classes:\n" );
         Vec_VecPrintInt( (Vec_Vec_t *)*pvPosEquivs, 1 );
     }
 //    Aig_ManStopP( &pPart );
@@ -609,12 +609,12 @@ Aig_Man_t * Iso_ManTest888( Aig_Man_t * pAig1, int fVerbose )
 
     if ( vMap != NULL )
     {
-        printf( "Mapping of AIGs is found.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Mapping of AIGs is found.\n" );
         if ( fVerbose )
             Vec_IntPrint( vMap );
     }
     else
-        printf( "Mapping of AIGs is NOT found.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Mapping of AIGs is NOT found.\n" );
     Vec_IntFreeP( &vMap );
     return NULL;
 }

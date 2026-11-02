@@ -50,13 +50,13 @@ Vec_Int_t * Dau_DsdDivisors( word * pTruth, int nVars )
     int nDigits = Abc_TtHexDigitNum(nVars);
     int i, j, k, Digit, Counter[5];
 
-    printf( "     " );
-    printf( " !a *!b"  );
-    printf( " !a * b"  );
-    printf( "  a *!b"  );
-    printf( "  a * b"  );
-    printf( "  a + b"  );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "     " );
+    fprintf( Abc_FrameGlobalGetOut(), " !a *!b" );
+    fprintf( Abc_FrameGlobalGetOut(), " !a * b" );
+    fprintf( Abc_FrameGlobalGetOut(), "  a *!b" );
+    fprintf( Abc_FrameGlobalGetOut(), "  a * b" );
+    fprintf( Abc_FrameGlobalGetOut(), "  a + b" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     for ( i = 0; i < nVars; i++ )
     for ( j = i+1; j < nVars; j++ )
@@ -80,10 +80,10 @@ Vec_Int_t * Dau_DsdDivisors( word * pTruth, int nVars )
             else if ( Digit == 6 || Digit == 9 )
                 Counter[4]++;
         }
-        printf( "%c %c  ", 'a'+i, 'a'+j );
+        fprintf( Abc_FrameGlobalGetOut(), "%c %c  ", 'a'+i, 'a'+j );
         for ( k = 0; k < 5; k++ )
-            printf( "%7d", Counter[k] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%7d", Counter[k] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return NULL;
 }

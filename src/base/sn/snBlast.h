@@ -1083,7 +1083,7 @@ static inline int* sn_blast_eval(sn_blast_ctx_t* ctx, sn_obj_id_t object)
     if (ctx->bits[object])
         return ctx->bits[object];
     if (ctx->state[object] && ctx->failed) {
-        if (!*ctx->failed) fprintf(stderr, "SN blast: combinational cycle at '%s' (object %u).\n",
+        if (!*ctx->failed) fprintf( Abc_FrameGlobalGetErr(), "SN blast: combinational cycle at '%s' (object %u).\n",
                                   sn_obj_name_id(ctx->module, object) != SN_INVALID_ID ?
                                       sn_obj_name(ctx->module, object) : "unnamed", object);
         *ctx->failed = true;
@@ -2552,10 +2552,10 @@ static inline Mini_Aig_t* sn_design_blast_hier_boundary_options(const sn_design_
             if (!design->library || cell >= design->library->cell_count ||
                 !sn_expr_check(&design->library->functions[cell]))
             {
-                fprintf(stderr, "SN blast: gate '%s' has no supported bound function (cell ID %u).\n",
+                fprintf( Abc_FrameGlobalGetErr(), "SN blast: gate '%s' has no supported bound function (cell ID %u).\n",
                         sn_obj_name_id(module, gate) != SN_INVALID_ID ? sn_obj_name(module, gate) : "unnamed", cell);
                 if (design->library && cell < design->library->cell_count)
-                    fprintf(stderr, "SN blast: %s: %s.\n",
+                    fprintf( Abc_FrameGlobalGetErr(), "SN blast: %s: %s.\n",
                             sn_library_cell_name(design->library, cell),
                             design->library->cells[cell].unsupported_reason);
                 gates_supported = false;
@@ -2567,11 +2567,11 @@ static inline Mini_Aig_t* sn_design_blast_hier_boundary_options(const sn_design_
     if (!gates_supported)
         return NULL;
     if (sampled_cells && word_state) {
-        fprintf(stderr, "SN blast: cannot mix sampled Liberty FFs with clock-abstracted SN state.\n");
+        fprintf( Abc_FrameGlobalGetErr(), "SN blast: cannot mix sampled Liberty FFs with clock-abstracted SN state.\n");
         return NULL;
     }
     if (sampled_cells && options.abstract_instances) {
-        fprintf(stderr, "SN blast: sampled Liberty FFs do not support partition reconstruction yet.\n");
+        fprintf( Abc_FrameGlobalGetErr(), "SN blast: sampled Liberty FFs do not support partition reconstruction yet.\n");
         return NULL;
     }
     sn_blast_hier_t hierarchy;

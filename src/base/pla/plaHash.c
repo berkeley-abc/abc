@@ -213,7 +213,7 @@ int Pla_ManHashDist1NumTest( Pla_Man_t * p )
 {
     abctime clk = Abc_Clock();
     int Count = Pla_ManHashDistance1( p );
-    printf( "Found %d pairs among %d cubes using cube hashing.  ", Count, Pla_ManCubeNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Found %d pairs among %d cubes using cube hashing.  ", Count, Pla_ManCubeNum(p) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return 1;
 }
@@ -236,7 +236,7 @@ void Pla_PrintCube( Vec_Int_t * vLits, int nVars, int iVar )
     Vec_StrFill( vStr, nVars, '-' );
     Vec_IntForEachEntry( vLits, Lit, v )
         Vec_StrWriteEntry( vStr, Abc_Lit2Var(Lit), (char)(Abc_LitIsCompl(Lit) ? '0' : '1') );
-    fprintf( stdout, "%s %d\n", Vec_StrArray(vStr), iVar );
+    fprintf( Abc_FrameGlobalGetOut(), "%s %d\n", Vec_StrArray(vStr), iVar );
     Vec_StrFree( vStr );
 }
 void Pla_ManHashCubes2( Pla_Man_t * p, Tab_Man_t * pTab )
@@ -304,7 +304,7 @@ Vec_Int_t * Pla_ManComputeDistance1Int( Pla_Man_t * p )
             if ( !Vec_IntEqual( vTemp1, vTemp2 ) )
                 continue;
 
-            printf( "%d %d  ", iCube1, iCube2 );
+            fprintf( Abc_FrameGlobalGetOut(), "%d %d  ", iCube1, iCube2 );
 
             Vec_IntPushTwo( vPairs, iCube1, iVar1 );
             Vec_IntPushTwo( vPairs, iCube2, iVar2 );
@@ -326,7 +326,7 @@ Vec_Int_t * Pla_ManComputeDistance1( Pla_Man_t * p )
 {
     abctime clk = Abc_Clock();
     Vec_Int_t * vPairs = Pla_ManComputeDistance1Int( p );
-    printf( "Found %d pairs among %d cubes using cube hashing.  ", Vec_IntSize(vPairs)/4, Pla_ManCubeNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Found %d pairs among %d cubes using cube hashing.  ", Vec_IntSize(vPairs)/4, Pla_ManCubeNum(p) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return vPairs;
 }

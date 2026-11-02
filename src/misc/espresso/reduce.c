@@ -79,8 +79,8 @@ IN pcover D;
         SET(p, PRIME);    /* cube remains prime ? */
     } else {
         if (debug & REDUCE) {
-        printf("REDUCE: %s to %s %s\n",
-            pc1(p), pc2(cunder), print_time(ptime()));
+        fprintf( Abc_FrameGlobalGetOut(), "REDUCE: %s to %s %s\n",
+            pc1(p), pc2(cunder), print_time(ptime()) );
         }
         set_copy(p, cunder);                /* save reduced version */
         RESET(p, PRIME);                    /* cube is no longer prime */
@@ -131,7 +131,7 @@ INOUT pcube *T;         /* T will be disposed of */
     }
 
     if (debug & REDUCE1)
-    printf("SCCC[%d]: result is %s\n", --sccc_level, pc1(r));
+    fprintf( Abc_FrameGlobalGetOut(), "SCCC[%d]: result is %s\n", --sccc_level, pc1(r) );
     return r;
 }
 

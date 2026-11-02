@@ -32,6 +32,7 @@
 #include <assert.h>
 
 #include "misc/vec/vec.h"
+#include "misc/util/abc_global.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -346,6 +347,8 @@ extern void            Hop_ManDumpBlif( Hop_Man_t * p, char * pFileName );
 
 ABC_NAMESPACE_HEADER_END
 
+extern ABC_DLL FILE *   Abc_FrameGlobalGetOut();
+extern ABC_DLL FILE *   Abc_FrameGlobalGetErr();
 
 
 #endif

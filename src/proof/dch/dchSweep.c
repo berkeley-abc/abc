@@ -115,7 +115,7 @@ void Dch_ManSweep( Dch_Man_t * p )
     Aig_ManForEachCi( p->pAigTotal, pObj, i )
         pObj->pData = Aig_ObjCreateCi( p->pAigFraig );
     // sweep internal nodes
-    pProgress = Bar_ProgressStart( stdout, Aig_ManObjNumMax(p->pAigTotal) );
+    pProgress = Bar_ProgressStart( Abc_FrameGlobalGetOut(), Aig_ManObjNumMax(p->pAigTotal) );
     Aig_ManForEachNode( p->pAigTotal, pObj, i )
     {
         Bar_ProgressUpdate( pProgress, i, NULL );

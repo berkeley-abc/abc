@@ -347,7 +347,7 @@ void Abc_NtkConvertDcLatches( Abc_Ntk_t * pNtk )
         Abc_NtkNodeConvertToMux( pNtk, pCtrl, Abc_ObjFanout0(pLatch), pPi, pMux );
         Counter++;
     }
-    printf( "The number of converted latches with DC values = %d.\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of converted latches with DC values = %d.\n", Counter );
 }
 
 /**Function*************************************************************
@@ -391,7 +391,7 @@ Vec_Ptr_t * Abc_NtkConverLatchNamesIntoNumbers( Abc_Ntk_t * pNtk )
         if ( Vec_IntSize( vNumbers ) > 1 )
         {
             Vec_PtrPush( vResult, vNumbers );
-printf( "Converted %d one-hot registers.\n", Vec_IntSize(vNumbers) );
+fprintf( Abc_FrameGlobalGetOut(), "Converted %d one-hot registers.\n", Vec_IntSize(vNumbers) );
         }
         else
             Vec_IntFree( vNumbers );
@@ -426,7 +426,7 @@ Abc_Ntk_t * Abc_NtkConvertOnehot( Abc_Ntk_t * pNtk )
         return Abc_NtkDup( pNtk );
     if ( nFlops > 16 )
     {
-        printf( "Cannot re-encode %d flops because it will lead to 2^%d states.\n", nFlops, nFlops );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot re-encode %d flops because it will lead to 2^%d states.\n", nFlops, nFlops );
         return NULL;
     }
     // check if there are latches with DC values
@@ -435,7 +435,7 @@ Abc_Ntk_t * Abc_NtkConvertOnehot( Abc_Ntk_t * pNtk )
     {
         if ( Abc_LatchIsInitDc(pObj) )
         {
-            printf( "Cannot process logic network with don't-care init values. Run \"zero\".\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot process logic network with don't-care init values. Run \"zero\".\n" );
             return NULL;
         }
         if ( Abc_LatchIsInit1(pObj) )
@@ -509,7 +509,7 @@ Abc_Ntk_t * Abc_NtkConvertOnehot( Abc_Ntk_t * pNtk )
         Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, Abc_NtkPoNum(pNtkNew)+k), pObjNew );
     }
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkConvertOnehot(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkConvertOnehot(): Network check has failed.\n"  );
     return pNtkNew;
 }
 
@@ -680,9 +680,9 @@ Abc_Ntk_t * Abc_NtkCRetime( Abc_Ntk_t * pNtk, int fVerbose )
         Abc_ObjPatchFanin( Abc_ObjFanin0(pObj), pDriver, Abc_ObjFanin(pDriver, 1) );
     }
     if ( Count1 )
-        printf( "Opposite phase enable is present in %d flops (out of %d).\n", Count1, Abc_NtkLatchNum(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(), "Opposite phase enable is present in %d flops (out of %d).\n", Count1, Abc_NtkLatchNum(pNtk) );
     if ( fVerbose )
-    printf( "CountN = %4d. Count2 = %4d. Count1 = %4d. Count0 = %4d. Ctrls = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "CountN = %4d. Count2 = %4d. Count1 = %4d. Count0 = %4d. Ctrls = %d.\n", 
         CountN, Count2, Count1, Count0, Vec_PtrSize(vControls) );
 
     // add the controls to the list of POs

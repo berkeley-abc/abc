@@ -109,9 +109,9 @@ void Inter_ManInterDump( Inter_Man_t * p, int fProved )
     Ioa_WriteAiger( pMan, pFileName, 0, 0 );
     Aig_ManStop( pMan );
     if ( fProved )
-        printf( "Inductive invariant is dumped into file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Inductive invariant is dumped into file \"%s\".\n", pFileName );
     else
-        printf( "Interpolants are dumped into file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Interpolants are dumped into file \"%s\".\n", pFileName );
 }
 
 /**Function*************************************************************
@@ -130,7 +130,7 @@ void Inter_ManStop( Inter_Man_t * p, int fProved )
     if ( p->fVerbose )
     {
         p->timeOther = p->timeTotal-p->timeRwr-p->timeCnf-p->timeSat-p->timeInt-p->timeEqu;
-        printf( "Runtime statistics:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Runtime statistics:\n" );
         ABC_PRTP( "Rewriting  ", p->timeRwr,   p->timeTotal );
         ABC_PRTP( "CNF mapping", p->timeCnf,   p->timeTotal );
         ABC_PRTP( "SAT solving", p->timeSat,   p->timeTotal );

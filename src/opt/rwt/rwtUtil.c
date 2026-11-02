@@ -621,8 +621,8 @@ void Rwt_ManLoadFromArray( Rwt_Man_t * p, int fVerbose )
     nEntries = i - 1;
     if ( fVerbose )
     {
-        printf( "The number of classes = %d. Canonical nodes = %d.\n", p->nClasses, p->nAdded );
-        printf( "The number of nodes loaded = %d.  ", nEntries );  ABC_PRT( "Loading", Abc_Clock() - clk );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of classes = %d. Canonical nodes = %d.\n", p->nClasses, p->nAdded );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of nodes loaded = %d.  ", nEntries );  ABC_PRT( "Loading", Abc_Clock() - clk );
     }
 }
 

@@ -83,7 +83,7 @@ void Abc_NtkAutoPrint( Abc_Ntk_t * pNtk, int Output, int fNaive, int fVerbose )
 
     // print the size of the BDDs
     if ( fVerbose )
-        printf( "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+        fprintf( Abc_FrameGlobalGetOut(), "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
 
     // allocate additional variables
     for ( i = 0; i < nInputs; i++ )
@@ -154,7 +154,7 @@ void Abc_NtkAutoPrintAll( DdManager * dd, int nInputs, DdNode * pbOutputs[], int
         nSupp  = Cudd_SupportSize( dd, bSpace1 );
         nMints = Cudd_CountMinterm( dd, bSpace1, nSupp );
         nAutos = Extra_Base2LogDouble(nMints);
-        printf( "Output #%3d: Inputs = %2d. AutoK = %2d.\n", o, nSupp, nAutos );
+        fprintf( Abc_FrameGlobalGetOut(), "Output #%3d: Inputs = %2d. AutoK = %2d.\n", o, nSupp, nAutos );
 
         if ( nAutos > 0 )
         {
@@ -182,7 +182,7 @@ void Abc_NtkAutoPrintAll( DdManager * dd, int nInputs, DdNode * pbOutputs[], int
 //ABC_PRB( dd, bSpace1 );
 //ABC_PRB( dd, bSpace2 );
         if ( bSpace1 != bSpace2 )
-            printf( "Spaces are NOT EQUAL!\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Spaces are NOT EQUAL!\n" );
 //        else
 //            printf( "Spaces are equal.\n" );
     
@@ -193,16 +193,16 @@ void Abc_NtkAutoPrintAll( DdManager * dd, int nInputs, DdNode * pbOutputs[], int
         Cudd_RecursiveDerefZdd( dd, zEquations );
     }
 
-    printf( "The cumulative statistics for all outputs:\n" );
-    printf( "Ins=%3d ",      nInputs );
-    printf( "InMax=%3d   ",  nSuppSizeMax );
-    printf( "Outs=%3d ",     nOutputs );
-    printf( "Auto=%3d   ",   nAutoSymOuts );
-    printf( "SumK=%3d ",     nAutoSyms );
-    printf( "KMax=%2d ",     nAutoSymsMax );
-    printf( "Supp=%3d   ",   nAutoSymsMaxSupp );
-    printf( "Time=%4.2f ", (float)(Abc_Clock() - clk)/(float)(CLOCKS_PER_SEC) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "The cumulative statistics for all outputs:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Ins=%3d ",      nInputs );
+    fprintf( Abc_FrameGlobalGetOut(), "InMax=%3d   ",  nSuppSizeMax );
+    fprintf( Abc_FrameGlobalGetOut(), "Outs=%3d ",     nOutputs );
+    fprintf( Abc_FrameGlobalGetOut(), "Auto=%3d   ",   nAutoSymOuts );
+    fprintf( Abc_FrameGlobalGetOut(), "SumK=%3d ",     nAutoSyms );
+    fprintf( Abc_FrameGlobalGetOut(), "KMax=%2d ",     nAutoSymsMax );
+    fprintf( Abc_FrameGlobalGetOut(), "Supp=%3d   ",   nAutoSymsMaxSupp );
+    fprintf( Abc_FrameGlobalGetOut(), "Time=%4.2f ", (float)(Abc_Clock() - clk)/(float)(CLOCKS_PER_SEC) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -233,7 +233,7 @@ void Abc_NtkAutoPrintOne( DdManager * dd, int nInputs, DdNode * pbOutputs[], int
     nSupp  = Cudd_SupportSize( dd, bSpace1 );
     nMints = Cudd_CountMinterm( dd, bSpace1, nSupp );
     nAutos = Extra_Base2LogDouble(nMints);
-    printf( "Output #%3d: Inputs = %2d. AutoK = %2d.\n", Output, nSupp, nAutos );
+    fprintf( Abc_FrameGlobalGetOut(), "Output #%3d: Inputs = %2d. AutoK = %2d.\n", Output, nSupp, nAutos );
 
     Cudd_RecursiveDeref( dd, bSpace1 );
     Cudd_RecursiveDeref( dd, bCanVars );

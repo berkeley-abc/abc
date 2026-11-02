@@ -214,7 +214,7 @@ int Agi_ManSuppSizeTest( Agi_Man_t * p )
     int i, Counter = 0;
     Agi_ManForEachNode( p, i )
         Counter += (Agi_ManSuppSizeOne(p, i) <= 16);
-    printf( "Nodes with small support %d (out of %d)\n", Counter, Agi_ManNodeNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes with small support %d (out of %d)\n", Counter, Agi_ManNodeNum(p) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return Counter;
 

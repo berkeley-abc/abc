@@ -170,7 +170,7 @@ Fraig_Node_t * Fraig_ManReadIthVar( Fraig_Man_t * p, int i )
     int k;
     if ( i < 0 )
     {
-        printf( "Requesting a PI with a negative number\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Requesting a PI with a negative number\n" );
         return NULL;
     }
     // create the PIs to fill in the interval

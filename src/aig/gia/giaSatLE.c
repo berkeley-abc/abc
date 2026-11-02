@@ -219,7 +219,7 @@ Vec_Int_t * Sle_ManComputeCuts( Gia_Man_t * p, int nLutSize, int fVerbose )
     Gia_ManForEachAndId( p, iObj )
         nCuts += Sle_ManCutMerge( p, iObj, vCuts, vTemp, nLutSize );
     if ( fVerbose )
-        printf( "Nodes = %d.  Cuts = %d.  Cuts/Node = %.2f.  Ints/Node = %.2f.  Mem = %.2f MB.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes = %d.  Cuts = %d.  Cuts/Node = %.2f.  Ints/Node = %.2f.  Mem = %.2f MB.\n", 
             Gia_ManAndNum(p), nCuts, 1.0*nCuts/Gia_ManAndNum(p), 
             1.0*(Vec_IntSize(vCuts)-Gia_ManObjNum(p))/Gia_ManAndNum(p), 
             1.0*Vec_IntMemory(vCuts) / (1<<20) );
@@ -288,19 +288,19 @@ void Sle_ManPrintCut( int * pCut )
 {
     int nSize   = Sle_CutSize(pCut);
     int k, * pC = Sle_CutLeaves(pCut);
-    printf( "{" );
+    fprintf( Abc_FrameGlobalGetOut(), "{" );
     for ( k = 0; k < nSize; k++ )
-        printf( " %d", pC[k] );
-    printf( " }\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", pC[k] );
+    fprintf( Abc_FrameGlobalGetOut(), " }\n" );
 }
 void Sle_ManPrintCuts( Gia_Man_t * p, Vec_Int_t * vCuts, int iObj )
 {
     int i, * pCut;
     int * pList = Vec_IntEntryP( vCuts, Vec_IntEntry(vCuts, iObj) );
-    printf( "Obj %3d\n", iObj );
+    fprintf( Abc_FrameGlobalGetOut(), "Obj %3d\n", iObj );
     Sle_ForEachCut( pList, pCut, i )
         Sle_ManPrintCut( pCut );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Sle_ManPrintCutsAll( Gia_Man_t * p, Vec_Int_t * vCuts )
 {
@@ -578,12 +578,12 @@ void Sle_ManDeriveInit( Sle_Man_t * p )
             }
         if ( iFound == -1 )
         {
-            printf( "Cannot find the following cut at node %d: {", iObj );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot find the following cut at node %d: {", iObj );
             for ( i = 0; i < nFanins; i++ )
-                printf( " %d", pFanins[i] );
-            printf( " }\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " %d", pFanins[i] );
+            fprintf( Abc_FrameGlobalGetOut(), " }\n" );
             Sle_ManPrintCuts( p->pGia, p->vCuts, iObj );
-            fflush( stdout );
+            fflush( Abc_FrameGlobalGetOut() );
         }
         assert( iFound >= 0 );
         Vec_IntPush( p->vPolars, Vec_IntEntry(p->vCutFirst, iObj) + iFound ); // cut var
@@ -948,15 +948,15 @@ void Sle_ManExplore( Gia_Man_t * pGia, int nBTLimit, int DelayInit, int fDynamic
     int DelayStart = (DelayInit || !Gia_ManHasMapping(pGia)) ? DelayInit : Gia_ManLutLevel(pGia, NULL);
     Sle_Man_t * p = Sle_ManAlloc( pGia, DelayStart, fVerbose );
     if ( fVerbose )
-        printf( "Running solver with %d conflicts, %d initial delay, and %d edges. Dynamic constraints = %s.\n", nBTLimit, DelayInit, 1+fTwoEdges, fDynamic?"yes":"no" );
+        fprintf( Abc_FrameGlobalGetOut(), "Running solver with %d conflicts, %d initial delay, and %d edges. Dynamic constraints = %s.\n", nBTLimit, DelayInit, 1+fTwoEdges, fDynamic?"yes":"no" );
     Sle_ManMarkupVariables( p );
     if ( fVerbose )
-        printf( "Vars:  Total = %d.  Node = %d. Cut = %d. Edge = %d. Delay = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Vars:  Total = %d.  Node = %d. Cut = %d. Edge = %d. Delay = %d.\n", 
             p->nVarsTotal, p->nNodeVars, p->nCutVars, p->nEdgeVars, p->nDelayVars );
     Sle_ManDeriveInit( p );
     Sle_ManDeriveCnf( p, nBTLimit, fDynamic || fTwoEdges );
     if ( fVerbose )
-        printf( "Clas:  Total = %d.  Cut = %d. Edge = %d. EdgeEx = %d. Delay = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Clas:  Total = %d.  Cut = %d. Edge = %d. EdgeEx = %d. Delay = %d.\n", 
             sat_solver_nclauses(p->pSat), p->nCutClas, p->nEdgeClas, p->nEdgeClas2, p->nDelayClas );
     //Sat_SolverWriteDimacs( p->pSat, "temp.cnf", NULL, NULL, 0 );
     for ( Delay = p->nLevels; Delay >= 0; Delay-- )
@@ -975,7 +975,7 @@ void Sle_ManExplore( Gia_Man_t * pGia, int nBTLimit, int DelayInit, int fDynamic
             {
                 if ( fVerbose )
                 {
-                    printf( "Proved UNSAT for delay %d.  ", Delay );
+                    fprintf( Abc_FrameGlobalGetOut(), "Proved UNSAT for delay %d.  ", Delay );
                     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
                 }
                 break;
@@ -1003,43 +1003,43 @@ void Sle_ManExplore( Gia_Man_t * pGia, int nBTLimit, int DelayInit, int fDynamic
                     nNodes += sat_solver_var_value(p->pSat, i);
                 for ( i = 0; i < p->nEdgeVars; i++ )
                     nEdges += sat_solver_var_value(p->pSat, p->nNodeVars + p->nCutVars + i);
-                printf( "Solution with delay %2d, node count %5d, and edge count %5d exists. Conf = %8d.  ", Delay, nNodes, nEdges, nConfs );
+                fprintf( Abc_FrameGlobalGetOut(), "Solution with delay %2d, node count %5d, and edge count %5d exists. Conf = %8d.  ", Delay, nNodes, nEdges, nConfs );
                 Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             }
             // save the result
             Sle_ManDeriveResult( p, vEdges2, vMapping );
             if ( fVeryVerbose )
             {
-                printf( "Nodes:  " );
+                fprintf( Abc_FrameGlobalGetOut(), "Nodes:  " );
                 for ( i = 0; i < p->nNodeVars; i++ )
                     if ( sat_solver_var_value(p->pSat, i) )
-                        printf( "%d ", i );
-                printf( "\n" );
-                printf( "\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "%d ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
                 Vec_IntPrint( p->vCutFirst );
-                printf( "Cuts:   " );
+                fprintf( Abc_FrameGlobalGetOut(), "Cuts:   " );
                 for ( i = 0; i < p->nCutVars; i++ )
                     if ( sat_solver_var_value(p->pSat, p->nNodeVars + i) )
-                        printf( "%d ", p->nNodeVars + i );
-                printf( "\n" );
-                printf( "\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "%d ", p->nNodeVars + i );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
                 Vec_IntPrint( p->vEdgeFirst );
-                printf( "Edges:  " );
+                fprintf( Abc_FrameGlobalGetOut(), "Edges:  " );
                 for ( i = 0; i < p->nEdgeVars; i++ )
                     if ( sat_solver_var_value(p->pSat, p->nNodeVars + p->nCutVars + i) )
-                        printf( "%d ", p->nNodeVars + p->nCutVars + i );
-                printf( "\n" );
-                printf( "\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "%d ", p->nNodeVars + p->nCutVars + i );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
                 Vec_IntPrint( p->vDelayFirst );
-                printf( "Delays: " );
+                fprintf( Abc_FrameGlobalGetOut(), "Delays: " );
                 for ( i = 0; i < p->nDelayVars; i++ )
                     if ( sat_solver_var_value(p->pSat, p->nNodeVars + p->nCutVars + p->nEdgeVars + i) )
-                        printf( "%d ", p->nNodeVars + p->nCutVars + p->nEdgeVars + i );
-                printf( "\n" );
-                printf( "\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "%d ", p->nNodeVars + p->nCutVars + p->nEdgeVars + i );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
         }
         else
@@ -1047,16 +1047,16 @@ void Sle_ManExplore( Gia_Man_t * pGia, int nBTLimit, int DelayInit, int fDynamic
             if ( fVerbose )
             {
                 if ( status == l_False )
-                    printf( "Proved UNSAT for delay %d. Conf = %8d.  ", Delay, nConfs );
+                    fprintf( Abc_FrameGlobalGetOut(), "Proved UNSAT for delay %d. Conf = %8d.  ", Delay, nConfs );
                 else
-                    printf( "Resource limit reached for delay %d. Conf = %8d.  ", Delay, nConfs );
+                    fprintf( Abc_FrameGlobalGetOut(), "Resource limit reached for delay %d. Conf = %8d.  ", Delay, nConfs );
                 Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             }
             break;
         }
     }
     if ( fVerbose )
-        printf( "Clas:  Total = %d.  Cut = %d. Edge = %d. EdgeEx = %d. Delay = %d.  Calls = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Clas:  Total = %d.  Cut = %d. Edge = %d. EdgeEx = %d. Delay = %d.  Calls = %d.\n", 
             sat_solver_nclauses(p->pSat), p->nCutClas, p->nEdgeClas, p->nEdgeClas2, p->nDelayClas, p->nSatCalls );
     if ( Vec_IntSize(vMapping) > 0 )
     {

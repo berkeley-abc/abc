@@ -29,9 +29,9 @@ pcover F, Fold, Dold;
     FD = cube2list(Fold, Dold);
     foreach_set(F, last, p)
     if (! cube_is_covered(FD, p)) {
-        printf("some minterm in F is not covered by Fold u Dold\n");
+        fprintf( Abc_FrameGlobalGetOut(), "some minterm in F is not covered by Fold u Dold\n" );
         verify_error = TRUE;
-        if (verbose_debug) printf("%s\n", pc1(p)); else break;
+        if (verbose_debug) fprintf( Abc_FrameGlobalGetOut(), "%s\n", pc1(p) ); else break;
     }
     free_cubelist(FD);
 
@@ -39,9 +39,9 @@ pcover F, Fold, Dold;
     FD = cube2list(F, Dold);
     foreach_set(Fold, last, p)
     if (! cube_is_covered(FD, p)) {
-        printf("some minterm in Fold is not covered by F u Dold\n");
+        fprintf( Abc_FrameGlobalGetOut(), "some minterm in Fold is not covered by F u Dold\n" );
         verify_error = TRUE;
-        if (verbose_debug) printf("%s\n", pc1(p)); else break;
+        if (verbose_debug) fprintf( Abc_FrameGlobalGetOut(), "%s\n", pc1(p) ); else break;
     }
     free_cubelist(FD);
 
@@ -67,12 +67,12 @@ pPLA PLA1, PLA2;
        PLA2->label != NULL && PLA2->label[0] != NULL) {
     PLA_permute(PLA1, PLA2);
     } else {
-    (void) fprintf(stderr, "Warning: cannot permute columns without names\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "Warning: cannot permute columns without names\n");
     return TRUE;
     }
 
     if (PLA1->F->sf_size != PLA2->F->sf_size) {
-    (void) fprintf(stderr, "PLA_verify: PLA's are not the same size\n");
+    (void) fprintf( Abc_FrameGlobalGetErr(), "PLA_verify: PLA's are not the same size\n");
     return TRUE;
     }
 
@@ -147,51 +147,51 @@ pPLA PLA;
 
     T = cv_intersect(PLA->F, PLA->D);
     if (T->count == 0)
-    printf("ON-SET and DC-SET are disjoint\n");
+    fprintf( Abc_FrameGlobalGetOut(), "ON-SET and DC-SET are disjoint\n" );
     else {
-    printf("Some minterm(s) belong to both the ON-SET and DC-SET !\n");
+    fprintf( Abc_FrameGlobalGetOut(), "Some minterm(s) belong to both the ON-SET and DC-SET !\n" );
     if (verbose_debug)
         cprint(T);
     verify_error = TRUE;
     }
-    (void) fflush(stdout);
+    (void) fflush( Abc_FrameGlobalGetOut() );
     free_cover(T);
 
     T = cv_intersect(PLA->F, PLA->R);
     if (T->count == 0)
-    printf("ON-SET and OFF-SET are disjoint\n");
+    fprintf( Abc_FrameGlobalGetOut(), "ON-SET and OFF-SET are disjoint\n" );
     else {
-    printf("Some minterm(s) belong to both the ON-SET and OFF-SET !\n");
+    fprintf( Abc_FrameGlobalGetOut(), "Some minterm(s) belong to both the ON-SET and OFF-SET !\n" );
     if (verbose_debug)
         cprint(T);
     verify_error = TRUE;
     }
-    (void) fflush(stdout);
+    (void) fflush( Abc_FrameGlobalGetOut() );
     free_cover(T);
 
     T = cv_intersect(PLA->D, PLA->R);
     if (T->count == 0)
-    printf("DC-SET and OFF-SET are disjoint\n");
+    fprintf( Abc_FrameGlobalGetOut(), "DC-SET and OFF-SET are disjoint\n" );
     else {
-    printf("Some minterm(s) belong to both the OFF-SET and DC-SET !\n");
+    fprintf( Abc_FrameGlobalGetOut(), "Some minterm(s) belong to both the OFF-SET and DC-SET !\n" );
     if (verbose_debug)
         cprint(T);
     verify_error = TRUE;
     }
-    (void) fflush(stdout);
+    (void) fflush( Abc_FrameGlobalGetOut() );
     free_cover(T);
 
     if (tautology(cube3list(PLA->F, PLA->D, PLA->R)))
-    printf("Union of ON-SET, OFF-SET and DC-SET is the universe\n");
+    fprintf( Abc_FrameGlobalGetOut(), "Union of ON-SET, OFF-SET and DC-SET is the universe\n" );
     else {
     T = complement(cube3list(PLA->F, PLA->D, PLA->R));
-    printf("There are minterms left unspecified !\n");
+    fprintf( Abc_FrameGlobalGetOut(), "There are minterms left unspecified !\n" );
     if (verbose_debug)
         cprint(T);
     verify_error = TRUE;
     free_cover(T);
     }
-    (void) fflush(stdout);
+    (void) fflush( Abc_FrameGlobalGetOut() );
     return verify_error;
 }
 ABC_NAMESPACE_IMPL_END

@@ -202,7 +202,7 @@ int Amap_LibCreateNode( Amap_Lib_t * p, int iFan0, int iFan1, int fXor )
     pNode->iFan0 = iFan0;
     pNode->iFan1 = iFan1;
 if ( p->fVerbose )
-printf( "Creating node %5d %c :  iFan0 = %5d%c  iFan1 = %5d%c\n", 
+fprintf( Abc_FrameGlobalGetOut(), "Creating node %5d %c :  iFan0 = %5d%c  iFan1 = %5d%c\n", 
 pNode->Id, (fXor?'x':' '), 
 Abc_Lit2Var(iFan0), (Abc_LitIsCompl(iFan0)?'-':'+'), 
 Abc_Lit2Var(iFan1), (Abc_LitIsCompl(iFan1)?'-':'+') );
@@ -251,7 +251,7 @@ int Amap_LibCreateMux( Amap_Lib_t * p, int iFan0, int iFan1, int iFan2 )
     pNode->iFan1 = iFan1;
     pNode->iFan2 = iFan2;
 if ( p->fVerbose )
-printf( "Creating node %5d %c :  iFan0 = %5d%c  iFan1 = %5d%c  iFan2 = %5d%c\n", 
+fprintf( Abc_FrameGlobalGetOut(), "Creating node %5d %c :  iFan0 = %5d%c  iFan1 = %5d%c  iFan2 = %5d%c\n", 
 pNode->Id, 'm', 
 Abc_Lit2Var(iFan0), (Abc_LitIsCompl(iFan0)?'-':'+'), 
 Abc_Lit2Var(iFan1), (Abc_LitIsCompl(iFan1)?'-':'+'), 
@@ -292,15 +292,15 @@ int ** Amap_LibLookupTableAlloc( Vec_Ptr_t * vVec, int fVerbose )
         pRes[i] = pRes[0] + nTotal;
         nTotal += Vec_IntSize(vOne) + 1;
         if ( fVerbose )
-        printf( "%d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%d : ", i );
         Vec_IntForEachEntry( vOne, Value, k )
         {
             pRes[i][k] = Value;
             if ( fVerbose )
-            printf( "%d(%d) ", Value&0xffff, Value>>16 );
+            fprintf( Abc_FrameGlobalGetOut(), "%d(%d) ", Value&0xffff, Value>>16 );
         }
         if ( fVerbose )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         pRes[i][k] = 0;
     }
     assert( nTotal == nEntries );

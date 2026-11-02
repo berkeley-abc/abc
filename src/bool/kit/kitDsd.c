@@ -473,7 +473,7 @@ void Kit_DsdPrintExpanded( Kit_DsdNtk_t * pNtk )
 {
     Kit_DsdNtk_t * pTemp;
     pTemp = Kit_DsdExpand( pNtk );
-    Kit_DsdPrint( stdout, pTemp );
+    Kit_DsdPrint( Abc_FrameGlobalGetOut(), pTemp );
     Kit_DsdNtkFree( pTemp );
 }
 
@@ -495,7 +495,7 @@ void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars )
     pTemp = Kit_DsdDecomposeMux( pTruth, nVars, 8 );
 //    Kit_DsdPrintExpanded( pTemp );
     pTemp2 = Kit_DsdExpand( pTemp );
-    Kit_DsdPrint( stdout, pTemp2 );
+    Kit_DsdPrint( Abc_FrameGlobalGetOut(), pTemp2 );
     Kit_DsdVerify( pTemp2, pTruth, nVars ); 
     Kit_DsdNtkFree( pTemp2 );
     Kit_DsdNtkFree( pTemp );
@@ -2404,11 +2404,11 @@ int Kit_DsdTestCofs( Kit_DsdNtk_t * pNtk, unsigned * pTruthInit )
 
     if ( fVerbose )
     {
-        printf( "Function: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Function: " );
 //        Extra_PrintBinary( stdout, pTruth, (1 << pNtk->nVars) ); 
-        Extra_PrintHexadecimal( stdout, pTruth, pNtk->nVars ); 
-        printf( "\n" );
-        Kit_DsdPrint( stdout, pNtk ), printf( "\n" );
+        Extra_PrintHexadecimal( Abc_FrameGlobalGetOut(), pTruth, pNtk->nVars ); 
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        Kit_DsdPrint( Abc_FrameGlobalGetOut(), pNtk ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     for ( i = 0; i < pNtk->nVars; i++ )
     {
@@ -2419,8 +2419,8 @@ int Kit_DsdTestCofs( Kit_DsdNtk_t * pNtk, unsigned * pTruthInit )
 
         if ( fVerbose )
         {
-            printf( "Cof%d0: ", i );
-            Kit_DsdPrint( stdout, pNtk0 ), printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Cof%d0: ", i );
+            Kit_DsdPrint( Abc_FrameGlobalGetOut(), pNtk0 ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
 
         Kit_TruthCofactor1New( pCofs2[1], pTruth, pNtk->nVars, i );
@@ -2430,8 +2430,8 @@ int Kit_DsdTestCofs( Kit_DsdNtk_t * pNtk, unsigned * pTruthInit )
 
         if ( fVerbose )
         {
-            printf( "Cof%d1: ", i );
-            Kit_DsdPrint( stdout, pNtk1 ), printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Cof%d1: ", i );
+            Kit_DsdPrint( Abc_FrameGlobalGetOut(), pNtk1 ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
 
 //        if ( Kit_DsdCheckVar4Dec2( pNtk0, pNtk1 ) )
@@ -2441,7 +2441,7 @@ int Kit_DsdTestCofs( Kit_DsdNtk_t * pNtk, unsigned * pTruthInit )
         Kit_DsdNtkFree( pNtk1 );
     }
     if ( fVerbose )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     return RetValue;
 }
@@ -2475,7 +2475,7 @@ int Kit_DsdEval( unsigned * pTruth, int nVars, int nLutSize )
     p = Kit_DsdManAlloc( nVars, Kit_DsdNtkObjNum(pNtk) );
     pTruthC = Kit_DsdTruthCompute( p, pNtk );
     if ( !Kit_TruthIsEqual( pTruth, pTruthC, nVars ) )
-        printf( "Verification failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification failed.\n" );
     Kit_DsdManFree( p );
 
     Kit_DsdNtkFree( pNtk );
@@ -2500,7 +2500,7 @@ void Kit_DsdVerify( Kit_DsdNtk_t * pNtk, unsigned * pTruth, int nVars )
     p = Kit_DsdManAlloc( nVars, Kit_DsdNtkObjNum(pNtk)+2 );
     pTruthC = Kit_DsdTruthCompute( p, pNtk );
     if ( !Extra_TruthIsEqual( pTruth, pTruthC, nVars ) )
-        printf( "Verification failed for gate with %d inputs.\n", nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification failed for gate with %d inputs.\n", nVars );
     Kit_DsdManFree( p );
 }
 
@@ -2533,7 +2533,7 @@ void Kit_DsdTest( unsigned * pTruth, int nVars )
     pNtk = Kit_DsdExpand( pTemp = pNtk );
     Kit_DsdNtkFree( pTemp );
 
-    Kit_DsdPrint( stdout, pNtk ), printf( "\n" );
+    Kit_DsdPrint( Abc_FrameGlobalGetOut(), pNtk ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
 //    if ( Kit_DsdFindLargeBox(pNtk, Abc_Lit2Var(pNtk->Root)) )
 //        Kit_DsdTestCofs( pNtk, pTruth );
@@ -2548,7 +2548,7 @@ void Kit_DsdTest( unsigned * pTruth, int nVars )
 //        printf( "Verification is okay.\n" );
     }
     else
-        printf( "Verification failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification failed.\n" );
     Kit_DsdManFree( p );
 
 
@@ -2593,9 +2593,9 @@ void Kit_DsdPrecompute4Vars()
         {
 //            RetValue = 0;
             RetValue = Kit_DsdTestCofs( pNtk, &uTruth );
-            printf( "\n" );
-            printf( "%3d : Non-DSD function  %s  %s\n", i, Buffer + 2, RetValue? "implementable" : "" );
-            Kit_DsdPrint( stdout, pNtk ), printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d : Non-DSD function  %s  %s\n", i, Buffer + 2, RetValue? "implementable" : "" );
+            Kit_DsdPrint( Abc_FrameGlobalGetOut(), pNtk ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
             Counter1++;
             Counter2 += RetValue;
@@ -2612,13 +2612,13 @@ void Kit_DsdPrecompute4Vars()
         p = Kit_DsdManAlloc( 4, Kit_DsdNtkObjNum(pNtk) );
         pTruthC = Kit_DsdTruthCompute( p, pNtk );
         if ( !Extra_TruthIsEqual( &uTruth, pTruthC, 4 ) )
-            printf( "Verification failed.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Verification failed.\n" );
         Kit_DsdManFree( p );
 
         Kit_DsdNtkFree( pNtk );
     }
     fclose( pFile );
-    printf( "non-DSD = %d   implementable = %d\n", Counter1, Counter2 );
+    fprintf( Abc_FrameGlobalGetOut(), "non-DSD = %d   implementable = %d\n", Counter1, Counter2 );
 }
 
 
@@ -2710,7 +2710,7 @@ int Kit_DsdCofactoring( unsigned * pTruth, int nVars, int * pCofVars, int nLimit
     ppNtks[0][0] = Kit_DsdDecompose( ppCofs[0][0], nVars );
 
     if ( fVerbose )
-        printf( "\nProcessing prime function with %d support variables:\n", nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "\nProcessing prime function with %d support variables:\n", nVars );
 
     // perform recursive cofactoring
     for ( nStep = 0; nStep < nLimit; nStep++ )
@@ -2773,10 +2773,10 @@ int Kit_DsdCofactoring( unsigned * pTruth, int nVars, int * pCofVars, int nLimit
                 ppNtks[nStep+1][2*i+1] = Kit_DsdExpand( pTemp = ppNtks[nStep+1][2*i+1] );
                 Kit_DsdNtkFree( pTemp );
 
-                printf( "Cof%d%d: ", nStep+1, 2*i+0 );
-                Kit_DsdPrint( stdout, ppNtks[nStep+1][2*i+0] ), printf( "\n" );
-                printf( "Cof%d%d: ", nStep+1, 2*i+1 );
-                Kit_DsdPrint( stdout, ppNtks[nStep+1][2*i+1] ), printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Cof%d%d: ", nStep+1, 2*i+0 );
+                Kit_DsdPrint( Abc_FrameGlobalGetOut(), ppNtks[nStep+1][2*i+0] ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Cof%d%d: ", nStep+1, 2*i+1 );
+                Kit_DsdPrint( Abc_FrameGlobalGetOut(), ppNtks[nStep+1][2*i+1] ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
         }
     }
@@ -2818,7 +2818,7 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
     ppNtks[0] = Kit_DsdExpand( pTemp = ppNtks[0] );
     Kit_DsdNtkFree( pTemp );
     if ( fVerbose )
-        Kit_DsdPrint( stdout, ppNtks[0] ), printf( "\n" );
+        Kit_DsdPrint( Abc_FrameGlobalGetOut(), ppNtks[0] ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Kit_DsdNtkFree( ppNtks[0] );
 
     // allocate storage for cofactors
@@ -2839,10 +2839,10 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
         nSteps = 0;
         piCofVar[nSteps++] = v1;
 
-        printf( "    Variables { " );
+        fprintf( Abc_FrameGlobalGetOut(), "    Variables { " );
         for ( i = 0; i < nSteps; i++ )
-            printf( "%c ", 'a' + piCofVar[i] );
-        printf( "}\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c ", 'a' + piCofVar[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "}\n" );
 
         // single cofactors
         for ( s = 1; s <= nSteps; s++ )
@@ -2868,8 +2868,8 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
             Kit_DsdNtkFree( pTemp );
             if ( fVerbose )
             {
-                printf( "Cof%d%d: ", nSteps, i );
-                Kit_DsdPrint( stdout, ppNtks[i] ), printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Cof%d%d: ", nSteps, i );
+                Kit_DsdPrint( Abc_FrameGlobalGetOut(), ppNtks[i] ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
             // compute the largest non-decomp block
             nPrimeSizeCur  = Kit_DsdNonDsdSizeMax(ppNtks[i]);
@@ -2877,7 +2877,7 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
             Kit_DsdNtkFree( ppNtks[i] );
             nSuppSizeMax += Kit_TruthSupportSize( ppCofs[nSteps][i], nVars );
         }
-        printf( "Max = %2d. Supps = %2d.\n", nPrimeSizeMax, nSuppSizeMax );
+        fprintf( Abc_FrameGlobalGetOut(), "Max = %2d. Supps = %2d.\n", nPrimeSizeMax, nSuppSizeMax );
     }
 
     if ( nCofLevel == 2 )
@@ -2888,10 +2888,10 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
         piCofVar[nSteps++] = v1;
         piCofVar[nSteps++] = v2;
 
-        printf( "    Variables { " );
+        fprintf( Abc_FrameGlobalGetOut(), "    Variables { " );
         for ( i = 0; i < nSteps; i++ )
-            printf( "%c ", 'a' + piCofVar[i] );
-        printf( "}\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c ", 'a' + piCofVar[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "}\n" );
 
         // single cofactors
         for ( s = 1; s <= nSteps; s++ )
@@ -2917,8 +2917,8 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
             Kit_DsdNtkFree( pTemp );
             if ( fVerbose )
             {
-                printf( "Cof%d%d: ", nSteps, i );
-                Kit_DsdPrint( stdout, ppNtks[i] ), printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Cof%d%d: ", nSteps, i );
+                Kit_DsdPrint( Abc_FrameGlobalGetOut(), ppNtks[i] ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
             // compute the largest non-decomp block
             nPrimeSizeCur  = Kit_DsdNonDsdSizeMax(ppNtks[i]);
@@ -2926,7 +2926,7 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
             Kit_DsdNtkFree( ppNtks[i] );
             nSuppSizeMax += Kit_TruthSupportSize( ppCofs[nSteps][i], nVars );
         }
-        printf( "Max = %2d. Supps = %2d.\n", nPrimeSizeMax, nSuppSizeMax );
+        fprintf( Abc_FrameGlobalGetOut(), "Max = %2d. Supps = %2d.\n", nPrimeSizeMax, nSuppSizeMax );
     }
 
     if ( nCofLevel == 3 )
@@ -2939,10 +2939,10 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
         piCofVar[nSteps++] = v2;
         piCofVar[nSteps++] = v3;
 
-        printf( "    Variables { " );
+        fprintf( Abc_FrameGlobalGetOut(), "    Variables { " );
         for ( i = 0; i < nSteps; i++ )
-            printf( "%c ", 'a' + piCofVar[i] );
-        printf( "}\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c ", 'a' + piCofVar[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "}\n" );
 
         // single cofactors
         for ( s = 1; s <= nSteps; s++ )
@@ -2968,8 +2968,8 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
             Kit_DsdNtkFree( pTemp );
             if ( fVerbose )
             {
-                printf( "Cof%d%d: ", nSteps, i );
-                Kit_DsdPrint( stdout, ppNtks[i] ), printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Cof%d%d: ", nSteps, i );
+                Kit_DsdPrint( Abc_FrameGlobalGetOut(), ppNtks[i] ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
             // compute the largest non-decomp block
             nPrimeSizeCur  = Kit_DsdNonDsdSizeMax(ppNtks[i]);
@@ -2977,7 +2977,7 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
             Kit_DsdNtkFree( ppNtks[i] );
             nSuppSizeMax += Kit_TruthSupportSize( ppCofs[nSteps][i], nVars );
         }
-        printf( "Max = %2d. Supps = %2d.\n", nPrimeSizeMax, nSuppSizeMax );
+        fprintf( Abc_FrameGlobalGetOut(), "Max = %2d. Supps = %2d.\n", nPrimeSizeMax, nSuppSizeMax );
     }
 
     if ( nCofLevel == 4 )
@@ -2992,10 +2992,10 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
         piCofVar[nSteps++] = v3;
         piCofVar[nSteps++] = v4;
 
-        printf( "    Variables { " );
+        fprintf( Abc_FrameGlobalGetOut(), "    Variables { " );
         for ( i = 0; i < nSteps; i++ )
-            printf( "%c ", 'a' + piCofVar[i] );
-        printf( "}\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c ", 'a' + piCofVar[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "}\n" );
 
         // single cofactors
         for ( s = 1; s <= nSteps; s++ )
@@ -3021,8 +3021,8 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
             Kit_DsdNtkFree( pTemp );
             if ( fVerbose )
             {
-                printf( "Cof%d%d: ", nSteps, i );
-                Kit_DsdPrint( stdout, ppNtks[i] ), printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Cof%d%d: ", nSteps, i );
+                Kit_DsdPrint( Abc_FrameGlobalGetOut(), ppNtks[i] ), fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
             // compute the largest non-decomp block
             nPrimeSizeCur  = Kit_DsdNonDsdSizeMax(ppNtks[i]);
@@ -3030,7 +3030,7 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
             Kit_DsdNtkFree( ppNtks[i] );
             nSuppSizeMax += Kit_TruthSupportSize( ppCofs[nSteps][i], nVars );
         }
-        printf( "Max = %2d. Supps = %2d.\n", nPrimeSizeMax, nSuppSizeMax );
+        fprintf( Abc_FrameGlobalGetOut(), "Max = %2d. Supps = %2d.\n", nPrimeSizeMax, nSuppSizeMax );
     }
 
 

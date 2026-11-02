@@ -438,7 +438,7 @@ Vec_Str_t * Saig_SynchSequence( Aig_Man_t * pAig, int nWords )
     }
     if ( nTerPrev > 0 )
     {
-        printf( "Count not initialize %d registers.\n", nTerPrev );
+        fprintf( Abc_FrameGlobalGetOut(), "Count not initialize %d registers.\n", nTerPrev );
         Vec_PtrFree( vSimInfo );
         Vec_StrFree( vSequence );
         return NULL;
@@ -511,18 +511,18 @@ clk = Abc_Clock();
     // derive synchronization sequence
     vSequence = Saig_SynchSequence( pAig, nWords );
     if ( vSequence == NULL )
-        printf( "Design 1: Synchronizing sequence is not found. " );
+        fprintf( Abc_FrameGlobalGetOut(), "Design 1: Synchronizing sequence is not found. " );
     else if ( fVerbose )
-        printf( "Design 1: Synchronizing sequence of length %4d is found. ", Vec_StrSize(vSequence) / Saig_ManPiNum(pAig) );
+        fprintf( Abc_FrameGlobalGetOut(), "Design 1: Synchronizing sequence of length %4d is found. ", Vec_StrSize(vSequence) / Saig_ManPiNum(pAig) );
     if ( fVerbose )
     {
         ABC_PRT( "Time", Abc_Clock() - clk );
     }
     else
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     if ( vSequence == NULL )
     {
-        printf( "Quitting synchronization.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Quitting synchronization.\n" );
         return NULL;
     }
 
@@ -578,9 +578,9 @@ Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, 
     // report statistics
     if ( fVerbose )
     {
-        printf( "Design 1: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Design 1: " );
         Aig_ManPrintStats( pAig1 );
-        printf( "Design 2: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Design 2: " );
         Aig_ManPrintStats( pAig2 );
     }
 
@@ -588,34 +588,34 @@ Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, 
     clk = Abc_Clock();
     vSeq1 = Saig_SynchSequence( pAig1, nWords );
     if ( vSeq1 == NULL )
-        printf( "Design 1: Synchronizing sequence is not found. " );
+        fprintf( Abc_FrameGlobalGetOut(), "Design 1: Synchronizing sequence is not found. " );
     else if ( fVerbose )
-        printf( "Design 1: Synchronizing sequence of length %4d is found. ", Vec_StrSize(vSeq1) / Saig_ManPiNum(pAig1) );
+        fprintf( Abc_FrameGlobalGetOut(), "Design 1: Synchronizing sequence of length %4d is found. ", Vec_StrSize(vSeq1) / Saig_ManPiNum(pAig1) );
     if ( fVerbose )
     {
         ABC_PRT( "Time", Abc_Clock() - clk );
     }
     else
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // synchronize the first design
     clk = Abc_Clock();
     vSeq2 = Saig_SynchSequence( pAig2, nWords );
     if ( vSeq2 == NULL )
-        printf( "Design 2: Synchronizing sequence is not found. " );
+        fprintf( Abc_FrameGlobalGetOut(), "Design 2: Synchronizing sequence is not found. " );
     else if ( fVerbose )
-        printf( "Design 2: Synchronizing sequence of length %4d is found. ", Vec_StrSize(vSeq2) / Saig_ManPiNum(pAig2) );
+        fprintf( Abc_FrameGlobalGetOut(), "Design 2: Synchronizing sequence of length %4d is found. ", Vec_StrSize(vSeq2) / Saig_ManPiNum(pAig2) );
     if ( fVerbose )
     {
         ABC_PRT( "Time", Abc_Clock() - clk );
     }
     else
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // quit if one of the designs cannot be synchronized
     if ( vSeq1 == NULL || vSeq2 == NULL )
     {
-        printf( "Quitting synchronization.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Quitting synchronization.\n" );
         if ( vSeq1 ) Vec_StrFree( vSeq1 );
         if ( vSeq2 ) Vec_StrFree( vSeq2 );
         return NULL;
@@ -650,7 +650,7 @@ Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, 
 
     if ( fVerbose )
     {
-        printf( "Miter of the synchronized designs is constructed.         " );
+        fprintf( Abc_FrameGlobalGetOut(), "Miter of the synchronized designs is constructed.         " );
         ABC_PRT( "Time", Abc_Clock() - clk );
     }
     return pMiter;

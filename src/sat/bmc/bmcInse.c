@@ -282,7 +282,7 @@ Vec_Int_t * Gia_ManInsePerform( Gia_Man_t * p, Vec_Int_t * vInit0, int nFrames, 
     abctime clk, clkTotal = Abc_Clock();
     Gia_ManRandomW( 1 );
     if ( fVerbose )
-        printf( "Running with %d frames, %d words, and %sgiven init state.\n", nFrames, nWords, vInit0 ? "":"no " );
+        fprintf( Abc_FrameGlobalGetOut(), "Running with %d frames, %d words, and %sgiven init state.\n", nFrames, nWords, vInit0 ? "":"no " );
     vInit = Vec_IntAlloc(0); Vec_IntFill( vInit, Gia_ManRegNum(p), 2 );
     vInputs = Vec_IntStart( Gia_ManPiNum(p) * nFrames );
     Gia_ParTestAlloc( p, nWords );
@@ -291,7 +291,7 @@ Vec_Int_t * Gia_ManInsePerform( Gia_Man_t * p, Vec_Int_t * vInit0, int nFrames, 
     Vec_IntForEachEntry( vInit, iPat, i )
         Cost0 += ((iPat >> 1) & 1);
     if ( fVerbose )
-        printf( "Frame =%6d : Values =%6d (out of %6d)\n", 0, Cost0, Cost0 );
+        fprintf( Abc_FrameGlobalGetOut(), "Frame =%6d : Values =%6d (out of %6d)\n", 0, Cost0, Cost0 );
     for ( f = 0; f < nFrames; f++ )
     {
         clk = Abc_Clock();
@@ -301,7 +301,7 @@ Vec_Int_t * Gia_ManInsePerform( Gia_Man_t * p, Vec_Int_t * vInit0, int nFrames, 
         Gia_ManInseFindStarting( p, iPat, vInit, vInputs );
         Gia_ManInseInit( p, vInit );
         if ( fVerbose )
-            printf( "Frame =%6d : Values =%6d (out of %6d)   ", f+1, Cost, Cost0 );
+            fprintf( Abc_FrameGlobalGetOut(), "Frame =%6d : Values =%6d (out of %6d)   ", f+1, Cost, Cost0 );
         if ( fVerbose )
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
@@ -309,7 +309,7 @@ Vec_Int_t * Gia_ManInsePerform( Gia_Man_t * p, Vec_Int_t * vInit0, int nFrames, 
     vRes = Gia_ManInseSimulate( p, vInit0, vInputs, vInit );
     Vec_IntFreeP( &vInit );
     Vec_IntFreeP( &vInputs );
-    printf( "After %d frames, found a sequence to produce %d x-values (out of %d).  ", f, Cost, Gia_ManRegNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "After %d frames, found a sequence to produce %d x-values (out of %d).  ", f, Cost, Gia_ManRegNum(p) );
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
     return vRes;
 }

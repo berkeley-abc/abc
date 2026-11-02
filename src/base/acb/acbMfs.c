@@ -182,7 +182,7 @@ void Acb_DeriveCnfForNode( Acb_Ntk_t * p, int iObj, sat_solver * pSat, int OutVa
     Vec_IntForEachEntry( vClas, This, k )
     {
         if ( !sat_solver_addclause( pSat, Vec_IntArray(vLits) + Prev, Vec_IntArray(vLits) + This ) )
-            printf( "Error: SAT solver became UNSAT at a wrong place (while adding new CNF).\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Error: SAT solver became UNSAT at a wrong place (while adding new CNF).\n" );
         Prev = This;
     }
     Vec_IntFree( vClas );
@@ -311,7 +311,7 @@ int Acb_NtkWindow2Solver( sat_solver * pSat, Cnf_Dat_t * pCnf, Vec_Int_t * vFlip
             Cnf_DataLiftAndFlipLits( pCnf, -pCnf->nVars, vFlip );
         for ( i = 0; i < pCnf->nClauses; i++ )
             if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
-                printf( "Error: SAT solver became UNSAT at a wrong place.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Error: SAT solver became UNSAT at a wrong place.\n" );
         if ( n & 1 )
             Cnf_DataLiftAndFlipLits( pCnf, pCnf->nVars, vFlip );
         if ( n < nTimes - 1 )
@@ -331,7 +331,7 @@ int Acb_NtkWindow2Solver( sat_solver * pSat, Cnf_Dat_t * pCnf, Vec_Int_t * vFlip
     }
     // finalize
     RetValue = sat_solver_simplify( pSat );
-    if ( !RetValue ) printf( "Error: SAT solver became UNSAT at a wrong place.\n" );
+    if ( !RetValue ) fprintf( Abc_FrameGlobalGetOut(), "Error: SAT solver became UNSAT at a wrong place.\n" );
     return 1;
 }
 
@@ -377,7 +377,7 @@ word Acb_ComputeFunction( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_
             // check against offset
             status = sat_solver_solve( pSat, Vec_IntArray(vTempLits), Vec_IntLimit(vTempLits), 0, 0, 0, 0 );
             if ( status != l_False )
-                printf( "Failed internal check during function comptutation.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Failed internal check during function comptutation.\n" );
             assert( status == l_False );
             // compute cube and add clause
             nFinal = sat_solver_final( pSat, &pFinal );
@@ -430,26 +430,26 @@ word Acb_ComputeFunction( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_
 void Acb_NtkPrintVec( Acb_Ntk_t * p, Vec_Int_t * vVec, char * pName )
 {
     int i;
-    printf( "%s: ", pName );
+    fprintf( Abc_FrameGlobalGetOut(), "%s: ", pName );
     for ( i = 0; i < vVec->nSize; i++ )
-        printf( "%d ", vVec->pArray[i] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%d ", vVec->pArray[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Acb_NtkPrintVec2( Acb_Ntk_t * p, Vec_Int_t * vVec, char * pName )
 {
     int i;
-    printf( "%s: \n", pName );
+    fprintf( Abc_FrameGlobalGetOut(), "%s: \n", pName );
     for ( i = 0; i < vVec->nSize; i++ )
         Acb_NtkPrintNode( p, vVec->pArray[i] );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 void Acb_NtkPrintVecWin( Acb_Ntk_t * p, Vec_Int_t * vVec, char * pName )
 {
     int i;
-    printf( "%s: \n", pName );
+    fprintf( Abc_FrameGlobalGetOut(), "%s: \n", pName );
     for ( i = 0; i < vVec->nSize; i++ )
         Acb_NtkPrintNode( p, Abc_Lit2Var(vVec->pArray[i]) );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -865,17 +865,17 @@ static inline void Vec_IntRemap( Vec_Int_t * p, Vec_Int_t * vMap )
 static inline void Acb_WinPrint( Acb_Ntk_t * p, Vec_Int_t * vWin, int Pivot, int nDivs )
 {
     int i, Node;
-    printf( "Window for node %d with %d divisors:\n", Pivot, nDivs );
+    fprintf( Abc_FrameGlobalGetOut(), "Window for node %d with %d divisors:\n", Pivot, nDivs );
     Vec_IntForEachEntry( vWin, Node, i )
     {
         if ( i == nDivs )
-            printf( " | " );
+            fprintf( Abc_FrameGlobalGetOut(), " | " );
         if ( Abc_Lit2Var(Node) == Pivot )
-            printf( "(%d) ", Pivot );
+            fprintf( Abc_FrameGlobalGetOut(), "(%d) ", Pivot );
         else
-            printf( "%s%d ", Abc_LitIsCompl(Node) ? "*":"", Abc_Lit2Var(Node) );
+            fprintf( Abc_FrameGlobalGetOut(), "%s%d ", Abc_LitIsCompl(Node) ? "*":"", Abc_Lit2Var(Node) );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 static inline void Acb_NtkOrderByRefCount( Acb_Ntk_t * p, Vec_Int_t * vSupp )
@@ -924,7 +924,7 @@ int Acb_NtkFindSupp1( Acb_Ntk_t * p, int Pivot, sat_solver * pSat, int nVars, in
     Vec_IntVars2Lits( vSupp, 2*nVars, 0 );
     status = sat_solver_solve( pSat, Vec_IntArray(vSupp), Vec_IntLimit(vSupp), 0, 0, 0, 0 );
     if ( status != l_False )
-        printf( "Failed internal check at node %d.\n", Pivot );
+        fprintf( Abc_FrameGlobalGetOut(), "Failed internal check at node %d.\n", Pivot );
     assert( status == l_False );
     nSuppNew = sat_solver_minimize_assumptions( pSat, Vec_IntArray(vSupp), Vec_IntSize(vSupp), 0 );
     Vec_IntShrink( vSupp, nSuppNew );
@@ -967,7 +967,7 @@ int Acb_NtkFindSupp2( Acb_Ntk_t * p, int Pivot, sat_solver * pSat, int nVars, in
         Vec_IntVars2Lits( vSupp, 2*nVars, 0 );
         status = sat_solver_solve( pSat, Vec_IntArray(vSupp), Vec_IntLimit(vSupp), 0, 0, 0, 0 );
         if ( status != l_False )
-            printf( "Failed internal check at node %d.\n", Pivot );
+            fprintf( Abc_FrameGlobalGetOut(), "Failed internal check at node %d.\n", Pivot );
         assert( status == l_False );
         nSuppNew = sat_solver_minimize_assumptions( pSat, Vec_IntArray(vSupp), Vec_IntSize(vSupp), 0 );
         Vec_IntShrink( vSupp, nSuppNew );
@@ -995,7 +995,7 @@ int Acb_NtkFindSupp2( Acb_Ntk_t * p, int Pivot, sat_solver * pSat, int nVars, in
         Vec_IntVars2Lits( vSupp, 2*nVars, 0 );
         status = sat_solver_solve( pSat, Vec_IntArray(vSupp), Vec_IntLimit(vSupp), 0, 0, 0, 0 );
         if ( status != l_False )
-            printf( "Failed internal check at node %d.\n", Pivot );
+            fprintf( Abc_FrameGlobalGetOut(), "Failed internal check at node %d.\n", Pivot );
         assert( status == l_False );
         nSuppNew = sat_solver_minimize_assumptions( pSat, Vec_IntArray(vSupp), Vec_IntSize(vSupp), 0 );
         Vec_IntShrink( vSupp, nSuppNew );
@@ -1115,7 +1115,7 @@ int Acb_NtkFindSupp3( Acb_Ntk_t * p, int Pivot, sat_solver * pSat, int nVars, in
             // solve for these fanins
             status = sat_solver_solve( pSat, Vec_IntArray(vSupp), Vec_IntLimit(vSupp), 0, 0, 0, 0 );
             if ( status != l_False )
-                printf( "Failed internal check at node %d.\n", Pivot );
+                fprintf( Abc_FrameGlobalGetOut(), "Failed internal check at node %d.\n", Pivot );
             assert( status == l_False );
             nSuppNew = sat_solver_minimize_assumptions( pSat, Vec_IntArray(vSupp), Vec_IntSize(vSupp), 0 );
             Vec_IntShrink( vSupp, nSuppNew );
@@ -1243,15 +1243,15 @@ void Acb_NtkOptNodeAnalyze( Acb_Mfs_t * p, int PivotVar, int nDivs, int nValues,
         int * pOnSet  = pStart + 1 + (pStart[0] ? 0 : nDivs);
         int * pOffSet = pStart + 1 + (pStart[0] ? nDivs : 0);
 
-        printf( "%2d:", f );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d:", f );
         for ( s = start; s < stop; s++ )
-            printf( "%d", pOnSet[s] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", pOnSet[s] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-        printf( "%2d:", f );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d:", f );
         for ( s = start; s < stop; s++ )
-            printf( "%d", pOffSet[s] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", pOffSet[s] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
         for ( s = start; s < stop; s++ )
         {
@@ -1272,25 +1272,25 @@ void Acb_NtkOptNodeAnalyze( Acb_Mfs_t * p, int PivotVar, int nDivs, int nValues,
             Diffs[d++] = OnSet[f] ^ OffSet[s];
     }
 
-    printf( "Divisors = %d.  Frames = %d.  Patterns = %d.\n", nDivs, nFrames, d );
-    printf( "   " );
+    fprintf( Abc_FrameGlobalGetOut(), "Divisors = %d.  Frames = %d.  Patterns = %d.\n", nDivs, nFrames, d );
+    fprintf( Abc_FrameGlobalGetOut(), "   " );
     for ( s = start; s < stop; s++ )
-        printf( "%d", s / 10 );
-    printf( "\n" );
-    printf( "   " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", s / 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "   " );
     for ( s = start; s < stop; s++ )
-        printf( "%d", s % 10 );
-    printf( "\n" );
-    printf( "   " );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", s % 10 );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "   " );
     for ( s = start; s < stop; s++ )
-        printf( "%c", Vec_IntFind(vSupp, s) >= 0 ? 'a' + Vec_IntFind(vSupp, s) : ' ' );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", Vec_IntFind(vSupp, s) >= 0 ? 'a' + Vec_IntFind(vSupp, s) : ' ' );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( s = 0; s < d; s++ )
     {
-        printf( "%2d:", s );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d:", s );
         for ( f = 0; f < stop; f++ )
-            printf( "%c", ((Diffs[s] >> f) & 1) ? '*' : ' ' );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%c", ((Diffs[s] >> f) & 1) ? '*' : ' ' );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 
@@ -1310,14 +1310,14 @@ int Acb_NtkOptNode( Acb_Mfs_t * p, int Pivot )
     p->timeWin  += Abc_Clock() - clk;
     PivotVar = Vec_IntFind( vWin, Abc_Var2Lit(Pivot, 0) );
     if ( p->pPars->fVerbose )
-    printf( "Node %d: Window contains %d objects and %d divisors.  ", Pivot, Vec_IntSize(vWin), nDivs );
+    fprintf( Abc_FrameGlobalGetOut(), "Node %d: Window contains %d objects and %d divisors.  ", Pivot, Vec_IntSize(vWin), nDivs );
 //    Acb_WinPrint( p->pNtk, vWin, Pivot, nDivs );
 //    Acb_NtkPrintVecWin( p->pNtk, vWin, "Win" );
     if ( Vec_IntSize(vWin) > p->pPars->nWinNodeMax )
     {
         p->nOvers++;
         if ( p->pPars->fVerbose )
-            printf( "Too many divisors.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Too many divisors.\n" );
         goto cleanup;
     }
 
@@ -1341,7 +1341,7 @@ int Acb_NtkOptNode( Acb_Mfs_t * p, int Pivot )
         {
             p->nChanges[0]++;
             if ( p->pPars->fVerbose )
-            printf( "Found constant %d.\n", c );
+            fprintf( Abc_FrameGlobalGetOut(), "Found constant %d.\n", c );
             Acb_NtkUpdateNode( p->pNtk, Pivot, c ? ~(word)0 : 0, NULL );
             RetValue = 1;
             goto cleanup;
@@ -1391,12 +1391,12 @@ int Acb_NtkOptNode( Acb_Mfs_t * p, int Pivot )
                 p->nChanges[1]++;
             assert( Vec_IntSize(p->vSupp) < p->pPars->nLutSize );
             if ( p->pPars->fVerbose )
-            printf( "Found %d inputs: ", Vec_IntSize(p->vSupp) );
+            fprintf( Abc_FrameGlobalGetOut(), "Found %d inputs: ", Vec_IntSize(p->vSupp) );
             uTruth = Acb_ComputeFunction( p->pSat[0], PivotVar, sat_solver_nvars(p->pSat[0])-1, p->vSupp, 0 );
             if ( p->pPars->fVerbose )
-            Extra_PrintHex( stdout, (unsigned *)&uTruth, Vec_IntSize(p->vSupp) ); 
+            Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&uTruth, Vec_IntSize(p->vSupp) ); 
             if ( p->pPars->fVerbose )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
             // create support in terms of nodes
             Vec_IntRemap( p->vSupp, vWin );
             Vec_IntLits2Vars( p->vSupp, 0 );
@@ -1423,12 +1423,12 @@ int Acb_NtkOptNode( Acb_Mfs_t * p, int Pivot )
             p->nChanges[2]++;
             assert( Vec_IntSize(p->vSupp) <= p->pPars->nLutSize );
             if ( p->pPars->fVerbose )
-            printf( "Found %d inputs: ", Vec_IntSize(p->vSupp) );
+            fprintf( Abc_FrameGlobalGetOut(), "Found %d inputs: ", Vec_IntSize(p->vSupp) );
             uTruth = Acb_ComputeFunction( p->pSat[0], PivotVar, sat_solver_nvars(p->pSat[0])-1, p->vSupp, 0 );
             if ( p->pPars->fVerbose )
-            Extra_PrintHex( stdout, (unsigned *)&uTruth, Vec_IntSize(p->vSupp) ); 
+            Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&uTruth, Vec_IntSize(p->vSupp) ); 
             if ( p->pPars->fVerbose )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
             // create support in terms of nodes
             Vec_IntRemap( p->vSupp, vWin );
             Vec_IntLits2Vars( p->vSupp, 0 );
@@ -1458,7 +1458,7 @@ int Acb_NtkOptNode( Acb_Mfs_t * p, int Pivot )
             assert( Result                       <  p->pPars->nLutSize );
             assert( Vec_IntSize(p->vSupp)-Result <= p->pPars->nLutSize );
             if ( fVerbose || p->pPars->fVerbose )
-            printf( "Obj %5d: Found %d Hvars and %d Gvars: ", Pivot, Result, Vec_IntSize(p->vSupp)-Result );
+            fprintf( Abc_FrameGlobalGetOut(), "Obj %5d: Found %d Hvars and %d Gvars: ", Pivot, Result, Vec_IntSize(p->vSupp)-Result );
             // p->vSupp contains G variables (Vec_IntSize(p->vSupp)-Result) followed by H variables (Result)
             //sat_solver_restart( p->pSat[1] );
             //Acb_NtkWindow2Solver( p->pSat[1], pCnf, p->vFlip, PivotVar, nDivs, 2 );
@@ -1470,7 +1470,7 @@ int Acb_NtkOptNode( Acb_Mfs_t * p, int Pivot )
                 assert( Var + 2*pCnf->nVars < sat_solver_nvars(p->pSat[1]) );
                 Lit = Abc_Var2Lit( Var + 2*pCnf->nVars, 0 ); // HVars are the same
                 if ( !sat_solver_addclause( p->pSat[1], &Lit, &Lit + 1 ) )
-                { if ( fVerbose || p->pPars->fVerbose ) printf( "Error: SAT solver became UNSAT at a wrong place (place 2).  " ); fBecameUnsat = 1; }
+                { if ( fVerbose || p->pPars->fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Error: SAT solver became UNSAT at a wrong place (place 2).  " ); fBecameUnsat = 1; }
             }
             // find one satisfying assighment
             status = sat_solver_solve( p->pSat[1], NULL, NULL, 0, 0, 0, 0 );
@@ -1487,19 +1487,19 @@ int Acb_NtkOptNode( Acb_Mfs_t * p, int Pivot )
                 if ( k < Vec_IntSize(p->vSupp) ) // do not constrain a C-var
                 {
                     if ( fVerbose || p->pPars->fVerbose )
-                    printf( "Found C-var in object %d.  ", Pivot );
+                    fprintf( Abc_FrameGlobalGetOut(), "Found C-var in object %d.  ", Pivot );
                     continue;
                 }
                 assert( Var >= 0 && Var < nDivs );
                 Lit = sat_solver_var_literal( p->pSat[1], Var + pCnf->nVars );
                 if ( !sat_solver_addclause( p->pSat[1], &Lit, &Lit + 1 ) )
-                { if ( fVerbose || p->pPars->fVerbose ) printf( "Error: SAT solver became UNSAT at a wrong place (place 1).  " ); fBecameUnsat = 1; }
+                { if ( fVerbose || p->pPars->fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "Error: SAT solver became UNSAT at a wrong place (place 1).  " ); fBecameUnsat = 1; }
             }
             if ( fBecameUnsat )
             {
                 StrCount++;
                 if ( fVerbose || p->pPars->fVerbose )
-                printf( " Quitting.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " Quitting.\n" );
                 goto cleanup;
             }
             // consider only G variables
@@ -1507,11 +1507,11 @@ int Acb_NtkOptNode( Acb_Mfs_t * p, int Pivot )
             // truth table
             uTruth = Acb_ComputeFunction( p->pSat[1], PivotVar, sat_solver_nvars(p->pSat[1])-1, p->vSupp, fCompl );
             if ( fVerbose || p->pPars->fVerbose )
-            Extra_PrintHex( stdout, (unsigned *)&uTruth, Vec_IntSize(p->vSupp) ); 
+            Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&uTruth, Vec_IntSize(p->vSupp) ); 
             if ( uTruth == 0 || ~uTruth == 0 )
             {
                 if ( fVerbose || p->pPars->fVerbose )
-                printf( " Quitting.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), " Quitting.\n" );
                 goto cleanup;
             }
             p->nChanges[3]++;
@@ -1531,11 +1531,11 @@ int Acb_NtkOptNode( Acb_Mfs_t * p, int Pivot )
             uTruth = Acb_ComputeFunction( p->pSat[0], PivotVar, sat_solver_nvars(p->pSat[0])-1, p->vSupp, 0 );
             // create new fanins of the node
             if ( fVerbose || p->pPars->fVerbose )
-            printf( "  " );
+            fprintf( Abc_FrameGlobalGetOut(), "  " );
             if ( fVerbose || p->pPars->fVerbose )
-            Extra_PrintHex( stdout, (unsigned *)&uTruth, Vec_IntSize(p->vSupp) ); 
+            Extra_PrintHex( Abc_FrameGlobalGetOut(), (unsigned *)&uTruth, Vec_IntSize(p->vSupp) ); 
             if ( fVerbose || p->pPars->fVerbose )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
             // create support in terms of nodes
             Vec_IntPop( p->vSupp );
             Vec_IntRemap( p->vSupp, vWin );
@@ -1549,7 +1549,7 @@ int Acb_NtkOptNode( Acb_Mfs_t * p, int Pivot )
 //#endif
 
     if ( p->pPars->fVerbose )
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
 cleanup:
     sat_solver_restart( p->pSat[0] );
@@ -1579,7 +1579,7 @@ void Acb_NtkOpt( Acb_Ntk_t * pNtk, Acb_Par_t * pPars )
 {
     Acb_Mfs_t * pMan = Acb_MfsStart( pNtk, pPars );
     if ( pPars->fVerbose )
-        printf( "%s-optimization parameters: TfiLev(I) = %d  TfoLev(O) = %d  WinMax(W) = %d  LutSize = %d\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "%s-optimization parameters: TfiLev(I) = %d  TfoLev(O) = %d  WinMax(W) = %d  LutSize = %d\n", 
             pMan->pPars->fArea ? "Area" : "Delay", pMan->pPars->nTfiLevMax, pMan->pPars->nTfoLevMax, pMan->pPars->nWinNodeMax, pMan->pPars->nLutSize );
     Acb_NtkCreateFanout( pNtk );  // fanout data structure
     Acb_NtkCleanObjFuncs( pNtk ); // SAT variables
@@ -1620,7 +1620,7 @@ void Acb_NtkOpt( Acb_Ntk_t * pNtk, Acb_Par_t * pPars )
     if ( pPars->fVerbose )
     {
         pMan->timeTotal = Abc_Clock() - pMan->timeTotal;
-        printf( "Node = %d  Win = %d (Ave = %d)  DivAve = %d   Change = %d  C = %d  N1 = %d  N2 = %d  N3 = %d   Over = %d  Str = %d  2Node = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Node = %d  Win = %d (Ave = %d)  DivAve = %d   Change = %d  C = %d  N1 = %d  N2 = %d  N3 = %d   Over = %d  Str = %d  2Node = %d.\n", 
             pMan->nNodes, pMan->nWins, pMan->nWinsAll/Abc_MaxInt(1, pMan->nWins), pMan->nDivsAll/Abc_MaxInt(1, pMan->nWins),
             pMan->nChanges[0] + pMan->nChanges[1] + pMan->nChanges[2] + pMan->nChanges[3],
             pMan->nChanges[0], pMan->nChanges[1], pMan->nChanges[2], pMan->nChanges[3], pMan->nOvers, StrCount, pMan->nTwoNodes );
@@ -1631,7 +1631,7 @@ void Acb_NtkOpt( Acb_Ntk_t * pNtk, Acb_Par_t * pPars )
 //        ABC_PRTP( "  unsat    ", pMan->timeSatU,   pMan->timeTotal );
 //        ABC_PRTP( "  sat      ", pMan->timeSatS,   pMan->timeTotal );
         ABC_PRTP( "TOTAL      ", pMan->timeTotal,  pMan->timeTotal );
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     Acb_MfsStop( pMan );
     StrCount = 0;

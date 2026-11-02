@@ -348,13 +348,13 @@ int Abc_CommandRunScript( Abc_Frame_t * pAbc, int argc, char ** argv )
         for ( c = 0; c < nIters; c++ )
         {
             if ( fVerbose )
-                printf( "ITERATION %3d : %s\n", c, pScript );
+                fprintf( Abc_FrameGlobalGetOut(), "ITERATION %3d : %s\n", c, pScript );
             if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), pScript) ) {
                 Abc_Print( 1, "Something did not work out with the command \"%s\".\n", pScript );
                 goto usage;
             }        
         }
-        printf( "Finished iterating script %d times.  ", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished iterating script %d times.  ", nIters );
         Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
         return 0;    
     }
@@ -372,13 +372,13 @@ int Abc_CommandRunScript( Abc_Frame_t * pAbc, int argc, char ** argv )
             strcat( pCommLine, pNumber );
             strcat( pCommLine, pSpot+1 );
             if ( fVerbose )
-                printf( "ITERATION %3d : %s\n", c, pCommLine );
+                fprintf( Abc_FrameGlobalGetOut(), "ITERATION %3d : %s\n", c, pCommLine );
             if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), pCommLine) ) {
                 Abc_Print( 1, "Something did not work out with the command \"%s\".\n", pCommLine );
                 goto usage;
             }        
         }
-        printf( "Finished iterating script %d times.  ", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished iterating script %d times.  ", nIters );
         Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
     }
     return 0;
@@ -575,7 +575,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_GenGraph( FileName, nVars );
     else if ( fAdderTree )
     {
-        printf( "Generating adder tree with %d arguments and %d bits.\n", nArgs, nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "Generating adder tree with %d arguments and %d bits.\n", nArgs, nVars );
         Abc_GenAdderTree( FileName, nArgs, nVars );
         sprintf( Command, "%%read %s; %%blast; &put", FileName );
         Cmd_CommandExecute( pAbc, Command );
@@ -723,7 +723,7 @@ int Abc_CommandGenTF( Abc_Frame_t * pAbc, int argc, char ** argv )
         Vec_IntFree( vNums );
         return 0; 
     }
-    printf( "Generating threshold function with %d inputs and bit-width %d.\n", Vec_IntSize(vNums)-1, nBits );
+    fprintf( Abc_FrameGlobalGetOut(), "Generating threshold function with %d inputs and bit-width %d.\n", Vec_IntSize(vNums)-1, nBits );
     Abc_GenThresh( pFileName, nBits, vNums, nLutSize, pArch );    
     if ( nLutSize == 4 || nLutSize == 6 )
         sprintf(Command, "read %s; strash; if -K %d -am; mfs2 -W 10 -L 10 -M 1000", pFileName, nLutSize );
@@ -1311,7 +1311,7 @@ int Abc_CommandSymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( nVars == -1 )
         {
-            printf( "The number of variables should be specified on the command line using \"-N <num>\".\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "The number of variables should be specified on the command line using \"-N <num>\".\n" );
             return 1;
         }
         extern Vec_Ptr_t * Abc_SopGenerateCounters( int nVars );
@@ -1326,7 +1326,7 @@ int Abc_CommandSymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( nVars < 1 || nVars > 16 )
         {
-            printf( "Cannot generate functions for less than 1 and more than %d variables.\n", nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot generate functions for less than 1 and more than %d variables.\n", nVars );
             return 1;
         }
         Ntk_SymFunGenerate( nVars, fVerbose );
@@ -1356,12 +1356,12 @@ int Abc_CommandSymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fVerbose )
     {
         if ( nVars > 6 )
-            printf( "Generated truth table of the %d-variable function and set it as the current network.\n", nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "Generated truth table of the %d-variable function and set it as the current network.\n", nVars );
         else
-            printf( "Generated truth table of the %d-variable function (%s) and set it as the current network\n", nVars, pTruth );
+            fprintf( Abc_FrameGlobalGetOut(), "Generated truth table of the %d-variable function (%s) and set it as the current network\n", nVars, pTruth );
     }
     else if ( nVars <= 8 )
-        printf( "%s\n", pTruth );
+        fprintf( Abc_FrameGlobalGetOut(), "%s\n", pTruth );
     // read the truth table to be the current network in ABC
     pCommand = ABC_CALLOC( char, strlen(pTruth) + 100 );
     memcpy( pCommand, "read_truth ", 11 );
@@ -1711,13 +1711,13 @@ int Abc_CommandAbc9SymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else {
         if ( argc == globalUtilOptind ) {
-            printf( "One or more characteristic strings should be given on the command line.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "One or more characteristic strings should be given on the command line.\n" );
             return 0;
         }
         nChars = (int)strlen(argv[globalUtilOptind]);
         for ( c = globalUtilOptind+1; c < argc; c++ )
             if ( nChars != (int)strlen(argv[c]) ) {
-                printf( "Char strings have different lengths. Quitting.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Char strings have different lengths. Quitting.\n" );
                 return 0;            
             }
         vFuns = Vec_WrdAlloc( argc );
@@ -1725,7 +1725,7 @@ int Abc_CommandAbc9SymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
             Vec_WrdPush( vFuns, Abc_TtReadBin64(argv[c]) );
     }
     if ( nChars > 64 ) {
-        printf( "Currently can handle functions up to 63 inputs. Quitting.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Currently can handle functions up to 63 inputs. Quitting.\n" );
         return 0;
     }
     pNew = Gia_ManGenSymFun( vFuns, nChars, fVerbose );
@@ -2276,7 +2276,7 @@ int Abc_CommandAbc9GenRel( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( pOuts[c] == ',' )
             Vec_IntPush( vInsOuts, atoi(pOuts+c+1) );
     if ( fVerbose ) {
-        printf( "Deriving relation for %d inputs and %d outputs: ", nIns, Vec_IntSize(vInsOuts)-nIns );
+        fprintf( Abc_FrameGlobalGetOut(), "Deriving relation for %d inputs and %d outputs: ", nIns, Vec_IntSize(vInsOuts)-nIns );
         Vec_IntPrint( vInsOuts );
     }
     Gia_ManGenRel( pAbc->pGia, vInsOuts, nIns, argv[globalUtilOptind], fVerbose );

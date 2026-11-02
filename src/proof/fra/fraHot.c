@@ -207,7 +207,7 @@ void Fra_OneHotAssume( Fra_Man_t * p, Vec_Int_t * vOneHots )
         // add constraint to solver
         if ( !sat_solver_addclause( p->pSat, pLits, pLits + 2 ) )
         {
-            printf( "Fra_OneHotAssume(): Adding clause makes SAT solver unsat.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Fra_OneHotAssume(): Adding clause makes SAT solver unsat.\n" );
             sat_solver_delete( p->pSat );
             p->pSat = NULL;
             return;
@@ -246,7 +246,7 @@ void Fra_OneHotCheck( Fra_Man_t * p, Vec_Int_t * vOneHots )
             if ( RetValue == 0 )
                 Fra_SmlResimulate( p );
             if ( Vec_IntEntry(vOneHots, i) != 0 )
-                printf( "Fra_OneHotCheck(): Clause is not refined!\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Fra_OneHotCheck(): Clause is not refined!\n" );
             assert( Vec_IntEntry(vOneHots, i) == 0 );
         }
     }
@@ -379,8 +379,8 @@ void Fra_OneHotEstimateCoverage( Fra_Man_t * p, Vec_Int_t * vOneHots )
         nCovered += Aig_WordCountOnes( pSimTot[w] );
     Vec_PtrFree( vSimInfo );
     // print the result
-    printf( "Care states ratio = %f. ", 1.0 * (nSimWords * 32 - nCovered) / (nSimWords * 32) );
-    printf( "(%d out of %d patterns)  ", nSimWords * 32 - nCovered, nSimWords * 32 );
+    fprintf( Abc_FrameGlobalGetOut(), "Care states ratio = %f. ", 1.0 * (nSimWords * 32 - nCovered) / (nSimWords * 32) );
+    fprintf( Abc_FrameGlobalGetOut(), "(%d out of %d patterns)  ", nSimWords * 32 - nCovered, nSimWords * 32 );
     ABC_PRT( "Time", Abc_Clock() - clk );
 }
 
@@ -457,7 +457,7 @@ void Fra_OneHotAddKnownConstraint( Fra_Man_t * p, Vec_Ptr_t * vOnehots )
             // add constraint to solver
             if ( !sat_solver_addclause( p->pSat, pLits, pLits + 2 ) )
             {
-                printf( "Fra_OneHotAddKnownConstraint(): Adding clause makes SAT solver unsat.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Fra_OneHotAddKnownConstraint(): Adding clause makes SAT solver unsat.\n" );
                 sat_solver_delete( p->pSat );
                 p->pSat = NULL;
                 return;

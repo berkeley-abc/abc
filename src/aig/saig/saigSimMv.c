@@ -408,15 +408,15 @@ void Saig_MvPrintState( int Iter, Saig_MvMan_t * p )
 {
     Saig_MvObj_t * pEntry;
     int i;
-    printf( "%3d : ", Iter );
+    fprintf( Abc_FrameGlobalGetOut(), "%3d : ", Iter );
     Vec_PtrForEachEntry( Saig_MvObj_t *, p->vFlops, pEntry, i )
     {
         if ( pEntry->Value == SAIG_UNDEF_VALUE )
-            printf( "    *" );
+            fprintf( Abc_FrameGlobalGetOut(), "    *" );
         else
-            printf( "%5d", pEntry->Value );
+            fprintf( Abc_FrameGlobalGetOut(), "%5d", pEntry->Value );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -579,7 +579,7 @@ void Saig_MvManPostProcess( Saig_MvMan_t * p, int iState )
     Vec_PtrForEachEntry( Saig_MvObj_t *, p->vFlops, pEntry, i )
         if ( p->pRegsUndef[i] == 0 )
             nTotal++;
-    printf( "The number of registers that never became undef = %d. (Total = %d.)\n", nTotal, p->nFlops );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of registers that never became undef = %d. (Total = %d.)\n", nTotal, p->nFlops );
     Vec_PtrForEachEntry( Saig_MvObj_t *, p->vFlops, pEntry, i )
     {
         if ( p->pRegsUndef[i] )
@@ -603,7 +603,7 @@ void Saig_MvManPostProcess( Saig_MvMan_t * p, int iState )
     }
     Vec_IntForEachEntry( vUniques, iFlop, i )
     {
-        printf( "FLOP %5d : (%3d) ", iFlop, Vec_IntEntry(vCounter,i) );
+        fprintf( Abc_FrameGlobalGetOut(), "FLOP %5d : (%3d) ", iFlop, Vec_IntEntry(vCounter,i) );
 /*
         for ( k = 0; k < p->nRegsValues[iFlop]; k++ )
             if ( p->pRegsValues[iFlop][k] == SAIG_UNDEF_VALUE )
@@ -615,13 +615,13 @@ void Saig_MvManPostProcess( Saig_MvMan_t * p, int iState )
         Vec_PtrForEachEntryStart( unsigned *, p->vStates, pState, k, 1 )
         {
             if ( k == iState+1 )
-                printf( " # " );
+                fprintf( Abc_FrameGlobalGetOut(), " # " );
             if ( pState[iFlop+1] == SAIG_UNDEF_VALUE )
-                printf( "*" );
+                fprintf( Abc_FrameGlobalGetOut(), "*" );
             else
-                printf( "%d", pState[iFlop+1] );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", pState[iFlop+1] );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
 //        if ( ++Counter == 10 )
 //            break;
     }
@@ -858,7 +858,7 @@ Vec_Ptr_t * Saig_MvManDeriveMap( Saig_MvMan_t * p, int fVerbose )
         Counter2++;
     }
     if ( fVerbose )
-    printf( "Detected %d const0 flops and %d pairs of equiv binary flops.\n", Counter1, Counter2 );
+    fprintf( Abc_FrameGlobalGetOut(), "Detected %d const0 flops and %d pairs of equiv binary flops.\n", Counter1, Counter2 );
     Vec_IntFree( vBinValued );
     if ( Counter1 == 0 && Counter2 == 0 )
         Vec_PtrFreeP( &vMap );
@@ -903,14 +903,14 @@ ABC_PRT( "Constructing the problem", Abc_Clock() - clk );
         if ( f == nFramesSatur )
         {
             if ( fVerbose )
-            printf( "Beginning to saturate simulation after %d frames\n", f );
+            fprintf( Abc_FrameGlobalGetOut(), "Beginning to saturate simulation after %d frames\n", f );
             // find all flops that have at least one X value in the past and set them to X forever
             p->vXFlops = Saig_MvManFindXFlops( p );            
         }
         if ( f == 2 * nFramesSatur )
         {
             if ( fVerbose )
-            printf( "Aggressively saturating simulation after %d frames\n", f );
+            fprintf( Abc_FrameGlobalGetOut(), "Aggressively saturating simulation after %d frames\n", f );
             Vec_IntFree( p->vXFlops );
             p->vXFlops = Saig_MvManCreateNextSkip( p );
         }
@@ -930,7 +930,7 @@ ABC_PRT( "Constructing the problem", Abc_Clock() - clk );
         if ( iState >= 0 )
         {
             if ( fVerbose )
-            printf( "Converged after %d frames with lasso in state %d. Cycle = %d.\n", f+1, iState-1, f+2-iState );
+            fprintf( Abc_FrameGlobalGetOut(), "Converged after %d frames with lasso in state %d. Cycle = %d.\n", f+1, iState-1, f+2-iState );
 //            printf( "Total number of PIs = %d. AND nodes = %d.\n", p->nPis, p->nObjs - p->nPis );
             break;
         }

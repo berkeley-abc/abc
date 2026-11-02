@@ -165,7 +165,7 @@ Vec_Int_t * Proof_CollectUsedIter( Vec_Set_t * vProof, Vec_Int_t * vRoots, int f
         Vec_IntForEachEntry( vUsed, Entry, i )
         {
             if ( iPrev >= Entry )
-                printf( "Out of topological order!!!\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Out of topological order!!!\n" );
             assert( iPrev < Entry );
             iPrev = Entry;
         }
@@ -443,8 +443,8 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
     // report the result
     if ( fVerbose )
     {
-        printf( "\n" );
-        printf( "The proof was reduced from %6.2f MB to %6.2f MB (by %6.2f %%)  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The proof was reduced from %6.2f MB to %6.2f MB (by %6.2f %%)  ", 
             1.0 * Vec_SetMemory(vProof) / (1<<20), 1.0 * Vec_SetMemoryS(vProof) / (1<<20), 
             100.0 * (Vec_SetMemory(vProof) - Vec_SetMemoryS(vProof)) / Vec_SetMemory(vProof) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );

@@ -38,6 +38,9 @@
 
 #endif
 
+extern ABC_DLL FILE *             Abc_FrameGlobalGetOut();
+extern ABC_DLL FILE *             Abc_FrameGlobalGetErr();
+
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
@@ -66,12 +69,12 @@ extern int Gia_ManSatokoCallOne( Gia_Man_t * p, satoko_opts_t * opts, int iOutpu
 ***********************************************************************/
 void Cmd_RunAutoTunerPrintOptions( satoko_opts_t * pOpts )
 {
-    printf( "-C %d  ",   (int)pOpts->conf_limit );
-    printf( "-V %.3f  ", (float)pOpts->var_decay );
-    printf( "-W %.3f  ", (float)pOpts->clause_decay );
+    fprintf( Abc_FrameGlobalGetOut(), "-C %d  ",   (int)pOpts->conf_limit );
+    fprintf( Abc_FrameGlobalGetOut(), "-V %.3f  ", (float)pOpts->var_decay );
+    fprintf( Abc_FrameGlobalGetOut(), "-W %.3f  ", (float)pOpts->clause_decay );
     if ( pOpts->verbose )
-        printf( "-v" );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "-v" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function*************************************************************
@@ -466,12 +469,12 @@ void Cmf_CreateOptions_rec( Vec_Wec_t * vPars, int iPar, char Argv[CMD_AUTO_ARG_
             pArgv[i] = Argv[i];
         pOpts = Cmd_DeriveOptionFromSettings( Argc, pArgv );
         if ( pOpts == NULL )
-            printf( "Cannot parse command line options...\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot parse command line options...\n" );
         else
         {
             Vec_PtrPush( vOpts, pOpts );
             Vec_PtrPush( vOpts, Cmd_DeriveConvertIntoString(Argc, pArgv) );
-            printf( "Adding settings %s\n", (char *)Vec_PtrEntryLast(vOpts) );
+            fprintf( Abc_FrameGlobalGetOut(), "Adding settings %s\n", (char *)Vec_PtrEntryLast(vOpts) );
         }
         return;
     }
@@ -509,7 +512,7 @@ Vec_Ptr_t * Cmf_CreateOptions( Vec_Wec_t * vPars )
     int Symb, Num, i, Argc = 0;
     Vec_Ptr_t * vOpts = Vec_PtrAlloc( 100 );
     Vec_Int_t * vLine = Vec_WecEntry( vPars, 0 );
-    printf( "Creating all possible settings to be used by the autotuner:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Creating all possible settings to be used by the autotuner:\n" );
     sprintf( Argv[Argc++], "autotuner" );
     Vec_IntForEachEntryDouble( vLine, Symb, Num, i )
     {
@@ -523,7 +526,7 @@ Vec_Ptr_t * Cmf_CreateOptions( Vec_Wec_t * vPars )
             sprintf( Argv[Argc++], "%.3f", NumF );
     }
     Cmf_CreateOptions_rec( vPars, 1, Argv, Argc, vOpts );
-    printf( "Finished creating %d settings.\n\n", Vec_PtrSize(vOpts)/2 );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished creating %d settings.\n\n", Vec_PtrSize(vOpts)/2 );
     return vOpts;
 }
 
@@ -551,7 +554,7 @@ Vec_Wec_t * Cmd_ReadParamChoices( char * pConfig )
     char * pThis, pBuffer[CMD_AUTO_LINE_MAX];
     FILE * pFile = fopen( pConfig, "rb" );
     if ( pFile == NULL )
-        { printf( "File containing list of files \"%s\" cannot be opened.\n", pConfig ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "File containing list of files \"%s\" cannot be opened.\n", pConfig ); return NULL; }
     vPars = Vec_WecAlloc( 100 );
     while ( fgets( pBuffer, CMD_AUTO_LINE_MAX, pFile ) != NULL )
     {
@@ -577,7 +580,7 @@ Vec_Wec_t * Cmd_ReadParamChoices( char * pConfig )
             {
                 char Param = *pThis++;
                 if ( !Cmf_IsDigit(*pThis) )
-                    { printf( "Upper-case character (%c) should be followed by a number without space in line \"%s\".\n", Param, pBuffer ); return NULL; }
+                    { fprintf( Abc_FrameGlobalGetOut(), "Upper-case character (%c) should be followed by a number without space in line \"%s\".\n", Param, pBuffer ); return NULL; }
                 Vec_IntPushTwo( vLine, (int)Param, Abc_Float2Int(atof(pThis)) );
                 while ( Cmf_IsDigit(*pThis) )
                     pThis++;
@@ -585,7 +588,7 @@ Vec_Wec_t * Cmd_ReadParamChoices( char * pConfig )
                     pThis++;
                 continue;
             }
-            printf( "Expecting a leading lower-case or upper-case digit in line \"%s\".\n", pBuffer ); 
+            fprintf( Abc_FrameGlobalGetOut(), "Expecting a leading lower-case or upper-case digit in line \"%s\".\n", pBuffer ); 
             return NULL;
         }
     }
@@ -599,7 +602,7 @@ Vec_Ptr_t * Cmd_ReadFiles( char * pFileList )
     char pBuffer[CMD_AUTO_LINE_MAX];
     FILE * pFile = fopen( pFileList, "rb" );
     if ( pFile == NULL )
-        { printf( "File containing list of files \"%s\" cannot be opened.\n", pFileList ); return NULL; }
+        { fprintf( Abc_FrameGlobalGetOut(), "File containing list of files \"%s\" cannot be opened.\n", pFileList ); return NULL; }
     vAigs = Vec_PtrAlloc( 100 );
     while ( fgets( pBuffer, CMD_AUTO_LINE_MAX, pFile ) != NULL )
     {
@@ -613,7 +616,7 @@ Vec_Ptr_t * Cmd_ReadFiles( char * pFileList )
         pGia = Gia_AigerRead( pBuffer, 0, 0, 0 );
         if ( pGia == NULL )
         {
-            printf( "Cannot read AIG from file \"%s\".\n", pBuffer );
+            fprintf( Abc_FrameGlobalGetOut(), "Cannot read AIG from file \"%s\".\n", pBuffer );
             continue;
         }
         Vec_PtrPush( vAigs, pGia );
@@ -649,9 +652,9 @@ void Cmd_RunAutoTuner( char * pConfig, char * pFileList, int nCores )
         Vec_PtrForEachEntryDouble( satoko_opts_t *, char *, vOpts, pOpts, pString, i )
         {
             abctime clk = Abc_Clock();
-            printf( "Evaluating settings: %20s...  \n", pString );
+            fprintf( Abc_FrameGlobalGetOut(), "Evaluating settings: %20s...  \n", pString );
             Result = Cmd_RunAutoTunerEval( vAigs, pOpts, nCores );
-            printf( "Cost = %6d.  ", Result );
+            fprintf( Abc_FrameGlobalGetOut(), "Cost = %6d.  ", Result );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             if ( ResultBest > Result )
             {
@@ -660,8 +663,8 @@ void Cmd_RunAutoTuner( char * pConfig, char * pFileList, int nCores )
                 pOptsBest = pOpts;
             }
         }
-        printf( "The best settings are: %20s    \n", pStringBest );
-        printf( "Best cost = %6d.  ", ResultBest );
+        fprintf( Abc_FrameGlobalGetOut(), "The best settings are: %20s    \n", pStringBest );
+        fprintf( Abc_FrameGlobalGetOut(), "Best cost = %6d.  ", ResultBest );
         Abc_PrintTime( 1, "Total time", Abc_Clock() - clk );
     }
     // cleanup

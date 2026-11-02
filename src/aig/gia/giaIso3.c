@@ -147,7 +147,7 @@ void Gia_Iso3Test( Gia_Man_t * p )
         vSign = Gia_Iso3Save( p );
 //        This = Gia_Iso3Unique( vSign );
         This = Vec_IntUniqueCount( vSign, 1, NULL );
-        printf( "Iter %3d : %6d  out of %6d  ", i, This, Vec_IntSize(vSign) );
+        fprintf( Abc_FrameGlobalGetOut(), "Iter %3d : %6d  out of %6d  ", i, This, Vec_IntSize(vSign) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         if ( This == Prev )
             break;
@@ -205,9 +205,9 @@ void Gia_Iso4Test( Gia_Man_t * p )
     Vec_WecForEachLevel( vLevs, vLevel, l )
     {
         Gia_Obj_t * pObj;  int i;
-        printf( "Level %d\n", l );
+        fprintf( Abc_FrameGlobalGetOut(), "Level %d\n", l );
         Gia_ManForEachObjVec( vLevel, p, pObj, i )
-            printf( "Obj = %5d.  Value = %08x.\n", Gia_ObjId(p, pObj), pObj->Value );
+            fprintf( Abc_FrameGlobalGetOut(), "Obj = %5d.  Value = %08x.\n", Gia_ObjId(p, pObj), pObj->Value );
     }
     Vec_WecFree( vLevs );
 }
@@ -224,7 +224,7 @@ void Gia_IsoCompareVecs( Gia_Man_t * pGia0, Vec_Wec_t * vLevs0, Gia_Man_t * pGia
     int i, Common, nLevels = Abc_MinInt( Vec_WecSize(vLevs0), Vec_WecSize(vLevs1) );
     Gia_ManPrintStats( pGia0, NULL );
     Gia_ManPrintStats( pGia1, NULL );
-    printf( "Printing %d shared levels:\n", nLevels );
+    fprintf( Abc_FrameGlobalGetOut(), "Printing %d shared levels:\n", nLevels );
     for ( i = 0; i < nLevels; i++ )
     {
         Vec_Int_t * vLev0 = Vec_WecEntry(vLevs0, i);
@@ -234,7 +234,7 @@ void Gia_IsoCompareVecs( Gia_Man_t * pGia0, Vec_Wec_t * vLevs0, Gia_Man_t * pGia
         Vec_IntSort( vData0, 0 );
         Vec_IntSort( vData1, 0 );
         Common = Vec_IntTwoCountCommon( vData0, vData1 );
-        printf( "Level = %3d. One = %6d. Two = %6d.  Common = %6d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Level = %3d. One = %6d. Two = %6d.  Common = %6d.\n", 
             i, Vec_IntSize(vData0)-Common, Vec_IntSize(vData1)-Common, Common );
         Vec_IntFree( vData0 );
         Vec_IntFree( vData1 );        

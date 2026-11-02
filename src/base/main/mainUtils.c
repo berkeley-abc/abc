@@ -89,7 +89,7 @@ char * Abc_UtilsGetUsersInput( Abc_Frame_t * pAbc )
     static ABC_THREAD_LOCAL char * line = NULL;
     if (line != NULL) ABC_FREE(line);
     line = readline(Prompt);  
-    if (line == NULL){ printf("***EOF***\n"); exit(0); }
+    if (line == NULL){ fprintf( Abc_FrameGlobalGetOut(), "***EOF***\n"); exit(0); }
     add_history(line);
     return line;
     }
@@ -175,9 +175,9 @@ void Abc_UtilsSource( Abc_Frame_t * pAbc )
     if ( Cmd_CommandExecute(pAbc, "source abc.rc") )
     {
         if ( Cmd_CommandExecute(pAbc, "source ..\\abc.rc") == 0 )
-            printf( "Loaded \"abc.rc\" from the parent directory.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Loaded \"abc.rc\" from the parent directory.\n" );
         else if ( Cmd_CommandExecute(pAbc, "source ..\\..\\abc.rc") == 0 )
-            printf( "Loaded \"abc.rc\" from the grandparent directory.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Loaded \"abc.rc\" from the grandparent directory.\n" );
     }
 #else
 
@@ -353,11 +353,11 @@ void Abc_FrameStorePrint( Abc_Frame_t * pAbc )
     Vec_Int_t * vCounts = Vec_IntStart( Max+1 );
     Vec_IntForEachEntry( pAbc->pHash->vValue, Entry, i )
         Vec_IntAddToEntry( vCounts, Entry, 1 );
-    printf( "Distribution of %d stored items by reference count (<ref_count>=<num_items>): ", Hsh_VecSize(pAbc->pHash) );
+    fprintf( Abc_FrameGlobalGetOut(), "Distribution of %d stored items by reference count (<ref_count>=<num_items>): ", Hsh_VecSize(pAbc->pHash) );
     Vec_IntForEachEntry( vCounts, Entry, i )
         if ( Entry )
-            printf( "%d=%d ", i, Entry ), nAll += i * Entry;
-    printf( "ALL=%d\n", nAll );
+            fprintf( Abc_FrameGlobalGetOut(),  "%d=%d ", i, Entry ), nAll += i * Entry;
+    fprintf( Abc_FrameGlobalGetOut(), "ALL=%d\n", nAll );
     Vec_IntFree( vCounts );
 }
 

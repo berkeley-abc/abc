@@ -58,7 +58,7 @@ static void printVecPtrOfString( Vec_Ptr_t *vec )
 
     for( i=0; i< Vec_PtrSize( vec ); i++ )
     {
-        printf("vec[%d] = %s\n", i, (char *)Vec_PtrEntry(vec, i) );
+        fprintf( Abc_FrameGlobalGetOut(), "vec[%d] = %s\n", i, (char *)Vec_PtrEntry(vec, i) );
     }
 }
 
@@ -218,8 +218,8 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
     vecLoNames = Vec_PtrAlloc( Saig_ManRegNum( p )*2 + 1 + Vec_PtrSize( vLive ) + Vec_PtrSize( vFair ) );
 
 #ifdef DUPLICATE_CKT_DEBUG
-    printf("\nCode is compiled in DEBUG mode, the input-output behavior will be the same as the original circuit\n");
-    printf("Press any key to continue...");
+    fprintf( Abc_FrameGlobalGetOut(), "\nCode is compiled in DEBUG mode, the input-output behavior will be the same as the original circuit\n");
+    fprintf( Abc_FrameGlobalGetOut(), "Press any key to continue...");
     scanf("%c", &c);
 #endif
 
@@ -372,7 +372,7 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
     // create the master AND gate and corresponding AND and OR logic for the liveness properties
     pObjAndAcc = NULL;
     if( vLive == NULL || Vec_PtrSize( vLive ) == 0 )
-        printf("\nCircuit without any liveness property\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\nCircuit without any liveness property\n");
     else
     {
         Vec_PtrForEachEntry( Aig_Obj_t *, vLive, pObj, i )
@@ -414,7 +414,7 @@ static Aig_Man_t * LivenessToSafetyTransformationSim( Abc_Ntk_t * pNtk, Aig_Man_
     // create the master AND gate and corresponding AND and OR logic for the fairness properties
     pObjAndAcc = NULL;
     if( vFair == NULL || Vec_PtrSize( vFair ) == 0 )
-        printf("\nCircuit without any fairness property\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\nCircuit without any fairness property\n");
     else
     {
         Vec_PtrForEachEntry( Aig_Obj_t *, vFair, pObj, i )
@@ -630,7 +630,7 @@ static Aig_Man_t * LivenessToSafetyTransformationOneStepLoopSim( Abc_Ntk_t * pNt
     // create the master AND gate and corresponding AND and OR logic for the liveness properties
     pObjAndAcc = NULL;
     if( vLive == NULL || Vec_PtrSize( vLive ) == 0 )
-        printf("\nCircuit without any liveness property\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\nCircuit without any liveness property\n");
     else
     {
         Vec_PtrForEachEntry( Aig_Obj_t *, vLive, pObj, i )
@@ -654,7 +654,7 @@ static Aig_Man_t * LivenessToSafetyTransformationOneStepLoopSim( Abc_Ntk_t * pNt
     // create the master AND gate and corresponding AND and OR logic for the fairness properties
     pObjAndAcc = NULL;
     if( vFair == NULL || Vec_PtrSize( vFair ) == 0 )
-        printf("\nCircuit without any fairness property\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\nCircuit without any fairness property\n");
     else
     {
         Vec_PtrForEachEntry( Aig_Obj_t *, vFair, pObj, i )
@@ -681,7 +681,7 @@ static Aig_Man_t * LivenessToSafetyTransformationOneStepLoopSim( Abc_Ntk_t * pNt
 
     Aig_ManSetRegNum( pNew, nRegCount );
 
-    printf("\nSaig_ManPiNum = %d, Reg Num = %d, before everything, before Pi cleanup\n", Vec_PtrSize( pNew->vCis ), pNew->nRegs );
+    fprintf( Abc_FrameGlobalGetOut(), "\nSaig_ManPiNum = %d, Reg Num = %d, before everything, before Pi cleanup\n", Vec_PtrSize( pNew->vCis ), pNew->nRegs );
 
     Aig_ManCiCleanupBiere( pNew );
     Aig_ManCoCleanupBiere( pNew );
@@ -708,7 +708,7 @@ static Vec_Ptr_t * populateLivenessVector( Abc_Ntk_t *pNtk, Aig_Man_t *pAig )
             Vec_PtrPush( vLive, Aig_ManCo( pAig, i ) );
             liveCounter++;
         }
-    printf("\nNumber of liveness property found = %d\n", liveCounter);
+    fprintf( Abc_FrameGlobalGetOut(), "\nNumber of liveness property found = %d\n", liveCounter);
     return vLive;
 }
 
@@ -725,7 +725,7 @@ static Vec_Ptr_t * populateFairnessVector( Abc_Ntk_t *pNtk, Aig_Man_t *pAig )
             Vec_PtrPush( vFair, Aig_ManCo( pAig, i ) );
             fairCounter++;
         }
-    printf("\nNumber of fairness property found = %d\n", fairCounter);
+    fprintf( Abc_FrameGlobalGetOut(), "\nNumber of fairness property found = %d\n", fairCounter);
     return vFair;
 }
 
@@ -771,7 +771,7 @@ int Abc_CommandAbcLivenessToSafetySim( Abc_Frame_t * pAbc, int argc, char ** arg
 
     if( !Abc_NtkIsStrash( pNtk ) )
     {
-        printf("\nThe input network was not strashed, strashing....\n");
+        fprintf( Abc_FrameGlobalGetOut(), "\nThe input network was not strashed, strashing....\n");
         pNtkTemp = Abc_NtkStrash( pNtk, 0, 0, 0 );
         pNtkOld = pNtkTemp;
         pAig = Abc_NtkToDar( pNtkTemp, 0, 1 );
@@ -817,7 +817,7 @@ int Abc_CommandAbcLivenessToSafetySim( Abc_Frame_t * pAbc, int argc, char ** arg
     pNtkNew = Abc_NtkFromAigPhase( pAigNew );
 
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkCreateCone(): Network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkCreateCone(): Network check has failed.\n"  );
     
     updateNewNetworkNameManager( pNtkNew, pAigNew, vecPiNames,vecLoNames );
     Abc_FrameSetCurrentNetwork( pAbc, pNtkNew );

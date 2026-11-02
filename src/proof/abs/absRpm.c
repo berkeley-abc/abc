@@ -165,9 +165,9 @@ void Gia_ManDomTest( Gia_Man_t * p )
     Vec_IntForEachEntry( vDoms, Id, i )
     {
         nMffcSize = Gia_NodeMffcSizeSupp( p, Gia_ManObj(p, Id), vSupp );
-        printf( "%d(%d:%d) ", Id, Vec_IntSize(vSupp), nMffcSize );
+        fprintf( Abc_FrameGlobalGetOut(), "%d(%d:%d) ", Id, Vec_IntSize(vSupp), nMffcSize );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     Vec_IntForEachEntry( vDoms, Id, i )
         Gia_ObjRefDec( p, Gia_ManObj(p, Id) );
 
@@ -224,7 +224,7 @@ void Gia_ManTestDoms2( Gia_Man_t * p )
         Abs_GiaObjRef_rec( p, pDom );
 
         if ( Vec_IntFind(vNodes, Gia_ObjId(p, pObj)) == -1 )
-            printf( "FAILURE.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "FAILURE.\n" );
 //        else
 //            printf( "Success.\n" );
     }
@@ -321,7 +321,7 @@ void Gia_ManCountFanoutlessFlops( Gia_Man_t * p )
     Gia_ManForEachRo( p, pObj, i )
         if ( Gia_ObjRefNum(p, pObj) == 0 )
             Counter++;
-    printf( "Fanoutless flops = %d.\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Fanoutless flops = %d.\n", Counter );
     ABC_FREE( p->pRefs );
 }
 
@@ -601,15 +601,15 @@ int Abs_GiaCofPrint( word * pTruth, int nSize, int nSize0, int Res )
     {
         if ( i % nStep == 0 )
         {
-            printf( " " );
+            fprintf( Abc_FrameGlobalGetOut(), " " );
             assert( Res || (Mark[0] && Mark[1]) );
             Mark[0] = Mark[1] = 0;
         }
         Bit = Abc_InfoHasBit((unsigned *)pTruth, i);
         Mark[Bit] = 1;
-        printf( "%d", Bit );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Bit );
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     assert( Res || (Mark[0] && Mark[1]) );
     return 1;
 }
@@ -701,11 +701,11 @@ void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerb
         if ( fVerbose || fVeryVerbose )
         {
             Gia_ManCountPisNodes( p, vPis, vAnds );
-            printf( "Iter %3d :  ", Iter );
-            printf( "PI = %5d  (%6.2f %%)  ",  Vec_IntSize(vPis),  100.0 * Vec_IntSize(vPis)  / Gia_ManPiNum(p)  );
-            printf( "And = %6d  (%6.2f %%) ",  Vec_IntSize(vAnds), 100.0 * Vec_IntSize(vAnds) / Gia_ManAndNum(p) );
-            printf( "Dom = %5d  (%6.2f %%)  ", Vec_IntSize(vDoms), 100.0 * Vec_IntSize(vDoms) / Gia_ManAndNum(p)  );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %3d :  ", Iter );
+            fprintf( Abc_FrameGlobalGetOut(), "PI = %5d  (%6.2f %%)  ",  Vec_IntSize(vPis),  100.0 * Vec_IntSize(vPis)  / Gia_ManPiNum(p) );
+            fprintf( Abc_FrameGlobalGetOut(), "And = %6d  (%6.2f %%) ",  Vec_IntSize(vAnds), 100.0 * Vec_IntSize(vAnds) / Gia_ManAndNum(p) );
+            fprintf( Abc_FrameGlobalGetOut(), "Dom = %5d  (%6.2f %%)  ", Vec_IntSize(vDoms), 100.0 * Vec_IntSize(vDoms) / Gia_ManAndNum(p) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
 //        pObj = Gia_ObjFanin0( Gia_ManPo(p, 1) );
         Gia_ManForEachObjVec( vDoms, p, pObj, i )
@@ -755,10 +755,10 @@ void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerb
             fHasConst = !Abs_GiaCheckTruth( pTruth, Vec_IntSize(vSupp), nSize0 );
             if ( fVeryVerbose )
             {
-                printf( "Nodes =%3d ",  nNodes );
-                printf( "Size =%3d ",   Vec_IntSize(vSupp) );
-                printf( "Size0 =%3d  ", nSize0 );
-                printf( "%3s", fHasConst ? "yes" : "no" );
+                fprintf( Abc_FrameGlobalGetOut(), "Nodes =%3d ",  nNodes );
+                fprintf( Abc_FrameGlobalGetOut(), "Size =%3d ",   Vec_IntSize(vSupp) );
+                fprintf( Abc_FrameGlobalGetOut(), "Size0 =%3d  ", nSize0 );
+                fprintf( Abc_FrameGlobalGetOut(), "%3s", fHasConst ? "yes" : "no" );
                 Abs_GiaCofPrint( pTruth, Vec_IntSize(vSupp), nSize0, fHasConst );
             }
             if ( fHasConst )
@@ -776,11 +776,11 @@ void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerb
     if ( fVeryVerbose )
     {
         Gia_ManCountPisNodes( p, vPis, vAnds );
-        printf( "Iter %3d :  ", Iter );
-        printf( "PI = %5d  (%6.2f %%)  ",  Vec_IntSize(vPis),  100.0 * Vec_IntSize(vPis)  / Gia_ManPiNum(p)  );
-        printf( "And = %6d  (%6.2f %%) ",  Vec_IntSize(vAnds), 100.0 * Vec_IntSize(vAnds) / Gia_ManAndNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "Iter %3d :  ", Iter );
+        fprintf( Abc_FrameGlobalGetOut(), "PI = %5d  (%6.2f %%)  ",  Vec_IntSize(vPis),  100.0 * Vec_IntSize(vPis)  / Gia_ManPiNum(p) );
+        fprintf( Abc_FrameGlobalGetOut(), "And = %6d  (%6.2f %%) ",  Vec_IntSize(vAnds), 100.0 * Vec_IntSize(vAnds) / Gia_ManAndNum(p) );
 //        printf( "Dom = %5d  (%6.2f %%)  ", Vec_IntSize(vDoms), 100.0 * Vec_IntSize(vDoms) / Gia_ManAndNum(p)  );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     // cleanup
     Vec_IntFree( vPis );

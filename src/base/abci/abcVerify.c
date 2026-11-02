@@ -64,13 +64,13 @@ void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     pMiter = Abc_NtkMiter( pNtk1, pNtk2, 1, 0, 0, 0 );
     if ( pMiter == NULL )
     {
-        printf( "Miter computation has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Miter computation has failed.\n" );
         return;
     }
     RetValue = Abc_NtkMiterIsConstant( pMiter );
     if ( RetValue == 0 )
     {
-        printf( "Networks are NOT EQUIVALENT after structural hashing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT after structural hashing.\n" );
         // report the error
         pMiter->pModel = Abc_NtkVerifyGetCleanModel( pMiter, 1 );
         Abc_NtkVerifyReportError( pNtk1, pNtk2, pMiter->pModel );
@@ -81,7 +81,7 @@ void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     if ( RetValue == 1 )
     {
         Abc_NtkDelete( pMiter );
-        printf( "Networks are equivalent after structural hashing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are equivalent after structural hashing.\n" );
         return;
     }
 
@@ -90,18 +90,18 @@ void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     Abc_NtkDelete( pMiter );
     if ( pCnf == NULL )
     {
-        printf( "Renoding for CNF has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Renoding for CNF has failed.\n" );
         return;
     }
 
     // solve the CNF using the SAT solver
     RetValue = Abc_NtkMiterSat( pCnf, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)nInsLimit, 0, NULL, NULL );
     if ( RetValue == -1 )
-        printf( "Networks are undecided (SAT solver timed out).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are undecided (SAT solver timed out).\n" );
     else if ( RetValue == 0 )
-        printf( "Networks are NOT EQUIVALENT after SAT.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT after SAT.\n" );
     else
-        printf( "Networks are equivalent after SAT.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are equivalent after SAT.\n" );
     if ( pCnf->pModel )
         Abc_NtkVerifyReportError( pNtk1, pNtk2, pCnf->pModel );
     ABC_FREE( pCnf->pModel );
@@ -134,19 +134,19 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
     {
         if ( pNtk1->pExdc != NULL && pNtk2->pExdc != NULL )
         {
-            printf( "Comparing EXDC of the two networks:\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Comparing EXDC of the two networks:\n" );
             Abc_NtkCecFraig( pNtk1->pExdc, pNtk2->pExdc, nSeconds, fVerbose );
-            printf( "Comparing networks under EXDC of the first network.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Comparing networks under EXDC of the first network.\n" );
             pExdc = pNtk1->pExdc;
         }
         else if ( pNtk1->pExdc != NULL )
         {
-            printf( "Second network has no EXDC. Comparing main networks under EXDC of the first network.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Second network has no EXDC. Comparing main networks under EXDC of the first network.\n" );
             pExdc = pNtk1->pExdc;
         }
         else if ( pNtk2->pExdc != NULL ) 
         {
-            printf( "First network has no EXDC. Comparing main networks under EXDC of the second network.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "First network has no EXDC. Comparing main networks under EXDC of the second network.\n" );
             pExdc = pNtk2->pExdc;
         }
         else assert( 0 );
@@ -156,7 +156,7 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
     pMiter = Abc_NtkMiter( pNtk1, pNtk2, 1, 0, 0, 0 );
     if ( pMiter == NULL )
     {
-        printf( "Miter computation has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Miter computation has failed.\n" );
         return;
     }
     // add EXDC to the miter
@@ -171,7 +171,7 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
     RetValue = Abc_NtkMiterIsConstant( pMiter );
     if ( RetValue == 0 )
     {
-        printf( "Networks are NOT EQUIVALENT after structural hashing.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT after structural hashing.  " );
         // report the error
         pMiter->pModel = Abc_NtkVerifyGetCleanModel( pMiter, 1 );
         Abc_NtkVerifyReportError( pNtk1, pNtk2, pMiter->pModel );
@@ -182,7 +182,7 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
     }
     if ( RetValue == 1 )
     {
-        printf( "Networks are equivalent after structural hashing.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are equivalent after structural hashing.  " );
         Abc_NtkDelete( pMiter );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         return;
@@ -223,18 +223,18 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
 //    pParams->fVerbose = 1;
     RetValue = Abc_NtkIvyProve( &pMiter, pParams );
     if ( RetValue == -1 )
-        printf( "Networks are undecided (resource limits is reached).  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are undecided (resource limits is reached).  " );
     else if ( RetValue == 0 )
     {
         int * pSimInfo = Abc_NtkVerifySimulatePattern( pMiter, pMiter->pModel );
         if ( pSimInfo[0] != 1 )
-            printf( "ERROR in Abc_NtkMiterProve(): Generated counter-example is invalid.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "ERROR in Abc_NtkMiterProve(): Generated counter-example is invalid.\n" );
         else
-            printf( "Networks are NOT EQUIVALENT.  " );
+            fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT.  " );
         ABC_FREE( pSimInfo );
     }
     else
-        printf( "Networks are equivalent.  " );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are equivalent.  " );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( pMiter->pModel )
         Abc_NtkVerifyReportError( pNtk1, pNtk2, pMiter->pModel );
@@ -270,13 +270,13 @@ void Abc_NtkCecFraigPart( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, in
     pMiter = Abc_NtkMiter( pNtk1, pNtk2, 1, nPartSize, 0, 0 );
     if ( pMiter == NULL )
     {
-        printf( "Miter computation has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Miter computation has failed.\n" );
         return;
     }
     RetValue = Abc_NtkMiterIsConstant( pMiter );
     if ( RetValue == 0 )
     {
-        printf( "Networks are NOT EQUIVALENT after structural hashing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT after structural hashing.\n" );
         // report the error
         pMiter->pModel = Abc_NtkVerifyGetCleanModel( pMiter, 1 );
         Abc_NtkVerifyReportError( pNtk1, pNtk2, pMiter->pModel );
@@ -286,7 +286,7 @@ void Abc_NtkCecFraigPart( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, in
     }
     if ( RetValue == 1 )
     {
-        printf( "Networks are equivalent after structural hashing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are equivalent after structural hashing.\n" );
         Abc_NtkDelete( pMiter );
         return;
     }
@@ -319,29 +319,29 @@ void Abc_NtkCecFraigPart( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, in
 
         if ( RetValue == -1 )
         {
-            printf( "Networks are undecided (resource limits is reached).\r" );
+            fprintf( Abc_FrameGlobalGetOut(), "Networks are undecided (resource limits is reached).\r" );
             Status = -1;
         }
         else if ( RetValue == 0 )
         {
             if(!pMiterPart)
             {
-                printf("ERROR: Failed to create cone for output %d.\n", i);
+                fprintf( Abc_FrameGlobalGetOut(), "ERROR: Failed to create cone for output %d.\n", i);
                 Status = -1; 
                 break; 
             }
             int * pSimInfo = Abc_NtkVerifySimulatePattern( pMiterPart, pMiterPart->pModel );
             if ( pSimInfo[0] != 1 )
-                printf( "ERROR in Abc_NtkMiterProve(): Generated counter-example is invalid.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "ERROR in Abc_NtkMiterProve(): Generated counter-example is invalid.\n" );
             else
-                printf( "Networks are NOT EQUIVALENT.                 \n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT.                 \n" );
             ABC_FREE( pSimInfo );
             Status = 0;
             break;
         }
         else
         {
-            printf( "Finished part %5d (out of %5d)\r", i+1, Abc_NtkPoNum(pMiter) );
+            fprintf( Abc_FrameGlobalGetOut(), "Finished part %5d (out of %5d)\r", i+1, Abc_NtkPoNum(pMiter) );
             nOutputs += nPartSize;
         }
 //        if ( pMiter->pModel )
@@ -353,9 +353,9 @@ void Abc_NtkCecFraigPart( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, in
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "set progressbar" );
 
     if ( Status == 1 )
-        printf( "Networks are equivalent.                         \n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are equivalent.                         \n" );
     else if ( Status == -1 )
-        printf( "Timed out after verifying %d outputs (out of %d).\n", nOutputs, Abc_NtkCoNum(pNtk1) );
+        fprintf( Abc_FrameGlobalGetOut(), "Timed out after verifying %d outputs (out of %d).\n", nOutputs, Abc_NtkCoNum(pNtk1) );
     Abc_NtkDelete( pMiter );
 }
 
@@ -390,13 +390,13 @@ void Abc_NtkCecFraigPartAuto( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds
     pMiter = Abc_NtkMiter( pNtk1, pNtk2, 1, 1, 0, 0 );
     if ( pMiter == NULL )
     {
-        printf( "Miter computation has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Miter computation has failed.\n" );
         return;
     }
     RetValue = Abc_NtkMiterIsConstant( pMiter );
     if ( RetValue == 0 )
     {
-        printf( "Networks are NOT EQUIVALENT after structural hashing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT after structural hashing.\n" );
         // report the error
         pMiter->pModel = Abc_NtkVerifyGetCleanModel( pMiter, 1 );
         Abc_NtkVerifyReportError( pNtk1, pNtk2, pMiter->pModel );
@@ -406,7 +406,7 @@ void Abc_NtkCecFraigPartAuto( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds
     }
     if ( RetValue == 1 )
     {
-        printf( "Networks are equivalent after structural hashing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are equivalent after structural hashing.\n" );
         Abc_NtkDelete( pMiter );
         return;
     }
@@ -430,7 +430,7 @@ void Abc_NtkCecFraigPartAuto( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds
         RetValue = Abc_NtkMiterIsConstant( pMiterPart );
         if ( RetValue == 0 )
         {
-            printf( "Networks are NOT EQUIVALENT after partitioning.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT after partitioning.\n" );
             Abc_NtkDelete( pMiterPart );
             break;
         }
@@ -439,24 +439,24 @@ void Abc_NtkCecFraigPartAuto( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds
             Abc_NtkDelete( pMiterPart );
             continue;
         }
-        printf( "Verifying part %4d  (out of %4d)  PI = %5d. PO = %5d. And = %6d. Lev = %4d.\r", 
+        fprintf( Abc_FrameGlobalGetOut(), "Verifying part %4d  (out of %4d)  PI = %5d. PO = %5d. And = %6d. Lev = %4d.\r", 
             i+1, Vec_PtrSize(vParts), Abc_NtkPiNum(pMiterPart), Abc_NtkPoNum(pMiterPart), 
             Abc_NtkNodeNum(pMiterPart), Abc_AigLevel(pMiterPart) );
-        fflush( stdout );
+        fflush( Abc_FrameGlobalGetOut() );
         // solve the problem
         RetValue = Abc_NtkIvyProve( &pMiterPart, pParams );
         if ( RetValue == -1 )
         {
-            printf( "Networks are undecided (resource limits is reached).\r" );
+            fprintf( Abc_FrameGlobalGetOut(), "Networks are undecided (resource limits is reached).\r" );
             Status = -1;
         }
         else if ( RetValue == 0 )
         {
             int * pSimInfo = Abc_NtkVerifySimulatePattern( pMiterPart, pMiterPart->pModel );
             if ( pSimInfo[0] != 1 )
-                printf( "ERROR in Abc_NtkMiterProve(): Generated counter-example is invalid.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "ERROR in Abc_NtkMiterProve(): Generated counter-example is invalid.\n" );
             else
-                printf( "Networks are NOT EQUIVALENT.                 \n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT.                 \n" );
             ABC_FREE( pSimInfo );
             Status = 0;
             Abc_NtkDelete( pMiterPart );
@@ -469,16 +469,16 @@ void Abc_NtkCecFraigPartAuto( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds
         }
         Abc_NtkDelete( pMiterPart );
     }
-    printf( "                                                                                          \r" );
+    fprintf( Abc_FrameGlobalGetOut(), "                                                                                          \r" );
     Vec_VecFree( (Vec_Vec_t *)vParts );
     Vec_PtrFree( vOnePtr );
 
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "set progressbar" );
 
     if ( Status == 1 )
-        printf( "Networks are equivalent.                         \n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are equivalent.                         \n" );
     else if ( Status == -1 )
-        printf( "Timed out after verifying %d outputs (out of %d).\n", nOutputs, Abc_NtkCoNum(pNtk1) );
+        fprintf( Abc_FrameGlobalGetOut(), "Timed out after verifying %d outputs (out of %d).\n", nOutputs, Abc_NtkCoNum(pNtk1) );
     Abc_NtkDelete( pMiter );
 }
 
@@ -505,20 +505,20 @@ void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     pMiter = Abc_NtkMiter( pNtk1, pNtk2, 0, 0, 0, 0 );
     if ( pMiter == NULL )
     {
-        printf( "Miter computation has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Miter computation has failed.\n" );
         return;
     }
     RetValue = Abc_NtkMiterIsConstant( pMiter );
     if ( RetValue == 0 )
     {
         Abc_NtkDelete( pMiter );
-        printf( "Networks are NOT EQUIVALENT after structural hashing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT after structural hashing.\n" );
         return;
     }
     if ( RetValue == 1 )
     {
         Abc_NtkDelete( pMiter );
-        printf( "Networks are equivalent after structural hashing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are equivalent after structural hashing.\n" );
         return;
     }
 
@@ -527,20 +527,20 @@ void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     Abc_NtkDelete( pMiter );
     if ( pFrames == NULL )
     {
-        printf( "Frames computation has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Frames computation has failed.\n" );
         return;
     }
     RetValue = Abc_NtkMiterIsConstant( pFrames );
     if ( RetValue == 0 )
     {
         Abc_NtkDelete( pFrames );
-        printf( "Networks are NOT EQUIVALENT after framing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT after framing.\n" );
         return;
     }
     if ( RetValue == 1 )
     {
         Abc_NtkDelete( pFrames );
-        printf( "Networks are equivalent after framing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are equivalent after framing.\n" );
         return;
     }
 
@@ -549,18 +549,18 @@ void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     Abc_NtkDelete( pFrames );
     if ( pCnf == NULL )
     {
-        printf( "Renoding for CNF has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Renoding for CNF has failed.\n" );
         return;
     }
 
     // solve the CNF using the SAT solver
     RetValue = Abc_NtkMiterSat( pCnf, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)nInsLimit, 0, NULL, NULL );
     if ( RetValue == -1 )
-        printf( "Networks are undecided (SAT solver timed out).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are undecided (SAT solver timed out).\n" );
     else if ( RetValue == 0 )
-        printf( "Networks are NOT EQUIVALENT after SAT.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT after SAT.\n" );
     else
-        printf( "Networks are equivalent after SAT.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are equivalent after SAT.\n" );
     Abc_NtkDelete( pCnf );
 }
 
@@ -587,13 +587,13 @@ int Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFr
     pMiter = Abc_NtkMiter( pNtk1, pNtk2, 0, 0, 0, 0 );
     if ( pMiter == NULL )
     {
-        printf( "Miter computation has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Miter computation has failed.\n" );
         return 0;
     }
     RetValue = Abc_NtkMiterIsConstant( pMiter );
     if ( RetValue == 0 )
     {
-        printf( "Networks are NOT EQUIVALENT after structural hashing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT after structural hashing.\n" );
         // report the error
         pMiter->pModel = Abc_NtkVerifyGetCleanModel( pMiter, nFrames );
         Abc_NtkVerifyReportErrorSeq( pNtk1, pNtk2, pMiter->pModel, nFrames );
@@ -604,7 +604,7 @@ int Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFr
     if ( RetValue == 1 )
     {
         Abc_NtkDelete( pMiter );
-        printf( "Networks are equivalent after structural hashing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are equivalent after structural hashing.\n" );
         return 1;
     }
 
@@ -613,13 +613,13 @@ int Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFr
     Abc_NtkDelete( pMiter );
     if ( pFrames == NULL )
     {
-        printf( "Frames computation has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Frames computation has failed.\n" );
         return 0;
     }
     RetValue = Abc_NtkMiterIsConstant( pFrames );
     if ( RetValue == 0 )
     {
-        printf( "Networks are NOT EQUIVALENT after framing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT after framing.\n" );
         // report the error
         pFrames->pModel = Abc_NtkVerifyGetCleanModel( pFrames, 1 );
 //        Abc_NtkVerifyReportErrorSeq( pNtk1, pNtk2, pFrames->pModel, nFrames );
@@ -630,7 +630,7 @@ int Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFr
     if ( RetValue == 1 )
     {
         Abc_NtkDelete( pFrames );
-        printf( "Networks are equivalent after framing.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are equivalent after framing.\n" );
         return 1;
     }
 
@@ -648,12 +648,12 @@ int Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFr
     RetValue = Fraig_ManCheckMiter( pMan );
     // report the result
     if ( RetValue == -1 )
-        printf( "Networks are undecided (SAT solver timed out on the final miter).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are undecided (SAT solver timed out on the final miter).\n" );
     else if ( RetValue == 1 )
-        printf( "Networks are equivalent after fraiging.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are equivalent after fraiging.\n" );
     else if ( RetValue == 0 )
     {
-        printf( "Networks are NOT EQUIVALENT after fraiging.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Networks are NOT EQUIVALENT after fraiging.\n" );
 //        Abc_NtkVerifyReportErrorSeq( pNtk1, pNtk2, Fraig_ManReadModel(pMan), nFrames );
     }
     else assert( 0 );
@@ -826,11 +826,11 @@ static void Abc_NtkVerifyPrintWords( Vec_Ptr_t * vWords )
                 pHex[nHex - d - 1] = "0123456789ABCDEF"[Digit];
             }
             pHex[nHex] = 0;
-            printf( "%s = %d'h%s", pWord->pBase, nBits, pHex );
+            fprintf( Abc_FrameGlobalGetOut(), "%s = %d'h%s", pWord->pBase, nBits, pHex );
             ABC_FREE( pHex );
         }
         if ( i + 1 < Vec_PtrSize(vWords) )
-            printf( ", " );
+            fprintf( Abc_FrameGlobalGetOut(), ", " );
     }
 }
 
@@ -863,18 +863,18 @@ void Abc_NtkVerifyPrintCex( const int * pModel, const int * pValues1, const int 
 
     if ( Vec_PtrSize(vInputs) || Vec_PtrSize(vOutputs1) || Vec_PtrSize(vOutputs2) )
     {
-        printf( "INPUT: " );
+        fprintf( Abc_FrameGlobalGetOut(), "INPUT: " );
         Abc_NtkVerifyPrintWords( vInputs );
-        printf( ".  OUTPUT: " );
+        fprintf( Abc_FrameGlobalGetOut(), ".  OUTPUT: " );
         Abc_NtkVerifyPrintWords( vOutputs1 );
-        printf( " (%s)", pBaseName1 ? pBaseName1 : (pNtkName1 ? pNtkName1 : "network1") );
+        fprintf( Abc_FrameGlobalGetOut(), " (%s)", pBaseName1 ? pBaseName1 : (pNtkName1 ? pNtkName1 : "network1") );
         if ( pValues2 && Vec_PtrSize(vOutputs2) )
         {
-            printf( ", " );
+            fprintf( Abc_FrameGlobalGetOut(), ", " );
             Abc_NtkVerifyPrintWords( vOutputs2 );
-            printf( " (%s)", pBaseName2 ? pBaseName2 : (pNtkName2 ? pNtkName2 : "network2") );
+            fprintf( Abc_FrameGlobalGetOut(), " (%s)", pBaseName2 ? pBaseName2 : (pNtkName2 ? pNtkName2 : "network2") );
         }
-        printf( ".\n" );
+        fprintf( Abc_FrameGlobalGetOut(), ".\n" );
     }
 
     ABC_FREE( pBaseName1 );
@@ -932,7 +932,7 @@ void Abc_NtkVerifyReportError( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pMode
     nErrors = 0;
     for ( i = 0; i < Abc_NtkCoNum(pNtk1); i++ )
         nErrors += (int)( pValues1[i] != pValues2[i] );
-    printf( "Verification failed for at least %d outputs: ", nErrors );
+    fprintf( Abc_FrameGlobalGetOut(), "Verification failed for at least %d outputs: ", nErrors );
     // print the first 3 outputs
     nPrinted = 0;
     for ( i = 0; i < Abc_NtkCoNum(pNtk1); i++ )
@@ -940,19 +940,19 @@ void Abc_NtkVerifyReportError( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pMode
         {
             if ( iNode == -1 )
                 iNode = i;
-            printf( " %s", Abc_ObjName(Abc_NtkCo(pNtk1,i)) );
+            fprintf( Abc_FrameGlobalGetOut(), " %s", Abc_ObjName(Abc_NtkCo(pNtk1,i)) );
             if ( ++nPrinted == 3 )
                 break;
         }
     if ( nPrinted != nErrors )
-        printf( " ..." );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " ..." );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     // report mismatch for the first output
     if ( iNode >= 0 )
     {
-        printf( "Output %s: Value in Network1 = %d. Value in Network2 = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Output %s: Value in Network1 = %d. Value in Network2 = %d.\n", 
             Abc_ObjName(Abc_NtkCo(pNtk1,iNode)), pValues1[iNode], pValues2[iNode] );
-        printf( "Input pattern: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Input pattern: " );
         // collect PIs in the cone
         pNode = Abc_NtkCo(pNtk1,iNode);
         vNodes = Abc_NtkNodeSupport( pNtk1, &pNode, 1 );
@@ -968,11 +968,11 @@ void Abc_NtkVerifyReportError( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pMode
             Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
             {
                 assert( Abc_ObjIsCi(pNode) );
-                printf( " %s=%d", Abc_ObjName(pNode), pModel[(int)(ABC_PTRINT_T)pNode->pCopy] );
+                fprintf( Abc_FrameGlobalGetOut(), " %s=%d", Abc_ObjName(pNode), pModel[(int)(ABC_PTRINT_T)pNode->pCopy] );
             }
         }
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         Vec_PtrFree( vNodes );
     }
     ABC_FREE( pValues1 );
@@ -1082,7 +1082,7 @@ void Abc_NtkVerifyReportErrorSeq( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pM
 
     if ( pObjError == NULL )
     {
-        printf( "No output mismatches detected.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "No output mismatches detected.\n" );
         Sim_UtilInfoFree( vInfo1 );
         Sim_UtilInfoFree( vInfo2 );
         if ( fRemove1 ) Abc_NtkDelete( pNtk1 );
@@ -1090,7 +1090,7 @@ void Abc_NtkVerifyReportErrorSeq( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pM
         return;
     }
 
-    printf( "Verification failed for at least %d output%s of frame %d: ", nErrors, (nErrors>1? "s":""), iFrameError+1 );
+    fprintf( Abc_FrameGlobalGetOut(), "Verification failed for at least %d output%s of frame %d: ", nErrors, (nErrors>1? "s":""), iFrameError+1 );
     // print the first 3 outputs
     nPrinted = 0;
     Abc_NtkForEachPo( pNtk1, pObj1, o )
@@ -1100,80 +1100,80 @@ void Abc_NtkVerifyReportErrorSeq( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pM
         pPats2 = Sim_SimInfoGet(vInfo2, pObj2);
         if ( pPats1[iFrameError] == pPats2[iFrameError] )
             continue;
-        printf( " %s", Abc_ObjName(pObj1) );
+        fprintf( Abc_FrameGlobalGetOut(), " %s", Abc_ObjName(pObj1) );
         if ( ++nPrinted == 3 )
             break;
     }
     if ( nPrinted != nErrors )
-        printf( " ..." );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " ..." );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // mark CIs of the networks in the cone of influence of this output
     Abc_NtkGetSeqPoSupp( pNtk1, iFrameError, iNodePo );
     Abc_NtkGetSeqPoSupp( pNtk2, iFrameError, iNodePo );
 
     // report mismatch for the first output
-    printf( "Output %s: Value in Network1 = %d. Value in Network2 = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Output %s: Value in Network1 = %d. Value in Network2 = %d.\n", 
         Abc_ObjName(pObjError), ValueError1, ValueError2 );
 
-    printf( "The cone of influence of output %s in Network1:\n", Abc_ObjName(pObjError) );
-    printf( "PIs: " );
+    fprintf( Abc_FrameGlobalGetOut(), "The cone of influence of output %s in Network1:\n", Abc_ObjName(pObjError) );
+    fprintf( Abc_FrameGlobalGetOut(), "PIs: " );
     Abc_NtkForEachPi( pNtk1, pObj, i )
         if ( pObj->pCopy )
-            printf( "%s ", Abc_ObjName(pObj) );
-    printf( "\n" );
-    printf( "Latches: " );
+            fprintf( Abc_FrameGlobalGetOut(), "%s ", Abc_ObjName(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Latches: " );
     Abc_NtkForEachLatch( pNtk1, pObj, i )
         if ( pObj->pCopy )
-            printf( "%s ", Abc_ObjName(pObj) );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%s ", Abc_ObjName(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( "The cone of influence of output %s in Network2:\n", Abc_ObjName(pObjError) );
-    printf( "PIs: " );
+    fprintf( Abc_FrameGlobalGetOut(), "The cone of influence of output %s in Network2:\n", Abc_ObjName(pObjError) );
+    fprintf( Abc_FrameGlobalGetOut(), "PIs: " );
     Abc_NtkForEachPi( pNtk2, pObj, i )
         if ( pObj->pCopy )
-            printf( "%s ", Abc_ObjName(pObj) );
-    printf( "\n" );
-    printf( "Latches: " );
+            fprintf( Abc_FrameGlobalGetOut(), "%s ", Abc_ObjName(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Latches: " );
     Abc_NtkForEachLatch( pNtk2, pObj, i )
         if ( pObj->pCopy )
-            printf( "%s ", Abc_ObjName(pObj) );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%s ", Abc_ObjName(pObj) );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
     // print the patterns
     for ( i = 0; i <= iFrameError; i++ )
     {
-        printf( "Frame %d:  ", i+1 );
+        fprintf( Abc_FrameGlobalGetOut(), "Frame %d:  ", i+1 );
 
-        printf( "PI(1):" );
+        fprintf( Abc_FrameGlobalGetOut(), "PI(1):" );
         Abc_NtkForEachPi( pNtk1, pObj, k )
             if ( pObj->pCopy )
-                printf( "%d", Sim_SimInfoGet(vInfo1, pObj)[i] > 0 );
-        printf( " " );
-        printf( "L(1):" );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", Sim_SimInfoGet(vInfo1, pObj)[i] > 0 );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
+        fprintf( Abc_FrameGlobalGetOut(), "L(1):" );
         Abc_NtkForEachLatch( pNtk1, pObj, k )
             if ( pObj->pCopy )
-                printf( "%d", Sim_SimInfoGet(vInfo1, pObj)[i] > 0 );
-        printf( " " );
-        printf( "%s(1):", Abc_ObjName(pObjError) );
-        printf( "%d", Sim_SimInfoGet(vInfo1, pObjError)[i] > 0 );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", Sim_SimInfoGet(vInfo1, pObj)[i] > 0 );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
+        fprintf( Abc_FrameGlobalGetOut(), "%s(1):", Abc_ObjName(pObjError) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Sim_SimInfoGet(vInfo1, pObjError)[i] > 0 );
 
-        printf( "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );
 
-        printf( "PI(2):" );
+        fprintf( Abc_FrameGlobalGetOut(), "PI(2):" );
         Abc_NtkForEachPi( pNtk2, pObj, k )
             if ( pObj->pCopy )
-                printf( "%d", Sim_SimInfoGet(vInfo2, pObj)[i] > 0 );
-        printf( " " );
-        printf( "L(2):" );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", Sim_SimInfoGet(vInfo2, pObj)[i] > 0 );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
+        fprintf( Abc_FrameGlobalGetOut(), "L(2):" );
         Abc_NtkForEachLatch( pNtk2, pObj, k )
             if ( pObj->pCopy )
-                printf( "%d", Sim_SimInfoGet(vInfo2, pObj)[i] > 0 );
-        printf( " " );
-        printf( "%s(2):", Abc_ObjName(pObjError) );
-        printf( "%d", Sim_SimInfoGet(vInfo2, pObjError)[i] > 0 );
+                fprintf( Abc_FrameGlobalGetOut(), "%d", Sim_SimInfoGet(vInfo2, pObj)[i] > 0 );
+        fprintf( Abc_FrameGlobalGetOut(), " " );
+        fprintf( Abc_FrameGlobalGetOut(), "%s(2):", Abc_ObjName(pObjError) );
+        fprintf( Abc_FrameGlobalGetOut(), "%d", Sim_SimInfoGet(vInfo2, pObjError)[i] > 0 );
 
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Abc_NtkForEachCi( pNtk1, pObj, i )
         pObj->pCopy = NULL;
@@ -1215,7 +1215,7 @@ void Abc_NtkSimulteBuggyMiter( Abc_Ntk_t * pNtk )
         pModel1[Abc_NtkPiNum(pNtk)+i] = ((int)(ABC_PTRINT_T)pObj->pData) - 1;
 
     pResult1 = Abc_NtkVerifySimulatePattern( pNtk, pModel1 );
-    printf( "Value = %d\n", pResult1[0] );
+    fprintf( Abc_FrameGlobalGetOut(), "Value = %d\n", pResult1[0] );
 
     pModel2 = ABC_ALLOC( int, Abc_NtkCiNum(pNtk) );
     Abc_NtkForEachPi( pNtk, pObj, i )
@@ -1224,7 +1224,7 @@ void Abc_NtkSimulteBuggyMiter( Abc_Ntk_t * pNtk )
         pModel2[Abc_NtkPiNum(pNtk)+i] = pResult1[Abc_NtkPoNum(pNtk)+i];
 
     pResult2 = Abc_NtkVerifySimulatePattern( pNtk, pModel2 );
-    printf( "Value = %d\n", pResult2[0] );
+    fprintf( Abc_FrameGlobalGetOut(), "Value = %d\n", pResult2[0] );
 
     ABC_FREE( pModel1 );
     ABC_FREE( pModel2 );

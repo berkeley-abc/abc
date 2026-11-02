@@ -123,7 +123,7 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
             nParans--;
     if ( nParans != 0 )
     {
-        fprintf( stdout, "Mio_ParseFormula(): Different number of opening and closing parentheses ().\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Mio_ParseFormula(): Different number of opening and closing parentheses ().\n" );
         return NULL;
     }
 
@@ -150,7 +150,7 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
             Vec_PtrPush( pStackFn, Exp_Const0() );  // Cudd_Ref( b0 );
             if ( Flag == MIO_EQN_FLAG_VAR )
             {
-                fprintf( stdout, "Mio_ParseFormula(): No operation symbol before constant 0.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Mio_ParseFormula(): No operation symbol before constant 0.\n" );
                 Flag = MIO_EQN_FLAG_ERROR; 
                 break;
             }
@@ -160,7 +160,7 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
             Vec_PtrPush( pStackFn, Exp_Const1() );  //  Cudd_Ref( b1 );
             if ( Flag == MIO_EQN_FLAG_VAR )
             {
-                fprintf( stdout, "Mio_ParseFormula(): No operation symbol before constant 1.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Mio_ParseFormula(): No operation symbol before constant 1.\n"  );
                 Flag = MIO_EQN_FLAG_ERROR; 
                 break;
             }
@@ -177,7 +177,7 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
         case MIO_EQN_SYM_NEGAFT:
             if ( Flag != MIO_EQN_FLAG_VAR )
             {// if there is no variable before NEGAFT, it is an error
-                fprintf( stdout, "Mio_ParseFormula(): No variable is specified before the negation suffix.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Mio_ParseFormula(): No variable is specified before the negation suffix.\n" );
                 Flag = MIO_EQN_FLAG_ERROR; 
                 break;
             }
@@ -191,7 +191,7 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
         case MIO_EQN_SYM_XOR:
             if ( Flag != MIO_EQN_FLAG_VAR )
             {
-                fprintf( stdout, "Mio_ParseFormula(): There is no variable before AND, EXOR, or OR.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Mio_ParseFormula(): There is no variable before AND, EXOR, or OR.\n" );
                 Flag = MIO_EQN_FLAG_ERROR; 
                 break;
             }
@@ -222,7 +222,7 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
                 {
                     if ( Vec_IntSize( pStackOp ) == 0 )
                     {
-                        fprintf( stdout, "Mio_ParseFormula(): There is no opening parenthesis\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "Mio_ParseFormula(): There is no opening parenthesis\n" );
                         Flag = MIO_EQN_FLAG_ERROR; 
                         break;
                     }
@@ -233,7 +233,7 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
                     // perform the given operation
                     if ( Mio_ParseFormulaOper( pMan, nVars, pStackFn, Oper ) == NULL )
                     {
-                        fprintf( stdout, "Mio_ParseFormula(): Unknown operation\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "Mio_ParseFormula(): Unknown operation\n" );
                         ABC_FREE( pFormula );
                         Vec_PtrFreeP( &pStackFn );
                         Vec_IntFreeP( &pStackOp );
@@ -243,7 +243,7 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
             }
             else
             {
-                fprintf( stdout, "Mio_ParseFormula(): There is no opening parenthesis\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Mio_ParseFormula(): There is no opening parenthesis\n" );
                 Flag = MIO_EQN_FLAG_ERROR; 
                 break;
             }
@@ -262,7 +262,7 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
               {
                     if ( pTemp[i] == MIO_EQN_SYM_NEG || pTemp[i] == MIO_EQN_SYM_OPEN )
                     {
-                        fprintf( stdout, "Mio_ParseFormula(): The negation sign or an opening parenthesis inside the variable name.\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "Mio_ParseFormula(): The negation sign or an opening parenthesis inside the variable name.\n" );
                         Flag = MIO_EQN_FLAG_ERROR; 
                         break;
                     }
@@ -282,7 +282,7 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
             }
             if ( !fFound )
             { 
-                fprintf( stdout, "Mio_ParseFormula(): The parser cannot find var \"%s\" in the input var list.\n", pTemp ); 
+                fprintf( Abc_FrameGlobalGetOut(), "Mio_ParseFormula(): The parser cannot find var \"%s\" in the input var list.\n", pTemp ); 
                 Flag = MIO_EQN_FLAG_ERROR; 
                 break; 
             }
@@ -337,7 +337,7 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
                 {  // if Oper2 precedence is higher or equal, execute it
                     if ( Mio_ParseFormulaOper( pMan, nVars, pStackFn, Oper2 ) == NULL )
                     {
-                        fprintf( stdout, "Mio_ParseFormula(): Unknown operation\n" );
+                        fprintf( Abc_FrameGlobalGetOut(), "Mio_ParseFormula(): Unknown operation\n" );
                         ABC_FREE( pFormula );
                         Vec_PtrFreeP( &pStackFn );
                         Vec_IntFreeP( &pStackOp );
@@ -369,12 +369,12 @@ Vec_Int_t * Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars )
                     return Exp_Reverse(gFunc);
                 }
                 else
-                    fprintf( stdout, "Mio_ParseFormula(): Something is left in the operation stack\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Mio_ParseFormula(): Something is left in the operation stack\n" );
             else
-                fprintf( stdout, "Mio_ParseFormula(): Something is left in the function stack\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Mio_ParseFormula(): Something is left in the function stack\n" );
         }
         else
-            fprintf( stdout, "Mio_ParseFormula(): The input string is empty\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Mio_ParseFormula(): The input string is empty\n" );
     }
     ABC_FREE( pFormula );
     Vec_PtrFreeP( &pStackFn );
@@ -479,7 +479,7 @@ int Mio_ParseCheckFormula( Mio_Gate_t * pGate, char * pForm )
         iPin = Mio_ParseCheckName( pGate, &pStr );
         if ( iPin == -1 )
         {
-            printf( "Skipping gate \"%s\" because substring \"%s\" does not match with a pin name.\n", pGate->pName, pStr );
+            fprintf( Abc_FrameGlobalGetOut(), "Skipping gate \"%s\" because substring \"%s\" does not match with a pin name.\n", pGate->pName, pStr );
             return 0;
         }
         assert( iPin < 32 );

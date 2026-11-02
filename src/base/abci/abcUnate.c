@@ -93,7 +93,7 @@ clkBdd = Abc_Clock() - clk;
 //    pbGlobal = (DdNode **)Vec_PtrArray( pNtk->vFuncsGlob );
 
     // print the size of the BDDs
-    printf( "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+    fprintf( Abc_FrameGlobalGetOut(), "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
 
     // perform naive BDD-based computation
     if ( fUseNaive )
@@ -104,7 +104,7 @@ clkBdd = Abc_Clock() - clk;
             p = Extra_UnateComputeSlow( dd, (DdNode *)Abc_ObjGlobalBdd(pNode) );
             if ( fVerbose )
             {
-                printf( "Out%4d : ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Out%4d : ", i );
                 Extra_UnateInfoPrint( p );
             }
             TotalSupps += p->nVars;
@@ -123,7 +123,7 @@ clkBdd = Abc_Clock() - clk;
             p = Extra_UnateComputeFast( dd, (DdNode *)Abc_ObjGlobalBdd(pNode) );
             if ( fVerbose )
             {
-                printf( "Out%4d : ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Out%4d : ", i );
                 Extra_UnateInfoPrint( p );
             }
             TotalSupps += p->nVars;
@@ -134,7 +134,7 @@ clkBdd = Abc_Clock() - clk;
 clkUnate = Abc_Clock() - clk - clkBdd;
 
     // print stats
-    printf( "Ins/Outs = %4d/%4d.  Total supp = %5d.  Total unate = %5d.\n",
+    fprintf( Abc_FrameGlobalGetOut(), "Ins/Outs = %4d/%4d.  Total supp = %5d.  Total unate = %5d.\n",
         Abc_NtkCiNum(pNtk), Abc_NtkCoNum(pNtk), TotalSupps, TotalUnate );
     ABC_PRT( "Glob BDDs", clkBdd );
     ABC_PRT( "Unateness", clkUnate );

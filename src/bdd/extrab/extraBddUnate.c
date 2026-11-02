@@ -206,7 +206,7 @@ void Extra_UnateInfoPrint( Extra_UnateInfo_t * p )
             pBuffer[ p->pVars[i].iVar ] = 'p';
         else
             pBuffer[ p->pVars[i].iVar ] = '.';
-    printf( "%s\n", pBuffer );
+    fprintf( Abc_FrameGlobalGetOut(), "%s\n", pBuffer );
     ABC_FREE( pBuffer );
 } /* end of Extra_UnateInfoPrint */
 

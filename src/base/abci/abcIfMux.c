@@ -129,9 +129,9 @@ void Abc_NtkCutCostMuxPrecompute()
                  CounterM++;
             }
         }
-        printf( "%d, // %3d  0x%02X\n", Value, i, i );
+        fprintf( Abc_FrameGlobalGetOut(), "%d, // %3d  0x%02X\n", Value, i, i );
     }
-    printf( "Total number of MUXes = %d.\n", CounterM );
+    fprintf( Abc_FrameGlobalGetOut(), "Total number of MUXes = %d.\n", CounterM );
 }
 
 /**Function*************************************************************

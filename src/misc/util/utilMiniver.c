@@ -145,7 +145,7 @@ static void add_decl(decl_t *arr, int *cnt, const char *name, int w, int sg) {
 // Record an assignment; returns non-zero on overflow.
 static int add_asn(mv_ctx *ctx, const char *lhs, const char *rhs) {
     if (ctx->na >= MAXSIG) {
-        printf("Too many assignments.\n");
+        fprintf(Abc_FrameGlobalGetOut(), "Too many assignments.\n");
         return 1;
     }
     copy_string(ctx->assigns[ctx->na].lhs, sizeof(ctx->assigns[ctx->na].lhs), lhs);
@@ -162,7 +162,7 @@ static int out_cat(char **p, size_t *left, const char *fmt, ...) {
     int need = vsnprintf(NULL, 0, fmt, ap);
     va_end(ap);
     if (need < 0 || (size_t)need >= *left) {
-        printf("Output exceeds buffer capacity.\n");
+        fprintf(Abc_FrameGlobalGetOut(), "Output exceeds buffer capacity.\n");
         return 1;
     }
     va_start(ap, fmt);
@@ -315,7 +315,7 @@ static int split_ids(mv_ctx *ctx, const char *clause, const char *s, emit_fn emi
         char c = s[i];
         if (c == ',' || c == 0) {
             if (j == 0) {
-                printf("Syntax error: empty identifier in expression \"%s\".\n", clause);
+                fprintf(Abc_FrameGlobalGetOut(), "Syntax error: empty identifier in expression \"%s\".\n", clause);
                 return 1;
             }
             buf[j] = 0;
@@ -324,11 +324,11 @@ static int split_ids(mv_ctx *ctx, const char *clause, const char *s, emit_fn emi
             if (c == 0) break;
         } else {
             if (j >= 120) {
-                printf("Identifier too long in expression \"%s\".\n", clause);
+                fprintf(Abc_FrameGlobalGetOut(), "Identifier too long in expression \"%s\".\n", clause);
                 return 1;
             }
             if (!((j ? is_ident_char(c) : is_ident_start(c)))) {
-                printf("Illegal identifier in expression \"%s\".\n", clause);
+                fprintf(Abc_FrameGlobalGetOut(), "Illegal identifier in expression \"%s\".\n", clause);
                 return 1;
             }
             buf[j++] = c;
@@ -343,13 +343,13 @@ static int parse_clause(mv_ctx *ctx, const char *q) {
 
     if (q[0] == 'm') {
         if (!is_ident_start(q[1])) {
-            printf("Syntax error after 'm' in expression \"%s\".\n", q);
+            fprintf(Abc_FrameGlobalGetOut(), "Syntax error after 'm' in expression \"%s\".\n", q);
             return 1;
         }
         int i = 1;
         while (q[i] && is_ident_char(q[i])) ++i;
         if (q[i]) {
-            printf("Garbage after module name in expression \"%s\".\n", q);
+            fprintf(Abc_FrameGlobalGetOut(), "Garbage after module name in expression \"%s\".\n", q);
             return 1;
         }
         size_t n = (size_t)(i - 1);
@@ -360,7 +360,7 @@ static int parse_clause(mv_ctx *ctx, const char *q) {
     }
 
     if (q[0] != 'i' && q[0] != 'o' && q[0] != 'w') {
-        printf("Unknown clause start in expression \"%s\".\n", q);
+        fprintf(Abc_FrameGlobalGetOut(), "Unknown clause start in expression \"%s\".\n", q);
         return 1;
     }
 
@@ -375,12 +375,12 @@ static int parse_clause(mv_ctx *ctx, const char *q) {
         ++i;
     }
     if (!parse_uint(q + i, &w, &nconsumed)) {
-        printf("Width expected in expression \"%s\".\n", q);
+        fprintf(Abc_FrameGlobalGetOut(), "Width expected in expression \"%s\".\n", q);
         return 1;
     }
     i += nconsumed;
     if (w <= 0) {
-        printf("Non-positive width in expression \"%s\".\n", q);
+        fprintf(Abc_FrameGlobalGetOut(), "Non-positive width in expression \"%s\".\n", q);
         return 1;
     }
 
@@ -395,7 +395,7 @@ static int parse_clause(mv_ctx *ctx, const char *q) {
             return 0;
         }
         if (eq) {
-            printf("Unexpected '=' in input clause in expression \"%s\".\n", q);
+            fprintf(Abc_FrameGlobalGetOut(), "Unexpected '=' in input clause in expression \"%s\".\n", q);
             return 1;
         }
         return split_ids(ctx, q, q + i, emit_in, w, sg);
@@ -403,14 +403,14 @@ static int parse_clause(mv_ctx *ctx, const char *q) {
 
     if (kind == 'w' && !eq) {
         if (!q[i]) {
-            printf("Identifiers expected for wires in expression \"%s\".\n", q);
+            fprintf(Abc_FrameGlobalGetOut(), "Identifiers expected for wires in expression \"%s\".\n", q);
             return 1;
         }
         return split_ids(ctx, q, q + i, emit_wi, w, sg);
     }
 
     if (!eq) {
-        printf("Assignment expected in expression \"%s\".\n", q);
+        fprintf(Abc_FrameGlobalGetOut(), "Assignment expected in expression \"%s\".\n", q);
         return 1;
     }
 
@@ -425,11 +425,11 @@ static int parse_clause(mv_ctx *ctx, const char *q) {
             goto lhs_done;
         }
         if (!(lj ? is_ident_char(c) : is_ident_start(c))) {
-            printf("Illegal LHS identifier in expression \"%s\".\n", q);
+            fprintf(Abc_FrameGlobalGetOut(), "Illegal LHS identifier in expression \"%s\".\n", q);
             return 1;
         }
         if (lj >= 120) {
-            printf("Identifier too long in expression \"%s\".\n", q);
+            fprintf(Abc_FrameGlobalGetOut(), "Identifier too long in expression \"%s\".\n", q);
             return 1;
         }
         lhs[lj++] = c;
@@ -439,7 +439,7 @@ static int parse_clause(mv_ctx *ctx, const char *q) {
             lhs[0] = 'o';
             lhs[1] = 0;
         } else {
-            printf("Wire assignment needs a name in expression \"%s\".\n", q);
+            fprintf(Abc_FrameGlobalGetOut(), "Wire assignment needs a name in expression \"%s\".\n", q);
             return 1;
         }
     } else {
@@ -448,7 +448,7 @@ static int parse_clause(mv_ctx *ctx, const char *q) {
 lhs_done:;
     const char *rhs = eq + 1;
     if (!*rhs) {
-        printf("Empty RHS expression in expression \"%s\".\n", q);
+        fprintf(Abc_FrameGlobalGetOut(), "Empty RHS expression in expression \"%s\".\n", q);
         return 1;
     }
 
@@ -466,7 +466,7 @@ lhs_done:;
 // Returns 0 on success, 1 on error. Errors are printed (no exit()).
 int miniver_translate(const char *input, char *out, size_t cap, int fShort) {
     if (!input || !out || cap == 0) {
-        printf("Invalid arguments.\n");
+        fprintf(Abc_FrameGlobalGetOut(), "Invalid arguments.\n");
         return 1;
     }
 
@@ -474,14 +474,14 @@ int miniver_translate(const char *input, char *out, size_t cap, int fShort) {
     char flat[MAXSTR];
     strip_ws(input, flat);
     if (!*flat) {
-        printf("Empty input.\n");
+        fprintf(Abc_FrameGlobalGetOut(), "Empty input.\n");
         return 1;
     }
 
     // Step 2: parse clauses into a context.
     mv_ctx *ctx = (mv_ctx*)calloc(1, sizeof(mv_ctx));
     if (!ctx) {
-        printf("Out of memory.\n");
+        fprintf(Abc_FrameGlobalGetOut(), "Out of memory.\n");
         return 1;
     }
     strncpy(ctx->modname, "top", sizeof(ctx->modname) - 1);
@@ -490,7 +490,7 @@ int miniver_translate(const char *input, char *out, size_t cap, int fShort) {
     // Make a modifiable copy to split on semicolons.
     char *buf = (char*)malloc(strlen(flat) + 1);
     if (!buf) {
-        printf("Out of memory.\n");
+        fprintf(Abc_FrameGlobalGetOut(), "Out of memory.\n");
         free(ctx);
         return 1;
     }
@@ -511,12 +511,12 @@ int miniver_translate(const char *input, char *out, size_t cap, int fShort) {
     free(buf);
 
     if (!*ctx->modname) {
-        printf("Module name missing.\n");
+        fprintf(Abc_FrameGlobalGetOut(), "Module name missing.\n");
         free(ctx);
         return 1;
     }
     if (ctx->no == 0) {
-        printf("At least one output with assignment is required.\n");
+        fprintf(Abc_FrameGlobalGetOut(), "At least one output with assignment is required.\n");
         free(ctx);
         return 1;
     }
@@ -604,7 +604,7 @@ int main(int argc, char **argv) {
     if (argc >= 2) {
         size_t L = strlen(argv[1]);
         if (L >= MAXSTR - 1) {
-            printf("Input too long.\n");
+            fprintf(Abc_FrameGlobalGetOut(), "Input too long.\n");
             return 1;
         }
         strcpy(in, argv[1]);
@@ -613,7 +613,7 @@ int main(int argc, char **argv) {
         int c = 0;
         while ((c = fgetc(stdin)) != EOF) {
             if (off >= MAXSTR - 1) {
-                printf("Input too long.\n");
+                fprintf(Abc_FrameGlobalGetOut(), "Input too long.\n");
                 return 1;
             }
             in[off++] = (char)c;
@@ -624,7 +624,7 @@ int main(int argc, char **argv) {
     char out[10240];
     int rc = miniver_translate(in, out, sizeof(out), 0);
     if (!rc) {
-        printf("%s", out);
+        fprintf(Abc_FrameGlobalGetOut(), "%s", out);
     }
     return rc;
 }

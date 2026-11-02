@@ -129,7 +129,7 @@ Vec_Int_t * Gia_ManSifInitPos( Gia_Man_t * p, Vec_Int_t * vMoves, Vec_Int_t * vR
     else
     {
         vRes = Vec_IntStart( Vec_IntSize(vRegs) );
-        printf( "***!!!*** The SAT problem has no solution. Using all-0 initial state. ***!!!***\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "***!!!*** The SAT problem has no solution. Using all-0 initial state. ***!!!***\n" );
     }
     Gia_ManStop( pNew );
     Vec_IntFree( vCopy );
@@ -223,9 +223,9 @@ Gia_Man_t * Gia_ManSifDerive( Gia_Man_t * p, Vec_Int_t * vCounts, int fVerbose )
 
     if ( fVerbose )
     {
-        printf( "Flops : %5d %5d %5d\n", Vec_IntSize(vRos[0]),  Vec_IntSize(vRos[1]),  Vec_IntSize(vRos[2]) );
-        printf( "LUTs  : %5d %5d %5d\n", Vec_IntSize(vLuts[0]), Vec_IntSize(vLuts[1]), Vec_IntSize(vLuts[2]) );
-        printf( "Spots : %5d %5d %5d\n", Vec_IntSize(vRegs[0]), Vec_IntSize(vRegs[1]), 0 );
+        fprintf( Abc_FrameGlobalGetOut(), "Flops : %5d %5d %5d\n", Vec_IntSize(vRos[0]),  Vec_IntSize(vRos[1]),  Vec_IntSize(vRos[2]) );
+        fprintf( Abc_FrameGlobalGetOut(), "LUTs  : %5d %5d %5d\n", Vec_IntSize(vLuts[0]), Vec_IntSize(vLuts[1]), Vec_IntSize(vLuts[2]) );
+        fprintf( Abc_FrameGlobalGetOut(), "Spots : %5d %5d %5d\n", Vec_IntSize(vRegs[0]), Vec_IntSize(vRegs[1]), 0 );
     }
 
     pNew = Gia_ManStart( Gia_ManObjNum(p) + Vec_IntSize(vRegs[0]) + Vec_IntSize(vRegs[1]) );
@@ -361,9 +361,9 @@ Gia_Man_t * Gia_ManSifTransform( Gia_Man_t * p, Vec_Int_t * vCuts, Vec_Int_t * v
 {
     Gia_Man_t * pNew = NULL; Vec_Int_t * vCounts = NULL;
     if ( fVerbose )
-        printf( "Current area = %d.  Period = %d.  ", Gia_ManSifArea(p, vCuts, nLutSize+1), Period );
+        fprintf( Abc_FrameGlobalGetOut(), "Current area = %d.  Period = %d.  ", Gia_ManSifArea(p, vCuts, nLutSize+1), Period );
     if ( fVerbose )
-        printf( "Delay checking failed for %d cuts.\n", Gia_ManSifDelay( p, vCuts, vTimes, nLutSize+1 ) );
+        fprintf( Abc_FrameGlobalGetOut(), "Delay checking failed for %d cuts.\n", Gia_ManSifDelay( p, vCuts, vTimes, nLutSize+1 ) );
     vCounts   = Gia_ManSifTimesToCounts( p, vTimes, Period );
     pNew      = Gia_ManSifDerive( p, vCounts, fVerbose );
     Vec_IntFreeP( &vCounts );
@@ -547,14 +547,14 @@ void Gia_ManSifPrintTimes( Gia_Man_t * p, Vec_Int_t * vTimes, int Period )
         else
             Neg[-Value]++;
     }
-    printf( "Statistics: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Statistics: " );
     for ( i = 255; i > 0; i-- )
         if ( Neg[i] )
-            printf( " -%d=%d", i, Neg[i] );
+            fprintf( Abc_FrameGlobalGetOut(), " -%d=%d", i, Neg[i] );
     for ( i = 0; i < 256; i++ )
         if ( Pos[i] )
-            printf( " %d=%d", i, Pos[i] );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " %d=%d", i, Pos[i] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 int Gia_ManSifDeriveMapping_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vCuts, int nSize )
 {
@@ -583,7 +583,7 @@ int Gia_ManSifDeriveMapping( Gia_Man_t * p, Vec_Int_t * vCuts, Vec_Int_t * vTime
     Gia_Obj_t * pObj; int i, nArea = 0;
     if ( p->vMapping != NULL )
     {
-        printf( "Removing available combinational mapping.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Removing available combinational mapping.\n" );
         Vec_IntFreeP( &p->vMapping );
     }
     assert( p->vMapping == NULL );
@@ -604,9 +604,9 @@ Gia_Man_t * Gia_ManSifPerform( Gia_Man_t * p, int nLutSize, int fEvalOnly, int f
     int Upper = Gia_ManSifMapComb( p, vCuts, vTimes, nLutSize );
     int CombD = Upper;
     if ( fVerbose && Gia_ManRegNum(p) )
-    printf( "Clock period %2d is %s\n", Lower, 0 ? "Yes" : "No " );
+    fprintf( Abc_FrameGlobalGetOut(), "Clock period %2d is %s\n", Lower, 0 ? "Yes" : "No " );
     if ( fVerbose && Gia_ManRegNum(p) )
-    printf( "Clock period %2d is %s\n", Upper, 1 ? "Yes" : "No " );
+    fprintf( Abc_FrameGlobalGetOut(), "Clock period %2d is %s\n", Upper, 1 ? "Yes" : "No " );
     while ( Gia_ManRegNum(p) > 0 && Upper - Lower > 1 )
     {
         int Middle = (Upper + Lower) / 2;
@@ -616,21 +616,21 @@ Gia_Man_t * Gia_ManSifPerform( Gia_Man_t * p, int nLutSize, int fEvalOnly, int f
         else
             Lower = Middle;
         if ( fVerbose )
-        printf( "Clock period %2d is %s after %d iterations\n", Middle, Status ? "Yes" : "No ", nIters );
+        fprintf( Abc_FrameGlobalGetOut(), "Clock period %2d is %s after %d iterations\n", Middle, Status ? "Yes" : "No ", nIters );
     }
     if ( fVerbose )
-    printf( "Best  period = <<%d>> (%.2f %%)  ", Upper, (float)(100.0*(CombD-Upper)/CombD) );
+    fprintf( Abc_FrameGlobalGetOut(), "Best  period = <<%d>> (%.2f %%)  ", Upper, (float)(100.0*(CombD-Upper)/CombD) );
     if ( fVerbose )
-    printf( "LUT size = %d   ", nLutSize );
+    fprintf( Abc_FrameGlobalGetOut(), "LUT size = %d   ", nLutSize );
     if ( fVerbose )
-    printf( "Memory usage = %.2f MB   ", 4.0*(2+1+nSize)*Gia_ManObjNum(p)/(1 << 20) );
+    fprintf( Abc_FrameGlobalGetOut(), "Memory usage = %.2f MB   ", 4.0*(2+1+nSize)*Gia_ManObjNum(p)/(1 << 20) );
     if ( fVerbose )
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( Upper == CombD )
     {
         Vec_IntFree( vCuts );
         Vec_IntFree( vTimes );
-        printf( "Combinational delay (%d) cannot be improved.\n", CombD );
+        fprintf( Abc_FrameGlobalGetOut(), "Combinational delay (%d) cannot be improved.\n", CombD );
         return Gia_ManDup( p );
     }
     Status = Gia_ManSifCheckPeriod( p, vCuts, vTimes, nLutSize, Upper, &nIters );
@@ -638,9 +638,9 @@ Gia_Man_t * Gia_ManSifPerform( Gia_Man_t * p, int nLutSize, int fEvalOnly, int f
     Status = Gia_ManSifDeriveMapping( p, vCuts, vTimes, nLutSize, Upper, fVerbose );
     if ( fEvalOnly )
     {
-        printf( "Optimized level %2d  (%6.2f %% less than comb level %2d).  LUT size = %d.  Area estimate = %d.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Optimized level %2d  (%6.2f %% less than comb level %2d).  LUT size = %d.  Area estimate = %d.\n", 
             Upper, (float)(100.0*(CombD-Upper)/CombD), CombD, nLutSize, Gia_ManSifArea(p, vCuts, nLutSize+1) );     
-        printf( "The command is invoked in the evaluation mode. Retiming is not performed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The command is invoked in the evaluation mode. Retiming is not performed.\n" );
     }
     else
         pNew = Gia_ManSifTransform( p, vCuts, vTimes, nLutSize, Upper, fVerbose );

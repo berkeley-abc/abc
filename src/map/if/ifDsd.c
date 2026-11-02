@@ -311,7 +311,7 @@ void If_DsdManAllocIsops( If_DsdMan_t * p, int nLutSize )
     if ( p->vIsops[3] != NULL )
         return;
     if ( Vec_PtrSize(&p->vObjs) > 2 )
-        printf( "Warning: DSD manager is already started without ISOPs.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: DSD manager is already started without ISOPs.\n" );
     for ( v = 3; v <= nLutSize; v++ )
     {
         p->vIsops[v] = Vec_WecAlloc( 100 );
@@ -379,7 +379,7 @@ void If_DsdManDumpDsd( If_DsdMan_t * p, int Support )
     int v, i;
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\".\n", pFileName );
         return;
     }
     for ( v = 3; v <= p->nVars; v++ )
@@ -419,7 +419,7 @@ void If_DsdManDumpAll( If_DsdMan_t * p, int Support )
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\".\n", pFileName );
         return;
     }
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
@@ -675,33 +675,33 @@ void If_DsdManPrintDistrib( If_DsdMan_t * p )
         if ( If_DsdVecObjMark(&p->vObjs, i) )
             CountMarked[If_DsdObjSuppSize(pObj)]++, CountMarked[p->nVars+1]++;
     }
-    printf( "***** DSD MANAGER STATISTICS *****\n" );
-    printf( "Support     " );
-    printf( "Obj   " );
-    printf( "ObjNDSD            " );
-    printf( "NPNNDSD                  " );
-    printf( "Str   " );
-    printf( "StrNDSD             " );
-    printf( "Marked  " );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "***** DSD MANAGER STATISTICS *****\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Support     " );
+    fprintf( Abc_FrameGlobalGetOut(), "Obj   " );
+    fprintf( Abc_FrameGlobalGetOut(), "ObjNDSD            " );
+    fprintf( Abc_FrameGlobalGetOut(), "NPNNDSD                  " );
+    fprintf( Abc_FrameGlobalGetOut(), "Str   " );
+    fprintf( Abc_FrameGlobalGetOut(), "StrNDSD             " );
+    fprintf( Abc_FrameGlobalGetOut(), "Marked  " );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( i = 0; i <= p->nVars + 1; i++ )
     {
         if ( i == p->nVars + 1 )
-            printf( "All : " );
+            fprintf( Abc_FrameGlobalGetOut(), "All : " );
         else
-            printf( "%3d : ", i );
-        printf( "%9d ", CountObj[i] );
-        printf( "%9d ", CountObjNon[i] );
-        printf( "%6.2f %% ", 100.0 * CountObjNon[i] / Abc_MaxInt(1, CountObj[i]) );
-        printf( "%9d ", CountObjNpn[i] );
-        printf( "%6.2f %% ", 100.0 * CountObjNpn[i] / Abc_MaxInt(1, CountObj[i]) );
-        printf( "  " );
-        printf( "%9d ", CountStr[i] );
-        printf( "%9d ", CountStrNon[i] );
-        printf( "%6.2f %% ", 100.0 * CountStrNon[i] / Abc_MaxInt(1, CountStr[i]) );
-        printf( "%9d ", CountMarked[i] );
-        printf( "%6.2f %%",  100.0 * CountMarked[i] / Abc_MaxInt(1, CountStr[i]) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%3d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%9d ", CountObj[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%9d ", CountObjNon[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%6.2f %% ", 100.0 * CountObjNon[i] / Abc_MaxInt(1, CountObj[i]) );
+        fprintf( Abc_FrameGlobalGetOut(), "%9d ", CountObjNpn[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%6.2f %% ", 100.0 * CountObjNpn[i] / Abc_MaxInt(1, CountObj[i]) );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "%9d ", CountStr[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%9d ", CountStrNon[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%6.2f %% ", 100.0 * CountStrNon[i] / Abc_MaxInt(1, CountStr[i]) );
+        fprintf( Abc_FrameGlobalGetOut(), "%9d ", CountMarked[i] );
+        fprintf( Abc_FrameGlobalGetOut(), "%6.2f %%",  100.0 * CountMarked[i] / Abc_MaxInt(1, CountStr[i]) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support, int fOccurs, int fTtDump, int fVerbose )
@@ -711,10 +711,10 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support,
     int CountUsed = 0, CountNonDsd = 0, CountNonDsdStr = 0, CountMarked = 0, CountPrime = 0;
     int i, v, * pPerm, DsdMax = 0, MemSizeTTs = 0, MemSizeDecs = 0;
     FILE * pFile;
-    pFile = pFileName ? fopen( pFileName, "wb" ) : stdout;
+    pFile = pFileName ? fopen( pFileName, "wb" ) : Abc_FrameGlobalGetOut();
     if ( pFileName && pFile == NULL )
     {
-        printf( "cannot open output file\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "cannot open output file\n" );
         return;
     }
     if ( fVerbose )
@@ -751,10 +751,10 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support,
         MemSizeDecs += (int)Vec_VecMemoryInt((Vec_Vec_t *)(p->vTtDecs[v]));
     }
     If_DsdManPrintDistrib( p );
-    printf( "Number of inputs = %d.  LUT size = %d.  Marks = %s.  NewAsUseless = %s.  Bookmark = %d.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "Number of inputs = %d.  LUT size = %d.  Marks = %s.  NewAsUseless = %s.  Bookmark = %d.\n", 
         p->nVars, p->LutSize, If_DsdManHasMarks(p)? "yes" : "no", p->fNewAsUseless? "yes" : "no", p->nObjsPrev );
     if ( p->pCellStr )
-        printf( "Symbolic cell description: %s\n", p->pCellStr );
+        fprintf( Abc_FrameGlobalGetOut(), "Symbolic cell description: %s\n", p->pCellStr );
     if ( p->pTtGia )
     fprintf( pFile, "Non-DSD AIG nodes          = %8d\n", Gia_ManAndNum(p->pTtGia) );
     fprintf( pFile, "Unique table misses        = %8d\n", p->nUniqueMisses );
@@ -775,7 +775,7 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support,
         Abc_PrintTime( 1, "Time verify", p->timeVerify );
     }
     if ( fOccurs )
-        If_DsdManPrintOccurs( stdout, p );
+        If_DsdManPrintOccurs( Abc_FrameGlobalGetOut(), p );
 //    If_DsdManHashProfile( p );
     if ( fTtDump )
         If_DsdManDumpDsd( p, Support );
@@ -800,7 +800,7 @@ void If_DsdManPrint( If_DsdMan_t * p, char * pFileName, int Number, int Support,
     pPerm = Abc_MergeSortCost( Vec_IntArray(vCounts), Vec_IntSize(vCounts) );
     for ( i = 0; i < Abc_MinInt(Vec_IntSize(vCounts), 20); i++ )
     {
-        printf( "%2d : ", i+1 );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : ", i+1 );
         pObj = If_DsdVecObj( &p->vObjs, Vec_IntEntry(vStructs, pPerm[i]) );
         If_DsdManPrintOne( pFile, p, pObj->Id, NULL, 1 );
     }
@@ -1061,7 +1061,7 @@ void If_DsdManSave( If_DsdMan_t * p, char * pFileName )
     FILE * pFile = fopen( pFileName ? pFileName : p->pStore, "wb" );
     if ( pFile == NULL )
     {
-        printf( "Writing DSD manager file \"%s\" has failed.\n", pFileName ? pFileName : p->pStore );
+        fprintf( Abc_FrameGlobalGetOut(), "Writing DSD manager file \"%s\" has failed.\n", pFileName ? pFileName : p->pStore );
         return;
     }
     fwrite( DSD_VERSION, 4, 1, pFile );
@@ -1121,13 +1121,13 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Reading DSD manager file \"%s\" has failed.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Reading DSD manager file \"%s\" has failed.\n", pFileName );
         return NULL;
     }
     RetValue = fread( pBuffer, 4, 1, pFile );
     if ( strncmp(pBuffer, DSD_VERSION, strlen(DSD_VERSION)) )
     {
-        printf( "Unrecognized format of file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Unrecognized format of file \"%s\".\n", pFileName );
         return NULL;
     }
     RetValue = fread( &Num, 4, 1, pFile );
@@ -1212,18 +1212,18 @@ void If_DsdManMerge( If_DsdMan_t * p, If_DsdMan_t * pNew )
     int i, k, iFanin, Id;
     if ( p->nVars < pNew->nVars )
     {
-        printf( "The number of variables should be the same or smaller.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of variables should be the same or smaller.\n" );
         return;
     }
     if ( p->LutSize != pNew->LutSize )
     {
-        printf( "LUT size should be the same.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "LUT size should be the same.\n" );
         return;
     }
     assert( p->nTtBits == pNew->nTtBits );
     assert( p->nConfigWords == pNew->nConfigWords );
     if ( If_DsdManHasMarks(p) != If_DsdManHasMarks(pNew) )
-        printf( "Warning! Old manager has %smarks while new manager has %smarks.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Warning! Old manager has %smarks while new manager has %smarks.\n", 
             If_DsdManHasMarks(p) ? "" : "no ", If_DsdManHasMarks(pNew) ? "" : "no " );
     vMap = Vec_IntAlloc( Vec_PtrSize(&pNew->vObjs) );
     Vec_IntPush( vMap, 0 );
@@ -1894,7 +1894,7 @@ unsigned If_DsdManCheckPrime( If_DsdMan_t * p, int iFirst, unsigned uMaskNot, If
     int nFans = If_DsdObjFaninNum(pObj);
     Vec_Int_t * vSets = (Vec_Int_t *)Vec_PtrEntry(p->vTtDecs[pObj->nFans], truthId);
 if ( fVerbose )
-printf( "\n" );
+fprintf( Abc_FrameGlobalGetOut(), "\n" );
 if ( fVerbose )
 Dau_DecPrintSets( vSets, nFans );
     assert( If_DsdObjFaninNum(pObj) > 2 );
@@ -1952,11 +1952,11 @@ unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDeri
     unsigned uRes;
     pObj = If_DsdVecObj( &p->vObjs, Abc_Lit2Var(iDsd) );
     if ( fVerbose )
-    If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), NULL, 0 );
+    If_DsdManPrintOne( Abc_FrameGlobalGetOut(), p, Abc_Lit2Var(iDsd), NULL, 0 );
     if ( If_DsdObjSuppSize(pObj) <= LutSize )
     {
         if ( fVerbose )
-        printf( "    Trivial\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "    Trivial\n" );
         return ~0;
     }
     If_DsdManCollect( p, pObj->Id, p->vTemp1, p->vTemp2 );
@@ -1964,9 +1964,9 @@ unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDeri
         if ( If_DsdObjSuppSize(pTemp) <= LutSize && If_DsdObjSuppSize(pObj) - If_DsdObjSuppSize(pTemp) <= LutSize - 1 )
         {
             if ( fVerbose )
-            printf( "    Dec using node " );
+            fprintf( Abc_FrameGlobalGetOut(), "    Dec using node " );
             if ( fVerbose )
-            If_DsdManPrintOne( stdout, p, pTemp->Id, NULL, 1 );
+            If_DsdManPrintOne( Abc_FrameGlobalGetOut(), p, pTemp->Id, NULL, 1 );
             iFirst = Vec_IntEntry(p->vTemp2, i);
             uRes = If_DsdSign_rec(p, pTemp, &iFirst);
             if ( uRes & uMaskNot )
@@ -1979,11 +1979,11 @@ unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDeri
             if ( (Mask = If_DsdManCheckAndXor(p, Vec_IntEntry(p->vTemp2, i), uMaskNot, pTemp, If_DsdObjSuppSize(pObj), LutSize, fDerive, fVerbose)) )
             {
                 if ( fVerbose )
-                printf( "    " );
+                fprintf( Abc_FrameGlobalGetOut(), "    " );
                 if ( fVerbose )
                 Abc_TtPrintBinary( (word *)&Mask, 4 ); 
                 if ( fVerbose )
-                printf( "    Using multi-input AND/XOR node\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "    Using multi-input AND/XOR node\n" );
                 return Mask;
             }
         }
@@ -1993,11 +1993,11 @@ unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDeri
             if ( (Mask = If_DsdManCheckMux(p, Vec_IntEntry(p->vTemp2, i), uMaskNot, pTemp, If_DsdObjSuppSize(pObj), LutSize, fDerive, fVerbose)) )
             {
                 if ( fVerbose )
-                printf( "    " );
+                fprintf( Abc_FrameGlobalGetOut(), "    " );
                 if ( fVerbose )
                 Abc_TtPrintBinary( (word *)&Mask, 4 ); 
                 if ( fVerbose )
-                printf( "    Using multi-input MUX node\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "    Using multi-input MUX node\n" );
                 return Mask;
             }
         }
@@ -2007,16 +2007,16 @@ unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDeri
             if ( (Mask = If_DsdManCheckPrime(p, Vec_IntEntry(p->vTemp2, i), uMaskNot, pTemp, If_DsdObjSuppSize(pObj), LutSize, fDerive, fVerbose)) )
             {
                 if ( fVerbose )
-                printf( "    " );
+                fprintf( Abc_FrameGlobalGetOut(), "    " );
                 if ( fVerbose )
                 Dau_DecPrintSet( Mask, If_DsdObjFaninNum(pTemp), 0 );
                 if ( fVerbose )
-                printf( "    Using prime node\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "    Using prime node\n" );
                 return Mask;
             }
         }
     if ( fVerbose )
-    printf( "    UNDEC\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "    UNDEC\n" );
 //    If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), NULL, 1 );
     return 0;
 }
@@ -2092,13 +2092,13 @@ int If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char
     if ( !Abc_TtEqual(pRes, pTruth, nWords) )
     {
 //        If_DsdManPrint( p, NULL );
-        printf( "\n" );
-        printf( "Verification failed!\n" );
-        printf( "%s\n", pDsd );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Verification failed!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%s\n", pDsd );
         Dau_DsdPrintFromTruth( pTruth, nLeaves );
         Dau_DsdPrintFromTruth( pRes, nLeaves );
-        If_DsdManPrintOne( stdout, p, Abc_Lit2Var(iDsd), pPerm, 1 );
-        printf( "\n" );
+        If_DsdManPrintOne( Abc_FrameGlobalGetOut(), p, Abc_Lit2Var(iDsd), pPerm, 1 );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     If_DsdVecObjIncRef( &p->vObjs, Abc_Lit2Var(iDsd) );
     assert( If_DsdVecLitSuppSize(&p->vObjs, iDsd) == nLeaves );
@@ -2391,12 +2391,12 @@ int If_CutDsdBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vAig )
 */
             {
                 for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
-                    printf( "%3d ", pTimes[Abc_Lit2Var(pPermLits[i])] );
+                    fprintf( Abc_FrameGlobalGetOut(), "%3d ", pTimes[Abc_Lit2Var(pPermLits[i])] );
                 for ( ; i < p->pPars->nLutSize; i++ )
-                    printf( "    " );
-                printf( "-> %3d   ", Delay );
-                If_DsdManPrintOne( stdout, p->pIfDsdMan, Abc_Lit2Var(If_CutDsdLit(p, pCut)), NULL, 0 );
-                printf( "\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "    " );
+                fprintf( Abc_FrameGlobalGetOut(), "-> %3d   ", Delay );
+                If_DsdManPrintOne( Abc_FrameGlobalGetOut(), p->pIfDsdMan, Abc_Lit2Var(If_CutDsdLit(p, pCut)), NULL, 0 );
+                fprintf( Abc_FrameGlobalGetOut(), "\n" );
             }
         }
         return Delay;
@@ -2429,7 +2429,7 @@ void If_DsdManTune( If_DsdMan_t * p, int LutSize, int fFast, int fAdd, int fSpec
         return;
     vLits = Vec_IntAlloc( 1000 );
     pSat = (sat_solver *)If_ManSatBuildXY( LutSize );
-    pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(&p->vObjs) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Vec_PtrSize(&p->vObjs) );
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -2486,26 +2486,26 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
         return;
     if ( If_DsdManVarNum(p) > Ifn_NtkInputNum(pNtk) )
     {
-        printf( "The support of DSD manager (%d) exceeds the support of the structure (%d).\n", If_DsdManVarNum(p), Ifn_NtkInputNum(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(), "The support of DSD manager (%d) exceeds the support of the structure (%d).\n", If_DsdManVarNum(p), Ifn_NtkInputNum(pNtk) );
         ABC_FREE( pNtk );
         return;
     }
     ABC_FREE( p->pCellStr );
     p->pCellStr = Abc_UtilStrsav( pStruct );
     if ( If_DsdManVarNum(p) < Ifn_NtkInputNum(pNtk) )
-        printf( "Warning: The support of DSD manager (%d) is less than the support of the structure (%d).\n", If_DsdManVarNum(p), Ifn_NtkInputNum(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The support of DSD manager (%d) is less than the support of the structure (%d).\n", If_DsdManVarNum(p), Ifn_NtkInputNum(pNtk) );
     LutSize = Ifn_NtkLutSizeMax(pNtk);
     p->nTtBits = Ifn_NtkTtBits( pStruct );
     p->nConfigWords = 1 + Abc_Bit6WordNum( p->nTtBits );
     // print
     if ( fVerbose )
     {
-        printf( "Considering programmable cell: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Considering programmable cell: " );
         Ifn_NtkPrint( pNtk );
-        printf( "Largest LUT size = %d.\n", LutSize );
+        fprintf( Abc_FrameGlobalGetOut(), "Largest LUT size = %d.\n", LutSize );
     }
     if ( p->nObjsPrev > 0 )
-        printf( "Starting the tuning process from object %d (out of %d).\n", p->nObjsPrev, Vec_PtrSize(&p->vObjs) );
+        fprintf( Abc_FrameGlobalGetOut(), "Starting the tuning process from object %d (out of %d).\n", p->nObjsPrev, Vec_PtrSize(&p->vObjs) );
     // clean the attributes
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
         if ( i >= p->nObjsPrev )
@@ -2514,7 +2514,7 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
         p->vConfigs = Vec_WrdStart( p->nConfigWords * Vec_PtrSize(&p->vObjs) );
     else
         Vec_WrdFillExtra( p->vConfigs, p->nConfigWords * Vec_PtrSize(&p->vObjs), 0 );
-    pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(&p->vObjs) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Vec_PtrSize(&p->vObjs) );
     If_DsdVecForEachObjStart( &p->vObjs, pObj, i, p->nObjsPrev )
     {
         if ( (i & 0xFF) == 0 )
@@ -2526,11 +2526,11 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
         if ( fVeryVerbose )
             Dau_DsdPrintFromTruth( pTruth, nVars );
         if ( fVerbose )
-            printf( "%6d : %2d ", i, nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d : %2d ", i, nVars );
         pConfig = Vec_WrdEntryP( p->vConfigs, p->nConfigWords * i );
         Value = Ifn_NtkMatch( pNtk, pTruth, nVars, nConfls, fVerbose, fVeryVerbose, pConfig );
         if ( fVeryVerbose )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         if ( Value == 0 )
         {
             If_DsdVecObjSetMark( &p->vObjs, i );
@@ -2540,7 +2540,7 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
     p->nObjsPrev = 0;
     p->LutSize = 0;
     Extra_ProgressBarStop( pProgress );
-    printf( "Finished matching %d functions. ", Vec_PtrSize(&p->vObjs) );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished matching %d functions. ", Vec_PtrSize(&p->vObjs) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( fVeryVerbose )
         If_DsdManPrintDistrib( p );
@@ -2621,7 +2621,7 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
     }
     if ( nProcs > PAR_THR_MAX )
     {
-        printf( "The number of processes (%d) exceeds the precompiled limit (%d).\n", nProcs, PAR_THR_MAX );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of processes (%d) exceeds the precompiled limit (%d).\n", nProcs, PAR_THR_MAX );
         return;
     }
     // parse the structure
@@ -2630,14 +2630,14 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
         return;
     if ( If_DsdManVarNum(p) > Ifn_NtkInputNum(pNtk) )
     {
-        printf( "The support of DSD manager (%d) exceeds the support of the structure (%d).\n", If_DsdManVarNum(p), Ifn_NtkInputNum(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(), "The support of DSD manager (%d) exceeds the support of the structure (%d).\n", If_DsdManVarNum(p), Ifn_NtkInputNum(pNtk) );
         ABC_FREE( pNtk );
         return;
     }
     ABC_FREE( p->pCellStr );
     p->pCellStr = Abc_UtilStrsav( pStruct );
     if ( If_DsdManVarNum(p) < Ifn_NtkInputNum(pNtk) )
-        printf( "Warning: The support of DSD manager (%d) is less than the support of the structure (%d).\n", If_DsdManVarNum(p), Ifn_NtkInputNum(pNtk) );
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: The support of DSD manager (%d) is less than the support of the structure (%d).\n", If_DsdManVarNum(p), Ifn_NtkInputNum(pNtk) );
     // check the largest LUT
     LutSize = Ifn_NtkLutSizeMax(pNtk);
     p->nTtBits = Ifn_NtkTtBits( pStruct );
@@ -2645,13 +2645,13 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
     assert( p->nConfigWords <= 10 );
     if ( fVerbose )
     {
-        printf( "Considering programmable cell: " );
+        fprintf( Abc_FrameGlobalGetOut(), "Considering programmable cell: " );
         Ifn_NtkPrint( pNtk );
-        printf( "Largest LUT size = %d.\n", LutSize );
+        fprintf( Abc_FrameGlobalGetOut(), "Largest LUT size = %d.\n", LutSize );
     }
     ABC_FREE( pNtk );
     if ( p->nObjsPrev > 0 )
-        printf( "Starting the tuning process from object %d (out of %d).\n", p->nObjsPrev, Vec_PtrSize(&p->vObjs) );
+        fprintf( Abc_FrameGlobalGetOut(), "Starting the tuning process from object %d (out of %d).\n", p->nObjsPrev, Vec_PtrSize(&p->vObjs) );
     // clean the attributes
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
         if ( i >= p->nObjsPrev )
@@ -2660,7 +2660,7 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
         p->vConfigs = Vec_WrdStart( p->nConfigWords * Vec_PtrSize(&p->vObjs) );
     else
         Vec_WrdFillExtra( p->vConfigs, p->nConfigWords * Vec_PtrSize(&p->vObjs), 0 );
-    pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(&p->vObjs) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Vec_PtrSize(&p->vObjs) );
 
     // perform concurrent solving
     {
@@ -2739,11 +2739,11 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
         }
         if ( fVerbose )
         {
-            printf( "Main     : " );
+            fprintf( Abc_FrameGlobalGetOut(), "Main     : " );
             Abc_PrintTime( 1, "Time", clkUsed );
             for ( i = 0; i < nProcs; i++ )
             {
-                printf( "Thread %d : ", i );
+                fprintf( Abc_FrameGlobalGetOut(), "Thread %d : ", i );
                 Abc_PrintTime( 1, "Time", ThData[i].clkUsed );
             }
         }
@@ -2752,7 +2752,7 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
     p->nObjsPrev = 0;
     p->LutSize = 0;
     Extra_ProgressBarStop( pProgress );
-    printf( "Finished matching %d functions. ", Vec_PtrSize(&p->vObjs) );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished matching %d functions. ", Vec_PtrSize(&p->vObjs) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( fVeryVerbose )
         If_DsdManPrintDistrib( p );
@@ -2786,7 +2786,7 @@ void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fThreshH
     abctime clk = Abc_Clock();
     assert( fUnate + fThresh + fThreshHeuristic <= 1 );
     if ( p->nObjsPrev > 0 )
-        printf( "Starting the tuning process from object %d (out of %d).\n", p->nObjsPrev, Vec_PtrSize(&p->vObjs) );
+        fprintf( Abc_FrameGlobalGetOut(), "Starting the tuning process from object %d (out of %d).\n", p->nObjsPrev, Vec_PtrSize(&p->vObjs) );
     // clean the attributes
     If_DsdVecForEachObj( &p->vObjs, pObj, i )
         if ( i >= p->nObjsPrev )
@@ -2795,7 +2795,7 @@ void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fThreshH
         p->vConfigs = Vec_WrdStart( Vec_PtrSize(&p->vObjs) );
     else
         Vec_WrdFillExtra( p->vConfigs, Vec_PtrSize(&p->vObjs), 0 );
-    pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(&p->vObjs) );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), Vec_PtrSize(&p->vObjs) );
     If_DsdVecForEachObjStart( &p->vObjs, pObj, i, p->nObjsPrev )
     {
         if ( (i & 0xFF) == 0 )
@@ -2807,7 +2807,7 @@ void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fThreshH
         if ( fVeryVerbose )
             Dau_DsdPrintFromTruth( pTruth, nVars );
         if ( fVerbose )
-            printf( "%6d : %2d ", i, nVars );
+            fprintf( Abc_FrameGlobalGetOut(), "%6d : %2d ", i, nVars );
         if ( fUnate )
             Value = Abc_TtIsUnate( pTruth, nVars );
         else if ( fThresh )
@@ -2818,7 +2818,7 @@ void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fThreshH
             Value = 0;
         Perm = 0;
         if ( fVeryVerbose )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         if ( Value )
             If_DsdVecObjSetMark( &p->vObjs, i );
         else
@@ -2827,7 +2827,7 @@ void Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fThreshH
     p->nObjsPrev = 0;
     p->LutSize = 0;
     Extra_ProgressBarStop( pProgress );
-    printf( "Finished matching %d functions. ", Vec_PtrSize(&p->vObjs) );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished matching %d functions. ", Vec_PtrSize(&p->vObjs) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( fVeryVerbose )
         If_DsdManPrintDistrib( p );

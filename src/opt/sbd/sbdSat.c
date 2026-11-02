@@ -231,7 +231,7 @@ sat_solver * Sbd_SolverTopo( int M, int N, int K, int pVars[MAX_N][MAX_M+MAX_N][
     for ( i = 0; i < M+n; i++ )
     for ( k = 0; k < K;   k++ )
         pVars[n][i][k] = nVars++;
-    printf( "Number of topo vars = %d.\n", nVars );
+    fprintf( Abc_FrameGlobalGetOut(), "Number of topo vars = %d.\n", nVars );
     *pnVars = nVars;
     // add constraints
     pSat = sat_solver_new();
@@ -247,7 +247,7 @@ sat_solver * Sbd_SolverTopo( int M, int N, int K, int pVars[MAX_N][MAX_M+MAX_N][
         RetValue = sat_solver_addclause( pSat, Vec_IntArray(vTemp), Vec_IntLimit(vTemp) );
         assert( RetValue );
     }
-    printf( "Added %d node connectivity constraints.\n", i );
+    fprintf( Abc_FrameGlobalGetOut(), "Added %d node connectivity constraints.\n", i );
     // each fanin of each node is connected exactly once
     Count = 0;
     for ( n = 0; n < N; n++ )
@@ -269,7 +269,7 @@ sat_solver * Sbd_SolverTopo( int M, int N, int K, int pVars[MAX_N][MAX_M+MAX_N][
             Count++;
         }
     }
-    printf( "Added %d fanin connectivity constraints.\n", Count );
+    fprintf( Abc_FrameGlobalGetOut(), "Added %d fanin connectivity constraints.\n", Count );
     // node fanins are unique
     Count = 0;
     for ( n = 0; n < N;   n++ )
@@ -283,7 +283,7 @@ sat_solver * Sbd_SolverTopo( int M, int N, int K, int pVars[MAX_N][MAX_M+MAX_N][
         assert( RetValue );
         Count++;
     }
-    printf( "Added %d fanin exclusivity constraints.\n", Count );
+    fprintf( Abc_FrameGlobalGetOut(), "Added %d fanin exclusivity constraints.\n", Count );
     // nodes are ordered
     Count = 0;
     for ( n = 1; n < N;     n++ )
@@ -309,7 +309,7 @@ sat_solver * Sbd_SolverTopo( int M, int N, int K, int pVars[MAX_N][MAX_M+MAX_N][
             Count++;
         }
     }
-    printf( "Added %d node ordering constraints.\n", Count );
+    fprintf( Abc_FrameGlobalGetOut(), "Added %d node ordering constraints.\n", Count );
     // exclude fanins of two-input nodes
     Count = 0;
     if ( K == 2 )
@@ -326,7 +326,7 @@ sat_solver * Sbd_SolverTopo( int M, int N, int K, int pVars[MAX_N][MAX_M+MAX_N][
         assert( RetValue );
         Count++;
     }
-    printf( "Added %d two-node non-triviality constraints.\n", Count );
+    fprintf( Abc_FrameGlobalGetOut(), "Added %d two-node non-triviality constraints.\n", Count );
 
 
     // assign delay vars
@@ -334,7 +334,7 @@ sat_solver * Sbd_SolverTopo( int M, int N, int K, int pVars[MAX_N][MAX_M+MAX_N][
     for ( i = 0; i < M+N;   i++ )
     for ( d = 0; d < MAX_D; d++ )
         pVars2[i][d] = nVars++;
-    printf( "Number of total vars = %d.\n", nVars );
+    fprintf( Abc_FrameGlobalGetOut(), "Number of total vars = %d.\n", nVars );
     // set input delays
     for ( i = 0; i < M; i++ )
     {
@@ -370,24 +370,24 @@ sat_solver * Sbd_SolverTopo( int M, int N, int K, int pVars[MAX_N][MAX_M+MAX_N][
 void Sbd_SolverTopoPrint( sat_solver * pSat, int M, int N, int K, int pVars[MAX_N][MAX_M+MAX_N][MAX_K] ) 
 {
     int n, i, k;
-    printf( "Solution:\n" );
-    printf( "     | " );
+    fprintf( Abc_FrameGlobalGetOut(), "Solution:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "     | " );
     for ( n = 0; n < N; n++ )
-        printf( "%2d  ", M+n );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d  ", M+n );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     for ( i = M+N-2; i >= 0; i-- )
     {
-        printf( "%2d %c | ", i, i < M ? 'i' : ' ' );
+        fprintf( Abc_FrameGlobalGetOut(), "%2d %c | ", i, i < M ? 'i' : ' ' );
         for ( n = 0; n < N; n++ )
         {
             for ( k = K-1; k >= 0; k-- )
                 if ( pVars[n][i][k] == -1 )
-                    printf( " " );
+                    fprintf( Abc_FrameGlobalGetOut(), " " );
                 else                    
-                    printf( "%c", sat_solver_var_value(pSat, pVars[n][i][k]) ? '*' : '.' );
-            printf( "  " );
+                    fprintf( Abc_FrameGlobalGetOut(), "%c", sat_solver_var_value(pSat, pVars[n][i][k]) ? '*' : '.' );
+            fprintf( Abc_FrameGlobalGetOut(), "  " );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void Sbd_SolverTopoTest()
@@ -429,7 +429,7 @@ void Sbd_SolverTopoTest()
     }
     sat_solver_delete( pSat );
     Vec_IntFree( vLits );
-    printf( "Found %d solutions. ", nSols );
+    fprintf( Abc_FrameGlobalGetOut(), "Found %d solutions. ", nSols );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
@@ -504,10 +504,10 @@ void Sbd_SolverSynth( int M, int N, int K, int pLuts[MAX_N][MAX_K] )
         pLuts[n][1] = iFan1;
     }
 
-    printf( "{\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "{\n" );
     for ( n = 0; n < N; n++ )
-        printf( "    {%d, %d}%s // %d\n", pLuts[n][0], pLuts[n][1], n==N-1 ? "" :",", M+n );
-    printf( "};\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "    {%d, %d}%s // %d\n", pLuts[n][0], pLuts[n][1], n==N-1 ? "" :",", M+n );
+    fprintf( Abc_FrameGlobalGetOut(), "};\n" );
 }
 
 
@@ -602,7 +602,7 @@ int Sbd_SolverFunc( int M, int N, int K, int pLuts[MAX_N][MAX_K], word * pTruthI
     // create solver
     pSat = sat_solver_new();
     sat_solver_setnvars( pSat, nVars );
-    printf( "Number of parameters %d x %d = %d.\n", N, nLutPars, nVars );
+    fprintf( Abc_FrameGlobalGetOut(), "Number of parameters %d x %d = %d.\n", N, nLutPars, nVars );
     // start with the last minterm
 //    iMint = (1 << M) - 1;
     iMint = 1;
@@ -613,12 +613,12 @@ int Sbd_SolverFunc( int M, int N, int K, int pLuts[MAX_N][MAX_K], word * pTruthI
         sat_solver_setnvars( pSat, nVarStart + N - 1 );
         // add clauses for nodes
         //if ( fVerbose )
-            printf( "Iter %3d : Mint = %3d. Conflicts =%8d.\n", Iter, iMint, sat_solver_nconflicts(pSat) );
+            fprintf( Abc_FrameGlobalGetOut(), "Iter %3d : Mint = %3d. Conflicts =%8d.\n", Iter, iMint, sat_solver_nconflicts(pSat) );
         for ( i = 0; i < N; i++ )
         for ( m = 0; m <= nLutPars; m++ )
         {
             if ( fVerbose )
-                printf( "i = %d.  m = %d.\n", i, m );
+                fprintf( Abc_FrameGlobalGetOut(), "i = %d.  m = %d.\n", i, m );
             // selector variables
             nLits = 0;
             for ( k = 0; k < K; k++ ) 
@@ -691,13 +691,13 @@ int Sbd_SolverFunc( int M, int N, int K, int pLuts[MAX_N][MAX_K], word * pTruthI
         if ( fVerbose )
         {
             for ( i = 0; i < nVars; i++ )
-                printf( "%d=%d ", i, pValues[i] );
-            printf( "  " );
+                fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, pValues[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "  " );
             for ( i = nVars; i < sat_solver_nvars(pSat); i++ )
-                printf( "%d=%d ", i, sat_solver_var_value(pSat, i) );
-            printf( "\n" );
-            Extra_PrintBinary( stdout, (unsigned *)pTruthInit, (1 << M) );  printf( "\n" );
-            Extra_PrintBinary( stdout, (unsigned *)pTruthNew,  (1 << M) );  printf( "\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "%d=%d ", i, sat_solver_var_value(pSat, i) );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
+            Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)pTruthInit, (1 << M) );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+            Extra_PrintBinary( Abc_FrameGlobalGetOut(), (unsigned *)pTruthNew,  (1 << M) );  fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
         if ( Abc_TtEqual(pTruthInit, pTruthNew, nWords) )
             break;
@@ -706,7 +706,7 @@ int Sbd_SolverFunc( int M, int N, int K, int pLuts[MAX_N][MAX_K], word * pTruthI
         iMint = Abc_TtFindFirstDiffBit( pTruthInit, pTruthNew, M );
     }
 finish:
-    printf( "Finished after %d iterations and %d conflicts.  ", Iter, sat_solver_nconflicts(pSat) );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished after %d iterations and %d conflicts.  ", Iter, sat_solver_nconflicts(pSat) );
     sat_solver_delete( pSat );
     ABC_FREE( pTruths );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -772,15 +772,15 @@ void Sbd_SolverFuncTest()
     Res = Sbd_SolverFunc( M, N, K, pLuts, pTruth, pValues );
     if ( Res == -1 )
     {
-        printf( "Solution does not exist.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Solution does not exist.\n" );
         return;
     }
-    printf( "Result (compl = %d):\n", Res );
+    fprintf( Abc_FrameGlobalGetOut(), "Result (compl = %d):\n", Res );
     for ( i = 0; i < N; i++ )
     {
         for ( k = nLutPars-1; k >= 0; k-- )
-            printf( "%d", pValues[i*nLutPars+k] );
-        printf( "0\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", pValues[i*nLutPars+k] );
+        fprintf( Abc_FrameGlobalGetOut(), "0\n" );
     }
 }
 

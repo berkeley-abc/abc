@@ -315,7 +315,7 @@ CloudNode * cloudMakeNode( CloudManager * dd, CloudVar v, CloudNode * t, CloudNo
     // check if the new node can be created
     if ( ++dd->nNodesCur == dd->nNodesLimit ) 
     { // initiate the restart
-        printf( "Cloud needs restart!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cloud needs restart!\n" );
 //        fflush( stdout );
 //        exit(1);
         return NULL;
@@ -869,9 +869,9 @@ void Cloud_bddPrint( CloudManager * dd, CloudNode * Func )
     int fFirst = 1;
 
     if ( Func == dd->zero )
-        printf( "Constant 0." );
+        fprintf( Abc_FrameGlobalGetOut(), "Constant 0." );
     else if ( Func == dd->one )
-        printf( "Constant 1." );
+        fprintf( Abc_FrameGlobalGetOut(), "Constant 1." );
     else
     {
         while ( 1 )
@@ -880,12 +880,12 @@ void Cloud_bddPrint( CloudManager * dd, CloudNode * Func )
             if ( Cube == NULL || Cube == dd->zero )
                 break;
             if ( fFirst )       fFirst = 0;
-            else                printf( " + " );
+            else                fprintf( Abc_FrameGlobalGetOut(), " + " );
             Cloud_bddPrintCube( dd, Cube );
             Func = Cloud_bddAnd( dd, Func, Cloud_Not(Cube) );
         } 
     }
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 /**Function********************************************************************
@@ -923,13 +923,13 @@ void Cloud_bddPrintCube( CloudManager * dd, CloudNode * bCube )
         if ( bCube0 != dd->zero )
         {
             assert( bCube1 == dd->zero );
-            printf( "[%d]'", cloudV(bCube) );
+            fprintf( Abc_FrameGlobalGetOut(), "[%d]'", cloudV(bCube) );
             bCube = bCube0;
         }
         else
         {
             assert( bCube1 != dd->zero );
-            printf( "[%d]", cloudV(bCube) );
+            fprintf( Abc_FrameGlobalGetOut(), "[%d]", cloudV(bCube) );
             bCube = bCube1;
         }
     }
@@ -950,15 +950,15 @@ void Cloud_bddPrintCube( CloudManager * dd, CloudNode * bCube )
 void Cloud_PrintInfo( CloudManager * dd )
 {
     if ( dd == NULL ) return;
-    printf( "The number of unique table nodes allocated = %12d.\n", dd->nNodesAlloc );
-    printf( "The number of unique table nodes present   = %12d.\n", dd->nNodesCur );
-    printf( "The number of unique table hits            = %12d.\n", dd->nUniqueHits );
-    printf( "The number of unique table misses          = %12d.\n", dd->nUniqueMisses );
-    printf( "The number of unique table steps           = %12d.\n", dd->nUniqueSteps );
-    printf( "The number of cache hits                   = %12d.\n", dd->nCacheHits );
-    printf( "The number of cache misses                 = %12d.\n", dd->nCacheMisses );
-    printf( "The current signature                      = %12d.\n", dd->nSignCur );
-    printf( "The total memory in use                    = %12d.\n", dd->nMemUsed );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of unique table nodes allocated = %12d.\n", dd->nNodesAlloc );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of unique table nodes present   = %12d.\n", dd->nNodesCur );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of unique table hits            = %12d.\n", dd->nUniqueHits );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of unique table misses          = %12d.\n", dd->nUniqueMisses );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of unique table steps           = %12d.\n", dd->nUniqueSteps );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of cache hits                   = %12d.\n", dd->nCacheHits );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of cache misses                 = %12d.\n", dd->nCacheMisses );
+    fprintf( Abc_FrameGlobalGetOut(), "The current signature                      = %12d.\n", dd->nSignCur );
+    fprintf( Abc_FrameGlobalGetOut(), "The total memory in use                    = %12d.\n", dd->nMemUsed );
 }
 
 /**Function********************************************************************
@@ -978,10 +978,10 @@ void Cloud_PrintHashTable( CloudManager * dd )
 
     for ( i = 0; i < dd->nNodesAlloc; i++ )
         if ( dd->tUnique[i].v == CLOUD_CONST_INDEX )
-            printf( "-" );
+            fprintf( Abc_FrameGlobalGetOut(), "-" );
         else
-            printf( "+" );
-    printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "+" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 
 

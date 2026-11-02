@@ -125,8 +125,8 @@ void GetQCostTest()
     for ( i = 0; i < Limit; i++ )
     {
         for ( k = 0; k <= i; k++ )
-            printf( "%4d ", GetQCost(i, k) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "%4d ", GetQCost(i, k) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 int ComputeQCost( Vec_Int_t * vCube )
@@ -215,9 +215,9 @@ int ReduceEsopCover()
     {
 //START:
         if ( g_CoverInfo.Verbosity == 2 )
-            printf( "\nITERATION #%d\n\n", ++nIterCount );
+            fprintf( Abc_FrameGlobalGetOut(), "\nITERATION #%d\n\n", ++nIterCount );
         else if ( g_CoverInfo.Verbosity == 1 )
-            printf( "." );
+            fprintf( Abc_FrameGlobalGetOut(), "." );
 
         GainTotal  = 0;
         GainTotal += IterativelyApplyExorLink2( 1|2|0 );
@@ -275,9 +275,9 @@ int ReduceEsopCover()
     for ( z = 0; z < 1; z++ )
     {
         if ( g_CoverInfo.Verbosity == 2 )
-            printf( "\nITERATION #%d\n\n", ++nIterCount );
+            fprintf( Abc_FrameGlobalGetOut(), "\nITERATION #%d\n\n", ++nIterCount );
         else if ( g_CoverInfo.Verbosity == 1 )
-            printf( "." );
+            fprintf( Abc_FrameGlobalGetOut(), "." );
 
         GainTotal  = 0;
         GainTotal += IterativelyApplyExorLink2( 1|2|0 );
@@ -810,13 +810,13 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
 
     if ( g_CoverInfo.Verbosity )
     {
-    printf( "Starting cover generation time is %.2f sec\n", TICKS_TO_SECONDS(g_CoverInfo.TimeStart) );
-    printf( "The number of cubes in the starting cover is %d\n", g_CoverInfo.nCubesBefore );
+    fprintf( Abc_FrameGlobalGetOut(), "Starting cover generation time is %.2f sec\n", TICKS_TO_SECONDS(g_CoverInfo.TimeStart) );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of cubes in the starting cover is %d\n", g_CoverInfo.nCubesBefore );
     }
 
     if ( g_CoverInfo.nCubesBefore > g_CoverInfo.nCubesMax )
     {
-        printf( "\nThe size of the starting cover is more than %d cubes. Quitting...\n", g_CoverInfo.nCubesMax );
+        fprintf( Abc_FrameGlobalGetOut(), "\nThe size of the starting cover is more than %d cubes. Quitting...\n", g_CoverInfo.nCubesMax );
         return 0;
     }
 
@@ -830,7 +830,7 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
     MemTemp = AllocateCover( g_CoverInfo.nCubesAlloc, g_CoverInfo.nWordsIn, g_CoverInfo.nWordsOut );
     if ( MemTemp == 0 )
     {
-        printf( "Unexpected memory allocation problem. Quitting...\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Unexpected memory allocation problem. Quitting...\n" );
         return 0;
     }
     else 
@@ -840,7 +840,7 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
     MemTemp = AllocateCubeSets( g_CoverInfo.nVarsIn, g_CoverInfo.nVarsOut );
     if ( MemTemp == 0 )
     {
-        printf( "Unexpected memory allocation problem. Quitting...\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Unexpected memory allocation problem. Quitting...\n" );
         return 0;
     }
     else 
@@ -850,14 +850,14 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
     MemTemp = AllocateQueques( g_CoverInfo.nCubesAlloc*g_CoverInfo.nCubesAlloc/CUBE_PAIR_FACTOR );
     if ( MemTemp == 0 )
     {
-        printf( "Unexpected memory allocation problem. Quitting...\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Unexpected memory allocation problem. Quitting...\n" );
         return 0;
     }
     else 
         MemTotal += MemTemp;
 
     if ( g_CoverInfo.Verbosity )
-    printf( "Dynamically allocated memory is %dK\n",  MemTotal/1000 );
+    fprintf( Abc_FrameGlobalGetOut(), "Dynamically allocated memory is %dK\n",  MemTotal/1000 );
 
     ///////////////////////////////////////////////////////////////////////
     // STEP 3: write the cube cover into the allocated storage
@@ -865,7 +865,7 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
     ///////////////////////////////////////////////////////////////////////
     clk1 = Abc_Clock();
     if ( g_CoverInfo.Verbosity )
-    printf( "Generating the starting cover...\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Generating the starting cover...\n" );
     AddCubesToStartingCover( vEsop );
     ///////////////////////////////////////////////////////////////////////
 
@@ -873,15 +873,15 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
     // STEP 4: iteratively improve the cover 
     ///////////////////////////////////////////////////////////////////////
     if ( g_CoverInfo.Verbosity )
-    printf( "Performing minimization...\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Performing minimization...\n" );
     clk1 = Abc_Clock();
     ReduceEsopCover();
     g_CoverInfo.TimeMin = Abc_Clock() - clk1;
 //  g_Func.TimeMin = (float)(Abc_Clock() - clk1)/(float)(CLOCKS_PER_SEC);
     if ( g_CoverInfo.Verbosity )
     {
-    printf( "\nMinimization time is %.2f sec\n", TICKS_TO_SECONDS(g_CoverInfo.TimeMin) );
-    printf( "\nThe number of cubes after minimization is %d\n", g_CoverInfo.nCubesInUse );
+    fprintf( Abc_FrameGlobalGetOut(), "\nMinimization time is %.2f sec\n", TICKS_TO_SECONDS(g_CoverInfo.TimeMin) );
+    fprintf( Abc_FrameGlobalGetOut(), "\nThe number of cubes after minimization is %d\n", g_CoverInfo.nCubesInUse );
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -898,7 +898,7 @@ int Exorcism( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut )
         sprintf( Buffer, "%s", pFileNameOut ? pFileNameOut : "temp.esop" );
         WriteResultIntoFile( Buffer );
         if ( g_CoverInfo.Verbosity )
-            printf( "Minimized cover has been written into file <%s>\n", Buffer );
+            fprintf( Abc_FrameGlobalGetOut(), "Minimized cover has been written into file <%s>\n", Buffer );
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -935,14 +935,14 @@ int Abc_ExorcismMain( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOu
         s_fDecreaseLiterals = 1;
     if ( g_CoverInfo.Verbosity )
     {
-        printf( "\nEXORCISM, Ver.4.7: Exclusive Sum-of-Product Minimizer\n" );
-        printf( "by Alan Mishchenko, Portland State University, July-September 2000\n\n" );
-        printf( "Incoming ESOP has %d inputs, %d outputs, and %d cubes.\n", nIns, nOuts, Vec_WecSize(vEsop) );
+        fprintf( Abc_FrameGlobalGetOut(), "\nEXORCISM, Ver.4.7: Exclusive Sum-of-Product Minimizer\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "by Alan Mishchenko, Portland State University, July-September 2000\n\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Incoming ESOP has %d inputs, %d outputs, and %d cubes.\n", nIns, nOuts, Vec_WecSize(vEsop) );
     }
     PrepareBitSetModule();
     if ( Exorcism( vEsop, nIns, nOuts, pFileNameOut ) == 0 )
     {
-        printf( "Something went wrong when minimizing the cover\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Something went wrong when minimizing the cover\n" );
         return 0;
     }
     return 1;

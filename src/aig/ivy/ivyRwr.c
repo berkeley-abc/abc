@@ -126,9 +126,9 @@ Rwt_ManAddTimeTotal( pManRwt, Abc_Clock() - clkStart );
         Ivy_ManResetLevels( p );
     // check
     if ( (i = Ivy_ManCleanup(p)) )
-        printf( "Cleanup after rewriting removed %d dangling nodes.\n", i );
+        fprintf( Abc_FrameGlobalGetOut(), "Cleanup after rewriting removed %d dangling nodes.\n", i );
     if ( !Ivy_ManCheck(p) )
-        printf( "Ivy_ManRewritePre(): The check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Ivy_ManRewritePre(): The check has failed.\n" );
     return 1;
 }
 
@@ -286,14 +286,14 @@ p->timeRes += Abc_Clock() - clk;
     // report the progress
     if ( fVeryVerbose && GainBest > 0 )
     {
-        printf( "Node %6d :   ", Ivy_ObjId(pNode) );
-        printf( "Fanins = %d. ", p->vFanins->nSize );
-        printf( "Save = %d.  ", nNodesSaveCur );
-        printf( "Add = %d.  ",  nNodesSaveCur-GainBest );
-        printf( "GAIN = %d.  ", GainBest );
-        printf( "Cone = %d.  ", p->pGraph? Dec_GraphNodeNum((Dec_Graph_t *)p->pGraph) : 0 );
-        printf( "Class = %d.  ", p->pMap[uTruthBest] );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %6d :   ", Ivy_ObjId(pNode) );
+        fprintf( Abc_FrameGlobalGetOut(), "Fanins = %d. ", p->vFanins->nSize );
+        fprintf( Abc_FrameGlobalGetOut(), "Save = %d.  ", nNodesSaveCur );
+        fprintf( Abc_FrameGlobalGetOut(), "Add = %d.  ",  nNodesSaveCur-GainBest );
+        fprintf( Abc_FrameGlobalGetOut(), "GAIN = %d.  ", GainBest );
+        fprintf( Abc_FrameGlobalGetOut(), "Cone = %d.  ", p->pGraph? Dec_GraphNodeNum((Dec_Graph_t *)p->pGraph) : 0 );
+        fprintf( Abc_FrameGlobalGetOut(), "Class = %d.  ", p->pMap[uTruthBest] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     return GainBest;
 }

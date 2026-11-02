@@ -48,7 +48,7 @@ char * Pla_ReadFile( char * pFileName, char ** ppLimit )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open input file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file.\n" );
         return NULL;
     }
     // get the file size, in bytes
@@ -120,9 +120,9 @@ int Pla_ReadPlaHeader( char * pBuffer, char * pLimit, int * pnIns, int * pnOuts,
         }
     }
     if ( *pnIns <= 0 )
-        printf( "The number of inputs (.i) should be positive.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of inputs (.i) should be positive.\n" );
     if ( *pnOuts <= 0 )
-        printf( "The number of outputs (.o) should be positive.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The number of outputs (.o) should be positive.\n" );
     return *pnIns > 0 && *pnOuts > 0;
 }
 Vec_Str_t * Pla_ReadPlaBody( char * pBuffer, char * pLimit, Pla_File_t Type )
@@ -162,7 +162,7 @@ void Pla_ReadAddBody( Pla_Man_t * p, Vec_Str_t * vLits )
     assert( Vec_StrSize(vLits) % (p->nIns + p->nOuts) == 0 );
     if ( nCubesReal != Pla_ManCubeNum(p) )
     {
-        printf( "Warning: Declared number of cubes (%d) differs from the actual (%d).\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "Warning: Declared number of cubes (%d) differs from the actual (%d).\n", 
             Pla_ManCubeNum(p), nCubesReal );
         if ( nCubesReal < Pla_ManCubeNum(p) )
             Vec_IntShrink( &p->vCubes, nCubesReal );
@@ -207,7 +207,7 @@ Pla_Man_t * Pla_ReadPla( char * pFileName )
             ABC_FREE( pBuffer );
             return p;
         }
-        printf( "Literal count is incorrect (in = %d; out = %d; lit = %d).\n", nIns, nOuts, Vec_StrSize(vLits) );
+        fprintf( Abc_FrameGlobalGetOut(), "Literal count is incorrect (in = %d; out = %d; lit = %d).\n", nIns, nOuts, Vec_StrSize(vLits) );
         Vec_StrFree( vLits );
     }
     ABC_FREE( pBuffer );

@@ -53,7 +53,7 @@ int Bmc_CexBitCount( Abc_Cex_t * p, int nInputs )
     int k, Counter = 0, Counter2 = 0;
     if ( p == NULL )
     {
-        printf( "The counter example is NULL.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The counter example is NULL.\n" );
         return -1;
     }
     for ( k = 0; k < p->nBits; k++ )
@@ -176,7 +176,7 @@ void Bmc_CexPerformUnrollingTest( Gia_Man_t * p, Abc_Cex_t * pCex )
     Gia_AigerWrite( pNew, "unroll.aig", 0, 0, 0 );
 //Bmc_CexDumpAogStats( pNew, Abc_Clock() - clk );
     Gia_ManStop( pNew );
-    printf( "CE-induced network is written into file \"unroll.aig\".\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "CE-induced network is written into file \"unroll.aig\".\n" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
@@ -288,7 +288,7 @@ void Bmc_CexBuildNetworkTest( Gia_Man_t * p, Abc_Cex_t * pCex )
     Gia_AigerWrite( pNew, "unate.aig", 0, 0, 0 );
 //Bmc_CexDumpAogStats( pNew, Abc_Clock() - clk );
     Gia_ManStop( pNew );
-    printf( "CE-induced network is written into file \"unate.aig\".\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "CE-induced network is written into file \"unate.aig\".\n" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
@@ -314,20 +314,20 @@ void Bmc_CexPrint( Abc_Cex_t * pCex, int nRealPis, int fVerbose )
     for ( i = 0; i <= pCex->iFrame; i++ )
     {
         Count = 0;
-        printf( "%3d : ", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d : ", i );
         for ( k = 0; k < nRealPis; k++ )
         {
             Count += Abc_InfoHasBit(pCex->pData, iBit);
-            printf( "%d", Abc_InfoHasBit(pCex->pData, iBit++) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_InfoHasBit(pCex->pData, iBit++) );
         }
-        printf( " %3d ", Count );
+        fprintf( Abc_FrameGlobalGetOut(), " %3d ", Count );
         Count = 0;
         for (      ; k < pCex->nPis; k++ )
         {
             Count += Abc_InfoHasBit(pCex->pData, iBit);
-            printf( "%d", Abc_InfoHasBit(pCex->pData, iBit++) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_InfoHasBit(pCex->pData, iBit++) );
         }
-        printf( " %3d\n", Count );
+        fprintf( Abc_FrameGlobalGetOut(), " %3d\n", Count );
     }
     assert( iBit == pCex->nBits );
 }
@@ -513,9 +513,9 @@ Abc_Cex_t * Bmc_CexInnerStates( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t ** pp
     assert( iBit == pCex->nBits );
     assert( Gia_ManPo(p, pCex->iPo)->fMark0 == 1 );
 
-    printf( "Inner states: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Inner states: " );
     Bmc_CexPrint( pNew, Gia_ManPiNum(p), fVerbose );
-    printf( "Implications: " );
+    fprintf( Abc_FrameGlobalGetOut(), "Implications: " );
     Bmc_CexPrint( pNew2, Gia_ManPiNum(p), fVerbose );
     if ( ppCexImpl )
         *ppCexImpl = pNew2;
@@ -670,9 +670,9 @@ Abc_Cex_t * Bmc_CexCareBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_t * p
             }
     }
     if ( pCexEss )
-        printf( "Minimized:    " );
+        fprintf( Abc_FrameGlobalGetOut(), "Minimized:    " );
     else
-        printf( "Care bits:    " );
+        fprintf( Abc_FrameGlobalGetOut(), "Care bits:    " );
     Bmc_CexPrint( pNew, Gia_ManPiNum(p), fVerbose );
     return pNew;
 }
@@ -780,9 +780,9 @@ void Bmc_CexEssentialBitTest( Gia_Man_t * p, Abc_Cex_t * pCexState )
         Bmc_CexPrint( pNew, Gia_ManPiNum(p), 0 );
 
         if ( Gia_ManPo(p, pCexState->iPo)->fMark1 )
-            printf( "Not essential\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Not essential\n" );
         else
-            printf( "Essential\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Essential\n" );
 
         Abc_CexFree( pNew );
     }
@@ -843,7 +843,7 @@ Abc_Cex_t * Bmc_CexEssentialBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_
     }
     Abc_CexFreeP( &pPrev );
 //    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-    printf( "Essentials:   " );
+    fprintf( Abc_FrameGlobalGetOut(), "Essentials:   " );
     Bmc_CexPrint( pNew, Gia_ManPiNum(p), fVerbose );
     return pNew;
 }
@@ -869,13 +869,13 @@ void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose )
     Abc_Cex_t * pCexEss, * pCexMin;
 
     if ( !Bmc_CexVerify( p, pCex, pCexCare ) )
-        printf( "Counter-example care-set verification has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Counter-example care-set verification has failed.\n" );
 
     pCexEss = Bmc_CexEssentialBits( p, pCexStates, pCexCare, fVerbose );
     pCexMin = Bmc_CexCareBits( p, pCexStates, pCexImpl, pCexEss, 0, fVerbose );
 
     if ( !Bmc_CexVerify( p, pCex, pCexMin ) )
-        printf( "Counter-example min-set verification has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Counter-example min-set verification has failed.\n" );
 
 //    Bmc_CexDumpStats( p, pCex, pCexCare, pCexEss, pCexMin, Abc_Clock() - clk );
 
@@ -963,7 +963,7 @@ void Gia_ManCountCareBits( Gia_Man_t * p, Vec_Wec_t * vPats )
         //printf( "%3d = %8d\n", i, Count );
     }
     Counter /= Vec_WecSize(vPats);
-    printf( "Stats over %d patterns: Average care-nodes = %d (%6.2f %%)\n", Vec_WecSize(vPats), (int)Counter, 100.0*(int)Counter/Gia_ManAndNum(p) );
+    fprintf( Abc_FrameGlobalGetOut(), "Stats over %d patterns: Average care-nodes = %d (%6.2f %%)\n", Vec_WecSize(vPats), (int)Counter, 100.0*(int)Counter/Gia_ManAndNum(p) );
 }
 
 unsigned char * Mnist_ReadImages1_()

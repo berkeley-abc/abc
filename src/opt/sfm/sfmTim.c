@@ -634,7 +634,7 @@ void Sfm_TimTest( Abc_Ntk_t * pNtk )
 {
     Mio_Library_t * pLib = (Mio_Library_t *)pNtk->pManFunc;
     Sfm_Tim_t * p = Sfm_TimStart( pLib, NULL, pNtk, 100 );
-    printf( "Max delay = %.2f.  Path = %d (%d).\n", Scl_Int2Flt(p->Delay), Sfm_TimCriticalPath(p, 1), Abc_NtkNodeNum(p->pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "Max delay = %.2f.  Path = %d (%d).\n", Scl_Int2Flt(p->Delay), Sfm_TimCriticalPath(p, 1), Abc_NtkNodeNum(p->pNtk) );
     Sfm_TimStop( p );
 }
 

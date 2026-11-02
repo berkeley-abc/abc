@@ -68,9 +68,9 @@ pcover F, D;
     }
 
     if (debug & IRRED) {
-    printf("# IRRED: F=%d E=%d R=%d Rt=%d Rp=%d Rc=%d Final=%d Bound=%d\n",
+    fprintf( Abc_FrameGlobalGetOut(), "# IRRED: F=%d E=%d R=%d Rt=%d Rp=%d Rc=%d Final=%d Bound=%d\n",
         F->count, E->count, Rt->count+Rp->count, Rt->count, Rp->count,
-        cover->length, E->count + cover->length, 0);
+        cover->length, E->count + cover->length, 0 );
     }
 
     free_cover(E);
@@ -119,9 +119,9 @@ pcover *E, *Rt, *Rp;
         *E = sf_addset(*E, p);
     }
     if (debug & IRRED1) {
-        (void) printf("IRRED1: zr=%d ze=%d to-go=%d time=%s\n",
+        (void) fprintf( Abc_FrameGlobalGetOut(), "IRRED1: zr=%d ze=%d to-go=%d time=%s\n",
         R->count, (*E)->count, F->count - (R->count + (*E)->count),
-        print_time(ptime()));
+        print_time(ptime()) );
     }
     }
     free_cubelist(FD);
@@ -135,9 +135,9 @@ pcover *E, *Rt, *Rp;
         *Rp = sf_addset(*Rp, p);
     }
     if (debug & IRRED1) {
-        (void) printf("IRRED1: zr=%d zrt=%d to-go=%d time=%s\n",
+        (void) fprintf( Abc_FrameGlobalGetOut(), "IRRED1: zr=%d zrt=%d to-go=%d time=%s\n",
         (*Rp)->count, (*Rt)->count,
-        R->count - ((*Rp)->count +(*Rt)->count), print_time(ptime()));
+        R->count - ((*Rp)->count +(*Rt)->count), print_time(ptime()) );
     }
     }
     free_cubelist(ED);
@@ -182,17 +182,17 @@ pcover D, E, Rp;
     fcube_is_covered(list, p, table);
     RESET(p, REDUND);    /* can now consider this cube redundant */
     if (debug & IRRED1) {
-        (void) printf("IRRED1: %d of %d to-go=%d, table=%dx%d time=%s\n",
+        (void) fprintf( Abc_FrameGlobalGetOut(), "IRRED1: %d of %d to-go=%d, table=%dx%d time=%s\n",
         i, Rp->count, Rp->count - i,
-        table->nrows, table->ncols, print_time(ptime()));
+        table->nrows, table->ncols, print_time(ptime()) );
     }
     /* try to keep memory limits down by reducing table as we go along */
     if (table->nrows - size_last_dominance > 1000) {
         (void) sm_row_dominance(table);
         size_last_dominance = table->nrows;
         if (debug & IRRED1) {
-        (void) printf("IRRED1: delete redundant rows, now %dx%d\n",
-            table->nrows, table->ncols);
+        (void) fprintf( Abc_FrameGlobalGetOut(), "IRRED1: delete redundant rows, now %dx%d\n",
+            table->nrows, table->ncols );
         }
     }
     i++;
@@ -237,7 +237,7 @@ pcube *T;         /* T will be disposed of */
     }
 
     if (debug & TAUT) {
-    printf("exit TAUTOLOGY[%d]: %s\n", --taut_level, print_bool(result));
+    fprintf( Abc_FrameGlobalGetOut(), "exit TAUTOLOGY[%d]: %s\n", --taut_level, print_bool(result) );
     }
     return result;
 }
@@ -306,8 +306,8 @@ start:
     T[1] = (pcube) Tsave;
 
     if (debug & TAUT) {
-        printf("UNATE_REDUCTION: %d unate variables, reduced to %d\n",
-        (int)cdata.vars_unate, (int)CUBELISTSIZE(T));
+        fprintf( Abc_FrameGlobalGetOut(), "UNATE_REDUCTION: %d unate variables, reduced to %d\n",
+        (int)cdata.vars_unate, (int)CUBELISTSIZE(T) );
     }
     goto start;
 
@@ -368,8 +368,8 @@ sm_matrix *table;
     }
 
     if (debug & TAUT) {
-    (void) printf("exit FIND_TAUTOLOGY[%d]: table is %d by %d\n",
-        --ftaut_level, table->nrows, table->ncols);
+    (void) fprintf( Abc_FrameGlobalGetOut(), "exit FIND_TAUTOLOGY[%d]: table is %d by %d\n",
+        --ftaut_level, table->nrows, table->ncols );
     }
 }
 
@@ -432,8 +432,8 @@ start:
     T[1] = (pcube) Tsave;
 
     if (debug & TAUT) {
-        printf("UNATE_REDUCTION: %d unate variables, reduced to %d\n",
-        (int)cdata.vars_unate, (int)CUBELISTSIZE(T));
+        fprintf( Abc_FrameGlobalGetOut(), "UNATE_REDUCTION: %d unate variables, reduced to %d\n",
+        (int)cdata.vars_unate, (int)CUBELISTSIZE(T) );
     }
     goto start;
     }

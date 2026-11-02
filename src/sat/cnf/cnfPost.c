@@ -100,7 +100,7 @@ void Cnf_ManPostprocess_old( Cnf_Man_t * p )
             }
         }
     }
-    printf( "Total gain = %d.  Vars = %d.\n", nGain, nVars );
+    fprintf( Abc_FrameGlobalGetOut(), "Total gain = %d.  Vars = %d.\n", nGain, nVars );
 }
 
 /**Function*************************************************************

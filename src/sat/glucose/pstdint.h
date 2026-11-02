@@ -821,7 +821,7 @@ typedef uint_least32_t uint_fast32_t;
 
 #define DECL(us,bits) glue3(DECL,us,) (bits)
 
-#define TESTUMAX(bits) glue3(u,bits,) = ~glue3(u,bits,); if (glue3(UINT,bits,_MAX) != glue3(u,bits,)) printf ("Something wrong with UINT%d_MAX\n", bits)
+#define TESTUMAX(bits) glue3(u,bits,) = ~glue3(u,bits,); if (glue3(UINT,bits,_MAX) != glue3(u,bits,)) fprintf ( Abc_FrameGlobalGetOut(), "Something wrong with UINT%d_MAX\n", bits)
 
 #define REPORTERROR(msg) { err_n++; if (err_first <= 0) err_first = __LINE__; printf msg; }
 
@@ -890,9 +890,9 @@ int main () {
 #endif
 
 #define STR(v) #v
-#define Q(v) printf ("sizeof " STR(v) " = %u\n", (unsigned) sizeof (v));
+#define Q(v) fprintf ( Abc_FrameGlobalGetOut(), "sizeof " STR(v) " = %u\n", (unsigned) sizeof (v));
     if (err_n) {
-        printf ("pstdint.h is not correct.  Please use sizes below to correct it:\n");
+        fprintf ( Abc_FrameGlobalGetOut(), "pstdint.h is not correct.  Please use sizes below to correct it:\n");
     }
 
     Q(int)
@@ -907,11 +907,11 @@ int main () {
 #endif
 
 #if UINT_MAX < X_SIZE_MAX
-    printf ("UINT_MAX < X_SIZE_MAX\n");
+    fprintf ( Abc_FrameGlobalGetOut(), "UINT_MAX < X_SIZE_MAX\n");
 #else
-    printf ("UINT_MAX >= X_SIZE_MAX\n");
+    fprintf ( Abc_FrameGlobalGetOut(), "UINT_MAX >= X_SIZE_MAX\n");
 #endif
-    printf ("%" PRINTF_INT64_MODIFIER "u vs %" PRINTF_INT64_MODIFIER "u\n", UINT_MAX, X_SIZE_MAX);
+    fprintf ( Abc_FrameGlobalGetOut(), "%" PRINTF_INT64_MODIFIER "u vs %" PRINTF_INT64_MODIFIER "u\n", UINT_MAX, X_SIZE_MAX);
 
     return EXIT_SUCCESS;
 }

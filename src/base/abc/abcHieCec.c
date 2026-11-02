@@ -403,7 +403,7 @@ Gia_Man_t * Abc_NtkDeriveFlatGia2Derive( Abc_Ntk_t * pNtk, Vec_Ptr_t * vOrder )
     pGia = Gia_ManCleanup( pGiaBox = pGia );
     Gia_ManStop( pGiaBox );
 
-    printf( "%8d -> ", Abc_NtkCountAndNodes(vOrder) );
+    fprintf( Abc_FrameGlobalGetOut(), "%8d -> ", Abc_NtkCountAndNodes(vOrder) );
     Gia_ManPrintStats( pGia, NULL );
     return pGia;
 }
@@ -561,7 +561,7 @@ void Abc_NtkCountInst( Abc_Ntk_t * pNtk )
             pModel->iStep = -1;
         Counter = Abc_NtkCountInst_rec( pNtk );
     }
-    printf( "Instances = %10d.\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Instances = %10d.\n", Counter );
 }
 
 /**Function*************************************************************
@@ -609,7 +609,7 @@ void Abc_NtkCountNodes( Abc_Ntk_t * pNtk )
             pModel->dTemp = -1;
         Counter = Abc_NtkCountNodes_rec( pNtk );
     }
-    printf( "Nodes = %.0f\n", Counter );
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes = %.0f\n", Counter );
 }
 
 /**Function*************************************************************
@@ -642,7 +642,7 @@ int Abc_NtkCheckRecursive( Abc_Ntk_t * pNtk )
         Abc_NtkForEachObj( pModel, pObj, k )
             if ( Abc_ObjIsBox(pObj) && pObj->pData == (void *)pModel )
             {
-                printf( "WARNING: Model \"%s\" contains a recursive definition.\n", Abc_NtkName(pModel) );
+                fprintf( Abc_FrameGlobalGetOut(), "WARNING: Model \"%s\" contains a recursive definition.\n", Abc_NtkName(pModel) );
                 RetValue = 1;
                 break;
             }
@@ -676,12 +676,12 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
     pNtk = Io_ReadBlifMv( pFileName, 0, fCheck );
     if ( pNtk == NULL )
     {
-        printf( "Reading BLIF file has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Reading BLIF file has failed.\n" );
         return NULL;
     }
     if ( pNtk->pDesign == NULL || pNtk->pDesign->vModules == NULL )
     {
-        printf( "There is no hierarchy information.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "There is no hierarchy information.\n" );
 //        Abc_NtkDelete( pNtk );
 //        return NULL;
     }

@@ -63,7 +63,7 @@ pcover F, D;
         G = sf_addset(G, cunder);
     }
     if (debug & GASP) {
-        printf("REDUCE_GASP: %s reduced to %s\n", pc1(p), pc2(cunder));
+        fprintf( Abc_FrameGlobalGetOut(), "REDUCE_GASP: %s reduced to %s\n", pc1(p), pc2(cunder) );
     }
     free_cube(cunder);
     }
@@ -118,7 +118,7 @@ pcover *G;
     pcover F1;
 
     if (debug & EXPAND1) {
-    printf("\nEXPAND1_GASP:    \t%s\n", pc1(GETSET(F, c1index)));
+    fprintf( Abc_FrameGlobalGetOut(), "\nEXPAND1_GASP:    \t%s\n", pc1(GETSET(F, c1index)) );
     }
 
     RAISE = new_cube();

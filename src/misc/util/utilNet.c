@@ -90,8 +90,8 @@ static inline void   tn_vi_grow   (tn_vi* v)
     v->ptr = (int*)realloc( v->ptr, sizeof(int)*newcap );
     if ( v->ptr == NULL )
     {
-        printf( "Failed to realloc memory from %.1f MB to %.1f MB.\n", 4.0 * v->cap / (1<<20), 4.0 * newcap / (1<<20) );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "Failed to realloc memory from %.1f MB to %.1f MB.\n", 4.0 * v->cap / (1<<20), 4.0 * newcap / (1<<20) );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     v->cap = newcap; 
 }
@@ -117,23 +117,23 @@ static inline tn_vi * tn_vi_dup(tn_vi* v) {
   return p;
 }
 static inline void  tn_vi_print(tn_vi* v) {
-    printf( "Array with %d entries:", v->size ); int i, entry;
+    fprintf( Abc_FrameGlobalGetOut(), "Array with %d entries:", v->size ); int i, entry;
     tn_vi_for_each_entry( v, entry, i )
-        printf( " %d", entry );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", entry );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 }
 static inline void  tn_vi_print_sets(tn_vi* v) {
     int i, k, size, count = 0;
     tn_vi_for_each_set( v, size, i )
       count++;
-    printf( "Array with %d sets:\n", count );
+    fprintf( Abc_FrameGlobalGetOut(), "Array with %d sets:\n", count );
     count = 0;
     tn_vi_for_each_set( v, size, i ) {
-      printf( "Set %3d : ", count );
-      printf( "Size %3d  :", size );
+      fprintf( Abc_FrameGlobalGetOut(), "Set %3d : ", count );
+      fprintf( Abc_FrameGlobalGetOut(), "Size %3d  :", size );
       for ( k = 0; k < size; k++ )
-        printf( " %d", tn_vi_read(v, i+k) );
-      printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", tn_vi_read(v, i+k) );
+      fprintf( Abc_FrameGlobalGetOut(), "\n" );
       count++;
     }
 }
@@ -162,7 +162,7 @@ static inline iword Tn_Clock()
 }
 static inline void Tn_PrintTime( const char * pStr, iword time )
 {
-  printf( "%s = %9.2f sec\n", pStr, 1.0*((double)(time))/((double)CLOCKS_PER_SEC));
+  fprintf(Abc_FrameGlobalGetOut(),  "%s = %9.2f sec\n", pStr, 1.0*((double)(time))/((double)CLOCKS_PER_SEC));
 }
 static inline int Tn_Base2Log( unsigned n )   
 { 
@@ -212,10 +212,10 @@ void Tn_PermTest()
     int fact = Tn_Factorial( nVars );
     for ( i = 0; i < fact; i++ )
     {
-        printf( "%3d :", i );
+        fprintf( Abc_FrameGlobalGetOut(), "%3d :", i );
         for ( k = 0; k < nVars; k++ )
-            printf( " %d", currPerm[k] );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), " %d", currPerm[k] );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
         Tn_GetNextPerm( currPerm, nVars );
     }
 }
@@ -364,16 +364,16 @@ static inline void Tn_PrintMapVar( tn_gr * p )
 {
   int i, j, n, Limit = 3; // p->nIns + (1 << p->nIns);
   for ( n = 0; n < Limit; n++ ) {
-    printf("\n");
-    printf( "Set %2d : ", n );
+    fprintf(Abc_FrameGlobalGetOut(), "\n");
+    fprintf( Abc_FrameGlobalGetOut(), "Set %2d : ", n );
     for ( j = 0; j < p->nNodes; j++ )
-      printf( "%4d", j );
-    printf( "\n\n" );    
+      fprintf( Abc_FrameGlobalGetOut(), "%4d", j );
+    fprintf( Abc_FrameGlobalGetOut(), "\n\n" );    
     for ( i = 0; i < p->nNodes; i++ ) {
-      printf( "%6d : ", i );
+      fprintf( Abc_FrameGlobalGetOut(), "%6d : ", i );
       for ( j = 0; j < p->nNodes; j++ )
-        printf( "%4d", Tn_MapVar(p, i, j, n) );
-      printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%4d", Tn_MapVar(p, i, j, n) );
+      fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
   }
 }
@@ -445,7 +445,7 @@ static inline int Tn_CountLabel( tn_gr * p )
 }
 static inline void Tn_PrintStats( tn_gr * p )
 {
-  printf( "Problem %s has %d inputs, %d outputs, %d nodes, and %d labels.\n", 
+  fprintf( Abc_FrameGlobalGetOut(), "Problem %s has %d inputs, %d outputs, %d nodes, and %d labels.\n", 
     p->pTypes, p->nIns, p->nOuts, p->nNodes-p->nIns, Tn_CountLabel(p) );
 }
 static inline void Tn_PrintGraph( tn_gr * p )
@@ -455,29 +455,29 @@ static inline void Tn_PrintGraph( tn_gr * p )
     tn_vi_for_each_entry( p->vSol, v, i )
     {
       if ( i % p->nNodes2 == 0 )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
       if ( i == p->nIns * p->nNodes2 )
         break;
       if ( v == 1 )
-        printf( " %d", i );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", i );
     }
-    printf( "\n");
+    fprintf(Abc_FrameGlobalGetOut(),  "\n");
   }
 
-  printf( "    " );
+  fprintf( Abc_FrameGlobalGetOut(), "    " );
   for ( i = 0; i < p->nNodes; i++ ) {
     for ( v = 0; v <= p->nIns-2; v++ )
-      printf( " " );
-    printf( "%2d", i );
+      fprintf( Abc_FrameGlobalGetOut(), " " );
+    fprintf( Abc_FrameGlobalGetOut(), "%2d", i );
   }
-  printf( "\n" );
-  for ( i = 0; i < p->nNodes-1; i++, printf("\n") ) {
-    printf( "%2d : ", i );
+  fprintf( Abc_FrameGlobalGetOut(), "\n" );
+  for ( i = 0; i < p->nNodes-1; i++, fprintf( Abc_FrameGlobalGetOut(), "\n" ) ) {
+    fprintf( Abc_FrameGlobalGetOut(), "%2d : ", i );
     for ( k = 0; k < p->nNodes; k++ ) {
       if ( k <= i )
       {
         for ( v = 0; v <= p->nIns; v++ )
-          printf( " " );
+          fprintf( Abc_FrameGlobalGetOut(), " " );
         continue;
       }
       for ( v = 0; v < p->nIns; v++ ) 
@@ -485,10 +485,10 @@ static inline void Tn_PrintGraph( tn_gr * p )
         int ValP = p->vSol ? tn_vi_read(p->vSol, Tn_CtrlVar(p, i, k, v, 0)) : 0;
         int ValN = p->vSol ? tn_vi_read(p->vSol, Tn_CtrlVar(p, i, k, v, 1)) : 0;
         assert( ValP + ValN < 2 );
-        printf( "%c", ValP + ValN == 0 ? '-' : (ValP ? 'A' : 'a')+v );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", ValP + ValN == 0 ? '-' : (ValP ? 'A' : 'a')+v );
         nLabels += ValP + ValN;
       }
-      printf(" ");
+      fprintf(Abc_FrameGlobalGetOut(), " ");
     }
   }
   //printf( "\nTotal labels = %d.\n\n", nLabels );    
@@ -500,31 +500,31 @@ static inline void Tn_PrintGraph2( tn_gr * p )
     tn_vi_for_each_entry( p->vSol, v, i )
     {
       if ( i % p->nNodes2 == 0 )
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
       if ( i == p->nIns * p->nNodes2 )
         break;
       if ( v == 1 )
-        printf( " %d", i );
+        fprintf( Abc_FrameGlobalGetOut(), " %d", i );
     }
-    printf( "\n");
+    fprintf(Abc_FrameGlobalGetOut(),  "\n");
   }
 
-  printf( "    " );
+  fprintf( Abc_FrameGlobalGetOut(), "    " );
   for ( i = p->nIns + 1; i < p->nNodes; i++ ) {
     for ( v = 0; v <= p->nIns-2; v++ )
-      printf( " " );
-    printf( "%2d", i-p->nIns );
+      fprintf( Abc_FrameGlobalGetOut(), " " );
+    fprintf( Abc_FrameGlobalGetOut(), "%2d", i-p->nIns );
   }
-  printf( "\n" );
+  fprintf( Abc_FrameGlobalGetOut(), "\n" );
   for ( i = 0; i < p->nNodes-1; i++ ) {
     if ( i >= 1 && i <= p->nIns )
       continue;
-    printf( "%2d : ", i ? i - p->nIns : 0 );
+    fprintf( Abc_FrameGlobalGetOut(), "%2d : ", i ? i - p->nIns : 0 );
     for ( k = p->nIns + 1; k < p->nNodes; k++ ) {
       if ( k <= i )
       {
         for ( v = 0; v <= p->nIns; v++ )
-          printf( " " );
+          fprintf( Abc_FrameGlobalGetOut(), " " );
         continue;
       }
       for ( v = 0; v < p->nIns; v++ ) 
@@ -532,12 +532,12 @@ static inline void Tn_PrintGraph2( tn_gr * p )
         int ValP = p->vSol ? tn_vi_read(p->vSol, Tn_CtrlVar(p, i, k, v, 0)) : 0;
         int ValN = p->vSol ? tn_vi_read(p->vSol, Tn_CtrlVar(p, i, k, v, 1)) : 0;
         assert( ValP + ValN < 2 );
-        printf( "%c", ValP + ValN == 0 ? '-' : (ValP ? 'A' : 'a')+v );
+        fprintf( Abc_FrameGlobalGetOut(), "%c", ValP + ValN == 0 ? '-' : (ValP ? 'A' : 'a')+v );
         nLabels += ValP + ValN;
       }
-      printf(" ");
+      fprintf(Abc_FrameGlobalGetOut(), " ");
     }
-    printf("\n");
+    fprintf(Abc_FrameGlobalGetOut(), "\n");
   }
   //printf( "\nTotal labels = %d.\n\n", nLabels );    
 }
@@ -550,7 +550,7 @@ static inline void Tn_DumpFile( tn_gr * p, const char * pFileName )
 {
   FILE * pFile = fopen( pFileName, "wb" );
   if ( pFile == NULL ) {
-    printf( "Cannot open file \"%s\" for writing CNF.\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing CNF.\n", pFileName );
     return;
   }
   fprintf( pFile, "p cnf %d %d\n", p->nCnfVars, p->nCnfClas );
@@ -593,8 +593,8 @@ static inline int Tn_GenClause( tn_gr * p, int * pLits, int nLits )
   if ( 0 ) 
   {
     for ( i = 0; i < nLits; i++ )
-      fprintf( stdout, "%s%d ", tn_l2c(pLits[i]) ? "-" : " ", tn_l2v(pLits[i]) );
-    fprintf( stdout, "\n" );
+      fprintf( Abc_FrameGlobalGetOut(), "%s%d ", tn_l2c(pLits[i]) ? "-" : " ", tn_l2v(pLits[i])  );
+    fprintf( Abc_FrameGlobalGetOut(), "\n"  );
   }
   return 1;
 }
@@ -883,7 +883,7 @@ static inline void Tn_GenCnf( tn_gr * p, const char * pFileName )
   assert( p->pFile == NULL );
   p->pFile = fopen( pFileName, "wb" );
   if ( p->pFile == NULL ) {
-    printf( "Cannot open file \"%s\" for writing CNF.\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing CNF.\n", pFileName );
     return;
   }
   fputs( "p cnf                \n", p->pFile );
@@ -900,7 +900,7 @@ static inline void Tn_GenCnf( tn_gr * p, const char * pFileName )
   fprintf( p->pFile, "p cnf %d %d", p->nCnfVars, p->nCnfClas );
   fclose( p->pFile );
   p->pFile = NULL;
-  printf( "Dumped file \"%s\" with %d vars and %d clauses (%d out of %d: %d vars and %d clauses).\n", 
+  fprintf( Abc_FrameGlobalGetOut(), "Dumped file \"%s\" with %d vars and %d clauses (%d out of %d: %d vars and %d clauses).\n", 
     pFileName, p->nCnfVars, p->nCnfClas, p->nEdgeLimit, tn_vi_size(vCard),
     p->nCnfVars2 ? p->nCnfVars-p->nCnfVars2 : 0,
     p->nCnfClas2 ? p->nCnfClas-p->nCnfClas2 : 0 );
@@ -919,7 +919,7 @@ static inline void Tn_GenCnf2( tn_gr * p )
   }
   if ( p->nEdgeLimit > 0 )
     Tn_AddCardinality( p, vCard );
-  printf( "Created CNF with %d vars and %d clauses (%d out of %d: %d vars and %d clauses).\n", 
+  fprintf( Abc_FrameGlobalGetOut(), "Created CNF with %d vars and %d clauses (%d out of %d: %d vars and %d clauses).\n", 
     p->nCnfVars, p->nCnfClas, p->nEdgeLimit, tn_vi_size(vCard),
     p->nCnfVars2 ? p->nCnfVars-p->nCnfVars2 : 0,
     p->nCnfClas2 ? p->nCnfClas-p->nCnfClas2 : 0 );
@@ -961,7 +961,7 @@ int Tn_ReadHexTruth( char * pInput, word * pTruth )
     int nChars = strlen(pInput), i; 
     int nVars  = Tn_Base2Log(4*nChars);
     if ( (1 << nVars) != 4*nChars ) {
-        printf( "The input string length (%d chars) does not match the size (%d bits) of the truth table of %d-var function.\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "The input string length (%d chars) does not match the size (%d bits) of the truth table of %d-var function.\n", 
             nChars, 1<<nVars, nVars );
         return 0;
     }
@@ -972,9 +972,9 @@ int Tn_ReadHexTruth( char * pInput, word * pTruth )
             pTruth[i>>4] = Num, Num = 0;
     }
     assert( Num == 0 );
-    printf( "Finished entring %d-input function: ", nVars );
-    Tn_PrintHexTruth( stdout, pTruth, nVars );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Finished entring %d-input function: ", nVars );
+    Tn_PrintHexTruth( Abc_FrameGlobalGetOut(), pTruth, nVars );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     return nVars;
 }
 
@@ -1023,7 +1023,7 @@ static inline void Tn_DumpSpice( tn_gr * p )
   const char * pFileName = "temp.sp"; int i;
   FILE * pFile = fopen( pFileName, "wb" );
   if ( pFile == NULL ) {
-    printf( "Cannot open file \"%s\" for writing SPICE format.\n", pFileName );
+    fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" for writing SPICE format.\n", pFileName );
     return;
   }
   //.SUBCKT <name> A VDD VSS Y
@@ -1043,7 +1043,7 @@ static inline void Tn_DumpSpice( tn_gr * p )
   Tn_DumpLabels( p, pFile );
   fprintf( pFile, ".ENDS\n\n" );  
   fclose( pFile );
-  printf( "Finished dumping SPICE description into file \"%s\".\n", pFileName );
+  fprintf( Abc_FrameGlobalGetOut(), "Finished dumping SPICE description into file \"%s\".\n", pFileName );
 }
 
 /*************************************************************
@@ -1057,7 +1057,7 @@ tn_vi * Tn_ParseSolution( const char * pFileName )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\".\n", pFileName );
         return NULL;
     }
     while ( fgets( pBuffer, 1000, pFile ) != NULL )
@@ -1119,18 +1119,18 @@ tn_vi * Tn_SolveSat( const char * pFileNameIn, const char * pFileNameOut, int Se
     if ( system( pCommand ) == -1 )
 #endif
     {
-        printf( "Command \"%s\" did not succeed.\n", pCommand );
+        fprintf( Abc_FrameGlobalGetOut(), "Command \"%s\" did not succeed.\n", pCommand );
         return 0;
     }
     vRes = Tn_ParseSolution( pFileNameOut );
     if ( fVerbose )
     {
         if ( vRes )
-            printf( "The problem has a solution. " );
+            fprintf( Abc_FrameGlobalGetOut(), "The problem has a solution. " );
         else if ( vRes == NULL && TimeOut == 0 )
-            printf( "The problem has no solution. " );
+            fprintf( Abc_FrameGlobalGetOut(), "The problem has no solution. " );
         else if ( vRes == NULL )
-            printf( "The problem has no solution or timed out after %d sec. ", TimeOut );
+            fprintf( Abc_FrameGlobalGetOut(), "The problem has no solution or timed out after %d sec. ", TimeOut );
         Tn_PrintTime( "SAT solver time", Tn_Clock() - clkTotal );
     }
     return vRes;
@@ -1154,7 +1154,7 @@ void Tn_SolveProblem( int nIns, int nOuts, word * pOuts, char * pTypes, int nEdg
   //Tn_PrintMapVar( p );
   Tn_GenCnf2( p );
   for ( int n = 0; n < nSolsMax; n++ ) {
-    printf( "\nIteration %d:\n", n );
+    fprintf( Abc_FrameGlobalGetOut(), "\nIteration %d:\n", n );
     Tn_DumpFile( p, pFileNameIn );
     p->vSol = Tn_SolveSat( pFileNameIn, pFileNameOut, Seed, TimeOut, fVerbose );
     Tn_PrintStats( p );  
@@ -1167,7 +1167,7 @@ void Tn_SolveProblem( int nIns, int nOuts, word * pOuts, char * pTypes, int nEdg
       p->vSol = NULL;
     }
     else {
-      printf( "Problem has no solution.\n" );
+      fprintf( Abc_FrameGlobalGetOut(), "Problem has no solution.\n" );
       break;
     }
   }
@@ -1184,25 +1184,25 @@ int main(int argc, char ** argv)
 {
     if ( argc == 1 )
     {
-        printf( "usage:  %s -C <str> [-ELNSTV <num>] <truth[0]> ... <truth[m-1]>\n", argv[0] );
-        printf( "                   this program synthesizes networks for multi-output functions\n" );
-        printf( "\n" );     
-        printf( "      -C <str>  :  the configuration string (no default)\n" );
-        printf( "      -E <num>  :  the max number of edges (default = no limit)\n" );
-        printf( "      -L <num>  :  the max number of levels (default = no limit)\n" );        
-        printf( "      -N <num>  :  the max number of solutions (default = 1)\n" );        
-        printf( "      -S <num>  :  the random seed (default = 0)\n" );        
-        printf( "      -T <num>  :  the timeout in seconds (default = no timeout)\n" );                
-        printf( "      -V <num>  :  the verbosiness levels (default = 1)\n" );             
-        printf( "    <truth[0]>  :  the truth table of the first output in the hexadecimal notation\n" );
-        printf( "  <truth[m-1]>  :  the truth table of the last output in the hexadecimal notation\n" );
-        printf( "                   the truth tables are assumed to depend on the same variables\n" );
-        printf( "                   the strings should contain 2^(<num_inputs>-2) hexadecimal digits\n" );
-        printf( "\n" );        
-        printf( "                   Example 1: Synthesizing 3-node 2-edge 2-input and-gate:\n" );
-        printf( "                     %s -C *11** -E 2  8\n", argv[0] );
-        printf( "                   Example 2: Synthesizing 4-node 5-edge 3-input majority gate:\n" );
-        printf( "                     %s -C *111*** -E 5  E8\n", argv[0] );        
+        fprintf( Abc_FrameGlobalGetOut(), "usage:  %s -C <str> [-ELNSTV <num>] <truth[0]> ... <truth[m-1]>\n", argv[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "                   this program synthesizes networks for multi-output functions\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );     
+        fprintf( Abc_FrameGlobalGetOut(), "      -C <str>  :  the configuration string (no default)\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "      -E <num>  :  the max number of edges (default = no limit)\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "      -L <num>  :  the max number of levels (default = no limit)\n" );        
+        fprintf( Abc_FrameGlobalGetOut(), "      -N <num>  :  the max number of solutions (default = 1)\n" );        
+        fprintf( Abc_FrameGlobalGetOut(), "      -S <num>  :  the random seed (default = 0)\n" );        
+        fprintf( Abc_FrameGlobalGetOut(), "      -T <num>  :  the timeout in seconds (default = no timeout)\n" );                
+        fprintf( Abc_FrameGlobalGetOut(), "      -V <num>  :  the verbosiness levels (default = 1)\n" );             
+        fprintf( Abc_FrameGlobalGetOut(), "    <truth[0]>  :  the truth table of the first output in the hexadecimal notation\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "  <truth[m-1]>  :  the truth table of the last output in the hexadecimal notation\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "                   the truth tables are assumed to depend on the same variables\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "                   the strings should contain 2^(<num_inputs>-2) hexadecimal digits\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );        
+        fprintf( Abc_FrameGlobalGetOut(), "                   Example 1: Synthesizing 3-node 2-edge 2-input and-gate:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "                     %s -C *11** -E 2  8\n", argv[0] );
+        fprintf( Abc_FrameGlobalGetOut(), "                   Example 2: Synthesizing 4-node 5-edge 3-input majority gate:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "                     %s -C *111*** -E 5  E8\n", argv[0] );        
 //        printf( "                   Example 3: Synthesizing 9-node 10-edge 3-input 2-output full-adder:\n" );
 //        printf( "                     %s -C *111****1 -E 10  96 E8\n", argv[0] );
         return 1;
@@ -1232,16 +1232,16 @@ int main(int argc, char ** argv)
             if ( nIns == 0 )
               nIns = nVarsOut;
             else if ( nIns != nVarsOut ) {
-              printf( "The support size of output functions is not the same.\n" ); 
+              fprintf( Abc_FrameGlobalGetOut(), "The support size of output functions is not the same.\n" ); 
               break;
             }
           }
           else {
-              printf( "String \"%s\" does not look like a truth table in the hexadecimal notation.\n", argv[c] );
+              fprintf( Abc_FrameGlobalGetOut(), "String \"%s\" does not look like a truth table in the hexadecimal notation.\n", argv[c] );
               break;
           }
         }
-        printf( "Finished reading %d output%s\n\n", nOuts, nOuts == 1 ? "" : "s" );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished reading %d output%s\n\n", nOuts, nOuts == 1 ? "" : "s" );
         Tn_SolveProblem( nIns, nOuts, Truths, pTypes, nEdgeLimit, nLevelLimit, nSolsMax, Seed, TimeOut, fVerbose );
         return 1;
     }

@@ -64,18 +64,18 @@ void Dau_TruthEnum(int nVars)
     int i, k;
     if ( pPres == NULL )
     {
-        printf( "Cannot alloc memory for marks.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot alloc memory for marks.\n" );
         return;
     }
     if ( pTable == NULL )
-        printf( "Cannot alloc memory for table.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot alloc memory for table.\n" );
     for ( tCur = 0; tCur < nFuncs; tCur++ )
     {
         if ( (tCur & 0x3FFFF) == 0 )
         {
-            printf( "Finished %08x.  Classes = %6d.  ", (int)tCur, Vec_IntSize(vNpns) );
+            fprintf( Abc_FrameGlobalGetOut(), "Finished %08x.  Classes = %6d.  ", (int)tCur, Vec_IntSize(vNpns) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-            fflush(stdout);
+            fflush( Abc_FrameGlobalGetOut() );
         }
         if ( Abc_TtGetBit(pPres, (int)tCur) )
             continue;
@@ -103,9 +103,9 @@ void Dau_TruthEnum(int nVars)
         }
         assert( tTemp == tCur );
     }
-    printf( "Computed %d NPN classes of %d variables.  ", Vec_IntSize(vNpns), nVars );
+    fprintf( Abc_FrameGlobalGetOut(), "Computed %d NPN classes of %d variables.  ", Vec_IntSize(vNpns), nVars );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-    fflush(stdout);
+    fflush( Abc_FrameGlobalGetOut() );
     Vec_IntFree( vNpns );
     ABC_FREE( pPres );
     ABC_FREE( pPerm );
@@ -146,11 +146,11 @@ unsigned * Dau_ReadFile( char * pFileName, int nSizeW )
     RetValue = 0;
     if ( pFile )
     {
-        printf( "Finished reading file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Finished reading file \"%s\".\n", pFileName );
         fclose( pFile );
     }
     else
-        printf( "Cannot open input file \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file \"%s\".\n", pFileName );
     Abc_PrintTime( 1, "File reading", Abc_Clock() - clk );
     return p;
 }
@@ -193,7 +193,7 @@ void Dau_NetworkEnum(int nVars)
     pTable[Inv] |= (1 << 31);
     Vec_IntPushTwo( Vec_WecEntry(vNpns,  0), 0, Inv );
     Vec_IntPushTwo( Vec_WecEntry(vNpns_, 0), 0, Inv );
-    printf("Nodes = %2d.   New = %6d. Total = %6d.   New = %6d. Total = %6d.  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Nodes = %2d.   New = %6d. Total = %6d.   New = %6d. Total = %6d.  ", 
         0, Vec_IntSize(Vec_WecEntry(vNpns,  0)), Vec_WecSizeSize(vNpns), 
            Vec_IntSize(Vec_WecEntry(vNpns_, 0)), Vec_WecSizeSize(vNpns_) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -344,18 +344,18 @@ void Dau_NetworkEnum(int nVars)
                 tCur  = (tGate1 & Cof1)  | (~tGate1 & Cof0);
                 Res = Dau_AddFunction( tCur, nVars, pTable, vFuncsN, vFuncsN_ );
                 if ( Res )
-                    printf( "Found function %d\n", Res );
+                    fprintf( Abc_FrameGlobalGetOut(), "Found function %d\n", Res );
 
                 tCur  = (tGate1 & Cof0)  | (~tGate1 & Cof1);
                 Res = Dau_AddFunction( tCur, nVars, pTable, vFuncsN, vFuncsN_ );
                 if ( Res )
-                    printf( "Found function %d\n", Res );
+                    fprintf( Abc_FrameGlobalGetOut(), "Found function %d\n", Res );
             }
         }
-        printf("Nodes = %2d.   New = %6d. Total = %6d.   New = %6d. Total = %6d.  ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes = %2d.   New = %6d. Total = %6d.   New = %6d. Total = %6d.  ", 
             n, Vec_IntSize(vFuncsN), Vec_WecSizeSize(vNpns), Vec_IntSize(vFuncsN_), Vec_WecSizeSize(vNpns_) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-        fflush(stdout);
+        fflush( Abc_FrameGlobalGetOut() );
         if ( Vec_IntSize(vFuncsN) == 0 )
             break;
     }
@@ -368,7 +368,7 @@ void Dau_NetworkEnum(int nVars)
     Vec_WecFree( vNpns_ );
     ABC_FREE( pTable );
     Abc_PrintTime( 1, "Total time", Abc_Clock() - clk );
-    fflush(stdout);
+    fflush( Abc_FrameGlobalGetOut() );
 }
 void Dau_NetworkEnumTest()
 {
@@ -462,7 +462,7 @@ void Dau_ExactNpnPrint( Vec_Mem_t * vTtMem, Vec_Int_t * vNodSup, int nVars, int 
     Vec_Mem_t * vTtMem2  = Vec_MemAlloc( Vec_MemEntrySize(vTtMem), 10 );
     Vec_MemHashAlloc( vTtMem2, 1<<10 );
     Abc_PrintTime( 1, "Exact NPN computation time", Abc_Clock() - clk );
-    printf( "Final results:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Final results:\n" );
     for ( n = 0; n <= nNodesMax; n++ )
     {
         int i, Entry, Entry2, nEntries2, Counter = 0, Counter2 = 0;
@@ -478,16 +478,16 @@ void Dau_ExactNpnPrint( Vec_Mem_t * vTtMem, Vec_Int_t * vNodSup, int nVars, int 
             Counter2++;
         }
         nTotal += Counter2;
-        printf( "Nodes = %2d.  ", n );
-        printf( "Semi-canonical = %8d.  ", Counter );
-        printf( "Canonical = %8d.  ", Counter2 );
-        printf( "Total = %8d.", nTotal );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Nodes = %2d.  ", n );
+        fprintf( Abc_FrameGlobalGetOut(), "Semi-canonical = %8d.  ", Counter );
+        fprintf( Abc_FrameGlobalGetOut(), "Canonical = %8d.  ", Counter2 );
+        fprintf( Abc_FrameGlobalGetOut(), "Total = %8d.", nTotal );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_MemHashFree( vTtMem2 );
     Vec_MemFreeP( &vTtMem2 );
     Vec_WrdFree( vCanons );
-    fflush(stdout);
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 /**Function*************************************************************
@@ -515,10 +515,10 @@ void Dau_TablesSave( int nInputs, int nVars, Vec_Mem_t * vTtMem, Vec_Int_t * vNo
     fclose( pFile );
 //    printf( "Dumped files with %10d classes after exploring %10d frontiers.\n", 
 //        Vec_IntSize(vNodSup), nFronts );
-    printf( "Dumped file \"%s\" with %10d classes after exploring %10d frontiers.  ", 
+    fprintf( Abc_FrameGlobalGetOut(), "Dumped file \"%s\" with %10d classes after exploring %10d frontiers.  ", 
         FileName, Vec_IntSize(vNodSup), nFronts );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-    fflush(stdout);
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 /**Function*************************************************************
@@ -558,7 +558,7 @@ void Dau_DumpFuncs( Vec_Mem_t * vTtMem, Vec_Int_t * vNodSup, int nVars, int nMax
     }
     for ( n = 0; n <= nMax; n++ )
     {
-        printf( "Dumped %8d  %d-node %d-input functions into file.\n", Counters[n], n, nVars );
+        fprintf( Abc_FrameGlobalGetOut(), "Dumped %8d  %d-node %d-input functions into file.\n", Counters[n], n, nVars );
         fclose( pFile[n] );
     }
 }
@@ -584,16 +584,16 @@ int Dau_CountFuncs( Vec_Int_t * vNodSup, int iStart, int iStop, int nVars )
 int Dau_PrintStats( int nNodes, int nInputs, int nVars, Vec_Int_t * vNodSup, int iStart, int iStop, word nSteps, int Count2, abctime clk )
 {
     int nNew;
-    printf("N =%2d | ",      nNodes );
-    printf("C =%12.0f  ",    (double)(iword)nSteps );
-    printf("New%d =%10d  ",  nInputs, iStop-iStart );
-    printf("All%d =%10d | ", nInputs, iStop );
-    printf("New%d =%8d  ",   nVars, nNew = Dau_CountFuncs(vNodSup, iStart, iStop, nVars) );
-    printf("All%d =%8d  ",   nVars,        Dau_CountFuncs(vNodSup,      0, iStop, nVars) );
-    printf("Two =%6d ",      Count2 );
+    fprintf( Abc_FrameGlobalGetOut(), "N =%2d | ",      nNodes );
+    fprintf( Abc_FrameGlobalGetOut(), "C =%12.0f  ",    (double)(iword)nSteps );
+    fprintf( Abc_FrameGlobalGetOut(), "New%d =%10d  ",  nInputs, iStop-iStart );
+    fprintf( Abc_FrameGlobalGetOut(), "All%d =%10d | ", nInputs, iStop );
+    fprintf( Abc_FrameGlobalGetOut(), "New%d =%8d  ",   nVars, nNew = Dau_CountFuncs(vNodSup, iStart, iStop, nVars) );
+    fprintf( Abc_FrameGlobalGetOut(), "All%d =%8d  ",   nVars,        Dau_CountFuncs(vNodSup,      0, iStop, nVars) );
+    fprintf( Abc_FrameGlobalGetOut(), "Two =%6d ",      Count2 );
     //Abc_PrintTime( 1, "T",   Abc_Clock() - clk );
     Abc_Print(1, "%9.2f sec\n", 1.0*(Abc_Clock() - clk)/(CLOCKS_PER_SEC));
-    fflush(stdout);
+    fflush( Abc_FrameGlobalGetOut() );
     return nNew;
 }
 
@@ -797,7 +797,7 @@ void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fR
     Vec_MemHashFree( vTtMem );
     Vec_MemFreeP( &vTtMem );
     Vec_IntFree( vNodSup );
-    fflush(stdout);
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 /**Function*************************************************************
@@ -838,7 +838,7 @@ Vec_Mem_t * Dau_CollectNpnFunctions( word * p, int nVars, int fVerbose )
     assert( Abc_TtEqual(pCopy, Vec_MemReadEntry(vTtMem, 0), nWords) );
     nFuncs = Vec_MemEntryNum(vTtMem);
     if ( fVerbose )
-        printf( "Collected %d NN functions and ", nFuncs ), fflush(stdout);
+        fprintf( Abc_FrameGlobalGetOut(),  "Collected %d NN functions and ", nFuncs ), fflush( Abc_FrameGlobalGetOut() );
     for ( i = 0; i < nFuncs; i++ ) {
         Abc_TtCopy( pCopy, Vec_MemReadEntry(vTtMem, i), nWords, 0 );
         for ( k = 0; k < nPerms; k++ ) {
@@ -853,9 +853,9 @@ Vec_Mem_t * Dau_CollectNpnFunctions( word * p, int nVars, int fVerbose )
     ABC_FREE( pCopy );    
     nFuncs = Vec_MemEntryNum(vTtMem);
     if ( fVerbose )
-        printf( "%d NPN functions.  ", nFuncs ),
+        fprintf( Abc_FrameGlobalGetOut(),  "%d NPN functions.  ", nFuncs ),
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart ), 
-        fflush(stdout);
+        fflush( Abc_FrameGlobalGetOut() );
     return vTtMem;
 }
 
@@ -921,26 +921,26 @@ void Dau_PrintNpnFunction( Vec_Mem_t * vTtMem, int nFuncs, word * pCopy, int nVa
     int nWords = Abc_Truth6WordNum(nVars);
     if ( fVerbose ) {
         word Phase = (unsigned)uPhase;
-        printf( "%6d : ", nFuncs );
+        fprintf( Abc_FrameGlobalGetOut(), "%6d : ", nFuncs );
         Abc_TtPrintBits2(&Phase, nVars);
-        printf( "  " );
+        fprintf( Abc_FrameGlobalGetOut(), "  " );
         for ( int v = nVars-1; v >= 0; v-- )
-            printf( " %d", pPerm[v] );
-        printf( "   F = " );
+            fprintf( Abc_FrameGlobalGetOut(), " %d", pPerm[v] );
+        fprintf( Abc_FrameGlobalGetOut(), "   F = " );
         Abc_TtPrintHexRev( stdout, pCopy, nVars );
     }
     int Pos = Vec_MemHashInsert( vTtMem, pCopy );
     Abc_TtNot( pCopy, nWords );
     if ( fVerbose ) {
-        printf( " (%05d)", Pos );
-        printf( "   ~F = " );
+        fprintf( Abc_FrameGlobalGetOut(), " (%05d)", Pos );
+        fprintf( Abc_FrameGlobalGetOut(), "   ~F = " );
         Abc_TtPrintHexRev( stdout, pCopy, nVars );
     }
     int Neg = Vec_MemHashInsert( vTtMem, pCopy );
     Abc_TtNot( pCopy, nWords );
     if ( fVerbose ) {
-        printf( " (%05d)", Neg );
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), " (%05d)", Neg );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 }
 void Dau_PrintNpnFunctions( word * p, int nVars, int fVerbose )
@@ -958,7 +958,7 @@ void Dau_PrintNpnFunctions( word * p, int nVars, int fVerbose )
     int m, i, k, nFuncs = 0;
     int uVarPhase = 0;
     int pVarPerm[32];
-    printf( "The number of NPN configurations is %d = %d complementations * %d permutations * 2 output polarities.\n", nMints*nPerms*2, nMints, nPerms );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of NPN configurations is %d = %d complementations * %d permutations * 2 output polarities.\n", nMints*nPerms*2, nMints, nPerms );
     for ( i = 0; i < nVars; i++ )
         pVarPerm[i] = i;
     for ( m = 0; m < nMints; m++ ) {
@@ -969,14 +969,14 @@ void Dau_PrintNpnFunctions( word * p, int nVars, int fVerbose )
             Abc_TtSwapAdjacent( pCopy, nWords, pPerm[k] );
             ABC_SWAP( int, pVarPerm[pPerm[k]], pVarPerm[pPerm[k]+1] );
         }
-        if ( fVerbose ) printf( "\n" );
+        if ( fVerbose ) fprintf( Abc_FrameGlobalGetOut(), "\n" );
         Abc_TtFlip( pCopy, nWords, pComp[m] );
         uVarPhase ^= 1 << pComp[m];
     }
     assert( Abc_TtEqual(pCopy, p, nWords) );
-    printf( "The number of unique functions %d (out of %d).  Frequency = %d.  Representative: ", Vec_MemEntryNum(vTtMem), nMints*nPerms*2, nMints*nPerms*2/Vec_MemEntryNum(vTtMem) );
+    fprintf( Abc_FrameGlobalGetOut(), "The number of unique functions %d (out of %d).  Frequency = %d.  Representative: ", Vec_MemEntryNum(vTtMem), nMints*nPerms*2, nMints*nPerms*2/Vec_MemEntryNum(vTtMem) );
     Abc_TtPrintHexRev( stdout, pBest, nVars );
-    printf( "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     ABC_FREE( pPerm );    
     ABC_FREE( pComp );    
     ABC_FREE( pCopy );    
@@ -1052,14 +1052,14 @@ Vec_Mem_t * Dau_CollectNpnFunctionsArray( Vec_Wrd_t * vFuncs, int nVars, Vec_Int
     ABC_FREE( pComp );
     if ( fVerbose ) {
         int Lim = Abc_MinInt( Vec_IntSize(vCnts), 7 );
-        printf( "Collected %d", Vec_MemEntryNum(vTtMem) );
+        fprintf( Abc_FrameGlobalGetOut(), "Collected %d", Vec_MemEntryNum(vTtMem) );
         Vec_IntForEachEntryStop( vCnts, Entry, i, Lim )
-            printf( " %c %d", i ? '+' : '=', Entry );
+            fprintf( Abc_FrameGlobalGetOut(), " %c %d", i ? '+' : '=', Entry );
         if ( Vec_IntSize(vCnts) > Lim )
-            printf( " + ..." );
-        printf( " NPN class members.  " );
+            fprintf( Abc_FrameGlobalGetOut(), " + ..." );
+        fprintf( Abc_FrameGlobalGetOut(), " NPN class members.  " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart ); 
-        fflush(stdout);
+        fflush( Abc_FrameGlobalGetOut() );
     }
     Vec_IntFree( vCnts );
     if ( pvMap )
@@ -1083,27 +1083,27 @@ Vec_Mem_t * Dau_CollectNpnFunctionsArray( Vec_Wrd_t * vFuncs, int nVars, Vec_Int
 void Dau_CanonicizeArray( Vec_Wrd_t * vFuncs, int nVars, int fVerbose )
 {
     abctime clkStart  = Abc_Clock();
-    if ( fVerbose )   printf( "Functions: %d (original) ", Vec_WrdSize(vFuncs) );
+    if ( fVerbose )   fprintf( Abc_FrameGlobalGetOut(), "Functions: %d (original) ", Vec_WrdSize(vFuncs) );
     unsigned uCanonPhase; char pCanonPerm[16]; word Func; int i;
     Vec_WrdUniqify( vFuncs );
 
-    if ( fVerbose )   printf( "-> %d (unique) ", Vec_WrdSize(vFuncs) );
+    if ( fVerbose )   fprintf( Abc_FrameGlobalGetOut(), "-> %d (unique) ", Vec_WrdSize(vFuncs) );
     Vec_WrdForEachEntry( vFuncs, Func, i ) {
         uCanonPhase = Abc_TtCanonicize( &Func, nVars, pCanonPerm );
         Vec_WrdWriteEntry( vFuncs, i, Func );
     }
     Vec_WrdUniqify( vFuncs );
-    if ( fVerbose )   printf( "-> %d (approx NPN) ", Vec_WrdSize(vFuncs) );
+    if ( fVerbose )   fprintf( Abc_FrameGlobalGetOut(), "-> %d (approx NPN) ", Vec_WrdSize(vFuncs) );
 	Abc_TtHieMan_t * pMan = Abc_TtHieManStart(nVars, 5);
     Vec_WrdForEachEntry( vFuncs, Func, i ) {
         uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeCA, pMan, &Func, nVars, pCanonPerm, 1);
         Vec_WrdWriteEntry( vFuncs, i, Func );
     }
     Vec_WrdUniqify( vFuncs );
-    if ( fVerbose )   printf( "-> %d (exact NPN).  ", Vec_WrdSize(vFuncs) );
+    if ( fVerbose )   fprintf( Abc_FrameGlobalGetOut(), "-> %d (exact NPN).  ", Vec_WrdSize(vFuncs) );
 	Abc_TtHieManStop(pMan);
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
-    fflush( stdout );
+    fflush( Abc_FrameGlobalGetOut() );
 }
 
 ////////////////////////////////////////////////////////////////////////

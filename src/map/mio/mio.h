@@ -235,6 +235,9 @@ extern Mio_Library_t *   Abc_SclDeriveGenlib( void * pScl, void * pMio, float Sl
 
 ABC_NAMESPACE_HEADER_END
 
+extern ABC_DLL FILE *             Abc_FrameGlobalGetOut();
+extern ABC_DLL FILE *             Abc_FrameGlobalGetErr();
+
 #endif
 
 ////////////////////////////////////////////////////////////////////////

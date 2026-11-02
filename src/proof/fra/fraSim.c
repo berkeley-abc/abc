@@ -719,7 +719,7 @@ clk = Abc_Clock();
         nChanges += Fra_OneHotRefineUsingCex( p, p->vOneHots );
 p->timeRef += Abc_Clock() - clk;
     if ( !p->pPars->nFramesK && nChanges < 1 )
-        printf( "Error: A counter-example did not refine classes!\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Error: A counter-example did not refine classes!\n" );
 //    assert( nChanges >= 1 );
 //printf( "Refined classes = %5d.   Changes = %4d.\n", Vec_PtrSize(p->vClasses), nChanges );
 }
@@ -749,7 +749,7 @@ void Fra_SmlSimulate( Fra_Man_t * p, int fInit )
     Fra_ClassesPrepare( p->pCla, p->pPars->fLatchCorr, 0 );
 //    Fra_ClassesPrint( p->pCla, 0 );
 if ( fVerbose )
-printf( "Starting classes = %5d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), Fra_ClassesCountLits(p->pCla) );
+fprintf( Abc_FrameGlobalGetOut(), "Starting classes = %5d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), Fra_ClassesCountLits(p->pCla) );
 
 //return;
 
@@ -764,7 +764,7 @@ clk = Abc_Clock();
     nChanges += Fra_ClassesRefine1( p->pCla, 1, NULL );
 p->timeRef += Abc_Clock() - clk;
 if ( fVerbose )
-printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), nChanges, Fra_ClassesCountLits(p->pCla) );
+fprintf( Abc_FrameGlobalGetOut(), "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), nChanges, Fra_ClassesCountLits(p->pCla) );
     Fra_SmlSavePattern1( p, fInit );
     Fra_SmlAssignDist1( p->pSml, p->pPatWords );
     Fra_SmlSimulateOne( p->pSml );
@@ -776,7 +776,7 @@ clk = Abc_Clock();
 p->timeRef += Abc_Clock() - clk;
 
 if ( fVerbose )
-printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), nChanges, Fra_ClassesCountLits(p->pCla) );
+fprintf( Abc_FrameGlobalGetOut(), "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), nChanges, Fra_ClassesCountLits(p->pCla) );
     // refine classes by random simulation
     do {
         Fra_SmlInitialize( p->pSml, fInit );
@@ -789,7 +789,7 @@ clk = Abc_Clock();
         nChanges += Fra_ClassesRefine1( p->pCla, 1, NULL );
 p->timeRef += Abc_Clock() - clk;
 if ( fVerbose )
-printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), nChanges, Fra_ClassesCountLits(p->pCla) );
+fprintf( Abc_FrameGlobalGetOut(), "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), nChanges, Fra_ClassesCountLits(p->pCla) );
     } while ( (double)nChanges / nClasses > p->pPars->dSimSatur );
 
 //    if ( p->pPars->fVerbose )
@@ -884,7 +884,7 @@ Vec_Str_t * Fra_SmlSimulateReadFile( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open file \"%s\" with simulation patterns.\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open file \"%s\" with simulation patterns.\n", pFileName );
         return NULL;
     }
     vRes = Vec_StrAlloc( 1000 );
@@ -894,7 +894,7 @@ Vec_Str_t * Fra_SmlSimulateReadFile( char * pFileName )
             Vec_StrPush( vRes, (char)(c - '0') );
         else if ( c != ' ' && c != '\r' && c != '\n' && c != '\t' )
         {
-            printf( "File \"%s\" contains symbol (%c) other than \'0\' or \'1\'.\n", pFileName, (char)c );
+            fprintf( Abc_FrameGlobalGetOut(), "File \"%s\" contains symbol (%c) other than \'0\' or \'1\'.\n", pFileName, (char)c );
             Vec_StrFreeP( &vRes );
             break;
         }
@@ -961,15 +961,15 @@ void Fra_SmlPrintOutputs( Fra_Sml_t * p, int nPatterns )
         Aig_ManForEachCi( p->pAig, pObj, i )
         {
             pSims = Fra_ObjSim( p, pObj->Id );
-            printf( "%d", Abc_InfoHasBit( pSims, k ) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_InfoHasBit( pSims, k ) );
         }
-        printf( " " );               ;
+        fprintf( Abc_FrameGlobalGetOut(), " " );               ;
         Aig_ManForEachCo( p->pAig, pObj, i )
         {
             pSims = Fra_ObjSim( p, pObj->Id );
-            printf( "%d", Abc_InfoHasBit( pSims, k ) );
+            fprintf( Abc_FrameGlobalGetOut(), "%d", Abc_InfoHasBit( pSims, k ) );
         }
-        printf( "\n" );               ;
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );               ;
     }
 }
 
@@ -996,7 +996,7 @@ Fra_Sml_t * Fra_SmlSimulateCombGiven( Aig_Man_t * pAig, char * pFileName, int fC
         return NULL;
     if ( Vec_StrSize(vSimInfo) % Aig_ManCiNum(pAig) != 0 )
     {
-        printf( "File \"%s\": The number of binary digits (%d) is not divisible by the number of primary inputs (%d).\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "File \"%s\": The number of binary digits (%d) is not divisible by the number of primary inputs (%d).\n", 
             pFileName, Vec_StrSize(vSimInfo), Aig_ManCiNum(pAig) );
         Vec_StrFree( vSimInfo );
         return NULL;
@@ -1102,7 +1102,7 @@ Abc_Cex_t * Fra_SmlGetCounterExample( Fra_Sml_t * p )
     // verify the counter example
     if ( !Saig_ManVerifyCex( p->pAig, pCex ) )
     {
-        printf( "Fra_SmlGetCounterExample(): Counter-example is invalid.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Fra_SmlGetCounterExample(): Counter-example is invalid.\n" );
         Abc_CexFree( pCex );
         pCex = NULL;
     }
@@ -1161,7 +1161,7 @@ Abc_Cex_t * Fra_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, in
     // verify the counter example
     if ( !Saig_ManVerifyCex( pAig, pCex ) )
     {
-        printf( "Fra_SmlGetCounterExample(): Counter-example is invalid.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Fra_SmlGetCounterExample(): Counter-example is invalid.\n" );
         Abc_CexFree( pCex );
         pCex = NULL;
     }

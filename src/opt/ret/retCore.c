@@ -57,7 +57,7 @@ int Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int nDelayLim, int fForwardOnly, 
     nLatchesOld = Abc_NtkLatchNum(pNtk);
     Abc_NtkCleanupSeq(pNtk, 0, 0, 0);
     if ( nNodesOld > Abc_NtkNodeNum(pNtk) || nLatchesOld > Abc_NtkLatchNum(pNtk) )
-        printf( "Cleanup before retiming removed %d dangling nodes and %d dangling latches.\n",
+        fprintf( Abc_FrameGlobalGetOut(), "Cleanup before retiming removed %d dangling nodes and %d dangling latches.\n",
             nNodesOld - Abc_NtkNodeNum(pNtk), nLatchesOld - Abc_NtkLatchNum(pNtk) );
 
     // perform retiming
@@ -89,12 +89,12 @@ int Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int nDelayLim, int fForwardOnly, 
         RetValue = Abc_NtkRetimeLValue( pNtk, 500, fVerbose );
         break;
     default:
-        printf( "Unknown retiming option.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Unknown retiming option.\n" );
         break;
     }
     if ( fVerbose )
     {
-        printf( "Reduction in area = %3d. Reduction in delay = %3d. ", 
+        fprintf( Abc_FrameGlobalGetOut(), "Reduction in area = %3d. Reduction in delay = %3d. ", 
             nLatches - Abc_NtkLatchNum(pNtk), nLevels - Abc_NtkLevel(pNtk) );
         ABC_PRT( "Total runtime", Abc_Clock() - clkTotal );
     }

@@ -101,11 +101,11 @@ void reoReorderArray( reo_man * p, DdManager * dd, DdNode * Funcs[], DdNode * Fu
 
     if ( !p->fThisIsAdd && p->fMinWidth )
     {
-        printf( "An important message from the REO reordering engine:\n" );
-        printf( "The BDD given to the engine for reordering contains complemented edges.\n" );
-        printf( "Currently, such BDDs cannot be reordered for the minimum width.\n" );
-        printf( "Therefore, minimization for the number of BDD nodes is performed.\n" );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "An important message from the REO reordering engine:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The BDD given to the engine for reordering contains complemented edges.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Currently, such BDDs cannot be reordered for the minimum width.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Therefore, minimization for the number of BDD nodes is performed.\n" );
+        fflush( Abc_FrameGlobalGetOut() );
         p->fMinApl   = 0;
         p->fMinWidth = 0;
     }
@@ -119,7 +119,7 @@ void reoReorderArray( reo_man * p, DdManager * dd, DdNode * Funcs[], DdNode * Fu
 
     if ( p->fVerbose )
     {
-        printf( "INITIAL:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "INITIAL:\n" );
         if ( p->fMinWidth )
             reoProfileWidthPrint(p);
         else if ( p->fMinApl )
@@ -138,7 +138,7 @@ void reoReorderArray( reo_man * p, DdManager * dd, DdNode * Funcs[], DdNode * Fu
         // print statistics after each iteration
         if ( p->fVerbose )
         {
-            printf( "ITER #%d:\n", i+1 );
+            fprintf( Abc_FrameGlobalGetOut(), "ITER #%d:\n", i+1 );
             if ( p->fMinWidth )
                 reoProfileWidthPrint(p);
             else if ( p->fMinApl )
@@ -232,13 +232,13 @@ void reoReorderArray( reo_man * p, DdManager * dd, DdNode * Funcs[], DdNode * Fu
             if ( FuncRemapped != Funcs[i] )
             {
                 fVerification = 0;
-                printf( "REO: Internal verification has failed!\n" );
-                fflush( stdout );
+                fprintf( Abc_FrameGlobalGetOut(), "REO: Internal verification has failed!\n" );
+                fflush( Abc_FrameGlobalGetOut() );
             }
             Cudd_RecursiveDeref( dd, FuncRemapped );
         }
         if ( fVerification )
-            printf( "REO: Internal verification is okay!\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "REO: Internal verification is okay!\n" );
 
         if ( p->pOrder == NULL )
             ABC_FREE( pOrder );

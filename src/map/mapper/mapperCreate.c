@@ -197,7 +197,7 @@ Map_Man_t * Map_ManCreate( int nInputs, int nOutputs, int fVerbose )
     // derive the supergate library
     if ( Abc_FrameReadLibSuper() == NULL )
     {
-        printf( "The supergate library is not specified. Use \"read_super\".\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The supergate library is not specified. Use \"read_super\".\n" );
         return NULL;
     }
 
@@ -321,8 +321,8 @@ void Map_ManCreateNodeDelays( Map_Man_t * p, int LogFan )
 ***********************************************************************/
 void Map_ManPrintTimeStats( Map_Man_t * p )
 {
-    printf( "N-canonical = %d. Matchings = %d.  Phases = %d.  ", p->nCanons, p->nMatches, p->nPhases );
-    printf( "Choice nodes = %d. Choices = %d.\n", p->nChoiceNodes, p->nChoices );
+    fprintf( Abc_FrameGlobalGetOut(), "N-canonical = %d. Matchings = %d.  Phases = %d.  ", p->nCanons, p->nMatches, p->nPhases );
+    fprintf( Abc_FrameGlobalGetOut(), "Choice nodes = %d. Choices = %d.\n", p->nChoiceNodes, p->nChoices );
     ABC_PRT( "ToMap", p->timeToMap );
     ABC_PRT( "Cuts ", p->timeCuts  );
     ABC_PRT( "Truth", p->timeTruth );

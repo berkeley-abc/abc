@@ -1979,14 +1979,14 @@ void Kit_TruthCountMintermsPrecomp()
     for ( i = 0; i < 256; i++ )
     {
         if ( i % 8 == 0 )
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         uWord  =  bit_count[i];
         uWord |= (bit_count[i & 0x55] <<  8);
         uWord |= (bit_count[i & 0x33] << 16);
         uWord |= (bit_count[i & 0x0f] << 24);
-        printf( "0x" );
-        Kit_PrintHexadecimal( stdout, &uWord, 5 );
-        printf( ", " );
+        fprintf( Abc_FrameGlobalGetOut(), "0x" );
+        Kit_PrintHexadecimal( Abc_FrameGlobalGetOut(), &uWord, 5 );
+        fprintf( Abc_FrameGlobalGetOut(), ", " );
     }
 }
 
@@ -2136,48 +2136,48 @@ void Kit_TruthPrintProfile_int( unsigned * pTruth, int nVars )
         }
     }
 
-    printf( "\n" );
-    printf( " V: " );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), " V: " );
     for ( v = 0; v < nVars; v++ )
-        printf( "%8c  ", v+'a' );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%8c  ", v+'a' );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( " M: " );
+    fprintf( Abc_FrameGlobalGetOut(), " M: " );
     for ( v = 0; v < nVars; v++ )
-        printf( "%8d  ", Mints[v] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%8d  ", Mints[v] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( " U: " );
+    fprintf( Abc_FrameGlobalGetOut(), " U: " );
     for ( v = 0; v < nVars; v++ )
-        printf( "%8d  ", Unique1[v] );
-    printf( "\n" );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%8d  ", Unique1[v] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
 
-    printf( "Unique:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Unique:\n" );
     for ( i = 0; i < nVars; i++ )
     {
-    printf( " %2d ", i );
+    fprintf( Abc_FrameGlobalGetOut(), " %2d ", i );
     for ( v = 0; v < nVars; v++ )
-        printf( "%8d  ", Unique2[i][v] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%8d  ", Unique2[i][v] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
-    printf( "Common:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Common:\n" );
     for ( i = 0; i < nVars; i++ )
     {
-    printf( " %2d ", i );
+    fprintf( Abc_FrameGlobalGetOut(), " %2d ", i );
     for ( v = 0; v < nVars; v++ )
-        printf( "%8d  ", Common2[i][v] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%8d  ", Common2[i][v] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
-    printf( "Total:\n" );
+    fprintf( Abc_FrameGlobalGetOut(), "Total:\n" );
     for ( i = 0; i < nVars; i++ )
     {
-    printf( " %2d ", i );
+    fprintf( Abc_FrameGlobalGetOut(), " %2d ", i );
     for ( v = 0; v < nVars; v++ )
-        printf( "%8d  ", Total2[i][v] );
-    printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "%8d  ", Total2[i][v] );
+    fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 
     ABC_FREE( pIn );

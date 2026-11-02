@@ -232,8 +232,8 @@ static inline int Smt_StrToType( char * pName, int * pfSigned )
 //        Type = WLC_OBJ_TABLE;         // 43: bit table
     else
     {
-        printf( "The following operations is currently not supported (%s)\n", pName );
-        fflush( stdout );
+        fprintf( Abc_FrameGlobalGetOut(), "The following operations is currently not supported (%s)\n", pName );
+        fflush( Abc_FrameGlobalGetOut() );
     }
     return Type;
 }
@@ -813,7 +813,7 @@ Wlc_Ntk_t * Smt_PrsBuild( Smt_Prs_t * p )
         Fan = Vec_IntEntry(vFans2, 0);
         assert( Smt_EntryIsName(Fan) );
         if ( Abc_Lit2Var(Fan) >= SMT_PRS_END )
-            printf( "Ignoring directive \"%s\".\n", Smt_EntryName(p, Fan) );
+            fprintf( Abc_FrameGlobalGetOut(), "Ignoring directive \"%s\".\n", Smt_EntryName(p, Fan) );
     }
     // start network and create primary inputs
     pNtk = Wlc_NtkAlloc( p->pName, 1000 );
@@ -1474,7 +1474,7 @@ Wlc_Ntk_t * Smt_PrsBuild2( Smt_Prs_t * p )
         }
         // issue warnings about unknown dirs
         else if ( Abc_Lit2Var(Fan) >= SMT_PRS_END )
-            printf( "Ignoring directive \"%s\".\n", Smt_EntryName(p, Fan) );
+            fprintf( Abc_FrameGlobalGetOut(), "Ignoring directive \"%s\".\n", Smt_EntryName(p, Fan) );
     }
     // build AND of asserts
     if ( Vec_IntSize(vAsserts) == 1 )
@@ -1527,7 +1527,7 @@ static inline int Smt_PrsErrorPrint( Smt_Prs_t * p )
     if ( !p->ErrorStr[0] ) return 1;
     for ( pThis = p->pBuffer; pThis < p->pCur; pThis++ )
         iLine += (int)(*pThis == '\n');
-    printf( "Line %d: %s\n", iLine, p->ErrorStr );
+    fprintf( Abc_FrameGlobalGetOut(), "Line %d: %s\n", iLine, p->ErrorStr );
     return 0;
 }
 static inline char * Smt_PrsLoadFile( char * pFileName, char ** ppLimit )
@@ -1537,7 +1537,7 @@ static inline char * Smt_PrsLoadFile( char * pFileName, char ** ppLimit )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open input file.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open input file.\n" );
         return NULL;
     }
     // get the file size, in bytes
@@ -1589,9 +1589,9 @@ static inline int Smt_PrsRemoveComments( char * pBuffer, char * pLimit )
     }
     
     if ( nCount1 != nCount2 )
-        printf( "The input SMTLIB file has different number of opening and closing parentheses (%d and %d).\n", nCount1, nCount2 );
+        fprintf( Abc_FrameGlobalGetOut(), "The input SMTLIB file has different number of opening and closing parentheses (%d and %d).\n", nCount1, nCount2 );
     else if ( nCount1 == 0 )
-        printf( "The input SMTLIB file has no opening or closing parentheses.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The input SMTLIB file has no opening or closing parentheses.\n" );
     return nCount1 == nCount2 ? nCount1 : 0;
 }
 static inline Smt_Prs_t * Smt_PrsAlloc( char * pFileName, char * pBuffer, char * pLimit, int nObjs )
@@ -1718,19 +1718,19 @@ void Smt_PrsReadLines( Smt_Prs_t * p )
 void Smt_PrsPrintParser_rec( Smt_Prs_t * p, int iObj, int Depth )
 {
     Vec_Int_t * vFans; int i, Fan;
-    printf( "%*s(\n", Depth, "" );
+    fprintf( Abc_FrameGlobalGetOut(), "%*s(\n", Depth, "" );
     vFans = Vec_WecEntry( &p->vObjs, iObj );
     Vec_IntForEachEntry( vFans, Fan, i )
     {
         if ( Abc_LitIsCompl(Fan) )
         {
-            printf( "%*s", Depth+2, "" );
-            printf( "%s\n", Abc_NamStr(p->pStrs, Abc_Lit2Var(Fan)) );
+            fprintf( Abc_FrameGlobalGetOut(), "%*s", Depth+2, "" );
+            fprintf( Abc_FrameGlobalGetOut(), "%s\n", Abc_NamStr(p->pStrs, Abc_Lit2Var(Fan)) );
         }
         else
             Smt_PrsPrintParser_rec( p, Abc_Lit2Var(Fan), Depth+4 );
     }
-    printf( "%*s)\n", Depth, "" );
+    fprintf( Abc_FrameGlobalGetOut(), "%*s)\n", Depth, "" );
 }
 void Smt_PrsPrintParser( Smt_Prs_t * p )
 {

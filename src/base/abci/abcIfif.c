@@ -169,16 +169,16 @@ float Abc_ObjDelay1( Abc_IffMan_t * p, Abc_Obj_t * pObj )
     // print verbose results
     if ( fVeryVerbose )
     {
-        printf( "Object %d   Level %d\n", Abc_ObjId(pObj), Abc_ObjLevel(pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "Object %d   Level %d\n", Abc_ObjId(pObj), Abc_ObjLevel(pObj) );
         for ( i = 0; i < Abc_ObjFaninNum(pObj); i++ )
         {
-            printf( "Fanin %d : ", i );
-            printf( "D0 %3.2f  ",      Abc_IffDelay(p, ppNodes[i], 0) );
-            printf( "D0* %3.2f     ",  Abc_IffDelay(p, ppNodes[i], 0) + p->pPars->pLutDelays[i] - p->pPars->DelayWire );
-            printf( "D1 %3.2f",        Abc_IffDelay(p, ppNodes[i], 1) + p->pPars->pLutDelays[i] );
-            printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Fanin %d : ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "D0 %3.2f  ",      Abc_IffDelay(p, ppNodes[i], 0) );
+            fprintf( Abc_FrameGlobalGetOut(), "D0* %3.2f     ",  Abc_IffDelay(p, ppNodes[i], 0) + p->pPars->pLutDelays[i] - p->pPars->DelayWire );
+            fprintf( Abc_FrameGlobalGetOut(), "D1 %3.2f",        Abc_IffDelay(p, ppNodes[i], 1) + p->pPars->pLutDelays[i] );
+            fprintf( Abc_FrameGlobalGetOut(), "\n" );
         }
-        printf( "\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
 /*
     // for the first nDegree delays, sort them by the minimum Delay1+LutDelay and Delay0-Wire+LutDelay
@@ -270,12 +270,12 @@ void Abc_NtkPerformIfif( Abc_Ntk_t * pNtk, Ifif_Par_t * pPars )
     // print parameters
     if ( pPars->fVerbose )
     {
-        printf( "Running mapper into LUT structures with the following parameters:\n" );
-        printf( "Pin+Wire: {" );
+        fprintf( Abc_FrameGlobalGetOut(), "Running mapper into LUT structures with the following parameters:\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Pin+Wire: {" );
         for ( i = 0; i < pPars->pLutLib->LutMax; i++ )
-            printf( " %3.2f", pPars->pLutDelays[i] );
-        printf( " }  " );    
-        printf( "Wire %3.2f  Degree %d  Type: %s\n", 
+            fprintf( Abc_FrameGlobalGetOut(), " %3.2f", pPars->pLutDelays[i] );
+        fprintf( Abc_FrameGlobalGetOut(), " }  " );    
+        fprintf( Abc_FrameGlobalGetOut(), "Wire %3.2f  Degree %d  Type: %s\n", 
             pPars->DelayWire, pPars->nDegree, pPars->fCascade? "Cascade" : "Cluster" );
     }
 
@@ -311,10 +311,10 @@ void Abc_NtkPerformIfif( Abc_Ntk_t * pNtk, Ifif_Par_t * pPars )
     if ( p->pPars->fVeryVerbose )
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
-        printf( "Node %3d : Lev =%3d   ",  Abc_ObjId(pObj), Abc_ObjLevel(pObj) );
+        fprintf( Abc_FrameGlobalGetOut(), "Node %3d : Lev =%3d   ",  Abc_ObjId(pObj), Abc_ObjLevel(pObj) );
         for ( d = 0; d <= DegreeFinal; d++ )
-            printf( "Del%d =%4.2f  ", d, Abc_IffDelay(p, pObj, d) );
-        printf( "\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Del%d =%4.2f  ", d, Abc_IffDelay(p, pObj, d) );
+        fprintf( Abc_FrameGlobalGetOut(), "\n" );
     }
     Vec_PtrFree( vNodes );
 
@@ -331,7 +331,7 @@ void Abc_NtkPerformIfif( Abc_Ntk_t * pNtk, Ifif_Par_t * pPars )
         if ( Abc_IffDelay(p, Abc_ObjFanin0(pObj), DegreeFinal) >= Delay10 )
             Count10++;
 
-    printf( "Critical delay %5.2f. Critical outputs %5.2f %%\n", Delay, 100.0 * Count10 / Abc_NtkCoNum(pNtk) );
+    fprintf( Abc_FrameGlobalGetOut(), "Critical delay %5.2f. Critical outputs %5.2f %%\n", Delay, 100.0 * Count10 / Abc_NtkCoNum(pNtk) );
 //    printf( "%.2f %.2f\n", Delay, 100.0 * Count10 / Abc_NtkCoNum(pNtk) );
 
     // derive a new network

@@ -203,7 +203,7 @@ void Acec_DetectBoothTest( Gia_Man_t * p )
     {        
         if ( !Acec_DetectBoothOne(p, pObj, pIns) && !Acec_DetectBoothTwo(p, pObj, pIns) )
                 continue;
-        printf( "obj = %4d  :  b0 = %4d  b1 = %4d  b2 = %4d    a0 = %4d  a1 = %4d\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "obj = %4d  :  b0 = %4d  b1 = %4d  b2 = %4d    a0 = %4d  a1 = %4d\n", 
             i, pIns[0], pIns[1], pIns[2], pIns[3], pIns[4] );
     }
 }
@@ -240,7 +240,7 @@ void Gia_ManResubTest4()
             }
         }
     }
-    printf( "Size = %d.\n", Vec_IntSize(vRes) );
+    fprintf( Abc_FrameGlobalGetOut(), "Size = %d.\n", Vec_IntSize(vRes) );
     for ( i = 0; i < (1 << Vec_IntSize(vRes)); i++ )
     {
         unsigned F[7] = {0};
@@ -265,10 +265,10 @@ void Gia_ManResubTest4()
         }
         for ( y = 0; y < 3; y++ )
             if ( Y[y] == T )
-                printf( "Found!\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Found!\n" );
         Count++;
     }
-    printf( "Tried = %d.\n", Count );
+    fprintf( Abc_FrameGlobalGetOut(), "Tried = %d.\n", Count );
     Vec_IntFree( vRes );
 }
 void Gia_ManResubTest5()

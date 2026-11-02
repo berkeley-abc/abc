@@ -641,7 +641,7 @@ int Bbl_ManFileSize( char * pFileName )
     pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
     {
-        printf( "Bbl_ManFileSize(): The file is unavailable (absent or open).\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Bbl_ManFileSize(): The file is unavailable (absent or open).\n" );
         return 0;
     }
     fseek( pFile, 0, SEEK_END );  
@@ -755,10 +755,10 @@ void Bbl_ManPrintStats( Bbl_Man_t * p )
         nObjs++, nNodes += Bbl_ObjIsNode(pObj);
     Bbl_ManForEachFnc_int( p->pFncs, pFnc, h )
         nFuncs++;
-    printf( "Total objects = %7d.  Total nodes = %7d. Unique functions = %7d.\n", nObjs, nNodes, nFuncs );
-    printf( "Name manager = %5.2f MB\n", 1.0*Vec_StrSize(p->pName)/(1 << 20) );
-    printf( "Objs manager = %5.2f MB\n", 1.0*Vec_StrSize(p->pObjs)/(1 << 20) );
-    printf( "Fncs manager = %5.2f MB\n", 1.0*Vec_StrSize(p->pFncs)/(1 << 20) );
+    fprintf( Abc_FrameGlobalGetOut(), "Total objects = %7d.  Total nodes = %7d. Unique functions = %7d.\n", nObjs, nNodes, nFuncs );
+    fprintf( Abc_FrameGlobalGetOut(), "Name manager = %5.2f MB\n", 1.0*Vec_StrSize(p->pName)/(1 << 20) );
+    fprintf( Abc_FrameGlobalGetOut(), "Objs manager = %5.2f MB\n", 1.0*Vec_StrSize(p->pObjs)/(1 << 20) );
+    fprintf( Abc_FrameGlobalGetOut(), "Fncs manager = %5.2f MB\n", 1.0*Vec_StrSize(p->pFncs)/(1 << 20) );
 }
 
 /**Fnction*************************************************************
@@ -990,12 +990,12 @@ void Bbl_ManCreateObject( Bbl_Man_t * p, Bbl_Type_t Type, int ObjId, int nFanins
     Bbl_Obj_t * pObj;
     if ( Type == BBL_OBJ_CI && nFanins != 0 )
     {
-        printf( "Attempting to create a combinational input with %d fanins (should be 0).\n", nFanins );
+        fprintf( Abc_FrameGlobalGetOut(), "Attempting to create a combinational input with %d fanins (should be 0).\n", nFanins );
         return;
     }
     if ( Type == BBL_OBJ_CO && nFanins != 1 )
     {
-        printf( "Attempting to create a combinational output with %d fanins (should be 1).\n", nFanins );
+        fprintf( Abc_FrameGlobalGetOut(), "Attempting to create a combinational output with %d fanins (should be 1).\n", nFanins );
         return;
     }
     pObj = (Bbl_Obj_t *)Vec_StrFetch( p->pObjs, sizeof(Bbl_Obj_t) + nFanins * sizeof(int) );
@@ -1027,19 +1027,19 @@ void Bbl_ManAddFanin( Bbl_Man_t * p, int ObjId, int FaninId )
     pObj   = Bbl_ManObj( p, ObjId );
     if ( Bbl_ObjIsCi(pObj) )
     {
-        printf( "Bbl_ManAddFanin(): Cannot add fanin of the combinational input (Id = %d).\n", ObjId );
+        fprintf( Abc_FrameGlobalGetOut(), "Bbl_ManAddFanin(): Cannot add fanin of the combinational input (Id = %d).\n", ObjId );
         return;
     }
     pFanin = Bbl_ManObj( p, FaninId );
     if ( Bbl_ObjIsCo(pFanin) )
     {
-        printf( "Bbl_ManAddFanin(): Cannot add fanout of the combinational output (Id = %d).\n", FaninId );
+        fprintf( Abc_FrameGlobalGetOut(), "Bbl_ManAddFanin(): Cannot add fanout of the combinational output (Id = %d).\n", FaninId );
         return;
     }
     iFanin = Vec_IntEntry( p->vFaninNums, ObjId );
     if ( iFanin >= (int)pObj->nFanins )
     {
-        printf( "Bbl_ManAddFanin(): Trying to add more fanins to object (Id = %d) than declared (%d).\n", ObjId, pObj->nFanins );
+        fprintf( Abc_FrameGlobalGetOut(), "Bbl_ManAddFanin(): Trying to add more fanins to object (Id = %d) than declared (%d).\n", ObjId, pObj->nFanins );
         return;
     }
     assert( iFanin < (int)pObj->nFanins );
@@ -1066,13 +1066,13 @@ int Bbl_ManCheck( Bbl_Man_t * p )
     Bbl_ManForEachObj_int( p->pObjs, pObj, h )
     {
         if ( Bbl_ObjIsNode(pObj) && pObj->Fnc == -1 )
-            RetValue = 0, printf( "Bbl_ManCheck(): Node %d does not have function specified.\n", pObj->Id );
+            RetValue = 0, fprintf( Abc_FrameGlobalGetOut(), "Bbl_ManCheck(): Node %d does not have function specified.\n", pObj->Id );
         if ( Bbl_ObjIsCi(pObj) && pObj->Fnc != -1 )
-            RetValue = 0, printf( "Bbl_ManCheck(): CI with %d has function specified.\n", pObj->Id );
+            RetValue = 0, fprintf( Abc_FrameGlobalGetOut(), "Bbl_ManCheck(): CI with %d has function specified.\n", pObj->Id );
         if ( Bbl_ObjIsCo(pObj) && pObj->Fnc != -1 )
-            RetValue = 0, printf( "Bbl_ManCheck(): CO with %d has function specified.\n", pObj->Id );
+            RetValue = 0, fprintf( Abc_FrameGlobalGetOut(), "Bbl_ManCheck(): CO with %d has function specified.\n", pObj->Id );
         if ( Vec_IntEntry(p->vFaninNums, pObj->Id) != (int)pObj->nFanins )
-            RetValue = 0, printf( "Bbl_ManCheck(): Object %d has less fanins (%d) than declared (%d).\n", 
+            RetValue = 0, fprintf( Abc_FrameGlobalGetOut(), "Bbl_ManCheck(): Object %d has less fanins (%d) than declared (%d).\n", 
                 pObj->Id, Vec_IntEntry(p->vFaninNums, pObj->Id), pObj->nFanins );
     }
     return RetValue;
@@ -1368,7 +1368,7 @@ unsigned * Bbl_ManSopToTruth( char * pSop, int nVars )
         return NULL;
     if ( strlen(pSop) % (nVars + 3) != 0 )
     {
-        printf( "Bbl_ManSopToTruth(): SOP is represented incorrectly.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Bbl_ManSopToTruth(): SOP is represented incorrectly.\n" );
         return NULL;
     }
     // create storage for TTs of the result, elementary variables and the temp cube
@@ -1425,8 +1425,8 @@ void Bbl_ManTestTruth( char * pSop, int nVars )
     char * pSopNew;
     pTruth = Bbl_ManSopToTruth( pSop, nVars );
     pSopNew = Bbl_ManTruthToSop( pTruth, nVars );
-    printf( "Old SOP:\n%s\n", pSop );
-    printf( "New SOP:\n%s\n", pSopNew );
+    fprintf( Abc_FrameGlobalGetOut(), "Old SOP:\n%s\n", pSop );
+    fprintf( Abc_FrameGlobalGetOut(), "New SOP:\n%s\n", pSopNew );
     BBLIF_FREE( pSopNew );
     BBLIF_FREE( pTruth );
 }

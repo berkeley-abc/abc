@@ -196,19 +196,19 @@ void Abc_DesPrint( Abc_Des_t * p )
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pObj;
     int i, k;
-    printf( "Models of design %s:\n", p->pName );
+    fprintf( Abc_FrameGlobalGetOut(), "Models of design %s:\n", p->pName );
     Vec_PtrForEachEntry( Abc_Ntk_t *, p->vModules, pNtk, i )
     {
-        printf( "%2d : %20s   ", i+1, pNtk->pName );
-        printf( "nd = %6d   lat = %6d   whitebox = %3d   blackbox = %3d\n", 
+        fprintf( Abc_FrameGlobalGetOut(), "%2d : %20s   ", i+1, pNtk->pName );
+        fprintf( Abc_FrameGlobalGetOut(), "nd = %6d   lat = %6d   whitebox = %3d   blackbox = %3d\n", 
             Abc_NtkNodeNum(pNtk), Abc_NtkLatchNum(pNtk), 
             Abc_NtkWhiteboxNum(pNtk), Abc_NtkBlackboxNum(pNtk) );
         if ( Abc_NtkBlackboxNum(pNtk) == 0 )
             continue;
         Abc_NtkForEachWhitebox( pNtk, pObj, k )
-            printf( "     %20s (whitebox)\n", Abc_NtkName((Abc_Ntk_t *)pObj->pData) );
+            fprintf( Abc_FrameGlobalGetOut(), "     %20s (whitebox)\n", Abc_NtkName((Abc_Ntk_t *)pObj->pData) );
         Abc_NtkForEachBlackbox( pNtk, pObj, k )
-            printf( "     %20s (blackbox)\n", Abc_NtkName((Abc_Ntk_t *)pObj->pData) );
+            fprintf( Abc_FrameGlobalGetOut(), "     %20s (blackbox)\n", Abc_NtkName((Abc_Ntk_t *)pObj->pData) );
     }
 }
 
@@ -271,7 +271,7 @@ Abc_Ntk_t * Abc_DesDeriveRoot( Abc_Des_t * p )
     Abc_Ntk_t * pNtk;
     if ( Vec_PtrSize(p->vModules) > 1 )
     {
-        printf( "The design includes more than one module and is currently not used.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The design includes more than one module and is currently not used.\n" );
         return NULL;
     }
     pNtk = (Abc_Ntk_t *)Vec_PtrEntry( p->vModules, 0 );  Vec_PtrClear( p->vModules );

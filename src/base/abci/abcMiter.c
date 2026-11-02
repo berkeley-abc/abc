@@ -109,7 +109,7 @@ Abc_Ntk_t * Abc_NtkMiterInt( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb, in
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkMiter ) )
     {
-        printf( "Abc_NtkMiter: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkMiter: The network check has failed.\n" );
         Abc_NtkDelete( pNtkMiter );
         return NULL;
     }
@@ -427,7 +427,7 @@ Abc_Ntk_t * Abc_NtkMiterAnd( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fOr, int 
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkMiter ) )
     {
-        printf( "Abc_NtkMiterAnd: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkMiterAnd: The network check has failed.\n" );
         Abc_NtkDelete( pNtkMiter );
         return NULL;
     }
@@ -497,7 +497,7 @@ Abc_Ntk_t * Abc_NtkMiterCofactor( Abc_Ntk_t * pNtk, Vec_Int_t * vPiValues )
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkMiter ) )
     {
-        printf( "Abc_NtkMiterCofactor: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkMiterCofactor: The network check has failed.\n" );
         Abc_NtkDelete( pNtkMiter );
         return NULL;
     }
@@ -563,7 +563,7 @@ Abc_Ntk_t * Abc_NtkMiterForCofactors( Abc_Ntk_t * pNtk, int Out, int In1, int In
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkMiter ) )
     {
-        printf( "Abc_NtkMiter: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkMiter: The network check has failed.\n" );
         Abc_NtkDelete( pNtkMiter );
         return NULL;
     }
@@ -627,7 +627,7 @@ Abc_Ntk_t * Abc_NtkMiterQuantify( Abc_Ntk_t * pNtk, int In, int fExist )
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkMiter ) )
     {
-        printf( "Abc_NtkMiter: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkMiter: The network check has failed.\n" );
         Abc_NtkDelete( pNtkMiter );
         return NULL;
     }
@@ -734,28 +734,28 @@ void Abc_NtkMiterReport( Abc_Ntk_t * pMiter )
         if ( Abc_AigNodeIsConst(pChild) )
         {
             if ( Abc_ObjIsComplement(pChild) )
-                printf( "Unsatisfiable.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Unsatisfiable.\n" );
             else
-                printf( "Satisfiable. (Constant 1).\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Satisfiable. (Constant 1).\n" );
         }
         else
-            printf( "Satisfiable.\n" );
+            fprintf( Abc_FrameGlobalGetOut(), "Satisfiable.\n" );
     }
     else
     {
         Abc_NtkForEachPo( pMiter, pNode, i )
         {
             pChild = Abc_ObjChild0( Abc_NtkPo(pMiter,i) );
-            printf( "Output #%2d : ", i );
+            fprintf( Abc_FrameGlobalGetOut(), "Output #%2d : ", i );
             if ( Abc_AigNodeIsConst(pChild) )
             {
                 if ( Abc_ObjIsComplement(pChild) )
-                    printf( "Unsatisfiable.\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Unsatisfiable.\n" );
                 else
-                    printf( "Satisfiable. (Constant 1).\n" );
+                    fprintf( Abc_FrameGlobalGetOut(), "Satisfiable. (Constant 1).\n" );
             }
             else
-                printf( "Satisfiable.\n" );
+                fprintf( Abc_FrameGlobalGetOut(), "Satisfiable.\n" );
         }
     }
 }
@@ -812,11 +812,11 @@ Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial, int fVer
                 pLatchOut->pCopy = Abc_ObjNotCond( Abc_AigConst1(pNtkFrames), Abc_LatchIsInit0(pLatch) );
         }
         if ( Counter )
-            printf( "Warning: %d uninitialized latches are replaced by free PI variables.\n", Counter );
+            fprintf( Abc_FrameGlobalGetOut(), "Warning: %d uninitialized latches are replaced by free PI variables.\n", Counter );
     }
     
     // create the timeframes
-    pProgress = Extra_ProgressBarStart( stdout, nFrames );
+    pProgress = Extra_ProgressBarStart( Abc_FrameGlobalGetOut(), nFrames );
     for ( i = 0; i < nFrames; i++ )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -839,7 +839,7 @@ Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial, int fVer
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkFrames ) )
     {
-        printf( "Abc_NtkFrames: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkFrames: The network check has failed.\n" );
         Abc_NtkDelete( pNtkFrames );
         return NULL;
     }
@@ -888,7 +888,7 @@ void Abc_NtkAddFrame( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame )
         Abc_ObjFanout0(pLatch)->pCopy = pLatch->pCopy;
     // nodes after
     if ( fVerbose )
-    printf( "F = %4d : Total = %6d. Nodes = %6d. Prop = %s.\n", 
+    fprintf( Abc_FrameGlobalGetOut(), "F = %4d : Total = %6d. Nodes = %6d. Prop = %s.\n", 
         iFrame, Abc_NtkNodeNum(pNtk), Abc_NtkNodeNum(pNtkFrames)-NodeBef, 
         Abc_AigNodeIsConst( Abc_ObjFanin0(Abc_NtkPo(pNtk,0))->pCopy ) ? "proof" : "unknown" );
 }
@@ -1095,7 +1095,7 @@ int Abc_NtkDemiter( Abc_Ntk_t * pNtk )
     assert( Abc_NtkPoNum(pNtk) == 1 );
     if ( !Abc_NodeIsExorType(Abc_ObjFanin0(Abc_NtkPo(pNtk,0))) )
     {
-        printf( "The root of the miter is not an EXOR gate.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "The root of the miter is not an EXOR gate.\n" );
         return 0;
     }
     pNodeC = Abc_NodeRecognizeMux( Abc_ObjFanin0(Abc_NtkPo(pNtk,0)), &pNodeA, &pNodeB );
@@ -1129,7 +1129,7 @@ int Abc_NtkDemiter( Abc_Ntk_t * pNtk )
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes1, pNode, i )
         pNode->fMarkA = 0;
 
-    printf( "First cone = %6d.  Second cone = %6d.  Common = %6d.\n", vNodes1->nSize, vNodes2->nSize, nCommon );
+    fprintf( Abc_FrameGlobalGetOut(), "First cone = %6d.  Second cone = %6d.  Common = %6d.\n", vNodes1->nSize, vNodes2->nSize, nCommon );
     Vec_PtrFree( vNodes1 );
     Vec_PtrFree( vNodes2 );
 
@@ -1137,7 +1137,7 @@ int Abc_NtkDemiter( Abc_Ntk_t * pNtk )
     Abc_NtkOrderCisCos( pNtk );
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtk ) )
-        printf( "Abc_NtkDemiter: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkDemiter: The network check has failed.\n" );
     return 1;
 }
 
@@ -1185,7 +1185,7 @@ int Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd, int fXor )
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtk ) )
     {
-        printf( "Abc_NtkOrPos: The network check has failed.\n" );
+        fprintf( Abc_FrameGlobalGetOut(), "Abc_NtkOrPos: The network check has failed.\n" );
         return 0;
     }
     return 1;
@@ -1239,7 +1239,7 @@ Vec_Ptr_t * Abc_NtkTryNewMiter( char * pFileName0, char * pFileName1 )
         if ( status == l_False )
             continue;
         Vec_PtrWriteEntry( vCexes, i, Sat_SolverGetModel(pSat, pVars, nVars) );
-        printf( "Output %3d (out of %3d) is SAT.\n", i, Gia_ManPoNum(pGia) );
+        fprintf( Abc_FrameGlobalGetOut(), "Output %3d (out of %3d) is SAT.\n", i, Gia_ManPoNum(pGia) );
     }
     Gia_ManStop( pGia );
     sat_solver_delete( pSat );
@@ -1265,7 +1265,7 @@ Vec_Ptr_t * Abc_NtkReadNodeNames( Abc_Ntk_t * pNtk, char * pFileName )
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open node list \"%s\".\n", pFileName );
+        fprintf( Abc_FrameGlobalGetOut(), "Cannot open node list \"%s\".\n", pFileName );
         return NULL;
     }
     vNodes = Vec_PtrAlloc( 100 );
@@ -1277,7 +1277,7 @@ Vec_Ptr_t * Abc_NtkReadNodeNames( Abc_Ntk_t * pNtk, char * pFileName )
             Abc_Obj_t * pObj = Abc_NtkFindNode( pNtk, pToken );
             if ( pObj == NULL )
             {
-                printf( "Cannot find node \"%s\".\n", pToken );
+                fprintf( Abc_FrameGlobalGetOut(), "Cannot find node \"%s\".\n", pToken );
                 Vec_PtrFree( vNodes );
                 fclose( pFile );
                 return NULL;
