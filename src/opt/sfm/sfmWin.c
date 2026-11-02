@@ -352,6 +352,54 @@ int Sfm_NtkCollectTfi_rec( Sfm_Ntk_t * p, int iNode, Vec_Int_t * vNodes )
     Vec_IntPush( vNodes, iNode );
     return p->pPars->nWinSizeMax && (Vec_IntSize(vNodes) > p->pPars->nWinSizeMax);
 }
+/**Function*************************************************************
+
+  Synopsis    [Checks new divisors against the physical order of boxes.]
+
+  Description [Fanout limits are maintained incrementally. The candidate
+  dependency cache is refreshed for each window after resubstitution.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Sfm_NtkBoxOrder_rec( Sfm_Ntk_t * p, int iObj )
+{
+    int i, iFan, Pin = Vec_IntEntry(p->vBoxPins, iObj);
+    int Mark = Vec_IntEntry(p->vBoxMarks, iObj);
+    if ( Pin < 0 )
+        return -Pin < p->iBoxLimit;
+    if ( Mark == p->nBoxTravId || Mark == -p->nBoxTravId )
+        return Mark > 0;
+    Sfm_ObjForEachFanin( p, iObj, iFan, i )
+        if ( !Sfm_NtkBoxOrder_rec(p, iFan) )
+        {
+            Vec_IntWriteEntry( p->vBoxMarks, iObj, -p->nBoxTravId );
+            return 0;
+        }
+    Vec_IntWriteEntry( p->vBoxMarks, iObj, p->nBoxTravId );
+    return 1;
+}
+int Sfm_NtkCheckBoxOrder( Sfm_Ntk_t * p, int iDiv )
+{
+    if ( p->iBoxLimit == p->nObjs || Sfm_NtkBoxOrder_rec(p, iDiv) )
+        return 1;
+    p->nBoxRejects++;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the resubstitution window and eligible divisors.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
 {
     int i, k, iTemp;
@@ -359,6 +407,15 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
 
     assert( Sfm_ObjIsNode( p, iNode ) );
     p->iPivotNode = iNode;
+    if ( p->vBoxPins )
+    {
+        p->iBoxLimit = Vec_IntEntry( p->vBoxLimits, iNode );
+        if ( ++p->nBoxTravId == ABC_INFINITY )
+        {
+            Vec_IntFill( p->vBoxMarks, p->nObjs, 0 );
+            p->nBoxTravId = 1;
+        }
+    }
     Vec_IntClear( p->vNodes );  // internal
     Vec_IntClear( p->vDivs );   // divisors
     Vec_IntClear( p->vRoots );  // roots

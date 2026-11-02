@@ -78,6 +78,7 @@ void Dar_ManDefaultRwrParams( Dar_RwrPar_t * pPars )
 ***********************************************************************/
 int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
 {
+    if ( pPars->nResubCutSize ) return Dar_ManResubRewrite( pAig, pPars );
     extern Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * p, int nFrames, int nPref, int fProbOne );
     int fVerbose = pPars->fVerbose;
     Dar_Man_t * p;

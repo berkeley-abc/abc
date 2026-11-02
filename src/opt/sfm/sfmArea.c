@@ -216,16 +216,36 @@ int Abc_ObjHasDupFanouts( Abc_Obj_t * pObj )
                 return 1;
     return 0;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Finds polarity data for a represented library cell.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int * Abc_ObjChangeInfo( Abc_Obj_t * pObj, Vec_Int_t * vInfo, Vec_Int_t * vFirst )
+{
+    int iCell = Mio_GateReadCell( (Mio_Gate_t *)pObj->pData );
+    // The table contains only the selected representative of each function.
+    // Other cells can occur in the network, including after inverter absorption.
+    if ( iCell < 0 || iCell >= Vec_IntSize(vFirst) || Vec_IntEntry(vFirst, iCell) < 0 )
+        return NULL;
+    return Vec_IntEntryP( vInfo, Vec_IntEntry(vFirst, iCell) );
+}
 int Abc_ObjChangeEval( Abc_Obj_t * pObj, Vec_Int_t * vInfo, Vec_Int_t * vFirst, int InvArea, int * pfUseInv )
 {
     Abc_Obj_t * pNext;
     //Mio_Gate_t * pGate = (Mio_Gate_t *)pObj->pData;
-    int iFanCell, iNodeCell = Mio_GateReadCell( (Mio_Gate_t *)pObj->pData );
-    int * pFanInfo, * pNodeInfo = Vec_IntEntryP( vInfo, Vec_IntEntry(vFirst, iNodeCell) );
+    int * pFanInfo, * pNodeInfo = Abc_ObjChangeInfo( pObj, vInfo, vFirst );
     int i, fNeedInv = 0, Gain = 0, iFanin = Abc_ObjFaninNum(pObj), fUseInv = Abc_NodeIsInv(pObj);
     assert( iFanin > 0 );
     *pfUseInv = 0;
-    if ( pNodeInfo[3*iFanin] == -1 )
+    if ( pNodeInfo == NULL || pNodeInfo[3*iFanin] == -1 )
         return 0;
     if ( fUseInv )
         Gain = InvArea;
@@ -249,10 +269,9 @@ int Abc_ObjChangeEval( Abc_Obj_t * pObj, Vec_Int_t * vInfo, Vec_Int_t * vFirst, 
             Gain += InvArea;
             continue;
         }
-        iFanCell = Mio_GateReadCell( (Mio_Gate_t *)pNext->pData );
-        pFanInfo = Vec_IntEntryP( vInfo, Vec_IntEntry(vFirst, iFanCell) );
+        pFanInfo = Abc_ObjChangeInfo( pNext, vInfo, vFirst );
         iFanin   = Abc_NodeFindFanin( pNext, pObj );
-        if ( pFanInfo[3*iFanin] == -1 )
+        if ( pFanInfo == NULL || pFanInfo[3*iFanin] == -1 )
         {
             fNeedInv = 1;
             continue;
@@ -281,10 +300,9 @@ void Abc_ObjChangeUpdate( Abc_Obj_t * pObj, int iFanin, Mio_Cell2_t * pCells, in
 void Abc_ObjChangePerform( Abc_Obj_t * pObj, Vec_Int_t * vInfo, Vec_Int_t * vFirst, int fUseInv, Vec_Int_t * vTemp, Vec_Ptr_t * vFanout, Vec_Ptr_t * vFanout2, Mio_Cell2_t * pCells )
 {
     Abc_Obj_t * pNext, * pNext2, * pNodeInv = NULL;
-    int iFanCell, iNodeCell = Mio_GateReadCell( (Mio_Gate_t *)pObj->pData );
-    int * pFanInfo, * pNodeInfo = Vec_IntEntryP( vInfo, Vec_IntEntry(vFirst, iNodeCell) );
+    int * pFanInfo, * pNodeInfo = Abc_ObjChangeInfo( pObj, vInfo, vFirst );
     int i, k, iFanin = Abc_ObjFaninNum(pObj);
-    assert( iFanin > 0 && pNodeInfo[3*iFanin] != -1 );
+    assert( iFanin > 0 && pNodeInfo != NULL && pNodeInfo[3*iFanin] != -1 );
     // update the node
     Abc_NodeCollectFanouts( pObj, vFanout );
     if ( Abc_NodeIsInv(pObj) )
@@ -320,9 +338,8 @@ void Abc_ObjChangePerform( Abc_Obj_t * pObj, Vec_Int_t * vInfo, Vec_Int_t * vFir
             continue;
         }
         iFanin   = Abc_NodeFindFanin( pNext, pObj );
-        iFanCell = Mio_GateReadCell( (Mio_Gate_t *)pNext->pData );
-        pFanInfo = Vec_IntEntryP( vInfo, Vec_IntEntry(vFirst, iFanCell) );
-        if ( pFanInfo[3*iFanin] == -1 )
+        pFanInfo = Abc_ObjChangeInfo( pNext, vInfo, vFirst );
+        if ( pFanInfo == NULL || pFanInfo[3*iFanin] == -1 )
         {
             Abc_ObjPatchFanin( pNext, pObj, pNodeInv );
             continue;
@@ -330,7 +347,82 @@ void Abc_ObjChangePerform( Abc_Obj_t * pObj, Vec_Int_t * vInfo, Vec_Int_t * vFir
         Abc_ObjChangeUpdate( pNext, iFanin, pCells, pFanInfo, vTemp );
     }
 }
-void Abc_NtkChangePerform( Abc_Ntk_t * pNtk, int fVerbose )
+
+/**Function*************************************************************
+
+  Synopsis    [Checks timing of a proposed gate-polarity change.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Abc_ObjChangeCheckTiming( Abc_Obj_t * pObj, Vec_Int_t * vInfo, Vec_Int_t * vFirst, int fUseInv, Mio_Cell2_t * pCells, Sfm_Tim_t * pTim, Vec_Ptr_t * vHandles )
+{
+    Vec_Int_t vMap = {0}, vGates = {0}, vPlan = {0};
+    Vec_Wec_t vFanins = {0};
+    Abc_Obj_t * pNext;
+    Mio_Gate_t * pGate;
+    int i, Pin, Perm, Pass, nFans = Abc_ObjFaninNum(pObj);
+    int * pInfo = Abc_ObjChangeInfo(pObj, vInfo, vFirst);
+    int GateBuf = Mio_GateReadValue(Mio_LibraryReadBuf((Mio_Library_t *)pObj->pNtk->pManFunc));
+    Vec_IntFill( &vGates, nFans, -1 );
+    Vec_WecInit( &vFanins, nFans );
+    if ( Abc_NodeIsInv(pObj) )
+    {
+        Vec_IntPush( &vMap, Abc_ObjFaninId0(pObj) );
+        Vec_IntPush( &vGates, GateBuf );
+        Vec_IntPush( Vec_WecPushLevel(&vFanins), 0 );
+    }
+    else
+    {
+        Perm = pInfo[3*nFans+1];
+        pGate = (Mio_Gate_t *)pCells[pInfo[3*nFans]].pMioGate;
+        Vec_IntPush( &vGates, Mio_GateReadValue(pGate) );
+        for ( i = 0; i < nFans; i++ )
+            Vec_IntPush( &vMap, Abc_ObjFaninId(pObj, (Perm >> (4*i)) & 15) );
+        Vec_IntFillNatural( Vec_WecPushLevel(&vFanins), nFans );
+    }
+    Abc_ObjForEachFanout( pObj, pNext, i )
+    {
+        if ( !Abc_ObjIsNode(pNext) || Abc_NodeIsBuf(pNext) )
+            continue;
+        Pin = Abc_NodeFindFanin( pNext, pObj );
+        if ( Abc_NodeIsInv(pNext) )
+        {
+            Vec_IntPushThree( &vPlan, Abc_ObjId(pNext), -1, Pin );
+            Vec_IntPushTwo( &vPlan, 0, 0 );
+            continue;
+        }
+        pInfo = Abc_ObjChangeInfo( pNext, vInfo, vFirst );
+        if ( pInfo == NULL || pInfo[3*Pin] == -1 )
+            continue;
+        pGate = (Mio_Gate_t *)pCells[pInfo[3*Pin]].pMioGate;
+        Vec_IntPushThree( &vPlan, Abc_ObjId(pNext), Mio_GateReadValue(pGate), Pin );
+        Vec_IntPushTwo( &vPlan, pInfo[3*Pin+1], 0 );
+    }
+    Pass = Sfm_TimCheckArea(pTim, pObj, &vGates, &vFanins, &vMap, vHandles, GateBuf, 1, fUseInv, &vPlan);
+    Vec_IntErase( &vMap );
+    Vec_IntErase( &vGates );
+    Vec_IntErase( &vPlan );
+    Vec_WecErase( &vFanins );
+    return Pass;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Recovers area by changing gate polarities.]
+
+  Description [An optional timing manager constrains accepted changes.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Abc_NtkChangePerformInt( Abc_Ntk_t * pNtk, int fVerbose, Sfm_Tim_t * pTim, Vec_Ptr_t * vHandles )
 {
     abctime clk = Abc_Clock();
     int i, fNeedInv, nCells, Gain, GainAll = 0, Count = 0, CountInv = 0;
@@ -351,11 +443,17 @@ void Abc_NtkChangePerform( Abc_Ntk_t * pNtk, int fVerbose )
         Gain = Abc_ObjChangeEval( pObj, vInfo, vFirst, (int)pCells[3].AreaW, &fNeedInv );
         if ( Gain <= 0 )
             continue;
+        if ( pTim && !Abc_ObjChangeCheckTiming(pObj, vInfo, vFirst, fNeedInv, pCells, pTim, vHandles) )
+            continue;
         //printf( "Obj %d\n", Abc_ObjId(pObj) );
         Count++;
         CountInv += Abc_NodeIsInv(pObj);
         GainAll += Gain;
+        if ( pTim )
+            Sfm_TimPrepareArea( pTim, pObj );
         Abc_ObjChangePerform( pObj, vInfo, vFirst, fNeedInv, vTemp, vFanout, vFanout2, pCells );
+        if ( pTim )
+            Sfm_TimUpdateArea( pTim );
     }
     Vec_PtrFree( vFanout2 );
     Vec_PtrFree( vFanout );
@@ -369,6 +467,38 @@ void Abc_NtkChangePerform( Abc_Ntk_t * pNtk, int fVerbose )
         printf( "Total gain in area = %6.2f after %d changes (including %d inverters). ", Scl_Int2Flt(GainAll), Count, CountInv );
     if ( fVerbose )
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Recovers area without a timing constraint.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkChangePerform( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    Abc_NtkChangePerformInt( pNtk, fVerbose, NULL, NULL );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Recovers area while preserving required arrival times.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkChangePerformTiming( Abc_Ntk_t * pNtk, int fVerbose, Sfm_Tim_t * pTim, Vec_Ptr_t * vHandles )
+{
+    Abc_NtkChangePerformInt( pNtk, fVerbose, pTim, vHandles );
 }
 
 ////////////////////////////////////////////////////////////////////////

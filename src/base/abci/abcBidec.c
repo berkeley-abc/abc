@@ -83,6 +83,9 @@ Hop_Obj_t * Abc_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pR
         // decompose truth table
         Bdc_ManDecompose( p, pTruth, puCare, nVars, NULL, 1000 );
     }
+    // Keep the original function if decomposition exhausted its node budget.
+    if ( Bdc_ManRoot(p) == NULL )
+        return pRoot;
     // convert back into HOP
     Bdc_FuncSetCopy( Bdc_ManFunc( p, 0 ), Hop_ManConst1( pHop ) );
     for ( i = 0; i < nVars; i++ )

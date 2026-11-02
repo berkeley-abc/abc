@@ -285,7 +285,7 @@ void Nf_StoCreateGateMaches( Vec_Mem_t * vTtMem, Vec_Wec_t * vTt2Match, Mio_Cell
     }
     assert( tTemp1 == tCur );
 }
-Mio_Cell2_t * Nf_StoDeriveMatches( Vec_Mem_t * vTtMem, Vec_Wec_t * vTt2Match, int * pnCells, int fPinFilter, int fPinPerm, int fPinQuick )
+Mio_Cell2_t * Nf_StoDeriveMatches( Mio_Library_t * pLib, Vec_Mem_t * vTtMem, Vec_Wec_t * vTt2Match, int * pnCells, int fPinFilter, int fPinPerm, int fPinQuick )
 {
     int fVerbose = 0;
     //abctime clk = Abc_Clock();
@@ -301,7 +301,7 @@ Mio_Cell2_t * Nf_StoDeriveMatches( Vec_Mem_t * vTtMem, Vec_Wec_t * vTt2Match, in
         pPerm[i] = Extra_PermSchedule( i );
     for ( i = 1; i <= 6; i++ )
         nPerms[i] = Extra_Factorial( i );
-    pCells = Mio_CollectRootsNewDefault2( 6, pnCells, fVerbose );
+    pCells = Mio_CollectRootsNew2( pLib, 6, pnCells, fVerbose );
     if ( pCells != NULL )
     for ( i = 2; i < *pnCells; i++ )
         Nf_StoCreateGateMaches( vTtMem, vTt2Match, pCells+i, pComp, pPerm, nPerms, vProfs, vStore, fPinFilter, fPinPerm, fPinQuick );
@@ -370,7 +370,7 @@ void Nf_StoPrint( Nf_Man_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Nf_Man_t * Nf_StoCreate( Gia_Man_t * pGia, Jf_Par_t * pPars )
+Nf_Man_t * Nf_StoCreate( Gia_Man_t * pGia, Jf_Par_t * pPars, Mio_Library_t * pLib )
 {
     extern void Mf_ManSetFlowRefs( Gia_Man_t * p, Vec_Int_t * vRefs );
     Vec_Int_t * vFlowRefs;
@@ -409,7 +409,7 @@ Nf_Man_t * Nf_StoCreate( Gia_Man_t * pGia, Jf_Par_t * pPars )
     }
     Vec_IntFree(vFlowRefs);
     // matching
-    Mio_LibraryMatchesFetch( (Mio_Library_t *)Abc_FrameReadLibGen(), &p->vTtMem, &p->vTt2Match, &p->pCells, &p->nCells, p->pPars->fPinFilter, p->pPars->fPinPerm, p->pPars->fPinQuick );
+    Mio_LibraryMatchesFetch( pLib, &p->vTtMem, &p->vTt2Match, &p->pCells, &p->nCells, p->pPars->fPinFilter, p->pPars->fPinPerm, p->pPars->fPinQuick );
     if ( p->pCells == NULL )
         return NULL;
     p->InvDelayI = p->pCells[3].iDelays[0];
@@ -2707,14 +2707,17 @@ void Nf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->nCutNumMax   =  NF_CUT_MAX;
     pPars->MapDelayTarget = 0;
 }
-Gia_Man_t * Nf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars )
+Gia_Man_t * Nf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars, Mio_Library_t * pLib )
 {
     Gia_Man_t * pNew = NULL, * pCls;
     Nf_Man_t * p; int i, Id;
     if ( Gia_ManHasChoices(pGia) || pGia->pManTime )
         pPars->fCoarsen = 0;     
     pCls = pPars->fCoarsen ? Gia_ManDupMuxes(pGia, pPars->nCoarseLimit) : pGia;
-    p = Nf_StoCreate( pCls, pPars );
+    // Convert the command-line delay target to the mapper's fixed-point units.
+    if ( pPars->DelayTarget > 0 )
+        pPars->MapDelayTarget = Scl_Flt2Int(pPars->DelayTarget);
+    p = Nf_StoCreate( pCls, pPars, pLib );
     if ( p == NULL )
         return NULL;
 //    if ( p->pManTim ) Tim_ManPrint( p->pManTim );
@@ -2885,7 +2888,18 @@ void Gia_ManTransferCellMapping( Gia_Man_t * p, Gia_Man_t * pGia )
     }
     Gia_ManCellMappingVerify( p );
 }
-Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * p, Jf_Par_t * pPars )
+/**Function*************************************************************
+
+  Synopsis    [Maps using an explicit library without changing the frame.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Nf_ManPerformMappingWithLib( Gia_Man_t * p, Jf_Par_t * pPars, Mio_Library_t * pLib )
 {
     Gia_Man_t * pNew;
     if ( p->pManTime && Tim_ManBoxNum((Tim_Man_t*)p->pManTime) && Gia_ManIsNormalized(p) )
@@ -2896,7 +2910,7 @@ Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * p, Jf_Par_t * pPars )
         Gia_ManTransferTiming( pNew, p );
         p = pNew;
         // mapping
-        pNew = Nf_ManPerformMappingInt( p, pPars );
+        pNew = Nf_ManPerformMappingInt( p, pPars, pLib );
         if ( pNew != p )
         {
             Gia_ManTransferTiming( pNew, p );
@@ -2911,7 +2925,7 @@ Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * p, Jf_Par_t * pPars )
     }
     else 
     {
-        pNew = Nf_ManPerformMappingInt( p, pPars );
+        pNew = Nf_ManPerformMappingInt( p, pPars, pLib );
         Gia_ManTransferTiming( pNew, p );
         //Gia_ManCellMappingVerify( pNew );
         // remove choices after mapping
@@ -2921,6 +2935,22 @@ Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * p, Jf_Par_t * pPars )
     //pNew->MappedDelay = (int)((If_Par_t *)pp)->FinalDelay;
     //pNew->MappedArea  = (int)((If_Par_t *)pp)->FinalArea;
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Maps using the frame's standard-cell library.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * p, Jf_Par_t * pPars )
+{
+    return Nf_ManPerformMappingWithLib( p, pPars, (Mio_Library_t *)Abc_FrameReadLibGen() );
 }
 
 ////////////////////////////////////////////////////////////////////////

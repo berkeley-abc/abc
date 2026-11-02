@@ -282,10 +282,7 @@ void Io_WriteAiger_old( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, i
         if ( !Abc_LatchIsInit0(pObj) )
         {
             if ( !fCompact )
-            {
-                fExtended = 1;
                 break;
-            }
             fprintf( stdout, "Io_WriteAiger(): Cannot write AIGER format with non-0 latch init values. Run \"zero\".\n" );
             return;
         }
@@ -657,10 +654,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
         if ( !Abc_LatchIsInit0(pObj) )
         {
             if ( !fCompact )
-            {
-                fExtended = 1;
                 break;
-            }
             fprintf( stdout, "Io_WriteAiger(): Cannot write AIGER format with non-0 latch init values. Run \"zero\".\n" );
             return;
         }

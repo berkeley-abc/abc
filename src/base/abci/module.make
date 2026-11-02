@@ -1,5 +1,4 @@
-SRC +=    src/base/abci/abc.c \
-    src/base/abci/abcAttach.c \
+SRC +=    src/base/abci/abcAttach.c \
     src/base/abci/abcAuto.c \
     src/base/abci/abcBalance.c \
     src/base/abci/abcBidec.c \
@@ -20,6 +19,7 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcEco.c \
     src/base/abci/abcExact.c \
     src/base/abci/abcExtract.c \
+    src/base/abci/abcLutAbsorb.c \
     src/base/abci/abcFraig.c \
     src/base/abci/abcFx.c \
     src/base/abci/abcFxu.c \

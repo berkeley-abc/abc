@@ -88,9 +88,8 @@ static inline void kissat_push_blocking_watch (kissat *solver,
                                                reference ref) {
   KISSAT_assert (solver->watching);
   const watch head = kissat_blocking_watch (blocking);
-  PUSH_WATCHES (*watches, head);
   const watch tail = kissat_large_watch (ref);
-  PUSH_WATCHES (*watches, tail);
+  kissat_push_vectors_pair (solver, watches, head.raw, tail.raw);
 }
 
 static inline void kissat_watch_other (kissat *solver, unsigned lit,

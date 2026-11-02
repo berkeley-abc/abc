@@ -35,9 +35,10 @@ namespace eSLIM {
   template <typename SynthesisEngine, typename SelectionStrategy>
   eSLIM_Man<SynthesisEngine, SelectionStrategy>::eSLIM_Man(eSLIMCirMan& es_man, const eSLIMConfig& cfg, eSLIMLog& log)
             : es_man(es_man), selection_strategy(this->es_man, cfg, log), cfg(cfg), log(log) {
-    if (cfg.fix_seed) {
-      selection_strategy.setSeed(cfg.seed);
-    }
+    // if (cfg.fix_seed) {
+    //   selection_strategy.setSeed(cfg.seed);
+    // }
+    selection_strategy.setSeed(cfg.seed);
     relation_generation_time = log.relation_generation_time;
     synthesis_time = log.synthesis_time;
   }
@@ -52,7 +53,7 @@ namespace eSLIM {
     unsigned int iterMax = cfg.iterations ? cfg.iterations - 1 : UINT_MAX;
     int current_size = es_man.getNofGates();
     const char* node_type = cfg.aig ? "#and" : "#nd"; 
-    while (Abc_Clock() <= nTimeToStop && iteration <= iterMax && !stopeSLIM) {
+    while (Abc_Clock() <= nTimeToStop && iteration <= iterMax && !stopeSLIM && es_man.getNofGates() > 0) {
       iteration++;
       findReplacement();
       if (cfg.apply_strash && iteration % cfg.strash_intervall == 0) {

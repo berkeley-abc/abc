@@ -37,6 +37,7 @@
 #include "proof/cec/cec.h"
 #include "opt/csw/csw.h"
 #include "proof/pdr/pdr.h"
+#include "proof/pdr2/pdr2.h"
 #include "sat/bmc/bmc.h"
 #include "misc/util/utilTruth.h"
 #include "map/mio/mio.h"
@@ -1137,13 +1138,14 @@ static inline Abc_Obj_t * Abc_NtkFromCellRead( Abc_Ntk_t * p, Vec_Int_t * vCopyL
     int iObjNew = Vec_IntEntry( vCopyLits, Abc_Var2Lit(i, c) );
     if ( iObjNew >= 0 )
         return Abc_NtkObj(p, iObjNew);
-    // opposite phase should be already constructed
-    assert( 0 );
+    // Constant pins can first be encountered inside a mapped cell.
     if ( i == 0 )
         pObjNew = c ? Abc_NtkCreateNodeConst1(p) : Abc_NtkCreateNodeConst0(p);
     else
     {
-        iObjNew = Vec_IntEntry( vCopyLits, Abc_Var2Lit(i, !c) );   assert( iObjNew >= 0 );
+        // Preserve the opposite-polarity fallback for other mapped networks.
+        iObjNew = Vec_IntEntry( vCopyLits, Abc_Var2Lit(i, !c) );
+        assert( iObjNew >= 0 );
         pObjNew = Abc_NtkCreateNodeInv( p, Abc_NtkObj(p, iObjNew) );
     }
     Abc_NtkFromCellWrite( vCopyLits, i, c, Abc_ObjId(pObjNew) );
@@ -1749,7 +1751,11 @@ Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_RwrPar_t * pPars )
         Vec_VecFree( vParts );
     }
 */
-    Dar_ManRewrite( pMan, pPars );
+    if ( !Dar_ManRewrite( pMan, pPars ) && pPars->nResubCutSize )
+    {
+        Aig_ManStop( pMan );
+        return NULL;
+    }
 //    pMan = Dar_ManBalance( pTemp = pMan, pPars->fUpdateLevel );
 //    Aig_ManStop( pTemp );
 
@@ -3085,6 +3091,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar, int nBmcFramesMax, i
         if ( RetValue == 0  && (Abc_NtkLatchNum(pNtk) == 0) )
         {
             pNtk->pModel = pNtkComb->pModel; pNtkComb->pModel = NULL;
+            Abc_NtkDelete( pNtkComb );
             if ( pSecPar->fReportSolution )
                 Abc_Print( 1, "SOLUTION: FAIL       " );
             else
@@ -3246,6 +3253,71 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Fra_Sec_t * pSecPar )
 
     // perform verification
     RetValue = Fra_FraigSec( pMan, pSecPar, NULL );
+    Aig_ManStop( pMan );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs the second implementation of PDR.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkDarPdr2( Abc_Ntk_t * pNtk, Pdr2_Par_t * pPars )
+{
+    int RetValue = -1;
+    abctime clk = Abc_Clock();
+    Aig_Man_t * pMan;
+    Abc_Obj_t * pLatch;
+    Vec_Int_t * vInit = Vec_IntAlloc( Abc_NtkLatchNum(pNtk) );
+    Vec_Ptr_t * vTypes = Vec_PtrAlloc( Abc_NtkLatchNum(pNtk) );
+    int i;
+    // pdr2 takes the initial values (0, 1, or 2 for don't-care) as they are: the latches are
+    // made 0-initialized for the conversion (which would complement those initialized to 1
+    // and set the don't-care values to 0), and their values are restored afterwards
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+    {
+        Vec_IntPush( vInit, Abc_LatchIsInit1(pLatch) ? 1 : Abc_LatchIsInitDc(pLatch) ? 2 : 0 );
+        Vec_PtrPush( vTypes, pLatch->pData );
+        Abc_LatchSetInit0( pLatch );
+    }
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+        pLatch->pData = Vec_PtrEntry( vTypes, i );
+    Vec_PtrFree( vTypes );
+    if ( pMan == NULL )
+    {
+        Abc_Print( 1, "Converting network into AIG has failed.\n" );
+        Vec_IntFree( vInit );
+        return -1;
+    }
+    RetValue = Pdr2_ManSolveInit( pMan, vInit, pPars );
+    Vec_IntFree( vInit );
+    if ( !pPars->fSilent )
+    {
+        if ( RetValue == 1 )
+            Abc_Print( 1, "Property proved.  " );
+        else if ( RetValue == 0 )
+        {
+            if ( pMan->pSeqModel == NULL )
+                Abc_Print( 1, "Abc_NtkDarPdr2(): Counter-example is not available.\n" );
+            else
+                Abc_Print( 1, "Output %d of miter \"%s\" was asserted in frame %d.  ", pMan->pSeqModel->iPo, pNtk->pName, pMan->pSeqModel->iFrame );
+        }
+        else if ( RetValue == -1 )
+            Abc_Print( 1, "Property UNDECIDED.  " );
+        else
+            assert( 0 );
+        ABC_PRT( "Time", Abc_Clock() - clk );
+    }
+    ABC_FREE( pNtk->pSeqModel );
+    pNtk->pSeqModel = pMan->pSeqModel;
+    pMan->pSeqModel = NULL;
     Aig_ManStop( pMan );
     return RetValue;
 }
@@ -3964,6 +4036,68 @@ Abc_Ntk_t * Abc_NtkDarTempor( Abc_Ntk_t * pNtk, int nFrames, int TimeOut, int nC
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pTemp );
     Aig_ManStop( pTemp );
     return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Restores a temporal-decomposition counterexample.]
+
+  Description [Supports compact history inputs and the old dense layout.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Abc_NtkDarTemporCex( Abc_Ntk_t * pNtk, Abc_Cex_t * pCex )
+{
+    Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
+    Aig_Obj_t * pObj;
+    Abc_Cex_t * pNew = NULL;
+    int i, f, k, nFrames, nPisUsed = 0, nPis = Abc_NtkPiNum(pNtk);
+    if ( pAig == NULL )
+        return NULL;
+    if ( nPis == 0 || pCex->iPo < 0 || pCex->iPo >= Abc_NtkPoNum(pNtk) )
+    {
+        Aig_ManStop( pAig );
+        return NULL;
+    }
+    // First try the legacy layout when its dimensions match.
+    if ( pCex->iFrame > 0 && pCex->nPis >= nPis && pCex->nPis % nPis == 0 )
+    {
+        pNew = Abc_CexTransformTempor( pCex, nPis, Abc_NtkPoNum(pNtk), Abc_NtkLatchNum(pNtk) );
+        if ( !Saig_ManVerifyCex(pAig, pNew) )
+            Abc_CexFreeP( &pNew );
+    }
+    if ( pNew == NULL )
+    {
+        Saig_ManForEachPi( pAig, pObj, i )
+            nPisUsed += Aig_ObjRefs(pObj) > 0;
+        if ( pCex->nPis < nPis || (pCex->nPis - nPis) % Abc_MaxInt(1, nPisUsed) )
+        {
+            Aig_ManStop( pAig );
+            return NULL;
+        }
+        nFrames = (pCex->nPis - nPis) / Abc_MaxInt(1, nPisUsed);
+        pNew = Abc_CexAlloc( Abc_NtkLatchNum(pNtk), nPis, nFrames + pCex->iFrame + 1 );
+        pNew->iPo = pCex->iPo;
+        pNew->iFrame = nFrames + pCex->iFrame;
+        for ( f = 0, k = pCex->nRegs + nPis; f < nFrames; f++ )
+            Saig_ManForEachPi( pAig, pObj, i )
+                if ( Aig_ObjRefs(pObj) || (nPisUsed == 0 && i == 0) )
+                {
+                    if ( Abc_InfoHasBit(pCex->pData, k++) )
+                        Abc_InfoSetBit( pNew->pData, pNew->nRegs + f*nPis + i );
+                }
+        for ( f = 0; f <= pCex->iFrame; f++ )
+            for ( i = 0; i < nPis; i++ )
+                if ( Abc_InfoHasBit(pCex->pData, pCex->nRegs + f*pCex->nPis + i) )
+                    Abc_InfoSetBit( pNew->pData, pNew->nRegs + (nFrames+f)*nPis + i );
+        if ( !Saig_ManVerifyCex(pAig, pNew) )
+            Abc_CexFreeP( &pNew );
+    }
+    Aig_ManStop( pAig );
+    return pNew;
 }
 
 /**Function*************************************************************

@@ -18,6 +18,8 @@
 
 ***********************************************************************/
 
+#include <set>
+
 #include "delayEngine.hpp"
 
 
@@ -30,7 +32,7 @@ namespace eSLIM {
     symmetry_selector = getNewVariable();
     symmetry_selector_assignment = symmetry_selector;
     std::set<int> unique_ats_set (subcir.arrival_times.begin(), subcir.arrival_times.end());
-    unique_arrival_times = std::vector<int> (unique_ats_set.begin(), unique_ats_set.end());
+    unique_arrival_times.assign(unique_ats_set.begin(), unique_ats_set.end());
     for (int i : subcir.arrival_times) {
       auto it = unique_ats_set.find(i);
       int idx = std::distance(unique_ats_set.begin(), it);
@@ -64,7 +66,8 @@ namespace eSLIM {
       return eSLIMCirMan(0); 
     } 
     int replacement_size = synth.getSizeFromActivationVars(last_model);
-    int replacement_delay = synth.getDelayFromDelayVariables(last_model);
+    // int replacement_delay = synth.getDelayFromDelayVariables(last_model);
+    int replacement_delay = synth.computeDelay(last_model);
     std::vector<bool> model = synth.reduceArea(replacement_delay, replacement_size - 1);
     if (model.size() > 0) {
       replacement_size = synth.getSizeFromActivationVars(model);
@@ -82,7 +85,8 @@ namespace eSLIM {
       return eSLIMCirMan(0); 
     } 
     int replacement_size = synth.getSizeFromActivationVars(last_model);
-    int replacement_delay = synth.getDelayFromDelayVariables(last_model);
+    // int replacement_delay = synth.getDelayFromDelayVariables(last_model);
+    int replacement_delay = synth.computeDelay(last_model);
     assert (replacement_delay > 0 || replacement_size == 0);
     if (replacement_delay > 0) { // a constant circuit has already optimal depth
       std::vector<bool> model = synth.reduceDelay(replacement_size, replacement_delay - 1);
@@ -122,12 +126,17 @@ namespace eSLIM {
   
   std::vector<bool> DelayEngine::reduceDelay(unsigned int max_size, unsigned int initial_delay) {
     std::vector<bool> last_model;
+    unsigned int current_delay = initial_delay;
     for( auto it = delay_selectors.lower_bound(initial_delay); it != delay_selectors.end(); ++it ) {
       int d = it->first;
+      if (current_delay < d) {
+        continue;
+      }
       double timeout = getDynamicTimeout(max_size);
       int status = existsReplacement(max_size, d, timeout);
       if (status == 10) {
         last_model = solver.getModel();
+        current_delay = getDelayFromDelayVariables(last_model);
       } else {
         break;
       }
@@ -158,6 +167,35 @@ namespace eSLIM {
       for (int v : dvars) {
         if (model[v]) {
           return d;
+        }
+      }
+    }
+    return delay;
+  }
+
+  // getDelayFromDelayVariables only gives an upper bound for the delay of the encoded circuit.
+  // We also compute the exact delay value.
+  // Note: When considering circuit that have already been optimised to a certain degree it is unlikely 
+  // that this function gives smaller values than getDelayFromDelayVariables.
+  unsigned int DelayEngine::computeDelay(const std::vector<bool>& model) {
+    std::vector<unsigned int> current_delays (subcir.inputs.size() + getSizeFromActivationVars(model), 0);
+    for (std::size_t i = 0; i < subcir.inputs.size(); i++) {
+      current_delays[i] = subcir.arrival_times[i];
+    }
+    for (std::size_t i = 0; i < getSizeFromActivationVars(model); i++) {
+      for (std::size_t j = 0; j < selection_variables[i].size(); j++) {
+        if (model[selection_variables[i][j]] & current_delays[j] >= current_delays[i]) {
+          current_delays[i] = current_delays[j] + 1;
+        }
+      }
+    }
+    unsigned int delay = 0;
+    for (std::size_t i = 0; i < subcir.outputs.size(); i++) {
+      for (std::size_t j = 0; j < getSizeFromActivationVars(model); j++) {
+        if (model[gate_output_variables[j][i]]) {
+          if (current_delays[j] + subcir.remaining_times[i] > delay) {
+            delay = current_delays[j] + subcir.remaining_times[i];
+          }
         }
       }
     }

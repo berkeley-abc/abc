@@ -53,7 +53,7 @@ char * Wln_ObjName( Wln_Ntk_t * p, int iObj )
 char * Wln_ObjConstString( Wln_Ntk_t * p, int iObj )
 {
     assert( Wln_ObjIsConst(p, iObj) );
-    return Abc_NamStr( p->pManName, Wln_ObjFanin0(p, iObj) );
+    return Abc_NamStr( p->pManName, Wln_ObjConstId(p, iObj) );
 }                          
 void Wln_ObjUpdateType( Wln_Ntk_t * p, int iObj, int Type )
 {

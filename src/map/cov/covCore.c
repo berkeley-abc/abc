@@ -537,7 +537,7 @@ Min_Cube_t * Abc_NodeCovProduct( Cov_Man_t * p, Min_Cube_t * pCover0, Min_Cube_t
     pCover = Min_CoverCollect( p->pManMin, nSupp );
 
     // quit if the cover is too large
-    if ( Min_CoverCountCubes(pCover) > p->nFaninMax )
+    if ( Min_CoverCountCubes(pCover) > p->nCubesMax )
     {
 /*        
 Min_CoverWriteFile( pCover, "large", 1 );
@@ -642,7 +642,7 @@ Min_Cube_t * Abc_NodeCovSum( Cov_Man_t * p, Min_Cube_t * pCover0, Min_Cube_t * p
     pCover = Min_CoverCollect( p->pManMin, nSupp );
 
     // quit if the cover is too large
-    if ( Min_CoverCountCubes(pCover) > p->nFaninMax )
+    if ( Min_CoverCountCubes(pCover) > p->nCubesMax )
     {
         Min_CoverRecycle( p->pManMin, pCover );
         return NULL;

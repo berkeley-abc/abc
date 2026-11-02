@@ -56,6 +56,7 @@ ABC_NAMESPACE_HEADER_START
   OPTION (extract, 1, 0, 1, "extract gates in variable elimination") \
   OPTION (factor, 1, 0, 1, "bounded variable addition") \
   OPTION (factorcandrounds, 2, 0, INT_MAX, "candidates reduction rounds") \
+  OPTION (factordelay, 4, 0, 12, "delaying factor") \
   OPTION (factoreffort, 50, 0, 1e6, "bounded variable effort in per mille") \
   OPTION (factorhops, 3, 1, 10, "structural factoring heuristic hops") \
   OPTION (factoriniticks, 700, 1, 1000000, "initial ticks ticks in millions") \

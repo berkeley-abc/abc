@@ -71,7 +71,7 @@ unsigned *kissat_enlarge_vector (kissat *solver, vector *vector) {
                       LD_MAX_VECTORS,
                       FORMAT_BYTES (MAX_VECTORS * sizeof (unsigned)));
       enlarged++;
-      kissat_stack_enlarge (solver, (chars *) stack, sizeof (unsigned));
+      ENLARGE_STACK (*stack);
 
       capacity = CAPACITY_STACK (*stack);
       available = capacity - old_stack_size;

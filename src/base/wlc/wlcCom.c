@@ -1176,7 +1176,7 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     Wlc_BstParDefault( pPar );
     pPar->nOutputRange = 2;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ORAMcombqaydestrfnizvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ORAMcombpwqaydestrfnizvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1235,6 +1235,12 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'b':
             pPar->fBooth ^= 1;
+            break;
+        case 'p':
+            pPar->fBoothOld ^= 1;
+            break;
+        case 'w':
+            pPar->fWallace ^= 1;
             break;
         case 'q':
             pPar->fNonRest ^= 1;
@@ -1355,7 +1361,7 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%blast [-ORAM num] [-combqaydestrfnizvh]\n" );
+    Abc_Print( -2, "usage: %%blast [-ORAM num] [-combpwqaydestrfnizvh]\n" );
     Abc_Print( -2, "\t         performs bit-blasting of the word-level design\n" );
     Abc_Print( -2, "\t-O num : zero-based index of the first word-level PO to bit-blast [default = %d]\n", pPar->iOutput );
     Abc_Print( -2, "\t-R num : the total number of word-level POs to bit-blast [default = %d]\n",          pPar->nOutputRange );
@@ -1364,9 +1370,11 @@ usage:
     Abc_Print( -2, "\t-c     : toggle using AIG w/o const propagation and strashing [default = %s]\n",     pPar->fGiaSimple? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggle using additional POs on the word-level boundaries [default = %s]\n", pPar->fAddOutputs? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle creating boxes for all multipliers in the design [default = %s]\n",  pPar->fMulti? "yes": "no" );
-    Abc_Print( -2, "\t-b     : toggle generating radix-4 Booth multipliers [default = %s]\n",              pPar->fBooth? "yes": "no" );
+    Abc_Print( -2, "\t-b     : toggle generating radix-4 Booth multipliers with arrival-driven reduction (adapted from Yeh-Jen) [default = %s]\n", pPar->fBooth? "yes": "no" );
+    Abc_Print( -2, "\t-p     : toggle generating radix-4 Booth multipliers with the previous fixed-order reduction [default = %s]\n", pPar->fBoothOld? "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggle generating Wallace-tree multipliers with arrival-driven reduction [default = %s]\n", pPar->fWallace? "yes": "no" );
     Abc_Print( -2, "\t-q     : toggle generating non-restoring square root and divider [default = %s]\n",  pPar->fNonRest? "yes": "no" );
-    Abc_Print( -2, "\t-a     : toggle generating carry-look-ahead adder [default = %s]\n",                 pPar->fCla? "yes": "no" );
+    Abc_Print( -2, "\t-a     : toggle generating fast adders (carry-look-ahead; arrival-driven with -b, -p, -w) [default = %s]\n", pPar->fCla? "yes": "no" );
     Abc_Print( -2, "\t-y     : toggle creating different divide-by-0 condition [default = %s]\n",          pPar->fDivBy0? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle creating dual-output multi-output miter [default = %s]\n",           pPar->fCreateMiter? "yes": "no" );
     Abc_Print( -2, "\t-e     : toggle creating miter with output word bits combined [default = %s]\n",     pPar->fCreateWordMiter? "yes": "no" );
@@ -1487,7 +1495,7 @@ usage:
 ******************************************************************************/
 int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Wln_NtkRetimeTest( char * pFileName, int fIgnoreIO, int fSkipSimple, int fDump, int fVerbose );
+    extern int Wln_NtkRetimeTest( char * pFileName, int fIgnoreIO, int fSkipSimple, int fDump, int fVerbose );
     FILE * pFile;
     char * pFileName = NULL;
     int fIgnoreIO = 0;
@@ -1520,12 +1528,12 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Vec_Int_t * vMoves;
         Wln_Ntk_t * pNtk = Wln_NtkFromNdr( pAbc->pNdr, fDump );
-        Wln_NtkRetimeCreateDelayInfo( pNtk );
         if ( pNtk == NULL )
         {
-            printf( "Transforming NDR into internal represnetation has failed.\n" );
-            return 0;
+            printf( "Transforming NDR into internal representation has failed.\n" );
+            return 1;
         }
+        Wln_NtkRetimeCreateDelayInfo( pNtk );
         vMoves = Wln_NtkRetime( pNtk, fIgnoreIO, fSkipSimple, fVerbose );
         Wln_NtkFree( pNtk );
         ABC_FREE( pAbc->pNdrArray );
@@ -1536,7 +1544,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( argc != globalUtilOptind + 1 )
     {
         printf( "Abc_CommandRetime(): Input file name should be given on the command line.\n" );
-        return 0;
+        return 1;
     }
     // get the file name
     pFileName = argv[globalUtilOptind];
@@ -1546,16 +1554,15 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".ndr", NULL, NULL, NULL, NULL )) )
             Abc_Print( 1, "Did you mean \"%s\"?", pFileName );
         Abc_Print( 1, "\n" );
-        return 0;
+        return 1;
     }
     fclose( pFile );
-    Wln_NtkRetimeTest( pFileName, fIgnoreIO, fSkipSimple, fDump, fVerbose );
-    return 0;
+    return !Wln_NtkRetimeTest( pFileName, fIgnoreIO, fSkipSimple, fDump, fVerbose );
 usage:
-    Abc_Print( -2, "usage: %%retime [-isdvh]\n" );
+    Abc_Print( -2, "usage: %%retime [-isdvh] [file.ndr]\n" );
     Abc_Print( -2, "\t         performs retiming for the NDR design\n" );
     Abc_Print( -2, "\t-i     : toggle ignoring delays of IO paths [default = %s]\n", fIgnoreIO? "yes": "no" );
-    Abc_Print( -2, "\t-s     : toggle printing simple nodes [default = %s]\n", !fSkipSimple? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle skipping simple nodes in recorded moves [default = %s]\n", fSkipSimple? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle dumping the network in Verilog [default = %s]\n", fDump? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

@@ -77,16 +77,6 @@ void Gip_DomainReset( Gip_Domain_t * p )
         p->Set.pHas[ Vec_IntPop(p->Set.vSet) ] = 0;
 }
 
-int Gip_DomainHas( Gip_Domain_t * p, int Var )
-{
-    return Gip_VarSetHas( &p->Set, Var );
-}
-
-void Gip_DomainInsert( Gip_Domain_t * p, int Var )
-{
-    Gip_VarSetInsert( &p->Set, Var );
-}
-
 /**Function*************************************************************
 
   Synopsis    [Per-query local domain = dep closure of the seeds.]

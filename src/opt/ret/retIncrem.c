@@ -335,11 +335,14 @@ void Abc_NtkRetimeNode( Abc_Obj_t * pObj, int fForward, int fInitial )
             pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)Abc_ObjSopSimulate( pObj );
         // collect fanins
         Abc_NodeCollectFanins( pObj, vNodes );
+        // Rebuild in order; retain old fanout links until each latch is processed.
+        Vec_IntClear( &pObj->vFanins );
         // make the node point to the fanins fanins
         Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNext, i )
         {
             assert( Abc_ObjIsLatch(pNext) );
-            Abc_ObjPatchFanin( pObj, pNext, Abc_ObjFanin0(pNext) );
+            Abc_ObjAddFanin( pObj, Abc_ObjFanin0(pNext) );
+            Vec_IntRemove( &pNext->vFanouts, pObj->Id );
             if ( Abc_ObjFanoutNum(pNext) == 0 )
                 Abc_NtkDeleteObj(pNext);            
         }

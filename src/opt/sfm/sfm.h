@@ -61,6 +61,7 @@ struct Sfm_Par_t_
     int             DelAreaRatio;  // delay/area tradeoff (how many ps we trade for a unit of area)
     int             fRrOnly;       // perform redundance removal
     int             fArea;         // performs optimization for area
+    int             fAreaTiming;   // preserve initial GENLIB delay during area optimization
     int             fAreaRev;      // performs optimization for area in reverse order
     int             fMoreEffort;   // performs high-affort minimization
     int             fUseAndOr;     // enable internal detection of AND/OR gates
@@ -69,6 +70,7 @@ struct Sfm_Par_t_
     int             fUseDcs;       // enable deriving don't-cares
     int             fPrintDecs;    // enable printing decompositions
     int             fAllBoxes;     // enable preserving all boxes
+    int             fBoxOrder;     // preserve the topological order of XAIG boxes
     int             fLibVerbose;   // enable library stats
     int             fDelayVerbose; // enable delay stats
     int             fVerbose;      // enable basic stats
@@ -83,18 +85,19 @@ struct Sfm_Par_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== sfmCnf.c ==========================================================*/
-/*=== sfmCore.c ==========================================================*/
+//=== sfmCnf.c ==========================================================
+//=== sfmCore.c ==========================================================
 extern void         Sfm_ParSetDefault( Sfm_Par_t * pPars );
 extern int          Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars );
-/*=== sfmNtk.c ==========================================================*/
+//=== sfmNtk.c ==========================================================
 extern Sfm_Ntk_t *  Sfm_NtkConstruct( Vec_Wec_t * vFanins, int nPis, int nPos, Vec_Str_t * vFixed, Vec_Str_t * vEmpty, Vec_Wrd_t * vTruths, Vec_Int_t * vStarts, Vec_Wrd_t * vTruths2 );
 extern void         Sfm_NtkFree( Sfm_Ntk_t * p );
+extern void         Sfm_NtkSetBoxPin( Sfm_Ntk_t * p, int iObj, int iBoxPin );
 extern Vec_Int_t *  Sfm_NodeReadFanins( Sfm_Ntk_t * p, int i );
 extern word *       Sfm_NodeReadTruth( Sfm_Ntk_t * p, int i );
 extern int          Sfm_NodeReadFixed( Sfm_Ntk_t * p, int i );
 extern int          Sfm_NodeReadUsed( Sfm_Ntk_t * p, int i );
-/*=== sfmWin.c ==========================================================*/
+//=== sfmWin.c ==========================================================
 extern Vec_Int_t *  Sfm_NtkDfs( Sfm_Ntk_t * p, Vec_Wec_t * vGroups, Vec_Int_t * vGroupMap, Vec_Int_t * vBoxesLeft, int fAllBoxes, Vec_Int_t * vPiBoxes );
 
 

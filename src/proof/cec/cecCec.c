@@ -445,8 +445,11 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
         return RetValue;
     // preprocess 
     p = Gia_ManDup( pInit );
+    if ( pPars->fUseOrigIds )
+        Gia_ManOrigIdsInit( p );
     Gia_ManEquivFixOutputPairs( p );
     p = Gia_ManCleanup( pNew = p );
+    Gia_ManOrigIdsRemap( pNew, p );
     Gia_ManStop( pNew );
     if ( pPars->fNaive )
     {
@@ -470,6 +473,13 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
     pParsFra->fCheckMiter  = 1;
     pParsFra->fDualOut     = 1;
     pNew = Cec_ManSatSweeping( p, pParsFra, pPars->fSilent );
+    // Sweeping records IDs in the preprocessed AIG; return IDs in pInit.
+    if ( pPars->fUseOrigIds && p->vIdsEquiv )
+    {
+        int i, Entry;
+        Vec_IntForEachEntry( p->vIdsEquiv, Entry, i )
+            Vec_IntWriteEntry( p->vIdsEquiv, i, Vec_IntEntry(p->vIdsOrig, Entry) );
+    }
     ABC_SWAP( Vec_Int_t *, pInit->vIdsEquiv, p->vIdsEquiv );
     pPars->iOutFail = pParsFra->iOutFail;
     // update

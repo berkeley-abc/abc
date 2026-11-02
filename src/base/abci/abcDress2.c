@@ -511,6 +511,12 @@ void Abc_NtkDress2( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConflictLimit, in
 {
     Vec_Ptr_t * vRes;
     abctime clk = Abc_Clock();
+    // Retiming can change the register boundaries used by the combinational miter.
+    if ( Abc_NtkCiNum(pNtk1) != Abc_NtkCiNum(pNtk2) || Abc_NtkCoNum(pNtk1) != Abc_NtkCoNum(pNtk2) )
+    {
+        Abc_Print( 1, "Skipping \"dress\": networks have different combinational I/O counts.\n" );
+        return;
+    }
     vRes = Abc_NtkDressComputeEquivs( pNtk1, pNtk2, nConflictLimit, fVerbose );
 //    Abc_NtkDressPrintEquivs( vRes );
     Abc_NtkDressPrintStats( vRes, Abc_NtkNodeNum(pNtk1), Abc_NtkNodeNum(pNtk1), Abc_Clock() - clk );

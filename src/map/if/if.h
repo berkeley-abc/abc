@@ -154,6 +154,7 @@ struct If_Par_t_
     int                fDumpFile;     // dumping truth tables into a file
     int                fVerbose;      // the verbosity flag
     int                fVerboseTrace; // the verbosity flag
+    int                fNoDelayWarn;  // suppress unmet delay-target warnings
     char *             pLutStruct;    // LUT structure
     int                fEnableStructN;// LUT structure using a new method
     float              WireDelay;     // wire delay

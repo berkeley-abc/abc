@@ -170,7 +170,7 @@ static inline clause *PROPAGATE_LITERAL (kissat *solver,
         }
 #endif
         kissat_fast_assign_reference (solver, values, assigned, other, ref,
-                                      c);
+                                      c, level);
         ticks++;
       }
     }

@@ -130,7 +130,8 @@ void Gia_ManHashStart( Gia_Man_t * p )
     Gia_ManForEachAnd( p, pObj, i )
     {
         pPlace = Gia_ManHashFind( p, Gia_ObjFaninLit0(pObj, i), Gia_ObjFaninLit1(pObj, i), Gia_ObjFaninLit2(p, i) );
-        assert( *pPlace == 0 );
+        // Mapped graphs may contain duplicates; keep them in the hash chain.
+        Vec_IntWriteEntry( &p->vHash, i, *pPlace );
         *pPlace = i;
     }
 }
@@ -181,7 +182,7 @@ void Gia_ManHashResize( Gia_Man_t * p )
             Gia_Obj_t * pThis0 = Gia_ManObj( p, iThis );
             Vec_IntWriteEntry( &p->vHash, iThis, 0 );
             pPlace = Gia_ManHashFind( p, Gia_ObjFaninLit0(pThis0, iThis), Gia_ObjFaninLit1(pThis0, iThis), Gia_ObjFaninLit2p(p, pThis0) );
-            assert( *pPlace == 0 ); // should not be there
+            Vec_IntWriteEntry( &p->vHash, iThis, *pPlace );
             *pPlace = iThis;
             assert( *pPlace != 0 );
             Counter++;

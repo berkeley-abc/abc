@@ -68,27 +68,36 @@ void Gia_ManOrigIdsRemap( Gia_Man_t * p, Gia_Man_t * pNew )
 }
 // input is a set of equivalent node pairs in any order
 // output is the mapping of each node into the equiv node with the smallest ID
-void Gia_ManOrigIdsRemapPairsInsert( Vec_Int_t * vMap, int One, int Two )
-{
-    int Smo = One < Two ? One : Two;
-    int Big = One < Two ? Two : One;
-    assert( Smo != Big );
-    if ( Vec_IntEntry(vMap, Big) == -1 )
-        Vec_IntWriteEntry( vMap, Big, Smo );
-    else
-        Gia_ManOrigIdsRemapPairsInsert( vMap, Smo, Vec_IntEntry(vMap, Big) );
-}
 int Gia_ManOrigIdsRemapPairsExtract( Vec_Int_t * vMap, int One )
 {
-    if ( Vec_IntEntry(vMap, One) == -1 )
-        return One;
-    return Gia_ManOrigIdsRemapPairsExtract( vMap, Vec_IntEntry(vMap, One) );
+    int Root = One, Next;
+    while ( (Next = Vec_IntEntry(vMap, Root)) != -1 )
+        Root = Next;
+    // Compress the path without recursion, even for long chains of pairs.
+    while ( One != Root )
+    {
+        Next = Vec_IntEntry( vMap, One );
+        Vec_IntWriteEntry( vMap, One, Root );
+        One = Next;
+    }
+    return Root;
+}
+void Gia_ManOrigIdsRemapPairsInsert( Vec_Int_t * vMap, int One, int Two )
+{
+    One = Gia_ManOrigIdsRemapPairsExtract( vMap, One );
+    Two = Gia_ManOrigIdsRemapPairsExtract( vMap, Two );
+    if ( One != Two )
+        Vec_IntWriteEntry( vMap, Abc_MaxInt(One, Two), Abc_MinInt(One, Two) );
 }
 Vec_Int_t * Gia_ManOrigIdsRemapPairs( Vec_Int_t * vEquivPairs, int nObjs )
 {
     Vec_Int_t * vMapResult;
     Vec_Int_t * vMap2Smaller;
     int i, One, Two;
+    // Verification may finish without recording any equivalence pairs.
+    if ( vEquivPairs == NULL )
+        return Vec_IntStartFull( nObjs );
+    assert( (Vec_IntSize(vEquivPairs) & 1) == 0 );
     // map bigger into smaller one
     vMap2Smaller = Vec_IntStartFull( nObjs );
     Vec_IntForEachEntryDouble( vEquivPairs, One, Two, i )
@@ -137,6 +146,9 @@ Gia_Man_t * Gia_ManOrigIdsReduce( Gia_Man_t * p, Vec_Int_t * vPairs )
     for ( i = 0; i < Gia_ManObjNum(p); i++ )
         Gia_ObjSetRepr( p, i, GIA_VOID );
     Gia_ManFillValue(pNew);
+    // A reduced AND may be a primary input, including its complement.
+    Gia_ManForEachCi( p, pObj, i )
+        Gia_ManObj( pNew, Abc_Lit2Var(pObj->Value) )->Value = Gia_ObjId(p, pObj);
     Gia_ManForEachAnd( p, pObj, i )
     {
         int iRepr = Abc_Lit2Var(pObj->Value);
@@ -2097,6 +2109,57 @@ int Gia_ManCountChoiceNodes( Gia_Man_t * p )
     Gia_ManForEachObj( p, pObj, i )
         Counter += Gia_ObjIsHead( p, i );
     return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Estimates fanout use without counting alternatives simultaneously.]
+
+  Description [Split a reachable class equally among its alternatives. Accumulate
+  expected fanout use and cap reachability at one. Siblings precede their
+  representatives. These weights guide area flow, not equivalence or timing.
+  The caller owns the returned array, indexed by GIA object ID.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float * Gia_ManChoiceRefs( Gia_Man_t * p )
+{
+    float * pRefs = ABC_CALLOC( float, Gia_ManObjNum(p) );
+    float * pReach = ABC_CALLOC( float, Gia_ManObjNum(p) );
+    int * pCount = ABC_CALLOC( int, Gia_ManObjNum(p) );
+    Gia_Obj_t * pObj;
+    int i, k, Id, Sibl;
+    float Weight;
+    Gia_ManForEachAnd( p, pObj, i )
+        pCount[i] = 1 + (Gia_ObjSibl(p, i) ? pCount[Gia_ObjSibl(p, i)] : 0);
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        Id = Gia_ObjFaninId0p( p, pObj );
+        pRefs[Id] += 1;
+        pReach[Id] = 1;
+    }
+    Gia_ManForEachAndReverse( p, pObj, i )
+    {
+        Weight = pReach[i];
+        Sibl = Gia_ObjSibl( p, i );
+        if ( Sibl )
+        {
+            pReach[Sibl] += Weight * (float)(pCount[i] - 1) / (float)pCount[i];
+            Weight /= pCount[i];
+        }
+        for ( k = 0; k < (Gia_ObjIsMux(p, pObj) ? 3 : 2); k++ )
+        {
+            Id = k == 2 ? Gia_ObjFaninId2(p, i) : k ? Gia_ObjFaninId1(pObj, i) : Gia_ObjFaninId0(pObj, i);
+            pRefs[Id] += Weight;
+            pReach[Id] = Abc_MinFloat( 1.0f, pReach[Id] + Weight );
+        }
+    }
+    ABC_FREE( pReach );
+    ABC_FREE( pCount );
+    return pRefs;
 }
 
 /**Function*************************************************************

@@ -936,6 +936,13 @@ int Abc_SopCheckReadTruth( Vec_Ptr_t * vRes, char * pToken, int fHex )
         Vec_PtrShrink( vRes, 0 );
         return 0;
     }
+    if ( strspn(pToken, fHex ? "0123456789abcdefABCDEF" : "01") != strlen(pToken) )
+    {
+        printf( "String %s does not look like a %s representation of the truth table.\n", pToken, fHex ? "hexadecimal" : "binary" );
+        Vec_PtrFreeData( vRes );
+        Vec_PtrShrink( vRes, 0 );
+        return 0;
+    }
     if ( Vec_PtrSize(vRes) == 0 )
         return 1;
     pBase = (char *)Vec_PtrEntry( vRes, 0 );
@@ -1084,6 +1091,7 @@ char * Abc_SopFromTruthHex( char * pTruth )
             Digit = 10 + pTruth[i] - 'A';
         else
         {
+            Vec_IntFree( vMints );
             printf( "String %s does not look like a hexadecimal representation of the truth table.\n", pTruth );
             return NULL;
         }

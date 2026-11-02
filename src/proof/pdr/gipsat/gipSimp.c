@@ -27,8 +27,8 @@ static void Gip_ClaSwapRemoveLit( Gip_Alloc_t * pA, int Cref, int j )
     int nLits = Gip_ClaLen( pA, Cref );
     assert( j > 1 && nLits > 2 );
     pLits[j] = pLits[nLits-1];
-    if ( Gip_ClaIsLearnt(pA, Cref) )
-        pA->pData[Cref + nLits] = pA->pData[Cref + nLits + 1];
+    for ( j = 0; j < Gip_ClaIsLearnt(pA, Cref) + 1; j++ )
+        pA->pData[Cref + nLits + j] = pA->pData[Cref + nLits + 1 + j];
     Gip_ClaSetLen( pA, Cref, nLits - 1 );
 }
 
@@ -64,6 +64,8 @@ static void Gip_SolverSimplifySatisfiedList( Gip_Solver_t * p, Vec_Int_t * vClau
                     fRemoved = 1;
                     break;
                 }
+                // the clause now depends on the fact that falsified the literal
+                Gip_SolverLowerTag( p, Cref, p->pTag0[Gip_LitVar(Lit)] );
                 Gip_ClaSwapRemoveLit( &p->Cdb.Alloc, Cref, j );
             }
             else
@@ -265,6 +267,7 @@ static void Gip_SolverSimplifySubsume( Gip_Solver_t * p )
                 {
                     if ( Vec_IntSize(pEnts[i].vSorted) > 2 )
                     {
+                        Gip_SolverLowerTag( p, pEnts[i].Cref, Gip_SolverClaFrame(p, pEnts[sub].Cref) );
                         Gip_SolverDetachClause( p, pEnts[sub].Cref );
                         Gip_SolverStrengthenClause( p, pEnts[i].Cref, diff );
                         Gip_SubEntRefresh( p, &pEnts[i] );
@@ -272,6 +275,7 @@ static void Gip_SolverSimplifySubsume( Gip_Solver_t * p )
                 }
                 else
                 {
+                    Gip_SolverLowerTag( p, pEnts[sub].Cref, Gip_SolverClaFrame(p, pEnts[i].Cref) );
                     Gip_SolverStrengthenClause( p, pEnts[sub].Cref, Gip_LitNot(diff) );
                     Gip_SubEntRefresh( p, &pEnts[sub] );
                 }

@@ -75,7 +75,7 @@ static inline bool non_watching_propagate_literal (kissat *solver,
       }
       if (non_false == 1)
         kissat_fast_assign_reference (solver, values, assigned, unit, ref,
-                                      c);
+                                      c, 0);
     }
   }
 

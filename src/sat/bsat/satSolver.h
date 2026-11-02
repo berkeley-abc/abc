@@ -169,6 +169,7 @@ struct sat_solver_t
     abctime     timeReduceDb;  // runtime of DB reductions
 
     ABC_INT64_T nConfLimit;    // external limit on the number of conflicts
+    int         fExactConfLimit; // opt-in: stop before propagation at the conflict cap
     ABC_INT64_T nInsLimit;     // external limit on the number of implications
     abctime     nRuntimeLimit; // external limit on runtime
 

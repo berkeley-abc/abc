@@ -28,6 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 extern void Abc_Init( Abc_Frame_t * pAbc );
+extern void Decpla_Init( Abc_Frame_t * pAbc );
 extern void Abc_End ( Abc_Frame_t * pAbc );
 extern void Io_Init( Abc_Frame_t * pAbc );
 extern void Io_End ( Abc_Frame_t * pAbc );
@@ -113,6 +114,7 @@ void Abc_FrameInit( Abc_Frame_t * pAbc )
     Cmd_CommandExecute( pAbc, "set checkread" ); 
     Io_Init( pAbc );
     Abc_Init( pAbc );
+    Decpla_Init( pAbc );
     If_Init( pAbc );
     Map_Init( pAbc );
     Mio_Init( pAbc );

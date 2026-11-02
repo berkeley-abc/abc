@@ -2978,6 +2978,8 @@ Gate *Closure::new_and_gate (Clause *base_clause, int lhs) {
       LOG ("found merged literals");
       ++internal->stats.congruence.ands;
     }
+    // This temporary gate was not inserted into the table that owns gates.
+    delete g;
     return nullptr;
   } else {
     g->rhs = {rhs};

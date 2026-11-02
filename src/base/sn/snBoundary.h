@@ -710,6 +710,7 @@ static inline sn_module_id_t sn_boundary_dup_filtered_topo(sn_design_t* design, 
 
     sn_module_id_t target_id = sn_design_add_module(design, name);
     sn_module_t* target = sn_design_get_module(design, target_id);
+    target->flags = source->flags;
     sn_module_dup_module_metadata(target, source);
     sn_vec_resize(sn_obj_id_t, &source->copy_ids, object_count);
     for (sn_obj_id_t object = 0; object < object_count; object++)
@@ -725,7 +726,7 @@ static inline sn_module_id_t sn_boundary_dup_filtered_topo(sn_design_t* design, 
     {
         sn_obj_id_t old_object = sn_vec_at(sn_obj_id_t, &order, i);
         sn_obj_id_t new_object = sn_vec_at(sn_obj_id_t, &source->copy_ids, old_object);
-        sn_module_dup_obj_metadata(target, new_object, source, old_object);
+        sn_module_dup_obj_data(target, new_object, source, old_object);
         for (uint32_t j = 0; j < sn_obj_fanin_count(source, old_object); j++)
         {
             sn_obj_id_t old_fanin = sn_obj_fanin(source, old_object, j);
@@ -736,6 +737,7 @@ static inline sn_module_id_t sn_boundary_dup_filtered_topo(sn_design_t* design, 
             sn_obj_connect(target, new_object, j, new_fanin);
         }
     }
+    sn_module_dup_all_obj_annotations_filtered(target, source, remove);
     sn_module_link_pairs(target);
     source->copy_module = target_id;
     sn_vec_destroy(&order);

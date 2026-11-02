@@ -891,7 +891,7 @@ static inline void Ses_ManComputeTopDec( Ses_Man_t * pSes )
 
 static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int nMaxDepth, int * pArrTimeProfile, int fMakeAIG, int nBTLimit, int fVerbose )
 {
-    int h, i;
+    int h, i, nWords = Abc_TtWordNum( nVars );
 
     Ses_Man_t * p = ABC_CALLOC( Ses_Man_t, 1 );
     p->pSat       = NULL;
@@ -899,14 +899,14 @@ static inline Ses_Man_t * Ses_ManAlloc( word * pTruth, int nVars, int nFunc, int
     for ( h = 0; h < nFunc; ++h )
         if ( pTruth[h << 2] & 1 )
         {
-            for ( i = 0; i < 4; ++i )
+            for ( i = 0; i < nWords; ++i )
                 pTruth[(h << 2) + i] = ~pTruth[(h << 2) + i];
             p->bSpecInv |= ( 1 << h );
         }
     p->pSpec           = pTruth;
     p->nSpecVars       = nVars;
     p->nSpecFunc       = nFunc;
-    p->nSpecWords      = Abc_TtWordNum( nVars );
+    p->nSpecWords      = nWords;
     p->nRows           = ( 1 << nVars ) - 1;
     p->nMaxDepth       = nMaxDepth;
     p->pArrTimeProfile = nMaxDepth >= 0 ? pArrTimeProfile : NULL;
@@ -939,7 +939,7 @@ static inline void Ses_ManCleanLight( Ses_Man_t * pSes )
     int h, i;
     for ( h = 0; h < pSes->nSpecFunc; ++h )
         if ( ( pSes->bSpecInv >> h ) & 1 )
-            for ( i = 0; i < 4; ++i )
+            for ( i = 0; i < pSes->nSpecWords; ++i )
                 pSes->pSpec[(h << 2) + i] = ~( pSes->pSpec[(h << 2) + i] );
 
     if ( pSes->pArrTimeProfile )
@@ -1628,7 +1628,7 @@ static inline int Ses_ManSolve( Ses_Man_t * pSes )
 // nfunc:       integer with number of functions
 // ngates:      integer with number of gates
 // gate[i]:     | op | nfanin | fanin[1] | ... | fanin[nfanin] |
-//   op:        integer of gate's truth table (divided by 2, because gate is normal)
+//   op:        gate values for input pairs (0,1), (1,0), (1,1) in bits 0, 1, 2
 //   nfanin:    integer with number of fanins
 //   fanin[i]:  integer to primary input or other gate
 // func[i]:     | fanin | delay | pin[1] | ... | pin[nvars] |
@@ -1784,8 +1784,8 @@ static Abc_Ntk_t * Ses_ManExtractNtk( char const * pSol )
     p = pSol + 3;
     for ( i = 0; i < pSol[ABC_EXACT_SOL_NGATES]; ++i )
     {
-        pGateTruth[2] = '0' + ( *p & 1 );
-        pGateTruth[1] = '0' + ( ( *p >> 1 ) & 1 );
+        pGateTruth[1] = '0' + ( *p & 1 );
+        pGateTruth[2] = '0' + ( ( *p >> 1 ) & 1 );
         pGateTruth[0] = '0' + ( ( *p >> 2 ) & 1 );
         ++p;
 
@@ -2919,8 +2919,7 @@ Abc_Obj_t * Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile,
     for ( i = 0; i < nVars; ++i )
         pNormalArrTime[i] = pArrTimeProfile[i];
     Abc_NormalizeArrivalTimes( pNormalArrTime, nVars, &nMaxArrival );
-    assert( Ses_StoreGetEntry( s_pSesStore, pTruth, nVars, pNormalArrTime, &pSol ) );
-    if ( !pSol )
+    if ( !Ses_StoreGetEntry( s_pSesStore, pTruth, nVars, pNormalArrTime, &pSol ) || !pSol )
     {
         s_pSesStore->timeTotal += ( Abc_Clock() - timeStart );
         return NULL;
@@ -2944,8 +2943,8 @@ Abc_Obj_t * Abc_ExactBuildNode( word * pTruth, int nVars, int * pArrTimeProfile,
     p = pSol + 3;
     for ( i = 0; i < pSol[ABC_EXACT_SOL_NGATES]; ++i )
     {
-        pGateTruth[2] = '0' + ( *p & 1 );
-        pGateTruth[1] = '0' + ( ( *p >> 1 ) & 1 );
+        pGateTruth[1] = '0' + ( *p & 1 );
+        pGateTruth[2] = '0' + ( ( *p >> 1 ) & 1 );
         pGateTruth[0] = '0' + ( ( *p >> 2 ) & 1 );
         ++p;
 

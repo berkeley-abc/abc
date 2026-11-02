@@ -603,7 +603,10 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
     if ( pPars->nLutSize > 6 )
         pPars->nLutSize = 6;
     if ( pPars->nLutSize < 3 )
-        pPars->nLutSize = 3;
+    {
+        printf( "LUT packing requires LUTs with at least 3 inputs.\n" );
+        return 1;
+    }
     // If_Init() installs a 4-input LUT library at start-up, and it is always present,
     // so the branch above always takes the library width and never the max fanin count
     // that the "lutpack" usage message advertises.  Packing a 6-LUT network for 4-LUTs

@@ -28,6 +28,7 @@
 #ifdef ABC_USE_PTHREADS
 
 #if defined(_WIN32) && !defined(__MINGW32__)
+#include <windows.h>
 #include "../lib/pthread.h"
 #else
 #include <pthread.h>
@@ -217,7 +218,12 @@ void Cmd_RunStarter( char * pFileName, char * pBinary, char * pCommand, int nCor
             status = pthread_mutex_unlock(&mutex); assert(status == 0);
             if ( Counter < nCores - 1 )
                 break;
-//            Sleep( 100 );
+            // do not spin on the mutex: a millisecond of sleep leaves the core to the jobs
+#if defined(_WIN32) && !defined(__MINGW32__)
+            Sleep( 1 );
+#else
+            usleep( 1000 );
+#endif
         }
 
         // increament the number of threads running
@@ -241,6 +247,11 @@ void Cmd_RunStarter( char * pFileName, char * pBinary, char * pCommand, int nCor
         status = pthread_mutex_unlock(&mutex); assert(status == 0);
         if ( Counter == 0 )
             break;
+#if defined(_WIN32) && !defined(__MINGW32__)
+        Sleep( 1 );
+#else
+        usleep( 1000 );
+#endif
     }
 
     // cleanup

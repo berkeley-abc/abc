@@ -23,6 +23,7 @@
 #include "misc/vec/vecWec.h"
 #include "proof/cec/cec.h"
 #include "misc/util/utilTruth.h"
+#include "misc/util/utilNam.h"
 #include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -3027,6 +3028,7 @@ int Gia_ManMiter_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
 ***********************************************************************/
 Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int nInsDup, int fDualOut, int fSeq, int fImplic, int fVerbose )
 {
+    extern void Gia_ManCleanupRemap( Gia_Man_t * p, Gia_Man_t * pGia );
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     int i, iLit;
@@ -3154,9 +3156,15 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int nInsDup, int fDual
     }
     Gia_ManHashStop( pNew );
     pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManCleanupRemap( p0, pTemp );
+    if ( p1 != p0 )
+        Gia_ManCleanupRemap( p1, pTemp );
     Gia_ManStop( pTemp );
 
     pNew = Gia_ManDupNormalize( pTemp = pNew, 0 );
+    Gia_ManCleanupRemap( p0, pTemp );
+    if ( p1 != p0 )
+        Gia_ManCleanupRemap( p1, pTemp );
     Gia_ManStop( pTemp );
     return pNew;
 }
@@ -3602,6 +3610,65 @@ Gia_Man_t * Gia_ManTransformDualOutput( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Renames flop outputs that share names with other POs.]
+
+  Description [When a flop is normalized to have const-0 init value, the PO
+  with the name of its output is no longer driven by it. The PO keeps its
+  name, and the flop output gets a new unique name, as "undc" and "zero" do.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManRenameFlopOutputs( Gia_Man_t * p )
+{
+    Abc_Nam_t * pNames;
+    Vec_Int_t * vId2Ro;
+    Gia_Obj_t * pObj;
+    char ** ppName, * pName, * pSuffix;
+    int i, k, Id, iRo, iLitRo, fFound;
+    if ( p->vNamesIn == NULL || p->vNamesOut == NULL || Gia_ManRegNum(p) == 0 ||
+         Vec_PtrSize(p->vNamesIn) < Gia_ManCiNum(p) || Vec_PtrSize(p->vNamesOut) < Gia_ManPoNum(p) )
+        return;
+    pNames = Abc_NamStart( Vec_PtrSize(p->vNamesIn) + Vec_PtrSize(p->vNamesOut), 16 );
+    vId2Ro = Vec_IntStartFull( Vec_PtrSize(p->vNamesIn) + Vec_PtrSize(p->vNamesOut) + 1 );
+    Gia_ManForEachRo( p, pObj, i )
+        if ( (pName = (char *)Vec_PtrEntry(p->vNamesIn, Gia_ManPiNum(p) + i)) )
+            Vec_IntWriteEntry( vId2Ro, Abc_NamStrFindOrAdd(pNames, pName, NULL), i );
+    Vec_PtrForEachEntry( char *, p->vNamesIn, pName, k )
+        if ( pName )
+            Abc_NamStrFindOrAdd( pNames, pName, NULL );
+    Vec_PtrForEachEntry( char *, p->vNamesOut, pName, k )
+        if ( pName )
+            Abc_NamStrFindOrAdd( pNames, pName, NULL );
+    Gia_ManForEachPo( p, pObj, i )
+    {
+        if ( (pName = (char *)Vec_PtrEntry(p->vNamesOut, i)) == NULL )
+            continue;
+        Id = Abc_NamStrFind( pNames, pName );
+        if ( (iRo = Vec_IntEntry(vId2Ro, Id)) == -1 )
+            continue;
+        iLitRo = Gia_Obj2Lit( p, Gia_ManRo(p, iRo) );
+        if ( Gia_ObjFaninLit0p(p, pObj) == iLitRo )
+            continue;
+        Vec_IntWriteEntry( vId2Ro, Id, -1 );
+        ppName  = (char **)Vec_PtrEntryP( p->vNamesIn, Gia_ManPiNum(p) + iRo );
+        pSuffix = Gia_ObjFaninLit0p(p, pObj) == Abc_LitNot(iLitRo) ? (char *)"_inv" : (char *)"_lo";
+        pName   = ABC_ALLOC( char, strlen(*ppName) + strlen(pSuffix) + 12 );
+        sprintf( pName, "%s%s", *ppName, pSuffix );
+        // add a number to the name until it is not used
+        for ( k = 1; Abc_NamStrFindOrAdd(pNames, pName, &fFound), fFound; k++ )
+            sprintf( pName, "%s%s%d", *ppName, pSuffix, k );
+        ABC_FREE( *ppName );
+        *ppName = pName;
+    }
+    Vec_IntFree( vId2Ro );
+    Abc_NamStop( pNames );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs 'zero' and 'undc' operation.]
 
   Description [The init string specifies 0/1/X for each flop.]
@@ -3671,7 +3738,7 @@ Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit, int nNewPis, int fG
     // create flop inputs
     Gia_ManForEachRi( p, pObj, i )
         if ( pInit[i] == '1' )
-            pObj->Value = Gia_ManAppendCo( pNew, Abc_LitNot(Gia_ObjFanin0Copy(pObj)) );
+            pObj->Value = Abc_LitNot( Gia_ManAppendCo(pNew, Abc_LitNot(Gia_ObjFanin0Copy(pObj))) );
         else
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     // create reset flop input
@@ -3727,8 +3794,11 @@ Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit, int nNewPis, int fG
         Vec_Ptr_t * vNamesOut = Vec_PtrAlloc( Vec_PtrSize(p->vNamesOut) );
         for ( i = 0; i < Vec_PtrSize(p->vNamesOut); i++ )
             Vec_PtrPush( vNamesOut, Abc_UtilStrsav( (char *)Vec_PtrEntry(p->vNamesOut, i) ) );
+        if ( CountPis > Gia_ManPiNum(p) )
+            Vec_PtrPush( vNamesOut, Abc_UtilStrsav("init_reset") );
         pNew->vNamesOut = vNamesOut;
     }
+    Gia_ManRenameFlopOutputs( pNew );
     ABC_FREE( pPiLits );
     return pNew;
 }
@@ -3917,6 +3987,7 @@ Gia_Man_t * Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes )
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
@@ -3927,7 +3998,7 @@ Gia_Man_t * Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManForEachPo( p, pObj, i )
         if ( Vec_IntEntry(vPoTypes, i) == 1 ) // constraint (should be complemented!)
-            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) ^ 1 ), nConstr++;
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) ^ 1 ) ^ 1, nConstr++;
     Gia_ManForEachRi( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
 //    Gia_ManDupRemapEquiv( pNew, p );
@@ -5766,6 +5837,10 @@ Gia_Man_t * Gia_ManDupWithCare( Gia_Man_t * p, Gia_Man_t * pCare )
     return pNew;
 }
 
+// timing memo of the arrival-driven final adder (base/wlc/wlc.h); declared at file scope
+// so that the C++ build does not take it for a type local to the function below
+typedef struct Wlc_BlastTim_t_ Wlc_BlastTim_t;
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -5779,7 +5854,7 @@ Gia_Man_t * Gia_ManDupWithCare( Gia_Man_t * p, Gia_Man_t * pCare )
 ***********************************************************************/
 void Gia_ManProdAdderGen( int nArgA, int nArgB, int Seed, int fSigned, int fCla )
 {
-    extern void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vLevels, Vec_Int_t * vRes, int fSigned, int fCla );
+    extern void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vLevels, Vec_Int_t * vRes, int fSigned, int fCla, Wlc_BlastTim_t * pTim, int nBitsRes );
     int i, k, x, fCompl, iLit; char  pNameP[32], pNameT[32];
     Vec_Wec_t * vProds  = Vec_WecStart( nArgA + nArgB );
     Vec_Wec_t * vLevels = Vec_WecStart( nArgA + nArgB );
@@ -5826,7 +5901,7 @@ void Gia_ManProdAdderGen( int nArgA, int nArgB, int Seed, int fSigned, int fCla 
             if ( Vec_IntSize(vLevel) > 1 )
                 Vec_IntRandomizeOrder( vLevel );
     }
-    Wlc_BlastReduceMatrix( pTree, vProds, vLevels, vRes, fSigned, fCla );
+    Wlc_BlastReduceMatrix( pTree, vProds, vLevels, vRes, fSigned, fCla, NULL, 0 );
     Vec_IntShrink( vRes, nArgA + nArgB );
     assert( Vec_IntSize(vRes) == nArgA + nArgB );
     Vec_IntForEachEntry( vRes, iLit, x )

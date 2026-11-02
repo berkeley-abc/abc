@@ -397,6 +397,7 @@ int Io_ReadBlifNetworkLatch( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
 { 
     Abc_Ntk_t * pNtk = p->pNtkCur;
     Abc_Obj_t * pLatch;
+    char * pInit;
     int ResetValue;
     if ( vTokens->nSize < 3 )
     {
@@ -408,15 +409,16 @@ int Io_ReadBlifNetworkLatch( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
     // create the latch
     pLatch = Io_ReadCreateLatch( pNtk, (char *)vTokens->pArray[1], (char *)vTokens->pArray[2] );
     // get the latch reset value
-    if ( vTokens->nSize == 3 )
+    if ( vTokens->nSize == 3 || vTokens->nSize == 5 )
         Abc_LatchSetInitDc( pLatch );
     else
     {
-        ResetValue = atoi((char *)vTokens->pArray[vTokens->nSize-1]);
-        if ( ResetValue != 0 && ResetValue != 1 && ResetValue != 2 )
+        pInit = (char *)Vec_PtrEntryLast(vTokens);
+        ResetValue = pInit[0] && !pInit[1] ? pInit[0] - '0' : -1;
+        if ( ResetValue < 0 || ResetValue > 3 )
         {
             p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
-            sprintf( p->sError, "The .latch line has an unknown reset value (%s).", (char*)vTokens->pArray[3] );
+            sprintf( p->sError, "The .latch line has an unknown reset value (%s).", pInit );
             Io_ReadBlifPrintErrorMessage( p );
             return 1;
         }
@@ -424,7 +426,7 @@ int Io_ReadBlifNetworkLatch( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
             Abc_LatchSetInit0( pLatch );
         else if ( ResetValue == 1 )
             Abc_LatchSetInit1( pLatch );
-        else if ( ResetValue == 2 )
+        else
             Abc_LatchSetInitDc( pLatch );
     }
     return 0;

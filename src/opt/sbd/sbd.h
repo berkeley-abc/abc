@@ -42,16 +42,20 @@ struct Sbd_Par_t_
     int             nLutNum;      // target LUT count
     int             nCutSize;     // target cut size
     int             nCutNum;      // target cut count
-    int             nTfoLevels;   // the number of TFO levels (windowing)
-    int             nTfoFanMax;   // the max number of fanouts (windowing)
-    int             nWinSizeMax;  // maximum window size (windowing)
-    int             nBTLimit;     // maximum number of SAT conflicts 
+    int             nIters;       // maximum complete delay optimization rounds
+    int             nTfoLevels;   // the number of TFO levels (-1 = objective default)
+    int             nTfoFanMax;   // the max number of fanouts (-1 = objective default)
+    int             nWinSizeMax;  // maximum window size (-1 = objective default)
+    int             nBTLimit;     // maximum SAT conflicts (-1 = objective default)
+    int             nBTLimitDch;  // choice SAT conflicts (-1 = default)
     int             nWords;       // simulation word count
     int             fMapping;     // generate mapping
     int             fMoreCuts;    // use several cuts
     int             fFindDivs;    // perform divisor search
-    int             fUsePath;     // optimize only critical path
-    int             fArea;        // area-oriented optimization
+    int             fUsePath;     // -1 = automatic, 0 = all nodes, 1 = critical paths
+    int             fArea;        // optimize area without a depth bound
+    int             fDelay;       // reduce depth before bounded area optimization
+    int             fChoices;     // also use choice recovery in area modes
     int             fCover;       // use complete cover procedure
     int             fVerbose;     // verbose flag
     int             fVeryVerbose; // verbose flag
@@ -66,9 +70,10 @@ struct Sbd_Par_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== sbdCnf.c ==========================================================*/
-/*=== sbdCore.c ==========================================================*/
+// === sbdCnf.c ==========================================================
+// === sbdCore.c ==========================================================
 extern void         Sbd_ParSetDefault( Sbd_Par_t * pPars );
+extern void         Sbd_ParResolve( Sbd_Par_t * pPars );
 extern Gia_Man_t *  Sbd_NtkPerform( Gia_Man_t * p, Sbd_Par_t * pPars );
 
 

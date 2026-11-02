@@ -825,7 +825,7 @@ private:
     uint32_t const next_group = 1 << ( num_vars - best_free_set - num_shared_vars );
 
     uint64_t fs_fun[32] = { 0 };
-    uint64_t dc_mask = ( ( UINT64_C( 1 ) << next_group ) - 1 );
+    uint64_t dc_mask = next_group == 64 ? UINT64_MAX : ( ( UINT64_C( 1 ) << next_group ) - 1 );
 
     uint32_t group_index = 0;
     uint32_t set_index = 0;
@@ -895,6 +895,8 @@ private:
       if ( bs_support_size < i )
       {
         kitty::swap_inplace( bs, bs_support_size, i );
+        // Keep the care set in the same variable order as the function.
+        kitty::swap_inplace( care, bs_support_size, i );
       }
 
       bs_support[bs_support_size] = i;

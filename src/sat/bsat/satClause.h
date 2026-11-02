@@ -299,27 +299,37 @@ static inline void Sat_MemFree( Sat_Mem_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int * Sat_MemAdvance( Sat_Mem_t * p, int lrn )
+{
+    p->iPage[lrn] += 2;
+    if ( p->iPage[lrn] >= p->nPagesAlloc )
+    {
+        p->pPages = ABC_REALLOC( int *, p->pPages, p->nPagesAlloc * 2 );
+        memset( p->pPages + p->nPagesAlloc, 0, sizeof(int *) * p->nPagesAlloc );
+        p->nPagesAlloc *= 2;
+    }
+    if ( p->pPages[p->iPage[lrn]] == NULL )
+        p->pPages[p->iPage[lrn]] = ABC_ALLOC( int, (int)(((word)1) << p->nPageSize) );
+    Sat_MemWriteLimit( p->pPages[p->iPage[lrn]], 2 );
+    return p->pPages[p->iPage[lrn]];
+}
+
 static inline int Sat_MemAppend( Sat_Mem_t * p, int * pArray, int nSize, int lrn, int fPlus1 )
 {
     clause * c;
     int * pPage = p->pPages[p->iPage[lrn]];
     int nInts = Sat_MemIntSize( nSize, lrn | fPlus1 );
-    assert( nInts + 3 < (1 << p->nPageSize) );
-    // need two extra at the begining of the page and one extra in the end
-    if ( Sat_MemLimit(pPage) + nInts + 2 >= (1 << p->nPageSize) )
-    { 
-        p->iPage[lrn] += 2;
-        if ( p->iPage[lrn] >= p->nPagesAlloc )
-        {
-            p->pPages = ABC_REALLOC( int *, p->pPages, p->nPagesAlloc * 2 );
-            memset( p->pPages + p->nPagesAlloc, 0, sizeof(int *) * p->nPagesAlloc );
-            p->nPagesAlloc *= 2;
-        }
-        if ( p->pPages[p->iPage[lrn]] == NULL )
-            p->pPages[p->iPage[lrn]] = ABC_ALLOC( int, (int)(((word)1) << p->nPageSize) );
-        pPage = p->pPages[p->iPage[lrn]];
-        Sat_MemWriteLimit( pPage, 2 );
+    int h;
+    // Oversized clauses occupy a whole enlarged page. Only their start is a handle.
+    if ( nInts + 3 >= (1 << p->nPageSize) )
+    {
+        if ( Sat_MemLimit(pPage) > 2 )
+            pPage = Sat_MemAdvance( p, lrn );
+        pPage = p->pPages[p->iPage[lrn]] = ABC_REALLOC( int, pPage, nInts + 4 );
     }
+    else if ( Sat_MemLimit(pPage) + nInts + 2 >= (1 << p->nPageSize) )
+        pPage = Sat_MemAdvance( p, lrn );
+    h = Sat_MemHandCurrent( p, lrn );
     pPage[Sat_MemLimit(pPage)] = 0;
     c = (clause *)(pPage + Sat_MemLimit(pPage));
     c->size = nSize;
@@ -330,7 +340,10 @@ static inline int Sat_MemAppend( Sat_Mem_t * p, int * pArray, int nSize, int lrn
         c->lits[c->size] = p->nEntries[lrn];
     p->nEntries[lrn]++;
     Sat_MemIncLimit( pPage, nInts );
-    return Sat_MemHandCurrent(p, lrn) - nInts;
+    // Keep the current handle and bookmarks representable within a normal page.
+    if ( nInts + 3 >= (1 << p->nPageSize) )
+        Sat_MemAdvance( p, lrn );
+    return h;
 }
 
 /**Function*************************************************************
@@ -410,7 +423,7 @@ static inline int Sat_MemCompactLearned( Sat_Mem_t * p, int fDoMove )
         nInts = Sat_MemClauseSize(c);
         assert( !(nInts & 1) );
         // check if we need to scroll to the next page
-        if ( kNew + nInts >= (1 << p->nPageSize) )
+        if ( kNew > 2 && kNew + nInts >= (1 << p->nPageSize) )
         {
             // set the limit of the current page
             if ( fDoMove )
@@ -426,6 +439,8 @@ static inline int Sat_MemCompactLearned( Sat_Mem_t * p, int fDoMove )
             // only copy the clause if it has changed
             if ( i != iNew || k != kNew )
             {
+                if ( nInts + 3 >= (1 << p->nPageSize) )
+                    p->pPages[iNew] = ABC_REALLOC( int, p->pPages[iNew], nInts + 4 );
                 memmove( p->pPages[iNew] + kNew, c, sizeof(int) * nInts );
 //                c = Sat_MemClause( p, iNew, kNew ); // assersions do not hold during dry run
                 c = (clause *)(p->pPages[iNew] + kNew);
@@ -438,7 +453,14 @@ static inline int Sat_MemCompactLearned( Sat_Mem_t * p, int fDoMove )
             c->lits[c->size] = Sat_MemHand(p, iNew, kNew);
         // update writing position
         kNew += nInts;
-        assert( iNew <= i && kNew < (1 << p->nPageSize) );
+        assert( iNew <= i );
+        if ( kNew >= (1 << p->nPageSize) )
+        {
+            if ( fDoMove )
+                Sat_MemWriteLimit( p->pPages[iNew], kNew );
+            iNew += 2;
+            kNew = 2;
+        }
         // update counter
         Counter++;
     }

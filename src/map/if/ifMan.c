@@ -88,9 +88,10 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
         }
     }
     p->nPermWords  = p->pPars->fUsePerm? If_CutPermWords( p->pPars->nLutSize ) : 0;
-    p->nObjBytes   = sizeof(If_Obj_t) + sizeof(int) * (p->pPars->nLutSize + p->nPermWords);
-    p->nCutBytes   = sizeof(If_Cut_t) + sizeof(int) * (p->pPars->nLutSize + p->nPermWords);
-    p->nSetBytes   = sizeof(If_Set_t) + (sizeof(If_Cut_t *) + p->nCutBytes) * (p->pPars->nCutsMax + 1);
+    p->nObjBytes   = (sizeof(If_Obj_t) + sizeof(int) * (p->pPars->nLutSize + p->nPermWords) + 7) & ~7;
+    p->nCutBytes   = (sizeof(If_Cut_t) + sizeof(int) * (p->pPars->nLutSize + p->nPermWords) + 7) & ~7;
+    p->nSetBytes   = ((sizeof(If_Set_t) + sizeof(If_Cut_t *) * (p->pPars->nCutsMax + 1) + 7) & ~7)
+                  + p->nCutBytes * (p->pPars->nCutsMax + 1);
     p->pMemObj     = Mem_FixedStart( p->nObjBytes );
     // report expected memory usage
     if ( p->pPars->fVerbose )
@@ -689,7 +690,7 @@ void If_ManSetupSet( If_Man_t * p, If_Set_t * pSet )
     pSet->nCuts = 0;
     pSet->nCutsMax = p->pPars->nCutsMax;
     pSet->ppCuts = (If_Cut_t **)(pSet + 1);
-    pArray = (char *)pSet->ppCuts + sizeof(If_Cut_t *) * (pSet->nCutsMax+1);
+    pArray = (char *)pSet + ((sizeof(If_Set_t) + sizeof(If_Cut_t *) * (pSet->nCutsMax+1) + 7) & ~7);
     for ( i = 0; i <= pSet->nCutsMax; i++ )
     {
         pSet->ppCuts[i] = (If_Cut_t *)(pArray + i * p->nCutBytes); 

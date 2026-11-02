@@ -73,7 +73,6 @@ src/sat/kissat/search.c \
 src/sat/kissat/shrink.c \
 src/sat/kissat/smooth.c \
 src/sat/kissat/sort.c \
-src/sat/kissat/stack.c \
 src/sat/kissat/statistics.c \
 src/sat/kissat/strengthen.c \
 src/sat/kissat/substitute.c \

@@ -80,6 +80,8 @@ namespace eSLIM {
 
   eSLIMCirMan::eSLIMCirMan(Gia_Man_t * pGia) : eSLIMCirMan(Gia_ManObjNum(pGia)) {
     assert (!Gia_ManHasDangling(pGia));
+    assert (Gia_ManRegNum(pGia) == 0);
+    assert (Gia_ManMuxNum(pGia) == 0 && Gia_ManXorNum(pGia) == 0);
     Gia_ManConst0(pGia)->Value = 0;
     Gia_Obj_t * pObj;
     int i;
@@ -106,6 +108,7 @@ namespace eSLIM {
   eSLIMCirMan::eSLIMCirMan(Abc_Ntk_t * pNtk, bool simplify) : eSLIMCirMan(Abc_NtkObjNum(pNtk)) {
     assert(Abc_NtkIsLogic(pNtk));
     assert(Abc_NtkHasSop(pNtk));
+    assert(Abc_NtkIsComb(pNtk));
 
     Abc_NtkIncrementTravId(pNtk);
 
@@ -360,7 +363,35 @@ namespace eSLIM {
     }
   }
 
+
   void eSLIMCirMan::markCones(const std::vector<int>& nodes) {
+    // mark TFI
+    std::vector<int> to_process(nodes.begin(), nodes.end());
+    while (!to_process.empty()){
+      int node = to_process.back();
+      to_process.pop_back();
+      for (auto& f : getpObj(node)->fanins) {
+        if (!inSubcircuit(*f) && !inTFI(*f)) {
+          setInTFI(*f);
+          to_process.push_back(f->node_id);
+        }
+      }
+    }
+    to_process.insert(to_process.end(), nodes.begin(), nodes.end());
+    // mark tfo
+    while (!to_process.empty()) {
+      int node = to_process.back();
+      to_process.pop_back();
+      for (auto& f : getpObj(node)->fanouts) {
+        if (!inSubcircuit(*f) && !inTFO(*f)) {
+          setInTFO(*f);
+          to_process.push_back(f->node_id);
+        }
+      }
+    }
+  }
+
+  void eSLIMCirMan::markConesRange(const std::vector<int>& nodes) {
     int min_node = *std::min_element(nodes.begin(), nodes.end());
     int max_node = *std::max_element(nodes.begin(), nodes.end());
     // mark TFI
@@ -387,6 +418,8 @@ namespace eSLIM {
 
   ABC_UINT64_T eSLIMCirMan::ttFromGiaObj(Gia_Man_t * pGia, Gia_Obj_t * pObj) {
     assert(Gia_ObjIsAnd(pObj));
+    assert(!Gia_ObjIsMux(pGia, pObj));
+    assert(!Gia_ObjIsXor(pObj));
     // A fanin is negated if is either negated in pGia or (exclusive) if it is marked
     if (Gia_ObjFaninC0(pObj) != Gia_ObjIsTravIdCurrent(pGia, Gia_ObjFanin0(pObj))) {
       if (Gia_ObjFaninC1(pObj) != Gia_ObjIsTravIdCurrent(pGia, Gia_ObjFanin1(pObj))) {
@@ -427,12 +460,13 @@ namespace eSLIM {
 
   ABC_UINT64_T eSLIMCirMan::ttNegateFanin(ABC_UINT64_T tt, unsigned int fan) {
     assert (fan < 6);
-    constexpr ABC_UINT64_T filters1[6] = {0xAAAAAAAAAAAAAAAAull, 0xCCCCCCCCCCCCCCCCull, 0xF0F0F0F0F0F0F0F0ull, 0xFF00FF00FF00FF00ull, 0xFFFF0000FFFF0000ull, 0xFFFFFFFF00000000ull};
-    constexpr ABC_UINT64_T filters2[6] = {0x5555555555555555ull, 0x3333333333333333ull, 0xF0F0F0F0F0F0F0Full, 0xFF00FF00FF00FFull, 0xFFFF0000FFFFull, 0xFFFFFFFFull};
-    constexpr int shifts[6] = {1,2,4,8,16,32};
-    ABC_UINT64_T x = tt & filters1[fan];
-    ABC_UINT64_T y = tt & filters2[fan];
-    return (x >> shifts[fan]) | (y << shifts[fan]);
+    return Abc_Tt6Flip(tt, fan);
+    // constexpr ABC_UINT64_T filters1[6] = {0xAAAAAAAAAAAAAAAAull, 0xCCCCCCCCCCCCCCCCull, 0xF0F0F0F0F0F0F0F0ull, 0xFF00FF00FF00FF00ull, 0xFFFF0000FFFF0000ull, 0xFFFFFFFF00000000ull};
+    // constexpr ABC_UINT64_T filters2[6] = {0x5555555555555555ull, 0x3333333333333333ull, 0xF0F0F0F0F0F0F0Full, 0xFF00FF00FF00FFull, 0xFFFF0000FFFFull, 0xFFFFFFFFull};
+    // constexpr int shifts[6] = {1,2,4,8,16,32};
+    // ABC_UINT64_T x = tt & filters1[fan];
+    // ABC_UINT64_T y = tt & filters2[fan];
+    // return (x >> shifts[fan]) | (y << shifts[fan]);
   }
 
   ABC_UINT64_T eSLIMCirMan::sop2tt(char * pSop) {
@@ -475,7 +509,7 @@ namespace eSLIM {
     // assert (pe->getNFanins() == 2);
     int bit_count = popcount(pe->tt);
     assert(ttisnormal(pe->tt));
-    assert (bit_count > 0 || bit_count < 4); // the circuit shall not contain constants
+    assert (bit_count > 0 && bit_count < 4); // the circuit shall not contain constants
     ABC_UINT64_T tt = pe->tt;
     bool negate_and = false;
     bool is_xor = false;
@@ -575,9 +609,14 @@ namespace eSLIM {
     Abc_Ntk_t* pNtk = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
     std::vector<Abc_Obj_t*> ntk_objs;
     // constant0
-    Abc_Obj_t* pObj = Abc_NtkCreateNodeConst0(pNtk);
-    ntk_objs.push_back(pObj);
-    Nm_ManStoreIdName( pNtk->pManName, pObj->Id, pObj->Type, Abc_ObjName(pObj), NULL );
+    if (nodes[0]->fanouts.size() > 0) {
+      Abc_Obj_t* pObj = Abc_NtkCreateNodeConst0(pNtk);
+      ntk_objs.push_back(pObj);
+      Nm_ManStoreIdName( pNtk->pManName, pObj->Id, pObj->Type, Abc_ObjName(pObj), NULL );
+    } else {
+      ntk_objs.push_back(nullptr);
+    }
+    
 
     for (int i = 1; i <= nof_pis; i++) {
       Abc_Obj_t* pObj = Abc_NtkCreatePi(pNtk);
@@ -595,26 +634,36 @@ namespace eSLIM {
         Abc_ObjAddFanin(pObj, ntk_objs[fid]);
       }
     }
-    for (int i = nodes.size() - nof_pos; i < nodes.size(); i++) {
+
+    std::unordered_set<int> driver_is_used;
+    for (int i = 0; i < nof_pos; i++) {
       Abc_Obj_t* fobj;
-      int fid = nodes[i]->fanins[0]->node_id;
-      // bool use_pi_name = false;
-      if (nodes[i]->tt == 1) { // a negated po
+      int nd = nodes.size() - nof_pos + i;
+      int fid = nodes[nd]->fanins[0]->node_id;
+      bool needs_buffer = driver_is_used.find(fid) != driver_is_used.end();
+      if (nodes[nd]->tt == 1) { // a negated po
         char* sop = tt2sop(1, 1, (Mem_Flex_t *)pNtk->pManFunc);
         fobj = Abc_NtkCreateNode( pNtk );
         Nm_ManStoreIdName( pNtk->pManName, fobj->Id, fobj->Type, Abc_ObjName(fobj), NULL );
         fobj->pData = sop;
         Abc_ObjAddFanin(fobj, ntk_objs[fid]);
-      } else {
-        // We add buffer to simplify the handling of the SimpleCos condition
+      } else if (needs_buffer) {
         char* sop = tt2sop(2, 1, (Mem_Flex_t *)pNtk->pManFunc);
         fobj = Abc_NtkCreateNode( pNtk );
         Nm_ManStoreIdName( pNtk->pManName, fobj->Id, fobj->Type, Abc_ObjName(fobj), NULL );
         fobj->pData = sop;
         Abc_ObjAddFanin(fobj, ntk_objs[fid]);
+      } else {
+        fobj = ntk_objs[fid];
+        driver_is_used.insert(fid);
       }
+      
       Abc_Obj_t* pObj = Abc_NtkCreatePo(pNtk);
-      Nm_ManStoreIdName( pNtk->pManName, pObj->Id, pObj->Type, Abc_ObjName(pObj), NULL );
+      if (Abc_ObjIsPi(fobj)) {
+        Nm_ManStoreIdName( pNtk->pManName, pObj->Id, pObj->Type, Abc_ObjName(fobj), NULL );
+      } else {
+        Nm_ManStoreIdName( pNtk->pManName, pObj->Id, pObj->Type, Abc_ObjName(pObj), NULL );
+      }
       Abc_ObjAddFanin(pObj, fobj);
     }
 
@@ -716,7 +765,7 @@ namespace eSLIM {
         if (fid == 0) {
           fobj = const1;
         } else {
-          if (negated_pos.find(fid) != negated_pos.end()) {
+          if (negated_pos.find(fid) == negated_pos.end()) {
             negated_pos[fid] = ntk_objs.size();
             Abc_Obj_t* pObj = Abc_NtkCreateNode( pNtk );
             Nm_ManStoreIdName( pNtk->pManName, pObj->Id, pObj->Type, Abc_ObjName(pObj), NULL );
@@ -964,6 +1013,9 @@ namespace eSLIM {
         return a->depth < b->depth || (a->depth == b->depth && a->id < b->id);
       }
     );
+    for (int i = nof_pis + 1; i < nodes.size() - nof_pos; i++) {
+      nodes[i]->node_id = i;
+    }
   }
 
   // Reorders the nodes to an alternative topological order.
@@ -1100,9 +1152,9 @@ namespace eSLIM {
   ABC_UINT64_T eSLIMCirMan::removeInputFromTT(ABC_UINT64_T tt, unsigned int first_occurrence, unsigned int second_occurrence) {
     assert (first_occurrence < 6 && second_occurrence && first_occurrence < second_occurrence); // we can only represent 6-input functions with the 64-bit ints
 
-    // filter that gives all the tt-lines with the ith input is true
+    // filter that gives all the tt-lines where the ith input is true
     static constexpr ABC_UINT64_T isTruePatterns[] {0xAAAAAAAAAAAAAAAAull, 0xCCCCCCCCCCCCCCCCull, 0xF0F0F0F0F0F0F0F0ull, 0xFF00FF00FF00FF00ull, 0xFFFF0000FFFF0000ull, 0xFFFFFFFF00000000ull};
-    // filter that gives all the tt-lines with the ith input is false
+    // filter that gives all the tt-lines where the ith input is false
     static constexpr ABC_UINT64_T isFalsePatterns[] {0x5555555555555555ull, 0x3333333333333333ull, 0xF0F0F0F0F0F0F0Full, 0xFF00FF00FF00FFull, 0xFFFF0000FFFFull, 0xFFFFFFFFull};
     // the first tt-line where the ith input is true
     static constexpr unsigned char firstTrueIn1[] {1, 2, 4, 8, 16, 32};

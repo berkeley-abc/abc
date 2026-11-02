@@ -43,6 +43,7 @@ static bool fast_forward_subsumed (kissat *solver, clause *c) {
     const size_t size_other_watches = SIZE_WATCHES (*other_watches);
     if (size_other_watches > fasteloccs)
       continue;
+    const bool missing = !marks[other] && values[other] >= 0;
     for (all_binary_large_watches (watch, *other_watches)) {
       if (watch.type.binary) {
         const unsigned other2 = watch.type.lit;
@@ -52,6 +53,10 @@ static bool fast_forward_subsumed (kissat *solver, clause *c) {
           break;
         }
       } else {
+        // Every clause in this occurrence list contains 'other'.
+        // An unmarked non-false literal makes the subset test fail.
+        if (missing)
+          continue;
         const reference d_ref = watch.large.ref;
         clause *d = kissat_dereference_clause (solver, d_ref);
         if (d == c)

@@ -48,6 +48,7 @@ static inline void sn_check_error(sn_check_ctx_t* ctx, const sn_module_t* module
 {
     va_list args;
     ctx->errors++;
+    if (!ctx->out) return;
     fprintf(ctx->out, "SN check failed");
     if (module)
         fprintf(ctx->out, " in module \"%s\"", sn_check_module_name(module));
@@ -1390,9 +1391,36 @@ static inline void sn_check_constant_table(sn_check_ctx_t* ctx, const sn_design_
     free(seen);
 }
 
-static inline bool sn_design_check(const sn_design_t* design, FILE* out, bool verbose)
+// Checks module contents without rescanning shared design tables.
+static inline void sn_check_module_contents(sn_check_ctx_t* ctx, const sn_module_t* module)
 {
-    sn_check_ctx_t ctx = {out ? out : stderr, 0, 0, 0, verbose};
+    size_t before = ctx->errors;
+    if (!sn_check_module_core(ctx,module) || ctx->errors != before) return;
+    sn_check_pairs(ctx,module,SN_REG_OUT,SN_REG_IN,SN_PAIR_OUT_IN_SLOT);
+    sn_check_pairs(ctx,module,SN_MEM_OUT,SN_MEM_IN,SN_PAIR_OUT_IN_SLOT);
+    sn_check_pairs(ctx,module,SN_LOOP_OUT,SN_LOOP_IN,SN_PAIR_OUT_IN_SLOT);
+    sn_check_memories(ctx,module);
+    sn_check_instances(ctx,module);
+    sn_check_special_objects(ctx,module);
+    sn_check_operator_shapes(ctx,module);
+    sn_check_auxiliary_storage(ctx,module);
+    sn_check_topology(ctx,module);
+    sn_check_primitive(ctx,module);
+}
+
+// Checks one module in an already validated owning design.
+static inline bool sn_module_check_local(const sn_module_t* module, FILE* out)
+{
+    sn_check_ctx_t ctx = {out, 0, 0, 0, false};
+    if (!module || !module->design) return false;
+    sn_check_module_contents(&ctx,module);
+    return ctx.errors == 0;
+}
+
+// Checks the full design with optional diagnostic output.
+static inline bool sn_design_check_output(const sn_design_t* design, FILE* out, bool verbose)
+{
+    sn_check_ctx_t ctx = {out, 0, 0, 0, verbose && out != NULL};
     bool safe = design != NULL;
     SN_CHECK(&ctx, NULL, SN_INVALID_ID, design != NULL, "null design pointer");
     if (!safe)
@@ -1478,26 +1506,12 @@ static inline bool sn_design_check(const sn_design_t* design, FILE* out, bool ve
                     module_name_owners[module->name] = id;
             }
         }
-        size_t before_core = ctx.errors;
-        if (module && module->design == design && sn_check_module_core(&ctx, module) && ctx.errors == before_core)
-        {
-            // Per-object metadata lives in obj_data, checked with the core
-            // vectors above; there are no separate type-metadata vectors.
-            sn_check_pairs(&ctx, module, SN_REG_OUT, SN_REG_IN, SN_PAIR_OUT_IN_SLOT);
-            sn_check_pairs(&ctx, module, SN_MEM_OUT, SN_MEM_IN, SN_PAIR_OUT_IN_SLOT);
-            sn_check_pairs(&ctx, module, SN_LOOP_OUT, SN_LOOP_IN, SN_PAIR_OUT_IN_SLOT);
-            sn_check_memories(&ctx, module);
-            sn_check_instances(&ctx, module);
-            sn_check_special_objects(&ctx, module);
-            sn_check_operator_shapes(&ctx, module);
-            sn_check_auxiliary_storage(&ctx, module);
-            sn_check_topology(&ctx, module);
-            sn_check_primitive(&ctx, module);
-        }
+        if (module && module->design == design)
+            sn_check_module_contents(&ctx,module);
         ctx.modules++;
         if (module)
             ctx.objects += module->obj_types.size;
-        if (verbose)
+        if (ctx.verbose)
             fprintf(ctx.out, "SN check: module \"%s\": %zu object(s), %zu error(s).\n",
                     sn_check_module_name(module), module ? module->obj_types.size : 0, ctx.errors - before);
     }
@@ -1514,10 +1528,16 @@ static inline bool sn_design_check(const sn_design_t* design, FILE* out, bool ve
             free(states);
         }
     }
-    if (verbose || ctx.errors)
+    if (ctx.out && (ctx.verbose || ctx.errors))
         fprintf(ctx.out, "SN check: %zu module(s), %zu object(s), %zu error(s).\n", ctx.modules, ctx.objects,
                 ctx.errors);
     return ctx.errors == 0;
+}
+
+// Preserves the public checker default of reporting to stderr.
+static inline bool sn_design_check(const sn_design_t* design, FILE* out, bool verbose)
+{
+    return sn_design_check_output(design,out ? out : stderr,verbose);
 }
 
 // Binary input is external data. Decode its byte-level representation first, then run the same non-aborting

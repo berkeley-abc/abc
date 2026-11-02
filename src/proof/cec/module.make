@@ -4,10 +4,13 @@ SRC +=    src/proof/cec/cecCec.c \
     src/proof/cec/cecCore.c \
     src/proof/cec/cecCorr.c \
     src/proof/cec/cecCorr2.c \
+    src/proof/cec/cecCorr3.c \
+    src/proof/cec/cecCorr4.c \
     src/proof/cec/cecCorrCert.c \
     src/proof/cec/cecCorrDyn.c \
     src/proof/cec/cecCorrIncr.c \
     src/proof/cec/cecCorrIncrSim.c \
+    src/proof/cec/cecTrans.c \
     src/proof/cec/cecIso.c \
     src/proof/cec/cecMan.c \
     src/proof/cec/cecPat.c \
@@ -16,6 +19,8 @@ SRC +=    src/proof/cec/cecCec.c \
     src/proof/cec/cecSatG.c \
     src/proof/cec/cecSatG2.c \
     src/proof/cec/cecSatG3.c \
+    src/proof/cec/cecSatU.c \
+    src/proof/cec/cecSatZ.c \
     src/proof/cec/cecSeq.c \
     src/proof/cec/cecSim.c \
     src/proof/cec/cecSolve.c \

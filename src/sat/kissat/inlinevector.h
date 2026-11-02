@@ -183,6 +183,38 @@ static inline void kissat_push_vectors (kissat *solver, vector *vector,
   kissat_check_vectors (solver);
 }
 
+// Blocking watches contain two words. Reuse adjacent free slots together.
+static inline void kissat_push_vectors_pair (kissat *solver, vector *vector,
+                                             unsigned first, unsigned second) {
+  KISSAT_assert (first != INVALID_VECTOR_ELEMENT);
+  KISSAT_assert (second != INVALID_VECTOR_ELEMENT);
+#ifdef KISSAT_COMPACT
+  const bool allocated = vector->offset != 0;
+#else
+  const bool allocated = vector->begin != 0;
+#endif
+  if (allocated) {
+    unsigned *end = kissat_end_vector (solver, vector);
+    const unsigned *stack_end = END_STACK (solver->vectors.stack);
+    if (stack_end - end >= 2 && end[0] == INVALID_VECTOR_ELEMENT &&
+        end[1] == INVALID_VECTOR_ELEMENT) {
+      end[0] = first;
+      end[1] = second;
+#ifdef KISSAT_COMPACT
+      vector->size += 2;
+#else
+      vector->end += 2;
+#endif
+      KISSAT_assert (solver->vectors.usable >= 2);
+      solver->vectors.usable -= 2;
+      kissat_check_vectors (solver);
+      return;
+    }
+  }
+  kissat_push_vectors (solver, vector, first);
+  kissat_push_vectors (solver, vector, second);
+}
+
 #ifdef TEST_VECTOR
 
 #define all_vector(E, V) \

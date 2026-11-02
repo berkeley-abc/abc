@@ -1,0 +1,53 @@
+Kissat 4.0.4 in ABC
+
+Upstream: https://github.com/arminbiere/kissat
+Release: rel-4.0.4 (8af8e56f174b778aef3aa45af9f739b2a5f492c2)
+
+The solver sources retain ABC's namespace and C++ adaptations, renamed
+identifiers and files, portability fixes, timeout callback polling, and
+kissat_is_inconsistent API. The stack allocation macros use a typed cast
+when compiled as C++. The standalone Kissat application is not included.
+An empty stack.c is retained for legacy ABC project files.
+
+ABC builds with compact references, fixed options, no proof output, and
+quiet output, as selected in global.h. ABC retains its existing fastel=1
+default; upstream 4.0.4 defaults to fastel=0. Neither setting wins all tested
+exact-synthesis cases, and enabling it performed better overall in the
+upgrade comparisons. The new factoring delay follows upstream 4.0.4.
+With KISSAT_NOPTIONS, kissat_set_option does not change runtime settings.
+For optional runtime-options builds, kissat_reserve skips fixed and eliminated
+variables when tumble=0. This supports reserving after unit clauses without
+reactivating variables that propagation has already fixed.
+
+ABC-local fast elimination optimization
+
+fastel.c contains a local early-rejection guard in fast_forward_subsumed.
+For a large clause in the occurrence list of a non-false literal, the subset
+test must fail when that literal is unmarked. The guard avoids loading and
+scanning that clause. It leaves the binary-clause check unchanged, and does
+not reject on a false literal because the subset test skips false literals.
+It remains active with ABC's fast-elimination default.
+
+This optimization is independent of casexact. Its benefit depends on how
+much time a workload spends in fast forward subsumption; compact CNFs may
+show little benefit. A representative preprocessing-heavy ABC workload is:
+
+  %gen "mcomp;i5a,b;o10z=a*b"; %blast; &put; cone -O 9; clp; st;
+  lutexact -K 6 -M 2 -kr
+
+When refreshing the vendored Kissat sources, check whether this guard or an
+equivalent upstream change is present. Preserve or re-evaluate the local
+optimization explicitly. The change has not been submitted upstream.
+
+ABC-local propagation optimizations
+
+Blocking watches are two-word records. When their vector has two adjacent
+free slots, append both words together; otherwise use the original append
+path. This preserves allocation and watch order while avoiding a second
+capacity check and vector update on the common path.
+
+The literal being propagated provides a lower bound on an implication's
+assignment level. When this equals the current decision level, no reason
+scan is needed. Other reason scans stop upon reaching the same upper bound.
+Debug builds retain the full scan and check the shortcut against it. These
+changes preserve the solver's search and do not change runtime options.

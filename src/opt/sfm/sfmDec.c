@@ -66,6 +66,10 @@ struct Sfm_Dec_t_
     int               AreaInv;     // inverter area
     int               DelayInv;    // inverter delay
     Mio_Gate_t *      pGateInv;    // inverter
+    int               AreaPhase;   // cached fanout cost of a complemented replacement
+    int               fPhaseInv;   // retain a shared output inverter
+    int               fComplResult;// selected replacement has complemented output
+    Vec_Int_t         vPhasePlan;  // fanout ID, gate (-1 = bypass), old pin, permutation, area delta
     word              uCareSet;    // computed careset
     Vec_Int_t         vObjRoots;   // roots of the window
     Vec_Int_t         vObjGates;   // functionality
@@ -131,6 +135,9 @@ struct Sfm_Dec_t_
     int               nTimeOuts;
     int               nNoDecs;
     int               nEfforts;
+    int               nPhases;
+    int               nPhaseInvs;
+    int               nPhaseFanouts;
     int               nMaxDivs;
     int               nMaxWin;
     word              nAllDivs;
@@ -190,7 +197,8 @@ void Sfm_ParSetDefault3( Sfm_Par_t * pPars )
     pPars->fZeroCost    =    0;  // enable zero-cost replacement
     pPars->fMoreEffort  =    0;  // enables using more effort
     pPars->fUseSim      =    0;  // enable simulation
-    pPars->fArea        =    0;  // performs optimization for area
+    pPars->fArea        =    1;  // performs optimization for area
+    pPars->fAreaTiming  =    1;  // preserves the initial GENLIB block delay
     pPars->fVerbose     =    0;  // enable basic stats
     pPars->fVeryVerbose =    0;  // enable detailed stats
 }
@@ -228,6 +236,11 @@ p->timeLib = Abc_Clock() - p->timeLib;
         if ( p->pMit == NULL )
             p->pTim = Sfm_TimStart( pLib, Scl_ConReadMan(), pNtk, p->DeltaCrit );
     }
+    else if ( pPars->fAreaTiming )
+    {
+        p->pTim = Sfm_TimStart( pLib, Scl_ConReadMan(), pNtk, p->DeltaCrit );
+        Sfm_TimSetAreaTarget( p->pTim );
+    }
     if ( pPars->fVeryVerbose )
 //    if ( pPars->fVerbose )
         Sfm_LibPrint( p->pLib );
@@ -264,6 +277,7 @@ void Sfm_DecStop( Sfm_Dec_t * p )
     Vec_WrdErase( &p->vGateFuncs );
     Vec_WecErase( &p->vGateCnfs );
     Vec_PtrErase( &p->vGateHands );
+    Vec_IntErase( &p->vPhasePlan );
     // objects
     Vec_IntErase( &p->vObjRoots );
     Vec_IntErase( &p->vObjGates );
@@ -445,26 +459,26 @@ static inline void Sfm_ObjSetdownSimInfo( Abc_Obj_t * pObj )
         Vec_WrdWriteEntry( &p->vObjSims, Vec_IntEntry(&p->vObjMap, d), uSim );
     }
 }
-/*
-void Sfm_ObjSetdownSimInfo( Abc_Obj_t * pObj )
-{
-    int nPatKeep = 32;
-    Sfm_Dec_t * p = Sfm_DecMan( pObj );
-    word uSim, uMaskKeep[2];
-    int c, d, nKeeps[2]; 
-    for ( c = 0; c < 2; c++ )
-    {
-        nKeeps[c] = Abc_MaxInt(p->nPats[c], nPatKeep);
-        uMaskKeep[c] = Abc_Tt6Mask( nKeeps[c] );
-    }
-    for ( d = 0; d < p->nDivs; d++ )
-    {
-        uSim = Vec_WrdEntry( &p->vObjSims, Vec_IntEntry(&p->vObjMap, d) ) << (nKeeps[0] + nKeeps[1]);
-        uSim |= (Vec_WrdEntry(&p->vSets[0], d) & uMaskKeep[0]) | ((Vec_WrdEntry(&p->vSets[1], d) & uMaskKeep[1]) << nKeeps[0]);
-        Vec_WrdWriteEntry( &p->vObjSims, Vec_IntEntry(&p->vObjMap, d), uSim );
-    }
-}
-*/
+//
+//void Sfm_ObjSetdownSimInfo( Abc_Obj_t * pObj )
+//{
+//    int nPatKeep = 32;
+//    Sfm_Dec_t * p = Sfm_DecMan( pObj );
+//    word uSim, uMaskKeep[2];
+//    int c, d, nKeeps[2];
+//    for ( c = 0; c < 2; c++ )
+//    {
+//        nKeeps[c] = Abc_MaxInt(p->nPats[c], nPatKeep);
+//        uMaskKeep[c] = Abc_Tt6Mask( nKeeps[c] );
+//    }
+//    for ( d = 0; d < p->nDivs; d++ )
+//    {
+//        uSim = Vec_WrdEntry( &p->vObjSims, Vec_IntEntry(&p->vObjMap, d) ) << (nKeeps[0] + nKeeps[1]);
+//        uSim |= (Vec_WrdEntry(&p->vSets[0], d) & uMaskKeep[0]) | ((Vec_WrdEntry(&p->vSets[1], d) & uMaskKeep[1]) << nKeeps[0]);
+//        Vec_WrdWriteEntry( &p->vObjSims, Vec_IntEntry(&p->vObjMap, d), uSim );
+//    }
+//}
+//
 
 /**Function*************************************************************
 
@@ -735,11 +749,31 @@ void Sfm_DecPrepareVec( Vec_Int_t * vMap, int * pNodes, int nNodes, Vec_Int_t * 
     for ( i = 0; i < nNodes; i++ )
         Vec_IntPush( vCut, Vec_IntEntry(vMap, pNodes[i]) );    
 }
-int Sfm_DecComputeFlipInvGain( Sfm_Dec_t * p, Abc_Obj_t * pPivot, int * pfNeedInv )
+
+/**Function*************************************************************
+
+  Synopsis    [Plans fanout changes for a complemented replacement.]
+
+  Description [Compares absorbing the new phase with keeping an inverter.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Sfm_DecPreparePhase( Sfm_Dec_t * p, Abc_Obj_t * pPivot )
 {
-    Abc_Obj_t * pFanout; 
+    extern int Abc_ObjHasDupFanouts( Abc_Obj_t * pObj );
+    Abc_Obj_t * pFanout;
     Mio_Gate_t * pGate, * pGateNew;
-    int i, Handle, fNeedInv = 0, Gain = 0;
+    int i, k, Handle, iPin, iPinNew, Perm, Delta, AreaAll = 0, AreaKeep = p->AreaInv;
+    int fNeedInv = 0;
+    Vec_IntClear( &p->vPhasePlan );
+    p->fPhaseInv = 1;
+    // A repeated connection needs simultaneous complementation of several pins.
+    // Keep the inverter in that case rather than applying a one-pin transform.
+    if ( Abc_ObjHasDupFanouts(pPivot) )
+        return p->AreaInv;
     Abc_ObjForEachFanout( pPivot, pFanout, i )
     {
         if ( !Abc_ObjIsNode(pFanout) )
@@ -748,25 +782,47 @@ int Sfm_DecComputeFlipInvGain( Sfm_Dec_t * p, Abc_Obj_t * pPivot, int * pfNeedIn
             continue;
         }
         pGate = (Mio_Gate_t*)pFanout->pData;
+        iPin = Abc_NodeFindFanin( pFanout, pPivot );
+        iPinNew = iPin;
         if ( Abc_ObjFaninNum(pFanout) == 1 && Mio_GateIsInv(pGate) )
         {
-            Gain += p->AreaInv;
-            continue;
+            Handle = -1;
+            Delta = -Scl_Flt2Int(Mio_GateReadArea(pGate));
         }
-        Handle = Sfm_LibFindComplInputGate( &p->vGateFuncs, Mio_GateReadValue(pGate), Abc_ObjFaninNum(pFanout), Abc_NodeFindFanin(pFanout, pPivot), NULL );
-        if ( Handle == -1 )
+        else
         {
-            fNeedInv = 1;
-            continue;
+            Handle = Sfm_LibFindComplInputGate( &p->vGateFuncs, Mio_GateReadValue(pGate), Abc_ObjFaninNum(pFanout), iPin, &iPinNew );
+            if ( Handle == -1 || Vec_IntEntry(&p->vGateSizes, Handle) != Abc_ObjFaninNum(pFanout) )
+            {
+                fNeedInv = 1;
+                continue;
+            }
+            pGateNew = (Mio_Gate_t *)Vec_PtrEntry( &p->vGateHands, Handle );
+            Delta = Scl_Flt2Int(Mio_GateReadArea(pGateNew)) - Scl_Flt2Int(Mio_GateReadArea(pGate));
         }
-        pGateNew = (Mio_Gate_t *)Vec_PtrEntry( &p->vGateHands, Handle );
-        Gain += Scl_Flt2Int(Mio_GateReadArea(pGate)) - Scl_Flt2Int(Mio_GateReadArea(pGateNew));
+        Vec_IntPushThree( &p->vPhasePlan, Abc_ObjId(pFanout), Handle, iPin );
+        Perm = 0;
+        for ( k = 0; k < Abc_ObjFaninNum(pFanout); k++ )
+            Perm |= (k == iPin ? iPinNew : k == iPinNew ? iPin : k) << (4*k);
+        Vec_IntPushTwo( &p->vPhasePlan, Perm, Delta );
+        AreaAll += Delta;
+        AreaKeep += Abc_MinInt( Delta, 0 );
     }
-    if ( fNeedInv )
-        Gain -= p->AreaInv;
-    if ( pfNeedInv )
-        *pfNeedInv = fNeedInv;
-    return Gain;
+    // Compare absorbing every fanout with retaining one shared inverter and
+    // changing only fanouts whose cell cost decreases. Outputs require it.
+    if ( !fNeedInv && AreaAll <= AreaKeep )
+    {
+        p->fPhaseInv = 0;
+        return AreaAll;
+    }
+    for ( i = k = 0; i < Vec_IntSize(&p->vPhasePlan); i += 5 )
+        if ( Vec_IntEntry(&p->vPhasePlan, i+4) < 0 )
+        {
+            memmove( Vec_IntEntryP(&p->vPhasePlan, k), Vec_IntEntryP(&p->vPhasePlan, i), 5*sizeof(int) );
+            k += 5;
+        }
+    Vec_IntShrink( &p->vPhasePlan, k );
+    return AreaKeep;
 }
 
 /**Function*************************************************************
@@ -986,6 +1042,12 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
                 if ( Vec_IntFind(&p->vImpls[!c], Abc_LitNot(pFinal[i])) >= 0 )
                     pSupp[d++] = Abc_LitNot(pFinal[i]);
             nFinal = d;
+            // SAT cores need not follow divisor order. Truth-table expansion
+            // and support merging require increasing variable indices.
+            {
+                Vec_Int_t vLits = { nFinal, nFinal, pSupp };
+                Vec_IntSort( &vLits, 0 );
+            }
             // create AND/OR gate
             assert( nFinal <= 6 );
             if ( c )
@@ -1033,23 +1095,23 @@ int Sfm_DecPeformDec_rec( Sfm_Dec_t * p, word * pTruth, int * pSupp, int * pAssu
 //    if ( Var == -1 )
 //        Var = Sfm_DecFindBestVar2( p, Masks );
 
-/*
-    {
-        int Lit0 = Vec_IntSize(&p->vImpls[0]) ? Vec_IntEntry(&p->vImpls[0], 0) : -1;
-        int Lit1 = Vec_IntSize(&p->vImpls[1]) ? Vec_IntEntry(&p->vImpls[1], 0) : -1;
-        if ( Lit0 == -1 && Lit1 >= 0 )
-            Var = Abc_Lit2Var(Lit1);
-        else if ( Lit1 == -1 && Lit0 >= 0 )
-            Var = Abc_Lit2Var(Lit0);
-        else if ( Lit0 >= 0 && Lit1 >= 0 )
-        {
-            if ( Lit0 < Lit1 )
-                Var = Abc_Lit2Var(Lit0);
-            else
-                Var = Abc_Lit2Var(Lit1);
-        }
-    }
-*/
+//
+//    {
+//        int Lit0 = Vec_IntSize(&p->vImpls[0]) ? Vec_IntEntry(&p->vImpls[0], 0) : -1;
+//        int Lit1 = Vec_IntSize(&p->vImpls[1]) ? Vec_IntEntry(&p->vImpls[1], 0) : -1;
+//        if ( Lit0 == -1 && Lit1 >= 0 )
+//            Var = Abc_Lit2Var(Lit1);
+//        else if ( Lit1 == -1 && Lit0 >= 0 )
+//            Var = Abc_Lit2Var(Lit0);
+//        else if ( Lit0 >= 0 && Lit1 >= 0 )
+//        {
+//            if ( Lit0 < Lit1 )
+//                Var = Abc_Lit2Var(Lit0);
+//            else
+//                Var = Abc_Lit2Var(Lit1);
+//        }
+//    }
+//
 
     if ( Var == -1 && fCofactor )
     {
@@ -1095,6 +1157,38 @@ cofactor:
     }
     return -2;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Matches a function within its area and optional delay bounds.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Sfm_DecAreaMatch( Sfm_Dec_t * p, Abc_Obj_t * pObj, word * pTruth, int * pSupp, int nSupp, int AreaMax, int fCompl, int * piObj )
+{
+    int Limit, AreaTotal, Area = Sfm_LibFindAreaMatch( p->pLib, pTruth, nSupp, piObj );
+    if ( Area < 0 )
+        return Area;
+    if ( fCompl && p->AreaPhase == ABC_INFINITY )
+        p->AreaPhase = Sfm_DecPreparePhase( p, pObj );
+    AreaTotal = Area + (fCompl ? p->AreaPhase : 0);
+    if ( p->pPars->fZeroCost ? (AreaTotal > AreaMax) : (AreaTotal >= AreaMax) )
+        return -1;
+    if ( !p->pPars->fAreaTiming )
+        return Area;
+    Limit = Vec_IntSize( &p->vObjGates );
+    Sfm_LibImplementGatesArea( p->pLib, pSupp, nSupp, *piObj, &p->vObjGates, &p->vObjFanins );
+    if ( !Sfm_TimCheckArea(p->pTim, pObj, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vGateHands, p->GateBuffer, fCompl, p->fPhaseInv, &p->vPhasePlan) )
+        Area = -1;
+    Vec_IntShrink( &p->vObjGates, Limit );
+    Vec_WecShrink( &p->vObjFanins, Limit );
+    return Area;
+}
 int Sfm_DecPeformDec2( Sfm_Dec_t * p, Abc_Obj_t * pObj )
 {
     word uTruth[SFM_DEC_MAX][SFM_WORD_MAX], Masks[2][SFM_SIM_WORDS];
@@ -1102,16 +1196,15 @@ int Sfm_DecPeformDec2( Sfm_Dec_t * p, Abc_Obj_t * pObj )
     int nSupp[SFM_DEC_MAX], pAssump[SFM_WIN_MAX];
     int fVeryVerbose = p->pPars->fPrintDecs || p->pPars->fVeryVerbose;
     int nDecs = Abc_MaxInt(p->pPars->nDecMax, 1);
-    //int fNeedInv, AreaGainInv = Sfm_DecComputeFlipInvGain(p, pObj, &fNeedInv);
-    int i, RetValue, Prev = 0, iBest = -1, AreaThis, AreaNew;//, AreaNewInv;
+    int i, RetValue, Prev = 0, iBest = -1, AreaThis, AreaNew, AreaNewInv;
+    int fCompl, fComplBest = 0, iLibObjInv;
     int GainThis, GainBest = -1, iLibObj, iLibObjBest = -1; 
     assert( p->pPars->fArea == 1 );
-//printf( "AreaGainInv = %8.2f  ", Scl_Int2Flt(AreaGainInv) );
+    p->fComplResult = 0;
     //Sfm_DecPrint( p, NULL );
     if ( fVeryVerbose )
         printf( "\nNode %4d : MFFC %2d\n", p->iTarget, p->nMffc );
     assert( p->pPars->nDecMax <= SFM_DEC_MAX );
-    Sfm_ObjSetupSimInfo( pObj );
     Vec_IntClear( &p->vObjDec );
     for ( i = 0; i < nDecs; i++ )
     {
@@ -1135,9 +1228,29 @@ int Sfm_DecPeformDec2( Sfm_Dec_t * p, Abc_Obj_t * pObj )
             Dau_DsdPrintFromTruth( uTruth[i], nSupp[i] );
         if ( nSupp[i] < 2 )
         {
+            int Limit = Vec_IntSize( &p->vObjGates );
             p->nSuppVars = nSupp[i];
             Abc_TtCopy( p->Copy, uTruth[i], SFM_WORD_MAX, 0 ); 
             RetValue = Sfm_LibImplementSimple( p->pLib, uTruth[i], pSupp[i], nSupp[i], &p->vObjGates, &p->vObjFanins );
+            if ( p->pPars->fAreaTiming && nSupp[i] == 1 && Vec_IntEntryLast(&p->vObjGates) == p->GateInvert )
+            {
+                if ( p->AreaPhase == ABC_INFINITY )
+                    p->AreaPhase = Sfm_DecPreparePhase( p, pObj );
+                if ( p->AreaPhase < p->AreaInv )
+                {
+                    // The complementary root is the divisor itself. Keep the
+                    // inverter for insertion, then apply the checked fanout plan.
+                    Vec_IntWriteEntry( &p->vObjGates, Limit, p->GateBuffer );
+                    p->fComplResult = Sfm_TimCheckArea(p->pTim, pObj, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vGateHands, p->GateBuffer, 1, p->fPhaseInv, &p->vPhasePlan);
+                    Vec_IntWriteEntry( &p->vObjGates, Limit, p->GateInvert );
+                }
+            }
+            if ( p->pPars->fAreaTiming && !p->fComplResult && !Sfm_TimCheckArea(p->pTim, pObj, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vGateHands, p->GateBuffer, 0, 0, NULL) )
+            {
+                Vec_IntShrink( &p->vObjGates, Limit );
+                Vec_WecShrink( &p->vObjFanins, Limit );
+                continue;
+            }
             assert( nSupp[i] <= p->pPars->nVarMax );
             p->nLuckySizes[nSupp[i]]++;
             assert( RetValue <= 2 );
@@ -1148,28 +1261,30 @@ int Sfm_DecPeformDec2( Sfm_Dec_t * p, Abc_Obj_t * pObj )
 
         p->nSuppVars = nSupp[i];
         Abc_TtCopy( p->Copy, uTruth[i], SFM_WORD_MAX, 0 ); 
-        AreaNew = Sfm_LibFindAreaMatch( p->pLib, uTruth[i], nSupp[i], &iLibObj );
-/*
-        uTruth[i][0] = ~uTruth[i][0];
-        AreaNewInv = Sfm_LibFindAreaMatch( p->pLib, uTruth[i], nSupp[i], NULL );
-        uTruth[i][0] = ~uTruth[i][0];
-
-        if ( AreaNew > 0 && AreaNewInv > 0 && AreaNew - AreaNewInv + AreaGainInv > 0 )
-            printf( "AreaNew = %8.2f   AreaNewInv = %8.2f   Gain = %8.2f   Total = %8.2f\n", 
-                Scl_Int2Flt(AreaNew), Scl_Int2Flt(AreaNewInv), Scl_Int2Flt(AreaNew - AreaNewInv), Scl_Int2Flt(AreaNew - AreaNewInv + AreaGainInv) );
-        else
-            printf( "\n" );
-*/
-        if ( AreaNew == -1 )
-            continue;
-
-
-        // compute area savings
+        // Reject unprofitable candidates before building their timing trials.
         Sfm_DecPrepareVec( &p->vObjMap, pSupp[i], nSupp[i], &p->vGateCut );
         AreaThis = Sfm_DecMffcAreaReal(pObj, &p->vGateCut, NULL);
         assert( p->AreaMffc <= AreaThis );
-        if ( p->pPars->fZeroCost ? (AreaNew > AreaThis) : (AreaNew >= AreaThis) )
+        AreaNew = Sfm_DecAreaMatch( p, pObj, uTruth[i], pSupp[i], nSupp[i], AreaThis, 0, &iLibObj );
+        fCompl = 0;
+        Abc_TtNot( uTruth[i], Abc_TtWordNum(p->pPars->nVarMax) );
+        AreaNewInv = Sfm_DecAreaMatch( p, pObj, uTruth[i], pSupp[i], nSupp[i], AreaThis, 1, &iLibObjInv );
+        Abc_TtNot( uTruth[i], Abc_TtWordNum(p->pPars->nVarMax) );
+        if ( AreaNewInv >= 0 )
+        {
+            if ( p->AreaPhase == ABC_INFINITY )
+                p->AreaPhase = Sfm_DecPreparePhase( p, pObj );
+            if ( AreaNew < 0 || AreaNewInv + p->AreaPhase < AreaNew )
+            {
+                AreaNew = AreaNewInv + p->AreaPhase;
+                iLibObj = iLibObjInv;
+                fCompl = 1;
+            }
+        }
+        if ( !fCompl && AreaNew == -1 )
             continue;
+
+
         // find the best gain
         GainThis = AreaThis - AreaNew;
         assert( GainThis >= 0 );
@@ -1177,6 +1292,7 @@ int Sfm_DecPeformDec2( Sfm_Dec_t * p, Abc_Obj_t * pObj )
         {
             GainBest    = GainThis;
             iLibObjBest = iLibObj;
+            fComplBest  = fCompl;
             iBest       = i;
         }
     }
@@ -1196,9 +1312,19 @@ int Sfm_DecPeformDec2( Sfm_Dec_t * p, Abc_Obj_t * pObj )
     // implement
     assert( iLibObjBest >= 0 );
     RetValue = Sfm_LibImplementGatesArea( p->pLib, pSupp[iBest], nSupp[iBest], iLibObjBest, &p->vObjGates, &p->vObjFanins );
+    p->fComplResult = fComplBest;
+    if ( fComplBest )
+    {
+        // Insert a functionally correct replacement first, then apply exactly
+        // the fanout plan used for scoring and remove this inverter if unused.
+        int iFanin = Vec_IntSize(&p->vObjGates) - 1;
+        Vec_IntPush( &p->vObjGates, p->GateInvert );
+        Vec_IntPush( Vec_WecPushLevel(&p->vObjFanins), iFanin );
+        RetValue++;
+    }
     assert( nSupp[iBest] <= p->pPars->nVarMax );
     p->nLuckySizes[nSupp[iBest]]++;
-    assert( RetValue <= 2 );
+    assert( RetValue <= 3 );
     p->nLuckyGates[RetValue]++;
     return 1;
 }
@@ -1219,12 +1345,11 @@ int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
         printf( "\nNode %4d : MFFC %2d\n", p->iTarget, p->nMffc );
     // set limit on search for decompositions in delay-model
     assert( p->pPars->nDecMax <= SFM_DEC_MAX );
-    Sfm_ObjSetupSimInfo( pObj );
     Vec_IntClear( &p->vObjDec );
+    GainMax = 0;
+    DelayMin = DelayOrig = Sfm_ManReadObjDelay( p, Abc_ObjId(pObj) );
     for ( i = 0; i < nDecs; i++ )
     {
-        GainMax = 0;
-        DelayMin = DelayOrig = Sfm_ManReadObjDelay( p, Abc_ObjId(pObj) );
         // reduce the variable array
         if ( Vec_IntSize(&p->vObjDec) > Prev )
             Vec_IntShrink( &p->vObjDec, Prev );
@@ -1305,7 +1430,7 @@ int Sfm_DecPeformDec3( Sfm_Dec_t * p, Abc_Obj_t * pObj )
             else
             {
                 int Delay = Sfm_TimEvalRemapping( p->pTim, &vFanins, &p->vObjMap, pGate1, pFans1, pGate2, pFans2 );
-                if ( p->pPars->DelAreaRatio && AreaNew > AreaMffc && (Delay / (AreaNew - AreaMffc)) < p->pPars->DelAreaRatio )
+                if ( p->pPars->DelAreaRatio && AreaNew > AreaMffc && ((DelayOrig - Delay) / (AreaNew - AreaMffc)) < p->pPars->DelAreaRatio )
                     continue;
                 if ( DelayMin > Delay )
                 {
@@ -1496,17 +1621,17 @@ void Sfm_DecMarkMffc( Abc_Obj_t * pPivot, int nLevelMin, int nMffcMax, int fVery
                     if ( Sfm_DecNodeIsMffcInput(pFanin3, nLevelMin, pTim, pPivot) )
                         Vec_IntPushUnique( vInMffc, Abc_ObjId(pFanin3) );
 
-/*
-        printf( "Node %d: (%.2f)  ", pPivot->Id, Scl_Int2Flt(Sfm_ManReadObjDelay(p, Abc_ObjId(pPivot)))  );
-        Abc_ObjForEachFanin( pPivot, pFanin, i )
-            printf( "%d: %.2f  ", Abc_ObjLevel(pFanin), Scl_Int2Flt(Sfm_ManReadObjDelay(p, Abc_ObjId(pFanin))) );
-        printf( "\n" );
-
-        printf( "Node %d: ", pPivot->Id );
-        Abc_NtkForEachObjVec( vInMffc, pPivot->pNtk, pObj, i )
-            printf( "%d: %.2f  ", Abc_ObjLevel(pObj), Scl_Int2Flt(Sfm_ManReadObjDelay(p, Abc_ObjId(pObj))) );
-        printf( "\n" );
-*/
+//
+//        printf( "Node %d: (%.2f)  ", pPivot->Id, Scl_Int2Flt(Sfm_ManReadObjDelay(p, Abc_ObjId(pPivot)))  );
+//        Abc_ObjForEachFanin( pPivot, pFanin, i )
+//            printf( "%d: %.2f  ", Abc_ObjLevel(pFanin), Scl_Int2Flt(Sfm_ManReadObjDelay(p, Abc_ObjId(pFanin))) );
+//        printf( "\n" );
+//
+//        printf( "Node %d: ", pPivot->Id );
+//        Abc_NtkForEachObjVec( vInMffc, pPivot->pNtk, pObj, i )
+//            printf( "%d: %.2f  ", Abc_ObjLevel(pObj), Scl_Int2Flt(Sfm_ManReadObjDelay(p, Abc_ObjId(pObj))) );
+//        printf( "\n" );
+//
     }
     else
     {
@@ -1688,20 +1813,21 @@ printf( "\n" );
     Abc_NtkForEachObjVec( vInMffc, pNtk, pObj, i )
         Vec_IntWriteEntry( vInMffc, i, pObj->iTemp );
 
-/*
-    // check
-    Abc_NtkForEachObjVec( vMap, pNtk, pObj, i )
-    {
-        if ( i == nDivs )
-            break;
-        Abc_NtkIncrementTravId( pNtk );
-        assert( Abc_NtkDfsCheck_rec(pObj, pPivot) );
-    }
-*/  
+//
+//    // check
+//    Abc_NtkForEachObjVec( vMap, pNtk, pObj, i )
+//    {
+//        if ( i == nDivs )
+//            break;
+//        Abc_NtkIncrementTravId( pNtk );
+//        assert( Abc_NtkDfsCheck_rec(pObj, pPivot) );
+//    }
+//
     return nDivs;
 }
 Abc_Obj_t * Sfm_DecInsert( Abc_Ntk_t * pNtk, Abc_Obj_t * pPivot, int Limit, Vec_Int_t * vGates, Vec_Wec_t * vFanins, Vec_Int_t * vMap, Vec_Ptr_t * vGateHandles, int GateBuf, int GateInv, Vec_Wrd_t * vFuncs, Vec_Int_t * vNewNodes, Sfm_Mit_t * pMit )
 {
+    extern int Abc_ObjHasDupFanouts( Abc_Obj_t * pObj );
     Abc_Obj_t * pObjNew = NULL; 
     Vec_Int_t * vLevel;
     int i, k, iObj, Gate;
@@ -1729,15 +1855,24 @@ Abc_Obj_t * Sfm_DecInsert( Abc_Ntk_t * pNtk, Abc_Obj_t * pPivot, int Limit, Vec_
                 Vec_IntPush( vNewNodes, Abc_ObjId(pObjNew) );
             return pObjNew;
         }
-        else if ( vNewNodes == NULL && Gate == GateInv )
+        else if ( vNewNodes == NULL && Gate == GateInv && !Abc_ObjHasDupFanouts(pPivot) )
         {
             // check if fanouts can be updated
             Abc_Obj_t * pFanout;
+            int AreaDelta = 0, iGateNew;
             Abc_ObjForEachFanout( pPivot, pFanout, i )
-                if ( !Abc_ObjIsNode(pFanout) || Sfm_LibFindComplInputGate(vFuncs, Mio_GateReadValue((Mio_Gate_t*)pFanout->pData), Abc_ObjFaninNum(pFanout), Abc_NodeFindFanin(pFanout, pPivot), NULL) == -1 )
+            {
+                if ( !Abc_ObjIsNode(pFanout) )
                     break;
-            // update fanouts
-            if ( i == Abc_ObjFanoutNum(pPivot) )
+                iGateNew = Sfm_LibFindComplInputGate( vFuncs, Mio_GateReadValue((Mio_Gate_t*)pFanout->pData), Abc_ObjFaninNum(pFanout), Abc_NodeFindFanin(pFanout, pPivot), NULL );
+                if ( iGateNew == -1 )
+                    break;
+                AreaDelta += Scl_Flt2Int(Mio_GateReadArea((Mio_Gate_t *)Vec_PtrEntry(vGateHandles, iGateNew)))
+                           - Scl_Flt2Int(Mio_GateReadArea((Mio_Gate_t *)pFanout->pData));
+            }
+            // Absorbing the inverter is worthwhile only if the total increase
+            // in fanout area does not exceed the cost of keeping the inverter.
+            if ( i == Abc_ObjFanoutNum(pPivot) && AreaDelta <= Scl_Flt2Int(Mio_GateReadArea((Mio_Gate_t *)Vec_PtrEntry(vGateHandles, GateInv))) )
             {
                 Abc_ObjForEachFanout( pPivot, pFanout, i )
                 {
@@ -1790,6 +1925,65 @@ Abc_Obj_t * Sfm_DecInsert( Abc_Ntk_t * pNtk, Abc_Obj_t * pPivot, int Limit, Vec_
         Abc_NtkUpdateIncLevel_rec( pObjNew );
     return pObjNew;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Applies the fanout polarity plan used to score a replacement.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static Abc_Obj_t * Sfm_DecApplyPhase( Sfm_Dec_t * p, Abc_Obj_t * pInv )
+{
+    Abc_Obj_t * pRoot = Abc_ObjFanin0(pInv), * pFanout;
+    int i, Area = p->AreaInv;
+    assert( Abc_ObjFaninNum(pInv) == 1 && Mio_GateIsInv((Mio_Gate_t *)pInv->pData) );
+    for ( i = 0; i < Vec_IntSize(&p->vPhasePlan); i += 5 )
+    {
+        int * pPlan = Vec_IntEntryP( &p->vPhasePlan, i );
+        pFanout = Abc_NtkObj( p->pNtk, pPlan[0] );
+        assert( pFanout != NULL && Abc_ObjIsNode(pFanout) );
+        assert( Abc_NodeFindFanin(pFanout, pInv) == pPlan[2] );
+        Area -= Scl_Flt2Int(Mio_GateReadArea((Mio_Gate_t *)pFanout->pData));
+        if ( pPlan[1] == -1 )
+        {
+            assert( Abc_ObjFaninNum(pFanout) == 1 && Mio_GateIsInv((Mio_Gate_t *)pFanout->pData) );
+            if ( Abc_ObjFanoutNum(pFanout) )
+                Abc_ObjTransferFanout( pFanout, pRoot );
+            // Do not recursively delete pInv while processing its other fanouts.
+            Abc_NtkDeleteObj( pFanout );
+        }
+        else
+        {
+            int Fans[6], k;
+            pFanout->pData = Vec_PtrEntry( &p->vGateHands, pPlan[1] );
+            Area += Scl_Flt2Int(Mio_GateReadArea((Mio_Gate_t *)pFanout->pData));
+            Abc_ObjPatchFanin( pFanout, pInv, pRoot );
+            for ( k = 0; k < Abc_ObjFaninNum(pFanout); k++ )
+                Fans[k] = Abc_ObjFaninId( pFanout, (pPlan[3] >> (4*k)) & 15 );
+            memcpy( Vec_IntArray(&pFanout->vFanins), Fans, Abc_ObjFaninNum(pFanout)*sizeof(int) );
+        }
+    }
+    assert( (Abc_ObjFanoutNum(pInv) > 0) == p->fPhaseInv );
+    if ( !p->fPhaseInv )
+    {
+        Area -= p->AreaInv;
+        Abc_NtkDeleteObj( pInv );
+    }
+    assert( Area == p->AreaPhase );
+    // Bypassed inverters can reduce levels even when the new root's level did
+    // not change. Start updates at each of its affected fanouts.
+    Abc_ObjForEachFanout( pRoot, pFanout, i )
+        Abc_NtkUpdateIncLevel_rec( pFanout );
+    p->nPhases++;
+    p->nPhaseInvs += p->fPhaseInv;
+    p->nPhaseFanouts += Vec_IntSize(&p->vPhasePlan) / 5;
+    return p->fPhaseInv ? pInv : pRoot;
+}
 void Sfm_DecPrintStats( Sfm_Dec_t * p )
 {
     int i;
@@ -1798,6 +1992,8 @@ void Sfm_DecPrintStats( Sfm_Dec_t * p )
     printf( "MaxDiv = %d. MaxWin = %d.   AveDiv = %d. AveWin = %d.   Calls = %d. (Sat = %d. Unsat = %d.)  Over = %d.  T/O = %d.\n",
         p->nMaxDivs, p->nMaxWin, (int)(p->nAllDivs/Abc_MaxInt(1, p->nNodesTried)), (int)(p->nAllWin/Abc_MaxInt(1, p->nNodesTried)), p->nSatCalls, p->nSatCallsSat, p->nSatCallsUnsat, p->nSatCallsOver, p->nTimeOuts );
 
+    if ( p->pPars->fArea )
+        printf( "Phases = %d. SharedInv = %d. ChangedFanouts = %d.\n", p->nPhases, p->nPhaseInvs, p->nPhaseFanouts );
     p->timeTotal = Abc_Clock() - p->timeStart;
     p->timeOther = p->timeTotal - p->timeLib - p->timeWin - p->timeCnf - p->timeSat - p->timeTime;
 
@@ -1865,7 +2061,7 @@ Abc_Obj_t * Abc_NtkAreaOptOne( Sfm_Dec_t * p, int i )
     abctime clk;
     Abc_Ntk_t * pNtk = p->pNtk;
     Sfm_Par_t * pPars = p->pPars;
-    Abc_Obj_t * pObj = Abc_NtkObj( p->pNtk, i ); 
+    Abc_Obj_t * pObj = Abc_NtkObj( p->pNtk, i ), * pObjNew;
     int Limit, RetValue;
     if ( pPars->nMffcMin > 1 && Abc_NodeMffcLabel(pObj, NULL) < pPars->nMffcMin )
         return NULL;
@@ -1893,6 +2089,10 @@ p->timeCnf += Abc_Clock() - clk;
     if ( !RetValue )
         return NULL;
 clk = Abc_Clock();
+    // All decomposition retries share the same unchanged window relation.
+    // Retain its counterexamples and root implications until the next window.
+    Sfm_ObjSetupSimInfo( pObj );
+    p->AreaPhase = ABC_INFINITY;
     RetValue = Sfm_DecPeformDec2( p, pObj );
     if ( pPars->fMoreEffort && RetValue < 0 )
     {
@@ -1925,7 +2125,18 @@ p->timeSat += Abc_Clock() - clk;
         return NULL;
     p->nNodesChanged++;
     Abc_NtkCountStats( p, Limit );
-    return Sfm_DecInsert( pNtk, pObj, Limit, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vGateHands, p->GateBuffer, p->GateInvert, &p->vGateFuncs, NULL, p->pMit );
+    if ( pPars->fAreaTiming )
+        Sfm_TimPrepareArea( p->pTim, pObj );
+    pObjNew = Sfm_DecInsert( pNtk, pObj, Limit, &p->vObjGates, &p->vObjFanins, &p->vObjMap, &p->vGateHands, p->GateBuffer, p->GateInvert, &p->vGateFuncs, pPars->fAreaTiming ? &p->vNewNodes : NULL, p->pMit );
+    if ( p->fComplResult )
+        pObjNew = Sfm_DecApplyPhase( p, pObjNew );
+    if ( pPars->fAreaTiming )
+    {
+        clk = Abc_Clock();
+        Sfm_TimUpdateArea( p->pTim );
+        p->timeTime += Abc_Clock() - clk;
+    }
+    return pObjNew;
 }
 void Abc_NtkAreaOpt( Sfm_Dec_t * p )
 {
@@ -1933,7 +2144,7 @@ void Abc_NtkAreaOpt( Sfm_Dec_t * p )
     int i, nStop = Abc_NtkObjNumMax(p->pNtk);
     Abc_NtkForEachNode( p->pNtk, pObj, i )
     {
-        if ( i >= nStop || (p->pPars->nNodesMax && i > p->pPars->nNodesMax) )
+        if ( i >= nStop || (p->pPars->nNodesMax && p->nNodesTried >= p->pPars->nNodesMax) )
             break;
         Abc_NtkAreaOptOne( p, i );
     }
@@ -1955,6 +2166,8 @@ void Abc_NtkAreaOpt2( Sfm_Dec_t * p )
     // process nodes in this order
     Vec_PtrForEachEntry( Abc_Obj_t *, vFront, pObj, i )
     {
+        if ( p->pPars->nNodesMax && p->nNodesTried >= p->pPars->nNodesMax )
+            break;
         if ( Abc_ObjIsNone(pObj) )
             continue;
         pObjNew = Abc_NtkAreaOptOne( p, Abc_ObjId(pObj) );
@@ -1986,9 +2199,9 @@ void Abc_NtkAreaOpt2( Sfm_Dec_t * p )
 void Abc_NtkDelayOpt( Sfm_Dec_t * p )
 {
     Abc_Ntk_t * pNtk = p->pNtk;
-    Sfm_Par_t * pPars = p->pPars; int n;
+    Sfm_Par_t * pPars = p->pPars;
     Abc_NtkCleanMarkABC( pNtk );
-    for ( n = 0; pPars->nNodesMax == 0 || n < pPars->nNodesMax; n++ )
+    while ( pPars->nNodesMax == 0 || p->nNodesTried < pPars->nNodesMax )
     {
         Abc_Obj_t * pObj, * pObjNew; abctime clk;
         int i = 0, Limit, RetValue;
@@ -2002,8 +2215,11 @@ void Abc_NtkDelayOpt( Sfm_Dec_t * p )
         // try improving delay for the nodes according to the priority
         Abc_NtkForEachObjVec( &p->vCands, p->pNtk, pObj, i )
         {
-            int OldId = Abc_ObjId(pObj);
-            int DelayOld = Sfm_ManReadObjDelay(p, OldId);
+            int OldId, DelayOld;
+            if ( pPars->nNodesMax && p->nNodesTried >= pPars->nNodesMax )
+                break;
+            OldId = Abc_ObjId(pObj);
+            DelayOld = Sfm_ManReadObjDelay(p, OldId);
             assert( pObj->fMarkA == 0 );
             p->nNodesTried++;
 clk = Abc_Clock();
@@ -2031,6 +2247,7 @@ p->timeCnf += Abc_Clock() - clk;
                 continue;
             }
 clk = Abc_Clock();
+            Sfm_ObjSetupSimInfo( pObj );
             RetValue = Sfm_DecPeformDec3( p, pObj );
             if ( pPars->fMoreEffort && RetValue < 0 )
             {
@@ -2094,9 +2311,22 @@ p->timeTime += Abc_Clock() - clk;
     }
     Abc_NtkCleanMarkABC( pNtk );
 }
-void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
+int Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
 {
-    Sfm_Dec_t * p = Sfm_DecStart( pPars, (Mio_Library_t *)pNtk->pManFunc, pNtk );
+    Sfm_Dec_t * p;
+    // Mapped inputs can contain dangling cones with no window roots.
+    Abc_NtkCleanup( pNtk, 0 );
+    if ( pPars->iNodeOne )
+    {
+        int iNode = pPars->iNodeOne;
+        Abc_Obj_t * pObj = iNode >= 0 && iNode < Abc_NtkObjNumMax(pNtk) ? Abc_NtkObj(pNtk, iNode) : NULL;
+        if ( pObj == NULL || !Abc_ObjIsNode(pObj) )
+        {
+            Abc_Print( -1, "mfsmap: -P %d does not name a live internal node.\n", iNode );
+            return 0;
+        }
+    }
+    p = Sfm_DecStart( pPars, (Mio_Library_t *)pNtk->pManFunc, pNtk );
     if ( pPars->fVerbose )
     {
         printf( "Remapping parameters: " );
@@ -2124,6 +2354,8 @@ void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
             printf( "Delta = %.2f ps. ", Scl_Int2Flt(p->DeltaCrit) );
         if ( pPars->fArea )
             printf( "0-cost = %s. ",  pPars->fZeroCost ? "yes" : "no" );
+        if ( pPars->fArea && pPars->fAreaTiming )
+            printf( "Delay limit = %.2f. ", Scl_Int2Flt(Sfm_TimReadNtkDelay(p->pTim)) );
         printf( "Effort = %s. ",      pPars->fMoreEffort ? "yes" : "no" );
         printf( "Sim = %s. ",         pPars->fUseSim ? "yes" : "no" );
         printf( "\n" );
@@ -2138,6 +2370,8 @@ void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     // perform optimization
     if ( pPars->fArea )
     {
+        // Both area traversals use marks that may be left by earlier commands.
+        Abc_NtkCleanMarkABC( pNtk );
         if ( pPars->fAreaRev )
             Abc_NtkAreaOpt2( p );
         else
@@ -2153,12 +2387,119 @@ void Abc_NtkPerformMfs3( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars )
     Sfm_DecPrintStats( p );
     if ( pPars->fLibVerbose )
         Sfm_LibPrint( p->pLib );
+    if ( pPars->fArea && pPars->fAreaTiming )
+    {
+        extern void Abc_NtkChangePerformTiming( Abc_Ntk_t * pNtk, int fVerbose, Sfm_Tim_t * pTim, Vec_Ptr_t * vHandles );
+        Abc_NtkChangePerformTiming( pNtk, pPars->fVerbose, p->pTim, &p->vGateHands );
+#ifndef NDEBUG
+        Sfm_TimCheckAreaEnd( p->pTim );
+#endif
+    }
     Sfm_DecStop( p );
-    if ( pPars->fArea )
+    if ( pPars->fArea && !pPars->fAreaTiming )
     {
         extern void Abc_NtkChangePerform( Abc_Ntk_t * pNtk, int fVerbose );
         Abc_NtkChangePerform( pNtk, pPars->fVerbose );
     }
+    // New gates have no original AIG node ID; keep this metadata safe to copy.
+    if ( pNtk->vOrigNodeIds )
+        Vec_IntFillExtra( pNtk->vOrigNodeIds, Abc_NtkObjNumMax(pNtk), -1 );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Measures delay using the optimization's GENLIB timing model.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Sfm_DecReadNtkDelay( Abc_Ntk_t * pNtk )
+{
+    // This matches the engine while the Liberty timing stub Sfm_MitStart returns NULL.
+    Sfm_Tim_t * pTim = Sfm_TimStart( (Mio_Library_t *)pNtk->pManFunc, Scl_ConReadMan(), pNtk, 1 );
+    int Delay = Sfm_TimReadNtkDelay( pTim );
+    Sfm_TimStop( pTim );
+    return Delay;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Repeats complete optimization iterations while quality improves.]
+
+  Description [Area modes require a strict area reduction; bounded area also
+  preserves the incumbent delay. Delay mode accepts lower delay, or lower
+  area at equal delay, including the first iteration. Single-node requests
+  perform one in-place iteration to preserve the requested object ID.
+  Returns NULL when the requested node is invalid after cleanup.]
+
+  SideEffects [Area modes and single-node requests modify the input. Full
+  delay optimization preserves the input. Returns the input or a new network;
+  the caller retains ownership of the input in either case.]
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkPerformMfs3Rounds( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars, int nIters )
+{
+    Abc_Ntk_t * pBest = pNtk, * pTrial;
+    int i = 0, DelayBest, fTiming = !pPars->fArea || pPars->fAreaTiming;
+    double AreaBest;
+    assert( nIters > 0 );
+    if ( pPars->iNodeOne )
+    {
+        // Duplication renumbers object IDs, so keep this diagnostic in place.
+        return Abc_NtkPerformMfs3( pBest, pPars ) ? pBest : NULL;
+    }
+    if ( pPars->fArea )
+    {
+        Abc_NtkPerformMfs3( pBest, pPars );
+        if ( nIters == 1 )
+            return pBest;
+        i = 1;
+    }
+    AreaBest = Abc_NtkGetMappedArea( pBest );
+    DelayBest = fTiming ? Sfm_DecReadNtkDelay(pBest) : 0;
+    for ( ; i < nIters; i++ )
+    {
+        double AreaNew;
+        int DelayNew, fAreaGain, fImprove;
+        // Preserve the incumbent, including the input mapping in delay mode.
+        pTrial = Abc_NtkDup( pBest );
+        if ( pPars->fVerbose )
+            Abc_Print( 1, "Optimization iteration %d of %d.\n", i + 1, nIters );
+        Abc_NtkPerformMfs3( pTrial, pPars );
+        AreaNew = Abc_NtkGetMappedArea( pTrial );
+        DelayNew = fTiming ? Sfm_DecReadNtkDelay(pTrial) : 0;
+        // Ignore summation roundoff when comparing floating-point gate areas.
+        fAreaGain = AreaNew < AreaBest - 1e-6;
+        if ( pPars->fArea )
+            fImprove = fAreaGain && (!pPars->fAreaTiming || DelayNew <= DelayBest);
+        else
+            fImprove = DelayNew < DelayBest || (DelayNew == DelayBest && fAreaGain);
+        if ( pPars->fVerbose )
+        {
+            Abc_Print( 1, "Optimization iteration %d: area %.2f -> %.2f. ", i + 1, AreaBest, AreaNew );
+            if ( fTiming )
+                Abc_Print( 1, "Delay %.2f -> %.2f. ", Scl_Int2Flt(DelayBest), Scl_Int2Flt(DelayNew) );
+            Abc_Print( 1, "%s.\n", fImprove ? "Accepted" : "No improvement; stopping" );
+        }
+        if ( !fImprove )
+        {
+            Abc_NtkDelete( pTrial );
+            break;
+        }
+        if ( pBest != pNtk )
+            Abc_NtkDelete( pBest );
+        pBest = pTrial;
+        AreaBest = AreaNew;
+        DelayBest = DelayNew;
+    }
+    return pBest;
 }
 
 ////////////////////////////////////////////////////////////////////////

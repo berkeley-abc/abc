@@ -28,12 +28,24 @@
 ABC_NAMESPACE_IMPL_START
 namespace eSLIM {
 
-  Subcircuit Subcircuit::getSubcircuit(eSLIMCirMan& es_man, const std::set<int>& nodes) {
+  // Subcircuit Subcircuit::getSubcircuit(eSLIMCirMan& es_man, const std::set<int>& nodes) {
+  //   Subcircuit scir = getSubcircuitBare(es_man, nodes.begin(), nodes.end());
+  //   es_man.markCones(scir.nodes);
+  //   scir.setForbiddenPairs(es_man);
+  //   return scir;
+  // }
+
+  Subcircuit Subcircuit::getSubcircuitBare(eSLIMCirMan& es_man, const std::set<int>& nodes) {
     Subcircuit scir = getSubcircuitBare(es_man, nodes.begin(), nodes.end());
-    es_man.markCones(scir.nodes);
-    scir.setForbiddenPairs(es_man);
     return scir;
   }
+
+  void Subcircuit::markCones(eSLIMCirMan& es_man) {
+    es_man.markCones(nodes);
+    setForbiddenPairs(es_man);
+  }
+
+
 
   Subcircuit Subcircuit::getEmptySubcircuit() {
     Subcircuit scir;

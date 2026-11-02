@@ -155,6 +155,46 @@ void Sfm_CreateLevelR( Vec_Wec_t * vFanouts, Vec_Int_t * vLevelsR, Vec_Str_t * v
 
 /**Function*************************************************************
 
+  Synopsis    [Caches the first box input reachable from each object.]
+
+  Description [Stop at box inputs regardless of their logical support.
+  Edge additions and removals update only affected fanin cones, keeping
+  the limits exact without walking the pivot's fanout for every window.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Sfm_NtkBoxLimit_rec( Sfm_Ntk_t * p, int iObj )
+{
+    int i, iFan, Pin = Vec_IntEntry(p->vBoxPins, iObj);
+    int Limit = Vec_IntEntry(p->vBoxLimits, iObj);
+    if ( Limit >= 0 )
+        return Limit;
+    Limit = Pin > 0 ? Pin : p->nObjs;
+    if ( Pin <= 0 )
+        Sfm_ObjForEachFanout( p, iObj, iFan, i )
+            Limit = Abc_MinInt( Limit, Sfm_NtkBoxLimit_rec(p, iFan) );
+    Vec_IntWriteEntry( p->vBoxLimits, iObj, Limit );
+    return Limit;
+}
+static void Sfm_NtkUpdateBoxLimit_rec( Sfm_Ntk_t * p, int iObj )
+{
+    int i, iFan, Limit = p->nObjs;
+    if ( Vec_IntEntry(p->vBoxPins, iObj) > 0 )
+        return;
+    Sfm_ObjForEachFanout( p, iObj, iFan, i )
+        Limit = Abc_MinInt( Limit, Vec_IntEntry(p->vBoxLimits, iFan) );
+    if ( Limit == Vec_IntEntry(p->vBoxLimits, iObj) )
+        return;
+    Vec_IntWriteEntry( p->vBoxLimits, iObj, Limit );
+    Sfm_ObjForEachFanin( p, iObj, iFan, i )
+        Sfm_NtkUpdateBoxLimit_rec( p, iFan );
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -200,6 +240,13 @@ Sfm_Ntk_t * Sfm_NtkConstruct( Vec_Wec_t * vFanins, int nPis, int nPos, Vec_Str_t
 }
 void Sfm_NtkPrepare( Sfm_Ntk_t * p )
 {
+    int i;
+    if ( p->vBoxPins )
+    {
+        p->vBoxLimits = Vec_IntStartFull( p->nObjs );
+        for ( i = 0; i < p->nObjs; i++ )
+            Sfm_NtkBoxLimit_rec( p, i );
+    }
     p->nLevelMax = Vec_IntFindMax(&p->vLevels) + p->pPars->nGrowthLevel;
     p->vNodes    = Vec_IntAlloc( 1000 );
     p->vDivs     = Vec_IntAlloc( 100 );
@@ -218,6 +265,9 @@ void Sfm_NtkPrepare( Sfm_Ntk_t * p )
 }
 void Sfm_NtkFree( Sfm_Ntk_t * p )
 {
+    Vec_IntFreeP( &p->vBoxPins );
+    Vec_IntFreeP( &p->vBoxLimits );
+    Vec_IntFreeP( &p->vBoxMarks );
     // user data
     Vec_StrFree( p->vFixed );
     Vec_StrFreeP( &p->vEmpty );
@@ -255,6 +305,28 @@ void Sfm_NtkFree( Sfm_Ntk_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Marks box terminals for optional physical dependency checks.]
+
+  Description [Positive values identify box inputs, negative values outputs.
+  The absolute value is one plus the box index in topological order.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sfm_NtkSetBoxPin( Sfm_Ntk_t * p, int iObj, int iBoxPin )
+{
+    if ( p->vBoxPins == NULL )
+    {
+        p->vBoxPins = Vec_IntStart( p->nObjs );
+        p->vBoxMarks = Vec_IntStart( p->nObjs );
+    }
+    Vec_IntWriteEntry( p->vBoxPins, iObj, iBoxPin );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs resubstitution for the node.]
 
   Description []
@@ -273,6 +345,8 @@ void Sfm_NtkRemoveFanin( Sfm_Ntk_t * p, int iNode, int iFanin )
     assert( RetValue );
     RetValue = Vec_IntRemove( Sfm_ObjFoArray(p, iFanin), iNode );
     assert( RetValue );
+    if ( p->vBoxLimits )
+        Sfm_NtkUpdateBoxLimit_rec( p, iFanin );
 }
 void Sfm_NtkAddFanin( Sfm_Ntk_t * p, int iNode, int iFanin )
 {
@@ -284,6 +358,8 @@ void Sfm_NtkAddFanin( Sfm_Ntk_t * p, int iNode, int iFanin )
     assert( Vec_IntFind( Sfm_ObjFoArray(p, iFanin), iNode ) == -1 );
     Vec_IntPush( Sfm_ObjFiArray(p, iNode), iFanin );
     Vec_IntPush( Sfm_ObjFoArray(p, iFanin), iNode );
+    if ( p->vBoxLimits )
+        Sfm_NtkUpdateBoxLimit_rec( p, iFanin );
 }
 void Sfm_NtkDeleteObj_rec( Sfm_Ntk_t * p, int iNode )
 {
@@ -333,6 +409,8 @@ void Sfm_NtkUpdate( Sfm_Ntk_t * p, int iNode, int f, int iFaninNew, word uTruth,
         {
             int RetValue = Vec_IntRemove( Sfm_ObjFoArray(p, iFanin), iNode );  assert( RetValue );
             (void)RetValue;
+            if ( p->vBoxLimits )
+                Sfm_NtkUpdateBoxLimit_rec( p, iFanin );
             Sfm_NtkDeleteObj_rec( p, iFanin );
         }
         Vec_IntClear( Sfm_ObjFiArray(p, iNode) );

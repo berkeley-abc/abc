@@ -193,12 +193,14 @@ Vec_Ptr_t * Amap_DeriveTokens( char * pBuffer )
     pToken = Abc_UtilStrtok( pBuffer, " =\t\r\n", &pSave );
     while ( pToken )
     {
+        // skip latches
+        if ( strcmp( pToken, "LATCH" ) == 0 )
+            while ( pToken && strcmp(pToken, "GATE") && strcmp(pToken, ".end") )
+                pToken = Abc_UtilStrtok( NULL, " =\t\r\n", &pSave );
+        if ( pToken == NULL )
+            break;
         Vec_PtrPush( vTokens, pToken );
         pToken = Abc_UtilStrtok( NULL, " =\t\r\n", &pSave );
-        // skip latches
-        if ( pToken && strcmp( pToken, "LATCH" ) == 0 )
-            while ( pToken && strcmp( pToken, "GATE" ) != 0 )
-                pToken = Abc_UtilStrtok( NULL, " =\t\r\n", &pSave );
     }
     return vTokens;
 }
@@ -459,6 +461,9 @@ Amap_Lib_t * Amap_LibReadBuffer( char * pBuffer, int fVerbose )
 {
     Amap_Lib_t * pLib;
     Vec_Ptr_t * vTokens;
+    // skip the UTF-8 byte order mark, if present
+    if ( !strncmp(pBuffer, "\xEF\xBB\xBF", 3) )
+        pBuffer += 3;
     Amap_RemoveComments( pBuffer, NULL, NULL );
     vTokens = Amap_DeriveTokens( pBuffer );
     pLib = Amap_ParseTokens( vTokens, fVerbose );

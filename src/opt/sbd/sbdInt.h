@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [rsbInt.h]
+  FileName    [sbdInt.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: rsbInt.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: sbdInt.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
  
@@ -49,9 +49,6 @@
 
 ABC_NAMESPACE_HEADER_START
 
-#define SBD_SAT_UNDEC 0x1234567812345678
-#define SBD_SAT_SAT   0x8765432187654321
-
 #define SBD_LUTS_MAX    2
 #define SBD_SIZE_MAX    4
 #define SBD_DIV_MAX    10
@@ -82,10 +79,11 @@ struct Sbd_Str_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== sbdCut.c ==========================================================*/
+// === sbdCut.c ==========================================================
 extern Sbd_Sto_t *  Sbd_StoAlloc( Gia_Man_t * pGia, Vec_Int_t * vMirrors, int nLutSize, int nCutSize, int nCutNum, int fCutMin, int fVerbose );
 extern void         Sbd_StoFree( Sbd_Sto_t * p );
 extern int          Sbd_StoObjRefs( Sbd_Sto_t * p, int iObj );
+extern void         Sbd_StoTransferRefs( Sbd_Sto_t * p, int iObj, int iMirror );
 extern void         Sbd_StoRefObj( Sbd_Sto_t * p, int iObj, int iMirror );
 extern void         Sbd_StoDerefObj( Sbd_Sto_t * p, int iObj );
 extern void         Sbd_StoComputeCutsConst0( Sbd_Sto_t * p, int iObj );
@@ -94,25 +92,26 @@ extern void         Sbd_StoComputeCutsCi( Sbd_Sto_t * p, int iObj, int Delay, in
 extern int          Sbd_StoComputeCutsNode( Sbd_Sto_t * p, int iObj );
 extern void         Sbd_StoSaveBestDelayCut( Sbd_Sto_t * p, int iObj, int * pCut );
 extern int          Sbd_StoObjBestCut( Sbd_Sto_t * p, int iObj, int nSize, int * pLeaves );
-/*=== sbdCut2.c ==========================================================*/
+// === sbdCut2.c ==========================================================
 extern Sbd_Srv_t *  Sbd_ManCutServerStart( Gia_Man_t * pGia, Vec_Int_t * vMirrors, 
                                    Vec_Int_t * vLutLevs, Vec_Int_t * vLevs, Vec_Int_t * vRefs, 
                                    int nLutSize, int nCutSize, int nCutNum, int fVerbose );
 extern void         Sbd_ManCutServerStop( Sbd_Srv_t * p );
 extern int          Sbd_ManCutServerFirst( Sbd_Srv_t * p, int iObj, int * pLeaves );
-/*=== sbdWin.c ==========================================================*/
-extern word         Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDivSet, Vec_Int_t * vDivVars, Vec_Int_t * vDivValues, Vec_Int_t * vTemp );
+// === sbdWin.c ==========================================================
+extern int          Sbd_ManSolve( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDivSet, Vec_Int_t * vDivVars, Vec_Int_t * vDivValues, Vec_Int_t * vTemp, int nBTLimit, word * pTruth );
 extern sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, Vec_Int_t * vTfo, Vec_Int_t * vRoots, int fQbf );
-extern int          Sbd_ManCollectConstants( sat_solver * pSat, int nCareMints[2], int PivotVar, word * pVarSims[], Vec_Int_t * vInds );
-extern int          Sbd_ManCollectConstantsNew( sat_solver * pSat, Vec_Int_t * vDivVars, int nConsts, int PivotVar, word * pOnset, word * pOffset );
-/*=== sbdPath.c ==========================================================*/
+extern int          Sbd_ManCollectConstants( sat_solver * pSat, int nCareMints[2], int PivotVar, word * pVarSims[], Vec_Int_t * vInds, int nBTLimit );
+extern int          Sbd_ManCollectConstantsNew( sat_solver * pSat, Vec_Int_t * vDivVars, int nConsts, int PivotVar, word * pOnset, word * pOffset, int nBTLimit );
+// === sbdPath.c ==========================================================
 extern Vec_Bit_t *  Sbc_ManCriticalPath( Gia_Man_t * p );
-/*=== sbdQbf.c ==========================================================*/
+// === sbdQbf.c ==========================================================
 extern int          Sbd_ProblemSolve( 
                                        Gia_Man_t * p, Vec_Int_t * vMirrors, 
                                        int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, 
                                        Vec_Int_t * vTfo, Vec_Int_t * vRoots, 
-                                       Vec_Int_t * vDivSet, int nStrs, Sbd_Str_t * pStr0 
+                                       Vec_Int_t * vDivSet, int nStrs, Sbd_Str_t * pStr0, int nBTLimit,
+                                       sat_solver ** ppSatCec, sat_solver ** ppSatQbf
                                     );
 
 ABC_NAMESPACE_HEADER_END

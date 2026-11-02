@@ -50,6 +50,17 @@ ABC_NAMESPACE_CXX_HEADER_START
 namespace acd
 {
 
+// These masks contain 64 bits even on targets where unsigned long has 32.
+// Two 32-bit intrinsics also work with MSVC targets lacking __popcnt64.
+static inline uint32_t count_ones64( uint64_t value )
+{
+#ifdef _MSC_VER
+  return __popcnt( static_cast<uint32_t>( value ) ) + __popcnt( static_cast<uint32_t>( value >> 32 ) );
+#else
+  return static_cast<uint32_t>( __builtin_popcountll( value ) );
+#endif
+}
+
 /*! \brief Parameters for ac_decomposition */
 struct ac_decomposition_params
 {
@@ -335,13 +346,13 @@ private:
       }
     }
 
-    multiplicity = __builtin_popcountl( multiplicity_set[0] );
+    multiplicity = count_ones64( multiplicity_set[0] );
 
     if ( free_set_size == 3 )
     {
-      multiplicity += __builtin_popcountl( multiplicity_set[1] );
-      multiplicity += __builtin_popcountl( multiplicity_set[2] );
-      multiplicity += __builtin_popcountl( multiplicity_set[3] );
+      multiplicity += count_ones64( multiplicity_set[1] );
+      multiplicity += count_ones64( multiplicity_set[2] );
+      multiplicity += count_ones64( multiplicity_set[3] );
     }
 
     return multiplicity;
@@ -1101,11 +1112,11 @@ private:
       float sort_cost = 0;
       if ( UseHeuristic )
       {
-        sort_cost = 1.0f / ( __builtin_popcountl( column[0] ) + __builtin_popcountl( column[1] ) );
+        sort_cost = 1.0f / ( count_ones64( column[0] ) + count_ones64( column[1] ) );
       }
       else
       {
-        sort_cost = cost + ( ( combinations - __builtin_popcountl( column[0] + __builtin_popcountl( column[1] ) ) ) << num_vars );
+        sort_cost = cost + ( ( combinations - count_ones64( column[0] ) - count_ones64( column[1] ) ) << num_vars );
       }
 
       /* insert */
@@ -1160,7 +1171,7 @@ private:
             continue;
 
           /* check validity */
-          if ( __builtin_popcountl( matrix[i].column[0] | matrix[j].column[0] ) + __builtin_popcountl( matrix[i].column[1] | matrix[j].column[1] ) == combinations )
+          if ( count_ones64( matrix[i].column[0] | matrix[j].column[0] ) + count_ones64( matrix[i].column[1] | matrix[j].column[1] ) == combinations )
           {
             res[0] = i;
             res[1] = j;
@@ -1199,14 +1210,14 @@ private:
     /* get max number of BS's */
     uint32_t iter = 1;
 
-    while ( iter < ps.lut_size - best_free_set && __builtin_popcountl( column0 ) + __builtin_popcountl( column1 ) != combinations )
+    while ( iter < ps.lut_size - best_free_set && count_ones64( column0 ) + count_ones64( column1 ) != combinations )
     {
       /* select column that minimizes the cost */
       best = 0;
       best_cost = std::numeric_limits<float>::max();
       for ( uint32_t i = iter; i < matrix.size(); ++i )
       {
-        float local_cost = 1.0f / ( __builtin_popcountl( matrix[i].column[0] & ~column0 ) + __builtin_popcountl( matrix[i].column[1] & ~column1 ) );
+        float local_cost = 1.0f / ( count_ones64( matrix[i].column[0] & ~column0 ) + count_ones64( matrix[i].column[1] & ~column1 ) );
         if ( local_cost < best_cost )
         {
           best = i;
@@ -1220,7 +1231,7 @@ private:
       ++iter;
     }
 
-    if ( __builtin_popcountl( column0 ) + __builtin_popcountl( column1 ) == combinations )
+    if ( count_ones64( column0 ) + count_ones64( column1 ) == combinations )
     {
       for ( uint32_t i = 0; i < iter; ++i )
       {

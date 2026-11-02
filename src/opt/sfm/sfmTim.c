@@ -35,6 +35,12 @@ struct Sfm_Tim_t_
     Abc_Ntk_t *       pNtk;        // mapped network
     int               Delay;       // the largest delay
     int               DeltaCrit;   // critical delay delta
+    int               fAreaTarget; // use fixed output requirements for area recovery
+    int               AreaTarget;  // fixed output requirement for area recovery
+    int               nObjsOld;
+    Vec_Int_t         vAffected;
+    Vec_Ptr_t         vCone;
+    Vec_Ptr_t         vSupport;
     // timing info
     Vec_Int_t         vTimArrs;    // arrivals (rise/fall)
     Vec_Int_t         vTimReqs;    // required (rise/fall)
@@ -43,6 +49,16 @@ struct Sfm_Tim_t_
     // critical path
     Vec_Int_t         vPath;       // critical path
     Vec_Wrd_t         vSortData;   // node priority order
+    // speculative timing of polarity changes, without modifying the network
+    Vec_Int_t         vTrialArrs;
+    Vec_Int_t         vTrialSeen;
+    Vec_Int_t         vTrialPlans;
+    int               nTrial;
+    Abc_Obj_t *       pTrialPivot;
+    Vec_Int_t *       pTrialPlan;
+    Vec_Ptr_t *       pTrialHandles;
+    int               TrialRoot[2];
+    int               TrialInv[2];
 };
 
 static inline int * Sfm_TimArrId( Sfm_Tim_t * p, int Id )                    { return Vec_IntEntryP( &p->vTimArrs,  Abc_Var2Lit(Id, 0) );               }
@@ -118,8 +134,8 @@ static inline void Sfm_TimEdgeRequired( Sfm_Tim_t * p, Mio_Pin_t * pPin, int * p
     }
     if ( PinPhase != MIO_PHASE_NONINV )  // INV phase is present
     {
-        pTimeIn[0] = Abc_MinInt( pTimeIn[0], pTimeOut[1] - tDelayBlockRise );
-        pTimeIn[1] = Abc_MinInt( pTimeIn[1], pTimeOut[0] - tDelayBlockFall );
+        pTimeIn[0] = Abc_MinInt( pTimeIn[0], pTimeOut[1] - tDelayBlockFall );
+        pTimeIn[1] = Abc_MinInt( pTimeIn[1], pTimeOut[0] - tDelayBlockRise );
     }
 }
 static inline void Sfm_TimGateRequired( Sfm_Tim_t * p, Mio_Gate_t * pGate, int ** pTimesIn, int * pTimeOut )
@@ -208,7 +224,7 @@ int Sfm_TimTrace( Sfm_Tim_t * p )
         Delay = Abc_MaxInt( Delay, Sfm_TimArrMax(p, Abc_ObjFanin0(pObj)) );
     Vec_IntFill( &p->vTimReqs, 2*Abc_NtkObjNumMax(p->pNtk), ABC_INFINITY );
     Abc_NtkForEachCo( p->pNtk, pObj, i )
-        Sfm_TimSetReq( p, Abc_ObjFanin0(pObj), Delay );
+        Sfm_TimSetReq( p, Abc_ObjFanin0(pObj), p->fAreaTarget ? p->AreaTarget : Delay );
     Vec_PtrForEachEntryReverse( Abc_Obj_t *, vNodes, pObj, i )
         Sfm_TimNodeRequired( p, pObj );
     Vec_PtrFree( vNodes );
@@ -246,6 +262,12 @@ void Sfm_TimStop( Sfm_Tim_t * p )
     Vec_WecErase( &p->vLevels );
     Vec_IntErase( &p->vPath );
     Vec_WrdErase( &p->vSortData );
+    Vec_IntErase( &p->vAffected );
+    Vec_PtrErase( &p->vCone );
+    Vec_PtrErase( &p->vSupport );
+    Vec_IntErase( &p->vTrialArrs );
+    Vec_IntErase( &p->vTrialSeen );
+    Vec_IntErase( &p->vTrialPlans );
     ABC_FREE( p );
 }
 int Sfm_TimReadNtkDelay( Sfm_Tim_t * p )
@@ -255,6 +277,346 @@ int Sfm_TimReadNtkDelay( Sfm_Tim_t * p )
 int Sfm_TimReadObjDelay( Sfm_Tim_t * p, int iObj )
 {
     return Sfm_TimArrMaxId(p, iObj);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Fixes the initial maximum delay as the area-recovery bound.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sfm_TimSetAreaTarget( Sfm_Tim_t * p )
+{
+    p->fAreaTarget = 1;
+    p->AreaTarget = p->Delay;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the timing boundary before replacing a cone.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sfm_TimPrepareArea( Sfm_Tim_t * p, Abc_Obj_t * pPivot )
+{
+    Abc_Obj_t * pObj, * pNext;
+    int i, k;
+    p->nObjsOld = Abc_NtkObjNumMax(p->pNtk);
+    Vec_IntClear( &p->vAffected );
+    // Include the boundary of the removed cone, so its requirements can relax.
+    Abc_NodeDeref_rec( pPivot );
+    Abc_NodeMffcConeSupp( pPivot, &p->vCone, &p->vSupport );
+    Abc_NodeRef_rec( pPivot );
+    Vec_PtrForEachEntry( Abc_Obj_t *, &p->vCone, pObj, i )
+        Vec_IntPush( &p->vAffected, Abc_ObjId(pObj) );
+    Vec_PtrForEachEntry( Abc_Obj_t *, &p->vSupport, pObj, i )
+        Vec_IntPush( &p->vAffected, Abc_ObjId(pObj) );
+    Abc_ObjForEachFanout( pPivot, pObj, i )
+    {
+        Vec_IntPush( &p->vAffected, Abc_ObjId(pObj) );
+        // A fanout inverter can disappear during a polarity change.
+        Abc_ObjForEachFanout( pObj, pNext, k )
+            Vec_IntPush( &p->vAffected, Abc_ObjId(pNext) );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Queues an affected node once at its current logic level.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Sfm_TimQueueArea( Sfm_Tim_t * p, Abc_Obj_t * pObj )
+{
+    if ( pObj == NULL || !Abc_ObjIsNode(pObj) || pObj->fMarkC )
+        return;
+    pObj->fMarkC = 1;
+    Vec_WecPush( &p->vLevels, pObj->Level, Abc_ObjId(pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives rise/fall requirements from the current fanouts.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Sfm_TimRequiredFromFanouts( Sfm_Tim_t * p, Abc_Obj_t * pObj, int * pReq )
+{
+    Abc_Obj_t * pFanout;
+    Mio_Pin_t * pPin;
+    int i, k;
+    pReq[0] = pReq[1] = ABC_INFINITY;
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+    {
+        if ( Abc_ObjIsCo(pFanout) )
+        {
+            pReq[0] = Abc_MinInt( pReq[0], p->AreaTarget );
+            pReq[1] = Abc_MinInt( pReq[1], p->AreaTarget );
+            continue;
+        }
+        k = 0;
+        Mio_GateForEachPin( (Mio_Gate_t *)pFanout->pData, pPin )
+        {
+            if ( Abc_ObjFanin(pFanout, k) == pObj )
+                Sfm_TimEdgeRequired( p, pPin, pReq, Sfm_TimReq(p, pFanout) );
+            k++;
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Propagates timing after an accepted area replacement.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sfm_TimUpdateArea( Sfm_Tim_t * p )
+{
+    extern void Abc_NtkUpdateIncLevel_rec( Abc_Obj_t * pObj );
+    Abc_Obj_t * pObj, * pNext;
+    int i, k, Id, Old[2], New[2], * pTime;
+    Vec_IntFillExtra( &p->vTimArrs, 2*Abc_NtkObjNumMax(p->pNtk), 0 );
+    Vec_IntFillExtra( &p->vTimReqs, 2*Abc_NtkObjNumMax(p->pNtk), ABC_INFINITY );
+    for ( i = p->nObjsOld; i < Abc_NtkObjNumMax(p->pNtk); i++ )
+    {
+        Vec_IntPush( &p->vAffected, i );
+        pObj = Abc_NtkObj( p->pNtk, i );
+        if ( pObj && Abc_ObjIsNode(pObj) )
+            Abc_NtkUpdateIncLevel_rec( pObj );
+    }
+    Vec_IntForEachEntry( &p->vAffected, Id, i )
+    {
+        pObj = Abc_NtkObj( p->pNtk, Id );
+        if ( pObj && Abc_ObjIsNode(pObj) )
+            Abc_NtkUpdateIncLevel_rec( pObj );
+    }
+    Vec_IntForEachEntry( &p->vAffected, Id, i )
+        Sfm_TimQueueArea( p, Abc_NtkObj(p->pNtk, Id) );
+    for ( i = 0; i < Vec_WecSize(&p->vLevels); i++ )
+        while ( Vec_IntSize(Vec_WecEntry(&p->vLevels, i)) )
+        {
+            pObj = Abc_NtkObj( p->pNtk, Vec_IntPop(Vec_WecEntry(&p->vLevels, i)) );
+            pObj->fMarkC = 0;
+            pTime = Sfm_TimArr(p, pObj);
+            Old[0] = pTime[0]; Old[1] = pTime[1];
+            Sfm_TimNodeArrival( p, pObj );
+            if ( Old[0] != pTime[0] || Old[1] != pTime[1] )
+                Abc_ObjForEachFanout( pObj, pNext, k )
+                    Sfm_TimQueueArea( p, pNext );
+        }
+    Vec_IntForEachEntry( &p->vAffected, Id, i )
+    {
+        pObj = Abc_NtkObj( p->pNtk, Id );
+        if ( pObj == NULL )
+            continue;
+        Sfm_TimQueueArea( p, pObj );
+        // Changed cells may tighten input requirements even when their own
+        // output requirements stay the same.
+        Abc_ObjForEachFanin( pObj, pNext, k )
+            Sfm_TimQueueArea( p, pNext );
+    }
+    for ( i = Vec_WecSize(&p->vLevels)-1; i >= 0; i-- )
+        while ( Vec_IntSize(Vec_WecEntry(&p->vLevels, i)) )
+        {
+            pObj = Abc_NtkObj( p->pNtk, Vec_IntPop(Vec_WecEntry(&p->vLevels, i)) );
+            pObj->fMarkC = 0;
+            pTime = Sfm_TimReq(p, pObj);
+            Sfm_TimRequiredFromFanouts( p, pObj, New );
+            if ( New[0] == pTime[0] && New[1] == pTime[1] )
+                continue;
+            pTime[0] = New[0]; pTime[1] = New[1];
+            Abc_ObjForEachFanin( pObj, pNext, k )
+                Sfm_TimQueueArea( p, pNext );
+        }
+    p->Delay = 0;
+    Abc_NtkForEachCo( p->pNtk, pObj, i )
+        p->Delay = Abc_MaxInt( p->Delay, Sfm_TimArrMax(p, Abc_ObjFanin0(pObj)) );
+    assert( p->Delay <= p->AreaTarget );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks incremental timing against a full timing trace.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+#ifndef NDEBUG
+void Sfm_TimCheckAreaEnd( Sfm_Tim_t * p )
+{
+    Vec_Int_t * vArrs = Vec_IntDup( &p->vTimArrs );
+    Vec_Int_t * vReqs = Vec_IntDup( &p->vTimReqs );
+    Abc_Obj_t * pObj; int i;
+    int Delay = Sfm_TimTrace( p );
+    assert( Delay == p->Delay && Delay <= p->AreaTarget );
+    Abc_NtkForEachNode( p->pNtk, pObj, i )
+    {
+        assert( Vec_IntEntry(vArrs, 2*i) == Sfm_TimArr(p, pObj)[0] );
+        assert( Vec_IntEntry(vArrs, 2*i+1) == Sfm_TimArr(p, pObj)[1] );
+        assert( Vec_IntEntry(vReqs, 2*i) == Sfm_TimReq(p, pObj)[0] );
+        assert( Vec_IntEntry(vReqs, 2*i+1) == Sfm_TimReq(p, pObj)[1] );
+    }
+    Vec_IntFree( vArrs );
+    Vec_IntFree( vReqs );
+}
+#endif
+
+/**Function*************************************************************
+
+  Synopsis    [Computes speculative arrival times for a polarity plan.]
+
+  Description [Recomputes reconvergent inputs of changed fanouts because
+  their old arrival times may change with the pivot or another fanout.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int * Sfm_TimTrialArrival( Sfm_Tim_t * p, Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pFanin;
+    Mio_Gate_t * pGate;
+    int * pTimes[6], * pPermuted[6], * pOut, * pPlan = NULL, i, Plan;
+    if ( pObj == p->pTrialPivot )
+        return p->TrialInv;
+    if ( Abc_ObjIsCi(pObj) || pObj->Level < p->pTrialPivot->Level )
+        return Sfm_TimArr(p, pObj);
+    pOut = Vec_IntEntryP( &p->vTrialArrs, 2*Abc_ObjId(pObj) );
+    if ( Vec_IntEntry(&p->vTrialSeen, Abc_ObjId(pObj)) == p->nTrial )
+        return pOut;
+    Plan = Vec_IntEntry( &p->vTrialPlans, Abc_ObjId(pObj) );
+    if ( Plan >= 0 )
+        pPlan = Vec_IntEntryP( p->pTrialPlan, Plan );
+    if ( pPlan && pPlan[1] == -1 )
+    {
+        pOut[0] = p->TrialRoot[0];
+        pOut[1] = p->TrialRoot[1];
+    }
+    else
+    {
+        assert( Abc_ObjFaninNum(pObj) <= 6 );
+        Abc_ObjForEachFanin( pObj, pFanin, i )
+            pTimes[i] = pPlan && i == pPlan[2] ? p->TrialRoot : Sfm_TimTrialArrival(p, pFanin);
+        if ( pPlan )
+            for ( i = 0; i < Abc_ObjFaninNum(pObj); i++ )
+                pPermuted[i] = pTimes[(pPlan[3] >> (4*i)) & 15];
+        pGate = pPlan ? (Mio_Gate_t *)Vec_PtrEntry(p->pTrialHandles, pPlan[1]) : (Mio_Gate_t *)pObj->pData;
+        Sfm_TimGateArrival( p, pGate, pPlan ? pPermuted : pTimes, pOut );
+    }
+    Vec_IntWriteEntry( &p->vTrialSeen, Abc_ObjId(pObj), p->nTrial );
+    return pOut;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks both transitions against a node's required times.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Sfm_TimMeetsRequired( Sfm_Tim_t * p, Abc_Obj_t * pObj, int * pArr )
+{
+    int * pReq = Sfm_TimReq(p, pObj);
+    return pArr[0] <= pReq[0] && pArr[1] <= pReq[1];
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks a proposed area replacement without changing logic.]
+
+  Description [Includes the candidate gates, an optional output inverter,
+  and the proposed changes to fanout cells and their pin order.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sfm_TimCheckArea( Sfm_Tim_t * p, Abc_Obj_t * pPivot, Vec_Int_t * vGates, Vec_Wec_t * vFanins, Vec_Int_t * vMap, Vec_Ptr_t * vHandles, int GateBuf, int fCompl, int fKeepInv, Vec_Int_t * vPlan )
+{
+    int Times[2][2], * pInputs[6], * pOut, i, k, Gate, Fanin, fPass = 1;
+    int Limit = Vec_IntSize(vMap), nNew = Vec_IntSize(vGates) - Limit;
+    assert( nNew > 0 && nNew <= 2 );
+    Vec_IntForEachEntryStart( vGates, Gate, i, Limit )
+    {
+        Vec_IntForEachEntry( Vec_WecEntry(vFanins, i), Fanin, k )
+            pInputs[k] = Fanin < Limit ? Sfm_TimArrId(p, Vec_IntEntry(vMap, Fanin)) : Times[Fanin-Limit];
+        if ( nNew == 1 && Gate == GateBuf ) // insertion bypasses this buffer
+        {
+            Times[0][0] = pInputs[0][0];
+            Times[0][1] = pInputs[0][1];
+        }
+        else
+            Sfm_TimGateArrival( p, (Mio_Gate_t *)Vec_PtrEntry(vHandles, Gate), pInputs, Times[i-Limit] );
+    }
+    pOut = Times[nNew-1];
+    if ( !fCompl )
+        return Sfm_TimMeetsRequired(p, pPivot, pOut);
+    p->TrialRoot[0] = pOut[0];
+    p->TrialRoot[1] = pOut[1];
+    pInputs[0] = pOut;
+    Sfm_TimGateArrival( p, Mio_LibraryReadInv(p->pLib), pInputs, p->TrialInv );
+    if ( fKeepInv && !Sfm_TimMeetsRequired(p, pPivot, p->TrialInv) )
+        return 0;
+    Vec_IntFillExtra( &p->vTrialArrs, 2*Abc_NtkObjNumMax(p->pNtk), 0 );
+    Vec_IntFillExtra( &p->vTrialSeen, Abc_NtkObjNumMax(p->pNtk), 0 );
+    Vec_IntFillExtra( &p->vTrialPlans, Abc_NtkObjNumMax(p->pNtk), -1 );
+    if ( ++p->nTrial == ABC_INFINITY )
+    {
+        Vec_IntFill( &p->vTrialSeen, Abc_NtkObjNumMax(p->pNtk), 0 );
+        p->nTrial = 1;
+    }
+    p->pTrialPivot = pPivot;
+    p->pTrialPlan = vPlan;
+    p->pTrialHandles = vHandles;
+    for ( i = 0; i < Vec_IntSize(vPlan); i += 5 )
+        Vec_IntWriteEntry( &p->vTrialPlans, Vec_IntEntry(vPlan, i), i );
+    for ( i = 0; i < Vec_IntSize(vPlan); i += 5 )
+    {
+        Abc_Obj_t * pFanout = Abc_NtkObj( p->pNtk, Vec_IntEntry(vPlan, i) );
+        if ( !Sfm_TimMeetsRequired(p, pFanout, Sfm_TimTrialArrival(p, pFanout)) )
+        {
+            fPass = 0;
+            break;
+        }
+    }
+    for ( i = 0; i < Vec_IntSize(vPlan); i += 5 )
+        Vec_IntWriteEntry( &p->vTrialPlans, Vec_IntEntry(vPlan, i), -1 );
+    return fPass;
 }
 
 /**Function*************************************************************
@@ -357,7 +719,7 @@ int Sfm_TimSortArrayByArrival( Sfm_Tim_t * p, Vec_Int_t * vNodes, int iPivot )
         if ( nDivNew == -1 && ((int)Entry) + p->DeltaCrit > MaxDelay )
             nDivNew = i;
     }
-    return nDivNew;
+    return nDivNew == -1 ? Vec_IntSize(vNodes) : nDivNew;
 }
 
 /**Function*************************************************************

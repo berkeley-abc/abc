@@ -389,7 +389,8 @@ void If_ManComputeRequired( If_Man_t * p )
                     if ( p->fNextRound == 0 )
                     {
                         p->fNextRound = 1;
-                        Abc_Print( 0, "Cannot meet the target required times (%4.2f). Mapping continues anyway.\n", p->pPars->DelayTarget );
+                        if ( !p->pPars->fNoDelayWarn )
+                            Abc_Print( 0, "Cannot meet the target required times (%4.2f). Mapping continues anyway.\n", p->pPars->DelayTarget );
                     }
                 }
                 else if ( p->RequiredGlo < p->pPars->DelayTarget - p->fEpsilon )
@@ -459,7 +460,8 @@ void If_ManComputeRequired( If_Man_t * p )
                 if ( p->fNextRound == 0 )
                 {
                     p->fNextRound = 1;
-                    Abc_Print( 0, "Cannot meet the target required times (%4.2f). Mapping continues anyway.\n", p->pPars->DelayTarget );
+                    if ( !p->pPars->fNoDelayWarn )
+                        Abc_Print( 0, "Cannot meet the target required times (%4.2f). Mapping continues anyway.\n", p->pPars->DelayTarget );
                 }
             }
             else if ( p->RequiredGlo < p->pPars->DelayTarget - p->fEpsilon )

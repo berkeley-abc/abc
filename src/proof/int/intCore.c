@@ -92,7 +92,12 @@ int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, 
 
     // sanity checks
     assert( Saig_ManRegNum(pAig) > 0 );
-    assert( Saig_ManPiNum(pAig) > 0 );
+    if ( Saig_ManPiNum(pAig) == 0 )
+    {
+        printf( "Interpolation requires at least one primary input.\n" );
+        *piFrame = -1;
+        return -1;
+    }
     assert( Saig_ManPoNum(pAig)-Saig_ManConstrNum(pAig) == 1 );
     if ( pPars->fVerbose && Saig_ManConstrNum(pAig) )
         printf( "Performing interpolation with %d constraints...\n", Saig_ManConstrNum(pAig) );

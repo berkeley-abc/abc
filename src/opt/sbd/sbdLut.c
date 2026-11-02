@@ -57,7 +57,7 @@ int Sbd_ProblemAddClauses( sat_solver * pSat, int nVars, int nStrs, int * pVars,
     Sbd_Str_t * pStr;
     int VarOut = nVars;
     int VarPar = nVars + nStrs;
-    int m, k, n, status, pLits[SBD_SIZE_MAX+2];
+    int m, k, n, status, pLits[6+2];
 //printf( "Start par = %d.  ", VarPar );
     for ( pStr = pStr0; pStr < pStr0 + nStrs; pStr++, VarOut++ )
     {
@@ -177,7 +177,8 @@ void Sbd_ProblemCollectSolution( int nStrs, Sbd_Str_t * pStr0, Vec_Int_t * vLits
 
   Synopsis    [Solves QBF problem for the given window.]
 
-  Description []
+  Description [The caller owns both solvers. Each call rebuilds the problems
+  after resetting the search state, while retaining allocated storage.]
                
   SideEffects []
 
@@ -187,15 +188,15 @@ void Sbd_ProblemCollectSolution( int nStrs, Sbd_Str_t * pStr0, Vec_Int_t * vLits
 int Sbd_ProblemSolve( Gia_Man_t * p, Vec_Int_t * vMirrors, 
                        int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, 
                        Vec_Int_t * vTfo, Vec_Int_t * vRoots, 
-                       Vec_Int_t * vDivSet, int nStrs, Sbd_Str_t * pStr0 )  // divisors, structures
+                       Vec_Int_t * vDivSet, int nStrs, Sbd_Str_t * pStr0, int nBTLimit,
+                       sat_solver ** ppSatCec, sat_solver ** ppSatQbf )  // divisors, structures
 {
     extern sat_solver * Sbd_ManSatSolver( sat_solver * pSat, Gia_Man_t * p, Vec_Int_t * vMirrors, int Pivot, Vec_Int_t * vWinObjs, Vec_Int_t * vObj2Var, Vec_Int_t * vTfo, Vec_Int_t * vRoots, int fQbf );
     
     int fVerbose = 0;
     abctime clk = Abc_Clock();
     Vec_Int_t * vLits    = Vec_IntAlloc( 100 );
-    sat_solver * pSatCec = Sbd_ManSatSolver( NULL, p, vMirrors, Pivot, vWinObjs, vObj2Var, vTfo, vRoots, 1 );
-    sat_solver * pSatQbf = sat_solver_new();
+    sat_solver * pSatCec, * pSatQbf;
 
     int nVars      = Vec_IntSize( vDivSet );
     int nPars      = Sbd_ProblemCountParams( nStrs, pStr0 );
@@ -211,8 +212,24 @@ int Sbd_ProblemSolve( Gia_Man_t * p, Vec_Int_t * vMirrors,
     int i, iVar, iLit, nIters;
     int RetValue = 0;
 
+    // Restart also restores the seed and variable activities.
+    if ( *ppSatCec )
+        (*ppSatCec)->nLearntMax = (*ppSatCec)->nLearntStart;
+    pSatCec = *ppSatCec = Sbd_ManSatSolver( *ppSatCec, p, vMirrors, Pivot, vWinObjs, vObj2Var, vTfo, vRoots, 1 );
     assert( Vec_IntSize(vDivSet) <= SBD_DIV_MAX );
     assert( nVars + nStrs + nPars <= 256 );
+    if ( pSatCec == NULL )
+    {
+        Vec_IntFree( vLits );
+        return 0;
+    }
+
+    if ( *ppSatQbf == NULL )
+        *ppSatQbf = sat_solver_new();
+    else
+        sat_solver_restart( *ppSatQbf );
+    pSatQbf = *ppSatQbf;
+    pSatQbf->nLearntMax = pSatQbf->nLearntStart;
 
     // collect CEC variables
     Vec_IntForEachEntry( vDivSet, iVar, i )
@@ -239,11 +256,16 @@ int Sbd_ProblemSolve( Gia_Man_t * p, Vec_Int_t * vMirrors,
     Vec_IntClear( vLits );
     for ( i = 0; i < nPars; i++ )
         Vec_IntPush( vLits, Abc_Var2Lit(VarCecPar + i, 1) );
-    for ( nIters = 0; nIters < (1 << nVars); nIters++ )
+    for ( nIters = 0; nIters <= (1 << nVars); nIters++ )
     {
         // check if these parameters solve the problem
-        int status = sat_solver_solve( pSatCec, Vec_IntArray(vLits), Vec_IntLimit(vLits), 0, 0, 0, 0 );
+        int status = sat_solver_solve( pSatCec, Vec_IntArray(vLits), Vec_IntLimit(vLits), nBTLimit, 0, 0, 0 );
         if ( status == l_False ) // solution found
+        {
+            RetValue = 1;
+            break;
+        }
+        if ( status == l_Undef )
             break;
         assert( status == l_True );
 
@@ -277,8 +299,8 @@ int Sbd_ProblemSolve( Gia_Man_t * p, Vec_Int_t * vMirrors,
         if ( !Sbd_ProblemAddClauses( pSatQbf, nVars, nStrs, pVarsQbf, pStr0 ) )
             break; // solution does not exist
         // check if solution still exists
-        status = sat_solver_solve( pSatQbf, NULL, NULL, 0, 0, 0, 0 );
-        if ( status == l_False ) // solution does not exist
+        status = sat_solver_solve( pSatQbf, NULL, NULL, nBTLimit, 0, 0, 0 );
+        if ( status != l_True ) // no proven parameter assignment
             break;
         assert( status == l_True ); 
         // find the new values of parameters
@@ -286,14 +308,12 @@ int Sbd_ProblemSolve( Gia_Man_t * p, Vec_Int_t * vMirrors,
         for ( i = 0; i < nPars; i++ )
             Vec_IntPush( vLits, Abc_Var2Lit(VarCecPar + i, !sat_solver_var_value(pSatQbf, VarQbfPar + i)) );
     }
-    if ( Vec_IntSize(vLits) > 0 )
+    if ( RetValue )
     {
         //Sbd_ProblemPrintSolution( nStrs, pStr0, vLits );
         Sbd_ProblemCollectSolution( nStrs, pStr0, vLits );
         RetValue = 1;
     }
-    sat_solver_delete( pSatCec );
-    sat_solver_delete( pSatQbf );
     Vec_IntFree( vLits );
 
     if ( fVerbose )

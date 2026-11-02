@@ -1130,7 +1130,7 @@ Abc_Cex_t * Fra_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, in
     assert( Aig_ManRegNum(pFrames) == 0 );
     nTruePis = Aig_ManCiNum(pAig)-Aig_ManRegNum(pAig);
     nTruePos = Aig_ManCoNum(pAig)-Aig_ManRegNum(pAig);
-    nFrames = Aig_ManCiNum(pFrames) / nTruePis;
+    nFrames = Aig_ManCoNum(pFrames) / nTruePos;
     assert( nTruePis * nFrames == Aig_ManCiNum(pFrames) );
     assert( nTruePos * nFrames == Aig_ManCoNum(pFrames) );
     // find the PO that failed

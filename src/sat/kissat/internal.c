@@ -177,7 +177,9 @@ void kissat_reserve (kissat *solver, int max_var) {
     for (int idx = 1; idx <= max_var; idx++)
       (void) kissat_import_literal (solver, idx);
     for (unsigned idx = 0; idx != (unsigned) max_var; idx++)
-      kissat_activate_literal (solver, LIT (idx));
+      // Reserving after unit clauses must not reactivate fixed variables.
+      if (!solver->flags[idx].fixed && !solver->flags[idx].eliminated)
+        kissat_activate_literal (solver, LIT (idx));
   }
 }
 

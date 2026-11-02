@@ -92,12 +92,17 @@ typedef struct sn_blast_options_t
     bool (*cut_instance)(void* context, const void* frame, sn_obj_id_t inst);
     void* cut_context;
     const uint8_t* verification_modules; // Optional preflight mask of modules present outside explicit cuts.
+    // Optional analysis observer. Borrowed literals describe this object's
+    // outputs after evaluation or boundary seeding. Evaluated multi-output
+    // gates supply every output; seeded boundaries report each output object.
+    void (*observe_object)(void*, const sn_module_t*, sn_obj_id_t, Mini_Aig_t*, const int*, uint32_t);
+    void* observe_context;
 } sn_blast_options_t;
 
 static inline sn_blast_options_t sn_blast_default_options(void)
 {
     sn_blast_options_t options = {SN_BLAST_MUL_BAUGH_WOOLEY, false, true, true, true, true, true, false, true,
-                                  SN_BLAST_COMB, false, false, false, false, false, NULL, NULL, NULL};
+                                  SN_BLAST_COMB, false, false, false, false, false, NULL, NULL, NULL, NULL, NULL};
     return options;
 }
 
@@ -1369,6 +1374,9 @@ static inline int* sn_blast_eval(sn_blast_ctx_t* ctx, sn_obj_id_t object)
     assert(result);
     ctx->bits[object] = result;
     ctx->state[object] = 2;
+    if (ctx->options.observe_object)
+        ctx->options.observe_object(ctx->options.observe_context, m, object, ctx->aig, result,
+                                    type == SN_GATE ? sn_gate_output_count(m, object) : width);
     return result;
 }
 
@@ -1957,6 +1965,9 @@ static inline void sn_blast_hier_seed_object(sn_blast_hier_frame_t* frame, sn_ob
         frame->blast.bits[object][bit] = invert ? Mini_AigLitNot(input) : input;
     }
     frame->blast.state[object] = 2;
+    if (frame->blast.options.observe_object)
+        frame->blast.options.observe_object(frame->blast.options.observe_context, module, object, aig,
+                                              frame->blast.bits[object], width);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -2715,7 +2726,8 @@ static inline Mini_Aig_t* sn_design_blast_hier_boundary_options(const sn_design_
         for (size_t k = 0; k < sizeof(slots) / sizeof(slots[0]); k++)
         {
             sn_obj_id_t fanin = sn_reg_fanin(module, occurrence.object, (sn_reg_fanin_t)slots[k]);
-            if (fanin != SN_INVALID_ID && sn_blast_reg_control_is_comb_output(module, occurrence.object, slots[k]))
+            if (fanin != SN_INVALID_ID && (options.probe_all_register_controls ||
+                sn_blast_reg_control_is_comb_output(module, occurrence.object, slots[k])))
                 sn_blast_eval(&occurrence.frame->blast, fanin);
         }
     }

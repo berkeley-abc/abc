@@ -217,9 +217,18 @@ static bool is_ignored_system_task(const CallExpression* call)
 struct EvalFrameGuard
 {
     EvalContext& context;
+    bool pushed;
 
-    explicit EvalFrameGuard(EvalContext& context) : context(context) { context.pushEmptyFrame(); }
-    ~EvalFrameGuard() { context.popFrame(); }
+    explicit EvalFrameGuard(EvalContext& context, bool pushed = true) : context(context), pushed(pushed)
+    {
+        if (pushed)
+            context.pushEmptyFrame();
+    }
+    ~EvalFrameGuard()
+    {
+        if (pushed)
+            context.popFrame();
+    }
 };
 
 struct TranslateOffCache
@@ -923,9 +932,67 @@ struct ModuleImporter
         }
     }
 
+    static bool driver_is_zero(const sn_module_t* current, sn_obj_id_t object)
+    {
+        struct Frame
+        {
+            const sn_module_t* module;
+            sn_obj_id_t object;
+            bool expanded;
+        };
+        std::unordered_map<const sn_module_t*, std::unordered_map<sn_obj_id_t, uint8_t>> marks;
+        std::vector<Frame> stack{{current, object, false}};
+        while (!stack.empty())
+        {
+            Frame frame = stack.back();
+            stack.pop_back();
+            if (frame.object == SN_INVALID_ID)
+                return false;
+            uint8_t& mark = marks[frame.module][frame.object];
+            if (frame.expanded)
+            {
+                mark = 2;
+                continue;
+            }
+            if (mark == 2)
+                continue;
+            if (mark == 1)
+                return false;
+            mark = 1;
+            stack.push_back({frame.module, frame.object, true});
+            sn_obj_type_t type = sn_obj_type(frame.module, frame.object);
+            if (type == SN_BUF || type == SN_PO || type == SN_POS || type == SN_CAST ||
+                type == SN_SLICE || type == SN_REPLICATE || type == SN_CONCAT)
+            {
+                for (uint32_t i = 0; i < sn_obj_fanin_count(frame.module, frame.object); ++i)
+                    stack.push_back({frame.module, sn_obj_fanin(frame.module, frame.object, i), false});
+                continue;
+            }
+            sn_obj_id_t inst = type == SN_INST ? frame.object :
+                type == SN_FAN ? sn_fan_owner(frame.module, frame.object) : SN_INVALID_ID;
+            if (inst != SN_INVALID_ID && sn_obj_type(frame.module, inst) == SN_INST)
+            {
+                const sn_module_t* child = sn_design_get_module_const(frame.module->design,
+                                                                      sn_inst_module_id(frame.module, inst));
+                uint32_t index = type == SN_FAN ? sn_fan_output_index(frame.module, frame.object) : 0;
+                if (sn_module_is_blackbox(child) || index >= child->type_objects[SN_PO].size)
+                    return false;
+                sn_obj_id_t port = sn_vec_at(sn_obj_id_t, &child->type_objects[SN_PO], index);
+                stack.push_back({child, sn_obj_fanin(child, port, 0), false});
+                continue;
+            }
+            if (!sn_obj_is_const_zero(frame.module, frame.object))
+                return false;
+        }
+        return true;
+    }
+
     sn_obj_id_t resolve_net_driver(const ValueSymbol& symbol, sn_obj_id_t first, sn_obj_id_t second)
     {
         if (sn_obj_same_typed_value(module, first, second))
+            return first;
+        if (sn_obj_width(module, first) == sn_obj_width(module, second) &&
+            driver_is_zero(module, first) && driver_is_zero(module, second))
             return first;
         sn_obj_type_t type = net_resolution_operator(symbol);
         if (sn_obj_width(module, first) != sn_obj_width(module, second))
@@ -2245,16 +2312,39 @@ struct ModuleImporter
             {
                 if (!lower_structured_range(*root, offset, width(*expression.type)))
                     return SN_INVALID_ID;
+                const std::vector<PartialDriver>* drivers = nullptr;
+                uint32_t driver_offset = offset;
                 auto it = partial_value_drivers.find(root);
                 if (it != partial_value_drivers.end())
+                    drivers = &it->second;
+                else if (root->getType().isUnpackedArray() && root->getType().hasFixedRange())
+                {
+                    const Type* element = root->getType().getArrayElementType();
+                    uint32_t element_bits = element ? width(*element) : 0;
+                    uint32_t bits = width(*expression.type);
+                    if (element_bits && uint64_t(offset % element_bits) + bits <= element_bits)
+                    {
+                        ConstantRange range = root->getType().getFixedRange();
+                        int64_t ordinal = offset / element_bits;
+                        int64_t index = range.isDescending() ? int64_t(range.right) + ordinal
+                                                            : int64_t(range.right) - ordinal;
+                        auto selected = partial_selected_drivers.find(SelectedValue{root, index});
+                        if (selected != partial_selected_drivers.end())
+                        {
+                            drivers = &selected->second;
+                            driver_offset %= element_bits;
+                        }
+                    }
+                }
+                if (drivers)
                 {
                     uint32_t bits = width(*expression.type);
                     std::vector<PartialDriver> pieces;
                     uint32_t covered = 0;
-                    for (const auto& driver : it->second)
+                    for (const auto& driver : *drivers)
                     {
-                        uint64_t first = std::max(uint64_t(offset), uint64_t(driver.offset));
-                        uint64_t end = std::min(uint64_t(offset) + bits,
+                        uint64_t first = std::max(uint64_t(driver_offset), uint64_t(driver.offset));
+                        uint64_t end = std::min(uint64_t(driver_offset) + bits,
                                                 uint64_t(driver.offset) + driver.width);
                         if (first < end)
                         {
@@ -2263,7 +2353,7 @@ struct ModuleImporter
                             sn_obj_id_t value = start == 0 && part == driver.width ? driver.value
                                 : sn_module_add_slice(module, driver.value, int32_t(start + part - 1),
                                                       int32_t(start), nullptr);
-                            pieces.push_back({uint32_t(first - offset), part, value});
+                            pieces.push_back({uint32_t(first - driver_offset), part, value});
                             covered += part;
                         }
                     }
@@ -4608,7 +4698,7 @@ struct ModuleImporter
         }
         for (const Symbol& symbol : scope.members())
         {
-            if (symbol.as_if<InstanceSymbol>())
+            if (symbol.as_if<InstanceSymbol>() || symbol.as_if<SubroutineSymbol>())
                 continue;
             if (const auto* generate = symbol.as_if<GenerateBlockSymbol>(); generate && generate->isUninstantiated)
                 continue;
@@ -6195,7 +6285,7 @@ struct ModuleImporter
             }
             EvalContext local_loop_context(*body->parentInstance);
             EvalContext& loop_context = active_constant_context ? *active_constant_context : local_loop_context;
-            EvalFrameGuard loop_frame(loop_context);
+            EvalFrameGuard loop_frame(loop_context, !active_constant_context);
             LoopConstantGuard loop_constants(active_loop_constants);
             for (const VariableSymbol* variable : loop->loopVars)
             {
@@ -6217,7 +6307,9 @@ struct ModuleImporter
             {
                 const auto* assignment = initializer->as_if<AssignmentExpression>();
                 const auto* named = assignment ? assignment->left().as_if<NamedValueExpression>() : nullptr;
-                ConstantValue* local = named ? loop_context.createLocal(&named->symbol) : nullptr;
+                ConstantValue* local = named ? loop_context.findLocal(&named->symbol) : nullptr;
+                if (!local && named)
+                    local = loop_context.createLocal(&named->symbol);
                 if (!local || !initializer->eval(loop_context))
                 {
                     std::fprintf(stderr, "sn-slang: unsupported procedural for-loop initializer\n");
@@ -8772,7 +8864,7 @@ struct ModuleImporter
             }
             EvalContext local_loop_context(*body->parentInstance);
             EvalContext& loop_context = active_constant_context ? *active_constant_context : local_loop_context;
-            EvalFrameGuard loop_frame(loop_context);
+            EvalFrameGuard loop_frame(loop_context, !active_constant_context);
             LoopConstantGuard loop_constants(active_loop_constants);
             for (const VariableSymbol* variable : loop->loopVars)
             {
@@ -8794,7 +8886,9 @@ struct ModuleImporter
             {
                 const auto* assignment = initializer->as_if<AssignmentExpression>();
                 const auto* named = assignment ? assignment->left().as_if<NamedValueExpression>() : nullptr;
-                ConstantValue* local = named ? loop_context.createLocal(&named->symbol) : nullptr;
+                ConstantValue* local = named ? loop_context.findLocal(&named->symbol) : nullptr;
+                if (!local && named)
+                    local = loop_context.createLocal(&named->symbol);
                 if (!local || !initializer->eval(loop_context))
                 {
                     std::fprintf(stderr, "sn-slang: unsupported procedural for-loop initializer\n");
@@ -9142,15 +9236,15 @@ struct ModuleImporter
                                      bool is_signed, bool fully_assigned,
                                      const std::vector<PartialDriver>* external_drivers,
                                      const ValueSymbol& target, int64_t index = 0, int64_t bit = -1) -> bool {
-                // The procedural graph is a DAG apart from its unresolved placeholder. Cache whether each object
-                // reaches that placeholder. Re-running a complete DFS at every node made this substitution
-                // quadratic on large case statements (and caused allocator growth into many GiB on Ara's SIMD
-                // ALU despite its pre-substitution graph containing only about 12K objects).
+                // Cache placeholder reachability within the combinational cone.
                 std::vector<uint8_t> dependency(module->obj_types.size);
                 auto depends_on = [&](auto&& self, sn_obj_id_t object) -> bool {
                     if (object == placeholder)
                         return true;
                     if (object == SN_INVALID_ID)
+                        return false;
+                    sn_obj_type_t type = sn_obj_type(module, object);
+                    if (type == SN_REG_OUT || type == SN_MEM_OUT || type == SN_LOOP_OUT)
                         return false;
                     if (object >= dependency.size())
                         dependency.resize(size_t(object) + 1);
@@ -9163,16 +9257,21 @@ struct ModuleImporter
                     dependency[object] = depends ? 3 : 2;
                     return depends;
                 };
-                if (fully_assigned || (external_drivers && !external_drivers->empty()))
+                if (fully_assigned)
                 {
-                    sn_obj_id_t replacement = SN_INVALID_ID;
-                    if (external_drivers && !external_drivers->empty())
-                        replacement = materialize_partial_drivers(bits, is_signed, *external_drivers);
-                    else
+                    if (depends_on(depends_on, value))
                     {
-                        std::vector<uint32_t> zero_words(sn_const_word_count(bits));
-                        replacement = sn_module_add_const(module, bits, is_signed, zero_words.data(), nullptr);
+                        sn_obj_pair_t loop = sn_module_add_loop_pair(module, bits, is_signed, nullptr, nullptr);
+                        sn_obj_connect(module, loop.in, 0, value);
+                        sn_obj_connect(module, placeholder, 0, loop.out);
                     }
+                    else
+                        sn_obj_connect(module, placeholder, 0, value);
+                    return true;
+                }
+                if (external_drivers && !external_drivers->empty())
+                {
+                    sn_obj_id_t replacement = materialize_partial_drivers(bits, is_signed, *external_drivers);
                     std::unordered_map<sn_obj_id_t, sn_obj_id_t> replacements;
                     replacements.emplace(placeholder, replacement);
                     auto substitute = [&](auto&& self, sn_obj_id_t object) -> sn_obj_id_t {

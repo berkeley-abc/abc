@@ -1,0 +1,8 @@
+.model repeated_fanins
+.inputs a b c
+.outputs p y
+.names a b p
+10 0
+.names p p c y
+-11 1
+.end

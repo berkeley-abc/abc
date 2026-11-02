@@ -39,7 +39,10 @@ jobs:
         # Build source file items
         $sourceItems = ""
         foreach ($src in $sourceFiles) {
-            if ($src -match '\.c$') {
+            if ($src -match '^src\\base\\abcc\\.*\.c$') {
+                $obj = [System.IO.Path]::GetFileNameWithoutExtension($src)
+                $sourceItems += '    <ClCompile Include="' + $src + '"><ObjectFileName>$(IntDir)abcc_' + $obj + '.obj</ObjectFileName></ClCompile>' + "`r`n"
+            } elseif ($src -match '\.c$') {
                 $sourceItems += "    <ClCompile Include=`"$src`" />`r`n"
             } elseif ($src -match '\.(cpp|cc)$') {
                 $sourceItems += "    <ClCompile Include=`"$src`" />`r`n"

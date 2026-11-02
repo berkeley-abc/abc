@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [rsbInt.h]
+  FileName    [sfmInt.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: rsbInt.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: sfmInt.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
  
@@ -99,6 +99,12 @@ struct Sfm_Ntk_t_
     Vec_Int_t         vTravIds2;   // traversal IDs
     int               nTravIds;    // traversal IDs
     int               nTravIds2;   // traversal IDs
+    Vec_Int_t *       vBoxPins;    // box inputs: index+1; outputs: -(index+1)
+    Vec_Int_t *       vBoxLimits;  // first box input reachable from each object
+    Vec_Int_t *       vBoxMarks;   // candidate dependency cache for this window
+    int               nBoxTravId;  // dependency cache generation
+    int               iBoxLimit;   // first box reachable from the pivot
+    int               nBoxRejects; // candidates excluded by the box order
     // window
     int               iPivotNode;  // window pivot
     Vec_Int_t *       vNodes;      // internal
@@ -203,13 +209,13 @@ extern void        Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== sfmCnf.c ==========================================================*/
+//=== sfmCnf.c ==========================================================
 extern void         Sfm_PrintCnf( Vec_Str_t * vCnf );
 extern int          Sfm_TruthToCnf( word Truth, word * pTruth, int nVars, Vec_Int_t * vCover, Vec_Str_t * vCnf );
 extern Vec_Wec_t *  Sfm_CreateCnf( Sfm_Ntk_t * p );
 extern void         Sfm_TranslateCnf( Vec_Wec_t * vRes, Vec_Str_t * vCnf, Vec_Int_t * vFaninMap, int iPivotVar );
-/*=== sfmCore.c ==========================================================*/
-/*=== sfmLib.c ==========================================================*/
+//=== sfmCore.c ==========================================================
+//=== sfmLib.c ==========================================================
 extern int          Sfm_LibFindComplInputGate( Vec_Wrd_t * vFuncs, int iGate, int nFanins, int iFanin, int * piFaninNew );
 extern Sfm_Lib_t *  Sfm_LibPrepare( int nVars, int fTwo, int fDelay, int fVerbose, int fLibVerbose );
 extern void         Sfm_LibPrint( Sfm_Lib_t * p );
@@ -219,25 +225,30 @@ extern int          Sfm_LibFindDelayMatches( Sfm_Lib_t * p, word * pTruth, int *
 extern int          Sfm_LibImplementSimple( Sfm_Lib_t * p, word * pTruth, int * pFanins, int nFanins, Vec_Int_t * vGates, Vec_Wec_t * vFanins );
 extern int          Sfm_LibImplementGatesArea( Sfm_Lib_t * p, int * pFanins, int nFanins, int iObj, Vec_Int_t * vGates, Vec_Wec_t * vFanins );
 extern int          Sfm_LibImplementGatesDelay( Sfm_Lib_t * p, int * pFanins, Mio_Gate_t * pGateB, Mio_Gate_t * pGateT, char * pFansB, char * pFansT, Vec_Int_t * vGates, Vec_Wec_t * vFanins );
-/*=== sfmNtk.c ==========================================================*/
+//=== sfmNtk.c ==========================================================
 extern Sfm_Ntk_t *  Sfm_ConstructNetwork( Vec_Wec_t * vFanins, int nPis, int nPos );
 extern void         Sfm_NtkPrepare( Sfm_Ntk_t * p );
 extern void         Sfm_NtkUpdate( Sfm_Ntk_t * p, int iNode, int f, int iFaninNew, word uTruth, word * pTruth );
-/*=== sfmSat.c ==========================================================*/
+//=== sfmSat.c ==========================================================
 extern int          Sfm_NtkWindowToSolver( Sfm_Ntk_t * p );
 extern word         Sfm_ComputeInterpolant( Sfm_Ntk_t * p );
 extern word         Sfm_ComputeInterpolant2( Sfm_Ntk_t * p );
-/*=== sfmTim.c ==========================================================*/
+//=== sfmTim.c ==========================================================
 extern Sfm_Tim_t *  Sfm_TimStart( Mio_Library_t * pLib, Scl_Con_t * pExt, Abc_Ntk_t * pNtk, int DeltaCrit );
 extern void         Sfm_TimStop( Sfm_Tim_t * p );
 extern int          Sfm_TimReadNtkDelay( Sfm_Tim_t * p );
 extern int          Sfm_TimReadObjDelay( Sfm_Tim_t * p, int iObj );
+extern void         Sfm_TimSetAreaTarget( Sfm_Tim_t * p );
+extern void         Sfm_TimPrepareArea( Sfm_Tim_t * p, Abc_Obj_t * pPivot );
+extern void         Sfm_TimUpdateArea( Sfm_Tim_t * p );
+extern void         Sfm_TimCheckAreaEnd( Sfm_Tim_t * p );
+extern int          Sfm_TimCheckArea( Sfm_Tim_t * p, Abc_Obj_t * pPivot, Vec_Int_t * vGates, Vec_Wec_t * vFanins, Vec_Int_t * vMap, Vec_Ptr_t * vHandles, int GateBuf, int fCompl, int fKeepInv, Vec_Int_t * vPlan );
 extern void         Sfm_TimUpdateTiming( Sfm_Tim_t * p, Vec_Int_t * vTimeNodes );
 extern int          Sfm_TimSortArrayByArrival( Sfm_Tim_t * p, Vec_Int_t * vNodes, int iPivot );
 extern int          Sfm_TimPriorityNodes( Sfm_Tim_t * p, Vec_Int_t * vCands, int Window );
 extern int          Sfm_TimNodeIsNonCritical( Sfm_Tim_t * p, Abc_Obj_t * pPivot, Abc_Obj_t * pNode );
 extern int          Sfm_TimEvalRemapping( Sfm_Tim_t * p, Vec_Int_t * vFanins, Vec_Int_t * vMap, Mio_Gate_t * pGate1, char * pFans1, Mio_Gate_t * pGate2, char * pFans2 );
-/*=== sfmMit.c ==========================================================*/
+//=== sfmMit.c ==========================================================
 extern Sfm_Mit_t *  Sfm_MitStart( Mio_Library_t * pLib, SC_Lib * pScl, Scl_Con_t * pExt, Abc_Ntk_t * pNtk, int DeltaCrit );
 extern void         Sfm_MitStop( Sfm_Mit_t * p );
 extern int          Sfm_MitReadNtkDelay( Sfm_Mit_t * p );
@@ -251,9 +262,10 @@ extern int          Sfm_MitSortArrayByArrival( Sfm_Mit_t * p, Vec_Int_t * vNodes
 extern int          Sfm_MitPriorityNodes( Sfm_Mit_t * p, Vec_Int_t * vCands, int Window );
 extern int          Sfm_MitNodeIsNonCritical( Sfm_Mit_t * p, Abc_Obj_t * pPivot, Abc_Obj_t * pNode );
 extern int          Sfm_MitEvalRemapping( Sfm_Mit_t * p, Vec_Int_t * vMffc, Abc_Obj_t * pObj, Vec_Int_t * vFanins, Vec_Int_t * vMap, Mio_Gate_t * pGate1, char * pFans1, Mio_Gate_t * pGate2, char * pFans2 );
-/*=== sfmWin.c ==========================================================*/
+//=== sfmWin.c ==========================================================
 extern int          Sfm_ObjMffcSize( Sfm_Ntk_t * p, int iObj );
 extern int          Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose );
+extern int          Sfm_NtkCheckBoxOrder( Sfm_Ntk_t * p, int iDiv );
 
 ABC_NAMESPACE_HEADER_END
 
