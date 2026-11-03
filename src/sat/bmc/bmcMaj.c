@@ -3858,6 +3858,7 @@ struct Exa6_Man_t_
     int               nCnfVars; 
     int               nCnfVars2; 
     int               nCnfClauses;
+    int               iVarOutCompl; // first output-polarity variable, or 0 when fixed
     FILE *            pFile;
 };
 
@@ -3875,7 +3876,15 @@ struct Exa6_Man_t_
 int Exa6_ManMarkup( Exa6_Man_t * p )
 {
     int i, k, j, nVars[3] = {1 + 3*p->nNodes, 0, 3*p->nNodes*Vec_WrdSize(p->vSimsIn)};
+    word First = Vec_WrdEntry(p->vSimsOut, 0);
     assert( p->nObjs <= MAJ_NOBJS );
+    // A relation may allow several first-row tuples. Keep their phases free
+    // while normalizing internal nodes, rather than committing to one tuple.
+    if ( First & (First - 1) )
+    {
+        p->iVarOutCompl = nVars[0];
+        nVars[0] += p->nOuts;
+    }
     for ( i = p->nDivs; i < p->nDivs + p->nNodes; i++ )
         for ( k = 0; k < 2; k++ )
             for ( j = 1+!k; j < i-k; j++ )
@@ -4079,8 +4088,9 @@ int Exa6_ManGenStart( Exa6_Man_t * p, int fOnlyAnd, int fFancy, int fOrderNodes,
 void Exa6_ManGenMint( Exa6_Man_t * p, int iMint, int fOnlyAnd, int fFancy )
 {
     int iNodeVar = p->nCnfVars + 3*p->nNodes*(iMint - Vec_WrdSize(p->vSimsIn));
-    int iOutMint = Abc_Tt6FirstBit( Vec_WrdEntry(p->vSimsOut, iMint) );
-    int fOnlyOne = Abc_TtSuppOnlyOne( (int)Vec_WrdEntry(p->vSimsOut, iMint) );
+    word OutMint = Vec_WrdEntry(p->vSimsOut, iMint);
+    int iOutMint = Abc_Tt6FirstBit( OutMint );
+    int fOnlyOne = OutMint && !(OutMint & (OutMint - 1));
     int i, k, n, j, VarVals[MAJ_NOBJS];
     int fAllOnes = Abc_TtCountOnes( Vec_WrdEntry(p->vSimsOut, iMint) ) == (1 << p->nOuts);
     if ( fAllOnes )
@@ -4143,8 +4153,19 @@ void Exa6_ManGenMint( Exa6_Man_t * p, int iMint, int fOnlyAnd, int fFancy )
     for ( i = p->nDivs + p->nNodes; i < p->nObjs; i++ )
     {
         for ( j = 0; j < p->nDivs + p->nNodes; j++ ) if ( p->VarMarks[i][0][j] )
-        for ( n = 0; n < 2; n++ )
-            Exa6_ManAddClause4( p, Abc_Var2Lit(p->VarMarks[i][0][j], 1), Abc_LitNotCond(VarVals[j], n), Abc_LitNotCond(VarVals[i], !n), 0);
+        {
+            for ( n = 0; n < 2; n++ )
+                if ( p->iVarOutCompl )
+                {
+                    int iVar = p->iVarOutCompl + i - p->nDivs - p->nNodes;
+                    // The selected source XOR the shared polarity equals this
+                    // row's output. The relation constrains whole output tuples.
+                    for ( k = 0; k < 2; k++ )
+                        Exa6_ManAddClause4( p, Abc_Var2Lit(p->VarMarks[i][0][j], 1), Abc_LitNotCond(VarVals[j], n), Abc_LitNotCond(VarVals[i], k), Abc_Var2Lit(iVar, n == k) );
+                }
+                else
+                    Exa6_ManAddClause4( p, Abc_Var2Lit(p->VarMarks[i][0][j], 1), Abc_LitNotCond(VarVals[j], n), Abc_LitNotCond(VarVals[i], !n), 0);
+        }
     }
 }
 void Exa6_ManGenCnf( Exa6_Man_t * p, char * pFileName, int fOnlyAnd, int fFancy, int fOrderNodes, int fUniqFans )
@@ -4154,7 +4175,9 @@ void Exa6_ManGenCnf( Exa6_Man_t * p, char * pFileName, int fOnlyAnd, int fFancy,
     p->pFile = fopen( pFileName, "wb" );
     fputs( "p cnf                \n", p->pFile );
     Exa6_ManGenStart( p, fOnlyAnd, fFancy, fOrderNodes, fUniqFans );
-    for ( m = 1; m < Vec_WrdSize(p->vSimsIn); m++ )
+    // With free output phases, the first row must constrain their joint
+    // assignment too. Its internal node values are all zero as before.
+    for ( m = p->iVarOutCompl ? 0 : 1; m < Vec_WrdSize(p->vSimsIn); m++ )
         Exa6_ManGenMint( p, m, fOnlyAnd, fFancy );
     rewind( p->pFile );
     fprintf( p->pFile, "p cnf %d %d", p->nCnfVars + p->nCnfVars2, p->nCnfClauses );
@@ -4202,8 +4225,9 @@ void Exa6_ManPrintSolution( Exa6_Man_t * p, Vec_Int_t * vValues, int fFancy )
     for ( i = p->nDivs + p->nNodes; i < p->nObjs; i++ )
     {
         int iVar = Exa6_ManFindFanin( p, vValues, i, 0 );
+        int fComp = p->iVarOutCompl ? Vec_IntEntry(vValues, p->iVarOutCompl + i - p->nDivs - p->nNodes) : 0;
         printf( "%2d  = ", i );
-        Exa6_ManPrintFanin( p, iVar, 0 );
+        Exa6_ManPrintFanin( p, iVar, fComp );
         printf( "\n" );
     }
     for ( i = p->nDivs + p->nNodes - 1; i >= p->nDivs; i-- )
@@ -4255,7 +4279,8 @@ Mini_Aig_t * Exa6_ManMiniAig( Exa6_Man_t * p, Vec_Int_t * vValues, int fFancy )
     for ( i = p->nDivs + p->nNodes; i < p->nObjs; i++ )
     {
         int iVar = Exa6_ManFindFanin( p, vValues, i, 0 );
-        Mini_AigCreatePo( pMini, Abc_Var2Lit(iVar, Compl[iVar]) );
+        int fComp = p->iVarOutCompl ? Vec_IntEntry(vValues, p->iVarOutCompl + i - p->nDivs - p->nNodes) : 0;
+        Mini_AigCreatePo( pMini, Abc_Var2Lit(iVar, Compl[iVar] ^ fComp) );
     }
     assert( p->nObjs == Mini_AigNodeNum(pMini) );
     return pMini;
@@ -4418,12 +4443,12 @@ void Exa_ManExactSynthesis6( Bmc_EsPar_t * pPars, char * pFileName )
         for ( k = 0; k < p->nIns; k++ )
             for ( i = 0; i < p2->nPats; i++ )
                 if ( Abc_RDataGetIn(p2, k, i) )
-                    Abc_InfoSetBit((unsigned *)Vec_WrdEntryP(vSimsDiv, i), 1+k);
+                    Abc_TtSetBit( Vec_WrdEntryP(vSimsDiv, i), 1+k );
         vSimsOut = Vec_WrdStart( p2->nPats );
         for ( k = 0; k < (1 << p->nOuts); k++ )
             for ( i = 0; i < p2->nPats; i++ )
                 if ( Abc_RDataGetOut(p2, k, i) )
-                    Abc_InfoSetBit((unsigned *)Vec_WrdEntryP(vSimsOut, i), k);
+                    Abc_TtSetBit( Vec_WrdEntryP(vSimsOut, i), k );
         Abc_RDataStop( p );
         Abc_RDataStop( p2 );       
     }
