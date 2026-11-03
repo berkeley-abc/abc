@@ -7,6 +7,7 @@
 #include <functional>
 #include <iterator>
 #include <iostream>
+#include "misc/util/abc_print.h"
 
 #include "kitty_algorithm.hpp"
 #include "kitty_constants.hpp"
@@ -324,7 +325,7 @@ inline dynamic_truth_table shrink_to( const TTFrom& from, unsigned num_vars )
   \param os Output stream
 */
 template<typename TT>
-void print_hex( const TT& tt, std::ostream& os = std::cout )
+void print_hex( const TT& tt, std::ostream& os )
 {
   auto const chunk_size =
       std::min<uint64_t>( tt.num_vars() <= 1 ? 1 : ( tt.num_bits() >> 2 ), 16 );
@@ -345,6 +346,14 @@ void print_hex( const TT& tt, std::ostream& os = std::cout )
       word >>= 4;
     }
     os << chunk; } );
+}
+
+template<typename TT>
+void print_hex( const TT& tt )
+{
+  std::ostringstream os;
+  print_hex( tt, os );
+  Abc_PrintString( stdout, os.str() );
 }
 
 } //namespace kitty

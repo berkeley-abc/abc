@@ -1,4 +1,5 @@
 #pragma once
+#include "misc/util/abc_print.h"
 
 #include "rrrParameter.h"
 #include "rrrUtils.h"
@@ -347,7 +348,7 @@ namespace rrr {
   template <typename Ntk>
   inline void BddAnalyzer<Ntk>::SimulateNode(int id, std::vector<lit> &v) const {
     if(nVerbose) {
-      std::cout << "simulating node " << id << std::endl;
+      ABC_PRINT_STREAM( stdout, true, "simulating node " << id << "\n" );
     }
     Assign(v[id], pBdd->Const1());
     pNtk->ForEachFanin(id, [&](int fi, bool c) {
@@ -359,7 +360,7 @@ namespace rrr {
   void BddAnalyzer<Ntk>::Simulate() {
     time_point timeStart = GetCurrentTime();
     if(nVerbose) {
-      std::cout << "symbolic simulation with BDD" << std::endl;
+      { printf( "symbolic simulation with BDD\n" ); fflush( stdout ); }
     }
     pNtk->ForEachInt([&](int id) {
       if(vUpdates[id]) {
@@ -445,7 +446,7 @@ namespace rrr {
     }
     if(vGUpdates[id]) {
       if(nVerbose) {
-        std::cout << "computing node " << id << " G " << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "computing node " << id << " G " << "\n" );
       }
       if(ComputeG(id)) {
         vCUpdates[id] = true;
@@ -454,7 +455,7 @@ namespace rrr {
     }
     if(vCUpdates[id]) {
       if(nVerbose) {
-        std::cout << "computing node " << id << " C " << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "computing node " << id << " C " << "\n" );
       }
       ComputeC(id);
       vCUpdates[id] = false;
@@ -662,9 +663,9 @@ namespace rrr {
     }
     if(nVerbose) {
       if(fRedundant) {
-        std::cout << "node " << id << " fanin " << (pNtk->GetCompl(id, idx)? "!": "") << pNtk->GetFanin(id, idx) << " index " << idx << " is redundant" << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "node " << id << " fanin " << (pNtk->GetCompl(id, idx)? "!": "") << pNtk->GetFanin(id, idx) << " index " << idx << " is redundant" << "\n" );
       } else {
-        std::cout << "node " << id << " fanin " << (pNtk->GetCompl(id, idx)? "!": "") << pNtk->GetFanin(id, idx) << " index " << idx << " is NOT redundant" << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "node " << id << " fanin " << (pNtk->GetCompl(id, idx)? "!": "") << pNtk->GetFanin(id, idx) << " index " << idx << " is NOT redundant" << "\n" );
       }
     }
     durationCheck += Duration(timeStart, GetCurrentTime());
@@ -701,9 +702,9 @@ namespace rrr {
     }
     if(nVerbose) {
       if(fFeasible) {
-        std::cout << "node " << id << " fanin " << (c? "!": "") << fi << " is feasible" << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "node " << id << " fanin " << (c? "!": "") << fi << " is feasible" << "\n" );
       } else {
-        std::cout << "node " << id << " fanin " << (c? "!": "") << fi << " is NOT feasible" << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "node " << id << " fanin " << (c? "!": "") << fi << " is NOT feasible" << "\n" );
       }
     }
     durationCheck += Duration(timeStart, GetCurrentTime());

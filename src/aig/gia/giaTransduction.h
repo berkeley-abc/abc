@@ -20,6 +20,7 @@
 
 #ifndef ABC__aig__gia__giaTransduction_h
 #define ABC__aig__gia__giaTransduction_h
+#include "misc/util/abc_print.h"
 
 #include <iostream>
 #include <iomanip>
@@ -194,12 +195,12 @@ public: // Counting
   }
   inline void Print(std::string str, bool nl) const {
     if(!fNewLine)
-      std::cout << "\33[2K\r";
-    std::cout << str;
+      printf( "\33[2K\r" );
+    printf( "%s", str.c_str() );
     if(fNewLine || nl)
-      std::cout << std::endl;
+      { printf( "\n" ); fflush( stdout ); }
     else
-      std::cout << std::flush;
+      fflush( stdout );
   }
   inline void PrintStats(std::string prefix, bool nl, int prefix_size = 0) const {
     if(!prefix_size)
@@ -1739,24 +1740,24 @@ public: // Debug and print
   }
   void PrintObjs() const {
     for(std::list<int>::const_iterator it = vObjs.begin(); it != vObjs.end(); it++) {
-      std::cout << "Gate " << *it << ":";
+      ABC_PRINT_STREAM( stdout, false, "Gate " << *it << ":" );
       if(fLevel)
-        std::cout << " Level = " << vLevels[*it] << ", Slack = " << vSlacks[*it];
-      std::cout << std::endl;
+        ABC_PRINT_STREAM( stdout, false, " Level = " << vLevels[*it] << ", Slack = " << vSlacks[*it] );
+      { printf( "\n" ); fflush( stdout ); }
       std::string delim = "";
-      std::cout << "\tFis: ";
+      printf( "\tFis: " );
       for(unsigned j = 0; j < vvFis[*it].size(); j++) {
-        std::cout << delim << (vvFis[*it][j] >> 1) << "(" << (vvFis[*it][j] & 1) << ")";
+        ABC_PRINT_STREAM( stdout, false, delim << (vvFis[*it][j] >> 1) << "(" << (vvFis[*it][j] & 1) << ")" );
         delim = ", ";
       }
-      std::cout << std::endl;
+      { printf( "\n" ); fflush( stdout ); }
       delim = "";
-      std::cout << "\tFos: ";
+      printf( "\tFos: " );
       for(unsigned j = 0; j < vvFos[*it].size(); j++) {
-        std::cout << delim << vvFos[*it][j];
+        ABC_PRINT_STREAM( stdout, false, delim << vvFos[*it][j] );
         delim = ", ";
       }
-      std::cout << std::endl;
+      { printf( "\n" ); fflush( stdout ); }
     }
   }
 };

@@ -25,6 +25,7 @@
 
 	https://www.cerc.utexas.edu/utda/publications/C166.pdf
 */
+#include "misc/util/abc_print.h"
 
 #include <algorithm>
 #include <list>
@@ -279,27 +280,25 @@ struct Graph {
 		int min_level1 = min_level();
 		int max_level1 = max_level();
 
-		std::cout << "Parameters: size=" << size() \
-			<< " max_fanout=" << max_fanout() << " depth=" << max_level1 - min_level1 \
-			<< " " << (validate() ? "(validates)" : "") << "\n";
+		ABC_PRINT_STREAM( stdout, false, "Parameters: size=" << size()  			<< " max_fanout=" << max_fanout() << " depth=" << max_level1 - min_level1  			<< " " << (validate() ? "(validates)" : "") << "\n" );
 
 		for (int i = max_level1 + 1; i >= min_level1; i--) {
-			std::cout << " ";
+			printf( " " );
 			for (int j = bitwidth() - 1; j >= 0; j--) {
 				if (i == (*this)[j].nodes.front().level) {
-					std::cout << j % 10;
+					ABC_PRINT_STREAM( stdout, false, j % 10 );
 				} else if (i >= (*this)[j].nodes.front().level && i <= (*this)[j].nodes.back().level) {
 					if ((*this)[j].has_level(i))
-						std::cout << "#";
+						printf( "#" );
 					else
-						std::cout << ".";
+						printf( "." );
 				} else if (i - 1 == (*this)[j].level_target) {
-					std::cout << "-";
+					printf( "-" );
 				} else {
-					std::cout << " ";
+					printf( " " );
 				}
 			}
-			std::cout << "\n";
+			printf( "\n" );
 		}
 	}
 };
@@ -787,7 +786,7 @@ void generate_prefix_adder_verilog(int* array, int width, int mfo, int print_mit
 	
 	// Verify width matches
 	if (N != width) {
-		std::cerr << "Error: Array N=" << N << " doesn't match width=" << width << std::endl;
+		ABC_PRINT_STREAM( stderr, true, "Error: Array N=" << N << " doesn't match width=" << width << "\n" );
 		return;
 	}
 	
@@ -795,7 +794,7 @@ void generate_prefix_adder_verilog(int* array, int width, int mfo, int print_mit
 	sprintf(filename, "prefix_adder_%d_%d%s.v", width, mfo, print_miter ? "_miter":"" );
 	FILE *fp = fopen(filename, "w");
 	if (!fp) {
-		std::cerr << "Error: Cannot create " << filename << std::endl;
+		ABC_PRINT_STREAM( stderr, true, "Error: Cannot create " << filename << "\n" );
 		return;
 	}
 	
@@ -1178,9 +1177,9 @@ int* adder_return_array_int(int* prefix_array, int* pnObjs, int* pnIns, int* pnL
 int* prefix_tree_explore(int width, int mfo, int seed, int num_rounds, int verbose, int delay_relaxation = 0, int verify = 0) {
 	// Print configuration in one line
 	if ( verbose )
-	std::cout << "Exploring: width=" << width << ", mfo=" << mfo 
+	ABC_PRINT_STREAM( stdout, true, "Exploring: width=" << width << ", mfo=" << mfo
 	          << ", delay=" << ceil_log2(width) + delay_relaxation 
-	          << ", seed=" << seed << ", rounds=" << num_rounds << std::endl;
+	          << ", seed=" << seed << ", rounds=" << num_rounds << "\n" );
 	
 	// Statistics tracking
 	int min_size = INT_MAX, max_size = 0;
@@ -1214,10 +1213,10 @@ int* prefix_tree_explore(int width, int mfo, int seed, int num_rounds, int verbo
 		
 		// Print one line per adder
 		if ( verbose )
-		std::cout << "  Round " << round << ": size=" << size 
+		ABC_PRINT_STREAM( stdout, true, "  Round " << round << ": size=" << size
 		          << ", fanout=" << actual_mfo 
 		          << ", depth=" << depth 
-		          << ", valid=" << (valid ? "Y" : "N") << std::endl;
+		          << ", valid=" << (valid ? "Y" : "N") << "\n" );
 		
 		// Check if this is the best solution so far
 		// Tie-breaking: size, then depth, then fanout
@@ -1273,14 +1272,14 @@ int* prefix_tree_explore(int width, int mfo, int seed, int num_rounds, int verbo
 	
 	// Print summary
 	if ( verbose )
-	std::cout << "Summary: best=" << best_size << " (round " << best_round 
+	ABC_PRINT_STREAM( stdout, false, "Summary: best=" << best_size << " (round " << best_round
 	          << "), range=[" << min_size << "," << max_size 
 	          << "], avg=" << std::fixed << std::setprecision(1) 
-	          << (double)total_size / num_rounds;
+	          << (double)total_size / num_rounds );
 	if (verbose && verify) {
-		std::cout << ", verified=" << passed_count << "/" << num_rounds;
+		ABC_PRINT_STREAM( stdout, false, ", verified=" << passed_count << "/" << num_rounds );
 	}
-	std::cout << std::endl;
+	{ printf( "\n" ); fflush( stdout ); }
 	
 	// Return the prefix array of the best solution
 	return best_array;

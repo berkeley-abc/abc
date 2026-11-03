@@ -1,4 +1,5 @@
 #pragma once
+#include "misc/util/abc_print.h"
 
 #include <queue>
 #include <random>
@@ -12,6 +13,7 @@
 #include "rrrParameter.h"
 #include "rrrUtils.h"
 #include "rrrAbc.h"
+#include "misc/util/abc_io.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 
@@ -151,16 +153,20 @@ namespace rrr {
     if(fMultiThreading) {
       {
         std::unique_lock<std::mutex> l(mutexPrint);
-        std::cout << prefix;
-        PrintNext(std::cout, args...);
-        std::cout << std::endl;
+        std::ostringstream message;
+        message << prefix;
+        PrintNext(message, args...);
+        message << '\n';
+        Abc_PrintString(stdout, message.str(), true);
       }
       return;
     }
 #endif
-    std::cout << prefix;
-    PrintNext(std::cout, args...);
-    std::cout << std::endl;
+    std::ostringstream message;
+    message << prefix;
+    PrintNext(message, args...);
+    message << '\n';
+    Abc_PrintString(stdout, message.str(), true);
   }
 
   /* }}} */
@@ -480,8 +486,12 @@ namespace rrr {
     fTerminate = false;
     if(fMultiThreading) {
       vThreads.reserve(pPar->nThreads);
+      FILE *out = Abc_IoReadOut(), *err = Abc_IoReadErr();
       for(int i = 0; i < pPar->nThreads; i++) {
-        vThreads.emplace_back(std::bind(&Scheduler::Thread, this, pPar));
+        vThreads.emplace_back([this, pPar, out, err]() {
+          Abc_IoSetWorkerStreams(out, err);
+          Thread(pPar);
+        });
       }
       return;
     }

@@ -17,6 +17,7 @@
   Description [Based on the original transduction implementation of May 2023.]
 
 ***********************************************************************/
+#include "misc/util/abc_print.h"
 
 #include "giaTransduction2.h"
 #include "giaNewBdd.h"
@@ -120,7 +121,7 @@ Gia_Man_t *Gia_ManTransduction2BddPolicy(Gia_Man_t *pGia, int nType, int fMspf, 
     break;
   }
   default:
-    std::cout << "Unknown transduction type " << nType << std::endl;
+    ABC_PRINT_STREAM( stdout, true, "Unknown transduction type " << nType << "\n" );
   }
   assert(t.Verify());
   assert(count == t.CountWires());
@@ -183,7 +184,7 @@ Gia_Man_t *Gia_ManTransduction2TtPolicy(Gia_Man_t *pGia, int nType, int fMspf, u
     break;
   }
   default:
-    std::cout << "Unknown transduction type " << nType << std::endl;
+    ABC_PRINT_STREAM( stdout, true, "Unknown transduction type " << nType << "\n" );
   }
   assert(t.Verify());
   assert(count == t.CountWires());

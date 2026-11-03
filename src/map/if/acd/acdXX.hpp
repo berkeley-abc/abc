@@ -25,6 +25,7 @@
 #ifndef _ACDXX_H_
 #define _ACDXX_H_
 #pragma once
+#include "misc/util/abc_print.h"
 
 #include <algorithm>
 #include <array>
@@ -938,13 +939,13 @@ private:
     {
       LTT f;
       f._bits = dec_funcs[0];
-      std::cout << "BS function         : ";
+      printf( "BS function         : " );
       kitty::print_hex( f );
-      std::cout << "\n";
+      printf( "\n" );
       f._bits = dec_funcs[1];
-      std::cout << "Composition function: ";
+      printf( "Composition function: " );
       kitty::print_hex( f );
-      std::cout << "\n";
+      printf( "\n" );
     }
   }
 
@@ -1221,9 +1222,9 @@ private:
     {
       if ( top_sim._bits[i] != start_tt._bits[i] )
       {
-        std::cout << "Found incorrect decomposition\n";
+        printf( "Found incorrect decomposition\n" );
         report_tt( top_sim );
-        std::cout << " instead_of\n";
+        printf( " instead_of\n" );
         report_tt( start_tt );
         return false;
       }
@@ -1248,7 +1249,7 @@ private:
 
     std::copy( std::begin( stt._bits ), std::begin( stt._bits ) + ( 1 << ( num_vars > 6 ? num_vars - 6 : 0 ) ), std::begin( tt ) );
     kitty::print_hex( tt );
-    std::cout << "\n";
+    printf( "\n" );
   }
 
 private:

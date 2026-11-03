@@ -1,4 +1,5 @@
 #pragma once
+#include "misc/util/abc_print.h"
 
 #include <utility>
 #include <map>
@@ -56,12 +57,14 @@ namespace rrr {
   template <typename... Args>
   inline void LevelBasePartitioner<Ntk>::Print(int nVerboseLevel, Args... args) {
     if(nVerbose > nVerboseLevel) {
-      std::cout << strVerbosePrefix;
+      std::ostringstream message;
+      message << strVerbosePrefix;
       for(int i = 0; i < nVerboseLevel; i++) {
-        std::cout << "\t";
+        message << '\t';
       }
-      PrintNext(std::cout, args...);
-      std::cout << std::endl;
+      PrintNext(message, args...);
+      message << '\n';
+      Abc_PrintString(stdout, message.str(), true);
     }
   }
 

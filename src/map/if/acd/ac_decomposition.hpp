@@ -25,6 +25,7 @@
 #ifndef _ACD_H_
 #define _ACD_H_
 #pragma once
+#include "misc/util/abc_print.h"
 
 #include <algorithm>
 #include <cassert>
@@ -639,14 +640,14 @@ private:
     /* print isets  and free set*/
     if ( verbose )
     {
-      std::cout << "iSets\n";
+      printf( "iSets\n" );
       uint32_t i = 0;
       for ( auto iset : isets )
       {
         kitty::print_hex( iset );
-        std::cout << " of func ";
+        printf( " of func " );
         kitty::print_hex( free_set_tts[i++] );
-        std::cout << "\n";
+        printf( "\n" );
       }
     }
 
@@ -793,17 +794,17 @@ private:
   template<class Iterator>
   void print_perm( Iterator begin, uint32_t free_set )
   {
-    std::cout << "[";
+    printf( "[" );
     for ( uint32_t i = 0; i < num_vars; ++i )
     {
       if ( i == free_set )
       {
-        std::cout << ", ";
+        printf( ", " );
       }
-      std::cout << *begin << " ";
+      ABC_PRINT_STREAM( stdout, false, *begin << " " );
       ++begin;
     }
-    std::cout << "]\n";
+    printf( "]\n" );
   }
 
   void generate_support_minimization_encodings()
