@@ -2250,6 +2250,10 @@ SOURCE=.\src\sat\bmc\bmcCas.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcCasDec2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcCexCare.c
 # End Source File
 # Begin Source File

@@ -37,6 +37,7 @@ static int Abc_CommandLutmin                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandTrace                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCascade                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLutCasDec              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+extern int Abc_CommandLutCasDec2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLutCas                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBsEval                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSuperChoiceLut         ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -89,6 +90,7 @@ void Abc_InitMapLut( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "trace",         Abc_CommandTrace,            0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "cascade",       Abc_CommandCascade,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "lutcasdec",     Abc_CommandLutCasDec,        1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "lutcasdec2",    Abc_CommandLutCasDec2,       0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "lutcas",        Abc_CommandLutCas,           1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "bseval",        Abc_CommandBsEval,           0 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "supercl",       Abc_CommandSuperChoiceLut,   1 );
