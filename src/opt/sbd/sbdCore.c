@@ -117,9 +117,9 @@ static inline word * Sbd_ObjSim3( Sbd_Man_t * p, int i ) { return Vec_WrdEntryP(
 void Sbd_ParSetDefault( Sbd_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(Sbd_Par_t) );
-    pPars->nLutSize     = 4;    // target LUT size
+    pPars->nLutSize     = 6;    // target LUT size
     pPars->nLutNum      = 3;    // target LUT count
-    pPars->nCutSize     = (pPars->nLutSize - 1) * pPars->nLutNum + 1;  // target cut size
+    pPars->nCutSize     = 10;   // target cut size
     pPars->nCutNum      = 128;  // target cut count
     pPars->nIters       = 1;    // complete delay optimization rounds
     pPars->nTfoLevels   = -1;   // use the objective's window defaults

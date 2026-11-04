@@ -61,6 +61,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaMan.c \
     src/aig/gia/giaMem.c \
     src/aig/gia/giaMfs.c \
+    src/aig/gia/giaMfs3.c \
     src/aig/gia/giaMini.c \
     src/aig/gia/giaMinLut.c \
     src/aig/gia/giaMinLut2.c \

@@ -46,6 +46,7 @@ static int Abc_CommandAbc9SimRsb             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Resub              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Resub2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Mfs                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Mfs3               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Mfsd               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9eSLIM              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9eSLIM2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -77,6 +78,7 @@ void Abc_InitResub( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&resub",        Abc_CommandAbc9Resub,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&resub2",       Abc_CommandAbc9Resub2,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mfs",          Abc_CommandAbc9Mfs,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&mfs3",         Abc_CommandAbc9Mfs3,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mfs2",         Abc_CommandAbc9Mfsd,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&eslim",        Abc_CommandAbc9eSLIM,                  0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&eslim2",       Abc_CommandAbc9eSLIM2,                 0 );
@@ -1312,12 +1314,115 @@ usage:
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Sweeps mapped LUTs using a persistent circuit SAT solver.]
 
   Description []
 
   SideEffects []
 
+  SeeAlso     []
+
+***********************************************************************/
+static int Abc_CommandAbc9Mfs3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManPerformMfs3( Gia_Man_t *, Sfm_Par_t *, int, int, int );
+    Sfm_Par_t Pars, * pPars = &Pars;
+    Gia_Man_t * pNew;
+    int c, nSideMax = 8, nRounds = 1, nRegs, fSingle = 0;
+    Sfm_ParSetDefault(pPars);
+    pPars->nTfoLevMax = 5;
+    pPars->nDepthMax = 100;
+    pPars->nWinSizeMax = 2000;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "WFDMLCNSRdaesvh")) != EOF )
+    {
+        switch ( c )
+        {
+        case 'W': case 'F': case 'D': case 'M': case 'L':
+        case 'C': case 'N': case 'S': case 'R':
+        {
+            char * pEnd;
+            const char * pArg;
+            long Value;
+            if ( globalUtilOptind >= argc ) goto usage;
+            pArg = argv[globalUtilOptind++];
+            errno = 0;
+            Value = strtol(pArg,&pEnd,10);
+            if ( errno || pArg == pEnd || *pEnd || Value < 0 || Value > ABC_INFINITY ) goto usage;
+            if ( c == 'W' ) { if ( Value > 32 ) goto usage; pPars->nTfoLevMax = (int)Value; }
+            if ( c == 'F' ) pPars->nFanoutMax = (int)Value;
+            if ( c == 'D' ) pPars->nDepthMax = (int)Value;
+            if ( c == 'M' ) pPars->nWinSizeMax = (int)Value;
+            if ( c == 'L' ) pPars->nGrowthLevel = (int)Value;
+            if ( c == 'C' ) pPars->nBTLimit = (int)Value;
+            if ( c == 'N' ) pPars->nNodesMax = (int)Value;
+            if ( c == 'S' ) { if ( Value > 8 ) goto usage; nSideMax = (int)Value; }
+            if ( c == 'R' ) { if ( !Value || Value > 100 ) goto usage; nRounds = (int)Value; }
+            break;
+        }
+        case 'd': pPars->fRrOnly ^= 1; break;
+        case 'a': pPars->fArea ^= 1; break;
+        case 'e': pPars->fMoreEffort ^= 1; break;
+        case 's': fSingle ^= 1; break;
+        case 'v': pPars->fVerbose ^= 1; break;
+        default: goto usage;
+        }
+    }
+    if ( globalUtilOptind != argc ) goto usage;
+    if ( !pAbc->pGia || !Gia_ManHasMapping(pAbc->pGia) )
+    {
+        Abc_Print(-1,"&mfs3: A LUT-mapped AIG is required. Use &if2 -K 6, or read a saved mapping with &r -s.\n");
+        return 1;
+    }
+    if ( Gia_ManBufNum(pAbc->pGia) || Gia_ManHasChoices(pAbc->pGia) ||
+         Gia_ManMuxNum(pAbc->pGia) || Gia_ManXorNum(pAbc->pGia) || pAbc->pGia->pManTime || pAbc->pGia->pAigExtra )
+    {
+        Abc_Print(-1,"&mfs3: Choices, explicit XOR/MUX nodes, barrier buffers, and timing boxes are not supported.\n");
+        return 1;
+    }
+    if ( Gia_ManLutSizeMax(pAbc->pGia) > 15 )
+    {
+        Abc_Print(-1,"&mfs3: LUTs with more than 15 inputs are not supported.\n");
+        return 1;
+    }
+    nRegs = Gia_ManRegNum(pAbc->pGia);
+    pAbc->pGia->nRegs = 0;
+    pNew = Gia_ManPerformMfs3(pAbc->pGia,pPars,nSideMax,nRounds,fSingle);
+    Gia_ManSetRegNum(pAbc->pGia,nRegs);
+    if ( !pNew ) return 1;
+    Gia_ManSetRegNum(pNew,nRegs);
+    Abc_FrameUpdateGia(pAbc,pNew);
+    return 0;
+usage:
+    Abc_Print(-2,"usage: &mfs3 [-WFDMLCNSR num] [-daesvh]\n");
+    Abc_Print(-2,"\t         sweeps mapped LUTs using persistent circuit Glucose3 and bounded care\n");
+    Abc_Print(-2,"\t         resubstitutes LUTs with at most 8 inputs; larger LUTs are retained\n");
+    Abc_Print(-2,"\t         by default an area-only sweep precedes the full sweep\n");
+    Abc_Print(-2,"\t-W num : fanout depth in LUT levels, 0 disables ODCs (0..32) [default = %d]\n",pPars->nTfoLevMax);
+    Abc_Print(-2,"\t-S num : maximum side signals in the care table (0..8) [default = %d]\n",nSideMax);
+    Abc_Print(-2,"\t         oversized care windows are retried at a shallower level\n");
+    Abc_Print(-2,"\t-F num : fanout search limit for divisors, 0 unlimited [default = %d]\n",pPars->nFanoutMax);
+    Abc_Print(-2,"\t-D num : maximum pivot level, 0 unlimited [default = %d]\n",pPars->nDepthMax);
+    Abc_Print(-2,"\t-M num : maximum divisor cone size, 0 unlimited [default = %d]\n",pPars->nWinSizeMax);
+    Abc_Print(-2,"\t-L num : allowed LUT level growth [default = %d]\n",pPars->nGrowthLevel);
+    Abc_Print(-2,"\t-C num : conflict budget per attempted support, 0 unlimited [default = %d]\n",pPars->nBTLimit);
+    Abc_Print(-2,"\t-N num : maximum pivots to try, 0 all [default = %d]\n",pPars->nNodesMax);
+    Abc_Print(-2,"\t-R num : maximum sweeps after the optional area prepass (1..100) [default = %d]\n",nRounds);
+    Abc_Print(-2,"\t-d     : toggle fanin removal only [default = %s]\n",pPars->fRrOnly ? "yes" : "no");
+    Abc_Print(-2,"\t-a     : toggle area only versus area and edges [default = %s]\n",pPars->fArea ? "area" : "area+edges");
+    Abc_Print(-2,"\t-e     : toggle care circuits for windows exceeding -S [default = %s]\n",pPars->fMoreEffort ? "yes" : "no");
+    Abc_Print(-2,"\t-s     : toggle skipping the initial area prepass [default = %s]\n",fSingle ? "yes" : "no");
+    Abc_Print(-2,"\t-v     : toggle statistics [default = %s]\n",pPars->fVerbose ? "yes" : "no");
+    Abc_Print(-2,"\t-h     : print command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Optimizes a mapped network using per-node SAT windows.]
+
+  Description []
+  SideEffects []
   SeeAlso     []
 
 ***********************************************************************/

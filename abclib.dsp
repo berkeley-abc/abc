@@ -6629,6 +6629,10 @@ SOURCE=.\src\aig\gia\giaMfs.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaMfs3.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaMini.c
 # End Source File
 # Begin Source File
