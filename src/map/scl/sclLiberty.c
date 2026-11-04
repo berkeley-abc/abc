@@ -1116,12 +1116,20 @@ float Scl_LibertyReadPinCap( Scl_Tree_t * p, Scl_Item_t * pPin, char * pName )
         return atof(Scl_LibertyReadString(p, pItem->Head));
     return 0;
 }
+static inline int Scl_LibertyHasPin( char * pPinList, const char * pNameIn )
+{
+    char * pTok, * pSave = NULL;
+    for ( ; (pTok = Abc_UtilStrtok(pPinList, " \t\n\r", &pSave)); pPinList = NULL )
+        if ( !strcmp(pTok, pNameIn) )
+            return 1;
+    return 0;
+}
 Scl_Item_t * Scl_LibertyReadPinTiming( Scl_Tree_t * p, Scl_Item_t * pPinOut, char * pNameIn )
 {
     Scl_Item_t * pTiming, * pPinIn;
     Scl_ItemForEachChildName( p, pPinOut, pTiming, "timing" )
         Scl_ItemForEachChildName( p, pTiming, pPinIn, "related_pin" )
-            if ( !strcmp(Scl_LibertyReadString(p, pPinIn->Head), pNameIn) )
+            if ( Scl_LibertyHasPin(Scl_LibertyReadString(p, pPinIn->Head), pNameIn) )
                 return pTiming;
     return NULL;
 }
@@ -1132,7 +1140,7 @@ Vec_Ptr_t * Scl_LibertyReadPinTimingAll( Scl_Tree_t * p, Scl_Item_t * pPinOut, c
     vTimings = Vec_PtrAlloc( 16 );
     Scl_ItemForEachChildName( p, pPinOut, pTiming, "timing" )
         Scl_ItemForEachChildName( p, pTiming, pPinIn, "related_pin" )
-            if ( !strcmp(Scl_LibertyReadString(p, pPinIn->Head), pNameIn) )
+            if ( Scl_LibertyHasPin(Scl_LibertyReadString(p, pPinIn->Head), pNameIn) )
                 Vec_PtrPush( vTimings, pTiming );
     return vTimings;
 }
@@ -1393,7 +1401,7 @@ Vec_Ptr_t * Scl_LibertyReadPinPowerAll( Scl_Tree_t * p, Scl_Item_t * pPinOut, ch
     Scl_Item_t * pPower, * pPinIn;
     Scl_ItemForEachChildName( p, pPinOut, pPower, "internal_power" )
     Scl_ItemForEachChildName( p, pPower, pPinIn, "related_pin" )
-        if ( !strcmp(Scl_LibertyReadString(p, pPinIn->Head), pNameIn) )
+        if ( Scl_LibertyHasPin(Scl_LibertyReadString(p, pPinIn->Head), pNameIn) )
             Vec_PtrPush( vPowers, pPower );
     return vPowers;
 }
