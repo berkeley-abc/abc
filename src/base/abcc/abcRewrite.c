@@ -23,6 +23,7 @@
 #include "opt/drw/drw.h"
 #include "bool/kit/kit.h"
 #include "opt/cut/cut.h"
+#include "opt/rar/rewire2Rar.h"
 #include <errno.h>
 #include <limits.h>
 
@@ -74,6 +75,7 @@ static int Abc_CommandAbc9TranStoch          ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Rrr                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Rrr2               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Rewire             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Rewire2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9DeepSyn            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9RandSyn            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatSyn             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -137,6 +139,7 @@ void Abc_InitRewrite( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&rrr",          Abc_CommandAbc9Rrr,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&rrr2",          Abc_CommandAbc9Rrr2,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&rewire"      , Abc_CommandAbc9Rewire,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&rewire2"      , Abc_CommandAbc9Rewire2,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&deepsyn",      Abc_CommandAbc9DeepSyn,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&randsyn",      Abc_CommandAbc9RandSyn,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satsyn",       Abc_CommandAbc9SatSyn,       0 );
@@ -4593,6 +4596,231 @@ usage:
     Abc_Print( -2, "\t-t        :  toggle timing-driven re-wiring [default = %s]\n",                            fTiming ? "yes" : "no" );
     Abc_Print( -2, "\t-h        :  prints the command usage\n" );
     Abc_Print( -2, "\n\tThis command was contributed by Jiun-Hao Chen from National Taiwan University.\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads a rewiring integer option without truncation or overflow.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Abc_Rewire2ReadInt( int argc, char ** argv, int c, int Minimum, int * pValue )
+{
+    char * pEnd;
+    long Value;
+    if ( globalUtilOptind >= argc )
+    {
+        Abc_Print( -1, "Command line switch \"-%c\" should be followed by an integer.\n", c );
+        return 0;
+    }
+    errno = 0;
+    Value = strtol( argv[globalUtilOptind], &pEnd, 10 );
+    if ( errno || pEnd == argv[globalUtilOptind] || *pEnd || Value < Minimum || Value > ABC_INT_MAX )
+    {
+        Abc_Print( -1, "Command line switch \"-%c\" requires an integer in [%d, %d].\n", c, Minimum, ABC_INT_MAX );
+        return 0;
+    }
+    globalUtilOptind++;
+    *pValue = (int)Value;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs the independent rewiring implementation.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Rewire2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE *pFile = NULL;
+    Gia_Man_t *pTemp, *pExc = NULL;
+    int c, nIters = 100000, nStall = 8, nExpands = 128, nGrowth = 4, nDivs = -1, nFaninMax = 8, nSeed = 1, nTimeOut = 0, nVerbose = 1, nMode = 0, nMappedMode = 0, nDist = 0, fCheck = 0, fChoices = 0, fDch = 1, fTiming = 0;
+    float nLevelGrowRatio = 0;
+    Extra_UtilGetoptReset();
+
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IJEGDFSTMALRCVcsdth" ) ) != EOF ) {
+        switch ( c ) {
+        case 'J':
+            if ( !Abc_Rewire2ReadInt(argc, argv, c, 0, &nStall) )
+                goto usage;
+            break;
+        case 'I':
+            if ( !Abc_Rewire2ReadInt(argc, argv, c, 0, &nIters) )
+                goto usage;
+            break;
+        case 'E':
+            if ( !Abc_Rewire2ReadInt(argc, argv, c, 0, &nExpands) )
+                goto usage;
+            break;
+        case 'G':
+            if ( !Abc_Rewire2ReadInt(argc, argv, c, 0, &nGrowth) )
+                goto usage;
+            break;
+        case 'D':
+            if ( !Abc_Rewire2ReadInt(argc, argv, c, -1, &nDivs) )
+                goto usage;
+            break;
+        case 'F':
+            if ( !Abc_Rewire2ReadInt(argc, argv, c, 0, &nFaninMax) )
+                goto usage;
+            break;
+        case 'S':
+            if ( !Abc_Rewire2ReadInt(argc, argv, c, 0, &nSeed) )
+                goto usage;
+            break;
+        case 'T':
+            if ( !Abc_Rewire2ReadInt(argc, argv, c, 0, &nTimeOut) )
+                goto usage;
+            break;
+        case 'M':
+            if ( !Abc_Rewire2ReadInt(argc, argv, c, 0, &nMode) )
+                goto usage;
+            break;
+        case 'A':
+            if ( !Abc_Rewire2ReadInt(argc, argv, c, 0, &nMappedMode) )
+                goto usage;
+            break;
+        case 'L':
+            if ( !Abc_Rewire2ReadInt(argc, argv, c, 0, &nDist) )
+                goto usage;
+            break;
+        case 'R':
+        {
+            char * pEnd;
+            double Value;
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by a number.\n" );
+                goto usage;
+            }
+            errno = 0;
+            Value = strtod( argv[globalUtilOptind], &pEnd );
+            if ( errno || pEnd == argv[globalUtilOptind] || *pEnd ||
+                 !(Value >= 0 && Value <= ABC_INT_MAX) ||
+                 (Value > 0 && (float)Value == 0) )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" requires a finite nonnegative level ratio.\n" );
+                goto usage;
+            }
+            nLevelGrowRatio = (float)Value;
+            globalUtilOptind++;
+            break;
+        }
+        case 'C':
+            if ( globalUtilOptind >= argc ) goto usage;
+            if ( pExc ) Gia_ManStop( pExc );
+            pExc = NULL;
+            pFile = fopen( argv[globalUtilOptind], "rb" );
+            if ( pFile == NULL )
+            {
+                Abc_Print( -1, "Cannot open input file \"%s\".\n", argv[globalUtilOptind] );
+                return 1;
+            }
+            fclose( pFile );
+            pExc = Gia_AigerRead( argv[globalUtilOptind], 0, 0, 0 );
+            if ( pExc == NULL )
+            {
+                Abc_Print( -1, "Reading AIGER has failed.\n" );
+                return 1;
+            }
+            globalUtilOptind++;
+            break;
+        case 'V':
+            if ( !Abc_Rewire2ReadInt(argc, argv, c, 0, &nVerbose) )
+                goto usage;
+            break;
+        case 'c':
+            fCheck ^= 1;
+            break;
+        case 's':
+            fChoices ^= 1;
+            break;
+        case 'd':
+            fDch ^= 1;
+            break;
+        case 't':
+            fTiming ^= 1;
+            break;
+        case 'h':
+        default:
+            goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind )
+    {
+        Abc_Print( -1, "Wrong number of arguments.\n" );
+        goto usage;
+    }
+    if ( nIters < 0 || nStall < 0 || nExpands < 1 || nGrowth < 1 || nDivs < -1 ||
+         nFaninMax < 2 || nTimeOut < 0 || nSeed < 0 || nDist < 0 || nVerbose < 0 ||
+         nMode < 0 || nMode > 1 || nMappedMode < 0 || nMappedMode > 2 ||
+         !(nLevelGrowRatio >= 0) )
+        goto usage;
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Empty GIA network.\n" );
+        if ( pExc ) Gia_ManStop( pExc );
+        return 1;
+    }
+    if ( nMode == 1 && Abc_FrameReadLibGen2() == NULL )
+    {
+        Abc_Print( -1, "Library is not available.\n" );
+        if ( pExc ) Gia_ManStop( pExc );
+        return 1;
+    }
+
+    if ( pExc && (Gia_ManRegNum(pExc) || Gia_ManCiNum(pExc) != Gia_ManCiNum(pAbc->pGia) ||
+         (Gia_ManCoNum(pExc) != 1 && Gia_ManCoNum(pExc) != Gia_ManCoNum(pAbc->pGia))) )
+    {
+        Abc_Print( -1, "External cares must be combinational, with matching inputs and one or matching outputs.\n" );
+        Gia_ManStop( pExc );
+        return 1;
+    }
+    pTemp = Gia_ManRewire2( pAbc->pGia, pExc, nIters, nStall, nLevelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nMappedMode, nDist, fDch, fTiming, nSeed, fCheck, fChoices, nVerbose );
+    if ( pExc )
+        Gia_ManStop( pExc );
+    if ( pTemp == NULL ) return 1;
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    if ( pExc ) Gia_ManStop( pExc );
+    Abc_Print( -2, "usage: &rewire2 [-IJEGDFLRMASTV <num>] [-C <file>] [-csdth]\n" );
+    Abc_Print( -2, "\t             performs AIG re-wiring\n" );
+    Abc_Print( -2, "\t-I <num>  :  iterations (0: unlimited) [default = %d]\n",                                  nIters );
+    Abc_Print( -2, "\t-J <num>  :  stop after this many non-improving iterations (0: off) [default = %d]\n", nStall );
+    Abc_Print( -2, "\t-E <num>  :  the number of fanins to add to all nodes [default = %d]\n",                  nExpands );
+    Abc_Print( -2, "\t-G <num>  :  the number of fanins to add to one node [default = %d]\n",                   nGrowth );
+    Abc_Print( -2, "\t-D <num>  :  the number of shared divisors to extract (-1: unlimited) [default = %d]\n",  nDivs );
+    Abc_Print( -2, "\t-F <num>  :  the limit on the fanin count at a node [default = %d]\n",                    nFaninMax);
+    Abc_Print( -2, "\t-L <num>  :  localization distances (0: unlimited) [default = %d]\n",                     nDist);
+    Abc_Print( -2, "\t-R <num>  :  level constraint (0: unlimited, 1: preserve level) [default = %g]\n",        nLevelGrowRatio);
+    Abc_Print( -2, "\t-M <num>  :  target (0: AIG, 1: mapped) [default = %s]\n",                                       nMode ? "mapped" : "aig" );
+    Abc_Print( -2, "\t-A <num>  :  mapper (0: amap, 1: &nf, 2: &simap) (experimental) [default = %d]\n",        nMappedMode );
+    Abc_Print( -2, "\t-C <file> :  AIGER specifying external cares\n");
+    Abc_Print( -2, "\t-S <num>  :  the random seed (0: random, >= 1: user defined) [default = %d]\n",           nSeed );
+    Abc_Print( -2, "\t-T <num>  :  the timeout in seconds (0: unlimited) [default = %d]\n",                     nTimeOut );
+    Abc_Print( -2, "\t-V <num>  :  the verbosity level [default = %d]\n",                                       nVerbose );
+    Abc_Print( -2, "\t-c        :  toggle internal equivalence checks [default = %s]\n",                                     fCheck ? "yes" : "no" );
+    Abc_Print( -2, "\t-s        :  toggle accumulating structural choices [default = %s]\n",                    fChoices ? "yes" : "no" );
+    Abc_Print( -2, "\t-d        :  toggle using \"dch\" before mapping [default = %s]\n",                       fDch ? "yes" : "no" );
+    Abc_Print( -2, "\t-t        :  toggle timing-driven re-wiring [default = %s]\n",                            fTiming ? "yes" : "no" );
+    Abc_Print( -2, "\t-h        :  prints the command usage\n" );
+    Abc_Print( -2, "\tLarge designs: stochmap -N 14 -P 1 \"st; &get; &rewire2 -I 500 -J 8; &put; amap\"\n" );
+    Abc_Print( -2, "\tUntimed fixed-seed AIG runs reuse identical partitions in a bounded local cache.\n" );
+    Abc_Print( -2, "\n\tDerived from the command contributed by Jiun-Hao Chen from National Taiwan University.\n" );
     return 1;
 }
 

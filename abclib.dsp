@@ -3748,6 +3748,54 @@ SOURCE=.\src\opt\rar\rewireRar.c
 SOURCE=.\src\opt\rar\rewireRng.c
 # End Source File
 # End Group
+# Begin Group "rar2"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire2Map.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire2Miaig.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire2Rar.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire2Rng.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire2Time.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire2Tt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire2Vec.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire2Map.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire2Miaig.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire2Rar.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire2Rng.c
+# End Source File
+# End Group
 # Begin Group "rwr"
 
 # PROP Default_Filter ""

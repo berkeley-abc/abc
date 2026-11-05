@@ -1,0 +1,117 @@
+/**CFile****************************************************************
+
+  FileName    [rewire2Map.c]
+
+  SystemName  [ABC: Logic synthesis and verification system.]
+
+  PackageName [Improved re-wiring.]
+
+  Synopsis    [Independent rewiring implementation derived from rewire.]
+
+  Author      [Jiun-Hao Chen]
+
+  Affiliation [National Taiwan University]
+
+  Date        [Ver. 1.0. Started - November 4, 2026.]
+
+  Revision    [$Id: rewire2Map.c,v 1.00 2026/11/04 00:00:00 alanmi Exp $]
+
+***********************************************************************/
+
+#include "rewire2Map.h"
+
+ABC_NAMESPACE_IMPL_START
+
+extern Abc_Ntk_t *Abc_NtkFromAigPhase(Aig_Man_t *pMan);
+extern Abc_Ntk_t *Abc_NtkDarAmap(Abc_Ntk_t *pNtk, Amap_Par_t *pPars);
+extern Abc_Ntk_t * Abc_NtkDch( Abc_Ntk_t * pNtk, Dch_Pars_t * pPars );
+extern void *Abc_FrameReadLibGen2();
+extern Vec_Int_t * Abc_NtkWriteMiniMapping( Abc_Ntk_t * pNtk );
+extern void Abc_NtkPrintMiniMapping( int * pArray );
+extern Abc_Ntk_t * Abc_NtkFromMiniMapping( int *vMapping );
+extern Mini_Aig_t * Abc_MiniAigFromNtk ( Abc_Ntk_t *pNtk );
+extern void Nf_ManSetDefaultPars( Jf_Par_t * pPars );
+extern Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars );
+extern Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables, int fUseBuffs );
+extern Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p, int fUseBuffs );
+extern int Gia_ManSimpleMapping( Gia_Man_t * p, int nBound, int Seed, int nBTLimit, int nTimeout, int fVerbose, int fKeepFile, int argc, char ** argv );
+
+Abc_Ntk_t *Gia_ManRewire2Put(Gia_Man_t *pGia) {
+    Aig_Man_t *pMan = Gia_ManToAig(pGia, 0);
+    Abc_Ntk_t *pNtk = Abc_NtkFromAigPhase(pMan);
+    Abc_NtkSetName(pNtk, Abc_UtilStrsav(Gia_ManName(pGia)));
+    Aig_ManStop(pMan);
+    return pNtk;
+}
+
+Abc_Ntk_t *Abc_ManRewire2Dch(Abc_Ntk_t *pNtk) {
+    Dch_Pars_t Pars, *pPars = &Pars;
+    Dch_ManSetDefaultParams(pPars);
+    pNtk = Abc_NtkDch(pNtk, pPars);
+    if (pNtk == NULL) {
+        Abc_Print(-1, "Dch compute has failed.\n");
+        return NULL;
+    }
+    return pNtk;
+}
+
+Gia_Man_t *Gia_ManRewire2Dch(Gia_Man_t *pGia) {
+    Dch_Pars_t Pars, *pPars = &Pars;
+    Dch_ManSetDefaultParams(pPars);
+    pGia = Gia_ManPerformDch( pGia, pPars );
+    if (pGia == NULL) {
+        Abc_Print(-1, "Dch compute has failed.\n");
+        return NULL;
+    }
+    return pGia;
+}
+
+Abc_Ntk_t *Abc_ManRewire2MapAmap(Abc_Ntk_t *pNtk) {
+    Amap_Par_t Pars, *pPars = &Pars;
+    Amap_ManSetDefaultParams(pPars);
+    Abc_Ntk_t *pNtkMapped = Abc_NtkDarAmap(pNtk, pPars);
+    if (pNtkMapped == NULL) {
+        Abc_Print(-1, "Mapping has failed.\n");
+        return NULL;
+    }
+    return pNtkMapped;
+}
+
+Abc_Ntk_t *Gia_ManRewire2MapNf(Gia_Man_t *pGia) {
+    Jf_Par_t Pars, * pPars = &Pars;
+    Nf_ManSetDefaultPars( pPars );
+    Gia_Man_t *pGiaNew = Nf_ManPerformMapping(pGia, pPars);
+    if (pGiaNew == NULL) {
+        Abc_Print(-1, "Mapping has failed.\n");
+        return NULL;
+    }
+    Abc_Ntk_t *pNtkMapped = Abc_NtkFromCellMappedGia(pGiaNew, 0);
+    // The mapper may attach its mapping to the input GIA and return it.
+    if (pGiaNew != pGia)
+        Gia_ManStop(pGiaNew);
+    return pNtkMapped;
+}
+
+Abc_Ntk_t *Gia_ManRewire2MapSimap(Gia_Man_t *pGia, int nBound, int nBTLimit, int nTimeout) {
+    Abc_Print(-1, "[Warning] Gia_ManRewire2MapSimap is SAT-based experimental mode.\n");
+    if (!Gia_ManSimpleMapping(pGia, nBound, 0, nBTLimit, nTimeout, 0, 0, 0, NULL)) {
+        // Abc_Print(-1, "Mapping has failed.\n");
+        return NULL;
+    }
+    Abc_Ntk_t *pNtkMapped = Abc_NtkFromCellMappedGia(pGia, 0);
+    return pNtkMapped;
+}
+
+Vec_Int_t *Abc_ManRewire2NtkWriteMiniMapping(Abc_Ntk_t *pNtk) {
+    return Abc_NtkWriteMiniMapping(pNtk);
+}
+
+Abc_Ntk_t *Abc_ManRewire2NtkFromMiniMapping(int *vMapping) {
+    return Abc_NtkFromMiniMapping(vMapping);
+}
+
+Mini_Aig_t *Abc_ManRewire2MiniAigFromNtk(Abc_Ntk_t *pNtk) {
+    return Abc_MiniAigFromNtk(pNtk);
+}
+
+ABC_NAMESPACE_IMPL_END
