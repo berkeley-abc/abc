@@ -26,6 +26,7 @@
 #include "bool/rpo/rpo.h"
 #include "map/cov/cov.h"
 #include "opt/nwk/nwkMerge.h"
+#include <errno.h>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -38,6 +39,7 @@ static int Abc_CommandSatClp                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandMulti                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRenode                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFastExtract            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFastExtract2           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFxch                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandEliminate              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDisjoint               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -114,6 +116,7 @@ void Abc_InitLogic( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "multi",         Abc_CommandMulti,            1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "renode",        Abc_CommandRenode,           1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "fx",            Abc_CommandFastExtract,      1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "fx2",           Abc_CommandFastExtract2,     1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "fxch",          Abc_CommandFxch,             1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "eliminate",     Abc_CommandEliminate,        1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "dsd",           Abc_CommandDisjoint,         1 );
@@ -887,6 +890,176 @@ usage:
     Abc_Print( -2, "\t-x       : use only canonical divisors (AND, XOR, MUX) [default = %s]\n", p->fCanonDivs? "yes": "no" );
     Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", p->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : print additional information [default = %s]\n", p->fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads a nonnegative integer option without truncation or overflow.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Abc_Fx2ReadNumber( int argc, char ** argv, int c, int * pValue )
+{
+    char * pEnd;
+    long Value;
+    if ( globalUtilOptind >= argc )
+    {
+        Abc_Print( -1, "Command line switch \"-%c\" should be followed by an integer.\n", c );
+        return 0;
+    }
+    errno = 0;
+    Value = strtol( argv[globalUtilOptind], &pEnd, 10 );
+    if ( errno || pEnd == argv[globalUtilOptind] || *pEnd || Value < 0 || Value > ABC_INT_MAX )
+    {
+        Abc_Print( -1, "Command line switch \"-%c\" requires an integer in [0, %d].\n", c, ABC_INT_MAX );
+        return 0;
+    }
+    globalUtilOptind++;
+    *pValue = (int)Value;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs accelerated fast extraction.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandFastExtract2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Abc_NtkFx2Perform( Abc_Ntk_t * pNtk, int nNewNodesMax, int nLitCountMax, int fCanonDivs, int fVerbose, int fVeryVerbose );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Fxu_Data_t Params, * p = &Params;
+    int c, fNewAlgo = 1, RetValue = 0;
+    int nPairsLimit = 1000000000;
+    // set the defaults
+    Abc_NtkSetDefaultFxParams( p );
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "SDNWMPsdzcnxvwh")) != EOF )
+    {
+        switch (c)
+        {
+            case 'S':
+                if ( !Abc_Fx2ReadNumber(argc, argv, c, &p->nSingleMax) )
+                    goto usage;
+                break;
+            case 'D':
+                if ( !Abc_Fx2ReadNumber(argc, argv, c, &p->nPairsMax) )
+                    goto usage;
+                break;
+            case 'N':
+                if ( !Abc_Fx2ReadNumber(argc, argv, c, &p->nNodesExt) )
+                    goto usage;
+                break;
+            case 'W':
+                if ( !Abc_Fx2ReadNumber(argc, argv, c, &p->WeightMin) )
+                    goto usage;
+                break;
+            case 'M':
+                if ( !Abc_Fx2ReadNumber(argc, argv, c, &p->LitCountMax) )
+                    goto usage;
+                break;
+            case 'P':
+                if ( !Abc_Fx2ReadNumber(argc, argv, c, &nPairsLimit) )
+                    goto usage;
+                break;
+            case 's':
+                p->fOnlyS ^= 1;
+                break;
+            case 'd':
+                p->fOnlyD ^= 1;
+                break;
+            case 'z':
+                p->fUse0 ^= 1;
+                break;
+            case 'c':
+                p->fUseCompl ^= 1;
+                break;
+            case 'n':
+                fNewAlgo ^= 1;
+                break;
+            case 'x':
+                p->fCanonDivs ^= 1;
+                break;
+            case 'v':
+                p->fVerbose ^= 1;
+                break;
+            case 'w':
+                p->fVeryVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+    if ( globalUtilOptind != argc )
+        goto usage;
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkNodeNum(pNtk) == 0 || Abc_NtkPiNum(pNtk) == 0 )
+    {
+        Abc_Print( 0, "The network does not have internal nodes.\n" );
+        return 0;
+    }
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        Abc_Print( -1, "Fast extract can only be applied to a logic network (run \"renode\" or \"if\").\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsSopLogic(pNtk) )
+    {
+        Abc_Print( -1, "Fast extract can only be applied to a logic network with SOP local functions (run \"bdd; sop\").\n" );
+        return 1;
+    }
+    if ( Abc_NtkGetCubePairNum(pNtk) > nPairsLimit )
+    {
+        Abc_Print( -1, "Cannot perform \"fx2\" because the number cube pairs exceeds the limit (%d).\n", nPairsLimit );
+        return 1;
+    }
+
+    // the nodes to be merged are linked into the special linked list
+    if ( fNewAlgo )
+        RetValue = Abc_NtkFx2Perform( pNtk, p->nNodesExt, p->LitCountMax, p->fCanonDivs, p->fVerbose, p->fVeryVerbose );
+    else
+        Abc_NtkFastExtract( pNtk, p );
+    Abc_NtkFxuFreeInfo( p );
+    return RetValue < 0;
+
+usage:
+    Abc_Print( -2, "usage: fx2 [-SDNWMP <num>] [-sdzcnxvwh]\n");
+    Abc_Print( -2, "\t           performs accelerated unate fast extract on the current network\n");
+    Abc_Print( -2, "\t           -S/-D/-W/-s/-d/-z/-c apply only to the legacy algorithm (-n)\n");
+    Abc_Print( -2, "\t-S <num> : max number of single-cube divisors to consider [default = %d]\n", p->nSingleMax );
+    Abc_Print( -2, "\t-D <num> : max number of double-cube divisors to consider [default = %d]\n", p->nPairsMax );
+    Abc_Print( -2, "\t-N <num> : max number of divisors to extract during this run [default = %d]\n", p->nNodesExt );
+    Abc_Print( -2, "\t-W <num> : lower bound on the weight of divisors to extract [default = %d]\n", p->WeightMin );
+    Abc_Print( -2, "\t-M <num> : upper bound on literal count of divisors to extract [default = %d]\n", p->LitCountMax );
+    Abc_Print( -2, "\t-P <num> : skip \"fx2\" if cube pair count exceeds this limit [default = %d]\n", nPairsLimit );
+    Abc_Print( -2, "\t-s       : toggle using only single-cube divisors [default = %s]\n", p->fOnlyS? "yes": "no" );
+    Abc_Print( -2, "\t-d       : toggle using only double-cube divisors [default = %s]\n", p->fOnlyD? "yes": "no" );
+    Abc_Print( -2, "\t-z       : toggle using zero-weight divisors [default = %s]\n", p->fUse0? "yes": "no" );
+    Abc_Print( -2, "\t-c       : toggle using complement in the binary case [default = %s]\n", p->fUseCompl? "yes": "no" );
+    Abc_Print( -2, "\t-n       : toggle using accelerated implementation of fast extract [default = %s]\n", fNewAlgo? "yes": "no" );
+    Abc_Print( -2, "\t-x       : toggle using only canonical divisors (AND, XOR, MUX) [default = %s]\n", p->fCanonDivs? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", p->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w       : toggle additional printout [default = %s]\n", p->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }

@@ -394,6 +394,10 @@ SOURCE=.\src\base\abci\abcFx.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcFx2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcFxu.c
 # End Source File
 # Begin Source File
