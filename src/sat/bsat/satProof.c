@@ -175,7 +175,7 @@ Vec_Int_t * Proof_CollectUsedIter( Vec_Set_t * vProof, Vec_Int_t * vRoots, int f
 
 /**Function*************************************************************
 
-  Synopsis    [Recursively collects useful proof nodes.]
+  Synopsis    [Iteratively visits useful proof nodes.]
 
   Description []
                
@@ -184,114 +184,39 @@ Vec_Int_t * Proof_CollectUsedIter( Vec_Set_t * vProof, Vec_Int_t * vRoots, int f
   SeeAlso     []
 
 ***********************************************************************/
-void Proof_CollectUsed_rec( Vec_Set_t * vProof, int hNode, Vec_Int_t * vUsed )
-{
-    satset * pNext, * pNode = Proof_NodeRead( vProof, hNode );
-    int i;
-    if ( pNode->Id )
-        return;
-    pNode->Id = 1;
-    Proof_NodeForeachFanin( vProof, pNode, pNext, i )
-        if ( pNext && !pNext->Id )
-            Proof_CollectUsed_rec( vProof, pNode->pEnts[i] >> 2, vUsed );
-    Vec_IntPush( vUsed, hNode );
-}
-Vec_Int_t * Proof_CollectUsedRec( Vec_Set_t * vProof, Vec_Int_t * vRoots )
-{
-    Vec_Int_t * vUsed;
-    int i, Entry;
-    vUsed = Vec_IntAlloc( 1000 );
-    Vec_IntForEachEntry( vRoots, Entry, i )
-        if ( Entry >= 0 )
-            Proof_CollectUsed_rec( vProof, Entry, vUsed );
-    return vUsed;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Recursively visits useful proof nodes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Proof_MarkUsed_rec( Vec_Set_t * vProof, int hNode )
-{
-    satset * pNext, * pNode = Proof_NodeRead( vProof, hNode );
-    int i, Counter = 1;
-    if ( pNode->Id )
-        return 0;
-    pNode->Id = 1;
-    Proof_NodeForeachFanin( vProof, pNode, pNext, i )
-        if ( pNext && !pNext->Id )
-            Counter += Proof_MarkUsed_rec( vProof, pNode->pEnts[i] >> 2 );
-    return Counter;
-}
 int Proof_MarkUsedRec( Vec_Set_t * vProof, Vec_Int_t * vRoots )
 {
-    int i, Entry, Counter = 0;
+    Vec_Int_t * vQueue = Vec_IntAlloc( 1000 );
+    satset * pNode, * pNext;
+    int i, k, Entry, Counter;
     Vec_IntForEachEntry( vRoots, Entry, i )
         if ( Entry >= 0 )
-            Counter += Proof_MarkUsed_rec( vProof, Entry );
+        {
+            pNode = Proof_NodeRead( vProof, Entry );
+            if ( pNode->Id )
+                continue;
+            pNode->Id = 1;
+            Vec_IntPush( vQueue, Entry );
+        }
+    // Resolution chains can be much deeper than the process stack.
+    Vec_IntForEachEntry( vQueue, Entry, k )
+    {
+        pNode = Proof_NodeRead( vProof, Entry );
+        Proof_NodeForeachFanin( vProof, pNode, pNext, i )
+            if ( pNext && !pNext->Id )
+            {
+                pNext->Id = 1;
+                Vec_IntPush( vQueue, pNode->pEnts[i] >> 2 );
+            }
+    }
+    Counter = Vec_IntSize( vQueue );
+    Vec_IntFree( vQueue );
     return Counter;
 }
 
 
 
   
-/**Function*************************************************************
-
-  Synopsis    [Checks the validity of the check point.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-/*
-void Sat_ProofReduceCheck_rec( Vec_Set_t * vProof, Vec_Int_t * vClauses, satset * pNode, int hClausePivot, Vec_Ptr_t * vVisited )
-{
-    satset * pFanin;
-    int k;
-    if ( pNode->Id )
-        return;
-    pNode->Id = -1;
-    Proof_NodeForeachFaninLeaf( vProof, vClauses, pNode, pFanin, k )
-        if ( (pNode->pEnts[k] & 1) == 0 ) // proof node
-            Sat_ProofReduceCheck_rec( vProof, vClauses, pFanin, hClausePivot, vVisited );
-        else // problem clause
-            assert( (pNode->pEnts[k] >> 2) < hClausePivot );
-    Vec_PtrPush( vVisited, pNode );
-}
-void Sat_ProofReduceCheckOne( sat_solver2 * s, int iLearnt, Vec_Ptr_t * vVisited )
-{
-    Vec_Set_t * vProof   = (Vec_Set_t *)&s->Proofs;
-    Vec_Int_t * vClauses = (Vec_Int_t *)&s->clauses;
-    Vec_Int_t * vRoots   = (Vec_Int_t *)&s->claProofs;
-    int hProofNode = Vec_IntEntry( vRoots, iLearnt );
-    satset * pNode = Proof_NodeRead( vProof, hProofNode );
-    Sat_ProofReduceCheck_rec( vProof, vClauses, pNode, s->hClausePivot, vVisited );
-}
-void Sat_ProofReduceCheck( sat_solver2 * s )
-{
-    Vec_Ptr_t * vVisited;
-    satset * c;
-    int h, i = 1;
-    vVisited = Vec_PtrAlloc( 1000 );
-    sat_solver_foreach_learnt( s, c, h )
-        if ( h < s->hLearntPivot )
-            Sat_ProofReduceCheckOne( s, i++, vVisited );
-    Vec_PtrForEachEntry( satset *, vVisited, c, i )
-        c->Id = 0;
-    Vec_PtrFree( vVisited );
-}
-*/
-
 /**Function*************************************************************
 
   Synopsis    [Reduces the proof to contain only roots and their children.]
@@ -363,7 +288,6 @@ void Sat_ProofReduce2( sat_solver2 * s )
         Abc_PrintTime( 1, "Time", TimeTotal );
     }
     Vec_SetShrink( vProof, Vec_SetHandCurrentS(vProof) );
-//    Sat_ProofReduceCheck( s );
 } 
 */
 
@@ -420,7 +344,8 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
 //                assert( (int*)pFanin >= Vec_IntArray(vClauses) && (int*)pFanin < Vec_IntArray(vClauses)+Vec_IntSize(vClauses) );
     }
     // update roots
-    Proof_ForeachNodeVec1( vRoots, vProof, pNode, i )
+    // Learned clause IDs start at zero in sat_solver2.
+    Proof_ForeachNodeVec( vRoots, vProof, pNode, i )
         Vec_IntWriteEntry( vRoots, i, pNode->Id );
     // determine new pivot
     assert( hProofPivot >= 1 && hProofPivot <= Vec_SetHandCurrent(vProof) );
@@ -451,7 +376,6 @@ int Sat_ProofReduce( Vec_Set_t * vProof, void * pRoots, int hProofPivot )
     }
     Vec_SetShrink( vProof, Vec_SetHandCurrentS(vProof) );
     Vec_SetShrinkLimits( vProof );
-//    Sat_ProofReduceCheck( s );
 //Sat_ProofCheck0( vProof );
 
     return RetValue;

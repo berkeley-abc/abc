@@ -164,6 +164,7 @@ void Dch_ManSatSolverRecycle( Dch_Man_t * p )
         sat_solver_delete( p->pSat );
     }
     p->pSat = sat_solver_new();
+    sat_solver_set_runtime_limit( p->pSat, p->pAigTotal->Time2Quit );
     sat_solver_setnvars( p->pSat, 1000 );
     // var 0 is not used
     // var 1 is reserved for const1 node - add the clause

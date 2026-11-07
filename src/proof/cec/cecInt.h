@@ -393,6 +393,7 @@ typedef struct Cec_DynSrm_t_ Cec_DynSrm_t;
 ////////////////////////////////////////////////////////////////////////
 
 /*=== cecCorr.c ============================================================*/
+extern void                 Cec_ManLSCorrespondenceBmc( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nPrefs );
 extern void                 Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIter, abctime Time );
 /*=== cecCorr2.c ===========================================================*/
 extern int                  Gia_ManCorr2SpecReal( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int f, int nPrefix );
@@ -545,6 +546,7 @@ extern void                 Cec_ManPatPrintStats( Cec_ManPat_t * p );
 extern void                 Cec_ManPatStop( Cec_ManPat_t * p );
 extern Cec_ManSim_t *       Cec_ManSimStart( Gia_Man_t * pAig, Cec_ParSim_t *  pPars ); 
 extern void                 Cec_ManSimStop( Cec_ManSim_t * p );  
+extern int                  Cec_ManResimulateCounterExamples( Cec_ManSim_t * pSim, Vec_Int_t * vCexStore, int nFrames, Cec_SeedSim_t * pSeed, Vec_Int_t * vOutputs, Cec_ParCor_t * pCorPars, int fInduction );
 extern Cec_ManFra_t *       Cec_ManFraStart( Gia_Man_t * pAig, Cec_ParFra_t *  pPars );  
 extern void                 Cec_ManFraStop( Cec_ManFra_t * p );
 /*=== cecPat.c ============================================================*/

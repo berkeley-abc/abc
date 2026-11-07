@@ -33,11 +33,45 @@ int         Cec_ScorrConfStop  = 0;
 
 static inline int Cec_ParCorShouldStop( Cec_ParCor_t * pPars )
 {
+    if ( pPars && pPars->fWorkStop )
+        return 1;
     if ( pPars && pPars->nConfTotal > 0 && Cec_ScorrConfStop )
         return 1;
     if ( pPars == NULL || pPars->pFunc == NULL )
         return 0;
     return ((int (*)(void *))pPars->pFunc)( pPars->pData );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reserves structural work before unrolling or packed simulation.]
+
+  Description [Conflict counts miss cheap SAT models that each trigger a
+  full sequential simulation. The optional budget spans BMC and induction.]
+
+  SideEffects [Updates work usage and marks an exhausted run incomplete.]
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Cec_ParCorReserveWork( Cec_ParCor_t * pPars, Gia_Man_t * pAig, word nFrames, word nWords )
+{
+    word Work, Remaining;
+    if ( pPars == NULL || pPars->nWorkLimit == 0 )
+        return 1;
+    if ( pPars->fWorkStop )
+        return 0;
+    Work = Gia_ManObjNum(pAig);
+    Remaining = pPars->nWorkLimit - pPars->nWorkUsed;
+    nFrames = Abc_MaxWord(1, nFrames);
+    nWords = Abc_MaxWord(1, nWords);
+    if ( nFrames > Remaining / Work || nWords > Remaining / (Work * nFrames) )
+    {
+        pPars->fWorkStop = pPars->fIncomplete = 1;
+        return 0;
+    }
+    pPars->nWorkUsed += Work * nFrames * nWords;
+    return 1;
 }
 
 
@@ -805,22 +839,23 @@ void Gia_ManCorrPerformRemapping( Vec_Int_t * vPairs, Vec_Ptr_t * vInfo )
 int Cec_ManLoadCounterExamplesTry( Vec_Ptr_t * vInfo, Vec_Ptr_t * vPres, int iBit, int * pLits, int nLits )
 {
     unsigned * pInfo, * pPres;
+    unsigned Mask = 1u << (iBit & 31);
     int i;
     for ( i = 0; i < nLits; i++ )
     {
         pInfo = (unsigned *)Vec_PtrEntry(vInfo, Abc_Lit2Var(pLits[i]));
         pPres = (unsigned *)Vec_PtrEntry(vPres, Abc_Lit2Var(pLits[i]));
-        if ( Abc_InfoHasBit( pPres, iBit ) && 
-             Abc_InfoHasBit( pInfo, iBit ) == Abc_LitIsCompl(pLits[i]) )
+        if ( (pPres[iBit >> 5] & Mask) &&
+             ((pInfo[iBit >> 5] & Mask) != 0) == Abc_LitIsCompl(pLits[i]) )
              return 0;
     }
     for ( i = 0; i < nLits; i++ )
     {
         pInfo = (unsigned *)Vec_PtrEntry(vInfo, Abc_Lit2Var(pLits[i]));
         pPres = (unsigned *)Vec_PtrEntry(vPres, Abc_Lit2Var(pLits[i]));
-        Abc_InfoSetBit( pPres, iBit );
-        if ( Abc_InfoHasBit( pInfo, iBit ) == Abc_LitIsCompl(pLits[i]) )
-            Abc_InfoXorBit( pInfo, iBit );
+        pPres[iBit >> 5] |= Mask;
+        if ( ((pInfo[iBit >> 5] & Mask) != 0) == Abc_LitIsCompl(pLits[i]) )
+            pInfo[iBit >> 5] ^= Mask;
     }
     return 1;
 }
@@ -949,8 +984,8 @@ int Cec_ManLoadCounterExamples2( Vec_Ptr_t * vInfo, Vec_Int_t * vCexStore, int i
         {
             iLit = Vec_IntEntry( vCexStore, iStart++ );
             pInfo = (unsigned *)Vec_PtrEntry( vInfo, Abc_Lit2Var(iLit) );
-            if ( Abc_InfoHasBit( pInfo, iBit ) == Abc_LitIsCompl(iLit) )
-                Abc_InfoXorBit( pInfo, iBit );
+            if ( ((pInfo[iBit >> 5] >> (iBit & 31)) & 1) == Abc_LitIsCompl(iLit) )
+                pInfo[iBit >> 5] ^= 1u << (iBit & 31);
         }
         if ( ++iBit == nBits )
             break;
@@ -1076,6 +1111,14 @@ int Cec_ManResimulateCounterExamples( Cec_ManSim_t * pSim,
     if ( Cec_ScorrProfOn ) Cec_ScorrProfSimRemap = Abc_ClockHr() - tH;
     while ( iStart < Vec_IntSize(vCexStore) )
     {
+        // Apply all SAT counterexamples before honoring legacy timeouts.
+        // Only the explicit work cap may discard a batch; its caller must
+        // reject the incomplete correspondence instead of reducing with it.
+        if ( !Cec_ParCorReserveWork(pCorPars, pSim->pAig, nFrames, pSim->pPars->nWords) )
+        {
+            if ( pCorPars ) pCorPars->fIncomplete = 1;
+            break;
+        }
         if ( pSeed )
         {
             int LocalStatus;
@@ -1232,7 +1275,7 @@ int Cec_ManResimulateCounterExamples( Cec_ManSim_t * pSim,
     }
     if ( Cec_ScorrProfOn ) Cec_ScorrProfSimRun = Abc_ClockHr() - tH - Cec_ScorrProfSimRemap;
 //Gia_ManEquivPrintOne( pSim->pAig, 85, 0 );
-    assert( iStart == Vec_IntSize(vCexStore) );
+    assert( iStart == Vec_IntSize(vCexStore) || (pCorPars && pCorPars->fIncomplete) );
     Vec_IntFreeP( &vOutBits );
     if ( !pSeed )
         Vec_PtrFree( vSimInfo );
@@ -1606,8 +1649,12 @@ void Cec_ManLSCorrespondenceBmc( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nPr
         int * pTfoMask = NULL;
         int nReprSeeds = 0, nTotalPairs = 0, nActivePairs = 0;
         int nBmcPos = 0;
-        if ( Cec_ParCorShouldStop( pPars ) )
+        if ( Cec_ParCorShouldStop(pPars) || !Cec_ParCorReserveWork(pPars, pAig, nBmcResimFrames, 1) )
+        {
+            pPars->fIncomplete = 1;
+            pPars->fCompleted = 0;
             break;
+        }
         abctime clkBmc = Abc_Clock();
         tWall0 = Abc_ClockHr();
         memset( &Prof, 0, sizeof(Prof) );
@@ -1802,7 +1849,11 @@ void Cec_ManLSCorrespondenceBmc( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nPr
             Cec_ScorrProfPrint( "bmc", i, Prof.nSatCalls, &Prof );
         Cec_ScorrProfAdd( &Total, &Prof );
         if ( Cec_ParCorShouldStop( pPars ) )
+        {
+            pPars->fIncomplete = 1;
+            pPars->fCompleted = 0;
             break;
+        }
     }
     if ( pPars->fVeryVerbose )
         Cec_ScorrProfPrint( "bmc", -1, Total.nSatCalls, &Total );
@@ -2023,6 +2074,8 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     pPars->fIncomplete = 0;
     pPars->fCompleted  = 0;
     pPars->nRoundsDone = 0;
+    pPars->nWorkUsed   = 0;
+    pPars->fWorkStop   = 0;
     if ( Gia_ManRegNum(pAig) == 0 )
     {
         Abc_Print( 1, "Cec_ManLatchCorrespondence(): Not a sequential AIG.\n" );
@@ -2039,6 +2092,15 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     pParsSim->fLatchCorr = pPars->fLatchCorr;
     pParsSim->fConstCorr = pPars->fConstCorr;
     pParsSim->fSeqSimulate = 1;
+    // Class preparation uses four rounds at widths1,3,7,...,nWords
+    // (less than8*nWords), followed by nRounds full-width refinements.
+    // Reserve their upper bound before entering these simulation routines.
+    if ( Cec_ParCorShouldStop(pPars) || !Cec_ParCorReserveWork(pPars, pAig, pPars->nFrames,
+         (word)Abc_MaxInt(1, pPars->nWords) * (pAig->pReprs ? 1 : pParsSim->nRounds + 8)) )
+    {
+        pPars->fIncomplete = 1;
+        return 0;
+    }
     // create equivalence classes of registers
     pSim = Cec_ManSimStart( pAig, pParsSim );
     if ( pAig->pReprs == NULL )
@@ -2075,7 +2137,8 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     if ( pPars->nStepsMax == 0 )
     {
         pPars->fIncomplete = 1;
-        Abc_Print( 1, "Stopped signal correspondence after BMC.\n" );
+        if ( pPars->fVerbose )
+            Abc_Print( 1, "Stopped signal correspondence after BMC.\n" );
         Cec_ProfCorFinishClasses( pPars, &Total, clkProfClasses, 0 );
         Cec_ManSimStop( pSim );
         return 1;
@@ -2107,7 +2170,7 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     // perform refinement of equivalence classes
     for ( r = 0; r < nIterMax; r++ )
     {
-        if ( Cec_ParCorShouldStop( pPars ) )
+        if ( Cec_ParCorShouldStop(pPars) || !Cec_ParCorReserveWork(pPars, pAig, pPars->nFrames + 1 + nAddFrames, 1) )
         {
             pPars->fIncomplete = 1;
             Cec_ProfCorFinishClasses( pPars, &Total, clkProfClasses, clkProfInd );
@@ -2125,7 +2188,8 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
             Cec_DynSrmFree( pDynSrm );
             Cec_IncrMgrFree( pMgr );
             Cec_SeedSimFree( pSeedSim );
-            Abc_Print( 1, "Stopped signal correspondence after %d refiment iterations.\n", r );
+            if ( pPars->fVerbose )
+                Abc_Print( 1, "Stopped signal correspondence after %d refinement iterations.\n", r );
             return 1;
         }
         clk = Abc_Clock();
@@ -2627,7 +2691,7 @@ unsigned * Cec_ManComputeInitState( Gia_Man_t * pAig, int nFrames )
     Gia_ManForEachRo( pAig, pObj, i )
     {
         if ( pObj->fMark1 )
-            Abc_InfoSetBit( pInitState, i );
+            pInitState[i >> 5] |= 1u << (i & 31);
 //        Abc_Print( 1, "%d", pObj->fMark1 );
     }
 //    Abc_Print( 1, "\n" );
@@ -2691,7 +2755,8 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     if ( pPars->nPrefix == 0 )
     {
         RetValue = Cec_ManLSCorrespondenceClasses( pAig, pPars );
-        if ( RetValue == 0 )
+        // Interrupted candidates have not reached an inductive fixed point.
+        if ( RetValue == 0 || pPars->fWorkStop || (pPars->fIncomplete && !pPars->fCompleted) )
         {
             clkProfReduce = pPars->pProfile ? Abc_ClockHr() : 0;
             pNew = Gia_ManDup( pAig );
@@ -2708,6 +2773,11 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         ABC_FREE( pInitState );
         // compute classes of this AIG
         RetValue = Cec_ManLSCorrespondenceClasses( pTemp, pPars );
+        if ( RetValue == 0 || pPars->fWorkStop || (pPars->fIncomplete && !pPars->fCompleted) )
+        {
+            Gia_ManStop( pTemp );
+            return Gia_ManDup( pAig );
+        }
         // transfer the class info
         pAig->pReprs = pTemp->pReprs; pTemp->pReprs = NULL;
         pAig->pNexts = pTemp->pNexts; pTemp->pNexts = NULL;
@@ -2726,6 +2796,9 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         pAig->pNexts = pTemp->pNexts; pTemp->pNexts = NULL;
 */
         Gia_ManStop( pTemp );
+        // A proof from the prefix state still needs the initial-state check.
+        if ( pPars->fWorkStop || (pPars->fIncomplete && !pPars->fCompleted) )
+            return Gia_ManDup( pAig );
     }
     // derive reduced AIG
     clkProfReduce = pPars->pProfile ? Abc_ClockHr() : 0;

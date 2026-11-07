@@ -7680,6 +7680,58 @@ SOURCE=.\src\proof\fraig\fraigUtil.c
 SOURCE=.\src\proof\fraig\fraigVec.c
 # End Source File
 # End Group
+# Begin Group "imc"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\proof\imc\imc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\imc\imcCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\imc\imcHoud.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\imc\imcInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\imc\imcPred.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\imc\imcPrep.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\imc\imcProof.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\imc\imcRwr.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\imc\imcSat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\imc\imcSim.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\imc\imcUnroll.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\imc\imcWalk.c
+# End Source File
+# End Group
 # Begin Group "int"
 
 # PROP Default_Filter ""

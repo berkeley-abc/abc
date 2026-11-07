@@ -118,6 +118,8 @@ void Dch_ManSweep( Dch_Man_t * p )
     pProgress = Bar_ProgressStart( stdout, Aig_ManObjNumMax(p->pAigTotal) );
     Aig_ManForEachNode( p->pAigTotal, pObj, i )
     {
+        if ( p->pAigTotal->Time2Quit && Abc_Clock() >= p->pAigTotal->Time2Quit )
+            break;
         Bar_ProgressUpdate( pProgress, i, NULL );
         if ( Dch_ObjFraig(Aig_ObjFanin0(pObj)) == NULL || 
              Dch_ObjFraig(Aig_ObjFanin1(pObj)) == NULL )

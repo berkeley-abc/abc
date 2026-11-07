@@ -199,6 +199,9 @@ struct Cec_ParCor_t_
     int              nConfTotal;    // total conflicts across this correspondence call (0 = unlimited)
     long long        nConfUsed;     // output: exact conflicts/backtracks consumed
     int              fConfStop;     // output: total conflict cap was reached
+    word             nWorkLimit;    // optional structural node/word/frame budget (0 = unlimited)
+    word             nWorkUsed;     // output: work reserved before construction/simulation passes
+    int              fWorkStop;     // output: the next structural pass exceeded the budget
     int              fIncomplete;   // output: correspondence stopped before convergence
     int              fCompleted;    // output: standard base+induction refinement converged
     int              nRoundsDone;   // output: completed induction refinement rounds

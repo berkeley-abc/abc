@@ -17,10 +17,12 @@
 ***********************************************************************/
 
 #include "abcc.h"
+#include <errno.h>
 #include "base/main/mainInt.h"
 #include "aig/gia/giaAig.h"
 #include "sat/bmc/bmc.h"
 #include "proof/int/int.h"
+#include "proof/imc/imc.h"
 #include "proof/pdr/pdr.h"
 #include "proof/pdr2/pdr2.h"
 #include "bdd/llb/llb.h"
@@ -45,6 +47,7 @@ static int Abc_CommandBmc                    ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandBmc2                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBmc3                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBmcInter               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Int                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIndcut                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandInduction              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPdr                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -127,6 +130,7 @@ void Abc_InitVerify( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&sprove2",      Abc_CommandAbc9SProve2,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmc",          Abc_CommandAbc9Bmc,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmcs",         Abc_CommandAbc9SBmc,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&int",          Abc_CommandAbc9Int,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&chainbmc",     Abc_CommandAbc9ChainBmc,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bcore",        Abc_CommandAbc9BCore,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&icheck",       Abc_CommandAbc9ICheck,       0 );
@@ -1918,6 +1922,132 @@ usage:
     Abc_Print( -2, "\t-d     : toggle dropping (replacing by 0) SAT outputs (with -k is used) [default = %s]\n", pPars->fDropSatOuts? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs interpolation-based safety checking on the current GIA.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Int( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Imc_Par_t Pars, * pPars = &Pars;
+    int c, fSelected = 0;
+    Imc_ManSetDefaultParams( pPars );
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "TFCBPmbcdiprgsaeulnqzjwoxvh")) != EOF )
+    {
+        if ( strchr("mbdiprgsaeulqjwox", c) )
+            fSelected = 1;
+        switch ( c )
+        {
+        case 'T':
+        case 'F':
+        case 'C':
+        case 'B':
+        {
+            char * pEnd;
+            long Value;
+            if ( globalUtilOptind >= argc )
+                goto usage;
+            errno = 0;
+            Value = strtol( argv[globalUtilOptind], &pEnd, 10 );
+            if ( errno == ERANGE || pEnd == argv[globalUtilOptind] || *pEnd || Value < 0 || Value > INT_MAX )
+                goto usage;
+            globalUtilOptind++;
+            if ( c != 'T' && Value ) fSelected = 1;
+            if ( c == 'T' ) pPars->nTimeOut = (int)Value;
+            if ( c == 'F' ) pPars->nFrameMax = (int)Value;
+            if ( c == 'C' ) pPars->nConfLimit = (int)Value;
+            if ( c == 'B' ) pPars->nBddMax = (int)Value;
+            break;
+        }
+        case 'P': pPars->fPortfolio ^= 1; break;
+        case 'm': pPars->fUseMiniSat ^= 1; break;
+        case 'b': pPars->fBackward ^= 1; break;
+        case 'c': pPars->fCheck ^= 1; break;
+        case 'd': pPars->fDual ^= 1; break;
+        case 'i': pPars->fInductive ^= 1; break;
+        case 'p': pPars->fPudlak ^= 1; break;
+        case 'r': pPars->fUseDelta ^= 1; break;
+        case 'g': pPars->fGrowFrames ^= 1; break;
+        case 's': pPars->fSweep ^= 1; break;
+        case 'a': pPars->fAutoItp ^= 1; break;
+        case 'e': pPars->fCompose ^= 1; break;
+        case 'u': pPars->fPreprocess ^= 1; break;
+        case 'l': pPars->fIncremental ^= 1; break;
+        case 'n': pPars->fSimulate ^= 1; break;
+        case 'q': pPars->fResetPrefix ^= 1; break;
+        case 'z': pPars->fSeqSweep ^= 1; break;
+        case 'j': pPars->fMinimize ^= 1; break;
+        case 'w': pPars->fWeaken ^= 1; break;
+        case 'o': pPars->fPredicates ^= 1; break;
+        case 'x': pPars->fAbstract ^= 1; break;
+        case 'v': pPars->fVerbose ^= 1; break;
+        default: goto usage;
+        }
+    }
+    if ( fSelected )
+        pPars->fPortfolio = 0;
+    if ( globalUtilOptind != argc )
+        goto usage;
+    if ( !Imc_ManCheckParams(pPars) )
+        return 1;
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Int(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( Gia_ManPoNum(pAbc->pGia) != 1 || pAbc->pGia->nConstrs )
+    {
+        Abc_Print( -1, "&int requires one property. Use \"fold; &get\" to fold constraints.\n" );
+        return 1;
+    }
+    pAbc->Status = Imc_ManPerform( pAbc->pGia, pPars );
+    pAbc->nFrames = pPars->iFrame;
+    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &int [-TFCB <num>] [-Pmbcdiprgsaeulnqzjwoxvh]\n" );
+    Abc_Print( -2, "\t           interpolation-based model checking of one safety property\n" );
+    Abc_Print( -2, "\t           inspired by Niklas Een's ,imc implementation in ZZ/Bip\n" );
+    Abc_Print( -2, "\t-T <num> : total runtime limit in seconds (0 = unlimited) [default = %d]\n", pPars->nTimeOut );
+    Abc_Print( -2, "\t-F <num> : maximum suffix depth (0 = unlimited) [default = %d]\n", pPars->nFrameMax );
+    Abc_Print( -2, "\t-C <num> : conflicts per image/induction/check query (0 = unlimited) [default = %d]\n", pPars->nConfLimit );
+    Abc_Print( -2, "\t-B <num> : total live BDD node limit (0 = disabled) [default = %d]\n", pPars->nBddMax );
+    Abc_Print( -2, "\t-P       : toggle automatic schedule (engine options/nonzero -FCB disable it) [default = %s]\n", pPars->fPortfolio ? "yes" : "no" );
+    Abc_Print( -2, "\t-m       : toggle using MiniSat instead of CaDiCaL [default = %s]\n", pPars->fUseMiniSat ? "yes" : "no" );
+    Abc_Print( -2, "\t-b       : toggle backward interpolation [default = %s]\n", pPars->fBackward ? "yes" : "no" );
+    Abc_Print( -2, "\t-c       : toggle independent interpolant and invariant checks [default = %s]\n", pPars->fCheck ? "yes" : "no" );
+    Abc_Print( -2, "\t-d       : toggle dual McMillan interpolation [default = %s]\n", pPars->fDual ? "yes" : "no" );
+    Abc_Print( -2, "\t-i       : toggle induction instead of combinational containment [default = %s]\n", pPars->fInductive ? "yes" : "no" );
+    Abc_Print( -2, "\t-p       : toggle Pudlak interpolation for CaDiCaL [default = %s]\n", pPars->fPudlak ? "yes" : "no" );
+    Abc_Print( -2, "\t-r       : toggle images of states outside the previous union [default = %s]\n", pPars->fUseDelta ? "yes" : "no" );
+    Abc_Print( -2, "\t-g       : toggle growing the suffix using the image depth [default = %s]\n", pPars->fGrowFrames ? "yes" : "no" );
+    Abc_Print( -2, "\t-s       : toggle bounded SAT sweeping of interpolants [default = %s]\n", pPars->fSweep ? "yes" : "no" );
+    Abc_Print( -2, "\t-a       : toggle selecting a small interpolant from each LRAT proof [default = %s]\n", pPars->fAutoItp ? "yes" : "no" );
+    Abc_Print( -2, "\t-e       : toggle composing and simplifying backward image queries [default = %s]\n", pPars->fCompose ? "yes" : "no" );
+    Abc_Print( -2, "\t-u       : toggle CaDiCaL preprocessing and search defaults [default = %s]\n", pPars->fPreprocess ? "yes" : "no" );
+    Abc_Print( -2, "\t-l       : toggle incremental CaDiCaL with LIDRUP proofs [default = %s]\n", pPars->fIncremental ? "yes" : "no" );
+    Abc_Print( -2, "\t-n       : toggle counterexample simulation [default = %s]\n", pPars->fSimulate ? "yes" : "no" );
+    Abc_Print( -2, "\t-q       : toggle reset-based bounded-prefix encoding [default = %s]\n", pPars->fResetPrefix ? "yes" : "no" );
+    Abc_Print( -2, "\t-z       : toggle bounded sequential equivalence preprocessing [default = %s]\n", pPars->fSeqSweep ? "yes" : "no" );
+    Abc_Print( -2, "\t-j       : toggle bounded proof-core minimization [default = %s]\n", pPars->fMinimize ? "yes" : "no" );
+    Abc_Print( -2, "\t-w       : toggle weakening interpolants with UNSAT cores [default = %s]\n", pPars->fWeaken ? "yes" : "no" );
+    Abc_Print( -2, "\t-o       : toggle sharing compound state predicates [default = %s]\n", pPars->fPredicates ? "yes" : "no" );
+    Abc_Print( -2, "\t-x       : toggle matching state predicates and Houdini induction (off = concrete states) [default = %s]\n", pPars->fAbstract ? "yes" : "no" );
+    Abc_Print( -2, "\t-v       : toggle verbose output [default = %s]\n", pPars->fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n" );
+    Abc_Print( -2, "\t           -m excludes -p/-l/-u/-a/-j; -l excludes -a/-j\n" );
+    Abc_Print( -2, "\t           Example: &r property.aig; &int -T 60; print_status\n" );
     return 1;
 }
 

@@ -245,7 +245,7 @@ void Mem_FixedEntryRecycle( Mem_Fixed_t * p, char * pEntry )
 
   Synopsis    []
 
-  Description [Relocates all the memory except the first chunk.]
+  Description [Releases all chunks except the first and restarts its free list.]
                
   SideEffects []
 
@@ -423,7 +423,7 @@ char * Mem_FlexEntryFetch( Mem_Flex_t * p, int nBytes )
 
   Synopsis    []
 
-  Description [Relocates all the memory except the first chunk.]
+  Description [Releases every chunk and resets the allocation counters.]
                
   SideEffects []
 
@@ -433,16 +433,13 @@ char * Mem_FlexEntryFetch( Mem_Flex_t * p, int nBytes )
 void Mem_FlexRestart( Mem_Flex_t * p )
 {
     int i;
-    if ( p->nChunks == 0 )
-        return;
-    // deallocate all chunks except the first one
-    for ( i = 1; i < p->nChunks; i++ )
+    // Chunk zero may be smaller than the current chunk size after a large
+    // allocation. It cannot safely be reused with the enlarged bound.
+    for ( i = 0; i < p->nChunks; i++ )
         ABC_FREE( p->pChunks[i] );
-    p->nChunks  = 1;
-    p->nMemoryAlloc = p->nChunkSize;
-    // transform these entries into a linked list
-    p->pCurrent = p->pChunks[0];
-    p->pEnd     = p->pCurrent + p->nChunkSize;
+    p->nChunks  = 0;
+    p->nMemoryAlloc = 0;
+    p->pCurrent = p->pEnd = NULL;
     p->nEntriesUsed = 0;
     p->nMemoryUsed = 0;
 }
