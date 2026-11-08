@@ -72,12 +72,11 @@ void Sn_ForgetGiaDescriptor( struct Abc_Frame_t_ * pAbc );
 // convention, independent of how SystemVerilog writes ranges and concatenations.
 // Importers and writers must translate between the two conventions.
 //
-// All normal operators have one output, represented by the operator object
-// itself. A single-output module inst is represented the same way. A
-// multi-output module inst is immediately followed by one SN_FAN object
-// per output in the referenced module's natural SN_PO order. Every SN_FAN has
-// the inst as its sole fanin and stores nothing else; the invariant
-// fan_id == inst_id + 1 + output_index makes the output index derived.
+// Single-output operators and instances represent their own output. Multi-output
+// instances, library gates, and SN_FA have zero structural width and are followed
+// immediately by one SN_FAN per output. FANs have their owner as their sole fanin;
+// fan_id == owner_id + 1 + output_index. Instance/gate outputs follow port order;
+// SN_FA outputs are sum then unshifted carry, both unsigned words.
 //
 // UINT32_MAX denotes an illegal, unused, or not-yet-connected fanin. This lets
 // builders allocate objects before all dependencies have been translated.
@@ -329,6 +328,11 @@ enum sn_obj_type_enum
     // use adjacent FANs and a structural owner of width 0. Legacy Mio gates in
     // designs without a library remain single-output.
     SN_GATE,
+
+    // Vector full adder (3:2 compressor). Structural width zero, three
+    // equal-width unsigned inputs, and adjacent unsigned FANs: sum, carry.
+    // Carry is unshifted: A+B+C = sum + (carry << 1).
+    SN_FA,
 
     SN_OBJ_TYPE_COUNT
 };
@@ -1431,6 +1435,28 @@ static inline uint32_t sn_gate_output_count(const sn_module_t* module, sn_obj_id
     return module->design->library ? sn_library_port_count(module->design->library, sn_obj_gate_id(module, gate), SN_LIB_OUTPUT) : 1;
 }
 
+static inline bool sn_obj_type_has_outputs(sn_obj_type_t type)
+{
+    return type == SN_INST || type == SN_GATE || type == SN_FA;
+}
+
+static inline sn_obj_id_t sn_module_add_fa(sn_module_t* module, sn_obj_id_t a,
+                                            sn_obj_id_t b, sn_obj_id_t c, const char* name)
+{
+    uint32_t width = sn_obj_width(module, a);
+    assert(width && sn_obj_width(module, b) == width && sn_obj_width(module, c) == width);
+    assert(!sn_obj_is_signed(module, a) && !sn_obj_is_signed(module, b) && !sn_obj_is_signed(module, c));
+    sn_obj_id_t owner = sn_module_add_named_obj(module, SN_FA, 0, false, 3, name);
+    sn_obj_connect(module, owner, 0, a);
+    sn_obj_connect(module, owner, 1, b);
+    sn_obj_connect(module, owner, 2, c);
+    for (uint32_t i = 0; i < 2; ++i) {
+        sn_obj_id_t fan = sn_module_add_named_obj(module, SN_FAN, width, false, 1, NULL);
+        sn_obj_connect(module, fan, 0, owner);
+    }
+    return owner;
+}
+
 static inline sn_obj_id_t sn_module_add_library_gate(sn_module_t* module, uint32_t gate_id,
                                                      const sn_obj_id_t* inputs, const char* name,
                                                      const char* const* output_names)
@@ -2133,7 +2159,7 @@ static inline sn_obj_id_t sn_fan_owner(const sn_module_t* module, sn_obj_id_t fa
     assert(sn_obj_fanin_count(module, fan) == 1);
     sn_obj_id_t inst = sn_obj_fanin(module, fan, 0);
     assert(inst < fan);
-    assert(sn_obj_type(module, inst) == SN_INST || sn_obj_type(module, inst) == SN_GATE);
+    assert(sn_obj_type_has_outputs(sn_obj_type(module, inst)));
     return inst;
 }
 
@@ -2146,6 +2172,7 @@ static inline sn_obj_id_t sn_fan_inst_id(const sn_module_t* module, sn_obj_id_t 
 
 static inline uint32_t sn_owner_output_count(const sn_module_t* module, sn_obj_id_t owner)
 {
+    if (sn_obj_type(module, owner) == SN_FA) return 2;
     return sn_obj_type(module, owner) == SN_GATE ? sn_gate_output_count(module, owner) :
         sn_design_module_output_count(module->design, sn_inst_module_id(module, owner));
 }
@@ -2433,7 +2460,7 @@ static inline void sn_module_topo_visit(sn_topo_context_t* context, sn_obj_id_t 
         if (pushed)
             continue;
 
-        if (type == SN_INST || type == SN_GATE)
+        if (sn_obj_type_has_outputs(type))
         {
             *sn_vec_push(sn_obj_id_t, context->order) = object;
             context->marks[object] = SN_TOPO_DONE;
@@ -2598,7 +2625,7 @@ static inline bool sn_module_is_topo(const sn_module_t* module)
                 return false;
         }
 
-        if (type == SN_INST || type == SN_GATE)
+        if (sn_obj_type_has_outputs(type))
         {
             uint32_t child_outputs = sn_owner_output_count(module, object);
             if (child_outputs > 1)
@@ -3231,7 +3258,7 @@ static inline void sn_module_clean_topo_visit(sn_clean_topo_context_t* context, 
         }
         if (pushed)
             continue;
-        if (type == SN_INST || type == SN_GATE)
+        if (sn_obj_type_has_outputs(type))
         {
             *sn_vec_push(sn_obj_id_t, context->order) = object;
             context->marks[object] = SN_TOPO_DONE;
@@ -3546,11 +3573,11 @@ static inline bool sn_collapse_preserves_object(const sn_collapse_context_t* con
                                                 const sn_module_t* source, sn_obj_id_t object)
 {
     sn_obj_type_t type = sn_obj_type(source, object);
-    sn_obj_id_t inst = type == SN_INST || type == SN_GATE ? object : type == SN_FAN ? sn_fan_owner(source, object)
+    sn_obj_id_t inst = sn_obj_type_has_outputs(type) ? object : type == SN_FAN ? sn_fan_owner(source, object)
                                                                         : SN_INVALID_ID;
     if (inst == SN_INVALID_ID)
         return false;
-    if (sn_obj_type(source, inst) == SN_GATE)
+    if (sn_obj_type(source, inst) == SN_GATE || sn_obj_type(source, inst) == SN_FA)
         return true;
     const sn_module_t* child = sn_design_get_module_const(context->design, sn_inst_module_id(source, inst));
     if (sn_module_is_blackbox(child))
@@ -4950,7 +4977,7 @@ static inline void sn_module_write_verilog_as_named(FILE* out, const sn_module_t
             continue;
         if (type == SN_REG_OUT && port_registers && port_registers[object] != SN_INVALID_ID)
             continue;
-        if (type == SN_INST || type == SN_GATE)
+        if (sn_obj_type_has_outputs(type))
         {
             if (sn_owner_output_count(module, object) > 1)
                 continue;
@@ -5077,6 +5104,27 @@ static inline void sn_module_write_verilog_as_named(FILE* out, const sn_module_t
             }
             sn_write_verilog_gate_named_ctx(out, writer, object,
                 sn_write_verilog_unique_name(module, object, name_counts));
+        }
+        else if (type == SN_FA)
+        {
+            // Portable full-adder equations; no vendor primitive is required.
+            for (uint32_t output = 0; output < 2; ++output) {
+                fputs("  assign ", out);
+                sn_write_verilog_ref_ctx(out, writer, object + 1 + output);
+                fputs(" = (", out);
+                sn_write_verilog_ref_ctx(out, writer, sn_obj_fanin(module, object, 0));
+                fputs(output ? " & " : " ^ ", out);
+                sn_write_verilog_ref_ctx(out, writer, sn_obj_fanin(module, object, 1));
+                fputs(output ? ") | ((" : ") ^ ", out);
+                if (output) {
+                    sn_write_verilog_ref_ctx(out, writer, sn_obj_fanin(module, object, 0));
+                    fputs(" ^ ", out);
+                    sn_write_verilog_ref_ctx(out, writer, sn_obj_fanin(module, object, 1));
+                    fputs(") & ", out);
+                }
+                sn_write_verilog_ref_ctx(out, writer, sn_obj_fanin(module, object, 2));
+                fputs(output ? ");\n" : ";\n", out);
+            }
         }
         else if (sn_obj_type_is_operator(type))
         {
@@ -5394,7 +5442,7 @@ static inline void sn_design_write_verilog_file(const sn_design_t* design, const
 
 // The format version covers field-layout changes. This signature additionally binds every serialized object type to
 // its numeric value, so reordering the enum cannot silently reinterpret an otherwise same-sized binary design.
-static inline uint32_t sn_binary_layout_signature(void)
+static inline uint32_t sn_binary_layout_signature_count(uint32_t count)
 {
     static const sn_obj_type_t types[] = {
         SN_NONE,       SN_PI,          SN_PO,          SN_CONST0,      SN_CONST1,      SN_CONST,
@@ -5407,9 +5455,10 @@ static inline uint32_t sn_binary_layout_signature(void)
         SN_CASE_NE,    SN_WILDCARD_EQ, SN_WILDCARD_NE, SN_LT,          SN_LE,          SN_GT,
         SN_GE,         SN_SHL,         SN_SHR,         SN_ASHL,        SN_ASHR,         SN_MUX,
         SN_BMUX,       SN_PMUX,        SN_CONCAT,      SN_REPLICATE,   SN_SLICE,       SN_CAST,
-        SN_LUT,        SN_GATE};
+        SN_LUT,        SN_GATE,        SN_FA};
     uint32_t hash = UINT32_C(2166136261);
-    for (size_t i = 0; i < sizeof(types) / sizeof(types[0]); i++)
+    assert(count <= sizeof(types) / sizeof(types[0]));
+    for (size_t i = 0; i < count; i++)
     {
         hash ^= types[i];
         hash *= UINT32_C(16777619);
@@ -5417,6 +5466,11 @@ static inline uint32_t sn_binary_layout_signature(void)
         hash *= UINT32_C(16777619);
     }
     return hash;
+}
+
+static inline uint32_t sn_binary_layout_signature(void)
+{
+    return sn_binary_layout_signature_count(SN_OBJ_TYPE_COUNT);
 }
 
 typedef struct sn_binary_writer_t
@@ -5938,7 +5992,7 @@ static inline void sn_module_assert_valid(const sn_module_t* module)
         assert(sn_obj_fanin_count(module, fan) == 1);
         sn_obj_id_t inst = sn_obj_fanin(module, fan, 0);
         assert(inst < object_count);
-        assert(sn_obj_type(module, inst) == SN_INST || sn_obj_type(module, inst) == SN_GATE);
+        assert(sn_obj_type_has_outputs(sn_obj_type(module, inst)));
         assert(fan > inst);
         uint32_t output_index = fan - inst - 1;
         (void)output_index;
@@ -6166,7 +6220,7 @@ static inline bool sn_binary_fold_pairs_v9(sn_module_t* module, const sn_vec_t* 
 }
 
 static inline bool sn_binary_read_module(sn_binary_reader_t* reader, sn_design_t* design, sn_module_id_t expected_id,
-                                         uint32_t version, uint8_t* module_name_seen)
+                                          uint32_t version, uint8_t* module_name_seen, uint32_t type_count)
 {
     sn_name_id_t name = sn_binary_read_u32(reader);
     uint32_t flags = version >= 6 ? sn_binary_read_u32(reader) : SN_MODULE_NO_FLAGS;
@@ -6197,7 +6251,7 @@ static inline bool sn_binary_read_module(sn_binary_reader_t* reader, sn_design_t
     sn_binary_read_u32_vec(reader, &module->obj_data);
     sn_binary_read_u32_vec(reader, &module->name_ids);
     sn_binary_read_u32_vec(reader, &module->fanins);
-    for (uint32_t type = 0; type < SN_OBJ_TYPE_COUNT; type++)
+    for (uint32_t type = 0; type < type_count; type++)
         sn_binary_read_u32_vec(reader, &module->type_objects[type]);
     sn_vec_t old_reg_flags, old_mem_depths;
     sn_vec_init(&old_reg_flags);
@@ -6506,7 +6560,8 @@ static inline sn_design_t* sn_design_read_binary_raw_status(FILE* in, sn_binary_
         status = SN_BINARY_READ_MAGIC;
     else if (version < SN_BINARY_MIN_READ_VERSION || version > SN_BINARY_FORMAT_VERSION)
         status = SN_BINARY_READ_VERSION;
-    else if (layout_signature != sn_binary_layout_signature() || object_type_count != SN_OBJ_TYPE_COUNT ||
+    else if (!object_type_count || object_type_count > SN_OBJ_TYPE_COUNT ||
+             layout_signature != sn_binary_layout_signature_count(object_type_count) ||
              register_fanin_count != (version >= 8 ? SN_REG_FANIN_COUNT : SN_BINARY_V7_REG_FANIN_COUNT) ||
              memory_fanin_count != (version >= 8 ? SN_MEM_IN_FIXED_FANIN_COUNT : SN_BINARY_V7_MEM_OUT_FANIN_COUNT))
         status = SN_BINARY_READ_LAYOUT;
@@ -6618,7 +6673,7 @@ static inline sn_design_t* sn_design_read_binary_raw_status(FILE* in, sn_binary_
     if (reader.valid && module_count && !module_name_seen)
         reader.valid = false;
     for (sn_module_id_t i = 0; reader.valid && i < module_count; i++)
-        sn_binary_read_module(&reader, design, i, version, module_name_seen);
+        sn_binary_read_module(&reader, design, i, version, module_name_seen, object_type_count);
     free(module_name_seen);
     if (reader.valid && version < 12)
         reader.valid = sn_binary_upgrade_constants(design);

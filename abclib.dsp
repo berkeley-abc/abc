@@ -1334,7 +1334,15 @@ SOURCE=.\src\base\sn\snMux.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\sn\snMux4.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\sn\snNtk.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snOptArith.h
 # End Source File
 # Begin Source File
 
@@ -1355,6 +1363,10 @@ SOURCE=.\src\base\sn\snRetime.c
 # Begin Source File
 
 SOURCE=.\src\base\sn\snRetime.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\sn\snRewrite.h
 # End Source File
 # Begin Source File
 

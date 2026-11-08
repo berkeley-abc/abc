@@ -88,6 +88,23 @@ static inline uint64_t sn_dff_hash_mix(uint64_t hash, uint64_t value)
     return (hash ^ value) * UINT64_C(1099511628211);
 }
 
+// Both full-adder outputs are symmetric in all three inputs. Canonicalize only
+// their representative IDs, without changing the stored primitive pin order.
+static inline void sn_dff_fa_inputs(const sn_module_t* module, sn_obj_id_t object,
+                                    sn_obj_id_t* reps, sn_obj_id_t inputs[3])
+{
+    assert(sn_obj_type(module, object) == SN_FA && sn_obj_fanin_count(module, object) == 3);
+    for (uint32_t i = 0; i < 3; i++)
+        inputs[i] = sn_dff_rep(reps, sn_obj_fanin(module, object, i));
+    for (uint32_t i = 1; i < 3; i++)
+        for (uint32_t j = i; j && inputs[j] < inputs[j - 1]; j--)
+        {
+            sn_obj_id_t temp = inputs[j];
+            inputs[j] = inputs[j - 1];
+            inputs[j - 1] = temp;
+        }
+}
+
 // Objects the sharing pass may merge. Interface objects, state pairs, memory
 // ports, ordering boundaries, and insts (whose child may be an opaque black
 // box) keep their identity.
@@ -105,6 +122,15 @@ static inline uint64_t sn_dff_object_signature(const sn_module_t* module, sn_obj
     hash = sn_dff_hash_mix(hash, type);
     hash = sn_dff_hash_mix(hash, sn_obj_width(module, object));
     hash = sn_dff_hash_mix(hash, sn_obj_is_signed(module, object) ? 1 : 0);
+    if (type == SN_FA)
+    {
+        sn_obj_id_t inputs[3];
+        sn_dff_fa_inputs(module, object, reps, inputs);
+        // The owner has structural width zero; the FANs carry the word width.
+        hash = sn_dff_hash_mix(hash, sn_obj_width(module, sn_owner_output(module, object, 0)));
+        for (uint32_t i = 0; i < 3; i++) hash = sn_dff_hash_mix(hash, inputs[i]);
+        return hash;
+    }
     if (type == SN_CONST)
     {
         for (uint32_t i = 0; i < sn_const_word_count(sn_obj_width(module, object)); i++)
@@ -137,6 +163,17 @@ static inline bool sn_dff_objects_equal(const sn_module_t* module, sn_obj_id_t a
     if (type != sn_obj_type(module, b) || sn_obj_width(module, a) != sn_obj_width(module, b) ||
         sn_obj_is_signed(module, a) != sn_obj_is_signed(module, b))
         return false;
+    if (type == SN_FA)
+    {
+        sn_obj_id_t inputs_a[3], inputs_b[3];
+        if (sn_obj_width(module, sn_owner_output(module, a, 0)) !=
+            sn_obj_width(module, sn_owner_output(module, b, 0))) return false;
+        sn_dff_fa_inputs(module, a, reps, inputs_a);
+        sn_dff_fa_inputs(module, b, reps, inputs_b);
+        for (uint32_t i = 0; i < 3; i++)
+            if (inputs_a[i] != inputs_b[i]) return false;
+        return true;
+    }
     if (type == SN_CONST)
     {
         if (sn_obj_data(module, a) != sn_obj_data(module, b))
@@ -848,7 +885,7 @@ static inline bool sn_dff_analyze_module(sn_module_t* module, const sn_dff_map_o
                 sn_obj_type_t type = sn_obj_type(module, object);
                 if (!sn_dff_object_shareable(type))
                     continue;
-                if (options->fold_constants && object < original_count)
+                if (options->fold_constants && object < original_count && type != SN_FA)
                 {
                     bool build_const = false;
                     uint64_t const_value = 0;
@@ -906,6 +943,18 @@ static inline bool sn_dff_analyze_module(sn_module_t* module, const sn_dff_map_o
                 {
                     reps[object] = existing;
                     stats->merged_objects++;
+                    if (type == SN_FA)
+                    {
+                        // Share the entire two-output primitive as one group.
+                        // FANs cannot be hashed independently: sum and carry
+                        // have the same owner but different Boolean functions.
+                        for (uint32_t output = 0; output < 2; output++)
+                        {
+                            sn_obj_id_t fan = sn_owner_output(module, object, output);
+                            reps[fan] = sn_dff_rep(reps, sn_owner_output(module, existing, output));
+                            stats->merged_objects++;
+                        }
+                    }
                     changed = anything = true;
                 }
             }

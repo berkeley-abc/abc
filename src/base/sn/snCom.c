@@ -42,6 +42,8 @@
 #include "snMapLut.h"
 #include "snMapTech.h"
 #include "snMux.h"
+#include "snMux4.h"
+#include "snOptArith.h"
 #include "base/main/mainInt.h"
 #include "map/mio/mio.h"
 #include "misc/util/utilNam.h"
@@ -119,6 +121,8 @@ static int Sn_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandMapCell( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandSlang( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Sn_CommandOptArith( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Sn_CommandOptMux4( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandCheck( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Sn_CommandMapMem( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -656,7 +660,7 @@ static const char * Sn_ObjTypeNames[SN_OBJ_TYPE_COUNT] = {
     "+u", "-u", "~", "!", "&r", "~&r", "|r", "~|r", "^r", "~^r",
     "+", "-", "*", "/", "%", "**", "&", "|", "^", "~^", "&&", "||",
     "==", "!=", "===", "!==", "==?", "!=?", "<", "<=", ">", ">=", "<<", ">>", "<<<", ">>>",
-    "mux", "bmux", "pmux", "{,}", "repeat", "slice", "cast", "lut", "gate"
+    "mux", "bmux", "pmux", "{,}", "repeat", "slice", "cast", "lut", "gate", "fa"
 };
 
 static int Sn_DistribEntryCompare( const void * pLeft, const void * pRight )
@@ -884,7 +888,7 @@ static int Sn_DesignPrintCellArea( FILE * pOut, const sn_design_t * pDesign, sn_
             }
             else if ( Type >= SN_POS && Type <= SN_PMUX )
                 pCount = &Operators;
-            else if ( Type == SN_LUT )
+            else if ( Type == SN_LUT || Type == SN_FA )
                 pCount = &Operators;
             else if ( Type == SN_CONST0 || Type == SN_CONST1 || Type == SN_CONST )
                 pCount = &Constants;
@@ -1097,6 +1101,8 @@ void Sn_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New word level", "@aig_cost", Sn_CommandAigCost, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@partition", Sn_CommandPartition, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@collapse", Sn_CommandCollapse, 0 );
+    Cmd_CommandAdd( pAbc, "New word level", "@opt_arith", Sn_CommandOptArith, 0 );
+    Cmd_CommandAdd( pAbc, "New word level", "@opt_mux4", Sn_CommandOptMux4, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@retime", Sn_CommandRetime, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@map_mem", Sn_CommandMapMem, 0 );
     Cmd_CommandAdd( pAbc, "New word level", "@lower_mem", Sn_CommandLowerMem, 0 );
@@ -1350,6 +1356,124 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Rewrites word-level addition and subtraction trees.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Sn_CommandOptArith( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Sn_Man_t * current, * work;
+    sn_module_id_t root;
+    sn_opt_arith_stats_t stats;
+    const char * name = NULL;
+    int c, preview = 0, verbose = 0;
+    Extra_UtilGetoptReset();
+    while ((c = Extra_UtilGetopt(argc, argv, "M:nvh")) != EOF) {
+        if (c == 'M') name = globalUtilOptarg;
+        else if (c == 'n') preview ^= 1;
+        else if (c == 'v') verbose ^= 1;
+        else goto usage;
+    }
+    if (argc != globalUtilOptind) goto usage;
+    if (!Sn_CommandCheckDesign(pAbc)) return 1;
+    current = Sn_AbcGetMan(pAbc);
+    root = name ? sn_design_find_module(current->pDesign, name) : current->Top;
+    if (root == SN_INVALID_ID) { fprintf(pAbc->Err, "@opt_arith: module '%s' not found.\n", name); return 1; }
+    work = Sn_ManDup(current);
+    if (!work) return 1;
+    stats = sn_design_opt_arith(work->pDesign, root, verbose ? pAbc->Out : NULL);
+    if (!sn_design_check(work->pDesign, pAbc->Err, false)) { Sn_ManFree(work); return 1; }
+    fprintf(pAbc->Out, "@opt_arith: %zu carry-in additions in %zu module definitions%s.\n",
+            stats.carry_adds, stats.modules, preview ? " (preview; design unchanged)" : "");
+    fprintf(pAbc->Out, "@opt_arith: %zu CSA trees using %zu vector full adders%s.\n",
+            stats.csa_trees, stats.compressors, preview ? " (preview)" : "");
+    fprintf(pAbc->Out, "@opt_arith: %zu scalar carry-ins absorbed in CSA trees.\n", stats.absorbed_carries);
+    if (preview || (!stats.carry_adds && !stats.csa_trees)) { Sn_ManFree(work); return 0; }
+    Sn_ManAdvanceRevision(work);
+    Sn_AbcUpdateMan(pAbc, work);
+    return 0;
+usage:
+    Abc_Print(-2, "usage: @opt_arith [-M module] [-nvh]\n"
+                 "\t         fuses carry-ins and compresses word-level add/sub trees\n"
+                 "\t-M name : select module and reachable hierarchy [default = current top]\n"
+                 "\t-n      : toggle preview without changing SN or GIA [default = %s]\n"
+                 "\t-v      : toggle per-module rewrite counts [default = %s]\n"
+                 "\t-h      : print the command usage\n", preview ? "yes" : "no", verbose ? "yes" : "no");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Balances word-level muxes and compresses LUT4 data cones.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Sn_CommandOptMux4( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Sn_Man_t * current, * work;
+    sn_module_id_t root;
+    sn_mux4_stats_t stats;
+    const char * name = NULL;
+    int c, preview = 0, verbose = 0, area_only = 0, threshold = 0;
+    Extra_UtilGetoptReset();
+    while ((c = Extra_UtilGetopt(argc, argv, "M:L:anvh")) != EOF) {
+        if (c == 'M') name = globalUtilOptarg;
+        else if (c == 'L') {
+            char * end;
+            long value;
+            errno = 0;
+            value = strtol(globalUtilOptarg, &end, 10);
+            if (!*globalUtilOptarg || *end || errno == ERANGE || value < 0 || value > INT_MAX || value == 1) goto usage;
+            threshold = (int)value;
+        }
+        else if (c == 'n') preview ^= 1;
+        else if (c == 'v') verbose ^= 1;
+        else if (c == 'a') area_only ^= 1;
+        else goto usage;
+    }
+    if (argc != globalUtilOptind) goto usage;
+    if (!Sn_CommandCheckDesign(pAbc)) return 1;
+    current = Sn_AbcGetMan(pAbc);
+    root = name ? sn_design_find_module(current->pDesign, name) : current->Top;
+    if (root == SN_INVALID_ID) { fprintf(pAbc->Err, "@opt_mux4: module '%s' not found.\n", name); return 1; }
+    work = Sn_ManDup(current);
+    if (!work) return 1;
+    stats = sn_design_mux4_config(work->pDesign, root, verbose ? pAbc->Out : NULL, area_only != 0, (unsigned)threshold);
+    if (!sn_design_check(work->pDesign, pAbc->Err, false)) { Sn_ManFree(work); return 1; }
+    fprintf(pAbc->Out, "@opt_mux4: %zu triplets in %zu module definitions; %llu bus bits; estimated LUT4 saving %llu%s.\n",
+        stats.triplets, stats.modules, (unsigned long long)stats.bits, (unsigned long long)stats.savings,
+        preview ? " (preview; design unchanged)" : "");
+    fprintf(pAbc->Out, "@opt_mux4: %zu priority chains balanced; %s.\n", stats.chains,
+        area_only ? "area-only mode" : "depth-aware compression");
+    fprintf(pAbc->Out, "@opt_mux4: %zu delay-improving rotations.\n", stats.rotations);
+    fprintf(pAbc->Out, "@opt_mux4: %zu slice/replicate views exposed; %zu constant/repeated-leaf groups folded.\n", stats.views, stats.folds);
+    if (preview || (!stats.triplets && !stats.chains && !stats.rotations && !stats.views && !stats.folds)) { Sn_ManFree(work); return 0; }
+    Sn_ManAdvanceRevision(work);
+    Sn_AbcUpdateMan(pAbc, work);
+    return 0;
+usage:
+    Abc_Print(-2, "usage: @opt_mux4 [-M module] [-L num] [-anvh]\n"
+                 "\t         balances mux trees and compresses triplets for LUT4 mapping\n"
+                 "\t-M name : select module and reachable hierarchy [default = current top]\n"
+                 "\t-L num  : minimum priority-chain mux count; 0 chooses 8 for buses, 32 for scalars [default = 0]\n"
+                 "\t-a      : toggle area-only compression without depth guard [default = %s]\n"
+                 "\t-n      : toggle preview without changing SN or GIA [default = %s]\n"
+                 "\t-v      : toggle per-module rewrite counts [default = %s]\n"
+                 "\t-h      : print the command usage\n", area_only ? "yes" : "no", preview ? "yes" : "no", verbose ? "yes" : "no");
+    return 1;
+}
 static int Sn_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Sn_Man_t * p;

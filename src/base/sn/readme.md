@@ -578,6 +578,14 @@ constant zero fires permanently and is never treated as absent. The pass is hier
 verifies the structural invariants of its result on every design. Shift-register extraction is `@map_srl`; flop-cell
 legalization is a planned extension.
 
+Combinational sharing includes `SN_FA`: input permutations identify the same full
+adder, and the primitive plus its sum and carry FANs are merged together. Sum is
+matched only to sum and carry only to carry. This lets otherwise identical
+registers driven by separate compressors merge, and later iterations can share
+compressors whose inputs became identical through register merging. Controls,
+initialization, and width must still agree for register merging. `@map_dff -l`
+disables this sharing; `-m` disables register merging without disabling sharing.
+
 Memory mapping preserves read-to-write feedback through explicit `SN_LOOP_OUT` / `SN_LOOP_IN` ordering
 boundaries when replacing state objects with atomic primitive instances would otherwise introduce a parent-level
 cycle. Feed-forward instance inputs remain directly connected. These boundaries retain the original wires in
@@ -1071,6 +1079,224 @@ converted network; constant duplication/string lookup and abbreviated flop
 control records no longer access missing fanins. The legacy timing model and
 progress output remain unchanged.
 
+## Arithmetic rewriting
+
+`@opt_arith` explicitly rewrites arithmetic in the current SN hierarchy. It is
+not automatically invoked by reading, bit-blasting, or retiming.
+
+```text
+@opt_arith -n             # Preview on a private copy; leave SN and GIA unchanged
+@opt_arith                # Optimize modules reachable from the current top
+@opt_arith -M datapath -v # Select a definition and its reachable hierarchy
+```
+
+The initial rule recognizes unsigned, same-width nested additions with an
+unsigned one-bit carry, including either operand order and transparent
+zero-extension of the carry. For W-bit `a` and `b` it replaces `a+b+cin` with:
+
+```verilog
+wire [W:0] a_prime = {a, cin};
+wire [W:0] b_prime = {b, cin};
+wire [W:0] sum_prime = a_prime + b_prime;
+wire [W-1:0] sum = sum_prime[W:1];
+```
+
+This follows from `(2*a+cin)+(2*b+cin)=2*(a+b+cin)`, modulo the result width.
+The rule also recognizes `(a+cin)+b`. It requires the intermediate sum and any
+transparent wrappers around it to have a single use; it does not duplicate a
+shared adder. Signed arithmetic, sign-extended carries, intermediate truncation,
+and general multi-bit third operands are not rewritten by this first rule.
+
+A second rule collects single-use addition trees evaluated at the same result
+width, including signed, unsigned, and mixed-width operands. It replaces three
+or more operands by balanced layers of vector full adders and one final `SN_ADD`
+(Brent--Kung by default when blasted). Each layer compresses disjoint triples
+before consuming their outputs.
+
+The collector also follows single-use negations, constant left shifts, and
+small constant multiplies at the same result width. A multiply is expanded
+only when its signed-digit representation has at most four terms; accumulated
+shifts are limited to 31 and expansion is bounded. Other multiplies remain
+opaque. Terms are ordered by estimated arrival, active width, and low column,
+so equally early narrow terms in nearby columns tend to share a compressor.
+Each compressor spans only
+the possibly nonzero columns of its inputs, with zero padding outside that
+range. The arrival estimate uses operator type and width; it is not a timing
+analysis with library or wire delays.
+
+Larger trees are collected before carry-in fusion. An unsigned scalar term can
+occupy the otherwise zero low bit of a shifted compressor carry, so a sum such
+as `a+b+c+cin` needs one final carry-propagating adder. Same-width subtraction
+nodes are also collected at widths greater than one. Negated leaves are first
+extended or truncated according to their consuming operation, then complemented.
+Their unit corrections fill vacant carry bits; a remaining unit uses the final
+carry-in identity, while a larger remainder is compressed as one constant word.
+Literal leaves, including constants behind wiring, are added together with
+these corrections modulo the result width before compression. A combined zero
+disappears, and a combined one uses a vacant carry bit when available.
+One-bit additions and subtractions keep their existing XOR grouping.
+
+These are structural optimizations, not a guarantee of the best AIG or mapping
+for every word width and adder architecture. In particular, ripple adders and
+small or already-balanced trees can trade a few nodes or levels for the new
+structure. The default Brent--Kung model generally benefits on the tested wide
+add/sub trees; compare the chosen bit-blast and mapping flow when area or delay
+is critical.
+
+Each leaf is explicitly normalized to the sum's result width using the extension
+rule of its original consuming addition: sign extension only when both operands
+of that addition are signed, otherwise zero extension. Wider leaves are truncated
+to the result width. The normalized patterns are unsigned for `SN_FA`; the root
+retains its original signedness for downstream consumers. Extension is recorded
+separately for each use, so a shared value can be sign-extended in one sum and
+zero-extended in another without changing either sum's meaning.
+
+Width-preserving buffers and casts can be traversed, even when they change
+signedness. Shared intermediate sums, differently sized intermediate sums, and
+width-changing wrappers remain opaque leaves. In particular, a narrow sum that
+overflows before being widened is never replaced by a full-width sum of its
+original operands. Arithmetic remains modulo the original result width; the
+pass does not add precision to the RTL. There is no operand-width proximity
+threshold. Recognition of hand-written Boolean full-adder patterns is not
+performed.
+
+`SN_FA` is a word-wide 3:2 compressor, not a carry-propagating adder. It has
+three equal-width unsigned inputs and zero structural width. Two adjacent
+`SN_FAN` objects expose unsigned sum (output 0) and unshifted carry (output 1):
+
+```verilog
+assign sum   = (a ^ b) ^ c;
+assign carry = (a & b) | ((a ^ b) & c);
+```
+
+The identity is `a+b+c = sum + (carry << 1)`, with appropriate result widening.
+Width one is a scalar full adder; wider instances form one CSA layer, so no
+separate `SN_CSA` type is needed. Blasting computes and caches both outputs
+together using seven MiniAIG AND nodes per unconstrained bit; constants may
+simplify them. Verilog emission uses the portable equations above, without
+vendor cells. Re-import preserves behavior but need not rediscover `SN_FA`.
+Binary roundtrips retain the primitive; the reader also accepts pre-FA files.
+The writer always emits the extended type table and layout signature, including
+for designs without full adders. Pre-FA readers reject these new `.sn` files;
+portable Verilog is an exchange option when using an older reader.
+
+Ports, register order, initialization, memory boundaries, and hierarchy are
+preserved, including unused state. Dead combinational cones and retired named
+zero placeholders are removed when a changed module is rebuilt. Shared module
+definitions are optimized once and remain shared. Statistics distinguish fused
+carry-in additions from scalar carry-ins absorbed by compressor trees.
+Pre/post transition AIGs can be compared using `@blast -t` and `&cec`. The current
+GIA is untouched; installing a changed SN design advances its revision and
+invalidates stale extraction metadata. Preview and no-op runs preserve the
+current revision. The transformation checks its private result before install.
+
+The bit-blaster needs no special carry-in pattern handling: ordinary
+concatenate/add/slice operations implement the rewritten structure. The retimer
+keeps `SN_FA` as a fixed multi-output boundary, with zero output arrival and
+fixed input sinks, just like an opaque instance. Retiming across its sum and
+carry outputs requires explicit multi-output support and is not provided here.
+
+## Mux compression for 4-LUT mapping
+
+`@opt_mux4` is an optional word-level LUT4 preprocessor, distinct from the
+register-input path sharing performed by `@opt_mux`. It is based on the mux
+compression technique in Metzgen and Nancekievill's DAC 2005 paper,
+[Multiplexer Restructuring for FPGA Implementation Cost Reduction](https://people.eecs.berkeley.edu/~alanmi/publications/other/dac05_mux.pdf),
+and the local area-oriented mux restructuring used by ABC's `&blut` in
+`giaStr.c`. A word-level mux supplies the bus grouping directly.
+
+```text
+@slang design.v
+@opt_mux4 -n                 # Preview without changing SN or GIA
+@opt_mux4 -v                 # Transform reachable module definitions
+@map_lut -P 1 -S "&if -K 4"
+@write mapped.v
+```
+
+By default, the delay pass uses the critical-path mux rotations from `&blut -a`:
+find the latest-arriving data path, tentatively rotate path segments, evaluate
+their new selector logic, and commit an improving candidate. Recursive subtree
+optimization handles irregular trees as well as chains. The shared delay model
+tracks estimated LUT levels and the input budget in the current LUT, following
+`Str_Delay2/3` in `giaStr.c`. The subsequent triplet compression uses the same
+model and rejects estimated delay increases.
+
+Default mode also recognizes a restricted binary 4:1 case where the two recoded
+selectors are direct wires or complements. When all data and selectors come
+through wiring from primary or register inputs, it prices the two four-input
+cones without counting their shared signals twice. If the result occupies one
+more LUT pin at unchanged depth, the rewrite is accepted only when all uses
+reach outputs through same-width wiring. Internal consumers retain the stricter
+input-budget guard. Arbitrary arithmetic, reductions, and computed selectors
+retain the original conservative estimate. This avoids the observed depth
+regressions from applying the simpler two-cone estimate indiscriminately.
+
+Search is bounded to 128-mux trees and 8,192 candidate evaluations per tree;
+eligible subtrees of larger trees can still be optimized. Priority chains of
+8 or more muxes for words of at least four bits, or 32 otherwise, first use a
+fast ordered tournament of data and group-valid
+(any-select) signals. This retains logarithmic structural depth for long chains
+without an expensive path-pair search. Priority is preserved even when several
+selects are asserted. These are heuristic delay estimates, not a mapped-delay
+guarantee. No GIA is constructed by this command.
+
+`-L num` overrides the minimum chain length (at least 2). The default, 0,
+selects the width-dependent thresholds. Arrivals from arithmetic and reductions
+use width-dependent depth estimates; wiring has zero added delay.
+
+`@opt_mux4 -a` selects area-only compression: no balancing and no
+depth guard. This option is disabled by default. It can trade delay for area.
+
+`-M module` selects a module definition and its reachable hierarchy. Shared
+definitions are processed once. The pass preserves ports, registers, memory
+boundaries, and hierarchy. Shared internal muxes normally remain opaque. It
+works on native `SN_MUX` triplets, including all orientations of priority
+chains and balanced trees, through single-use same-width wiring wrappers.
+BMUX/PMUX expansion and recovery of buses from unrelated scalar muxes are not
+performed. Signed data words are allowed because the rewrite only selects bits
+without resizing them. Bounded slice/replicate distribution exposes additional
+mux trees before matching. A shared result may be distributed when all its
+users are live slices (at most 32) and their summed widths do not exceed the
+source width. Non-slice users and wider collections of slices block this step.
+Run register-control extraction and
+`@opt_mux` before `@opt_mux4`, since recoding replaces muxes by Boolean cones.
+
+Each triplet's three scalar controls are recoded into two shared binary
+controls `r,t`. For data words `D0..D3`, the replacement implements
+`q = r ? {W{t}} : (t ? D1 : D0)` and
+`y = r ? ((q & D3) | (~q & D2)) : q`. Thus each data bit has two four-input
+LUT cones. The generated data cones are Boolean operators, so later invocations
+do not mistake their internal logic for uncompressed muxes. Control functions
+use scalar LUTs or direct/complemented wires; no new SN primitive is needed.
+Recoded controls, their replicated words, and their complements are shared
+across buses with the same canonical selectors and truth tables. When all
+data leaves are replicated scalars, the data cone is scalar too and its result
+is replicated once. Portable Boolean Verilog is emitted
+normally. Ordinary BMUX nodes are deliberately not used for the data cones:
+their standard lowering would restore three independent muxes per bit.
+
+The acceptance estimate compares three LUT4s per data bit with two plus the
+shared control cost. Only strict estimated improvements are accepted. A tree
+dynamic program chooses disjoint connected triplets among the eligible
+candidates. A separate fold handles constant/repeated leaves when the resulting
+per-bit function has at most four inputs, for words up to 256 bits; identical
+constant output columns share logic. Other groups with constant leaves may use
+general recoding with a discounted saving estimate. Repeated nonconstant leaves
+that do not fit the small fold remain unchanged. Accepted triplet plans are
+emitted without a second profitability decision that could discard their
+covered members.
+The pass does not implement global bus discovery, a general priority-encoder
+optimizer, or the paper's four/five-node rotations for maximal triplet packing.
+
+Savings are heuristic: existing data/control sharing can change the actual
+mapping cost, and actual mapped delay is not guaranteed by the local estimate.
+The transformation is not enabled automatically and is intended for 4-LUT
+mapping, not a 6-LUT optimization. Start with direct `&if -K 4`; intermediate
+Boolean synthesis may change the exposed decomposition. Use `@blast -t` and
+`&cec` to compare pre/post transition AIGs. Preview and no-op runs preserve the
+SN revision; a changed design invalidates stale extraction metadata while
+leaving the current GIA untouched.
+
 ## Source files
 
 The package uses ABC-style filenames:
@@ -1098,6 +1324,8 @@ snMiniLut.h   MiniLUT analysis and SN_LUT reconstruction
 snMiniGate.h  mini-mapping and SN_GATE reconstruction
 snCom.c       ABC manager ownership and command handlers
 snRetime.c/h  forward/backward retiming, operator delays, control classes, and SAT initialization
+snMux4.h      bus-aware mux triplet compression for four-input LUT mapping
+snOptArith.h  unsigned carry-in fusion and width/sign-aware carry-save compression of addition trees
 ```
 
 The external frontend must compile against this directory through a configured include path. Representation changes

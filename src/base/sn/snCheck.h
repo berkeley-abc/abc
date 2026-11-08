@@ -97,6 +97,7 @@ static inline bool sn_check_name_is_emittable(const char* name)
 
 static inline int sn_check_fixed_fanin_count(sn_obj_type_t type)
 {
+    if (type == SN_FA) return 3;
     if (type == SN_PI || type == SN_CONST0 || type == SN_CONST1 || type == SN_CONST)
         return 0;
     if (type == SN_PO || type == SN_BUF || type == SN_FAN || type == SN_REG_OUT || type == SN_MEM_OUT ||
@@ -188,7 +189,7 @@ static inline bool sn_check_module_core(sn_check_ctx_t* ctx, const sn_module_t* 
         uint32_t name_id = sn_vec_at(uint32_t, &module->name_ids, object);
         bool type_valid = type > SN_NONE && type < SN_OBJ_TYPE_COUNT;
         SN_CHECK(ctx, module, object, type_valid, "object type %u is invalid", (unsigned)type);
-        SN_CHECK(ctx, module, object, (packed_width >> 1) != 0 || type == SN_INST || type == SN_GATE,
+        SN_CHECK(ctx, module, object, (packed_width >> 1) != 0 || sn_obj_type_has_outputs(type),
                  "object width is zero (only structural multi-output owners may have zero width)");
         SN_CHECK(ctx, module, object, stored_offset == offset, "fanin offset %u should be %zu", stored_offset, offset);
         SN_CHECK(ctx, module, object, offset <= module->fanins.size && count <= module->fanins.size - offset,
@@ -514,8 +515,12 @@ static inline void sn_check_instances(sn_check_ctx_t* ctx, const sn_module_t* mo
                                : SN_INVALID_ID;
         SN_CHECK(ctx, module, fan, inst < fan && inst < object_count &&
                      (sn_vec_at(sn_obj_type_t, &module->obj_types, inst) == SN_INST ||
-                      sn_vec_at(sn_obj_type_t, &module->obj_types, inst) == SN_GATE),
-                 "FAN fanin %u is not an earlier instance or gate", inst);
+                      sn_vec_at(sn_obj_type_t, &module->obj_types, inst) == SN_GATE ||
+                      sn_vec_at(sn_obj_type_t, &module->obj_types, inst) == SN_FA),
+                 "FAN fanin %u is not an earlier multi-output owner", inst);
+        if (inst < object_count && inst < fan && sn_obj_type(module, inst) == SN_FA)
+            SN_CHECK(ctx, module, fan, fan - inst <= 2,
+                     "FAN is outside its full-adder's adjacent output block");
         if (inst < object_count && inst < fan && sn_vec_at(sn_obj_type_t, &module->obj_types, inst) == SN_GATE)
         {
             uint32_t outputs = sn_gate_output_count(module, inst);
@@ -540,6 +545,24 @@ static inline void sn_check_instances(sn_check_ctx_t* ctx, const sn_module_t* mo
 
 static inline void sn_check_special_objects(sn_check_ctx_t* ctx, const sn_module_t* module)
 {
+    for (size_t i = 0; i < module->type_objects[SN_FA].size; ++i) {
+        sn_obj_id_t fa = sn_vec_at(sn_obj_id_t, &module->type_objects[SN_FA], i);
+        uint32_t w = sn_obj_width(module, sn_obj_fanin(module, fa, 0));
+        SN_CHECK(ctx, module, fa, sn_obj_width(module, fa) == 0 && !sn_obj_is_signed(module, fa),
+                 "full-adder owner must have zero unsigned structural width");
+        for (uint32_t k = 0; k < 3; ++k) {
+            sn_obj_id_t f = sn_obj_fanin(module, fa, k);
+            SN_CHECK(ctx, module, fa, w && sn_obj_width(module, f) == w && !sn_obj_is_signed(module, f),
+                     "full-adder inputs must have equal nonzero unsigned widths");
+        }
+        for (uint32_t k = 1; k <= 2; ++k) {
+            sn_obj_id_t f = fa + k;
+            SN_CHECK(ctx, module, fa, f < module->obj_types.size && sn_obj_type(module, f) == SN_FAN &&
+                     sn_obj_fanin_count(module, f) == 1 && sn_obj_fanin(module, f, 0) == fa &&
+                     sn_obj_width(module, f) == w && !sn_obj_is_signed(module, f),
+                     "full-adder output %u must be an adjacent unsigned FAN matching its input width", k - 1);
+        }
+    }
     size_t object_count = module->obj_types.size;
     for (size_t i = 0; i < module->type_objects[SN_REG_OUT].size; i++)
     {

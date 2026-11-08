@@ -1094,7 +1094,23 @@ static inline int* sn_blast_eval(sn_blast_ctx_t* ctx, sn_obj_id_t object)
     sn_obj_type_t type = sn_obj_type(m, object);
     uint32_t width = sn_obj_width(m, object);
     int* result = NULL;
-    if (type == SN_GATE)
+    if (type == SN_FA)
+    {
+        uint32_t w = sn_obj_width(m, object + 1);
+        int* a = sn_blast_eval(ctx, sn_obj_fanin(m, object, 0));
+        int* b = sn_blast_eval(ctx, sn_obj_fanin(m, object, 1));
+        int* c = sn_blast_eval(ctx, sn_obj_fanin(m, object, 2));
+        result = sn_blast_alloc_bits(2 * w);
+        for (uint32_t i = 0; i < w; ++i)
+            sn_blast_full_adder(ctx->aig, a[i], b[i], c[i], &result[w + i], &result[i]);
+    }
+    else if (type == SN_FAN && sn_obj_type(m, sn_fan_owner(m, object)) == SN_FA)
+    {
+        int* outputs = sn_blast_eval(ctx, sn_fan_owner(m, object));
+        result = sn_blast_alloc_bits(width);
+        sn_blast_copy(result, outputs + sn_fan_output_index(m, object) * width, width);
+    }
+    else if (type == SN_GATE)
     {
         const sn_expr_t* e = &m->design->library->functions[sn_obj_gate_id(m, object)];
         result = sn_blast_gate_expression(ctx, object, e);
@@ -1376,7 +1392,8 @@ static inline int* sn_blast_eval(sn_blast_ctx_t* ctx, sn_obj_id_t object)
     ctx->state[object] = 2;
     if (ctx->options.observe_object)
         ctx->options.observe_object(ctx->options.observe_context, m, object, ctx->aig, result,
-                                    type == SN_GATE ? sn_gate_output_count(m, object) : width);
+                                    type == SN_GATE ? sn_gate_output_count(m, object) :
+                                    type == SN_FA ? 2 * sn_obj_width(m, object + 1) : width);
     return result;
 }
 
@@ -1386,7 +1403,7 @@ static inline void sn_blast_check_module(const sn_module_t* module, sn_blast_opt
     for (sn_obj_id_t object = 0; object < module->obj_types.size; object++)
     {
         sn_obj_type_t type = sn_obj_type(module, object);
-        assert(type != SN_INST && (type != SN_FAN || sn_obj_type(module, sn_fan_owner(module, object)) == SN_GATE));
+        assert(type != SN_INST && (type != SN_FAN || sn_obj_type(module, sn_fan_owner(module, object)) != SN_INST));
         if (type == SN_LUT)
             assert(sn_obj_fanin_count(module, object) <= 6);
         if (type == SN_REG_OUT)
@@ -1691,6 +1708,7 @@ static inline sn_blast_hier_frame_t* sn_blast_hier_build_frame(sn_blast_hier_t* 
         uint32_t max_width = 1;
         for (sn_obj_id_t o = 0; o < object_count; o++) {
             uint32_t width = sn_obj_type(module, o) == SN_GATE ? sn_gate_output_count(module, o) : sn_obj_width(module, o);
+            if (sn_obj_type(module, o) == SN_FA) width = 2 * sn_obj_width(module, o + 1);
             if (width > max_width) max_width = width;
         }
         frame->blast.cycle_bits = (int*)calloc(max_width, sizeof(int));

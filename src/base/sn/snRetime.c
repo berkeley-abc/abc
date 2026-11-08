@@ -74,13 +74,15 @@ static unsigned char * Sn_RetLive(const sn_module_t * m)
 
   Synopsis    [Identifies RTL operators with modeled delay.]
 
-  Description [All RTL operators are timed, including those too large or unsuitable for a
-  move. Technology cells remain explicit black boxes in this RTL flow.]
+  Description [All single-output RTL operators are timed, including those too large or
+  unsuitable for a move. Technology cells and multi-output full adders remain
+  explicit black boxes in this RTL flow.]
 
 ***********************************************************************/
 static int Sn_RetTimed(const sn_module_t * m, sn_obj_id_t o)
 {
-    return sn_obj_type_is_operator(sn_obj_type(m, o)) && sn_obj_type(m, o) != SN_GATE;
+    return sn_obj_type_is_operator(sn_obj_type(m, o)) &&
+           sn_obj_type(m, o) != SN_GATE && sn_obj_type(m, o) != SN_FA;
 }
 
 /**Function*************************************************************

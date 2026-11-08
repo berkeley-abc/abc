@@ -243,7 +243,7 @@ static inline sn_obj_id_t sn_boundary_resolve_external(sn_boundary_regs_t* regs,
                 continue;
             }
         }
-        if (type == SN_FAN && sn_obj_type(module, sn_fan_owner(module, ref.object)) == SN_GATE)
+        if (type == SN_FAN && sn_obj_type(module, sn_fan_owner(module, ref.object)) != SN_INST)
         {
             sn_blast_hier_ref_t dependency = {ref.occurrence, sn_fan_owner(module, ref.object), 0};
             // Visiting the owner creates the complete adjacent output block.
@@ -326,12 +326,12 @@ static inline sn_obj_id_t sn_boundary_resolve_external(sn_boundary_regs_t* regs,
             stack.size--;
             continue;
         }
-        assert(type == SN_BUF || (type >= SN_POS && type <= SN_GATE));
+        assert(sn_obj_type_is_operator(type));
         frame->result = sn_module_dup_obj_skeleton(regs->result, module, ref.object);
         copies[ref.object] = frame->result;
         sn_module_dup_obj_metadata(regs->result, frame->result, module, ref.object);
-        if (type == SN_GATE && sn_gate_output_count(module, ref.object) > 1)
-            for (uint32_t output = 0; output < sn_gate_output_count(module, ref.object); output++)
+        if ((type == SN_GATE || type == SN_FA) && sn_owner_output_count(module, ref.object) > 1)
+            for (uint32_t output = 0; output < sn_owner_output_count(module, ref.object); output++)
             {
                 sn_obj_id_t old_fan = sn_owner_output(module, ref.object, output);
                 sn_obj_id_t fan = sn_module_dup_obj_skeleton(regs->result, module, old_fan);

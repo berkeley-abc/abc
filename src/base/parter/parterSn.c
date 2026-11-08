@@ -148,7 +148,7 @@ static int Prt_SnGroups( const sn_module_t * p, unsigned * pParent, char * pErro
             if ( Fanin == SN_INVALID_ID )
                 return Prt_SnError(pError,nError,"missing owner/pair for object %u",i);
             OtherType = sn_obj_type(p,Fanin);
-            if ( (Type == SN_FAN && OtherType != SN_INST && OtherType != SN_GATE) ||
+            if ( (Type == SN_FAN && !sn_obj_type_has_outputs((sn_obj_type_t)OtherType)) ||
                  (Type == SN_REG_OUT && OtherType != SN_REG_IN) ||
                  (Type == SN_MEM_OUT && OtherType != SN_MEM_IN) ||
                  (Type == SN_LOOP_OUT && OtherType != SN_LOOP_IN) ||
