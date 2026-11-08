@@ -20,6 +20,8 @@
 #include "base/main/mainInt.h"
 #include "aig/gia/giaAig.h"
 #include "proof/abs/abs.h"
+#include "opt/abs2/abs2.h"
+#include <errno.h>
 #include "bdd/llb/llb.h"
 #include "aig/saig/saig.h"
 
@@ -50,6 +52,7 @@ static int Abc_CommandAbc9AbsRefine          ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9GlaDerive          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GlaRefine          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GlaShrink          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Fla                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Gla                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Vta                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Vta2Gla            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -92,6 +95,8 @@ void Abc_InitAbstract( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "blockpo",       Abc_CommandBlockPo,          1 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&uif",          Abc_CommandAbc9Uif,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&genqbf",       Abc_CommandAbc9GenQbf,       0 );
+    Cmd_CommandAdd( pAbc, "Abstraction",  "&abs",          Abs2_Command,               0 );
+    Cmd_CommandAdd( pAbc, "Abstraction",  "&fla",          Abc_CommandAbc9Fla,          0 );
     Cmd_CommandAdd( pAbc, "Abstraction",  "&abs_create",   Abc_CommandAbc9AbsCreate,    0 );
     Cmd_CommandAdd( pAbc, "Abstraction",  "&abs_derive",   Abc_CommandAbc9AbsDerive,    0 );
     Cmd_CommandAdd( pAbc, "Abstraction",  "&abs_refine",   Abc_CommandAbc9AbsRefine,    0 );
@@ -1807,6 +1812,106 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Implements command &fla.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Fla( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Fla_Par_t Pars, * pPars = &Pars;
+    Abs_Par_t GlaPars;
+    Abc_Cex_t * pEmpty = NULL;
+    int c, Result, fSetStable = 0, fSetMode = 0;
+    Fla_ManSetDefaultParams( pPars );
+    Abs_ParSetDefaults( &GlaPars );
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "FTCBMKNPprcqiwvh")) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F': case 'T': case 'C': case 'B': case 'M': case 'K': case 'N': case 'P':
+        {
+            char * pEnd;
+            long Value;
+            if ( globalUtilOptind >= argc ) goto usage;
+            errno = 0;
+            Value = strtol( argv[globalUtilOptind++], &pEnd, 10 );
+            if ( errno || !argv[globalUtilOptind-1][0] || *pEnd || Value < 0 || Value > 100000000 ) goto usage;
+            if ( c == 'F' ) pPars->nFramesMax = (int)Value;
+            if ( c == 'T' ) pPars->nTimeOut = (int)Value;
+            if ( c == 'C' ) pPars->nConfLimit = (int)Value;
+            if ( c == 'B' ) { pPars->nFramesStable = (int)Value; fSetStable = 1; }
+            if ( c == 'M' ) { if ( Value > 8 ) goto usage; pPars->nSatMode = (int)Value; }
+            if ( c == 'K' ) { if ( Value && (Value < 3 || Value > 6) ) goto usage; pPars->nCutMax = (int)Value; }
+            if ( c == 'N' ) pPars->nCompactDepth = (int)Value;
+            if ( c == 'P' ) { if ( Value > 5 ) goto usage; pPars->nProveMode = (int)Value; fSetMode = 1; }
+            break;
+        }
+        case 'p': pPars->fUsePba ^= 1; break;
+        case 'r': pPars->fUseStart ^= 1; break;
+        case 'c': pPars->fRefineCex ^= 1; break;
+        case 'q': pPars->fUseThread ^= 1; break;
+        case 'i': pPars->fTrimPis ^= 1; break;
+        case 'w': pPars->fRewrite ^= 1; break;
+        case 'v': pPars->fVerbose ^= 1; break;
+        default: goto usage;
+        }
+    }
+    if ( globalUtilOptind != argc ) goto usage;
+    // Match GLA's stable-frame trigger and unmodified PDR2 defaults in
+    // concurrent mode. Explicit experiment settings take precedence.
+    if ( pPars->fUseThread )
+    {
+        if ( !fSetStable ) pPars->nFramesStable = GlaPars.nFramesNoChangeLim;
+        if ( !fSetMode ) pPars->nProveMode = 0;
+    }
+    if ( !pAbc->pGia || !Gia_ManPoNum(pAbc->pGia) || Gia_ManConstrNum(pAbc->pGia) )
+    {
+        Abc_Print( -1, "&fla requires an AIG with bad-state outputs and no constraints (use fold).\n" );
+        return 1;
+    }
+    if ( !Abs2_ManCheckZeroInit(pAbc->pGia) )
+    {
+        Abc_Print( -1, "&fla requires normalized zero initial states. Load AIGER with &read without -s.\n" );
+        return 1;
+    }
+    Abc_FrameReplaceCex( pAbc, &pEmpty );
+    Result = Gia_ManPerformFla( pAbc->pGia, pPars );
+    pAbc->Status = Result == -2 ? -1 : Result;
+    pAbc->nFrames = Result == 0 ? pAbc->pGia->pCexSeq->iFrame : pPars->iFrame;
+    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    return Result == -2;
+usage:
+    Abc_Print( -2, "usage: &fla [-FTCBMKNP <num>] [-prcqiwvh]\n" );
+    Abc_Print( -2, "\t           flop-level abstraction and verification using PDR2\n" );
+    Abc_Print( -2, "\t-F <num> : maximum BMC frames (0 = unlimited) [default = %d]\n", pPars->nFramesMax );
+    Abc_Print( -2, "\t-T <num> : wall-time limit in seconds (0 = unlimited) [default = %d]\n", pPars->nTimeOut );
+    Abc_Print( -2, "\t-C <num> : conflicts per query; limit ends BMC (0 = unlimited) [default = %d]\n", pPars->nConfLimit );
+    Abc_Print( -2, "\t-B <num> : stable frames before PDR2 (with -q: default %d) [default = %d]\n", GlaPars.nFramesNoChangeLim, pPars->nFramesStable );
+    Abc_Print( -2, "\t-M <num> : abstraction SAT mode (0..8, as in &abs) [default = %d]\n", pPars->nSatMode );
+    Abc_Print( -2, "\t-K <num> : CNF cut size (0=off, 3..6 leaves) [default = %d]\n", pPars->nCutMax );
+    Abc_Print( -2, "\t-N <num> : depth to start compact SAT numbering (0=off) [default = %d]\n", pPars->nCompactDepth );
+    Abc_Print( -2, "\t-P <num> : PDR2 mode (0=schedule, 1..5=experimental) [default = %d]\n", pPars->nProveMode );
+    Abc_Print( -2, "\t-p       : toggle proof-based pruning [default = %s]\n", pPars->fUsePba ? "yes" : "no" );
+    Abc_Print( -2, "\t-r       : toggle starting with the existing flop map [default = %s]\n", pPars->fUseStart ? "yes" : "no" );
+    Abc_Print( -2, "\t-c       : toggle refinement from PDR2 counterexamples [default = %s]\n", pPars->fRefineCex ? "yes" : "no" );
+    Abc_Print( -2, "\t-q       : toggle concurrent PDR2 (requires pthreads and TLS) [default = %s]\n", pPars->fUseThread ? "yes" : "no" );
+    Abc_Print( -2, "\t-i       : toggle removing unused abstraction inputs [default = %s]\n", pPars->fTrimPis ? "yes" : "no" );
+    Abc_Print( -2, "\t-w       : toggle DRW rewriting before proving [default = %s]\n", pPars->fRewrite ? "yes" : "no" );
+    Abc_Print( -2, "\t-v       : toggle per-frame statistics [default = %s]\n", pPars->fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n" );
+    Abc_Print( -2, "\t           Example: &read design.aig; &fla -q -T 30; print_status\n" );
+    return 1;
+}
+
 
 /**Function*************************************************************
 

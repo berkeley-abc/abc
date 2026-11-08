@@ -18,6 +18,8 @@
 
 #include "abcc.h"
 #include <errno.h>
+#include <limits.h>
+#include "proof/cec/cec.h"
 #include "base/main/mainInt.h"
 #include "aig/gia/giaAig.h"
 #include "sat/bmc/bmc.h"
@@ -28,6 +30,7 @@
 #include "bdd/llb/llb.h"
 #include "bdd/bbr/bbr.h"
 #include "base/wln/wln.h"
+#include "base/wlc/wlc.h"
 #include "base/sn/snRead.h"
 #include "base/sn/snGia.h"
 
@@ -67,6 +70,7 @@ static int Abc_CommandAbc9ReachY             ( Abc_Frame_t * pAbc, int argc, cha
 #endif
 static int Abc_CommandAbc9GroupProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MultiProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Kind               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SProve             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SProve2            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Bmc                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -77,9 +81,6 @@ static int Abc_CommandAbc9ICheck             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Bmci               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
-typedef struct Wlc_BstPar_t_ Wlc_BstPar_t;
-typedef struct Wlc_Ntk_t_    Wlc_Ntk_t;
-extern Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pPars );
 extern int Cec_GiaProveTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nTimeOut2, int nTimeOut3, int fUseUif, Wlc_Ntk_t * pWlc, int fVerbose, int fVeryVerbose, int fSilent, char * pReplayFile, char * pUfarArgs );
 extern int Cec_GiaReplayReadParams( char * pFileName, int * pnProcs, int * pnTimeOut, int * pnTimeOut2, int * pnTimeOut3, int * pfUseUif );
 extern int Cec_GiaReplayTest( Gia_Man_t * p, Wlc_Ntk_t * pWlc, char * pFileName, int fVerbose, int fVeryVerbose, int fSilent );
@@ -126,6 +127,7 @@ void Abc_InitVerify( Abc_Frame_t * pAbc )
 #endif
     Cmd_CommandAdd( pAbc, "ABC9",         "&gprove",       Abc_CommandAbc9GroupProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mprove",       Abc_CommandAbc9MultiProve,   0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&kind",         Abc_CommandAbc9Kind,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sprove",       Abc_CommandAbc9SProve,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sprove2",      Abc_CommandAbc9SProve2,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmc",          Abc_CommandAbc9Bmc,          0 );
@@ -2841,7 +2843,7 @@ usage:
     Abc_Print( -2, "\t-d     : toggle dumping the inductive invariant (with the solved design, see -I) [default = %s]\n", pPars->fDumpInv? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing very verbose information [default = %s]\n",                   pPars->fVeryVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-z     : toggle suppressing report about solved outputs [default = %s]\n",             pPars->fSilent? "yes": "no" );
+    Abc_Print( -2, "\t-z     : toggle silent solver execution [default = %s]\n",                           pPars->fSilent? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t         environment: PDR2_BMC=<sec> time limit of the BMC stage after the first slice (0 = none) [default = %d],\n", pPars->nBmcTime );
     Abc_Print( -2, "\t         PDR2_TIMEGEN=0|1|2 time generalization (off, frame infinity only, also frame jumps) [default = %d],\n", pPars->fTimeGen );
@@ -4071,6 +4073,96 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Runs the bounded induction precheck on the current Gia manager.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Kind( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Cec_ParKind_t Pars;
+    abctime clk;
+    int c, fSilent = 0;
+    Cec_ManKindSetDefaultParams( &Pars );
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "FCNTsvh")) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+        case 'C':
+        case 'N':
+        {
+            char * pArg, * pEnd;
+            long Value;
+            if ( globalUtilOptind >= argc ) goto usage;
+            pArg = argv[globalUtilOptind++];
+            errno = 0;
+            Value = strtol( pArg, &pEnd, 10 );
+            if ( errno || pEnd == pArg || *pEnd || Value < (c == 'F') || Value >= INT_MAX ) goto usage;
+            if ( c == 'F' ) Pars.nFramesMax = (int)Value;
+            if ( c == 'C' ) Pars.nConfLimit = (int)Value;
+            if ( c == 'N' ) Pars.nAndMax = (int)Value;
+            break;
+        }
+        case 'T':
+        {
+            char * pArg, * pEnd;
+            double Value;
+            if ( globalUtilOptind >= argc ) goto usage;
+            pArg = argv[globalUtilOptind++];
+            errno = 0;
+            Value = strtod( pArg, &pEnd );
+            if ( errno || pEnd == pArg || *pEnd || !(Value >= 0 && Value <= (double)INT_MAX / 1000) ) goto usage;
+            Pars.nTimeOutMs = (int)ceil( 1000 * Value );
+            break;
+        }
+        case 's': fSilent ^= 1; break;
+        case 'v': Pars.fVerbose ^= 1; break;
+        default: goto usage;
+        }
+    }
+    if ( globalUtilOptind != argc ) goto usage;
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "&kind: There is no AIG.\n" );
+        return 1;
+    }
+    Abc_CexFreeP( &pAbc->pGia->pCexComb );
+    Abc_CexFreeP( &pAbc->pGia->pCexSeq );
+    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    clk = Abc_Clock();
+    pAbc->Status = Cec_GiaKind( pAbc->pGia, &Pars );
+    pAbc->nFrames = Pars.iFrame;
+    if ( !fSilent )
+    {
+        Abc_Print( 1, "Kind result = %s.  K = %d.  SAT calls = %d.  Time = %.6f sec.\n",
+            pAbc->Status == 1 ? "UNSATISFIABLE" : "UNDECIDED", Pars.iFrame, Pars.nQueries,
+            (double)(Abc_Clock() - clk) / CLOCKS_PER_SEC );
+    }
+    return 0;
+usage:
+    Abc_Print( -2, "usage: &kind [-FCN <num>] [-T <sec>] [-svh]\n" );
+    Abc_Print( -2, "\t           bounded k-induction on zero-initialized registers\n" );
+    Abc_Print( -2, "\t-F <num> : maximum induction depth [default = %d]\n", Pars.nFramesMax );
+    Abc_Print( -2, "\t-C <num> : conflicts per query (0 = unlimited) [default = %d]\n", Pars.nConfLimit );
+    Abc_Print( -2, "\t-N <num> : maximum input AND count (0 = unlimited) [default = %d]\n", Pars.nAndMax );
+    Abc_Print( -2, "\t-T <sec> : total time limit, rounded up to ms (0 = unlimited) [default = %g]\n", Pars.nTimeOutMs / 1000.0 );
+    Abc_Print( -2, "\t-s       : toggle silent result reporting [default = %s]\n", fSilent ? "yes" : "no" );
+    Abc_Print( -2, "\t-v       : toggle reporting each proof obligation [default = %s]\n", Pars.fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n" );
+    Abc_Print( -2, "\t           Example: &read design.aig; &kind -T 1; print_status\n" );
+    Abc_Print( -2, "\t           Returns proved or undecided; &read normalizes initial values.\n" );
+    return 1;
+}
+
 
 /**Function*************************************************************
 

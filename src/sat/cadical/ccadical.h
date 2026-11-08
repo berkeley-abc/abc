@@ -51,6 +51,7 @@ void ccadical_freeze (CCaDiCaL *, int lit);
 int ccadical_frozen (CCaDiCaL *, int lit);
 void ccadical_melt (CCaDiCaL *, int lit);
 int ccadical_simplify (CCaDiCaL *);
+int ccadical_simplify_rounds (CCaDiCaL *, int rounds);
 int ccadical_vars (CCaDiCaL *);
 int ccadical_declare_more_variables (CCaDiCaL *, int number_of_vars);
 int ccadical_declare_one_more_variable (CCaDiCaL *);

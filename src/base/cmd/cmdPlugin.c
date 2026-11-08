@@ -27,12 +27,12 @@
 
 #include "base/abc/abc.h"
 #include "base/main/mainInt.h"
+#include "base/sn/sn.h"
 #include "cmd.h"
 #include "cmdInt.h"
 #include "misc/util/utilSignal.h"
 
 ABC_NAMESPACE_IMPL_START
-void Sn_ForgetGiaDescriptor( Abc_Frame_t * pAbc );
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///

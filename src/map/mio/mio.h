@@ -105,6 +105,7 @@ struct Mio_Cell2_t_
 ////////////////////////////////////////////////////////////////////////
 
 /*=== mio.c =============================================================*/
+extern void              Mio_IntallSimpleLibrary( void );
 extern void              Mio_UpdateGenlib( Mio_Library_t * pLib );
 extern int               Mio_UpdateGenlib2( Vec_Str_t * vStr, Vec_Str_t * vStr2, char * pFileName, int fVerbose );
 /*=== mioApi.c =============================================================*/

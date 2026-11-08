@@ -22,6 +22,7 @@
 #include "sat/xsat/xsat.h"
 #include "sat/satoko/satoko.h"
 #include "sat/cnf/cnf.h"
+#include "sat/kissat/kissatSolver.h"
 #include "proof/cec/cec.h"
 #include "opt/cut/cut.h"
 

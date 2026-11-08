@@ -30,6 +30,7 @@
 #include "proof/cec/cec.h"
 #include "proof/ssw/ssw.h"
 #include "proof/abs/abs.h"
+#include "opt/ufar/UfarCmd.h"
 
 
 #ifdef ABC_USE_PTHREADS
@@ -55,7 +56,6 @@ extern int Bmcg_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars );
 
 typedef struct Par_Share_t_ Par_Share_t;
 typedef struct Par_ThData_t_ Par_ThData_t;
-typedef struct Wlc_Ntk_t_ Wlc_Ntk_t;
 struct Cec_ScorrStop_t_;
 struct Cec_SproveTrace_t_;
 static int Cec_SProveCallback( void * pUser, int fSolved, unsigned Result );
@@ -66,8 +66,6 @@ static void Cec_GiaInitThreads( Par_ThData_t * ThData, int nWorkers, Gia_Man_t *
 static void Cec_GiaStopThreads( Par_ThData_t * ThData, pthread_t * WorkerThread, int nWorkers );
 #endif
 static int Cec_GiaWaitThreads( Par_ThData_t * ThData, int nWorkers, Gia_Man_t * p, int RetValue, int * pRetEngine );
-
-extern int Ufar_ProveWithTimeout( Wlc_Ntk_t * pNtk, int nTimeOut, int fVerbose, int (*pFuncStop)(int), int RunId, const char * pArgs );
 
 #ifndef ABC_USE_PTHREADS
 

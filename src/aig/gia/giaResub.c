@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "misc/extra/extra.h"
 #include "misc/vec/vecWec.h"
 #include "misc/vec/vecQue.h"
 #include "misc/vec/vecHsh.h"

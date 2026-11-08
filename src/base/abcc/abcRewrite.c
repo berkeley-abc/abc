@@ -24,6 +24,7 @@
 #include "bool/kit/kit.h"
 #include "opt/cut/cut.h"
 #include "opt/rar/rewire2Rar.h"
+#include "opt/rar/rewireRar.h"
 #include <errno.h>
 #include <limits.h>
 

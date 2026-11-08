@@ -399,7 +399,6 @@ extern void                 Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_St
 extern int                  Gia_ManCorr2SpecReal( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int f, int nPrefix );
 extern void                 Gia_ManCorr2SpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int f, int nPrefix );
 extern Gia_Man_t *          Gia_ManCorr2SpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_Int_t ** pvOutputs, int fRings, Vec_Int_t ** pvOutLits );
-extern Gia_Man_t *          Cec_ManLSCorrespondence2( Gia_Man_t * pAig, Cec_ParCor_t * pPars );
 extern void                 Cec_ManStartSimInfo( Vec_Ptr_t * vInfo, int nFlops );
 extern Vec_Int_t *          Gia_ManCorrCreateRemapping( Gia_Man_t * p );
 extern void                 Gia_ManCorrPerformRemapping( Vec_Int_t * vPairs, Vec_Ptr_t * vInfo );
@@ -527,7 +526,6 @@ extern abctime              Cec_SeedSimTimeEventRollback( Cec_SeedSim_t * p );
 extern abctime              Cec_SeedSimTimeEventInit( Cec_SeedSim_t * p );
 /*=== cecClass.c ============================================================*/
 extern int                  Cec_ManSimClassRemoveOne( Cec_ManSim_t * p, int i );
-extern void                 Cec_ManSimClassCreate( Gia_Man_t * p, Vec_Int_t * vClass );
 extern int                  Cec_ManSimCompareEqual( unsigned * p0, unsigned * p1, int nWords );
 extern int                  Cec_ManSimHashKey( unsigned * pSim, int nWords, int nTableSize );
 extern int                  Cec_ManSimClassesPrepare( Cec_ManSim_t * p, int LevelMax );

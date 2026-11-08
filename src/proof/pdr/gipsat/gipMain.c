@@ -380,7 +380,7 @@ int Gip_SolverSolve( Gip_Solver_t * p,
         return GIP_UNSAT;
     }
     // the deadline is checked on entry (and then periodically during the search)
-    if ( p->TimeLimit && Gip_SolverTimedOut(p) )
+    if ( (p->TimeLimit || p->pFuncStop) && Gip_SolverTimedOut(p) )
     {
         p->fCanceled = 1;
         return GIP_UNDEF;

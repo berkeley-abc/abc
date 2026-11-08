@@ -41,7 +41,7 @@ MODULES := \
 	src/misc/extra src/misc/mvc src/misc/st src/misc/util src/misc/nm \
 	src/misc/vec src/misc/hash src/misc/tim src/misc/bzlib src/misc/zlib \
 	src/misc/mem src/misc/bar src/misc/bbl src/misc/parse src/misc/btor \
-	src/opt/cut src/opt/fxu src/opt/fxch src/opt/rwr src/opt/mfs src/opt/sim \
+	src/opt/abs2 src/opt/cut src/opt/fxu src/opt/fxch src/opt/rwr src/opt/mfs src/opt/sim \
 	src/opt/ret src/opt/fret src/opt/res src/opt/lpk src/opt/nwk src/opt/rwt src/opt/rar \
 	src/opt/cgt src/opt/csw src/opt/dar src/opt/drw src/opt/dau src/opt/dsc src/opt/sfm src/opt/sbd src/opt/eslim src/opt/eslim2 src/opt/ufar src/opt/untk src/opt/util \
 	src/sat/bsat src/sat/xsat src/sat/satoko src/sat/csat src/sat/msat src/sat/psat src/sat/cnf src/sat/bmc src/sat/glucose src/sat/glucose2 src/sat/glucose3 src/sat/kissat src/sat/cadical \

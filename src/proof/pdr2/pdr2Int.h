@@ -292,9 +292,9 @@ static inline int          Pdr2_ManLitValue( Pdr2_Man_t * p, Gip_Solver_t * pSat
 // (a literal of a don't-care flop never does); a cube intersects them iff no literal excludes them
 static inline int          Pdr2_ManLitIsNonInit( Pdr2_Man_t * p, int Lit ) { return p->pInit[Abc_Lit2Var(Lit)] == Abc_LitIsCompl(Lit);    }
 static inline int          Pdr2_CubeIsInit( Pdr2_Man_t * p, Pdr2_Cube_t * pCube ) { int i; for ( i = 0; i < pCube->nLits; i++ ) if ( Pdr2_ManLitIsNonInit(p, pCube->Lits[i]) ) return 0; return 1; }
-// the global deadline only (not the slice limit: work that does not count propagations must not
+// The global deadline or cancellation (not the slice limit: work that does not count propagations must not
 // stop at slice ends, or a resumed run would not follow the trajectory of an uninterrupted one)
-static inline int          Pdr2_ManPastDeadline( Pdr2_Man_t * p )         { return p->timeLimit && Abc_Clock() > p->timeLimit;          }
+static inline int          Pdr2_ManPastDeadline( Pdr2_Man_t * p )         { return (p->timeLimit && Abc_Clock() > p->timeLimit) || (p->pPars->pFuncStop && p->pPars->pFuncStop(p->pPars->RunId)); }
 static inline int          Pdr2_LitsAreInit( Pdr2_Man_t * p, Vec_Int_t * vLits ) { int i, Lit; Vec_IntForEachEntry( vLits, Lit, i ) if ( Pdr2_ManLitIsNonInit(p, Lit) ) return 0; return 1; }
 
 ////////////////////////////////////////////////////////////////////////

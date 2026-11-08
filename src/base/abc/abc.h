@@ -612,6 +612,13 @@ extern ABC_DLL void               Abc_NodeGetCutsSeq( void * p, Abc_Obj_t * pObj
 extern ABC_DLL void *             Abc_NodeReadCuts( void * p, Abc_Obj_t * pObj );
 extern ABC_DLL void               Abc_NodeFreeCuts( void * p, Abc_Obj_t * pObj );
 /*=== abcDar.c ============================================================*/
+struct Aig_Man_t_;
+struct Saig_ParBmc_t_;
+struct Pdr_Par_t_;
+extern ABC_DLL struct Aig_Man_t_ * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+extern ABC_DLL Abc_Ntk_t *        Abc_NtkFromAigPhase( struct Aig_Man_t_ * pMan );
+extern ABC_DLL int                Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, struct Saig_ParBmc_t_ * pPars, int fOrDecomp );
+extern ABC_DLL int                Abc_NtkDarPdr( Abc_Ntk_t * pNtk, struct Pdr_Par_t_ * pPars );
 extern ABC_DLL int                Abc_NtkPhaseFrameNum( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkDarPrintCone( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkBalanceExor( Abc_Ntk_t * pNtk, int fUpdateLevel, int fVerbose );

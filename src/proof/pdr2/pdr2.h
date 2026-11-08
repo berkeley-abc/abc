@@ -91,11 +91,16 @@ struct Pdr2_Par_t_
     int fPreproc;         // simplify the design with signal correspondence (scorr) first
     int nPreprocTime;     // time limit of the simplification in seconds
     int fVerify;          // verify the inductive invariant when proved
+    int fVerifyComplete;  // with fVerify, reject incomplete verification (0 = retain master's deadline behavior)
     int fDumpInv;         // dump the inductive invariant
     int fVerbose;         // verbose output
     int fVeryVerbose;     // very verbose output
     int fSilent;          // totally silent execution
+    int RunId;            // identifier passed to the termination callback
+    int (*pFuncStop)(int); // cooperative termination callback (NULL = none)
     int nPropUnit;        // solver propagations per nominal second (0 = the default, 12 M; small values let tests reach the slice ends and restarts)
+    ABC_INT64_T nPropLimit; // soft propagation budget (0 = unlimited; a nonzero budget skips BMC)
+                           // the in-flight obligation can use one extra slice before stopping
     int iFrame;           // output: the number of frames explored
     int nPhasesRun;       // output: the number of schedule phases run
     int nRestartsRun;     // output: the number of level restarts in all runs

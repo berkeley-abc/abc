@@ -339,9 +339,9 @@ static inline int      Abc_Bit6WordNum( int nBits )           { return (nBits>>6
 static inline int      Abc_TruthByteNum( int nVars )          { return nVars <= 3 ? 1 : (1 << (nVars - 3));                 }
 static inline int      Abc_TruthWordNum( int nVars )          { return nVars <= 5 ? 1 : (1 << (nVars - 5));                 }
 static inline int      Abc_Truth6WordNum( int nVars )         { return nVars <= 6 ? 1 : (1 << (nVars - 6));                 }
-static inline int      Abc_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (unsigned)(1<<((i) & 31))) > 0;         }
-static inline void     Abc_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (unsigned)(1<<((i) & 31));                     }
-static inline void     Abc_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (unsigned)(1<<((i) & 31));                     }
+static inline int      Abc_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (1u<<((i) & 31))) > 0;                }
+static inline void     Abc_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (1u<<((i) & 31));                            }
+static inline void     Abc_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (1u<<((i) & 31));                            }
 static inline unsigned Abc_InfoMask( int nVar )               { return (~(unsigned)0) >> (32-nVar);                         }
 
 static inline int      Abc_Var2Lit( int Var, int c )          { assert(Var >= 0 && !(c >> 1)); return Var + Var + c;        }

@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "opt/dau/dau.h"
 #include "misc/util/utilTruth.h"
 #include "misc/vec/vecHsh.h"
 

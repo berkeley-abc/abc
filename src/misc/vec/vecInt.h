@@ -257,7 +257,8 @@ static inline Vec_Int_t * Vec_IntDup( Vec_Int_t * pVec )
     p->nSize  = pVec->nSize;
     p->nCap   = pVec->nSize;
     p->pArray = p->nCap? ABC_ALLOC( int, p->nCap ) : NULL;
-    memcpy( p->pArray, pVec->pArray, sizeof(int) * (size_t)pVec->nSize );
+    if ( pVec->nSize )
+        memcpy( p->pArray, pVec->pArray, sizeof(int) * (size_t)pVec->nSize );
     return p;
 }
 

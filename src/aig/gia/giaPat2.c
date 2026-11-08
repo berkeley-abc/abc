@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "misc/extra/extra.h"
 #include "misc/vec/vecHsh.h"
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satStore.h"

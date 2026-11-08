@@ -1386,7 +1386,10 @@ extern Vec_Wec_t *         Gia_ManLevelizeR( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManOrderReverse( Gia_Man_t * p );
 extern void                Gia_ManCollectTfi( Gia_Man_t * p, Vec_Int_t * vRoots, Vec_Int_t * vNodes );
 extern void                Gia_ManCollectTfo( Gia_Man_t * p, Vec_Int_t * vRoots, Vec_Int_t * vNodes );
+/*=== giaDeep.c ===========================================================*/
+extern Gia_Man_t *         Gia_ManDeepSyn( Gia_Man_t * pGia, int nIters, int nNoImpr, int TimeOut, int nAnds, int Seed, int fUseTwo, int fChoices, int fVerbose );
 /*=== giaDup.c ============================================================*/
+extern Gia_Man_t *         Gia_ManDupInvMiter( Gia_Man_t * p, Gia_Man_t * pInv );
 extern void                Gia_ManDupRemapLiterals( Vec_Int_t * vLits, Gia_Man_t * p );
 extern void                Gia_ManDupRemapEquiv( Gia_Man_t * pNew, Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupOrderDfs( Gia_Man_t * p );

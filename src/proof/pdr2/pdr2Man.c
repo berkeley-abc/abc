@@ -1123,9 +1123,9 @@ static Vec_Ptr_t * Pdr2_ManCollectInvariant( Pdr2_Man_t * p )
 
   Description [Checks that each cube excludes the initial state, that the
   invariant is closed under the transition relation, and that it excludes
-  the bad states. Only the overall deadline applies (the propagation
+  the bad states. Only the overall deadline and cancellation apply (the propagation
   budgets of the search do not). Returns 1 if all checks pass (verified),
-  0 if a check fails, -1 if the deadline stopped the checks (incomplete).]
+  0 if a check fails, -1 if the checks were stopped (incomplete).]
 
   SideEffects []
 
@@ -1146,7 +1146,8 @@ int Pdr2_ManVerifyInvariant( Pdr2_Man_t * p )
     {
         if ( Pdr2_CubeIsInit(p, pCube) )
         {
-            Abc_Print( 1, "Invariant check failed: cube %d intersects the initial states.\n", i );
+            if ( !p->pPars->fSilent )
+                Abc_Print( 1, "Invariant check failed: cube %d intersects the initial states.\n", i );
             fOk = 0;
         }
         Pdr2_ManSolverAddLemma( p, pSat, pCube, p->IdInf );
@@ -1157,15 +1158,16 @@ int Pdr2_ManVerifyInvariant( Pdr2_Man_t * p )
         RetValue = Pdr2_ManSolveRelative( p, pSat, p->vLits4, 0, NULL );
         if ( RetValue == -1 )
         {
-            // the overall time limit was reached during the check: the proof itself stands
-            Abc_Print( 1, "Invariant verification is incomplete: the time limit was reached at clause %d of %d.\n", i, Vec_PtrSize(vInv) );
+            if ( !p->pPars->fSilent )
+                Abc_Print( 1, "Invariant verification is incomplete: stopped at clause %d of %d.\n", i, Vec_PtrSize(vInv) );
             if ( fOk == 1 )
                 fOk = -1;
             break;
         }
         if ( RetValue != 1 )
         {
-            Abc_Print( 1, "Invariant check failed: cube %d is not inductive.\n", i );
+            if ( !p->pPars->fSilent )
+                Abc_Print( 1, "Invariant check failed: cube %d is not inductive.\n", i );
             fOk = 0;
             break;
         }
@@ -1179,16 +1181,18 @@ int Pdr2_ManVerifyInvariant( Pdr2_Man_t * p )
         RetValue = Gip_SolverSolve( pSat, &Lit, 1, NULL, NULL, 0, -1 );
         if ( RetValue == GIP_UNDEF )
         {
-            Abc_Print( 1, "Invariant verification is incomplete: the time limit was reached in the property check.\n" );
+            if ( !p->pPars->fSilent )
+                Abc_Print( 1, "Invariant verification is incomplete: stopped in the property check.\n" );
             fOk = -1;
         }
         else if ( RetValue != GIP_UNSAT )
         {
-            Abc_Print( 1, "Invariant check failed: the invariant does not exclude the bad states.\n" );
+            if ( !p->pPars->fSilent )
+                Abc_Print( 1, "Invariant check failed: the invariant does not exclude the bad states.\n" );
             fOk = 0;
         }
     }
-    if ( p->pPars->fVerbose )
+    if ( p->pPars->fVerbose && !p->pPars->fSilent )
     {
         Abc_Print( 1, "Verification of the invariant with %d clauses %s.  ", Vec_PtrSize(vInv), fOk == 1 ? "passed" : fOk == 0 ? "FAILED" : "incomplete" );
         ABC_PRT( "Time", Abc_Clock() - clk );
@@ -1274,14 +1278,16 @@ int Pdr2_ManDumpInvariant( Pdr2_Man_t * p, int fTransformed )
     strcat( pDesign, "_design.aig" );
     if ( !Pdr2_ManWriteDesign( p->pAig, p->pInit, pDesign ) )
     {
-        Abc_Print( 1, "Cannot write the design into file \"%s\"; the invariant is not dumped.\n", pDesign );
+        if ( !p->pPars->fSilent )
+            Abc_Print( 1, "Cannot write the design into file \"%s\"; the invariant is not dumped.\n", pDesign );
         ABC_FREE( pDesign );
         return 0;
     }
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        Abc_Print( 1, "Cannot open file \"%s\" for writing the invariant.\n", pFileName );
+        if ( !p->pPars->fSilent )
+            Abc_Print( 1, "Cannot open file \"%s\" for writing the invariant.\n", pFileName );
         ABC_FREE( pDesign );
         return 0;
     }
@@ -1303,7 +1309,7 @@ int Pdr2_ManDumpInvariant( Pdr2_Man_t * p, int fTransformed )
     fprintf( pFile, ".e\n" );
     fOk = !ferror( pFile );
     fOk &= fclose( pFile ) == 0;
-    if ( !fOk )
+    if ( !fOk && !p->pPars->fSilent )
         Abc_Print( 1, "Writing the invariant into file \"%s\" has failed.\n", pFileName );
     else if ( !p->pPars->fSilent )
         Abc_Print( 1, "Dumped the inductive invariant with %d cubes into file \"%s\" (over the flops of the design in \"%s\").\n", Vec_PtrSize(vInv), pFileName, pDesign );
@@ -1326,12 +1332,12 @@ int Pdr2_ManDumpInvariant( Pdr2_Man_t * p, int fTransformed )
 ***********************************************************************/
 int Pdr2_ManTimedOut( Pdr2_Man_t * p )
 {
-    return (p->timeLimit && Abc_Clock() > p->timeLimit) || (p->propLimit && p->nProps >= p->propLimit);
+    return Pdr2_ManPastDeadline(p) || (p->propLimit && p->nProps >= p->propLimit);
 }
 void Pdr2_ManPrintProgress( Pdr2_Man_t * p, int fForce )
 {
     int k, nFrames = Pdr2_ManFrameNum(p), kStart;
-    if ( !p->pPars->fVerbose && !fForce )
+    if ( p->pPars->fSilent || (!p->pPars->fVerbose && !fForce) )
         return;
     Abc_Print( 1, "%3d :", Pdr2_ManLevel(p) );
     kStart = nFrames > 40 ? nFrames - 40 : 1;
@@ -1348,6 +1354,7 @@ void Pdr2_ManPrintProgress( Pdr2_Man_t * p, int fForce )
 void Pdr2_ManPrintStats( Pdr2_Man_t * p )
 {
     abctime timeTotal = p->timeRun ? p->timeRun : Abc_Clock() - p->timeStart;
+    if ( p->pPars->fSilent ) return;
     Abc_Print( 1, "Frames = %d. Lemmas = %d (inf = %d). Obligations = %d (dropped = %d). SAT calls = %d. MICs = %d.\n",
         Pdr2_ManLevel(p), (int)p->nLemmas, (int)p->nInfLemmas, (int)p->nObls, (int)p->nOblsDropped, (int)p->nSolves, (int)p->nMics );
     if ( p->pPars->fTimeGen )

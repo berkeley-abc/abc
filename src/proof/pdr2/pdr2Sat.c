@@ -86,6 +86,8 @@ static inline int Pdr2_ManSatSolve( Pdr2_Man_t * p, Gip_Solver_t * pSat, int * p
 Gip_Solver_t * Pdr2_ManNewSolver( Pdr2_Man_t * p, int Type )
 {
     Gip_Solver_t * pSat = Gip_SolverNew( p->pCtx );
+    pSat->RunId = p->pPars->RunId;
+    pSat->pFuncStop = p->pPars->pFuncStop;
     pSat->fFastClean = 1;
     pSat->fCleanSkip = 1;
     Gip_SolverSetLemFrames( pSat, p->vLemFrame );
@@ -406,7 +408,7 @@ void Pdr2_ManGetPred( Pdr2_Man_t * p, int fStrengthen, Vec_Int_t * vCube, Vec_In
             Value = pModel->pValue[p->pLoVar[Abc_Lit2Var(Lit)]];
             if ( Value != GIP_NONE && (Value == GIP_TRUE) == Abc_LitIsCompl(Lit) )
             {
-                if ( p->nLiftSimBad++ == 0 )
+                if ( p->nLiftSimBad++ == 0 && !p->pPars->fSilent )
                     Abc_Print( 1, "Pdr2_ManGetPred(): Warning: the weakened cube disagrees with the model.\n" );
                 break;
             }
@@ -434,7 +436,7 @@ void Pdr2_ManGetPred( Pdr2_Man_t * p, int fStrengthen, Vec_Int_t * vCube, Vec_In
         if ( RetValue != GIP_UNSAT )
         {
             // on a timeout the current cube is kept: it still implies the target
-            if ( RetValue == GIP_SAT )
+            if ( RetValue == GIP_SAT && !p->pPars->fSilent )
                 Abc_Print( 1, "Pdr2_ManGetPred(): Internal error: the lifting query is SAT.\n" );
             break;
         }
@@ -450,7 +452,7 @@ void Pdr2_ManGetPred( Pdr2_Man_t * p, int fStrengthen, Vec_Int_t * vCube, Vec_In
     }
     Gip_SolverUnsetDomain( p->pLift );
     p->nLiftCore += Vec_IntSize( vCube );
-    if ( p->pPars->fVeryVerbose && fStrengthen && (p->nLiftCalls % 50) == 0 )
+    if ( p->pPars->fVeryVerbose && !p->pPars->fSilent && fStrengthen && (p->nLiftCalls % 50) == 0 )
         Abc_Print( 1, "Lift %d: target %d literals, cone %d, after flipping %d, after simulation %d, after the SAT core %d.\n",
             (int)p->nLiftCalls, Vec_IntSize(p->vLastAssump), nCone, nFlip, nSim, Vec_IntSize(vCube) );
     // (the lifting of CTG predecessors is counted in the MIC time, that of the propagation in

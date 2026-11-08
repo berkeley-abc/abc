@@ -109,7 +109,7 @@ static int Gip_SolverSearch( Gip_Solver_t * p, int * pAssump, int nAssump, doubl
         {
             if ( (p->nConfLimit > 0 && p->Stats.nConflicts >= p->nConfCounted + p->nConfLimit) ||
                  (p->nPropLimit > 0 && p->Stats.nPropagations >= p->nPropLimit) ||
-                 (p->TimeLimit && p->Stats.nPropagations >= p->nTimeCheck && Gip_SolverTimedOut(p)) )
+                 ((p->TimeLimit || p->pFuncStop) && p->Stats.nPropagations >= p->nTimeCheck && Gip_SolverTimedOut(p)) )
             {
                 Gip_SolverBacktrack( p, nAssump, 1 );
                 p->fCanceled = 1;

@@ -389,6 +389,9 @@ static inline Wlc_Obj_t *  Wlc_ObjCo2PoFo( Wlc_Ntk_t * p, int iCoId )           
 ////////////////////////////////////////////////////////////////////////
 
 /*=== wlcAbs.c ========================================================*/
+extern Wla_Man_t *    Wla_ManStart( Wlc_Ntk_t * pNtk, Wlc_Par_t * pPars );
+extern void           Wla_ManStop( Wla_Man_t * p );
+extern int            Wla_ManSolve( Wla_Man_t * pWla, Wlc_Par_t * pPars );
 extern int            Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars );
 extern int            Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars );
 /*=== wlcAbs2.c ========================================================*/
@@ -451,6 +454,7 @@ extern void           Wlc_NtkPrintObjects( Wlc_Ntk_t * p );
 extern void           Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p );
 extern char *         Wlc_NtkNewName( Wlc_Ntk_t * p, int iCoId, int fSeq );
 extern Wlc_Ntk_t *    Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq );
+extern void           Wlc_NtkDupDfs_rec( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * vFanins );
 extern Wlc_Ntk_t *    Wlc_NtkDupDfsAbs( Wlc_Ntk_t * p, Vec_Int_t * vPisOld, Vec_Int_t * vPisNew, Vec_Int_t * vFlops );
 extern Wlc_Ntk_t *    Wlc_NtkDupDfsSimple( Wlc_Ntk_t * p );
 extern void           Wlc_NtkCleanMarks( Wlc_Ntk_t * p );

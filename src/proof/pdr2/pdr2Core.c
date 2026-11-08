@@ -249,7 +249,7 @@ static void Pdr2_ManCheckIds( Pdr2_Man_t * p )
         {
             if ( pLem->fRemoved )
                 continue;
-            if ( Vec_IntEntry(vOwner, pLem->Id) >= 0 && p->nIdShared++ == 0 )
+            if ( Vec_IntEntry(vOwner, pLem->Id) >= 0 && p->nIdShared++ == 0 && !p->pPars->fSilent )
                 Abc_Print( 1, "LEMMA ID CHECK FAILED: id %d is shared by live lemmas of frames %d and %d.\n", pLem->Id, Vec_IntEntry(vOwner, pLem->Id), k );
             Vec_IntWriteEntry( vOwner, pLem->Id, k );
         }
@@ -471,7 +471,8 @@ static void Pdr2_ManTimeGenCheck( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube 
     if ( RetValue == 0 )
     {
         p->nTgFailed++;
-        Abc_Print( 1, "TIME GENERALIZATION CHECK FAILED: a cube of %d literals is not inductive relative to frame %d.\n", Vec_IntSize(vCube), iFrame );
+        if ( !p->pPars->fSilent )
+            Abc_Print( 1, "TIME GENERALIZATION CHECK FAILED: a cube of %d literals is not inductive relative to frame %d.\n", Vec_IntSize(vCube), iFrame );
     }
     else if ( RetValue == -1 )
         p->nTgUndecided++;
@@ -1193,7 +1194,7 @@ static int Pdr2_ManBlock( Pdr2_Man_t * p )
         // a run of long cubes; the budget doubles with every restart
         if ( p->pPars->nLevelRestart > 0 && (double)(p->nProps - p->nPropsRestartStart) > p->LevelRestartBudget )
         {
-            if ( p->pPars->fVerbose )
+            if ( p->pPars->fVerbose && !p->pPars->fSilent )
                 Abc_Print( 1, "Restarting level %d after %.0f M propagations (%d obligations at this level, %d queued).\n",
                     Pdr2_ManLevel(p), p->LevelRestartBudget / 1e6, p->nOblsLevel, Vec_PtrSize(p->vQueue) + 1 );
             p->nLevelRestarts++;
@@ -1210,7 +1211,7 @@ static int Pdr2_ManBlock( Pdr2_Man_t * p )
              p->nOblsLevel > p->pPars->nDynExplode && p->nOblsLevel > 3 * p->nOblsLevelMax )
         {
             p->nOblsLevelMax = p->nOblsLevel;
-            if ( p->pPars->fVerbose )
+            if ( p->pPars->fVerbose && !p->pPars->fSilent )
                 Abc_Print( 1, "Ending the dynamic phase at level %d (%d obligations at this level).\n", Pdr2_ManLevel(p), p->nOblsLevel );
             Pdr2_QueuePush( p, pObl );
             Pdr2_OblDeref( pObl );
@@ -1809,6 +1810,8 @@ static int Pdr2_ManBmcStage( Aig_Man_t * pAigOrig, char * pInit, Pdr2_Par_t * pP
     Saig_ParBmcSetDefaultParams( &Pars );
     Pars.nTimeOut = nTime;
     Pars.fSilent  = 1;
+    Pars.RunId = pPars->RunId;
+    Pars.pFuncStop = pPars->pFuncStop;
     RetValue = Saig_ManBmcScalable( pAig, &Pars );
     if ( RetValue == 0 && pAig->pSeqModel )
     {
@@ -1827,7 +1830,7 @@ static int Pdr2_ManBmcStage( Aig_Man_t * pAigOrig, char * pInit, Pdr2_Par_t * pP
         }
         Aig_ManStop( pAig );
     }
-    if ( pPars->fVerbose )
+    if ( pPars->fVerbose && !pPars->fSilent )
         Abc_Print( 1, "BMC stage (%d sec): %s at frame %d.  Time = %.2f sec\n", nTime,
             pCex ? "counterexample" : RetValue == 1 ? "all reachable states visited" : "no counterexample",
             pCex ? pCex->iFrame : Pars.iFrame, (double)(Abc_Clock() - clk) / CLOCKS_PER_SEC );
@@ -1869,18 +1872,23 @@ int Pdr2_ManSolveInit( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
     abctime timeStart = Abc_Clock();
     abctime timeGlobal = pPars->nTimeOut ? timeStart + (abctime)pPars->nTimeOut * CLOCKS_PER_SEC : 0;
     double Budget[5];
+    ABC_INT64_T PropsLeft = pPars->nPropLimit, PropsBefore;
     char RunName[5][80];
     char * pInit, * pInitGated = NULL;
     int fGatedRun[5] = { 0, 0, 0, 0, 0 }, Order[5];
     int RetValue = -1, fOrPos = 0, fPreproc = 0, fAlternate, nRuns, nAbsRuns, iPhase = 0, k = 0, j, fBmcDone = 0, fInitZero = 1;
+    if ( pPars->pFuncStop && pPars->pFuncStop(pPars->RunId) )
+        return -1;
     if ( Saig_ManConstrNum(pAig) > 0 )
     {
-        Abc_Print( 1, "Pdr2_ManSolve(): Constraints are not supported.\n" );
+        if ( !pPars->fSilent )
+            Abc_Print( 1, "Pdr2_ManSolve(): Constraints are not supported.\n" );
         return -1;
     }
     if ( vInit && Vec_IntSize(vInit) != Aig_ManRegNum(pAig) )
     {
-        Abc_Print( 1, "Pdr2_ManSolve(): The number of initial values (%d) differs from the number of flops (%d).\n", Vec_IntSize(vInit), Aig_ManRegNum(pAig) );
+        if ( !pPars->fSilent )
+            Abc_Print( 1, "Pdr2_ManSolve(): The number of initial values (%d) differs from the number of flops (%d).\n", Vec_IntSize(vInit), Aig_ManRegNum(pAig) );
         return -1;
     }
     // the initial values (the flops of all the designs below come first, in the same order)
@@ -1889,7 +1897,8 @@ int Pdr2_ManSolveInit( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
     {
         if ( Vec_IntEntry(vInit, j) < 0 || Vec_IntEntry(vInit, j) > 2 )
         {
-            Abc_Print( 1, "Pdr2_ManSolve(): The initial value of flop %d is %d (expected 0, 1, or 2 for don't-care).\n", j, Vec_IntEntry(vInit, j) );
+            if ( !pPars->fSilent )
+                Abc_Print( 1, "Pdr2_ManSolve(): The initial value of flop %d is %d (expected 0, 1, or 2 for don't-care).\n", j, Vec_IntEntry(vInit, j) );
             ABC_FREE( pInit );
             return -1;
         }
@@ -1901,9 +1910,9 @@ int Pdr2_ManSolveInit( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
         pAigUsed = Saig_ManDupOrpos( pAig );
         fOrPos = 1;
     }
-    if ( pPars->fPreproc && Saig_ManPiNum(pAigUsed) == 0 && pPars->fVerbose )
+    if ( pPars->fPreproc && Saig_ManPiNum(pAigUsed) == 0 && pPars->fVerbose && !pPars->fSilent )
         Abc_Print( 1, "Preprocessing (scorr) is skipped: the design has no primary inputs.\n" );
-    else if ( pPars->fPreproc && !fInitZero && pPars->fVerbose )
+    else if ( pPars->fPreproc && !fInitZero && pPars->fVerbose && !pPars->fSilent )
         Abc_Print( 1, "Preprocessing (scorr) is skipped: it assumes that all initial values are 0.\n" );
     if ( pPars->fPreproc && Saig_ManPiNum(pAigUsed) > 0 && fInitZero )
     {
@@ -1923,7 +1932,7 @@ int Pdr2_ManSolveInit( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
         pTemp = Ssw_SignalCorrespondence( pAigUsed, &SswPars );
         if ( pTemp )
         {
-            if ( pPars->fVerbose )
+            if ( pPars->fVerbose && !pPars->fSilent )
                 Abc_Print( 1, "Preprocessing (scorr): flops %d -> %d, nodes %d -> %d.  Time = %.2f sec\n",
                     Aig_ManRegNum(pAigUsed), Aig_ManRegNum(pTemp), Aig_ManNodeNum(pAigUsed), Aig_ManNodeNum(pTemp), (double)(Abc_Clock() - clk) / CLOCKS_PER_SEC );
             if ( fOrPos )
@@ -2023,32 +2032,47 @@ int Pdr2_ManSolveInit( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
             p->propSlice = (ABC_INT64_T)(Budget[k] * Pdr2_ManPropUnit(pPars));
             p->propLimit = p->nProps + p->propSlice;
             p->fQueryCut = 0;
-            if ( pPars->fVerbose )
+            if ( pPars->fVerbose && !pPars->fSilent )
                 Abc_Print( 1, "Phase %d: %s for %.0f nominal sec (resuming at level %d with %d inf lemmas).\n",
                     iPhase, RunName[k], Budget[k], p->fStarted ? Pdr2_ManLevel(p) : 0, Vec_PtrSize(p->vInf) );
         }
         else
             p->timeLimit = timeGlobal, p->propLimit = 0, p->propSlice = 0;
+        // An enclosing abstraction loop can bound one invocation even in
+        // non-alternating mode. Share the budget across scheduled managers.
+        if ( pPars->nPropLimit > 0 && (!p->propSlice || PropsLeft < p->propSlice) )
+            p->propSlice = PropsLeft, p->propLimit = p->nProps + PropsLeft;
+        PropsBefore = p->nProps;
         RetValue = Pdr2_ManSolveInt( p );
+        if ( pPars->nPropLimit > 0 ) PropsLeft -= p->nProps - PropsBefore;
         if ( RetValue != -1 || !fAlternate )
             break;
-        if ( timeGlobal && Abc_Clock() >= timeGlobal )
+        if ( pPars->nPropLimit > 0 && PropsLeft <= 0 )
+            break;
+        if ( (timeGlobal && Abc_Clock() >= timeGlobal) || (pPars->pFuncStop && pPars->pFuncStop(pPars->RunId)) )
             break;
         if ( p->fExhausted )
             break;  // the frame limit ends the schedule (every run would stop at the same depth)
         Budget[k] *= 2;
         // after the first slice (the examples that finish there pay nothing), a short BMC run
         // catches shallow counterexamples of designs on which every PDR frame is expensive
-        if ( iPhase == 0 && pPars->nBmcTime > 0 && pPars->nFrameMax == 0 && (RetValue = Pdr2_ManBmcStage( pAigUsed, pInit, pPars, timeGlobal, &pCexBmc )) != -1 )
+        if ( iPhase == 0 && !pPars->nPropLimit && pPars->nBmcTime > 0 && pPars->nFrameMax == 0 && (RetValue = Pdr2_ManBmcStage( pAigUsed, pInit, pPars, timeGlobal, &pCexBmc )) != -1 )
         {
             fBmcDone = 1;
             break;
         }
+        // BMC may itself have observed cancellation. Do not allocate the
+        // next scheduled manager after the enclosing run has been retired.
+        if ( (timeGlobal && Abc_Clock() >= timeGlobal) || (pPars->pFuncStop && pPars->pFuncStop(pPars->RunId)) )
+            break;
     }
     pPars->iFrame = pCexBmc ? pCexBmc->iFrame : Pdr2_ManLevel( p );
     pPars->nPhasesRun = iPhase + 1;
     pPars->nRestartsRun = 0;
     pPars->fBmcDecided = fBmcDone;
+    // Cancellation retires unfinished search, not an answer already found.
+    // Counterexamples still undergo simulation below; requested invariant
+    // verification remains cancellable and must complete when required.
     for ( j = 0; j < 5; j++ )
         if ( pMan[j] )
             pPars->nRestartsRun += pMan[j]->nLevelRestarts;
@@ -2076,13 +2100,15 @@ int Pdr2_ManSolveInit( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
                 break;
         if ( j < Aig_ManRegNum(pAig) )
         {
-            Abc_Print( 1, "Pdr2_ManSolve(): The counterexample does not start in an initial state (flop %d).\n", j );
+            if ( !pPars->fSilent )
+                Abc_Print( 1, "Pdr2_ManSolve(): The counterexample does not start in an initial state (flop %d).\n", j );
             Abc_CexFree( pCex );
             RetValue = -1;
         }
         else if ( !Saig_ManVerifyCex( pAig, pCex ) )
         {
-            Abc_Print( 1, "Pdr2_ManSolve(): Counterexample verification has FAILED.\n" );
+            if ( !pPars->fSilent )
+                Abc_Print( 1, "Pdr2_ManSolve(): Counterexample verification has FAILED.\n" );
             Abc_CexFree( pCex );
             RetValue = -1;
         }
@@ -2095,21 +2121,27 @@ int Pdr2_ManSolveInit( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
     else if ( RetValue == 1 && fBmcDone )
     {
         // the proof is by exhaustive BMC, which leaves no inductive invariant
-        if ( pPars->fDumpInv )
+        if ( pPars->fDumpInv && !pPars->fSilent )
             Abc_Print( 1, "The property was proved by BMC visiting all reachable states; there is no invariant to dump.\n" );
     }
     else if ( RetValue == 1 )
     {
-        if ( pPars->fVerify && Pdr2_ManVerifyInvariant( p ) == 0 )
+        int Verify = pPars->fVerify ? Pdr2_ManVerifyInvariant( p ) : 1;
+        // Preserve standalone proofs if only the optional invariant check
+        // reaches its deadline. Embedding callers can require a completed
+        // check; an explicit cancellation still retires an incomplete one.
+        if ( Verify == 0 || (Verify < 0 && (pPars->fVerifyComplete ||
+             (pPars->pFuncStop && pPars->pFuncStop(pPars->RunId)))) )
         {
-            Abc_Print( 1, "Pdr2_ManSolve(): Invariant verification has FAILED.\n" );
+            if ( Verify == 0 && !pPars->fSilent )
+                Abc_Print( 1, "Pdr2_ManSolve(): Invariant verification has FAILED.\n" );
             RetValue = -1;
         }
         // the invariant is over the flops of the solved design (gated or preprocessed for some runs)
         if ( pPars->fDumpInv && RetValue == 1 )
             Pdr2_ManDumpInvariant( p, fGatedRun[k] || fPreproc );
     }
-    if ( pPars->fVerbose )
+    if ( pPars->fVerbose && !pPars->fSilent )
     {
         if ( fBmcDone )
             Abc_Print( 1, "Finished by the BMC stage after phase 0; statistics of the run of phase 0:\n" );

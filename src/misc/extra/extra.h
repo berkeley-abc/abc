@@ -172,6 +172,8 @@ extern void        Extra_MmStepEntryRecycle( Extra_MmStep_t * p, char * pEntry, 
 extern int         Extra_MmStepReadMemUsage( Extra_MmStep_t * p );
 
 /*=== extraUtilMisc.c ========================================================*/
+struct Vec_Wrd_t_;
+extern void         Extra_BitMatrixTransposeP( struct Vec_Wrd_t_ * vSimsIn, int nWordsIn, struct Vec_Wrd_t_ * vSimsOut, int nWordsOut );
 
 /* finds the smallest integer larger or equal than the logarithm */
 extern int         Extra_Base2LogDouble( double Num );

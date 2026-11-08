@@ -1,3 +1,4 @@
+#include "equivalences.h"
 #include "gates.h"
 #include "inlinevector.h"
 #include "logging.h"

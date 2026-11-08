@@ -3852,6 +3852,30 @@ SOURCE=.\src\opt\rwr\rwrTemp.c
 SOURCE=.\src\opt\rwr\rwrUtil.c
 # End Source File
 # End Group
+# Begin Group "abs2"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\abs2\abs2.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\abs2\abs2Cmd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\abs2\abs2Cnf.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\abs2\abs2Core.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\abs2\absFla.c
+# End Source File
+# End Group
 # Begin Group "cut"
 
 # PROP Default_Filter ""
@@ -7433,6 +7457,10 @@ SOURCE=.\src\proof\cec\cecInt.h
 # Begin Source File
 
 SOURCE=.\src\proof\cec\cecIso.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\cec\cecKind.c
 # End Source File
 # Begin Source File
 

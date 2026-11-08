@@ -1,3 +1,4 @@
+#include "import.h"
 #include "internal.h"
 #include "logging.h"
 #include "resize.h"

@@ -238,6 +238,8 @@ typedef struct Gip_Solver_t_
     ABC_INT64_T  nConfLimit;      // 0 = none; per solve call
     ABC_INT64_T  nConfCounted;    // Stats.nConflicts at solve start
     abctime      TimeLimit;       // 0 = none; absolute deadline
+    int          RunId;          // identifier passed to the termination callback
+    int        (*pFuncStop)(int); // cooperative termination callback (NULL = none)
     ABC_INT64_T  nTimeCheck;      // propagation count at which the deadline is checked next
     ABC_INT64_T  nPropLimit;      // 0 = none; absolute propagation count at which the solve is canceled
     int          fCanceled;       // set when limit hit
@@ -248,12 +250,12 @@ typedef struct Gip_Solver_t_
     Gip_Stats_t  Stats;
 } Gip_Solver_t;
 
-// the deadline is polled every GIP_TIME_CHECK propagations, independently of the conflicts
+// The deadline and callback are polled every GIP_TIME_CHECK propagations.
 #define GIP_TIME_CHECK (1 << 16)
 static inline int Gip_SolverTimedOut( Gip_Solver_t * p )
 {
     p->nTimeCheck = p->Stats.nPropagations + GIP_TIME_CHECK;
-    return Abc_Clock() > p->TimeLimit;
+    return (p->TimeLimit && Abc_Clock() > p->TimeLimit) || (p->pFuncStop && p->pFuncStop(p->RunId));
 }
 
 ////////////////////////////////////////////////////////////////////////

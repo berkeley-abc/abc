@@ -20,6 +20,15 @@
 
 #include "base/abc/abc.h"
 #include "mainInt.h"
+#include "map/emap/emap.h"
+#include "opt/ufar/UfarCmd.h"
+
+ABC_NAMESPACE_HEADER_START
+extern void Glucose_Init( Abc_Frame_t * pAbc );
+extern void Glucose_End( Abc_Frame_t * pAbc );
+extern void Glucose2_Init( Abc_Frame_t * pAbc );
+extern void Glucose2_End( Abc_Frame_t * pAbc );
+ABC_NAMESPACE_HEADER_END
 
 ABC_NAMESPACE_IMPL_START
  
@@ -48,8 +57,6 @@ extern void Load_Init( Abc_Frame_t * pAbc );
 extern void Load_End( Abc_Frame_t * pAbc );
 extern void Scl_Init( Abc_Frame_t * pAbc );
 extern void Scl_End( Abc_Frame_t * pAbc );
-extern void Emap_Init( Abc_Frame_t * pAbc );
-extern void Emap_End( Abc_Frame_t * pAbc );
 extern void Wlc_Init( Abc_Frame_t * pAbc );
 extern void Wlc_End( Abc_Frame_t * pAbc );
 extern void Wln_Init( Abc_Frame_t * pAbc );
@@ -66,11 +73,6 @@ extern void Abc2_Init( Abc_Frame_t * pAbc );
 extern void Abc2_End ( Abc_Frame_t * pAbc );
 extern void Abc85_Init( Abc_Frame_t * pAbc );
 extern void Abc85_End( Abc_Frame_t * pAbc );
-extern void Glucose_Init( Abc_Frame_t *pAbc );
-extern void Glucose_End( Abc_Frame_t * pAbc );
-extern void Glucose2_Init( Abc_Frame_t *pAbc );
-extern void Glucose2_End( Abc_Frame_t * pAbc );
-extern void Ufar_Init(Abc_Frame_t *pAbc);
 
 // Initializers are registered during single-threaded process startup and are
 // immutable after the first frame is created.

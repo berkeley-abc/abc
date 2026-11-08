@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "base/abc/abc.h"
+#include "misc/bbl/bblif.h"
 #include "misc/util/utilTruth.h"
 #include "sat/kissat/kissat.h"
 
@@ -58,7 +59,6 @@ Abc_Ntk_t * Abc_NtkTopoDup( Abc_Ntk_t * pTopo, Vec_Wrd_t * vTruths )
     Abc_Ntk_t * pNew = Abc_NtkDup(pTopo);
     Abc_Obj_t * pObj; int i;
     Abc_NtkForEachNode( pTopo, pObj, i ) {
-      extern char * Bbl_ManTruthToSop( unsigned * pTruth, int nVars );
       char * pSop = Bbl_ManTruthToSop( (unsigned *)Vec_WrdEntryP(vTruths, i), Abc_ObjFaninNum(pObj) );
       pObj->pData = Abc_SopRegister( (Mem_Flex_t *)pNew->pManFunc, pSop );
       ABC_FREE( pSop );

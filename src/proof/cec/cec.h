@@ -39,6 +39,22 @@ ABC_NAMESPACE_HEADER_START
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
+// shallow k-induction parameters
+typedef struct Cec_ParKind_t_ Cec_ParKind_t;
+struct Cec_ParKind_t_
+{
+    int              nFramesMax;    // maximum induction depth
+    int              nConfLimit;    // conflicts per SAT query (0 = unlimited)
+    int              nTimeOutMs;    // total runtime in milliseconds (0 = unlimited)
+    abctime          TimeToStop;    // optional earlier absolute wall deadline
+    int              nAndMax;       // maximum input AND count (0 = unlimited)
+    int              fVerbose;      // print individual proof obligations
+    int              iFrame;        // proved induction depth, or -1
+    int              nQueries;      // SAT calls, excluding constant obligations
+    int              RunId;         // identifier passed to the stop callback
+    int            (*pFuncStop)(int); // optional cooperative cancellation
+};
+
 // dynamic SAT parameters
 typedef struct Cec_ParSat_t_ Cec_ParSat_t;
 struct Cec_ParSat_t_
@@ -308,9 +324,13 @@ extern int           Cec_ManVerifyTwoInv( Gia_Man_t * p0, Gia_Man_t * p1, int fV
 extern int           Cec_ManVerifySimple( Gia_Man_t * p );
 /*=== cecChoice.c ==========================================================*/
 extern Gia_Man_t *   Cec_ManChoiceComputation( Gia_Man_t * pAig, Cec_ParChc_t * pPars );
+/*=== cecClass.c ===========================================================*/
+extern void          Cec_ManSimClassCreate( Gia_Man_t * p, Vec_Int_t * vClass );
 /*=== cecCorr.c ==========================================================*/
 extern int           Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars );
 extern Gia_Man_t *   Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars );
+/*=== cecCorr2.c ===========================================================*/
+extern Gia_Man_t *   Cec_ManLSCorrespondence2( Gia_Man_t * pAig, Cec_ParCor_t * pPars );
 
 // Sequential Direct root-resubstitution parameters.
 typedef struct Cec_ParTran_t_ Cec_ParTran_t;
@@ -383,6 +403,11 @@ extern void          Cec_ManChcSetDefaultParams( Cec_ParChc_t * p );
 extern Gia_Man_t *   Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars, int fSilent );
 extern Gia_Man_t *   Cec_ManSatSolving( Gia_Man_t * pAig, Cec_ParSat_t * pPars, int f0Proved );
 extern void          Cec_ManSimulation( Gia_Man_t * pAig, Cec_ParSim_t * pPars );
+/*=== cecKind.c ==========================================================*/
+// Proof-only precheck on a plain, zero-initialized GIA. Unsupported inputs
+// (including nonzero/unknown vRegInits) return -1 without modifying the GIA.
+extern void          Cec_ManKindSetDefaultParams( Cec_ParKind_t * pPars );
+extern int           Cec_GiaKind( Gia_Man_t * p, Cec_ParKind_t * pPars );
 /*=== cecSeq.c ==========================================================*/
 extern int           Cec_ManSeqResimulateCounter( Gia_Man_t * pAig, Cec_ParSim_t * pPars, Abc_Cex_t * pCex );
 extern int           Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars );

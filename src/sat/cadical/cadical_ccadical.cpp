@@ -117,6 +117,10 @@ int ccadical_simplify (CCaDiCaL *wrapper) {
   return ((Wrapper *) wrapper)->solver->simplify ();
 }
 
+int ccadical_simplify_rounds (CCaDiCaL *wrapper, int rounds) {
+  return ((Wrapper *) wrapper)->solver->simplify (rounds);
+}
+
 int ccadical_val (CCaDiCaL *wrapper, int lit) {
   return ((Wrapper *) wrapper)->solver->val (lit);
 }
