@@ -4,6 +4,7 @@
  *  Created on: Aug 31, 2015
  *      Author: Yen-Sheng Ho
  */
+#include "misc/util/abc_print.h"
 
 #include <iomanip>
 #if !defined(__wasm)
@@ -81,13 +82,13 @@ bool OptMgr::Parse(int argc, char * argv[]) {
 }
 
 void OptMgr::PrintUsage() {
-    cout << "usage: " << _cmd << endl;
-    cout << "       Uninterpreted Function Abstraction and Refinement (UFAR)\n";
+    { printf( "usage: %s\n", _cmd.c_str() ); fflush( stdout ); }
+    printf( "       Uninterpreted Function Abstraction and Refinement (UFAR)\n" );
     for (auto x : _map) {
         ostringstream ss;
         ss << x.first << " " << (x.second.isBool() ? "" : x.second._arg_type);
-        cout << "       " << setw(10) << left << ss.str();
-        cout << " : " << x.second._help << " [default = " << x.second._default << "]" << endl;
+        ABC_PRINT_STREAM( stdout, false, "       " << setw(10) << left << ss.str() );
+        ABC_PRINT_STREAM( stdout, true, " : " << x.second._help << " [default = " << x.second._default << "]" << "\n" );
     }
 }
 

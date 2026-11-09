@@ -1,4 +1,5 @@
 #pragma once
+#include "misc/util/abc_print.h"
 
 #include "rrrParameter.h"
 #include "rrrUtils.h"
@@ -60,18 +61,18 @@ namespace rrr {
   bool Analyzer<Ntk, Sim, Sol>::CheckRedundancy(int id, int idx) {
     if(sim.CheckRedundancy(id, idx)) {
       if(nVerbose) {
-        std::cout << "node " << id << " fanin " << (pNtk->GetCompl(id, idx)? "!": "") << pNtk->GetFanin(id, idx) << " index " << idx << " seems redundant" << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "node " << id << " fanin " << (pNtk->GetCompl(id, idx)? "!": "") << pNtk->GetFanin(id, idx) << " index " << idx << " seems redundant" << "\n" );
       }
       SatResult r = sol.CheckRedundancy(id, idx);
       if(r == UNSAT) {
         if(nVerbose) {
-          std::cout << "node " << id << " fanin " << (pNtk->GetCompl(id, idx)? "!": "") << pNtk->GetFanin(id, idx) << " index " << idx << " is redundant" << std::endl;
+          ABC_PRINT_STREAM( stdout, true, "node " << id << " fanin " << (pNtk->GetCompl(id, idx)? "!": "") << pNtk->GetFanin(id, idx) << " index " << idx << " is redundant" << "\n" );
         }
         return true;
       }
       if(r == SAT) {
         if(nVerbose) {
-          std::cout << "node " << id << " fanin " << (pNtk->GetCompl(id, idx)? "!": "") << pNtk->GetFanin(id, idx) << " index " << idx << " is NOT redundant" << std::endl;
+          ABC_PRINT_STREAM( stdout, true, "node " << id << " fanin " << (pNtk->GetCompl(id, idx)? "!": "") << pNtk->GetFanin(id, idx) << " index " << idx << " is NOT redundant" << "\n" );
         }
         sim.AddCex(sol.GetCex());
       }
@@ -87,18 +88,18 @@ namespace rrr {
   bool Analyzer<Ntk, Sim, Sol>::CheckFeasibility(int id, int fi, bool c) {
     if(sim.CheckFeasibility(id, fi, c)) {
       if(nVerbose) {
-        std::cout << "node " << id << " fanin " << (c? "!": "") << fi << " seems feasible" << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "node " << id << " fanin " << (c? "!": "") << fi << " seems feasible" << "\n" );
       }
       SatResult r = sol.CheckFeasibility(id, fi, c);
       if(r == UNSAT) {
         if(nVerbose) {
-          std::cout << "node " << id << " fanin " << (c? "!": "") << fi << " is feasible" << std::endl;
+          ABC_PRINT_STREAM( stdout, true, "node " << id << " fanin " << (c? "!": "") << fi << " is feasible" << "\n" );
         }
         return true;
       }
       if(r == SAT) {
         if(nVerbose) {
-          std::cout << "node " << id << " fanin " << (c? "!": "") << fi << " is NOT feasible" << std::endl;
+          ABC_PRINT_STREAM( stdout, true, "node " << id << " fanin " << (c? "!": "") << fi << " is NOT feasible" << "\n" );
         }
         sim.AddCex(sol.GetCex());
       }

@@ -89,6 +89,9 @@ struct Abc_Frame_t_
     FILE *          Out;
     FILE *          Err;
     FILE *          Hst;
+    int             fOwnOut;      // stream opened by the set command
+    int             fOwnErr;
+    FILE *          pLog;         // private combined log; closed with the frame
     // used for runtime measurement
     double          TimeCommand;   // the runtime of the last command
     double          TimeTotal;     // the total runtime of all commands

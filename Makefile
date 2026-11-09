@@ -91,6 +91,11 @@ ARCHFLAGS := $(ARCHFLAGS)
 OPTFLAGS  ?= -g -O
 
 CFLAGS    += -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare $(ARCHFLAGS)
+ifeq ($(ABC_USE_STDIO_REDIRECT),1)
+  CFLAGS += -include $(abspath $(ABCSRC))/src/misc/util/abc_stdio.h
+  # These files select POSIX before their first system header.
+  src/base/sn/snRead.o src/base/sn/snRead.d src/base/sn/snCom.o src/base/sn/snCom.d: CFLAGS += -D_POSIX_C_SOURCE=200809L
+endif
 ifneq ($(findstring arm,$(shell uname -m)),)
 	CFLAGS += -DABC_MEMALIGN=4
 endif

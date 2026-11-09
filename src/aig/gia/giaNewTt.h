@@ -20,6 +20,7 @@
 
 #ifndef ABC__aig__gia__giaNewTt_h
 #define ABC__aig__gia__giaNewTt_h
+#include "misc/util/abc_print.h"
 
 #include <cstdlib>
 #include <limits>
@@ -43,7 +44,7 @@ namespace NewTt {
   static inline size SizeMax() { return std::numeric_limits<size>::max(); }
 
   static void fatal_error(const char* message) {
-    std::cerr << message << std::endl;
+    ABC_PRINT_STREAM( stderr, true, message << "\n" );
     std::abort();
   }
 
@@ -170,7 +171,7 @@ namespace NewTt {
         nObjsAlloc = (bvar)nObjsAllocLit;
       nTotalSize = nTotalSize << 1;
       if(nVerbose >= 2)
-        std::cout << "Reallocating " << nObjsAlloc << " nodes" << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "Reallocating " << nObjsAlloc << " nodes" << "\n" );
       vVals.resize(nTotalSize);
       if(!vRefs.empty())
         vRefs.resize(nObjsAlloc);
@@ -178,7 +179,7 @@ namespace NewTt {
     }
     bool Gbc() {
       if(nVerbose >= 2)
-        std::cout << "Garbage collect" << std::endl;
+        { printf( "Garbage collect\n" ); fflush( stdout ); }
       for(bvar a = nVars + 1; a < nObjs; a++)
         if(!vRefs[a])
           vDeads.push_back(a);
@@ -280,8 +281,8 @@ namespace NewTt {
       bvar a = Lit2Bvar(x);
       word c = LitIsCompl(x)? one(): 0;
       for(size j = 0; j < nSize; j++)
-        std::cout << bsw(vVals[nSize * a + j] ^ c);
-      std::cout << std::endl;
+        ABC_PRINT_STREAM( stdout, false, bsw(vVals[nSize * a + j] ^ c) );
+      { printf( "\n" ); fflush( stdout ); }
     }
   };
 

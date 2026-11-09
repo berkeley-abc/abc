@@ -1,4 +1,5 @@
 #pragma once
+#include "misc/util/abc_print.h"
 
 #include <sat/bsat/satSolver.h>
 
@@ -124,7 +125,7 @@ namespace rrr {
     assert(pNtk->GetNodeType(id) == AND);
     std::string delim;
     if(nVerbose) {
-      std::cout << "node " << std::setw(3) << id << ": ";
+      ABC_PRINT_STREAM( stdout, false, "node " << std::setw(3) << id << ": " );
     }
     pNtk->ForEachFanin(id, [&](int fi, bool c) {
       if(x == -1) {
@@ -136,7 +137,7 @@ namespace rrr {
       } else {
         int z = sat_solver_addvar(p);
         if(nVerbose) {
-          std::cout << delim << z << " = " << (cx? "!": "") << x << " & " << (cy? "!": "") << y << std::endl;
+          ABC_PRINT_STREAM( stdout, true, delim << z << " = " << (cx? "!": "") << x << " & " << (cy? "!": "") << y << "\n" );
           delim = std::string(10, ' ');
         }
         RetValue = sat_solver_add_and(p, z, x, y, cx, cy, 0);
@@ -149,19 +150,19 @@ namespace rrr {
     });
     if(x == -1) {
       if(nVerbose) {
-        std::cout << delim << v[id] << " = !0" << std::endl;
+        ABC_PRINT_STREAM( stdout, true, delim << v[id] << " = !0" << "\n" );
       }
       RetValue = sat_solver_add_const(p, v[id], 0);
       assert(RetValue);
     } else if(y == -1) {
       if(nVerbose) {
-        std::cout << delim << v[id] << " = " << (cx? "!": "") << x << std::endl;
+        ABC_PRINT_STREAM( stdout, true, delim << v[id] << " = " << (cx? "!": "") << x << "\n" );
       }
       RetValue = sat_solver_add_buffer(p, v[id], x, cx);
       assert(RetValue);
     } else {
       if(nVerbose) {
-        std::cout << delim << v[id] << " = " << (cx? "!": "") << x << " & " << (cy? "!": "") << y << std::endl;
+        ABC_PRINT_STREAM( stdout, true, delim << v[id] << " = " << (cx? "!": "") << x << " & " << (cy? "!": "") << y << "\n" );
       }
       RetValue = sat_solver_add_and(p, v[id], x, y, cx, cy, 0);
       assert(RetValue);
@@ -187,7 +188,7 @@ namespace rrr {
     assert(RetValue);
     // encode first circuit
     if(nVerbose) {
-      std::cout << "encoding network" << std::endl;
+      { printf( "encoding network\n" ); fflush( stdout ); }
     }
     pNtk->ForEachInt([&](int id) {
       EncodeNode(p, v, id);
@@ -203,7 +204,7 @@ namespace rrr {
     });
     // encode an inverted copy
     if(nVerbose) {
-      std::cout << "encoding an inverted copy" << std::endl;
+      { printf( "encoding an inverted copy\n" ); fflush( stdout ); }
     }
     pNtk->ForEachTfo(id, false, [&](int fo) {
       v[fo] = sat_solver_addvar(p);
@@ -211,7 +212,7 @@ namespace rrr {
     });
     // encode miter xors
     if(nVerbose) {
-      std::cout << "encoding miter xors" << std::endl;
+      { printf( "encoding miter xors\n" ); fflush( stdout ); }
     }
     int idx = 0;
     int n = 0;
@@ -220,7 +221,7 @@ namespace rrr {
       if(v[fi] != vLits[idx]) {
         int x = sat_solver_addvar(p);
         if(nVerbose) {
-          std::cout << x << " = " << v[fi] << " ^ " << vLits[idx] << std::endl;
+          ABC_PRINT_STREAM( stdout, true, x << " = " << v[fi] << " ^ " << vLits[idx] << "\n" );
         }
         RetValue = sat_solver_add_xor(p, x, v[fi], vLits[idx], 0);
         assert(RetValue);
@@ -232,14 +233,14 @@ namespace rrr {
     vLits.resize(n);
     // assign or of xors to 1
     if(nVerbose) {
-      std::cout << "adding miter output clause" << std::endl;
-      std::cout << "(";
+      { printf( "adding miter output clause\n" ); fflush( stdout ); }
+      printf( "(" );
       std::string delim = "";
       for(int iLit: vLits) {
-        std::cout << delim << (lit_sign(iLit)? "!": "") << lit_var(iLit);
+        ABC_PRINT_STREAM( stdout, false, delim << (lit_sign(iLit)? "!": "") << lit_var(iLit) );
         delim = ", ";
       }
-      std::cout << ")" << std::endl;
+      { printf( ")\n" ); fflush( stdout ); }
     }
     if(n == 0) {
       status = false;
@@ -301,7 +302,7 @@ namespace rrr {
     SetTarget(id);
     if(!status) {
       if(nVerbose) {
-        std::cout << "trivially UNSATISFIABLE" << std::endl;
+        { printf( "trivially UNSATISFIABLE\n" ); fflush( stdout ); }
       }
       durationRedundancy += Duration(timeStart, GetCurrentTime());
       return UNSAT;
@@ -316,19 +317,19 @@ namespace rrr {
       }
     });
     if(nVerbose) {
-      std::cout << "solving with assumptions: ";
+      printf( "solving with assumptions: " );
       std::string delim = "";
       for(int iLit: vLits) {
-        std::cout << delim << (lit_sign(iLit)? "!": "") << lit_var(iLit);
+        ABC_PRINT_STREAM( stdout, false, delim << (lit_sign(iLit)? "!": "") << lit_var(iLit) );
         delim = ", ";
       }
-      std::cout << std::endl;
+      { printf( "\n" ); fflush( stdout ); }
     }
     nCalls++;
     int res = sat_solver_solve(pSat, vLits.data(), vLits.data() + vLits.size(), nConflictLimit, 0 /*nInsLimit*/, 0 /*nConfLimitGlobal*/, 0 /*nInsLimitGlobal*/);
     if(res == l_False) {
       if(nVerbose) {
-        std::cout << "UNSATISFIABLE" << std::endl;
+        { printf( "UNSATISFIABLE\n" ); fflush( stdout ); }
       }
       nUnsats++;
       durationRedundancy += Duration(timeStart, GetCurrentTime());
@@ -336,14 +337,14 @@ namespace rrr {
     }
     if(res == l_Undef) {
       if(nVerbose) {
-        std::cout << "UNDETERMINED" << std::endl;
+        { printf( "UNDETERMINED\n" ); fflush( stdout ); }
       }
       durationRedundancy += Duration(timeStart, GetCurrentTime());
       return UNDET;
     }
     assert(res == l_True);
     if(nVerbose) {
-      std::cout << "SATISFIABLE" << std::endl;
+      { printf( "SATISFIABLE\n" ); fflush( stdout ); }
     }
     nSats++;
     vValues.clear();
@@ -377,7 +378,7 @@ namespace rrr {
     SetTarget(id);
     if(!status) {
       if(nVerbose) {
-        std::cout << "trivially UNSATISFIABLE" << std::endl;
+        { printf( "trivially UNSATISFIABLE\n" ); fflush( stdout ); }
       }
       durationFeasibility += Duration(timeStart, GetCurrentTime());
       return UNSAT;
@@ -387,19 +388,19 @@ namespace rrr {
     vLits.push_back(toLit(vVars[id]));
     vLits.push_back(toLitCond(vVars[fi], !c));
     if(nVerbose) {
-      std::cout << "solving with assumptions: ";
+      printf( "solving with assumptions: " );
       std::string delim = "";
       for(int iLit: vLits) {
-        std::cout << delim << (lit_sign(iLit)? "!": "") << lit_var(iLit);
+        ABC_PRINT_STREAM( stdout, false, delim << (lit_sign(iLit)? "!": "") << lit_var(iLit) );
         delim = ", ";
       }
-      std::cout << std::endl;
+      { printf( "\n" ); fflush( stdout ); }
     }
     nCalls++;
     int res = sat_solver_solve(pSat, vLits.data(), vLits.data() + vLits.size(), nConflictLimit, 0 /*nInsLimit*/, 0 /*nConfLimitGlobal*/, 0 /*nInsLimitGlobal*/);
     if(res == l_False) {
       if(nVerbose) {
-        std::cout << "UNSATISFIABLE" << std::endl;
+        { printf( "UNSATISFIABLE\n" ); fflush( stdout ); }
       }
       nUnsats++;
       durationFeasibility += Duration(timeStart, GetCurrentTime());
@@ -407,14 +408,14 @@ namespace rrr {
     }
     if(res == l_Undef) {
       if(nVerbose) {
-        std::cout << "UNDETERMINED" << std::endl;
+        { printf( "UNDETERMINED\n" ); fflush( stdout ); }
       }
       durationFeasibility += Duration(timeStart, GetCurrentTime());
       return UNDET;
     }
     assert(res == l_True);
     if(nVerbose) {
-      std::cout << "SATISFIABLE" << std::endl;
+      { printf( "SATISFIABLE\n" ); fflush( stdout ); }
     }
     nSats++;
     vValues.clear();
@@ -449,11 +450,11 @@ namespace rrr {
   template <typename Ntk>
   std::vector<VarValue> SatSolver<Ntk>::GetCex() {
     if(nVerbose) {
-      std::cout << "cex: ";
+      printf( "cex: " );
       pNtk->ForEachPi([&](int id) {
-        std::cout << GetVarValueChar(vValues[id]);
+        printf( "%c", GetVarValueChar(vValues[id]) );
       });
-      std::cout << std::endl;
+      { printf( "\n" ); fflush( stdout ); }
     }
     // reverse simulation
     pNtk->ForEachIntReverse([&](int id) {
@@ -505,11 +506,11 @@ namespace rrr {
       }
     });
     if(nVerbose) {
-      std::cout << "pex: ";
+      printf( "pex: " );
       pNtk->ForEachPi([&](int id) {
-        std::cout << GetVarValueChar(vValues[id]);
+        printf( "%c", GetVarValueChar(vValues[id]) );
       });
-      std::cout << std::endl;
+      { printf( "\n" ); fflush( stdout ); }
     }
     // debug
     pNtk->ForEachInt([&](int id) {

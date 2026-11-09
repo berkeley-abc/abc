@@ -1,0 +1,41 @@
+name: Instance output routing
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  io-routing:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        use_namespace: [false, true]
+        capture: ["OFF", "ON"]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      CMAKE_NAMESPACE: ${{ matrix.use_namespace && '-DABC_USE_NAMESPACE=abc_io_ci' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Configure standalone tests
+        run: >-
+          cmake -S . -B build-io -DCMAKE_BUILD_TYPE=Release
+          -DREADLINE_FOUND=FALSE -DABC_SKIP_TESTS=ON -DABC_BUILD_IO_TESTS=ON
+          -DABC_USE_STDIO_REDIRECT=${{ matrix.capture }} $CMAKE_NAMESPACE
+      - name: Build
+        run: cmake --build build-io --target abc_io_test --parallel 4
+      - name: Test console output and instance logs
+        run: ctest --test-dir build-io --output-on-failure -R '^io_routing$'
+      - name: Build and check Make capture support
+        if: matrix.os == 'ubuntu-latest' && !matrix.use_namespace && matrix.capture == 'ON'
+        run: |
+          make -j4 ABC_USE_STDIO_REDIRECT=1 ABC_USE_NO_READLINE=1 abc
+          ./abc -c 'read_blif test/io/mixed.blif; strash; set abcout make-capture.log; print_stats; set abcout -'
+          test -s make-capture.log

@@ -1,4 +1,5 @@
 #pragma once
+#include "misc/util/abc_print.h"
 
 #include "rrrParameter.h"
 #include "rrrUtils.h"
@@ -341,7 +342,7 @@ namespace rrr {
   template <typename Ntk>
   inline bool BddMspfAnalyzer<Ntk>::SimulateNode(int id, std::vector<lit> &v) const {
     if(nVerbose) {
-      std::cout << "simulating node " << id << std::endl;
+      ABC_PRINT_STREAM( stdout, true, "simulating node " << id << "\n" );
     }
     lit x = pBdd->Const1();
     IncRef(x);
@@ -361,7 +362,7 @@ namespace rrr {
   void BddMspfAnalyzer<Ntk>::Simulate() {
     time_point timeStart = GetCurrentTime();
     if(nVerbose) {
-      std::cout << "symbolic simulation with BDD" << std::endl;
+      { printf( "symbolic simulation with BDD\n" ); fflush( stdout ); }
     }
     pNtk->ForEachInt([&](int id) {
       if(vUpdates[id]) {
@@ -508,14 +509,14 @@ namespace rrr {
     if(vGUpdates[id]) {
       if(pNtk->IsReconvergent(id)) {
         if(nVerbose) {
-          std::cout << "computing reconvergent node " << id << " G " << std::endl;
+          ABC_PRINT_STREAM( stdout, true, "computing reconvergent node " << id << " G " << "\n" );
         }
         if(ComputeReconvergentG(id)) {
           vCUpdates[id] = true;
         }
       } else {
         if(nVerbose) {
-          std::cout << "computing node " << id << " G " << std::endl;
+          ABC_PRINT_STREAM( stdout, true, "computing node " << id << " G " << "\n" );
         }
         if(ComputeG(id)) {
           vCUpdates[id] = true;
@@ -524,7 +525,7 @@ namespace rrr {
       vGUpdates[id] = false;
     } else if(!vVisits[id] && pNtk->IsReconvergent(id)) {
       if(nVerbose) {
-        std::cout << "computing unvisited reconvergent node " << id << " G " << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "computing unvisited reconvergent node " << id << " G " << "\n" );
       }
       if(ComputeReconvergentG(id)) {
         vCUpdates[id] = true;
@@ -532,7 +533,7 @@ namespace rrr {
     }
     if(vCUpdates[id]) {
       if(nVerbose) {
-        std::cout << "computing node " << id << " C " << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "computing node " << id << " C " << "\n" );
       }
       ComputeC(id);
       vCUpdates[id] = false;
@@ -741,9 +742,9 @@ namespace rrr {
     }
     if(nVerbose) {
       if(fRedundant) {
-        std::cout << "node " << id << " fanin " << (pNtk->GetCompl(id, idx)? "!": "") << pNtk->GetFanin(id, idx) << " index " << idx << " is redundant" << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "node " << id << " fanin " << (pNtk->GetCompl(id, idx)? "!": "") << pNtk->GetFanin(id, idx) << " index " << idx << " is redundant" << "\n" );
       } else {
-        std::cout << "node " << id << " fanin " << (pNtk->GetCompl(id, idx)? "!": "") << pNtk->GetFanin(id, idx) << " index " << idx << " is NOT redundant" << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "node " << id << " fanin " << (pNtk->GetCompl(id, idx)? "!": "") << pNtk->GetFanin(id, idx) << " index " << idx << " is NOT redundant" << "\n" );
       }
     }
     durationCheck += Duration(timeStart, GetCurrentTime());
@@ -778,9 +779,9 @@ namespace rrr {
     }
     if(nVerbose) {
       if(fFeasible) {
-        std::cout << "node " << id << " fanin " << (c? "!": "") << fi << " is feasible" << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "node " << id << " fanin " << (c? "!": "") << fi << " is feasible" << "\n" );
       } else {
-        std::cout << "node " << id << " fanin " << (c? "!": "") << fi << " is NOT feasible" << std::endl;
+        ABC_PRINT_STREAM( stdout, true, "node " << id << " fanin " << (c? "!": "") << fi << " is NOT feasible" << "\n" );
       }
     }
     durationCheck += Duration(timeStart, GetCurrentTime());

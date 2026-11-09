@@ -39,6 +39,12 @@ endfunction()
 project(abc)
 
 option(ABC_USE_NO_THREAD_LOCAL "Disable thread-local frame selection" OFF)
+option(ABC_USE_STDIO_REDIRECT "Route C output through the current ABC frame (experimental)" OFF)
+if(ABC_USE_STDIO_REDIRECT AND NOT WIN32)
+    # Preserve these files' feature selection ahead of the forced stdio include.
+    set_property(SOURCE src/base/sn/snRead.c src/base/sn/snCom.c APPEND
+        PROPERTY COMPILE_DEFINITIONS _POSIX_C_SOURCE=200809L)
+endif()
 
 if(READLINE_FOUND MATCHES TRUE)
     addprefix(ABC_READLINE_INCLUDES_FLAGS "-I" ${READLINE_INCLUDE})
@@ -73,6 +79,7 @@ execute_process(
         ${ABC_USE_NO_THREAD_LOCAL_FLAGS}
         ARCHFLAGS_EXE=${CMAKE_CURRENT_BINARY_DIR}/abc_arch_flags_program.exe
         ABC_MAKE_NO_DEPS=1
+        ABC_USE_STDIO_REDIRECT=0
         CC=${CMAKE_C_COMPILER}
         CXX=${CMAKE_CXX_COMPILER}
         LD=${CMAKE_CXX_COMPILER}
@@ -104,6 +111,13 @@ function(abc_properties target visibility)
     target_include_directories(${target} ${visibility} ${CMAKE_CURRENT_SOURCE_DIR}/src )
     target_compile_options_filtered(${target} ${visibility} ${ABC_CFLAGS} ${ABC_CXXFLAGS} -Wno-unused-but-set-variable )
     target_link_libraries(${target} ${visibility} ${ABC_LIBS})
+    if(ABC_USE_STDIO_REDIRECT)
+        if(MSVC)
+            target_compile_options(${target} PRIVATE "/FI${CMAKE_CURRENT_SOURCE_DIR}/src/misc/util/abc_stdio.h")
+        else()
+            target_compile_options(${target} PRIVATE -include ${CMAKE_CURRENT_SOURCE_DIR}/src/misc/util/abc_stdio.h)
+        endif()
+    endif()
 endfunction()
 
 set(ABC_MAIN_SRC src/base/main/main.c)
@@ -163,4 +177,10 @@ if(NOT ABC_SKIP_TESTS)
     FetchContent_MakeAvailable(googletest)
     include(GoogleTest)
     add_subdirectory(test)
+endif()
+
+option(ABC_BUILD_IO_TESTS "Build standalone output-routing regression tests" OFF)
+if(ABC_BUILD_IO_TESTS)
+    enable_testing()
+    add_subdirectory(test/io)
 endif()

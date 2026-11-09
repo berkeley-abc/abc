@@ -17,6 +17,7 @@
   Revision    [$Id: eSLIM.cpp,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
+#include "misc/util/abc_print.h"
 
 #include <cassert>
 #include <unordered_map>
@@ -750,7 +751,7 @@ namespace eSLIM {
           break;
       
       default:
-        std::cerr << "Error: A node with a function not part of the library was detected." << std::endl;
+        { fprintf( stderr, "Error: A node with a function not part of the library was detected.\n" ); fflush( stderr ); }
         Abc_NtkDelete( pNtk );
         return NULL;
       }
@@ -1051,50 +1052,50 @@ namespace eSLIM {
   }
 
   void eSLIMCirMan::print() const {
-    std::cout << "Inputs:";
+    printf( "Inputs:" );
     for (int i = 1; i <= nof_pis; i++) {
-      std::cout << " " << i;
+      ABC_PRINT_STREAM( stdout, false, " " << i );
     }
-    std::cout << "\n";
+    printf( "\n" );
     for (int i = nof_pis + 1; i < getNofObjs() - getNofPos(); i++) {
-      std::cout << nodes[i]->node_id << " :";
+      ABC_PRINT_STREAM( stdout, false, nodes[i]->node_id << " :" );
       for (auto& f : nodes[i]->fanins) {
-        std::cout << " " << f->node_id;
+        ABC_PRINT_STREAM( stdout, false, " " << f->node_id );
       }
-      std::cout << " - " << nodes[i]->tt << "\n";
+      ABC_PRINT_STREAM( stdout, false, " - " << nodes[i]->tt << "\n" );
     }
-    std::cout << "Outputs:";
+    printf( "Outputs:" );
     for (int i = getNofObjs() - getNofPos(); i < getNofObjs(); i++) {
-      std::cout << " " << nodes[i]->fanins[0]->node_id;
+      ABC_PRINT_STREAM( stdout, false, " " << nodes[i]->fanins[0]->node_id );
     }
-    std::cout << "\n";
+    printf( "\n" );
   }
 
   void eSLIMCirMan::print(const Subcircuit& scir) const {
-    std::cout << "Inputs:";
+    printf( "Inputs:" );
     for (int i : scir.inputs) {
-      std::cout << " " << i;
+      ABC_PRINT_STREAM( stdout, false, " " << i );
     }
-    std::cout << "\n";
+    printf( "\n" );
     for (int nd : scir.nodes) {
-      std::cout << nodes[nd]->node_id << " :";
+      ABC_PRINT_STREAM( stdout, false, nodes[nd]->node_id << " :" );
       for (auto& f : nodes[nd]->fanins) {
-        std::cout << " " << f->node_id;
+        ABC_PRINT_STREAM( stdout, false, " " << f->node_id );
       }
-      std::cout << " - " << nodes[nd]->tt << "\n";
+      ABC_PRINT_STREAM( stdout, false, " - " << nodes[nd]->tt << "\n" );
     }
-    std::cout << "Outputs:";
+    printf( "Outputs:" );
     for (int o : scir.outputs) {
-      std::cout << " " << o;
+      ABC_PRINT_STREAM( stdout, false, " " << o );
     }
-    std::cout << "\nForbidden pairs:";
+    printf( "\nForbidden pairs:" );
     for (const auto & [out,inps] : scir.forbidden_pairs) {
-      std::cout << "\n" << out << " :";
+      ABC_PRINT_STREAM( stdout, false, "\n" << out << " :" );
       for (int inp : inps) {
-        std::cout << " " << inp;
+        ABC_PRINT_STREAM( stdout, false, " " << inp );
       }
     }
-    std::cout << "\n";
+    printf( "\n" );
   }
 
   eSLIMCirMan eSLIMCirMan::duplicate() const {

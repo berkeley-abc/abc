@@ -1,4 +1,5 @@
 #pragma once
+#include "misc/util/abc_print.h"
 
 #include <utility>
 #include <list>
@@ -1610,16 +1611,16 @@ namespace rrr {
   }
   
   void AndNetwork::Print() const {
-    std::cout << "inputs: " << vPis << std::endl;
+    ABC_PRINT_STREAM( stdout, true, "inputs: " << vPis << "\n" );
     ForEachInt([&](int id) {
-      std::cout << "node " << id << ": ";
+      ABC_PRINT_STREAM( stdout, false, "node " << id << ": " );
       PrintComplementedEdges(std::bind(&AndNetwork::ForEachFanin<std::function<void(int, bool)>>, this, id, std::placeholders::_1));
-      std::cout << " (ref = " << vRefs[id] << ")";
-      std::cout << std::endl;
+      ABC_PRINT_STREAM( stdout, false, " (ref = " << vRefs[id] << ")" );
+      { printf( "\n" ); fflush( stdout ); }
     });
-    std::cout << "outputs: ";
+    printf( "outputs: " );
     PrintComplementedEdges(std::bind(&AndNetwork::ForEachPoDriver<std::function<void(int, bool)>>, this, std::placeholders::_1));
-    std::cout << std::endl;
+    { printf( "\n" ); fflush( stdout ); }
   }
 
   /* }}} */

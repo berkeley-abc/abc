@@ -5,6 +5,7 @@
  *      Author: Yen-Sheng Ho
  */
 
+#include "misc/util/abc_print.h"
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -223,11 +224,11 @@ void DumpWlcNtk(Wlc_Ntk_t * pNtk) {
     int i, k, iFanin;
     Wlc_Obj_t * pObj;
     Wlc_NtkForEachObj(pNtk, pObj, i) {
-        cout << i << " <-- ";
+        ABC_PRINT_STREAM( stdout, false, i << " <-- " );
         Wlc_ObjForEachFanin( pObj, iFanin, k ) {
-            cout << iFanin << " ";
+            ABC_PRINT_STREAM( stdout, false, iFanin << " " );
         }
-        cout << endl;
+        { printf( "\n" ); fflush( stdout ); }
     }
 }
 
@@ -1172,18 +1173,18 @@ void PrintWordCEX(Wlc_Ntk_t * pNtk, Abc_Cex_t * pCex, const vector<string>* name
     for (int f = 0; f <= pCex->iFrame; ++f) {
         int pos = 0;
         for (int i = 0; i < Wlc_NtkPiNum(pNtk); ++i) {
-            cout << "CEX:";
+            printf( "CEX:" );
             for (int k = 0; k < Wlc_ObjRange(Wlc_NtkPi(pNtk, i)); ++k ) {
-                cout << Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + (Wlc_ObjRange(Wlc_NtkPi(pNtk, i))-k-1)+pos);
+                ABC_PRINT_STREAM( stdout, false, Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + (Wlc_ObjRange(Wlc_NtkPi(pNtk, i))-k-1)+pos) );
             }
             pos += Wlc_ObjRange(Wlc_NtkPi(pNtk, i));
-            cout << ":" ;
+            printf( ":" );
             if (names)
-                cout << (*names)[Wlc_ObjId(pNtk, Wlc_NtkPi(pNtk, i))];
+                ABC_PRINT_STREAM( stdout, false, (*names)[Wlc_ObjId(pNtk, Wlc_NtkPi(pNtk, i))] );
             else
-                cout << Wlc_ObjName(pNtk, Wlc_ObjId(pNtk, Wlc_NtkPi(pNtk, i)));
-            cout << "@" << f;
-            cout << endl;
+                ABC_PRINT_STREAM( stdout, false, Wlc_ObjName(pNtk, Wlc_ObjId(pNtk, Wlc_NtkPi(pNtk, i))) );
+            ABC_PRINT_STREAM( stdout, false, "@" << f );
+            { printf( "\n" ); fflush( stdout ); }
         }
     }
 }
