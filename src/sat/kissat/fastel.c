@@ -829,7 +829,7 @@ typedef STACK (candidate) candidates;
 void kissat_fast_variable_elimination (kissat *solver) {
   if (solver->inconsistent)
     return;
-  if (!GET_OPTION (fastel))
+  if (solver->disable_fast_elimination || !GET_OPTION (fastel))
     return;
 #ifndef KISSAT_QUIET
   const unsigned variables_before = solver->active;

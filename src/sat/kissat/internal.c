@@ -209,6 +209,11 @@ int kissat_set_option (kissat *solver, const char *name, int new_value) {
 #endif
 }
 
+void kissat_disable_fast_elimination (kissat *solver) {
+  kissat_require_initialized (solver);
+  solver->disable_fast_elimination = true;
+}
+
 void kissat_set_decision_limit (kissat *solver, unsigned limit) {
   kissat_require_initialized (solver);
   limits *limits = &solver->limits;

@@ -2334,11 +2334,27 @@ SOURCE=.\src\sat\bmc\bmcLoad.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcLut2.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bmc\bmcExact.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bmc\bmcExact.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcMaj.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\sat\bmc\bmcMaj2.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bmc\bmcMajExact2.c
 # End Source File
 # Begin Source File
 

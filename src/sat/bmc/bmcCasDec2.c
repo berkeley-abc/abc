@@ -18,6 +18,7 @@
 
 ***********************************************************************/
 
+#include "bmc.h"
 #include "base/abc/abc.h"
 #include "base/main/main.h"
 #include "misc/extra/extra.h"
@@ -44,6 +45,10 @@ struct Bmc_Cas2Par_t_
 {
     int nVars, nLutSize, nNodes, nBeam, nGroups, nTime, Seed;
     int fDump, fVerbose, fBatch, nLimit;
+    int nModes, nScore, nAnchors;
+    abctime timeStop;
+    int * pFans;
+    word * pTables;
 };
 
 typedef struct Bmc_Cas2Res_t_ Bmc_Cas2Res_t;
@@ -257,7 +262,7 @@ static void Bmc_Cas2Reduce( Bmc_Cas2State_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static void Bmc_Cas2Score( Bmc_Cas2State_t * p )
+static void Bmc_Cas2Score( Bmc_Cas2State_t * p, int Score )
 {
     int w, n = 1 << p->nVars, nw = Abc_TtWordNum(p->nVars), nOn = 0, nOff = 0;
     word Hash = ABC_CONST(1469598103934665603);
@@ -269,6 +274,36 @@ static void Bmc_Cas2Score( Bmc_Cas2State_t * p )
         Hash = (Hash ^ p->pOff[w]) * ABC_CONST(1099511628211);
     }
     p->Hash = Hash ^ p->nVars;
+    if ( Score == 1 )
+    {
+        // Prefer the residual with the smaller exceptional care set.
+        p->Score = (word)p->nVars*2000000 + (word)Abc_MinInt(nOn, nOff)*2000000/n;
+        return;
+    }
+    if ( Score == 2 )
+    {
+        int i, Step, Count = 0;
+        // Adjacent on/off rows force an input distinction. Fewer such edges
+        // can leave more freedom for the preceding LUTs.
+        for ( i = 0; i < p->nVars; ++i )
+            if ( i < 6 )
+            {
+                Step = 1 << i;
+                for ( w = 0; w < nw; ++w )
+                    Count += Abc_TtCountOnes(((p->pOn[w] & (p->pOff[w] >> Step)) |
+                        (p->pOff[w] & (p->pOn[w] >> Step))) & ~s_Truths6[i]);
+            }
+            else
+            {
+                Step = 1 << (i-6);
+                for ( w = 0; w < nw; ++w )
+                    if ( !(w & Step) )
+                        Count += Abc_TtCountOnes((p->pOn[w] & p->pOff[w | Step]) |
+                            (p->pOff[w] & p->pOn[w | Step]));
+            }
+        p->Score = (word)p->nVars*2000000 + (word)Count*2000000/(n*Abc_MaxInt(p->nVars, 1));
+        return;
+    }
     // Each on/off minterm pair must remain distinguishable; don't-cares
     // impose no distinction. Normalize this information quantity by n*n.
     // Support dominates the score. Products fit in 64 bits for N <= 16.
@@ -311,7 +346,7 @@ static void Bmc_Cas2Keep( Bmc_Cas2Man_t * p, Bmc_Cas2State_t ** ppBeam, int * pn
 {
     Bmc_Cas2State_t * pOld;
     int i, Pos;
-    Bmc_Cas2Score(pNew);
+    Bmc_Cas2Score(pNew, p->pPars->nScore);
     p->nCandidates++;
     for ( i = p->pBins[(pNew->Hash ^ (pNew->Hash >> 32)) & (p->nBins-1)]; i >= 0; i = pOld->iHashNext )
     {
@@ -403,6 +438,7 @@ static void Bmc_Cas2Group( Bmc_Cas2Man_t * p, Bmc_Cas2State_t * pState, unsigned
     int Perm[CAS2_MAX_VARS], SwapA[CAS2_MAX_VARS], SwapB[CAS2_MAX_VARS], nSwaps = 0, nWords;
     int k = 0, nr = 0, ns, nw, i, j, s, t, r, w, Mode, a, Good, Same, Diff;
     int * pParents, * pSaved, * pVotes, * pRoots;
+    int nModes, nAnchors, Anchor;
     unsigned char * pType, * pPhase;
     word * pOn, * pOff, * pA, * pB, * pC, * pD;
     word On, Off, Care;
@@ -474,11 +510,14 @@ static void Bmc_Cas2Group( Bmc_Cas2Man_t * p, Bmc_Cas2State_t * pState, unsigned
                 }
                 p->pPairs[i*ns+s] = Same | (Diff << 1);
             }
-    for ( Mode = 0; Mode < 4; ++Mode )
+    nModes = p->pPars->nModes ? p->pPars->nModes : 4;
+    nAnchors = Abc_MinInt(p->pPars->nAnchors, 1 << nr);
+    for ( Mode = 0; Mode < nModes+nAnchors; ++Mode )
     {
+        Anchor = Mode < nModes || nAnchors < 2 ? 0 : (Mode-nModes)*((1 << nr)-1)/(nAnchors-1);
         for ( s = 0; s < ns; ++s ) pParents[s] = 2*s;
         for ( i = 0; i < k; ++i ) Order[i] = Mode & 1 ? k-1-i : i;
-        if ( Mode >= 2 )
+        if ( Mode >= 2 && Mode < nModes )
             for ( i = k-1; i > 0; --i )
             {
                 j = Bmc_Cas2Random(p) % (i+1);
@@ -505,13 +544,16 @@ static void Bmc_Cas2Group( Bmc_Cas2Man_t * p, Bmc_Cas2State_t * pState, unsigned
         {
             r = pRoots[s] = Bmc_Cas2Root(pParents, s);
             pPhase[s] = pParents[s] & 1;
-            a = p->pBalance[s];
+            // Align component phases on one complementary-input assignment.
+            // This favors constant predecessor slices for the next peel.
+            a = Mode < nModes ? p->pBalance[s] :
+                Abc_TtGetBit(pOn+s*nw, Anchor)-Abc_TtGetBit(pOff+s*nw, Anchor);
             pVotes[r] += pPhase[s] ? -a : a;
         }
         for ( s = 0; s < ns; ++s )
             if ( pRoots[s] == s )
             {
-                if ( Mode == 3 ) pVotes[s] = (Bmc_Cas2Random(p) & 1) != 0;
+                if ( Mode >= 3 && Mode < nModes ) pVotes[s] = (Bmc_Cas2Random(p) & 1) != 0;
                 else             pVotes[s] = pVotes[s] > 0;
             }
         pNew = ABC_CALLOC(Bmc_Cas2State_t, 1);
@@ -719,6 +761,36 @@ static int Bmc_Cas2Dump( Bmc_Cas2State_t * pResult, word * pTruth, int nVars, in
 
 /**Function*************************************************************
 
+  Synopsis    [Copies a verified decomposition into caller-owned arrays.]
+
+  Description [Each stage has K input slots and Abc_TtWordNum(K) words.
+               Unused input slots are -1. Pin zero is the incoming rail
+               after the first stage. Truth-table addresses use pin zero
+               as the least significant bit. Unused table entries are zero.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Bmc_Cas2Save( Bmc_Cas2Par_t * pPars, Bmc_Cas2State_t * pResult )
+{
+    Bmc_Cas2State_t * p;
+    int i, j, m, K = pPars->nLutSize, nWords = Abc_TtWordNum(K);
+    for ( j = 0; j < pResult->nVars; ++j ) pPars->pFans[j] = pResult->Vars[j];
+    for ( m = 0; m < (1 << pResult->nVars); ++m )
+        if ( Abc_TtGetBit(pResult->pOn, m) ) Abc_TtSetBit(pPars->pTables, m);
+    for ( p = pResult, i = 1; p->pNext; p = p->pNext, ++i )
+    {
+        pPars->pFans[i*K] = pPars->nVars+i-1;
+        for ( j = 0; j < p->nPis; ++j ) pPars->pFans[i*K+j+1] = p->Pis[j];
+        for ( m = 0; m < (1 << (p->nPis+1)); ++m )
+            if ( p->pLut[m] ) Abc_TtSetBit(pPars->pTables+i*nWords, m);
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Searches successive residual layers, retaining a bounded beam.]
 
   Description []
@@ -740,7 +812,8 @@ static int Bmc_Cas2Run( Bmc_Cas2Par_t * pPars, word * pTruth, Bmc_Cas2Res_t * pR
     p->pPars = pPars;
     p->Random = (unsigned)pPars->Seed ^ 0x9e3779b9u;
     if ( !p->Random ) p->Random = 1;
-    p->timeStop = pPars->nTime ? clk + (abctime)pPars->nTime*CLOCKS_PER_SEC : 0;
+    p->timeStop = pPars->timeStop ? pPars->timeStop :
+        pPars->nTime ? clk + (abctime)pPars->nTime*CLOCKS_PER_SEC : 0;
     p->vStates = Vec_PtrAlloc(64);
     for ( p->nBins = 16; p->nBins < 2*pPars->nBeam*pPars->nNodes; p->nBins *= 2 ) {}
     p->pBins = ABC_ALLOC(int, p->nBins);
@@ -758,7 +831,7 @@ static int Bmc_Cas2Run( Bmc_Cas2Par_t * pPars, word * pTruth, Bmc_Cas2Res_t * pR
     pState->pOn[m-1] &= Bmc_Cas2Mask(pState->nVars);
     pState->pOff[m-1] &= Bmc_Cas2Mask(pState->nVars);
     Bmc_Cas2Reduce(pState);
-    Bmc_Cas2Score(pState);
+    Bmc_Cas2Score(pState, p->pPars->nScore);
     ppBeam[0] = pState;
     Bmc_Cas2Remember(p, pState);
     for ( Depth = 1; Depth <= pPars->nNodes && !Bmc_Cas2Stop(p); ++Depth )
@@ -802,6 +875,7 @@ static int Bmc_Cas2Run( Bmc_Cas2Par_t * pPars, word * pTruth, Bmc_Cas2Res_t * pR
     else if ( pResult )
     {
         for ( pState = pResult; pState; pState = pState->pNext ) pRes->nNodes++;
+        if ( pPars->pFans ) Bmc_Cas2Save(pPars, pResult);
         if ( !pPars->fBatch )
         {
             Bmc_Cas2Print(pResult, pPars->nVars, pPars->nLutSize);
@@ -821,6 +895,82 @@ static int Bmc_Cas2Run( Bmc_Cas2Par_t * pPars, word * pTruth, Bmc_Cas2Res_t * pR
     Bmc_Cas2Workspace(p, 0);
     ABC_FREE(ppBeam); ABC_FREE(ppNext);
     return Ret;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives a bounded backward-decomposition candidate.]
+
+  Description [Returns the verified LUT count, zero if no candidate was
+               found, or -1 on invalid arguments or a verification error.
+               This routine never proves infeasibility. The caller provides
+               nNodes*K input entries and nNodes*Abc_TtWordNum(K) words.
+               Inputs are numbered 0..nVars-1, and stage i is nVars+i.
+               The encoding of the arrays is described in Bmc_Cas2Save.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Bmc_Cas2Derive( word * pTruth, int nVars, int K, int nNodes, int nTime,
+    abctime timeStop, int Seed, int * pFans, word * pTables )
+{
+    Bmc_Cas2Par_t Pars;
+    Bmc_Cas2Res_t Res;
+    if ( !pTruth || !pFans || !pTables || nVars < 2 || nVars > CAS2_MAX_VARS ||
+         K < 2 || K > 8 || nNodes < 1 || nNodes > CAS2_MAX_NODES || nTime < 0 )
+        return -1;
+    memset(&Pars, 0, sizeof(Pars));
+    Pars.nVars = nVars;
+    Pars.nLutSize = K;
+    Pars.nNodes = nNodes;
+    Pars.nTime = nTime;
+    Pars.timeStop = nTime ? Abc_Clock() + (abctime)nTime*CLOCKS_PER_SEC : 0;
+    if ( timeStop && (!Pars.timeStop || timeStop < Pars.timeStop) ) Pars.timeStop = timeStop;
+    Pars.Seed = Seed;
+    Pars.nBeam = 16;
+    Pars.nGroups = 512;
+    Pars.fBatch = 1;
+    Pars.pFans = pFans;
+    Pars.pTables = pTables;
+    memset(pFans, 0xff, sizeof(int)*nNodes*K);
+    memset(pTables, 0, sizeof(word)*nNodes*Abc_TtWordNum(K));
+    if ( Bmc_Cas2Run(&Pars, pTruth, &Res) ) return -1;
+    // Reuse the same deadline. A wider set of orientations and alternative
+    // residual scores diversify only failed candidate searches.
+    if ( !Res.nNodes && !Res.fTimeout )
+    {
+        Pars.nScore = 1;
+        if ( Bmc_Cas2Run(&Pars, pTruth, &Res) ) return -1;
+    }
+    if ( !Res.nNodes && !Res.fTimeout )
+    {
+        Pars.nScore = 0;
+        Pars.nModes = 12;
+        if ( Bmc_Cas2Run(&Pars, pTruth, &Res) ) return -1;
+    }
+    if ( !Res.nNodes && !Res.fTimeout )
+    {
+        Pars.nModes = 4;
+        Pars.nScore = 2;
+        if ( Bmc_Cas2Run(&Pars, pTruth, &Res) ) return -1;
+    }
+    if ( !Res.nNodes && !Res.fTimeout )
+    {
+        Pars.nScore = 1;
+        Pars.nAnchors = 32;
+        if ( Bmc_Cas2Run(&Pars, pTruth, &Res) ) return -1;
+    }
+    if ( !Res.nNodes && !Res.fTimeout )
+    {
+        Pars.nAnchors = 0;
+        Pars.nScore = 0;
+        Pars.nModes = 4;
+        Pars.nBeam = 256;
+        if ( Bmc_Cas2Run(&Pars, pTruth, &Res) ) return -1;
+    }
+    return Res.nNodes;
 }
 
 /**Function*************************************************************

@@ -33,6 +33,7 @@ static int Abc_CommandBmsStart               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandBmsStop                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBmsPs                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMajExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+extern int Abc_CommandMajExact2              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTwoExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 extern int Abc_CommandTwoExact2              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLutExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -65,10 +66,12 @@ void Abc_InitExact( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_stop",   Abc_CommandBmsStop,          0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_ps",     Abc_CommandBmsPs,            0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "majexact",   Abc_CommandMajExact,         0 );
+    Cmd_CommandAdd( pAbc, "Exact synthesis", "majexact2",  Abc_CommandMajExact2,        1 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "twoexact",   Abc_CommandTwoExact,         0 );
-    Cmd_CommandAdd( pAbc, "Exact synthesis", "twoexact2",  Abc_CommandTwoExact2,        0 );
+    Cmd_CommandAdd( pAbc, "Exact synthesis", "twoexact2",  Abc_CommandTwoExact2,        1 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "lutexact",   Abc_CommandLutExact,         0 );
-    Cmd_CommandAdd( pAbc, "Exact synthesis", "casexact",   Abc_CommandCasExact,         0 );
+    Cmd_CommandAdd( pAbc, "Exact synthesis", "lutexact2",  Abc_CommandLutExact2,        1 );
+    Cmd_CommandAdd( pAbc, "Exact synthesis", "casexact",   Abc_CommandCasExact,         1 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "andexact",   Abc_CommandAndExact,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "allexact",   Abc_CommandAllExact,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "topoexact",  Abc_CommandTopoExact,        0 );

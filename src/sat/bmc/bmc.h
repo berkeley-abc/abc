@@ -239,6 +239,12 @@ struct Bmc_ParFf_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+struct Abc_Frame_t_;
+// bmcLut2.c
+extern int               Abc_CommandLutExact2( struct Abc_Frame_t_ * pAbc, int argc, char ** argv );
+// bmcMajExact2.c
+extern int               Abc_CommandMajExact2( struct Abc_Frame_t_ * pAbc, int argc, char ** argv );
+
 /*=== bmcBCore.c ==========================================================*/
 extern void              Bmc_ManBCorePerform( Gia_Man_t * pGia, Bmc_BCorePar_t * pPars );
 /*=== bmcBmc.c ==========================================================*/
@@ -250,6 +256,8 @@ extern void              Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p );
 extern int               Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars );
 /*=== bmcBmcAnd.c ==========================================================*/
 extern int               Gia_ManBmcPerform( Gia_Man_t * p, Bmc_AndPar_t * pPars );
+// bmcCasDec2.c
+extern int               Bmc_Cas2Derive( word * pTruth, int nVars, int K, int nNodes, int nTime, abctime timeStop, int Seed, int * pFans, word * pTables );
 /*=== bmcCexCare.c ==========================================================*/
 extern Abc_Cex_t *       Bmc_CexCareExtendToObjects( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare );
 extern Abc_Cex_t *       Bmc_CexCareMinimize( Aig_Man_t * p, int nRealPis, Abc_Cex_t * pCex, int nTryCexes, int fCheck, int fVerbose );

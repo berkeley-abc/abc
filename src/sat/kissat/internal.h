@@ -101,6 +101,9 @@ struct kissat {
 
   bool large_clauses_watched_after_binary_clauses;
 
+  // ABC can disable this preprocessing pass for one solver instance.
+  bool disable_fast_elimination;
+
   KISSAT_TYPE(termination) termination;
 
   unsigned vars;
