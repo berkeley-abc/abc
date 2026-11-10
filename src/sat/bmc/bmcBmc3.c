@@ -82,6 +82,17 @@ struct Gia_ManBmc_t_
 
 extern int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex, int iPoProved );
 
+/**Function*************************************************************
+
+  Synopsis    [Forwards cooperative cancellation into a Glucose query.]
+
+***********************************************************************/
+static int Saig_Bmc3GlucoseStop( void * pData )
+{
+    Saig_ParBmc_t * pPars = (Saig_ParBmc_t *)pData;
+    return pPars->pFuncStop && pPars->pFuncStop( pPars->RunId );
+}
+
 void Gia_ManReportProgress( FILE * pFile, int prop_no, int depth )
 {
     extern int Gia_ManToBridgeProgress( FILE * pFile, int Size, unsigned char * pBuffer );
@@ -126,13 +137,13 @@ static inline void Saig_ManBmcSimInfoSet( unsigned * pInfo, Aig_Obj_t * pObj, in
 {
     assert( Value >= SAIG_TER_ZER && Value <= SAIG_TER_UND );
     Value ^= Saig_ManBmcSimInfoGet( pInfo, pObj );
-    pInfo[Aig_ObjId(pObj) >> 4] ^= (Value << ((Aig_ObjId(pObj) & 15) << 1));
+    pInfo[Aig_ObjId(pObj) >> 4] ^= ((unsigned)Value << ((Aig_ObjId(pObj) & 15) << 1));
 }
 
 static inline int Saig_ManBmcSimInfoClear( unsigned * pInfo, Aig_Obj_t * pObj )
 {
     int Value = Saig_ManBmcSimInfoGet( pInfo, pObj );
-    pInfo[Aig_ObjId(pObj) >> 4] ^= (Value << ((Aig_ObjId(pObj) & 15) << 1));
+    pInfo[Aig_ObjId(pObj) >> 4] ^= ((unsigned)Value << ((Aig_ObjId(pObj) & 15) << 1));
     return Value;
 }
 
@@ -1531,8 +1542,8 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     }
     else if ( p->pSat3 )
     {
-//        satoko_set_runid(p->pSat3, p->pPars->RunId);
-//        satoko_set_stop_func(p->pSat3, p->pPars->pFuncStop);
+        if ( pPars->pFuncStop )
+            bmcg_sat_solver_set_stop_func( p->pSat3, pPars, Saig_Bmc3GlucoseStop );
     }
     else if ( p->pSat4 )
     {

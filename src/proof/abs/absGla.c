@@ -726,7 +726,7 @@ void Ga2_ManCnfAddStatic( sat_solver2 * pSat, Vec_Int_t * vCnf0, Vec_Int_t * vCn
 ***********************************************************************/
 static inline unsigned Saig_ManBmcHashKey( int * pArray )
 {
-    static int s_Primes[5] = { 12582917, 25165843, 50331653, 100663319, 201326611 };
+    static const unsigned s_Primes[5] = { 12582917, 25165843, 50331653, 100663319, 201326611 };
     unsigned i, Key = 0;
     for ( i = 0; i < 5; i++ )
         Key += pArray[i] * s_Primes[i];
@@ -892,7 +892,7 @@ static inline void Ga2_ManAddToAbsOneDynamic( Ga2_Man_t * p, Gia_Obj_t * pObj, i
             assert( Lit >= 0 );
             Lit = Abc_LitNotCond( Lit, uTruth == 0x55555555 );
             Ga2_ObjAddLit( p, pObj, f, Lit );
-            assert( Lit < 10000000 );
+            assert( Lit < GA2_BIG_NUM );
         }
         else
         {
@@ -908,7 +908,7 @@ static inline void Ga2_ManAddToAbsOneDynamic( Ga2_Man_t * p, Gia_Obj_t * pObj, i
                     Lit = Ga2_ObjFindOrAddLit( p, pLeaf, f );
                     Vec_IntWriteEntry( p->vLits, i, Lit );
                 }
-                assert( Lit < 10000000 );
+                assert( Lit < GA2_BIG_NUM );
             }
 
             // add new nodes
@@ -1118,6 +1118,13 @@ void Ga2_ManRestart( Ga2_Man_t * p )
     // clear SAT variable numbers (begin with 1)
     if ( p->pSat ) sat_solver2_delete( p->pSat );
     p->pSat      = sat_solver2_new();
+    // Managed callers also stop within a SAT query. Keep the legacy
+    // detached-prover path's cancellation behavior unchanged.
+    if ( !p->pPars->fCallProver )
+    {
+        p->pSat->pFuncStop = p->pPars->pFuncStop;
+        p->pSat->RunId = p->pPars->RunId;
+    }
     p->pSat->nLearntStart = p->pPars->nLearnedStart;
     p->pSat->nLearntDelta = p->pPars->nLearnedDelta;
     p->pSat->nLearntRatio = p->pPars->nLearnedPerce;
@@ -1615,7 +1622,8 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
             Lit = Abc_LitNotCond( Lit, Gia_ObjFaninC0(Gia_ManPo(pAig,0)) );
             if ( Lit == 0 )
                 continue;
-            assert( Lit > 1 );
+            // A constant-true frame still needs refinement or a concrete CEX.
+            assert( Lit >= 1 );
             // check for counter-examples
             if ( p->nSatVars > sat_solver2_nvars(p->pSat) )
                 sat_solver2_setnvars( p->pSat, p->nSatVars );
@@ -1631,7 +1639,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                 // by implications which happened as a result of previous refinements
                 // note that incremental UNSAT core cannot be computed because there is no learned clauses
                 // in this case, we will assume that UNSAT core cannot reduce the problem
-                if ( var_is_assigned(p->pSat, Abc_Lit2Var(Lit)) )
+                if ( Lit > 1 && var_is_assigned(p->pSat, Abc_Lit2Var(Lit)) )
                 {
                     Prf_ManStopP( &p->pSat->pPrf2 );
                     break;
@@ -1779,7 +1787,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
             if ( pPars->fVerbose )
                 Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c, Abc_Clock() - clk, 1 );
             // check if abstraction was proved
-            if ( Gia_GlaProveCheck( pPars->fVerbose ) )
+            if ( pPars->fCallProver && Gia_GlaProveCheck( pPars->fVerbose ) )
             {
                 RetValue = 1;
                 goto finish;
@@ -1813,7 +1821,18 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                     Ga2_GlaDumpAbsracted( p, pPars->fVerbose );
                 }
                 // call the prover
-                if ( p->pPars->fCallProver )
+                if ( p->pPars->pFuncProve )
+                {
+                    // The owner supplies a bounded call on this thread. An
+                    // abstract SAT result does not establish a concrete bug.
+                    p->nPdrCalls++;
+                    if ( p->pPars->pFuncProve(pAig, p->pPars->pProveData) == 1 )
+                    {
+                        RetValue = 1;
+                        goto finish;
+                    }
+                }
+                else if ( p->pPars->fCallProver )
                 {
                     // cancel old one if it is proving
                     if ( iFrameTryToProve >= 0 )
@@ -1853,24 +1872,36 @@ finish:
     if ( iFrameTryToProve >= 0 )
         Gia_GlaProveCancel( pPars->fVerbose );
     // analize the results
-    if ( !p->fUseNewLine )
+    if ( !p->fUseNewLine && !pPars->fSilent )
         Abc_Print( 1, "\n" );
     if ( RetValue == 1 )
-        Abc_Print( 1, "GLA completed %d frames and proved abstraction derived in frame %d  ", p->pPars->iFrameProved+1, iFrameTryToProve );
+    {
+        if ( !pPars->fSilent )
+            Abc_Print( 1, "GLA completed %d frames and proved abstraction derived in frame %d  ",
+                p->pPars->iFrameProved+1, pPars->pFuncProve ? p->pPars->iFrameProved : iFrameTryToProve );
+    }
     else if ( pAig->pCexSeq == NULL )
     {
         Vec_IntFreeP( &pAig->vGateClasses );
         pAig->vGateClasses = Ga2_ManAbsTranslate( p );
-        if ( p->pSat && p->pPars->nTimeOut && Abc_Clock() >= p->pSat->nRuntimeLimit ) 
-            Abc_Print( 1, "GLA reached timeout %d sec in frame %d with a %d-stable abstraction.    ", p->pPars->nTimeOut, p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
-        else if ( p->pSat && pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
-            Abc_Print( 1, "GLA exceeded %d conflicts in frame %d with a %d-stable abstraction.  ", pPars->nConfLimit, p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
-        else if ( pPars->nRatioMin2 && Vec_IntSize(p->vAbs) >= p->nMarked * pPars->nRatioMin2 / 100 )
-            Abc_Print( 1, "GLA found that the size of abstraction exceeds %d %% in frame %d during refinement.  ", pPars->nRatioMin2, p->pPars->iFrameProved+1 );
-        else if ( pPars->nRatioMin && Vec_IntSize(p->vAbs) >= p->nMarked * pPars->nRatioMin / 100 )
-            Abc_Print( 1, "GLA found that the size of abstraction exceeds %d %% in frame %d.  ", pPars->nRatioMin, p->pPars->iFrameProved+1 );
-        else
-            Abc_Print( 1, "GLA finished %d frames and produced a %d-stable abstraction.  ", p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
+        if ( !pPars->fSilent )
+        {
+            if ( p->pSat && p->pPars->nTimeOut && Abc_Clock() >= p->pSat->nRuntimeLimit )
+                Abc_Print( 1, "GLA reached timeout %d sec in frame %d with a %d-stable abstraction.    ",
+                    p->pPars->nTimeOut, p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
+            else if ( p->pSat && pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
+                Abc_Print( 1, "GLA exceeded %d conflicts in frame %d with a %d-stable abstraction.  ",
+                    pPars->nConfLimit, p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
+            else if ( pPars->nRatioMin2 && Vec_IntSize(p->vAbs) >= p->nMarked * pPars->nRatioMin2 / 100 )
+                Abc_Print( 1, "GLA found that the size of abstraction exceeds %d %% in frame %d during refinement.  ",
+                    pPars->nRatioMin2, p->pPars->iFrameProved+1 );
+            else if ( pPars->nRatioMin && Vec_IntSize(p->vAbs) >= p->nMarked * pPars->nRatioMin / 100 )
+                Abc_Print( 1, "GLA found that the size of abstraction exceeds %d %% in frame %d.  ",
+                    pPars->nRatioMin, p->pPars->iFrameProved+1 );
+            else
+                Abc_Print( 1, "GLA finished %d frames and produced a %d-stable abstraction.  ",
+                    p->pPars->iFrameProved+1, p->pPars->nFramesNoChange );
+        }
         p->pPars->iFrame = p->pPars->iFrameProved;
     }
     else
@@ -1879,12 +1910,14 @@ finish:
             Abc_Print( 1, "\n" );
         if ( !Gia_ManVerifyCex( pAig, pAig->pCexSeq, 0 ) )
             Abc_Print( 1, "    Gia_ManPerformGlaOld(): CEX verification has failed!\n" );
-        Abc_Print( 1, "True counter-example detected in frame %d.  ", f );
+        if ( !pPars->fSilent )
+            Abc_Print( 1, "True counter-example detected in frame %d.  ", f );
         p->pPars->iFrame = f - 1;
         Vec_IntFreeP( &pAig->vGateClasses );
         RetValue = 0;
     }
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    if ( !pPars->fSilent )
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( p->pPars->fVerbose )
     {
         p->timeOther = (Abc_Clock() - clk) - p->timeUnsat - p->timeSat - p->timeCex - p->timeInit;

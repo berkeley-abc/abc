@@ -33,6 +33,8 @@
 #include "base/wlc/wlc.h"
 #include "base/sn/snRead.h"
 #include "base/sn/snGia.h"
+#include "proof/cec/cecSuper.h"
+#include <errno.h>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -72,6 +74,7 @@ static int Abc_CommandAbc9GroupProve         ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9MultiProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Kind               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SProve             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9SuperProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SProve2            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Bmc                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SBmc               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -129,6 +132,7 @@ void Abc_InitVerify( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&mprove",       Abc_CommandAbc9MultiProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&kind",         Abc_CommandAbc9Kind,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sprove",       Abc_CommandAbc9SProve,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&super_prove",  Abc_CommandAbc9SuperProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sprove2",      Abc_CommandAbc9SProve2,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmc",          Abc_CommandAbc9Bmc,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmcs",         Abc_CommandAbc9SBmc,         0 );
@@ -4166,7 +4170,111 @@ usage:
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Runs the native simplify/prove/abstract portfolio.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9SuperProve( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Cec_ParSuper_t Pars;
+    int c, Result;
+    Cec_ManSuperSetDefaultParams( &Pars );
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "PTErvsh")) != EOF )
+    {
+        switch ( c )
+        {
+        case 'P':
+        case 'T':
+        {
+            char * pEnd, * pArg;
+            long Value;
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-%c\" should be followed by an integer.\n", c );
+                goto usage;
+            }
+            pArg = argv[globalUtilOptind++];
+            errno = 0;
+            Value = strtol( pArg, &pEnd, 10 );
+            if ( errno || pEnd == pArg || *pEnd )
+            {
+                Abc_Print( -1, "Command line switch \"-%c\" should be followed by an integer.\n", c );
+                goto usage;
+            }
+            if ( Value < 1 || Value > (c == 'P' ? 256 : 86400) )
+            {
+                Abc_Print( -1, "Command line switch \"-%c\" expects an integer from 1 to %d.\n",
+                    c, c == 'P' ? 256 : 86400 );
+                goto usage;
+            }
+            if ( c == 'P' ) Pars.nProcs = (int)Value;
+            else Pars.nTimeOut = (int)Value;
+            break;
+        }
+        case 'E':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-E\" should be followed by an engine name.\n" );
+                goto usage;
+            }
+            Pars.iEngine = Cec_ManSuperEngineId( argv[globalUtilOptind++] );
+            if ( Pars.iEngine < 0 )
+            {
+                Abc_Print( -1, "Unknown &super_prove engine \"%s\".\n", argv[globalUtilOptind-1] );
+                goto usage;
+            }
+            break;
+        case 'r': Pars.fRewrite ^= 1; break;
+        case 'v': Pars.fVerbose ^= 1; break;
+        case 's': Pars.fSilent ^= 1; break;
+        default: goto usage;
+        }
+    }
+    if ( globalUtilOptind != argc ) goto usage;
+    if ( !pAbc->pGia ) { Abc_Print(-1, "&super_prove: There is no AIG.\n"); return 1; }
+    Result = Cec_GiaSuperProve( pAbc->pGia, &Pars );
+    if ( Result == -2 )
+    {
+        Abc_Print( -1, "&super_prove: Requires a zero-initialized, unconstrained AIG "
+            "without boxes, choices, or XOR/MUX/buffer nodes.\n" );
+        return 1;
+    }
+    if ( Result == -3 )
+    {
+        Abc_Print( -1, "&super_prove: Cannot initialize worker synchronization.\n" );
+        return 1;
+    }
+    pAbc->Status = Result;
+    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: &super_prove [-PT <num>] [-E str] [-rvsh]\n" );
+    Abc_Print( -2, "\t           native simplify/prove/abstract portfolio\n" );
+    Abc_Print( -2, "\t-P <num> : maximum solver workers (1..256) [default = %d]\n", Pars.nProcs );
+    Abc_Print( -2, "\t-T <num> : total time limit in seconds [default = %d]\n", Pars.nTimeOut );
+    Abc_Print( -2, "\t-E <str> : select one engine experiment [default = auto]\n" );
+    Abc_Print( -2, "\t           pdr2, fla, int, pdr, pdr-t, pdr-t-or, bmc, bmc-g, rar, kind,\n" );
+    Abc_Print( -2, "\t           scorr3, scorr4, scorr, gla, gla-pdr, gla-pdr-original, abs, drwsat\n" );
+    Abc_Print( -2, "\t-r       : toggle balance-free rewriting [default = %s]\n", Pars.fRewrite ? "yes" : "no" );
+    Abc_Print( -2, "\t-v       : toggle reporting engine progress [default = %s]\n", Pars.fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-s       : toggle silent result reporting [default = %s]\n", Pars.fSilent ? "yes" : "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n\n" );
+    Abc_Print( -2, "\t           This command was inspired by 'super_prove', an award-winning\n" );
+    Abc_Print( -2, "\t           (https://hwmcc.github.io/2025/) concurrent sequential model checker\n" );
+    Abc_Print( -2, "\t           developed by Robert Brayton in 2013-2018 and maintained on github\n" );
+    Abc_Print( -2, "\t           (https://github.com/sterin/super-prove-build) by Baruch Sterin.\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs the established staged sequential portfolio.]
 
   Description []
 

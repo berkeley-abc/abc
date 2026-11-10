@@ -67,6 +67,7 @@ static int Abc_CommandAbc9Syn2               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Syn3               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Syn4               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Drw                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Drwsat             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Drf                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9LNetOpt            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Ttopt              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -131,6 +132,7 @@ void Abc_InitRewrite( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&syn3",         Abc_CommandAbc9Syn3,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&syn4",         Abc_CommandAbc9Syn4,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&drw",          Abc_CommandAbc9Drw,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&drwsat",       Abc_CommandAbc9Drwsat,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&drf",          Abc_CommandAbc9Drf,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&lnetopt",      Abc_CommandAbc9LNetOpt,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&ttopt",        Abc_CommandAbc9Ttopt,        0 );
@@ -2946,6 +2948,54 @@ usage:
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs fast balance-free combinational optimization.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Drwsat( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pNew;
+    int c, fBalance = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "bvh")) != EOF )
+    {
+        switch ( c )
+        {
+        case 'b': fBalance ^= 1; break;
+        case 'v': fVerbose ^= 1; break;
+        default: goto usage;
+        }
+    }
+    if ( globalUtilOptind != argc ) goto usage;
+    if ( !pAbc->pGia )
+    {
+        Abc_Print( -1, "&drwsat: There is no AIG.\n" );
+        return 1;
+    }
+    pNew = Drw_ManRwsat( pAbc->pGia, fBalance, fVerbose );
+    if ( !pNew )
+    {
+        Abc_Print( -1, "&drwsat: Requires a plain AIG without choices, boxes, XOR/MUX nodes, or buffers.\n" );
+        return 1;
+    }
+    Abc_FrameUpdateGia( pAbc, pNew );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: &drwsat [-bvh]\n" );
+    Abc_Print( -2, "\t         performs fast rewrite/refactor/rewrite for verification\n" );
+    Abc_Print( -2, "\t-b     : toggle internal balancing [default = %s]\n", fBalance ? "yes" : "no" );
+    Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n" );
     return 1;
 }
 

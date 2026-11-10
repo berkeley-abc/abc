@@ -96,6 +96,9 @@ Solver::Solver() :
     , nCallConfl(1000)
     , terminate_search_early(false)
     , pstop(NULL)
+    , pStopData(NULL)
+    , pStopFunc(NULL)
+    , fStopRequested(false)
     , nRuntimeLimit(0)
 
     , verbosity      (0)
@@ -1043,8 +1046,14 @@ lbool Solver::search(int nof_conflicts)
     vec<Lit>    learnt_clause,selectors;
     unsigned int nblevels,szWoutSelectors;
     bool blocked=false;
+    unsigned nStopChecks = 0;
     starts++;
     for (;;){
+        if (pStopFunc && !(nStopChecks++ & 255) && pStopFunc(pStopData)) {
+            fStopRequested = true;
+            cancelUntil(0);
+            return l_Undef;
+        }
         CRef confl = propagate();
         if (confl != CRef_Undef){
             // CONFLICT
@@ -1246,9 +1255,10 @@ printf("c ==================================[ Search Statistics (every %6d confl
 
     // Search:
     int curr_restarts = 0;
+    fStopRequested = false;
     while (status == l_Undef){
       status = search(0); // the parameter is useless in glucose, kept to allow modifications
-        if (!withinBudget() || terminate_search_early || (pstop && *pstop)) break;
+        if (!withinBudget() || terminate_search_early || fStopRequested || (pstop && *pstop)) break;
         if (nRuntimeLimit && Abc_Clock() > nRuntimeLimit)                   break;
         curr_restarts++;
     }

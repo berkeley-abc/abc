@@ -73,9 +73,12 @@ struct Abs_Par_t_
     int            fSimpProver;        // calls simplification before prover
     char *         pFileVabs;          // dumps the abstracted model into this file
     int            fVerbose;           // verbose flag
+    int            fSilent;            // suppress GLA finish messages, but retain warnings
     int            fVeryVerbose;       // print additional information
     int            RunId;              // id in this run
     int            (*pFuncStop)(int);  // callback to terminate
+    int            (*pFuncProve)(Gia_Man_t *, void *); // optional synchronous abstraction prover; 1 = proved
+    void *         pProveData;         // borrowed data for the synchronous prover
     int            iFrame;             // the number of frames covered
     int            iFrameProved;       // the number of frames proved
     int            nFramesNoChange;    // the number of last frames without changes
@@ -116,7 +119,7 @@ static inline int         Ga2_ObjLeaveNum( Gia_Man_t * p, Gia_Obj_t * pObj )    
 static inline int *       Ga2_ObjLeavePtr( Gia_Man_t * p, Gia_Obj_t * pObj )        { return Vec_IntEntryP(p->vMapping, Ga2_ObjOffset(p, pObj) + 1);                                                }
 static inline unsigned    Ga2_ObjTruth( Gia_Man_t * p, Gia_Obj_t * pObj )           { return (unsigned)Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj) + Ga2_ObjLeaveNum(p, pObj) + 1);            }
 static inline int         Ga2_ObjRefNum( Gia_Man_t * p, Gia_Obj_t * pObj )          { return (unsigned)Vec_IntEntry(p->vMapping, Ga2_ObjOffset(p, pObj) + Ga2_ObjLeaveNum(p, pObj) + 2);            }
-static inline Vec_Int_t * Ga2_ObjLeaves( Gia_Man_t * p, Gia_Obj_t * pObj )          { static Vec_Int_t v; v.nSize = Ga2_ObjLeaveNum(p, pObj), v.pArray = Ga2_ObjLeavePtr(p, pObj); return &v;       }
+static inline Vec_Int_t * Ga2_ObjLeaves( Gia_Man_t * p, Gia_Obj_t * pObj )          { static ABC_THREAD_LOCAL Vec_Int_t v; v.nSize = Ga2_ObjLeaveNum(p, pObj), v.pArray = Ga2_ObjLeavePtr(p, pObj); return &v; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///

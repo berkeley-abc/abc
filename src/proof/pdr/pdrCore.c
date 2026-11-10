@@ -1896,11 +1896,14 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
     if ( p->pPars->fDumpInv )
     {
         char * pFileName = pPars->pInvFileName ? pPars->pInvFileName : Extra_FileNameGenericAppend(p->pAig->pName, "_inv.pla");
-        Abc_FrameSetInv( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
+        // Portfolio workers have no command frame. Keep file dumping usable
+        // there, but only retain an interactive invariant when a frame exists.
+        if ( Abc_FrameReadGlobalFrame() )
+            Abc_FrameSetInv( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
         Pdr_ManDumpClauses( p, pFileName, RetValue==1 );
         printf( "Dumped inductive invariant in file \"%s\".\n", pFileName );
     }
-    else if ( RetValue == 1 )
+    else if ( RetValue == 1 && Abc_FrameReadGlobalFrame() )
         Abc_FrameSetInv( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
     p->tTotal += Abc_Clock() - clk;
     Pdr_ManStop( p );

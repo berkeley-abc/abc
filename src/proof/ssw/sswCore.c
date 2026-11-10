@@ -279,8 +279,8 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
         Aig_ManStop( pSRed );
     }
 */
-    if ( Ssw_ManCallbackStop(p) || Ssw_ManCallbackStop(p) )
-        goto finalize;
+    if ( Ssw_ManCallbackStop(p) || (nTimeToStop && Abc_Clock() >= nTimeToStop) )
+        goto interrupted;
     if ( p->pPars->nStepsMax == 0 )
     {
         Abc_Print( 1, "Stopped signal correspondence after BMC.\n" );
@@ -291,7 +291,7 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
     for ( nIter = 0; ; nIter++ )
     {
         if ( nTimeToStop && Abc_Clock() >= nTimeToStop )
-            goto finalize;
+            goto interrupted;
         if ( p->pPars->nStepsMax == nIter )
         {
             Abc_Print( 1, "Stopped signal correspondence after %d refiment iterations.\n", nIter );
@@ -309,7 +309,7 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
             break;
         }
         if ( Ssw_ManCallbackStop(p) )
-            goto finalize;
+            goto interrupted;
 
 clk = Abc_Clock();
         p->pMSat = Ssw_SatStart( 0 );
@@ -383,10 +383,11 @@ clk = Abc_Clock();
         Ssw_SatStop( p->pMSat );
         p->pMSat = NULL;
         Ssw_ManCleanup( p );
+        // A stopped sweep may return no refinements without proving its classes.
+        if ( Ssw_ManCallbackStop(p) || (nTimeToStop && Abc_Clock() >= nTimeToStop) )
+            goto interrupted;
         if ( !RetValue )
             break;
-        if ( Ssw_ManCallbackStop(p) )
-            goto finalize;
         if ( p->pPars->nLimitMax )
         {
             int nCur = Ssw_ClassesCand1Num(p->ppClasses);
@@ -426,6 +427,17 @@ p->timeTotal = Abc_Clock() - clkTotal;
     Aig_ManSetPhase( p->pAig );
     Aig_ManCleanMarkB( p->pAig );
     return pAigNew;
+
+interrupted:
+    // Candidate equivalences are not established when a sweep is interrupted.
+    p->pPars->nIters = nIter + 1;
+    p->timeTotal = Abc_Clock() - clkTotal;
+    p->nLitsEnd  = p->nLitsBeg;
+    p->nNodesEnd = p->nNodesBeg;
+    p->nRegsEnd  = p->nRegsBeg;
+    Aig_ManSetPhase( p->pAig );
+    Aig_ManCleanMarkB( p->pAig );
+    return Aig_ManDupSimple( p->pAig );
 }
 
 /**Function*************************************************************

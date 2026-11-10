@@ -388,6 +388,11 @@ static inline int Sat_MemCompactLearned( Sat_Mem_t * p, int fDoMove )
     {
         // move the pivot
         assert( p->BookMarkH[1] >= Sat_MemHand(p, 1, 2) && p->BookMarkH[1] <= hLimit );
+        // A later append may have advanced past the bookmarked page end.
+        // Skip this unused tail before treating the bookmark as a clause.
+        for ( i = Sat_MemHandPage(p, p->BookMarkH[1]);
+              i < p->iPage[1] && Sat_MemHandShift(p, p->BookMarkH[1]) == Sat_MemLimit(p->pPages[i]); i += 2 )
+            p->BookMarkH[1] = Sat_MemHand(p, i + 2, 2);
         // get the pivot and remember it may be pointed offlimit
         cPivot = Sat_MemClauseHand( p, p->BookMarkH[1] );
         if ( p->BookMarkH[1] < hLimit && !cPivot->mark )
@@ -475,7 +480,7 @@ static inline int Sat_MemCompactLearned( Sat_Mem_t * p, int fDoMove )
         // check if the pivot need to be updated
         if ( p->BookMarkH[1] )
         {
-            if ( cPivot )
+            if ( cPivot || fStartLooking )
             {
                 p->BookMarkH[1] = Sat_MemHandCurrent(p, 1);
                 p->BookMarkE[1] = p->nEntries[1];

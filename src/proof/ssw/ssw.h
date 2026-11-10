@@ -26,6 +26,8 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
+#include "aig/gia/gia.h"
+
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
@@ -153,6 +155,7 @@ extern int           Ssw_SecGeneralMiter( Aig_Man_t * pMiter, Ssw_Pars_t * pPars
 extern void          Ssw_RarSetDefaultParams( Ssw_RarPars_t * p );
 extern int           Ssw_RarSignalFilter( Aig_Man_t * pAig, Ssw_RarPars_t * pPars );
 extern int           Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars );
+extern int           Ssw_RarSimulateGia( Gia_Man_t * pGia, Ssw_RarPars_t * pPars );
 /*=== sswSim.c ===================================================*/
 extern Ssw_Sml_t *   Ssw_SmlSimulateComb( Aig_Man_t * pAig, int nWords );
 extern Ssw_Sml_t *   Ssw_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nWords );

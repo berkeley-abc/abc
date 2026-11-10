@@ -331,6 +331,10 @@ extern int           Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCo
 extern Gia_Man_t *   Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars );
 /*=== cecCorr2.c ===========================================================*/
 extern Gia_Man_t *   Cec_ManLSCorrespondence2( Gia_Man_t * pAig, Cec_ParCor_t * pPars );
+/*=== cecCorr3.c ===========================================================*/
+extern Gia_Man_t *   Cec_ManLSCorrespondence3( Gia_Man_t * pAig, Cec_ParCor_t * pPars );
+/*=== cecCorr4.c ===========================================================*/
+extern Gia_Man_t *   Cec_ManLSCorrespondence4( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nSides, int fRewrite );
 
 // Sequential Direct root-resubstitution parameters.
 typedef struct Cec_ParTran_t_ Cec_ParTran_t;

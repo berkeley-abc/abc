@@ -118,7 +118,7 @@ struct Drw_Man_t_
     int nMerged;
 };
 
-static Drw_Gia_t * s_pDrwGiaCapture;
+static ABC_THREAD_LOCAL Drw_Gia_t * s_pDrwGiaCapture;
 static void Drw_GiaCapture( Drw_Cut_t * pCut );
 
 ////////////////////////////////////////////////////////////////////////

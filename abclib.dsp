@@ -4285,6 +4285,10 @@ SOURCE=.\src\opt\drw\drwCore.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\drw\drwSat.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\drw\drwData.c
 # End Source File
 # End Group
@@ -7473,6 +7477,14 @@ SOURCE=.\src\proof\cec\cecPat.c
 # Begin Source File
 
 SOURCE=.\src\proof\cec\cecProve.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\cec\cecSuperProve.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\cec\cecSuper.h
 # End Source File
 # Begin Source File
 

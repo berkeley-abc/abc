@@ -61,6 +61,7 @@ struct Ssw_Man_t_
     // equivalence classes
     Ssw_Cla_t *      ppClasses;      // equivalence classes of nodes
     int              fRefined;       // is set to 1 when refinement happens
+    int              fStopRequested; // latched callback stop; candidate classes are unproved
     // SAT solving 
     Ssw_Sat_t *      pMSatBmc;       // SAT manager for base case
     Ssw_Sat_t *      pMSat;          // SAT manager for inductive case
@@ -190,7 +191,13 @@ static inline void        Ssw_ObjSetFrame_( Ssw_Frm_t * p, Aig_Obj_t * pObj, int
 
 static inline Aig_Obj_t * Ssw_ObjChild0Fra_( Ssw_Frm_t * p, Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin0(pObj)? Aig_NotCond(Ssw_ObjFrame_(p, Aig_ObjFanin0(pObj), i), Aig_ObjFaninC0(pObj)) : NULL;  }
 static inline Aig_Obj_t * Ssw_ObjChild1Fra_( Ssw_Frm_t * p, Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? Aig_NotCond(Ssw_ObjFrame_(p, Aig_ObjFanin1(pObj), i), Aig_ObjFaninC1(pObj)) : NULL;  }
-static inline int         Ssw_ManCallbackStop( Ssw_Man_t * p ) { return (p && p->pPars && p->pPars->pFunc) ? ((int (*)(void *))p->pPars->pFunc)( p->pPars->pData ) : 0; }
+static inline int Ssw_ManCallbackStop( Ssw_Man_t * p )
+{
+    if ( !p || !p->pPars ) return 0;
+    if ( !p->fStopRequested && p->pPars->pFunc )
+        p->fStopRequested = ((int (*)(void *))p->pPars->pFunc)( p->pPars->pData ) != 0;
+    return p->fStopRequested;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///

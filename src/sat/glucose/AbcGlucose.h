@@ -86,6 +86,7 @@ extern int               bmcg_sat_solver_elim_varnum(bmcg_sat_solver* s);
 extern int *             bmcg_sat_solver_read_cex( bmcg_sat_solver* s );
 extern int               bmcg_sat_solver_read_cex_varvalue( bmcg_sat_solver* s, int );
 extern void              bmcg_sat_solver_set_stop( bmcg_sat_solver* s, int * pstop );
+extern void              bmcg_sat_solver_set_stop_func( bmcg_sat_solver* s, void * pData, int (*pFunc)(void *) );
 extern abctime           bmcg_sat_solver_set_runtime_limit( bmcg_sat_solver* s, abctime Limit );
 extern void              bmcg_sat_solver_set_conflict_budget( bmcg_sat_solver* s, int Limit );
 extern int               bmcg_sat_solver_varnum( bmcg_sat_solver* s );

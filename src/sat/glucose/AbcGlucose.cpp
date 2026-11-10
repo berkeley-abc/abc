@@ -227,6 +227,12 @@ void bmcg_sat_solver_set_stop(bmcg_sat_solver* s, int * pstop)
     glucose_solver_setstop((Gluco::SimpSolver*)s, pstop);
 }
 
+void bmcg_sat_solver_set_stop_func(bmcg_sat_solver* s, void * pData, int (*pFunc)(void *))
+{
+    ((Gluco::SimpSolver*)s)->pStopData = pData;
+    ((Gluco::SimpSolver*)s)->pStopFunc = pFunc;
+}
+
 abctime bmcg_sat_solver_set_runtime_limit(bmcg_sat_solver* s, abctime Limit)
 {
     abctime nRuntimeLimit = ((Gluco::SimpSolver*)s)->nRuntimeLimit;
@@ -564,6 +570,12 @@ int bmcg_sat_solver_read_cex_varvalue(bmcg_sat_solver* s, int ivar)
 void bmcg_sat_solver_set_stop(bmcg_sat_solver* s, int * pstop)
 {
     glucose_solver_setstop((Gluco::Solver*)s, pstop);
+}
+
+void bmcg_sat_solver_set_stop_func(bmcg_sat_solver* s, void * pData, int (*pFunc)(void *))
+{
+    ((Gluco::Solver*)s)->pStopData = pData;
+    ((Gluco::Solver*)s)->pStopFunc = pFunc;
 }
 
 abctime bmcg_sat_solver_set_runtime_limit(bmcg_sat_solver* s, abctime Limit)

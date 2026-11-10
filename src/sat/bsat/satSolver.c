@@ -1821,6 +1821,7 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts)
     ABC_INT64_T  conflictC  = 0;
     veci    learnt_clause;
     int     i;
+    unsigned nStopChecks = 0;
 
     assert(s->root_level == sat_solver_dl(s));
 
@@ -1844,6 +1845,16 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts)
 
     for (;;){
         int hConfl;
+        // Poll inside long searches, including when restarts are disabled.
+        if ( (s->pFuncStop || s->nRuntimeLimit) && !(nStopChecks++ & 255) &&
+             ((s->nRuntimeLimit && Abc_Clock() > s->nRuntimeLimit) ||
+              (s->pFuncStop && s->pFuncStop(s->RunId))) )
+        {
+            s->fStopRequested = 1;
+            sat_solver_canceluntil( s, s->root_level );
+            veci_delete( &learnt_clause );
+            return l_Undef;
+        }
         // Multi-stage clients need an exact shared budget. The historical
         // default checks only after a conflict-free propagation and may exceed it.
         if (s->fExactConfLimit && s->nConfLimit && s->stats.conflicts >= s->nConfLimit){
@@ -1953,6 +1964,7 @@ int sat_solver_solve_internal(sat_solver* s)
     int restart_iter = 0;
     veci_resize(&s->unit_lits, 0);
     s->nCalls++;
+    s->fStopRequested = 0;
 
     if (s->verbosity >= 1){
         printf("==================================[MINISAT]===================================\n");
@@ -1983,6 +1995,8 @@ int sat_solver_solve_internal(sat_solver* s)
         nof_conflicts = (ABC_INT64_T)( 100 * luby(2, restart_iter++) );
         status = sat_solver_search(s, nof_conflicts);
         // quit the loop if reached an external limit
+        if ( s->fStopRequested )
+            break;
         if ( s->nConfLimit && (s->fExactConfLimit ? s->stats.conflicts >= s->nConfLimit : s->stats.conflicts > s->nConfLimit) )
             break;
         if ( s->nInsLimit  && s->stats.propagations > s->nInsLimit )

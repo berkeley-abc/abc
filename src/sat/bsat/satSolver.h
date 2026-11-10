@@ -208,6 +208,7 @@ struct sat_solver_t
     // termination callback
     int         RunId;          // SAT id in this run
     int(*pFuncStop)(int);       // callback to terminate
+    int         fStopRequested; // latched for the current solve call
 };
 
 static inline clause * clause_read( sat_solver * s, cla h )          

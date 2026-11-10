@@ -177,6 +177,9 @@ struct sat_solver2_t
     ABC_INT64_T     nConfLimit;     // external limit on the number of conflicts
     ABC_INT64_T     nInsLimit;      // external limit on the number of implications
     abctime         nRuntimeLimit;  // external limit on runtime
+    int             (*pFuncStop)(int); // optional cooperative stop callback
+    int             RunId;          // callback argument
+    int             fStopRequested; // latched for the current solve call
 };
 
 static inline clause * clause2_read( sat_solver2 * s, cla h )                  { return Sat_MemClauseHand( &s->Mem, h ); }

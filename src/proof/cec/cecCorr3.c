@@ -1847,6 +1847,12 @@ static int Cec3_Run( Cec3_Man_t * p )
         Vec_IntClear( vFail );
         Vec_IntForEachEntry( vWork, Key, i )
         {
+            if ( !(i & 255) && p->pPars->pFunc &&
+                 ( (int ( * )( void * ))p->pPars->pFunc )( p->pPars->pData ) )
+            {
+                fOk = 0;
+                goto finish;
+            }
             p->pActive[Key] = 0;
             Lit = Cec3_Root( p, Key, &Target );
             Vec_IntPush( vLits, Lit );
@@ -1904,6 +1910,14 @@ static int Cec3_Run( Cec3_Man_t * p )
             {
                 Vec_Int_t * vAssumps = NULL;
                 int fConditional = 0, nConfs = 0;
+                // A portfolio winner need not wait for the entire round.
+                // The caller discards all candidate classes on interruption.
+                if ( p->pPars->pFunc &&
+                     ( (int ( * )( void * ))p->pPars->pFunc )( p->pPars->pData ) )
+                {
+                    fOk = 0;
+                    goto finish;
+                }
                 i = Pass ? Vec_IntEntry( vDefer, n ) : n;
                 if ( Pass ) nDeferDone = n + 1;
                 Lit = Vec_IntEntry( vLits, i );
@@ -2058,6 +2072,7 @@ replay:
     }
     if ( p->nRounds == 100000 )
         fOk = 0;
+finish:
     if ( p->pPars->fVerbose )
     {
         if ( p->pSat4 ) Cec4_SatPrint( p->pSat4 );
@@ -2444,7 +2459,8 @@ Gia_Man_t * Cec_ManLSCorrespondenceShared( Gia_Man_t * pAig, Cec_ParCor_t * pPar
     {
         ABC_FREE( pAig->pReprs );
         ABC_FREE( pAig->pNexts );
-        Abc_Print( -1, "%s: no reduction returned.\n", pName );
+        if ( pPars->fVerbose || !pPars->pFunc )
+            Abc_Print( -1, "%s: no reduction returned.\n", pName );
         return NULL;
     }
     pTemp = Gia_ManCorrReduce( pAig );

@@ -393,11 +393,12 @@ static inline void act_clause2_decay(sat_solver2* s) { s->cla_inc += (s->cla_inc
 
 static inline int sat_clause_compute_lbd( sat_solver2* s, clause* c )
 {
-    int i, lev, minl = 0, lbd = 0;
+    int i, lev, lbd = 0;
+    unsigned minl = 0;
     for (i = 0; i < (int)c->size; i++) {
         lev = var_level(s, lit_var(c->lits[i]));
-        if ( !(minl & (1 << (lev & 31))) ) {
-            minl |= 1 << (lev & 31);
+        if ( !(minl & (1u << (lev & 31))) ) {
+            minl |= 1u << (lev & 31);
             lbd++;
         }
     }
@@ -1007,6 +1008,8 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
     veci    learnt_clause;
     int     proof_id;
 
+    unsigned nStopChecks = 0;
+
     assert(s->root_level == solver2_dlevel(s));
 
     s->stats.starts++;
@@ -1015,7 +1018,15 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
     veci_new(&learnt_clause);
 
     for (;;){
-        clause* confl = solver2_propagate(s);
+        clause* confl;
+        if ( s->pFuncStop && !(nStopChecks++ & 255) && s->pFuncStop(s->RunId) )
+        {
+            s->fStopRequested = 1;
+            solver2_canceluntil( s, s->root_level );
+            veci_delete( &learnt_clause );
+            return l_Undef;
+        }
+        confl = solver2_propagate(s);
         if (confl != 0){
             // CONFLICT
             int blevel;
@@ -1939,6 +1950,7 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
         Abc_Print(1,"==============================================================================\n");
     }
 
+    s->fStopRequested = 0;
     while (status == l_Undef){
         if (s->verbosity >= 1)
         {
@@ -1962,6 +1974,8 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
         nof_conflicts = (ABC_INT64_T)( 100 * luby2(2, restart_iter++) );
         status = solver2_search(s, nof_conflicts);
         // quit the loop if reached an external limit
+        if ( s->fStopRequested )
+            break;
         if ( s->nConfLimit && s->stats.conflicts > s->nConfLimit )
             break;
         if ( s->nInsLimit  && s->stats.propagations > s->nInsLimit )
