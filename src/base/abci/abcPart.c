@@ -1303,11 +1303,13 @@ Abc_Ntk_t * Abc_NtkStochProcessOne( Abc_Ntk_t * p, char * pScript0, int Rand, in
     if ( pLibFileName )
     {
         PreCommand = ABC_ALLOC( char, strlen(pLibFileName) + 32 );
+        if ( !PreCommand ) abort();
         sprintf( PreCommand, "read_genlib %s; ", pLibFileName );
     }
     Abc_NtkWriteToFile( FileName, p );    
     char * pScript = Abc_UtilStrsav( pScript0 );
     Command = ABC_ALLOC( char, 2*strlen(FileName) + strlen(pScript) + (PreCommand ? strlen(PreCommand) : 0) + 64 );
+    if ( !Command ) abort();
     sprintf( Command, "./abc -q \"%sread_mm %s; %s; write_mm %s\"", PreCommand ? PreCommand : "", FileName, pScript, FileName );
     ABC_FREE( PreCommand );
 #if defined(__wasm)

@@ -23,10 +23,10 @@
 #include <iostream>
 #include <algorithm>
 
-#include "eslim2CirMan.hpp"
-#include "subcircuit.hpp"
-#include "tabooList.hpp"
-#include "utils.hpp"
+#include "eslim2CirMan.h"
+#include "subcircuit.h"
+#include "tabooList.h"
+#include "utils.h"
 
 #include "map/mio/mio.h"
 
@@ -1141,6 +1141,37 @@ namespace eSLIM2 {
     for (int i = getNofObjs() - getNofPos(); i < getNofObjs(); i++) {
       dup.addPo(nodes[i]->fanins[0]->node_id, nodes[i]->tt == 1);
     }
+    return dup;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Copy a circuit while remapping its primary inputs.]
+
+  SideEffects [Returns an independently owned circuit.]
+
+  SeeAlso     []
+
+***********************************************************************/
+  eSLIM2CirMan eSLIM2CirMan::permuteInputs(const std::vector<unsigned>& old_to_new) const {
+    assert(old_to_new.size() == unsigned(getNofPis()));
+    eSLIM2CirMan dup(getNofObjs());
+    std::vector<int> mapping(getNofObjs(), 0);
+    std::vector<bool> seen(getNofPis(), false);
+    for (unsigned input = 0; input < old_to_new.size(); ++input) {
+      assert(old_to_new[input] < old_to_new.size() && !seen[old_to_new[input]]);
+      seen[old_to_new[input]] = true;
+      dup.addPi();
+      mapping[input + 1] = old_to_new[input] + 1;
+    }
+    for (int node = getNofPis() + 1; node < getNofObjs() - getNofPos(); ++node) {
+      std::vector<int> fanins;
+      for (const auto& input : nodes[node]->fanins)
+        fanins.push_back(mapping[input->node_id]);
+      mapping[node] = dup.addNode(fanins, nodes[node]->tt);
+    }
+    for (int output = getNofObjs() - getNofPos(); output < getNofObjs(); ++output)
+      dup.addPo(mapping[nodes[output]->fanins[0]->node_id], nodes[output]->tt == 1);
     return dup;
   }
 

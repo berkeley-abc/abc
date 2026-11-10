@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [eslim2CirMan.hpp]
+  FileName    [eslim2CirMan.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,12 +14,12 @@
 
   Date        [Ver. 1.0. Started - April 2026.]
 
-  Revision    [$Id: eslim2CirMan.hpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Revision    [$Id: eslim2CirMan.h,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
 
-#ifndef ABC__OPT__ESLIM2__ESLIM2CIRMAN_hpp
-#define ABC__OPT__ESLIM2__ESLIM2CIRMAN_hpp
+#ifndef ABC__OPT__ESLIM2__ESLIM2CIRMAN_h
+#define ABC__OPT__ESLIM2__ESLIM2CIRMAN_h
 
 #include <vector>
 #include <memory>
@@ -67,7 +67,7 @@ namespace eSLIM2 {
       int node_id;
       std::vector<eSLIM2CirObj*> fanins;
       std::set<eSLIM2CirObj*, eSLIM2ObjComp> fanouts;
-      ABC_UINT64_T tt; //truth table representing the function
+      ABC_UINT64_T tt = 0; //truth table representing the function (including constant zero)
       int depth = 0; // the step from a input/gate node to an output node is also counted -> depth differs from depths in abc
       int remaining_time = 0;
 
@@ -155,6 +155,7 @@ namespace eSLIM2 {
       void print() const;
       void print(const Subcircuit& scir) const;
       eSLIM2CirMan duplicate() const;
+      eSLIM2CirMan permuteInputs(const std::vector<unsigned>& old_to_new) const;
 
     private:
 
@@ -162,6 +163,7 @@ namespace eSLIM2 {
       // vectors are empty for a manager representing the whole circuit.
       std::vector<unsigned> window_arrivals, window_required;
       unsigned window_delay_bound = 0;
+      friend struct eSLIM2TestAccess;
 
       struct SimulationEntry {
         ABC_UINT64_T first = 0, second = 0, truth = 0, version = 0;

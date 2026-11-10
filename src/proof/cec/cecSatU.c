@@ -1062,6 +1062,7 @@ static void CecU_Replace( CecU_Man_t * p, int Root, int Value )
                 New = Gia_ObjIsXor(pObj) ? a ^ b : a & b;
             }
             assert(!p->Bound[i] || Old == New);
+            (void)Old;
             p->pSims[(size_t)Id*p->nWords+w] = New;
         }
     }

@@ -58,7 +58,7 @@ typedef STACK (litriple) litriples;
 
 struct litwatch {
   unsigned lit;
-  watch watch;
+  KISSAT_TYPE(watch) watch;
 };
 
 struct litpair {

@@ -17,4 +17,11 @@
 
 #include "misc/util/abc_global.h"
 
+// Qualify types whose names are also used for structure members in C++.
+#ifdef __cplusplus
+#define KISSAT_TYPE(TYPE) ::ABC_NAMESPACE_PREFIX TYPE
+#else
+#define KISSAT_TYPE(TYPE) TYPE
+#endif
+
 #endif

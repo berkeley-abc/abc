@@ -195,7 +195,7 @@ struct cadical_kitten {
   void *terminator_data;
   unsigneds clause;
   uint64_t initialized;
-  statistics statistics;
+  struct statistics statistics;
 };
 
 /*------------------------------------------------------------------------*/

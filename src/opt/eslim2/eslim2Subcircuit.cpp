@@ -22,7 +22,7 @@
 #include <set>
 #include <iostream>
 
-#include "subcircuit.hpp"
+#include "subcircuit.h"
 
 
 ABC_NAMESPACE_IMPL_START

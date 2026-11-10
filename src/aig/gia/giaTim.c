@@ -1153,6 +1153,7 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
         char * pNameGeneric = Extra_FileNameGeneric( pFileSpec ? pFileSpec : pGia->pSpec );
         char * pFileName0 = Abc_UtilStrsavTwo( pNameGeneric, "_spec.aig" );
         char * pFileName1 = Abc_UtilStrsavTwo( pNameGeneric, "_impl.aig" );
+        if ( !pFileName0 || !pFileName1 ) abort();
         Gia_AigerWrite( pGia0, pFileName0, 0, 0, 0 );
         Gia_AigerWrite( pGia1, pFileName1, 0, 0, 0 );
         ABC_FREE( pNameGeneric );

@@ -1653,7 +1653,7 @@ static inline void Abc_TtPrintBinary( word * pTruth, int nVars )
     assert( nVars >= 2 );
     for ( pThis = pTruth; pThis < pLimit; pThis++ )
         for ( k = 0; k < Limit; k++ )
-            printf( "%d", Abc_InfoHasBit( (unsigned *)pThis, k ) );
+            printf( "%d", Abc_TtGetBit( pThis, k ) );
     printf( "\n" );
 }
 static inline void Abc_TtPrintBinary1( FILE * pFile, word * pTruth, int nVars )
@@ -1979,9 +1979,11 @@ static inline void Abc_TtSwapAdjacent( word * pTruth, int nWords, int iVar )
 }
 static inline word Abc_Tt6SwapVars( word t, int iVar, int jVar )
 {
-    word * s_PMasks = s_PPMasks[iVar][jVar];
-    int shift = (1 << jVar) - (1 << iVar);
-    assert( iVar < jVar );
+    word * s_PMasks;
+    int shift;
+    assert( 0 <= iVar && iVar < jVar && jVar < 6 );
+    s_PMasks = s_PPMasks[iVar][jVar];
+    shift = (1 << jVar) - (1 << iVar);
     return (t & s_PMasks[0]) | ((t & s_PMasks[1]) << shift) | ((t & s_PMasks[2]) >> shift);
 }
 static inline void Abc_TtSwapVars( word * pTruth, int nVars, int iVar, int jVar )

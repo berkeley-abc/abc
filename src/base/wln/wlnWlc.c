@@ -47,6 +47,7 @@ extern int Ndr_TypeWlc2Ndr( int Type );
 char * Wln_ConstFromBits( int * pBits, int nBits )
 {
     char * pBuffer = ABC_ALLOC( char, nBits+100 ); int i, Len;
+    if ( !pBuffer ) abort();
     sprintf( pBuffer, "%d\'b", nBits );
     Len = strlen(pBuffer);
     for ( i = nBits-1; i >= 0; i-- )
@@ -57,6 +58,7 @@ char * Wln_ConstFromBits( int * pBits, int nBits )
 char * Wln_ConstFromStr( char * pBits, int nBits )
 {
     char * pBuffer = ABC_ALLOC( char, nBits+100 ); int i, Len;
+    if ( !pBuffer ) abort();
     sprintf( pBuffer, "%d\'b", nBits );
     Len = strlen(pBuffer);
     for ( i = 0; i < nBits; i++ )

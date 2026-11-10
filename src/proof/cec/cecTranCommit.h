@@ -433,6 +433,7 @@ static long long Cec_TranConflictGraphGwminDirty(
                     pRootSeen, &RootTravId, NULL );
             }
             assert( pLoss[iVertex] <= OldLoss );
+            (void)OldLoss;
             pDirty[iVertex] = 0;
             Cec_TranWaveHeapUp( &Heap, Heap.pPos[iVertex] );
         }

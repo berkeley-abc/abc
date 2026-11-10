@@ -156,8 +156,15 @@ char * Extra_FileNameExtension( char * FileName )
 char * Extra_FileNameAppend( char * pBase, char * pSuffix )
 {
     static ABC_THREAD_LOCAL char Buffer[500];
-    assert( strlen(pBase) + strlen(pSuffix) < 500 );
-    sprintf( Buffer, "%s%s", pBase, pSuffix );
+    size_t nBase = strlen(pBase), nSuffix = strlen(pSuffix);
+    assert( nBase + nSuffix < sizeof(Buffer) );
+    if ( nBase >= sizeof(Buffer) || nSuffix >= sizeof(Buffer) - nBase )
+    {
+        fprintf( stderr, "Extra_FileNameAppend: filename exceeds buffer capacity.\n" );
+        abort();
+    }
+    memmove( Buffer, pBase, nBase );
+    memmove( Buffer + nBase, pSuffix, nSuffix + 1 );
     return Buffer;
 }
 

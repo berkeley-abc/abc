@@ -14,7 +14,7 @@
 #include <iostream>
 #include <iomanip>
 #include <climits>
-#include <regex>
+#include "UfarParse.h"
 #include <cstdlib>
 #include <cstdio>
 #include <cctype>
@@ -224,14 +224,8 @@ static void Ufar_ApplyOptions( OptMgr & opt_mgr, UFAR::UfarManager::Params & Par
         Params.solverSetting = opt_mgr.GetOptVal("--solver");
     if(opt_mgr["--sim"])
         Params.simSetting = opt_mgr.GetOptVal("--sim");
-    if(opt_mgr["--dump_states"]) {
-        smatch sub_match;
-        string option = opt_mgr.GetOptVal("--dump_states");
-        if(regex_search(option, sub_match, regex(R"(/?(\w+\.v)$)")))
-            Params.fileStatesOut = sub_match[1].str();
-        else
-            Params.fileStatesOut = opt_mgr.GetOptVal("--dump_states");
-    }
+    if(opt_mgr["--dump_states"])
+        Params.fileStatesOut = UFAR::ParseVerilogName(opt_mgr.GetOptVal("--dump_states"), true);
     if(opt_mgr["--read_states"])
         Params.fileStatesIn = opt_mgr.GetOptVal("--read_states");
     if(opt_mgr["--lazysim"])
@@ -242,22 +236,10 @@ static void Ufar_ApplyOptions( OptMgr & opt_mgr, UFAR::UfarManager::Params & Par
         Params.nTimeout = stoi(opt_mgr.GetOptVal("--timeout"));
     if(opt_mgr["--seq"])
         Params.nSeqLookBack = stoi(opt_mgr.GetOptVal("--seq"));
-    if(opt_mgr["--dump-abs"]) {
-        smatch sub_match;
-        string option = opt_mgr.GetOptVal("--dump-abs");
-        if(regex_search(option, sub_match, regex(R"(/?(\w+)\.v$)")))
-            Params.fileAbs = sub_match[1].str();
-        else
-            Params.fileAbs = opt_mgr.GetOptVal("--dump-abs");
-    }
-    if(opt_mgr["--dump"]) {
-        smatch sub_match;
-        string option = opt_mgr.GetOptVal("--dump");
-        if(regex_search(option, sub_match, regex(R"(/?(\w+\.v)$)")))
-            Params.fileName = sub_match[1].str();
-        else
-            Params.fileName = opt_mgr.GetOptVal("--dump");
-    }
+    if(opt_mgr["--dump-abs"])
+        Params.fileAbs = UFAR::ParseVerilogName(opt_mgr.GetOptVal("--dump-abs"), false);
+    if(opt_mgr["--dump"])
+        Params.fileName = UFAR::ParseVerilogName(opt_mgr.GetOptVal("--dump"), true);
     if ( opt_mgr["--dump-first-aig"] )
         firstAigDumpFile = opt_mgr.GetOptVal("--dump-first-aig");
     set_op_types.insert(WLC_OBJ_ARI_MULTI);

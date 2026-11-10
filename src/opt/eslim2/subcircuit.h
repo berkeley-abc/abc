@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [subcircuit.hpp]
+  FileName    [subcircuit.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,12 +14,12 @@
 
   Date        [Ver. 1.0. Started - April 2026.]
 
-  Revision    [$Id: subcircuit.hpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Revision    [$Id: subcircuit.h,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
 
-#ifndef ABC__OPT__ESLIM2__SUBCIRCUIT_hpp
-#define ABC__OPT__ESLIM2__SUBCIRCUIT_hpp
+#ifndef ABC__OPT__ESLIM2__SUBCIRCUIT_h
+#define ABC__OPT__ESLIM2__SUBCIRCUIT_h
 
 #include <vector>
 #include <unordered_map>
@@ -28,7 +28,7 @@
 
 #include "misc/util/abc_namespaces.h"
 
-#include "eslim2CirMan.hpp"
+#include "eslim2CirMan.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 namespace eSLIM2 {

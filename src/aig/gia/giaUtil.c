@@ -3139,7 +3139,9 @@ void Gia_ManWriteSol( Gia_Man_t * p, char * pFileName )
 {
     char * pBasicName = Extra_FileNameGeneric( pFileName ); 
     char * pFileName2 = Abc_UtilStrsavTwo( pBasicName, ".sol" ); 
-    FILE * pFile = fopen( pFileName2, "wb" );
+    FILE * pFile;
+    if ( !pFileName2 ) abort();
+    pFile = fopen( pFileName2, "wb" );
     ABC_FREE( pBasicName );
     if ( pFile == NULL )
         printf( "Cannot open output file \"%s\".\n", pFileName2 );

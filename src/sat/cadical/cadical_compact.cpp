@@ -161,7 +161,8 @@ struct Mapper {
 
 /*------------------------------------------------------------------------*/
 
-static signed char *ignore_clang_analyze_memory_leak_warning;
+// ABC: independent solver instances can compact their arrays concurrently.
+static thread_local signed char *ignore_clang_analyze_memory_leak_warning;
 
 void Internal::compact () {
 

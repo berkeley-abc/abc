@@ -195,6 +195,7 @@ char * Abc_NtkBmcFileName( char * pName )
 {
     static ABC_THREAD_LOCAL char Buffer[1000];
     char * pNameGeneric = Extra_FileNameGeneric( pName );
+    if ( !pNameGeneric ) abort();
     sprintf( Buffer, "%s_bmc%s", pNameGeneric, pName + strlen(pNameGeneric) );
     ABC_FREE( pNameGeneric );
     return Buffer;

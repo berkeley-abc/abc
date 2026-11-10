@@ -20,37 +20,100 @@
 
 #include <cassert>
 
-#include "relationSynthesiser.hpp"
+#include "relationSynthesiser.h"
 
 
 ABC_NAMESPACE_IMPL_START
 namespace eSLIM2 {
 
-  RelationSynthesiser::RelationSynthesiser(const Relation& relation, const Subcircuit& subcir, unsigned int max_size, const eSLIM2Config& cfg, eSLIM2Log& log)
+
+  RelationSynthesiser::RelationSynthesiser(const Relation& relation, const Subcircuit& subcir, unsigned int max_size, const eSLIM2Config& cfg, eSLIM2Log& log, bool refine)
                                           : subcir(subcir), max_size(max_size),
-                                            relation(relation), config(cfg), log(log) {
+                                            relation(relation), config(cfg), log(log),
+                                            refine(refine && cfg.aig && cfg.gate_size == 2 &&
+                                                   subcir.outputs.size() <= 6 && relation.getNLinesWithPattern() >= minimum_refinement_rows),
+                                            encoded_rows(relation.getNPatterns(), false) {
+    ++log.synthesis_sat_searches;
     solver.setDeadline(cfg.deadline);
+    // Select only documented CaDiCaL configurations before adding clauses.
+    // These affect search effort, not the relation or timing constraints.
+    bool configured = true;
+    switch (cfg.synthesis_solver_mode) {
+      case 0: break;
+      case 1: configured = solver.setOption("lucky", 0); break;
+      case 2: configured = solver.configure("plain"); break;
+      case 3: configured = solver.configure("sat"); break;
+      case 4: configured = solver.configure("unsat"); break;
+      case 5: configured = solver.setOption("phase", 0); break;
+      default: configured = false; break;
+    }
+    assert(configured);
+    (void)configured;
+    analyseMandatorySupport();
+    setupEncoding();
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Derive necessary input supports and area lower bounds from the relation.]
+
+  SideEffects [Initializes per-search support data.]
+
+  SeeAlso     []
+
+***********************************************************************/
+  void RelationSynthesiser::analyseMandatorySupport() {
+    const auto& cfg = config;
     if (subcir.outputs.size() <= 6 && cfg.gate_size > 1) {
-      std::vector<ABC_UINT64_T> forbidden;
+      auto& forbidden = forbidden_tuples;
       for (int row = 0; row < relation.getNPatterns(); ++row)
         forbidden.push_back(relation.getForbiddenTuples(row, subcir.outputs.size()));
       const unsigned noutputs = subcir.outputs.size();
       const ABC_UINT64_T all = noutputs == 6 ? ~ABC_UINT64_T(0) : (ABC_UINT64_T(1) << (1u << noutputs)) - 1;
-      unsigned essential = 0;
-      for (unsigned j = 0; j < subcir.inputs.size(); ++j)
+      // Project the allowed tuples only to derive necessary conditions. The
+      // synthesis encoding still enforces the entire correlated relation.
+      std::vector<unsigned> forced_zero(forbidden.size(), 0), forced_one(forbidden.size(), 0);
+      output_mandatory_inputs.resize(noutputs);
+      for (unsigned row = 0; row < forbidden.size(); ++row) {
+        const ABC_UINT64_T allowed = all & ~forbidden[row];
+        for (unsigned output = 0; output < noutputs; ++output) {
+          if (!(allowed & truth_patterns[output]))
+            forced_zero[row] |= 1u << output;
+          if (!(allowed & ~truth_patterns[output]))
+            forced_one[row] |= 1u << output;
+        }
+      }
+      for (unsigned j = 0; j < subcir.inputs.size(); ++j) {
+        bool mandatory = false;
+        unsigned dependent_outputs = 0;
         for (unsigned row = 0; row < forbidden.size(); ++row)
-          if (!(row & (1u << j)) && (forbidden[row] | forbidden[row | (1u << j)]) == all) {
+          if (!(row & (1u << j))) {
+            const unsigned other = row | (1u << j);
             // Disjoint allowed output tuples force input j into the support
             // of every implementation of this relation.
-            ++essential;
-            break;
+            mandatory |= (forbidden[row] | forbidden[other]) == all;
+            dependent_outputs |= (forced_zero[row] & forced_one[other]) |
+                                 (forced_one[row] & forced_zero[other]);
           }
+        if (mandatory)
+          mandatory_inputs.push_back(j);
+        for (unsigned output = 0; output < noutputs; ++output)
+          if ((dependent_outputs >> output) & 1)
+            output_mandatory_inputs[output].push_back(j);
+      }
       // A circuit with M K-input gates and O outputs can depend on at most
       // M*(K-1)+O distinct inputs, counting direct PI-to-PO connections too.
-      if (essential > noutputs)
-        min_size = (essential - noutputs + cfg.gate_size - 2) / (cfg.gate_size - 1);
+      if (mandatory_inputs.size() > noutputs)
+        min_size = (mandatory_inputs.size() - noutputs + cfg.gate_size - 2) / (cfg.gate_size - 1);
+      // Independently, an output whose support MUST contain I inputs needs
+      // at least ceil((I-1)/(K-1)) gates in its cone. Taking the maximum avoids
+      // double-counting gates shared by multiple outputs.
+      for (const auto& inputs : output_mandatory_inputs) {
+        const unsigned support = inputs.size();
+        if (support > 1)
+          min_size = std::max(min_size, (support + cfg.gate_size - 3) / (cfg.gate_size - 1));
+      }
     }
-    setupEncoding();
   }
 
   double RelationSynthesiser::getDynamicTimeout(int size) {
@@ -59,7 +122,7 @@ namespace eSLIM2 {
     // attempts retain a chance to solve harder cuts within the run deadline.
     if (config.synthesis_timeout_ms) {
       const double budget = (size == int(max_size) ? 0.004 : 0.001) * config.synthesis_timeout_ms;
-      return (log.synthesis_searches % 16 == 0 ? 10 : 1) * budget;
+      return (log.synthesis_sat_searches % long_budget_interval == 0 ? long_budget_multiplier : 1) * budget;
     }
     if (log.nof_sat_calls_per_size[size] > config.minimum_dynamic_timeout_sample_size) {
       return std::max(static_cast<double>(config.minimum_sat_timeout), static_cast<double>(log.cummulative_sat_runtimes_per_size[size]) / (1000*log.nof_sat_calls_per_size[size])); //logged timings are given in ms
@@ -185,7 +248,8 @@ namespace eSLIM2 {
       gate_definition_variables.push_back(getNewVariableVector(pow2(config.gate_size) - 1));
       // The replacement circuit shall be normal so we ignore the all-false-behaviour
       int normality_offset = relation.getPatternSize(0) > 0;
-      gate_variables.push_back(getNewVariableVector(relation.getNLinesWithPattern() - normality_offset));
+      gate_variables.push_back(refine ? std::vector<int>() :
+                               getNewVariableVector(relation.getNLinesWithPattern() - normality_offset));
 
       std::vector<std::vector<int>> fanin_vars;
       for (int j = 0; j < config.gate_size; j++) {
@@ -210,14 +274,96 @@ namespace eSLIM2 {
     if (config.aig) {
       setupAigerConstraints();
     }
+    constrainMandatorySupport();
+  }
+
+  // These are consequences of the FULL relation, even while only a few rows
+  // have been added to the SAT instance. Make mandatory support explicit so
+  // the solver need not rediscover it from truth-table clauses on every cut.
+/**Function*************************************************************
+
+  Synopsis    [Require every mandatory input to occur in the synthesized circuit.]
+
+  SideEffects [Adds necessary support clauses to the solver.]
+
+  SeeAlso     []
+
+***********************************************************************/
+  void RelationSynthesiser::constrainMandatorySupport() {
+    if (min_size && min_size <= max_size)
+      solver.addClause({gate_activation_variables[min_size - 1]});
+    for (unsigned input : mandatory_inputs) {
+      std::vector<int> clause = gate_output_variables[max_size + input];
+      for (unsigned gate = 0; gate < max_size; ++gate) {
+        const int used = getNewVariable();
+        solver.addClause({-used, gate_activation_variables[gate]});
+        solver.addClause({-used, selection_variables[gate][input]});
+        clause.push_back(used);
+      }
+      solver.addClause(clause);
+    }
   }
 
   void RelationSynthesiser::setupSymmetryBreaking() {
     addNonTrivialConstraint();
     addUseAllStepsConstraint();
-    if (config.aig && config.aig_encoding == 2)
+    if (config.aig && config.aig_encoding >= 2)
       addOrderedStepsConstraint();
     // addNoReapplicationConstraint();
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Exclude gate patterns that cannot occur in a minimum-area AIG.]
+
+  SideEffects [Adds area-only pruning clauses.]
+
+  SeeAlso     []
+
+***********************************************************************/
+  void RelationSynthesiser::constrainIrredundantAigArea() {
+    assert(config.aig && config.gate_size == 2);
+    auto forbidFold = [&](unsigned next, unsigned gate, unsigned input) {
+      solver.addClause({-gate_activation_variables[next],
+                        -selection_variables[next][subcir.inputs.size() + gate],
+                        -selection_variables[gate][input],
+                        -selection_variables[next][input]});
+    };
+    for (unsigned output = 0; output < output_mandatory_inputs.size(); ++output) {
+      const auto& required = output_mandatory_inputs[output];
+      if (required.empty())
+        continue;
+      // An output with mandatory support cannot be a constant. A direct PI
+      // connection is possible only when that PI is its entire required set.
+      solver.addClause({-gate_output_variables.back()[output]});
+      for (unsigned input = 0; input < subcir.inputs.size(); ++input)
+        if (required.size() != 1 || required.front() != input)
+          solver.addClause({-gate_output_variables[max_size + input][output]});
+      // A gate at index g can reach at most g+2 distinct PIs. Rule out output
+      // sources that are too early to contain the output's mandatory support.
+      for (unsigned gate = 0; gate < max_size && gate + 2 < required.size(); ++gate)
+        solver.addClause({-gate_output_variables[gate][output]});
+    }
+    for (unsigned gate = 0; gate < max_size; ++gate) {
+      const int active = gate_activation_variables[gate];
+      // Inactive suffix gates have no observable use. Give them a canonical
+      // function and fanins instead of searching their irrelevant choices.
+      solver.addClause({active, selection_variables[gate][0]});
+      solver.addClause({active, selection_variables[gate][1]});
+      solver.addClause({active, -gate_definition_variables[gate][0]});
+      solver.addClause({active, -gate_definition_variables[gate][1]});
+      solver.addClause({active, gate_definition_variables[gate][2]});
+      // Combining f(a,b) with a or b using another normal AND-family gate
+      // collapses to a constant, projection, or one AND-family gate on a,b.
+      // Folding this pair preserves every output and cannot add dependencies.
+      // Thus every minimum-area solution has an equivalent form without it,
+      // even if the predecessor also drives other gates or cut outputs.
+      // The folded gate uses the predecessor's inputs directly, so this
+      // transformation also cannot increase any output arrival time.
+      for (unsigned next = gate + 1; next < max_size; ++next)
+        for (unsigned input = 0; input < subcir.inputs.size() + gate; ++input)
+          forbidFold(next, gate, input);
+    }
   }
 
   void RelationSynthesiser::setupIsFaninVariables(int gtidx, const std::vector<std::vector<int>>& counter_vars) {
@@ -361,45 +507,159 @@ namespace eSLIM2 {
     return fanin_variables;
   }
 
-  void RelationSynthesiser::setupGateValues() {
-    int pidx = 0;
-    for (int i = 1; i < relation.getNPatterns(); i++) {
-      if (relation.getPatternSize(i) > 0) {
-        for (int j = 0; j < max_size; j++) {
-          std::vector<int> fanin_variables = setupFaninVariables(j, i, pidx);
-          addGateValueConstraint(j, gate_variables[j][pidx], fanin_variables);
-        }
-        pidx++;
-      }
+  void RelationSynthesiser::setupEquivalenceConstraints() {
+    // Normal circuits always implement the all-zero row. Seed a larger
+    // relation with a few dispersed rows; subsequent SAT models are checked
+    // against ALL rows, and counterexamples are added to this same solver.
+    std::vector<unsigned> rows;
+    for (unsigned row = 1; row < unsigned(relation.getNPatterns()); ++row)
+      if (relation.getPatternSize(row))
+        rows.push_back(row);
+    log.synthesis_total_rows += rows.size();
+    if (refine) {
+      assert(!(forbidden_tuples[0] & 1));
+      for (unsigned i = 0; i < refinement_seed_rows; ++i)
+        addRelationRow(rows[i * (rows.size() - 1) / (refinement_seed_rows - 1)]);
+    } else {
+      for (unsigned row : rows)
+        addRelationRow(row);
     }
   }
 
-  void RelationSynthesiser::setupEquivalenceConstraints() {
-    setupGateValues();
-    // normal circuit: all-0-behaviour is ignored
-    int pidx = 0;
-    for (int i = 1; i < relation.getNPatterns(); i++) {
-      std::vector<int> output_vars (subcir.outputs.size(), 0);
-      const auto& patterns = relation.getPattern(i);
-      for (const auto& p : patterns) {
-        assert(2 * subcir.outputs.size() == p.size());
-        std::vector<int> cl;
-        for (int j = 0; j < subcir.outputs.size(); j++) {
-          if (p[2*j]) {
-            if (output_vars[j] == 0) {
-              output_vars[j] = setupOutputVariable(j, i, pidx);
-            }
-            if (p[2*j + 1]) {
-              cl.push_back(output_vars[j]);
-            } else {
-              cl.push_back(-output_vars[j]);
-            }
-          }
-        }
-        solver.addClause(cl);
-      }
-      pidx += !patterns.empty();
+/**Function*************************************************************
+
+  Synopsis    [Encode one previously unencoded row of the complete relation.]
+
+  SideEffects [Adds clauses and records the encoded row.]
+
+  SeeAlso     []
+
+***********************************************************************/
+  void RelationSynthesiser::addRelationRow(unsigned row) {
+    assert(row && !encoded_rows[row] && relation.getPatternSize(row));
+    encoded_rows[row] = true;
+    const unsigned pidx = encoded_count++;
+    ++log.synthesis_encoded_rows;
+    for (unsigned gate = 0; gate < max_size; ++gate) {
+      if (refine)
+        gate_variables[gate].push_back(getNewVariable());
+      auto fanins = setupFaninVariables(gate, row, pidx);
+      addGateValueConstraint(gate, gate_variables[gate][pidx], fanins);
     }
+    std::vector<int> output_vars(subcir.outputs.size(), 0);
+    for (const auto& pattern : relation.getPattern(row)) {
+      assert(2 * subcir.outputs.size() == pattern.size());
+      std::vector<int> clause;
+      for (unsigned j = 0; j < subcir.outputs.size(); ++j)
+        if (pattern[2*j]) {
+          if (!output_vars[j])
+            output_vars[j] = setupOutputVariable(j, row, pidx);
+          clause.push_back(pattern[2*j + 1] ? output_vars[j] : -output_vars[j]);
+        }
+      solver.addClause(clause);
+    }
+  }
+
+  // Exact bit-parallel validation of a normal two-input replacement against
+  // the complete relation, including its don't-cares and correlated outputs.
+/**Function*************************************************************
+
+  Synopsis    [Sample violations of the complete relation in a candidate model.]
+
+  SideEffects [Returns row indices without modifying the solver.]
+
+  SeeAlso     []
+
+***********************************************************************/
+  std::vector<unsigned> RelationSynthesiser::findCounterexamples(const std::vector<bool>& model) const {
+    typedef ABC_UINT64_T Word;
+    const unsigned ninputs = subcir.inputs.size(), noutputs = subcir.outputs.size();
+    unsigned size = 0;
+    while (size < max_size && model[gate_activation_variables[size]])
+      ++size;
+    std::vector<std::vector<unsigned>> fanins(size);
+    std::vector<unsigned> functions(size, 0), outputs(noutputs, ninputs + size);
+    for (unsigned gate = 0; gate < size; ++gate) {
+      for (unsigned j = 0; j < selection_variables[gate].size(); ++j)
+        if (model[selection_variables[gate][j]])
+          fanins[gate].push_back(j);
+      assert(fanins[gate].size() == 2);
+      for (unsigned j = 0; j < 3; ++j)
+        functions[gate] |= unsigned(model[gate_definition_variables[gate][j]]) << (j + 1);
+    }
+    for (unsigned output = 0; output < noutputs; ++output) {
+      for (unsigned gate = 0; gate < size; ++gate)
+        if (model[gate_output_variables[gate][output]])
+          outputs[output] = ninputs + gate;
+      for (unsigned input = 0; input < ninputs; ++input)
+        if (model[gate_output_variables[max_size + input][output]])
+          outputs[output] = input;
+    }
+    std::vector<unsigned> counterexamples;
+    std::vector<Word> values(ninputs + size + 1, 0);
+    for (unsigned base = 0; base < forbidden_tuples.size(); base += 64) {
+      for (unsigned j = 0; j < ninputs; ++j)
+        values[j] = j < 6 ? truth_patterns[j] : ((base >> j) & 1 ? ~Word(0) : Word(0));
+      for (unsigned gate = 0; gate < size; ++gate) {
+        const Word a = values[fanins[gate][0]], b = values[fanins[gate][1]];
+        const unsigned tt = functions[gate];
+        values[ninputs + gate] = (a & ~b & -Word((tt >> 1) & 1)) |
+                                 (~a & b & -Word((tt >> 2) & 1)) |
+                                 (a & b & -Word((tt >> 3) & 1));
+      }
+      for (unsigned bit = 0; bit < 64 && base + bit < forbidden_tuples.size(); ++bit) {
+        const unsigned row = base + bit;
+        if (encoded_rows[row] || !forbidden_tuples[row])
+          continue;
+        unsigned tuple = 0;
+        for (unsigned output = 0; output < noutputs; ++output)
+          tuple |= unsigned((values[outputs[output]] >> bit) & 1) << output;
+        if ((forbidden_tuples[row] >> tuple) & 1) {
+          counterexamples.push_back(row);
+        }
+      }
+    }
+    // Sample the full violating set rather than repeatedly selecting nearby
+    // low-numbered rows. Every selected row is an actual counterexample; an
+    // empty result still means that the entire relation has been validated.
+    if (counterexamples.size() > refinement_batch_rows) {
+      const size_t last = counterexamples.size() - 1;
+      for (unsigned i = 0; i < refinement_batch_rows; ++i)
+        counterexamples[i] = counterexamples[i * last / (refinement_batch_rows - 1)];
+      counterexamples.resize(refinement_batch_rows);
+    }
+    return counterexamples;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Solve and refine the sampled relation within the remaining deadline.]
+
+  SideEffects [Adds counterexample rows and updates search statistics.]
+
+  SeeAlso     []
+
+***********************************************************************/
+  int RelationSynthesiser::solveRelation(const std::vector<int>& assumptions, double timeout, unsigned size) {
+    const auto start = std::chrono::steady_clock::now();
+    while (!config.expired()) {
+      // Refinement must share a single per-size allowance, not restart it.
+      const double remaining = timeout ? timeout - std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - start).count() : std::numeric_limits<double>::infinity();
+      if (remaining <= 0)
+        return 0;
+      const int status = solver.solve(remaining, assumptions);
+      logRun(status, size);
+      if (status != 10 || !refine)
+        return status;
+      auto counterexamples = findCounterexamples(solver.getModel());
+      if (counterexamples.empty())
+        return 10;
+      ++log.synthesis_refinements;
+      for (unsigned row : counterexamples)
+        addRelationRow(row);
+    }
+    return 0;
   }
 
   void RelationSynthesiser::setupActivationCompatibilityConstraints() {

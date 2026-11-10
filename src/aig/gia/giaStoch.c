@@ -120,6 +120,7 @@ Gia_Man_t * Gia_StochProcessOne( Gia_Man_t * p, char * pScript, int Rand, int Ti
     if ( Length < 0 || (size_t)Length >= sizeof(FileName) ) return Gia_ManDup(p);
     Gia_AigerWrite( p, FileName, 0, 0, 0 );
     Command = ABC_ALLOC( char, 2*strlen(FileName) + strlen(pScript) + 64 );
+    if ( !Command ) abort();
     sprintf( Command, "./abc -q \"&read %s; %s; &write %s\"", FileName, pScript, FileName );
 #if defined(__wasm)
     if ( 1 )

@@ -202,7 +202,7 @@ void transpose32a( unsigned a[32] )
 int Fra_ClausProcessClausesCut( Clu_Man_t * p, Fra_Sml_t * pSimMan, Dar_Cut_t * pCut, int * pScores )
 {
     unsigned Matrix[32];
-    unsigned * pSims[16], uWord;
+    unsigned * pSims[16] = {NULL}, uWord;
     int nSeries, i, k, j;
     int nWordsForSim = pSimMan->nWordsTotal - p->nSimWordsPref;
     // compute parameters
@@ -247,7 +247,7 @@ int Fra_ClausProcessClausesCut( Clu_Man_t * p, Fra_Sml_t * pSimMan, Dar_Cut_t * 
 ***********************************************************************/
 int Fra_ClausProcessClausesCut2( Clu_Man_t * p, Fra_Sml_t * pSimMan, Dar_Cut_t * pCut, int * pScores )
 {
-    unsigned * pSims[16], uWord;
+    unsigned * pSims[16] = {NULL}, uWord;
     int iMint, i, k, b;
     int nWordsForSim = pSimMan->nWordsTotal - p->nSimWordsPref;
     // compute parameters
@@ -290,7 +290,7 @@ int Fra_ClausProcessClausesCut2( Clu_Man_t * p, Fra_Sml_t * pSimMan, Dar_Cut_t *
 void Fra_ClausProcessClausesCut3( Clu_Man_t * p, Fra_Sml_t * pSimMan, Aig_Cut_t * pCut, int * pScores )
 {
     unsigned Matrix[32];
-    unsigned * pSims[16], uWord;
+    unsigned * pSims[16] = {NULL}, uWord;
     int iMint, i, j, k, b, nMints, nSeries;
     int nWordsForSim = pSimMan->nWordsTotal - p->nSimWordsPref;
 
@@ -1055,7 +1055,7 @@ void Fra_ClausSimInfoRecord( Clu_Man_t * p, int * pModel )
 ***********************************************************************/
 int Fra_ClausSimInfoCheck( Clu_Man_t * p, int * pLits, int nLits )
 {
-    unsigned * pSims[16], uWord;
+    unsigned * pSims[16] = {NULL}, uWord;
     int nWords, iVar, i, w;
     for ( i = 0; i < nLits; i++ )
     {

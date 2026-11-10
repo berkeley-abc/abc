@@ -1981,7 +1981,10 @@ unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDeri
                 if ( fVerbose )
                 printf( "    " );
                 if ( fVerbose )
-                Abc_TtPrintBinary( (word *)&Mask, 4 ); 
+                {
+                    word MaskWord = (unsigned)Mask;
+                    Abc_TtPrintBinary( &MaskWord, 4 );
+                }
                 if ( fVerbose )
                 printf( "    Using multi-input AND/XOR node\n" );
                 return Mask;
@@ -1995,7 +1998,10 @@ unsigned If_DsdManCheckXY_int( If_DsdMan_t * p, int iDsd, int LutSize, int fDeri
                 if ( fVerbose )
                 printf( "    " );
                 if ( fVerbose )
-                Abc_TtPrintBinary( (word *)&Mask, 4 ); 
+                {
+                    word MaskWord = (unsigned)Mask;
+                    Abc_TtPrintBinary( &MaskWord, 4 );
+                }
                 if ( fVerbose )
                 printf( "    Using multi-input MUX node\n" );
                 return Mask;

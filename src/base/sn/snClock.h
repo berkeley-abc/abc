@@ -504,6 +504,7 @@ static inline Gia_Man_t* sn_design_clock_abstract(const sn_design_t* design, sn_
                 bool canonical = true;
                 char* name = sn_blast_boundary_bit_name(design, &boundary, bit, &canonical);
                 char* label = ABC_ALLOC(char, strlen(name) + 9);
+                if ( !label ) abort();
                 sprintf(label, "%s:%s", direction ? "cut-out" : "cut-in", name);
                 Vec_PtrPush(direction ? result->vNamesOut : result->vNamesIn, label);
                 if (report) fprintf(report, "macro-cut: %s\n", label);

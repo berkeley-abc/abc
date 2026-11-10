@@ -29,6 +29,8 @@ static int Cec_TranRootClassEndpoint( Gia_Man_t * pNew, int iLit,
 static void Cec_TranRootAppendCo( Gia_Man_t * p, int iLit )
 {
     int iObj = Gia_ManObjNum(p), iDriver = Abc_Lit2Var(iLit);
+    (void)iObj;
+    (void)iDriver;
     assert( iLit >= 0 && iDriver < iObj );
     assert( iObj <= INT_MAX / 2 );
     assert( (unsigned)(iObj - iDriver) < GIA_NONE );

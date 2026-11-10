@@ -20,16 +20,19 @@
 
 #include <set>
 
-#include "delayEngine.hpp"
+#include "delayEngine.h"
+#include "areaEngine.h"
 
 
 ABC_NAMESPACE_IMPL_START
 namespace eSLIM2 {
 
-  DelayEngine::DelayEngine( const Relation& relation, const Subcircuit& subcir, unsigned int max_size, const eSLIM2Config& cfg, eSLIM2Log& log, int fixed_bound)
+  DelayEngine::DelayEngine( const Relation& relation, const Subcircuit& subcir, unsigned int max_size, const eSLIM2Config& cfg, eSLIM2Log& log, int fixed_bound, int equal_size_bound)
                           : RelationSynthesiser(relation, subcir, max_size, cfg, log) {
     assert (subcir.forbidden_pairs.empty());
-    if (fixed_bound >= 0 && setupFixedDelay(fixed_bound, log)) {
+    if (cfg.aig && cfg.gate_size == 2 && cfg.aig_encoding == 3)
+      constrainIrredundantAigArea();
+    if (fixed_bound >= 0 && setupFixedDelay(fixed_bound, log, equal_size_bound, cfg.refine_depth)) {
       fixed_delay = fixed_bound;
       max_delay = fixed_bound;
       return;
@@ -46,6 +49,14 @@ namespace eSLIM2 {
     setupVariables();
     constrainDelayVariables();
     setupDelayConstraints();
+    if (equal_size_bound >= 0)
+      for (auto const& [delay, selector] : delay_selectors)
+        if (delay > equal_size_bound) {
+          std::vector<int> clause {-selector};
+          if (max_size)
+            clause.push_back(-gate_activation_variables.back());
+          solver.addClause(clause);
+        }
     max_delay = delay_selectors.begin()->first;
   }
 
@@ -108,15 +119,64 @@ namespace eSLIM2 {
   Synopsis    [Minimizes area subject to the specified delay bound.]
 
 ***********************************************************************/
-  eSLIM2CirMan DelayEngine::synthesizeMinimumAreaDelayConstraintCircuit(const Relation& relation, const Subcircuit& subcir, unsigned int delay, const eSLIM2Config& cfg, eSLIM2Log& log, bool* complete) {
+  eSLIM2CirMan DelayEngine::synthesizeMinimumAreaDelayConstraintCircuit(const Relation& relation, const Subcircuit& subcir, unsigned int delay, const eSLIM2Config& cfg, eSLIM2Log& log, bool* complete, int equal_size_bound) {
+    if (complete)
+      *complete = false;
     ++log.synthesis_searches;
-    DelayEngine synth(relation, subcir, subcir.nodes.size(), cfg, log, cfg.compact_timing ? int(delay) : -1);
+    auto small = AreaEngine::synthesiseSmall(relation, subcir, cfg, int(delay));
+    if (small.getNofObjs() > 1) {
+      if (equal_size_bound >= 0 && unsigned(equal_size_bound) < delay &&
+          unsigned(small.getNofGates()) == subcir.nodes.size())
+        small = AreaEngine::synthesiseSmall(relation, subcir, cfg, equal_size_bound);
+      if (small.getNofObjs() > 1)
+        ++log.synthesis_small_hits;
+      if (complete)
+        *complete = true;
+      return small;
+    }
+    DelayEngine synth(relation, subcir, subcir.nodes.size(), cfg, log, cfg.compact_timing ? int(delay) : -1, equal_size_bound);
     std::vector<bool> last_model = synth.reduceArea(delay, subcir.nodes.size(), complete);
     if (last_model.empty()) {
       return eSLIM2CirMan(0);
     } else {
+      if (cfg.refine_depth)
+        synth.refineDepth(last_model, cfg, log);
       int replacement_size = synth.getSizeFromActivationVars(last_model);
       return synth.getReplacement(last_model, replacement_size);
+    }
+  }
+
+  // Reuse the area solver and its learned clauses. Each successful query
+  // preserves the gate budget and strictly reduces the actual crossing delay.
+  // Keep the last valid model if a stronger bound is UNSAT or times out.
+/**Function*************************************************************
+
+  Synopsis    [Improve crossing delay without increasing the current gate budget.]
+
+  SideEffects [Keeps the last verified model if refinement fails or times out.]
+
+  SeeAlso     []
+
+***********************************************************************/
+  void DelayEngine::refineDepth(std::vector<bool>& model, const eSLIM2Config& cfg, eSLIM2Log& log) {
+    unsigned size = getSizeFromActivationVars(model);
+    unsigned delay = computeDelay(model);
+    while (delay && !cfg.expired()) {
+      if (fixed_delay >= 0)
+        constrainFixedOutputs(delay - 1);
+      ++log.depth_refinement_calls;
+      const int status = existsReplacement(size, fixed_delay >= 0 ? unsigned(fixed_delay) : delay - 1,
+                                           getDynamicTimeout(size));
+      if (status != 10)
+        break;
+      auto candidate = solver.getModel();
+      const unsigned next_size = getSizeFromActivationVars(candidate);
+      const unsigned next_delay = computeDelay(candidate);
+      assert(next_size <= size && next_delay < delay);
+      model.swap(candidate);
+      size = next_size;
+      delay = next_delay;
+      ++log.depth_refinement_improvements;
     }
   }
 
@@ -272,20 +332,24 @@ namespace eSLIM2 {
 
 ***********************************************************************/
 
-  bool DelayEngine::setupFixedDelay(unsigned bound, eSLIM2Log& log) {
+  bool DelayEngine::setupFixedDelay(unsigned bound, eSLIM2Log& log, int equal_size_bound, bool refine_depth) {
+    constexpr unsigned max_fixed_delay_span = 128;
     const unsigned earliest = *std::min_element(subcir.arrival_times.begin(), subcir.arrival_times.end());
     const unsigned latest = *std::max_element(subcir.arrival_times.begin(), subcir.arrival_times.end());
     const unsigned remaining = *std::max_element(subcir.remaining_times.begin(), subcir.remaining_times.end());
-    if (ABC_UINT64_T(latest) + max_size + remaining <= bound) {
+    const unsigned strict_bound = equal_size_bound >= 0 ? std::min(bound, unsigned(equal_size_bound)) : bound;
+    if (!refine_depth && ABC_UINT64_T(latest) + max_size + remaining <= strict_bound) {
       ++log.untimed_syntheses;
       return true;
     }
     const ABC_UINT64_T span = ABC_UINT64_T(latest) - earliest + max_size;
     // Keep the generic encoding for widely separated input arrival times.
-    if (span > 128)
+    if (span > max_fixed_delay_span)
       return false;
     const unsigned depth = unsigned(span);
-    std::vector<std::vector<int>> levels;
+    fixed_earliest = earliest;
+    fixed_span = depth;
+    auto& levels = fixed_levels;
     for (unsigned i = 0; i < max_size; ++i) {
       levels.push_back(getNewVariableVector(depth));
       solver.addClause({-gate_activation_variables[i], levels[i][0]});
@@ -302,22 +366,44 @@ namespace eSLIM2 {
         solver.addClause({-gate_activation_variables[i], -selected, -levels[j].back()});
       }
     }
+    constrainFixedOutputs(bound);
+    // A full-size replacement must preserve the current depth. Dropping the
+    // last active gate permits the looser original bound for genuine area gains.
+    if (equal_size_bound >= 0 && unsigned(equal_size_bound) < bound)
+      constrainFixedOutputs(unsigned(equal_size_bound), max_size ? gate_activation_variables.back() : 0);
+    return true;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Tighten output constraints in the fixed-depth encoding.]
+
+  SideEffects [Adds clauses enforcing the requested crossing delay.]
+
+  SeeAlso     []
+
+***********************************************************************/
+  void DelayEngine::constrainFixedOutputs(unsigned bound, int guard) {
+    auto clause = [&](std::vector<int> literals) {
+      if (guard)
+        literals.push_back(-guard);
+      solver.addClause(literals);
+    };
     for (unsigned o = 0; o < subcir.outputs.size(); ++o) {
       const long long required = static_cast<long long>(bound) - subcir.remaining_times[o];
-      const long long shifted = required - earliest;
+      const long long shifted = required - fixed_earliest;
       for (unsigned i = 0; i < max_size; ++i) {
         if (shifted < 1)
-          solver.addClause({-gate_output_variables[i][o]});
-        else if (shifted < depth)
-          solver.addClause({-gate_output_variables[i][o], -levels[i][unsigned(shifted)]});
+          clause({-gate_output_variables[i][o]});
+        else if (shifted < fixed_span)
+          clause({-gate_output_variables[i][o], -fixed_levels[i][unsigned(shifted)]});
       }
       for (unsigned j = 0; j < subcir.inputs.size(); ++j)
         if (static_cast<long long>(subcir.arrival_times[j]) > required)
-          solver.addClause({-gate_output_variables[max_size + j][o]});
+          clause({-gate_output_variables[max_size + j][o]});
       if (required < 0)
-        solver.addClause({-gate_output_variables.back()[o]});
+        clause({-gate_output_variables.back()[o]});
     }
-    return true;
   }
 
   int DelayEngine::getDelaySelector(int delay) {
@@ -360,6 +446,10 @@ namespace eSLIM2 {
   }
 
   void DelayEngine::setupDelayConstraints() {
+    // Constants have arrival zero, but their paths from this boundary output
+    // to a circuit output still contribute the remaining time.
+    for (unsigned o = 0; o < subcir.outputs.size(); ++o)
+      solver.addClause({getDelaySelector(subcir.remaining_times[o]), -gate_output_variables.back()[o]});
     for (int i = 0; i < unique_arrival_times.size(); i++) {
       for (int o = 0; o < subcir.outputs.size(); o++) {
         for (int d = 0; d <= max_size; d++) {

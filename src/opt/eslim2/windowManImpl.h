@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [windowMan.tpp]
+  FileName    [windowManImpl.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - April 2026.]
 
-  Revision    [$Id: windowMan.tpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Revision    [$Id: windowManImpl.h,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
 
@@ -32,8 +32,8 @@
   #endif
 #endif
 
-#include "windowMan.hpp"
-#include "subcircuit.hpp"
+#include "windowMan.h"
+#include "subcircuit.h"
 
 ABC_NAMESPACE_IMPL_START
 namespace eSLIM2 {
@@ -163,7 +163,7 @@ namespace eSLIM2 {
 
 /**Function*************************************************************
 
-  Synopsis    [Runs at most P workers, including the calling thread.]
+  Synopsis    [Runs at most ncores workers, including the calling thread.]
 
   Description [Every worker owns its circuit, solver, cache, and log. A
   failed thread creation leaves the remaining work to the active workers.]
@@ -232,7 +232,7 @@ namespace eSLIM2 {
     local.rewrite_mode = 0;
     local.apply_strash = false;
     if constexpr (isDelayEngine<SynthesisEngine>::value)
-      local.area_depth_bound = windows[wid].window_delay_bound;
+      local.setWindowDepthBound(windows[wid].window_delay_bound);
     eSLIM2_Man<SynthesisEngine, SelectionStrategy>::applyeSLIM2(windows[wid], local, wlogs[wid]);
   }
 
@@ -386,9 +386,21 @@ namespace eSLIM2 {
       log.nof_sat_relations += wl.nof_sat_relations;
       log.synthesis_cache_hits += wl.synthesis_cache_hits;
       log.synthesis_searches += wl.synthesis_searches;
+      log.synthesis_sat_searches += wl.synthesis_sat_searches;
+      log.synthesis_refinements += wl.synthesis_refinements;
+      log.synthesis_small_hits += wl.synthesis_small_hits;
+      log.synthesis_cache_permutations += wl.synthesis_cache_permutations;
+      log.synthesis_cache_timing_improvements += wl.synthesis_cache_timing_improvements;
+      log.depth_refinement_calls += wl.depth_refinement_calls;
+      log.depth_refinement_improvements += wl.depth_refinement_improvements;
+      log.synthesis_encoded_rows += wl.synthesis_encoded_rows;
+      log.synthesis_total_rows += wl.synthesis_total_rows;
       log.untimed_syntheses += wl.untimed_syntheses;
       log.rewrite_calls += wl.rewrite_calls;
       log.rewrite_gain += wl.rewrite_gain;
+      log.resubstitution_calls += wl.resubstitution_calls;
+      log.resubstitution_gain += wl.resubstitution_gain;
+      log.resubstitution_time += wl.resubstitution_time;
       log.cummulative_sat_runtime_synthesis += wl.cummulative_sat_runtime_synthesis;
       log.max_sat_runtime_synthesis = std::max(log.max_sat_runtime_synthesis, wl.max_sat_runtime_synthesis);
       log.nof_sat_calls_synthesis += wl.nof_sat_calls_synthesis;

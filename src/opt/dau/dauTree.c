@@ -33,7 +33,7 @@ struct Dss_Fun_t_
 {
     unsigned       iDsd  :    26;  // DSD literal
     unsigned       nFans :     6;  // fanin count
-    unsigned char  pFans[0];       // fanins
+    unsigned char  pFans[];       // fanins
 };
 
 typedef struct Dss_Ent_t_ Dss_Ent_t;
@@ -45,7 +45,7 @@ struct Dss_Ent_t_
     unsigned       nWords :    5;  // total word count (struct + shared)
     unsigned       iDsd1  :   27;  // dsd entry
     unsigned       nShared:    5;  // shared count
-    unsigned char  pShared[0];     // shared literals
+    unsigned char  pShared[];     // shared literals
 };
 
 typedef struct Dss_Obj_t_ Dss_Obj_t;
@@ -59,7 +59,7 @@ struct Dss_Obj_t_
     unsigned       fMark0  :   1;  // user mark
     unsigned       fMark1  :   1;  // user mark
     unsigned       nFans   :   5;  // fanin count
-    unsigned       pFans[0];       // fanins
+    unsigned       pFans[];       // fanins
 };
 
 typedef struct Dss_Ntk_t_ Dss_Ntk_t;

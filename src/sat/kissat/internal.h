@@ -101,7 +101,7 @@ struct kissat {
 
   bool large_clauses_watched_after_binary_clauses;
 
-  termination termination;
+  KISSAT_TYPE(termination) termination;
 
   unsigned vars;
   unsigned size;
@@ -114,19 +114,19 @@ struct kissat {
   extensions extend;
   unsigneds witness;
 
-  assigned *assigned;
-  flags *flags;
+  KISSAT_TYPE(assigned) *assigned;
+  KISSAT_TYPE(flags) *flags;
 
   mark *marks;
 
   value *values;
-  phases phases;
+  KISSAT_TYPE(phases) phases;
 
-  eliminated eliminated;
+  KISSAT_TYPE(eliminated) eliminated;
   unsigneds etrail;
 
-  links *links;
-  queue queue;
+  KISSAT_TYPE(links) *links;
+  KISSAT_TYPE(queue) queue;
 
   heap scores;
   double scinc;
@@ -135,7 +135,7 @@ struct kissat {
   double scoreshift;
 
   unsigned level;
-  frames frames;
+  KISSAT_TYPE(frames) frames;
 
   unsigned_array trail;
   unsigned *propagate;
@@ -163,7 +163,7 @@ struct kissat {
   unsigneds removable;
   unsigneds shrinkable;
 
-  clause conflict;
+  KISSAT_TYPE(clause) conflict;
 
   bool clause_satisfied;
   bool clause_shrink;
@@ -172,31 +172,31 @@ struct kissat {
   unsigneds clause;
   unsigneds shadow;
 
-  arena arena;
-  vectors vectors;
+  KISSAT_TYPE(arena) arena;
+  KISSAT_TYPE(vectors) vectors;
   reference first_reducible;
   reference last_irredundant;
-  watches *watches;
+  KISSAT_TYPE(watches) *watches;
 
   reference last_learned[4];
 
   sizes sorter;
 
   generator random;
-  averages averages[2];
+  KISSAT_TYPE(averages) averages[2];
   unsigned tier1[2], tier2[2];
-  reluctant reluctant;
+  KISSAT_TYPE(reluctant) reluctant;
 
-  bounds bounds;
-  classification classification;
-  delays delays;
-  enabled enabled;
-  limited limited;
-  limits limits;
+  KISSAT_TYPE(bounds) bounds;
+  KISSAT_TYPE(classification) classification;
+  KISSAT_TYPE(delays) delays;
+  KISSAT_TYPE(enabled) enabled;
+  KISSAT_TYPE(limited) limited;
+  KISSAT_TYPE(limits) limits;
   remember last;
   unsigned walked;
 
-  mode mode;
+  KISSAT_TYPE(mode) mode;
 
   uint64_t ticks;
 

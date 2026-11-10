@@ -1341,6 +1341,7 @@ int Abc_CommandAbc9Sim( Abc_Frame_t * pAbc, int argc, char ** argv )
         extern void Gia_ManSimSimulatePattern( Gia_Man_t * p, char * pFileIn, char * pFileOut );
         char pFileNameOut[1000];
         char * pNameGeneric = Extra_FileNameGeneric(pFileName);
+        if ( !pNameGeneric ) abort();
         assert( strlen(pNameGeneric) < 900 );
         sprintf( pFileNameOut, "%s_out.%s", pNameGeneric, Extra_FileNameExtension(pFileName) );
         ABC_FREE( pNameGeneric );

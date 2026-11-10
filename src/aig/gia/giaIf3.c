@@ -2489,6 +2489,7 @@ static int If3_AbsorbShared( If3_Man_t * p )
     int nObjs = Gia_ManObjNum(p->pGia), AreaBefore = p->pPars->Area;
     float Area, Edge, Delay;
     abctime clk = Abc_Clock();
+    (void)AreaBefore;
     if ( p->pTim || Gia_ManBufNum(p->pGia) ) return 0;
     Gia_ManForEachAnd(p->pGia, Obj, i)
     {
@@ -4714,7 +4715,7 @@ static int If3_ReexprGia( Gia_Man_t * q, Kit_Graph_t * Graph, Vec_Int_t * Fans )
     int * Copies;
     if ( Kit_GraphIsConst(Graph) ) return Kit_GraphIsConst1(Graph);
     assert(Graph->nLeaves > 0 && Graph->eRoot.Node < (unsigned)Graph->nSize);
-    Copies = ABC_ALLOC(int, Graph->nSize);
+    Copies = ABC_CALLOC(int, Graph->nSize);
     for ( i = 0; i < Graph->nLeaves; i++ ) Copies[i] = Vec_IntEntry(Fans, i);
     Kit_GraphForEachNode(Graph, Node, i)
     {

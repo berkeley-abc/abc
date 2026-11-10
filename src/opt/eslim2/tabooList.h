@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [tabooList.hpp]
+  FileName    [tabooList.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,12 +14,12 @@
 
   Date        [Ver. 1.0. Started - April 2026.]
 
-  Revision    [$Id: tabooList.hpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Revision    [$Id: tabooList.h,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
 
-#ifndef ABC__OPT__ESLIM2__TABOOLIST_hpp
-#define ABC__OPT__ESLIM2__TABOOLIST_hpp
+#ifndef ABC__OPT__ESLIM2__TABOOLIST_h
+#define ABC__OPT__ESLIM2__TABOOLIST_h
 
 #include <set>
 #include <random>
@@ -27,8 +27,8 @@
 
 #include "misc/util/abc_namespaces.h"
 
-#include "eslim2CirMan.hpp"
-#include "subcircuit.hpp"
+#include "eslim2CirMan.h"
+#include "subcircuit.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 namespace eSLIM2 {

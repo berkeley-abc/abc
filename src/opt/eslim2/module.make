@@ -1,4 +1,5 @@
 SRC +=    src/opt/eslim2/eSLIM2.cpp \
+          src/opt/eslim2/eslim2Checkpoint.cpp \
           src/opt/eslim2/eslim2CirMan.cpp \
           src/opt/eslim2/eslim2Relation.cpp \
           src/opt/eslim2/eslim2Subcircuit.cpp \

@@ -660,6 +660,7 @@ void CmdCommandPrint( Abc_Frame_t * pAbc, int fPrintAll, int fDetails )
                     fprintf( pAbc->Out, "\n" );
                     // fprintf( pAbc->Out, "--- %s ---\n", ppCommands[j]->sName );
                     tmp_cmd = ABC_ALLOC(char, strlen(ppCommands[j]->sName)+4);
+                    if ( !tmp_cmd ) abort();
                     (void) sprintf(tmp_cmd, "%s -h", ppCommands[j]->sName);
                     (void) Cmd_CommandExecute( pAbc, tmp_cmd );
                     ABC_FREE(tmp_cmd);
@@ -687,6 +688,7 @@ void CmdCommandPrint( Abc_Frame_t * pAbc, int fPrintAll, int fDetails )
             fprintf( pAbc->Out, "\n" );
             // fprintf( pAbc->Out, "--- %s ---\n", ppCommands[j]->sName );
             tmp_cmd = ABC_ALLOC(char, strlen(ppCommands[j]->sName)+4);
+            if ( !tmp_cmd ) abort();
             (void) sprintf(tmp_cmd, "%s -h", ppCommands[j]->sName);
             (void) Cmd_CommandExecute( pAbc, tmp_cmd );
             ABC_FREE(tmp_cmd);

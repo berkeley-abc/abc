@@ -771,7 +771,11 @@ static Dec_Graph_t * Dar_ResubDivs12( Dar_Resub_t * p, int Required )
                         if ( ((puData0[w] | puData1[w] | puData2[w]) ^ puDataR[w]) & p->pCareSet[w] ) // care set
                             break;
                 }
-                else assert( 0 );
+                else
+                {
+                    assert( 0 );
+                    continue;
+                }
                 if ( w == p->nWords )
                 {
                     LevelMax = Abc_MaxInt( Aig_Regular(pObj0)->Level, Abc_MaxInt(Aig_Regular(pObj1)->Level, Aig_Regular(pObj2)->Level) );
@@ -864,7 +868,11 @@ static Dec_Graph_t * Dar_ResubDivs12( Dar_Resub_t * p, int Required )
                         if ( ((puData0[w] & puData1[w] & puData2[w]) ^ puDataR[w]) & p->pCareSet[w] ) // care set
                             break;
                 }
-                else assert( 0 );
+                else
+                {
+                    assert( 0 );
+                    continue;
+                }
                 if ( w == p->nWords )
                 {
                     LevelMax = Abc_MaxInt( Aig_Regular(pObj0)->Level, Abc_MaxInt(Aig_Regular(pObj1)->Level, Aig_Regular(pObj2)->Level) );

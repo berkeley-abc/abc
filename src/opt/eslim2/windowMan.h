@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [windowMan.hpp]
+  FileName    [windowMan.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,20 +14,20 @@
 
   Date        [Ver. 1.0. Started - April 2026.]
 
-  Revision    [$Id: windowMan.hpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Revision    [$Id: windowMan.h,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
 
-#ifndef ABC__OPT__ESLIM2__WINDOWMAN_hpp
-#define ABC__OPT__ESLIM2__WINDOWMAN_hpp
+#ifndef ABC__OPT__ESLIM2__WINDOWMAN_h
+#define ABC__OPT__ESLIM2__WINDOWMAN_h
 
 #include <vector>
 #include <atomic>
 
 #include "misc/util/abc_global.h"
 
-#include "eslim2CirMan.hpp"
-#include "utils.hpp"
+#include "eslim2CirMan.h"
+#include "utils.h"
 
 
 ABC_NAMESPACE_CXX_HEADER_START
@@ -42,6 +42,7 @@ namespace eSLIM2 {
       void static applyeSLIM2(eSLIM2CirMan& es_man, eSLIM2Config& cfg, eSLIM2Log& log);
 
     private:
+      friend struct eSLIM2TestAccess;
 
       WindowMan(eSLIM2CirMan& es_man, const eSLIM2Config& cfg, eSLIM2Log& log);
       void setupWindows();
@@ -82,6 +83,6 @@ namespace eSLIM2 {
 }
 ABC_NAMESPACE_CXX_HEADER_END
 
-#include "windowMan.tpp"
+#include "windowManImpl.h"
 
 #endif

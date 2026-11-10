@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [cadicalSolver.hpp]
+  FileName    [cadicalSolver.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - April 2026.]
 
-  Revision    [$Id: cadicalSolver.hpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Revision    [$Id: cadicalSolver.h,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
 
@@ -45,6 +45,7 @@ namespace eSLIM2 {
       int solve();
       void setDeadline(std::chrono::steady_clock::time_point value) { deadline = value; }
       bool setOption(const char* name, int value) { return solver.set(name, value); }
+      bool configure(const char* name) { return solver.configure(name); }
       std::vector<int> getFailed(const std::vector<int>& assumptions);
       bool isFailed(int lit);
       std::vector<int> getValues(const std::vector<int>& variables);

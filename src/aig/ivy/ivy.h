@@ -186,9 +186,9 @@ extern void Ivy_ManAddMemory( Ivy_Man_t * p );
 
 static inline int          Ivy_BitWordNum( int nBits )            { return (nBits>>5) + ((nBits&31) > 0);           }
 static inline int          Ivy_TruthWordNum( int nVars )          { return nVars <= 5 ? 1 : (1 << (nVars - 5));     }
-static inline int          Ivy_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (1<<((i) & 31))) > 0;       }
-static inline void         Ivy_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (1<<((i) & 31));                   }
-static inline void         Ivy_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (1<<((i) & 31));                   }
+static inline int          Ivy_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (1U<<((i) & 31))) > 0;      }
+static inline void         Ivy_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (1U<<((i) & 31));                  }
+static inline void         Ivy_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (1U<<((i) & 31));                  }
 
 static inline Ivy_Obj_t *  Ivy_Regular( Ivy_Obj_t * p )           { return (Ivy_Obj_t *)((ABC_PTRUINT_T)(p) & ~01); }
 static inline Ivy_Obj_t *  Ivy_Not( Ivy_Obj_t * p )               { return (Ivy_Obj_t *)((ABC_PTRUINT_T)(p) ^  01); }

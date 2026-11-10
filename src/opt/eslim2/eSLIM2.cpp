@@ -19,21 +19,24 @@
 ***********************************************************************/
 
 #include <random>
+#include <memory>
+#include <cstdio>
 
-#include "utils.hpp"
-#include "eSLIM2Man.hpp"
-#include "relationGeneration.hpp"
-#include "selectionStrategies.hpp"
-#include "windowMan.hpp"
+#include "utils.h"
+#include "checkpoint.h"
+#include "eSLIM2Man.h"
+#include "relationGeneration.h"
+#include "selectionStrategies.h"
+#include "windowMan.h"
 
 #include "misc/util/abc_namespaces.h"
 #include "opt/mfs/mfs.h"
 #include "base/main/main.h"
 
 #include "eSLIM2.h"
-#include "eslim2CirMan.hpp"
-#include "synthesisEngines.hpp"
-#include "selectionStrategies.hpp"
+#include "eslim2CirMan.h"
+#include "synthesisEngines.h"
+#include "selectionStrategies.h"
 
 ABC_NAMESPACE_HEADER_START
   Gia_Man_t * Gia_ManDeepSyn( Gia_Man_t * pGia, int nIters, int nNoImpr, int TimeOut, int nAnds, int Seed, int fUseTwo, int fChoices, int fVerbose );
@@ -48,13 +51,25 @@ static eSLIM2::eSLIM2Config eSLIM2_GetCfg(const eSLIM2_ParamStruct* params) {
   config.mux_consensus = params->mux_consensus != 0;
   config.tune_relation_solver = params->tune_relation_solver != 0;
   config.fast_simulation = params->fast_simulation != 0;
-  if (params->synthesis_approach == 1) {
+  config.cache_synthesis = params->cache_synthesis != 0;
+  config.small_synthesis = params->small_synthesis != 0;
+  config.synthesis_solver_mode = params->synthesis_solver_mode;
+  config.synthesis_cegar = params->synthesis_approach == 0 && params->synthesis_cegar;
+  if (params->synthesis_approach <= 1) {
     config.synthesis_timeout_ms = params->synthesis_timeout_ms;
-    config.compact_timing = params->compact_timing != 0;
     config.aig_encoding = params->aig_encoding;
+  }
+  if (params->synthesis_approach == 1) {
+    config.compact_timing = params->compact_timing != 0;
     config.initial_depth_bound = params->initial_depth_bound != 0;
+    config.protect_neutral_depth = params->protect_neutral_depth != 0;
+    config.refine_depth = params->refine_depth != 0;
+    config.depth_target_percent = params->depth_target_percent;
+    config.permute_cache = params->permute_cache != 0;
     config.rewrite_mode = params->apply_inprocessing ? params->rewrite_mode : 0;
   }
+  if (params->synthesis_approach == 0 && params->rewrite_mode >= 3)
+    config.rewrite_mode = params->apply_inprocessing ? params->rewrite_mode : 0;
   config.fill_subcircuits = params->fill_subcircuits;
   // config.fix_seed = params->fix_seed;
   config.trial_limit_active = params->trial_limit_active;
@@ -86,13 +101,23 @@ static eSLIM2::eSLIM2Config eSLIM2_GetCfg(const eSLIM2_ParamStruct* params) {
 }
 
 void seteSLIM2Params(eSLIM2_ParamStruct* params) {
+  params->checkpoint_prefix = nullptr;
+  params->checkpoint_times = nullptr;
   params->synthesis_timeout_ms = 50;
+  params->synthesis_solver_mode = 0;
+  params->synthesis_cegar = 1;
+  params->cache_synthesis = 1;
+  params->small_synthesis = 1;
   params->compact_timing = 1;
   params->aig_encoding = 0;
   params->mux_consensus = 0;
   params->tune_relation_solver = 1;
   params->fast_simulation = 1;
   params->initial_depth_bound = 1;
+  params->protect_neutral_depth = 0;
+  params->refine_depth = 0;
+  params->depth_target_percent = 0;
+  params->permute_cache = 0;
   params->rewrite_mode = 2;
 
   params->fill_subcircuits = 0;
@@ -245,7 +270,25 @@ namespace eSLIM2 {
     // It seems like the variables are freed by abc during preprocessing. Thus,we copy them
     char* name = Abc_UtilStrsav( cir->pName );
     char* spec = Abc_UtilStrsav( cir->pSpec );
+    std::unique_ptr<CheckpointWriter> checkpoints;
+    if (params->checkpoint_prefix) {
+      std::vector<unsigned> times;
+      readCheckpointTimes(params->checkpoint_times, params->timeout, times);
+      checkpoints = std::make_unique<CheckpointWriter>(params->checkpoint_prefix, times, params->timeout);
+      if (!checkpoints->prepare()) {
+        ABC_FREE(name);
+        ABC_FREE(spec);
+        return nullptr;
+      }
+      eslim2_run.config.checkpoint = [&](eSLIM2CirMan& circuit) { return checkpoints->write(circuit); };
+      eslim2_run.config.next_checkpoint = checkpoints->nextTime();
+    }
     eslim2_run.run();
+    if (checkpoints) {
+      checkpoints->write(eslim2_run.es_man, true);
+      if (checkpoints->failed())
+        std::fprintf(stderr, "eSLIM2: checkpoint output is incomplete; returning the optimized circuit.\n");
+    }
     Gia_Man_t* gia_res = eslim2_run.es_man.eSLIM2CirManToGia();
     gia_res->pName = name;
     gia_res->pSpec = spec;
@@ -296,8 +339,7 @@ namespace eSLIM2 {
 
     initial_area = es_man.getNofGates();
     initial_delay = es_man.getDepth();
-    if (config.initial_depth_bound)
-      config.area_depth_bound = initial_delay;
+    config.setDepthTargets(initial_delay);
     printSettings();
     for (int i = 0; i < nruns; i++) {
 
@@ -348,6 +390,8 @@ namespace eSLIM2 {
       std::cout << "Stop eSLIM2 runs after " << config.iterations << " iterations.\n";
     }
     std::cout << "Consider subcircuits with up to " << config.subcircuit_max_size << " gates.\n";
+    if (config.depth_floor >= 0)
+      std::cout << "Protect depth gains down to " << config.depth_target_percent << "% of input levels (target " << config.depth_floor - 1 << ").\n";
     printf("When expanding subcircuits, select gates with a probability of %.2f %%.\n", 100 * config.expansion_probability);
   }
 
@@ -392,8 +436,17 @@ namespace eSLIM2 {
       std::cout << "Total synthesis time (s): " << log.synthesis_time << "\n";
       std::cout << "Relations: " << log.nof_simulated_relations << " simulated, " << log.nof_sat_relations << " SAT-generated\n";
       std::cout << "Synthesis cache hits: " << log.synthesis_cache_hits << "\n";
+      std::cout << "Synthesis refinement rounds: " << log.synthesis_refinements << "\n";
+      std::cout << "Synthesis small exact replacements: " << log.synthesis_small_hits << "\n";
+      std::cout << "Synthesis cache input permutations: " << log.synthesis_cache_permutations << "\n";
+      std::cout << "Synthesis cache timing improvements: " << log.synthesis_cache_timing_improvements << "\n";
+      std::cout << "Synthesis depth refinement improvements/calls: " << log.depth_refinement_improvements << "/" << log.depth_refinement_calls << "\n";
+      std::cout << "Synthesis relation rows encoded/available: " << log.synthesis_encoded_rows << "/" << log.synthesis_total_rows << "\n";
       std::cout << "Rewriting calls/gain: " << log.rewrite_calls << "/" << log.rewrite_gain << "\n";
+      std::cout << "Resubstitution calls/gain within rewriting: " << log.resubstitution_calls << "/" << log.resubstitution_gain << "\n";
+      std::cout << "Resubstitution time (s): " << log.resubstitution_time << "\n";
       std::cout << "Synthesis searches with unrestricted timing: " << log.untimed_syntheses << "/" << log.synthesis_searches << "\n";
+      std::cout << "Synthesis SAT searches: " << log.synthesis_sat_searches << "\n";
       std::cout << "#Iterations with forbidden pairs: " << log.subcircuits_with_forbidden_pairs << "\n";
     }
     if (config.verbosity_level > 1) {
@@ -656,6 +709,31 @@ template <typename Circuitrepresentation,
           typename std::enable_if_t<std::is_same_v<Circuitrepresentation, Gia_Man_t> ||
                                     std::is_same_v<Circuitrepresentation, Abc_Ntk_t>, int> = 0>
 Circuitrepresentation* runeSLIM2(Circuitrepresentation * cir, const eSLIM2_ParamStruct* params) {
+  if (params->checkpoint_prefix || params->checkpoint_times) {
+    std::vector<unsigned> times;
+    if (!params->checkpoint_prefix || !*params->checkpoint_prefix ||
+        !eSLIM2::readCheckpointTimes(params->checkpoint_times, params->timeout, times)) {
+      Abc_Print(-1, "eSLIM2: -O requires -K with strictly increasing positive times at most -T.\n");
+      return NULL;
+    }
+    if (!std::is_same_v<Circuitrepresentation, Gia_Man_t> || !params->aig ||
+        params->ncores != 1 || params->nWindows || params->nruns != 1 || params->synthesis_approach > 1) {
+      Abc_Print(-1, "eSLIM2: checkpoints require serial AIG mode 0/1 with -R 1.\n");
+      return NULL;
+    }
+  }
+  if (params->depth_target_percent > 100) {
+    Abc_Print(-1, "eSLIM2: depth target percentage must be between 0 and 100.\n");
+    return NULL;
+  }
+  if (params->aig_encoding > 3) {
+    Abc_Print(-1, "eSLIM2: AIG encoding must be between 0 and 3.\n");
+    return NULL;
+  }
+  if (params->synthesis_solver_mode > 5) {
+    Abc_Print(-1, "eSLIM2: synthesis SAT settings must be between 0 and 5.\n");
+    return NULL;
+  }
   // Parallel windows support area optimization, with or without a depth bound.
   if (!params->ncores) {
     Abc_Print(-1, "eSLIM2: the worker-core limit must be positive.\n");

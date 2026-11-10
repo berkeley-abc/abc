@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [relationGeneration.hpp]
+  FileName    [relationGeneration.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,22 +14,22 @@
 
   Date        [Ver. 1.0. Started - April 2026.]
 
-  Revision    [$Id: relationGeneration.hpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Revision    [$Id: relationGeneration.h,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
 
-#ifndef ABC__OPT__ESLIM2__RELATIONGENERATION_hpp
-#define ABC__OPT__ESLIM2__RELATIONGENERATION_hpp
+#ifndef ABC__OPT__ESLIM2__RELATIONGENERATION_h
+#define ABC__OPT__ESLIM2__RELATIONGENERATION_h
 
 #include <vector>
 #include <unordered_map>
 
 #include "misc/util/abc_namespaces.h"
 
-#include "eslim2CirMan.hpp"
-#include "cadicalSolver.hpp"
-#include "subcircuit.hpp"
-#include "utils.hpp"
+#include "eslim2CirMan.h"
+#include "cadicalSolver.h"
+#include "subcircuit.h"
+#include "utils.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 namespace eSLIM2 {
@@ -37,6 +37,7 @@ namespace eSLIM2 {
   class RelationGenerator;
 
   class Relation{
+    friend struct eSLIM2TestAccess;
 
     public:
       Relation(int nfanins);
@@ -66,6 +67,7 @@ namespace eSLIM2 {
   };
 
   class RelationGenerator {
+    friend struct eSLIM2TestAccess;
 
     public:
       static Relation computeRelation(const eSLIM2CirMan& cir, const Subcircuit& subcir, const eSLIM2Config& cfg, eSLIM2Log& log);

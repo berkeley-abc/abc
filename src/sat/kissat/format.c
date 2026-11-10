@@ -10,7 +10,9 @@
 ABC_NAMESPACE_IMPL_START
 
 char *kissat_next_format_string (kormat *format) {
-  KISSAT_assert (format->pos < NUM_FORMAT_STRINGS);
+  KISSAT_assert (format && format->pos < NUM_FORMAT_STRINGS);
+  if (!format || format->pos >= NUM_FORMAT_STRINGS)
+    abort ();
   char *res = format->str[format->pos++];
   if (format->pos == NUM_FORMAT_STRINGS)
     format->pos = 0;
@@ -84,26 +86,27 @@ const char *kissat_format_time (kormat *format, double seconds) {
   uint64_t days = hours / 24;
   hours %= 24;
   char *tmp = res;
+  if (!res) abort ();
   if (days) {
-    sprintf (res, "%" PRIu64 "d", days);
-    tmp += strlen (res);
+    tmp += snprintf (tmp, FORMAT_STRING_SIZE, "%" PRIu64 "d", days);
   }
   if (hours) {
     if (tmp != res)
       *tmp++ = ' ';
-    sprintf (tmp, "%" PRIu64 "h", hours);
-    tmp += strlen (tmp);
+    tmp += snprintf (tmp, FORMAT_STRING_SIZE - (size_t) (tmp - res),
+                     "%" PRIu64 "h", hours);
   }
   if (minutes) {
     if (tmp != res)
       *tmp++ = ' ';
-    sprintf (tmp, "%" PRIu64 "m", minutes);
-    tmp += strlen (tmp);
+    tmp += snprintf (tmp, FORMAT_STRING_SIZE - (size_t) (tmp - res),
+                     "%" PRIu64 "m", minutes);
   }
   if (rounded) {
     if (tmp != res)
       *tmp++ = ' ';
-    sprintf (tmp, "%" PRIu64 "s", rounded);
+    snprintf (tmp, FORMAT_STRING_SIZE - (size_t) (tmp - res),
+              "%" PRIu64 "s", rounded);
   }
   return res;
 }

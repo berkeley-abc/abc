@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [synthesisEngines.hpp]
+  FileName    [synthesisEngines.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,19 +14,19 @@
 
   Date        [Ver. 1.0. Started - April 2026.]
 
-  Revision    [$Id: synthesisEngines.hpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Revision    [$Id: synthesisEngines.h,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
 
-#ifndef ABC__OPT__ESLIM2__SYNTHESISENGINES_hpp
-#define ABC__OPT__ESLIM2__SYNTHESISENGINES_hpp
+#ifndef ABC__OPT__ESLIM2__SYNTHESISENGINES_h
+#define ABC__OPT__ESLIM2__SYNTHESISENGINES_h
 
 
 #include "misc/util/abc_global.h"
 
-#include "eslim2CirMan.hpp"
-#include "areaEngine.hpp"
-#include "delayEngine.hpp"
+#include "eslim2CirMan.h"
+#include "areaEngine.h"
+#include "delayEngine.h"
 
 
 ABC_NAMESPACE_CXX_HEADER_START
@@ -40,8 +40,8 @@ namespace eSLIM2 {
   class AreaMinimizer {
     public:
       static eSLIM2CirMan optimize(const eSLIM2CirMan& encompassing, const Relation& relation, const Subcircuit& subcir,
-                                  const eSLIM2Config& cfg, eSLIM2Log& log) {
-        return AreaEngine::synthesiseMinimumSizeCircuit(relation, subcir, cfg, log);
+                                  const eSLIM2Config& cfg, eSLIM2Log& log, bool* complete = nullptr) {
+        return AreaEngine::synthesiseMinimumSizeCircuit(relation, subcir, cfg, log, complete);
       }
     private:
       AreaMinimizer() = default;
@@ -52,8 +52,9 @@ namespace eSLIM2 {
       static eSLIM2CirMan optimize(eSLIM2CirMan& encompassing, const Relation& relation, Subcircuit& subcir,
                                   const eSLIM2Config& cfg, eSLIM2Log& log, bool* complete = nullptr) {
         subcir.setupTimings(encompassing);
-        const unsigned bound = cfg.area_depth_bound >= 0 ? unsigned(cfg.area_depth_bound) : unsigned(encompassing.getDepth());
-        return DelayEngine::synthesizeMinimumAreaDelayConstraintCircuit(relation, subcir, bound, cfg, log, complete);
+        const unsigned bound = cfg.areaDepthBound(encompassing.getDepth());
+        return DelayEngine::synthesizeMinimumAreaDelayConstraintCircuit(relation, subcir, bound, cfg, log, complete,
+            cfg.protect_neutral_depth ? encompassing.getDepth() : -1);
       }
     private:
       AreaDelayConstraintMinimizer() = default;

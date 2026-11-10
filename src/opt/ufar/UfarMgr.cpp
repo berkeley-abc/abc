@@ -12,7 +12,7 @@
 #include <map>
 #include <algorithm>
 #include <array>
-#include <regex>
+#include "UfarParse.h"
 #include <queue>
 
 #ifdef _WIN32
@@ -542,16 +542,9 @@ int  SimUifPairFinder::GetCount(const UIF_PAIR& x) const {
 
 void SimUifPairFinder::SetParams(const string& setting) {
     int temp = 0;
-    smatch sub_match;
-
-    if(regex_search(setting, sub_match, regex(R"(w:(\d+))")))
-        nWords = stoi(sub_match[1].str());
-
-    if(regex_search(setting, sub_match, regex(R"(f:(\d+))")))
-        nFrames = stoi(sub_match[1].str());
-
-    if(regex_search(setting, sub_match, regex(R"(t:(\d+))")))
-        temp = stoi(sub_match[1].str());
+    ParseSimValue(setting, 'w', nWords);
+    ParseSimValue(setting, 'f', nFrames);
+    ParseSimValue(setting, 't', temp);
 
     nThreshold = temp * nWords * nFrames * 64 / 100;
 }

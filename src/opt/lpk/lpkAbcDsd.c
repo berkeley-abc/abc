@@ -369,7 +369,7 @@ unsigned Lpk_DsdLateArriving( Lpk_Fun_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Lpk_DsdAnalizeOne( Lpk_Fun_t * p, unsigned * ppTruths[5][16], Kit_DsdNtk_t * pNtks[], char pCofVars[], int nCofDepth, Lpk_Res_t * pRes )
+int Lpk_DsdAnalizeOne( Lpk_Fun_t * p, unsigned * (*ppTruths)[16], Kit_DsdNtk_t * pNtks[], char pCofVars[], int nCofDepth, Lpk_Res_t * pRes )
 {
     int fVerbose = 0;
     Vec_Int_t * pvBSets[4][8];

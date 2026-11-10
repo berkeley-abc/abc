@@ -3707,6 +3707,10 @@ SOURCE=.\src\opt\ufar\UfarPth.cpp
 
 SOURCE=.\src\opt\ufar\UfarPth.h
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\ufar\UfarParse.h
+# End Source File
 # End Group
 # Begin Group "util"
 
@@ -4705,11 +4709,19 @@ SOURCE=.\src\opt\eslim2\eslim2Area.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\eslim2\areaEngine.hpp
+SOURCE=.\src\opt\eslim2\areaEngine.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\eslim2\cadicalSolver.hpp
+SOURCE=.\src\opt\eslim2\cadicalSolver.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\eslim2Checkpoint.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim2\checkpoint.h
 # End Source File
 # Begin Source File
 
@@ -4717,7 +4729,7 @@ SOURCE=.\src\opt\eslim2\eslim2Delay.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\eslim2\delayEngine.hpp
+SOURCE=.\src\opt\eslim2\delayEngine.h
 # End Source File
 # Begin Source File
 
@@ -4729,11 +4741,11 @@ SOURCE=.\src\opt\eslim2\eSLIM2.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\eslim2\eSLIM2Man.hpp
+SOURCE=.\src\opt\eslim2\eSLIM2Man.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\eslim2\eSLIM2Man.tpp
+SOURCE=.\src\opt\eslim2\eSLIM2ManImpl.h
 # End Source File
 # Begin Source File
 
@@ -4741,7 +4753,7 @@ SOURCE=.\src\opt\eslim2\eslim2CirMan.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\eslim2\eslim2CirMan.hpp
+SOURCE=.\src\opt\eslim2\eslim2CirMan.h
 # End Source File
 # Begin Source File
 
@@ -4749,7 +4761,7 @@ SOURCE=.\src\opt\eslim2\eslim2Relation.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\eslim2\relationGeneration.hpp
+SOURCE=.\src\opt\eslim2\relationGeneration.h
 # End Source File
 # Begin Source File
 
@@ -4757,15 +4769,15 @@ SOURCE=.\src\opt\eslim2\eslim2Synth.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\eslim2\relationSynthesiser.hpp
+SOURCE=.\src\opt\eslim2\relationSynthesiser.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\eslim2\selectionStrategies.hpp
+SOURCE=.\src\opt\eslim2\selectionStrategies.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\eslim2\selectionStrategies.tpp
+SOURCE=.\src\opt\eslim2\selectionStrategiesImpl.h
 # End Source File
 # Begin Source File
 
@@ -4773,27 +4785,27 @@ SOURCE=.\src\opt\eslim2\eslim2Subcircuit.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\eslim2\subcircuit.hpp
+SOURCE=.\src\opt\eslim2\subcircuit.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\eslim2\synthesisEngines.hpp
+SOURCE=.\src\opt\eslim2\synthesisEngines.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\eslim2\tabooList.hpp
+SOURCE=.\src\opt\eslim2\tabooList.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\eslim2\utils.hpp
+SOURCE=.\src\opt\eslim2\utils.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\eslim2\windowMan.hpp
+SOURCE=.\src\opt\eslim2\windowMan.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\eslim2\windowMan.tpp
+SOURCE=.\src\opt\eslim2\windowManImpl.h
 # End Source File
 # End Group
 # End Group

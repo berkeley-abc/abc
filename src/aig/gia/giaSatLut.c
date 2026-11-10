@@ -1517,7 +1517,7 @@ Vec_Int_t * Gia_ManDeriveSimpleMapping( Gia_Man_t * p, Vec_Int_t * vRes )
 void Gia_ManSimplePrintMapping( Vec_Int_t * vRes, int nIns )
 {    
     int i, k, nObjs = Vec_IntSize(vRes)/7, nSteps = Abc_Base10Log(nObjs);
-    int nCard = Vec_IntSum(vRes) - nIns; char NumStr[10];
+    int nCard = Vec_IntSum(vRes) - nIns; char NumStr[12];
     printf( "Solution with cardinality %d:\n", nCard );
     for ( k = 0; k < nSteps; k++ ) {        
         printf( "  " );

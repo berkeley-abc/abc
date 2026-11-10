@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [delayEngine.hpp]
+  FileName    [delayEngine.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,18 +14,18 @@
 
   Date        [Ver. 1.0. Started - April 2026.]
 
-  Revision    [$Id: delayEngine.hpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Revision    [$Id: delayEngine.h,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
 
-#ifndef ABC__OPT__ESLIM2__DELAYENGINE_hpp
-#define ABC__OPT__ESLIM2__DELAYENGINE_hpp
+#ifndef ABC__OPT__ESLIM2__DELAYENGINE_h
+#define ABC__OPT__ESLIM2__DELAYENGINE_h
 
 #include <map>
 
 #include "misc/util/abc_global.h"
 
-#include "relationSynthesiser.hpp"
+#include "relationSynthesiser.h"
 
 
 ABC_NAMESPACE_CXX_HEADER_START
@@ -41,7 +41,7 @@ namespace eSLIM2 {
       // First minimize area, then minimize delay
       static eSLIM2CirMan synthesizeMinimumAreaDelayCircuit(const Relation& relation, const Subcircuit& subcir, const eSLIM2Config& cfg, eSLIM2Log& log);
       // Find a smaller replacement that must not increase delay
-      static eSLIM2CirMan synthesizeMinimumAreaDelayConstraintCircuit(const Relation& relation, const Subcircuit& subcir, unsigned int delay, const eSLIM2Config& cfg, eSLIM2Log& log, bool* complete = nullptr);
+      static eSLIM2CirMan synthesizeMinimumAreaDelayConstraintCircuit(const Relation& relation, const Subcircuit& subcir, unsigned int delay, const eSLIM2Config& cfg, eSLIM2Log& log, bool* complete = nullptr, int equal_size_bound = -1);
 
     private:
 
@@ -51,6 +51,9 @@ namespace eSLIM2 {
     int symmetry_selector;
     int symmetry_selector_assignment;
     int fixed_delay = -1;
+    unsigned fixed_earliest = 0;
+    unsigned fixed_span = 0;
+    std::vector<std::vector<int>> fixed_levels;
     // Indicate the length of the longest paths from inputs to gates
     std::vector<std::vector<std::vector<int>>> delay_variables;
     std::vector<std::vector<std::vector<int>>> output_delays;
@@ -58,8 +61,10 @@ namespace eSLIM2 {
     std::map<int, int, std::greater<int>> delay_selectors;
     std::map<int, std::vector<int>, std::greater<int>> delays2delay_variables;
 
-    DelayEngine(const Relation& relation, const Subcircuit& subcir, unsigned int max_size, const eSLIM2Config& cfg, eSLIM2Log& log, int fixed_bound = -1);
-    bool setupFixedDelay(unsigned bound, eSLIM2Log& log);
+    DelayEngine(const Relation& relation, const Subcircuit& subcir, unsigned int max_size, const eSLIM2Config& cfg, eSLIM2Log& log, int fixed_bound = -1, int equal_size_bound = -1);
+    bool setupFixedDelay(unsigned bound, eSLIM2Log& log, int equal_size_bound, bool refine_depth);
+    void constrainFixedOutputs(unsigned bound, int guard = 0);
+    void refineDepth(std::vector<bool>& model, const eSLIM2Config& cfg, eSLIM2Log& log);
     int existsReplacement(unsigned int size, unsigned int delay, double timeout);
     int existsReplacement(unsigned int delay, double timeout);
     std::vector<int> getAssumptions(unsigned int delay);

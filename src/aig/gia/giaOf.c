@@ -1305,7 +1305,7 @@ void Of_ManComputeBackward3( Of_Man_t * p )
 void Of_ManComputeForwardDirconCut( Of_Man_t * p, int iObj, int * pCut, int * pDelay1, int * pDelay2 )
 {
     // Delay1 - main delay;  Delay2 - precomputed LUT delay in terms of Delay1 for the fanins
-    int Delays[6], Perm[6] = {0, 1, 2, 3, 4, 5}; 
+    int Delays[6] = {0}, Perm[6] = {0, 1, 2, 3, 4, 5};
     int DelayLut1 = p->pPars->nDelayLut1;
     int DelayLut2 = p->pPars->nDelayLut2;
     int nSize = Of_CutSize(pCut);

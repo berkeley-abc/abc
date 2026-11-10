@@ -2651,6 +2651,7 @@ static int Lmt_AdaptiveCuts( Lmt_Man_t * p, int Cuts, int CriticalCuts,
     Gia_Obj_t * pObj;
     size_t Slots;
     abctime Start = Abc_Clock(), CutStart;
+    (void)OldTarget;
     if ( !pLimits || !pLevels )
     { Abc_Print(-1, "LMS target: cannot allocate adaptive cut budgets.\n"); goto cleanup; }
     // Levels initializes output requirements for refinement; preserve the

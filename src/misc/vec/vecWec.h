@@ -128,7 +128,7 @@ static inline Vec_Wec_t * Vec_WecStart( int nSize )
 ***********************************************************************/
 static inline void Vec_WecGrow( Vec_Wec_t * p, int nCapMin )
 {
-    if ( p->nCap >= nCapMin )
+    if ( nCapMin <= 0 || p->nCap >= nCapMin )
         return;
     p->pArray = ABC_REALLOC( Vec_Int_t, p->pArray, nCapMin ); 
     memset( p->pArray + p->nCap, 0, sizeof(Vec_Int_t) * (size_t)(nCapMin - p->nCap) );

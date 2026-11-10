@@ -553,7 +553,7 @@ static inline int Vec_IntEntryLast( Vec_Int_t * p )
 ***********************************************************************/
 static inline void Vec_IntGrow( Vec_Int_t * p, int nCapMin )
 {
-    if ( p->nCap >= nCapMin )
+    if ( nCapMin <= 0 || p->nCap >= nCapMin )
         return;
     assert( p->nCap < ABC_INT_MAX );
     p->pArray = ABC_REALLOC( int, p->pArray, nCapMin ); 
@@ -575,7 +575,7 @@ static inline void Vec_IntGrow( Vec_Int_t * p, int nCapMin )
 static inline void Vec_IntGrowResize( Vec_Int_t * p, int nCapMin )
 {
     p->nSize  = nCapMin;
-    if ( p->nCap >= nCapMin )
+    if ( nCapMin <= 0 || p->nCap >= nCapMin )
         return;
     p->pArray = ABC_REALLOC( int, p->pArray, nCapMin ); 
     assert( p->pArray );

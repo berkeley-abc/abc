@@ -49,7 +49,7 @@ struct Lf_Cut_t_
     unsigned        fLate     :  1;  // fails timing
     unsigned        fMux7     :  1;  // specialized cut
     unsigned        nLeaves   :  8;  // the number of leaves
-    int             pLeaves[0];      // leaves
+    int             pLeaves[];       // leaves
 };
 typedef struct Lf_Plc_t_ Lf_Plc_t; 
 struct Lf_Plc_t_

@@ -112,7 +112,8 @@ struct Extra_MmStep_t_
   Synopsis    [Allocates memory pieces of fixed size.]
 
   Description [The size of the chunk is computed as the minimum of
-  1024 entries and 64K. Can only work with entry size at least 4 byte long.]
+  1024 entries and 64K. Positive entry sizes are rounded up to pointer
+  alignment, adding at most sizeof(void*) - 1 bytes per entry.]
                
   SideEffects []
 
@@ -126,12 +127,18 @@ Extra_MmFixed_t * Extra_MmFixedStart( int nEntrySize )
     p = ABC_ALLOC( Extra_MmFixed_t, 1 );
     memset( p, 0, sizeof(Extra_MmFixed_t) );
 
+    // Every entry contains a free-list pointer and may hold pointer fields.
+    // Round the stride so later entries keep the alignment of the chunk base.
+    assert( nEntrySize > 0 && nEntrySize <= ABC_INT_MAX - (int)sizeof(void *) );
+    if ( nEntrySize <= 0 || nEntrySize > ABC_INT_MAX - (int)sizeof(void *) )
+        abort();
+    nEntrySize = (nEntrySize + (int)sizeof(void *) - 1) / (int)sizeof(void *) * (int)sizeof(void *);
     p->nEntrySize    = nEntrySize;
     p->nEntriesAlloc = 0;
     p->nEntriesUsed  = 0;
     p->pEntriesFree  = NULL;
 
-    if ( nEntrySize * (1 << 10) < (1<<16) )
+    if ( nEntrySize < (1 << 6) )
         p->nChunkSize = (1 << 10);
     else
         p->nChunkSize = (1<<16) / nEntrySize;

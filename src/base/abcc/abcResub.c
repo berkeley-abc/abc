@@ -2127,14 +2127,50 @@ int Abc_CommandAbc9eSLIM2( Abc_Frame_t * pAbc, int argc, char ** argv ) {
   seteSLIM2Params(&params);
   params.aig = 1;
   Extra_UtilGetoptReset();
-  while ( ( c = Extra_UtilGetopt( argc, argv, "ABCDEIJPRSTVWXZcefghilmqstx" ) ) != EOF ) {
+  while ( ( c = Extra_UtilGetopt( argc, argv, "ABCDIJKLNOPQRSTVWXZcdefghijklmnpqstux" ) ) != EOF ) {
       switch ( c ) {
+        case 'O':
+          if (globalUtilOptind >= argc || !argv[globalUtilOptind][0])
+            goto usage;
+          params.checkpoint_prefix = argv[globalUtilOptind++];
+          break;
+        case 'K':
+          if (globalUtilOptind >= argc || !argv[globalUtilOptind][0])
+            goto usage;
+          params.checkpoint_times = argv[globalUtilOptind++];
+          break;
+        case 'n':
+          params.small_synthesis ^= 1;
+          break;
+        case 'd':
+          params.protect_neutral_depth ^= 1;
+          break;
+        case 'j':
+          params.refine_depth ^= 1;
+          break;
+        case 'p':
+          params.permute_cache ^= 1;
+          break;
+        case 'L':
+          if (globalUtilOptind >= argc || !Es2_ReadUnsigned(argv[globalUtilOptind++], &params.depth_target_percent) || params.depth_target_percent > 100)
+            goto usage;
+          break;
+        case 'Q':
+          if (globalUtilOptind >= argc || !Es2_ReadUnsigned(argv[globalUtilOptind++], &params.synthesis_solver_mode) || params.synthesis_solver_mode > 5)
+            goto usage;
+          break;
+        case 'k':
+          params.cache_synthesis ^= 1;
+          break;
+        case 'u':
+          params.synthesis_cegar ^= 1;
+          break;
         case 'J':
-          if (globalUtilOptind >= argc || !Es2_ReadUnsigned(argv[globalUtilOptind++], &params.rewrite_mode) || params.rewrite_mode > 2)
+          if (globalUtilOptind >= argc || !Es2_ReadUnsigned(argv[globalUtilOptind++], &params.rewrite_mode) || params.rewrite_mode > 4)
             goto usage;
           break;
         case 'A':
-          if (globalUtilOptind >= argc || !Es2_ReadUnsigned(argv[globalUtilOptind++], &params.aig_encoding) || params.aig_encoding > 2)
+          if (globalUtilOptind >= argc || !Es2_ReadUnsigned(argv[globalUtilOptind++], &params.aig_encoding) || params.aig_encoding > 3)
             goto usage;
           break;
         case 'l':
@@ -2201,19 +2237,19 @@ int Abc_CommandAbc9eSLIM2( Abc_Frame_t * pAbc, int argc, char ** argv ) {
               goto usage;
           globalUtilOptind++;
           break;
-        case 'P':
+        case 'Z':
           if (globalUtilOptind >= argc || !Es2_ReadUnsigned(argv[globalUtilOptind++], &params.ncores) || !params.ncores) {
-            Abc_Print( -1, "Command line switch \"-P\" requires a positive integer core limit.\n" );
+            Abc_Print( -1, "Command line switch \"-Z\" requires a positive integer core limit.\n" );
             goto usage;
           }
           break;
-        case 'E':
+        case 'P':
         {
           char * pEnd;
           const char * pText;
           if ( globalUtilOptind >= argc )
           {
-              Abc_Print( -1, "Command line switch \"-E\" should be followed by a probability.\n" );
+              Abc_Print( -1, "Command line switch \"-P\" should be followed by a probability.\n" );
               goto usage;
           }
           pText = argv[globalUtilOptind++];
@@ -2296,16 +2332,25 @@ int Abc_CommandAbc9eSLIM2( Abc_Frame_t * pAbc, int argc, char ** argv ) {
               goto usage;
           globalUtilOptind++;
           break;
-        case 'Z':
+        case 'N':
+        {
+          char * pEnd;
+          const char * pText;
+          long Seed;
           if ( globalUtilOptind >= argc )
           {
-              Abc_Print( -1, "Command line switch \"-Z\" should be followed by an integer.\n" );
+              Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
               goto usage;
           }
+          pText = argv[globalUtilOptind++];
+          errno = 0;
+          Seed = strtol(pText, &pEnd, 10);
+          if (pText == pEnd || *pEnd || errno == ERANGE || Seed < INT_MIN || Seed > INT_MAX)
+              goto usage;
           params.fix_seed = 1;
-          params.seed = atoi(argv[globalUtilOptind]);
-          globalUtilOptind++;
+          params.seed = (int)Seed;
           break;
+        }
         case 'c' :
           params.criticial_path_selection_bias ^= 1;
           break;
@@ -2355,44 +2400,64 @@ int Abc_CommandAbc9eSLIM2( Abc_Frame_t * pAbc, int argc, char ** argv ) {
 
   usage:
     seteSLIM2Params(&params); // show the correct default values
-    Abc_Print( -2, "usage: &eslim2 [-ABCDEIJPRSTVWXZ <num>] [-cefghilmqstx]\n" );
+    Abc_Print( -2, "usage: &eslim2 [-ABCDIJLNPQRSTVWXZ <num>] [-K <seconds,...>] [-O <prefix>] [-cdefghijklmnpqstux]\n" );
     Abc_Print( -2, "\t           circuit optimization using exact synthesis and the SAT-based local improvement method (SLIM)\n" );
-    Abc_Print( -2, "\t-A <num> : AIG encoding in mode 1: 0 = generic, 1 = ordered pins, 2 = ordered pins and gates [default = %u]\n", params.aig_encoding );
-    Abc_Print( -2, "\t-B <num> : base SAT-call budget in milliseconds for mode 1 (0 = legacy allocation) [default = %u]\n", params.synthesis_timeout_ms );
-    Abc_Print( -2, "\t           Existing-size searches receive 4x this budget; every 16th search receives another 10x.\n" );
+    Abc_Print( -2, "\t-A <num> : AIG encoding in modes 0/1: 0 = generic, 1 = ordered pins, 2 = ordered pins and gates [default = %u]\n", params.aig_encoding );
+    Abc_Print( -2, "\t           Encoding 2 also prunes redundant structures in area mode; 3 extends this pruning to mode 1.\n" );
+    Abc_Print( -2, "\t-B <num> : base synthesis budget per size in milliseconds for modes 0/1 (0 = legacy allocation) [default = %u]\n", params.synthesis_timeout_ms );
+    Abc_Print( -2, "\t           Existing-size searches receive 4x this budget; every 16th SAT search receives another 10x.\n" );
     Abc_Print( -2, "\t-C <num> : approximate Boolean relations by only considering the first C levels in the cone \n");
     Abc_Print( -2, "\t-D <num> : delay mode: 0 = area, 1 = area with depth bound, 2 = area then depth, 3 = depth [default = %d]\n",  params.synthesis_approach );
     Abc_Print( -2, "\t           Mode 1 keeps both exported AIG node count and level count at most their input values.\n" );
     Abc_Print( -2, "\t           Area mode (0), including windows, may increase levels. Use mode 1 to preserve the input bound.\n" );
-    Abc_Print( -2, "\t-E <prob>: the probability of expanding a node (formerly -P) [default = %.2f]\n", params.expansion_probability );
     Abc_Print( -2, "\t-I <num> : the maximal number of iterations (0 = no limit) for the individual eSLIM2 runs [default = %d]\n",  params.iterations  );
-    Abc_Print( -2, "\t-J <num> : AIG rewriting in mode 1: 0 = off, 1 = initial, 2 = adaptive [default = %u]\n", params.rewrite_mode );
+    Abc_Print( -2, "\t-J <num> : AIG rewriting: 0 = off, 1 = initial, 2 = adaptive (1/2 in mode 1) [default = %u]\n", params.rewrite_mode );
+    Abc_Print( -2, "\t           3 enables periodic rewriting in modes 0/1, within the SAT time budget.\n" );
+    Abc_Print( -2, "\t           4 also tries bounded truth-table resubstitution every fifth rewrite.\n" );
     Abc_Print( -2, "\t           Adaptive repeats every 2 seconds only if the initial pass removed nodes.\n" );
-    Abc_Print( -2, "\t           Rewriting preserves size and depth and is disabled by -i.\n" );
+    Abc_Print( -2, "\t           Rewriting is skipped with 2 seconds or less remaining; measured pass times can increase this reserve.\n" );
+    Abc_Print( -2, "\t           Rewriting preserves size; mode 1 also preserves depth. Disabled by -i.\n" );
     Abc_Print( -2, "\t           Windows disable -J and strash in both modes; -i controls final inprocessing.\n" );
-    Abc_Print( -2, "\t-P <num> : maximum number of worker cores; 1 uses the serial command [default = %u]\n", params.ncores );
-    Abc_Print( -2, "\t           More cores use automatic windows in modes 0/1; small designs may use fewer.\n" );
+    Abc_Print( -2, "\t-L <num> : protect depth gains down to this percentage of input levels in mode 1 (0 = off) [default = %u]\n", params.depth_target_percent );
+    Abc_Print( -2, "\t           Uses the larger of current depth and this target; further gains may be traded for area. Overrides -l.\n" );
+    Abc_Print( -2, "\t           Windows use their frozen boundary depth bound instead; -L applies only to serial search.\n" );
+    Abc_Print( -2, "\t-N <num> : use a fixed seed (formerly -Z)\n" );
+    Abc_Print( -2, "\t-O <prefix> : save AIG checkpoints and JSON timing records without stopping the search\n" );
+    Abc_Print( -2, "\t-K <seconds,...> : strictly increasing checkpoint times, at most -T (requires -O)\n" );
+    Abc_Print( -2, "\t           Both options are required; supported for serial AIG modes 0/1 with -R 1.\n" );
+    Abc_Print( -2, "\t           Files are <prefix>.<seconds>s.aig/.json; existing files are never overwritten.\n" );
+    Abc_Print( -2, "\t           Intermediate checkpoints precede final inprocessing; the -T checkpoint follows it.\n" );
+    Abc_Print( -2, "\t-P <num> : the probability of expanding a node (formerly -E) [default = %.2f]\n", params.expansion_probability );
+    Abc_Print( -2, "\t-Q <num> : synthesis SAT settings: 0 = default, 1 = no lucky phases, 2 = plain, 3 = sat, 4 = unsat, 5 = negative phase [default = %u]\n", params.synthesis_solver_mode );
     Abc_Print( -2, "\t-R <num> : the number of runs of eSLIM2 + Inprocessing [default = %d]\n",    params.nruns );
     Abc_Print( -2, "\t-S <num> : the maximal size of considered subcircuits [default = %d]\n",    params.subcircuit_max_size );
     Abc_Print( -2, "\t-T <num> : the timeout in seconds for the individual eSLIM2 runs [default = %d]\n",    params.timeout );
     Abc_Print( -2, "\t-V <num> : the verbosity level [default = %d]\n",       params.verbosity_level);
     Abc_Print( -2, "\t           Level 1 includes search/cache counters; level 2 adds SAT-call timings; level 3 adds per-size details.\n" );
     Abc_Print( -2, "\t-W <m> <n>: select up to m windows of n nodes instead of automatic partitioning\n" );
-    Abc_Print( -2, "\t           Windows share the -T budget and use at most -P cores; -I applies per window.\n" );
+    Abc_Print( -2, "\t           Windows share the -T budget and use at most -Z cores; -I applies per window.\n" );
     Abc_Print( -2, "\t-X <num> : the maximal number of additional gates that may be used for depth optimization [default = %d]\n", params.additional_gates);
-    Abc_Print( -2, "\t-Z <num> : use a fixed seed\n");
+    Abc_Print( -2, "\t-Z <num> : maximum number of worker cores (formerly -P); 1 uses serial search [default = %u]\n", params.ncores );
+    Abc_Print( -2, "\t           More cores use automatic windows in modes 0/1; small designs may use fewer.\n" );
     Abc_Print( -2, "\t-c       : toggle bias for selection of nodes on the critical path\n");
+    Abc_Print( -2, "\t-d       : toggle preserving current depth for equal-area replacements in mode 1 [default = %s]\n", params.protect_neutral_depth ? "yes" : "no" );
+    Abc_Print( -2, "\t           Smaller replacements may still use the original depth bound (enabled by default).\n" );
     Abc_Print( -2, "\t-e       : toggle compact encoding of the depth bound in mode 1 [default = %s]\n", params.compact_timing ? "yes" : "no" );
     Abc_Print( -2, "\t-f       : toggle forward expansion of root nodes\n");
     Abc_Print( -2, "\t-g       : toggle specialized gate simulation and Gray-code traversal [default = %s]\n", params.fast_simulation ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
-    Abc_Print( -2, "\t-i       : toggle inprocessing (disabling it also disables mode-1 rewriting)\n");
+    Abc_Print( -2, "\t-i       : toggle inprocessing (disabling it also disables in-loop rewriting)\n");
+    Abc_Print( -2, "\t-j       : toggle reducing replacement depth after area search in mode 1 [default = %s]\n", params.refine_depth ? "yes" : "no" );
+    Abc_Print( -2, "\t-k       : toggle caching proven minimum replacements in modes 0/1 [default = %s]\n", params.cache_synthesis ? "yes" : "no" );
     Abc_Print( -2, "\t-l       : toggle keeping the initial depth bound throughout mode 1 [default = %s]\n", params.initial_depth_bound ? "yes" : "no" );
     Abc_Print( -2, "\t           With this enabled, intermediate depth gains may be traded for area within the input depth.\n" );
     Abc_Print( -2, "\t-m       : toggle redundant mux clauses for two-input gates [default = %s]\n", params.mux_consensus ? "yes" : "no" );
+    Abc_Print( -2, "\t-n       : toggle exact enumeration of replacements up to three ANDs in modes 0/1 [default = %s]\n", params.small_synthesis ? "yes" : "no" );
+    Abc_Print( -2, "\t-p       : toggle equivalent input permutations of cached replacements in mode 1 [default = %s]\n", params.permute_cache ? "yes" : "no" );
     Abc_Print( -2, "\t-q       : toggle relation SAT tuning (disable lucky phases) [default = %s]\n", params.tune_relation_solver ? "yes" : "no" );
     Abc_Print( -2, "\t-s       : toggle fill subcircuits\n");
     Abc_Print( -2, "\t-t       : toggle use taboo list\n");
+    Abc_Print( -2, "\t-u       : toggle counterexample refinement of area-mode AIG synthesis [default = %s]\n", params.synthesis_cegar ? "yes" : "no" );
     Abc_Print( -2, "\t-x       : allow xor-gates (not supported with -D 1)\n");
     Abc_Print( -2, "\t\n" );
     Abc_Print( -2, "\t           This command was contributed by Franz-Xaver Reichl from University of Freiburg.\n" );

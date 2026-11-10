@@ -766,7 +766,7 @@ static double sat_solver_progress(sat_solver* s)
 //=================================================================================================
 // Major methods:
 
-static int sat_solver_lit_removable(sat_solver* s, int x, int minl)
+static int sat_solver_lit_removable(sat_solver* s, int x, unsigned minl)
 {
     int      top     = veci_size(&s->tagged);
 
@@ -780,7 +780,7 @@ static int sat_solver_lit_removable(sat_solver* s, int x, int minl)
         if (clause_is_lit(s->reasons[v])){
             v = lit_var(clause_read_lit(s->reasons[v]));
             if (!var_tag(s,v) && var_level(s, v)){
-                if (s->reasons[v] != 0 && ((1 << (var_level(s, v) & 31)) & minl)){
+                if (s->reasons[v] != 0 && ((1U << (var_level(s, v) & 31)) & minl)){
                     veci_push(&s->stack,v);
                     var_set_tag(s, v, 1);
                 }else{
@@ -795,7 +795,7 @@ static int sat_solver_lit_removable(sat_solver* s, int x, int minl)
             for (i = 1; i < clause_size(c); i++){
                 int v = lit_var(lits[i]);
                 if (!var_tag(s,v) && var_level(s, v)){
-                    if (s->reasons[v] != 0 && ((1 << (var_level(s, v) & 31)) & minl)){
+                    if (s->reasons[v] != 0 && ((1U << (var_level(s, v) & 31)) & minl)){
                         veci_push(&s->stack,lit_var(lits[i]));
                         var_set_tag(s, v, 1);
                     }else{
@@ -914,7 +914,8 @@ static void sat_solver_analyze(sat_solver* s, int h, veci* learnt)
     lit      p       = lit_Undef;
     int      ind     = s->qtail-1;
     lit*     lits;
-    int      i, j, minl;
+    int      i, j;
+    unsigned minl;
     veci_push(learnt,lit_Undef);
     do{
         assert(h != 0);
@@ -965,7 +966,7 @@ static void sat_solver_analyze(sat_solver* s, int h, veci* learnt)
     minl = 0;
     for (i = 1; i < veci_size(learnt); i++){
         int lev = var_level(s, lit_var(lits[i]));
-        minl    |= 1 << (lev & 31);
+        minl    |= 1U << (lev & 31);
     }
 
     // simplify (full)

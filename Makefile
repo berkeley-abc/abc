@@ -280,6 +280,41 @@ lib$(PROG).so: $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
 	$(VERBOSE)$(CXX) -shared -o $@ $^ $(LIBS)
 
+# Independent eSLIM2 correctness oracles using local, uncommitted test sources.
+# Test compilation inherits ABC's architecture/namespace flags.
+ESLIM2_TEST_DIR ?= build/eslim2-tests
+ESLIM2_TEST_NAMES := small_exact small_timing small_order area_refinement windows instances
+ESLIM2_TEST_BINS := $(addprefix $(ESLIM2_TEST_DIR)/,$(ESLIM2_TEST_NAMES))
+.PHONY: eslim2-tests eslim2-checkpoint-tests
+$(ESLIM2_TEST_DIR)/%: $(ABCSRC)/test/eslim2_%.cpp $(ABCSRC)/test/eslim2_test_util.h lib$(PROG).a
+	@mkdir -p $(dir $@)
+	$(VERBOSE)$(CXX) $(OPTFLAGS) $(INCLUDES) $(CPPFLAGS) $(CXXFLAGS) $< -x none lib$(PROG).a $(LDFLAGS) $(LIBS) -o $@
+
+eslim2-tests: $(ESLIM2_TEST_BINS)
+	$(ESLIM2_TEST_DIR)/small_exact
+	$(ESLIM2_TEST_DIR)/small_exact sat
+	$(ESLIM2_TEST_DIR)/small_timing 2 prune
+	$(ESLIM2_TEST_DIR)/small_timing 2 neutral
+	$(ESLIM2_TEST_DIR)/small_timing 2 refine
+	$(ESLIM2_TEST_DIR)/small_order
+	$(ESLIM2_TEST_DIR)/area_refinement
+	$(ESLIM2_TEST_DIR)/windows
+	$(ESLIM2_TEST_DIR)/instances
+
+# The checkpoint integration test needs externally supplied IWLS22 inputs.
+# ESLIM2_CHECKPOINT_OUT must be new; ESLIM2_TEST_CPUS is optional (e.g. 4-9).
+# The local Python harness is deliberately untracked.
+PYTHON ?= python3
+ESLIM2_CHECKPOINT_SCRIPT ?= $(ABCSRC)/test/eslim2_checkpoints.py
+eslim2-checkpoint-tests: $(PROG)
+	@test -n "$(ESLIM2_INPUTS)" -a -n "$(ESLIM2_CHECKPOINT_OUT)" || \
+	  { echo "Set ESLIM2_INPUTS and a new ESLIM2_CHECKPOINT_OUT directory."; exit 1; }
+	@test -f "$(ESLIM2_CHECKPOINT_SCRIPT)" || \
+	  { echo "Set ESLIM2_CHECKPOINT_SCRIPT to the local checkpoint test harness."; exit 1; }
+	$(PYTHON) "$(ESLIM2_CHECKPOINT_SCRIPT)" --binary ./$(PROG) \
+	  --inputs "$(ESLIM2_INPUTS)" --out "$(ESLIM2_CHECKPOINT_OUT)" \
+	  $(if $(ESLIM2_TEST_CPUS),--cpus "$(ESLIM2_TEST_CPUS)")
+
 docs:
 	@echo "$(MSG_PREFIX)\`\` Building documentation." $(notdir $@)
 	$(VERBOSE)doxygen doxygen.conf

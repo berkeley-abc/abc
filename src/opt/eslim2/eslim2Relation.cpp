@@ -23,17 +23,12 @@
 
 #include "misc/util/abc_global.h"
 
-#include "relationGeneration.hpp"
+#include "relationGeneration.h"
 
 
 ABC_NAMESPACE_IMPL_START
 namespace eSLIM2 {
 
-  static const ABC_UINT64_T s_SimulationPatterns[6] = {
-    ABC_CONST(0xaaaaaaaaaaaaaaaa), ABC_CONST(0xcccccccccccccccc),
-    ABC_CONST(0xf0f0f0f0f0f0f0f0), ABC_CONST(0xff00ff00ff00ff00),
-    ABC_CONST(0xffff0000ffff0000), ABC_CONST(0xffffffff00000000)
-  };
 
   ABC_UINT64_T Relation::getForbiddenTuples(unsigned row, unsigned noutputs) const {
     assert(noutputs <= 6);
@@ -42,7 +37,7 @@ namespace eSLIM2 {
       ABC_UINT64_T cube = noutputs == 6 ? ~ABC_UINT64_T(0) : (ABC_UINT64_T(1) << (1u << noutputs)) - 1;
       for (unsigned j = 0; j < noutputs; ++j)
         if (pattern[2*j])
-          cube &= pattern[2*j + 1] ? ~s_SimulationPatterns[j] : s_SimulationPatterns[j];
+          cube &= pattern[2*j + 1] ? ~truth_patterns[j] : truth_patterns[j];
       forbidden |= cube;
     }
     return forbidden;
@@ -93,8 +88,10 @@ namespace eSLIM2 {
 
 
   // Simulate every primary-input assignment and every value at the cut outputs.
-  // With no feedback to cut inputs, an output tuple is forbidden for a cut-input
-  // row exactly when some primary-input assignment makes a primary output differ.
+  // An output tuple is forbidden for a cut-input row exactly when some PI
+  // assignment makes a primary output differ. With feedback through the
+  // surrounding DAG, use the cut-input values in the CHANGED circuit, as in
+  // the SAT encoding, rather than the original circuit's input partition.
 /**Function*************************************************************
 
   Synopsis    [Simulates cut-output tuples using bounded storage and a content-validated cache.]
@@ -106,7 +103,7 @@ namespace eSLIM2 {
     const unsigned nPis = cir.getNofPis();
     const unsigned nInputs = subcir.inputs.size();
     const unsigned nOutputs = subcir.outputs.size();
-    if (cfg.approximate_relation || !subcir.forbidden_pairs.empty() ||
+    if (cfg.approximate_relation ||
         nPis > 16 || nInputs > 10 || nOutputs == 0 || nOutputs > 6)
       return false;
     const unsigned nWords = 1u << (nPis > 6 ? nPis - 6 : 0);
@@ -114,6 +111,13 @@ namespace eSLIM2 {
     const unsigned nTuples = 1u << nOutputs;
     const unsigned nNodes = cir.getNofObjs() - cir.getNofPos();
     std::vector<int> affected, compared;
+    std::vector<unsigned> feedback_inputs;
+    unsigned feedback_mask = 0;
+    for (unsigned j = 0; j < nInputs; ++j)
+      if (cir.inTFO(cir.getObj(subcir.inputs[j]))) {
+        feedback_inputs.push_back(j);
+        feedback_mask |= 1u << j;
+      }
     for (unsigned i = nPis + 1; i < nNodes; ++i) {
       const auto& obj = cir.getObj(i);
       if (obj.getNFanins() != 2)
@@ -130,9 +134,9 @@ namespace eSLIM2 {
     const ABC_UINT64_T tableWords = (2ull * nNodes + nRows + 1) * nWords + nRows;
     if (tableWords > memoryLimit ||
         (nNodes + 1ull * nRows * nInputs +
-         1ull * nTuples * (affected.size() + compared.size() + nRows)) * nWords > (1u << 26))
+         1ull * nTuples * (affected.size() + compared.size() +
+                          nRows * (1ull + feedback_inputs.size()))) * nWords > (1u << 26))
       return false;
-    const Word* patterns = s_SimulationPatterns;
     if (cir.simulation_cache && cir.simulation_cache->words != nWords)
       cir.simulation_cache.reset();
     // Count cached vectors, retained reference capacity, and metadata against
@@ -210,7 +214,7 @@ namespace eSLIM2 {
     reference.resize(size_t(nNodes) * nWords, 0);
     for (unsigned i = 0; i < nPis; ++i)
       for (unsigned w = 0; w < nWords; ++w)
-        reference[size_t(i + 1) * nWords + w] = i < 6 ? patterns[i] :
+        reference[size_t(i + 1) * nWords + w] = i < 6 ? truth_patterns[i] :
             ((w >> (i - 6)) & 1 ? ~Word(0) : Word(0));
     auto evaluate = [nWords, &cir, &cfg](std::vector<Word>& values, int i) {
       const auto& obj = cir.getObj(i);
@@ -280,10 +284,13 @@ namespace eSLIM2 {
       for (unsigned i = nPis + 1; i < nNodes; ++i)
         evaluate(reference, i);
     }
-    // Partition primary-input assignments by their values at the cut inputs.
+    // Precompute the part of the input partition unaffected by cut outputs.
+    // Feedback inputs are intersected below after simulating each tuple.
     std::vector<Word> rows(size_t(nRows) * nWords, ~Word(0));
     for (unsigned r = 0; r < nRows; ++r)
       for (unsigned j = 0; j < nInputs; ++j) {
+        if ((feedback_mask >> j) & 1)
+          continue;
         const Word* input = &reference[size_t(subcir.inputs[j]) * nWords];
         const Word polarity = (r >> j) & 1 ? Word(0) : ~Word(0);
         for (unsigned w = 0; w < nWords; ++w)
@@ -330,11 +337,17 @@ namespace eSLIM2 {
         for (unsigned w = 0; w < nWords; ++w)
           difference[w] |= changed[size_t(i) * nWords + w] ^ reference[size_t(i) * nWords + w];
       for (unsigned r = 0; r < nRows; ++r)
-        for (unsigned w = 0; w < nWords; ++w)
-          if (rows[size_t(r) * nWords + w] & difference[w]) {
+        for (unsigned w = 0; w < nWords; ++w) {
+          Word mismatches = rows[size_t(r) * nWords + w] & difference[w];
+          for (unsigned j : feedback_inputs) {
+            const Word polarity = (r >> j) & 1 ? Word(0) : ~Word(0);
+            mismatches &= changed[size_t(subcir.inputs[j]) * nWords + w] ^ polarity;
+          }
+          if (mismatches) {
             forbidden[r] |= Word(1) << tuple;
             break;
           }
+        }
     }
     // Cover forbidden tuples with cubes. Dropping a literal is legal only if
     // every tuple in the enlarged cube is forbidden, so the relation is exact.
@@ -346,7 +359,7 @@ namespace eSLIM2 {
         unsigned care = nTuples - 1;
         for (unsigned j = 0; j < nOutputs; ++j) {
           const unsigned shift = 1u << j;
-          Word expanded = cube | ((cube & ~patterns[j]) << shift) | ((cube & patterns[j]) >> shift);
+          Word expanded = cube | ((cube & ~truth_patterns[j]) << shift) | ((cube & truth_patterns[j]) >> shift);
           if (!(expanded & ~forbidden[r])) {
             cube = expanded;
             care &= ~(1u << j);

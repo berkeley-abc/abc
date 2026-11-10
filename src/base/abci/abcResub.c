@@ -351,7 +351,7 @@ Abc_ManRes_t * Abc_ManResubStart( int nLeavesMax, int nDivsMax )
         pData = (unsigned *)p->vSims->pArray[k];
         for ( i = 0; i < p->nBits; i++ )
             if ( i & (1 << k) )
-                pData[i>>5] |= (1 << (i&31));
+                pData[i>>5] |= (1U << (i&31));
     }
     p->pTempSim   = ABC_CALLOC( unsigned, p->nWords );
     // create the remaining divisors

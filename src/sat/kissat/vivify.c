@@ -154,7 +154,7 @@ struct vivifier {
   unsigned *counts;
   references schedule;
   size_t scheduled, tried, vivified;
-  countrefs countrefs;
+  KISSAT_TYPE(countrefs) countrefs;
   unsigneds sorted;
 #ifndef KISSAT_QUIET
   const char *mode;

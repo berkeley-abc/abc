@@ -986,16 +986,15 @@ static void GiaHie_WriteObjRange( FILE * pFile, Gia_Man_t * p, int iStart, int i
     {
         int Idx = fReverse ? (iStop - 1 - i) : (iStart + i);
         int ObjId = fCis ? Gia_ManCiIdToId(p, Idx) : Gia_ManCoIdToId(p, Idx);
-        char pName[64];
-        sprintf( pName, "n%0*d", nDigits, ObjId );
-        Length += strlen(pName) + 2;
+        // Count the generated name without storing it in a fixed-size buffer.
+        Length += 1 + Abc_MaxInt(nDigits, Abc_Base10Log((unsigned)ObjId + 1)) + 2;
         if ( Length > 100 )
         {
             fprintf( pFile, ",\n    " );
             Length = Skip;
             fFirst = 1;
         }
-        fprintf( pFile, "%s%s", fFirst ? "":", ", pName );
+        fprintf( pFile, "%sn%0*d", fFirst ? "":", ", nDigits, ObjId );
         fFirst = 0;
     }
 }

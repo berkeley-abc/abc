@@ -2110,14 +2110,13 @@ void Gia_ManFindUnatePairs( Gia_ResbMan_t * p, word * pSets[2], Vec_Ptr_t * vDiv
 
 void Gia_ManDeriveDivPair( Gia_ResbMan_t * p, int iDiv, Vec_Ptr_t * vDivs, int nWords, word * pRes )
 {
-    int fComp = Abc_LitIsCompl(iDiv);
     int iDiv0 = Gia_ResbPairLit0(p, iDiv);
     int iDiv1 = Gia_ResbPairLit1(p, iDiv);
     word * pDiv0 = (word *)Vec_PtrEntry(vDivs, Abc_Lit2Var(iDiv0));
     word * pDiv1 = (word *)Vec_PtrEntry(vDivs, Abc_Lit2Var(iDiv1));
     if ( iDiv0 < iDiv1 )
     {
-        assert( !fComp );
+        assert( !Abc_LitIsCompl(iDiv) );
         Abc_TtAndCompl( pRes, pDiv0, Abc_LitIsCompl(iDiv0), pDiv1, Abc_LitIsCompl(iDiv1), nWords );
     }
     else 
@@ -2419,7 +2418,7 @@ static int Gia_ResbSecondDiverseChoice( Gia_ResbMan_t * p, int fUseOr,
         p->vUnateLits[!fUseOr];
     int nPivots = p->fQualityNoTruncation ? Vec_IntSize(vPivots) :
         Abc_MinInt(Vec_IntSize(vPivots), p->nDivsMax);
-    int Slot, i, k, w, iPivot, iBest;
+    int Slot, i, k, w, iPivot, iBest = -1;
     int BestNew = -1, BestSym = -1, BestCover = -1;
     assert( PathIndex >= 2 && PathIndex <= 4 );
     if ( nPivots < PathIndex )

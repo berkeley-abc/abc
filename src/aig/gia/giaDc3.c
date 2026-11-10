@@ -1059,7 +1059,7 @@ static void Dcr_RecipeSave( Dc3_Man_t * p, int Root, Dc3_Neighbor_t * n, Dcr_Cut
 ***********************************************************************/
 static int Dc3_BalanceNode( Dc3_Man_t * p, int Root )
 {
-    int Todo[128], Leaves[64], Front[64], Lits[128], Levels[128], A[128], B[128];
+    int Todo[128], Leaves[64], Front[64] = {0}, Lits[128], Levels[128] = {0}, A[128], B[128];
     int nTodo = 1, nLeaves = 0, nSaved = 0, nNodes, nFront, i, j, Id, Lit, a, b, Level, Added = 0, Edge;
     if ( p->F.M.pObjs[Root].Refs == 1 )
     {

@@ -49,7 +49,7 @@ struct factoring {
   size_t size, allocated;
   unsigned initial;
   unsigned *count;
-  scores *scores;
+  KISSAT_TYPE(scores) *scores;
   unsigned hops;
   unsigned bound;
   unsigneds fresh;

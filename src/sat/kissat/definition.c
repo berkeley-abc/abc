@@ -12,7 +12,7 @@ typedef struct definition_extractor definition_extractor;
 struct definition_extractor {
   unsigned lit;
   kissat *solver;
-  watches *watches[2];
+  KISSAT_TYPE(watches) *watches[2];
 };
 
 static void traverse_definition_core (void *state, unsigned id) {

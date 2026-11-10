@@ -49,7 +49,7 @@ struct Ivy_Supp_t_
     int         nRefs;     // the number of references
     short       Delay;     // the delay of the node
     short       DelayR;    // the reverse delay of the node
-    int         pArray[0]; // the support nodes
+    int         pArray[];  // the support nodes
 };
 
 static inline Ivy_Supp_t * Ivy_ObjSupp( Ivy_Man_t * pAig, Ivy_Obj_t * pObj )      

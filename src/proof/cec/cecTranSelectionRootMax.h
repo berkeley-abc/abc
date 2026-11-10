@@ -249,6 +249,7 @@ static void Cec_TranRootMaxOracle(Cec_TranSelectionRootMax_t * s,
     long long reference=Cec_TranConflictGraphRootLoss(&s->Reference,s->Vertices,
         vertex,active,&s->RefNeighbors,s->RefBest,s->RefSeen,&s->RefTravId,NULL);
     assert(reference==actual);
+    (void)reference;
     if(initial) ++s->OracleInitial; else ++s->OracleUpdate;
     s->OracleNeighbors+=(word)Vec_IntSize(&s->RefNeighbors);
     if(s->Profile) s->OracleTicks+=Abc_Clock()-clk;

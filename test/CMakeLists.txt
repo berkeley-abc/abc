@@ -1,5 +1,33 @@
 add_subdirectory(gia)
 
+# The eSLIM2 oracles are local, uncommitted test assets. A fresh checkout must
+# still configure and build when those files are absent.
+set(ESLIM2_LOCAL_TEST_NAMES small_exact small_timing small_order area_refinement windows instances)
+set(ESLIM2_LOCAL_TESTS_AVAILABLE TRUE)
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/eslim2_test_util.h")
+    set(ESLIM2_LOCAL_TESTS_AVAILABLE FALSE)
+endif()
+foreach(name ${ESLIM2_LOCAL_TEST_NAMES})
+    if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/eslim2_${name}.cpp")
+        set(ESLIM2_LOCAL_TESTS_AVAILABLE FALSE)
+    endif()
+endforeach()
+if(ESLIM2_LOCAL_TESTS_AVAILABLE)
+    foreach(name ${ESLIM2_LOCAL_TEST_NAMES})
+        add_executable(eslim2_${name} eslim2_${name}.cpp)
+        target_link_libraries(eslim2_${name} PRIVATE libabc)
+    endforeach()
+    add_test(NAME eslim2_small_exact COMMAND eslim2_small_exact)
+    add_test(NAME eslim2_small_exact_sat COMMAND eslim2_small_exact sat)
+    add_test(NAME eslim2_small_timing_prune COMMAND eslim2_small_timing 2 prune)
+    add_test(NAME eslim2_small_timing_neutral COMMAND eslim2_small_timing 2 neutral)
+    add_test(NAME eslim2_small_timing_refine COMMAND eslim2_small_timing 2 refine)
+    add_test(NAME eslim2_small_order COMMAND eslim2_small_order)
+    add_test(NAME eslim2_area_refinement COMMAND eslim2_area_refinement)
+    add_test(NAME eslim2_windows COMMAND eslim2_windows)
+    add_test(NAME eslim2_instances COMMAND eslim2_instances)
+endif()
+
 if(UNIX)
     add_test(NAME acec_output_coverage
         COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/acec_output_coverage.sh $<TARGET_FILE:abc>)

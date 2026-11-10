@@ -195,38 +195,33 @@ int main(int argc, char** argv)
 ***********************************************************************/
 char* vnsprintf(const char* format, va_list args)
 {
-    unsigned n;
-    char*    ret;
-    va_list  args_copy;
-
-    static ABC_THREAD_LOCAL FILE* dummy_file = NULL;
-    if (!dummy_file)
-    {
-#if !defined(_MSC_VER) && !defined(__MINGW32)
-        dummy_file = fopen("/dev/null", "wb");
-#else
-        dummy_file = fopen("NUL", "wb");
-#endif
-    }
-
+    int n, written;
+    char * ret;
+    va_list args_copy;
+    if ( !format ) return NULL;
 #if defined(__va_copy)
     __va_copy(args_copy, args);
-#else
-  #if defined(va_copy)
+#elif defined(va_copy)
     va_copy(args_copy, args);
-  #else
+#else
     args_copy = args;
-  #endif
 #endif
-    n = vfprintf(dummy_file, format, args);
-    ret = ABC_ALLOC( char, n + 1 );
-    ret[n] = (char)255;
-    args = args_copy;
-    vsprintf(ret, format, args);
-#if !defined(__va_copy) && defined(va_copy)
+    n = vsnprintf(NULL, 0, format, args_copy);
     va_end(args_copy);
+    if ( n < 0 ) return NULL;
+    ret = ABC_ALLOC(char, (size_t)n + 1);
+    if ( !ret ) return NULL;
+#if defined(__va_copy)
+    __va_copy(args_copy, args);
+#elif defined(va_copy)
+    va_copy(args_copy, args);
+#else
+    args_copy = args;
 #endif
-    assert(ret[n] == 0);
+    written = vsnprintf(ret, (size_t)n + 1, format, args_copy);
+    va_end(args_copy);
+    if ( written != n )
+        ABC_FREE(ret);
     return ret;
 }
 

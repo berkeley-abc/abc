@@ -1381,7 +1381,7 @@ void Nf_ManPreparePrint( int nVars, int * pComp, int * pPerm, char Line[2*720*64
         {
             for ( c = 0; c < nMints; c++ )
             {
-                strcpy( Line[n+1], Line[n] ); n++;
+                memmove( Line[n+1], Line[n], (size_t)nVars + 2 ); n++;
                 pChar = &Line[n][pComp[c]];
                 if ( *pChar >= 'A' && *pChar <= 'Z' )
                     *pChar += 'a' - 'A';

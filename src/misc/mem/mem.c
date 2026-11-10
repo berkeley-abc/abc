@@ -90,7 +90,8 @@ struct Mem_Step_t_
   Synopsis    [Allocates memory pieces of fixed size.]
 
   Description [The size of the chunk is computed as the minimum of
-  1024 entries and 64K. Can only work with entry size at least 4 byte long.]
+  1024 entries and 64K. Positive entry sizes are rounded up to pointer
+  alignment, adding at most sizeof(void*) - 1 bytes per entry.]
                
   SideEffects []
 
@@ -104,12 +105,17 @@ Mem_Fixed_t * Mem_FixedStart( int nEntrySize )
     p = ABC_ALLOC( Mem_Fixed_t, 1 );
     memset( p, 0, sizeof(Mem_Fixed_t) );
 
+    // The free list and pointer-containing objects require aligned entries.
+    assert( nEntrySize > 0 && nEntrySize <= ABC_INT_MAX - (int)sizeof(void *) );
+    if ( nEntrySize <= 0 || nEntrySize > ABC_INT_MAX - (int)sizeof(void *) )
+        abort();
+    nEntrySize = (nEntrySize + (int)sizeof(void *) - 1) / (int)sizeof(void *) * (int)sizeof(void *);
     p->nEntrySize    = nEntrySize;
     p->nEntriesAlloc = 0;
     p->nEntriesUsed  = 0;
     p->pEntriesFree  = NULL;
 
-    if ( nEntrySize * (1 << 10) < (1<<16) )
+    if ( nEntrySize < (1 << 6) )
         p->nChunkSize = (1 << 10);
     else
         p->nChunkSize = (1<<16) / nEntrySize;

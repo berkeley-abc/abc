@@ -865,8 +865,8 @@ static int Abs2_PolMissing( Abs2_Man_t * p, int Lit, int Mask )
 static int Abs2_EncodePolar( Abs2_Man_t * p, int Lit, int Mask )
 {
     unsigned Visits = 0;
-    int Id, Need, Leaf, i, j, k, z, c = 0, t = 0, e = 0;
-    int IsMux, Cover[64], Needs[64], nCubes, Cube, Field, Var, Child;
+    int Id, Need, Leaf = 0, i, j, k, z, c = 0, t = 0, e = 0;
+    int IsMux, Cover[64], Needs[64], nCubes, Cube, Field, Var, Child = 0;
     if ( !p->fCompactVars ) ccadical_resize(p->pSat, Gia_ManObjNum(p->pUnroll));
     Vec_WrdClear(p->vPolStack);
     Vec_WrdPush(p->vPolStack, Abs2_Key(Abs2_PolMask(Lit, Mask), Lit >> 1));

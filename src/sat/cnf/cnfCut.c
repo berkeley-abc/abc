@@ -96,7 +96,7 @@ Cnf_Cut_t * Cnf_CutCreate( Cnf_Man_t * p, Aig_Obj_t * pObj )
     pCut = Cnf_CutAlloc( p, pCutBest->nLeaves );
     memcpy( pCut->pFanins, pCutBest->pLeaves, sizeof(int) * pCutBest->nLeaves );
     pTruth = Cnf_CutTruth(pCut);
-    *pTruth = (pCutBest->uTruth << 16) | pCutBest->uTruth;
+    *pTruth = ((unsigned)pCutBest->uTruth << 16) | pCutBest->uTruth;
     pCut->Cost = Cnf_CutSopCost( p, pCutBest );
     return pCut;
 }

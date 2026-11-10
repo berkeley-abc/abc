@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [selectionStrategies.tpp]
+  FileName    [selectionStrategiesImpl.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,11 +14,11 @@
 
   Date        [Ver. 1.0. Started - April 2026.]
 
-  Revision    [$Id: selectionStrategies.tpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Revision    [$Id: selectionStrategiesImpl.h,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
 
-#include "selectionStrategies.hpp"
+#include "selectionStrategies.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 namespace eSLIM2 {

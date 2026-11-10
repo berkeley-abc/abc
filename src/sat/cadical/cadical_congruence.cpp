@@ -2581,7 +2581,9 @@ void Closure::update_and_gate (Gate *g, GatesTable::iterator it, int src,
   bool garbage = true;
   if (g->arity () == 1 && internal->val (g->lhs) &&
       internal->val (g->lhs) == internal->val (g->rhs[0])) {
-    g->garbage = true;
+    // Backport the CaDiCaL 2.2.1 leak fix: also queue the gate for deletion.
+    // https://github.com/arminbiere/cadical/commit/19051795fdbf5766479381d668ce06edac9ffa88
+    mark_garbage (g);
     return;
   }
   if (falsifies || clashing) {

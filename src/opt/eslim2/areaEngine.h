@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [areaEngine.hpp]
+  FileName    [areaEngine.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,16 +14,16 @@
 
   Date        [Ver. 1.0. Started - April 2026.]
 
-  Revision    [$Id: areaEngine.hpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Revision    [$Id: areaEngine.h,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
 
-#ifndef ABC__OPT__ESLIM2__AREAENGINE_hpp
-#define ABC__OPT__ESLIM2__AREAENGINE_hpp
+#ifndef ABC__OPT__ESLIM2__AREAENGINE_h
+#define ABC__OPT__ESLIM2__AREAENGINE_h
 
 #include "misc/util/abc_global.h"
 
-#include "relationSynthesiser.hpp"
+#include "relationSynthesiser.h"
 
 
 ABC_NAMESPACE_CXX_HEADER_START
@@ -32,7 +32,8 @@ namespace eSLIM2 {
   class AreaEngine : private RelationSynthesiser {
 
     public:
-      static eSLIM2CirMan synthesiseMinimumSizeCircuit(const Relation& relation, const Subcircuit& subcir, const eSLIM2Config& cfg, eSLIM2Log& log);
+      static eSLIM2CirMan synthesiseSmall(const Relation& relation, const Subcircuit& subcir, const eSLIM2Config& cfg, int delay_bound = -1);
+      static eSLIM2CirMan synthesiseMinimumSizeCircuit(const Relation& relation, const Subcircuit& subcir, const eSLIM2Config& cfg, eSLIM2Log& log, bool* complete = nullptr);
 
     private:
 

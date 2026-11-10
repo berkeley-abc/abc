@@ -102,7 +102,8 @@ Internal::~Internal () {
 // by static analyzers though.  Clang with '--analyze' thought that this
 // idiom would generate a memory leak thus we use the following dummy.
 
-static signed char *ignore_clang_analyze_memory_leak_warning;
+// ABC: independent solver instances can resize these arrays concurrently.
+static thread_local signed char *ignore_clang_analyze_memory_leak_warning;
 
 void Internal::enlarge_vals (size_t new_vsize) {
   signed char *new_vals;

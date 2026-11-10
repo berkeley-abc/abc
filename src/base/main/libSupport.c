@@ -101,6 +101,7 @@ static void open_libs( void ** libHandles ) {
           else {
             char* szPrefixed = ABC_ALLOC( char, ((strlen(dp->d_name) + strlen(p) + 2) * 
                                       sizeof(char)) );
+            if ( !szPrefixed ) abort();
             sprintf(szPrefixed, "%s/", p);
             strcat(szPrefixed, dp->d_name);
             libHandles[curr_lib] = dlopen(szPrefixed, RTLD_NOW | RTLD_LOCAL);

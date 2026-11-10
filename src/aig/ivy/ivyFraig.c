@@ -159,7 +159,7 @@ static inline void        Ivy_ObjSetFraig( Ivy_Obj_t * pObj, Ivy_Obj_t * pNode )
 static inline void        Ivy_ObjSetSatNum( Ivy_Obj_t * pObj, int Num )                  { pObj->pNextFan0 = (Ivy_Obj_t *)(ABC_PTRUINT_T)Num;     }
 static inline void        Ivy_ObjSetFaninVec( Ivy_Obj_t * pObj, Vec_Ptr_t * vFanins )    { pObj->pNextFan1 = (Ivy_Obj_t *)vFanins; }
 
-static inline unsigned    Ivy_ObjRandomSim()                       { return (rand() << 24) ^ (rand() << 12) ^ rand(); }
+static inline unsigned    Ivy_ObjRandomSim()                       { return ((unsigned)rand() << 24) ^ ((unsigned)rand() << 12) ^ (unsigned)rand(); }
 
 // iterate through equivalence classes
 #define Ivy_FraigForEachEquivClass( pList, pEnt )                 \

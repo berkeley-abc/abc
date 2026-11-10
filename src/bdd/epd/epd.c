@@ -138,6 +138,8 @@ EpdGetString(EpDouble *epd, char *str)
   int           exponent;
   char          *pos;
 
+  if (!str) abort();
+
   if (IsNanDouble(epd->type.value)) {
     sprintf(str, "NaN");
     return;

@@ -904,8 +904,11 @@ static int Cec_TranDependencyIteratorNext( Cec_TranSim_t * pSim,
     if ( pPivotInfo )
         *pIterTime = Abc_Clock() - clkDiag;
     if ( pPivotInfo )
-        assert( Abc_ResubIteratorReadPivotProfile(pIter, pPivotInfo) ==
-            CEC_TRAN_PIVOT_PROFILE_SIZE );
+    {
+        int nProfile = Abc_ResubIteratorReadPivotProfile(pIter, pPivotInfo);
+        assert( nProfile == CEC_TRAN_PIVOT_PROFILE_SIZE );
+        (void)nProfile;
+    }
     if ( *pfExhausted )
         return 0;
     if ( fInvalid )

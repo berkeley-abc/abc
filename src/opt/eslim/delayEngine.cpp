@@ -184,7 +184,7 @@ namespace eSLIM {
     }
     for (std::size_t i = 0; i < getSizeFromActivationVars(model); i++) {
       for (std::size_t j = 0; j < selection_variables[i].size(); j++) {
-        if (model[selection_variables[i][j]] & current_delays[j] >= current_delays[i]) {
+        if (model[selection_variables[i][j]] & (current_delays[j] >= current_delays[i])) {
           current_delays[i] = current_delays[j] + 1;
         }
       }

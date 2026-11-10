@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [relationSynthesiser.hpp]
+  FileName    [relationSynthesiser.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,27 +14,28 @@
 
   Date        [Ver. 1.0. Started - April 2026.]
 
-  Revision    [$Id: relationSynthesiser.hpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Revision    [$Id: relationSynthesiser.h,v 1.00 2025/04/14 00:00:00 Exp $]
 
 ***********************************************************************/
 
-#ifndef ABC__OPT__ESLIM2__RELATIONSYNTHESISER_hpp
-#define ABC__OPT__ESLIM2__RELATIONSYNTHESISER_hpp
+#ifndef ABC__OPT__ESLIM2__RELATIONSYNTHESISER_h
+#define ABC__OPT__ESLIM2__RELATIONSYNTHESISER_h
 
 #include <vector>
 #include <unordered_map>
 
 #include "misc/util/abc_global.h"
 
-#include "relationGeneration.hpp"
-#include "subcircuit.hpp"
-#include "cadicalSolver.hpp"
-#include "utils.hpp"
+#include "relationGeneration.h"
+#include "subcircuit.h"
+#include "cadicalSolver.h"
+#include "utils.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 namespace eSLIM2 {
 
   class RelationSynthesiser {
+    friend struct eSLIM2TestAccess;
 
     protected:
       CadicalSolver solver;
@@ -46,7 +47,7 @@ namespace eSLIM2 {
       std::vector<std::vector<int>> selection_variables;
       std::vector<std::vector<int>> gate_output_variables;
 
-      RelationSynthesiser(const Relation& relation, const Subcircuit& subcir, unsigned int max_size, const eSLIM2Config& cfg, eSLIM2Log& log);
+      RelationSynthesiser(const Relation& relation, const Subcircuit& subcir, unsigned int max_size, const eSLIM2Config& cfg, eSLIM2Log& log, bool refine = false);
       int getNewVariable();
       std::vector<int> getNewVariableVector(unsigned int size);
 
@@ -56,6 +57,8 @@ namespace eSLIM2 {
       unsigned int getSizeFromActivationVars();
       void logRun(int status, unsigned int size);
       eSLIM2CirMan getReplacement(const std::vector<bool>& model, int size);
+      int solveRelation(const std::vector<int>& assumptions, double timeout, unsigned size);
+      void constrainIrredundantAigArea();
 
 
     private:
@@ -64,6 +67,17 @@ namespace eSLIM2 {
       eSLIM2Log& log;
 
       int max_var = 0;  // The maximal variable occurring in inputs/outputs
+      bool refine;
+      static constexpr unsigned minimum_refinement_rows = 32;
+      static constexpr unsigned refinement_seed_rows = 8;
+      static constexpr unsigned refinement_batch_rows = 8;
+      static constexpr unsigned long_budget_interval = 16;
+      static constexpr unsigned long_budget_multiplier = 10;
+      unsigned encoded_count = 0;
+      std::vector<bool> encoded_rows;
+      std::vector<ABC_UINT64_T> forbidden_tuples;
+      std::vector<unsigned> mandatory_inputs;
+      std::vector<std::vector<unsigned>> output_mandatory_inputs;
 
       std::vector<std::vector<std::vector<int>>> is_ith_fanin_variable;
       std::vector<std::vector<int>> gate_definition_variables;
@@ -71,11 +85,14 @@ namespace eSLIM2 {
 
 
       void setupEncoding();
+      void analyseMandatorySupport();
       void setupVariables();
       void setupStructuralConstraints();
+      void constrainMandatorySupport();
 
       void setupSymmetryBreaking();
-      void setupGateValues();
+      void addRelationRow(unsigned row);
+      std::vector<unsigned> findCounterexamples(const std::vector<bool>& model) const;
       std::vector<int> setupFaninVariables(int gtidx, int tt_line, int pidx);
       void setupEquivalenceConstraints();
       void setupActivationCompatibilityConstraints();

@@ -219,6 +219,7 @@ void Abc_UtilsSource( Abc_Frame_t * pAbc )
         home = getenv("HOME");
         if (home){
             char * sPath3 = ABC_ALLOC(char, strlen(home) + 2);
+            if ( !sPath3 ) abort();
             (void) sprintf(sPath3, "%s/", home);
             sPath1 = Extra_UtilFileSearch(".abc.rc", sPath3, "r");
             ABC_FREE(sPath3);
@@ -230,6 +231,7 @@ void Abc_UtilsSource( Abc_Frame_t * pAbc )
         if ( sPath1 && sPath2 ) {
             /* ~/.rc == .rc : Source the file only once */
             char *tmp_cmd = ABC_ALLOC(char, strlen(sPath1)+12);
+            if ( !tmp_cmd ) abort();
             (void) sprintf(tmp_cmd, "source -s %s", sPath1);
             // (void) Cmd_CommandExecute(pAbc, "source -s ~/.abc.rc");
             (void) Cmd_CommandExecute(pAbc, tmp_cmd);
@@ -238,6 +240,7 @@ void Abc_UtilsSource( Abc_Frame_t * pAbc )
         else {
             if (sPath1) {
                 char *tmp_cmd = ABC_ALLOC(char, strlen(sPath1)+12);
+                if ( !tmp_cmd ) abort();
                 (void) sprintf(tmp_cmd, "source -s %s", sPath1);
                 // (void) Cmd_CommandExecute(pAbc, "source -s ~/.abc.rc");
                 (void) Cmd_CommandExecute(pAbc, tmp_cmd);
@@ -245,6 +248,7 @@ void Abc_UtilsSource( Abc_Frame_t * pAbc )
             }
             if (sPath2) {
                 char *tmp_cmd = ABC_ALLOC(char, strlen(sPath2)+12);
+                if ( !tmp_cmd ) abort();
                 (void) sprintf(tmp_cmd, "source -s %s", sPath2);
                 // (void) Cmd_CommandExecute(pAbc, "source -s .abc.rc");
                 (void) Cmd_CommandExecute(pAbc, tmp_cmd);

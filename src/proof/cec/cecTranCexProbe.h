@@ -150,6 +150,7 @@ static void Cec_TranCexReconstruct(Cec_TranSim_t * old, Cec_ParTran_t * pars,
             int nc=Cec_TranSelectCareObservedCoreExcept(s_CexAug,root->iObj,pool,
                 pars->nKitCoreMax,check,trial?Vec_IntEntry(primary,trial-1):-1,care);
             assert(nc==nCore && Vec_IntSize(check)==Vec_IntSize(core));
+            (void)nc;
             for(j=0;j<Vec_IntSize(core);++j) assert(Vec_IntEntry(check,j)==Vec_IntEntry(core,j));
             Vec_IntFree(check);
         }

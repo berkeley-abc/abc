@@ -313,7 +313,21 @@ static inline int      Abc_Base2LogW( word n )                { int r; if ( n < 
 static inline int      Abc_Base10LogW( word n )               { int r; if ( n < 2 ) return (int)n; for ( r = 0, n--; n; n /= 10, r++ ) {}; return r; }
 static inline int      Abc_Base16LogW( word n )               { int r; if ( n < 2 ) return (int)n; for ( r = 0, n--; n; n /= 16, r++ ) {}; return r; }
 static inline char *   Abc_UtilStrsav( char * s )             { return s ? strcpy(ABC_ALLOC(char, strlen(s)+1), s) : NULL;  }
-static inline char *   Abc_UtilStrsavTwo( char * s, char * a ){ char * r; if (!a) return Abc_UtilStrsav(s); r = ABC_ALLOC(char, strlen(s)+strlen(a)+1); snprintf(r, strlen(s)+strlen(a)+1, "%s%s", s, a ); return r; }
+static inline char *   Abc_UtilStrsavTwo( char * s, char * a )
+{
+    size_t n, m;
+    char * r;
+    if ( !s || !a ) return Abc_UtilStrsav(s);
+    n = strlen(s);
+    m = strlen(a);
+    r = ABC_ALLOC(char, n + m + 1);
+    if ( r )
+    {
+        memcpy(r, s, n);
+        memcpy(r + n, a, m + 1);
+    }
+    return r;
+}
 static inline char *   Abc_UtilStrsavNum( char * s, int n )   { char * r; if (!s) return NULL;              r = ABC_ALLOC(char, strlen(s)+12+1);        snprintf(r, strlen(s)+12+1, "%s%d", s, n ); return r; }
 static inline char *   Abc_UtilStrtok( char * s, const char * d, char ** pSave )
 {
