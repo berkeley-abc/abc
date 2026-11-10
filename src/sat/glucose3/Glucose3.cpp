@@ -1246,8 +1246,9 @@ lbool Solver::search(int nof_conflicts)
     for (;;){
         CRef confl = propagate();
 
-        // exact conflict limit
-        if ( !withinBudget() && confl != CRef_Undef ) {
+        // Preserve a root conflict before honoring the budget. Discarding it
+        // leaves inconsistent root assignments for the next incremental call.
+        if ( !withinBudget() && confl != CRef_Undef && decisionLevel() > 0 ) {
           lbdQueue.fastclear();
           cancelUntil(0);
           return G3_l_Undef; }

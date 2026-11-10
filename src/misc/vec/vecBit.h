@@ -411,7 +411,7 @@ static inline void Vec_BitFillExtra( Vec_Bit_t * p, int nSize, int Fill )
     assert( p->nSize < nSize );
     if ( (p->nSize >> 5) == (nSize >> 5) )
     {
-        unsigned Mask = (~(~0 << (nSize-p->nSize)) << p->nSize);
+        unsigned Mask = (~(~0u << (nSize-p->nSize)) << (p->nSize & 31));
         if ( Fill == 1 )
             p->pArray[nSize >> 5] |= Mask;
         else if ( Fill == 0 )
@@ -420,8 +420,8 @@ static inline void Vec_BitFillExtra( Vec_Bit_t * p, int nSize, int Fill )
     }
     else
     {
-        unsigned Mask1 = (p->nSize & 31) ? ~0 << (p->nSize & 31) : 0;
-        unsigned Mask2 = (nSize & 31)    ? ~(~0 << (nSize & 31)) : 0;
+        unsigned Mask1 = (p->nSize & 31) ? ~0u << (p->nSize & 31) : 0;
+        unsigned Mask2 = (nSize & 31)    ? ~(~0u << (nSize & 31)) : 0;
         int w1 = (p->nSize >> 5);
         int w2 = (nSize >> 5);
         if ( Fill == 1 )
@@ -599,7 +599,7 @@ static inline int Vec_BitCount( Vec_Bit_t * p )
         assert( nWords > 0 );
         for ( i = 0; i < nWords-1; i++ )
             Counter += Vec_BitCountWord( pArray[i] );
-        Counter += Vec_BitCountWord( pArray[i] & ~(~0 << (p->nSize & 31)) );
+        Counter += Vec_BitCountWord( pArray[i] & ~(~0u << (p->nSize & 31)) );
     }
     else
     {

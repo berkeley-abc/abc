@@ -43,7 +43,7 @@ MODULES := \
 	src/misc/mem src/misc/bar src/misc/bbl src/misc/parse src/misc/btor \
 	src/opt/abs2 src/opt/cut src/opt/fxu src/opt/fxch src/opt/rwr src/opt/mfs src/opt/sim \
 	src/opt/ret src/opt/fret src/opt/res src/opt/lpk src/opt/nwk src/opt/rwt src/opt/rar \
-	src/opt/cgt src/opt/csw src/opt/dar src/opt/drw src/opt/dau src/opt/dsc src/opt/sfm src/opt/sbd src/opt/eslim src/opt/eslim2 src/opt/ufar src/opt/untk src/opt/util \
+	src/opt/cgt src/opt/csw src/opt/dar src/opt/drw src/opt/dau src/opt/dsc src/opt/sfm src/opt/sbd src/opt/eslim src/opt/eslim2 src/opt/eslim3 src/opt/ufar src/opt/untk src/opt/util \
 	src/sat/bsat src/sat/xsat src/sat/satoko src/sat/csat src/sat/msat src/sat/psat src/sat/cnf src/sat/bmc src/sat/glucose src/sat/glucose2 src/sat/glucose3 src/sat/kissat src/sat/cadical \
 	src/bool/bdc src/bool/deco src/bool/dec src/bool/decpla src/bool/kit src/bool/lms src/bool/lucky \
 	src/bool/rsb src/bool/rpo \
@@ -300,6 +300,27 @@ eslim2-tests: $(ESLIM2_TEST_BINS)
 	$(ESLIM2_TEST_DIR)/area_refinement
 	$(ESLIM2_TEST_DIR)/windows
 	$(ESLIM2_TEST_DIR)/instances
+
+# Optional local eSLIM3 correctness oracles (not part of the source distribution).
+ESLIM3_TEST_DIR ?= build/eslim3-tests
+ESLIM3_TEST_NAMES := relations timing_cegar small_timing instances seeding
+ESLIM3_TEST_BINS := $(addprefix $(ESLIM3_TEST_DIR)/,$(ESLIM3_TEST_NAMES))
+ESLIM3_TEST_SOURCES := $(addprefix $(ABCSRC)/test/eslim3_,$(addsuffix .cpp,$(ESLIM3_TEST_NAMES))) $(ABCSRC)/test/eslim3_test_util.h
+.PHONY: eslim3-tests
+ifeq ($(words $(wildcard $(ESLIM3_TEST_SOURCES))),$(words $(ESLIM3_TEST_SOURCES)))
+$(ESLIM3_TEST_DIR)/%: $(ABCSRC)/test/eslim3_%.cpp $(ABCSRC)/test/eslim3_test_util.h lib$(PROG).a
+	@mkdir -p $(dir $@)
+	$(VERBOSE)$(CXX) $(OPTFLAGS) $(INCLUDES) $(CPPFLAGS) $(CXXFLAGS) $< -x none lib$(PROG).a $(LDFLAGS) $(LIBS) -o $@
+eslim3-tests: $(ESLIM3_TEST_BINS)
+	$(ESLIM3_TEST_DIR)/relations
+	$(ESLIM3_TEST_DIR)/seeding
+	$(ESLIM3_TEST_DIR)/timing_cegar
+	$(ESLIM3_TEST_DIR)/small_timing 2 refine
+	$(ESLIM3_TEST_DIR)/instances
+else
+eslim3-tests:
+	@echo "Optional local eSLIM3 test sources are not installed; skipping eslim3-tests."
+endif
 
 # The checkpoint integration test needs externally supplied IWLS22 inputs.
 # ESLIM2_CHECKPOINT_OUT must be new; ESLIM2_TEST_CPUS is optional (e.g. 4-9).

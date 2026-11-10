@@ -341,7 +341,7 @@ static int * Vec_MemHashLookup( Vec_Mem_t * p, word * pEntry )
             return pSpot;
     return pSpot;
 }
-static void Vec_MemHashProfile( Vec_Mem_t * p )
+static inline void Vec_MemHashProfile( Vec_Mem_t * p )
 {
     int e;
     for ( e = 0; e < 1000; e++ )
@@ -412,11 +412,13 @@ static inline Vec_Mem_t * Vec_MemAllocForTT( int nVars, int fCompl )
     Vec_MemHashAlloc( vTtMem, 10000 );
     memset( uTruth, 0x00, sizeof(word) * nWords );
     Value = Vec_MemHashInsert( vTtMem, uTruth ); assert( Value == 0 );
+    (void)Value;
     if ( fCompl )
         memset( uTruth, 0x55, sizeof(word) * nWords );
     else
         memset( uTruth, 0xAA, sizeof(word) * nWords );
     Value = Vec_MemHashInsert( vTtMem, uTruth ); assert( Value == 1 );
+    (void)Value;
     ABC_FREE( uTruth );
     return vTtMem;
 }
@@ -434,6 +436,7 @@ static inline Vec_Mem_t * Vec_MemAllocWithTTs( int nVars )
     int i, k, nWords = nVars <= 6 ? 1 : (1 << (nVars - 6));
     word * pTruth = ABC_CALLOC( word, nWords );
     int Value = Vec_MemHashInsert( vTtMem, pTruth ); assert( Value == 0 );
+    (void)Value;
     for ( i = 0; i < nVars; i++ ) {
         if ( i < 6 )
             for ( k = 0; k < nWords; k++ )
@@ -442,6 +445,7 @@ static inline Vec_Mem_t * Vec_MemAllocWithTTs( int nVars )
             for ( k = 0; k < nWords; k++ )
                 pTruth[k] = (k & (1 << (i-6))) ? ~(word)0 : 0;
         Value = Vec_MemHashInsert( vTtMem, pTruth ); assert( Value == 1+i );
+        (void)Value;
     }
     ABC_FREE( pTruth );
     return vTtMem;
@@ -452,6 +456,7 @@ static inline void Vec_MemAddMuxTT( Vec_Mem_t * p, int nVars )
     word * uTruth = ABC_ALLOC( word, nWords ); 
     memset( uTruth, 0xCA, sizeof(word) * nWords );
     Value = Vec_MemHashInsert( p, uTruth ); assert( Value == 2 );
+    (void)Value;
     ABC_FREE( uTruth );
 }
 static inline void Vec_MemDumpTruthTables( Vec_Mem_t * p, char * pName, int nLutSize )

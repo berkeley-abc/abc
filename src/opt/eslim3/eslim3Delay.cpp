@@ -1,0 +1,539 @@
+/**CFile****************************************************************
+
+  FileName    [eslim3Delay.cpp]
+
+  SystemName  [ABC: Logic synthesis and verification system.]
+
+  PackageName [Using Exact Synthesis with the SAT-based Local Improvement Method (eSLIM3).]
+
+  Synopsis    [Implementation of delay based SAT encoding.]
+
+  Author      [Franz-Xaver Reichl]
+
+  Affiliation [University of Freiburg]
+
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
+
+***********************************************************************/
+
+#include <set>
+
+#include "delayEngine.h"
+#include "areaEngine.h"
+
+
+ABC_NAMESPACE_IMPL_START
+namespace eSLIM3 {
+
+/**Function*************************************************************
+
+  Synopsis    [Initializes timed synthesis and the requested output-depth constraints.]
+
+***********************************************************************/
+  DelayEngine::DelayEngine( const Relation& relation, const Subcircuit& subcir, unsigned int max_size, const eSLIM3Config& cfg, eSLIM3Log& log, int fixed_bound, int equal_size_bound)
+                          : RelationSynthesiser(relation, subcir, max_size, cfg, log, cfg.synthesis_cegar) {
+    ScopedPhaseTimer encoding_timer(log.synthesis_encoding_time, cfg);
+    assert (subcir.forbidden_pairs.empty());
+    if (cfg.aig && cfg.gate_size == 2 && cfg.aig_encoding == 3)
+      constrainIrredundantAigArea();
+    if (fixed_bound >= 0 && setupFixedDelay(fixed_bound, log, equal_size_bound, cfg.refine_depth)) {
+      fixed_delay = fixed_bound;
+      max_delay = fixed_bound;
+      return;
+    }
+    std::set<int> unique_ats_set (subcir.arrival_times.begin(), subcir.arrival_times.end());
+    unique_arrival_times.assign(unique_ats_set.begin(), unique_ats_set.end());
+    for (int i : subcir.arrival_times) {
+      auto it = unique_ats_set.find(i);
+      int idx = std::distance(unique_ats_set.begin(), it);
+      inputid2uniqueid.push_back(idx);
+    }
+    setupVariables();
+    constrainDelayVariables();
+    setupDelayConstraints();
+    if (equal_size_bound >= 0)
+      for (auto const& [delay, selector] : delay_selectors)
+        if (delay > equal_size_bound) {
+          std::vector<int> clause {-selector};
+          if (max_size)
+            clause.push_back(-gate_activation_variables.back());
+          solver.addClause(clause);
+        }
+    max_delay = delay_selectors.begin()->first;
+  }
+
+  // do not enfore activation variables -> a minimum nof gates might forbid a realization with a certain depth.
+/**Function*************************************************************
+
+  Synopsis    [Searches for a minimum-depth replacement within the gate allowance.]
+
+***********************************************************************/
+  eSLIM3CirMan DelayEngine::synthesizeMinimumDelayCircuit(const Relation& relation, const Subcircuit& subcir, unsigned int delay, unsigned int max_size, const eSLIM3Config& cfg, eSLIM3Log& log) {
+    DelayEngine synth(relation, subcir, max_size, cfg, log);
+    std::vector<bool> last_model = synth.reduceDelay(max_size, delay);
+    if (last_model.empty()) {
+      // no replacement found
+      return eSLIM3CirMan(0);
+    } else {
+      int replacement_size = synth.getSizeFromActivationVars(last_model);
+      return synth.getReplacement(last_model, replacement_size);
+    }
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Minimizes replacement depth and then its gate count.]
+
+***********************************************************************/
+  eSLIM3CirMan DelayEngine::synthesizeMinimumDelayAreaCircuit(const Relation& relation, const Subcircuit& subcir, unsigned int delay, unsigned int max_size, const eSLIM3Config& cfg, eSLIM3Log& log) {
+    DelayEngine synth(relation, subcir, max_size, cfg, log);
+    std::vector<bool> last_model = synth.reduceDelay(max_size, delay);
+    if (last_model.empty()) {
+      // We could not even find a replacement with the same delay as the original circuit (timeout)
+      // Hence, it is unlikely that we find a circuit that has the same delay but fewer gates
+      return eSLIM3CirMan(0);
+    }
+    int replacement_size = synth.getSizeFromActivationVars(last_model);
+    // int replacement_delay = synth.getDelayFromDelayVariables(last_model);
+    int replacement_delay = synth.computeDelay(last_model);
+    std::vector<bool> model = synth.reduceArea(replacement_delay, replacement_size - 1);
+    if (model.size() > 0) {
+      replacement_size = synth.getSizeFromActivationVars(model);
+      std::swap(last_model, model);
+    }
+    return synth.getReplacement(last_model, replacement_size);
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Minimizes replacement gate count and then its depth.]
+
+***********************************************************************/
+  eSLIM3CirMan DelayEngine::synthesizeMinimumAreaDelayCircuit(const Relation& relation, const Subcircuit& subcir, const eSLIM3Config& cfg, eSLIM3Log& log) {
+    DelayEngine synth(relation, subcir, subcir.nodes.size(), cfg, log);
+    std::vector<bool> last_model = synth.reduceArea(synth.max_delay, subcir.nodes.size());
+    if (last_model.empty()) {
+      // We could not even find a replacement with the same area as the original circuit (timeout)
+      // Hence, it is unlikely that we find a circuit that has the same area and a causes a smaller delay
+      return eSLIM3CirMan(0);
+    }
+    int replacement_size = synth.getSizeFromActivationVars(last_model);
+    // int replacement_delay = synth.getDelayFromDelayVariables(last_model);
+    int replacement_delay = synth.computeDelay(last_model);
+    assert (replacement_delay > 0 || replacement_size == 0);
+    if (replacement_delay > 0) { // a constant circuit has already optimal depth
+      std::vector<bool> model = synth.reduceDelay(replacement_size, replacement_delay - 1);
+      if (model.size() > 0) {
+        replacement_size = synth.getSizeFromActivationVars(model);
+        std::swap(last_model, model);
+      }
+    }
+    return synth.getReplacement(last_model, replacement_size);
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Minimizes area subject to the specified delay bound.]
+
+***********************************************************************/
+  eSLIM3CirMan DelayEngine::synthesizeMinimumAreaDelayConstraintCircuit(const Relation& relation, const Subcircuit& subcir, unsigned int delay, const eSLIM3Config& cfg, eSLIM3Log& log, bool* complete, int equal_size_bound) {
+    if (complete)
+      *complete = false;
+    ++log.synthesis_searches;
+    auto small = AreaEngine::synthesiseSmall(relation, subcir, cfg, int(delay));
+    if (small.getNofObjs() > 1) {
+      if (equal_size_bound >= 0 && unsigned(equal_size_bound) < delay &&
+          unsigned(small.getNofGates()) == subcir.nodes.size())
+        small = AreaEngine::synthesiseSmall(relation, subcir, cfg, equal_size_bound);
+      if (small.getNofObjs() > 1)
+        ++log.synthesis_small_hits;
+      if (complete)
+        *complete = true;
+      return small;
+    }
+    DelayEngine synth(relation, subcir, subcir.nodes.size(), cfg, log, cfg.compact_timing ? int(delay) : -1, equal_size_bound);
+    std::vector<bool> last_model = synth.reduceArea(delay, subcir.nodes.size(), complete);
+    if (last_model.empty()) {
+      return eSLIM3CirMan(0);
+    } else {
+      if (cfg.refine_depth)
+        synth.refineDepth(last_model, cfg, log);
+      int replacement_size = synth.getSizeFromActivationVars(last_model);
+      return synth.getReplacement(last_model, replacement_size);
+    }
+  }
+
+  // Reuse the area solver and its learned clauses. Each successful query
+  // preserves the gate budget and strictly reduces the actual crossing delay.
+  // Keep the last valid model if a stronger bound is UNSAT or times out.
+/**Function*************************************************************
+
+  Synopsis    [Improve crossing delay without increasing the current gate budget.]
+
+  SideEffects [Keeps the last verified model if refinement fails or times out.]
+
+***********************************************************************/
+  void DelayEngine::refineDepth(std::vector<bool>& model, const eSLIM3Config& cfg, eSLIM3Log& log) {
+    unsigned size = getSizeFromActivationVars(model);
+    unsigned delay = computeDelay(model);
+    while (delay && !cfg.expired()) {
+      if (fixed_delay >= 0)
+        constrainFixedOutputs(delay - 1);
+      ++log.depth_refinement_calls;
+      const int status = existsReplacement(size, fixed_delay >= 0 ? unsigned(fixed_delay) : delay - 1,
+                                           getDynamicTimeout(size));
+      if (status != 10)
+        break;
+      auto candidate = getModel();
+      const unsigned next_size = getSizeFromActivationVars(candidate);
+      const unsigned next_delay = computeDelay(candidate);
+      assert(next_size <= size && next_delay < delay);
+      model.swap(candidate);
+      size = next_size;
+      delay = next_delay;
+      ++log.depth_refinement_improvements;
+    }
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Searches smaller gate counts while preserving the requested delay bound.]
+
+***********************************************************************/
+  std::vector<bool> DelayEngine::reduceArea(unsigned int max_delay, unsigned int initial_area, bool* complete) {
+    if (complete)
+      *complete = false;
+    std::vector<bool> last_model;
+    for (int i = initial_area; i >= int(min_size); i--) {
+      double timeout = getDynamicTimeout(i);
+      int status = existsReplacement(i, max_delay, timeout);
+      if (status == 10) {
+        last_model = getModel();
+        i = getSizeFromActivationVars(last_model); // it is possible that more than one gate is reduced in an iteration
+        assert(unsigned(i) >= min_size);
+        if (complete && unsigned(i) == min_size)
+          *complete = true;
+      } else {
+        if (complete)
+          *complete = status == 20;
+        // Preserve the reduction opportunity after an equal-size timeout.
+        // In depth-first searches initial_area can already be below max_size.
+        if (retrySmallerAfterTimeout(status, unsigned(i)))
+          continue;
+        break;
+      }
+    }
+    return last_model;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Searches tighter delay bounds within the permitted gate count.]
+
+***********************************************************************/
+  std::vector<bool> DelayEngine::reduceDelay(unsigned int max_size, unsigned int initial_delay) {
+    std::vector<bool> last_model;
+    unsigned int current_delay = initial_delay;
+    for( auto it = delay_selectors.lower_bound(initial_delay); it != delay_selectors.end(); ++it ) {
+      int d = it->first;
+      if (current_delay < unsigned(d)) {
+        continue;
+      }
+      double timeout = getDynamicTimeout(max_size);
+      int status = existsReplacement(max_size, d, timeout);
+      if (status == 10) {
+        last_model = getModel();
+        current_delay = getDelayFromDelayVariables(last_model);
+      } else {
+        break;
+      }
+    }
+    return last_model;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Builds SAT assumptions for the requested size or delay bounds.]
+
+***********************************************************************/
+  std::vector<int> DelayEngine::getAssumptions(unsigned int delay) {
+    std::vector<int> assumptions;
+    if (fixed_delay >= 0) {
+      assert(delay == unsigned(fixed_delay));
+      return assumptions;
+    }
+    for (auto const& [d, ds] : delay_selectors) {
+      if (unsigned(d) > delay) {
+        assumptions.push_back(-ds);
+      }
+    }
+    return assumptions;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Builds SAT assumptions for the requested size or delay bounds.]
+
+***********************************************************************/
+  std::vector<int> DelayEngine::getAssumptions(unsigned int size, unsigned int delay) {
+    std::vector<int> assumptions = getAssumptions(delay);
+    std::vector<int> area_assumptions = getSizeAssumption(size);
+    assumptions.insert(assumptions.end(), area_assumptions.begin(), area_assumptions.end());
+    return assumptions;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Reads the encoded output delay from a satisfying model.]
+
+***********************************************************************/
+  unsigned int DelayEngine::getDelayFromDelayVariables(const std::vector<bool>& model) {
+    unsigned int delay = 0;
+    for (auto const& [d, dvars] : delays2delay_variables) {
+      for (int v : dvars) {
+        if (model[v]) {
+          return d;
+        }
+      }
+    }
+    return delay;
+  }
+
+  // getDelayFromDelayVariables only gives an upper bound for the delay of the encoded circuit.
+  // We also compute the exact delay value.
+  // Note: When considering circuit that have already been optimised to a certain degree it is unlikely
+  // that this function gives smaller values than getDelayFromDelayVariables.
+/**Function*************************************************************
+
+  Synopsis    [Computes replacement delay from the selected structure and input arrivals.]
+
+***********************************************************************/
+  unsigned int DelayEngine::computeDelay(const std::vector<bool>& model) {
+    const unsigned int ninputs = subcir.inputs.size();
+    const unsigned int ngates = getSizeFromActivationVars(model);
+    std::vector<unsigned int> current_delays(ninputs + ngates, 0);
+    for (std::size_t i = 0; i < subcir.inputs.size(); i++) {
+      current_delays[i] = subcir.arrival_times[i];
+    }
+    for (std::size_t i = 0; i < ngates; i++) {
+      for (std::size_t j = 0; j < selection_variables[i].size(); j++) {
+        // Gate values follow the primary inputs in the combined index space.
+        if (model[selection_variables[i][j]])
+          current_delays[ninputs + i] = std::max(current_delays[ninputs + i], current_delays[j] + 1);
+      }
+    }
+    unsigned int delay = 0;
+    for (std::size_t i = 0; i < subcir.outputs.size(); i++) {
+      for (std::size_t j = 0; j < ngates; j++) {
+        if (model[gate_output_variables[j][i]]) {
+          delay = std::max(delay, current_delays[ninputs + j] + subcir.remaining_times[i]);
+        }
+      }
+      for (std::size_t j = 0; j < ninputs; j++)
+        if (model[gate_output_variables[max_size + j][i]])
+          delay = std::max(delay, current_delays[j] + subcir.remaining_times[i]);
+      if (model[gate_output_variables.back()[i]])
+        delay = std::max(delay, subcir.remaining_times[i]);
+    }
+    return delay;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Checks for a replacement meeting the requested size and delay bounds.]
+
+***********************************************************************/
+  int DelayEngine::existsReplacement(unsigned int delay, double timeout) {
+    std::vector<int> assumptions = getAssumptions(delay);
+    return solveRelation(assumptions, timeout, max_size, true);
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Checks for a replacement meeting the requested size and delay bounds.]
+
+***********************************************************************/
+  int DelayEngine::existsReplacement(unsigned int size, unsigned int delay, double timeout) {
+    std::vector<int> assumptions = getAssumptions(size, delay);
+    return solveRelation(assumptions, timeout, size);
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Allocates SAT variables for the selected synthesis encoding.]
+
+***********************************************************************/
+  void DelayEngine::setupVariables() {
+    for (int i = 0; unsigned(i) < max_size; i++) {
+      std::vector<std::vector<int>> dvars;
+      for (int j = 0; std::size_t(j) < unique_arrival_times.size(); j++) {
+        dvars.push_back(getNewVariableVector(i + 1));
+      }
+      delay_variables.push_back(dvars);
+    }
+    for (int i = 0; std::size_t(i) < subcir.outputs.size(); i++) {
+      std::vector<std::vector<int>> dvars;
+      for (int j = 0; std::size_t(j) < unique_arrival_times.size(); j++) {
+        dvars.push_back(getNewVariableVector(max_size + 1));
+      }
+      output_delays.push_back(dvars);
+    }
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Encodes one depth bound using unary gate arrival levels.]
+
+  Description [Shifts levels by the earliest input arrival. Returns false
+               when the generic path-length encoding should be used.]
+
+  SideEffects [Adds timing constraints, unless every replacement fits.]
+
+***********************************************************************/
+
+  bool DelayEngine::setupFixedDelay(unsigned bound, eSLIM3Log& log, int equal_size_bound, bool refine_depth) {
+    constexpr unsigned max_fixed_delay_span = 128;
+    const unsigned earliest = *std::min_element(subcir.arrival_times.begin(), subcir.arrival_times.end());
+    const unsigned latest = *std::max_element(subcir.arrival_times.begin(), subcir.arrival_times.end());
+    const unsigned remaining = *std::max_element(subcir.remaining_times.begin(), subcir.remaining_times.end());
+    const unsigned strict_bound = equal_size_bound >= 0 ? std::min(bound, unsigned(equal_size_bound)) : bound;
+    if (!refine_depth && ABC_UINT64_T(latest) + max_size + remaining <= strict_bound) {
+      ++log.untimed_syntheses;
+      return true;
+    }
+    const ABC_UINT64_T span = ABC_UINT64_T(latest) - earliest + max_size;
+    // Keep the generic encoding for widely separated input arrival times.
+    if (span > max_fixed_delay_span)
+      return false;
+    const unsigned depth = unsigned(span);
+    fixed_earliest = earliest;
+    fixed_span = depth;
+    auto& levels = fixed_levels;
+    for (unsigned i = 0; i < max_size; ++i) {
+      levels.push_back(getNewVariableVector(depth));
+      solver.addClause({-gate_activation_variables[i], levels[i][0]});
+      for (unsigned d = 1; d < depth; ++d)
+        solver.addClause({-levels[i][d], levels[i][d-1]});
+      for (unsigned j = 0; j < subcir.inputs.size(); ++j) {
+        const unsigned d = subcir.arrival_times[j] - earliest;
+        solver.addClause({-gate_activation_variables[i], -selection_variables[i][j], levels[i][d]});
+      }
+      for (unsigned j = 0; j < i; ++j) {
+        const int selected = selection_variables[i][subcir.inputs.size() + j];
+        for (unsigned d = 0; d + 1 < depth; ++d)
+          solver.addClause({-gate_activation_variables[i], -selected, -levels[j][d], levels[i][d+1]});
+        solver.addClause({-gate_activation_variables[i], -selected, -levels[j].back()});
+      }
+    }
+    constrainFixedOutputs(bound);
+    // A full-size replacement must preserve the current depth. Dropping the
+    // last active gate permits the looser original bound for genuine area gains.
+    if (equal_size_bound >= 0 && unsigned(equal_size_bound) < bound)
+      constrainFixedOutputs(unsigned(equal_size_bound), max_size ? gate_activation_variables.back() : 0);
+    return true;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Tighten output constraints in the fixed-depth encoding.]
+
+  SideEffects [Adds clauses enforcing the requested crossing delay.]
+
+***********************************************************************/
+  void DelayEngine::constrainFixedOutputs(unsigned bound, int guard) {
+    auto clause = [&](std::vector<int> literals) {
+      if (guard)
+        literals.push_back(-guard);
+      solver.addClause(literals);
+    };
+    for (unsigned o = 0; o < subcir.outputs.size(); ++o) {
+      const long long required = static_cast<long long>(bound) - subcir.remaining_times[o];
+      const long long shifted = required - fixed_earliest;
+      for (unsigned i = 0; i < max_size; ++i) {
+        if (shifted < 1)
+          clause({-gate_output_variables[i][o]});
+        else if (shifted < fixed_span)
+          clause({-gate_output_variables[i][o], -fixed_levels[i][unsigned(shifted)]});
+      }
+      for (unsigned j = 0; j < subcir.inputs.size(); ++j)
+        if (static_cast<long long>(subcir.arrival_times[j]) > required)
+          clause({-gate_output_variables[max_size + j][o]});
+      if (required < 0)
+        clause({-gate_output_variables.back()[o]});
+    }
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the selector variable for the requested output delay.]
+
+***********************************************************************/
+  int DelayEngine::getDelaySelector(int delay) {
+    if (delay_selectors.find(delay) == delay_selectors.end()) {
+      delay_selectors[delay] = getNewVariable();
+    }
+    return delay_selectors[delay];
+  }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Adds consistency clauses for encoded gate delays.]
+
+***********************************************************************/
+  void DelayEngine::constrainDelayVariables() {
+    for (int i = 0; unsigned(i) < max_size; i++) {
+      int activation_variable = gate_activation_variables[i];
+      for (int j = 0; std::size_t(j) < subcir.inputs.size(); j++) {
+        solver.addClause({-activation_variable, -selection_variables[i][j], delay_variables[i][inputid2uniqueid[j]][0]});
+      }
+      for (int j = 0; std::size_t(j) < unique_arrival_times.size(); j++) {
+        for (int k = 0; k < i; k++) {
+          int node_id = subcir.inputs.size() + k;
+          for (int l = 0; l <= k; l++) {
+            solver.addClause({-activation_variable, -selection_variables[i][node_id], -delay_variables[k][j][l], delay_variables[i][j][l+1]});
+          }
+          solver.addClause({-activation_variable, -delay_variables[i][j][k+1], delay_variables[i][j][k]});
+        }
+      }
+    }
+    for (int i = 0; std::size_t(i) < subcir.outputs.size(); i++) {
+      for (int j = 0; std::size_t(j) < subcir.inputs.size(); j++) {
+        solver.addClause({-gate_output_variables[max_size + j][i], output_delays[i][inputid2uniqueid[j]][0]});
+      }
+      for (int j = 0; std::size_t(j) < unique_arrival_times.size(); j++) {
+        for (int k = 0; unsigned(k) < max_size; k++) {
+          solver.addClause({-output_delays[i][j][k+1], output_delays[i][j][k]});
+          for (int l = 0; l <= k; l++) {
+            solver.addClause({-gate_output_variables[k][i], -delay_variables[k][j][l], output_delays[i][j][l+1]});
+          }
+        }
+      }
+    }
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Constrains gate and output delays in the synthesis encoding.]
+
+***********************************************************************/
+  void DelayEngine::setupDelayConstraints() {
+    // Constants have arrival zero, but their paths from this boundary output
+    // to a circuit output still contribute the remaining time.
+    for (unsigned o = 0; o < subcir.outputs.size(); ++o)
+      solver.addClause({getDelaySelector(subcir.remaining_times[o]), -gate_output_variables.back()[o]});
+    for (int i = 0; std::size_t(i) < unique_arrival_times.size(); i++) {
+      for (int o = 0; std::size_t(o) < subcir.outputs.size(); o++) {
+        for (int d = 0; unsigned(d) <= max_size; d++) {
+          int delay = unique_arrival_times[i] + subcir.remaining_times[o] + d;
+          int ds = getDelaySelector(delay);
+          solver.addClause({ds, -output_delays[o][i][d]});
+
+          delays2delay_variables[delay].push_back(output_delays[o][i][d]);
+        }
+      }
+    }
+  }
+
+}
+ABC_NAMESPACE_IMPL_END

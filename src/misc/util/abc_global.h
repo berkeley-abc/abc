@@ -603,6 +603,7 @@ static inline void * Abc_FileReadContents( char * pFileName, int * pnFileSize )
     RetValue = fread( pBuffer, 1, nFileSize, pFile );
     memset( pBuffer + nFileSize, 0, 32 );
     assert( RetValue == nFileSize );
+    (void)RetValue;
     fclose( pFile );
     return (void *)pBuffer;
 }

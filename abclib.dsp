@@ -4824,6 +4824,127 @@ SOURCE=.\src\opt\eslim2\windowMan.h
 SOURCE=.\src\opt\eslim2\windowManImpl.h
 # End Source File
 # End Group
+
+# Begin Group "eslim3"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\eslim3Area.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\areaEngine.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\cadicalSolver.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\eslim3Checkpoint.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\checkpoint.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\eslim3Delay.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\delayEngine.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\eSLIM3.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\eSLIM3.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\eSLIM3Man.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\eSLIM3ManImpl.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\eslim3CirMan.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\eslim3CirMan.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\eslim3Relation.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\relationGeneration.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\eslim3Synth.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\relationSynthesiser.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\synthesisSolver.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\selectionStrategies.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\selectionStrategiesImpl.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\eslim3Subcircuit.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\subcircuit.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\synthesisEngines.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\tabooList.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\utils.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\windowMan.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\windowManImpl.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\eslim3Rewrite.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim3\rewrite.h
+# End Source File
+# End Group
 # End Group
 # Begin Group "map"
 
