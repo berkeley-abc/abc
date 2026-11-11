@@ -85,6 +85,7 @@ struct Gie_Man_t_
     Vec_Int_t *vCis, *vCos, *vStack, *vOrder, *vPromote;
 };
 
+extern void Gie_MemoryHint( void * pData, size_t nBytes );
 extern int Gie_ObjectLimit( void );
 extern Vec_Int_t * Gie_BoxCiLevels( Gia_Man_t * pGia );
 extern void Gie_ManStart( Gie_Man_t * p, Gia_Man_t * pGia, int fKeepLevel, int HashMode, Vec_Int_t * vCiLevels );
@@ -224,6 +225,27 @@ static inline void Gie_Ready( Gie_Man_t * p, int Id )
 
 /**Function*************************************************************
 
+  Synopsis    [Finishes a ready node without notifying its fanouts.]
+
+  Description [Used by policies that index fanouts on their later visit.
+  Both fanins must already be finished, and the node must be hashed.]
+
+  SideEffects []
+
+  SeeAlso     [Gie_Finish]
+
+***********************************************************************/
+static inline void Gie_FinishNode( Gie_Man_t * p, int Id )
+{
+    if ( p->pObjs[Id].Handled ) return;
+    assert( !p->fHashAll && p->pObjs[Id].Type == GIE_AND && p->pObjs[Id].Hashed );
+    assert( p->pObjs[p->pObjs[Id].Fan[0] >> 1].Handled && p->pObjs[p->pObjs[Id].Fan[1] >> 1].Handled );
+    p->pObjs[Id].Handled = 1;
+    Vec_IntPush( p->vOrder, Id );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Finishes a node and any unvisited fanins in topological order.]
 
   Description [Promotion is nonrecursive. Each promoted node receives its
@@ -241,10 +263,7 @@ static inline void Gie_Finish( Gie_Man_t * p, int Id )
     if ( p->pObjs[Id].Handled ) return;
     if ( !p->fHashAll )
     {
-        assert( p->pObjs[Id].Type == GIE_AND && p->pObjs[Id].Hashed );
-        assert( p->pObjs[p->pObjs[Id].Fan[0] >> 1].Handled && p->pObjs[p->pObjs[Id].Fan[1] >> 1].Handled );
-        p->pObjs[Id].Handled = 1;
-        Vec_IntPush( p->vOrder, Id );
+        Gie_FinishNode( p, Id );
         for ( Edge = p->pFans[Id].Head; Edge; Edge = p->pFans[Edge >> 1].Next[Edge & 1] )
             Gie_Ready( p, Edge >> 1 );
         return;

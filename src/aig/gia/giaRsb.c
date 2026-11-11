@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "misc/util/utilTruth.h"
 #include "aig/gia/giaEdit.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -89,9 +90,11 @@ struct Rsub_Cut_t_
 struct Rsub_Man_t_
 {
     Gie_Man_t M;
-    int nCutMax, nSteps, nMinSaved, fVerbose;
+    int nCutMax, nSteps, nMinSaved, fFast, fVerbose;
     Vec_Int_t *vNodes, *vDivs, *vTodo;
-    word * pSims;
+    word * pSims, * pUnateWork;
+    word Samples[RSUB_DIV_MAX];
+    int nSampled;
     Rsub_Cache_t ** pCache;
     int nCache, nCacheBins;
     unsigned * pNeighborhood;
@@ -101,7 +104,7 @@ struct Rsub_Man_t_
     int nWords;
     abctime timeCuts, timeDivs, timeSim, timeSearch, timeUpdate;
     double nCuts, nDivs;
-    int nLimited, nRewritten, nMerged, nConst, nEqual, nPair, nSkipped;
+    int nLimited, nRewritten, nMerged, nConst, nEqual, nPair, nChains, nSkipped;
 };
 
 /**Function*************************************************************
@@ -150,7 +153,9 @@ static inline int Rsub_Mffc( Rsub_Man_t * p, int Id, Rsub_Cut_t * pCut, int fMar
   Synopsis    [Constructs one reconvergence-driven cut in reference order.]
 
   Description [Prefer expansions introducing fewer new leaves, breaking
-  ties by decreasing level. Marks include the interior of the cut.]
+  ties by decreasing level. At equal growth the optional faster policy
+  prefers a single-fanout leaf before comparing levels. Marks include the
+  cut interior.]
 
   SideEffects []
 
@@ -159,7 +164,7 @@ static inline int Rsub_Mffc( Rsub_Man_t * p, int Id, Rsub_Cut_t * pCut, int fMar
 ***********************************************************************/
 static void Rsub_Cut( Rsub_Man_t * p, int Root, Rsub_Cut_t * pCut )
 {
-    int i, Best, Cost, BestCost, Id, a, b;
+    int i, Best, Cost, BestCost, Id, a, b, Shared, BestShared;
     Gie_TruthNext( &p->M );
     pCut->nLeaves = 2;
     pCut->Leaves[0] = p->M.pObjs[Root].Fan[0] >> 1;
@@ -171,6 +176,7 @@ static void Rsub_Cut( Rsub_Man_t * p, int Root, Rsub_Cut_t * pCut )
     {
         Best = -1;
         BestCost = 3;
+        BestShared = 2;
         for ( i = 0; i < pCut->nLeaves; i++ )
         {
             Id = pCut->Leaves[i];
@@ -182,9 +188,11 @@ static void Rsub_Cut( Rsub_Man_t * p, int Root, Rsub_Cut_t * pCut )
             // Low caps lost quality in the wide-window experiments. Keep a
             // separate, generous limit from fanout-based divisor expansion.
             if ( Cost == 2 && p->M.pObjs[Id].Refs > RSUB_CUT_FANOUT_MAX ) continue;
-            if ( Cost < BestCost ||
-                 ( Cost == BestCost && p->M.pObjs[Id].Level > p->M.pObjs[pCut->Leaves[Best]].Level ) )
-                Best = i, BestCost = Cost;
+            Shared = p->fFast && p->M.pObjs[Id].Refs > 1;
+            if ( Cost < BestCost || ( Cost == BestCost && Shared < BestShared ) ||
+                 ( Cost == BestCost && Shared == BestShared &&
+                   p->M.pObjs[Id].Level > p->M.pObjs[pCut->Leaves[Best]].Level ) )
+                Best = i, BestCost = Cost, BestShared = Shared;
             if ( BestCost == 0 ) break;
         }
         if ( Best < 0 || pCut->nLeaves - 1 + BestCost > p->nCutMax ) break;
@@ -261,6 +269,7 @@ static int Rsub_Collect( Rsub_Man_t * p, int Root, Rsub_Cut_t * pCut )
     int Limit = RSUB_DIV_MAX - p->nCutMax + pCut->nLeaves;
     Vec_IntClear( p->vNodes );
     Vec_IntClear( p->vDivs );
+    p->nSampled = 0;
     Gie_TruthNext( &p->M );
     for ( i = 0; i < pCut->nLeaves; i++ )
     {
@@ -292,7 +301,7 @@ static int Rsub_Collect( Rsub_Man_t * p, int Root, Rsub_Cut_t * pCut )
 ***********************************************************************/
 static void Rsub_Expand( Rsub_Man_t * p, int Root, Rsub_Cut_t * pCut )
 {
-    int i, Id, Edge, a, b;
+    int i, Id, Edge, Peer, a, b;
     // Use the same fixed internal-node budget as cone collection.
     int Limit = RSUB_DIV_MAX - p->nCutMax + pCut->nLeaves;
     int Required = p->M.fKeepLevel ? p->M.pFans[Root].Required : ABC_INFINITY;
@@ -305,14 +314,16 @@ static void Rsub_Expand( Rsub_Man_t * p, int Root, Rsub_Cut_t * pCut )
             int Fan = Edge >> 1;
             Gie_Obj_t * pObj = p->M.pObjs + Fan;
             if ( pObj->Type != GIE_AND || pObj->Busy || pObj->TruthMark == p->M.TruthMark ) continue;
+            // This edge already proves that one fanin belongs to the
+            // window. Test only the other fanin before further work.
+            assert( ( pObj->Fan[Edge & 1] >> 1 ) == Id );
+            Peer = pObj->Fan[(Edge & 1) ^ 1] >> 1;
+            if ( Peer == Root || p->M.pObjs[Peer].TruthMark != p->M.TruthMark ) continue;
             // An unvisited simple node may have equal or constant fanins.
             // Leave its simplification to its own visit instead of promoting it.
             if ( Gie_Simplify( pObj->Fan[0], pObj->Fan[1] ) >= 0 ) continue;
             a = pObj->Fan[0] >> 1;
             b = pObj->Fan[1] >> 1;
-            if ( a == Root || b == Root || p->M.pObjs[a].TruthMark != p->M.TruthMark ||
-                 p->M.pObjs[b].TruthMark != p->M.TruthMark )
-                continue;
             assert( p->M.pObjs[a].Mark != p->M.Mark && p->M.pObjs[b].Mark != p->M.Mark );
             pObj->Level = 1 + Abc_MaxInt( p->M.pObjs[a].Level, p->M.pObjs[b].Level );
             if ( pObj->Level > Required ) continue;
@@ -547,12 +558,15 @@ static int Rsub_LocalPossible( Rsub_Man_t * p, int Root, Rsub_Cut_t * Cut, int O
         ABC_CONST( 0x68cfb3914ae572d0 ), ABC_CONST( 0xa74591ef028c6db2 ), ABC_CONST( 0x5e1cae6489d30fb6 ),
         ABC_CONST( 0x0a3fd964c712e58a ), ABC_CONST( 0xe438ba570c2d196e ), ABC_CONST( 0x425c9af68e713bd0 ),
         ABC_CONST( 0x918ef5c270bda436 ) };
-    word Data[RSUB_DIV_MAX], Pos[RSUB_DIV_MAX], Neg[RSUB_DIV_MAX], R, D;
+    word * Data = p->Samples, Pos[RSUB_DIV_MAX], Neg[RSUB_DIV_MAX], R, D;
     int i, j, Id, a, b, nPos = 0, nNeg = 0, Slot, Req = p->M.fKeepLevel ? p->M.pFans[Root].Required : ABC_INFINITY;
     if ( Cut->Saved < p->nMinSaved ) return 0;
-    for ( i = 0; i < Cut->nLeaves; i++ )
-        Data[i] = Vars[i];
-    for ( i = Cut->nLeaves; i < Vec_IntSize( p->vNodes ); i++ )
+    if ( !p->nSampled )
+        for ( i = 0; i < Cut->nLeaves; i++ )
+            Data[i] = Vars[i];
+    // Window expansion only appends nodes; its existing functions and
+    // cut coordinates stay unchanged until this root has been processed.
+    for ( i = Abc_MaxInt( Cut->nLeaves, p->nSampled ); i < Vec_IntSize( p->vNodes ); i++ )
     {
         Id = Vec_IntEntry( p->vNodes, i );
         a = p->M.pObjs[Id].Fan[0];
@@ -560,6 +574,7 @@ static int Rsub_LocalPossible( Rsub_Man_t * p, int Root, Rsub_Cut_t * Cut, int O
         Data[i] = ( Data[p->M.pObjs[a >> 1].Truth] ^ ( (word) 0 - ( a & 1 ) ) ) &
                   ( Data[p->M.pObjs[b >> 1].Truth] ^ ( (word) 0 - ( b & 1 ) ) );
     }
+    p->nSampled = Vec_IntSize( p->vNodes );
     R = Data[p->M.pObjs[Root].Truth];
     R ^= (word) 0 - ( R & 1 );
     if ( !R ) return 1;
@@ -587,7 +602,7 @@ static int Rsub_LocalPossible( Rsub_Man_t * p, int Root, Rsub_Cut_t * Cut, int O
 
 /**Function*************************************************************
 
-  Synopsis    [Reuses searches for windows with identical local programs.]
+  Synopsis    [Evaluates small cuts directly and caches programs above eight leaves.]
 
   Description [The key records every edge, divisor, and level eligibility.
   Actual object identifiers are absent. Hashes only select a bucket; the
@@ -607,12 +622,23 @@ static int Rsub_SearchCached( Rsub_Man_t * p, int Root, Rsub_Cut_t * pCut, int *
     Rsub_Cache_t * pEntry;
     abctime Clock;
     // A single-word truth is cheaper to evaluate than to encode and hash.
-    // Wide windows retain the exact program cache; small designs allocate
-    // its buckets only if they actually encounter one of these windows.
+    // Cuts with more than eight leaves retain the exact program cache;
+    // allocate its buckets only when one of these cuts is encountered.
     if ( pCut->nLeaves <= 6 )
     {
         Clock = p->fVerbose ? Abc_Clock() : 0;
         p->nWords = 1;
+        *pnSimulated = Vec_IntSize( p->vNodes );
+        if ( p->fVerbose ) p->timeSim += Abc_Clock() - Clock;
+        return Rsub_Search( p, Root, pCut, pA, pB, fOnlyZero );
+    }
+    // For two- and four-word tables, direct evaluation is cheaper than
+    // constructing, hashing, and allocating an exact-program cache key.
+    if ( pCut->nLeaves <= 8 )
+    {
+        if ( !Rsub_LocalPossible( p, Root, pCut, fOnlyZero ) ) return -1;
+        Clock = p->fVerbose ? Abc_Clock() : 0;
+        Rsub_Simulate( p, pCut, *pnSimulated );
         *pnSimulated = Vec_IntSize( p->vNodes );
         if ( p->fVerbose ) p->timeSim += Abc_Clock() - Clock;
         return Rsub_Search( p, Root, pCut, pA, pB, fOnlyZero );
@@ -1043,6 +1069,7 @@ static void Rsub_GlobalFilter( Rsub_Man_t * p )
     unsigned Rand = 0x31415927, Key;
     word Sig;
     int i, k, a, b;
+    Gie_MemoryHint( pSims, sizeof( word ) * (size_t) p->M.nObjs );
     for ( i = 1; i < p->M.nObjs; i++ )
     {
         Gie_Obj_t * pObj = p->M.pObjs + i;
@@ -1093,6 +1120,222 @@ static void Rsub_GlobalFilter( Rsub_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Finishes a node, optionally deferring fanout hash updates.]
+
+  Description [The default policy immediately indexes ready fanouts. In
+  fast mode, each fanout is indexed by Gie_Ready when it is visited or
+  rewired. This avoids walking every fanout list after an unchanged node.
+  Lookup can miss an unvisited sharing opportunity, so this is a search
+  policy change. Every accepted replacement still has an exact proof.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Rsub_Finish( Rsub_Man_t * p, int Id )
+{
+    if ( p->fFast )
+        Gie_FinishNode( &p->M, Id );
+    else
+        Gie_Finish( &p->M, Id );
+}
+
+enum { RSUB_UNATE_MAX = 4 };
+typedef struct Rsub_Unate_t_
+{
+    Rsub_Man_t * p;
+    int Base, nDivs, nWords, nGates;
+    int Lits[RSUB_DIV_MAX], Slots[RSUB_DIV_MAX], Levels[RSUB_DIV_MAX];
+    int Gates[2 * RSUB_UNATE_MAX];
+} Rsub_Unate_t;
+
+/**Function*************************************************************
+
+  Synopsis    [Factors a cared function using a short chain of unate divisors.]
+
+  Description [For an OR divisor d, d must avoid the off-set and the remaining
+  on-set is On & ~d. For an AND divisor d, d must contain the on-set and the
+  remaining off-set is Off & d. Try the divisor covering the most remaining
+  rows, breaking ties in divisor order. This bounded heuristic does not claim
+  that a failed search rules out other implementations.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Rsub_Unate_rec( Rsub_Unate_t * q, int Depth, int Budget, int Required )
+{
+    Rsub_Man_t * p = q->p;
+    word * On = p->pUnateWork + 2 * Depth * q->nWords, * Off = On + q->nWords;
+    word * NextOn, * NextOff, * Data, D, Mask, AnyOn = 0, AnyOff = 0;
+    int i, c, w, Or, Score, Best = -1, BestOr = 0, BestScore = 0, Result, Lit;
+    for ( w = 0; w < q->nWords; w++ ) AnyOn |= On[w], AnyOff |= Off[w];
+    if ( !AnyOn ) return 0;
+    if ( !AnyOff ) return 1;
+    for ( i = 0; i < q->nDivs; i++ )
+        if ( q->Levels[i] <= Required )
+            for ( c = 0; c < 2; c++ )
+            {
+                Data = p->pSims + q->Slots[i] * q->nWords;
+                Mask = (word) 0 - c;
+                for ( w = 0; w < q->nWords; w++ )
+                    if ( ( On[w] & ~( Data[w] ^ Mask ) ) || ( Off[w] & ( Data[w] ^ Mask ) ) ) break;
+                if ( w == q->nWords ) return q->Lits[i] ^ c;
+            }
+    if ( !Budget || Required <= 0 ) return -1;
+    for ( i = 0; i < q->nDivs; i++ )
+    {
+        if ( q->Levels[i] >= Required ) continue;
+        Data = p->pSims + q->Slots[i] * q->nWords;
+        for ( c = 0; c < 2; c++ )
+            for ( Or = 0; Or < 2; Or++ )
+            {
+                Score = 0;
+                Mask = (word) 0 - c;
+                for ( w = 0; w < q->nWords; w++ )
+                {
+                    D = Data[w] ^ Mask;
+                    if ( Or ? ( Off[w] & D ) != 0 : ( On[w] & ~D ) != 0 ) break;
+                    Score += Abc_TtCountOnes( Or ? On[w] & D : Off[w] & ~D );
+                }
+                if ( w != q->nWords || Score <= BestScore ) continue;
+                Best = 2 * i + c;
+                BestOr = Or;
+                BestScore = Score;
+            }
+    }
+    if ( Best < 0 ) return -1;
+    Data = p->pSims + q->Slots[Best >> 1] * q->nWords;
+    Mask = (word) 0 - ( Best & 1 );
+    NextOn = Off + q->nWords;
+    NextOff = NextOn + q->nWords;
+    for ( w = 0; w < q->nWords; w++ )
+    {
+        D = Data[w] ^ Mask;
+        NextOn[w] = BestOr ? On[w] & ~D : On[w];
+        NextOff[w] = BestOr ? Off[w] : Off[w] & D;
+    }
+    Result = Rsub_Unate_rec( q, Depth + 1, Budget - 1, Required - 1 );
+    if ( Result < 0 ) return -1;
+    assert( q->nGates < RSUB_UNATE_MAX );
+    Lit = 2 * ( q->Base + q->nGates );
+    q->Gates[2 * q->nGates] = q->Lits[Best >> 1] ^ ( Best & 1 ) ^ BestOr;
+    q->Gates[2 * q->nGates + 1] = Result ^ BestOr;
+    q->nGates++;
+    return Lit ^ BestOr;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Evaluates a proposed literal in the current cut coordinates.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static word Rsub_UnateValue( Rsub_Unate_t * q, int Lit, int w, word * Values )
+{
+    int Id = Lit >> 1;
+    word Value = Id == 0 ? 0 : Id >= q->Base ? Values[Id - q->Base]
+                 : q->p->pSims[q->p->M.pObjs[Id].Truth * q->nWords + w];
+    return Value ^ ( (word) 0 - ( Lit & 1 ) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Verifies a complete chain before changing the graph.]
+
+  Description [A constant cut leaf is constrained to zero. All other cut
+  assignments are checked, including assignments unreachable in the AIG.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Rsub_UnateCheck( Rsub_Unate_t * q, Rsub_Cut_t * Cut, int Root, int Result )
+{
+    word Values[RSUB_UNATE_MAX], Care, Value;
+    int i, w, Zero = -1;
+    for ( i = 0; i < Cut->nLeaves; i++ )
+        if ( !Cut->Leaves[i] ) Zero = i;
+    for ( w = 0; w < q->nWords; w++ )
+    {
+        Care = Zero < 0 ? ~(word) 0 : ~q->p->pSims[Zero * q->nWords + w];
+        for ( i = 0; i < q->nGates; i++ )
+            Values[i] = Rsub_UnateValue( q, q->Gates[2 * i], w, Values ) &
+                        Rsub_UnateValue( q, q->Gates[2 * i + 1], w, Values );
+        Value = Rsub_UnateValue( q, Result, w, Values );
+        if ( ( Value ^ q->p->pSims[q->p->M.pObjs[Root].Truth * q->nWords + w] ) & Care ) return 0;
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Builds a verified chain using only finished external divisors.]
+
+  Description [The MFFC excludes all candidate divisors, so the gate budget
+  guarantees the requested area saving. Each recursive level reserves one
+  level of delay. No graph edit occurs until the full truth-table check.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Rsub_UnateTry( Rsub_Man_t * p, int Root, Rsub_Cut_t * Cut, int Start )
+{
+    Rsub_Unate_t q;
+    int i, Slot, Id, Required, Budget, Result, a, b, Values[RSUB_UNATE_MAX], First = p->M.nObjs;
+    if ( p->nSteps < 2 || Cut->Saved - p->nMinSaved < 2 || p->M.nObjLimit - First < p->nSteps ) return -1;
+    if ( Cut->nLeaves > 6 ) Rsub_Simulate( p, Cut, Start );
+    memset( &q, 0, sizeof( q ) );
+    q.p = p;
+    q.Base = First;
+    q.nWords = Cut->nLeaves <= 6 ? 1 : 1 << ( Cut->nLeaves - 6 );
+    Vec_IntForEachEntry ( p->vDivs, Slot, i )
+    {
+        Id = Vec_IntEntry( p->vNodes, Slot );
+        if ( !p->M.pObjs[Id].Handled ) continue;
+        q.Lits[q.nDivs] = 2 * Id;
+        q.Slots[q.nDivs] = Slot;
+        q.Levels[q.nDivs++] = p->M.pObjs[Id].Level;
+    }
+    for ( i = 0; i < q.nWords; i++ )
+    {
+        p->pUnateWork[i] = p->pSims[p->M.pObjs[Root].Truth * q.nWords + i];
+        p->pUnateWork[q.nWords + i] = ~p->pUnateWork[i];
+    }
+    Budget = Abc_MinInt( p->nSteps, Cut->Saved - p->nMinSaved );
+    Required = p->M.fKeepLevel ? p->M.pFans[Root].Required : ABC_INFINITY;
+    Result = Rsub_Unate_rec( &q, 0, Budget, Required );
+    if ( Result < 0 || !Rsub_UnateCheck( &q, Cut, Root, Result ) ) return -1;
+    // Proposed gate IDs start beyond every existing node. Translate them
+    // through the actual structural-hashing results while constructing.
+    for ( i = 0; i < q.nGates; i++ )
+    {
+        a = q.Gates[2 * i];
+        b = q.Gates[2 * i + 1];
+        if ( ( a >> 1 ) >= First ) a = Values[( a >> 1 ) - First] ^ ( a & 1 );
+        if ( ( b >> 1 ) >= First ) b = Values[( b >> 1 ) - First] ^ ( b & 1 );
+        Values[i] = Gie_And( &p->M, a, b );
+        if ( Values[i] < 0 )
+        {
+            Gie_DeleteSince( &p->M, First );
+            return -1;
+        }
+    }
+    return ( Result >> 1 ) < First ? Result : Values[( Result >> 1 ) - First] ^ ( Result & 1 );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Initializes the resubstitution pass and its shared mutable graph.]
 
   Description []
@@ -1118,6 +1361,7 @@ static Rsub_Man_t * Rsub_ManStart( Gia_Man_t * pGia, int fKeepLevel, Vec_Int_t *
   Synopsis    [Performs one resubstitution pass and returns a new GIA.]
 
   Description [The default search allows one new AND per replacement.
+  Larger node budgets also enable bounded unate-chain factorization.
   A reused unvisited divisor is optimized before the pending root retries.
   Busy roots cannot be divisors, so dependencies never form a cycle.
   Only finished nodes feed accepted replacements; their levels are exact.]
@@ -1127,7 +1371,7 @@ static Rsub_Man_t * Rsub_ManStart( Gia_Man_t * pGia, int fKeepLevel, Vec_Int_t *
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Rsub_ManPerform( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMinSaved, int fKeepLevel, int fVerbose )
+Gia_Man_t * Rsub_ManPerformEx( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMinSaved, int fKeepLevel, int fFast, int fVerbose )
 {
     Rsub_Man_t * p;
     Gia_Man_t * pNew;
@@ -1138,7 +1382,7 @@ Gia_Man_t * Rsub_ManPerform( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMin
     abctime Start = Abc_Clock(), Setup, Export, Clock = 0;
     if ( pGia == NULL || Gia_ManHasChoices( pGia ) || pGia->pMuxes || Gia_ManXorNum( pGia ) || Gia_ManBufNum( pGia ) )
         return NULL;
-    if ( nCutMax < 4 || nCutMax > RSUB_LEAF_MAX || nSteps < 0 || nSteps > 1 || nMinSaved < 1 ) return NULL;
+    if ( nCutMax < 4 || nCutMax > RSUB_LEAF_MAX || nSteps < 0 || nSteps > RSUB_UNATE_MAX || nMinSaved < 1 ) return NULL;
     if ( Gia_ManIsSeqWithBoxes( pGia ) && !Gia_ManIsNormalized( pGia ) ) return NULL;
     if ( Gia_ManObjNum( pGia ) > Gie_ObjectLimit() / 2 ) return NULL;
     vCiLevels = Gia_ManBoxNum( pGia ) ? Gie_BoxCiLevels( pGia ) : NULL;
@@ -1148,15 +1392,19 @@ Gia_Man_t * Rsub_ManPerform( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMin
     p->nSteps = nSteps;
     p->nMinSaved = nMinSaved;
     p->fVerbose = fVerbose;
+    p->fFast = fFast;
     p->nCacheBins = 16;
     while ( p->nCacheBins < Gia_ManAndNum( pGia ) && p->nCacheBins < RSUB_CACHE_BINS )
         p->nCacheBins *= 2;
     p->pSims = ABC_ALLOC( word, RSUB_DIV_MAX * ( nCutMax <= 6 ? 1 : 1 << ( nCutMax - 6 ) ) );
-    p->pNeighborhood = Gie_Neighborhoods( &p->M, p->M.nOrig, RSUB_NEIGHBOR_ROUNDS );
+    if ( nSteps > 1 )
+        p->pUnateWork = ABC_ALLOC( word, 2 * ( RSUB_UNATE_MAX + 1 ) * ( nCutMax <= 6 ? 1 : 1 << ( nCutMax - 6 ) ) );
+    p->pNeighborhood = Gie_Neighborhoods( &p->M, p->M.nOrig, fFast ? 2 : RSUB_NEIGHBOR_ROUNDS );
     p->nNeighborBins = 16;
     while ( p->nNeighborBins < p->M.nOrig && p->nNeighborBins < RSUB_NEIGHBOR_BINS )
         p->nNeighborBins *= 2;
     p->pNeighbors = ABC_CALLOC( Rsub_Neighbor_t, p->nNeighborBins );
+    Gie_MemoryHint( p->pNeighbors, sizeof( Rsub_Neighbor_t ) * (size_t) p->nNeighborBins );
     Setup = Abc_Clock() - Start;
     for ( Next = 1; Next < p->M.nOrig; Next++ )
     {
@@ -1192,7 +1440,7 @@ Gia_Man_t * Rsub_ManPerform( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMin
                     Vec_IntPush( p->vTodo, Lit >> 1 );
                     continue;
                 }
-                Gie_Finish( &p->M, Lit >> 1 );
+                Rsub_Finish( p, Lit >> 1 );
                 Gie_Replace( &p->M, Id, Lit );
                 p->nMerged++;
                 continue;
@@ -1220,7 +1468,7 @@ Gia_Man_t * Rsub_ManPerform( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMin
             // A bounded effort heuristic for recurring neighborhoods. A hash
             // match is not proof that no improvement exists. Successful
             // recipes still require an exact match and a fresh gain check.
-            if ( !Neighbor->Good && Neighbor->Count >= RSUB_NEIGHBOR_TRIES )
+            if ( ( fFast || !Neighbor->Good ) && Neighbor->Count >= ( fFast ? 2 : RSUB_NEIGHBOR_TRIES ) )
             {
                 p->nNeighborSkips++;
                 goto finish;
@@ -1266,9 +1514,27 @@ Gia_Man_t * Rsub_ManPerform( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMin
                 p->timeSearch += Abc_Clock() - Clock;
                 Clock = Abc_Clock();
             }
-            if ( Phase < 0 ) goto finish;
+            if ( Phase < 0 )
+            {
+                if ( nSteps < 2 ) goto finish;
+                OldAnds = p->M.nAnds;
+                if ( fVerbose ) Clock = Abc_Clock();
+                Lit = Rsub_UnateTry( p, Id, &Cut, nStart );
+                if ( fVerbose ) p->timeSearch += Abc_Clock() - Clock;
+                if ( Lit < 0 ) goto finish;
+                if ( fVerbose ) Clock = Abc_Clock();
+                Gie_Replace( &p->M, Id, Lit );
+                assert( p->M.nAnds < OldAnds );
+                Neighbor->Good = 1;
+                if ( fFast ) Neighbor->Count = 0;
+                p->nRewritten++;
+                p->nChains++;
+                if ( fVerbose ) p->timeUpdate += Abc_Clock() - Clock;
+                goto finish;
+            }
         build:
             Neighbor->Good = 1;
+            if ( fFast ) Neighbor->Count = 0;
             Rsub_EarlySave( p, Neighbor, &Cut, Id, a, b, Phase );
         early_build:
             if ( !p->M.pObjs[a >> 1].Handled )
@@ -1289,7 +1555,7 @@ Gia_Man_t * Rsub_ManPerform( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMin
             p->nRewritten++;
             if ( fVerbose ) p->timeUpdate += Abc_Clock() - Clock;
         finish:
-            Gie_Finish( &p->M, Id );
+            Rsub_Finish( p, Id );
             p->M.pObjs[Id].Busy = 0;
             Vec_IntPop( p->vTodo );
         }
@@ -1299,15 +1565,16 @@ Gia_Man_t * Rsub_ManPerform( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMin
     Export = Abc_Clock() - Export;
     if ( fVerbose )
     {
-        Abc_Print( 1, "&resub2: ANDs %d -> %d. Rewrites %d. Merges %d. Candidates: constant %d, wire %d, pair %d.\n",
+        Abc_Print( 1, "&resub: ANDs %d -> %d. Rewrites %d. Merges %d. Candidates: constant %d, wire %d, pair %d.\n",
                    Gia_ManAndNum( pGia ), Gia_ManAndNum( pNew ), p->nRewritten, p->nMerged, p->nConst, p->nEqual,
                    p->nPair );
-        Abc_Print( 1, "&resub2: early hits %d skips %d\n", p->nEarlyHits, p->nNeighborSkips );
-        Abc_Print( 1, "&resub2: cache hits %.0f  misses %.0f.\n", p->nCacheHits, p->nCacheMisses );
-        Abc_Print( 1, "&resub2: cuts %.0f  divisors %.0f  limited %d  filtered %d.\n", p->nCuts, p->nDivs, p->nLimited,
+        Abc_Print( 1, "&resub: early hits %d skips %d\n", p->nEarlyHits, p->nNeighborSkips );
+        if ( nSteps > 1 ) Abc_Print( 1, "&resub: unate-chain replacements %d\n", p->nChains );
+        Abc_Print( 1, "&resub: cache hits %.0f  misses %.0f.\n", p->nCacheHits, p->nCacheMisses );
+        Abc_Print( 1, "&resub: cuts %.0f  divisors %.0f  limited %d  filtered %d.\n", p->nCuts, p->nDivs, p->nLimited,
                    p->nSkipped );
         Abc_Print( 1,
-                   "&resub2: import %.6f  cut/MFFC %.6f  divisors %.6f  truth %.6f  search %.6f  update %.6f  export "
+                   "&resub: import %.6f  cut/MFFC %.6f  divisors %.6f  truth %.6f  search %.6f  update %.6f  export "
                    "%.6f  total %.6f sec\n",
                    (double) Setup / CLOCKS_PER_SEC, (double) p->timeCuts / CLOCKS_PER_SEC,
                    (double) p->timeDivs / CLOCKS_PER_SEC, (double) p->timeSim / CLOCKS_PER_SEC,
@@ -1328,12 +1595,29 @@ Gia_Man_t * Rsub_ManPerform( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMin
     Rsub_CacheClear( p );
     ABC_FREE( p->pCache );
     ABC_FREE( p->pSims );
+    ABC_FREE( p->pUnateWork );
     Vec_IntFree( p->vNodes );
     Vec_IntFree( p->vDivs );
     Vec_IntFree( p->vTodo );
     Gie_ManStop( &p->M );
     ABC_FREE( p );
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Preserves the established policy for callers in other packages.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Rsub_ManPerform( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMinSaved, int fKeepLevel, int fVerbose )
+{
+    return Rsub_ManPerformEx( pGia, nCutMax, nSteps, nMinSaved, fKeepLevel, 0, fVerbose );
 }
 
 ABC_NAMESPACE_IMPL_END

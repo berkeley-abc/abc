@@ -45,7 +45,6 @@ static int Abc_CommandResubCore              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandResubCheck             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SimRsb             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Resub              ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Resub2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Mfs                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Mfs3               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Mfsd               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -78,7 +77,6 @@ void Abc_InitResub( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "resub_check",   Abc_CommandResubCheck,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&simrsb",       Abc_CommandAbc9SimRsb,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&resub",        Abc_CommandAbc9Resub,        0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&resub2",       Abc_CommandAbc9Resub2,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mfs",          Abc_CommandAbc9Mfs,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mfs3",         Abc_CommandAbc9Mfs3,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mfs2",         Abc_CommandAbc9Mfsd,         0 );
@@ -1138,7 +1136,7 @@ usage:
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Resubstitutes an AIG using compact windows and reusable proofs.]
 
   Description []
 
@@ -1149,108 +1147,10 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Resub( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManResub1( char * pFileName, int nNodes, int nSupp, int nDivs, int iChoice, int fUseXor, int fVerbose, int fVeryVerbose );
-    extern Gia_Man_t * Gia_ManResub2( Gia_Man_t * pGia, int nNodes, int nSupp, int nDivs, int iChoice, int fUseXor, int fVerbose, int fVeryVerbose );
-    Gia_Man_t * pTemp;
-    int nNodes       =  0;
-    int nSupp        =  0;
-    int nDivs        =  0;
-    int c, fVerbose  =  0;
-    int fVeryVerbose =  0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NSDvwh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'N':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( 1, "Command line switch \"-N\" should be followed by a floating point number.\n" );
-                return 0;
-            }
-            nNodes = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nNodes < 0 )
-                goto usage;
-            break;
-        case 'S':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( 1, "Command line switch \"-S\" should be followed by a floating point number.\n" );
-                return 0;
-            }
-            nSupp = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nSupp < 0 )
-                goto usage;
-            break;
-        case 'D':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( 1, "Command line switch \"-D\" should be followed by a floating point number.\n" );
-                return 0;
-            }
-            nDivs = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nDivs < 0 )
-                goto usage;
-            break;
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'w':
-            fVeryVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( argc == globalUtilOptind + 1 )
-    {
-        pTemp = Gia_ManResub1( argv[globalUtilOptind], nNodes, nSupp, nDivs, 0, 0, fVerbose, fVeryVerbose );
-        Abc_FrameUpdateGia( pAbc, pTemp );
-        return 0;
-    }
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Resub(): There is no AIG.\n" );
-        return 1;
-    }
-    pTemp = Gia_ManResub2( pAbc->pGia, nNodes, nSupp, nDivs, 0, 0, fVerbose, fVeryVerbose );
-    Abc_FrameUpdateGia( pAbc, pTemp );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: &resub [-NSD num] [-vwh]\n" );
-    Abc_Print( -2, "\t           performs AIG resubstitution\n" );
-    Abc_Print( -2, "\t-N num   : the limit on added nodes (num >= 0) [default = %d]\n",     nNodes );
-    Abc_Print( -2, "\t-S num   : the limit on support size (num > 0) [default = %d]\n",     nSupp );
-    Abc_Print( -2, "\t-D num   : the limit on divisor count (num > 0) [default = %d]\n",    nDivs );
-    Abc_Print( -2, "\t-v       : toggles printing verbose information [default = %s]\n",    fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-w       : toggles printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h       : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Resubstitutes an AIG using compact windows and reusable proofs.]
-
-  Description []
-
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandAbc9Resub2( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
     Gia_Man_t * pNew;
-    int c, fKeepLevel = 1, fVerbose = 0, nCutMax = 8, nSteps = 1, nMinSaved = 1;
+    int c, fKeepLevel = 1, fFast = 0, fVerbose = 0, nCutMax = 8, nSteps = 1, nMinSaved = 1;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "KNMlvh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "KNMflvh")) != EOF )
     {
         switch ( c )
         {
@@ -1265,10 +1165,11 @@ int Abc_CommandAbc9Resub2( Abc_Frame_t * pAbc, int argc, char ** argv )
             Value = strtol(pArg, &pEnd, 10);
             if ( pEnd == pArg || *pEnd || Value < 0 || Value > 1000000 ) goto usage;
             if ( c == 'K' ) { if ( Value < 4 || Value > 16 ) goto usage; nCutMax = (int)Value; }
-            if ( c == 'N' ) { if ( Value > 1 ) goto usage; nSteps = (int)Value; }
+            if ( c == 'N' ) { if ( Value > 4 ) goto usage; nSteps = (int)Value; }
             if ( c == 'M' ) { if ( Value < 1 ) goto usage; nMinSaved = (int)Value; }
             break;
         }
+        case 'f': fFast ^= 1; break;
         case 'l': fKeepLevel ^= 1; break;
         case 'v': fVerbose ^= 1; break;
         default: goto usage;
@@ -1277,38 +1178,39 @@ int Abc_CommandAbc9Resub2( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( globalUtilOptind != argc ) goto usage;
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "&resub2: There is no AIG.\n" );
+        Abc_Print( -1, "&resub: There is no AIG.\n" );
         return 1;
     }
     if ( Gia_ManHasChoices(pAbc->pGia) || pAbc->pGia->pMuxes || Gia_ManXorNum(pAbc->pGia) || Gia_ManBufNum(pAbc->pGia) )
     {
-        Abc_Print( -1, "&resub2: This command requires an AIG without choices, XOR/MUX nodes, or barrier buffers.\n" );
+        Abc_Print( -1, "&resub: This command requires an AIG without choices, XOR/MUX nodes, or barrier buffers.\n" );
         return 1;
     }
     if ( Gia_ManIsSeqWithBoxes(pAbc->pGia) && !Gia_ManIsNormalized(pAbc->pGia) )
     {
-        Abc_Print( -1, "&resub2: Sequential AIGs with timing boxes must be normalized.\n" );
+        Abc_Print( -1, "&resub: Sequential AIGs with timing boxes must be normalized.\n" );
         return 1;
     }
     if ( Gia_ManObjNum(pAbc->pGia) > Gie_ObjectLimit() / 2 )
     {
-        Abc_Print( -1, "&resub2: The AIG exceeds the mutable-graph object limit.\n" );
+        Abc_Print( -1, "&resub: The AIG exceeds the mutable-graph object limit.\n" );
         return 1;
     }
-    pNew = Rsub_ManPerform( pAbc->pGia, nCutMax, nSteps, nMinSaved, fKeepLevel, fVerbose );
+    pNew = Rsub_ManPerformEx( pAbc->pGia, nCutMax, nSteps, nMinSaved, fKeepLevel, fFast, fVerbose );
     if ( pNew == NULL )
     {
-        Abc_Print( -1, "&resub2: Resubstitution has failed.\n" );
+        Abc_Print( -1, "&resub: Resubstitution has failed.\n" );
         return 1;
     }
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 usage:
-    Abc_Print( -2, "usage: &resub2 [-KNM num] [-lvh]\n" );
+    Abc_Print( -2, "usage: &resub [-KNM num] [-flvh]\n" );
     Abc_Print( -2, "\t         performs one pass of AIG resubstitution\n" );
     Abc_Print( -2, "\t-K num : maximum cut size (4 to 16) [default = %d]\n", nCutMax );
-    Abc_Print( -2, "\t-N num : maximum new nodes (0 or 1) [default = %d]\n", nSteps );
+    Abc_Print( -2, "\t-N num : maximum new nodes (0 to 4) [default = %d]\n", nSteps );
     Abc_Print( -2, "\t-M num : minimum nodes saved [default = %d]\n", nMinSaved );
+    Abc_Print( -2, "\t-f     : toggle faster search with reduced effort [default = %s]\n", fFast ? "yes" : "no" );
     Abc_Print( -2, "\t-l     : toggle preserving the number of levels [default = %s]\n", fKeepLevel ? "yes" : "no" );
     Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n" );

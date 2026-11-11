@@ -1580,6 +1580,7 @@ extern Gia_Man_t *         Nf3_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * p
 //=== giaRsb.c ============================================================
 // Returns NULL for unsupported inputs, including barrier buffers.
 extern Gia_Man_t *         Rsub_ManPerform( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMinSaved, int fKeepLevel, int fVerbose );
+extern Gia_Man_t *         Rsub_ManPerformEx( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMinSaved, int fKeepLevel, int fFast, int fVerbose );
 /*=== giaHash.c ===========================================================*/
 extern void                Gia_ManHashAlloc( Gia_Man_t * p ); 
 extern void                Gia_ManHashStart( Gia_Man_t * p ); 

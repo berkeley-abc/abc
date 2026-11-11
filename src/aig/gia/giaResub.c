@@ -4550,48 +4550,6 @@ void Gia_ManCheckResub( Vec_Ptr_t * vDivs, int nWords )
     printf( "Finished verifying resub.\n" );
     Vec_IntFree( vValue );
 }
-Vec_Ptr_t * Gia_ManDeriveDivs( Vec_Wrd_t * vSims, int nWords )
-{
-    int i, nDivs = Vec_WrdSize(vSims)/nWords;
-    Vec_Ptr_t * vDivs = Vec_PtrAlloc( nDivs );
-    for ( i = 0; i < nDivs; i++ )
-        Vec_PtrPush( vDivs, Vec_WrdEntryP(vSims, nWords*i) );
-    return vDivs;
-}
-Gia_Man_t * Gia_ManResub2( Gia_Man_t * pGia, int nNodes, int nSupp, int nDivs, int iChoice, int fUseXor, int fVerbose, int fVeryVerbose )
-{
-    return NULL;
-}
-Gia_Man_t * Gia_ManResub1( char * pFileName, int nNodes, int nSupp, int nDivs, int iChoice, int fUseXor, int fVerbose, int fVeryVerbose )
-{
-    int nWords = 0;
-    Gia_Man_t * pMan   = NULL;
-    Vec_Wrd_t * vSims  = Vec_WrdReadHex( pFileName, &nWords, 1 );
-    Vec_Ptr_t * vDivs  = vSims ? Gia_ManDeriveDivs( vSims, nWords ) : NULL;
-    Gia_ResbMan_t * p = Gia_ResbAlloc( nWords );
-    //Gia_ManCheckResub( vDivs, nWords );
-    if ( Vec_PtrSize(vDivs) >= (1<<14) )
-    {
-        printf( "Reducing all divs from %d to %d.\n", Vec_PtrSize(vDivs), (1<<14)-1 );
-        Vec_PtrShrink( vDivs, (1<<14)-1 );
-    }
-    assert( Vec_PtrSize(vDivs) < (1<<14) );
-    Gia_ManResubPerform( p, vDivs, nWords, 100, 50, iChoice, fUseXor, 1, 1, 0 );
-    if ( Vec_IntSize(p->vGates) )
-    {
-        Vec_Wec_t * vGates = Vec_WecStart(1);
-        Vec_IntAppend( Vec_WecEntry(vGates, 0), p->vGates );
-        pMan = Gia_ManConstructFromGates( vGates, Vec_PtrSize(vDivs) );
-        Vec_WecFree( vGates );
-    }
-    else
-        printf( "Decomposition did not succeed.\n" );
-    Gia_ResbFree( p );
-    Vec_PtrFree( vDivs );
-    Vec_WrdFree( vSims );
-    return pMan;
-}
-
 /**Function*************************************************************
 
   Synopsis    []

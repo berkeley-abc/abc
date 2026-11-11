@@ -22,7 +22,44 @@
 #include "misc/tim/tim.h"
 #include <limits.h>
 
+#if defined(__linux__)
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
+
 ABC_NAMESPACE_IMPL_START
+
+/**Function*************************************************************
+
+  Synopsis    [Allows transparent huge pages for large private work arrays.]
+
+  Description [This optional Linux hint changes neither allocation nor
+  ownership. Only whole pages inside the allocation are advised. Failure
+  is harmless; other platforms retain the ordinary allocator behavior.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gie_MemoryHint( void * pData, size_t nBytes )
+{
+#if defined(__linux__) && defined(MADV_HUGEPAGE)
+    long Page;
+    size_t Skip, Size;
+    if ( pData == NULL || nBytes < (size_t) 2 * 1024 * 1024 ) return;
+    Page = sysconf( _SC_PAGESIZE );
+    if ( Page <= 0 ) return;
+    Skip = ( (size_t) Page - ( (ABC_PTRUINT_T) pData % (size_t) Page ) ) % (size_t) Page;
+    if ( Skip >= nBytes ) return;
+    Size = ( nBytes - Skip ) / (size_t) Page * (size_t) Page;
+    if ( Size ) (void) madvise( (char *) pData + Skip, Size, MADV_HUGEPAGE );
+#else
+    (void) pData;
+    (void) nBytes;
+#endif
+}
+
 
 /**Function*************************************************************
 
@@ -126,15 +163,19 @@ void Gie_ManStart( Gie_Man_t * p, Gia_Man_t * pGia, int fKeepLevel, int HashMode
     p->nCap = Abc_MinInt( p->nObjLimit, Abc_MaxInt( 16, 2 * Gia_ManObjNum( pGia ) ) );
     p->pObjs = ABC_ALLOC( Gie_Obj_t, p->nCap );
     p->pFans = ABC_ALLOC( Gie_Fan_t, p->nCap );
+    Gie_MemoryHint( p->pObjs, sizeof( Gie_Obj_t ) * (size_t) p->nCap );
+    Gie_MemoryHint( p->pFans, sizeof( Gie_Fan_t ) * (size_t) p->nCap );
     p->nHashMask = 16;
     while ( p->nHashMask < Gia_ManObjNum( pGia ) )
         p->nHashMask *= 2;
     p->pHash = ABC_CALLOC( int, p->nHashMask );
+    Gie_MemoryHint( p->pHash, sizeof( int ) * (size_t) p->nHashMask );
     p->nHashMask--;
     p->vCis = Vec_IntAlloc( Gia_ManCiNum( pGia ) );
     p->vCos = Vec_IntAlloc( Gia_ManCoNum( pGia ) );
     p->vStack = Vec_IntAlloc( GIE_STACK_INITIAL );
     p->vOrder = Vec_IntAlloc( p->nCap );
+    Gie_MemoryHint( Vec_IntArray( p->vOrder ), sizeof( int ) * (size_t) Vec_IntCap( p->vOrder ) );
     p->vPromote = p->fHashAll ? Vec_IntAlloc( 128 ) : NULL;
     p->fKeepLevel = fKeepLevel;
     p->iRoot = -1;
@@ -303,6 +344,8 @@ Gia_Man_t * Gie_ManExport( Gie_Man_t * p, Gia_Man_t * pOld )
     Gia_Man_t * pNew = Gia_ManStart( p->nAnds + Vec_IntSize( p->vCis ) + Vec_IntSize( p->vCos ) + 1 );
     int * pCopies = ABC_ALLOC( int, p->nObjs );
     int i, Id, Lit;
+    Gie_MemoryHint( pCopies, sizeof( int ) * (size_t) p->nObjs );
+    Gie_MemoryHint( pNew->pObjs, sizeof( Gia_Obj_t ) * (size_t) pNew->nObjsAlloc );
     memset( pCopies, 0xFF, p->nObjs * sizeof( int ) );
     pCopies[0] = 0;
     pNew->pName = Abc_UtilStrsav( pOld->pName );
@@ -379,6 +422,8 @@ unsigned * Gie_Neighborhoods( Gie_Man_t * p, int nObjs, int Rounds )
 {
     unsigned *A = ABC_ALLOC( unsigned, nObjs ), *B = ABC_ALLOC( unsigned, nObjs ), a, b;
     int i, r, x, y;
+    Gie_MemoryHint( A, sizeof( unsigned ) * (size_t) nObjs );
+    Gie_MemoryHint( B, sizeof( unsigned ) * (size_t) nObjs );
     for ( i = 0; i < nObjs; i++ )
         A[i] = Gie_MixColor( p->pObjs[i].Type + 17u * (unsigned) p->pObjs[i].Refs );
     for ( r = 0; r < Rounds; r++ )
