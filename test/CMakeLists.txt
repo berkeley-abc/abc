@@ -1,5 +1,10 @@
 add_subdirectory(gia)
 
+add_executable(eslim_replace eslim_replace.cpp)
+target_link_libraries(eslim_replace PRIVATE libabc)
+add_test(NAME eslim_replace COMMAND eslim_replace)
+set_tests_properties(eslim_replace PROPERTIES SKIP_RETURN_CODE 77)
+
 # The eSLIM2 oracles are local, uncommitted test assets. A fresh checkout must
 # still configure and build when those files are absent.
 set(ESLIM2_LOCAL_TEST_NAMES small_exact small_timing small_order area_refinement windows instances)
