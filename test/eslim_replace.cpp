@@ -1,15 +1,20 @@
 // Regression for replacing an eSLIM window with a larger equivalent circuit.
-// Run from the repository root, with assertions enabled in libabc:
+// Build both libabc and the test with assertions enabled; NDEBUG builds skip it.
+// Run from the repository root:
 // cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-// cmake --build build --target eslim_replace
-// ctest --test-dir build -R '^eslim_replace$' --output-on-failure
+// cmake --build build --config Debug --target eslim_replace
+// ctest --test-dir build -C Debug -R '^eslim_replace$' --output-on-failure
+#include <cstdio>
+
 #ifdef NDEBUG
-#undef NDEBUG
-#endif
+int main() {
+    std::puts("SKIP: eslim_replace requires assertions in libabc and the test; use a Debug build.");
+    return 77;
+}
+#else
 
 #include <algorithm>
 #include <cassert>
-#include <cstdio>
 #include <set>
 #include <vector>
 
@@ -104,3 +109,4 @@ int main() {
     }
     std::puts("PASS: eSLIM replacement counts, graph consistency and exhaustive equivalence");
 }
+#endif
