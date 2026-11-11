@@ -28,7 +28,7 @@ ABC_NAMESPACE_IMPL_START
 namespace eSLIM2 {
 
   DelayEngine::DelayEngine( const Relation& relation, const Subcircuit& subcir, unsigned int max_size, const eSLIM2Config& cfg, eSLIM2Log& log, int fixed_bound, int equal_size_bound)
-                          : RelationSynthesiser(relation, subcir, max_size, cfg, log) {
+                          : RelationSynthesiser(relation, subcir, max_size, cfg, log, cfg.synthesis_cegar) {
     assert (subcir.forbidden_pairs.empty());
     if (cfg.aig && cfg.gate_size == 2 && cfg.aig_encoding == 3)
       constrainIrredundantAigArea();
@@ -169,7 +169,7 @@ namespace eSLIM2 {
                                            getDynamicTimeout(size));
       if (status != 10)
         break;
-      auto candidate = solver.getModel();
+      auto candidate = getModel();
       const unsigned next_size = getSizeFromActivationVars(candidate);
       const unsigned next_delay = computeDelay(candidate);
       assert(next_size <= size && next_delay < delay);
@@ -188,7 +188,7 @@ namespace eSLIM2 {
       double timeout = getDynamicTimeout(i);
       int status = existsReplacement(i, max_delay, timeout);
       if (status == 10) {
-        last_model = solver.getModel();
+        last_model = getModel();
         i = getSizeFromActivationVars(last_model); // it is possible that more than one gate is reduced in an iteration
         assert(unsigned(i) >= min_size);
         if (complete && unsigned(i) == min_size)
@@ -213,7 +213,7 @@ namespace eSLIM2 {
       double timeout = getDynamicTimeout(max_size);
       int status = existsReplacement(max_size, d, timeout);
       if (status == 10) {
-        last_model = solver.getModel();
+        last_model = getModel();
         current_delay = getDelayFromDelayVariables(last_model);
       } else {
         break;
@@ -289,19 +289,24 @@ namespace eSLIM2 {
     return delay;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Checks the full relation under the requested delay bound.]
+
+***********************************************************************/
   int DelayEngine::existsReplacement(unsigned int delay, double timeout) {
     std::vector<int> assumptions = getAssumptions(delay);
-    int status = timeout == 0 ? solver.solve(assumptions) : solver.solve(timeout, assumptions);
-    unsigned int size = status == 10 ? getSizeFromActivationVars() : max_size;
-    logRun(status, size);
-    return status;
+    return solveRelation(assumptions, timeout, max_size, true);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Checks the full relation under the requested size and delay bounds.]
+
+***********************************************************************/
   int DelayEngine::existsReplacement(unsigned int size, unsigned int delay, double timeout) {
     std::vector<int> assumptions = getAssumptions(size, delay);
-    int status = timeout == 0 ? solver.solve(assumptions) : solver.solve(timeout, assumptions);
-    logRun(status, size);
-    return status;
+    return solveRelation(assumptions, timeout, size);
   }
 
   void DelayEngine::setupVariables() {

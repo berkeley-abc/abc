@@ -54,7 +54,7 @@ static eSLIM2::eSLIM2Config eSLIM2_GetCfg(const eSLIM2_ParamStruct* params) {
   config.cache_synthesis = params->cache_synthesis != 0;
   config.small_synthesis = params->small_synthesis != 0;
   config.synthesis_solver_mode = params->synthesis_solver_mode;
-  config.synthesis_cegar = params->synthesis_approach == 0 && params->synthesis_cegar;
+  config.synthesis_cegar = params->synthesis_approach <= 1 && params->synthesis_cegar;
   if (params->synthesis_approach <= 1) {
     config.synthesis_timeout_ms = params->synthesis_timeout_ms;
     config.aig_encoding = params->aig_encoding;
@@ -730,8 +730,8 @@ Circuitrepresentation* runeSLIM2(Circuitrepresentation * cir, const eSLIM2_Param
     Abc_Print(-1, "eSLIM2: AIG encoding must be between 0 and 3.\n");
     return NULL;
   }
-  if (params->synthesis_solver_mode > 5) {
-    Abc_Print(-1, "eSLIM2: synthesis SAT settings must be between 0 and 5.\n");
+  if (params->synthesis_solver_mode > 6) {
+    Abc_Print(-1, "eSLIM2: synthesis SAT settings must be between 0 and 6.\n");
     return NULL;
   }
   // Parallel windows support area optimization, with or without a depth bound.

@@ -307,7 +307,7 @@ namespace eSLIM2 {
       double timeout = synth.getDynamicTimeout(i);
       int status = synth.checkSize(i, timeout);
       if (status == 10) {
-        last_model = synth.solver.getModel();
+        last_model = synth.getModel();
         i = synth.getSizeFromActivationVars(last_model);
         replacement_size = i;
         assert(unsigned(i) >= synth.min_size);

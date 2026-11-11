@@ -51,6 +51,7 @@ namespace eSLIM2 {
       std::vector<int> getValues(const std::vector<int>& variables);
       bool getValue(int var);
       std::vector<bool> getModel();
+      int getVariableCount();
       double getRunTime() const;
 
     private:
@@ -189,6 +190,15 @@ namespace eSLIM2 {
 
   inline bool CadicalSolver::getValue(int var) {
     return val(var) > 0;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the largest variable imported by the owned solver.]
+
+***********************************************************************/
+  inline int CadicalSolver::getVariableCount() {
+    return solver.vars();
   }
 
   inline std::vector<bool> CadicalSolver::getModel() {

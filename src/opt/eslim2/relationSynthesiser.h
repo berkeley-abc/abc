@@ -28,7 +28,7 @@
 
 #include "relationGeneration.h"
 #include "subcircuit.h"
-#include "cadicalSolver.h"
+#include "synthesisSolver.h"
 #include "utils.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
@@ -38,7 +38,7 @@ namespace eSLIM2 {
     friend struct eSLIM2TestAccess;
 
     protected:
-      CadicalSolver solver;
+      SynthesisSolver solver;
       const Subcircuit& subcir;
       unsigned int max_size; // The maximal circuit size that can be checked
       unsigned int min_size = 0; // A structural lower bound from mandatory input support.
@@ -48,6 +48,7 @@ namespace eSLIM2 {
       std::vector<std::vector<int>> gate_output_variables;
 
       RelationSynthesiser(const Relation& relation, const Subcircuit& subcir, unsigned int max_size, const eSLIM2Config& cfg, eSLIM2Log& log, bool refine = false);
+      std::vector<bool> getModel();
       int getNewVariable();
       std::vector<int> getNewVariableVector(unsigned int size);
 
@@ -57,7 +58,7 @@ namespace eSLIM2 {
       unsigned int getSizeFromActivationVars();
       void logRun(int status, unsigned int size);
       eSLIM2CirMan getReplacement(const std::vector<bool>& model, int size);
-      int solveRelation(const std::vector<int>& assumptions, double timeout, unsigned size);
+      int solveRelation(const std::vector<int>& assumptions, double timeout, unsigned size, bool log_model_size = false);
       void constrainIrredundantAigArea();
 
 
@@ -70,6 +71,7 @@ namespace eSLIM2 {
       bool refine;
       static constexpr unsigned minimum_refinement_rows = 32;
       static constexpr unsigned refinement_seed_rows = 8;
+      static constexpr unsigned wide_refinement_seed_rows = 32;
       static constexpr unsigned refinement_batch_rows = 8;
       static constexpr unsigned long_budget_interval = 16;
       static constexpr unsigned long_budget_multiplier = 10;
@@ -78,6 +80,12 @@ namespace eSLIM2 {
       std::vector<ABC_UINT64_T> forbidden_tuples;
       std::vector<unsigned> mandatory_inputs;
       std::vector<std::vector<unsigned>> output_mandatory_inputs;
+      struct OutputClause {
+        unsigned positive;
+        unsigned negative;
+      };
+      std::vector<std::vector<OutputClause>> wide_clauses;
+      unsigned wide_support_minimum = 0;
 
       std::vector<std::vector<std::vector<int>>> is_ith_fanin_variable;
       std::vector<std::vector<int>> gate_definition_variables;
@@ -85,7 +93,11 @@ namespace eSLIM2 {
 
 
       void setupEncoding();
+      void prepareWideRelation();
+      void analyseWideSupport();
       void analyseMandatorySupport();
+      void constrainOutputSupports();
+      void constrainSupportTrees();
       void setupVariables();
       void setupStructuralConstraints();
       void constrainMandatorySupport();

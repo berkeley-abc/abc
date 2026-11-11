@@ -4733,6 +4733,10 @@ SOURCE=.\src\opt\eslim2\cadicalSolver.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\eslim2\synthesisSolver.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\eslim2\eslim2Checkpoint.cpp
 # End Source File
 # Begin Source File

@@ -43,7 +43,7 @@ namespace eSLIM3 {
                                           : solver(cfg.synthesis_solver_mode), subcir(subcir), max_size(max_size),
                                             relation(relation), config(cfg), log(log),
                                             refine(refine && cfg.aig && cfg.gate_size == 2 &&
-                                                   subcir.outputs.size() <= 6 && relation.getNLinesWithPattern() >= minimum_refinement_rows),
+                                                   subcir.outputs.size() <= 32 && relation.getNLinesWithPattern() >= minimum_refinement_rows),
                                             encoded_rows(relation.getNPatterns(), false) {
     ScopedPhaseTimer encoding_timer(log.synthesis_encoding_time, cfg);
     ++log.synthesis_sat_searches;
@@ -64,8 +64,93 @@ namespace eSLIM3 {
     }
     assert(configured);
     (void)configured;
+    prepareWideRelation();
     analyseMandatorySupport();
     setupEncoding();
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Stores wide output clauses without enumerating output tuples.]
+
+  Description [The compact tuple bitmap covers up to six outputs. For wider
+               relations, retain each original clause as two literal masks.
+               Refinement checks these clauses against the candidate outputs.]
+
+***********************************************************************/
+  void RelationSynthesiser::prepareWideRelation() {
+    if (!refine || subcir.outputs.size() <= 6)
+      return;
+    assert(subcir.outputs.size() <= 32);
+    wide_clauses.resize(relation.getNPatterns());
+    for (unsigned row = 0; row < wide_clauses.size(); ++row)
+      for (const auto& pattern : relation.getPattern(row)) {
+        unsigned positive = 0, negative = 0;
+        for (unsigned output = 0; output < subcir.outputs.size(); ++output)
+          if (pattern[2 * output])
+            (pattern[2 * output + 1] ? positive : negative) |= 1u << output;
+        wide_clauses[row].push_back({positive, negative});
+      }
+    // Normal replacements produce zeros on row zero, which is also the
+    // precondition of the original full encoding that omits this row.
+    for (const auto& clause : wide_clauses[0]) {
+      assert(clause.negative);
+      (void)clause;
+    }
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Derives necessary wide-output supports by unit propagation.]
+
+  Description [Opposite forced output values on adjacent input rows require
+               that input in every implementation of the output. Propagating
+               the original row clauses gives sound, possibly incomplete
+               requirements without constructing an exponential tuple bitmap.]
+
+***********************************************************************/
+  void RelationSynthesiser::analyseWideSupport() {
+    if (wide_clauses.empty())
+      return;
+    const unsigned ni = subcir.inputs.size(), no = subcir.outputs.size();
+    std::vector<unsigned> zero(wide_clauses.size(), 0), one(wide_clauses.size(), 0);
+    for (unsigned row = 0; row < wide_clauses.size(); ++row) {
+      bool changed;
+      do {
+        changed = false;
+        for (const auto& clause : wide_clauses[row]) {
+          if ((clause.positive & one[row]) || (clause.negative & zero[row]))
+            continue;
+          const unsigned free = (clause.positive | clause.negative) & ~(one[row] | zero[row]);
+          if (free && !(free & (free - 1))) {
+            if (clause.positive & free)
+              one[row] |= free;
+            else
+              zero[row] |= free;
+            changed = true;
+          }
+        }
+      } while (changed);
+    }
+    output_mandatory_inputs.resize(no);
+    for (unsigned input = 0; input < ni; ++input) {
+      unsigned needed = 0;
+      for (unsigned row = 0; row < wide_clauses.size(); ++row)
+        if (!(row & (1u << input))) {
+          const unsigned other = row | (1u << input);
+          needed |= (zero[row] & one[other]) | (one[row] & zero[other]);
+        }
+      if (needed)
+        mandatory_inputs.push_back(input);
+      for (unsigned output = 0; output < no; ++output)
+        if ((needed >> output) & 1)
+          output_mandatory_inputs[output].push_back(input);
+    }
+    if (mandatory_inputs.size() > no)
+      wide_support_minimum = static_cast<unsigned>(mandatory_inputs.size()) - no;
+    for (const auto& inputs : output_mandatory_inputs)
+      if (inputs.size() > 1)
+        wide_support_minimum = std::max(wide_support_minimum, static_cast<unsigned>(inputs.size()) - 1);
   }
 
 /**Function*************************************************************
@@ -81,6 +166,7 @@ namespace eSLIM3 {
     forbidden_tuples = std::move(bounds.forbidden);
     mandatory_inputs = std::move(bounds.inputs);
     output_mandatory_inputs = std::move(bounds.output_inputs);
+    analyseWideSupport();
   }
 
 /**Function*************************************************************
@@ -305,6 +391,10 @@ namespace eSLIM3 {
       setupAigerConstraints();
     }
     constrainMandatorySupport();
+    if (wide_support_minimum > max_size)
+      solver.addClause({});
+    else if (wide_support_minimum)
+      solver.addClause({gate_activation_variables[wide_support_minimum - 1]});
   }
 
 
@@ -692,7 +782,7 @@ namespace eSLIM3 {
         rows.push_back(row);
     log.synthesis_total_rows += rows.size();
     if (refine) {
-      assert(!(forbidden_tuples[0] & 1));
+      assert(forbidden_tuples.empty() || !(forbidden_tuples[0] & 1));
       const unsigned seeds = std::min<unsigned>(refinement_seed_rows, static_cast<unsigned>(rows.size()));
       for (unsigned i = 0; i < seeds; ++i)
         addRelationRow(rows[i * (rows.size() - 1) / (seeds - 1)]);
@@ -790,7 +880,7 @@ namespace eSLIM3 {
     }
     std::vector<unsigned> counterexamples;
     std::vector<Word> values(ninputs + size + 1, 0);
-    for (unsigned base = 0; base < forbidden_tuples.size(); base += 64) {
+    for (unsigned base = 0; base < unsigned(relation.getNPatterns()); base += 64) {
       for (unsigned j = 0; j < ninputs; ++j)
         values[j] = j < 6 ? truth_patterns[j] : ((base >> j) & 1 ? ~Word(0) : Word(0));
       for (unsigned gate = 0; gate < size; ++gate) {
@@ -800,14 +890,23 @@ namespace eSLIM3 {
                                  (~a & b & -Word((tt >> 2) & 1)) |
                                  (a & b & -Word((tt >> 3) & 1));
       }
-      for (unsigned bit = 0; bit < 64 && base + bit < forbidden_tuples.size(); ++bit) {
+      for (unsigned bit = 0; bit < 64 && base + bit < unsigned(relation.getNPatterns()); ++bit) {
         const unsigned row = base + bit;
-        if (encoded_rows[row] || !forbidden_tuples[row])
+        if (encoded_rows[row] || (!wide_clauses.empty() ? wide_clauses[row].empty() : !forbidden_tuples[row]))
           continue;
         unsigned tuple = 0;
         for (unsigned output = 0; output < noutputs; ++output)
           tuple |= unsigned((values[outputs[output]] >> bit) & 1) << output;
-        if ((forbidden_tuples[row] >> tuple) & 1) {
+        bool violation = false;
+        if (!wide_clauses.empty()) {
+          for (const auto& clause : wide_clauses[row])
+            if (!(tuple & clause.positive) && !(~tuple & clause.negative)) {
+              violation = true;
+              break;
+            }
+        } else
+          violation = (forbidden_tuples[row] >> tuple) & 1;
+        if (violation) {
           counterexamples.push_back(row);
         }
       }

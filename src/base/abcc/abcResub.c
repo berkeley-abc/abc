@@ -2221,7 +2221,7 @@ int Abc_CommandAbc9eSLIM2( Abc_Frame_t * pAbc, int argc, char ** argv ) {
             goto usage;
           break;
         case 'Q':
-          if (globalUtilOptind >= argc || !Es2_ReadUnsigned(argv[globalUtilOptind++], &params.synthesis_solver_mode) || params.synthesis_solver_mode > 5)
+          if (globalUtilOptind >= argc || !Es2_ReadUnsigned(argv[globalUtilOptind++], &params.synthesis_solver_mode) || params.synthesis_solver_mode > 6)
             goto usage;
           break;
         case 'k':
@@ -2493,7 +2493,8 @@ int Abc_CommandAbc9eSLIM2( Abc_Frame_t * pAbc, int argc, char ** argv ) {
     Abc_Print( -2, "\t           Files are <prefix>.<seconds>s.aig/.json; existing files are never overwritten.\n" );
     Abc_Print( -2, "\t           Intermediate checkpoints precede final inprocessing; the -T checkpoint follows it.\n" );
     Abc_Print( -2, "\t-P <num> : the probability of expanding a node (formerly -E) [default = %.2f]\n", params.expansion_probability );
-    Abc_Print( -2, "\t-Q <num> : synthesis SAT settings: 0 = default, 1 = no lucky phases, 2 = plain, 3 = sat, 4 = unsat, 5 = negative phase [default = %u]\n", params.synthesis_solver_mode );
+    Abc_Print( -2, "\t-Q <num> : synthesis SAT: 0..5 = CaDiCaL settings, 6 = Glucose3 [default = %u]\n", params.synthesis_solver_mode );
+    Abc_Print( -2, "\t           CaDiCaL: 0 = default, 1 = no lucky phases, 2 = plain, 3 = sat, 4 = unsat, 5 = negative phase.\n" );
     Abc_Print( -2, "\t-R <num> : the number of runs of eSLIM2 + Inprocessing [default = %d]\n",    params.nruns );
     Abc_Print( -2, "\t-S <num> : the maximal size of considered subcircuits [default = %d]\n",    params.subcircuit_max_size );
     Abc_Print( -2, "\t-T <num> : the timeout in seconds for the individual eSLIM2 runs [default = %d]\n",    params.timeout );
@@ -2522,7 +2523,7 @@ int Abc_CommandAbc9eSLIM2( Abc_Frame_t * pAbc, int argc, char ** argv ) {
     Abc_Print( -2, "\t-q       : toggle relation SAT tuning (disable lucky phases) [default = %s]\n", params.tune_relation_solver ? "yes" : "no" );
     Abc_Print( -2, "\t-s       : toggle fill subcircuits\n");
     Abc_Print( -2, "\t-t       : toggle use taboo list\n");
-    Abc_Print( -2, "\t-u       : toggle counterexample refinement of area-mode AIG synthesis [default = %s]\n", params.synthesis_cegar ? "yes" : "no" );
+    Abc_Print( -2, "\t-u       : toggle counterexample refinement in modes 0/1 [default = %s]\n", params.synthesis_cegar ? "yes" : "no" );
     Abc_Print( -2, "\t-x       : allow xor-gates (not supported with -D 1)\n");
     Abc_Print( -2, "\t\n" );
     Abc_Print( -2, "\t           This command was contributed by Franz-Xaver Reichl from University of Freiburg.\n" );

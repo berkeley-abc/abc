@@ -81,6 +81,12 @@ namespace eSLIM3 {
       std::vector<ABC_UINT64_T> forbidden_tuples;
       std::vector<unsigned> mandatory_inputs;
       std::vector<std::vector<unsigned>> output_mandatory_inputs;
+      struct OutputClause {
+        unsigned positive;
+        unsigned negative;
+      };
+      std::vector<std::vector<OutputClause>> wide_clauses;
+      unsigned wide_support_minimum = 0;
 
       std::vector<std::vector<std::vector<int>>> is_ith_fanin_variable;
       std::vector<std::vector<int>> gate_definition_variables;
@@ -89,6 +95,8 @@ namespace eSLIM3 {
 
       void setupEncoding();
       SynthesisBudgetStats& budgetStats();
+      void prepareWideRelation();
+      void analyseWideSupport();
       void analyseMandatorySupport();
       void setupVariables();
       void setupStructuralConstraints();
