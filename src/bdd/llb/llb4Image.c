@@ -55,6 +55,7 @@ struct Llb_Mgr_t_
     int           iPartFree; // next free partition
     int           nVars;     // the number of BDD variables
     int           nSuppMax;  // maximum support size
+    int           fFailed;   // optional bounded operation failed
     // temporary
     int *         pSupp;     // temporary support storage
 };
@@ -149,7 +150,14 @@ DdNode * Llb_Nonlin4CreateCube1( Llb_Mgr_t * p, Llb_Prt_t * pPart )
         if ( Vec_IntSize(pVar->vParts) != 1 )
             continue;
         assert( Vec_IntEntry(pVar->vParts, 0) == pPart->iPart );
-        bCube = Cudd_bddAnd( p->dd, bTemp = bCube, Cudd_bddIthVar(p->dd, pVar->iVar) );    Cudd_Ref( bCube );
+        bCube = Cudd_bddAnd( p->dd, bTemp = bCube, Cudd_bddIthVar(p->dd, pVar->iVar) );
+        if ( p->dd->pFuncStop && bCube == NULL )
+        {
+            Cudd_RecursiveDeref( p->dd, bTemp );
+            p->dd->TimeStop = TimeStop;
+            return NULL;
+        }
+        Cudd_Ref( bCube );
         Cudd_RecursiveDeref( p->dd, bTemp );
     }
     Cudd_Deref( bCube );
@@ -184,7 +192,14 @@ DdNode * Llb_Nonlin4CreateCube2( Llb_Mgr_t * p, Llb_Prt_t * pPart1, Llb_Prt_t * 
         if ( (Vec_IntEntry(pVar->vParts, 0) == pPart1->iPart && Vec_IntEntry(pVar->vParts, 1) == pPart2->iPart) ||
              (Vec_IntEntry(pVar->vParts, 0) == pPart2->iPart && Vec_IntEntry(pVar->vParts, 1) == pPart1->iPart) )
         {
-            bCube = Cudd_bddAnd( p->dd, bTemp = bCube, Cudd_bddIthVar(p->dd, pVar->iVar) );   Cudd_Ref( bCube );
+            bCube = Cudd_bddAnd( p->dd, bTemp = bCube, Cudd_bddIthVar(p->dd, pVar->iVar) );
+            if ( p->dd->pFuncStop && bCube == NULL )
+            {
+                Cudd_RecursiveDeref( p->dd, bTemp );
+                p->dd->TimeStop = TimeStop;
+                return NULL;
+            }
+            Cudd_Ref( bCube );
             Cudd_RecursiveDeref( p->dd, bTemp );
         }
     }
@@ -266,10 +281,24 @@ int Llb_Nonlin4Quantify1( Llb_Mgr_t * p, Llb_Prt_t * pPart )
     DdNode * bCube, * bTemp;
     int i, RetValue, nSizeNew;
     // create cube to be quantified
-    bCube = Llb_Nonlin4CreateCube1( p, pPart );   Cudd_Ref( bCube );
+    bCube = Llb_Nonlin4CreateCube1( p, pPart );
+    if ( p->dd->pFuncStop && bCube == NULL )
+    {
+        p->fFailed = 1;
+        return 0;
+    }
+    Cudd_Ref( bCube );
 //    assert( !Cudd_IsConstant(bCube) );
     // derive new function
-    pPart->bFunc = Cudd_bddExistAbstract( p->dd, bTemp = pPart->bFunc, bCube );  Cudd_Ref( pPart->bFunc );
+    pPart->bFunc = Cudd_bddExistAbstract( p->dd, bTemp = pPart->bFunc, bCube );
+    if ( p->dd->pFuncStop && pPart->bFunc == NULL )
+    {
+        pPart->bFunc = bTemp;
+        Cudd_RecursiveDeref( p->dd, bCube );
+        p->fFailed = 1;
+        return 0;
+    }
+    Cudd_Ref( pPart->bFunc );
     Cudd_RecursiveDeref( p->dd, bTemp );
     Cudd_RecursiveDeref( p->dd, bCube );
     // get support
@@ -301,7 +330,11 @@ int Llb_Nonlin4Quantify1( Llb_Mgr_t * p, Llb_Prt_t * pPart )
             Vec_IntPush( pPart->vVars, i );
     // remove other variables
     Vec_PtrForEachEntry( Llb_Prt_t *, vSingles, pTemp, i )
+    {
         Llb_Nonlin4Quantify1( p, pTemp );
+        if ( p->fFailed )
+            break;
+    }
     Vec_PtrFree( vSingles );
     return 0;
 }
@@ -330,7 +363,13 @@ int Llb_Nonlin4Quantify2( Llb_Mgr_t * p, Llb_Prt_t * pPart1, Llb_Prt_t * pPart2 
     int liveBeg, liveEnd;
 
     // create cube to be quantified
-    bCube = Llb_Nonlin4CreateCube2( p, pPart1, pPart2 );   Cudd_Ref( bCube );
+    bCube = Llb_Nonlin4CreateCube2( p, pPart1, pPart2 );
+    if ( p->dd->pFuncStop && bCube == NULL )
+    {
+        p->fFailed = 1;
+        return 0;
+    }
+    Cudd_Ref( bCube );
 
 //printf( "Quantifying  " ); Extra_bddPrintSupport( p->dd, bCube );  printf( "\n" );
 
@@ -433,11 +472,13 @@ Llb_Nonlin4Print( p );
 if ( fVerbose )
 printf( "Updating partitiong %d with singlton vars.\n", pTemp->iPart );
         Llb_Nonlin4Quantify1( p, pTemp );
+        if ( p->fFailed )
+            break;
     }
 if ( fVerbose )
 Llb_Nonlin4Print( p );
     Vec_PtrFree( vSingles );
-    return 1;
+    return !p->fFailed;
 }
 
 /**Function*************************************************************
@@ -760,7 +801,14 @@ DdNode * Llb_Nonlin4Image( DdManager * dd, Vec_Ptr_t * vParts, DdNode * bCurrent
     // remove singles
     Llb_MgrForEachPart( p, pPart, i )
         if ( Llb_Nonlin4HasSingletonVars(p, pPart) )
+        {
             Llb_Nonlin4Quantify1( p, pPart );
+            if ( p->fFailed )
+            {
+                Llb_Nonlin4Free( p );
+                return NULL;
+            }
+        }
     // compute scores
     Llb_Nonlin4RecomputeScores( p );
     // iteratively quantify variables
@@ -781,7 +829,14 @@ DdNode * Llb_Nonlin4Image( DdManager * dd, Vec_Ptr_t * vParts, DdNode * bCurrent
     bFunc = Cudd_ReadOne(p->dd);   Cudd_Ref( bFunc );
     Llb_MgrForEachPart( p, pPart, i )
     {
-        bFunc = Cudd_bddAnd( p->dd, bTemp = bFunc, pPart->bFunc );   Cudd_Ref( bFunc );
+        bFunc = Cudd_bddAnd( p->dd, bTemp = bFunc, pPart->bFunc );
+        if ( p->dd->pFuncStop && bFunc == NULL )
+        {
+            Cudd_RecursiveDeref( p->dd, bTemp );
+            Llb_Nonlin4Free( p );
+            return NULL;
+        }
+        Cudd_Ref( bFunc );
         Cudd_RecursiveDeref( p->dd, bTemp );
     }
 //    nSuppMax = p->nSuppMax;
@@ -814,7 +869,14 @@ Vec_Ptr_t * Llb_Nonlin4Group( DdManager * dd, Vec_Ptr_t * vParts, Vec_Int_t * vV
     // remove singles
     Llb_MgrForEachPart( p, pPart, i )
         if ( Llb_Nonlin4HasSingletonVars(p, pPart) )
+        {
             Llb_Nonlin4Quantify1( p, pPart );
+            if ( p->fFailed )
+            {
+                Llb_Nonlin4Free( p );
+                return NULL;
+            }
+        }
     // compute scores
     Llb_Nonlin4RecomputeScores( p );
     // iteratively quantify variables

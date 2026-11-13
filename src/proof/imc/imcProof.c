@@ -377,6 +377,7 @@ int Imc_PrfCheck( Imc_Prf_t * p, Gia_Man_t * pImage, Vec_Int_t * vGlobals, int n
         Sat.nVars = nVars;
         sat_solver_setnvars( Sat.pSat, nVars );
         sat_solver_set_runtime_limit( Sat.pSat, TimeStop );
+        if ( Imc_ManStopActive() ) sat_solver_set_stop_func( Sat.pSat, Imc_ManStopId );
         for ( i = 1; i < Vec_PtrSize(p->vClauses); i++ )
         {
             pCls = (Imc_Cls_t *)Vec_PtrEntry( p->vClauses, i );
@@ -478,7 +479,7 @@ Gia_Man_t * Imc_PrfReadSat( Imc_Prf_t * p, sat_solver2 * pSat, abctime TimeStop 
     pNode->Id = -1;
     Vec_IntForEachEntry( vUsed, h, i )
     {
-        if ( (i & 1023) == 0 && TimeStop && Abc_Clock() >= TimeStop )
+        if ( (i & 1023) == 0 && Imc_ManCheckStop(TimeStop) )
             goto finish;
         pNode = (Imc_Res_t *)Vec_SetEntry( pSat->pPrf1, h );
         for ( k = 0; k < (int)pNode->nEnts; k++ )
@@ -496,7 +497,7 @@ Gia_Man_t * Imc_PrfReadSat( Imc_Prf_t * p, sat_solver2 * pSat, abctime TimeStop 
     Vec_IntSort( vUsed, 0 );
     Vec_IntForEachEntry( vUsed, h, i )
     {
-        if ( (i & 1023) == 0 && TimeStop && Abc_Clock() >= TimeStop )
+        if ( (i & 1023) == 0 && Imc_ManCheckStop(TimeStop) )
             goto finish;
         pNode = (Imc_Res_t *)Vec_SetEntry( pSat->pPrf1, h );
         iInter = -1;
@@ -830,7 +831,7 @@ static int Imc_PrfReadNum( Imc_Read_t * pRead, int * pNum )
 ***********************************************************************/
 static int Imc_PrfMinimizeStop( void * pData )
 {
-    return *(abctime *)pData && Abc_Clock() >= *(abctime *)pData;
+    return Imc_ManCheckStop(*(abctime *)pData);
 }
 
 /**Function*************************************************************
@@ -1192,7 +1193,7 @@ static Gia_Man_t * Imc_PrfInterpolate( Imc_Prf_t * p, Vec_Int_t * vUsed, int Roo
     }
     Vec_IntForEachEntry( vUsed, Id, i )
     {
-        if ( (i & 255) == 0 && TimeStop && Abc_Clock() >= TimeStop )
+        if ( (i & 255) == 0 && Imc_ManCheckStop(TimeStop) )
             goto finish;
         pCls = Imc_PrfLookup( p, Id );
         if ( pCls->fPartA < 0 )
@@ -1292,7 +1293,7 @@ Gia_Man_t * Imc_PrfRead( Imc_Prf_t * p, FILE * pFile, int nVars, int fAutoItp, i
     Read.pFile = pFile;
     while ( (c = Imc_PrfByte(&Read)) != EOF )
     {
-        if ( (nRecords++ & 1023) == 0 && TimeStop && Abc_Clock() >= TimeStop )
+        if ( (nRecords++ & 1023) == 0 && Imc_ManCheckStop(TimeStop) )
             goto finish;
         if ( c == 'd' )
         {
@@ -1348,7 +1349,7 @@ Gia_Man_t * Imc_PrfRead( Imc_Prf_t * p, FILE * pFile, int nVars, int fAutoItp, i
     Imc_PrfLookup(p, iRoot)->fUsed = 1;
     Vec_IntForEachEntry( vUsed, Id, i )
     {
-        if ( (i & 1023) == 0 && TimeStop && Abc_Clock() >= TimeStop )
+        if ( (i & 1023) == 0 && Imc_ManCheckStop(TimeStop) )
             goto finish;
         pCls = Imc_PrfLookup( p, Id );
         for ( k = 0; k < pCls->nHints; k++ )
@@ -1365,7 +1366,7 @@ Gia_Man_t * Imc_PrfRead( Imc_Prf_t * p, FILE * pFile, int nVars, int fAutoItp, i
     pResult = Imc_PrfInterpolate( p, vUsed, iRoot, fAutoItp, TimeStop );
     if ( pResult == NULL )
     {
-        if ( TimeStop && Abc_Clock() >= TimeStop )
+        if ( Imc_ManCheckStop(TimeStop) )
             goto finish;
         goto invalid;
     }
@@ -1453,7 +1454,7 @@ Gia_Man_t * Imc_PrfReadIncremental( Imc_Prf_t * p, FILE * pFile, int nVars, int 
     Read.Offset = p->ProofOffset;
     while ( (c = Imc_PrfByte(&Read)) != EOF )
     {
-        if ( (nRecords++ & 1023) == 0 && TimeStop && Abc_Clock() >= TimeStop )
+        if ( (nRecords++ & 1023) == 0 && Imc_ManCheckStop(TimeStop) )
             goto finish;
         if ( c == 'd' || c == 'w' || c == 'r' )
         {
@@ -1572,7 +1573,7 @@ Gia_Man_t * Imc_PrfReadIncremental( Imc_Prf_t * p, FILE * pFile, int nVars, int 
     }
     Vec_IntForEachEntry( vUsed, Id, i )
     {
-        if ( (i & 1023) == 0 && TimeStop && Abc_Clock() >= TimeStop )
+        if ( (i & 1023) == 0 && Imc_ManCheckStop(TimeStop) )
             goto finish;
         pCls = Imc_PrfLookup( p, Id );
         for ( k = 0; k < pCls->nHints; k++ )
@@ -1589,7 +1590,7 @@ Gia_Man_t * Imc_PrfReadIncremental( Imc_Prf_t * p, FILE * pFile, int nVars, int 
     Vec_IntForEachEntry( vUsed, Id, i )
     {
         Vec_Int_t Lits, Chain;
-        if ( (i & 255) == 0 && TimeStop && Abc_Clock() >= TimeStop )
+        if ( (i & 255) == 0 && Imc_ManCheckStop(TimeStop) )
             goto finish;
         pCls = Imc_PrfLookup( p, Id );
         if ( pCls->fPartA >= 0 )

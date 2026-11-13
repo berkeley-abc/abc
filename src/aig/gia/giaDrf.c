@@ -862,8 +862,25 @@ void Drf_ManRelease( Drf_Man_t * p )
 ***********************************************************************/
 Gia_Man_t * Drf_ManRefactor( Gia_Man_t * pGia, int fKeepLevel, int fVerbose )
 {
+    return Drf_ManRefactorWithStop( pGia, fKeepLevel, fVerbose, NULL, NULL );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs a refactoring pass with optional cooperative cancellation.]
+
+  Description [Returns NULL after interruption without consuming the input.]
+
+  SideEffects []
+
+  SeeAlso     [Drf_ManRefactor]
+
+***********************************************************************/
+Gia_Man_t * Drf_ManRefactorWithStop( Gia_Man_t * pGia, int fKeepLevel, int fVerbose,
+    int (*pFuncStop)(void *), void * pStopData )
+{
     Drf_Man_t * p;
-    Gia_Man_t * pNew;
+    Gia_Man_t * pNew = NULL;
     Vec_Int_t * vCiLevels;
     Drf_Cut_t Cut;
     int Id, Lit, NewStart, OldAnds, Done;
@@ -874,6 +891,7 @@ Gia_Man_t * Drf_ManRefactor( Gia_Man_t * pGia, int fKeepLevel, int fVerbose )
     // the standard normalized interface when explicit registers coexist.
     if ( Gia_ManIsSeqWithBoxes( pGia ) && !Gia_ManIsNormalized( pGia ) ) return NULL;
     if ( Gia_ManObjNum( pGia ) > Gie_ObjectLimit() / 2 ) return NULL;
+    if ( pFuncStop && pFuncStop(pStopData) ) return NULL;
     vCiLevels = Gia_ManBoxNum( pGia ) ? Gie_BoxCiLevels( pGia ) : NULL;
     p = ABC_CALLOC( Drf_Man_t, 1 );
     Drf_ManInit( p, pGia, fKeepLevel, GIE_HASH_READY, vCiLevels );
@@ -883,6 +901,7 @@ Gia_Man_t * Drf_ManRefactor( Gia_Man_t * pGia, int fKeepLevel, int fVerbose )
     // their topological visit order; each is considered at most once.
     for ( Id = 1; Id < p->M.nOrig; Id++ )
     {
+        if ( !(Id & 255) && pFuncStop && pFuncStop(pStopData) ) goto cleanup;
         if ( p->M.pObjs[Id].Type != GIE_AND || p->M.pObjs[Id].Handled ) continue;
         assert( !p->M.pObjs[Id].Handled && p->M.pObjs[Id].Type == GIE_AND );
         assert( p->M.pObjs[p->M.pObjs[Id].Fan[0] >> 1].Handled );
@@ -936,6 +955,7 @@ Gia_Man_t * Drf_ManRefactor( Gia_Man_t * pGia, int fKeepLevel, int fVerbose )
         Gie_Finish( &p->M, Id );
     }
     Export = Abc_Clock();
+    if ( pFuncStop && pFuncStop(pStopData) ) goto cleanup;
     pNew = Gie_ManExport( &p->M, pGia );
     assert( p->M.nAnds == Gia_ManAndNum( pNew ) );
     Export = Abc_Clock() - Export;
@@ -950,6 +970,7 @@ Gia_Man_t * Drf_ManRefactor( Gia_Man_t * pGia, int fKeepLevel, int fVerbose )
                    (double) p->timeEval / CLOCKS_PER_SEC, (double) p->timeUpdate / CLOCKS_PER_SEC,
                    (double) Export / CLOCKS_PER_SEC, (double) ( Abc_Clock() - Start ) / CLOCKS_PER_SEC );
     }
+cleanup:
     Drf_ManRelease( p );
     ABC_FREE( p );
     return pNew;

@@ -25,6 +25,7 @@
 #include "opt/untk/NtkNtk.h"
 #include "opt/util/util.h"
 #include "UfarMgr.h"
+#include "UfarCmd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -36,10 +37,10 @@ static inline unsigned log_level() {
     return LogT::loglevel;
 }
 
-static unsigned           s_nOrigCexChecks    = 0;
-static unsigned           s_nOrigBitBlasts    = 0;
-static unsigned long long s_tOrigBitBlastUsec = 0;
-static unsigned long long s_tOrigCexCheckUsec = 0;
+static thread_local unsigned           s_nOrigCexChecks    = 0;
+static thread_local unsigned           s_nOrigBitBlasts    = 0;
+static thread_local unsigned long long s_tOrigBitBlastUsec = 0;
+static thread_local unsigned long long s_tOrigCexCheckUsec = 0;
 
 void Ufar_ResetOrigCexStats()
 {
@@ -153,7 +154,7 @@ static bool verify_cex_direct(Wlc_Ntk_t * pNtk, Abc_Cex_t * pCex) {
     return false;
 }
 
-static bool verify_cex_on_original(Wlc_Ntk_t * pOrig, Abc_Cex_t * pCex) {
+static bool verify_cex_on_original(Wlc_Ntk_t * pOrig, Abc_Cex_t * pCex, Abc_Cex_t ** ppCex) {
     timeval t1, t2, tCheck1, tCheck2;
     gettimeofday(&tCheck1, NULL);
     gettimeofday(&t1, NULL);
@@ -190,6 +191,22 @@ static bool verify_cex_on_original(Wlc_Ntk_t * pOrig, Abc_Cex_t * pCex) {
         Gia_ManForEachPo( pGiaOrig, pObj, i ) {
             if (pObj->Value==1) {
                 LOG(3) << "CEX is real.";
+                if ( ppCex ) {
+                    Abc_Cex_t * pOriginal = Abc_CexAlloc(Gia_ManRegNum(pGiaOrig), Gia_ManPiNum(pGiaOrig), f+1);
+                    pOriginal->iFrame = f;
+                    pOriginal->iPo = i;
+                    for ( int t = 0; t <= f; t++ )
+                    for ( int j = 0; j < pOriginal->nPis; j++ ) {
+                        int k = j < (int)nbits_orig_pis ? j : j + nbits_ppis;
+                        if ( Abc_InfoHasBit(pCex->pData, pCex->nRegs + pCex->nPis*t + k) )
+                            Abc_InfoSetBit(pOriginal->pData, pOriginal->nRegs + pOriginal->nPis*t + j);
+                    }
+                    if ( !Gia_ManVerifyCex(pGiaOrig, pOriginal, 0) ) {
+                        Abc_Print(1, "Warning: UFAR could not reconstruct its original counterexample.\n");
+                        Abc_CexFree(pOriginal);
+                    } else
+                        *ppCex = pOriginal;
+                }
                 Gia_ManStop(pGiaOrig);
                 gettimeofday(&tCheck2, NULL);
                 s_tOrigCexCheckUsec += elapsed_time_usec(tCheck1, tCheck2);
@@ -244,45 +261,7 @@ static void print_pairs(const set<UifPair>& set_pairs) {
     }
 }
 
-/*
-static int super_prove(Wlc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, bool fSimp, const string* pFileName = NULL) {
-    if(*ppCex) {
-        Abc_CexFree(*ppCex);
-        *ppCex = NULL;
-    }
 
-    Gia_Man_t * pGia = BitBlast(pNtk);
-
-    if (pFileName && !pFileName->empty())
-        Gia_AigerWriteSimple(pGia, &((*pFileName + ".aig")[0u]));
-
-    string tmpName = tmpnam(nullptr);
-    string tmpFileName = tmpName + ".aig";
-    Gia_AigerWrite( pGia, &tmpFileName[0u], 0, 0 );
-
-    //string cmd = "super_prove -r /dev/stderr " + tmpFileName;
-    string cmd;
-    if (fSimp)
-        cmd = "simple " + tmpFileName;
-    else
-        cmd = "super_prove " + tmpFileName;
-
-    vector<int> vec_cex;
-    int result = call_python("run_sp", "verify", cmd.c_str(), vec_cex);
-    if(result == 1)
-        readCexFromVec(pGia, vec_cex, ppCex);
-    remove(tmpFileName.c_str());
-    Gia_ManStop(pGia);
-
-    if (result == 0) {
-        return 1;
-    } else if (result == 1) {
-        return 0;
-    } else {
-        return -1;
-    }
-}
-*/
 
 static void get_operator_pair(Wlc_Ntk_t * p, const UIF_PAIR& uif_pair, array<int, 3>& wires1, array<int, 3>& wires2, const vector<int>& vec_ids, const VecVecInt& vv_op_ffs) {
     const UIF_PAIR& x = uif_pair;
@@ -360,9 +339,11 @@ static Gia_Man_t * unroll_with_cex(Wlc_Ntk_t * pChoice, Abc_Cex_t * pCex, int nb
 }
 
 static void compute_core_using_sat(Gia_Man_t * pFrames, vector<unsigned>& vec_cores, int nFrames, int num_sel_pis, int num_other_pis, bool sel_pi_first, VecVecInt* ppi_model = NULL, bool fSatMin = false, int nConfLimit = 0) {
+    if ( Ufar_StopIfRequested(0) ) return;
     Aig_Man_t * pAigFrames = Gia_ManToAigSimple( pFrames );
     Cnf_Dat_t * pCnf = Cnf_Derive(pAigFrames, Aig_ManCoNum(pAigFrames));
     sat_solver * pSat = sat_solver_new();
+    sat_solver_set_stop_func(pSat, Ufar_StopIfRequested);
     sat_solver_setnvars(pSat, pCnf->nVars);
     for (unsigned i = 0; i < pCnf->nClauses; i++) {
         if (!sat_solver_addclause(pSat, pCnf->pClauses[i], pCnf->pClauses[i + 1]))
@@ -423,6 +404,7 @@ static void compute_core_using_sat(Gia_Man_t * pFrames, vector<unsigned>& vec_co
                 }
 
                 for (int i = 0; i < vec_cores_marks.size(); i++) {
+                    if ( Ufar_StopIfRequested(0) ) break;
                     if (!vec_cores_marks[i])
                         continue;
 
@@ -467,7 +449,7 @@ static void compute_core_using_sat(Gia_Man_t * pFrames, vector<unsigned>& vec_co
 
         Vec_IntFree(vLits);
     }
-    Cnf_ManFree();
+    Cnf_DataFree(pCnf);
     sat_solver_delete(pSat);
     Aig_ManStop(pAigFrames);
 }
@@ -978,10 +960,7 @@ UfarManager::Params::Params() :
                 fNorm(true),
                 fAllWb(false),
                 fCrossOnly(false),
-                fSuper_prove(false),
-                fSimple(false),
                 fSyn(false),
-                fPthread(false),
                 iOneWb(-1),
                 iExp(-1),
                 nConstraintLimit(65536),
@@ -994,6 +973,7 @@ UfarManager::Params::Params() :
 UfarManager::UfarManager() : _pOrigNtk(NULL), _pAbsWithAuxPos(NULL), _fCrossReady(false) {}
 
 UfarManager::~UfarManager() {
+    if (_pAbsWithAuxPos) Wlc_NtkFree(_pAbsWithAuxPos);
     if (_pOrigNtk) Wlc_NtkFree(_pOrigNtk);
 }
 
@@ -1001,6 +981,8 @@ void UfarManager::Initialize(Wlc_Ntk_t * pNtk, const set<unsigned>& types) {
     Ufar_ResetOrigCexStats();
     LogT::loglevel = params.iVerbosity;
     if (_pOrigNtk) Wlc_NtkFree(_pOrigNtk);
+    if (_pAbsWithAuxPos) Wlc_NtkFree(_pAbsWithAuxPos);
+    _pAbsWithAuxPos = NULL;
     _vec_orig_names.clear();
     _vec_op_ids.clear();
     _vec_op_blackbox_marks.clear();
@@ -1320,7 +1302,7 @@ Wlc_Ntk_t * UfarManager::BuildCurrentAbstraction() {
     pNew = RemoveAuxPOs(pTemp = pNew, Wlc_NtkPoNum(_pOrigNtk));
     Wlc_NtkFree(pTemp);
 
-    // Preserve benchmark identity through abstraction refinements so
+    // Preserve design identity through abstraction refinements so
     // downstream bit-level engines report a meaningful miter name.
     if ( _pOrigNtk )
     {
@@ -1512,7 +1494,8 @@ void UfarManager::_shrink_final_abstraction() {
     int num_sel_pis = vec_choice2idx.size();
     int num_other_pis = compute_bit_level_pi_num(pNtkWithChoices) - num_sel_pis;
 
-    Gia_Man_t * pMiter = GetInvMiter(pNtkWithChoices, "inv.pla");
+    char InvFileName[] = "inv.pla";
+    Gia_Man_t * pMiter = GetInvMiter(pNtkWithChoices, InvFileName);
     printf("Miter stat: pi = %d, ff = %d, and = %d, po = %d\n", Gia_ManPiNum(pMiter), Gia_ManRegNum(pMiter), Gia_ManAndNum(pMiter), Gia_ManPoNum(pMiter));
 
     vector<unsigned> vec_core_choices;
@@ -1542,8 +1525,10 @@ void UfarManager::_perform_proof_based_grey_boxing(Abc_Cex_t * pCex) {
 
     vector<unsigned> vec_core_choices;
     _compute_core_choices(pNtkWithChoices, pCex, vec_core_choices, vec_choice2idx.size());
-    assert(!vec_core_choices.empty());
     Wlc_NtkFree(pNtkWithChoices);
+    if ( Ufar_StopIfRequested(0) )
+        return;
+    assert(!vec_core_choices.empty());
 
     if(log_level() >= 4) {
         for (auto x : vec_core_choices) {
@@ -1578,8 +1563,10 @@ void UfarManager::_perform_proof_based_white_boxing(Abc_Cex_t * pCex) {
 
     vector<unsigned> vec_core_choices;
     _compute_core_choices(pNtkWithChoices, pCex, vec_core_choices, vec_choice2idx.size());
-    assert(!vec_core_choices.empty());
     Wlc_NtkFree(pNtkWithChoices);
+    if ( Ufar_StopIfRequested(0) )
+        return;
+    assert(!vec_core_choices.empty());
 
     if(log_level() >= 2) {
         _oss.str("");
@@ -1642,19 +1629,8 @@ int UfarManager::VerifyCurrentAbstraction(Abc_Cex_t ** ppCex) {
     if(!params.fileAbs.empty())
         Wlc_WriteVer(pCurrent, &((params.fileAbs + "_abs.v")[0u]), 0, 0);
 
-    int ret = -1;
-    /*
-    if(params.fSuper_prove || params.fSimple) {
-        ret = super_prove(pCurrent, ppCex, params.fSimple, &params.fileName);
-    } else {
-        if ( params.fPthread ) {
-            ret = verify_model(pCurrent, ppCex, &params.fileName, &params.parSetting, params.fSyn, &_timeout);
-        } else {
-            ret = bit_level_solve(pCurrent, ppCex, &params.fileName, &params.parSetting, params.fSyn);
-        }
-    }
-    */
-    ret = verify_model(pCurrent, ppCex, &params.fileName, &params.parSetting, params.fSyn, &_timeout, params.pFuncStop, params.RunId, &params.solverSetting, (int)params.nTimeout);
+    int ret = SolveAbstractModel(pCurrent, ppCex, &params.fileName, params.fSyn,
+        (int)params.nTimeout, params.pFuncStop, params.RunId);
     Wlc_NtkFree(pCurrent);
 
     gettimeofday(&t2, NULL);
@@ -1663,7 +1639,7 @@ int UfarManager::VerifyCurrentAbstraction(Abc_Cex_t ** ppCex) {
     return ret;
 }
 
-int UfarManager::PerformUIFProve(const timeval& timer) {
+int UfarManager::PerformUIFProve(const timeval& timer, Abc_Cex_t ** ppCex) {
     struct Mem {
             Mem() : pCex(NULL), pCex2(NULL) {}
             ~Mem() {
@@ -1758,12 +1734,15 @@ int UfarManager::PerformUIFProve(const timeval& timer) {
                 // GetOperatorsInCex(mem.pCex);
                 timeval tCheck1, tCheck2;
                 gettimeofday(&tCheck1, NULL);
-                bool fRealCex = verify_cex_on_original(_pOrigNtk, mem.pCex);
+                bool fRealCex = verify_cex_on_original(_pOrigNtk, mem.pCex, ppCex);
                 gettimeofday(&tCheck2, NULL);
                 profile.tCexCheckOrig += elapsed_time_usec(tCheck1, tCheck2);
                 if (fRealCex) {
+                    if ( ppCex && !*ppCex )
+                        return -1;
                     profile.nRealCex++;
-                    PrintWordCEX(_pOrigNtk, mem.pCex, &_vec_orig_names);
+                    if ( !ppCex || params.iVerbosity )
+                        PrintWordCEX(_pOrigNtk, mem.pCex, &_vec_orig_names);
                     return 0;
                 }
                 profile.nSpuriousCex++;

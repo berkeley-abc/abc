@@ -53,6 +53,7 @@ struct Pdr_Par_t_
     int fTwoRounds;       // use two rounds for generalization
     int fMonoCnf;         // monolythic CNF
     int fNewXSim;         // updated X-valued simulation
+    int fTsimStop;        // poll cancellation during classic ternary simulation
     int fFlopPrio;        // use structural flop priorities
     int fFlopOrder;       // order flops for 'analyze_final' during generalization
     int fDumpInv;         // dump inductive invariant

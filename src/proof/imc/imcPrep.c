@@ -40,7 +40,7 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 static int Imc_SeqSweepStop( void * pData )
 {
-    return *(abctime *)pData && Abc_Clock() >= *(abctime *)pData;
+    return Imc_ManCheckStop( *(abctime *)pData );
 }
 
 /**Function*************************************************************

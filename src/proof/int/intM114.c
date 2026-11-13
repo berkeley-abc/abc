@@ -223,6 +223,7 @@ int Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward, ab
     // set runtime limit
     if ( nTimeNewOut )
         sat_solver_set_runtime_limit( pSat, nTimeNewOut );
+    Inter_ManApplyStop( pSat );
 
     // collect global variables
     pGlobalVars = ABC_CALLOC( int, sat_solver_nvars(pSat) );

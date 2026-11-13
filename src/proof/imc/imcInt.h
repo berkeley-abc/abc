@@ -36,6 +36,10 @@ ABC_NAMESPACE_HEADER_START
 
 #define IMC_PRED_MAX 512
 
+extern int Imc_ManCheckStop( abctime TimeStop );
+extern int Imc_ManStopActive( void );
+extern int Imc_ManStopId( int RunId );
+
 typedef struct Imc_Sat_t_ Imc_Sat_t;
 typedef struct Imc_Prf_t_ Imc_Prf_t;
 struct Imc_Sat_t_

@@ -154,6 +154,45 @@ Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * pInit, int fOldAlgo, int fCoarsen, int f
     Gia_ManStop( pTemp );
     return pNew;
 }
+/**Function*************************************************************
+
+  Synopsis    [Runs the default SYN2 sequence with cooperative cancellation.]
+
+  Description [Accepts flat graphs without timing metadata. Each stage
+  returns a complete graph; interruption returns NULL and preserves the input.]
+
+  SideEffects [Uses scratch fields of the input.]
+
+  SeeAlso     [Gia_ManAigSyn2]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManAigSyn2WithStop( Gia_Man_t * pInit,
+    int (*pFuncStop)(void *), void * pStopData )
+{
+    Gia_Man_t * p, * pNew;
+    Jf_Par_t Pars;
+    if ( pInit->pManTime || pInit->pAigExtra || pInit->vInArrs || pInit->vOutReqs ||
+         pInit->vCiArrs || pInit->vCoReqs || pInit->vCoArrs || pInit->vCoAttrs ||
+         pInit->vRegInits || pInit->pMuxes || Gia_ManXorNum(pInit) ||
+         Gia_ManHasChoices(pInit) || Gia_ManConstrNum(pInit) ) return NULL;
+    if ( pFuncStop && pFuncStop(pStopData) ) return NULL;
+    if ( !Gia_ManAndNum(pInit) ) return Gia_ManDup( pInit );
+    p = Gia_ManAreaBalanceWithStop( pInit, pFuncStop, pStopData );
+    if ( !p ) return NULL;
+    Lf_ManSetDefaultPars( &Pars );
+    Pars.fCutMin = 0;
+    Pars.fCoarsen = 1;
+    Pars.nRelaxRatio = 20;
+    Pars.nAreaTuner = 1;
+    Pars.nCutNum = 4;
+    pNew = Lf_ManPerformMappingWithStop( p, &Pars, pFuncStop, pStopData );
+    Gia_ManStop( p );
+    if ( !pNew ) return NULL;
+    p = Gia_ManAreaBalanceWithStop( pNew, pFuncStop, pStopData );
+    Gia_ManStop( pNew );
+    return p;
+}
+
 Gia_Man_t * Gia_ManAigSyn3( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
 {
     Gia_Man_t * pNew, * pTemp;

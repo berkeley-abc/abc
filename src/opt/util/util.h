@@ -69,8 +69,8 @@ class LogT {
             std::cout << _buffer.str() << std::endl;
         }
 
-        static unsigned loglevel;
-        static std::string prefix;
+        static thread_local unsigned loglevel;
+        static thread_local std::string prefix;
     private:
         std::ostringstream _buffer;
 };

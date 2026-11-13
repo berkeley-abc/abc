@@ -80,6 +80,10 @@ struct Lf_Man_t_
     // user data
     Gia_Man_t *     pGia;            // manager
     Jf_Par_t *      pPars;           // parameters
+    int             (*pFuncStop)(void *);
+    void *          pStopData;
+    unsigned        nStopChecks;
+    int             fStopped;
     // cut data
     int             nCutWords;       // cut size in words
     int             nSetWords;       // set size in words
@@ -139,6 +143,25 @@ extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_I
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Latches optional cancellation between mapping operations.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Lf_ManCheckStop( Lf_Man_t * p )
+{
+    if ( p->fStopped ) return 1;
+    if ( p->pFuncStop && !(p->nStopChecks++ & 255) )
+        p->fStopped = p->pFuncStop( p->pStopData );
+    return p->fStopped;
+}
 
 /**Function*************************************************************
 
@@ -1454,6 +1477,7 @@ void Lf_ManSetCutRefs( Lf_Man_t * p )
         printf( "The number of used cutsets = %d.\n", Vec_PtrSize(&p->vMemSets) * (1 << LF_LOG_PAGE) - Vec_IntSize(&p->vFreeSets) );
     Gia_ManForEachAnd( p->pGia, pObj, i )
     {
+        if ( Lf_ManCheckStop(p) ) return;
         assert( pObj->Value == 0 );
         if ( Gia_ObjIsBuf(pObj) )
             continue;
@@ -1593,6 +1617,7 @@ int Lf_ManSetMapRefs( Lf_Man_t * p )
         }
         Gia_ManForEachAndReverse( p->pGia, pObj, i )
         {
+            if ( Lf_ManCheckStop(p) ) return 0;
             if ( Gia_ObjIsBuf(pObj) )
             {
                 Lf_ObjSetRequired( p, Gia_ObjFaninId0(pObj, i), Lf_ObjRequired(p, i) );
@@ -1688,10 +1713,13 @@ void Lf_ManCountMapRefs( Lf_Man_t * p )
         Gia_ManForEachCoDriverId( p->pGia, Id, i )
             Lf_ObjSetRequired( p, Id, p->pPars->fDoAverage ? (int)(Lf_ObjCoArrival(p, i) * (100.0 + p->pPars->nRelaxRatio) / 100.0) : Delay );
         Gia_ManForEachAndReverse( p->pGia, pObj, i )
+        {
+            if ( Lf_ManCheckStop(p) ) return;
             if ( Gia_ObjIsBuf(pObj) )
                 Lf_ObjSetRequired( p, Gia_ObjFaninId0(pObj, i), Lf_ObjRequired(p, i) );
             else if ( Lf_ObjMapRefNum(p, i) )
                 Lf_ManCountMapRefsOne( p, i );
+        }
     }
     if ( p->pPars->fUseMux7 )
         Gia_ManCleanMark0(p->pGia);
@@ -1752,6 +1780,7 @@ Gia_Man_t * Lf_ManDeriveMappingCoarse( Lf_Man_t * p )
     Gia_ManConst0(pGia)->Value = 0;
     Gia_ManForEachObj1( pGia, pObj, i )
     {
+        if ( Lf_ManCheckStop(p) ) { Gia_ManStop(pNew); return NULL; }
         if ( Gia_ObjIsCi(pObj) )
             { pObj->Value = Gia_ManAppendCi( pNew ); continue; }
         if ( Gia_ObjIsCo(pObj) )
@@ -2150,12 +2179,14 @@ void Lf_ManComputeMapping( Lf_Man_t * p )
     int i, arrTime;
     assert( p->vStoreNew.iCur == 0 );
     Lf_ManSetCutRefs( p );
+    if ( p->fStopped ) return;
     if ( p->pGia->pManTime != NULL )
     {
         assert( !Gia_ManBufNum(p->pGia) );
         Tim_ManIncrementTravId( (Tim_Man_t*)p->pGia->pManTime );
         Gia_ManForEachObj1( p->pGia, pObj, i )
         {
+            if ( Lf_ManCheckStop(p) ) return;
             if ( Gia_ObjIsBuf(pObj) )
                 continue;
             if ( Gia_ObjIsAnd(pObj) )
@@ -2177,8 +2208,11 @@ void Lf_ManComputeMapping( Lf_Man_t * p )
     else
     {
         Gia_ManForEachAnd( p->pGia, pObj, i )
+        {
+            if ( Lf_ManCheckStop(p) ) return;
             if ( !Gia_ObjIsBuf(pObj) )
                 Lf_ObjMergeOrder( p, i );
+        }
     }
     Lf_MemRecycle( &p->vStoreOld );
     ABC_SWAP( Lf_Mem_t, p->vStoreOld, p->vStoreNew );
@@ -2186,13 +2220,27 @@ void Lf_ManComputeMapping( Lf_Man_t * p )
         Lf_ManCountMapRefs( p );
     else
         Lf_ManSetMapRefs( p );
+    if ( p->fStopped ) return;
     Lf_ManPrintStats( p, (char *)(p->fUseEla ? "Ela  " : (p->Iter ? "Area " : "Delay")) );
 }
-Gia_Man_t * Lf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars )
+/**Function*************************************************************
+
+  Synopsis    [Maps a circuit with optional cooperative cancellation.]
+
+  Description [The caller retains the input graph. An interrupted mapping
+  frees its temporary managers and returns NULL.]
+
+  SideEffects [Updates mapping parameters and restores the timing manager.]
+
+  SeeAlso     [Lf_ManPerformMapping Lf_ManPerformMappingWithStop]
+
+***********************************************************************/
+static Gia_Man_t * Lf_ManPerformMappingStop( Gia_Man_t * pGia, Jf_Par_t * pPars,
+    int (*pFuncStop)(void *), void * pStopData )
 {
     int fUsePowerMode = 0;
     Lf_Man_t * p;
-    Gia_Man_t * pNew, * pCls;
+    Gia_Man_t * pNew = NULL, * pCls;
     if ( pPars->fUseMux7 )
         pPars->fCoarsen = 1, pPars->nRoundsEla = 0;
     if ( Gia_ManHasChoices(pGia) || pPars->nLutSizeMux )
@@ -2204,6 +2252,8 @@ Gia_Man_t * Lf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars )
     }
     else pCls = pGia;
     p = Lf_ManAlloc( pCls, pPars );
+    p->pFuncStop = pFuncStop;
+    p->pStopData = pStopData;
     if ( pPars->fVerbose && pPars->fCoarsen )
     {
         printf( "Initial " );  Gia_ManPrintMuxStats( pGia );  printf( "\n" );
@@ -2217,10 +2267,17 @@ Gia_Man_t * Lf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars )
 
     // perform mapping
     for ( p->Iter = 0; p->Iter < p->pPars->nRounds; p->Iter++ )
+    {
+        if ( Lf_ManCheckStop(p) ) goto finish;
         Lf_ManComputeMapping( p );
+    }
     p->fUseEla = 1;
     for ( ; p->Iter < p->pPars->nRounds + pPars->nRoundsEla; p->Iter++ )
+    {
+        if ( Lf_ManCheckStop(p) ) goto finish;
         Lf_ManComputeMapping( p );
+    }
+    if ( Lf_ManCheckStop(p) ) goto finish;
 
     // power mode
     if ( fUsePowerMode && Vec_FltSize(&p->vSwitches) )
@@ -2238,8 +2295,10 @@ Gia_Man_t * Lf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars )
         pNew = Lf_ManDeriveMappingCoarse( p );
     else
         pNew = Lf_ManDeriveMapping( p );
+    if ( !pNew ) goto finish;
     Gia_ManMappingVerify( pNew );
     Lf_ManPrintQuit( p, pNew );
+finish:
     Lf_ManFree( p );
     if ( pCls != pGia )
     {
@@ -2248,6 +2307,55 @@ Gia_Man_t * Lf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars )
     }
     return pNew;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Preserves the original mapping entry point.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Lf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars )
+{
+    return Lf_ManPerformMappingStop( pGia, pPars, NULL, NULL );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Maps a private flat AIG using cancellable structural cuts.]
+
+  Description [Supports coarse mapping without truth minimization, choices,
+  switching activity, or timing metadata. Returns NULL if interrupted or
+  unsupported. The input stays with the caller.]
+
+  SideEffects [Updates mapping statistics in the parameters.]
+
+  SeeAlso     [Lf_ManPerformMapping]
+
+***********************************************************************/
+Gia_Man_t * Lf_ManPerformMappingWithStop( Gia_Man_t * pGia, Jf_Par_t * pPars,
+    int (*pFuncStop)(void *), void * pStopData )
+{
+    Gia_Man_t * pCopy, * pNew;
+    if ( pGia->pManTime || pGia->pAigExtra || pGia->vInArrs || pGia->vOutReqs ||
+         pGia->vCiArrs || pGia->vCoReqs || pGia->vCoArrs || pGia->vCoAttrs ||
+         pGia->vRegInits || pGia->pMuxes || Gia_ManXorNum(pGia) || Gia_ManConstrNum(pGia) ||
+         Gia_ManHasChoices(pGia) || pPars->pTimesArr ||
+         pPars->pTimesReq || pPars->fPower || pPars->fCutMin || !pPars->fCoarsen || pPars->nLutSizeMux )
+        return NULL;
+    if ( pFuncStop && pFuncStop(pStopData) ) return NULL;
+    pCopy = Gia_ManDup( pGia );
+    pNew = Lf_ManPerformMappingStop( pCopy, pPars, pFuncStop, pStopData );
+    if ( pNew != pCopy ) Gia_ManStop( pCopy );
+    if ( pNew && pFuncStop && pFuncStop(pStopData) )
+        Gia_ManStopP( &pNew );
+    return pNew;
+}
+
 Gia_Man_t * Lf_ManPerformMapping( Gia_Man_t * p, Jf_Par_t * pPars )
 {
     Gia_Man_t * pNew;

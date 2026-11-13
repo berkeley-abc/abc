@@ -143,6 +143,7 @@ struct Pdr_Man_t_
     Vec_Int_t * vNodes;    // cone nodes
     Vec_Int_t * vUndo;     // cone undos
     Vec_Int_t * vVisits;   // intermediate
+    unsigned    nTsimVisits; // visits since opt-in cancellation polling began
     Vec_Int_t * vCi2Rem;   // CIs to be removed
     Vec_Int_t * vRes;      // final result
     abctime *   pTime4Outs;// timeout per output

@@ -4440,5 +4440,30 @@ addMultiplicityGroups(
 } /* end of addMultiplicityGroups */
 
 
+
+/* Installs optional cancellation on one BDD manager. The callback and its context remain owned by
+ * the caller. A NULL callback preserves the existing behavior. Resets the latched stop request and
+ * polling counter. See also: Cudd_CheckStop */
+void Cudd_SetStopCallback( DdManager * dd, int (*pFunc)(void *), void * pData )
+{
+    dd->pFuncStop = pFunc;
+    dd->pStopData = pData;
+    dd->nStopCalls = 0;
+    dd->fStopRequested = 0;
+}
+
+/* Polls and latches an optional cancellation request. The optional caller also observes the
+ * existing memory bound. Recursive BDD operations return NULL after cancellation. Latches the
+ * request until the callback is reset. See also: Cudd_SetStopCallback */
+int Cudd_CheckStop( DdManager * dd )
+{
+    if ( dd->pFuncStop == NULL )
+        return 0;
+    if ( !dd->fStopRequested &&
+         (dd->memused > dd->maxmemhard || dd->pFuncStop(dd->pStopData)) )
+        dd->fStopRequested = 1;
+    return dd->fStopRequested;
+}
+
 ABC_NAMESPACE_IMPL_END
 

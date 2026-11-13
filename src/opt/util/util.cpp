@@ -32,8 +32,8 @@ ABC_NAMESPACE_IMPL_START
 
 using namespace std;
 
-unsigned LogT::loglevel = 0;
-string LogT::prefix = "LOG";
+thread_local unsigned LogT::loglevel = 0;
+thread_local string LogT::prefix = "LOG";
 
 bool OptMgr::Parse(int argc, char * argv[]) {
     if(argc <= 1) return true;

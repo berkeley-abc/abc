@@ -1143,10 +1143,10 @@ Vec_Int_t * Cbs_ManSolveMiterNcOutVals( Gia_Man_t * pAig, int nConfs, Vec_Str_t 
     extern void Gia_ManCollectTest( Gia_Man_t * pAig );
     extern void Cec_ManSatAddToStore( Vec_Int_t * vCexStore, Vec_Int_t * vCex, int Out );
     // &scorr fine-grained profiling hooks (defined in cecCorr.c)
-    extern int     Cec_ScorrProfOn, Cec_ScorrProfCalls;
-    extern abctime Cec_ScorrProfSetup, Cec_ScorrProfSolve, Cec_ScorrProfMax;
-    extern ABC_INT64_T Cec_ScorrConfLimit, Cec_ScorrConfUsed;
-    extern int         Cec_ScorrConfStop;
+    extern ABC_THREAD_LOCAL int     Cec_ScorrProfOn, Cec_ScorrProfCalls;
+    extern ABC_THREAD_LOCAL abctime Cec_ScorrProfSetup, Cec_ScorrProfSolve, Cec_ScorrProfMax;
+    extern ABC_THREAD_LOCAL ABC_INT64_T Cec_ScorrConfLimit, Cec_ScorrConfUsed;
+    extern ABC_THREAD_LOCAL int         Cec_ScorrConfStop;
     Cbs_Man_t * p;
     Vec_Int_t * vCex, * vVisit, * vCexStore, * vOutVals = NULL;
     Vec_Str_t * vStatus;
@@ -1358,8 +1358,8 @@ void Cbs_ManSyncCore( Cbs_Man_t * p )
 Vec_Int_t * Cbs_ManSolveRoots( Cbs_Man_t * p, Vec_Int_t * vRootLits, Vec_Str_t ** pvStatus, int fVerbose )
 {
     extern void Cec_ManSatAddToStore( Vec_Int_t * vCexStore, Vec_Int_t * vCex, int Out );
-    extern int     Cec_ScorrProfOn, Cec_ScorrProfCalls;
-    extern abctime Cec_ScorrProfSetup, Cec_ScorrProfSolve, Cec_ScorrProfMax;
+    extern ABC_THREAD_LOCAL int     Cec_ScorrProfOn, Cec_ScorrProfCalls;
+    extern ABC_THREAD_LOCAL abctime Cec_ScorrProfSetup, Cec_ScorrProfSolve, Cec_ScorrProfMax;
     Gia_Man_t * pAig = p->pAig;
     Vec_Int_t * vCex, * vCexStore;
     Vec_Str_t * vStatus;

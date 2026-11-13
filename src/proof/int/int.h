@@ -67,6 +67,9 @@ struct Inter_ManParams_t_
     int  fVerbose;      // print verbose statistics
     int  iFrameMax;     // the time frame reached
     char * pFileName;   // file name to dump interpolant
+    abctime TimeToStop; // optional caller-owned absolute wall deadline
+    int RunId;         // identifier passed to the termination callback
+    int (*pFuncStop)(int); // optional cooperative cancellation
 };
 
 ////////////////////////////////////////////////////////////////////////

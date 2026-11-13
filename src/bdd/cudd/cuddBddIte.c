@@ -667,6 +667,7 @@ cuddBddIteRecur(
     int          comple;
 
     statLine(dd);
+    if ( cuddPollStop(dd) ) return NULL;
     /* Terminal cases. */
 
     /* One variable cases. */
@@ -950,7 +951,7 @@ cuddBddAndRecur(
         if (r != NULL) return(r);
     }
 
-    if ( manager->TimeStop && Abc_Clock() > manager->TimeStop )
+    if ( (manager->TimeStop && Abc_Clock() > manager->TimeStop) || cuddPollStop(manager) )
         return NULL;
 
     /* Here we can skip the use of cuddI, because the operands are known
@@ -1048,6 +1049,7 @@ cuddBddXorRecur(
     unsigned int topf, topg, index;
 
     statLine(manager);
+    if ( cuddPollStop(manager) ) return NULL;
     one = DD_ONE(manager);
     zero = Cudd_Not(one);
 

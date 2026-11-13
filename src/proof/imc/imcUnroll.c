@@ -151,7 +151,7 @@ static Vec_Int_t * Imc_UnrEncode( Imc_Man_t * p, Vec_Int_t * vRoots )
         if ( Vec_StrEntry(vSeen, Id) ) continue;
         Vec_StrWriteEntry( vSeen, Id, 1 );
         Vec_IntPush( vNodes, Id );
-        if ( (Vec_IntSize(vNodes) & 1023) == 0 && p->TimeStop && Abc_Clock() >= p->TimeStop )
+        if ( (Vec_IntSize(vNodes) & 1023) == 0 && Imc_ManCheckStop(p->TimeStop) )
             goto finish;
         if ( Vec_IntEntry(pUnroll->vVars, Id) >= 0 ) continue;
         pObj = Gia_ManObj( pUnroll->pGia, Id );
@@ -281,7 +281,7 @@ int Imc_ManExtendSuffix( Imc_Man_t * p, int nFrames )
     nOldClauses = p->pCnfB->nClauses;
     while ( pUnroll->nFrames < nFrames )
     {
-        if ( p->TimeStop && Abc_Clock() >= p->TimeStop ) return 0;
+        if ( Imc_ManCheckStop(p->TimeStop) ) return 0;
         nOldInputs = Vec_IntSize( pUnroll->vInputs );
         nOldResets = Vec_IntSize( pUnroll->vResets );
         Gia_ManConst0(p->pGia)->Value = 0;
@@ -301,7 +301,7 @@ int Imc_ManExtendSuffix( Imc_Man_t * p, int nFrames )
             pObj->Value = Vec_IntEntry( pUnroll->vState, i );
         Gia_ManForEachAnd( p->pGia, pObj, i )
         {
-            if ( (i & 1023) == 0 && p->TimeStop && Abc_Clock() >= p->TimeStop )
+            if ( (i & 1023) == 0 && Imc_ManCheckStop(p->TimeStop) )
             {
                 Vec_IntShrink( pUnroll->vInputs, nOldInputs );
                 Vec_IntShrink( pUnroll->vResets, nOldResets );

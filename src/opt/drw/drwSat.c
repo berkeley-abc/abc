@@ -42,11 +42,30 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 Gia_Man_t * Drw_ManRwsat( Gia_Man_t * pGia, int fBalance, int fVerbose )
 {
+    return Drw_ManRwsatWithStop( pGia, fBalance, fVerbose, NULL, NULL );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs the verification rewrite script with cooperative cancellation.]
+
+  Description [Only completed passes can be returned. A stop discards all
+  private work and leaves the input owned by the caller.]
+
+  SideEffects []
+
+  SeeAlso     [Drw_ManRwsat]
+
+***********************************************************************/
+Gia_Man_t * Drw_ManRwsatWithStop( Gia_Man_t * pGia, int fBalance, int fVerbose,
+    int (*pFuncStop)(void *), void * pStopData )
+{
     Gia_Man_t * pWork, * pNext;
     int Pass;
     if ( !pGia || Gia_ManHasChoices(pGia) || pGia->pMuxes ||
          Gia_ManXorNum(pGia) || Gia_ManBufNum(pGia) || Gia_ManBoxNum(pGia) )
         return NULL;
+    if ( pFuncStop && pFuncStop(pStopData) ) return NULL;
     pWork = Gia_ManDup( pGia );
     pWork->nConstrs = pGia->nConstrs;
     if ( pGia->vRegInits ) pWork->vRegInits = Vec_IntDup( pGia->vRegInits );
@@ -54,6 +73,7 @@ Gia_Man_t * Drw_ManRwsat( Gia_Man_t * pGia, int fBalance, int fVerbose )
     if ( pGia->vNamesOut ) pWork->vNamesOut = Vec_PtrDupStr( pGia->vNamesOut );
     for ( Pass = 0; Pass < 3; Pass++ )
     {
+        if ( pFuncStop && pFuncStop(pStopData) ) { Gia_ManStop(pWork); return NULL; }
         if ( fBalance && Pass != 1 )
         {
             pNext = Gia_ManBalance( pWork, 0, 0, fVerbose );
@@ -61,8 +81,8 @@ Gia_Man_t * Drw_ManRwsat( Gia_Man_t * pGia, int fBalance, int fVerbose )
             Gia_ManStop( pWork );
             pWork = pNext;
         }
-        pNext = Pass == 1 ? Drf_ManRefactor(pWork, 0, fVerbose)
-                         : Drw_ManRewrite(pWork, 0, fVerbose);
+        pNext = Pass == 1 ? Drf_ManRefactorWithStop(pWork, 0, fVerbose, pFuncStop, pStopData)
+                         : Drw_ManRewriteWithStop(pWork, 0, fVerbose, pFuncStop, pStopData);
         if ( !pNext ) { Gia_ManStop(pWork); return NULL; }
         Gia_ManStop( pWork );
         pWork = pNext;
@@ -72,6 +92,7 @@ Gia_Man_t * Drw_ManRwsat( Gia_Man_t * pGia, int fBalance, int fVerbose )
     pNext = Gia_ManDupNormalize( pWork, 1 );
     Gia_ManStop( pWork );
     pWork = pNext;
+    if ( pFuncStop && pFuncStop(pStopData) ) { Gia_ManStop(pWork); return NULL; }
     // All passes preserve the interface, including explicit initialization.
     pWork->nConstrs = pGia->nConstrs;
     if ( pGia->vRegInits && !pWork->vRegInits )

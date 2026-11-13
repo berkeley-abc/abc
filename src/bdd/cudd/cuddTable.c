@@ -364,6 +364,10 @@ cuddInitTable(
     if (unique == NULL) {
         return(NULL);
     }
+    unique->pFuncStop = NULL;
+    unique->pStopData = NULL;
+    unique->nStopCalls = 0;
+    unique->fStopRequested = 0;
     sentinel = &(unique->sentinel);
     sentinel->ref = 0;
     sentinel->index = 0;

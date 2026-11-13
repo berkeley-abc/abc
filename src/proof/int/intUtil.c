@@ -57,6 +57,7 @@ int Inter_ManCheckInitialState( Aig_Man_t * p )
         Cnf_DataFree( pCnf );
         return 0;
     }
+    Inter_ManApplyStop( pSat );
     status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     //ABC_PRT( "Time", Abc_Clock() - clk );
     if ( status == l_True )

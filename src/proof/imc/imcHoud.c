@@ -154,7 +154,7 @@ static int Imc_HouValue( Imc_Hou_t * p, int Lit )
 static int Imc_HouStop( void * pUser )
 {
     abctime TimeStop = *(abctime *)pUser;
-    return TimeStop && Abc_Clock() >= TimeStop;
+    return Imc_ManCheckStop(TimeStop);
 }
 
 /**Function*************************************************************
@@ -433,7 +433,7 @@ static Vec_Str_t * Imc_HouFilter( Gia_Man_t * pGia, Gia_Man_t * pPred, Vec_Int_t
     for ( Mode = 0; Mode < 3; Mode++ )
     {
         memset( pValues, 0, sizeof(word) * Gia_ManObjNum(pGia) );
-        for ( f = 0; f < nFrames && (!TimeStop || Abc_Clock() < TimeStop); f++ )
+        for ( f = 0; f < nFrames && (!Imc_ManCheckStop(TimeStop)); f++ )
         {
             Gia_ManForEachPi( pGia, pObj, i )
                 pValues[Gia_ObjId(pGia, pObj)] = Imc_ManSimInput( i, f, Mode == 1 ? 4 : Mode == 2 ? 1 : 0, &Seed );

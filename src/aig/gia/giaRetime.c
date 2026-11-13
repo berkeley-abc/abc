@@ -294,6 +294,46 @@ Gia_Man_t * Gia_ManRetimeForward( Gia_Man_t * p, int nMaxIters, int fVerbose )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Retimes a bounded private graph with cancellation between passes.]
+
+  Description [Accepts flat zero-initialized graphs without timing metadata.
+  The object limit bounds each indivisible pass. Interruption or size growth
+  beyond this limit returns NULL, and no partial result is exposed.]
+
+  SideEffects [Uses scratch fields while duplicating the input.]
+
+  SeeAlso     [Gia_ManRetimeForward]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManRetimeForwardWithStop( Gia_Man_t * p, int nMaxIters, int nObjMax,
+    int (*pFuncStop)(void *), void * pStopData )
+{
+    Gia_Man_t * pNew, * pTemp;
+    int i, nRegFixed, nRegMoves = 1;
+    if ( !p || nMaxIters < 0 || nObjMax < 1 || Gia_ManObjNum(p) > nObjMax ||
+         p->pManTime || p->pAigExtra || p->vInArrs || p->vOutReqs ||
+         p->vCiArrs || p->vCoReqs || p->vCoArrs || p->vCoAttrs ||
+         p->vRegInits || p->vInitClasses || p->vRegClasses || p->vFlopClasses ||
+         p->pMuxes || Gia_ManXorNum(p) || Gia_ManBufNum(p) ||
+         Gia_ManHasChoices(p) || Gia_ManConstrNum(p) ) return NULL;
+    if ( pFuncStop && pFuncStop(pStopData) ) return NULL;
+    pNew = Gia_ManDup( p );
+    for ( i = 0; i < nMaxIters && nRegMoves > 0 && Gia_ManRegNum(pNew); i++ )
+    {
+        if ( pFuncStop && pFuncStop(pStopData) ) goto stopped;
+        pNew = Gia_ManRetimeForwardOne( pTemp = pNew, &nRegFixed, &nRegMoves );
+        Gia_ManStop( pTemp );
+        if ( Gia_ManObjNum(pNew) > nObjMax ) goto stopped;
+    }
+    if ( pFuncStop && pFuncStop(pStopData) ) goto stopped;
+    return pNew;
+stopped:
+    Gia_ManStop( pNew );
+    return NULL;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

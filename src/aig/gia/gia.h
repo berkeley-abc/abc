@@ -1327,6 +1327,10 @@ extern void                Gia_AigerWriteSimple( Gia_Man_t * pInit, char * pFile
 /*=== giaBalance.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManBalance( Gia_Man_t * p, int fSimpleAnd, int fStrict, int fVerbose );
 extern Gia_Man_t *         Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax, int fVerbose, int fVeryVerbose );
+extern Gia_Man_t *         Gia_ManAreaBalanceWithStop( Gia_Man_t * p,
+                              int (*pFuncStop)(void *), void * pStopData );
+extern Gia_Man_t *         Gia_ManAigSyn2WithStop( Gia_Man_t * p,
+                              int (*pFuncStop)(void *), void * pStopData );
 extern Gia_Man_t *         Gia_ManAigSyn2( Gia_Man_t * p, int fOldAlgo, int fCoarsen, int fCutMin, int nRelaxRatio, int fDelayMin, int fVerbose, int fVeryVerbose );
 extern Gia_Man_t *         Gia_ManAigSyn3( Gia_Man_t * p, int fVerbose, int fVeryVerbose );
 extern Gia_Man_t *         Gia_ManAigSyn4( Gia_Man_t * p, int fVerbose, int fVeryVerbose );
@@ -1554,6 +1558,8 @@ extern Gia_Man_t *         Gia_ManPerformFx( Gia_Man_t * p, int nNewNodesMax, in
 //=== giaDrf.c ============================================================
 // Returns NULL for unsupported inputs, including barrier buffers.
 extern Gia_Man_t *         Drf_ManRefactor( Gia_Man_t * pGia, int fKeepLevel, int fVerbose );
+extern Gia_Man_t *         Drf_ManRefactorWithStop( Gia_Man_t * pGia, int fKeepLevel, int fVerbose,
+                              int (*pFuncStop)(void *), void * pStopData );
 //=== giaIf2.c ============================================================
 extern void                If2_ManSetDefaultPars( If2_Par_t * pPars );
 extern Gia_Man_t *         If2_ManPerformMapping( Gia_Man_t * pGia, If2_Par_t * pPars );
@@ -1632,6 +1638,8 @@ extern Gia_Man_t *         Gia_ManIsoReduce2( Gia_Man_t * p, Vec_Ptr_t ** pvPosE
 /*=== giaLf.c ===========================================================*/
 extern void                Lf_ManSetDefaultPars( Jf_Par_t * pPars );
 extern Gia_Man_t *         Lf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars );
+extern Gia_Man_t *         Lf_ManPerformMappingWithStop( Gia_Man_t * pGia, Jf_Par_t * pPars,
+                              int (*pFuncStop)(void *), void * pStopData );
 extern Gia_Man_t *         Gia_ManPerformLfMapping( Gia_Man_t * p, Jf_Par_t * pPars, int fNormalized );
 /*=== giaLogic.c ===========================================================*/
 extern void                Gia_ManTestDistance( Gia_Man_t * p );
@@ -1671,6 +1679,8 @@ extern int                 Gia_MmStepReadMemUsage( Gia_MmStep_t * p );
 /*=== giaMf.c ===========================================================*/
 extern void                Mf_ManSetDefaultPars( Jf_Par_t * pPars );
 extern Gia_Man_t *         Mf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars );
+extern Gia_Man_t *         Mf_ManPerformMappingWithStop( Gia_Man_t * pGia, Jf_Par_t * pPars,
+                              int (*pFuncStop)(void *), void * pStopData );
 extern void *              Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fMapping, int fVerbose );
 /*=== giaMini.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManReadMiniAig( char * pFileName, int fGiaSimple );
@@ -1689,6 +1699,8 @@ extern Gia_Man_t *         Gia_ManDupNoMuxes( Gia_Man_t * p, int fSkipBufs );
 extern void                Gia_SatVerifyPattern( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vCex, Vec_Int_t * vVisit );
 /*=== giaRetime.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManRetimeForward( Gia_Man_t * p, int nMaxIters, int fVerbose );
+extern Gia_Man_t *         Gia_ManRetimeForwardWithStop( Gia_Man_t * p, int nMaxIters, int nObjMax,
+                              int (*pFuncStop)(void *), void * pStopData );
 /*=== giaSat.c ============================================================*/
 extern int                 Sat_ManTest( Gia_Man_t * pGia, Gia_Obj_t * pObj, int nConfsMax );
 /*=== giaScl.c ============================================================*/
@@ -1698,6 +1710,8 @@ extern Gia_Man_t *         Gia_ManCleanup( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManCleanupOutputs( Gia_Man_t * p, int nOutputs );
 extern Gia_Man_t *         Gia_ManSeqCleanup( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManSeqStructSweep( Gia_Man_t * p, int fConst, int fEquiv, int fVerbose );
+extern Gia_Man_t *         Gia_ManSeqStructSweepWithStop( Gia_Man_t * p, int fConst, int fEquiv,
+                              int fVerbose, int (*pFuncStop)(void *), void * pStopData );
 /*=== giaShow.c ===========================================================*/
 extern void                Gia_ManShow( Gia_Man_t * pMan, Vec_Int_t * vBold, int fAdders, int fFadds, int fPath );
 /*=== giaShrink.c ===========================================================*/
@@ -1827,6 +1841,8 @@ extern void                Gia_ObjComputeTruthTableStop( Gia_Man_t * p );
 extern word *              Gia_ObjComputeTruthTableCut( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vLeaves );
 /*=== giaTsim.c ============================================================*/
 extern Gia_Man_t *         Gia_ManReduceConst( Gia_Man_t * pAig, int fVerbose );
+extern Gia_Man_t *         Gia_ManReduceConstWithStop( Gia_Man_t * pAig, int fVerbose,
+                              int (*pFuncStop)(void *), void * pStopData );
 /*=== giaUtil.c ===========================================================*/
 extern unsigned            Gia_ManRandom( int fReset );
 extern word                Gia_ManRandomW( int fReset );

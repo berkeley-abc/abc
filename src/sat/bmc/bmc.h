@@ -185,6 +185,51 @@ struct Bmc_AndPar_t_
 };
   
 typedef struct Bmc_BCorePar_t_ Bmc_BCorePar_t;
+typedef struct Bmc_Shared_t_ Bmc_Shared_t;
+struct Bmc_Shared_t_
+{
+    // Exchange a proved prefix length and return the largest known prefix.
+    // Every output in every frame of that prefix must be unreachable from reset.
+    // Callers synchronize the context and share only models with the same trace semantics.
+    int       (*pFuncFrames)(void *, int);
+    void *      pData;
+};
+typedef struct Bmc_Stats_t_ Bmc_Stats_t;
+struct Bmc_Stats_t_
+{
+    int         nFramesShared;
+    int         fMemoryLimit;
+    double      MemoryPeakMB;
+};
+
+typedef struct Bmc_GiaPar_t_ Bmc_GiaPar_t;
+struct Bmc_GiaPar_t_
+{
+    int         nFramesMax;     // maximum frames to check (0 = unlimited)
+    int         nTimeOut;       // wall-clock seconds (0 = unlimited)
+    int         nConfLimit;     // conflicts per SAT query (0 = unlimited)
+    int         nLutSize;       // cut size for incremental CNF mapping
+    int         nMemoryLimit;   // estimated memory budget in MiB (0 = unlimited)
+    int         fPhase;         // initial SAT variable polarity
+    int         fVerbose;       // print completed frames and phase times
+    int         fSilent;        // suppress the final result line
+    abctime     TimeToStop;     // optional earlier absolute deadline
+    int       (*pFuncStop)(void *);
+    void *      pStopData;      // caller-owned cancellation context
+    Bmc_Shared_t * pShared;     // optional trusted concrete prefix exchange
+    int         nFramesDone;    // safe frames from frame 0, including shared prefixes
+    int         nFramesShared;  // frames whose queries were skipped using the exchange
+    int         iFrame;         // failing frame, or last fully checked frame
+    int         nQueries;       // SAT queries issued
+    int         fMemoryLimit;   // stopped at the memory or object limit
+    abctime     timeUnroll;
+    abctime     timeCnf;
+    abctime     timeSat;
+    abctime     timeTeardown;
+    abctime     timeSatOverrun;
+    double      MemoryPeakMB;
+};
+
 struct Bmc_BCorePar_t_
 {
     int         iFrame;         // timeframe
@@ -254,6 +299,13 @@ extern int               Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFra
 /*=== bmcBmc3.c ==========================================================*/
 extern void              Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p );
 extern int               Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars );
+extern int               Saig_ManBmcScalablePortfolio( Aig_Man_t * pAig, Saig_ParBmc_t * pPars,
+                             int nMemoryLimit, Bmc_Shared_t * pShared, Bmc_Stats_t * pStats );
+/*=== bmcBmcGia.c ========================================================*/
+extern void              Bmc_GiaSetDefaultParams( Bmc_GiaPar_t * pPars );
+extern int               Bmc_GiaPerform( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars );
+extern int               Bmcg_ManPerformWithStop( Gia_Man_t * pGia, Bmc_AndPar_t * pPars,
+                             int (*pFuncStop)(void *), void * pStopData );
 /*=== bmcBmcAnd.c ==========================================================*/
 extern int               Gia_ManBmcPerform( Gia_Man_t * p, Bmc_AndPar_t * pPars );
 // bmcCasDec2.c

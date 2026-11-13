@@ -15,6 +15,7 @@ SRC +=    src/proof/ssw/sswAig.c \
     src/proof/ssw/sswSat.c \
     src/proof/ssw/sswSemi.c \
     src/proof/ssw/sswSim.c \
+    src/proof/ssw/sswSim4.c \
     src/proof/ssw/sswSimSat.c \
     src/proof/ssw/sswSweep.c \
     src/proof/ssw/sswUnique.c

@@ -126,6 +126,7 @@ public:
     int     nVars      ()      const;       // The current number of variables.
     int     nFreeVars  ()      const;
     int *   getCex     ()      const;
+    double  memoryEstimate()  const;
 
     // Incremental mode
     void setIncrementalMode();

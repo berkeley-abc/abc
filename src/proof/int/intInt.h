@@ -40,6 +40,9 @@
 
 ABC_NAMESPACE_HEADER_START
 
+extern int             Inter_ManShouldStop( void );
+extern void            Inter_ManApplyStop( sat_solver * pSat );
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///

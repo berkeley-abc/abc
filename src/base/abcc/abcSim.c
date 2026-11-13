@@ -24,6 +24,9 @@
 #include "sat/bmc/bmc.h"
 #include "bool/kit/kit.h"
 #include "proof/cec/cec.h"
+#include "proof/ssw/sswSim4.h"
+#include <errno.h>
+#include <limits.h>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -45,6 +48,7 @@ static int Abc_CommandCexMerge               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Sim                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Sim2               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Sim3               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Sim4               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MLGen              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MLTest             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Iwls21Test         ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -99,6 +103,7 @@ void Abc_InitSim( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&sim",          Abc_CommandAbc9Sim,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sim2",         Abc_CommandAbc9Sim2,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sim3",         Abc_CommandAbc9Sim3,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&sim4",         Abc_CommandAbc9Sim4,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mlgen",        Abc_CommandAbc9MLGen,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mltest",       Abc_CommandAbc9MLTest,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&iwls21test",   Abc_CommandAbc9Iwls21Test,   0 );
@@ -1702,6 +1707,108 @@ usage:
     Abc_Print( -2, "\t-g     : toggle heuristic flop grouping [default = %s]\n",    pPars->fUseFfGrouping? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",    pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs rarity simulation with seeded bounded model checking.]
+
+  Description []
+
+  SideEffects [Updates the frame's verification status and counterexample.]
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Sim4( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Ssw_ParSim4_t Pars;
+    int c, Result;
+    Ssw_Sim4SetDefaultParams( &Pars );
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "TFWBCMNRglpvsh")) != EOF )
+    {
+        switch ( c )
+        {
+        case 'T': case 'F': case 'W': case 'B': case 'C': case 'M': case 'N': case 'R':
+        {
+            char * pArg, * pEnd;
+            long Value;
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-%c\" should be followed by an integer.\n", c );
+                goto usage;
+            }
+            pArg = argv[globalUtilOptind++];
+            errno = 0;
+            Value = strtol( pArg, &pEnd, 10 );
+            if ( errno || pEnd == pArg || *pEnd || Value < 0 || Value >= INT_MAX ||
+                 (c == 'T' && (Value < 1 || Value > 86400)) ||
+                 (c == 'F' && (Value < 1 || Value > 1000000)) ||
+                 (c == 'W' && (Value < 1 || Value > 1024)) ||
+                 (c == 'B' && Value > 1024) || (c == 'C' && (Value < 1 || Value > 60000)) ||
+                 (c == 'M' && (Value < 16 || Value > 65536)) )
+            {
+                Abc_Print( -1, "Command line switch \"-%c\" should be followed by an integer in range.\n", c );
+                goto usage;
+            }
+            if ( c == 'T' ) Pars.nTimeOut = (int)Value;
+            if ( c == 'F' ) Pars.nFrames = (int)Value;
+            if ( c == 'W' ) Pars.nWords = (int)Value;
+            if ( c == 'B' ) Pars.nBmcFrames = (int)Value;
+            if ( c == 'C' ) Pars.nBmcTime = (int)Value;
+            if ( c == 'M' ) Pars.nMemoryLimit = (int)Value;
+            if ( c == 'N' ) Pars.nSeed = (int)Value;
+            if ( c == 'R' ) Pars.nRoundsMax = (int)Value;
+            break;
+        }
+        case 'g': Pars.fUseGlucose ^= 1; break;
+        case 'l': Pars.fLighthouses ^= 1; break;
+        case 'p': Pars.fPatterns ^= 1; break;
+        case 'v': Pars.fVerbose ^= 1; break;
+        case 's': Pars.fSilent ^= 1; break;
+        default: goto usage;
+        }
+    }
+    if ( globalUtilOptind != argc ) goto usage;
+    if ( !pAbc->pGia )
+    {
+        Abc_Print( -1, "&sim4: There is no AIG.\n" );
+        return 1;
+    }
+    Result = Ssw_Sim4Perform( pAbc->pGia, &Pars );
+    if ( Result == -2 )
+    {
+        Abc_Print( -1, "&sim4 requires a plain AIG with zero initial states and no constraints or boxes.\n" );
+        return 1;
+    }
+    pAbc->Status = Result;
+    pAbc->nFrames = Pars.iFrame;
+    Abc_CexFreeP( &pAbc->pGia->pCexComb );
+    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: &sim4 [-TFWBCMNR <num>] [-glpvsh]\n" );
+    Abc_Print( -2, "\t            rarity simulation with bounded search from reachable states\n" );
+    Abc_Print( -2, "\t-T <num> : total wall-clock seconds [default = %d]\n", Pars.nTimeOut );
+    Abc_Print( -2, "\t-F <num> : simulation frames per round [default = %d]\n", Pars.nFrames );
+    Abc_Print( -2, "\t-W <num> : maximum 64-bit simulation words [default = %d]\n", Pars.nWords );
+    Abc_Print( -2, "\t-B <num> : BMC depth (0 disables BMC) [default = %d]\n", Pars.nBmcFrames );
+    Abc_Print( -2, "\t-C <num> : maximum milliseconds per BMC call [default = %d]\n", Pars.nBmcTime );
+    Abc_Print( -2, "\t-M <num> : estimated memory budget in MiB [default = %d]\n", Pars.nMemoryLimit );
+    Abc_Print( -2, "\t-N <num> : random seed [default = %d]\n", Pars.nSeed );
+    Abc_Print( -2, "\t-R <num> : maximum rounds (0 uses time limit) [default = %d]\n", Pars.nRoundsMax );
+    Abc_Print( -2, "\t-g       : toggle Glucose BMC instead of CaDiCaL [default = %s]\n",
+        Pars.fUseGlucose ? "yes" : "no" );
+    Abc_Print( -2, "\t-l       : toggle gate, rare-state, and relation targets [default = %s]\n",
+        Pars.fLighthouses ? "yes" : "no" );
+    Abc_Print( -2, "\t-p       : toggle reusing symbolic input patterns [default = %s]\n",
+        Pars.fPatterns ? "yes" : "no" );
+    Abc_Print( -2, "\t-v       : toggle reporting round progress [default = %s]\n", Pars.fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-s       : toggle suppressing the final result [default = %s]\n", Pars.fSilent ? "yes" : "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n" );
+    Abc_Print( -2, "\t           Returns SAT with a replayed trace, or undecided.\n" );
     return 1;
 }
 

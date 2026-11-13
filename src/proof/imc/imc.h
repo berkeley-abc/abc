@@ -75,6 +75,8 @@ struct Imc_Par_t_
 extern void Imc_ManSetDefaultParams( Imc_Par_t * p );
 extern int  Imc_ManCheckParams( Imc_Par_t * p );
 extern int  Imc_ManPerform( Gia_Man_t * pGia, Imc_Par_t * pPars );
+extern int  Imc_ManPerformWithStop( Gia_Man_t * pGia, Imc_Par_t * pPars,
+    int (*pFuncStop)(void *), void * pStopData );
 
 ABC_NAMESPACE_HEADER_END
 

@@ -2246,6 +2246,10 @@ SOURCE=.\src\sat\bmc\bmcBmc3.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcBmcGia.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcBmcAnd.c
 # End Source File
 # Begin Source File
@@ -3714,14 +3718,6 @@ SOURCE=.\src\opt\ufar\UfarCmd.cpp
 # Begin Source File
 
 SOURCE=.\src\opt\ufar\UfarMgr.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\ufar\UfarPth.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\ufar\UfarPth.h
 # End Source File
 # Begin Source File
 
@@ -8219,6 +8215,14 @@ SOURCE=.\src\proof\ssw\sswPart.c
 # Begin Source File
 
 SOURCE=.\src\proof\ssw\sswRarity.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\ssw\sswSim4.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\ssw\sswSim4.h
 # End Source File
 # Begin Source File
 

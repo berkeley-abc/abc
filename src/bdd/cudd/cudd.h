@@ -756,6 +756,8 @@ extern unsigned int    Cudd_ReadMaxLive( DdManager * dd );
 extern void            Cudd_SetMaxLive( DdManager * dd, unsigned int maxLive );
 extern unsigned long   Cudd_ReadMaxMemory( DdManager * dd );
 extern void            Cudd_SetMaxMemory( DdManager * dd, unsigned long maxMemory );
+extern void            Cudd_SetStopCallback( DdManager * dd, int (*pFunc)(void *), void * pData );
+extern int             Cudd_CheckStop( DdManager * dd );
 extern int             Cudd_bddBindVar( DdManager * dd, int index );
 extern int             Cudd_bddUnbindVar( DdManager * dd, int index );
 extern int             Cudd_bddVarIsBound( DdManager * dd, int index );

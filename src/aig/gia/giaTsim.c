@@ -35,11 +35,19 @@ static inline void Gia_ManTerSimInfoSet( unsigned * pInfo, int i, int Value )
 {
     assert( Value >= GIA_ZER && Value <= GIA_UND );
     Value ^= Gia_ManTerSimInfoGet( pInfo, i );
-    pInfo[i >> 4] ^= (Value << ((i & 15) << 1));
+    pInfo[i >> 4] ^= ((unsigned)Value << ((i & 15) << 1));
 }
 
-static inline unsigned * Gia_ManTerStateNext( unsigned * pState, int nWords )                      { return *((unsigned **)(pState + nWords));  }
-static inline void       Gia_ManTerStateSetNext( unsigned * pState, int nWords, unsigned * pNext ) { *((unsigned **)(pState + nWords)) = pNext; }
+static inline unsigned * Gia_ManTerStateNext( unsigned * pState, int nWords )
+{
+    unsigned * pNext;
+    memcpy( &pNext, pState + nWords, sizeof(pNext) );
+    return pNext;
+}
+static inline void Gia_ManTerStateSetNext( unsigned * pState, int nWords, unsigned * pNext )
+{
+    memcpy( pState + nWords, &pNext, sizeof(pNext) );
+}
 
 // ternary simulation manager
 typedef struct Gia_ManTer_t_ Gia_ManTer_t;
@@ -61,6 +69,8 @@ struct Gia_ManTer_t_
     unsigned *     pDataSim;     // simulation data
     unsigned *     pDataSimCis;  // simulation data for CIs
     unsigned *     pDataSimCos;  // simulation data for COs
+    int (*pFuncStop)(void *);
+    void *         pStopData;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -373,7 +383,7 @@ unsigned * Gia_ManTerStateCreate( Gia_ManTer_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Gia_ManTerSimulateRound( Gia_ManTer_t * p )
+static inline int Gia_ManTerSimulateRound( Gia_ManTer_t * p )
 {
     Gia_Obj_t * pObj;
     int i, iCis = 0, iCos = 0;
@@ -382,6 +392,7 @@ static inline void Gia_ManTerSimulateRound( Gia_ManTer_t * p )
     Gia_ManTerSimInfoSet( p->pDataSim, 0, GIA_ZER );
     Gia_ManForEachObj1( p->pAig, pObj, i )
     {
+        if ( !(i & 1023) && p->pFuncStop && p->pFuncStop(p->pStopData) ) return 0;
         if ( Gia_ObjIsAndOrConst0(pObj) )
         {
             assert( Gia_ObjValue(pObj) < p->pAig->nFront );
@@ -400,6 +411,7 @@ static inline void Gia_ManTerSimulateRound( Gia_ManTer_t * p )
     }
     assert( Gia_ManCiNum(p->pAig) == iCis );
     assert( Gia_ManCoNum(p->pAig) == iCos );
+    return 1;
 }
 
 /**Function*************************************************************
@@ -667,16 +679,20 @@ int * Gia_ManTerCreateMap( Gia_ManTer_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_ManTer_t * Gia_ManTerSimulate( Gia_Man_t * pAig, int fVerbose )
+static Gia_ManTer_t * Gia_ManTerSimulateInt( Gia_Man_t * pAig, int fVerbose,
+    int (*pFuncStop)(void *), void * pStopData )
 {
     Gia_ManTer_t * p;
     unsigned * pState, * pPrev, * pLoop;
     int i, Counter;
     abctime clk, clkTotal = Abc_Clock();
     assert( Gia_ManRegNum(pAig) > 0 );
+    if ( pFuncStop && pFuncStop(pStopData) ) return NULL;
     // create manager
     clk = Abc_Clock();
     p = Gia_ManTerCreate( pAig );
+    p->pFuncStop = pFuncStop;
+    p->pStopData = pStopData;
     if ( 0 )
     {
         printf( "Obj = %8d (%8d). F = %6d. ", 
@@ -697,7 +713,11 @@ Gia_ManTer_t * Gia_ManTerSimulate( Gia_Man_t * pAig, int fVerbose )
     pPrev = NULL;
     for ( i = 0; ; i++ )
     {
-        Gia_ManTerSimulateRound( p );
+        if ( (pFuncStop && pFuncStop(pStopData)) || !Gia_ManTerSimulateRound(p) )
+        {
+            Gia_ManTerDelete( p );
+            return NULL;
+        }
         Gia_ManTerSimInfoTransfer( p );
         pState = Gia_ManTerStateCreate( p );
 //Gia_ManTerStatePrint( pState, Gia_ManRegNum(pAig), i+1 );
@@ -727,6 +747,22 @@ Gia_ManTer_t * Gia_ManTerSimulate( Gia_Man_t * pAig, int fVerbose )
 
 /**Function*************************************************************
 
+  Synopsis    [Runs ternary simulation to convergence.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     [Gia_ManReduceConst]
+
+***********************************************************************/
+Gia_ManTer_t * Gia_ManTerSimulate( Gia_Man_t * pAig, int fVerbose )
+{
+    return Gia_ManTerSimulateInt( pAig, fVerbose, NULL, NULL );
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -738,13 +774,32 @@ Gia_ManTer_t * Gia_ManTerSimulate( Gia_Man_t * pAig, int fVerbose )
 ***********************************************************************/
 Gia_Man_t * Gia_ManReduceConst( Gia_Man_t * pAig, int fVerbose )
 {
+    return Gia_ManReduceConstWithStop( pAig, fVerbose, NULL, NULL );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives constants and equivalences after complete simulation.]
+
+  Description [Returns NULL on cancellation without consuming the input.]
+
+  SideEffects [Uses the input graph's temporary values.]
+
+  SeeAlso     [Gia_ManReduceConst]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManReduceConstWithStop( Gia_Man_t * pAig, int fVerbose,
+    int (*pFuncStop)(void *), void * pStopData )
+{
     Gia_ManTer_t * p;
     Gia_Man_t * pNew = NULL;
     int * pCi2Lit;
-    p = Gia_ManTerSimulate( pAig, fVerbose );
+    p = Gia_ManTerSimulateInt( pAig, fVerbose, pFuncStop, pStopData );
+    if ( !p ) return NULL;
     Gia_ManTerAnalyze( p );
     pCi2Lit = Gia_ManTerCreateMap( p, fVerbose );
     Gia_ManTerDelete( p );
+    if ( pFuncStop && pFuncStop(pStopData) ) { ABC_FREE(pCi2Lit); return NULL; }
     pNew = Gia_ManDupDfsCiMap( pAig, pCi2Lit, NULL );
     ABC_FREE( pCi2Lit );
     return pNew;

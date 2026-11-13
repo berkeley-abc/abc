@@ -257,7 +257,26 @@ Gia_Man_t * Gia_ManReduceEquiv( Gia_Man_t * p, int fVerbose )
 ***********************************************************************/
 Gia_Man_t * Gia_ManSeqStructSweep( Gia_Man_t * p, int fConst, int fEquiv, int fVerbose )
 {
+    return Gia_ManSeqStructSweepWithStop( p, fConst, fEquiv, fVerbose, NULL, NULL );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs sequential cleanup with optional cancellation.]
+
+  Description [Returns NULL on cancellation and never consumes the input.
+  Partial ternary simulation is discarded without deriving equivalences.]
+
+  SideEffects [Uses the input graph's temporary marks and values.]
+
+  SeeAlso     [Gia_ManSeqStructSweep]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManSeqStructSweepWithStop( Gia_Man_t * p, int fConst, int fEquiv,
+    int fVerbose, int (*pFuncStop)(void *), void * pStopData )
+{
     Gia_Man_t * pTemp;
+    if ( pFuncStop && pFuncStop(pStopData) ) return NULL;
     if ( Gia_ManRegNum(p) == 0 )
         return Gia_ManCleanup( p );
     if ( fVerbose )
@@ -267,7 +286,8 @@ Gia_Man_t * Gia_ManSeqStructSweep( Gia_Man_t * p, int fConst, int fEquiv, int fV
         Gia_ManReportImprovement( pTemp, p );
     if ( fConst && Gia_ManRegNum(p) )
     {
-        p = Gia_ManReduceConst( pTemp = p, fVerbose );
+        p = Gia_ManReduceConstWithStop( pTemp = p, fVerbose, pFuncStop, pStopData );
+        if ( !p ) { Gia_ManStop(pTemp); return NULL; }
         if ( fVerbose )
             Gia_ManReportImprovement( pTemp, p );
         Gia_ManStop( pTemp );
@@ -277,6 +297,7 @@ Gia_Man_t * Gia_ManSeqStructSweep( Gia_Man_t * p, int fConst, int fEquiv, int fV
     if ( fEquiv )
     while ( 1 )
     {
+        if ( pFuncStop && pFuncStop(pStopData) ) { Gia_ManStop(p); return NULL; }
         p = Gia_ManSeqCleanup( pTemp = p );
         if ( fVerbose )
             Gia_ManReportImprovement( pTemp, p );
@@ -288,6 +309,7 @@ Gia_Man_t * Gia_ManSeqStructSweep( Gia_Man_t * p, int fConst, int fEquiv, int fV
             break;
         Gia_ManStop( pTemp );
     }
+    if ( pFuncStop && pFuncStop(pStopData) ) { Gia_ManStop(p); return NULL; }
     return p;
 }
 

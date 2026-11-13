@@ -27,6 +27,10 @@ ABC_NAMESPACE_HEADER_START
 
 extern Gia_Man_t * Drw_ManRewrite( Gia_Man_t * pGia, int fKeepLevel, int fVerbose );
 extern Gia_Man_t * Drw_ManRwsat( Gia_Man_t * pGia, int fBalance, int fVerbose );
+extern Gia_Man_t * Drw_ManRewriteWithStop( Gia_Man_t * pGia, int fKeepLevel, int fVerbose,
+    int (*pFuncStop)(void *), void * pStopData );
+extern Gia_Man_t * Drw_ManRwsatWithStop( Gia_Man_t * pGia, int fBalance, int fVerbose,
+    int (*pFuncStop)(void *), void * pStopData );
 
 ABC_NAMESPACE_HEADER_END
 

@@ -62,6 +62,7 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->fTwoRounds     =       0;  // use two rounds for generalization
     pPars->fMonoCnf       =       0;  // monolythic CNF
     pPars->fNewXSim       =       0;  // updated X-valued simulation
+    pPars->fTsimStop      =       0;  // interruptible classic ternary simulation
     pPars->fFlopPrio      =       0;  // use structural flop priorities
     pPars->fFlopOrder     =       0;  // order flops for 'analyze_final' during generalization
     pPars->fDumpInv       =       0;  // dump inductive invariant

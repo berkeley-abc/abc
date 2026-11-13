@@ -1511,7 +1511,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
     Vec_Int_t * vCore, * vPPis;
     abctime clk2, clk = Abc_Clock();
     int Status = l_Undef, RetValue = -1, iFrameTryToProve = -1, fOneIsSent = 0;
-    int i, c, f, Lit;
+    int i, c, f, Lit, nStable, nStableLimit, nStableRatio;
     pPars->iFrame = -1;
     // check trivial case 
     assert( Gia_ManPoNum(pAig) == 1 ); 
@@ -1806,6 +1806,23 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                     goto finish;
                 }
             }
+            // Retry a synchronous proof at geometrically spaced stable frames.
+            // Legacy asynchronous proving and dumping keep their original cadence.
+            nStable = p->pPars->nFramesNoChange;
+            nStableLimit = p->pPars->nFramesNoChangeLim;
+            nStableRatio = nStableLimit > 0 ? nStable / nStableLimit : 0;
+            if ( p->pPars->pFuncProve && (nStable == nStableLimit ||
+                 (nStableLimit > 0 && nStable > nStableLimit && nStable % nStableLimit == 0 &&
+                  (nStableRatio & (nStableRatio - 1)) == 0)) )
+            {
+                // An abstract SAT result cannot establish a concrete bug.
+                p->nPdrCalls++;
+                if ( p->pPars->pFuncProve(pAig, p->pPars->pProveData) == 1 )
+                {
+                    RetValue = 1;
+                    goto finish;
+                }
+            }
             // check the number of stable frames
             if ( p->pPars->nFramesNoChange == p->pPars->nFramesNoChangeLim )
             {
@@ -1821,18 +1838,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                     Ga2_GlaDumpAbsracted( p, pPars->fVerbose );
                 }
                 // call the prover
-                if ( p->pPars->pFuncProve )
-                {
-                    // The owner supplies a bounded call on this thread. An
-                    // abstract SAT result does not establish a concrete bug.
-                    p->nPdrCalls++;
-                    if ( p->pPars->pFuncProve(pAig, p->pPars->pProveData) == 1 )
-                    {
-                        RetValue = 1;
-                        goto finish;
-                    }
-                }
-                else if ( p->pPars->fCallProver )
+                if ( !p->pPars->pFuncProve && p->pPars->fCallProver )
                 {
                     // cancel old one if it is proving
                     if ( iFrameTryToProve >= 0 )

@@ -144,7 +144,7 @@ int Imc_ManSimulate( Gia_Man_t * pGia, Imc_Par_t * pPars, abctime TimeStart, abc
     word * pSim, * pHistory, * pOut, * pIn0, * pIn1, * pCache;
     char * pReady;
     Gia_Obj_t * pObj;
-    if ( Gia_ManObjNum(pGia) > 2000000 || nPis > 100000 || (TimeStop && Abc_Clock() >= TimeStop) )
+    if ( Gia_ManObjNum(pGia) > 2000000 || nPis > 100000 || (Imc_ManCheckStop(TimeStop)) )
         return 0;
     // Small circuits can explore deeper traces within the same work and
     // time budget. Seed history uses only one word per frame.
@@ -157,7 +157,7 @@ int Imc_ManSimulate( Gia_Man_t * pGia, Imc_Par_t * pPars, abctime TimeStart, abc
     pHistory = ABC_ALLOC( word, nFrames );
     pCache = ABC_CALLOC( word, 32 * 64 * 7 );
     pReady = ABC_CALLOC( char, 32 * 64 );
-    for ( f = 0; f < nFrames && (!TimeStop || Abc_Clock() < TimeStop); f++ )
+    for ( f = 0; f < nFrames && (!Imc_ManCheckStop(TimeStop)); f++ )
     {
         // Deterministic input patterns can be regenerated from one seed.
         // Wide designs therefore retain all frames without a PI history.

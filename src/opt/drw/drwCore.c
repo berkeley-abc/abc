@@ -1326,13 +1326,31 @@ static Gia_Man_t * Drw_ManExport( Drw_Man_t * p, Gia_Man_t * pOld )
 ***********************************************************************/
 Gia_Man_t * Drw_ManRewrite( Gia_Man_t * pGia, int fKeepLevel, int fVerbose )
 {
+    return Drw_ManRewriteWithStop( pGia, fKeepLevel, fVerbose, NULL, NULL );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs a rewriting pass with optional cooperative cancellation.]
+
+  Description [Returns NULL after interruption; the input remains owned by the caller.]
+
+  SideEffects []
+
+  SeeAlso     [Drw_ManRewrite]
+
+***********************************************************************/
+Gia_Man_t * Drw_ManRewriteWithStop( Gia_Man_t * pGia, int fKeepLevel, int fVerbose,
+    int (*pFuncStop)(void *), void * pStopData )
+{
     Drw_Man_t * p;
-    Gia_Man_t * pNew;
+    Gia_Man_t * pNew = NULL;
     Vec_Int_t * vCiLevels;
     Drw_Cut_t Cut;
     int Id, Lit, i, NewStart;
     abctime Start = Abc_Clock(), Setup, Export, Clock;
     if ( pGia == NULL || Gia_ManHasChoices(pGia) || pGia->pMuxes || Gia_ManXorNum(pGia) ) return NULL;
+    if ( pFuncStop && pFuncStop(pStopData) ) return NULL;
     // Internal sequential box views use a different CI order. Require
     // the standard normalized interface when explicit registers coexist.
     if ( Gia_ManIsSeqWithBoxes(pGia) && !Gia_ManIsNormalized(pGia) ) return NULL;
@@ -1345,6 +1363,7 @@ Gia_Man_t * Drw_ManRewrite( Gia_Man_t * pGia, int fKeepLevel, int fVerbose )
     // their topological visit order; each is considered at most once.
     for ( Id = 1; Id < p->nOrig; Id++ )
     {
+        if ( !(Id & 255) && pFuncStop && pFuncStop(pStopData) ) goto cleanup;
         if ( p->pObjs[Id].Type != DRW_AND || p->pObjs[Id].Handled ) continue;
         assert( !p->pObjs[Id].Handled && p->pObjs[Id].Type == DRW_AND );
         assert( p->pObjs[p->pObjs[Id].Fan[0] >> 1].Handled );
@@ -1383,6 +1402,7 @@ finish:
         Drw_Finish(p, Id);
     }
     Export = Abc_Clock();
+    if ( pFuncStop && pFuncStop(pStopData) ) goto cleanup;
     pNew = Drw_ManExport( p, pGia );
     assert( p->nAnds == Gia_ManAndNum(pNew) );
     Export = Abc_Clock() - Export;
@@ -1394,6 +1414,7 @@ finish:
             (double)Setup/CLOCKS_PER_SEC, (double)p->timeCuts/CLOCKS_PER_SEC, (double)p->timeEval/CLOCKS_PER_SEC,
             (double)p->timeUpdate/CLOCKS_PER_SEC, (double)Export/CLOCKS_PER_SEC, (double)(Abc_Clock()-Start)/CLOCKS_PER_SEC );
     }
+cleanup:
     Vec_IntFree( p->vCis );
     Vec_IntFree( p->vCos );
     Vec_IntFree( p->vStack );

@@ -113,7 +113,7 @@ static int Imc_WalkHasLeaf( Gia_Man_t * p, int Root, int Leaf )
 ***********************************************************************/
 static int Imc_WalkStop( void * pData )
 {
-    return *(abctime *)pData && Abc_Clock() >= *(abctime *)pData;
+    return Imc_ManCheckStop(*(abctime *)pData);
 }
 
 /**Function*************************************************************

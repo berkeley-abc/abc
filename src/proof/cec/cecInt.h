@@ -408,14 +408,14 @@ extern void                 Gia_ManCorrSpecReduce_rec( Gia_Man_t * pNew, Gia_Man
 extern Gia_Man_t *          Gia_ManCorrSpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_Int_t ** pvOutputs, int fRings, Vec_Int_t ** pvOutLits );
 /* &scorr per-proof profiling counters: defined in cecCorr.c, written by the    */
 /* SAT/CSAT miter solvers, reset+read by the &scorr loop. All times in ns.      */
-extern int                  Cec_ScorrProfOn;     // master enable (gates all profiling work)
-extern int                  Cec_ScorrProfCalls;  // # of per-PO solve calls in the last miter
-extern abctime              Cec_ScorrProfSetup;  // solver alloc + AIG prep before the PO loop
-extern abctime              Cec_ScorrProfSolve;  // summed over every per-PO solve call
-extern abctime              Cec_ScorrProfMax;    // slowest single per-PO solve call
-extern ABC_INT64_T          Cec_ScorrConfLimit;  // total conflict cap for the current correspondence call
-extern ABC_INT64_T          Cec_ScorrConfUsed;   // exact conflicts/backtracks consumed by that call
-extern int                  Cec_ScorrConfStop;   // the total conflict cap has been reached
+extern ABC_THREAD_LOCAL int                  Cec_ScorrProfOn;     // master enable (gates all profiling work)
+extern ABC_THREAD_LOCAL int                  Cec_ScorrProfCalls;  // # of per-PO solve calls in the last miter
+extern ABC_THREAD_LOCAL abctime              Cec_ScorrProfSetup;  // solver alloc + AIG prep before the PO loop
+extern ABC_THREAD_LOCAL abctime              Cec_ScorrProfSolve;  // summed over every per-PO solve call
+extern ABC_THREAD_LOCAL abctime              Cec_ScorrProfMax;    // slowest single per-PO solve call
+extern ABC_THREAD_LOCAL ABC_INT64_T          Cec_ScorrConfLimit;  // total conflict cap for this call
+extern ABC_THREAD_LOCAL ABC_INT64_T          Cec_ScorrConfUsed;   // exact conflicts/backtracks consumed by that call
+extern ABC_THREAD_LOCAL int                  Cec_ScorrConfStop;   // the total conflict cap has been reached
 //=== cecCorr3.c ============================================================
 extern Gia_Man_t *          Cec_ManLSCorrespondenceShared( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nSides );
 //=== cecCorr4.c ============================================================

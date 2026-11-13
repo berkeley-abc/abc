@@ -57,6 +57,7 @@ class RegionAllocator
 
     uint32_t size      () const      { return sz; }
     uint32_t wasted    () const      { return wasted_; }
+    uint32_t allocated () const      { return cap; }
 
     Ref      alloc     (int size); 
     void     free_     (int size)    { wasted_ += size; }

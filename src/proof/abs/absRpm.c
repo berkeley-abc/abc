@@ -677,14 +677,15 @@ int Abs_GiaCheckTruth( word * pTruth, int nSize, int nSize0 )
   SeeAlso     []
 
 ***********************************************************************/
-void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerbose )
+static int Abs_RpmPerformMarkInt( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerbose,
+    int (*pFuncStop)(void *), void * pStopData )
 {
-    Vec_Int_t * vPis, * vAnds, * vDoms;
+    Vec_Int_t * vPis, * vAnds, * vDoms = NULL;
     Vec_Int_t * vSupp, * vSupp1, * vSupp2;
     Gia_Obj_t * pObj;
     word * pTruth;
     int Iter, i, nSize0, nNodes;
-    int fHasConst, fChanges = 1;
+    int fHasConst, fChanges = 1, fStopped = 0;
     Gia_ManCreateRefs( p );
     Gia_ManCleanMark1( p );
     Gia_ManForEachPi( p, pObj, i )
@@ -695,6 +696,7 @@ void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerb
     vSupp2 = Vec_IntAlloc( 100 );
     for ( Iter = 0; fChanges; Iter++ )
     {
+        if ( pFuncStop && pFuncStop(pStopData) ) { fStopped = 1; goto cleanup; }
         fChanges = 0;
         vDoms = Gia_ManComputePiDoms( p );
         // count the number of PIs and internal nodes
@@ -710,6 +712,7 @@ void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerb
 //        pObj = Gia_ObjFanin0( Gia_ManPo(p, 1) );
         Gia_ManForEachObjVec( vDoms, p, pObj, i )
         {
+            if ( pFuncStop && pFuncStop(pStopData) ) { fStopped = 1; goto cleanup; }
             assert( !pObj->fMark1 );
             assert( Gia_ObjRefNum( p, pObj ) > 0 );
             // dereference root node
@@ -770,7 +773,7 @@ void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerb
             pObj->fMark1 = 1;
             fChanges = 1;
         }
-        Vec_IntFree( vDoms );
+        Vec_IntFreeP( &vDoms );
     }
     // count the number of PIs and internal nodes
     if ( fVeryVerbose )
@@ -782,13 +785,31 @@ void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerb
 //        printf( "Dom = %5d  (%6.2f %%)  ", Vec_IntSize(vDoms), 100.0 * Vec_IntSize(vDoms) / Gia_ManAndNum(p)  );
         printf( "\n" );
     }
-    // cleanup
+cleanup:
+    Vec_IntFreeP( &vDoms );
     Vec_IntFree( vPis );
     Vec_IntFree( vAnds );
     Vec_IntFree( vSupp1 );
     Vec_IntFree( vSupp2 );
 //    Gia_ManCleanMark1( p ); // this will erase markings
     ABC_FREE( p->pRefs );
+    return !fStopped;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Marks structural input reparameterization without cancellation.]
+
+  Description []
+
+  SideEffects [Leaves the selected internal inputs marked.]
+
+  SeeAlso     [Abs_RpmPerformWithStop]
+
+***********************************************************************/
+void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerbose )
+{
+    Abs_RpmPerformMarkInt( p, nCutMax, fVerbose, fVeryVerbose, NULL, NULL );
 }
 
 /**Function*************************************************************
@@ -802,41 +823,63 @@ void Abs_RpmPerformMark( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerb
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupRpm( Gia_Man_t * p )
+static Gia_Man_t * Gia_ManDupRpmInt( Gia_Man_t * p, int (*pFuncStop)(void *), void * pStopData )
 {
-    Vec_Int_t * vPis, * vAnds;
-    Gia_Man_t * pNew;
+    Vec_Int_t * vPis = Vec_IntAlloc( 100 ), * vAnds = Vec_IntAlloc( 100 );
+    Gia_Man_t * pNew = NULL;
     Gia_Obj_t * pObj;
     int i;
-    // derive PIs and internal nodes
-    vPis = Vec_IntAlloc( 100 );
-    vAnds = Vec_IntAlloc( 100 );
     Gia_ManCountPisNodes( p, vPis, vAnds );
-
-    // duplicate AIG
+    if ( pFuncStop && pFuncStop(pStopData) ) goto cleanup;
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
-    // create PIs
     Gia_ManForEachObjVec( vPis, p, pObj, i )
-        pObj->Value = Gia_ManAppendCi(pNew);
-    // create flops
-    Gia_ManForEachRo( p, pObj, i )
+    {
+        if ( !(i & 1023) && pFuncStop && pFuncStop(pStopData) ) goto stopped;
         pObj->Value = Gia_ManAppendCi( pNew );
-    // create internal nodes
+    }
+    Gia_ManForEachRo( p, pObj, i )
+    {
+        if ( !(i & 1023) && pFuncStop && pFuncStop(pStopData) ) goto stopped;
+        pObj->Value = Gia_ManAppendCi( pNew );
+    }
     Gia_ManForEachObjVec( vAnds, p, pObj, i )
+    {
+        if ( !(i & 1023) && pFuncStop && pFuncStop(pStopData) ) goto stopped;
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-    // create COs
+    }
     Gia_ManForEachCo( p, pObj, i )
+    {
+        if ( !(i & 1023) && pFuncStop && pFuncStop(pStopData) ) goto stopped;
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
-
-    // cleanup
+    goto cleanup;
+stopped:
+    Gia_ManStopP( &pNew );
+cleanup:
     Vec_IntFree( vPis );
     Vec_IntFree( vAnds );
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the marked reparameterization without cancellation.]
+
+  Description []
+
+  SideEffects [Uses the input graph's Value fields.]
+
+  SeeAlso     [Gia_ManDupRpmInt]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupRpm( Gia_Man_t * p )
+{
+    return Gia_ManDupRpmInt( p, NULL, NULL );
 }
 
 /**Function*************************************************************
@@ -852,15 +895,32 @@ Gia_Man_t * Gia_ManDupRpm( Gia_Man_t * p )
 ***********************************************************************/
 Gia_Man_t * Abs_RpmPerform( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerbose )
 {
-    Gia_Man_t * pNew;
-//    Gia_ManTestDoms( p );
-//    return NULL;
-    // perform structural analysis
+    return Abs_RpmPerformWithStop( p, nCutMax, fVerbose, fVeryVerbose, NULL, NULL );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reparameterizes inputs with cooperative cancellation.]
+
+  Description [An interrupted analysis or duplication returns no graph.
+  The legacy entry point passes no callback and retains its traversal.]
+
+  SideEffects [Uses and clears temporary references, truth tables and marks.]
+
+  SeeAlso     [Abs_RpmPerform]
+
+***********************************************************************/
+Gia_Man_t * Abs_RpmPerformWithStop( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerbose,
+    int (*pFuncStop)(void *), void * pStopData )
+{
+    Gia_Man_t * pNew = NULL;
+    int fComplete;
+    if ( pFuncStop && pFuncStop(pStopData) ) return NULL;
     Gia_ObjComputeTruthTableStart( p, nCutMax );
-    Abs_RpmPerformMark( p, nCutMax, fVerbose, fVeryVerbose );
+    fComplete = Abs_RpmPerformMarkInt( p, nCutMax, fVerbose, fVeryVerbose, pFuncStop, pStopData );
     Gia_ObjComputeTruthTableStop( p );
-    // derive new AIG
-    pNew = Gia_ManDupRpm( p );
+    if ( fComplete && (!pFuncStop || !pFuncStop(pStopData)) )
+        pNew = Gia_ManDupRpmInt( p, pFuncStop, pStopData );
     Gia_ManCleanMark1( p );
     return pNew;
 }

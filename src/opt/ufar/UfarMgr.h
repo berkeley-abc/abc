@@ -77,10 +77,7 @@ class UfarManager {
             bool     fNorm;
             bool     fAllWb;
             bool     fCrossOnly;
-            bool     fSuper_prove;
-            bool     fSimple;
             bool     fSyn;
-            bool     fPthread;
             int      iOneWb;
             int      iExp;
             unsigned nConstraintLimit;
@@ -90,8 +87,6 @@ class UfarManager {
             unsigned nSeqLookBack;
             unsigned nTimeout;
             std::string simSetting;
-            std::string parSetting;
-            std::string solverSetting;
             std::string fileName;
             std::string fileAbs;
             std::string fileStatesOut;
@@ -136,7 +131,7 @@ class UfarManager {
         void        DetermineGreyness(Abc_Cex_t * pCex);
 
         int         VerifyCurrentAbstraction(Abc_Cex_t ** ppCex);
-        int         PerformUIFProve(const timeval& timer);
+        int         PerformUIFProve(const timeval& timer, Abc_Cex_t ** ppCex = NULL);
 
         void        DumpMgrInfo() const;
         void        DumpParams() const;

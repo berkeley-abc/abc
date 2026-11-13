@@ -51,6 +51,10 @@ struct Dam_Man_t_
     int              nAnds;     // total AND node count
     int              nGain;     // total gain in AND nodes
     int              nGainX;    // gain from XOR nodes
+    int              (*pFuncStop)(void *);
+    void *           pStopData;
+    unsigned         nStopChecks;
+    int              fStopped;
 };
 
 static inline int    Dam_ObjHand( Dam_Man_t * p, int i )     { return i < Vec_IntSize(p->vNod2Set) ? Vec_IntEntry(p->vNod2Set, i) : 0;                      }
@@ -63,6 +67,25 @@ static inline int *  Dam_DivSet( Dam_Man_t * p, int d )      { int h = Dam_DivHa
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Latches optional cancellation during area balancing.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Dam_ManCheckStop( Dam_Man_t * p )
+{
+    if ( p->fStopped ) return 1;
+    if ( p->pFuncStop && !(p->nStopChecks++ & 255) )
+        p->fStopped = p->pFuncStop( p->pStopData );
+    return p->fStopped;
+}
 
 /**Function*************************************************************
 
@@ -491,7 +514,7 @@ void Dam_ManFree( Dam_Man_t * p )
     Vec_IntFreeP( &p->vNodStore );
     Vec_FltFreeP( &p->vCounts );
     Vec_QueFreeP( &p->vQue );
-    Hash_IntManStop( p->vHash );
+    if ( p->vHash ) Hash_IntManStop( p->vHash );
     ABC_FREE( p );
 }
 
@@ -510,6 +533,7 @@ void Dam_ManCollectSets_rec( Dam_Man_t * p, int Id )
 {
     Gia_Obj_t * pObj;
     int i, iBeg, iEnd, iLit;
+    if ( Dam_ManCheckStop(p) ) return;
     if ( Dam_ObjHand(p, Id) || Id == 0 )
         return;
     pObj = Gia_ManObj(p->pGia, Id);
@@ -587,6 +611,7 @@ void Dam_ManCreateMultiRefs( Dam_Man_t * p, Vec_Int_t ** pvRefsAnd, Vec_Int_t **
     vRefsXor = Vec_IntStart( Gia_ManObjNum(p->pGia) );
     Gia_ManForEachAnd( p->pGia, pObj, i )
     {
+        if ( Dam_ManCheckStop(p) ) break;
         if ( !Dam_ObjHand(p, i) )
             continue;
         pSet = Dam_ObjSet(p, i);
@@ -607,12 +632,14 @@ void Dam_ManCreateMultiRefs( Dam_Man_t * p, Vec_Int_t ** pvRefsAnd, Vec_Int_t **
 void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
 {
     Gia_Obj_t * pObj;
-    Hash_IntMan_t * vHash;
-    Vec_Int_t * vRefsAnd, * vRefsXor, * vSuper, * vDivs, * vRemap, * vLevRMax;
+    Hash_IntMan_t * vHash = NULL;
+    Vec_Int_t * vRefsAnd = NULL, * vRefsXor = NULL, * vSuper;
+    Vec_Int_t * vDivs = NULL, * vRemap = NULL, * vLevRMax = NULL;
     int i, j, k, Num, FanK, FanJ, nRefs, iNode, iDiv, * pSet;
     int nPairsAll = 0, nPairsTried = 0, nPairsUsed = 0, nPairsXor = 0;
     int nDivsAll = 0, nDivsUsed = 0, nDivsXor = 0;
     Dam_ManCollectSets( p );
+    if ( p->fStopped ) return;
     vSuper = p->pGia->vSuper;
     vDivs  = Vec_IntAlloc( Gia_ManObjNum(p->pGia) );
     vHash  = Hash_IntManStart( Gia_ManObjNum(p->pGia)/2 );
@@ -620,6 +647,7 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
     Dam_ManCreateMultiRefs( p, &vRefsAnd, &vRefsXor );
     Gia_ManForEachAnd( p->pGia, pObj, i )
     {
+        if ( Dam_ManCheckStop(p) ) goto cleanup;
         if ( !Dam_ObjHand(p, i) )
             continue;
         pSet = Dam_ObjSet(p, i);
@@ -646,6 +674,7 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
         Vec_IntForEachEntry( vSuper, FanK, k )
         Vec_IntForEachEntryStart( vSuper, FanJ, j, k+1 )
         {
+            if ( Dam_ManCheckStop(p) ) goto cleanup;
             if ( (FanK > FanJ) ^ Gia_ObjIsXor(pObj) )
                 Num = Hash_Int2ManInsert( vHash, FanJ, FanK, 0 );
             else
@@ -662,8 +691,8 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
             Vec_IntUpdateEntry( vLevRMax, Num, Vec_IntEntry(p->vNodLevR, i) );
         }
     }
-    Vec_IntFree( vRefsAnd );
-    Vec_IntFree( vRefsXor );
+    Vec_IntFreeP( &vRefsAnd );
+    Vec_IntFreeP( &vRefsXor );
 //    Hash_IntManProfile( vHash );
     // remove entries that appear only once
     p->vHash     = Hash_IntManStart( 3 * nDivsUsed /2 );
@@ -677,6 +706,7 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
     vRemap       = Vec_IntStartFull( nDivsAll+1 );
     for ( i = 1; i <= nDivsAll; i++ )
     {
+        if ( Dam_ManCheckStop(p) ) goto cleanup;
         nRefs = Hash_IntObjData2(vHash, i);
         if ( nRefs < 2 )
             continue;
@@ -699,11 +729,13 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
     assert( Vec_FltSize(p->vCounts) == Hash_IntManEntryNum(p->vHash)+1 );
     assert( Vec_IntSize(p->vDiv2Nod) == nDivsUsed+1 );
     Hash_IntManStop( vHash );
-    Vec_IntFree( vLevRMax );
+    vHash = NULL;
+    Vec_IntFreeP( &vLevRMax );
     // fill in the divisors
     iNode = -1;
     Vec_IntForEachEntry( vDivs, iDiv, i )
     {
+        if ( Dam_ManCheckStop(p) ) goto cleanup;
         if ( iDiv < 0 )
         {
             iNode = -iDiv;
@@ -715,8 +747,8 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
         pSet = Dam_DivSet( p, Num );
         pSet[++pSet[0]] = iNode;
     }
-    Vec_IntFree( vRemap );
-    Vec_IntFree( vDivs );
+    Vec_IntFreeP( &vRemap );
+    Vec_IntFreeP( &vDivs );
     // create storage for reverse level of divisor during update
     p->vDivLevR = Vec_IntStart( 2 * nDivsUsed );
     // make sure divisors are added correctly
@@ -737,6 +769,13 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
     printf( "  Used =%9d (%6.2f %%)",  nDivsUsed,   100.0 * nDivsUsed   / Abc_MaxInt(nDivsAll, 1) );
     printf( "  Xor =%9d (%6.2f %%)",   nDivsXor,    100.0 * nDivsXor    / Abc_MaxInt(nDivsAll, 1) );
     printf( "\n" );
+cleanup:
+    Vec_IntFreeP( &vRefsAnd );
+    Vec_IntFreeP( &vRefsXor );
+    Vec_IntFreeP( &vDivs );
+    Vec_IntFreeP( &vRemap );
+    Vec_IntFreeP( &vLevRMax );
+    if ( vHash ) Hash_IntManStop( vHash );
 }
 
 /**Function*************************************************************
@@ -753,6 +792,7 @@ void Dam_ManCreatePairs( Dam_Man_t * p, int fVerbose )
 void Dam_ManMultiAig_rec( Dam_Man_t * pMan, Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     int i, * pSet;
+    if ( Dam_ManCheckStop(pMan) ) return;
     if ( ~pObj->Value )
         return;
     assert( Gia_ObjIsAnd(pObj) );
@@ -761,9 +801,11 @@ void Dam_ManMultiAig_rec( Dam_Man_t * pMan, Gia_Man_t * pNew, Gia_Man_t * p, Gia
     {
         Dam_ManMultiAig_rec( pMan, pNew, p, Gia_ObjFanin0(pObj) );
         Dam_ManMultiAig_rec( pMan, pNew, p, Gia_ObjFanin1(pObj) );
+        if ( pMan->fStopped ) return;
         if ( Gia_ObjIsMux(p, pObj) )
         {
             Dam_ManMultiAig_rec( pMan, pNew, p, Gia_ObjFanin2(p, pObj) );
+            if ( pMan->fStopped ) return;
             pObj->Value = Gia_ManHashMuxReal( pNew, Gia_ObjFanin2Copy(p, pObj), Gia_ObjFanin1Copy(pObj), Gia_ObjFanin0Copy(pObj) );
         }
         else if ( Gia_ObjIsXor(pObj) )
@@ -779,6 +821,7 @@ void Dam_ManMultiAig_rec( Dam_Man_t * pMan, Gia_Man_t * pNew, Gia_Man_t * p, Gia
     {
         Gia_Obj_t * pTemp = Gia_ManObj( p, Abc_Lit2Var(pSet[i]) );
         Dam_ManMultiAig_rec( pMan, pNew, p, pTemp );
+        if ( pMan->fStopped ) return;
         pSet[i] = Abc_LitNotCond( pTemp->Value, Abc_LitIsCompl(pSet[i]) );
     }
     // create balanced gate
@@ -809,12 +852,14 @@ Gia_Man_t * Dam_ManMultiAig( Dam_Man_t * pMan )
     Gia_ManForEachBuf( p, pObj, i )
     {
         Dam_ManMultiAig_rec( pMan, pNew, p, Gia_ObjFanin0(pObj) );
+        if ( pMan->fStopped ) { Gia_ManStop(pNew); return NULL; }
         pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
         Gia_ObjSetGateLevel( pNew, Gia_ManObj(pNew, Abc_Lit2Var(pObj->Value)) );
     }
     Gia_ManForEachCo( p, pObj, i )
     {
         Dam_ManMultiAig_rec( pMan, pNew, p, Gia_ObjFanin0(pObj) );
+        if ( pMan->fStopped ) { Gia_ManStop(pNew); return NULL; }
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     }
 //    assert( Gia_ManObjNum(pNew) <= Gia_ManObjNum(p) );
@@ -954,7 +999,10 @@ void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
     nPairsStart = Hash_IntManEntryNum(p->vHash) + 1;
     Vec_IntClear( vDivs );
     for ( i = 1; i <= pNods[0]; i++ )
+    {
+        if ( Dam_ManCheckStop(p) ) return;
         nPresent += Dam_ManUpdateNode( p, pNods[i], iLit0, iLit1, iLitNew, vDivs );
+    }
     nPairsStop = Hash_IntManEntryNum(p->vHash) + 1;
     // extend arrayvs
     pPairsNew = 0;
@@ -962,6 +1010,7 @@ void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
     Vec_IntFillExtra( p->vDiv2Nod, nPairsStop, -1 );
     for ( i = nPairsStart; i < nPairsStop; i++ )
     {
+        if ( Dam_ManCheckStop(p) ) return;
         nRefs = Hash_IntObjData2(p->vHash, i);
         if ( nRefs < 2 )
             continue;
@@ -978,6 +1027,7 @@ void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
     iNode = -1;
     Vec_IntForEachEntry( vDivs, iDivTemp, i )
     {
+        if ( Dam_ManCheckStop(p) ) return;
         if ( iDivTemp < 0 )
         {
             iNode = -iDivTemp;
@@ -1010,26 +1060,34 @@ void Dam_ManUpdate( Dam_Man_t * p, int iDiv )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Dam_ManAreaBalanceInt( Gia_Man_t * pGia, Vec_Int_t * vCiLevels, int nNewNodesMax, int fVerbose, int fVeryVerbose )
+static Gia_Man_t * Dam_ManAreaBalanceStop( Gia_Man_t * pGia, Vec_Int_t * vCiLevels,
+    int nNewNodesMax, int fVerbose, int fVeryVerbose, int (*pFuncStop)(void *), void * pStopData )
 {
-    Gia_Man_t * pNew;
+    Gia_Man_t * pNew = NULL;
     Dam_Man_t * p;
     int i, iDiv;
     p = Dam_ManAlloc( pGia );
+    p->pFuncStop = pFuncStop;
+    p->pStopData = pStopData;
+    if ( Dam_ManCheckStop(p) ) goto finish;
     p->nLevelMax = Gia_ManSetLevels( p->pGia, vCiLevels );
     p->vNodLevR = Gia_ManReverseLevel( p->pGia );
     Vec_IntFillExtra( p->pGia->vLevels, 3*Gia_ManObjNum(p->pGia)/2, 0 );
     Dam_ManCreatePairs( p, fVerbose );
+    if ( p->fStopped ) goto finish;
     for ( i = 0; i < nNewNodesMax && Vec_QueTopPriority(p->vQue) >= 2; i++ )
     {
+        if ( Dam_ManCheckStop(p) ) goto finish;
         iDiv = Vec_QuePop(p->vQue);
         if ( fVeryVerbose )
             Dam_PrintDiv( p, iDiv );
         Dam_ManUpdate( p, iDiv );
+        if ( p->fStopped ) goto finish;
     }
     if ( fVeryVerbose )
         Dam_PrintDiv( p, 0 );
     pNew = Dam_ManMultiAig( p );
+    if ( p->fStopped ) goto finish;
     if ( fVerbose )
     {
         int nDivsAll = Hash_IntManEntryNum(p->vHash);
@@ -1041,10 +1099,41 @@ Gia_Man_t * Dam_ManAreaBalanceInt( Gia_Man_t * pGia, Vec_Int_t * vCiLevels, int 
         printf( "  GainX = %d  ",             p->nGainX  );
         Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
     }
+finish:
     Dam_ManFree( p );
     return pNew;
 }
-Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax, int fVerbose, int fVeryVerbose )
+
+/**Function*************************************************************
+
+  Synopsis    [Preserves the original extraction entry point.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Dam_ManAreaBalanceInt( Gia_Man_t * pGia, Vec_Int_t * vCiLevels,
+    int nNewNodesMax, int fVerbose, int fVeryVerbose )
+{
+    return Dam_ManAreaBalanceStop( pGia, vCiLevels, nNewNodesMax, fVerbose, fVeryVerbose, NULL, NULL );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Balances an AIG with optional cancellation.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static Gia_Man_t * Gia_ManAreaBalanceStop( Gia_Man_t * p, int fSimpleAnd,
+    int nNewNodesMax, int fVerbose, int fVeryVerbose, int (*pFuncStop)(void *), void * pStopData )
 {
     Gia_Man_t * pNew0, * pNew, * pNew1, * pNew2;
     Vec_Int_t * vCiLevels;
@@ -1079,7 +1168,14 @@ Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax,
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
     if ( pNew0 != p ) Gia_ManStop( pNew0 );
     // perform the operation
-    pNew1 = Dam_ManAreaBalanceInt( pNew, vCiLevels, nNewNodesMax, fVerbose, fVeryVerbose );
+    pNew1 = Dam_ManAreaBalanceStop( pNew, vCiLevels, nNewNodesMax,
+        fVerbose, fVeryVerbose, pFuncStop, pStopData );
+    if ( !pNew1 )
+    {
+        Gia_ManStop( pNew );
+        Vec_IntFreeP( &vCiLevels );
+        return NULL;
+    }
     Gia_ManTransferTiming( pNew1, pNew );
     if ( fVerbose )     Gia_ManPrintStats( pNew1, NULL );
     Gia_ManStop( pNew );
@@ -1098,6 +1194,52 @@ Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax,
     }
     //Gia_ManTransferTiming( pNew2, p );
     return pNew2;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Preserves the original area-balancing interface.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd,
+    int nNewNodesMax, int fVerbose, int fVeryVerbose )
+{
+    return Gia_ManAreaBalanceStop( p, fSimpleAnd, nNewNodesMax, fVerbose, fVeryVerbose, NULL, NULL );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns a complete balanced copy, or NULL on cancellation.]
+
+  Description [The stop-aware interface accepts flat AIGs without timing
+  metadata. The caller retains its input, including on interruption.]
+
+  SideEffects [Uses the input's scratch fields.]
+
+  SeeAlso     [Gia_ManAreaBalance]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManAreaBalanceWithStop( Gia_Man_t * p,
+    int (*pFuncStop)(void *), void * pStopData )
+{
+    Gia_Man_t * pCopy, * pNew;
+    if ( p->pManTime || p->pAigExtra || p->vInArrs || p->vOutReqs ||
+         p->vCiArrs || p->vCoReqs || p->vCoArrs || p->vCoAttrs || p->vRegInits ||
+         p->pMuxes || Gia_ManXorNum(p) || Gia_ManHasChoices(p) || Gia_ManConstrNum(p) )
+        return NULL;
+    if ( pFuncStop && pFuncStop(pStopData) ) return NULL;
+    pCopy = Gia_ManDupWithAttributes( p );
+    pNew = Gia_ManAreaBalanceStop( pCopy, 0, ABC_INFINITY, 0, 0, pFuncStop, pStopData );
+    Gia_ManStop( pCopy );
+    if ( pNew && pFuncStop && pFuncStop(pStopData) )
+        Gia_ManStopP( &pNew );
+    return pNew;
 }
 
 ////////////////////////////////////////////////////////////////////////

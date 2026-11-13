@@ -533,7 +533,7 @@ int Imc_ManSearchRun( Imc_Search_t * pSearch, int nQueries, int nConflicts )
     if ( pSearch->fDone ) return -1;
     for ( ; ; )
     {
-        if ( p->TimeStop && Abc_Clock() >= p->TimeStop )
+        if ( Imc_ManCheckStop(p->TimeStop) )
             break;
         if ( pPars->nFrameMax && pSearch->nFrames > pPars->nFrameMax )
             break;
@@ -989,7 +989,7 @@ static int Imc_ManPerformCoreRun( Gia_Man_t * pGia, Imc_Par_t * pPars, abctime T
     int i, iBad, Result, nBits;
     Abc_CexFreeP( &pGia->pCexSeq );
     pPars->iFrame = -1;
-    if ( TimeLimit && Abc_Clock() >= TimeLimit )
+    if ( Imc_ManCheckStop(TimeLimit) )
         return -1;
     if ( pRun->pSource != pGia )
     {
@@ -1290,7 +1290,7 @@ static int Imc_ManPerformRun( Gia_Man_t * pGia, Imc_Par_t * pPars, Imc_Run_t * p
         // slices. Only the global deadline interrupts proof construction.
         Imc_ManPhaseSet( &Phase, 0, 0, 0 );
         Phase.fResume = 1;
-        for ( Round = 0; !TimeStop || Abc_Clock() < TimeStop; Round++ )
+        for ( Round = 0; !Imc_ManCheckStop(TimeStop); Round++ )
         {
             Imc_Search_t * pSearch;
             int Frames, Images, Front;
@@ -1401,7 +1401,7 @@ int Imc_ManCheckParams( Imc_Par_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Imc_ManPerform( Gia_Man_t * pGia, Imc_Par_t * pPars )
+static int Imc_ManPerformEntry( Gia_Man_t * pGia, Imc_Par_t * pPars )
 {
     Imc_Par_t Pars = *pPars;
     Imc_Run_t Run;
@@ -1427,6 +1427,135 @@ int Imc_ManPerform( Gia_Man_t * pGia, Imc_Par_t * pPars )
     Abc_Print( 1, "IMC: %s.  ", Result == 1 ? "Property proved" : Result == 0 ? "Property disproved" : "Undecided" );
     Abc_PrintTime( 1, "Time", Abc_Clock() - TimeStart );
     return Result;
+}
+
+typedef struct Imc_Stop_t_ Imc_Stop_t;
+struct Imc_Stop_t_
+{
+    int (*pFuncStop)(void *);
+    void * pData;
+    int fStopped;
+};
+#if ABC_HAS_THREAD_LOCAL
+static ABC_THREAD_LOCAL Imc_Stop_t * s_pImcStop = NULL;
+#endif
+
+/**Function*************************************************************
+
+  Synopsis    [Checks a local deadline and an optional scoped cancellation.]
+
+  Description [The callback is latched for one invocation.]
+
+  SideEffects []
+
+  SeeAlso     [Imc_ManPerformWithStop]
+
+***********************************************************************/
+int Imc_ManCheckStop( abctime TimeStop )
+{
+    int Stop = TimeStop && Abc_Clock() >= TimeStop;
+#if ABC_HAS_THREAD_LOCAL
+    if ( s_pImcStop )
+    {
+        if ( !s_pImcStop->fStopped && s_pImcStop->pFuncStop )
+            s_pImcStop->fStopped = s_pImcStop->pFuncStop( s_pImcStop->pData );
+        Stop |= s_pImcStop->fStopped;
+    }
+#endif
+    return Stop;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Tests whether this invocation requested a SAT callback.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     [Imc_ManStopId]
+
+***********************************************************************/
+int Imc_ManStopActive( void )
+{
+#if ABC_HAS_THREAD_LOCAL
+    return s_pImcStop && s_pImcStop->pFuncStop;
+#else
+    return 0;
+#endif
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adapts scoped cancellation to the classic SAT interface.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     [Imc_ManCheckStop]
+
+***********************************************************************/
+int Imc_ManStopId( int RunId )
+{
+    (void)RunId;
+    return Imc_ManCheckStop( 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs interpolation with invocation-local cancellation.]
+
+  Description [Nested invocations restore the previous thread-local scope.
+  A platform without thread-local storage rejects an optional callback.]
+
+  SideEffects [Updates the verification result and counterexample.]
+
+  SeeAlso     [Imc_ManPerform]
+
+***********************************************************************/
+int Imc_ManPerformWithStop( Gia_Man_t * pGia, Imc_Par_t * pPars,
+    int (*pFuncStop)(void *), void * pStopData )
+{
+    int Result;
+#if ABC_HAS_THREAD_LOCAL
+    Imc_Stop_t Stop = { pFuncStop, pStopData, 0 }, * pPrevious = s_pImcStop;
+    s_pImcStop = &Stop;
+    if ( Imc_ManCheckStop(0) )
+    {
+        if ( pGia ) Abc_CexFreeP( &pGia->pCexSeq );
+        pPars->iFrame = -1;
+        Result = -1;
+    }
+    else Result = Imc_ManPerformEntry( pGia, pPars );
+    s_pImcStop = pPrevious;
+#else
+    (void)pStopData;
+    if ( pFuncStop )
+    {
+        if ( pGia ) Abc_CexFreeP( &pGia->pCexSeq );
+        pPars->iFrame = -1;
+        return -1;
+    }
+    Result = Imc_ManPerformEntry( pGia, pPars );
+#endif
+    return Result;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs interpolation with the established standalone settings.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     [Imc_ManPerformWithStop]
+
+***********************************************************************/
+int Imc_ManPerform( Gia_Man_t * pGia, Imc_Par_t * pPars )
+{
+    return Imc_ManPerformWithStop( pGia, pPars, NULL, NULL );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -22,6 +22,7 @@
 #include "aig/gia/giaAig.h"
 #include "base/main/main.h"
 #include "sat/bmc/bmc.h"
+#include <limits.h>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -36,6 +37,7 @@ struct Ssw_RarMan_t_
     // parameters
     Ssw_RarPars_t* pPars;
     int            nGroups;      // the number of flop groups
+    int            nBinShift;    // allocated counter entries per group
     int            nWordsReg;    // the number of words in the registers
     // internal data
     Aig_Man_t *    pAig;         // AIG with equivalence classes
@@ -54,6 +56,8 @@ struct Ssw_RarMan_t_
     Vec_Int_t *    vPatBests;    // best patterns
     int            iFailPo;      // failed primary output
     int            iFailPat;     // failed pattern
+    int            fPrivateRandom;
+    unsigned       Random[2];
     // counter-examples
     Vec_Ptr_t *    vCexes;
 };
@@ -62,20 +66,21 @@ struct Ssw_RarMan_t_
 static inline int  Ssw_RarGetBinPat( Ssw_RarMan_t * p, int iBin, int iPat )
 {
     assert( iBin >= 0 && iBin < Aig_ManRegNum(p->pAig) / p->pPars->nBinSize );
-    assert( iPat >= 0 && iPat < (1 << p->pPars->nBinSize) );
-    return p->pRarity[iBin * (1 << p->pPars->nBinSize) + iPat];
+    assert( iPat >= 0 && iPat < (1 << p->nBinShift) );
+    return p->pRarity[iBin * (1 << p->nBinShift) + iPat];
 }
 static inline void Ssw_RarSetBinPat( Ssw_RarMan_t * p, int iBin, int iPat, int Value )
 {
     assert( iBin >= 0 && iBin < Aig_ManRegNum(p->pAig) / p->pPars->nBinSize );
-    assert( iPat >= 0 && iPat < (1 << p->pPars->nBinSize) );
-    p->pRarity[iBin * (1 << p->pPars->nBinSize) + iPat] = Value;
+    assert( iPat >= 0 && iPat < (1 << p->nBinShift) );
+    p->pRarity[iBin * (1 << p->nBinShift) + iPat] = Value;
 }
 static inline void Ssw_RarAddToBinPat( Ssw_RarMan_t * p, int iBin, int iPat )
 {
     assert( iBin >= 0 && iBin < Aig_ManRegNum(p->pAig) / p->pPars->nBinSize );
-    assert( iPat >= 0 && iPat < (1 << p->pPars->nBinSize) );
-    p->pRarity[iBin * (1 << p->pPars->nBinSize) + iPat]++;
+    assert( iPat >= 0 && iPat < (1 << p->nBinShift) );
+    if ( !p->fPrivateRandom || p->pRarity[iBin * (1 << p->nBinShift) + iPat] < INT_MAX )
+        p->pRarity[iBin * (1 << p->nBinShift) + iPat]++;
 }
 
 static inline int    Ssw_RarBitWordNum( int nBits )             { return (nBits>>6) + ((nBits&63) > 0);  }
@@ -140,6 +145,72 @@ void Ssw_RarManPrepareRandom( int nRandSeed )
 
 /**Function*************************************************************
 
+  Synopsis    [Advances a manager's private rarity random stream.]
+
+  Description []
+
+  SideEffects [Updates two manager-owned state words.]
+
+  SeeAlso     [Ssw_RarPrivateReset]
+
+***********************************************************************/
+static unsigned Ssw_RarPrivateRandom( Ssw_RarMan_t * p )
+{
+    p->Random[0] = 36969u * (p->Random[0] & 65535u) + (p->Random[0] >> 16);
+    p->Random[1] = 18000u * (p->Random[1] & 65535u) + (p->Random[1] >> 16);
+    return (p->Random[0] << 16) + p->Random[1];
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Restores the legacy stream for a given seed.]
+
+  Description []
+
+  SideEffects [Initializes only the manager's random state.]
+
+  SeeAlso     [Ssw_RarManPrepareRandom]
+
+***********************************************************************/
+static void Ssw_RarPrivateReset( Ssw_RarMan_t * p, int Seed )
+{
+    int i;
+    p->Random[0] = 3716960521u;
+    p->Random[1] = 2174103536u;
+    Ssw_RarPrivateRandom( p );
+    for ( i = 0; i < Seed; i++ ) Ssw_RarPrivateRandom( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Assigns the legacy input patterns using a private stream.]
+
+  Description []
+
+  SideEffects [Updates the input simulation words and manager random state.]
+
+  SeeAlso     [Ssw_RarManAssingRandomPis]
+
+***********************************************************************/
+static void Ssw_RarPrivateAssign( Ssw_RarMan_t * p )
+{
+    Aig_Obj_t * pObj;
+    word * pSim;
+    int i, w;
+    Saig_ManForEachPi( p->pAig, pObj, i )
+    {
+        pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
+        for ( w = 0; w < p->pPars->nWords; w++ )
+        {
+            pSim[w] = Ssw_RarPrivateRandom( p );
+            pSim[w] |= (word)Ssw_RarPrivateRandom(p) << 32;
+        }
+        pSim[0] = (pSim[0] << 4) | ((i & 1) ? 0xA : 0xC);
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Initializes random primary inputs.]
 
   Description []
@@ -154,6 +225,7 @@ void Ssw_RarManAssingRandomPis( Ssw_RarMan_t * p )
     word * pSim;
     Aig_Obj_t * pObj;
     int w, i;
+    if ( p->fPrivateRandom ) { Ssw_RarPrivateAssign(p); return; }
     Saig_ManForEachPi( p->pAig, pObj, i )
     {
         pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
@@ -212,8 +284,8 @@ Abc_Cex_t * Ssw_RarDeriveCex( Ssw_RarMan_t * p, int iFrame, int iPo, int iPatFin
     }
     Vec_IntFree( vTrace );
     assert( iBit == pCex->nBits );
-    // verify the counter example
-    if ( !Saig_ManVerifyCex( p->pAig, pCex ) )
+    // The private search returns a candidate for its caller to replay.
+    if ( !p->fPrivateRandom && !Saig_ManVerifyCex(p->pAig, pCex) )
     {
         Abc_Print( 1, "Ssw_RarDeriveCex(): Counter-example is invalid.\n" );
 //        Abc_CexFree( pCex );
@@ -750,7 +822,7 @@ void Ssw_RarManSimulate( Ssw_RarMan_t * p, Vec_Int_t * vInit, int fUpdate, int f
   SeeAlso     []
 
 ***********************************************************************/
-static Ssw_RarMan_t * Ssw_RarManStart( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
+static Ssw_RarMan_t * Ssw_RarManStart( Aig_Man_t * pAig, Ssw_RarPars_t * pPars, int fPrivate )
 {
     Ssw_RarMan_t * p;
 //    if ( Aig_ManRegNum(pAig) < nBinSize || nBinSize <= 0 )
@@ -759,7 +831,9 @@ static Ssw_RarMan_t * Ssw_RarManStart( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
     p->pAig      = pAig;
     p->pPars     = pPars;
     p->nGroups   = Aig_ManRegNum(pAig) / pPars->nBinSize;
-    p->pRarity   = ABC_CALLOC( int, (1 << pPars->nBinSize) * p->nGroups );
+    p->nBinShift = fPrivate ? 8 : pPars->nBinSize;
+    p->fPrivateRandom = fPrivate;
+    p->pRarity   = ABC_CALLOC( int, (1 << p->nBinShift) * p->nGroups );
     p->pPatCosts = ABC_CALLOC( double, p->pPars->nWords * 64 );
     p->nWordsReg = Ssw_RarBitWordNum( Aig_ManRegNum(pAig) );
     p->pObjData  = ABC_ALLOC( word, Aig_ManObjNumMax(pAig) * p->pPars->nWords );
@@ -841,7 +915,7 @@ static void Ssw_RarTransferPatterns( Ssw_RarMan_t * p, Vec_Int_t * vInits )
         {
             Value = Ssw_RarGetBinPat( p, i, pData[i] );
             assert( Value > 0 );
-            p->pPatCosts[k] += 1.0/(Value*Value);
+            p->pPatCosts[k] += p->fPrivateRandom ? 1.0/((double)Value * Value) : 1.0/(Value*Value);
         }
         // print the result
 //Abc_Print( 1, "%3d : %9.6f\n", k, p->pPatCosts[k] );
@@ -1001,7 +1075,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
     Ssw_RarManPrepareRandom( nSavedSeed );
 
     // create manager
-    p = Ssw_RarManStart( pAig, pPars );
+    p = Ssw_RarManStart( pAig, pPars, 0 );
     p->vInits = Vec_IntStart( Aig_ManRegNum(pAig) * pPars->nWords );
 
     // perform simulation rounds
@@ -1215,6 +1289,158 @@ int Ssw_RarSimulateGia( Gia_Man_t * p, Ssw_RarPars_t * pPars )
 
 /**Function*************************************************************
 
+  Synopsis    [Prepares compact simulation instructions for a private search.]
+
+  Description []
+
+  SideEffects [Returns an owned vector of offsets and complemented fanins.]
+
+  SeeAlso     [Ssw_RarSimulateFast]
+
+***********************************************************************/
+static Vec_Int_t * Ssw_RarPrepareFast( Ssw_RarMan_t * p, int * pnAndOps )
+{
+    Aig_Obj_t * pObj;
+    Vec_Int_t * vOps = Vec_IntAlloc( 3 * Aig_ManNodeNum(p->pAig) + 2 * Aig_ManCoNum(p->pAig) );
+    int i, Words = p->pPars->nWords;
+    Aig_ManForEachNode( p->pAig, pObj, i )
+    {
+        Vec_IntPush( vOps, Aig_ObjId(pObj) * Words );
+        Vec_IntPush( vOps, Abc_Var2Lit(Aig_ObjFaninId0(pObj) * Words, Aig_ObjFaninC0(pObj)) );
+        Vec_IntPush( vOps, Abc_Var2Lit(Aig_ObjFaninId1(pObj) * Words, Aig_ObjFaninC1(pObj)) );
+    }
+    *pnAndOps = Vec_IntSize( vOps );
+    Aig_ManForEachCo( p->pAig, pObj, i )
+    {
+        Vec_IntPush( vOps, Aig_ObjId(pObj) * Words );
+        Vec_IntPush( vOps, Abc_Var2Lit(Aig_ObjFaninId0(pObj) * Words, Aig_ObjFaninC0(pObj)) );
+    }
+    return vOps;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Simulates a frame using compact instructions.]
+
+  Description [Retains initialization, random patterns and sequential state
+  ordering. Private searches do not update correspondence classes.]
+
+  SideEffects [Updates the manager's simulation words.]
+
+  SeeAlso     [Ssw_RarManSimulate]
+
+***********************************************************************/
+static void Ssw_RarSimulateFast( Ssw_RarMan_t * p, Vec_Int_t * vInit, Vec_Int_t * vOps, int nAndOps )
+{
+    word * pData = p->pObjData;
+    int * pOps = Vec_IntArray(vOps), * pEnd = pOps + nAndOps;
+    int w, Words = p->pPars->nWords;
+    Ssw_RarManInitialize( p, vInit );
+    if ( Words == 1 )
+    {
+        for ( ; pOps < pEnd; pOps += 3 )
+            pData[pOps[0]] = (pData[pOps[1] >> 1] ^ -(word)(pOps[1] & 1)) &
+                            (pData[pOps[2] >> 1] ^ -(word)(pOps[2] & 1));
+    }
+    else
+    {
+        for ( ; pOps < pEnd; pOps += 3 )
+        {
+            word * pOut = pData + pOps[0];
+            word * pIn0 = pData + (pOps[1] >> 1), * pIn1 = pData + (pOps[2] >> 1);
+            word Mask0 = -(word)(pOps[1] & 1), Mask1 = -(word)(pOps[2] & 1);
+            for ( w = 0; w < Words; w++ ) pOut[w] = (pIn0[w] ^ Mask0) & (pIn1[w] ^ Mask1);
+        }
+    }
+    pEnd = Vec_IntLimit( vOps );
+    for ( ; pOps < pEnd; pOps += 2 )
+    {
+        word * pOut = pData + pOps[0], * pIn = pData + (pOps[1] >> 1);
+        word Mask = -(word)(pOps[1] & 1);
+        for ( w = 0; w < Words; w++ ) pOut[w] = pIn[w] ^ Mask;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Searches for a candidate trace using manager-owned random state.]
+
+  Description [The caller owns the returned trace and must replay it before
+  accepting a result. The input graph and its counterexample are unchanged.
+  Retains legacy byte-pattern selection for bin settings 8 and 16 using only
+  256 counters per group. Counters saturate and inverse-square weights use
+  floating point. A found trace is
+  regenerated even if the search deadline expires during reconstruction.]
+
+  SideEffects [Updates progress callbacks and the parameter result fields.]
+
+  SeeAlso     [Ssw_RarSimulateGia]
+
+***********************************************************************/
+Abc_Cex_t * Ssw_RarFindCexGia( Gia_Man_t * pGia, Ssw_RarPars_t * pPars )
+{
+    Vec_Int_t * vOps;
+    int nAndOps;
+    Ssw_RarMan_t * p;
+    Aig_Man_t * pAig;
+    Abc_Cex_t * pCex = NULL;
+    abctime Start = Abc_Clock(), Deadline;
+    int Round, Restarts = 0, Seed, f;
+    if ( !pGia || !pPars || !Gia_ManRegNum(pGia) || pGia->nConstrs ||
+         pPars->fSolveAll || pPars->fSetLastState || pPars->fUseFfGrouping || pPars->fUseCex ||
+         pPars->nFrames <= 0 || pPars->nWords <= 0 || pPars->nWords > 256 ||
+         (pPars->nBinSize != 8 && pPars->nBinSize != 16) || pPars->nRandSeed < 0 ||
+         pPars->nRounds < 0 || pPars->nRestart < 0 || pPars->TimeOut < 0 || pPars->TimeOutGap ||
+         (ABC_INT64_T)Gia_ManObjNum(pGia) * pPars->nWords > INT_MAX / sizeof(word) ||
+         (ABC_INT64_T)(Gia_ManRegNum(pGia) / pPars->nBinSize) * 256 > INT_MAX / sizeof(int) ) return NULL;
+    pPars->nSolved = 0;
+    Seed = pPars->nRandSeed;
+    Deadline = pPars->TimeOut ? Start + (abctime)pPars->TimeOut * CLOCKS_PER_SEC : 0;
+    pAig = Gia_ManToAigSimple( pGia );
+    p = Ssw_RarManStart( pAig, pPars, 1 );
+    p->vInits = Vec_IntStart( Aig_ManRegNum(pAig) * pPars->nWords );
+    vOps = Ssw_RarPrepareFast( p, &nAndOps );
+    Ssw_RarPrivateReset( p, Seed );
+    for ( Round = 0; ; Round++ )
+    {
+        if ( (Deadline && Abc_Clock() >= Deadline) ||
+             (pPars->nRounds && (ABC_INT64_T)Restarts * pPars->nRestart + Round >= pPars->nRounds) ) break;
+        if ( Round > (INT_MAX - pPars->nFrames) / pPars->nFrames ||
+             Round >= INT_MAX / pPars->nWords - 1 ) break;
+        for ( f = 0; f < pPars->nFrames; f++ )
+        {
+            int Frame = Round * pPars->nFrames + f;
+            if ( pPars->pFuncProgress && pPars->pFuncProgress(pPars->pProgress, 0, (unsigned)Frame) )
+                goto finish;
+            if ( Deadline && Abc_Clock() >= Deadline ) goto finish;
+            Ssw_RarSimulateFast( p, f ? NULL : p->vInits, vOps, nAndOps );
+            if ( !Ssw_RarManCheckNonConstOutputs(p, Frame, Abc_Clock() - Start) ) continue;
+            if ( (ABC_INT64_T)Saig_ManPiNum(pAig) * (Frame + 1) + Aig_ManRegNum(pAig) > INT_MAX - 32 )
+                goto finish;
+            Ssw_RarPrivateReset( p, Seed );
+            pCex = Ssw_RarDeriveCex( p, Frame, p->iFailPo, p->iFailPat, 0 );
+            goto finish;
+        }
+        if ( pPars->nRestart && Round == pPars->nRestart )
+        {
+            Round = -1;
+            Seed = (Seed + 1) % 1000;
+            Ssw_RarPrivateReset( p, Seed );
+            Vec_IntFill( p->vInits, Aig_ManRegNum(pAig) * pPars->nWords, 0 );
+            Vec_IntClear( p->vPatBests );
+            Restarts++;
+        }
+        else Ssw_RarTransferPatterns( p, p->vInits );
+    }
+finish:
+    Vec_IntFree( vOps );
+    Ssw_RarManStop( p );
+    Aig_ManStop( pAig );
+    return pCex;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Filter equivalence classes of nodes.]
 
   Description []
@@ -1248,7 +1474,7 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
     Ssw_RarManPrepareRandom( nSavedSeed );
 
     // create manager
-    p = Ssw_RarManStart( pAig, pPars );
+    p = Ssw_RarManStart( pAig, pPars, 0 );
     // compute starting state if needed
     assert( p->vInits == NULL );
     if ( pPars->pCex )

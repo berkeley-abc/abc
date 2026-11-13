@@ -64,6 +64,7 @@ class SimpSolver : public Solver {
     bool    solve       (Lit p, Lit q,        bool do_simp = true, bool turn_off_simp = false);
     bool    solve       (Lit p, Lit q, Lit r, bool do_simp = true, bool turn_off_simp = false);
     bool    eliminate   (bool turn_off_elim = false);  // Perform variable elimination based simplification. 
+    bool    disableSimplification(); // Before adding clauses; retain search and clause layout.
 
     // Memory managment:
     //

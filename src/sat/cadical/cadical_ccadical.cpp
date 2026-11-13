@@ -228,6 +228,14 @@ int ccadical_clauses(CCaDiCaL *ptr) {
   return ((Wrapper *) ptr)->solver->clauses ();
 }
 
+// Returns the number of active clauses without narrowing.
+// Counts original and learned clauses currently retained.
+// See also: ccadical_clauses
+int64_t ccadical_live_clauses(CCaDiCaL *ptr) {
+  Solver *solver = ((Wrapper *) ptr)->solver;
+  return solver->irredundant () + solver->redundant ();
+}
+
 int ccadical_conflicts(CCaDiCaL *ptr) {
   return ((Wrapper *) ptr)->solver->conflicts ();
 }

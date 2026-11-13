@@ -260,7 +260,7 @@ static void Imc_PredConstantWords( Gia_Man_t * pGia, Vec_Int_t * vWords, abctime
     }
     Gia_ManForEachAnd( pGia, pObj, i )
     {
-        if ( (i & 1023) == 0 && TimeStop && Abc_Clock() >= TimeStop )
+        if ( (i & 1023) == 0 && Imc_ManCheckStop(TimeStop) )
             goto finish;
         a = Gia_ObjFaninId0p(pGia, pObj); b = Gia_ObjFaninId1p(pGia, pObj);
         Size0 = Vec_IntEntry(vSize, a); Size1 = Vec_IntEntry(vSize, b);
@@ -279,7 +279,7 @@ static void Imc_PredConstantWords( Gia_Man_t * pGia, Vec_Int_t * vWords, abctime
     for ( Width = 32; Width >= 4; Width /= 2 )
         Gia_ManForEachAnd( pGia, pObj, i )
         {
-            if ( (i & 1023) == 0 && TimeStop && Abc_Clock() >= TimeStop )
+            if ( (i & 1023) == 0 && Imc_ManCheckStop(TimeStop) )
                 goto finish;
             if ( Vec_IntEntry(vSize, i) != Width )
                 continue;
@@ -343,7 +343,7 @@ static void Imc_PredLinear( Gia_Man_t * p, Vec_Int_t * vWords, Vec_Int_t * vOutp
         for ( j = i + 2; j < Vec_IntSize(vWords); j += 2 )
             for ( k = 0; k < Vec_IntSize(vWords); k += 2 )
             {
-                if ( Vec_IntSize(vOutputs) >= IMC_PRED_MAX - 42 || (TimeStop && Abc_Clock() >= TimeStop) )
+                if ( Vec_IntSize(vOutputs) >= IMC_PRED_MAX - 42 || (Imc_ManCheckStop(TimeStop)) )
                     return;
                 Width = Vec_IntEntry( vWords, i + 1 );
                 if ( k == i || k == j || Width < 4 ||
@@ -427,7 +427,7 @@ static void Imc_PredExtrema( Gia_Man_t * p, Vec_Int_t * vWords, Vec_Int_t * vOut
             for ( k = 0; k < Vec_IntSize(vWords) && nAdded < 64; k += 2 )
                 for ( l = k + 2; l < Vec_IntSize(vWords) && nAdded < 64; l += 2 )
                 {
-                    if ( Vec_IntSize(vOutputs) >= IMC_PRED_MAX - 42 || (TimeStop && Abc_Clock() >= TimeStop) )
+                    if ( Vec_IntSize(vOutputs) >= IMC_PRED_MAX - 42 || (Imc_ManCheckStop(TimeStop)) )
                         return;
                     if ( i == k || i == l || j == k || j == l )
                         continue;
@@ -472,7 +472,7 @@ static int Imc_PredStateSupport( Gia_Man_t * pGia, int Reg, abctime TimeStop )
     int Id, Count = 0;
     Gia_ManIncrementTravId( pGia );
     Vec_IntPush( vStack, Gia_ObjFaninId0p(pGia, Gia_ManRi(pGia, Reg)) );
-    while ( Vec_IntSize(vStack) && (!TimeStop || Abc_Clock() < TimeStop) )
+    while ( Vec_IntSize(vStack) && (!Imc_ManCheckStop(TimeStop)) )
     {
         Id = Vec_IntPop( vStack );
         pObj = Gia_ManObj( pGia, Id );
@@ -591,7 +591,7 @@ static void Imc_PredGuards( Gia_Man_t * pGia, Gia_Man_t * pNew, Vec_Int_t * vWor
             Lit = Gia_ObjFaninLit0p( pGia, Gia_ObjRoToRi(pGia, pObj) );
         Vec_IntPush( vStack, Lit );
     }
-    while ( Vec_IntSize(vStack) && (!TimeStop || Abc_Clock() < TimeStop) )
+    while ( Vec_IntSize(vStack) && (!Imc_ManCheckStop(TimeStop)) )
     {
         Lit = Vec_IntPop( vStack );
         pObj = Gia_ManObj( pGia, Abc_Lit2Var(Lit) );
@@ -742,7 +742,7 @@ static void Imc_PredWordOrders( Gia_Man_t * pGia, Gia_Man_t * pNew, Vec_Int_t * 
     int fLinear = iPredClass == 2;
     Gia_ManForEachAnd( pGia, pObj, i )
     {
-        if ( (i & 1023) == 0 && TimeStop && Abc_Clock() >= TimeStop )
+        if ( (i & 1023) == 0 && Imc_ManCheckStop(TimeStop) )
             goto finish;
         if ( Imc_PredXorRegisters(pGia, pObj, &a, &b) )
             Vec_WrdPush( vPairs, ((word)(unsigned)(b - a) << 32) | (unsigned)a );
@@ -750,7 +750,7 @@ static void Imc_PredWordOrders( Gia_Man_t * pGia, Gia_Man_t * pNew, Vec_Int_t * 
     Vec_WrdUniqify( vPairs );
     for ( i = 0; i < Vec_WrdSize(vPairs) && Vec_IntSize(vOutputs) < IMC_PRED_MAX - 34; i += Run )
     {
-        if ( TimeStop && Abc_Clock() >= TimeStop )
+        if ( Imc_ManCheckStop(TimeStop) )
             goto finish;
         Pair = Vec_WrdEntry( vPairs, i );
         Base = (int)(unsigned)Pair;
@@ -787,7 +787,7 @@ static void Imc_PredWordOrders( Gia_Man_t * pGia, Gia_Man_t * pNew, Vec_Int_t * 
     for ( i = 0; i < Vec_IntSize(vWords) && Vec_IntSize(vOutputs) < IMC_PRED_MAX - 42; i += 2 )
     {
         int Zero = 1, Ones = 1;
-        if ( TimeStop && Abc_Clock() >= TimeStop )
+        if ( Imc_ManCheckStop(TimeStop) )
             goto finish;
         Base = Vec_IntEntry( vWords, i );
         Width = Vec_IntEntry( vWords, i + 1 );
@@ -803,7 +803,7 @@ static void Imc_PredWordOrders( Gia_Man_t * pGia, Gia_Man_t * pNew, Vec_Int_t * 
         Vec_IntPushUnique( vOutputs, Ones );
         for ( j = 0; j < Vec_IntSize(vWords); j += 2 )
         {
-            if ( TimeStop && Abc_Clock() >= TimeStop )
+            if ( Imc_ManCheckStop(TimeStop) )
                 goto finish;
             if ( Vec_IntSize(vOutputs) > IMC_PRED_MAX - 38 )
                 break;
@@ -816,7 +816,7 @@ static void Imc_PredWordOrders( Gia_Man_t * pGia, Gia_Man_t * pNew, Vec_Int_t * 
     for ( i = 0; i < Vec_IntSize(vWords) && Vec_IntSize(vOutputs) < IMC_PRED_MAX - 42; i += 2 )
         for ( j = i + 2; j < Vec_IntSize(vWords); j += 2 )
         {
-            if ( TimeStop && Abc_Clock() >= TimeStop )
+            if ( Imc_ManCheckStop(TimeStop) )
                 goto finish;
             if ( Vec_IntSize(vOutputs) > IMC_PRED_MAX - 36 )
                 break;
@@ -829,10 +829,10 @@ static void Imc_PredWordOrders( Gia_Man_t * pGia, Gia_Man_t * pNew, Vec_Int_t * 
     Imc_PredExtrema( pNew, vWords, vOutputs, TimeStop );
     if ( fLinear )
         Imc_PredLinear( pNew, vWords, vOutputs, TimeStop );
-    if ( TimeStop && Abc_Clock() >= TimeStop )
+    if ( Imc_ManCheckStop(TimeStop) )
         goto finish;
     Imc_PredGuards( pGia, pNew, vWords, vOutputs, vLevel, fLinear, TimeStop );
-    if ( TimeStop && Abc_Clock() >= TimeStop )
+    if ( Imc_ManCheckStop(TimeStop) )
         goto finish;
     Imc_PredGuardBits( pNew, pGia, vOutputs, fLinear );
 finish:
@@ -870,7 +870,7 @@ static Gia_Man_t * Imc_PredFind( Gia_Man_t * pGia, abctime TimeStop, int fCoarse
         Vec_IntWriteEntry( vLevel, Gia_ObjId(pGia, pObj), 0 );
     Gia_ManForEachAnd( pGia, pObj, i )
     {
-        if ( (i & 1023) == 0 && TimeStop && Abc_Clock() >= TimeStop )
+        if ( (i & 1023) == 0 && Imc_ManCheckStop(TimeStop) )
             goto finish;
         Id0 = Gia_ObjFaninId0p( pGia, pObj );
         Id1 = Gia_ObjFaninId1p( pGia, pObj );
@@ -941,7 +941,7 @@ static Gia_Man_t * Imc_PredFind( Gia_Man_t * pGia, abctime TimeStop, int fCoarse
         for ( i = Gia_ManObjNum(pGia) - 1; i > 0 && Vec_IntSize(vSelected) < 128; i-- )
             if ( Vec_IntEntry(vLevel, i) >= 4 && (Vec_StrEntry(vBorder, i) || Vec_IntEntry(vRefs, i) > 1) )
                 Vec_IntPush( vSelected, i );
-    if ( Vec_IntSize(vSelected) == 0 || (TimeStop && Abc_Clock() >= TimeStop) )
+    if ( Vec_IntSize(vSelected) == 0 || (Imc_ManCheckStop(TimeStop)) )
         goto finish;
     pNew = Gia_ManStart( Gia_ManObjNum(pGia) );
     Gia_ManHashStart( pNew );
@@ -954,7 +954,7 @@ static Gia_Man_t * Imc_PredFind( Gia_Man_t * pGia, abctime TimeStop, int fCoarse
     Vec_IntForEachEntry( vSelected, Id, i )
         Vec_IntPushUnique( vOutputs, Gia_ManObj(pGia, Id)->Value );
     Imc_PredWordOrders( pGia, pNew, vOutputs, vRefs, vLevel, iPredClass, TimeStop );
-    if ( TimeStop && Abc_Clock() >= TimeStop )
+    if ( Imc_ManCheckStop(TimeStop) )
         goto finish;
     if ( Vec_IntSize(vOutputs) > IMC_PRED_MAX )
     {
@@ -995,7 +995,7 @@ finish:
 Gia_Man_t * Imc_ManFindPredicates( Gia_Man_t * pGia, abctime TimeStop, int fCoarse, int iPredClass, int fAfterInit )
 {
     Gia_Man_t * pNew, * pResult;
-    if ( TimeStop && Abc_Clock() >= TimeStop )
+    if ( Imc_ManCheckStop(TimeStop) )
         return NULL;
     // The original circuit's class is computed once by the entry point.
     // Cofactor only when this was needed to recognize the original class.

@@ -156,6 +156,8 @@ extern int               Gia_GlaCountNodes( Gia_Man_t * p, Vec_Int_t * vGla );
 
 /*=== absRpm.c =========================================================*/
 extern Gia_Man_t *       Abs_RpmPerform( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerbose );
+extern Gia_Man_t *       Abs_RpmPerformWithStop( Gia_Man_t * p, int nCutMax, int fVerbose, int fVeryVerbose,
+                            int (*pFuncStop)(void *), void * pStopData );
 /*=== absRpmOld.c =========================================================*/
 extern Gia_Man_t *       Abs_RpmPerformOld( Gia_Man_t * p, int fVerbose );
 extern void              Gia_ManAbsSetDefaultParams( Gia_ParAbs_t * p );

@@ -135,7 +135,7 @@ Gia_Man_t * Imc_ManRewriteBdd( Gia_Man_t * p, int nLimit, abctime TimeStop )
     }
     Gia_ManForEachAnd( p, pObj, i )
     {
-        if ( TimeBdd && Abc_Clock() >= TimeBdd )
+        if ( Imc_ManCheckStop(TimeBdd) )
             goto finish;
         bFunc0 = Cudd_NotCond( (DdNode *)Vec_PtrEntry(vNodes, Gia_ObjFaninId0(pObj, i)), Gia_ObjFaninC0(pObj) );
         bFunc1 = Cudd_NotCond( (DdNode *)Vec_PtrEntry(vNodes, Gia_ObjFaninId1(pObj, i)), Gia_ObjFaninC1(pObj) );

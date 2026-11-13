@@ -27,9 +27,9 @@ ABC_NAMESPACE_IMPL_START
 // them.  The existing -C limit remains per output; nConfTotal is an optional
 // deterministic cap on the exact conflicts/backtracks consumed by the whole
 // call.  &scorr leaves it at zero, so its legacy behavior is unchanged.
-ABC_INT64_T Cec_ScorrConfLimit = 0;
-ABC_INT64_T Cec_ScorrConfUsed  = 0;
-int         Cec_ScorrConfStop  = 0;
+ABC_THREAD_LOCAL ABC_INT64_T Cec_ScorrConfLimit = 0;
+ABC_THREAD_LOCAL ABC_INT64_T Cec_ScorrConfUsed  = 0;
+ABC_THREAD_LOCAL int         Cec_ScorrConfStop  = 0;
 
 static inline int Cec_ParCorShouldStop( Cec_ParCor_t * pPars )
 {
@@ -87,64 +87,64 @@ extern int  Gia_ManCorrSpecReal( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pO
 ///        &scorr FINE-GRAINED PROFILING (enabled by -w)              ///
 ////////////////////////////////////////////////////////////////////////
 
-// Per-proof SAT counters (see cecInt.h). Written by Cbs/Tas/Cec miter solvers.
-int     Cec_ScorrProfOn    = 0;
-int     Cec_ScorrProfCalls = 0;
-abctime Cec_ScorrProfSetup = 0;
-abctime Cec_ScorrProfSolve = 0;
-abctime Cec_ScorrProfMax   = 0;
+// Per-thread SAT counters (see cecInt.h). Written by Cbs/Tas/Cec miter solvers.
+ABC_THREAD_LOCAL int     Cec_ScorrProfOn    = 0;
+ABC_THREAD_LOCAL int     Cec_ScorrProfCalls = 0;
+ABC_THREAD_LOCAL abctime Cec_ScorrProfSetup = 0;
+ABC_THREAD_LOCAL abctime Cec_ScorrProfSolve = 0;
+ABC_THREAD_LOCAL abctime Cec_ScorrProfMax   = 0;
 
 // Sim-phase split, filled inside Cec_ManResimulateCounterExamples (ns).
-static abctime Cec_ScorrProfSimRemap = 0; // O(N) remapping + value-ref setup
-static abctime Cec_ScorrProfSimRun   = 0; // actual bit-parallel resimulation
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfSimRemap = 0; // O(N) remapping + value-ref setup
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfSimRun   = 0; // actual bit-parallel resimulation
 // Incremental local-sim cone measurement (counts, not times).
-static int     Cec_ScorrProfIncrSrc   = 0; // # batches handled by local TFO sim
-static int     Cec_ScorrProfIncrFull  = 0; // # batches that fell back to full sweep
-static int     Cec_ScorrProfIncrTrunc = 0; // # local batches with optional TFO truncated
-static int     Cec_ScorrProfIncrRollback = 0; // # diagnosis transactions rolled back
-static int     Cec_ScorrProfIncrRollbackObjs = 0; // # class entries restored
-static int     Cec_ScorrProfIncrCoverageMiss = 0; // # unexplained packed CEX lanes
-static int     Cec_ScorrProfIncrFallbackPre = 0; // fallback before class mutation
-static int     Cec_ScorrProfIncrFallbackProcess = 0; // diagnosis budget fallback
-static int     Cec_ScorrProfIncrFallbackCoverage = 0; // diagnosis coverage fallback
-static int     Cec_ScorrProfIncrFallbackCex = 0; // oversized packed CEX batch
-static int     Cec_ScorrProfIncrFallbackBypass = 0; // repeated-fallback circuit breaker
-static int     Cec_ScorrProfIncrTruncCone = 0; // optional TFO structural truncation
-static int     Cec_ScorrProfIncrTruncEval = 0; // optional TFO evaluation truncation
-static int     Cec_ScorrProfIncrBatchCex = 0; // total real CEX records across batches
-static int     Cec_ScorrProfIncrBatchCexMax = 0; // largest packed-batch CEX count
-static int     Cec_ScorrProfIncrDeferred = 0; // fixed-frontier splits left for later rounds
-static int     Cec_ScorrProfIncrDirty = 0; // largest dirty cone across the call
-static int     Cec_ScorrProfIncrConeKeys = 0; // active/class cone keys used by event resim
-static int     Cec_ScorrProfIncrKeys  = 0; // nFrames * nObjs (cone-size denominator)
-static abctime Cec_ScorrProfIncrTry = 0; // all incremental probes
-static abctime Cec_ScorrProfIncrTryLocal = 0; // probes completed locally
-static abctime Cec_ScorrProfIncrTryFallback = 0; // probes followed by full simulation
-static abctime Cec_ScorrProfIncrDiagShape = 0; // dry-run TFI/shape admission
-static abctime Cec_ScorrProfIncrDiagCollect = 0; // lane-aware TFI diagnosis
-static abctime Cec_ScorrProfIncrDiagEval = 0; // diagnosis evaluation shape
-static abctime Cec_ScorrProfIncrDiagSim = 0; // diagnosis value evaluation/refinement
-static abctime Cec_ScorrProfIncrTfoBuild = 0; // split-driven TFO construction
-static abctime Cec_ScorrProfIncrTfoSim = 0; // TFO value evaluation/refinement
-static abctime Cec_ScorrProfIncrTxn = 0; // transaction begin/commit/rollback
-static abctime Cec_ScorrProfIncrFullRun = 0; // full sweeps after local rejection/bypass
-static int     Cec_ScorrProfEventLocal = 0;
-static int     Cec_ScorrProfEventFallback = 0;
-static int     Cec_ScorrProfEventPopsMax = 0;
-static int     Cec_ScorrProfEventEdgesMax = 0;
-static int     Cec_ScorrProfEventInputVarsMax = 0;
-static int     Cec_ScorrProfEventInputWordsMax = 0;
-static int     Cec_ScorrProfEventFallbackWork = 0;
-static int     Cec_ScorrProfEventFallbackTime = 0;
-static int     Cec_ScorrProfIncrAdaptLocal = 0;
-static int     Cec_ScorrProfIncrAdaptFail = 0;
-static int     Cec_ScorrProfIncrAdaptTrips = 0;
-static int     Cec_ScorrProfIncrAdaptCooldown = 0;
-static abctime Cec_ScorrProfEventLoad = 0;
-static abctime Cec_ScorrProfEventProp = 0;
-static abctime Cec_ScorrProfEventRefine = 0;
-static abctime Cec_ScorrProfEventRollback = 0;
-static abctime Cec_ScorrProfEventInit = 0;
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrSrc   = 0; // # batches handled by local TFO sim
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrFull  = 0; // # batches that fell back to full sweep
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrTrunc = 0; // # local batches with optional TFO truncated
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrRollback = 0; // # diagnosis transactions rolled back
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrRollbackObjs = 0; // # class entries restored
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrCoverageMiss = 0; // # unexplained packed CEX lanes
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrFallbackPre = 0; // fallback before class mutation
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrFallbackProcess = 0; // diagnosis budget fallback
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrFallbackCoverage = 0; // diagnosis coverage fallback
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrFallbackCex = 0; // oversized packed CEX batch
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrFallbackBypass = 0; // repeated-fallback circuit breaker
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrTruncCone = 0; // optional TFO structural truncation
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrTruncEval = 0; // optional TFO evaluation truncation
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrBatchCex = 0; // total real CEX records across batches
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrBatchCexMax = 0; // largest packed-batch CEX count
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrDeferred = 0; // fixed-frontier splits left for later rounds
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrDirty = 0; // largest dirty cone across the call
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrConeKeys = 0; // active/class cone keys used by event resim
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrKeys  = 0; // nFrames * nObjs (cone-size denominator)
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfIncrTry = 0; // all incremental probes
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfIncrTryLocal = 0; // probes completed locally
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfIncrTryFallback = 0; // probes followed by full simulation
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfIncrDiagShape = 0; // dry-run TFI/shape admission
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfIncrDiagCollect = 0; // lane-aware TFI diagnosis
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfIncrDiagEval = 0; // diagnosis evaluation shape
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfIncrDiagSim = 0; // diagnosis value evaluation/refinement
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfIncrTfoBuild = 0; // split-driven TFO construction
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfIncrTfoSim = 0; // TFO value evaluation/refinement
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfIncrTxn = 0; // transaction begin/commit/rollback
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfIncrFullRun = 0; // full sweeps after local rejection/bypass
+static ABC_THREAD_LOCAL int     Cec_ScorrProfEventLocal = 0;
+static ABC_THREAD_LOCAL int     Cec_ScorrProfEventFallback = 0;
+static ABC_THREAD_LOCAL int     Cec_ScorrProfEventPopsMax = 0;
+static ABC_THREAD_LOCAL int     Cec_ScorrProfEventEdgesMax = 0;
+static ABC_THREAD_LOCAL int     Cec_ScorrProfEventInputVarsMax = 0;
+static ABC_THREAD_LOCAL int     Cec_ScorrProfEventInputWordsMax = 0;
+static ABC_THREAD_LOCAL int     Cec_ScorrProfEventFallbackWork = 0;
+static ABC_THREAD_LOCAL int     Cec_ScorrProfEventFallbackTime = 0;
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrAdaptLocal = 0;
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrAdaptFail = 0;
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrAdaptTrips = 0;
+static ABC_THREAD_LOCAL int     Cec_ScorrProfIncrAdaptCooldown = 0;
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfEventLoad = 0;
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfEventProp = 0;
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfEventRefine = 0;
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfEventRollback = 0;
+static ABC_THREAD_LOCAL abctime Cec_ScorrProfEventInit = 0;
 
 // One iteration's wall-clock breakdown; all fields are nanoseconds.
 typedef struct Cec_ScorrProf_t_ Cec_ScorrProf_t;

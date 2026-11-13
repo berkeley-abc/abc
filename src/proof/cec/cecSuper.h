@@ -37,6 +37,7 @@ typedef struct Cec_ParSuper_t_
 {
     int nProcs;             // maximum simultaneously active solver workers
     int nTimeOut;           // total time limit in seconds
+    int nBmcMemory;         // estimated MiB budget per concrete BMC lane (0 = unlimited)
     int iEngine;            // 0 = automatic; otherwise a selected experiment
     int fRewrite;           // use balance-free drwsat before races and after correspondence
     int fVerbose;           // report worker starts, reductions, and finishes
@@ -45,6 +46,7 @@ typedef struct Cec_ParSuper_t_
     int nReduced;           // output: number of accepted smaller models
     const char * pWinner;   // output: winning engine, or NULL
 } Cec_ParSuper_t;
+typedef struct Wlc_Ntk_t_ Wlc_Ntk_t;
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
@@ -58,6 +60,9 @@ extern int          Cec_ManSuperEngineId( const char * pName );
 // or -3 (worker synchronization initialization failed).
 // Retains the original graph and stores a checked trace in pGia->pCexSeq.
 extern int          Cec_GiaSuperProve( Gia_Man_t * pGia, Cec_ParSuper_t * pPars );
+// Builds an XOR miter from two equally wide word-level outputs, then races
+// UFAR/PDR2 with the bit-level portfolio. The caller owns the returned GIA.
+extern int          Cec_WlcSuperProve( Wlc_Ntk_t * pWlc, Cec_ParSuper_t * pPars, Gia_Man_t ** ppGia );
 
 ABC_NAMESPACE_HEADER_END
 #endif

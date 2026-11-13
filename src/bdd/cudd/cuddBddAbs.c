@@ -376,6 +376,7 @@ cuddBddExistAbstractRecur(
     DdNode      *F, *T, *E, *res, *res1, *res2, *one;
 
     statLine(manager);
+    if ( cuddPollStop(manager) ) return NULL;
     one = DD_ONE(manager);
     F = Cudd_Regular(f);
 

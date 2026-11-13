@@ -57,7 +57,7 @@ static inline void Pdr_ManSimInfoSet( Aig_Man_t * p, Aig_Obj_t * pObj, int Value
 {
     assert( Value >= PDR_ZER && Value <= PDR_UND );
     Value ^= Pdr_ManSimInfoGet( p, pObj );
-    p->pTerSimData[Aig_ObjId(pObj) >> 4] ^= (Value << ((Aig_ObjId(pObj) & 15) << 1));
+    p->pTerSimData[Aig_ObjId(pObj) >> 4] ^= ((unsigned)Value << ((Aig_ObjId(pObj) & 15) << 1));
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -239,6 +239,130 @@ int Pdr_ManExtendOne( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * vUndo, Vec
 
 /**Function*************************************************************
 
+  Synopsis    [Checks the opt-in cancellation of classic ternary simulation.]
+
+  Description [Existing callers retain their original simulation path.]
+
+  SideEffects []
+
+  SeeAlso     [Pdr_ManExtendOneWithStop]
+
+***********************************************************************/
+static int Pdr_ManTsimStop( Pdr_Man_t * p )
+{
+    if ( !p->pPars->fTsimStop ) return 0;
+    if ( p->pPars->pFuncStop && p->pPars->pFuncStop(p->pPars->RunId) ) return 1;
+    if ( p->timeToStop && Abc_Clock() >= p->timeToStop ) return 1;
+    return p->timeToStopOne && Abc_Clock() >= p->timeToStopOne;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Inserts an active object into a heap ordered by object ID.]
+
+  Description [Smallest IDs are processed first, preserving the legacy topological order.]
+
+  SideEffects [Updates the private work vector.]
+
+  SeeAlso     [Pdr_ManTsimHeapPop]
+
+***********************************************************************/
+static void Pdr_ManTsimHeapPush( Vec_Int_t * vHeap, int Entry )
+{
+    int i = Vec_IntSize(vHeap), Parent;
+    Vec_IntPush( vHeap, Entry );
+    while ( i && Vec_IntEntry(vHeap, Parent = (i - 1) / 2) > Entry )
+    {
+        Vec_IntWriteEntry( vHeap, i, Vec_IntEntry(vHeap, Parent) );
+        i = Parent;
+    }
+    Vec_IntWriteEntry( vHeap, i, Entry );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Removes the smallest object ID from the private work heap.]
+
+  Description []
+
+  SideEffects [Updates the private work vector.]
+
+  SeeAlso     [Pdr_ManTsimHeapPush]
+
+***********************************************************************/
+static int Pdr_ManTsimHeapPop( Vec_Int_t * vHeap )
+{
+    int Result = Vec_IntEntry(vHeap, 0), Entry = Vec_IntPop(vHeap), i = 0, Child;
+    while ( i < Vec_IntSize(vHeap) / 2 )
+    {
+        Child = 2 * i + 1;
+        if ( Child + 1 < Vec_IntSize(vHeap) && Vec_IntEntry(vHeap, Child + 1) < Vec_IntEntry(vHeap, Child) )
+            Child++;
+        if ( Entry <= Vec_IntEntry(vHeap, Child) ) break;
+        Vec_IntWriteEntry( vHeap, i, Vec_IntEntry(vHeap, Child) );
+        i = Child;
+    }
+    if ( Vec_IntSize(vHeap) ) Vec_IntWriteEntry( vHeap, i, Entry );
+    return Result;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Extends a ternary assignment with bounded cancellation latency.]
+
+  Description [Returns minus one on cancellation, zero on a changed output,
+  and one on a successful extension. The caller undoes partial changes on
+  either kind of failure. A minimum heap keeps the original topological
+  order without shifting the entire sorted work vector for each insertion.]
+
+  SideEffects [Updates simulation values and the undo and visit vectors.]
+
+  SeeAlso     [Pdr_ManExtendOne Pdr_ManExtendUndo]
+
+***********************************************************************/
+static int Pdr_ManExtendOneWithStop( Pdr_Man_t * p, Aig_Obj_t * pObj )
+{
+    Aig_Man_t * pAig = p->pAig;
+    Vec_Int_t * vUndo = p->vUndo, * vVis = p->vVisits;
+    Aig_Obj_t * pFanout;
+    int k, iFanout = -1, Value, Value2;
+    if ( !p->pPars->fTsimStop )
+        return Pdr_ManExtendOne( pAig, pObj, vUndo, vVis );
+    if ( !(p->nTsimVisits++ & 1023) && Pdr_ManTsimStop(p) ) return -1;
+    assert( Saig_ObjIsLo(pAig, pObj) );
+    assert( Aig_ObjIsTravIdCurrent(pAig, pObj) );
+    Value = Pdr_ManSimInfoGet( pAig, pObj );
+    assert( Value == PDR_ZER || Value == PDR_ONE );
+    Vec_IntPush( vUndo, Aig_ObjId(pObj) );
+    Vec_IntPush( vUndo, Value );
+    Pdr_ManSimInfoSet( pAig, pObj, PDR_UND );
+    Vec_IntClear( vVis );
+    Pdr_ManTsimHeapPush( vVis, Aig_ObjId(pObj) );
+    while ( Vec_IntSize(vVis) )
+    {
+        pObj = Aig_ManObj( pAig, Pdr_ManTsimHeapPop(vVis) );
+        Aig_ObjForEachFanout( pAig, pObj, pFanout, iFanout, k )
+        {
+            if ( !(p->nTsimVisits++ & 1023) && Pdr_ManTsimStop(p) ) return -1;
+            if ( !Aig_ObjIsTravIdCurrent(pAig, pFanout) ) continue;
+            assert( Aig_ObjId(pObj) < Aig_ObjId(pFanout) );
+            Value = Pdr_ManSimInfoGet( pAig, pFanout );
+            if ( Value == PDR_UND ) continue;
+            Value2 = Pdr_ManExtendOneEval( pAig, pFanout );
+            if ( Value2 == Value ) continue;
+            assert( Value2 == PDR_UND );
+            Vec_IntPush( vUndo, Aig_ObjId(pFanout) );
+            Vec_IntPush( vUndo, Value );
+            if ( Aig_ObjIsCo(pFanout) ) return 0;
+            assert( Aig_ObjIsNode(pFanout) );
+            Pdr_ManTsimHeapPush( vVis, Aig_ObjId(pFanout) );
+        }
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Undoes the partial results of ternary simulation.]
 
   Description []
@@ -341,7 +465,8 @@ void Pdr_ManPrintCex( Aig_Man_t * pAig, Vec_Int_t * vCiObjs, Vec_Int_t * vCiVals
   If the cube is NULL, it is assumed that the first property output was
   asserted and failed.
   The resulting array is a set of flop index literals that asserts the COs.
-  Priority contains 0 for i-th entry if the i-th FF is desirable to remove.]
+  Priority contains 0 for i-th entry if the i-th FF is desirable to remove.
+  Returns NULL when opt-in cancellation interrupts the simulation.]
                
   SideEffects []
 
@@ -359,12 +484,13 @@ Pdr_Set_t * Pdr_ManTernarySim( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
     Vec_Int_t * vCoVals = p->vCoVals;  // cone root values (0/1 CO values)
     Vec_Int_t * vNodes  = p->vNodes;   // cone nodes (node obj IDs)
     Vec_Int_t * vUndo   = p->vUndo;    // cone undos (node obj IDs)
-    Vec_Int_t * vVisits = p->vVisits;  // intermediate (obj IDs)
     Vec_Int_t * vCi2Rem = p->vCi2Rem;  // CIs to be removed (CI obj IDs)
     Vec_Int_t * vRes    = p->vRes;     // final result (flop literals)
     Aig_Obj_t * pObj;
     int i, Entry, RetValue;
     //abctime clk = Abc_Clock();
+
+    if ( Pdr_ManTsimStop(p) ) return NULL;
 
     // collect CO objects
     Vec_IntClear( vCoObjs );
@@ -425,7 +551,9 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, NULL );
             pObj = Aig_ManCi( p->pAig, Saig_ManPiNum(p->pAig) + Entry );
             assert( Saig_ObjIsLo( p->pAig, pObj ) );
             Vec_IntClear( vUndo );
-            if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
+            RetValue = Pdr_ManExtendOneWithStop( p, pObj );
+            if ( RetValue < 0 ) { Pdr_ManExtendUndo(p->pAig, vUndo); return NULL; }
+            if ( RetValue )
                 Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
             else
                 Pdr_ManExtendUndo( p->pAig, vUndo );
@@ -443,7 +571,9 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, NULL );
             if ( Vec_IntEntry(vPrio, Entry) )
                 continue;
             Vec_IntClear( vUndo );
-            if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
+            RetValue = Pdr_ManExtendOneWithStop( p, pObj );
+            if ( RetValue < 0 ) { Pdr_ManExtendUndo(p->pAig, vUndo); return NULL; }
+            if ( RetValue )
                 Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
             else
                 Pdr_ManExtendUndo( p->pAig, vUndo );
@@ -457,7 +587,9 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, NULL );
             if ( !Vec_IntEntry(vPrio, Entry) )
                 continue;
             Vec_IntClear( vUndo );
-            if ( Pdr_ManExtendOne( p->pAig, pObj, vUndo, vVisits ) )
+            RetValue = Pdr_ManExtendOneWithStop( p, pObj );
+            if ( RetValue < 0 ) { Pdr_ManExtendUndo(p->pAig, vUndo); return NULL; }
+            if ( RetValue )
                 Vec_IntPush( vCi2Rem, Aig_ObjId(pObj) );
             else
                 Pdr_ManExtendUndo( p->pAig, vUndo );

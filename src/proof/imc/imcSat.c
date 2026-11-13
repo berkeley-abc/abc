@@ -480,6 +480,7 @@ static int Imc_ManCheckInvariantInt( Imc_Man_t * p, Gia_Man_t * pReached, int fS
     Sat.nVars = p->pCnf->nVars;
     sat_solver_setnvars( Sat.pSat, Sat.nVars );
     sat_solver_set_runtime_limit( Sat.pSat, p->TimeStop );
+    if ( Imc_ManStopActive() ) sat_solver_set_stop_func( Sat.pSat, Imc_ManStopId );
     Imc_SatAddCnf( &Sat, p->pCnf, 0, 0 );
     LitOld = Imc_SatAddGia( &Sat, pReached, p->vRos, 0 ) ^ p->pPars->fBackward;
     LitNew = Imc_SatAddGia( &Sat, pReached, p->vRis, 0 ) ^ p->pPars->fBackward;
@@ -577,7 +578,7 @@ static int Imc_ManBuildSuffixFwd( Imc_Man_t * p, int nFrames )
     }
     for ( f = 0; f < nFrames; f++ )
     {
-        if ( p->TimeStop && Abc_Clock() >= p->TimeStop )
+        if ( Imc_ManCheckStop(p->TimeStop) )
             goto finish;
         Gia_ManConst0(p->pGia)->Value = 0;
         Gia_ManForEachPi( p->pGia, pObj, i )
@@ -683,7 +684,7 @@ static int Imc_ManBuildPrefix( Imc_Man_t * p, int nFrames )
     pNew->fAddStrash = 1;
     for ( f = 0; f < nFrames; f++ )
     {
-        if ( p->TimeStop && Abc_Clock() >= p->TimeStop )
+        if ( Imc_ManCheckStop(p->TimeStop) )
             goto finish;
         if ( !p->pPars->fResetPrefix || f == nFrames - 1 )
             Vec_IntForEachEntry( vState, Lit, i )
@@ -888,6 +889,7 @@ int Imc_ManCheckInitial( Imc_Man_t * p )
         Vec_IntPush( vAss, Abc_Var2Lit(Var, 1) );
     Vec_IntPush( vAss, Abc_Var2Lit(p->iBad, 0) );
     sat_solver_set_runtime_limit( Sat.pSat, p->TimeStop );
+    if ( Imc_ManStopActive() ) sat_solver_set_stop_func( Sat.pSat, Imc_ManStopId );
     Status = Sat.fUnsat ? l_False : sat_solver_solve( Sat.pSat, Vec_IntArray(vAss), Vec_IntArray(vAss) + Vec_IntSize(vAss), p->pPars->nConfLimit, 0, 0, 0 );
     if ( Status == l_True )
     {
@@ -923,6 +925,7 @@ void Imc_ManIndStart( Imc_Man_t * p )
     p->vStates = Vec_IntStartNatural( Gia_ManRegNum(p->pGia) );
     sat_solver_setnvars( p->Ind.pSat, p->Ind.nVars );
     sat_solver_set_runtime_limit( p->Ind.pSat, p->TimeStop );
+    if ( Imc_ManStopActive() ) sat_solver_set_stop_func( p->Ind.pSat, Imc_ManStopId );
     p->iUnion = -1;
     p->fIndPending = 0;
 }
@@ -994,6 +997,7 @@ int Imc_ManIndCheck( Imc_Man_t * p )
     Before = sat_solver_nconflicts( p->Ind.pSat );
     Visits = p->Ind.pSat->stats.inspects;
     sat_solver_set_runtime_limit( p->Ind.pSat, p->TimeStop );
+    if ( Imc_ManStopActive() ) sat_solver_set_stop_func( p->Ind.pSat, Imc_ManStopId );
     // A large formula needs a linear amount of propagation before its
     // conflict count is a useful measure of search work.
     Status = p->Ind.fUnsat ? l_False : sat_solver_solve(p->Ind.pSat,
@@ -1001,7 +1005,7 @@ int Imc_ManIndCheck( Imc_Man_t * p )
     p->nConflicts += Abc_MaxInt(0, sat_solver_nconflicts(p->Ind.pSat) - Before);
     p->nSatVisits += (word)p->Ind.pSat->stats.inspects - Visits;
     p->fIndPending = Status == l_Undef && p->nQueryConfLimit &&
-        (!p->TimeStop || Abc_Clock() < p->TimeStop);
+        (!Imc_ManCheckStop(p->TimeStop));
     // Do not exclude a frontier until its containment query finishes.
     if ( Status != l_Undef && !p->pPars->fInductive )
     {
@@ -1026,7 +1030,7 @@ int Imc_ManIndCheck( Imc_Man_t * p )
 static int Imc_ManTerminate( void * pUser )
 {
     Imc_Man_t * p = (Imc_Man_t *)pUser;
-    return p->TimeStop && Abc_Clock() >= p->TimeStop;
+    return Imc_ManCheckStop(p->TimeStop);
 }
 
 /**Function*************************************************************
@@ -1334,7 +1338,7 @@ Abc_Cex_t * Imc_ManReplay( Imc_Man_t * p, Abc_Cex_t * pTrace, int Boundary, Vec_
     int f, i;
     for ( f = 0; f <= pTrace->iFrame; f++ )
     {
-        if ( p->TimeStop && Abc_Clock() >= p->TimeStop )
+        if ( Imc_ManCheckStop(p->TimeStop) )
             break;
         if ( f == Boundary )
             for ( i = 0; i < Vec_StrSize(vState); i++ )
@@ -1388,7 +1392,7 @@ void Imc_ManRefinePredicates( Imc_Man_t * p, Vec_Str_t * vMismatch )
     Gia_Obj_t * pObj, * pDriver;
     Gia_Man_t * pNew;
     int i, k, Reg, nAdded, Limit = Abc_MinInt(64 - p->nRefinements, IMC_PRED_MAX - Gia_ManCoNum(p->pPred));
-    if ( Limit <= 0 || (p->TimeStop && Abc_Clock() >= p->TimeStop) )
+    if ( Limit <= 0 || (Imc_ManCheckStop(p->TimeStop)) )
         goto finish;
     Gia_ManForEachCo( p->pPred, pObj, i )
     {
@@ -1680,6 +1684,7 @@ solve:
     else
     {
         sat_solver2_set_runtime_limit( Sat.pSat2, p->TimeStop );
+        if ( Imc_ManStopActive() ) Sat.pSat2->pFuncStop = Imc_ManStopId;
         Visits = Sat.pSat2->stats.inspects;
         *pStatus = sat_solver2_solve( Sat.pSat2, Lits, Lits + 2, Limit,
             Imc_ManPropagationLimit(p, Sat.nVars), 0, 0 );
@@ -1693,7 +1698,7 @@ solve:
             Sat.nVars, sat_solver2_nconflicts(Sat.pSat2) - Before,
             (unsigned long long)((word)Sat.pSat2->stats.inspects - Visits) );
     Sat.fPending = *pStatus == l_Undef && p->nQueryConfLimit &&
-        (!p->TimeStop || Abc_Clock() < p->TimeStop);
+        (!Imc_ManCheckStop(p->TimeStop));
     Sat.Query[0] = Lits[0];
     Sat.Query[1] = Lits[1];
     if ( *pStatus == l_False )

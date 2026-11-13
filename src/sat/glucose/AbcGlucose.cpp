@@ -35,6 +35,33 @@ ABC_NAMESPACE_IMPL_START
 
 using namespace Gluco;
 
+// Disables unused preprocessing bookkeeping on an empty solver.
+// Incremental BMC calls solve without simplification. Keep the solver's clause layout and search
+// settings while omitting occurrence lists.
+// Rejects nonempty or previously searched instances.
+// See also: bmcg_sat_solver_disable_simplification
+bool Gluco::SimpSolver::disableSimplification()
+{
+    if ( clauses.size() || learnts.size() || trail.size() || solves ) return false;
+    touched.clear(true);
+    occurs.clear(true);
+    n_occ.clear(true);
+    elim_heap.clear(true);
+    subsumption_queue.clear(true);
+    n_touched = 0;
+    use_simplification = false;
+    return true;
+}
+
+// Opts an empty Glucose instance out of simplification bookkeeping.
+// Existing constructors and callers keep their established behavior.
+// Returns zero without changing an already used solver.
+// See also: Gluco::SimpSolver::disableSimplification
+int bmcg_sat_solver_disable_simplification( bmcg_sat_solver * s )
+{
+    return ((Gluco::SimpSolver *)s)->disableSimplification();
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -263,6 +290,24 @@ int bmcg_sat_solver_learntnum(bmcg_sat_solver* s)
 int bmcg_sat_solver_conflictnum(bmcg_sat_solver* s)
 {
     return ((Gluco::SimpSolver*)s)->conflicts;
+}
+
+// Estimates instance memory without scanning the clause database.
+// Counts the allocated clause arena and clause-reference arrays. Per-variable and per-clause
+// allowances cover watch lists and scratch space.
+// See also: bmcg_sat_solver_memory
+double Gluco::Solver::memoryEstimate() const
+{
+    return sizeof(*this) + 4.0 * ca.allocated() + 256.0 * nVars() +
+        4.0 * clauses.capacity() + 4.0 * learnts.capacity() +
+        32.0 * nClauses() + 32.0 * nLearnts();
+}
+
+// Returns an instance memory estimate in bytes.
+// See also: Gluco::Solver::memoryEstimate
+double bmcg_sat_solver_memory( bmcg_sat_solver * s )
+{
+    return ((Gluco::SimpSolver *)s)->memoryEstimate();
 }
 
 int bmcg_sat_solver_minimize_assumptions( bmcg_sat_solver * s, int * plits, int nlits, int pivot )

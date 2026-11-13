@@ -49,6 +49,8 @@ struct Llb_Mnx_t_
     Vec_Int_t *     vOrder;         // for each object ID, its BDD variable number or -1
     Vec_Int_t *     vVars2Q;        // 1 if variable is quantifiable; 0 othervise
 
+    int             fProofOnly;    // optional bounded proof search
+
     abctime         timeImage;
     abctime         timeRemap;
     abctime         timeReo;
@@ -142,7 +144,14 @@ DdNode * Llb_Nonlin4ComputeBad( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vO
         }
         if ( bResult != NULL )
         {
-            bResult = Cudd_bddExistAbstract( dd, bTemp = bResult, bCube );  Cudd_Ref( bResult );
+            bResult = Cudd_bddExistAbstract( dd, bTemp = bResult, bCube );
+            if ( dd->pFuncStop && bResult == NULL )
+            {
+                Cudd_RecursiveDeref( dd, bTemp );
+                Cudd_RecursiveDeref( dd, bCube );
+                return NULL;
+            }
+            Cudd_Ref( bResult );
             Cudd_RecursiveDeref( dd, bTemp );
             Cudd_RecursiveDeref( dd, bCube );
             Cudd_Deref( bResult );
@@ -201,7 +210,11 @@ Vec_Ptr_t * Llb_Nonlin4DerivePartitions( DdManager * dd, Aig_Man_t * pAig, Vec_I
         // create new partition
         bPart = Cudd_bddXnor( dd, (DdNode *)pObj->pData, bBdd );  
         if ( bPart == NULL )
+        {
+            if ( dd->pFuncStop )
+                Cudd_RecursiveDeref( dd, bBdd );
             goto finish;
+        }
         Cudd_Ref( bPart );
         Cudd_RecursiveDeref( dd, bBdd );
         Vec_PtrPush( vRoots, bPart );
@@ -455,7 +468,14 @@ DdNode * Llb_Nonlin4ComputeInitState( DdManager * dd, Aig_Man_t * pAig, Vec_Int_
     Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
     {
         bVar = Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, fBackward? pObjLi : pObjLo) );
-        bRes = Cudd_bddAnd( dd, bTemp = bRes, Cudd_Not(bVar) );  Cudd_Ref( bRes );
+        bRes = Cudd_bddAnd( dd, bTemp = bRes, Cudd_Not(bVar) );
+        if ( dd->pFuncStop && bRes == NULL )
+        {
+            Cudd_RecursiveDeref( dd, bTemp );
+            dd->TimeStop = TimeStop;
+            return NULL;
+        }
+        Cudd_Ref( bRes );
         Cudd_RecursiveDeref( dd, bTemp );
     }
     Cudd_Deref( bRes );
@@ -732,7 +752,10 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
         else if ( p->dd->bFunc )
             Cudd_RecursiveDeref( p->dd, p->dd->bFunc ), p->dd->bFunc = NULL;
         // compute the starting set of states
-        p->bCurrent = Llb_Nonlin4ComputeInitState( p->dd, p->pAig, p->vOrder, p->pPars->fBackward );  Cudd_Ref( p->bCurrent );
+        p->bCurrent = Llb_Nonlin4ComputeInitState( p->dd, p->pAig, p->vOrder, p->pPars->fBackward );
+        if ( p->fProofOnly && p->bCurrent == NULL )
+            return -1;
+        Cudd_Ref( p->bCurrent );
     }
     // perform iterations
     p->bReached = p->bCurrent; Cudd_Ref( p->bReached );
@@ -740,7 +763,8 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
     { 
         clkIter = Abc_Clock();
         // check the runtime limit
-        if ( p->pPars->TimeLimit && Abc_Clock() > p->pPars->TimeTarget )
+        if ( (p->pPars->TimeLimit && Abc_Clock() > p->pPars->TimeTarget) ||
+             (p->fProofOnly && Cudd_CheckStop(p->dd)) )
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
@@ -749,10 +773,27 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
         }
 
         // save the onion ring
-        Vec_PtrPush( p->vRings, p->bCurrent );   Cudd_Ref( p->bCurrent );
+        if ( !p->fProofOnly )
+        {
+            Vec_PtrPush( p->vRings, p->bCurrent );
+            Cudd_Ref( p->bCurrent );
+        }
+        if ( p->fProofOnly )
+        {
+            int fBad;
+            bAux = Cudd_bddAnd( p->dd, p->bCurrent, p->bBad );
+            if ( bAux == NULL )
+                return -1;
+            Cudd_Ref( bAux );
+            fBad = bAux != Cudd_ReadLogicZero(p->dd);
+            Cudd_RecursiveDeref( p->dd, bAux );
+            if ( fBad || Cudd_CheckStop(p->dd) )
+                return -1;
+        }
 
         // check it for bad states
-        if ( !p->pPars->fSkipOutCheck && !Cudd_bddLeq( p->dd, p->bCurrent, Cudd_Not(p->bBad) ) ) 
+        if ( !p->fProofOnly && !p->pPars->fSkipOutCheck &&
+             !Cudd_bddLeq(p->dd, p->bCurrent, Cudd_Not(p->bBad)) )
         {
             Vec_Ptr_t * vStates;
             assert( p->pAig->pSeqModel == NULL );
@@ -887,6 +928,8 @@ printf( "Before = %d.  After = %d.\n", Cudd_DagSize(bAux), Cudd_DagSize(p->bCurr
         p->pPars->iFrame = p->pPars->nIterMax;
         return -1; // undecided
     }
+    if ( p->fProofOnly && Cudd_CheckStop(p->dd) )
+        return -1;
     // report
     if ( !p->pPars->fSilent )
         printf( "The miter is proved unreachable after %d iterations.  ", nIters );
@@ -1180,6 +1223,66 @@ Gia_Man_t * Llb_ReachableStatesGia( Gia_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Proves unreachability with bounded, cancellable BDD search.]
+
+  Description [Returns 1 only after an exact forward fixed point and -1
+  otherwise. A reachable output is left to counterexample-producing
+  engines. Clustering, skipped checks and backward search are not supported.]
+
+  SideEffects [Uses temporary object data and updates the frame count.]
+
+  SeeAlso     [Llb_Nonlin4CoreReach]
+
+***********************************************************************/
+int Llb_Nonlin4ProofWithStop( Aig_Man_t * pAig, Gia_ParLlb_t * pPars,
+    int (*pFuncStop)(void *), void * pStopData, unsigned long nMemoryBytes )
+{
+    Llb_Mnx_t * p;
+    int Result = -1;
+    abctime Start = Abc_Clock();
+    if ( !pFuncStop || pFuncStop(pStopData) || !Aig_ManRegNum(pAig) ||
+         pPars->fCluster || pPars->fBackward || pPars->fSkipReach ||
+         pPars->fSkipOutCheck || !nMemoryBytes )
+        return -1;
+    p = ABC_CALLOC( Llb_Mnx_t, 1 );
+    p->pAig = pAig;
+    p->pPars = pPars;
+    p->fProofOnly = 1;
+    pPars->iFrame = -1;
+    pPars->TimeTarget = pPars->TimeLimit ? Start + (abctime)pPars->TimeLimit * CLOCKS_PER_SEC : 0;
+    p->vOrder = Llb_Nonlin4CreateOrder( pAig );
+    p->dd = Cudd_Init( Vec_IntCountPositive(p->vOrder) + 1, 0,
+        CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    if ( p->dd == NULL )
+    {
+        Vec_IntFree( p->vOrder );
+        ABC_FREE( p );
+        return -1;
+    }
+    Cudd_SetMaxMemory( p->dd, nMemoryBytes );
+    Cudd_SetStopCallback( p->dd, pFuncStop, pStopData );
+    Cudd_AutodynEnable( p->dd, CUDD_REORDER_SYMM_SIFT );
+    Cudd_SetMaxGrowth( p->dd, 1.05 );
+    p->dd->TimeStop = pPars->TimeTarget;
+    if ( Cudd_CheckStop(p->dd) )
+        goto finish;
+    p->vRoots = Llb_Nonlin4DerivePartitions( p->dd, pAig, p->vOrder );
+    if ( p->vRoots == NULL || Cudd_CheckStop(p->dd) )
+        goto finish;
+    Llb_Nonlin4SetupVarMap( p->dd, pAig, p->vOrder );
+    p->vVars2Q = Llb_Nonlin4CreateVars2Q( p->dd, pAig, p->vOrder, 0 );
+    Result = Llb_Nonlin4Reachability( p );
+    if ( Cudd_CheckStop(p->dd) )
+        Result = -1;
+finish:
+    p->timeTotal = Abc_Clock() - Start;
+    Llb_MnxStop( p );
+    return Result;
+}
 
 ABC_NAMESPACE_IMPL_END
 

@@ -19,28 +19,23 @@
 
 #include <base/wlc/wlc.h>
 #include <sat/bmc/bmc.h>
-#include <proof/pdr/pdr.h>
+#include <sat/bsat/satSolver.h>
+#include <proof/pdr2/pdr2.h>
+#include <aig/saig/saig.h>
 #include <proof/fraig/fraig.h>
 #include <aig/gia/giaAig.h>
 #include <base/io/ioAbc.h>
 
 #include "opt/util/util.h"
-#include "opt/ufar/UfarPth.h"
 #include "NtkNtk.h"
 #include "Netlist.h"
 
 ABC_NAMESPACE_HEADER_START
-    Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
-    int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars );
-    int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp );
     //int Wlc_ObjDup( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * vFanins );
     void Wlc_NtkDupDfs_rec( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * vFanins );
     //void Wlc_ObjSetCo( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, int fFlopInput );
     Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     Gia_Man_t * Gia_ManDupInvMiter( Gia_Man_t * p, Gia_Man_t * pInv );
-    Wla_Man_t * Wla_ManStart( Wlc_Ntk_t * pNtk, Wlc_Par_t * pPars );
-    void Wla_ManStop( Wla_Man_t * pWla );
-    int Wla_ManSolve( Wla_Man_t * pWla, Wlc_Par_t * pPars );
     Gia_Man_t * Wlc_NtkBitBlast2( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds );
     //void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars );
 ABC_NAMESPACE_HEADER_END
@@ -631,6 +626,7 @@ void CollectPoValuesInCex(Gia_Man_t * pGia, Abc_Cex_t * pCex, VecVecChar& po_val
             pObjRo->fMark0 = pObjRi->fMark0;
     }
     assert( iBit == pCex->nBits );
+    Abc_CexFreeP( &pCare );
 }
 
 Wlc_Ntk_t * AddAuxPOsForOperators(Wlc_Ntk_t * pNtk, std::vector<int>& vec_ids, int max_input_bw, int max_output_bw)
@@ -1217,332 +1213,62 @@ void ComputeMaxBW(Wlc_Ntk_t * p, const vector<int>& vec_ids, int& max_input_bw, 
     }
 }
 
-static void get_par_solvers(const string& setting, vector<string>& parSolvers) {
-    stringstream ss(setting);
-    string str;
-    while(getline(ss, str, ':')) {
-        parSolvers.push_back(str);
-    }
-}
-
-static void writeCexToFile(int ret, FILE * file, Abc_Cex_t * pCex) {
-    if (file) {
-        fprintf(file, "%d\n", ret);
-        if (ret == 0) {
-            fprintf(file, "%d %d %d %d\n", pCex->nRegs, pCex->nPis, pCex->iFrame, pCex->iPo);
-            for (int i = pCex->nRegs; i < pCex->nBits; i++) {
-                fprintf(file, "%c", Abc_InfoHasBit(pCex->pData, i) ? '1' : '0');
-            }
-            fprintf(file, "\n");
-        }
-    }
-}
-
-static void readCexFromFile(int& ret, FILE * file, Abc_Cex_t ** ppCex, int nOrigRegs = -1) {
-    int res = 0;
-    res = fscanf(file, "%d", &ret);
-    assert(res == 1);
-    if(ret == 0) {
-        int nRegs, nPis, iFrame, iPo;
-        res = fscanf(file, "%d %d %d %d", &nRegs, &nPis, &iFrame, &iPo);
-        assert(res == 4);
-        if (nOrigRegs != -1) nRegs = nOrigRegs;
-        *ppCex = Abc_CexAlloc(nRegs, nPis, iFrame + 1);
-        (*ppCex)->iFrame = iFrame;
-        (*ppCex)->iPo = iPo;
-        int c, i = nRegs;
-        while ((c = fgetc(file)) != EOF) {
-            if (c == '1' || c == '0') {
-                if (c == '1')
-                    Abc_InfoSetBit((*ppCex)->pData, i);
-                ++i;
-            }
-        }
-    }
-}
-
-static inline bool is_solver_cmd_defined(const string* pSolverSetting) {
-    return pSolverSetting && !pSolverSetting->empty() && *pSolverSetting != "none";
-}
-
-static inline int run_external_solver_on_aig( Abc_Ntk_t * pAbcNtk, const string& solverCmd, int nRuntimeLimitSec )
+// Solves a bit-blasted abstraction using PDR2.
+// The backend is fixed. The caller owns the returned trace, whose inputs and initial registers
+// follow the original abstraction.
+// Replaces the caller's counterexample and honors cancellation.
+// See also: BitBlast
+int SolveAbstractModel( Wlc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, const string * pFileName,
+    bool fSyn, int nTimeOut, int (*pFuncStop)(int), int RunId )
 {
-    const char * pAigFile = "file.aig";
-    Io_Write( pAbcNtk, (char *)pAigFile, IO_FILE_AIGER );
-    std::remove( "status.txt" );
-    std::remove( "log.txt" );
-    string solverCall = solverCmd;
-    string command;
-    if ( solverCall.find(pAigFile) == string::npos )
-        solverCall += string(" ") + pAigFile;
-    if ( nRuntimeLimitSec > 0 )
-        solverCall += " " + to_string(nRuntimeLimitSec);
-    command = solverCall;
-    if ( nRuntimeLimitSec > 0 )
-        command = "timeout " + to_string(nRuntimeLimitSec) + " " + command;
-    command += " > log.txt 2>&1";
-    LOG(1) << "UFAR external solver: launching command instead of PDR: " << command;
-#ifdef __wasm
-    int res = -1;
-#else
-    int res = system( command.c_str() );
-#endif 
-    std::remove( pAigFile );
-    return res;
-}
-
-static inline int read_external_status_unsat_first_line()
-{
-    ifstream ifs("status.txt", std::ifstream::in);
-    if ( !ifs )
-        return -1;
-    int firstLine = -1;
-    ifs >> firstLine;
-    if ( ifs && firstLine == 0 )
-        return 1;
-    return -1;
-}
-
-static inline int read_external_result_from_log_last_line()
-{
-    ifstream ifs("log.txt", std::ifstream::in);
-    if ( !ifs )
-        return -1;
-    string line, last;
-    auto trim = []( string & s )
+    Gia_Man_t * pGia, * pSolve;
+    Aig_Man_t * pAig;
+    Pdr2_Par_t Pars;
+    int Result;
+    if ( !pNtk || !ppCex ) return -1;
+    Abc_CexFreeP( ppCex );
+    if ( pFuncStop && pFuncStop(RunId) ) return -1;
+    pGia = BitBlast( pNtk );
+    if ( !pGia ) return -1;
+    pSolve = fSyn ? Gia_ManSeqStructSweep(pGia, 1, 1, 0) : pGia;
+    if ( !pSolve || (pFuncStop && pFuncStop(RunId)) )
     {
-        while ( !s.empty() && isspace((unsigned char)s.front()) )
-            s.erase( s.begin() );
-        while ( !s.empty() && isspace((unsigned char)s.back()) )
-            s.pop_back();
-    };
-    while ( getline(ifs, line) )
+        if ( pSolve != pGia ) Gia_ManStopP( &pSolve );
+        Gia_ManStop( pGia );
+        return -1;
+    }
+    if ( pFileName && !pFileName->empty() )
     {
-        trim(line);
-        if ( !line.empty() )
-            last = line;
+        string File = *pFileName + ".aig";
+        Gia_AigerWriteSimple( pSolve, &File[0] );
     }
-    if ( last.empty() )
-        return -1;
-    transform( last.begin(), last.end(), last.begin(),
-               []( unsigned char c ){ return (char)toupper(c); } );
-    if ( last.find("UNSAT") != string::npos )
-        return 1;
-    if ( last.find("SAT") != string::npos )
-        return 0;
-    if ( last.find("UNKNOWN") != string::npos || last.find("UNDECIDED") != string::npos )
-        return -1;
-    return -1;
-}
-
-int verify_model(Wlc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, const string* pFileName, const string* pParSetting, bool fSyn, struct timespec * timeout, int (*pFuncStop)(int), int RunId, const string* pSolverSetting, int nUfarTimeoutSec) {
-    if ( pFuncStop && pFuncStop(RunId) )
-        return -1;
-    if ( !pParSetting || pParSetting->empty() || Wlc_NtkFfNum(pNtk) == 0 )
-        return bit_level_solve( pNtk, ppCex, pFileName, pParSetting, fSyn, pFuncStop, RunId, pSolverSetting, nUfarTimeoutSec );
-    
-    if(*ppCex) {
-        Abc_CexFree(*ppCex);
-        *ppCex = NULL;
-    }
-
-    int ret = -1;
-    
-    vector<string> parSolvers;
-    parSolvers.push_back("pdr");
-    get_par_solvers(*pParSetting, parSolvers);
-
-    ret = RunConcurrentSolver( pNtk, parSolvers, ppCex, timeout );
-
-    if ( pFuncStop && pFuncStop(RunId) )
-        return -1;
-    return ret;
-}
-
-
-int bit_level_solve(Wlc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, const string* pFileName, const string* pParSetting, bool fSyn, int (*pFuncStop)(int), int RunId, const string* pSolverSetting, int nRuntimeLimitSec) {
-    if ( pFuncStop && pFuncStop(RunId) )
-        return -1;
-    if(*ppCex) {
-        Abc_CexFree(*ppCex);
-        *ppCex = NULL;
-    }
-
-    int ret = -1;
-    Gia_Man_t * pGia = BitBlast(pNtk);
-
-    //int num_orig_regs = Gia_ManRegNum(pGia);
-
-    if(pParSetting && fSyn) {
-        int num_orig_pis  = Gia_ManPiNum(pGia);
-        (void)num_orig_pis;
-        pGia = Gia_ManSeqStructSweep(pGia, 1, 1, 0);
-        assert(num_orig_pis == Gia_ManPiNum(pGia));
-    }
-
-    Aig_Man_t * pAig = Gia_ManToAig(pGia, 0);
+    pAig = Gia_ManToAig( pSolve, 0 );
     if ( pAig->pName == NULL )
-        pAig->pName = Abc_UtilStrsav( pGia->pName ? pGia->pName : pGia->pSpec );
+        pAig->pName = Abc_UtilStrsav( pSolve->pName ? pSolve->pName : pSolve->pSpec );
     if ( pAig->pSpec == NULL )
-        pAig->pSpec = Abc_UtilStrsav( pGia->pName ? pGia->pName : pGia->pSpec );
-    Abc_Ntk_t * pAbcNtk = Abc_NtkFromAigPhase(pAig);
-    if ( pAbcNtk->pName == NULL )
-        pAbcNtk->pName = Abc_UtilStrsav( pAig->pName ? pAig->pName : pAig->pSpec );
-    if ( pAbcNtk->pSpec == NULL )
-        pAbcNtk->pSpec = Abc_UtilStrsav( pAig->pName ? pAig->pName : pAig->pSpec );
-
-    if (pFileName && !pFileName->empty())
-        Gia_AigerWriteSimple(pGia, &((*pFileName + ".aig")[0u]));
-
-    if (Gia_ManRegNum(pGia) == 0) {
-        Prove_Params_t Params, *pParams = &Params;
-        Prove_ParamsSetDefault(pParams);
-        pParams->fUseRewriting = 0;
-        pParams->fVerbose = 0;
-        ret = Abc_NtkIvyProve(&pAbcNtk, pParams);
-        if (ret == 0) {
-            *ppCex = Abc_CexDeriveFromCombModel(pAbcNtk->pModel, Abc_NtkPiNum(pAbcNtk), 0, 0);
-        }
-    } else {
-        auto runPDR = [&](FILE * file){
-            if ( is_solver_cmd_defined(pSolverSetting) )
-            {
-                run_external_solver_on_aig( pAbcNtk, *pSolverSetting, nRuntimeLimitSec );
-                int extStatus = read_external_result_from_log_last_line();
-                if ( extStatus == -1 )
-                    extStatus = read_external_status_unsat_first_line();
-                if ( extStatus == 1 )
-                    LOG(1) << "UFAR external solver result (UNSAT) available. Skipping PDR.";
-                else
-                    LOG(1) << "UFAR external solver result not usable (log/status not UNSAT). Calling PDR.";
-                if ( extStatus == 1 )
-                {
-                    writeCexToFile(1, file, NULL);
-                    return 1;
-                }
-                if ( pFuncStop && pFuncStop(RunId) )
-                {
-                    writeCexToFile(-1, file, NULL);
-                    return -1;
-                }
-            }
-            Pdr_Par_t PdrPars, *pPdrPars = &PdrPars;
-            Pdr_ManSetDefaultParams(pPdrPars);
-            pPdrPars->nConfLimit = 0;
-            pPdrPars->RunId = RunId;
-            pPdrPars->pFuncStop = pFuncStop;
-            //pPdrPars->fDumpInv = 1;
-            Abc_FrameReadGlobalFrame()->pNtkCur = pAbcNtk;
-            int res = Abc_NtkDarPdr(pAbcNtk, pPdrPars);
-            Abc_FrameReadGlobalFrame()->pNtkCur = NULL;
-
-            writeCexToFile(res, file, pAbcNtk->pSeqModel);
-
-            return res;
-        };
-
-        /*
-        auto runBMC3 = [&](FILE * file){
-            Saig_ParBmc_t BmcPars, *pBmcPars = &BmcPars;
-            Saig_ParBmcSetDefaultParams(pBmcPars);
-            int res = Abc_NtkDarBmc3(pAbcNtk, pBmcPars, 0);
-
-            writeCexToFile(res, file, pAbcNtk->pSeqModel);
-
-            return res;
-        };
-        auto runWla = [&](FILE * file){
-            Wlc_Par_t WlcPars, *pWlcPars = &WlcPars;
-            Wlc_ManSetDefaultParams( pWlcPars );
-            pWlcPars->nBitsAdd = 8;
-            pWlcPars->nBitsMul = 4;
-            pWlcPars->nBitsMux = 8;
-            pWlcPars->fXorOutput = 0;
-            pWlcPars->nLimit = 50;
-            pWlcPars->fVerbose = 1;
-            pWlcPars->fProofRefine = 1;
-            pWlcPars->fHybrid = 0;
-            pWlcPars->fCheckCombUnsat = 1;
-
-            Wla_Man_t * pWla = Wla_ManStart( pNtk, pWlcPars );
-            int RetValue = Wla_ManSolve( pWla, pWlcPars );
-
-            writeCexToFile(RetValue, file, pWla->pCex);
-
-            Wla_ManStop( pWla );
-            return RetValue;
-        };
-        
-        if(pParSetting && !pParSetting->empty()) {
-            vector<string> parSolvers;
-            parSolvers.push_back("pdr");
-            get_par_solvers(*pParSetting, parSolvers);
-            vector<pid_t> childs (parSolvers.size());
-            vector<FILE*> files  (parSolvers.size());
-
-            auto runChildTask = [&](const string& engine, int i) {
-                kill_on_parent_death(SIGQUIT);
-                LOG(4) << "In process (" << getpid() << ") : running " << engine << "...";
-                if(engine=="bmc3") {
-                    ret = runBMC3(files[i]);
-                } else if(engine=="pdr") {
-                    ret = runPDR(files[i]);
-                } else if(engine=="treb" || engine=="pdra") {
-                    ret = run_zz(pGia, files[i], engine);
-                } else if(engine=="wla") {
-                    ret = runWla(files[i]);
-                } else {
-                    assert(false);
-                }
-            };
-
-            for(int i = 0; i < childs.size(); i++) {
-                files[i] = tmpfile();
-                if((childs[i] = fork()) < 0) {
-                    perror("fork");
-                    abort();
-                } else if (childs[i] == 0) { // in child process
-                    runChildTask(parSolvers[i], i);
-                    exit(0);
-                }
-            }
-
-            int status;
-            pid_t wpid = wait(&status);
-
-            for(unsigned i = 0; i < childs.size(); i++) {
-                if(wpid == childs[i]) {
-                    LOG(2) << "BLS::" << parSolvers[i] << " returns. Kill others.";
-                    for(unsigned j = 0; j < childs.size(); j++) {
-                        if(i == j) continue;
-                        kill(childs[j], SIGQUIT);
-                        LOG(3) << "BLS::Kill " << parSolvers[j] << ".";
-                        wpid = wait(&status);
-                    }
-
-                    rewind(files[i]);
-                    readCexFromFile(ret, files[i], ppCex, num_orig_regs);
-
-                    break;
-                }
-            }
-
-            for(auto x : files) fclose(x);
-
-        } else */
+        pAig->pSpec = Abc_UtilStrsav( pSolve->pName ? pSolve->pName : pSolve->pSpec );
+    Pdr2_ManSetDefaultParams( &Pars );
+    Pars.nTimeOut = Abc_MaxInt( 0, nTimeOut );
+    Pars.fVerifyComplete = 1;
+    Pars.RunId = RunId;
+    Pars.pFuncStop = pFuncStop;
+    Result = Pdr2_ManSolve( pAig, &Pars );
+    if ( pFuncStop && pFuncStop(RunId) ) Result = -1;
+    if ( Result == 0 )
+    {
+        if ( pAig->pSeqModel && Saig_ManVerifyCex(pAig, pAig->pSeqModel) )
+            *ppCex = Abc_CexDup( pAig->pSeqModel, Gia_ManRegNum(pGia) );
+        if ( !*ppCex || !Gia_ManVerifyCex(pGia, *ppCex, 0) )
         {
-            ret = runPDR(NULL);
-            if (ret == 0) {
-                *ppCex = Abc_CexDup(pAbcNtk->pSeqModel, -1);
-            }
+            Abc_Print( 1, "Warning: UFAR rejected a counterexample from PDR2.\n" );
+            Abc_CexFreeP( ppCex );
+            Result = -1;
         }
     }
-
-    Gia_ManStop(pGia);
-    Aig_ManStop(pAig);
-    Abc_NtkDelete(pAbcNtk);
-
-    return ret;
+    Aig_ManStop( pAig );
+    if ( pSolve != pGia ) Gia_ManStop( pSolve );
+    Gia_ManStop( pGia );
+    return Result;
 }
 
 

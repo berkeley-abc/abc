@@ -45,6 +45,9 @@ struct Bmcg_Man_t_
     int               nOldFrPis;           // number of primary inputs
     int               nOldFrPos;           // number of primary output
     int               fStopNow;            // signal when it is time to stop
+    int (*pFuncStop)(void *);              // optional per-instance cancellation
+    void *            pStopData;
+    unsigned          nStopCalls;
     abctime           timeUnf;             // runtime of unfolding
     abctime           timeCnf;             // runtime of CNF generation
     abctime           timeSmp;             // runtime of CNF simplification
@@ -53,6 +56,24 @@ struct Bmcg_Man_t_
 };
 
 static inline int * Bmcg_ManCopies( Bmcg_Man_t * p, int f ) { return (int*)Vec_PtrEntry(&p->vGia2Fr, f); }
+
+/**Function*************************************************************
+
+  Synopsis    [Latches an explicitly requested cancellation.]
+
+  Description [Legacy entry points leave the callback unset.]
+
+  SideEffects []
+
+  SeeAlso     [Bmcg_ManPerformWithStop]
+
+***********************************************************************/
+static int Bmcg_ManCancelled( void * pData )
+{
+    Bmcg_Man_t * p = (Bmcg_Man_t *)pData;
+    if ( p->pFuncStop && p->pFuncStop(p->pStopData) ) p->fStopNow = 1;
+    return p->fStopNow;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -128,6 +149,7 @@ int Bmcg_ManUnfold_rec( Bmcg_Man_t * p, int iObj, int f )
 {
     Gia_Obj_t * pObj; 
     int iLit = 0, * pCopies = Bmcg_ManCopies( p, f );
+    if ( p->pFuncStop && (!(p->nStopCalls++ & 1023) || p->fStopNow) && Bmcg_ManCancelled(p) ) return -1;
     if ( pCopies[iObj] >= 0 )
         return pCopies[iObj];
     pObj = Gia_ManObj( p->pGia, iObj );
@@ -142,17 +164,20 @@ int Bmcg_ManUnfold_rec( Bmcg_Man_t * p, int iObj, int f )
         {
             pObj = Gia_ObjRoToRi( p->pGia, pObj );
             iLit = Bmcg_ManUnfold_rec( p, Gia_ObjFaninId0p(p->pGia, pObj), f-1 );
+            if ( iLit < 0 ) return -1;
             iLit = Abc_LitNotCond( iLit, Gia_ObjFaninC0(pObj) );
         }
     }
     else if ( Gia_ObjIsAnd(pObj) )
     {
         iLit = Bmcg_ManUnfold_rec( p, Gia_ObjFaninId0(pObj, iObj), f );
+        if ( iLit < 0 ) return -1;
         iLit = Abc_LitNotCond( iLit, Gia_ObjFaninC0(pObj) );
         if ( iLit > 0 )
         {
             int iNew;
             iNew = Bmcg_ManUnfold_rec( p, Gia_ObjFaninId1(pObj, iObj), f );
+            if ( iNew < 0 ) return -1;
             iNew = Abc_LitNotCond( iNew, Gia_ObjFaninC1(pObj) );
             iLit = Gia_ManHashAnd( p->pFrames, iLit, iNew );
         }
@@ -164,6 +189,7 @@ int Bmcg_ManCollect_rec( Bmcg_Man_t * p, int iObj )
 {
     Gia_Obj_t * pObj; 
     int iSatVar, iLitClean = Gia_ObjCopyArray( p->pFrames, iObj );
+    if ( p->pFuncStop && (!(p->nStopCalls++ & 1023) || p->fStopNow) && Bmcg_ManCancelled(p) ) return -1;
     if ( iLitClean >= 0 )
         return iLitClean;
     pObj = Gia_ManObj( p->pFrames, iObj );
@@ -174,6 +200,7 @@ int Bmcg_ManCollect_rec( Bmcg_Man_t * p, int iObj )
     {
         int iLit0 = Bmcg_ManCollect_rec( p, Gia_ObjFaninId0(pObj, iObj) );
         int iLit1 = Bmcg_ManCollect_rec( p, Gia_ObjFaninId1(pObj, iObj) );
+        if ( iLit0 < 0 || iLit1 < 0 ) return -1;
         iLit0 = Abc_LitNotCond( iLit0, Gia_ObjFaninC0(pObj) );
         iLit1 = Abc_LitNotCond( iLit1, Gia_ObjFaninC1(pObj) );
         iLitClean = Gia_ManAppendAnd( p->pClean, iLit0, iLit1 );
@@ -201,6 +228,7 @@ Gia_Man_t * Bmcg_ManUnfold( Bmcg_Man_t * p, int f, int nFramesAdd )
         Gia_ManForEachPo( p->pGia, pObj, i )
         {
             iLitFrame = Bmcg_ManUnfold_rec( p, Gia_ObjFaninId0p(p->pGia, pObj), f+k );
+            if ( iLitFrame < 0 ) return NULL;
             iLitFrame = Abc_LitNotCond( iLitFrame, Gia_ObjFaninC0(pObj) );
             pCopies[Gia_ObjId(p->pGia, pObj)] = Gia_ManAppendCo( p->pFrames, iLitFrame );
             fTrivial &= (iLitFrame == 0);
@@ -220,6 +248,7 @@ Gia_Man_t * Bmcg_ManUnfold( Bmcg_Man_t * p, int f, int nFramesAdd )
     {
         pObj = Gia_ManCo( p->pFrames, (f+k) * Gia_ManPoNum(p->pGia) + i );
         iLitClean = Bmcg_ManCollect_rec( p, Gia_ObjFaninId0p(p->pFrames, pObj) );
+        if ( iLitClean < 0 ) return NULL;
         iLitClean = Abc_LitNotCond( iLitClean, Gia_ObjFaninC0(pObj) );
         iLitClean = Gia_ManAppendCo( p->pClean, iLitClean );
         Gia_ManObj( p->pClean, Abc_Lit2Var(iLitClean) )->Value = Gia_ObjId(p->pFrames, pObj);
@@ -241,7 +270,22 @@ Cnf_Dat_t * Bmcg_ManAddNewCnf( Bmcg_Man_t * p, int f, int nFramesAdd )
     if ( pNew == NULL )
         return NULL;
     clk = Abc_Clock();
-    pCnf = (Cnf_Dat_t *) Mf_ManGenerateCnf( pNew, 8, 1, 0, 0, 0 );
+    if ( p->pFuncStop )
+    {
+        Jf_Par_t Pars;
+        Gia_Man_t * pMapped;
+        Mf_ManSetDefaultPars( &Pars );
+        Pars.fGenCnf = Pars.fCnfObjIds = Pars.fCnfOnly = 1;
+        Pars.fCoarsen = Pars.fAddOrCla = 0;
+        Pars.nLutSize = 8;
+        pMapped = Mf_ManPerformMappingWithStop( pNew, &Pars, Bmcg_ManCancelled, p );
+        Gia_ManStopP( &pMapped );
+        pCnf = (Cnf_Dat_t *)pNew->pData;
+        pNew->pData = NULL;
+        if ( !pCnf ) { Gia_ManStop(pNew); return NULL; }
+    }
+    else
+        pCnf = (Cnf_Dat_t *) Mf_ManGenerateCnf( pNew, 8, 1, 0, 0, 0 );
     pMap = ABC_FALLOC( int, Gia_ManObjNum(pNew) );
     pMap[0] = 0;
     Gia_ManForEachObj1( pNew, pObj, i )
@@ -255,7 +299,15 @@ Cnf_Dat_t * Bmcg_ManAddNewCnf( Bmcg_Man_t * p, int f, int nFramesAdd )
     }
     Gia_ManStop( pNew );
     for ( i = 0; i < pCnf->nLiterals; i++ )
+    {
+        if ( p->pFuncStop && !(i & 1023) && Bmcg_ManCancelled(p) )
+        {
+            ABC_FREE( pMap );
+            Cnf_DataFree( pCnf );
+            return NULL;
+        }
         pCnf->pClauses[0][i] = Abc_Lit2LitV( pMap, pCnf->pClauses[0][i] );
+    }
     ABC_FREE( pMap );
     p->timeCnf += Abc_Clock() - clk;
     return pCnf;
@@ -344,8 +396,11 @@ void Bmcg_ManAddCnf( Bmcg_Man_t * p, bmcg_sat_solver * pSat, Cnf_Dat_t * pCnf )
         p->nOldFrPos = Gia_ManPoNum(p->pFrames);
     }
     for ( i = 0; i < pCnf->nClauses; i++ )
+    {
+        if ( p->pFuncStop && !(i & 1023) && Bmcg_ManCancelled(p) ) return;
         if ( !bmcg_sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
             assert( 0 );
+    }
     if ( !p->pPars->fUseEliminate )
         return;
     bmcg_sat_solver_eliminate( pSat, 0 );
@@ -354,17 +409,35 @@ void Bmcg_ManAddCnf( Bmcg_Man_t * p, bmcg_sat_solver * pSat, Cnf_Dat_t * pCnf )
             Vec_IntWriteEntry( &p->vFr2Sat, i, -1 );
     p->timeSmp += Abc_Clock() - clk;
 }
-int Bmcg_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
+/**Function*************************************************************
+
+  Synopsis    [Runs incremental BMC with optional cooperative cancellation.]
+
+  Description [Returns zero for a counterexample and minus one when the
+  search stops without one. A NULL callback retains the legacy mapping path.]
+
+  SideEffects [Updates progress parameters and stores a counterexample in the input graph.]
+
+  SeeAlso     [Bmcg_ManPerformOne Bmcg_ManPerformWithStop]
+
+***********************************************************************/
+static int Bmcg_ManPerformOneInt( Gia_Man_t * pGia, Bmc_AndPar_t * pPars,
+    int (*pFuncStop)(void *), void * pStopData )
 {
     abctime clkStart = Abc_Clock();
     Bmcg_Man_t * p = Bmcg_ManStart( pGia, pPars );
     int f, k = 0, i = Gia_ManPoNum(pGia), status, RetValue = -1, nClauses = 0;
+    p->pFuncStop = pFuncStop;
+    p->pStopData = pStopData;
+    if ( pFuncStop ) bmcg_sat_solver_set_stop_func( p->pSats[0], p, Bmcg_ManCancelled );
     Abc_CexFreeP( &pGia->pCexSeq );
     for ( f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; f += pPars->nFramesAdd )
     {
+        if ( pFuncStop && Bmcg_ManCancelled(p) ) break;
         if ( pPars->pFuncProgress && pPars->pFuncProgress( pPars->pProgress, 0, 0 ) )
             break;
         Cnf_Dat_t * pCnf = Bmcg_ManAddNewCnf( p, f, pPars->nFramesAdd );
+        if ( pFuncStop && Bmcg_ManCancelled(p) ) { Cnf_DataFree(pCnf); break; }
         if ( pCnf == NULL )
         {
             Bmcg_ManPrintFrame( p, f, nClauses, -1, clkStart );
@@ -377,6 +450,7 @@ int Bmcg_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         nClauses += pCnf->nClauses;
         Bmcg_ManAddCnf( p, p->pSats[0], pCnf );
         Cnf_DataFree( pCnf );
+        if ( pFuncStop && Bmcg_ManCancelled(p) ) break;
         assert( Gia_ManPoNum(p->pFrames) == (f + pPars->nFramesAdd) * Gia_ManPoNum(pGia) );
         for ( k = 0; k < pPars->nFramesAdd; k++ )
         {
@@ -387,12 +461,14 @@ int Bmcg_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                 abctime clk = Abc_Clock();
                 int iObj = Gia_ObjId( p->pFrames, Gia_ManCo(p->pFrames, (f+k) * Gia_ManPoNum(pGia) + i) );
                 int iLit = Abc_Var2Lit( Vec_IntEntry(&p->vFr2Sat, iObj), 0 );
+                if ( pFuncStop && Bmcg_ManCancelled(p) ) break;
                 if ( pPars->pFuncProgress && pPars->pFuncProgress( pPars->pProgress, 0, 0 ) )
                     break;
                 if ( pPars->nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= pPars->nTimeOut )
                     break;
                 status = bmcg_sat_solver_solve( p->pSats[0], &iLit, 1 );
                 p->timeSat += Abc_Clock() - clk;
+                if ( pFuncStop && status != 1 && Bmcg_ManCancelled(p) ) break;
                 if ( pPars->pFuncProgress && pPars->pFuncProgress( pPars->pProgress, 0, 0 ) )
                     break;
                 if ( status == -1 ) // unsat
@@ -437,6 +513,43 @@ int Bmcg_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     Bmcg_ManPrintTime( p );
     Bmcg_ManStop( p );
     return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs the original single-solver entry point.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     [Bmcg_ManPerform]
+
+***********************************************************************/
+int Bmcg_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
+{
+    return Bmcg_ManPerformOneInt( pGia, pPars, NULL, NULL );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs one Glucose solver with cancellable construction and search.]
+
+  Description [The caller owns the stop context. Existing callers retain
+  their original mapping and termination behavior.]
+
+  SideEffects [Replaces the input graph's counterexample.]
+
+  SeeAlso     [Bmcg_ManPerform]
+
+***********************************************************************/
+int Bmcg_ManPerformWithStop( Gia_Man_t * pGia, Bmc_AndPar_t * pPars,
+    int (*pFuncStop)(void *), void * pStopData )
+{
+    pPars->nProcs = 1;
+    if ( pFuncStop && pFuncStop(pStopData) ) return -1;
+    if ( pPars->pFuncProgress && pPars->pFuncProgress(pPars->pProgress, 0, 0) ) return -1;
+    return Bmcg_ManPerformOneInt( pGia, pPars, pFuncStop, pStopData );
 }
 
 /**Function*************************************************************

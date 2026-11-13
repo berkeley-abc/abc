@@ -81,6 +81,8 @@ struct Gia_ParLlb_t_
 extern void     Llb_ManSetDefaultParams( Gia_ParLlb_t * pPars );
 /*=== llb4Nonlin.c ==========================================================*/
 extern int      Llb_Nonlin4CoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars );
+extern int      Llb_Nonlin4ProofWithStop( Aig_Man_t * pAig, Gia_ParLlb_t * pPars,
+                    int (*pFuncStop)(void *), void * pStopData, unsigned long nMemoryBytes );
 
 
 

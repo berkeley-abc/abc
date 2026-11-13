@@ -228,6 +228,7 @@ int Inter_CheckPerform( Inter_Check_t * p, Cnf_Dat_t * pCnfInt, abctime nTimeNew
     // set runtime limit
     if ( nTimeNewOut )
         sat_solver_set_runtime_limit( p->pSat, nTimeNewOut );
+    Inter_ManApplyStop( p->pSat );
 
     // add clauses to the SAT solver
     Cnf_DataLift( pCnfInt, p->nVars );

@@ -2,6 +2,7 @@ SRC +=    src/sat/bmc/bmcBCore.c \
     src/sat/bmc/bmcBmc.c \
     src/sat/bmc/bmcBmc2.c \
     src/sat/bmc/bmcBmc3.c \
+    src/sat/bmc/bmcBmcGia.c \
     src/sat/bmc/bmcBmcAnd.c \
     src/sat/bmc/bmcBmci.c \
     src/sat/bmc/bmcBmcG.c \

@@ -233,6 +233,7 @@ int Inter_ManCheckInductiveContainment( Aig_Man_t * pTrans, Aig_Man_t * pInter, 
     }
 
      // solve the problem
+    Inter_ManApplyStop( pSat );
     status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
 
 //    Inter_ManCheckUniqueness( pTrans, pSat, pCnf, nSteps );

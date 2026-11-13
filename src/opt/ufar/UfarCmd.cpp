@@ -20,6 +20,7 @@
 #include <cctype>
 
 #include "base/wlc/wlc.h"
+#include "base/main/mainInt.h"
 #include "aig/gia/giaAig.h"
 #include "opt/ufar/UfarCmd.h"
 #include "opt/ufar/UfarMgr.h"
@@ -36,16 +37,18 @@ typedef struct Ufar_StopCtx_t_
     int (*pFuncStop)(int);
     int nTimeOut;
     int fActive;
+    int RunId;
+    int fStopped;
     timeval TimeStart;
 } Ufar_StopCtx_t;
 #if defined(_MSC_VER)
-__declspec(thread) static Ufar_StopCtx_t g_UfarStopCtx = { NULL, 0, 0, {0, 0} };
+__declspec(thread) static Ufar_StopCtx_t g_UfarStopCtx = { NULL, 0, 0, 0, 0, {0, 0} };
 #elif defined(__cplusplus) && __cplusplus >= 201103L
-static thread_local Ufar_StopCtx_t g_UfarStopCtx = { NULL, 0, 0, {0, 0} };
+static thread_local Ufar_StopCtx_t g_UfarStopCtx = { NULL, 0, 0, 0, 0, {0, 0} };
 #elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
-static _Thread_local Ufar_StopCtx_t g_UfarStopCtx = { NULL, 0, 0, {0, 0} };
+static _Thread_local Ufar_StopCtx_t g_UfarStopCtx = { NULL, 0, 0, 0, 0, {0, 0} };
 #else
-static __thread Ufar_StopCtx_t g_UfarStopCtx = { NULL, 0, 0, {0, 0} };
+static __thread Ufar_StopCtx_t g_UfarStopCtx = { NULL, 0, 0, 0, 0, {0, 0} };
 #endif
 
 static int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -61,32 +64,51 @@ static inline long long   Ufar_ElapsedUsec( const timeval & Start, const timeval
 
 static int Ufar_StopWithTimeout( int RunId )
 {
-    if ( g_UfarStopCtx.pFuncStop && g_UfarStopCtx.pFuncStop(RunId) )
+    if ( g_UfarStopCtx.fStopped )
         return 1;
+    if ( g_UfarStopCtx.pFuncStop && g_UfarStopCtx.pFuncStop(RunId) )
+        return g_UfarStopCtx.fStopped = 1;
     if ( g_UfarStopCtx.fActive && g_UfarStopCtx.nTimeOut > 0 )
     {
         timeval Now;
         gettimeofday( &Now, NULL );
         if ( Ufar_ElapsedUsec(g_UfarStopCtx.TimeStart, Now) >= 1000000ll * (long long)g_UfarStopCtx.nTimeOut )
-            return 1;
+            return g_UfarStopCtx.fStopped = 1;
     }
     return 0;
+}
+
+// Forwards refinement SAT polls to the owning invocation.
+// Returns false outside a scoped UFAR call.
+// Latches cancellation until the call returns.
+int Ufar_StopIfRequested( int RunId )
+{
+    (void)RunId;
+    return g_UfarStopCtx.fActive && Ufar_StopWithTimeout(g_UfarStopCtx.RunId);
 }
 
 struct Ufar_StopScope_t
 {
     Ufar_StopCtx_t Saved;
-    Ufar_StopScope_t( int (*pFuncStop)(int), int nTimeOut )
+    unsigned SavedLogLevel;
+    string SavedLogPrefix;
+    Ufar_StopScope_t( int (*pFuncStop)(int), int nTimeOut, int RunId )
     {
         Saved = g_UfarStopCtx;
+        SavedLogLevel = LogT::loglevel;
+        SavedLogPrefix = LogT::prefix;
         g_UfarStopCtx.pFuncStop = pFuncStop;
         g_UfarStopCtx.nTimeOut = nTimeOut;
         g_UfarStopCtx.fActive = 1;
+        g_UfarStopCtx.RunId = RunId;
+        g_UfarStopCtx.fStopped = 0;
         gettimeofday( &g_UfarStopCtx.TimeStart, NULL );
     }
     ~Ufar_StopScope_t()
     {
         g_UfarStopCtx = Saved;
+        LogT::loglevel = SavedLogLevel;
+        LogT::prefix = SavedLogPrefix;
     }
 };
 
@@ -156,14 +178,9 @@ static void Ufar_AddOptions( OptMgr & opt_mgr, const UFAR::UfarManager::Params &
     opt_mgr.AddOpt("--dump-log", "none", "str", "write status log");
     opt_mgr.AddOpt("--dump-first-aig", "none", "str", "dump first internal bit-blasted AIG and exit");
     opt_mgr.AddOpt("--dump-abs", "none", "str", "specify file name");
-    opt_mgr.AddOpt("--par", "none", "str", "use parallel solvers");
-    opt_mgr.AddOpt("--solver", "none", "str", "external solver command line");
     opt_mgr.AddOpt("--dump_states", "none", "str", "specify the name for the states file");
     opt_mgr.AddOpt("--read_states", "none", "str", "specify the name for the states file");
-    opt_mgr.AddOpt("--sp", Params.fSuper_prove ? "yes" : "no", "", "toggle using super_prove");
-    opt_mgr.AddOpt("--simp", Params.fSimple ? "yes" : "no", "", "toggle using simple (prove)");
     opt_mgr.AddOpt("--syn", Params.fSyn ? "yes" : "no", "", "toggle using simple synthesis");
-    opt_mgr.AddOpt("--pth", Params.fPthread ? "yes" : "no", "", "toggle using pthreads");
     opt_mgr.AddOpt("--onewb", to_string(Params.iOneWb), "int", "specify the mode for one-white-boxing");
     opt_mgr.AddOpt("--initallpairs", to_string(Params.nInitAllPairsLimit), "num", "pre-seed all compatible UIF pairs when #ops <= this limit (0=off)");
     opt_mgr.AddOpt("--initnear", to_string(Params.nInitNearMults), "num", "pre-seed UIF pairs among up to this many multipliers closest to output");
@@ -202,14 +219,8 @@ static void Ufar_ApplyOptions( OptMgr & opt_mgr, UFAR::UfarManager::Params & Par
         Params.fCrossOnly ^= 1;
     if(opt_mgr["--grey2"])
         Params.nGrey = stof(opt_mgr.GetOptVal("--grey2"));
-    if(opt_mgr["--sp"])
-        Params.fSuper_prove ^= 1;
-    if(opt_mgr["--simp"])
-        Params.fSimple ^= 1;
     if(opt_mgr["--syn"])
         Params.fSyn ^= 1;
-    if(opt_mgr["--pth"])
-        Params.fPthread ^= 1;
     if(opt_mgr["--onewb"])
         Params.iOneWb = stoi(opt_mgr.GetOptVal("--onewb"));
     if(opt_mgr["--initallpairs"])
@@ -218,10 +229,6 @@ static void Ufar_ApplyOptions( OptMgr & opt_mgr, UFAR::UfarManager::Params & Par
         Params.nInitNearMults = stoi(opt_mgr.GetOptVal("--initnear"));
     if(opt_mgr["--exp"])
         Params.iExp = stoi(opt_mgr.GetOptVal("--exp"));
-    if(opt_mgr["--par"])
-        Params.parSetting = opt_mgr.GetOptVal("--par");
-    if(opt_mgr["--solver"])
-        Params.solverSetting = opt_mgr.GetOptVal("--solver");
     if(opt_mgr["--sim"])
         Params.simSetting = opt_mgr.GetOptVal("--sim");
     if(opt_mgr["--dump_states"])
@@ -293,105 +300,6 @@ static bool Ufar_TokenizeArgs( const char * pArgs, vector<string> & Tokens )
     return true;
 }
 
-static inline void Ufar_TrimString( string & s )
-{
-    while ( !s.empty() && isspace((unsigned char)s.front()) )
-        s.erase( s.begin() );
-    while ( !s.empty() && isspace((unsigned char)s.back()) )
-        s.pop_back();
-}
-
-static bool Ufar_ExtractSolverArg( const char * pArgs, string & ArgsWithoutSolver, string & SolverArg )
-{
-    string Args = pArgs ? pArgs : "";
-    size_t i = 0, n = Args.size();
-    ArgsWithoutSolver = Args;
-    SolverArg.clear();
-    while ( i < n )
-    {
-        while ( i < n && isspace((unsigned char)Args[i]) )
-            i++;
-        if ( i == n )
-            break;
-        size_t TokenStart = i;
-        char Quote = 0;
-        string Token;
-        while ( i < n )
-        {
-            unsigned char c = (unsigned char)Args[i];
-            if ( Quote )
-            {
-                if ( c == (unsigned char)Quote )
-                    Quote = 0;
-                else if ( c == '\\' && i + 1 < n )
-                    Token += Args[++i];
-                else
-                    Token += (char)c;
-                i++;
-                continue;
-            }
-            if ( c == '"' || c == '\'' )
-            {
-                Quote = (char)c;
-                i++;
-                continue;
-            }
-            if ( isspace(c) )
-                break;
-            if ( c == '\\' && i + 1 < n )
-            {
-                Token += Args[++i];
-                i++;
-                continue;
-            }
-            Token += (char)c;
-            i++;
-        }
-        if ( Token == "--solver" )
-        {
-            size_t ValueStart = i;
-            while ( ValueStart < n && isspace((unsigned char)Args[ValueStart]) )
-                ValueStart++;
-            if ( ValueStart == n )
-                return false;
-            string Prefix = Args.substr( 0, TokenStart );
-            string Suffix;
-            if ( Args[ValueStart] == '"' || Args[ValueStart] == '\'' )
-            {
-                char ValueQuote = Args[ValueStart++];
-                size_t k = ValueStart;
-                while ( k < n )
-                {
-                    unsigned char c = (unsigned char)Args[k];
-                    if ( c == (unsigned char)ValueQuote )
-                    {
-                        k++;
-                        break;
-                    }
-                    if ( c == '\\' && k + 1 < n )
-                        SolverArg += Args[++k];
-                    else
-                        SolverArg += (char)c;
-                    k++;
-                }
-                Suffix = Args.substr( k );
-            }
-            else
-            {
-                SolverArg = Args.substr( ValueStart );
-            }
-            Ufar_TrimString( SolverArg );
-            ArgsWithoutSolver = Prefix + Suffix;
-            Ufar_TrimString( ArgsWithoutSolver );
-            return !SolverArg.empty();
-        }
-        while ( i < n && isspace((unsigned char)Args[i]) )
-            i++;
-    }
-    return false;
-}
-
-
 void Ufar_Init(Abc_Frame_t *pAbc)
 {
     //Cmd_CommandAdd( pAbc, "Word level Prove", "%%test",           Abc_CommandTest,              0 );
@@ -403,28 +311,36 @@ void Ufar_Init(Abc_Frame_t *pAbc)
 
 int Ufar_ProveWithTimeout( Wlc_Ntk_t * pNtk, int nTimeOut, int fVerbose, int (*pFuncStop)(int), int RunId, const char * pArgs )
 {
+    return Ufar_ProveWithCex( pNtk, nTimeOut, fVerbose, pFuncStop, RunId, pArgs, NULL );
+}
+
+// Runs word-level refinement and optionally returns a concrete trace.
+// The caller owns the returned trace. It uses the original word-level design's bit-blasted input order,
+// with abstraction inputs removed.
+// Uses scoped termination and diagnostic context.
+int Ufar_ProveWithCex( Wlc_Ntk_t * pNtk, int nTimeOut, int fVerbose,
+    int (*pFuncStop)(int), int RunId, const char * pArgs, Abc_Cex_t ** ppCex )
+{
     UFAR::UfarManager manager;
     timeval t1;
     vector<string> Tokens;
     vector<char *> Argv;
     set<unsigned> set_op_types;
-    string ArgsWithoutSolver, SolverArg;
     string firstAigDumpFile, dumpLogFile;
     string statusName;
     int fNeedMiter = 1, fCrossStats = 0, UnderSize = -1;
     Wlc_Ntk_t * pUse = pNtk, * pNew = NULL;
     int RetValue = -1;
+    if ( ppCex )
+        *ppCex = NULL;
     if ( pNtk == NULL )
         return -1;
     Ufar_SetDefaultParams( manager.params, nTimeOut, fVerbose, pFuncStop, RunId );
     if ( pArgs && pArgs[0] )
     {
-        const char * pParseArgs = pArgs;
-        if ( Ufar_ExtractSolverArg(pArgs, ArgsWithoutSolver, SolverArg) )
-            pParseArgs = ArgsWithoutSolver.c_str();
         OptMgr opt_mgr("%ufar");
         Ufar_AddOptions( opt_mgr, manager.params );
-        if ( !Ufar_TokenizeArgs(pParseArgs, Tokens) )
+        if ( !Ufar_TokenizeArgs(pArgs, Tokens) )
         {
             cout << "Cannot parse internal %ufar option string." << endl;
             return -1;
@@ -439,12 +355,15 @@ int Ufar_ProveWithTimeout( Wlc_Ntk_t * pNtk, int nTimeOut, int fVerbose, int (*p
             return -1;
         }
         Ufar_ApplyOptions( opt_mgr, manager.params, set_op_types, firstAigDumpFile, dumpLogFile, fNeedMiter, fCrossStats, UnderSize );
-        if ( !SolverArg.empty() )
-            manager.params.solverSetting = SolverArg;
     }
     else
         set_op_types.insert( WLC_OBJ_ARI_MULTI );
-    Ufar_StopScope_t StopScope( manager.params.pFuncStop, (int)manager.params.nTimeout );
+    if ( ppCex && UnderSize >= 0 )
+    {
+        Abc_Print( 1, "UFAR original-counterexample mode does not support under-approximation.\n" );
+        return -1;
+    }
+    Ufar_StopScope_t StopScope( manager.params.pFuncStop, (int)manager.params.nTimeout, manager.params.RunId );
     manager.params.pFuncStop = Ufar_StopWithTimeout;
     if ( fNeedMiter )
     {
@@ -562,7 +481,7 @@ int Ufar_ProveWithTimeout( Wlc_Ntk_t * pNtk, int nTimeOut, int fVerbose, int (*p
     }
     gettimeofday( &t1, NULL );
     manager.Initialize( pUse, set_op_types );
-    RetValue = manager.PerformUIFProve( t1 );
+    RetValue = manager.PerformUIFProve( t1, ppCex );
     Ufar_DumpStatusLog( dumpLogFile, RetValue, statusName );
     if ( pUse != pNtk )
         Wlc_NtkFree( pUse );
@@ -599,6 +518,7 @@ static int Abc_CommandAnalyzeCex( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    UFAR::UfarManager ufar_manager;
     if (Wlc_AbcGetNtk(pAbc) == NULL) {
         cout << "There is no current design.\n";
         return 0;
@@ -619,6 +539,9 @@ static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv 
         return 0;
     }
     Ufar_ApplyOptions( opt_mgr, ufar_manager.params, set_op_types, firstAigDumpFile, dumpLogFile, fNeedMiter, fCrossStats, UnderSize );
+    Ufar_StopScope_t StopScope( ufar_manager.params.pFuncStop,
+        (int)ufar_manager.params.nTimeout, ufar_manager.params.RunId );
+    ufar_manager.params.pFuncStop = Ufar_StopWithTimeout;
 
     // ufar_manager.DumpParams();
     LogT::prefix = "UIF_PROVE";

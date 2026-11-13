@@ -488,7 +488,21 @@ struct DdManager {      /* specialized DD symbol table */
     DdNode * bFunc;
     DdNode * bFunc2;
     abctime TimeStop;           /* timeout for reordering */
+    int (*pFuncStop)(void *);   // optional manager-local cancellation
+    void * pStopData;
+    unsigned nStopCalls;
+    int fStopRequested;
 };
+
+/* Amortizes the optional manager-local cancellation callback. Existing managers have no callback
+ * and keep their behavior. Advances the polling counter and may latch a stop. See also:
+ * Cudd_CheckStop */
+static inline int cuddPollStop( DdManager * dd )
+{
+    if ( dd->pFuncStop == NULL )
+        return 0;
+    return dd->fStopRequested || (!(++dd->nStopCalls & 255) && Cudd_CheckStop(dd));
+}
 
 typedef struct Move {
     DdHalfWord x;

@@ -23,6 +23,14 @@
 
 ABC_NAMESPACE_IMPL_START
 
+typedef struct Inter_Stop_t_
+{
+    Inter_ManParams_t * pPars;
+    int fStopped;
+} Inter_Stop_t;
+static ABC_THREAD_LOCAL Inter_Stop_t * s_pInterStop = NULL;
+
+
 
 ////////////////////////////////////////////////////////////////////////`
 ///                        DECLARATIONS                              ///
@@ -67,16 +75,78 @@ void Inter_ManSetDefaultParams( Inter_ManParams_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Interplates while the number of conflicts is not exceeded.]
+  Synopsis    [Checks and latches the current invocation's optional stop request.]
 
-  Description [Returns 1 if proven. 0 if failed. -1 if undecided.]
-               
-  SideEffects [Does not check the property in 0-th frame.]
+  Description []
 
-  SeeAlso     []
+  SideEffects []
+
+  SeeAlso     [Inter_ManPerformInterpolation]
 
 ***********************************************************************/
-int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, int * piFrame )
+int Inter_ManShouldStop( void )
+{
+    Inter_ManParams_t * pPars;
+    if ( !s_pInterStop ) return 0;
+    pPars = s_pInterStop->pPars;
+    if ( !s_pInterStop->fStopped &&
+         ((pPars->TimeToStop && Abc_Clock() >= pPars->TimeToStop) ||
+          (pPars->pFuncStop && pPars->pFuncStop(pPars->RunId))) ) s_pInterStop->fStopped = 1;
+    return s_pInterStop->fStopped;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adapts the scoped stop context to SAT and BMC callbacks.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     [Inter_ManShouldStop]
+
+***********************************************************************/
+static int Inter_ManStopId( int RunId )
+{
+    (void)RunId;
+    return Inter_ManShouldStop();
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Connects SAT cancellation only when requested by the caller.]
+
+  Description [Existing callers without the optional fields retain their
+  original limits and solver configuration.]
+
+  SideEffects []
+
+  SeeAlso     [Inter_ManShouldStop]
+
+***********************************************************************/
+void Inter_ManApplyStop( sat_solver * pSat )
+{
+    Inter_ManParams_t * pPars;
+    if ( !s_pInterStop || !pSat ) return;
+    pPars = s_pInterStop->pPars;
+    if ( pPars->pFuncStop || pPars->TimeToStop )
+        sat_solver_set_stop_func( pSat, Inter_ManStopId );
+    if ( pPars->TimeToStop && (!pSat->nRuntimeLimit || pPars->TimeToStop < pSat->nRuntimeLimit) )
+        sat_solver_set_runtime_limit( pSat, pPars->TimeToStop );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Interpolates while respecting conflicts and optional cancellation.]
+
+  Description [Returns 1 if proved, 0 if failed, and -1 if undecided.]
+
+  SideEffects [Stores a concrete counterexample when available.]
+
+  SeeAlso     [Inter_ManPerformInterpolation]
+
+***********************************************************************/
+static int Inter_ManPerformInterpolationInt( Aig_Man_t * pAig, Inter_ManParams_t * pPars, int * piFrame )
 {
     extern int Inter_ManCheckInductiveContainment( Aig_Man_t * pTrans, Aig_Man_t * pInter, int nSteps, int fBackward );
     Inter_Man_t * p;
@@ -85,6 +155,10 @@ int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, 
     int s, i, RetValue, Status;
     abctime clk, clk2, clkTotal = Abc_Clock(), timeTemp = 0;
     abctime nTimeNewOut = pPars->nSecLimit ? pPars->nSecLimit * CLOCKS_PER_SEC + Abc_Clock() : 0;
+    if ( pPars->TimeToStop && (!nTimeNewOut || pPars->TimeToStop < nTimeNewOut) )
+        nTimeNewOut = pPars->TimeToStop;
+    *piFrame = -1;
+    if ( Inter_ManShouldStop() ) return -1;
 
     // enable ORing of the interpolants, if containment check is performed inductively with K > 1
     if ( pPars->nFramesK > 1 )
@@ -108,6 +182,7 @@ int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, 
         printf( "Property trivially fails in the initial state.\n" );
         return 0;
     }
+    if ( Inter_ManShouldStop() ) return -1;
 /*
     if ( Inter_ManCheckAllStates(pAig) )
     {
@@ -201,7 +276,7 @@ p->timeEqu += Abc_Clock() - clk;
         // iterate the interpolation procedure
         for ( i = 0; ; i++ )
         {
-            if ( pPars->nFramesMax && p->nFrames + i >= pPars->nFramesMax )
+            if ( Inter_ManShouldStop() || (pPars->nFramesMax && p->nFrames + i >= pPars->nFramesMax) )
             { 
                 if ( pPars->fVerbose )
                     printf( "Reached limit (%d) on the number of timeframes.\n", pPars->nFramesMax );
@@ -247,10 +322,12 @@ p->timeEqu += Abc_Clock() - clk;
                         pParsBmc->nConfLimit = 100000000;
                         pParsBmc->nStart     = p->nFrames;
                         pParsBmc->fVerbose   = pPars->fVerbose;
+                        if ( pPars->pFuncStop || pPars->TimeToStop )
+                            pParsBmc->pFuncStop = Inter_ManStopId;
                         RetValue = Saig_ManBmcScalable( pAig, pParsBmc );
                         if ( RetValue == 1 )
                             printf( "Error: The problem should be SAT but it is UNSAT.\n" );
-                        else if ( RetValue == -1 )
+                        else if ( RetValue == -1 && !Inter_ManShouldStop() )
                             printf( "Error: The problem timed out.\n" );
                     }
                     Inter_ManStop( p, 0 );
@@ -404,6 +481,31 @@ p->timeCnf += Abc_Clock() - clk;
     }
     assert( 0 );
     return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Owns the optional termination context for one interpolation run.]
+
+  Description [Restores the previous context on every return, allowing
+  independent instances and nested calls in the same thread.]
+
+  SideEffects []
+
+  SeeAlso     [Inter_ManPerformInterpolationInt]
+
+***********************************************************************/
+int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, int * piFrame )
+{
+    Inter_Stop_t Stop, * pPrevious = s_pInterStop;
+    int Result;
+    Stop.pPars = pPars;
+    Stop.fStopped = 0;
+    s_pInterStop = &Stop;
+    Result = Inter_ManPerformInterpolationInt( pAig, pPars, piFrame );
+    if ( Stop.fStopped ) Result = -1;
+    s_pInterStop = pPrevious;
+    return Result;
 }
 
 
