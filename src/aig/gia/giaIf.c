@@ -984,10 +984,8 @@ int Gia_ManBuildFromMiniInt( Gia_Man_t * pNew, Vec_Int_t * vLeaves, Vec_Int_t * 
             iLit1 = Abc_LitNotCond( iVar1 < nLeaves ? Vec_IntEntry(vLeaves, iVar1) : Vec_IntEntry(vAig, iVar1 - nLeaves), Abc_LitIsCompl(iLit1) );
             if ( fHash )
                 iLit = Gia_ManHashAnd( pNew, iLit0, iLit1 );
-            else if ( iLit0 == iLit1 )
-                iLit = iLit0;
-            else
-                iLit = Gia_ManAppendAnd( pNew, iLit0, iLit1 );
+            else // two leaves of a cut can carry the same literal, so fold x&x, x&!x and constants
+                iLit = Gia_ManAppendAnd2( pNew, iLit0, iLit1 );
             assert( (i & 1) == 0 );
             Vec_IntWriteEntry( vAig, Abc_Lit2Var(i), iLit );  // overwriting entries
         }
