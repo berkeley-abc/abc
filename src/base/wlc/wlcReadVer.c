@@ -131,12 +131,13 @@ int Wlc_PrsWriteErrorMessage( Wlc_Prs_t * p, char * pCur, const char * format, .
     char * pMessage;
     // derive message
     va_list args;
+    if ( p->sError[0] != 0 ) // Wlc_PrsReadName() already named the specific cause
+        return 0;
     va_start( args, format );
     pMessage = vnsprintf( format, args );
     va_end( args );
     // print messsage
     assert( strlen(pMessage) < WLV_PRS_MAX_LINE - 100 );
-    assert( p->sError[0] == 0 );
     if ( pCur == NULL ) // the line number is not given
         sprintf( p->sError, "%s: %s\n", p->pFileName, pMessage );
     else                // print the error message with the line number
@@ -629,6 +630,7 @@ static inline char * Wlc_PrsReadConstant( Wlc_Prs_t * p, char * pStr, Vec_Int_t 
         pStr++;
     return pStr;
 }
+// writes its own error message, so a caller must not write a second one
 static inline char * Wlc_PrsReadName( Wlc_Prs_t * p, char * pStr, Vec_Int_t * vFanins )
 {
     int NameId, fFound, iObj;
