@@ -19,6 +19,81 @@ additional detail, and `-h` shows usage. Options affect diagnostics only. The co
 information and an unboxed GIA without explicit arrival-time constraints.
 It accepts choice graphs; alternatives contribute cuts at their representatives.
 
+## Reproducing the ABC evaluation
+
+Build with `make -j4` (add `ABC_USE_NO_READLINE=1` if readline is unavailable).
+Run scripts with `./abc -s -f run.abc`; `-s` avoids user startup aliases.
+The paper uses the 20 EPFL combinational AIGs and three libraries: ASAP7 RVT FF,
+Nangate45, and SKY130HD. Use the same input AIG and Liberty files for every
+mapper. Library corners, excluded cells, and input preprocessing affect QoR;
+substituting another library revision does not reproduce the exact tables.
+Benchmark and Liberty files are external to this source distribution.
+
+For Nangate45 or SKY130HD, create `library.abc` containing
+`read_lib -G 250 -a /path/to/cells.lib`. For the evaluated ASAP7 library, load
+these files in order from its NLDM directory:
+
+```text
+read_lib -G 250 -a -X "*x1p*_ASAP7*" -X "*xp*_ASAP7*" -X "SDF*" -X "ICG*" -w asap7sc7p5t_AO_RVT_FF_nldm_211120.lib.gz
+read_lib -G 250 -a -X "*x1p*_ASAP7*" -X "*xp*_ASAP7*" -X "SDF*" -X "ICG*" -m -w asap7sc7p5t_INVBUF_RVT_FF_nldm_220122.lib.gz
+read_lib -G 250 -a -X "*x1p*_ASAP7*" -X "*xp*_ASAP7*" -X "SDF*" -X "ICG*" -m -w asap7sc7p5t_OA_RVT_FF_nldm_211120.lib.gz
+read_lib -G 250 -a -X "*x1p*_ASAP7*" -X "*xp*_ASAP7*" -X "SDF*" -X "ICG*" -m -w asap7sc7p5t_SIMPLE_RVT_FF_nldm_211120.lib.gz
+read_lib -G 250 -a -X "*x1p*_ASAP7*" -X "*xp*_ASAP7*" -X "SDF*" -X "ICG*" -m -w asap7sc7p5t_SEQ_RVT_FF_nldm_220123.lib
+```
+
+Use absolute paths as needed. The first read initializes the library; `-m`
+merges each subsequent part. Keep this setup identical for SCMap and gain NF.
+The following `run.abc` records the three independent endpoints for one input:
+
+```text
+source library.abc
+read design.aig
+strash
+&get
+&scmap
+&put
+write_blif mapped.blif
+topo
+echo MAPPING
+stime -c
+
+read_blif mapped.blif
+topo
+upsize -c
+dnsize -c
+write_blif sized.blif
+echo SIZING_ONLY
+stime -c
+
+read_blif mapped.blif
+topo
+buffer -c
+topo
+stime -c
+upsize -c
+dnsize -c
+write_blif buffered_sized.blif
+echo BUFFERED_SIZED
+stime -c
+```
+
+For gain NF, replace only `&scmap` with `&nf`. Use a separate output directory
+for each design/library/mapper. Both downstream branches restart from
+`mapped.blif`; do not buffer the sizing-only result. `stime -c` reports area,
+delay, and gate count. Check equivalence against the input with, for example,
+`cec -n design.aig buffered_sized.blif` after loading the same library.
+Here `-n` matches ports by order, since GIA export can rename them.
+For preprocessed-input studies, supply the identical saved preprocessed input
+to each mapper; the script above is the raw-AIG experiment.
+
+Report per-design ratios to gain NF and their geometric mean over matched
+20-design cohorts, separately for each library and endpoint. Measure CPU with
+a process CPU clock around the mapper and downstream stages; report library
+loading separately and exclude CEC from flow CPU. ABC's `time` output is not a
+portable process-CPU measurement. An external process timer includes startup,
+library parsing, and I/O and should be labeled accordingly. Use the same
+compiler/build, host, and measurement boundaries for every mapper.
+
 ## Algorithm
 
 1. Enumerate six-input priority cuts, retaining area-efficient and shallow
