@@ -195,12 +195,13 @@ Cudd_zddPrintSubtable(
         for (j = ZSubTable->slots - 1; j >= 0; j--) {
             z1 = ZSubTable->nodelist[j];
             while (z1 != NIL(DdNode)) {
-                (void) fprintf(table->out,
 #if SIZEOF_VOID_P == 8
+                (void) fprintf(table->out,
                     "ID = 0x%lx\tindex = %u\tr = %u\t",
                     (ptruint) z1 / (ptruint) sizeof(DdNode),
                     z1->index, z1->ref);
 #else
+                (void) fprintf(table->out,
                     "ID = 0x%x\tindex = %hu\tr = %hu\t",
                     (ptruint) z1 / (ptruint) sizeof(DdNode),
                     z1->index, z1->ref);

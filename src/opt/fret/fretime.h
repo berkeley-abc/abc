@@ -135,6 +135,8 @@ typedef struct MinRegMan_t_ {
 
 extern MinRegMan_t *pManMR;
 
+// This legacy verbosity shorthand is separate from libc's vprintf.
+#undef vprintf
 #define vprintf if (pManMR->fVerbose) printf 
 
 static inline void FSETPRED(Abc_Obj_t *pObj, Abc_Obj_t *pPred) {

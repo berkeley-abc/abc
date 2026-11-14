@@ -287,7 +287,7 @@ namespace eSLIM2 {
     if (checkpoints) {
       checkpoints->write(eslim2_run.es_man, true);
       if (checkpoints->failed())
-        std::fprintf(stderr, "eSLIM2: checkpoint output is incomplete; returning the optimized circuit.\n");
+        fprintf(stderr, "eSLIM2: checkpoint output is incomplete; returning the optimized circuit.\n");
     }
     Gia_Man_t* gia_res = eslim2_run.es_man.eSLIM2CirManToGia();
     gia_res->pName = name;

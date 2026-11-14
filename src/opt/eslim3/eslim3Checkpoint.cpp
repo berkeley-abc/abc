@@ -135,7 +135,7 @@ namespace eSLIM3 {
       const std::string base = prefix + "." + std::to_string(seconds) + "s";
       for (const char* suffix : {".aig", ".json", ".json.tmp"}) {
         if (!absent(base + suffix)) {
-          std::fprintf(stderr, "eSLIM3: checkpoint destination already exists or cannot be inspected: %s\n", (base + suffix).c_str());
+          fprintf(stderr, "eSLIM3: checkpoint destination already exists or cannot be inspected: %s\n", (base + suffix).c_str());
           error = true;
           return false;
         }
@@ -145,7 +145,7 @@ namespace eSLIM3 {
     const std::string probe = prefix + ".checkpoint-probe.tmp";
     FILE* file = createExclusive(probe);
     if (!file) {
-      std::fprintf(stderr, "eSLIM3: cannot create checkpoint files with prefix %s\n", prefix.c_str());
+      fprintf(stderr, "eSLIM3: cannot create checkpoint files with prefix %s\n", prefix.c_str());
       error = true;
       return false;
     }
@@ -212,14 +212,14 @@ namespace eSLIM3 {
     FILE* file = createExclusive(aig);
     bool saved = false;
     if (file) {
-      saved = std::fwrite(Vec_StrArray(bytes), 1, Vec_StrSize(bytes), file) == size_t(Vec_StrSize(bytes));
+      saved = fwrite(Vec_StrArray(bytes), 1, Vec_StrSize(bytes), file) == size_t(Vec_StrSize(bytes));
       const int closed = std::fclose(file);
       saved = saved && closed == 0;
     }
     Vec_StrFree(bytes);
     Gia_ManStop(snapshot);
     if (!saved) {
-      std::fprintf(stderr, "eSLIM3: failed to write checkpoint %s\n", aig.c_str());
+      fprintf(stderr, "eSLIM3: failed to write checkpoint %s\n", aig.c_str());
       return false;
     }
     // Readers watch for the JSON commit marker, which appears only after the
@@ -227,10 +227,10 @@ namespace eSLIM3 {
     file = createExclusive(temporary);
     const char* stage = !finished ? "intermediate" : elapsed < requested ? "completed_early" : "final";
     if (!file) {
-      std::fprintf(stderr, "eSLIM3: cannot create checkpoint metadata %s\n", temporary.c_str());
+      fprintf(stderr, "eSLIM3: cannot create checkpoint metadata %s\n", temporary.c_str());
       return false;
     }
-    const int printed = std::fprintf(file,
+    const int printed = fprintf(file,
         "{\"requested_seconds\":%u,\"elapsed_seconds\":%.9f,\"cpu_seconds\":%.9f,"
         "\"stage\":\"%s\",\"inputs\":%d,\"outputs\":%d,\"ands\":%d,\"depth\":%d}\n",
         requested, elapsed, cpu, stage, inputs, outputs, ands, depth);
@@ -240,12 +240,12 @@ namespace eSLIM3 {
     // two writers of this prefix from racing to publish the same snapshot.
     // Also refuse a destination created by someone else during the search.
     if (printed < 0 || closed || !absent(json) || std::rename(temporary.c_str(), json.c_str()) != 0) {
-      std::fprintf(stderr, "eSLIM3: failed to publish checkpoint metadata %s\n", json.c_str());
+      fprintf(stderr, "eSLIM3: failed to publish checkpoint metadata %s\n", json.c_str());
       return false;
     }
-    std::printf("Checkpoint: requested=%u elapsed=%.6f cpu=%.6f ands=%d depth=%d stage=%s file=%s\n",
+    printf("Checkpoint: requested=%u elapsed=%.6f cpu=%.6f ands=%d depth=%d stage=%s file=%s\n",
                 requested, elapsed, cpu, ands, depth, stage, aig.c_str());
-    std::fflush(stdout);
+    fflush(stdout);
     return true;
   }
 }

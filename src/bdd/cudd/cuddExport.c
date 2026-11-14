@@ -278,17 +278,19 @@ Cudd_DumpBlifBody(
     */
     for (i = 0; i < n; i++) {
         if (onames == NULL) {
-            retval = fprintf(fp,
 #if SIZEOF_VOID_P == 8
+            retval = fprintf(fp,
                 ".names %lx f%d\n", (ptruint) f[i] / (ptruint) sizeof(DdNode), i);
 #else
+            retval = fprintf(fp,
                 ".names %x f%d\n", (ptruint) f[i] / (ptruint) sizeof(DdNode), i);
 #endif
         } else {
-            retval = fprintf(fp,
 #if SIZEOF_VOID_P == 8
+            retval = fprintf(fp,
                 ".names %lx %s\n", (ptruint) f[i] / (ptruint) sizeof(DdNode), onames[i]);
 #else
+            retval = fprintf(fp,
                 ".names %x %s\n", (ptruint) f[i] / (ptruint) sizeof(DdNode), onames[i]);
 #endif
         }
@@ -1168,13 +1170,15 @@ ddDoDumpDaVinci(
                          "l(\"%p\",n(\"internal\",[a(\"OBJECT\",\"%s\"),",
                          (void *) id, names[f->index]);
     } else {
-        retval = fprintf(fp,
 #if SIZEOF_VOID_P == 8
+        retval = fprintf(fp,
                          "l(\"%p\",n(\"internal\",[a(\"OBJECT\",\"%u\"),",
-#else
-                         "l(\"%p\",n(\"internal\",[a(\"OBJECT\",\"%hu\"),",
-#endif
                          (void *) id, f->index);
+#else
+        retval = fprintf(fp,
+                         "l(\"%p\",n(\"internal\",[a(\"OBJECT\",\"%hu\"),",
+                         (void *) id, f->index);
+#endif
     }
     retval = fprintf(fp, "a(\"_GO\",\"ellipse\")],[e(\"then\",[a(\"EDGECOLOR\",\"blue\"),a(\"_DIR\",\"none\")],");
     if (retval == EOF) return(0);
@@ -1273,12 +1277,15 @@ ddDoDumpDDcal(
     } else {
 #if SIZEOF_VOID_P == 8
         retval = fprintf(fp, "n%p = v%u * n%p + v%u' * n%p%s\n",
-#else
-        retval = fprintf(fp, "n%p = v%hu * n%p + v%hu' * n%p%s\n",
-#endif
                          (void *) id, f->index,
                          (void *) idT, f->index,
                          (void *) idE, Cudd_IsComplement(cuddE(f)) ? "'" : "");
+#else
+        retval = fprintf(fp, "n%p = v%hu * n%p + v%hu' * n%p%s\n",
+                         (void *) id, f->index,
+                         (void *) idT, f->index,
+                         (void *) idE, Cudd_IsComplement(cuddE(f)) ? "'" : "");
+#endif
     }
     if (retval == EOF) {
         return(0);

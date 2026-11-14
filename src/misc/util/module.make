@@ -6,6 +6,8 @@ SRC +=  src/misc/util/utilAigSim.c \
     src/misc/util/utilColor.c \
     src/misc/util/utilFile.c \
     src/misc/util/utilIsop.c \
+    src/misc/util/utilIo.c \
+    src/misc/util/utilIoStream.cpp \
     src/misc/util/utilLinear.c \
     src/misc/util/utilMiniver.c \
     src/misc/util/utilMulSim.c \

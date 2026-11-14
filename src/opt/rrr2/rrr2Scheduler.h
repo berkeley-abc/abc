@@ -33,6 +33,7 @@
 #include "rrr2Parameter.h"
 #include "rrr2Utils.h"
 #include "rrr2Abc.h"
+#include "misc/util/abc_io.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 
@@ -501,8 +502,12 @@ namespace rrr2 {
     fTerminate = false;
     if(fMultiThreading) {
       vThreads.reserve(pPar->nThreads);
+      FILE *out = Abc_IoReadOut(), *err = Abc_IoReadErr();
       for(int i = 0; i < pPar->nThreads; i++) {
-        vThreads.emplace_back(std::bind(&Scheduler::Thread, this, pPar));
+        vThreads.emplace_back([this, pPar, out, err]() {
+          Abc_IoSetWorkerStreams(out, err);
+          Thread(pPar);
+        });
       }
       return;
     }

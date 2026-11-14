@@ -912,6 +912,11 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     else
     {
+        if ( pAbc->pLog && (!strcmp(argv[1], "abcout") || !strcmp(argv[1], "abcerr")) )
+        {
+            fprintf( pAbc->Err, "Output streams belong to this instance's log and cannot be redirected.\n" );
+            return 1;
+        }
         key = argv[1];
         if ( st__delete( pAbc->tFlags, &key, &value ) )
         {

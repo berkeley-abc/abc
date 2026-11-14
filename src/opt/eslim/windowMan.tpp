@@ -18,6 +18,7 @@
 
 ***********************************************************************/
 
+#include "misc/util/abc_io.h"
 #include <random>
 #include <algorithm>
 #include <set>
@@ -117,8 +118,12 @@ namespace eSLIM {
     #ifdef ABC_USE_PTHREADS
       std::vector<std::thread> eslim_threads;
       eslim_threads.reserve(nwindows);
+      FILE *out = Abc_IoReadOut(), *err = Abc_IoReadErr();
       for (int i = 0; i < nwindows; i++) {
-        std::thread esman_thread(eSLIM_Man<SynthesisEngine, SelectionStrategy>::applyeSLIM, std::ref(windows[i]), std::ref(cfg), std::ref(wlogs[i]));
+        std::thread esman_thread([this, i, out, err]() {
+          Abc_IoSetWorkerStreams(out, err);
+          eSLIM_Man<SynthesisEngine, SelectionStrategy>::applyeSLIM(windows[i], cfg, wlogs[i]);
+        });
         eslim_threads.push_back(std::move(esman_thread));
 
       }
