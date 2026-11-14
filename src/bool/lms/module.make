@@ -5,4 +5,5 @@ SRC +=  src/bool/lms/lmsBuiltin.c \
     src/bool/lms/lmsGen.c \
     src/bool/lms/lmsKernel.c \
     src/bool/lms/lmsLib.c \
+    src/bool/lms/lmsOne.c \
     src/bool/lms/lmsTarget.c

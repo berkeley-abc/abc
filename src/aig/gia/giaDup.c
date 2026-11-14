@@ -761,6 +761,8 @@ Gia_Man_t * Gia_ManDup( Gia_Man_t * p )
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    if ( p->pMuxes )
+        pNew->pMuxes = ABC_CALLOC( unsigned, pNew->nObjsAlloc );
     if ( Gia_ManHasChoices(p) )
         pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(p) );
     Gia_ManConst0(p)->Value = 0;
@@ -770,7 +772,12 @@ Gia_Man_t * Gia_ManDup( Gia_Man_t * p )
             pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
         else if ( Gia_ObjIsAnd(pObj) )
         {
-            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+            if ( Gia_ObjIsMux(p, pObj) )
+                pObj->Value = Gia_ManAppendMuxReal( pNew, Gia_ObjFanin2Copy(p, pObj), Gia_ObjFanin1Copy(pObj), Gia_ObjFanin0Copy(pObj) );
+            else if ( Gia_ObjIsXor(pObj) )
+                pObj->Value = Gia_ManAppendXorReal( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+            else
+                pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
             if ( Gia_ObjSibl(p, Gia_ObjId(p, pObj)) )
                 pNew->pSibls[Abc_Lit2Var(pObj->Value)] = Abc_Lit2Var(Gia_ObjSiblObj(p, Gia_ObjId(p, pObj))->Value);  
         }

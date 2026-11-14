@@ -59,5 +59,36 @@ extern int    Lms_KernelFrontier( void * pData, unsigned Truth, int * pTimes, Ve
 extern int    Lms_KernelProfile( void * pData, unsigned Truth, int Index, Vec_Int_t * vAig, int * pDepths );
 extern void   Lms_KernelStop( void * pData );
 
+// === abcRec3.c =======================================================
+// Borrowed library data remains valid until the active manager changes.
+extern int Abc_RecTargetReady3( void );
+extern int Abc_RecTargetCost3( word, int, const int *, int *, Lms_CutMatch_t * );
+extern int Abc_RecTargetData3( const unsigned char **, const word ** );
+extern int Abc_RecTargetProfiles3( int, const int ** );
+extern int Abc_RecTargetNext3( int );
+extern void Abc_RecTargetRecipe3( int, Vec_Int_t * );
+extern void Abc_RecTargetCache3( int );
+extern int Abc_RecTargetXorReady3( void );
+extern int Abc_RecTargetXorStart3( void **, int );
+extern void Abc_RecTargetXorStop3( void * );
+extern void Abc_RecTargetRecipeXor3( int, Vec_Int_t * );
+extern int Abc_RecTargetCollect3( void *, int, int, const int *, word, const Lms_CutMatch_t * );
+extern int Abc_RecTargetCount3( int );
+
+// === lmsTarget.c =====================================================
+// Optional CO arrivals use the same unit-XAG traversal as the returned depth.
+extern int Lms_XorLevels( Gia_Man_t * pGia, Vec_Int_t * vCoArrs );
+
+/**Function*************************************************************
+
+  Synopsis    [Select ordinary AIG depth or unit AND/XOR output depth.]
+
+***********************************************************************/
+static inline int Lms_LevelNum( Gia_Man_t * pGia, int fXor )
+{
+    // Retain Gia_ManLevelNum's dangling-gate semantics for ordinary AIGs.
+    return fXor ? Lms_XorLevelNum(pGia) : Gia_ManLevelNum(pGia);
+}
+
 ABC_NAMESPACE_HEADER_END
 #endif

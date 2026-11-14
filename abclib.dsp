@@ -7434,6 +7434,10 @@ SOURCE=.\src\bool\lms\lmsBuiltinData.inc
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\bool\lms\lmsBuiltinXorData.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\bool\lms\lmsCollect.c
 # End Source File
 # Begin Source File
@@ -7459,6 +7463,10 @@ SOURCE=.\src\bool\lms\lmsKernel.c
 # Begin Source File
 
 SOURCE=.\src\bool\lms\lmsLib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bool\lms\lmsOne.c
 # End Source File
 # Begin Source File
 

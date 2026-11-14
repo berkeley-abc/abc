@@ -544,16 +544,19 @@ static inline void Abc_PrintInt( int i )
 
 static inline void Abc_PrintTime( int level, const char * pStr, abctime time )
 {
+    (void)level;
     ABC_PRT( pStr, time );
 }
 
 static inline void Abc_PrintTimeP( int level, const char * pStr, abctime time, abctime Time )
 {
+    (void)level;
     ABC_PRTP( pStr, time, Time );
 }
 
 static inline void Abc_PrintMemoryP( int level, const char * pStr, int mem, int Mem )
 {
+    (void)level;
     ABC_PRMP( pStr, mem, Mem );
 }
 

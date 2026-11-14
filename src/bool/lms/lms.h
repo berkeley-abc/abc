@@ -52,6 +52,7 @@ typedef int (*Lms_GenVisit_t)( void * pData, int nVars, const int * pFans,
 // Returns NULL and length zero on failure. File writers return 1 on success,
 // refuse existing outputs, and do not change the current LMS manager.
 extern char * Lms_BuiltinDecode( int * pnBytes );
+extern char * Lms_BuiltinDecodeXor( int * pnBytes );
 extern int Lms_EmbedWrite( const char * pInput, const char * pOutput, FILE * pError );
 extern int Lms_BuiltinWrite( const char * pOutput, FILE * pError );
 
@@ -102,9 +103,32 @@ extern void Lms_CollectStop( Lms_Collect_t * p );
 extern void Lms_CollectAdd( Lms_Collect_t * p, word Truth, int nVars, const int * pArrivals );
 extern int Lms_CollectWrite( Lms_Collect_t * p, const char * pFileName, FILE * pError );
 
+// === lmsOne.c =======================================================
+// Treat every CI/CO as a primary terminal, including flop terminals.
+// Invalid input returns NULL. Uses resubstitution, the active/built-in six-input
+// library when compatible. Area is heuristic.
+// CutSize (4..16) applies to delay candidates and area recovery alike.
+// Iterate the critical-path optimizer to saturation or StopLevel (-1 means
+// no stopping bound). Cache only graph-independent recipes between passes.
+// If the stopping bound is not met, first recover area at the input depth.
+// At loop exit, repeat recovery while area or depth strictly improves.
+// An already-met stopping bound remains a no-op.
+// AreaGrowth is the maximum percent node growth of one recovered pass;
+// -1 permits unlimited growth. Recovered-batch growth above 1%, or above the
+// area limit, prices the remaining composition banks before accepting a pass.
+// A feasible over-budget pass retries once with the full helper cut budget,
+// retaining the cheaper feasible batch. Enforce the area limit only afterward.
+// XOR mode derives a native XAG and counts each AND/XOR as one gate/level.
+// Optional escalation first recovers after a miss, rebuilding candidates
+// if the graph improves, then widens uncovered roots and fanin helpers to
+// at least 12 leaves/128 cuts. Unchanged graphs retain their candidate bank.
+// Once feasible, widen cut neighborhoods while the rebuilt batch area falls.
+extern Gia_Man_t * Lms_TwoPerform( Gia_Man_t * pGia, int StopLevel, int CutSize,
+    int Cuts, int Nodes, int Trials, double AreaGrowth, int fXor, int fEscalate, int fVerbose );
+
 // === lmsCuts.c ======================================================
-// Six-input cuts over a combinational GIA, including ordered choice links;
-// no IF mapper is used. Siblings must point to earlier AND nodes.
+// Six-input cuts over a combinational AND/XOR GIA, including ordered choices;
+// no IF mapper is used. Siblings must point to earlier internal nodes.
 // Initialize choice phases with Gia_ManSetPhase before calling the collector.
 // Truth includes output polarity and repeats to fill one word. Leaf IDs
 // are sorted, and every leaf is essential. Cost returns the library delay
@@ -114,10 +138,12 @@ extern int Lms_CollectWrite( Lms_Collect_t * p, const char * pFileName, FILE * p
 // canonical-to-leaf permutation, and input/output phase bits. Visit borrows
 // this result with the retained cut; it need not canonicalize the truth again.
 // vCiArrs supplies nonnegative CI arrivals below ABC_INFINITY, or defaults
-// to zero when absent. Delays count unit AND gates.
-// Visit receives retained cuts at nodes with ordinary consumers (all ANDs
+// to zero when absent. Delays count unit AND/XOR gates.
+// Visit receives retained cuts at nodes with ordinary consumers (all gates
 // when no choices are present); arrays are borrowed until it returns.
-// Return zero from Visit to abort. Collection returns 1 on success, 0 on failure.
+// Visit returns positive to continue, zero for failure, or negative for an
+// intentional stop without an error diagnostic. Collection returns 1 only
+// when completed, and 0 after either failure or an intentional stop.
 typedef struct Lms_CutMatch_t_ Lms_CutMatch_t;
 struct Lms_CutMatch_t_ { int Class; char Perm[6]; unsigned char Phase; };
 typedef int (*Lms_CutCost_t)( word Truth, int nLeaves, const int * pTimes, int * pArea, Lms_CutMatch_t * pMatch );
@@ -129,13 +155,14 @@ extern int Lms_CutsCollectBudgeted( Gia_Man_t * pGia, int Cuts, const int * pLim
     Lms_CutCost_t pCost, Lms_CutVisit_t pVisit, void * pData, int fVerbose );
 // Recollect after a uniform Cuts pass with unchanged graph, timing, library
 // and cost callback.
-// Visit only changed budgets and their transitive AND/choice consumers.
+// Visit only changed budgets and their transitive gate/choice consumers.
 // The caller must retain the first bank; fanin sets are still recomputed.
 extern int Lms_CutsRecollect( Gia_Man_t * pGia, int Cuts, const int * pLimits,
     Lms_CutCost_t pCost, Lms_CutVisit_t pVisit, void * pData, int fVerbose );
 
 // === lmsTarget.c ====================================================
 // Experimental target-delay selection from a directly enumerated cut bank.
+// Flop outputs/inputs are exposed as primary inputs/outputs in the result.
 // vCiArrs/vCoReqs supply integer arrival/required times in CI/CO order.
 // Times are nonnegative and below ABC_INFINITY; CO requirements also accept
 // ABC_INFINITY for no constraint. Target >= 0 caps every CO requirement.
@@ -152,6 +179,19 @@ extern Gia_Man_t * Lms_TargetPerform( Gia_Man_t * pGia, int Target, int Cuts,
 // Zero disables it. First-pass candidates remain available and win cost ties.
 extern Gia_Man_t * Lms_TargetPerformAdaptive( Gia_Man_t * pGia, int Target, int Cuts,
     int Rounds, int Exact, int DpMode, int Memory, int CriticalCuts, int fVerbose );
+// Extended entry: Target retains its hard-deadline semantics. StopLevel is
+// an independent lower stopping bound (-1 disables it); an unreachable
+// stopping bound still permits progress. A hard deadline or explicit output
+// requirement always takes precedence. The command uses Target = -1.
+// With fXor, derive/retain native XORs and count AND/XOR as one gate/level.
+// Borrow a cached private native library (the active rec_start3 -x library,
+// or the combined built-ins), leaving the existing manager/costs intact.
+// The combinational result carries unit-XAG CO arrivals in native mode.
+extern Gia_Man_t * Lms_TargetPerformEx( Gia_Man_t * pGia, int Target, int StopLevel, int Cuts,
+    int Rounds, int Exact, int DpMode, int Memory, int CriticalCuts, int fXor, int fVerbose );
+extern int Lms_XorLevelNum( Gia_Man_t * pGia );
+// Release the private native library between optimizations (also at shutdown).
+extern void Abc_RecTargetXorClear3( void );
 // Save one canonical binding. PO profile arrays remain valid through selection
 // and union recovery; NULL denotes a constant or one-leaf zero-area cut.
 extern void Lms_TargetCut( void * pData, int Root, int nLeaves,

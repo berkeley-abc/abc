@@ -148,20 +148,19 @@ static int Lmc_Contains( Lmc_Cut_t * pBase, Lmc_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-static int Lmc_Truth( Lmc_Cut_t * a, Lmc_Cut_t * b, Lmc_Cut_t * c, int fCompl0, int fCompl1 )
+static int Lmc_Truth( Lmc_Cut_t * a, Lmc_Cut_t * b, Lmc_Cut_t * c, int fCompl0, int fCompl1, int fXor )
 {
     int n = c->nLeaves;
     word t0 = fCompl0 ? ~a->Truth : a->Truth;
     word t1 = fCompl1 ? ~b->Truth : b->Truth;
     t0 = Abc_Tt6Expand(t0, a->Leaves, a->nLeaves, c->Leaves, n);
     t1 = Abc_Tt6Expand(t1, b->Leaves, b->nLeaves, c->Leaves, n);
-    c->Truth = t0 & t1;
+    c->Truth = fXor ? t0 ^ t1 : t0 & t1;
     c->nLeaves = Abc_Tt6MinBase(&c->Truth, c->Leaves, n);
     if ( c->nLeaves == n ) return 0;
     c->Sign = Lmc_Sign(c);
     return 1;
 }
-
 /**Function*************************************************************
 
   Synopsis    [Compare cuts by delay, leaf count, area flow, and edge flow.]
@@ -332,15 +331,15 @@ static int Lmc_Collect( Gia_Man_t * pGia, int nCutsMax, const int * pLimits,
     Lmc_Work_t * pCuts = NULL, ** ppCuts = NULL;
     Lmc_Cut_t * a, * b, * c, Units[2];
     Gia_Obj_t * pObj;
-    int Id, i, k, v, nCuts, n0, n1, i0, i1, Sibl, Result = 0;
+    int Id, i, k, v, nCuts, n0, n1, i0, i1, Sibl, Visit, fStopped = 0, Result = 0;
     int nObjs = Gia_ManObjNum(pGia), nSets = 0, nChoices = 0;
     double nPairs = 0, nTruths = 0, nKept = 0, nVisited = 0;
     size_t SetBytes, AllocBytes = 0;
     int DefaultMax = nCutsMax, NodeMax;
     abctime Start = Abc_Clock();
     assert(nCutsMax >= 1 && nCutsMax <= 128);
-    assert(!Gia_ManRegNum(pGia) && !pGia->pMuxes);
-    assert(!Gia_ManXorNum(pGia) && !Gia_ManBufNum(pGia));
+    assert(!Gia_ManRegNum(pGia) && !Gia_ManMuxNum(pGia));
+    assert(!Gia_ManBufNum(pGia));
     if ( pLimits )
         for ( Id = 0; Id < nObjs; ++Id )
         {
@@ -431,7 +430,7 @@ static int Lmc_Collect( Gia_Man_t * pGia, int nCutsMax, const int * pLimits,
             c = &ppCuts[nCuts]->Cut;
             if ( !Lmc_Merge(a, b, c) ) continue;
             ++nTruths;
-            Lmc_Truth(a, b, c, Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj));
+            Lmc_Truth(a, b, c, Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), Gia_ObjIsXor(pObj));
             nCuts = Lmc_AddCut(pObjs, ppCuts, nCuts, NodeMax, pCost);
         }
         assert(nCuts > 0);
@@ -456,7 +455,8 @@ static int Lmc_Collect( Gia_Man_t * pGia, int nCutsMax, const int * pLimits,
         for ( i = 0; i < nCuts && (!nChoices || pThis->Refs) && (!fRecollect || pThis->fChanged); ++i )
         {
             c = &ppCuts[i]->Cut;
-            if ( !pVisit(pData, Id, c->nLeaves, c->Leaves, c->Truth, &ppCuts[i]->Match) ) goto cleanup;
+            Visit = pVisit(pData, Id, c->nLeaves, c->Leaves, c->Truth, &ppCuts[i]->Match);
+            if ( Visit <= 0 ) { fStopped = Visit < 0; goto cleanup; }
             ++nVisited;
         }
         Lmc_Release(pObjs+i0, pFree);
@@ -496,7 +496,7 @@ static int Lmc_Collect( Gia_Man_t * pGia, int nCutsMax, const int * pLimits,
     if ( fVerbose && fRecollect )
         Abc_Print(1, "LMS cuts: revisited %.0f / %.0f retained cuts after budget changes.\n", nVisited, nKept);
 cleanup:
-    if ( !Result ) Abc_Print(-1, "LMS cuts: collection failed; input unchanged.\n");
+    if ( !Result && !fStopped ) Abc_Print(-1, "LMS cuts: collection failed; input unchanged.\n");
     if ( pObjs )
         for ( Id = 0; Id < nObjs; ++Id ) ABC_FREE(pObjs[Id].pSet);
     for ( i = 0; i <= 128; ++i )

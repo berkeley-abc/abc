@@ -27,6 +27,7 @@
 #include "opt/dar/dar.h"
 #include "proof/abs/abs.h"
 #include <errno.h>
+#include <float.h>
 #include <limits.h>
 
 ABC_NAMESPACE_IMPL_START
@@ -52,6 +53,7 @@ static int Abc_CommandRecStart3              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandRecCollect3            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecGen3                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLmsTarget              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandLmsTwo                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecEmbed3              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecFilter3             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecStop3               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -111,6 +113,7 @@ void Abc_InitSweep( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_collect3",  Abc_CommandRecCollect3,      0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_gen3",      Abc_CommandRecGen3,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&lms",          Abc_CommandLmsTarget,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&lms2",         Abc_CommandLmsTwo,           0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_embed3",    Abc_CommandRecEmbed3,        0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_filter3",   Abc_CommandRecFilter3,       0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_stop3",     Abc_CommandRecStop3,         0 );
@@ -1656,11 +1659,12 @@ static int Abc_CommandLmsTarget( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern int Abc_NtkRecStartBuiltin3( FILE *, FILE * );
     Gia_Man_t * pNew;
-    int c, Pass, Target = -1, Cuts = 8, CriticalCuts = 0, Rounds = 4, Exact = 16, Passes = 1, DpMode = 2, Memory = 1024, fVerbose = 0;
+    int c, Pass, Target = -1, Cuts = 8, CriticalCuts = 0, Rounds = 4, Exact = 16, Passes = 1, DpMode = 2, Memory = 1024, fVerbose = 0, fXor = 0;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "DCBIEPLMvh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "DCBIEPLMxvh")) != EOF )
     {
         if ( c == 'v' ) fVerbose ^= 1;
+        else if ( c == 'x' ) fXor ^= 1;
         else if ( c == 'D' || c == 'C' || c == 'B' || c == 'I' || c == 'E' || c == 'P' || c == 'L' || c == 'M' )
         {
             char * pEnd, * pStart;
@@ -1682,20 +1686,19 @@ static int Abc_CommandLmsTarget( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( globalUtilOptind != argc ) goto usage;
     if ( !pAbc->pGia ) { Abc_Print(-1, "There is no AIG.\n"); return 1; }
-    if ( !Abc_NtkRecIsRunning3() && !Abc_NtkRecStartBuiltin3(Abc_FrameReadOut(pAbc), Abc_FrameReadErr(pAbc)) ) return 1;
-    pNew = Lms_TargetPerformAdaptive(pAbc->pGia, Target, Cuts, Rounds, Exact, DpMode, Memory, CriticalCuts, fVerbose);
+    if ( !fXor && !Abc_NtkRecIsRunning3() && !Abc_NtkRecStartBuiltin3(Abc_FrameReadOut(pAbc), Abc_FrameReadErr(pAbc)) ) return 1;
+    pNew = Lms_TargetPerformEx(pAbc->pGia, -1, Target, Cuts, Rounds, Exact, DpMode, Memory, CriticalCuts, fXor, fVerbose);
     if ( !pNew ) return 1;
     // Preserve given output requirements across passes. Without them,
     // freeze the first pass's achieved arrival, including late CIs.
-    if ( Target < 0 && !pNew->vCoReqs )
-        Target = pNew->vCoArrs && Vec_IntSize(pNew->vCoArrs) ? Vec_IntFindMax(pNew->vCoArrs) : Gia_ManLevelNum(pNew);
+    Target = !pNew->vCoReqs ? (pNew->vCoArrs && Vec_IntSize(pNew->vCoArrs) ? Vec_IntFindMax(pNew->vCoArrs) : Gia_ManLevelNum(pNew)) : -1;
     // Recollect on the rewritten AIG, exposing new macro interiors and cut
     // boundaries. Keep the deadline DP on each pass; do not freeze the input.
     for ( Pass = 1; Pass < Passes; ++Pass )
     {
         Gia_Man_t * pTrial;
         if ( fVerbose ) Abc_Print(1, "LMS target: recollection pass %d of %d.\n", Pass+1, Passes);
-        pTrial = Lms_TargetPerformAdaptive(pNew, Target, Cuts, Rounds, Exact, DpMode, Memory, CriticalCuts, fVerbose);
+        pTrial = Lms_TargetPerformEx(pNew, Target, -1, Cuts, Rounds, Exact, DpMode, Memory, CriticalCuts, fXor, fVerbose);
         if ( !pTrial )
         {
             Abc_Print(0, "LMS target: recollection failed; keeping the preceding feasible result.\n");
@@ -1713,11 +1716,15 @@ static int Abc_CommandLmsTarget( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameUpdateGia(pAbc, pNew);
     return 0;
 usage:
-    Abc_Print(-2, "usage: &lms [-D num] [-CBIEPLM num] [-vh]\n");
+    Abc_Print(-2, "usage: &lms [-D num] [-CBIEPLM num] [-xvh]\n");
     Abc_Print(-2, "           experimental LMS-inspired delay-optimization\n");
-    Abc_Print(-2, "\t-D num : maximum output arrival (unit AND delay); -1 = automatic\n");
-    Abc_Print(-2, "\t         default: given CO requirements, or best arrival in the cut bank\n");
-    Abc_Print(-2, "\t         honors GIA integer CI arrivals/CO requirements; explicit -D caps every CO\n");
+    Abc_Print(-2, "\t-D num : stop reducing depth at this bound; -1 = no stopping bound\n");
+    Abc_Print(-2, "\t         an unreachable bound still permits improvement; repeat to saturation\n");
+    Abc_Print(-2, "\t         unit gate delays; given CI arrivals/CO requirements remain honored\n");
+    Abc_Print(-2, "\t         flop outputs/inputs are exposed as primary inputs/outputs\n");
+    Abc_Print(-2, "\t-x     : derive/optimize a native Xor-AIG; AND and XOR each cost one gate/level\n");
+    Abc_Print(-2, "\t         caches combined AND/XOR libraries; rec_start3 -x selects a user library\n");
+    Abc_Print(-2, "\t         reported depth uses unit XORs; standard &ps timing is unchanged\n");
     Abc_Print(-2, "\t-C num : retained cuts per node [default = %d]\n", Cuts);
     Abc_Print(-2, "\t-B num : recollect zero-slack macros with this cut budget; 0 = disabled [default = %d]\n", CriticalCuts);
     Abc_Print(-2, "\t         must exceed -C to add a pilot-guided collection (maximum 128)\n");
@@ -1729,6 +1736,83 @@ usage:
     Abc_Print(-2, "\t         limits extra deadline slack when needed; preserves feasibility but may restrict area search\n");
     Abc_Print(-2, "\t-v     : print timing, memory, and optimization statistics\n");
     Abc_Print(-2, "\t-h     : print usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Iterate weighted critical-path cuts until depth stops improving.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Abc_CommandLmsTwo( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pNew;
+    double AreaGrowth = -1.0;
+    int c, Target = -1, CutSize = 8, Cuts = 32, Nodes = 12, Trials = 64, fXor = 0, fEscalate = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "ADKCNExavh")) != EOF )
+    {
+        if ( c == 'v' ) fVerbose ^= 1;
+        else if ( c == 'x' ) fXor ^= 1;
+        else if ( c == 'a' ) fEscalate ^= 1;
+        else if ( c == 'A' )
+        {
+            char * pStart, * pEnd;
+            if ( globalUtilOptind >= argc ) goto usage;
+            pStart = argv[globalUtilOptind++];
+            errno = 0;
+            AreaGrowth = strtod(pStart, &pEnd);
+            if ( errno || pStart == pEnd || *pEnd ||
+                 !(AreaGrowth == -1.0 || (AreaGrowth >= 0.0 && AreaGrowth <= DBL_MAX)) ) goto usage;
+        }
+        else if ( c == 'D' || c == 'K' || c == 'C' || c == 'N' || c == 'E' )
+        {
+            char * pStart, * pEnd;
+            long Value;
+            if ( globalUtilOptind >= argc ) goto usage;
+            pStart = argv[globalUtilOptind++];
+            errno = 0;
+            Value = strtol(pStart, &pEnd, 10);
+            if ( errno || pStart == pEnd || *pEnd || Value < (c == 'D' ? -1 : c == 'K' ? 4 : c == 'C' ? 2 : 0) ||
+                 Value > (c == 'D' ? 100000 : c == 'K' ? 16 : c == 'C' ? 256 : c == 'N' ? 64 : 10000) ) goto usage;
+            if ( c == 'D' ) Target = (int)Value;
+            if ( c == 'K' ) CutSize = (int)Value;
+            if ( c == 'C' ) Cuts = (int)Value;
+            if ( c == 'N' ) Nodes = (int)Value;
+            if ( c == 'E' ) Trials = (int)Value;
+        }
+        else goto usage;
+    }
+    if ( globalUtilOptind != argc ) goto usage;
+    if ( !pAbc->pGia ) { Abc_Print(-1, "&lms2: There is no AIG.\n"); return 1; }
+    pNew = Lms_TwoPerform(pAbc->pGia, Target, CutSize, Cuts, Nodes, Trials, AreaGrowth, fXor, fEscalate, fVerbose);
+    if ( !pNew ) return 1;
+    Abc_FrameUpdateGia(pAbc, pNew);
+    return 0;
+usage:
+    Abc_Print(-2, "usage: &lms2 [-ADKCNE <num>] [-xavh]\n");
+    Abc_Print(-2, "             iterate weighted critical-path cuts until depth stops improving\n");
+    Abc_Print(-2, "             recover area before search and to a fixed point at exit\n");
+    Abc_Print(-2, "             flop outputs/inputs become primary inputs/outputs\n");
+    Abc_Print(-2, "\t-D <num> : stop reducing depth at this bound; -1 = saturation [default = %d]\n", Target);
+    Abc_Print(-2, "\t-A <num> : maximum node growth per pass in percent; -1 = unlimited [default = %g]\n", AreaGrowth);
+    Abc_Print(-2, "\t-K <num> : maximum cut size for delay and recovery (4 to 16) [default = %d]\n", CutSize);
+    Abc_Print(-2, "\t-C <num> : cuts per critical root (2 to 256); helpers start at 8 [default = %d]\n", Cuts);
+    Abc_Print(-2, "\t-N <num> : maximum gates in a local recipe (0 to 64) [default = %d]\n", Nodes);
+    Abc_Print(-2, "\t-E <num> : exact area refinement trials; 0 disables [default = %d]\n", Trials);
+    Abc_Print(-2, "\t-x       : toggle native XOR optimization; AND/XOR each cost one gate/level [default = %s]\n", fXor ? "yes" : "no");
+    Abc_Print(-2, "\t-a       : toggle recovery and wider search after a miss (K >= 12, C >= 128) [default = %s]\n", fEscalate ? "yes" : "no");
+    Abc_Print(-2, "\t-v       : toggle optimization, timing, and cache statistics [default = %s]\n", fVerbose ? "yes" : "no");
+    Abc_Print(-2, "\t-h       : print the command usage\n");
+    Abc_Print(-2, "             over-budget batches price remaining rounds and retry full helpers\n");
+    Abc_Print(-2, "             a bounded search miss retains the last feasible graph\n");
+    Abc_Print(-2, "             example: &read input.aig; &lms2 -D 30; &ps; &cec\n");
     return 1;
 }
 

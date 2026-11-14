@@ -21,6 +21,7 @@
 #include "aig/gia/giaAig.h"
 #include "sat/cnf/cnf.h"
 #include "base/sn/snGia.h"
+#include "bool/lms/lms.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -363,6 +364,7 @@ void Abc_End( Abc_Frame_t * pAbc )
     Gia_ManStopP( &pAbc->pGiaSaved );
     if ( Abc_NtkRecIsRunning3() )
         Abc_NtkRecStop3();
+    Abc_RecTargetXorClear3();
 }
 
 ABC_NAMESPACE_IMPL_END

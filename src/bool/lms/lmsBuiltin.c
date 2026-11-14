@@ -33,6 +33,7 @@
 ABC_NAMESPACE_IMPL_START
 
 #include "lmsBuiltinData.inc"
+#include "lmsBuiltinXorData.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -42,6 +43,15 @@ ABC_NAMESPACE_IMPL_START
 // output literals as unsigned integers, and Base64-encodes only AND deltas.
 // It accepts canonical six-input, zero-register binary AIGER libraries.
 typedef char Lms_UnsignedMustBe32Bits[(sizeof(unsigned) == 4) ? 1 : -1];
+typedef struct Lms_Builtin_t_
+{
+    const unsigned char * pHeader, * pTail;
+    const unsigned * pOutputs;
+    const char * pAnds;
+    size_t nHeader, nTailStorage, nOutputs, nRows, nRowBytes;
+    int nBytes, nAndBytes, nTailBytes;
+    unsigned Checksum;
+} Lms_Builtin_t;
 static unsigned Lms_EmbedChecksum( const unsigned char * p, int n )
 {
     unsigned Hash = 2166136261u;
@@ -74,32 +84,32 @@ static int Lms_EmbedBase64Value( unsigned char c )
   SeeAlso     [Lms_EmbedWrite]
 
 ***********************************************************************/
-char * Lms_BuiltinDecode( int * pnBytes )
+static char * Lms_BuiltinDecodeData( const Lms_Builtin_t * pBank, int * pnBytes )
 {
     char * pData, * p;
     char Number[16];
-    size_t i, j, nRows = sizeof(s_LmsBuiltinAnds)/sizeof(s_LmsBuiltinAnds[0]);
+    size_t i, j;
     int n, a, b, c, d, nAnd = 0;
     unsigned Value;
     *pnBytes = 0;
-    if ( LMS_BUILTIN_SIZE <= 0 || LMS_BUILTIN_SIZE >= (1 << 24) ||
-         sizeof(s_LmsBuiltinHeader) > LMS_BUILTIN_SIZE ) return NULL;
-    pData = ABC_ALLOC(char, LMS_BUILTIN_SIZE+1);
+    if ( pBank->nBytes <= 0 || pBank->nBytes >= (1 << 24) ||
+         pBank->nHeader > (size_t)pBank->nBytes ) return NULL;
+    pData = ABC_ALLOC(char, pBank->nBytes+1);
     if ( !pData ) return NULL;
     p = pData;
-    memcpy(p, s_LmsBuiltinHeader, sizeof(s_LmsBuiltinHeader));
-    p += sizeof(s_LmsBuiltinHeader);
-    for ( i = 0; i < sizeof(s_LmsBuiltinOutputs)/sizeof(unsigned); i++ )
+    memcpy(p, pBank->pHeader, pBank->nHeader);
+    p += pBank->nHeader;
+    for ( i = 0; i < pBank->nOutputs; i++ )
     {
-        n = sprintf(Number, "%u\n", s_LmsBuiltinOutputs[i]);
-        if ( n > LMS_BUILTIN_SIZE-(p-pData) ) goto fail;
+        n = sprintf(Number, "%u\n", pBank->pOutputs[i]);
+        if ( n > pBank->nBytes-(p-pData) ) goto fail;
         memcpy(p, Number, n); p += n;
     }
-    if ( LMS_BUILTIN_AND_SIZE > LMS_BUILTIN_SIZE-(p-pData) ) goto fail;
-    for ( i = 0; i < nRows; i++ )
+    if ( pBank->nAndBytes > pBank->nBytes-(p-pData) ) goto fail;
+    for ( i = 0; i < pBank->nRows; i++ )
     {
-        const char * pRow = s_LmsBuiltinAnds[i];
-        const char * pZero = (const char *)memchr(pRow, 0, sizeof(s_LmsBuiltinAnds[0]));
+        const char * pRow = pBank->pAnds+i*pBank->nRowBytes;
+        const char * pZero = (const char *)memchr(pRow, 0, pBank->nRowBytes);
         if ( !pZero || (pZero-pRow) % 4 ) goto fail;
         for ( j = 0; j < (size_t)(pZero-pRow); j += 4 )
         {
@@ -109,10 +119,10 @@ char * Lms_BuiltinDecode( int * pnBytes )
             d = pRow[j+3] == '=' ? 0 : Lms_EmbedBase64Value(pRow[j+3]);
             if ( a < 0 || b < 0 || c < 0 || d < 0 ) goto fail;
             n = pRow[j+2] == '=' ? 1 : pRow[j+3] == '=' ? 2 : 3;
-            if ( n < 3 && (i+1 != nRows || j+4 != (size_t)(pZero-pRow)) ) goto fail;
+            if ( n < 3 && (i+1 != pBank->nRows || j+4 != (size_t)(pZero-pRow)) ) goto fail;
             if ( n == 1 && (pRow[j+3] != '=' || (b & 15)) ) goto fail;
             if ( n == 2 && (c & 3) ) goto fail;
-            if ( n > LMS_BUILTIN_AND_SIZE-nAnd ) goto fail;
+            if ( n > pBank->nAndBytes-nAnd ) goto fail;
             Value = ((unsigned)a << 18) | ((unsigned)b << 12) | ((unsigned)c << 6) | (unsigned)d;
             *p++ = (char)(Value >> 16);
             if ( n > 1 ) *p++ = (char)(Value >> 8);
@@ -120,17 +130,50 @@ char * Lms_BuiltinDecode( int * pnBytes )
             nAnd += n;
         }
     }
-    if ( nAnd != LMS_BUILTIN_AND_SIZE || LMS_BUILTIN_TAIL_SIZE > (int)sizeof(s_LmsBuiltinTail) ||
-         LMS_BUILTIN_TAIL_SIZE != LMS_BUILTIN_SIZE-(p-pData) ) goto fail;
-    memcpy(p, s_LmsBuiltinTail, LMS_BUILTIN_TAIL_SIZE);
-    pData[LMS_BUILTIN_SIZE] = 0;
-    if ( Lms_EmbedChecksum((unsigned char *)pData, LMS_BUILTIN_SIZE) != LMS_BUILTIN_CHECKSUM ) goto fail;
-    *pnBytes = LMS_BUILTIN_SIZE;
+    if ( nAnd != pBank->nAndBytes || pBank->nTailBytes > (int)pBank->nTailStorage ||
+         pBank->nTailBytes != pBank->nBytes-(p-pData) ) goto fail;
+    memcpy(p, pBank->pTail, pBank->nTailBytes);
+    pData[pBank->nBytes] = 0;
+    if ( Lms_EmbedChecksum((unsigned char *)pData, pBank->nBytes) != pBank->Checksum ) goto fail;
+    *pnBytes = pBank->nBytes;
     return pData;
 fail:
     ABC_FREE(pData);
     return NULL;
 }
+/**Function*************************************************************
+
+  Synopsis    [Decode the embedded AND library into caller-owned AIGER bytes.]
+
+***********************************************************************/
+char * Lms_BuiltinDecode( int * pnBytes )
+{
+    static const Lms_Builtin_t Bank = {
+        s_LmsBuiltinHeader, s_LmsBuiltinTail, s_LmsBuiltinOutputs, (const char *)s_LmsBuiltinAnds,
+        sizeof(s_LmsBuiltinHeader), sizeof(s_LmsBuiltinTail), sizeof(s_LmsBuiltinOutputs)/sizeof(unsigned),
+        sizeof(s_LmsBuiltinAnds)/sizeof(s_LmsBuiltinAnds[0]), sizeof(s_LmsBuiltinAnds[0]),
+        LMS_BUILTIN_SIZE, LMS_BUILTIN_AND_SIZE, LMS_BUILTIN_TAIL_SIZE, LMS_BUILTIN_CHECKSUM
+    };
+    return Lms_BuiltinDecodeData(&Bank, pnBytes);
+}
+/**Function*************************************************************
+
+  Synopsis    [Decode the independent embedded XOR library into AIGER bytes.]
+
+  Description [The returned buffer is writable and owned by the caller.]
+
+***********************************************************************/
+char * Lms_BuiltinDecodeXor( int * pnBytes )
+{
+    static const Lms_Builtin_t Bank = {
+        s_LmsBuiltinXorHeader, s_LmsBuiltinXorTail, s_LmsBuiltinXorOutputs, (const char *)s_LmsBuiltinXorAnds,
+        sizeof(s_LmsBuiltinXorHeader), sizeof(s_LmsBuiltinXorTail), sizeof(s_LmsBuiltinXorOutputs)/sizeof(unsigned),
+        sizeof(s_LmsBuiltinXorAnds)/sizeof(s_LmsBuiltinXorAnds[0]), sizeof(s_LmsBuiltinXorAnds[0]),
+        LMS_BUILTIN_XOR_SIZE, LMS_BUILTIN_XOR_AND_SIZE, LMS_BUILTIN_XOR_TAIL_SIZE, LMS_BUILTIN_XOR_CHECKSUM
+    };
+    return Lms_BuiltinDecodeData(&Bank, pnBytes);
+}
+
 static int Lms_EmbedNumber( const unsigned char ** pp, const unsigned char * pEnd, unsigned * pValue )
 {
     const unsigned char * p = *pp, * pStart = p;

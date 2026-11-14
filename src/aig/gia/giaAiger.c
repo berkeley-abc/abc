@@ -1463,7 +1463,14 @@ void Gia_AigerWriteS( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, in
     int i, nBufferSize, Pos;
     unsigned char * pBuffer;
     unsigned uLit0, uLit1, uLit;
-    assert( pInit->nXors == 0 && pInit->nMuxes == 0 );
+    if ( Gia_ManXorNum(pInit) || Gia_ManMuxNum(pInit) )
+    {
+        // Keep each expanded XOR's three ANDs adjacent and unshared.
+        p = Gia_ManDupExpand( pInit );
+        Gia_AigerWriteS( p, pFileName, fWriteSymbols, fCompact, fWriteNewLine, fSkipComment );
+        Gia_ManStop( p );
+        return;
+    }
 
     if ( Gia_ManCoNum(pInit) == 0 )
     {

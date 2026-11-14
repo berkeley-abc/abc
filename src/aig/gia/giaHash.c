@@ -626,6 +626,28 @@ int Gia_ManHashOr( Gia_Man_t * p, int iLit0, int iLit1 )
 
 /**Function*************************************************************
 
+  Synopsis    [Look up a native XOR, returning -1 when absent.]
+
+***********************************************************************/
+// Lookup-only counterpart of Gia_ManHashXorReal; -1 means absent.
+// Descending, uncomplemented fanins distinguish XOR from AND in the table.
+int Gia_ManHashXorTry( Gia_Man_t * p, int iLit0, int iLit1 )
+{
+    int fCompl, * pPlace;
+    if ( iLit0 < 2 ) return Abc_LitNotCond(iLit1, iLit0);
+    if ( iLit1 < 2 ) return Abc_LitNotCond(iLit0, iLit1);
+    if ( iLit0 == iLit1 ) return 0;
+    if ( iLit0 == Abc_LitNot(iLit1) ) return 1;
+    fCompl = Abc_LitIsCompl(iLit0) ^ Abc_LitIsCompl(iLit1);
+    iLit0 = Abc_LitRegular(iLit0);
+    iLit1 = Abc_LitRegular(iLit1);
+    if ( iLit0 < iLit1 ) ABC_SWAP(int, iLit0, iLit1);
+    pPlace = Gia_ManHashFind(p, iLit0, iLit1, -1);
+    return *pPlace ? Abc_Var2Lit(*pPlace, fCompl) : -1;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []

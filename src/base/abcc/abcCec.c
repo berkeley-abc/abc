@@ -2401,7 +2401,7 @@ usage:
 ***********************************************************************/
 static Gia_Man_t * Abc_ReadAigerOrVerilogFile( char * pFileName, char * pFileName2, char * pTopModule,
     Vec_Ptr_t * vDefines, Vec_Ptr_t * vBoxes, Vec_Ptr_t * vInsts, int Abstractions,
-    Vec_Int_t * vDescriptor, int * pStatus )
+    Vec_Int_t * vDescriptor, int fKeepInit, int * pStatus )
 {
     Gia_Man_t * pGia;
     *pStatus = 1;
@@ -2439,7 +2439,9 @@ static Gia_Man_t * Abc_ReadAigerOrVerilogFile( char * pFileName, char * pFileNam
             return NULL;
         }
         fclose(pFile);
-        pGia = Gia_AigerRead(pFileName, 0, 0, 0);
+        // This is the reader's no-strash switch: it also skips dangling cleanup
+        // and preserves the unflipped flop terminals of &read -x / &read -s.
+        pGia = Gia_AigerRead(pFileName, 0, fKeepInit, 0);
     }
     if ( pGia ) *pStatus = 0;
     return pGia;
@@ -2611,16 +2613,6 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( pAbc->pGia && pAbc->pGia->nXors )
-    {
-        Abc_Print( 0, "It looks like the current AIG is derived by &st -m.  Such AIG contains XOR gates and cannot be verified before &st is applied.\n" );
-        Vec_PtrFree( vDefines );
-        Vec_PtrFree( vBoxes );
-        Vec_PtrFree( vInsts );
-        Vec_IntFree(vDescriptors[0]);
-        Vec_IntFree(vDescriptors[1]);
-        return 1;
-    }
     if ( pFileName2 )
     {
         if ( (pFile = fopen( pFileName2, "r" )) == NULL )
@@ -2639,6 +2631,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     nArgcNew = argc - globalUtilOptind;
     if ( fMiter )
     {
+        Gia_Man_t * pGia;
         if ( pAbc->pGia == NULL || nArgcNew != 0 )
         {
             Abc_Print( -1, "Abc_CommandAbc9Cec(): A miter cannot be given as an argument of command &cec and should be entered using &r.\n" );
@@ -2649,11 +2642,13 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Vec_IntFree(vDescriptors[1]);
             return 1;
         }
+        pGia = (Gia_ManXorNum(pAbc->pGia) || Gia_ManMuxNum(pAbc->pGia)) ? Gia_ManDupExpand(pAbc->pGia) : pAbc->pGia;
         if ( fDualOutput )
         {
-            if ( Gia_ManPoNum(pAbc->pGia) & 1 )
+            if ( Gia_ManPoNum(pGia) & 1 )
             {
                 Abc_Print( -1, "The dual-output miter should have an even number of outputs.\n" );
+                if ( pGia != pAbc->pGia ) Gia_ManStop( pGia );
                 Vec_PtrFree( vDefines );
                 Vec_PtrFree( vBoxes );
                 Vec_PtrFree( vInsts );
@@ -2663,7 +2658,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             if ( !pPars->fSilent )
             Abc_Print( 1, "Assuming the current network is a double-output miter.\n" );
-            pAbc->Status = Cec_ManVerify( pAbc->pGia, pPars );
+            pAbc->Status = Cec_ManVerify( pGia, pPars );
         }
         else
         {
@@ -2675,7 +2670,22 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             {
                 abctime clk = Abc_Clock();
                 extern int Gia_ManCheckSimEquiv( Gia_Man_t * p, int fVerbose );
-                int Status = Gia_ManCheckSimEquiv( pAbc->pGia, pPars->fVerbose );
+                // The simulator compares pairs of outputs, so pair each miter
+                // output with zero before invoking it (also for native XORs).
+                Gia_Man_t * pDual = Gia_ManTransformToDual( pGia );
+                int Status;
+                while ( Gia_ManCiNum(pDual) < 6 )
+                    Gia_ManAppendCi( pDual );
+                Status = Gia_ManCiNum(pDual) <= 40 ? Gia_ManCheckSimEquiv(pDual, pPars->fVerbose) : -1;
+                pAbc->Status = Status;
+                if ( Status == 0 )
+                {
+                    Cec_ParCec_t ParsTemp = *pPars;
+                    ParsTemp.fSilent = 1;
+                    Cec_ManVerify(pDual, &ParsTemp);
+                }
+                Abc_FrameReplaceCex( pAbc, &pDual->pCexComb );
+                Gia_ManStop( pDual );
                 if ( Status == 1 )
                     Abc_Print( 1, "Networks are equivalent.  " );
                 else if ( Status == 0 )
@@ -2683,6 +2693,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
                 else
                     Abc_Print( 1, "Networks are UNDECIDED.  " );
                 Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+                if ( pGia != pAbc->pGia ) Gia_ManStop( pGia );
                 Vec_PtrFree( vDefines );
                 Vec_PtrFree( vBoxes );
                 Vec_PtrFree( vInsts );
@@ -2691,12 +2702,13 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
                 return 0;
             }
             // handle the case when the output is disproved by an all-0 primary input pattern
-            ABC_FREE( pAbc->pGia->pCexComb );
-            Gia_ManSetPhase( pAbc->pGia );
-            Gia_ManForEachCo( pAbc->pGia, pObj, i )
+            ABC_FREE( pGia->pCexComb );
+            Gia_ManSetPhase( pGia );
+            Gia_ManForEachCo( pGia, pObj, i )
                 if ( pObj->fPhase )
                 {
-                    pAbc->pGia->pCexComb = Abc_CexAlloc( 0, Gia_ManCiNum(pAbc->pGia), 1 );
+                    pGia->pCexComb = Abc_CexAlloc( 0, Gia_ManCiNum(pGia), 1 );
+                    pGia->pCexComb->iPo = i;
                     if ( !pPars->fSilent )
                     {
                         Abc_Print( 1, "Networks are NOT EQUIVALENT. Output %d trivially differs (different phase).  ", i );
@@ -2705,15 +2717,18 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
                     pAbc->Status = 0;// satisfiable
                     break;
                 }
-            if ( pAbc->pGia->pCexComb == NULL )
+            if ( pGia->pCexComb == NULL )
             {
-                Gia_Man_t * pTemp = Gia_ManDemiterToDual( pAbc->pGia );
+                Gia_Man_t * pTemp = Gia_ManDemiterToDual( pGia );
+                if ( pTemp == NULL )
+                    pTemp = Gia_ManTransformToDual( pGia );
                 pAbc->Status = Cec_ManVerify( pTemp, pPars );
-                ABC_SWAP( Abc_Cex_t *, pAbc->pGia->pCexComb, pTemp->pCexComb );
+                ABC_SWAP( Abc_Cex_t *, pGia->pCexComb, pTemp->pCexComb );
                 Gia_ManStop( pTemp );
             }
         }
-        Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexComb );
+        Abc_FrameReplaceCex( pAbc, &pGia->pCexComb );
+        if ( pGia != pAbc->pGia ) Gia_ManStop( pGia );
         Vec_PtrFree( vDefines );
         Vec_PtrFree( vBoxes );
         Vec_PtrFree( vInsts );
@@ -2737,7 +2752,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         int n;
         for ( n = 0; n < 2; n++ )
         {
-            pGias[n] = Abc_ReadAigerOrVerilogFile( pFileNames[n], pFileName2, pTopModule, vDefines, vBoxes, vInsts, Abstractions, vDescriptors[n], &Abc_ReadAigerOrVerilogFileStatus );
+            pGias[n] = Abc_ReadAigerOrVerilogFile( pFileNames[n], pFileName2, pTopModule, vDefines, vBoxes, vInsts, Abstractions, vDescriptors[n], 0, &Abc_ReadAigerOrVerilogFileStatus );
             if ( pGias[n] == NULL )
             {
                 if ( n ) Gia_ManStop(pGias[0]);
@@ -2799,7 +2814,10 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( fUseSim && nArgcNew == 1 && !strcmp( Extra_FileNameExtension(FileName), "truth" ) )
         {
             abctime clk = Abc_Clock();
-            int Status = Gia_ManVerifyTruthFile( pGias[0], FileName, pPars->fVerbose );
+            Gia_Man_t * pGia = (Gia_ManXorNum(pGias[0]) || Gia_ManMuxNum(pGias[0])) ? Gia_ManDupExpand(pGias[0]) : pGias[0];
+            int Status = Gia_ManVerifyTruthFile( pGia, FileName, pPars->fVerbose );
+            Abc_FrameReplaceCex( pAbc, &pGia->pCexComb );
+            if ( pGia != pGias[0] ) Gia_ManStop( pGia );
             if ( Status == 1 )
                 Abc_Print( 1, "Network and truth table are equivalent.  " );
             else if ( Status == 0 )
@@ -2815,7 +2833,6 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             pAbc->Status = Status;
-            Abc_FrameReplaceCex( pAbc, &pGias[0]->pCexComb );
             Vec_PtrFree( vDefines );
             Vec_PtrFree( vBoxes );
             Vec_PtrFree( vInsts );
@@ -2823,7 +2840,8 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Vec_IntFree(vDescriptors[1]);
             return 0;
         }
-        pGias[1] = Abc_ReadAigerOrVerilogFile( FileName, pFileName2, pTopModule, vDefines, vBoxes, vInsts, Abstractions, vDescriptors[1], &Abc_ReadAigerOrVerilogFileStatus );
+        pGias[1] = Abc_ReadAigerOrVerilogFile( FileName, pFileName2, pTopModule, vDefines, vBoxes, vInsts, Abstractions, vDescriptors[1],
+            Gia_ManRegNum(pGias[0]) && pGias[0]->vRegInits && Vec_IntSum(pGias[0]->vRegInits), &Abc_ReadAigerOrVerilogFileStatus );
         if ( pGias[1] == NULL )
         {
             Vec_PtrFree( vDefines );
@@ -2873,22 +2891,27 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->pNameSpec = pGias[0] ? (pGias[0]->pSpec ? pGias[0]->pSpec : pGias[0]->pName) : NULL;
     pPars->pNameImpl = pGias[1] ? (pGias[1]->pSpec ? pGias[1]->pSpec : pGias[1]->pName) : NULL;
     pPars->vNamesIn  = pGias[0] ? pGias[0]->vNamesIn : NULL;
-    // compute the miter
-    if ( Gia_ManCiNum(pGias[0]) < 6 )
+    // Expand native gates only in temporary copies used to derive the miter.
     {
-        Gia_Man_t * pGias0 = Gia_ManDup( pGias[0] );
-        Gia_Man_t * pGias1 = Gia_ManDup( pGias[1] );
-        for ( c = Gia_ManCiNum(pGias[0]); c < 6; c++ )
+        Gia_Man_t * pAigs[2] = { pGias[0], pGias[1] };
+        int i;
+        for ( i = 0; i < 2; i++ )
+            if ( Gia_ManXorNum(pAigs[i]) || Gia_ManMuxNum(pAigs[i]) )
+                pAigs[i] = Gia_ManDupExpand( pAigs[i] );
+        if ( Gia_ManCiNum(pGias[0]) < 6 )
         {
-            Gia_ManAppendCi(pGias0);
-            Gia_ManAppendCi(pGias1);
+            for ( i = 0; i < 2; i++ )
+            {
+                if ( pAigs[i] == pGias[i] )
+                    pAigs[i] = Gia_ManDup( pGias[i] );
+                for ( c = Gia_ManCiNum(pGias[i]); c < 6; c++ )
+                    Gia_ManAppendCi( pAigs[i] );
+            }
         }
-        pMiter = Gia_ManMiter( pGias0, pGias1, 0, !fUseNewX && !fUseNewY, 0, 0, pPars->fVerbose );
-        Gia_ManStop( pGias0 );
-        Gia_ManStop( pGias1 );
+        pMiter = Gia_ManMiter( pAigs[0], pAigs[1], 0, !fUseNewX && !fUseNewY, 0, 0, pPars->fVerbose );
+        for ( i = 0; i < 2; i++ )
+            if ( pAigs[i] != pGias[i] ) Gia_ManStop( pAigs[i] );
     }
-    else
-        pMiter = Gia_ManMiter( pGias[0], pGias[1], 0, !fUseNewX && !fUseNewY, 0, 0, pPars->fVerbose );
 
     if ( pMiter )
     {
@@ -2976,7 +2999,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         else
         {
             pAbc->Status = Cec_ManVerify( pMiter, pPars );
-            Abc_FrameReplaceCex( pAbc, &pGias[0]->pCexComb );
+            Abc_FrameReplaceCex( pAbc, &pMiter->pCexComb );
         }
         Gia_ManStop( pMiter );
     }
@@ -2994,6 +3017,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: &cec [-CT num] [-M str] [-D str] [-B str] [-I str] [-A kind] [-F str] [-nmdbasxytvwh]\n" );
     Abc_Print( -2, "\t         new combinational equivalence checker\n" );
+    Abc_Print( -2, "\t         native XORs are expanded to ANDs in the verification copy\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
     Abc_Print( -2, "\t-M str : top module name for HDL inputs [default = inferred]\n" );

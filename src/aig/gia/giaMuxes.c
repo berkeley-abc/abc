@@ -23,6 +23,7 @@
 #include "misc/util/utilTruth.h"
 #include "misc/vec/vecWec.h"
 #include "misc/vec/vecHsh.h"
+#include "misc/tim/tim.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -149,7 +150,7 @@ Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p, int Limit )
 
 /**Function*************************************************************
 
-  Synopsis    [Creates AIG with XORs.]
+  Synopsis    [Copy terminal attributes across structural I/O conversions.]
 
   Description []
                
@@ -158,59 +159,131 @@ Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p, int Limit )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManCreateXors( Gia_Man_t * p )
+// Copy interface attributes shared by the two structural I/O conversions.
+// Object-indexed mapping/placement data cannot be copied after changing gates.
+static void Gia_ManDupXorAttrs( Gia_Man_t * pNew, Gia_Man_t * p )
 {
-    Gia_Man_t * pNew; Gia_Obj_t * pObj, * pFan0, * pFan1; 
-    Vec_Int_t * vRefs = Vec_IntStart( Gia_ManObjNum(p) );
-    int i, iLit0, iLit1, nXors = 0, nObjs = 0;
-    Gia_ManForEachObj( p, pObj, i )
-        pObj->fMark0 = 0;
-    Gia_ManForEachAnd( p, pObj, i )
-    {
-        if ( Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
-        {
-            Vec_IntAddToEntry( vRefs, Gia_ObjId(p, Gia_Regular(pFan0)), 1 );
-            Vec_IntAddToEntry( vRefs, Gia_ObjId(p, Gia_Regular(pFan1)), 1 );
-            pObj->fMark0 = 1;
-            nXors++;
-        }
-        else
-        {
-            Vec_IntAddToEntry( vRefs, Gia_ObjFaninId0(pObj, i), 1 );
-            Vec_IntAddToEntry( vRefs, Gia_ObjFaninId1(pObj, i), 1 );
-        }
-    }
-    Gia_ManForEachCo( p, pObj, i )
-        Vec_IntAddToEntry( vRefs, Gia_ObjFaninId0p(p, pObj), 1 );
-    Gia_ManForEachAnd( p, pObj, i )
-        nObjs += Vec_IntEntry(vRefs, i) > 0;
-    pNew = Gia_ManStart( 1 + Gia_ManCiNum(p) + Gia_ManCoNum(p) + nObjs );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew->nConstrs = p->nConstrs;
+    pNew->nAnd2Delay = p->nAnd2Delay;
+    pNew->And2Delay = p->And2Delay;
+    pNew->DefInArrs = p->DefInArrs;
+    pNew->DefOutReqs = p->DefOutReqs;
+    if ( p->vNamesIn )    pNew->vNamesIn = Vec_PtrDupStr( p->vNamesIn );
+    if ( p->vNamesOut )   pNew->vNamesOut = Vec_PtrDupStr( p->vNamesOut );
+    if ( p->vRegInits )   pNew->vRegInits = Vec_IntDup( p->vRegInits );
+    if ( p->vRegClasses ) pNew->vRegClasses = Vec_IntDup( p->vRegClasses );
+    if ( p->vFlopClasses ) pNew->vFlopClasses = Vec_IntDup( p->vFlopClasses );
+    if ( p->vCiArrs )     pNew->vCiArrs = Vec_IntDup( p->vCiArrs );
+    if ( p->vCoReqs )     pNew->vCoReqs = Vec_IntDup( p->vCoReqs );
+    if ( p->vCoArrs )     pNew->vCoArrs = Vec_IntDup( p->vCoArrs );
+    if ( p->vCoAttrs )    pNew->vCoAttrs = Vec_IntDup( p->vCoAttrs );
+    if ( p->vInArrs )     pNew->vInArrs = Vec_FltDup( p->vInArrs );
+    if ( p->vOutReqs )    pNew->vOutReqs = Vec_FltDup( p->vOutReqs );
+    if ( p->pManTime )    pNew->pManTime = Tim_ManDup( (Tim_Man_t *)p->pManTime, 0 );
+    if ( p->pAigExtra )   pNew->pAigExtra = Gia_ManDupWithAttributes( p->pAigExtra );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Recover native XORs from private consecutive AND triples.]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManCreateXors( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj, * pFan0, * pFan1;
+    Vec_Int_t * vRefs = Vec_IntStart( Gia_ManObjNum(p) );
+    Vec_Str_t * vTypes = Vec_StrStart( Gia_ManObjNum(p) );
+    int i, iLit0, iLit1, nXors = 0;
+    assert( !Gia_ManXorNum(p) && !Gia_ManMuxNum(p) );
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( !Gia_ObjIsCi(pObj) )
+            Vec_IntAddToEntry( vRefs, Gia_ObjFaninId0(pObj, i), 1 );
+        if ( Gia_ObjIsAnd(pObj) && !Gia_ObjIsBuf(pObj) )
+            Vec_IntAddToEntry( vRefs, Gia_ObjFaninId1(pObj, i), 1 );
+    }
+    // Only collapse the private, consecutive triples emitted by the writer.
+    // General XOR extraction (including shared products) belongs to &st -m -L 0.
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( i >= 3 && Gia_ObjFaninId0(pObj, i) == i-2 &&
+             Gia_ObjFaninId1(pObj, i) == i-1 &&
+             Vec_IntEntry(vRefs, i-2) == 1 && Vec_IntEntry(vRefs, i-1) == 1 &&
+             !Vec_StrEntry(vTypes, i-2) && !Vec_StrEntry(vTypes, i-1) &&
+             Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) &&
+             Gia_Regular(pFan0) != Gia_Regular(pFan1) )
+        {
+            Vec_StrWriteEntry( vTypes, i, 1 );
+            Vec_StrWriteEntry( vTypes, i-1, 2 );
+            Vec_StrWriteEntry( vTypes, i-2, 2 );
+            nXors++;
+        }
+    pNew = Gia_ManStart( Gia_ManObjNum(p) - 2*nXors );
+    pNew->fGiaSimple = p->fGiaSimple;
+    if ( nXors )
+        pNew->pMuxes = ABC_CALLOC( unsigned, pNew->nObjsAlloc );
+    Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachObj1( p, pObj, i )
     {
+        if ( Vec_StrEntry(vTypes, i) == 2 )
+            continue;
         if ( Gia_ObjIsCi(pObj) )
             pObj->Value = Gia_ManAppendCi( pNew );
         else if ( Gia_ObjIsCo(pObj) )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
         else if ( Gia_ObjIsBuf(pObj) )
             pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
-        else if ( pObj->fMark0 )
+        else if ( Vec_StrEntry(vTypes, i) == 1 )
         {
-            Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1);
-            iLit0 = Abc_LitNotCond( Gia_Regular(pFan0)->Value, Gia_IsComplement(pFan0) );
-            iLit1 = Abc_LitNotCond( Gia_Regular(pFan1)->Value, Gia_IsComplement(pFan1) );
-            pObj->Value = Gia_ManAppendXorReal( pNew, iLit0, iLit1 );
+            Gia_ObjRecognizeExor( pObj, &pFan0, &pFan1 );
+            iLit0 = Gia_ObjLitCopy( p, Gia_ObjToLit(p, pFan0) );
+            iLit1 = Gia_ObjLitCopy( p, Gia_ObjToLit(p, pFan1) );
+            pObj->Value = Abc_LitNotCond( Gia_ManAppendXorReal(pNew, Abc_LitRegular(iLit0), Abc_LitRegular(iLit1)),
+                Abc_LitIsCompl(iLit0) ^ Abc_LitIsCompl(iLit1) );
         }
-        else if ( Vec_IntEntry(vRefs, i) > 0 )
+        else
             pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     }
-    assert( pNew->nObjs == pNew->nObjsAlloc );
-    pNew->pMuxes = ABC_CALLOC( unsigned, pNew->nObjs );
-    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    assert( Gia_ManObjNum(pNew) == Gia_ManObjNum(p) - 2*nXors );
+    Gia_ManDupXorAttrs( pNew, p );
     Vec_IntFree( vRefs );
-    //printf( "Created %d XORs.\n", nXors );
+    Vec_StrFree( vTypes );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Expands native gates for AIGER without structural hashing.]
+
+  Description [Each XOR has three consecutive ANDs with private products,
+  so Gia_ManCreateXors can recover it after reading without strashing.]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupExpand( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew = Gia_ManStart( Gia_ManObjNum(p) + 2*Gia_ManXorNum(p) + 2*Gia_ManMuxNum(p) );
+    Gia_Obj_t * pObj;
+    int i;
+    pNew->fGiaSimple = p->fGiaSimple;
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( Gia_ObjIsBuf(pObj) )
+            pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+        else if ( Gia_ObjIsMux(p, pObj) )
+            pObj->Value = Gia_ManAppendMux( pNew, Gia_ObjFanin2Copy(p, pObj), Gia_ObjFanin1Copy(pObj), Gia_ObjFanin0Copy(pObj) );
+        else if ( Gia_ObjIsXor(pObj) )
+            pObj->Value = Gia_ManAppendXor( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManDupXorAttrs( pNew, p );
     return pNew;
 }
 

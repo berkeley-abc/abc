@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#include "lms.h"
+#include "lmsInt.h"
 #include "aig/gia/gia.h"
 #include <limits.h>
 
@@ -61,7 +61,7 @@ struct Lmt_Man_t_
     int * pOwners;
     unsigned char * pCutArrival; // lower bounds relative to the root's pMinArr
     int nBinds, nBindCap, nBaseCuts, nExtraCap, nFirstCuts;
-    int nCuts, nCap, fFailed, Target, Exact;
+    int nCuts, nCap, fFailed, Target, StopLevel, Exact, fXor;
     int fLazy, Depth, fDenseFallback;
     size_t nVisited, nStates, nHash, nAlternatives;
     int * pHash;
@@ -95,15 +95,6 @@ struct Lmt_Union_t_
 // Candidate storage has no fixed memory cap.
 #define LMS_TARGET_MEMORY_NOTE ((size_t)256*1024*1024)
 
-extern int Abc_RecTargetCost3( word, int, const int *, int *, Lms_CutMatch_t * );
-extern int Abc_RecTargetCollect3( void *, int, int, const int *, word, const Lms_CutMatch_t * );
-extern void Abc_RecTargetRecipe3( int, Vec_Int_t * );
-extern int Abc_RecTargetReady3( void );
-extern void Abc_RecTargetCache3( int );
-extern int Abc_RecTargetNext3( int );
-extern int Abc_RecTargetCount3( int );
-extern int Abc_RecTargetData3( const unsigned char **, const word ** );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -124,6 +115,65 @@ static inline int Lmt_AddDelay( int Arrival, int Delay )
     return Abc_MinInt(Arrival, ABC_INFINITY-Delay) + Delay;
 }
 
+// Unit-XAG depth has separate scratch storage: never populate GIA's
+// standard level cache, whose existing XOR delay model is different.
+/**Function*************************************************************
+
+  Synopsis    [Measure output depth with unit AND and XOR delays.]
+
+***********************************************************************/
+int Lms_XorLevels( Gia_Man_t * pGia, Vec_Int_t * vCoArrs )
+{
+    Vec_Int_t * vLevels = Vec_IntStart(Gia_ManObjNum(pGia));
+    Gia_Obj_t * pObj;
+    int Id, Level, Max = 0;
+    assert(!Gia_ManMuxNum(pGia));
+    if ( vCoArrs ) Vec_IntClear(vCoArrs);
+    Gia_ManForEachObj1(pGia, pObj, Id)
+    {
+        if ( Gia_ObjIsCi(pObj) ) continue;
+        Level = Vec_IntEntry(vLevels, Gia_ObjFaninId0p(pGia, pObj));
+        if ( Gia_ObjIsAnd(pObj) && !Gia_ObjIsBuf(pObj) )
+            Level = Lmt_AddDelay(Abc_MaxInt(Level, Vec_IntEntry(vLevels, Gia_ObjFaninId1p(pGia, pObj))), 1);
+        Vec_IntWriteEntry(vLevels, Id, Level);
+        if ( Gia_ObjIsCo(pObj) )
+        {
+            Max = Abc_MaxInt(Max, Level);
+            if ( vCoArrs ) Vec_IntPush(vCoArrs, Level);
+        }
+    }
+    Vec_IntFree(vLevels);
+    return Max;
+}
+/**Function*************************************************************
+
+  Synopsis    [Measure native unit-gate depth without storing CO arrivals.]
+
+***********************************************************************/
+int Lms_XorLevelNum( Gia_Man_t * pGia )
+{
+    return Lms_XorLevels(pGia, NULL);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Hash a two-input gate in the selected gate representation.]
+
+***********************************************************************/
+static inline int Lmt_HashGate( Gia_Man_t * pGia, int a, int b, int fXor )
+{
+    return fXor ? Gia_ManHashXorReal(pGia, a, b) : Gia_ManHashAnd(pGia, a, b);
+}
+/**Function*************************************************************
+
+  Synopsis    [Retrieve a library recipe in the selected gate representation.]
+
+***********************************************************************/
+static inline void Lmt_Recipe( Lmt_Man_t * p, int Po )
+{
+    if ( p->fXor ) Abc_RecTargetRecipeXor3(Po, p->vPrograms);
+    else Abc_RecTargetRecipe3(Po, p->vPrograms);
+}
 /**Function*************************************************************
 
   Synopsis    [Read an output's effective deadline.]
@@ -213,7 +263,7 @@ static int Lmt_CheckTiming( Lmt_Man_t * p, Gia_Man_t * pGia )
 {
     Gia_Obj_t * pObj;
     int i;
-    if ( !p->pGia->vCiArrs && !p->pGia->vCoReqs )
+    if ( !p->fXor && !p->pGia->vCiArrs && !p->pGia->vCoReqs )
         return Gia_ManLevelNum(pGia) <= p->Target;
     Lmt_TimingLevels(p, pGia);
     Gia_ManForEachCo(pGia, pObj, i)
@@ -237,10 +287,10 @@ static int Lmt_CheckTiming( Lmt_Man_t * p, Gia_Man_t * pGia )
 static int Lmt_BuildMacro( Lmt_Man_t * p, Gia_Man_t * pNew, int Po, int n, int * pLeaves, int Compl )
 {
     int i, Offset, Count, * pCode, * pLabels;
-    if ( Po == -2 )
+    if ( Po == -2 || Po == -3 )
     {
         assert(n == 2);
-        return Abc_LitNotCond(Gia_ManHashAnd(pNew, pLeaves[0], pLeaves[1]), Compl);
+        return Abc_LitNotCond(Lmt_HashGate(pNew, pLeaves[0], pLeaves[1], Po == -3), Compl);
     }
     if ( Po < 0 ) return Abc_LitNotCond(n ? pLeaves[0] : 0, Compl);
     Vec_IntFillExtra(p->vProgramOffsets, Po+1, -1);
@@ -248,7 +298,7 @@ static int Lmt_BuildMacro( Lmt_Man_t * p, Gia_Man_t * pNew, int Po, int n, int *
     if ( Offset < 0 )
     {
         Offset = Vec_IntSize(p->vPrograms);
-        Abc_RecTargetRecipe3(Po, p->vPrograms);
+        Lmt_Recipe(p, Po);
         Vec_IntWriteEntry(p->vProgramOffsets, Po, Offset);
     }
     pCode = Vec_IntArray(p->vPrograms)+Offset;
@@ -257,9 +307,10 @@ static int Lmt_BuildMacro( Lmt_Man_t * p, Gia_Man_t * pNew, int Po, int n, int *
     pLabels = Vec_IntArray(p->vLabels);
     for ( i = 0; i < n; ++i ) pLabels[i] = pLeaves[i];
     for ( i = 0; i < Count; ++i )
-        pLabels[6+i] = Gia_ManHashAnd(pNew,
+        pLabels[6+i] = Lmt_HashGate(pNew,
             Abc_LitNotCond(pLabels[Abc_Lit2Var(pCode[2*i])], Abc_LitIsCompl(pCode[2*i])),
-            Abc_LitNotCond(pLabels[Abc_Lit2Var(pCode[2*i+1])], Abc_LitIsCompl(pCode[2*i+1])));
+            Abc_LitNotCond(pLabels[Abc_Lit2Var(pCode[2*i+1])], Abc_LitIsCompl(pCode[2*i+1])),
+            p->fXor && pCode[2*i] > pCode[2*i+1]);
     return Abc_LitNotCond(pLabels[Abc_Lit2Var(pCode[2*Count])], Abc_LitIsCompl(pCode[2*Count]) ^ Compl);
 }
 
@@ -536,7 +587,9 @@ static inline void Lmt_GetCut( Lmt_Man_t * p, int c, Lmt_Cut_t * pCut )
   Synopsis    [Unpack library areas and pin depths once per optimization.]
 
   Description [PO -2 is a direct AND, PO -1 is a constant or wire, and
-  nonnegative POs denote library structures. Their profiles start at index 2.]
+  nonnegative POs denote library structures. Their profiles start at index 2.
+  Native mode reserves index -1 for a direct XOR (PO -3), keeping the hot
+  profile lookup identical to the AND-only path.]
 
   SideEffects []
 
@@ -548,11 +601,13 @@ static int Lmt_Profiles( Lmt_Man_t * p )
     const unsigned char * pAreas;
     const word * pDelays;
     int i, k, n = Abc_RecTargetData3(&pAreas, &pDelays);
-    p->pProfiles = ABC_CALLOC(Lmt_Profile_t, (size_t)n+2);
+    p->pProfiles = ABC_CALLOC(Lmt_Profile_t, (size_t)n+2+p->fXor);
     if ( !p->pProfiles )
     { Abc_Print(-1, "LMS target: cannot allocate library profiles.\n"); return 0; }
+    p->pProfiles += p->fXor;
     p->pProfiles[0].Area = 1;
     p->pProfiles[0].Depths[0] = p->pProfiles[0].Depths[1] = 1;
+    if ( p->fXor ) p->pProfiles[-1] = p->pProfiles[0];
     for ( i = 0; i < n; ++i )
     {
         p->pProfiles[i+2].Area = pAreas[i];
@@ -1121,6 +1176,7 @@ static Gia_Man_t * Lmt_Build( Lmt_Man_t * p )
     Gia_Obj_t * pObj;
     int Id, k, Leaves[6];
     int * pLits = ABC_CALLOC(int, Gia_ManObjNum(p->pGia));
+    if ( p->fXor ) pNew->pMuxes = ABC_CALLOC(unsigned, pNew->nObjsAlloc);
     Gia_ManHashAlloc(pNew);
     Gia_ManForEachObj1(p->pGia, pObj, Id)
     {
@@ -1130,9 +1186,9 @@ static Gia_Man_t * Lmt_Build( Lmt_Man_t * p )
         else if ( p->pRequired[Id] != ABC_INFINITY )
         {
             if ( p->pSelected[Id] < 0 )
-                pLits[Id] = Gia_ManHashAnd(pNew,
+                pLits[Id] = Lmt_HashGate(pNew,
                     Abc_LitNotCond(pLits[Gia_ObjFaninId0p(p->pGia, pObj)], Gia_ObjFaninC0(pObj)),
-                    Abc_LitNotCond(pLits[Gia_ObjFaninId1p(p->pGia, pObj)], Gia_ObjFaninC1(pObj)));
+                    Abc_LitNotCond(pLits[Gia_ObjFaninId1p(p->pGia, pObj)], Gia_ObjFaninC1(pObj)), Gia_ObjIsXor(pObj));
             else
             {
                 Lmt_Cut_t Cut, * pCut = &Cut;
@@ -1147,10 +1203,6 @@ static Gia_Man_t * Lmt_Build( Lmt_Man_t * p )
     Gia_ManSetRegNum(pNew, Gia_ManRegNum(p->pGia));
     pClean = Gia_ManCleanup(pNew);
     Gia_ManStop(pNew);
-    pClean->pName = Abc_UtilStrsav(p->pGia->pName);
-    pClean->pSpec = Abc_UtilStrsav(p->pGia->pSpec);
-    if ( p->pGia->vNamesIn ) pClean->vNamesIn = Vec_PtrDupStr(p->pGia->vNamesIn);
-    if ( p->pGia->vNamesOut ) pClean->vNamesOut = Vec_PtrDupStr(p->pGia->vNamesOut);
     ABC_FREE(pLits);
     return pClean;
 }
@@ -1437,8 +1489,8 @@ static Gia_Man_t * Lmt_Refine( Lmt_Man_t * p, Gia_Man_t * pBest, int fVerbose )
     { Gia_ManStop(pBest); pBest = pTrial; }
     else
     { Gia_ManStop(pTrial); memcpy(p->pSelected, pSaved, sizeof(int)*n); Changed = 0; Lmt_Reach(p); }
-    if ( fVerbose ) Abc_Print(1, "LMS target refine: %d changes accepted; %d ANDs, depth %d.\n",
-        Changed, Gia_ManAndNum(pBest), Gia_ManLevelNum(pBest));
+    if ( fVerbose ) Abc_Print(1, "LMS target refine: %d changes accepted; %d %s, depth %d.\n",
+        Changed, Gia_ManAndNum(pBest), p->fXor ? "AND/XOR gates" : "ANDs", Lms_LevelNum(pBest, p->fXor));
     ABC_FREE(pLevels);
     ABC_FREE(pSaved);
     return pBest;
@@ -1523,9 +1575,9 @@ static int Lmt_UnionBuild( Lmt_Union_t * u, int Id, int Choice )
     if ( Gia_ObjIsCo(pObj) )
         return Abc_LitNotCond(u->pLits[Gia_ObjFaninId0p(u->p->pGia, pObj)], Gia_ObjFaninC0(pObj));
     if ( Choice < 0 )
-        return Gia_ManHashAnd(u->pGraph,
+        return Lmt_HashGate(u->pGraph,
             Abc_LitNotCond(u->pLits[Gia_ObjFaninId0p(u->p->pGia, pObj)], Gia_ObjFaninC0(pObj)),
-            Abc_LitNotCond(u->pLits[Gia_ObjFaninId1p(u->p->pGia, pObj)], Gia_ObjFaninC1(pObj)));
+            Abc_LitNotCond(u->pLits[Gia_ObjFaninId1p(u->p->pGia, pObj)], Gia_ObjFaninC1(pObj)), Gia_ObjIsXor(pObj));
     Lmt_GetCut(u->p, Choice, &Cut);
     for ( k = 0; k < Cut.nLeaves; ++k )
         Leaves[k] = Abc_LitNotCond(u->pLits[Abc_Lit2Var(Cut.Leaves[k])], Abc_LitIsCompl(Cut.Leaves[k]));
@@ -1631,6 +1683,7 @@ static void Lmt_UnionSeed( Lmt_Union_t * u )
     int Id;
     if ( u->pGraph ) { Gia_ManStop(u->pGraph); ++u->nRebases; }
     u->pGraph = Gia_ManStart(Gia_ManObjNum(u->p->pGia));
+    if ( u->p->fXor ) u->pGraph->pMuxes = ABC_CALLOC(unsigned, u->pGraph->nObjsAlloc);
     Gia_ManHashAlloc(u->pGraph);
     Vec_IntClear(u->vRefs);
     Vec_IntClear(u->vLevels);
@@ -1950,6 +2003,31 @@ static int Lmt_VirtAnd( Lmt_Union_t * u, int a, int b )
 
 /**Function*************************************************************
 
+  Synopsis    [Probe a native XOR without changing the real graph.]
+
+***********************************************************************/
+static int Lmt_VirtXor( Lmt_Union_t * u, int a, int b )
+{
+    int i, r, Compl, Base = Gia_ManObjNum(u->pGraph);
+    if ( a < 2 ) return Abc_LitNotCond(b, a);
+    if ( b < 2 ) return Abc_LitNotCond(a, b);
+    if ( a == b ) return 0;
+    if ( a == Abc_LitNot(b) ) return 1;
+    Compl = Abc_LitIsCompl(a) ^ Abc_LitIsCompl(b);
+    a = Abc_LitRegular(a); b = Abc_LitRegular(b);
+    if ( a < b ) ABC_SWAP(int, a, b);
+    if ( Abc_Lit2Var(a) < Base && (r = Gia_ManHashXorTry(u->pGraph, a, b)) >= 0 )
+        return Abc_LitNotCond(r, Compl);
+    // Descending XOR pairs cannot alias the ascending AND pairs.
+    for ( i = 0; i < Vec_IntSize(u->vVirt); i += 2 )
+        if ( Vec_IntEntry(u->vVirt, i) == a && Vec_IntEntry(u->vVirt, i+1) == b )
+            return Abc_Var2Lit(Base + i/2, Compl);
+    Vec_IntPushTwo(u->vVirt, a, b);
+    return Abc_Var2Lit(Base + Vec_IntSize(u->vVirt)/2 - 1, Compl);
+}
+
+/**Function*************************************************************
+
   Synopsis    [Count the live ANDs that binding a candidate would add.]
 
   Description [Exact in the current reference state, without inserting
@@ -1976,6 +2054,7 @@ static int Lmt_UnionProbe( Lmt_Union_t * u, int Choice, int Limit )
         Leaves[k] = Abc_LitNotCond(u->pLits[Abc_Lit2Var(pCut->Leaves[k])], Abc_LitIsCompl(pCut->Leaves[k]));
     Vec_IntClear(u->vVirt);
     if ( Po == -2 ) Out = Lmt_VirtAnd(u, Leaves[0], Leaves[1]);
+    else if ( Po == -3 ) Out = Lmt_VirtXor(u, Leaves[0], Leaves[1]);
     else if ( Po < 0 ) Out = n ? Leaves[0] : 0;
     else
     {
@@ -1984,7 +2063,7 @@ static int Lmt_UnionProbe( Lmt_Union_t * u, int Choice, int Limit )
         if ( Offset < 0 )
         {
             Offset = Vec_IntSize(p->vPrograms);
-            Abc_RecTargetRecipe3(Po, p->vPrograms);
+            Lmt_Recipe(p, Po);
             Vec_IntWriteEntry(p->vProgramOffsets, Po, Offset);
         }
         pCode = Vec_IntArray(p->vPrograms)+Offset;
@@ -1993,9 +2072,11 @@ static int Lmt_UnionProbe( Lmt_Union_t * u, int Choice, int Limit )
         pLabels = Vec_IntArray(p->vLabels);
         for ( i = 0; i < n; ++i ) pLabels[i] = Leaves[i];
         for ( i = 0; i < Count; ++i )
-            pLabels[6+i] = Lmt_VirtAnd(u,
-                Abc_LitNotCond(pLabels[Abc_Lit2Var(pCode[2*i])], Abc_LitIsCompl(pCode[2*i])),
-                Abc_LitNotCond(pLabels[Abc_Lit2Var(pCode[2*i+1])], Abc_LitIsCompl(pCode[2*i+1])));
+        {
+            int a = Abc_LitNotCond(pLabels[Abc_Lit2Var(pCode[2*i])], Abc_LitIsCompl(pCode[2*i]));
+            int b = Abc_LitNotCond(pLabels[Abc_Lit2Var(pCode[2*i+1])], Abc_LitIsCompl(pCode[2*i+1]));
+            pLabels[6+i] = p->fXor && pCode[2*i] > pCode[2*i+1] ? Lmt_VirtXor(u, a, b) : Lmt_VirtAnd(u, a, b);
+        }
         Out = pLabels[Abc_Lit2Var(pCode[2*Count])];
     }
     Vec_IntFill(u->vVirtMark, Vec_IntSize(u->vVirt)/2, 0);
@@ -2359,10 +2440,6 @@ static Gia_Man_t * Lmt_UnionRecover( Lmt_Man_t * p, Gia_Man_t * pBest, int fVerb
     assert(Gia_ManAndNum(pClean) == u->Area);
     if ( Gia_ManAndNum(pClean) <= Before && Lmt_CheckTiming(p, pClean) )
     {
-        pClean->pName = Abc_UtilStrsav(p->pGia->pName);
-        pClean->pSpec = Abc_UtilStrsav(p->pGia->pSpec);
-        if ( p->pGia->vNamesIn ) pClean->vNamesIn = Vec_PtrDupStr(p->pGia->vNamesIn);
-        if ( p->pGia->vNamesOut ) pClean->vNamesOut = Vec_PtrDupStr(p->pGia->vNamesOut);
         Gia_ManStop(pBest); pBest = pClean;
     }
     else
@@ -2370,8 +2447,8 @@ static Gia_Man_t * Lmt_UnionRecover( Lmt_Man_t * p, Gia_Man_t * pBest, int fVerb
         Abc_Print(-1, "LMS target: union recovery failed validation; keeping its input.\n");
         Gia_ManStop(pClean); memcpy(p->pSelected, pSavedChoices, sizeof(int)*n); Lmt_Reach(p);
     }
-    if ( fVerbose ) Abc_Print(1, "LMS target union: %d -> %d ANDs; %d changes; %.0f bindings, %.0f exact trials, %.0f affected nodes; %d rebases; %.3f s.\n",
-        Before, Gia_ManAndNum(pBest), u->nChanges, u->nCandidates, u->nTrials, u->nTouched, u->nRebases,
+    if ( fVerbose ) Abc_Print(1, "LMS target union: %d -> %d %s; %d changes; %.0f bindings, %.0f exact trials, %.0f affected nodes; %d rebases; %.3f s.\n",
+        Before, Gia_ManAndNum(pBest), p->fXor ? "AND/XOR gates" : "ANDs", u->nChanges, u->nCandidates, u->nTrials, u->nTouched, u->nRebases,
         (double)(Abc_Clock()-Start)/CLOCKS_PER_SEC);
     if ( fVerbose && p->Exact ) Abc_Print(1, "LMS target union filters: %.0f predicted-late candidates and %.0f nonnegative probes skipped (heuristic shortlist).\n",
         u->nLate, u->nNonnegative);
@@ -2423,7 +2500,7 @@ static int Lmt_CollectCut( void * pData, int Root, int n, const int * pLeaves, w
 ***********************************************************************/
 static void Lmt_ChoiceGates( Lmt_Man_t * p )
 {
-    static const int AndPo = -2;
+    static const int AndPo = -2, XorPo = -3;
     Gia_Obj_t * pObj, * pMember;
     int Id, Member, Leaves[2];
     Gia_ManForEachAnd(p->pGia, pObj, Id)
@@ -2434,7 +2511,7 @@ static void Lmt_ChoiceGates( Lmt_Man_t * p )
             pMember = Gia_ManObj(p->pGia, Member);
             Leaves[0] = Gia_ObjFaninLit0p(p->pGia, pMember);
             Leaves[1] = Gia_ObjFaninLit1p(p->pGia, pMember);
-            Lms_TargetCut(p, Id, 2, Leaves, Gia_ObjPhase(pObj) ^ Gia_ObjPhase(pMember), &AndPo, 1);
+            Lms_TargetCut(p, Id, 2, Leaves, Gia_ObjPhase(pObj) ^ Gia_ObjPhase(pMember), Gia_ObjIsXor(pMember) ? &XorPo : &AndPo, 1);
             if ( p->fFailed ) return;
         }
     }
@@ -2468,15 +2545,16 @@ static Gia_Man_t * Lmt_ChoiceBaseline( Gia_Man_t * pGia )
         pUsed[Gia_ObjFaninId1p(pGia, pObj)] = 1;
     }
     pNew = Gia_ManStart(Gia_ManObjNum(pGia));
-    pNew->pName = Abc_UtilStrsav(pGia->pName);
-    pNew->pSpec = Abc_UtilStrsav(pGia->pSpec);
     pNew->fGiaSimple = pGia->fGiaSimple;
+    if ( pGia->pMuxes || Gia_ManXorNum(pGia) ) pNew->pMuxes = ABC_CALLOC(unsigned, pNew->nObjsAlloc);
     Gia_ManConst0(pGia)->Value = 0;
     Gia_ManForEachObj1(pGia, pObj, Id)
     {
         if ( Gia_ObjIsCi(pObj) ) pObj->Value = Gia_ManAppendCi(pNew);
         else if ( Gia_ObjIsCo(pObj) ) Gia_ManAppendCo(pNew, Gia_ObjFanin0Copy(pObj));
-        else if ( pUsed[Id] ) pObj->Value = Gia_ManAppendAnd(pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj));
+        else if ( pUsed[Id] ) pObj->Value = Gia_ObjIsXor(pObj)
+            ? Gia_ManAppendXorReal(pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj))
+            : Gia_ManAppendAnd(pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj));
     }
     ABC_FREE(pUsed);
     return pNew;
@@ -2538,6 +2616,7 @@ static int Lmt_SetupTiming( Lmt_Man_t * p, int Target, int fVerbose )
             Target = Abc_MaxInt(Target, p->pMinArr[Gia_ObjFaninId0p(p->pGia, pObj)]);
         if ( Target >= ABC_INFINITY )
         { Abc_Print(-1, "LMS target: earliest output arrival exceeds the finite timing range.\n"); return 0; }
+        Target = Abc_MaxInt(Target, p->StopLevel);
         if ( fVerbose ) Abc_Print(1, "LMS target: automatic %s %d from the cut bank.\n", p->pGia->vCiArrs ? "arrival" : "depth", Target);
     }
     p->pCoRequired = ABC_ALLOC(int, Gia_ManCoNum(p->pGia)+1);
@@ -2670,8 +2749,8 @@ static int Lmt_AdaptiveCuts( Lmt_Man_t * p, int Cuts, int CriticalCuts,
     }
     nInternal = Lmt_ExpandCriticalCuts(p, pLimits, CriticalCuts);
     if ( fVerbose )
-        Abc_Print(1, "LMS adaptive cuts: %d critical roots and %d internal ANDs / %d at budget %d; other nodes at %d.\n",
-            nCritical, nInternal, Gia_ManAndNum(p->pGia), CriticalCuts, Cuts);
+        Abc_Print(1, "LMS adaptive cuts: %d critical roots and %d internal %s / %d at budget %d; other nodes at %d.\n",
+            nCritical, nInternal, p->fXor ? "gates" : "ANDs", Gia_ManAndNum(p->pGia), CriticalCuts, Cuts);
     if ( nCritical )
     {
         CutStart = Abc_Clock();
@@ -2736,7 +2815,7 @@ cleanup:
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Lms_TargetPerformAdaptive( Gia_Man_t * pGia, int Target, int Cuts, int Rounds, int Exact, int DpMode, int Memory, int CriticalCuts, int fVerbose )
+static Gia_Man_t * Lmt_PerformAdaptive( Gia_Man_t * pGia, int Target, int Cuts, int Rounds, int Exact, int DpMode, int Memory, int CriticalCuts, int fXor, int fVerbose, int StopLevel )
 {
     Lmt_Man_t Man, * p = &Man;
     Gia_Man_t * pBest = NULL, * pNew, * pBaseline = NULL;
@@ -2750,27 +2829,52 @@ Gia_Man_t * Lms_TargetPerformAdaptive( Gia_Man_t * pGia, int Target, int Cuts, i
     memset(p, 0, sizeof(*p));
     p->pGia = pGia;
     p->Target = Target;
+    p->StopLevel = StopLevel;
     p->Exact = Exact;
-    if ( !Abc_RecTargetReady3() || pGia->pManTime
-        || pGia->pMuxes || Gia_ManXorNum(pGia) || Gia_ManBufNum(pGia) || Gia_ManRegNum(pGia) || Gia_ManConstrNum(pGia) )
+    p->fXor = fXor;
+    if ( !(fXor ? Abc_RecTargetXorReady3() : Abc_RecTargetReady3()) || pGia->pManTime
+        || (fXor ? Gia_ManMuxNum(pGia) : pGia->pMuxes != NULL || Gia_ManXorNum(pGia))
+        || Gia_ManBufNum(pGia) || Gia_ManRegNum(pGia) || Gia_ManConstrNum(pGia) )
     {
-        Abc_Print(-1, "LMS target: requires a combinational AIG and a six-input AND-cost structure library (no boxes or buffers).\n");
+        Abc_Print(-1, "LMS target: requires a combinational %s and a six-input %s-cost structure library (no boxes or buffers).\n",
+            fXor ? "AND/XOR graph" : "AIG", fXor ? "AND/XOR" : "AND");
         return NULL;
     }
     if ( !Lmt_TimingValid(pGia, Target) ) return NULL;
+    if ( StopLevel >= 0 )
+    {
+        int Met = 1;
+        Lmt_TimingLevels(p, pGia);
+        Gia_ManForEachCo(pGia, pObj, Id)
+        {
+            int Arrival = Vec_IntEntry(p->vTiming, Gia_ObjId(pGia, pObj));
+            if ( Arrival > StopLevel || (Target >= 0 && Arrival > Target)
+                || (pGia->vCoReqs && Arrival > Vec_IntEntry(pGia->vCoReqs, Id)) ) Met = 0;
+        }
+        if ( Met )
+        {
+            pBest = Gia_ManDup(pGia);
+            if ( pGia->vCiArrs ) pBest->vCiArrs = Vec_IntDup(pGia->vCiArrs);
+            if ( pGia->vCoReqs ) pBest->vCoReqs = Vec_IntDup(pGia->vCoReqs);
+            pBest->vCoArrs = Lmt_CoArrivals(p, pBest);
+            if ( fVerbose ) Abc_Print(1, "LMS: stopping bound %d already reached.\n", StopLevel);
+            Vec_IntFreeP(&p->vTiming);
+            return pBest;
+        }
+    }
     if ( CriticalCuts < 0 || CriticalCuts > 128 )
-    { Abc_Print(-1, "LMS target: critical cut budget must be in [0, 128].\n"); return NULL; }
+    { Abc_Print(-1, "LMS target: critical cut budget must be in [0, 128].\n"); Vec_IntFreeP(&p->vTiming); return NULL; }
     if ( Gia_ManHasChoices(pGia) )
     {
         // Cut imports and direct member gates use the same relative phase.
         Gia_ManSetPhase(pGia);
         pBaseline = Lmt_ChoiceBaseline(pGia);
         if ( !pBaseline )
-        { Abc_Print(-1, "LMS target: cannot allocate the choice-free baseline.\n"); return NULL; }
+        { Abc_Print(-1, "LMS target: cannot allocate the choice-free baseline.\n"); Vec_IntFreeP(&p->vTiming); return NULL; }
         OriginalCount = Gia_ManAndNum(pBaseline);
-        if ( fVerbose ) Abc_Print(1, "LMS target choices: %d stored ANDs, %d in the output-reachable baseline.\n", Gia_ManAndNum(pGia), OriginalCount);
+        if ( fVerbose ) Abc_Print(1, "LMS target choices: %d stored %s, %d in the output-reachable baseline.\n", Gia_ManAndNum(pGia), fXor ? "gates" : "ANDs", OriginalCount);
     }
-    OriginalLevel = Gia_ManLevelNum(pBaseline ? pBaseline : pGia);
+    OriginalLevel = Lms_LevelNum(pBaseline ? pBaseline : pGia, p->fXor);
     p->vPrograms = Vec_IntAlloc(1000);
     p->vProgramOffsets = Vec_IntAlloc(1000);
     p->vLabels = Vec_IntAlloc(100);
@@ -2860,8 +2964,8 @@ Gia_Man_t * Lms_TargetPerformAdaptive( Gia_Man_t * pGia, int Target, int Cuts, i
         { Abc_Print(-1, "LMS target: target %d%s not reached by retained cuts; input unchanged.\n", Target, pGia->vCoReqs ? " / output requirements" : ""); break; }
         pNew = Lmt_Build(p);
         if ( fVerbose )
-            Abc_Print(1, "LMS target round %d: %d replacements, %d ANDs, depth %d.\n",
-                r+1, Count, Gia_ManAndNum(pNew), Gia_ManLevelNum(pNew));
+            Abc_Print(1, "LMS target round %d: %d replacements, %d %s, depth %d.\n",
+                r+1, Count, Gia_ManAndNum(pNew), fXor ? "AND/XOR gates" : "ANDs", Lms_LevelNum(pNew, p->fXor));
         if ( Lmt_CheckTiming(p, pNew) && (!pBest || Gia_ManAndNum(pNew) < Gia_ManAndNum(pBest)) )
         {
             if ( pBest ) Gia_ManStop(pBest);
@@ -2888,7 +2992,7 @@ Gia_Man_t * Lms_TargetPerformAdaptive( Gia_Man_t * pGia, int Target, int Cuts, i
             pBaseline = NULL;
             BestCount = 0;
         }
-        if ( pGia->vCiArrs || pGia->vCoReqs )
+        if ( fXor || pGia->vCiArrs || pGia->vCoReqs )
         {
             Vec_Int_t * vBefore = Lmt_CoArrivals(p, pBaseline ? pBaseline : pGia);
             Vec_IntFreeP(&pBest->vCiArrs);
@@ -2905,8 +3009,8 @@ Gia_Man_t * Lms_TargetPerformAdaptive( Gia_Man_t * pGia, int Target, int Cuts, i
         if ( fVerbose ) Abc_Print(1, "LMS target bank: %d unique candidates, %u duplicates removed; candidate tables %.2f MiB, deadline table %.2f MiB.\n",
             p->nBaseCuts, p->nDuplicates, Lmt_BankBytes(p)/(1024*1024),
             (double)Slots*(sizeof(float)+sizeof(int))/(1024*1024));
-        Abc_Print(1, "LMS target: %d -> %d ANDs; depth %d -> %d (target %d); %d replacements; %d candidates. Cuts %.3f s; total %.3f s.\n",
-            OriginalCount, Gia_ManAndNum(pBest), OriginalLevel, Gia_ManLevelNum(pBest), Target,
+        Abc_Print(1, "LMS target: %d -> %d %s; depth %d -> %d (target %d); %d replacements; %d candidates. Cuts %.3f s; total %.3f s.\n",
+            OriginalCount, Gia_ManAndNum(pBest), fXor ? "AND/XOR gates" : "ANDs", OriginalLevel, Lms_LevelNum(pBest, p->fXor), Target,
             BestCount, p->nBaseCuts, (double)(CutTime-Start)/CLOCKS_PER_SEC, (double)(Abc_Clock()-Start)/CLOCKS_PER_SEC);
     }
 cleanup:
@@ -2918,6 +3022,7 @@ cleanup:
     ABC_FREE(pBestSelected);
     ABC_FREE(pBestRequired);
     ABC_FREE(p->pBinds); ABC_FREE(p->pOwners);
+    if ( p->pProfiles ) p->pProfiles -= p->fXor;
     ABC_FREE(p->pProfiles); ABC_FREE(p->pExtras);
     ABC_FREE(p->pHash);
     ABC_FREE(p->pHeads);
@@ -2931,6 +3036,70 @@ cleanup:
     ABC_FREE(p->pWeights);
     Lmt_FreePrepare(p);
     return pBest;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prepare one combinational view and preserve caller metadata.]
+
+  Description [AND inputs need a private view only when exposing flops.
+  Native mode derives or duplicates a XAG and borrows the native library.
+  Target is a hard deadline; StopLevel is the independent stopping bound.]
+
+***********************************************************************/
+Gia_Man_t * Lms_TargetPerformEx( Gia_Man_t * pGia, int Target, int StopLevel, int Cuts,
+    int Rounds, int Exact, int DpMode, int Memory, int CriticalCuts, int fXor, int fVerbose )
+{
+    Gia_Man_t * pWork = pGia, * pResult;
+    void * pSaved = NULL;
+    if ( !pGia || StopLevel < -1 || StopLevel >= ABC_INFINITY ) return NULL;
+    if ( !fXor && Gia_ManXorNum(pGia) )
+    { Abc_Print(-1, "LMS target: native XOR gates require &lms -x.\n"); return NULL; }
+    if ( fXor )
+    {
+        if ( pGia->pManTime || Gia_ManMuxNum(pGia) || Gia_ManBufNum(pGia) || Gia_ManConstrNum(pGia) )
+        { Abc_Print(-1, "LMS XOR: requires an AND/XOR graph without boxes, MUXes, buffers or constraints.\n"); return NULL; }
+        if ( !Lmt_TimingValid(pGia, Target) ) return NULL;
+        pWork = pGia->pMuxes || Gia_ManXorNum(pGia) ? Gia_ManDup(pGia) : Gia_ManDupMuxes(pGia, 0);
+    }
+    else if ( Gia_ManRegNum(pGia) && !pGia->pManTime && !pGia->pMuxes && !Gia_ManBufNum(pGia) )
+        pWork = Gia_ManDup(pGia);
+    if ( pWork != pGia )
+    {
+        // Flop outputs and inputs are independent combinational terminals.
+        pWork->nRegs = 0;
+        Abc_CexFreeP(&pWork->pCexSeq);
+        if ( pGia->vCiArrs ) pWork->vCiArrs = Vec_IntDup(pGia->vCiArrs);
+        if ( pGia->vCoReqs ) pWork->vCoReqs = Vec_IntDup(pGia->vCoReqs);
+        pWork->nConstrs = pGia->nConstrs;
+        if ( fVerbose && Gia_ManRegNum(pGia) )
+            Abc_Print(1, "LMS %s: exposing %d flop outputs/inputs as primary terminals.\n",
+                fXor ? "XOR" : "target", Gia_ManRegNum(pGia));
+    }
+    if ( fXor && !Abc_RecTargetXorStart3(&pSaved, fVerbose) )
+    { Gia_ManStop(pWork); return NULL; }
+    pResult = Lmt_PerformAdaptive(pWork, Target, Cuts, Rounds, Exact, DpMode, Memory, CriticalCuts, fXor, fVerbose, StopLevel);
+    if ( fXor ) Abc_RecTargetXorStop3(pSaved);
+    if ( pResult )
+    {
+        if ( !pResult->pName ) pResult->pName = Abc_UtilStrsav(pGia->pName);
+        if ( !pResult->pSpec ) pResult->pSpec = Abc_UtilStrsav(pGia->pSpec);
+        if ( !pResult->vNamesIn && pGia->vNamesIn ) pResult->vNamesIn = Vec_PtrDupStr(pGia->vNamesIn);
+        if ( !pResult->vNamesOut && pGia->vNamesOut ) pResult->vNamesOut = Vec_PtrDupStr(pGia->vNamesOut);
+    }
+    if ( pWork != pGia ) Gia_ManStop(pWork);
+    return pResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Optimize an AIG under a hard deadline with adaptive cuts.]
+
+***********************************************************************/
+Gia_Man_t * Lms_TargetPerformAdaptive( Gia_Man_t * pGia, int Target, int Cuts,
+    int Rounds, int Exact, int DpMode, int Memory, int CriticalCuts, int fVerbose )
+{
+    return Lms_TargetPerformEx(pGia, Target, -1, Cuts, Rounds, Exact, DpMode, Memory, CriticalCuts, 0, fVerbose);
 }
 
 /**Function*************************************************************

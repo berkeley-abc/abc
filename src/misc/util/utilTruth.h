@@ -3565,6 +3565,7 @@ static inline int Abc_TtVerifyBiDec( word * pTruth, int nVars, int This, int Tha
     int nThat = Abc_TtBitCount16(That);
     int i, k, nWords = Abc_TtWordNum(nVars);
     word pThis[64] = {wThis}, pThat[64] = {wThat};
+    (void)nSuppLim;
     assert( nVars <= 12 );
     for ( i = 0; i < nVars; i++ )
         pVarsAll[i] = i;

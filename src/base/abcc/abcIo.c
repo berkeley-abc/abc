@@ -476,7 +476,6 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Abc3_ReadShowHie( char * pFileName, int fFlat );
     extern Gia_Man_t * Gia_MiniAigSuperDerive( char * pFileName, int fVerbose );
     extern Gia_Man_t * Gia_FileSimpleRead( char * pFileName, int fNames, char * pFileW );
-    extern Gia_Man_t * Gia_ManCreateXors( Gia_Man_t * p );
     Gia_Man_t * pAig = NULL;
     FILE * pFile;
     char ** pArgvNew;
@@ -559,16 +558,18 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Abc3_ReadShowHie( FileName, fSkipStrash );
     else
     {
-        pAig = Gia_AigerRead( FileName, fGiaSimple, fSkipStrash, 0 );
-        if ( fDetectXors )
+        // Strashing can merge the private products of serialized XORs.
+        pAig = Gia_AigerRead( FileName, fGiaSimple, fSkipStrash || fDetectXors, 0 );
+        if ( pAig && fDetectXors )
         {
             Gia_Man_t * pTemp;
             pAig = Gia_ManCreateXors( pTemp = pAig );
             Gia_ManStop( pTemp );
         }
     }
-    if ( pAig )
-        Abc_FrameUpdateGia( pAbc, pAig );
+    if ( pAig == NULL )
+        return 1;
+    Abc_FrameUpdateGia( pAbc, pAig );
     return 0;
 
 usage:
@@ -576,7 +577,8 @@ usage:
     Abc_Print( -2, "\t         reads the current AIG from the AIGER file\n" );
     Abc_Print( -2, "\t-c     : toggles reading simple AIG [default = %s]\n", fGiaSimple? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggles structural hashing while reading [default = %s]\n", !fSkipStrash? "yes": "no" );
-    Abc_Print( -2, "\t-x     : toggles detecting XORs while reading [default = %s]\n", fDetectXors? "yes": "no" );
+    Abc_Print( -2, "\t-x     : recover native XORs from consecutive private AND triples (skip strashing) [default = %s]\n", fDetectXors? "yes": "no" );
+    Abc_Print( -2, "\t         for general XOR extraction, use &st -m -L 0 after reading\n" );
     Abc_Print( -2, "\t-m     : toggles reading MiniAIG rather than AIGER file [default = %s]\n", fMiniAig? "yes": "no" );
     Abc_Print( -2, "\t-n     : toggles reading MiniAIG as a set of supergates [default = %s]\n", fMiniAig2? "yes": "no" );
     Abc_Print( -2, "\t-l     : toggles reading MiniLUT rather than AIGER file [default = %s]\n", fMiniLut? "yes": "no" );
@@ -1833,9 +1835,13 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     pFileName = argv[globalUtilOptind];
     if ( fUnique )
     {
-        Gia_Man_t * pGia = Gia_ManIsoCanonicize( pAbc->pGia, fVerbose );
+        Gia_Man_t * pInput = pAbc->pGia, * pGia;
+        if ( Gia_ManXorNum(pInput) || Gia_ManMuxNum(pInput) )
+            pInput = Gia_ManDupExpand(pInput);
+        pGia = Gia_ManIsoCanonicize( pInput, fVerbose );
         Gia_AigerWriteSimple( pGia, pFileName );
         Gia_ManStop( pGia );
+        if ( pInput != pAbc->pGia ) Gia_ManStop(pInput);
     }
     else if ( fVerNand )
         Gia_ManDumpVerilogNand( pAbc->pGia, pFileName );
@@ -1852,6 +1858,7 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: &w [-upqicabmlnsvh] <file>\n" );
     Abc_Print( -2, "\t         writes the current AIG into the AIGER file\n" );
+    Abc_Print( -2, "\t         native XORs are expanded into private, consecutive three-AND patterns\n" );
     Abc_Print( -2, "\t-u     : toggle writing canonical AIG structure [default = %s]\n", fUnique? "yes" : "no" );
     Abc_Print( -2, "\t-p     : toggle writing Verilog with 'and' and 'not' [default = %s]\n", fVerilog? "yes" : "no" );
     Abc_Print( -2, "\t-q     : toggle writing Verilog with NAND-gates [default = %s]\n", fVerNand? "yes" : "no" );

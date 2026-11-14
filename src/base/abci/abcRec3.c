@@ -26,8 +26,7 @@
 #include "opt/dau/dau.h"
 #include "misc/util/utilTruth.h"
 #include "base/main/main.h"
-#include "bool/lms/lms.h"
-#include "bool/lms/lmsXor.h"
+#include "bool/lms/lmsInt.h"
 #include <limits.h>
 
 ABC_NAMESPACE_IMPL_START
@@ -74,6 +73,7 @@ struct Lms_Man_t_
     int               fLibConstr;   // this manager is used for library construction
     // internal data for library construction
     Gia_Man_t *       pGia;         // the record
+    Gia_Man_t *       pGiaNative;   // private native-XOR target library only
     Vec_Mem_t *       vTtMem;       // truth table memory and hash table
 //    Vec_Mem_t *       vTtMem2;      // truth table memory and hash table
     Vec_Int_t *       vTruthIds;    // truth table IDs of each PO
@@ -123,6 +123,9 @@ struct Lms_Man_t_
 };
 
 static ABC_THREAD_LOCAL Lms_Man_t * s_pMan3Standalone = NULL;
+static ABC_THREAD_LOCAL Lms_Man_t * s_pMan3XorCache = NULL;
+static ABC_THREAD_LOCAL Lms_Man_t * s_pMan3XorSource = NULL;
+static ABC_THREAD_LOCAL Abc_Frame_t * s_pMan3XorFrame = NULL;
 
 static Lms_Man_t * Lms_ManCurrent()
 {
@@ -459,6 +462,7 @@ void Lms_ManStop( Lms_Man_t * p )
     Vec_MemFree( p->vTtMem );
 //    Vec_MemFree( p->vTtMem2 );
     Gia_ManStopP( &p->pGia );
+    Gia_ManStopP( &p->pGiaNative );
     ABC_FREE( p );
 }
 void Lms_ManPrepare( Lms_Man_t * p )
@@ -478,8 +482,8 @@ void Lms_ManPrepare( Lms_Man_t * p )
     assert( p->vDelays == NULL );
     assert( p->vAreas == NULL );
     assert( p->vFreqs == NULL );
-    p->vDelays = Lms_GiaDelaysMode( p->pGia, p->fXorCost );
-    p->vAreas  = p->fXorCost ? Lms_GiaXorAreas(p->pGia) : Lms_GiaAreas( p->pGia );
+    p->vDelays = p->pGiaNative ? Lms_GiaDelaysMode(p->pGiaNative, 0) : Lms_GiaDelaysMode( p->pGia, p->fXorCost );
+    p->vAreas  = p->pGiaNative ? Lms_GiaAreas(p->pGiaNative) : p->fXorCost ? Lms_GiaXorAreas(p->pGia) : Lms_GiaAreas( p->pGia );
     p->vFreqs  = Vec_IntStart( Gia_ManCoNum(p->pGia) );
     if ( p->fDefaultCache )
     {
@@ -543,6 +547,7 @@ int Abc_LmsFilterControl3( int Mode, FILE * pOut )
 }
 static void Lms_ManFilterInvalidate( Lms_Man_t * p )
 {
+    if ( p == s_pMan3XorSource ) Abc_RecTargetXorClear3();
     if ( p->fLateFilter )
         Abc_Print(1, "LMS filtering disabled because the library is being modified.\n");
     if ( p->pEval || p->vDelays ) p->fFilterInvalid = 1;
@@ -1767,6 +1772,20 @@ int Abc_RecTargetData3( const unsigned char ** ppAreas, const word ** ppDelays )
     return Gia_ManCoNum(s_pMan3->pGia);
 }
 
+// Borrow the profile representatives for a previously matched class. The
+// one-level selector uses the same immutable library bank as target LMS.
+/**Function*************************************************************
+
+  Synopsis    [Borrow the cached profile representatives for a truth class.]
+
+***********************************************************************/
+int Abc_RecTargetProfiles3( int Class, const int ** ppPos )
+{
+    Vec_Int_t * vProfiles = Lms_TargetProfiles(s_pMan3, Class);
+    *ppPos = Vec_IntArray(vProfiles);
+    return Vec_IntSize(vProfiles);
+}
+
 /**Function*************************************************************
 
   Synopsis    [Evaluate a cut's library delay and area without mapper objects.]
@@ -1837,7 +1856,182 @@ int Abc_RecTargetCost3( word Truth, int nLeaves, const int * pTimes, int * pArea
 ***********************************************************************/
 int Abc_RecTargetReady3( void )
 {
-    return s_pMan3 && !s_pMan3->fLibConstr && !s_pMan3->fXorCost && s_pMan3->nVars == 6;
+    return s_pMan3 && s_pMan3->pGia && !s_pMan3->fFuncOnly &&
+        !s_pMan3->fLibConstr && !s_pMan3->fXorCost && s_pMan3->nVars == 6;
+}
+/**Function*************************************************************
+
+  Synopsis    [Check that the active library supports native XOR selection.]
+
+***********************************************************************/
+int Abc_RecTargetXorReady3( void )
+{
+    return s_pMan3 && s_pMan3->pGiaNative && s_pMan3->fXorCost &&
+        !s_pMan3->fFuncOnly && !s_pMan3->fLibConstr && s_pMan3->nVars == 6;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Merge AND and XOR banks, grouping outputs by exact truth.]
+
+  Description [Keep identical structures once. Measure native costs after
+  conversion, preserving the truth-class order required by Lms_ManStart.]
+
+***********************************************************************/
+static Gia_Man_t * Lms_GiaMergeTargetBanks( Gia_Man_t * pXor, Gia_Man_t * pAnd )
+{
+    Gia_Man_t * pGia = Gia_ManStart(Gia_ManObjNum(pXor)+Gia_ManObjNum(pAnd)), * pResult;
+    Vec_Mem_t * vTruths = Vec_MemAlloc(1, 12);
+    Vec_Wec_t * vGroups = Vec_WecAlloc(2000);
+    Vec_Int_t * vSeen, * vGroup;
+    Gia_Obj_t * pObj;
+    int i, k, Lit, Class, nCos;
+    assert(Gia_ManCiNum(pXor) == Gia_ManCiNum(pAnd));
+    Gia_ManHashStart(pGia);
+    Gia_ManConst0(pXor)->Value = Gia_ManConst0(pAnd)->Value = 0;
+    Gia_ManForEachCi(pXor, pObj, i)
+        pObj->Value = Gia_ManCi(pAnd, i)->Value = Gia_ManAppendCi(pGia);
+    Gia_ManForEachAnd(pXor, pObj, i)
+        pObj->Value = Gia_ManHashAnd(pGia, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj));
+    Gia_ManForEachAnd(pAnd, pObj, i)
+        pObj->Value = Gia_ManHashAnd(pGia, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj));
+    Gia_ManForEachCo(pXor, pObj, i)
+        Gia_ManAppendCo(pGia, Gia_ObjFanin0Copy(pObj));
+    Gia_ManForEachCo(pAnd, pObj, i)
+        Gia_ManAppendCo(pGia, Gia_ObjFanin0Copy(pObj));
+    Gia_ManHashStop(pGia);
+    nCos = Gia_ManCoNum(pGia);
+    vSeen = Vec_IntStart(2*Gia_ManObjNum(pGia));
+    Vec_MemHashAlloc(vTruths, 10000);
+    Gia_ManForEachCo(pGia, pObj, i)
+    {
+        Lit = Gia_ObjFaninLit0p(pGia, pObj);
+        if ( Vec_IntEntry(vSeen, Lit) ) continue;
+        Vec_IntWriteEntry(vSeen, Lit, 1);
+        Class = Vec_MemHashInsert(vTruths, Gia_ObjComputeTruthTable(pGia, pObj));
+        Vec_WecPush(vGroups, Class, Lit);
+    }
+    for ( i = 0; i < nCos; ++i ) Gia_ManPatchCoDriver(pGia, i, 0);
+    Vec_WecForEachLevel(vGroups, vGroup, i)
+        Vec_IntForEachEntry(vGroup, Lit, k)
+            Gia_ManAppendCo(pGia, Lit);
+    pResult = Gia_ManCleanupOutputs(pGia, nCos);
+    Gia_ManStop(pGia);
+    Vec_IntFree(vSeen);
+    Vec_WecFree(vGroups);
+    Vec_MemHashFree(vTruths);
+    Vec_MemFree(vTruths);
+    return pResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Release the cached native library of the current thread/frame.]
+
+  Description [Library mutation, frame changes, and ABC shutdown clear it.
+  The caller's active manager must already have been restored.]
+
+***********************************************************************/
+void Abc_RecTargetXorClear3( void )
+{
+    if ( s_pMan3XorCache )
+    {
+        assert(s_pMan3 != s_pMan3XorCache);
+        Lms_ManStop(s_pMan3XorCache);
+        s_pMan3XorCache = NULL;
+    }
+    s_pMan3XorSource = NULL;
+    s_pMan3XorFrame = NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Borrow a native library and save the caller-owned manager.]
+
+  Description [An explicit XOR-cost library takes precedence over built-ins.]
+
+***********************************************************************/
+int Abc_RecTargetXorStart3( void ** ppSaved, int fVerbose )
+{
+    Lms_Man_t * pSaved = s_pMan3, * pSource = pSaved && pSaved->fXorCost ? pSaved : NULL, * p;
+    Gia_Man_t * pGia, * pAnd;
+    int nBytes;
+    char * pData;
+    *ppSaved = NULL;
+    if ( pSaved && pSaved->pGiaNative )
+    { Abc_Print(-1, "LMS XOR: a native optimization is already active.\n"); return 0; }
+    if ( s_pMan3XorCache && (s_pMan3XorSource != pSource || s_pMan3XorFrame != Abc_FrameReadGlobalFrame()) )
+        Abc_RecTargetXorClear3();
+    if ( s_pMan3XorCache )
+    {
+        Lms_ManSetCurrent(s_pMan3XorCache);
+        *ppSaved = pSaved;
+        if ( fVerbose ) Abc_Print(1, "LMS XOR: reusing private %s library, %d structures.\n",
+            pSource ? "user" : "combined built-in AND/XOR", Gia_ManCoNum(s_pMan3XorCache->pGia));
+        return 1;
+    }
+    if ( pSource )
+    {
+        if ( !pSaved->pGia || pSaved->fLibConstr || pSaved->fFuncOnly || pSaved->nVars != 6 )
+        { Abc_Print(-1, "LMS XOR: requires a six-input structure library.\n"); return 0; }
+        pGia = Gia_ManDup(pSaved->pGia);
+    }
+    else
+    {
+        pData = Lms_BuiltinDecodeXor(&nBytes);
+        if ( !pData )
+        { Abc_Print(-1, "LMS XOR: cannot decode the built-in XOR library.\n"); return 0; }
+        pGia = Gia_AigerReadFromMemory(pData, nBytes, 0, 1, 0);
+        ABC_FREE(pData);
+        pData = Lms_BuiltinDecode(&nBytes);
+        pAnd = pData ? Gia_AigerReadFromMemory(pData, nBytes, 0, 1, 0) : NULL;
+        ABC_FREE(pData);
+        if ( !pGia || !pAnd )
+        {
+            Gia_ManStopP(&pGia);
+            Gia_ManStopP(&pAnd);
+            Abc_Print(-1, "LMS XOR: cannot load the combined built-in libraries.\n");
+            return 0;
+        }
+        {
+            Gia_Man_t * pMerged = Lms_GiaMergeTargetBanks(pGia, pAnd);
+            Gia_ManStop(pGia);
+            Gia_ManStop(pAnd);
+            pGia = pMerged;
+        }
+    }
+    if ( !pGia || Gia_ManCiNum(pGia) != 6 || Gia_ManRegNum(pGia) || !Gia_ManCoNum(pGia) ||
+         Gia_ManXorNum(pGia) || pGia->pMuxes || Gia_ManBufNum(pGia) )
+    {
+        Gia_ManStopP(&pGia);
+        Abc_Print(-1, "LMS XOR: invalid serialized XOR structure library.\n");
+        return 0;
+    }
+    // Register truth/class IDs from the ordinary AIG, then measure the
+    // actual native topology. Native hashing can reduce per-output area.
+    p = Lms_ManStart(pGia, 6, 32, 0, 0);
+    p->pGiaNative = Gia_ManDupMuxes(pGia, 0);
+    p->fXorCost = 1;
+    s_pMan3XorCache = p;
+    s_pMan3XorSource = pSource;
+    s_pMan3XorFrame = Abc_FrameReadGlobalFrame();
+    Lms_ManSetCurrent(p);
+    *ppSaved = pSaved;
+    if ( fVerbose ) Abc_Print(1, "LMS XOR: private %s library, %d structures; unit AND/XOR area and delay.\n",
+        pSource ? "user" : "combined built-in AND/XOR", Gia_ManCoNum(pGia));
+    return 1;
+}
+/**Function*************************************************************
+
+  Synopsis    [Restore the caller's manager after a native-library borrow.]
+
+***********************************************************************/
+void Abc_RecTargetXorStop3( void * pSaved )
+{
+    Lms_Man_t * p = s_pMan3;
+    assert(p && p->pGiaNative && p == s_pMan3XorCache);
+    (void)p;
+    Lms_ManSetCurrent((Lms_Man_t *)pSaved);
 }
 /**Function*************************************************************
 
@@ -1904,6 +2098,39 @@ void Abc_RecTargetRecipe3( int Po, Vec_Int_t * vProgram )
             assert(Gia_ObjIsAnd(pFan) || Gia_ObjIsCi(pFan));
             Vec_IntPush(vProgram, Abc_Var2Lit(Index, k ? Gia_ObjFaninC1(pObj) : Gia_ObjFaninC0(pObj)));
         }
+    }
+    assert(Vec_IntSize(pLib->vTtNodes) > 0);
+    Vec_IntPush(vProgram, Abc_Var2Lit(6+Vec_IntSize(pLib->vTtNodes)-1, Gia_ObjFaninC0(pCo)));
+}
+
+// Native recipes retain the two-literal format. Local fanins are sorted
+// ascending for AND and descending for XOR, independently of DFS numbering.
+/**Function*************************************************************
+
+  Synopsis    [Encode a native structure using ordered AND/XOR fanin pairs.]
+
+***********************************************************************/
+void Abc_RecTargetRecipeXor3( int Po, Vec_Int_t * vProgram )
+{
+    Gia_Man_t * pLib = s_pMan3->pGiaNative;
+    Gia_Obj_t * pObj, * pCo = Gia_ManCo(pLib, Po);
+    int i, k, Lits[2];
+    if ( pLib->vTtNodes == NULL ) pLib->vTtNodes = Vec_IntAlloc(256);
+    if ( pLib->vTtNums == NULL ) pLib->vTtNums = Vec_IntStart(Gia_ManObjNum(pLib));
+    Gia_ObjCollectInternal(pLib, Gia_ObjFanin0(pCo));
+    Vec_IntPush(vProgram, Vec_IntSize(pLib->vTtNodes));
+    Gia_ManForEachObjVec(pLib->vTtNodes, pLib, pObj, i)
+    {
+        pObj->fMark0 = 0;
+        for ( k = 0; k < 2; ++k )
+        {
+            Gia_Obj_t * pFan = k ? Gia_ObjFanin1(pObj) : Gia_ObjFanin0(pObj);
+            int Index = Gia_ObjIsAnd(pFan) ? Gia_ObjNum(pLib, pFan) + 6 : Gia_ObjCioId(pFan);
+            assert(Gia_ObjIsAnd(pFan) || Gia_ObjIsCi(pFan));
+            Lits[k] = Abc_Var2Lit(Index, k ? Gia_ObjFaninC1(pObj) : Gia_ObjFaninC0(pObj));
+        }
+        if ( (Lits[0] > Lits[1]) != Gia_ObjIsXor(pObj) ) ABC_SWAP(int, Lits[0], Lits[1]);
+        Vec_IntPushTwo(vProgram, Lits[0], Lits[1]);
     }
     assert(Vec_IntSize(pLib->vTtNodes) > 0);
     Vec_IntPush(vProgram, Abc_Var2Lit(6+Vec_IntSize(pLib->vTtNodes)-1, Gia_ObjFaninC0(pCo)));
@@ -2003,6 +2230,7 @@ int Abc_NtkRecStartBuiltin3( FILE * pOut, FILE * pError )
 void Abc_NtkRecXorMode3( void )
 {
     assert(s_pMan3 && !s_pMan3->vDelays);
+    Abc_RecTargetXorClear3();
     s_pMan3->fXorCost = 1;
     Abc_Print(1, "LMS: unit AND/XOR cost model; library and results remain ordinary AIGs.\n");
 }
@@ -2010,6 +2238,7 @@ void Abc_NtkRecXorMode3( void )
 void Abc_NtkRecStop3()
 {
     assert( s_pMan3 != NULL );
+    Abc_RecTargetXorClear3();
     Lms_ManStop( s_pMan3 );
     Lms_ManSetCurrent( NULL );
 }

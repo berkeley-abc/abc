@@ -318,7 +318,7 @@ static int Gia_ResbPairClassCacheMode( void )
 // A few legacy template return values still combine two bounded 15-bit
 // indices.  Real divisor pairs use the manager-owned intern table below and
 // therefore do not inherit this representation limit.
-static int s_ResbQualityNoTruncation = 0;
+static ABC_THREAD_LOCAL int s_ResbQualityNoTruncation = 0;
 static int Gia_ResbLegacyPackTwo15( int Lo, int Hi, int Compl )
 {
     if ( Lo < 0 || Hi < 0 || Lo > 0x7fff || Hi > 0x7fff )
@@ -333,7 +333,7 @@ typedef struct Gia_ResbMan_t_ Gia_ResbMan_t;
 typedef struct Gia_ResbRootCache_t_ Gia_ResbRootCache_t;
 // The caller owns the ODC scope. Each manager captures the policy at bind
 // time, so an existing iterator never changes its ordered pair universe.
-static int s_ResubCarePairTruth = 0;
+static ABC_THREAD_LOCAL int s_ResubCarePairTruth = 0;
 int Abc_ResubSetCarePairTruth( int Enable )
 {
     int Previous = s_ResubCarePairTruth;
@@ -365,6 +365,7 @@ struct Gia_ResbRootCache_t_
 struct Gia_ResbMan_t_
 {
     int         nWords;
+    int         nWordsAlloc;
     int         nLimit;
     int         nDivsMax;
     int         fQualityNoTruncation;
@@ -538,6 +539,7 @@ Gia_ResbMan_t * Gia_ResbAlloc( int nWords )
 {
     Gia_ResbMan_t * p   = ABC_CALLOC( Gia_ResbMan_t, 1 );
     p->nWords           = nWords;
+    p->nWordsAlloc      = nWords;
     p->vUnateLits[0]    = Vec_IntAlloc( 100 );
     p->vUnateLits[1]    = Vec_IntAlloc( 100 );
     p->vNotUnateVars[0] = Vec_IntAlloc( 100 );
@@ -592,7 +594,10 @@ Gia_ResbMan_t * Gia_ResbAlloc( int nWords )
 }
 void Gia_ResbInit( Gia_ResbMan_t * p, Vec_Ptr_t * vDivs, int nWords, int nLimit, int nDivsMax, int iChoice, int fUseZero, int fUseXor, int fDebug, int fVerbose, int fVeryVerbose )
 {
-    assert( p->nWords == nWords );
+    // Scratch is allocated for the largest problem. Each new binding resets
+    // its caches below and may use a smaller active truth width.
+    assert( nWords > 0 && nWords <= p->nWordsAlloc );
+    p->nWords = nWords;
     p->nLimit       = nLimit;
     p->nDivsMax     = nDivsMax;
     p->fQualityNoTruncation = Abc_ResubQualityNoTruncation();
@@ -1787,7 +1792,7 @@ static inline int Gia_ManFindFirstCommonPair( Gia_ResbMan_t * p,
 // classification is incomplete for sampled constant targets. Enable the full
 // classification only for the opt-in strict SEQ constructor; other clients
 // retain their existing policy. This follows the pass-owned resub manager.
-static int s_ResubBothPolarities = 0;
+static ABC_THREAD_LOCAL int s_ResubBothPolarities = 0;
 void Abc_ResubSetBothPolarities( int Enable )
 {
     assert( Enable == 0 || Enable == 1 );
@@ -3341,7 +3346,9 @@ Vec_Int_t * Gia_ManResubOne( Vec_Ptr_t * vDivs, int nWords, int nLimit, int nDiv
   SeeAlso     []
 
 ***********************************************************************/
-static Gia_ResbMan_t * s_pResbMan = NULL;
+// Each caller prepares and releases its manager within one synchronous pass.
+// Independent ABC instances in other threads must not replace that manager.
+static ABC_THREAD_LOCAL Gia_ResbMan_t * s_pResbMan = NULL;
 void Abc_ResubPrepareManager( int nWords );
 
 // Stateful finite recipe iterator used by &stran root discovery.  Exact
@@ -3914,7 +3921,7 @@ void * Abc_ResubIteratorResumeStart( void ** ppDivs, int nDivs, int nWords,
     assert( nStage5Paths == 1 || nStage5Paths == 2 ||
         nStage5Paths == 4 );
     assert( s_pResbMan != NULL );
-    assert( s_pResbMan->nWords == nWords );
+    assert( nWords > 0 && nWords <= s_pResbMan->nWordsAlloc );
     // Pair order is part of a live cursor's meaning. A fresh root binding
     // may discard incompatible cache state; continuing old indices under a
     // different policy violates the immutable root/page contract.
