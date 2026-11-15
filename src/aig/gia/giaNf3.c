@@ -22,6 +22,8 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "giaScmapInt.h"
+#include <math.h>
 #include "giaEdit.h"
 #include "base/main/main.h"
 #include "map/mio/mio.h"
@@ -208,7 +210,7 @@ static int Nf3_ImportCell( Nf3_Man_t * p, int * Map, int Lit )
   SeeAlso     []
 
 ***********************************************************************/
-static Nf3_Man_t * Nf3_Import( Gia_Man_t * Gia, Jf_Par_t * Pars, int fDecompose )
+static Nf3_Man_t * Nf3_Import( Gia_Man_t * Gia, Jf_Par_t * Pars, int fDecompose, int fElectrical )
 {
     Nf3_Man_t * p = ABC_CALLOC(Nf3_Man_t, 1);
     Gia_Obj_t * Obj;
@@ -271,12 +273,15 @@ static Nf3_Man_t * Nf3_Import( Gia_Man_t * Gia, Jf_Par_t * Pars, int fDecompose 
     for ( i = p->nObjs-1; i >= 2; i-- )
         if ( p->Objs[i].Refs )
             for ( k = 0; k < p->Objs[i].nFans; k++ ) p->Objs[p->Objs[i].Fans[k]].Refs++;
-    for ( i = 2; i < p->nObjs; i++ )
-        if ( p->Objs[i].Refs && p->Objs[i].Gate != NF3_CI )
-            p->Objs[i].Arrival = Nf3_Delay(p, p->Objs[i].Gate, p->Objs[i].Fans, p->Objs[i].nFans);
-    Vec_IntForEachEntry(p->Outputs, Id, i) p->Target = Abc_MaxInt(p->Target, p->Objs[Id].Arrival);
-    if ( Pars->fAreaOnly ) p->Target = SCL_INFINITY-1;
-    else p->Target = Abc_MaxInt(p->Target, (int)Pars->MapDelayTarget);
+    if ( !fElectrical )
+    {
+        for ( i = 2; i < p->nObjs; i++ )
+            if ( p->Objs[i].Refs && p->Objs[i].Gate != NF3_CI )
+                p->Objs[i].Arrival = Nf3_Delay(p, p->Objs[i].Gate, p->Objs[i].Fans, p->Objs[i].nFans);
+        Vec_IntForEachEntry(p->Outputs, Id, i) p->Target = Abc_MaxInt(p->Target, p->Objs[Id].Arrival);
+        if ( Pars->fAreaOnly ) p->Target = SCL_INFINITY-1;
+        else p->Target = Abc_MaxInt(p->Target, (int)Pars->MapDelayTarget);
+    }
     ABC_FREE(Map);
     return p;
 }
@@ -1230,7 +1235,7 @@ static Gia_Man_t * Nf3_Recover( Gia_Man_t * Gia, Jf_Par_t * Pars, int nRounds )
     abctime Start = Abc_Clock();
     if ( Gia->pManTime || Gia_ManBufNum(Gia) || Gia->vInArrs || Gia->vOutReqs ||
          Gia->vCiArrs || Gia->vCoReqs || Scl_ConIsRunning() ) return Gia;
-    p = Nf3_Import(Gia, Pars, nRounds > 1);
+    p = Nf3_Import(Gia, Pars, nRounds > 1, 0);
     if ( p == NULL ) return Gia;
     Nf3_Canonical(p);
     for ( Round = 0; Round < nRounds; Round++ )
@@ -1325,5 +1330,7 @@ Gia_Man_t * Nf3_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars, int fSynt
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+#include "giaScmapWindow.h"
 
 ABC_NAMESPACE_IMPL_END

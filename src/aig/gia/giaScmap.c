@@ -27,6 +27,7 @@
 #include <float.h>
 #include <limits.h>
 #include "giaScmap.h"
+#include "giaScmapInt.h"
 #include "misc/st/st.h"
 #include "map/mio/mio.h"
 #include "misc/util/utilTruth.h"
@@ -67,6 +68,7 @@ struct Scm_Par_t_
     int            nPaperAffineElaCritical;
     int            fUseRiseFallAll;
     int            nSeedMode;          // 0: gain-scaled transition costs; 1: common-load family costs
+    int            fQuality;           // refine both seeds and use electrical window search
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -346,6 +348,7 @@ struct Scm_Man_t_
     Scm_RfPair_t *  pAffExactRfArrs;
     Scm_RfPair_t *  pAffExactRfSlews;
     Scm_RfPair_t *  pAllRfLoads;
+    Scm_RfPair_t *  pFamilyCapsRf;
     float *         pAffResiduals;
     Scm_Obj_t *      pAffPrev;
     int *           pAffPrevRefs;
@@ -1011,6 +1014,8 @@ static Scm_Man_t * Scm_StoCreate( Gia_Man_t * pGia, Scm_Par_t * pPars )
         p->pSclCells = ABC_ALLOC( int, p->nCells );
 
             p->pAffineCaps = ABC_CALLOC(float, SC_LibCellNum(p->pScl) * NF_LEAF_MAX);
+        if ( pPars->fQuality )
+            p->pFamilyCapsRf = ABC_CALLOC(Scm_RfPair_t, SC_LibCellNum(p->pScl) * NF_LEAF_MAX);
         for ( i = 0; i < p->nCells; i++ )
         {
             p->pSclCells[i] = p->pCells[i].pName ?
@@ -1022,13 +1027,17 @@ static Scm_Man_t * Scm_StoCreate( Gia_Man_t * pGia, Scm_Par_t * pPars )
             {
                 SC_Cell * pMember;
                 int k, Count = 0;
-                double Caps[NF_LEAF_MAX] = {0};
+                double Caps[NF_LEAF_MAX] = {0}, Fall[NF_LEAF_MAX] = {0}, Rise[NF_LEAF_MAX] = {0};
                 assert(pSclCell->n_inputs <= NF_LEAF_MAX);
                 SC_RingForEachCell(pSclCell, pMember, k)
                 {
                     if ( pMember->fSkip ) continue;
                     for ( Entry = 0; Entry < pMember->n_inputs; Entry++ )
+                    {
                         Caps[Entry] += SC_CellPinCap(pMember, Entry);
+                        Fall[Entry] += SC_CellPin(pMember, Entry)->fall_cap;
+                        Rise[Entry] += SC_CellPin(pMember, Entry)->rise_cap;
+                    }
                     Count++;
                 }
                 if ( Count == 0 )
@@ -1040,6 +1049,13 @@ static Scm_Man_t * Scm_StoCreate( Gia_Man_t * pGia, Scm_Par_t * pPars )
                     p->pAffineCaps[pSclCell->Id * NF_LEAF_MAX + Entry] =
                         ((12 == 12) && i == 2) ?
                         SC_CellPinCap(pSclCell, Entry) : (float)(Caps[Entry] / Count);
+                if ( p->pFamilyCapsRf )
+                    for ( Entry = 0; Entry < pSclCell->n_inputs; Entry++ )
+                    {
+                        Scm_RfPair_t * pCap = p->pFamilyCapsRf + pSclCell->Id * NF_LEAF_MAX + Entry;
+                        pCap->Value[0] = i == 2 ? SC_CellPin(pSclCell, Entry)->fall_cap : (float)(Fall[Entry] / Count);
+                        pCap->Value[1] = i == 2 ? SC_CellPin(pSclCell, Entry)->rise_cap : (float)(Rise[Entry] / Count);
+                    }
             }
             for ( Entry = 0; Entry < pSclCell->n_inputs; Entry++ )
                 p->AveInputCap += Scm_ManCellPinCap(p, pSclCell, Entry), nPins++;
@@ -1156,6 +1172,7 @@ static void Scm_StoDelete( Scm_Man_t * p )
     ABC_FREE( p->vBackup.pArray );
     ABC_FREE( p->pSclCells );
     ABC_FREE( p->pAffineCaps );
+    ABC_FREE( p->pFamilyCapsRf );
     ABC_FREE( p->pLinearArcs );
     ABC_FREE( p->pLinearSlewPwls );
     if ( p->pBufferDelays )
@@ -2635,7 +2652,9 @@ static Scm_RfPair_t Scm_ManRfLoad( Scm_Man_t * p, int iLit )
 
 static Scm_RfPair_t Scm_ManRfPinCap( Scm_Man_t * p, Mio_Cell2_t * pCell, int k )
 {
-    SC_Pin * pPin = SC_CellPin(Scm_ManSclCell(p, pCell), k);
+    SC_Cell * pSclCell = Scm_ManSclCell(p, pCell);
+    SC_Pin * pPin = SC_CellPin(pSclCell, k);
+    if ( p->pFamilyCapsRf ) return p->pFamilyCapsRf[pSclCell->Id * NF_LEAF_MAX + k];
     Scm_RfPair_t Cap = {{pPin->fall_cap, pPin->rise_cap}};
     return Cap;
 }
@@ -4034,6 +4053,7 @@ static float Rq_Back(float required,float cost)
     double edge=((double)required+(double)nextafterf(required,INFINITY))*0.5;
     float x=(float)(edge-(double)cost);
     int steps=0;
+    (void)steps;
     while((float)(x+cost)>required) {x=nextafterf(x,-INFINITY);assert(++steps<8);}
     while(isfinite(nextafterf(x,INFINITY)) && (float)(nextafterf(x,INFINITY)+cost)<=required) {
         x=nextafterf(x,INFINITY);assert(++steps<8);
@@ -4725,6 +4745,7 @@ static int Scm_ManAffElaTimeTailRf( Scm_Man_t * p,
             Abc_Lit2Var(iRootLit), Abc_LitIsCompl(iRootLit));
         word Restored = Scm_ManAffElaRefRec(p, pCtx,
             Abc_Lit2Var(iRootLit), Abc_LitIsCompl(iRootLit), pCandidate);
+        (void)Restored;
         assert(Restored == Removed);
         if ( pCtx->fError ) fOkay = 0;
     }
@@ -4796,6 +4817,7 @@ static int Scm_ManAffElaTimeTail( Scm_Man_t * p, Scm_AffElaCtx_t * pCtx,
             Abc_Lit2Var(iRootLit), Abc_LitIsCompl(iRootLit));
         word Restored = Scm_ManAffElaRefRec(p, pCtx,
             Abc_Lit2Var(iRootLit), Abc_LitIsCompl(iRootLit), pCandidate);
+        (void)Restored;
         assert(Restored == Removed);
         if ( pCtx->fError ) fOkay = 0;
     }
@@ -4970,6 +4992,8 @@ static void Scm_ManSetDefaultPars(Scm_Par_t *pPars) { memset(pPars, 0, sizeof(*p
 
 }
 
+#include "giaScmapQuality.h"
+
 static Gia_Man_t * Scm_ManPerformMappingInt( Gia_Man_t * pGia, Scm_Par_t * pPars )
 {
     Gia_Man_t *pNew = NULL;
@@ -4999,6 +5023,11 @@ static Gia_Man_t * Scm_ManPerformMappingInt( Gia_Man_t * pGia, Scm_Par_t * pPars
     memcpy(pFlow0, Vec_FltArray(&p->vFlowRefs), sizeof(float) * nLits);
     p->pAffExactRfArrs = ABC_CALLOC(Scm_RfPair_t, nLits);
     p->pAffExactRfSlews = ABC_CALLOC(Scm_RfPair_t, nLits);
+    if ( pPars->fQuality )
+    {
+        assert(p->pAllRfLoads == NULL);
+        p->pAllRfLoads = ABC_CALLOC(Scm_RfPair_t, nLits);
+    }
     for ( m = 0; fOk && m < 2; m++ )
     {
         if ( m > 0 )
@@ -5039,8 +5068,10 @@ static Gia_Man_t * Scm_ManPerformMappingInt( Gia_Man_t * pGia, Scm_Par_t * pPars
         pPars->nSeedMode = Best;
         /* Reconstruct the winner's loads/timing before refining its cover. */
         if ( !Scm_ManAffElaTimeCover(p) || !Scm_ManRefineCover(p) ) fOk = 0;
+        if ( fOk && pPars->fQuality )
+            fOk = Scm_ManSelectSeed(p, pSaveObjs[1-Best], pSaveRefs[1-Best], pSaveFlow[1-Best], 1-Best);
         if ( fOk && pPars->fVerbose )
-            printf("SCMAP_SELECTED seed=%d delay=%.3f area=%lld\n", Best, p->AffExactDelay, Df_Area(p));
+            printf("SCMAP_SELECTED seed=%d delay=%.3f area=%lld\n", pPars->nSeedMode, p->AffExactDelay, Df_Area(p));
     }
     for ( m = 0; m < 2; m++ )
     {
@@ -5078,6 +5109,44 @@ Gia_Man_t * Gia_ManScmap(Gia_Man_t *pGia, int fVerbose, int fVeryVerbose)
     Pars.fVerbose = fVerbose;
     Pars.fVeryVerbose = fVeryVerbose;
     return Scm_ManPerformMapping(pGia, &Pars);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Maps with refined seeds and electrically scored windows.]
+
+  Description [The input is retained when a distinct manager is returned.
+  Seed selection sizes private networks; the returned cover is unsized.]
+
+  SideEffects [Uses the input scratch values and mapping fields.]
+
+  SeeAlso     [Gia_ManScmap]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManScmapQuality( Gia_Man_t * pGia, int fVerbose, int fVeryVerbose )
+{
+    Scm_Par_t Pars;
+    Gia_Man_t * pMapped, * pNew;
+    if ( pGia == NULL || !Gia_ManCoNum(pGia) || Gia_ManRegNum(pGia) || pGia->pManTime || Gia_ManBufNum(pGia) ||
+         pGia->vInArrs || pGia->vOutReqs || pGia->vCiArrs || pGia->vCoReqs || Scl_ConIsRunning() )
+    {
+        Abc_Print(-1, "&scmap -q requires outputs and an unboxed combinational AIG without explicit timing.\n");
+        return NULL;
+    }
+    if ( !Abc_FrameReadLibGen() || !Abc_FrameReadLibScl() )
+    {
+        Abc_Print(-1, "&scmap -q requires a Liberty library loaded with read_lib.\n");
+        return NULL;
+    }
+    Scm_ManSetDefaultPars(&Pars);
+    Pars.fQuality = 1;
+    Pars.fVerbose = fVerbose;
+    Pars.fVeryVerbose = fVeryVerbose;
+    pMapped = Scm_ManPerformMapping(pGia, &Pars);
+    if ( pMapped == NULL ) return NULL;
+    pNew = Scm_ManWindowImprove(pMapped, fVerbose, fVeryVerbose);
+    if ( pMapped != pGia && pMapped != pNew ) Gia_ManStop(pMapped);
+    return pNew;
 }
 
 ABC_NAMESPACE_IMPL_END

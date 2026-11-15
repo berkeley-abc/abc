@@ -180,6 +180,7 @@ static int Scm_ManAffFastRepairPart( Scm_Man_t * p, int part )
                 else
                 {
                     word Restored = Scm_ManAffElaRefRec(p, pCtx, i, c, &Old);
+                    (void)Restored;
                     assert(Restored == Freed);
                     *Scm_ObjMatchD(p, i, c) = Old;
                 }
@@ -407,6 +408,7 @@ static void Df_Restore(Df_Man *d,Df_Undo u)
     word removed=Scm_ManAffElaDerefRec(p,d->ctx,i,c,Scm_ObjMatchD(p,i,c));
     *Scm_ObjMatchD(p,i,c)=u.old;
     word restored=Scm_ManAffElaRefRec(p,d->ctx,i,c,&u.old);
+    (void)removed; (void)restored;
     assert((long long)removed-(long long)restored==u.delta);
 }
 static Scm_AffElaCand_t *Df_Candidates(Df_Man *d,int lit,int areaOnly,int *count)
@@ -434,6 +436,7 @@ static Scm_AffElaCand_t *Df_Candidates(Df_Man *d,int lit,int areaOnly,int *count
        bounded traversal in the later, strictly area-reducing rounds. */
     Scm_ManAffElaCandidates(p,i,c,&old,areaOnly?freed:(~(word)0)/4,&list,count,&alloc);
     word restored=Scm_ManAffElaRefRec(p,d->ctx,i,c,&old);
+    (void)restored;
     assert(restored==freed);
     return list;
 }
@@ -713,8 +716,9 @@ static int Scm_ManRefineCover(Scm_Man_t *p)
     Df_Man d={0};Gia_Obj_t *o;int i,c,ok=0;
     float initial, target;
     int recovery=1;
-    d.keep=1;
-    d.delayRounds=2;
+    d.keep=p->pPars->fQuality?4:1;
+    d.delayRounds=p->pPars->fQuality?4:2;
+    if(p->pPars->fQuality) recovery=2;
     d.screenGate=1;
     assert(d.keep>=1 && d.keep<=4 && d.delayRounds>=1);
     d.outputCache=1;
@@ -751,7 +755,7 @@ static int Scm_ManRefineCover(Scm_Man_t *p)
         Gia_ManForEachAndReverse(p->pGia,o,i) for(c=0;c<2;c++)
             if(Scm_ObjMapRefNum(p,i,c) && !Scm_ManAffElaTailBuild(p,d.ctx,2*i+c)) goto done;
         int n=Gia_ManObjNum(p->pGia),count=0,budgetRoots=0;
-        int cap=64;
+        int cap=p->pPars->fQuality?256:64;
 
         assert(cap>=0 && cap<=1048576);
         if(!phase) cap=(cap+d.delayRounds-1)/d.delayRounds;

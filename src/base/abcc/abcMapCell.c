@@ -2411,15 +2411,26 @@ usage:
 }
 
 
-/* Map using the electrical model and bounded shared-cover refinement. */
+/**Function*************************************************************
+
+  Synopsis    [Maps using electrical cover refinement and optional windows.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static int Abc_CommandScmap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pNew;
-    int c, fVerbose = 0, fVeryVerbose = 0;
+    int c, fQuality = 0, fVerbose = 0, fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "vwh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "qvwh")) != EOF )
         switch ( c )
         {
+        case 'q': fQuality ^= 1; break;
         case 'v': fVerbose ^= 1; break;
         case 'w': fVeryVerbose ^= 1; break;
         default: goto usage;
@@ -2427,16 +2438,18 @@ static int Abc_CommandScmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( globalUtilOptind != argc ) goto usage;
     if ( !pAbc->pGia ) { Abc_Print(-1, "Empty GIA network.\n"); return 1; }
     if ( !Abc_FrameReadLibGen() ) { Abc_Print(-1, "Current library is not available.\n"); return 1; }
-    pNew = Gia_ManScmap(pAbc->pGia, fVerbose, fVeryVerbose);
+    pNew = fQuality ? Gia_ManScmapQuality(pAbc->pGia, fVerbose, fVeryVerbose) :
+                     Gia_ManScmap(pAbc->pGia, fVerbose, fVeryVerbose);
     if ( !pNew ) { Abc_Print(-1, "SCMap: technology mapping failed.\n"); return 1; }
     Abc_FrameUpdateGia(pAbc, pNew);
     return 0;
 usage:
-    Abc_Print(-2, "usage: &scmap [-vwh]\n");
-    Abc_Print(-2, "         standard-cell mapping with electrical cover refinement\n");
-    Abc_Print(-2, "    -v : print mapping statistics\n");
-    Abc_Print(-2, "    -w : print detailed mapping statistics\n");
-    Abc_Print(-2, "    -h : print this message\n");
+    Abc_Print(-2, "usage: &scmap [-qvwh]\n");
+    Abc_Print(-2, "\t         standard-cell mapping with electrical cover refinement\n");
+    Abc_Print(-2, "\t-q     : toggle high-effort quality search (combinational AIGs) [default = %s]\n", fQuality ? "yes" : "no");
+    Abc_Print(-2, "\t-v     : toggle mapping statistics [default = %s]\n", fVerbose ? "yes" : "no");
+    Abc_Print(-2, "\t-w     : toggle detailed mapping statistics [default = %s]\n", fVeryVerbose ? "yes" : "no");
+    Abc_Print(-2, "\t-h     : print the command usage\n");
     return 1;
 }
 

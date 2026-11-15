@@ -70,7 +70,7 @@ static int Gp_Forward(Gp_Man *g)
         g->labels[2*obj+1]=Gp_Invert(g,&q,obj,1);
     }
     Gia_ManForEachAnd(p->pGia,o,obj) {
-        Gp_Label direct[2]={{0}},fast[2]={{0}},chosen[2],inverse[2];
+        Gp_Label direct[2]={0},fast[2]={0},chosen[2],inverse[2];
         int *cut,*set=Scm_ObjCutSet(p,obj);
         if(Gia_ObjIsBuf(o)) return 0;
         Scm_SetForEachCut(set,cut,j) {
