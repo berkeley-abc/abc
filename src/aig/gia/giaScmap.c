@@ -36,6 +36,7 @@
 #include "misc/vec/vecMem.h"
 #include "misc/vec/vecWec.h"
 #include "opt/dau/dau.h"
+#include "opt/sfm/sfm.h"
 #include "misc/util/utilNam.h"
 #include "map/scl/sclCon.h"
 #include "map/scl/sclLib.h"
@@ -5145,6 +5146,33 @@ Gia_Man_t * Gia_ManScmapQuality( Gia_Man_t * pGia, int fVerbose, int fVeryVerbos
     pMapped = Scm_ManPerformMapping(pGia, &Pars);
     if ( pMapped == NULL ) return NULL;
     pNew = Scm_ManWindowImprove(pMapped, fVerbose, fVeryVerbose);
+    if ( pMapped != pGia && pMapped != pNew ) Gia_ManStop(pMapped);
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds bounded full-flow lookahead to quality mapping.]
+
+  Description [The returned cover is unsized. Trials are measured after a
+  fixed MFS/buffering/sizing flow on private networks. The 1% area allowance
+  and nonincreasing delay apply to that flow, not arbitrary postprocessing.
+  Zero trials is identical to Gia_ManScmapQuality. The input is not freed.]
+
+  SideEffects [Uses the input scratch values and mapping fields.]
+
+  SeeAlso     [Gia_ManScmapQuality]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManScmapLookahead( Gia_Man_t * pGia, int nTrials, int fVerbose, int fVeryVerbose )
+{
+    Gia_Man_t * pMapped, * pNew;
+    if ( nTrials < 0 ) return NULL;
+    pMapped = Gia_ManScmapQuality(pGia, fVerbose, fVeryVerbose);
+    if ( pMapped == NULL || nTrials == 0 ) return pMapped;
+    // Trivial covers have no window replacements; MFS requires primary inputs.
+    if ( !Gia_ManCiNum(pMapped) || !Gia_ManAndNum(pMapped) ) return pMapped;
+    pNew = Scm_ManWindowLookahead(pMapped, nTrials, fVerbose, fVeryVerbose);
     if ( pMapped != pGia && pMapped != pNew ) Gia_ManStop(pMapped);
     return pNew;
 }

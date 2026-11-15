@@ -14,38 +14,61 @@
 ***********************************************************************/
 
 extern Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t *, int );
+extern Abc_Ntk_t * Abc_NtkPerformMfs3Rounds( Abc_Ntk_t *, Sfm_Par_t *, int );
+extern void Sfm_ParSetDefault3( Sfm_Par_t * );
 
 /**Function*************************************************************
 
-  Synopsis    [Measures a cover after private-copy buffering and sizing.]
+  Synopsis    [Measures a private network after optional MFS and sizing.]
 
   Description [Matches buffer -c; topo; stime -c; upsize -c; dnsize -c.
-  Neither the frame network nor the input cover is replaced.]
+  With fMfs, first runs mfsmap -e -R 2 -N 500 -C 1000 -M 2000 -I 10 -O 10.
+  Output normalization matches write_blif before each endpoint measurement.]
 
-  SideEffects []
+  SideEffects [Consumes the private network, including on failure.]
 
   SeeAlso     []
 
 ***********************************************************************/
-static int Scm_CoverLookahead( Scm_Man_t * p, double * pArea, float * pDelay )
+static int Scm_NtkLookahead( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fMfs, double * pArea, float * pDelay )
 {
-    SC_Lib * pLib = p->pScl;
-    Abc_Ntk_t * pNtk, * pTemp;
+    Abc_Ntk_t * pTemp;
     SC_Man * pTiming;
     SC_BusPars Buffer = {0};
     SC_SizePars Size = {0};
-    assert(p->pGia->vCellMapping == NULL);
-    Scm_ManUpdateStats(p);
-    Scm_ManDeriveMapping(p);
-    pNtk = Abc_NtkFromCellMappedGia(p->pGia, 0);
-    Vec_IntFreeP(&p->pGia->vCellMapping);
-    if ( pNtk == NULL ) return 0;
     pTemp = Abc_NtkDupDfs(pNtk);
     Abc_NtkDelete(pNtk);
     pNtk = pTemp;
     if ( pNtk == NULL ) return 0;
+    if ( fMfs )
+    {
+        Abc_NtkCleanup(pNtk, 0);
+        if ( !Abc_NtkLogicHasSimpleCos(pNtk) ) Abc_NtkLogicMakeSimpleCos(pNtk, 0);
+    }
     pTiming = Abc_SclManStart(pLib, pNtk, 1, 1, 0, 0);
     Abc_SclManFree(pTiming);
+    if ( fMfs )
+    {
+        Sfm_Par_t Mfs;
+        Sfm_ParSetDefault3(&Mfs);
+        Mfs.fMoreEffort = 1;
+        Mfs.nNodesMax = 500;
+        Mfs.nBTLimit = 1000;
+        Mfs.nWinSizeMax = 2000;
+        Mfs.nTfiLevMax = Mfs.nTfoLevMax = 10;
+        pTemp = Abc_NtkPerformMfs3Rounds(pNtk, &Mfs, 2);
+        if ( pTemp != pNtk ) Abc_NtkDelete(pNtk);
+        pNtk = pTemp;
+        if ( pNtk == NULL ) return 0;
+        pTemp = Abc_NtkDupDfs(pNtk);
+        Abc_NtkDelete(pNtk);
+        pNtk = pTemp;
+        if ( pNtk == NULL ) return 0;
+        Abc_NtkCleanup(pNtk, 0);
+        if ( !Abc_NtkLogicHasSimpleCos(pNtk) ) Abc_NtkLogicMakeSimpleCos(pNtk, 0);
+        pTiming = Abc_SclManStart(pLib, pNtk, 1, 1, 0, 0);
+        Abc_SclManFree(pTiming);
+    }
     Buffer.GainRatio = 300;
     Buffer.Slew = Abc_SclComputeAverageSlew(pLib);
     Buffer.nDegree = 10;
@@ -73,12 +96,58 @@ static int Scm_CoverLookahead( Scm_Man_t * p, double * pArea, float * pDelay )
     Size.Notches = Size.DelayGap = 1000;
     Size.fUseDept = Size.fUseWireLoads = 1;
     Abc_SclDnsizePerform(pLib, pNtk, &Size, NULL);
+    if ( fMfs )
+    {
+        Abc_NtkCleanup(pNtk, 0);
+        if ( !Abc_NtkLogicHasSimpleCos(pNtk) ) Abc_NtkLogicMakeSimpleCos(pNtk, 0);
+    }
     pTiming = Abc_SclManStart(pLib, pNtk, 1, 1, 0, 0);
     *pArea = pTiming->SumArea;
     *pDelay = pTiming->MaxDelay;
     Abc_SclManFree(pTiming);
     Abc_NtkDelete(pNtk);
     return isfinite(*pArea) && isfinite(*pDelay) && *pArea >= 0 && *pDelay >= 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Measures a seed using private-copy buffering and sizing.]
+
+  Description []
+
+  SideEffects [Restores the cover's mapping vector after conversion.]
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Scm_CoverLookahead( Scm_Man_t * p, double * pArea, float * pDelay )
+{
+    Abc_Ntk_t * pNtk;
+    assert(p->pGia->vCellMapping == NULL);
+    Scm_ManUpdateStats(p);
+    Scm_ManDeriveMapping(p);
+    pNtk = Abc_NtkFromCellMappedGia(p->pGia, 0);
+    Vec_IntFreeP(&p->pGia->vCellMapping);
+    if ( pNtk == NULL ) return 0;
+    return Scm_NtkLookahead(p->pScl, pNtk, 0, pArea, pDelay);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Measures a window candidate through the fixed downstream flow.]
+
+  Description [Does not replace the frame network or the input cover.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scm_WinModelLookahead( Gia_Man_t * pGia, double * pArea, float * pDelay )
+{
+    Abc_Ntk_t * pNtk = Abc_NtkFromCellMappedGia(pGia, 0);
+    if ( pNtk == NULL ) return 0;
+    return Scm_NtkLookahead((SC_Lib *)Abc_FrameReadLibScl(), pNtk, 1, pArea, pDelay);
 }
 
 /**Function*************************************************************

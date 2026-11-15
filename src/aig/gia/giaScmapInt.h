@@ -25,6 +25,8 @@ extern double Scm_WinModelCost( void * pModel, int Gate, float Load );
 extern int Scm_WinModelCell( void * pModel, int Gate, float Load,
     Scm_WinPair_t * pArrivals, Scm_WinPair_t * pSlews, Scm_WinPair_t * pArrival, Scm_WinPair_t * pSlew );
 extern Gia_Man_t * Scm_ManWindowImprove( Gia_Man_t * pGia, int fVerbose, int fVeryVerbose );
+extern Gia_Man_t * Scm_ManWindowLookahead( Gia_Man_t * pGia, int nTrials, int fVerbose, int fVeryVerbose );
+extern int Scm_WinModelLookahead( Gia_Man_t * pGia, double * pArea, float * pDelay );
 
 ABC_NAMESPACE_HEADER_END
 

@@ -17,12 +17,13 @@ typedef struct Scm_WinState_t_
 {
     Scm_WinPair_t Arrival, Slew;
     float Load;
-    double Scalar;
+    double Scalar, Tail;
 } Scm_WinState_t;
 typedef struct Scm_WinMetric_t_
 {
     word Area;
-    double Scalar, Electrical, EstimatedArea;
+    double Scalar, Electrical, EstimatedArea, RealArea;
+    float RealDelay;
 } Scm_WinMetric_t;
 typedef struct Scm_WinList_t_
 {
@@ -30,7 +31,7 @@ typedef struct Scm_WinList_t_
     int Count, Limit, AllowEqual;
     word Generated;
 } Scm_WinList_t;
-typedef struct Scm_WinRoot_t_ { int Id; word Area; } Scm_WinRoot_t;
+typedef struct Scm_WinRoot_t_ { int Id; word Area; double Path; } Scm_WinRoot_t;
 
 /**Function*************************************************************
 
@@ -259,7 +260,7 @@ static void Scm_WinEnumerate( Nf3_Man_t * p, int Root, Scm_WinList_t * List )
 
 ***********************************************************************/
 static int Scm_WinMeasure( Nf3_Man_t * p, void * Model, Scm_WinState_t * State,
-    int * Refs, Scm_WinMetric_t * Metric )
+    int * Refs, Scm_WinMetric_t * Metric, int fLookahead )
 {
     int i, k, Id;
     memset(State, 0, sizeof(Scm_WinState_t)*p->nObjs);
@@ -314,12 +315,25 @@ static int Scm_WinMeasure( Nf3_Man_t * p, void * Model, Scm_WinState_t * State,
             if ( Metric->Electrical < State[Id].Arrival.Value[k] ) Metric->Electrical = State[Id].Arrival.Value[k];
     }
     Metric->EstimatedArea += (double)Metric->Area/SCL_NUM;
-    return isfinite(Metric->EstimatedArea);
+    if ( !isfinite(Metric->EstimatedArea) ) return 0;
+    if ( fLookahead )
+    {
+        Jf_Par_t Pars;
+        Gia_Man_t * pTrial;
+        int Ok;
+        Nf3_ManSetDefaultPars(&Pars);
+        pTrial = Nf3_Export(p, &Pars);
+        if ( pTrial == NULL ) return 0;
+        Ok = Scm_WinModelLookahead(pTrial, &Metric->RealArea, &Metric->RealDelay);
+        Gia_ManStop(pTrial);
+        return Ok;
+    }
+    return 1;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Orders roots by cell area with a stable topological tie-break.]
+  Synopsis    [Orders roots by optional criticality, area and topological ID.]
 
   Description []
 
@@ -331,25 +345,28 @@ static int Scm_WinMeasure( Nf3_Man_t * p, void * Model, Scm_WinState_t * State,
 static int Scm_WinRootCompare( const void * pA, const void * pB )
 {
     const Scm_WinRoot_t * A = (const Scm_WinRoot_t *)pA, * B = (const Scm_WinRoot_t *)pB;
+    if ( A->Path != B->Path ) return A->Path > B->Path ? -1 : 1;
     if ( A->Area != B->Area ) return A->Area > B->Area ? -1 : 1;
     return (A->Id > B->Id) - (A->Id < B->Id);
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Recovers area while preserving electrical and fixed-arc bounds.]
+  Synopsis    [Searches windows using electrical or full-flow acceptance.]
 
   Description [A timing-first phase allows area-neutral moves; an area phase
   reduces modeled physical area. The whole live cover is retimed for each
   trial, including shared drivers and downstream paths. No physical buffers
-  are committed to the returned mapping.]
+  are committed to the returned mapping. With a positive lookahead budget,
+  prioritize critical roots and accept improved realized delay (or tied delay
+  with smaller area), allowing 1% final area growth relative to the input.]
 
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Scm_ManWindowImprove( Gia_Man_t * Gia, int fVerbose, int fVeryVerbose )
+static Gia_Man_t * Scm_ManWindowImproveInt( Gia_Man_t * Gia, int nLookahead, int fVerbose, int fVeryVerbose )
 {
     Jf_Par_t Pars;
     Nf3_Man_t * p = NULL;
@@ -361,7 +378,9 @@ Gia_Man_t * Scm_ManWindowImprove( Gia_Man_t * Gia, int fVerbose, int fVeryVerbos
     Gia_Man_t * Result = NULL;
     Scm_WinMetric_t Initial, Current, Trial, BestMetric;
     Scm_WinList_t List = {0};
-    int nRounds = 2, nRoots = 4096, nBudget = 32768;
+    int fLookahead = nLookahead > 0;
+    int nRounds = fLookahead ? 1 : 2, nRoots = fLookahead ? 128 : 4096;
+    int nBudget = fLookahead ? nLookahead : 32768;
     int Round, Phase, Limit, Id, i, k, Count, Best, nTrials = 0, nHits = 0, nTwo = 0, Before;
     int nNeutral = 0, nTiming = 0;
     abctime Start = Abc_Clock();
@@ -379,18 +398,32 @@ Gia_Man_t * Scm_ManWindowImprove( Gia_Man_t * Gia, int fVerbose, int fVeryVerbos
     List.Limit = 32;
     List.AllowEqual = 1;
     List.Plans = ABC_ALLOC(Nf3_Plan_t, List.Limit);
-    if ( !Scm_WinMeasure(p, Model, State, Refs, &Initial) ) goto done;
+    if ( !Scm_WinMeasure(p, Model, State, Refs, &Initial, fLookahead) ) goto done;
+    // Compare against the exact input, not just its reconstructed cover.
+    if ( fLookahead && !Scm_WinModelLookahead(Gia, &Initial.RealArea, &Initial.RealDelay) ) goto done;
     Current = Initial;
     for ( Round = 0; Round < nRounds && nTrials < nBudget; Round++ )
     {
         Before = nHits;
-        for ( Phase = 0; Phase < 2 && nTrials < nBudget; Phase++ )
+        for ( Phase = 0; Phase < (fLookahead ? 1 : 2) && nTrials < nBudget; Phase++ )
         {
-            Limit = nBudget*(2*Round+Phase+1)/(2*nRounds);
+            Limit = fLookahead ? nBudget : nBudget*(2*Round+Phase+1)/(2*nRounds);
+            if ( fLookahead )
+                for ( Id = p->nObjs-1; Id >= 2; Id-- ) if ( p->Objs[Id].Refs )
+                    for ( k = 0; k < p->Objs[Id].nFans; k++ )
+                    {
+                        int Fan = p->Objs[Id].Fans[k];
+                        double A = Abc_MaxFloat(State[Id].Arrival.Value[0], State[Id].Arrival.Value[1]);
+                        double B = Abc_MaxFloat(State[Fan].Arrival.Value[0], State[Fan].Arrival.Value[1]);
+                        double Tail = State[Id].Tail + fmax(0, A-B);
+                        if ( State[Fan].Tail < Tail ) State[Fan].Tail = Tail;
+                    }
             Count = 0;
             for ( Id = 2; Id < p->nObjs; Id++ ) if ( p->Objs[Id].Refs && p->Objs[Id].Gate >= 0 )
             {
                 Roots[Count].Id = Id;
+                Roots[Count].Path = fLookahead ? State[Id].Tail +
+                    Abc_MaxFloat(State[Id].Arrival.Value[0], State[Id].Arrival.Value[1]) : 0;
                 Roots[Count++].Area = Nf3_Area(p, Id);
             }
             qsort(Roots, Count, sizeof(Scm_WinRoot_t), Scm_WinRootCompare);
@@ -409,7 +442,7 @@ Gia_Man_t * Scm_ManWindowImprove( Gia_Man_t * Gia, int fVerbose, int fVeryVerbos
                     memcpy(Backup, Original, sizeof(Nf3_Obj_t)*p->nObjs);
                     p->Objs = Backup;
                     Nf3_Apply(p, Id, List.Plans+k);
-                    Ok = Scm_WinMeasure(p, Model, State, Refs, &Trial);
+                    Ok = Scm_WinMeasure(p, Model, State, Refs, &Trial, fLookahead);
                     p->Objs = Original;
                     p->nHits = SavedHits; p->nTwo = SavedTwo; p->Saved = SavedArea;
                     if ( !Ok || Trial.Area + List.Plans[k].Gain != Current.Area ) goto done;
@@ -418,6 +451,14 @@ Gia_Man_t * Scm_ManWindowImprove( Gia_Man_t * Gia, int fVerbose, int fVeryVerbos
                         Abc_Print(1, "SCMAP_WINDOW_TRIAL round=%d root=%d candidate=%d gain=%llu scalar=%.9g electrical=%.9g two=%d\n",
                             Round, Id, k, (unsigned long long)List.Plans[k].Gain,
                             Trial.Scalar, Trial.Electrical, List.Plans[k].Slot != 0);
+                    if ( fLookahead )
+                    {
+                        if ( Trial.RealArea <= 1.01 * Initial.RealArea &&
+                             (Trial.RealDelay < BestMetric.RealDelay ||
+                              (Trial.RealDelay == BestMetric.RealDelay && Trial.RealArea < BestMetric.RealArea)) )
+                            { Best = k; BestMetric = Trial; }
+                        continue;
+                    }
                     if ( Trial.Scalar > Initial.Scalar ) continue;
                     if ( !Phase )
                     {
@@ -437,23 +478,32 @@ Gia_Man_t * Scm_ManWindowImprove( Gia_Man_t * Gia, int fVerbose, int fVeryVerbos
                 Nf3_Apply(p, Id, List.Plans+Best);
                 nHits++; nTwo += List.Plans[Best].Slot != 0;
                 nNeutral += List.Plans[Best].Gain == 0; nTiming += !Phase;
-                if ( !Scm_WinMeasure(p, Model, State, Refs, &Current) ||
+                if ( !Scm_WinMeasure(p, Model, State, Refs, &Current, fLookahead) ||
                      Current.Area != BestMetric.Area || Current.Scalar != BestMetric.Scalar ||
                      Current.Electrical != BestMetric.Electrical ||
-                     Current.EstimatedArea != BestMetric.EstimatedArea ) goto done;
+                     Current.EstimatedArea != BestMetric.EstimatedArea ||
+                     Current.RealArea != BestMetric.RealArea || Current.RealDelay != BestMetric.RealDelay ) goto done;
             }
         }
         if ( nHits == Before ) break;
     }
-    if ( !Scm_WinMeasure(p, Model, State, Refs, &Current) || Current.Area > Initial.Area ||
-         Current.EstimatedArea > Initial.EstimatedArea || Current.Scalar > Initial.Scalar ||
-         Current.Electrical > Initial.Electrical ) goto done;
+    if ( fLookahead && !nHits ) { Current = Initial; Result = Gia; goto report; }
+    if ( !Scm_WinMeasure(p, Model, State, Refs, &Current, fLookahead) || Current.Area > Initial.Area ) goto done;
+    if ( fLookahead )
+    {
+        if ( Current.RealArea > 1.01 * Initial.RealArea || Current.RealDelay > Initial.RealDelay ) goto done;
+    }
+    else if ( Current.EstimatedArea > Initial.EstimatedArea || Current.Scalar > Initial.Scalar ||
+              Current.Electrical > Initial.Electrical ) goto done;
     Result = Nf3_Export(p, &Pars);
+report:
     if ( fVerbose )
-        Abc_Print(1, "SCMAP_WINDOWS trials=%d edits=%d two=%d neutral=%d timing=%d area=%.9g old_area=%.9g delay=%.9g old_delay=%.9g time=%.3f\n",
-            nTrials, nHits, nTwo, nNeutral, nTiming,
-            (double)Current.Area/SCL_NUM, (double)Initial.Area/SCL_NUM,
-            Current.Electrical, Initial.Electrical, (double)(Abc_Clock()-Start)/CLOCKS_PER_SEC);
+        Abc_Print(1, "%s trials=%d edits=%d two=%d neutral=%d timing=%d area=%.9g old_area=%.9g delay=%.9g old_delay=%.9g time=%.3f\n",
+            fLookahead ? "SCMAP_LOOKAHEAD" : "SCMAP_WINDOWS", nTrials, nHits, nTwo, nNeutral, nTiming,
+            fLookahead ? Current.RealArea : (double)Current.Area/SCL_NUM,
+            fLookahead ? Initial.RealArea : (double)Initial.Area/SCL_NUM,
+            fLookahead ? Current.RealDelay : Current.Electrical,
+            fLookahead ? Initial.RealDelay : Initial.Electrical, (double)(Abc_Clock()-Start)/CLOCKS_PER_SEC);
 done:
     if ( Result == NULL ) Abc_Print(-1, "SCMap: window topology, area, or timing invariant failed.\n");
     ABC_FREE(Backup); ABC_FREE(State); ABC_FREE(Refs); ABC_FREE(Roots); ABC_FREE(List.Plans);
@@ -464,4 +514,37 @@ done:
     }
     Scm_WinModelStop(Model);
     return Result;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Recovers area within electrical and fixed-arc timing bounds.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Scm_ManWindowImprove( Gia_Man_t * pGia, int fVerbose, int fVeryVerbose )
+{
+    return Scm_ManWindowImproveInt(pGia, 0, fVerbose, fVeryVerbose);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Searches critical windows with full-flow lookahead.]
+
+  Description [A no-op returns the input manager without reconstruction.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Scm_ManWindowLookahead( Gia_Man_t * pGia, int nTrials, int fVerbose, int fVeryVerbose )
+{
+    if ( nTrials <= 0 ) return nTrials == 0 ? pGia : NULL;
+    return Scm_ManWindowImproveInt(pGia, nTrials, fVerbose, fVeryVerbose);
 }
