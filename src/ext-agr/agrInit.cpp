@@ -7,6 +7,7 @@
 #include "base/main/mainInt.h"
 #include "aig/gia/gia.h"
 #include "misc/util/utilNam.h"
+#include "misc/util/utilTruth.h"
 #include "map/scl/sclCon.h"
 #include "map/mio/mio.h"
 #include "map/if/if.h"
@@ -26,6 +27,8 @@
 #include <cstdint>
 #include <cerrno>
 #include <functional>
+#include <climits>
+#include <memory>
 #include <fstream>
 #include <limits>
 #include <map>

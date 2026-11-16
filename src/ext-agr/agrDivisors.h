@@ -4,6 +4,23 @@
  * physical evaluator as the ordinary candidate. No approximate score commits. */
 struct SparseDivisors
 {
+    static int countOnes(unsigned value)
+    {
+#if defined(_MSC_VER) && !defined(__clang__)
+        return Abc_TtCountOnes(value);
+#else
+        return __builtin_popcount(value);
+#endif
+    }
+    static int firstBit(unsigned value)
+    {
+        assert(value != 0);
+#if defined(_MSC_VER) && !defined(__clang__)
+        return Abc_Tt6FirstBit(value);
+#else
+        return __builtin_ctz(value);
+#endif
+    }
     struct Cover
     {
         std::vector<unsigned> cubes;
@@ -39,7 +56,7 @@ struct SparseDivisors
             result.cubes.assign(data, data + Vec_IntSize(agrFactorMemory));
             int literals = 0;
             for (unsigned cube : result.cubes)
-                literals += __builtin_popcount(cube);
+                literals += countOnes(cube);
             result.valid = literals <= 256;
             result.complement = phase;
         }
@@ -58,7 +75,7 @@ struct SparseDivisors
                 unsigned value = ~0u;
                 while (cube)
                 {
-                    int lit = __builtin_ctz(cube), v = lit / 2;
+                    int lit = firstBit(cube), v = lit / 2;
                     unsigned bits = v < 5 ? pattern[v] : ((w >> (v - 5)) & 1 ? ~0u : 0u);
                     value &= lit & 1 ? bits : ~bits;
                     cube &= cube - 1;
@@ -128,7 +145,7 @@ struct SparseDivisors
                         d.quotient.push_back(residual);
                         used.insert(cube);
                         used.insert(residual | bb);
-                        d.benefit += __builtin_popcount(residual);
+                        d.benefit += countOnes(residual);
                     }
                 }
             if (d.quotient.empty() || d.benefit <= 0)
