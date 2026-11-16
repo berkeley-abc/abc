@@ -10,8 +10,6 @@ extern "C" void Agr_SetVisitOrder(const int *order, int count)
     coVisitIds = order;
     coVisitSize = count;
 }
-extern "C" int Agr_NtkNativeRegionResubstitute(Abc_Ntk_t *, int, int, int, const unsigned char *,
-                                              int);
 static int coStandardPassDepth = 0;
 struct CoStandardPassScope
 {
@@ -24,14 +22,6 @@ struct CoStandardPassScope
         --coStandardPassDepth;
     }
 };
-extern "C" void Agr_RwSetMask(const unsigned char *, int);
-extern "C";
-extern "C";
-extern "C" void Agr_RwSetBuckets(const unsigned char *, int, int, double, unsigned char *);
-extern "C" int Agr_RwBucketStats(int *);
-extern "C";
-extern "C";
-extern "C" void Agr_RfSetMask(const unsigned char *, int);
 // Run the broad RS/RW/RF passes. Root masks preserve ABC visitation order;
 // the RW filter allocates work using tension-ranked productivity buckets.
 int broadRound(Abc_Frame_t *frame)

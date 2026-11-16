@@ -1,4 +1,5 @@
 #include "agrLog.h"
+#include "agrOperators.h"
 // ABC resubstitution generation with AGR physical evaluation and a root mask.
 /**CFile****************************************************************
 

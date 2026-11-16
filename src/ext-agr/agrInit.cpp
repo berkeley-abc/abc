@@ -1,3 +1,5 @@
+#include "agr.h"
+#include "agrOperators.h"
 #include "agrLog.h"
 #include "aig/aig/aig.h"
 #include "opt/dar/dar.h"
@@ -787,8 +789,6 @@ std::vector<Candidate> generate(const Expr &id, const Truth &t, const std::vecto
 // ABC's general Abc_NtkDup walks IDs for AIGs. New nodes can precede older
 // fanouts topologically after replacement, so checkpoints need an explicit DFS.
 
-#include "agrOperators.h"
-
 #include "agrCompact.h"
 
 #include "agrBroad.h"
@@ -810,11 +810,11 @@ extern "C" int Agr_RunBlock(Abc_Frame_t *frame, int roots)
         return 1;
     return compactRounds(frame, roots);
 }
-extern "C" void Agr_Init(Abc_Frame_t *frame)
+void Agr_Init(Abc_Frame_t *frame)
 {
     Agr_RegisterPlacementCommands(frame);
 }
-extern "C" void Agr_End(Abc_Frame_t *)
+void Agr_End(Abc_Frame_t *)
 {
     Agr_ManShutdown();
 }

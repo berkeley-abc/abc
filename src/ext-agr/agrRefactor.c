@@ -1,4 +1,5 @@
 #include "agrLog.h"
+#include "agrOperators.h"
 /**CFile****************************************************************
 
   FileName    [agrRefactor.c]
@@ -30,8 +31,6 @@
 #include "agrPlace.h"
 
 ABC_NAMESPACE_IMPL_START;
-extern int Agr_FillRfDeepCut(Abc_Obj_t *, Vec_Ptr_t *, int);
-extern long Agr_ReadRfDeepBridges(void);
 
 static const unsigned char *coRfMask = 0;
 static int coRfLimit = 0;
@@ -563,9 +562,6 @@ static int Abc_NtkRefactorInternal(Abc_Ntk_t *pNtk, int nNodeSizeMax, int nMinSa
     // resynthesize each node once
     int coVisitCount = 0;
     const int *coVisitOrder = Agr_ReadVisitOrder(&coVisitCount);
-    const int coCutMode = 0;
-    int coCutTried = 0, coCutUsed = 0;
-    Vec_Ptr_t *const coCut = NULL;
 
     pManRef->nNodesBeg = Abc_NtkNodeNum(pNtk);
     nNodes = Abc_NtkObjNumMax(pNtk);
@@ -590,19 +586,7 @@ static int Abc_NtkRefactorInternal(Abc_Ntk_t *pNtk, int nNodeSizeMax, int nMinSa
 
         // compute a reconvergence-driven cut
         ABC_TIME_START(fVerbose, clk);
-        if (coCut)
-        {
-            ++coCutTried;
-            if (Agr_FillRfDeepCut(pNode, coCut, coCutMode))
-            {
-                vFanins = coCut;
-                ++coCutUsed;
-            }
-            else
-                vFanins = Abc_NodeFindCut(pManCut, pNode, fUseDcs);
-        }
-        else
-            vFanins = Abc_NodeFindCut(pManCut, pNode, fUseDcs);
+        vFanins = Abc_NodeFindCut(pManCut, pNode, fUseDcs);
         ABC_TIME_STOP(fVerbose, pManRef->timeCut, clk);
         // evaluate this cut
         ABC_TIME_START(fVerbose, clk);
@@ -625,12 +609,6 @@ static int Abc_NtkRefactorInternal(Abc_Ntk_t *pNtk, int nNodeSizeMax, int nMinSa
         Dec_GraphFree(pFForm);
     }
     Extra_ProgressBarStop(pProgress);
-    if (coCut)
-    {
-        AGR_VERBOSE("AGR_RF_CUT mode=%d tried=%d custom=%d bridges=%ld\n", coCutMode, coCutTried,
-                   coCutUsed, Agr_ReadRfDeepBridges());
-        Vec_PtrFree(coCut);
-    }
     ABC_TIME_STOP(fVerbose, pManRef->timeTotal, clkStart);
     pManRef->nNodesEnd = Abc_NtkNodeNum(pNtk);
 

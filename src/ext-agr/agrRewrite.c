@@ -1,4 +1,5 @@
 #include "agrLog.h"
+#include "agrOperators.h"
 /**CFile****************************************************************
 
   FileName    [agrRewrite.c]

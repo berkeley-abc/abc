@@ -1,4 +1,5 @@
 #include "agrLog.h"
+#include "agrOperators.h"
 #include "agrPlace.h"
 /**CFile****************************************************************
 
@@ -1836,7 +1837,6 @@ void Agr_ManClearPlacement()
     s_Placement.reset();
 }
 
-extern "C" void Agr_ClearRewriteCache();
 void Agr_ManShutdown()
 {
     std::lock_guard<std::mutex> lock(CommandMutex());

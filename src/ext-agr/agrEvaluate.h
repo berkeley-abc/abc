@@ -6,6 +6,10 @@
 
 ABC_NAMESPACE_HEADER_START
 
+    /* Upstream decAbc.c functions are not declared by dec.h. */
+    int Dec_GraphToNetworkCount(Abc_Obj_t *pRoot, Dec_Graph_t *pGraph, int NodeMax, int LevelMax);
+    Abc_Obj_t *Dec_GraphToNetwork(Abc_Ntk_t *pNtk, Dec_Graph_t *pGraph);
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -17,10 +21,6 @@ extern "C"
     void AgrEval_ManSetPhysicalAreaGuard(int enabled);
 
     void AgrEval_ManPrintEffort();
-
-    /* Upstream decAbc.c functions are not declared by dec.h. */
-    int Dec_GraphToNetworkCount(Abc_Obj_t *pRoot, Dec_Graph_t *pGraph, int NodeMax, int LevelMax);
-    Abc_Obj_t *Dec_GraphToNetwork(Abc_Ntk_t *pNtk, Dec_Graph_t *pGraph);
 
     void AgrEval_ManSetClusterEvaluation(int Enable);
     void AgrEval_ManSetTimingEvaluation(int Enable);

@@ -6,14 +6,14 @@
 
 ABC_NAMESPACE_HEADER_START
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* Upstream decAbc.c functions are not declared by dec.h. */
 int Dec_GraphToNetworkCount( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph,
     int NodeMax, int LevelMax );
 Abc_Obj_t * Dec_GraphToNetwork( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph );
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void Pa_ManSetClusterEvaluation( int Enable );
 /* Pass lifecycle only; the paper score is fixed, not a selectable mode. */
