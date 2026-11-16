@@ -8,7 +8,7 @@
 
   Synopsis    [Fast combinational optimization for verification.]
 
-  Author      [OpenAI Codex, with Alan Mishchenko]
+  Author      [Alan Mishchenko and contributors]
 
   Affiliation [ABC project]
 
