@@ -1,9 +1,9 @@
 --- a/docker/Dockerfile.dev
 +++ b/docker/Dockerfile.dev
 @@ -28,6 +28,12 @@
- 
+
  ENV PATH="/usr/local/bin/wrapped-cc:$PATH"
- 
+
 +# Force ALL build tools to use only 4 threads
 +RUN sed -i 's/-j $(nproc)/-j 4/g' DependencyInstaller.sh && \
 +    sed -i 's/-j$(nproc)/-j4/g' DependencyInstaller.sh && \
