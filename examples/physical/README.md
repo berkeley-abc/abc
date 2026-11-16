@@ -22,14 +22,16 @@ From the repository root, supply your combinational AIG and Liberty library:
 read design.aig
 strash
 read_lib cells.lib
-source examples/physical/agr.abc
+agr
 write_aiger agr.aig
 ```
 
-Replace `agr.abc` with `pa2.abc` for the retained two-round PA reference. The
-recipes include placement and synthesis, and neither calls a technology
-mapper internally. Map both outputs with the same library and command sequence,
-for example `&get -n; &nf; &put; topo; stime`. Measure fresh AIG HPWL and mapped
+`agr.abc` is only a convenience script containing `agr`. The built-in guidance
+step is 0.28 bin widths; no option is needed to reproduce that setting. For PA2,
+use the direct two-round commands in [REPRODUCE.md](REPRODUCE.md), also provided
+in `pa2.abc`. Both recipes include placement and synthesis, and neither calls a
+technology mapper internally. Map both outputs with the same library and command
+sequence. The reproduction runner uses `&get; &nf; &put; stime`. Measure fresh AIG HPWL and mapped
 HPWL with a separate `pa_place` on each endpoint; the incremental optimization
 coordinates are not a fresh-placement evaluation.
 
@@ -113,6 +115,11 @@ variants are excluded from the integration. Benchmark outputs and manuscript
 artifacts are maintained separately from the source tree.
 
 ## Validation
+
+For all-design frontend measurements and CPU-budgeted native ABC, use
+[reproduce.py](reproduce.py). [REPRODUCE.md](REPRODUCE.md) documents inputs,
+direct commands, timing boundaries, cycle replay, failure handling, and outputs.
+The driver runs serially and never launches OpenROAD.
 
 Run `python3 test/physical/regression.py --abc ./abc` for equivalence, repeated
 use, command validation, mapping/unmapping, and native-command handoff checks.

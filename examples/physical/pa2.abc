@@ -1,6 +1,6 @@
 # Two PA RS/RW/RF rounds with the paper timing score.
 # Load a strashed combinational AIG and a Liberty library first.
-pa_place -s 0.28
+pa_place
 pa_rs -K 8 -N 2 -F 0 -t -S 2
 pa_rw -t -E 0 -S 2
 pa_rf -t -E 0 -S 2

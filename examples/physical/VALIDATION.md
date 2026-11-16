@@ -42,11 +42,54 @@ cluster-aware PA rewriting/refactoring, invalid arguments, and CEC of each
 successful endpoint. It requires only Python's standard library and ABC's
 included demonstration Liberty file.
 
-These checks validate source cleanup, functional handoff, and reproduction of
-the retained AIGs. Build/test timings collected during integration are not
-performance measurements. Mapped QoR and physical-backend results were not
-rerun against the newer upstream mapper; reproducing historical PPA additionally
-requires the archived mapping/backend versions and physical setup.
+These integration checks validate source cleanup, functional handoff, and
+reproduction of the retained AIGs. Build/test timings are not performance
+measurements. The separately measured frontend reference below uses the newer
+upstream mapper. Historical PPA reproduction additionally requires the archived
+mapping/backend versions and physical setup; OpenROAD was not rerun.
+
+## New-build frontend reference
+
+The serial default-step campaign completed all 60 metric endpoints: 20 designs
+each for AGR, PA2 and CPU-budgeted native ABC. All 40 AGR/PA2 payloads match the
+retained manifest, including `hyp`. Native ABC met or exceeded the larger of the
+AGR/PA2 synthesis CPU budgets on every design, with complete-cycle overshoot.
+Hardware: Apple M3 Pro, 36 GiB memory; each ABC job ran serially.
+
+Paired geometric-mean changes below use all 20 designs; negative favors AGR:
+
+| AGR versus | AIG nodes | Levels | AIG HPWL | Mapped area | Cell delay | Mapped HPWL |
+|---|---:|---:|---:|---:|---:|---:|
+| PA2 | -2.59% | -2.71% | -4.87% | -5.22% | -0.03% | -6.50% |
+| CPU-budgeted ABC | -3.13% | -6.15% | -8.89% | -6.41% | -5.25% | -10.33% |
+
+| Flow | Synthesis CPU mean / geomean (s) | Process CPU mean / geomean (s) |
+|---|---:|---:|
+| AGR | 2.5283 / 0.6140 | 2.7174 / 1.0283 |
+| PA2 | 2.8278 / 0.6000 | 3.0076 / 1.0385 |
+| CPU-budgeted ABC | 3.0066 / 0.6883 | 3.1853 / 1.1056 |
+
+AGR's synthesis-CPU geometric mean is slightly higher than PA2's. Mapped HPWL
+regresses on nine designs versus PA2 and five versus native ABC; the reference
+JSON lists every regression. No design or failed proof is removed to improve
+the aggregate.
+
+Of 120 requested source/output and mapping CEC checks, 114 passed. All six
+`hyp` checks reached their limits and remain **unproved**; no counterexample
+was reported. Thus the complete measured cohort is 20 designs, while the
+cohort with both new CEC proofs for all three flows is 19. Exact retained
+payload identity is additional evidence for AGR/PA2 on `hyp`, not a newly
+completed proof of the native or mapped endpoints.
+
+`reference_results.json` and `reference_cycles.json` in this directory retain
+the measurements and replay counts. The runner's four unit checks pass,
+including CPU-clock units and failure-safe aggregation. Two-design smoke and
+fixed-cycle replays produced six identical endpoints and passed all 12 CEC
+checks in each run; resuming reused those saved records. The all-design
+geomeans and per-design budget compliance were independently checked.
+
+No synthesis algorithm or physical-backend result was changed for this
+reproduction work. See `REPRODUCE.md` for commands and exact timing boundaries.
 
 ## AGR naming migration
 
