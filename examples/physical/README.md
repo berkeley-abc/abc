@@ -5,43 +5,16 @@ prior placement-aware (PA) implementation as separate ABC extensions. Ordinary
 ABC `rewrite`, `refactor`, `resub`, placement, and mapping implementations are
 unchanged. Both extensions are registered by `src/base/main/mainInit.c`.
 
-## Build and run
+## Reproduction
 
-Use ABC's normal Make build, or CMake:
+- [REPRODUCE.md](REPRODUCE.md): build, inputs, direct AGR/PA commands, CPU-budgeted ABC baseline, fresh endpoint evaluation, and fixed-work replay.
+- [FLOW.md](FLOW.md): AGR and PA inside conventional synthesis flows, with CPU-budgeted native controls.
+- [VALIDATION.md](VALIDATION.md): validation scope and frontend reference measurements.
+- [PA documentation](../../src/ext-pa/README.md): prior-work mapping/unmapping and cluster mode.
 
-```sh
-make -j4
-# Alternatively:
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DABC_SKIP_TESTS=ON
-cmake --build build -j4
-```
-
-From the repository root, supply your combinational AIG and Liberty library:
-
-```text
-read design.aig
-strash
-read_lib cells.lib
-agr
-write_aiger agr.aig
-```
-
-`agr.abc` is only a convenience script containing `agr`. The built-in guidance
-step is 0.28 bin widths; no option is needed to reproduce that setting. For PA2,
-use the direct two-round commands in [REPRODUCE.md](REPRODUCE.md), also provided
-in `pa2.abc`. Both recipes include placement and synthesis, and neither calls a
-technology mapper internally. Map both outputs with the same library and command
-sequence. The reproduction runner uses `&get; &nf; &put; stime`. Measure fresh AIG HPWL and mapped
-HPWL with a separate `pa_place` on each endpoint; the incremental optimization
-coordinates are not a fresh-placement evaluation.
-
-The legacy command `tg` remains an alias for `agr` so saved recipes continue
-to work. It invokes the same implementation and parameters.
-
-Use `agr -h` or the individual `pa_* -h` commands for help. `agr` returns a
-normalized, structurally hashed AIG ready for ordinary ABC commands, mapping,
-or another AGR invocation. No extra `strash` is required after `agr`. An extra
-normalization can change AIG serialization order without changing its function.
+The default placement guidance step is 0.28; no option is required. AGR includes
+final normalization. The legacy `tg` alias calls the same implementation.
+The runners use Python's standard library and do not launch OpenROAD.
 
 ## Adaptive geometric restructuring
 
@@ -79,21 +52,6 @@ full dependencies required by its nonlocal divisors. Only accepted edits update
 the graph and placement. Cached candidate construction never replaces a live
 physical or legality check.
 
-## PA reproduction
-
-PA keeps its own placement manager and commands: `pa_place`, `pa_stats`,
-`pa_time`, `pa_rw`, `pa_rf`, `pa_rs`, and `pa_strash`. The `pa2.abc` recipe is two
-RS→RW→RF rounds: `pa_rs -K 8 -N 2; pa_rw; pa_rf`, repeated twice. The
-paper timing score is always enabled, with bounded RW/RF updates and strict RS
-dependencies. Only native operator controls and PA's explicit `-c` cluster mode
-remain. This recipe is separate from AGR's search policy.
-
-Mapped feedback is also retained. After placing a mapped network with
-`pa_place`, `pa_strash` transfers mapped-cell centers to its AIG nodes. The
-`-c` option on subsequent PA synthesis commands uses those inherited clusters.
-Plain `strash` does not perform that placement transfer. Use identical mapping,
-placement, and feedback counts when comparing flows.
-
 ## Source guide
 
 | Component | Source |
@@ -108,29 +66,6 @@ placement, and feedback counts when comparing flows.
 | Spectral density solver and scratch storage | `agrDensity.cpp`, `agrSpeed.h` |
 | Independent PA implementation | `src/ext-pa/` |
 
-The AGR library data is derived from ABC's rewriting forest; original ABC author
-and license notices are retained. Experimental commands, environment-selected
-policies, mapping-guided selection, placement-trajectory variants, and local LP
-variants are excluded from the integration. Benchmark outputs and manuscript
-artifacts are maintained separately from the source tree.
-
-## Validation
-
-For all-design frontend measurements and CPU-budgeted native ABC, use
-[reproduce.py](reproduce.py). [REPRODUCE.md](REPRODUCE.md) documents inputs,
-direct commands, timing boundaries, cycle replay, failure handling, and outputs.
-The driver runs serially and never launches OpenROAD.
-
-Run `python3 test/physical/regression.py --abc ./abc` for equivalence, repeated
-use, command validation, mapping/unmapping, and native-command handoff checks.
-An optional `--reference` executable checks that native synthesis produces the
-same AIG payload as an unmodified ABC build. See `VALIDATION.md` for the recorded
-integration checks and the endpoint-reproduction scope.
-
-## Practical synthesis flows
-
-Use [FLOW.md](FLOW.md) and `reproduce_flow.py` for the common
-`C -> S -> S -> R -> S` comparison with three AGR slots, three PA2 slots,
-and CPU-budgeted repeated-compression or mixed native ABC slots. The guide
-includes direct command expansions, fixed-work replay, all-design historical
-results, and the precise I/O-unconstrained meaning of the HPWL proxy.
+The AGR library data derives from ABC's rewriting forest. Original author and
+license notices are preserved. PA and AGR own separate state and implementations;
+native ABC synthesis and mapping commands are unchanged.

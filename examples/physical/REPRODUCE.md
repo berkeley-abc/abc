@@ -43,11 +43,6 @@ agr
 write_aiger agr.aig
 ```
 
-`agr.abc` is simply a convenience file containing `agr`. It does not expand to a
-different flow. AGR includes initial guidance placement, both broad/compact
-synthesis blocks, and final normalization. Do not add a second `strash` before
-writing the endpoint if comparing its exact serialization with the manifest.
-
 The two-round PA reference uses the paper score and timing policy by default.
 RW/RF timing is bounded; RS keeps strict dependency updates. The paper's `-c`
 cluster mode remains optional after mapped placement and `pa_strash`. Other
