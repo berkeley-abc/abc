@@ -1,0 +1,10 @@
+Upstream-integration validation
+
+See examples/physical/VALIDATION.md for the current integration checks.
+The retained PA self-contained regression additionally passed 30 CEC cases,
+24 edge cases, and 20 invalid-input/state checks on the Release build.
+The AIG manager layout and seven copied helpers match the current upstream
+ABC implementation (comparison ignores trailing whitespace).
+
+Historical experiments and reports remain in the separate research archive;
+they are not new measurements of this upstream integration.

@@ -22,6 +22,8 @@
 #include "mainInt.h"
 #include "map/emap/emap.h"
 #include "opt/ufar/UfarCmd.h"
+#include "ext-tg/tg.h"
+#include "ext-pa/pa.h"
 
 ABC_NAMESPACE_HEADER_START
 extern void Glucose_Init( Abc_Frame_t * pAbc );
@@ -131,6 +133,8 @@ void Abc_FrameInit( Abc_Frame_t * pAbc )
     Pla_Init( pAbc );
     Test_Init( pAbc );
     Ufar_Init( pAbc );
+    Pa_Init( pAbc );
+    Tg_Init( pAbc );
     Glucose_Init( pAbc );
     Glucose2_Init( pAbc );
     for( p = s_InitializerStart ; p ; p = p->next )
@@ -156,6 +160,8 @@ void Abc_FrameEnd( Abc_Frame_t * pAbc )
     for( p = s_InitializerEnd ; p ; p = p->prev )
         if ( p->destroy )
             p->destroy(pAbc);
+    Tg_End( pAbc );
+    Pa_End( pAbc );
     Abc_End( pAbc );
     Io_End( pAbc );
     Cmd_End( pAbc );

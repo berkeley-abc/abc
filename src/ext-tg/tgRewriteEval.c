@@ -1,0 +1,404 @@
+#include "tgLog.h"
+/**CFile****************************************************************
+
+  FileName    [paRwrEva.c]
+
+  SystemName  [ABC: Logic synthesis and verification system.]
+
+  PackageName [DAG-aware AIG rewriting package.]
+
+  Synopsis    [Placement-aware copy of ABC's rewrite evaluator.]
+
+  Author      [Alan Mishchenko]
+
+  Affiliation [UC Berkeley]
+
+  Date        [Ver. 1.0. Started - June 20, 2005.]
+
+  Revision    [$Id: rwrDec.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+
+***********************************************************************/
+
+#include "opt/rwr/rwr.h"
+#include "bool/dec/dec.h"
+#include "aig/ivy/ivy.h"
+#include "tgEvaluate.h"
+#include <math.h>
+
+ABC_NAMESPACE_IMPL_START
+
+////////////////////////////////////////////////////////////////////////
+///                        DECLARATIONS                              ///
+////////////////////////////////////////////////////////////////////////
+
+static Dec_Graph_t *Rwr_CutEvaluate(Rwr_Man_t *p, Abc_Obj_t *pRoot, Cut_Cut_t *pCut,
+                                    Vec_Ptr_t *vFaninsCur, int nNodesSaved, int LevelMax,
+                                    int *pGainBest, double *pScoreBest, int fPlaceEnable,
+                                    int fRootComplement);
+
+////////////////////////////////////////////////////////////////////////
+///                     FUNCTION DEFINITIONS                         ///
+////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Performs rewriting for one node.]
+
+  Description [This procedure considers all the cuts computed for the node
+  and tries to rewrite each of them using the "forest" of different AIG
+  structures precomputed and stored in the RWR manager.
+  Determines the best rewriting and computes the gain in the number of AIG
+  nodes in the final network. In the end, p->vFanins contains information
+  about the best cut that can be used for rewriting, while p->pGraph gives
+  the decomposition dag (represented using decomposition graph data structure).
+  Returns gain in the number of nodes or -1 if node cannot be rewritten.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int TgEval_RwrNodeRewrite(Rwr_Man_t *p, Cut_Man_t *pManCut, Abc_Obj_t *pNode, int fUpdateLevel,
+                          int fUseZeros, int fPlaceEnable)
+{
+    int fVeryVerbose = 0;
+    Dec_Graph_t *pGraph;
+    Cut_Cut_t *pCut; //, * pTemp;
+    Abc_Obj_t *pFanin;
+    unsigned uPhase;
+    unsigned uTruthBest = 0; // Suppress "might be used uninitialized"
+    unsigned uTruth;
+    char *pPerm;
+    int Required, nNodesSaved;
+    int nNodesSaveCur = -1; // Suppress "might be used uninitialized"
+    int i, GainCur = -1, GainBest = -1;
+    double ScoreCur = -ABC_INFINITY, ScoreBest = -ABC_INFINITY;
+    int fVerbose = Cut_ManReadParams(pManCut)->fVerbose;
+    abctime clk, clk2; //, Counter;
+
+    p->nNodesConsidered++;
+    // get the required times
+    Required = fUpdateLevel ? Abc_ObjRequiredLevel(pNode) : ABC_INFINITY;
+
+    // get the node's cuts
+    ABC_TIME_START(fVerbose, clk);
+    pCut = (Cut_Cut_t *)Abc_NodeGetCutsRecursive(pManCut, pNode, 0, 0);
+    assert(pCut != NULL);
+    ABC_TIME_STOP(fVerbose, p->timeCut, clk);
+
+    // printf( " %d", Rwr_CutCountNumNodes(pNode, pCut) );
+    /*
+        Counter = 0;
+        for ( pTemp = pCut->pNext; pTemp; pTemp = pTemp->pNext )
+            Counter++;
+        printf( "%d ", Counter );
+    */
+    // go through the cuts
+    ABC_TIME_START(fVerbose, clk);
+    for (pCut = pCut->pNext; pCut; pCut = pCut->pNext)
+    {
+        // consider only 4-input cuts
+        if (pCut->nLeaves < 4)
+            continue;
+        //            Cut_CutPrint( pCut, 0 ), printf( "\n" );
+
+        // get the fanin permutation
+        uTruth = 0xFFFF & *Cut_CutReadTruth(pCut);
+        pPerm = p->pPerms4[(int)p->pPerms[uTruth]];
+        uPhase = p->pPhases[uTruth];
+        // collect fanins with the corresponding permutation/phase
+        Vec_PtrClear(p->vFaninsCur);
+        Vec_PtrFill(p->vFaninsCur, (int)pCut->nLeaves, 0);
+        for (i = 0; i < (int)pCut->nLeaves; i++)
+        {
+            pFanin = Abc_NtkObj(pNode->pNtk, pCut->pLeaves[(int)pPerm[i]]);
+            if (pFanin == NULL)
+                break;
+            pFanin = Abc_ObjNotCond(pFanin, ((uPhase & (1 << i)) > 0));
+            Vec_PtrWriteEntry(p->vFaninsCur, i, pFanin);
+        }
+        if (i != (int)pCut->nLeaves)
+        {
+            p->nCutsBad++;
+            continue;
+        }
+        p->nCutsGood++;
+
+        {
+            int Counter = 0;
+            Vec_PtrForEachEntry(Abc_Obj_t *, p->vFaninsCur, pFanin,
+                                i) if (Abc_ObjFanoutNum(Abc_ObjRegular(pFanin)) == 1) Counter++;
+            if (Counter > 2)
+                continue;
+        }
+
+        ABC_TIME_START(fVerbose, clk2);
+        /*
+                printf( "Considering: (" );
+                Vec_PtrForEachEntry( Abc_Obj_t *, p->vFaninsCur, pFanin, i )
+                    printf( "%d ", Abc_ObjFanoutNum(Abc_ObjRegular(pFanin)) );
+                printf( ")\n" );
+        */
+        // mark the fanin boundary
+        Vec_PtrForEachEntry(Abc_Obj_t *, p->vFaninsCur, pFanin, i) Abc_ObjRegular(pFanin)
+            ->vFanouts.nSize++;
+
+        // label MFFC with current ID
+        Abc_NtkIncrementTravId(pNode->pNtk);
+        nNodesSaved = Abc_NodeMffcLabelAig(pNode);
+        // unmark the fanin boundary
+        Vec_PtrForEachEntry(Abc_Obj_t *, p->vFaninsCur, pFanin, i) Abc_ObjRegular(pFanin)
+            ->vFanouts.nSize--;
+        ABC_TIME_STOP(fVerbose, p->timeMffc, clk2);
+
+        // evaluate the cut
+        ABC_TIME_START(fVerbose, clk2);
+        pGraph = Rwr_CutEvaluate(p, pNode, pCut, p->vFaninsCur, nNodesSaved, Required, &GainCur,
+                                 &ScoreCur, fPlaceEnable, ((uPhase & (1 << 4)) > 0));
+        ABC_TIME_STOP(fVerbose, p->timeEval, clk2);
+
+        // check if the cut is better than the current best one
+        if (pGraph != NULL &&
+            ((!fPlaceEnable && GainBest < GainCur) ||
+             (fPlaceEnable && (ScoreBest + 1.0e-10 < ScoreCur ||
+                               (fabs(ScoreBest - ScoreCur) <= 1.0e-10 && GainBest < GainCur)))))
+        {
+            // save this form
+            nNodesSaveCur = nNodesSaved;
+            GainBest = GainCur;
+            ScoreBest = ScoreCur;
+            p->pGraph = pGraph;
+            p->fCompl = ((uPhase & (1 << 4)) > 0);
+            uTruthBest = 0xFFFF & *Cut_CutReadTruth(pCut);
+            // collect fanins in the
+            Vec_PtrClear(p->vFanins);
+            Vec_PtrForEachEntry(Abc_Obj_t *, p->vFaninsCur, pFanin, i)
+                Vec_PtrPush(p->vFanins, pFanin);
+        }
+    }
+    ABC_TIME_STOP(fVerbose, p->timeRes, clk);
+
+    if (fPlaceEnable ? ScoreBest <= 1.0e-10 : GainBest == -1)
+        return fPlaceEnable ? -ABC_INFINITY : -1;
+    /*
+        if ( GainBest > 0 )
+        {
+            printf( "Class %d  ", p->pMap[uTruthBest] );
+            printf( "Gain = %d. Node %d : ", GainBest, pNode->Id );
+            Vec_PtrForEachEntry( Abc_Obj_t *, p->vFanins, pFanin, i )
+                printf( "%d ", Abc_ObjRegular(pFanin)->Id );
+            Dec_GraphPrint( stdout, p->pGraph, NULL, NULL );
+            printf( "\n" );
+        }
+    */
+
+    //    printf( "%d", nNodesSaveCur - GainBest );
+    /*
+        if ( GainBest > 0 )
+        {
+            if ( Rwr_CutIsBoolean( pNode, p->vFanins ) )
+                printf( "b" );
+            else
+            {
+                printf( "Node %d : ", pNode->Id );
+                Vec_PtrForEachEntry( Abc_Obj_t *, p->vFanins, pFanin, i )
+                    printf( "%d ", Abc_ObjRegular(pFanin)->Id );
+                printf( "a" );
+            }
+        }
+    */
+    /*
+        if ( GainBest > 0 )
+            if ( p->fCompl )
+                printf( "c" );
+            else
+                printf( "." );
+    */
+
+    // copy the leaves
+    Vec_PtrForEachEntry(Abc_Obj_t *, p->vFanins, pFanin, i)
+        Dec_GraphNode((Dec_Graph_t *)p->pGraph, i)
+            ->pFunc = pFanin;
+    /*
+        printf( "(" );
+        Vec_PtrForEachEntry( Abc_Obj_t *, p->vFanins, pFanin, i )
+            printf( " %d", Abc_ObjRegular(pFanin)->vFanouts.nSize - 1 );
+        printf( " )  " );
+    */
+    //    printf( "%d ", Rwr_NodeGetDepth_rec( pNode, p->vFanins ) );
+
+    p->nScores[p->pMap[uTruthBest]]++;
+    p->nNodesGained += GainBest;
+    if (fPlaceEnable || fUseZeros || GainBest > 0)
+    {
+        p->nNodesRewritten++;
+    }
+
+    // report the progress
+    if (fVeryVerbose && GainBest > 0)
+    {
+        printf("Node %6s :   ", Abc_ObjName(pNode));
+        printf("Fanins = %d. ", p->vFanins->nSize);
+        printf("Save = %d.  ", nNodesSaveCur);
+        printf("Add = %d.  ", nNodesSaveCur - GainBest);
+        printf("GAIN = %d.  ", GainBest);
+        printf("Cone = %d.  ", p->pGraph ? Dec_GraphNodeNum((Dec_Graph_t *)p->pGraph) : 0);
+        printf("Class = %d.  ", p->pMap[uTruthBest]);
+        printf("\n");
+    }
+    return GainBest;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Evaluates the cut.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Dec_Graph_t *Rwr_CutEvaluate(Rwr_Man_t *p, Abc_Obj_t *pRoot, Cut_Cut_t *pCut, Vec_Ptr_t *vFaninsCur,
+                             int nNodesSaved, int LevelMax, int *pGainBest, double *pScoreBest,
+                             int fPlaceEnable, int fRootComplement)
+{
+    extern int Dec_GraphToNetworkCount(Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int NodeMax,
+                                       int LevelMax);
+    Vec_Ptr_t *vSubgraphs;
+    Dec_Graph_t *pGraphBest = NULL; // Suppress "might be used uninitialized"
+    Dec_Graph_t *pGraphCur;
+    Rwr_Node_t *pNode, *pFanin;
+    int nNodesAdded, GainBest, i, k;
+    unsigned uTruth;
+    double ScoreBest = -ABC_INFINITY;
+    // find the matching class of subgraphs
+    uTruth = 0xFFFF & *Cut_CutReadTruth(pCut);
+    vSubgraphs = Vec_VecEntry(p->vClasses, p->pMap[uTruth]);
+    p->nSubgraphs += vSubgraphs->nSize;
+    // determine the best subgraph
+    GainBest = -1;
+    Vec_PtrForEachEntry(Rwr_Node_t *, vSubgraphs, pNode, i)
+    {
+        // get the current graph
+        pGraphCur = (Dec_Graph_t *)pNode->pNext;
+        // copy the leaves
+        Vec_PtrForEachEntry(Rwr_Node_t *, vFaninsCur, pFanin, k) Dec_GraphNode(pGraphCur, k)
+            ->pFunc = pFanin;
+        if (fPlaceEnable)
+        {
+            double ScoreCur;
+            int GainCur;
+            if (!TgEval_ManEvaluateCandidate(pRoot, pGraphCur, nNodesSaved, LevelMax,
+                                             fRootComplement, &GainCur, &ScoreCur, NULL, NULL,
+                                             NULL) ||
+                ScoreCur <= 1.0e-10)
+                continue;
+            if (ScoreBest + 1.0e-10 < ScoreCur ||
+                (fabs(ScoreBest - ScoreCur) <= 1.0e-10 && GainBest < GainCur) ||
+                (fabs(ScoreBest - ScoreCur) <= 1.0e-10 && GainBest == GainCur &&
+                 pGraphBest == NULL))
+            {
+                GainBest = GainCur;
+                ScoreBest = ScoreCur;
+                pGraphBest = pGraphCur;
+                if (GainCur > 0)
+                {
+                    pNode->nScore++;
+                    pNode->nGain += GainBest;
+                    pNode->nAdded += nNodesSaved - GainCur;
+                }
+            }
+        }
+        else
+        {
+            // Default ABC flow retains its original count/level filter.
+            nNodesAdded = Dec_GraphToNetworkCount(pRoot, pGraphCur, nNodesSaved, LevelMax);
+            if (nNodesAdded == -1)
+                continue;
+            assert(nNodesSaved >= nNodesAdded);
+            // count the gain at this node
+            if (GainBest < nNodesSaved - nNodesAdded)
+            {
+                GainBest = nNodesSaved - nNodesAdded;
+                pGraphBest = pGraphCur;
+
+                // score the graph
+                if (nNodesSaved - nNodesAdded > 0)
+                {
+                    pNode->nScore++;
+                    pNode->nGain += GainBest;
+                    pNode->nAdded += nNodesAdded;
+                }
+            }
+        }
+    }
+    if (pGraphBest == NULL)
+        return NULL;
+    *pGainBest = GainBest;
+    *pScoreBest = fPlaceEnable ? ScoreBest : (double)GainBest;
+    return pGraphBest;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks the type of the cut.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+/**Function*************************************************************
+
+  Synopsis    [Checks the type of the cut.]
+
+  Description [Returns 1(0) if the cut is Boolean (algebraic).]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+/**Function*************************************************************
+
+  Synopsis    [Count the nodes in the cut space of a node.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+/**Function*************************************************************
+
+  Synopsis    [Count the nodes in the cut space of a node.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+/**Function*************************************************************
+
+  Synopsis    [Returns depth of the cut.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+ABC_NAMESPACE_IMPL_END

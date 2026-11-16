@@ -1,0 +1,3 @@
+# Final compact TG policy; placement and both synthesis blocks are included.
+# Load a strashed combinational AIG and a Liberty library first.
+tg -s 0.28
