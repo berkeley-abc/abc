@@ -317,7 +317,7 @@ def geomean(values):
     return math.exp(sum(math.log(v) for v in values) / len(values)) if values and min(values) > 0 else None
 
 
-def summarize(output, rows, designs):
+def summarize(output, rows, designs, flows=FLOWS):
     save(output / 'results.json', rows)
     fields = ['design', 'flow', 'status', 'metric_status', 'verified', 'cycles', 'target_cpu_s',
               'synthesis_cpu_s', 'process_cpu_s', 'evaluation_cpu_s', 'cec_cpu_s',
@@ -330,20 +330,20 @@ def summarize(output, rows, designs):
         writer.writerows(rows)
     valid = {(r['design'], r['flow']): r for r in rows
              if r.get('metric_status') == 'ok' and r.get('status') == 'ok'}
-    cohort = [d for d in designs if all((d, f) in valid for f in FLOWS)]
+    cohort = [d for d in designs if all((d, f) in valid for f in flows)]
     metrics = ['aig_nodes', 'aig_levels', 'aig_hpwl', 'mapped_area', 'mapped_delay_ps', 'mapped_hpwl', 'synthesis_cpu_s', 'process_cpu_s']
     summary = {'requested_designs': designs, 'matched_designs': cohort,
-               'fully_verified_designs': [d for d in cohort if all(valid[d, f].get('verified') for f in FLOWS)],
-               'missing_or_failed': [{'design': d, 'flow': f} for d in designs for f in FLOWS if (d, f) not in valid],
+               'fully_verified_designs': [d for d in cohort if all(valid[d, f].get('verified') for f in flows)],
+               'missing_or_failed': [{'design': d, 'flow': f} for d in designs for f in flows if (d, f) not in valid],
                'unproved_endpoints': [{'design': r['design'], 'flow': r['flow'], 'cec': r.get('cec')}
                                      for r in rows if r.get('metric_status') == 'ok' and not r.get('verified')],
                'flows': {}, 'comparisons': {}}
-    for flow in FLOWS:
+    for flow in flows:
         stats = {m: geomean([valid[d, flow][m] for d in cohort]) for m in metrics}
         for m in ('synthesis_cpu_s', 'process_cpu_s'):
             stats[m + '_mean'] = sum(valid[d, flow][m] for d in cohort) / len(cohort) if cohort else None
         summary['flows'][flow] = stats
-    for ref in ('pa2', 'abc_budget'):
+    for ref in flows[1:]:
         comp = {}
         for m in metrics:
             pairs = [(d, valid[d, 'agr'][m] / valid[d, ref][m]) for d in cohort if valid[d, ref][m] > 0 and valid[d, 'agr'][m] > 0]
@@ -356,11 +356,11 @@ def summarize(output, rows, designs):
     save(output / 'budgets.json', {r['design']: {'target_cpu_s': r['target_cpu_s'], 'cycles': r.get('cycles')}
                                   for r in rows if r['flow'] == 'abc_budget' and r['status'] == 'ok'})
     lines = ['# Frontend baseline reproduction', '',
-             f'Matched designs: {len(cohort)}/{len(designs)}. Fully verified across all three flows: {len(summary["fully_verified_designs"])}.',
+             f'Matched designs: {len(cohort)}/{len(designs)}. Fully verified across all {len(flows)} flows: {len(summary["fully_verified_designs"])}.',
              'Negative changes favor AGR. These are new-build frontend measurements, not historical paper PPA or OpenROAD results.', '',
              '| AGR versus | AIG nodes | Levels | AIG HPWL | Mapped area | Cell delay | Mapped HPWL |',
              '|---|---:|---:|---:|---:|---:|---:|---:|']
-    for ref in ('pa2', 'abc_budget'):
+    for ref in flows[1:]:
         comp = summary['comparisons']['agr_vs_' + ref]
         vals = [comp[m]['change_pct'] for m in metrics[:6]]
         lines.append('| ' + ref + ' | ' + ' | '.join('n/a' if v is None else f'{v:+.2f}%' for v in vals) + ' |')

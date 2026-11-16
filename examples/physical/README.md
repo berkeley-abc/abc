@@ -126,3 +126,11 @@ use, command validation, mapping/unmapping, and native-command handoff checks.
 An optional `--reference` executable checks that native synthesis produces the
 same AIG payload as an unmodified ABC build. See `VALIDATION.md` for the recorded
 integration checks and the endpoint-reproduction scope.
+
+## Practical synthesis flows
+
+Use [FLOW.md](FLOW.md) and `reproduce_flow.py` for the common
+`C -> S -> S -> R -> S` comparison with three AGR slots, three PA2 slots,
+and CPU-budgeted repeated-compression or mixed native ABC slots. The guide
+includes direct command expansions, fixed-work replay, all-design historical
+results, and the precise I/O-unconstrained meaning of the HPWL proxy.

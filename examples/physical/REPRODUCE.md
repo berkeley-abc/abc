@@ -163,6 +163,12 @@ pa_place
 pa_stats
 ```
 
+Mapped HPWL is a frontend proxy, not routed wirelength. The evaluator uses
+internal cell coordinates without detailed pin offsets. Explicit PI/PO terminal
+coordinates are omitted: PI-driven nets retain the box of their internal sinks,
+while PI endpoints and PO endpoints add no terminal distance. This represents
+freely located I/O, not fixed boundary pins.
+
 These use the retained frontend's default, I/O-unconstrained placement policy;
 canvas sizing follows the same policy for every endpoint. They do not impose
 the backend's fixed physical pins or fixed core. Optimization coordinates never
@@ -223,3 +229,11 @@ also enforces the retained algorithm's endpoint hashes. The ordinary protocol
 still records every input/library hash, which must match the baseline. Keep the
 changed binary and output directory separate, and do not interpret an expected
 new AIG as an integration regression against the frozen endpoint manifest.
+
+## Practical synthesis flows
+
+Use [FLOW.md](FLOW.md) and `reproduce_flow.py` for the common
+`C -> S -> S -> R -> S` comparison with three AGR slots, three PA2 slots,
+and CPU-budgeted repeated-compression or mixed native ABC slots. The guide
+includes direct command expansions, fixed-work replay, all-design historical
+results, and the precise I/O-unconstrained meaning of the HPWL proxy.
