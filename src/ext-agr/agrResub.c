@@ -50,7 +50,8 @@ struct Abc_ManRes_t_
     int fPhysical;
     int fPruneTwoNodeStage;
     long nTwoNodeStages, nTwoNodeSkipped, nSmallCones, nTwoNodeImprovements, nSmallConeImprovements;
-    long nTwoNodeCandidates, nSmallConeCandidates, nTwoNodeAreaImprovements, nSmallConeAreaImprovements;
+    long nTwoNodeCandidates, nSmallConeCandidates;
+    long nTwoNodeAreaImprovements, nSmallConeAreaImprovements;
     int nPaMinGain;
     int nPaRequired;
     int nPaGain;
@@ -340,8 +341,10 @@ static int Abc_NtkResubstituteInternal(Abc_Ntk_t *pNtk, int nCutMax, int nStepsM
         AGR_VERBOSE(
             "AGR_RS_EFFORT policy=%d stages=%ld skipped=%ld small=%ld improved=%ld small_improved=%ld "
             "calls=%ld small_calls=%ld area_improved=%ld small_area_improved=%ld\n",
-            pManRes->fPruneTwoNodeStage ? 3 : 0, pManRes->nTwoNodeStages, pManRes->nTwoNodeSkipped, pManRes->nSmallCones,
-            pManRes->nTwoNodeImprovements, pManRes->nSmallConeImprovements, pManRes->nTwoNodeCandidates, pManRes->nSmallConeCandidates,
+            pManRes->fPruneTwoNodeStage ? 3 : 0, pManRes->nTwoNodeStages,
+            pManRes->nTwoNodeSkipped, pManRes->nSmallCones,
+            pManRes->nTwoNodeImprovements, pManRes->nSmallConeImprovements,
+            pManRes->nTwoNodeCandidates, pManRes->nSmallConeCandidates,
             pManRes->nTwoNodeAreaImprovements, pManRes->nSmallConeAreaImprovements);
 
     // print statistics

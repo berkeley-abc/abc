@@ -466,8 +466,6 @@ struct SparseScan
 
         const int trajectoryMode = 0;
 
-        const bool trajectoryActive = trajectoryMode > 0 && trajectoryMode < 9;
-
         const bool continuousHistory = softHistory;
         std::vector<double> trajectorySignal;
 
