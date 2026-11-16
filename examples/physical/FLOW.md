@@ -1,5 +1,8 @@
 # Practical-flow reproduction
 
+For routed evaluation of these endpoints, use the separate
+[OpenROAD runner](openroad/README.md) with `--cohort flow`.
+
 AGR is both a standalone synthesis block and a replacement for optimization
 slots in a conventional synthesis recipe. The primary practical comparison uses
 `C -> S -> S -> R -> S` for every design:

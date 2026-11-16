@@ -1,0 +1,15 @@
+--- a/docker/Dockerfile.dev
++++ b/docker/Dockerfile.dev
+@@ -28,6 +28,12 @@
+ 
+ ENV PATH="/usr/local/bin/wrapped-cc:$PATH"
+ 
++# Force ALL build tools to use only 4 threads
++RUN sed -i 's/-j $(nproc)/-j 4/g' DependencyInstaller.sh && \
++    sed -i 's/-j$(nproc)/-j4/g' DependencyInstaller.sh && \
++    sed -i 's/make -j [0-9]*/make -j 4/g' DependencyInstaller.sh && \
++    sed -i 's/\$(nproc)/4/g' DependencyInstaller.sh
++
+ RUN ./DependencyInstaller.sh -base $options $constantBuildDir \
+     && ./DependencyInstaller.sh -common $options $constantBuildDir \
+     && rm -rf /tmp/installer /tmp/* /var/tmp/* /var/lib/apt/lists/*

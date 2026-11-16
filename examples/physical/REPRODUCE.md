@@ -6,6 +6,10 @@ with the **same built executable**, mapper, Liberty library, and fresh-placement
 policy. It does not invoke OpenROAD. It requires Python 3 on macOS or Linux and
 has no Python package dependencies.
 
+For physical results, pass the saved unmapped endpoints to the separate
+[OpenROAD reproduction flow](openroad/README.md). It provides the paper's exact
+SDC, canvas, pins, mapping handoff and toolchain; frontend tests need no backend.
+
 ## Build and inputs
 
 From the ABC checkout root:

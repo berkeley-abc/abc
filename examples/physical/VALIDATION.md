@@ -28,6 +28,22 @@ and all six reported QoR metrics across 20 designs. The practical-flow smoke
 replays eight endpoints on `ctrl`/`router`, with source and mapping CEC.
 Fixed-work correctness replays do not establish new CPU-matched performance.
 
+## Backend setup validation
+
+The [OpenROAD package](openroad/README.md) was checked against all 20 archived
+design configurations in both the single-block and practical-flow cohorts:
+SDC, die/core, pin commands/order, density, corner, and resource limits match.
+The mapping override retains the historical executable Tcl commands.
+A `ctrl` dry-run and one-pass mapping/initial-floorplan smoke check passed,
+including mapped-netlist CEC. Reading saved global/final databases reproduced
+their HPWL exactly and verified the frozen pin rectangles and die/core.
+No global-placement or routing experiment was rerun for this validation.
+
+The public source revisions and build patch were verified; validation used the
+archived tool binaries. A fresh Docker source build was not repeated. Binary
+hashes from the historical build are reference provenance, not a promise of
+bit-identical recompilation with different system dependencies.
+
 ## New-build frontend reference
 
 The serial default-step campaign completed all 60 metric endpoints: 20 designs

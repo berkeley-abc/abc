@@ -9,12 +9,14 @@ unchanged. Both extensions are registered by `src/base/main/mainInit.c`.
 
 - [REPRODUCE.md](REPRODUCE.md): build, inputs, direct AGR/PA commands, CPU-budgeted ABC baseline, fresh endpoint evaluation, and fixed-work replay.
 - [FLOW.md](FLOW.md): AGR and PA inside conventional synthesis flows, with CPU-budgeted native controls.
+- [OpenROAD reproduction](openroad/README.md): pinned backend, mapping-only handoff, SDC, fixed canvas/pins, and routed metrics.
 - [VALIDATION.md](VALIDATION.md): validation scope and frontend reference measurements.
 - [PA documentation](../../src/ext-pa/README.md): prior-work mapping/unmapping and cluster mode.
 
 The default placement guidance step is 0.28; no option is required. AGR includes
 final normalization. The legacy `tg` alias calls the same implementation.
-The runners use Python's standard library and do not launch OpenROAD.
+The frontend runners use Python's standard library and do not launch OpenROAD.
+The separate optional backend runner uses Docker.
 
 ## Adaptive geometric restructuring
 
