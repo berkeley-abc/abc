@@ -99,8 +99,32 @@ version after prefix substitution. The only executable addition is the legacy
 source filenames, compile-time diagnostics, log prefixes, recipes, and tests
 use AGR. Tension remains the name of the residual-conflict metric.
 
-The 23 maintained PA source files are unchanged. All 52 canonical endpoint
+During the naming migration, the 23 maintained PA source files were unchanged. All 52 canonical endpoint
 hashes were rechecked after the rename; previous direct CEC proofs remain
 applicable to those identical AIG payloads. The regression suite reruns CEC
 on its generated endpoint cases. Historical validation/source snapshots retain
 their original identifiers rather than being relabelled as new experiments.
+
+## Final PA command policy
+
+PA now exposes the paper policy directly: `pa_rs -K 8 -N 2; pa_rw; pa_rf`.
+The node/HPWL/integrated root-slack score has fixed weights 1/0.25/0.5.
+RW/RF always use bounded timing, while RS keeps dependency-complete updates.
+Native operator controls and the explicit `-c` mapped-cluster mode remain.
+Alternative scoring formulas, selectable timing efforts, full-cone scoring,
+adjustable score weights and the extra balanced-refactor candidate were removed
+from the parsers and implementation. Native ABC operators and AGR are unchanged.
+
+The simplified recipe reproduces all 20 retained PA endpoints. The complete
+52-endpoint check (20 AGR, 20 PA, 12 sensitivity cases) passes. Four designs
+(`adder`, `ctrl`, `router`, `voter`) also reproduce the old explicit-policy
+implementation through five mapped-feedback cycles with `-c`, with identical
+payloads and passing CEC. Release and audit builds each pass 25 CEC cases,
+16 edge cases and 33 input/state checks; the upstream integration suite passes
+37 checks, including native-command comparisons. These are correctness checks,
+not new performance measurements.
+
+The saved `reference_results.json` remains a record of its original run and
+command spelling. Use the current direct recipes in `REPRODUCE.md`; the removed
+switches are rejected rather than silently reinterpreted. Saved benchmark
+outputs and backend results have not been overwritten.

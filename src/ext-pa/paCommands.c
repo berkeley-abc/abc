@@ -130,9 +130,6 @@ usage:
 
 int Pa_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int ScoreMode = 0;
-    double TimingWeight = 0.50;
-    int fTimingWeightSet = 0;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pDup;
     int c, RetValue;
     int fUpdateLevel;
@@ -140,17 +137,14 @@ int Pa_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVerbose;
     int fVeryVerbose;
     int fClusterEvaluation;
-    int fTimingEvaluation;
-    int TimingEffort = 2, fTimingEffortSet = 0;
     // set defaults
     fUpdateLevel = 1;
     fUseZeros    = 0;
     fVerbose     = 0;
     fVeryVerbose = 0;
     fClusterEvaluation = 0;
-    fTimingEvaluation = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "lzvwhctTWSE" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "lzvwhc" ) ) != EOF )
     {
         switch ( c )
         {
@@ -170,43 +164,6 @@ int Pa_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             fClusterEvaluation ^= 1;
             break;
-        case 'E':
-            if ( globalUtilOptind >= argc ) goto usage;
-            {
-                char * End;
-                long Value = strtol(argv[globalUtilOptind++], &End, 10);
-                if ( End == argv[globalUtilOptind - 1] || *End != '\0'
-                  || Value < 0 || Value > 2 ) goto usage;
-                TimingEffort = (int)Value;
-                fTimingEffortSet = 1;
-            }
-            break;
-        case 't':
-            fTimingEvaluation = 1;
-            break;
-        case 'T':
-            fTimingEvaluation = 2;
-            break;
-        case 'S':
-            if ( globalUtilOptind >= argc ) goto usage;
-            {
-                char * pEnd;
-                long Value = strtol(argv[globalUtilOptind++], &pEnd, 10);
-                if ( pEnd == argv[globalUtilOptind - 1] || *pEnd != '\0'
-                  || Value < 0 || Value > 2 ) goto usage;
-                ScoreMode = (int)Value;
-            }
-            break;
-        case 'W':
-            fTimingWeightSet = 1;
-            if ( globalUtilOptind >= argc ) goto usage;
-            {
-                char * pEnd;
-                TimingWeight = strtod(argv[globalUtilOptind++], &pEnd);
-                if ( pEnd == argv[globalUtilOptind - 1] || *pEnd != '\0' || TimingWeight != TimingWeight
-                  || TimingWeight < 0.0 || TimingWeight > 10.0 ) goto usage;
-            }
-            break;
         case 'h':
             goto usage;
         default:
@@ -214,21 +171,8 @@ int Pa_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
-    if ( fTimingEffortSet && fTimingEvaluation != 1 )
-    {
-        Abc_Print(-1, "-E requires -t.\n");
-        return 1;
-    }
-    if ( ScoreMode == 2 && fTimingEvaluation != 1 )
-    {
-        Abc_Print(-1, "-S 2 requires -t.\n");
-        return 1;
-    }
-    if ( fTimingWeightSet && !fTimingEvaluation )
-    {
-        Abc_Print(-1, "-W requires -t or -T.\n");
-        return 1;
-    }
+    if ( globalUtilOptind != argc )
+        goto usage;
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
@@ -250,17 +194,14 @@ int Pa_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    // Apply the fixed paper timing/score policy.
+    Pa_ManSetExactTiming(0);
     // modify the current network
     pDup = Abc_NtkDup( pNtk );
     Pa_ManSetClusterEvaluation( fClusterEvaluation );
-    Pa_ManSetTimingEffort(fTimingEvaluation ? TimingEffort : 0);
-    Pa_ManSetScoreMode(ScoreMode);
-    Pa_ManSetTimingWeight(TimingWeight);
-    Pa_ManSetTimingEvaluation( fTimingEvaluation );
+    Pa_ManSetTimingActive( 1 );
     RetValue = Pa_NtkRewrite( pNtk, fUpdateLevel, fUseZeros, fVerbose, fVeryVerbose, 1 );
-    Pa_ManSetTimingEvaluation( 0 );
-    Pa_ManSetTimingWeight(0.50);
-    Pa_ManSetScoreMode(0);
+    Pa_ManSetTimingActive( 0 );
     Pa_ManSetExactTiming(0);
     Pa_ManSetClusterEvaluation( 0 );
     if ( RetValue <= 0 )
@@ -277,9 +218,7 @@ int Pa_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: pa_rw [-lzvwhctT] [-WSE <num>]\n" );
-    Abc_Print(-2, "\t-S <num> : experimental score: 0 original, 1 node-priority, 2 integrated criticality\n");
-    Abc_Print( -2, "\t-W <num> : timing-score weight with -t or -T [default = 0.5]\n" );
+    Abc_Print( -2, "usage: pa_rw [-lzvwhc]\n" );
     Abc_Print( -2, "\t         performs technology-independent rewriting of the AIG\n" );
     Abc_Print( -2, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     Abc_Print( -2, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
@@ -287,9 +226,7 @@ usage:
     Abc_Print( -2, "\t-w     : toggle printout subgraph statistics [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t        requires pa_place on the current AIG\n" );
     Abc_Print( -2, "\t-c     : snap new AIG nodes to inherited mapped-cell clusters\n" );
-    Abc_Print( -2, "\t-E <num> : with -t: 0 bounded, 1 lazy required, 2 full incremental [default = 2]\n" );
-    Abc_Print( -2, "\t-t     : use the local root-slack timing score\n" );
-    Abc_Print( -2, "\t-T     : use the experimental full-cone timing score\n" );
+    Abc_Print( -2, "\t         paper root-slack score and bounded timing updates are always enabled\n" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -308,10 +245,6 @@ usage:
 
 int Pa_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int ScoreMode = 0;
-    double TimingWeight = 0.50;
-    int fTimingWeightSet = 0;
-    int fBalanced = 0;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pDup;
     int c, RetValue;
     int nNodeSizeMax;
@@ -322,8 +255,6 @@ int Pa_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fUseDcs;
     int fVerbose;
     int fClusterEvaluation;
-    int fTimingEvaluation;
-    int TimingEffort = 2, fTimingEffortSet = 0;
     extern int Pa_NtkRefactorPhysical( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nMinSaved, int nConeSizeMax, int fUpdateLevel, int fUseZeros, int fUseDcs, int fVerbose );
 
     // set defaults
@@ -337,9 +268,8 @@ int Pa_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     fUseDcs      =  0;
     fVerbose     =  0;
     fClusterEvaluation = 0;
-    fTimingEvaluation = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NMCdlzvhctTWaSE" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NMCdlzvhc" ) ) != EOF )
     {
         switch ( c )
         {
@@ -386,44 +316,6 @@ int Pa_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             fClusterEvaluation ^= 1;
             break;
-        case 'E':
-            if ( globalUtilOptind >= argc ) goto usage;
-            {
-                char * End;
-                long Value = strtol(argv[globalUtilOptind++], &End, 10);
-                if ( End == argv[globalUtilOptind - 1] || *End != '\0'
-                  || Value < 0 || Value > 2 ) goto usage;
-                TimingEffort = (int)Value;
-                fTimingEffortSet = 1;
-            }
-            break;
-        case 't':
-            fTimingEvaluation = 1;
-            break;
-        case 'T':
-            fTimingEvaluation = 2;
-            break;
-        case 'a': fBalanced ^= 1; break;
-        case 'S':
-            if ( globalUtilOptind >= argc ) goto usage;
-            {
-                char * pEnd;
-                long Value = strtol(argv[globalUtilOptind++], &pEnd, 10);
-                if ( pEnd == argv[globalUtilOptind - 1] || *pEnd != '\0'
-                  || Value < 0 || Value > 2 ) goto usage;
-                ScoreMode = (int)Value;
-            }
-            break;
-        case 'W':
-            fTimingWeightSet = 1;
-            if ( globalUtilOptind >= argc ) goto usage;
-            {
-                char * pEnd;
-                TimingWeight = strtod(argv[globalUtilOptind++], &pEnd);
-                if ( pEnd == argv[globalUtilOptind - 1] || *pEnd != '\0' || TimingWeight != TimingWeight
-                  || TimingWeight < 0.0 || TimingWeight > 10.0 ) goto usage;
-            }
-            break;
         case 'h':
             goto usage;
         default:
@@ -435,21 +327,8 @@ int Pa_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( nMinSaved == 0 )
         fUseZeros = 1;
 
-    if ( fTimingEffortSet && fTimingEvaluation != 1 )
-    {
-        Abc_Print(-1, "-E requires -t.\n");
-        return 1;
-    }
-    if ( ScoreMode == 2 && fTimingEvaluation != 1 )
-    {
-        Abc_Print(-1, "-S 2 requires -t.\n");
-        return 1;
-    }
-    if ( fTimingWeightSet && !fTimingEvaluation )
-    {
-        Abc_Print(-1, "-W requires -t or -T.\n");
-        return 1;
-    }
+    if ( globalUtilOptind != argc )
+        goto usage;
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
@@ -482,21 +361,16 @@ int Pa_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    // Apply the fixed paper timing/score policy.
+    Pa_ManSetExactTiming(0);
     // modify the current network
     pDup = Abc_NtkDup( pNtk );
     Pa_ManSetClusterEvaluation( fClusterEvaluation );
-    Pa_ManSetBalancedRefactor(fBalanced);
-    Pa_ManSetTimingEffort(fTimingEvaluation ? TimingEffort : 0);
-    Pa_ManSetScoreMode(ScoreMode);
-    Pa_ManSetTimingWeight(TimingWeight);
-    Pa_ManSetTimingEvaluation( fTimingEvaluation );
+    Pa_ManSetTimingActive( 1 );
     RetValue = Pa_NtkRefactorPhysical( pNtk, nNodeSizeMax, nMinSaved,
         nConeSizeMax, fUpdateLevel, fUseZeros, fUseDcs, fVerbose );
-    Pa_ManSetTimingEvaluation( 0 );
-    Pa_ManSetTimingWeight(0.50);
-    Pa_ManSetScoreMode(0);
+    Pa_ManSetTimingActive( 0 );
     Pa_ManSetExactTiming(0);
-    Pa_ManSetBalancedRefactor(0);
     Pa_ManSetClusterEvaluation( 0 );
     if ( RetValue <= 0 )
     {
@@ -512,10 +386,7 @@ int Pa_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: pa_rf [-NMCWSE <num>] [-dlzvhctTa]\n" );
-    Abc_Print(-2, "\t-a       : also evaluate an arrival-balanced factored form\n");
-    Abc_Print(-2, "\t-S <num> : experimental score: 0 original, 1 node-priority, 2 integrated criticality\n");
-    Abc_Print( -2, "\t-W <num> : timing-score weight with -t or -T [default = 0.5]\n" );
+    Abc_Print( -2, "usage: pa_rf [-NMC <num>] [-dlzvhc]\n" );
     Abc_Print( -2, "\t           performs technology-independent refactoring of the AIG\n" );
     Abc_Print( -2, "\t-N <num> : the max support of the collapsed node [default = %d]\n", nNodeSizeMax );
     Abc_Print( -2, "\t-M <num> : the min number of nodes saved after one step (0 <= num) [default = %d]\n", nMinSaved );
@@ -526,9 +397,7 @@ usage:
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t          requires pa_place on the current AIG\n" );
     Abc_Print( -2, "\t-c       : snap new AIG nodes to inherited mapped-cell clusters\n" );
-    Abc_Print( -2, "\t-E <num> : with -t: 0 bounded, 1 lazy required, 2 full incremental [default = 2]\n" );
-    Abc_Print( -2, "\t-t       : use the local root-slack timing score\n" );
-    Abc_Print( -2, "\t-T       : use the experimental full-cone timing score\n" );
+    Abc_Print( -2, "\t         paper root-slack score and bounded timing updates are always enabled\n" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
@@ -551,9 +420,6 @@ int Pa_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
     int RS_CUT_MIN =  4;
     int RS_CUT_MAX = 16;
     int c;
-    int ScoreMode = 0;
-    double TimingWeight = 0.50;
-    int fTimingWeightSet = 0;
     int nCutsMax;
     int nNodesMax;
     int nLevelsOdc;
@@ -562,20 +428,20 @@ int Pa_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fUseZeros;
     int fVerbose;
     int fVeryVerbose;
-    int fTiming = 0, fClusterEvaluation = 0, fMinSavedSet = 0, RetValue;
+    int fClusterEvaluation = 0, RetValue;
     Abc_Ntk_t * pDup = NULL;
 
     // set defaults
     nCutsMax     =  8;
     nNodesMax    =  1;
     nLevelsOdc   =  0;
-    nMinSaved    =  1;
+    nMinSaved    =  0;
     fUpdateLevel =  1;
     fUseZeros    =  0;
     fVerbose     =  0;
     fVeryVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KNMFlzvwhctTWS" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KNMFlzvwhc" ) ) != EOF )
     {
         switch ( c )
         {
@@ -603,7 +469,6 @@ int Pa_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
                 goto usage;
             }
-            fMinSavedSet = 1;
             if ( !Pa_ReadNonnegativeInt(argc, argv, &nMinSaved) )
                 goto usage;
             break;
@@ -618,8 +483,6 @@ int Pa_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
 
         case 'c': fClusterEvaluation ^= 1; break;
-        case 't': fTiming = 1; break;
-        case 'T': fTiming = 2; break;
         case 'l':
             fUpdateLevel ^= 1;
             break;
@@ -632,49 +495,19 @@ int Pa_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'w':
             fVeryVerbose ^= 1;
             break;
-        case 'S':
-            if ( globalUtilOptind >= argc ) goto usage;
-            {
-                char * pEnd;
-                long Value = strtol(argv[globalUtilOptind++], &pEnd, 10);
-                if ( pEnd == argv[globalUtilOptind - 1] || *pEnd != '\0'
-                  || Value < 0 || Value > 2 ) goto usage;
-                ScoreMode = (int)Value;
-            }
-            break;
-        case 'W':
-            fTimingWeightSet = 1;
-            if ( globalUtilOptind >= argc ) goto usage;
-            {
-                char * pEnd;
-                TimingWeight = strtod(argv[globalUtilOptind++], &pEnd);
-                if ( pEnd == argv[globalUtilOptind - 1] || *pEnd != '\0' || TimingWeight != TimingWeight
-                  || TimingWeight < 0.0 || TimingWeight > 10.0 ) goto usage;
-            }
-            break;
         case 'h':
             goto usage;
         default:
             goto usage;
         }
     }
-    if ( !fMinSavedSet )
-        nMinSaved = 0;
     if ( fUseZeros )
         nMinSaved = 0;
     if ( nMinSaved == 0 )
         fUseZeros = 1;
 
-    if ( ScoreMode == 2 && fTiming != 1 )
-    {
-        Abc_Print(-1, "-S 2 requires -t.\n");
-        return 1;
-    }
-    if ( fTimingWeightSet && !fTiming )
-    {
-        Abc_Print(-1, "-W requires -t or -T.\n");
-        return 1;
-    }
+    if ( globalUtilOptind != argc )
+        goto usage;
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
@@ -707,17 +540,15 @@ int Pa_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    // Apply the fixed paper timing/score policy.
+    Pa_ManSetExactTiming(0);
     // modify the current network
     pDup = Abc_NtkDup(pNtk);
     Pa_ManSetClusterEvaluation(fClusterEvaluation);
-    Pa_ManSetScoreMode(ScoreMode);
-    Pa_ManSetTimingWeight(TimingWeight);
-    Pa_ManSetTimingEvaluation(fTiming);
+    Pa_ManSetTimingActive(1);
     RetValue = Pa_NtkResubstitute(pNtk, nCutsMax, nNodesMax, nMinSaved,
         nLevelsOdc, fUpdateLevel, fVerbose, fVeryVerbose);
-    Pa_ManSetTimingEvaluation(0);
-    Pa_ManSetTimingWeight(0.50);
-    Pa_ManSetScoreMode(0);
+    Pa_ManSetTimingActive(0);
     Pa_ManSetClusterEvaluation(0);
     if ( RetValue <= 0 )
     {
@@ -730,22 +561,19 @@ int Pa_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: pa_rs [-KNMFWS <num>] [-clztTvwh]\n" );
-    Abc_Print(-2, "\t-S <num> : experimental score: 0 original, 1 node-priority, 2 integrated criticality\n");
-    Abc_Print( -2, "\t-W <num> : timing-score weight with -t or -T [default = 0.5]\n" );
+    Abc_Print( -2, "usage: pa_rs [-KNMF <num>] [-clzvwh]\n" );
     Abc_Print( -2, "\t           performs technology-independent restructuring of the AIG\n" );
     Abc_Print( -2, "\t-K <num> : the max cut size (%d <= num <= %d) [default = %d]\n", RS_CUT_MIN, RS_CUT_MAX, nCutsMax );
     Abc_Print( -2, "\t-N <num> : the max number of nodes to add (0 <= num <= 3) [default = %d]\n", nNodesMax );
     Abc_Print( -2, "\t-M <num> : the min number of nodes saved after one step (0 <= num) [default = %d]\n", nMinSaved );
     Abc_Print( -2, "\t-F <num> : the number of fanout levels for ODC computation [default = %d]\n", nLevelsOdc );
-    Abc_Print( -2, "\t          ranks candidates by nodes and HPWL (default -M 0)\n" );
+    Abc_Print( -2, "\t          ranks candidates by nodes, HPWL and root slack (default -M 0)\n" );
     Abc_Print( -2, "\t-c       : use inherited mapped-cell clusters after pa_strash\n" );
-    Abc_Print( -2, "\t-t       : include local placement-based timing in the PA score\n" );
-    Abc_Print( -2, "\t-T       : include full-cone timing (slower ablation)\n" );
     Abc_Print( -2, "\t-l       : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle verbose printout of ODC computation [default = %s]\n", fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t         paper root-slack score and strict dependency timing are always enabled\n" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     return 1;
 }

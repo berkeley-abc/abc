@@ -1,10 +1,25 @@
-Upstream-integration validation
+Final PA command policy validation — 2026-11-15
 
-See examples/physical/VALIDATION.md for the current integration checks.
-The retained PA self-contained regression additionally passed 30 CEC cases,
-24 edge cases, and 20 invalid-input/state checks on the Release build.
-The AIG manager layout and seven copied helpers match the current upstream
-ABC implementation (comparison ignores trailing whitespace).
+The fixed policy uses node gain + 0.25 normalized local HPWL + 0.5 integrated
+root-slack gain. Timing is always enabled: bounded RW/RF and strict RS.
+Native operator controls and explicit -c mapped clustering remain supported.
+Alternative score/weight/effort selectors, full-cone scoring and the extra
+balanced-refactor candidate were removed from the active implementation.
 
-Historical experiments and reports remain in the separate research archive;
-they are not new measurements of this upstream integration.
+Validation:
+- Upstream Release: 52/52 retained AIG payload matches (20 AGR, 20 PA2,
+  12 AGR guidance-sensitivity endpoints).
+- Local Release: 20/20 retained PA2 payload matches.
+- Four real designs, each with five mapped feedback cycles: identical before/
+  after payloads and passing source CEC, using explicit -c in each cycle.
+- Release and audit: 25 CEC cases, 16 edge cases, 33 input/state checks each.
+- Integration: 37 upstream checks including native-command comparison;
+  34 local checks without that optional reference executable.
+- Frontend runner replay: six endpoints and all six-metric vectors identical
+  to the retained baseline; 12/12 CEC checks pass. Four runner unit tests pass.
+
+Prior validation records are preserved in Git history and the local audit
+archive integration/validation/pa_final_policy/before_validation_*.txt.
+The full current local logs and source/binary audit are in that directory.
+Historical benchmark outputs and runtime/physical-backend tables are unchanged.
+No new performance or OpenROAD claim is made from these correctness checks.

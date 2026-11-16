@@ -17,7 +17,7 @@ import subprocess
 import sys
 import time
 
-PA_CYCLE = 'pa_rs -K 8 -N 2 -F 0 -t -S 2; pa_rw -t -E 0 -S 2; pa_rf -t -E 0 -S 2'
+PA_CYCLE = 'pa_rs -K 8 -N 2; pa_rw; pa_rf'
 ABC_CYCLE = 'resub -K 8 -N 2 -F 0; rewrite; refactor'
 MAPPER = '&get; &nf; &put; stime'
 FLOWS = ('agr', 'pa2', 'abc_budget')

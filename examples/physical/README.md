@@ -83,10 +83,10 @@ physical or legality check.
 
 PA keeps its own placement manager and commands: `pa_place`, `pa_stats`,
 `pa_time`, `pa_rw`, `pa_rf`, `pa_rs`, and `pa_strash`. The `pa2.abc` recipe is two
-RS→RW→RF rounds, using `-K 8 -N 2 -F 0` for RS and `-t -S 2` for the paper timing
-score; RW/RF additionally use bounded timing (`-E 0`). This retained recipe is
-separate from AGR's search policy. The timing-dependency correctness fixes remain
-enabled.
+RS→RW→RF rounds: `pa_rs -K 8 -N 2; pa_rw; pa_rf`, repeated twice. The
+paper timing score is always enabled, with bounded RW/RF updates and strict RS
+dependencies. Only native operator controls and PA's explicit `-c` cluster mode
+remain. This recipe is separate from AGR's search policy.
 
 Mapped feedback is also retained. After placing a mapped network with
 `pa_place`, `pa_strash` transfers mapped-cell centers to its AIG nodes. The

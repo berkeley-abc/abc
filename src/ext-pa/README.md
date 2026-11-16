@@ -32,17 +32,17 @@ multiple threads in one process.
 
 ## Paper flow
 
-The paper's bounded timing setting is explicit: `pa_rw -t -S 2 -E 0` and
-`pa_rf -t -S 2 -E 0`. Resubstitution uses `pa_rs -N 2 -t -S 2` and maintains
-strict timing for its nonlocal divisors. The general `-t` default remains
-strict (`-E 2`); use the explicit paper commands to reproduce bounded results.
+The final commands always use the paper's integrated root-slack timing score.
+RW/RF use bounded timing updates; RS keeps strict dependency updates for its
+nonlocal divisors. No timing, scoring or extra-candidate policy switches are
+needed. Native operator controls and the paper's explicit cluster mode remain.
 
 Starting from `read design.aig; strash; dc2`, load the target Liberty file with
 `read_lib library.lib`. Define **P** as this fixed six-command sequence:
 
 ```
-pa_rs -N 2 -t -S 2; pa_rw -t -S 2 -E 0; pa_rf -t -S 2 -E 0;
-pa_rs -N 2 -t -S 2; pa_rw -t -S 2 -E 0; pa_rf -t -S 2 -E 0
+pa_rs -K 8 -N 2; pa_rw; pa_rf;
+pa_rs -K 8 -N 2; pa_rw; pa_rf
 ```
 
 PA runs `pa_place; P`. PA-unmap first runs PA, then repeats exactly five times:
@@ -89,34 +89,16 @@ pa_rw
 pa_rf
 ```
 
-`pa_rs` and `pa_rs -t` use the same placement/HPWL evaluator for
-resubstitution. `pa_rs -N 2` enables up to two added ANDs per candidate (the
-native default is one); PA mode defaults to minimum node gain zero.
+`pa_rs` retains the native resubstitution controls: `-K`, `-N`, `-M`, `-F`,
+`-l`, `-z`, `-v`, `-w`, and `-h`, plus PA's `-c` cluster mode. `-N 2` allows
+up to two added ANDs in a candidate; the native default remains one. PA's
+minimum node-gain default is zero, allowing equal-size positive-score changes.
 
-`pa_rf` also defaults to minimum node gain zero, preserving positive-score
-physical replacements that do not save nodes. An explicit `pa_rf -M <num>`
-requires at least that many saved nodes for every candidate, including
-constants and the optional balanced form. `-z` overrides `-M` to allow zero
-gain, matching the command's existing option precedence.
-
-The `pa_rw`, `pa_rf`, and `pa_rs` commands select the HPWL-aware path;
-ordinary `rw`, `rf`, and `rs` are the unmodified upstream commands. The optional
-`-t` switch enables a continuous local-slack timing score (`pa_rw -t`,
-`pa_rf -t`). `-T` retains the more expensive full-cone timing score for
-controlled comparison.
-Without `-t`, candidate selection is unchanged. The timing variant can also
-be combined with `-c` after mapped-cell unmapping.
-
-`pa_rw -t -E <mode>` and `pa_rf -t -E <mode>` control timing effort without
-changing the score weights or placement algorithm. Mode 2 (the default) keeps
-full incremental arrivals, lazy required times, and affected-path candidate
-evaluation. Mode 0 retains the bounded traversal-frontier arrival proxy and
-freezes required budgets within a command. Mode 1 uses the same bounded
-candidate/arrival work as mode 0 but maintains required times lazily. Modes 0
-and 1 are deliberate timing approximations, not exact STA. Resubstitution
-keeps mode 2 because its divisor set can extend outside the current cone.
-These controlled modes require `-t`; `-T` remains a separate full-cone ablation.
-
+`pa_rw` retains the native rewriting switches and `-c`. `pa_rf` retains the
+native refactoring controls and `-c`; its minimum node-gain default is also zero.
+An explicit `-M` is enforced for every candidate, including constants, and `-z`
+overrides it to allow zero gain. The timing weight is fixed at 0.5 and the HPWL
+weight at 0.25. Both ordinary and cluster modes use this same paper score.
 
 For placement-aware optimization **after unmapping a placed cell netlist**:
 
@@ -149,8 +131,8 @@ finite unit dimensions. `pa_place` still requires at least one initial internal
 node; empty states created by optimization or `pa_strash` are supported.
 
 `-c` requires this inherited placement and uses the same shared evaluator
-for rewrite, refactor, and resubstitution. It can be combined with `-t`
-and `-S 2`. The command resets the cluster mode on return, so a later
+for rewrite, refactor, and resubstitution with the default paper score.
+The command resets the cluster mode on return, so a later
 command without `-c` uses ordinary incremental placement. For each candidate, the original
 MFFC nodes are grouped by nearly equal coordinates (within 0.001 in both
 axes). After the usual HPWL-optimal region placement, each new virtual AND
@@ -269,35 +251,21 @@ scratch buffer; overflow deltas are computed only when explicitly requested
 by a diagnostic caller. The paper flow uses this single placement pass; no coordinate-refinement
 sweeps are performed during candidate evaluation.
 
-The HPWL-only candidate score is
+The fixed candidate score is
 
 ```
-node_gain + 0.25 * HPWL_reduction / mean_net_HPWL
+S = node_gain + 0.25 * HPWL_reduction / mean_net_HPWL
+  + 0.5 * (Phi(new_logic_slack) - Phi(old_logic_slack)
+         + Phi(new_wire_slack)  - Phi(old_wire_slack)
+         + Phi(new_fanout_slack) - Phi(old_fanout_slack))
+Phi(s) = log1p(s) if s > 0, otherwise s
 ```
 
-The scale is fixed at the start of each command. `-t` adds
-
-```
-W * (c_logic * clip(delta_logic_slack, -2, 2)
-   + c_wire  * clip(delta_wire_slack,  -2, 2)
-   + c_fanout * clip(delta_fanout_slack, -2, 2))
-```
-
-Each criticality is `1 / (1 + max(0, old_slack))`. Fanout slack is the worst
-normalized slack across the old root's direct fanouts, measured before and
-after the candidate. `W` defaults to 0.5; `-W` is an experimental shared
-weight, not a per-design setting. There are no timing buckets or hard slack
-cutoffs in `-t`. `-T` retains the older full-cone score as a slow ablation.
-
-Experimental `-S` score ablations are shared by rw/rf/rs. `-S 0` retains the
-original score and remains the default. `-S 1` orders candidates by node gain
-first and uses a bounded physical score as a tie-breaker. `-S 2` (requires
-`-t`) replaces each old-criticality/clipped slack term by the difference
-of `Phi(s)`, with `Phi(s)=log1p(s)` for positive slack and `Phi(s)=s` otherwise.
-Its derivative is the original criticality, so the score accounts for the
-entire transition into critical slack without saturation or a hard rejection.
-The existing timing weight is unchanged. These modes are controlled
-experiments; routed results determine whether either should replace the default.
+The fanout term is used when a finite boundary slack is available. Its slack
+is the minimum over the root's immediate fanouts. The derivative of `Phi` is
+`1 / (1 + max(0, s))`, so the score integrates criticality across the entire
+slack change without clipping a timing loss. HPWL normalization is fixed at
+the start of each command. There are no selectable alternative scores.
 
 Logic arrival adds one per AND; geometric arrival adds Euclidean edge length.
 These are separate path maxima, not a cell STA model. The geometric scale is
@@ -305,41 +273,21 @@ maximum output wire arrival divided by maximum output logic arrival. Primary
 input edges have zero geometric length because this AIG model does not place
 I/O pins. Output budgets and the scale stay fixed within a command.
 
-A pass starts with one timing build. At default effort 2, the `pa_rw`, `pa_rf`,
-and `pa_rs` timing modes refresh the current MFFC boundary and candidate DAG, evaluate paths
-between moved reused nodes, and propagate committed arrival changes through
-all affected fanouts. This also covers resubstitution divisors outside the
-original root's fanin cone. When ABC maintains
-levels (the normal command mode), unrestricted propagation uses
-reusable buckets indexed by current structural level. Nodes at the same level
-have no dependencies on one another, so they need no heap ordering. Each affected node is recomputed
-after its affected fanins, preventing the repeated updates that a FIFO causes
-on long reconvergent paths. The level-update-disabled fallback retains the
-original worklist. Required-time maintenance and full fanout coverage are
-unchanged.
+Each pass starts with one timing build. RW/RF use bounded candidate timing and
+refresh replacement and boundary arrivals up to their traversal frontier,
+while required budgets remain frozen. RS admits nonlocal divisors and therefore
+updates every affected dependency and lazily refreshes required values before
+use. These are fixed operator-specific choices, not user-selectable efforts.
+When levels are maintained, unrestricted RS propagation uses reusable buckets
+indexed by structural level; otherwise it uses the dependency worklist.
 
-Candidate timing also seeds every direct logical fanout of the replaced root
-before querying arrivals, even when no reused node moves. The dependency
-closure includes indirect reconvergent paths between those fanouts. Merely
-visiting direct fanouts in topological order would still allow cached arrivals
-inside a connecting path to remain stale. This correction preserves the score
-formula and is enabled by default at exact timing effort.
-The evaluator is shared by `pa_rw`, `pa_rf` (including its balanced alternative),
-and `pa_rs`; the correction applies to all three operators.
-
-Timing effort 1/2 and timing-scored resubstitution maintain required
-times lazily. Reuse and new fanouts can change the downstream budget even
-during a forward traversal. An edit marks changed required dependencies
-dirty, stopping at already-dirty cones. Before evaluating
-a later root, only dirty required values read at its fanout boundary are
-recomputed. Neither mode performs unconditional per-edit global timing builds.
-
-`pa_rf -a` optionally evaluates an additional arrival-balanced factored form.
-Only uncomplemented singly-used AND associations are flattened; shared and
-complemented boundaries are preserved. The earliest-arriving terms are paired,
-and the ordinary and balanced forms compete under the same physical score.
-An unchanged balanced form is skipped. This flag is experimental until routed
-PPA establishes its benefit.
+Strict RS candidate timing seeds every direct logical fanout of the replaced
+root before querying arrivals, even when no reused node moves. The dependency
+closure includes indirect reconvergent paths between fanouts; visiting direct
+fanouts in order alone would leave cached arrivals inside a connecting path
+stale. Changed required-time dependencies are invalidated after each edit;
+only dirty values needed by a later root are recomputed. Neither RW/RF nor RS
+performs unconditional per-edit full-network timing builds.
 
 Physical resubstitution evaluates all truth-matching candidates within the
 native bounded divisor search, instead of accepting the first area-saving
@@ -365,8 +313,7 @@ boundary. This is an HPWL-accounting guard, not an overflow test. Any
 unexpected materialization or boundary mismatch triggers an immediate global
 placement refresh and requires a positive actual score before processing can
 continue. It also triggers a global timing rebuild because the true edit cone
-is unknown. The `-T` ablation rebuilds global timing after every accepted edit
-and includes the measured endpoint term.
+is unknown.
 
 ## Scope
 
@@ -398,16 +345,15 @@ ABC_PA_REQUIRED_AUDIT=1
 ```
 
 The timing-cache audit checks clean cached values against a full calculation;
-required values marked dirty are checked when consumed in lazy modes. The
+RS required values marked dirty are checked when consumed. The
 required-use diagnostic checks the fanout requirements read at each root against
 a full calculation. End-to-end CEC verifies the resulting AIG. Diagnostic runs
 are excluded from runtime comparisons.
 The timing-seed audit recomputes candidate scores and queried boundary arrivals
 with every actual node marked affected. It checks dependency/cache handling
 within the same timing model, not agreement with mapped STA. The audit suite
-includes separate deterministic RW, RF and RS counterexamples that fail without
-the root-fanout seed correction, despite producing equivalent final circuits.
-It also exercises full-cone timing and a mixed operator sequence.
+exercises bounded RW/RF, the strict RS root-fanout dependency correction, and
+mixed operator sequences, including clustered mapped feedback.
 The resubstitution truth audit aborts on any mismatch and prints its summary
 even without `-v`; the regression requires a summary for every audited pass.
 Production retains the normal pass-boundary coordinate rebuild and HPWL
@@ -471,7 +417,7 @@ python3 src/ext-pa/tests/regression.py --abc build-cmake/abc --lib library.lib
 ```
 
 The self-contained suite generates shared, reconvergent networks, checks
-HPWL-only and all timing efforts, mapped coordinate transfer, command-state
+the fixed paper policy, mapped coordinate transfer, command-state
 invalidation, and malformed input. It formally checks every optimized network
 against its input. Edge cases cover all-AND removal, buffer-only unmapping,
 zero-area mapped libraries, explicit refactor minimum gains, and continued

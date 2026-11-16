@@ -48,19 +48,22 @@ different flow. AGR includes initial guidance placement, both broad/compact
 synthesis blocks, and final normalization. Do not add a second `strash` before
 writing the endpoint if comparing its exact serialization with the manifest.
 
-The two-round PA reference is:
+The two-round PA reference uses the paper score and timing policy by default.
+RW/RF timing is bounded; RS keeps strict dependency updates. The paper's `-c`
+cluster mode remains optional after mapped placement and `pa_strash`. Other
+operator controls retain their native ABC meanings. The direct recipe is:
 
 ```text
 read design.aig
 strash
 read_lib cells.lib
 pa_place
-pa_rs -K 8 -N 2 -F 0 -t -S 2
-pa_rw -t -E 0 -S 2
-pa_rf -t -E 0 -S 2
-pa_rs -K 8 -N 2 -F 0 -t -S 2
-pa_rw -t -E 0 -S 2
-pa_rf -t -E 0 -S 2
+pa_rs -K 8 -N 2
+pa_rw
+pa_rf
+pa_rs -K 8 -N 2
+pa_rw
+pa_rf
 strash
 write_aiger pa2.aig
 ```
@@ -128,7 +131,9 @@ The included `reference_cycles.json` is the measured 20-design workload from the
 new-build reference run. Pass it to `--replay-cycles` instead of a private output
 file to replay that workload. `reference_results.json` contains all per-design
 metrics, endpoint hashes, CPU observations, proof status and paired summaries.
-See `VALIDATION.md` for its aggregate results. The reference timings are
+See `VALIDATION.md` for its aggregate results. That saved measurement record
+retains its original explicit command spelling; the current simplified commands
+select the identical fixed policy, as verified by endpoint replay. The reference timings are
 host-specific measurements, not numeric assertions for another machine.
 
 ## Fresh measurements and equivalence

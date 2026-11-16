@@ -322,27 +322,6 @@ Dec_Graph_t * Pa_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * 
         int Valid = Pa_ManEvaluateCandidate(pNode, pFForm, nNodesSaved,
             Required, 0, &Gain, &Score, NULL, NULL, NULL);
         Valid = Valid && Gain >= nMinSaved;
-        if ( Pa_ManBalancedRefactorEnabled() )
-        {
-            Dec_Graph_t * pBalanced = Pa_ManBalanceGraph(pFForm);
-            double BalancedScore;
-            int BalancedGain;
-            if ( pBalanced && Pa_ManEvaluateCandidate(pNode, pBalanced,
-                    nNodesSaved, Required, 0, &BalancedGain, &BalancedScore,
-                    NULL, NULL, NULL)
-              && BalancedGain >= nMinSaved
-              && (!Valid || BalancedScore > Score + 1.0e-10
-                  || (fabs(BalancedScore - Score) <= 1.0e-10 && BalancedGain > Gain)) )
-            {
-                Dec_GraphFree(pFForm);
-                pFForm = pBalanced;
-                pBalanced = NULL;
-                Valid = 1;
-                Gain = BalancedGain;
-                Score = BalancedScore;
-            }
-            if ( pBalanced ) Dec_GraphFree(pBalanced);
-        }
         ABC_TIME_STOP(fVerbose, p->timeEval, clk);
         if ( !Valid || Score <= 1.0e-10 )
         {
@@ -518,7 +497,7 @@ static int Abc_NtkRefactorInternal( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nMin
     }
     if ( fPhysical && !Pa_ManPrepareTimingPass(pNtk) )
     {
-        Abc_Print( -1, "pa_rf -t: could not initialize timing from placement.\n" );
+        Abc_Print( -1, "pa_rf: could not initialize timing from placement.\n" );
         Pa_ManEndPass(pNtk);
         return -1;
     }

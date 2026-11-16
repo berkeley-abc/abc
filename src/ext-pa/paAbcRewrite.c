@@ -83,7 +83,7 @@ int Pa_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerbo
     }
     if ( fPlaceEnable && !Pa_ManPrepareTimingPass(pNtk) )
     {
-        Abc_Print( -1, "pa_rw -t: could not initialize timing from placement.\n" );
+        Abc_Print( -1, "pa_rw: could not initialize timing from placement.\n" );
         Pa_ManEndPass(pNtk);
         return -1;
     }

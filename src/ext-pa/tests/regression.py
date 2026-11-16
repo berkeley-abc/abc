@@ -107,8 +107,6 @@ def edge_cases(binary, directory, env, library):
         variants = {} if name == "buffer" else {
             "refactor": "pa_place; pa_rf",
             "resub": "pa_place; pa_rs -N 2",
-            "bounded": "pa_place; pa_rf -t -S 2 -E 0",
-            "strict": "pa_place; pa_rs -t -S 2 -N 2",
         }
         if library:
             variants["mapped"] = f'read_lib "{library}"; &get; &nf; &put; pa_place; pa_strash'
@@ -116,7 +114,7 @@ def edge_cases(binary, directory, env, library):
             label = f"empty_{name}_{mode}"
             target = directory / (label + ".aig")
             text = run(binary, f'read "{original}"; strash; {flow}; pa_stats; '
-                       'pa_rw -t -S 2 -E 0; pa_rf -t -S 2 -E 0; pa_rs -t -S 2 -N 2; '
+                       'pa_rw; pa_rf; pa_rs -N 2; '
                        f'pa_stats; write_aiger "{target}"; cec "{original}" "{target}"',
                        directory, label, env)
             assert text.count("pa_stats: nodes = 0  coordinates = 0/0") == 2, (label, text)
@@ -124,7 +122,7 @@ def edge_cases(binary, directory, env, library):
             passed.append(label)
 
     original = directory / "input7.aig"
-    variants = ["", "-a", "-t -S 2 -E 0", "-t -S 2 -a", "-T"]
+    variants = ["", "-l"]
     for i, flags in enumerate(variants):
         label = f"refactor_min_saved_{i}"
         target = directory / (label + ".aig")
@@ -133,7 +131,7 @@ def edge_cases(binary, directory, env, library):
         assert aig_network(original) == aig_network(target), label
         passed.append(label)
     original = empty_sources["constant"]
-    for minimum, flags, expected_nodes in [(4, "", 3), (3, "", 0), (4, "-a", 3), (4, "-z", 0)]:
+    for minimum, flags, expected_nodes in [(4, "", 3), (3, "", 0), (4, "-z", 0)]:
         label = f"constant_min_saved_{minimum}{flags.replace('-', '_')}"
         target = directory / (label + ".aig")
         text = run(binary, f'read "{original}"; strash; pa_place; pa_rf -M {minimum} {flags}; '
@@ -182,19 +180,15 @@ def edge_cases(binary, directory, env, library):
 def timing_seed_cases(binary, directory, env, audit):
     """Exercise the shared timing evaluator through RW, RF and RS separately.
 
-    Each exact-mode fixture exposes a pre-fix score or boundary-arrival error.
-    RF's boundary error can be masked by the final score, so both are checked.
-    Full-cone modes and a mixed sequence also check command-state transitions.
+    RW/RF retain bounded timing. RS checks dependency-complete arrivals and
+    scores; the mixed sequence checks command-state transitions.
     """
     local_env = dict(env)
     if audit:
         local_env["ABC_PA_TIMING_SEED_AUDIT"] = "1"
-    cases = []
-    for operator, seed in [("rw", 26), ("rf", 23), ("rs", 12)]:
-        extra = "-N 2 " if operator == "rs" else ""
-        for mode, flags in [("exact", "-t -S 2"), ("full", "-T")]:
-            cases.append((f"{operator}_{mode}", seed, f"pa_{operator} {extra}{flags};"))
-    cases.append(("mixed", 12, "pa_rs -N 2 -t -S 2; pa_rw -t -S 2; pa_rf -t -S 2;"))
+    cases = [("rw", 26, "pa_rw;"), ("rf", 23, "pa_rf;"),
+             ("rs", 12, "pa_rs -N 2;"),
+             ("mixed", 12, "pa_rs -N 2; pa_rw; pa_rf;")]
     passed = []
     for name, seed, flow in cases:
         label = "timing_seed_" + name
@@ -206,7 +200,7 @@ def timing_seed_cases(binary, directory, env, audit):
                    f'pa_place; {flow} {flow} write_aiger "{target}"; '
                    f'cec "{original}" "{target}"', directory, label, local_env)
         assert "Networks are equivalent" in text, (label, text[-2000:])
-        if audit:
+        if audit and name in ("rs", "mixed"):
             checks = re.findall(r"PA timing seed audit: (\d+) candidates checked", text)
             assert checks and sum(map(int, checks)) > 0, (label, "timing seed audit not exercised")
         passed.append(label)
@@ -235,15 +229,13 @@ def main():
         network(source, seed)
         run(binary, f'read_blif "{source}"; strash; write_aiger "{original}"', directory, f"prepare{seed}", env)
         variants = {
-            "hpwl": "pa_rw; pa_rf; pa_rs -N 2",
-            "bounded": "pa_rw -t -S 2 -E 0; pa_rf -t -S 2 -E 0; pa_rs -N 2 -t -S 2",
-            "lazy": "pa_rw -t -S 2 -E 1; pa_rf -t -S 2 -E 1; pa_rs -N 2 -t -S 2",
-            "strict": "pa_rw -t -S 2; pa_rf -t -S 2; pa_rs -N 2 -t -S 2",
-            "no_levels": "pa_rw -t -S 2 -l; pa_rf -t -S 2 -l; pa_rs -t -S 2 -l -N 2",
+            "rewrite": "pa_rw",
+            "refactor": "pa_rf",
+            "resub": "pa_rs -N 2",
+            "sequence": "pa_rw; pa_rf; pa_rs -N 2",
+            "no_levels": "pa_rw -l; pa_rf -l; pa_rs -l -N 2",
+            "native_controls": "pa_rw -z; pa_rf -N 8 -M 1; pa_rs -K 8 -N 1 -M 1 -F 0",
         }
-        if seed == 7:
-            variants["full_cone"] = "pa_rw -T; pa_rf -T; pa_rs -N 2 -T"
-            variants["balanced"] = "pa_rf -t -S 2 -a; pa_rw -S 1; pa_rs -N 2 -S 1"
         for mode, flow in variants.items():
             label = f"seed{seed}_{mode}"
             target = directory / (label + ".aig")
@@ -252,21 +244,22 @@ def main():
             assert target.exists() and "Networks are equivalent" in text, (label, text[-2000:])
             passed.append(label)
         if args.lib:
-            for effort in [0, 2]:
-                label = f"seed{seed}_unmap{effort}"
-                target = directory / (label + ".aig")
-                flow = f'&get; &nf; &put; pa_place; pa_strash; pa_rs -N 2 -t -S 2 -c; pa_rw -t -S 2 -E {effort} -c; pa_rf -t -S 2 -E {effort} -c'
-                text = run(binary, f'read "{original}"; strash; read_lib "{args.lib.resolve()}"; '
-                           f'{flow}; {flow}; pa_stats; write_aiger "{target}"; cec "{original}" "{target}"', directory, label, env)
-                assert target.exists() and "Networks are equivalent" in text, (label, text[-2000:])
-                passed.append(label)
+            label = f"seed{seed}_unmap"
+            target = directory / (label + ".aig")
+            flow = '&get; &nf; &put; pa_place; pa_strash; pa_rs -N 2 -c; pa_rw -c; pa_rf -c'
+            text = run(binary, f'read "{original}"; strash; read_lib "{args.lib.resolve()}"; '
+                       f'{flow}; {flow}; pa_stats; write_aiger "{target}"; cec "{original}" "{target}"',
+                       directory, label, env)
+            assert target.exists() and "Networks are equivalent" in text, (label, text[-2000:])
+            passed.append(label)
     source = directory / "input7.aig"
-    invalid = [
-        ("pa_rw -t -E 3", "usage: pa_rw"), ("pa_rf -t -E -1", "usage: pa_rf"),
-        ("pa_rw -E 1", "-E requires -t"), ("pa_rf -T -E 1", "-E requires -t"),
-        ("pa_rw -t -E nan", "usage: pa_rw"), ("pa_rf -t -E", "usage: pa_rf"),
+    invalid = [(f"pa_{op} {flag}", f"usage: pa_{op}")
+               for op in ("rw", "rf", "rs") for flag in ("-t", "-T", "-E 0", "-S 2", "-W 0.5")]
+    invalid += [
+        ("pa_rf -a", "usage: pa_rf"),
         ("pa_rs -N nan", "usage: pa_rs"), ("pa_rf -N 99999999999999999999999", "usage: pa_rf"),
-        ("pa_rw -S 2", "-S 2 requires -t"), ("pa_rw -t -W nan", "usage: pa_rw"),
+        ("pa_rs -K 3", "Can only compute cuts"), ("pa_rs -N 4", "at most 3 nodes"),
+        ("pa_rw extra", "usage: pa_rw"), ("pa_rf extra", "usage: pa_rf"), ("pa_rs extra", "usage: pa_rs"),
         ("pa_place -B 3", "outside its supported range"), ("pa_place -u nan", "invalid value"),
         ("pa_place -I 2147483647 -E 1", "outside its supported range"),
         ("pa_rw -c", "requires a placed mapped netlist"),

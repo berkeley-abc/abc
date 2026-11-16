@@ -16,18 +16,11 @@ int Dec_GraphToNetworkCount( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph,
 Abc_Obj_t * Dec_GraphToNetwork( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph );
 
 void Pa_ManSetClusterEvaluation( int Enable );
-void Pa_ManSetTimingEvaluation( int Enable );
-void Pa_ManSetTimingWeight( double Weight );
-/* 0: original, 1: node-priority, 2: integrated slack criticality. */
-void Pa_ManSetScoreMode( int Mode );
-void Pa_ManSetBalancedRefactor( int Enable );
-int Pa_ManBalancedRefactorEnabled();
-Dec_Graph_t * Pa_ManBalanceGraph( Dec_Graph_t * pGraph );
+/* Pass lifecycle only; the paper score is fixed, not a selectable mode. */
+void Pa_ManSetTimingActive( int Enable );
 int Pa_ManPrepareTimingPass( Abc_Ntk_t * pNtk );
 /* Resubstitution admits divisors beyond the ID traversal frontier. */
 void Pa_ManSetExactTiming( int Enable );
-/* 0: bounded proxy; 1: bounded with lazy required times; 2: full incremental. */
-void Pa_ManSetTimingEffort( int Mode );
 int Pa_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax,
     int nMinSaved, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose );
 

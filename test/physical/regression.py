@@ -78,8 +78,8 @@ def main():
     setup = 'read input.blif; strash; read_lib cells.lib; '
     run('input', setup + 'write_aiger input.aig')
     pa = 'pa_place -s 0.28;' + ';'.join([
-        'pa_rs -K 8 -N 2 -F 0 -t -S 2',
-        'pa_rw -t -E 0 -S 2', 'pa_rf -t -E 0 -S 2'] * 2)
+        'pa_rs -K 8 -N 2',
+        'pa_rw', 'pa_rf'] * 2)
     flows = {
         'agr': 'agr',
         'legacy_alias': 'tg',
@@ -90,7 +90,7 @@ def main():
         'pa_after_agr': 'agr;' + pa,
         'mapping': 'agr; &get -n; &nf; &put; strash',
         'cluster_feedback': 'agr; &get -n; &nf; &put; pa_place; pa_strash; '
-                            'pa_rw -c -t -E 0 -S 2; pa_rf -c -t -E 0 -S 2',
+                            'pa_rw -c; pa_rf -c',
         'undo': 'set backup; agr; undo',
         'reread': 'agr; read input.blif; strash; agr',
     }

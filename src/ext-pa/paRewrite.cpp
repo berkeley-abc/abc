@@ -39,14 +39,10 @@ namespace
 {
 
 static bool s_ClusterEvaluation = false;
-static int s_TimingEvaluation = 0;
+static bool s_TimingActive = false;
 static bool s_ExactTimingEvaluation = false;
-static bool s_RequiredTimingEvaluation = false;
-static bool s_BalancedRefactor = false;
 constexpr double kHpwlWeight = 0.25;
-constexpr double kTimingEndpointWeight = 1.0;
-static double s_TimingWeight = 0.50;
-static int s_ScoreMode = 0;
+constexpr double kTimingWeight = 0.50;
 #ifdef ABC_PA_ENABLE_AUDIT
 static unsigned long long s_PlanAttempts = 0, s_PlanCascades = 0, s_PlanValid = 0;
 static unsigned long long s_ScreenChecks = 0;
@@ -213,7 +209,7 @@ struct Pa_CandidateTimingScratch
 {
     struct Object {
         Pa_Arrival memo;
-        unsigned affected = 0, ancestor = 0, visiting = 0, memoStamp = 0, scheduled = 0;
+        unsigned affected = 0, ancestor = 0, visiting = 0, memoStamp = 0;
     };
     std::vector<Object> objects;
     std::vector<Abc_Obj_t *> moved, backward, queue;
@@ -759,10 +755,10 @@ struct Pa_TimingCache
             return true;
         // The fast rw/rf proxy freezes downstream budgets for this pass.
         // Effort 1/2 and outside-cone rs divisors use lazy required updates.
-        if ( s_RequiredTimingEvaluation && !RefreshRequiredUses(pRoot) )
+        if ( s_ExactTimingEvaluation && !RefreshRequiredUses(pRoot) )
             return false;
 #ifdef ABC_PA_ENABLE_AUDIT
-        if ( s_RequiredTimingEvaluation && std::getenv("ABC_PA_REQUIRED_AUDIT") != nullptr )
+        if ( s_ExactTimingEvaluation && std::getenv("ABC_PA_REQUIRED_AUDIT") != nullptr )
             AuditRequiredUse(pRoot);
 #endif
         int ObjectMax = Abc_NtkObjNumMax(pNtk);
@@ -1170,7 +1166,7 @@ class Pa_CandidatePlan
         hpwlAdded_ = LocalHpwl();
         score_ = static_cast<double>(actualGain_)
                + kHpwlWeight * (hpwlSaved_ - hpwlAdded_) / hpwlScale_;
-        if ( s_TimingEvaluation )
+        if ( s_TimingActive )
         {
 #ifdef ABC_PA_ENABLE_AUDIT
             const double BeforeTiming = score_;
@@ -1217,13 +1213,6 @@ class Pa_CandidatePlan
                 ++s_TimingSeedChecks;
             }
 #endif
-        }
-        // Bound the physical tie-breaker strictly below half a node so no
-        // one-node advantage can be exchanged for a proxy improvement.
-        if ( s_ScoreMode == 1 )
-        {
-            double Physical = score_ - static_cast<double>(actualGain_);
-            score_ = actualGain_ + 0.49 * Physical / (1.0 + std::fabs(Physical));
         }
         valid_ = actualGain_ >= 0 && std::isfinite(score_)
               && std::isfinite(hpwlSaved_)
@@ -1419,14 +1408,6 @@ class Pa_CandidatePlan
     }
 
   private:
-    static double TimingBucket( double Slack )
-    {
-        if ( Slack < -0.25 ) return -2.0;
-        if ( Slack < 0.0 ) return -1.0;
-        if ( Slack < 0.5 ) return 0.0;
-        if ( Slack < 1.0 ) return 1.0;
-        return 2.0;
-    }
 
     bool TimingPosition( Abc_Obj_t * pObject, double * pX, double * pY ) const
     {
@@ -1755,58 +1736,6 @@ class Pa_CandidatePlan
         }
     }
 
-    bool PropagateTiming()
-    {
-        /* Only a changed arrival or moved coordinate can change a fanout.
-           Process surviving nodes in old topological order so multiple
-           changed fanins are present before their common fanout is scored. */
-        using RankedId = std::pair<int, int>;
-        std::priority_queue<RankedId, std::vector<RankedId>,
-                            std::greater<RankedId>> Queue;
-        auto Schedule = [&]( Abc_Obj_t * pObject )
-        {
-            if ( pObject == nullptr || pObject == pRoot_
-              || removed_.count(pObject) || !s_CandidateTiming.Mark(s_CandidateTiming.objects[pObject->Id].scheduled) )
-                return;
-            Queue.emplace(s_Timing.topoRank[pObject->Id], pObject->Id);
-        };
-        for ( int Entity : movableEntities_ )
-            if ( entities_[Entity].object != nullptr )
-                Schedule(entities_[Entity].object);
-        Abc_Obj_t * pFanout;
-        int i;
-        Abc_ObjForEachFanout( pRoot_, pFanout, i )
-            Schedule(pFanout);
-        while ( !Queue.empty() )
-        {
-            int Id = Queue.top().second;
-            Queue.pop();
-            Abc_Obj_t * pObject = Abc_NtkObj(pNtk_, Id);
-            if ( pObject == nullptr )
-                return false;
-            s_CandidateTiming.objects[Id].affected = s_CandidateTiming.generation;
-            Pa_Arrival Arrival;
-            if ( !TimingForObject(pObject, &Arrival) )
-                return false;
-            const Pa_TimingNode & Base = s_Timing.nodes[Id];
-            bool Changed = Arrival.logic != Base.arrival.logic
-                || !Pa_AlmostEqual(Arrival.wire, Base.arrival.wire);
-            auto It = actualEntities_.find(pObject);
-            if ( It != actualEntities_.end() && entities_[It->second].movable )
-            {
-                const Pa_Geometry & Geometry = entities_[It->second].geometry;
-                Changed |= !Pa_AlmostEqual(Geometry.x, Base.x)
-                        || !Pa_AlmostEqual(Geometry.y, Base.y);
-            }
-            if ( !Changed )
-                continue;
-            Abc_Obj_t * pFanout;
-            int k;
-            Abc_ObjForEachFanout( pObject, pFanout, k )
-                Schedule(pFanout);
-        }
-        return true;
-    }
 
     bool EvaluateTiming()
     {
@@ -1818,10 +1747,10 @@ class Pa_CandidatePlan
         timingEntityState_.assign(entities_.size(), 0);
         timingEntityMemo_.resize(entities_.size());
         Pa_Arrival NewRoot;
-        if ( s_TimingEvaluation == 1 && !s_ExactTimingEvaluation )
+        if ( !s_ExactTimingEvaluation )
         {
             /* Evaluate graph leaves and candidate core objects only. The
-               full-cone mode below explores moved-node ancestors/fanouts. */
+               strict RS path below explores moved-node ancestors/fanouts. */
             if ( !TimingForEntityLocal(resultEntity_, &NewRoot) )
                 return false;
         }
@@ -1884,183 +1813,129 @@ class Pa_CandidatePlan
             (NewRequiredWire - NewRoot.wire) / s_Timing.wireScale);
         if ( !std::isfinite(OldSlack) || !std::isfinite(NewSlack) )
             return false;
-        if ( s_TimingEvaluation == 1 )
+
+        /* The fixed paper score integrates criticality separately for logic,
+           geometric wire and the immediate fanout boundary. */
+        double OldLogicSlack = static_cast<double>(
+            OldRequiredLogic - OldRoot.arrival.logic);
+        double NewLogicSlack = static_cast<double>(
+            NewRequiredLogic - NewRoot.logic);
+        double OldWireSlack =
+            (OldRequiredWire - OldRoot.arrival.wire) / s_Timing.wireScale;
+        double NewWireSlack =
+            (NewRequiredWire - NewRoot.wire) / s_Timing.wireScale;
+        double OldFanoutSlack = std::numeric_limits<double>::infinity();
+        double NewFanoutSlack = std::numeric_limits<double>::infinity();
+        bool HasFanoutSlack = false;
+        Abc_Obj_t * pFanout;
+        int i;
+        Abc_ObjForEachFanout( pRoot_, pFanout, i )
         {
-            /* Use one continuous timing term for logic, geometric wire, and
-               the immediate fanout boundary.  Separate criticalities keep an
-               inactive model from inheriting weight from the active one.
-               There is no timing bucket or hard slack cutoff: a candidate is
-               accepted or rejected by the same node/HPWL/timing score. */
-            double OldLogicSlack = static_cast<double>(
-                OldRequiredLogic - OldRoot.arrival.logic);
-            double NewLogicSlack = static_cast<double>(
-                NewRequiredLogic - NewRoot.logic);
-            double OldWireSlack =
-                (OldRequiredWire - OldRoot.arrival.wire) / s_Timing.wireScale;
-            double NewWireSlack =
-                (NewRequiredWire - NewRoot.wire) / s_Timing.wireScale;
-            double LogicCriticality = 1.0 /
-                (1.0 + std::max(0.0, OldLogicSlack));
-            double WireCriticality = 1.0 /
-                (1.0 + std::max(0.0, OldWireSlack));
-            auto Bounded = []( double Delta ) {
-                return std::max(-2.0, std::min(2.0, Delta));
-            };
-            double OldFanoutSlack = std::numeric_limits<double>::infinity();
-            double NewFanoutSlack = std::numeric_limits<double>::infinity();
-            bool HasFanoutSlack = false;
-            Abc_Obj_t * pFanout;
-            int i;
-            Abc_ObjForEachFanout( pRoot_, pFanout, i )
+            if ( pFanout->Id < 0
+              || pFanout->Id >= static_cast<int>(s_Timing.nodes.size()) )
+                continue;
+            const Pa_TimingNode & FanoutTiming = s_Timing.nodes[pFanout->Id];
+            Pa_Arrival NewFanout;
+            if ( s_ExactTimingEvaluation )
             {
-                if ( pFanout->Id < 0
-                  || pFanout->Id >= static_cast<int>(s_Timing.nodes.size()) )
+                s_CandidateTiming.objects[pFanout->Id].affected = s_CandidateTiming.generation;
+                if ( !TimingForObject(pFanout, &NewFanout) )
+                    return false;
+            }
+            else if ( Abc_ObjIsCo(pFanout) )
+                NewFanout = NewRoot;
+            else if ( Abc_ObjIsNode(pFanout) )
+            {
+                double FanoutX, FanoutY;
+                if ( !TimingPosition(pFanout, &FanoutX, &FanoutY) )
                     continue;
-                const Pa_TimingNode & FanoutTiming = s_Timing.nodes[pFanout->Id];
-                Pa_Arrival NewFanout;
-                if ( s_ExactTimingEvaluation )
+                Abc_Obj_t * pFanin;
+                int k;
+                bool Complete = true;
+                Abc_ObjForEachFanin( pFanout, pFanin, k )
                 {
-                    s_CandidateTiming.objects[pFanout->Id].affected = s_CandidateTiming.generation;
-                    if ( !TimingForObject(pFanout, &NewFanout) )
-                        return false;
-                }
-                else if ( Abc_ObjIsCo(pFanout) )
-                    NewFanout = NewRoot;
-                else if ( Abc_ObjIsNode(pFanout) )
-                {
-                    double FanoutX, FanoutY;
-                    if ( !TimingPosition(pFanout, &FanoutX, &FanoutY) )
-                        continue;
-                    Abc_Obj_t * pFanin;
-                    int k;
-                    bool Complete = true;
-                    Abc_ObjForEachFanin( pFanout, pFanin, k )
+                    Pa_Arrival Input;
+                    double InputX, InputY;
+                    bool SourceIsCi;
+                    if ( pFanin == pRoot_ )
                     {
-                        Pa_Arrival Input;
-                        double InputX, InputY;
-                        bool SourceIsCi;
-                        if ( pFanin == pRoot_ )
+                        Input = NewRoot;
+                        InputX = RootX;
+                        InputY = RootY;
+                        SourceIsCi = TimingIsCi(pRoot_);
+                    }
+                    else
+                    {
+                        auto It = actualEntities_.find(pFanin);
+                        if ( It != actualEntities_.end()
+                          && (entities_[It->second].movable
+                              || timingProduced_[It->second]
+                              || timingBoundary_[It->second]) )
                         {
-                            Input = NewRoot;
-                            InputX = RootX;
-                            InputY = RootY;
-                            SourceIsCi = TimingIsCi(pRoot_);
+                            if ( !TimingForEntityLocal(It->second, &Input)
+                              || !TimingEntityPosition(It->second,
+                                                      &InputX, &InputY) )
+                            {
+                                Complete = false;
+                                break;
+                            }
                         }
                         else
                         {
-                            auto It = actualEntities_.find(pFanin);
-                            if ( It != actualEntities_.end()
-                              && (entities_[It->second].movable
-                                  || timingProduced_[It->second]
-                                  || timingBoundary_[It->second]) )
+                            if ( pFanin->Id < 0
+                              || pFanin->Id >= static_cast<int>(s_Timing.nodes.size())
+                              || !TimingPosition(pFanin, &InputX, &InputY) )
                             {
-                                if ( !TimingForEntityLocal(It->second, &Input)
-                                  || !TimingEntityPosition(It->second,
-                                                          &InputX, &InputY) )
-                                {
-                                    Complete = false;
-                                    break;
-                                }
+                                Complete = false;
+                                break;
                             }
-                            else
-                            {
-                                if ( pFanin->Id < 0
-                                  || pFanin->Id >= static_cast<int>(s_Timing.nodes.size())
-                                  || !TimingPosition(pFanin, &InputX, &InputY) )
-                                {
-                                    Complete = false;
-                                    break;
-                                }
-                                Input = s_Timing.nodes[pFanin->Id].arrival;
-                            }
-                            SourceIsCi = Abc_ObjIsCi(pFanin);
+                            Input = s_Timing.nodes[pFanin->Id].arrival;
                         }
-                        double Wire = SourceIsCi ? 0.0
-                            : std::hypot(InputX - FanoutX, InputY - FanoutY);
-                        NewFanout.logic = std::max(NewFanout.logic,
-                                                   Input.logic + 1);
-                        NewFanout.wire = std::max(NewFanout.wire,
-                                                  Input.wire + Wire);
+                        SourceIsCi = Abc_ObjIsCi(pFanin);
                     }
-                    if ( !Complete )
-                        continue;
+                    double Wire = SourceIsCi ? 0.0
+                        : std::hypot(InputX - FanoutX, InputY - FanoutY);
+                    NewFanout.logic = std::max(NewFanout.logic,
+                                               Input.logic + 1);
+                    NewFanout.wire = std::max(NewFanout.wire,
+                                              Input.wire + Wire);
                 }
-                else
+                if ( !Complete )
                     continue;
+            }
+            else
+                continue;
 
-                double OldLocalSlack = std::min(
-                    static_cast<double>(FanoutTiming.requiredLogic
-                        - FanoutTiming.arrival.logic),
-                    (FanoutTiming.requiredWire - FanoutTiming.arrival.wire)
-                        / s_Timing.wireScale);
-                double NewLocalSlack = std::min(
-                    static_cast<double>(FanoutTiming.requiredLogic
-                        - NewFanout.logic),
-                    (FanoutTiming.requiredWire - NewFanout.wire)
-                        / s_Timing.wireScale);
-                if ( !std::isfinite(OldLocalSlack)
-                  || !std::isfinite(NewLocalSlack) )
-                    continue;
-                OldFanoutSlack = std::min(OldFanoutSlack, OldLocalSlack);
-                NewFanoutSlack = std::min(NewFanoutSlack, NewLocalSlack);
-                HasFanoutSlack = true;
-            }
-            if ( s_ScoreMode == 2 )
-            {
-                // The antiderivative of c(s)=1/(1+max(0,s)). Unlike
-                // c(old)*clip(delta), this charges the entire transition
-                // into negative slack and never saturates a timing loss.
-                auto Potential = []( double Slack ) {
-                    return Slack > 0.0 ? std::log1p(Slack) : Slack;
-                };
-                score_ += s_TimingWeight *
-                    (Potential(NewLogicSlack) - Potential(OldLogicSlack)
-                   + Potential(NewWireSlack) - Potential(OldWireSlack));
-                if ( HasFanoutSlack )
-                    score_ += s_TimingWeight *
-                        (Potential(NewFanoutSlack) - Potential(OldFanoutSlack));
-                return std::isfinite(score_);
-            }
-            double FanoutTerm = 0.0;
-            if ( HasFanoutSlack )
-            {
-                double FanoutCriticality = 1.0 /
-                    (1.0 + std::max(0.0, OldFanoutSlack));
-                FanoutTerm = s_TimingWeight * FanoutCriticality
-                    * Bounded(NewFanoutSlack - OldFanoutSlack);
-            }
-            score_ += s_TimingWeight * LogicCriticality
-                        * Bounded(NewLogicSlack - OldLogicSlack)
-                    + s_TimingWeight * WireCriticality
-                        * Bounded(NewWireSlack - OldWireSlack)
-                    + FanoutTerm;
-            return std::isfinite(score_);
+            double OldLocalSlack = std::min(
+                static_cast<double>(FanoutTiming.requiredLogic
+                    - FanoutTiming.arrival.logic),
+                (FanoutTiming.requiredWire - FanoutTiming.arrival.wire)
+                    / s_Timing.wireScale);
+            double NewLocalSlack = std::min(
+                static_cast<double>(FanoutTiming.requiredLogic
+                    - NewFanout.logic),
+                (FanoutTiming.requiredWire - NewFanout.wire)
+                    / s_Timing.wireScale);
+            if ( !std::isfinite(OldLocalSlack)
+              || !std::isfinite(NewLocalSlack) )
+                continue;
+            OldFanoutSlack = std::min(OldFanoutSlack, OldLocalSlack);
+            NewFanoutSlack = std::min(NewFanoutSlack, NewLocalSlack);
+            HasFanoutSlack = true;
         }
-        if ( !PropagateTiming() )
-            return false;
 
-        int NewMaxLogic = 0;
-        double NewMaxWire = 0.0;
-        Abc_Obj_t * pFanout;
-        int i;
-        Abc_NtkForEachCo( pNtk_, pFanout, i )
-        {
-            Pa_Arrival Arrival;
-            if ( !TimingForObject(pFanout, &Arrival) )
-                return false;
-            NewMaxLogic = std::max(NewMaxLogic, Arrival.logic);
-            NewMaxWire = std::max(NewMaxWire, Arrival.wire);
-        }
-        double EndpointGain = static_cast<double>(s_Timing.maxLogic - NewMaxLogic)
-            + (s_Timing.maxWire - NewMaxWire) / s_Timing.wireScale;
-        double Criticality = std::max(0.0, std::min(1.0,
-            1.0 - std::min(OldSlack, NewSlack)));
-        /* The continuous term breaks ties near criticality; separate endpoint
-           deltas reward improving either logic depth or placement-wire path. */
-        score_ += TimingBucket(NewSlack) - TimingBucket(OldSlack)
-                + s_TimingWeight * Criticality * std::max(-2.0,
-                    std::min(2.0, NewSlack - OldSlack))
-                + kTimingEndpointWeight * EndpointGain;
+        // The antiderivative of c(s)=1/(1+max(0,s)). Unlike
+        // c(old)*clip(delta), this charges the entire transition
+        // into negative slack and never saturates a timing loss.
+        auto Potential = []( double Slack ) {
+            return Slack > 0.0 ? std::log1p(Slack) : Slack;
+        };
+        score_ += kTimingWeight *
+            (Potential(NewLogicSlack) - Potential(OldLogicSlack)
+           + Potential(NewWireSlack) - Potential(OldWireSlack));
+        if ( HasFanoutSlack )
+            score_ += kTimingWeight *
+                (Potential(NewFanoutSlack) - Potential(OldFanoutSlack));
         return std::isfinite(score_);
     }
 
@@ -2993,110 +2868,10 @@ static int Pa_MarkMffc( Abc_Obj_t * pRoot, Vec_Ptr_t * vLeaves )
 
 } // namespace
 
-void Pa_ManSetBalancedRefactor( int Enable )
-{
-    s_BalancedRefactor = Enable != 0;
-}
-
-int Pa_ManBalancedRefactorEnabled()
-{
-    return s_BalancedRefactor;
-}
-
-Dec_Graph_t * Pa_ManBalanceGraph( Dec_Graph_t * pGraph )
-{
-    if ( pGraph == nullptr || Dec_GraphIsConst(pGraph) ) return nullptr;
-    Dec_Graph_t * Result = Dec_GraphCreate(pGraph->nLeaves);
-    std::vector<int> Refs(pGraph->nSize, 0), Memo(pGraph->nSize, -1), Levels;
-    Dec_Node_t * Node; int i;
-    Dec_GraphForEachNode(pGraph, Node, i)
-    {
-        ++Refs[Node->eEdge0.Node];
-        ++Refs[Node->eEdge1.Node];
-    }
-    Dec_GraphForEachLeaf(pGraph, Node, i)
-    {
-        Dec_GraphNode(Result, i)->pFunc = Node->pFunc;
-        Memo[i] = i;
-        auto * Object = Abc_ObjRegular(static_cast<Abc_Obj_t *>(Node->pFunc));
-        Levels.push_back(Object ? static_cast<int>(Object->Level) : 0);
-    }
-    auto Build = [&]( auto && Self, int Index ) -> int
-    {
-        if ( Memo[Index] >= 0 ) return Memo[Index];
-        using Item = std::pair<int, int>; // arrival level, complemented literal
-        std::priority_queue<Item, std::vector<Item>, std::greater<Item>> Terms;
-        auto Collect = [&]( auto && Gather, Dec_Edge_t Edge ) -> void
-        {
-            int Child = Edge.Node;
-            // Flatten only uncomplemented, singly used ANDs. An OR chain is
-            // represented by the same AND association under De Morgan.
-            if ( Child >= pGraph->nLeaves && !Edge.fCompl && Refs[Child] == 1 )
-            {
-                Gather(Gather, Dec_GraphNode(pGraph, Child)->eEdge0);
-                Gather(Gather, Dec_GraphNode(pGraph, Child)->eEdge1);
-            }
-            else
-            {
-                int Built = Self(Self, Child);
-                Terms.emplace(Levels[Built], 2 * Built + Edge.fCompl);
-            }
-        };
-        Collect(Collect, Dec_GraphNode(pGraph, Index)->eEdge0);
-        Collect(Collect, Dec_GraphNode(pGraph, Index)->eEdge1);
-        while ( Terms.size() > 1 )
-        {
-            Item A = Terms.top(); Terms.pop();
-            Item B = Terms.top(); Terms.pop();
-            Dec_Edge_t Edge = Dec_GraphAddNodeAnd(Result,
-                Dec_EdgeCreate(A.second / 2, A.second & 1),
-                Dec_EdgeCreate(B.second / 2, B.second & 1));
-            int Level = 1 + std::max(A.first, B.first);
-            Levels.push_back(Level);
-            Terms.emplace(Level, 2 * Edge.Node);
-        }
-        Memo[Index] = Terms.top().second / 2;
-        return Memo[Index];
-    };
-    int Root = Build(Build, pGraph->eRoot.Node);
-    Dec_GraphSetRoot(Result, Dec_EdgeCreate(Root, Dec_GraphIsComplement(pGraph)));
-    bool Same = Result->nSize == pGraph->nSize && Result->eRoot.Node == pGraph->eRoot.Node;
-    Dec_GraphForEachNode(pGraph, Node, i)
-    {
-        if ( !Same ) break;
-        const Dec_Node_t * Other = Dec_GraphNode(Result, i);
-        Same = Node->eEdge0.Node == Other->eEdge0.Node && Node->eEdge0.fCompl == Other->eEdge0.fCompl
-            && Node->eEdge1.Node == Other->eEdge1.Node && Node->eEdge1.fCompl == Other->eEdge1.fCompl;
-    }
-    if ( Same )
-    {
-        Dec_GraphFree(Result);
-        return nullptr;
-    }
-    return Result;
-}
-
-void Pa_ManSetScoreMode( int Mode )
-{
-    s_ScoreMode = std::max(0, std::min(2, Mode));
-}
-
-void Pa_ManSetTimingWeight( double Weight )
-{
-    s_TimingWeight = Weight;
-}
-
-void Pa_ManSetTimingEffort( int Mode )
-{
-    // Required times depend on graph/coordinates, not cached arrivals. They
-    // can be maintained lazily even when candidate/arrival work is bounded.
-    s_ExactTimingEvaluation = Mode >= 2;
-    s_RequiredTimingEvaluation = Mode >= 1;
-}
 
 void Pa_ManSetExactTiming( int Enable )
 {
-    Pa_ManSetTimingEffort(Enable ? 2 : 0);
+    s_ExactTimingEvaluation = Enable != 0;
 }
 
 void Pa_ManSetClusterEvaluation( int Enable )
@@ -3104,10 +2879,10 @@ void Pa_ManSetClusterEvaluation( int Enable )
     s_ClusterEvaluation = Enable != 0;
 }
 
-void Pa_ManSetTimingEvaluation( int Enable )
+void Pa_ManSetTimingActive( int Enable )
 {
-    s_TimingEvaluation = std::max(0, std::min(2, Enable));
-    if ( !s_TimingEvaluation )
+    s_TimingActive = Enable != 0;
+    if ( !s_TimingActive )
     {
 #ifdef ABC_PA_ENABLE_AUDIT
         if ( s_TimingSeedChecks )
@@ -3132,7 +2907,7 @@ void Pa_ManSetTimingEvaluation( int Enable )
 int Pa_ManPrepareTimingPass( Abc_Ntk_t * pNtk )
 {
     s_ReadCache.Start(pNtk);
-    if ( !s_TimingEvaluation )
+    if ( !s_TimingActive )
         return 1;
     return s_Timing.Build(pNtk);
 }
@@ -3144,7 +2919,7 @@ int Pa_ManEvaluateCandidate( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph,
 {
     if ( pRoot == nullptr || pGraph == nullptr || nNodesSaved < 0 )
         return 0;
-    if ( s_TimingEvaluation == 1 && !s_Timing.RefreshMarkedCone(pRoot) )
+    if ( s_TimingActive && !s_Timing.RefreshMarkedCone(pRoot) )
         return 0;
     if ( !Pa_StructuralScreen(pRoot, pGraph, nNodesSaved, LevelMax) )
     {
@@ -3188,13 +2963,10 @@ int Pa_ManCommitCandidate( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph,
     int FirstNewId = Abc_NtkObjNumMax(pNtk);
     auto DirectFanouts = Plan.DirectFanouts();
     auto TimingMovedIds = Plan.TimingMovedObjectIds();
-    auto RequiredSeeds = s_TimingEvaluation == 1 && s_RequiredTimingEvaluation
+    auto RequiredSeeds = s_TimingActive && s_ExactTimingEvaluation
         ? Plan.RequiredBoundaryIds() : std::vector<int>{};
     double HpwlBefore = 0.0, HpwlScale = 1.0;
     Pa_ManReadMetrics(pNtk, &HpwlBefore, nullptr, &HpwlScale, nullptr);
-    int OldMaxLogic = s_TimingEvaluation ? s_Timing.maxLogic : 0;
-    double OldMaxWire = s_TimingEvaluation ? s_Timing.maxWire : 0.0;
-    double OldWireScale = s_TimingEvaluation ? s_Timing.wireScale : 1.0;
     if ( !Plan.StageOldPlacement() )
     {
         Pa_ManClearPlacement();
@@ -3241,7 +3013,7 @@ int Pa_ManCommitCandidate( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph,
         Pa_ManReadMetrics(pNtk, &HpwlAfter, nullptr, nullptr, nullptr);
         double ActualScore = ActualGain
             + kHpwlWeight * (HpwlBefore - HpwlAfter) / HpwlScale;
-        if ( s_TimingEvaluation )
+        if ( s_TimingActive )
         {
             if ( !s_Timing.Build(pNtk) )
             {
@@ -3249,12 +3021,6 @@ int Pa_ManCommitCandidate( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph,
                 return 0;
             }
             TimingRebuilt = true;
-            if ( s_TimingEvaluation == 2 )
-            {
-                double EndpointGain = static_cast<double>(OldMaxLogic - s_Timing.maxLogic)
-                    + (OldMaxWire - s_Timing.maxWire) / OldWireScale;
-                ActualScore += kTimingEndpointWeight * EndpointGain;
-            }
         }
         if ( ActualGain < 0 || ActualScore <= kCompareTolerance )
         {
@@ -3268,10 +3034,10 @@ int Pa_ManCommitCandidate( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph,
             return 0;
         }
     }
-    if ( s_TimingEvaluation && !TimingRebuilt )
+    if ( s_TimingActive && !TimingRebuilt )
     {
         bool TimingUpdated = false;
-        if ( s_TimingEvaluation == 1 && ExactBoundary )
+        if ( ExactBoundary )
         {
             std::vector<int> PositionIds = TimingMovedIds;
             std::vector<int> StructuralIds;
@@ -3300,15 +3066,14 @@ int Pa_ManCommitCandidate( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph,
             TimingUpdated = s_Timing.UpdateAfterLocalEdit(pNtk, PositionIds,
                 StructuralIds, s_ExactTimingEvaluation ? ABC_INFINITY : ProcessedRootId,
                 fUpdateLevel != 0);
-            if ( TimingUpdated && s_RequiredTimingEvaluation )
+            if ( TimingUpdated && s_ExactTimingEvaluation )
             {
                 RequiredSeeds.insert(RequiredSeeds.end(), PositionIds.begin(), PositionIds.end());
                 s_Timing.InvalidateRequired(pNtk, RequiredSeeds);
             }
         }
-        /* The full-cone ablation needs refreshed endpoint maxima.  A boundary
-           mismatch also falls back to the global audit because its true edit
-           cone is intentionally treated as unknown. */
+        /* A boundary mismatch falls back to a full timing build because the
+           true edit cone is intentionally treated as unknown. */
         if ( !TimingUpdated )
         {
             if ( !s_Timing.Build(pNtk) )
@@ -3319,7 +3084,7 @@ int Pa_ManCommitCandidate( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph,
         }
     }
 #ifdef ABC_PA_ENABLE_AUDIT
-    if ( s_ExactTimingEvaluation && s_TimingEvaluation
+    if ( s_ExactTimingEvaluation && s_TimingActive
       && std::getenv("ABC_PA_TIMING_AUDIT") != nullptr && !s_Timing.Audit() )
         return 0;
 #endif
