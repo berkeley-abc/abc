@@ -1,6 +1,6 @@
-# Placement-aware synthesis: TG and PA
+# Placement-aware synthesis: AGR and PA
 
-This integration retains the final compact tension-guided (TG) flow and the
+This integration retains the final adaptive geometric restructuring (AGR) flow and the
 prior placement-aware (PA) implementation as separate ABC extensions. Ordinary
 ABC `rewrite`, `refactor`, `resub`, placement, and mapping implementations are
 unchanged. Both extensions are registered by `src/base/main/mainInit.c`.
@@ -22,25 +22,28 @@ From the repository root, supply your combinational AIG and Liberty library:
 read design.aig
 strash
 read_lib cells.lib
-source examples/physical/tg.abc
-write_aiger tg.aig
+source examples/physical/agr.abc
+write_aiger agr.aig
 ```
 
-Replace `tg.abc` with `pa2.abc` for the retained two-round PA reference. The
+Replace `agr.abc` with `pa2.abc` for the retained two-round PA reference. The
 recipes include placement and synthesis, and neither calls a technology
 mapper internally. Map both outputs with the same library and command sequence,
 for example `&get -n; &nf; &put; topo; stime`. Measure fresh AIG HPWL and mapped
 HPWL with a separate `pa_place` on each endpoint; the incremental optimization
 coordinates are not a fresh-placement evaluation.
 
-Use `tg -h` or the individual `pa_* -h` commands for help. `tg` returns a
+The legacy command `tg` remains an alias for `agr` so saved recipes continue
+to work. It invokes the same implementation and parameters.
+
+Use `agr -h` or the individual `pa_* -h` commands for help. `agr` returns a
 normalized, structurally hashed AIG ready for ordinary ABC commands, mapping,
-or another TG invocation. No extra `strash` is required after `tg`. An extra
+or another AGR invocation. No extra `strash` is required after `agr`. An extra
 normalization can change AIG serialization order without changing its function.
 
-## Final TG policy
+## Adaptive geometric restructuring
 
-`tg [-s step] [-v]` performs one floating-IO global placement, followed by two
+`agr [-s step] [-v]` performs one floating-IO global placement, followed by two
 synthesis blocks. Each block runs broad RS, RW, and RF passes followed by up to
 four compact RW/RF rounds. There is no intermediate global placement or
 mapping-based checkpoint selection. `-s` controls the initial placement step
@@ -80,7 +83,7 @@ PA keeps its own placement manager and commands: `pa_place`, `pa_stats`,
 `pa_time`, `pa_rw`, `pa_rf`, `pa_rs`, and `pa_strash`. The `pa2.abc` recipe is two
 RS→RW→RF rounds, using `-K 8 -N 2 -F 0` for RS and `-t -S 2` for the paper timing
 score; RW/RF additionally use bounded timing (`-E 0`). This retained recipe is
-separate from TG's search policy. The timing-dependency correctness fixes remain
+separate from AGR's search policy. The timing-dependency correctness fixes remain
 enabled.
 
 Mapped feedback is also retained. After placing a mapped network with
@@ -93,17 +96,17 @@ placement, and feedback counts when comparing flows.
 
 | Component | Source |
 |---|---|
-| TG command, placement lifecycle and density grid | `src/ext-tg/tgPlace.cpp` |
-| Broad operator passes and RW productivity filter | `tgBroad.h`, `tgRewrite.c` |
-| Compact search, cuts and candidate selection | `tgCompact.h`, `tgGeometryCut.h`, `tgInit.cpp` |
-| Tension, structural invalidation and context memory | `tgTensionKernel.h`, `tgScan.h`, `tgHistory.h` |
-| Truth/care checks and divisor/factor helpers | `tgCare.h`, `tgGlobalCare.h`, `tgDivisors.h`, `tgDsd.h` |
-| Live candidate placement, scoring and commitment | `tgEvaluate.cpp`, `tgAig.cpp` |
-| Native-generator RW/RF/RS integration | `tgRewrite.c`, `tgRewriteEval.c`, `tgRefactor.c`, `tgResub.c` |
-| Spectral density solver and scratch storage | `tgDensity.cpp`, `tgSpeed.h` |
+| AGR command, placement lifecycle and density grid | `src/ext-agr/agrPlace.cpp` |
+| Broad operator passes and RW productivity filter | `agrBroad.h`, `agrRewrite.c` |
+| Compact search, cuts and candidate selection | `agrCompact.h`, `agrGeometryCut.h`, `agrInit.cpp` |
+| Tension, structural invalidation and context memory | `agrTensionKernel.h`, `agrScan.h`, `agrHistory.h` |
+| Truth/care checks and divisor/factor helpers | `agrCare.h`, `agrGlobalCare.h`, `agrDivisors.h`, `agrDsd.h` |
+| Live candidate placement, scoring and commitment | `agrEvaluate.cpp`, `agrAig.cpp` |
+| Native-generator RW/RF/RS integration | `agrRewrite.c`, `agrRewriteEval.c`, `agrRefactor.c`, `agrResub.c` |
+| Spectral density solver and scratch storage | `agrDensity.cpp`, `agrSpeed.h` |
 | Independent PA implementation | `src/ext-pa/` |
 
-The TG library data is derived from ABC's rewriting forest; original ABC author
+The AGR library data is derived from ABC's rewriting forest; original ABC author
 and license notices are retained. Experimental commands, environment-selected
 policies, mapping-guided selection, placement-trajectory variants, and local LP
 variants are excluded from the integration. Benchmark outputs and manuscript

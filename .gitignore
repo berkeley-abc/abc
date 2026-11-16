@@ -20,7 +20,7 @@ docs/
 
 src/ext*
 !src/ext-pa/
-!src/ext-tg/
+!src/ext-agr/
 src/xxx/
 src/aig/au/
 src/aig/ssm/

@@ -131,10 +131,10 @@ https://www.dropbox.com/s/qrl9svlf0ylxy8p/ABC_GettingStarted.pdf
 
 ## Placement-aware synthesis
 
-This branch includes the final compact TG flow and the prior PA flow as separate
+This branch includes the adaptive geometric restructuring (AGR) flow and the prior PA flow as separate
 extensions. See [the physical synthesis guide](examples/physical/README.md) for
 build instructions, both reproduction recipes, source organization, and checks.
-TG uses `tg`; PA retains its `pa_place`, `pa_rw`, `pa_rf`, `pa_rs`, and `pa_strash`
+AGR uses `agr`; PA retains its `pa_place`, `pa_rw`, `pa_rf`, `pa_rs`, and `pa_strash`
 commands. Ordinary ABC synthesis and mapping commands remain unchanged.
 
 ## Final Remarks

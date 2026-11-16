@@ -81,32 +81,34 @@ def main():
         'pa_rs -K 8 -N 2 -F 0 -t -S 2',
         'pa_rw -t -E 0 -S 2', 'pa_rf -t -E 0 -S 2'] * 2)
     flows = {
-        'tg': 'tg',
-        'repeat': 'tg; tg',
-        'native_handoff': 'tg; rewrite; refactor; resub -K 8 -N 2',
+        'agr': 'agr',
+        'legacy_alias': 'tg',
+        'repeat': 'agr; agr',
+        'native_handoff': 'agr; rewrite; refactor; resub -K 8 -N 2',
         'pa2': pa,
-        'tg_after_pa': pa + '; strash; tg',
-        'pa_after_tg': 'tg;' + pa,
-        'mapping': 'tg; &get -n; &nf; &put; strash',
-        'cluster_feedback': 'tg; &get -n; &nf; &put; pa_place; pa_strash; '
+        'agr_after_pa': pa + '; strash; agr',
+        'pa_after_agr': 'agr;' + pa,
+        'mapping': 'agr; &get -n; &nf; &put; strash',
+        'cluster_feedback': 'agr; &get -n; &nf; &put; pa_place; pa_strash; '
                             'pa_rw -c -t -E 0 -S 2; pa_rf -c -t -E 0 -S 2',
-        'undo': 'set backup; tg; undo',
-        'reread': 'tg; read input.blif; strash; tg',
+        'undo': 'set backup; agr; undo',
+        'reread': 'agr; read input.blif; strash; agr',
     }
     for name, flow in flows.items():
         run(name, setup + flow + f'; strash; write_aiger {name}.aig')
         assert (work / (name + '.aig')).is_file(), name
         cec(name)
+    assert payload(work / 'legacy_alias.aig') == payload(work / 'agr.aig'), 'legacy alias changed the graph'
     assert payload(work / 'undo.aig') == payload(work / 'input.aig'), 'undo lost original graph'
-    assert payload(work / 'reread.aig') == payload(work / 'tg.aig'), 'state leaked across reads'
-    run('empty', 'tg', expect='there is no current network')
-    run('unstrashed', 'read input.blif; tg', expect='must be a strashed combinational AIG')
-    run('sequential', 'read sequential.blif; strash; tg', expect='tg:')
+    assert payload(work / 'reread.aig') == payload(work / 'agr.aig'), 'state leaked across reads'
+    run('empty', 'agr', expect='there is no current network')
+    run('unstrashed', 'read input.blif; agr', expect='must be a strashed combinational AIG')
+    run('sequential', 'read sequential.blif; strash; agr', expect='agr:')
     for step in ['0', '-1', 'nan', 'inf', 'invalid']:
-        run('invalid_' + step, setup + 'tg -s ' + step, expect='must be finite and positive')
-    run('unknown_option', setup + 'tg -x', expect='usage: tg')
-    run('missing_argument', setup + 'tg -s', expect='usage: tg')
-    run('help', 'tg -h', expect='usage: tg')
+        run('invalid_' + step, setup + 'agr -s ' + step, expect='must be finite and positive')
+    run('unknown_option', setup + 'agr -x', expect='usage: agr')
+    run('missing_argument', setup + 'agr -s', expect='usage: agr')
+    run('help', 'agr -h', expect='usage: agr')
     if reference:
         native = setup + 'balance; rewrite; refactor; resub -K 8 -N 2; strash; '
         run('native_integrated', native + 'write_aiger native_integrated.aig')

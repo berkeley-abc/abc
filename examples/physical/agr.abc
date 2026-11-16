@@ -1,0 +1,3 @@
+# Final compact AGR policy; placement and both synthesis blocks are included.
+# Load a strashed combinational AIG and a Liberty library first.
+agr -s 0.28
