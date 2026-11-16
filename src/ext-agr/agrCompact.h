@@ -1,6 +1,3 @@
-extern "C";
-extern "C";
-extern "C";
 #include "agrTensionKernel.h"
 /* Sparse complete AGR rounds over tension-selected roots. Original PA storage
  * and placement are shared through the isolated AgrEval_ evaluator. No timer,
@@ -454,7 +451,7 @@ struct SparseScan
         }
         // Compute ranking once per eligible root, not on every heap comparison.
         const bool directPriority =
-            (ranking == "diverse" || ranking == "tension") && ((char *)"fast");
+            (ranking == "diverse" || ranking == "tension");
         std::vector<double> storedPriorities(directPriority ? 0 : pos.size());
         if (!directPriority)
             for (int id : out)
@@ -471,7 +468,7 @@ struct SparseScan
 
         const bool trajectoryActive = trajectoryMode > 0 && trajectoryMode < 9;
 
-        const bool continuousHistory = softHistory || (trajectoryActive && ((char *)"0") && 0);
+        const bool continuousHistory = softHistory;
         std::vector<double> trajectorySignal;
 
         const auto &priorities = (originalPriorities);
@@ -1652,7 +1649,7 @@ int compactRounds(Abc_Frame_t *frame, int maximum)
                 }
             }
             const int wideMode =
-                (operators & 2) && Agr_InFlight() && !rsWindow && ((char *)"2") ? 2 : 0;
+                (operators & 2) && Agr_InFlight() && !rsWindow ? 2 : 0;
             if (wideMode < 0 || wideMode > 3)
                 std::abort();
 
@@ -1764,7 +1761,7 @@ int compactRounds(Abc_Frame_t *frame, int maximum)
                 }
                 ++cutEvidence.attempts;
                 std::string rejectionKey;
-                if (!actionCut && !((char *)0) && 1 && !resubSteps && !warm && !0 && true &&
+                if (!actionCut && !resubSteps && !warm &&
                     !rootWinner)
                 {
                     if (rejectionVersion != accepted)
@@ -2054,13 +2051,7 @@ int compactRounds(Abc_Frame_t *frame, int maximum)
             blockNodes = nextNodes;
             blockSelected = selected;
         }
-        // A whole completed round with no edits leaves exactly the same
-        // graph, geometry, density and deterministic selection/generation.
-        // Stateful selection and warm placement cannot use this fixed point.
 
-        {
-            (void)(ok && Agr_InFlight() && round + 1 < rounds && accepted > ac0 && ((char *)0));
-        }
     }
     if (ok)
     {

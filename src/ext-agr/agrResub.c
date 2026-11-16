@@ -48,10 +48,9 @@ struct Abc_ManRes_t_
 {
     // Physical mode ranks all truth-valid candidates in the enabled classes.
     int fPhysical;
-    int fTailored178;
-    int policy155;
-    long stages155, skipped155, small155, wins155, smallWins155;
-    long calls155, smallCalls155, areaWins155, smallAreaWins155;
+    int fPruneTwoNodeStage;
+    long nTwoNodeStages, nTwoNodeSkipped, nSmallCones, nTwoNodeImprovements, nSmallConeImprovements;
+    long nTwoNodeCandidates, nSmallConeCandidates, nTwoNodeAreaImprovements, nSmallConeAreaImprovements;
     int nPaMinGain;
     int nPaRequired;
     int nPaGain;
@@ -205,9 +204,7 @@ static int Abc_NtkResubstituteInternal(Abc_Ntk_t *pNtk, int nCutMax, int nStepsM
     pManRes = Abc_ManResubStart(nCutMax, ABC_RS_DIV1_MAX);
     pManRes->fPhysical = fPhysical;
 
-    pManRes->policy155 = fPhysical && Agr_InFlight() && ((char *)"3") ? 3 : 0;
-    if (pManRes->policy155 < 0 || pManRes->policy155 > 4)
-        abort();
+    pManRes->fPruneTwoNodeStage = fPhysical && Agr_InFlight();
 
 #ifdef ABC_AGR_ENABLE_AUDIT
     pManRes->fPaTruthAudit = ((char *)0) != NULL;
@@ -341,11 +338,11 @@ static int Abc_NtkResubstituteInternal(Abc_Ntk_t *pNtk, int nCutMax, int nStepsM
     pManRes->nNodesEnd = Abc_NtkNodeNum(pNtk);
     if (Agr_InFlight())
         AGR_VERBOSE(
-            "AGR_RS155 policy=%d stages=%ld skipped=%ld small=%ld improved=%ld small_improved=%ld "
+            "AGR_RS_EFFORT policy=%d stages=%ld skipped=%ld small=%ld improved=%ld small_improved=%ld "
             "calls=%ld small_calls=%ld area_improved=%ld small_area_improved=%ld\n",
-            pManRes->policy155, pManRes->stages155, pManRes->skipped155, pManRes->small155,
-            pManRes->wins155, pManRes->smallWins155, pManRes->calls155, pManRes->smallCalls155,
-            pManRes->areaWins155, pManRes->smallAreaWins155);
+            pManRes->fPruneTwoNodeStage ? 3 : 0, pManRes->nTwoNodeStages, pManRes->nTwoNodeSkipped, pManRes->nSmallCones,
+            pManRes->nTwoNodeImprovements, pManRes->nSmallConeImprovements, pManRes->nTwoNodeCandidates, pManRes->nSmallConeCandidates,
+            pManRes->nTwoNodeAreaImprovements, pManRes->nSmallConeAreaImprovements);
 
     // print statistics
     if (fVerbose)
@@ -2218,12 +2215,10 @@ Dec_Graph_t *Abc_ManResubEval(Abc_ManRes_t *p, Abc_Obj_t *pRoot, Vec_Ptr_t *vLea
                 // They are NOT mathematical upper bounds on the omitted stage.
                 int solved = p->pPaBest != NULL && p->nPaGain > 0;
                 int small = p->nMffc == 2;
-                int skip = (p->policy155 == 1 && solved) || (p->policy155 == 2 && small) ||
-                           (p->policy155 == 3 && (small || solved)) ||
-                           (p->policy155 == 4 && solved && p->nPaGain >= 2);
-                ++p->stages155;
-                p->small155 += small;
-                p->skipped155 += skip;
+                int skip = p->fPruneTwoNodeStage && (small || solved);
+                ++p->nTwoNodeStages;
+                p->nSmallCones += small;
+                p->nTwoNodeSkipped += skip;
                 if (!skip)
                 {
                     int beforeCalls = p->nPaTried, beforeGain = p->pPaBest ? p->nPaGain : 0;
@@ -2231,16 +2226,16 @@ Dec_Graph_t *Abc_ManResubEval(Abc_ManRes_t *p, Abc_Obj_t *pRoot, Vec_Ptr_t *vLea
                     Abc_ManResubDivs12(p, Required);
                     Abc_ManResubDivsD(p, Required);
                     Abc_ManResubDivs2(p, Required);
-                    p->calls155 += p->nPaTried - beforeCalls;
-                    p->smallCalls155 += small * (p->nPaTried - beforeCalls);
+                    p->nTwoNodeCandidates += p->nPaTried - beforeCalls;
+                    p->nSmallConeCandidates += small * (p->nPaTried - beforeCalls);
                     if (p->pPaBest && p->dPaScore > beforeScore)
                     {
-                        ++p->wins155;
-                        p->smallWins155 += small;
+                        ++p->nTwoNodeImprovements;
+                        p->nSmallConeImprovements += small;
                         if (p->nPaGain > beforeGain)
                         {
-                            ++p->areaWins155;
-                            p->smallAreaWins155 += small;
+                            ++p->nTwoNodeAreaImprovements;
+                            p->nSmallConeAreaImprovements += small;
                         }
                     }
                 }

@@ -154,7 +154,7 @@ int AgrEval_NtkRewrite(Abc_Ntk_t *pNtk, int fUpdateLevel, int fUseZeros, int fVe
        tables do not depend on the network; per-pass fields are verbose-only
        statistics and monotonic traversal IDs. */
 
-    const int reuseRewriteManager = ((char *)"1") != NULL;
+    const int reuseRewriteManager = 1;
     if (reuseRewriteManager && s_RewriteManager)
         pManRwr = s_RewriteManager;
     else

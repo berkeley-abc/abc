@@ -786,21 +786,9 @@ std::vector<Candidate> generate(const Expr &id, const Truth &t, const std::vecto
     return out;
 }
 
-// ABC's general Abc_NtkDup walks IDs for AIGs. New nodes can precede older
-// fanouts topologically after replacement, so checkpoints need an explicit DFS.
-
 #include "agrCompact.h"
 
 #include "agrBroad.h"
-
-// Used to separate initial placement from the two original PA refactoring passes.
-
-// Stop after a complete RS/RW/RF cycle; never choose a graph by its QoR.
-
-// parser sets DelayTarget, while Nf reads MapDelayTarget. Keep the existing
-// primary evaluator unchanged; use this separate command only for explicit
-// common-target sensitivity studies. Target units are Nf's internal timing
-// model, NOT stime picoseconds or the backend SDC clock period.
 
 } // namespace
 

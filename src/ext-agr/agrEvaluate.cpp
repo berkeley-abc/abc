@@ -69,7 +69,6 @@ struct CoRootObservation
 };
 
 static int s_CoMinimumGain = 0;
-extern "C";
 
 static std::vector<CoRootObservation> s_CoRootObservations;
 
@@ -81,19 +80,13 @@ static bool s_ExactTimingEvaluation = false;
 static bool s_RequiredTimingEvaluation = false;
 static bool s_BalancedRefactor = false;
 
-extern "C";
 
-extern "C";
 
-extern "C";
 
-// ranking admitted candidates; only AGR gets this optional Pareto constraint.
 
 constexpr double kTimingEndpointWeight = 1.0;
 static double s_TimingWeight = 0.50;
 
-// retain their original implementation. Mode 1 scales all paper timing terms;
-// mode 2/4 scale only the root wire term; mode 3 uses observed edge-length change.
 
 static int s_ScoreMode = 0;
 #ifdef ABC_AGR_ENABLE_AUDIT
@@ -1435,7 +1428,7 @@ class AgrEval_CandidatePlan
             Agr_ManReadMetrics(pNtk_, nullptr, &currentOverflow, nullptr, &currentArea);
             double next = (currentOverflow * currentArea + density_->OverflowDelta()) /
                           std::max(1e-9, currentArea + density_->ExactAreaDelta());
-            if (next > std::max(.099, currentOverflow) + 1e-9 && ((char *)"1") && 1)
+            if (next > std::max(.099, currentOverflow) + 1e-9)
             {
                 ++s_CoRepairCalls;
                 RepairCapacity(currentArea, currentOverflow);
