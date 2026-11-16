@@ -20,14 +20,63 @@ python3 test/physical/reproduction_test.py
 The normal `make -j4` build is also supported. Use the same build type for every
 comparison. If Readline is unavailable, add `-DREADLINE_FOUND=FALSE` to CMake.
 
-Provide one combinational binary AIGER file per design and a Liberty library.
-The paper uses 20 saved, preprocessed EPFL AIGs and `merged_asap7_final.lib`.
-Raw benchmark downloads are not necessarily byte-identical to these inputs.
-`test/physical/endpoint_manifest.json` records their SHA-256 hashes and retained
-AGR/PA2 endpoint hashes. The benchmark/library files are external inputs, not
-embedded in the ABC source patch. In the accompanying research archive they
-are in `review/pa_tg_20261107/inputs/`; pass that directory directly to the runner.
-Keep any original benchmark and library license files with redistributed data.
+## Common benchmark preprocessing
+
+Both the standalone and practical-flow comparisons start from the same 20 saved
+EPFL AIGs, preprocessed once with `dc2`. To prepare a raw benchmark, run these
+commands in ABC and use the saved result for every compared method:
+
+```text
+read raw_design.aig
+strash
+dc2
+write_aiger preprocessed.aig
+```
+
+Save one binary AIGER file per design (for example, `inputs/adder.aig`). Do not
+apply `dc2` again to the supplied paper inputs. This common preprocessing is
+outside the measured optimization recipe. The practical flow's C/R macros and
+ABC-mix's additional `&dc2` calls run afterward and are charged to synthesis CPU.
+
+`test/physical/endpoint_manifest.json` records the saved input hashes and AGR/PA2
+endpoint hashes. Regenerating inputs from raw benchmarks with another ABC
+version may change their serialization or structure; use the recorded hashes
+for exact replay. Benchmarks remain external inputs. The accompanying research
+archive supplies them in `review/pa_tg_20261107/inputs/`; preserve their licenses.
+
+## Exact Liberty library
+
+The exact ABC-side experimental library is included as
+[data/merged_asap7_final.lib.gz](data/merged_asap7_final.lib.gz), with its original
+BSD 3-Clause notice preserved inside the Liberty file and in
+[data/LICENSE.asap7.txt](data/LICENSE.asap7.txt).
+
+| Property | Value |
+|---|---|
+| Library | `asap7_merged` (`merged_asap7_final.lib`) |
+| Cell family | ASAP7 7.5-track RVT (`ASAP7_75t_R`) |
+| Nominal voltage / temperature | 0.77 V / 0 degrees C |
+| Operating condition | `PVT_0P77V_0C` |
+| Delay model / time unit | `table_lookup` (NLDM) / 1 ps |
+
+From the checkout root, extract it after creating the build directory:
+
+```sh
+mkdir -p build
+gzip -dc examples/physical/data/merged_asap7_final.lib.gz > build/merged_asap7_final.lib
+shasum -a 256 build/merged_asap7_final.lib
+```
+
+The SHA-256 of the **uncompressed file**, also recorded in the reference
+measurements and endpoint manifest, must be:
+
+```text
+70cae62f9a4817dfc60c1ec6eb33161f93bbfce7f85786b6faa077cfd17e01fb
+```
+
+The library is redistributed byte-for-byte; no cells or timing tables have been
+changed. Use this same file for AGR, PA and native ABC mapping/evaluation.
+It is the frontend Liberty input, not a complete OpenROAD technology package.
 
 ## Direct synthesis commands
 
@@ -36,9 +85,9 @@ displacement scale of the placement update; it is not a synthesis effort limit.
 No parameter is necessary for the primary reproduction:
 
 ```text
-read design.aig
+read preprocessed.aig
 strash
-read_lib cells.lib
+read_lib build/merged_asap7_final.lib
 agr
 write_aiger agr.aig
 ```
@@ -49,9 +98,9 @@ cluster mode remains optional after mapped placement and `pa_strash`. Other
 operator controls retain their native ABC meanings. The direct recipe is:
 
 ```text
-read design.aig
+read preprocessed.aig
 strash
-read_lib cells.lib
+read_lib build/merged_asap7_final.lib
 pa_place
 pa_rs -K 8 -N 2
 pa_rw
@@ -85,7 +134,7 @@ level-preserving structural behavior; it does not have PA's physical score.
 python3 examples/physical/reproduce.py \
   --abc build/abc \
   --inputs /path/to/paper/inputs \
-  --liberty /path/to/paper/inputs/merged_asap7_final.lib \
+  --liberty build/merged_asap7_final.lib \
   --paper-inputs \
   --output results/frontend-default
 ```
@@ -113,7 +162,7 @@ machine. To reproduce the **same native work and endpoint**, use:
 ```sh
 python3 examples/physical/reproduce.py \
   --abc build/abc --inputs /path/to/paper/inputs \
-  --liberty /path/to/paper/inputs/merged_asap7_final.lib --paper-inputs \
+  --liberty build/merged_asap7_final.lib --paper-inputs \
   --replay-cycles results/frontend-default/budgets.json \
   --output results/frontend-fixed-cycles
 ```
@@ -148,7 +197,7 @@ Mapped measurement:
 ```text
 read optimized.aig
 strash
-read_lib cells.lib
+read_lib build/merged_asap7_final.lib
 &get
 &nf
 &put

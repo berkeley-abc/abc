@@ -17,15 +17,20 @@ C is the fixed `compress2rs` expansion below. R is the same expansion without
 An ABC-mix slot may end after any complete macro, including inside E,E,R,B.
 There is no endpoint-quality selection, rollback, or per-design recipe tuning.
 
+All four flows start from the same saved `dc2`-preprocessed AIGs as the standalone
+comparison. Do not repeat this preprocessing on those inputs. ABC-mix's `&dc2`
+macros are additional measured synthesis work. Input preparation and the exact
+bundled Liberty library are documented in [REPRODUCE.md](REPRODUCE.md).
+
 ## Run all four flows
 
-Build ABC as described in [REPRODUCE.md](REPRODUCE.md), then run:
+Build ABC and extract the library as described in [REPRODUCE.md](REPRODUCE.md), then run:
 
 ```sh
 python3 examples/physical/reproduce_flow.py \
   --abc build/abc \
   --inputs /path/to/paper/inputs \
-  --liberty /path/to/paper/inputs/merged_asap7_final.lib \
+  --liberty build/merged_asap7_final.lib \
   --paper-inputs \
   --output results/practical-default
 ```
@@ -63,9 +68,9 @@ required. Boundary normalization matches the runner. AGR already includes its
 final normalization.
 
 ```text
-read design.aig
+read preprocessed.aig
 strash
-read_lib cells.lib
+read_lib build/merged_asap7_final.lib
 alias flow_c "strash; balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l; strash"
 alias flow_r "strash; balance; resub -K 6; rewrite; resub -K 6 -N 2; refactor; resub -K 8; balance; resub -K 8 -N 2; rewrite; resub -K 10; rewrite -z; resub -K 10 -N 2; balance; resub -K 12; refactor -z; resub -K 12 -N 2; rewrite -z; balance; strash"
 alias flow_agr "strash; agr"
@@ -77,7 +82,7 @@ write_aiger agr_flow.aig
 For PA, reread the original input and run the same skeleton:
 
 ```text
-read design.aig
+read preprocessed.aig
 strash
 flow_c; flow_pa2; flow_pa2; flow_r; flow_pa2
 write_aiger pa_flow.aig
@@ -93,7 +98,7 @@ To replay previously selected work, including the archived practical study:
 python3 examples/physical/reproduce_flow.py \
   --abc build/abc \
   --inputs /path/to/paper/inputs \
-  --liberty /path/to/paper/inputs/merged_asap7_final.lib \
+  --liberty build/merged_asap7_final.lib \
   --paper-inputs \
   --replay-recipes examples/physical/reference_flow_recipes.json \
   --output results/practical-fixed-work
