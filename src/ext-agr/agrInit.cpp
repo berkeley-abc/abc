@@ -16,6 +16,12 @@
 #include "opt/rwr/rwr.h"
 #include "sat/bsat/satSolver.h"
 
+// Legacy C headers define this keyword on MSVC; do not expose that macro to
+// the C++ standard library. C++ code uses the language's native inline keyword.
+#if defined(_MSC_VER) && defined(inline)
+#undef inline
+#endif
+
 #include <algorithm>
 #include <array>
 #include <chrono>
