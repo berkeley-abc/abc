@@ -1,0 +1,3968 @@
+[
+  {
+    "area_um2": 60.2591,
+    "arm": "abc_budget",
+    "common_input_sha256": "4e909f7a284904aa7731eedd42d255f129d44c260ebdffeb0fe1f9d8d7ef3105",
+    "core_only_hpwl_um": 212.39100000000005,
+    "cores": 2,
+    "delay_ps": 3399.0299999999997,
+    "design": "adder",
+    "drc_errors": 0,
+    "endpoint_sha256": "6c602e6da4dbc636d070b67086ae4d5702e265ea82653769183b406a77432946",
+    "final_hpwl_um": 1518.9809999999998,
+    "final_metrics_sha256": "fb8f395ddad205048018b16e317e20d6d5cc95cc83af29620ea04d4f6b0d9a6e",
+    "final_proof": "30eec7d4bbb9d817c5e8379f1851bb110057a6d55479d2446890888534414f74",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 22.689386556856334,
+      "floorplan": 4.129117646254599
+    },
+    "frontend_source_proof": "44176149a8e555f44d2ed0d1ed1ea2addbde491cadee11f058210c8893268a56",
+    "mapping_proof": "86e406e90be2c62eb8c051aee532914f938337af725de86ff8634c01d1e1a7f5",
+    "power_w": 2.05798e-05,
+    "protocol_sha256": "26aca764df7e18ad2e273ae7150faca013b90d89c0e3844dceca608c52503539",
+    "route_metrics_sha256": "1a75b705d89c3b604257a18ff45529928fb357f75d6a794ae27d6271d1798409",
+    "routed_wirelength_um": 1520,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 138.14900000000003,
+      "3_5_place_dp": 199.87700000000004,
+      "5_2_route": 212.39100000000005,
+      "6_final": 212.39100000000005
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 1435.503,
+      "3_5_place_dp": 1490.4669999999999,
+      "5_2_route": 1518.9809999999998,
+      "6_final": 1518.9809999999998
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 32.1319383229129
+  },
+  {
+    "area_um2": 73.6873,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "4e909f7a284904aa7731eedd42d255f129d44c260ebdffeb0fe1f9d8d7ef3105",
+    "core_only_hpwl_um": 408.58700000000016,
+    "cores": 2,
+    "delay_ps": 2294.16,
+    "design": "adder",
+    "drc_errors": 0,
+    "endpoint_sha256": "10a63195bdd37789968c8c1ec2c7cf524349885a641571d4598c1f3fb84c4c81",
+    "final_hpwl_um": 1797.478,
+    "final_metrics_sha256": "dbfd0b1be06bbe26b26d0d42884f825ccf1535c5ebe0ea993d198bcccfd2e793",
+    "final_proof": "cdda2dca6fec244f97704075240b4d376554dfc69fe018201a04118e38a7be48",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 30.591472149826586,
+      "floorplan": 4.072447080165148
+    },
+    "frontend_source_proof": "8104e57f20059f436db309d2153a2c2e74328d552c4f61c8e4fc1116af3e8858",
+    "mapping_proof": "183ba5963ebdfc19f5ca1cb8fefc1409b2cb971debc982b531103952da4a78da",
+    "power_w": 2.70713e-05,
+    "protocol_sha256": "65b4d495493e75ce90c7635d4b354ec39754fcfa7af246cd99c834dcd29be0c4",
+    "route_metrics_sha256": "410209473a04cf79d04f9c48c2a0d5343eeef5909d79fc694b0cc2cac5a6d8a0",
+    "routed_wirelength_um": 1823,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 286.1920000000003,
+      "3_5_place_dp": 384.5490000000001,
+      "5_2_route": 408.58700000000016,
+      "6_final": 408.58700000000016
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 1669.9999999999998,
+      "3_5_place_dp": 1751.547999999999,
+      "5_2_route": 1797.478,
+      "6_final": 1797.478
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 40.122832817956805
+  },
+  {
+    "area_um2": 62.3878,
+    "arm": "native",
+    "common_input_sha256": "4e909f7a284904aa7731eedd42d255f129d44c260ebdffeb0fe1f9d8d7ef3105",
+    "core_only_hpwl_um": 242.94600000000008,
+    "cores": 2,
+    "delay_ps": 3268.16,
+    "design": "adder",
+    "drc_errors": 0,
+    "endpoint_sha256": "01074a1e78b629b4663b5e5e91a09bfcb951269e1c1a81fd3389d9332e1a51b4",
+    "final_hpwl_um": 1582.1049999999998,
+    "final_metrics_sha256": "8703ca78341ff5349f43c973054b99d07b92177b39849cfc1b9281855608f4d0",
+    "final_proof": "efb02cb9578a32bfbae64d3c5ead675948139628503598a6102b89064f5a5e74",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 23.314655607100576,
+      "floorplan": 4.021134726703167
+    },
+    "frontend_source_proof": "50b7faea37c5ede09d9d55f04191d0bb8d0471f935fe612000f652d3ab1b12e6",
+    "mapping_proof": "dd93b37c2e2219ede859a81b908f08afa44482de32d24d7d0c6bec20f3a52371",
+    "power_w": 2.12014e-05,
+    "protocol_sha256": "afb1f519f9e195ab0a213f18b460c6315e89020997254ef34b82a31c46c781a3",
+    "route_metrics_sha256": "bc0a0567bcb869218cccb4c8b66173978dc9dbb2aea2aed14b52dbc3daed17e2",
+    "routed_wirelength_um": 1595,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 158.435,
+      "3_5_place_dp": 230.66200000000012,
+      "5_2_route": 242.94600000000008,
+      "6_final": 242.94600000000008
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 1495.1679999999976,
+      "3_5_place_dp": 1549.2429999999997,
+      "5_2_route": 1582.1049999999998,
+      "6_final": 1582.1049999999998
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 33.14054763503373
+  },
+  {
+    "area_um2": 61.8192,
+    "arm": "paper_agr",
+    "common_input_sha256": "4e909f7a284904aa7731eedd42d255f129d44c260ebdffeb0fe1f9d8d7ef3105",
+    "core_only_hpwl_um": 236.02000000000004,
+    "cores": 2,
+    "delay_ps": 3306.7200000000003,
+    "design": "adder",
+    "drc_errors": 0,
+    "endpoint_sha256": "403f61ef1d505645093bb1761284754380da6846b86b10ff2910365672ae91ca",
+    "final_hpwl_um": 1569.8919999999976,
+    "final_metrics_sha256": "842a3dfc71841690b0c3a24f36b7ee74b19b3beca55d48a8de62abfa649ab91b",
+    "final_proof": "0eb235c4980ec7900c1957869f8587bd9fc8a80f7f6edcf032f20c07c8e98a98",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 23.29385098395869,
+      "floorplan": 4.077435538172722
+    },
+    "frontend_source_proof": "7cba84086c5e3952cac19dc526f1316da67cb9bf99f11cd3bc3e92dbeb9c3a56",
+    "mapping_proof": "162d0d31be11ce306c32e1c277c83870c9b4d13a355e9f3e338f409254999685",
+    "power_w": 2.10153e-05,
+    "protocol_sha256": "512a7218d7a1ef4cf9de7bbbb3ad40bda8baf2a27c8bf4c354338cd95f983afb",
+    "route_metrics_sha256": "89debf2feb7730ded9a64972e283529d6b67f415bbc98897d966dfba567ab1f4",
+    "routed_wirelength_um": 1584,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 155.6249999999999,
+      "3_5_place_dp": 221.90200000000002,
+      "5_2_route": 236.02000000000004,
+      "6_final": 236.02000000000004
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 1490.6890000000005,
+      "3_5_place_dp": 1536.0389999999977,
+      "5_2_route": 1569.8919999999976,
+      "6_final": 1569.8919999999976
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 33.10765788704157
+  },
+  {
+    "area_um2": 74.2851,
+    "arm": "paper_pa2",
+    "common_input_sha256": "4e909f7a284904aa7731eedd42d255f129d44c260ebdffeb0fe1f9d8d7ef3105",
+    "core_only_hpwl_um": 374.9180000000001,
+    "cores": 2,
+    "delay_ps": 2534.67,
+    "design": "adder",
+    "drc_errors": 0,
+    "endpoint_sha256": "5b7b00ce642845a904dd4839500cda1b6374581ff82ad074064969579ea91233",
+    "final_hpwl_um": 1809.3830000000003,
+    "final_metrics_sha256": "395aa1de29f45eeb7f85dfa5eb10adbae13866eda27841f16c74a6233143e53f",
+    "final_proof": "7d46b942a3a12a590efd4cc30395e20649d8c485310e14325693650b0a9d89f3",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 25.432863998692483,
+      "floorplan": 4.022475962992758
+    },
+    "frontend_source_proof": "e6ad3a3a51b496ad6e3708a7462669d13bbdaae68ebe5958a60643f843056a3d",
+    "mapping_proof": "30352592c812dc31d20bf82563eca7f49b66a83576e73cf0a395b388ca1d078a",
+    "power_w": 2.49006e-05,
+    "protocol_sha256": "318acf9be03c92cb81605a028688c38dcfa8ea2327711c3d42b78d4048fd804f",
+    "route_metrics_sha256": "d0cfbe83b5bfeb6902a15cc3aa79bbaafa9c15143e0e00499f546a66aa2688e8",
+    "routed_wirelength_um": 1831,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 250.993,
+      "3_5_place_dp": 353.9870000000003,
+      "5_2_route": 374.9180000000001,
+      "6_final": 374.9180000000001
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 1644.5160000000003,
+      "3_5_place_dp": 1763.281,
+      "5_2_route": 1809.3830000000003,
+      "6_final": 1809.3830000000003
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 35.110690432135016
+  },
+  {
+    "area_um2": 552.436,
+    "arm": "abc_budget",
+    "common_input_sha256": "21ab4182d31d86c94bd080334973510c98cdc4af81c236db40d9203e19a61e5f",
+    "core_only_hpwl_um": 14044.884999999995,
+    "cores": 2,
+    "delay_ps": 809.6899999999996,
+    "design": "arbiter",
+    "drc_errors": 0,
+    "endpoint_sha256": "23902fafa3bbda930fe27c601873c2e40336f15479c1e4a245c107923686f92b",
+    "final_hpwl_um": 17629.098999999977,
+    "final_metrics_sha256": "4068ed87fdeae0cd10ae8a52d48ab12048115a4a2c9e72d63fc8afd380068e6b",
+    "final_proof": "4ab26b720da8de77ac4a31c2235da74af665818c1d448824e1b2bf82c792f8e0",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 226.7441580798477,
+      "floorplan": 6.329982155933976
+    },
+    "frontend_source_proof": "ea967c207bc6842b7d288e3c8af47ec4c2c7df6a04c74ec220f444ae7a05aa87",
+    "mapping_proof": "51947ac3de9ba3b6dfa36440fca670191156205ed31e250c936b579f582557dd",
+    "power_w": 0.000159646,
+    "protocol_sha256": "529d980de27964974cfd53babae3f29f43f6969fefe36cf9670f503bd542ab04",
+    "route_metrics_sha256": "a086f52c014fe036b46a85811db9b9c89d4e37e1b6ba1d1964eae07efaf97408",
+    "routed_wirelength_um": 22890,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 13906.582999999966,
+      "3_5_place_dp": 13544.266000000005,
+      "5_2_route": 14044.884999999995,
+      "6_final": 14044.884999999995
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 17475.630999999947,
+      "3_5_place_dp": 17100.226999999984,
+      "5_2_route": 17629.098999999977,
+      "6_final": 17629.098999999977
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 239.02194304997101
+  },
+  {
+    "area_um2": 253.153,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "21ab4182d31d86c94bd080334973510c98cdc4af81c236db40d9203e19a61e5f",
+    "core_only_hpwl_um": 9740.100000000024,
+    "cores": 2,
+    "delay_ps": 313.0799999999999,
+    "design": "arbiter",
+    "drc_errors": 0,
+    "endpoint_sha256": "110c61c76c27ea41a1fb08e254036e75685123e5d0ad43210ac6ced2b3688cca",
+    "final_hpwl_um": 13551.92200000004,
+    "final_metrics_sha256": "9959f74249932bd24b90e96771426a888e5a96c518f41b163e0ecf212d16bd62",
+    "final_proof": "024d8d1610cf37aa9e8eea3c66c897779b383c2d7021cb160ae5fedc6dab8f15",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 137.0984992343001,
+      "floorplan": 4.927805261220783
+    },
+    "frontend_source_proof": "11deb53d5d03fded07142550fd4fe1c83e17615885a6246aeca766e178b0b751",
+    "mapping_proof": "5d9addd12a92467521e494387a7c7f0781aa6486e5f1b3fb15be7ee30c597fe3",
+    "power_w": 3.54285e-05,
+    "protocol_sha256": "6ba6a0880f75d7a56094eab7aa707f7434e40422ebc55ebb027141f74cc13784",
+    "route_metrics_sha256": "46a94a01235b30adc8c0df4b2716b2f58565b71878f84001b20a5f6bcbac4359",
+    "routed_wirelength_um": 15472,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 9664.253999999995,
+      "3_5_place_dp": 9527.266000000025,
+      "5_2_route": 9740.100000000024,
+      "6_final": 9740.100000000024
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 13451.114000000007,
+      "3_5_place_dp": 13314.993000000035,
+      "5_2_route": 13551.92200000004,
+      "6_final": 13551.92200000004
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 147.64568812772632
+  },
+  {
+    "area_um2": 252.773,
+    "arm": "native",
+    "common_input_sha256": "21ab4182d31d86c94bd080334973510c98cdc4af81c236db40d9203e19a61e5f",
+    "core_only_hpwl_um": 9561.021000000015,
+    "cores": 2,
+    "delay_ps": 334.84000000000015,
+    "design": "arbiter",
+    "drc_errors": 0,
+    "endpoint_sha256": "578c2bdfc35229f43e211675b899ff37f3e3cd110d4256f170cce2ffaee68523",
+    "final_hpwl_um": 13801.593000000015,
+    "final_metrics_sha256": "b06b65e931ebc5e39357d6f7d5b2dae08cd3c98ea56194b618cdc7daa2eb5f1e",
+    "final_proof": "f515f06df585f572ce63f90f36f2b4623bc44e5f9b231eae9cf5b59e69b9d0e1",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 116.79740584781393,
+      "floorplan": 4.879661632701755
+    },
+    "frontend_source_proof": "5c5710a405c5cbe12b1656d84d3e73504104f2ca572a9245650274bc1882ddf0",
+    "mapping_proof": "28b53742f8056fbbf672dc92e3b9258195414cef1d93210565ba259fe1b74dbc",
+    "power_w": 3.4939e-05,
+    "protocol_sha256": "aa5a22e3de8abe28988533aec5cb230fed45863087bdc9f2f6ecbe89b59f3499",
+    "route_metrics_sha256": "1ec233fd33bc9987b61b7e5c851d3c73913dc1051404d5677ce8abc6ff72392a",
+    "routed_wirelength_um": 15646,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 9458.085,
+      "3_5_place_dp": 9344.07000000001,
+      "5_2_route": 9561.021000000015,
+      "6_final": 9561.021000000015
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 13671.234999999997,
+      "3_5_place_dp": 13558.510000000026,
+      "5_2_route": 13801.593000000015,
+      "6_final": 13801.593000000015
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 127.54169208928943
+  },
+  {
+    "area_um2": 552.597,
+    "arm": "paper_agr",
+    "common_input_sha256": "21ab4182d31d86c94bd080334973510c98cdc4af81c236db40d9203e19a61e5f",
+    "core_only_hpwl_um": 14053.105999999972,
+    "cores": 2,
+    "delay_ps": 816.2299999999996,
+    "design": "arbiter",
+    "drc_errors": 0,
+    "endpoint_sha256": "9f34475cb106e5db5654b1368f749a70639469b9fbddf7fe3f91bda23cbc84e1",
+    "final_hpwl_um": 16360.19299999997,
+    "final_metrics_sha256": "ce6159bf73ecc8c223782bd6a65234402dd8cd8e7e195e7e4b5b99333800ff25",
+    "final_proof": "62cf4880e39e2f0b5400fed4ff59f1ab64e92778aefad41102b19f017ba43ec8",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 231.64033588394523,
+      "floorplan": 6.5363634950481355
+    },
+    "frontend_source_proof": "8ae04e994e80f99c4aa040ed1de4b24953c8433d23acacdab70c17cc2024b150",
+    "mapping_proof": "978703c06acd03396a0aa3e91a8f27a34a580b74d5d14175977dbaa48f8539f9",
+    "power_w": 0.000159592,
+    "protocol_sha256": "a3f4fec2810b45e7c03f48d78bed6bed18be1e9f1b8268a14d8484856c045a11",
+    "route_metrics_sha256": "1fd472cf298d11335a9d4d74ff00d577c5e34228a907c2f3d923e9d49f34ece2",
+    "routed_wirelength_um": 21681,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 13862.906000000037,
+      "3_5_place_dp": 13545.455999999973,
+      "5_2_route": 14053.105999999972,
+      "6_final": 14053.105999999972
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 16154.797000000044,
+      "3_5_place_dp": 15826.425999999981,
+      "5_2_route": 16360.19299999997,
+      "6_final": 16360.19299999997
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 244.05762765882537
+  },
+  {
+    "area_um2": 555.979,
+    "arm": "paper_pa2",
+    "common_input_sha256": "21ab4182d31d86c94bd080334973510c98cdc4af81c236db40d9203e19a61e5f",
+    "core_only_hpwl_um": 14215.374999999978,
+    "cores": 2,
+    "delay_ps": 800.8900000000003,
+    "design": "arbiter",
+    "drc_errors": 0,
+    "endpoint_sha256": "022de4942a8e8608a783fe54513f6ed6c601ce0e3f736da6c617a9cfc89fe6ea",
+    "final_hpwl_um": 17048.55599999997,
+    "final_metrics_sha256": "a8841d9b9a87da9c074a8b3ab72f277c94441ef32a1e089e27b8e515b28d0bb3",
+    "final_proof": "dcdc756370290f2fe93d89a0224e63fd8b37084d1973c5012aa411bf941b81d3",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 265.9485923908651,
+      "floorplan": 6.589144789148122
+    },
+    "frontend_source_proof": "68f153f9e51c58c368848511e1af97bc93a4d91159f3c978dc6f24d48fedd12a",
+    "mapping_proof": "d69dd3770e200f3bb38d135185f006b827fc61d1bdb8458d885d0844822ed90b",
+    "power_w": 0.000162333,
+    "protocol_sha256": "0eec14d9e7c5748bdddac7e59b2e129e94caabb9d70410935fe826b214d3efe7",
+    "route_metrics_sha256": "3f77ee28d25fc984159220a0bdd21eccd15442679452c57dd58040cee5193740",
+    "routed_wirelength_um": 23277,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 14047.880999999987,
+      "3_5_place_dp": 13719.317999999977,
+      "5_2_route": 14215.374999999978,
+      "6_final": 14215.374999999978
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 16867.531999999992,
+      "3_5_place_dp": 16527.64099999996,
+      "5_2_route": 17048.55599999997,
+      "6_final": 17048.55599999997
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 278.260822433047
+  },
+  {
+    "area_um2": 199.163,
+    "arm": "abc_budget",
+    "common_input_sha256": "152803fbc9256adc42817f811c0b122b52fa87d75a1ba17fc72a6cefb2d80570",
+    "core_only_hpwl_um": 4241.724000000007,
+    "cores": 2,
+    "delay_ps": 464.3699999999999,
+    "design": "bar",
+    "drc_errors": 0,
+    "endpoint_sha256": "3f49fd9c198eaa03e85333517a9c7e511ea69b26d27e13a6a4fe7518f3888a7d",
+    "final_hpwl_um": 5659.019000000012,
+    "final_metrics_sha256": "d961504644d33909f67aa81e9a16b974e4cc5b1a3a99fdc648c0a29d0cc52e5a",
+    "final_proof": "60b999ce327aec9927e7d570492280f1b27de2ebad88cb97a7f65ffc17054990",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 113.12833664892241,
+      "floorplan": 4.523431085981429
+    },
+    "frontend_source_proof": "dc710fd0c184be6d3dabf72fe9d3487f8b1a819a84161d953325aacf2ad13ac7",
+    "mapping_proof": "d9eba34cb496062f72fc57559432a0ef5f6c95f42e6f21c6bfd36438f40dbefd",
+    "power_w": 6.79269e-05,
+    "protocol_sha256": "f4baada96ee0aef57e402a983b51790803937cc5e30f68a66e5317ef7f11be59",
+    "route_metrics_sha256": "2a2e4f06d6d032a7a1fd5321aee5af56d3aa4ee9e4d0d333b6b0da4c3d3fca45",
+    "routed_wirelength_um": 7268,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 4056.4609999999993,
+      "3_5_place_dp": 4116.667000000003,
+      "5_2_route": 4241.724000000007,
+      "6_final": 4241.724000000007
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 5471.86,
+      "3_5_place_dp": 5511.348000000004,
+      "5_2_route": 5659.019000000012,
+      "6_final": 5659.019000000012
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 123.52208206802607
+  },
+  {
+    "area_um2": 165.031,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "152803fbc9256adc42817f811c0b122b52fa87d75a1ba17fc72a6cefb2d80570",
+    "core_only_hpwl_um": 3701.610000000005,
+    "cores": 2,
+    "delay_ps": 461.1099999999997,
+    "design": "bar",
+    "drc_errors": 0,
+    "endpoint_sha256": "64fda7b62971ac8687f6ac735d8f3f947718e67dbd799197969021324265bdf1",
+    "final_hpwl_um": 5250.4710000000005,
+    "final_metrics_sha256": "d3a1e29b5ded162c73127af93fd8db841d7c1c4cec37bd819726924e1fe21c9e",
+    "final_proof": "d96e36481539ca630edc3f8b95ae5c5450ba3da6f2add852c3ed4637f5eed9b7",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 240.6806770293042,
+      "floorplan": 4.727169110905379
+    },
+    "frontend_source_proof": "6298e71201f59b530158f497dd0b818c18105e16db0f42d77460edf08816b255",
+    "mapping_proof": "ed4e45f57b1bf11635fa0f61cdabd0299cb279a25637f72de6307b5496373978",
+    "power_w": 6.56933e-05,
+    "protocol_sha256": "74bb820eadc03f4ea249754072fc8f0e3a9e55db4f62136c59e610cebc360f20",
+    "route_metrics_sha256": "a5d86d68008fc43283ddc1b3f3c26daaf3e967038d8886a16d8996961846bcac",
+    "routed_wirelength_um": 6702,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 3523.5359999999946,
+      "3_5_place_dp": 3596.431000000005,
+      "5_2_route": 3701.610000000005,
+      "6_final": 3701.610000000005
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 5084.841999999995,
+      "3_5_place_dp": 5137.509000000004,
+      "5_2_route": 5250.4710000000005,
+      "6_final": 5250.4710000000005
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 250.81940872827545
+  },
+  {
+    "area_um2": 160.088,
+    "arm": "native",
+    "common_input_sha256": "152803fbc9256adc42817f811c0b122b52fa87d75a1ba17fc72a6cefb2d80570",
+    "core_only_hpwl_um": 3249.491000000004,
+    "cores": 2,
+    "delay_ps": 455.1700000000001,
+    "design": "bar",
+    "drc_errors": 0,
+    "endpoint_sha256": "f8b17d1483bd8e7bfa0487d5eadf8ae245aad58ac3d7de2d23506901be20b41e",
+    "final_hpwl_um": 4561.493000000006,
+    "final_metrics_sha256": "dde97c2505af997d11a525bee820558b72b42cfcf97b290444590ccecdbf798d",
+    "final_proof": "aa7c2da4b0347c869737687c615136cd8d8e743d1abbf554ca5cd1def4c0c7dd",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 171.96199819492176,
+      "floorplan": 4.577794605866075
+    },
+    "frontend_source_proof": "485b15c7283513c2463cbfd613999a15e8d1b5fe4aac3daa12c91b8cc475cc89",
+    "mapping_proof": "a28f8ab1bde431adba05f510d9beecca38784c93b36e9aca4fb061ddb6044c0e",
+    "power_w": 5.96359e-05,
+    "protocol_sha256": "91aa02df9677308bafce4205028899801095bdb0c8870441454adef0e3b17acc",
+    "route_metrics_sha256": "27e723bf7fd0d82befdcb265c59315c5cf9099a7edbd54b8ffc62916b9973b7d",
+    "routed_wirelength_um": 5842,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 3085.656000000003,
+      "3_5_place_dp": 3163.3429999999985,
+      "5_2_route": 3249.491000000004,
+      "6_final": 3249.491000000004
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 4399.331000000007,
+      "3_5_place_dp": 4461.800000000001,
+      "5_2_route": 4561.493000000006,
+      "6_final": 4561.493000000006
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 181.75334268808365
+  },
+  {
+    "area_um2": 161.342,
+    "arm": "paper_agr",
+    "common_input_sha256": "152803fbc9256adc42817f811c0b122b52fa87d75a1ba17fc72a6cefb2d80570",
+    "core_only_hpwl_um": 3362.219000000002,
+    "cores": 2,
+    "delay_ps": 457.8800000000001,
+    "design": "bar",
+    "drc_errors": 0,
+    "endpoint_sha256": "ba12a675a454de38cecb02f364c3e09b43d2246924358e9875018b1ca9d99979",
+    "final_hpwl_um": 4693.359000000006,
+    "final_metrics_sha256": "ed725c6af0bb543a0ca11768a7ce3ea3152c2a3191ea1275c7f4f4edbda6f3bb",
+    "final_proof": "eb02f66ec36240d00bf2d42e1d322088ff7c80ab564ad9422b21541b2159b04c",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 162.6636432930827,
+      "floorplan": 4.628678156994283
+    },
+    "frontend_source_proof": "131ad4009c9829426d127ea1266fed8cd33c0f6818fef9793198c1d7cc722dc3",
+    "mapping_proof": "32f7213bff414b0fff4b49afac2a9f76e50b1ca9c095fb978b9708f9df517bd3",
+    "power_w": 6.02095e-05,
+    "protocol_sha256": "bd7246c2eba59b1c946b4077e9bdbb1bac74308557d262a9c0752a4aac3dc1a7",
+    "route_metrics_sha256": "f9abf52c77587c44cc2af9bbe1d3122aaa8e5241cb2cde5ac554338edc21aaad",
+    "routed_wirelength_um": 5995,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 3191.8660000000027,
+      "3_5_place_dp": 3266.3910000000037,
+      "5_2_route": 3362.219000000002,
+      "6_final": 3362.219000000002
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 4530.215000000003,
+      "3_5_place_dp": 4583.741000000007,
+      "5_2_route": 4693.359000000006,
+      "6_final": 4693.359000000006
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 172.55578539986163
+  },
+  {
+    "area_um2": 168.53,
+    "arm": "paper_pa2",
+    "common_input_sha256": "152803fbc9256adc42817f811c0b122b52fa87d75a1ba17fc72a6cefb2d80570",
+    "core_only_hpwl_um": 3500.810999999996,
+    "cores": 2,
+    "delay_ps": 541.9200000000001,
+    "design": "bar",
+    "drc_errors": 0,
+    "endpoint_sha256": "444fb2dd21db2e9f34ccfb65994f8743e9c691492c11f1990ee940ebc9138cf3",
+    "final_hpwl_um": 4728.901999999998,
+    "final_metrics_sha256": "9b1baa8357533e256297d7964977afa010aa0cb30d5c4e1f0cd563c2023ed2f7",
+    "final_proof": "89d118c2ead5288071606c639ef6f8f87f07c9275b79dc20c569956a8da734be",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 92.22676917910576,
+      "floorplan": 4.32592777069658
+    },
+    "frontend_source_proof": "f7d9af20ad512e85360381b7579de31606fed46846b6078feb9148a54ff3f3ee",
+    "mapping_proof": "dd894d2077634a2b21f983c9be8083edb34ee08b0ffee09c2dfe550fd448ca91",
+    "power_w": 5.82427e-05,
+    "protocol_sha256": "23262a754e1f403598f874c87f417f2de714f28630814167cc20e827e4224ba7",
+    "route_metrics_sha256": "2657b9b019481745d6100b17acaa0e19df52c506d41f8efd895388fae8e4d82c",
+    "routed_wirelength_um": 6021,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 3325.806999999992,
+      "3_5_place_dp": 3404.0399999999986,
+      "5_2_route": 3500.810999999996,
+      "6_final": 3500.810999999996
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 4569.361999999997,
+      "3_5_place_dp": 4616.846000000002,
+      "5_2_route": 4728.901999999998,
+      "6_final": 4728.901999999998
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 102.32373876683414
+  },
+  {
+    "area_um2": 38.1559,
+    "arm": "abc_budget",
+    "common_input_sha256": "ae0b1a6a9ace2e16122670e700dac7395caf3e3e86180709e5caf97a83f8b2cb",
+    "core_only_hpwl_um": 621.3820000000004,
+    "cores": 2,
+    "delay_ps": 259.1999999999998,
+    "design": "cavlc",
+    "drc_errors": 0,
+    "endpoint_sha256": "c1dbe145a31517c840a782adbb315e06f0f2c0b0f533df3a66f30b8447936688",
+    "final_hpwl_um": 797.1440000000003,
+    "final_metrics_sha256": "c5aae6d4ac9613a647f30f8eab092a30a1fee9ee30e4694a57dccd52a9cc50b8",
+    "final_proof": "c451de494dfdd6728fa4a120139a60681703369e02c915664d7c1d99cc91d66a",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 42.77725852606818,
+      "floorplan": 3.972048129886389
+    },
+    "frontend_source_proof": "94468d0d5d736ac99b55104b07cd61107f8cb225ac2fee6e60f40cc53584a73e",
+    "mapping_proof": "d389d3793f44b1d497d14bd81aa69e9aa1c4e4f9bd847fb3bfe53a63e4e9ef3c",
+    "power_w": 8.09602e-06,
+    "protocol_sha256": "afc056bc509b09e85c2439ce346a378f6e6b60e08b74024a51465e7fb7e11125",
+    "route_metrics_sha256": "4783f7db459e2fb99d10ec5ca3bf6198ea8ec778bdecf3975d9f7db94008222d",
+    "routed_wirelength_um": 1218,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 623.8729999999998,
+      "3_5_place_dp": 610.4040000000002,
+      "5_2_route": 621.3820000000004,
+      "6_final": 621.3820000000004
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 798.3489999999998,
+      "3_5_place_dp": 785.2330000000002,
+      "5_2_route": 797.1440000000003,
+      "6_final": 797.1440000000003
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 52.22025597281754
+  },
+  {
+    "area_um2": 35.8814,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "ae0b1a6a9ace2e16122670e700dac7395caf3e3e86180709e5caf97a83f8b2cb",
+    "core_only_hpwl_um": 615.861,
+    "cores": 2,
+    "delay_ps": 223.64999999999964,
+    "design": "cavlc",
+    "drc_errors": 0,
+    "endpoint_sha256": "b0aa57bb65ee1f9f611f7fb9d3c24e5ca8fac7f6a200a30d0fc68baec897ece6",
+    "final_hpwl_um": 788.7279999999997,
+    "final_metrics_sha256": "a4683622100bdb830c707bd409a48685b002465749cdf656a91f87911ebf8803",
+    "final_proof": "d4874c57b7dde558ee1f9edf633a40f4e7b59f725ff25b6a1a64aeaad2fa54e8",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 61.856931511778384,
+      "floorplan": 4.022541337180883
+    },
+    "frontend_source_proof": "54715a8ddeb5bfa0a3d01f25c54c43aed683678baaecdf2f2b1450abd33363fa",
+    "mapping_proof": "06bdb225f79329c3463a275092627f8ecaaa3198e21c579bedd53d462fade0c8",
+    "power_w": 7.9698e-06,
+    "protocol_sha256": "5e29243ffa11c5ede6a8688104d2dbda5e1c558d22d10dcd217db0098b6b038f",
+    "route_metrics_sha256": "6295969f96b983500d7471ce4e8b861e93e8be21607513b25cc6f4c5b7ab83f0",
+    "routed_wirelength_um": 1205,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 616.1070000000001,
+      "3_5_place_dp": 603.794,
+      "5_2_route": 615.861,
+      "6_final": 615.861
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 786.8019999999997,
+      "3_5_place_dp": 776.5979999999997,
+      "5_2_route": 788.7279999999997,
+      "6_final": 788.7279999999997
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 71.21963008213788
+  },
+  {
+    "area_um2": 34.7879,
+    "arm": "native",
+    "common_input_sha256": "ae0b1a6a9ace2e16122670e700dac7395caf3e3e86180709e5caf97a83f8b2cb",
+    "core_only_hpwl_um": 613.5429999999999,
+    "cores": 2,
+    "delay_ps": 222.90999999999985,
+    "design": "cavlc",
+    "drc_errors": 0,
+    "endpoint_sha256": "fe6c808fbe300770dbfa01ea418fbc2fd92880d9b20aa212985c5348ee117c33",
+    "final_hpwl_um": 782.4750000000001,
+    "final_metrics_sha256": "35b883d8eed1d41b23af93e1b34fda15b6a2f247b5af7359a9703a15f8049255",
+    "final_proof": "0507252d33a7c0a5636029faa66a37523895826f2349409f990cc3e73cf737f2",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 45.241405978333205,
+      "floorplan": 4.177777769975364
+    },
+    "frontend_source_proof": "e2ac1863feab93f76cd700a2edee3076f6dd9bd5e557ef30c0c564d83732cba5",
+    "mapping_proof": "48eacefdfb02a6e7c0231dbe236ef3ee8fbed1b5c737ba49d97f316d7d2cac12",
+    "power_w": 7.35943e-06,
+    "protocol_sha256": "5e550efcc285e18e46ab55d462c6842c6d83dd03f2ec2c0557dece98ae91df7f",
+    "route_metrics_sha256": "b02ceb7177f2e19e700e3105118746075464e9e44f65e660dc1cb7b3c378b9cb",
+    "routed_wirelength_um": 1211,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 609.0640000000003,
+      "3_5_place_dp": 600.1679999999999,
+      "5_2_route": 613.5429999999999,
+      "6_final": 613.5429999999999
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 779.9140000000004,
+      "3_5_place_dp": 768.8919999999998,
+      "5_2_route": 782.4750000000001,
+      "6_final": 782.4750000000001
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 55.23895701998845
+  },
+  {
+    "area_um2": 36.5958,
+    "arm": "paper_agr",
+    "common_input_sha256": "ae0b1a6a9ace2e16122670e700dac7395caf3e3e86180709e5caf97a83f8b2cb",
+    "core_only_hpwl_um": 626.3510000000002,
+    "cores": 2,
+    "delay_ps": 279.27000000000044,
+    "design": "cavlc",
+    "drc_errors": 0,
+    "endpoint_sha256": "7182028143d5847ac7cd0caf88d9fe5d7873b3511d8bf38a2590ee03266adc24",
+    "final_hpwl_um": 796.228,
+    "final_metrics_sha256": "5005aafc5d4dabcfeaa35c08552de2019ae4fc4c0e296ee4769f3427cfccb44e",
+    "final_proof": "f60d088ee4122a2f6f0f4c1d3d944e3654f641c4d3f92ebc0496bf858979f1dd",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 53.40178752830252,
+      "floorplan": 3.923026977106929
+    },
+    "frontend_source_proof": "6a3cca100b5eea4a98b0c11b13bd6cb3ddae14efb816c7845b837524100a314b",
+    "mapping_proof": "317395e37d31d59a4e911356c3a03b9b488f2bfe3dffd71bbf14ff52cdab414a",
+    "power_w": 8.37345e-06,
+    "protocol_sha256": "29cc0e52ba35a870a3d25ebf422e73d98dc4c8855ba3121d4beea72a7a1ac80e",
+    "route_metrics_sha256": "eebf3ce29b663bbc508187eb71e0f5f0466232baec93fe644b7635b2edf7b42c",
+    "routed_wirelength_um": 1202,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 618.8870000000003,
+      "3_5_place_dp": 612.64,
+      "5_2_route": 626.3510000000002,
+      "6_final": 626.3510000000002
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 786.9040000000003,
+      "3_5_place_dp": 781.8839999999998,
+      "5_2_route": 796.228,
+      "6_final": 796.228
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 62.18791227787733
+  },
+  {
+    "area_um2": 36.7999,
+    "arm": "paper_pa2",
+    "common_input_sha256": "ae0b1a6a9ace2e16122670e700dac7395caf3e3e86180709e5caf97a83f8b2cb",
+    "core_only_hpwl_um": 613.7119999999998,
+    "cores": 2,
+    "delay_ps": 246.35999999999967,
+    "design": "cavlc",
+    "drc_errors": 0,
+    "endpoint_sha256": "0c10c18c2e9d20f6f8c8a3dea7aa2459e36beb4f9898e49653ade22bc53f7e3c",
+    "final_hpwl_um": 778.2549999999995,
+    "final_metrics_sha256": "f153b760c3093135e28eba44fdbb6ffaef22ac5b0cf00dd3c00053fe73d69a38",
+    "final_proof": "c9d4715efefaf58770191121e8d2510ecfba91f1985259d124ba9dd558a61262",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 56.96311296289787,
+      "floorplan": 4.077142281923443
+    },
+    "frontend_source_proof": "09a0870d30cb87be8534e0473b603ae02a9ea5a8af3d1823887b32fe57015ad2",
+    "mapping_proof": "3b3560dab362a4ebb46a0365ef57a477f651665da6e027c5303aaeb5e64f1a8e",
+    "power_w": 8.09606e-06,
+    "protocol_sha256": "340c18cc92d47230b368d2cf318849f975486ff55569ab9a82df8845f329bc06",
+    "route_metrics_sha256": "70eca5b7e02b0178157c00d6bc13af4c10e09893776ee2640946b884ce3d090a",
+    "routed_wirelength_um": 1160,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 628.6350000000004,
+      "3_5_place_dp": 601.2809999999996,
+      "5_2_route": 613.7119999999998,
+      "6_final": 613.7119999999998
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 793.2710000000004,
+      "3_5_place_dp": 765.5439999999995,
+      "5_2_route": 778.2549999999995,
+      "6_final": 778.2549999999995
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 66.20203009201214
+  },
+  {
+    "area_um2": 6.7797,
+    "arm": "abc_budget",
+    "common_input_sha256": "73fbaeb2065a90b7bf7703eb693244ad2ea741f2063c062d80b04204cb56609a",
+    "core_only_hpwl_um": 55.59999999999998,
+    "cores": 2,
+    "delay_ps": 88.86999999999989,
+    "design": "ctrl",
+    "drc_errors": 0,
+    "endpoint_sha256": "13a9a45cb8d6a72cdf8b52c42a699cb92b7a78a5863f92f21db4c4f58a609623",
+    "final_hpwl_um": 140.01899999999995,
+    "final_metrics_sha256": "f59cc297fdb232d6707ca241ace5f78021327e3ec96b40270e29c3d2f9584035",
+    "final_proof": "f43a3b75782f33ef4906b0fe67ae1fbdd6b2284c8f57e768175b41ebe2f08d98",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 18.05788318812847,
+      "floorplan": 3.922611060552299
+    },
+    "frontend_source_proof": "a71f7680fe1a9b86531440027e85cef635bcad8a15224043ffd03bac8400c62b",
+    "mapping_proof": "98e54e8e0a82e394ca5e9156da890c54a7c91aba23a201fc56957f8e1f66b5ad",
+    "power_w": 1.13256e-06,
+    "protocol_sha256": "6bbd6f973af0c318ea00bf5399fb910f99482b62f98012053bf0f7e4c3e3f94b",
+    "route_metrics_sha256": "7e640ddf22cbf6391779e79511b420633faf02dde9a1c725b2d7ee43707cb0f6",
+    "routed_wirelength_um": 173,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 56.1,
+      "3_5_place_dp": 54.28599999999997,
+      "5_2_route": 55.59999999999998,
+      "6_final": 55.59999999999998
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 141.46899999999997,
+      "3_5_place_dp": 136.95699999999994,
+      "5_2_route": 140.01899999999995,
+      "6_final": 140.01899999999995
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 27.1256213048473
+  },
+  {
+    "area_um2": 6.35688,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "73fbaeb2065a90b7bf7703eb693244ad2ea741f2063c062d80b04204cb56609a",
+    "core_only_hpwl_um": 61.99800000000002,
+    "cores": 2,
+    "delay_ps": 82.86999999999989,
+    "design": "ctrl",
+    "drc_errors": 0,
+    "endpoint_sha256": "9f9fb87372eb68255ed2682a96c6d1cf23ca35bcde9ffeeb63a63ba543dbc436",
+    "final_hpwl_um": 142.512,
+    "final_metrics_sha256": "c8ac19c09ccd7e9fcb4dc4669fafe3296a3cbe9cbf1ce4d8b07be6d92e1c80be",
+    "final_proof": "1feaab0a99d4ebb7d40b82d7d2acca220b3cb3d687463112fb131b3e38572537",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 16.450607754290104,
+      "floorplan": 3.872460467275232
+    },
+    "frontend_source_proof": "0ce73023f007a0ad6801dc40daf24ed9e424a366ac0f7388e26514408a646a92",
+    "mapping_proof": "95a8b2174a5db0af794e0f9b594ee3ff0c5dd336c01a0f00a023abda4f712e9e",
+    "power_w": 9.78935e-07,
+    "protocol_sha256": "d17f98673a24d046745a7ecdb5f2d10c31959b1b46c9039eca6246f057df53b2",
+    "route_metrics_sha256": "88986fed17bd9c1eaec9899c7afd6bd37d1ff7f7296a6a7d57ea68fd78ac6727",
+    "routed_wirelength_um": 174,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 58.778999999999996,
+      "3_5_place_dp": 61.78200000000002,
+      "5_2_route": 61.99800000000002,
+      "6_final": 61.99800000000002
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 138.83300000000003,
+      "3_5_place_dp": 140.614,
+      "5_2_route": 142.512,
+      "6_final": 142.512
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 25.070180863142014
+  },
+  {
+    "area_um2": 6.38604,
+    "arm": "native",
+    "common_input_sha256": "73fbaeb2065a90b7bf7703eb693244ad2ea741f2063c062d80b04204cb56609a",
+    "core_only_hpwl_um": 59.799,
+    "cores": 2,
+    "delay_ps": 90.30000000000018,
+    "design": "ctrl",
+    "drc_errors": 0,
+    "endpoint_sha256": "c49c0ac98af6a97a72ecb9e28e366950d13cd0b3f90f84ea2f855d812315a3ec",
+    "final_hpwl_um": 141.457,
+    "final_metrics_sha256": "027bc4382067c5aa81aa5c5d0f1c378e2e651a2309081163c5831448181972de",
+    "final_proof": "0882214e9bd6950fa78ff3574ce96369d057cef72fc2dfb56cf7a7719cfd24ed",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 19.422020250931382,
+      "floorplan": 4.129994649905711
+    },
+    "frontend_source_proof": "5b6deb9a4cb23c81d8c0437be9a476b1e8c62ad4574336f8fc42b23d0f0156ea",
+    "mapping_proof": "71624ddbe9791c244b1a985d30f4ad36fd4fd5f633cee52ebd61ca486802ceeb",
+    "power_w": 9.55027e-07,
+    "protocol_sha256": "0484eb9a11f70abaf07c331b5155e08529d079a07c5a7beb3d73deb44b2f7811",
+    "route_metrics_sha256": "81d4057a6cafb8703265e56a09c7fb5a6aaa1ecb5cbf2f3ed306af4e5a02f17d",
+    "routed_wirelength_um": 175,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 67.794,
+      "3_5_place_dp": 58.943000000000005,
+      "5_2_route": 59.799,
+      "6_final": 59.799
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 146.55200000000008,
+      "3_5_place_dp": 138.894,
+      "5_2_route": 141.457,
+      "6_final": 141.457
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 29.134351528715342
+  },
+  {
+    "area_um2": 6.79428,
+    "arm": "paper_agr",
+    "common_input_sha256": "73fbaeb2065a90b7bf7703eb693244ad2ea741f2063c062d80b04204cb56609a",
+    "core_only_hpwl_um": 60.88200000000001,
+    "cores": 2,
+    "delay_ps": 91.05000000000018,
+    "design": "ctrl",
+    "drc_errors": 0,
+    "endpoint_sha256": "e0e6167bfb79f146394e7a791a2a1150e3dddc1a9feb76ba5317d6eea63d4c0d",
+    "final_hpwl_um": 143.863,
+    "final_metrics_sha256": "4e8af167887754aa7eb22af1d97ae42ead397a0bd3fb0d44d53c729495111ee7",
+    "final_proof": "ac9e4ba8deb9ce19405078fca331df9866ee226c6993b64024b551f87c08374e",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 18.481831591110677,
+      "floorplan": 3.9255830948241055
+    },
+    "frontend_source_proof": "c181ced1471fd07f10a5772727a0327e1d5333abbbe9791142781fe295d460be",
+    "mapping_proof": "3901206e88ed809a064117eeafd9e14bf8f4743d9c19377b529bdcb10b376eb4",
+    "power_w": 1.16199e-06,
+    "protocol_sha256": "c15b865b9564e68924df721f8125bd4149f07584f0df4106c2f9805fd85606f7",
+    "route_metrics_sha256": "e560c621a9325cf01a24f2a137c8ddd0c1183cb6644590ddab2083c91f37d97b",
+    "routed_wirelength_um": 173,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 69.39700000000003,
+      "3_5_place_dp": 60.251000000000005,
+      "5_2_route": 60.88200000000001,
+      "6_final": 60.88200000000001
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 150.705,
+      "3_5_place_dp": 141.59500000000003,
+      "5_2_route": 143.863,
+      "6_final": 143.863
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 28.081751498393714
+  },
+  {
+    "area_um2": 6.7068,
+    "arm": "paper_pa2",
+    "common_input_sha256": "73fbaeb2065a90b7bf7703eb693244ad2ea741f2063c062d80b04204cb56609a",
+    "core_only_hpwl_um": 58.558000000000014,
+    "cores": 2,
+    "delay_ps": 94.55000000000018,
+    "design": "ctrl",
+    "drc_errors": 0,
+    "endpoint_sha256": "9288e84c520f7baa59914c39f4b82143d0e02e470a759f697d36c6784965c7dd",
+    "final_hpwl_um": 143.84,
+    "final_metrics_sha256": "a7183280d600bdc4f3c00a0b069d57abe7a66943cc1379f2ba3abe1df8d12d24",
+    "final_proof": "6dc7b027f2f3cff13d5111333cefd9570ee32c839889a7852cec3b82de0e334d",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 18.307035343255848,
+      "floorplan": 3.872530290391296
+    },
+    "frontend_source_proof": "026a1c4b244c51b6e3e63556dda8202e1b08eb83f2eacf3dd85da071160c802c",
+    "mapping_proof": "116f106a27dc77e2841a03a243c39f8fed3179beedba1dc6f21d0d02cf93b917",
+    "power_w": 1.11948e-06,
+    "protocol_sha256": "9a542330ef6bb46db56c0216923a94bebbfdc0a91645febbc0353ec04178a62d",
+    "route_metrics_sha256": "479d182f26ae70d3135ff73d5863ce2967d071d2f84b7621e4344ac25e723722",
+    "routed_wirelength_um": 175,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 59.731,
+      "3_5_place_dp": 57.231999999999985,
+      "5_2_route": 58.558000000000014,
+      "6_final": 58.558000000000014
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 144.35799999999998,
+      "3_5_place_dp": 140.58899999999994,
+      "5_2_route": 143.84,
+      "6_final": 143.84
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 27.079135850071907
+  },
+  {
+    "area_um2": 27.8478,
+    "arm": "abc_budget",
+    "common_input_sha256": "30f53766efd0a0d137dafb67ed50ea4155c4c92ebc85c1ccb8e47662bdbbaf42",
+    "core_only_hpwl_um": 336.085,
+    "cores": 2,
+    "delay_ps": 108.47000000000025,
+    "design": "dec",
+    "drc_errors": 0,
+    "endpoint_sha256": "fbfd8b0744fc155a9d1038a97e4405cc8a3c9856bf8486f7d18b0a860cdf712b",
+    "final_hpwl_um": 861.1249999999998,
+    "final_metrics_sha256": "ed4fd07b402e10278f7a807dd62a78868cf1c66f17ce255439ccc83b66eea549",
+    "final_proof": "e16ca631e84491f7945cf540f37ac7526aa445ea288fde0999308bcadfed3009",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 30.057310332078487,
+      "floorplan": 4.078757998067886
+    },
+    "frontend_source_proof": "440b6654043aef31a74ce8d290e8d732e20da1bb44ee28b07111a216fa103052",
+    "mapping_proof": "051506aca704ebc3118c655f39e8954b1f291daad70e098e7f1be9c9b2c9e62e",
+    "power_w": 1.52336e-06,
+    "protocol_sha256": "1d819125d636a8a9aa72b5e1ff9aee8f528a672560d5caf8adade358de6f4546",
+    "route_metrics_sha256": "6a9f7b7d99a4a26a1d8551bb8191677ea638ec5ce6a78699fc2dbdac5c17b761",
+    "routed_wirelength_um": 1060,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 316.91400000000004,
+      "3_5_place_dp": 330.81199999999995,
+      "5_2_route": 336.085,
+      "6_final": 336.085
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 853.0130000000005,
+      "3_5_place_dp": 839.5400000000001,
+      "5_2_route": 861.1249999999998,
+      "6_final": 861.1249999999998
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 39.17095686215907
+  },
+  {
+    "area_um2": 27.8478,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "30f53766efd0a0d137dafb67ed50ea4155c4c92ebc85c1ccb8e47662bdbbaf42",
+    "core_only_hpwl_um": 336.085,
+    "cores": 2,
+    "delay_ps": 108.47000000000025,
+    "design": "dec",
+    "drc_errors": 0,
+    "endpoint_sha256": "bffa3453b4164dc749a0cda5e10a184e37771e2294b466caa0a45bd8b35237be",
+    "final_hpwl_um": 861.1249999999998,
+    "final_metrics_sha256": "ed4fd07b402e10278f7a807dd62a78868cf1c66f17ce255439ccc83b66eea549",
+    "final_proof": "afb9a75831ca671e508fb4a9334121047cc355940e7ffad1a5fa41256888c703",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 29.033502702135593,
+      "floorplan": 3.872584451921284
+    },
+    "frontend_source_proof": "f0fce5ef9421e86cd817cee5522583ca1fe30dfd75a703c1bc73361a63571b16",
+    "mapping_proof": "df56dec7e7cf3192c8670beec2396cd554d19044dd244085a99aad050cb0392a",
+    "power_w": 1.52336e-06,
+    "protocol_sha256": "ba38aeebf84f1526dc01cfe235131cbed91727f9449b07f4edea284389903033",
+    "route_metrics_sha256": "6a9f7b7d99a4a26a1d8551bb8191677ea638ec5ce6a78699fc2dbdac5c17b761",
+    "routed_wirelength_um": 1060,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 316.91400000000004,
+      "3_5_place_dp": 330.81199999999995,
+      "5_2_route": 336.085,
+      "6_final": 336.085
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 853.0130000000005,
+      "3_5_place_dp": 839.5400000000001,
+      "5_2_route": 861.1249999999998,
+      "6_final": 861.1249999999998
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 38.11203005397692
+  },
+  {
+    "area_um2": 27.8478,
+    "arm": "native",
+    "common_input_sha256": "30f53766efd0a0d137dafb67ed50ea4155c4c92ebc85c1ccb8e47662bdbbaf42",
+    "core_only_hpwl_um": 336.085,
+    "cores": 2,
+    "delay_ps": 108.47000000000025,
+    "design": "dec",
+    "drc_errors": 0,
+    "endpoint_sha256": "53395994e4cb624b98ffffb8d30127a4f8c779ca8233ddf388f8ea815c090d8b",
+    "final_hpwl_um": 861.1249999999998,
+    "final_metrics_sha256": "ed4fd07b402e10278f7a807dd62a78868cf1c66f17ce255439ccc83b66eea549",
+    "final_proof": "420fc1939c820a0dee31add19eb2b3d4230c3e6ca7f9388588e2fc07f5d00a3d",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 29.180505344178528,
+      "floorplan": 3.97207548096776
+    },
+    "frontend_source_proof": "1bee339e496e17efab4a74829467f55565f020fba1cadd7cf48274310910fb13",
+    "mapping_proof": "be873e1842a32d37e4ba2b7e25d15dbf459b4216ba0668cceee0e47cb0d4c3c8",
+    "power_w": 1.52336e-06,
+    "protocol_sha256": "5ad74d802c3a782212f38c97e07c3eb4a8937121020380876050f57858938b4e",
+    "route_metrics_sha256": "6a9f7b7d99a4a26a1d8551bb8191677ea638ec5ce6a78699fc2dbdac5c17b761",
+    "routed_wirelength_um": 1060,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 316.91400000000004,
+      "3_5_place_dp": 330.81199999999995,
+      "5_2_route": 336.085,
+      "6_final": 336.085
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 853.0130000000005,
+      "3_5_place_dp": 839.5400000000001,
+      "5_2_route": 861.1249999999998,
+      "6_final": 861.1249999999998
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 38.16120834182948
+  },
+  {
+    "area_um2": 27.8478,
+    "arm": "paper_agr",
+    "common_input_sha256": "30f53766efd0a0d137dafb67ed50ea4155c4c92ebc85c1ccb8e47662bdbbaf42",
+    "core_only_hpwl_um": 336.085,
+    "cores": 2,
+    "delay_ps": 108.47000000000025,
+    "design": "dec",
+    "drc_errors": 0,
+    "endpoint_sha256": "07e78c13ac812e9c9d17f3606864e481a459d37bf0a842f6f398327d2ecdfad1",
+    "final_hpwl_um": 861.1249999999998,
+    "final_metrics_sha256": "ed4fd07b402e10278f7a807dd62a78868cf1c66f17ce255439ccc83b66eea549",
+    "final_proof": "d31a8ca2feb052a17b3947b77d28fe38a165fedb837dcc0ff5dbd0d438998c6c",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 29.80357552599162,
+      "floorplan": 4.076013233046979
+    },
+    "frontend_source_proof": "e1de7a00e5041584df5156bef60a9d908d10929e5870d8fdfa4b8d4e0c04a066",
+    "mapping_proof": "1a6aef05bcdbb25e6eb0969649062a602f749a965d8af0fe1826fdeed03d41e7",
+    "power_w": 1.52336e-06,
+    "protocol_sha256": "eea2570d0d17b6b73348b7f717cf99554378809e07f0d6560991917014bc042d",
+    "route_metrics_sha256": "6a9f7b7d99a4a26a1d8551bb8191677ea638ec5ce6a78699fc2dbdac5c17b761",
+    "routed_wirelength_um": 1060,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 316.91400000000004,
+      "3_5_place_dp": 330.81199999999995,
+      "5_2_route": 336.085,
+      "6_final": 336.085
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 853.0130000000005,
+      "3_5_place_dp": 839.5400000000001,
+      "5_2_route": 861.1249999999998,
+      "6_final": 861.1249999999998
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 39.115570136811584
+  },
+  {
+    "area_um2": 27.8478,
+    "arm": "paper_pa2",
+    "common_input_sha256": "30f53766efd0a0d137dafb67ed50ea4155c4c92ebc85c1ccb8e47662bdbbaf42",
+    "core_only_hpwl_um": 336.085,
+    "cores": 2,
+    "delay_ps": 108.47000000000025,
+    "design": "dec",
+    "drc_errors": 0,
+    "endpoint_sha256": "5e05e5c296eaa31299d6f1cf4acf8612486ca5151b61598c9d8e6c2ffd698779",
+    "final_hpwl_um": 861.1249999999998,
+    "final_metrics_sha256": "ed4fd07b402e10278f7a807dd62a78868cf1c66f17ce255439ccc83b66eea549",
+    "final_proof": "3055fe57d4565888a9c3c1782e63b401732b6dbbd1d92db832756533e35947a3",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 29.44461252167821,
+      "floorplan": 4.0230256309732795
+    },
+    "frontend_source_proof": "9625b990496bd992d67a7ce44ae5b6581b08582785ebbf80e3d470f0adbd5f74",
+    "mapping_proof": "e84d4c241b449f53e56ac4b52090a2d975a77d472e66674d7786ff1e394782fb",
+    "power_w": 1.52336e-06,
+    "protocol_sha256": "fee484beb41735d9b0d334f23cef916afb2fed53bffe597d0eaf8fb02b06fb59",
+    "route_metrics_sha256": "6a9f7b7d99a4a26a1d8551bb8191677ea638ec5ce6a78699fc2dbdac5c17b761",
+    "routed_wirelength_um": 1060,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 316.91400000000004,
+      "3_5_place_dp": 330.81199999999995,
+      "5_2_route": 336.085,
+      "6_final": 336.085
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 853.0130000000005,
+      "3_5_place_dp": 839.5400000000001,
+      "5_2_route": 861.1249999999998,
+      "6_final": 861.1249999999998
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 39.117160649970174
+  },
+  {
+    "area_um2": 1442.49,
+    "arm": "abc_budget",
+    "common_input_sha256": "7638067f65bac841267dd5e5655fcf84015e50edd89a6a792fa48d330f86d701",
+    "core_only_hpwl_um": 20275.851000000082,
+    "cores": 3,
+    "delay_ps": 58725.68,
+    "design": "div",
+    "drc_errors": 0,
+    "endpoint_sha256": "b8b7ee4ed0f41963cdbd37f1d422d590017e58800327681117a04c1f36e1610c",
+    "final_hpwl_um": 25666.184000000085,
+    "final_metrics_sha256": "bfff3e080a1ef7eaa65b903096a6e55b04119738ec18801e6dacbd12632fee7d",
+    "final_proof": "a7f7c9dd926598cb7c7e6b27d8cad225c41d915e2f6844a142372f37538fd619",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 222.98958516633138,
+      "floorplan": 22.618862139061093
+    },
+    "frontend_source_proof": "a8d9994d0a6198ee5d75d9280c295e38d0e4b5bfa412bc908d3b9777b12f6d46",
+    "mapping_proof": "02a378c0f6a571704cd582ae79e17e4a568b8fd5c71ab4cae4f9f053911ccd9e",
+    "power_w": 5.32085e-05,
+    "protocol_sha256": "cf8c12b70f831156c4ec6ba40acdee7e0e22d97f7b3c9bd517aead0ce7d5ac7d",
+    "route_metrics_sha256": "9f3a6d0adecfa200cd33a3ceb7412b97f651f75a8cde9c73a57e761cce5e577a",
+    "routed_wirelength_um": 32777,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 16560.6779999999,
+      "3_5_place_dp": 18164.90400000009,
+      "5_2_route": 20275.851000000082,
+      "6_final": 20275.851000000082
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 22033.546999999882,
+      "3_5_place_dp": 23641.654000000115,
+      "5_2_route": 25666.184000000085,
+      "6_final": 25666.184000000085
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 273.1508423211053
+  },
+  {
+    "area_um2": 1329.9,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "7638067f65bac841267dd5e5655fcf84015e50edd89a6a792fa48d330f86d701",
+    "core_only_hpwl_um": 19553.032999999912,
+    "cores": 3,
+    "delay_ps": 58523.76,
+    "design": "div",
+    "drc_errors": 0,
+    "endpoint_sha256": "2d0b4433149f8a4851c91f6b91b1ff626f076c3790b0215caec69f75580801ec",
+    "final_hpwl_um": 25451.48199999993,
+    "final_metrics_sha256": "9246274a7e34380eda4f7a9a6c84ea175f71c8225783f0909ec38bbb9026b39a",
+    "final_proof": "67bf2e72046d1cd6c70e57b7205ec1abf6a1387db7b2443a9a32da20e14cbf55",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 187.49771077930927,
+      "floorplan": 8.684756436850876
+    },
+    "frontend_source_proof": "7222b428691e1f7231843cb95b9d6416e7ceb119cec3ee16514206d63354e9b2",
+    "mapping_proof": "8fdccec49286b59d68fda16ee66a4b5db84f9d4e852370bc2730fdff5a251a43",
+    "power_w": 4.06619e-05,
+    "protocol_sha256": "2c56d5745622790d6be9a64c916c078925a9fd51990b3725de31f2c49bd4f227",
+    "route_metrics_sha256": "76af695ffed5532be412f620eb96df2eff1170806a9a737f3d7f80fe82759ea8",
+    "routed_wirelength_um": 32991,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 17152.377000000015,
+      "3_5_place_dp": 18693.50499999998,
+      "5_2_route": 19553.032999999912,
+      "6_final": 19553.032999999912
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 23106.831000000002,
+      "3_5_place_dp": 24639.324,
+      "5_2_route": 25451.48199999993,
+      "6_final": 25451.48199999993
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 208.90282143605873
+  },
+  {
+    "area_um2": 1413.59,
+    "arm": "native",
+    "common_input_sha256": "7638067f65bac841267dd5e5655fcf84015e50edd89a6a792fa48d330f86d701",
+    "core_only_hpwl_um": 21879.96600000001,
+    "cores": 3,
+    "delay_ps": 58698.64,
+    "design": "div",
+    "drc_errors": 0,
+    "endpoint_sha256": "dd4f527de19a6a1cf16e9415c4801ec577d49b5fdfc8a8b82ed9110c2b8f4a97",
+    "final_hpwl_um": 27530.68699999997,
+    "final_metrics_sha256": "1e5b9cb6af12192f964e135762d66227bd48ca45212c719b958b16021ed4003b",
+    "final_proof": "5e3fc50338a262b94633cc312400f33e35f84da677e111a79cc60abdffd79509",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 205.1609603939578,
+      "floorplan": 18.70498332986608
+    },
+    "frontend_source_proof": "ec1cb2f1e55d982faee28e1340fcd0f239a2aeca718a0969b0f9206a3791e91a",
+    "mapping_proof": "dcc6a866d0d018d5f23cb6ca5c74dc47401681e1e799ed7f8f2bb036c8f935bb",
+    "power_w": 5.88752e-05,
+    "protocol_sha256": "3cb569e014bcc8d945d7f5c691fea01c576644bb5a937e81feb1701c5c832812",
+    "route_metrics_sha256": "e58ddfdf7237cde648562256e02db6ed0137444674de5de16baf2cdaf5dbfe30",
+    "routed_wirelength_um": 35355,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 19033.104000000047,
+      "3_5_place_dp": 20585.932000000117,
+      "5_2_route": 21879.96600000001,
+      "6_final": 21879.96600000001
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 24693.308000000023,
+      "3_5_place_dp": 26243.341000000073,
+      "5_2_route": 27530.68699999997,
+      "6_final": 27530.68699999997
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 251.09799451567233
+  },
+  {
+    "area_um2": 1413.47,
+    "arm": "paper_agr",
+    "common_input_sha256": "7638067f65bac841267dd5e5655fcf84015e50edd89a6a792fa48d330f86d701",
+    "core_only_hpwl_um": 22049.713999999934,
+    "cores": 3,
+    "delay_ps": 58721.69,
+    "design": "div",
+    "drc_errors": 0,
+    "endpoint_sha256": "5e2f09781ccfbe9208cffeaed96a336cb1ee0c50e5186c07caa680e954c81033",
+    "final_hpwl_um": 27918.188999999926,
+    "final_metrics_sha256": "e4f565bd32be17b026489ecbd11c73adce20de72d06408e856a1490fba6031f1",
+    "final_proof": "6002f02698964fe680f3088c28eb980478b8de1d46affc9df4c7641c67b3bfce",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 203.52593112783507,
+      "floorplan": 20.420285610016435
+    },
+    "frontend_source_proof": "93bd9460fc699d39eedaabc5d62d4094f99c905245fb536be4ca38a7564c7eca",
+    "mapping_proof": "c071096ab9f5b0ea64b1ff98dcdf0b290c47080b5770db2ab96d8a4b8b299196",
+    "power_w": 6.10705e-05,
+    "protocol_sha256": "d40d2dfd3f9b72e95af62a3fd9984b7f39f22b4304a220bcb0e351bff5fec3a5",
+    "route_metrics_sha256": "682cf87a19886109e02812e18694dc35eb9f4c9aa537e14ad0783e251e8b9451",
+    "routed_wirelength_um": 35817,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 18426.053999999993,
+      "3_5_place_dp": 20249.154000000115,
+      "5_2_route": 22049.713999999934,
+      "6_final": 22049.713999999934
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 24307.293000000034,
+      "3_5_place_dp": 26116.796000000108,
+      "5_2_route": 27918.188999999926,
+      "6_final": 27918.188999999926
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 241.01717897690833
+  },
+  {
+    "area_um2": 1426.49,
+    "arm": "paper_pa2",
+    "common_input_sha256": "7638067f65bac841267dd5e5655fcf84015e50edd89a6a792fa48d330f86d701",
+    "core_only_hpwl_um": 21264.819999999887,
+    "cores": 3,
+    "delay_ps": 58620.31,
+    "design": "div",
+    "drc_errors": 0,
+    "endpoint_sha256": "56f688155b6581b8cf0bcf7902579651e960710fdf463bf8b631d709d1c15613",
+    "final_hpwl_um": 26613.9239999999,
+    "final_metrics_sha256": "c2f32a8396236971c978f764a7b0360d8e465228c72d43f2ac8084486847c85f",
+    "final_proof": "a61a70c4bd7bb3da9487bf6f93182eabbebea1b3d6cd5ec9067c6b85813983d7",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 204.03707678616047,
+      "floorplan": 17.51065138587728
+    },
+    "frontend_source_proof": "c95d8bc2b46b1a0db012bab8395017156b44fc555669e3b90b3be0c6ee1068b7",
+    "mapping_proof": "9e643f602e384d0e5fdd30681f585ad08ab2cd706784639e38276d506b668001",
+    "power_w": 5.3104e-05,
+    "protocol_sha256": "443ae818d60071d106c4e828bced2ffdc59134054d0191e08503284fc0335ac1",
+    "route_metrics_sha256": "c4bbbe5b85bbbc6b056d5138de761fa4ad7dbfd2bc905d6c3506d467e18091e8",
+    "routed_wirelength_um": 33454,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 17913.687999999955,
+      "3_5_place_dp": 19821.143000000113,
+      "5_2_route": 21264.819999999887,
+      "6_final": 21264.819999999887
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 23254.055999999953,
+      "3_5_place_dp": 25168.259000000136,
+      "5_2_route": 26613.9239999999,
+      "6_final": 26613.9239999999
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 239.97798583703116
+  },
+  {
+    "area_um2": 15202,
+    "arm": "abc_budget",
+    "common_input_sha256": "6f0bf7048c583596be680938869daab6b6e27bcd498438c6e3c21684f8b1945e",
+    "core_only_hpwl_um": 373714.5100000007,
+    "cores": 3,
+    "delay_ps": 255178.9,
+    "design": "hyp",
+    "drc_errors": 0,
+    "endpoint_sha256": "5c3cf33c604b2ea8dcd37cc234aa4cb91f9559a09d6b441480d18127b4c3883f",
+    "final_hpwl_um": 394777.414,
+    "final_metrics_sha256": "da0b728ea18761a7376c4e1ced7e3d8f8512042f42a2d0dee83e3d457d87fb47",
+    "final_proof": "4cc6675dd01e1552f7a4a087c17a13fd01218b92bd1f9566b8a075f2324ec198",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 2288.2602672996,
+      "floorplan": 458.21117094764486
+    },
+    "frontend_source_proof": "1167ddb54f00cadd384bcdc94f6e2acf9173b8bc1f7f157417e5b7a241480436",
+    "mapping_proof": "3f2df94acf845ae865f1ae443173b3b6d5f0c357be65c900ef3c957ad221f238",
+    "power_w": 3.29355,
+    "protocol_sha256": "0660015e1d4007a24fdf3f91337e61b12e38dae7aee8511e74a6b8fdf3e9730e",
+    "route_metrics_sha256": "fc8f46f1a0065f0c2a63c840f1dfef57f7c08316c478b1706e6c46c748c6d14f",
+    "routed_wirelength_um": 529513,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 347880.0290000028,
+      "3_5_place_dp": 361180.521,
+      "5_2_route": 373714.5100000007,
+      "6_final": 373714.5100000007
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 369895.90700000286,
+      "3_5_place_dp": 382866.8799999999,
+      "5_2_route": 394777.414,
+      "6_final": 394777.414
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 2994.1597213237546
+  },
+  {
+    "area_um2": 14846.7,
+    "arm": "native",
+    "common_input_sha256": "6f0bf7048c583596be680938869daab6b6e27bcd498438c6e3c21684f8b1945e",
+    "core_only_hpwl_um": 372506.46100000356,
+    "cores": 3,
+    "delay_ps": 254296.8,
+    "design": "hyp",
+    "drc_errors": 0,
+    "endpoint_sha256": "474fd5b61a0e4b90454082e38c630c194b33689d94a892dbf591b4efc608826b",
+    "final_hpwl_um": 393812.8480000039,
+    "final_metrics_sha256": "bb5c27ecc0e21a911bf3ad21113771c0f0101688445200604e3b79051b76d987",
+    "final_proof": "7258acc62cbb7ad6cf7f4ae46722331a6e6e45c395232c332b1d8a4b1431187d",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 2280.5610947720706,
+      "floorplan": 133.41759403562173
+    },
+    "frontend_source_proof": "3a0a8b547cbe3cadb70332f36795833604aa3ea7fec72827012be028910d7896",
+    "mapping_proof": "9c2d0f652eed0564246d7aa3fd137074b75bd6ec95a9279b5bf7afc5f3239c9e",
+    "power_w": 3.11668,
+    "protocol_sha256": "5c34a16fc3ef0590e08189bea3e27b7ee50102ad84af0027d2469602465fae4e",
+    "route_metrics_sha256": "d92f0617746e93d1ffdbafb5bcb64ace2baa4890479cd0c80e073dddab47e8cf",
+    "routed_wirelength_um": 536844,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 348220.1430000015,
+      "3_5_place_dp": 359557.1570000024,
+      "5_2_route": 372506.46100000356,
+      "6_final": 372506.46100000356
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 370114.1160000018,
+      "3_5_place_dp": 381200.04700000293,
+      "5_2_route": 393812.8480000039,
+      "6_final": 393812.8480000039
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 2984.4723745780066
+  },
+  {
+    "area_um2": 14749.6,
+    "arm": "paper_agr",
+    "common_input_sha256": "6f0bf7048c583596be680938869daab6b6e27bcd498438c6e3c21684f8b1945e",
+    "core_only_hpwl_um": 361546.15300000325,
+    "cores": 3,
+    "delay_ps": 254465.2,
+    "design": "hyp",
+    "drc_errors": 0,
+    "endpoint_sha256": "2ab9b583d8d6ab3c7fa6a58845a89a70be9565cbed4704454d96cd6745292fff",
+    "final_hpwl_um": 386182.4400000027,
+    "final_metrics_sha256": "2b2506ab0ebfbed5212c39ea94c196d4ee26ead510b45cd71d47d5e7d8b4352b",
+    "final_proof": "706d6ef77aad089df68a38cb3473499f1437f6968157f5ecc3ef72611fe99a0d",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 2612.6630614530295,
+      "floorplan": 120.11383631965145
+    },
+    "frontend_source_proof": "3ebd119bf28f7218d8b33da71ed801c486e41050c2e1196b84ebfb4b0597e3bd",
+    "mapping_proof": "0073d5afd2f3384238eef95c3e5f7f18abcfae4fc833588fc6ed67fef1a6af42",
+    "power_w": 3.07922,
+    "protocol_sha256": "86fd3eaa4c41e0aba7fcd1c5ac3cb8bef476f83eb956093faf7a8df92a1b0321",
+    "route_metrics_sha256": "a5132ccc37a4233ab08dbeb799de441d1bb5821ee1e987987503e79a0b752530",
+    "routed_wirelength_um": 527950,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 335245.5779999986,
+      "3_5_place_dp": 347218.5910000033,
+      "5_2_route": 361546.15300000325,
+      "6_final": 361546.15300000325
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 361328.76299999846,
+      "3_5_place_dp": 373032.1090000033,
+      "5_2_route": 386182.4400000027,
+      "6_final": 386182.4400000027
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 3202.494917002041
+  },
+  {
+    "area_um2": 14877.4,
+    "arm": "paper_pa2",
+    "common_input_sha256": "6f0bf7048c583596be680938869daab6b6e27bcd498438c6e3c21684f8b1945e",
+    "core_only_hpwl_um": 374716.77100000187,
+    "cores": 3,
+    "delay_ps": 261316.1,
+    "design": "hyp",
+    "drc_errors": 0,
+    "endpoint_sha256": "cc1b995abbd6dbaedb5af75ef3ea8094316fa73b198e679b18e0198f222483bc",
+    "final_hpwl_um": 396586.4440000012,
+    "final_metrics_sha256": "40c0d3f624f81869d12562da9b57eef622a5f6cd85c2904faf72d513898b0777",
+    "final_proof": "1514ef54d5daf1793aa136d28f50462cde89e8848f9478488073d4711e62babd",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 2987.5782872848213,
+      "floorplan": 314.43164196098223
+    },
+    "frontend_source_proof": "0675c6c1a6289a19dc71ed68d6a772dfc0eeaed5a35756c1d1c21b71b66233f0",
+    "mapping_proof": "afafcd7f70218f183c48865fb90d2ff3401fcd21b0e569201c3735283fa43b27",
+    "power_w": 2.99525,
+    "protocol_sha256": "f2aabee66823e5a9e9428ba7aac9502f8a96263b1f719e423fd32ce8e19b263c",
+    "route_metrics_sha256": "4d221cdc2f1bb0285f0198b374fbca3a9eb203c35bcb9ca682d3ecf37bdce124",
+    "routed_wirelength_um": 531564,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 346538.3879999984,
+      "3_5_place_dp": 360848.75500000216,
+      "5_2_route": 374716.77100000187,
+      "6_final": 374716.77100000187
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 369345.44599999784,
+      "3_5_place_dp": 383453.1670000022,
+      "5_2_route": 396586.4440000012,
+      "6_final": 396586.4440000012
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 3898.7102327123284
+  },
+  {
+    "area_um2": 62.7669,
+    "arm": "abc_budget",
+    "common_input_sha256": "9121f4c1804fbd44311ce380316f1c106f4ac6aae6a9ad2f357aa3de9c934b90",
+    "core_only_hpwl_um": 802.3020000000006,
+    "cores": 2,
+    "delay_ps": 198.8199999999997,
+    "design": "i2c",
+    "drc_errors": 0,
+    "endpoint_sha256": "46d3a3b76435df16e541157482d927d8a0ac1967ecd96c651a66e342679be135",
+    "final_hpwl_um": 1870.5070000000012,
+    "final_metrics_sha256": "3951dc84fc866c8c3ea5e31d5832c61e309048b71d53564365764d1079c4df00",
+    "final_proof": "4176055329f00134a61cba2c82d5b0d0180e9d3de3723dc9379a406b49c7d15c",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 51.59008307568729,
+      "floorplan": 4.1227244772017
+    },
+    "frontend_source_proof": "f2d3b9acbe4e8a44fb1769fd7d543373eddaa7de736d5b64c83c07640d22e5b5",
+    "mapping_proof": "9bcc943ed9b2dff503084057586e48778da6c0d279e6226fd0da9b4638b85b2e",
+    "power_w": 1.01364e-05,
+    "protocol_sha256": "24c554eedfc83ef89561e6aa3ba7595b4d02c2de0ba4d0e01dd8f4d48fe2ee3d",
+    "route_metrics_sha256": "54315be0c4418806f094d1401b0d82d938850c8c353b7323b222399ade72c493",
+    "routed_wirelength_um": 2272,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 733.8459999999995,
+      "3_5_place_dp": 781.3710000000012,
+      "5_2_route": 802.3020000000006,
+      "6_final": 802.3020000000006
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 1801.4629999999997,
+      "3_5_place_dp": 1834.554000000002,
+      "5_2_route": 1870.5070000000012,
+      "6_final": 1870.5070000000012
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 61.26616718200967
+  },
+  {
+    "area_um2": 55.1707,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "9121f4c1804fbd44311ce380316f1c106f4ac6aae6a9ad2f357aa3de9c934b90",
+    "core_only_hpwl_um": 699.5519999999996,
+    "cores": 2,
+    "delay_ps": 193.42000000000007,
+    "design": "i2c",
+    "drc_errors": 0,
+    "endpoint_sha256": "a2e9eecfbc24a73e906abed5b2270c84b4eb0bfab630926470d27bbf7acf2b16",
+    "final_hpwl_um": 1786.424,
+    "final_metrics_sha256": "015ad2affa78bb2f813242ad1458782c693721c79f4697317ebd06d6474e3827",
+    "final_proof": "1fff47aa3618230985bad6503e6890d3d77fb2652ebb21a63c8e2059d88c9920",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 34.11484140018001,
+      "floorplan": 4.021924612112343
+    },
+    "frontend_source_proof": "e07f489e0f39270848bfe4e283e42801c5c8beb796501eb4f413a19200b21041",
+    "mapping_proof": "c8bfa36454c242bf6da07f3747a51206d07f93518305602a58696498d9f37d3c",
+    "power_w": 8.53171e-06,
+    "protocol_sha256": "3ab693fc37c64715e56a4e9e129cdcef24ff50962bf8656f70e1697ab9f5875a",
+    "route_metrics_sha256": "8a9b78558cfbef40068fe3c3ddd7401e9ae04ab2641b0a9917c7c38ae02da9aa",
+    "routed_wirelength_um": 2129,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 652.5950000000009,
+      "3_5_place_dp": 682.1439999999999,
+      "5_2_route": 699.5519999999996,
+      "6_final": 699.5519999999996
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 1739.0710000000017,
+      "3_5_place_dp": 1748.2939999999994,
+      "5_2_route": 1786.424,
+      "6_final": 1786.424
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 43.12708251411095
+  },
+  {
+    "area_um2": 52.1672,
+    "arm": "native",
+    "common_input_sha256": "9121f4c1804fbd44311ce380316f1c106f4ac6aae6a9ad2f357aa3de9c934b90",
+    "core_only_hpwl_um": 644.125000000001,
+    "cores": 2,
+    "delay_ps": 179.5699999999997,
+    "design": "i2c",
+    "drc_errors": 0,
+    "endpoint_sha256": "dc9f96929fe0a6db80759694fe7e11583522ce2b09be8c07fd898f536853ff77",
+    "final_hpwl_um": 1710.1030000000019,
+    "final_metrics_sha256": "d560ef5f4c0fd663d12071ba54e0453e1f2eb6e90d1ac872dcec3266cdf054e9",
+    "final_proof": "7cf13f901e79ab7e2f1aecc4eda6dad25a8ffabc54d25211a26d4f5d731373eb",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 46.836812410037965,
+      "floorplan": 4.035156175028533
+    },
+    "frontend_source_proof": "d842a5b7e960e9cc961152b66a3833f5e6f8bf1ea7e6f2d80736150454bb7951",
+    "mapping_proof": "176f59bb7dde84f8d148ae5f48aa9dfe4c35d2ed39f044babdebb2e2291108b8",
+    "power_w": 8.02687e-06,
+    "protocol_sha256": "82f7fc4163cd217780fc1d1517ea16d3516dd818336f165c6ab979048bd7f1d2",
+    "route_metrics_sha256": "36af4aa9f71f6ef807acd78e176c0b39b8333807516605165231b9075954fad3",
+    "routed_wirelength_um": 2056,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 595.391,
+      "3_5_place_dp": 626.7450000000006,
+      "5_2_route": 644.125000000001,
+      "6_final": 644.125000000001
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 1660.594,
+      "3_5_place_dp": 1676.777,
+      "5_2_route": 1710.1030000000019,
+      "6_final": 1710.1030000000019
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 56.2467319550924
+  },
+  {
+    "area_um2": 63.3209,
+    "arm": "paper_agr",
+    "common_input_sha256": "9121f4c1804fbd44311ce380316f1c106f4ac6aae6a9ad2f357aa3de9c934b90",
+    "core_only_hpwl_um": 792.1930000000003,
+    "cores": 2,
+    "delay_ps": 208.09000000000015,
+    "design": "i2c",
+    "drc_errors": 0,
+    "endpoint_sha256": "78d8ca10881f5b4844265b69750e6f0760d5a9ff58aaef9806fd99bd11db4bc8",
+    "final_hpwl_um": 1856.3499999999997,
+    "final_metrics_sha256": "fab4b2bd30900fbe3e4abdf869ce1ff0b5ab80609ebda3cfa424b56c865e2749",
+    "final_proof": "eef450b5189940185ef2b80d4ce1fb9ecfe627480038fa88fe577a0efc251e8a",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 35.97601020010188,
+      "floorplan": 4.180459601338953
+    },
+    "frontend_source_proof": "fc3cf0aaacd87f12a0ab5b0768d1099469ee9ba927943be65db2f969a710ef44",
+    "mapping_proof": "480cd852aafcc905462d0a7bc5d8ab6595f89b6eb41be1223692a32572ce762d",
+    "power_w": 1.02263e-05,
+    "protocol_sha256": "34d9672211ec955789ae5c4bd451e83c9c25a230ff23378e088addc162205fee",
+    "route_metrics_sha256": "cce3c2653479addbbb5d31f8ae441377f70ea5db24faa167007e1eb4785f34ba",
+    "routed_wirelength_um": 2264,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 731.6059999999993,
+      "3_5_place_dp": 769.4110000000001,
+      "5_2_route": 792.1930000000003,
+      "6_final": 792.1930000000003
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 1799.9020000000005,
+      "3_5_place_dp": 1819.0029999999997,
+      "5_2_route": 1856.3499999999997,
+      "6_final": 1856.3499999999997
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 46.13712209882215
+  },
+  {
+    "area_um2": 63.9187,
+    "arm": "paper_pa2",
+    "common_input_sha256": "9121f4c1804fbd44311ce380316f1c106f4ac6aae6a9ad2f357aa3de9c934b90",
+    "core_only_hpwl_um": 758.2130000000004,
+    "cores": 2,
+    "delay_ps": 220.1199999999999,
+    "design": "i2c",
+    "drc_errors": 0,
+    "endpoint_sha256": "9193c9c8b4b36e2679ba875d86c5a018e8597444a1ae681005716e96676d9a68",
+    "final_hpwl_um": 1839.242,
+    "final_metrics_sha256": "8c632f827d8defbe94b42101b89ee42cc2603206f60dadad57ffd784c2eecfca",
+    "final_proof": "f3f0e9414f8f477ce3a2d5d981381aef36fc972f9cb96c11e6e5945003157fec",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 46.536561287008226,
+      "floorplan": 4.122187191620469
+    },
+    "frontend_source_proof": "ebf65cac790a2ef1708649fdebede6de8159afbac2e320cd48cd4db81fb21940",
+    "mapping_proof": "c882f87c170446a1a8d0b526f0644ed62502cacae7aa9b5e13efef5cf8544ea1",
+    "power_w": 1.02489e-05,
+    "protocol_sha256": "aae9508f1bf8b104a80873d2ff33e007a80634d542ae1ca617967f36fec150c7",
+    "route_metrics_sha256": "1e7a2263a03c4208105f21286b280262538efa966234dfd762ee960d13db46ff",
+    "routed_wirelength_um": 2240,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 693.7440000000004,
+      "3_5_place_dp": 738.0909999999998,
+      "5_2_route": 758.2130000000004,
+      "6_final": 758.2130000000004
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 1793.8380000000013,
+      "3_5_place_dp": 1804.0349999999987,
+      "5_2_route": 1839.242,
+      "6_final": 1839.242
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 56.16547510912642
+  },
+  {
+    "area_um2": 12.4513,
+    "arm": "abc_budget",
+    "common_input_sha256": "5d1ce7e31214ad273e489b956fe17f33528421bad95df0c63b255a55880a77ab",
+    "core_only_hpwl_um": 138.10100000000003,
+    "cores": 2,
+    "delay_ps": 133.5,
+    "design": "int2float",
+    "drc_errors": 0,
+    "endpoint_sha256": "51fdd5118c90daf0d4c7bd82b933a23fc6fc96562615de3576c6c6d96a65a241",
+    "final_hpwl_um": 225.04100000000005,
+    "final_metrics_sha256": "a24a6146a6c443f2adf474013d2ea1d21c8a169114a676254f0a1f53daa7cd08",
+    "final_proof": "59db2c1f6877536ab98e66c3f584af1bc3713e7a75f7e69a9ced1cf39a77d05d",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 39.982844127807766,
+      "floorplan": 4.028948656283319
+    },
+    "frontend_source_proof": "b76a82136ff58acbc8d2aea73372f9065cb284c7c1c33a9712a45fc684311c8a",
+    "mapping_proof": "424f4582b7bfc7867a4b0f4e812bd0b7c74e5d5905842c312e242445e6f35c59",
+    "power_w": 2.23325e-06,
+    "protocol_sha256": "f937e8df07e4ccc8a04227a15b2cd225b197725c82ea20b29c2ac227d5b26823",
+    "route_metrics_sha256": "47ab5f23f2972c968c69d384c3a33e9a99fe22b536e6e57bc26e1762317638a6",
+    "routed_wirelength_um": 310,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 132.67100000000002,
+      "3_5_place_dp": 134.27399999999994,
+      "5_2_route": 138.10100000000003,
+      "6_final": 138.10100000000003
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 220.61499999999998,
+      "3_5_place_dp": 221.277,
+      "5_2_route": 225.04100000000005,
+      "6_final": 225.04100000000005
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 49.20869014086202
+  },
+  {
+    "area_um2": 11.7952,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "5d1ce7e31214ad273e489b956fe17f33528421bad95df0c63b255a55880a77ab",
+    "core_only_hpwl_um": 119.14000000000004,
+    "cores": 2,
+    "delay_ps": 128.60000000000036,
+    "design": "int2float",
+    "drc_errors": 0,
+    "endpoint_sha256": "5914066443703ffa24176d55876462ba8a4b3a4f638d1f220b6ca04ae6fde8f2",
+    "final_hpwl_um": 206.19800000000004,
+    "final_metrics_sha256": "2c9a5f2aa8c39507b02b459912670e734845ed640f19fad0937c23bf65a59971",
+    "final_proof": "59290bfcaf05b8c32a24d296648d1ce2de09f108505736bf45caf91ea9b3497b",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 22.291779483668506,
+      "floorplan": 3.977804278023541
+    },
+    "frontend_source_proof": "07b934c52627f9abe954e7e81c5c7aed5555163f7c1d42ee64ffdd43e24b0471",
+    "mapping_proof": "f06487ad711df48876d06300fb7e39bc24dbd1a6a7dad5658f1c84b483bf4132",
+    "power_w": 2.0656e-06,
+    "protocol_sha256": "425db13ced637c2083a157efec25f34e430c08f77f808892aa19b6302645ade6",
+    "route_metrics_sha256": "3b5f2cdb44e1672f77cac71411ce5bbb56f6b4a1722f2d2a7916a97becefb56e",
+    "routed_wirelength_um": 279,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 121.83300000000001,
+      "3_5_place_dp": 114.74000000000004,
+      "5_2_route": 119.14000000000004,
+      "6_final": 119.14000000000004
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 209.027,
+      "3_5_place_dp": 202.00200000000007,
+      "5_2_route": 206.19800000000004,
+      "6_final": 206.19800000000004
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 31.098298707045615
+  },
+  {
+    "area_um2": 10.7892,
+    "arm": "native",
+    "common_input_sha256": "5d1ce7e31214ad273e489b956fe17f33528421bad95df0c63b255a55880a77ab",
+    "core_only_hpwl_um": 94.94900000000003,
+    "cores": 2,
+    "delay_ps": 135.5600000000004,
+    "design": "int2float",
+    "drc_errors": 0,
+    "endpoint_sha256": "4ac6c439b7a4078641b94d12f59d18f8809f3d0ba5e21f52f699ce7d0a29909b",
+    "final_hpwl_um": 181.82800000000003,
+    "final_metrics_sha256": "bb5990d3567017ea40e27148589e4a90cddb138e58f57312235ed713e875c78f",
+    "final_proof": "0a6b7dae2fe3e61fc7a63680fc4987a746fb1932a57c150195cd53cbc2755143",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 20.958740623202175,
+      "floorplan": 3.873573114629835
+    },
+    "frontend_source_proof": "4a34d5f12061726414be75941ce85495bd9f2a7c5bc1b4ef2dc69d6e31e42ac2",
+    "mapping_proof": "ecc2d5229596cfb2cd00ea2a768a64d4f554c5d0d8aed866a38fb3b0d68738bd",
+    "power_w": 1.92837e-06,
+    "protocol_sha256": "e501ddc75acc3400d1c86dddfeb9b8d63f056ed8992082132ea616cdd1e0b1c0",
+    "route_metrics_sha256": "29d59c30292e829603d355998ea6c2c7f407adb84cf52b8217fb69e482dfd0c8",
+    "routed_wirelength_um": 239,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 96.06700000000002,
+      "3_5_place_dp": 90.27900000000001,
+      "5_2_route": 94.94900000000003,
+      "6_final": 94.94900000000003
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 185.69300000000004,
+      "3_5_place_dp": 177.26800000000003,
+      "5_2_route": 181.82800000000003,
+      "6_final": 181.82800000000003
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 30.14038515323773
+  },
+  {
+    "area_um2": 11.8244,
+    "arm": "paper_agr",
+    "common_input_sha256": "5d1ce7e31214ad273e489b956fe17f33528421bad95df0c63b255a55880a77ab",
+    "core_only_hpwl_um": 131.741,
+    "cores": 2,
+    "delay_ps": 125.89999999999964,
+    "design": "int2float",
+    "drc_errors": 0,
+    "endpoint_sha256": "68a9226155bddfa64da8f243d96178c7de49d288c81daa07b5ec744f4c6d95fb",
+    "final_hpwl_um": 217.93999999999997,
+    "final_metrics_sha256": "03605653e5f56702bf8c7da64097ca10c47b7f35ab154b27679ac7b155ce4767",
+    "final_proof": "b0d2d79f92cd9812086e35d5d271a69bb6f48e1d48535eaa2e230aaed07e930b",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 19.263892417307943,
+      "floorplan": 3.9229477178305387
+    },
+    "frontend_source_proof": "ed974c49d4c19a73ae58ef175d139e12f2b2348014675826b51582d613a61e15",
+    "mapping_proof": "81e5a0d4b9bf9fa7ec2ce06170750a87e8326bdd99589c4b292655c69920a41e",
+    "power_w": 2.23371e-06,
+    "protocol_sha256": "b82b05ee0f4f8d18bba8b7af01ba17ff78305698969886c1be9fbf431cc3abe0",
+    "route_metrics_sha256": "cce39c0a1fe493f0d3365dbf291a91035fc4d807d5e0458570b6f671b8df55d5",
+    "routed_wirelength_um": 285,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 124.41800000000005,
+      "3_5_place_dp": 129.10500000000005,
+      "5_2_route": 131.741,
+      "6_final": 131.741
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 210.63000000000005,
+      "3_5_place_dp": 215.183,
+      "5_2_route": 217.93999999999997,
+      "6_final": 217.93999999999997
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 28.07928343769163
+  },
+  {
+    "area_um2": 12.0868,
+    "arm": "paper_pa2",
+    "common_input_sha256": "5d1ce7e31214ad273e489b956fe17f33528421bad95df0c63b255a55880a77ab",
+    "core_only_hpwl_um": 140.28499999999997,
+    "cores": 2,
+    "delay_ps": 137.84000000000015,
+    "design": "int2float",
+    "drc_errors": 0,
+    "endpoint_sha256": "17d3f41d34dc7a8d949449d30eb125308542a829430f5777f7263dea5595f038",
+    "final_hpwl_um": 226.68199999999996,
+    "final_metrics_sha256": "4b985c65bba6e3ee28dabdaf3dbd020b15a1ed0dd894cb9b17eb42c9f5679d1f",
+    "final_proof": "f7ca7985c35efe72d46f45ecddf8f1c8517027ed8e46f7aa4edef0a923141df7",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 34.14305139379576,
+      "floorplan": 3.925682181958109
+    },
+    "frontend_source_proof": "70fb449b6f89ac2d0124545055be96b77b82fa90efded894baaaf36c4e3024f6",
+    "mapping_proof": "5df33877bb74adb5fc522fdd748b5cfdefb759eaa5e069bdb9ab400bc8f395ec",
+    "power_w": 2.1583e-06,
+    "protocol_sha256": "fd0ddd029c81d506d1dcd021af7f4ba6dca41847bc9a0583caab059247761d71",
+    "route_metrics_sha256": "714d3de528880fdd62eeba92015a3e4ce277cd3f78506f50ca1d2848b7f7e5ca",
+    "routed_wirelength_um": 307,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 139.40499999999997,
+      "3_5_place_dp": 135.06399999999996,
+      "5_2_route": 140.28499999999997,
+      "6_final": 140.28499999999997
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 227.84099999999995,
+      "3_5_place_dp": 221.19399999999996,
+      "5_2_route": 226.68199999999996,
+      "6_final": 226.68199999999996
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 43.134063651785254
+  },
+  {
+    "area_um2": 1660.6,
+    "arm": "abc_budget",
+    "common_input_sha256": "6837756fd9536089c9067335d0503d366dc238ef065dfe9fd812af85d18d75bc",
+    "core_only_hpwl_um": 72199.34099999981,
+    "cores": 2,
+    "delay_ps": 4774.989,
+    "design": "log2",
+    "drc_errors": 0,
+    "endpoint_sha256": "6b0460db8eb7b5a3f29550bee2f6dafbe1da692249d349904ee39e0507545f47",
+    "final_hpwl_um": 73354.20999999974,
+    "final_metrics_sha256": "afa03007267ff440f34f81377fd82f4e505cdf967f85230ae54bb49cc4a16801",
+    "final_proof": "197ecf62c97ac7f4e2dbf447e3e661ca1305e25e444afd4fc590b0be7744ed2e",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 850.1186961936764,
+      "floorplan": 11.194697505328804
+    },
+    "frontend_source_proof": "86d41157fe9acb8d9d11efcf0f81f4d3f486d3d71c951a52eae89f3dcc2db353",
+    "mapping_proof": "8f9c436558d8941d10cccdba6d11a9e03137d7e02094507e7cefdacdcaf5625c",
+    "power_w": 0.283774,
+    "protocol_sha256": "0017ec8969f4d1185443f9a34229ecbfa714c64a10be6b25c198b57224164ad1",
+    "route_metrics_sha256": "4b46444ca95899aedafc2717399110d647d64d802e37de0494ea117bed4cdc28",
+    "routed_wirelength_um": 101364,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 72317.38300000007,
+      "3_5_place_dp": 71299.51299999961,
+      "5_2_route": 72199.34099999981,
+      "6_final": 72199.34099999981
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 73551.97600000005,
+      "3_5_place_dp": 72518.55299999962,
+      "5_2_route": 73354.20999999974,
+      "6_final": 73354.20999999974
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 945.2935807900503
+  },
+  {
+    "area_um2": 1613.98,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "6837756fd9536089c9067335d0503d366dc238ef065dfe9fd812af85d18d75bc",
+    "core_only_hpwl_um": 60410.468999999706,
+    "cores": 2,
+    "delay_ps": 4193.066,
+    "design": "log2",
+    "drc_errors": 0,
+    "endpoint_sha256": "b7dae3cc52561e69f2e568529d3a311cf9de8f988476ea65372f16904943ee50",
+    "final_hpwl_um": 61971.13899999971,
+    "final_metrics_sha256": "7126999f59c00ef7b4e4ddb81a73be3f037a7e426781272b581cfbf14f3322fe",
+    "final_proof": "17cee826f9446dc38c195ad7a2ca5fd7265fe660f238f62ba9c219ba0b3d0229",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 1593.5136571628973,
+      "floorplan": 12.543591084890068
+    },
+    "frontend_source_proof": "9a7779ee8ec82d5b6926c44c9db5ecd413a95cba336343825bb5100ce0ed325c",
+    "mapping_proof": "008be0616868e8f95f6a525c7f4ddef23b2d92d3e57330d8e18e06fedfbf08e6",
+    "power_w": 0.305446,
+    "protocol_sha256": "b32ec7519f64dd285fe47c277066d87487f093350213c7e4b9166fd8d877d4ed",
+    "route_metrics_sha256": "aa71a77612a37a015425e080a5596dfd839ac8f75c233523a951961f0cc0ef05",
+    "routed_wirelength_um": 97028,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 59810.46300000009,
+      "3_5_place_dp": 59839.87999999958,
+      "5_2_route": 60410.468999999706,
+      "6_final": 60410.468999999706
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 61439.53700000008,
+      "3_5_place_dp": 61451.4069999996,
+      "5_2_route": 61971.13899999971,
+      "6_final": 61971.13899999971
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 1699.2600676380098
+  },
+  {
+    "area_um2": 1562.83,
+    "arm": "native",
+    "common_input_sha256": "6837756fd9536089c9067335d0503d366dc238ef065dfe9fd812af85d18d75bc",
+    "core_only_hpwl_um": 60082.33499999974,
+    "cores": 2,
+    "delay_ps": 4456.811,
+    "design": "log2",
+    "drc_errors": 0,
+    "endpoint_sha256": "dfbd9f4a57baf2ab6ed0fbaaa31c3f369367f9d69e4a5aeb6593baf971fafb1e",
+    "final_hpwl_um": 61590.818999999734,
+    "final_metrics_sha256": "58a1d765836083f53768e0a12ff8c1e76d478320f99655813ae0af77f3025753",
+    "final_proof": "fd1f9bfb7b89c4ab4026f34dbb7f8aa9c24ceba5c59a30cad579d4dbeb5fc4aa",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 1179.9701072210446,
+      "floorplan": 12.657228738069534
+    },
+    "frontend_source_proof": "54106b5535ab352f9bdd5b01cd780e948efeda8bf9cd466bd6f80b080d45d8de",
+    "mapping_proof": "54352d7169b6581d0969cf5c2ceb774c71aa8bafb2bd26264a5340b2c8a5815a",
+    "power_w": 0.274384,
+    "protocol_sha256": "ed5811b908a89a58317479ee384edee310d3ae99cfcb82eb8dfea8f4c8fa574e",
+    "route_metrics_sha256": "c9d4bebe8eb6a08f980a72f302af021eb4bee361ac1a3d5ddf512c14617f825c",
+    "routed_wirelength_um": 93967,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 60079.78899999996,
+      "3_5_place_dp": 59572.33699999976,
+      "5_2_route": 60082.33499999974,
+      "6_final": 60082.33499999974
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 61596.46999999996,
+      "3_5_place_dp": 61079.38499999974,
+      "5_2_route": 61590.818999999734,
+      "6_final": 61590.818999999734
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 1236.625411353074
+  },
+  {
+    "area_um2": 1640.66,
+    "arm": "paper_agr",
+    "common_input_sha256": "6837756fd9536089c9067335d0503d366dc238ef065dfe9fd812af85d18d75bc",
+    "core_only_hpwl_um": 69056.47599999985,
+    "cores": 2,
+    "delay_ps": 4656.794,
+    "design": "log2",
+    "drc_errors": 0,
+    "endpoint_sha256": "8c841f8bf6ffdf46bdea85cd3b71568d2e3692d15eb3e22f92210bb2f0a5f487",
+    "final_hpwl_um": 70037.72799999984,
+    "final_metrics_sha256": "1b7310b47b50c2ea6cd0984e49e2b7fee1e60a763cd59f5c2991c226df3a0f23",
+    "final_proof": "80f6ff9a00939212f4f5cdcf5d3a698578839ca1f814e45a120a96960fbb94fc",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 957.5414435109124,
+      "floorplan": 11.84305121563375
+    },
+    "frontend_source_proof": "c5b268067d4faea35f49923400f875db717c99607056ab8f9c9ce6c21c6f54c4",
+    "mapping_proof": "098c620ff0f9837e19d5180b4633e67ccbf1a647e5e32d635cabb72bb638d998",
+    "power_w": 0.278355,
+    "protocol_sha256": "796e3c44907d91baf0c6f3bd14d11e75eaf893110fd446981d3c40d90f243e98",
+    "route_metrics_sha256": "86aa3b42a3c86b8102ae7729ac4ffd1e48a39abb55dba39cf8532fb13c037bbd",
+    "routed_wirelength_um": 102231,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 68720.17799999993,
+      "3_5_place_dp": 68072.25399999983,
+      "5_2_route": 69056.47599999985,
+      "6_final": 69056.47599999985
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 69840.61599999989,
+      "3_5_place_dp": 69177.46299999981,
+      "5_2_route": 70037.72799999984,
+      "6_final": 70037.72799999984
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 1070.8213733201846
+  },
+  {
+    "area_um2": 1639.24,
+    "arm": "paper_pa2",
+    "common_input_sha256": "6837756fd9536089c9067335d0503d366dc238ef065dfe9fd812af85d18d75bc",
+    "core_only_hpwl_um": 68837.63599999991,
+    "cores": 2,
+    "delay_ps": 4648.781,
+    "design": "log2",
+    "drc_errors": 0,
+    "endpoint_sha256": "1138944266aa86f966ec4118241fd3db7862048217ca17957bab2913d9a8fc04",
+    "final_hpwl_um": 69938.30499999982,
+    "final_metrics_sha256": "a2207a0551e20e4e3e01cb9c8b41c2c96e3fc12fdba7b425e644459c73d4d314",
+    "final_proof": "8449d1f4c51c2d3b5dec80266c2d7078c8c3807271e0cf9d4d92372aac483536",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 937.7652045572177,
+      "floorplan": 11.999537440948188
+    },
+    "frontend_source_proof": "aed56a333ad9f20ea4ffde5cf982fa137fff9cddf37e0c3bb149aeeeb493dae6",
+    "mapping_proof": "c3065df90a840050ecb94194fbf7406fed00c0529e12a5edb574beec85b6ce9e",
+    "power_w": 0.295498,
+    "protocol_sha256": "7bd25b96bcf5c7484b98796cd6a3db161ff5472c7360b786a4bcbad321a4369a",
+    "route_metrics_sha256": "3ced48f2d90cabf83509ba5049dd081c9a9dc78cf1b2de1ca78227e513387f82",
+    "routed_wirelength_um": 99499,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 68781.91900000013,
+      "3_5_place_dp": 67880.38999999966,
+      "5_2_route": 68837.63599999991,
+      "6_final": 68837.63599999991
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 70007.40400000014,
+      "3_5_place_dp": 69086.37099999966,
+      "5_2_route": 69938.30499999982,
+      "6_final": 69938.30499999982
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 1035.6583647839725
+  },
+  {
+    "area_um2": 179.596,
+    "arm": "abc_budget",
+    "common_input_sha256": "578ec6b6816abd5938376934d6d72480f09e21c278e09ad668a7e898d9e93850",
+    "core_only_hpwl_um": 2655.683000000003,
+    "cores": 2,
+    "delay_ps": 2138.76,
+    "design": "max",
+    "drc_errors": 0,
+    "endpoint_sha256": "afb6f4e3228955973d430519b0bd36b0fed82964f8c44ee95693b0fb1cb23225",
+    "final_hpwl_um": 5380.641000000005,
+    "final_metrics_sha256": "fb5a73e5a400f4adf2def4a1d4221ecb1ed6a64bfb41732526f1bea0a7b89949",
+    "final_proof": "c06f7359016570f7b3f7affe24d657cd5eb53f85e3940a9b747cc80a2c7af455",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 65.28919620113447,
+      "floorplan": 4.68014761665836
+    },
+    "frontend_source_proof": "f5360fa975672d942fd7dd7ffb8464e81548dfcf9366d2f9e5a57e9a9748bcde",
+    "mapping_proof": "3afb71d5a16d8e8aa0585a924195ba245e641da25591ba32f8b38bda56ec57ee",
+    "power_w": 9.60635e-05,
+    "protocol_sha256": "bb71134b9cc4928a6b2b74e79720141a5fc87a4ff6e9699d607445f8b9694be5",
+    "route_metrics_sha256": "292e5eea8cc4a7c6880328925b69c23a12bbdd3aba3b274402326fdc7943329e",
+    "routed_wirelength_um": 6161,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 2469.64,
+      "3_5_place_dp": 2541.8299999999986,
+      "5_2_route": 2655.683000000003,
+      "6_final": 2655.683000000003
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 5204.583999999998,
+      "3_5_place_dp": 5236.626999999998,
+      "5_2_route": 5380.641000000005,
+      "6_final": 5380.641000000005
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 75.30672344285995
+  },
+  {
+    "area_um2": 166.547,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "578ec6b6816abd5938376934d6d72480f09e21c278e09ad668a7e898d9e93850",
+    "core_only_hpwl_um": 2310.661999999997,
+    "cores": 2,
+    "delay_ps": 2084.88,
+    "design": "max",
+    "drc_errors": 0,
+    "endpoint_sha256": "490d66fafaad52f994e5e2a38e6896073f335bd293d7c0bbf3b0e7c1bf99551c",
+    "final_hpwl_um": 5304.722999999994,
+    "final_metrics_sha256": "96dfcd7896b6c43309485b3aa4d1164e2b7f0ed1d8a6ddbc052966fdad674c3c",
+    "final_proof": "6a739b3fbe8e867d01a4539152ddfb3659d54ac907395c852c142fe5ecb92bbc",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 82.45971175376326,
+      "floorplan": 6.036473178770393
+    },
+    "frontend_source_proof": "13b15890f746cf6f1edd8826212f80d7a5943b476d3ecbdae0be2307bcc2fbbd",
+    "mapping_proof": "5a680720631f3602a641efb238dc2267dbf219bb7ef9e048987ac6a5e1041f37",
+    "power_w": 8.70672e-05,
+    "protocol_sha256": "6bd9a158de30c42e95ef82bf4b6fe61d758db2a8f43fb2e69abffdfc24cb3d1a",
+    "route_metrics_sha256": "2f27a81a17e17e9d352d34368cb28a210d0488c3e696e0aa785cc4413298ef60",
+    "routed_wirelength_um": 6137,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 2096.455,
+      "3_5_place_dp": 2222.005999999999,
+      "5_2_route": 2310.661999999997,
+      "6_final": 2310.661999999997
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 5116.667999999996,
+      "3_5_place_dp": 5176.971,
+      "5_2_route": 5304.722999999994,
+      "6_final": 5304.722999999994
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 94.30830991780385
+  },
+  {
+    "area_um2": 177.103,
+    "arm": "native",
+    "common_input_sha256": "578ec6b6816abd5938376934d6d72480f09e21c278e09ad668a7e898d9e93850",
+    "core_only_hpwl_um": 2403.092000000002,
+    "cores": 2,
+    "delay_ps": 2271.24,
+    "design": "max",
+    "drc_errors": 0,
+    "endpoint_sha256": "044da5129a2da3bd748e2c37e5b169f2503f5f8de40f1d83f542880a0539746b",
+    "final_hpwl_um": 5370.867999999995,
+    "final_metrics_sha256": "07b7c3627f6a7f7d87d4a92027ae632e4ce3b1e2e6303ee09aca6233bbeb9fab",
+    "final_proof": "deac48762bf0b9fde812cc519d91fd76b8e79304ac125e9e612e8ad88dbce024",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 71.2759277629666,
+      "floorplan": 4.680954948998988
+    },
+    "frontend_source_proof": "0e87e63dd7e112644df2e185cf0ac4f0f3e3fb9624b59c3dfe551ceae23134cd",
+    "mapping_proof": "b1bb09ccd5a812285c6254d00cba7ddecfb39518bc7b5ccb558375ffd5c8dfc7",
+    "power_w": 9.91084e-05,
+    "protocol_sha256": "331872e9afe811fbb8165eddfa947c5c8c2fc165414be36b822264ff3f62adfc",
+    "route_metrics_sha256": "f29aa1d03211ebc9c52efe460a620e35e3a451a23c62ce0905b0c751fe67da2b",
+    "routed_wirelength_um": 6141,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 2200.6140000000023,
+      "3_5_place_dp": 2284.224999999999,
+      "5_2_route": 2403.092000000002,
+      "6_final": 2403.092000000002
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 5164.996999999994,
+      "3_5_place_dp": 5220.860999999988,
+      "5_2_route": 5370.867999999995,
+      "6_final": 5370.867999999995
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 82.34925319626927
+  },
+  {
+    "area_um2": 171.402,
+    "arm": "paper_agr",
+    "common_input_sha256": "578ec6b6816abd5938376934d6d72480f09e21c278e09ad668a7e898d9e93850",
+    "core_only_hpwl_um": 2688.8339999999994,
+    "cores": 2,
+    "delay_ps": 2255.65,
+    "design": "max",
+    "drc_errors": 0,
+    "endpoint_sha256": "4ea15af7fd51384e891610d99882f380144d1224bfde2b5d343bdb82a4632497",
+    "final_hpwl_um": 5515.668999999992,
+    "final_metrics_sha256": "37b02be1b7db971685e45440e808c92b0ff657113d359e8921a1995c05e1a532",
+    "final_proof": "160753dc84a938fb67e1a07076d5ad82601f9b3ed247a676e1931929f427206d",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 75.32192684430629,
+      "floorplan": 5.276938829105347
+    },
+    "frontend_source_proof": "de637ecb47f81f96766d42edbe1e49bbb8d9ab5b29d85a425f4124761fc11e9e",
+    "mapping_proof": "fa08ea524af781db8c3886568566e6c83b4f95c93b542a2a8e03a5977b6663b9",
+    "power_w": 9.21622e-05,
+    "protocol_sha256": "e460351cf8eb923685bb3dbee2b517384e867bef3af3c971788d9f1ac7dcd5ed",
+    "route_metrics_sha256": "b6e43bdc8de4129584b3825b3f29107c493e2934f723e20530e0481f745f0e93",
+    "routed_wirelength_um": 6512,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 2537.9889999999996,
+      "3_5_place_dp": 2596.2430000000004,
+      "5_2_route": 2688.8339999999994,
+      "6_final": 2688.8339999999994
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 5356.928000000001,
+      "3_5_place_dp": 5392.189999999991,
+      "5_2_route": 5515.668999999992,
+      "6_final": 5515.668999999992
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 88.28908714512363
+  },
+  {
+    "area_um2": 174.435,
+    "arm": "paper_pa2",
+    "common_input_sha256": "578ec6b6816abd5938376934d6d72480f09e21c278e09ad668a7e898d9e93850",
+    "core_only_hpwl_um": 2592.428999999998,
+    "cores": 2,
+    "delay_ps": 2177.75,
+    "design": "max",
+    "drc_errors": 0,
+    "endpoint_sha256": "f927edc40d4ac74cfeff67e8548fe042679d4ccb3281425d6c4d7fe6cd45d17a",
+    "final_hpwl_um": 5457.553,
+    "final_metrics_sha256": "9e889b842012164138b1721fe3931756079c72d1fa4fbbb9201064bc7b40bb7d",
+    "final_proof": "de983c6ca4eeb7504c06e2468e4cb199b18e2538df254ad624eb059634ce818a",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 58.844489600975066,
+      "floorplan": 4.325213642790914
+    },
+    "frontend_source_proof": "6f98e5ebf42928002cccc81a1f2a2fa32ca05f668912e599e6924fc12e7c8719",
+    "mapping_proof": "1d90e6dde82d468a4420e091c0d6a234a544aa78a099255844392b160eec213c",
+    "power_w": 9.78055e-05,
+    "protocol_sha256": "0db79a44d215ce599052373a2542b0c50522cd67c0f54cedef5812d2fcb80986",
+    "route_metrics_sha256": "9eee7879e4b1d5af8d4f5ca2728338613b30a461a096ffd98a5752d377f1bc28",
+    "routed_wirelength_um": 6213,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 2405.9830000000006,
+      "3_5_place_dp": 2498.3129999999974,
+      "5_2_route": 2592.428999999998,
+      "6_final": 2592.428999999998
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 5261.147000000004,
+      "3_5_place_dp": 5329.862999999997,
+      "5_2_route": 5457.553,
+      "6_final": 5457.553
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 68.2218334809877
+  },
+  {
+    "area_um2": 2268.88,
+    "arm": "abc_budget",
+    "common_input_sha256": "54312649ff8de61041892fe09a2c08cf9244cad4df7d67364ac9b205ee4d4f3f",
+    "core_only_hpwl_um": 74515.41500000011,
+    "cores": 3,
+    "delay_ps": 1426.5300000000002,
+    "design": "mem_ctrl",
+    "drc_errors": 0,
+    "endpoint_sha256": "c9c64522e10e5ab52d732c5f38f8252fd59e276883fa3edc4f1f4b7a31495d79",
+    "final_hpwl_um": 120263.04300000066,
+    "final_metrics_sha256": "0e0d07443a228d6eef3e51af0da604751b6749d31c42ef92558bf4804dc0ae4b",
+    "final_proof": "da95080664135dbaab98a1d623c2e2f84297a20a3b646cc40a19794c4ab81ff5",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 870.2309518209659,
+      "floorplan": 15.757130303885788
+    },
+    "frontend_source_proof": "2aeea94b2e6034e024f314c42e6c32aaba715efc4d6a9ff3764141365b1145dd",
+    "mapping_proof": "6ccde49ebe12e2df6a9914f249ce5e7a247151b9729c13d48b5fc829bcad4300",
+    "power_w": 0.000731822,
+    "protocol_sha256": "2381da40358ca1d66108005385899e62dbc7778fffa944abf2bc268ea3368ef1",
+    "route_metrics_sha256": "bdafa1256d08616e32803bc90453c86c2de94589ee09ad0afe61ed5f2f70b0d0",
+    "routed_wirelength_um": 157678,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 71861.77200000032,
+      "3_5_place_dp": 73286.23100000003,
+      "5_2_route": 74515.41500000011,
+      "6_final": 74515.41500000011
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 117986.29900000038,
+      "3_5_place_dp": 119168.56000000064,
+      "5_2_route": 120263.04300000066,
+      "6_final": 120263.04300000066
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 894.7095426288433
+  },
+  {
+    "area_um2": 1449.76,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "54312649ff8de61041892fe09a2c08cf9244cad4df7d67364ac9b205ee4d4f3f",
+    "core_only_hpwl_um": 50684.51599999994,
+    "cores": 3,
+    "delay_ps": 1268.38,
+    "design": "mem_ctrl",
+    "drc_errors": 0,
+    "endpoint_sha256": "9e0437f575de44fa84e85746f32139fd39c87f538446ded68ae9142dfe04a08c",
+    "final_hpwl_um": 97977.6820000001,
+    "final_metrics_sha256": "94795849126ebc06b58b2676e823d207ff71de398e4af20b441c42005ca4b3cc",
+    "final_proof": "19f6be3a6dbfe2b3e18421f2bc9a9128e0efc721bd820593d41bb02d3929964c",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 671.0569665827788,
+      "floorplan": 11.541972097940743
+    },
+    "frontend_source_proof": "e0929332f0ff9092ddb6707adebaab88b8d081673e7d37ca2089a818e3abd5d4",
+    "mapping_proof": "f97686c6f72782e8adb23479ceaa0e5395e5bda88c688865ec38dd3bff2ed54c",
+    "power_w": 0.000429196,
+    "protocol_sha256": "1c12003af860d6677dd1c630fc60249fd69921df3252e3220568ea2166a764b5",
+    "route_metrics_sha256": "5c01cd0b001e9b7fe91fc6de91ece7ed7c371d40367f483928c50f427fb13775",
+    "routed_wirelength_um": 123132,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 49221.13599999986,
+      "3_5_place_dp": 49783.44400000009,
+      "5_2_route": 50684.51599999994,
+      "6_final": 50684.51599999994
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 96833.75500000002,
+      "3_5_place_dp": 97109.2270000002,
+      "5_2_route": 97977.6820000001,
+      "6_final": 97977.6820000001
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 689.84208305832
+  },
+  {
+    "area_um2": 1354.85,
+    "arm": "native",
+    "common_input_sha256": "54312649ff8de61041892fe09a2c08cf9244cad4df7d67364ac9b205ee4d4f3f",
+    "core_only_hpwl_um": 47500.017999999895,
+    "cores": 3,
+    "delay_ps": 1180.4299999999998,
+    "design": "mem_ctrl",
+    "drc_errors": 0,
+    "endpoint_sha256": "27a87f01c93b18bb7a22f48f19c2f3afab16e22b38483242905f553a1bbcbc4d",
+    "final_hpwl_um": 94893.36100000009,
+    "final_metrics_sha256": "360d53db12224ab86549765780653887ba45cb780bb1f1dc9332c61554b9203f",
+    "final_proof": "0cf46abcbd8365bc9df8bf66d42df89d6daa8e3170145f23285b949f1cfdb922",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 616.6455207047984,
+      "floorplan": 10.840750640723854
+    },
+    "frontend_source_proof": "ba45fe1fb65f0359c4d66c667a99a177e471e1e2a082fa0805bd139838d1fadc",
+    "mapping_proof": "bfe43dbf6e77bd34a0cb718493afe6c6096475401c5bb20258b970d0e202e5df",
+    "power_w": 0.000393951,
+    "protocol_sha256": "aa6e880c1125fa1516f59564b476891ac368d99d11e831f9634f732b2fc4b284",
+    "route_metrics_sha256": "27b8295b25cf4e1fd1b32e0f2b95e98df2e7c06af8a00e06b0dd98d677fc792b",
+    "routed_wirelength_um": 117991,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 46421.51000000016,
+      "3_5_place_dp": 46801.49599999996,
+      "5_2_route": 47500.017999999895,
+      "6_final": 47500.017999999895
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 93952.53700000033,
+      "3_5_place_dp": 94137.30399999996,
+      "5_2_route": 94893.36100000009,
+      "6_final": 94893.36100000009
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 634.6606276119128
+  },
+  {
+    "area_um2": 2215.55,
+    "arm": "paper_agr",
+    "common_input_sha256": "54312649ff8de61041892fe09a2c08cf9244cad4df7d67364ac9b205ee4d4f3f",
+    "core_only_hpwl_um": 71557.41600000003,
+    "cores": 3,
+    "delay_ps": 1296.6599999999999,
+    "design": "mem_ctrl",
+    "drc_errors": 0,
+    "endpoint_sha256": "a453d462615285639fba3e6b1fec732560d49a99d005a4ae91995b937a322c50",
+    "final_hpwl_um": 117362.40600000003,
+    "final_metrics_sha256": "298ab8d3ec8a2f729c7cea66accdaeb8dbf3b242d9feb2337d7ab4bb904d12b8",
+    "final_proof": "079342284d219a15db99412e790558591df7612ee8d765987e40e64be0fef919",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 980.2041198587976,
+      "floorplan": 17.604209498967975
+    },
+    "frontend_source_proof": "af73f7061be2cd50c4ab926970d4e28e5e7560df7b83e15d244071f9157f8595",
+    "mapping_proof": "74d9181481c342a5590f59aa73f9a5b7af0b825979c9e84890372735c829f71e",
+    "power_w": 0.000718291,
+    "protocol_sha256": "343c66411ebe665b551afcd8a23e98bbf0181ed60cbcb731760f23950c3923fa",
+    "route_metrics_sha256": "3e0f5ba33a486c192f9fb4ec22b9fb09eb39fe0216a1d1852ecd9ef4adb643cb",
+    "routed_wirelength_um": 154786,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 68443.77499999989,
+      "3_5_place_dp": 70084.13999999997,
+      "5_2_route": 71557.41600000003,
+      "6_final": 71557.41600000003
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 115059.83799999987,
+      "3_5_place_dp": 116304.41000000005,
+      "5_2_route": 117362.40600000003,
+      "6_final": 117362.40600000003
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 1006.712685839273
+  },
+  {
+    "area_um2": 2208.37,
+    "arm": "paper_pa2",
+    "common_input_sha256": "54312649ff8de61041892fe09a2c08cf9244cad4df7d67364ac9b205ee4d4f3f",
+    "core_only_hpwl_um": 71407.08299999959,
+    "cores": 3,
+    "delay_ps": 1347.9499999999998,
+    "design": "mem_ctrl",
+    "drc_errors": 0,
+    "endpoint_sha256": "d3556a1e3aa91910f1326d86e96307f0187e922b6188b367f525f0cec11a407d",
+    "final_hpwl_um": 117114.32199999948,
+    "final_metrics_sha256": "b45d179100cb6f294ddb99d56bd7781552c77eb05a3e4562f2fd047dace4cad1",
+    "final_proof": "30e92f4dfd86006b78c67cf86af45a78b6dfbe15977bf3276e5903c938096403",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 958.2803538516164,
+      "floorplan": 15.65259434003383
+    },
+    "frontend_source_proof": "39685b0d17a819ce650cf2127e2c7cb130a9c693e81659e4c01953ed50bd1940",
+    "mapping_proof": "a81652a35b9a951040194254a81fc49c775e94d428815024985dd64288dea7e8",
+    "power_w": 0.000711427,
+    "protocol_sha256": "7f34d9987d197df8f9ec2bc9bb868ee7309cf71f39cc04f3d4c090de66c944b8",
+    "route_metrics_sha256": "cc5fe424a5aa5537cad2e294b1101f92c4146bb2c2ce8a9134d87710e5123dbe",
+    "routed_wirelength_um": 155571,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 68782.49399999998,
+      "3_5_place_dp": 70046.3139999994,
+      "5_2_route": 71407.08299999959,
+      "6_final": 71407.08299999959
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 115006.11800000038,
+      "3_5_place_dp": 116036.70299999931,
+      "5_2_route": 117114.32199999948,
+      "6_final": 117114.32199999948
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 982.622795491945
+  },
+  {
+    "area_um2": 1423.43,
+    "arm": "abc_budget",
+    "common_input_sha256": "fb0c5650033f204f2e1f97f9d38f01cdec0880d89276877e6e55766b456e7caa",
+    "core_only_hpwl_um": 24171.896000000037,
+    "cores": 3,
+    "delay_ps": 3661,
+    "design": "multiplier",
+    "drc_errors": 0,
+    "endpoint_sha256": "42b0f7c9ed3f30202ef37bfeaa978f931de0fddb5d53e15728f0ff4fc19047b6",
+    "final_hpwl_um": 30053.443000000036,
+    "final_metrics_sha256": "44a87bc0c2a4e6bd073bee7c4aa9c2d445ab1dfcbf5ab6ef726d5ec3dacc1c82",
+    "final_proof": "9318f0e8582c3e93e2489f0e8bdba585cf4327dfbb8af37cd079a66e43b99a90",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 317.69929657597095,
+      "floorplan": 10.293225636240095
+    },
+    "frontend_source_proof": "537da96275e6ed0e856c56e4eb3b14ecc22dd27166229413350829151846a5f9",
+    "mapping_proof": "0d4c3053ad48244f8bb3f6ed28dffd6bce6e7630de06885f73ada17108229f63",
+    "power_w": 0.135126,
+    "protocol_sha256": "280f51f24bd351f22bad2bbabe29b53e73640b424dcc52d214bbf8fd2cb52297",
+    "route_metrics_sha256": "873384ed38250e2de58935ee417de5abb5e74f3d4f3ba3e48f7b6d57cf170198",
+    "routed_wirelength_um": 40598,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 22297.05900000004,
+      "3_5_place_dp": 23658.634999999987,
+      "5_2_route": 24171.896000000037,
+      "6_final": 24171.896000000037
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 28232.88100000004,
+      "3_5_place_dp": 29575.784000000003,
+      "5_2_route": 30053.443000000036,
+      "6_final": 30053.443000000036
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 343.6331840772182
+  },
+  {
+    "area_um2": 1336.99,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "fb0c5650033f204f2e1f97f9d38f01cdec0880d89276877e6e55766b456e7caa",
+    "core_only_hpwl_um": 22568.832999999977,
+    "cores": 3,
+    "delay_ps": 3362.55,
+    "design": "multiplier",
+    "drc_errors": 0,
+    "endpoint_sha256": "d1f4562361fde0de72831c4066ee2aed70410c71d2921c9fe7b262c7bc990b3c",
+    "final_hpwl_um": 27803.116999999962,
+    "final_metrics_sha256": "b73bb7730385f0208a88e92c3701292cfc36fc39ca385ddc0e4a3f66e59da96f",
+    "final_proof": "0c3399e259cc57b3ec28946bd01c12b5574e22e9d36c2b06f028bcf47c616448",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 408.26077634934336,
+      "floorplan": 13.340562277007848
+    },
+    "frontend_source_proof": "05571b8f305e7ff7d510606856ee27b62806fb57dff32d97dc3504f78e3fc83d",
+    "mapping_proof": "a22c4ef708ebac0b5c5c784f7bb76e288e171c99a93d8e0ab599ce8e5dcbdb0c",
+    "power_w": 0.14202,
+    "protocol_sha256": "106bd5f34c0fd7c2d26fa1ca37e602b0013eb1822fed8a2d180127acea1cc60a",
+    "route_metrics_sha256": "8025f8a7961aa2244beae6c8ddc3c6aa55dd54205ff0e213bb06ddf14fc0748f",
+    "routed_wirelength_um": 37774,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 20715.189000000006,
+      "3_5_place_dp": 22154.88600000001,
+      "5_2_route": 22568.832999999977,
+      "6_final": 22568.832999999977
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 25946.56100000003,
+      "3_5_place_dp": 27370.624000000003,
+      "5_2_route": 27803.116999999962,
+      "6_final": 27803.116999999962
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 430.94870966719463
+  },
+  {
+    "area_um2": 1312.33,
+    "arm": "native",
+    "common_input_sha256": "fb0c5650033f204f2e1f97f9d38f01cdec0880d89276877e6e55766b456e7caa",
+    "core_only_hpwl_um": 21836.518000000007,
+    "cores": 3,
+    "delay_ps": 3644.13,
+    "design": "multiplier",
+    "drc_errors": 0,
+    "endpoint_sha256": "8d410ae11acc0e03ff30ba2f91383f949f96db79f791589b3b7500deec36433a",
+    "final_hpwl_um": 27128.666000000016,
+    "final_metrics_sha256": "9245761d07a16f9ba31c64fdb09ceae1579c3a2a197f1deb901ce3876a0a0b20",
+    "final_proof": "65818094e0bfe44aec63a9ce7dad40980fb8be6048f213364d6ddbe1300f8b14",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 343.0821815561503,
+      "floorplan": 15.053087791893631
+    },
+    "frontend_source_proof": "5287c1ed70236d6c9d4b21b5b5c7dfc697775cdf9f9ddd95f98e59a9480fbb57",
+    "mapping_proof": "fa98ff74ea81fb3a864c35308f0eac27006306898e952cd67f8d37ddbb02d1ca",
+    "power_w": 0.134945,
+    "protocol_sha256": "de03fdae1d1d4f74312c5850c57a5c2a40c6883ddd62d36c4105190901b7e8b5",
+    "route_metrics_sha256": "cdbbd42c11f48c56a043414562ac2d92856e37ca3c6befe474f2f258e347825c",
+    "routed_wirelength_um": 36470,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 20191.23499999999,
+      "3_5_place_dp": 21530.624000000025,
+      "5_2_route": 21836.518000000007,
+      "6_final": 21836.518000000007
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 25511.590000000015,
+      "3_5_place_dp": 26798.94800000002,
+      "5_2_route": 27128.666000000016,
+      "6_final": 27128.666000000016
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 370.93365477817133
+  },
+  {
+    "area_um2": 1427.02,
+    "arm": "paper_agr",
+    "common_input_sha256": "fb0c5650033f204f2e1f97f9d38f01cdec0880d89276877e6e55766b456e7caa",
+    "core_only_hpwl_um": 25533.84600000003,
+    "cores": 3,
+    "delay_ps": 3656.48,
+    "design": "multiplier",
+    "drc_errors": 0,
+    "endpoint_sha256": "8b4e96fe0d164c4ccc9d6fb5eba95411c4a4d5fec10b17a8ef81940bfaddf9c5",
+    "final_hpwl_um": 31594.53700000002,
+    "final_metrics_sha256": "8073a450a24eadf268ca391853d7366fd54f8f2baca42cac82d1d93390810112",
+    "final_proof": "60890cd1d3be5412b95def97414e63781fc5f4047e0b434986722373c3a24670",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 422.14385284204036,
+      "floorplan": 12.840434804093093
+    },
+    "frontend_source_proof": "2871cf43ac6e773cd0f368af42114611cc4a3fd9bb16000626392ff4a4c064d5",
+    "mapping_proof": "00fa5b57a425c87ca84f0e825b3d4dda3b86c6adb5b2a315600d88bee185a28a",
+    "power_w": 0.13504,
+    "protocol_sha256": "c2cc9998e8d264b41290ced78e6e94c43c45acd4650a553681780a0c291060de",
+    "route_metrics_sha256": "e3df2359c373a595b1ce5ed1f4a6cfd89ed33a97ae16b69e41d23aedb7ea809a",
+    "routed_wirelength_um": 43456,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 23715.88499999987,
+      "3_5_place_dp": 25053.33199999993,
+      "5_2_route": 25533.84600000003,
+      "6_final": 25533.84600000003
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 29821.038999999884,
+      "3_5_place_dp": 31125.966999999913,
+      "5_2_route": 31594.53700000002,
+      "6_final": 31594.53700000002
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 443.34452578797936
+  },
+  {
+    "area_um2": 1425.18,
+    "arm": "paper_pa2",
+    "common_input_sha256": "fb0c5650033f204f2e1f97f9d38f01cdec0880d89276877e6e55766b456e7caa",
+    "core_only_hpwl_um": 25429.56799999998,
+    "cores": 3,
+    "delay_ps": 3688.0699999999997,
+    "design": "multiplier",
+    "drc_errors": 0,
+    "endpoint_sha256": "dd0fbd3343d60a6d9155d02bbf81017de3d18c2a395fbd30ac4071e2a7888142",
+    "final_hpwl_um": 31282.790999999972,
+    "final_metrics_sha256": "d1f8439e2894b2f2fd45b0df3c58279de1bfd03051710a429a875afe5146f065",
+    "final_proof": "18ba469231d4a54519f2859571c9fa511a6d53eb7ec0a2147ba46f5169a959fc",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 342.5358885182068,
+      "floorplan": 10.18676274921745
+    },
+    "frontend_source_proof": "e877d9d47f65d6fa856e65750749a84e75c114d2adf5a0fa6622f106a07dfdfe",
+    "mapping_proof": "9fae367cca3c713d4306c82cc4b8e3539977b87316ada9ee5345e474d75ef15d",
+    "power_w": 0.141612,
+    "protocol_sha256": "112e41362fecb8b388da36abb10c7b609cda5e541b4fe42e52ddacc1c529d3fc",
+    "route_metrics_sha256": "9fe98757a705b48fed97b0e9529ce40a9d9dc25a67ba4f32923b78305e8bbe51",
+    "routed_wirelength_um": 43765,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 23482.69899999997,
+      "3_5_place_dp": 24857.165999999987,
+      "5_2_route": 25429.56799999998,
+      "6_final": 25429.56799999998
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 29448.38399999998,
+      "3_5_place_dp": 30798.856999999978,
+      "5_2_route": 31282.790999999972,
+      "6_final": 31282.790999999972
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 360.5254134857096
+  },
+  {
+    "area_um2": 31.6823,
+    "arm": "abc_budget",
+    "common_input_sha256": "ab390b746d566395816150e0c3339e72aec1fcf45101905c303b740bf3740ed5",
+    "core_only_hpwl_um": 348.64300000000014,
+    "cores": 2,
+    "delay_ps": 640.0699999999997,
+    "design": "priority",
+    "drc_errors": 0,
+    "endpoint_sha256": "349f4e2e0f13b78f79370e0828d1bcffe5f8aa9a5dcdfefaf8884a2496303506",
+    "final_hpwl_um": 743.0110000000003,
+    "final_metrics_sha256": "74d57cb3dabbd79c74e95183feef4ac876f7571e4640386afb0326d201f0be2c",
+    "final_proof": "a9bec3194a94ad2ef1e4ce429be2284f80d358d914bd51c679ed08fca41b1d63",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 28.829190760385245,
+      "floorplan": 3.922485003247857
+    },
+    "frontend_source_proof": "bda573efd18d0282d334f3cd9a48d042a7521e5b8b6735d718a6048a05783985",
+    "mapping_proof": "5295df93dceb1772aa53c5f25c025c17a76e67286535ee888a630abe6dd886ae",
+    "power_w": 5.57793e-06,
+    "protocol_sha256": "b6a31f9e7ad8475ea8f69f27617002e697c9de535d3a785794bbd26c3b877fe7",
+    "route_metrics_sha256": "f146d3b04b59e6a1bfef372dfb962ce23dfccf6e23f4f11e95fd9471a2269363",
+    "routed_wirelength_um": 771,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 308.12600000000003,
+      "3_5_place_dp": 328.8110000000002,
+      "5_2_route": 348.64300000000014,
+      "6_final": 348.64300000000014
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 692.3979999999997,
+      "3_5_place_dp": 717.8630000000003,
+      "5_2_route": 743.0110000000003,
+      "6_final": 743.0110000000003
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 38.15889205597341
+  },
+  {
+    "area_um2": 27.0605,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "ab390b746d566395816150e0c3339e72aec1fcf45101905c303b740bf3740ed5",
+    "core_only_hpwl_um": 374.599,
+    "cores": 2,
+    "delay_ps": 269.1999999999998,
+    "design": "priority",
+    "drc_errors": 0,
+    "endpoint_sha256": "21996213e7438cfb0439a29c95ccce72949028b4aede7573314f218c08ad59d9",
+    "final_hpwl_um": 798.126,
+    "final_metrics_sha256": "cf988f725e95215dbc4f4c632312a60bd274a8ee3ee84021b54b752004b9bbb9",
+    "final_proof": "cf2cabb16998d4ff49504aa5bbf3d76e03e8e0cfdd4de920957c7aca3de49637",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 21.568364191800356,
+      "floorplan": 3.8726993491873145
+    },
+    "frontend_source_proof": "116170f201818e018f5213681b6d4dbe8d310798f7065d7a99e8a673d58c4438",
+    "mapping_proof": "2697b3cca64394a336beb5be32773dc81fbf0e47a6389ba41225df4824c814c5",
+    "power_w": 3.13006e-06,
+    "protocol_sha256": "5b9323ed80b134018a51607e8161aa78a3efe06aa8a228c5ebd84295a69ff30a",
+    "route_metrics_sha256": "46e07c51db02c129954fb2d8025af5fa219a099fafe0bb7681a608aae98877fe",
+    "routed_wirelength_um": 830,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 348.0429999999999,
+      "3_5_place_dp": 350.5039999999999,
+      "5_2_route": 374.599,
+      "6_final": 374.599
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 754.1149999999999,
+      "3_5_place_dp": 767.4619999999999,
+      "5_2_route": 798.126,
+      "6_final": 798.126
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 31.08466502977535
+  },
+  {
+    "area_um2": 27.0605,
+    "arm": "native",
+    "common_input_sha256": "ab390b746d566395816150e0c3339e72aec1fcf45101905c303b740bf3740ed5",
+    "core_only_hpwl_um": 374.599,
+    "cores": 2,
+    "delay_ps": 269.1999999999998,
+    "design": "priority",
+    "drc_errors": 0,
+    "endpoint_sha256": "696be0d2ced81ef29ebdf79943bfad4d01ed21afcb03752a8308f3b974576f60",
+    "final_hpwl_um": 798.126,
+    "final_metrics_sha256": "cf988f725e95215dbc4f4c632312a60bd274a8ee3ee84021b54b752004b9bbb9",
+    "final_proof": "aa871c71c440231f7d8349b9bf00affbc498c7ed88c6e5588e7c12ce29d5d657",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 21.870498592965305,
+      "floorplan": 3.9779378194361925
+    },
+    "frontend_source_proof": "419c434b7d8781236c6b25ddc12c0338ceba41e8607e51c56f45dceec429ff35",
+    "mapping_proof": "1eec8ffb39aa2144e57323eba471aa1b1ced63ac3b607f0f817814adea851b92",
+    "power_w": 3.13006e-06,
+    "protocol_sha256": "c0e97b174a81dc937b91a58d0fe0b8fe546198b4ce5803c732c57e5ba3d43f27",
+    "route_metrics_sha256": "46e07c51db02c129954fb2d8025af5fa219a099fafe0bb7681a608aae98877fe",
+    "routed_wirelength_um": 830,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 348.0429999999999,
+      "3_5_place_dp": 350.5039999999999,
+      "5_2_route": 374.599,
+      "6_final": 374.599
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 754.1149999999999,
+      "3_5_place_dp": 767.4619999999999,
+      "5_2_route": 798.126,
+      "6_final": 798.126
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 31.131137371994555
+  },
+  {
+    "area_um2": 29.8015,
+    "arm": "paper_agr",
+    "common_input_sha256": "ab390b746d566395816150e0c3339e72aec1fcf45101905c303b740bf3740ed5",
+    "core_only_hpwl_um": 354.8100000000001,
+    "cores": 2,
+    "delay_ps": 541.4200000000001,
+    "design": "priority",
+    "drc_errors": 0,
+    "endpoint_sha256": "4bf9c24ba9d596c3288b725683a7517ee4898ac97533997438b4fd8e1d338394",
+    "final_hpwl_um": 767.9750000000003,
+    "final_metrics_sha256": "7763a8a080ab027f3f2f7953e9cd8391d8bca9cbe709dd358c0839debbc909f2",
+    "final_proof": "412fa9333e54b83cb4bcbb3ab7f40a4e4e946f1495def2132071c061c51b17a6",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 25.800662606023252,
+      "floorplan": 4.027827586047351
+    },
+    "frontend_source_proof": "b81f36e9b09feb9ab53c3bd1f0b730c5e7f83665575492044437721b06f9764d",
+    "mapping_proof": "f518e5c377854835bc23f047f345f9d44ab623e15eed29dba915aa5db1027513",
+    "power_w": 4.47747e-06,
+    "protocol_sha256": "f44400a7acc94bc8e9ac795a6a59464c56227a7096aeba0a406c4b2922c68be2",
+    "route_metrics_sha256": "a8bae731407f7d0b14c6518cd84913e3935f7871b0e5d89b95aced4061993d53",
+    "routed_wirelength_um": 797,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 319.0329999999998,
+      "3_5_place_dp": 333.7269999999998,
+      "5_2_route": 354.8100000000001,
+      "6_final": 354.8100000000001
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 715.964,
+      "3_5_place_dp": 739.8309999999999,
+      "5_2_route": 767.9750000000003,
+      "6_final": 767.9750000000003
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 35.09563940996304
+  },
+  {
+    "area_um2": 36.4354,
+    "arm": "paper_pa2",
+    "common_input_sha256": "ab390b746d566395816150e0c3339e72aec1fcf45101905c303b740bf3740ed5",
+    "core_only_hpwl_um": 407.93199999999996,
+    "cores": 2,
+    "delay_ps": 696.7799999999997,
+    "design": "priority",
+    "drc_errors": 0,
+    "endpoint_sha256": "415a75a95912a2320e33c1617e8df9f4c608acfb548c97738ff8b758b2c4e379",
+    "final_hpwl_um": 830.5590000000003,
+    "final_metrics_sha256": "2a7738b7154f691b3ecc36f40012874a0bb81409a8418a1363941ca05c892d92",
+    "final_proof": "519328e1d95e1a069fdd9e9630c755a8d919ba61c660d95c20ffe474d0af86a4",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 23.61959401704371,
+      "floorplan": 3.9224089020863175
+    },
+    "frontend_source_proof": "c463e8e1f66b68c507392556167d9c6f16cdb4342ad69e838f75933a9fb160f5",
+    "mapping_proof": "ca7fbe78bf74f907977f4024e63c8083e847634c55c9a41da565be0ab9ab979a",
+    "power_w": 7.25933e-06,
+    "protocol_sha256": "c7e95f0a55ad38ae8ec40b73c96ab63a20259d6f4a8166f0f16d011f1d6813d3",
+    "route_metrics_sha256": "b4b171bd30ad77975d88b4f30e03d4ac51cdcf3edc6e61288714926752ade802",
+    "routed_wirelength_um": 858,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 355.4180000000001,
+      "3_5_place_dp": 390.8999999999999,
+      "5_2_route": 407.93199999999996,
+      "6_final": 407.93199999999996
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 769.8970000000003,
+      "3_5_place_dp": 808.5580000000001,
+      "5_2_route": 830.5590000000003,
+      "6_final": 830.5590000000003
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 33.09891667589545
+  },
+  {
+    "area_um2": 14.2738,
+    "arm": "abc_budget",
+    "common_input_sha256": "4f647f85aa75b76f89886ba703780f10d40405a2698f7bbe8e70dd51dbb4b4a8",
+    "core_only_hpwl_um": 105.00100000000003,
+    "cores": 2,
+    "delay_ps": 242.01000000000022,
+    "design": "router",
+    "drc_errors": 0,
+    "endpoint_sha256": "3f6b8022918331928f58ecd647adf511ef3e5b09697721fc3f98d3b5b4373204",
+    "final_hpwl_um": 316.27299999999997,
+    "final_metrics_sha256": "efe33aba24dc2a3f3f22923bdf57da4f2a07df7b0322a8fa066e5d33756ad53c",
+    "final_proof": "93d757c36c59b51b4e4f9135b6d455b80b0476744efea73fe4e5fc5aaca5a002",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 19.613778816070408,
+      "floorplan": 3.9723981898278
+    },
+    "frontend_source_proof": "03c7d6649166c29fa3c3648d9cffd6058c6d0fc721014ff8eb22e008a23c63e1",
+    "mapping_proof": "b265b99956cb9ed438c32226f9de0d720a0c90e31b3d8acfaaa3e2b977ad2b1b",
+    "power_w": 1.9721e-06,
+    "protocol_sha256": "846b675ad9655ae489d80ae717b2c4162d233ae032b0b7ba28b5251851960659",
+    "route_metrics_sha256": "6e7f3815a206cba8299c2fa38c7721917e6b9cfb63b9fa1973d363ea83858143",
+    "routed_wirelength_um": 327,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 96.20599999999999,
+      "3_5_place_dp": 100.21399999999997,
+      "5_2_route": 105.00100000000003,
+      "6_final": 105.00100000000003
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 307.3049999999999,
+      "3_5_place_dp": 310.01199999999983,
+      "5_2_route": 316.27299999999997,
+      "6_final": 316.27299999999997
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 29.13312686700374
+  },
+  {
+    "area_um2": 8.68968,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "4f647f85aa75b76f89886ba703780f10d40405a2698f7bbe8e70dd51dbb4b4a8",
+    "core_only_hpwl_um": 62.44700000000001,
+    "cores": 2,
+    "delay_ps": 170.17000000000007,
+    "design": "router",
+    "drc_errors": 0,
+    "endpoint_sha256": "175f317437e6bbb55cb1b7668bec7af9585edb7e1ebd708af03cb88183a4aff3",
+    "final_hpwl_um": 271.18399999999986,
+    "final_metrics_sha256": "470634d6ca455b0347820835d761af3d4870e5aa4669789d98e62cef5c82b87e",
+    "final_proof": "d1cf2949a86794c90c9f3252cb1cc50dccb18cade5b5a57bef725fd571091309",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 18.926076744217426,
+      "floorplan": 3.9314011079259217
+    },
+    "frontend_source_proof": "dcc02a2e69fae7a7ba09b0f215a4cbc8b79723a32995e03c3a5f240221a1804b",
+    "mapping_proof": "5c91023704df80ca567fb24ce91e5a000c135876fc459e63dae6f13d3a0f88de",
+    "power_w": 7.4991e-07,
+    "protocol_sha256": "89cb72586356c7d9f4ed90a46a2342326f6b1b1d04390474be28277bfdf69ba3",
+    "route_metrics_sha256": "34d0af21fbe0d24bc05e6b82cbeeb5fd3b698b5a227f0372be46c6a2b369c413",
+    "routed_wirelength_um": 278,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 53.73199999999999,
+      "3_5_place_dp": 59.037,
+      "5_2_route": 62.44700000000001,
+      "6_final": 62.44700000000001
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 265.6110000000001,
+      "3_5_place_dp": 266.69299999999976,
+      "5_2_route": 271.18399999999986,
+      "6_final": 271.18399999999986
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 28.08220831118524
+  },
+  {
+    "area_um2": 8.00442,
+    "arm": "native",
+    "common_input_sha256": "4f647f85aa75b76f89886ba703780f10d40405a2698f7bbe8e70dd51dbb4b4a8",
+    "core_only_hpwl_um": 62.865000000000016,
+    "cores": 2,
+    "delay_ps": 182.14999999999964,
+    "design": "router",
+    "drc_errors": 0,
+    "endpoint_sha256": "59d351e92a84bdb1185d3c2eb14b0d63b1faa12a7cc7746448cdbf5e35304729",
+    "final_hpwl_um": 253.2779999999999,
+    "final_metrics_sha256": "41fa8e05942d6c47b1564e757ac76c9d89574815b5bdf801a9b8814f2c70dfc5",
+    "final_proof": "c27bdc70df42d5f404d5ccd26afdcef2d88887038c3edce6b7f5deeb1c539978",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 23.49077393487096,
+      "floorplan": 4.077121110167354
+    },
+    "frontend_source_proof": "667e8c0868597070606c36d3dd75bb595324e352067ae853502646e9bc46af54",
+    "mapping_proof": "ebc296edebc251496200994250a864876cd324a5ede872b87ab3bef3c2db7e58",
+    "power_w": 5.59023e-07,
+    "protocol_sha256": "d5d4112a8c63f538812b40fe7bb426d5e9265c34c8a5c9b06fb3cf42ddf0d51d",
+    "route_metrics_sha256": "996c01f21b9763bd51fdee1c950b68a287fe4e7cd451d239da9f09b246dab249",
+    "routed_wirelength_um": 261,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 67.835,
+      "3_5_place_dp": 59.68699999999999,
+      "5_2_route": 62.865000000000016,
+      "6_final": 62.865000000000016
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 264.70199999999994,
+      "3_5_place_dp": 247.85199999999992,
+      "5_2_route": 253.2779999999999,
+      "6_final": 253.2779999999999
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 33.1525044599548
+  },
+  {
+    "area_um2": 10.4539,
+    "arm": "paper_agr",
+    "common_input_sha256": "4f647f85aa75b76f89886ba703780f10d40405a2698f7bbe8e70dd51dbb4b4a8",
+    "core_only_hpwl_um": 74.15799999999999,
+    "cores": 2,
+    "delay_ps": 204.35999999999967,
+    "design": "router",
+    "drc_errors": 0,
+    "endpoint_sha256": "eed1cf179dd5c6903ebd585879f53a6c4373329c1ec1097e48e8c9c26e5fa0bb",
+    "final_hpwl_um": 276.82499999999993,
+    "final_metrics_sha256": "a65158f220ba626c15e86db0864db6221b3f2193afd6ab86a9de43bb991a4444",
+    "final_proof": "f084960e9d3cc19c90aad87c8f43696bf473bf6ea9122ef2d2c5ea969acb3b06",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 18.810155824758112,
+      "floorplan": 3.8717535329051316
+    },
+    "frontend_source_proof": "827273f9662289282e3a2238175b1ca934ad034ebb5df4851b02b30f26a31d32",
+    "mapping_proof": "fd5c57ea3aca8a5d1961ccbcfc3aca312e5ddd395f564a93b17c8458bc26992e",
+    "power_w": 9.67715e-07,
+    "protocol_sha256": "cbfde0f5a3e4dfd25478697e4b31eb986b12b219a865143ae4b3c73884fa86b1",
+    "route_metrics_sha256": "c4f9073473cf69c9b76249ab778a8c0906ff423cde60e1f0617132095f729fa7",
+    "routed_wirelength_um": 283,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 62.28,
+      "3_5_place_dp": 69.29599999999998,
+      "5_2_route": 74.15799999999999,
+      "6_final": 74.15799999999999
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 272.309,
+      "3_5_place_dp": 269.85900000000004,
+      "5_2_route": 276.82499999999993,
+      "6_final": 276.82499999999993
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 28.08236461598426
+  },
+  {
+    "area_um2": 12.6992,
+    "arm": "paper_pa2",
+    "common_input_sha256": "4f647f85aa75b76f89886ba703780f10d40405a2698f7bbe8e70dd51dbb4b4a8",
+    "core_only_hpwl_um": 91.67799999999998,
+    "cores": 2,
+    "delay_ps": 226.22000000000025,
+    "design": "router",
+    "drc_errors": 0,
+    "endpoint_sha256": "5e73b71dfee6b0e53e3d38a98c6c901feeecb1459be02bde46fa495c6428de1d",
+    "final_hpwl_um": 298.023,
+    "final_metrics_sha256": "04fc75de539e260aec0fcafcc0a4ffc169a938b45bb6a72eaed9c1647266bdf2",
+    "final_proof": "ce5304b7a01445e8a850fa7a9640691d77af89db87cfadb7abbafdfaaae1ce6a",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 19.208416717126966,
+      "floorplan": 3.872217840049416
+    },
+    "frontend_source_proof": "809354a741723d407ef24a4ad5921005e8f62e11a42e6a06097a90795aa413f1",
+    "mapping_proof": "68836493fe206eb7fb87f7816bb2f8a47ec9757cab60a55bd3364d1779ef15e5",
+    "power_w": 1.60038e-06,
+    "protocol_sha256": "e9b34344b7829e8b385160ed9d77fbb1faa6746fe941d020dd14d7f15862629e",
+    "route_metrics_sha256": "d31bb161a7ab3fb91f3ab1c0490978382d5b81c98aec7643e3201a2131705f8d",
+    "routed_wirelength_um": 309,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 82.98800000000003,
+      "3_5_place_dp": 87.419,
+      "5_2_route": 91.67799999999998,
+      "6_final": 91.67799999999998
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 288.46700000000004,
+      "3_5_place_dp": 292.037,
+      "5_2_route": 298.023,
+      "6_final": 298.023
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 28.08100185310468
+  },
+  {
+    "area_um2": 317.727,
+    "arm": "abc_budget",
+    "common_input_sha256": "d38305ddbe7292c5a049f452e2f2a421555576fb5ed92ceb20e122117c12a8ec",
+    "core_only_hpwl_um": 8853.990000000005,
+    "cores": 2,
+    "delay_ps": 2379.6,
+    "design": "sin",
+    "drc_errors": 0,
+    "endpoint_sha256": "12c6f2a0a6a359dd6e2f1363e039410498a9ac452d5d764a41a201fe194374b1",
+    "final_hpwl_um": 9051.768,
+    "final_metrics_sha256": "0a2710c155171d6c11c33f9e279e1540806ab412546634350aa9486d01658f6e",
+    "final_proof": "ece964c735bd934e2115204aae8f3f5891a4e53002c2215878765cf738d36c44",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 172.62182093039155,
+      "floorplan": 4.925076012965292
+    },
+    "frontend_source_proof": "537c486f7d5540836707732f9e1380d5e48f423866889f3013f30af9f64fc18f",
+    "mapping_proof": "e754a953133e719299cdffd5cfc9354e9599a080e99939eedb6ef0838130f622",
+    "power_w": 0.0351747,
+    "protocol_sha256": "078386a29e96dcba08dc6a27c07d94620c4243ce63d1bcb4aca4f9375394a6e5",
+    "route_metrics_sha256": "23c25b3b4bb2d6c8b37cb22916de27e105ac47ddfb10c441c5a59d066c7a9cbc",
+    "routed_wirelength_um": 12127,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 9042.825999999975,
+      "3_5_place_dp": 8726.614000000005,
+      "5_2_route": 8853.990000000005,
+      "6_final": 8853.990000000005
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 9235.942999999974,
+      "3_5_place_dp": 8921.410000000007,
+      "5_2_route": 9051.768,
+      "6_final": 9051.768
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 183.91084498586133
+  },
+  {
+    "area_um2": 312.027,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "d38305ddbe7292c5a049f452e2f2a421555576fb5ed92ceb20e122117c12a8ec",
+    "core_only_hpwl_um": 8848.945999999998,
+    "cores": 2,
+    "delay_ps": 2129.67,
+    "design": "sin",
+    "drc_errors": 0,
+    "endpoint_sha256": "0e085037bd89f02b9c5bbe7733b888f7035df540b49d83fb0ce06f06318d16ab",
+    "final_hpwl_um": 9091.351999999997,
+    "final_metrics_sha256": "34fdeb2d1157954625fa55f74b2f9369eb9ef284975194ad6199e0c8174ff576",
+    "final_proof": "9ac2a3161a198707834ed206555d8ad2084c3ab975b72b82c9156df74224591a",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 175.08890747884288,
+      "floorplan": 5.279488532803953
+    },
+    "frontend_source_proof": "224c9be5ad533dae2d243dd8d8c9c7875fe3bfad7c4241c96b942f13c357eeaa",
+    "mapping_proof": "9f1fc678a6efdc28665159c0e0fccc92fb3d11eb170ebef66d57dc55003b0ba8",
+    "power_w": 0.0354304,
+    "protocol_sha256": "90be6170be7e4782531449b6fdbd714fcd7e7bb57693d63defddc13bdc6395ec",
+    "route_metrics_sha256": "059ab24ca6f6b5908776b53f34f1fc4dcd46fff784d19a5631444fe6c8478b30",
+    "routed_wirelength_um": 12108,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 8960.981000000002,
+      "3_5_place_dp": 8711.302000000001,
+      "5_2_route": 8848.945999999998,
+      "6_final": 8848.945999999998
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 9200.32100000001,
+      "3_5_place_dp": 8951.151999999998,
+      "5_2_route": 9091.351999999997,
+      "6_final": 9091.351999999997
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 186.6909216218628
+  },
+  {
+    "area_um2": 283.916,
+    "arm": "native",
+    "common_input_sha256": "d38305ddbe7292c5a049f452e2f2a421555576fb5ed92ceb20e122117c12a8ec",
+    "core_only_hpwl_um": 8226.904000000002,
+    "cores": 2,
+    "delay_ps": 2268.47,
+    "design": "sin",
+    "drc_errors": 0,
+    "endpoint_sha256": "5d14a93ad3b26b7ab35862ca058709b2de5640b87f12b4e441fa7307a8f00d0a",
+    "final_hpwl_um": 8543.155000000004,
+    "final_metrics_sha256": "a75bbbd3c51fe25961a8bfffdf3afd16706fc3534fb536dc0dbb5e63c69d08c7",
+    "final_proof": "36d2a7477a309667d2c8fe6893b0d4d0b533a7d0539151c705c944b6873cd5de",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 164.30417933501303,
+      "floorplan": 4.823977880179882
+    },
+    "frontend_source_proof": "99d4ce294fcc2167743f9581255906de8dc8b8fd94c166ecd2c745877b498161",
+    "mapping_proof": "839574acb657456bb3bcb9cd1e3a7fbf11533371e7d9f6087f4a4d8f6985c737",
+    "power_w": 0.0326937,
+    "protocol_sha256": "1fa48bffeb058b80923ba9dba83b526067a02085bf48ce8e817bf52712df95ba",
+    "route_metrics_sha256": "96ae96b67a0d67319a1468be8f073cb586b06fbe6e06289ca459b8e85403db28",
+    "routed_wirelength_um": 11393,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 8397.611,
+      "3_5_place_dp": 8110.898000000002,
+      "5_2_route": 8226.904000000002,
+      "6_final": 8226.904000000002
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 8709.001,
+      "3_5_place_dp": 8426.453000000005,
+      "5_2_route": 8543.155000000004,
+      "6_final": 8543.155000000004
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 175.85367256077006
+  },
+  {
+    "area_um2": 312.027,
+    "arm": "paper_agr",
+    "common_input_sha256": "d38305ddbe7292c5a049f452e2f2a421555576fb5ed92ceb20e122117c12a8ec",
+    "core_only_hpwl_um": 8733.685000000009,
+    "cores": 2,
+    "delay_ps": 2384.61,
+    "design": "sin",
+    "drc_errors": 0,
+    "endpoint_sha256": "b88bed4a1a8072fd03443a98b21bcfcbcff07ae1a3f93b5cb4ed2924a975d3fd",
+    "final_hpwl_um": 8928.447000000002,
+    "final_metrics_sha256": "f731e470204e8c2a3f6e3064bc126a5d07d72cd82c4b0db30ee2c9afef73806a",
+    "final_proof": "1d3a3d92671a390944398d6d013cce5a84ce7fbac2b5c2f7d4e5f644f4a4c906",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 189.34328592196107,
+      "floorplan": 5.183112028986216
+    },
+    "frontend_source_proof": "8476a5c5423ba1c6cf7e9be04d7decb4a02ee7cd0253aa3ccfacd88062c7c892",
+    "mapping_proof": "32343ede172dd04ecbc24191d1513ef46d9603d2e313028bef0f91ea98e7cf43",
+    "power_w": 0.0275385,
+    "protocol_sha256": "00f03adbf6867f2694dbe58ea1594d3de6c4e3eba95d37be81edaa1c3a7ffc48",
+    "route_metrics_sha256": "d190da9ec2e7f7f7eb10c8f06c662549b47d262e7366188c46b1bdc222c73ae8",
+    "routed_wirelength_um": 11775,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 8883.535000000002,
+      "3_5_place_dp": 8592.929999999986,
+      "5_2_route": 8733.685000000009,
+      "6_final": 8733.685000000009
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 9074.210000000001,
+      "3_5_place_dp": 8785.429999999978,
+      "5_2_route": 8928.447000000002,
+      "6_final": 8928.447000000002
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 200.74779696483165
+  },
+  {
+    "area_um2": 317.013,
+    "arm": "paper_pa2",
+    "common_input_sha256": "d38305ddbe7292c5a049f452e2f2a421555576fb5ed92ceb20e122117c12a8ec",
+    "core_only_hpwl_um": 8778.985000000032,
+    "cores": 2,
+    "delay_ps": 2285.26,
+    "design": "sin",
+    "drc_errors": 0,
+    "endpoint_sha256": "ab9c2027e04a99fd6165d503bb60b3ec0434496c21276d0bb52ab5a4d6909252",
+    "final_hpwl_um": 8987.584000000035,
+    "final_metrics_sha256": "37a237d567f93474c7e848a78d1c2e0ac9fcca88c7eaee33aba64da7b3616f3b",
+    "final_proof": "00a5add1a3a3d57b1aa532b69e5844d22831bb75e1dcc7f38f42124ff1c71ecd",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 239.86077805096284,
+      "floorplan": 4.978261932730675
+    },
+    "frontend_source_proof": "97bfae0c5c934bbdb22347d39feda8750697c4f48a225f9ec9f4d67303d48401",
+    "mapping_proof": "2b195fd1caa8ed619851a14e69b5a09d97df3bf2ca1dd5c30566712fb25a69cd",
+    "power_w": 0.0282353,
+    "protocol_sha256": "7b8e61c328993393349d5610b0652e0a8a5a67cc010b4544c9f8832d3fa0a7c5",
+    "route_metrics_sha256": "68dc5bc2fd262f32c78524fb7024d8b658b7a50be1686688ae6d41e0723191a6",
+    "routed_wirelength_um": 11974,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 8888.322999999975,
+      "3_5_place_dp": 8629.643000000022,
+      "5_2_route": 8778.985000000032,
+      "6_final": 8778.985000000032
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 9094.866999999973,
+      "3_5_place_dp": 8835.725000000026,
+      "5_2_route": 8987.584000000035,
+      "6_final": 8987.584000000035
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 251.96114179166034
+  },
+  {
+    "area_um2": 1467.93,
+    "arm": "abc_budget",
+    "common_input_sha256": "383a73bbe131f02aba0c99bb1b60c818eefb1c0c1a929e6ac55af9f88b69de24",
+    "core_only_hpwl_um": 24453.938999999806,
+    "cores": 2,
+    "delay_ps": 58430.63,
+    "design": "sqrt",
+    "drc_errors": 0,
+    "endpoint_sha256": "fad5c24b12ac1b2b4638f0046efeaa364f81cd9397da510dda9c019c82460670",
+    "final_hpwl_um": 28836.140999999796,
+    "final_metrics_sha256": "a8ff62cdb25ff8b657dbd9a2833e14eb5b176d9837fe5026683b4f514b87f0a0",
+    "final_proof": "1bf2c347b80b9849fe76773b8a25a2386319ca3b4e485dfaa97ffb32c1f294fb",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 356.54077331675217,
+      "floorplan": 659.4248333349824
+    },
+    "frontend_source_proof": "caf9ee6b292b1dba991533b061b80bca3421004ea3f5536b8558e68a1cdfd2bc",
+    "mapping_proof": "b4012586d10c01257418eabcfa658ec78295f82bd3da516583fc03ff2acc86b5",
+    "power_w": 0.831839,
+    "protocol_sha256": "bddefaeb8aea34eae6f3c72db65905a7a77477e2bc87c7bb3aa5b521fd71d748",
+    "route_metrics_sha256": "c630153fb908ab1449175212fcd73bde76e224c1c600afb40821ac4fee17306f",
+    "routed_wirelength_um": 35095,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 21614.93500000002,
+      "3_5_place_dp": 22674.113999999958,
+      "5_2_route": 24453.938999999806,
+      "6_final": 24453.938999999806
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 25968.505999999998,
+      "3_5_place_dp": 27047.486999999954,
+      "5_2_route": 28836.140999999796,
+      "6_final": 28836.140999999796
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 1128.3672115290537
+  },
+  {
+    "area_um2": 1230.77,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "383a73bbe131f02aba0c99bb1b60c818eefb1c0c1a929e6ac55af9f88b69de24",
+    "core_only_hpwl_um": 20097.64499999989,
+    "cores": 2,
+    "delay_ps": 58693.99,
+    "design": "sqrt",
+    "drc_errors": 0,
+    "endpoint_sha256": "967833802a8f49e2931bfd8edc2ba1bc8c9574c1084bf2195f75f2c3463c6fb1",
+    "final_hpwl_um": 24369.846999999878,
+    "final_metrics_sha256": "7693fa7cc8dbda6581dccd56569a0595bb920c3f675ea883177199f6b5a06922",
+    "final_proof": "64d4e57ce9318b6b18da6888c69f10ac638259d0b44333b84b9f94e7cc29b599",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 331.05552009213716,
+      "floorplan": 163.97478330228478
+    },
+    "frontend_source_proof": "f06073eeede8f32c018523d4f411799555e6b91449f42a5d30d27203447d5eb9",
+    "mapping_proof": "e2d39346f3b79a503fe7682d53dfbb1332676417d7c9e0e840ae6810a098bb3c",
+    "power_w": 0.750594,
+    "protocol_sha256": "630633efcd8170885c35f4b0b4fdc0fc45a79385014298d8747f6dcfbe1d016d",
+    "route_metrics_sha256": "b154469d39354a314ca9322d3974ce531798f8d852826a239d6fb4a28f6e789c",
+    "routed_wirelength_um": 29377,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 15974.735999999955,
+      "3_5_place_dp": 16705.380999999954,
+      "5_2_route": 20097.64499999989,
+      "6_final": 20097.64499999989
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 20419.36899999996,
+      "3_5_place_dp": 21157.90799999994,
+      "5_2_route": 24369.846999999878,
+      "6_final": 24369.846999999878
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 586.7539057452232
+  },
+  {
+    "area_um2": 1237.22,
+    "arm": "native",
+    "common_input_sha256": "383a73bbe131f02aba0c99bb1b60c818eefb1c0c1a929e6ac55af9f88b69de24",
+    "core_only_hpwl_um": 19126.24300000002,
+    "cores": 2,
+    "delay_ps": 58669.6,
+    "design": "sqrt",
+    "drc_errors": 0,
+    "endpoint_sha256": "fb4bf8d7a228b9a839fb25252920cd8ba82626f158244a37ce280b62649ad4a4",
+    "final_hpwl_um": 23315.092999999924,
+    "final_metrics_sha256": "b677eca4490c352930c60c3b71ee6b8d8fbfdd0c181d6a90128aaed6903cacd8",
+    "final_proof": "189a0392b37cd9170ee959c8bb3d45b833bbb9f3f1428de6e51f6aaa6e5df84c",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 247.0103657292202,
+      "floorplan": 136.20068344427273
+    },
+    "frontend_source_proof": "1308a9fea5105462fa3c65b3ea67b83caaf0c7f26ec505d00f187ff6cf5d6cad",
+    "mapping_proof": "e477bfbaac43ea460ba16f89e5e5efce58442f3f94416e57f01d3251ed115129",
+    "power_w": 0.761108,
+    "protocol_sha256": "8e322b84fcca96637a195c87dc9b4547df379051c3397a8cc8203643a628f0aa",
+    "route_metrics_sha256": "7081e64517376e52133b973ac1c6ea8fe02eb3f0706092a0a44ae11519c49b89",
+    "routed_wirelength_um": 28434,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 16313.472000000103,
+      "3_5_place_dp": 17222.135000000057,
+      "5_2_route": 19126.24300000002,
+      "6_final": 19126.24300000002
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 20524.049000000097,
+      "3_5_place_dp": 21453.065999999955,
+      "5_2_route": 23315.092999999924,
+      "6_final": 23315.092999999924
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 479.29896424198523
+  },
+  {
+    "area_um2": 1352.51,
+    "arm": "paper_agr",
+    "common_input_sha256": "383a73bbe131f02aba0c99bb1b60c818eefb1c0c1a929e6ac55af9f88b69de24",
+    "core_only_hpwl_um": 22425.195999999924,
+    "cores": 2,
+    "delay_ps": 58718.07,
+    "design": "sqrt",
+    "drc_errors": 0,
+    "endpoint_sha256": "742659dab05cf938ac6c32c65bfeea41e626554c3317baea77eec912472a4c87",
+    "final_hpwl_um": 26280.621999999916,
+    "final_metrics_sha256": "e29866cd3f6d83ece867bd0f89895a90c891aaf94b5c598b7001a0ecd4133419",
+    "final_proof": "b1f4ca4f54c3c28d0ba56312422552d80091d83e084122d729629c79292073f8",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 319.17781594069675,
+      "floorplan": 249.1536532859318
+    },
+    "frontend_source_proof": "4548ee855cd49d44557a4a2fda259c44fd791ef2812c957455053a5d22eef78c",
+    "mapping_proof": "ba7baa06ecddaa41207803a27cff6d32606cc80a8006b740f836a608f1760c99",
+    "power_w": 0.834399,
+    "proof_timeout_recovery": {
+      "initial_failed_driver_sha256": "f09a0f5fd12b0455f15bf48bba19331df6f681b25d14aa9ba95817db5cccbcc4",
+      "initial_proof_log_sha256": "c3276fa94ac551edc6ed1e679328535dad80ac96b829656c69ed192e421f20c2",
+      "policy": "Proof-only retry on identical endpoint and mapped netlist, followed by the first physical run on the saved floorplan.",
+      "successful_engine": "classic-600"
+    },
+    "protocol_sha256": "5a808ae950597564838a77041a8572ab6c2684869b2fdc027e9ffa04c491b64a",
+    "route_metrics_sha256": "064a6fb1308a2f589cf1cf1f3348ad16f80c9a417214aff3fc5dbec5446161c7",
+    "routed_wirelength_um": 31758,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 19543.348000000035,
+      "3_5_place_dp": 20230.441999999948,
+      "5_2_route": 22425.195999999924,
+      "6_final": 22425.195999999924
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 23438.91700000004,
+      "3_5_place_dp": 24135.38899999994,
+      "5_2_route": 26280.621999999916,
+      "6_final": 26280.621999999916
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 1422.7666400754824
+  },
+  {
+    "area_um2": 1354.03,
+    "arm": "paper_pa2",
+    "common_input_sha256": "383a73bbe131f02aba0c99bb1b60c818eefb1c0c1a929e6ac55af9f88b69de24",
+    "core_only_hpwl_um": 22967.408000000014,
+    "cores": 2,
+    "delay_ps": 58717.45,
+    "design": "sqrt",
+    "drc_errors": 0,
+    "endpoint_sha256": "65ecc48aca652b0345478bc2374b248f2f94f9e40ed914fa8af632aa1d42046a",
+    "final_hpwl_um": 27322.868000000017,
+    "final_metrics_sha256": "4df2a5abaa32d395f56694cc3bc0e2976031c6003da1ca3397ad3ac40e6cc001",
+    "final_proof": "4110e32c6b0d1bfc7498fdff2ce61dc3de6bf0d7eaa48f2e1e0eac83af05e1f9",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 294.7421644642018,
+      "floorplan": 350.9769116938114
+    },
+    "frontend_source_proof": "59dc5bfcb66609ab2d10c2a92284d1a675a17a9bbcd2a410bf15dbb8b206ae9f",
+    "mapping_proof": "9baed03d0477f33b9eb9b3a0e2cb224dc0515fc987794167fb7b2031578f00b8",
+    "power_w": 0.782529,
+    "protocol_sha256": "d1220e0a05ff91630ee960305408def6cd18ab2fe42fe82263bef962cb069697",
+    "route_metrics_sha256": "0ed8c74f5519ce7f0b78a912f9061063f69a55392a0eed962deada3422e325df",
+    "routed_wirelength_um": 33346,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 19199.886999999966,
+      "3_5_place_dp": 20505.083999999977,
+      "5_2_route": 22967.408000000014,
+      "6_final": 22967.408000000014
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 23571.831999999977,
+      "3_5_place_dp": 24896.20399999996,
+      "5_2_route": 27322.868000000017,
+      "6_final": 27322.868000000017
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 671.3636505668983
+  },
+  {
+    "area_um2": 1133.26,
+    "arm": "abc_budget",
+    "common_input_sha256": "e1e1cc214f112c2716c5457b5ba50cfd8ab48523457f969fc5cb123da5c75e37",
+    "core_only_hpwl_um": 21680.80999999989,
+    "cores": 2,
+    "delay_ps": 3506.6400000000003,
+    "design": "square",
+    "drc_errors": 0,
+    "endpoint_sha256": "7d362e073b918f5e0445b6d395b6115243f043128bd4524644c51b5523f370d2",
+    "final_hpwl_um": 26656.243999999897,
+    "final_metrics_sha256": "930bdae39fe1309268ce1539e0426ba3088c0f31df8128d83e98ebe593ab19cc",
+    "final_proof": "9795c3e6acb9b895b1036aa7e8157c4164adc581dfdfa2b1a42920a972e00174",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 293.17133508902043,
+      "floorplan": 7.731158934067935
+    },
+    "frontend_source_proof": "c026086fbba72a0bbe22ec96e7ad2dc5b1f586a45e0f2b932c2da6d82c65179d",
+    "mapping_proof": "c4acc155489984ad2967cd49a433c57bb05fae5176b32d2c5874dca20ca0cf9f",
+    "power_w": 0.00302939,
+    "protocol_sha256": "af80bc8b0ad53afbf84d087de1f5ceaf9667b56199e977d6cb26fb91e627be5a",
+    "route_metrics_sha256": "210419fb0a34256d60c9922729ef051288443f5216a00a3f2b960aa153714da1",
+    "routed_wirelength_um": 39903,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 19499.665999999987,
+      "3_5_place_dp": 20647.72299999989,
+      "5_2_route": 21680.80999999989,
+      "6_final": 21680.80999999989
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 24905.791999999972,
+      "3_5_place_dp": 26032.390999999894,
+      "5_2_route": 26656.243999999897,
+      "6_final": 26656.243999999897
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 307.4236906901933
+  },
+  {
+    "area_um2": 1132.49,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "e1e1cc214f112c2716c5457b5ba50cfd8ab48523457f969fc5cb123da5c75e37",
+    "core_only_hpwl_um": 21537.08199999988,
+    "cores": 2,
+    "delay_ps": 2310.91,
+    "design": "square",
+    "drc_errors": 0,
+    "endpoint_sha256": "00dc31e1586c51e51791af189aa6cb51990486dbb4a1c362364df48387aead9d",
+    "final_hpwl_um": 26732.703999999867,
+    "final_metrics_sha256": "3ac5b694861887d5763047c198d2c5545d753120af57bd78382b51cb38dd9bbf",
+    "final_proof": "93948b6beab9fd6d13256bd8fee760c472b864d50327852c4f7fd427bb7c7ea7",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 263.864687748719,
+      "floorplan": 8.241692499257624
+    },
+    "frontend_source_proof": "581a12bb6a66ab275cec1ace6c81d1f2d48497b093945c17557b7cfc5f952f61",
+    "mapping_proof": "6e534113890ead43b65215170a3ef2760c2fab949242addc7ccb0107443fa729",
+    "power_w": 0.00338135,
+    "protocol_sha256": "cc883257302c2dc677f89932b29423738a38b242ed2ee88abdc9d1f90f23dd92",
+    "route_metrics_sha256": "84b7926bb6537e8a61c33a624f8508f29b3d9b1d75616e2d2e45721fb6df4db1",
+    "routed_wirelength_um": 39125,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 19438.16699999997,
+      "3_5_place_dp": 20555.802999999873,
+      "5_2_route": 21537.08199999988,
+      "6_final": 21537.08199999988
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 24932.800999999974,
+      "3_5_place_dp": 26027.34199999985,
+      "5_2_route": 26732.703999999867,
+      "6_final": 26732.703999999867
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 279.30042168404907
+  },
+  {
+    "area_um2": 1142.39,
+    "arm": "native",
+    "common_input_sha256": "e1e1cc214f112c2716c5457b5ba50cfd8ab48523457f969fc5cb123da5c75e37",
+    "core_only_hpwl_um": 12507.448999999986,
+    "cores": 2,
+    "delay_ps": 2629.16,
+    "design": "square",
+    "drc_errors": 0,
+    "endpoint_sha256": "b2ccdb82623ead28150912756fcd1d9248a4b3431a0f8356904183be02dc5da5",
+    "final_hpwl_um": 18091.710999999967,
+    "final_metrics_sha256": "b5f8ed845c84b6434883fe7507c0354a5e8af55cd6ca6ae2cbc282a4d0ac24ea",
+    "final_proof": "de7a7c4821f53e06d4b3a7c85a2d7127f3ae7311f8dc5d7130d584dc9eaf756a",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 199.84054146008566,
+      "floorplan": 8.139657098799944
+    },
+    "frontend_source_proof": "1d78b7f586a42072ffe70d02af7406bf4f4a57ceeea1bc7b7ced540ad1fd2ce0",
+    "mapping_proof": "c1e6819398a373e5acd29fd57d9960df7684f50d76fb38395fde532408af5abc",
+    "power_w": 0.00354757,
+    "protocol_sha256": "4dedb8967ce73ada6573a71fb27ca100e5005578c01094733e44f6aff7b32a19",
+    "route_metrics_sha256": "b245b3d332987f23598e1160795f92a8c2cff9ab65af37beab86ef2c39b926bc",
+    "routed_wirelength_um": 29040,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 10625.86899999999,
+      "3_5_place_dp": 12153.847999999996,
+      "5_2_route": 12507.448999999986,
+      "6_final": 12507.448999999986
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 16206.698999999984,
+      "3_5_place_dp": 17711.60599999998,
+      "5_2_route": 18091.710999999967,
+      "6_final": 18091.710999999967
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 215.02765406202525
+  },
+  {
+    "area_um2": 1170.39,
+    "arm": "paper_agr",
+    "common_input_sha256": "e1e1cc214f112c2716c5457b5ba50cfd8ab48523457f969fc5cb123da5c75e37",
+    "core_only_hpwl_um": 15334.875000000038,
+    "cores": 2,
+    "delay_ps": 2626.62,
+    "design": "square",
+    "drc_errors": 0,
+    "endpoint_sha256": "0f9d4fbe7c9823348d4c3548406213039c72f530ec014e12030e8356f09706cb",
+    "final_hpwl_um": 20159.679000000036,
+    "final_metrics_sha256": "e460ef30b1dcc2346d8cdd31a1f1b0f1e485f3d00d53172bc22ad8d6035a8fb5",
+    "final_proof": "0b4693135ac2bf775e5d464c8df1752fa2a75243daaa15f7b2d328a5d65b9851",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 240.2157496502623,
+      "floorplan": 7.2867653630673885
+    },
+    "frontend_source_proof": "8e75664ff3c95d2c966218accef4e8eda795f8fb52664bb93be843f0e5b2baf0",
+    "mapping_proof": "c5204e93a00c84e19027b12153845aa731ae04cdbc2977d58793a2f836e80622",
+    "power_w": 0.00351218,
+    "protocol_sha256": "d5fe1a2e2b8be8bbec8468a33d66ec5798803e85c392d31fc02dd5aa85c54ab9",
+    "route_metrics_sha256": "2c80019667c6ffa1237d6633a249ae5217a7e3e7e35556746b3c1a9f4ea3dccd",
+    "routed_wirelength_um": 31701,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 12591.69399999999,
+      "3_5_place_dp": 14087.377000000002,
+      "5_2_route": 15334.875000000038,
+      "6_final": 15334.875000000038
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 17915.671999999988,
+      "3_5_place_dp": 19381.183000000005,
+      "5_2_route": 20159.679000000036,
+      "6_final": 20159.679000000036
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 254.22746379999444
+  },
+  {
+    "area_um2": 1168.59,
+    "arm": "paper_pa2",
+    "common_input_sha256": "e1e1cc214f112c2716c5457b5ba50cfd8ab48523457f969fc5cb123da5c75e37",
+    "core_only_hpwl_um": 15718.18500000002,
+    "cores": 2,
+    "delay_ps": 2521.39,
+    "design": "square",
+    "drc_errors": 0,
+    "endpoint_sha256": "caacf7c92cc0e50ff3d9b28797d95a8f11dd3c43df82d7d8255c2b5193f9b7e1",
+    "final_hpwl_um": 20465.97900000005,
+    "final_metrics_sha256": "c72263f5c7f254eb5777ef4b6af1ead390c9af8ae144123ccfc3bfd57662859b",
+    "final_proof": "5891c5f3e66158f5f5967bcb943e31182e3cc9f6e599929ba1fd2cac63502bbe",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 229.95065223192796,
+      "floorplan": 7.636517911218107
+    },
+    "frontend_source_proof": "119ea2a158d061c83bc70b0a5c90f8ac13a848ace4665d3e9a8c59e7f486ee6f",
+    "mapping_proof": "f93f1f758a1eed61f1cfe3833d9eb6e3587f8e7104de6f31267b9c59d5e7b9f1",
+    "power_w": 0.00348439,
+    "protocol_sha256": "044bc431291514b1944927d5dd6ba7b5bc12dd3d189f75a060ca1e587bb9d00c",
+    "route_metrics_sha256": "edde056b92bb94031b60d8fdd29e4e6fa13ecc0b958f1116aab39dda8f538508",
+    "routed_wirelength_um": 31843,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 12772.041999999907,
+      "3_5_place_dp": 14334.37800000002,
+      "5_2_route": 15718.18500000002,
+      "6_final": 15718.18500000002
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 17978.320999999905,
+      "3_5_place_dp": 19465.836000000036,
+      "5_2_route": 20465.97900000005,
+      "6_final": 20465.97900000005
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 244.21701923198998
+  },
+  {
+    "area_um2": 591.715,
+    "arm": "abc_budget",
+    "common_input_sha256": "685d89325d0eccb8827e6134df8b8397f03b7d0193840a3b151d04ede197c810",
+    "core_only_hpwl_um": 7770.06699999999,
+    "cores": 2,
+    "delay_ps": 759.9099999999999,
+    "design": "voter",
+    "drc_errors": 0,
+    "endpoint_sha256": "584ebf6c453dbbb9f0e4e2996c73b9f96dc272163295106a582a7b657effb590",
+    "final_hpwl_um": 11216.09500000001,
+    "final_metrics_sha256": "5fd41f47b0055e916367a4650ba1d281c52f027539817770adec371f68a01933",
+    "final_proof": "b1b08cafe2b7ecc29a08e7d443fb5af7770780e91eaeeaad247d12d1b0f8608d",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 78.36542034428567,
+      "floorplan": 5.635563815012574
+    },
+    "frontend_source_proof": "87d704a169e5ffa77eddebf469560ec0edeb58a01c43dff84abb794c8a8f4f94",
+    "mapping_proof": "d0e87e7b4b53286e04a10f14e59bfecb2e0bd1bd58bee09d2941a8933437bbda",
+    "power_w": 0.0131291,
+    "protocol_sha256": "5ac737261dbc934eb96b4b77fe0f10c149025fe401e237815662989acf6ab19b",
+    "route_metrics_sha256": "5de00f4751f814454e51a21c4c1a570c967e09dd4d339dc84f42aeae60b92066",
+    "routed_wirelength_um": 11380,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 7096.578000000006,
+      "3_5_place_dp": 7481.715999999994,
+      "5_2_route": 7770.06699999999,
+      "6_final": 7770.06699999999
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 10456.182000000015,
+      "3_5_place_dp": 10924.215000000004,
+      "5_2_route": 11216.09500000001,
+      "6_final": 11216.09500000001
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 90.40171462064609
+  },
+  {
+    "area_um2": 559.347,
+    "arm": "conventional_portfolio",
+    "common_input_sha256": "685d89325d0eccb8827e6134df8b8397f03b7d0193840a3b151d04ede197c810",
+    "core_only_hpwl_um": 7169.743999999989,
+    "cores": 2,
+    "delay_ps": 730.0799999999999,
+    "design": "voter",
+    "drc_errors": 0,
+    "endpoint_sha256": "d6345222bc2daa169acfb5165ce5ee1ef1eae53f510f972fa98911a16a272d15",
+    "final_hpwl_um": 10638.33599999997,
+    "final_metrics_sha256": "bd10d9a3695f99a2c08eaa4e954aec13ed79ab0b649e26472f88d8bdcc0dfdd1",
+    "final_proof": "138c7efbe4eabb850989673c7734c8108a644762087db8a1db6dd74c02d911ca",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 90.4636871018447,
+      "floorplan": 6.338327802252024
+    },
+    "frontend_source_proof": "da69c39bab99d6702bd25e267e92020f902b9d8120861d3a462ad2f891b22019",
+    "mapping_proof": "f73ef224769beabb8794c8b152fa265d70334674a348ade5272db35dd708c5f7",
+    "power_w": 0.0145737,
+    "protocol_sha256": "ce4f1a93c3d1e24d41ca317265d422c54d056046a52de56b1e371c8c3bb327d0",
+    "route_metrics_sha256": "1fef448ea2e15bdb717f195008d6b83ed709b0784de6a2acd5f0d5bab1f55b00",
+    "routed_wirelength_um": 10753,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 6539.913,
+      "3_5_place_dp": 6882.986999999993,
+      "5_2_route": 7169.743999999989,
+      "6_final": 7169.743999999989
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 9929.366000000002,
+      "3_5_place_dp": 10345.513999999983,
+      "5_2_route": 10638.33599999997,
+      "6_final": 10638.33599999997
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 104.30064963083714
+  },
+  {
+    "area_um2": 558.399,
+    "arm": "native",
+    "common_input_sha256": "685d89325d0eccb8827e6134df8b8397f03b7d0193840a3b151d04ede197c810",
+    "core_only_hpwl_um": 7032.79699999999,
+    "cores": 2,
+    "delay_ps": 732.0600000000004,
+    "design": "voter",
+    "drc_errors": 0,
+    "endpoint_sha256": "7ab7b0947f1ce45b5e6691d9efb9c25626168836563b0d07223b7b505872a275",
+    "final_hpwl_um": 10498.224999999982,
+    "final_metrics_sha256": "fe7d6f8db8908a18a2313fe0223aed66a858e81afac0b6b6f9b1ffecd2fcb132",
+    "final_proof": "8f2bb6e9b40b011efa6d09b54670d1b80de8d6acd94997399aed7660e4388c08",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 74.35299086011946,
+      "floorplan": 5.724855679087341
+    },
+    "frontend_source_proof": "43d29fdbd392d9b0e727b70c1a50ae69762e21d23030759d745c492a13e4bec8",
+    "mapping_proof": "8724de00c8965cd92c9cd14ab5579fe8843af03e1477a4749243b9962fb59cd8",
+    "power_w": 0.0140848,
+    "protocol_sha256": "1241a5e1116e58901023ed97809ebaf1544394b638845bff88b2bfb63ada59ac",
+    "route_metrics_sha256": "541c30516c2805f403e84c1c4b503a5f632aea47472b797c49c4eb6ecd40ac8c",
+    "routed_wirelength_um": 10558,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 6382.970999999993,
+      "3_5_place_dp": 6754.8519999999935,
+      "5_2_route": 7032.79699999999,
+      "6_final": 7032.79699999999
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 9783.699999999995,
+      "3_5_place_dp": 10217.173,
+      "5_2_route": 10498.224999999982,
+      "6_final": 10498.224999999982
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 86.3651584899053
+  },
+  {
+    "area_um2": 580.328,
+    "arm": "paper_agr",
+    "common_input_sha256": "685d89325d0eccb8827e6134df8b8397f03b7d0193840a3b151d04ede197c810",
+    "core_only_hpwl_um": 7383.612999999994,
+    "cores": 2,
+    "delay_ps": 771.2600000000002,
+    "design": "voter",
+    "drc_errors": 0,
+    "endpoint_sha256": "40a9b18ea5797fb6be4fcdf215c2cc742ec66d4c606950ca88a69e54bfbb83a1",
+    "final_hpwl_um": 10856.691000000003,
+    "final_metrics_sha256": "ea406f9b44496fb15accfa343fee701507778c533ce7c419191d199334bbbcf1",
+    "final_proof": "399885d4520d3e9e43a0fc80d9ed69c989219a3394696fe655566002d1dad041",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 84.89961159508675,
+      "floorplan": 5.778405206743628
+    },
+    "frontend_source_proof": "dc2aa2fc8e8d76fbc7565681e38d688ef8bc356bb5a57419e8702596978d33cf",
+    "mapping_proof": "77e677a4830d367906ec69fd81a19cbacd7fb29f1a0b696c2dae311e921ae0cc",
+    "power_w": 0.0144897,
+    "protocol_sha256": "54253ad7852b6d0a7973d81cc1be7a11062877d65d960449d365bfd805f4932a",
+    "route_metrics_sha256": "80e0637aff26e2fb822de52eb836b473eb31dd88336973df2b1d5a707b2422a3",
+    "routed_wirelength_um": 10940,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 6743.707999999988,
+      "3_5_place_dp": 7110.5329999999785,
+      "5_2_route": 7383.612999999994,
+      "6_final": 7383.612999999994
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 10143.629,
+      "3_5_place_dp": 10577.879999999985,
+      "5_2_route": 10856.691000000003,
+      "6_final": 10856.691000000003
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 97.27710272511467
+  },
+  {
+    "area_um2": 579.482,
+    "arm": "paper_pa2",
+    "common_input_sha256": "685d89325d0eccb8827e6134df8b8397f03b7d0193840a3b151d04ede197c810",
+    "core_only_hpwl_um": 7477.914000000001,
+    "cores": 2,
+    "delay_ps": 785.0900000000001,
+    "design": "voter",
+    "drc_errors": 0,
+    "endpoint_sha256": "f570a54a8df273549c553bc7ff7009283b939cb307630f8c6c38283f19649872",
+    "final_hpwl_um": 10871.84300000002,
+    "final_metrics_sha256": "a51ec29eec5d95e0baa4f595b2a66827b93f2bb2126230badb30a8716005ba96",
+    "final_proof": "dfee9c0a6cbec5da95930d06568f10cc167c6c636e2445b044312a9cc7e84b48",
+    "fixed_boundary_audit": "passed",
+    "flow_stage_wall_s": {
+      "finish": 81.62370070023462,
+      "floorplan": 7.180470894090831
+    },
+    "frontend_source_proof": "bc1815a045abca00bcc62ad3a9698a69d027ea62b2ed3d402ed8f07fe9c37963",
+    "mapping_proof": "3a5d155e73dd0351c425ea8806c5fd6570d56b9f339a760418582d3267fdf5b1",
+    "power_w": 0.0148426,
+    "protocol_sha256": "ca96e666541fa13c391acd86bdc1fcfea604a6d101dccaa4914f581e34e0c016",
+    "route_metrics_sha256": "92c32591f666e78c8594a769bad65e01644d3bf24b7aa6d075695212d73c2e8b",
+    "routed_wirelength_um": 10926,
+    "stage_core_hpwl_um": {
+      "3_3_place_gp": 6843.367000000035,
+      "3_5_place_dp": 7200.672000000007,
+      "5_2_route": 7477.914000000001,
+      "6_final": 7477.914000000001
+    },
+    "stage_hpwl_um": {
+      "3_3_place_gp": 10159.573000000044,
+      "3_5_place_dp": 10591.419000000045,
+      "5_2_route": 10871.84300000002,
+      "6_final": 10871.84300000002
+    },
+    "status": "passed",
+    "unrouted_nets": 0,
+    "wall_s": 95.27371728373691
+  }
+]

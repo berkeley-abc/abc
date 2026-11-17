@@ -39,5 +39,6 @@ Report total final HPWL and default-activity power, with core-only HPWL clearly
 separate. A failed proof, nonzero final DRC count, unrouted net, or timeout is
 a coverage failure, not a zero-gain numerical observation.
 
-This file records a reproducible protocol change from the paper. It does not
-claim that the ongoing routed campaign has completed or met the target.
+This file records a reproducible protocol change from the paper. The completed
+campaign and its target checks are recorded in the separate
+[physical results](../../routed-20261117/).

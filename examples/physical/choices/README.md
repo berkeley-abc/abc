@@ -56,9 +56,13 @@ the version associated with a numerical claim.
 
 The [bounded followup](followup-20261117/) records the current implementation on
 all 20 EPFL designs, the independent 24-design holdout, and the backend mapping
-check. It also reports the tradeoff introduced by the wire guard and the stronger
-conventional comparison. The original tables below are retained as historical
-evidence.
+check. It also reports the updated tradeoffs and the stronger conventional
+comparison. The [physical followup](routed-20261117/) contains 99 verified
+OpenROAD runs, including all 20 designs for the published references and a
+19-design external conventional comparison. Its all-20 geometric means exceed
+5% in each of final HPWL, routed wirelength, area, delay and default-activity
+power against PA2, CPU-matched ABC and original AGR. The conventional portfolio
+retains a delay advantage. The original tables below remain historical evidence.
 
 The primary experiment uses one fixed command and guidance step 0.28 on 19 EPFL
 combinational designs. Every method receives the same confirmed `dc2` input,

@@ -107,6 +107,7 @@ checks, five deletion-boundary tests, and ten benchmark cases with exact HPWL
 and density audited after every edit. The isolated original-PR `sqrt` run with
 only the coordinate correction also has a successful equivalence record.
 
-The separate five-arm OpenROAD campaign is still in progress. This frontend
-bundle makes no full-cohort claim about routed HPWL, wirelength, area, delay or
-power.
+The separate five-arm OpenROAD campaign is complete: see the
+[physical results](../routed-20261117/) for 99 verified runs and the full-cohort
+HPWL, wirelength, area, delay and default-activity power comparisons. These
+frontend records remain separate from those physical measurements.
