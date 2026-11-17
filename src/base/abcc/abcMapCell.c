@@ -25,6 +25,7 @@
 #include "opt/mfs/mfs.h"
 #include "opt/sfm/sfm.h"
 #include <errno.h>
+#include <float.h>
 #include <limits.h>
 
 #include "aig/gia/giaScmap.h"
@@ -2425,11 +2426,25 @@ usage:
 static int Abc_CommandScmap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pNew;
+    float DelayTarget = 0;
     int c, nTrials = 0, fQuality = 0, fVerbose = 0, fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "Lqvwh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "DLqvwh")) != EOF )
         switch ( c )
         {
+        case 'D':
+        {
+            char * pEnd;
+            double Value;
+            if ( globalUtilOptind >= argc ) goto usage;
+            errno = 0;
+            Value = strtod(argv[globalUtilOptind], &pEnd);
+            if ( errno == ERANGE || pEnd == argv[globalUtilOptind] || *pEnd ||
+                 !isfinite(Value) || Value > FLT_MAX || Value <= 0 || (float)Value == 0 ) goto usage;
+            DelayTarget = (float)Value;
+            globalUtilOptind++;
+            break;
+        }
         case 'L':
         {
             char * pEnd;
@@ -2450,15 +2465,18 @@ static int Abc_CommandScmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( globalUtilOptind != argc ) goto usage;
     if ( !pAbc->pGia ) { Abc_Print(-1, "Empty GIA network.\n"); return 1; }
     if ( !Abc_FrameReadLibGen() ) { Abc_Print(-1, "Current library is not available.\n"); return 1; }
-    pNew = nTrials ? Gia_ManScmapLookahead(pAbc->pGia, nTrials, fVerbose, fVeryVerbose) :
+    pNew = DelayTarget > 0 ? Gia_ManScmapTarget(pAbc->pGia, DelayTarget, nTrials, fQuality, fVerbose, fVeryVerbose) :
+           nTrials ? Gia_ManScmapLookahead(pAbc->pGia, nTrials, fVerbose, fVeryVerbose) :
            fQuality ? Gia_ManScmapQuality(pAbc->pGia, fVerbose, fVeryVerbose) :
                      Gia_ManScmap(pAbc->pGia, fVerbose, fVeryVerbose);
     if ( !pNew ) { Abc_Print(-1, "SCMap: technology mapping failed.\n"); return 1; }
     Abc_FrameUpdateGia(pAbc, pNew);
     return 0;
 usage:
-    Abc_Print(-2, "usage: &scmap [-L num] [-qvwh]\n");
+    Abc_Print(-2, "usage: &scmap [-D float] [-L num] [-qvwh]\n");
     Abc_Print(-2, "\t         standard-cell mapping with electrical cover refinement\n");
+    Abc_Print(-2, "\t-D float : delay target in ps for area recovery [default = best found]\n");
+    Abc_Print(-2, "\t           uses model timing; with -q/-L uses the MFS/buffering/sizing endpoint\n");
     Abc_Print(-2, "\t-q     : toggle high-effort quality search (combinational AIGs) [default = %s]\n", fQuality ? "yes" : "no");
     Abc_Print(-2, "\t-L num : MFS/buffering/sizing lookahead trials (implies -q) [default = %d]\n", nTrials);
     Abc_Print(-2, "\t-v     : toggle mapping statistics [default = %s]\n", fVerbose ? "yes" : "no");

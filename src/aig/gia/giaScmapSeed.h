@@ -275,6 +275,8 @@ fail:
     puts("GP_FAIL exact-area invariant");ABC_FREE(refs);return 0;
 }
 
+extern float Abc_SclComputeDelayClassPin( SC_Lib *, SC_Cell *, int, float, float );
+
 static int Scm_ManBuildPairedSeed(Scm_Man_t *p,int mode)
 {
     int nGlobalRounds=4;
@@ -291,28 +293,35 @@ static int Scm_ManBuildPairedSeed(Scm_Man_t *p,int mode)
                 if(!Scm_ManFitOwnGridCached(p,member,k,&arc)) goto done;
                 a->sense=arc.TimingSense;count++;
                 if(p->pPars->nSeedMode&1) {
-                    /* Common-load seed: every input arc of a family member sees the
-                       same G=250 load relative to its mean pin capacitance, and
-                       the fitted family delay is used directly (not rescaled). */
+                    // Common-load seeds use each family member's mean input capacitance.
                     double cin=0;
                     for(int pin=0;pin<(int)cell->nFanins;pin++) cin+=SC_CellPinCap(member,pin);
                     cin/=cell->nFanins;
-                    for(int t=0;t<2;t++) d[t]+=fmax(1e-3,arc.RfDelay0[t]+arc.RfDelayLoad[t]*2.5*cin+arc.RfDelaySlew[t]*p->BufferRefSlew);
+                    for(int t=0;t<2;t++) d[t]+=fmax(1e-3,arc.RfDelay0[t]+arc.RfDelayLoad[t]*(double)p->pPars->SeedLoad*cin+arc.RfDelaySlew[t]*p->BufferRefSlew);
                 }
                 else
-                for(int t=0;t<2;t++) d[t]+=fmax(1e-3,arc.RfDelay0[t]+arc.RfDelayLoad[t]*2.5*SC_CellPinCap(member,k)+arc.RfDelaySlew[t]*p->BufferRefSlew);
+                for(int t=0;t<2;t++) d[t]+=fmax(1e-3,arc.RfDelay0[t]+arc.RfDelayLoad[t]*(double)p->pPars->SeedLoad*SC_CellPinCap(member,k)+arc.RfDelaySlew[t]*p->BufferRefSlew);
             }
             if(!count || d[0]+d[1]<=0) goto done;
             if(p->pPars->nSeedMode&1) for(int t=0;t<2;t++) a->d[t]=d[t]/count;
             else
-            for(int t=0;t<2;t++) a->d[t]=Scl_Int2Flt(cell->iDelays[k])*(2*d[t]/(d[0]+d[1]));
+            {
+                double cost = p->pPars->SeedGain ? Abc_SclComputeDelayClassPin(p->pScl,rep,k,
+                    p->BufferRefSlew,100*p->pPars->SeedGain) : Scl_Int2Flt(cell->iDelays[k]);
+                if(p->pPars->SeedGain) cost=fmax(1e-3,cost);
+                for(int t=0;t<2;t++) a->d[t]=cost*(2*d[t]/(d[0]+d[1]));
+            }
         }
     }
     /* No NF cover is built first. Flow references start from AIG structure. */
     for(g.round=0;g.round<nGlobalRounds;g.round++) {
         if(!Gp_Forward(&g)) goto done;
-        if(!g.round) Gia_ManForEachCo(p->pGia,o,i)
-            g.target=fmax(g.target,Gp_Worst(g.labels+Gia_ObjFaninLit0p(p->pGia,o)));
+        if(!g.round) {
+            Gia_ManForEachCo(p->pGia,o,i)
+                g.target=fmax(g.target,Gp_Worst(g.labels+Gia_ObjFaninLit0p(p->pGia,o)));
+            if(p->pPars->ModelDelayTarget > 0)
+                g.target=fmax(g.target,p->pPars->ModelDelayTarget);
+        }
 
         if(!Gp_Cover(&g)) goto done;
     }

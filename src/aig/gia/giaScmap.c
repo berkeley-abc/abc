@@ -63,13 +63,18 @@ struct Scm_Par_t_
     /* Mapping statistics. */
     int            MapDelay;
     float          MapAreaF;
-    float          MapDelayTarget;
+    float          MapDelayTarget;    // requested delay in ps; zero keeps the default objective
+    float          ModelDelayTarget;  // calibrated bound used only by seed mapping and refinement
 
     /* Electrical model and refinement configuration. */
     int            nPaperAffineElaCritical;
     int            fUseRiseFallAll;
     int            nSeedMode;          // 0: gain-scaled transition costs; 1: common-load family costs
     int            fQuality;           // refine both seeds and use electrical window search
+    Scm_Qor_t      Quality;            // realized metrics of the selected cover
+    float          SeedLoad;           // load / pin-capacitance ratio for seed construction
+    float          SeedGain;           // alternate G cost; zero preserves GENLIB costs
+    float          RefineRelax;        // bounded target relaxation for alternate covers
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -236,11 +241,6 @@ struct Scm_AffFanSet_t_
     int             nAlloc;
 };
 enum { NF_RF_FALL = 0, NF_RF_RISE = 1 };
-typedef struct Scm_RfPair_t_ Scm_RfPair_t;
-struct Scm_RfPair_t_
-{
-    float           Value[2];
-};
 typedef struct Scm_RfFan_t_ Scm_RfFan_t;
 struct Scm_RfFan_t_
 {
@@ -2660,11 +2660,13 @@ static Scm_RfPair_t Scm_ManRfPinCap( Scm_Man_t * p, Mio_Cell2_t * pCell, int k )
     return Cap;
 }
 
-static int Scm_ManCollectLoadsRf( Scm_Man_t * p )
+static int Scm_ManCollectLoadsRf( Scm_Man_t * p, double * pLoads )
 {
     Gia_Obj_t * pObj;
-    int i, c, k, t, iVar, fCompl;
-    memset(p->pAllRfLoads, 0, sizeof(Scm_RfPair_t) * 2 * Gia_ManObjNum(p->pGia));
+    int i, c, k, t, iVar, fCompl, nLits = 2 * Gia_ManObjNum(p->pGia), fAlloc = pLoads == NULL;
+    if ( fAlloc ) pLoads = ABC_ALLOC(double, 2*nLits);
+    // Match the incremental accumulator; round only when the timing model reads a load.
+    memset(pLoads, 0, sizeof(double) * 2*nLits);
     Gia_ManForEachObjWithBoxes(p->pGia, pObj, i)
     {
         if ( !Gia_ObjIsAnd(pObj) && !Gia_ObjIsCi(pObj) ) continue;
@@ -2677,7 +2679,7 @@ static int Scm_ManCollectLoadsRf( Scm_Man_t * p )
             {
                 Scm_RfPair_t Cap = Scm_ManRfPinCap(p, p->pCells + 3, 0);
                 for ( t = 0; t < 2; t++ )
-                    p->pAllRfLoads[Abc_Var2Lit(i, !c)].Value[t] += Cap.Value[t];
+                    pLoads[2*Abc_Var2Lit(i, !c)+t] += Cap.Value[t];
             }
             else if ( Gia_ObjIsAndNotBuf(pObj) && pM->CutH )
             {
@@ -2687,7 +2689,7 @@ static int Scm_ManCollectLoadsRf( Scm_Man_t * p )
                 {
                     Scm_RfPair_t Cap = Scm_ManRfPinCap(p, pCell, k);
                     for ( t = 0; t < 2; t++ )
-                        p->pAllRfLoads[Abc_Var2Lit(iVar, fCompl)].Value[t] += Cap.Value[t];
+                        pLoads[2*Abc_Var2Lit(iVar, fCompl)+t] += Cap.Value[t];
                 }
             }
         }
@@ -2698,13 +2700,15 @@ static int Scm_ManCollectLoadsRf( Scm_Man_t * p )
         {
             Scm_RfPair_t Cap = Scm_ManRfPinCap(p, p->pCells + 3, 0);
             for ( t = 0; t < 2; t++ )
-                p->pAllRfLoads[Abc_Var2Lit(i, 0)].Value[t] += Cap.Value[t];
+                pLoads[2*Abc_Var2Lit(i, 0)+t] += Cap.Value[t];
         }
     Gia_ManForEachObjReverseWithBoxes(p->pGia, pObj, i)
         if ( Gia_ObjIsBuf(pObj) && Scm_ObjMapRefNum(p, i, 0) )
             for ( t = 0; t < 2; t++ )
-                p->pAllRfLoads[Gia_ObjFaninLit0p(p->pGia, pObj)].Value[t] +=
-                    p->pAllRfLoads[Abc_Var2Lit(i, 0)].Value[t];
+                pLoads[2*Gia_ObjFaninLit0p(p->pGia, pObj)+t] += pLoads[2*Abc_Var2Lit(i, 0)+t];
+    for ( i = 0; i < nLits; i++ )
+        for ( t = 0; t < 2; t++ ) p->pAllRfLoads[i].Value[t] = (float)pLoads[2*i+t];
+    if ( fAlloc ) ABC_FREE(pLoads);
     return 1;
 }
 
@@ -3077,7 +3081,7 @@ static int Scm_ManAffElaCollectLoads( Scm_Man_t * p, int fBuildHistory )
 static int Scm_ManAffElaTimeCover( Scm_Man_t * p )
 {
     if ( !Scm_ManAffElaCollectLoads(p, 0) ) return 0;
-    if ( p->pAllRfLoads && !Scm_ManCollectLoadsRf(p) ) return 0;
+    if ( p->pAllRfLoads && !Scm_ManCollectLoadsRf(p, NULL) ) return 0;
     return (p->pPars->fUseRiseFallAll) ?
         Scm_ManAffAuditTimingRf(p) : Scm_ManAffAuditTiming(p);
 }
@@ -3650,11 +3654,8 @@ static Scm_AffElaCtx_t * Scm_ManAffElaCtxStart( Scm_Man_t * p )
     pCtx->pLiveLoads = ABC_ALLOC(double, pCtx->nLits);
     if ( p->pAllRfLoads )
     {
-        int t;
         pCtx->pLiveLoadsRf = ABC_ALLOC(double, 2*pCtx->nLits);
-        for ( i = 0; i < pCtx->nLits; i++ )
-            for ( t = 0; t < 2; t++ )
-                pCtx->pLiveLoadsRf[2*i+t] = p->pAllRfLoads[i].Value[t];
+        Scm_ManCollectLoadsRf(p, pCtx->pLiveLoadsRf);
     }
 
     {
@@ -4990,6 +4991,8 @@ static void Scm_ManSetDefaultPars(Scm_Par_t *pPars) { memset(pPars, 0, sizeof(*p
  pPars->nCutNum=16;
 
  pPars->nPaperAffineElaCritical=80;
+ pPars->SeedLoad=2.5f;
+ pPars->RefineRelax=1.0f;
 
 }
 
@@ -5057,9 +5060,16 @@ static Gia_Man_t * Scm_ManPerformMappingInt( Gia_Man_t * pGia, Scm_Par_t * pPars
     }
     if ( fOk )
     {
-        for ( m = 0; m < 2; m++ )
-            if ( Area[m] <= Area[0] && (Best < 0 || Delay[m] < Delay[Best] ||
-                 (Delay[m] == Delay[Best] && Area[m] < Area[Best])) ) Best = m;
+        if ( pPars->ModelDelayTarget > 0 )
+        {
+            for ( m = 0; m < 2; m++ )
+                if ( Best < 0 || Scm_QorTargetBetter((double)Area[m], Delay[m],
+                     (double)Area[Best], Delay[Best], pPars->ModelDelayTarget) ) Best = m;
+        }
+        else
+            for ( m = 0; m < 2; m++ )
+                if ( Area[m] <= Area[0] && (Best < 0 || Delay[m] < Delay[Best] ||
+                     (Delay[m] == Delay[Best] && Area[m] < Area[Best])) ) Best = m;
         if ( Best != 1 )
         {
             memcpy(p->pNfObjs, pSaveObjs[Best], sizeof(Scm_Obj_t) * nObjs);
@@ -5070,9 +5080,29 @@ static Gia_Man_t * Scm_ManPerformMappingInt( Gia_Man_t * pGia, Scm_Par_t * pPars
         /* Reconstruct the winner's loads/timing before refining its cover. */
         if ( !Scm_ManAffElaTimeCover(p) || !Scm_ManRefineCover(p) ) fOk = 0;
         if ( fOk && pPars->fQuality )
-            fOk = Scm_ManSelectSeed(p, pSaveObjs[1-Best], pSaveRefs[1-Best], pSaveFlow[1-Best], 1-Best);
+        {
+            Scm_Qor_t Bound = {0};
+            if ( pPars->MapDelayTarget > 0 )
+            {
+                fOk = Scm_ManSelectSeed(p, NULL, NULL, pFlow0, Best, &Bound);
+                if ( fOk ) fOk = Scm_ManSelectSeed(p, NULL, NULL, pFlow0, 1-Best, &Bound);
+            }
+            else
+                fOk = Scm_ManSelectSeed(p, pSaveObjs[1-Best], pSaveRefs[1-Best], pSaveFlow[1-Best], 1-Best, &Bound);
+            for ( m = 2; fOk && m < 6; m++ )
+                fOk = Scm_ManSelectSeed(p, m < 4 ? NULL : pSaveObjs[m&1],
+                    m < 4 ? NULL : pSaveRefs[m&1], m < 4 ? pFlow0 : pSaveFlow[m&1], m, &Bound);
+        }
         if ( fOk && pPars->fVerbose )
             printf("SCMAP_SELECTED seed=%d delay=%.3f area=%lld\n", pPars->nSeedMode, p->AffExactDelay, Df_Area(p));
+        if ( fOk && !pPars->fQuality && pPars->MapDelayTarget > 0 )
+        {
+            if ( p->AffExactDelay > pPars->MapDelayTarget )
+                Abc_Print(0, "SCMap: delay target %.2f ps not met (model delay %.2f ps).\n", pPars->MapDelayTarget, p->AffExactDelay);
+            if ( pPars->fVerbose )
+                Abc_Print(1, "SCMAP_DELAY_TARGET mode=model target=%.9g delay=%.9g met=%d\n",
+                    pPars->MapDelayTarget, p->AffExactDelay, p->AffExactDelay <= pPars->MapDelayTarget);
+        }
     }
     for ( m = 0; m < 2; m++ )
     {
@@ -5114,6 +5144,33 @@ Gia_Man_t * Gia_ManScmap(Gia_Man_t *pGia, int fVerbose, int fVeryVerbose)
 
 /**Function*************************************************************
 
+  Synopsis    [Checks the input and library requirements of quality mapping.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     [Scm_ManQualityMappingInt]
+
+***********************************************************************/
+static int Scm_ManQualityCheck( Gia_Man_t * pGia )
+{
+    if ( pGia == NULL || !Gia_ManCoNum(pGia) || Gia_ManRegNum(pGia) || pGia->pManTime || Gia_ManBufNum(pGia) ||
+         pGia->vInArrs || pGia->vOutReqs || pGia->vCiArrs || pGia->vCoReqs || Scl_ConIsRunning() )
+    {
+        Abc_Print(-1, "&scmap -q requires outputs and an unboxed combinational AIG without explicit timing.\n");
+        return 0;
+    }
+    if ( !Abc_FrameReadLibGen() || !Abc_FrameReadLibScl() )
+    {
+        Abc_Print(-1, "&scmap -q requires a Liberty library loaded with read_lib.\n");
+        return 0;
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Maps with refined seeds and electrically scored windows.]
 
   Description [The input is retained when a distinct manager is returned.
@@ -5121,33 +5178,108 @@ Gia_Man_t * Gia_ManScmap(Gia_Man_t *pGia, int fVerbose, int fVeryVerbose)
 
   SideEffects [Uses the input scratch values and mapping fields.]
 
-  SeeAlso     [Gia_ManScmap]
+  SeeAlso     [Scm_ManQualityMappingTarget]
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManScmapQuality( Gia_Man_t * pGia, int fVerbose, int fVeryVerbose )
+static Gia_Man_t * Scm_ManQualityMappingInt( Gia_Man_t * pGia, float DelayTarget, int nTrials, int fVerbose, int fVeryVerbose, Scm_Qor_t * pQor )
 {
     Scm_Par_t Pars;
     Gia_Man_t * pMapped, * pNew;
-    if ( pGia == NULL || !Gia_ManCoNum(pGia) || Gia_ManRegNum(pGia) || pGia->pManTime || Gia_ManBufNum(pGia) ||
-         pGia->vInArrs || pGia->vOutReqs || pGia->vCiArrs || pGia->vCoReqs || Scl_ConIsRunning() )
-    {
-        Abc_Print(-1, "&scmap -q requires outputs and an unboxed combinational AIG without explicit timing.\n");
-        return NULL;
-    }
-    if ( !Abc_FrameReadLibGen() || !Abc_FrameReadLibScl() )
-    {
-        Abc_Print(-1, "&scmap -q requires a Liberty library loaded with read_lib.\n");
-        return NULL;
-    }
+    if ( pQor ) memset(pQor, 0, sizeof(*pQor));
+    if ( !Scm_ManQualityCheck(pGia) ) return NULL;
     Scm_ManSetDefaultPars(&Pars);
     Pars.fQuality = 1;
+    Pars.MapDelayTarget = DelayTarget;
     Pars.fVerbose = fVerbose;
     Pars.fVeryVerbose = fVeryVerbose;
     pMapped = Scm_ManPerformMapping(pGia, &Pars);
     if ( pMapped == NULL ) return NULL;
-    pNew = Scm_ManWindowImprove(pMapped, fVerbose, fVeryVerbose);
+    pNew = DelayTarget > 0 ? Scm_ManWindowTarget(pMapped, &Pars.Quality, DelayTarget, 0, fVerbose, fVeryVerbose) :
+                            Scm_ManWindowImprove(pMapped, &Pars.Quality, fVerbose, fVeryVerbose);
+    if ( pNew == NULL )
+    {
+        Abc_Print(0, "SCMap: window refinement failed; retaining the refined seed.\n");
+        pNew = pMapped;
+    }
     if ( pMapped != pGia && pMapped != pNew ) Gia_ManStop(pMapped);
+    pMapped = pNew;
+    if ( nTrials > 0 )
+    {
+        pNew = DelayTarget > 0 ? Scm_ManWindowTarget(pMapped, &Pars.Quality, DelayTarget, nTrials, fVerbose, fVeryVerbose) :
+                                Scm_ManWindowLookahead(pMapped, &Pars.Quality, nTrials, fVerbose, fVeryVerbose);
+        if ( pNew == NULL )
+        {
+            Abc_Print(0, "SCMap: lookahead failed; retaining the quality mapping.\n");
+            pNew = pMapped;
+        }
+        if ( pMapped != pGia && pMapped != pNew ) Gia_ManStop(pMapped);
+    }
+    if ( pQor ) *pQor = Pars.Quality;
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Keeps the unconstrained quality mapping as a target candidate.]
+
+  Description [Both complete searches use the same realized endpoint.
+  Prefer feasibility, then area; an unreachable target prefers delay.]
+
+  SideEffects [Uses input scratch fields; never frees the input.]
+
+  SeeAlso     [Scm_ManQualityMappingInt]
+
+***********************************************************************/
+static Gia_Man_t * Scm_ManQualityMappingTarget( Gia_Man_t * pGia, float DelayTarget, int nTrials, int fVerbose, int fVeryVerbose )
+{
+    Scm_Qor_t Base = {0}, Trial = {0}, Selected;
+    Gia_Man_t * pCopy, * pBase, * pTrial, * pResult;
+    int fKeepBase;
+    if ( DelayTarget <= 0 ) return Scm_ManQualityMappingInt(pGia, 0, nTrials, fVerbose, fVeryVerbose, NULL);
+    if ( !Scm_ManQualityCheck(pGia) ) return NULL;
+    pCopy = Gia_ManDup(pGia);
+    pBase = Scm_ManQualityMappingInt(pCopy, 0, nTrials, fVerbose, fVeryVerbose, &Base);
+    if ( pBase != pCopy ) Gia_ManStop(pCopy);
+    pTrial = Scm_ManQualityMappingInt(pGia, DelayTarget, nTrials, fVerbose, fVeryVerbose, &Trial);
+    fKeepBase = pBase && Base.fValid && (!pTrial || !Trial.fValid ||
+        !Scm_QorTargetBetter(Trial.Area, Trial.Delay, Base.Area, Base.Delay, DelayTarget));
+    pResult = fKeepBase ? pBase : pTrial;
+    Selected = fKeepBase ? Base : Trial;
+    if ( fVerbose )
+        Abc_Print(1, "SCMAP_TARGET_SELECT untargeted=%d base_area=%.9g base_delay=%.9g area=%.9g delay=%.9g\n",
+            fKeepBase, Base.Area, Base.Delay, Trial.Area, Trial.Delay);
+    if ( !fKeepBase && pBase ) Gia_ManStop(pBase);
+    if ( fKeepBase && pTrial && pTrial != pGia ) Gia_ManStop(pTrial);
+    if ( pResult && Selected.fValid )
+    {
+        if ( Selected.Delay > DelayTarget )
+            Abc_Print(0, "SCMap: delay target %.2f ps not met (MFS/buffering/sizing delay %.2f ps).\n", DelayTarget, Selected.Delay);
+        if ( fVerbose )
+            Abc_Print(1, "SCMAP_DELAY_TARGET mode=realized target=%.9g delay=%.9g area=%.9g met=%d\n",
+                DelayTarget, Selected.Delay, Selected.Area, Selected.Delay <= DelayTarget);
+    }
+    return pResult;
+}
+
+static Gia_Man_t * Scm_ManQualityMapping( Gia_Man_t * pGia, int nTrials, int fVerbose, int fVeryVerbose )
+{
+    return Scm_ManQualityMappingTarget(pGia, 0, nTrials, fVerbose, fVeryVerbose);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Selects refined seeds and searches electrical windows.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     [Gia_ManScmapLookahead]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManScmapQuality( Gia_Man_t * pGia, int fVerbose, int fVeryVerbose )
+{
+    return Scm_ManQualityMapping(pGia, 0, fVerbose, fVeryVerbose);
 }
 
 /**Function*************************************************************
@@ -5166,15 +5298,34 @@ Gia_Man_t * Gia_ManScmapQuality( Gia_Man_t * pGia, int fVerbose, int fVeryVerbos
 ***********************************************************************/
 Gia_Man_t * Gia_ManScmapLookahead( Gia_Man_t * pGia, int nTrials, int fVerbose, int fVeryVerbose )
 {
-    Gia_Man_t * pMapped, * pNew;
     if ( nTrials < 0 ) return NULL;
-    pMapped = Gia_ManScmapQuality(pGia, fVerbose, fVeryVerbose);
-    if ( pMapped == NULL || nTrials == 0 ) return pMapped;
-    // Trivial covers have no window replacements; MFS requires primary inputs.
-    if ( !Gia_ManCiNum(pMapped) || !Gia_ManAndNum(pMapped) ) return pMapped;
-    pNew = Scm_ManWindowLookahead(pMapped, nTrials, fVerbose, fVeryVerbose);
-    if ( pMapped != pGia && pMapped != pNew ) Gia_ManStop(pMapped);
-    return pNew;
+    return Scm_ManQualityMapping(pGia, nTrials, fVerbose, fVeryVerbose);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Recovers area under a requested delay target in picoseconds.]
+
+  Description [Default mode uses model timing. Quality mode uses the fixed
+  MFS/buffering/sizing endpoint. An unmet target is reported, not guaranteed.
+  Zero target preserves the corresponding unconstrained mapping behavior.]
+
+  SideEffects [Uses the input scratch values and mapping fields.]
+
+  SeeAlso     [Gia_ManScmap Gia_ManScmapQuality Gia_ManScmapLookahead]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManScmapTarget( Gia_Man_t * pGia, float DelayTarget, int nTrials, int fQuality, int fVerbose, int fVeryVerbose )
+{
+    Scm_Par_t Pars;
+    if ( pGia == NULL || !isfinite(DelayTarget) || DelayTarget < 0 || nTrials < 0 ) return NULL;
+    if ( fQuality || nTrials ) return Scm_ManQualityMappingTarget(pGia, DelayTarget, nTrials, fVerbose, fVeryVerbose);
+    Scm_ManSetDefaultPars(&Pars);
+    Pars.MapDelayTarget = DelayTarget;
+    Pars.ModelDelayTarget = DelayTarget;
+    Pars.fVerbose = fVerbose;
+    Pars.fVeryVerbose = fVeryVerbose;
+    return Scm_ManPerformMapping(pGia, &Pars);
 }
 
 ABC_NAMESPACE_IMPL_END

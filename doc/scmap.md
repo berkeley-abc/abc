@@ -14,10 +14,45 @@ strash
 stime -c
 ```
 
-Only diagnostic options are exposed: `-v` prints statistics, `-w` prints
-additional detail, and `-h` shows usage. Options affect diagnostics only. The command requires Liberty timing
+`-q` enables quality seed selection and electrical window search. `-L N`
+adds up to N full-flow candidate evaluations and implies `-q`; zero disables
+lookahead. `-v` prints statistics, `-w` prints additional detail, and `-h`
+shows usage. The command requires Liberty timing
 information and an unboxed GIA without explicit arrival-time constraints.
 It accepts choice graphs; alternatives contribute cuts at their representatives.
+Quality and lookahead additionally require a combinational GIA with at least
+one output and no explicit input or output timing constraints.
+
+## Delay target
+
+`-D <delay>` specifies a positive delay target in picoseconds; decimal values
+are accepted. For example, `&scmap -q -L 64 -D 1200` searches for lower area
+under a 1200 ps target. Once a cover meets the target, selection prioritizes
+area rather than additional delay reduction. Before feasibility, selection
+prioritizes lower delay. Omitting `-D` preserves the existing objectives.
+
+In normal mode the constraint uses SCMap's electrical timing model. With
+`-q` or `-L`, seed selection and window acceptance use the fixed private-copy
+MFS/buffering/sizing flow described below; model predictions only screen the
+window candidates. The requested target is calibrated to the model using
+the selected seed's measured delay, and also guides seed construction.
+The two relaxed seeds remain unconstrained to preserve their diversity.
+Area recovery retains the requested target instead of
+tightening it to every newly achieved delay. The returned network is still
+unsized. Its raw `stime` result need not equal the evaluated downstream delay.
+
+Quality mode also runs the complete corresponding search without `-D` and
+retains it as a candidate. This adds search cost, but prevents a targeted
+result from being both larger and slower at the evaluated endpoint. If the
+untargeted result meets the target, the selected result also meets it and
+has no greater area. Lookahead switches to area-ranked roots when an accepted
+move first reaches the target. These guarantees do not apply to arbitrary
+later optimization or to normal, model-only mode.
+
+As with `&nf`, an unattainable target does not make mapping fail: SCMap returns
+the best cover it found and prints a warning when the target is missed. This
+is a heuristic target, not a guarantee for arbitrary postprocessing or
+OpenROAD. Recheck timing after the complete intended flow.
 
 ## Reproducing the ABC evaluation
 
@@ -116,10 +151,40 @@ compiler/build, host, and measurement boundaries for every mapper.
    lazy required bounds reject losing trials. Screening tails guide proposals,
    while propagated output timing decides acceptance.
 
-The mapper emits an ordinary mapped network. It never invokes downstream STA,
-buffering, or sizing to select a cover. Subsequent `buffer`, `upsize`, and
-`dnsize` remain independent ABC operations. The internal surrogate does not
-impose a physical timing guarantee; evaluate the complete intended flow.
+The default mapper uses only its internal electrical model. Without `-D`, quality mode
+refines six SCMap seeds and compares private copies after
+`mfsmap -e -R 2 -N 500 -C 1000 -M 2000 -I 10 -O 10` followed by
+`buffer -c; topo; stime -c; upsize -c; dnsize -c`. It selects a lower
+area-delay product with a 5% guard on each metric, anchored to the first
+refined cover, not compounded across selections. In addition to the original
+G and C seeds, it tries a G seed with gain 4, a C seed with common load 4 times
+mean input capacitance, and G/C seeds with 5% relaxed refinement targets.
+It does not select NF or NF3 covers. Window search uses
+transition-specific family capacitances, slack-based root ranking, and output
+timing pressure. Timing moves may spend 2% mapped area; area recovery holds
+the achieved delay. Checkpoints at phase boundaries and at 0.5%, 1%, 1.5%,
+and 2% cumulative added mapped area retain the lowest realized area-delay
+product. Cumulative additions do not subtract intervening area savings.
+The search continues from its current cover, while the retained checkpoint
+must not increase final delay or exceed 2% final area growth relative to the
+window input. The unchanged input is always available as a fallback.
+
+Lookahead prescreens candidates electrically and runs the fixed downstream
+flow on at most two candidates per root. An accepted move must improve delay
+by at least 0.3%, or reduce area by at least 0.3% without increasing delay.
+It allows at most 1% final area growth relative to its input (the result of the
+preceding window stage, not the original seed). Failed optional
+refinement retains the preceding valid mapping with a warning.
+Already measured seed and checkpoint metrics are reused within the same call
+when the cover and downstream flow are unchanged. Detailed (`-w`) lookahead records
+both electrical predictions and realized changes for calibration; predictions
+rank candidates but do not by themselves establish realized improvement.
+
+All modes emit an ordinary unsized mapped network. Private-copy evaluation
+does not replace the frame network or commit its physical buffers. Subsequent
+`mfsmap`, `buffer`, `upsize`, and `dnsize` remain separate operations. The
+realized bounds apply only to the stated fixed flow and library, not arbitrary
+postprocessing or place and route; evaluate the complete intended flow.
 
 ## Implementation
 
@@ -128,12 +193,17 @@ impose a physical timing guarantee; evaluate the complete intended flow.
 - `src/aig/gia/giaScmapSeed.h`: paired seed construction and seed area recovery.
 - `src/aig/gia/giaScmapRefine.h`: broad repair, candidate screening, bounded
   refinement, output-score caching, and trial snapshots.
-- `src/aig/gia/giaScmap.h`: the single public mapping entry point.
+- `src/aig/gia/giaScmapQuality.h`: private-copy seed evaluation and the window
+  electrical model, included by `giaScmap.c`.
+- `src/aig/gia/giaScmapWindow.h`: window search and full-flow lookahead,
+  included by `giaNf3.c` to share its candidate generation and reference counts.
+- `src/aig/gia/giaScmapInt.h`: the private interface between these units.
+- `src/aig/gia/giaScmap.h`: default, quality, lookahead, and delay-target entry points.
 - `src/base/abcc/abcMapCell.c`: command registration and argument checks.
 
-Private headers are included only by `giaScmap.c`. Internal functions have
-translation-unit scope. Floating-point multiply-add contraction is disabled
-locally in this compilation unit: separately rounded costs preserve near-tied
+Private implementation functions have translation-unit scope except for the
+internal interface in `giaScmapInt.h`. Floating-point multiply-add contraction
+is disabled locally in `giaScmap.c`: separately rounded costs preserve near-tied
 search decisions across builds. No global compiler options or stock commands
 are changed. Optional `SCM_DF_VERIFY` and `SCM_DF_ROUND_VERIFY`
 compile-time checks compare incremental timing with independent full traversals;
