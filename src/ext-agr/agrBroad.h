@@ -138,6 +138,7 @@ int broadRound(Abc_Frame_t *frame)
         AGR_VERBOSE("AGR_BROAD operator=%d selected=%d initial_nodes=%d nodes=%d cpu_seconds=%.9f\n",
                    op, int(roots.size()), initialNodes, Abc_NtkNodeNum(n),
                    double(Abc_Clock() - start) / CLOCKS_PER_SEC);
+        Agr_ChoiceCheckpoint(n);
     }
     return 0;
 }

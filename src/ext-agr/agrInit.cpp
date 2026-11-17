@@ -796,7 +796,10 @@ extern "C" int Agr_RunBlock(Abc_Frame_t *frame, int roots)
 {
     if (broadRound(frame))
         return 1;
-    return compactRounds(frame, roots);
+    const int result = compactRounds(frame, roots);
+    if (!result)
+        Agr_ChoiceCheckpoint(Abc_FrameReadNtk(frame));
+    return result;
 }
 void Agr_Init(Abc_Frame_t *frame)
 {

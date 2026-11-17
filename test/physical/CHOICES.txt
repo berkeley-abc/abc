@@ -1,0 +1,56 @@
+AGR checkpoint choices and mapped-cost selection
+
+Usage after loading a combinational AIG and a Liberty library:
+
+  agr -c -b
+  &get; &nf; &put; stime
+
+The ordinary agr command remains available without these flags. -c retains
+whole-pass checkpoints from the existing AGR invocation and merges equivalent
+structures as FRAIG choices. -b adds a fixed set of area/LUT/DSD/SOP balancing
+and bounded LUT don't-care/factoring alternatives on the input and AGR result.
+These conventional alternatives are part of the method, not an AGR-specific
+geometric contribution.
+
+Six NF relaxation settings (0,5,10,20,40,100) are evaluated independently and
+as a sequential shaping chain. Mapped covers are strashed and re-evaluated
+through ordinary NF and Liberty STA. The selected output is a plain AIG.
+The default selects minimum mapped area with cell delay no worse than the
+ordinary AGR endpoint. -D percent requests a stricter delay target; when that
+target is unattainable it selects the fastest candidate. Positive -D can trade
+area for delay. No OpenROAD metric is used in selection.
+
+Only whole-pass checkpoints are retained. Rejected local rewrites are not
+recorded as choices. The user's &-space, saved AIG and fraig_store remain
+intact; PI/PO names and ordering are preserved. Choice construction and mapping
+use private networks and the currently loaded Liberty library.
+
+Checks:
+  python3 test/physical/regression.py --abc /path/to/abc --output /tmp/agr-base
+  python3 test/physical/choices_regression.py --abc /path/to/abc \
+    --reference /path/to/three-fix-baseline-abc --library /path/to/cells.lib \
+    --output /tmp/agr-choices
+
+Research protocol (separate from the command):
+  Every arm receives common dc2 and &fraig -C 1000 preprocessing.
+  All endpoints are measured through the same original-PR NF mapper/library.
+  The development set contains 19 EPFL designs; placement steps 0.26-0.30
+  assess sensitivity. hyp is a separate, unfinished scalability case.
+  Source-to-endpoint and endpoint-to-mapped-function CEC are required.
+
+At the default step, verified 19-design geometric-mean reductions are about
+12.9% mapped area and 13.6% cell delay vs PA2, and 8.6% area and 11.8% delay
+vs a CPU-matched original compress2rs loop. These are ABC results, not routed
+results. Equal large recipe banks give similar gains with PA2 or compress2rs;
+do not attribute the portfolio's whole gain to AGR or geometry.
+
+Cost and limitations:
+  The area-focused native configuration used about 623 CPU seconds in total
+  on the 19-design validation run (median 3.93 s, maximum 122.72 s), excluding
+  equivalence checking. The much larger hyp benchmark remains expensive.
+  The existing AGR commit-boundary defect can abort square after an external
+  MFS preprocessing recipe. This baseline failure is preserved in the research
+  records; the new native diverse flow has passed the 19-design checks.
+
+Full experiment manifests, hashes, proofs and numerical results:
+  /store/abc-agr-physical-20261116/choice-shaping-validation/README.txt

@@ -23,6 +23,7 @@ extern "C"
 
     int Agr_Epoch(void);
     int Agr_InFlight(void);
+    void Agr_ChoiceCheckpoint(Abc_Ntk_t *pNtk);
     /* Read-only diagnostic restart export. Never used to accept/revert an edit. */
 
     int Agr_ManHasPlacement(Abc_Ntk_t *pNtk);

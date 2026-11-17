@@ -44,6 +44,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include "agrChoices.h"
 
 ABC_NAMESPACE_IMPL_START
 static int s_AgrVerbose = 0;
@@ -1631,10 +1632,13 @@ std::mutex &CommandMutex()
 void PrintUsage(Abc_Frame_t *frame)
 {
     fprintf(Abc_FrameReadErr(frame),
-            "usage: agr [-s step] [-vh]\n"
+            "usage: agr [-s step] [-c [-b] [-D gain]] [-vh]\n"
             "       placement-guided RS/RW/RF with adaptive compact search\n"
             "       requires a strashed combinational AIG without choices or constraints\n"
             "  -s step : initial placement step in bin widths [default = 0.28]\n"
+            "  -c      : retain pass checkpoints as choices and select by mapped cost\n"
+            "  -b      : add balancing and bounded LUT don't-care alternatives (requires -c)\n"
+            "  -D gain : target cell-delay reduction from plain AGR, percent [default = 0]\n"
             "  -v      : print placement progress\n"
             "  -h      : print this help\n");
 }
@@ -1643,11 +1647,26 @@ int Agr_CommandPlace(Abc_Frame_t *pAbc, int argc, char **argv)
 {
     std::lock_guard<std::mutex> lock(CommandMutex());
     Agr_Parameters Pars;
+    bool choices = false, diverse = false, hasDelayGain = false;
+    double delayGain = 0.0;
     for (int i = 1; i < argc; ++i)
     {
         const std::string option(argv[i]);
         if (option == "-v")
             Pars.verbose = true;
+        else if (option == "-c")
+            choices = true;
+        else if (option == "-b")
+            diverse = true;
+        else if (option == "-D" && i + 1 < argc)
+        {
+            hasDelayGain = true;
+            if (!ParseDouble(argv[++i], delayGain) || delayGain < 0 || delayGain >= 100)
+            {
+                Abc_Print(-1, "agr: -D requires a finite percentage in [0, 100).\n");
+                return 1;
+            }
+        }
         else if (option == "-h")
         {
             PrintUsage(pAbc);
@@ -1668,6 +1687,16 @@ int Agr_CommandPlace(Abc_Frame_t *pAbc, int argc, char **argv)
         }
     }
 
+    if ((hasDelayGain || diverse) && !choices)
+    {
+        Abc_Print(-1, "agr: -D requires -c; -b requires -c.\n");
+        return 1;
+    }
+    if (choices && (!Abc_FrameReadLibGen() || !Abc_FrameReadLibScl()))
+    {
+        Abc_Print(-1, "agr: -c requires a Liberty library loaded with read_lib.\n");
+        return 1;
+    }
     Abc_Ntk_t *pNtk = Abc_FrameReadNtk(pAbc);
     if (pNtk == nullptr)
     {
@@ -1692,6 +1721,13 @@ int Agr_CommandPlace(Abc_Frame_t *pAbc, int argc, char **argv)
         return 1;
     }
     s_AgrVerbose = Pars.verbose;
+    AgrChoiceSession choiceSession(choices);
+    struct ChoiceScope
+    {
+        explicit ChoiceScope(AgrChoiceSession *session) { s_ChoiceSession = session; }
+        ~ChoiceScope() { s_ChoiceSession = nullptr; }
+    } choiceScope(choices ? &choiceSession : nullptr);
+    Agr_ChoiceCheckpoint(pNtk);
     abctime Clock = Abc_Clock();
     // Confine coupled dispatch to this invocation.
 
@@ -1727,6 +1763,12 @@ int Agr_CommandPlace(Abc_Frame_t *pAbc, int argc, char **argv)
     Abc_Ntk_t *result = Abc_NtkStrash(pNtk, 0, 1, 0);
     if (!result)
         return 1;
+    if (choices)
+    {
+        Abc_Ntk_t *selected = choiceSession.Finish(result, delayGain, diverse, Pars.verbose);
+        if (selected) { Abc_NtkDelete(result); result = selected; }
+        else Abc_Print(0, "agr: choice shaping failed; retaining the plain AGR endpoint.\n");
+    }
     Abc_FrameReplaceCurrentNetwork(pAbc, result);
     return 0;
 }
