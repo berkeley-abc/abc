@@ -8393,6 +8393,102 @@ SOURCE=.\src\proof\ssc\sscUtil.c
 
 # PROP Default_Filter ""
 # End Group
+# Begin Group "acec2"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Int.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Cut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Util.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Tree.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Expr.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Record.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Gap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Region.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Counter.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Parity.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Masked.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Norm.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Match.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Truth.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Word.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Cert.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Alias.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Template.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Bdd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Complete.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Poly.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec2\acec2Cec.c
+# End Source File
+# End Group
 # Begin Group "acec"
 
 # PROP Default_Filter ""

@@ -1847,9 +1847,9 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts)
     for (;;){
         int hConfl;
         // Poll inside long searches, including when restarts are disabled.
-        if ( (s->pFuncStop || s->nRuntimeLimit) && !(nStopChecks++ & 255) &&
+        if ( (s->pFuncStop || s->pStopFlag || s->nRuntimeLimit) && !(nStopChecks++ & 255) &&
              ((s->nRuntimeLimit && Abc_Clock() > s->nRuntimeLimit) ||
-              (s->pFuncStop && s->pFuncStop(s->RunId))) )
+              sat_solver_cancelled(s)) )
         {
             s->fStopRequested = 1;
             sat_solver_canceluntil( s, s->root_level );
@@ -2004,8 +2004,11 @@ int sat_solver_solve_internal(sat_solver* s)
             break;
         if ( s->nRuntimeLimit && Abc_Clock() > s->nRuntimeLimit )
             break;
-        if ( s->pFuncStop && s->pFuncStop(s->RunId) )
+        if ( sat_solver_cancelled(s) )
+        {
+            s->fStopRequested = 1;
             break;
+        }
     }
     if (s->verbosity >= 1)
         printf("==============================================================================\n");

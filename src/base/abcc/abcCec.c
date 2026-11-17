@@ -21,6 +21,9 @@
 #include "aig/gia/giaAig.h"
 #include "proof/cec/cec.h"
 #include "proof/acec/acec.h"
+#include "proof/acec2/acec2.h"
+#include <errno.h>
+#include <limits.h>
 #include "proof/fraig/fraig.h"
 #include "bool/kit/kit.h"
 #include "aig/saig/saig.h"
@@ -68,6 +71,7 @@ static int Abc_CommandAbc9RevEng             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9SplitProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Demiter            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Acec               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Acec2              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BMiter             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BRecover           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9StrEco             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -124,6 +128,7 @@ void Abc_InitCec( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&splitprove",   Abc_CommandAbc9SplitProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&demiter",      Abc_CommandAbc9Demiter,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&acec",         Abc_CommandAbc9Acec,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&acec2",        Abc_CommandAbc9Acec2,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmiter",       Abc_CommandAbc9BMiter,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&brecover",     Abc_CommandAbc9BRecover,               0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&str_eco",      Abc_CommandAbc9StrEco,                 0 );
@@ -4074,6 +4079,11 @@ int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Gia_Man_t * pSecond;
         char * pTemp, * FileName = NULL;
+        if ( pAbc->pGia == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Acec(): There is no AIG.\n" );
+            return 1;
+        }
         if ( nArgcNew == 0 )
         {
             FileName = pAbc->pGia->pSpec;
@@ -4126,6 +4136,7 @@ int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
                 if ( (FileName[i] = Extra_FileGetSimilarName( FileName[i], ".aig", NULL, NULL, NULL, NULL )) )
                     Abc_Print( 1, "Did you mean \"%s\"?", FileName[i] );
                 Abc_Print( 1, "\n" );
+                if ( pGias[0] ) Gia_ManStop( pGias[0] );
                 return 1;
             }
             fclose( pFile );
@@ -4133,7 +4144,8 @@ int Abc_CommandAbc9Acec( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pGias[i] == NULL )
             {
                 Abc_Print( -1, "Reading AIGER has failed.\n" );
-                return 0;
+                if ( pGias[0] ) Gia_ManStop( pGias[0] );
+                return 1;
             }
         }
         pAbc->Status = Acec_Solve( pGias[0], pGias[1], pPars );
@@ -4600,6 +4612,123 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<impl> : the implementation aig. (should be equivalent to spec)\n");    
     Abc_Print( -2, "\t<patch> : the modified spec. (should be a hierarchical AIG)\n");    
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks combinational equivalence using verified arithmetic.]
+
+  Description [With one file, compares against the current GIA. With two
+  files, leaves the current GIA unchanged. Register pins are cut boundaries.]
+
+  SideEffects [Updates the frame's verification status and counterexample.]
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Abc_CommandAbc9Acec2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Acec2_Par_t Pars;
+    Gia_Man_t * pGias[2] = {NULL, NULL};
+    Abc_Cex_t * pCex = NULL;
+    char * pEnd;
+    FILE * pFile;
+    long Value;
+    int c, i, nFiles, fOwn0 = 0, fMiter = 0, Ret = 1;
+    Acec2_SetDefaultParams(&Pars);
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "CTKWanspmvh")) != EOF )
+    {
+        if ( c == 'C' || c == 'T' || c == 'K' || c == 'W' )
+        {
+            if ( globalUtilOptind >= argc ) goto usage;
+            errno = 0;
+            Value = strtol(argv[globalUtilOptind], &pEnd, 10);
+            if ( errno || pEnd == argv[globalUtilOptind] || *pEnd || Value < 0 || Value > INT_MAX ) goto usage;
+            globalUtilOptind++;
+            if ( c == 'C' ) Pars.nBTLimit = (int)Value;
+            if ( c == 'T' ) Pars.nTimeLimit = (int)Value;
+            if ( c == 'K' ) { if ( Value < 1 || Value > 64 ) goto usage; Pars.nCuts = (int)Value; }
+            if ( c == 'W' ) { if ( Value < 1 || Value > 65536 ) goto usage; Pars.nMaxWidth = (int)Value; }
+        }
+        else if ( c == 'a' ) Pars.fAlgebra ^= 1;
+        else if ( c == 'n' ) Pars.fNormalize ^= 1;
+        else if ( c == 'p' ) Pars.fPaired ^= 1;
+        else if ( c == 's' ) Pars.fSweep ^= 1;
+        else if ( c == 'm' ) fMiter ^= 1;
+        else if ( c == 'v' ) Pars.fVerbose ^= 1;
+        else goto usage;
+    }
+    nFiles = argc-globalUtilOptind;
+    if ( fMiter )
+    {
+        if ( nFiles ) goto usage;
+        if ( !pAbc->pGia ) { Abc_Print(-1, "&acec2: there is no current AIG.\n"); return 1; }
+        if ( Gia_ManRegNum(pAbc->pGia) || (Gia_ManCoNum(pAbc->pGia) & 1) )
+        {
+            Abc_Print(-1, "&acec2: -m requires a combinational dual-output miter with an even number of outputs.\n");
+            return 1;
+        }
+        pAbc->Status = Acec2_SolveMiter(pAbc->pGia, &Pars, &pCex);
+        Abc_FrameReplaceCex(pAbc, &pCex);
+        return 0;
+    }
+    if ( nFiles < 1 || nFiles > 2 ) goto usage;
+    pAbc->Status = -1;
+    Abc_FrameReplaceCex(pAbc, &pCex);
+    if ( nFiles == 1 )
+    {
+        pGias[0] = pAbc->pGia;
+        if ( !pGias[0] ) { Abc_Print(-1, "&acec2: there is no current AIG.\n"); return 1; }
+    }
+    else fOwn0 = 1;
+    for ( i = 2-nFiles; i < 2; i++ )
+    {
+        char * pName = argv[globalUtilOptind++];
+        pFile = fopen(pName, "rb");
+        if ( !pFile ) { Abc_Print(-1, "&acec2: cannot open \"%s\".\n", pName); goto finish; }
+        fclose(pFile);
+        pGias[i] = Gia_AigerRead(pName, 0, 0, 0);
+        if ( !pGias[i] ) { Abc_Print(-1, "&acec2: reading AIGER failed.\n"); goto finish; }
+    }
+    if ( Gia_ManCiNum(pGias[0]) != Gia_ManCiNum(pGias[1]) || Gia_ManCoNum(pGias[0]) != Gia_ManCoNum(pGias[1]) ||
+         Gia_ManRegNum(pGias[0]) != Gia_ManRegNum(pGias[1]) )
+    {
+        Abc_Print(-1, "&acec2: CI, CO, and register counts must agree.\n");
+        goto finish;
+    }
+    if ( Pars.fVerbose && Gia_ManRegNum(pGias[0]) )
+        Abc_Print(1, "Comparing combinational logic at all register boundaries (%d registers).\n", Gia_ManRegNum(pGias[0]));
+    pAbc->Status = Acec2_Solve(pGias[0], pGias[1], &Pars, &pCex);
+    Abc_FrameReplaceCex(pAbc, &pCex);
+    Ret = 0;
+finish:
+    if ( fOwn0 && pGias[0] ) Gia_ManStop(pGias[0]);
+    if ( pGias[1] ) Gia_ManStop(pGias[1]);
+    return Ret;
+usage:
+    Abc_Print(-2, "usage: &acec2 [-CTKW <num>] [-anspmvh] [file1] <file2>\n");
+    Abc_Print(-2, "\t             combinational equivalence using checked arithmetic regions\n");
+    Abc_Print(-2, "\t-C <num>   : initial SAT conflicts per query, 0 = unlimited [default = %d]\n", Pars.nBTLimit);
+    Abc_Print(-2, "\t-T <num>   : shared runtime limit in seconds, 0 = unlimited [default = %d]\n", Pars.nTimeLimit);
+    Abc_Print(-2, "\t-K <num>   : retained cuts per node, 1..64 [default = %d]\n", Pars.nCuts);
+    Abc_Print(-2, "\t-W <num>   : arithmetic width limit, 1..65536 [default = %d]\n", Pars.nMaxWidth);
+    Abc_Print(-2, "\t-a         : toggle exact polynomial reasoning [default = %s]\n", Pars.fAlgebra ? "yes" : "no");
+    Abc_Print(-2, "\t-n         : toggle all arithmetic reasoning [default = %s]\n", Pars.fNormalize ? "yes" : "no");
+    Abc_Print(-2, "\t-p         : toggle selecting newly shared normalized roots [default = %s]\n", Pars.fPaired ? "yes" : "no");
+    Abc_Print(-2, "\t-s         : toggle the established CEC sweeping engine [default = %s]\n", Pars.fSweep ? "yes" : "no");
+    Abc_Print(-2, "\t-m         : toggle checking the current dual-output miter [default = %s]\n", fMiter ? "yes" : "no");
+    Abc_Print(-2, "\t-v         : toggle detailed statistics [default = %s]\n", Pars.fVerbose ? "yes" : "no");
+    Abc_Print(-2, "\t-h         : print the command usage\n");
+    Abc_Print(-2, "\tfile1      : first AIGER file [default = current GIA]\n");
+    Abc_Print(-2, "\tfile2      : second AIGER file; all CI/COs match by index\n");
+    Abc_Print(-2, "\tExample: &acec2 -T 10 first.aig second.aig\n\n");
+    Abc_Print(-2, "\t             This command is based on the following paper:\n");
+    Abc_Print(-2, "\t             A. Mishchenko, B. Sterin, and R. Brayton,\n");
+    Abc_Print(-2, "\t             \"Structural reverse engineering of arithmetic circuits\",\n");
+    Abc_Print(-2, "\t             UC Berkeley, Tech. Report, 2017.\n");
+    Abc_Print(-2, "\t             https://people.eecs.berkeley.edu/~alanmi/publications/2017/tech17_arith.pdf\n");
     return 1;
 }
 

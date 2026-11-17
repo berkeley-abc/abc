@@ -376,6 +376,14 @@ void Cec_ManSatSolverRecycle( Cec_ManSat_t * p )
         sat_solver_delete( p->pSat );
     }
     p->pSat = sat_solver_new();
+    if ( p->pPars->pEffort && p->pPars->pEffort->nConflictsMax ) p->pSat->fExactConfLimit = 1;
+    if ( p->pPars->pLimits )
+    {
+        sat_solver_set_runtime_limit(p->pSat, p->pPars->pLimits->TimeToStop);
+        sat_solver_set_runid(p->pSat, p->pPars->pLimits->RunId);
+        sat_solver_set_stop_func(p->pSat, p->pPars->pLimits->pFuncStop);
+        sat_solver_set_stop_flag(p->pSat, p->pPars->pLimits->pCancelled);
+    }
     sat_solver_setnvars( p->pSat, 1000 );
     p->pSat->factors = ABC_CALLOC( double, p->pSat->cap );
     // var 0 is not used
@@ -482,6 +490,13 @@ int Cec_ManSatCheckNode( Cec_ManSat_t * p, Gia_Obj_t * pObj )
         return 0;
     }
 
+    if ( Cec_ManEffortStopped(p->pPars->pEffort) ) return -1;
+    if ( p->pPars->pEffort && p->pPars->pEffort->nConflictsMax )
+    {
+        ABC_INT64_T left = p->pPars->pEffort->nConflictsMax-p->pPars->pEffort->nConflicts;
+        if ( !nBTLimit || left < nBTLimit ) nBTLimit = left < ABC_INT_MAX ? (int)left : ABC_INT_MAX;
+    }
+
     p->nCallsSince++;  // experiment with this!!!
     p->nSatTotal++;
     
@@ -524,6 +539,11 @@ clk = Abc_Clock();
 clk2 = Abc_Clock();
     RetValue = sat_solver_solve( p->pSat, &Lit, &Lit + 1, 
         (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+    if ( p->pPars->pEffort )
+    {
+        p->pPars->pEffort->nCalls++;
+        p->pPars->pEffort->nConflicts += p->pSat->stats.conflicts-nConflicts;
+    }
 //ABC_PRT( "sat", Abc_Clock() - clk2 );
 
     if ( RetValue == l_False )
@@ -582,6 +602,13 @@ int Cec_ManSatCheckNodeTwo( Cec_ManSat_t * p, Gia_Obj_t * pObj1, Gia_Obj_t * pOb
         return 0;
     }
 
+    if ( Cec_ManEffortStopped(p->pPars->pEffort) ) return -1;
+    if ( p->pPars->pEffort && p->pPars->pEffort->nConflictsMax )
+    {
+        ABC_INT64_T left = p->pPars->pEffort->nConflictsMax-p->pPars->pEffort->nConflicts;
+        if ( !nBTLimit || left < nBTLimit ) nBTLimit = left < ABC_INT_MAX ? (int)left : ABC_INT_MAX;
+    }
+
     p->nCallsSince++;  // experiment with this!!!
     p->nSatTotal++;
     
@@ -628,6 +655,11 @@ clk = Abc_Clock();
 clk2 = Abc_Clock();
     RetValue = sat_solver_solve( p->pSat, Lits, Lits + 2, 
         (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+    if ( p->pPars->pEffort )
+    {
+        p->pPars->pEffort->nCalls++;
+        p->pPars->pEffort->nConflicts += p->pSat->stats.conflicts-nConflicts;
+    }
 //ABC_PRT( "sat", Abc_Clock() - clk2 );
 
     if ( RetValue == l_False )
@@ -732,7 +764,7 @@ void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPar
         }
         Bar_ProgressUpdate( pProgress, i, "SAT..." );
 clk2 = Abc_Clock();
-        status = Cec_ManSatCheckNode( p, Gia_ObjChild0(pObj) );
+        status = Cec_ManIsStopped(pPars->pLimits) ? -1 : Cec_ManSatCheckNode( p, Gia_ObjChild0(pObj) );
         pObj->fMark0 = (status == 0);
         pObj->fMark1 = (status == 1);
         if ( status == 1 && vIdsOrig )

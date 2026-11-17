@@ -102,21 +102,21 @@ void Acec_TreeFilterOne( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree )
     // mark roots
     Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
     {
-        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+3), 1 );
-        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+4), 1 );
+        Acec_BitWrite( vIsRoot, Vec_IntEntry(vAdds, 6*Box+3), 1 );
+        Acec_BitWrite( vIsRoot, Vec_IntEntry(vAdds, 6*Box+4), 1 );
     }
     Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
     {
-        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+0), 0 );
-        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+1), 0 );
-        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+2), 0 );
+        Acec_BitWrite( vIsRoot, Vec_IntEntry(vAdds, 6*Box+0), 0 );
+        Acec_BitWrite( vIsRoot, Vec_IntEntry(vAdds, 6*Box+1), 0 );
+        Acec_BitWrite( vIsRoot, Vec_IntEntry(vAdds, 6*Box+2), 0 );
     }
     // iterate through nodes to detect TFO of roots
     Gia_ManForEachAnd( p, pObj, i )
     {
         if ( Vec_BitEntry(vIsRoot, Gia_ObjFaninId0(pObj,i)) || Vec_BitEntry(vIsRoot, Gia_ObjFaninId1(pObj,i)) ||
              Vec_BitEntry(vMarked, Gia_ObjFaninId0(pObj,i)) || Vec_BitEntry(vMarked, Gia_ObjFaninId1(pObj,i)) )
-            Vec_BitWriteEntry( vMarked, i, 1 );
+            Acec_BitWrite( vMarked, i, 1 );
     }
     // remove those that overlap with roots
     Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
@@ -173,7 +173,7 @@ void Acec_TreeMarkTFI_rec( Gia_Man_t * p, int Id, Vec_Bit_t * vMarked )
     Gia_Obj_t * pObj = Gia_ManObj(p, Id);
     if ( Vec_BitEntry(vMarked, Id) )
         return;
-    Vec_BitWriteEntry( vMarked, Id, 1 );
+    Acec_BitWrite( vMarked, Id, 1 );
     if ( !Gia_ObjIsAnd(pObj) )
         return;
     Acec_TreeMarkTFI_rec( p, Gia_ObjFaninId0(pObj, Id), vMarked );
@@ -188,14 +188,14 @@ void Acec_TreeFilterOne2( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree )
     // mark leaves
     Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
     {
-        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+0), 1 );
-        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+1), 1 );
-        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+2), 1 );
+        Acec_BitWrite( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+0), 1 );
+        Acec_BitWrite( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+1), 1 );
+        Acec_BitWrite( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+2), 1 );
     }
     Vec_IntForEachEntryDouble( vTree, Box, Rank, i )
     {
-        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+3), 0 );
-        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+4), 0 );
+        Acec_BitWrite( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+3), 0 );
+        Acec_BitWrite( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+4), 0 );
     }
     // mark TFI of leaves
     Gia_ManForEachAnd( p, pObj, i )
@@ -313,10 +313,10 @@ void Acec_TreeVerifyPhases2( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vBoxe
     Vec_WecForEachLevel( vBoxes, vLevel, i )
         Vec_IntForEachEntry( vLevel, Box, k )
         {
-            Vec_BitWriteEntry( vRoots, Vec_IntEntry( vAdds, 6*Box+3 ), 1 );
-            Vec_BitWriteEntry( vRoots, Vec_IntEntry( vAdds, 6*Box+4 ), 1 );
-            Vec_BitWriteEntry( vPhase, Vec_IntEntry( vAdds, 6*Box+3 ), Acec_SignBit2(vAdds, Box, 3) );
-            Vec_BitWriteEntry( vPhase, Vec_IntEntry( vAdds, 6*Box+4 ), Acec_SignBit2(vAdds, Box, 4) );
+            Acec_BitWrite( vRoots, Vec_IntEntry( vAdds, 6*Box+3 ), 1 );
+            Acec_BitWrite( vRoots, Vec_IntEntry( vAdds, 6*Box+4 ), 1 );
+            Acec_BitWrite( vPhase, Vec_IntEntry( vAdds, 6*Box+3 ), Acec_SignBit2(vAdds, Box, 3) );
+            Acec_BitWrite( vPhase, Vec_IntEntry( vAdds, 6*Box+4 ), Acec_SignBit2(vAdds, Box, 4) );
         }
     // compare with input points
     Vec_WecForEachLevel( vBoxes, vLevel, i )
@@ -396,7 +396,7 @@ void Acec_TreePhases_rec( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vMap, in
     assert( Node == Vec_IntEntry( vAdds, 6*iBox+4 ) );
     if ( Vec_BitEntry(vVisit, iBox) )
         return;
-    Vec_BitWriteEntry( vVisit, iBox, 1 );
+    Acec_BitWrite( vVisit, iBox, 1 );
     iXor = Vec_IntEntry( vAdds, 6*iBox+3 );
     fXorPhase = Acec_SignBit(vAdds, iBox, 3);
     if ( Vec_IntEntry(vAdds, 6*iBox+2) == 0 )
@@ -484,7 +484,7 @@ void Acec_TreeFindTrees2_rec( Vec_Int_t * vAdds, Vec_Int_t * vMap, int iAdd, int
     int k;
     if ( Vec_BitEntry(vFound, iAdd) )
         return;
-    Vec_BitWriteEntry( vFound, iAdd, 1 );
+    Acec_BitWrite( vFound, iAdd, 1 );
     Vec_IntPush( vTree, iAdd );
     Vec_IntPush( vTree, Rank );
     //printf( "Assigning rank %d to (%d:%d).\n", Rank, Vec_IntEntry(vAdds, 6*iAdd+3), Vec_IntEntry(vAdds, 6*iAdd+4) );
@@ -504,7 +504,7 @@ Vec_Wec_t * Acec_TreeFindTrees( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Bit_t * vI
 {
     Vec_Wec_t * vTrees = Vec_WecAlloc( 10 );
     Vec_Int_t * vMap   = Acec_TreeFindPoints( p, vAdds, vIgnore );
-    Vec_Bit_t * vFound = Vec_BitStart( Vec_IntSize(vAdds)/6 );
+    Vec_Bit_t * vFound = Vec_BitStart( Abc_MaxInt(1, Vec_IntSize(vAdds)/6) );
     Vec_Int_t * vTree;
     int i, k, In, Out, Box, Rank, MinRank;
     // go through the cut-points
@@ -607,7 +607,7 @@ int Acec_CreateBoxMaxRank( Vec_Int_t * vTree )
 Acec_Box_t * Acec_CreateBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree )
 {
     int MaxRank = Acec_CreateBoxMaxRank(vTree);
-    Vec_Bit_t * vVisit  = Vec_BitStart( Vec_IntSize(vAdds)/6 );
+    Vec_Bit_t * vVisit  = Vec_BitStart( Abc_MaxInt(1, Vec_IntSize(vAdds)/6) );
     Vec_Bit_t * vIsLeaf = Vec_BitStart( Gia_ManObjNum(p) );
     Vec_Bit_t * vIsRoot = Vec_BitStart( Gia_ManObjNum(p) );
     Vec_Int_t * vLevel, * vMap;
@@ -627,16 +627,16 @@ Acec_Box_t * Acec_CreateBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree
 //            printf( "Skipping one adder...\n" );
 //            continue;
 //        }
-        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+0), 1 );
-        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+1), 1 );
-        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+2), 1 );
-        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+3), 1 );
-        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+4), 1 );
+        Acec_BitWrite( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+0), 1 );
+        Acec_BitWrite( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+1), 1 );
+        Acec_BitWrite( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+2), 1 );
+        Acec_BitWrite( vIsRoot, Vec_IntEntry(vAdds, 6*Box+3), 1 );
+        Acec_BitWrite( vIsRoot, Vec_IntEntry(vAdds, 6*Box+4), 1 );
         Vec_WecPush( pBox->vAdds, Rank, Box );
     }
     // sort each level
     Vec_WecForEachLevel( pBox->vAdds, vLevel, i )
-        Vec_IntSort( vLevel, 0 );
+        if ( Vec_IntSize(vLevel) > 1 ) Vec_IntSort( vLevel, 0 );
 
     // set phases starting from roots
     vMap = Acec_TreeCarryMap( p, vAdds, pBox->vAdds );
@@ -653,7 +653,7 @@ Acec_Box_t * Acec_CreateBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree
     Vec_IntFree( vMap );
 
     // collect inputs/outputs
-    Vec_BitWriteEntry( vIsRoot, 0, 1 );
+    Acec_BitWrite( vIsRoot, 0, 1 );
     Vec_WecForEachLevel( pBox->vAdds, vLevel, i )
         Vec_IntForEachEntry( vLevel, Box, j )
         {
@@ -677,9 +677,9 @@ Acec_Box_t * Acec_CreateBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vTree
     Vec_BitFree( vIsRoot );
     // sort each level
     Vec_WecForEachLevel( pBox->vLeafLits, vLevel, i )
-        Vec_IntSort( vLevel, 0 );
+        if ( Vec_IntSize(vLevel) > 1 ) Vec_IntSort( vLevel, 0 );
     Vec_WecForEachLevel( pBox->vRootLits, vLevel, i )
-        Vec_IntSort( vLevel, 1 );
+        if ( Vec_IntSize(vLevel) > 1 ) Vec_IntSort( vLevel, 1 );
     //return pBox;
 /*
     // push literals forward

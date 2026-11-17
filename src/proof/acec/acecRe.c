@@ -469,10 +469,10 @@ void Ree_CollectInsiders_rec( Gia_Man_t * pGia, int iObj, Vec_Bit_t * vVisited, 
 {
     if ( Vec_BitEntry(vVisited, iObj) )
         return;
-    Vec_BitSetEntry( vVisited, iObj, 1 );
+    Acec_BitWrite( vVisited, iObj, 1 );
     Ree_CollectInsiders_rec( pGia, Gia_ObjFaninId0p(pGia, Gia_ManObj(pGia, iObj)), vVisited, vInsiders );
     Ree_CollectInsiders_rec( pGia, Gia_ObjFaninId1p(pGia, Gia_ManObj(pGia, iObj)), vVisited, vInsiders );
-    Vec_BitSetEntry( vInsiders, iObj, 1 );
+    Acec_BitWrite( vInsiders, iObj, 1 );
 }
 Vec_Bit_t * Ree_CollectInsiders( Gia_Man_t * pGia, Vec_Int_t * vAdds )
 {
@@ -487,9 +487,9 @@ Vec_Bit_t * Ree_CollectInsiders( Gia_Man_t * pGia, Vec_Int_t * vAdds )
         Entry1 = Vec_IntEntry( vAdds, 6*i + 0 );
         Entry2 = Vec_IntEntry( vAdds, 6*i + 1 );
         Entry3 = Vec_IntEntry( vAdds, 6*i + 2 );
-        Vec_BitWriteEntry( vVisited, Entry1, 1 );
-        Vec_BitWriteEntry( vVisited, Entry2, 1 );
-        Vec_BitWriteEntry( vVisited, Entry3, 1 );
+        Acec_BitWrite( vVisited, Entry1, 1 );
+        Acec_BitWrite( vVisited, Entry2, 1 );
+        Acec_BitWrite( vVisited, Entry3, 1 );
         // traverse from outputs
         Entry1 = Vec_IntEntry( vAdds, 6*i + 3 );
         Entry2 = Vec_IntEntry( vAdds, 6*i + 4 );

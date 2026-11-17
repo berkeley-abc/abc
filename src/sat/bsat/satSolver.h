@@ -209,6 +209,7 @@ struct sat_solver_t
     int         RunId;          // SAT id in this run
     int(*pFuncStop)(int);       // callback to terminate
     int         fStopRequested; // latched for the current solve call
+    int *       pStopFlag;      // optional caller-owned cancellation latch
 };
 
 static inline clause * clause_read( sat_solver * s, cla h )          
@@ -363,6 +364,17 @@ static inline void sat_solver_set_runid( sat_solver *s, int id )
 static inline void sat_solver_set_stop_func( sat_solver *s, int (*fnct)(int) ) 
 { 
     s->pFuncStop = fnct; 
+}
+static inline void sat_solver_set_stop_flag( sat_solver * s, int * pFlag )
+{
+    s->pStopFlag = pFlag;
+}
+static inline int sat_solver_cancelled( sat_solver * s )
+{
+    if ( s->pStopFlag && *s->pStopFlag ) return 1;
+    if ( !s->pFuncStop || !s->pFuncStop(s->RunId) ) return 0;
+    if ( s->pStopFlag ) *s->pStopFlag = 1;
+    return 1;
 }
 
 static inline int sat_solver_add_const( sat_solver * pSat, int iVar, int fCompl )

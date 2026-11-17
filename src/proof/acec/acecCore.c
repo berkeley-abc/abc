@@ -474,12 +474,105 @@ int Acec_MatchBoxes( Acec_Box_t * pBox0, Acec_Box_t * pBox1 )
     return nTotal;
 }
 
+
+
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Checks arithmetic CEC and validates counterexamples on the originals.]
+
+  Description [Preserves legacy reconstruction and search policy. A negative
+  result is reported only after its witness satisfies the original miter.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Acec_SolveAig( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Acec_ParCec_t * pPars )
+{
+    int Status = -1;
+    abctime clk = Abc_Clock();
+    Gia_Man_t * pMiter = NULL, * pOriginal = NULL;
+    Gia_Man_t * pGia0n = pGia0, * pGia1n = pGia1;
+    Acec_Box_t * pBox0 = NULL, * pBox1 = NULL;
+    Cec_ParCec_t ParsCec;
+    pPars->iOutFail = -1;
+    if ( pGia0 ) { Abc_CexFree(pGia0->pCexComb); pGia0->pCexComb = NULL; }
+    if ( !pGia0 || !pGia1 || Gia_ManCiNum(pGia0) != Gia_ManCiNum(pGia1) ||
+         Gia_ManCoNum(pGia0) != Gia_ManCoNum(pGia1) || Gia_ManRegNum(pGia0) != Gia_ManRegNum(pGia1) )
+    {
+        if ( !pPars->fSilent ) Abc_Print( 1, "Cannot compare networks with different interfaces.\n" );
+        goto finish;
+    }
+    pBox0 = Acec_ProduceBox( pGia0, pPars->fVerbose );
+    pBox1 = Acec_ProduceBox( pGia1, pPars->fVerbose );
+    if ( pBox0 == NULL || pBox1 == NULL )
+    {
+        if ( !pPars->fSilent ) Abc_Print( 1, "Cannot find arithmetic boxes in both LHS and RHS. Trying regular CEC.\n" );
+    }
+    else if ( !Acec_MatchBoxes( pBox0, pBox1 ) )
+    {
+        if ( !pPars->fSilent ) Abc_Print( 1, "Cannot match arithmetic boxes in LHS and RHS. Trying regular CEC.\n" );
+    }
+    else
+    {
+        pGia0n = Acec_InsertBox( pBox0, 0 );
+        pGia1n = Acec_InsertBox( pBox1, 0 );
+        if ( !pPars->fSilent )
+        {
+            Abc_Print( 1, "Matching of adder trees in LHS and RHS succeeded.  " );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        }
+    }
+    Cec_ManCecSetDefaultParams( &ParsCec );
+    ParsCec.nBTLimit = pPars->nBTLimit;
+    // Do not publish a transformed result before validating its witness.
+    ParsCec.fSilent = 1;
+    ParsCec.fVerbose = pPars->fVerbose;
+    ParsCec.fVeryVerbose = pPars->fVeryVerbose;
+    pMiter = Gia_ManMiter( pGia0n, pGia1n, 0, 1, 0, 0, 0 );
+    if ( !pMiter ) goto finish;
+    Status = Cec_ManVerify( pMiter, &ParsCec );
+    if ( Status == 0 )
+    {
+        Abc_Cex_t * pCex = pMiter->pCexComb;
+        pOriginal = Gia_ManMiter( pGia0, pGia1, 0, 1, 0, 0, 0 );
+        if ( pOriginal && pCex && pCex->nRegs == 0 && pCex->iFrame == 0 &&
+             pCex->nPis == Gia_ManCiNum(pOriginal) && pCex->nBits == pCex->nPis &&
+             pCex->iPo >= 0 && pCex->iPo < Gia_ManCoNum(pOriginal)/2 && Gia_ManVerifyCex(pOriginal, pCex, 1) )
+        {
+            pPars->iOutFail = pCex->iPo;
+            pGia0->pCexComb = pCex;
+            pMiter->pCexComb = NULL;
+        }
+        else
+        {
+            Status = -1;
+            if ( !pPars->fSilent ) Abc_Print( 1, "Counterexample failed validation on the original networks.\n" );
+        }
+    }
+finish:
+    if ( pOriginal ) Gia_ManStop( pOriginal );
+    if ( pMiter ) Gia_ManStop( pMiter );
+    if ( pGia0n != pGia0 ) Gia_ManStop( pGia0n );
+    if ( pGia1n != pGia1 ) Gia_ManStop( pGia1n );
+    Acec_BoxFreeP( &pBox0 );
+    Acec_BoxFreeP( &pBox1 );
+    if ( !pPars->fSilent )
+    {
+        Abc_Print( 1, "Networks are %s.  ", Status == 1 ? "equivalent" : Status == 0 ? "NOT EQUIVALENT" : "UNDECIDED" );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        if ( Status == 0 ) Abc_Print( 1, "Original networks differ at output %d (validated counterexample).\n", pPars->iOutFail );
+    }
+    return Status;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Expands native XOR/MUX nodes before using the legacy detector.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -487,55 +580,19 @@ int Acec_MatchBoxes( Acec_Box_t * pBox0, Acec_Box_t * pBox1 )
 ***********************************************************************/
 int Acec_Solve( Gia_Man_t * pGia0, Gia_Man_t * pGia1, Acec_ParCec_t * pPars )
 {
-    int status = -1;
-    abctime clk = Abc_Clock();
-    Gia_Man_t * pMiter;
-    Gia_Man_t * pGia0n = pGia0, * pGia1n = pGia1;
-    Cec_ParCec_t ParsCec, * pCecPars = &ParsCec;
-//    Vec_Bit_t * vIgnore0 = pPars->fBooth ? Acec_BoothFindPPG(pGia0) : NULL;
-//    Vec_Bit_t * vIgnore1 = pPars->fBooth ? Acec_BoothFindPPG(pGia1) : NULL;
-//    Acec_Box_t * pBox0 = Acec_DeriveBox( pGia0, vIgnore0, 0, 0, pPars->fVerbose );
-//    Acec_Box_t * pBox1 = Acec_DeriveBox( pGia1, vIgnore1, 0, 0, pPars->fVerbose );
-//    Vec_BitFreeP( &vIgnore0 );
-//    Vec_BitFreeP( &vIgnore1 );
-    Acec_Box_t * pBox0 = Acec_ProduceBox( pGia0, pPars->fVerbose );
-    Acec_Box_t * pBox1 = Acec_ProduceBox( pGia1, pPars->fVerbose );
-    if ( pBox0 == NULL || pBox1 == NULL ) // cannot match
-        printf( "Cannot find arithmetic boxes in both LHS and RHS. Trying regular CEC.\n" );
-    else if ( !Acec_MatchBoxes( pBox0, pBox1 ) ) // cannot find matching
-        printf( "Cannot match arithmetic boxes in LHS and RHS. Trying regular CEC.\n" );
-    else 
+    Gia_Man_t * pWork0 = pGia0, * pWork1 = pGia1;
+    int Status;
+    if ( pGia0 && (Gia_ManXorNum(pGia0) || Gia_ManMuxNum(pGia0)) ) pWork0 = Gia_ManDupNoMuxes(pGia0, 1);
+    if ( pGia1 && (Gia_ManXorNum(pGia1) || Gia_ManMuxNum(pGia1)) ) pWork1 = Gia_ManDupNoMuxes(pGia1, 1);
+    Status = Acec_SolveAig( pWork0, pWork1, pPars );
+    if ( pWork0 != pGia0 )
     {
-        pGia0n = Acec_InsertBox( pBox0, 0 );
-        pGia1n = Acec_InsertBox( pBox1, 0 );
-        printf( "Matching of adder trees in LHS and RHS succeeded.  " );
-        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        Abc_CexFree( pGia0->pCexComb );
+        pGia0->pCexComb = pWork0->pCexComb; pWork0->pCexComb = NULL;
+        Gia_ManStop( pWork0 );
     }
-    // solve regular CEC problem 
-    Cec_ManCecSetDefaultParams( pCecPars );
-    pCecPars->nBTLimit = pPars->nBTLimit;
-    pMiter = Gia_ManMiter( pGia0n, pGia1n, 0, 1, 0, 0, pPars->fVerbose );
-    if ( pMiter )
-    {
-        int fDumpMiter = 0;
-        if ( fDumpMiter )
-        {
-            Abc_Print( 0, "The verification miter is written into file \"%s\".\n", "acec_miter.aig" );
-            Gia_AigerWrite( pMiter, "acec_miter.aig", 0, 0, 0 );
-        }
-        status = Cec_ManVerify( pMiter, pCecPars );
-        ABC_SWAP( Abc_Cex_t *, pGia0->pCexComb, pMiter->pCexComb );
-        Gia_ManStop( pMiter );
-    }
-    else
-        printf( "Miter computation has failed.\n" );
-    if ( pGia0n != pGia0 )
-        Gia_ManStop( pGia0n );
-    if ( pGia1n != pGia1 )
-        Gia_ManStop( pGia1n );
-    Acec_BoxFreeP( &pBox0 );
-    Acec_BoxFreeP( &pBox1 );
-    return status;
+    if ( pWork1 != pGia1 ) Gia_ManStop( pWork1 );
+    return Status;
 }
 
 ////////////////////////////////////////////////////////////////////////

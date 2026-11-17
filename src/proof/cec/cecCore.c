@@ -400,6 +400,8 @@ Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars, int fSil
     // SAT solving
     Cec_ManSatSetDefaultParams( pParsSat );
     pParsSat->nBTLimit = pPars->nBTLimit;
+    pParsSat->pLimits = pPars->pLimits;
+    pParsSat->pEffort = pPars->pEffort;
     pParsSat->fVerbose = pPars->fVeryVerbose;
     // simulation patterns
     pPat = Cec_ManPatStart();
@@ -420,6 +422,7 @@ p->timeSim += Abc_Clock() - clk;
     // perform solving
     for ( i = 1; i <= pPars->nItersMax; i++ )
     {
+        if ( Cec_ManIsStopped(pPars->pLimits) || Cec_ManEffortStopped(pPars->pEffort) ) { fTimeOut = 1; break; }
         clk2 = Abc_Clock();
         nMatches = 0;
         if ( pPars->fDualOut )
@@ -461,7 +464,10 @@ clk = Abc_Clock();
         if ( pPars->fRunCSat )
             Cec_ManSatSolveCSat( pPat, pSrm, pParsSat ); 
         else
-            Cec_ManSatSolve( pPat, pSrm, pParsSat, p->pAig->vIdsOrig, p->vXorNodes, pAig->vIdsEquiv, 0 ); 
+            Cec_ManSatSolve( pPat, pSrm, pParsSat,
+                pPars->fUseProvedIds ? NULL : p->pAig->vIdsOrig,
+                pPars->fUseProvedIds ? NULL : p->vXorNodes,
+                pPars->fUseProvedIds ? NULL : pAig->vIdsEquiv, 0 );
 p->timeSat += Abc_Clock() - clk;
         if ( Cec_ManFraClassesUpdate( p, pSim, pPat, pSrm ) )
         {
@@ -471,6 +477,22 @@ p->timeSat += Abc_Clock() - clk;
             goto finalize;
         }
         Gia_ManStop( pSrm );
+
+        // A speculative SAT proof can depend on another proposed equality.
+        // Record only the pairs accepted after failed dependencies have been
+        // excluded by class refinement, including its trivial proved pairs.
+        if ( pPars->fUseOrigIds && pPars->fUseProvedIds )
+        {
+            Gia_Obj_t * pObj;
+            int k, iRepr;
+            Gia_ManForEachAnd(p->pAig, pObj, k)
+                if ( Gia_ObjProved(p->pAig, k) )
+                {
+                    iRepr = Gia_ObjRepr(p->pAig, k);
+                    assert(iRepr >= 0 && iRepr < k);
+                    Vec_IntPushTwo(pAig->vIdsEquiv, Vec_IntEntry(p->pAig->vIdsOrig, iRepr), Vec_IntEntry(p->pAig->vIdsOrig, k));
+                }
+        }
 
         // update the manager
         pSim->pAig = p->pAig = Gia_ManEquivReduceAndRemap( pTemp = p->pAig, 0, pParsSim->fDualOut );
@@ -493,7 +515,8 @@ p->timeSat += Abc_Clock() - clk;
             break;
         }
         // check resource limits
-        if ( p->pPars->TimeLimit && (Abc_Clock() - clkTotal)/CLOCKS_PER_SEC >= p->pPars->TimeLimit )
+        if ( Cec_ManIsStopped(pPars->pLimits) ||
+             (p->pPars->TimeLimit && (Abc_Clock() - clkTotal)/CLOCKS_PER_SEC >= p->pPars->TimeLimit) )
         {
             fTimeOut = 1;
             break;
@@ -501,7 +524,7 @@ p->timeSat += Abc_Clock() - clk;
 //        if ( p->nAllFailed && !p->nAllProved && !p->nAllDisproved )
         if ( p->nAllFailed > p->nAllProved + p->nAllDisproved )
         {
-            if ( pParsSat->nBTLimit >= 10001 )
+            if ( pParsSat->nBTLimit >= 10001 && (!pPars->pLimits || !pPars->pLimits->TimeToStop) )
                 break;
             if ( pPars->fSatSweeping )
             {
@@ -509,7 +532,7 @@ p->timeSat += Abc_Clock() - clk;
                     Abc_Print( 1, "Exceeded the limit on the number of conflicts (%d).\n", pParsSat->nBTLimit );
                 break;
             }
-            pParsSat->nBTLimit *= 10;
+            pParsSat->nBTLimit = pParsSat->nBTLimit > ABC_INT_MAX/10 ? ABC_INT_MAX : pParsSat->nBTLimit * 10;
             if ( p->pPars->fVerbose )
             {
                 if ( p->pPars->fVerbose )

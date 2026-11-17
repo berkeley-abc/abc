@@ -407,6 +407,7 @@ struct Wlc_BlastTim_t_
     int                    nOld;          // the number of entries in vOld
 };
 extern Gia_Man_t *    Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pPars );
+extern void           Wlc_BlastMultiplier( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vTemp, Vec_Int_t * vRes, int fSigned );
 extern void           Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fFastAdder, Vec_Wec_t ** pvProds, int fVerbose );
 extern Wlc_BlastTim_t * Wlc_BlastTimStart( void );
 extern void           Wlc_BlastTimStop( Wlc_BlastTim_t * p );

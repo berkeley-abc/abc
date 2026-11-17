@@ -41,3 +41,24 @@ for name in sum high tail0 tail1; do
     ' "$FIXTURE" > "$TMP/$name.blif"
     check "$name" 'NOT EQUIVALENT'
 done
+
+# The replacement commands retain the same interface and distinguish a real
+# output mismatch from an undecided proof. Use a changed Boolean structure too.
+"$ABC" -s -c "read_blif $TMP/reference.blif; strash; dc2; write_aiger $TMP/rebuilt.aig" > "$TMP/rebuild.log" 2>&1
+for name in identity rebuilt sum high tail0 tail1; do
+    case "$name" in identity|rebuilt) expected=equivalent ;; *) expected='NOT EQUIVALENT' ;; esac
+    "$ABC" -s -c "&acec2 -T 10 $TMP/reference.aig $TMP/$name.aig" > "$TMP/new_$name.log" 2>&1
+    if ! grep -q "^Networks are $expected" "$TMP/new_$name.log"; then
+        cat "$TMP/new_$name.log"
+        echo "FAIL: &acec2 $name (expected $expected)" >&2
+        exit 1
+    fi
+    echo "PASS: &acec2 $name"
+done
+"$ABC" -s -c "&r $TMP/reference.aig; &atree2 -L 0 -J $TMP/profile.json" > "$TMP/profile.log" 2>&1
+if ! grep -q '"full_adders":1,' "$TMP/profile.json"; then
+    cat "$TMP/profile.log" "$TMP/profile.json"
+    echo 'FAIL: &atree2 missed the fixture full adder' >&2
+    exit 1
+fi
+echo 'PASS: &atree2 full-adder profile'

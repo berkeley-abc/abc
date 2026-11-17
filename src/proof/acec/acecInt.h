@@ -56,6 +56,14 @@ struct Acec_Box_t_
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
+static inline void Acec_BitWrite( Vec_Bit_t * p, int i, int Value )
+{
+    unsigned * pWords = (unsigned *)p->pArray;
+    assert( i >= 0 && i < p->nSize && (Value == 0 || Value == 1) );
+    if ( Value ) Abc_InfoSetBit(pWords, i);
+    else pWords[i >> 5] &= ~(1u << (i & 31));
+}
+
 static inline int Acec_SignBit( Vec_Int_t * vAdds, int iBox, int b )  { return (Vec_IntEntry(vAdds, 6*iBox+5) >> b)      & 1; }
 static inline int Acec_SignBit2( Vec_Int_t * vAdds, int iBox, int b ) { return (Vec_IntEntry(vAdds, 6*iBox+5) >> (16+b)) & 1; }
 
@@ -81,6 +89,8 @@ extern Vec_Bit_t *   Acec_MultMarkPPs( Gia_Man_t * p );
 extern void          Acec_InsertFadd( Gia_Man_t * pNew, int In[3], int Out[2] );
 extern Gia_Man_t *   Acec_InsertBox( Acec_Box_t * pBox, int fAll );
 /*=== acecTree.c ========================================================*/
+extern void          Acec_TreeVerifyPhases( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vBoxes );
+extern void          Acec_TreeVerifyPhases2( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vBoxes );
 extern void          Acec_PrintAdders( Vec_Wec_t * vBoxes, Vec_Int_t * vAdds );
 extern void          Acec_TreePrintBox( Acec_Box_t * pBox, Vec_Int_t * vAdds );
 extern Acec_Box_t *  Acec_DeriveBox( Gia_Man_t * p, Vec_Bit_t * vIgnore, int fFilterIn, int fFilterOut, int fVerbose );

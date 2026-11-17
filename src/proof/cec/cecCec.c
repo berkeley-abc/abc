@@ -428,7 +428,8 @@ int Cec_ManVerifyNaive( Gia_Man_t * p, Cec_ParCec_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
+static int Cec_ManVerifyInt( Gia_Man_t * pInit, Cec_ParCec_t * pPars,
+                             Cec_ParLimit_t * pLimits, Gia_Man_t ** ppReduced )
 {
     int fDumpUndecided = 0;
     Cec_ParFra_t ParsFra, * pParsFra = &ParsFra;
@@ -436,6 +437,9 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
     int RetValue;
     abctime clk = Abc_Clock();
     abctime clkTotal = Abc_Clock();
+    if ( ppReduced ) *ppReduced = NULL;
+    if ( Cec_ManIsStopped(pLimits) ) return -1;
+    if ( pLimits && pPars->fNaive ) return -1;
     // consider special cases:
     // 1) (SAT) a pair of POs have different value under all-0 pattern
     // 2) (SAT) a pair of POs has different PI/Const drivers
@@ -464,6 +468,7 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
     }
     // sweep for equivalences
     Cec_ManFraSetDefaultParams( pParsFra );
+    pParsFra->pLimits      = pLimits;
     pParsFra->nItersMax    = 1000;
     pParsFra->nBTLimit     = pPars->nBTLimit;
     pParsFra->TimeLimit    = pPars->TimeLimit;
@@ -508,6 +513,20 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
         Gia_ManStop( pNew );
         pNew = p;
     }
+    // The bounded interface returns the reduced miter for a caller-controlled
+    // fallback. The legacy old engine has no absolute-deadline interface.
+    if ( pLimits )
+    {
+        Gia_Obj_t * pObj0, * pObj1; int i, fEqual = 1;
+        for ( i = 0; i < Gia_ManCoNum(pNew); i += 2 )
+        {
+            pObj0 = Gia_ManCo(pNew, i); pObj1 = Gia_ManCo(pNew, i+1);
+            if ( Gia_ObjFaninLit0p(pNew, pObj0) != Gia_ObjFaninLit0p(pNew, pObj1) ) { fEqual = 0; break; }
+        }
+        if ( !fEqual && ppReduced ) *ppReduced = pNew;
+        else Gia_ManStop(pNew);
+        return fEqual ? 1 : -1;
+    }
     if ( pPars->fVerbose )
     {
         Abc_Print( 1, "Networks are UNDECIDED after the new CEC engine.  " );
@@ -537,6 +556,41 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
         Cec_ManPrintCexSummary( p, p->pCexComb, pPars );
     Gia_ManStop( pNew );
     return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Preserves the established CEC entry point and fallback policy.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
+{
+    return Cec_ManVerifyInt(pInit, pPars, NULL, NULL);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs CEC sweeping with caller-owned limits and reduced output.]
+
+  Description [The caller owns *ppReduced on an undecided result. Existing
+  Cec_ManVerify callers retain their original unbounded legacy fallback.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cec_ManVerifyWithLimits( Gia_Man_t * pInit, Cec_ParCec_t * pPars,
+                            Cec_ParLimit_t * pLimits, Gia_Man_t ** ppReduced )
+{
+    assert(pLimits != NULL);
+    return Cec_ManVerifyInt(pInit, pPars, pLimits, ppReduced);
 }
 
 /**Function*************************************************************

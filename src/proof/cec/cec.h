@@ -55,6 +55,42 @@ struct Cec_ParKind_t_
     int            (*pFuncStop)(int); // optional cooperative cancellation
 };
 
+// Optional limits for callers embedding CEC with an absolute deadline.
+typedef struct Cec_ParLimit_t_ Cec_ParLimit_t;
+struct Cec_ParLimit_t_
+{
+    abctime          TimeToStop;
+    int              RunId;
+    int            (*pFuncStop)(int);
+    int *            pCancelled;   // optional shared cancellation latch (initialize to NULL)
+};
+
+static inline int Cec_ManIsStopped( Cec_ParLimit_t * p )
+{
+    if ( !p ) return 0;
+    if ( p->pCancelled && *p->pCancelled ) return 1;
+    if ( p->pFuncStop && p->pFuncStop(p->RunId) )
+    {
+        if ( p->pCancelled ) *p->pCancelled = 1;
+        return 1;
+    }
+    return p->TimeToStop && Abc_Clock() >= p->TimeToStop;
+}
+
+// Optional cumulative effort for an embedded sequence of SAT queries.
+typedef struct Cec_ParEffort_t_ Cec_ParEffort_t;
+struct Cec_ParEffort_t_
+{
+    int              nCallsMax, nCalls;
+    ABC_INT64_T      nConflictsMax, nConflicts;
+};
+
+static inline int Cec_ManEffortStopped( Cec_ParEffort_t * p )
+{
+    return p && ((p->nCallsMax && p->nCalls >= p->nCallsMax) ||
+                 (p->nConflictsMax && p->nConflicts >= p->nConflictsMax));
+}
+
 // dynamic SAT parameters
 typedef struct Cec_ParSat_t_ Cec_ParSat_t;
 struct Cec_ParSat_t_
@@ -70,6 +106,8 @@ struct Cec_ParSat_t_
     int              fLearnCls;     // perform clause learning
     int              fSaveCexes;    // saves counter-examples
     int              fVerbose;      // verbose stats
+    Cec_ParLimit_t *  pLimits;       // optional instance-owned limits
+    Cec_ParEffort_t * pEffort;       // optional cumulative query/conflict budget
 };
 
 // simulation parameters
@@ -139,6 +177,9 @@ struct Cec_ParFra_t_
     int              fBMiterInfo;   // printing BMiter information
     int              nPO;           // number of po in original design given a bmiter
     char *           pDumpName;     // file name to dump statistics
+    Cec_ParLimit_t *  pLimits;       // optional instance-owned limits
+    int              fUseProvedIds; // record refined proved pairs; requires fUseOrigIds
+    Cec_ParEffort_t * pEffort;       // optional cumulative query/conflict budget
 };
 
 // combinational equivalence checking parameters
@@ -319,6 +360,8 @@ struct Cec_ParSimGen_t_
 
 /*=== cecCec.c ==========================================================*/
 extern int           Cec_ManVerify( Gia_Man_t * p, Cec_ParCec_t * pPars );
+extern int           Cec_ManVerifyWithLimits( Gia_Man_t * p, Cec_ParCec_t * pPars,
+                                             Cec_ParLimit_t * pLimits, Gia_Man_t ** ppReduced );
 extern int           Cec_ManVerifyTwo( Gia_Man_t * p0, Gia_Man_t * p1, int fVerbose );
 extern int           Cec_ManVerifyTwoInv( Gia_Man_t * p0, Gia_Man_t * p1, int fVerbose );
 extern int           Cec_ManVerifySimple( Gia_Man_t * p );

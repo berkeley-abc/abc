@@ -20,6 +20,9 @@
 #include "base/main/mainInt.h"
 #include "aig/gia/giaAig.h"
 #include "proof/acec/acec.h"
+#include "proof/acec2/acec2.h"
+#include <errno.h>
+#include <limits.h>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -30,6 +33,7 @@ ABC_NAMESPACE_IMPL_START
 static int Abc_CommandATMap                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Fadds              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ATree              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9ATree2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Polyn              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Anorm              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Decla              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -69,6 +73,7 @@ void Abc_InitArith( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Sequential",   "atmap",         Abc_CommandATMap,            0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&fadds",        Abc_CommandAbc9Fadds,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&atree",        Abc_CommandAbc9ATree,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&atree2",       Abc_CommandAbc9ATree2,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&polyn",        Abc_CommandAbc9Polyn,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&anorm",        Abc_CommandAbc9Anorm,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&decla",        Abc_CommandAbc9Decla,        0 );
@@ -1316,6 +1321,90 @@ usage:
     Abc_Print( -2, "\t-I num  : the number of refinement iterations to perform [default = %d]\n", nIterMax );
     Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Profiles checked arithmetic regions without changing the GIA.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Abc_CommandAbc9ATree2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Acec2_Par_t Pars;
+    Acec2_Man_t * p;
+    FILE * pFile = NULL;
+    char * pJson = NULL, * pEnd;
+    long Value;
+    int c, fOk = 1, fAlgebra = 0;
+    Acec2_SetDefaultParams(&Pars);
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "KTWLJavh")) != EOF )
+    {
+        if ( c == 'K' || c == 'T' || c == 'W' || c == 'L' )
+        {
+            if ( globalUtilOptind >= argc ) goto usage;
+            errno = 0;
+            Value = strtol(argv[globalUtilOptind], &pEnd, 10);
+            if ( errno || pEnd == argv[globalUtilOptind] || *pEnd || Value < 0 || Value > INT_MAX ) goto usage;
+            globalUtilOptind++;
+            if ( c == 'K' ) { if ( Value < 1 || Value > 64 ) goto usage; Pars.nCuts = (int)Value; }
+            if ( c == 'T' ) Pars.nTimeLimit = (int)Value;
+            if ( c == 'W' ) { if ( Value < 1 || Value > 65536 ) goto usage; Pars.nMaxWidth = (int)Value; }
+            if ( c == 'L' ) { if ( Value > 3 ) goto usage; Pars.nAnalysisLevel = (int)Value; }
+        }
+        else if ( c == 'J' )
+        {
+            if ( globalUtilOptind >= argc ) goto usage;
+            pJson = argv[globalUtilOptind++];
+        }
+        else if ( c == 'a' ) fAlgebra ^= 1;
+        else if ( c == 'v' ) Pars.fVerbose ^= 1;
+        else goto usage;
+    }
+    if ( globalUtilOptind != argc ) goto usage;
+    if ( !pAbc->pGia ) { Abc_Print(-1, "&atree2: there is no current AIG.\n"); return 1; }
+    p = Acec2_Analyze(pAbc->pGia, &Pars);
+    if ( !p ) return 1;
+    if ( fAlgebra ) Acec2_ProfilePolynomial(p);
+    Acec2_Print(p, stdout, Pars.fVerbose);
+    if ( pJson && !(pFile = fopen(pJson, "w")) )
+    {
+        Abc_Print(-1, "&atree2: cannot open JSON report \"%s\".\n", pJson);
+        Acec2_Free(p);
+        return 1;
+    }
+    if ( pFile )
+    {
+        fOk = Acec2_WriteJson(p, pFile);
+        if ( fclose(pFile) ) fOk = 0;
+        if ( !fOk ) Abc_Print(-1, "&atree2: writing the JSON report failed.\n");
+    }
+    Acec2_Free(p);
+    return !fOk;
+usage:
+    Abc_Print(-2, "usage: &atree2 [-KTWL <num>] [-J <file>] [-avh]\n");
+    Abc_Print(-2, "\t             profiles XORs, adders, and weighted regions in the current AIG\n");
+    Abc_Print(-2, "\t-K <num>   : retained cuts per node, 1..64 [default = %d]\n", Pars.nCuts);
+    Abc_Print(-2, "\t-T <num>   : runtime limit in seconds, 0 = unlimited [default = %d]\n", Pars.nTimeLimit);
+    Abc_Print(-2, "\t-W <num>   : arithmetic width limit, 1..65536 [default = %d]\n", Pars.nMaxWidth);
+    Abc_Print(-2, "\t-L <num>   : analysis level: 0 regions, 1 words, 2 products, 3 expressions [default = %d]\n", Pars.nAnalysisLevel);
+    Abc_Print(-2, "\t-J <file>  : write detailed JSON report [default = none]\n");
+    Abc_Print(-2, "\t-a         : toggle exact output-polynomial/product analysis [default = %s]\n", fAlgebra ? "yes" : "no");
+    Abc_Print(-2, "\t-v         : toggle reporting every region [default = %s]\n", Pars.fVerbose ? "yes" : "no");
+    Abc_Print(-2, "\t-h         : print the command usage\n");
+    Abc_Print(-2, "\tExample: &read design.aig; &atree2 -J temp/design.json\n\n");
+    Abc_Print(-2, "\t             This command is based on the following paper:\n");
+    Abc_Print(-2, "\t             A. Mishchenko, B. Sterin, and R. Brayton,\n");
+    Abc_Print(-2, "\t             \"Structural reverse engineering of arithmetic circuits\",\n");
+    Abc_Print(-2, "\t             UC Berkeley, Tech. Report, 2017.\n");
+    Abc_Print(-2, "\t             https://people.eecs.berkeley.edu/~alanmi/publications/2017/tech17_arith.pdf\n");
     return 1;
 }
 

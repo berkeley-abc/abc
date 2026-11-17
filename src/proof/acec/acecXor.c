@@ -99,7 +99,12 @@ Vec_Int_t * Acec_OrderTreeRoots( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * v
     Vec_IntForEachEntry( vMove, Entry, i )
         if ( Entry == -1 && Vec_IntFind(vMove, i) >= 0 )
             break;
-    assert( i < Vec_IntSize(vMove) );
+    // A lone XOR or an unorderable set of columns has no adder chain.
+    if ( i == Vec_IntSize(vMove) )
+    {
+        Vec_IntFree( vMove );
+        return vOrder;
+    }
     while ( 1 )
     {
         Vec_IntPush( vOrder, Vec_IntEntry(vXorRoots, i) );
@@ -131,7 +136,7 @@ Vec_Bit_t * Acec_MapXorOuts( Gia_Man_t * p, Vec_Int_t * vXors )
 {
     Vec_Bit_t * vMap = Vec_BitStart( Gia_ManObjNum(p) ); int i;
     for ( i = 0; 4*i < Vec_IntSize(vXors); i++ )
-        Vec_BitWriteEntry( vMap, Vec_IntEntry(vXors, 4*i), 1 );
+        Acec_BitWrite( vMap, Vec_IntEntry(vXors, 4*i), 1 );
     return vMap;
 }
 // marks XOR outputs participating in trees
@@ -140,7 +145,7 @@ Vec_Bit_t * Acec_MapXorOuts2( Gia_Man_t * p, Vec_Int_t * vXors, Vec_Int_t * vRan
     Vec_Bit_t * vMap = Vec_BitStart( Gia_ManObjNum(p) ); int i;
     for ( i = 0; 4*i < Vec_IntSize(vXors); i++ )
         if ( Vec_IntEntry(vRanks, Vec_IntEntry(vXors, 4*i)) != -1 )
-            Vec_BitWriteEntry( vMap, Vec_IntEntry(vXors, 4*i), 1 );
+            Acec_BitWrite( vMap, Vec_IntEntry(vXors, 4*i), 1 );
     return vMap;
 }
 // marks MAJ outputs
@@ -148,7 +153,7 @@ Vec_Bit_t * Acec_MapMajOuts( Gia_Man_t * p, Vec_Int_t * vAdds )
 {
     Vec_Bit_t * vMap = Vec_BitStart( Gia_ManObjNum(p) ); int i;
     for ( i = 0; 6*i < Vec_IntSize(vAdds); i++ )
-        Vec_BitWriteEntry( vMap, Vec_IntEntry(vAdds, 6*i+4), 1 );
+        Acec_BitWrite( vMap, Vec_IntEntry(vAdds, 6*i+4), 1 );
     return vMap;
 }
 // marks MAJ outputs participating in trees
@@ -166,9 +171,9 @@ Vec_Bit_t * Acec_MapXorIns( Gia_Man_t * p, Vec_Int_t * vXors )
     Vec_Bit_t * vMap = Vec_BitStart( Gia_ManObjNum(p) ); int i;
     for ( i = 0; 4*i < Vec_IntSize(vXors); i++ )
     {
-        Vec_BitWriteEntry( vMap, Vec_IntEntry(vXors, 4*i+1), 1 );
-        Vec_BitWriteEntry( vMap, Vec_IntEntry(vXors, 4*i+2), 1 );
-        Vec_BitWriteEntry( vMap, Vec_IntEntry(vXors, 4*i+3), 1 );
+        Acec_BitWrite( vMap, Vec_IntEntry(vXors, 4*i+1), 1 );
+        Acec_BitWrite( vMap, Vec_IntEntry(vXors, 4*i+2), 1 );
+        Acec_BitWrite( vMap, Vec_IntEntry(vXors, 4*i+3), 1 );
     }
     return vMap;
 }
@@ -287,11 +292,9 @@ Acec_Box_t * Acec_FindBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vAddBox
 {
     extern Vec_Int_t * Acec_TreeCarryMap( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vBoxes );
     extern void Acec_TreePhases_rec( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Int_t * vMap, int Node, int fPhase, Vec_Bit_t * vVisit );
-    extern void Acec_TreeVerifyPhases( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vBoxes );
-    extern void Acec_TreeVerifyPhases2( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vBoxes );
 
     int MaxRank = Vec_WecSize( vAddBoxes );
-    Vec_Bit_t * vVisit  = Vec_BitStart( Vec_IntSize(vAdds)/6 );
+    Vec_Bit_t * vVisit  = Vec_BitStart( Abc_MaxInt(1, Vec_IntSize(vAdds)/6) );
     Vec_Bit_t * vIsLeaf = Vec_BitStart( Gia_ManObjNum(p) );
     Vec_Bit_t * vIsRoot = Vec_BitStart( Gia_ManObjNum(p) );
     Vec_Int_t * vLevel, * vLevel2, * vMap;
@@ -310,15 +313,15 @@ Acec_Box_t * Acec_FindBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vAddBox
     Vec_WecForEachLevel( pBox->vAdds, vLevel, i )
     Vec_IntForEachEntry( vLevel, Box, k )
     {
-        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+0), 1 );
-        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+1), 1 );
-        Vec_BitWriteEntry( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+2), 1 );
-        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+3), 1 );
-        Vec_BitWriteEntry( vIsRoot, Vec_IntEntry(vAdds, 6*Box+4), 1 );
+        Acec_BitWrite( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+0), 1 );
+        Acec_BitWrite( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+1), 1 );
+        Acec_BitWrite( vIsLeaf, Vec_IntEntry(vAdds, 6*Box+2), 1 );
+        Acec_BitWrite( vIsRoot, Vec_IntEntry(vAdds, 6*Box+3), 1 );
+        Acec_BitWrite( vIsRoot, Vec_IntEntry(vAdds, 6*Box+4), 1 );
     }
     // sort each level
     Vec_WecForEachLevel( pBox->vAdds, vLevel, i )
-        Vec_IntSort( vLevel, 0 );
+        if ( Vec_IntSize(vLevel) > 1 ) Vec_IntSort( vLevel, 0 );
 
     // set phases starting from roots
     vMap = Acec_TreeCarryMap( p, vAdds, pBox->vAdds );
@@ -335,7 +338,7 @@ Acec_Box_t * Acec_FindBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vAddBox
     Vec_IntFree( vMap );
 
     // collect inputs/outputs
-    Vec_BitWriteEntry( vIsRoot, 0, 1 );
+    Acec_BitWrite( vIsRoot, 0, 1 );
     Vec_WecForEachLevel( pBox->vAdds, vLevel, i )
         Vec_IntForEachEntry( vLevel, Box, j )
         {
@@ -364,9 +367,9 @@ Acec_Box_t * Acec_FindBox( Gia_Man_t * p, Vec_Int_t * vAdds, Vec_Wec_t * vAddBox
 
     // sort each level
     Vec_WecForEachLevel( pBox->vLeafLits, vLevel, i )
-        Vec_IntSort( vLevel, 0 );
+        if ( Vec_IntSize(vLevel) > 1 ) Vec_IntSort( vLevel, 0 );
     Vec_WecForEachLevel( pBox->vRootLits, vLevel, i )
-        Vec_IntSort( vLevel, 1 );
+        if ( Vec_IntSize(vLevel) > 1 ) Vec_IntSort( vLevel, 1 );
 
     //Acec_CheckBoothPPs( p, pBox->vLeafLits );
     return pBox;
@@ -383,6 +386,11 @@ Acec_Box_t * Acec_ProduceBox( Gia_Man_t * p, int fVerbose )
     Vec_Int_t * vRanks = Acec_RankTrees( p, vXors, vXorRoots ); 
     Vec_Wec_t * vXorLeaves, * vAddBoxes = NULL; 
 
+    if ( !Vec_IntSize(vXorRoots) )
+    {
+        Vec_IntFree(vXors); Vec_IntFree(vAdds); Vec_IntFree(vXorRoots); Vec_IntFree(vRanks);
+        return NULL;
+    }
     Gia_ManLevelNum(p);
 
     //Acec_CheckXors( p, vXors );
@@ -397,7 +405,12 @@ Acec_Box_t * Acec_ProduceBox( Gia_Man_t * p, int fVerbose )
     Vec_IntFree( vTemp );
     Vec_IntFree( vRanks );
 
-    vRanks = Acec_RankTrees( p, vXors, vXorRoots ); 
+    if ( !Vec_IntSize(vXorRoots) )
+    {
+        Vec_IntFree(vXors); Vec_IntFree(vAdds); Vec_IntFree(vXorRoots);
+        return NULL;
+    }
+    vRanks = Acec_RankTrees( p, vXors, vXorRoots );
     vXorLeaves = Acec_FindXorLeaves( p, vXors, vAdds, vXorRoots, vRanks, &vAddBoxes ); 
     Vec_IntFree( vRanks );
 

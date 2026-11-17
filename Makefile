@@ -48,7 +48,7 @@ MODULES := \
 	src/bool/bdc src/bool/deco src/bool/dec src/bool/decpla src/bool/kit src/bool/lms src/bool/lucky \
 	src/bool/rsb src/bool/rpo \
 	src/proof/pdr src/proof/pdr2 src/proof/abs src/proof/live src/proof/ssc src/proof/int src/proof/imc \
-	src/proof/cec src/proof/acec src/proof/dch src/proof/fraig src/proof/fra src/proof/ssw \
+	src/proof/cec src/proof/acec src/proof/acec2 src/proof/dch src/proof/fraig src/proof/fra src/proof/ssw \
 	src/aig/aig src/aig/saig src/aig/gia src/aig/ioa src/aig/ivy src/aig/hop \
 	src/aig/miniaig
 
