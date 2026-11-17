@@ -14,6 +14,7 @@
 #include "opt/sfm/sfm.h"
 #include "proof/fraig/fraig.h"
 #include "proof/dch/dch.h"
+#include "ext-pa/paPlace.h"
 #include <ctime>
 
 ABC_NAMESPACE_HEADER_START
@@ -100,27 +101,43 @@ class AgrChoiceSession
     std::vector<std::string> labels;
     bool enabled;
     bool failed = false;
+    abctime deadline = 0;
+    abctime budgetStart = 0;
+    double budgetSeconds = 0;
+    bool timedOut = false;
+
+    bool Expired()
+    {
+        if (!timedOut && deadline && Abc_Clock() >= deadline)
+        {
+            timedOut = true;
+            Abc_Print(1, "AGR_CHOICE_BUDGET seconds=%.6g elapsed=%.6f timed_out=1\n",
+                      budgetSeconds, double(Abc_Clock() - budgetStart) / CLOCKS_PER_SEC);
+        }
+        return timedOut;
+    }
 
     // The standard compress2rs sequence on a private network. The -l
     // switches disable level preservation, matching the public ABC script.
     // No command interpreter, current network or user-owned store is used.
-    static AgrChoiceNtk Compress(Abc_Ntk_t *source)
+    AgrChoiceNtk Compress(Abc_Ntk_t *source)
     {
         AgrChoiceNtk network(Abc_NtkDup(source));
         if (!network) return {};
         auto balance = [&]()
         {
+            if (Expired()) return false;
             auto *next = Abc_NtkBalance(network.get(), 0, 0, 0);
             if (!next) return false;
             network.reset(next);
             return true;
         };
         auto resub = [&](int cut, int nodes)
-        { return Abc_NtkResubstitute(network.get(), cut, nodes, 1, 0, 0, 0, 0, 0, 0) > 0; };
+        { return !Expired() && Abc_NtkResubstitute(network.get(), cut, nodes, 1, 0, 0, 0, 0, 0, 0) > 0; };
         auto rewrite = [&](int zeros)
-        { return Abc_NtkRewrite(network.get(), 0, zeros, 0, 0, 0) > 0; };
+        { return !Expired() && Abc_NtkRewrite(network.get(), 0, zeros, 0, 0, 0) > 0; };
         auto refactor = [&](int zeros)
-        { return Abc_NtkRefactor(network.get(), 10, zeros ? 0 : 1, 16, 0, zeros, 0, 0) > 0; };
+        { return !Expired() && Abc_NtkRefactor(network.get(), 10, zeros ? 0 : 1, 16, 0, zeros, 0, 0) > 0; };
         if (!balance() || !resub(6, 1) || !rewrite(0) || !resub(6, 2) ||
             !refactor(0) || !resub(8, 1) || !balance() || !resub(8, 2) ||
             !rewrite(0) || !resub(10, 1) || !rewrite(1) || !resub(10, 2) ||
@@ -171,6 +188,7 @@ class AgrChoiceSession
         // and SAT conflicts. The final selector may reject every alternative.
         for (int method = 0; method < 5; ++method)
         {
+            if (Expired()) return;
             const std::clock_t start = std::clock();
             if (verbose)
             {
@@ -209,6 +227,7 @@ class AgrChoiceSession
                 lutParameters.pLutLib = nullptr;
                 lutParameters.pCellLib = nullptr;
                 AgrChoiceGia mapped(Gia_ManPerformMapping(input.get(), &lutParameters));
+                if (Expired()) return;
                 if (!mapped || !Gia_ManHasMapping(mapped.get())) continue;
                 Sfm_Par_t parameters;
                 Sfm_ParSetDefault(&parameters);
@@ -219,6 +238,7 @@ class AgrChoiceSession
                 parameters.nGrowthLevel = 1;
                 parameters.fMoreEffort = 1;
                 AgrChoiceGia optimized(Gia_ManPerformMfs(mapped.get(), &parameters));
+                if (Expired()) return;
                 if (!optimized || !Gia_ManHasMapping(optimized.get())) continue;
                 AgrChoiceGia factored(Gia_ManPerformFx(optimized.get(), 1000000, 0, 0, 0, 0));
                 if (!factored) continue;
@@ -298,11 +318,16 @@ class AgrChoiceSession
         if (!miter) return {};
         AgrChoiceAig aig(Gia_ManToAigSkip(miter.get(), int(graphs.size())));
         if (!aig) return {};
+        if (Expired()) return {};
+        // DCH checks this deadline between bounded SAT queries, including
+        // the large second merge that previously stalled on hyp.
+        aig->Time2Quit = deadline;
         Dch_Pars_t parameters;
         Dch_ManSetDefaultParams(&parameters);
         parameters.fSynthesis = 0;
         parameters.nBTLimit = conflicts;
         AgrChoiceAig choices(Dch_ComputeChoices(aig.get(), &parameters));
+        if (Expired()) return {};
         if (!choices) return {};
         auto *order = Gia_ManOrderPios(choices.get(), graphs.front().get());
         if (!order) return {};
@@ -344,6 +369,7 @@ class AgrChoiceSession
 
 public:
     explicit AgrChoiceSession(bool active) : enabled(active) {}
+    bool TimedOut() const { return timedOut; }
 
     void Capture(Abc_Ntk_t *network)
     {
@@ -354,26 +380,50 @@ public:
         snapshots.push_back(std::move(copy));
     }
 
-    Abc_Ntk_t *Finish(Abc_Ntk_t *baseline, double delayGain, bool diverse, bool compress, int conflicts, bool filter, bool modern, double delayWeight, bool verbose)
+    Abc_Ntk_t *Finish(Abc_Ntk_t *baseline, double delayGain, bool diverse, bool compress,
+                     int conflicts, bool filter, bool modern, double delayWeight,
+                     double wireGrowth, double step, double seconds, bool verbose)
     {
         if (!enabled || failed || snapshots.empty()) return nullptr;
         const std::clock_t start = std::clock();
+        const abctime wallStart = Abc_Clock();
+        budgetStart = wallStart;
+        budgetSeconds = seconds;
+        deadline = seconds > 0 ? wallStart + abctime(seconds * CLOCKS_PER_SEC) : 0;
         auto initialGia = AgrChoiceToGia(baseline);
         auto initial = AgrChoiceMap(initialGia.get(), 0);
         if (!initial.cost.Valid()) return nullptr;
+        if (Expired()) return nullptr;
+        int bins = 0, wireChecks = 0, wireRejected = 0;
+        double baseHpwl = 0, bestHpwl = 0;
+        if (wireGrowth >= 0)
+        {
+            // Freeze the grid using the common input, not each candidate's
+            // cell count. Placement is private and uses a single fixed step.
+            auto input = AgrChoiceToGia(snapshots.front().get());
+            auto mapped = AgrChoiceMap(input.get(), 0);
+            if (Expired()) return nullptr;
+            if (!mapped.network ||
+                !Pa_ManMeasureMappedHpwl(mapped.network.get(), &bins, step, nullptr, deadline) ||
+                !Pa_ManMeasureMappedHpwl(initial.network.get(), &bins, step, &baseHpwl, deadline))
+            { Expired(); return nullptr; }
+            bestHpwl = baseHpwl;
+        }
         if (diverse)
         {
             Diversify(snapshots.front().get(), "input_", verbose);
             Diversify(baseline, "agr_", verbose);
             Capture(baseline); // Keep plain AGR as the preferred primary AIG.
         }
+        if (Expired()) return nullptr;
         const double target = initial.cost.delay * (1.0 - delayGain / 100.0);
         AgrChoiceCost bestCost = initial.cost;
         AgrChoiceNtk best(Abc_NtkStrash(baseline, 0, 1, 0));
         std::string bestLabel = "plain_agr";
         int candidates = 1;
-        auto consider = [&](AgrChoiceNtk candidate, AgrChoiceCost cost, const std::string &label)
+        auto consider = [&](AgrChoiceNtk candidate, const AgrChoiceMapping &mapped, const std::string &label)
         {
+            const AgrChoiceCost cost = mapped.cost;
             if (!candidate || !cost.Valid()) return;
             ++candidates;
             // A positive weight trades a small area difference for a useful
@@ -393,12 +443,28 @@ public:
             if (verbose)
                 Abc_Print(1, "AGR_CHOICE_CANDIDATE name=%s area=%.9g delay=%.9g feasible=%d\n",
                           label.c_str(), cost.area, cost.delay, int(feasible));
-            if (better) { best = std::move(candidate); bestCost = cost; bestLabel = label; }
+            if (!better || Expired()) return;
+            double hpwl = 0;
+            if (wireGrowth >= 0)
+            {
+                // Measure only candidates that could win on mapped cost.
+                ++wireChecks;
+                if (!mapped.network || !Pa_ManMeasureMappedHpwl(mapped.network.get(), &bins, step, &hpwl, deadline))
+                { Expired(); return; }
+                const double limit = baseHpwl * (1.0 + wireGrowth / 100.0);
+                const bool accepted = hpwl <= limit + 1e-9 * (1.0 + limit);
+                if (verbose)
+                    Abc_Print(1, "AGR_CHOICE_WIRE name=%s hpwl=%.9g base_hpwl=%.9g limit=%.9g bins=%d accepted=%d\n",
+                              label.c_str(), hpwl, baseHpwl, limit, bins, int(accepted));
+                if (!accepted) { ++wireRejected; return; }
+            }
+            best = std::move(candidate); bestCost = cost; bestLabel = label; bestHpwl = hpwl;
         };
         int choiceNodes = 0;
         std::vector<AgrChoiceCost> costs;
         for (int bank = 0; bank < (compress ? 2 : 1); ++bank)
         {
+            if (Expired()) return nullptr;
             const size_t previousCount = bank ? snapshots.size() : 0;
             if (bank)
             {
@@ -408,13 +474,15 @@ public:
             costs.resize(snapshots.size());
             for (size_t i = previousCount; i < snapshots.size(); ++i)
             {
+                if (Expired()) return nullptr;
                 auto gia = AgrChoiceToGia(snapshots[i].get());
                 auto mapped = AgrChoiceMap(gia.get(), 0);
                 costs[i] = mapped.cost;
-                consider(AgrChoiceNtk(Abc_NtkStrash(snapshots[i].get(), 0, 1, 0)), mapped.cost,
+                consider(AgrChoiceNtk(Abc_NtkStrash(snapshots[i].get(), 0, 1, 0)), mapped,
                          labels[i]);
             }
             auto contributors = Contributors(costs, filter);
+            if (Expired()) return nullptr;
             if (verbose)
             {
                 Abc_Print(1, "AGR_CHOICE_STAGE bank=%d merge=started snapshots=%d contributors=%d\n",
@@ -428,6 +496,7 @@ public:
                 auto merged = Merge(conflicts, contributors);
                 if (merged) choices = AgrChoiceToGia(merged.get());
             }
+            if (Expired()) return nullptr;
             if (!choices) continue;
             choiceNodes = std::max(choiceNodes, Gia_ManChoiceNum(choices.get()));
             if (verbose)
@@ -440,6 +509,7 @@ public:
                 AgrChoiceGia current(Gia_ManDupWithAttributes(choices.get()));
                 for (int relax : {0, 5, 10, 20, 40, 100})
                 {
+                    if (Expired()) return nullptr;
                     auto shaped = AgrChoiceMap(independent ? choices.get() : current.get(), relax);
                     if (!shaped.network) break;
                     AgrChoiceNtk endpoint(Abc_NtkStrash(shaped.network.get(), 0, 1, 0));
@@ -447,13 +517,14 @@ public:
                     auto gia = AgrChoiceToGia(endpoint.get());
                     auto remapped = AgrChoiceMap(gia.get(), 0);
                     if (!remapped.cost.Valid()) break;
-                    consider(std::move(endpoint), remapped.cost,
+                    consider(std::move(endpoint), remapped,
                              std::string(bank ? "compressed_" : "") +
                              (independent ? "independent_R" : "sequential_R") + std::to_string(relax));
                     current = std::move(remapped.gia);
                 }
             }
         }
+        if (Expired()) return nullptr;
         if (!best) return nullptr;
         // Mapping creates generic terminal names; restore the caller's names
         // by position, preserving the combinational PI/PO ordering contract.
@@ -463,6 +534,12 @@ public:
                   int(snapshots.size()), choiceNodes, candidates, bestLabel.c_str(), initial.cost.area,
                   initial.cost.delay, bestCost.area, bestCost.delay, target,
                   double(std::clock() - start) / CLOCKS_PER_SEC, conflicts, modern ? "dch" : "fraig", delayWeight);
+        if (wireGrowth >= 0)
+            Abc_Print(1, "AGR_CHOICE_WIRE_RESULT base_hpwl=%.9g hpwl=%.9g growth_limit_pct=%.6g bins=%d checks=%d rejected=%d step=%.6g\n",
+                      baseHpwl, bestHpwl, wireGrowth, bins, wireChecks, wireRejected, step);
+        if (seconds > 0)
+            Abc_Print(1, "AGR_CHOICE_BUDGET seconds=%.6g elapsed=%.6f timed_out=0\n",
+                      seconds, double(Abc_Clock() - wallStart) / CLOCKS_PER_SEC);
         return best.release();
     }
 };

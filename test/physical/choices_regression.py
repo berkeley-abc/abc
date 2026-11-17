@@ -80,6 +80,28 @@ def main():
     for kind in ['inputs','outputs']:
         assert ports(out/'weighted.blif',kind)==ports(out/'input.blif',kind)
     run('cec_weighted','cec input.aig weighted.aig',expect='Networks are equivalent')
+    guarded=run('wire_guard',setup+'agr -c -b -r -m -W 0.25 -H 3 -T 60 -v; write_aiger guarded.aig',expect='AGR_CHOICE_WIRE_RESULT')
+    wire=re.search(r'AGR_CHOICE_WIRE_RESULT base_hpwl=([\d.e+-]+) hpwl=([\d.e+-]+) growth_limit_pct=3 bins=(\d+)',guarded)
+    assert wire and float(wire[2])<=1.03*float(wire[1])+1e-6
+    measured=run('wire_guard_measure',f'read guarded.aig; read_lib "{args.library}"; &get; &nf; &put; pa_place -B {wire[3]} -s 0.28; pa_stats')
+    actual=re.search(r'pa_stats: HPWL [\d.e+-]+ -> ([\d.e+-]+)',measured)
+    assert actual and abs(float(actual[1])-float(wire[2]))<.00051
+    run('cec_guarded','cec input.aig guarded.aig',expect='Networks are equivalent')
+    run('unlimited_parity',setup+'agr -c -b -r -m -W 0.25 -T 0; write_aiger unlimited.aig',expect='AGR_CHOICES')
+    assert regression.payload(out/'unlimited.aig')==regression.payload(out/'weighted.aig')
+    timeout=run('choice_timeout',setup+'fraig_store; &get; &w timeout-before.aig; agr -c -b -r -m -W 0.25 -H 3 -T 0.000000001; write_aiger timeout.aig; &w timeout-after.aig; fraig_restore; strash; write_aiger timeout-restored.aig',expect='retaining the plain AGR endpoint')
+    assert 'timed_out=1' in timeout
+    assert regression.payload(out/'timeout.aig')==regression.payload(out/'plain.aig')
+    assert regression.payload(out/'timeout-before.aig')==regression.payload(out/'timeout-after.aig')
+    for name in ['timeout','timeout-restored']:
+        run('cec_'+name,f'cec input.aig {name}.aig',expect='Networks are equivalent')
+    run('requires_choices_wire',setup+'agr -H 3',expect='-H requires -c')
+    run('reject_wire_nan',setup+'agr -c -H nan',expect='finite percentage')
+    run('reject_wire_negative',setup+'agr -c -H -1',expect='finite percentage')
+    run('requires_choices_time',setup+'agr -T 1',expect='-T requires -c')
+    run('requires_dch_time',setup+'agr -c -T 1',expect='requires the interruptible DCH engine')
+    run('reject_time_negative',setup+'agr -c -m -T -1',expect='nonnegative time budget')
+    run('reject_time_nan',setup+'agr -c -m -T nan',expect='nonnegative time budget')
     run('reject_delay_weight_nan',setup+'agr -c -W nan',expect='finite weight')
     run('reject_delay_weight_large',setup+'agr -c -W 2',expect='finite weight')
     run('requires_lib','read input.aig; agr -c',expect='requires a Liberty library')

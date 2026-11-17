@@ -4,7 +4,8 @@
 combines them as structural choices, and selects an equivalent plain AIG using
 mapped area and cell delay. It requires a loaded Liberty library. The ordinary
 `agr` command remains available; this branch also fixes its incremental timing
-propagation and unconstrained-slack handling.
+propagation, unconstrained-slack handling, deletion-cone accounting, and placement
+coordinates at the canvas boundary.
 
 This extension builds on PR #611 at
 `267220beeac61151c306b27c81ced1a3bd8a01bf`. It adds a synthesis portfolio and
@@ -22,6 +23,20 @@ AGR's geometric search policy.
   available without this option.
 - `-W 0.25` minimizes `mapped_area * cell_delay^0.25`. With the default `-D 0`,
   both costs must be no worse than the ordinary corrected-AGR endpoint.
+- `-H 3` additionally rejects a candidate whose mapped HPWL exceeds the
+  ordinary AGR endpoint's by more than 3%. The grid is chosen from the mapped
+  common input once and reused; placement uses the command's `-s` step.
+- `-T 300` budgets 300 seconds for the choice stage after ordinary AGR. On
+  expiry it returns that ordinary endpoint, discarding partial search results.
+  A positive budget requires `-c -m`; zero leaves the stage unlimited.
+
+The bounded followup configuration is `agr -c -b -r -m -W 0.25 -H 3 -T 300`.
+Both new controls are optional and disabled by default. The HPWL guard uses a
+private ABC placement, without changing the caller's placement state. Its
+canvas scales with mapped area; it is not a guarantee about routed wirelength
+on a fixed die. The deadline is cooperative: it is checked between transforms,
+mapping calls, placement stages, and DCH SAT queries. A running primitive can
+overshoot the allowance. The elapsed-time measurements here are from Linux.
 
 The choice mapper explores six fixed NF relaxation settings
 (0, 5, 10, 20, 40, 100), independently and as a sequential shaping chain.
@@ -32,7 +47,12 @@ and `fraig_store` are preserved. Rejected individual local edits are not retaine
 See [the command notes](../../../test/physical/CHOICES.txt) for the optional
 `-D`, `-C`, and `-f` cost/quality controls.
 
-## Recorded ABC results
+## Recorded ABC results before the bounded followup
+
+The tables in this section are the archived, unguarded results at `32e58a47b`.
+They predate `-H`, `-T`, and the two placement-consistency fixes. They remain
+unchanged so that improvements to the implementation do not silently change
+the version associated with a numerical claim.
 
 The primary experiment uses one fixed command and guidance step 0.28 on 19 EPFL
 combinational designs. Every method receives the same confirmed `dc2` input,
@@ -86,23 +106,32 @@ and selector differ, so this difference does not isolate an AGR-specific effect.
 
 ## Scope and limitations
 
-These are frontend measurements. Mapped HPWL uses an area-scaled ABC canvas;
-cell delay excludes routed parasitics. There are no new OpenROAD wirelength,
-final HPWL, timing, or power results for this implementation, and no claim that
-the five-metric routed target is met.
+The archived tables are frontend measurements. Mapped HPWL uses an area-scaled
+ABC canvas; cell delay excludes routed parasitics. They do not establish the
+five-metric routed target. The followup uses the bounded command and a separately
+recorded backend campaign; do not combine its results with these older endpoints.
 
-The cohort is a development set, not a holdout. `hyp` exceeded 1800 seconds in
+The archived cohort is a development set, not a holdout. `hyp` exceeded 1800 seconds in
 a separate full-native choice-merge trial on the earlier `dc2 + &fraig -C 1000`
 input; it is not in the 19-design aggregates. These experiments are not an
 all-20 reproduction of the paper: common redundancy removal, search effort, and
 the cohort differ. Uniform `&fraig -C 10000` removes the large residual `div`
 redundancy for all methods before the comparison. An older limit of 1000 did not.
 
-The existing AGR commit-score defect following external MFS on `square` remains
-a recorded failed bank candidate. The native and practical-flow cohorts completed
-without that failure. An early prototype also discarded FX's plain-AIG result;
-the implementation here handles it correctly and tests parity with public ABC
-commands.
+The failed external-MFS `square` candidate remains in the historical records.
+The current implementation fixes its cause: actual deletion can extend beyond
+the cut-bounded MFFC when a replacement stops using a cut leaf. The planner now
+simulates ABC's recursive reference decrements, including newly created and
+redirected references. A separate `sqrt` failure came from scoring an unclipped
+reused coordinate which commit later clipped to the canvas. Scoring and commit
+now use the same coordinates. Neither fix relaxes the consistency checks.
+
+The original failing `sqrt` flow also passes with only the coordinate correction
+applied to PR611. A build with `ABC_AGR_ENABLE_AUDIT` passes exact HPWL and density
+checks after every local edit for both reproductions at steps 0.26–0.30. See
+[`placement_consistency.py`](../../../test/physical/placement_consistency.py).
+An early prototype also discarded FX's plain-AIG result; the implementation
+handles it correctly and tests parity with public ABC commands.
 
 ## Data and verification
 
@@ -117,8 +146,10 @@ research archive; benchmark inputs remain external as in PR611.
 
 The source includes the three timing-cache regression cases. They fail on the
 original implementation and pass after the fixes. The rebuilt implementation
-passes 34 existing integration checks and 30 choice checks, including cost guards,
-port preservation, caller-state preservation, and MFS/FX cost parity.
+passes 34 existing integration checks, 44 choice checks, and five deletion-cone
+checks against the actual ABC mutator. Coverage includes cost and HPWL guards,
+deadline fallback, port preservation, caller-state preservation, and MFS/FX cost
+parity. The ten benchmark placement-consistency cases are additional checks.
 
 Recompute the statistics and audit the recorded evidence with Python's standard
 library; this requires neither ABC nor OpenROAD:
@@ -164,6 +195,10 @@ agr -c -b -r -m -W 0.25
 write_aiger optimized.aig
 &get; &nf; &put; stime
 ```
+
+To reproduce the bounded followup instead, use the current implementation and
+append `-H 3 -T 300`. Record timeouts explicitly and retain their plain endpoints
+in the aggregate. In particular, do not silently drop `hyp` when it times out.
 
 The original AGR/PA2 references use the original PR611 binary and the exact
 commands in `protocol.json`. Corrected AGR uses this branch without choice
