@@ -16,6 +16,7 @@
 typedef struct Scm_WinState_t_
 {
     Scm_RfPair_t Arrival, Slew, Load, Required;
+    double Cost;
 } Scm_WinState_t;
 typedef struct Scm_WinMetric_t_
 {
@@ -25,6 +26,267 @@ typedef struct Scm_WinMetric_t_
 } Scm_WinMetric_t;
 typedef Nf3_Enum_t Scm_WinList_t;
 typedef struct Scm_WinRoot_t_ { int Id; word Area; double Path; } Scm_WinRoot_t;
+typedef struct Scm_WinDelta_t_
+{
+    int * Starts, * Edges;
+    word * TimeBits;
+    int TimeMin, TimeMax;
+    unsigned char * DirtyLoad, * DirtyTime;
+    Scm_RfPair_t * Caps;
+    Vec_Int_t * Changed, * Loads, * Times, * Fans;
+} Scm_WinDelta_t;
+typedef struct Scm_WinChecks_t_
+{
+    Gia_Man_t * Covers[2];
+    Scm_WinMetric_t Metrics[2];
+} Scm_WinChecks_t;
+
+/**Function*************************************************************
+
+  Synopsis    [Builds ordered physical fanouts after a committed window edit.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Scm_WinDeltaBuild( Nf3_Man_t * p, Scm_WinDelta_t * d )
+{
+    int i, k;
+    memset(d->Starts, 0, sizeof(int)*(p->nObjs+1));
+    for ( i = 2; i < p->nObjs; i++ ) if ( p->Objs[i].Refs )
+        for ( k = 0; k < p->Objs[i].nFans; k++ ) d->Starts[p->Objs[i].Fans[k]+1]++;
+    for ( i = 1; i <= p->nObjs; i++ ) d->Starts[i] += d->Starts[i-1];
+    // Fill backwards so each fanout list has increasing object and pin IDs.
+    for ( i = p->nObjs-1; i >= 2; i-- ) if ( p->Objs[i].Refs )
+        for ( k = p->Objs[i].nFans-1; k >= 0; k-- )
+            d->Edges[--d->Starts[p->Objs[i].Fans[k]+1]] = 8*i+k;
+    for ( i = 0; i < p->nObjs; i++ ) d->Starts[i] = d->Starts[i+1];
+    d->Starts[p->nObjs] = 0;
+    for ( i = 2; i < p->nObjs; i++ ) if ( p->Objs[i].Refs ) d->Starts[p->nObjs] += p->Objs[i].nFans;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Allocates per-search incremental timing state.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static Scm_WinDelta_t * Scm_WinDeltaStart( Nf3_Man_t * p, void * Model )
+{
+    Scm_WinDelta_t * d;
+    int i, k;
+    if ( p->nObjs > INT_MAX/8 || p->nCells > INT_MAX/6 ) return NULL;
+    for ( i = 0; i < p->nCells; i++ ) if ( p->Cells[i].nFanins > 6 ) return NULL;
+    d = ABC_CALLOC(Scm_WinDelta_t, 1);
+    d->Starts = ABC_ALLOC(int, p->nObjs+1);
+    d->Edges = ABC_ALLOC(int, 6*p->nObjs);
+    d->TimeBits = ABC_CALLOC(word, Abc_Bit6WordNum(p->nObjs));
+    d->DirtyLoad = ABC_CALLOC(unsigned char, p->nObjs);
+    d->DirtyTime = ABC_CALLOC(unsigned char, p->nObjs);
+    d->Caps = ABC_CALLOC(Scm_RfPair_t, 6*p->nCells);
+    d->Changed = Vec_IntAlloc(64); d->Loads = Vec_IntAlloc(64); d->Fans = Vec_IntAlloc(64);
+    d->Times = Vec_IntAlloc(64);
+    for ( i = 0; i < p->nCells; i++ )
+        for ( k = 0; k < (int)p->Cells[i].nFanins; k++ ) d->Caps[6*i+k] = Scm_WinModelCap(Model, i, k);
+    Scm_WinDeltaBuild(p, d);
+    return d;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Releases incremental timing state.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Scm_WinDeltaStop( Scm_WinDelta_t * d )
+{
+    if ( d == NULL ) return;
+    ABC_FREE(d->Starts); ABC_FREE(d->Edges); ABC_FREE(d->DirtyLoad); ABC_FREE(d->DirtyTime); ABC_FREE(d->Caps);
+    ABC_FREE(d->TimeBits);
+    Vec_IntFree(d->Changed); Vec_IntFree(d->Loads); Vec_IntFree(d->Times); Vec_IntFree(d->Fans); ABC_FREE(d);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Marks a changed sink load, including the driver of any alias.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Scm_WinDeltaLoad( Scm_WinDelta_t * d, int Id )
+{
+    if ( d->DirtyLoad[Id] ) return;
+    d->DirtyLoad[Id] = 1;
+    Vec_IntPush(d->Loads, Id);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Marks forward timing and records the state to restore.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Scm_WinDeltaTime( Scm_WinDelta_t * d, int Id )
+{
+    if ( d->DirtyTime[Id] ) return;
+    d->DirtyTime[Id] = 1;
+    d->TimeBits[Id >> 6] |= (word)1 << (Id & 63);
+    d->TimeMin = Abc_MinInt(d->TimeMin, Id >> 6);
+    d->TimeMax = Abc_MaxInt(d->TimeMax, Id >> 6);
+    Vec_IntPush(d->Times, Id);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Updates only affected loads and forward timing in a trial.]
+
+  Description [Fanout sums retain the full evaluator's order. Integer logic
+  area is exact; modeled overhead is updated by deltas and checked for double
+  roundoff at commit. Only the root and its optional child gain new edges.]
+
+  SideEffects []
+
+  SeeAlso     [Scm_WinMeasure]
+
+***********************************************************************/
+static int Scm_WinDeltaMeasure( Nf3_Man_t * p, void * Model, Scm_WinDelta_t * d,
+    Nf3_Obj_t * BaseObjs, Scm_WinState_t * BaseState, Scm_WinMetric_t * BaseMetric, Scm_WinState_t * State,
+    int Root, int Slot, double Threshold, Scm_WinMetric_t * Metric )
+{
+    int i, k, t, w, Id, Edge, Fan, Extra[2] = { Root, Slot };
+    memset(Metric, 0, sizeof(*Metric));
+    Vec_IntForEachEntry(d->Loads, Id, i) d->DirtyLoad[Id] = 0;
+    Vec_IntForEachEntry(d->Times, Id, i)
+        { d->DirtyTime[Id] = 0; d->TimeBits[Id >> 6] = 0; }
+    Vec_IntClear(d->Times);
+    Vec_IntClear(d->Loads);
+    d->TimeMin = INT_MAX; d->TimeMax = -1;
+    Vec_IntForEachEntry(d->Changed, Id, i)
+    {
+        Nf3_Obj_t * Old = BaseObjs+Id, * Obj = p->Objs+Id;
+        if ( Obj->Refs < 0 ) return 0;
+        Scm_WinDeltaTime(d, Id);
+        if ( !!Old->Refs == !!Obj->Refs && Old->Gate == Obj->Gate && Old->nFans == Obj->nFans &&
+             !memcmp(Old->Fans, Obj->Fans, sizeof(int)*Obj->nFans) ) continue;
+        if ( Old->Refs ) for ( k = 0; k < Old->nFans; k++ ) Scm_WinDeltaLoad(d, Old->Fans[k]);
+        if ( Obj->Refs ) for ( k = 0; k < Obj->nFans; k++ )
+        {
+            if ( Obj->Fans[k] < 0 || Obj->Fans[k] >= Id ) return 0;
+            Scm_WinDeltaLoad(d, Obj->Fans[k]);
+        }
+        if ( !Obj->Refs ) memset(State+Id, 0, sizeof(*State));
+    }
+    Vec_IntForEachEntry(d->Loads, Id, i)
+    {
+        if ( BaseObjs[Id].Refs && BaseObjs[Id].Gate == NF3_ALIAS ) Scm_WinDeltaLoad(d, BaseObjs[Id].Fans[0]);
+        if ( p->Objs[Id].Refs && p->Objs[Id].Gate == NF3_ALIAS ) Scm_WinDeltaLoad(d, p->Objs[Id].Fans[0]);
+    }
+    Vec_IntSort(d->Loads, 1);
+    Vec_IntForEachEntry(d->Loads, Id, w)
+    {
+        Scm_RfPair_t Load = {{0, 0}};
+        Vec_IntClear(d->Fans);
+        for ( i = d->Starts[Id]; i < d->Starts[Id+1]; i++ )
+        {
+            Edge = d->Edges[i]; Fan = Edge >> 3;
+            if ( Fan != Root && Fan != Slot && p->Objs[Fan].Refs ) Vec_IntPush(d->Fans, Edge);
+        }
+        for ( t = 0; t < 2; t++ ) if ( Extra[t] )
+            for ( k = 0; k < p->Objs[Extra[t]].nFans; k++ )
+                if ( p->Objs[Extra[t]].Fans[k] == Id ) Vec_IntPush(d->Fans, 8*Extra[t]+k);
+        Vec_IntSort(d->Fans, 0);
+        Vec_IntForEachEntry(d->Fans, Edge, i) if ( p->Objs[Edge >> 3].Gate >= 0 )
+            for ( t = 0; t < 2; t++ ) Load.Value[t] += d->Caps[6*p->Objs[Edge >> 3].Gate+(Edge & 7)].Value[t];
+        Vec_IntForEachEntryReverse(d->Fans, Edge, i) if ( p->Objs[Edge >> 3].Gate == NF3_ALIAS )
+            for ( t = 0; t < 2; t++ ) Load.Value[t] += State[Edge >> 3].Load.Value[t];
+        State[Id].Load = Load;
+        if ( memcmp(&Load, &BaseState[Id].Load, sizeof(Load)) ) Scm_WinDeltaTime(d, Id);
+    }
+    for ( w = d->TimeMin; w <= d->TimeMax; w++ ) while ( d->TimeBits[w] )
+    {
+        Nf3_Obj_t * Obj;
+        Scm_RfPair_t Arrivals[6], Slews[6];
+        Id = 64*w + Abc_Tt6FirstBit(d->TimeBits[w]);
+        d->TimeBits[w] &= d->TimeBits[w]-1;
+        if ( Id < 2 || !p->Objs[Id].Refs || p->Objs[Id].Gate == NF3_CI ) continue;
+        Obj = p->Objs+Id;
+        if ( Obj->Gate == NF3_ALIAS )
+        {
+            State[Id].Arrival = State[Obj->Fans[0]].Arrival;
+            State[Id].Slew = State[Obj->Fans[0]].Slew;
+            State[Id].Cost = 0;
+        }
+        else
+        {
+            if ( Obj->nFans != (int)p->Cells[Obj->Gate].nFanins ) return 0;
+            for ( k = 0; k < Obj->nFans; k++ )
+            {
+                Arrivals[k] = State[Obj->Fans[k]].Arrival;
+                Slews[k] = State[Obj->Fans[k]].Slew;
+            }
+            if ( !Scm_WinModelCell(Model, Obj->Gate, State[Id].Load, Arrivals, Slews, &State[Id].Arrival, &State[Id].Slew) ) return 0;
+            if ( BaseObjs[Id].Refs && Obj->Gate == BaseObjs[Id].Gate &&
+                 !memcmp(&State[Id].Load, &BaseState[Id].Load, sizeof(Scm_RfPair_t)) ) State[Id].Cost = BaseState[Id].Cost;
+            else
+                State[Id].Cost = Scm_WinModelCost(Model, Obj->Gate, Abc_MaxFloat(State[Id].Load.Value[0], State[Id].Load.Value[1]));
+        }
+        if ( !memcmp(&State[Id].Arrival, &BaseState[Id].Arrival, sizeof(Scm_RfPair_t)) &&
+             !memcmp(&State[Id].Slew, &BaseState[Id].Slew, sizeof(Scm_RfPair_t)) ) continue;
+        for ( i = d->Starts[Id]; i < d->Starts[Id+1]; i++ )
+        {
+            Fan = d->Edges[i] >> 3;
+            if ( Fan != Root && Fan != Slot && p->Objs[Fan].Refs ) Scm_WinDeltaTime(d, Fan);
+        }
+        for ( t = 0; t < 2; t++ ) if ( Extra[t] )
+            for ( k = 0; k < p->Objs[Extra[t]].nFans; k++ )
+                if ( p->Objs[Extra[t]].Fans[k] == Id ) Scm_WinDeltaTime(d, Extra[t]);
+    }
+    Metric->Area = BaseMetric->Area;
+    Metric->EstimatedArea = BaseMetric->EstimatedArea - (double)BaseMetric->Area/SCL_NUM;
+    Vec_IntForEachEntry(d->Times, Id, i) if ( Id >= 2 )
+    {
+        if ( p->Objs[Id].Refs && p->Objs[Id].Gate >= 0 )
+        {
+            Metric->Area += Nf3_Area(p, Id);
+            Metric->EstimatedArea += State[Id].Cost;
+        }
+        if ( BaseObjs[Id].Refs && BaseObjs[Id].Gate >= 0 )
+        {
+            Metric->Area -= p->Cells[BaseObjs[Id].Gate].AreaW;
+            Metric->EstimatedArea -= BaseState[Id].Cost;
+        }
+    }
+    Vec_IntForEachEntry(p->Outputs, Id, i) for ( t = 0; t < 2; t++ )
+    {
+        double Arrival = State[Id].Arrival.Value[t];
+        if ( Metric->Electrical < Arrival ) Metric->Electrical = Arrival;
+        Metric->Pressure += fmax(0, Arrival-Threshold);
+    }
+    Metric->EstimatedArea += (double)Metric->Area/SCL_NUM;
+    return isfinite(Metric->EstimatedArea) && isfinite(Metric->Pressure);
+}
 
 /**Function*************************************************************
 
@@ -104,9 +366,11 @@ static void Scm_WinEnumerate( Nf3_Man_t * p, int Root, Scm_WinList_t * List, wor
 
 /**Function*************************************************************
 
-  Synopsis    [Recomputes all live loads, arrival times, slews and modeled area.]
+  Synopsis    [Checks loads and references, reusing unchanged cell evaluations.]
 
-  Description [Pressure uses the round's fixed threshold, not the trial's delay.]
+  Description [Optional baseline arrays describe the unmodified cover. Loads
+  and area retain their original summation order. Pressure uses the round's
+  fixed threshold, not the trial's delay.]
 
   SideEffects []
 
@@ -114,9 +378,13 @@ static void Scm_WinEnumerate( Nf3_Man_t * p, int Root, Scm_WinList_t * List, wor
 
 ***********************************************************************/
 static int Scm_WinMeasure( Nf3_Man_t * p, void * Model, Scm_WinState_t * State,
-    int * Refs, double Threshold, Scm_WinMetric_t * Metric )
+    int * Refs, double Threshold, Scm_WinMetric_t * Metric,
+    Nf3_Obj_t * BaseObjs, Scm_WinState_t * BaseState )
 {
-    int i, k, t, Id;
+    int i, k, t, Id, fReuse;
+#ifdef SCM_WIN_FULL
+    BaseState = NULL;
+#endif
     memset(State, 0, sizeof(Scm_WinState_t)*p->nObjs);
     memset(Refs, 0, sizeof(int)*p->nObjs);
     memset(Metric, 0, sizeof(*Metric));
@@ -154,14 +422,30 @@ static int Scm_WinMeasure( Nf3_Man_t * p, void * Model, Scm_WinState_t * State,
             State[i].Slew = State[Obj->Fans[0]].Slew;
             continue;
         }
+        fReuse = BaseState && BaseObjs[i].Refs && Obj->Gate == BaseObjs[i].Gate &&
+            Obj->nFans == BaseObjs[i].nFans &&
+            !memcmp(Obj->Fans, BaseObjs[i].Fans, sizeof(int)*Obj->nFans) &&
+            !memcmp(&State[i].Load, &BaseState[i].Load, sizeof(Scm_RfPair_t));
         for ( k = 0; k < Obj->nFans; k++ )
         {
             Arrivals[k] = State[Obj->Fans[k]].Arrival;
             Slews[k] = State[Obj->Fans[k]].Slew;
+            if ( fReuse && (memcmp(Arrivals+k, &BaseState[Obj->Fans[k]].Arrival, sizeof(Scm_RfPair_t)) ||
+                            memcmp(Slews+k, &BaseState[Obj->Fans[k]].Slew, sizeof(Scm_RfPair_t))) ) fReuse = 0;
         }
-        if ( !Scm_WinModelCell(Model, Obj->Gate, State[i].Load, Arrivals, Slews, &State[i].Arrival, &State[i].Slew) ) return 0;
-        Metric->EstimatedArea += Scm_WinModelCost(Model, Obj->Gate,
-            Abc_MaxFloat(State[i].Load.Value[0], State[i].Load.Value[1]));
+        if ( fReuse )
+        {
+            State[i].Arrival = BaseState[i].Arrival;
+            State[i].Slew = BaseState[i].Slew;
+            State[i].Cost = BaseState[i].Cost;
+        }
+        else
+        {
+            if ( !Scm_WinModelCell(Model, Obj->Gate, State[i].Load, Arrivals, Slews, &State[i].Arrival, &State[i].Slew) ) return 0;
+            State[i].Cost = Scm_WinModelCost(Model, Obj->Gate,
+                Abc_MaxFloat(State[i].Load.Value[0], State[i].Load.Value[1]));
+        }
+        Metric->EstimatedArea += State[i].Cost;
     }
     Vec_IntForEachEntry(p->Outputs, Id, i)
     {
@@ -245,6 +529,12 @@ static int Scm_WinBetter( Scm_WinMetric_t * A, Scm_WinMetric_t * B, int fArea )
     return A->EstimatedArea < B->EstimatedArea;
 }
 
+// Each commit refreshes the sum; the allowance covers one trial's additions/subtractions.
+static int Scm_WinAreaEqual( int nObjs, double A, double B )
+{
+    return fabs(A-B) <= 16*DBL_EPSILON*nObjs*(fabs(A)+fabs(B)+1);
+}
+
 /**Function*************************************************************
 
   Synopsis    [Evaluates a trial without changing the live cover or its statistics.]
@@ -256,26 +546,59 @@ static int Scm_WinBetter( Scm_WinMetric_t * A, Scm_WinMetric_t * B, int fArea )
   SeeAlso     []
 
 ***********************************************************************/
-static int Scm_WinTrial( Nf3_Man_t * p, Nf3_Obj_t * Backup, int Id, Nf3_Plan_t * Plan,
-    void * Model, Scm_WinState_t * State, int * Refs, double Threshold,
+static int Scm_WinTrial( Nf3_Man_t * p, Nf3_Obj_t * Backup, Scm_WinDelta_t * Delta, int Id, Nf3_Plan_t * Plan,
+    void * Model, Scm_WinState_t * BaseState, Scm_WinMetric_t * BaseMetric, Scm_WinState_t * State, int * Refs, double Threshold,
     Scm_WinMetric_t * Metric, int fFlow )
 {
     Nf3_Obj_t * Original = p->Objs;
     word SavedHits = p->nHits, SavedTwo = p->nTwo;
     long long SavedArea = p->Saved;
-    int Ok;
+    int Ok, i, ObjId;
+#ifdef SCM_WIN_FULL
     memcpy(Backup, Original, sizeof(Nf3_Obj_t)*p->nObjs);
+#endif
     p->Objs = Backup;
+    Vec_IntClear(Delta->Changed);
+    p->Changed = Delta->Changed;
     Nf3_Apply(p, Id, Plan);
-    Ok = Scm_WinMeasure(p, Model, State, Refs, Threshold, Metric);
+    p->Changed = NULL;
+#ifdef SCM_WIN_FULL
+    BaseState = NULL;
+#endif
+    Ok = BaseState ? Scm_WinDeltaMeasure(p, Model, Delta, Original, BaseState, BaseMetric, State, Id, Plan->Slot, Threshold, Metric) :
+        Scm_WinMeasure(p, Model, State, Refs, Threshold, Metric, NULL, NULL);
+#ifdef SCM_WIN_VERIFY
+    if ( Ok )
+    {
+        Scm_WinState_t * Check = ABC_ALLOC(Scm_WinState_t, p->nObjs);
+        Scm_WinMetric_t CheckMetric;
+        Ok = Scm_WinMeasure(p, Model, Check, Refs, Threshold, &CheckMetric, NULL, NULL) &&
+             !memcmp(State, Check, sizeof(Scm_WinState_t)*p->nObjs) &&
+             Scm_WinAreaEqual(p->nObjs, Metric->EstimatedArea, CheckMetric.EstimatedArea);
+        CheckMetric.EstimatedArea = Metric->EstimatedArea;
+        Ok = Ok && !memcmp(Metric, &CheckMetric, sizeof(*Metric));
+        if ( !Ok ) Abc_Print(-1, "SCMap: incremental window timing differs at root %d.\n", Id);
+        ABC_FREE(Check);
+    }
+#endif
     if ( Ok && fFlow )
     {
         Jf_Par_t Pars;
         Gia_Man_t * Trial;
         Nf3_ManSetDefaultPars(&Pars);
         Trial = Nf3_Export(p, &Pars);
-        Ok = Trial && Scm_WinModelLookahead(Trial, &Metric->RealArea, &Metric->RealDelay);
+        Ok = Trial && Scm_WinModelLookahead(Trial, 1, &Metric->RealArea, &Metric->RealDelay);
         if ( Trial ) Gia_ManStop(Trial);
+    }
+    Vec_IntForEachEntry(Delta->Changed, ObjId, i) Backup[ObjId] = Original[ObjId];
+    if ( BaseState )
+    {
+        Vec_IntForEachEntry(Delta->Times, ObjId, i)
+        {
+            State[ObjId] = BaseState[ObjId];
+            State[ObjId].Required.Value[0] = State[ObjId].Required.Value[1] = 0;
+        }
+        Vec_IntForEachEntry(Delta->Loads, ObjId, i) State[ObjId].Load = BaseState[ObjId].Load;
     }
     p->Objs = Original;
     p->nHits = SavedHits; p->nTwo = SavedTwo; p->Saved = SavedArea;
@@ -294,7 +617,8 @@ static int Scm_WinTrial( Nf3_Man_t * p, Nf3_Obj_t * Backup, int Id, Nf3_Plan_t *
 
 ***********************************************************************/
 static int Scm_WinCheckpoint( Nf3_Man_t * p, Scm_WinMetric_t * Current,
-    Scm_WinMetric_t * Initial, Scm_WinMetric_t * Kept, Gia_Man_t ** ppKept, int fVerbose, float DelayTarget )
+    Scm_WinMetric_t * Initial, Scm_WinMetric_t * Kept, Gia_Man_t ** ppKept, int fVerbose, float DelayTarget,
+    Scm_WinChecks_t * Pool )
 {
     Jf_Par_t Pars;
     Gia_Man_t * Check;
@@ -303,7 +627,30 @@ static int Scm_WinCheckpoint( Nf3_Man_t * p, Scm_WinMetric_t * Current,
     Nf3_ManSetDefaultPars(&Pars);
     Check = Nf3_Export(p, &Pars);
     if ( Check == NULL ) return 0;
-    if ( !Scm_WinModelLookahead(Check, &Trial.RealArea, &Trial.RealDelay) )
+    if ( Pool )
+    {
+        int i, Worst = 0;
+        if ( !Scm_WinModelLookahead(Check, -2, &Trial.RealArea, &Trial.RealDelay) )
+            { Gia_ManStop(Check); return 0; }
+        for ( i = 0; i < 2; i++ )
+        {
+            if ( Pool->Covers[i] == NULL ) { Worst = i; break; }
+            if ( Pool->Metrics[i].RealArea*Pool->Metrics[i].RealDelay >
+                 Pool->Metrics[Worst].RealArea*Pool->Metrics[Worst].RealDelay ) Worst = i;
+        }
+        Accept = Pool->Covers[Worst] == NULL || Trial.RealArea*Trial.RealDelay <
+            Pool->Metrics[Worst].RealArea*Pool->Metrics[Worst].RealDelay;
+        if ( fVerbose ) Abc_Print(1, "SCMAP_WINDOW_SCREEN kept=%d area=%.9g delay=%.9g\n",
+            Accept, Trial.RealArea, Trial.RealDelay);
+        if ( !Accept ) Gia_ManStop(Check);
+        else
+        {
+            if ( Pool->Covers[Worst] ) Gia_ManStop(Pool->Covers[Worst]);
+            Pool->Covers[Worst] = Check; Pool->Metrics[Worst] = Trial;
+        }
+        return 1;
+    }
+    if ( !Scm_WinModelLookahead(Check, 1, &Trial.RealArea, &Trial.RealDelay) )
         { Gia_ManStop(Check); return 0; }
     Accept = Trial.RealArea <= 1.02 * Initial->RealArea && Trial.RealDelay <= Initial->RealDelay &&
              Trial.RealArea * Trial.RealDelay < Kept->RealArea * Kept->RealDelay;
@@ -344,11 +691,13 @@ static Gia_Man_t * Scm_ManWindowImproveInt( Gia_Man_t * Gia, Scm_Qor_t * pQor, i
     Nf3_Obj_t * Backup = NULL;
     Scm_WinState_t * State = NULL, * TrialState = NULL;
     Scm_WinRoot_t * Roots = NULL;
+    Scm_WinDelta_t * Delta = NULL;
     int * Refs = NULL;
     void * Model = NULL;
     Gia_Man_t * Result = NULL, * Checkpoint = NULL;
     Scm_WinMetric_t Initial, Current, Trial, BestMetric, KeptMetric, ShortMetric[2] = {{0}};
     Scm_WinList_t List = {0};
+    Scm_WinChecks_t Checks = {{0}}, * Pool = NULL;
     int fLookahead = nLookahead > 0;
     int nRounds = fLookahead ? 1 : 2, nRoots = fLookahead ? 128 : 4096;
     int nBudget = 32768, nTrials = 0, nFlows = 0;
@@ -358,6 +707,7 @@ static Gia_Man_t * Scm_ManWindowImproveInt( Gia_Man_t * Gia, Scm_Qor_t * pQor, i
     word Growth = 0;
     double Threshold = 0, Bound, AreaLimit;
     abctime Start = Abc_Clock();
+    if ( !fLookahead && DelayTarget == 0 ) Pool = &Checks;
     if ( Gia == NULL || !Gia->vCellMapping || Gia->pManTime || Gia_ManBufNum(Gia) ||
          Gia->vInArrs || Gia->vOutReqs || Gia->vCiArrs || Gia->vCoReqs || Scl_ConIsRunning() ) return NULL;
     if ( !Gia_ManCiNum(Gia) || !Gia_ManAndNum(Gia) ) return Gia;
@@ -372,10 +722,18 @@ static Gia_Man_t * Scm_ManWindowImproveInt( Gia_Man_t * Gia, Scm_Qor_t * pQor, i
     Refs = ABC_ALLOC(int, p->nObjs);
     Roots = ABC_ALLOC(Scm_WinRoot_t, p->nObjs);
     List.Plans = ABC_ALLOC(Nf3_Plan_t, 128);
-    if ( !Scm_WinMeasure(p, Model, State, Refs, Threshold, &Initial) ) goto done;
+    if ( !Scm_WinMeasure(p, Model, State, Refs, Threshold, &Initial, NULL, NULL) ) goto done;
+    memcpy(Backup, p->Objs, sizeof(Nf3_Obj_t)*p->nObjs);
+    memcpy(TrialState, State, sizeof(Scm_WinState_t)*p->nObjs);
+    Delta = Scm_WinDeltaStart(p, Model);
+    if ( Delta == NULL ) goto done;
     if ( pQor && pQor->fValid ) { Initial.RealArea = pQor->Area; Initial.RealDelay = pQor->Delay; }
-    else if ( !Scm_WinModelLookahead(Gia, &Initial.RealArea, &Initial.RealDelay) ) goto done;
+    else if ( !Scm_WinModelLookahead(Gia, 1, &Initial.RealArea, &Initial.RealDelay) ) goto done;
     Current = KeptMetric = Initial;
+    Count = 0;
+    for ( Id = 2; Id < p->nObjs; Id++ )
+        Count += p->Objs[Id].Refs && p->Objs[Id].Gate >= 0;
+    if ( !fLookahead && Count > 2000 ) { nRounds = 1; nBudget = 4096; }
     AreaLimit = 1.02 * Initial.Area;
     for ( Round = 0; Round < nRounds && nTrials < nBudget; Round++ )
     {
@@ -416,7 +774,7 @@ static Gia_Man_t * Scm_ManWindowImproveInt( Gia_Man_t * Gia, Scm_Qor_t * pQor, i
                 Best = -1; BestMetric = Current;
                 for ( k = 0; k < List.Count && nTrials < Limit; k++ )
                 {
-                    if ( !Scm_WinTrial(p, Backup, Id, List.Plans+k, Model, TrialState, Refs, Threshold, &Trial, 0) ||
+                    if ( !Scm_WinTrial(p, Backup, Delta, Id, List.Plans+k, Model, State, &Current, TrialState, Refs, Threshold, &Trial, 0) ||
                          (long long)Trial.Area + List.Plans[k].Gain != (long long)Current.Area ) goto done;
                     nTrials++;
                     if ( fVeryVerbose )
@@ -446,7 +804,7 @@ static Gia_Man_t * Scm_ManWindowImproveInt( Gia_Man_t * Gia, Scm_Qor_t * pQor, i
                 for ( t = 0; fLookahead && t < 2 && Short[t] >= 0 && nFlows < nLookahead; t++ )
                 {
                     k = Short[t]; nFlows++;
-                    if ( !Scm_WinTrial(p, Backup, Id, List.Plans+k, Model, TrialState, Refs, Threshold, &Trial, 1) ) goto done;
+                    if ( !Scm_WinTrial(p, Backup, Delta, Id, List.Plans+k, Model, State, &Current, TrialState, Refs, Threshold, &Trial, 1) ) goto done;
                     if ( fVeryVerbose )
                         Abc_Print(1, "SCMAP_LOOKAHEAD_TRIAL root=%d rank=%d model_delay=%.9g old_model_delay=%.9g model_area=%.9g old_model_area=%.9g pressure=%.9g old_pressure=%.9g area=%.9g old_area=%.9g delay=%.9g old_delay=%.9g\n",
                             Id, t, Trial.Electrical, Current.Electrical, Trial.EstimatedArea, Current.EstimatedArea,
@@ -468,10 +826,13 @@ static Gia_Man_t * Scm_ManWindowImproveInt( Gia_Man_t * Gia, Scm_Qor_t * pQor, i
                 Nf3_Apply(p, Id, List.Plans+Best);
                 nHits++; nTwo += List.Plans[Best].Slot != 0;
                 nNeutral += List.Plans[Best].Gain == 0; nTiming += !fArea; nGrowing += List.Plans[Best].Gain < 0;
-                if ( !Scm_WinMeasure(p, Model, State, Refs, Threshold, &Current) ||
+                if ( !Scm_WinMeasure(p, Model, State, Refs, Threshold, &Current, Backup, TrialState) ||
                      Current.Area != BestMetric.Area || Current.Electrical != BestMetric.Electrical ||
-                     Current.EstimatedArea != BestMetric.EstimatedArea || Current.Pressure != BestMetric.Pressure ) goto done;
+                     !Scm_WinAreaEqual(p->nObjs, Current.EstimatedArea, BestMetric.EstimatedArea) || Current.Pressure != BestMetric.Pressure ) goto done;
                 Current.RealArea = BestMetric.RealArea; Current.RealDelay = BestMetric.RealDelay;
+                memcpy(Backup, p->Objs, sizeof(Nf3_Obj_t)*p->nObjs);
+                memcpy(TrialState, State, sizeof(Scm_WinState_t)*p->nObjs);
+                Scm_WinDeltaBuild(p, Delta);
                 // Reorder the roots for area as soon as lookahead reaches the target.
                 if ( fLookahead && !fArea && DelayTarget > 0 && Current.RealDelay <= DelayTarget )
                 {
@@ -483,14 +844,14 @@ static Gia_Man_t * Scm_ManWindowImproveInt( Gia_Man_t * Gia, Scm_Qor_t * pQor, i
                 if ( !fLookahead && DelayTarget > 0 && fArea ) Growth += (word)List.Plans[Best].Gain;
                 if ( !fLookahead && Initial.Area > 0 && (DelayTarget > 0 || NextGrowth <= 4) && Growth >= 0.005 * NextGrowth * Initial.Area )
                 {
-                    if ( !Scm_WinCheckpoint(p, &Current, &Initial, &KeptMetric, &Checkpoint, fVerbose, DelayTarget) ) goto done;
+                    if ( !Scm_WinCheckpoint(p, &Current, &Initial, &KeptMetric, &Checkpoint, fVerbose, DelayTarget, Pool) ) goto done;
                     nChecks++; LastCheck = nHits;
                     do { NextGrowth++; } while ( (DelayTarget > 0 || NextGrowth <= 4) && Growth >= 0.005 * NextGrowth * Initial.Area );
                 }
             }
             if ( !fLookahead && nHits != LastCheck )
             {
-                if ( !Scm_WinCheckpoint(p, &Current, &Initial, &KeptMetric, &Checkpoint, fVerbose, DelayTarget) ) goto done;
+                if ( !Scm_WinCheckpoint(p, &Current, &Initial, &KeptMetric, &Checkpoint, fVerbose, DelayTarget, Pool) ) goto done;
                 nChecks++; LastCheck = nHits;
             }
         }
@@ -498,13 +859,38 @@ static Gia_Man_t * Scm_ManWindowImproveInt( Gia_Man_t * Gia, Scm_Qor_t * pQor, i
     }
     if ( !fLookahead )
     {
+        if ( Pool && Pool->Covers[0] && Pool->Covers[1] &&
+             Pool->Metrics[1].RealArea*Pool->Metrics[1].RealDelay < Pool->Metrics[0].RealArea*Pool->Metrics[0].RealDelay )
+        {
+            Gia_Man_t * Temp = Pool->Covers[0];
+            Scm_WinMetric_t Metric = Pool->Metrics[0];
+            Pool->Covers[0] = Pool->Covers[1]; Pool->Metrics[0] = Pool->Metrics[1];
+            Pool->Covers[1] = Temp; Pool->Metrics[1] = Metric;
+        }
+        for ( i = 0; Pool && i < 2; i++ ) if ( Pool->Covers[i] )
+        {
+            int Accept;
+            if ( i && Checkpoint && Pool->Metrics[1].RealDelay >= 0.995*Pool->Metrics[0].RealDelay ) break;
+            Trial = Pool->Metrics[i];
+            if ( !Scm_WinModelLookahead(Pool->Covers[i], 1, &Trial.RealArea, &Trial.RealDelay) ) goto done;
+            nFlows++;
+            Accept = Trial.RealArea <= 1.02*Initial.RealArea && Trial.RealDelay <= Initial.RealDelay &&
+                Trial.RealArea*Trial.RealDelay < KeptMetric.RealArea*KeptMetric.RealDelay;
+            if ( fVerbose ) Abc_Print(1, "SCMAP_WINDOW_CONFIRM kept=%d area=%.9g delay=%.9g\n",
+                Accept, Trial.RealArea, Trial.RealDelay);
+            if ( Accept )
+            {
+                if ( Checkpoint ) Gia_ManStop(Checkpoint);
+                Checkpoint = Pool->Covers[i]; Pool->Covers[i] = NULL; KeptMetric = Trial;
+            }
+        }
         Kept = Checkpoint != NULL; Result = Checkpoint ? Checkpoint : Gia;
         Checkpoint = NULL; Current = KeptMetric; goto report;
     }
     if ( !nHits ) { Current = Initial; Result = Gia; goto report; }
     Result = Nf3_Export(p, &Pars);
     if ( Result == NULL ) goto done;
-    if ( !Scm_WinModelLookahead(Result, &Current.RealArea, &Current.RealDelay) )
+    if ( !Scm_WinModelLookahead(Result, 1, &Current.RealArea, &Current.RealDelay) )
         { Gia_ManStop(Result); Result = NULL; goto done; }
     // Check final bounds, not bit-identical repetition of downstream optimizers.
     Kept = Current.RealArea <= 1.01 * Initial.RealArea && Current.RealDelay <= Initial.RealDelay;
@@ -526,7 +912,9 @@ report:
 done:
     if ( Result == NULL ) Abc_Print(0, "SCMap: window topology, area, or timing check failed.\n");
     if ( Checkpoint ) Gia_ManStop(Checkpoint);
+    for ( i = 0; i < 2; i++ ) if ( Checks.Covers[i] ) Gia_ManStop(Checks.Covers[i]);
     ABC_FREE(Backup); ABC_FREE(State); ABC_FREE(TrialState); ABC_FREE(Refs); ABC_FREE(Roots); ABC_FREE(List.Plans);
+    Scm_WinDeltaStop(Delta);
     if ( p )
     {
         Nf3_CacheClear(p); ABC_FREE(p->Cache); ABC_FREE(p->Objs);

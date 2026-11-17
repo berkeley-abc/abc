@@ -282,6 +282,11 @@ struct Scm_PotLoad_t_
     int             Count;         // matches at this root that actually use SrcLit
 };
 
+typedef struct Scm_FlowCache_t_
+{
+    Vec_Int_t * Mapping;
+    Scm_Qor_t Qor;
+} Scm_FlowCache_t;
 typedef struct Scm_Man_t_ Scm_Man_t;
 struct Scm_Man_t_
 {
@@ -302,6 +307,14 @@ struct Scm_Man_t_
     Vec_Flt_t       vCutFlows;
     Vec_Int_t       vCutDelays;
     Vec_Int_t       vBackup;
+    Scm_Obj_t *     pSeedObjs[8];
+    int *           pSeedRefs[8];
+    float *         pSeedFlow[8];
+    Scm_Qor_t       SeedQor[8];
+    int             SeedModes[8];
+    int             nSeedCovers;
+    Scm_FlowCache_t FlowCache[8];
+    int             nFlowCache;
     int             iCur;
     int             Iter;
     int             fUseEla;
@@ -1158,6 +1171,12 @@ static Scm_Man_t * Scm_StoCreate( Gia_Man_t * pGia, Scm_Par_t * pPars )
 static void Scm_StoDelete( Scm_Man_t * p )
 {
     int i;
+    for ( i = 0; i < p->nSeedCovers; i++ )
+    {
+        ABC_FREE(p->pSeedObjs[i]); ABC_FREE(p->pSeedRefs[i]); ABC_FREE(p->pSeedFlow[i]);
+    }
+    for ( i = 0; i < p->nFlowCache; i++ )
+        Vec_IntFree(p->FlowCache[i].Mapping);
     ABC_FREE( p->pFitCache );
     ABC_FREE( p->pFitState );
     ABC_FREE( p->pEnvState );
@@ -3571,7 +3590,7 @@ static float Scm_ManAffBufferArea( Scm_Man_t * p, int Lit )
    Called for every repair candidate; qsort dominated runtime on wide nets. */
 static void Scm_ManAffElaSeedsUniqify( Scm_AffElaCtx_t * pCtx, Vec_Int_t * vSeeds )
 {
-    int nSize = Vec_IntSize(vSeeds), i, k, Pass, Lit, * pSrc, * pDst;
+    int nSize = Vec_IntSize(vSeeds), i, k, Pass, Lit, * pSrc, * pDst, nBits;
     int Counts[2048];
     if ( nSize < 2 ) return;
     if ( ++pCtx->SeedEpoch == 0 )
@@ -3603,9 +3622,10 @@ static void Scm_ManAffElaSeedsUniqify( Scm_AffElaCtx_t * pCtx, Vec_Int_t * vSeed
     pCtx->vSeedSort->nSize = k;
     pSrc = Vec_IntArray(vSeeds);
     pDst = Vec_IntArray(pCtx->vSeedSort);
-    for ( Pass = 0; Pass < 3; Pass++ )
+    nBits = Abc_Base2Log(pCtx->nLits);
+    for ( Pass = 0; 11*Pass < nBits; Pass++ )
     {
-        int Shift = 11 * Pass, nBins = Pass == 2 ? 1024 : 2048, Sum = 0, c;
+        int Shift = 11 * Pass, nBins = 1 << Abc_MinInt(11, nBits-Shift), Sum = 0, c;
         memset(Counts, 0, sizeof(int) * nBins);
         for ( i = 0; i < k; i++ ) Counts[((unsigned)pSrc[i] >> Shift) & (nBins - 1)]++;
         for ( i = 0; i < nBins; i++ ) c = Counts[i], Counts[i] = Sum, Sum += c;
@@ -5092,6 +5112,7 @@ static Gia_Man_t * Scm_ManPerformMappingInt( Gia_Man_t * pGia, Scm_Par_t * pPars
             for ( m = 2; fOk && m < 6; m++ )
                 fOk = Scm_ManSelectSeed(p, m < 4 ? NULL : pSaveObjs[m&1],
                     m < 4 ? NULL : pSaveRefs[m&1], m < 4 ? pFlow0 : pSaveFlow[m&1], m, &Bound);
+            if ( fOk ) fOk = Scm_ManConfirmSeeds(p);
         }
         if ( fOk && pPars->fVerbose )
             printf("SCMAP_SELECTED seed=%d delay=%.3f area=%lld\n", pPars->nSeedMode, p->AffExactDelay, Df_Area(p));

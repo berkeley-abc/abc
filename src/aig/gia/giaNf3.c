@@ -32,6 +32,7 @@
 #include "map/scl/sclCon.h"
 #include "misc/vec/vecMem.h"
 #include "misc/util/utilTruth.h"
+#include <limits.h>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -68,7 +69,7 @@ typedef struct Nf3_Man_t_
     Vec_Mem_t * Truths;
     Vec_Wec_t * Matches;
     Nf3_Obj_t * Objs;
-    Vec_Int_t * Inputs, * Outputs, * Stack;
+    Vec_Int_t * Inputs, * Outputs, * Stack, * Changed;
     int nObjs, nCells, Target, fDecompose;
     word nTrials, nHits, nCacheHits, nTwo, nOdc, nCanonical, MinArea;
     long long Saved;
@@ -831,15 +832,25 @@ static void Nf3_Apply( Nf3_Man_t * p, int Root, Nf3_Plan_t * Best )
 {
     Nf3_Obj_t * Obj = p->Objs+Root;
     int i, Id;
+    if ( p->Changed ) Vec_IntPush(p->Changed, Root);
     for ( i = 0; i < Best->nFans; i++ )
-        if ( !Best->Slot || Best->Fans[i] != Best->Slot ) p->Objs[Best->Fans[i]].Refs++;
+        if ( !Best->Slot || Best->Fans[i] != Best->Slot )
+        {
+            if ( p->Changed ) Vec_IntPush(p->Changed, Best->Fans[i]);
+            p->Objs[Best->Fans[i]].Refs++;
+        }
     if ( Best->Slot )
-        for ( i = 0; i < (int)p->Cells[Best->ChildGate].nFanins; i++ ) p->Objs[Best->ChildFans[i]].Refs++;
+        for ( i = 0; i < (int)p->Cells[Best->ChildGate].nFanins; i++ )
+        {
+            if ( p->Changed ) Vec_IntPush(p->Changed, Best->ChildFans[i]);
+            p->Objs[Best->ChildFans[i]].Refs++;
+        }
     Vec_IntClear(p->Stack);
     for ( i = 0; i < Obj->nFans; i++ ) Vec_IntPush(p->Stack, Obj->Fans[i]);
     while ( Vec_IntSize(p->Stack) )
     {
         Id = Vec_IntPop(p->Stack);
+        if ( p->Changed ) Vec_IntPush(p->Changed, Id);
         assert(p->Objs[Id].Refs > 0);
         if ( --p->Objs[Id].Refs ) continue;
         for ( i = 0; i < p->Objs[Id].nFans; i++ ) Vec_IntPush(p->Stack, p->Objs[Id].Fans[i]);
@@ -847,8 +858,13 @@ static void Nf3_Apply( Nf3_Man_t * p, int Root, Nf3_Plan_t * Best )
     if ( Best->Slot )
     {
         Nf3_Obj_t * Child = p->Objs+Best->Slot;
+        if ( p->Changed ) Vec_IntPush(p->Changed, Best->Slot);
         assert(Child->Refs == 0);
-        if ( Child->Compl >= 0 ) p->Objs[Child->Compl].Compl = -1;
+        if ( Child->Compl >= 0 )
+        {
+            if ( p->Changed ) Vec_IntPush(p->Changed, Child->Compl);
+            p->Objs[Child->Compl].Compl = -1;
+        }
         Child->Compl = -1; Child->Gate = Best->ChildGate;
         Child->nFans = p->Cells[Best->ChildGate].nFanins;
         memcpy(Child->Fans, Best->ChildFans, sizeof(int)*Child->nFans);

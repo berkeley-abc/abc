@@ -38,7 +38,7 @@ extern int Scm_WinModelRequired( void * pModel, int Gate, int Pin, Scm_RfPair_t 
 extern Gia_Man_t * Scm_ManWindowImprove( Gia_Man_t * pGia, Scm_Qor_t * pQor, int fVerbose, int fVeryVerbose );
 extern Gia_Man_t * Scm_ManWindowLookahead( Gia_Man_t * pGia, Scm_Qor_t * pQor, int nTrials, int fVerbose, int fVeryVerbose );
 extern Gia_Man_t * Scm_ManWindowTarget( Gia_Man_t * pGia, Scm_Qor_t * pQor, float DelayTarget, int nTrials, int fVerbose, int fVeryVerbose );
-extern int Scm_WinModelLookahead( Gia_Man_t * pGia, double * pArea, float * pDelay );
+extern int Scm_WinModelLookahead( Gia_Man_t * pGia, int fMfs, double * pArea, float * pDelay );
 
 ABC_NAMESPACE_HEADER_END
 
