@@ -12,9 +12,7 @@
 
   Affiliation [University of Freiburg]
 
-  Date        [Ver. 1.0. Started - April 2026.]
-
-  Revision    [$Id: areaEngine.h,v 1.00 2025/04/14 00:00:00 Exp $]
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
 
 ***********************************************************************/
 
@@ -32,7 +30,10 @@ namespace eSLIM2 {
   class AreaEngine : private RelationSynthesiser {
 
     public:
-      static eSLIM2CirMan synthesiseSmall(const Relation& relation, const Subcircuit& subcir, const eSLIM2Config& cfg, int delay_bound = -1);
+      static eSLIM2CirMan synthesiseSmall(const Relation& relation, const Subcircuit& subcir, const eSLIM2Config& cfg, int delay_bound = -1, unsigned* minimum_area = nullptr);
+      static eSLIM2CirMan synthesiseSingleLut(const Relation& relation, const Subcircuit& subcir, const eSLIM2Config& cfg, int delay_bound, bool* complete = nullptr);
+      static eSLIM2CirMan synthesiseTwoLuts(const Relation& relation, const Subcircuit& subcir, const eSLIM2Config& cfg, int delay_bound);
+      static eSLIM2CirMan synthesiseWideSmall(const Relation& relation, const Subcircuit& subcir, const eSLIM2Config& cfg, int delay_bound);
       static eSLIM2CirMan synthesiseMinimumSizeCircuit(const Relation& relation, const Subcircuit& subcir, const eSLIM2Config& cfg, eSLIM2Log& log, bool* complete = nullptr);
 
     private:

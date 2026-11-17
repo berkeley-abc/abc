@@ -12,11 +12,12 @@
 
   Affiliation [University of Freiburg]
 
-  Date        [Ver. 1.0. Started - March 2025.]
-
-  Revision    [$Id: eSLIM2ManImpl.h,v 1.00 2025/03/17 00:00:00 Exp $]
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
 
 ***********************************************************************/
+
+#ifndef ABC__OPT__ESLIM2__ESLIM2MANIMPL_h
+#define ABC__OPT__ESLIM2__ESLIM2MANIMPL_h
 
 #include <climits>
 #include <algorithm>
@@ -26,22 +27,30 @@
 
 #include "eSLIM2Man.h"
 #include "synthesisEngines.h"
+#include "rewrite.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 namespace eSLIM2 {
 
+/**Function*************************************************************
+
+  Synopsis    [Optimizes the supplied circuit with the configured eSLIM2 search.]
+
+***********************************************************************/
   template <typename SynthesisEngine, typename SelectionStrategy>
   void eSLIM2_Man<SynthesisEngine, SelectionStrategy>::applyeSLIM2(eSLIM2CirMan& cir, const eSLIM2Config& cfg, eSLIM2Log& log) {
     eSLIM2_Man eslim2(cir, cfg, log);
     eslim2.optimize();
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Initializes search state, random selection and the original depth target.]
+
+***********************************************************************/
   template <typename SynthesisEngine, typename SelectionStrategy>
   eSLIM2_Man<SynthesisEngine, SelectionStrategy>::eSLIM2_Man(eSLIM2CirMan& es_man, const eSLIM2Config& cfg, eSLIM2Log& log)
             : es_man(es_man), cfg(cfg), selection_strategy(this->es_man, this->cfg, log), log(log), cache_rng(cfg.seed) {
-    // if (cfg.fix_seed) {
-    //   selection_strategy.setSeed(cfg.seed);
-    // }
     selection_strategy.setSeed(cfg.seed);
     relation_generation_time = log.relation_generation_time;
     synthesis_time = log.synthesis_time;
@@ -50,12 +59,23 @@ namespace eSLIM2 {
 
 
 
+/**Function*************************************************************
+
+  Synopsis    [Searches for local replacements until an iteration or time limit is reached.]
+
+***********************************************************************/
   template <typename SynthesisEngine, typename SelectionStrategy>
   void eSLIM2_Man<SynthesisEngine, SelectionStrategy>::optimize() {
     abctime clkStart    = cfg.timeNow();
     abctime next_progress = clkStart + CLOCKS_PER_SEC;
-    cfg.deadline = std::min(cfg.deadline, std::chrono::steady_clock::now() + std::chrono::seconds(cfg.timeout));
+    cfg.deadline = std::min(cfg.deadline, std::chrono::steady_clock::now() + std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(cfg.timeout)));
     unsigned int iteration = 0;
+    ABC_UINT64_T effort_without_gain = 0;
+    int best_area = es_man.getNofGates(), best_depth = es_man.getDepth();
+    bool stagnant = false;
+    unsigned retry_scale = 1;
+    bool grew_cut = false;
+    ABC_UINT64_T interrupted_at_restart = 0;
     unsigned int iterMax = cfg.iterations ? cfg.iterations - 1 : UINT_MAX;
     int current_size = es_man.getNofGates();
     const char* node_type = cfg.aig ? "#and" : "#nd";
@@ -63,44 +83,114 @@ namespace eSLIM2 {
     // only after an initial gain; explicit periodic mode also revisits graphs
     // changed by SAT even when the original graph resisted rewriting.
     const unsigned previous_rewrite_gain = log.rewrite_gain;
-    if (cfg.rewrite_mode && cfg.aig && !cfg.expired())
-      rewriteCircuit();
-    const bool repeat_rewrite = cfg.rewrite_mode >= 3 ||
-                               (cfg.rewrite_mode == 2 && log.rewrite_gain > previous_rewrite_gain);
-    auto next_rewrite = std::chrono::steady_clock::now() + std::chrono::seconds(rewrite_period_seconds);
+    if (cfg.rewrite_mode && (cfg.aig || cfg.lut_network)) {
+      // Choice-based AIG rewriting cycles through three mapping widths.
+      // One unsuccessful width does not establish a fixpoint for the cycle.
+      const unsigned patience = cfg.aig && cfg.rewrite_mode >= 5 ? 3 : 1;
+      unsigned without_gain = 0;
+      double first_rate = 0;
+      unsigned initial_calls = 0;
+      double cycle_time = 0;
+      unsigned cycle_gain = 0;
+      while (!cfg.expired()) {
+        const int area = es_man.getNofGates(), depth = es_man.getDepth();
+        const double before_time = log.rewriting_time;
+        rewriteCircuit();
+        const double cost = log.rewriting_time - before_time;
+        cycle_time += cost;
+        cycle_gain += std::max(0, area - es_man.getNofGates());
+        // Compare complete mapping-width cycles; one weak width is expected.
+        if (++initial_calls % patience == 0) {
+          const double rate = cycle_gain / std::max(0.000001, cycle_time);
+          if (initial_calls == patience) first_rate = rate;
+          else if (!cfg.iterations && first_rate > 0 && cycle_time > 1.0 && rate < first_rate * 0.1) break;
+          cycle_time = 0; cycle_gain = 0;
+        }
+        without_gain = es_man.getNofGates() >= area && es_man.getDepth() >= depth ? without_gain + 1 : 0;
+        if (cfg.rewrite_mode == 1 || without_gain >= patience) break;
+      }
+    }
+    const bool repeat_rewrite = (cfg.aig || cfg.lut_network) && (cfg.rewrite_mode >= 3 ||
+                               (cfg.rewrite_mode == 2 && log.rewrite_gain > previous_rewrite_gain));
+    auto next_rewrite = std::chrono::steady_clock::now() + std::chrono::seconds(rewritePeriod());
     while (!cfg.expired() && iteration <= iterMax && !stopeSLIM2 && es_man.getNofGates() > 0) {
       iteration++;
-      findReplacement();
+      evaluated_cut = false;
+      const bool restructured = findReplacement();
+      if (es_man.getNofGates() < best_area || es_man.getDepth() < best_depth) {
+        best_area = std::min(best_area, es_man.getNofGates());
+        best_depth = std::min(best_depth, es_man.getDepth());
+        effort_without_gain = 0;
+      } else if ((!cfg.aig && evaluated_cut) || restructured) ++effort_without_gain;
+      // Root trial budgets already account for failed AIG cuts. Counting
+      // those failures again here can end a run while it is still exploring
+      // new structures. Bound neutral AIG restructurings separately; stable
+      // neighborhoods still stop when their root work lists are exhausted.
+      if (cfg.trial_limit_active && effort_without_gain >=
+          ABC_UINT64_T(std::max(1, es_man.getNofGates())) * cfg.nselection_trials) {
+        stagnant = stopeSLIM2 = true;
+        ++log.exhausted_searches;
+      }
+      if (stopeSLIM2 && !cfg.expired() && !cfg.iterations) {
+        const ABC_UINT64_T interrupted = log.normal_synthesis_budget.interrupted +
+            log.extended_synthesis_budget.interrupted + log.relation_timeouts;
+        const bool pending = std::any_of(semantic_failures.begin(), semantic_failures.end(),
+            [](const auto& entry) { return entry.second != 0; });
+        if (interrupted > interrupted_at_restart || pending || !grew_cut) {
+          if (interrupted > interrupted_at_restart) retry_scale = std::min(4096u, retry_scale * 4);
+          if (!grew_cut && (retry_scale >= 16 || interrupted == interrupted_at_restart)) {
+            if (cfg.subcircuit_max_size < 16) ++cfg.subcircuit_max_size;
+            grew_cut = true;
+          }
+          cfg.synthesis_budget_scale = retry_scale;
+          interrupted_at_restart = interrupted;
+          stopeSLIM2 = stagnant = false;
+          effort_without_gain = 0;
+          // Revisit interrupted queries at larger budgets and then larger cuts.
+          for (auto it = failed_cuts.begin(); it != failed_cuts.end(); )
+            if (it->second) it = failed_cuts.erase(it); else ++it;
+          if (retry_scale == 4096) {
+            for (auto it = semantic_failures.begin(); it != semantic_failures.end(); )
+              if (it->second) it = semantic_failures.erase(it); else ++it;
+          }
+          selection_strategy.reset();
+          if (cfg.verbosity_level > 1)
+            std::cout << "Retry stalled search: budget x" << retry_scale
+                      << ", cut gates " << cfg.subcircuit_max_size << ", interrupted queries " << interrupted << "\n";
+        }
+      }
       if (cfg.checkpoint && std::chrono::steady_clock::now() >= cfg.next_checkpoint)
         cfg.next_checkpoint = cfg.checkpoint(es_man);
-      if (repeat_rewrite && !cfg.expired() && std::chrono::steady_clock::now() >= next_rewrite) {
+      if (repeat_rewrite && !cfg.expired() && (cfg.iterations ? iteration % 1000 == 0 : std::chrono::steady_clock::now() >= next_rewrite)) {
         rewriteCircuit();
-        next_rewrite = std::chrono::steady_clock::now() + std::chrono::seconds(rewrite_period_seconds);
+        next_rewrite = std::chrono::steady_clock::now() + std::chrono::seconds(rewritePeriod());
       }
-      if (cfg.apply_strash && iteration % cfg.strash_intervall == 0) {
+      if (cfg.aig && strash_pending && cfg.apply_strash && iteration % cfg.strash_interval == 0) {
         Gia_Man_t* pTemp = es_man.eSLIM2CirManToGia();
         Gia_Man_t* gia_man = Gia_ManRehash( pTemp, 0 );
         Gia_ManStop( pTemp );
         es_man = eSLIM2CirMan(gia_man);
         Gia_ManStop( gia_man );
-        selection_strategy.reset();
+        invalidateGraphState();
+        strash_pending = false;
       }
-      if (cfg.verbosity_level > 0) {
+      if (cfg.verbosity_level > 2) {
         int sz = es_man.getNofGates();
         if (sz < current_size) {
           current_size = sz;
-          printf("\rIteration %8d : %s = %7d elapsed time = %7.2f sec\n", iteration, node_type, sz, (float)1.0*(cfg.timeNow() - clkStart)/CLOCKS_PER_SEC);
+          printf("Iteration %8u : %s = %7d elapsed time = %7.2f sec\n", iteration, node_type, sz, (float)1.0*(cfg.timeNow() - clkStart)/CLOCKS_PER_SEC);
         } else if (cfg.timeNow() >= next_progress) {
-          printf("\rIteration %8d", iteration);
+          printf("Iteration %8u\n", iteration);
           fflush(stdout);
           next_progress = cfg.timeNow() + CLOCKS_PER_SEC;
         }
       }
     }
     log.iteration_count += iteration;
-    if (cfg.verbosity_level > 0) {
+    log.stop_reason = cfg.expired() ? 1 : !es_man.getNofGates() ? 3 : stagnant ? 4 : stopeSLIM2 ? 0 : 2;
+    if (cfg.verbosity_level > 2) {
       int sz = es_man.getNofGates();
-      printf("\r#Iterations %8d %s = %7d elapsed time = %7.2f sec\n", iteration, node_type, sz, (float)1.0*(cfg.timeNow() - clkStart)/CLOCKS_PER_SEC);
+      printf("#Iterations %8u %s = %7d elapsed time = %7.2f sec\n", iteration, node_type, sz, (float)1.0*(cfg.timeNow() - clkStart)/CLOCKS_PER_SEC);
       if (cfg.verbosity_level > 1) {
         printf("Relation generation time: %.2f sec\n", log.relation_generation_time - relation_generation_time);
         printf("Synthesis time: %.2f sec\n", log.synthesis_time - synthesis_time);
@@ -110,29 +200,57 @@ namespace eSLIM2 {
 
 /**Function*************************************************************
 
-  Synopsis    [Rewrites an AIG while respecting the selected objective.]
-
-  Description [Uses an owned GIA and the native compression API, leaving
-  the global ABC frame untouched. Accepting a rewritten graph resets the
-  selection strategy because its node IDs may have changed.]
-
-  SideEffects []
-
-  SeeAlso     []
+  Synopsis    [Returns the native rewrite interval after consecutive calls without gain.]
 
 ***********************************************************************/
+  template <typename SynthesisEngine, typename SelectionStrategy>
+  unsigned eSLIM2_Man<SynthesisEngine, SelectionStrategy>::rewritePeriod() const {
+    unsigned base = cfg.rewrite_mode == 5 ? 10 : cfg.rewrite_mode == 6 ? 5 : rewrite_period_seconds;
+    // AIG rewriting recovers sharing beyond the SAT cuts; allow it a larger
+    // share than the costlier LUT remapping. Neither budget is reset by SAT
+    // gains, and consecutive native failures still increase the cadence.
+    const double cost_factor = cfg.aig ? 5 : 20;
+    const double measured = log.rewrite_calls ? cost_factor * log.rewriting_time / log.rewrite_calls : 0;
+    // Cheap AIG passes should not inherit the same minimum interval as a
+    // multi-second mapping. Otherwise a small graph can exhaust its root
+    // trials before native rewriting sees any of the SAT changes. Keep the
+    // failure backoff, but scale its starting interval by measured work.
+    if (cfg.aig && log.rewrite_calls)
+      base = std::max(1u, std::min(base, unsigned(std::min(double(base), std::ceil(measured)))));
+    const unsigned cadence = std::min(max_rewrite_period_seconds, base << rewrite_no_gain_calls);
+    return std::max(cadence, unsigned(std::min(double(max_rewrite_period_seconds), measured)));
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Backs off ineffective native calls and restores cadence after improvement.]
+
+***********************************************************************/
+  template <typename SynthesisEngine, typename SelectionStrategy>
+  void eSLIM2_Man<SynthesisEngine, SelectionStrategy>::recordRewriteOutcome(bool improved) {
+    if (improved) rewrite_no_gain_calls = 0;
+    else {
+      rewrite_no_gain_calls = std::min(max_rewrite_backoff, rewrite_no_gain_calls + 1);
+      ++log.rewrite_no_gain;
+    }
+  }
 
 /**Function*************************************************************
 
   Synopsis    [Apply native rewriting when sufficient deadline reserve remains.]
 
-  SideEffects [Replaces the owned circuit after checking size and depth bounds.]
+  Description [Uses owned graphs and native compression/mapping APIs.
+  Accepting a rewritten graph resets selection because node IDs can change.]
 
-  SeeAlso     []
+  SideEffects [Replaces the owned circuit after checking size and depth bounds.]
 
 ***********************************************************************/
   template <typename SynthesisEngine, typename SelectionStrategy>
   void eSLIM2_Man<SynthesisEngine, SelectionStrategy>::rewriteCircuit() {
+    if (cfg.lut_network) {
+      rewriteLutCircuit();
+      return;
+    }
     const auto rewrite_start = std::chrono::steady_clock::now();
     // DC2, like native resubstitution, cannot be interrupted. Avoid starting
     // it near the deadline; retain twice the largest observed duration plus
@@ -141,9 +259,15 @@ namespace eSLIM2 {
       return;
     Gia_Man_t* original = es_man.eSLIM2CirManToGia();
     // Pure area optimization can trade levels for gates, just like its SAT
-    // replacements. Delay-constrained engines retain the current depth.
+    // replacements. Delay-constrained engines honor the active bound: -L or
+    // -l may permit returning depth gains in exchange for a smaller circuit.
     constexpr bool preserve_depth = !std::is_same_v<SynthesisEngine, AreaMinimizer>;
-    Gia_Man_t* rewritten = Gia_ManCompress2(original, preserve_depth, 0);
+    const unsigned bound = preserve_depth ? cfg.areaDepthBound(es_man.getDepth()) - 1 : UINT_MAX;
+    const unsigned target = cfg.depth_floor > 0 ? unsigned(cfg.depth_floor - 1) :
+        unsigned(Gia_ManLevelNum(original)) * 4 / 5;
+    Gia_Man_t* rewritten = cfg.rewrite_mode >= 5 ?
+        rewriteWithChoices(original, target, bound, log.rewrite_calls, cfg.deadline, cfg.rewrite_mode == 6) :
+        Gia_ManCompress2(original, preserve_depth, 0);
     const double rewrite_elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - rewrite_start).count();
     rewrite_reserve = std::max(rewrite_reserve, 2 * rewrite_elapsed + native_reserve_margin);
     ++log.rewrite_calls;
@@ -177,34 +301,190 @@ namespace eSLIM2 {
           Gia_ManStop(resub);
       }
     }
-    if (rewritten && Gia_ManAndNum(rewritten) <= Gia_ManAndNum(original) &&
-        (!preserve_depth || Gia_ManLevelNum(rewritten) <= Gia_ManLevelNum(original))) {
+    bool improved = false;
+    if (rewritten && (Gia_ManAndNum(rewritten) < Gia_ManAndNum(original) ||
+        Gia_ManLevelNum(rewritten) < Gia_ManLevelNum(original)) &&
+        Gia_ManAndNum(rewritten) <= Gia_ManAndNum(original) &&
+        (!preserve_depth || unsigned(Gia_ManLevelNum(rewritten)) <= bound)) {
+      improved = Gia_ManAndNum(rewritten) < Gia_ManAndNum(original) ||
+                 Gia_ManLevelNum(rewritten) < Gia_ManLevelNum(original);
       log.rewrite_gain += Gia_ManAndNum(original) - Gia_ManAndNum(rewritten);
       log.resubstitution_gain += resubstitution_gain;
       es_man = eSLIM2CirMan(rewritten);
-      selection_strategy.reset();
+      invalidateGraphState();
     }
     if (rewritten)
       Gia_ManStop(rewritten);
     Gia_ManStop(original);
+    log.rewriting_time += std::chrono::duration<double>(std::chrono::steady_clock::now() - rewrite_start).count();
+    recordRewriteOutcome(improved);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Restructures LUTs within the active area, depth and time bounds.]
+
+***********************************************************************/
+  template <typename SynthesisEngine, typename SelectionStrategy>
+  void eSLIM2_Man<SynthesisEngine, SelectionStrategy>::rewriteLutCircuit() {
+    const auto started = std::chrono::steady_clock::now();
+    if (std::chrono::duration<double>(cfg.deadline - started).count() <= rewrite_reserve)
+      return;
+    constexpr bool preserve_depth = !std::is_same_v<SynthesisEngine, AreaMinimizer>;
+    const unsigned bound = preserve_depth ? cfg.areaDepthBound(es_man.getDepth()) : UINT_MAX;
+    const unsigned target = cfg.depth_floor >= 0 ? unsigned(cfg.depth_floor) :
+        1 + unsigned(std::max(0, es_man.getDepth() - 1)) * 4 / 5;
+    auto candidate = rewriteLutWithChoices(es_man, cfg.gate_size, target, bound,
+        log.rewrite_calls, cfg.deadline, !preserve_depth);
+    ++log.rewrite_calls;
+    const bool improved = candidate.getNofObjs() > 1;
+    if (improved) {
+      log.rewrite_gain += es_man.getNofGates() - candidate.getNofGates();
+      es_man = std::move(candidate);
+      invalidateGraphState();
+    }
+    const double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
+    rewrite_reserve = std::max(rewrite_reserve, 2 * elapsed + native_reserve_margin);
+    log.rewriting_time += elapsed;
+    recordRewriteOutcome(improved);
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Discard graph-dependent state after an accepted graph mutation.]
+
+***********************************************************************/
+  template <typename SynthesisEngine, typename SelectionStrategy>
+  void eSLIM2_Man<SynthesisEngine, SelectionStrategy>::invalidateGraphState(bool full) {
+    timings_dirty = true;
+    strash_pending = true;
+    divisor_signatures_dirty = true;
+    relation_cache.clear();
+    relation_cache_units = 0;
+    failed_cuts.clear();
+    if (!full) { es_man.setupTimings(); timings_dirty = false; }
+    selection_strategy.reset(full);
+    // Context caps are a search policy, not graph-dependent cached facts.
+    // Retain successful caps; periodic probes reconsider the full context.
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Reuse complete local relations while the enclosing graph is unchanged.]
+
+  Description [The key fixes cut gates, boundary order and added divisors.
+  All graph mutations clear this manager-owned cache. Timed-out relations
+  are never cached. Entry and row/pattern limits bound storage independently
+  of the number of inputs in the enclosing circuit.]
+
+***********************************************************************/
+  template <typename SynthesisEngine, typename SelectionStrategy>
+  std::shared_ptr<const Relation> eSLIM2_Man<SynthesisEngine, SelectionStrategy>::getRelation(
+      const Subcircuit& subcir) {
+    const bool eligible = cfg.cache_relations && cfg.local_relations && (cfg.aig || cfg.lut_network) &&
+        subcir.inputs.size() <= relation_cache_max_inputs && subcir.outputs.size() <= 6 && !cfg.expired();
+    std::vector<int> key;
+    if (eligible) {
+      for (const auto* ids : {&subcir.nodes, &subcir.inputs, &subcir.outputs, &subcir.divisors}) {
+        key.push_back(static_cast<int>(ids->size()));
+        key.insert(key.end(), ids->begin(), ids->end());
+      }
+      const auto found = relation_cache.find(key);
+      if (found != relation_cache.end()) {
+        ++log.relation_cache_hits;
+        return found->second;
+      }
+    }
+    RelationGenerator::OptimalityCheck optimal;
+    if constexpr (std::is_same_v<SynthesisEngine, AreaDelayConstraintMinimizer>) {
+      if (cfg.skip_optimal_cuts && cfg.aig && cfg.gate_size == 2 && subcir.outputs.size() <= 6)
+        optimal = [this, &subcir](const Relation& witnesses) { return provesOptimal(subcir, witnesses); };
+    }
+    auto relation = std::make_shared<Relation>(RelationGenerator::computeRelation(es_man, subcir, cfg, log, optimal, &relation_context));
+    if (relation->isProvenOptimal()) {
+      ++log.proven_optimal_cuts;
+      ++log.sampled_optimal_cuts;
+    }
+    if (eligible && relation->getStatus()) {
+      // A row owns a vector; each pattern owns another vector and packed bits.
+      // Bound both counts instead of assuming one pattern per input row.
+      size_t units = relation->getNPatterns();
+      for (int row = 0; row < relation->getNPatterns(); ++row)
+        units += 2 * relation->getPattern(row).size();
+      if (units <= max_relation_cache_units) {
+        if (relation_cache.size() >= max_relation_cache_entries ||
+            relation_cache_units + units > max_relation_cache_units) {
+          relation_cache.clear();
+          relation_cache_units = 0;
+        }
+        relation_cache_units += units;
+        relation_cache.emplace(std::move(key), relation);
+      }
+    }
+    return relation;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Computes a complete relation and synthesizes a verified replacement.]
+
+***********************************************************************/
   template <typename SynthesisEngine, typename SelectionStrategy>
   eSLIM2CirMan eSLIM2_Man<SynthesisEngine, SelectionStrategy>::computeReplacement(Subcircuit& subcir) {
     abctime relation_generation_start = cfg.timeNow();
-    Relation rel = RelationGenerator::computeRelation(es_man, subcir, cfg, log);
+    const auto owned_relation = getRelation(subcir);
+    const Relation& rel = *owned_relation;
     log.relation_generation_time += (double)1.0*(cfg.timeNow() - relation_generation_start)/CLOCKS_PER_SEC;
     log.cummulative_relation_generation_times_per_size[subcir.nodes.size()] += (double)1.0*(cfg.timeNow() - relation_generation_start) / CLOCKS_PER_SEC;
     log.nof_relation_generations_per_size[subcir.nodes.size()]++;
     if (!rel.getStatus()) {
+      last_search_complete = rel.isProvenOptimal();
       return eSLIM2CirMan(0);
     }
     abctime synthesis_start = cfg.timeNow();
     eSLIM2CirMan replacement = synthesiseRelation(subcir, rel);
     log.synthesis_time += (double)1.0*(cfg.timeNow() - synthesis_start)/CLOCKS_PER_SEC;
+    if (replacement.getNofObjs() > 1) {
+      if (!RelationGenerator::verifyReplacement(replacement, subcir, rel, cfg)) {
+        if (cfg.expired()) ++log.verification_timeouts;
+        else ++log.rejected_replacements;
+        return eSLIM2CirMan(0);
+      }
+      ++log.verified_replacements;
+    }
     return replacement;
   }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Proves that a relation admits no area or per-output arrival improvement.]
+
+  Description [For witnessed subsets of the forbidden tuples, these necessary
+  support bounds are weaker than for the complete relation. A tight bound on
+  such a relaxation is sufficient to skip the cut, without treating the sample
+  as a complete relation. Window boundary order preserves the enclosing cut's
+  input arrivals and output depths used here.]
+
+***********************************************************************/
+  template <typename SynthesisEngine, typename SelectionStrategy>
+  bool eSLIM2_Man<SynthesisEngine, SelectionStrategy>::provesOptimal(
+      const Subcircuit& subcir, const Relation& relation) const {
+    if constexpr (std::is_same_v<SynthesisEngine, AreaDelayConstraintMinimizer>) {
+      if (cfg.skip_optimal_cuts && cfg.aig && cfg.gate_size == 2 && subcir.outputs.size() <= 6) {
+        const auto bounds = relation.analyseSupport(subcir.outputs.size(), 2);
+        if (bounds.minimum_gates == subcir.nodes.size()) {
+          std::vector<unsigned> arrivals;
+          for (int input : subcir.inputs) arrivals.push_back(es_man.getObj(input).depth);
+          for (unsigned output = 0; output < subcir.outputs.size(); ++output)
+            if (bounds.minimumArrival(output, arrivals) < unsigned(es_man.getObj(subcir.outputs[output]).depth))
+              return false;
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 
 /**Function*************************************************************
 
@@ -212,11 +492,13 @@ namespace eSLIM2 {
 
   SideEffects [Updates the manager cache and search statistics.]
 
-  SeeAlso     []
-
 ***********************************************************************/
   template <typename SynthesisEngine, typename SelectionStrategy>
   eSLIM2CirMan eSLIM2_Man<SynthesisEngine, SelectionStrategy>::synthesiseRelation(Subcircuit& subcir, const Relation& rel) {
+    if (provesOptimal(subcir, rel)) {
+      ++log.proven_optimal_cuts;
+      return eSLIM2CirMan(0);
+    }
     if constexpr (std::is_same_v<SynthesisEngine, AreaDelayConstraintMinimizer> ||
                   std::is_same_v<SynthesisEngine, AreaMinimizer>) {
       // Only complete minimum-area results are reusable. The query contains
@@ -232,14 +514,45 @@ namespace eSLIM2 {
           ++log.synthesis_cache_hits;
           return reuseCachedReplacement(query, subcir, found->second);
         }
+        auto failure_key = query.words;
+        // Neutral exclusion is topology-specific. Stable object IDs preserve
+        // entries across unrelated renumbering; relation/timing words above
+        // validate all functional assumptions before any failure is reused.
+        if (cfg.lut_network)
+          for (int id : subcir.nodes) {
+            const auto& node = es_man.getObj(id);
+            failure_key.push_back(node.getId()); failure_key.push_back(node.tt);
+            failure_key.push_back(node.fanins.size());
+            for (auto* input : node.fanins) failure_key.push_back(input->getId());
+          }
+        auto failure = semantic_failures.find(failure_key);
+        if (failure != semantic_failures.end() && (!failure->second || failure->second >= cfg.synthesis_budget_scale)) {
+          ++log.failed_cut_cache_hits;
+          last_search_complete = failure->second == 0;
+          evaluated_cut = false;
+          return eSLIM2CirMan(0);
+        }
         bool complete;
         auto replacement = SynthesisEngine::optimize(es_man, rel, subcir, cfg, log, &complete);
+        last_search_complete = complete;
+        if (replacement.getNofObjs() <= 1 && failure_key.size() <= 2048) {
+          if (semantic_failures.size() >= max_cache_entries) semantic_failures.clear();
+          semantic_failures[failure_key] = complete ? 0 : cfg.synthesis_budget_scale;
+        }
+        if (complete && replacement.getNofObjs() > 1) semantic_failures.erase(failure_key);
         if (complete && replacement.getNofObjs() > 1)
           storeCachedReplacement(std::move(query), replacement);
         return replacement;
       }
     }
-    return SynthesisEngine::optimize(es_man, rel, subcir, cfg, log);
+    if constexpr (std::is_same_v<SynthesisEngine, AreaDelayConstraintMinimizer> || std::is_same_v<SynthesisEngine, AreaMinimizer>)
+      return SynthesisEngine::optimize(es_man, rel, subcir, cfg, log, &last_search_complete);
+    else {
+      const auto interrupted = log.normal_synthesis_budget.interrupted + log.extended_synthesis_budget.interrupted;
+      auto result = SynthesisEngine::optimize(es_man, rel, subcir, cfg, log);
+      last_search_complete = interrupted == log.normal_synthesis_budget.interrupted + log.extended_synthesis_budget.interrupted;
+      return result;
+    }
   }
 
 /**Function*************************************************************
@@ -247,8 +560,6 @@ namespace eSLIM2 {
   Synopsis    [Build a key containing all functional, feedback and timing constraints.]
 
   SideEffects [None.]
-
-  SeeAlso     []
 
 ***********************************************************************/
   template <typename SynthesisEngine, typename SelectionStrategy>
@@ -308,7 +619,11 @@ namespace eSLIM2 {
       // restrict a replacement. Such cuts can share an untimed cache key.
       const unsigned bound = cfg.areaDepthBound(es_man.getDepth());
       const unsigned neutral_bound = cfg.protect_neutral_depth ? unsigned(es_man.getDepth()) : bound;
-      const bool unrestricted = !cfg.refine_depth &&
+      const bool refine = AreaDelayConstraintMinimizer::refineDepthForCut(es_man, subcir, cfg);
+      // The same functional/timing query can become critical after another
+      // replacement. Do not reuse its unrefined result as a refined query.
+      key.push_back(refine);
+      const bool unrestricted = !refine &&
           max_arrival + subcir.nodes.size() + max_remaining <= std::min(bound, neutral_bound);
       key.push_back(unrestricted);
       if (!unrestricted) {
@@ -339,8 +654,6 @@ namespace eSLIM2 {
   Synopsis    [Return a cached replacement with any verified safe input permutation.]
 
   SideEffects [Updates cache permutation statistics.]
-
-  SeeAlso     []
 
 ***********************************************************************/
   template <typename SynthesisEngine, typename SelectionStrategy>
@@ -412,8 +725,6 @@ namespace eSLIM2 {
 
   SideEffects [May clear older entries when a storage limit is reached.]
 
-  SeeAlso     []
-
 ***********************************************************************/
   template <typename SynthesisEngine, typename SelectionStrategy>
   void eSLIM2_Man<SynthesisEngine, SelectionStrategy>::storeCachedReplacement(
@@ -436,34 +747,279 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Refreshes sampled gate signatures after the owned graph changes.]
+
+  Description [These 256 concrete assignments rank divisors only. They do not
+  define a relation, prove equivalence or authorize a replacement. Keep the
+  generator independent of the existing cut-selection random stream.]
+
+***********************************************************************/
   template <typename SynthesisEngine, typename SelectionStrategy>
-  void eSLIM2_Man<SynthesisEngine, SelectionStrategy>::findReplacement() {
+  bool eSLIM2_Man<SynthesisEngine, SelectionStrategy>::updateDivisorSignatures() {
+    if (!cfg.aig) return false;
+    if (!divisor_signatures_dirty) return !divisor_signatures.empty();
+    ScopedPhaseTimer timer(log.divisor_signature_time, cfg);
+    divisor_signatures.assign(es_man.getNofObjs(), {});
+    std::mt19937_64 random(static_cast<ABC_UINT64_T>(cfg.seed) ^ 0x9e3779b97f4a7c15ull);
+    for (int i = 1; i <= es_man.getNofPis(); ++i)
+      for (unsigned word = 0; word < divisor_signature_words; ++word)
+        divisor_signatures[i][word] = random();
+    const int end = es_man.getNofObjs() - es_man.getNofPos();
+    for (int i = es_man.getNofPis() + 1; i < end; ++i) {
+      const auto& node = es_man.getObj(i);
+      if (node.fanins.size() != 2 || ((i & 1023) == 0 && cfg.expired())) {
+        divisor_signatures.clear();
+        return false;
+      }
+      const auto& a = divisor_signatures[node.fanins[0]->node_id];
+      const auto& b = divisor_signatures[node.fanins[1]->node_id];
+      const ABC_UINT64_T m0 = -ABC_UINT64_T((node.tt >> 0) & 1);
+      const ABC_UINT64_T m1 = -ABC_UINT64_T((node.tt >> 1) & 1);
+      const ABC_UINT64_T m2 = -ABC_UINT64_T((node.tt >> 2) & 1);
+      const ABC_UINT64_T m3 = -ABC_UINT64_T((node.tt >> 3) & 1);
+      for (unsigned word = 0; word < divisor_signature_words; ++word)
+        divisor_signatures[i][word] = (~a[word] & ~b[word] & m0) | (a[word] & ~b[word] & m1) |
+                                     (~a[word] & b[word] & m2) | (a[word] & b[word] & m3);
+    }
+    divisor_signatures_dirty = false;
+    return true;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Counts sampled differences modulo a complemented divisor.]
+
+***********************************************************************/
+  template <typename SynthesisEngine, typename SelectionStrategy>
+  unsigned eSLIM2_Man<SynthesisEngine, SelectionStrategy>::signatureDistance(int left, int right) const {
+    unsigned distance = 0;
+    for (unsigned word = 0; word < divisor_signature_words; ++word)
+      distance += popcount(divisor_signatures[left][word] ^ divisor_signatures[right][word]);
+    return std::min(distance, 64 * divisor_signature_words - distance);
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Offers nearby existing signals as free divisors to local synthesis.]
+
+  Description [Only signals outside the cut's transitive fanout are eligible,
+  so their reuse cannot create a cycle. Their defining gates are included in
+  the relation context. They are not replacement gates and are not charged
+  again to its area. The input cap bounds exponential relation work.]
+
+***********************************************************************/
+  template <typename SynthesisEngine, typename SelectionStrategy>
+  void eSLIM2_Man<SynthesisEngine, SelectionStrategy>::addDivisors(Subcircuit& subcir) {
+    if (!cfg.max_divisors || !cfg.local_relations || subcir.inputs.size() >= cfg.cut_input_limit)
+      return;
+    std::set<int> boundary(subcir.inputs.begin(), subcir.inputs.end()), candidates;
+    unsigned latest = 0;
+    for (int output : subcir.outputs) latest = std::max(latest, unsigned(es_man.getObj(output).depth));
+    auto consider = [&](int id) {
+      const auto& node = es_man.getObj(id);
+      if (!es_man.isPi(id) && !es_man.isPo(id) && !es_man.inSubcircuit(node) &&
+          !es_man.inTFO(node) && !boundary.count(id) &&
+          (!isDelayEngine<SynthesisEngine>::value || unsigned(node.depth) < latest))
+        candidates.insert(id);
+    };
+    for (int input : subcir.inputs) {
+      const auto& node = es_man.getObj(input);
+      for (auto* fanin : node.fanins) consider(fanin->node_id);
+      unsigned visited = 0;
+      for (auto* fanout : node.fanouts) {
+        if (++visited > 64) break;
+        consider(fanout->node_id);
+      }
+    }
+    const bool signatures = !candidates.empty() && updateDivisorSignatures();
+    // Sample agreement only changes search priority. A coincidental match may
+    // lose an opportunity, but complete SAT relations and independent checks
+    // still decide whether any resulting replacement is valid.
+    std::vector<std::array<int, 3>> ranked;
+    for (int id : candidates) {
+      ++log.divisor_candidates;
+      const auto& node = es_man.getObj(id);
+      if (signatures && std::any_of(subcir.inputs.begin(), subcir.inputs.end(),
+          [&](int input) { return signatureDistance(id, input) == 0; })) {
+        ++log.divisor_signature_duplicates;
+        continue;
+      }
+      int score = 0;
+      for (auto* fanin : node.fanins) score += boundary.count(fanin->node_id) ? 4 : 0;
+      score += es_man.inTFI(node) ? 2 : 0;
+      unsigned distance = 64 * divisor_signature_words;
+      if (signatures)
+        for (int target : subcir.nodes) distance = std::min(distance, signatureDistance(id, target));
+      ranked.push_back({int(distance), -score, id});
+    }
+    std::sort(ranked.begin(),ranked.end());
+    for (const auto& entry : ranked) {
+      if (subcir.divisors.size() >= cfg.max_divisors || subcir.inputs.size() >= cfg.cut_input_limit) break;
+      const int id = entry[2];
+      if (signatures && std::any_of(subcir.divisors.begin(), subcir.divisors.end(),
+          [&](int divisor) { return signatureDistance(id, divisor) == 0; })) {
+        ++log.divisor_signature_duplicates;
+        continue;
+      }
+      subcir.inputs.push_back(id);
+      subcir.divisors.push_back(id);
+    }
+    log.cuts_with_divisors += !subcir.divisors.empty();
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Recognize a replacement that reproduces the existing cut topology.]
+
+  Description [Match a bijection of gates while fixing boundary signals and
+  output phases. Swapping the two pins also swaps their truth-table bits.
+  This only skips an identical graph; distinct equivalent decompositions
+  remain available for neutral restructuring.]
+
+***********************************************************************/
+  template <typename SynthesisEngine, typename SelectionStrategy>
+  bool eSLIM2_Man<SynthesisEngine, SelectionStrategy>::isUnchangedReplacement(
+      const Subcircuit& subcir, const eSLIM2CirMan& replacement) const {
+    if ((!cfg.aig && !cfg.lut_network) || (cfg.aig && cfg.gate_size != 2) ||
+        unsigned(replacement.getNofGates()) != subcir.nodes.size() ||
+        unsigned(replacement.getNofPis()) != subcir.inputs.size() ||
+        unsigned(replacement.getNofPos()) != subcir.outputs.size())
+      return false;
+    std::vector<int> mapping(replacement.getNofObjs(), -1);
+    std::vector<bool> used(subcir.nodes.size(), false);
+    mapping[0] = 0;
+    for (unsigned i = 0; i < subcir.inputs.size(); ++i)
+      mapping[i + 1] = subcir.inputs[i];
+    for (int i = replacement.getNofPis() + 1;
+         i < replacement.getNofObjs() - replacement.getNofPos(); ++i) {
+      const auto& node = replacement.getObj(i);
+      if (node.fanins.empty() || node.fanins.size() > 6) return false;
+      for (unsigned j = 0; j < subcir.nodes.size(); ++j) {
+        const auto& original = es_man.getObj(subcir.nodes[j]);
+        if (used[j] || original.fanins.size() != node.fanins.size()) continue;
+        bool same = false;
+        if (node.fanins.size() == 2) {
+          const int a = mapping[node.fanins[0]->node_id], b = mapping[node.fanins[1]->node_id];
+          const int x = original.fanins[0]->node_id, y = original.fanins[1]->node_id;
+          const ABC_UINT64_T swapped = (node.tt & 9) | ((node.tt & 2) << 1) | ((node.tt & 4) >> 1);
+          same = (a == x && b == y && node.tt == original.tt) ||
+                 (a == y && b == x && swapped == original.tt);
+        } else {
+          std::array<unsigned, 6> order{};
+          unsigned seen = 0;
+          same = true;
+          for (unsigned pin = 0; pin < node.fanins.size(); ++pin) {
+            const int input = mapping[node.fanins[pin]->node_id];
+            unsigned slot = 0;
+            while (slot < original.fanins.size() && original.fanins[slot]->node_id != input) ++slot;
+            if (slot == original.fanins.size() || (seen & (1u << slot))) { same = false; break; }
+            order[pin] = slot;
+            seen |= 1u << slot;
+          }
+          for (unsigned row = 0; same && row < (1u << node.fanins.size()); ++row) {
+            unsigned permuted = 0;
+            for (unsigned pin = 0; pin < node.fanins.size(); ++pin)
+              permuted |= ((row >> order[pin]) & 1) << pin;
+            same = ((node.tt >> permuted) & 1) == ((original.tt >> row) & 1);
+          }
+        }
+        if (same) {
+          mapping[i] = subcir.nodes[j];
+          used[j] = true;
+          break;
+        }
+      }
+      if (mapping[i] < 0) return false;
+    }
+    for (unsigned i = 0; i < subcir.outputs.size(); ++i) {
+      const auto& output = replacement.getObj(replacement.getNofObjs() - replacement.getNofPos() + i);
+      if (output.tt != 2 || output.fanins.size() != 1 ||
+          mapping[output.fanins[0]->node_id] != subcir.outputs[i])
+        return false;
+    }
+    return true;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Installs a verified cut replacement and reports whether the graph changed.]
+
+***********************************************************************/
+  template <typename SynthesisEngine, typename SelectionStrategy>
+  bool eSLIM2_Man<SynthesisEngine, SelectionStrategy>::findReplacement() {
     bool status = true;
     if constexpr (SelectionStrategy::requiresRemainingTimes() || isDelayEngine<SynthesisEngine>::value) {
-      es_man.setupTimings();
+      // Failed and rejected candidates do not alter topology or arrivals.
+      // Reuse remaining times until a replacement, rewrite or strash changes
+      // the owned graph; each new manager starts with invalid timing data.
+      if (timings_dirty) {
+        es_man.setupTimings();
+        timings_dirty = false;
+      }
     }
     Subcircuit subcir = selection_strategy.getSubcircuit(status);
     if (!status) {
-      if (cfg.trial_limit_active) {
+      if (selection_strategy.exhausted()) {
         stopeSLIM2 = true;
+        ++log.exhausted_searches;
       }
-      return;
+      return false;
     }
+    addDivisors(subcir);
+    if (log.nof_analyzed_circuits_per_size.size() < subcir.nodes.size() + 1)
+      log.resize(subcir.nodes.size());
+    std::vector<int> key;
+    for (const auto* ids : {&subcir.nodes, &subcir.inputs, &subcir.outputs, &subcir.divisors}) {
+      key.push_back(int(ids->size()));
+      key.insert(key.end(), ids->begin(), ids->end());
+    }
+    auto previous = failed_cuts.find(key);
+    if (previous != failed_cuts.end() && (!previous->second || previous->second >= cfg.synthesis_budget_scale)) {
+      ++log.failed_cut_cache_hits;
+      selection_strategy.recordFailure();
+      return false;
+    }
+    const unsigned scale = cfg.synthesis_budget_scale;
+    evaluated_cut = true;
+    const double relation_allowance = cfg.relation_generation_timeout;
+    cfg.synthesis_budget_scale = scale;
+    cfg.relation_generation_timeout *= scale;
+    log.extended_cut_retries += scale > 1;
+    last_search_complete = true;
+    const unsigned previous_optimal = log.proven_optimal_cuts;
     eSLIM2CirMan replacement = computeReplacement(subcir);
+    if (evaluated_cut) selection_strategy.recordEvaluation();
+    cfg.synthesis_budget_scale = scale;
+    cfg.relation_generation_timeout = relation_allowance;
+    auto rememberFailure = [&]() {
+      if (key.size() > 128) return;
+      if (failed_cuts.size() >= max_cache_entries) failed_cuts.clear();
+      failed_cuts[key] = last_search_complete ? 0 : scale;
+    };
+    if (log.proven_optimal_cuts > previous_optimal) selection_strategy.recordFailure();
 
-    if (log.nof_analyzed_circuits_per_size.size() < subcir.nodes.size() + 1) {
-      log.nof_analyzed_circuits_per_size.resize(subcir.nodes.size() + 1, 0);
-      log.nof_replaced_circuits_per_size.resize(subcir.nodes.size() + 1, 0);
-      log.nof_reduced_circuits_per_size.resize(subcir.nodes.size() + 1, 0);
-    }
     log.nof_analyzed_circuits_per_size[subcir.nodes.size()]++;
+    log.nof_analyzed_circuits_per_output_count[subcir.outputs.size()]++;
     log.subcircuits_with_forbidden_pairs += !subcir.forbidden_pairs.empty();
     if (replacement.getNofObjs() > 1) { //replacement found
+      if (isUnchangedReplacement(subcir, replacement)) {
+        ++log.unchanged_replacements;
+        selection_strategy.recordFailure();
+        rememberFailure();
+        return false;
+      }
       log.nof_replaced_circuits_per_size[subcir.nodes.size()]++;
       log.nof_reduced_circuits_per_size[subcir.nodes.size()] += (replacement.getNofGates() < subcir.nodes.size());
       es_man.replace(replacement, subcir);
-    }
+      invalidateGraphState(false);
+      return true;
+    } else rememberFailure();
+    return false;
   }
 
 }
 ABC_NAMESPACE_CXX_HEADER_END
+
+#endif

@@ -12,15 +12,14 @@
 
   Affiliation [University of Freiburg]
 
-  Date        [Ver. 1.0. Started - April 2026.]
-
-  Revision    [$Id: synthesisEngines.h,v 1.00 2025/04/14 00:00:00 Exp $]
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
 
 ***********************************************************************/
 
 #ifndef ABC__OPT__ESLIM2__SYNTHESISENGINES_h
 #define ABC__OPT__ESLIM2__SYNTHESISENGINES_h
 
+#include <algorithm>
 
 #include "misc/util/abc_global.h"
 
@@ -39,6 +38,11 @@ namespace eSLIM2 {
 
   class AreaMinimizer {
     public:
+/**Function*************************************************************
+
+  Synopsis    [Finds a minimum-area implementation of the selected relation.]
+
+***********************************************************************/
       static eSLIM2CirMan optimize(const eSLIM2CirMan& encompassing, const Relation& relation, const Subcircuit& subcir,
                                   const eSLIM2Config& cfg, eSLIM2Log& log, bool* complete = nullptr) {
         return AreaEngine::synthesiseMinimumSizeCircuit(relation, subcir, cfg, log, complete);
@@ -49,12 +53,36 @@ namespace eSLIM2 {
 
   class AreaDelayConstraintMinimizer {
     public:
+/**Function*************************************************************
+
+  Synopsis    [Refine critical cuts while the requested global depth target is unmet.]
+
+  Description [Without a percentage target, retain unrestricted refinement.
+  Slack cuts cannot shorten the current critical path, so with a target
+  their budget is better spent finding smaller implementations.]
+
+***********************************************************************/
+      static bool refineDepthForCut(const eSLIM2CirMan& encompassing, const Subcircuit& subcir,
+                                    const eSLIM2Config& cfg) {
+        if (!cfg.refine_depth) return false;
+        if (cfg.depth_floor < 0) return true;
+        if (encompassing.getDepth() <= cfg.depth_floor) return false;
+        return std::any_of(subcir.outputs.begin(), subcir.outputs.end(),
+            [&](int output) { return encompassing.isOnCricticalPath(encompassing.getObj(output)); });
+      }
+/**Function*************************************************************
+
+  Synopsis    [Minimizes area under the active depth and equal-area timing bounds.]
+
+***********************************************************************/
       static eSLIM2CirMan optimize(eSLIM2CirMan& encompassing, const Relation& relation, Subcircuit& subcir,
                                   const eSLIM2Config& cfg, eSLIM2Log& log, bool* complete = nullptr) {
         subcir.setupTimings(encompassing);
         const unsigned bound = cfg.areaDepthBound(encompassing.getDepth());
-        return DelayEngine::synthesizeMinimumAreaDelayConstraintCircuit(relation, subcir, bound, cfg, log, complete,
-            cfg.protect_neutral_depth ? encompassing.getDepth() : -1);
+        eSLIM2Config active = cfg;
+        active.refine_depth = refineDepthForCut(encompassing, subcir, cfg);
+        return DelayEngine::synthesizeMinimumAreaDelayConstraintCircuit(relation, subcir, bound, active, log, complete,
+            cfg.protect_neutral_depth ? encompassing.getDepth() : -1, &encompassing);
       }
     private:
       AreaDelayConstraintMinimizer() = default;
@@ -62,6 +90,11 @@ namespace eSLIM2 {
 
   class AreaDelayMinimizer {
     public:
+/**Function*************************************************************
+
+  Synopsis    [Minimizes area first and then delay using the cut boundary timings.]
+
+***********************************************************************/
       static eSLIM2CirMan optimize(eSLIM2CirMan& encompassing, const Relation& relation, Subcircuit& subcir,
                                   const eSLIM2Config& cfg, eSLIM2Log& log) {
         subcir.setupTimings(encompassing);
@@ -73,6 +106,11 @@ namespace eSLIM2 {
 
   class DelayMinimizer {
     public:
+/**Function*************************************************************
+
+  Synopsis    [Minimizes delay within the configured replacement size limit.]
+
+***********************************************************************/
       static eSLIM2CirMan optimize(eSLIM2CirMan& encompassing, const Relation& relation, Subcircuit& subcir,
                                   const eSLIM2Config& cfg, eSLIM2Log& log) {
         int max_crossing_path = subcir.setupTimings(encompassing);
@@ -85,6 +123,11 @@ namespace eSLIM2 {
 
   class DelayAreaMinimizer {
     public:
+/**Function*************************************************************
+
+  Synopsis    [Minimizes delay first and then area within the replacement size limit.]
+
+***********************************************************************/
       static eSLIM2CirMan optimize(eSLIM2CirMan& encompassing, const Relation& relation, Subcircuit& subcir,
                                   const eSLIM2Config& cfg, eSLIM2Log& log) {
         int max_crossing_path = subcir.setupTimings(encompassing);

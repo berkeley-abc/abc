@@ -12,9 +12,7 @@
 
   Affiliation [University of Freiburg]
 
-  Date        [Ver. 1.0. Started - April 2026.]
-
-  Revision    [$Id: selectionStrategies.h,v 1.00 2025/04/14 00:00:00 Exp $]
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
 
 ***********************************************************************/
 
@@ -46,7 +44,6 @@ namespace eSLIM2 {
     private:
       const eSLIM2Config& cfg;
       static constexpr unsigned int min_size = 2;
-      static constexpr unsigned int max_ninputs = 10;
 
   };
 
@@ -79,8 +76,9 @@ namespace eSLIM2 {
   class BaseRootSelector {
     public:
       BaseRootSelector(eSLIM2CirMan& es_man, const eSLIM2Config& cfg);
-      int getRoot(std::mt19937& rng);
+      int getRoot(std::mt19937& rng, eSLIM2Log* log = nullptr);
       void reset() {}
+      void recordFailure(int node);
 
     private:
       unsigned int getUniformRandomNumber(std::mt19937& rng, unsigned int lower, unsigned int upper); // requires lower < upper
@@ -94,14 +92,12 @@ namespace eSLIM2 {
     public:
       TabooRootSelector(eSLIM2CirMan& es_man, const eSLIM2Config& cfg);
       ~TabooRootSelector();
-      int getRoot(std::mt19937& rng);
+      int getRoot(std::mt19937& rng, eSLIM2Log* log = nullptr);
       void reset();
-
-    private:
-      eSLIM2CirMan& es_man;
-
+      void recordFailure(int node);
 
     protected:
+      eSLIM2CirMan& es_man;
       const eSLIM2Config& cfg;
       TabooList taboo;
 
@@ -110,7 +106,7 @@ namespace eSLIM2 {
   class CriticalPathSelector : public TabooRootSelector {
     public:
       using TabooRootSelector::TabooRootSelector;
-      int getRoot(std::mt19937& rng);
+      int getRoot(std::mt19937& rng, eSLIM2Log* log = nullptr);
   };
 
   struct BaseCandidateNodeConstraint {
@@ -122,28 +118,46 @@ namespace eSLIM2 {
   };
 
   struct NoBiasSelector {
+/**Function*************************************************************
+
+  Synopsis    [Reports whether the selection policy favors the given object.]
+
+***********************************************************************/
     static bool useBias(const eSLIM2CirMan& es_man, const eSLIM2CirObj& obj) {return false;}
   };
 
   struct CriticalPathBiasSelector {
+/**Function*************************************************************
+
+  Synopsis    [Reports whether the selection policy favors the given object.]
+
+***********************************************************************/
     static bool useBias(const eSLIM2CirMan& es_man, const eSLIM2CirObj& obj) {return es_man.isOnCricticalPath(obj);}
   };
 
   template <typename Validator, typename RootSelector, typename SearchDirection, typename BiasSelector = NoBiasSelector, typename CandidateNodeConstraint = BaseCandidateNodeConstraint>
   class RandomizedBFSSelection {
+    friend struct eSLIM2TestAccess;
 
     public:
       RandomizedBFSSelection(eSLIM2CirMan& es_man, const eSLIM2Config& cfg, eSLIM2Log& log);
       Subcircuit getSubcircuit(bool& status); // status indicates if the search was successful
       void setSeed(int seed);
-      void reset();
+      void reset(bool full = true);
+      void recordFailure();
+      void recordEvaluation();
+      bool exhausted() const { return cfg.trial_limit_active && active_roots.empty(); }
 
       static constexpr bool requiresRemainingTimes() {return std::is_same_v<CriticalPathBiasSelector, BiasSelector>;}
 
     private:
 
       std::set<int> computeSubcircuitCandidate();
+      void growOutputBoundary(std::set<int>& nodes);
+      void growMffcs(std::set<int>& nodes);
+      Subcircuit finishSelection(const std::vector<int>& nodes, int root, bool preferred, bool& status);
       int selectRoot();
+      bool fitsInputLimit(int node, const std::set<int>& selected) const;
       void processCandidateNode(int candidate, std::set<int>& subcircuit, std::queue<int>& candidates);
       bool getRandomBool();
       bool getBiasedRandomBool();
@@ -151,7 +165,10 @@ namespace eSLIM2 {
       eSLIM2CirMan& es_man;
       const eSLIM2Config& cfg;
       static constexpr unsigned int min_size = 2;
-      static constexpr unsigned int max_ninputs = 10;
+      static constexpr unsigned preferred_output_trials = 8;
+      static constexpr unsigned ordinary_selection_interval = 4;
+      static constexpr unsigned output_growth_candidate_limit = 32;
+      static constexpr unsigned output_growth_fanout_limit = 64;
 
       eSLIM2Log& log;
       Validator validator;
@@ -161,6 +178,13 @@ namespace eSLIM2 {
       std::mt19937 rng;
       std::bernoulli_distribution bdist;
       std::bernoulli_distribution biased_bdist;
+      int last_root = -1;
+      unsigned selection_round = 0;
+      std::vector<int> active_roots, root_positions;
+      std::vector<unsigned> root_trials, root_draws;
+      struct RootState { ABC_UINT64_T signature = 0; unsigned trials = 0, epoch = 0; };
+      std::unordered_map<unsigned, RootState> root_states;
+      unsigned root_epoch = 0;
   };
 
 

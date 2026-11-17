@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [eslim3Rewrite.cpp]
+  FileName    [eslim2Rewrite.cpp]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Using Exact Synthesis with the SAT-based Local Improvement Method (eSLIM3).]
+  PackageName [Using Exact Synthesis with the SAT-based Local Improvement Method (eSLIM2).]
 
   Synopsis    [Restructuring with choices, target-aware balancing, and area recovery.]
 
@@ -21,7 +21,7 @@
 #include <algorithm>
 #include <memory>
 ABC_NAMESPACE_IMPL_START
-namespace eSLIM3 {
+namespace eSLIM2 {
 /**Function*************************************************************
 
   Synopsis    [Returns an improved owned AIG, or null if the original is preferable.]

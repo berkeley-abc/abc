@@ -12,14 +12,15 @@
 
   Affiliation [University of Freiburg]
 
-  Date        [Ver. 1.0. Started - April 2026.]
-
-  Revision    [$Id: eslim2Relation.cpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
 
 ***********************************************************************/
 
 #include <cassert>
+#include <climits>
 #include <algorithm>
+#include <map>
+#include <random>
 
 #include "misc/util/abc_global.h"
 
@@ -30,6 +31,38 @@ ABC_NAMESPACE_IMPL_START
 namespace eSLIM2 {
 
 
+/**Function*************************************************************
+
+  Synopsis    [Simulates a two-input gate with one operation selected for all words.]
+
+***********************************************************************/
+  static inline void simulateTwoInputGate(unsigned function, const ABC_UINT64_T* a,
+      const ABC_UINT64_T* b, ABC_UINT64_T* out, unsigned nWords) {
+    switch (function & 15u) {
+      case 0: for (unsigned w = 0; w < nWords; ++w) out[w] = ABC_UINT64_T(0); break;
+      case 1: for (unsigned w = 0; w < nWords; ++w) out[w] = ~(a[w] | b[w]); break;
+      case 2: for (unsigned w = 0; w < nWords; ++w) out[w] = a[w] & ~b[w]; break;
+      case 3: for (unsigned w = 0; w < nWords; ++w) out[w] = ~b[w]; break;
+      case 4: for (unsigned w = 0; w < nWords; ++w) out[w] = ~a[w] & b[w]; break;
+      case 5: for (unsigned w = 0; w < nWords; ++w) out[w] = ~a[w]; break;
+      case 6: for (unsigned w = 0; w < nWords; ++w) out[w] = a[w] ^ b[w]; break;
+      case 7: for (unsigned w = 0; w < nWords; ++w) out[w] = ~(a[w] & b[w]); break;
+      case 8: for (unsigned w = 0; w < nWords; ++w) out[w] = a[w] & b[w]; break;
+      case 9: for (unsigned w = 0; w < nWords; ++w) out[w] = ~(a[w] ^ b[w]); break;
+      case 10: for (unsigned w = 0; w < nWords; ++w) out[w] = a[w]; break;
+      case 11: for (unsigned w = 0; w < nWords; ++w) out[w] = a[w] | ~b[w]; break;
+      case 12: for (unsigned w = 0; w < nWords; ++w) out[w] = b[w]; break;
+      case 13: for (unsigned w = 0; w < nWords; ++w) out[w] = ~a[w] | b[w]; break;
+      case 14: for (unsigned w = 0; w < nWords; ++w) out[w] = a[w] | b[w]; break;
+      case 15: for (unsigned w = 0; w < nWords; ++w) out[w] = ~ABC_UINT64_T(0); break;
+    }
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Returns packed forbidden output tuples for one input assignment.]
+
+***********************************************************************/
   ABC_UINT64_T Relation::getForbiddenTuples(unsigned row, unsigned noutputs) const {
     assert(noutputs <= 6);
     ABC_UINT64_T forbidden = 0;
@@ -43,70 +76,751 @@ namespace eSLIM2 {
     return forbidden;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Derives necessary supports and an implementation-independent gate bound.]
+
+***********************************************************************/
+  SupportBounds Relation::analyseSupport(unsigned noutputs, unsigned gate_size) const {
+    SupportBounds bounds;
+    unsigned ninputs = 0;
+    while ((1u << ninputs) < unsigned(getNPatterns())) ++ninputs;
+    if (noutputs <= 6 && gate_size > 1) {
+      auto& forbidden = bounds.forbidden;
+      for (int row = 0; row < getNPatterns(); ++row)
+        forbidden.push_back(getForbiddenTuples(row, noutputs));
+      const ABC_UINT64_T all = noutputs == 6 ? ~ABC_UINT64_T(0) : (ABC_UINT64_T(1) << (1u << noutputs)) - 1;
+      // Project the allowed tuples only to derive necessary conditions. The
+      // synthesis encoding still enforces the entire correlated relation.
+      std::vector<unsigned> forced_zero(forbidden.size(), 0), forced_one(forbidden.size(), 0);
+      bounds.output_inputs.resize(noutputs);
+      for (unsigned row = 0; row < forbidden.size(); ++row) {
+        const ABC_UINT64_T allowed = all & ~forbidden[row];
+        for (unsigned output = 0; output < noutputs; ++output) {
+          if (!(allowed & truth_patterns[output]))
+            forced_zero[row] |= 1u << output;
+          if (!(allowed & ~truth_patterns[output]))
+            forced_one[row] |= 1u << output;
+        }
+      }
+      for (unsigned j = 0; j < unsigned(ninputs); ++j) {
+        bool mandatory = false;
+        unsigned dependent_outputs = 0;
+        for (unsigned row = 0; row < forbidden.size(); ++row)
+          if (!(row & (1u << j))) {
+            const unsigned other = row | (1u << j);
+            // Disjoint allowed output tuples force input j into the support
+            // of every implementation of this relation.
+            mandatory |= (forbidden[row] | forbidden[other]) == all;
+            dependent_outputs |= (forced_zero[row] & forced_one[other]) |
+                                 (forced_one[row] & forced_zero[other]);
+          }
+        if (mandatory)
+          bounds.inputs.push_back(j);
+        for (unsigned output = 0; output < noutputs; ++output)
+          if ((dependent_outputs >> output) & 1)
+            bounds.output_inputs[output].push_back(j);
+      }
+      // A circuit with M K-input gates and O outputs can depend on at most
+      // M*(K-1)+O distinct inputs, counting direct PI-to-PO connections too.
+      if (bounds.inputs.size() > noutputs)
+        bounds.minimum_gates = (bounds.inputs.size() - noutputs + gate_size - 2) / (gate_size - 1);
+      // Independently, an output whose support MUST contain I inputs needs
+      // at least ceil((I-1)/(K-1)) gates in its cone. Taking the maximum avoids
+      // double-counting gates shared by multiple outputs.
+      for (const auto& inputs : bounds.output_inputs) {
+        const unsigned support = inputs.size();
+        if (support > 1)
+          bounds.minimum_gates = std::max(bounds.minimum_gates, (support + gate_size - 3) / (gate_size - 1));
+      }
+    }
+    return bounds;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Bounds output arrival using an optimal binary tree of mandatory inputs.]
+
+  Description [Unfolding any binary DAG into a tree cannot remove a mandatory
+  input. Repeatedly joining the two earliest inputs gives a lower bound on
+  the root arrival of every such tree, irrespective of its Boolean function.]
+
+***********************************************************************/
+  unsigned SupportBounds::minimumArrival(unsigned output, const std::vector<unsigned>& arrivals) const {
+    std::vector<unsigned> times;
+    for (unsigned input : output_inputs[output]) times.push_back(arrivals[input]);
+    if (times.empty()) return 0;
+    while (times.size() > 1) {
+      std::sort(times.begin(), times.end());
+      const unsigned joined = 1 + times[1];
+      times.erase(times.begin(), times.begin() + 2);
+      times.push_back(joined);
+    }
+    return times.front();
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Allocates forbidden-pattern rows for every boundary-input assignment.]
+
+***********************************************************************/
   Relation::Relation(int nfanins) : output_patterns(1 << nfanins) {
 
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Adds a forbidden output pattern to the selected input row.]
+
+***********************************************************************/
   void Relation::addOutputPattern(int inputidx, std::vector<bool>&& pattern) {
     lines_with_pattern += output_patterns[inputidx].empty();
     output_patterns[inputidx].push_back(std::move(pattern));
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Initializes SAT relation extraction for the selected subcircuit.]
+
+***********************************************************************/
   RelationGenerator::RelationGenerator( const eSLIM2CirMan& cir, const Subcircuit& subcir,
                                         const eSLIM2Config& cfg, eSLIM2Log& log)
                     : cir(cir), subcir(subcir), cfg(cfg), log(log),
                       gate2varref(cir.getNofObjs() - cir.getNofPos()),
                       gate2varcone(cir.getNofObjs() - cir.getNofPos()) {
-    solver.setDeadline(cfg.deadline);
-    // Lucky phases are costly for the repeated incremental relation queries.
-    // Configure only this solver; exact synthesis keeps its solver defaults.
+    ScopedPhaseTimer encoding_timer(log.relation_encoding_time, cfg);
+    const double allowance = std::max(0.0, std::min(cfg.relation_generation_timeout, double(INT_MAX)));
+    const auto cutoff = std::chrono::steady_clock::now() +
+        std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(allowance));
+    solver.setDeadline(cfg.iterations ? cfg.deadline : std::min(cfg.deadline, cutoff));
+    if (cfg.iterations) solver.setConflictBudget(int(std::max(1.0, std::min(double(INT_MAX), allowance * 100000))));
+    // Repeated incremental relation queries favor propagation over internal
+    // preprocessing and lucky phases. Configure only this solver; exact
+    // synthesis retains its separately selected solver settings.
     if (cfg.tune_relation_solver) {
-      const bool configured = solver.setOption("lucky", 0);
+      const bool configured = solver.configure("plain") && solver.setOption("lucky", 0);
       if (!configured)
-        std::cerr << "eSLIM2: cannot disable CaDiCaL lucky phases; using solver defaults.\n";
+        std::cerr << "eSLIM2: cannot configure relation SAT tuning; using supported settings.\n";
       assert(configured);
     }
     setupEncoding();
+    strengthenMiter();
   }
 
 /**Function*************************************************************
 
-  Synopsis    [Computes a cut relation by exhaustive simulation or a SAT encoding.]
+  Synopsis    [Adds propagation clauses between corresponding miter gates.]
+
+  Description [Equal fanins imply equal outputs. Also, an observed mismatch
+  requires a changed cut output. These are consequences of the complete
+  miter, not restrictions on its assignments. Reuse the exit indicators.]
+
+***********************************************************************/
+  void RelationGenerator::strengthenMiter() {
+    if (cfg.approximate_relation) return;
+    std::vector<int> same(gate2varref.size(), 0);
+    for (unsigned i = 0; i < compared_nodes.size(); ++i)
+      same[compared_nodes[i]] = equality_variables[i];
+    for (unsigned id = 0; id < same.size(); ++id)
+      if (!same[id] && gate2varref[id] && gate2varcone[id] && gate2varref[id] != gate2varcone[id]) {
+        same[id] = getNewVar();
+        getEqualityClauses(gate2varref[id], gate2varcone[id], same[id]);
+      }
+    std::vector<int> changed {-mode_selection_variable};
+    for (int id : subcir.outputs)
+      if (same[id]) changed.push_back(-same[id]);
+    solver.addClause(changed);
+    for (int id = cir.getNofPis() + 1; id < cir.getNofObjs() - cir.getNofPos(); ++id) {
+      if (!same[id] || cir.inSubcircuit(cir.getObj(id))) continue;
+      std::vector<int> clause {same[id]};
+      for (const auto* fanin : cir.getObj(id).fanins) {
+        const int f = fanin->node_id;
+        assert(gate2varref[f] && gate2varcone[f]);
+        if (same[f]) clause.push_back(-same[f]);
+      }
+      solver.addClause(clause);
+    }
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Prepares simulation of the affected cone at SAT witnesses.]
+
+***********************************************************************/
+  void RelationGenerator::prepareWitnessSimulation() {
+    witness_simulation = !cfg.approximate_relation && subcir.outputs.size() <= 64;
+    if (!witness_simulation) return;
+    witness_support.assign(gate2varcone.size(), 0);
+    for (unsigned i = 0; i < subcir.outputs.size(); ++i)
+      witness_support[subcir.outputs[i]] = WitnessWord(1) << i;
+    for (int id = cir.getNofPis() + 1; id < cir.getNofObjs() - cir.getNofPos(); ++id)
+      if (gate2varcone[id] && cir.inTFO(cir.getObj(id)) && !cir.inSubcircuit(cir.getObj(id)))
+        affected_nodes.push_back(id);
+    if (subcir.outputs.size() >= 2 && subcir.outputs.size() <= 8 && subcir.inputs.size() <= 16)
+      witness_values.resize(gate2varref.size());
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Preserves cut outputs that determine a feedback input or divisor.]
+
+  Description [Additional divisors need not have been present when the cut's
+  forbidden-pair map was built. Keeping these outputs fixed ensures that a
+  generalized conflict still belongs to the same cut-input row.]
+
+***********************************************************************/
+  void RelationGenerator::preserveFeedbackOutputs(std::vector<bool>& outputs_to_keep) const {
+    std::vector<int> pending;
+    for (int id : subcir.inputs)
+      if (cir.inTFO(cir.getObj(id))) pending.push_back(id);
+    if (pending.empty()) return;
+    std::vector<int> output_index(cir.getNofObjs(), -1);
+    std::vector<unsigned char> seen(cir.getNofObjs(), 0);
+    for (unsigned i = 0; i < subcir.outputs.size(); ++i)
+      output_index[subcir.outputs[i]] = int(i);
+    while (!pending.empty()) {
+      const int id = pending.back();
+      pending.pop_back();
+      if (seen[id]) continue;
+      seen[id] = 1;
+      if (output_index[id] >= 0) {
+        outputs_to_keep[output_index[id]] = true;
+        continue;
+      }
+      if (cir.inTFO(cir.getObj(id)))
+        for (const auto* fanin : cir.getObj(id).fanins)
+          pending.push_back(fanin->node_id);
+    }
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Justifies one mismatch using values from the SAT witness.]
+
+  Description [Fix the context inputs to the witness. A controlling fanin
+  suffices for an AND or OR; other gates keep all fanins. Thus fixing the
+  returned cut outputs preserves an observed mismatch without a second SAT
+  query. Wider or approximate relations retain the original core query.]
+
+***********************************************************************/
+  bool RelationGenerator::justifyConflict(WitnessWord& required_outputs) {
+    if (!witness_simulation) return false;
+    for (int id : affected_nodes) {
+      const auto& obj = cir.getObj(id);
+      WitnessWord needed = 0;
+      for (const auto* fanin : obj.fanins)
+        needed |= witness_support[fanin->node_id];
+      if (obj.fanins.size() == 2) {
+        const int x = obj.fanins[0]->node_id, y = obj.fanins[1]->node_id;
+        const bool a = solver.getValue(gate2varcone[x]), b = solver.getValue(gate2varcone[y]);
+        bool use_a = false, use_b = false;
+        switch (unsigned(obj.tt) & 15u) {
+          case 2: use_a = !a; use_b = b; break;
+          case 4: use_a = a; use_b = !b; break;
+          case 8: use_a = !a; use_b = !b; break;
+          case 14: use_a = a; use_b = b; break;
+        }
+        if (use_a && (!use_b || popcount(witness_support[x]) <= popcount(witness_support[y])))
+          needed = witness_support[x];
+        else if (use_b)
+          needed = witness_support[y];
+      }
+      witness_support[id] = needed;
+    }
+    bool found = false;
+    for (int id : compared_nodes)
+      if (solver.getValue(gate2varref[id]) != solver.getValue(gate2varcone[id]))
+        if (!found || popcount(witness_support[id]) < popcount(required_outputs)) {
+          required_outputs = witness_support[id];
+          found = true;
+        }
+    return found;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Collects more conflicts at one SAT-provided context assignment.]
+
+  Description [Simulate cut-output interventions at this one context witness,
+  up to eight cut outputs in four machine words. Feedback inputs are read in
+  the changed circuit. This only supplies witnessed conflicts; a final SAT
+  UNSAT answer is still required to prove relation completeness.]
+
+***********************************************************************/
+  RelationGenerator::WitnessRows RelationGenerator::sampleConflict() {
+    WitnessRows result;
+    if (witness_values.empty()) return result;
+    const unsigned nOutputs = subcir.outputs.size();
+    const unsigned tuples = 1u << nOutputs, words = (tuples + 63) / 64;
+    for (unsigned word = 0; word < words; ++word) {
+      if (cfg.expired()) return result;
+      for (unsigned id = 0; id < gate2varref.size(); ++id)
+        witness_values[id] = gate2varref[id] && solver.getValue(gate2varref[id]) ? ~WitnessWord(0) : WitnessWord(0);
+      for (unsigned i = 0; i < nOutputs; ++i)
+        witness_values[subcir.outputs[i]] = i < 6 ? truth_patterns[i] :
+            ((word >> (i - 6)) & 1 ? ~WitnessWord(0) : WitnessWord(0));
+      for (int id : affected_nodes) {
+        const auto& obj = cir.getObj(id);
+        WitnessWord value = 0;
+        if (obj.fanins.size() == 2 && cfg.fast_simulation) {
+          const WitnessWord a = witness_values[obj.fanins[0]->node_id];
+          const WitnessWord b = witness_values[obj.fanins[1]->node_id];
+          simulateTwoInputGate(unsigned(obj.tt), &a, &b, &value, 1);
+        } else {
+          for (unsigned row = 0; row < (1u << obj.fanins.size()); ++row)
+            if ((obj.tt >> row) & 1) {
+              WitnessWord term = ~WitnessWord(0);
+              for (unsigned pin = 0; pin < obj.fanins.size(); ++pin)
+                term &= (row >> pin) & 1 ? witness_values[obj.fanins[pin]->node_id] : ~witness_values[obj.fanins[pin]->node_id];
+              value |= term;
+            }
+        }
+        witness_values[id] = value;
+      }
+      WitnessWord mismatches = 0;
+      for (int id : compared_nodes)
+        mismatches |= witness_values[id] ^ (solver.getValue(gate2varref[id]) ? ~WitnessWord(0) : WitnessWord(0));
+      if (nOutputs < 6) mismatches &= (WitnessWord(1) << tuples) - 1;
+      while (mismatches) {
+        const unsigned bit = lsb(mismatches);
+        unsigned row = 0;
+        mismatches &= mismatches - 1;
+        for (unsigned i = 0; i < subcir.inputs.size(); ++i)
+          row |= unsigned((witness_values[subcir.inputs[i]] >> bit) & 1) << i;
+        auto it = std::find_if(result.begin(), result.end(), [row](const WitnessRow& entry) { return entry.first == row; });
+        if (it == result.end()) {
+          result.emplace_back(row, std::vector<WitnessWord>(words, 0));
+          it = result.end() - 1;
+        }
+        it->second[word] |= WitnessWord(1) << bit;
+      }
+    }
+    return result;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Covers witnessed tuples with cubes and blocks them in SAT.]
+
+  Description [A cube can grow only within the union of already known and
+  newly witnessed conflicts in the same boundary-input row. These clauses
+  are guarded by the mismatch mode and do not constrain core reduction.]
+
+***********************************************************************/
+  void RelationGenerator::addConflictSamples(Relation& relation, const WitnessRows& samples,
+      const std::vector<int>& inputs, const std::vector<int>& outputs) {
+    const unsigned nOutputs = outputs.size();
+    for (const auto& witness : samples) {
+      const unsigned row = witness.first, words = witness.second.size();
+      std::vector<WitnessWord> known(words, 0), forbidden(witness.second), uncovered(witness.second);
+      std::vector<WitnessWord> cube(words), expanded(words);
+      for (const auto& old : relation.getPattern(row))
+        for (unsigned w = 0; w < words; ++w) {
+          WitnessWord value = nOutputs < 6 ? (WitnessWord(1) << (1u << nOutputs)) - 1 : ~WitnessWord(0);
+          for (unsigned j = 0; j < nOutputs; ++j)
+            if (old[2*j]) {
+              const WitnessWord pattern = j < 6 ? truth_patterns[j] :
+                  ((w >> (j - 6)) & 1 ? ~WitnessWord(0) : WitnessWord(0));
+              value &= old[2*j + 1] ? ~pattern : pattern;
+            }
+          known[w] |= value;
+        }
+      for (unsigned w = 0; w < words; ++w) {
+        forbidden[w] |= known[w];
+        uncovered[w] &= ~known[w];
+      }
+      for (unsigned w = 0; w < words; ++w)
+        while (uncovered[w]) {
+          const unsigned tuple = 64 * w + lsb(uncovered[w]);
+          unsigned care = (1u << nOutputs) - 1;
+          std::fill(cube.begin(), cube.end(), 0);
+          cube[w] = WitnessWord(1) << (tuple % 64);
+          for (unsigned j = 0; j < nOutputs; ++j) {
+            for (unsigned k = 0; k < words; ++k)
+              if (j < 6)
+                expanded[k] = cube[k] | ((cube[k] & ~truth_patterns[j]) << (1u << j)) |
+                                       ((cube[k] & truth_patterns[j]) >> (1u << j));
+              else
+                expanded[k] = cube[k] | cube[k ^ (1u << (j - 6))];
+            bool valid = true;
+            for (unsigned k = 0; k < words; ++k)
+              if (expanded[k] & ~forbidden[k]) { valid = false; break; }
+            if (valid) {
+              cube.swap(expanded);
+              care &= ~(1u << j);
+            }
+          }
+          std::vector<bool> pattern(2 * nOutputs, false);
+          std::vector<int> clause {-mode_selection_variable};
+          for (unsigned i = 0; i < inputs.size(); ++i)
+            clause.push_back((row >> i) & 1 ? -inputs[i] : inputs[i]);
+          for (unsigned i = 0; i < nOutputs; ++i)
+            if ((care >> i) & 1) {
+              pattern[2*i] = true;
+              pattern[2*i + 1] = !((tuple >> i) & 1);
+              clause.push_back(pattern[2*i + 1] ? outputs[i] : -outputs[i]);
+            }
+          solver.addClause(clause);
+          relation.addOutputPattern(row, std::move(pattern));
+          for (unsigned k = 0; k < words; ++k)
+            uncovered[k] &= ~cube[k];
+        }
+    }
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Computes a complete relation in the selected context using the requested backend.]
 
 ***********************************************************************/
   Relation RelationGenerator::computeRelation(const eSLIM2CirMan& cir, const Subcircuit& subcir,
-                                              const eSLIM2Config& cfg, eSLIM2Log& log) {
-    Relation simulated(subcir.inputs.size());
-    if (simulateRelation(cir, subcir, cfg, simulated)) {
-      log.nof_simulated_relations++;
-      return simulated;
+                                              const eSLIM2Config& cfg, eSLIM2Log& log, const OptimalityCheck& optimal,
+                                              RelationContextState* context) {
+    if (cfg.expired()) {
+      Relation incomplete(subcir.inputs.size());
+      incomplete.status = false;
+      return incomplete;
     }
-    log.nof_sat_relations++;
-    RelationGenerator rgen(cir, subcir, cfg, log);
-    return rgen.getRelation();
+    if (cfg.local_relations)
+      return computeWindowRelation(cir, subcir, cfg, log, optimal, context);
+    eSLIM2Config bounded = cfg;
+    const double allowance = std::max(0.0, std::min(cfg.relation_generation_timeout, double(INT_MAX)));
+    bounded.deadline = cfg.iterations ? cfg.deadline : std::min(cfg.deadline, std::chrono::steady_clock::now() +
+        std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(allowance)));
+    if (cfg.exhaustive_relations) {
+      Relation simulated(subcir.inputs.size());
+      const abctime started = cfg.timeNow();
+      const auto status = simulateRelation(cir, subcir, bounded, simulated, log);
+      const double elapsed = double(cfg.timeNow() - started) / CLOCKS_PER_SEC;
+      log.simulation.seconds += elapsed;
+      if (status == RelationSimulationStatus::Complete) return simulated;
+      if (status == RelationSimulationStatus::Interrupted) {
+        log.simulation.fallback_seconds += elapsed;
+        // An interrupted enumeration has spent this context's allowance.
+        // The caller may retry a smaller context; partial rows are discarded.
+        simulated.status = false;
+        return simulated;
+      }
+    }
+    Relation witnesses(subcir.inputs.size());
+    const bool sampled = collectWitnesses(cir, subcir, bounded, log, witnesses);
+    if (!witnesses.getStatus()) return witnesses;
+    if (sampled && optimal && optimal(witnesses)) {
+      witnesses.status = false;
+      witnesses.proven_optimal = true;
+      return witnesses;
+    }
+    ++log.nof_sat_relations;
+    RelationGenerator rgen(cir, subcir, bounded, log);
+    Relation result = rgen.getRelation(std::move(witnesses), sampled);
+    log.nof_complete_sat_relations += result.getStatus();
+    return result;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Retries incomplete local SAT relations with successively smaller contexts.]
+
+  Description [Each attempt observes every exit of its own region and treats
+  boundary inputs as free. Shrinking may remove don't-cares, but cannot permit
+  an incorrect replacement. Stop at the bare cut and divisors or the overall
+  deadline; partial relations are never used for synthesis.]
+
+***********************************************************************/
+  Relation RelationGenerator::computeWindowRelation(const eSLIM2CirMan& cir,
+      const Subcircuit& subcir, const eSLIM2Config& cfg, eSLIM2Log& log, const OptimalityCheck& optimal,
+      RelationContextState* context) {
+    eSLIM2Config attempt = cfg;
+    bool full_probe = false;
+    if (context) {
+      const auto start = context->prepare(attempt);
+      full_probe = start == RelationContextState::Start::Probe;
+      log.relation_context_reuses += start == RelationContextState::Start::Reused;
+      log.relation_context_probes += start == RelationContextState::Start::Probe;
+    }
+    if (cir.getNofPis() > 16 && cfg.synthesis_budget_scale == 1 && cfg.exhaustive_relations)
+      attempt.relation_window_inputs = std::min(20u, attempt.relation_window_inputs);
+    bool retried = false;
+    for (;;) {
+      bool has_context = false;
+      Relation relation = computeWindowAttempt(cir, subcir, attempt, log, optimal, has_context);
+      if (relation.getStatus() || relation.isProvenOptimal()) {
+        if (context) context->remember(attempt);
+        if (retried && relation.getStatus()) ++log.relation_fallbacks;
+        return relation;
+      }
+      ++log.relation_timeouts;
+      if (cfg.expired() || !has_context) return relation;
+      // A failed full probe returns directly to the remembered successful
+      // caps instead of repeating the intermediate contexts already rejected.
+      if (!(full_probe && context->restrictToRemembered(attempt))) {
+        attempt.relation_window_gates = std::max(1u, attempt.relation_window_gates / 2);
+        attempt.relation_window_inputs = std::max(2u, attempt.relation_window_inputs / 2);
+        attempt.relation_window_fanin /= 2;
+        attempt.relation_window_fanout /= 2;
+      }
+      full_probe = false;
+      ++log.relation_retries;
+      retried = true;
+    }
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Computes a conservative relation in a bounded local context.]
+
+  Description [Every edge leaving the region is observed. Region inputs are
+  independent, so preserving all region outputs for every input assignment
+  is sufficient for preserving the surrounding circuit. In particular, a
+  path that exits and reenters the region cannot hide a changed value: its
+  first exit is observed. The original cut order is retained for synthesis.]
+
+***********************************************************************/
+  Relation RelationGenerator::computeWindowAttempt(const eSLIM2CirMan& cir,
+      const Subcircuit& subcir, const eSLIM2Config& cfg, eSLIM2Log& log,
+      const OptimalityCheck& optimal, bool& has_context) {
+    const abctime extraction_start = cfg.timeNow();
+    if (!cir.relation_window_scratch)
+      cir.relation_window_scratch = std::make_unique<eSLIM2CirMan::RelationWindowScratch>();
+    auto& scratch = *cir.relation_window_scratch;
+    scratch.begin(cir.getNofObjs());
+    auto& region = scratch.region;
+    auto& frontier = scratch.frontier;
+    auto& next = scratch.next;
+    auto orderedUnique = [](std::vector<int>& ids) {
+      std::sort(ids.begin(), ids.end());
+      ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
+    };
+    region.assign(subcir.nodes.begin(), subcir.nodes.end());
+    // Define divisors inside the window so the relation sees their correlations.
+    region.insert(region.end(), subcir.divisors.begin(), subcir.divisors.end());
+    orderedUnique(region);
+    const size_t mandatory_gates = region.size();
+    for (int id : region) scratch.get(id).inside = true;
+    unsigned boundary_size = 0;
+    auto addBoundary = [&](int id) {
+      if (!id) return;
+      auto& entry = scratch.get(id);
+      if (entry.inside) return;
+      if (!entry.references++) ++boundary_size;
+      if (!entry.listed) {
+        entry.listed = true;
+        scratch.boundary.push_back(id);
+      }
+    };
+    for (int id : region)
+      for (auto* fanin : cir.getObj(id).fanins)
+        addBoundary(fanin->node_id);
+    auto boundaryInputs = [&]() {
+      std::vector<int> inputs;
+      inputs.reserve(boundary_size);
+      for (int id : scratch.boundary)
+        if (scratch.get(id).references) inputs.push_back(id);
+      std::sort(inputs.begin(), inputs.end());
+      assert(inputs.size() == boundary_size);
+      return inputs;
+    };
+    auto addContext = [&](int id) {
+      auto& entry = scratch.get(id);
+      if (cir.isPi(id) || cir.isPo(id) || entry.inside ||
+          region.size() >= cfg.relation_window_gates)
+        return false;
+      const unsigned old_refs = entry.references;
+      if (old_refs) --boundary_size;
+      entry.references = 0;
+      entry.inside = true;
+      for (auto* fanin : cir.getObj(id).fanins)
+        addBoundary(fanin->node_id);
+      if (boundary_size > cfg.relation_window_inputs) {
+        for (auto* fanin : cir.getObj(id).fanins)
+          if (fanin->node_id) {
+            auto& input = scratch.get(fanin->node_id);
+            if (!input.inside) {
+              assert(input.references);
+              if (!--input.references) --boundary_size;
+            }
+          }
+        entry.inside = false;
+        entry.references = old_refs;
+        if (old_refs) ++boundary_size;
+        return false;
+      }
+      region.push_back(id);
+      return true;
+    };
+
+    // Sorted frontiers preserve the old set-based growth order when a cap is
+    // reached. Membership and boundary updates use constant-time indexed marks.
+    frontier.assign(subcir.outputs.begin(), subcir.outputs.end());
+    orderedUnique(frontier);
+    for (unsigned level = 0; level < cfg.relation_window_fanout && !frontier.empty(); ++level) {
+      next.clear();
+      for (int id : frontier)
+        for (auto* fanout : cir.getObj(id).fanouts)
+          if (addContext(fanout->node_id)) next.push_back(fanout->node_id);
+      orderedUnique(next);
+      frontier.swap(next);
+    }
+    frontier = boundaryInputs();
+    for (unsigned level = 0; level < cfg.relation_window_fanin && !frontier.empty(); ++level) {
+      next.clear();
+      for (int id : frontier)
+        if (addContext(id))
+          for (auto* fanin : cir.getObj(id).fanins)
+            if (fanin->node_id && !scratch.get(fanin->node_id).inside)
+              next.push_back(fanin->node_id);
+      orderedUnique(next);
+      frontier.swap(next);
+    }
+
+    has_context = region.size() > mandatory_gates;
+    const auto inputs = boundaryInputs();
+    // Node indices are topological. Sorting restores the original node and
+    // output order, independently of the order in which context was admitted.
+    std::sort(region.begin(), region.end());
+    eSLIM2CirMan window(int(region.size() + inputs.size() + region.size()));
+    for (int id : inputs) scratch.get(id).local_id = window.addPi();
+    auto localId = [&](int id) {
+      const int mapped = scratch.get(id).local_id;
+      assert(!id || mapped);
+      return mapped;
+    };
+    for (int id : region) {
+      const auto& node = cir.getObj(id);
+      std::vector<int> fanins;
+      fanins.reserve(node.fanins.size());
+      for (auto* fanin : node.fanins) fanins.push_back(localId(fanin->node_id));
+      scratch.get(id).local_id = window.addNode(fanins, node.tt);
+    }
+    for (int id : region)
+      for (auto* fanout : cir.getObj(id).fanouts)
+        if (!scratch.get(fanout->node_id).inside) {
+          window.addPo(localId(id), false);
+          break;
+        }
+    Subcircuit cut = Subcircuit::getEmptySubcircuit();
+    for (int id : subcir.nodes) cut.nodes.push_back(localId(id));
+    for (int id : subcir.inputs) cut.inputs.push_back(localId(id));
+    for (int id : subcir.outputs) cut.outputs.push_back(localId(id));
+    window.incrementTraversalId();
+    window.markSubcircuit(cut.nodes);
+    cut.markCones(window);
+    eSLIM2Config local = cfg;
+    local.local_relations = false;
+    // A newly extracted context has no next cut on which to reuse its cache.
+    local.cache_simulation = false;
+    local.relation_sample_salt = samplingSeed(cir, subcir, cfg);
+    // The extracted boundary itself defines the approximation. A second
+    // truncation could miss exits, so use the complete local miter.
+    local.approximate_relation = false;
+    ++log.nof_window_relations;
+    log.max_relation_window_gates = std::max(log.max_relation_window_gates, unsigned(region.size()));
+    log.max_relation_window_inputs = std::max(log.max_relation_window_inputs, unsigned(inputs.size()));
+    log.relation_window_time += double(cfg.timeNow() - extraction_start) / CLOCKS_PER_SEC;
+    return computeRelation(window, cut, local, log, optimal);
   }
 
 
-  // Simulate every primary-input assignment and every value at the cut outputs.
-  // An output tuple is forbidden for a cut-input row exactly when some PI
-  // assignment makes a primary output differ. With feedback through the
-  // surrounding DAG, use the cut-input values in the CHANGED circuit, as in
-  // the SAT encoding, rather than the original circuit's input partition.
 /**Function*************************************************************
 
-  Synopsis    [Simulates cut-output tuples using bounded storage and a content-validated cache.]
+  Synopsis    [Independently validates a replacement against the local relation.]
+
+  Description [Checks every cut-input assignment using scalar evaluation,
+  rather than the synthesis encoding or its bit-parallel simulation. Also
+  checks forbidden structural dependencies to exclude replacement cycles.]
 
 ***********************************************************************/
-  bool RelationGenerator::simulateRelation(const eSLIM2CirMan& cir, const Subcircuit& subcir,
-                                           const eSLIM2Config& cfg, Relation& rel) {
+  bool RelationGenerator::verifyReplacement(const eSLIM2CirMan& replacement,
+      const Subcircuit& subcir, const Relation& relation, const eSLIM2Config& cfg) {
+    const unsigned inputs = subcir.inputs.size(), outputs = subcir.outputs.size();
+    if (replacement.getNofPis() != int(inputs) || replacement.getNofPos() != int(outputs) ||
+        !relation.getStatus())
+      return false;
+    const int first_output = replacement.getNofObjs() - outputs;
+    std::vector<std::vector<bool>> dependencies(replacement.getNofObjs(), std::vector<bool>(inputs));
+    for (unsigned i = 0; i < inputs; ++i) dependencies[i+1][i] = true;
+    for (int id = inputs + 1; id < replacement.getNofObjs(); ++id) {
+      const auto& node = replacement.getObj(id);
+      if (node.fanins.size() > 6) return false;
+      for (auto* fanin : node.fanins) {
+        if (fanin->node_id < 0 || fanin->node_id >= id) return false;
+        for (unsigned i = 0; i < inputs; ++i)
+          dependencies[id][i] = dependencies[id][i] || dependencies[fanin->node_id][i];
+      }
+    }
+    for (unsigned out = 0; out < outputs; ++out) {
+      auto forbidden = subcir.forbidden_pairs.find(subcir.outputs[out]);
+      if (forbidden == subcir.forbidden_pairs.end()) continue;
+      for (unsigned in = 0; in < inputs; ++in)
+        if (forbidden->second.count(subcir.inputs[in]) && dependencies[first_output + out][in])
+          return false;
+    }
+    std::vector<unsigned char> values(replacement.getNofObjs());
+    for (int row = 0; row < relation.getNPatterns(); ++row) {
+      if (!(row & 63) && cfg.expired()) return false;
+      for (unsigned in = 0; in < inputs; ++in) values[in+1] = (unsigned(row) >> in) & 1;
+      for (int id = inputs + 1; id < replacement.getNofObjs(); ++id) {
+        const auto& node = replacement.getObj(id);
+        unsigned index = 0;
+        for (unsigned pin = 0; pin < node.fanins.size(); ++pin)
+          index |= unsigned(values[node.fanins[pin]->node_id]) << pin;
+        values[id] = (node.tt >> index) & 1;
+      }
+      for (const auto& pattern : relation.getPattern(row)) {
+        bool conflict = true;
+        for (unsigned out = 0; out < outputs; ++out)
+          if (pattern[2*out] && bool(values[first_output + out]) == pattern[2*out+1]) {
+            conflict = false;
+            break;
+          }
+        if (conflict) return false;
+      }
+    }
+    return true;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Mixes the run seed with stable cut identities for repeatable sampling.]
+
+  Description [Window extraction carries the original cut identity as a salt,
+  so renumbering similar windows does not give every cut the same patterns.]
+
+***********************************************************************/
+  ABC_UINT64_T RelationGenerator::samplingSeed(const eSLIM2CirMan& cir,
+      const Subcircuit& subcir, const eSLIM2Config& cfg) {
+    ABC_UINT64_T seed = ABC_CONST(0xcbf29ce484222325) ^ unsigned(cfg.seed);
+    auto mix = [&](ABC_UINT64_T value) { seed = (seed ^ value) * ABC_CONST(0x100000001b3); };
+    mix(cfg.relation_sample_salt);
+    for (const auto* ids : {&subcir.nodes, &subcir.inputs, &subcir.outputs}) {
+      mix(ids->size());
+      for (int id : *ids) mix(cir.getObj(id).getId());
+    }
+    return seed;
+  }
+
+  // Test cut-output tuples on concrete PI assignments. With feedback through
+  // the surrounding DAG, partition by cut inputs in the CHANGED circuit,
+  // matching the SAT encoding rather than the original circuit's partition.
+/**Function*************************************************************
+
+  Synopsis    [Collects witnessed conflicts with a sample sized to the cut's input rows.]
+
+  Description [Each forbidden tuple has a concrete witness. Sampling only
+  seeds the relation; SAT must still prove that no further conflict exists.
+  Use four patterns per cut-input row, bounded to 256--4096 patterns and
+  reduced if needed to fit the work/memory allowance. Context PI count does
+  not determine the sample size; this never enumerates all PI assignments.]
+
+***********************************************************************/
+  bool RelationGenerator::sampleRelation(const eSLIM2CirMan& cir, const Subcircuit& subcir,
+                                         const eSLIM2Config& cfg, Relation& rel, unsigned* patterns) {
     typedef ABC_UINT64_T Word;
     const unsigned nPis = cir.getNofPis();
     const unsigned nInputs = subcir.inputs.size();
     const unsigned nOutputs = subcir.outputs.size();
-    if (cfg.approximate_relation ||
-        nPis > 16 || nInputs > 10 || nOutputs == 0 || nOutputs > 6)
+    if (cfg.approximate_relation || nInputs > 16 || nOutputs == 0 || nOutputs > 6)
       return false;
-    const unsigned nWords = 1u << (nPis > 6 ? nPis - 6 : 0);
     const unsigned nRows = 1u << nInputs;
     const unsigned nTuples = 1u << nOutputs;
     const unsigned nNodes = cir.getNofObjs() - cir.getNofPos();
@@ -118,12 +832,16 @@ namespace eSLIM2 {
         feedback_inputs.push_back(j);
         feedback_mask |= 1u << j;
       }
+    Word gate_work = 0, affected_work = 0;
     for (unsigned i = nPis + 1; i < nNodes; ++i) {
       const auto& obj = cir.getObj(i);
-      if (obj.getNFanins() != 2)
-        return false;
-      if (cir.inTFO(obj) && !cir.inSubcircuit(obj))
+      if (obj.getNFanins() > 6) return false;
+      const Word cost = obj.getNFanins() == 2 ? 1 : (Word(1) << obj.getNFanins());
+      gate_work += cost;
+      if (cir.inTFO(obj) && !cir.inSubcircuit(obj)) {
         affected.push_back(i);
+        affected_work += cost;
+      }
     }
     for (int i = nNodes; i < cir.getNofObjs(); ++i)
       if (cir.inTFO(cir.getObj(i)))
@@ -131,116 +849,44 @@ namespace eSLIM2 {
     // Bound simulation storage and work independently of circuit size. Include
     // the difference and forbidden-row vectors as well as the large tables.
     const ABC_UINT64_T memoryLimit = 1u << 22; // 32 MiB, in 64-bit words
-    const ABC_UINT64_T tableWords = (2ull * nNodes + nRows + 1) * nWords + nRows;
-    if (tableWords > memoryLimit ||
-        (nNodes + 1ull * nRows * nInputs +
-         1ull * nTuples * (affected.size() + compared.size() +
-                          nRows * (1ull + feedback_inputs.size()))) * nWords > (1u << 26))
-      return false;
-    if (cir.simulation_cache && cir.simulation_cache->words != nWords)
-      cir.simulation_cache.reset();
-    // Count cached vectors, retained reference capacity, and metadata against
-    // the same allowance. A cut that cannot populate a full cache can still
-    // use fast simulation and retain existing entries for later, smaller cuts.
-    bool persistent = cfg.fast_simulation && nWords >= 64;
-    if (persistent) {
-      const auto* previous = cir.simulation_cache.get();
-      const ABC_UINT64_T gates = nNodes - nPis - 1;
-      const ABC_UINT64_T referenceWords = ABC_UINT64_T(nNodes) * nWords;
-      const ABC_UINT64_T retainedReference = previous ? std::max(referenceWords, ABC_UINT64_T(previous->reference.capacity())) : referenceWords;
-      const ABC_UINT64_T retainedVersions = previous ? std::max(ABC_UINT64_T(nNodes), ABC_UINT64_T(previous->versions.capacity())) : nNodes;
-      const ABC_UINT64_T buckets = previous ? std::max(2 * (gates + 1), ABC_UINT64_T(previous->entries.bucket_count())) : 2 * (gates + 1);
-      const ABC_UINT64_T entryBytes = sizeof(eSLIM2CirMan::SimulationEntry) + sizeof(unsigned) + 3 * sizeof(void*);
-      const ABC_UINT64_T metadataWords = (gates * entryBytes + buckets * sizeof(void*) + sizeof(Word) - 1) / sizeof(Word);
-      persistent = tableWords + gates * nWords + retainedReference - referenceWords +
-                   nNodes + retainedVersions + metadataWords <= memoryLimit;
-    }
-    if (persistent && !cir.simulation_cache)
-      cir.simulation_cache = std::make_unique<eSLIM2CirMan::SimulationCache>();
-    auto* storage = cir.simulation_cache.get();
-    auto* cache = persistent ? storage : nullptr;
-    std::vector<Word> temporary_reference;
-    std::vector<Word>& reference = storage ? storage->reference : temporary_reference;
-    if (storage) {
-      storage->words = nWords;
-      // Remove dead rows before inserting replacement gates, so cached vectors
-      // never outnumber the live gates included in the admission calculation.
-      for (unsigned i = nPis + 1; i < nNodes; ++i) {
-        auto entry = storage->entries.find(cir.getObj(i).getId());
-        if (entry != storage->entries.end())
-          entry->second.live = true;
-      }
-      for (auto entry = storage->entries.begin(); entry != storage->entries.end(); ) {
-        if (!entry->second.live)
-          entry = storage->entries.erase(entry);
-        else {
-          entry->second.live = false;
-          ++entry;
-        }
-      }
-      // Avoid geometric capacity growth outside the accounted reference size.
-      // New zero-filled rows must not retain the old per-row version tags.
-      if (persistent && reference.capacity() < size_t(nNodes) * nWords) {
-        std::vector<Word>(size_t(nNodes) * nWords, 0).swap(reference);
-        storage->versions.clear();
-      }
-      if (!persistent) {
-        // Borrow the reference buffer instead of allocating a second one.
-        // Uncached evaluation overwrites its rows without updating their tags;
-        // retained entries remain valid, but the dense-row tags must be cleared.
-        std::vector<Word>().swap(storage->versions);
-        if (reference.capacity() != size_t(nNodes) * nWords) {
-          std::vector<Word>().swap(reference);
-          reference.resize(size_t(nNodes) * nWords, 0);
-        }
-        const ABC_UINT64_T entryWords = (sizeof(eSLIM2CirMan::SimulationEntry) + sizeof(unsigned) +
-                                       3 * sizeof(void*) + sizeof(Word) - 1) / sizeof(Word);
-        ABC_UINT64_T retainedWords = (storage->entries.bucket_count() * sizeof(void*) + sizeof(Word) - 1) / sizeof(Word);
-        for (const auto& entry : storage->entries)
-          retainedWords += entryWords + entry.second.values.capacity();
-        // Keeping all entries can itself exceed the allowance on a large cut.
-        // Evict only enough rows to fit, preserving the other value versions.
-        while (!storage->entries.empty() && tableWords + retainedWords > memoryLimit) {
-          auto entry = storage->entries.begin();
-          retainedWords -= entryWords + entry->second.values.capacity();
-          storage->entries.erase(entry);
-        }
-        if (storage->entries.empty()) {
-          // Release the bucket array too; an uncached cut may use the full budget.
-          decltype(storage->entries)().swap(storage->entries);
-        }
-      }
-    }
-    reference.resize(size_t(nNodes) * nWords, 0);
+    constexpr unsigned minimum_words = 4, maximum_words = 64;
+    unsigned nWords = std::min(maximum_words, std::max(minimum_words, nRows / 16));
+    const ABC_UINT64_T tableFactor = 2ull * nNodes + nRows + 1;
+    const ABC_UINT64_T workFactor = nPis + 1 + gate_work + 1ull * nRows * nInputs +
+        1ull * nTuples * (affected_work + compared.size() +
+                         nRows * (1ull + feedback_inputs.size()));
+    auto fits = [&](unsigned words) {
+      return tableFactor * words + nRows <= memoryLimit && workFactor * words <= (1u << 26);
+    };
+    while (nWords > minimum_words && !fits(nWords)) nWords /= 2;
+    if (!fits(nWords)) return false;
+    if (patterns) *patterns = 64 * nWords;
+    std::vector<Word> reference(size_t(nNodes) * nWords, 0);
+    std::mt19937_64 random {samplingSeed(cir, subcir, cfg)};
     for (unsigned i = 0; i < nPis; ++i)
-      for (unsigned w = 0; w < nWords; ++w)
-        reference[size_t(i + 1) * nWords + w] = i < 6 ? truth_patterns[i] :
-            ((w >> (i - 6)) & 1 ? ~Word(0) : Word(0));
+      for (unsigned w = 0; w < nWords; ++w) {
+        Word value = random();
+        // Include all-zero and all-one assignments to expose deep AND/OR cones.
+        if (!w) value = (value & ~Word(3)) | Word(2);
+        reference[size_t(i + 1) * nWords + w] = value;
+      }
     auto evaluate = [nWords, &cir, &cfg](std::vector<Word>& values, int i) {
       const auto& obj = cir.getObj(i);
+      if (obj.fanins.size() != 2) {
+        std::array<Word, 6> inputs{};
+        for (unsigned w = 0; w < nWords; ++w) {
+          for (unsigned pin = 0; pin < obj.fanins.size(); ++pin)
+            inputs[pin] = values[size_t(obj.fanins[pin]->node_id) * nWords + w];
+          values[size_t(i) * nWords + w] = evaluateLutWord(obj.tt, inputs.data(), obj.fanins.size());
+        }
+        return;
+      }
       const Word* a = &values[size_t(obj.fanins[0]->node_id) * nWords];
       const Word* b = &values[size_t(obj.fanins[1]->node_id) * nWords];
       Word* out = &values[size_t(i) * nWords];
       // Select the Boolean operation once per gate, outside the word loop.
       if (cfg.fast_simulation) {
-        switch (unsigned(obj.tt) & 15u) {
-          case 0: for (unsigned w = 0; w < nWords; ++w) out[w] = Word(0); break;
-          case 1: for (unsigned w = 0; w < nWords; ++w) out[w] = ~(a[w] | b[w]); break;
-          case 2: for (unsigned w = 0; w < nWords; ++w) out[w] = a[w] & ~b[w]; break;
-          case 3: for (unsigned w = 0; w < nWords; ++w) out[w] = ~b[w]; break;
-          case 4: for (unsigned w = 0; w < nWords; ++w) out[w] = ~a[w] & b[w]; break;
-          case 5: for (unsigned w = 0; w < nWords; ++w) out[w] = ~a[w]; break;
-          case 6: for (unsigned w = 0; w < nWords; ++w) out[w] = a[w] ^ b[w]; break;
-          case 7: for (unsigned w = 0; w < nWords; ++w) out[w] = ~(a[w] & b[w]); break;
-          case 8: for (unsigned w = 0; w < nWords; ++w) out[w] = a[w] & b[w]; break;
-          case 9: for (unsigned w = 0; w < nWords; ++w) out[w] = ~(a[w] ^ b[w]); break;
-          case 10: for (unsigned w = 0; w < nWords; ++w) out[w] = a[w]; break;
-          case 11: for (unsigned w = 0; w < nWords; ++w) out[w] = a[w] | ~b[w]; break;
-          case 12: for (unsigned w = 0; w < nWords; ++w) out[w] = b[w]; break;
-          case 13: for (unsigned w = 0; w < nWords; ++w) out[w] = ~a[w] | b[w]; break;
-          case 14: for (unsigned w = 0; w < nWords; ++w) out[w] = a[w] | b[w]; break;
-          case 15: for (unsigned w = 0; w < nWords; ++w) out[w] = ~Word(0); break;
-        }
+        simulateTwoInputGate(unsigned(obj.tt), a, b, out, nWords);
         return;
       }
       const Word m0 = -Word((obj.tt >> 0) & 1), m1 = -Word((obj.tt >> 1) & 1);
@@ -249,40 +895,9 @@ namespace eSLIM2 {
         out[w] = (~a[w] & ~b[w] & m0) | (a[w] & ~b[w] & m1) |
                  (~a[w] & b[w] & m2) | (a[w] & b[w] & m3);
     };
-    if (cache) {
-      std::vector<Word> versions(nNodes, 0);
-      for (unsigned i = 0; i <= nPis; ++i)
-        versions[i] = i + 1;
-      if (cache->versions.capacity() < nNodes)
-        std::vector<Word>(nNodes, 0).swap(cache->versions);
-      else
-        cache->versions.resize(nNodes, 0);
-      for (unsigned i = nPis + 1; i < nNodes; ++i) {
-        const auto& obj = cir.getObj(i);
-        auto& entry = cache->entries[obj.getId()];
-        const Word first = versions[obj.fanins[0]->node_id];
-        const Word second = versions[obj.fanins[1]->node_id];
-        const auto begin = reference.begin() + size_t(i) * nWords;
-        if (entry.version && entry.first == first && entry.second == second && entry.truth == obj.tt) {
-          if (cache->versions[i] != entry.version)
-            std::copy(entry.values.begin(), entry.values.end(), begin);
-        } else {
-          evaluate(reference, i);
-          entry.first = first;
-          entry.second = second;
-          entry.truth = obj.tt;
-          // Equal truth tables stop invalidation, even after a structural change.
-          if (!entry.version || entry.values.size() != nWords ||
-              !std::equal(entry.values.begin(), entry.values.end(), begin))
-            entry.version = ++cache->next_version;
-          entry.values.assign(begin, begin + nWords);
-        }
-        versions[i] = entry.version;
-        cache->versions[i] = entry.version;
-      }
-    } else {
-      for (unsigned i = nPis + 1; i < nNodes; ++i)
-        evaluate(reference, i);
+    for (unsigned i = nPis + 1; i < nNodes; ++i) {
+      if (!(i & 31) && cfg.expired()) { rel.status = false; return true; }
+      evaluate(reference, i);
     }
     // Precompute the part of the input partition unaffected by cut outputs.
     // Feedback inputs are intersected below after simulating each tuple.
@@ -306,7 +921,7 @@ namespace eSLIM2 {
         depends[subcir.outputs[j]] = 1u << j;
       for (int i : affected) {
         const auto& obj = cir.getObj(i);
-        depends[i] = depends[obj.fanins[0]->node_id] | depends[obj.fanins[1]->node_id];
+        for (auto* input : obj.fanins) depends[i] |= depends[input->node_id];
         for (unsigned j = 0; j < nOutputs; ++j)
           if (depends[i] & (1u << j))
             affected_by_output[j].push_back(i);
@@ -316,6 +931,10 @@ namespace eSLIM2 {
     // tuple, only its affected cone needs reevaluation; other values remain valid.
     unsigned previous_tuple = 0;
     for (unsigned ordinal = 0; ordinal < nTuples; ++ordinal) {
+      if (cfg.expired()) {
+        rel.status = false;
+        return true;
+      }
       const unsigned tuple = gray ? ordinal ^ (ordinal >> 1) : ordinal;
       const unsigned changed_pin = ordinal && gray ? unsigned(lsb(tuple ^ previous_tuple)) : 0;
       previous_tuple = tuple;
@@ -350,7 +969,8 @@ namespace eSLIM2 {
         }
     }
     // Cover forbidden tuples with cubes. Dropping a literal is legal only if
-    // every tuple in the enlarged cube is forbidden, so the relation is exact.
+    // every tuple in the enlarged cube has a witness. SAT must still complete
+    // the relation, even if these samples happened to cover every PI assignment.
     for (unsigned r = 0; r < nRows; ++r) {
       Word uncovered = forbidden[r];
       while (uncovered) {
@@ -377,10 +997,20 @@ namespace eSLIM2 {
     return true;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Allocates the next SAT variable in the relation miter.]
+
+***********************************************************************/
   int RelationGenerator::getNewVar() {
     return max_var++;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Builds the SAT variables and constraints for the selected problem.]
+
+***********************************************************************/
   void RelationGenerator::setupEncoding() {
     if (cfg.approximate_relation) {
       if (cfg.generate_relation_with_tfi_limit) {
@@ -394,6 +1024,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Encodes a gate truth table using the selected circuit-variable map.]
+
+***********************************************************************/
   void RelationGenerator::encodeGate(const eSLIM2CirObj& obj, int var, const std::vector<int>& gate2var) {
     int bc = popcount(obj.tt);
     int tt_length = obj.getTTLength();
@@ -410,6 +1045,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Encodes a gate by its unique truth-table value.]
+
+***********************************************************************/
   void RelationGenerator::getGateEncodingUnique(const eSLIM2CirObj& obj, int var, const std::vector<int>& gate2var, bool unique_bit) {
     ABC_UINT64_T tt = obj.tt;
     if (!unique_bit) {
@@ -431,6 +1071,11 @@ namespace eSLIM2 {
     solver.addClause(clause);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Encodes a gate by enumerating its truth-table rows.]
+
+***********************************************************************/
   void RelationGenerator::getGateEncodingNaive(const eSLIM2CirObj& obj, int var, const std::vector<int>& gate2var) {
     int tt_length = obj.getTTLength();
     int nfans = obj.getNFanins();
@@ -477,6 +1122,13 @@ namespace eSLIM2 {
     }
     setupEqualityConstraints(compare_nodes);
 
+    // Additional divisors need definitions even when they do not feed an
+    // affected output in the original graph. They are unchanged in the miter.
+    for (int id : subcir.inputs) {
+      if (!gate2varref[id]) gate2varref[id] = getNewVar();
+      if (!cir.inTFO(cir.getObj(id))) gate2varcone[id] = gate2varref[id];
+    }
+
     for (int i = cir.getNofObjs() - cir.getNofPos() - 1; i > cir.getNofPis(); i--) {
       if (gate2varref[i]) { // the gate is connected to a PO that is in the TFO of the subcircuit
         const auto& obj = cir.getObj(i);
@@ -520,10 +1172,15 @@ namespace eSLIM2 {
   }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Builds a relation miter with bounded fanout context.]
+
+***********************************************************************/
   void RelationGenerator::encodeCircuitApproximative() {
     setupConstantGate();
     std::vector<int> compare_nodes = markRestrictedCone();
-    int max_node = *std::max_element(compare_nodes.begin(), compare_nodes.end());
+    int max_node = compare_nodes.empty() ? cir.getNofPis() : *std::max_element(compare_nodes.begin(), compare_nodes.end());
     for (int i = max_node; i > cir.getNofPis(); i--) {
       const auto& obj = cir.getObj(i);
       if (gate2varref[i] != 0) {
@@ -555,13 +1212,13 @@ namespace eSLIM2 {
   void RelationGenerator::encodeCircuitApproximativeBoundedTFI() {
     setupConstantGate();
     std::vector<int> compare_nodes = markRestrictedCone();
-    std::vector<unsigned char> counts(cir.getNofObjs() - cir.getNofPos());
-    int max_node = *std::max_element(compare_nodes.begin(), compare_nodes.end());
+    std::vector<unsigned> counts(cir.getNofObjs() - cir.getNofPos());
+    int max_node = compare_nodes.empty() ? cir.getNofPis() : *std::max_element(compare_nodes.begin(), compare_nodes.end());
     for (int i = max_node; i > cir.getNofPis(); i--) {
       const auto& obj = cir.getObj(i);
       if (gate2varref[i] != 0) {
         if (cir.inTFO(obj) || cir.inSubcircuit(obj)) {
-          counts[i] = cfg.relation_tfi_bound + 1;
+          counts[i] = unsigned(cfg.relation_tfi_bound) + 1;
         } else if (counts[i] == 0) {
           cone_input_variables.push_back(gate2varref[i]);
           continue;
@@ -570,7 +1227,7 @@ namespace eSLIM2 {
           if (gate2varref[f->node_id] == 0) {
             gate2varref[f->node_id] = getNewVar();
             gate2varcone[f->node_id] = gate2varref[f->node_id];
-            counts[f->node_id] = std::max(counts[f->node_id], static_cast<unsigned char>(counts[i] - 1));
+            counts[f->node_id] = std::max(counts[f->node_id], counts[i] - 1);
           }
         }
         encodeGate(obj, gate2varref[i], gate2varref);
@@ -587,8 +1244,13 @@ namespace eSLIM2 {
     setupEqualityConstraints(compare_nodes);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Marks the restricted fanout cone and its required fanins.]
+
+***********************************************************************/
   std::vector<int> RelationGenerator::markRestrictedCone() {
-    std::vector<unsigned char> counts(cir.getNofObjs() - cir.getNofPos());
+    std::vector<unsigned> counts(cir.getNofObjs() - cir.getNofPos());
     for (int i : subcir.outputs) {
       gate2varref[i] = getNewVar();
       gate2varcone[i] = getNewVar();
@@ -604,7 +1266,7 @@ namespace eSLIM2 {
       if (!cir.inTFO(obj) || cir.inSubcircuit(obj)) {
         continue;
       }
-      unsigned char x = 0;
+      unsigned x = 0;
       for (auto& f : obj.fanins) {
         x = std::max(x, counts[f->node_id]);
       }
@@ -628,6 +1290,11 @@ namespace eSLIM2 {
     return nodes;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Assigns the SAT variable representing the circuit constant.]
+
+***********************************************************************/
   void RelationGenerator::setupConstantGate() {
     int const_var = getNewVar();
     gate2varref[0] = const_var;
@@ -635,7 +1302,15 @@ namespace eSLIM2 {
     solver.addClause({-const_var});
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Connects corresponding circuit signals through equality indicators.]
+
+***********************************************************************/
   void RelationGenerator::setupEqualityConstraints(const std::vector<int>& nodes) {
+    compared_nodes = nodes;
+    log.relation_observed_exits += nodes.size();
+    log.relation_max_exits = std::max(log.relation_max_exits, unsigned(nodes.size()));
     mode_selection_variable = getNewVar();
     std::vector<int> one_different {-mode_selection_variable};
     for (int cnd : nodes) {
@@ -648,6 +1323,11 @@ namespace eSLIM2 {
   }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Defines an auxiliary literal for equality of two SAT variables.]
+
+***********************************************************************/
   void RelationGenerator::getEqualityClauses(int x, int y, int aux) {
     solver.addClause({x, -y, -aux});
     solver.addClause({-x, y, -aux});
@@ -655,17 +1335,50 @@ namespace eSLIM2 {
     solver.addClause({-x, -y, aux});
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Searches for an output mismatch under the selected miter mode.]
+
+  Description [Focus on one exit until exhausted, then query all remaining
+  exits together. Exhausted exits stay exhausted as blocking clauses are
+  added. Only a global UNSAT result establishes relation completeness.]
+
+***********************************************************************/
   int RelationGenerator::findConflict(double& timeout, int mode_selection) {
-    abctime time_start = cfg.timeNow();
-    int solver_status = solver.solve(timeout, {mode_selection});
-    double solver_time = (double)1.0*(cfg.timeNow() - time_start)/CLOCKS_PER_SEC;
-    log.cummulative_sat_runtime_relation_generation += solver_time;
-    log.max_sat_runtime_relation_generation = std::max(log.max_sat_runtime_relation_generation, solver_time);
-    // log.cummulative_sat_runtime_relation_generation += solver.getRunTime();
-    log.nof_sat_calls_relation_generation++;
-    return solver_status;
+    const auto query = [&](std::initializer_list<int> assumptions) {
+      if (timeout <= 0 || cfg.expired()) return 0;
+      const abctime start = cfg.timeNow();
+      const int status = solver.solve(timeout, std::vector<int>(assumptions));
+      const double elapsed = double(cfg.timeNow() - start) / CLOCKS_PER_SEC;
+      timeout -= elapsed;
+      log.cummulative_sat_runtime_relation_generation += elapsed;
+      log.max_sat_runtime_relation_generation = std::max(log.max_sat_runtime_relation_generation, elapsed);
+      ++log.nof_sat_calls_relation_generation;
+      return status;
+    };
+    if (cfg.approximate_relation) return query({mode_selection});
+    if (current_exit >= equality_variables.size()) return 20;
+    const int focused = query({mode_selection, -equality_variables[current_exit]});
+    if (focused != 20) return focused;
+    // Blocking only shrinks the mismatch set. Exhausted exits cannot differ
+    // in a later model, so the existing global mismatch clause is exactly an
+    // "any remaining exit" query; no fresh selector or growing clause is needed.
+    ++log.relation_any_exit_queries;
+    const int status = query({mode_selection});
+    if (status == 10) {
+      for (current_exit = 0; current_exit < equality_variables.size(); ++current_exit)
+        if (!solver.getValue(equality_variables[current_exit])) break;
+      assert(current_exit < equality_variables.size());
+    } else if (status == 20)
+      current_exit = equality_variables.size();
+    return status;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Minimizes a conflicting output assignment under fixed cone inputs.]
+
+***********************************************************************/
   int RelationGenerator::reduceConflict(double& timeout, const std::vector<int>& cone_input,
                                         const std::vector<int>& subcircuit_output, const std::vector<int>& equality) {
     solver.assume(cone_input);
@@ -681,7 +1394,71 @@ namespace eSLIM2 {
     return status;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Times one witness sample shared by the early proof and SAT enumeration.]
+
+***********************************************************************/
+  bool RelationGenerator::collectWitnesses(const eSLIM2CirMan& cir, const Subcircuit& subcir,
+      const eSLIM2Config& cfg, eSLIM2Log& log, Relation& relation) {
+    if (!cfg.sample_relations || cfg.approximate_relation) return false;
+    unsigned patterns = 0;
+    const abctime start = cfg.timeNow();
+    const bool sampled = sampleRelation(cir, subcir, cfg, relation, &patterns);
+    log.relation_sampling_time += double(cfg.timeNow() - start) / CLOCKS_PER_SEC;
+    if (sampled && relation.getStatus()) {
+      ++log.nof_sampled_relations;
+      log.sampled_relation_patterns += patterns;
+    }
+    return sampled;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Seeds the SAT enumeration with forbidden tuples witnessed by simulation.]
+
+  Description [Only the conflicting-tuple search sees the blocking clauses.
+  The equality query used for core reduction is unchanged. Every blocked
+  cube is recorded in the relation, and each tuple in it has a concrete
+  witness. A final UNSAT result is still required for completeness.]
+
+***********************************************************************/
+  void RelationGenerator::seedRelation(Relation& relation,
+      const std::vector<int>& input_variables, const std::vector<int>& output_variables) {
+    ScopedPhaseTimer encoding_timer(log.relation_encoding_time, cfg);
+    ++log.nof_seeded_relations;
+    for (unsigned row = 0; row < unsigned(relation.getNPatterns()); ++row) {
+      log.seeded_relation_tuples += popcount(relation.getForbiddenTuples(row, output_variables.size()));
+      for (const auto& pattern : relation.getPattern(row)) {
+        std::vector<int> clause {-mode_selection_variable};
+        for (unsigned input = 0; input < input_variables.size(); ++input)
+          clause.push_back((row >> input) & 1 ? -input_variables[input] : input_variables[input]);
+        for (unsigned output = 0; output < output_variables.size(); ++output)
+          if (pattern[2*output])
+            clause.push_back(pattern[2*output+1] ? output_variables[output] : -output_variables[output]);
+        solver.addClause(clause);
+      }
+    }
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Enumerates forbidden boundary tuples until completion or timeout.]
+
+***********************************************************************/
   Relation RelationGenerator::getRelation() {
+    Relation relation(subcir.inputs.size());
+    const bool sampled = collectWitnesses(cir, subcir, cfg, log, relation);
+    if (!relation.getStatus()) return relation;
+    return getRelation(std::move(relation), sampled);
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Completes a previously sampled relation with guarded SAT enumeration.]
+
+***********************************************************************/
+  Relation RelationGenerator::getRelation(Relation rel, bool sampled) {
     std::vector<int> subcircuit_input_variables;
     subcircuit_input_variables.reserve(subcir.inputs.size());
     for (int sin : subcir.inputs) {
@@ -692,7 +1469,7 @@ namespace eSLIM2 {
     subcircuit_output_variables.reserve(subcir.outputs.size());
     // outputs in forbidden pairs must not removed
     std::vector<bool> outputs_to_keep(subcir.outputs.size(), false);
-    for (int i = 0; i < subcir.outputs.size(); i++) {
+    for (int i = 0; std::size_t(i) < subcir.outputs.size(); i++) {
       int sout = subcir.outputs[i];
       int var = gate2varcone[sout];
       subcircuit_output_variables.push_back(var);
@@ -701,35 +1478,48 @@ namespace eSLIM2 {
       }
     }
 
-    Relation rel(subcir.inputs.size());
+    preserveFeedbackOutputs(outputs_to_keep);
+
+    if (sampled) seedRelation(rel, subcircuit_input_variables, subcircuit_output_variables);
+    if (!rel.getStatus()) return rel;
+    if (subcir.outputs.size() > 1) prepareWitnessSimulation();
 
     int solver_status;
-    double timeout = cfg.relation_generation_timeout;
-    abctime time_start = cfg.timeNow();
+    double timeout = cfg.iterations ? std::numeric_limits<double>::infinity() : cfg.relation_generation_timeout;
     while( (solver_status=findConflict(timeout, mode_selection_variable)) == 10) {
-      timeout -= (double)1.0*(cfg.timeNow() - time_start)/CLOCKS_PER_SEC;
-      time_start = cfg.timeNow();
+      const abctime time_start = cfg.timeNow();
       if (timeout <= 0) {
         rel.status = false;
         return rel;
       }
-      std::vector<int> cone_in_assm = solver.getValues(cone_input_variables);
       std::vector<int> sin_assm = solver.getValues(subcircuit_input_variables);
       std::vector<int> sout_assm = solver.getValues(subcircuit_output_variables);
-      int status = reduceConflict(timeout, cone_in_assm, sout_assm, equality_variables);
-      if (status != 20) {
-        assert (status != 10);
-        rel.status = false;
-        return rel;
+      const bool single_output = sout_assm.size() == 1;
+      WitnessWord required_outputs = 0;
+      const bool justified = !single_output && justifyConflict(required_outputs);
+      const WitnessRows samples = sampleConflict();
+      if (single_output) {
+        // A mismatch cannot omit its only output. Retain the earlier fast
+        // path and its statistics without a second solve or justification.
+        ++log.single_output_core_calls_skipped;
+      } else if (!justified) {
+        const std::vector<int> cone_in_assm = solver.getValues(cone_input_variables);
+        double reduction_timeout = timeout - double(cfg.timeNow() - time_start) / CLOCKS_PER_SEC;
+        const int status = reduceConflict(reduction_timeout, cone_in_assm, sout_assm, equality_variables);
+        if (status != 20) {
+          assert(status != 10);
+          rel.status = false;
+          return rel;
+        }
       }
-      assert (status == 20);
+      ScopedPhaseTimer encoding_timer(log.relation_encoding_time, cfg);
       std::vector<int> blocking_clause {-mode_selection_variable};
-      for (int i = 0; i < subcir.inputs.size(); i++) {
+      for (int i = 0; std::size_t(i) < subcir.inputs.size(); i++) {
         blocking_clause.push_back(-sin_assm[i]);
       }
       std::vector<bool> pattern (2*subcir.outputs.size(), false);
-      for (int i = 0; i < subcir.outputs.size(); i++) {
-        if (solver.isFailed(sout_assm[i]) || outputs_to_keep[i]) {
+      for (int i = 0; std::size_t(i) < subcir.outputs.size(); i++) {
+        if (single_output || (justified ? ((required_outputs >> i) & 1) : solver.isFailed(sout_assm[i])) || outputs_to_keep[i]) {
           pattern[2*i] = true;
           pattern[2*i + 1] = sout_assm[i] < 0; // at least one output must be assigned differently in order to preserve the function
           blocking_clause.push_back(-sout_assm[i]);
@@ -737,6 +1527,8 @@ namespace eSLIM2 {
       }
       solver.addClause(blocking_clause);
       rel.addOutputPattern(assignment2bvindex(sin_assm), std::move(pattern));
+      addConflictSamples(rel, samples, subcircuit_input_variables, subcircuit_output_variables);
+      timeout -= double(cfg.timeNow() - time_start) / CLOCKS_PER_SEC;
     }
     if (solver_status != 20) {
       rel.status = false;
@@ -744,9 +1536,14 @@ namespace eSLIM2 {
     return rel;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Converts a signed literal assignment into its input-row index.]
+
+***********************************************************************/
   int RelationGenerator::assignment2bvindex(const std::vector<int>& assm) {
     int idx = 0;
-    for (int i = 0; i < assm.size(); i++) {
+    for (int i = 0; std::size_t(i) < assm.size(); i++) {
       if (assm[i] > 0) {
         idx |= 1 << i;
       }

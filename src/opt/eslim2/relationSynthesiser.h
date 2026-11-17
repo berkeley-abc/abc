@@ -12,9 +12,7 @@
 
   Affiliation [University of Freiburg]
 
-  Date        [Ver. 1.0. Started - April 2026.]
-
-  Revision    [$Id: relationSynthesiser.h,v 1.00 2025/04/14 00:00:00 Exp $]
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
 
 ***********************************************************************/
 
@@ -22,6 +20,7 @@
 #define ABC__OPT__ESLIM2__RELATIONSYNTHESISER_h
 
 #include <vector>
+#include <cstddef>
 #include <unordered_map>
 
 #include "misc/util/abc_global.h"
@@ -48,33 +47,36 @@ namespace eSLIM2 {
       std::vector<std::vector<int>> gate_output_variables;
 
       RelationSynthesiser(const Relation& relation, const Subcircuit& subcir, unsigned int max_size, const eSLIM2Config& cfg, eSLIM2Log& log, bool refine = false);
-      std::vector<bool> getModel();
       int getNewVariable();
+      std::vector<bool> getModel();
       std::vector<int> getNewVariableVector(unsigned int size);
 
       std::vector<int> getSizeAssumption(int size);
       double getDynamicTimeout(int size);
+      bool retrySmallerAfterTimeout(int status, unsigned size) const;
       unsigned int getSizeFromActivationVars(const std::vector<bool>& model);
       unsigned int getSizeFromActivationVars();
       void logRun(int status, unsigned int size);
       eSLIM2CirMan getReplacement(const std::vector<bool>& model, int size);
       int solveRelation(const std::vector<int>& assumptions, double timeout, unsigned size, bool log_model_size = false);
       void constrainIrredundantAigArea();
+      void excludeCircuit(const eSLIM2CirMan& original);
 
 
     private:
       const Relation& relation;
       const eSLIM2Config& config;
       eSLIM2Log& log;
+      bool logged_smaller_model = false;
 
       int max_var = 0;  // The maximal variable occurring in inputs/outputs
       bool refine;
       static constexpr unsigned minimum_refinement_rows = 32;
-      static constexpr unsigned refinement_seed_rows = 8;
-      static constexpr unsigned wide_refinement_seed_rows = 32;
+      static constexpr unsigned refinement_seed_rows = 32;
       static constexpr unsigned refinement_batch_rows = 8;
       static constexpr unsigned long_budget_interval = 16;
       static constexpr unsigned long_budget_multiplier = 10;
+      static constexpr unsigned large_cut_threshold = 5;
       unsigned encoded_count = 0;
       std::vector<bool> encoded_rows;
       std::vector<ABC_UINT64_T> forbidden_tuples;
@@ -93,14 +95,15 @@ namespace eSLIM2 {
 
 
       void setupEncoding();
+      SynthesisBudgetStats& budgetStats();
       void prepareWideRelation();
       void analyseWideSupport();
       void analyseMandatorySupport();
-      void constrainOutputSupports();
-      void constrainSupportTrees();
       void setupVariables();
       void setupStructuralConstraints();
       void constrainMandatorySupport();
+      void constrainOutputSupports();
+      void constrainSupportTrees();
 
       void setupSymmetryBreaking();
       void addRelationRow(unsigned row);
@@ -143,30 +146,55 @@ namespace eSLIM2 {
 
   };
 
+/**Function*************************************************************
+
+  Synopsis    [Allocates the next synthesis SAT variable.]
+
+***********************************************************************/
   inline int RelationSynthesiser::getNewVariable() {
     return ++max_var;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Allocates a vector of fresh synthesis SAT variables.]
+
+***********************************************************************/
   inline std::vector<int> RelationSynthesiser::getNewVariableVector(unsigned int size) {
     std::vector<int> vars;
     vars.reserve(size);
-    for (int i = 0; i < size; i++) {
+    for (unsigned int i = 0; i < size; i++) {
       vars.push_back(getNewVariable());
     }
     return vars;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the first gate index that can use all selected predecessors.]
+
+***********************************************************************/
   inline int RelationSynthesiser::getPotentialSuccessors(const std::vector<int>& indices) const {
-    if (indices.back() < subcir.inputs.size()) {
+    if (static_cast<std::size_t>(indices.back()) < subcir.inputs.size()) {
       return 0;
     }
     return indices.back() - subcir.inputs.size() + 1;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Reads one variable value from a truth-table row index.]
+
+***********************************************************************/
   inline bool RelationSynthesiser::getTTValue(int tt_line, int var) {
     return (tt_line >> var) & 1;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns a power of two for a valid unsigned shift count.]
+
+***********************************************************************/
   inline unsigned int RelationSynthesiser::pow2(int x) {
     return 1u << x;
   }

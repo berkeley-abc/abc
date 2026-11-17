@@ -12,9 +12,7 @@
 
   Affiliation [University of Freiburg]
 
-  Date        [Ver. 1.0. Started - April 2026.]
-
-  Revision    [$Id: subcircuit.h,v 1.00 2025/04/14 00:00:00 Exp $]
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
 
 ***********************************************************************/
 
@@ -51,6 +49,8 @@ namespace eSLIM2 {
       std::vector<int> nodes;
       std::vector<int> inputs;
       std::vector<int> outputs;
+      // Existing, unaffected signals offered as additional synthesis inputs.
+      std::vector<int> divisors;
       // Assigns the inputs of the subcircuit that can be reached from an output x to x.
       std::unordered_map<int, std::set<int>> forbidden_pairs;
 
@@ -68,12 +68,22 @@ namespace eSLIM2 {
       void getForbiddenPairsRec(int inp, std::unordered_set<int>& seen, const eSLIM2CirObj& obj, const eSLIM2CirMan& es_man);
   };
 
+/**Function*************************************************************
+
+  Synopsis    [Records selected gates and derives their boundary signals.]
+
+***********************************************************************/
   template <typename It>
   Subcircuit::Subcircuit(eSLIM2CirMan& es_man, It begin, It end) : nodes(begin, end) {
     es_man.markSubcircuit(this->nodes);
     setIO(es_man);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Builds a subcircuit boundary from the supplied gate identifiers.]
+
+***********************************************************************/
   template <typename It>
   Subcircuit Subcircuit::getSubcircuitBare(eSLIM2CirMan& es_man, It begin, It end) {
     Subcircuit scir(es_man, begin, end);

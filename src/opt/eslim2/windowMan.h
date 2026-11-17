@@ -12,9 +12,7 @@
 
   Affiliation [University of Freiburg]
 
-  Date        [Ver. 1.0. Started - April 2026.]
-
-  Revision    [$Id: windowMan.h,v 1.00 2025/04/14 00:00:00 Exp $]
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
 
 ***********************************************************************/
 
@@ -63,7 +61,7 @@ namespace eSLIM2 {
 
       int nwindows = 0;
       unsigned nworkers = 1;
-      unsigned window_timeout = 0;
+      double window_timeout = 0;
       std::atomic<unsigned> next_window{0};
       std::chrono::steady_clock::time_point deadline;
       eSLIM2CirMan& es_man;

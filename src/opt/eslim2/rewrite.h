@@ -4,7 +4,7 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Using Exact Synthesis with the SAT-based Local Improvement Method (eSLIM3).]
+  PackageName [Using Exact Synthesis with the SAT-based Local Improvement Method (eSLIM2).]
 
   Synopsis    [Owned native restructuring under a logic-depth target.]
 
@@ -14,12 +14,16 @@
 
 ***********************************************************************/
 
-#ifndef ABC__OPT__ESLIM3__REWRITE_h
-#define ABC__OPT__ESLIM3__REWRITE_h
+#ifndef ABC__OPT__ESLIM2__REWRITE_h
+#define ABC__OPT__ESLIM2__REWRITE_h
 #include "aig/gia/gia.h"
 #include <chrono>
 ABC_NAMESPACE_CXX_HEADER_START
-namespace eSLIM3 {
+namespace eSLIM2 {
+  class eSLIM2CirMan;
+  eSLIM2CirMan rewriteLutWithChoices(const eSLIM2CirMan& original, unsigned lut_size,
+      unsigned target, unsigned bound, unsigned attempt,
+      std::chrono::steady_clock::time_point deadline, bool area_only);
   Gia_Man_t* rewriteWithChoices(Gia_Man_t* original, unsigned target,
       unsigned bound, unsigned attempt, std::chrono::steady_clock::time_point deadline,
       bool area_only);

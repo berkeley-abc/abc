@@ -12,11 +12,12 @@
 
   Affiliation [University of Freiburg]
 
-  Date        [Ver. 1.0. Started - April 2026.]
-
-  Revision    [$Id: windowManImpl.h,v 1.00 2025/04/14 00:00:00 Exp $]
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
 
 ***********************************************************************/
+
+#ifndef ABC__OPT__ESLIM2__WINDOWMANIMPL_h
+#define ABC__OPT__ESLIM2__WINDOWMANIMPL_h
 
 #include <random>
 #include <algorithm>
@@ -33,6 +34,7 @@
 #endif
 
 #include "windowMan.h"
+#include "eSLIM2Man.h"
 #include "subcircuit.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -46,17 +48,26 @@ namespace eSLIM2 {
   template <typename SynthesisEngine, typename SelectionStrategy>
   void WindowMan<SynthesisEngine, SelectionStrategy>::applyeSLIM2(eSLIM2CirMan& es_man, eSLIM2Config& cfg, eSLIM2Log& log) {
     assert(es_man.getNofGates() > 0);
-    WindowMan win_man(es_man, cfg, log);
-    win_man.setupWindows();
-    if (!win_man.nwindows) {
-      if (cfg.verbosity_level > 0)
-        std::cout << "eSLIM2: using one core for the whole circuit.\n";
-      eSLIM2_Man<SynthesisEngine, SelectionStrategy>::applyeSLIM2(es_man, cfg, log);
-      return;
-    }
-    win_man.runParallel();
-    win_man.validateWindows();
-    es_man = win_man.recombineWindows();
+    const auto end = std::min(cfg.deadline, std::chrono::steady_clock::now() +
+        std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(cfg.timeout)));
+    do {
+      const int before_area = es_man.getNofGates(), before_depth = es_man.getDepth();
+      eSLIM2Config pass = cfg;
+      pass.deadline = end;
+      WindowMan win_man(es_man, pass, log);
+      win_man.setupWindows();
+      if (!win_man.nwindows) {
+        if (cfg.verbosity_level > 1)
+          std::cout << "eSLIM2: using one core for the whole circuit.\n";
+        eSLIM2_Man<SynthesisEngine, SelectionStrategy>::applyeSLIM2(es_man, cfg, log);
+        return;
+      }
+      win_man.runParallel();
+      win_man.validateWindows();
+      es_man = win_man.recombineWindows();
+      if (cfg.iterations || !es_man.getNofGates() ||
+          (es_man.getNofGates() >= before_area && es_man.getDepth() >= before_depth)) break;
+    } while (std::chrono::steady_clock::now() < end);
   }
 
 /**Function*************************************************************
@@ -67,7 +78,7 @@ namespace eSLIM2 {
   template <typename SynthesisEngine, typename SelectionStrategy>
   WindowMan<SynthesisEngine, SelectionStrategy>::WindowMan(eSLIM2CirMan& es_man, const eSLIM2Config& cfg, eSLIM2Log& log)
       : es_man(es_man), cfg(cfg), log(log), rng(cfg.seed) {
-    deadline = std::chrono::steady_clock::now() + std::chrono::seconds(cfg.timeout);
+    deadline = std::min(cfg.deadline, std::chrono::steady_clock::now() + std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(cfg.timeout)));
   }
 
 /**Function*************************************************************
@@ -172,7 +183,8 @@ namespace eSLIM2 {
   template <typename SynthesisEngine, typename SelectionStrategy>
   void WindowMan<SynthesisEngine, SelectionStrategy>::runParallel() {
     const unsigned batches = 1 + (unsigned(nwindows) - 1) / nworkers;
-    window_timeout = cfg.timeout ? 1 + (cfg.timeout - 1) / batches : 0;
+    const double remaining = std::chrono::duration<double>(deadline - std::chrono::steady_clock::now()).count();
+    window_timeout = std::max(0.0, remaining) / batches;
     unsigned active = 1;
 #ifdef ABC_USE_PTHREADS
     std::vector<pthread_t> threads;
@@ -186,7 +198,7 @@ namespace eSLIM2 {
       ++active;
     }
 #endif
-    if (cfg.verbosity_level > 0)
+    if (cfg.verbosity_level > 1)
       std::cout << "eSLIM2: optimizing " << nwindows << " windows on " << active << " cores.\n";
     runWorker(this);
 #ifdef ABC_USE_PTHREADS
@@ -259,7 +271,7 @@ namespace eSLIM2 {
         }
       }
       if (!valid) {
-        if (cfg.verbosity_level > 0)
+        if (cfg.verbosity_level > 1)
           std::cout << "eSLIM2: retaining original window " << wid << " to preserve its bounds.\n";
         win = eSLIM2CirMan(es_man, scirs[wid]);
       }
@@ -291,6 +303,7 @@ namespace eSLIM2 {
       const bool negated = (nd->tt == 1) != bool(phases[nd->fanins[0]->node_id]);
       combined.addPo(nd->fanins[0]->value1, negated);
     }
+    combined.removeDangling();
     return combined;
   }
 
@@ -374,19 +387,70 @@ namespace eSLIM2 {
 ***********************************************************************/
   template <typename SynthesisEngine, typename SelectionStrategy>
   void WindowMan<SynthesisEngine, SelectionStrategy>::combineLogs() {
+    // Report the strongest limit reached in this batch, not the caller's
+    // provisional reason before any worker started. Empty windows have the
+    // lowest priority; a timed-out worker or enclosing deadline has the highest.
+    const unsigned priority[] = {1, 4, 3, 0, 2};
+    unsigned stop_reason = cfg.expired() ? 1 : 3;
     for (const auto& wl : wlogs) {
       int size = wl.getSize();
       if (log.getSize() < size)
         log.resize(size);
       log.iteration_count += wl.iteration_count;
+      if (priority[wl.stop_reason] > priority[stop_reason]) stop_reason = wl.stop_reason;
+      log.neighborhood_roots += wl.neighborhood_roots;
+      log.failed_root_draws_skipped += wl.failed_root_draws_skipped;
+      log.preferred_output_selections += wl.preferred_output_selections;
+      log.preferred_output_hits += wl.preferred_output_hits;
+      log.output_boundary_gates_added += wl.output_boundary_gates_added;
+      log.mffc_gates_added += wl.mffc_gates_added;
       log.relation_generation_time += wl.relation_generation_time;
       log.synthesis_time += wl.synthesis_time;
+      log.relation_window_time += wl.relation_window_time;
+      log.relation_encoding_time += wl.relation_encoding_time;
+      log.synthesis_encoding_time += wl.synthesis_encoding_time;
+      log.synthesis_solving_time += wl.synthesis_solving_time;
+      log.synthesis_checking_time += wl.synthesis_checking_time;
       log.subcircuits_with_forbidden_pairs += wl.subcircuits_with_forbidden_pairs;
-      log.nof_simulated_relations += wl.nof_simulated_relations;
       log.nof_sat_relations += wl.nof_sat_relations;
+      log.nof_complete_sat_relations += wl.nof_complete_sat_relations;
+      log.simulation.merge(wl.simulation);
+      log.relation_observed_exits += wl.relation_observed_exits;
+      log.relation_max_exits = std::max(log.relation_max_exits, wl.relation_max_exits);
+      log.relation_any_exit_queries += wl.relation_any_exit_queries;
+      log.single_output_core_calls_skipped += wl.single_output_core_calls_skipped;
+      log.nof_window_relations += wl.nof_window_relations;
+      log.relation_cache_hits += wl.relation_cache_hits;
+      log.nof_seeded_relations += wl.nof_seeded_relations;
+      log.nof_sampled_relations += wl.nof_sampled_relations;
+      log.sampled_relation_patterns += wl.sampled_relation_patterns;
+      log.sampled_optimal_cuts += wl.sampled_optimal_cuts;
+      log.relation_timeouts += wl.relation_timeouts;
+      log.relation_retries += wl.relation_retries;
+      log.relation_fallbacks += wl.relation_fallbacks;
+      log.relation_context_reuses += wl.relation_context_reuses;
+      log.relation_context_probes += wl.relation_context_probes;
+      log.seeded_relation_tuples += wl.seeded_relation_tuples;
+      log.relation_sampling_time += wl.relation_sampling_time;
+      log.verified_replacements += wl.verified_replacements;
+      log.unchanged_replacements += wl.unchanged_replacements;
+      log.failed_cut_cache_hits += wl.failed_cut_cache_hits;
+      log.extended_cut_retries += wl.extended_cut_retries;
+      log.exhausted_searches += wl.exhausted_searches;
+      log.rejected_replacements += wl.rejected_replacements;
+      log.verification_timeouts += wl.verification_timeouts;
+      log.proven_optimal_cuts += wl.proven_optimal_cuts;
+      log.cuts_with_divisors += wl.cuts_with_divisors;
+      log.divisor_candidates += wl.divisor_candidates;
+      log.divisor_signature_duplicates += wl.divisor_signature_duplicates;
+      log.divisor_signature_time += wl.divisor_signature_time;
+      log.max_relation_window_gates = std::max(log.max_relation_window_gates, wl.max_relation_window_gates);
+      log.max_relation_window_inputs = std::max(log.max_relation_window_inputs, wl.max_relation_window_inputs);
       log.synthesis_cache_hits += wl.synthesis_cache_hits;
       log.synthesis_searches += wl.synthesis_searches;
       log.synthesis_sat_searches += wl.synthesis_sat_searches;
+      log.normal_synthesis_budget.merge(wl.normal_synthesis_budget);
+      log.extended_synthesis_budget.merge(wl.extended_synthesis_budget);
       log.synthesis_refinements += wl.synthesis_refinements;
       log.synthesis_small_hits += wl.synthesis_small_hits;
       log.synthesis_cache_permutations += wl.synthesis_cache_permutations;
@@ -398,6 +462,9 @@ namespace eSLIM2 {
       log.untimed_syntheses += wl.untimed_syntheses;
       log.rewrite_calls += wl.rewrite_calls;
       log.rewrite_gain += wl.rewrite_gain;
+      log.rewrite_no_gain += wl.rewrite_no_gain;
+      log.rewriting_time += wl.rewriting_time;
+      log.final_inprocessing_time += wl.final_inprocessing_time;
       log.resubstitution_calls += wl.resubstitution_calls;
       log.resubstitution_gain += wl.resubstitution_gain;
       log.resubstitution_time += wl.resubstitution_time;
@@ -409,17 +476,22 @@ namespace eSLIM2 {
       log.nof_sat_calls_relation_generation += wl.nof_sat_calls_relation_generation;
       for (int i = 0; i <= size; ++i) {
         log.nof_analyzed_circuits_per_size[i] += wl.nof_analyzed_circuits_per_size[i];
+        log.nof_analyzed_circuits_per_output_count[i] += wl.nof_analyzed_circuits_per_output_count[i];
         log.nof_replaced_circuits_per_size[i] += wl.nof_replaced_circuits_per_size[i];
         log.nof_reduced_circuits_per_size[i] += wl.nof_reduced_circuits_per_size[i];
         log.cummulative_sat_runtimes_per_size[i] += wl.cummulative_sat_runtimes_per_size[i];
         log.nof_sat_calls_per_size[i] += wl.nof_sat_calls_per_size[i];
         log.cummulative_unsat_runtimes_per_size[i] += wl.cummulative_unsat_runtimes_per_size[i];
         log.nof_unsat_calls_per_size[i] += wl.nof_unsat_calls_per_size[i];
+        log.nof_interrupted_calls_per_size[i] += wl.nof_interrupted_calls_per_size[i];
         log.cummulative_relation_generation_times_per_size[i] += wl.cummulative_relation_generation_times_per_size[i];
         log.nof_relation_generations_per_size[i] += wl.nof_relation_generations_per_size[i];
       }
     }
+    log.stop_reason = stop_reason;
   }
 
 }
 ABC_NAMESPACE_IMPL_END
+
+#endif

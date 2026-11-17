@@ -42,8 +42,6 @@ namespace eSLIM2 {
 
   SideEffects [Creates a new file; returns an owned stream or NULL.]
 
-  SeeAlso     []
-
 ***********************************************************************/
     FILE* createExclusive(const std::string& path) {
 #ifdef _WIN32
@@ -72,8 +70,6 @@ namespace eSLIM2 {
 
   SideEffects [None.]
 
-  SeeAlso     []
-
 ***********************************************************************/
     bool absent(const std::string& path) {
       std::error_code code;
@@ -90,8 +86,6 @@ namespace eSLIM2 {
   Description [Rejects malformed values, overflow, duplicates, and times beyond the command timeout.]
 
   SideEffects [Clears and fills the caller-owned schedule.]
-
-  SeeAlso     []
 
 ***********************************************************************/
   bool readCheckpointTimes(const char* text, unsigned timeout, std::vector<unsigned>& times) {
@@ -123,8 +117,6 @@ namespace eSLIM2 {
 
   SideEffects [Initializes writer-owned state.]
 
-  SeeAlso     []
-
 ***********************************************************************/
   CheckpointWriter::CheckpointWriter(const char* prefix, const std::vector<unsigned>& times, unsigned timeout)
       : prefix(prefix), times(times), timeout(timeout), start(Clock::now()), cpu_start(std::clock()) {}
@@ -136,8 +128,6 @@ namespace eSLIM2 {
   Description [Existing paths are preserved. A prefix-specific exclusive probe checks output access.]
 
   SideEffects [Creates and removes the probe; resets writer clocks and status.]
-
-  SeeAlso     []
 
 ***********************************************************************/
   bool CheckpointWriter::prepare() {
@@ -175,8 +165,6 @@ namespace eSLIM2 {
 
   SideEffects [None.]
 
-  SeeAlso     []
-
 ***********************************************************************/
   CheckpointWriter::Clock::time_point CheckpointWriter::nextTime() const {
     // The endpoint includes final inprocessing. It is emitted by the caller
@@ -192,8 +180,6 @@ namespace eSLIM2 {
   Description [Early completion publishes remaining records with their actual elapsed times. A failure disables further writes.]
 
   SideEffects [Writes requested files and advances writer state.]
-
-  SeeAlso     []
 
 ***********************************************************************/
   CheckpointWriter::Clock::time_point CheckpointWriter::write(eSLIM2CirMan& circuit, bool finished) {
@@ -212,8 +198,6 @@ namespace eSLIM2 {
   Description [The AIG is closed before metadata is published. The caller retains ownership of the circuit on failure.]
 
   SideEffects [Creates snapshot files and prints their status.]
-
-  SeeAlso     []
 
 ***********************************************************************/
   bool CheckpointWriter::writeOne(eSLIM2CirMan& circuit, unsigned requested, bool finished) {

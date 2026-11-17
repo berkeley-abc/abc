@@ -46,6 +46,7 @@ namespace eSLIM2 {
       bool setOption(const char* name, int value);
       bool configure(const char* name);
       void setDeadline(std::chrono::steady_clock::time_point value);
+      void setConflictBudget(int limit);
       int solve(double timeout, const std::vector<int>& assumptions);
       double getRunTime() const;
       bool getValue(int variable);
@@ -57,6 +58,7 @@ namespace eSLIM2 {
       std::chrono::steady_clock::time_point deadline = std::chrono::steady_clock::time_point::max();
       std::vector<int> literals;
       int variables = 1;
+      int64_t conflict_limit = -1;
       bool inconsistent = false;
       bool model_valid = false;
       int model_variables = 0;
@@ -115,6 +117,16 @@ namespace eSLIM2 {
     deadline = value;
     if (cadical)
       cadical->setDeadline(value);
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Shares one deterministic conflict budget across refinement calls.]
+
+***********************************************************************/
+  inline void SynthesisSolver::setConflictBudget(int limit) {
+    if (cadical) cadical->setConflictBudget(limit);
+    else conflict_limit = limit > 0 ? int64_t(bmcg3_sat_solver_conflictnum(glucose)) + limit : -1;
   }
 
 /**Function*************************************************************
@@ -220,15 +232,28 @@ namespace eSLIM2 {
     // a wall-clock deadline. A batch is an interruption, never an UNSAT proof.
     model_valid = false;
     model_variables = 0;
-    constexpr int conflicts_per_batch = 128;
+    // Adapt after each short batch; a single propagation remains indivisible.
+    int batch = 1;
+    const double target_seconds = std::min(0.001, timeout / 16);
+    auto batch_started = start;
     bmcg3_sat_solver_set_runtime_limit(glucose, 0);
-    bmcg3_sat_solver_set_conflict_budget(glucose, std::isfinite(timeout) ? conflicts_per_batch : 0);
+
     int status = 0;
     do {
+      if (conflict_limit >= 0) {
+        const int64_t left = conflict_limit - bmcg3_sat_solver_conflictnum(glucose);
+        if (left <= 0) break;
+        batch = int(std::min(left, int64_t(128)));
+      }
+      bmcg3_sat_solver_set_conflict_budget(glucose, batch);
       status = bmcg3_sat_solver_solve(glucose, literals.data(), static_cast<int>(literals.size()));
       if (status || std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count() >= timeout)
         break;
-      bmcg3_sat_solver_set_conflict_budget(glucose, conflicts_per_batch);
+      const auto now = std::chrono::steady_clock::now();
+      const double elapsed = std::chrono::duration<double>(now - batch_started).count();
+      if (elapsed > 0 && conflict_limit < 0)
+        batch = std::max(1, int(std::min(128.0, batch * target_seconds / elapsed)));
+      batch_started = now;
     } while (true);
     bmcg3_sat_solver_set_conflict_budget(glucose, 0);
     model_valid = status > 0;

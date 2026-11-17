@@ -12,9 +12,7 @@
 
   Affiliation [University of Freiburg]
 
-  Date        [Ver. 1.0. Started - April 2026.]
-
-  Revision    [$Id: eslim2CirMan.cpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
 
 ***********************************************************************/
 
@@ -30,37 +28,62 @@
 
 #include "map/mio/mio.h"
 
-ABC_NAMESPACE_HEADER_START
-  void Mio_IntallSimpleLibrary();
-  void * Abc_FrameReadLibGen();
-ABC_NAMESPACE_HEADER_END
-
 ABC_NAMESPACE_IMPL_START
 namespace eSLIM2 {
 
+/**Function*************************************************************
+
+  Synopsis    [Initializes a circuit object and its fanin links.]
+
+***********************************************************************/
   eSLIM2CirObj::eSLIM2CirObj(int id, std::vector<eSLIM2CirObj*>&& fanins)
               : node_id(id), fanins(fanins) {
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of fanin signals.]
+
+***********************************************************************/
   int eSLIM2CirObj::getNFanins() const{
     return fanins.size();
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of rows in the gate truth table.]
+
+***********************************************************************/
   int eSLIM2CirObj::getTTLength() const {
     return static_cast<ABC_UINT64_T>(1) << getNFanins();
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the object identifier.]
+
+***********************************************************************/
   unsigned int eSLIM2CirObj::getId() const {
     return id;
   }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Constructs an independently owned internal circuit representation.]
+
+***********************************************************************/
   eSLIM2CirMan::eSLIM2CirMan(int nObjEstimate) {
     nodes.reserve(1 + nObjEstimate);
     std::unique_ptr<eSLIM2CirObj> pobj = std::make_unique<eSLIM2CirObj>(0, std::vector<eSLIM2CirObj*>()); // const false node
     nodes.push_back(std::move(pobj));
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Constructs an independently owned internal circuit representation.]
+
+***********************************************************************/
   eSLIM2CirMan::eSLIM2CirMan(eSLIM2CirMan& es_man, const Subcircuit& scir)
               : eSLIM2CirMan(scir.inputs.size() + scir.outputs.size() + scir.nodes.size()) {
     for (int i = 0; i < scir.inputs.size(); i++) {
@@ -78,6 +101,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Constructs an independently owned internal circuit representation.]
+
+***********************************************************************/
   eSLIM2CirMan::eSLIM2CirMan(Gia_Man_t * pGia) : eSLIM2CirMan(Gia_ManObjNum(pGia)) {
     assert (!Gia_ManHasDangling(pGia));
     assert (Gia_ManRegNum(pGia) == 0);
@@ -105,6 +133,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Constructs an independently owned internal circuit representation.]
+
+***********************************************************************/
   eSLIM2CirMan::eSLIM2CirMan(Abc_Ntk_t * pNtk, bool simplify) : eSLIM2CirMan(Abc_NtkObjNum(pNtk)) {
     assert(Abc_NtkIsLogic(pNtk));
     assert(Abc_NtkHasSop(pNtk));
@@ -137,8 +170,14 @@ namespace eSLIM2 {
       } while (Abc_ObjIsPo(pObj));
       addPo(ids.at(pObj->Id), negated);
     }
+    if (simplify) minimizeLutFanins();
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Recursively imports SOP nodes and their fanins into the internal graph.]
+
+***********************************************************************/
   int eSLIM2CirMan::insertNtkNodes(Abc_Ntk_t * pNtk, int node_id, std::unordered_map<int,int>& ids, bool simplify) {
     auto it = ids.find(node_id);
     if (it != ids.end()) {
@@ -171,7 +210,7 @@ namespace eSLIM2 {
     // the truth table must be computed after we traversed the fanins in order to take account for normalised gates
     ABC_UINT64_T tt = ttFromNtkObj(pNtk, pObj);
     if (simplify && Vec_IntSize(&pObj->vFanins) == 1) {
-      int id = fanins[0];
+      int id = tt == 0 || tt == 3 ? 0 : fanins[0];
       if (!ttisnormal(tt)) {
         Abc_NodeSetTravIdCurrent(pObj);
       }
@@ -190,22 +229,47 @@ namespace eSLIM2 {
   }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the circuit object with the requested identifier.]
+
+***********************************************************************/
   eSLIM2CirObj* eSLIM2CirMan::getpObj(int id) {
     return nodes[id].get();
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the circuit object with the requested identifier.]
+
+***********************************************************************/
   const eSLIM2CirObj* eSLIM2CirMan::getpObj(int id) const {
     return nodes[id].get();
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the requested primary-output object.]
+
+***********************************************************************/
   eSLIM2CirObj* eSLIM2CirMan::getPo(int id) {
     return nodes[getNofObjs() - nof_pos - 1 + id].get();
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns a reference to the requested circuit object.]
+
+***********************************************************************/
   const eSLIM2CirObj& eSLIM2CirMan::getObj(int id) const {
     return *nodes[id].get();
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Appends a primary input and returns its identifier.]
+
+***********************************************************************/
   int eSLIM2CirMan::addPi() {
     nof_pis++;
     int id = nodes.size();
@@ -218,6 +282,11 @@ namespace eSLIM2 {
   }
 
   // If the fanin is negated we use the tt-member to indicate this negation
+/**Function*************************************************************
+
+  Synopsis    [Appends a primary output with its requested polarity.]
+
+***********************************************************************/
   int eSLIM2CirMan::addPo(int fanin, bool negated) {
     nof_pos++;
     // 1 represents negation and 2 projection
@@ -228,6 +297,11 @@ namespace eSLIM2 {
     return id;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Appends a gate and records its truth table and fanin links.]
+
+***********************************************************************/
   int eSLIM2CirMan::addNode(const std::vector<int>& fanins, ABC_UINT64_T tt) {
     int id = nodes.size();
     std::vector<eSLIM2CirObj*> pfan;
@@ -247,6 +321,11 @@ namespace eSLIM2 {
     return id;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the maximum output arrival in the internal timing convention.]
+
+***********************************************************************/
   int eSLIM2CirMan::getDepth() const {
     return depth;
   }
@@ -277,18 +356,38 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Tests whether the object is the circuit constant.]
+
+***********************************************************************/
   bool eSLIM2CirMan::isConst(int id) const {
     return id == 0;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Tests whether the object is the circuit constant.]
+
+***********************************************************************/
   bool eSLIM2CirMan::isConst(const eSLIM2CirObj& obj) const {
     return obj.node_id == 0;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Tests whether the object is a primary input.]
+
+***********************************************************************/
   bool eSLIM2CirMan::isPi(int id) const {
     return id <= nof_pis; // 0 is the const0 node
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Tests whether the object is a primary input.]
+
+***********************************************************************/
   bool eSLIM2CirMan::isPi(const eSLIM2CirObj& obj) const {
     return obj.node_id <= nof_pis;
   }
@@ -303,79 +402,174 @@ namespace eSLIM2 {
     return obj.depth + obj.remaining_time == bound;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Tests whether the object is a primary output.]
+
+***********************************************************************/
   bool eSLIM2CirMan::isPo(int id) const {
     return id >= nodes.size() - nof_pos;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Tests whether the object is an internal logic gate.]
+
+***********************************************************************/
   bool eSLIM2CirMan::isGate(int id) const {
     return !isPi(id) && !isPo(id);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of circuit objects.]
+
+***********************************************************************/
   int eSLIM2CirMan::getNofObjs() const {
     return nodes.size();
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of primary inputs.]
+
+***********************************************************************/
   int eSLIM2CirMan::getNofPis() const {
     return nof_pis;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of primary outputs.]
+
+***********************************************************************/
   int eSLIM2CirMan::getNofPos() const {
     return nof_pos;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of internal logic gates.]
+
+***********************************************************************/
   int eSLIM2CirMan::getNofGates() const {
     return nodes.size() - nof_pis - nof_pos - 1;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Marks the object with the current traversal identifier.]
+
+***********************************************************************/
   void eSLIM2CirMan::setTraversalId(eSLIM2CirObj& obj) {
     obj.trav_id = traversal_id;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Marks the object with the current traversal identifier.]
+
+***********************************************************************/
   void eSLIM2CirMan::setTraversalId(int n) {
     getpObj(n)->trav_id = traversal_id;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Tests whether the object belongs to the current traversal.]
+
+***********************************************************************/
   bool eSLIM2CirMan::isCurrentTraversalId(int n) const {
     return getpObj(n)->trav_id == traversal_id;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Tests whether the object belongs to the current traversal.]
+
+***********************************************************************/
   bool eSLIM2CirMan::isCurrentTraversalId(const eSLIM2CirObj& obj) const {
     return obj.trav_id == traversal_id;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Marks an object as belonging to the selected transitive fanin cone.]
+
+***********************************************************************/
   void eSLIM2CirMan::setInTFI(eSLIM2CirObj& obj) {
     obj.inTFI = traversal_id;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Marks an object as belonging to the selected transitive fanout cone.]
+
+***********************************************************************/
   void eSLIM2CirMan::setInTFO(eSLIM2CirObj& obj) {
     obj.inTFO = traversal_id;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Marks an object as belonging to the selected subcircuit.]
+
+***********************************************************************/
   void eSLIM2CirMan::setInSubcircuit(eSLIM2CirObj& obj) {
     obj.inSubcircuit = traversal_id;
   }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Tests membership in the selected transitive fanin cone.]
+
+***********************************************************************/
   bool eSLIM2CirMan::inTFI(const eSLIM2CirObj& obj) const {
     return  obj.inTFI == traversal_id;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Tests membership in the selected transitive fanout cone.]
+
+***********************************************************************/
   bool eSLIM2CirMan::inTFO(const eSLIM2CirObj& obj) const {
     return obj.inTFO == traversal_id;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Tests membership in the selected subcircuit.]
+
+***********************************************************************/
   bool eSLIM2CirMan::inSubcircuit(const eSLIM2CirObj& obj) const {
     return obj.inSubcircuit == traversal_id;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Tests whether an object remains excluded by its taboo timestamp.]
+
+***********************************************************************/
   bool eSLIM2CirMan::isTaboo(const eSLIM2CirObj& obj, int taboo_time) const {
     return obj.isTaboo != 0 && (traversal_id - obj.isTaboo < taboo_time);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Records the current taboo timestamp on an object.]
+
+***********************************************************************/
   void eSLIM2CirMan::setTaboo(eSLIM2CirObj& obj) {
     obj.isTaboo = traversal_id;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Marks the selected gate identifiers as the current subcircuit.]
+
+***********************************************************************/
   void eSLIM2CirMan::markSubcircuit(const std::vector<int>& nodes) {
     for (int n : nodes) {
       setInSubcircuit(*getpObj(n));
@@ -383,6 +577,11 @@ namespace eSLIM2 {
   }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Marks subcircuit fanin and fanout cones for dependency analysis.]
+
+***********************************************************************/
   void eSLIM2CirMan::markCones(const std::vector<int>& nodes) {
     // mark TFI
     std::vector<int> to_process(nodes.begin(), nodes.end());
@@ -410,6 +609,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Marks the range of object identifiers in the selected dependency cones.]
+
+***********************************************************************/
   void eSLIM2CirMan::markConesRange(const std::vector<int>& nodes) {
     int min_node = *std::min_element(nodes.begin(), nodes.end());
     int max_node = *std::max_element(nodes.begin(), nodes.end());
@@ -435,6 +639,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Derives the local truth table of an AIG object with its input phases.]
+
+***********************************************************************/
   ABC_UINT64_T eSLIM2CirMan::ttFromGiaObj(Gia_Man_t * pGia, Gia_Obj_t * pObj) {
     assert(Gia_ObjIsAnd(pObj));
     assert(!Gia_ObjIsMux(pGia, pObj));
@@ -455,6 +664,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Derives the local truth table of an SOP-network object.]
+
+***********************************************************************/
   ABC_UINT64_T eSLIM2CirMan::ttFromNtkObj(Abc_Ntk_t * pNtk, Abc_Obj_t * pObj) {
     int j, f;
     char * pSop = (char *)pObj->pData;
@@ -467,16 +681,31 @@ namespace eSLIM2 {
     return tt;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Tests whether a truth table evaluates to zero on the all-zero input.]
+
+***********************************************************************/
   bool eSLIM2CirMan::ttisnormal(ABC_UINT64_T tt) {
     return !(tt & 1);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Complements the active bits of a gate truth table.]
+
+***********************************************************************/
   ABC_UINT64_T eSLIM2CirMan::negateTT(ABC_UINT64_T tt, unsigned int nfanin) {
     assert (nfanin <= 6);
     constexpr ABC_UINT64_T filters[7] {0x1ull, 0x3ull, 0xFull, 0xFFull, 0xFFFFull, 0xFFFFFFFFull, 0xFFFFFFFFFFFFFFFFull};
     return ~tt & filters[nfanin];
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Complements one input variable of a gate truth table.]
+
+***********************************************************************/
   ABC_UINT64_T eSLIM2CirMan::ttNegateFanin(ABC_UINT64_T tt, unsigned int fan) {
     assert (fan < 6);
     return Abc_Tt6Flip(tt, fan);
@@ -488,6 +717,11 @@ namespace eSLIM2 {
     // return (x >> shifts[fan]) | (y << shifts[fan]);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Converts an SOP cover into a word-sized truth table.]
+
+***********************************************************************/
   ABC_UINT64_T eSLIM2CirMan::sop2tt(char * pSop) {
     constexpr ABC_UINT64_T filters[7] {0x1ull, 0x3ull, 0xFull, 0xFFull, 0xFFFFull, 0xFFFFFFFFull, 0xFFFFFFFFFFFFFFFFull};
     int nVars = Abc_SopGetVarNum(pSop);
@@ -495,6 +729,11 @@ namespace eSLIM2 {
     return tt & filters[nVars];
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Allocates an SOP representation of a word-sized truth table.]
+
+***********************************************************************/
   char* eSLIM2CirMan::tt2sop(ABC_UINT64_T tt, int nVars, Mem_Flex_t * pMan) {
     int bit_count = popcount(tt);
     if (bit_count == 0) {
@@ -523,18 +762,21 @@ namespace eSLIM2 {
   }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Recursively exports an internal gate and records its AIG literal.]
+
+***********************************************************************/
   int eSLIM2CirMan::addGiaGate(Gia_Man_t * pGia, int node_id, std::vector<int>& node_ids, std::vector<bool>& is_node_negated) {
     eSLIM2CirObj* pe = getpObj(node_id);
     // assert (pe->getNFanins() == 2);
     int bit_count = popcount(pe->tt);
     assert(ttisnormal(pe->tt));
     assert (bit_count > 0 && bit_count < 4); // the circuit shall not contain constants
-    ABC_UINT64_T tt = pe->tt;
     bool negate_and = false;
     bool is_xor = false;
     bool fan1negated = false, fan2negated = false;
     if (bit_count == 3) { // or gates are represented by negated and gates
-      tt = negateTT(pe->tt, 2);
       negate_and = true;
       fan1negated = true;
       fan2negated = true;
@@ -628,205 +870,79 @@ namespace eSLIM2 {
     return pStrash;
   }
 
-  Abc_Ntk_t* eSLIM2CirMan::eSLIM2CirManToNtk() {
+/**Function*************************************************************
+
+  Synopsis    [Exports an independently owned SOP network.]
+
+***********************************************************************/
+  Abc_Ntk_t* eSLIM2CirMan::eSLIM2CirManToNtk(Abc_Ntk_t* names) {
     simplifyDuplicateFanins();
-    Abc_Ntk_t* pNtk = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
-    std::vector<Abc_Obj_t*> ntk_objs;
-    // constant0
-    if (nodes[0]->fanouts.size() > 0) {
-      Abc_Obj_t* pObj = Abc_NtkCreateNodeConst0(pNtk);
-      ntk_objs.push_back(pObj);
-      Nm_ManStoreIdName( pNtk->pManName, pObj->Id, pObj->Type, Abc_ObjName(pObj), NULL );
-    } else {
-      ntk_objs.push_back(nullptr);
-    }
-
-
-    for (int i = 1; i <= nof_pis; i++) {
-      Abc_Obj_t* pObj = Abc_NtkCreatePi(pNtk);
-      ntk_objs.push_back(pObj);
-      Nm_ManStoreIdName( pNtk->pManName, pObj->Id, pObj->Type, Abc_ObjName(pObj), NULL );
-    }
-    for (int i = nof_pis + 1; i < nodes.size() - nof_pos; i++) {
-      Abc_Obj_t* pObj = Abc_NtkCreateNode( pNtk );
-      Nm_ManStoreIdName( pNtk->pManName, pObj->Id, pObj->Type, Abc_ObjName(pObj), NULL );
-      ntk_objs.push_back(pObj);
-      char* sop = tt2sop(nodes[i]->tt, nodes[i]->fanins.size(),  (Mem_Flex_t *)pNtk->pManFunc);
-      pObj->pData = sop;
-      for (auto f : nodes[i]->fanins) {
-        int fid = f->node_id;
-        Abc_ObjAddFanin(pObj, ntk_objs[fid]);
+    assert(!names || (Abc_NtkPiNum(names) == nof_pis && Abc_NtkPoNum(names) == nof_pos));
+    Abc_Ntk_t* pNtk = Abc_NtkAlloc(ABC_NTK_LOGIC, ABC_FUNC_SOP, 1);
+    std::vector<Abc_Obj_t*> ntk_objs(nodes.size(), nullptr);
+    std::vector<bool> phases(nodes.size(), false), assigned(nodes.size(), false);
+    // Choose an output's polarity for its LUT and absorb that choice in
+    // every consuming LUT. An ordinary complemented output costs no node.
+    for (int i = getNofObjs() - nof_pos; i < getNofObjs(); ++i) {
+      const int driver = nodes[i]->fanins[0]->node_id;
+      if (isGate(driver) && !assigned[driver]) {
+        phases[driver] = nodes[i]->tt == 1;
+        assigned[driver] = true;
       }
     }
-
-    std::unordered_set<int> driver_is_used;
-    for (int i = 0; i < nof_pos; i++) {
-      Abc_Obj_t* fobj;
-      int nd = nodes.size() - nof_pos + i;
-      int fid = nodes[nd]->fanins[0]->node_id;
-      bool needs_buffer = driver_is_used.find(fid) != driver_is_used.end();
-      if (nodes[nd]->tt == 1) { // a negated po
-        char* sop = tt2sop(1, 1, (Mem_Flex_t *)pNtk->pManFunc);
-        fobj = Abc_NtkCreateNode( pNtk );
-        Nm_ManStoreIdName( pNtk->pManName, fobj->Id, fobj->Type, Abc_ObjName(fobj), NULL );
-        fobj->pData = sop;
-        Abc_ObjAddFanin(fobj, ntk_objs[fid]);
-      } else if (needs_buffer) {
-        char* sop = tt2sop(2, 1, (Mem_Flex_t *)pNtk->pManFunc);
-        fobj = Abc_NtkCreateNode( pNtk );
-        Nm_ManStoreIdName( pNtk->pManName, fobj->Id, fobj->Type, Abc_ObjName(fobj), NULL );
-        fobj->pData = sop;
-        Abc_ObjAddFanin(fobj, ntk_objs[fid]);
-      } else {
-        fobj = ntk_objs[fid];
-        driver_is_used.insert(fid);
-      }
-
-      Abc_Obj_t* pObj = Abc_NtkCreatePo(pNtk);
-      if (Abc_ObjIsPi(fobj)) {
-        Nm_ManStoreIdName( pNtk->pManName, pObj->Id, pObj->Type, Abc_ObjName(fobj), NULL );
-      } else {
-        Nm_ManStoreIdName( pNtk->pManName, pObj->Id, pObj->Type, Abc_ObjName(pObj), NULL );
-      }
-      Abc_ObjAddFanin(pObj, fobj);
+    if (!nodes[0]->fanouts.empty()) ntk_objs[0] = Abc_NtkCreateNodeConst0(pNtk);
+    for (int i = 1; i <= nof_pis; ++i) {
+      ntk_objs[i] = Abc_NtkCreatePi(pNtk);
+      Abc_ObjAssignName(ntk_objs[i], names ? Abc_ObjName(Abc_NtkPi(names, i - 1)) : Abc_ObjName(ntk_objs[i]), nullptr);
     }
-
-    assert( Abc_NtkCiNum(pNtk)    == nof_pis );
-    assert( Abc_NtkCoNum(pNtk)    == nof_pos );
-    assert( Abc_NtkLatchNum(pNtk) == 0 );
-    assert( Abc_NtkCheck(pNtk) );
-    assert( Abc_NtkLogicHasSimpleCos(pNtk));
+    for (int i = nof_pis + 1; i < getNofObjs() - nof_pos; ++i) {
+      auto* obj = ntk_objs[i] = Abc_NtkCreateNode(pNtk);
+      ABC_UINT64_T truth = nodes[i]->tt;
+      for (unsigned pin = 0; pin < nodes[i]->fanins.size(); ++pin) {
+        const int driver = nodes[i]->fanins[pin]->node_id;
+        if (phases[driver]) truth = ttNegateFanin(truth, pin);
+        Abc_ObjAddFanin(obj, ntk_objs[driver]);
+      }
+      if (phases[i]) truth = negateTT(truth, nodes[i]->fanins.size());
+      obj->pData = tt2sop(truth, nodes[i]->fanins.size(), (Mem_Flex_t*)pNtk->pManFunc);
+    }
+    std::vector<bool> used(nodes.size(), false);
+    for (int i = 0; i < nof_pos; ++i) {
+      const auto& output = *nodes[getNofObjs() - nof_pos + i];
+      const int driver = output.fanins[0]->node_id;
+      const bool inverted = (output.tt == 1) != phases[driver];
+      Abc_Obj_t* obj = Abc_NtkCreatePo(pNtk);
+      Abc_Obj_t* fanin = ntk_objs[driver];
+      const char* name = names ? Abc_ObjName(Abc_NtkPo(names, i)) :
+          Abc_ObjIsPi(fanin) && !inverted && !used[driver] ? Abc_ObjName(fanin) : Abc_ObjName(obj);
+      Abc_ObjAssignName(obj, const_cast<char*>(name), nullptr);
+      if (Abc_ObjIsPi(fanin)) {
+        if (inverted || strcmp(Abc_ObjName(fanin), Abc_ObjName(obj)))
+          fanin = inverted ? Abc_NtkCreateNodeInv(pNtk, fanin) : Abc_NtkCreateNodeBuf(pNtk, fanin);
+      } else if (used[driver] || inverted) {
+        // Distinct named COs need distinct drivers in an ABC logic network.
+        // Duplicate the LUT rather than adding a buffer/inverter level.
+        Abc_Obj_t* copy = Abc_NtkDupObj(pNtk, fanin, 0);
+        Abc_Obj_t* input;
+        int pin;
+        Abc_ObjForEachFanin(fanin, input, pin) Abc_ObjAddFanin(copy, input);
+        if (inverted) Abc_NodeComplement(copy);
+        fanin = copy;
+      }
+      used[driver] = true;
+      Abc_ObjAddFanin(obj, fanin);
+    }
+    Abc_NtkCleanup(pNtk, 0);
+    assert(Abc_NtkCiNum(pNtk) == nof_pis && Abc_NtkCoNum(pNtk) == nof_pos);
+    assert(Abc_NtkCheck(pNtk) && Abc_NtkLogicHasSimpleCos(pNtk));
     return pNtk;
   }
 
-  Abc_Ntk_t* eSLIM2CirMan::eSLIM2CirManToMappedNtk() {
+/**Function*************************************************************
 
-    Mio_IntallSimpleLibrary();
-    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
+  Synopsis    [Initializes traversal marks and an object identifier during graph rebuilding.]
 
-    Abc_Ntk_t* pNtk = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_MAP, 1 );
-    std::vector<Abc_Obj_t*> ntk_objs;
-    Abc_Obj_t* pObj = Abc_NtkCreateNode( pNtk );
-    pObj->pData = Mio_LibraryReadGateByName( pLib, "zero", NULL );
-    ntk_objs.push_back(pObj);
-    Nm_ManStoreIdName( pNtk->pManName, pObj->Id, pObj->Type, Abc_ObjName(pObj), NULL );
-    Abc_Obj_t* const1 = Abc_NtkCreateNode( pNtk );
-    const1->pData = Mio_LibraryReadGateByName( pLib, "one", NULL );
-    // ntk_objs.push_back(pObj);
-    Nm_ManStoreIdName( pNtk->pManName, const1->Id, const1->Type, Abc_ObjName(const1), NULL );
-
-    for (int i = 1; i <= nof_pis; i++) {
-      Abc_Obj_t* pObj = Abc_NtkCreatePi(pNtk);
-      ntk_objs.push_back(pObj);
-      Nm_ManStoreIdName( pNtk->pManName, pObj->Id, pObj->Type, Abc_ObjName(pObj), NULL );
-    }
-
-    for (int i = nof_pis + 1; i < nodes.size() - nof_pos; i++) {
-      // Replace an inverted const false by const true
-      if (nodes[i]->tt == 1 && nodes[i]->fanins.size() == 1 && nodes[i]->fanins[0]->node_id == 0) {
-        ntk_objs.push_back(const1);
-        continue;
-      }
-      // if a gate has no fanins it must be const true (const false is handled separatley)
-      if (nodes[i]->fanins.size() == 0) {
-        assert (nodes[i]->tt == 1);
-        ntk_objs.push_back(const1);
-        continue;
-      }
-      Abc_Obj_t* pObj = Abc_NtkCreateNode( pNtk );
-      Nm_ManStoreIdName( pNtk->pManName, pObj->Id, pObj->Type, Abc_ObjName(pObj), NULL );
-      ntk_objs.push_back(pObj);
-      for (auto f : nodes[i]->fanins) {
-        int fid = f->node_id;
-        Abc_ObjAddFanin(pObj, ntk_objs[fid]);
-      }
-      switch (nodes[i]->tt) {
-        case 1:
-          if (nodes[i]->fanins.size() == 1) {
-            pObj->pData = Mio_LibraryReadGateByName( pLib, "inv", NULL );
-          } else if (nodes[i]->fanins.size() == 2) {
-            pObj->pData = Mio_LibraryReadGateByName( pLib, "nor2", NULL );
-          } else {
-            pObj->pData = Mio_LibraryReadGateByName( pLib, "nor3", NULL );
-          }
-          break;
-        case 2:
-          pObj->pData = Mio_LibraryReadGateByName( pLib, "buf", NULL );
-          break;
-        case 7:
-          if (nodes[i]->fanins.size() == 2) {
-            pObj->pData = Mio_LibraryReadGateByName( pLib, "nand2", NULL );
-          } else {
-            pObj->pData = Mio_LibraryReadGateByName( pLib, "aoi21", NULL );
-          }
-          break;
-        case 31:
-          pObj->pData = Mio_LibraryReadGateByName( pLib, "oai21", NULL );
-          break;
-        case 127:
-          pObj->pData = Mio_LibraryReadGateByName( pLib, "nand3", NULL );
-          break;
-        case 1911:
-          pObj->pData = Mio_LibraryReadGateByName( pLib, "aoi22", NULL );
-          break;
-        case 4383:
-          pObj->pData = Mio_LibraryReadGateByName( pLib, "oai22", NULL );
-          break;
-
-      default:
-        std::cerr << "Error: A node with a function not part of the library was detected." << std::endl;
-        Abc_NtkDelete( pNtk );
-        return NULL;
-      }
-    }
-    std::unordered_map<int, int> negated_pos;
-    std::unordered_map<int, int> buffers;
-
-    for (int i = nodes.size() - nof_pos; i < nodes.size(); i++) {
-      Abc_Obj_t* fobj;
-      int fid = nodes[i]->fanins[0]->node_id;
-      if (nodes[i]->tt == 1) { // a negated po
-        if (fid == 0) {
-          fobj = const1;
-        } else {
-          if (negated_pos.find(fid) == negated_pos.end()) {
-            negated_pos[fid] = ntk_objs.size();
-            Abc_Obj_t* pObj = Abc_NtkCreateNode( pNtk );
-            Nm_ManStoreIdName( pNtk->pManName, pObj->Id, pObj->Type, Abc_ObjName(pObj), NULL );
-            ntk_objs.push_back(pObj);
-            pObj->pData = Mio_LibraryReadGateByName( pLib, "inv", NULL );
-            Abc_ObjAddFanin(pObj, ntk_objs[fid]);
-          }
-          fobj = ntk_objs[negated_pos[fid]];
-        }
-      } else {
-        if (0 < fid && fid <= nof_pis) {
-          if (buffers.find(fid) == buffers.end()) {
-            Abc_Obj_t* pObj = Abc_NtkCreateNode( pNtk );
-            Nm_ManStoreIdName( pNtk->pManName, pObj->Id, pObj->Type, Abc_ObjName(pObj), NULL );
-            buffers[fid] = ntk_objs.size();
-            ntk_objs.push_back(pObj);
-            pObj->pData = Mio_LibraryReadGateByName( pLib, "buf", NULL );
-            Abc_ObjAddFanin(pObj, ntk_objs[fid]);
-          }
-          fobj = ntk_objs[buffers[fid]];
-        } else {
-          fobj = ntk_objs[fid];
-        }
-      }
-      Abc_Obj_t* pObj = Abc_NtkCreatePo(pNtk);
-      Nm_ManStoreIdName( pNtk->pManName, pObj->Id, pObj->Type, Abc_ObjName(pObj), NULL );
-      Abc_ObjAddFanin(pObj, fobj);
-    }
-
-    assert( Abc_NtkCiNum(pNtk)    == nof_pis );
-    assert( Abc_NtkCoNum(pNtk)    == nof_pos );
-    assert( Abc_NtkLatchNum(pNtk) == 0 );
-    assert( Abc_NtkCheck(pNtk) );
-    assert( Abc_NtkLogicHasSimpleCos(pNtk));
-    return pNtk;
-  }
-
+***********************************************************************/
   void eSLIM2CirMan::setMarks(eSLIM2CirObj& pObj, int id) {
     pObj.node_id = id;
     pObj.depth = id > 0 && unsigned(id) <= window_arrivals.size() ? window_arrivals[id-1] : 0;
@@ -838,6 +954,11 @@ namespace eSLIM2 {
     setTraversalId(pObj);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Transfers an owned object into its rebuilt graph position.]
+
+***********************************************************************/
   void eSLIM2CirMan::moveNode(std::vector<std::unique_ptr<eSLIM2CirObj>>& vec, std::unique_ptr<eSLIM2CirObj>& pobj) {
     int id = vec.size();
     vec.push_back(std::move(pobj));
@@ -845,11 +966,21 @@ namespace eSLIM2 {
     setMarks(*vec.back(), id);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Adds reciprocal fanin and fanout links between two objects.]
+
+***********************************************************************/
   void eSLIM2CirMan::addFans(eSLIM2CirObj* out, eSLIM2CirObj* in, int fin_id) {
     out->fanouts.insert(in);
     in->fanins[fin_id] = out;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Connects a replacement boundary signal to the rebuilt graph.]
+
+***********************************************************************/
   void eSLIM2CirMan::processNonGateRepFanin( eSLIM2CirObj* obj, eSLIM2CirObj* fan, int fid, std::vector<std::unique_ptr<eSLIM2CirObj>>& sorted,
                                             eSLIM2CirMan& replacement, const std::unordered_map<int,int>& out_map, const std::vector<eSLIM2CirObj*>& in_vec) {
     if (replacement.isConst(*fan)) {
@@ -861,6 +992,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Connects a replacement gate fanin while rebuilding object order.]
+
+***********************************************************************/
   void eSLIM2CirMan::processRepFanin(eSLIM2CirObj* obj, eSLIM2CirObj* fan, int fid, std::vector<std::unique_ptr<eSLIM2CirObj>>& sorted,
                                     eSLIM2CirMan& replacement, const std::unordered_map<int,int>& out_map, const std::vector<eSLIM2CirObj*>& in_vec) {
     if (isCurrentTraversalId(*fan)) {
@@ -874,6 +1010,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Reconnects an old cut output to its replacement signal.]
+
+***********************************************************************/
   void eSLIM2CirMan::processRepPo( eSLIM2CirObj* obj, eSLIM2CirObj* scir_out, int fid, std::vector<std::unique_ptr<eSLIM2CirObj>>& sorted,
                                   eSLIM2CirMan& replacement, const std::unordered_map<int,int>& out_map, const std::vector<eSLIM2CirObj*>& in_vec) {
     int out_id = out_map.at(scir_out->node_id);
@@ -882,6 +1023,11 @@ namespace eSLIM2 {
     processRepFanin(obj, rf, fid, sorted, replacement, out_map, in_vec);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Appends a gate after its fanins have been ordered.]
+
+***********************************************************************/
   void eSLIM2CirMan::insertSorted( eSLIM2CirObj* obj, std::vector<std::unique_ptr<eSLIM2CirObj>>& sorted,
                                   eSLIM2CirMan& replacement, const std::unordered_map<int,int>& out_map, const std::vector<eSLIM2CirObj*>& in_vec) {
     auto f = obj->fanins[0];
@@ -892,6 +1038,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Recursively orders an existing gate after all its fanins.]
+
+***********************************************************************/
   void eSLIM2CirMan::insertSortedRec(eSLIM2CirObj* obj, std::vector<std::unique_ptr<eSLIM2CirObj>>& sorted,
                                     eSLIM2CirMan& replacement, const std::unordered_map<int,int>& out_map, const std::vector<eSLIM2CirObj*>& in_vec) {
     if (isPi(*obj) || isCurrentTraversalId(*obj)) {
@@ -908,6 +1059,11 @@ namespace eSLIM2 {
     moveNode(sorted, nodes[obj->node_id]);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Recursively orders replacement gates and their surviving fanins.]
+
+***********************************************************************/
   void eSLIM2CirMan::insertSortedRecRep( eSLIM2CirObj* obj, std::vector<std::unique_ptr<eSLIM2CirObj>>& sorted,
                                         eSLIM2CirMan& replacement, const std::unordered_map<int,int>& out_map, const std::vector<eSLIM2CirObj*>& in_vec) {
     assert(!isCurrentTraversalId(*obj));
@@ -942,6 +1098,7 @@ namespace eSLIM2 {
 
 ***********************************************************************/
   void eSLIM2CirMan::replace(eSLIM2CirMan& replacement, const Subcircuit& subcir) {
+    if (taboo != nullptr) taboo->registerNeighborhood(subcir);
     clearFanouts(subcir);
     setupMarksForReplacement(replacement);
     if (taboo != nullptr) {
@@ -957,6 +1114,11 @@ namespace eSLIM2 {
     std::swap(nodes, nodes_aux);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Initializes object marks for replacement insertion.]
+
+***********************************************************************/
   void eSLIM2CirMan::setupMarksForReplacement(eSLIM2CirMan& replacement) {
     for (int i = replacement.getNofPis() + 1; i < replacement.getNofObjs() - replacement.getNofPos(); i++) {
       replacement.nodes[i]->isTaboo = traversal_id;
@@ -964,6 +1126,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Removes fanout links belonging to the cut being replaced.]
+
+***********************************************************************/
   void eSLIM2CirMan::clearFanouts(const Subcircuit& subcir) {
     for (int n : subcir.nodes) {
      eSLIM2CirObj* obj = nodes[n].get();
@@ -974,6 +1141,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Builds the owned object sequence for a local replacement.]
+
+***********************************************************************/
   std::vector<std::unique_ptr<eSLIM2CirObj>> eSLIM2CirMan::replaceInternal(eSLIM2CirMan& replacement, const Subcircuit& subcir) {
     std::unordered_map<int,int> out_map;
     for (int i = 0; i < subcir.outputs.size(); i++) {
@@ -1007,6 +1179,11 @@ namespace eSLIM2 {
     return nodes_aux;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Removes gates made redundant by the selected replacement.]
+
+***********************************************************************/
   int eSLIM2CirMan::processRedundant(const Subcircuit& subcir) {
     int nredundant = 0;
     std::vector<int> to_process (subcir.inputs.begin(), subcir.inputs.end());
@@ -1036,6 +1213,11 @@ namespace eSLIM2 {
     return nredundant;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Orders the graph by level and updates object identifiers.]
+
+***********************************************************************/
   void eSLIM2CirMan::applyLevelBasedOrdering() {
     std::sort(nodes.begin() + getNofPis() + 1, nodes.begin() + getNofObjs() - getNofPos(),
       [](const std::unique_ptr<eSLIM2CirObj>& a, const std::unique_ptr<eSLIM2CirObj>& b) {
@@ -1048,6 +1230,11 @@ namespace eSLIM2 {
   }
 
   // Reorders the nodes to an alternative topological order.
+/**Function*************************************************************
+
+  Synopsis    [Orders the graph by traversing the requested output roots.]
+
+***********************************************************************/
   void eSLIM2CirMan::applyDFSOrdering(const std::vector<int>& po_nodes) {
     incrementTraversalId();
     std::vector<std::unique_ptr<eSLIM2CirObj>> nodes_reordered;
@@ -1067,6 +1254,11 @@ namespace eSLIM2 {
     std::swap(nodes, nodes_reordered);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Recursively inserts a gate after its fanins in the new object order.]
+
+***********************************************************************/
   void eSLIM2CirMan::applyDFSOrderingRec(eSLIM2CirObj* obj, std::vector<std::unique_ptr<eSLIM2CirObj>>& sorted) {
     if (!isCurrentTraversalId(*obj)) {
       setTraversalId(*obj);
@@ -1079,6 +1271,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Prints the circuit or selected subcircuit for inspection.]
+
+***********************************************************************/
   void eSLIM2CirMan::print() const {
     std::cout << "Inputs:";
     for (int i = 1; i <= nof_pis; i++) {
@@ -1099,6 +1296,11 @@ namespace eSLIM2 {
     std::cout << "\n";
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Prints the circuit or selected subcircuit for inspection.]
+
+***********************************************************************/
   void eSLIM2CirMan::print(const Subcircuit& scir) const {
     std::cout << "Inputs:";
     for (int i : scir.inputs) {
@@ -1126,6 +1328,11 @@ namespace eSLIM2 {
     std::cout << "\n";
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns an independently owned copy of the internal circuit.]
+
+***********************************************************************/
   eSLIM2CirMan eSLIM2CirMan::duplicate() const {
     eSLIM2CirMan dup(getNofObjs());
     for (int i = 0; i < getNofPis(); i++) {
@@ -1150,8 +1357,6 @@ namespace eSLIM2 {
 
   SideEffects [Returns an independently owned circuit.]
 
-  SeeAlso     []
-
 ***********************************************************************/
   eSLIM2CirMan eSLIM2CirMan::permuteInputs(const std::vector<unsigned>& old_to_new) const {
     assert(old_to_new.size() == unsigned(getNofPis()));
@@ -1175,6 +1380,82 @@ namespace eSLIM2 {
     return dup;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Rebuilds a LUT circuit with only functionally essential fanins.]
+
+  Description [Constant and repeated pins are cofactored first. Projection
+  gates become wires; the all-zero function uses the shared constant.]
+
+***********************************************************************/
+  void eSLIM2CirMan::minimizeLutFanins() {
+    eSLIM2CirMan reduced(getNofObjs());
+    std::vector<int> mapping(getNofObjs(), 0);
+    for (int i = 1; i <= nof_pis; ++i) mapping[i] = reduced.addPi();
+    for (int i = nof_pis + 1; i < getNofObjs() - nof_pos; ++i) {
+      std::vector<int> fanins;
+      for (auto* input : nodes[i]->fanins) fanins.push_back(mapping[input->node_id]);
+      ABC_UINT64_T truth = nodes[i]->tt;
+      for (unsigned pin = 0; pin < fanins.size();) {
+        auto previous = std::find(fanins.begin(), fanins.begin() + pin, fanins[pin]);
+        if (!fanins[pin] || previous != fanins.begin() + pin) {
+          truth = !fanins[pin] ? compressTT(truth, pin) :
+              removeInputFromTT(truth, unsigned(previous - fanins.begin()), pin);
+          fanins.erase(fanins.begin() + pin);
+        } else ++pin;
+      }
+      for (unsigned pin = 0; pin < fanins.size();) {
+        bool depends = false;
+        for (unsigned row = 0; row < (1u << fanins.size()); ++row)
+          depends |= ((truth >> row) & 1) != ((truth >> (row ^ (1u << pin))) & 1);
+        if (depends) ++pin;
+        else {
+          truth = compressTT(truth, pin);
+          fanins.erase(fanins.begin() + pin);
+        }
+      }
+      assert(ttisnormal(truth));
+      if (!truth) mapping[i] = 0;
+      else if (fanins.size() == 1) {
+        assert(truth == 2);
+        mapping[i] = fanins[0];
+      } else mapping[i] = reduced.addNode(fanins, truth);
+    }
+    for (int i = getNofObjs() - nof_pos; i < getNofObjs(); ++i)
+      reduced.addPo(mapping[nodes[i]->fanins[0]->node_id], nodes[i]->tt == 1);
+    *this = std::move(reduced);
+    removeDangling();
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Removes gates outside the output cones, rebuilding all fanouts.]
+
+***********************************************************************/
+  void eSLIM2CirMan::removeDangling() {
+    std::vector<bool> live(getNofObjs(), false);
+    for (int i = getNofObjs() - nof_pos; i < getNofObjs(); ++i) live[i] = true;
+    for (int i = getNofObjs() - 1; i > nof_pis; --i)
+      if (live[i]) for (auto* input : nodes[i]->fanins) live[input->node_id] = true;
+    if (std::all_of(live.begin() + nof_pis + 1, live.end(), [](bool used) { return used; })) return;
+    eSLIM2CirMan clean(getNofObjs());
+    std::vector<int> mapping(getNofObjs(), 0);
+    for (int i = 1; i <= nof_pis; ++i) mapping[i] = clean.addPi();
+    for (int i = nof_pis + 1; i < getNofObjs() - nof_pos; ++i) if (live[i]) {
+      std::vector<int> inputs;
+      for (auto* input : nodes[i]->fanins) inputs.push_back(mapping[input->node_id]);
+      mapping[i] = clean.addNode(inputs, nodes[i]->tt);
+    }
+    for (int i = getNofObjs() - nof_pos; i < getNofObjs(); ++i)
+      clean.addPo(mapping[nodes[i]->fanins[0]->node_id], nodes[i]->tt == 1);
+    *this = std::move(clean);
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Removes repeated fanins while preserving each gate truth table.]
+
+***********************************************************************/
   void eSLIM2CirMan::simplifyDuplicateFanins() {
     std::unordered_map<int,int> fanins;
     for (int i = getNofPis() + 1; i < getNofObjs() - getNofPos(); i++) {
@@ -1194,6 +1475,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Removes a redundant input dimension from a truth table.]
+
+***********************************************************************/
   ABC_UINT64_T eSLIM2CirMan::compressTT(ABC_UINT64_T tt, unsigned int input) {
     static constexpr ABC_UINT64_T filters1[] {0x1111111111111111ull, 0x303030303030303ull, 0xF000F000F000Full, 0xFF000000FFull, 0xFFFFull};
     static constexpr ABC_UINT64_T filters2[] {0x4444444444444444ull, 0x3030303030303030ull, 0xF000F000F000F00ull, 0xFF000000FF0000ull, 0xFFFF00000000ull};
@@ -1208,6 +1494,11 @@ namespace eSLIM2 {
   }
 
   // we drop the lines from the tt where the values for inputs first_occurrence and second_occurrence do not coincide. Then we compress the tt.
+/**Function*************************************************************
+
+  Synopsis    [Identifies two input dimensions and removes the duplicate variable.]
+
+***********************************************************************/
   ABC_UINT64_T eSLIM2CirMan::removeInputFromTT(ABC_UINT64_T tt, unsigned int first_occurrence, unsigned int second_occurrence) {
     assert (first_occurrence < 6 && second_occurrence && first_occurrence < second_occurrence); // we can only represent 6-input functions with the 64-bit ints
 
@@ -1231,10 +1522,20 @@ namespace eSLIM2 {
   }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Attaches the owning selection policy's taboo list to the circuit.]
+
+***********************************************************************/
   void eSLIM2CirMan::registerTabooList(TabooList* taboo) {
     this->taboo = taboo;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Detaches the selection policy's taboo list from the circuit.]
+
+***********************************************************************/
   void eSLIM2CirMan::unregisterTabooList() {
     this->taboo = nullptr;
   }

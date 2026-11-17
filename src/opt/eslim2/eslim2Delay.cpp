@@ -12,9 +12,7 @@
 
   Affiliation [University of Freiburg]
 
-  Date        [Ver. 1.0. Started - April 2026.]
-
-  Revision    [$Id: eslim2Delay.cpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
 
 ***********************************************************************/
 
@@ -27,8 +25,14 @@
 ABC_NAMESPACE_IMPL_START
 namespace eSLIM2 {
 
+/**Function*************************************************************
+
+  Synopsis    [Initializes timed synthesis and the requested output-depth constraints.]
+
+***********************************************************************/
   DelayEngine::DelayEngine( const Relation& relation, const Subcircuit& subcir, unsigned int max_size, const eSLIM2Config& cfg, eSLIM2Log& log, int fixed_bound, int equal_size_bound)
                           : RelationSynthesiser(relation, subcir, max_size, cfg, log, cfg.synthesis_cegar) {
+    ScopedPhaseTimer encoding_timer(log.synthesis_encoding_time, cfg);
     assert (subcir.forbidden_pairs.empty());
     if (cfg.aig && cfg.gate_size == 2 && cfg.aig_encoding == 3)
       constrainIrredundantAigArea();
@@ -37,8 +41,6 @@ namespace eSLIM2 {
       max_delay = fixed_bound;
       return;
     }
-    symmetry_selector = getNewVariable();
-    symmetry_selector_assignment = symmetry_selector;
     std::set<int> unique_ats_set (subcir.arrival_times.begin(), subcir.arrival_times.end());
     unique_arrival_times.assign(unique_ats_set.begin(), unique_ats_set.end());
     for (int i : subcir.arrival_times) {
@@ -61,6 +63,11 @@ namespace eSLIM2 {
   }
 
   // do not enfore activation variables -> a minimum nof gates might forbid a realization with a certain depth.
+/**Function*************************************************************
+
+  Synopsis    [Searches for a minimum-depth replacement within the gate allowance.]
+
+***********************************************************************/
   eSLIM2CirMan DelayEngine::synthesizeMinimumDelayCircuit(const Relation& relation, const Subcircuit& subcir, unsigned int delay, unsigned int max_size, const eSLIM2Config& cfg, eSLIM2Log& log) {
     DelayEngine synth(relation, subcir, max_size, cfg, log);
     std::vector<bool> last_model = synth.reduceDelay(max_size, delay);
@@ -73,6 +80,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Minimizes replacement depth and then its gate count.]
+
+***********************************************************************/
   eSLIM2CirMan DelayEngine::synthesizeMinimumDelayAreaCircuit(const Relation& relation, const Subcircuit& subcir, unsigned int delay, unsigned int max_size, const eSLIM2Config& cfg, eSLIM2Log& log) {
     DelayEngine synth(relation, subcir, max_size, cfg, log);
     std::vector<bool> last_model = synth.reduceDelay(max_size, delay);
@@ -92,6 +104,11 @@ namespace eSLIM2 {
     return synth.getReplacement(last_model, replacement_size);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Minimizes replacement gate count and then its depth.]
+
+***********************************************************************/
   eSLIM2CirMan DelayEngine::synthesizeMinimumAreaDelayCircuit(const Relation& relation, const Subcircuit& subcir, const eSLIM2Config& cfg, eSLIM2Log& log) {
     DelayEngine synth(relation, subcir, subcir.nodes.size(), cfg, log);
     std::vector<bool> last_model = synth.reduceArea(synth.max_delay, subcir.nodes.size());
@@ -119,23 +136,33 @@ namespace eSLIM2 {
   Synopsis    [Minimizes area subject to the specified delay bound.]
 
 ***********************************************************************/
-  eSLIM2CirMan DelayEngine::synthesizeMinimumAreaDelayConstraintCircuit(const Relation& relation, const Subcircuit& subcir, unsigned int delay, const eSLIM2Config& cfg, eSLIM2Log& log, bool* complete, int equal_size_bound) {
+  eSLIM2CirMan DelayEngine::synthesizeMinimumAreaDelayConstraintCircuit(const Relation& relation, const Subcircuit& subcir, unsigned int delay, const eSLIM2Config& cfg, eSLIM2Log& log, bool* complete, int equal_size_bound, const eSLIM2CirMan* original) {
     if (complete)
       *complete = false;
     ++log.synthesis_searches;
-    auto small = AreaEngine::synthesiseSmall(relation, subcir, cfg, int(delay));
+    unsigned minimum_area = 0;
+    auto small = AreaEngine::synthesiseSmall(relation, subcir, cfg, int(delay), &minimum_area);
     if (small.getNofObjs() > 1) {
       if (equal_size_bound >= 0 && unsigned(equal_size_bound) < delay &&
           unsigned(small.getNofGates()) == subcir.nodes.size())
         small = AreaEngine::synthesiseSmall(relation, subcir, cfg, equal_size_bound);
-      if (small.getNofObjs() > 1)
+      if (small.getNofObjs() > 1) {
         ++log.synthesis_small_hits;
-      if (complete)
-        *complete = true;
-      return small;
+        if (complete) *complete = true;
+        return small;
+      }
+      // A bounded two-LUT search under the stricter equal-size delay bound
+      // can miss a feasible coloring. Let SAT decide; this is not UNSAT.
     }
     DelayEngine synth(relation, subcir, subcir.nodes.size(), cfg, log, cfg.compact_timing ? int(delay) : -1, equal_size_bound);
-    std::vector<bool> last_model = synth.reduceArea(delay, subcir.nodes.size(), complete);
+    synth.min_size = std::max(synth.min_size, minimum_area);
+    std::vector<bool> last_model = synth.reduceArea(delay, subcir.nodes.size() - (cfg.lut_network ? 1 : 0), complete);
+    if (cfg.lut_network && last_model.empty() && !cfg.expired()) {
+      if (original) synth.excludeCircuit(*original);
+      const int status = synth.existsReplacement(subcir.nodes.size(), delay, synth.getDynamicTimeout(subcir.nodes.size()));
+      if (status == 10) last_model = synth.getModel();
+      if (complete && status == 0) *complete = false;
+    }
     if (last_model.empty()) {
       return eSLIM2CirMan(0);
     } else {
@@ -154,8 +181,6 @@ namespace eSLIM2 {
   Synopsis    [Improve crossing delay without increasing the current gate budget.]
 
   SideEffects [Keeps the last verified model if refinement fails or times out.]
-
-  SeeAlso     []
 
 ***********************************************************************/
   void DelayEngine::refineDepth(std::vector<bool>& model, const eSLIM2Config& cfg, eSLIM2Log& log) {
@@ -180,6 +205,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Searches smaller gate counts while preserving the requested delay bound.]
+
+***********************************************************************/
   std::vector<bool> DelayEngine::reduceArea(unsigned int max_delay, unsigned int initial_area, bool* complete) {
     if (complete)
       *complete = false;
@@ -196,18 +226,27 @@ namespace eSLIM2 {
       } else {
         if (complete)
           *complete = status == 20;
+        // Preserve the reduction opportunity after an equal-size timeout.
+        // In depth-first searches initial_area can already be below max_size.
+        if (retrySmallerAfterTimeout(status, unsigned(i)))
+          continue;
         break;
       }
     }
     return last_model;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Searches tighter delay bounds within the permitted gate count.]
+
+***********************************************************************/
   std::vector<bool> DelayEngine::reduceDelay(unsigned int max_size, unsigned int initial_delay) {
     std::vector<bool> last_model;
     unsigned int current_delay = initial_delay;
     for( auto it = delay_selectors.lower_bound(initial_delay); it != delay_selectors.end(); ++it ) {
       int d = it->first;
-      if (current_delay < d) {
+      if (current_delay < unsigned(d)) {
         continue;
       }
       double timeout = getDynamicTimeout(max_size);
@@ -222,6 +261,11 @@ namespace eSLIM2 {
     return last_model;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Builds SAT assumptions for the requested size or delay bounds.]
+
+***********************************************************************/
   std::vector<int> DelayEngine::getAssumptions(unsigned int delay) {
     std::vector<int> assumptions;
     if (fixed_delay >= 0) {
@@ -229,13 +273,18 @@ namespace eSLIM2 {
       return assumptions;
     }
     for (auto const& [d, ds] : delay_selectors) {
-      if (d > delay) {
+      if (unsigned(d) > delay) {
         assumptions.push_back(-ds);
       }
     }
     return assumptions;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Builds SAT assumptions for the requested size or delay bounds.]
+
+***********************************************************************/
   std::vector<int> DelayEngine::getAssumptions(unsigned int size, unsigned int delay) {
     std::vector<int> assumptions = getAssumptions(delay);
     std::vector<int> area_assumptions = getSizeAssumption(size);
@@ -243,6 +292,11 @@ namespace eSLIM2 {
     return assumptions;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Reads the encoded output delay from a satisfying model.]
+
+***********************************************************************/
   unsigned int DelayEngine::getDelayFromDelayVariables(const std::vector<bool>& model) {
     unsigned int delay = 0;
     for (auto const& [d, dvars] : delays2delay_variables) {
@@ -259,6 +313,11 @@ namespace eSLIM2 {
   // We also compute the exact delay value.
   // Note: When considering circuit that have already been optimised to a certain degree it is unlikely
   // that this function gives smaller values than getDelayFromDelayVariables.
+/**Function*************************************************************
+
+  Synopsis    [Computes replacement delay from the selected structure and input arrivals.]
+
+***********************************************************************/
   unsigned int DelayEngine::computeDelay(const std::vector<bool>& model) {
     const unsigned int ninputs = subcir.inputs.size();
     const unsigned int ngates = getSizeFromActivationVars(model);
@@ -291,7 +350,7 @@ namespace eSLIM2 {
 
 /**Function*************************************************************
 
-  Synopsis    [Checks the full relation under the requested delay bound.]
+  Synopsis    [Checks for a replacement meeting the requested size and delay bounds.]
 
 ***********************************************************************/
   int DelayEngine::existsReplacement(unsigned int delay, double timeout) {
@@ -301,7 +360,7 @@ namespace eSLIM2 {
 
 /**Function*************************************************************
 
-  Synopsis    [Checks the full relation under the requested size and delay bounds.]
+  Synopsis    [Checks for a replacement meeting the requested size and delay bounds.]
 
 ***********************************************************************/
   int DelayEngine::existsReplacement(unsigned int size, unsigned int delay, double timeout) {
@@ -309,17 +368,22 @@ namespace eSLIM2 {
     return solveRelation(assumptions, timeout, size);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Allocates SAT variables for the selected synthesis encoding.]
+
+***********************************************************************/
   void DelayEngine::setupVariables() {
-    for (int i = 0; i < max_size; i++) {
+    for (int i = 0; unsigned(i) < max_size; i++) {
       std::vector<std::vector<int>> dvars;
-      for (int j = 0; j < unique_arrival_times.size(); j++) {
+      for (int j = 0; std::size_t(j) < unique_arrival_times.size(); j++) {
         dvars.push_back(getNewVariableVector(i + 1));
       }
       delay_variables.push_back(dvars);
     }
-    for (int i = 0; i < subcir.outputs.size(); i++) {
+    for (int i = 0; std::size_t(i) < subcir.outputs.size(); i++) {
       std::vector<std::vector<int>> dvars;
-      for (int j = 0; j < unique_arrival_times.size(); j++) {
+      for (int j = 0; std::size_t(j) < unique_arrival_times.size(); j++) {
         dvars.push_back(getNewVariableVector(max_size + 1));
       }
       output_delays.push_back(dvars);
@@ -385,8 +449,6 @@ namespace eSLIM2 {
 
   SideEffects [Adds clauses enforcing the requested crossing delay.]
 
-  SeeAlso     []
-
 ***********************************************************************/
   void DelayEngine::constrainFixedOutputs(unsigned bound, int guard) {
     auto clause = [&](std::vector<int> literals) {
@@ -411,6 +473,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the selector variable for the requested output delay.]
+
+***********************************************************************/
   int DelayEngine::getDelaySelector(int delay) {
     if (delay_selectors.find(delay) == delay_selectors.end()) {
       delay_selectors[delay] = getNewVariable();
@@ -419,13 +486,18 @@ namespace eSLIM2 {
   }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Adds consistency clauses for encoded gate delays.]
+
+***********************************************************************/
   void DelayEngine::constrainDelayVariables() {
-    for (int i = 0; i < max_size; i++) {
+    for (int i = 0; unsigned(i) < max_size; i++) {
       int activation_variable = gate_activation_variables[i];
-      for (int j = 0; j < subcir.inputs.size(); j++) {
+      for (int j = 0; std::size_t(j) < subcir.inputs.size(); j++) {
         solver.addClause({-activation_variable, -selection_variables[i][j], delay_variables[i][inputid2uniqueid[j]][0]});
       }
-      for (int j = 0; j < unique_arrival_times.size(); j++) {
+      for (int j = 0; std::size_t(j) < unique_arrival_times.size(); j++) {
         for (int k = 0; k < i; k++) {
           int node_id = subcir.inputs.size() + k;
           for (int l = 0; l <= k; l++) {
@@ -435,12 +507,12 @@ namespace eSLIM2 {
         }
       }
     }
-    for (int i = 0; i < subcir.outputs.size(); i++) {
-      for (int j = 0; j < subcir.inputs.size(); j++) {
+    for (int i = 0; std::size_t(i) < subcir.outputs.size(); i++) {
+      for (int j = 0; std::size_t(j) < subcir.inputs.size(); j++) {
         solver.addClause({-gate_output_variables[max_size + j][i], output_delays[i][inputid2uniqueid[j]][0]});
       }
-      for (int j = 0; j < unique_arrival_times.size(); j++) {
-        for (int k = 0; k < max_size; k++) {
+      for (int j = 0; std::size_t(j) < unique_arrival_times.size(); j++) {
+        for (int k = 0; unsigned(k) < max_size; k++) {
           solver.addClause({-output_delays[i][j][k+1], output_delays[i][j][k]});
           for (int l = 0; l <= k; l++) {
             solver.addClause({-gate_output_variables[k][i], -delay_variables[k][j][l], output_delays[i][j][l+1]});
@@ -450,14 +522,19 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Constrains gate and output delays in the synthesis encoding.]
+
+***********************************************************************/
   void DelayEngine::setupDelayConstraints() {
     // Constants have arrival zero, but their paths from this boundary output
     // to a circuit output still contribute the remaining time.
     for (unsigned o = 0; o < subcir.outputs.size(); ++o)
       solver.addClause({getDelaySelector(subcir.remaining_times[o]), -gate_output_variables.back()[o]});
-    for (int i = 0; i < unique_arrival_times.size(); i++) {
-      for (int o = 0; o < subcir.outputs.size(); o++) {
-        for (int d = 0; d <= max_size; d++) {
+    for (int i = 0; std::size_t(i) < unique_arrival_times.size(); i++) {
+      for (int o = 0; std::size_t(o) < subcir.outputs.size(); o++) {
+        for (int d = 0; unsigned(d) <= max_size; d++) {
           int delay = unique_arrival_times[i] + subcir.remaining_times[o] + d;
           int ds = getDelaySelector(delay);
           solver.addClause({ds, -output_delays[o][i][d]});

@@ -12,9 +12,7 @@
 
   Affiliation [University of Freiburg]
 
-  Date        [Ver. 1.0. Started - April 2026.]
-
-  Revision    [$Id: eslim2CirMan.h,v 1.00 2025/04/14 00:00:00 Exp $]
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
 
 ***********************************************************************/
 
@@ -22,6 +20,7 @@
 #define ABC__OPT__ESLIM2__ESLIM2CIRMAN_h
 
 #include <vector>
+#include <array>
 #include <memory>
 #include <unordered_map>
 #include <set>
@@ -81,6 +80,7 @@ namespace eSLIM2 {
       unsigned int inTFI = 0;
       unsigned int inTFO = 0;
       unsigned int isTaboo = 0;
+      unsigned int root_failures = 0;
 
     friend eSLIM2CirMan;
     friend TabooList;
@@ -108,9 +108,10 @@ namespace eSLIM2 {
 
 
       Gia_Man_t* eSLIM2CirManToGia();
-      Abc_Ntk_t* eSLIM2CirManToNtk();
-      Abc_Ntk_t* eSLIM2CirManToMappedNtk();
+      Abc_Ntk_t* eSLIM2CirManToNtk(Abc_Ntk_t* names = nullptr);
       void setupTimings();
+      void minimizeLutFanins();
+      void removeDangling();
 
       bool isConst(int id) const;
       bool isPi(int id) const; // or constant node
@@ -166,20 +167,62 @@ namespace eSLIM2 {
       friend struct eSLIM2TestAccess;
 
       struct SimulationEntry {
-        ABC_UINT64_T first = 0, second = 0, truth = 0, version = 0;
+        std::array<ABC_UINT64_T, 6> inputs{};
+        unsigned fanins = 0;
+        ABC_UINT64_T truth = 0, version = 0;
         std::vector<ABC_UINT64_T> values;
         bool live = false;
       };
       struct SimulationCache {
         std::unordered_map<unsigned, SimulationEntry> entries;
         std::vector<ABC_UINT64_T> reference, versions;
+        std::vector<unsigned> input_domain;
         ABC_UINT64_T next_version = ABC_UINT64_T(1) << 32;
         unsigned words = 0;
       };
-      // One thread may use each manager at a time. IDs select cache entries;
-      // fanin-value versions and truth tables validate them. Each version names
-      // only one value vector. Rebuilding the manager starts an empty cache.
+      // IDs select entries; fanin value versions and functions validate them.
+      // The ordered input domain belongs to this manager, never to a global cache.
       mutable std::unique_ptr<SimulationCache> simulation_cache;
+
+      struct RelationWindowEntry {
+        unsigned generation = 0, references = 0;
+        int local_id = 0;
+        bool inside = false, listed = false;
+      };
+      struct RelationWindowScratch {
+        unsigned generation = 0;
+        std::vector<RelationWindowEntry> entries;
+        std::vector<int> region, boundary, frontier, next;
+/**Function*************************************************************
+
+  Synopsis    [Starts a new window without clearing the whole enclosing graph.]
+
+***********************************************************************/
+        void begin(unsigned objects) {
+          if (entries.size() < objects) entries.resize(objects);
+          if (!++generation) {
+            for (auto& entry : entries) entry.generation = 0;
+            generation = 1;
+          }
+          region.clear(); boundary.clear(); frontier.clear(); next.clear();
+        }
+/**Function*************************************************************
+
+  Synopsis    [Initializes one window entry on its first use in this generation.]
+
+***********************************************************************/
+        RelationWindowEntry& get(int id) {
+          auto& entry = entries[id];
+          if (entry.generation != generation) {
+            entry = RelationWindowEntry{};
+            entry.generation = generation;
+          }
+          return entry;
+        }
+      };
+      // Separate marks preserve the cut's TFI/TFO traversal state. Scratch
+      // belongs to this manager, and generations also handle reused node IDs.
+      mutable std::unique_ptr<RelationWindowScratch> relation_window_scratch;
       friend class RelationGenerator;
 
       bool isTaboo(const eSLIM2CirObj& obj, int taboo_time) const;

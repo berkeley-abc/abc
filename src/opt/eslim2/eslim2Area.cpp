@@ -12,9 +12,7 @@
 
   Affiliation [University of Freiburg]
 
-  Date        [Ver. 1.0. Started - April 2026.]
-
-  Revision    [$Id: eslim2Area.cpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
 
 ***********************************************************************/
 
@@ -46,8 +44,6 @@ namespace eSLIM2 {
   Synopsis    [Build and share the ordered tables of small AIG candidates.]
 
   SideEffects [Initializes each immutable table once under call_once.]
-
-  SeeAlso     []
 
 ***********************************************************************/
     const SmallCandidates& smallCandidates(unsigned n) {
@@ -162,11 +158,19 @@ namespace eSLIM2 {
 
   SideEffects [Returns an independently owned replacement circuit.]
 
-  SeeAlso     []
-
 ***********************************************************************/
-  eSLIM2CirMan AreaEngine::synthesiseSmall(const Relation& relation, const Subcircuit& subcir, const eSLIM2Config& cfg, int delay_bound) {
+  eSLIM2CirMan AreaEngine::synthesiseSmall(const Relation& relation, const Subcircuit& subcir, const eSLIM2Config& cfg, int delay_bound, unsigned* minimum_area) {
     typedef ABC_UINT64_T Word;
+    if (minimum_area) *minimum_area = 0;
+    if (cfg.lut_network) {
+      bool complete = false;
+      auto single = synthesiseSingleLut(relation, subcir, cfg, delay_bound, &complete);
+      if (single.getNofObjs() > 1 || !complete) return single;
+      if (minimum_area) *minimum_area = 2;
+      return synthesiseTwoLuts(relation, subcir, cfg, delay_bound);
+    }
+    if (subcir.inputs.size() > 6)
+      return synthesiseWideSmall(relation, subcir, cfg, delay_bound);
     if (!cfg.small_synthesis || !cfg.aig || cfg.gate_size != 2 ||
         subcir.outputs.size() != 1 || subcir.inputs.size() > 6)
       return eSLIM2CirMan(0);
@@ -269,14 +273,124 @@ namespace eSLIM2 {
   }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Enumerates zero-, one-, and two-gate replacements with up to ten inputs.]
+
+  Description [Additional divisors often make the boundary wider than six
+  inputs. Bit-vector care masks keep these tiny replacements inexpensive.
+  A two-gate implementation whose output uses both gates is a chain; the
+  unused-gate cases were already covered by the zero/one-gate searches.]
+
+***********************************************************************/
+  eSLIM2CirMan AreaEngine::synthesiseWideSmall(const Relation& relation,
+      const Subcircuit& subcir, const eSLIM2Config& cfg, int delay_bound) {
+    using Word = ABC_UINT64_T;
+    const unsigned n = subcir.inputs.size();
+    if (!cfg.small_synthesis || !cfg.aig || cfg.gate_size != 2 ||
+        subcir.outputs.size() != 1 || n < 7 || n > 10 || cfg.expired())
+      return eSLIM2CirMan(0);
+    const bool timed = delay_bound >= 0;
+    assert(!timed || (subcir.arrival_times.size() == n && subcir.remaining_times.size() == 1));
+    const unsigned remaining = timed ? subcir.remaining_times[0] : 0;
+    if (timed && remaining > unsigned(delay_bound)) return eSLIM2CirMan(0);
+    const unsigned limit = timed ? unsigned(delay_bound) - remaining : UINT_MAX;
+    const unsigned words = (1u << n) / 64;
+    using Truth = std::array<Word,16>;
+    Truth on {}, off {}, zero {};
+    std::vector<Truth> inputs(n);
+    unsigned forbidden_inputs = 0;
+    auto forbidden = subcir.forbidden_pairs.find(subcir.outputs[0]);
+    for (unsigned i=0;i<n;++i)
+      if (forbidden != subcir.forbidden_pairs.end() && forbidden->second.count(subcir.inputs[i]))
+        forbidden_inputs |= 1u << i;
+    for (unsigned row=0;row<(1u<<n);++row) {
+      const Word mask = Word(1) << (row%64);
+      const auto bad = relation.getForbiddenTuples(row,1);
+      if (bad&1) on[row/64] |= mask;
+      if (bad&2) off[row/64] |= mask;
+      for (unsigned i=0;i<n;++i) if ((row>>i)&1) inputs[i][row/64] |= mask;
+    }
+    auto matches = [&](const Truth& truth) {
+      for (unsigned w=0;w<words;++w)
+        if ((truth[w]&off[w]) || (~truth[w]&on[w])) return false;
+      return true;
+    };
+    auto empty = [&]() {
+      eSLIM2CirMan result(n+4);
+      for (unsigned i=0;i<n;++i) result.addPi();
+      return result;
+    };
+    if (matches(zero)) { auto result=empty(); result.addPo(0,false); return result; }
+    auto arrival = [&](unsigned i) { return timed ? subcir.arrival_times[i] : 0u; };
+    eSLIM2CirMan best(0);
+    unsigned best_arrival = UINT_MAX;
+    for (unsigned i=0;i<n;++i)
+      if (!(forbidden_inputs&(1u<<i)) && arrival(i)<=limit && arrival(i)<best_arrival && matches(inputs[i])) {
+        best=empty(); best.addPo(i+1,false); best_arrival=arrival(i);
+      }
+    if (best.getNofObjs()>1 || subcir.nodes.empty()) return best;
+    auto evaluate = [](Word a, Word b, unsigned function) {
+      switch (function) {
+        case 2: return a&~b;
+        case 4: return ~a&b;
+        case 8: return a&b;
+        default: return a|b;
+      }
+    };
+    struct Candidate { unsigned a,b,function,arrival; Truth truth; };
+    std::vector<Candidate> first_gates;
+    for (unsigned a=0;a<n;++a) for (unsigned b=a+1;b<n;++b) {
+      if (forbidden_inputs&((1u<<a)|(1u<<b))) continue;
+      for (unsigned function : {2u,4u,8u,14u}) {
+        Candidate candidate {a,b,function,1+std::max(arrival(a),arrival(b)),{}};
+        for (unsigned w=0;w<words;++w) candidate.truth[w]=evaluate(inputs[a][w],inputs[b][w],function);
+        if (candidate.arrival<=limit && candidate.arrival<best_arrival && matches(candidate.truth)) {
+          best=empty(); best.addPo(best.addNode({int(a+1),int(b+1)},function),false);
+          best_arrival=candidate.arrival;
+        }
+        first_gates.push_back(std::move(candidate));
+      }
+    }
+    if (best.getNofObjs()>1 || subcir.nodes.size()<2) return best;
+    for (const auto& first : first_gates) {
+      if (cfg.expired()) return eSLIM2CirMan(0);
+      for (unsigned input=0;input<n;++input) {
+        if (forbidden_inputs&(1u<<input)) continue;
+        const unsigned time=1+std::max(first.arrival,arrival(input));
+        if (time>limit || time>=best_arrival) continue;
+        for (unsigned function : {2u,4u,8u,14u}) {
+          bool match=true;
+          for (unsigned w=0;w<words;++w) {
+            const Word truth=evaluate(first.truth[w],inputs[input][w],function);
+            if ((truth&off[w]) || (~truth&on[w])) { match=false; break; }
+          }
+          if (!match) continue;
+          best=empty();
+          const int node=best.addNode({int(first.a+1),int(first.b+1)},first.function);
+          best.addPo(best.addNode({node,int(input+1)},function),false);
+          best_arrival=time;
+          break;
+        }
+      }
+    }
+    return best;
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Initializes area synthesis, boundary maps and feedback constraints.]
+
+***********************************************************************/
   AreaEngine::AreaEngine(const Relation& relation, const Subcircuit& subcir, const eSLIM2Config& cfg, eSLIM2Log& log)
             : RelationSynthesiser(relation, subcir, subcir.nodes.size(), cfg, log, cfg.synthesis_cegar) {
+    ScopedPhaseTimer encoding_timer(log.synthesis_encoding_time, cfg);
     if (cfg.aig && cfg.gate_size == 2 && cfg.aig_encoding >= 2)
       constrainIrredundantAigArea();
-    for (int i = 0; i < subcir.inputs.size(); i++) {
+    for (int i = 0; std::size_t(i) < subcir.inputs.size(); i++) {
       input_index_map[subcir.inputs[i]] = i;
     }
-    for (int i = 0; i < subcir.outputs.size(); i++) {
+    for (int i = 0; std::size_t(i) < subcir.outputs.size(); i++) {
       output_index_map[subcir.outputs[i]] = i;
     }
     if (subcir.forbidden_pairs.size() > 0) {
@@ -293,7 +407,8 @@ namespace eSLIM2 {
     if (complete)
       *complete = false;
     ++log.synthesis_searches;
-    auto small = synthesiseSmall(relation, subcir, cfg);
+    unsigned minimum_area = 0;
+    auto small = synthesiseSmall(relation, subcir, cfg, -1, &minimum_area);
     if (small.getNofObjs() > 1) {
       ++log.synthesis_small_hits;
       if (complete)
@@ -301,6 +416,7 @@ namespace eSLIM2 {
       return small;
     }
     AreaEngine synth(relation, subcir, cfg, log);
+    synth.min_size = std::max(synth.min_size, minimum_area);
     std::vector<bool> last_model;
     int replacement_size = 0;
     for (int i = synth.max_size; i >= int(synth.min_size); i--) {
@@ -316,6 +432,10 @@ namespace eSLIM2 {
       } else {
         if (complete)
           *complete = status == 20;
+        // An interrupted equal-size search says nothing about smaller sizes.
+        // No model is read until a later query actually returns SAT.
+        if (synth.retrySmallerAfterTimeout(status, unsigned(i)))
+          continue;
         break;
       }
     }
@@ -327,15 +447,30 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Checks whether a replacement exists at the requested gate count.]
+
+***********************************************************************/
   int AreaEngine::checkSize(unsigned int size) {
     return checkSize(size, 0);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Checks whether a replacement exists at the requested gate count.]
+
+***********************************************************************/
   int AreaEngine::checkSize(unsigned int size, double timeout) {
     std::vector<int> assumptions = getSizeAssumption(size);
     return solveRelation(assumptions, timeout, size);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Forbids dependencies that would create a cycle after replacement.]
+
+***********************************************************************/
   void AreaEngine::setupCycleConstraints() {
     assert (!subcir.forbidden_pairs.empty());
     setupConnectionVariables();
@@ -345,20 +480,30 @@ namespace eSLIM2 {
     addCycleConstraints();
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Adds dependency constraints preventing cycles through the replacement.]
+
+***********************************************************************/
   void AreaEngine::addCycleConstraints() {
     for (auto const& [outp, inputs] : subcir.forbidden_pairs) {
       for (int inp : inputs) {
         int output_idx = output_index_map.at(outp);
-        for (int i = 0; i < max_size; i++) {
+        for (int i = 0; unsigned(i) < max_size; i++) {
           solver.addClause({-gate_activation_variables[i], -gate_output_variables[i][output_idx], -connection_variables.at(inp)[i + subcir.inputs.size()]});
         }
-        for (int i = 0; i < subcir.inputs.size(); i++) {
+        for (int i = 0; std::size_t(i) < subcir.inputs.size(); i++) {
           solver.addClause({-gate_output_variables[max_size + i][output_idx], -connection_variables.at(inp)[i]});
         }
       }
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Allocates SAT variables representing cut input-to-output connectivity.]
+
+***********************************************************************/
   void AreaEngine::setupConnectionVariables() {
     for (auto const& [out, inputs] : subcir.forbidden_pairs) {
       for (int in : inputs) {
@@ -372,9 +517,9 @@ namespace eSLIM2 {
       int input_idx = input_index_map.at(input_var);
       // An input is connected to itself
       solver.addClause({connection_vars[input_idx]});
-      for (int i = 0; i < max_size; i++) {
+      for (int i = 0; unsigned(i) < max_size; i++) {
         int activation_variable = gate_activation_variables[i];
-        for (int j = 0; j < subcir.inputs.size(); j++) {
+        for (int j = 0; std::size_t(j) < subcir.inputs.size(); j++) {
           // if gate i uses input j and input j is connected to input_var then also gate i is connected to input_var
           solver.addClause({-activation_variable, -selection_variables[i][j], -connection_vars[j], connection_vars[subcir.inputs.size() + i]});
         }
@@ -387,6 +532,11 @@ namespace eSLIM2 {
   }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Connects dependency indicators for cycles through multiple cut outputs.]
+
+***********************************************************************/
   void AreaEngine::connectionVariablesForCombinedCycles() {
     assert (subcir.forbidden_pairs.size() > 1);
     // Inputs are assigned to the outputs on which they depend
@@ -407,13 +557,13 @@ namespace eSLIM2 {
       for (int iv : inputs_in_pairs) {
         if (inp.find(iv) == inp.end()) {
           for (int k : inputs_per_output.at(ov)) {
-            for (int i = 0; i < max_size; i++) {
+            for (int i = 0; unsigned(i) < max_size; i++) {
               // Input k depends on output ov.
               // If gate i represents output ov and gate i is connected to iv then also gate k is connected to iv.
               solver.addClause({-gate_activation_variables[i], -gate_output_variables[i][output_index_map.at(ov)],
                               -connection_variables.at(iv)[subcir.inputs.size() + i], connection_variables.at(iv)[input_index_map.at(k)]});
             }
-            for (int i = 0; i < subcir.inputs.size(); i++) {
+            for (int i = 0; std::size_t(i) < subcir.inputs.size(); i++) {
               // Input k depends on output ov.
               // If input i represents output ov and input i is connected to iv then gate k shall be connected to iv too.
               solver.addClause({-gate_output_variables[max_size + i][output_index_map.at(ov)], -connection_variables.at(iv)[i], connection_variables.at(iv)[input_index_map.at(k)]});

@@ -12,9 +12,7 @@
 
   Affiliation [University of Freiburg]
 
-  Date        [Ver. 1.0. Started - April 2026.]
-
-  Revision    [$Id: relationGeneration.h,v 1.00 2025/04/14 00:00:00 Exp $]
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
 
 ***********************************************************************/
 
@@ -23,6 +21,9 @@
 
 #include <vector>
 #include <unordered_map>
+#include <functional>
+#include <algorithm>
+#include <utility>
 
 #include "misc/util/abc_namespaces.h"
 
@@ -36,6 +37,64 @@ namespace eSLIM2 {
 
   class RelationGenerator;
 
+  struct RelationContextState {
+    enum class Start { Initial, Reused, Probe };
+    static constexpr unsigned probe_interval = 32;
+    unsigned requests = 0;
+    unsigned gates = 0, inputs = 0, fanin = 0, fanout = 0;
+    bool valid = false;
+
+/**Function*************************************************************
+
+  Synopsis    [Starts from successful context caps and periodically probes the configured caps.]
+
+***********************************************************************/
+    Start prepare(eSLIM2Config& attempt) {
+      ++requests;
+      if (!valid) return Start::Initial;
+      if (requests % probe_interval == 0) return Start::Probe;
+      restrictToRemembered(attempt);
+      return Start::Reused;
+    }
+
+/**Function*************************************************************
+
+  Synopsis    [Restricts a fresh or failed-probe attempt to the last successful caps.]
+
+***********************************************************************/
+    bool restrictToRemembered(eSLIM2Config& attempt) const {
+      if (!valid) return false;
+      const bool smaller = gates < attempt.relation_window_gates || inputs < attempt.relation_window_inputs ||
+          fanin < attempt.relation_window_fanin || fanout < attempt.relation_window_fanout;
+      attempt.relation_window_gates = std::min(attempt.relation_window_gates, gates);
+      attempt.relation_window_inputs = std::min(attempt.relation_window_inputs, inputs);
+      attempt.relation_window_fanin = std::min(attempt.relation_window_fanin, fanin);
+      attempt.relation_window_fanout = std::min(attempt.relation_window_fanout, fanout);
+      return smaller;
+    }
+
+/**Function*************************************************************
+
+  Synopsis    [Remembers caps only after a complete relation or a witnessed optimality proof.]
+
+***********************************************************************/
+    void remember(const eSLIM2Config& attempt) {
+      gates = attempt.relation_window_gates;
+      inputs = attempt.relation_window_inputs;
+      fanin = attempt.relation_window_fanin;
+      fanout = attempt.relation_window_fanout;
+      valid = true;
+    }
+  };
+
+  struct SupportBounds {
+    unsigned minimum_gates = 0;
+    std::vector<ABC_UINT64_T> forbidden;
+    std::vector<unsigned> inputs;
+    std::vector<std::vector<unsigned>> output_inputs;
+    unsigned minimumArrival(unsigned output, const std::vector<unsigned>& arrivals) const;
+  };
+
   class Relation{
     friend struct eSLIM2TestAccess;
 
@@ -46,7 +105,9 @@ namespace eSLIM2 {
       int getPatternSize(int id) const {return output_patterns[id].size();}
       unsigned int getNLinesWithPattern() const {return lines_with_pattern;}
       bool getStatus() const {return status;}
+      bool isProvenOptimal() const { return proven_optimal; }
       ABC_UINT64_T getForbiddenTuples(unsigned row, unsigned noutputs) const;
+      SupportBounds analyseSupport(unsigned noutputs, unsigned gate_size) const;
 
 
     private:
@@ -61,6 +122,7 @@ namespace eSLIM2 {
 
       unsigned int lines_with_pattern = 0;
       bool status = true;
+      bool proven_optimal = false;
 
 
     friend RelationGenerator;
@@ -70,10 +132,18 @@ namespace eSLIM2 {
     friend struct eSLIM2TestAccess;
 
     public:
-      static Relation computeRelation(const eSLIM2CirMan& cir, const Subcircuit& subcir, const eSLIM2Config& cfg, eSLIM2Log& log);
+      using OptimalityCheck = std::function<bool(const Relation&)>;
+      static Relation computeRelation(const eSLIM2CirMan& cir, const Subcircuit& subcir, const eSLIM2Config& cfg, eSLIM2Log& log, const OptimalityCheck& optimal = {}, RelationContextState* context = nullptr);
+      static bool verifyReplacement(const eSLIM2CirMan& replacement, const Subcircuit& subcir, const Relation& relation, const eSLIM2Config& cfg);
 
     private:
-      static bool simulateRelation(const eSLIM2CirMan& cir, const Subcircuit& subcir, const eSLIM2Config& cfg, Relation& rel);
+      static RelationSimulationStatus simulateRelation(const eSLIM2CirMan& cir, const Subcircuit& subcir,
+          const eSLIM2Config& cfg, Relation& relation, eSLIM2Log& log);
+      static Relation computeWindowRelation(const eSLIM2CirMan& cir, const Subcircuit& subcir, const eSLIM2Config& cfg, eSLIM2Log& log, const OptimalityCheck& optimal, RelationContextState* context);
+      static Relation computeWindowAttempt(const eSLIM2CirMan& cir, const Subcircuit& subcir, const eSLIM2Config& cfg, eSLIM2Log& log, const OptimalityCheck& optimal, bool& has_context);
+      static bool collectWitnesses(const eSLIM2CirMan& cir, const Subcircuit& subcir, const eSLIM2Config& cfg, eSLIM2Log& log, Relation& rel);
+      static bool sampleRelation(const eSLIM2CirMan& cir, const Subcircuit& subcir, const eSLIM2Config& cfg, Relation& rel, unsigned* patterns = nullptr);
+      static ABC_UINT64_T samplingSeed(const eSLIM2CirMan& cir, const Subcircuit& subcir, const eSLIM2Config& cfg);
       const eSLIM2CirMan& cir;
       const Subcircuit& subcir;
 
@@ -85,14 +155,30 @@ namespace eSLIM2 {
       std::vector<int> gate2varref;
       std::vector<int> gate2varcone;
       std::vector<int> equality_variables;
+      std::vector<int> compared_nodes;
+      unsigned current_exit = 0;
       std::vector<int> cone_input_variables;
       int mode_selection_variable;
+
+      using WitnessWord = ABC_UINT64_T;
+      using WitnessRow = std::pair<unsigned, std::vector<WitnessWord>>;
+      using WitnessRows = std::vector<WitnessRow>;
+      bool witness_simulation = false;
+      std::vector<int> affected_nodes;
+      std::vector<WitnessWord> witness_support, witness_values;
 
 
       CadicalSolver solver;
 
       RelationGenerator(const eSLIM2CirMan& cir, const Subcircuit& subcir, const eSLIM2Config& cfg, eSLIM2Log& log);
       void setupEncoding();
+      void strengthenMiter();
+      void prepareWitnessSimulation();
+      void preserveFeedbackOutputs(std::vector<bool>& outputs_to_keep) const;
+      bool justifyConflict(WitnessWord& required_outputs);
+      WitnessRows sampleConflict();
+      void addConflictSamples(Relation& relation, const WitnessRows& samples,
+                              const std::vector<int>& inputs, const std::vector<int>& outputs);
 
       void encodeCircuitAffected();
       void encodeCircuitApproximative();
@@ -102,6 +188,9 @@ namespace eSLIM2 {
       void setupEqualityConstraints(const std::vector<int>& nodes);
 
       Relation getRelation();
+      Relation getRelation(Relation relation, bool sampled);
+      void seedRelation(Relation& relation, const std::vector<int>& input_variables,
+                        const std::vector<int>& output_variables);
 
       void encodeGate(const eSLIM2CirObj& obj, int var, const std::vector<int>& gate2var);
       void getGateEncodingUnique(const eSLIM2CirObj& obj, int var, const std::vector<int>& gate2var, bool unique_bit);

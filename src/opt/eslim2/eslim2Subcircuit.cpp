@@ -12,9 +12,7 @@
 
   Affiliation [University of Freiburg]
 
-  Date        [Ver. 1.0. Started - April 2026.]
-
-  Revision    [$Id: eslim2Subcircuit.cpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
 
 ***********************************************************************/
 
@@ -45,6 +43,11 @@ namespace eSLIM2 {
     return scir;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Marks the selected cut cones and derives forbidden feedback pairs.]
+
+***********************************************************************/
   void Subcircuit::markCones(eSLIM2CirMan& es_man) {
     es_man.markCones(nodes);
     setForbiddenPairs(es_man);
@@ -52,6 +55,11 @@ namespace eSLIM2 {
 
 
 
+/**Function*************************************************************
+
+  Synopsis    [Returns an empty subcircuit descriptor.]
+
+***********************************************************************/
   Subcircuit Subcircuit::getEmptySubcircuit() {
     Subcircuit scir;
     return scir;
@@ -59,6 +67,11 @@ namespace eSLIM2 {
 
 
 
+/**Function*************************************************************
+
+  Synopsis    [Derives ordered input and output boundaries of the selected gates.]
+
+***********************************************************************/
   void Subcircuit::setIO(eSLIM2CirMan& es_man) {
     std::set<int> input_set;
     std::set<int> output_set;
@@ -79,6 +92,11 @@ namespace eSLIM2 {
     outputs.insert(outputs.end(), output_set.begin(), output_set.end());
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Records output-to-input dependencies that replacements must avoid.]
+
+***********************************************************************/
   void Subcircuit::setForbiddenPairs(const eSLIM2CirMan& es_man) {
     std::unordered_set<int> seen;
     for (int inp : inputs) {
@@ -87,6 +105,11 @@ namespace eSLIM2 {
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Traverses fanouts to collect forbidden feedback dependencies.]
+
+***********************************************************************/
   void Subcircuit::getForbiddenPairsRec(int inp, std::unordered_set<int>& seen, const eSLIM2CirObj& obj, const eSLIM2CirMan& es_man) {
     if (seen.find(obj.node_id) != seen.end()) {
       return;
@@ -119,6 +142,11 @@ namespace eSLIM2 {
     return max_crossing_path;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Prints the circuit or selected subcircuit for inspection.]
+
+***********************************************************************/
   void Subcircuit::print() const {
     std::cout << "Inputs:";
     for (int i : inputs) {

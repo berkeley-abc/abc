@@ -12,15 +12,14 @@
 
   Affiliation [University of Freiburg]
 
-  Date        [Ver. 1.0. Started - April 2026.]
-
-  Revision    [$Id: eSLIM2.cpp,v 1.00 2025/04/14 00:00:00 Exp $]
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
 
 ***********************************************************************/
 
 #include <random>
 #include <memory>
 #include <cstdio>
+#include <climits>
 
 #include "utils.h"
 #include "checkpoint.h"
@@ -31,36 +30,52 @@
 
 #include "misc/util/abc_namespaces.h"
 #include "opt/mfs/mfs.h"
+#include "aig/aig/aig.h"
+#include "map/if/if.h"
 #include "base/main/main.h"
 
 #include "eSLIM2.h"
 #include "eslim2CirMan.h"
 #include "synthesisEngines.h"
-#include "selectionStrategies.h"
 
 ABC_NAMESPACE_HEADER_START
-  Gia_Man_t * Gia_ManDeepSyn( Gia_Man_t * pGia, int nIters, int nNoImpr, int TimeOut, int nAnds, int Seed, int fUseTwo, int fChoices, int fVerbose );
   int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars );
 ABC_NAMESPACE_HEADER_END
 
 ABC_NAMESPACE_IMPL_START
 
+/**Function*************************************************************
+
+  Synopsis    [Translates public options into an independently owned search configuration.]
+
+***********************************************************************/
 static eSLIM2::eSLIM2Config eSLIM2_GetCfg(const eSLIM2_ParamStruct* params) {
   eSLIM2::eSLIM2Config config;
   config.apply_strash = params->apply_strash;
   config.mux_consensus = params->mux_consensus != 0;
   config.tune_relation_solver = params->tune_relation_solver != 0;
   config.fast_simulation = params->fast_simulation != 0;
+  config.exhaustive_relations = params->exhaustive_relations != 0;
+  config.sample_relations = params->sample_relations != 0;
+  config.relation_generation_timeout = params->relation_generation_timeout;
   config.cache_synthesis = params->cache_synthesis != 0;
+  config.cache_relations = params->cache_relations != 0;
   config.small_synthesis = params->small_synthesis != 0;
+  if (params->synthesis_approach == 1 && params->ncores == 1 &&
+      !params->nWindows && params->nruns == 1)
+    config.area_phase_percent = params->area_phase_percent;
   config.synthesis_solver_mode = params->synthesis_solver_mode;
   config.synthesis_cegar = params->synthesis_approach <= 1 && params->synthesis_cegar;
   if (params->synthesis_approach <= 1) {
     config.synthesis_timeout_ms = params->synthesis_timeout_ms;
     config.aig_encoding = params->aig_encoding;
+  } else {
+    // Modes 2/3 retain legacy budgets and encoding; -B/-A apply only to 0/1.
+    config.synthesis_timeout_ms = 0;
+    config.aig_encoding = 0;
   }
+  config.compact_timing = params->synthesis_approach == 1 && params->compact_timing != 0;
   if (params->synthesis_approach == 1) {
-    config.compact_timing = params->compact_timing != 0;
     config.initial_depth_bound = params->initial_depth_bound != 0;
     config.protect_neutral_depth = params->protect_neutral_depth != 0;
     config.refine_depth = params->refine_depth != 0;
@@ -71,17 +86,26 @@ static eSLIM2::eSLIM2Config eSLIM2_GetCfg(const eSLIM2_ParamStruct* params) {
   if (params->synthesis_approach == 0 && params->rewrite_mode >= 3)
     config.rewrite_mode = params->apply_inprocessing ? params->rewrite_mode : 0;
   config.fill_subcircuits = params->fill_subcircuits;
-  // config.fix_seed = params->fix_seed;
+  config.grow_mffcs = params->grow_mffcs != 0;
+  config.preferred_outputs = params->preferred_outputs;
+  config.cut_input_limit = params->cut_input_limit;
   config.trial_limit_active = params->trial_limit_active;
   config.timeout = params->timeout;
   config.iterations = params->iterations;
   config.subcircuit_max_size = params->subcircuit_max_size;
   config.additional_gates = params->additional_gates;
-  config.strash_intervall = params->strash_intervall;
+  config.strash_interval = params->strash_interval;
   config.nselection_trials = params->nselection_trials;
   config.seed = params->seed;
   config.verbosity_level = params->verbosity_level;
   config.expansion_probability = params->expansion_probability;
+  config.local_relations = params->local_relations != 0;
+  config.skip_optimal_cuts = params->skip_optimal_cuts != 0;
+  config.max_divisors = params->max_divisors;
+  config.relation_window_gates = params->relation_window_gates;
+  config.relation_window_inputs = params->relation_window_inputs;
+  config.relation_window_fanin = params->relation_window_fanin;
+  config.relation_window_fanout = params->relation_window_fanout;
   config.approximate_relation = params->approximate_relation;
   config.relation_tfo_bound = params->relation_tfo_bound;
   config.generate_relation_with_tfi_limit = params->generate_relation_with_tfi_limit;
@@ -100,52 +124,72 @@ static eSLIM2::eSLIM2Config eSLIM2_GetCfg(const eSLIM2_ParamStruct* params) {
   return config;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Initializes every public option to the documented eSLIM2 defaults.]
+
+***********************************************************************/
 void seteSLIM2Params(eSLIM2_ParamStruct* params) {
   params->checkpoint_prefix = nullptr;
   params->checkpoint_times = nullptr;
-  params->synthesis_timeout_ms = 50;
-  params->synthesis_solver_mode = 0;
+  params->synthesis_timeout_ms = 5;
+  params->synthesis_solver_mode = 6;
   params->synthesis_cegar = 1;
   params->cache_synthesis = 1;
+  params->cache_relations = 0;
   params->small_synthesis = 1;
   params->compact_timing = 1;
-  params->aig_encoding = 0;
+  params->aig_encoding = 3;
   params->mux_consensus = 0;
   params->tune_relation_solver = 1;
   params->fast_simulation = 1;
-  params->initial_depth_bound = 1;
+  params->exhaustive_relations = 0;
+  params->sample_relations = 1;
+  params->relation_generation_timeout = 1.0;
+  params->initial_depth_bound = 0;
   params->protect_neutral_depth = 0;
   params->refine_depth = 0;
-  params->depth_target_percent = 0;
+  params->depth_target_percent = 80;
   params->permute_cache = 0;
-  params->rewrite_mode = 2;
+  params->rewrite_mode = 5;
+  params->area_phase_percent = 0;
 
   params->fill_subcircuits = 0;
+  params->grow_mffcs = 0;
+  params->preferred_outputs = 0;
+  params->cut_input_limit = 10;
   params->apply_strash = 1;
-  params->fix_seed = 0;
+  params->fix_seed = 1;
   params->trial_limit_active = 1;
   params->apply_inprocessing = 1;
-  params->synthesis_approach = 0;
-  params->seed = 0;
+  params->synthesis_approach = 1;
+  params->seed = 1;
   params->verbosity_level = 1;
-  params->use_taboo_list = 0;
-  params->forward_search = 0;
+  params->use_taboo_list = 1;
+  params->forward_search = 1;
 
   params->ncores = 1;
   params->nWindows = 0;
   params->window_size = 500;
 
-  params->criticial_path_selection_bias = 0;
+  params->critical_path_selection_bias = 0;
 
   params->timeout = 1800;
   params->iterations = 0;
-  params->subcircuit_max_size = 6;
+  params->subcircuit_max_size = 5;
   params->additional_gates = 0;
-  params->strash_intervall = 100;
+  params->strash_interval = 100;
   params->nselection_trials = 100;
   params->nruns = 1;
 
   params->expansion_probability = 0.5;
+  params->local_relations = 1;
+  params->skip_optimal_cuts = 1;
+  params->max_divisors = 3;
+  params->relation_window_gates = 4096;
+  params->relation_window_inputs = 256;
+  params->relation_window_fanin = 24;
+  params->relation_window_fanout = 24;
   params->approximate_relation = 0;
   params->relation_tfo_bound = 0;
   params->generate_relation_with_tfi_limit = 0;
@@ -157,15 +201,12 @@ void seteSLIM2Params(eSLIM2_ParamStruct* params) {
 
 namespace eSLIM2 {
 
-  class DeepsynInprocessor {
+  class AreaInprocessor {
     public:
-      DeepsynInprocessor(eSLIM2Config& config);
-      // Deepsyn interprets a timeout==0 as no timeout
-      void setTimeout(int timeout) {this->timeout = timeout < 1 ? 1 : timeout;}
+      AreaInprocessor(eSLIM2Config& config);
       void runInprocessing(eSLIM2CirMan& es_man);
     private:
       eSLIM2Config& config;
-      int timeout;
   };
 
   class MfsInprocessor {
@@ -184,11 +225,9 @@ namespace eSLIM2 {
   class DelayInprocessor {
     public:
       DelayInprocessor(eSLIM2Config& config);
-      void setTimeout(int timeout) {this->timeout = timeout;}
       void runInprocessing(eSLIM2CirMan& es_man);
     private:
       eSLIM2Config& config;
-      int timeout;
   };
 
   class Resyn2Inprocessor {
@@ -196,7 +235,7 @@ namespace eSLIM2 {
       Resyn2Inprocessor(eSLIM2Config& config);
       void runInprocessing(eSLIM2CirMan& es_man);
     private:
-      // eSLIM2Config& config;
+      eSLIM2Config& config;
   };
 
 
@@ -206,7 +245,6 @@ namespace eSLIM2 {
     public:
       static Gia_Man_t* runeSLIM2(Gia_Man_t* cir, const eSLIM2_ParamStruct* params);
       static Abc_Ntk_t * runeSLIM2(Abc_Ntk_t * cir, const eSLIM2_ParamStruct* params);
-      static Abc_Ntk_t * runeSLIM2Cells(Abc_Ntk_t * cir, const eSLIM2_ParamStruct* params);
 
     private:
       eSLIM2CirMan es_man;
@@ -232,12 +270,17 @@ namespace eSLIM2 {
       void runInprocessing();
 
       void printSettings();
-      void printLog();
+      void printLog(int area, int levels, double elapsed, bool retained);
 
       void run();
   };
 
 
+/**Function*************************************************************
+
+  Synopsis    [Initializes the owned circuit, search configuration and inprocessor.]
+
+***********************************************************************/
   template <typename Approach, typename Inprocessor>
   eSLIM2Run<Approach, Inprocessor>::eSLIM2Run(Abc_Ntk_t* cir, const eSLIM2_ParamStruct* params, bool simplify_circuit)
                             : es_man(cir, simplify_circuit), config(eSLIM2_GetCfg(params)), log(params->subcircuit_max_size), inprocessor(config)  {
@@ -246,27 +289,45 @@ namespace eSLIM2 {
     config.apply_strash = false;
     if (!params->fix_seed) {
       config.seed = std::random_device{}();
-      if (config.verbosity_level > 0) {
+      if (config.verbosity_level > 1) {
         std::cout << "Set seed: " << config.seed << "\n";
       }
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Initializes the owned circuit, search configuration and inprocessor.]
+
+***********************************************************************/
   template <typename Approach, typename Inprocessor>
   eSLIM2Run<Approach, Inprocessor>::eSLIM2Run(Gia_Man_t* cir, const eSLIM2_ParamStruct* params)
                             : es_man(cir), config(eSLIM2_GetCfg(params)), log(params->subcircuit_max_size), inprocessor(config)  {
     nruns = params->nruns;
     if (!params->fix_seed) {
       config.seed = std::random_device{}();
-      if (config.verbosity_level > 0) {
+      if (config.verbosity_level > 1) {
         std::cout << "Set seed: " << config.seed << "\n";
       }
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Runs the configured optimizer and returns an independently owned result.]
+
+***********************************************************************/
   template <typename Approach, typename Inprocessor>
   Gia_Man_t* eSLIM2Run<Approach, Inprocessor>::runeSLIM2(Gia_Man_t* cir, const eSLIM2_ParamStruct* params) {
+    const auto started = std::chrono::steady_clock::now();
     eSLIM2Run<Approach, Inprocessor> eslim2_run(cir, params);
+    // Conversion and the final checkpoint scale with graph size, not with
+    // the requested search time. Retain the small-budget percentage reserve
+    // without wasting minutes when a small graph gets a long SAT budget.
+    const double finalization_allowance = 0.05 + 0.00005 * Gia_ManObjNum(cir);
+    const double reserve = std::max(0.001, std::min(params->timeout * 0.05, finalization_allowance));
+    eslim2_run.config.deadline = started + std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+        std::chrono::duration<double>(std::max(0.0, params->timeout - reserve)));
     // It seems like the variables are freed by abc during preprocessing. Thus,we copy them
     char* name = Abc_UtilStrsav( cir->pName );
     char* spec = Abc_UtilStrsav( cir->pSpec );
@@ -292,96 +353,155 @@ namespace eSLIM2 {
     Gia_Man_t* gia_res = eslim2_run.es_man.eSLIM2CirManToGia();
     gia_res->pName = name;
     gia_res->pSpec = spec;
+    const bool retained = params->synthesis_approach == 1 &&
+        (Gia_ManAndNum(gia_res) > Gia_ManAndNum(cir) || Gia_ManLevelNum(gia_res) > Gia_ManLevelNum(cir));
+    if (retained) { Gia_ManStop(gia_res); gia_res = Gia_ManDup(cir); }
+    eslim2_run.initial_area = Gia_ManAndNum(cir);
+    eslim2_run.initial_delay = Gia_ManLevelNum(cir);
+    eslim2_run.printLog(Gia_ManAndNum(gia_res), Gia_ManLevelNum(gia_res),
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count(), retained);
     return gia_res;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Runs the configured optimizer and returns an independently owned result.]
+
+***********************************************************************/
   template <typename Approach, typename Inprocessor>
   Abc_Ntk_t* eSLIM2Run<Approach, Inprocessor>::runeSLIM2(Abc_Ntk_t* cir, const eSLIM2_ParamStruct* params) {
+    const auto started = std::chrono::steady_clock::now();
     bool simplify_circuit = true;
     eSLIM2Run<Approach, Inprocessor> eslim2_run(cir, params, simplify_circuit);
     eslim2_run.config.aig = false;
+    eslim2_run.config.logic_network = true;
     eslim2_run.config.apply_strash = false;
+    eslim2_run.config.lut_network = true;
+    const double finalization_allowance = 0.05 + 0.00005 * Abc_NtkObjNum(cir);
+    const double reserve = std::max(0.001, std::min(params->timeout * 0.05, finalization_allowance));
+    eslim2_run.config.deadline = started + std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+        std::chrono::duration<double>(std::max(0.0, params->timeout - reserve)));
     eslim2_run.run();
-    Abc_Ntk_t* ntk_res = eslim2_run.es_man.eSLIM2CirManToNtk();
+    eslim2_run.es_man.minimizeLutFanins();
+    Abc_Ntk_t* ntk_res = eslim2_run.es_man.eSLIM2CirManToNtk(cir);
     ntk_res->pName = Extra_UtilStrsav(cir->pName);
     ntk_res->pSpec = Extra_UtilStrsav(cir->pSpec);
+    const bool retained = params->synthesis_approach == 1 &&
+        (Abc_NtkNodeNum(ntk_res) > Abc_NtkNodeNum(cir) || Abc_NtkLevel(ntk_res) > Abc_NtkLevel(cir));
+    if (retained) { Abc_NtkDelete(ntk_res); ntk_res = Abc_NtkDup(cir); }
+    eslim2_run.initial_area = Abc_NtkNodeNum(cir);
+    eslim2_run.initial_delay = Abc_NtkLevel(cir);
+    eslim2_run.printLog(Abc_NtkNodeNum(ntk_res), Abc_NtkLevel(ntk_res),
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count(), retained);
     return ntk_res;
   }
 
-  template <typename Approach, typename Inprocessor>
-  Abc_Ntk_t * eSLIM2Run<Approach, Inprocessor>::runeSLIM2Cells(Abc_Ntk_t * cir, const eSLIM2_ParamStruct* params) {
-    bool simplify_circuit = false;
-    eSLIM2Run<Approach, Inprocessor> eslim2_run(cir, params, simplify_circuit);
-    eslim2_run.config.aig = false;
-    eslim2_run.config.apply_strash = false;
-    eslim2_run.run();
-    Abc_Ntk_t* ntk_res = eslim2_run.es_man.eSLIM2CirManToMappedNtk();
-    if (!ntk_res) {
-      return ntk_res;
-    }
-    ntk_res->pName = Extra_UtilStrsav(cir->pName);
-    ntk_res->pSpec = Extra_UtilStrsav(cir->pSpec);
-    return ntk_res;
-  }
+/**Function*************************************************************
 
+  Synopsis    [Executes the requested search phases and repetitions within their shared deadline.]
+
+***********************************************************************/
   template <typename Approach, typename Inprocessor>
   void eSLIM2Run<Approach, Inprocessor>::run() {
-    if constexpr ( std::is_same_v<DeepsynInprocessor, Inprocessor> || std::is_same_v<DelayInprocessor<true>, Inprocessor> || std::is_same_v<DelayInprocessor<false>, Inprocessor> ) {
-      int time_out_inprocessing;
-      if constexpr ( std::is_same_v<DeepsynInprocessor, Inprocessor> ) {
-        time_out_inprocessing = config.timeout * 0.1;
-      } else {
-        time_out_inprocessing = config.timeout * 0.02;
-      }
-      config.timeout -= time_out_inprocessing;
-      inprocessor.setTimeout(time_out_inprocessing);
-    }
-
     initial_area = es_man.getNofGates();
     initial_delay = es_man.getDepth();
     config.setDepthTargets(initial_delay);
     printSettings();
-    for (int i = 0; i < nruns; i++) {
+    // Conversion may consume a tiny deadline before the first search starts.
+    log.stop_reason = es_man.getNofGates() ? 1 : 3;
+    const auto overall_deadline = config.deadline;
+    for (int i = 0; i < nruns && !config.expired(); i++) {
+      if (nruns > 1) {
+        // Reserve a fair share of the remaining overall budget for each
+        // requested run. Otherwise the first unrestricted search consumes
+        // the entire deadline and -R has no effect without an iteration cap.
+        const auto now = std::chrono::steady_clock::now();
+        config.deadline = now + (overall_deadline - now) / (nruns - i);
+      }
+      const auto run_deadline = config.deadline;
+      if constexpr (!std::is_same_v<EmptyInprocessor, Inprocessor>) {
+        // Estimate final native work from graph size and prior calls, instead
+        // of reserving a fixed fraction that small graphs cannot use.
+        const double remaining = std::chrono::duration<double>(run_deadline - std::chrono::steady_clock::now()).count();
+        const double estimated = log.final_inprocessing_calls ?
+            2 * log.final_inprocessing_time / log.final_inprocessing_calls + 0.01 :
+            0.05 + 0.00005 * es_man.getNofGates();
+        const double native_minimum = std::is_same_v<AreaInprocessor, Inprocessor> ?
+            std::max(2.05, 0.0001 * es_man.getNofGates() + 0.05) : 0.0;
+        const double allowance = std::min(remaining * 0.5, std::max(native_minimum, estimated));
+        config.deadline -= std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+            std::chrono::duration<double>(allowance));
+      }
 
       int size_iteration_start = es_man.getNofGates();
       int delay_iteration_start = es_man.getDepth();
-      if (config.verbosity_level > 0) {
+      if (config.verbosity_level > 1) {
         std::cout << "Start eslim2 run " << i + 1 << "\n";
       }
       if (es_man.getNofGates() == 0) {
-        std::cout << "Cannot further reduce the given circuit.\n";
-        printLog();
+        log.stop_reason = 3;
         return;
       }
-      Approach::applyeSLIM2(es_man, config, log);
+      if (config.area_phase_percent && config.timeout >= 4) {
+        // Use the original depth allowance to recover area first. Both
+        // phases share one circuit, log, checkpoint writer and deadline.
+        // The original -L target is already frozen in config.depth_floor;
+        // it must not be recomputed from the first phase's improved depth.
+        // The copied checkpoint time may be stale after this phase. The shared
+        // writer advances its own schedule, so the next callback only refreshes
+        // the manager's cached deadline and cannot duplicate a snapshot.
+        eSLIM2Config area = config;
+        const auto now = std::chrono::steady_clock::now();
+        const double remaining = std::chrono::duration<double>(config.deadline-now).count();
+        area.deadline = now + std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+            std::chrono::duration<double>(std::max(0.0, remaining) * config.area_phase_percent / 100));
+        area.depth_target_percent = 0;
+        area.depth_floor = -1;
+        area.initial_depth_bound = true;
+        area.area_depth_bound = initial_delay;
+        area.refine_depth = false;
+        if (area.rewrite_mode) area.rewrite_mode = area.rewrite_mode >= 5 ? 6 : 4;
+        Approach::applyeSLIM2(es_man, area, log);
+      }
+      if (!config.expired() && es_man.getNofGates())
+        Approach::applyeSLIM2(es_man, config, log);
       int size_eslim2 = es_man.getNofGates();
       int delay_eslim2 = es_man.getDepth();
       area_change_eslim2 += size_eslim2 - size_iteration_start;
       delay_change_eslim2 += delay_eslim2 - delay_iteration_start;
-      if (config.verbosity_level > 0) {
-        std::cout << "eslim2 -- size: " << size_eslim2 << " delay: " << delay_eslim2 << "\n";
+      if (config.verbosity_level > 1) {
+        std::cout << "eslim2 -- size: " << size_eslim2 << " levels: " << std::max(0, delay_eslim2 - 1) << "\n";
       }
+      config.deadline = run_deadline;
       runInprocessing();
       if constexpr ( !std::is_same_v<EmptyInprocessor, Inprocessor> ) {
         int size_inprocessing = es_man.getNofGates();
         int delay_inprocessing = es_man.getDepth();
         area_change_inprocessing += size_inprocessing - size_eslim2;
         delay_change_inprocessing += delay_inprocessing - delay_eslim2;
-        if (config.verbosity_level > 0) {
-          std::cout << "inprocessing -- size: " << size_inprocessing << " delay: " << delay_inprocessing << "\n";
+        if (config.verbosity_level > 1) {
+          std::cout << "inprocessing -- size: " << size_inprocessing << " levels: " << std::max(0, delay_inprocessing - 1) << "\n";
         }
       }
-      // if (config.fix_seed) {
-      //   config.seed++;
-      // }
-      config.seed++;
+      config.seed = config.seed == INT_MAX ? INT_MIN : config.seed + 1;
+      config.deadline = overall_deadline;
     }
-    printLog();
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Prints the active search configuration.]
+
+***********************************************************************/
   template <typename Approach, typename Inprocessor>
   void eSLIM2Run<Approach, Inprocessor>::printSettings() {
-    std::cout << "Apply eSLIM2 (timeout: " << config.timeout << ") ";
+    if (config.verbosity_level > 0) {
+      std::cout << (config.lut_network ? "elslim2" : "eSLIM2") << ": budget " << config.timeout << " s";
+      if (config.lut_network) std::cout << ", K=" << config.gate_size;
+      std::cout << ", seed " << config.seed << "\n";
+    }
+    if (config.verbosity_level < 2) return;
+    std::cout << "Apply eSLIM2 (overall timeout: " << config.timeout << ") ";
     std::cout << nruns << " times.\n";
     if constexpr ( !std::is_same_v<EmptyInprocessor, Inprocessor> ) {
       std::cout << "Apply inprocessing\n";
@@ -395,47 +515,88 @@ namespace eSLIM2 {
     printf("When expanding subcircuits, select gates with a probability of %.2f %%.\n", 100 * config.expansion_probability);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Prints accumulated search, synthesis, relation and rewriting statistics.]
+
+***********************************************************************/
   template <typename Approach, typename Inprocessor>
-  void eSLIM2Run<Approach, Inprocessor>::printLog() {
+  void eSLIM2Run<Approach, Inprocessor>::printLog(int size, int delay, double elapsed, bool retained) {
     if (config.verbosity_level > 0) {
-      int size = es_man.getNofGates();
-      int delay = es_man.getDepth();
-      int total_area_change = area_change_eslim2 + area_change_inprocessing;
-      int total_delay_change = delay_change_eslim2 + delay_change_inprocessing;
+      const char* reason = log.stop_reason == 1 ? "time limit" : log.stop_reason == 2 ? "iteration limit" :
+          log.stop_reason == 3 ? "no gates remain" : log.stop_reason == 4 ? "no cost gain within trial budgets" : "root trial budgets exhausted";
+      const std::string label = config.lut_network ? "elslim2 K=" + std::to_string(config.gate_size) : "eSLIM2";
+      printf("%s: nodes %d -> %d, levels %d -> %d, %.3f s, %u iterations; %s%s.\n",
+          label.c_str(), initial_area, size, initial_delay, delay,
+          elapsed, log.iteration_count, reason, retained ? "; input retained by cost guard" : "");
+      std::cout << "Interrupted synthesis queries: " << log.normal_synthesis_budget.interrupted + log.extended_synthesis_budget.interrupted << "; relation attempts: " << log.relation_timeouts << "\n";
+    }
+    if (config.verbosity_level > 1) {
+      int total_area_change = size - initial_area;
+      int total_delay_change = delay - initial_delay;
       std::cout << "Final size: " << size << " change: " << total_area_change << "\n";
       std::cout << "Final depth: " << delay << " change: " << total_delay_change << "\n";
 
 
-      if constexpr ( !std::is_same_v<EmptyInprocessor, Inprocessor> ) {
 
-        if (area_change_eslim2 <= 0) {
-          std::cout << "#Gates reduced by eSLIM2: " << -area_change_eslim2 << "\n";
-        } else {
-          std::cout << "#Gates introduced by eSLIM2: " << area_change_eslim2 << "\n";
-        }
-        if (area_change_inprocessing <= 0) {
-          std::cout << "#Gates reduced by inprocessing: " << -area_change_inprocessing << "\n";
-        } else {
-          std::cout << "#Gates introduced by inprocessing: " << area_change_inprocessing << "\n";
-        }
-        if (delay_change_eslim2 <= 0) {
-          std::cout << "Delay reduction eSLIM2: " << -delay_change_eslim2 << "\n";
-        } else {
-          std::cout << "Delay increase eSLIM2: " << delay_change_eslim2 << "\n";
-        }
-        if (delay_change_inprocessing <= 0) {
-          std::cout << "Delay reduction inprocessing: " << -delay_change_inprocessing << "\n";
-        } else {
-          std::cout << "Delay increase inprocessing: " << delay_change_inprocessing << "\n";
-        }
-      }
     }
-    if (config.verbosity_level > 0) {
+    if (config.verbosity_level > 1) {
+      std::cout << "Gate change from search/native passes: " << area_change_eslim2 + int(log.rewrite_gain)
+                << "/" << area_change_inprocessing - int(log.rewrite_gain) << "\n";
+      std::cout << "Failed-cut cache hits/extended retries/exhausted searches: " << log.failed_cut_cache_hits
+                << "/" << log.extended_cut_retries << "/" << log.exhausted_searches << "\n";
       std::cout << "Total #iterations: " << log.iteration_count << "\n";
+      std::cout << "Neighborhood roots/unproductive root draws skipped: " << log.neighborhood_roots << "/"
+                << log.failed_root_draws_skipped << "\n";
+      std::cout << "Preferred-output selections/hits; MFFC gates added: " << log.preferred_output_selections << "/"
+                << log.preferred_output_hits << "; " << log.mffc_gates_added << "\n";
+      std::cout << "Gates added to approach preferred outputs: " << log.output_boundary_gates_added << "\n";
       std::cout << "Total relation generation time (s): " << log.relation_generation_time << "\n";
       std::cout << "Total synthesis time (s): " << log.synthesis_time << "\n";
-      std::cout << "Relations: " << log.nof_simulated_relations << " simulated, " << log.nof_sat_relations << " SAT-generated\n";
+      std::cout << "Relation phases window/sampling/encoding/SAT/other (s): "
+                << log.relation_window_time << "/" << log.relation_sampling_time << "/"
+                << log.relation_encoding_time << "/" << log.cummulative_sat_runtime_relation_generation << "/"
+                << std::max(0.0, log.relation_generation_time - log.relation_window_time -
+                    log.relation_sampling_time - log.relation_encoding_time - log.cummulative_sat_runtime_relation_generation -
+                    log.simulation.seconds) << "\n";
+      if (config.exhaustive_relations) {
+        const auto& sim = log.simulation;
+        std::cout << "Complete exhaustive/SAT relations: " << sim.complete << "/" << log.nof_complete_sat_relations << "\n";
+        std::cout << "Exhaustive relation time/interrupted time (s): " << sim.seconds << "/" << sim.fallback_seconds << "\n";
+        std::cout << "Exhaustive interrupted/SAT fallbacks: " << sim.interrupted << "/" << sim.fallbacks << "\n";
+        std::cout << "Exhaustive ineligible context-inputs/cut-inputs/cut-outputs/mode/memory/work:";
+        for (auto count : sim.rejected) std::cout << " " << count;
+        std::cout << "\nSimulation evaluated gates: " << sim.evaluated_gates << "\n";
+        if (!config.local_relations) std::cout << "Simulation cache hits/misses: " << sim.cache_hits << "/" << sim.cache_misses << "\n";
+        if (!config.local_relations) std::cout << "Simulation cache retained/peak bytes: " << sim.retained_bytes << "/" << sim.cache_peak_bytes << "\n";
+        std::cout << "Simulation estimated/allocated peak bytes: " << sim.estimated_peak_bytes << "/" << sim.allocated_peak_bytes << "\n";
+        std::cout << "Exhaustive relation representation peak bytes (separate): " << sim.relation_peak_bytes << "\n";
+      }
+      std::cout << "Synthesis phases encoding/SAT/refinement-check/other (s): "
+                << log.synthesis_encoding_time << "/" << log.synthesis_solving_time << "/"
+                << log.synthesis_checking_time << "/"
+                << std::max(0.0, log.synthesis_time - log.synthesis_encoding_time -
+                    log.synthesis_solving_time - log.synthesis_checking_time) << "\n";
+      std::cout << "Total native rewrite time (s): " << log.rewriting_time << "\n";
+      std::cout << "Total final inprocessing time (s): " << log.final_inprocessing_time << "\n";
+      std::cout << "Relation SAT attempts: " << log.nof_sat_relations << "\n";
+      std::cout << "Relation exits total/max/any-exit queries: " << log.relation_observed_exits << "/"
+                << log.relation_max_exits << "/" << log.relation_any_exit_queries << "\n";
+      std::cout << "Single-output core SAT calls avoided: " << log.single_output_core_calls_skipped << "\n";
+      std::cout << "Relation incomplete attempts/retries/completed fallbacks: " << log.relation_timeouts << "/" << log.relation_retries << "/" << log.relation_fallbacks << "\n";
+      std::cout << "Sampled relations/patterns: " << log.nof_sampled_relations << "/" << log.sampled_relation_patterns << "\n";
+      std::cout << "Cuts proven optimal before relation SAT: " << log.sampled_optimal_cuts << "\n";
+      std::cout << "Local relations: " << log.nof_window_relations << "; max window gates/inputs: " << log.max_relation_window_gates << "/" << log.max_relation_window_inputs << "\n";
+      std::cout << "Sampled relation seeds/tuples/time (s): " << log.nof_seeded_relations << "/" << log.seeded_relation_tuples << "/" << log.relation_sampling_time << "\n";
+      std::cout << "Replacement checks passed/rejected/timed out: " << log.verified_replacements << "/" << log.rejected_replacements << "/" << log.verification_timeouts << "\n";
+      std::cout << "Structurally unchanged replacements skipped: " << log.unchanged_replacements << "\n";
+      std::cout << "Complete local relation cache hits: " << log.relation_cache_hits << "\n";
+      std::cout << "Relation context reuse/full-cap probes: " << log.relation_context_reuses << "/" << log.relation_context_probes << "\n";
       std::cout << "Synthesis cache hits: " << log.synthesis_cache_hits << "\n";
+      std::cout << "Cuts proven area/arrival optimal: " << log.proven_optimal_cuts << "\n";
+      std::cout << "Cuts with existing divisors: " << log.cuts_with_divisors << "\n";
+      std::cout << "Divisor candidates/sample duplicates/signature time (s): " << log.divisor_candidates << "/"
+                << log.divisor_signature_duplicates << "/" << log.divisor_signature_time << "\n";
       std::cout << "Synthesis refinement rounds: " << log.synthesis_refinements << "\n";
       std::cout << "Synthesis small exact replacements: " << log.synthesis_small_hits << "\n";
       std::cout << "Synthesis cache input permutations: " << log.synthesis_cache_permutations << "\n";
@@ -443,10 +604,34 @@ namespace eSLIM2 {
       std::cout << "Synthesis depth refinement improvements/calls: " << log.depth_refinement_improvements << "/" << log.depth_refinement_calls << "\n";
       std::cout << "Synthesis relation rows encoded/available: " << log.synthesis_encoded_rows << "/" << log.synthesis_total_rows << "\n";
       std::cout << "Rewriting calls/gain: " << log.rewrite_calls << "/" << log.rewrite_gain << "\n";
+      std::cout << "Rewriting calls without area/depth gain: " << log.rewrite_no_gain << "\n";
       std::cout << "Resubstitution calls/gain within rewriting: " << log.resubstitution_calls << "/" << log.resubstitution_gain << "\n";
       std::cout << "Resubstitution time (s): " << log.resubstitution_time << "\n";
       std::cout << "Synthesis searches with unrestricted timing: " << log.untimed_syntheses << "/" << log.synthesis_searches << "\n";
       std::cout << "Synthesis SAT searches: " << log.synthesis_sat_searches << "\n";
+      std::cout << "Analyzed cuts by gate count:";
+      for (int i = 0; i <= log.getSize(); ++i)
+        if (log.nof_analyzed_circuits_per_size[i])
+          std::cout << " " << i << ":" << log.nof_analyzed_circuits_per_size[i];
+      std::cout << "\nAnalyzed cuts by output count:";
+      for (int i = 0; i <= log.getSize(); ++i)
+        if (log.nof_analyzed_circuits_per_output_count[i])
+          std::cout << " " << i << ":" << log.nof_analyzed_circuits_per_output_count[i];
+      std::cout << "\nSAT calls by gate count (SAT/UNSAT/interrupted):";
+      for (int i = 0; i <= log.getSize(); ++i)
+        if (log.nof_sat_calls_per_size[i] || log.nof_unsat_calls_per_size[i] || log.nof_interrupted_calls_per_size[i])
+          std::cout << " " << i << ":" << log.nof_sat_calls_per_size[i] << "/"
+                    << log.nof_unsat_calls_per_size[i] << "/" << log.nof_interrupted_calls_per_size[i];
+      std::cout << "\n";
+      for (int extended = 0; extended < 2; ++extended) {
+        const auto& budget = extended ? log.extended_synthesis_budget : log.normal_synthesis_budget;
+        std::cout << "Synthesis " << (extended ? "extended" : "normal")
+                  << " budget searches/smaller models: " << budget.searches << "/" << budget.searches_with_smaller_model
+                  << "; queries SAT/UNSAT/interrupted/error: " << budget.sat << "/" << budget.unsat << "/"
+                  << budget.interrupted << "/" << budget.errors
+                  << "; reduction queries/interrupted: " << budget.reduction_queries << "/" << budget.reduction_interruptions
+                  << "; query time (s): " << budget.elapsed << "\n";
+      }
       std::cout << "#Iterations with forbidden pairs: " << log.subcircuits_with_forbidden_pairs << "\n";
     }
     if (config.verbosity_level > 1) {
@@ -460,7 +645,7 @@ namespace eSLIM2 {
       printf("Synthesis: #SAT-calls: %llu, Total SAT-time: %.2f sec, Max SAT-time: %.4f sec ",
             static_cast<unsigned long long>(log.nof_sat_calls_synthesis), log.cummulative_sat_runtime_synthesis / 1000, log.max_sat_runtime_synthesis / 1000);
       if (log.nof_sat_calls_synthesis > 0) {
-        printf("Avg. SAT-time: %.4f sec\n", log.cummulative_sat_runtime_synthesis / (log.nof_sat_calls_synthesis*1000));
+        printf("Avg. SAT-time: %.4f sec\n", log.cummulative_sat_runtime_synthesis / (1000.0 * log.nof_sat_calls_synthesis));
       } else {
         std::cout << "Avg. SAT-time: -\n";
       }
@@ -483,41 +668,66 @@ namespace eSLIM2 {
         if (log.nof_sat_calls_per_size[i] == 0) {
           std::cout << "-";
         } else {
-          printf("%.2f sec",  static_cast<double>(log.cummulative_sat_runtimes_per_size[i]) / (1000 * log.nof_sat_calls_per_size[i]));
+          printf("%.2f sec",  static_cast<double>(log.cummulative_sat_runtimes_per_size[i]) / (1000.0 * log.nof_sat_calls_per_size[i]));
         }
         std::cout << " / avg. unsat time: ";
         if (log.nof_unsat_calls_per_size[i] == 0) {
           std::cout << "-";
         } else {
-          printf("%.2f sec",  static_cast<double>(log.cummulative_unsat_runtimes_per_size[i]) / (1000 * log.nof_unsat_calls_per_size[i]));
+          printf("%.2f sec",  static_cast<double>(log.cummulative_unsat_runtimes_per_size[i]) / (1000.0 * log.nof_unsat_calls_per_size[i]));
         }
         std::cout << "\n";
       }
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Runs the selected native optimization within its remaining-time allowance.]
+
+***********************************************************************/
   template <typename Approach, typename Inprocessor>
   void eSLIM2Run<Approach, Inprocessor>::runInprocessing() {
+    if (!config.aig && !config.lut_network) return;
+    if constexpr (std::is_same_v<EmptyInprocessor, Inprocessor>) return;
+    const double remaining = std::chrono::duration<double>(config.deadline - std::chrono::steady_clock::now()).count();
+    if (remaining <= 0.001) return;
+    if (config.verbosity_level > 1)
+      std::cout << "Start final inprocessing (remaining: " << remaining << " sec).\n";
+    const auto started = std::chrono::steady_clock::now();
     inprocessor.runInprocessing(es_man);
+    ++log.final_inprocessing_calls;
+    log.final_inprocessing_time += std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
   }
 
-  template <typename Approach, typename Inprocessor>
-  void setUpInprocessor();
+/**Function*************************************************************
 
-  DeepsynInprocessor::DeepsynInprocessor(eSLIM2Config& config)
+  Synopsis    [Retains the configuration for native AIG compression.]
+
+***********************************************************************/
+  AreaInprocessor::AreaInprocessor(eSLIM2Config& config)
                     : config(config) {
   }
 
-  void DeepsynInprocessor::runInprocessing(eSLIM2CirMan& es_man) {
-    Gia_Man_t* pGia = es_man.eSLIM2CirManToGia();
-    Gia_Man_t* tmp = Gia_ManDeepSyn( pGia, 1, ABC_INFINITY, timeout, 0, config.seed , 0, 0, 0);
-    if ( Gia_ManAndNum(pGia) > Gia_ManAndNum(tmp) ) {
-      es_man = eSLIM2CirMan(tmp);
-    }
-    Gia_ManStop( tmp );
-    Gia_ManStop( pGia );
+/**Function*************************************************************
+
+  Synopsis    [Runs the selected native optimization within its remaining-time allowance.]
+
+***********************************************************************/
+  void AreaInprocessor::runInprocessing(eSLIM2CirMan& es_man) {
+    const auto stop = config.deadline;
+    std::unique_ptr<Gia_Man_t, decltype(&Gia_ManStop)> original(es_man.eSLIM2CirManToGia(), &Gia_ManStop);
+    std::unique_ptr<Gia_Man_t, decltype(&Gia_ManStop)> result(
+        rewriteWithChoices(original.get(), 0, UINT_MAX, unsigned(config.seed), stop, true), &Gia_ManStop);
+    if (result && Gia_ManAndNum(result.get()) < Gia_ManAndNum(original.get()))
+      es_man = eSLIM2CirMan(result.get());
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Runs the selected native optimization within its remaining-time allowance.]
+
+***********************************************************************/
   void MfsInprocessor::runInprocessing(eSLIM2CirMan& es_man) {
     Abc_Ntk_t* pNtk = es_man.eSLIM2CirManToNtk();
     int nnodes = Abc_NtkNodeNum(pNtk);
@@ -532,100 +742,116 @@ namespace eSLIM2 {
     Abc_NtkDelete(pNtk);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Runs balancing, rewriting and optional mapping on owned networks.]
+
+  Description [Matches the native resyn2 stages without installing a network
+  or GIA in the caller's frame. Every intermediate is released on failure.]
+
+***********************************************************************/
+  static Gia_Man_t* nativeResyn2(Gia_Man_t* original, bool mapping,
+      std::chrono::steady_clock::time_point deadline) {
+    using OwnedNtk = std::unique_ptr<Abc_Ntk_t, decltype(&Abc_NtkDelete)>;
+    std::unique_ptr<Aig_Man_t, decltype(&Aig_ManStop)> aig(Gia_ManToAig(original, 0), &Aig_ManStop);
+    if (!aig) return nullptr;
+    OwnedNtk network(Abc_NtkFromAigPhase(aig.get()), &Abc_NtkDelete);
+    aig.reset();
+    auto ready = [&]() { return network && std::chrono::steady_clock::now() < deadline; };
+    auto strash = [&]() {
+      if (network && !Abc_NtkIsStrash(network.get())) network.reset(Abc_NtkStrash(network.get(), 0, 0, 0));
+      return bool(network);
+    };
+    if (mapping && ready()) {
+      If_Par_t pars;
+      If_ManSetDefaultPars(&pars);
+      pars.nLutSize = 6;
+      pars.fDelayOpt = pars.fTruth = pars.fCutMin = 1;
+      pars.fExpRed = 0;
+      network.reset(Abc_NtkIf(network.get(), &pars));
+    }
+    // balance; rewrite; rewrite -z; balance; rewrite -z; balance
+    for (int stage = 0; stage < 6 && ready(); ++stage) {
+      if (!strash()) return nullptr;
+      if (stage == 0 || stage == 3 || stage == 5)
+        network.reset(Abc_NtkBalance(network.get(), 0, 0, 1));
+      else if (Abc_NtkRewrite(network.get(), 1, stage != 1, 0, 0, 0) <= 0)
+        return nullptr;
+    }
+    if (mapping && ready()) {
+      If_Par_t pars;
+      If_ManSetDefaultPars(&pars);
+      pars.nLutSize = 6;
+      network.reset(Abc_NtkIf(network.get(), &pars));
+    }
+    if (!strash()) return nullptr;
+    return Abc_NtkStrashToGia(network.get());
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Retains the configuration for native depth optimization.]
+
+***********************************************************************/
   template <bool IncreaseSize>
   DelayInprocessor<IncreaseSize>::DelayInprocessor(eSLIM2Config& config)
                                 : config(config) {
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Runs the selected native optimization within its remaining-time allowance.]
+
+***********************************************************************/
   template <bool IncreaseSize>
   void DelayInprocessor<IncreaseSize>::runInprocessing(eSLIM2CirMan& es_man) {
-    abctime clkStart    = Abc_Clock();
-    abctime nTimeToStop = clkStart + timeout * CLOCKS_PER_SEC;
-    Gia_Man_t* pGia = es_man.eSLIM2CirManToGia();
-    Gia_Man_t* tmp = nullptr;
-    int nand = Gia_ManAndNum(pGia);
-    int nlevel = Gia_ManLevelNum(pGia);
-    char * resyn2 = "balance; rewrite; rewrite -z; balance; rewrite -z; balance";
-    char Command[2000];
-    sprintf( Command, "strash; if -g -K 6; %s; if -K 6", resyn2 );
-    bool reset_batch_mode = false ;
-    if ( !Abc_FrameIsBatchMode() ) {
-      reset_batch_mode = true;
-      Abc_FrameSetBatchMode( 1 );
-    }
-    Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pGia );
-    if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), "&put") ) {
-      goto cleanup;
-    }
-    while (Abc_Clock() <= nTimeToStop) {
-      if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), Command) ) {
-        Abc_Print( 1, "Something did not work out with the command \"%s\".\n", Command );
-        goto cleanup;
-      }
-    }
-    if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), "&get") ) {
-      goto cleanup;
-    }
-
-    tmp = Abc_FrameReadGia(Abc_FrameGetGlobalFrame());
-    if constexpr (!IncreaseSize) {
-      if (Gia_ManAndNum(tmp) > nand) {
-        goto cleanup;
-      }
-    }
-    if (Gia_ManLevelNum(tmp) <= nlevel) {
-      es_man = eSLIM2CirMan(tmp);
-    }
-cleanup:
-    if (reset_batch_mode) {
-      Abc_FrameSetBatchMode( 0 );
-    }
+    const auto stop = config.deadline;
+    if (stop <= std::chrono::steady_clock::now()) return;
+    std::unique_ptr<Gia_Man_t, decltype(&Gia_ManStop)> original(es_man.eSLIM2CirManToGia(), &Gia_ManStop);
+    std::unique_ptr<Gia_Man_t, decltype(&Gia_ManStop)> result(nativeResyn2(original.get(), true, stop), &Gia_ManStop);
+    if (result && (IncreaseSize || Gia_ManAndNum(result.get()) <= Gia_ManAndNum(original.get())) &&
+        Gia_ManLevelNum(result.get()) <= Gia_ManLevelNum(original.get()))
+      es_man = eSLIM2CirMan(result.get());
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Initializes native AIG rewriting and balancing.]
+
+***********************************************************************/
   Resyn2Inprocessor::Resyn2Inprocessor(eSLIM2Config& config)
-                    // : config(config)
-                    {
+                    : config(config) {
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Runs the selected native optimization within its remaining-time allowance.]
+
+***********************************************************************/
   void Resyn2Inprocessor::runInprocessing(eSLIM2CirMan& es_man) {
-    Gia_Man_t* pGia = es_man.eSLIM2CirManToGia();
-    Gia_Man_t* tmp = nullptr;
-    int nand = Gia_ManAndNum(pGia);
-    int nlevel = Gia_ManLevelNum(pGia);
-    char * resyn2 = "balance; rewrite; rewrite -z; balance; rewrite -z; balance";
-    bool reset_batch_mode = false ;
-    if ( !Abc_FrameIsBatchMode() ) {
-      reset_batch_mode = true;
-      Abc_FrameSetBatchMode( 1 );
-    }
-    Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pGia );
-    if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), "&put") ) {
-      goto cleanup;
-    }
-    if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), resyn2) ) {
-      Abc_Print( 1, "Something did not work out with the command \"%s\".\n", resyn2 );
-      goto cleanup;
-    }
-    if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), "&get") ) {
-      goto cleanup;
-    }
-    tmp = Abc_FrameReadGia(Abc_FrameGetGlobalFrame());
-    if (Gia_ManAndNum(tmp) <= nand && Gia_ManLevelNum(tmp) <= nlevel) {
-      es_man = eSLIM2CirMan(tmp);
-    }
-cleanup:
-    if (reset_batch_mode) {
-      Abc_FrameSetBatchMode( 0 );
-    }
+    std::unique_ptr<Gia_Man_t, decltype(&Gia_ManStop)> original(es_man.eSLIM2CirManToGia(), &Gia_ManStop);
+    std::unique_ptr<Gia_Man_t, decltype(&Gia_ManStop)> result(nativeResyn2(original.get(), false, config.deadline), &Gia_ManStop);
+    if (result && Gia_ManAndNum(result.get()) <= Gia_ManAndNum(original.get()) &&
+        Gia_ManLevelNum(result.get()) <= Gia_ManLevelNum(original.get()))
+      es_man = eSLIM2CirMan(result.get());
   }
 
 
+/**Function*************************************************************
 
+  Synopsis    [Runs the configured optimizer and returns an independently owned result.]
+
+***********************************************************************/
   template <typename Circuitrepresentation, typename Inprocessor, typename Minimizer, typename Approach>
   Circuitrepresentation* runeSLIM2(Circuitrepresentation * cir, const eSLIM2_ParamStruct* params) {
     return eSLIM2Run<Approach, Inprocessor>::runeSLIM2(cir, params);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Chooses serial search or partitioned windows for the requested worker count.]
+
+***********************************************************************/
   template <typename Circuitrepresentation, typename Inprocessor, typename Minimizer, typename Validator, typename SearchDirection, typename BiasSelector, typename RootSelector>
   Circuitrepresentation* toggleWindowing(Circuitrepresentation * cir, const eSLIM2_ParamStruct* params) {
     if (params->nWindows > 0 || params->ncores > 1) {
@@ -636,6 +862,11 @@ cleanup:
   }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Selects the configured root-selection policy.]
+
+***********************************************************************/
   template <typename Circuitrepresentation, typename Inprocessor, typename Minimizer, typename Validator, typename SearchDirection, typename BiasSelector>
   Circuitrepresentation* setTabooApproach(Circuitrepresentation * cir, const eSLIM2_ParamStruct* params) {
     if (params->use_taboo_list) {
@@ -645,9 +876,14 @@ cleanup:
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Selects uniform or critical-path-biased root and cut growth.]
+
+***********************************************************************/
   template <typename Circuitrepresentation, typename Inprocessor, typename Minimizer, typename Validator, typename SearchDirection>
   Circuitrepresentation* setBiasApproach(Circuitrepresentation * cir, const eSLIM2_ParamStruct* params) {
-    if (params->criticial_path_selection_bias) {
+    if (params->critical_path_selection_bias) {
       return toggleWindowing<Circuitrepresentation, Inprocessor, Minimizer, Validator, SearchDirection, CriticalPathBiasSelector, CriticalPathSelector>(cir, params);
     } else {
       return setTabooApproach<Circuitrepresentation, Inprocessor, Minimizer, Validator, SearchDirection, NoBiasSelector>(cir, params);
@@ -656,6 +892,11 @@ cleanup:
 
 
 
+/**Function*************************************************************
+
+  Synopsis    [Selects forward or backward subcircuit growth.]
+
+***********************************************************************/
   template <typename Circuitrepresentation, typename Inprocessor, typename Minimizer, typename Validator>
   Circuitrepresentation* setSearchDirection(Circuitrepresentation * cir, const eSLIM2_ParamStruct* params) {
     if (params->forward_search) {
@@ -665,13 +906,18 @@ cleanup:
     }
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Selects the area or delay synthesis engine and its inprocessor.]
+
+***********************************************************************/
   template <typename Circuitrepresentation>
   Circuitrepresentation* setMinimizer(Circuitrepresentation * cir, const eSLIM2_ParamStruct* params) {
     switch (params->synthesis_approach) {
       case 0:
         if (params->apply_inprocessing) {
           if constexpr ( std::is_same_v<Gia_Man_t, Circuitrepresentation> ) {
-            return setSearchDirection<Circuitrepresentation, DeepsynInprocessor, AreaMinimizer, SubcircuitValidator>(cir, params);
+            return setSearchDirection<Circuitrepresentation, AreaInprocessor, AreaMinimizer, SubcircuitValidator>(cir, params);
           } else {
             return setSearchDirection<Circuitrepresentation, MfsInprocessor, AreaMinimizer, SubcircuitValidator>(cir, params);
           }
@@ -705,11 +951,58 @@ cleanup:
   }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Runs the configured optimizer and returns an independently owned result.]
+
+***********************************************************************/
 template <typename Circuitrepresentation,
           typename std::enable_if_t<std::is_same_v<Circuitrepresentation, Gia_Man_t> ||
                                     std::is_same_v<Circuitrepresentation, Abc_Ntk_t>, int> = 0>
 Circuitrepresentation* runeSLIM2(Circuitrepresentation * cir, const eSLIM2_ParamStruct* params) {
+  if (params->synthesis_approach < 0 || params->synthesis_approach > 3 ||
+      params->verbosity_level < 0 || params->verbosity_level > 3) {
+    Abc_Print(-1, "eSLIM2: mode and verbosity must be between 0 and 3.\n");
+    return NULL;
+  }
+  if (params->subcircuit_max_size < 2 || params->subcircuit_max_size >= unsigned(INT_MAX) ||
+      params->additional_gates >= unsigned(INT_MAX) - params->subcircuit_max_size) {
+    Abc_Print(-1, "eSLIM2: cut size must be at least two and the expanded size must fit an int.\n");
+    return NULL;
+  }
+  if (!(params->expansion_probability > 0 && params->expansion_probability <= 1) ||
+      params->nWindows < 0 || (params->nWindows && params->window_size < 1) ||
+      (params->apply_strash && !params->use_taboo_list && !params->strash_interval)) {
+    Abc_Print(-1, "eSLIM2: invalid selection, window, or strash parameters.\n");
+    return NULL;
+  }
+  if (params->gate_size < 2 || params->gate_size > 6 ||
+      (params->aig && params->gate_size != 2) ||
+      params->relation_tfo_bound < 0 || params->relation_tfi_bound < 0) {
+    Abc_Print(-1, "eSLIM2: invalid gate size or relation bounds.\n");
+    return NULL;
+  }
+  if (params->preferred_outputs > 16 || params->cut_input_limit < unsigned(params->gate_size) || params->cut_input_limit > 16) {
+    Abc_Print(-1, "eSLIM2: preferred outputs must be 0 to 16 and cut inputs must be between the gate size and 16.\n");
+    return NULL;
+  }
+  if (!params->nruns || params->nruns > unsigned(INT_MAX)) {
+    Abc_Print(-1, "eSLIM2: the run count must fit a positive int.\n");
+    return NULL;
+  }
+  if (!(params->timeout > 0 && params->timeout <= UINT_MAX)) {
+    Abc_Print(-1, "eSLIM2: timeout must be positive and finite.\n");
+    return NULL;
+  }
+  if (!(params->relation_generation_timeout > 0 && params->relation_generation_timeout <= INT_MAX)) {
+    Abc_Print(-1, "eSLIM2: relation SAT budget must be positive, finite and at most INT_MAX seconds.\n");
+    return NULL;
+  }
   if (params->checkpoint_prefix || params->checkpoint_times) {
+    if (params->timeout != unsigned(params->timeout)) {
+      Abc_Print(-1, "eSLIM2: checkpoints require an integer -T timeout.\n");
+      return NULL;
+    }
     std::vector<unsigned> times;
     if (!params->checkpoint_prefix || !*params->checkpoint_prefix ||
         !eSLIM2::readCheckpointTimes(params->checkpoint_times, params->timeout, times)) {
@@ -722,8 +1015,22 @@ Circuitrepresentation* runeSLIM2(Circuitrepresentation * cir, const eSLIM2_Param
       return NULL;
     }
   }
+  if (params->area_phase_percent > 90) {
+    Abc_Print(-1, "eSLIM2: the initial area phase must be between 0 and 90 percent.\n");
+    return NULL;
+  }
+  if (params->rewrite_mode > 6) {
+    Abc_Print(-1, "eSLIM2: rewriting mode must be between 0 and 6.\n");
+    return NULL;
+  }
   if (params->depth_target_percent > 100) {
     Abc_Print(-1, "eSLIM2: depth target percentage must be between 0 and 100.\n");
+    return NULL;
+  }
+  if (params->max_divisors > 8 || params->relation_window_inputs < 2 || params->relation_window_inputs > 1024 ||
+      !params->relation_window_gates || params->relation_window_gates > 16384 ||
+      params->relation_window_fanin > 64 || params->relation_window_fanout > 64) {
+    Abc_Print(-1, "eSLIM2: invalid local relation window limits.\n");
     return NULL;
   }
   if (params->aig_encoding > 3) {
@@ -747,43 +1054,39 @@ Circuitrepresentation* runeSLIM2(Circuitrepresentation * cir, const eSLIM2_Param
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Optimizes the supplied circuit with the configured eSLIM2 search.]
+
+***********************************************************************/
 Gia_Man_t* applyeSLIM2(Gia_Man_t * pGia, const eSLIM2_ParamStruct* params) {
   if (params->synthesis_approach == 1 && !params->aig) {
     Abc_Print(-1, "Mode 1 requires AND gates; XOR node counts do not reflect the exported AIG cost.\n");
     return NULL;
   }
-  if (Gia_ManHasDangling(pGia)) {
-    std::cout << "Warning: Circuit must not contain dangling nodes.\n";
-    return NULL;
-  }
   if (Gia_ManRegNum(pGia) > 0) {
-    std::cout << "Warning: Only combinatorial circuits are supported.\n";
+    std::cout << "eSLIM2: only combinational circuits are supported; use combinational preprocessing first.\n";
     return NULL;
   }
   if (Gia_ManMuxNum(pGia) > 0) {
-    std::cout << "Warning: Structural Muxes are not supported.\n";
+    std::cout << "eSLIM2: structural muxes require conversion to AND gates; run &st first.\n";
     return NULL;
   }
   if (Gia_ManXorNum(pGia) > 0) {
-    std::cout << "Warning: Structural XORs are not supported.\n";
+    std::cout << "eSLIM2: structural XORs require conversion to AND gates; run &st first.\n";
     return NULL;
   }
 
-  // Inprocessing can replace the frame's GIA, so keep an independent backup.
-  Gia_Man_t* backup = params->synthesis_approach == 1 ? Gia_ManDup(pGia) : NULL;
-  Gia_Man_t* result = runeSLIM2(pGia, params);
-  if (backup) {
-    if (result && (Gia_ManAndNum(result) > Gia_ManAndNum(backup) ||
-                   Gia_ManLevelNum(result) > Gia_ManLevelNum(backup))) {
-      Abc_Print(1, "eSLIM2: rejecting a result that increases AIG size or depth.\n");
-      Gia_ManStop(result);
-      return backup;
-    }
-    Gia_ManStop(backup);
-  }
-  return result;
+  std::unique_ptr<Gia_Man_t, decltype(&Gia_ManStop)> cleaned(nullptr, &Gia_ManStop);
+  if (Gia_ManHasDangling(pGia)) { cleaned.reset(Gia_ManCleanup(pGia)); pGia = cleaned.get(); }
+  return runeSLIM2(pGia, params);
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Validates and optimizes a combinational SOP network.]
+
+***********************************************************************/
 Abc_Ntk_t* applyelSLIM2(Abc_Ntk_t * ntk, const eSLIM2_ParamStruct* params) {
   assert (Abc_NtkIsLogic(ntk));
   assert (Abc_NtkHasSop(ntk));
@@ -796,7 +1099,7 @@ Abc_Ntk_t* applyelSLIM2(Abc_Ntk_t * ntk, const eSLIM2_ParamStruct* params) {
     return NULL;
   }
   if (!Abc_NtkIsComb(ntk)) {
-    std::cout << "Warning: Only combinatorial circuits are supported.\n";
+    std::cout << "eSLIM2: only combinational circuits are supported; use combinational preprocessing first.\n";
     return NULL;
   }
   return runeSLIM2(ntk, params);

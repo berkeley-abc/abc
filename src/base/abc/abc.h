@@ -612,6 +612,13 @@ extern ABC_DLL void               Abc_NodeGetCutsSeq( void * p, Abc_Obj_t * pObj
 extern ABC_DLL void *             Abc_NodeReadCuts( void * p, Abc_Obj_t * pObj );
 extern ABC_DLL void               Abc_NodeFreeCuts( void * p, Abc_Obj_t * pObj );
 /*=== abcDar.c ============================================================*/
+struct Dch_Pars_t_;
+extern ABC_DLL Abc_Ntk_t *        Abc_NtkDch( Abc_Ntk_t * pNtk, struct Dch_Pars_t_ * pPars );
+// Native LUT mapping and SAT sweeping are also callable from C++ packages.
+struct If_Par_t_;
+struct Sfm_Par_t_;
+extern ABC_DLL Abc_Ntk_t *        Abc_NtkIf( Abc_Ntk_t * pNtk, struct If_Par_t_ * pPars );
+extern ABC_DLL int                Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, struct Sfm_Par_t_ * pPars );
 struct Aig_Man_t_;
 struct Saig_ParBmc_t_;
 struct Pdr_Par_t_;

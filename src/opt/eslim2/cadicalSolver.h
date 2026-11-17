@@ -12,14 +12,12 @@
 
   Affiliation [University of Freiburg]
 
-  Date        [Ver. 1.0. Started - April 2026.]
-
-  Revision    [$Id: cadicalSolver.h,v 1.00 2025/04/14 00:00:00 Exp $]
+  Date        [Ver. 1.0. Started - November 9, 2026; derived from eSLIM2.]
 
 ***********************************************************************/
 
-#ifndef ABC__OPT__ESLIM2__SATINTERFACE_h
-#define ABC__OPT__ESLIM2__SATINTERFACE_h
+#ifndef ABC__OPT__ESLIM2__CADICALSOLVER_h
+#define ABC__OPT__ESLIM2__CADICALSOLVER_h
 
 #include <vector>
 #include <algorithm>
@@ -44,6 +42,8 @@ namespace eSLIM2 {
       int solve(double timeout);
       int solve();
       void setDeadline(std::chrono::steady_clock::time_point value) { deadline = value; }
+      // A context/query owns one cumulative conflict allowance across solves.
+      void setConflictBudget(int limit) { conflict_limit = limit > 0 ? solver.get_statistic_value("conflicts") + limit : -1; }
       bool setOption(const char* name, int value) { return solver.set(name, value); }
       bool configure(const char* name) { return solver.configure(name); }
       std::vector<int> getFailed(const std::vector<int>& assumptions);
@@ -58,6 +58,7 @@ namespace eSLIM2 {
       void assumeAll(const std::vector<int>& assumptions);
       int val(int variable);
       double last_runtime = 0;
+      int64_t conflict_limit = -1;
       std::chrono::steady_clock::time_point deadline = std::chrono::steady_clock::time_point::max();
       CaDiCaL::Solver solver;
 
@@ -74,9 +75,19 @@ namespace eSLIM2 {
 
   };
 
+/**Function*************************************************************
+
+  Synopsis    [Initializes the elapsed-time limit for one SAT query.]
+
+***********************************************************************/
   inline CadicalSolver::TimeoutTerminator::TimeoutTerminator(double max_runtime) : max_runtime(max_runtime) {
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Reports whether the SAT query has exhausted its time allowance.]
+
+***********************************************************************/
   inline bool CadicalSolver::TimeoutTerminator::terminate() {
     auto current_time = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = current_time - start;
@@ -87,6 +98,11 @@ namespace eSLIM2 {
 
   inline CadicalSolver::~CadicalSolver()=default;
 
+/**Function*************************************************************
+
+  Synopsis    [Adds a zero-terminated clause to the owned SAT solver.]
+
+***********************************************************************/
   inline void CadicalSolver::addClause(const std::vector<int>& clause) {
     for (auto& l: clause) {
       solver.add(l);
@@ -94,6 +110,11 @@ namespace eSLIM2 {
     solver.add(0);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Adds a zero-terminated clause to the owned SAT solver.]
+
+***********************************************************************/
   inline void CadicalSolver::addClause(std::vector<int>&& clause) {
     for (auto& l: clause) {
       solver.add(l);
@@ -101,6 +122,11 @@ namespace eSLIM2 {
     solver.add(0);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Concatenates three literal vectors into one SAT clause.]
+
+***********************************************************************/
   inline void CadicalSolver::addCombinedClause(const std::vector<int>& cl1, const std::vector<int>& cl2, const std::vector<int>& cl3) {
     for (auto& l: cl1) {
       solver.add(l);
@@ -114,6 +140,11 @@ namespace eSLIM2 {
     solver.add(0);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Installs the supplied assumptions for the next SAT query.]
+
+***********************************************************************/
   inline void CadicalSolver::assume(const std::vector<int>& assumptions) {
     for (auto& l: assumptions) {
       solver.assume(l);
@@ -121,21 +152,41 @@ namespace eSLIM2 {
   }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Installs the supplied assumption vector for the next SAT query.]
+
+***********************************************************************/
   inline void CadicalSolver::assumeAll(const std::vector<int>& assumptions) {
     solver.reset_assumptions();
     assume(assumptions);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Runs the owned SAT solver and reports SAT, UNSAT or interruption.]
+
+***********************************************************************/
   inline int CadicalSolver::solve(double timeout, const std::vector<int>& assumptions) {
     assumeAll(assumptions);
     return solve(timeout);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Runs the owned SAT solver and reports SAT, UNSAT or interruption.]
+
+***********************************************************************/
   inline int CadicalSolver::solve(const std::vector<int>& assumptions) {
     assumeAll(assumptions);
     return solve();
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Runs the owned SAT solver and reports SAT, UNSAT or interruption.]
+
+***********************************************************************/
   inline int CadicalSolver::solve(double timeout) {
     const auto start = std::chrono::steady_clock::now();
     const double remaining = deadline == std::chrono::steady_clock::time_point::max() ?
@@ -145,10 +196,15 @@ namespace eSLIM2 {
       last_runtime = 0;
       return 0;
     }
+    if (conflict_limit >= 0) {
+      const int64_t remaining_conflicts = conflict_limit - solver.get_statistic_value("conflicts");
+      if (remaining_conflicts <= 0) { last_runtime = 0; return 0; }
+      solver.limit("conflicts", int(std::min(remaining_conflicts, int64_t(std::numeric_limits<int>::max()))));
+    }
     TimeoutTerminator terminator(timeout);
     solver.connect_terminator(&terminator);
     int status = solver.solve();
-    last_runtime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
+    last_runtime = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
     // Always disconnect the stack-allocated terminator, including error paths.
     solver.disconnect_terminator();
     if (solver.state() == CaDiCaL::INVALID) {
@@ -158,14 +214,29 @@ namespace eSLIM2 {
     return status;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Runs the owned SAT solver and reports SAT, UNSAT or interruption.]
+
+***********************************************************************/
   inline int CadicalSolver::solve() {
     return solve(std::numeric_limits<double>::infinity());
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the most recent solver runtime in milliseconds.]
+
+***********************************************************************/
   inline double CadicalSolver::getRunTime() const {
     return last_runtime;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns failed assumption literals after an UNSAT result.]
+
+***********************************************************************/
   inline std::vector<int> CadicalSolver::getFailed(const std::vector<int>& assumptions) {
     std::vector<int> failed_literals;
     for (auto& l: assumptions) {
@@ -176,10 +247,20 @@ namespace eSLIM2 {
     return failed_literals;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Tests whether a literal belongs to the failed assumption set.]
+
+***********************************************************************/
   inline bool CadicalSolver::isFailed(int lit) {
     return solver.failed(lit);
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Reads signed model values for the requested SAT variables.]
+
+***********************************************************************/
   inline std::vector<int> CadicalSolver::getValues(const std::vector<int>& variables) {
     std::vector<int> assignment;
     for (auto& v: variables) {
@@ -188,19 +269,20 @@ namespace eSLIM2 {
     return assignment;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Reads the Boolean model value of a SAT variable.]
+
+***********************************************************************/
   inline bool CadicalSolver::getValue(int var) {
     return val(var) > 0;
   }
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the largest variable imported by the owned solver.]
+  Synopsis    [Returns the satisfying assignment indexed by SAT variable.]
 
 ***********************************************************************/
-  inline int CadicalSolver::getVariableCount() {
-    return solver.vars();
-  }
-
   inline std::vector<bool> CadicalSolver::getModel() {
     std::vector<bool> assignment;
     assignment.push_back(false);
@@ -210,6 +292,20 @@ namespace eSLIM2 {
     return assignment;
   }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the largest variable known to the owned solver.]
+
+***********************************************************************/
+  inline int CadicalSolver::getVariableCount() {
+    return solver.vars();
+  }
+
+/**Function*************************************************************
+
+  Synopsis    [Returns a signed model literal, choosing positive for an unassigned variable.]
+
+***********************************************************************/
   inline int CadicalSolver::val(int variable) {
     auto l = solver.val(variable);
     auto v = abs(l);
