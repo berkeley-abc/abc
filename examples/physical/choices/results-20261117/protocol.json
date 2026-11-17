@@ -1,0 +1,169 @@
+{
+  "abc_budget_cycle": "resub -K 8 -N 2 -F 0; rewrite; refactor",
+  "attribution": "The native bank and selector differ from the equal external recipe bank. Generic choices and resynthesis account for much of the gain; no isolated geometric AGR improvement is claimed.",
+  "base_commit": "267220beeac61151c306b27c81ced1a3bd8a01bf",
+  "canonicalization": "When the generated AIG payload matched an earlier common input, reuse that input byte-for-byte; both generated and canonical hashes are recorded.",
+  "common_preprocessing": [
+    "read RAW.aig; strash; dc2; write_aiger DC2.aig",
+    "read DC2.aig; strash; &get; &fraig -C 10000; &put; strash; write_aiger COMMON.aig"
+  ],
+  "compress_budget_cycle": "balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l",
+  "corrected_pa_binary_sha256": "e78c9017b998dfbab76b39e094631ec0169830f69f439b59016320b56824a353",
+  "corrected_pa_source_sha256": "d3bcc1bc862f29b2629dd35b6258d6efdcd6a4e325696a4960d5dfa59716b0fa",
+  "cpu_affinity": [
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+  ],
+  "cpu_harness_binary_sha256": "02520f28c07f693a1a94d864bc5305b6e171a311e150ac99b6166325a4083435",
+  "cpu_harness_source_sha256": "afe6eeb8274b9a3b32ee6372f1bbaf10938bdf377946b32113e5156f0bf91379",
+  "cpu_limit": 12,
+  "cpu_policy": "Process CPU measured with std::clock(), at least one complete macro, full native process allowance including its final mapping; reference final mapping is extra. OS user+system cross-check. CEC excluded. No QoR stopping.",
+  "current_binary_sha256": "62cfdd3c51bd8c501ebdc3992df331562d8b39479725b1f437a0af9f56e7c367",
+  "designs": [
+    "adder",
+    "arbiter",
+    "bar",
+    "cavlc",
+    "ctrl",
+    "dec",
+    "div",
+    "i2c",
+    "int2float",
+    "log2",
+    "max",
+    "mem_ctrl",
+    "multiplier",
+    "priority",
+    "router",
+    "sin",
+    "sqrt",
+    "square",
+    "voter"
+  ],
+  "equal_bank": {
+    "choice_sets": {
+      "u8": [
+        "pa2",
+        "agr",
+        "c2rs2",
+        "mfsfx_agr",
+        "sopb_agr",
+        "dsdb_agr",
+        "c2rs_agr",
+        "blut6_agr"
+      ],
+      "uagr": [
+        "agr",
+        "agr_agr",
+        "c2rs_agr",
+        "blut6_agr",
+        "b_agr",
+        "dsdb_agr"
+      ],
+      "upa": [
+        "pa2",
+        "c2rs",
+        "c2rs2"
+      ]
+    },
+    "policies": {
+      "agr": "agr",
+      "compress": "balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l",
+      "pa": "pa_place; pa_rs -K 8 -N 2; pa_rw; pa_rf; pa_rs -K 8 -N 2; pa_rw; pa_rf; strash"
+    },
+    "recipes": {
+      "agr": "@",
+      "agr_agr": "@; @",
+      "agr_c2rs": "@; balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l",
+      "b_agr": "&get; &b; &put; @",
+      "blut6_agr": "&get; &blut -K 6; &put; @",
+      "c2rs": "balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l",
+      "c2rs2": "balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l; balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l",
+      "c2rs_agr": "balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l; @",
+      "dsdb_agr": "&get; &dsdb; &put; @",
+      "mfs2k4_agr": "if -K 4; mfs2 -e -W 4 -M 1000 -C 20000 -L 1; strash; balance; @",
+      "mfs_agr": "&get; &if -K 6; &mfs -e -W 4 -M 1000 -C 20000 -L 1; &st; &put; @",
+      "mfsfx_agr": "&get; &if -K 6; &mfs -e -W 4 -M 1000 -C 20000 -L 1; &fx; &st; &put; @",
+      "mfsfx_c2rs": "&get; &if -K 6; &mfs -e -W 4 -M 1000 -C 20000 -L 1; &fx; &st; &put; balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l",
+      "pa2": "pa_place; pa_rs -K 8 -N 2; pa_rw; pa_rf; pa_rs -K 8 -N 2; pa_rw; pa_rf; strash",
+      "sopb_agr": "&get; &sopb -C 16; &put; @",
+      "syn2_agr": "&get; &syn2; &put; @"
+    },
+    "relaxations": [
+      0,
+      5,
+      10,
+      20,
+      40,
+      100
+    ],
+    "selector": "Frozen original bank: minimum area with at least 6% cell-delay gain over common PA2, fastest fallback."
+  },
+  "evidence": "CSV proof IDs reference recorded successful CEC outputs and file hashes in proofs.json. AIGs, mapped netlists and full research logs remain in the experiment archive; they are not embedded in Git. These records are not standalone SAT certificates.",
+  "excluded": {
+    "design": "hyp",
+    "reason": "Separate full-native scalability trial timed out during the second DCH merge.",
+    "timeout_wall_s": 1800,
+    "trial_input_sha256": "6f4e3d238678e54bc445405d870b7a395f2230ded88b061a603fbfedc3e33ad0",
+    "trial_preprocessing": "dc2 + &fraig -C 1000; this trial precedes the stronger common preprocessing."
+  },
+  "expected_rows": {
+    "flow": 95,
+    "portfolio": 57,
+    "primary": 133,
+    "sensitivity": 380
+  },
+  "experiment_date": "2026-11-17",
+  "flow_commands": {
+    "corrected_agr": "balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l; strash; agr; strash; agr; strash; balance; resub -K 6; rewrite; resub -K 6 -N 2; refactor; resub -K 8; balance; resub -K 8 -N 2; rewrite; resub -K 10; rewrite -z; resub -K 10 -N 2; balance; resub -K 12; refactor -z; resub -K 12 -N 2; rewrite -z; balance; strash; agr; strash",
+    "last_slot": "balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l; strash; agr; strash; agr; strash; balance; resub -K 6; rewrite; resub -K 6 -N 2; refactor; resub -K 8; balance; resub -K 8 -N 2; rewrite; resub -K 10; rewrite -z; resub -K 10 -N 2; balance; resub -K 12; refactor -z; resub -K 12 -N 2; rewrite -z; balance; strash; agr -c -b -r -m -W 0.25; strash",
+    "native_slots": "balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l; strash; agr -c -b -r -m -W 0.25; strash; agr -c -b -r -m -W 0.25; strash; balance; resub -K 6; rewrite; resub -K 6 -N 2; refactor; resub -K 8; balance; resub -K 8 -N 2; rewrite; resub -K 10; rewrite -z; resub -K 10 -N 2; balance; resub -K 12; refactor -z; resub -K 12 -N 2; rewrite -z; balance; strash; agr -c -b -r -m -W 0.25; strash",
+    "paper_agr": "balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l; strash; agr; strash; agr; strash; balance; resub -K 6; rewrite; resub -K 6 -N 2; refactor; resub -K 8; balance; resub -K 8 -N 2; rewrite; resub -K 10; rewrite -z; resub -K 10 -N 2; balance; resub -K 12; refactor -z; resub -K 12 -N 2; rewrite -z; balance; strash; agr; strash",
+    "paper_pa2": "balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l; strash; pa_place; pa_rs -K 8 -N 2; pa_rw; pa_rf; pa_rs -K 8 -N 2; pa_rw; pa_rf; strash; strash; pa_place; pa_rs -K 8 -N 2; pa_rw; pa_rf; pa_rs -K 8 -N 2; pa_rw; pa_rf; strash; strash; balance; resub -K 6; rewrite; resub -K 6 -N 2; refactor; resub -K 8; balance; resub -K 8 -N 2; rewrite; resub -K 10; rewrite -z; resub -K 10 -N 2; balance; resub -K 12; refactor -z; resub -K 12 -N 2; rewrite -z; balance; strash; pa_place; pa_rs -K 8 -N 2; pa_rw; pa_rf; pa_rs -K 8 -N 2; pa_rw; pa_rf; strash; strash"
+  },
+  "format_version": 1,
+  "guidance_steps": [
+    0.26,
+    0.27,
+    0.28,
+    0.29,
+    0.3
+  ],
+  "library_path": "../../data/merged_asap7_final.lib.gz",
+  "library_uncompressed_sha256": "70cae62f9a4817dfc60c1ec6eb33161f93bbfce7f85786b6faa077cfd17e01fb",
+  "limitations": [
+    "Development cohort, not an independent holdout.",
+    "More synthesis effort than ordinary AGR/PA2.",
+    "No new matched-CPU Table II control.",
+    "No current routed wirelength, final HPWL, parasitic delay or power.",
+    "Existing AGR commit-score abort after external MFS on square remains; native/flow completed without it."
+  ],
+  "mapping": "&get; &nf; &put; stime",
+  "measurement": "One bin count from common-input NF mapping per design, then pa_place -B BINS -s 0.28; pa_stats for every endpoint.",
+  "native_binary_sha256": "4317ad5fb38c87a1c619b63f944336ab525d28046ca65dc71cc308a2f9a26a0e",
+  "native_command": "agr -c -b -r -m -W 0.25",
+  "numerical_commit": "32e58a47b",
+  "openroad_run": false,
+  "ordinary_agr_command": "agr",
+  "original_binary_sha256": "0da0476dfde25ad5da5cab7f6add509d16d0fd7fa2883f98b91ca62a6f9191fa",
+  "pa2_command": "pa_place; pa_rs -K 8 -N 2; pa_rw; pa_rf; pa_rs -K 8 -N 2; pa_rw; pa_rf; strash",
+  "placement_utilization": 0.7,
+  "primary_step": 0.28,
+  "profiling_fix_commit": "561a76fb5",
+  "statistics": {
+    "bootstrap_replicates": 5000,
+    "formula": "100*(1-exp(mean(log(candidate/reference))))",
+    "seed": 20261116,
+    "steps": "Geometric average within each design, then bootstrap designs; steps are correlated."
+  }
+}

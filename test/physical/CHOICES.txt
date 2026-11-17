@@ -1,0 +1,116 @@
+AGR checkpoint choices and mapped-cost selection
+
+Bounded experimental configuration after loading a combinational AIG
+and the target Liberty library:
+
+  agr -c -b -r -m -W 0.25 -H 3 -T 300
+  &get; &nf; &put; stime
+
+The ordinary agr command remains available without these flags. -c retains
+whole-pass checkpoints from one AGR invocation. -b adds area/LUT/DSD/SOP
+balancing and bounded LUT don't-care/factoring alternatives on both the input
+and the AGR endpoint. -r adds one and two standard compress2rs cycles on the
+input, and one cycle after each MFS/FX alternative. These conventional
+alternatives are part of the method, not an AGR-specific geometric effect.
+
+Private equivalent structures are merged with the DCH engine when -m is used,
+or with the legacy FRAIG engine otherwise. Six NF relaxation settings
+(0,5,10,20,40,100) are tested independently and as a sequential shaping chain.
+Each mapped cover is strashed and measured through ordinary NF and Liberty STA.
+The selected output is a plain AIG, suitable for the common downstream mapper.
+
+Without -W, selection minimizes mapped area subject to cell delay no worse
+than the ordinary AGR endpoint. -W w minimizes area times delay^w. At the
+default -D 0, positive -W also guards mapped area against the ordinary AGR
+endpoint. Thus the recommended configuration cannot worsen either modeled
+metric relative to its ordinary AGR endpoint. This is not a guarantee about
+PA2, routed timing, or any other physical metric.
+
+-H percent guards mapped HPWL against the ordinary AGR endpoint (default off;
+allowed range 0-100). A private placement uses one bin count selected from the
+mapped common input, held fixed for all candidates, and the command's -s step.
+Only candidates that could win the area/delay selection are placed. This does
+not replace the caller's placement state. The area-scaled ABC canvas differs
+from a fixed backend die; mapped HPWL is not routed wirelength.
+
+-T seconds budgets the choice stage after ordinary AGR (default 0, unlimited).
+A positive value requires -c -m. Deadline checks occur between transforms,
+mapping calls, placement stages and DCH SAT queries; an individual primitive
+can overshoot. On expiry all partial search results are discarded and the
+ordinary AGR endpoint is returned, with an explicit timed_out=1 diagnostic.
+This bounds extra search effort rather than the entire command, and uses
+Abc_Clock (elapsed time on the Linux experiment platform).
+
+-D percent requests a stricter delay target and can trade area for delay;
+if no candidate meets it, the fastest candidate is selected. -C controls SAT
+conflicts per equivalence query (default 1000). A smaller limit can be slower
+or yield poorer results, because fewer equivalences are established. -f limits
+choice-merge contributors to the input, the ordinary AGR endpoint, and at most
+six alternatives spread over the mapped area/delay frontier. Raw alternatives
+are still evaluated. -f is an optional cost/quality tradeoff, not part of the
+recommended configuration above.
+
+Only whole-pass checkpoints are retained. Rejected local rewrites are not
+recorded as choices. The user's &-space, saved AIG and fraig_store remain
+intact; PI/PO names and order are preserved. Choice construction and mapping
+use private networks and the currently loaded Liberty library. An unsuccessful
+choice merge leaves the already evaluated raw candidates available.
+
+Checks:
+  python3 test/physical/regression.py --abc /path/to/abc --output /tmp/agr-base
+  python3 test/physical/choices_regression.py --abc /path/to/abc \
+    --reference /path/to/three-fix-baseline-abc --library /path/to/cells.lib \
+    --output /tmp/agr-choices
+
+The checks include ordinary-mode parity on the fixture, named-port equivalence,
+user-state isolation, cost parity with the standalone MFS/FX recipe, bounded
+contributor counts, DCH construction, mapped-cost and HPWL guards, tiny-budget
+fallback parity, unlimited-budget parity, and invalid argument handling.
+
+Placement-consistency regressions require the external dc2-preprocessed EPFL
+inputs. Compile ABC with ABC_AGR_ENABLE_AUDIT for a full HPWL/density check after
+each edit (the audit is deliberately more expensive than a release run):
+
+  python3 test/physical/placement_consistency.py --abc /path/to/abc-audit \
+    --library /path/to/cells.lib --sqrt-input /path/to/sqrt-dc2.aig \
+    --square-input /path/to/square-dc2.aig --output /tmp/agr-consistency
+
+This runs sqrt in C-S-S-R-S and square after don't-care resynthesis at all five
+steps 0.26-0.30, requiring successful completion and equivalence each time.
+deletion_cone_test.cpp compares the predicted removal set to Abc_AigReplace
+on five small networks; compile it with the same definitions and include path
+as ABC and link libabc.a, pthread, m, dl and rt on Linux.
+
+Research protocol (separate from the command):
+  Every arm receives confirmed common dc2 and &fraig -C 10000 preprocessing.
+  The earlier common limit of 1000 left most of div's functional redundancy.
+  The stronger uniform limit removes it before every compared method, including
+  the references. This preprocessing is a protocol change from the paper.
+  Every endpoint is measured with the same original-PR NF mapper and library.
+  The development cohort contains 19 EPFL designs. hyp is tested separately
+  for scalability. Placement steps 0.26-0.30 assess sensitivity, not holdout
+  generalization. Never select a step per design using physical metrics.
+  Source-to-endpoint and endpoint-to-mapped-function CEC are required.
+
+Corrections and limitations:
+  Early native prototypes incorrectly discarded FX's plain-AIG return value
+  by requiring LUT mapping metadata. The present implementation handles it
+  correctly and checks cost parity with the public ABC command sequence.
+  Legacy FRAIG construction can be very slow on arithmetic benchmarks.
+  The earlier unbounded configuration timed out on hyp after 1800 seconds.
+  The bounded followup retains the plain endpoint if its choice deadline is
+  reached; report it in the cohort rather than discarding the design.
+  The square commit-boundary failure after external MFS is fixed by accounting
+  for recursive deletion beyond unused cut leaves. The sqrt incremental-HPWL
+  mismatch is fixed by clipping reused coordinates before scoring them, just
+  as commit already did. Historical failures remain in the research records.
+  Equal large recipe banks give similar gains with PA2 or compress2rs; do not
+  attribute the portfolio's whole gain to AGR or geometry. Cell delay excludes
+  extracted wire parasitics. No routed-metric claim follows from ABC results.
+
+Committed experiment protocol, hashes, CEC records and numerical results:
+  examples/physical/choices/README.md
+  examples/physical/choices/results-20261117/
+
+Recompute and audit the recorded summaries:
+  python3 examples/physical/choices/analyze.py --check

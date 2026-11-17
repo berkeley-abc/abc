@@ -1,0 +1,1054 @@
+{
+  "comparisons": {
+    "epfl19/native_vs_abc_budget": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 16.385215573929344,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 10.473288127896204,
+          "median_design_reduction_pct": 9.94263862332696,
+          "paired_bootstrap_95_pct": [
+            8.156037573407893,
+            25.318259175152438
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 17.295002801219592,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 9.24027750330041,
+          "median_design_reduction_pct": 4.65722312660819,
+          "paired_bootstrap_95_pct": [
+            7.120502170714886,
+            28.485400227918525
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "square"
+          ],
+          "geomean_reduction_pct": 14.897616162406047,
+          "improved_designs": 14,
+          "leave_top_two_out_reduction_pct": 8.835871738305737,
+          "median_design_reduction_pct": 7.380046127334872,
+          "paired_bootstrap_95_pct": [
+            5.167622770992518,
+            24.922942425644393
+          ],
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "epfl19/native_vs_conventional_portfolio": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "adder",
+            "router"
+          ],
+          "geomean_reduction_pct": 2.932600469181237,
+          "improved_designs": 12,
+          "leave_top_two_out_reduction_pct": 1.6243399255945548,
+          "median_design_reduction_pct": 1.8594725247827681,
+          "paired_bootstrap_95_pct": [
+            0.48130837587069886,
+            5.415341079688112
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "mem_ctrl",
+            "i2c"
+          ],
+          "geomean_reduction_pct": -6.35131358575746,
+          "improved_designs": 3,
+          "leave_top_two_out_reduction_pct": -8.699015506105482,
+          "median_design_reduction_pct": -6.747163400279121,
+          "paired_bootstrap_95_pct": [
+            -11.572871073567146,
+            -1.2954781934042883
+          ],
+          "unchanged_designs": 2
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "epfl19/native_vs_paper_agr": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 12.054473656540477,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 6.6652738274502115,
+          "median_design_reduction_pct": 5.920956151928436,
+          "paired_bootstrap_95_pct": [
+            5.1281850511614415,
+            20.145870804769654
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 12.79930596787858,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 4.897674574830018,
+          "median_design_reduction_pct": 1.7934191751036277,
+          "paired_bootstrap_95_pct": [
+            3.31722603793077,
+            23.812791053754943
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 10.780268024477145,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 6.151941093974208,
+          "median_design_reduction_pct": 4.667021890468437,
+          "paired_bootstrap_95_pct": [
+            4.001433912490248,
+            18.165903552778914
+          ],
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "epfl19/native_vs_paper_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 15.694520026701317,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 10.392001922281692,
+          "median_design_reduction_pct": 6.1157738378346815,
+          "paired_bootstrap_95_pct": [
+            8.124826670244639,
+            24.011116577419262
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 13.18670490400484,
+          "improved_designs": 12,
+          "leave_top_two_out_reduction_pct": 3.9541821892087214,
+          "median_design_reduction_pct": 2.8144417730157856,
+          "paired_bootstrap_95_pct": [
+            1.738310961301746,
+            25.42906354774782
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "adder"
+          ],
+          "geomean_reduction_pct": 14.551896475692727,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 9.680353790885842,
+          "median_design_reduction_pct": 5.720434671156227,
+          "paired_bootstrap_95_pct": [
+            6.481751802996916,
+            22.95515931533465
+          ],
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "epfl20/native_vs_abc_budget": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "hyp",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 15.741314167823415,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 10.048976240440071,
+          "median_design_reduction_pct": 8.57947354498042,
+          "paired_bootstrap_95_pct": [
+            7.631079147566373,
+            24.187070244106906
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 16.939067656032467,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 9.275802129878755,
+          "median_design_reduction_pct": 7.170185328720995,
+          "paired_bootstrap_95_pct": [
+            6.900823401504911,
+            27.797258326668288
+          ],
+          "unchanged_designs": 1
+        }
+      },
+      "n": 20,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "epfl20/native_vs_paper_agr": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "hyp",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 11.458701601385675,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 6.27267729774576,
+          "median_design_reduction_pct": 5.548916384851194,
+          "paired_bootstrap_95_pct": [
+            4.630938392335004,
+            19.48817843919032
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 12.162756759149397,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 4.58689689150136,
+          "median_design_reduction_pct": 1.5933216139279838,
+          "paired_bootstrap_95_pct": [
+            2.8432236907708095,
+            22.973177695654933
+          ],
+          "unchanged_designs": 1
+        }
+      },
+      "n": 20,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "epfl20/native_vs_paper_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "hyp",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 14.97574747052563,
+          "improved_designs": 18,
+          "leave_top_two_out_reduction_pct": 9.848752603882414,
+          "median_design_reduction_pct": 5.863498141362234,
+          "paired_bootstrap_95_pct": [
+            7.342115459083433,
+            23.143341863717325
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 12.987820729231508,
+          "improved_designs": 13,
+          "leave_top_two_out_reduction_pct": 4.248798921578541,
+          "median_design_reduction_pct": 3.055325434006634,
+          "paired_bootstrap_95_pct": [
+            2.0915056496634583,
+            25.12675255637092
+          ],
+          "unchanged_designs": 1
+        }
+      },
+      "n": 20,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "holdout24/native_vs_compress2rs_twice": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "C1355",
+        "C1908",
+        "C2670",
+        "C3540",
+        "C5315",
+        "C6288",
+        "C7552",
+        "alu4",
+        "apex6",
+        "dalu",
+        "des",
+        "frg2",
+        "i10",
+        "i6",
+        "i7",
+        "i8",
+        "i9",
+        "k2",
+        "pair",
+        "rot",
+        "t481",
+        "too_large",
+        "vda",
+        "x3"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "t481",
+            "dalu"
+          ],
+          "geomean_reduction_pct": 16.875821846139733,
+          "improved_designs": 19,
+          "leave_top_two_out_reduction_pct": 7.502601632103467,
+          "median_design_reduction_pct": 5.591188033884026,
+          "paired_bootstrap_95_pct": [
+            5.556304731594755,
+            32.6525103980719
+          ],
+          "unchanged_designs": 3
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "t481",
+            "C7552"
+          ],
+          "geomean_reduction_pct": 14.197212895872152,
+          "improved_designs": 19,
+          "leave_top_two_out_reduction_pct": 9.252268164659142,
+          "median_design_reduction_pct": 7.787341270554982,
+          "paired_bootstrap_95_pct": [
+            7.181698912399414,
+            23.00258430980501
+          ],
+          "unchanged_designs": 2
+        }
+      },
+      "n": 24,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "holdout24/native_vs_paper_agr": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "C1355",
+        "C1908",
+        "C2670",
+        "C3540",
+        "C5315",
+        "C6288",
+        "C7552",
+        "alu4",
+        "apex6",
+        "dalu",
+        "des",
+        "frg2",
+        "i10",
+        "i6",
+        "i7",
+        "i8",
+        "i9",
+        "k2",
+        "pair",
+        "rot",
+        "t481",
+        "too_large",
+        "vda",
+        "x3"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "t481",
+            "dalu"
+          ],
+          "geomean_reduction_pct": 19.323776323066504,
+          "improved_designs": 23,
+          "leave_top_two_out_reduction_pct": 9.878775561250352,
+          "median_design_reduction_pct": 10.138215377894277,
+          "paired_bootstrap_95_pct": [
+            8.231873727650578,
+            35.204232827078464
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "t481",
+            "dalu"
+          ],
+          "geomean_reduction_pct": 15.215464834756517,
+          "improved_designs": 20,
+          "leave_top_two_out_reduction_pct": 10.861304359015808,
+          "median_design_reduction_pct": 9.816981338945592,
+          "paired_bootstrap_95_pct": [
+            8.511408490346712,
+            23.064762693390296
+          ],
+          "unchanged_designs": 1
+        }
+      },
+      "n": 24,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "holdout24/native_vs_paper_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "C1355",
+        "C1908",
+        "C2670",
+        "C3540",
+        "C5315",
+        "C6288",
+        "C7552",
+        "alu4",
+        "apex6",
+        "dalu",
+        "des",
+        "frg2",
+        "i10",
+        "i6",
+        "i7",
+        "i8",
+        "i9",
+        "k2",
+        "pair",
+        "rot",
+        "t481",
+        "too_large",
+        "vda",
+        "x3"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "t481",
+            "dalu"
+          ],
+          "geomean_reduction_pct": 20.24140577286392,
+          "improved_designs": 22,
+          "leave_top_two_out_reduction_pct": 10.612930497032002,
+          "median_design_reduction_pct": 10.871045362620023,
+          "paired_bootstrap_95_pct": [
+            8.592145068837137,
+            36.58253031109365
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "t481",
+            "frg2"
+          ],
+          "geomean_reduction_pct": 14.770329388132483,
+          "improved_designs": 20,
+          "leave_top_two_out_reduction_pct": 10.297469194954548,
+          "median_design_reduction_pct": 7.394940578451981,
+          "paired_bootstrap_95_pct": [
+            7.847932242790449,
+            23.027416318379256
+          ],
+          "unchanged_designs": 1
+        }
+      },
+      "n": 24,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "holdout24/native_vs_unguarded_native": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "C1355",
+        "C1908",
+        "C2670",
+        "C3540",
+        "C5315",
+        "C6288",
+        "C7552",
+        "alu4",
+        "apex6",
+        "dalu",
+        "des",
+        "frg2",
+        "i10",
+        "i6",
+        "i7",
+        "i8",
+        "i9",
+        "k2",
+        "pair",
+        "rot",
+        "t481",
+        "too_large",
+        "vda",
+        "x3"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "C1908",
+            "i8"
+          ],
+          "geomean_reduction_pct": -1.1597459800946255,
+          "improved_designs": 5,
+          "leave_top_two_out_reduction_pct": -1.9535325665527705,
+          "median_design_reduction_pct": 0.0,
+          "paired_bootstrap_95_pct": [
+            -4.013730754669347,
+            1.0341392245987322
+          ],
+          "unchanged_designs": 13
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "C7552",
+            "i10"
+          ],
+          "geomean_reduction_pct": -5.009318297562506,
+          "improved_designs": 2,
+          "leave_top_two_out_reduction_pct": -5.836913863622666,
+          "median_design_reduction_pct": 0.0,
+          "paired_bootstrap_95_pct": [
+            -10.602068490796842,
+            -1.0631492637169555
+          ],
+          "unchanged_designs": 13
+        }
+      },
+      "n": 24,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "holdout_without_t481/native_vs_compress2rs_twice": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "C1355",
+        "C1908",
+        "C2670",
+        "C3540",
+        "C5315",
+        "C6288",
+        "C7552",
+        "alu4",
+        "apex6",
+        "dalu",
+        "des",
+        "frg2",
+        "i10",
+        "i6",
+        "i7",
+        "i8",
+        "i9",
+        "k2",
+        "pair",
+        "rot",
+        "too_large",
+        "vda",
+        "x3"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "dalu",
+            "i9"
+          ],
+          "geomean_reduction_pct": 8.749886336554042,
+          "improved_designs": 18,
+          "leave_top_two_out_reduction_pct": 6.258379034532751,
+          "median_design_reduction_pct": 5.3133015756687385,
+          "paired_bootstrap_95_pct": [
+            4.48946894413122,
+            13.37737658852291
+          ],
+          "unchanged_designs": 3
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "C7552",
+            "frg2"
+          ],
+          "geomean_reduction_pct": 10.469753998209901,
+          "improved_designs": 18,
+          "leave_top_two_out_reduction_pct": 8.095727164905501,
+          "median_design_reduction_pct": 7.681163308561157,
+          "paired_bootstrap_95_pct": [
+            6.100367391263984,
+            15.003710296519717
+          ],
+          "unchanged_designs": 2
+        }
+      },
+      "n": 23,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "holdout_without_t481/native_vs_paper_agr": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "C1355",
+        "C1908",
+        "C2670",
+        "C3540",
+        "C5315",
+        "C6288",
+        "C7552",
+        "alu4",
+        "apex6",
+        "dalu",
+        "des",
+        "frg2",
+        "i10",
+        "i6",
+        "i7",
+        "i8",
+        "i9",
+        "k2",
+        "pair",
+        "rot",
+        "too_large",
+        "vda",
+        "x3"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "dalu",
+            "too_large"
+          ],
+          "geomean_reduction_pct": 10.952781751833378,
+          "improved_designs": 22,
+          "leave_top_two_out_reduction_pct": 8.853142661879115,
+          "median_design_reduction_pct": 9.98809523809524,
+          "paired_bootstrap_95_pct": [
+            7.353221421531554,
+            14.9312892721613
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "dalu",
+            "i9"
+          ],
+          "geomean_reduction_pct": 12.187865648638047,
+          "improved_designs": 19,
+          "leave_top_two_out_reduction_pct": 9.58798301086783,
+          "median_design_reduction_pct": 9.724288636786316,
+          "paired_bootstrap_95_pct": [
+            7.316996826958601,
+            17.44183413635081
+          ],
+          "unchanged_designs": 1
+        }
+      },
+      "n": 23,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "holdout_without_t481/native_vs_paper_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "C1355",
+        "C1908",
+        "C2670",
+        "C3540",
+        "C5315",
+        "C6288",
+        "C7552",
+        "alu4",
+        "apex6",
+        "dalu",
+        "des",
+        "frg2",
+        "i10",
+        "i6",
+        "i7",
+        "i8",
+        "i9",
+        "k2",
+        "pair",
+        "rot",
+        "too_large",
+        "vda",
+        "x3"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "dalu",
+            "too_large"
+          ],
+          "geomean_reduction_pct": 11.677602065147976,
+          "improved_designs": 21,
+          "leave_top_two_out_reduction_pct": 9.434056244565191,
+          "median_design_reduction_pct": 9.609609609609604,
+          "paired_bootstrap_95_pct": [
+            7.431355741733809,
+            16.249793770743924
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "frg2",
+            "dalu"
+          ],
+          "geomean_reduction_pct": 11.59647210933359,
+          "improved_designs": 19,
+          "leave_top_two_out_reduction_pct": 8.979474555911473,
+          "median_design_reduction_pct": 4.499712478435891,
+          "paired_bootstrap_95_pct": [
+            6.5184201289310595,
+            16.99200879084146
+          ],
+          "unchanged_designs": 1
+        }
+      },
+      "n": 23,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "holdout_without_t481/native_vs_unguarded_native": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "C1355",
+        "C1908",
+        "C2670",
+        "C3540",
+        "C5315",
+        "C6288",
+        "C7552",
+        "alu4",
+        "apex6",
+        "dalu",
+        "des",
+        "frg2",
+        "i10",
+        "i6",
+        "i7",
+        "i8",
+        "i9",
+        "k2",
+        "pair",
+        "rot",
+        "too_large",
+        "vda",
+        "x3"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "C1908",
+            "i8"
+          ],
+          "geomean_reduction_pct": -1.2104737029172532,
+          "improved_designs": 5,
+          "leave_top_two_out_reduction_pct": -2.0475039880115746,
+          "median_design_reduction_pct": 0.0,
+          "paired_bootstrap_95_pct": [
+            -4.095111591966089,
+            1.1172310813399806
+          ],
+          "unchanged_designs": 12
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "C7552",
+            "i10"
+          ],
+          "geomean_reduction_pct": -5.2327182292314545,
+          "improved_designs": 2,
+          "leave_top_two_out_reduction_pct": -6.123207088817665,
+          "median_design_reduction_pct": 0.0,
+          "paired_bootstrap_95_pct": [
+            -10.874754859506554,
+            -1.078028227550541
+          ],
+          "unchanged_designs": 12
+        }
+      },
+      "n": 23,
+      "positive_means": "candidate reduction relative to reference"
+    }
+  },
+  "process_cpu": {
+    "frontend": {
+      "abc_budget": {
+        "expected": 20,
+        "measured": 20,
+        "total_s": 1116.8600000000001
+      },
+      "conventional_portfolio": {
+        "expected": 19,
+        "measured": 0,
+        "total_s": null
+      },
+      "native": {
+        "expected": 20,
+        "measured": 20,
+        "total_s": 1112.67
+      },
+      "paper_agr": {
+        "expected": 20,
+        "measured": 20,
+        "total_s": 101.97
+      },
+      "paper_pa2": {
+        "expected": 20,
+        "measured": 20,
+        "total_s": 99.22000000000001
+      }
+    },
+    "holdout": {
+      "compress2rs_twice": {
+        "expected": 24,
+        "measured": 24,
+        "total_s": 6.74
+      },
+      "native": {
+        "expected": 24,
+        "measured": 24,
+        "total_s": 50.94
+      },
+      "paper_agr": {
+        "expected": 24,
+        "measured": 24,
+        "total_s": 15.34
+      },
+      "paper_pa2": {
+        "expected": 24,
+        "measured": 24,
+        "total_s": 13.27
+      },
+      "unguarded_native": {
+        "expected": 24,
+        "measured": 24,
+        "total_s": 63.84
+      }
+    }
+  },
+  "recorded_proofs": 523,
+  "recorded_rows": {
+    "frontend": 99,
+    "holdout": 120,
+    "mapper": 57
+  },
+  "scope": "Recorded frontend evidence and paired-design summaries; not a rerun of CEC or OpenROAD.",
+  "timeouts": [
+    "hyp"
+  ]
+}

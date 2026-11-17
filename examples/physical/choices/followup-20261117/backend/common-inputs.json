@@ -1,0 +1,162 @@
+{
+  "adder": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "21011019d6c8b02bd1407bcfee3a51aecdf83f3b3d2fb0f8aad3376f78e66b3d",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "4e909f7a284904aa7731eedd42d255f129d44c260ebdffeb0fe1f9d8d7ef3105"
+  },
+  "arbiter": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "7e87bd063962647fd29a87bbc292580841019029e9894b9384c1132365cdc897",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "21ab4182d31d86c94bd080334973510c98cdc4af81c236db40d9203e19a61e5f"
+  },
+  "bar": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "bed62f50854bbcf0e188ba9fae85d033f53267f9aac529804adb9fb4c49167f7",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "152803fbc9256adc42817f811c0b122b52fa87d75a1ba17fc72a6cefb2d80570"
+  },
+  "cavlc": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "ac2b5bf074aaa00d522dbea9487cae318ba3e3f4c79ee83894410fec7ac42fcf",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "ae0b1a6a9ace2e16122670e700dac7395caf3e3e86180709e5caf97a83f8b2cb"
+  },
+  "ctrl": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "a811f03284112beedcdda003437c7a00a3d41e91c18dd59b92e94c918400f0aa",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "73fbaeb2065a90b7bf7703eb693244ad2ea741f2063c062d80b04204cb56609a"
+  },
+  "dec": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "8f195909980e34eb684df8b3de336f3a7e38fabb7cb99afafa3d7d1968b0104b",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 40,
+    "source_sha256": "30f53766efd0a0d137dafb67ed50ea4155c4c92ebc85c1ccb8e47662bdbbaf42"
+  },
+  "div": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "59d843c30d40dfb2fae7da293eca8aed8c33dc52f784cde40e03df275006dac4",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "7638067f65bac841267dd5e5655fcf84015e50edd89a6a792fa48d330f86d701"
+  },
+  "hyp": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "a2cf644a67a5fe138d5e8c5c850c987de4be7569d8b256beed5095710c64b3b6",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "6f0bf7048c583596be680938869daab6b6e27bcd498438c6e3c21684f8b1945e"
+  },
+  "i2c": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "bc9942477e7eb2f905065c030f4e36eedfeb6247e3f20b820ab9e8603adb6e83",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "9121f4c1804fbd44311ce380316f1c106f4ac6aae6a9ad2f357aa3de9c934b90"
+  },
+  "int2float": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "ec499add8b8da4470abaa3b8af8a1ba0bd5e42a631b1bcd2e15dc1f0a5c25663",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "5d1ce7e31214ad273e489b956fe17f33528421bad95df0c63b255a55880a77ab"
+  },
+  "log2": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "f5a3a886a53d67f73ed4545595f29b6a9131ffc9e63941949793b32fa47d062d",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "6837756fd9536089c9067335d0503d366dc238ef065dfe9fd812af85d18d75bc"
+  },
+  "max": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "52f2e173376ecdb38ee3ad2790be8a95797bac0ea36940575fe491efe46af096",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "578ec6b6816abd5938376934d6d72480f09e21c278e09ad668a7e898d9e93850"
+  },
+  "mem_ctrl": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "b93e97d8936811e6d39c7b747e1cf49412b70026410410dde032ccfe02cf7d21",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "54312649ff8de61041892fe09a2c08cf9244cad4df7d67364ac9b205ee4d4f3f"
+  },
+  "multiplier": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "e0c67996d5b121f83f9b5520b4f44e23cd0ed6f94d52be6db963b48f77a9c5bb",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "fb0c5650033f204f2e1f97f9d38f01cdec0880d89276877e6e55766b456e7caa"
+  },
+  "priority": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "03ff25ce0d16d6e45741d42e8005f30859d492123b60bacb48349e0785bbb2e6",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "ab390b746d566395816150e0c3339e72aec1fcf45101905c303b740bf3740ed5"
+  },
+  "router": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "13b5f451b3ab7a853a0a7ed11865e2f07d6971f9ad34d76b0fc281e68022f48a",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "4f647f85aa75b76f89886ba703780f10d40405a2698f7bbe8e70dd51dbb4b4a8"
+  },
+  "sin": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "b37a52954e3a47e9075187c60550dfbbc89e9b99318ecbcfc31bbbf530657e66",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "d38305ddbe7292c5a049f452e2f2a421555576fb5ed92ceb20e122117c12a8ec"
+  },
+  "sqrt": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "1cdfc20862b0b95202008882012dcff8dc00887702a04c43c7225ecce2379082",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "383a73bbe131f02aba0c99bb1b60c818eefb1c0c1a929e6ac55af9f88b69de24"
+  },
+  "square": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "03e8c287aaf97178995584dd7c7ab23c612a7f1281a4eb4014bf2bb791d146aa",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "e1e1cc214f112c2716c5457b5ba50cfd8ab48523457f969fc5cb123da5c75e37"
+  },
+  "voter": {
+    "density": 0.6,
+    "dont_buffer_ports": true,
+    "neutral_mapped_sha256": "e4f155eda4a9c543b879c26dfc8b09e25d079f66e2ba422d7ecc699c89ad9796",
+    "neutral_mapping": "&get; &nf; &put",
+    "reference_utilization": 50,
+    "source_sha256": "685d89325d0eccb8827e6134df8b8397f03b7d0193840a3b151d04ede197c810"
+  }
+}

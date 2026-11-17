@@ -44,6 +44,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include "agrChoices.h"
 
 ABC_NAMESPACE_IMPL_START
 static int s_AgrVerbose = 0;
@@ -525,7 +526,7 @@ class Agr_Placement
         stagedWritten_.clear();
         editing_ = false;
 #ifdef ABC_AGR_ENABLE_AUDIT
-        if (((char *)0) != nullptr && !AuditLocalPlacement())
+        if (!AuditLocalPlacement())
             return false;
 #endif
         return std::isfinite(finalHpwl_) && std::isfinite(finalOverflow_);
@@ -1631,10 +1632,21 @@ std::mutex &CommandMutex()
 void PrintUsage(Abc_Frame_t *frame)
 {
     fprintf(Abc_FrameReadErr(frame),
-            "usage: agr [-s step] [-vh]\n"
+            "usage: agr [-s step] [-c [-b [-r]] [-fm] [-D gain] [-C num] [-W weight] [-H pct] [-T sec]] [-vh]\n"
             "       placement-guided RS/RW/RF with adaptive compact search\n"
             "       requires a strashed combinational AIG without choices or constraints\n"
             "  -s step : initial placement step in bin widths [default = 0.28]\n"
+            "  -c      : retain pass checkpoints as choices and select by mapped cost\n"
+            "  -b      : add balancing and bounded LUT don't-care alternatives (requires -c)\n"
+            "  -r      : add compression alternatives, retaining the -b winner (requires -c -b)\n"
+            "  -D gain : target cell-delay reduction from plain AGR, percent [default = 0]\n"
+            "  -C num  : SAT conflicts per choice equivalence query [default = 1000]\n"
+            "  -f      : merge at most eight contributors selected by mapped cost\n"
+            "  -m      : use the DCH engine to construct structural choices\n"
+            "  -W w    : mapped area x delay^w objective, 0 <= w <= 1 [default = 0]\n"
+            "  -H pct  : guard fixed-bin mapped HPWL vs plain AGR, allowed growth [default = off]\n"
+            "  -T sec  : choice-stage elapsed-time budget; timeout keeps plain AGR (requires -c -m)\n"
+            "            0 is unlimited; checked between transforms and DCH SAT queries\n"
             "  -v      : print placement progress\n"
             "  -h      : print this help\n");
 }
@@ -1643,11 +1655,80 @@ int Agr_CommandPlace(Abc_Frame_t *pAbc, int argc, char **argv)
 {
     std::lock_guard<std::mutex> lock(CommandMutex());
     Agr_Parameters Pars;
+    bool choices = false, diverse = false, compress = false, hasDelayGain = false;
+    bool hasConflicts = false;
+    bool filter = false, modern = false, hasDelayWeight = false;
+    bool hasWireGrowth = false, hasTimeBudget = false;
+    int conflicts = 1000;
+    double delayGain = 0.0;
+    double delayWeight = 0.0;
+    double wireGrowth = -1.0, seconds = 0.0;
     for (int i = 1; i < argc; ++i)
     {
         const std::string option(argv[i]);
         if (option == "-v")
             Pars.verbose = true;
+        else if (option == "-c")
+            choices = true;
+        else if (option == "-b")
+            diverse = true;
+        else if (option == "-r")
+            compress = true;
+        else if (option == "-f")
+            filter = true;
+        else if (option == "-m")
+            modern = true;
+        else if (option == "-H" && i + 1 < argc)
+        {
+            hasWireGrowth = true;
+            if (!ParseDouble(argv[++i], wireGrowth) || wireGrowth < 0 || wireGrowth > 100)
+            {
+                Abc_Print(-1, "agr: -H requires a finite percentage in [0, 100].\n");
+                return 1;
+            }
+        }
+        else if (option == "-T" && i + 1 < argc)
+        {
+            hasTimeBudget = true;
+            if (!ParseDouble(argv[++i], seconds) || seconds < 0 ||
+                seconds >= double(std::numeric_limits<abctime>::max() - Abc_Clock()) / CLOCKS_PER_SEC)
+            {
+                Abc_Print(-1, "agr: -T requires a finite nonnegative time budget.\n");
+                return 1;
+            }
+        }
+        else if (option == "-W" && i + 1 < argc)
+        {
+            hasDelayWeight = true;
+            if (!ParseDouble(argv[++i], delayWeight) || delayWeight < 0 || delayWeight > 1)
+            {
+                Abc_Print(-1, "agr: -W requires a finite weight in [0, 1].\n");
+                return 1;
+            }
+        }
+        else if (option == "-C" && i + 1 < argc)
+        {
+            hasConflicts = true;
+            char *end = nullptr;
+            errno = 0;
+            const long value = std::strtol(argv[++i], &end, 10);
+            if (errno == ERANGE || end == argv[i] || *end || value <= 0 ||
+                value > std::numeric_limits<int>::max())
+            {
+                Abc_Print(-1, "agr: -C requires a positive integer.\n");
+                return 1;
+            }
+            conflicts = int(value);
+        }
+        else if (option == "-D" && i + 1 < argc)
+        {
+            hasDelayGain = true;
+            if (!ParseDouble(argv[++i], delayGain) || delayGain < 0 || delayGain >= 100)
+            {
+                Abc_Print(-1, "agr: -D requires a finite percentage in [0, 100).\n");
+                return 1;
+            }
+        }
         else if (option == "-h")
         {
             PrintUsage(pAbc);
@@ -1668,6 +1749,26 @@ int Agr_CommandPlace(Abc_Frame_t *pAbc, int argc, char **argv)
         }
     }
 
+    if ((hasDelayGain || diverse || hasConflicts || filter || modern || hasDelayWeight || hasWireGrowth || hasTimeBudget) && !choices)
+    {
+        Abc_Print(-1, "agr: -D requires -c; -b requires -c; -C requires -c; -f requires -c; -m requires -c; -W requires -c; -H requires -c; -T requires -c.\n");
+        return 1;
+    }
+    if (seconds > 0 && !modern)
+    {
+        Abc_Print(-1, "agr: a choice time budget requires the interruptible DCH engine (-m).\n");
+        return 1;
+    }
+    if (compress && (!choices || !diverse))
+    {
+        Abc_Print(-1, "agr: -r requires -c -b.\n");
+        return 1;
+    }
+    if (choices && (!Abc_FrameReadLibGen() || !Abc_FrameReadLibScl()))
+    {
+        Abc_Print(-1, "agr: -c requires a Liberty library loaded with read_lib.\n");
+        return 1;
+    }
     Abc_Ntk_t *pNtk = Abc_FrameReadNtk(pAbc);
     if (pNtk == nullptr)
     {
@@ -1692,6 +1793,13 @@ int Agr_CommandPlace(Abc_Frame_t *pAbc, int argc, char **argv)
         return 1;
     }
     s_AgrVerbose = Pars.verbose;
+    AgrChoiceSession choiceSession(choices);
+    struct ChoiceScope
+    {
+        explicit ChoiceScope(AgrChoiceSession *session) { s_ChoiceSession = session; }
+        ~ChoiceScope() { s_ChoiceSession = nullptr; }
+    } choiceScope(choices ? &choiceSession : nullptr);
+    Agr_ChoiceCheckpoint(pNtk);
     abctime Clock = Abc_Clock();
     // Confine coupled dispatch to this invocation.
 
@@ -1727,6 +1835,15 @@ int Agr_CommandPlace(Abc_Frame_t *pAbc, int argc, char **argv)
     Abc_Ntk_t *result = Abc_NtkStrash(pNtk, 0, 1, 0);
     if (!result)
         return 1;
+    if (choices)
+    {
+        Abc_Ntk_t *selected = choiceSession.Finish(result, delayGain, diverse, compress,
+            conflicts, filter, modern, delayWeight, wireGrowth, Pars.step, seconds, Pars.verbose);
+        if (selected) { Abc_NtkDelete(result); result = selected; }
+        else if (choiceSession.TimedOut())
+            Abc_Print(0, "agr: choice time budget exhausted; retaining the plain AGR endpoint.\n");
+        else Abc_Print(0, "agr: choice shaping failed; retaining the plain AGR endpoint.\n");
+    }
     Abc_FrameReplaceCurrentNetwork(pAbc, result);
     return 0;
 }

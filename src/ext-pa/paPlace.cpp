@@ -111,7 +111,7 @@ class Pa_Placement
         fingerprint_ = ComputeFingerprint(pNtk_);
     }
 
-    void Run()
+    bool Run( abctime Time2Quit = 0 )
     {
         initialHpwl_ = Hpwl();
         initialOverflow_ = UpdateDensity();
@@ -121,6 +121,8 @@ class Pa_Placement
         bool FineGrid = bins_ >= 512;
         for ( ; Iter < pars_.iterations + pars_.extraIterations; ++Iter )
         {
+            if ( Time2Quit && Abc_Clock() >= Time2Quit )
+                return false;
             double Overflow = UpdateDensity();
             if ( Iter >= pars_.iterations && Overflow <= 0.095 )
             {
@@ -173,10 +175,13 @@ class Pa_Placement
         }
         actualIterations_ = Iter;
         SpreadToOverflow(0.095);
+        if ( Time2Quit && Abc_Clock() >= Time2Quit )
+            return false;
         RefineHpwlWithCapacity(pars_.refineRounds, 0.099);
         finalHpwl_ = Hpwl();
         finalOverflow_ = UpdateDensity();
         RebuildObjectIndex();
+        return !Time2Quit || Abc_Clock() < Time2Quit;
     }
 
     bool ImportMappedCoordinates(
@@ -1604,6 +1609,26 @@ void Pa_RegisterPlacementCommands( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Physical synthesis", "pa_place", Pa_CommandPlace, 0 );
     Cmd_CommandAdd( pAbc, "Physical synthesis", "pa_stats", Pa_CommandStats, 0 );
     Cmd_CommandAdd( pAbc, "Physical synthesis", "pa_time", Pa_CommandTime, 0 );
+}
+
+int Pa_ManMeasureMappedHpwl( Abc_Ntk_t * pNtk, int * pBins, double Step,
+    double * pHpwl, abctime Time2Quit )
+{
+    if ( !pNtk || !Abc_NtkHasMapping(pNtk) || !pBins
+      || !std::isfinite(Step) || Step <= 0 || *pBins < 0 || *pBins > 512
+      || (*pBins && (*pBins < 2 || (*pBins & (*pBins - 1)))) )
+        return 0;
+    Pa_Parameters Pars;
+    Pars.bins = *pBins;
+    Pars.step = Step;
+    Pa_Placement Placement(pNtk, Pars);
+    *pBins = Placement.BinCount();
+    if ( !pHpwl )
+        return 1;
+    if ( !Placement.Run(Time2Quit) )
+        return 0;
+    *pHpwl = Placement.FinalHpwl();
+    return std::isfinite(*pHpwl) && *pHpwl >= 0;
 }
 
 int Pa_ManHasPlacement( Abc_Ntk_t * pNtk )

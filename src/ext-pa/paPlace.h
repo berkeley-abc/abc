@@ -52,6 +52,12 @@ int Pa_ManReadDensityBin( Abc_Ntk_t * pNtk, int BinX, int BinY,
 int Pa_ManReadMetrics( Abc_Ntk_t * pNtk, double * pHpwl,
     double * pOverflow, double * pHpwlScale, double * pCellArea );
 void Pa_ManClearPlacement();
+/* Measure a private mapped network without replacing the current placement.
+ * A zero bin count selects the grid once and returns it for reuse by callers.
+ * A null HPWL pointer only selects the grid. Time2Quit uses Abc_Clock units;
+ * zero disables the cooperative placement deadline. */
+int Pa_ManMeasureMappedHpwl( Abc_Ntk_t * pNtk, int * pBins, double Step,
+    double * pHpwl, abctime Time2Quit );
 
 #ifdef __cplusplus
 }

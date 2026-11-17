@@ -1,0 +1,138 @@
+[
+  {
+    "check": "input",
+    "status": "passed"
+  },
+  {
+    "check": "agr",
+    "status": "passed"
+  },
+  {
+    "check": "cec_agr",
+    "status": "passed"
+  },
+  {
+    "check": "legacy_alias",
+    "status": "passed"
+  },
+  {
+    "check": "cec_legacy_alias",
+    "status": "passed"
+  },
+  {
+    "check": "repeat",
+    "status": "passed"
+  },
+  {
+    "check": "cec_repeat",
+    "status": "passed"
+  },
+  {
+    "check": "native_handoff",
+    "status": "passed"
+  },
+  {
+    "check": "cec_native_handoff",
+    "status": "passed"
+  },
+  {
+    "check": "pa2",
+    "status": "passed"
+  },
+  {
+    "check": "cec_pa2",
+    "status": "passed"
+  },
+  {
+    "check": "agr_after_pa",
+    "status": "passed"
+  },
+  {
+    "check": "cec_agr_after_pa",
+    "status": "passed"
+  },
+  {
+    "check": "pa_after_agr",
+    "status": "passed"
+  },
+  {
+    "check": "cec_pa_after_agr",
+    "status": "passed"
+  },
+  {
+    "check": "mapping",
+    "status": "passed"
+  },
+  {
+    "check": "cec_mapping",
+    "status": "passed"
+  },
+  {
+    "check": "cluster_feedback",
+    "status": "passed"
+  },
+  {
+    "check": "cec_cluster_feedback",
+    "status": "passed"
+  },
+  {
+    "check": "undo",
+    "status": "passed"
+  },
+  {
+    "check": "cec_undo",
+    "status": "passed"
+  },
+  {
+    "check": "reread",
+    "status": "passed"
+  },
+  {
+    "check": "cec_reread",
+    "status": "passed"
+  },
+  {
+    "check": "empty",
+    "status": "passed"
+  },
+  {
+    "check": "unstrashed",
+    "status": "passed"
+  },
+  {
+    "check": "sequential",
+    "status": "passed"
+  },
+  {
+    "check": "invalid_0",
+    "status": "passed"
+  },
+  {
+    "check": "invalid_-1",
+    "status": "passed"
+  },
+  {
+    "check": "invalid_nan",
+    "status": "passed"
+  },
+  {
+    "check": "invalid_inf",
+    "status": "passed"
+  },
+  {
+    "check": "invalid_invalid",
+    "status": "passed"
+  },
+  {
+    "check": "unknown_option",
+    "status": "passed"
+  },
+  {
+    "check": "missing_argument",
+    "status": "passed"
+  },
+  {
+    "check": "help",
+    "status": "passed"
+  }
+]

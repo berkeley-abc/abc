@@ -318,10 +318,16 @@ static ArrivalCounters &arrivalStats()
     static ArrivalCounters c;
     return c;
 }
-static double wireChangeTolerance()
+// An unconstrained timing model contributes no score. Subtracting two
+// infinite potentials would otherwise turn an otherwise valid score into NaN.
+static double AgrEval_SlackPotentialDelta(double OldSlack, double NewSlack)
 {
-    static const double v = (1e-6);
-    return v;
+    if (OldSlack == std::numeric_limits<double>::infinity() && OldSlack == NewSlack)
+        return 0.0;
+    if (!std::isfinite(OldSlack) || !std::isfinite(NewSlack))
+        return std::numeric_limits<double>::quiet_NaN();
+    auto Potential = [](double Slack) { return Slack > 0.0 ? std::log1p(Slack) : Slack; };
+    return Potential(NewSlack) - Potential(OldSlack);
 }
 struct AgrEval_TimingCache
 {
@@ -335,7 +341,6 @@ struct AgrEval_TimingCache
     unsigned updateStamp = 0;
     std::vector<unsigned> positionStamp;
     std::vector<unsigned> arrivalQueueStamp;
-    std::vector<unsigned> arrivalAllowedStamp;
     std::vector<unsigned> refreshStamp;
     std::vector<int> workQueue;
     // Intrusive level buckets for unrestricted forward timing propagation.
@@ -378,7 +383,6 @@ struct AgrEval_TimingCache
         arrivalQueueStamp.assign(nodes.size(), 0);
         arrivalNext.resize(nodes.size());
         arrivalLevelHead.clear();
-        arrivalAllowedStamp.assign(nodes.size(), 0);
         refreshStamp.assign(nodes.size(), 0);
         updateStamp = 0;
         refreshGeneration = 0;
@@ -461,7 +465,7 @@ struct AgrEval_TimingCache
     }
 
     bool UpdateAfterLocalEdit(Abc_Ntk_t *pNtk, const std::vector<int> &PositionIds,
-                              const std::vector<int> &StructuralIds, int ProcessedRootId,
+                              const std::vector<int> &StructuralIds,
                               bool LevelsCurrent)
     {
         AGR_PROFILE_SCOPE(ArrivalPropagation);
@@ -475,14 +479,12 @@ struct AgrEval_TimingCache
             positionStamp.resize(ObjectMax, 0);
             arrivalQueueStamp.resize(ObjectMax, 0);
             arrivalNext.resize(ObjectMax);
-            arrivalAllowedStamp.resize(ObjectMax, 0);
             refreshStamp.resize(ObjectMax, 0);
         }
         if (++updateStamp == 0)
         {
             std::fill(positionStamp.begin(), positionStamp.end(), 0);
             std::fill(arrivalQueueStamp.begin(), arrivalQueueStamp.end(), 0);
-            std::fill(arrivalAllowedStamp.begin(), arrivalAllowedStamp.end(), 0);
             updateStamp = 1;
         }
         lastRefreshRootId = -1;
@@ -504,19 +506,18 @@ struct AgrEval_TimingCache
 
         /* Arrival is a forward data-flow problem.  Seed every changed object
            and every fanout whose incident edge or fanin identity changed.
-           Propagate through all live old objects up to the processed root ID.
-           This restores the already-visited prefix after moving a reused
-           object; future roots repair their own cones lazily.  Explicitly
-           seeded high-ID new objects and direct fanouts are still updated. */
+           Propagate to every affected fanout. Object IDs are allocation order,
+           not topological order: a newly allocated node can drive an older
+           object, including a boundary of the next candidate's marked cone. */
         workQueue.clear();
         // With unrestricted rs propagation, a FIFO can revisit a reconvergent
         // cone once per path length. ABC has already updated structural levels
         // in Abc_AigReplace. Bucket by those levels (not old IDs/timing ranks)
         // so each node follows all affected fanins, without a heap operation
         // per node. Buckets drain completely and are reused at the next edit.
-        // The bounded rw/rf proxy and level-update-disabled mode retain their
-        // existing worklist semantics.
-        bool Ordered = LevelsCurrent && ProcessedRootId == ABC_INFINITY;
+        // When structural levels are unavailable, the FIFO revisits nodes
+        // after changed fanins and reaches the same forward fixed point.
+        bool Ordered = LevelsCurrent;
         int MinArrivalLevel = ABC_INFINITY, MaxArrivalLevel = -1;
         auto EnqueueArrival = [&](int Id)
         {
@@ -524,7 +525,6 @@ struct AgrEval_TimingCache
                 Abc_NtkObj(pNtk, Id) == nullptr)
                 return;
             arrivalQueueStamp[Id] = updateStamp;
-            arrivalAllowedStamp[Id] = updateStamp;
             if (Ordered)
             {
                 Abc_Obj_t *Object = Abc_NtkObj(pNtk, Id);
@@ -595,7 +595,7 @@ struct AgrEval_TimingCache
             AGR_PROFILE_COUNT(ArrivalNodes, 1);
             const AgrEval_Arrival OldArrival = nodes[Id].arrival;
             bool Changed = OldArrival.logic != NewArrival.logic ||
-                           !SameWireValue(OldArrival.wire, NewArrival.wire);
+                           OldArrival.wire != NewArrival.wire;
             arrivalStats().visits++;
             if (OldArrival.logic != NewArrival.logic)
                 arrivalStats().logic++;
@@ -608,27 +608,16 @@ struct AgrEval_TimingCache
                 if (rel < 1e-3)
                     arrivalStats().wireTiny++;
             }
-            if (Changed && wireChangeTolerance() > 0 && OldArrival.logic == NewArrival.logic)
-            {
-                const double rel = std::fabs(OldArrival.wire - NewArrival.wire) /
-                                   std::max(1e-12, std::max(std::fabs(OldArrival.wire),
-                                                            std::fabs(NewArrival.wire)));
-                if (rel < wireChangeTolerance())
-                {
-                    Changed = false;
-                    arrivalStats().pruned++;
-                }
-            }
+            // Updating this arrival while suppressing a small change leaves
+            // its fanouts stale. Propagate every stored change; a numerical
+            // tolerance remains appropriate for audits, not dependency repair.
             nodes[Id].arrival = NewArrival;
             topoRank[Id] = NewArrival.logic;
             if (!Changed)
                 continue;
             Abc_Obj_t *pFanout;
             int i;
-            Abc_ObjForEachFanout(pObject, pFanout,
-                                 i) if (pFanout->Id <= ProcessedRootId ||
-                                        arrivalAllowedStamp[pFanout->Id] == updateStamp)
-                EnqueueArrival(pFanout->Id);
+            Abc_ObjForEachFanout(pObject, pFanout, i) EnqueueArrival(pFanout->Id);
         }
         return true;
     }
@@ -885,7 +874,6 @@ struct AgrEval_TimingCache
             topoRank.resize(ObjectMax, 0);
             positionStamp.resize(ObjectMax, 0);
             arrivalQueueStamp.resize(ObjectMax, 0);
-            arrivalAllowedStamp.resize(ObjectMax, 0);
             refreshStamp.resize(ObjectMax, 0);
         }
         if (++refreshGeneration == 0)
@@ -1221,6 +1209,7 @@ class AgrEval_ObjectSet
             return {it, false};
         return {items_.insert(it, v), true};
     }
+    void clear() { items_.clear(); }
     void erase(Abc_Obj_t *v)
     {
         auto it = lower(v);
@@ -1228,6 +1217,31 @@ class AgrEval_ObjectSet
             items_.erase(it);
     }
 };
+
+// Predict Abc_AigDeleteNode's transitive dereferencing without changing the
+// live graph. Added references are those created by materialization and by
+// redirecting the root's fanouts to an existing replacement signal.
+static std::vector<Abc_Obj_t *> AgrEval_DeletionCone(
+    Abc_Obj_t *root, const std::unordered_map<Abc_Obj_t *, int> &addedReferences)
+{
+    std::vector<Abc_Obj_t *> removed{root};
+    std::unordered_map<Abc_Obj_t *, int> remaining;
+    for (size_t i = 0; i < removed.size(); ++i)
+    {
+        Abc_Obj_t *fanin; int k;
+        Abc_ObjForEachFanin(removed[i], fanin, k)
+        {
+            if (!Abc_ObjIsNode(fanin)) continue;
+            auto added = addedReferences.find(fanin);
+            const int refs = Abc_ObjFanoutNum(fanin) +
+                (added == addedReferences.end() ? 0 : added->second);
+            auto entry = remaining.emplace(fanin, refs).first;
+            if (--entry->second == 0)
+                removed.push_back(fanin);
+        }
+    }
+    return removed;
+}
 
 /* Allocation-free structural screen for small decomposition graphs. It uses
    the same live/virtual hashing, simplification and zero-fanout rules as the
@@ -1318,8 +1332,11 @@ static bool AgrEval_StructuralScreen(Abc_Obj_t *Root, Dec_Graph_t *Graph, int Sa
                 }
                 if (Result < 0)
                 {
-                    if (++NewCount > Saved + 0)
-                        return false;
+                    // An unused cut leaf can disappear with its fanin
+                    // cone. The cut-bounded Saved count cannot prove a
+                    // negative gain; defer this case to the exact planner.
+                    if (++NewCount > Saved)
+                        return true;
                     int Level = 1 + std::max(Entries[A / 2].level, Entries[B / 2].level);
                     Entries[Count] = Entry{nullptr, 0, Level, Low, High};
                     Result = 2 * Count++;
@@ -2131,8 +2148,12 @@ class AgrEval_CandidatePlan
                inactive model from inheriting weight from the active one.
                There is no timing bucket or hard slack cutoff: a candidate is
                accepted or rejected by the same node/HPWL/timing score. */
-            double OldLogicSlack = static_cast<double>(OldRequiredLogic - OldRoot.arrival.logic);
-            double NewLogicSlack = static_cast<double>(NewRequiredLogic - NewRoot.logic);
+            double OldLogicSlack = OldRequiredLogic == ABC_INFINITY
+                                       ? std::numeric_limits<double>::infinity()
+                                       : static_cast<double>(OldRequiredLogic - OldRoot.arrival.logic);
+            double NewLogicSlack = NewRequiredLogic == ABC_INFINITY
+                                       ? std::numeric_limits<double>::infinity()
+                                       : static_cast<double>(NewRequiredLogic - NewRoot.logic);
             double OldWireSlack = (OldRequiredWire - OldRoot.arrival.wire) / s_Timing.wireScale;
             double NewWireSlack = (NewRequiredWire - NewRoot.wire) / s_Timing.wireScale;
             double LogicCriticality = 1.0 / (1.0 + std::max(0.0, OldLogicSlack));
@@ -2148,6 +2169,9 @@ class AgrEval_CandidatePlan
                 if (pFanout->Id < 0 || pFanout->Id >= static_cast<int>(s_Timing.nodes.size()))
                     continue;
                 const AgrEval_TimingNode &FanoutTiming = s_Timing.nodes[pFanout->Id];
+                if (FanoutTiming.requiredLogic == ABC_INFINITY &&
+                    FanoutTiming.requiredWire == std::numeric_limits<double>::infinity())
+                    continue;
                 AgrEval_Arrival NewFanout;
                 if (s_ExactTimingEvaluation)
                 {
@@ -2232,16 +2256,13 @@ class AgrEval_CandidatePlan
                 // The antiderivative of c(s)=1/(1+max(0,s)). Unlike
                 // c(old)*clip(delta), this charges the entire transition
                 // into negative slack and never saturates a timing loss.
-                auto Potential = [](double Slack)
-                { return Slack > 0.0 ? std::log1p(Slack) : Slack; };
-
                 const double effectiveWeight = (s_TimingWeight);
                 // Integrate criticality over the complete slack change.
-                score_ += effectiveWeight * (Potential(NewLogicSlack) - Potential(OldLogicSlack) +
-                                             Potential(NewWireSlack) - Potential(OldWireSlack));
+                score_ += effectiveWeight * (AgrEval_SlackPotentialDelta(OldLogicSlack, NewLogicSlack) +
+                                             AgrEval_SlackPotentialDelta(OldWireSlack, NewWireSlack));
                 if (HasFanoutSlack)
                     score_ +=
-                        effectiveWeight * (Potential(NewFanoutSlack) - Potential(OldFanoutSlack));
+                        effectiveWeight * AgrEval_SlackPotentialDelta(OldFanoutSlack, NewFanoutSlack);
                 return std::isfinite(score_);
             }
             double FanoutTerm = 0.0;
@@ -2553,37 +2574,22 @@ class AgrEval_CandidatePlan
     void ComputeRemovedAfterMaterialization()
     {
         AGR_SPEED_SCOPE(Materialization);
-        /* New ANDs are created before ABC replaces the old root.  Every old
-           MFFC node used by a new AND, or used as the replacement result,
-           gains a surviving fanout.  Its old MFFC fanin cone survives too. */
-        AgrEval_ObjectSet Retained;
-        std::vector<Abc_Obj_t *> Stack;
+        // ABC recursively deletes every unused fanin after replacing the
+        // root, including cut leaves that the replacement no longer uses.
+        // A cut-bounded MFFC therefore is not the actual deletion boundary.
+        std::unordered_map<Abc_Obj_t *, int> addedReferences;
         for (int NewEntity : virtualEntities_)
         {
             const auto &Inputs = virtualInputs_[NewEntity];
             for (int Child : {Inputs.first.entity, Inputs.second.entity})
-            {
-                Abc_Obj_t *pChild = entities_[Child].object;
-                if (pChild != nullptr && removed_.count(pChild))
-                    Stack.push_back(pChild);
-            }
+                if (entities_[Child].object)
+                    ++addedReferences[entities_[Child].object];
         }
-        Abc_Obj_t *pResult = entities_[resultEntity_].object;
-        if (pResult != nullptr && removed_.count(pResult))
-            Stack.push_back(pResult);
-        while (!Stack.empty())
-        {
-            Abc_Obj_t *pObject = Stack.back();
-            Stack.pop_back();
-            if (!Retained.insert(pObject).second)
-                continue;
-            Abc_Obj_t *pFanin;
-            int i;
-            Abc_ObjForEachFanin(pObject, pFanin, i) if (removed_.count(Abc_ObjRegular(pFanin)))
-                Stack.push_back(Abc_ObjRegular(pFanin));
-        }
-        for (Abc_Obj_t *pObject : Retained)
-            removed_.erase(pObject);
+        if (entities_[resultEntity_].object)
+            addedReferences[entities_[resultEntity_].object] += Abc_ObjFanoutNum(pRoot_);
+        removed_.clear();
+        for (Abc_Obj_t *object : AgrEval_DeletionCone(pRoot_, addedReferences))
+            removed_.insert(object);
         // Pointer-hash iteration changes with allocation/ASLR. Numeric sums,
         // density updates and placement staging must use stable object IDs.
         orderedRemoved_.assign(removed_.begin(), removed_.end());
@@ -3141,6 +3147,7 @@ class AgrEval_CandidatePlan
             {
                 const AgrEval_Geometry &Geometry = entities_[Entity].geometry;
                 Region = AgrEval_Rectangle{Geometry.x, Geometry.x, Geometry.y, Geometry.y, true};
+                ClampRectangle(Entity, &Region);
             }
             PlaceInRectangle(Entity, Region);
             Assigned[Entity] = 1;
@@ -3193,6 +3200,12 @@ class AgrEval_CandidatePlan
             {
                 auto &e = entities_[id];
                 Agr_ManReadObjectPosition(pNtk_, e.object, &e.geometry.x, &e.geometry.y);
+                // A previous polarity change can widen a reused cell at
+                // the canvas edge. Score the same clipped coordinates that
+                // WriteObjectPosition will materialize, including density.
+                e.geometry.x = AgrEval_Clamp(e.geometry.x, 0.5 * e.geometry.width,
+                                             width_ - 0.5 * e.geometry.width);
+                e.geometry.y = AgrEval_Clamp(e.geometry.y, 0.5, height_ - 0.5);
                 density_->Add(e.geometry, 1.);
                 densityPresent_[id] = 1;
             }
@@ -3595,7 +3608,6 @@ int AgrEval_ManCommitCandidate(Abc_Obj_t *pRoot, Dec_Graph_t *pGraph, Vec_Ptr_t 
     if (pRoot == nullptr || pGraph == nullptr || vLeaves == nullptr)
         return 0;
     Abc_Ntk_t *pNtk = pRoot->pNtk;
-    int ProcessedRootId = pRoot->Id;
     int nNodesSaved = AgrEval_MarkMffc(pRoot, vLeaves);
 
     AgrEval_CandidatePlan Plan(pRoot, pGraph, nNodesSaved, ABC_INFINITY);
@@ -3719,8 +3731,7 @@ int AgrEval_ManCommitCandidate(Abc_Obj_t *pRoot, Dec_Graph_t *pGraph, Vec_Ptr_t 
             for (const AgrEval_DirectFanout &Entry : DirectFanouts)
                 StructuralIds.push_back(Entry.id);
             TimingUpdated = s_Timing.UpdateAfterLocalEdit(
-                pNtk, PositionIds, StructuralIds,
-                s_ExactTimingEvaluation ? ABC_INFINITY : ProcessedRootId, fUpdateLevel != 0);
+                pNtk, PositionIds, StructuralIds, fUpdateLevel != 0);
             if (TimingUpdated && s_RequiredTimingEvaluation)
             {
                 RequiredSeeds.insert(RequiredSeeds.end(), PositionIds.begin(), PositionIds.end());

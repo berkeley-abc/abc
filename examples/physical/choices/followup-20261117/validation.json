@@ -1,0 +1,280 @@
+{
+  "choices": {
+    "checks": [
+      "input",
+      "plain_reference",
+      "plain_parity",
+      "state_isolation",
+      "cec_choices",
+      "cec_restored",
+      "repeat",
+      "cec_repeat",
+      "diverse",
+      "mfs_fx_parity",
+      "cec_diverse",
+      "compressed_state",
+      "cec_compressed",
+      "cec_compressed-restored",
+      "requires_diversity",
+      "reject_conflicts_zero",
+      "reject_conflicts_fraction",
+      "requires_choices_conflicts",
+      "requires_choices_filter",
+      "modern",
+      "cec_modern",
+      "requires_choices_modern",
+      "weighted",
+      "cec_weighted",
+      "wire_guard",
+      "wire_guard_measure",
+      "cec_guarded",
+      "unlimited_parity",
+      "choice_timeout",
+      "cec_timeout",
+      "cec_timeout-restored",
+      "requires_choices_wire",
+      "reject_wire_nan",
+      "reject_wire_negative",
+      "requires_choices_time",
+      "requires_dch_time",
+      "reject_time_negative",
+      "reject_time_nan",
+      "reject_delay_weight_nan",
+      "reject_delay_weight_large",
+      "requires_lib",
+      "reject_nan",
+      "reject_negative",
+      "requires_choices"
+    ],
+    "status": "passed"
+  },
+  "deletion_cone": [
+    "unused_cut_leaf: passed",
+    "shared_boundary: passed",
+    "reassociated_cone: passed",
+    "new_reference: passed",
+    "reused_result: passed"
+  ],
+  "hyp_fallback": {
+    "mapped_area": 14317.55,
+    "mapped_delay_ps": 313688.0,
+    "native_endpoint_sha256": "474fd5b61a0e4b90454082e38c630c194b33689d94a892dbf591b4efc608826b",
+    "ordinary_endpoint_sha256": "e393b96df486add9154b0a8e08a298a06632012aa34bad966954bfe234fb4474",
+    "ordinary_mapping_proof": "f3670d0f87005c9777f9e3b95994d5cfe3f681888473db4312ce626ecccf7edf",
+    "ordinary_source_proof": "7bab2aa16e24ac7a13882c56433f9f484b9b5cb22e3e44fc4c65be297809d55a",
+    "scope": "The campaign also asserts identical AIGER graph payloads; timestamp/comment trailers can differ."
+  },
+  "integration": [
+    {
+      "check": "input",
+      "status": "passed"
+    },
+    {
+      "check": "agr",
+      "status": "passed"
+    },
+    {
+      "check": "cec_agr",
+      "status": "passed"
+    },
+    {
+      "check": "legacy_alias",
+      "status": "passed"
+    },
+    {
+      "check": "cec_legacy_alias",
+      "status": "passed"
+    },
+    {
+      "check": "repeat",
+      "status": "passed"
+    },
+    {
+      "check": "cec_repeat",
+      "status": "passed"
+    },
+    {
+      "check": "native_handoff",
+      "status": "passed"
+    },
+    {
+      "check": "cec_native_handoff",
+      "status": "passed"
+    },
+    {
+      "check": "pa2",
+      "status": "passed"
+    },
+    {
+      "check": "cec_pa2",
+      "status": "passed"
+    },
+    {
+      "check": "agr_after_pa",
+      "status": "passed"
+    },
+    {
+      "check": "cec_agr_after_pa",
+      "status": "passed"
+    },
+    {
+      "check": "pa_after_agr",
+      "status": "passed"
+    },
+    {
+      "check": "cec_pa_after_agr",
+      "status": "passed"
+    },
+    {
+      "check": "mapping",
+      "status": "passed"
+    },
+    {
+      "check": "cec_mapping",
+      "status": "passed"
+    },
+    {
+      "check": "cluster_feedback",
+      "status": "passed"
+    },
+    {
+      "check": "cec_cluster_feedback",
+      "status": "passed"
+    },
+    {
+      "check": "undo",
+      "status": "passed"
+    },
+    {
+      "check": "cec_undo",
+      "status": "passed"
+    },
+    {
+      "check": "reread",
+      "status": "passed"
+    },
+    {
+      "check": "cec_reread",
+      "status": "passed"
+    },
+    {
+      "check": "empty",
+      "status": "passed"
+    },
+    {
+      "check": "unstrashed",
+      "status": "passed"
+    },
+    {
+      "check": "sequential",
+      "status": "passed"
+    },
+    {
+      "check": "invalid_0",
+      "status": "passed"
+    },
+    {
+      "check": "invalid_-1",
+      "status": "passed"
+    },
+    {
+      "check": "invalid_nan",
+      "status": "passed"
+    },
+    {
+      "check": "invalid_inf",
+      "status": "passed"
+    },
+    {
+      "check": "invalid_invalid",
+      "status": "passed"
+    },
+    {
+      "check": "unknown_option",
+      "status": "passed"
+    },
+    {
+      "check": "missing_argument",
+      "status": "passed"
+    },
+    {
+      "check": "help",
+      "status": "passed"
+    }
+  ],
+  "namespace_compilation": {
+    "sources": {
+      "src/ext-agr/agrEvaluate.cpp": "67d75971bb3a4398eb5a21913f3174a206cdeaff5cbbf9d5681bb678782b4251",
+      "src/ext-agr/agrPlace.cpp": "ec5300eb5a80427699f1748bcb2d5f95a4c35c5c2da23d85d98eaac6de108602",
+      "src/ext-pa/paPlace.cpp": "c53f60d51d83b769b6fac87640fef9dbbe006f69b2227474c28004ec381d8950"
+    },
+    "status": "passed"
+  },
+  "placement_consistency": [
+    {
+      "design": "sqrt",
+      "status": "passed",
+      "step": 0.26
+    },
+    {
+      "design": "sqrt",
+      "status": "passed",
+      "step": 0.27
+    },
+    {
+      "design": "sqrt",
+      "status": "passed",
+      "step": 0.28
+    },
+    {
+      "design": "sqrt",
+      "status": "passed",
+      "step": 0.29
+    },
+    {
+      "design": "sqrt",
+      "status": "passed",
+      "step": 0.3
+    },
+    {
+      "design": "square",
+      "status": "passed",
+      "step": 0.26
+    },
+    {
+      "design": "square",
+      "status": "passed",
+      "step": 0.27
+    },
+    {
+      "design": "square",
+      "status": "passed",
+      "step": 0.28
+    },
+    {
+      "design": "square",
+      "status": "passed",
+      "step": 0.29
+    },
+    {
+      "design": "square",
+      "status": "passed",
+      "step": 0.3
+    }
+  ],
+  "source_hashes": {
+    "src/ext-agr/agrBroad.h": "928922c2fea524b31b12a822e48c57d1982834d7da39fe529c68c93bfbe01fcd",
+    "src/ext-agr/agrChoices.h": "041bc3b7cfd80ffbd1d90f78ae69f00c843e80a3d41811c9ff66e14816995b6b",
+    "src/ext-agr/agrEvaluate.cpp": "67d75971bb3a4398eb5a21913f3174a206cdeaff5cbbf9d5681bb678782b4251",
+    "src/ext-agr/agrInit.cpp": "70105ab98448484c16add5dea4dc382a16ebb4d53a2ec469f75732c77038128e",
+    "src/ext-agr/agrPlace.cpp": "ec5300eb5a80427699f1748bcb2d5f95a4c35c5c2da23d85d98eaac6de108602",
+    "src/ext-agr/agrPlace.h": "9ba1dc02c1562a3265c6477f08f75732f5caf86f60e06b883346acfc38971272",
+    "src/ext-pa/paPlace.cpp": "c53f60d51d83b769b6fac87640fef9dbbe006f69b2227474c28004ec381d8950",
+    "src/ext-pa/paPlace.h": "4689e27183ad29022b0a118bc9dfb53bcf6fb5fa443c12d8907087c91ab4001d",
+    "test/physical/choices_regression.py": "38e6edc581c785b86b231de8825bfebefe66e20497162e45f31b2ec4c0024166",
+    "test/physical/deletion_cone_test.cpp": "bf7532f079388b378fb24ad784cf0d4fe453a53336a58ac387386b724980af12",
+    "test/physical/placement_consistency.py": "4019cce58401da63afbea5902a4c0b48c261606cde53e4ed4a288881ab1c53c3",
+    "test/physical/timing_cache_test.cpp": "4c5b51b67d0323d6ac89408e96a0d7cf302f795fd9f6b93d6b3b6697d76b340b"
+  },
+  "sqrt_clipping_only_source_proof": "b6c5527e00a43927d307f1d8c18c265bc87589332a0ad36b7f5c1a32ced25bf0"
+}

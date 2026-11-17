@@ -1,0 +1,161 @@
+{
+  "attribution": "External conventional bank and native bank/selectors differ. No isolated geometry effect.",
+  "backend_implementation": {
+    "backend_helper_sha256": "f86e8b53953ba326e5c784a3d3ca8d1990637450b16e03d08df7a9e0de38bb56",
+    "final_proof_helper_sha256": "3bd4bf78191fd22d189d9daf71f396b90d98254d0f4dbac8e4764992d8e87e53",
+    "frontend_helper_sha256": "2469844a55022c239526cb04edca97f03f709d93fcf5e173b3d665cf42e3979c",
+    "helper_sha256": "e291fa5cf9378ab8e1f8016f80540047eafa6a30e59680eb79ecf7c7884a91a5",
+    "liberty_sha256": "70cae62f9a4817dfc60c1ec6eb33161f93bbfce7f85786b6faa077cfd17e01fb",
+    "tools": {
+      "openroad": "3b62ef650605e3ef14770e2fbf30a65bcd1514523e7daacecd4b762b986489a5",
+      "yosys": "e708a97920d91b12e7f41afd0ec84920983e48f13053057076623beebedfcf72",
+      "yosys-abc": "bcb7470b72a4e544a0eba32f2e30ba67821f56a01294234224857d23b410be24"
+    }
+  },
+  "cohort": "Single-invocation endpoints with extra search; not a new Table II in-flow experiment.",
+  "command": "agr -c -b -r -m -W 0.25 -H 3 -T 300",
+  "conventional_designs": [
+    "adder",
+    "arbiter",
+    "bar",
+    "cavlc",
+    "ctrl",
+    "dec",
+    "div",
+    "i2c",
+    "int2float",
+    "log2",
+    "max",
+    "mem_ctrl",
+    "multiplier",
+    "priority",
+    "router",
+    "sin",
+    "sqrt",
+    "square",
+    "voter"
+  ],
+  "coverage_policy": "Retain every expected endpoint. Failed proofs or physical runs are coverage failures; do not replace unknown physical metrics with zero gain.",
+  "epfl_designs": [
+    "adder",
+    "arbiter",
+    "bar",
+    "cavlc",
+    "ctrl",
+    "dec",
+    "div",
+    "hyp",
+    "i2c",
+    "int2float",
+    "log2",
+    "max",
+    "mem_ctrl",
+    "multiplier",
+    "priority",
+    "router",
+    "sin",
+    "sqrt",
+    "square",
+    "voter"
+  ],
+  "expected_runs": 99,
+  "first_setup_attempt": "Retained externally: missing sibling Liberty gzip stopped the initial attempt at mapping validation. Repaired packaging; no physical setting or endpoint was selected by that failure.",
+  "frontend_data": "../followup-20261117/frontend.json",
+  "machine": {
+    "allocated_logical_cpus": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    "allocated_topology": [
+      {
+        "core": 12,
+        "cpu": 12,
+        "socket": 0
+      },
+      {
+        "core": 13,
+        "cpu": 13,
+        "socket": 0
+      },
+      {
+        "core": 14,
+        "cpu": 14,
+        "socket": 0
+      },
+      {
+        "core": 15,
+        "cpu": 15,
+        "socket": 0
+      },
+      {
+        "core": 0,
+        "cpu": 16,
+        "socket": 0
+      },
+      {
+        "core": 1,
+        "cpu": 17,
+        "socket": 0
+      },
+      {
+        "core": 2,
+        "cpu": 18,
+        "socket": 0
+      },
+      {
+        "core": 3,
+        "cpu": 19,
+        "socket": 0
+      },
+      {
+        "core": 4,
+        "cpu": 20,
+        "socket": 0
+      },
+      {
+        "core": 5,
+        "cpu": 21,
+        "socket": 0
+      },
+      {
+        "core": 6,
+        "cpu": 22,
+        "socket": 0
+      },
+      {
+        "core": 7,
+        "cpu": 23,
+        "socket": 0
+      }
+    ],
+    "architecture": "x86_64",
+    "cpu_model": "AMD RYZEN AI MAX+ 395 w/ Radeon 8060S",
+    "host_logical_cpus": 32,
+    "host_physical_cores": 16,
+    "kernel": "7.0.0-38-generic",
+    "shared_workstation": true
+  },
+  "metric_names": [
+    "final_hpwl_um",
+    "routed_wirelength_um",
+    "area_um2",
+    "delay_ps",
+    "power_w"
+  ],
+  "physical_controls": "../followup-20261117/backend",
+  "power": "OpenROAD/OpenSTA default activity, without workload VCD.",
+  "proof_policy": "Common input -> optimized endpoint -> actual ORFS mapped function -> final netlist, by successful CEC and hash links. Verdict excerpts are evidence records, not standalone SAT certificates.",
+  "runtime": "flow_stage_wall_s covers synthesis/floorplanning and the placement-to-finish flow, excluding separate CEC. Multiplying by reserved cores estimates reservation cost, not measured CPU use. driver wall_s includes proof and wrapper costs; the recovered sqrt row also includes recovery wait.",
+  "source_commit": "d04b3c72fffe5f999320e41323aecfe46a8fba50",
+  "statistical_policy": "100*(1-geometric_mean(candidate/reference)); paired design bootstrap, seed 20261116, 5000 replicates. No selection using OpenROAD metrics."
+}
