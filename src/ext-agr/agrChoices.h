@@ -14,6 +14,7 @@
 #include "opt/sfm/sfm.h"
 #include "proof/fraig/fraig.h"
 #include "proof/dch/dch.h"
+#include <ctime>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -170,7 +171,7 @@ class AgrChoiceSession
         // and SAT conflicts. The final selector may reject every alternative.
         for (int method = 0; method < 5; ++method)
         {
-            const abctime start = Abc_Clock();
+            const std::clock_t start = std::clock();
             if (verbose)
             {
                 Abc_Print(1, "AGR_CHOICE_STAGE anchor=%s method=%d status=started\n", prefix.c_str(), method);
@@ -240,7 +241,7 @@ class AgrChoiceSession
             if (verbose)
             {
                 Abc_Print(1, "AGR_CHOICE_STAGE anchor=%s method=%d status=complete cpu_seconds=%.6f\n",
-                          prefix.c_str(), method, double(Abc_Clock() - start) / CLOCKS_PER_SEC);
+                          prefix.c_str(), method, double(std::clock() - start) / CLOCKS_PER_SEC);
                 fflush(stdout);
             }
         }
@@ -356,7 +357,7 @@ public:
     Abc_Ntk_t *Finish(Abc_Ntk_t *baseline, double delayGain, bool diverse, bool compress, int conflicts, bool filter, bool modern, double delayWeight, bool verbose)
     {
         if (!enabled || failed || snapshots.empty()) return nullptr;
-        const abctime start = Abc_Clock();
+        const std::clock_t start = std::clock();
         auto initialGia = AgrChoiceToGia(baseline);
         auto initial = AgrChoiceMap(initialGia.get(), 0);
         if (!initial.cost.Valid()) return nullptr;
@@ -461,7 +462,7 @@ public:
                      "base_area=%.9g base_delay=%.9g area=%.9g delay=%.9g target=%.9g cpu_seconds=%.6f sat_conflicts=%d engine=%s delay_weight=%.6g\n",
                   int(snapshots.size()), choiceNodes, candidates, bestLabel.c_str(), initial.cost.area,
                   initial.cost.delay, bestCost.area, bestCost.delay, target,
-                  double(Abc_Clock() - start) / CLOCKS_PER_SEC, conflicts, modern ? "dch" : "fraig", delayWeight);
+                  double(std::clock() - start) / CLOCKS_PER_SEC, conflicts, modern ? "dch" : "fraig", delayWeight);
         return best.release();
     }
 };
