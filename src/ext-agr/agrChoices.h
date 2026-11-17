@@ -16,9 +16,7 @@
 #include "proof/dch/dch.h"
 #include <ctime>
 
-ABC_NAMESPACE_IMPL_START
-
-extern "C" {
+ABC_NAMESPACE_HEADER_START
 Abc_Ntk_t *Abc_NtkFraigPartitioned(Vec_Ptr_t *, void *);
 Aig_Man_t *Abc_NtkToDarChoices(Abc_Ntk_t *);
 Gia_Man_t *Gia_ManFromAig(Aig_Man_t *);
@@ -33,7 +31,9 @@ Abc_Ntk_t *Abc_NtkFromCellMappedGia(Gia_Man_t *, int);
 int Abc_NtkResubstitute(Abc_Ntk_t *, int, int, int, int, int, int, int, int, int);
 Aig_Man_t *Gia_ManToAigSkip(Gia_Man_t *, int);
 Vec_Ptr_t *Gia_ManOrderPios(Aig_Man_t *, Gia_Man_t *);
-}
+ABC_NAMESPACE_HEADER_END
+
+ABC_NAMESPACE_IMPL_START
 
 namespace {
 
