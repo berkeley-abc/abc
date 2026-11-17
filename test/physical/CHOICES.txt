@@ -52,7 +52,10 @@ isolation, cost parity with the standalone MFS/FX recipe, bounded contributor
 counts, DCH construction, mapped-cost guards, and invalid argument handling.
 
 Research protocol (separate from the command):
-  Every arm receives confirmed common dc2 and &fraig -C 1000 preprocessing.
+  Every arm receives confirmed common dc2 and &fraig -C 10000 preprocessing.
+  The earlier common limit of 1000 left most of div's functional redundancy.
+  The stronger uniform limit removes it before every compared method, including
+  the references. This preprocessing is a protocol change from the paper.
   Every endpoint is measured with the same original-PR NF mapper and library.
   The development cohort contains 19 EPFL designs. hyp is tested separately
   for scalability. Placement steps 0.26-0.30 assess sensitivity, not holdout
@@ -64,6 +67,9 @@ Corrections and limitations:
   by requiring LUT mapping metadata. The present implementation handles it
   correctly and checks cost parity with the public ABC command sequence.
   Legacy FRAIG construction can be very slow on arithmetic benchmarks.
+  DCH completes the 19-design development cohort, but the full unfiltered
+  configuration still timed out on hyp after 1800 seconds. Do not present the
+  19-design improvement as a completed all-20 reproduction.
   The existing AGR commit-boundary defect can abort square after an external
   MFS preprocessing recipe. It is preserved in the research failure records.
   This code does not claim a fix for that separate evaluator defect.
