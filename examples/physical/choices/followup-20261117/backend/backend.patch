@@ -1,0 +1,39 @@
+--- a/run.py
++++ b/run.py
+@@ -92,7 +92,7 @@
+     values = dict(DESIGN_NAME=name, PLATFORM='asap7',
+                   VERILOG_FILES=f'$(DESIGN_HOME)/asap7/{name}/generic.v',
+                   SDC_FILE=f'$(DESIGN_HOME)/asap7/{name}/constraint.sdc',
+-                  PLACE_DENSITY='0.50', ABC_AREA=0, CORNER='BC', LIB_MODEL='NLDM',
++                  PLACE_DENSITY='0.60', DONT_BUFFER_PORTS=1, ABC_AREA=0, CORNER='BC', LIB_MODEL='NLDM',
+                   ASAP7_USE_VT='RVT', CORE_UTILIZATION='',
+                   DIE_AREA=' '.join(map(str, d['die_um'])),
+                   CORE_AREA=' '.join(map(str, d['core_um'])), OR_SEED=0)
+@@ -200,7 +200,7 @@
+     pins = re.findall(r'^PAPER_PIN (.*)$', text, re.M)
+     if boxes != [expected] * 4 or sorted(pins) != sorted(d['pins_dbu'] * 4):
+         raise ValueError('Placed/routed boundary differs from frozen dimensions or pins')
+-    hpwl = {s: float(v) for s, v in re.findall(r'AUDIT_STAGE (\S+) HPWL_UM ([\d.eE+-]+)', text)}
++    hpwl = {s: float(v) for s, v in re.findall(r'^AUDIT_STAGE (\S+) HPWL_UM ([\d.eE+-]+)', text, re.M)}
+     if set(hpwl) != {'3_3_place_gp', '3_5_place_dp', '5_2_route', '6_final'}:
+         raise ValueError('Missing stage HPWL')
+     save(args.output / 'metrics.json', dict(design=args.design, stage_hpwl_um=hpwl,
+--- a/audit.tcl
++++ b/audit.tcl
+@@ -29,3 +29,16 @@
+   }
+ }
+ foreach row [lsort $records] {puts "PAPER_PIN $row"}
++
++set core_sum 0.0
++set core_count 0
++foreach net [$block getNets] {
++  if {[$net getSigType] in {POWER GROUND} || [llength [$net getBTerms]] > 0} {continue}
++  set rect [$net getTermBBox]
++  set dx [expr {[$rect xMax] - [$rect xMin]}]
++  set dy [expr {[$rect yMax] - [$rect yMin]}]
++  if {$dx < 0 || $dy < 0} {continue}
++  set core_sum [expr {$core_sum + ($dx + $dy) / double($units)}]
++  incr core_count
++}
++puts "CORE_AUDIT_STAGE $::env(STAGE) HPWL_UM $core_sum NETS $core_count"

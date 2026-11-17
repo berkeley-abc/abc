@@ -1,0 +1,17 @@
+{
+  "README.md": "c835288a38d0471a0e2bfada13e59c6366218a247e701ca1e180fa9ba124809b",
+  "backend/README.md": "6848a7aae3e814d6b416475756ae872f29071683f996c378b953f1eba6e2e351",
+  "backend/backend.patch": "827ea44ecdb7dfc59311a765ab026b1fe0771efcdb5ae6775cfbf4987fbbf2c7",
+  "backend/common-inputs.json": "c1072bb6fc0093192678b2a69f421451110b619a5ecc54f23c1c36cd0066af6d",
+  "backend/designs.json": "3dfa31852792541538053b399017e767793781d1eb242bf9bcbeae11e11092d8",
+  "backend/protocol.json": "6253449b41ece573ecf087663c63d272ff5b5ba7c2862d3e823b39908e5afd6c",
+  "frontend.json": "12ebe855a5f15ad9ceb680d262fd41499e318b84ed8db15854d31b890c14d9e2",
+  "holdout.json": "62d32a367a9672bb530614c52834dcbb6eda3273ee46bf43b98f57927bdc7ce2",
+  "inputs.json": "30b69721a2e502c853b1fe526162a0280dc64a26000999da4ccb44ab34968ac7",
+  "mapper.json": "5d520a98d53f36aafc5f015659715f236a2ecbdd13a17d0904dfd16afb3b1d78",
+  "proofs.json": "5eb623a2646948c2cb0a86864dc09a9a4622a62e0803a0721d4254cc48036a2e",
+  "protocol.json": "028c2ceaff8a378b00ce100b0944a0f6a173b0e32ed9f7b95023c848aa0d8c97",
+  "router-handoff-cells.json": "fb2593e9a72bf2a1c959ad399a1f926d3c60993357e1ba0ae11f8249dd206d3d",
+  "summary.json": "b907b4844614c2eaad32ba45a83d73334dad9178ca599bbe97c598736924e926",
+  "validation.json": "4784bcde8bf577eb863d8e3785ea79d2522fdeb1fa59728d1e872c3102bec641"
+}

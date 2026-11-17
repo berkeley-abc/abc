@@ -1,0 +1,45 @@
+{
+  "backend": {
+    "AND2x2_ASAP7_75t_R": 1,
+    "AND3x1_ASAP7_75t_R": 3,
+    "AND4x1_ASAP7_75t_R": 9,
+    "AND5x1_ASAP7_75t_R": 3,
+    "AO21x1_ASAP7_75t_R": 2,
+    "AOI21x1_ASAP7_75t_R": 1,
+    "BUFx2_ASAP7_75t_R": 27,
+    "INVx1_ASAP7_75t_R": 7,
+    "NAND2x1_ASAP7_75t_R": 1,
+    "NOR2x1_ASAP7_75t_R": 1,
+    "NOR3x1_ASAP7_75t_R": 1,
+    "OA211x2_ASAP7_75t_R": 5,
+    "OA21x2_ASAP7_75t_R": 8,
+    "OR2x2_ASAP7_75t_R": 4,
+    "OR3x1_ASAP7_75t_R": 2,
+    "OR4x1_ASAP7_75t_R": 8,
+    "OR5x1_ASAP7_75t_R": 1,
+    "_const0_": 1
+  },
+  "difference": {
+    "BUFx2_ASAP7_75t_R": 27,
+    "_const0_": -26
+  },
+  "frontend": {
+    "AND2x2_ASAP7_75t_R": 1,
+    "AND3x1_ASAP7_75t_R": 3,
+    "AND4x1_ASAP7_75t_R": 9,
+    "AND5x1_ASAP7_75t_R": 3,
+    "AO21x1_ASAP7_75t_R": 2,
+    "AOI21x1_ASAP7_75t_R": 1,
+    "INVx1_ASAP7_75t_R": 7,
+    "NAND2x1_ASAP7_75t_R": 1,
+    "NOR2x1_ASAP7_75t_R": 1,
+    "NOR3x1_ASAP7_75t_R": 1,
+    "OA211x2_ASAP7_75t_R": 5,
+    "OA21x2_ASAP7_75t_R": 8,
+    "OR2x2_ASAP7_75t_R": 4,
+    "OR3x1_ASAP7_75t_R": 2,
+    "OR4x1_ASAP7_75t_R": 8,
+    "OR5x1_ASAP7_75t_R": 1,
+    "_const0_": 27
+  }
+}

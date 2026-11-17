@@ -54,6 +54,12 @@ They predate `-H`, `-T`, and the two placement-consistency fixes. They remain
 unchanged so that improvements to the implementation do not silently change
 the version associated with a numerical claim.
 
+The [bounded followup](followup-20261117/) records the current implementation on
+all 20 EPFL designs, the independent 24-design holdout, and the backend mapping
+check. It also reports the tradeoff introduced by the wire guard and the stronger
+conventional comparison. The original tables below are retained as historical
+evidence.
+
 The primary experiment uses one fixed command and guidance step 0.28 on 19 EPFL
 combinational designs. Every method receives the same confirmed `dc2` input,
 then common `&fraig -C 10000` preprocessing. The library is the unmodified

@@ -1,0 +1,63 @@
+{
+  "cohort": [
+    "adder",
+    "arbiter",
+    "bar",
+    "cavlc",
+    "ctrl",
+    "dec",
+    "div",
+    "hyp",
+    "i2c",
+    "int2float",
+    "log2",
+    "max",
+    "mem_ctrl",
+    "multiplier",
+    "priority",
+    "router",
+    "sin",
+    "sqrt",
+    "square",
+    "voter"
+  ],
+  "common_die_and_pins": "Neutral original-NF mapping of the same dc2 + fraig input; single-thread global placement with skip_io, then place_pins M4/M5; freeze once per design for every arm.",
+  "default_activity_power": true,
+  "density": 0.6,
+  "mapping": "Original ORFS Yosys handoff and &get -n; &st; &nf; &put, same for every arm.",
+  "metric": "All-net final HPWL excludes power/ground. Core-only HPWL is separately tagged and is not substituted for total HPWL.",
+  "patch_note": "Adds density/port settings and core-only diagnostic. Anchors total-HPWL parsing, equivalent to the native wrapper used in this campaign.",
+  "per_design_resources": "See designs.json; cores fixed across arms, aggregate reservation at most 12.",
+  "placement_seed": 0,
+  "port_buffers": false,
+  "proofs": "Source-to-optimized, optimized-to-mapped and mapped-to-final netlist CEC; only proved, zero-DRC, fully routed results count.",
+  "scope": "Followup backend protocol, separate from original paper settings.",
+  "source_toolchain": {
+    "archived_image_id": "sha256:17bf7b7c1d734a2da29c2af635677bc11cf446d250111e248a35fb994834cf42",
+    "binaries": {
+      "OpenROAD/bin/openroad": "0e647be35e47d858b6f94beea6520b790e85fe09417301b38044b3fd588d0eae",
+      "yosys/bin/yosys": "bbb8d6bcabd6419b619671ef819b8b2a7c8c94fc1d4fa46f81cc6121dbbf5dba",
+      "yosys/bin/yosys-abc": "3dabca6929dae52ffad3804e38d41e4f219448ad92004740fbaf23c7aff564f0"
+    },
+    "image": "agr-openroad:paper",
+    "inherited_files": {
+      "platforms/asap7/config.mk": "605eedfd65c68a0f3bd52834af4c56fd9803dd034ee07e8e90863c1db8df5efa",
+      "scripts/synth_canonicalize.tcl": "a11015faeb6cda0f37d03d13fe3e9a1eb5fd288fbcd9ac114d86d14312317a0d",
+      "scripts/synth_preamble.tcl": "377dfc08b2c156af4607e37b953ecf1acf8c8c41cf11a998a0c2ca71c3074441"
+    },
+    "openroad_version": "24Q3-12068-gf9a6acaf77",
+    "overrides": {
+      "abc_speed.script": "90b2261ebffb4e86a6683d75899ed1399267d3e9170db74b7eb6bcac1f1c2d7e",
+      "io_placement.tcl": "b61f78a4d556d0ee8b095bb41cca6b3a301e379d16f1a0693672cd0992dcf64b",
+      "synth.tcl": "9ca8da6475649de2dbb6687bffebf41b1ff95f57fe279c83856c065ce3b2c6a3"
+    },
+    "platform": "linux/amd64",
+    "source_commits": {
+      "openroad": "f9a6acaf77a58c03a8d1284d3fd64b33d0cfd3bc",
+      "orfs": "1ff0d0814e153b15ba5cdcf591e11b0e2589f169",
+      "yosys": "5bafeb77dc71e054fa331ab9efa613e6fb0a1c49",
+      "yosys_abc": "131a50dd773f21ebbfc51da1d182438382a04209"
+    },
+    "yosys_version": "0.60"
+  }
+}
