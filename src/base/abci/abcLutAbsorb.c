@@ -220,7 +220,12 @@ int Abc_NtkLutAbsorb( Abc_Ntk_t * pNtk, int nLutSize, int nFanoutMax, int nRound
         }
         Vec_IntFree( vIds );
         if ( fVerbose )
-            Abc_Print( 1, "Round %d: removed %d nodes, area gain %.2f.\n", r + 1, nRemoved, GainRound );
+        {
+            if ( pLutLib )
+                Abc_Print( 1, "Round %d: removed %d nodes, area gain %.2f.\n", r + 1, nRemoved, GainRound );
+            else
+                Abc_Print( 1, "Round %d: removed %d nodes.\n", r + 1, nRemoved );
+        }
         nTotal += nRemoved;
         GainTotal += GainRound;
         if ( nRemoved == 0 )
