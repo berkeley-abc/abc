@@ -47,8 +47,41 @@ def main():
         run('cec_'+name,f'cec input.aig {name}.aig',expect='Networks are equivalent')
     run('repeat',setup+'agr -c; agr -c -D 0; write_aiger repeated.aig',expect='AGR_CHOICES')
     run('cec_repeat','cec input.aig repeated.aig',expect='Networks are equivalent')
-    run('diverse',setup+'agr -c -b -v; write_aiger diverse.aig',expect='AGR_CHOICES')
+    diverse=run('diverse',setup+'agr -c -b -v; write_aiger diverse.aig',expect='AGR_CHOICES')
+    assert 'name=input_mfs_fx ' in diverse and 'name=agr_mfs_fx ' in diverse
+    standalone=run('mfs_fx_parity',setup+'&get; &if -K 6; &mfs -e -W 4 -M 1000 -C 20000 -L 1; &fx; &st; &put; &get; &nf; &put; stime')
+    cost=re.search(r'name=input_mfs_fx area=([\d.e+-]+) delay=([\d.e+-]+)',diverse)
+    expected=re.search(r'Gates\s*=.*?Area\s*=\s*([\d.e+-]+).*?Delay\s*=\s*([\d.e+-]+)',standalone)
+    assert cost and expected
+    assert all(abs(float(cost[i])-float(expected[i]))<.0051 for i in [1,2])
     run('cec_diverse','cec input.aig diverse.aig',expect='Networks are equivalent')
+    text=run('compressed_state',setup+'fraig_store; &get; &saveaig; &w compressed-before.aig; agr -c -b -r -m -C 20 -f -v; write_aiger compressed.aig; &w compressed-after.aig; &loadaig; &w compressed-saved.aig; fraig_restore; strash; write_aiger compressed-restored.aig',expect='input_compress2rs_2')
+    assert regression.payload(out/'compressed-before.aig')==regression.payload(out/'compressed-after.aig')==regression.payload(out/'compressed-saved.aig')
+    assert 'name=input_mfs_fx_compress2rs ' in text and 'name=agr_mfs_fx_compress2rs ' in text
+    assert 'sat_conflicts=20' in text
+    counts=re.findall(r'merge=started snapshots=\d+ contributors=(\d+)',text)
+    assert len(counts)==2 and all(1<=int(x)<=8 for x in counts)
+    for name in ['compressed','compressed-restored']:
+        run('cec_'+name,f'cec input.aig {name}.aig',expect='Networks are equivalent')
+    run('requires_diversity',setup+'agr -c -r',expect='-r requires -c -b')
+    run('reject_conflicts_zero',setup+'agr -c -C 0',expect='positive integer')
+    run('reject_conflicts_fraction',setup+'agr -c -C 2.5',expect='positive integer')
+    run('requires_choices_conflicts',setup+'agr -C 20',expect='-C requires -c')
+    run('requires_choices_filter',setup+'agr -f',expect='-f requires -c')
+    text=run('modern',setup+'agr -c -b -r -m -C 20; write_aiger modern.aig',expect='engine=dch')
+    run('cec_modern','cec input.aig modern.aig',expect='Networks are equivalent')
+    run('requires_choices_modern',setup+'agr -m',expect='-m requires -c')
+    weighted=run('weighted',setup+'agr -c -b -r -m -W 0.25 -v; write_aiger weighted.aig; write_blif weighted.blif; &get; &nf; &put; stime',expect='delay_weight=0.25')
+    m=re.search(r'AGR_CHOICES.*?base_area=([\d.e+-]+) base_delay=([\d.e+-]+) area=([\d.e+-]+) delay=([\d.e+-]+)',weighted)
+    assert m and float(m[3])<=float(m[1])+1e-5 and float(m[4])<=float(m[2])+1e-5
+    def ports(path,kind):
+        text=path.read_text().replace('\\\n',' ')
+        return re.search(r'^\.'+kind+r'\s+([^\n]+)',text,re.M)[1].split()
+    for kind in ['inputs','outputs']:
+        assert ports(out/'weighted.blif',kind)==ports(out/'input.blif',kind)
+    run('cec_weighted','cec input.aig weighted.aig',expect='Networks are equivalent')
+    run('reject_delay_weight_nan',setup+'agr -c -W nan',expect='finite weight')
+    run('reject_delay_weight_large',setup+'agr -c -W 2',expect='finite weight')
     run('requires_lib','read input.aig; agr -c',expect='requires a Liberty library')
     run('reject_nan',setup+'agr -c -D nan',expect='finite percentage')
     run('reject_negative',setup+'agr -c -D -1',expect='finite percentage')

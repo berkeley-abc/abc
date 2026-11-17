@@ -1,29 +1,45 @@
 AGR checkpoint choices and mapped-cost selection
 
-Usage after loading a combinational AIG and a Liberty library:
+Recommended experimental configuration after loading a combinational AIG
+and the target Liberty library:
 
-  agr -c -b
+  agr -c -b -r -m -W 0.25
   &get; &nf; &put; stime
 
 The ordinary agr command remains available without these flags. -c retains
-whole-pass checkpoints from the existing AGR invocation and merges equivalent
-structures as FRAIG choices. -b adds a fixed set of area/LUT/DSD/SOP balancing
-and bounded LUT don't-care/factoring alternatives on the input and AGR result.
-These conventional alternatives are part of the method, not an AGR-specific
-geometric contribution.
+whole-pass checkpoints from one AGR invocation. -b adds area/LUT/DSD/SOP
+balancing and bounded LUT don't-care/factoring alternatives on both the input
+and the AGR endpoint. -r adds one and two standard compress2rs cycles on the
+input, and one cycle after each MFS/FX alternative. These conventional
+alternatives are part of the method, not an AGR-specific geometric effect.
 
-Six NF relaxation settings (0,5,10,20,40,100) are evaluated independently and
-as a sequential shaping chain. Mapped covers are strashed and re-evaluated
-through ordinary NF and Liberty STA. The selected output is a plain AIG.
-The default selects minimum mapped area with cell delay no worse than the
-ordinary AGR endpoint. -D percent requests a stricter delay target; when that
-target is unattainable it selects the fastest candidate. Positive -D can trade
-area for delay. No OpenROAD metric is used in selection.
+Private equivalent structures are merged with the DCH engine when -m is used,
+or with the legacy FRAIG engine otherwise. Six NF relaxation settings
+(0,5,10,20,40,100) are tested independently and as a sequential shaping chain.
+Each mapped cover is strashed and measured through ordinary NF and Liberty STA.
+The selected output is a plain AIG, suitable for the common downstream mapper.
+
+Without -W, selection minimizes mapped area subject to cell delay no worse
+than the ordinary AGR endpoint. -W w minimizes area times delay^w. At the
+default -D 0, positive -W also guards mapped area against the ordinary AGR
+endpoint. Thus the recommended configuration cannot worsen either modeled
+metric relative to its ordinary AGR endpoint. This is not a guarantee about
+PA2, routed timing, or any other physical metric.
+
+-D percent requests a stricter delay target and can trade area for delay;
+if no candidate meets it, the fastest candidate is selected. -C controls SAT
+conflicts per equivalence query (default 1000). A smaller limit can be slower
+or yield poorer results, because fewer equivalences are established. -f limits
+choice-merge contributors to the input, the ordinary AGR endpoint, and at most
+six alternatives spread over the mapped area/delay frontier. Raw alternatives
+are still evaluated. -f is an optional cost/quality tradeoff, not part of the
+recommended configuration above.
 
 Only whole-pass checkpoints are retained. Rejected local rewrites are not
 recorded as choices. The user's &-space, saved AIG and fraig_store remain
-intact; PI/PO names and ordering are preserved. Choice construction and mapping
-use private networks and the currently loaded Liberty library.
+intact; PI/PO names and order are preserved. Choice construction and mapping
+use private networks and the currently loaded Liberty library. An unsuccessful
+choice merge leaves the already evaluated raw candidates available.
 
 Checks:
   python3 test/physical/regression.py --abc /path/to/abc --output /tmp/agr-base
@@ -31,26 +47,29 @@ Checks:
     --reference /path/to/three-fix-baseline-abc --library /path/to/cells.lib \
     --output /tmp/agr-choices
 
+The checks include ordinary-mode parity, named-port equivalence, user-state
+isolation, cost parity with the standalone MFS/FX recipe, bounded contributor
+counts, DCH construction, mapped-cost guards, and invalid argument handling.
+
 Research protocol (separate from the command):
-  Every arm receives common dc2 and &fraig -C 1000 preprocessing.
-  All endpoints are measured through the same original-PR NF mapper/library.
-  The development set contains 19 EPFL designs; placement steps 0.26-0.30
-  assess sensitivity. hyp is a separate, unfinished scalability case.
+  Every arm receives confirmed common dc2 and &fraig -C 1000 preprocessing.
+  Every endpoint is measured with the same original-PR NF mapper and library.
+  The development cohort contains 19 EPFL designs. hyp is tested separately
+  for scalability. Placement steps 0.26-0.30 assess sensitivity, not holdout
+  generalization. Never select a step per design using physical metrics.
   Source-to-endpoint and endpoint-to-mapped-function CEC are required.
 
-At the default step, verified 19-design geometric-mean reductions are about
-12.9% mapped area and 13.6% cell delay vs PA2, and 8.6% area and 11.8% delay
-vs a CPU-matched original compress2rs loop. These are ABC results, not routed
-results. Equal large recipe banks give similar gains with PA2 or compress2rs;
-do not attribute the portfolio's whole gain to AGR or geometry.
-
-Cost and limitations:
-  The area-focused native configuration used about 623 CPU seconds in total
-  on the 19-design validation run (median 3.93 s, maximum 122.72 s), excluding
-  equivalence checking. The much larger hyp benchmark remains expensive.
+Corrections and limitations:
+  Early native prototypes incorrectly discarded FX's plain-AIG return value
+  by requiring LUT mapping metadata. The present implementation handles it
+  correctly and checks cost parity with the public ABC command sequence.
+  Legacy FRAIG construction can be very slow on arithmetic benchmarks.
   The existing AGR commit-boundary defect can abort square after an external
-  MFS preprocessing recipe. This baseline failure is preserved in the research
-  records; the new native diverse flow has passed the 19-design checks.
+  MFS preprocessing recipe. It is preserved in the research failure records.
+  This code does not claim a fix for that separate evaluator defect.
+  Equal large recipe banks give similar gains with PA2 or compress2rs; do not
+  attribute the portfolio's whole gain to AGR or geometry. Cell delay excludes
+  extracted wire parasitics. No routed-metric claim follows from ABC results.
 
 Full experiment manifests, hashes, proofs and numerical results:
   /store/abc-agr-physical-20261116/choice-shaping-validation/README.txt

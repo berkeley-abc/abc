@@ -1632,13 +1632,18 @@ std::mutex &CommandMutex()
 void PrintUsage(Abc_Frame_t *frame)
 {
     fprintf(Abc_FrameReadErr(frame),
-            "usage: agr [-s step] [-c [-b] [-D gain]] [-vh]\n"
+            "usage: agr [-s step] [-c [-b [-r]] [-fm] [-D gain] [-C num] [-W weight]] [-vh]\n"
             "       placement-guided RS/RW/RF with adaptive compact search\n"
             "       requires a strashed combinational AIG without choices or constraints\n"
             "  -s step : initial placement step in bin widths [default = 0.28]\n"
             "  -c      : retain pass checkpoints as choices and select by mapped cost\n"
             "  -b      : add balancing and bounded LUT don't-care alternatives (requires -c)\n"
+            "  -r      : add compression alternatives, retaining the -b winner (requires -c -b)\n"
             "  -D gain : target cell-delay reduction from plain AGR, percent [default = 0]\n"
+            "  -C num  : SAT conflicts per choice equivalence query [default = 1000]\n"
+            "  -f      : merge at most eight contributors selected by mapped cost\n"
+            "  -m      : use the DCH engine to construct structural choices\n"
+            "  -W w    : mapped area x delay^w objective, 0 <= w <= 1 [default = 0]\n"
             "  -v      : print placement progress\n"
             "  -h      : print this help\n");
 }
@@ -1647,8 +1652,12 @@ int Agr_CommandPlace(Abc_Frame_t *pAbc, int argc, char **argv)
 {
     std::lock_guard<std::mutex> lock(CommandMutex());
     Agr_Parameters Pars;
-    bool choices = false, diverse = false, hasDelayGain = false;
+    bool choices = false, diverse = false, compress = false, hasDelayGain = false;
+    bool hasConflicts = false;
+    bool filter = false, modern = false, hasDelayWeight = false;
+    int conflicts = 1000;
     double delayGain = 0.0;
+    double delayWeight = 0.0;
     for (int i = 1; i < argc; ++i)
     {
         const std::string option(argv[i]);
@@ -1658,6 +1667,35 @@ int Agr_CommandPlace(Abc_Frame_t *pAbc, int argc, char **argv)
             choices = true;
         else if (option == "-b")
             diverse = true;
+        else if (option == "-r")
+            compress = true;
+        else if (option == "-f")
+            filter = true;
+        else if (option == "-m")
+            modern = true;
+        else if (option == "-W" && i + 1 < argc)
+        {
+            hasDelayWeight = true;
+            if (!ParseDouble(argv[++i], delayWeight) || delayWeight < 0 || delayWeight > 1)
+            {
+                Abc_Print(-1, "agr: -W requires a finite weight in [0, 1].\n");
+                return 1;
+            }
+        }
+        else if (option == "-C" && i + 1 < argc)
+        {
+            hasConflicts = true;
+            char *end = nullptr;
+            errno = 0;
+            const long value = std::strtol(argv[++i], &end, 10);
+            if (errno == ERANGE || end == argv[i] || *end || value <= 0 ||
+                value > std::numeric_limits<int>::max())
+            {
+                Abc_Print(-1, "agr: -C requires a positive integer.\n");
+                return 1;
+            }
+            conflicts = int(value);
+        }
         else if (option == "-D" && i + 1 < argc)
         {
             hasDelayGain = true;
@@ -1687,9 +1725,14 @@ int Agr_CommandPlace(Abc_Frame_t *pAbc, int argc, char **argv)
         }
     }
 
-    if ((hasDelayGain || diverse) && !choices)
+    if ((hasDelayGain || diverse || hasConflicts || filter || modern || hasDelayWeight) && !choices)
     {
-        Abc_Print(-1, "agr: -D requires -c; -b requires -c.\n");
+        Abc_Print(-1, "agr: -D requires -c; -b requires -c; -C requires -c; -f requires -c; -m requires -c; -W requires -c.\n");
+        return 1;
+    }
+    if (compress && (!choices || !diverse))
+    {
+        Abc_Print(-1, "agr: -r requires -c -b.\n");
         return 1;
     }
     if (choices && (!Abc_FrameReadLibGen() || !Abc_FrameReadLibScl()))
@@ -1765,7 +1808,7 @@ int Agr_CommandPlace(Abc_Frame_t *pAbc, int argc, char **argv)
         return 1;
     if (choices)
     {
-        Abc_Ntk_t *selected = choiceSession.Finish(result, delayGain, diverse, Pars.verbose);
+        Abc_Ntk_t *selected = choiceSession.Finish(result, delayGain, diverse, compress, conflicts, filter, modern, delayWeight, Pars.verbose);
         if (selected) { Abc_NtkDelete(result); result = selected; }
         else Abc_Print(0, "agr: choice shaping failed; retaining the plain AGR endpoint.\n");
     }
