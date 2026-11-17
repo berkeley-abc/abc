@@ -1,0 +1,12 @@
+{
+  "corrected": [
+    "unconstrained_score: passed",
+    "small_arrival_fanout: passed",
+    "allocation_order: passed"
+  ],
+  "original": [
+    "unconstrained_score: FAILED",
+    "small_arrival_fanout: FAILED",
+    "allocation_order: FAILED"
+  ]
+}

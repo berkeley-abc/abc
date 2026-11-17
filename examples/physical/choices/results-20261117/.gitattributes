@@ -1,0 +1,2 @@
+*.csv text eol=lf linguist-generated=true
+*.json text eol=lf linguist-generated=true

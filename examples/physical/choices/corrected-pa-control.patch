@@ -1,0 +1,109 @@
+--- a/src/ext-pa/paRewrite.cpp
++++ b/src/ext-pa/paRewrite.cpp
+@@ -244,6 +244,15 @@
+
+ /* Kept outside Abc_Obj_t so placement does not change ABC's object layout.
+    A pass starts with one global build, then refreshes timing locally. */
++static double Pa_SlackPotentialDelta(double OldSlack, double NewSlack)
++{
++    if (OldSlack == std::numeric_limits<double>::infinity() && OldSlack == NewSlack)
++        return 0.0;
++    if (!std::isfinite(OldSlack) || !std::isfinite(NewSlack))
++        return std::numeric_limits<double>::quiet_NaN();
++    auto Potential = [](double Slack) { return Slack > 0.0 ? std::log1p(Slack) : Slack; };
++    return Potential(NewSlack) - Potential(OldSlack);
++}
+ struct Pa_TimingCache
+ {
+     Abc_Ntk_t * network = nullptr;
+@@ -393,7 +402,7 @@
+     bool UpdateAfterLocalEdit( Abc_Ntk_t * pNtk,
+         const std::vector<int> & PositionIds,
+         const std::vector<int> & StructuralIds,
+-        int ProcessedRootId, bool LevelsCurrent )
++        bool LevelsCurrent )
+     {
+         PA_PROFILE_SCOPE(ArrivalPropagation);
+         if ( !ready || network != pNtk || pNtk == nullptr )
+@@ -435,19 +444,12 @@
+
+         /* Arrival is a forward data-flow problem.  Seed every changed object
+            and every fanout whose incident edge or fanin identity changed.
+-           Propagate through all live old objects up to the processed root ID.
+-           This restores the already-visited prefix after moving a reused
+-           object; future roots repair their own cones lazily.  Explicitly
+-           seeded high-ID new objects and direct fanouts are still updated. */
++           Propagate through every affected live fanout. Allocation IDs are
++           not topological after replacement introduces late-ID fanins. */
+         workQueue.clear();
+-        // With unrestricted rs propagation, a FIFO can revisit a reconvergent
+-        // cone once per path length. ABC has already updated structural levels
+-        // in Abc_AigReplace. Bucket by those levels (not old IDs/timing ranks)
+-        // so each node follows all affected fanins, without a heap operation
+-        // per node. Buckets drain completely and are reused at the next edit.
+-        // The bounded rw/rf proxy and level-update-disabled mode retain their
+-        // existing worklist semantics.
+-        bool Ordered = LevelsCurrent && ProcessedRootId == ABC_INFINITY;
++        // Current structural levels provide a topological work order.
++        // When callers have not updated levels, use a convergent FIFO.
++        bool Ordered = LevelsCurrent;
+         int MinArrivalLevel = ABC_INFINITY, MaxArrivalLevel = -1;
+         auto EnqueueArrival = [&]( int Id )
+         {
+@@ -526,7 +528,7 @@
+             PA_PROFILE_COUNT(ArrivalNodes, 1);
+             const Pa_Arrival OldArrival = nodes[Id].arrival;
+             bool Changed = OldArrival.logic != NewArrival.logic
+-                || !SameWireValue(OldArrival.wire, NewArrival.wire);
++                || OldArrival.wire != NewArrival.wire;
+             nodes[Id].arrival = NewArrival;
+             topoRank[Id] = NewArrival.logic;
+             if ( !Changed )
+@@ -534,9 +536,7 @@
+             Abc_Obj_t * pFanout;
+             int i;
+             Abc_ObjForEachFanout( pObject, pFanout, i )
+-                if ( pFanout->Id <= ProcessedRootId
+-                  || arrivalAllowedStamp[pFanout->Id] == updateStamp )
+-                    EnqueueArrival(pFanout->Id);
++                EnqueueArrival(pFanout->Id);
+         }
+         return true;
+     }
+@@ -1927,15 +1927,12 @@
+         // The antiderivative of c(s)=1/(1+max(0,s)). Unlike
+         // c(old)*clip(delta), this charges the entire transition
+         // into negative slack and never saturates a timing loss.
+-        auto Potential = []( double Slack ) {
+-            return Slack > 0.0 ? std::log1p(Slack) : Slack;
+-        };
+         score_ += kTimingWeight *
+-            (Potential(NewLogicSlack) - Potential(OldLogicSlack)
+-           + Potential(NewWireSlack) - Potential(OldWireSlack));
++            (Pa_SlackPotentialDelta(OldLogicSlack, NewLogicSlack)
++           + Pa_SlackPotentialDelta(OldWireSlack, NewWireSlack));
+         if ( HasFanoutSlack )
+             score_ += kTimingWeight *
+-                (Potential(NewFanoutSlack) - Potential(OldFanoutSlack));
++                Pa_SlackPotentialDelta(OldFanoutSlack, NewFanoutSlack);
+         return std::isfinite(score_);
+     }
+
+@@ -2954,7 +2951,6 @@
+     if ( pRoot == nullptr || pGraph == nullptr || vLeaves == nullptr )
+         return 0;
+     Abc_Ntk_t * pNtk = pRoot->pNtk;
+-    int ProcessedRootId = pRoot->Id;
+     int nNodesSaved = Pa_MarkMffc(pRoot, vLeaves);
+     Pa_CandidatePlan Plan(pRoot, pGraph, nNodesSaved, ABC_INFINITY);
+     if ( !Plan.IsValid() || !Pa_ManBeginEdit(pNtk) )
+@@ -3064,8 +3060,7 @@
+             for ( const Pa_DirectFanout & Entry : DirectFanouts )
+                 StructuralIds.push_back(Entry.id);
+             TimingUpdated = s_Timing.UpdateAfterLocalEdit(pNtk, PositionIds,
+-                StructuralIds, s_ExactTimingEvaluation ? ABC_INFINITY : ProcessedRootId,
+-                fUpdateLevel != 0);
++                StructuralIds, fUpdateLevel != 0);
+             if ( TimingUpdated && s_ExactTimingEvaluation )
+             {
+                 RequiredSeeds.insert(RequiredSeeds.end(), PositionIds.begin(), PositionIds.end());

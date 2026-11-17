@@ -11,6 +11,8 @@ unchanged. Both extensions are registered by `src/base/main/mainInit.c`.
 - [FLOW.md](FLOW.md): AGR and PA inside conventional synthesis flows, with CPU-budgeted native controls.
 - [OpenROAD reproduction](openroad/README.md): pinned backend, mapping-only handoff, SDC, fixed canvas/pins, and routed metrics.
 - [VALIDATION.md](VALIDATION.md): validation scope and frontend reference measurements.
+- [AGR structural choices](choices/README.md): optional mapped-cost selection,
+  timing fixes, and verified 19-design ABC results.
 - [PA documentation](../../src/ext-pa/README.md): prior-work mapping/unmapping and cluster mode.
 
 The default placement guidance step is 0.28; no option is required. AGR includes

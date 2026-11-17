@@ -1,0 +1,2884 @@
+{
+  "comparisons": {
+    "flow/last_slot_vs_corrected_agr": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 8.946976611644212,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 3.7758472082216756,
+          "median_design_reduction_pct": 2.6471544715447104,
+          "paired_bootstrap_95_pct": [
+            2.8510778078523753,
+            16.53146530132142
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "square"
+          ],
+          "geomean_reduction_pct": 15.2739915278354,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 7.2536319341588,
+          "median_design_reduction_pct": 6.8938892565629795,
+          "paired_bootstrap_95_pct": [
+            5.673221178960247,
+            26.16484771002261
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "mem_ctrl",
+            "arbiter"
+          ],
+          "geomean_reduction_pct": -0.375052180318047,
+          "improved_designs": 9,
+          "leave_top_two_out_reduction_pct": -3.786567603628798,
+          "median_design_reduction_pct": 0.0,
+          "paired_bootstrap_95_pct": [
+            -8.963514260567221,
+            6.486822361290322
+          ],
+          "summed_reduction_pct": 2.2214994980080616,
+          "unchanged_designs": 2
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "flow/last_slot_vs_paper_agr": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 8.430286660838725,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 3.1630022402945817,
+          "median_design_reduction_pct": 2.572014941900802,
+          "paired_bootstrap_95_pct": [
+            2.4816698953854037,
+            16.199271549368827
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "square"
+          ],
+          "geomean_reduction_pct": 14.178719222988786,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 6.050832834232263,
+          "median_design_reduction_pct": 4.51051620205849,
+          "paired_bootstrap_95_pct": [
+            4.423233204182164,
+            25.317570499996837
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "mem_ctrl",
+            "arbiter"
+          ],
+          "geomean_reduction_pct": -0.7578254313903678,
+          "improved_designs": 9,
+          "leave_top_two_out_reduction_pct": -4.209548514660221,
+          "median_design_reduction_pct": 0.0,
+          "paired_bootstrap_95_pct": [
+            -9.287377565415902,
+            5.938442342399541
+          ],
+          "summed_reduction_pct": 2.1672722502012687,
+          "unchanged_designs": 2
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "flow/last_slot_vs_paper_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 10.102207732456277,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 4.985429305919123,
+          "median_design_reduction_pct": 4.4343891402715,
+          "paired_bootstrap_95_pct": [
+            3.7237300860954736,
+            17.810995620725578
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "square"
+          ],
+          "geomean_reduction_pct": 16.949569107384125,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 9.747619751681667,
+          "median_design_reduction_pct": 7.014811890453421,
+          "paired_bootstrap_95_pct": [
+            7.682809068505923,
+            27.09902229465678
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 2.7671046857643447,
+          "improved_designs": 10,
+          "leave_top_two_out_reduction_pct": -1.2122027544495695,
+          "median_design_reduction_pct": 0.04031686217305097,
+          "paired_bootstrap_95_pct": [
+            -6.223817744598293,
+            10.481681345140693
+          ],
+          "summed_reduction_pct": 3.213105688511375,
+          "unchanged_designs": 2
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "flow/native_slots_vs_corrected_agr": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "mem_ctrl",
+            "arbiter"
+          ],
+          "geomean_reduction_pct": 12.997902446562376,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 6.089840576703446,
+          "median_design_reduction_pct": 3.4041511051245976,
+          "paired_bootstrap_95_pct": [
+            3.970834207798831,
+            23.04432433904018
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "square",
+            "arbiter"
+          ],
+          "geomean_reduction_pct": 24.155092168170732,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 15.416770733505134,
+          "median_design_reduction_pct": 12.759295499021528,
+          "paired_bootstrap_95_pct": [
+            12.399785686439454,
+            36.37335793026137
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 3.390052186661459,
+          "improved_designs": 8,
+          "leave_top_two_out_reduction_pct": -3.624778785340844,
+          "median_design_reduction_pct": 0.0,
+          "paired_bootstrap_95_pct": [
+            -7.640045732602576,
+            14.325509596144691
+          ],
+          "summed_reduction_pct": 11.189838957407872,
+          "unchanged_designs": 2
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "flow/native_slots_vs_paper_agr": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "mem_ctrl",
+            "arbiter"
+          ],
+          "geomean_reduction_pct": 12.504199900155674,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 5.491733272351931,
+          "median_design_reduction_pct": 4.026016260162601,
+          "paired_bootstrap_95_pct": [
+            4.187696205876337,
+            22.20208345317924
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "square",
+            "arbiter"
+          ],
+          "geomean_reduction_pct": 23.174627863173544,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 14.319836868036711,
+          "median_design_reduction_pct": 9.137556648701995,
+          "paired_bootstrap_95_pct": [
+            11.39672102703854,
+            35.46510689881279
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "mem_ctrl",
+            "router"
+          ],
+          "geomean_reduction_pct": 3.021636898129339,
+          "improved_designs": 9,
+          "leave_top_two_out_reduction_pct": -2.1451462055040946,
+          "median_design_reduction_pct": 0.0,
+          "paired_bootstrap_95_pct": [
+            -5.962347090594616,
+            11.712540486005025
+          ],
+          "summed_reduction_pct": 11.140585485674382,
+          "unchanged_designs": 2
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "flow/native_slots_vs_paper_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "mem_ctrl",
+            "arbiter"
+          ],
+          "geomean_reduction_pct": 14.101737628849264,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 7.270334707695037,
+          "median_design_reduction_pct": 3.9327107984962195,
+          "paired_bootstrap_95_pct": [
+            4.853246052004423,
+            24.218006701571053
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "square",
+            "arbiter"
+          ],
+          "geomean_reduction_pct": 25.655033324111105,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 17.691248405855898,
+          "median_design_reduction_pct": 11.088304024974516,
+          "paired_bootstrap_95_pct": [
+            14.235514651989622,
+            37.347875983839835
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 6.414345616748138,
+          "improved_designs": 9,
+          "leave_top_two_out_reduction_pct": -1.820812217184907,
+          "median_design_reduction_pct": 0.0,
+          "paired_bootstrap_95_pct": [
+            -5.507403129643238,
+            19.018005277615096
+          ],
+          "summed_reduction_pct": 12.090494060700607,
+          "unchanged_designs": 2
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "portfolio/agr_vs_compress": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "div",
+            "router"
+          ],
+          "geomean_reduction_pct": 0.08358621018831873,
+          "improved_designs": 10,
+          "leave_top_two_out_reduction_pct": -0.8560753159379743,
+          "median_design_reduction_pct": 0.0026824993740848235,
+          "paired_bootstrap_95_pct": [
+            -1.9323407759025863,
+            1.938446166557419
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "mem_ctrl",
+            "int2float"
+          ],
+          "geomean_reduction_pct": -1.4407749016170008,
+          "improved_designs": 6,
+          "leave_top_two_out_reduction_pct": -2.3130789932605573,
+          "median_design_reduction_pct": -0.2403663689497293,
+          "paired_bootstrap_95_pct": [
+            -4.292465819348642,
+            0.8551245038877828
+          ],
+          "unchanged_designs": 2
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "portfolio/agr_vs_pa": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "div",
+            "router"
+          ],
+          "geomean_reduction_pct": 1.2751855032308441,
+          "improved_designs": 11,
+          "leave_top_two_out_reduction_pct": 0.19133910470205118,
+          "median_design_reduction_pct": 0.2428166734115833,
+          "paired_bootstrap_95_pct": [
+            -0.7997732401478285,
+            3.295078118737069
+          ],
+          "unchanged_designs": 4
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "ctrl",
+            "router"
+          ],
+          "geomean_reduction_pct": -0.27602609700472686,
+          "improved_designs": 6,
+          "leave_top_two_out_reduction_pct": -1.0130558790664232,
+          "median_design_reduction_pct": 0.0,
+          "paired_bootstrap_95_pct": [
+            -1.937030784087621,
+            1.3616019411364393
+          ],
+          "unchanged_designs": 4
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "portfolio/agr_vs_paper_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 13.220079424438037,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 8.259587741889405,
+          "median_design_reduction_pct": 5.670567056705666,
+          "paired_bootstrap_95_pct": [
+            6.239390462422007,
+            21.039542277183784
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "priority",
+            "arbiter"
+          ],
+          "geomean_reduction_pct": 17.19511842983152,
+          "improved_designs": 18,
+          "leave_top_two_out_reduction_pct": 9.543380546298891,
+          "median_design_reduction_pct": 9.568005653103773,
+          "paired_bootstrap_95_pct": [
+            8.835430018273074,
+            27.35178714433003
+          ],
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "portfolio/compress_vs_paper_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 13.147482696771112,
+          "improved_designs": 18,
+          "leave_top_two_out_reduction_pct": 7.974142289463297,
+          "median_design_reduction_pct": 4.336945625370447,
+          "paired_bootstrap_95_pct": [
+            5.9577024654057285,
+            21.245854924087187
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 18.371205611868273,
+          "improved_designs": 18,
+          "leave_top_two_out_reduction_pct": 9.993823517350933,
+          "median_design_reduction_pct": 9.888993325946904,
+          "paired_bootstrap_95_pct": [
+            9.01240190634704,
+            29.540200850940746
+          ],
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "portfolio/native_vs_agr": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "adder",
+            "arbiter"
+          ],
+          "geomean_reduction_pct": 3.9088961992454214,
+          "improved_designs": 13,
+          "leave_top_two_out_reduction_pct": 2.4882156763200447,
+          "median_design_reduction_pct": 1.8449394198996383,
+          "paired_bootstrap_95_pct": [
+            1.4739778170291555,
+            6.570611254710979
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "square",
+            "max"
+          ],
+          "geomean_reduction_pct": 4.749743899830229,
+          "improved_designs": 8,
+          "leave_top_two_out_reduction_pct": -1.810965116093487,
+          "median_design_reduction_pct": -1.2698412698412653,
+          "paired_bootstrap_95_pct": [
+            -5.11490161420754,
+            14.676998953814858
+          ],
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "portfolio/native_vs_compress": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "adder",
+            "router"
+          ],
+          "geomean_reduction_pct": 3.9892151112405982,
+          "improved_designs": 14,
+          "leave_top_two_out_reduction_pct": 2.4233844056468334,
+          "median_design_reduction_pct": 1.8449394198996383,
+          "paired_bootstrap_95_pct": [
+            1.625428993591685,
+            6.527909636941207
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "square",
+            "max"
+          ],
+          "geomean_reduction_pct": 3.3774021162130663,
+          "improved_designs": 6,
+          "leave_top_two_out_reduction_pct": -3.002875328700658,
+          "median_design_reduction_pct": -2.206292784338948,
+          "paired_bootstrap_95_pct": [
+            -6.135890593586825,
+            13.464743563793045
+          ],
+          "unchanged_designs": 2
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "portfolio/native_vs_pa": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "adder",
+            "router"
+          ],
+          "geomean_reduction_pct": 5.134236024807147,
+          "improved_designs": 14,
+          "leave_top_two_out_reduction_pct": 3.4449703972125567,
+          "median_design_reduction_pct": 3.1094703961380254,
+          "paired_bootstrap_95_pct": [
+            2.577902364390413,
+            7.951608185093651
+          ],
+          "unchanged_designs": 2
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "square",
+            "max"
+          ],
+          "geomean_reduction_pct": 4.48682833552992,
+          "improved_designs": 8,
+          "leave_top_two_out_reduction_pct": -1.6458002750989777,
+          "median_design_reduction_pct": -0.5870738328907388,
+          "paired_bootstrap_95_pct": [
+            -5.065470505206111,
+            14.157732989708423
+          ],
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "portfolio/pa_vs_paper_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 12.099180922338522,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 6.82090749016038,
+          "median_design_reduction_pct": 4.260222169699834,
+          "paired_bootstrap_95_pct": [
+            4.606384185548309,
+            20.4412638586332
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 17.423052355440436,
+          "improved_designs": 18,
+          "leave_top_two_out_reduction_pct": 9.598966056010333,
+          "median_design_reduction_pct": 9.724093054870542,
+          "paired_bootstrap_95_pct": [
+            8.819618480818738,
+            27.963357104420634
+          ],
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "primary/native_vs_abc_budget": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "router",
+            "arbiter"
+          ],
+          "geomean_reduction_pct": 17.29539351157125,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 11.271427317334009,
+          "median_design_reduction_pct": 10.629604607019905,
+          "paired_bootstrap_95_pct": [
+            9.205067686556188,
+            26.244957693982006
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "square",
+            "arbiter"
+          ],
+          "geomean_reduction_pct": 24.860620730615405,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 17.66624988408767,
+          "median_design_reduction_pct": 9.683147530833802,
+          "paired_bootstrap_95_pct": [
+            12.1371869068377,
+            36.984676339137785
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 11.61470651742445,
+          "improved_designs": 12,
+          "leave_top_two_out_reduction_pct": 5.697699378299344,
+          "median_design_reduction_pct": 6.6925651847788314,
+          "paired_bootstrap_95_pct": [
+            2.0240410400894273,
+            21.898676382825325
+          ],
+          "summed_reduction_pct": 16.049538938159746,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "primary/native_vs_compress_budget": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 12.46731335718759,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 7.308221236757001,
+          "median_design_reduction_pct": 6.844741235392327,
+          "paired_bootstrap_95_pct": [
+            5.6545817799890425,
+            20.420492362595148
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "square",
+            "arbiter"
+          ],
+          "geomean_reduction_pct": 19.59229306495975,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 11.205912228543609,
+          "median_design_reduction_pct": 6.393431912715863,
+          "paired_bootstrap_95_pct": [
+            8.066525296004382,
+            31.649915771568356
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "int2float"
+          ],
+          "geomean_reduction_pct": 6.832208726982837,
+          "improved_designs": 14,
+          "leave_top_two_out_reduction_pct": 1.8005509006018878,
+          "median_design_reduction_pct": 4.163967321482486,
+          "paired_bootstrap_95_pct": [
+            -2.092360162307024,
+            16.001208365345352
+          ],
+          "summed_reduction_pct": 8.925115947373442,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "primary/native_vs_corrected_agr": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 11.868127580781843,
+          "improved_designs": 18,
+          "leave_top_two_out_reduction_pct": 6.385091312038213,
+          "median_design_reduction_pct": 6.375838926174493,
+          "paired_bootstrap_95_pct": [
+            5.636856480665638,
+            19.69874940117101
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "square"
+          ],
+          "geomean_reduction_pct": 20.593126022804185,
+          "improved_designs": 18,
+          "leave_top_two_out_reduction_pct": 13.626108342430484,
+          "median_design_reduction_pct": 4.223393777880768,
+          "paired_bootstrap_95_pct": [
+            9.04096237262051,
+            32.18356444487182
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "mem_ctrl",
+            "arbiter"
+          ],
+          "geomean_reduction_pct": 3.2683084720197395,
+          "improved_designs": 13,
+          "leave_top_two_out_reduction_pct": 0.24172081571456508,
+          "median_design_reduction_pct": 4.171044943319391,
+          "paired_bootstrap_95_pct": [
+            -6.21996127751078,
+            10.85699538261452
+          ],
+          "summed_reduction_pct": 11.715008277096251,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "primary/native_vs_corrected_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 15.894215100341288,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 10.330661858967273,
+          "median_design_reduction_pct": 7.022124041905132,
+          "paired_bootstrap_95_pct": [
+            8.23977845826822,
+            24.40207700834605
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 20.218691681169528,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 12.846766966124475,
+          "median_design_reduction_pct": 7.815483238988119,
+          "paired_bootstrap_95_pct": [
+            7.81112474873502,
+            32.34232839064218
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "adder"
+          ],
+          "geomean_reduction_pct": 10.093032617021217,
+          "improved_designs": 14,
+          "leave_top_two_out_reduction_pct": 5.326005372375888,
+          "median_design_reduction_pct": 7.857686411320652,
+          "paired_bootstrap_95_pct": [
+            -0.8305865744908342,
+            19.65960685455444
+          ],
+          "summed_reduction_pct": 11.48850749035889,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "primary/native_vs_paper_agr": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 13.011793326040976,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 7.734590023190314,
+          "median_design_reduction_pct": 6.614897900488936,
+          "paired_bootstrap_95_pct": [
+            6.125397032171146,
+            20.943990050104286
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "square"
+          ],
+          "geomean_reduction_pct": 20.77617745775398,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 14.040805863712011,
+          "median_design_reduction_pct": 3.8035127688884174,
+          "paired_bootstrap_95_pct": [
+            9.193348067214048,
+            32.2463252540718
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 7.338527553563001,
+          "improved_designs": 13,
+          "leave_top_two_out_reduction_pct": 2.483845573574979,
+          "median_design_reduction_pct": 5.697533620164663,
+          "paired_bootstrap_95_pct": [
+            -2.72733693348489,
+            16.519710579069805
+          ],
+          "summed_reduction_pct": 11.424384635669494,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "primary/native_vs_paper_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 16.61221644152437,
+          "improved_designs": 18,
+          "leave_top_two_out_reduction_pct": 11.190865786008377,
+          "median_design_reduction_pct": 9.583598961329741,
+          "paired_bootstrap_95_pct": [
+            9.161994285918126,
+            24.989330755024294
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 21.128138240972245,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 13.719501417432555,
+          "median_design_reduction_pct": 7.788833269695916,
+          "paired_bootstrap_95_pct": [
+            8.531991041057191,
+            33.25365876975246
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "adder"
+          ],
+          "geomean_reduction_pct": 11.255650347726858,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 6.232415574220161,
+          "median_design_reduction_pct": 7.037867206544634,
+          "paired_bootstrap_95_pct": [
+            -0.21384108248865588,
+            21.159012388449458
+          ],
+          "summed_reduction_pct": 12.127418116536404,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "primary/native_vs_paper_pa2_without_div": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 16.922150455474807,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 11.213281618484883,
+          "median_design_reduction_pct": 8.313127851692641,
+          "paired_bootstrap_95_pct": [
+            8.983901612213952,
+            25.634354687630918
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 21.888929683672366,
+          "improved_designs": 14,
+          "leave_top_two_out_reduction_pct": 14.174989729799561,
+          "median_design_reduction_pct": 8.295999226341522,
+          "paired_bootstrap_95_pct": [
+            8.29428606496075,
+            35.08172508400642
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "adder"
+          ],
+          "geomean_reduction_pct": 11.535148467140473,
+          "improved_designs": 14,
+          "leave_top_two_out_reduction_pct": 6.242498319772189,
+          "median_design_reduction_pct": 8.43920665958347,
+          "paired_bootstrap_95_pct": [
+            -0.8217728009815739,
+            22.140982288358895
+          ],
+          "summed_reduction_pct": 12.649837133168285,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 18,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/0.26/native_vs_corrected_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 16.086704076682736,
+          "improved_designs": 18,
+          "leave_top_two_out_reduction_pct": 10.079316723531125,
+          "median_design_reduction_pct": 7.2972972972973,
+          "paired_bootstrap_95_pct": [
+            7.953389963520357,
+            25.04390426287991
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 18.004417723592027,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 9.619649975511525,
+          "median_design_reduction_pct": 7.443742098609352,
+          "paired_bootstrap_95_pct": [
+            5.078428870564845,
+            31.027790069488294
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 10.241954608604873,
+          "improved_designs": 14,
+          "leave_top_two_out_reduction_pct": 4.826322257913666,
+          "median_design_reduction_pct": 7.05142004088729,
+          "paired_bootstrap_95_pct": [
+            -0.6513452320266907,
+            20.371870339295544
+          ],
+          "summed_reduction_pct": 11.654784500716186,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/0.26/native_vs_paper_agr": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 12.290334485525541,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 6.761561240421177,
+          "median_design_reduction_pct": 4.378041522249065,
+          "paired_bootstrap_95_pct": [
+            5.195084965937414,
+            20.459520382394498
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "square"
+          ],
+          "geomean_reduction_pct": 19.14646212584322,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 11.783820924469595,
+          "median_design_reduction_pct": 6.821060349752184,
+          "paired_bootstrap_95_pct": [
+            8.207985305000525,
+            30.590006739559676
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "mem_ctrl",
+            "arbiter"
+          ],
+          "geomean_reduction_pct": 5.611428322103749,
+          "improved_designs": 14,
+          "leave_top_two_out_reduction_pct": 2.1683987527203104,
+          "median_design_reduction_pct": 5.151047460388602,
+          "paired_bootstrap_95_pct": [
+            -3.8189175561378956,
+            13.396092525657226
+          ],
+          "summed_reduction_pct": 12.040233344849094,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/0.26/native_vs_paper_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 16.04058136345263,
+          "improved_designs": 18,
+          "leave_top_two_out_reduction_pct": 10.163947212207445,
+          "median_design_reduction_pct": 7.520132638559918,
+          "paired_bootstrap_95_pct": [
+            8.028487582749461,
+            24.89314360468705
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 19.844655511235587,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 11.893108737457778,
+          "median_design_reduction_pct": 8.708571428571432,
+          "paired_bootstrap_95_pct": [
+            8.231502380949333,
+            31.872086453337634
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 10.812055542409169,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 5.272890340929334,
+          "median_design_reduction_pct": 6.485928414567866,
+          "paired_bootstrap_95_pct": [
+            0.20496070930056712,
+            20.74205036402938
+          ],
+          "summed_reduction_pct": 12.316942720922807,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/0.27/native_vs_corrected_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 15.693130040195205,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 9.373453693565446,
+          "median_design_reduction_pct": 5.671563996481743,
+          "paired_bootstrap_95_pct": [
+            7.250507206126766,
+            25.046894930408136
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 18.790253141767245,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 10.707970291084907,
+          "median_design_reduction_pct": 5.596529284164864,
+          "paired_bootstrap_95_pct": [
+            6.6588145795249,
+            31.031472376518895
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "adder"
+          ],
+          "geomean_reduction_pct": 10.111542381223188,
+          "improved_designs": 14,
+          "leave_top_two_out_reduction_pct": 2.9940428019341896,
+          "median_design_reduction_pct": 4.113398638552212,
+          "paired_bootstrap_95_pct": [
+            -2.7424799565053064,
+            22.905057294987774
+          ],
+          "summed_reduction_pct": 10.213815242347923,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/0.27/native_vs_paper_agr": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 11.891555981797406,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 6.375497072086624,
+          "median_design_reduction_pct": 4.605022074092191,
+          "paired_bootstrap_95_pct": [
+            4.42137873811034,
+            20.45742008460575
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 20.48385419494434,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 13.133402065301688,
+          "median_design_reduction_pct": 7.025093071604704,
+          "paired_bootstrap_95_pct": [
+            9.386356549674517,
+            31.781467198213914
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 4.115171078201421,
+          "improved_designs": 12,
+          "leave_top_two_out_reduction_pct": -1.5564733350814761,
+          "median_design_reduction_pct": 1.3721907234100716,
+          "paired_bootstrap_95_pct": [
+            -6.3282162523511625,
+            14.349294950240422
+          ],
+          "summed_reduction_pct": 10.563180887920144,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/0.27/native_vs_paper_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 15.174188090322033,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 9.094113145171248,
+          "median_design_reduction_pct": 5.027622389771036,
+          "paired_bootstrap_95_pct": [
+            6.918605766585077,
+            24.305838869300793
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 19.87746086847388,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 12.08479113107847,
+          "median_design_reduction_pct": 7.616540714952869,
+          "paired_bootstrap_95_pct": [
+            7.733388900601991,
+            31.92624917068553
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "adder"
+          ],
+          "geomean_reduction_pct": 9.595849316061935,
+          "improved_designs": 14,
+          "leave_top_two_out_reduction_pct": 2.951044767678057,
+          "median_design_reduction_pct": 3.190262774841024,
+          "paired_bootstrap_95_pct": [
+            -2.5381245324972728,
+            21.863804003296778
+          ],
+          "summed_reduction_pct": 9.417513894249662,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/0.28/native_vs_corrected_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 15.894215100341288,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 10.330661858967273,
+          "median_design_reduction_pct": 7.022124041905132,
+          "paired_bootstrap_95_pct": [
+            8.23977845826822,
+            24.40207700834605
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 20.218691681169528,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 12.846766966124475,
+          "median_design_reduction_pct": 7.815483238988119,
+          "paired_bootstrap_95_pct": [
+            7.81112474873502,
+            32.34232839064218
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "adder"
+          ],
+          "geomean_reduction_pct": 10.093032617021217,
+          "improved_designs": 14,
+          "leave_top_two_out_reduction_pct": 5.326005372375888,
+          "median_design_reduction_pct": 7.857686411320652,
+          "paired_bootstrap_95_pct": [
+            -0.8305865744908342,
+            19.65960685455444
+          ],
+          "summed_reduction_pct": 11.48850749035889,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/0.28/native_vs_paper_agr": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 13.011793326040976,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 7.734590023190314,
+          "median_design_reduction_pct": 6.614897900488936,
+          "paired_bootstrap_95_pct": [
+            6.125397032171146,
+            20.943990050104286
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "square"
+          ],
+          "geomean_reduction_pct": 20.77617745775398,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 14.040805863712011,
+          "median_design_reduction_pct": 3.8035127688884174,
+          "paired_bootstrap_95_pct": [
+            9.193348067214048,
+            32.2463252540718
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 7.338527553563001,
+          "improved_designs": 13,
+          "leave_top_two_out_reduction_pct": 2.483845573574979,
+          "median_design_reduction_pct": 5.697533620164663,
+          "paired_bootstrap_95_pct": [
+            -2.72733693348489,
+            16.519710579069805
+          ],
+          "summed_reduction_pct": 11.424384635669494,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/0.28/native_vs_paper_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 16.61221644152437,
+          "improved_designs": 18,
+          "leave_top_two_out_reduction_pct": 11.190865786008377,
+          "median_design_reduction_pct": 9.583598961329741,
+          "paired_bootstrap_95_pct": [
+            9.161994285918126,
+            24.989330755024294
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 21.128138240972245,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 13.719501417432555,
+          "median_design_reduction_pct": 7.788833269695916,
+          "paired_bootstrap_95_pct": [
+            8.531991041057191,
+            33.25365876975246
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "adder"
+          ],
+          "geomean_reduction_pct": 11.255650347726858,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 6.232415574220161,
+          "median_design_reduction_pct": 7.037867206544634,
+          "paired_bootstrap_95_pct": [
+            -0.21384108248865588,
+            21.159012388449458
+          ],
+          "summed_reduction_pct": 12.127418116536404,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/0.29/native_vs_corrected_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 14.919917315572134,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 8.744982909142688,
+          "median_design_reduction_pct": 5.975395430579978,
+          "paired_bootstrap_95_pct": [
+            6.407773186943763,
+            24.368009475323355
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 23.925644926092104,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 16.927940244792,
+          "median_design_reduction_pct": 8.415961305925023,
+          "paired_bootstrap_95_pct": [
+            11.243845810114617,
+            35.77435446611052
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 6.039547289896801,
+          "improved_designs": 13,
+          "leave_top_two_out_reduction_pct": 0.20853167132705838,
+          "median_design_reduction_pct": 4.917918011587341,
+          "paired_bootstrap_95_pct": [
+            -6.622947061884331,
+            17.33522702994341
+          ],
+          "summed_reduction_pct": 7.159513708306364,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/0.29/native_vs_paper_agr": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 11.421032983047015,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 6.02302670654861,
+          "median_design_reduction_pct": 4.323603002502074,
+          "paired_bootstrap_95_pct": [
+            4.257438389593529,
+            19.58494358723895
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "square"
+          ],
+          "geomean_reduction_pct": 22.998040526357343,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 16.53309467803042,
+          "median_design_reduction_pct": 9.281669712658902,
+          "paired_bootstrap_95_pct": [
+            11.278030007718067,
+            34.2576484131284
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 1.371643011259346,
+          "improved_designs": 11,
+          "leave_top_two_out_reduction_pct": -3.1968952621625504,
+          "median_design_reduction_pct": 1.9929446632886982,
+          "paired_bootstrap_95_pct": [
+            -8.646439976534145,
+            10.12254570056116
+          ],
+          "summed_reduction_pct": 8.12542402573876,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/0.29/native_vs_paper_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "router",
+            "arbiter"
+          ],
+          "geomean_reduction_pct": 15.033713955849754,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 8.734008608594225,
+          "median_design_reduction_pct": 5.93463302752294,
+          "paired_bootstrap_95_pct": [
+            6.657908389934289,
+            24.464200054760855
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 23.219197660644912,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 15.85789683674777,
+          "median_design_reduction_pct": 9.348834704884634,
+          "paired_bootstrap_95_pct": [
+            10.76302647419883,
+            35.05292339861833
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 6.44661521588104,
+          "improved_designs": 13,
+          "leave_top_two_out_reduction_pct": 0.8687202929747357,
+          "median_design_reduction_pct": 4.307804770900148,
+          "paired_bootstrap_95_pct": [
+            -4.97117644009284,
+            17.013769056624916
+          ],
+          "summed_reduction_pct": 8.225929287096811,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/0.30/native_vs_corrected_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 15.441893559145466,
+          "improved_designs": 18,
+          "leave_top_two_out_reduction_pct": 9.90842441624765,
+          "median_design_reduction_pct": 5.9330236159504395,
+          "paired_bootstrap_95_pct": [
+            7.821298449692557,
+            23.890645611717687
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 18.942950790880815,
+          "improved_designs": 13,
+          "leave_top_two_out_reduction_pct": 10.965600052534633,
+          "median_design_reduction_pct": 4.848737668469882,
+          "paired_bootstrap_95_pct": [
+            6.003372030965158,
+            31.939308988095735
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 10.977342398259468,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 6.825762998606322,
+          "median_design_reduction_pct": 6.271396226622916,
+          "paired_bootstrap_95_pct": [
+            1.5981814477847995,
+            19.366405046542045
+          ],
+          "summed_reduction_pct": 11.772232397992555,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/0.30/native_vs_paper_agr": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 12.140547812594903,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 6.717546015013356,
+          "median_design_reduction_pct": 4.7872340425531785,
+          "paired_bootstrap_95_pct": [
+            5.324521876198258,
+            20.10229010826775
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "square"
+          ],
+          "geomean_reduction_pct": 19.96019659066327,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 12.507247707481516,
+          "median_design_reduction_pct": 5.088609668159172,
+          "paired_bootstrap_95_pct": [
+            8.857100566112708,
+            31.489188809426622
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "mem_ctrl",
+            "router"
+          ],
+          "geomean_reduction_pct": 7.471988733021735,
+          "improved_designs": 13,
+          "leave_top_two_out_reduction_pct": 4.669753333478739,
+          "median_design_reduction_pct": 9.215295949709157,
+          "paired_bootstrap_95_pct": [
+            -1.3628963386950783,
+            14.314058738965233
+          ],
+          "summed_reduction_pct": 12.20843275941771,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/0.30/native_vs_paper_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 15.459807703548325,
+          "improved_designs": 18,
+          "leave_top_two_out_reduction_pct": 10.030419898715536,
+          "median_design_reduction_pct": 6.120639758515356,
+          "paired_bootstrap_95_pct": [
+            7.8982726818398135,
+            23.844561484279968
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 19.419791385658193,
+          "improved_designs": 14,
+          "leave_top_two_out_reduction_pct": 11.550786654672919,
+          "median_design_reduction_pct": 6.54581591690675,
+          "paired_bootstrap_95_pct": [
+            6.441340415102898,
+            32.108728188180706
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 11.728291087113925,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 7.606867347873333,
+          "median_design_reduction_pct": 9.978316831966339,
+          "paired_bootstrap_95_pct": [
+            2.17107193871846,
+            20.388195021459286
+          ],
+          "summed_reduction_pct": 11.544646417445549,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/five_step_mean/native_vs_corrected_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 15.608141114553803,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 9.689138521580386,
+          "median_design_reduction_pct": 5.725704450294167,
+          "paired_bootstrap_95_pct": [
+            7.5641982345031105,
+            24.53629482529015
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 20.00446140225137,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 12.252125334061272,
+          "median_design_reduction_pct": 4.381134989001301,
+          "paired_bootstrap_95_pct": [
+            8.06967517631126,
+            31.953659383200772
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 9.50944247759407,
+          "improved_designs": 14,
+          "leave_top_two_out_reduction_pct": 4.2553702947022005,
+          "median_design_reduction_pct": 6.307866738573164,
+          "paired_bootstrap_95_pct": [
+            -1.5746344202668454,
+            19.727989181488287
+          ],
+          "summed_reduction_pct": 10.507158460766208,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/five_step_mean/native_vs_paper_agr": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 12.15260383996396,
+          "improved_designs": 16,
+          "leave_top_two_out_reduction_pct": 6.7242027026824625,
+          "median_design_reduction_pct": 5.309232321705237,
+          "paired_bootstrap_95_pct": [
+            5.1284190798363545,
+            20.234597012807946
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "square"
+          ],
+          "geomean_reduction_pct": 20.683491838729445,
+          "improved_designs": 18,
+          "leave_top_two_out_reduction_pct": 13.739200529888818,
+          "median_design_reduction_pct": 7.792610217754081,
+          "paired_bootstrap_95_pct": [
+            10.096783861533678,
+            31.550760452095556
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 5.208650300593591,
+          "improved_designs": 13,
+          "leave_top_two_out_reduction_pct": 0.9778810753532751,
+          "median_design_reduction_pct": 5.0679152096674285,
+          "paired_bootstrap_95_pct": [
+            -4.091562842775811,
+            13.229255079802671
+          ],
+          "summed_reduction_pct": 10.911592809056291,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    },
+    "sensitivity/five_step_mean/native_vs_paper_pa2": {
+      "bootstrap_replicates": 5000,
+      "bootstrap_seed": 20261116,
+      "designs": [
+        "adder",
+        "arbiter",
+        "bar",
+        "cavlc",
+        "ctrl",
+        "dec",
+        "div",
+        "i2c",
+        "int2float",
+        "log2",
+        "max",
+        "mem_ctrl",
+        "multiplier",
+        "priority",
+        "router",
+        "sin",
+        "sqrt",
+        "square",
+        "voter"
+      ],
+      "interval": "paired-design percentile 95%; cohort sensitivity, not run noise",
+      "metrics": {
+        "mapped_area": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "router"
+          ],
+          "geomean_reduction_pct": 15.666145757229593,
+          "improved_designs": 18,
+          "leave_top_two_out_reduction_pct": 9.846831474811205,
+          "median_design_reduction_pct": 6.488795715091722,
+          "paired_bootstrap_95_pct": [
+            7.727893141008959,
+            24.474963840166193
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_delay_ps": {
+          "excluded_top_two_designs": [
+            "arbiter",
+            "priority"
+          ],
+          "geomean_reduction_pct": 20.710064796124442,
+          "improved_designs": 17,
+          "leave_top_two_out_reduction_pct": 13.036146683479133,
+          "median_design_reduction_pct": 7.316451897046927,
+          "paired_bootstrap_95_pct": [
+            8.87941107189889,
+            32.58025981363806
+          ],
+          "unchanged_designs": 1
+        },
+        "mapped_hpwl": {
+          "excluded_top_two_designs": [
+            "router",
+            "mem_ctrl"
+          ],
+          "geomean_reduction_pct": 9.987410622750499,
+          "improved_designs": 15,
+          "leave_top_two_out_reduction_pct": 4.757167808770829,
+          "median_design_reduction_pct": 6.717734514055906,
+          "paired_bootstrap_95_pct": [
+            -0.8452379146043189,
+            19.854872573550686
+          ],
+          "summed_reduction_pct": 10.753152543375766,
+          "unchanged_designs": 1
+        }
+      },
+      "n": 19,
+      "positive_means": "candidate reduction relative to reference"
+    }
+  },
+  "process_cpu": {
+    "abc_budget": {
+      "maximum_s": 267.10999999999996,
+      "median_s": 3.95,
+      "total_s": 976.12
+    },
+    "compress_budget": {
+      "maximum_s": 269.55999999999995,
+      "median_s": 3.98,
+      "total_s": 979.59
+    },
+    "corrected_agr": {
+      "maximum_s": 19.85,
+      "median_s": 1.08,
+      "total_s": 73.69
+    },
+    "corrected_pa2": {
+      "maximum_s": 11.03,
+      "median_s": 0.77,
+      "total_s": 55.58
+    },
+    "native": {
+      "maximum_s": 265.87,
+      "median_s": 3.9,
+      "total_s": 971.97
+    },
+    "paper_agr": {
+      "maximum_s": 18.619999999999997,
+      "median_s": 1.04,
+      "total_s": 56.23
+    },
+    "paper_pa2": {
+      "maximum_s": 10.540000000000001,
+      "median_s": 1.0,
+      "total_s": 47.53
+    }
+  },
+  "recorded_proofs": 1197,
+  "rows": {
+    "flow": 95,
+    "portfolio": 57,
+    "primary": 133,
+    "sensitivity": 380
+  },
+  "scope": "Recorded evidence audit and statistical recomputation; does not rerun synthesis or CEC."
+}
