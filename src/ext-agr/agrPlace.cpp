@@ -526,7 +526,7 @@ class Agr_Placement
         stagedWritten_.clear();
         editing_ = false;
 #ifdef ABC_AGR_ENABLE_AUDIT
-        if (((char *)0) != nullptr && !AuditLocalPlacement())
+        if (!AuditLocalPlacement())
             return false;
 #endif
         return std::isfinite(finalHpwl_) && std::isfinite(finalOverflow_);

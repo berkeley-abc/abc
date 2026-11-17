@@ -1209,6 +1209,7 @@ class AgrEval_ObjectSet
             return {it, false};
         return {items_.insert(it, v), true};
     }
+    void clear() { items_.clear(); }
     void erase(Abc_Obj_t *v)
     {
         auto it = lower(v);
@@ -1216,6 +1217,31 @@ class AgrEval_ObjectSet
             items_.erase(it);
     }
 };
+
+// Predict Abc_AigDeleteNode's transitive dereferencing without changing the
+// live graph. Added references are those created by materialization and by
+// redirecting the root's fanouts to an existing replacement signal.
+static std::vector<Abc_Obj_t *> AgrEval_DeletionCone(
+    Abc_Obj_t *root, const std::unordered_map<Abc_Obj_t *, int> &addedReferences)
+{
+    std::vector<Abc_Obj_t *> removed{root};
+    std::unordered_map<Abc_Obj_t *, int> remaining;
+    for (size_t i = 0; i < removed.size(); ++i)
+    {
+        Abc_Obj_t *fanin; int k;
+        Abc_ObjForEachFanin(removed[i], fanin, k)
+        {
+            if (!Abc_ObjIsNode(fanin)) continue;
+            auto added = addedReferences.find(fanin);
+            const int refs = Abc_ObjFanoutNum(fanin) +
+                (added == addedReferences.end() ? 0 : added->second);
+            auto entry = remaining.emplace(fanin, refs).first;
+            if (--entry->second == 0)
+                removed.push_back(fanin);
+        }
+    }
+    return removed;
+}
 
 /* Allocation-free structural screen for small decomposition graphs. It uses
    the same live/virtual hashing, simplification and zero-fanout rules as the
@@ -1306,8 +1332,11 @@ static bool AgrEval_StructuralScreen(Abc_Obj_t *Root, Dec_Graph_t *Graph, int Sa
                 }
                 if (Result < 0)
                 {
-                    if (++NewCount > Saved + 0)
-                        return false;
+                    // An unused cut leaf can disappear with its fanin
+                    // cone. The cut-bounded Saved count cannot prove a
+                    // negative gain; defer this case to the exact planner.
+                    if (++NewCount > Saved)
+                        return true;
                     int Level = 1 + std::max(Entries[A / 2].level, Entries[B / 2].level);
                     Entries[Count] = Entry{nullptr, 0, Level, Low, High};
                     Result = 2 * Count++;
@@ -2545,37 +2574,22 @@ class AgrEval_CandidatePlan
     void ComputeRemovedAfterMaterialization()
     {
         AGR_SPEED_SCOPE(Materialization);
-        /* New ANDs are created before ABC replaces the old root.  Every old
-           MFFC node used by a new AND, or used as the replacement result,
-           gains a surviving fanout.  Its old MFFC fanin cone survives too. */
-        AgrEval_ObjectSet Retained;
-        std::vector<Abc_Obj_t *> Stack;
+        // ABC recursively deletes every unused fanin after replacing the
+        // root, including cut leaves that the replacement no longer uses.
+        // A cut-bounded MFFC therefore is not the actual deletion boundary.
+        std::unordered_map<Abc_Obj_t *, int> addedReferences;
         for (int NewEntity : virtualEntities_)
         {
             const auto &Inputs = virtualInputs_[NewEntity];
             for (int Child : {Inputs.first.entity, Inputs.second.entity})
-            {
-                Abc_Obj_t *pChild = entities_[Child].object;
-                if (pChild != nullptr && removed_.count(pChild))
-                    Stack.push_back(pChild);
-            }
+                if (entities_[Child].object)
+                    ++addedReferences[entities_[Child].object];
         }
-        Abc_Obj_t *pResult = entities_[resultEntity_].object;
-        if (pResult != nullptr && removed_.count(pResult))
-            Stack.push_back(pResult);
-        while (!Stack.empty())
-        {
-            Abc_Obj_t *pObject = Stack.back();
-            Stack.pop_back();
-            if (!Retained.insert(pObject).second)
-                continue;
-            Abc_Obj_t *pFanin;
-            int i;
-            Abc_ObjForEachFanin(pObject, pFanin, i) if (removed_.count(Abc_ObjRegular(pFanin)))
-                Stack.push_back(Abc_ObjRegular(pFanin));
-        }
-        for (Abc_Obj_t *pObject : Retained)
-            removed_.erase(pObject);
+        if (entities_[resultEntity_].object)
+            addedReferences[entities_[resultEntity_].object] += Abc_ObjFanoutNum(pRoot_);
+        removed_.clear();
+        for (Abc_Obj_t *object : AgrEval_DeletionCone(pRoot_, addedReferences))
+            removed_.insert(object);
         // Pointer-hash iteration changes with allocation/ASLR. Numeric sums,
         // density updates and placement staging must use stable object IDs.
         orderedRemoved_.assign(removed_.begin(), removed_.end());
@@ -3133,6 +3147,7 @@ class AgrEval_CandidatePlan
             {
                 const AgrEval_Geometry &Geometry = entities_[Entity].geometry;
                 Region = AgrEval_Rectangle{Geometry.x, Geometry.x, Geometry.y, Geometry.y, true};
+                ClampRectangle(Entity, &Region);
             }
             PlaceInRectangle(Entity, Region);
             Assigned[Entity] = 1;
@@ -3185,6 +3200,12 @@ class AgrEval_CandidatePlan
             {
                 auto &e = entities_[id];
                 Agr_ManReadObjectPosition(pNtk_, e.object, &e.geometry.x, &e.geometry.y);
+                // A previous polarity change can widen a reused cell at
+                // the canvas edge. Score the same clipped coordinates that
+                // WriteObjectPosition will materialize, including density.
+                e.geometry.x = AgrEval_Clamp(e.geometry.x, 0.5 * e.geometry.width,
+                                             width_ - 0.5 * e.geometry.width);
+                e.geometry.y = AgrEval_Clamp(e.geometry.y, 0.5, height_ - 0.5);
                 density_->Add(e.geometry, 1.);
                 densityPresent_[id] = 1;
             }
