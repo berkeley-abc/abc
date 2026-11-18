@@ -59,7 +59,7 @@ typedef struct Nf3_Cache_t_
     Nf3_Recipe_t * Recipes;
     int nVars, nRecipes;
 } Nf3_Cache_t;
-enum { NF3_RECIPE_MAX = 32, NF3_CACHE_BINS = 8192, NF3_CACHE_LIMIT = 4096 };
+enum { NF3_RECIPE_MAX = 32, SCM_RECIPE_MAX = 128, NF3_CACHE_BINS = 8192, NF3_CACHE_LIMIT = 4096 };
 
 
 typedef struct Nf3_Man_t_
@@ -74,19 +74,24 @@ typedef struct Nf3_Man_t_
     word nTrials, nHits, nCacheHits, nTwo, nOdc, nCanonical, MinArea;
     long long Saved;
     Nf3_Cache_t * Cache;
-    int nCached;
+    int nCached, nRecipeLimit;
 } Nf3_Man_t;
 typedef struct Nf3_Plan_t_
 {
     int Gate, nFans, Fans[6], Arrival;
     int Slot, ChildGate, ChildFans[6], ChildArrival;
     long long Gain;
+    double Score;
 } Nf3_Plan_t;
+typedef struct Scm_WinState_t_ Scm_WinState_t;
 typedef struct Nf3_Enum_t_
 {
     Nf3_Plan_t * Plans;
     word Extra, Generated;
     int Count, Limit, fEqual;
+    int Root;
+    void * Model;
+    Scm_WinState_t * State;
 } Nf3_Enum_t;
 
 static void Scm_WinPlanAdd( Nf3_Enum_t * p, Nf3_Plan_t * Plan );
@@ -458,6 +463,7 @@ static int Nf3_Dominates( Nf3_Recipe_t * A, Nf3_Recipe_t * B )
 static void Nf3_RecipeAdd( Nf3_Man_t * p, Nf3_Recipe_t * Recipes, int * pnRecipes, Nf3_Recipe_t * R )
 {
     int i, k, Pin, d, Worst;
+    int Limit = p->nRecipeLimit ? p->nRecipeLimit : NF3_RECIPE_MAX;
     R->Area = p->Cells[R->Gate[0]].AreaW + p->Cells[R->Gate[1]].AreaW;
     R->Mask = 0; memset(R->Profile, 0, sizeof(R->Profile));
     for ( i = 0; i < (int)p->Cells[R->Gate[1]].nFanins; i++ )
@@ -474,7 +480,7 @@ static void Nf3_RecipeAdd( Nf3_Man_t * p, Nf3_Recipe_t * Recipes, int * pnRecipe
     for ( i = 0; i < *pnRecipes; i++ ) if ( Nf3_Dominates(Recipes+i, R) ) return;
     for ( i = 0; i < *pnRecipes; )
         if ( Nf3_Dominates(R, Recipes+i) ) Recipes[i] = Recipes[--*pnRecipes]; else i++;
-    if ( *pnRecipes < NF3_RECIPE_MAX ) { Recipes[(*pnRecipes)++] = *R; return; }
+    if ( *pnRecipes < Limit ) { Recipes[(*pnRecipes)++] = *R; return; }
     Worst = 0;
     for ( i = 1; i < *pnRecipes; i++ ) if ( Recipes[i].Area > Recipes[Worst].Area ) Worst = i;
     if ( R->Area < Recipes[Worst].Area ) Recipes[Worst] = *R;
@@ -496,7 +502,7 @@ static Nf3_Cache_t * Nf3_Recipes( Nf3_Man_t * p, word Truth, int nVars )
         ABC_CONST(0xF0F0F0F0F0F0F0F0), ABC_CONST(0xFF00FF00FF00FF00),
         ABC_CONST(0xFFFF0000FFFF0000), ABC_CONST(0xFFFFFFFF00000000) };
     Nf3_Cache_t * Entry;
-    Nf3_Recipe_t Recipes[NF3_RECIPE_MAX], R;
+    Nf3_Recipe_t Recipes[SCM_RECIPE_MAX], R;
     Vec_Int_t * GMatches, * HMatches;
     word Hash, Rows[64], First, Second, G, H, Key, Check, Inputs[6];
     unsigned CfgG, CfgH, Phase, Perm;

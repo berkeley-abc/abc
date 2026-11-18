@@ -130,7 +130,7 @@ static void Gp_RequireArc(Gp_Man *g,int root,int child,Gp_Arc *a)
     for(int t=0;t<2;t++) for(int u=0;u<2;u++) if(Gp_Allows(a->sense,t,u))
         g->req[2*child+u]=fmin(g->req[2*child+u],g->req[2*root+t]-a->d[t]);
 }
-static int Gp_Cover(Gp_Man *g)
+static int Gp_Cover(Gp_Man *g, int fUpdateFlow)
 {
     Scm_Man_t *p=g->p;Gia_Obj_t *o;int i,j,n=2*Gia_ManObjNum(p->pGia);
     Vec_IntFill(&p->vMapRefs,n,0);
@@ -164,8 +164,10 @@ static int Gp_Cover(Gp_Man *g)
         for(int t=0;t<2;t++) {
             if(g->labels[i].valid && g->labels[i].a[t]>g->req[2*i+t]+1e-6) {printf("GP_FAIL cover round=%d lit=%d t=%d a=%.17g r=%.17g refs=%d\n",g->round,i,t,g->labels[i].a[t],g->req[2*i+t],Vec_IntEntry(&p->vMapRefs,i));return 0;}
         }
-        float coef=1.0/(1+(g->round+1)*(g->round+1));
-        Vec_FltWriteEntry(&p->vFlowRefs,i,fmax(1,coef*Vec_FltEntry(&p->vFlowRefs,i)+(1-coef)*Vec_IntEntry(&p->vMapRefs,i)));
+        if(fUpdateFlow) {
+            float coef=1.0/(1+(g->round+1)*(g->round+1));
+            Vec_FltWriteEntry(&p->vFlowRefs,i,fmax(1,coef*Vec_FltEntry(&p->vFlowRefs,i)+(1-coef)*Vec_IntEntry(&p->vMapRefs,i)));
+        }
     }
     return 1;
 }
@@ -266,7 +268,7 @@ static int Gp_ExactArea(Gp_Man *g)
         memcpy(refs,Vec_IntArray(&p->vMapRefs),sizeof(int)*n);
         /* Independently rebuild references and validate both transitions
            against the unchanged initial target after each pass. */
-        if(!Gp_Cover(g) || memcmp(refs,Vec_IntArray(&p->vMapRefs),sizeof(int)*n)) goto fail;
+        if(!Gp_Cover(g,1) || memcmp(refs,Vec_IntArray(&p->vMapRefs),sizeof(int)*n)) goto fail;
         if(p->pPars->fVerbose) printf("SCMAP_GLOBAL_EXACT round=%d edits=%d area=%llu seed=%llu target=%.9g\n",round,edits,(unsigned long long)currentArea,(unsigned long long)seedArea,g->target);
         if(!edits) break;
     }
@@ -277,11 +279,49 @@ fail:
 
 extern float Abc_SclComputeDelayClassPin( SC_Lib *, SC_Cell *, int, float, float );
 
-static int Scm_ManBuildPairedSeed(Scm_Man_t *p,int mode)
+static void Gp_SaveMatches(Gp_Man *g)
+{
+    Scm_Man_t *p=g->p;
+    for(int i=0;i<2*Gia_ManObjNum(p->pGia);i++) if(g->labels[i].valid) {
+        Scm_Mat_t m=g->labels[i].mat;m.fBest=1;m.D=Scm_AffArrivalRecord(Gp_Worst(g->labels+i));m.F=g->labels[i].flow;
+        *Scm_ObjMatchD(p,i>>1,i&1)=m;m.fBest=0;*Scm_ObjMatchA(p,i>>1,i&1)=m;
+    }
+}
+
+/* Transfer only relative slack from electrical timing to the seed's fixed arcs.
+   Plain -D has no incumbent yet; time the round-zero cover without changing flow estimates. */
+static int Gp_SetTarget(Gp_Man *g, float ModelRef)
+{
+    Scm_Man_t *p=g->p;
+    Gia_Obj_t *o;
+    double Fixed=0;
+    int i, ok, fRf=p->pPars->fUseRiseFallAll;
+    Gia_ManForEachCo(p->pGia,o,i)
+        Fixed=fmax(Fixed,Gp_Worst(g->labels+Gia_ObjFaninLit0p(p->pGia,o)));
+    g->target=Fixed;
+    if(p->pPars->ModelDelayTarget <= 0 || Fixed == 0) return 1;
+    if(ModelRef <= 0) {
+        if(!Gp_Cover(g,0)) return 0;
+        Gp_SaveMatches(g);
+        p->pPars->fUseRiseFallAll=1;
+        ok=Scm_ManAffElaTimeCover(p);
+        p->pPars->fUseRiseFallAll=fRf;
+        if(!ok) return 0;
+        ModelRef=p->AffExactDelay;
+    }
+    if(ModelRef > 0)
+        g->target=Fixed*fmax(1.0,(double)p->pPars->ModelDelayTarget/ModelRef);
+    if(p->pPars->fVeryVerbose)
+        Abc_Print(1,"SCMAP_SEED_BOUND fixed_delay=%.9g model_delay=%.9g model_target=%.9g fixed_target=%.9g\n",
+            Fixed,ModelRef,p->pPars->ModelDelayTarget,g->target);
+    return 1;
+}
+
+static int Scm_ManBuildPairedSeed(Scm_Man_t *p,int mode,float ModelRef)
 {
     int nGlobalRounds=4;
     Gp_Man g={0};int n=2*Gia_ManObjNum(p->pGia),ok=0,i,k,j;
-    Gia_Obj_t *o;g.p=p;g.labels=ABC_CALLOC(Gp_Label,n);
+    g.p=p;g.labels=ABC_CALLOC(Gp_Label,n);
     g.req=ABC_ALLOC(double,2*n);g.arcs=ABC_CALLOC(Gp_Arc,p->nCells*NF_LEAF_MAX);
     for(i=0;i<p->nCells;i++) {
         Mio_Cell2_t *cell=p->pCells+i;SC_Cell *rep=Scm_ManSclCell(p,cell),*member;
@@ -316,19 +356,10 @@ static int Scm_ManBuildPairedSeed(Scm_Man_t *p,int mode)
     /* No NF cover is built first. Flow references start from AIG structure. */
     for(g.round=0;g.round<nGlobalRounds;g.round++) {
         if(!Gp_Forward(&g)) goto done;
-        if(!g.round) {
-            Gia_ManForEachCo(p->pGia,o,i)
-                g.target=fmax(g.target,Gp_Worst(g.labels+Gia_ObjFaninLit0p(p->pGia,o)));
-            if(p->pPars->ModelDelayTarget > 0)
-                g.target=fmax(g.target,p->pPars->ModelDelayTarget);
-        }
-
-        if(!Gp_Cover(&g)) goto done;
+        if(!g.round && !Gp_SetTarget(&g,ModelRef)) goto done;
+        if(!Gp_Cover(&g,1)) goto done;
     }
-    for(i=0;i<n;i++) if(g.labels[i].valid) {
-        Scm_Mat_t m=g.labels[i].mat;m.fBest=1;m.D=Scm_AffArrivalRecord(Gp_Worst(g.labels+i));m.F=g.labels[i].flow;
-        *Scm_ObjMatchD(p,i>>1,i&1)=m;m.fBest=0;*Scm_ObjMatchA(p,i>>1,i&1)=m;
-    }
+    Gp_SaveMatches(&g);
     if(!Gp_ExactArea(&g)) goto done;
     if(!Scm_ManAffElaCollectLoads(p,1)) {puts("GP_FAIL collect");goto done;}
     if(!Scm_ManAffAuditTiming(p)) {puts("GP_FAIL audit");goto done;}
@@ -338,7 +369,7 @@ done:
     ABC_FREE(g.labels);ABC_FREE(g.req);ABC_FREE(g.arcs);return ok;
 }
 
-static int Scm_ManAffPairedSeed( Scm_Man_t * p )
+static int Scm_ManAffPairedSeed( Scm_Man_t * p, float ModelRef )
 {
-    return Scm_ManBuildPairedSeed(p, 2);
+    return Scm_ManBuildPairedSeed(p, 2, ModelRef);
 }

@@ -13,11 +13,11 @@
 
 ***********************************************************************/
 
-typedef struct Scm_WinState_t_
+struct Scm_WinState_t_
 {
     Scm_RfPair_t Arrival, Slew, Load, Required;
     double Cost;
-} Scm_WinState_t;
+};
 typedef struct Scm_WinMetric_t_
 {
     word Area;
@@ -39,6 +39,7 @@ typedef struct Scm_WinChecks_t_
 {
     Gia_Man_t * Covers[2];
     Scm_WinMetric_t Metrics[2];
+    float Target;
 } Scm_WinChecks_t;
 
 /**Function*************************************************************
@@ -304,6 +305,7 @@ static int Scm_WinPlanCompare( const void * pA, const void * pB )
     const Nf3_Plan_t * A = (const Nf3_Plan_t *)pA;
     const Nf3_Plan_t * B = (const Nf3_Plan_t *)pB;
     int k;
+    if ( A->Score != B->Score ) return A->Score < B->Score ? -1 : 1;
     if ( A->Gain != B->Gain ) return A->Gain > B->Gain ? -1 : 1;
     if ( A->Gate != B->Gate ) return A->Gate < B->Gate ? -1 : 1;
     if ( A->Slot != B->Slot ) return A->Slot < B->Slot ? -1 : 1;
@@ -315,6 +317,45 @@ static int Scm_WinPlanCompare( const void * pA, const void * pB )
         if ( A->ChildFans[k] != B->ChildFans[k] ) return A->ChildFans[k] < B->ChildFans[k] ? -1 : 1;
     }
     return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Ranks a timing recipe at the root's load and required times.]
+
+  Description [This local score shortlists plans; incremental cover timing
+  and the realized endpoint still decide whether to keep one.]
+
+***********************************************************************/
+static double Scm_WinPlanScore( Nf3_Enum_t * p, Nf3_Plan_t * Plan )
+{
+    Scm_RfPair_t Arrs[6], Slews[6], Arr, Slew, ChildArr, ChildSlew;
+    Scm_RfPair_t Load = {{0, 0}};
+    int k, t;
+    if ( Plan->Slot )
+    {
+        for ( k = 0; k < Plan->nFans; k++ ) if ( Plan->Fans[k] == Plan->Slot )
+        {
+            Scm_RfPair_t Cap = Scm_WinModelCap(p->Model, Plan->Gate, k);
+            for ( t = 0; t < 2; t++ ) Load.Value[t] += Cap.Value[t];
+        }
+        for ( k = 0; k < 6; k++ )
+        {
+            Arrs[k] = p->State[Plan->ChildFans[k]].Arrival;
+            Slews[k] = p->State[Plan->ChildFans[k]].Slew;
+        }
+        if ( !Scm_WinModelCell(p->Model, Plan->ChildGate, Load, Arrs, Slews, &ChildArr, &ChildSlew) ) return DBL_MAX;
+    }
+    for ( k = 0; k < Plan->nFans; k++ )
+    {
+        int fChild = Plan->Slot && Plan->Fans[k] == Plan->Slot;
+        Arrs[k] = fChild ? ChildArr : p->State[Plan->Fans[k]].Arrival;
+        Slews[k] = fChild ? ChildSlew : p->State[Plan->Fans[k]].Slew;
+    }
+    if ( Plan->Gate < 0 ) Arr = Arrs[0];
+    else if ( !Scm_WinModelCell(p->Model, Plan->Gate, p->State[p->Root].Load, Arrs, Slews, &Arr, &Slew) ) return DBL_MAX;
+    return fmax((double)Arr.Value[0]-p->State[p->Root].Required.Value[0],
+                (double)Arr.Value[1]-p->State[p->Root].Required.Value[1]);
 }
 
 /**Function*************************************************************
@@ -332,6 +373,7 @@ static void Scm_WinPlanAdd( Nf3_Enum_t * p, Nf3_Plan_t * Plan )
 {
     int i, Worst = 0;
     p->Generated++;
+    if ( p->Model ) Plan->Score = Scm_WinPlanScore(p, Plan);
     for ( i = 0; i < p->Count; i++ )
         if ( !Scm_WinPlanCompare(p->Plans+i, Plan) ) return;
     if ( p->Count < p->Limit ) { p->Plans[p->Count++] = *Plan; return; }
@@ -607,6 +649,35 @@ static int Scm_WinTrial( Nf3_Man_t * p, Nf3_Obj_t * Backup, Scm_WinDelta_t * Del
 
 /**Function*************************************************************
 
+  Synopsis    [Compares two deterministic NF3 exports as ordered cell netlists.]
+
+  Description [Equal measured area and delay do not imply equal connectivity.]
+
+  SideEffects []
+
+  SeeAlso     [Scm_WinCheckpoint]
+
+***********************************************************************/
+static int Scm_WinSameCover( Gia_Man_t * A, Gia_Man_t * B )
+{
+    int i;
+    if ( Gia_ManObjNum(A) != Gia_ManObjNum(B) || !Vec_IntEqual(A->vCis, B->vCis) ||
+         !Vec_IntEqual(A->vCos, B->vCos) || !Vec_IntEqual(A->vCellMapping, B->vCellMapping) )
+        return 0;
+    for ( i = 0; i < Gia_ManCoNum(A); i++ )
+        if ( Gia_ObjFaninLit0p(A, Gia_ManCo(A, i)) != Gia_ObjFaninLit0p(B, Gia_ManCo(B, i)) )
+            return 0;
+    return 1;
+}
+
+static int Scm_WinRankBetter( Scm_WinMetric_t * A, Scm_WinMetric_t * B, float Target )
+{
+    return Target > 0 ? Scm_QorTargetBetter(A->RealArea, A->RealDelay, B->RealArea, B->RealDelay, Target) :
+                        A->RealArea * A->RealDelay < B->RealArea * B->RealDelay;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Retains a realized checkpoint under the original window guard.]
 
   Description [The search continues from its current cover, not the checkpoint.]
@@ -630,16 +701,25 @@ static int Scm_WinCheckpoint( Nf3_Man_t * p, Scm_WinMetric_t * Current,
     if ( Pool )
     {
         int i, Worst = 0;
+        for ( i = 0; i < 2; i++ )
+            if ( Pool->Covers[i] && Scm_WinSameCover(Check, Pool->Covers[i]) )
+            {
+                if ( fVerbose ) Abc_Print(1, "SCMAP_WINDOW_DUPLICATE slot=%d\n", i);
+                Gia_ManStop(Check);
+                return 1;
+            }
         if ( !Scm_WinModelLookahead(Check, -2, &Trial.RealArea, &Trial.RealDelay) )
-            { Gia_ManStop(Check); return 0; }
+        {
+            Abc_Print(0, "SCMap: optional window checkpoint could not be screened.\n");
+            Gia_ManStop(Check);
+            return 1;
+        }
         for ( i = 0; i < 2; i++ )
         {
             if ( Pool->Covers[i] == NULL ) { Worst = i; break; }
-            if ( Pool->Metrics[i].RealArea*Pool->Metrics[i].RealDelay >
-                 Pool->Metrics[Worst].RealArea*Pool->Metrics[Worst].RealDelay ) Worst = i;
+            if ( Scm_WinRankBetter(Pool->Metrics+Worst, Pool->Metrics+i, Pool->Target) ) Worst = i;
         }
-        Accept = Pool->Covers[Worst] == NULL || Trial.RealArea*Trial.RealDelay <
-            Pool->Metrics[Worst].RealArea*Pool->Metrics[Worst].RealDelay;
+        Accept = Pool->Covers[Worst] == NULL || Scm_WinRankBetter(&Trial, Pool->Metrics+Worst, Pool->Target);
         if ( fVerbose ) Abc_Print(1, "SCMAP_WINDOW_SCREEN kept=%d area=%.9g delay=%.9g\n",
             Accept, Trial.RealArea, Trial.RealDelay);
         if ( !Accept ) Gia_ManStop(Check);
@@ -651,7 +731,11 @@ static int Scm_WinCheckpoint( Nf3_Man_t * p, Scm_WinMetric_t * Current,
         return 1;
     }
     if ( !Scm_WinModelLookahead(Check, 1, &Trial.RealArea, &Trial.RealDelay) )
-        { Gia_ManStop(Check); return 0; }
+    {
+        Abc_Print(0, "SCMap: optional window checkpoint could not be measured.\n");
+        Gia_ManStop(Check);
+        return 1;
+    }
     Accept = Trial.RealArea <= 1.02 * Initial->RealArea && Trial.RealDelay <= Initial->RealDelay &&
              Trial.RealArea * Trial.RealDelay < Kept->RealArea * Kept->RealDelay;
     if ( DelayTarget > 0 )
@@ -684,7 +768,8 @@ static int Scm_WinCheckpoint( Nf3_Man_t * p, Scm_WinMetric_t * Current,
   SeeAlso     []
 
 ***********************************************************************/
-static Gia_Man_t * Scm_ManWindowImproveInt( Gia_Man_t * Gia, Scm_Qor_t * pQor, int nLookahead, int fVerbose, int fVeryVerbose, float DelayTarget )
+Gia_Man_t * Scm_ManWindowProfile( Gia_Man_t * Gia, Scm_Qor_t * pQor, int nLookahead,
+    int fVerbose, int fVeryVerbose, float DelayTarget, Scm_Profile_t Profile )
 {
     Jf_Par_t Pars;
     Nf3_Man_t * p = NULL;
@@ -707,15 +792,16 @@ static Gia_Man_t * Scm_ManWindowImproveInt( Gia_Man_t * Gia, Scm_Qor_t * pQor, i
     word Growth = 0;
     double Threshold = 0, Bound, AreaLimit;
     abctime Start = Abc_Clock();
-    if ( !fLookahead && DelayTarget == 0 ) Pool = &Checks;
+    if ( !fLookahead && (DelayTarget == 0 || Profile == SCM_PROFILE_T) ) Pool = &Checks;
     if ( Gia == NULL || !Gia->vCellMapping || Gia->pManTime || Gia_ManBufNum(Gia) ||
          Gia->vInArrs || Gia->vOutReqs || Gia->vCiArrs || Gia->vCoReqs || Scl_ConIsRunning() ) return NULL;
     if ( !Gia_ManCiNum(Gia) || !Gia_ManAndNum(Gia) ) return Gia;
     Nf3_ManSetDefaultPars(&Pars);
-    Model = Scm_WinModelStart();
+    Model = Scm_WinModelStartProfile(Profile);
     if ( Model == NULL ) goto done;
     p = Nf3_Import(Gia, &Pars, 1, 1);
     if ( p == NULL ) goto done;
+    if ( Profile != SCM_PROFILE_Q ) p->nRecipeLimit = SCM_RECIPE_MAX;
     Backup = ABC_ALLOC(Nf3_Obj_t, p->nObjs);
     State = ABC_ALLOC(Scm_WinState_t, p->nObjs);
     TrialState = ABC_ALLOC(Scm_WinState_t, p->nObjs);
@@ -730,10 +816,17 @@ static Gia_Man_t * Scm_ManWindowImproveInt( Gia_Man_t * Gia, Scm_Qor_t * pQor, i
     if ( pQor && pQor->fValid ) { Initial.RealArea = pQor->Area; Initial.RealDelay = pQor->Delay; }
     else if ( !Scm_WinModelLookahead(Gia, 1, &Initial.RealArea, &Initial.RealDelay) ) goto done;
     Current = KeptMetric = Initial;
+    if ( Pool && DelayTarget > 0 && Initial.RealDelay > 0 )
+    {
+        double Area;
+        float Delay;
+        if ( !Scm_WinModelLookahead(Gia, -2, &Area, &Delay) ) goto done;
+        Pool->Target = (float)fmin(FLT_MAX, (double)DelayTarget * Delay / Initial.RealDelay);
+    }
     Count = 0;
     for ( Id = 2; Id < p->nObjs; Id++ )
         Count += p->Objs[Id].Refs && p->Objs[Id].Gate >= 0;
-    if ( !fLookahead && Count > 2000 ) { nRounds = 1; nBudget = 4096; }
+    if ( !fLookahead && Count > 2000 ) { nRounds = 1; nBudget = Profile == SCM_PROFILE_T ? 8192 : 4096; }
     AreaLimit = 1.02 * Initial.Area;
     for ( Round = 0; Round < nRounds && nTrials < nBudget; Round++ )
     {
@@ -770,6 +863,8 @@ static Gia_Man_t * Scm_ManWindowImproveInt( Gia_Man_t * Gia, Scm_Qor_t * pQor, i
                 word Extra = fArea || AreaLimit <= Current.Area ? 0 : (word)(AreaLimit-Current.Area);
                 Id = Roots[i].Id;
                 if ( !p->Objs[Id].Refs || p->Objs[Id].Gate < 0 ) continue;
+                List.Model = !fArea && Profile != SCM_PROFILE_Q ? Model : NULL;
+                List.Root = Id; List.State = State;
                 Scm_WinEnumerate(p, Id, &List, Extra, !fArea);
                 Best = -1; BestMetric = Current;
                 for ( k = 0; k < List.Count && nTrials < Limit; k++ )
@@ -860,7 +955,7 @@ static Gia_Man_t * Scm_ManWindowImproveInt( Gia_Man_t * Gia, Scm_Qor_t * pQor, i
     if ( !fLookahead )
     {
         if ( Pool && Pool->Covers[0] && Pool->Covers[1] &&
-             Pool->Metrics[1].RealArea*Pool->Metrics[1].RealDelay < Pool->Metrics[0].RealArea*Pool->Metrics[0].RealDelay )
+             Scm_WinRankBetter(Pool->Metrics+1, Pool->Metrics, Pool->Target) )
         {
             Gia_Man_t * Temp = Pool->Covers[0];
             Scm_WinMetric_t Metric = Pool->Metrics[0];
@@ -870,12 +965,17 @@ static Gia_Man_t * Scm_ManWindowImproveInt( Gia_Man_t * Gia, Scm_Qor_t * pQor, i
         for ( i = 0; Pool && i < 2; i++ ) if ( Pool->Covers[i] )
         {
             int Accept;
-            if ( i && Checkpoint && Pool->Metrics[1].RealDelay >= 0.995*Pool->Metrics[0].RealDelay ) break;
+            if ( !DelayTarget && i && Checkpoint && Pool->Metrics[1].RealDelay >= 0.995*Pool->Metrics[0].RealDelay ) break;
             Trial = Pool->Metrics[i];
-            if ( !Scm_WinModelLookahead(Pool->Covers[i], 1, &Trial.RealArea, &Trial.RealDelay) ) goto done;
             nFlows++;
+            if ( !Scm_WinModelLookahead(Pool->Covers[i], 1, &Trial.RealArea, &Trial.RealDelay) )
+            {
+                Abc_Print(0, "SCMap: optional window checkpoint could not be measured; retaining the confirmed cover.\n");
+                continue;
+            }
             Accept = Trial.RealArea <= 1.02*Initial.RealArea && Trial.RealDelay <= Initial.RealDelay &&
                 Trial.RealArea*Trial.RealDelay < KeptMetric.RealArea*KeptMetric.RealDelay;
+            if ( DelayTarget > 0 ) Accept = Scm_WinRankBetter(&Trial, &KeptMetric, DelayTarget);
             if ( fVerbose ) Abc_Print(1, "SCMAP_WINDOW_CONFIRM kept=%d area=%.9g delay=%.9g\n",
                 Accept, Trial.RealArea, Trial.RealDelay);
             if ( Accept )
@@ -922,55 +1022,4 @@ done:
     }
     Scm_WinModelStop(Model);
     return Result;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Improves a mapped cover with electrical windows and a realized guard.]
-
-  Description []
-
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Gia_Man_t * Scm_ManWindowImprove( Gia_Man_t * pGia, Scm_Qor_t * pQor, int fVerbose, int fVeryVerbose )
-{
-    return Scm_ManWindowImproveInt(pGia, pQor, 0, fVerbose, fVeryVerbose, 0);
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Searches critical windows with full-flow lookahead.]
-
-  Description [A no-op returns the input manager without reconstruction.]
-
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Gia_Man_t * Scm_ManWindowLookahead( Gia_Man_t * pGia, Scm_Qor_t * pQor, int nTrials, int fVerbose, int fVeryVerbose )
-{
-    if ( nTrials <= 0 ) return nTrials == 0 ? pGia : NULL;
-    return Scm_ManWindowImproveInt(pGia, pQor, nTrials, fVerbose, fVeryVerbose, 0);
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Searches for lower realized area under a fixed delay target.]
-
-  Description [If the input misses the target, prefers lower realized delay.
-  The full-flow guard is authoritative; the model only proposes candidates.]
-
-  SideEffects []
-
-  SeeAlso     [Scm_ManWindowImprove Scm_ManWindowLookahead]
-
-***********************************************************************/
-Gia_Man_t * Scm_ManWindowTarget( Gia_Man_t * pGia, Scm_Qor_t * pQor, float DelayTarget, int nTrials, int fVerbose, int fVeryVerbose )
-{
-    if ( !isfinite(DelayTarget) || DelayTarget <= 0 || nTrials < 0 ) return NULL;
-    return Scm_ManWindowImproveInt(pGia, pQor, nTrials, fVerbose, fVeryVerbose, DelayTarget);
 }

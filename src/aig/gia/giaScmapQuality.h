@@ -29,7 +29,7 @@ extern void Sfm_ParSetDefault3( Sfm_Par_t * );
   SeeAlso     []
 
 ***********************************************************************/
-static Abc_Ntk_t * Scm_NtkPrepare( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fMfs )
+static Abc_Ntk_t * Scm_NtkPrepare( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fMfs, int fNormalizeMfs )
 {
     Abc_Ntk_t * pTemp;
     SC_Man * pTiming;
@@ -63,7 +63,7 @@ static Abc_Ntk_t * Scm_NtkPrepare( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fMfs )
         pTemp = Abc_NtkPerformMfs3Rounds(pNtk, &Mfs, nRounds);
         if ( pTemp != pNtk ) Abc_NtkDelete(pNtk);
         pNtk = pTemp;
-        if ( pNtk == NULL ) return 0;
+        if ( pNtk == NULL || !fNormalizeMfs ) return pNtk;
         pTemp = Abc_NtkDupDfs(pNtk);
         Abc_NtkDelete(pNtk);
         pNtk = pTemp;
@@ -95,7 +95,7 @@ static int Scm_NtkLookahead( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fMfs, double *
     SC_Man * pTiming;
     SC_BusPars Buffer = {0};
     SC_SizePars Size = {0};
-    pNtk = Scm_NtkPrepare(pLib, pNtk, fMfs < 0 ? (fMfs == -2 ? 2 : 0) : fMfs);
+    pNtk = Scm_NtkPrepare(pLib, pNtk, fMfs < 0 ? (fMfs == -2 ? 2 : 0) : fMfs, 1);
     if ( pNtk == NULL ) return 0;
     Buffer.GainRatio = 300;
     Buffer.Slew = Abc_SclComputeAverageSlew(pLib);
@@ -176,10 +176,9 @@ static int Scm_CoverLookaheadInt( Scm_Man_t * p, double * pArea, float * pDelay,
         pCache->Qor.Area = *pArea; pCache->Qor.Delay = *pDelay; pCache->Qor.fValid = 1;
     }
     Vec_IntFreeP(&Mapping);
-    if ( Ok && fScreen )
+    if ( Ok && fScreen && p->nSeedCovers < SCM_SEED_CAPACITY )
     {
         int nObjs = Gia_ManObjNum(p->pGia), nLits = 2*nObjs, Id = p->nSeedCovers;
-        if ( Id >= 8 ) return 0;
         p->nSeedCovers++;
         p->SeedModes[Id] = p->pPars->nSeedMode;
         p->pSeedObjs[Id] = ABC_ALLOC(Scm_Obj_t, nObjs);
@@ -195,7 +194,28 @@ static int Scm_CoverLookaheadInt( Scm_Man_t * p, double * pArea, float * pDelay,
 
 static int Scm_CoverLookahead( Scm_Man_t * p, double * pArea, float * pDelay )
 {
+    if ( p->pPars->Profile == SCM_PROFILE_T && p->pPars->MapDelayTarget > 0 )
+    {
+        if ( !p->nSeedCovers )
+        {
+            double Area;
+            float Delay;
+            if ( !Scm_CoverLookaheadInt(p, &Area, &Delay, 0) ||
+                 !Scm_CoverLookaheadInt(p, pArea, pDelay, 1) ) return 0;
+            p->TargetModelScale = Delay > 0 ? p->AffExactDelay / Delay : 1;
+            p->TargetScreen = Delay > 0 ? (float)fmin(FLT_MAX,
+                (double)p->pPars->MapDelayTarget * *pDelay / Delay) : p->pPars->MapDelayTarget;
+            return 1;
+        }
+        return Scm_CoverLookaheadInt(p, pArea, pDelay, 1);
+    }
     return Scm_CoverLookaheadInt(p, pArea, pDelay, p->pPars->MapDelayTarget == 0);
+}
+
+static int Scm_QorRankBetter( const Scm_Qor_t * A, const Scm_Qor_t * B, float Target )
+{
+    return Target > 0 ? Scm_QorTargetBetter(A->Area, A->Delay, B->Area, B->Delay, Target) :
+                        A->Area*A->Delay < B->Area*B->Delay;
 }
 
 /**Function*************************************************************
@@ -212,20 +232,20 @@ static int Scm_CoverLookahead( Scm_Man_t * p, double * pArea, float * pDelay )
 static int Scm_ManConfirmSeeds( Scm_Man_t * p )
 {
     int nObjs = Gia_ManObjNum(p->pGia), nLits = 2*nObjs, i, j, Id, Best = 0;
-    int Order[8], nConfirm = 3;
+    int Order[SCM_SEED_CAPACITY], nConfirm = 3;
     Scm_Qor_t Bound = {0}, Kept = {0};
     if ( !p->nSeedCovers ) return 1;
+    if ( p->pPars->Profile == SCM_PROFILE_R && p->pPars->Area > 2000 ) nConfirm = 2;
     for ( i = 0; i < p->nSeedCovers; i++ ) Order[i] = i;
     for ( i = 1; i < p->nSeedCovers; i++ ) for ( j = i+1; j < p->nSeedCovers; j++ )
-        if ( p->SeedQor[Order[j]].Area*p->SeedQor[Order[j]].Delay <
-             p->SeedQor[Order[i]].Area*p->SeedQor[Order[i]].Delay )
+        if ( Scm_QorRankBetter(p->SeedQor+Order[j], p->SeedQor+Order[i], p->TargetScreen) )
             { Id = Order[i]; Order[i] = Order[j]; Order[j] = Id; }
     for ( i = 0; i < Abc_MinInt(nConfirm, p->nSeedCovers); i++ )
     {
         Scm_Qor_t Trial = {0};
         int Accept;
         Id = Order[i];
-        if ( i > 1 && p->SeedQor[Id].Area >= p->SeedQor[Order[1]].Area &&
+        if ( p->pPars->Profile == SCM_PROFILE_Q && i > 1 && p->SeedQor[Id].Area >= p->SeedQor[Order[1]].Area &&
              p->SeedQor[Id].Delay >= p->SeedQor[Order[1]].Delay &&
              p->SeedQor[Id].Area*p->SeedQor[Id].Delay >
                  1.03*p->SeedQor[Order[1]].Area*p->SeedQor[Order[1]].Delay )
@@ -236,11 +256,17 @@ static int Scm_ManConfirmSeeds( Scm_Man_t * p )
         memcpy(p->pNfObjs, p->pSeedObjs[Id], sizeof(Scm_Obj_t)*nObjs);
         memcpy(Vec_IntArray(&p->vMapRefs), p->pSeedRefs[Id], sizeof(int)*nLits);
         memcpy(Vec_FltArray(&p->vFlowRefs), p->pSeedFlow[Id], sizeof(float)*nLits);
-        if ( !Scm_CoverLookaheadInt(p, &Trial.Area, &Trial.Delay, 0) ) return 0;
+        if ( !Scm_CoverLookaheadInt(p, &Trial.Area, &Trial.Delay, 0) )
+        {
+            if ( !Kept.fValid ) return 0;
+            Abc_Print(0, "SCMap: optional seed %d could not be measured; retaining the confirmed cover.\n", Id);
+            continue;
+        }
         Trial.fValid = 1;
         if ( i == 0 ) Bound = Trial;
         Accept = i == 0 || (Trial.Area <= 1.05*Bound.Area && Trial.Delay <= 1.05*Bound.Delay &&
             Trial.Area*Trial.Delay < Kept.Area*Kept.Delay);
+        if ( p->TargetScreen > 0 ) Accept = i == 0 || Scm_QorRankBetter(&Trial, &Kept, p->pPars->MapDelayTarget);
         if ( p->pPars->fVerbose )
             Abc_Print(1, "SCMAP_SEED_CONFIRM seed=%d accepted=%d area=%.9g delay=%.9g screen_area=%.9g screen_delay=%.9g\n",
                 Id, Accept, Trial.Area, Trial.Delay, p->SeedQor[Id].Area, p->SeedQor[Id].Delay);
@@ -296,7 +322,8 @@ static int Scm_ManSelectSeed( Scm_Man_t * p, Scm_Obj_t * pSeed,
     float OldLoad = p->pPars->SeedLoad, OldGain = p->pPars->SeedGain, OldRelax = p->pPars->RefineRelax;
     float OldTarget = p->pPars->ModelDelayTarget;
     double OldArea, NewArea = 0;
-    int Ok, Accept = 0;
+    int Ok, Accept = 0, OldDeep = p->pPars->fDeep;
+    if ( p->nSeedCovers >= SCM_SEED_CAPACITY ) return 1;
     if ( p->pPars->Quality.fValid )
         { OldArea = p->pPars->Quality.Area; OldDelay = p->pPars->Quality.Delay; }
     else if ( !Scm_CoverLookahead(p, &OldArea, &OldDelay) ) return 0;
@@ -309,12 +336,14 @@ static int Scm_ManSelectSeed( Scm_Man_t * p, Scm_Obj_t * pSeed,
     memcpy(pRefs, Vec_IntArray(&p->vMapRefs), sizeof(int)*nLits);
     memcpy(pFlow, Vec_FltArray(&p->vFlowRefs), sizeof(float)*nLits);
     p->pPars->nSeedMode = Seed & 1;
-    p->pPars->RefineRelax = Seed >= 4 ? 1.05f : OldRelax;
+    p->pPars->fDeep = Seed >= 6;
+    p->pPars->RefineRelax = Seed >= 6 ? 1.02f : Seed >= 4 ? 1.05f : OldRelax;
     // Keep the relaxed seeds unconstrained; calibrate the others at the realized endpoint.
     if ( p->pPars->MapDelayTarget > 0 )
     {
         double Target = OldDelay > 0 && OldModel > 0 ?
             (double)p->pPars->MapDelayTarget * OldModel / OldDelay : p->pPars->MapDelayTarget;
+        if ( p->TargetModelScale > 0 ) Target = (double)p->pPars->MapDelayTarget * p->TargetModelScale;
         p->pPars->ModelDelayTarget = Seed >= 4 ? 0 : (float)fmin(Target, FLT_MAX);
         if ( p->pPars->fVerbose )
             Abc_Print(1, "SCMAP_SEED_TARGET seed=%d target=%.9g model_target=%.9g model_delay=%.9g delay=%.9g\n",
@@ -339,7 +368,7 @@ static int Scm_ManSelectSeed( Scm_Man_t * p, Scm_Obj_t * pSeed,
     if ( !pSeed )
     {
         p->pPars->fUseRiseFallAll = 0;
-        Ok = Scm_ManAffPairedSeed(p);
+        Ok = Scm_ManAffPairedSeed(p, OldModel);
         p->pPars->fUseRiseFallAll = 1;
     }
     Ok = Ok && Scm_ManAffElaTimeCover(p) && Scm_ManRefineCover(p);
@@ -350,7 +379,8 @@ static int Scm_ManSelectSeed( Scm_Man_t * p, Scm_Obj_t * pSeed,
             NewArea <= 1.05 * (pBound ? pBound->Area : OldArea) &&
             NewDelay * NewArea < OldDelay * OldArea;
         if ( p->pPars->MapDelayTarget > 0 )
-            Accept = Scm_QorTargetBetter(NewArea, NewDelay, OldArea, OldDelay, p->pPars->MapDelayTarget);
+            Accept = Scm_QorTargetBetter(NewArea, NewDelay, OldArea, OldDelay,
+                p->TargetScreen > 0 ? p->TargetScreen : p->pPars->MapDelayTarget);
         if ( p->pPars->fVerbose )
             Abc_Print(1, "%s seed=%d accepted=%d old_area=%.9g area=%.9g old_delay=%.9g delay=%.9g old_model_delay=%.9g model_delay=%.9g\n",
                 p->nSeedCovers ? "SCMAP_SEED_SCREEN" : "SCMAP_SEED_QUALITY",
@@ -368,6 +398,7 @@ static int Scm_ManSelectSeed( Scm_Man_t * p, Scm_Obj_t * pSeed,
     p->pPars->SeedLoad = OldLoad;
     p->pPars->SeedGain = OldGain;
     p->pPars->RefineRelax = OldRelax;
+    p->pPars->fDeep = OldDeep;
     p->pPars->ModelDelayTarget = OldTarget;
     ABC_FREE(pSave); ABC_FREE(pRefs); ABC_FREE(pFlow);
     p->pPars->Quality.Area = Accept ? NewArea : OldArea;
@@ -395,11 +426,12 @@ typedef struct Scm_WinModel_t_
   SeeAlso     []
 
 ***********************************************************************/
-void * Scm_WinModelStart( void )
+void * Scm_WinModelStartProfile( Scm_Profile_t Profile )
 {
     Scm_WinModel_t * p = ABC_CALLOC(Scm_WinModel_t, 1);
     Scm_ManSetDefaultPars(&p->Pars);
     p->Pars.fQuality = 1;
+    p->Pars.Profile = Profile;
     p->pDummy = Gia_ManStart(16);
     Gia_ManAppendCi(p->pDummy);
     Gia_ManAppendCo(p->pDummy, 2);

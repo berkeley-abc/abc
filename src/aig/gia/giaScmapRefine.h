@@ -718,7 +718,7 @@ static int Scm_ManRefineCover(Scm_Man_t *p)
     float initial, target;
     int recovery=1;
     d.keep=p->pPars->fQuality?4:1;
-    d.delayRounds=p->pPars->fQuality?4:2;
+    d.delayRounds=p->pPars->fDeep?12:p->pPars->fQuality?4:2;
     if(p->pPars->fQuality) recovery=2;
     d.screenGate=1;
     assert(d.keep>=1 && d.keep<=4 && d.delayRounds>=1);
@@ -759,7 +759,7 @@ static int Scm_ManRefineCover(Scm_Man_t *p)
         Gia_ManForEachAndReverse(p->pGia,o,i) for(c=0;c<2;c++)
             if(Scm_ObjMapRefNum(p,i,c) && !Scm_ManAffElaTailBuild(p,d.ctx,2*i+c)) goto done;
         int n=Gia_ManObjNum(p->pGia),count=0,budgetRoots=0;
-        int cap=p->pPars->fQuality?256:64;
+        int cap=p->pPars->fDeep?4096:p->pPars->fQuality?256:64;
 
         assert(cap>=0 && cap<=1048576);
         if(!phase) cap=(cap+d.delayRounds-1)/d.delayRounds;
@@ -814,7 +814,8 @@ static int Scm_ManRefineCover(Scm_Man_t *p)
                 if(!Scm_ObjMapRefNum(p,lit>>1,lit&1)) continue;
                 if(!Df_Root(&d,lit,phase,target)) {ABC_FREE(ranked);goto done;}
                 d.sideRoot=0;
-                examined++;target=fminf(target,p->AffExactDelay*p->pPars->RefineRelax);
+                examined++;
+                if(!phase || !p->pPars->fDeep) target=fminf(target,p->AffExactDelay*p->pPars->RefineRelax);
                 if ( p->pPars->ModelDelayTarget > 0 ) target = fmaxf(target, p->pPars->ModelDelayTarget);
             }
 

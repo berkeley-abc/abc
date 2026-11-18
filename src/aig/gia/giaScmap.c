@@ -28,6 +28,7 @@
 #include <limits.h>
 #include "giaScmap.h"
 #include "giaScmapInt.h"
+#include "giaEdit.h"
 #include "misc/st/st.h"
 #include "map/mio/mio.h"
 #include "misc/util/utilTruth.h"
@@ -71,6 +72,8 @@ struct Scm_Par_t_
     int            fUseRiseFallAll;
     int            nSeedMode;          // 0: gain-scaled transition costs; 1: common-load family costs
     int            fQuality;           // refine both seeds and use electrical window search
+    Scm_Profile_t  Profile;
+    int            fDeep;              // extra delay refinement for the last two R/T seeds
     Scm_Qor_t      Quality;            // realized metrics of the selected cover
     float          SeedLoad;           // load / pin-capacitance ratio for seed construction
     float          SeedGain;           // alternate G cost; zero preserves GENLIB costs
@@ -288,6 +291,8 @@ typedef struct Scm_FlowCache_t_
     Scm_Qor_t Qor;
 } Scm_FlowCache_t;
 typedef struct Scm_Man_t_ Scm_Man_t;
+// A targeted search can screen the original seed plus eight alternatives.
+enum { SCM_SEED_CAPACITY = 9 };
 struct Scm_Man_t_
 {
     // Original &scmap state.  Keep this prefix aligned with upstream.
@@ -307,12 +312,13 @@ struct Scm_Man_t_
     Vec_Flt_t       vCutFlows;
     Vec_Int_t       vCutDelays;
     Vec_Int_t       vBackup;
-    Scm_Obj_t *     pSeedObjs[8];
-    int *           pSeedRefs[8];
-    float *         pSeedFlow[8];
-    Scm_Qor_t       SeedQor[8];
-    int             SeedModes[8];
+    Scm_Obj_t *     pSeedObjs[SCM_SEED_CAPACITY];
+    int *           pSeedRefs[SCM_SEED_CAPACITY];
+    float *         pSeedFlow[SCM_SEED_CAPACITY];
+    Scm_Qor_t       SeedQor[SCM_SEED_CAPACITY];
+    int             SeedModes[SCM_SEED_CAPACITY];
     int             nSeedCovers;
+    float           TargetModelScale, TargetScreen;
     Scm_FlowCache_t FlowCache[8];
     int             nFlowCache;
     int             iCur;
@@ -1011,7 +1017,10 @@ static Scm_Man_t * Scm_StoCreate( Gia_Man_t * pGia, Scm_Par_t * pPars )
         &p->vTtMem, &p->vTt2Match, &p->pCells, &p->nCells,
         0, 0, 0 );
     if ( p->pCells == NULL )
+    {
+        Scm_StoDelete(p);
         return NULL;
+    }
 
     {
         SC_Cell * pSclCell;
@@ -1040,35 +1049,37 @@ static Scm_Man_t * Scm_StoCreate( Gia_Man_t * pGia, Scm_Par_t * pPars )
             if ( p->pAffineCaps )
             {
                 SC_Cell * pMember;
-                int k, Count = 0;
+                int k;
+                double Weight = 0;
                 double Caps[NF_LEAF_MAX] = {0}, Fall[NF_LEAF_MAX] = {0}, Rise[NF_LEAF_MAX] = {0};
                 assert(pSclCell->n_inputs <= NF_LEAF_MAX);
                 SC_RingForEachCell(pSclCell, pMember, k)
                 {
+                    double W;
                     if ( pMember->fSkip ) continue;
+                    W = pPars->Profile != SCM_PROFILE_Q && pMember->area > 0 ? 1.0 / pMember->area : 1.0;
+                    Weight += W;
                     for ( Entry = 0; Entry < pMember->n_inputs; Entry++ )
                     {
-                        Caps[Entry] += SC_CellPinCap(pMember, Entry);
-                        Fall[Entry] += SC_CellPin(pMember, Entry)->fall_cap;
-                        Rise[Entry] += SC_CellPin(pMember, Entry)->rise_cap;
+                        Caps[Entry] += W * SC_CellPinCap(pMember, Entry);
+                        Fall[Entry] += W * SC_CellPin(pMember, Entry)->fall_cap;
+                        Rise[Entry] += W * SC_CellPin(pMember, Entry)->rise_cap;
                     }
-                    Count++;
                 }
-                if ( Count == 0 )
+                if ( Weight == 0 )
                 {
                     Scm_StoDelete(p);
                     return NULL;
                 }
                 for ( Entry = 0; Entry < pSclCell->n_inputs; Entry++ )
                     p->pAffineCaps[pSclCell->Id * NF_LEAF_MAX + Entry] =
-                        ((12 == 12) && i == 2) ?
-                        SC_CellPinCap(pSclCell, Entry) : (float)(Caps[Entry] / Count);
+                        i == 2 ? SC_CellPinCap(pSclCell, Entry) : (float)(Caps[Entry] / Weight);
                 if ( p->pFamilyCapsRf )
                     for ( Entry = 0; Entry < pSclCell->n_inputs; Entry++ )
                     {
                         Scm_RfPair_t * pCap = p->pFamilyCapsRf + pSclCell->Id * NF_LEAF_MAX + Entry;
-                        pCap->Value[0] = i == 2 ? SC_CellPin(pSclCell, Entry)->fall_cap : (float)(Fall[Entry] / Count);
-                        pCap->Value[1] = i == 2 ? SC_CellPin(pSclCell, Entry)->rise_cap : (float)(Rise[Entry] / Count);
+                        pCap->Value[0] = i == 2 ? SC_CellPin(pSclCell, Entry)->fall_cap : (float)(Fall[Entry] / Weight);
+                        pCap->Value[1] = i == 2 ? SC_CellPin(pSclCell, Entry)->rise_cap : (float)(Rise[Entry] / Weight);
                     }
             }
             for ( Entry = 0; Entry < pSclCell->n_inputs; Entry++ )
@@ -5064,7 +5075,7 @@ static Gia_Man_t * Scm_ManPerformMappingInt( Gia_Man_t * pGia, Scm_Par_t * pPars
         }
         pPars->nSeedMode = m;
         pPars->fUseRiseFallAll = 0;
-        if ( !Scm_ManAffPairedSeed(p) ) { fOk = 0; break; }
+        if ( !Scm_ManAffPairedSeed(p, 0) ) { fOk = 0; break; }
         pPars->fUseRiseFallAll = 1;
         if ( !Scm_ManAffElaTimeCover(p) ) { fOk = 0; break; }
         Delay[m] = p->AffExactDelay;
@@ -5109,7 +5120,7 @@ static Gia_Man_t * Scm_ManPerformMappingInt( Gia_Man_t * pGia, Scm_Par_t * pPars
             }
             else
                 fOk = Scm_ManSelectSeed(p, pSaveObjs[1-Best], pSaveRefs[1-Best], pSaveFlow[1-Best], 1-Best, &Bound);
-            for ( m = 2; fOk && m < 6; m++ )
+            for ( m = 2; fOk && m < (pPars->Profile == SCM_PROFILE_Q ? 6 : 8); m++ )
                 fOk = Scm_ManSelectSeed(p, m < 4 ? NULL : pSaveObjs[m&1],
                     m < 4 ? NULL : pSaveRefs[m&1], m < 4 ? pFlow0 : pSaveFlow[m&1], m, &Bound);
             if ( fOk ) fOk = Scm_ManConfirmSeeds(p);
@@ -5202,7 +5213,8 @@ static int Scm_ManQualityCheck( Gia_Man_t * pGia )
   SeeAlso     [Scm_ManQualityMappingTarget]
 
 ***********************************************************************/
-static Gia_Man_t * Scm_ManQualityMappingInt( Gia_Man_t * pGia, float DelayTarget, int nTrials, int fVerbose, int fVeryVerbose, Scm_Qor_t * pQor )
+static Gia_Man_t * Scm_ManQualityMappingInt( Gia_Man_t * pGia, float DelayTarget, int nTrials,
+    int fVerbose, int fVeryVerbose, Scm_Qor_t * pQor, Scm_Profile_t Profile )
 {
     Scm_Par_t Pars;
     Gia_Man_t * pMapped, * pNew;
@@ -5210,13 +5222,13 @@ static Gia_Man_t * Scm_ManQualityMappingInt( Gia_Man_t * pGia, float DelayTarget
     if ( !Scm_ManQualityCheck(pGia) ) return NULL;
     Scm_ManSetDefaultPars(&Pars);
     Pars.fQuality = 1;
+    Pars.Profile = Profile;
     Pars.MapDelayTarget = DelayTarget;
     Pars.fVerbose = fVerbose;
     Pars.fVeryVerbose = fVeryVerbose;
     pMapped = Scm_ManPerformMapping(pGia, &Pars);
     if ( pMapped == NULL ) return NULL;
-    pNew = DelayTarget > 0 ? Scm_ManWindowTarget(pMapped, &Pars.Quality, DelayTarget, 0, fVerbose, fVeryVerbose) :
-                            Scm_ManWindowImprove(pMapped, &Pars.Quality, fVerbose, fVeryVerbose);
+    pNew = Scm_ManWindowProfile(pMapped, &Pars.Quality, 0, fVerbose, fVeryVerbose, DelayTarget, Profile);
     if ( pNew == NULL )
     {
         Abc_Print(0, "SCMap: window refinement failed; retaining the refined seed.\n");
@@ -5226,8 +5238,7 @@ static Gia_Man_t * Scm_ManQualityMappingInt( Gia_Man_t * pGia, float DelayTarget
     pMapped = pNew;
     if ( nTrials > 0 )
     {
-        pNew = DelayTarget > 0 ? Scm_ManWindowTarget(pMapped, &Pars.Quality, DelayTarget, nTrials, fVerbose, fVeryVerbose) :
-                                Scm_ManWindowLookahead(pMapped, &Pars.Quality, nTrials, fVerbose, fVeryVerbose);
+        pNew = Scm_ManWindowProfile(pMapped, &Pars.Quality, nTrials, fVerbose, fVeryVerbose, DelayTarget, Profile);
         if ( pNew == NULL )
         {
             Abc_Print(0, "SCMap: lookahead failed; retaining the quality mapping.\n");
@@ -5256,12 +5267,13 @@ static Gia_Man_t * Scm_ManQualityMappingTarget( Gia_Man_t * pGia, float DelayTar
     Scm_Qor_t Base = {0}, Trial = {0}, Selected;
     Gia_Man_t * pCopy, * pBase, * pTrial, * pResult;
     int fKeepBase;
-    if ( DelayTarget <= 0 ) return Scm_ManQualityMappingInt(pGia, 0, nTrials, fVerbose, fVeryVerbose, NULL);
+    if ( DelayTarget <= 0 ) return Scm_ManQualityMappingInt(pGia, 0, nTrials, fVerbose, fVeryVerbose, NULL, SCM_PROFILE_Q);
     if ( !Scm_ManQualityCheck(pGia) ) return NULL;
     pCopy = Gia_ManDup(pGia);
-    pBase = Scm_ManQualityMappingInt(pCopy, 0, nTrials, fVerbose, fVeryVerbose, &Base);
+    Gie_ManDupMetadata(pCopy, pGia);
+    pBase = Scm_ManQualityMappingInt(pCopy, 0, nTrials, fVerbose, fVeryVerbose, &Base, SCM_PROFILE_Q);
     if ( pBase != pCopy ) Gia_ManStop(pCopy);
-    pTrial = Scm_ManQualityMappingInt(pGia, DelayTarget, nTrials, fVerbose, fVeryVerbose, &Trial);
+    pTrial = Scm_ManQualityMappingInt(pGia, DelayTarget, nTrials, fVerbose, fVeryVerbose, &Trial, SCM_PROFILE_Q);
     fKeepBase = pBase && Base.fValid && (!pTrial || !Trial.fValid ||
         !Scm_QorTargetBetter(Trial.Area, Trial.Delay, Base.Area, Base.Delay, DelayTarget));
     pResult = fKeepBase ? pBase : pTrial;
@@ -5285,6 +5297,141 @@ static Gia_Man_t * Scm_ManQualityMappingTarget( Gia_Man_t * pGia, float DelayTar
 static Gia_Man_t * Scm_ManQualityMapping( Gia_Man_t * pGia, int nTrials, int fVerbose, int fVeryVerbose )
 {
     return Scm_ManQualityMappingTarget(pGia, 0, nTrials, fVerbose, fVeryVerbose);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Regenerates choices from a cover or its MFS-rewritten netlist.]
+
+  Description [Neither alternative changes the incumbent.]
+
+  SideEffects [Uses input scratch fields.]
+
+  SeeAlso     [Scm_ManRemapSearch]
+
+***********************************************************************/
+static Gia_Man_t * Scm_ManRemapChoices( Gia_Man_t * pGia, int fMfs )
+{
+    Gia_Man_t * pRaw, * pCopy, * pChoices;
+    Abc_Ntk_t * pNtk = Abc_NtkFromCellMappedGia(pGia, 0), * pStrash;
+    // A seed's host AIG can differ from the logic of its selected cells.
+    if ( fMfs ) pNtk = Scm_NtkPrepare((SC_Lib *)Abc_FrameReadLibScl(), pNtk, 1, 0);
+    if ( !pNtk ) return NULL;
+    pStrash = Abc_NtkStrash(pNtk, 0, 1, 0);
+    Abc_NtkDelete(pNtk);
+    if ( !pStrash ) return NULL;
+    pRaw = Abc_NtkStrashToGia(pStrash);
+    Abc_NtkDelete(pStrash);
+    if ( !pRaw ) return NULL;
+    pCopy = Gia_ManDupNormalize(pRaw, 0);
+    Gia_ManStop(pRaw);
+    if ( !pCopy ) return NULL;
+    Gie_ManDupMetadata(pCopy, pGia);
+    pChoices = Gia_ManDch2Construct(pCopy, 1, 0);
+    Gia_ManStop(pCopy);
+    return pChoices;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Keeps remapping improvements at the fixed realized endpoint.]
+
+  Description [R tries a rehashed cover once. T also exposes MFS rewrites
+  and repeats only if the previous round improved the incumbent.]
+
+  SideEffects [Uses input scratch fields; never frees the input.]
+
+  SeeAlso     [Gia_ManScmapRemap]
+
+***********************************************************************/
+static Gia_Man_t * Scm_ManRemapSearch( Gia_Man_t * pGia, Scm_Profile_t Profile, float Target,
+    int fVerbose, int fVeryVerbose, Scm_Qor_t * pQor )
+{
+    Gia_Man_t * pBest = Scm_ManQualityMappingInt(pGia, Target, 0, fVerbose, fVeryVerbose, pQor, Profile);
+    double AreaLimit;
+    int r, b, n = Profile == SCM_PROFILE_T ? 2 : 1;
+    if ( !pBest || !Gia_ManCiNum(pBest) || !Gia_ManAndNum(pBest) ) return pBest;
+    if ( !pQor->fValid )
+        pQor->fValid = Scm_WinModelLookahead(pBest, 1, &pQor->Area, &pQor->Delay);
+    if ( !pQor->fValid ) return pBest;
+    AreaLimit = 1.03 * pQor->Area;
+    for ( r = 0; r < n; r++ )
+    {
+        Gia_Man_t * pChosen = NULL;
+        Scm_Qor_t Selected = *pQor;
+        for ( b = 0; b < n; b++ )
+        {
+            Gia_Man_t * pChoices = Scm_ManRemapChoices(pBest, b), * pCand;
+            Scm_Qor_t Trial;
+            int Keep;
+            if ( !pChoices ) continue;
+            pCand = Scm_ManQualityMappingInt(pChoices, Target, 0, fVerbose, fVeryVerbose, &Trial, Profile);
+            if ( pChoices != pCand ) Gia_ManStop(pChoices);
+            if ( !pCand ) continue;
+            if ( !Trial.fValid ) Trial.fValid = Scm_WinModelLookahead(pCand, 1, &Trial.Area, &Trial.Delay);
+            Keep = Trial.fValid && Trial.Area <= AreaLimit && (Target > 0 ?
+                Scm_QorRankBetter(&Trial, &Selected, Target) :
+                Trial.Delay <= pQor->Delay && Trial.Area * Trial.Delay < .999 * pQor->Area * pQor->Delay &&
+                Scm_QorRankBetter(&Trial, &Selected, 0));
+            if ( fVerbose ) Abc_Print(1, "SCMAP_ITERATE round=%d mfs=%d kept=%d old_area=%.9g area=%.9g old_delay=%.9g delay=%.9g\n",
+                r, b, Keep, pQor->Area, Trial.Area, pQor->Delay, Trial.Delay);
+            if ( !Keep ) { Gia_ManStop(pCand); continue; }
+            if ( pChosen ) Gia_ManStop(pChosen);
+            pChosen = pCand;
+            Selected = Trial;
+        }
+        if ( !pChosen ) break;
+        if ( pBest != pGia ) Gia_ManStop(pBest);
+        pBest = pChosen;
+        *pQor = Selected;
+    }
+    return pBest;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Remaps once, or recovers area against an adaptive delay target.]
+
+  Description [Zero selects R. A positive floor selects T and never excludes
+  its untargeted cover. Both return an unsized mapping for the usual suffix.]
+
+  SideEffects [Uses input scratch fields; never frees the input.]
+
+  SeeAlso     [Gia_ManScmapQuality]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManScmapRemap( Gia_Man_t * pGia, float DelayFloor, int fVerbose, int fVeryVerbose )
+{
+    Scm_Qor_t Base, Trial;
+    Gia_Man_t * pCopy, * pBase, * pTrial;
+    float Target;
+    int Keep;
+    if ( !isfinite(DelayFloor) || DelayFloor < 0 || !Scm_ManQualityCheck(pGia) ) return NULL;
+    if ( DelayFloor == 0 )
+        return Scm_ManRemapSearch(pGia, SCM_PROFILE_R, 0, fVerbose, fVeryVerbose, &Base);
+    pCopy = Gia_ManDup(pGia);
+    Gie_ManDupMetadata(pCopy, pGia);
+    pBase = Scm_ManRemapSearch(pCopy, SCM_PROFILE_T, 0, fVerbose, fVeryVerbose, &Base);
+    if ( pBase != pCopy ) Gia_ManStop(pCopy);
+    if ( !pBase || !Gia_ManCiNum(pBase) || !Gia_ManAndNum(pBase) ) return pBase;
+    if ( !Base.fValid )
+    {
+        Abc_Print(-1, "SCMap: cannot establish the untargeted delay for adaptive recovery.\n");
+        Gia_ManStop(pBase);
+        return NULL;
+    }
+    Target = fmaxf(DelayFloor, Base.Delay + .01f);
+    if ( fVerbose ) Abc_Print(1, "SCMAP_AUTO_TARGET floor=%.9g untargeted_delay=%.9g target=%.9g\n",
+        DelayFloor, Base.Delay, Target);
+    pTrial = Scm_ManRemapSearch(pGia, SCM_PROFILE_T, Target, fVerbose, fVeryVerbose, &Trial);
+    Keep = pTrial && Trial.fValid && Scm_QorRankBetter(&Trial, &Base, Target);
+    if ( Keep && Base.Delay > 0 && Base.Delay <= Target && Trial.Delay > Base.Delay && Trial.Delay <= Target )
+        Keep = Trial.Area * pow((double)Trial.Delay / Base.Delay, .125) < Base.Area;
+    if ( fVerbose ) Abc_Print(1, "SCMAP_ITERATE_TARGET_SELECT untargeted=%d base_area=%.9g base_delay=%.9g trial_area=%.9g trial_delay=%.9g\n",
+        !Keep, Base.Area, Base.Delay, Trial.Area, Trial.Delay);
+    if ( Keep ) { Gia_ManStop(pBase); return pTrial; }
+    if ( pTrial && pTrial != pGia ) Gia_ManStop(pTrial);
+    return pBase;
 }
 
 /**Function*************************************************************

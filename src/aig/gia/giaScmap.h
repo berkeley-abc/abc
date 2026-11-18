@@ -7,5 +7,7 @@ Gia_Man_t * Gia_ManScmap( Gia_Man_t * pGia, int fVerbose, int fVeryVerbose );
 Gia_Man_t * Gia_ManScmapQuality( Gia_Man_t * pGia, int fVerbose, int fVeryVerbose );
 Gia_Man_t * Gia_ManScmapLookahead( Gia_Man_t * pGia, int nTrials, int fVerbose, int fVeryVerbose );
 Gia_Man_t * Gia_ManScmapTarget( Gia_Man_t * pGia, float DelayTarget, int nTrials, int fQuality, int fVerbose, int fVeryVerbose );
+// Zero floor selects the one-round R search; a positive floor selects adaptive-target T.
+Gia_Man_t * Gia_ManScmapRemap( Gia_Man_t * pGia, float DelayFloor, int fVerbose, int fVeryVerbose );
 ABC_NAMESPACE_HEADER_END
 #endif

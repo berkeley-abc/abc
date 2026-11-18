@@ -3922,8 +3922,9 @@ int Abc_CommandAbc9Dch2( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Gia_Man_t * Gia_ManDch2( Gia_Man_t * p, int nSnapshots, int nConfs, int nConfsChoice, int fKeepLevel, int fVerbose );
     Gia_Man_t * pNew;
     int c, nSnapshots = 2, nConfs = 100, nConfsChoice = 30, fKeepLevel = 1, fVerbose = 0;
+    int fConstruct = 0, fSweepOptions = 0;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "NCSlvh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "NCSlpvh")) != EOF )
     {
         switch ( c )
         {
@@ -3942,14 +3943,17 @@ int Abc_CommandAbc9Dch2( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( c == 'N' ) nSnapshots = (int)Value;
             else if ( c == 'C' ) nConfs = (int)Value;
             else nConfsChoice = (int)Value;
+            fSweepOptions = 1;
             break;
         }
         case 'l': fKeepLevel ^= 1; break;
+        case 'p': fConstruct ^= 1; break;
         case 'v': fVerbose ^= 1; break;
         default: goto usage;
         }
     }
-    if ( globalUtilOptind != argc || (nSnapshots != 2 && nSnapshots != 3) ) goto usage;
+    if ( globalUtilOptind != argc || (nSnapshots != 2 && nSnapshots != 3) ||
+         (fConstruct && fSweepOptions) ) goto usage;
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "&dch2: There is no AIG.\n" );
@@ -3961,7 +3965,8 @@ int Abc_CommandAbc9Dch2( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "&dch2: This command requires an AIG without choices, XOR/MUX nodes, or barrier buffers.\n" );
         return 1;
     }
-    pNew = Gia_ManDch2( pAbc->pGia, nSnapshots, nConfs, nConfsChoice, fKeepLevel, fVerbose );
+    pNew = fConstruct ? Gia_ManDch2Construct( pAbc->pGia, fKeepLevel, fVerbose ) :
+                        Gia_ManDch2( pAbc->pGia, nSnapshots, nConfs, nConfsChoice, fKeepLevel, fVerbose );
     if ( !pNew )
     {
         Abc_Print( -1, "&dch2: Choice computation has failed.\n" );
@@ -3970,13 +3975,14 @@ int Abc_CommandAbc9Dch2( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 usage:
-    Abc_Print( -2, "usage: &dch2 [-NCS num] [-lvh]\n" );
+    Abc_Print( -2, "usage: &dch2 [-NCS num | -p] [-lvh]\n" );
     Abc_Print( -2, "\t         computes structural choices from fast synthesis snapshots\n" );
     Abc_Print( -2, "\t         two snapshots use optimized AIGs; three also include the input\n" );
     Abc_Print( -2, "\t         conflict limits apply to each SAT call; 0 means unlimited\n" );
     Abc_Print( -2, "\t-N num : number of snapshots, 2 or 3 [default = %d]\n", nSnapshots );
     Abc_Print( -2, "\t-C num : primary (same-snapshot) conflict limit [default = %d]\n", nConfs );
     Abc_Print( -2, "\t-S num : secondary (cross-snapshot) conflict limit [default = %d]\n", nConfsChoice );
+    Abc_Print( -2, "\t-p     : two synthesis snapshots with construction-proved choices; no SAT sweeping\n" );
     Abc_Print( -2, "\t-l     : toggle preserving synthesis logic levels [default = %s]\n", fKeepLevel ? "yes" : "no" );
     Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n" );

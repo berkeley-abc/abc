@@ -27,6 +27,7 @@
 #include <errno.h>
 #include <float.h>
 #include <limits.h>
+#include <math.h>
 
 #include "aig/gia/giaScmap.h"
 
@@ -2426,13 +2427,14 @@ usage:
 static int Abc_CommandScmap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pNew;
-    float DelayTarget = 0;
-    int c, nTrials = 0, fQuality = 0, fVerbose = 0, fVeryVerbose = 0;
+    float DelayTarget = 0, DelayFloor = 0;
+    int c, nTrials = 0, fQuality = 0, fRemap = 0, fVerbose = 0, fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "DLqvwh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "DLTqrvwh")) != EOF )
         switch ( c )
         {
         case 'D':
+        case 'T':
         {
             char * pEnd;
             double Value;
@@ -2441,7 +2443,8 @@ static int Abc_CommandScmap( Abc_Frame_t * pAbc, int argc, char ** argv )
             Value = strtod(argv[globalUtilOptind], &pEnd);
             if ( errno == ERANGE || pEnd == argv[globalUtilOptind] || *pEnd ||
                  !isfinite(Value) || Value > FLT_MAX || Value <= 0 || (float)Value == 0 ) goto usage;
-            DelayTarget = (float)Value;
+            if ( c == 'T' ) DelayFloor = (float)Value;
+            else DelayTarget = (float)Value;
             globalUtilOptind++;
             break;
         }
@@ -2458,14 +2461,17 @@ static int Abc_CommandScmap( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         }
         case 'q': fQuality ^= 1; break;
+        case 'r': fRemap ^= 1; break;
         case 'v': fVerbose ^= 1; break;
         case 'w': fVeryVerbose ^= 1; break;
         default: goto usage;
         }
-    if ( globalUtilOptind != argc ) goto usage;
+    if ( globalUtilOptind != argc || (fRemap && DelayFloor > 0) ||
+         ((fRemap || DelayFloor > 0) && (DelayTarget > 0 || nTrials > 0)) ) goto usage;
     if ( !pAbc->pGia ) { Abc_Print(-1, "Empty GIA network.\n"); return 1; }
     if ( !Abc_FrameReadLibGen() ) { Abc_Print(-1, "Current library is not available.\n"); return 1; }
-    pNew = DelayTarget > 0 ? Gia_ManScmapTarget(pAbc->pGia, DelayTarget, nTrials, fQuality, fVerbose, fVeryVerbose) :
+    pNew = fRemap || DelayFloor > 0 ? Gia_ManScmapRemap(pAbc->pGia, DelayFloor, fVerbose, fVeryVerbose) :
+           DelayTarget > 0 ? Gia_ManScmapTarget(pAbc->pGia, DelayTarget, nTrials, fQuality, fVerbose, fVeryVerbose) :
            nTrials ? Gia_ManScmapLookahead(pAbc->pGia, nTrials, fVerbose, fVeryVerbose) :
            fQuality ? Gia_ManScmapQuality(pAbc->pGia, fVerbose, fVeryVerbose) :
                      Gia_ManScmap(pAbc->pGia, fVerbose, fVeryVerbose);
@@ -2473,11 +2479,13 @@ static int Abc_CommandScmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameUpdateGia(pAbc, pNew);
     return 0;
 usage:
-    Abc_Print(-2, "usage: &scmap [-D float] [-L num] [-qvwh]\n");
+    Abc_Print(-2, "usage: &scmap [-D float] [-L num] [-qvwh] | &scmap [-r | -T float] [-vw]\n");
     Abc_Print(-2, "\t         standard-cell mapping with electrical cover refinement\n");
     Abc_Print(-2, "\t-D float : delay target in ps for area recovery [default = best found]\n");
     Abc_Print(-2, "\t           uses model timing; with -q/-L uses the MFS/buffering/sizing endpoint\n");
     Abc_Print(-2, "\t-q     : toggle high-effort quality search (combinational AIGs) [default = %s]\n", fQuality ? "yes" : "no");
+    Abc_Print(-2, "\t-r     : quality search with one round of regenerated choices\n");
+    Abc_Print(-2, "\t-T ps  : adaptive area recovery; target = max(floor, untargeted delay + 0.01 ps)\n");
     Abc_Print(-2, "\t-L num : MFS/buffering/sizing lookahead trials (implies -q) [default = %d]\n", nTrials);
     Abc_Print(-2, "\t-v     : toggle mapping statistics [default = %s]\n", fVerbose ? "yes" : "no");
     Abc_Print(-2, "\t-w     : toggle detailed mapping statistics [default = %s]\n", fVeryVerbose ? "yes" : "no");
