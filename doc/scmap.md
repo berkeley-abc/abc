@@ -26,7 +26,7 @@ one output and no explicit input or output timing constraints.
 ## Delay target
 
 `-D <delay>` specifies a positive delay target in picoseconds; decimal values
-are accepted. For example, `&scmap -q -L 64 -D 1200` searches for lower area
+are accepted. For example, `&scmap -q -D 1200` searches for lower area
 under a 1200 ps target. Once a cover meets the target, selection prioritizes
 area rather than additional delay reduction. Before feasibility, selection
 prioritizes lower delay. Omitting `-D` preserves the existing objectives.
@@ -35,7 +35,10 @@ In normal mode the constraint uses SCMap's electrical timing model. With
 `-q` or `-L`, seed selection and window acceptance use the fixed private-copy
 MFS/buffering/sizing flow described below; model predictions only screen the
 window candidates. The requested target is calibrated to the model using
-the selected seed's measured delay, and also guides seed construction.
+the incumbent's measured delay. Seed construction uses its own fixed-arc delay
+multiplied by the ratio of model target to incumbent model delay, never less
+than one. When plain `-D` has no incumbent yet, it times the seed's initial
+cover in the electrical model to get that ratio.
 The two relaxed seeds remain unconstrained to preserve their diversity.
 Area recovery retains the requested target instead of
 tightening it to every newly achieved delay. The returned network is still
@@ -58,7 +61,7 @@ OpenROAD. Recheck timing after the complete intended flow.
 
 Build with `make -j4` (add `ABC_USE_NO_READLINE=1` if readline is unavailable).
 Run scripts with `./abc -s -f run.abc`; `-s` avoids user startup aliases.
-The paper uses the 20 EPFL combinational AIGs and three libraries: ASAP7 RVT FF,
+The original evaluation uses the 20 EPFL combinational AIGs and three libraries: ASAP7 RVT FF,
 Nangate45, and SKY130HD. Use the same input AIG and Liberty files for every
 mapper. Library corners, excluded cells, and input preprocessing affect QoR;
 substituting another library revision does not reproduce the exact tables.
@@ -77,7 +80,7 @@ read_lib -G 250 -a -X "*x1p*_ASAP7*" -X "*xp*_ASAP7*" -X "SDF*" -X "ICG*" -m -w 
 ```
 
 Use absolute paths as needed. The first read initializes the library; `-m`
-merges each subsequent part. Keep this setup identical for SCMap and gain NF.
+merges each subsequent part. Keep this setup identical for SCMap and `&nf`.
 The following `run.abc` records the three independent endpoints for one input:
 
 ```text
@@ -112,7 +115,7 @@ echo BUFFERED_SIZED
 stime -c
 ```
 
-For gain NF, replace only `&scmap` with `&nf`. Use a separate output directory
+For `&nf`, replace only `&scmap` with `&nf`. Use a separate output directory
 for each design/library/mapper. Both downstream branches restart from
 `mapped.blif`; do not buffer the sizing-only result. `stime -c` reports area,
 delay, and gate count. Check equivalence against the input with, for example,
@@ -121,13 +124,57 @@ Here `-n` matches ports by order, since GIA export can rename them.
 For preprocessed-input studies, supply the identical saved preprocessed input
 to each mapper; the script above is the raw-AIG experiment.
 
-Report per-design ratios to gain NF and their geometric mean over matched
+Report per-design ratios to `&nf` and their geometric mean over matched
 20-design cohorts, separately for each library and endpoint. Measure CPU with
 a process CPU clock around the mapper and downstream stages; report library
 loading separately and exclude CEC from flow CPU. ABC's `time` output is not a
 portable process-CPU measurement. An external process timer includes startup,
 library parsing, and I/O and should be labeled accordingly. Use the same
 compiler/build, host, and measurement boundaries for every mapper.
+
+## Fast comparison
+
+The revised protocol does not rerun the original raw-AIG experiment. It
+uses 19 EPFL designs (all except `hyp`) on each of
+the three libraries. All arms start from the same choices. After reading the
+library and AIG, run `strash; &get; &nf; &put; topo; strash; &get; &dch2 -p`.
+This first `&nf` is preprocessing, not the measured mapping step. The
+`-p` choice construction does not use SAT sweeping.
+
+| Arm | Measured command | Search |
+| --- | --- | --- |
+| Baseline | `&nf` | Map the common choice graph. |
+| Default | `&scmap` | Use the mapper's electrical model without finalist screening or remapping. |
+| Q | `&scmap -q` | Screen six refined seeds and electrical window checkpoints; confirm finalists with MFS, buffering and sizing. |
+| R | `&scmap -r` | Use eight seeds and try one remap from a rehashed cover with regenerated choices. |
+| T | `&scmap -T <floor_ps>` | Try rehashed and MFS-rewritten choices for up to two improving rounds, then recover area under an adaptive target. |
+
+R and T weight family capacitances by inverse cell area, add two deeper
+refinements, and consider more two-cell replacement recipes. Both remapping
+branches first expand the selected cell netlist, even when the window stage
+kept its seed. Only the MFS branch rewrites that netlist before strashing.
+T's floor is 0.88 times
+the **same pair's** baseline delay after the common suffix. Internally T
+computes its untargeted result once and sets its target to the larger of the
+floor and that delay plus 0.01 ps. A slower, feasible alternative must save
+enough area to improve area times delay to the one-eighth power. The untargeted
+cover remains a fallback. The floor is not the fixed target specified by `-D`.
+None of these five recipes runs single-edit full-flow lookahead.
+
+After the measured command, run the **same** suffix in every arm:
+
+```text
+&put; topo; stime -c
+mfsmap -e -R 2 -N 500 -C 1000 -M 2000 -I 10 -O 10; topo; stime -c
+buffer -c; topo; stime -c; upsize -c; dnsize -c; stime -c
+```
+
+Record the mapped, post-MFS and final endpoints, prove equivalence to the raw
+AIG, and route the final netlist. Freeze the floorplan, pins, placement seed
+and period from one independent baseline calibration per design/library pair.
+Compare only matched pairs; keep timing misses in the results.
+See [the replication kit](../experiments/scmap/README.md) for pinned inputs,
+executable flows, the job inventory, and per-pair evidence.
 
 ## Algorithm
 
@@ -152,7 +199,8 @@ compiler/build, host, and measurement boundaries for every mapper.
    while propagated output timing decides acceptance.
 
 The default mapper uses only its internal electrical model. Without `-D`, quality mode
-refines six SCMap seeds and compares private copies after
+refines six SCMap seeds, ranks them with buffering and limited sizing, and
+compares the first seed and up to two screened finalists after
 `mfsmap -e -R 2 -N 500 -C 1000 -M 2000 -I 10 -O 10` followed by
 `buffer -c; topo; stime -c; upsize -c; dnsize -c`. It selects a lower
 area-delay product with a 5% guard on each metric, anchored to the first
@@ -163,8 +211,9 @@ It does not select NF or NF3 covers. Window search uses
 transition-specific family capacitances, slack-based root ranking, and output
 timing pressure. Timing moves may spend 2% mapped area; area recovery holds
 the achieved delay. Checkpoints at phase boundaries and at 0.5%, 1%, 1.5%,
-and 2% cumulative added mapped area retain the lowest realized area-delay
-product. Cumulative additions do not subtract intervening area savings.
+and 2% cumulative added mapped area are screened before final measurement.
+Repeated identical exported covers do not occupy two finalist slots.
+Cumulative additions do not subtract intervening area savings.
 The search continues from its current cover, while the retained checkpoint
 must not increase final delay or exceed 2% final area growth relative to the
 window input. The unchanged input is always available as a fallback.
