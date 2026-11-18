@@ -1,38 +1,38 @@
 {
-  "as_of_utc": "2026-11-18T17:41:31.041335+00:00",
+  "as_of_utc": "2026-11-18T19:17:29.054030+00:00",
   "shard_observations_utc": {
-    "0": "2026-11-18T17:41:10.301057+00:00",
-    "1": "2026-11-18T17:41:09.735584+00:00"
+    "0": "2026-11-18T19:12:43.754844+00:00",
+    "1": "2026-11-18T18:43:45.986677+00:00"
   },
   "contains_all_57_pairs": true,
   "stopped": false,
   "counts": {
     "abc": {
-      "pass": 231,
+      "pass": 285,
       "failed": 0,
       "blocked": 0,
-      "running": 54,
+      "running": 0,
       "queued": 0,
       "syncing": 0,
       "interrupted": 0,
       "not_run": 0
     },
     "routes": {
-      "pass": 59,
-      "failed": 0,
-      "blocked": 0,
-      "running": 8,
-      "queued": 218,
+      "pass": 275,
+      "failed": 5,
+      "blocked": 5,
+      "running": 0,
+      "queued": 0,
       "syncing": 0,
       "interrupted": 0,
       "not_run": 0
     },
     "calibrations": {
-      "pass": 15,
-      "failed": 0,
+      "pass": 56,
+      "failed": 1,
       "blocked": 0,
-      "running": 9,
-      "queued": 33,
+      "running": 0,
+      "queued": 0,
       "syncing": 0,
       "interrupted": 0,
       "not_run": 0
