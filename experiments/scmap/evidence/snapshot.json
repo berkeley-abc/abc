@@ -1,0 +1,93 @@
+{
+  "as_of_utc": "2026-11-18T19:17:29.054030+00:00",
+  "shard_observations_utc": {
+    "0": "2026-11-18T19:12:43.754844+00:00",
+    "1": "2026-11-18T18:43:45.986677+00:00"
+  },
+  "contains_all_57_pairs": true,
+  "stopped": false,
+  "counts": {
+    "abc": {
+      "pass": 285,
+      "failed": 0,
+      "blocked": 0,
+      "running": 0,
+      "queued": 0,
+      "syncing": 0,
+      "interrupted": 0,
+      "not_run": 0
+    },
+    "routes": {
+      "pass": 275,
+      "failed": 5,
+      "blocked": 5,
+      "running": 0,
+      "queued": 0,
+      "syncing": 0,
+      "interrupted": 0,
+      "not_run": 0
+    },
+    "calibrations": {
+      "pass": 56,
+      "failed": 1,
+      "blocked": 0,
+      "running": 0,
+      "queued": 0,
+      "syncing": 0,
+      "interrupted": 0,
+      "not_run": 0
+    }
+  },
+  "protocol": {
+    "abc": {
+      "abc_revision": "04b2d804310d36e57590675b12ec8b666b29267f",
+      "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "flags": [
+        "/usr/bin/cc",
+        "-I<abc>/src",
+        "-O3",
+        "-DNDEBUG",
+        "-Wall",
+        "-Wno-unused-function",
+        "-Wno-write-strings",
+        "-Wno-sign-compare",
+        "-DLIN64",
+        "-DSIZEOF_VOID_P=8",
+        "-DSIZEOF_LONG=8",
+        "-DSIZEOF_INT=4",
+        "-DABC_USE_CUDD=1",
+        "-DABC_USE_PTHREADS",
+        "-fno-exceptions",
+        "-Wno-unused-but-set-variable"
+      ],
+      "runner": "74a80db50f6ae4e7ee80049056fc54c2e3e9d37da5352802771c576b30843809",
+      "abc": "ffdfda885594b9f1e67ac0b29bb3812f75645303e5dc9e3d9b9009a04a01fb07",
+      "timer_source": "6dd71dfd55108efafa0a80f9b3160d3d84a6b4711f00392ef1d9189419685ce9"
+    },
+    "inventory_sha256": "4a25c00e5b90feea70ee7ffc91a1832b2b36cb33fa61faa40870938b73b53f35",
+    "openroad_version": "26Q3-1606-g61fa3981ef",
+    "openroad_sha256": "4dddf68560fa1fe4f1d73b95c1be3699af5690b33833c6b78cb70e7c4909518e",
+    "yosys_version": "Yosys 0.33 (git sha1 2584903a060)",
+    "yosys_sha256": "88c0a12bb814a1a8716b1ae10b482e35d3005ed558e1f5f626b3dc983ea3abd0",
+    "flatten": "flatten",
+    "threads": 4,
+    "sta_threads": 1,
+    "seed": 42,
+    "nf_floor": 0.88,
+    "utilizations": [
+      0.3,
+      0.2,
+      0.15
+    ],
+    "scripts": {
+      "campaign.py": "b53c38aac29146735d65ff752b839bf4920b6a2645eb9177eca327ddb8da60b9",
+      "synthesis.py": "bcb4d7046d14b3a035a6aaf09b5550badedbf30d4f5a0ebe0dbecb71bd1de693",
+      "common.py": "9f1ed66b06a9b79319254a936e1dfe09d749fb5e75dc996aaf00839b36c3a568",
+      "physical.py": "88fb71c70a9c26dc9ad38fb038a98c0f53e659c83ba0beb9699fe15e301fe0ce",
+      "flow.tcl": "4225f4627e7ce8635a04322c15613bd771795bdd25b78aaefd463b518eddb886",
+      "replay.tcl": "8848e0fbfa22f9d77ae0db9b092e0249c9b0a06d4d76972e49fb7411e8f612f8"
+    },
+    "shards": 2,
+    "timeout": 21600
+  }
+}

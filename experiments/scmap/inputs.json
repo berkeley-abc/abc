@@ -1,0 +1,77 @@
+{
+  "abc": {
+    "revision": "04b2d804310d36e57590675b12ec8b666b29267f",
+    "files": {
+      "src/aig/gia/giaScmap.c": "23b2a4baa88e3313f9801a832fecab95632d770e10f129bd934c27c5457ede23",
+      "src/aig/gia/giaScmap.h": "5128bb7325fa550afbb371bcfb03badf1626ee481269bb4213fa8db38901da69",
+      "src/aig/gia/giaScmapInt.h": "e1c36e071afc33cda0be357c4b7b3b4c3181ca08fda16de93ca0405d11a60b45",
+      "src/aig/gia/giaScmapQuality.h": "c5aba70ff02a31499f31c7bf9fea7a613c567513e30f40860252034cda885101",
+      "src/aig/gia/giaScmapRefine.h": "01c8f01f05db341e0c324eaad49bea0aa270718d591325f49497542776658ca9",
+      "src/aig/gia/giaScmapSeed.h": "652712f99b28ae29d9e520d167420a887852544a3e0d7a7e0230202d9cfd4712",
+      "src/aig/gia/giaScmapWindow.h": "e5fe5b68163890d33ef701adb863e29d53f8dd95c7999c9312be7059f692ed0c",
+      "src/aig/gia/giaNf3.c": "d7fd5f7b6623920b526fe36470ff9f3451203e72724bb4f6a97b4a96f0152cea",
+      "src/base/abcc/abcMapCell.c": "ddbf6373ecc22d7603af62d216ac3bd79c979557972040043c98fa6a901820dc",
+      "src/base/abcc/abcSweep.c": "ed2245567728fb4cfc1bb9164905cbc8b383243ee8ad563b72bfc5ade6173e95"
+    }
+  },
+  "benchmarks": {
+    "url": "https://github.com/lsils/benchmarks.git",
+    "revision": "40fa98f9a9ef0439f263bbf78c682aabfb717889",
+    "files": {
+      "arithmetic/adder.aig": "60a28c90dc413ab479e07aba13185ae71ab7ffd3fd256c5e631212ee46170bcd",
+      "arithmetic/bar.aig": "28a3d895fe2821d4dcd04230751a059cb31ff5e28285a61ff7778cf71fb61da3",
+      "arithmetic/div.aig": "e65955ae0931e5c7ed91a6210f0f6e6b7bd95eaeef1ffddcfb3e7ec633ed5d82",
+      "arithmetic/log2.aig": "146f031921372d0dc47c73ad2c82ce4e7413caff725204b7938a4cf61b1f15cb",
+      "arithmetic/max.aig": "9a7c45c95cec2afbfd418468d8b5ff6a33161c591892e34ba34ff6ed3fbbb1a9",
+      "arithmetic/multiplier.aig": "543555652101e587c1d1b18a38eb18dfebcb5f85e63e35c781361aa26888946e",
+      "arithmetic/sin.aig": "e1a649d2eca27337787cb4aed79abe120f49597975beaed8bffd6a329c2664b3",
+      "arithmetic/sqrt.aig": "2fdf59877a0f1ceba46a2a3aca5457e05c47ac24ceb69839a4c12d071cf62300",
+      "arithmetic/square.aig": "c3fe8598cf501743043cf573b7226478a06be9dfb180d17bca77cdfbe667d784",
+      "random_control/arbiter.aig": "0eacc0a97717bbc91f732ce6814bbfcdefa8a0b65b13ade6f002e35d0e585d82",
+      "random_control/cavlc.aig": "125e0fdeb41ccadac5e6ada71f3c416fd026cfcbc8e75ad1c6b57ddc2b100f31",
+      "random_control/ctrl.aig": "9da22b9ba9917569878d750926623d3920a4cd985a0980cc65763c5d3ac0e78b",
+      "random_control/dec.aig": "38def606e795975e469273411ee9217bc43656c57e6f6eeda3ea640452fa3443",
+      "random_control/i2c.aig": "3f6ab413a3f745c87811fa6565d972146f1f4e6ede78fae71fcb16e469b9b213",
+      "random_control/int2float.aig": "ad280bdb8331591998b8184ff70ad00d31184649c245796965fc6777e3016bab",
+      "random_control/mem_ctrl.aig": "390d601836717129b903a5ecc8fd96b41d322d26895d666b303c64b796bd0d1d",
+      "random_control/priority.aig": "9123187c4169189f53f17a84367c4bd5f749b13298f9619ef601c5de4ee90678",
+      "random_control/router.aig": "fe8d13d4efe05fc3400ab8c94c0d1ce07ee24dd2ec106f7ae3d24e962e80efbd",
+      "random_control/voter.aig": "10ea098f4fca120ba55dd1abd5fab34d6a4df6099c4f411bc8592a27f9caf324"
+    }
+  },
+  "platforms": {
+    "url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
+    "revision": "61fa3981efaf7f969ece4cb7098a44be29b80422",
+    "openroad_version": "26Q3-1606-g61fa3981ef",
+    "files": {
+      "test/asap7/asap7.vars": "43625d8c1badeb21af360af50cb11b6480589c0d131e7618c27d7162494efb1e",
+      "test/asap7/asap7_tech_1x_201209.lef": "7694bf4f8ef2f9745e4579f454788a0cf048e8605320f32d1d83ec540ed4ca41",
+      "test/asap7/asap7sc7p5t_28_R_1x_220121a.lef": "4eb73f825720d95eba4da455c7b2e7a28e444e88e9d8595d13492cf5eecfc0d1",
+      "test/asap7/asap7.pdn.tcl": "d82b7a26cb0cad3c8d4c65ce5d572c17fcdc36aca7c811c9825fd013d50bc3e8",
+      "test/asap7/asap7.tracks.tcl": "4693c8fc81cf9095ed7fba61e778ec81c16c3cadc747f9ce388acf38f8331632",
+      "test/asap7/setRC.tcl": "eee105e64dee89d0758aef17f88cc2ac8bb24fef41ce5841e8459381aa722b9a",
+      "test/asap7/rcx_patterns.rules": "32a117e5e866d3de1406e8f18d65b6f1857781f156638941a4769e25ef5252cc",
+      "test/asap7/asap7sc7p5t_AO_RVT_FF_nldm_211120.lib.gz": "9e3848d247f9bbc8d405ee55617af98797b6d5be9a1af02988ec5d59ca9dad99",
+      "test/asap7/asap7sc7p5t_INVBUF_RVT_FF_nldm_220122.lib.gz": "e0c65688e6067ee485b0693651298636ae9ef5a0512154bcd4b7c4914d1a0ac6",
+      "test/asap7/asap7sc7p5t_OA_RVT_FF_nldm_211120.lib.gz": "cc9651e9235bcd29bba0737b7ba7a8afddde7462df3ff48d3870c22d05c86fb3",
+      "test/asap7/asap7sc7p5t_SIMPLE_RVT_FF_nldm_211120.lib.gz": "19d1435f053a47d1acae5d43e1c562669f3657fd4c894e5cc4ffb68acbfe6c94",
+      "test/asap7/asap7sc7p5t_SEQ_RVT_FF_nldm_220123.lib": "d9b6e75c8720cdd450cff15178528502cc8df34c5ab6b0ffb53fc99d664b5302",
+      "test/Nangate45/Nangate45.vars": "666162107ce932fe4ca055b03aeae045f4dd3faa7c4f5bbfc801933812e0a499",
+      "test/Nangate45/Nangate45_tech.lef": "834a79295054cd4209178d1bade67c353863c47bb4b3c22ee38b862b7cec37f2",
+      "test/Nangate45/Nangate45_stdcell.lef": "5fdaf0a12102a969d349ed086b2b7106e8332ae4620c66788d52b0a3f8131e62",
+      "test/Nangate45/Nangate45_typ.lib": "2efd0b32eb580e4e60e72fc0575bb3bc69aac907c91d908442e4ae6d7fe55895",
+      "test/Nangate45/Nangate45.pdn.tcl": "616296e900137bc445ff9b731a26ea2a570d294534266e8fa34c236366a0f9f6",
+      "test/Nangate45/Nangate45.tracks": "571f73a06074922a6488df73dfb346a86c0d3ee76a953d7d29867df8632941cc",
+      "test/Nangate45/Nangate45.rc": "0ece6b835601a7b2cab08a2ef638befd6f6f70c86f1ad2a683489713e5717e09",
+      "test/Nangate45/Nangate45.rcx_rules": "2f65fafbe2c704b378563c53a680b93cef080c2799997019d43df7d1e5a563e9",
+      "test/sky130hd/sky130hd.vars": "d3ba69255fedc9005179e0351ce3a8a33404266bde0d045c4b01bb56fc8adf59",
+      "test/sky130hd/sky130hd.tlef": "c8351e320a3d89640a1aae4cc0991d41646553362007fb45f40d3882d3b1688f",
+      "test/sky130hd/sky130hd_std_cell.lef": "41edf421b336e163cdfab97aca8d11e96f4563ceae857f0618d402aef063e980",
+      "test/sky130hd/sky130_fd_sc_hd__tt_025C_1v80.lib": "92eb4e93a3d4c2563018ac81cdec2f02fdeaced9b39337ed5c141fa63e0ad8f8",
+      "test/sky130hd/sky130hd.pdn.tcl": "b195cd440b8ec849b54a5e40e2f82b1eb5209afed011b72b5e47300245ffbc67",
+      "test/sky130hd/sky130hd.tracks": "b4b280f0d5f3d52007e2531d2abd74d7f4aa600ceb9fffdf3041c781fe82ad8c",
+      "test/sky130hd/sky130hd.rc": "987754b30b0a9fa9b4bce74c5767a687f45b547887c40cdf90c44bc1d1070e35",
+      "test/sky130hd/sky130hd.rcx_rules": "d5bd9b1077ceac9929416abca272a6d52e51cd9a575453a31d129817bb286476"
+    }
+  }
+}

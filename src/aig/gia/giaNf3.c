@@ -22,6 +22,9 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "giaScmapInt.h"
+#include <float.h>
+#include <math.h>
 #include "giaEdit.h"
 #include "base/main/main.h"
 #include "map/mio/mio.h"
@@ -29,6 +32,7 @@
 #include "map/scl/sclCon.h"
 #include "misc/vec/vecMem.h"
 #include "misc/util/utilTruth.h"
+#include <limits.h>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -55,7 +59,7 @@ typedef struct Nf3_Cache_t_
     Nf3_Recipe_t * Recipes;
     int nVars, nRecipes;
 } Nf3_Cache_t;
-enum { NF3_RECIPE_MAX = 32, NF3_CACHE_BINS = 8192, NF3_CACHE_LIMIT = 4096 };
+enum { NF3_RECIPE_MAX = 32, SCM_RECIPE_MAX = 128, NF3_CACHE_BINS = 8192, NF3_CACHE_LIMIT = 4096 };
 
 
 typedef struct Nf3_Man_t_
@@ -65,18 +69,32 @@ typedef struct Nf3_Man_t_
     Vec_Mem_t * Truths;
     Vec_Wec_t * Matches;
     Nf3_Obj_t * Objs;
-    Vec_Int_t * Inputs, * Outputs, * Stack;
+    Vec_Int_t * Inputs, * Outputs, * Stack, * Changed;
     int nObjs, nCells, Target, fDecompose;
-    word nTrials, nHits, Saved, nCacheHits, nTwo, nOdc, nCanonical, MinArea;
+    word nTrials, nHits, nCacheHits, nTwo, nOdc, nCanonical, MinArea;
+    long long Saved;
     Nf3_Cache_t * Cache;
-    int nCached;
+    int nCached, nRecipeLimit;
 } Nf3_Man_t;
 typedef struct Nf3_Plan_t_
 {
     int Gate, nFans, Fans[6], Arrival;
     int Slot, ChildGate, ChildFans[6], ChildArrival;
-    word Gain;
+    long long Gain;
+    double Score;
 } Nf3_Plan_t;
+typedef struct Scm_WinState_t_ Scm_WinState_t;
+typedef struct Nf3_Enum_t_
+{
+    Nf3_Plan_t * Plans;
+    word Extra, Generated;
+    int Count, Limit, fEqual;
+    int Root;
+    void * Model;
+    Scm_WinState_t * State;
+} Nf3_Enum_t;
+
+static void Scm_WinPlanAdd( Nf3_Enum_t * p, Nf3_Plan_t * Plan );
 
 /**Function*************************************************************
 
@@ -208,7 +226,7 @@ static int Nf3_ImportCell( Nf3_Man_t * p, int * Map, int Lit )
   SeeAlso     []
 
 ***********************************************************************/
-static Nf3_Man_t * Nf3_Import( Gia_Man_t * Gia, Jf_Par_t * Pars, int fDecompose )
+static Nf3_Man_t * Nf3_Import( Gia_Man_t * Gia, Jf_Par_t * Pars, int fDecompose, int fElectrical )
 {
     Nf3_Man_t * p = ABC_CALLOC(Nf3_Man_t, 1);
     Gia_Obj_t * Obj;
@@ -271,12 +289,15 @@ static Nf3_Man_t * Nf3_Import( Gia_Man_t * Gia, Jf_Par_t * Pars, int fDecompose 
     for ( i = p->nObjs-1; i >= 2; i-- )
         if ( p->Objs[i].Refs )
             for ( k = 0; k < p->Objs[i].nFans; k++ ) p->Objs[p->Objs[i].Fans[k]].Refs++;
-    for ( i = 2; i < p->nObjs; i++ )
-        if ( p->Objs[i].Refs && p->Objs[i].Gate != NF3_CI )
-            p->Objs[i].Arrival = Nf3_Delay(p, p->Objs[i].Gate, p->Objs[i].Fans, p->Objs[i].nFans);
-    Vec_IntForEachEntry(p->Outputs, Id, i) p->Target = Abc_MaxInt(p->Target, p->Objs[Id].Arrival);
-    if ( Pars->fAreaOnly ) p->Target = SCL_INFINITY-1;
-    else p->Target = Abc_MaxInt(p->Target, (int)Pars->MapDelayTarget);
+    if ( !fElectrical )
+    {
+        for ( i = 2; i < p->nObjs; i++ )
+            if ( p->Objs[i].Refs && p->Objs[i].Gate != NF3_CI )
+                p->Objs[i].Arrival = Nf3_Delay(p, p->Objs[i].Gate, p->Objs[i].Fans, p->Objs[i].nFans);
+        Vec_IntForEachEntry(p->Outputs, Id, i) p->Target = Abc_MaxInt(p->Target, p->Objs[Id].Arrival);
+        if ( Pars->fAreaOnly ) p->Target = SCL_INFINITY-1;
+        else p->Target = Abc_MaxInt(p->Target, (int)Pars->MapDelayTarget);
+    }
     ABC_FREE(Map);
     return p;
 }
@@ -442,6 +463,7 @@ static int Nf3_Dominates( Nf3_Recipe_t * A, Nf3_Recipe_t * B )
 static void Nf3_RecipeAdd( Nf3_Man_t * p, Nf3_Recipe_t * Recipes, int * pnRecipes, Nf3_Recipe_t * R )
 {
     int i, k, Pin, d, Worst;
+    int Limit = p->nRecipeLimit ? p->nRecipeLimit : NF3_RECIPE_MAX;
     R->Area = p->Cells[R->Gate[0]].AreaW + p->Cells[R->Gate[1]].AreaW;
     R->Mask = 0; memset(R->Profile, 0, sizeof(R->Profile));
     for ( i = 0; i < (int)p->Cells[R->Gate[1]].nFanins; i++ )
@@ -458,7 +480,7 @@ static void Nf3_RecipeAdd( Nf3_Man_t * p, Nf3_Recipe_t * Recipes, int * pnRecipe
     for ( i = 0; i < *pnRecipes; i++ ) if ( Nf3_Dominates(Recipes+i, R) ) return;
     for ( i = 0; i < *pnRecipes; )
         if ( Nf3_Dominates(R, Recipes+i) ) Recipes[i] = Recipes[--*pnRecipes]; else i++;
-    if ( *pnRecipes < NF3_RECIPE_MAX ) { Recipes[(*pnRecipes)++] = *R; return; }
+    if ( *pnRecipes < Limit ) { Recipes[(*pnRecipes)++] = *R; return; }
     Worst = 0;
     for ( i = 1; i < *pnRecipes; i++ ) if ( Recipes[i].Area > Recipes[Worst].Area ) Worst = i;
     if ( R->Area < Recipes[Worst].Area ) Recipes[Worst] = *R;
@@ -480,7 +502,7 @@ static Nf3_Cache_t * Nf3_Recipes( Nf3_Man_t * p, word Truth, int nVars )
         ABC_CONST(0xF0F0F0F0F0F0F0F0), ABC_CONST(0xFF00FF00FF00FF00),
         ABC_CONST(0xFFFF0000FFFF0000), ABC_CONST(0xFFFFFFFF00000000) };
     Nf3_Cache_t * Entry;
-    Nf3_Recipe_t Recipes[NF3_RECIPE_MAX], R;
+    Nf3_Recipe_t Recipes[SCM_RECIPE_MAX], R;
     Vec_Int_t * GMatches, * HMatches;
     word Hash, Rows[64], First, Second, G, H, Key, Check, Inputs[6];
     unsigned CfgG, CfgH, Phase, Perm;
@@ -580,7 +602,7 @@ static Nf3_Cache_t * Nf3_Recipes( Nf3_Man_t * p, word Truth, int nVars )
 
 ***********************************************************************/
 static void Nf3_TryTwo( Nf3_Man_t * p, int Root, int * Nodes, int nNodes,
-                       int * Leaves, int nLeaves, word Truth, Nf3_Plan_t * Best )
+                       int * Leaves, int nLeaves, word Truth, Nf3_Plan_t * Best, Nf3_Enum_t * List )
 {
     Nf3_Cache_t * Entry;
     Nf3_Recipe_t * R;
@@ -588,7 +610,7 @@ static void Nf3_TryTwo( Nf3_Man_t * p, int Root, int * Nodes, int nNodes,
     word Saved, Gain;
     if ( nLeaves < 2 ) return;
     Saved = Nf3_TrialArea(p, Root, NULL, 0, NULL);
-    if ( Saved <= Best->Gain + 2*p->MinArea ) return;
+    if ( List ? Saved + List->Extra < 2*p->MinArea : Saved <= (word)Best->Gain + 2*p->MinArea ) return;
     Entry = Nf3_Recipes(p, Truth, nLeaves);
     for ( i = 0; i < Entry->nRecipes; i++ )
     {
@@ -610,10 +632,23 @@ static void Nf3_TryTwo( Nf3_Man_t * p, int Root, int * Nodes, int nNodes,
         }
         if ( j != 2 ) continue;
         Saved = Nf3_TrialArea(p, Root, All, nAll, &Slot);
-        if ( R->Area >= Saved ) continue;
-        Gain = Saved - R->Area;
+        if ( List ? (R->Area > Saved && R->Area-Saved > List->Extra) ||
+                    (R->Area == Saved && !List->fEqual) : R->Area >= Saved ) continue;
         if ( Root-1 > Slot && !p->Objs[Root-1].Refs && p->Objs[Root-1].Gate != NF3_CI ) Slot = Root-1;
-        if ( Gain < Best->Gain || Slot <= MaxFan ) continue;
+        if ( Slot <= MaxFan ) continue;
+        if ( List )
+        {
+            Nf3_Plan_t Plan = {0};
+            Plan.Gain = (long long)Saved-(long long)R->Area;
+            Plan.Gate = R->Gate[1]; Plan.Slot = Slot; Plan.ChildGate = R->Gate[0];
+            Plan.nFans = p->Cells[R->Gate[1]].nFanins;
+            memcpy(Plan.ChildFans, Fans[0], sizeof(int)*p->Cells[R->Gate[0]].nFanins);
+            for ( k = 0; k < Plan.nFans; k++ ) Plan.Fans[k] = Fans[1][k] == -1 ? Slot : Fans[1][k];
+            Scm_WinPlanAdd(List, &Plan);
+            continue;
+        }
+        Gain = Saved - R->Area;
+        if ( Gain < (word)Best->Gain ) continue;
         ChildDelay = Nf3_Delay(p, R->Gate[0], Fans[0], p->Cells[R->Gate[0]].nFanins);
         Delay = 0;
         for ( k = 0; k < (int)p->Cells[R->Gate[1]].nFanins; k++ )
@@ -629,6 +664,31 @@ static void Nf3_TryTwo( Nf3_Man_t * p, int Root, int * Nodes, int nNodes,
 
 /**Function*************************************************************
 
+  Synopsis    [Emits a one-cell candidate under a signed area allowance.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Nf3_Emit( Nf3_Man_t * p, int Root, int Gate, int * Fans, int nFans, Nf3_Enum_t * List )
+{
+    Nf3_Plan_t Plan = {0};
+    Nf3_Obj_t * Obj = p->Objs+Root;
+    word Saved = Nf3_TrialArea(p, Root, Fans, nFans, NULL);
+    word Added = Gate < 0 ? 0 : p->Cells[Gate].AreaW;
+    if ( (Added > Saved && Added-Saved > List->Extra) || (Added == Saved && !List->fEqual) ) return;
+    if ( Gate == Obj->Gate && nFans == Obj->nFans && !memcmp(Fans, Obj->Fans, sizeof(int)*nFans) ) return;
+    Plan.Gain = (long long)Saved-(long long)Added;
+    Plan.Gate = Gate; Plan.nFans = nFans;
+    memcpy(Plan.Fans, Fans, sizeof(int)*nFans);
+    Scm_WinPlanAdd(List, &Plan);
+}
+
+/**Function*************************************************************
+
   Synopsis    [Matches an exact window function against library cells.]
 
   Description []
@@ -639,7 +699,7 @@ static void Nf3_TryTwo( Nf3_Man_t * p, int Root, int * Nodes, int nNodes,
 
 ***********************************************************************/
 static void Nf3_TryFunction( Nf3_Man_t * p, int Root, int * Nodes, int nNodes,
-                     int * Leaves, int nLeaves, word Truth, Nf3_Plan_t * Best )
+                     int * Leaves, int nLeaves, word Truth, Nf3_Plan_t * Best, Nf3_Enum_t * List )
 {
     word Key, Gain;
     unsigned Config, Perm, Phase;
@@ -658,6 +718,7 @@ static void Nf3_TryFunction( Nf3_Man_t * p, int Root, int * Nodes, int nNodes,
             else Gate = 3;
         }
         if ( Fans[0] >= Root ) return;
+        if ( List ) { Nf3_Emit(p, Root, Gate, Fans, 1, List); return; }
         Delay = Nf3_Delay(p, Gate, Fans, 1);
         Gain = Nf3_WindowGain(p, Root, Gate, Fans, 1);
         if ( Gain && Delay <= p->Objs[Root].Required &&
@@ -685,6 +746,7 @@ static void Nf3_TryFunction( Nf3_Man_t * p, int Root, int * Nodes, int nNodes,
             Fans[k] = Id;
         }
         if ( k < nLeaves ) continue;
+        if ( List ) { Nf3_Emit(p, Root, Gate, Fans, nLeaves, List); continue; }
         Delay = Nf3_Delay(p, Gate, Fans, nLeaves);
         if ( Delay > p->Objs[Root].Required ) continue;
         Gain = Nf3_WindowGain(p, Root, Gate, Fans, nLeaves);
@@ -693,7 +755,7 @@ static void Nf3_TryFunction( Nf3_Man_t * p, int Root, int * Nodes, int nNodes,
         Best->Slot = 0; Best->nFans = nLeaves; memcpy(Best->Fans, Fans, sizeof(int)*nLeaves);
     }
 two:
-    if ( p->fDecompose ) Nf3_TryTwo(p, Root, Nodes, nNodes, Keep, nLeaves, Truth, Best);
+    if ( p->fDecompose ) Nf3_TryTwo(p, Root, Nodes, nNodes, Keep, nLeaves, Truth, Best, List);
 }
 /**Function*************************************************************
 
@@ -707,12 +769,12 @@ two:
 
 ***********************************************************************/
 static void Nf3_Try( Nf3_Man_t * p, int Root, int * Nodes, int nNodes,
-                     int * Leaves, int nLeaves, Nf3_Plan_t * Best )
+                     int * Leaves, int nLeaves, Nf3_Plan_t * Best, Nf3_Enum_t * List )
 {
     word Values[NF3_WINDOW_MAX], Truth;
     unsigned Seen = 0;
     Truth = Nf3_WindowTruth_rec(p, Root, Nodes, nNodes, Leaves, nLeaves, Values, &Seen);
-    Nf3_TryFunction(p, Root, Nodes, nNodes, Leaves, nLeaves, Truth, Best);
+    Nf3_TryFunction(p, Root, Nodes, nNodes, Leaves, nLeaves, Truth, Best, List);
 }
 
 /**Function*************************************************************
@@ -776,15 +838,25 @@ static void Nf3_Apply( Nf3_Man_t * p, int Root, Nf3_Plan_t * Best )
 {
     Nf3_Obj_t * Obj = p->Objs+Root;
     int i, Id;
+    if ( p->Changed ) Vec_IntPush(p->Changed, Root);
     for ( i = 0; i < Best->nFans; i++ )
-        if ( !Best->Slot || Best->Fans[i] != Best->Slot ) p->Objs[Best->Fans[i]].Refs++;
+        if ( !Best->Slot || Best->Fans[i] != Best->Slot )
+        {
+            if ( p->Changed ) Vec_IntPush(p->Changed, Best->Fans[i]);
+            p->Objs[Best->Fans[i]].Refs++;
+        }
     if ( Best->Slot )
-        for ( i = 0; i < (int)p->Cells[Best->ChildGate].nFanins; i++ ) p->Objs[Best->ChildFans[i]].Refs++;
+        for ( i = 0; i < (int)p->Cells[Best->ChildGate].nFanins; i++ )
+        {
+            if ( p->Changed ) Vec_IntPush(p->Changed, Best->ChildFans[i]);
+            p->Objs[Best->ChildFans[i]].Refs++;
+        }
     Vec_IntClear(p->Stack);
     for ( i = 0; i < Obj->nFans; i++ ) Vec_IntPush(p->Stack, Obj->Fans[i]);
     while ( Vec_IntSize(p->Stack) )
     {
         Id = Vec_IntPop(p->Stack);
+        if ( p->Changed ) Vec_IntPush(p->Changed, Id);
         assert(p->Objs[Id].Refs > 0);
         if ( --p->Objs[Id].Refs ) continue;
         for ( i = 0; i < p->Objs[Id].nFans; i++ ) Vec_IntPush(p->Stack, p->Objs[Id].Fans[i]);
@@ -792,8 +864,13 @@ static void Nf3_Apply( Nf3_Man_t * p, int Root, Nf3_Plan_t * Best )
     if ( Best->Slot )
     {
         Nf3_Obj_t * Child = p->Objs+Best->Slot;
+        if ( p->Changed ) Vec_IntPush(p->Changed, Best->Slot);
         assert(Child->Refs == 0);
-        if ( Child->Compl >= 0 ) p->Objs[Child->Compl].Compl = -1;
+        if ( Child->Compl >= 0 )
+        {
+            if ( p->Changed ) Vec_IntPush(p->Changed, Child->Compl);
+            p->Objs[Child->Compl].Compl = -1;
+        }
         Child->Compl = -1; Child->Gate = Best->ChildGate;
         Child->nFans = p->Cells[Best->ChildGate].nFanins;
         memcpy(Child->Fans, Best->ChildFans, sizeof(int)*Child->nFans);
@@ -915,8 +992,8 @@ static void Nf3_TryCare( Nf3_Man_t * p, int Root, int * Nodes, int nNodes,
     }
     assert(((On ^ Truth) & Care) == 0);
     assert(((~Off ^ Truth) & Care) == 0);
-    if ( On != Truth ) Nf3_TryFunction(p, Root, Nodes, nNodes, Leaves, nLeaves, On, Best);
-    if ( ~Off != Truth && ~Off != On ) Nf3_TryFunction(p, Root, Nodes, nNodes, Leaves, nLeaves, ~Off, Best);
+    if ( On != Truth ) Nf3_TryFunction(p, Root, Nodes, nNodes, Leaves, nLeaves, On, Best, NULL);
+    if ( ~Off != Truth && ~Off != On ) Nf3_TryFunction(p, Root, Nodes, nNodes, Leaves, nLeaves, ~Off, Best, NULL);
 }
 /**Function*************************************************************
 
@@ -1230,7 +1307,7 @@ static Gia_Man_t * Nf3_Recover( Gia_Man_t * Gia, Jf_Par_t * Pars, int nRounds )
     abctime Start = Abc_Clock();
     if ( Gia->pManTime || Gia_ManBufNum(Gia) || Gia->vInArrs || Gia->vOutReqs ||
          Gia->vCiArrs || Gia->vCoReqs || Scl_ConIsRunning() ) return Gia;
-    p = Nf3_Import(Gia, Pars, nRounds > 1);
+    p = Nf3_Import(Gia, Pars, nRounds > 1, 0);
     if ( p == NULL ) return Gia;
     Nf3_Canonical(p);
     for ( Round = 0; Round < nRounds; Round++ )
@@ -1247,7 +1324,7 @@ static Gia_Man_t * Nf3_Recover( Gia_Man_t * Gia, Jf_Par_t * Pars, int nRounds )
             nNodes = 1; Nodes[0] = Id; nLeaves = 0;
             for ( k = 0; k < Obj->nFans; k++ )
                 if ( Obj->Fans[k] >= 2 && Nf3_Find(Leaves, nLeaves, Obj->Fans[k]) < 0 ) Leaves[nLeaves++] = Obj->Fans[k];
-            do { Nf3_Try(p, Id, Nodes, nNodes, Leaves, nLeaves, &Best); }
+            do { Nf3_Try(p, Id, Nodes, nNodes, Leaves, nLeaves, &Best, NULL); }
             while ( Nf3_Expand(p, Nodes, &nNodes, Leaves, &nLeaves) );
             if ( Best.Gain ) Nf3_Apply(p, Id, &Best);
         }
@@ -1325,5 +1402,7 @@ Gia_Man_t * Nf3_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars, int fSynt
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+#include "giaScmapWindow.h"
 
 ABC_NAMESPACE_IMPL_END

@@ -81,7 +81,7 @@ static long long Fr_LogicArea(Scm_Man_t *p)
 static int Scm_ManAffFastRepairPart( Scm_Man_t * p, int part )
 {
     Gia_Obj_t * pObj;
-    float Target = p->AffExactDelay;
+    float Target = p->pPars->ModelDelayTarget > 0 ? fmaxf(p->AffExactDelay, p->pPars->ModelDelayTarget) : p->AffExactDelay;
     int Round, i, c;
     int protect=0;
     int phases=1;
@@ -180,6 +180,7 @@ static int Scm_ManAffFastRepairPart( Scm_Man_t * p, int part )
                 else
                 {
                     word Restored = Scm_ManAffElaRefRec(p, pCtx, i, c, &Old);
+                    (void)Restored;
                     assert(Restored == Freed);
                     *Scm_ObjMatchD(p, i, c) = Old;
                 }
@@ -204,6 +205,7 @@ static int Scm_ManAffFastRepairPart( Scm_Man_t * p, int part )
             /* Keep the achieved modeled delay as the next pass target. This
                tightens the local model constraint; it is not cover rollback. */
             Target=fminf(Target,p->AffExactDelay);
+            if ( p->pPars->ModelDelayTarget > 0 ) Target = fmaxf(Target, p->pPars->ModelDelayTarget);
         }
     }
     if ( !Scm_ManAffElaTimeCover(p) ) return 0;
@@ -407,6 +409,7 @@ static void Df_Restore(Df_Man *d,Df_Undo u)
     word removed=Scm_ManAffElaDerefRec(p,d->ctx,i,c,Scm_ObjMatchD(p,i,c));
     *Scm_ObjMatchD(p,i,c)=u.old;
     word restored=Scm_ManAffElaRefRec(p,d->ctx,i,c,&u.old);
+    (void)removed; (void)restored;
     assert((long long)removed-(long long)restored==u.delta);
 }
 static Scm_AffElaCand_t *Df_Candidates(Df_Man *d,int lit,int areaOnly,int *count)
@@ -434,6 +437,7 @@ static Scm_AffElaCand_t *Df_Candidates(Df_Man *d,int lit,int areaOnly,int *count
        bounded traversal in the later, strictly area-reducing rounds. */
     Scm_ManAffElaCandidates(p,i,c,&old,areaOnly?freed:(~(word)0)/4,&list,count,&alloc);
     word restored=Scm_ManAffElaRefRec(p,d->ctx,i,c,&old);
+    (void)restored;
     assert(restored==freed);
     return list;
 }
@@ -713,8 +717,9 @@ static int Scm_ManRefineCover(Scm_Man_t *p)
     Df_Man d={0};Gia_Obj_t *o;int i,c,ok=0;
     float initial, target;
     int recovery=1;
-    d.keep=1;
-    d.delayRounds=2;
+    d.keep=p->pPars->fQuality?4:1;
+    d.delayRounds=p->pPars->fDeep?12:p->pPars->fQuality?4:2;
+    if(p->pPars->fQuality) recovery=2;
     d.screenGate=1;
     assert(d.keep>=1 && d.keep<=4 && d.delayRounds>=1);
     d.outputCache=1;
@@ -728,15 +733,18 @@ static int Scm_ManRefineCover(Scm_Man_t *p)
         Scm_ObjMatchD(p,i,c)->fBest=1;Scm_ObjMatchA(p,i,c)->fBest=0;
     }
     if(!Scm_ManAffElaTimeCover(p)) goto done;
-    d.area=Df_Area(p);initial=p->AffExactDelay;target=initial;
+    d.area=Df_Area(p);initial=p->AffExactDelay;target=initial*p->pPars->RefineRelax;
+    if ( p->pPars->ModelDelayTarget > 0 ) target = fmaxf(initial, p->pPars->ModelDelayTarget);
     assert(recovery>=0);
     for(int phase=0;phase<2;phase++) for(int round=0;round<(phase?recovery:d.delayRounds);round++) {
+        if ( !phase && p->pPars->ModelDelayTarget > 0 && p->AffExactDelay <= p->pPars->ModelDelayTarget ) break;
         /* Alternate broad cheap delay repair with the focused bounded search.
            Rebuild the actual chosen affine state before the next exact round. */
 
         if(phase==1 && round==0) {
             if(!Scm_ManAffFastRepairPart(p,2) || !Scm_ManAffElaTimeCover(p)) goto done;
-            d.area=Df_Area(p);target=p->AffExactDelay;
+            d.area=Df_Area(p);target=p->AffExactDelay*p->pPars->RefineRelax;
+            if ( p->pPars->ModelDelayTarget > 0 ) target = fmaxf(p->AffExactDelay, p->pPars->ModelDelayTarget);
         }
         int before=d.edits;d.threshold=.01*p->pPars->nPaperAffineElaCritical*target;
         d.ctx=Scm_ManAffElaCtxStart(p);if(!d.ctx) goto done;
@@ -751,7 +759,7 @@ static int Scm_ManRefineCover(Scm_Man_t *p)
         Gia_ManForEachAndReverse(p->pGia,o,i) for(c=0;c<2;c++)
             if(Scm_ObjMapRefNum(p,i,c) && !Scm_ManAffElaTailBuild(p,d.ctx,2*i+c)) goto done;
         int n=Gia_ManObjNum(p->pGia),count=0,budgetRoots=0;
-        int cap=64;
+        int cap=p->pPars->fDeep?4096:p->pPars->fQuality?256:64;
 
         assert(cap>=0 && cap<=1048576);
         if(!phase) cap=(cap+d.delayRounds-1)/d.delayRounds;
@@ -806,7 +814,9 @@ static int Scm_ManRefineCover(Scm_Man_t *p)
                 if(!Scm_ObjMapRefNum(p,lit>>1,lit&1)) continue;
                 if(!Df_Root(&d,lit,phase,target)) {ABC_FREE(ranked);goto done;}
                 d.sideRoot=0;
-                examined++;target=fminf(target,p->AffExactDelay);
+                examined++;
+                if(!phase || !p->pPars->fDeep) target=fminf(target,p->AffExactDelay*p->pPars->RefineRelax);
+                if ( p->pPars->ModelDelayTarget > 0 ) target = fmaxf(target, p->pPars->ModelDelayTarget);
             }
 
         ABC_FREE(ranked);
