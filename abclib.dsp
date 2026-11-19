@@ -82,6 +82,206 @@ LIB32=link.exe -lib
 # Name "abclib - Win32 Debug"
 # Begin Group "Source Files"
 
+# Begin Group "Placement-aware synthesis"
+
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agr.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrAig.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrAig.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrBroad.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrCare.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrCompact.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrDensity.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrDensity.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrDivisors.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrDsd.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrEvaluate.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrEvaluate.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrGeometryCut.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrGlobalCare.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrHistory.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrInit.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrLibraryData.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrLog.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrMath.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrOperators.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrPlace.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrPlace.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrProfile.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrRefactor.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrResub.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrRewrite.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrRewriteEval.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrScan.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrSpeed.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrTensionKernel.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-agr\agrVisit.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\pa.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\paAbcRefactor.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\paAbcResub.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\paAbcRewrite.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\paAig.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\paAig.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\paCommands.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\paInit.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\paMath.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\paPlace.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\paPlace.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\paProfile.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\paRewrite.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\paRewrite.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\paRwrEva.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\paSpectral.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\paSpectral.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\ext-pa\paStrash.c
+# End Source File
+# End Group
+
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Group "base"
 

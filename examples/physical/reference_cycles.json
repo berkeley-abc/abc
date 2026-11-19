@@ -1,0 +1,82 @@
+{
+  "adder": {
+    "target_cpu_s": 0.11203279166666663,
+    "cycles": 37
+  },
+  "arbiter": {
+    "target_cpu_s": 1.6437140833333332,
+    "cycles": 22
+  },
+  "bar": {
+    "target_cpu_s": 0.41123945833333325,
+    "cycles": 44
+  },
+  "cavlc": {
+    "target_cpu_s": 0.44196925,
+    "cycles": 39
+  },
+  "ctrl": {
+    "target_cpu_s": 0.03619866666666666,
+    "cycles": 34
+  },
+  "dec": {
+    "target_cpu_s": 0.05099299999999998,
+    "cycles": 22
+  },
+  "div": {
+    "target_cpu_s": 3.7163753333333327,
+    "cycles": 17
+  },
+  "hyp": {
+    "target_cpu_s": 26.62386545833333,
+    "cycles": 9
+  },
+  "i2c": {
+    "target_cpu_s": 0.2655230416666666,
+    "cycles": 52
+  },
+  "int2float": {
+    "target_cpu_s": 0.07946920833333335,
+    "cycles": 41
+  },
+  "log2": {
+    "target_cpu_s": 5.064134458333332,
+    "cycles": 15
+  },
+  "max": {
+    "target_cpu_s": 0.3414530416666667,
+    "cycles": 43
+  },
+  "mem_ctrl": {
+    "target_cpu_s": 7.889744624999999,
+    "cycles": 31
+  },
+  "multiplier": {
+    "target_cpu_s": 2.961157458333333,
+    "cycles": 12
+  },
+  "priority": {
+    "target_cpu_s": 0.10862954166666663,
+    "cycles": 50
+  },
+  "router": {
+    "target_cpu_s": 0.10975449999999998,
+    "cycles": 104
+  },
+  "sin": {
+    "target_cpu_s": 0.9060581666666666,
+    "cycles": 17
+  },
+  "sqrt": {
+    "target_cpu_s": 2.82151675,
+    "cycles": 12
+  },
+  "square": {
+    "target_cpu_s": 2.4045721249999996,
+    "cycles": 11
+  },
+  "voter": {
+    "target_cpu_s": 0.9653253749999999,
+    "cycles": 7
+  }
+}

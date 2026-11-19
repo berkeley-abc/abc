@@ -8,7 +8,7 @@
 
   Synopsis    [Native super_prove interface.]
 
-  Author      [OpenAI Codex, with Alan Mishchenko]
+  Author      [Alan Mishchenko and contributors]
 
   Affiliation [ABC project]
 

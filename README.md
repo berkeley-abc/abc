@@ -129,6 +129,14 @@ If the problem persists, provide the following information:
 The following tutorial is kindly offered by Ana Petkovska from EPFL:
 https://www.dropbox.com/s/qrl9svlf0ylxy8p/ABC_GettingStarted.pdf
 
+## Placement-aware synthesis
+
+This branch includes the adaptive geometric restructuring (AGR) flow and the prior PA flow as separate
+extensions. See [the physical synthesis guide](examples/physical/README.md) for
+build instructions, both reproduction recipes, source organization, and checks.
+AGR uses `agr`; PA retains its `pa_place`, `pa_rw`, `pa_rf`, `pa_rs`, and `pa_strash`
+commands. Ordinary ABC synthesis and mapping commands remain unchanged.
+
 ## Final Remarks
 
 ABC includes CMake-based regression tests, which run in continuous integration

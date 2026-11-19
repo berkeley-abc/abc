@@ -19,6 +19,8 @@ docs/
 .vscode/
 
 src/ext*
+!src/ext-pa/
+!src/ext-agr/
 src/xxx/
 src/aig/au/
 src/aig/ssm/

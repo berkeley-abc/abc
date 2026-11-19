@@ -1,0 +1,4132 @@
+{
+  "scope": "Historical primary C-S-S-R-S frontend study, 20 designs, guidance 0.28; not a new upstream-build measurement",
+  "binary_sha256": {
+    "agr_and_native": "ca3235a6744ea147e060d633aee57921697483fba7f6e1d75735d9e99e28848b",
+    "pa": "18103bdd9a960e62ae9f0b18408b62b1b975ba320a813e9238e40d02b8be64b0",
+    "evaluator": "9fef8fc920b4f337ac401fc14e6789de5ff441656511e6affc674da21b7889aa"
+  },
+  "input_sha256": {
+    "hyp.aig": "493c3df98e583ed32090aafe45d888b3a487df73e42295f70a9ed9772fc8276d",
+    "cavlc.aig": "2e0e9d93d3662588935300e2da94701c55399c30dc16210413c46bae7595d074",
+    "multiplier.aig": "2823f37eb9f7f39d1ebdbdcca4c81cbb765654fc71438e2851f29fdafc274f7b",
+    "priority.aig": "7ab405207c26e1d689ba80e4104bb204e307f117242e6610e03beabfd71e93cf",
+    "ctrl.aig": "1c883e2c19a0267c21a899cf1dc6631371c71eefc5242b44d9900d65f642646f",
+    "mem_ctrl.aig": "bb3dafbc10a59361a961cbde3fb2d9df9a03ba943aae829faef7aba21c87f0cc",
+    "log2.aig": "d83158b498dbeec5774030cd6dd7f35a0c032c8062fb5f62acdb89ad7f1e10a1",
+    "sin.aig": "3cbe57d17f42306fdcbd1e9f55464ae1ffe0774d0310fb5c99d084788c3aa176",
+    "div.aig": "b2bbc88d91654ebd000e2da43d4ede8838f49a52a780c0d2b1fb69a53e83eed7",
+    "dec.aig": "00170eccae076ef9b4dac0682a43bcf22d3011c006dcc85ce422d02e69d432ee",
+    "max.aig": "13270026a618007242b9219fc8246066ad9673e257754570dc3b256709da5788",
+    "adder.aig": "5d6274cd7102676772adfa35c47d166553a12121762ed90f3e0245fd86720725",
+    "int2float.aig": "fe4ab8c6aad6bfd766e68e7a8851dd3e88d8d07b6c3bc4bf35df9acbaac741be",
+    "voter.aig": "d22613ca27049dadc7ac6c8d21f0d45bf4549521f06ee9ff5a7aa1071d2f5bc6",
+    "merged_asap7_final.lib": "70cae62f9a4817dfc60c1ec6eb33161f93bbfce7f85786b6faa077cfd17e01fb",
+    "router.aig": "75d1b21448e1100b5c49fd19d4f279da4bdaa081039187b0ff807a3baae96647",
+    "i2c.aig": "e3c704289bbb3ee3e0e0ed25bfadf6bf188880a6979e2fe69db014786fef44a6",
+    "sqrt.aig": "a18ae3abcb052c9c38747c4dc9fc4d400ecaef437c67ec3100c986e1c9a1bc4d",
+    "bar.aig": "5be8852cd5a23c32c18a6bd6204698213fe552b3d1c35b5a239379e415e6d9f7",
+    "square.aig": "a0145bf58a07b71da09530e758ca53a7eaf71791d12717e3e0251f8225936ab1",
+    "arbiter.aig": "2712a2dff82a13b5f9c372b6ea10fd1053e84e073b405cf408b9aa18a8045bbf"
+  },
+  "source_records_sha256": {
+    "primary_per_design.json": "b41bda6925953cf27cf5d1a92fe8d7fc2fe205a7b57096ab30784df88df3eaed",
+    "evidence_verified.json": "28ba96e08420d441e1b92b7daf74939455759df4efd9318729562c3cfe7d9e5e",
+    "freeze_manifest.json": "e4934e671d500a788a9fba70133e3864c5e1b8a4ed5b7190d2a7d69b63304e3f",
+    "common.py": "e98446426fcbb17183ce3698a70961e4ed63ff43b2ad173eac31d97a849ce453"
+  },
+  "runtime_scope": "One complete serial replay per design/flow; one process per macro; command CPU excludes macro-boundary IO/normalization; process CPU includes them",
+  "runtime_selection": "Latest fully completed common repetition under continuous audit; independent of speed and QoR",
+  "limitations": "Older synthesis/evaluation binaries. Not interchangeable with current-build timings or mapped metrics. Original ABC slot counts replay work, not equal CPU on a new host. Source proofs refer only to archived endpoints.",
+  "rows": [
+    {
+      "design": "adder",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 892.0,
+        "levels": 256.0,
+        "hpwl": 54.101,
+        "area": 57.72,
+        "delay": 3289.28,
+        "overflow": 0.09671518872371018
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "c6923803c0d5d84514aa511f2dc55586420605b2e67c6ba029457478e0ed0f6a",
+      "endpoint_file_sha256": "0cdc8bb33936a433cb04959e5b44e0f0faa646841834ac406c145abe0978a9d0",
+      "process_cpu_s": 0.9057370000003004,
+      "command_cpu_s": 0.356332
+    },
+    {
+      "design": "adder",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 892.0,
+        "levels": 256.0,
+        "hpwl": 54.101,
+        "area": 57.72,
+        "delay": 3289.28,
+        "overflow": 0.09671518872371018
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "c6923803c0d5d84514aa511f2dc55586420605b2e67c6ba029457478e0ed0f6a",
+      "endpoint_file_sha256": "13c63a9486babd5910e65b7b6e9a5acdb9c835d44d944269c3e1373a1f0414f4",
+      "process_cpu_s": 0.858630000000062,
+      "command_cpu_s": 0.316232
+    },
+    {
+      "design": "adder",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 892.0,
+        "levels": 256.0,
+        "hpwl": 54.101,
+        "area": 57.72,
+        "delay": 3289.28,
+        "overflow": 0.09671518872371018
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "c6923803c0d5d84514aa511f2dc55586420605b2e67c6ba029457478e0ed0f6a",
+      "endpoint_file_sha256": "72a28627a11767c5e95defc47e05dbb5a58fe2742b59fcebc5c00bc074d69d5c",
+      "process_cpu_s": 0.6628379999997946,
+      "command_cpu_s": 0.394711
+    },
+    {
+      "design": "adder",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ]
+      ],
+      "metrics": {
+        "nodes": 892.0,
+        "levels": 256.0,
+        "hpwl": 54.101,
+        "area": 57.72,
+        "delay": 3289.28,
+        "overflow": 0.09671518872371018
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "c6923803c0d5d84514aa511f2dc55586420605b2e67c6ba029457478e0ed0f6a",
+      "endpoint_file_sha256": "e64d97b565634b50faf6f720c5daf92e6815d006bd67bb1ab80ef9286f6ed43f",
+      "process_cpu_s": 0.9948049999999284,
+      "command_cpu_s": 0.37335
+    },
+    {
+      "design": "arbiter",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 11837.0,
+        "levels": 87.0,
+        "hpwl": 9789.013,
+        "area": 532.61,
+        "delay": 777.18,
+        "overflow": 0.09899995401042154
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "dbc36af1cb2d9b52ee3a06f191d9e484db9c4659b15a5298c3d2f49c888aae22",
+      "endpoint_file_sha256": "a5c1bb8e742d99befdbcdc5518985294c8d87404753b78cb677424f38c8b69a4",
+      "process_cpu_s": 6.035839999999823,
+      "command_cpu_s": 5.471964
+    },
+    {
+      "design": "arbiter",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 11793.0,
+        "levels": 87.0,
+        "hpwl": 10160.95,
+        "area": 540.28,
+        "delay": 771.67,
+        "overflow": 0.09899999683517263
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "2e3984da5730113bbad015e57bc705c7b4b04d9400bacbbfddd2385304b328d0",
+      "endpoint_file_sha256": "2ddde598570183e923d02f6b74a92c6217077f9027bd0ce1f8662d3afc7cf084",
+      "process_cpu_s": 5.887585000000541,
+      "command_cpu_s": 5.318983
+    },
+    {
+      "design": "arbiter",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 11837.0,
+        "levels": 87.0,
+        "hpwl": 9735.66,
+        "area": 532.72,
+        "delay": 777.12,
+        "overflow": 0.09899825752956756
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "c98f65b7c840bc1cde7a5dd02e3fc3e481b06f22e84cf4955d1ae104b4b6bebf",
+      "endpoint_file_sha256": "23f3f22fb19cc29efa97fa78bbebbe18e78911ef08c761eb4ef58eec36ffa48f",
+      "process_cpu_s": 6.072897000000253,
+      "command_cpu_s": 5.787674
+    },
+    {
+      "design": "arbiter",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E"
+        ]
+      ],
+      "metrics": {
+        "nodes": 11795.0,
+        "levels": 87.0,
+        "hpwl": 10360.179,
+        "area": 546.47,
+        "delay": 777.23,
+        "overflow": 0.0989999978337756
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "38c0059b3572b74385c1d9f2d75c1e15d99674de1979ac1fb81dfdd7f8132a82",
+      "endpoint_file_sha256": "f37b0b9f15b6eee1d843e97daedaf62047a3b7f0aa23e79086eda92e8d03559a",
+      "process_cpu_s": 6.0669470000000985,
+      "command_cpu_s": 5.481704
+    },
+    {
+      "design": "bar",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 2952.0,
+        "levels": 12.0,
+        "hpwl": 2030.832,
+        "area": 157.33,
+        "delay": 515.49,
+        "overflow": 0.09899953512851813
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "208576cb8d171f87a4349a0630127131244fb0f19a13fe631004d10666e6ab17",
+      "endpoint_file_sha256": "79489c7e430f574826400ba64065c9c3aa4072ae34b57527a99f08bd465bdcb6",
+      "process_cpu_s": 1.8853069999994148,
+      "command_cpu_s": 1.324288
+    },
+    {
+      "design": "bar",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 2952.0,
+        "levels": 12.0,
+        "hpwl": 1962.606,
+        "area": 154.17,
+        "delay": 500.84,
+        "overflow": 0.09898405305020803
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "6d94133352111822a716e857e75a2ed8cfb3ec4968aa0c70108fd42d22342fcb",
+      "endpoint_file_sha256": "674a2d020c707ff539939f1f96922dc89183e0c894a1bf9971d7fa302baa438b",
+      "process_cpu_s": 1.8095740000000546,
+      "command_cpu_s": 1.251444
+    },
+    {
+      "design": "bar",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 2952.0,
+        "levels": 12.0,
+        "hpwl": 2136.915,
+        "area": 171.68,
+        "delay": 470.98,
+        "overflow": 0.0952649810785782
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "4264d00f4ce1368bf3f0ed6f3c674fe25ad4d33187765bccb249c9561f8bb36b",
+      "endpoint_file_sha256": "c9acf614696e38497c0c14f8b6d715f1732c457466b291ef46c121d4a89efae2",
+      "process_cpu_s": 1.8727430000004688,
+      "command_cpu_s": 1.552232
+    },
+    {
+      "design": "bar",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E"
+        ]
+      ],
+      "metrics": {
+        "nodes": 2952.0,
+        "levels": 12.0,
+        "hpwl": 2909.141,
+        "area": 171.68,
+        "delay": 471.4,
+        "overflow": 0.0989999975298496
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "ed4d52b0930369b210a9e89bf2ba77371fb1b481ba3ab78d70e1c24b325cc4aa",
+      "endpoint_file_sha256": "558091c69ac6098947ff1d0afd129e955073c491fd5627da61228d216179317c",
+      "process_cpu_s": 2.1432109999991553,
+      "command_cpu_s": 1.37991
+    },
+    {
+      "design": "cavlc",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 580.0,
+        "levels": 15.0,
+        "hpwl": 529.053,
+        "area": 34.1,
+        "delay": 191.97,
+        "overflow": 0.09899961070083303
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "9be360eaa28dae5373ac5a8bae115b2691c029e4596778cc672157c3b87fe247",
+      "endpoint_file_sha256": "a2810f4b9e411731eab240e2b826c1706466f8e703f64c7c8903c37c1a8828d2",
+      "process_cpu_s": 1.122898000000788,
+      "command_cpu_s": 0.573088
+    },
+    {
+      "design": "cavlc",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 588.0,
+        "levels": 15.0,
+        "hpwl": 497.088,
+        "area": 34.07,
+        "delay": 189.88,
+        "overflow": 0.09899992076181975
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "d6ac533db4febd7e6775fc614c3f5c053b9d04d0a999d6753ab57ca8208ac8e9",
+      "endpoint_file_sha256": "cfbb018aba677fbcf5134fd9b547dec4651f591898a79d2801810ab020b9ff4b",
+      "process_cpu_s": 1.058240999999967,
+      "command_cpu_s": 0.511348
+    },
+    {
+      "design": "cavlc",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 596.0,
+        "levels": 16.0,
+        "hpwl": 525.681,
+        "area": 34.32,
+        "delay": 195.68,
+        "overflow": 0.09899992701938008
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "268cfc1614e88cb31be50ddd2b6a87bf5e68a4b4e448566f09fe03caafb3f556",
+      "endpoint_file_sha256": "b01eb2f497ee416fdb1ddeded46fca9b0e16c62057b924452dd805f3fb66fe80",
+      "process_cpu_s": 0.8531600000002726,
+      "command_cpu_s": 0.68862
+    },
+    {
+      "design": "cavlc",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ]
+      ],
+      "metrics": {
+        "nodes": 573.0,
+        "levels": 12.0,
+        "hpwl": 544.3,
+        "area": 33.08,
+        "delay": 195.63,
+        "overflow": 0.09899990295544189
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "b424b4a8a93b73343d66dde4a5df095e961fa761dcf4c83a1939b191fefd8966",
+      "endpoint_file_sha256": "28673374cf01216df5d03949cdaa3280e468b3d1256ce3332d40aeb2e4e594e5",
+      "process_cpu_s": 1.0856930000002194,
+      "command_cpu_s": 0.672221
+    },
+    {
+      "design": "ctrl",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 78.0,
+        "levels": 8.0,
+        "hpwl": 37.498,
+        "area": 5.85,
+        "delay": 93.44,
+        "overflow": 0.09899996553252298
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "a6618d24904f8fc860a82ca088a24c92efbe1c79d10aa5f6e654aa53fc803abd",
+      "endpoint_file_sha256": "ab41d7877aac41054dcd26f409440db3c9675edc55a455e1ad901f51dd1a5cfc",
+      "process_cpu_s": 0.6650800000000174,
+      "command_cpu_s": 0.117911
+    },
+    {
+      "design": "ctrl",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 79.0,
+        "levels": 10.0,
+        "hpwl": 36.948,
+        "area": 5.61,
+        "delay": 102.62,
+        "overflow": 0.0989995327554678
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "fc625ff56a4ea4c9a8839d031c1a893d2a493d5557d104d7f217669ddca1b50e",
+      "endpoint_file_sha256": "1faeeb658c707248f58d9e614d19e5e0919bb4c299f409b0aa67dd7e0f4e78a7",
+      "process_cpu_s": 0.6665949999998588,
+      "command_cpu_s": 0.118506
+    },
+    {
+      "design": "ctrl",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 79.0,
+        "levels": 8.0,
+        "hpwl": 40.25,
+        "area": 5.85,
+        "delay": 100.04,
+        "overflow": 0.09899997414931262
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "92a2a9d46de086fc7db070b98b2a24da5ca46ec69e8f6c93c0a804e1b7c62ee3",
+      "endpoint_file_sha256": "7f344f933fdc9bef6bd50143593a22a4fcdad435f150a577cbe9e021d7eb897d",
+      "process_cpu_s": 0.2829940000001159,
+      "command_cpu_s": 0.143593
+    },
+    {
+      "design": "ctrl",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ]
+      ],
+      "metrics": {
+        "nodes": 79.0,
+        "levels": 8.0,
+        "hpwl": 39.73,
+        "area": 5.67,
+        "delay": 99.73,
+        "overflow": 0.09899994675317227
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "5211bd8282d5acc841a218b7cf4a46f86f44eec7468c6c543ecac16a0054de01",
+      "endpoint_file_sha256": "971bbcbdf29c6c21049e0adb7ec4c3a88a008b43f96238c161e7dec77a842880",
+      "process_cpu_s": 0.560537000000096,
+      "command_cpu_s": 0.156627
+    },
+    {
+      "design": "dec",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 304.0,
+        "levels": 3.0,
+        "hpwl": 166.459,
+        "area": 26.16,
+        "delay": 90.07,
+        "overflow": 0.09899990707070794
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "0cb01b84a8da5474044d3686df7da6b97338e34213929f31f5592457c3e4cbf3",
+      "endpoint_file_sha256": "44543ba43ff08acc42c32085311b04c87bfeef4cfc5cd5a0c756ee3dda8745dc",
+      "process_cpu_s": 0.7349610000001405,
+      "command_cpu_s": 0.190687
+    },
+    {
+      "design": "dec",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 304.0,
+        "levels": 3.0,
+        "hpwl": 166.459,
+        "area": 26.16,
+        "delay": 90.07,
+        "overflow": 0.09899990707070794
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "0cb01b84a8da5474044d3686df7da6b97338e34213929f31f5592457c3e4cbf3",
+      "endpoint_file_sha256": "2f876e482e86169dccb0226af2d589d6d1152684bc9d2db61e708ddef1735b97",
+      "process_cpu_s": 0.7266550000001644,
+      "command_cpu_s": 0.179594
+    },
+    {
+      "design": "dec",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 304.0,
+        "levels": 3.0,
+        "hpwl": 166.459,
+        "area": 26.16,
+        "delay": 90.07,
+        "overflow": 0.09899990707070794
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "0cb01b84a8da5474044d3686df7da6b97338e34213929f31f5592457c3e4cbf3",
+      "endpoint_file_sha256": "2314c3815cd64ab2ece5393ab1437b7af0ea6fa4bfbfe7ae028cbc8850aeffce",
+      "process_cpu_s": 0.3734759999993571,
+      "command_cpu_s": 0.212706
+    },
+    {
+      "design": "dec",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ]
+      ],
+      "metrics": {
+        "nodes": 304.0,
+        "levels": 3.0,
+        "hpwl": 166.459,
+        "area": 26.16,
+        "delay": 90.07,
+        "overflow": 0.09899990707070794
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "0cb01b84a8da5474044d3686df7da6b97338e34213929f31f5592457c3e4cbf3",
+      "endpoint_file_sha256": "e0612168075704c5eac5786d4b84346ef818d8e71f006627cf851a389ac06d5a",
+      "process_cpu_s": 0.6306919999999394,
+      "command_cpu_s": 0.226996
+    },
+    {
+      "design": "div",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 39869.0,
+        "levels": 4440.0,
+        "hpwl": 28486.361,
+        "area": 2672.65,
+        "delay": 65155.47,
+        "overflow": 0.09611329675300723
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "5e7e9d8ff0003d8029776587241149423bc1bcf59992bf38e09252cb3bc114eb",
+      "endpoint_file_sha256": "9e3648eccd138e0ceaad077261de6f79e6e2247f1430b63960d4306461bc487c",
+      "process_cpu_s": 13.714122999999816,
+      "command_cpu_s": 13.07533
+    },
+    {
+      "design": "div",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 39873.0,
+        "levels": 4444.0,
+        "hpwl": 29803.503,
+        "area": 2677.94,
+        "delay": 65217.05,
+        "overflow": 0.09427542693504186
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "1b9ba451ed4441258e8e09815cb303cd06c0a0fa8815691100c0e2b0baa3f027",
+      "endpoint_file_sha256": "27cfbd95ba30ff507da11a5777328c59f6a27dff68b428db6862bdf5dc2f221d",
+      "process_cpu_s": 14.38215399999936,
+      "command_cpu_s": 13.761521
+    },
+    {
+      "design": "div",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 39880.0,
+        "levels": 4459.0,
+        "hpwl": 26338.645,
+        "area": 2700.61,
+        "delay": 64888.76,
+        "overflow": 0.09386952516191882
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "62e62c23a4cef6c350d0eeec55d1d692146646bd22b97fea219f1dad9c55f981",
+      "endpoint_file_sha256": "d3a720219cb9b8dcb33603e2e270306c95a34e8a966d448ee254da1475abc8e4",
+      "process_cpu_s": 18.058773000000016,
+      "command_cpu_s": 17.590111999999998
+    },
+    {
+      "design": "div",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E"
+        ]
+      ],
+      "metrics": {
+        "nodes": 39847.0,
+        "levels": 4444.0,
+        "hpwl": 28958.911,
+        "area": 2674.86,
+        "delay": 64141.73,
+        "overflow": 0.09443656496131037
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "4c999814a1e08318ea624eacae9de88d12e1de3425c06b912b878084d12e1605",
+      "endpoint_file_sha256": "00f9fee589a25f8541350cb1419fda23031b3b5be938567c76ee72558c1ecb98",
+      "process_cpu_s": 18.7417149999998,
+      "command_cpu_s": 17.896682
+    },
+    {
+      "design": "hyp",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 203937.0,
+        "levels": 24657.0,
+        "hpwl": 170673.61,
+        "area": 14156.95,
+        "delay": 342672.28,
+        "overflow": 0.09326054029758112
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "b93a01cef9c50932bc301e79e470f0cf893c86c84da83de6cff832a6ef403965",
+      "endpoint_file_sha256": "a16e7c30cbefe6e4651187a731fb1535e75b96c6cb8cba9f16c3edabe357b227",
+      "process_cpu_s": 85.05345699999991,
+      "command_cpu_s": 83.878144
+    },
+    {
+      "design": "hyp",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 203947.0,
+        "levels": 24669.0,
+        "hpwl": 167987.163,
+        "area": 13974.11,
+        "delay": 356954.97,
+        "overflow": 0.09516271483631816
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "a95c3ea40ce0948cc9680b8324879aff2c46b288a54a2085d2b715e2611cb716",
+      "endpoint_file_sha256": "2b585eb43036776f7a41e1d19ed324306c4a088a6a3c30b7477c2d628e5fb8b1",
+      "process_cpu_s": 90.94578300000049,
+      "command_cpu_s": 89.90908
+    },
+    {
+      "design": "hyp",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 203982.0,
+        "levels": 24724.0,
+        "hpwl": 177439.241,
+        "area": 14276.31,
+        "delay": 315323.62,
+        "overflow": 0.09418516967574392
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "24d9760d4f71879da37e3036ea427d35018e61afcc4731540a10ff423d64edd3",
+      "endpoint_file_sha256": "cd78eaf0621dd8b6f33c1213ac8e8e2e72d5b06844616fbcc79694698030fcdb",
+      "process_cpu_s": 108.52907800000028,
+      "command_cpu_s": 107.451947
+    },
+    {
+      "design": "hyp",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "R",
+        "E",
+        "E",
+        "R"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R"
+        ]
+      ],
+      "metrics": {
+        "nodes": 203964.0,
+        "levels": 24681.0,
+        "hpwl": 169043.881,
+        "area": 14268.05,
+        "delay": 309588.06,
+        "overflow": 0.09352158074455645
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "826951338908fe0765bb61025ed7b0afc039c26d12fd563be543f5c628f62dbd",
+      "endpoint_file_sha256": "ec9e34886f2d7975f8de7b3c40677f9a7c1da18b7e9b38122d1be69d81b1ccac",
+      "process_cpu_s": 115.86349000000037,
+      "command_cpu_s": 114.807024
+    },
+    {
+      "design": "i2c",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 983.0,
+        "levels": 12.0,
+        "hpwl": 632.793,
+        "area": 57.97,
+        "delay": 179.45,
+        "overflow": 0.09899996229869687
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "1f4794921e5e01c4d0cb2bd1703a7eb3ff19983a60ad38aa6d67b461d3d79693",
+      "endpoint_file_sha256": "47f310e9808c1b4a3047f44458ec34d48a43dae15c85bc28cca8664412c3ed4c",
+      "process_cpu_s": 1.2060180000000713,
+      "command_cpu_s": 0.648736
+    },
+    {
+      "design": "i2c",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 990.0,
+        "levels": 13.0,
+        "hpwl": 644.873,
+        "area": 59.46,
+        "delay": 206.05,
+        "overflow": 0.09899998978190318
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "4ea37e02b2244a25f2856923f450c4869009349eb2898e9b7cceeb59e1fd75aa",
+      "endpoint_file_sha256": "f6bd3b01494b67b39b95abb6c9c12df33b38a0a8cdbf03ef664783d2a5c0d4b2",
+      "process_cpu_s": 1.141291000000706,
+      "command_cpu_s": 0.582241
+    },
+    {
+      "design": "i2c",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 1001.0,
+        "levels": 13.0,
+        "hpwl": 662.959,
+        "area": 59.08,
+        "delay": 183.07,
+        "overflow": 0.09899999518699033
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "0a974f4ad91e1f914ed423a6d21fd423e913f4ee44d7fcae4734e889a2e7ae93",
+      "endpoint_file_sha256": "7e84cf3d28f893f0c153c25f0d364090d25181a3805430e50a0a36db6ac5d2c8",
+      "process_cpu_s": 1.0666819999991901,
+      "command_cpu_s": 0.77844
+    },
+    {
+      "design": "i2c",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ]
+      ],
+      "metrics": {
+        "nodes": 962.0,
+        "levels": 12.0,
+        "hpwl": 632.802,
+        "area": 56.7,
+        "delay": 170.04,
+        "overflow": 0.0989999923950977
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "6c861d3f331b2a7046872dbea15938f7d701d426228994d829dd87523e88d96e",
+      "endpoint_file_sha256": "1b63bba00b0cc520c4860f7b11413085efd2ce1c372b0ab949482f888ebb6ff5",
+      "process_cpu_s": 1.4940060000002262,
+      "command_cpu_s": 0.758243
+    },
+    {
+      "design": "int2float",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 187.0,
+        "levels": 13.0,
+        "hpwl": 106.413,
+        "area": 10.76,
+        "delay": 122.26,
+        "overflow": 0.09896237768014016
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "10b1e29c37cc7621040167ee21159bd7fdaa04d647456a7e3e2b2f8ab7903680",
+      "endpoint_file_sha256": "39d31edf5b88f6c7497ba33eb29528c1920b8d36b8869df47b55e44134d4d0fb",
+      "process_cpu_s": 0.8323150000003778,
+      "command_cpu_s": 0.249486
+    },
+    {
+      "design": "int2float",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 198.0,
+        "levels": 13.0,
+        "hpwl": 120.767,
+        "area": 11.28,
+        "delay": 137.1,
+        "overflow": 0.09899996329924303
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "46cb3250b7d903b10247c724853f17506a7f58b8b15fa9e0b079cbdcbf7daa2a",
+      "endpoint_file_sha256": "6933778ec11a40963e5709c52f116df5c115aec8e398ed78f1c2c133e28f1fed",
+      "process_cpu_s": 0.7373659999995112,
+      "command_cpu_s": 0.186617
+    },
+    {
+      "design": "int2float",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 197.0,
+        "levels": 13.0,
+        "hpwl": 118.646,
+        "area": 11.37,
+        "delay": 136.23,
+        "overflow": 0.09899998963187048
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "1782e008a935c8d23421ecff90ed91c80ce47c7857a3aea221a135e547f47278",
+      "endpoint_file_sha256": "feaf123c0d136fcfca6a2db21ea4ad7afce364451059e6a4408f5bdd40c191f6",
+      "process_cpu_s": 0.5286020000001628,
+      "command_cpu_s": 0.315313
+    },
+    {
+      "design": "int2float",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E"
+        ]
+      ],
+      "metrics": {
+        "nodes": 194.0,
+        "levels": 11.0,
+        "hpwl": 122.746,
+        "area": 11.07,
+        "delay": 126.86,
+        "overflow": 0.09899993423263179
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "fc3f63f84f5a196ee794633688c5716a5c326a7d79b9b98eda406d91310a3b75",
+      "endpoint_file_sha256": "2dfd8b7b6edd42be710927165c7fc427906d0544b79967f96a844d88cab2190d",
+      "process_cpu_s": 0.8819719999999336,
+      "command_cpu_s": 0.297614
+    },
+    {
+      "design": "log2",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 29085.0,
+        "levels": 359.0,
+        "hpwl": 36464.569,
+        "area": 1597.6,
+        "delay": 4993.55,
+        "overflow": 0.09899999994870587
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "2f5aa883947b561b527cff5b08347fc09c739e6adb9b257ea85899686b7a2c9b",
+      "endpoint_file_sha256": "510dbc1afac08cfb375f3d5d53c647367bd2815cd394320eeba1e1636c07892e",
+      "process_cpu_s": 16.913653999999923,
+      "command_cpu_s": 16.280034
+    },
+    {
+      "design": "log2",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 29083.0,
+        "levels": 358.0,
+        "hpwl": 36271.54,
+        "area": 1612.07,
+        "delay": 5151.82,
+        "overflow": 0.09899999999950865
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "fd17f7e4eb42fe969ab7e2a872bc00e2ec324cf8a473f2b66e2623eab5197ade",
+      "endpoint_file_sha256": "42371118a1f1400fc665e4e6318f445812775f56e6791cbd34c21b1d9c9ca9b3",
+      "process_cpu_s": 18.46365399999965,
+      "command_cpu_s": 17.862321
+    },
+    {
+      "design": "log2",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 29077.0,
+        "levels": 363.0,
+        "hpwl": 38917.759,
+        "area": 1647.31,
+        "delay": 4973.22,
+        "overflow": 0.09899999998440025
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "e9f0cae248b77a18f1939885b284da536e1a2a937a559526c5f042ef3666b555",
+      "endpoint_file_sha256": "cb99de471747496cd6584b341286dc4febbaed70a58d732e3a389dd4b3ec2a30",
+      "process_cpu_s": 19.74684100000016,
+      "command_cpu_s": 19.457814
+    },
+    {
+      "design": "log2",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ]
+      ],
+      "metrics": {
+        "nodes": 29022.0,
+        "levels": 358.0,
+        "hpwl": 39252.038,
+        "area": 1648.81,
+        "delay": 5067.68,
+        "overflow": 0.09899999991596524
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "3f2c820e0f1d982d0e223d84ac587b163c3e059a494da3d2e3d25899130e7f78",
+      "endpoint_file_sha256": "4fcf7e8e9ad638fea5f1aef89eb530cc05c9e47031c237bf7b0822e0059eb9fe",
+      "process_cpu_s": 18.918472999999636,
+      "command_cpu_s": 18.327473
+    },
+    {
+      "design": "max",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 2825.0,
+        "levels": 163.0,
+        "hpwl": 1054.181,
+        "area": 160.82,
+        "delay": 3010.7,
+        "overflow": 0.09791081207165936
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "db437a6356763260fd939f8d541541da320591b9fe12e361b5019dd8d5604f30",
+      "endpoint_file_sha256": "21f1adf7f3d8d1d9049ac4cb05d1e0647f789200a2374fd8cc746b64f7601242",
+      "process_cpu_s": 1.5106750000007594,
+      "command_cpu_s": 0.95377
+    },
+    {
+      "design": "max",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 2825.0,
+        "levels": 164.0,
+        "hpwl": 1002.524,
+        "area": 161.25,
+        "delay": 3011.46,
+        "overflow": 0.0990000000043469
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "5c9f5bd1c6919c57871b6b46e7e945970f35faf435ff2ae4f74bd4e75cfad701",
+      "endpoint_file_sha256": "571b346cca34fbbc1c8223f5c10b15415f9ae78caae838fd014e12991a964cf6",
+      "process_cpu_s": 1.4673019999997194,
+      "command_cpu_s": 0.920505
+    },
+    {
+      "design": "max",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 2825.0,
+        "levels": 158.0,
+        "hpwl": 1071.661,
+        "area": 158.25,
+        "delay": 2610.37,
+        "overflow": 0.09899999960960512
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "d57246e0b087be91150a37b23fc732e8d6be9f24b99b89d0eda28fcb6117ab96",
+      "endpoint_file_sha256": "54d134cbb91e216b33cb79fe1560858a01a79b47610b4780414f54a7bdf588f8",
+      "process_cpu_s": 1.4490270000001289,
+      "command_cpu_s": 1.099347
+    },
+    {
+      "design": "max",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ]
+      ],
+      "metrics": {
+        "nodes": 2825.0,
+        "levels": 158.0,
+        "hpwl": 1003.297,
+        "area": 155.04,
+        "delay": 2569.1,
+        "overflow": 0.09759601456897056
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "36b36762d5997b3466f19950528a829387ed3b302cd3645a7a889af702ea10cc",
+      "endpoint_file_sha256": "1d826789aedeeac6abd285f4d3395153a0a63a0fa41f45967e2ef197719e5f4b",
+      "process_cpu_s": 1.742393000000007,
+      "command_cpu_s": 1.088755
+    },
+    {
+      "design": "mem_ctrl",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 34985.0,
+        "levels": 77.0,
+        "hpwl": 48640.225,
+        "area": 1915.23,
+        "delay": 1376.5,
+        "overflow": 0.09899999996598456
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "0cf1ed1ae9c110725ddc893f49b63e86ab6b18e95b4b79f1d25e376a6cb0e5fe",
+      "endpoint_file_sha256": "13b929c3c5e14aaac29effb6b75634fcba80a277d60257d944e7ece7f020c432",
+      "process_cpu_s": 21.25429500000027,
+      "command_cpu_s": 20.576303
+    },
+    {
+      "design": "mem_ctrl",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 35325.0,
+        "levels": 77.0,
+        "hpwl": 49940.982,
+        "area": 1925.65,
+        "delay": 1406.06,
+        "overflow": 0.09899999994410415
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "85a518ece080f329e4f17ac9e0873ff24a8a1f8f77125e599f2e5216ca0b08e3",
+      "endpoint_file_sha256": "b3c120b5426b7771e3d50f05f60351902b2c6679d9d5e6ed3147afd9e71899f5",
+      "process_cpu_s": 20.962196999999733,
+      "command_cpu_s": 20.328127000000002
+    },
+    {
+      "design": "mem_ctrl",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 36009.0,
+        "levels": 83.0,
+        "hpwl": 51781.039,
+        "area": 1967.21,
+        "delay": 1553.11,
+        "overflow": 0.0989999999764769
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "072b8137c4c43f5c34ce2a9986bf613195d1d9f6b5dc9dc965d59f725fdee27b",
+      "endpoint_file_sha256": "335a2acd10695c50d5d210adb6e6e867f0d2aa0d77ea2669747a28ce4aaea66f",
+      "process_cpu_s": 28.43510599999975,
+      "command_cpu_s": 27.957916
+    },
+    {
+      "design": "mem_ctrl",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ]
+      ],
+      "metrics": {
+        "nodes": 31072.0,
+        "levels": 71.0,
+        "hpwl": 47757.842,
+        "area": 1707.87,
+        "delay": 1334.86,
+        "overflow": 0.09899999998215728
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "fc9b853130db4673bec9cc92a2f5693e9753fbc1c4810fd6bef050027f4088b5",
+      "endpoint_file_sha256": "702c6a10db892f5a121adc8cee6d7b8861eb2610b6c8be1893d2541cc835a4d3",
+      "process_cpu_s": 28.434603000000692,
+      "command_cpu_s": 27.237594
+    },
+    {
+      "design": "multiplier",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 24315.0,
+        "levels": 262.0,
+        "hpwl": 17817.326,
+        "area": 1359.21,
+        "delay": 3319.86,
+        "overflow": 0.09703151685764981
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "452e8d706d6cfdf8bfb1e0c95c71c09311f11611b926459cadd17520102bf2c4",
+      "endpoint_file_sha256": "aa718ad6b20179cf54e74228689ea9157019ab2e63ae80904a251f9f618c98df",
+      "process_cpu_s": 11.331926000000252,
+      "command_cpu_s": 10.72204
+    },
+    {
+      "design": "multiplier",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 24316.0,
+        "levels": 262.0,
+        "hpwl": 17557.95,
+        "area": 1360.9,
+        "delay": 3318.62,
+        "overflow": 0.09708817187554813
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "a135850b7f80388e1770cf580c9c797ca7bcfdbb0c36a97d2dd622891188df1b",
+      "endpoint_file_sha256": "dcae3892576c4d1dd644b446fbd3a10f0738bb71961295bc36b0035dbe001b84",
+      "process_cpu_s": 11.431037999999916,
+      "command_cpu_s": 10.848973
+    },
+    {
+      "design": "multiplier",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 24317.0,
+        "levels": 263.0,
+        "hpwl": 17065.953,
+        "area": 1359.83,
+        "delay": 3310.36,
+        "overflow": 0.09680488394841387
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "bf56dcad0e5585235846c0daf05b2369da35f25dcec05c22abf7d77a0ae40cc2",
+      "endpoint_file_sha256": "03eb2262a82f24bf0fa2809e869c459e7fb1eabb026d523c859261f3f461dbda",
+      "process_cpu_s": 14.388624999999166,
+      "command_cpu_s": 14.045427
+    },
+    {
+      "design": "multiplier",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ]
+      ],
+      "metrics": {
+        "nodes": 24316.0,
+        "levels": 262.0,
+        "hpwl": 17439.741,
+        "area": 1361.45,
+        "delay": 3319.22,
+        "overflow": 0.0955315625231667
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "ed6f0902d84ddb033d18458dbc28ce35659d2570d05487e5f6381d6cca4ebfb7",
+      "endpoint_file_sha256": "15af47d0c65c71f3816e8b870860b83c8eee186bab8a56c44b2160611810822f",
+      "process_cpu_s": 15.654292999999939,
+      "command_cpu_s": 14.829873
+    },
+    {
+      "design": "priority",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 394.0,
+        "levels": 31.0,
+        "hpwl": 169.902,
+        "area": 24.84,
+        "delay": 293.56,
+        "overflow": 0.09411144447235381
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "ea1a881c0ea3a56b2f3ccecde9baea0d93ade58a142625448b40512a2efc72d4",
+      "endpoint_file_sha256": "45b961615097039e496705f05744c935a91ce318ab3c3608979ed195daab2ba7",
+      "process_cpu_s": 0.7995110000001091,
+      "command_cpu_s": 0.258316
+    },
+    {
+      "design": "priority",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 397.0,
+        "levels": 32.0,
+        "hpwl": 174.823,
+        "area": 24.73,
+        "delay": 248.2,
+        "overflow": 0.09899999637095908
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "8605d160f10b7cd71742659521dece79ae5362a2aaa6f4d4cfb18c49f8e820dd",
+      "endpoint_file_sha256": "87fccb402204500a49ed2ce0bb06bff7fd2cba81c12873bf17f4163f1db570dd",
+      "process_cpu_s": 0.7551870000006602,
+      "command_cpu_s": 0.212058
+    },
+    {
+      "design": "priority",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 397.0,
+        "levels": 34.0,
+        "hpwl": 174.665,
+        "area": 25.11,
+        "delay": 244.28,
+        "overflow": 0.09899999997377108
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "6b4172f70ee42a2dc9cce1978f065ee49e23cffb878c1d4978f505900214c96b",
+      "endpoint_file_sha256": "28d277d363fb58a347a80c9c807fad0cae057c780b6eeae42d814ccbc81acfd0",
+      "process_cpu_s": 0.5075849999993238,
+      "command_cpu_s": 0.29833
+    },
+    {
+      "design": "priority",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E"
+        ]
+      ],
+      "metrics": {
+        "nodes": 388.0,
+        "levels": 35.0,
+        "hpwl": 159.86,
+        "area": 24.63,
+        "delay": 301.68,
+        "overflow": 0.08809722615338372
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "869a7c2c53495f038a57f7f40cb9898332a2e9b68faebcac7e810e1ff8c97a1d",
+      "endpoint_file_sha256": "3a805ba6feb5c0a548aadc1410d054c0bb29db686fd44a5345a88983a3e0c090",
+      "process_cpu_s": 0.8434049999997342,
+      "command_cpu_s": 0.295315
+    },
+    {
+      "design": "router",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 124.0,
+        "levels": 16.0,
+        "hpwl": 27.407,
+        "area": 6.28,
+        "delay": 187.91,
+        "overflow": 0.09899926152110691
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "4063296c32f561024621f04673002c5aaaf8e4ec7bb295088205fded25d76ebb",
+      "endpoint_file_sha256": "da1b2ee32fbf987ba0036fb55457e0f898113b56372b4507f80c3d7c70e3fb0f",
+      "process_cpu_s": 0.7369159999996384,
+      "command_cpu_s": 0.20139200000000002
+    },
+    {
+      "design": "router",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 146.0,
+        "levels": 19.0,
+        "hpwl": 49.378,
+        "area": 7.96,
+        "delay": 207.63,
+        "overflow": 0.09899863505552507
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "1c0eadafc3015e88696889eafff0b15b5953318fd3009376eac8ad0e81105e6f",
+      "endpoint_file_sha256": "ef28212783e7b2578788853bd6f1b6f8c629e03bb68ab24e0d0ca50b355a3d19",
+      "process_cpu_s": 0.6868389999997788,
+      "command_cpu_s": 0.154746
+    },
+    {
+      "design": "router",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 150.0,
+        "levels": 20.0,
+        "hpwl": 47.126,
+        "area": 8.44,
+        "delay": 195.79,
+        "overflow": 0.09899998810635284
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "61bdea765ec86de9fb2e8e21c9be325778b9cc836e53fd9de64eb01cf814c250",
+      "endpoint_file_sha256": "aa753a3b0ecb6c1c968dec81240f6b4714f6d255a4554609ea184205e38e3d9c",
+      "process_cpu_s": 0.4373949999992277,
+      "command_cpu_s": 0.23200300000000001
+    },
+    {
+      "design": "router",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ]
+      ],
+      "metrics": {
+        "nodes": 137.0,
+        "levels": 19.0,
+        "hpwl": 49.498,
+        "area": 8.22,
+        "delay": 204.46,
+        "overflow": 0.0989975749694664
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "2300a07311d19b081307e544ef42889e15a206fba4e6f440145f127d8bc20879",
+      "endpoint_file_sha256": "cad34c9c37369c09c6ac3dd2c5f64cb402e075b1e5acec66dd2c74e01ddd0c12",
+      "process_cpu_s": 0.8298949999998655,
+      "command_cpu_s": 0.236877
+    },
+    {
+      "design": "sin",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 4954.0,
+        "levels": 161.0,
+        "hpwl": 5129.076,
+        "area": 290.9,
+        "delay": 2307.25,
+        "overflow": 0.09899999995114867
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "59d177315a027027472fcdf7b6dd4da841dbed1a72dd02da7991e724d8ce883c",
+      "endpoint_file_sha256": "fb61326c25ff02d6afa08ad9dd3269584589f19ae15649ebda28408e66c17de2",
+      "process_cpu_s": 3.83466499999939,
+      "command_cpu_s": 3.281713
+    },
+    {
+      "design": "sin",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 4937.0,
+        "levels": 161.0,
+        "hpwl": 5556.948,
+        "area": 306.92,
+        "delay": 2189.45,
+        "overflow": 0.09899999429604048
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "5940e6cdbc39a68a4bdecb27bcc04a854edab00c3b42cb6da60282f1b8fb3061",
+      "endpoint_file_sha256": "87b84c65fb11722329408f7a72325fc0070a3093ab262f14d9ac6470154f1b22",
+      "process_cpu_s": 3.899454999999378,
+      "command_cpu_s": 3.355452
+    },
+    {
+      "design": "sin",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 4963.0,
+        "levels": 174.0,
+        "hpwl": 5641.339,
+        "area": 300.36,
+        "delay": 2377.25,
+        "overflow": 0.0989999999799378
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "1fbf1c2f4eda0bd20accaa28d4cc2143e6ff00c43c54dc59b9d4c97aeb0c55a9",
+      "endpoint_file_sha256": "e60e9a9a47b7d9aaf4b242ee29cb3bf51b9d8fb89d46ea4cf092cc82ef4d2729",
+      "process_cpu_s": 3.9963889999993683,
+      "command_cpu_s": 3.7905219999999997
+    },
+    {
+      "design": "sin",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ]
+      ],
+      "metrics": {
+        "nodes": 4928.0,
+        "levels": 162.0,
+        "hpwl": 5315.607,
+        "area": 294.84,
+        "delay": 2279.74,
+        "overflow": 0.09899999719209285
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "b6540d26bfe207f413de0c6f0e75100df87a0af43e6e5bfbd6be6cfa0eb3782b",
+      "endpoint_file_sha256": "27a42faa71f9e4aadada5a5dc3ed22da01d22c6ae9c638cbfcf9fb6c1371f3d9",
+      "process_cpu_s": 3.922646000000057,
+      "command_cpu_s": 3.4989030000000003
+    },
+    {
+      "design": "sqrt",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 18193.0,
+        "levels": 5936.0,
+        "hpwl": 11068.4,
+        "area": 1163.91,
+        "delay": 71044.53,
+        "overflow": 0.09460754021694456
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "102e8a498851c894a8782e85686447975b853f7b93d96f2f557329bf3c5379c9",
+      "endpoint_file_sha256": "13be5987eb2247de2f21afb6fbfedb6495f55f013e7788facad6b048872aa70b",
+      "process_cpu_s": 9.612129999999695,
+      "command_cpu_s": 9.027349000000001
+    },
+    {
+      "design": "sqrt",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 18192.0,
+        "levels": 5936.0,
+        "hpwl": 11282.928,
+        "area": 1153.95,
+        "delay": 77088.8,
+        "overflow": 0.09555340857387004
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "4bb805f5bfbb6dc95fdb4e4a6c9dfe564b47fa547a7d45cf4f02e017cd479129",
+      "endpoint_file_sha256": "fddd6676ae402dfb71b357c369eeef1debc3f141acdd882661f18b01c46291ea",
+      "process_cpu_s": 10.128693999999953,
+      "command_cpu_s": 9.549629
+    },
+    {
+      "design": "sqrt",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 18254.0,
+        "levels": 5994.0,
+        "hpwl": 12211.696,
+        "area": 1246.59,
+        "delay": 70935.37,
+        "overflow": 0.09604569607475483
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "517418f86c72dd70a388b18794cf562bfcbab9187483402aa8f0686ffde99863",
+      "endpoint_file_sha256": "d06e77b8b88d87d4367a7add202663cd6a4ebca7d569d03f27e151965d0392e1",
+      "process_cpu_s": 12.484768000000102,
+      "command_cpu_s": 12.182677
+    },
+    {
+      "design": "sqrt",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ]
+      ],
+      "metrics": {
+        "nodes": 18251.0,
+        "levels": 5994.0,
+        "hpwl": 12381.546,
+        "area": 1254.1,
+        "delay": 71378.45,
+        "overflow": 0.09477902550502298
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "fe8ea2dd8302eb7a0f565903b5f26c3bb538418c19c24821e5bc0fd36f4e26f1",
+      "endpoint_file_sha256": "5855416ce96b4e0365afc71dbccad2ef9bf8f3e59ae911282ac9384a0686bbfc",
+      "process_cpu_s": 12.158719000000175,
+      "command_cpu_s": 11.651852
+    },
+    {
+      "design": "square",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 15794.0,
+        "levels": 247.0,
+        "hpwl": 10371.053,
+        "area": 1141.89,
+        "delay": 2428.29,
+        "overflow": 0.09840319828596558
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "42c025c7c3186e4136fd5ce84863aaa00a57d11a5f673bf9f5cac6b07ac174fd",
+      "endpoint_file_sha256": "3a771b2bf146918758874834cad98c4b8809af29de079d0b9856022f4f98f3ec",
+      "process_cpu_s": 8.811420999999626,
+      "command_cpu_s": 8.226924
+    },
+    {
+      "design": "square",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 15783.0,
+        "levels": 247.0,
+        "hpwl": 10231.26,
+        "area": 1146.16,
+        "delay": 2219.84,
+        "overflow": 0.09773077445479544
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "1951e2a8e3a54796239c12c0de3fc3acc5c13d61a46f0c829d8bf263b434c75b",
+      "endpoint_file_sha256": "48f74f6e727b5a5b787505852b8a7104a392ecea80621d970a5beab05c1c41cd",
+      "process_cpu_s": 8.603912999999508,
+      "command_cpu_s": 8.034479
+    },
+    {
+      "design": "square",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 15893.0,
+        "levels": 248.0,
+        "hpwl": 13102.78,
+        "area": 1131.9,
+        "delay": 3167.52,
+        "overflow": 0.09899999997425016
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "27da11724cc4e9d339d2cb2d5e5b53e460d90ac23b9e84726b7f3fff0c0fc94a",
+      "endpoint_file_sha256": "960afa7c03e7a08ef910eca9daa73f648accee2b983b4bf2246ea8624a5ae018",
+      "process_cpu_s": 6.294561999999388,
+      "command_cpu_s": 6.120974
+    },
+    {
+      "design": "square",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R",
+          "B",
+          "E"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ]
+      ],
+      "metrics": {
+        "nodes": 15887.0,
+        "levels": 248.0,
+        "hpwl": 10429.306,
+        "area": 1128.81,
+        "delay": 3086.78,
+        "overflow": 0.09868278655052237
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "1460dbbf1699ddde7ca853bf2a4c3faa643f2cc822c59f5b3e26bc49aaf18d1d",
+      "endpoint_file_sha256": "a67455844902576a23f8139edda5271a64c222cace274c5264e07c691a71a61c",
+      "process_cpu_s": 9.7083939999998,
+      "command_cpu_s": 9.071069
+    },
+    {
+      "design": "voter",
+      "flow": "agr",
+      "recipe": [
+        "C",
+        "A",
+        "A",
+        "R",
+        "A"
+      ],
+      "slots": [
+        [
+          "A"
+        ],
+        [
+          "A"
+        ],
+        [
+          "A"
+        ]
+      ],
+      "metrics": {
+        "nodes": 7939.0,
+        "levels": 59.0,
+        "hpwl": 2953.766,
+        "area": 572.24,
+        "delay": 736.38,
+        "overflow": 0.09899999971538066
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "98400e9635d3c4034728fede81ab5f046eecb76ac6f9deaa445dab8efb5568e4",
+      "endpoint_file_sha256": "038e44e753fcbf54826fb2b9f7c4f8167b43d8af1fc082789438aa035868d6a5",
+      "process_cpu_s": 3.9845990000001734,
+      "command_cpu_s": 3.416334
+    },
+    {
+      "design": "voter",
+      "flow": "pa2",
+      "recipe": [
+        "C",
+        "P",
+        "P",
+        "R",
+        "P"
+      ],
+      "slots": [
+        [
+          "P"
+        ],
+        [
+          "P"
+        ],
+        [
+          "P"
+        ]
+      ],
+      "metrics": {
+        "nodes": 7939.0,
+        "levels": 59.0,
+        "hpwl": 2991.531,
+        "area": 575.84,
+        "delay": 752.4,
+        "overflow": 0.09899999999033243
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "8fa6077ef515d00948f8f7df1dd8ff3b8b9dad160581a2a81b07dc7992807b09",
+      "endpoint_file_sha256": "3688e76bcfcf460cf7d4e518fe70549e434697d6c0b038521c894eaae8205635",
+      "process_cpu_s": 3.416608000000082,
+      "command_cpu_s": 2.87192
+    },
+    {
+      "design": "voter",
+      "flow": "abc_c",
+      "recipe": [
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "C",
+        "R",
+        "C",
+        "C",
+        "C"
+      ],
+      "slots": [
+        [
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C"
+        ],
+        [
+          "C",
+          "C",
+          "C"
+        ]
+      ],
+      "metrics": {
+        "nodes": 7939.0,
+        "levels": 59.0,
+        "hpwl": 2981.427,
+        "area": 570.69,
+        "delay": 737.2,
+        "overflow": 0.09900000000173796
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "a3275dbc06b0379884c3b05b7dee5452922b5b3fa3b27c261babd3a2ca2d5432",
+      "endpoint_file_sha256": "f3bbe557eacf861178b4a20c229d905810b5c2b8aab413682b73ca8f95e268b6",
+      "process_cpu_s": 4.088330999999826,
+      "command_cpu_s": 3.8777500000000003
+    },
+    {
+      "design": "voter",
+      "flow": "abc_mix",
+      "recipe": [
+        "C",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R",
+        "R",
+        "E",
+        "E",
+        "R",
+        "B",
+        "E",
+        "E",
+        "R"
+      ],
+      "slots": [
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ],
+        [
+          "E",
+          "E",
+          "R",
+          "B",
+          "E",
+          "E",
+          "R"
+        ]
+      ],
+      "metrics": {
+        "nodes": 7939.0,
+        "levels": 59.0,
+        "hpwl": 3118.791,
+        "area": 573.59,
+        "delay": 731.66,
+        "overflow": 0.09899999635779741
+      },
+      "source_cec": "passed",
+      "endpoint_payload_sha256": "92084814ac13f319b22b05a26fd66e5bc99395159f237d0a0a126a99adc6d6b3",
+      "endpoint_file_sha256": "38de8e9cf592bd57f53830b6258c4a931e1c06b3c03c0313882781d733d9acc5",
+      "process_cpu_s": 4.031487999999442,
+      "command_cpu_s": 3.5920680000000003
+    }
+  ]
+}
