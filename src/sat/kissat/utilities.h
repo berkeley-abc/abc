@@ -74,7 +74,7 @@ static inline bool kissat_aligned_word (word word) {
 }
 
 static inline bool kissat_aligned_pointer (const void *p) {
-  return kissat_aligned_word ((word) p);
+  return kissat_aligned_word ((uintptr_t) p);
 }
 
 static inline word kissat_align_word (word w) {

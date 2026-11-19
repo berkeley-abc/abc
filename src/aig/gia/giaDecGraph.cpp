@@ -1042,7 +1042,7 @@ void TruthTable::printPosition(void) {
     }
 
     for (const auto &i : irange(nVars())) {
-        printf("Place: %d -> Var[%ld]\n", i, _data->place_to_variable[i]);
+        printf("Place: %d -> Var[%llu]\n", i, (unsigned long long)_data->place_to_variable[i]);
     }
 }
 
@@ -2036,14 +2036,14 @@ void DecisionDiagram::writeVerilog(const char* filename) {
         fprintf(f, "in_%u, ", i);
     }
     for (const auto& i : irange(roots.size() - 1)) {
-        fprintf(f, "output_%lu, ", i);
+        fprintf(f, "output_%zu, ", i);
     }
     fprintf(f, "output_%zu);\n", roots.size() - 1);
     for (const auto& i : irange(getNode(LitToId(roots[0])).tt.nVars())) {
         fprintf(f, "input in_%d;\n", i);
     }
     for (const auto& i : irange(roots.size())) {
-        fprintf(f, "output output_%lu;\n", i);
+        fprintf(f, "output output_%zu;\n", i);
     }
     fprintf(f, "wire node_%d = 0;\n", const0);
     for (const auto& node : sortedNodes) {
@@ -2085,7 +2085,7 @@ void DecisionDiagram::writeVerilog(const char* filename) {
     for (const auto& i : irange(roots.size())) {
         int root = LitToId(roots[i]);
         bool is_complement = LitIsComplement(roots[i]);
-        fprintf(f, "assign output_%lu = %snode_%d;\n", i, (is_complement) ? "~" : "", root);
+        fprintf(f, "assign output_%zu = %snode_%d;\n", i, (is_complement) ? "~" : "", root);
     }
 
     fprintf(f, "endmodule\n");

@@ -1035,10 +1035,10 @@ void Gia_ManGenNeuronDumpVerilog( Vec_Wrd_t * vData, int nIBits, int nOBits )
     }
     fprintf( pFile, "module neuron_%d_%d_%d ( input [%d:0] i, output [%d:0] o );\n", 
         Vec_WrdSize(vData)-1, nIBits, nOBits, (Vec_WrdSize(vData)-1)*nIBits-1, nOBits-1 );
-    fprintf( pFile, "assign o = %d'h%lX", nOBits, Vec_WrdEntryLast(vData) );
+    fprintf( pFile, "assign o = %d'h%llX", nOBits, (unsigned long long)Vec_WrdEntryLast(vData) );
     word Data; int i;
     Vec_WrdForEachEntryStop( vData, Data, i, Vec_WrdSize(vData)-1 )
-        fprintf( pFile, "\n         + %d'h%lX * i[%d:%d]", nOBits, Data, nIBits*(i+1)-1, nIBits*i );
+        fprintf( pFile, "\n         + %d'h%llX * i[%d:%d]", nOBits, (unsigned long long)Data, nIBits*(i+1)-1, nIBits*i );
     fprintf( pFile, ";\nendmodule\n\n" );
     fclose( pFile );
     printf( "Dumped the neuron specification into file \"temp.v\".\n" );

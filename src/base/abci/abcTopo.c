@@ -222,7 +222,7 @@ Abc_Ntk_t * Abc_NtkTopoExact( Abc_Ntk_t * pFunc, Abc_Ntk_t * pTopo, int nTimeOut
           Vec_WrdWriteEntry( vTruths, i, Abc_Tt6Stretch( TruthSmall, Abc_ObjFaninNum(pObj) ) );
           if ( fVerbose ) {
               int nDigits = 1 << (Abc_ObjFaninNum(pObj)-2);
-              printf( "Node %2d (fanins = %d) 0x%0*lx\n", i, Abc_ObjFaninNum(pObj), nDigits, TruthSmall );
+              printf( "Node %2d (fanins = %d) 0x%0*llx\n", i, Abc_ObjFaninNum(pObj), nDigits, (unsigned long long)TruthSmall );
           }
         }
         assert( iMint == nMints );

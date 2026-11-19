@@ -27,6 +27,7 @@ void Gip_VarSetInit( Gip_VarSet_t * p, int nVarsAlloc )
 {
     p->vSet = Vec_IntAlloc( 100 );
     p->pHas = ABC_CALLOC( char, nVarsAlloc );
+    p->pLitFlags = NULL;
 }
 
 void Gip_VarSetFree( Gip_VarSet_t * p )
@@ -74,7 +75,7 @@ void Gip_DomainFree( Gip_Domain_t * p )
 void Gip_DomainReset( Gip_Domain_t * p )
 {
     while ( Vec_IntSize(p->Set.vSet) > p->nFixed )
-        p->Set.pHas[ Vec_IntPop(p->Set.vSet) ] = 0;
+        Gip_VarSetUnmark( &p->Set, Vec_IntPop(p->Set.vSet) );
 }
 
 /**Function*************************************************************
@@ -92,6 +93,7 @@ void Gip_DomainEnableLocal( Gip_Solver_t * p, Vec_Int_t * vSeeds )
 {
     Gip_Domain_t * pDom = &p->Domain;
     int i, v, now;
+    Gip_SolverResetWatchEpoch( p );
     Gip_DomainReset( pDom );
     Vec_IntForEachEntry( vSeeds, v, i )
         Gip_DomainInsert( pDom, v );
@@ -125,6 +127,7 @@ void Gip_SolverAddDomain( Gip_Solver_t * p, int Var, int fDeps )
     assert( Gip_SolverLevelOf(p) == 0 );
     if ( p->pValue[Var] != GIP_NONE )
         return;
+    Gip_SolverResetWatchEpoch( p );
     Gip_DomainReset( pDom );
     Gip_VarSetInsert( &pDom->Set, Var );
     if ( fDeps )
@@ -180,7 +183,7 @@ static void Gip_SolverPushToVsids( Gip_Solver_t * p )
             int last = Vec_IntEntry( pDom->Set.vSet, pDom->nFixed - 1 );
             Vec_IntWriteEntry( pDom->Set.vSet, now, last );
             Vec_IntWriteEntry( pDom->Set.vSet, pDom->nFixed - 1, d );
-            pDom->Set.pHas[d] = 0;
+            Gip_VarSetUnmark( &pDom->Set, d );
             Vec_IntWriteEntry( pDom->Set.vSet, pDom->nFixed - 1, Vec_IntEntryLast(pDom->Set.vSet) );
             Vec_IntPop( pDom->Set.vSet );
             pDom->nFixed--;
@@ -211,6 +214,9 @@ void Gip_SolverSetDomain( Gip_Solver_t * p, int * pLits, int nLits )
     for ( i = 0; i < nLits; i++ )
         Vec_IntPush( p->vSeeds, Gip_LitVar(pLits[i]) );
     Gip_SolverReset( p );
+    if ( p->pLoaded )
+        for ( i = 0; i < nLits; i++ )
+            Gip_SolverLoadVar( p, Gip_LitVar(pLits[i]) );
     p->fTempDomain = 1;
     Gip_DomainEnableLocal( p, p->vSeeds );
     assert( !Gip_DomainHas(&p->Domain, p->constrainAct) );

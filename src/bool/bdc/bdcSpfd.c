@@ -599,7 +599,18 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
 
     printf( "Allocating %.2f MB of internal memory.\n", 1.0*sizeof(Bdc_Ent_t)*nFuncs/(1<<20) );
 
-    p = (Bdc_Ent_t *)calloc( nFuncs, sizeof(Bdc_Ent_t) );
+    *pvWeights = NULL;
+    if ( (size_t)nFuncs > (size_t)-1 / sizeof(Bdc_Ent_t) )
+    {
+        Abc_Print( -1, "The decomposition table exceeds the addressable size.\n" );
+        return NULL;
+    }
+    p = ABC_CALLOC( Bdc_Ent_t, nFuncs );
+    if ( p == NULL )
+    {
+        Abc_Print( -1, "Cannot allocate the decomposition table.\n" );
+        return NULL;
+    }
     memset( p, 255, sizeof(Bdc_Ent_t) );
     p->iList = 0;
     for ( q = p; q < p+nFuncs; q++ )
@@ -929,6 +940,7 @@ void Bdc_SpfdDecomposeTest44()
 //    printf( "%d\n", RAND_MAX );
 
     vDivs = Bdc_SpfdDecomposeTest__( &vWeights );
+    if ( !vDivs ) return;
 //    vDivs = Bdc_SpfdReadFiles5( &vWeights );
 
 //    Abc_Show6VarFunc( ~t, t );  

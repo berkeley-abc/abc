@@ -44,6 +44,7 @@ struct Pdr2_Par_t_
     int nTimeOut;         // timeout in seconds (0 = no limit)
     int nRandomSeed;      // seed for the internal random generator
     int fCtg;             // generalization with counterexamples to generalization
+    int nInputPolicy;     // internal per-run override: -1 ordinary, 0 environment, 1 inputs, 2 adaptive inputs
     int fDynamic;         // CTG effort chosen from the obligation activity (disables dropping)
     int nDynLimitMax;     // cap on the CTG blocking effort in dynamic mode
     int nDynAct;          // activity threshold for CTG in dynamic mode
@@ -61,6 +62,7 @@ struct Pdr2_Par_t_
     int nCtgMax;          // max number of CTGs handled per literal drop
     int nCtgLimit;        // CTG blocking effort limit
     int fCtgMic;          // generalize the lemmas blocking CTGs (otherwise use the inductive core)
+    int fCtgLocal;        // rebuild the SAT domain per CTG query instead of fixing the full MIC cone
     int fDropPo;          // drop proof obligations that keep failing
     int nDropAct;         // activity above which an obligation is dropped (CTG mode)
     int nDynDropAct;      // the same in dynamic mode (0 = never drop)
@@ -68,7 +70,9 @@ struct Pdr2_Par_t_
     int fLift;            // use cheap SAT-model lifting before the SAT-core lift
     int fPropHyp;         // assert the property in completed frames
     int fBlockInduct;     // assume the negation of the cube when blocking it (relative induction, as pdr/treb)
+    int nPrefix;         // try this many literals before a blocking cube at least four times larger
     int fCtiCache;        // cache counterexamples to propagation
+    int nCtpMax;          // attempts to block a counterexample to propagation (0 = disabled)
     int fUseAbs;          // localization abstraction of flops
     int nAbsStart;        // start the abstraction after this many seconds (0 = from the start)
     int fAbsCleanup;      // remove unused flops from the abstraction at each new frame
@@ -85,10 +89,24 @@ struct Pdr2_Par_t_
     int fTopCtg;          // minimum CTG effort for top-level obligations in dynamic mode
     int fInfPromote;      // move a new lemma straight to frame infinity when it is inductive relative to the invariant lemmas
     int nMicMode;         // 0 = rIC3's MIC (down / ctg_down), 1 = treb's two-orbit literal removal with core shrinking
+    int nMicFailLimit;    // stop MIC after this many consecutive failed drops (0 = no limit)
+    int nDownCacheMode;   // 0 = necessary literals, 1 = removed literals (rIC3), 2 = cache disabled
+    int nCtgSmall;        // use plain down for cores of at most this size (0 = off)
+    int nCtgMinRate;      // adapt CTG when literal-drop success is below this percentage (0 = off)
     int nLiftIters;       // max number of lifting iterations (0 = until no change)
+    int fSparseLift;      // collect lifting inputs/latches from small SAT trails/domains
+    int fWarmStart;       // import invariant-safe SAT learning and heuristics into new frames
     int nLiftSim;         // weaken the predecessor by justification and ternary simulation (treb): 0 = no, 1 = before the SAT core, 2 = instead of it
     int nLiftSimOrder;    // order of the removal trials: 0 = highest activity first (treb), 1 = lowest first, 2 = by flop index
     int fPreproc;         // simplify the design with signal correspondence (scorr) first
+    int fPartRun;         // internal decomposed-property invocation (forces COI, prevents recursion)
+    int fShiftRun;        // internal lookahead depth (0 = original property)
+    int fStrideRun;       // internal invocation on several transitions per step
+    int fPredRun;         // internal invocation with redundant state predicates
+    int nInitLiReg;       // internal: 1-based LI whose function constrains initial states (0 = none)
+    int nInitWitnessPi;   // internal: 1-based first PI used only as an initial-state witness
+    int nInitWitnessNum;  // number of such PIs, independent of the transition and property
+    Vec_Wec_t * vPartCandidates; // borrowed candidate clauses exchanged between property parts
     int nPreprocTime;     // time limit of the simplification in seconds
     int fVerify;          // verify the inductive invariant when proved
     int fVerifyComplete;  // with fVerify, reject incomplete verification (0 = retain master's deadline behavior)

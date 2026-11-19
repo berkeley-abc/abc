@@ -323,6 +323,7 @@ void Gip_SolverSimplify( Gip_Solver_t * p )
     assert( Gip_SolverLevelOf(p) == 0 );
     if ( p->Stats.nSolves <= p->nLastSimplify + 100 )
         return;
+    Gip_SolverResetWatchEpoch( p );
     clk = Abc_Clock();
     if ( p->nLastNumAssign < Vec_IntSize(p->vTrail) )
         Gip_SolverSimplifySatisfied( p );

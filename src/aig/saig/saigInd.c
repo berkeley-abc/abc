@@ -135,18 +135,15 @@ int Saig_ManAddUniqueness( sat_solver * pSat, Vec_Int_t * vState, int nRegs, int
     return 0;
 }
 
+
 /**Function*************************************************************
 
-  Synopsis    [Performs induction by unrolling timeframes backward.]
+  Synopsis    [Runs backward k-induction and records the depth of a successful induction step.]
 
   Description []
-               
-  SideEffects []
-
-  SeeAlso     []
 
 ***********************************************************************/
-int Saig_ManInduction( Aig_Man_t * p, int nTimeOut, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fGetCex, int fVerbose, int fVeryVerbose )
+int Saig_ManInductionWithDepth( Aig_Man_t * p, int nTimeOut, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fGetCex, int fVerbose, int fVeryVerbose, int * pDepth )
 {
     sat_solver * pSat;
     Aig_Man_t * pAigPart = NULL;
@@ -156,9 +153,10 @@ int Saig_ManInduction( Aig_Man_t * p, int nTimeOut, int nFramesMax, int nConfMax
     Aig_Obj_t * pObjPi, * pObjPiCopy, * pObjPo;
     int i, k, f, Lits[2], status = -1, RetValue, nSatVarNum, nConfPrev;
     int nOldSize, iReg, iLast, fAdded, nConstrs = 0, nClauses = 0;
-    abctime clk, nTimeToStop = nTimeOut ? nTimeOut * CLOCKS_PER_SEC + Abc_Clock() : 0;
+    abctime clk, nTimeToStop = nTimeOut ? (abctime)nTimeOut * CLOCKS_PER_SEC + Abc_Clock() : 0;
     assert( fUnique == 0 || fUniqueAll == 0 );
     assert( Saig_ManPoNum(p) == 1 );
+    if ( pDepth ) *pDepth = -1;
     Aig_ManSetCioIds( p );
 
     // start the top by including the PO
@@ -396,7 +394,24 @@ nextrun:
     Vec_PtrFree( vBot );
     Vec_IntFree( vState );
     Vec_IntFreeP( &vTopVarIds );
+    if ( pDepth ) *pDepth = f;
     return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs induction by unrolling timeframes backward.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManInduction( Aig_Man_t * p, int nTimeOut, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fGetCex, int fVerbose, int fVeryVerbose )
+{
+    return Saig_ManInductionWithDepth(p, nTimeOut, nFramesMax, nConfMax, fUnique, fUniqueAll, fGetCex, fVerbose, fVeryVerbose, NULL);
 }
 
 

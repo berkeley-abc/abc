@@ -49,8 +49,12 @@ static inline void Gip_WVecSwapRemove( Gip_WVec_t * p, int i )
 void Gip_WatchersAttach( Gip_Solver_t * p, int Cref )
 {
     int * pLits = Gip_ClaLits( &p->Cdb.Alloc, Cref );
+    Gip_SolverInvalidateWatch( p, Gip_LitNot(pLits[0]) );
+    Gip_SolverInvalidateWatch( p, Gip_LitNot(pLits[1]) );
     Gip_WVecPush( &p->pWatchers[Gip_LitNot(pLits[0])], Cref, pLits[1] );
     Gip_WVecPush( &p->pWatchers[Gip_LitNot(pLits[1])], Cref, pLits[0] );
+    Gip_SolverWakeWatch( p, pLits[0] );
+    Gip_SolverWakeWatch( p, pLits[1] );
 }
 
 void Gip_WatchersDetach( Gip_Solver_t * p, int Cref )
@@ -60,6 +64,7 @@ void Gip_WatchersDetach( Gip_Solver_t * p, int Cref )
     for ( k = 0; k < 2; k++ )
     {
         Gip_WVec_t * pW = &p->pWatchers[Gip_LitNot(pLits[k])];
+        Gip_SolverInvalidateWatch( p, Gip_LitNot(pLits[k]) );
         for ( i = pW->nSize - 1; i >= 0; i-- )
             if ( pW->pArray[i].clause == Cref )
             {
@@ -75,6 +80,8 @@ static int Gip_SolverPropagateFull( Gip_Solver_t * p )
     Gip_Alloc_t * pA = &p->Cdb.Alloc;
     const char * pVal = p->pLitVal;
     unsigned * pData = pA->pData;
+    if ( p->nPropagated < Vec_IntSize(p->vTrail) )
+        Gip_SolverResetWatchEpoch( p );
     while ( p->nPropagated < Vec_IntSize(p->vTrail) )
     {
         int Lit = Vec_IntEntry( p->vTrail, p->nPropagated++ );
@@ -88,7 +95,7 @@ static int Gip_SolverPropagateFull( Gip_Solver_t * p )
         {
             int blocker = pDat[w].blocker;
             int cid, * pLits, c0, len, i;
-            if ( pVal[blocker] == GIP_TRUE )
+            if ( (pVal[blocker] & 3) == GIP_TRUE )
             {
                 w++;
                 continue;
@@ -100,7 +107,7 @@ static int Gip_SolverPropagateFull( Gip_Solver_t * p )
                 int t = pLits[0]; pLits[0] = pLits[1]; pLits[1] = t;
             }
             c0 = pLits[0];
-            if ( c0 != blocker && pVal[c0] == GIP_TRUE )
+            if ( c0 != blocker && (pVal[c0] & 3) == GIP_TRUE )
             {
                 pDat[w].blocker = c0;
                 w++;
@@ -109,17 +116,19 @@ static int Gip_SolverPropagateFull( Gip_Solver_t * p )
             len = (int)(pData[cid] >> 5);
             for ( i = 2; i < len; i++ )
             {
-                if ( pVal[pLits[i]] != GIP_FALSE )
+                if ( (pVal[pLits[i]] & 3) != GIP_FALSE )
                 {
                     int t = pLits[1]; pLits[1] = pLits[i]; pLits[i] = t;
                     wlen--;
                     pDat[w] = pDat[wlen];
+                    Gip_SolverInvalidateWatch( p, Gip_LitNot(pLits[1]) );
                     Gip_WVecPush( &p->pWatchers[Gip_LitNot(pLits[1])], cid, c0 );
+                    Gip_SolverWakeWatch( p, pLits[1] );
                     goto next_cls;
                 }
             }
             pDat[w].blocker = c0;
-            if ( pVal[c0] == GIP_FALSE )
+            if ( (pVal[c0] & 3) == GIP_FALSE )
             {
                 pWs->nSize = wlen;
                 return cid;
@@ -189,12 +198,277 @@ static int Gip_SolverPropagateDomain( Gip_Solver_t * p )
                     int t = pLits[1]; pLits[1] = pLits[i]; pLits[i] = t;
                     wlen--;
                     pDat[w] = pDat[wlen];
+                    Gip_SolverInvalidateWatch( p, Gip_LitNot(pLits[1]) );
                     Gip_WVecPush( &p->pWatchers[Gip_LitNot(pLits[1])], cid, c0 );
+                    Gip_SolverWakeWatch( p, pLits[1] );
                     goto next_cls;
                 }
             }
             pDat[w].blocker = c0;
             if ( pVal[c0] == GIP_FALSE )
+            {
+                pWs->nSize = wlen;
+                return cid;
+            }
+            Gip_SolverAssign( p, c0, cid );
+            w++;
+next_cls:;
+        }
+        pWs->nSize = wlen;
+    }
+    return GIP_CREF_NONE;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Propagates in the query domain while caching irrelevant watch lists.]
+
+  Description []
+
+***********************************************************************/
+// Cache entire watch lists that cannot affect the fixed query domain.
+static int Gip_SolverPropagateDomainSkip( Gip_Solver_t * p )
+{
+    Gip_Alloc_t * pA = &p->Cdb.Alloc;
+    const char * pVal = p->pLitVal;
+    const char * pDom = p->Domain.Set.pHas;
+    unsigned * pData = pA->pData;
+    while ( p->nPropagated < Vec_IntSize(p->vTrail) )
+    {
+        int Lit = Vec_IntEntry( p->vTrail, p->nPropagated++ );
+        int NotLit = Gip_LitNot( Lit );
+        Gip_WVec_t * pWs = &p->pWatchers[Lit];
+        Gip_Wat_t * pDat = pWs->pArray;
+        int wlen = pWs->nSize;
+        int w = 0, AllOutside = 1;
+        p->Stats.nPropagations++;
+        p->nWatchLists++;
+        if ( p->pSkipWatch[Lit] == p->nWatchEpoch )
+        {
+            if ( p->fCheckSkipWatch )
+                for ( w = 0; w < wlen; w++ )
+                    assert( !pDom[Gip_LitVar(pDat[w].blocker)] );
+            p->nWatchSkipped++;
+            continue;
+        }
+        while ( w < wlen )
+        {
+            int blocker = pDat[w].blocker;
+            int cid, * pLits, c0, len, i;
+            if ( !pDom[Gip_LitVar(blocker)] )
+            {
+                w++;
+                continue;
+            }
+            AllOutside = 0;
+            if ( (pVal[blocker] & 3) == GIP_TRUE )
+            {
+                w++;
+                continue;
+            }
+            cid = pDat[w].clause;
+            pLits = (int *)(pData + cid + 1);
+            if ( pLits[0] == NotLit )
+            {
+                int t = pLits[0]; pLits[0] = pLits[1]; pLits[1] = t;
+            }
+            c0 = pLits[0];
+            if ( c0 != blocker && ((pVal[c0] & 3) == GIP_TRUE || !pDom[Gip_LitVar(c0)]) )
+            {
+                pDat[w].blocker = c0;
+                w++;
+                continue;
+            }
+            len = (int)(pData[cid] >> 5);
+            for ( i = 2; i < len; i++ )
+            {
+                if ( (pVal[pLits[i]] & 3) != GIP_FALSE )
+                {
+                    int t = pLits[1]; pLits[1] = pLits[i]; pLits[i] = t;
+                    wlen--;
+                    pDat[w] = pDat[wlen];
+                    Gip_SolverInvalidateWatch( p, Gip_LitNot(pLits[1]) );
+                    Gip_WVecPush( &p->pWatchers[Gip_LitNot(pLits[1])], cid, c0 );
+                    Gip_SolverWakeWatch( p, pLits[1] );
+                    goto next_cls;
+                }
+            }
+            pDat[w].blocker = c0;
+            if ( (pVal[c0] & 3) == GIP_FALSE )
+            {
+                pWs->nSize = wlen;
+                return cid;
+            }
+            Gip_SolverAssign( p, c0, cid );
+            w++;
+next_cls:;
+        }
+        pWs->nSize = wlen;
+        if ( AllOutside ) p->pSkipWatch[Lit] = p->nWatchEpoch;
+    }
+    return GIP_CREF_NONE;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Propagates using the active portion of each watch list.]
+
+  Description []
+
+***********************************************************************/
+// Partition each visited list into active and out-of-domain prefixes once
+// per domain epoch. Only blocker membership is cached, never its truth value.
+// A domain change invalidates every partition; insertion, detachment and
+// flip-to-none invalidate the affected lists through the existing hooks.
+static int Gip_SolverPropagateDomainPartition( Gip_Solver_t * p )
+{
+    const char * pVal = p->pLitVal;
+    const char * pDom = p->Domain.Set.pHas;
+    unsigned * pData = p->Cdb.Alloc.pData;
+    while ( p->nPropagated < Vec_IntSize(p->vTrail) )
+    {
+        int Lit = Vec_IntEntry(p->vTrail, p->nPropagated++), NotLit = Gip_LitNot(Lit);
+        Gip_WVec_t * pWs = &p->pWatchers[Lit];
+        Gip_Wat_t * pDat = pWs->pArray;
+        int w = 0, wlen = pWs->nSize, active, i;
+        p->Stats.nPropagations++;
+        p->nPartWatchLists++;
+        p->nPartWatchEntries += wlen;
+        if ( p->pSkipWatch[Lit] != p->nWatchEpoch )
+        {
+            active = wlen;
+            while ( w < active )
+            {
+                if ( pDom[Gip_LitVar(pDat[w].blocker)] ) w++;
+                else
+                {
+                    Gip_Wat_t Temp = pDat[w];
+                    pDat[w] = pDat[--active]; pDat[active] = Temp;
+                }
+            }
+            p->pActiveWatch[Lit] = active;
+            p->pSkipWatch[Lit] = p->nWatchEpoch;
+            p->nPartWatchRebuilt++;
+        }
+        else active = p->pActiveWatch[Lit];
+        if ( p->fCheckSkipWatch )
+        {
+            assert(active >= 0 && active <= wlen);
+            for ( i = 0; i < wlen; i++ )
+                assert(!!pDom[Gip_LitVar(pDat[i].blocker)] == (i < active));
+        }
+        p->nPartWatchSkipped += wlen - active;
+        w = 0;
+        while ( w < active )
+        {
+            int blocker = pDat[w].blocker, cid, * pLits, c0, len;
+            if ( (pVal[blocker] & 3) == GIP_TRUE ) { w++; continue; }
+            cid = pDat[w].clause;
+            pLits = (int *)(pData + cid + 1);
+            if ( pLits[0] == NotLit )
+            {
+                int t = pLits[0]; pLits[0] = pLits[1]; pLits[1] = t;
+            }
+            c0 = pLits[0];
+            if ( c0 != blocker && !pDom[Gip_LitVar(c0)] )
+            {
+                Gip_Wat_t Temp;
+                pDat[w].blocker = c0;
+                Temp = pDat[w]; pDat[w] = pDat[--active]; pDat[active] = Temp;
+                continue;
+            }
+            if ( c0 != blocker && (pVal[c0] & 3) == GIP_TRUE )
+            {
+                pDat[w].blocker = c0; w++; continue;
+            }
+            len = (int)(pData[cid] >> 5);
+            for ( i = 2; i < len; i++ )
+                if ( (pVal[pLits[i]] & 3) != GIP_FALSE )
+                {
+                    int t = pLits[1]; pLits[1] = pLits[i]; pLits[i] = t;
+                    // Remove from both the active prefix and the full list.
+                    pDat[w] = pDat[--active];
+                    pDat[active] = pDat[--wlen];
+                    Gip_SolverInvalidateWatch(p, Gip_LitNot(pLits[1]));
+                    Gip_WVecPush(&p->pWatchers[Gip_LitNot(pLits[1])], cid, c0);
+                    Gip_SolverWakeWatch(p, pLits[1]);
+                    goto next_partition_clause;
+                }
+            pDat[w].blocker = c0;
+            if ( (pVal[c0] & 3) == GIP_FALSE )
+            {
+                pWs->nSize = wlen; p->pActiveWatch[Lit] = active;
+                return cid;
+            }
+            Gip_SolverAssign(p, c0, cid);
+            w++;
+next_partition_clause:;
+        }
+        pWs->nSize = wlen; p->pActiveWatch[Lit] = active;
+    }
+    return GIP_CREF_NONE;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Propagates using domain membership stored alongside literal values.]
+
+  Description []
+
+***********************************************************************/
+// Packed query-domain flags remove a dependent membership-table lookup.
+static int Gip_SolverPropagateDomainPacked( Gip_Solver_t * p )
+{
+    Gip_Alloc_t * pA = &p->Cdb.Alloc;
+    const char * pVal = p->pLitVal;
+    unsigned * pData = pA->pData;
+    while ( p->nPropagated < Vec_IntSize(p->vTrail) )
+    {
+        int Lit = Vec_IntEntry( p->vTrail, p->nPropagated++ );
+        int NotLit = Gip_LitNot( Lit );
+        Gip_WVec_t * pWs = &p->pWatchers[Lit];
+        Gip_Wat_t * pDat = pWs->pArray;
+        int wlen = pWs->nSize;
+        int w = 0;
+        p->Stats.nPropagations++;
+        while ( w < wlen )
+        {
+            int blocker = pDat[w].blocker;
+            int cid, * pLits, c0, len, i;
+            if ( (pVal[blocker] & 5) != 4 )
+            {
+                w++;
+                continue;
+            }
+            cid = pDat[w].clause;
+            pLits = (int *)(pData + cid + 1);
+            if ( pLits[0] == NotLit )
+            {
+                int t = pLits[0]; pLits[0] = pLits[1]; pLits[1] = t;
+            }
+            c0 = pLits[0];
+            if ( c0 != blocker && ((pVal[c0] & 5) != 4) )
+            {
+                pDat[w].blocker = c0;
+                w++;
+                continue;
+            }
+            len = (int)(pData[cid] >> 5);
+            for ( i = 2; i < len; i++ )
+            {
+                if ( (pVal[pLits[i]] & 3) != GIP_FALSE )
+                {
+                    int t = pLits[1]; pLits[1] = pLits[i]; pLits[i] = t;
+                    wlen--;
+                    pDat[w] = pDat[wlen];
+                    Gip_SolverInvalidateWatch( p, Gip_LitNot(pLits[1]) );
+                    Gip_WVecPush( &p->pWatchers[Gip_LitNot(pLits[1])], cid, c0 );
+                    Gip_SolverWakeWatch( p, pLits[1] );
+                    goto next_cls;
+                }
+            }
+            pDat[w].blocker = c0;
+            if ( (pVal[c0] & 3) == GIP_FALSE )
             {
                 pWs->nSize = wlen;
                 return cid;
@@ -223,7 +497,9 @@ int Gip_SolverPropagate( Gip_Solver_t * p )
 {
     if ( Gip_SolverLevelOf(p) == 0 )
         return Gip_SolverPropagateFull( p );
-    return Gip_SolverPropagateDomain( p );
+    if ( p->pActiveWatch ) return Gip_SolverPropagateDomainPartition(p);
+    if ( p->pSkipWatch ) return Gip_SolverPropagateDomainSkip(p);
+    return p->Domain.Set.pLitFlags ? Gip_SolverPropagateDomainPacked(p) : Gip_SolverPropagateDomain(p);
 }
 
 /**Function*************************************************************
@@ -249,9 +525,17 @@ int Gip_SolverFlipToNone( Gip_Solver_t * p, int Var )
     int Lit, w;
     if ( p->pValue[Var] == GIP_NONE )
         return 1;
+    // With a partial model, a true literal need not be watched: both watched
+    // literals may remain unassigned. The watch-only weakening below assumes
+    // a fully assigned domain and would then miss clauses depending on Var.
+    // Retain assigned literals and let the separate SAT-core lift remove them.
+    if ( p->fJustify )
+        return 0;
     if ( p->pLevel[Var] == 0 )
         return 0;
     Lit = Gip_Lit( Var, p->pValue[Var] == GIP_FALSE );   // the true literal of Var
+    Gip_SolverInvalidateWatch( p, 2*Var );
+    Gip_SolverInvalidateWatch( p, 2*Var+1 );
     Gip_SolverSetNone( p, Var );
     pWs = &p->pWatchers[Gip_LitNot(Lit)];                  // clauses watching Lit
     for ( w = 0; w < pWs->nSize; )
@@ -279,7 +563,9 @@ int Gip_SolverFlipToNone( Gip_Solver_t * p, int Var )
             {
                 int t = pLits[1]; pLits[1] = pLits[i]; pLits[i] = t;
                 Gip_WVecSwapRemove( pWs, w );
+                Gip_SolverInvalidateWatch( p, Gip_LitNot(pLits[1]) );
                 Gip_WVecPush( &p->pWatchers[Gip_LitNot(pLits[1])], cid, c0 );
+                    Gip_SolverWakeWatch( p, pLits[1] );
                 goto next_cls;
             }
         }

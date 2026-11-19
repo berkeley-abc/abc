@@ -1681,7 +1681,7 @@ int UfarManager::PerformUIFProve(const timeval& timer, Abc_Cex_t ** ppCex) {
             profile.nMaxWhiteBoxes = nWhiteBoxes;
         gettimeofday(&curTime, NULL);
         elapsedTime = elapsed_time_usec(timer, curTime)/1000000.0;
-        snprintf(buffer, sizeof(buffer), "Iteration[%2u][%3u]: %4u White boxes\t%4lu UIF constraints (time = %.4f)", n_iter_wb, n_iter_uif, nWhiteBoxes, _set_uif_pairs.size(), elapsedTime);
+        snprintf(buffer, sizeof(buffer), "Iteration[%2u][%3u]: %4u White boxes\t%4zu UIF constraints (time = %.4f)", n_iter_wb, n_iter_uif, nWhiteBoxes, _set_uif_pairs.size(), elapsedTime);
         LOG(1) << buffer << _get_profile_uf_wb();
         dump_grey_stat();
         if(!params.fileStatesOut.empty()) _dump_states(params.fileStatesOut);

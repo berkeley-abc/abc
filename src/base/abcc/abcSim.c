@@ -2680,6 +2680,8 @@ int Abc_CommandAbc9AdvGenSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     
     pTemp = Cec_SimGenRun(pAbc->pGia, pPars );
+    if ( pTemp == NULL )
+        return 1;
     if ( pAbc->pGia->pCexSeq != NULL )
     {
         pAbc->Status  = 0;

@@ -1558,6 +1558,40 @@ int Imc_ManPerform( Gia_Man_t * pGia, Imc_Par_t * pPars )
     return Imc_ManPerformWithStop( pGia, pPars, NULL, NULL );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Searches for a concrete counterexample by simulation or a bounded walk.]
+
+  Description []
+
+***********************************************************************/
+int Imc_ManFindCexWithStop( Gia_Man_t * pGia, Imc_Par_t * pPars,
+    abctime Budget, int Mode, int (*pFuncStop)(void *), void * pStopData )
+{
+    int Result = 0;
+    abctime Start = Abc_Clock(), Deadline = Start + Budget;
+#if ABC_HAS_THREAD_LOCAL
+    Imc_Stop_t Stop = { pFuncStop, pStopData, 0 }, * pPrevious = s_pImcStop;
+    s_pImcStop = &Stop;
+#else
+    (void)pStopData;
+    if ( pFuncStop ) return 0;
+#endif
+    Abc_CexFreeP(&pGia->pCexSeq);
+    if ( Budget > 0 && !Imc_ManCheckStop(Deadline) && (Mode & 1) )
+    {
+        abctime Slice = (Mode & 2) ? Budget/4 : Budget;
+        if ( (Mode & 2) && Slice > CLOCKS_PER_SEC/10 ) Slice = CLOCKS_PER_SEC/10;
+        if ( Slice > 0 ) Result = Imc_ManSimulate(pGia, pPars, Start, Slice);
+    }
+    if ( !Result && !Imc_ManCheckStop(Deadline) && (Mode & 2) )
+        Result = Imc_ManWalk(pGia, pPars, Start, Deadline-Abc_Clock());
+#if ABC_HAS_THREAD_LOCAL
+    s_pImcStop = pPrevious;
+#endif
+    return Result;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

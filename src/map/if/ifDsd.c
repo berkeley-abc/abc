@@ -338,7 +338,7 @@ void If_DsdManFree( If_DsdMan_t * p, int fVerbose )
         If_DsdManPrint( p, NULL, 0, 0, 0, 0, 0 );
     if ( fVerbose )
     {
-        char FileName[10];
+        char FileName[32];
         for ( v = 3; v <= p->nVars; v++ )
         {
             sprintf( FileName, "dumpdsd%02d", v );

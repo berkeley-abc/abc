@@ -46,7 +46,8 @@ static inline double Pdr2_ManPropUnit( Pdr2_Par_t * pPars ) { return pPars->nPro
 // literal conventions:
 //   flop literal  = Abc_Var2Lit( flopIndex, fCompl )    (cubes, lemmas, activity)
 //   PI literal    = Abc_Var2Lit( piIndex, fCompl )      (counterexample inputs)
-//   GipSAT literal = Abc_Var2Lit( objectId, fCompl )    (solver assumptions/clauses)
+//   GipSAT literal = Abc_Var2Lit( SAT variable, fCompl ) (solver assumptions/clauses)
+//   SAT variables are AIG object IDs or the context's compact variable numbers.
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -105,6 +106,14 @@ typedef struct Pdr2_MicPar_t_
     int           nLevel;    // 1 = ctg_down, 0 = plain down
 } Pdr2_MicPar_t;
 
+// A transition-only implication: the CI core implies all target literals.
+// Targets precede the core in Lits. No frame lemma is used in this proof.
+typedef struct Pdr2_LiftMemo_t_
+{
+    int nKey, nCore;
+    int Lits[1];
+} Pdr2_LiftMemo_t;
+
 struct Pdr2_Man_t_
 {
     // input data
@@ -120,9 +129,74 @@ struct Pdr2_Man_t_
     Vec_Ptr_t *   vSolvers;      // Gip_Solver_t *, one per frame
     Gip_Solver_t * pInf;         // solver with the inf lemmas
     Gip_Solver_t * pLift;        // solver for predecessor lifting
+    Gip_Solver_t * pInitSat;     // independent initial-predicate intersection queries
+    Gip_Solver_t * pBadRoot;     // private solver restricted to bad states
+    Gip_Solver_t * pBadBase;     // frame solver whose clauses it mirrors
+    int           nBadRootMode, iBadRootFrame, nBadRootBuilds;
+    Vec_Int_t *   vInitAssump;
+    int           fInitUnknown, fInitEmpty;
+    ABC_INT64_T   nInitQueries;
+    Gip_Solver_t * pShared;      // optional single solver for finite frames 1..nSharedSlots-1
+    Vec_Int_t *   vSharedLemFrame; // greatest frame of each lemma already inserted into pShared
+    Vec_Int_t *   vSharedAssump; // query assumptions plus the frame activation literal
+    Vec_Int_t *   vSharedSeeds;  // optional domain rebuilt from the queried frame's active lemmas
+    int           nSharedMode;  // 1 = original, 2 = pin guards, 3 = local domain, 4 = separate frontier
+    int           nSharedSlots; // reserved activation variables; 0 disables sharing
+    int           iSharedBase;  // first reserved SAT variable
+    word *        pReachStates; // sampled reachable states, [flop][depth], 64 traces per word
+    word *        pReachInputs; // recorded inputs for optional trace splicing
+    Abc_Cex_t *   pReachCex;    // concrete, independently validated counterexample
+    int           fReachFilter;
+    int           fReachCex;
+    ABC_INT64_T   nReachCexChecks;
+    ABC_INT64_T   nReachCexMatches;
+    ABC_INT64_T   nReachCexRejected;
+    int           nReachStride;
+    int           nReachFrames;
+    int           fReachReady;
+    ABC_INT64_T   nReachChecks;
+    ABC_INT64_T   nReachReject;
+    abctime       timeReach;
     int *         pLoVar;        // flop -> GipSAT var of the register output
     int *         pLiVar;        // flop -> GipSAT var of the register input
     int *         pPiVar;        // PI -> GipSAT var
+    int *         pVar2Ci;       // optional SAT var -> CI index (PIs, then latches), -1 otherwise
+    Vec_Int_t *   vLiftCis;      // sparse lifting candidates, sorted by CI index
+    int           nLiftMemoMode; // 1 = measure, 2 = reuse for CTGs, 3 = reuse all
+    int           nLiftPiMode;   // 1 = target-cone inputs, 2 = UNSAT-core inputs
+    ABC_INT64_T   nLiftPiBefore, nLiftPiAfter;
+    int           nCnfJustMode;  // 1 = then SAT core, 2 = justification alone, 3 = only for an input-first model
+    int           nInputScope;   // input-first query mask: bad, blocking, other relative, lifting, containment
+    int           nInputBadLimit; // optional input-first conflict limit for bad-state queries only
+    int           fInputBlockQuery;
+    char *        pCnfJustMark;
+    Vec_Int_t *   vCnfJustWork;
+    ABC_INT64_T   nCnfJustHits, nCnfJustFails, nCnfJustNodes;
+    abctime       timeCnfJust;
+    int           nBadPhaseConfs, fBadPhaseProbe, nBadRephases;
+    Pdr2_LiftMemo_t ** pLiftMemo; // 256 buckets of 16 bounded entries
+    unsigned char * pLiftMemoNext;
+    Vec_Int_t *   vLiftMemoKey;
+    Vec_Int_t *   vLiftMemoCore;
+    ABC_INT64_T   nLiftMemoBytes;
+    ABC_INT64_T   nLiftMemoChecks, nLiftMemoHits, nLiftMemoWeakHits;
+    ABC_INT64_T   nLiftMemoReuse, nLiftMemoStores;
+    int           nMicCexMode;  // 1 = count opportunities, 2 = reject witnessed failed drops
+    word *        pMicCexBits;  // per flop: source value/mask and successor value/mask, 128 slots
+    word          MicCexLive[2];
+    int           MicCexFrame[128];
+    unsigned      iMicCexNext;
+    ABC_INT64_T   nMicCexChecks, nMicCexHits, nMicCexStores, nMicCexKilled;
+    int           nPredictMode; // 1 = parent prediction before MIC, 2 = also skip MIC on success
+    int           nMicGap;      // skip literal dropping this far below the frontier
+    int           nGenTimeMode; // reuse the blocking proof's frame before generalization
+    ABC_INT64_T   nMicGapSkipped, nGenTimeJumps, nGenTimeInf;
+    int           nKindTime, nKindNext, nKindMax, nKindCalls, fKindProved;
+    abctime       timeKind;
+    int           nHintTime, nHintNext, nHintCalls;
+    abctime       timeHint;
+    ABC_INT64_T   nPredictCalls, nPredictQueries, nPredictProved, nPredictSaved;
+    abctime       timePredict;
     int           VarBad;        // GipSAT var of the property output
     // frames and lemmas
     Vec_Ptr_t *   vFrames;       // Vec_Ptr_t * of Pdr2_Lem_t *, one per frame
@@ -178,6 +252,8 @@ struct Pdr2_Man_t_
     ABC_INT64_T   nPropsRestartStart; // propagation count at the last restart of the level (or its start)
     ABC_INT64_T   propLimit;     // end of the current time slice in propagations (0 = none)
     ABC_INT64_T   propSlice;     // size of the current slice in propagations (grace for the obligation in progress)
+    abctime       timeSlice;     // optional wall-time slice boundary, checked between obligations
+    abctime       timeSliceHard; // one more slice of grace before an unfinished query is canceled
     int           fQueryCut;     // a query of the current slice was canceled by a resource limit
     int           iStage;        // 0 = blocking, 1 = finite propagation pending, 2 = propagation to infinity pending
     int           fSweepCut;     // a propagation sweep was cut by an undecided query
@@ -237,12 +313,33 @@ struct Pdr2_Man_t_
     abctime       timePropInf;
     abctime       timeCleanL;    // learnt-clause cleanups (inside the query times)
     ABC_INT64_T   nSolves;
+    ABC_INT64_T   nWarmCopied;   // invariant-safe SAT facts/clauses copied into new frames
+    ABC_INT64_T   nSparseScans;  // lifting scans replaced with a smaller trail/domain scan
     ABC_INT64_T   nMics;
+    int *         pSimInitBound; // last frame retaining each initial bit in a ternary reachable-state envelope
+    int           nSimInitSteps;
+    ABC_INT64_T   nSimInitSeeds;
+    abctime       timeSimInit;
+    char *        pPhaseSimState;
+    char *        pPhaseSimValues;
+    int           nPhaseSimFrame;
+    int           nPhaseSimSeeds;
+    abctime       timePhaseSim;
     ABC_INT64_T   nMicLits;
     ABC_INT64_T   nMicDropOk;
     ABC_INT64_T   nMicDropFail;
+    ABC_INT64_T   nMicEarlyStop;
     ABC_INT64_T   nDowns;
     ABC_INT64_T   nDownQueries;  // SAT queries of the plain downs
+    ABC_INT64_T   nDownCacheHits;
+    ABC_INT64_T   nCtgBypassed;
+    ABC_INT64_T   nSolverClones;
+    abctime       timeSolverClone;
+    ABC_INT64_T   nSatDecisions;
+    ABC_INT64_T   nJustTested;
+    ABC_INT64_T   nJustSkipped;
+    ABC_INT64_T   nWatchLists;
+    ABC_INT64_T   nWatchSkipped;
     int           nQueryCuts;    // queries canceled by the overrun limit of the slices
     int           fBlockCut;     // the last slice ended between two obligations of the blocking loop
     ABC_INT64_T   nDownJoined;   // plain downs proved after one or more joins
@@ -250,6 +347,8 @@ struct Pdr2_Man_t_
     ABC_INT64_T   nObls;
     ABC_INT64_T   nOblLits;
     ABC_INT64_T   nOblsDropped;
+    int           nBadDumps;     // diagnostic bad-state query snapshots
+    ABC_INT64_T   nPrefixCalls, nPrefixProved, nPrefixSaved;
     ABC_INT64_T   nLemmas;
     ABC_INT64_T   nLemmaLits;
     ABC_INT64_T   nLiftCalls, nLiftCone, nLiftFlip, nLiftCore, nLiftSim, nLiftSimFail, nLiftSimBad, nLiftSimCut;
@@ -269,6 +368,9 @@ struct Pdr2_Man_t_
     Vec_Int_t *   vLiftVisit;
     ABC_INT64_T   nInfLemmas;
     ABC_INT64_T   nPropCalls;
+    ABC_INT64_T   nCtpCalls;     // counterexamples to propagation considered for blocking
+    ABC_INT64_T   nCtpBlocked;   // counterexamples blocked at the preceding frame
+    ABC_INT64_T   nCtpPushed;    // propagation queries proved after blocking a counterexample
     ABC_INT64_T   nPropSkipped;
     ABC_INT64_T   nPropInfCalls;
     ABC_INT64_T   nPropInfSkipped;
@@ -287,15 +389,19 @@ static inline int          Pdr2_LitLo( Pdr2_Man_t * p, int Lit )          { retu
 static inline int          Pdr2_LitLi( Pdr2_Man_t * p, int Lit )          { return Abc_Var2Lit( p->pLiVar[Abc_Lit2Var(Lit)], Abc_LitIsCompl(Lit) ); }
 static inline word         Pdr2_LitSign( int Lit )                        { return (word)1 << (Lit & 63);                               }
 // value of a flop literal (current state) in a SAT model: GIP_TRUE/GIP_FALSE/GIP_NONE
-static inline int          Pdr2_ManLitValue( Pdr2_Man_t * p, Gip_Solver_t * pSat, int Lit ) { return Gip_SolverLitValue( pSat, Pdr2_LitLo(p, Lit) ); }
+static inline Gip_Solver_t * Pdr2_SolverActual( Gip_Solver_t * pSat )    { return pSat->pShared ? pSat->pShared : pSat; }
+static inline int          Pdr2_SolverValue( Gip_Solver_t * pSat, int v ) { return Pdr2_SolverActual(pSat)->pValue[v]; }
+static inline int          Pdr2_SolverFlip( Gip_Solver_t * pSat, int v ) { return Gip_SolverFlipToNone(Pdr2_SolverActual(pSat), v); }
+static inline int          Pdr2_ManLitValue( Pdr2_Man_t * p, Gip_Solver_t * pSat, int Lit ) { return Gip_SolverLitValue( Pdr2_SolverActual(pSat), Pdr2_LitLo(p, Lit) ); }
 // a flop literal excludes the initial states iff its flop has a defined initial value opposite to it
 // (a literal of a don't-care flop never does); a cube intersects them iff no literal excludes them
 static inline int          Pdr2_ManLitIsNonInit( Pdr2_Man_t * p, int Lit ) { return p->pInit[Abc_Lit2Var(Lit)] == Abc_LitIsCompl(Lit);    }
-static inline int          Pdr2_CubeIsInit( Pdr2_Man_t * p, Pdr2_Cube_t * pCube ) { int i; for ( i = 0; i < pCube->nLits; i++ ) if ( Pdr2_ManLitIsNonInit(p, pCube->Lits[i]) ) return 0; return 1; }
+extern int                Pdr2_ManInitialQuery( Pdr2_Man_t * p, int * pLits, int nLits );
+static inline int          Pdr2_CubeIsInit( Pdr2_Man_t * p, Pdr2_Cube_t * pCube ) { int i; for ( i = 0; i < pCube->nLits; i++ ) if ( Pdr2_ManLitIsNonInit(p, pCube->Lits[i]) ) return 0; return !p->pInitSat || Pdr2_ManInitialQuery(p,pCube->Lits,pCube->nLits) != GIP_UNSAT; }
 // The global deadline or cancellation (not the slice limit: work that does not count propagations must not
 // stop at slice ends, or a resumed run would not follow the trajectory of an uninterrupted one)
-static inline int          Pdr2_ManPastDeadline( Pdr2_Man_t * p )         { return (p->timeLimit && Abc_Clock() > p->timeLimit) || (p->pPars->pFuncStop && p->pPars->pFuncStop(p->pPars->RunId)); }
-static inline int          Pdr2_LitsAreInit( Pdr2_Man_t * p, Vec_Int_t * vLits ) { int i, Lit; Vec_IntForEachEntry( vLits, Lit, i ) if ( Pdr2_ManLitIsNonInit(p, Lit) ) return 0; return 1; }
+static inline int          Pdr2_ManPastDeadline( Pdr2_Man_t * p )         { return p->fInitUnknown || (p->timeLimit && Abc_Clock() > p->timeLimit) || (p->pPars->pFuncStop && p->pPars->pFuncStop(p->pPars->RunId)); }
+static inline int          Pdr2_LitsAreInit( Pdr2_Man_t * p, Vec_Int_t * vLits ) { int i, Lit; Vec_IntForEachEntry( vLits, Lit, i ) if ( Pdr2_ManLitIsNonInit(p, Lit) ) return 0; return !p->pInitSat || Pdr2_ManInitialQuery(p,Vec_IntArray(vLits),Vec_IntSize(vLits)) != GIP_UNSAT; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
@@ -345,6 +451,8 @@ extern int                Pdr2_ManDumpInvariant( Pdr2_Man_t * p, int fTransforme
 extern void               Pdr2_ManPrintProgress( Pdr2_Man_t * p, int fForce );
 extern void               Pdr2_ManPrintStats( Pdr2_Man_t * p );
 extern int                Pdr2_ManTimedOut( Pdr2_Man_t * p );
+extern int                Pdr2_ManReachContains( Pdr2_Man_t * p, int Frame, Vec_Int_t * vCube );
+extern int                Pdr2_ManReachTryCex( Pdr2_Man_t * p, Pdr2_Obl_t * pObl );
 // pdr2Sat.c
 extern Gip_Solver_t *     Pdr2_ManNewSolver( Pdr2_Man_t * p, int k );
 extern void               Pdr2_ManSolverAddLemma( Pdr2_Man_t * p, Gip_Solver_t * pSat, Pdr2_Cube_t * pCube, int Id );
@@ -353,6 +461,9 @@ extern int                Pdr2_ManSolveBad( Pdr2_Man_t * p );
 extern int                Pdr2_ManSolveContained( Pdr2_Man_t * p, Gip_Solver_t * pSat, Pdr2_Cube_t * pCube );
 extern int                Pdr2_ManInductiveCore( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCore );
 extern void               Pdr2_ManGetPred( Pdr2_Man_t * p, int fStrengthen, Vec_Int_t * vCube, Vec_Int_t * vInputs );
+extern void               Pdr2_ManMicCexStore( Pdr2_Man_t * p, Gip_Solver_t * pSat, int Frame );
+extern void               Pdr2_ManShareCompleted( Pdr2_Man_t * p, int Frame );
+extern int                Pdr2_ManMicCexFind( Pdr2_Man_t * p, int Frame, Vec_Int_t * vCube, char * pKeep );
 extern void               Pdr2_ManSetMicDomain( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCube );
 extern void               Pdr2_ManSolverAddUnit( Pdr2_Man_t * p, Gip_Solver_t * pSat, int Lit );
 extern void               Pdr2_ManUnsetMicDomain( Pdr2_Man_t * p, Gip_Solver_t * pSat );
@@ -365,6 +476,11 @@ extern Aig_Man_t *        Pdr2_ManDupGatedInit( Aig_Man_t * pAig, char * pInit, 
 extern int                Pdr2_ManAbsCheckCex( Pdr2_Man_t * p, Pdr2_Obl_t * pObl );
 // pdr2Core.c
 extern int                Pdr2_ManSolveInt( Pdr2_Man_t * p );
+// pdr2Policy.c
+extern void               Pdr2_ManPrintFeatures( Aig_Man_t * pAig );
+extern void               Pdr2_ManPrintPolicy( Aig_Man_t * pAig );
+extern void               Pdr2_ManPrintPolicyParams( Pdr2_Par_t * pPars );
+extern int                Pdr2_ManSolvePolicy( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars );
 
 ABC_NAMESPACE_HEADER_END
 

@@ -4675,7 +4675,7 @@ void Exa_NpnCascadeTest6()
     for ( i = 0; i < 10000; i++ ) 
     {
         word Truth = Abc_RandomW(0);        
-        sprintf( Command, "lutexact -I 6 -N 2 -K 5 -gvc %016lx", Truth );
+        sprintf( Command, "lutexact -I 6 -N 2 -K 5 -gvc %016llx", (unsigned long long)Truth );
         printf( "\nIter %4d : Command \"%s\":\n", i, Command );
         if ( Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command ) )
         {

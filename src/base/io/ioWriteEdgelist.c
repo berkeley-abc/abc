@@ -675,7 +675,7 @@ int Io_NtkEdgelistWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode, int Length, in
     if ( Mio_GateReadTwin(pGate) == NULL ){
         //print gate type
         fprintf( pFile, " %s", Mio_GateReadName(pGate) );
-        fprintf( pFile, " %lu", Mio_GateReadTruth(pGate) );
+        fprintf( pFile, " %llu", (unsigned long long)Mio_GateReadTruth(pGate) );
         //Vec_Int_t * Expr = Mio_GateReadExpr(pGate);
         //Vec_IntPrint(Expr);
         return 0;
@@ -690,7 +690,7 @@ int Io_NtkEdgelistWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode, int Length, in
     fprintf( pFile, " %s",  Abc_ObjName( Abc_ObjFanout0(pNode2) ) );
     //print gate type
     fprintf( pFile, " %s", Mio_GateReadName(pGate));
-    fprintf( pFile, " %lu", Mio_GateReadTruth(pGate) );
+    fprintf( pFile, " %llu", (unsigned long long)Mio_GateReadTruth(pGate) );
     return 1;
 }
 

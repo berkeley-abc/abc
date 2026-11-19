@@ -196,11 +196,23 @@ void Abc_EnumerateCubeStates()
         { {2,14}, {2,24}, {2,12}, {3,13}, {3,23}, {3,10}, {1,15}, {1,22}, {1,11} },
         { {1,10}, {1, 7}, {1, 4}, {3,12}, {3, 9}, {3, 6}, {2,11}, {2, 8}, {2, 5} }  };
 
-    Vec_Int_t * vData = Vec_IntStart( 6 * (1 << 22) );  // 96 MB
-    word State, * pHash = ABC_CALLOC( word, 1 << 29 );  //  4 GB
+    Vec_Int_t * vData;
+    word State, * pHash;
     int i, k, v, Beg, End, Counter = 0;
     char * pPrev, * pState, pStart[24], pFirst[9][24];
     abctime clk = Abc_Clock();
+    if ( (size_t)(1u << 29) > (size_t)-1 / sizeof(word) )
+    {
+        Abc_Print( -1, "Cube enumeration requires a 4 GiB hash table.\n" );
+        return;
+    }
+    pHash = ABC_CALLOC( word, 1u << 29 );
+    if ( pHash == NULL )
+    {
+        Abc_Print( -1, "Cannot allocate the cube enumeration hash table.\n" );
+        return;
+    }
+    vData = Vec_IntStart( 6 * (1 << 22) );
     printf( "Enumerating states of 2x2x2 cube.\n" );
     // init state
     for ( v = 0; v < 24; v++ )
@@ -258,7 +270,7 @@ void Abc_EnumerateCubeStates()
                 {
                     printf( "Did not converge.  " );
                     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-                    return;
+                    goto cleanup;
                 }
             }
         }
@@ -266,6 +278,7 @@ void Abc_EnumerateCubeStates()
         printf( "Iter %2d -> %8d   ", i, Counter );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
+cleanup:
     Vec_IntFree( vData );
     ABC_FREE( pHash );
 }

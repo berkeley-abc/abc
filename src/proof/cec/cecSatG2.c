@@ -2311,7 +2311,7 @@ Vec_Str_t * encodeSOP(char * pSop, int nFanins, int nCubes){
     return vSop;
 
 }
-
+#ifdef ABC_USE_CUDD
 /**Function*************************************************************
 
   Synopsis    [Extract SOP.]
@@ -2551,7 +2551,7 @@ void Cec_DeriveSOPs( Gia_Man_t * p ){
     return;
 
 }
-
+#endif
 /**Function*************************************************************
 
   Synopsis    [Evaluate MFFC depth.]
@@ -3910,7 +3910,7 @@ void exportSimValues( Gia_Man_t * p, char * filename )
         word * pSim  = Cec4_ObjSim( p, i );
         fprintf( pFile, "Obj %d ", i );
         for(j = 0; j < p->nSimWords; j++){
-          fprintf( pFile, "[%d]: %lu ", j, pSim[j] );
+          fprintf( pFile, "[%d]: %llu ", j, (unsigned long long)pSim[j] );
         }
         fprintf(pFile, "\n");
     }
@@ -4347,6 +4347,7 @@ void printISOPLUT(Gia_Man_t * pMan, int ObjId){
 
 Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
 
+#ifdef ABC_USE_CUDD
     extern void Gia_ManDupMapping( Gia_Man_t * pNew, Gia_Man_t * p );
     Cec4_Man_t * pManSim;  
     int i, k, nWordsPerCi;
@@ -4475,6 +4476,12 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
     Gia_ManStop( pMapped );
 
     return p;
+#else
+    (void)p;
+    (void)pPars;
+    Abc_Print( -1, "&adv_sim_gen requires CUDD support.\n" );
+    return NULL;
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////

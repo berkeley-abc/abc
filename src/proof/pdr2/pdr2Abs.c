@@ -113,6 +113,20 @@ void Pdr2_ManAbsCleanup( Pdr2_Man_t * p )
             nRemoved++;
         }
     p->nAbsCleaned += nRemoved;
+    if ( nRemoved && Gip_OptionGet("PDR2_ABS_EPOCH") && atoi(Gip_OptionGet("PDR2_ABS_EPOCH")) )
+    {
+        // Retained obligations carry a trace under the previous partition
+        // into state variables and pseudo-inputs. Rebuild those traces after
+        // weakening the partition; all certified frame lemmas remain valid.
+        Pdr2_QueueClear(p);
+    }
+    // Cleanup marks lemma support. Refinement reuses the same array for the
+    // flops selected in its current trial and requires it to start empty.
+    // A retained mark can suppress a required trial, then make X-simulation
+    // silently add that flop while reporting zero refinements. Its fallback
+    // would replay the old trace against this changed abstraction.
+    if ( Gip_OptionGet("PDR2_ABS_SCRATCH") && atoi(Gip_OptionGet("PDR2_ABS_SCRATCH")) )
+        memset( p->pAbsUsed, 0, sizeof(char) * p->nRegs );
 }
 
 /**Function*************************************************************
@@ -887,6 +901,8 @@ int Pdr2_ManAbsCheckCex( Pdr2_Man_t * p, Pdr2_Obl_t * pObl )
     unsigned short * pPrio = NULL;
     int f, i, Lit, Id, v0, v1, p0, p1, nRefined = 0, RetValue;
     abctime clk = Abc_Clock();
+    if ( Gip_OptionGet("PDR2_ABS_SCRATCH_CHECK") )
+        for ( i = 0; i < p->nRegs; i++ ) assert( p->pAbsUsed[i] == 0 );
     // the initial state of the trace: the one the counterexample will have
     Pdr2_ManInitState( p, pObl->pState, p->pInitState );
     if ( (RetValue = Pdr2_ManAbsSimConcrete( p, pObl )) )

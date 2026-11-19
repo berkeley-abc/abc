@@ -392,10 +392,14 @@ static size_t reduce_hash (unsigned hash, size_t size, size_t size2) {
   return res;
 }
 
-#define MAX_HASH_TABLE_SIZE ((size_t) 1 << 32)
+#if SIZE_MAX > UINT32_MAX
+#define MAX_HASH_TABLE_SIZE(table) ((size_t) 1 << 32)
+#else
+#define MAX_HASH_TABLE_SIZE(table) (SIZE_MAX / (2 * sizeof *(table)))
+#endif
 
 static bool closure_hash_table_is_full (closure *closure) {
-  if (closure->hash.size == MAX_HASH_TABLE_SIZE)
+  if (closure->hash.size >= MAX_HASH_TABLE_SIZE (closure->hash.table))
     return false;
   if (2 * closure->hash.entries < closure->hash.size)
     return false;
@@ -2973,7 +2977,7 @@ static void init_bintab (closure *closure) {
 #ifndef KISSAT_NDEBUG
 
 static bool binaries_hash_table_is_full (binary_hash_table *bintab) {
-  if (bintab->size == MAX_HASH_TABLE_SIZE)
+  if (bintab->size >= MAX_HASH_TABLE_SIZE (bintab->table))
     return false;
   if (2 * bintab->count < bintab->size)
     return false;
@@ -3066,7 +3070,7 @@ static void init_large_clauses (closure *closure, size_t expected) {
 #ifndef KISSAT_NDEBUG
 
 static bool large_clause_hash_table_is_full (closure *closure) {
-  if (closure->clauses.size == MAX_HASH_TABLE_SIZE)
+  if (closure->clauses.size >= MAX_HASH_TABLE_SIZE (closure->clauses.table))
     return false;
   if (2 * closure->clauses.count < closure->clauses.size)
     return false;

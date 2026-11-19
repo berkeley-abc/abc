@@ -28,6 +28,95 @@ void Gip_SolverNewLevel( Gip_Solver_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Reconsiders deferred decisions when watched clauses can become active.]
+
+  Description []
+
+***********************************************************************/
+// A skipped variable stays on this list until backtracking. New watches wake
+// individual variables; backtracking wakes all of them because satisfied
+// clauses can lose their satisfying assignment. No clause is removed.
+void Gip_SolverWakeSkipped( Gip_Solver_t * p, int fVsids )
+{
+    int Var;
+    if ( !p->fJustify ) return;
+    while ( Vec_IntSize(p->vJustSkip) )
+    {
+        Var = Vec_IntPop( p->vJustSkip );
+        if ( fVsids && p->pValue[Var] == GIP_NONE && Gip_DomainHas(&p->Domain, Var) )
+            Gip_VsidsPush( &p->Vsids, Var );
+        p->pJustSkip[Var] = 0;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Tests whether a clause already holds or lies outside the query domain.]
+
+  Description []
+
+***********************************************************************/
+static int Gip_SolverClauseSatisfiedOrOutside( Gip_Solver_t * p, int Cref )
+{
+    int i, Lit, * pLits = Gip_ClaLits( &p->Cdb.Alloc, Cref );
+    int nLits = Gip_ClaLen( &p->Cdb.Alloc, Cref );
+    for ( i = 0; i < nLits; i++ )
+    {
+        Lit = pLits[i];
+        if ( Gip_SolverLitValue(p, Lit) == GIP_TRUE ||
+             (Gip_SolverLitValue(p, Lit) == GIP_NONE && !Gip_DomainHas(&p->Domain, Gip_LitVar(Lit))) )
+            return 1;
+    }
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks whether a variable's watched clauses still require a decision.]
+
+  Description []
+
+***********************************************************************/
+int Gip_SolverCanSkipDecision( Gip_Solver_t * p, int Var )
+{
+    int k, i;
+    p->nJustChecks++;
+    for ( k = 0; k < 2; k++ )
+    {
+        Gip_WVec_t * pW = &p->pWatchers[2*Var+k];
+        for ( i = 0; i < pW->nSize; i++ )
+            if ( Gip_SolverLitValue(p, pW->pArray[i].blocker) != GIP_TRUE &&
+                 !Gip_SolverClauseSatisfiedOrOutside(p, pW->pArray[i].clause) )
+                return 0;
+    }
+    if ( !p->pJustSkip[Var] )
+        Vec_IntPush( p->vJustSkip, Var );
+    p->pJustSkip[Var] = 1;
+    p->nJustSkipped++;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks that the returned partial assignment justifies the query.]
+
+  Description []
+
+***********************************************************************/
+void Gip_SolverCheckPartialModel( Gip_Solver_t * p, int * pAssump, int nAssump )
+{
+    Vec_Int_t * vLists[4] = { p->Cdb.vTrans, p->Cdb.vLemmas, p->Cdb.vLearnt, p->Cdb.vTemp };
+    int k, i, Cref;
+    for ( i = 0; i < nAssump; i++ )
+        assert( Gip_SolverLitValue(p, pAssump[i]) == GIP_TRUE );
+    for ( k = 0; k < 4; k++ )
+        Vec_IntForEachEntry( vLists[k], Cref, i )
+            if ( !Gip_ClaIsRemoved(&p->Cdb.Alloc, Cref) )
+                assert( Gip_SolverClauseSatisfiedOrOutside(p, Cref) );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Backtracks to the given level, saving phases.]
 
   Description []
@@ -40,7 +129,10 @@ void Gip_SolverNewLevel( Gip_Solver_t * p )
 void Gip_SolverBacktrack( Gip_Solver_t * p, int Level, int fVsids )
 {
     if ( Gip_SolverLevelOf(p) <= Level )
+    {
+        Gip_SolverWakeSkipped( p, fVsids );
         return;
+    }
     while ( Vec_IntSize(p->vTrail) > Vec_IntEntry(p->vPosInTrail, Level) )
     {
         int Lit = Vec_IntPop( p->vTrail );
@@ -52,6 +144,7 @@ void Gip_SolverBacktrack( Gip_Solver_t * p, int Level, int fVsids )
     }
     p->nPropagated = Vec_IntEntry( p->vPosInTrail, Level );
     Vec_IntShrink( p->vPosInTrail, Level );
+    Gip_SolverWakeSkipped( p, fVsids );
 }
 
 /**Function*************************************************************
@@ -185,6 +278,11 @@ static double Gip_Luby( double y, unsigned x )
 int Gip_SolverSearchWithRestart( Gip_Solver_t * p, int * pAssump, int nAssump, int nRestartLimit )
 {
     unsigned restarts = 0;
+    // With assumptions, Search prepares the decision queue after installing
+    // the last one. An assumption-free query must prepare it here; otherwise
+    // an empty queue can report SAT before deciding the permanent domain.
+    if ( nAssump == 0 )
+        Gip_SolverPrepareVsids( p );
     while ( 1 )
     {
         double restBase;

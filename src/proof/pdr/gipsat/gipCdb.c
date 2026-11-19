@@ -201,6 +201,13 @@ void Gip_SolverDetachClause( Gip_Solver_t * p, int Cref )
 ***********************************************************************/
 void Gip_SolverCleanTemporary( Gip_Solver_t * p )
 {
+    if ( p->nRecycleMode & 2 )
+    {
+        int i, Cref, n = 0;
+        Vec_IntForEachEntryReverse( p->Cdb.vTemp, Cref, i )
+            if ( n++ < 16 && Gip_ClaLen(&p->Cdb.Alloc, Cref) <= 32 )
+                Gip_SolverSaveRecycled( p, Gip_ClaLits(&p->Cdb.Alloc, Cref), Gip_ClaLen(&p->Cdb.Alloc, Cref), Gip_SolverClaFrame(p, Cref) );
+    }
     while ( Vec_IntSize(p->Cdb.vTemp) > 0 )
         Gip_SolverDetachClause( p, Vec_IntPop(p->Cdb.vTemp) );
     if ( p->pValue[p->constrainAct] != GIP_NONE )
@@ -215,6 +222,11 @@ void Gip_SolverCleanTemporary( Gip_Solver_t * p )
         }
         Vec_IntShrink( p->vTrail, k );
         Gip_SolverSetNone( p, p->constrainAct );
+    }
+    if ( p->nRecycleMode )
+    {
+        Vec_IntClear( p->vRecycleCond );
+        Gip_SolverFlushRecycled( p );
     }
 }
 

@@ -77,6 +77,11 @@ extern int  Imc_ManCheckParams( Imc_Par_t * p );
 extern int  Imc_ManPerform( Gia_Man_t * pGia, Imc_Par_t * pPars );
 extern int  Imc_ManPerformWithStop( Gia_Man_t * pGia, Imc_Par_t * pPars,
     int (*pFuncStop)(void *), void * pStopData );
+// Bounded concrete witness search only: mode bit 1 selects structured
+// simulation and bit 2 SAT-guided walking. Returns 1 for a checked CEX,
+// 0 otherwise; never proves safety or changes a caller's proof state.
+extern int  Imc_ManFindCexWithStop( Gia_Man_t * pGia, Imc_Par_t * pPars,
+    abctime Budget, int Mode, int (*pFuncStop)(void *), void * pStopData );
 
 ABC_NAMESPACE_HEADER_END
 

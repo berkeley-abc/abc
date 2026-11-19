@@ -2408,230 +2408,125 @@ int Abc_CommandPdr2( Abc_Frame_t * pAbc, int argc, char ** argv )
     Pdr2_Par_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkUsed, * pNtkFlop = NULL;
     char * pLogFileName = NULL;
+    long Value = 0;
+    char * pEnd;
     int c;
     Pdr2_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "FTSXYANZQDERCPMGKUJHLIcgopluktedrbxjsOBWVmfqianvywzh" ) ) != EOF )
     {
+        if ( strchr("FTSXYANZQDERCPMGKUJHB", c) )
+        {
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-%c\" should be followed by an integer.\n", c );
+                goto usage;
+            }
+            errno = 0;
+            Value = strtol( argv[globalUtilOptind], &pEnd, 10 );
+            if ( errno == ERANGE || pEnd == argv[globalUtilOptind] || *pEnd || Value < INT_MIN || Value > INT_MAX )
+                goto usage;
+            globalUtilOptind++;
+        }
         switch ( c )
         {
         case 'F':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nFrameMax = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nFrameMax = (int)Value;
             if ( pPars->nFrameMax < 0 )
                 goto usage;
             break;
         case 'T':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nTimeOut = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nTimeOut = (int)Value;
             if ( pPars->nTimeOut < 0 )
                 goto usage;
             break;
         case 'S':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nRandomSeed = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nRandomSeed = (int)Value;
             if ( pPars->nRandomSeed < 0 )
                 goto usage;
             break;
         case 'X':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-X\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nCtgMax = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nCtgMax = (int)Value;
             if ( pPars->nCtgMax < 0 )
                 goto usage;
             break;
         case 'Y':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-Y\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nCtgLimit = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nCtgLimit = (int)Value;
             if ( pPars->nCtgLimit < 0 )
                 goto usage;
             break;
         case 'A':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-A\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nAbsStart = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nAbsStart = (int)Value;
             if ( pPars->nAbsStart < 0 )
                 goto usage;
             break;
         case 'N':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nLiftIters = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nLiftIters = (int)Value;
             if ( pPars->nLiftIters < -1 )
                 goto usage;
             break;
         case 'Z':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-Z\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nDynLimitMax = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nDynLimitMax = (int)Value;
             if ( pPars->nDynLimitMax < 0 )
                 goto usage;
             break;
         case 'Q':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-Q\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nDynAct = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nDynAct = (int)Value;
             if ( pPars->nDynAct < 0 )
                 goto usage;
             break;
         case 'D':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nDynTime = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nDynTime = (int)Value;
             if ( pPars->nDynTime < 0 )
                 goto usage;
             break;
         case 'E':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-E\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nDynExplode = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nDynExplode = (int)Value;
             if ( pPars->nDynExplode < 0 )
                 goto usage;
             break;
         case 'R':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nLevelRestart = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nLevelRestart = (int)Value;
             if ( pPars->nLevelRestart < 0 )
                 goto usage;
             break;
         case 'C':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nCtgTime = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nCtgTime = (int)Value;
             if ( pPars->nCtgTime < 0 )
                 goto usage;
             break;
         case 'P':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nPreprocTime = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nPreprocTime = (int)Value;
             if ( pPars->nPreprocTime < 0 )
                 goto usage;
             break;
         case 'M':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nAbsTime = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nAbsTime = (int)Value;
             if ( pPars->nAbsTime < 0 )
                 goto usage;
             break;
         case 'G':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-G\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nAbsRefineMode = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nAbsRefineMode = (int)Value;
             if ( pPars->nAbsRefineMode < 0 || pPars->nAbsRefineMode > 3 )
                 goto usage;
             break;
         case 'K':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nQueueOrder = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nQueueOrder = (int)Value;
             if ( pPars->nQueueOrder < 0 || pPars->nQueueOrder > 3 )
                 goto usage;
             break;
         case 'U':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-U\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nLiftSim = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nLiftSim = (int)Value;
             if ( pPars->nLiftSim < 0 || pPars->nLiftSim > 2 )
                 goto usage;
             break;
         case 'J':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-J\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nLiftSimOrder = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nLiftSimOrder = (int)Value;
             if ( pPars->nLiftSimOrder < 0 || pPars->nLiftSimOrder > 2 )
                 goto usage;
             break;
         case 'H':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-H\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nMicMode = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nMicMode = (int)Value;
             if ( pPars->nMicMode < 0 || pPars->nMicMode > 1 )
                 goto usage;
             break;
@@ -2717,13 +2612,7 @@ int Abc_CommandPdr2( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fKeepObl ^= 1;
             break;
         case 'B':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nAbsRuns = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
+            pPars->nAbsRuns = (int)Value;
             if ( pPars->nAbsRuns < 0 || pPars->nAbsRuns > 2 )
                 goto usage;
             break;
@@ -2753,6 +2642,8 @@ int Abc_CommandPdr2( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( globalUtilOptind != argc )
+        goto usage;
     // with the abstraction, relative induction in the blocking query is on by default (-i then turns it off)
     if ( pPars->fUseAbs )
         pPars->fBlockInduct ^= 1;
@@ -2854,6 +2745,19 @@ usage:
     Abc_Print( -2, "\t         environment: PDR2_BMC=<sec> time limit of the BMC stage after the first slice (0 = none) [default = %d],\n", pPars->nBmcTime );
     Abc_Print( -2, "\t         PDR2_TIMEGEN=0|1|2 time generalization (off, frame infinity only, also frame jumps) [default = %d],\n", pPars->fTimeGen );
     Abc_Print( -2, "\t         PDR2_DYNRUN=0|1 the plain run with dynamic generalization in the alternating schedule [default = %d]\n", pPars->fDynRun );
+    Abc_Print( -2, "\t         PDR2_POLICY=0|1 select solver stages from the circuit structure under one time limit [default = 0]\n" );
+    Abc_Print( -2, "\t         PDR2_COMPACT=0|1 compact SAT variable numbering [default = 0],\n" );
+    Abc_Print( -2, "\t         PDR2_LAZYCNF=0|1 load transition clauses on demand [default = 0],\n" );
+    Abc_Print( -2, "\t         PDR2_CTGLOCAL=0|1 rebuild the SAT domain for each CTG query [default = %d]\n", pPars->fCtgLocal );
+    Abc_Print( -2, "\t         PDR2_CTP=0..8 attempts to block a counterexample to propagation [default = %d]\n", pPars->nCtpMax );
+    Abc_Print( -2, "\t         PDR2_WARM=0|1 reuse invariant-safe SAT learning in new frames [default = %d]\n", pPars->fWarmStart );
+    Abc_Print( -2, "\t         PDR2_SPARSELIFT=0|1 avoid full-design lifting scans for small cones [default = %d]\n", pPars->fSparseLift );
+    Abc_Print( -2, "\t         PDR2_PREFIX=0..256 try a short prefix before cubes at least 4x larger [default = %d]\n", pPars->nPrefix );
+    Abc_Print( -2, "\t         PDR2_MICFAIL=0..32 stop MIC after consecutive failed drops [default = %d]\n", pPars->nMicFailLimit );
+    Abc_Print( -2, "\t         PDR2_WALLSLICES=1 use measured wall-time slice budgets [default = 0]\n" );
+    Abc_Print( -2, "\t         PDR2_SHARED=1 share finite-frame SAT clauses using activation literals [default = 0]\n" );
+    Abc_Print( -2, "\t         PDR2_REACH=1..256 reject drops covering sampled reachable states [default = 0]\n" );
+    Abc_Print( -2, "\t         PDR2_LCORR=0|1 use latch-only correspondence with -q [default = 0]\n" );
     return 1;
 }
 
