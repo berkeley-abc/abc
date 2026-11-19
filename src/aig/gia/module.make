@@ -1,4 +1,5 @@
-SRC +=    src/aig/gia/giaAig.c \
+SRC +=    src/aig/gia/gia.c \
+    src/aig/gia/giaAig.c \
     src/aig/gia/giaAgi.c \
     src/aig/gia/giaAiger.c \
     src/aig/gia/giaAigerExt.c \
