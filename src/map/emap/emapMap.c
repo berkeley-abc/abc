@@ -3231,6 +3231,13 @@ static Abc_Obj_t * Emp_ManBuild_rec( Emp_Man_t * p, Abc_Ntk_t * pNew, Vec_Int_t 
                 Abc_ObjAddFanin( pObj, pFanins[iPin[k]] );
             break;
         }
+        // a two-output cell with only this output in the cover has one node (the other output is unconnected)
+        if ( Emp_BestTwinUsed(p, pB) < 0 )
+        {
+            for ( k = 0; k < pB->nPins; k++ )
+                Abc_ObjAddFanin( pObj, pFanins[k] );
+            break;
+        }
         // the two outputs of a cell are created in the order of their gates
         pT = Emp_ObjBest( p, pB->Twin, pB->TwinPhase );
         assert( pT->Type == EMP_MOG && pT->Twin == i && pT->TwinPhase == f && pT->iMog == pB->iMog );
