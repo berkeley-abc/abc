@@ -22,6 +22,7 @@
 #include "aig/aig/aig.h"
 #include "map/if/if.h"
 #include "bool/kit/kit.h"
+#include "bool/lms/lms.h"
 #include "base/main/main.h"
 #include "sat/bsat/satSolver.h"
 
@@ -1029,9 +1030,14 @@ int Gia_ManFromIfAig_rec( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Obj_t * pIfObj
     pIfObj->iCopy = Gia_ManHashAnd( pNew, iLit0, iLit1 );
     return pIfObj->iCopy;
 }
-Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
+/**Function*************************************************************
+
+  Synopsis    [Builds the AIG for the selected IF cuts and optionally records their literals.]
+
+***********************************************************************/
+static Gia_Man_t * Gia_ManFromIfAigInt( If_Man_t * pIfMan, Vec_Int_t * vCopies, abctime Deadline )
 {
-    int fHash = 0;
+    int fHash = vCopies != NULL;
     Gia_Man_t * pNew, * pTemp;
     If_Obj_t * pIfObj, * pIfLeaf;
     If_Cut_t * pCutBest;
@@ -1046,10 +1052,13 @@ Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
     // iterate through nodes used in the mapping
     vAig = Vec_IntAlloc( 1 << 16 );
     vLeaves = Vec_IntAlloc( 16 );
+    if ( vCopies ) Vec_IntFill(vCopies, If_ManObjNum(pIfMan), -1);
 //    If_ManForEachObj( pIfMan, pIfObj, i )
 //        pIfObj->iCopy = 0;
     If_ManForEachObj( pIfMan, pIfObj, i )
     {
+        if ( Deadline && !(i & 127) && Abc_ClockHr() >= Deadline )
+        { Gia_ManStop(pNew); Vec_IntFree(vAig); Vec_IntFree(vLeaves); return NULL; }
         if ( pIfObj->nRefs == 0 && !If_ObjIsTerm(pIfObj) )
             continue;
         if ( If_ObjIsAnd(pIfObj) )
@@ -1081,12 +1090,26 @@ Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
         else if ( If_ObjIsConst1(pIfObj) )
             pIfObj->iCopy = 1;
         else assert( 0 );
+        // Gia_ManToIf preserves object IDs. Its object zero is constant one.
+        if ( vCopies && !If_ObjIsCo(pIfObj) )
+            Vec_IntWriteEntry(vCopies, i, i ? pIfObj->iCopy : 0);
     }
     Vec_IntFree( vAig );
     Vec_IntFree( vLeaves );
+    if ( vCopies ) return pNew;
     pNew = Gia_ManRehash( pTemp = pNew, 0 );
     Gia_ManStop( pTemp );
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Builds an AIG from the selected IF cuts.]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManFromIfAig( If_Man_t * pIfMan )
+{
+    return Gia_ManFromIfAigInt(pIfMan, NULL, 0);
 }
 
 
@@ -2963,7 +2986,7 @@ void Abc_FrameMiniAigSetAndGateDelay( Abc_Frame_t * pAbc, int Delay )
   SeeAlso     [] 
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
+static Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars, abctime Deadline )
 {
     extern void Gia_ManIffTest( Gia_Man_t * pGia, If_LibLut_t * pLib, int fVerbose );
     Gia_Man_t * pNew;
@@ -3066,7 +3089,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
         Vec_IntForEachEntry( p->vCoAttrs, Entry, i )
             If_ObjFanin0( If_ManCo(pIfMan, i) )->fSpec = (Entry != 0);
     }
-    if ( !If_ManPerformMapping( pIfMan ) )
+    if ( !If_ManPerformMappingTimed( pIfMan, Deadline ) )
     {
         If_ManStop( pIfMan );
         return NULL;
@@ -3102,6 +3125,25 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
     }
     return pNew;
 }
+/**Function*************************************************************
+
+  Synopsis    [Maps an ordinary AIG to LUTs under a wall-clock deadline.]
+
+  Description [Map a flat, ordinary AIG with cooperative cut-enumeration cancellation.]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManLutMapTimed( Gia_Man_t * p, int LutSize, int Cuts, int Target, abctime Deadline )
+{
+    If_Par_t Pars;
+    if ( Deadline && Abc_ClockHr() >= Deadline ) return NULL;
+    If_ManSetDefaultPars(&Pars);
+    Pars.nLutSize = LutSize;
+    Pars.nCutsMax = Cuts;
+    Pars.fArea = Target < 0;
+    Pars.DelayTarget = Target > 0 ? (float)Target : -1;
+    Pars.fNoDelayWarn = 1;
+    return Gia_ManPerformMappingInt(p, &Pars, Deadline);
+}
 Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
 {
     Gia_Man_t * pNew;
@@ -3113,7 +3155,7 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
         Gia_ManTransferTiming( pNew, p );
         p = pNew;
         // mapping
-        pNew = Gia_ManPerformMappingInt( p, (If_Par_t *)pp );
+        pNew = Gia_ManPerformMappingInt( p, (If_Par_t *)pp, 0 );
         if ( pNew != p )
         {
             Gia_ManTransferTiming( pNew, p );
@@ -3129,7 +3171,7 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
     }
     else 
     {
-        pNew = Gia_ManPerformMappingInt( p, (If_Par_t *)pp );
+        pNew = Gia_ManPerformMappingInt( p, (If_Par_t *)pp, 0 );
         Gia_ManTransferTiming( pNew, p );
         if ( ((If_Par_t *)pp)->fHashMapping )
         {
@@ -3155,7 +3197,8 @@ Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )
   SeeAlso     [] 
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManPerformSopBalance( Gia_Man_t * p, int nCutNum, int nRelaxRatio, int fVerbose )
+static Gia_Man_t * Gia_ManBalanceCutsInt( Gia_Man_t * p, int nVars, int nCutNum, int nRelaxRatio, int fVerbose,
+                                          int fQuick, int fRecorded, Vec_Int_t * vCopies, abctime Deadline )
 {
     Gia_Man_t * pNew;
     If_Man_t * pIfMan;
@@ -3164,16 +3207,27 @@ Gia_Man_t * Gia_ManPerformSopBalance( Gia_Man_t * p, int nCutNum, int nRelaxRati
     pPars->nCutsMax    = nCutNum;
     pPars->nRelaxRatio = nRelaxRatio;
     pPars->fVerbose    = fVerbose;
-    pPars->nLutSize    = 6;
-    pPars->fDelayOpt   = 1;
+    pPars->nLutSize    = nVars;
+    pPars->fDelayOpt   = !fRecorded;
+    pPars->fUserRecLib = fRecorded;
+    pPars->fUsePerm    = fRecorded;
     pPars->fCutMin     = 1;
     pPars->fTruth      = 1;
     pPars->fExpRed     = 0;
+    if ( fQuick )
+    {
+        pPars->fPreprocess = 0;
+        pPars->nAreaIters = 1;
+    }
     // perform mapping
+    if ( Deadline && Abc_ClockHr() >= Deadline ) return NULL;
     pIfMan = Gia_ManToIf( p, pPars );
-    If_ManPerformMapping( pIfMan );
-    pNew = Gia_ManFromIfAig( pIfMan );
+    if ( !pIfMan ) return NULL;
+    if ( !If_ManPerformMappingTimed( pIfMan, Deadline ) || (Deadline && Abc_ClockHr() >= Deadline) )
+    { If_ManStop( pIfMan ); return NULL; }
+    pNew = Gia_ManFromIfAigInt( pIfMan, vCopies, Deadline );
     If_ManStop( pIfMan );
+    if ( !pNew ) return NULL;
     Gia_ManTransferTiming( pNew, p );
     // transfer name
     assert( pNew->pName == NULL );
@@ -3182,6 +3236,49 @@ Gia_Man_t * Gia_ManPerformSopBalance( Gia_Man_t * p, int nCutNum, int nRelaxRati
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     return pNew;
 }
+/**Function*************************************************************
+
+  Synopsis    [Balances the selected SOP decompositions without a deadline.]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManPerformSopBalance( Gia_Man_t * p, int nCutNum, int nRelaxRatio, int fVerbose )
+{
+    return Gia_ManBalanceCutsInt( p, 6, nCutNum, nRelaxRatio, fVerbose, 0, 0, NULL, 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Maps a flat AIG to arrival-balanced sum-of-products cuts.]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManSopBalanceTimed( Gia_Man_t * p, int nVars, int nCuts, abctime Deadline )
+{
+    return Gia_ManBalanceCutsInt( p, nVars, nCuts, 0, 0, 1, 0, NULL, Deadline );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Maps to recorded AIG cuts with an optional source-to-result correspondence.]
+
+  Description [With vCopies, the returned graph remains structurally hashed.
+  Each covered source node has an equivalent result literal. Uncovered
+  nodes have entry -1. Clean the reachable graph before measuring area.]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManRecBalanceTimed( Gia_Man_t * p, int nCuts, int nRelaxRatio, Vec_Int_t * vCopies, abctime Deadline )
+{
+    Abc_Frame_t * pAbc = Abc_FrameReadGlobalFrame();
+    Gia_Man_t * pNew;
+    int fOwnCache;
+    if ( Deadline && Abc_ClockHr() >= Deadline ) return NULL;
+    if ( !Abc_NtkRecStartBuiltin3(pAbc ? Abc_FrameReadOut(pAbc) : stdout, pAbc ? Abc_FrameReadErr(pAbc) : stderr) ||
+         !Abc_RecTargetReady3() ) return NULL;
+    fOwnCache = Abc_RecMapCache3(1);
+    pNew = Gia_ManBalanceCutsInt(p, 6, nCuts, nRelaxRatio, 0, 1, 1, vCopies, Deadline);
+    if ( fOwnCache ) Abc_RecMapCache3(0);
+    return pNew;
+}
+
 Gia_Man_t * Gia_ManPerformDsdBalance( Gia_Man_t * p, int nLutSize, int nCutNum, int nRelaxRatio, int fVerbose )
 {
     Gia_Man_t * pNew;

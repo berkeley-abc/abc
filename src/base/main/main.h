@@ -58,6 +58,13 @@ ABC_NAMESPACE_HEADER_START
 ///                    STRUCTURE DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+typedef struct Abc_Nf2Cache_t_
+{
+    struct Nf2_Shared_t_ * pCurrent;
+    struct Nf2_Shared_t_ * pPrevious;
+    struct Nf2_TieLib_t_ * pTies;
+} Abc_Nf2Cache_t;
+
 ////////////////////////////////////////////////////////////////////////
 ///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
@@ -103,6 +110,7 @@ extern ABC_DLL Abc_Frame_t *   Abc_FrameCurrent();
 extern ABC_DLL void            Abc_FrameSetGlobalFrame( Abc_Frame_t * p );
 extern ABC_DLL Abc_Frame_t *   Abc_FrameGetGlobalFrame();
 extern ABC_DLL Abc_Frame_t *   Abc_FrameReadGlobalFrame();
+extern ABC_DLL Abc_Nf2Cache_t * Abc_FrameReadNf2Cache( void );
 
 extern ABC_DLL Vec_Ptr_t *     Abc_FrameReadStore();                  
 extern ABC_DLL int             Abc_FrameReadStoreSize();              

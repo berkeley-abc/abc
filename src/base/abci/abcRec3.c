@@ -48,7 +48,7 @@ ABC_NAMESPACE_IMPL_START
     and starting LMS manager again (rec_start3 <file>.aig).
 */
 
-// Bounded direct-mapped caches used only during one &lms cut collection.
+// Bounded direct-mapped cache for cut collection and six-input mapping.
 // Collisions evict entries; full keys are checked before reusing anything.
 typedef struct Lms_TargetCanon_t_
 {
@@ -1098,8 +1098,8 @@ static inline int If_CutComputeDelay( If_Man_t * p, If_Cut_t * pCut, char * pCan
 
   Description [The library is immutable within this scope. Entries include
   the raw truth and leaf count, and retain the deterministic phase and
-  permutation as well as the library class ID (including misses). Ordinary
-  mapper invocations do not allocate or consult this cache.]
+  permutation as well as the library class ID (including misses). A caller
+  may also enable the cache for the lifetime of a six-input cut cover.]
 
   SideEffects []
 
@@ -1136,10 +1136,28 @@ static int Lms_TargetCanonLookup( Lms_Man_t * p, word Truth, int nLeaves, char *
     return pEntry->Id;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Scope the canonical truth cache to one six-input mapping.]
+
+  Description [A cover needs only the truth, phase, permutation and class
+  ID. Return one if this call allocated the cache. A nested caller borrows
+  an existing cache and leaves its release to the owner.]
+
+***********************************************************************/
+int Abc_RecMapCache3( int fStart )
+{
+    Lms_Man_t * p = s_pMan3;
+    if ( !fStart ) { ABC_FREE(p->pTargetCanon); return 0; }
+    if ( p->nVars != 6 || p->pTargetCanon ) return 0;
+    p->pTargetCanon = ABC_CALLOC(Lms_TargetCanon_t, LMS_TARGET_CACHE_SIZE);
+    return 1;
+}
+
 static inline int If_CutFindBestStruct( If_Man_t * pIfMan, If_Cut_t * pCut, char * pCanonPerm, unsigned * puCanonPhase, int * pBestPo )
 {
     Lms_Man_t * p = s_pMan3;
-    int i, * pTruthId, iFirstPo, iFirstPoNext, iBestPo;
+    int i, TruthId, iFirstPo, iFirstPoNext, iBestPo;
     int BestDelay = ABC_INFINITY, BestArea = ABC_INFINITY, Delay, Area;
     int uSupport, nLeaves = If_CutLeaveNum( pCut );
     char * pPerm = If_CutPerm( pCut );
@@ -1166,19 +1184,22 @@ static inline int If_CutFindBestStruct( If_Man_t * pIfMan, If_Cut_t * pCut, char
     }
     assert( Gia_WordCountOnes(uSupport) == nLeaves );
 
-    // semicanonicize the function
-clk = Abc_Clock();
-    memcpy( p->pTemp1, If_CutTruthW(pIfMan, pCut), p->nWords * sizeof(word) );
+    if ( p->pTargetCanon )
+        TruthId = Lms_TargetCanonLookup(p, *If_CutTruthW(pIfMan, pCut), nLeaves, pCanonPerm, puCanonPhase);
+    else
+    {
+        clk = Abc_Clock();
+        memcpy( p->pTemp1, If_CutTruthW(pIfMan, pCut), p->nWords * sizeof(word) );
 #ifdef LMS_USE_OLD_FORM
-    *puCanonPhase = Kit_TruthSemiCanonicize( (unsigned *)p->pTemp1, (unsigned *)p->pTemp2, nLeaves, pCanonPerm );
+        *puCanonPhase = Kit_TruthSemiCanonicize( (unsigned *)p->pTemp1, (unsigned *)p->pTemp2, nLeaves, pCanonPerm );
 #else
-    *puCanonPhase = Abc_TtCanonicize( p->pTemp1, nLeaves, pCanonPerm );
+        *puCanonPhase = Abc_TtCanonicize( p->pTemp1, nLeaves, pCanonPerm );
 #endif
-    Abc_TtStretch5( (unsigned *)p->pTemp1, nLeaves, p->nVars );
-    p->timeCanon += Abc_Clock() - clk;
-    // get TT ID for the given class
-    pTruthId = Vec_MemHashLookup( p->vTtMem, p->pTemp1 );
-    if ( *pTruthId == -1 )
+        Abc_TtStretch5( (unsigned *)p->pTemp1, nLeaves, p->nVars );
+        p->timeCanon += Abc_Clock() - clk;
+        TruthId = *Vec_MemHashLookup( p->vTtMem, p->pTemp1 );
+    }
+    if ( TruthId == -1 )
     {
         pCut->Cost = IF_COST_MAX;
         pCut->fUseless = 1;
@@ -1190,9 +1211,9 @@ clk = Abc_Clock();
     // to iterate through the POs, we need to perform the following steps
 
     // find the first PO of this class
-    iFirstPo = Vec_IntEntry( p->vTruthPo, *pTruthId );
+    iFirstPo = Vec_IntEntry( p->vTruthPo, TruthId );
     // find the first PO of the next class
-    iFirstPoNext = Vec_IntEntry( p->vTruthPo, *pTruthId+1 );
+    iFirstPoNext = Vec_IntEntry( p->vTruthPo, TruthId+1 );
     // iterate through the subgraphs of this class
     iBestPo = -1;
     if ( p->fLateFilter && iFirstPoNext-iFirstPo > 2 )
@@ -1200,7 +1221,7 @@ clk = Abc_Clock();
         float Times[LMS_VAR_MAX];
         for ( i = 0; i < nLeaves; ++i )
             Times[i] = If_ObjCutBest(If_ManObj(pIfMan, pCut->pLeaves[(int)pCanonPerm[i]]))->Delay;
-        iBestPo = Lms_EvalFind(p->pEval, *pTruthId, nLeaves, Times, &BestDelay);
+        iBestPo = Lms_EvalFind(p->pEval, TruthId, nLeaves, Times, &BestDelay);
         BestArea = Vec_StrEntry(p->vAreas, iBestPo);
     }
     else

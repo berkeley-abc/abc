@@ -77,7 +77,14 @@ void If_ManSetDefaultPars( If_Par_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-int If_ManPerformMapping( If_Man_t * p )
+static int If_ManPerformMappingCombTimed( If_Man_t * p, abctime Deadline );
+
+/**Function*************************************************************
+
+  Synopsis    [Sets up cut storage and runs the combinational mapper with a deadline.]
+
+***********************************************************************/
+int If_ManPerformMappingTimed( If_Man_t * p, abctime Deadline )
 {
     p->pPars->fAreaOnly = p->pPars->fArea; // temporary
     // create the CI cutsets
@@ -86,7 +93,7 @@ int If_ManPerformMapping( If_Man_t * p )
     If_ManSetupSetAll( p, If_ManCrossCut(p) );
     // derive reverse top order
     p->vObjsRev = If_ManReverseOrder( p );
-    return If_ManPerformMappingComb( p );
+    return If_ManPerformMappingCombTimed( p, Deadline );
 }
 
 
@@ -101,7 +108,22 @@ int If_ManPerformMapping( If_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+int If_ManPerformMapping( If_Man_t * p )
+{
+    return If_ManPerformMappingTimed( p, 0 );
+}
+
 int If_ManPerformMappingComb( If_Man_t * p )
+{
+    return If_ManPerformMappingCombTimed( p, 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs the mapping rounds within the supplied deadline.]
+
+***********************************************************************/
+static int If_ManPerformMappingCombTimed( If_Man_t * p, abctime Deadline )
 {
     If_Obj_t * pObj;
     abctime clkTotal = Abc_Clock();
@@ -121,21 +143,23 @@ int If_ManPerformMappingComb( If_Man_t * p )
     if ( p->pPars->fPreprocess && !p->pPars->fArea )
     {
         // map for delay
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, 1, "Delay" );
+        if ( !If_ManPerformMappingRoundTimed( p, p->pPars->nCutsMax, 0, 1, 1, "Delay", Deadline ) ) return 0;
 
         // map for delay second option
         p->pPars->fFancy = 1;
         If_ManResetOriginalRefs( p );
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, 0, "Delay-2" );
+        if ( !If_ManPerformMappingRoundTimed( p, p->pPars->nCutsMax, 0, 1, 0, "Delay-2", Deadline ) )
+        { p->pPars->fFancy = 0; return 0; }
         p->pPars->fFancy = 0;
         // map for area
         p->pPars->fArea = 1;
         If_ManResetOriginalRefs( p );
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, 0, "Area" );
+        if ( !If_ManPerformMappingRoundTimed( p, p->pPars->nCutsMax, 0, 1, 0, "Area", Deadline ) )
+        { p->pPars->fArea = 0; return 0; }
         p->pPars->fArea = 0;
     }
     else
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 0, 1, "Delay" );
+        if ( !If_ManPerformMappingRoundTimed( p, p->pPars->nCutsMax, 0, 0, 1, "Delay", Deadline ) ) return 0;
 
     // try to improve area by expanding and reducing the cuts
     if ( p->pPars->fExpRed )
@@ -144,7 +168,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     // area flow oriented mapping
     for ( i = 0; i < p->pPars->nFlowIters; i++ )
     {
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 1, 0, 0, "Flow" );
+        if ( !If_ManPerformMappingRoundTimed( p, p->pPars->nCutsMax, 1, 0, 0, "Flow", Deadline ) ) return 0;
         if ( p->pPars->fExpRed )
             If_ManImproveMapping( p );
     }
@@ -156,7 +180,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
             p->vCuts = Vec_IntAlloc( 1 << 20 );
             p->vCutCosts = Vec_IntAlloc( 1 << 16 );
         }
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 2, 0, 0, "Area" );
+        if ( !If_ManPerformMappingRoundTimed( p, p->pPars->nCutsMax, 2, 0, 0, "Area", Deadline ) ) return 0;
         if ( p->pPars->fExpRed )
             If_ManImproveMapping( p );
     }

@@ -99,7 +99,7 @@ typedef struct {
 static void validate_edge_ownership(const SolverContext *ctx) {
   int *owner;
   int i;
-  if (ctx->edge_count == 0) {
+  if (ctx->edge_count <= 0) {
     return;
   }
   owner = (int *)malloc(ctx->edge_count * sizeof(int));

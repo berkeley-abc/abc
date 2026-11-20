@@ -1285,10 +1285,10 @@ static void Dc3_LabelReplace( Vec_Int_t * v, int nObjs, int Id, int Lit )
   SeeAlso     []
 
 ***********************************************************************/
-static Gia_Man_t * Dc3_Run( Gia_Man_t * pGia, int fKeepLevel, int fVerbose, Gia_Man_t ** ppSnapshot, Vec_Ptr_t * vLabels, int fMore )
+static Gia_Man_t * Dc3_Run( Gia_Man_t * pGia, int fKeepLevel, int fVerbose, Gia_Man_t ** ppSnapshot, Vec_Ptr_t * vLabels, int fMore, abctime Deadline )
 {
     Dc3_Man_t * p;
-    Gia_Man_t * pNew;
+    Gia_Man_t * pNew = NULL;
     Vec_Int_t *vCiLevels, *vVisit, *vParents = NULL;
     int Round, Pos, PrevAnds, GainF, GainW, Cost, StartAnds;
     Drf_Cut_t Cut;
@@ -1372,6 +1372,7 @@ static Gia_Man_t * Dc3_Run( Gia_Man_t * pGia, int fKeepLevel, int fVerbose, Gia_
         // their topological visit order; each is considered at most once.
         Vec_IntForEachEntry ( vVisit, Id, Pos )
         {
+            if ( Deadline && !(Pos & 63) && Abc_ClockHr() >= Deadline ) goto cleanup;
             if ( p->F.M.pObjs[Id].Type != GIE_AND || p->F.M.pObjs[Id].Handled ) continue;
             assert( !p->F.M.pObjs[Id].Handled && p->F.M.pObjs[Id].Type == GIE_AND );
             assert( p->F.M.pObjs[p->F.M.pObjs[Id].Fan[0] >> 1].Handled );
@@ -1476,7 +1477,6 @@ static Gia_Man_t * Dc3_Run( Gia_Man_t * pGia, int fKeepLevel, int fVerbose, Gia_
             Vec_PtrPush( vLabels, Dc3_Labels(&p->F.M) );
         }
     }
-    Vec_IntFree( vVisit );
     Export = Abc_Clock();
     pNew = Gie_ManExport( &p->F.M, pGia );
     assert( p->F.M.nAnds == Gia_ManAndNum( pNew ) );
@@ -1489,7 +1489,6 @@ static Gia_Man_t * Dc3_Run( Gia_Man_t * pGia, int fKeepLevel, int fVerbose, Gia_
         Vec_PtrForEachEntry( Vec_Int_t *, vLabels, v, k )
             Vec_IntForEachEntry( v, Entry, j )
                 Vec_IntWriteEntry( v, j, Dc3_LabelFind(vParents, Entry) );
-        Vec_IntFree( vParents );
     }
     Export = Abc_Clock() - Export;
     if ( fVerbose )
@@ -1503,6 +1502,9 @@ static Gia_Man_t * Dc3_Run( Gia_Man_t * pGia, int fKeepLevel, int fVerbose, Gia_
         Abc_Print( 1, "&dc3 core: import %.3f  export %.3f  total %.3f sec\n", (double) Setup / CLOCKS_PER_SEC,
                    (double) Export / CLOCKS_PER_SEC, (double) ( Abc_Clock() - Start ) / CLOCKS_PER_SEC );
     }
+cleanup:
+    Vec_IntFree( vVisit );
+    Vec_IntFreeP( &vParents );
     ABC_FREE( p->pRecipes );
     ABC_FREE( p->pNeighborhood );
     ABC_FREE( p->pNeighbors );
@@ -1603,7 +1605,7 @@ static int Dcb_HeapRemove( Gia_Man_t * p, Vec_Int_t * v, int Pos )
   SeeAlso     []
 
 ***********************************************************************/
-static Gia_Man_t * Dcb_Balance( Gia_Man_t * pOld )
+static Gia_Man_t * Dcb_Balance( Gia_Man_t * pOld, abctime Deadline )
 {
     Gia_Man_t * pNew = Gia_ManStart( Gia_ManObjNum( pOld ) );
     Gia_Obj_t *o, *f;
@@ -1611,6 +1613,7 @@ static Gia_Man_t * Dcb_Balance( Gia_Man_t * pOld )
     int * Refs = ABC_CALLOC( int, Gia_ManObjNum( pOld ) );
     unsigned char * Absorb = ABC_CALLOC( unsigned char, Gia_ManObjNum( pOld ) );
     int i, k, Root, Lit, Var, a, b, Pos, Lev;
+    unsigned Work = 0;
     vCiLevels = Gia_ManBoxNum( pOld ) ? Gie_BoxCiLevels( pOld ) : NULL;
     Gia_ManFillValue( pOld );
     Gia_ManConst0( pOld )->Value = 0;
@@ -1642,12 +1645,15 @@ static Gia_Man_t * Dcb_Balance( Gia_Man_t * pOld )
     Gia_ManHashStart( pNew );
     Gia_ManForEachAnd ( pOld, o, Root )
     {
+        if ( Deadline && !(Root & 255) && Abc_ClockHr() >= Deadline )
+            goto timeout;
         if ( Absorb[Root] ) continue;
         Vec_IntClear( vTodo );
         Vec_IntClear( vHeap );
         Vec_IntPush( vTodo, 2 * Root );
         while ( Vec_IntSize( vTodo ) )
         {
+            if ( Deadline && !(++Work & 1023) && Abc_ClockHr() >= Deadline ) goto timeout;
             Lit = Vec_IntPop( vTodo );
             Var = Lit >> 1;
             f = Gia_ManObj( pOld, Var );
@@ -1664,6 +1670,7 @@ static Gia_Man_t * Dcb_Balance( Gia_Man_t * pOld )
         }
         while ( Vec_IntSize( vHeap ) > 1 )
         {
+            if ( Deadline && !(++Work & 1023) && Abc_ClockHr() >= Deadline ) goto timeout;
             a = Dcb_HeapRemove( pNew, vHeap, 0 );
             Pos = 0;
             b = Vec_IntEntry( vHeap, 0 );
@@ -1689,13 +1696,16 @@ static Gia_Man_t * Dcb_Balance( Gia_Man_t * pOld )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy( o ) );
     Gia_ManHashStop( pNew );
     // The mutable import removes dangling gates without a second GIA copy.
+    Gie_ManDupMetadata( pNew, pOld );
+    goto cleanup;
+timeout:
+    Gia_ManStopP( &pNew );
+cleanup:
     Vec_IntFree( vTodo );
     Vec_IntFree( vHeap );
     Vec_IntFreeP( &vCiLevels );
     ABC_FREE( Refs );
     ABC_FREE( Absorb );
-    Gie_ManDupMetadata( pNew, pOld );
-
     return pNew;
 }
 
@@ -1713,18 +1723,31 @@ static Gia_Man_t * Dcb_Balance( Gia_Man_t * pOld )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDc3( Gia_Man_t * p, int fKeep, int fVerbose )
+Gia_Man_t * Gia_ManDc3Timed( Gia_Man_t * p, int fKeep, int fVerbose, abctime Deadline )
 {
     Gia_Man_t *q, *r;
     if ( !p || Gia_ManHasChoices( p ) || Gia_ManMuxNum( p ) || Gia_ManXorNum( p ) || Gia_ManBufNum( p ) ) return NULL;
     if ( Gia_ManIsSeqWithBoxes( p ) && !Gia_ManIsNormalized( p ) ) return NULL;
-    q = Dcb_Balance( p );
-    r = Dc3_Run( q, fKeep, fVerbose, NULL, NULL, 0 );
+    if ( Deadline && Abc_ClockHr() >= Deadline ) return NULL;
+    q = Dcb_Balance( p, Deadline );
+    if ( !q ) return NULL;
+    r = Dc3_Run( q, fKeep, fVerbose, NULL, NULL, 0, Deadline );
     Gia_ManStop( q );
     if ( !r ) return NULL;
-    q = Rsub_ManPerform( r, 10, 1, 1, fKeep, fVerbose );
+    q = Rsub_ManPerformTimed( r, 10, 1, 1, fKeep, 0, fVerbose, Deadline );
+    if ( !q && Deadline && Abc_ClockHr() >= Deadline ) return r;
     Gia_ManStop( r );
     return q;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs DC3 balancing and resubstitution to completion.]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDc3( Gia_Man_t * p, int fKeep, int fVerbose )
+{
+    return Gia_ManDc3Timed( p, fKeep, fVerbose, 0 );
 }
 
 /**Function*************************************************************
@@ -1741,7 +1764,7 @@ Gia_Man_t * Gia_ManDc3( Gia_Man_t * p, int fKeep, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDc3SnapshotsMore( Gia_Man_t * p, int fKeep, int fVerbose, Gia_Man_t ** ppSnapshot, Vec_Ptr_t * vLabels, int fMore )
+Gia_Man_t * Gia_ManDc3SnapshotsTimed( Gia_Man_t * p, int fKeep, int fVerbose, Gia_Man_t ** ppSnapshot, Vec_Ptr_t * vLabels, int fMore, abctime Deadline )
 {
     Gia_Man_t * q, * r;
     Gia_Obj_t * pObj;
@@ -1752,14 +1775,25 @@ Gia_Man_t * Gia_ManDc3SnapshotsMore( Gia_Man_t * p, int fKeep, int fVerbose, Gia
          Gia_ManMuxNum(p) || Gia_ManXorNum(p) || Gia_ManBufNum(p) ) return NULL;
     if ( Gia_ManIsSeqWithBoxes(p) && !Gia_ManIsNormalized(p) ) return NULL;
     if ( Gia_ManObjNum(p) > Gie_ObjectLimit() / 2 ) return NULL;
-    q = Dcb_Balance( p );
+    q = Dcb_Balance( p, Deadline );
+    if ( !q ) return NULL;
     v = Vec_IntStartFull( Gia_ManObjNum(p) );
     Gia_ManForEachObj( p, pObj, i )
         if ( !Gia_ObjIsCo(pObj) ) Vec_IntWriteEntry( v, i, (int)pObj->Value );
     Vec_PtrPush( vLabels, v );
-    r = Dc3_Run( q, fKeep, fVerbose, ppSnapshot, vLabels, fMore );
+    r = Dc3_Run( q, fKeep, fVerbose, ppSnapshot, vLabels, fMore, Deadline );
     Gia_ManStop( q );
     return r;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects DC3 choice snapshots without a time limit.]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDc3SnapshotsMore( Gia_Man_t * p, int fKeep, int fVerbose, Gia_Man_t ** ppSnapshot, Vec_Ptr_t * vLabels, int fMore )
+{
+    return Gia_ManDc3SnapshotsTimed(p, fKeep, fVerbose, ppSnapshot, vLabels, fMore, 0);
 }
 
 /**Function*************************************************************
@@ -1775,7 +1809,7 @@ Gia_Man_t * Gia_ManDc3SnapshotsMore( Gia_Man_t * p, int fKeep, int fVerbose, Gia
 ***********************************************************************/
 Gia_Man_t * Gia_ManDc3Snapshots( Gia_Man_t * p, int fKeep, int fVerbose, Gia_Man_t ** ppSnapshot, Vec_Ptr_t * vLabels )
 {
-    return Gia_ManDc3SnapshotsMore( p, fKeep, fVerbose, ppSnapshot, vLabels, 0 );
+    return Gia_ManDc3SnapshotsTimed( p, fKeep, fVerbose, ppSnapshot, vLabels, 0, 0 );
 }
 
 ABC_NAMESPACE_IMPL_END

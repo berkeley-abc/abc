@@ -22,6 +22,7 @@
 #include "misc/st/st.h"
 #include "map/mio/mio.h"
 #include "map/mio/mioInt.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -289,6 +290,109 @@ Vec_Str_t * Gia_AigerWriteMappingDoc( Gia_Man_t * p )
     }
     assert( nSize2 == nSize );
     return Vec_StrAllocArray( (char *)pBuffer, 4*nSize );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads one NUL-terminated name from the bounded cell dictionary.]
+
+***********************************************************************/
+static const char * Gia_AigerCellString( unsigned char ** pp, unsigned char * end )
+{
+    unsigned char * start = *pp, * zero = (unsigned char *)memchr(start, 0, end-start);
+    if ( !zero ) return NULL;
+    *pp = zero+1;
+    return (const char *)start;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks whether a literal already has a driver in the decoded cover.]
+
+***********************************************************************/
+static int Gia_AigerCellDefined( Gia_Man_t * p, Vec_Int_t * v, int lit )
+{
+    return lit < 2 || Vec_IntEntry(v, lit) ||
+           (!Abc_LitIsCompl(lit) && Gia_ObjIsCi(Gia_ManObj(p, Abc_Lit2Var(lit))));
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Resolves library names and reconstructs a topologically ordered cell cover.]
+
+  Description [Read the dictionary and literal records written by
+  Gia_AigerWriteCellMappingDoc. Gate numbers are local to a library.]
+
+***********************************************************************/
+Vec_Int_t * Gia_AigerReadCellMappingDoc( Gia_Man_t * p, unsigned char * cur, unsigned char * end )
+{
+    Mio_Cell2_t * cells = NULL;
+    Vec_Int_t * v = NULL, * result = NULL;
+    int * ids = NULL, * sizes = NULL;
+    int i, j, k, nCells, nFile, nInst, gate, root, fan, nLits = 2 * Gia_ManObjNum(p);
+    Gia_Obj_t * obj;
+    if ( !Abc_FrameReadGlobalFrame() || !Abc_FrameReadLibGen() || end-cur < 8 ) return NULL;
+    nFile = Gia_AigerReadInt(cur); cur += 4;
+    nInst = Gia_AigerReadInt(cur); cur += 4;
+    if ( nFile < 1 || nFile > (end-cur)/6 || nInst < 0 || nInst > nLits ) return NULL;
+    cells = Mio_CollectRootsNewDefault2(6, &nCells, 0);
+    if ( !cells ) return NULL;
+    ids = ABC_FALLOC(int, nFile);
+    sizes = ABC_ALLOC(int, nFile);
+    for ( i = 0; i < nFile; ++i )
+    {
+        const char * name = Gia_AigerCellString(&cur, end);
+        const char * output = Gia_AigerCellString(&cur, end);
+        Mio_Gate_t * g = NULL;
+        if ( !name || !output || end-cur < 4 ) goto done;
+        sizes[i] = Gia_AigerReadInt(cur); cur += 4;
+        if ( sizes[i] < 0 || sizes[i] > 6 ) goto done;
+        for ( j = 0; j < nCells; ++j )
+            if ( !strcmp(cells[j].pName, name) && cells[j].nFanins == sizes[i] )
+            {
+                g = (Mio_Gate_t *)cells[j].pMioGate;
+                if ( !strcmp(Mio_GateReadOutName(g), output) ) ids[i] = j;
+                break;
+            }
+        for ( k = 0; k < sizes[i]; ++k )
+        {
+            const char * pin = Gia_AigerCellString(&cur, end);
+            if ( !pin ) goto done;
+            if ( ids[i] >= 0 && strcmp(Mio_GateReadPinName(g, k), pin) ) ids[i] = -1;
+        }
+    }
+    v = Vec_IntStart(nLits);
+    for ( i = 0; i < nInst; ++i )
+    {
+        if ( end-cur < 8 ) goto done;
+        gate = Gia_AigerReadInt(cur); root = Gia_AigerReadInt(cur+4); cur += 8;
+        if ( gate < 0 || gate >= nFile || ids[gate] < 0 || root < 2 || root >= nLits ||
+             Vec_IntEntry(v, root) || Gia_ObjIsCo(Gia_ManObj(p, root>>1)) || end-cur < 4*sizes[gate] ) goto done;
+        if ( ids[gate] == 3 && sizes[gate] == 1 && Gia_AigerReadInt(cur) == (root^1) )
+        {
+            if ( !Gia_AigerCellDefined(p, v, root^1) ) goto done;
+            Vec_IntWriteEntry(v, root, -1); cur += 4;
+            continue;
+        }
+        if ( !Gia_ObjIsAnd(Gia_ManObj(p, root>>1)) ) goto done;
+        Vec_IntWriteEntry(v, root, Vec_IntSize(v));
+        Vec_IntPush(v, sizes[gate]);
+        for ( k = 0; k < sizes[gate]; ++k )
+        {
+            fan = Gia_AigerReadInt(cur); cur += 4;
+            if ( fan < 0 || (fan>>1) >= (root>>1) || !Gia_AigerCellDefined(p, v, fan) ) goto done;
+            Vec_IntPush(v, fan);
+        }
+        Vec_IntPush(v, ids[gate]);
+    }
+    if ( cur != end ) goto done;
+    Gia_ManForEachCo(p, obj, i)
+        if ( !Gia_AigerCellDefined(p, v, Gia_ObjFaninLit0p(p, obj)) ) goto done;
+    result = v; v = NULL;
+done:
+    Vec_IntFreeP(&v);
+    ABC_FREE(ids); ABC_FREE(sizes); ABC_FREE(cells);
+    return result;
 }
 
 int Gia_AigerWriteCellMappingInstance( Gia_Man_t * p, unsigned char * pBuffer, int nSize2, int i )

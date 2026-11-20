@@ -368,7 +368,7 @@ void Sfm_NtkPrint( Sfm_Ntk_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
+int Sfm_NtkPerformTimed( Sfm_Ntk_t * p, Sfm_Par_t * pPars, abctime Deadline )
 {
     int i, k, Counter = 0, CounterLarge = 0, nNodesTried = 0;
     //Sfm_NtkPrint( p );
@@ -399,7 +399,8 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
             CounterLarge++;
             continue;
         }
-        for ( k = 0; Sfm_NodeResub(p, i); k++ )
+        if ( Deadline && Abc_ClockHr() >= Deadline ) break;
+        for ( k = 0; (!Deadline || Abc_ClockHr() < Deadline) && Sfm_NodeResub(p, i); k++ )
         {
 //            Counter++;
 //            break;
@@ -417,6 +418,16 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
         Sfm_NtkPrintStats( p );
     //Sfm_NtkPrint( p );
     return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Optimizes the mapped network without a deadline.]
+
+***********************************************************************/
+int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
+{
+    return Sfm_NtkPerformTimed(p, pPars, 0);
 }
 
 ////////////////////////////////////////////////////////////////////////

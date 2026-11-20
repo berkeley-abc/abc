@@ -43,8 +43,10 @@ ABC_NAMESPACE_HEADER_START
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== utilSignal.c ==========================================================*/
+//=== utilFile.c =============================================================
+extern int       Util_TempFileOpen( const char * pPrefix, const char * pSuffix, char ** ppName, int fPrivate );
 
+/*=== utilSignal.c ==========================================================*/
 extern int       Util_SignalTmpFile(const char* prefix, const char* suffix, char** out_name);
 extern void      Util_SignalTmpFileRemove(const char* fname, int fLeave);
 extern int       Util_SignalSystem(const char* cmd);

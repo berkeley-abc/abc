@@ -86,6 +86,7 @@ struct Nf_Obj_t_
 typedef struct Nf_Man_t_ Nf_Man_t; 
 struct Nf_Man_t_
 {
+    abctime         Deadline;       // Wall-clock cutoff for a speculative mapping pass.
     // user data
     Gia_Man_t *     pGia;           // derived manager
     Tim_Man_t *     pManTim;        // timing manager
@@ -378,13 +379,17 @@ Nf_Man_t * Nf_StoCreate( Gia_Man_t * pGia, Jf_Par_t * pPars, Mio_Library_t * pLi
     int i, Entry;
     assert( pPars->nCutNum > 1  && pPars->nCutNum <= NF_CUT_MAX );
     assert( pPars->nLutSize > 1 && pPars->nLutSize <= NF_LEAF_MAX );
-    ABC_FREE( pGia->pRefs );
-    Vec_IntFreeP( &pGia->vCellMapping );
     if ( Gia_ManHasChoices(pGia) )
         Gia_ManSetPhase(pGia);
     // create
     p = ABC_CALLOC( Nf_Man_t, 1 );
     p->clkStart = Abc_Clock();
+    Mio_LibraryMatchesFetch( pLib, &p->vTtMem, &p->vTt2Match, &p->pCells, &p->nCells, pPars->fPinFilter, pPars->fPinPerm, pPars->fPinQuick );
+    if ( p->pCells == NULL )
+    {
+        ABC_FREE( p );
+        return NULL;
+    }
     p->pGia     = pGia;
     p->pManTim  = (Tim_Man_t *)pGia->pManTime;
     p->pPars    = pPars;
@@ -409,9 +414,6 @@ Nf_Man_t * Nf_StoCreate( Gia_Man_t * pGia, Jf_Par_t * pPars, Mio_Library_t * pLi
     }
     Vec_IntFree(vFlowRefs);
     // matching
-    Mio_LibraryMatchesFetch( pLib, &p->vTtMem, &p->vTt2Match, &p->pCells, &p->nCells, p->pPars->fPinFilter, p->pPars->fPinPerm, p->pPars->fPinQuick );
-    if ( p->pCells == NULL )
-        return NULL;
     p->InvDelayI = p->pCells[3].iDelays[0];
     p->InvAreaW  = p->pCells[3].AreaW;
     p->InvAreaF  = p->pCells[3].AreaF;
@@ -969,7 +971,8 @@ void Nf_ManComputeCuts( Nf_Man_t * p )
     if ( p->pManTim )
         Tim_ManIncrementTravId( p->pManTim );    
     Gia_ManForEachObjWithBoxes( p->pGia, pObj, i )
-        if ( Gia_ObjIsBuf(pObj) )
+        if ( p->Deadline && !(i & 31) && Abc_ClockHr() >= p->Deadline ) return;
+        else if ( Gia_ObjIsBuf(pObj) )
         {
             iFanin = Gia_ObjFaninId0(pObj, i);
             Nf_ObjSetCutFlow( p, i,  Nf_ObjCutFlow(p, iFanin) );
@@ -1432,7 +1435,8 @@ void Nf_ManComputeMapping( Nf_Man_t * p )
     if ( p->pManTim )
         Tim_ManIncrementTravId( p->pManTim );    
     Gia_ManForEachObjWithBoxes( p->pGia, pObj, i )
-        if ( Gia_ObjIsBuf(pObj) )
+        if ( p->Deadline && !(i & 31) && Abc_ClockHr() >= p->Deadline ) return;
+        else if ( Gia_ObjIsBuf(pObj) )
             Nf_ObjPrepareBuf( p, pObj );
         else if ( Gia_ObjIsAnd(pObj) )
             Nf_ManCutMatch( p, i );
@@ -1482,7 +1486,7 @@ void Nf_ManSetOutputRequireds( Nf_Man_t * p, int fPropCompl )
     {
         if ( p->pPars->MapDelay < p->pPars->MapDelayTarget )
             p->pPars->MapDelay = p->pPars->MapDelayTarget;
-        else if ( p->pPars->nRelaxRatio == 0 )
+        else if ( !p->Deadline && p->pPars->nRelaxRatio == 0 )
             Abc_Print( 0, "Relaxing user-specified delay target from %.2f to %.2f.\n", Scl_Int2Flt(p->pPars->MapDelayTarget), Scl_Int2Flt(p->pPars->MapDelay) );
     }
     //assert( p->pPars->MapDelayTarget == 0 );
@@ -2040,6 +2044,7 @@ void Nf_ManComputeMappingEla( Nf_Man_t * p )
     Nf_ManSetOutputRequireds( p, 1 );
     Gia_ManForEachObjReverseWithBoxes( p->pGia, pObj, i )
     {
+        if ( p->Deadline && !(i & 31) && Abc_ClockHr() >= p->Deadline ) return;
         if ( Gia_ObjIsBuf(pObj) )
         {
             if ( Nf_ObjMapRefNum(p, i, 1) )
@@ -2411,7 +2416,6 @@ Gia_Man_t * Nf_ManDeriveMapping( Nf_Man_t * p )
     Vec_Int_t * vMapping;
     Nf_Mat_t * pM;
     int i, k, c, Id, iVar, fCompl, * pCut;
-    assert( p->pGia->vCellMapping == NULL );
     vMapping = Vec_IntAlloc( 2*Gia_ManObjNum(p->pGia) + (int)p->pPars->Edge + (int)p->pPars->Area * 2 );
     Vec_IntFill( vMapping, 2*Gia_ManObjNum(p->pGia), 0 );
     // create CI inverters
@@ -2449,6 +2453,9 @@ Gia_Man_t * Nf_ManDeriveMapping( Nf_Man_t * p )
         }
     }
 //    assert( Vec_IntCap(vMapping) == 16 || Vec_IntSize(vMapping) == Vec_IntCap(vMapping) );
+    // Replace the incumbent only after a complete cover has been derived.
+    ABC_FREE( p->pGia->pRefs );
+    Vec_IntFreeP( &p->pGia->vCellMapping );
     p->pGia->vCellMapping = vMapping;
     if ( p->pPars->ZFile ) {
         if ( p->pPars->nMaxMatches )
@@ -2707,19 +2714,42 @@ void Nf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->nCutNumMax   =  NF_CUT_MAX;
     pPars->MapDelayTarget = 0;
 }
-Gia_Man_t * Nf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars, Mio_Library_t * pLib )
+/**Function*************************************************************
+
+  Synopsis    [Maps with the supplied cell library and optional wall-clock limit.]
+
+***********************************************************************/
+static Gia_Man_t * Nf_ManPerformMappingIntTimed( Gia_Man_t * pGia, Jf_Par_t * pPars, Mio_Library_t * pLib, abctime Deadline )
 {
     Gia_Man_t * pNew = NULL, * pCls;
-    Nf_Man_t * p; int i, Id;
+    Nf_Man_t * p; int i, Id, Stable = 0;
+    float PreviousArea = 0;
+    abctime StartEla, LastEla = 0;
     if ( Gia_ManHasChoices(pGia) || pGia->pManTime )
         pPars->fCoarsen = 0;     
-    pCls = pPars->fCoarsen ? Gia_ManDupMuxes(pGia, pPars->nCoarseLimit) : pGia;
+    pCls = pGia;
+    if ( pPars->fCoarsen )
+    {
+        // Coarsening builds its own fanout counts on the input manager.
+        int * pRefs = pGia->pRefs;
+        if ( Deadline ) pGia->pRefs = NULL;
+        pCls = Gia_ManDupMuxes(pGia, pPars->nCoarseLimit);
+        if ( Deadline )
+        {
+            ABC_FREE(pGia->pRefs);
+            pGia->pRefs = pRefs;
+        }
+    }
     // Convert the command-line delay target to the mapper's fixed-point units.
     if ( pPars->DelayTarget > 0 )
         pPars->MapDelayTarget = Scl_Flt2Int(pPars->DelayTarget);
     p = Nf_StoCreate( pCls, pPars, pLib );
     if ( p == NULL )
+    {
+        if ( pCls != pGia ) Gia_ManStop(pCls);
         return NULL;
+    }
+    p->Deadline = Deadline;
 //    if ( p->pManTim ) Tim_ManPrint( p->pManTim );
     p->pGia->iFirstNonPiId = p->pManTim ? Tim_ManPiNum(p->pManTim) : Gia_ManCiNum(p->pGia);
     p->pGia->iFirstPoId    = p->pManTim ? Gia_ManCoNum(p->pGia) - Tim_ManPoNum(p->pManTim) : 0;
@@ -2734,6 +2764,7 @@ Gia_Man_t * Nf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars, Mio_Lib
     }
     Nf_ManPrintInit( p );
     Nf_ManComputeCuts( p );
+    if ( Deadline && Abc_ClockHr() >= Deadline ) goto timeout;
     Nf_ManPrintQuit( p );
     if ( Scl_ConIsRunning() )
     {
@@ -2749,6 +2780,7 @@ Gia_Man_t * Nf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars, Mio_Lib
     for ( p->Iter = 0; p->Iter < p->pPars->nRounds; p->Iter++ )
     {
         Nf_ManComputeMapping( p );
+        if ( Deadline && Abc_ClockHr() >= Deadline ) goto timeout;
         Nf_ManSetMapRefs( p );
         Nf_ManPrintStats( p, (char *)(p->Iter ? "Area " : "Delay") );
     }
@@ -2756,9 +2788,20 @@ Gia_Man_t * Nf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars, Mio_Lib
     p->fUseEla = 1;
     for ( ; p->Iter < p->pPars->nRounds + pPars->nRoundsEla; p->Iter++ )
     {
+        StartEla = Deadline ? Abc_ClockHr() : 0;
+        if ( Deadline && LastEla && Deadline-StartEla <= LastEla + LastEla/4 ) break;
         Nf_ManComputeMappingEla( p );
+        if ( Deadline && Abc_ClockHr() >= Deadline ) goto timeout;
         Nf_ManUpdateStats( p );
         Nf_ManPrintStats( p, "Ela  " );
+        // Timed NF2 falls back here when a library has no native patterns.
+        if ( Deadline )
+        {
+            LastEla = Abc_ClockHr()-StartEla;
+            Stable = p->Iter > pPars->nRounds && pPars->MapAreaF >= 0.9995f * PreviousArea ? Stable+1 : 0;
+            PreviousArea = pPars->MapAreaF;
+            if ( Stable >= 2 ) break;
+        }
     }
     Nf_ManFixPoDrivers( p );
     pNew = Nf_ManDeriveMapping( p );
@@ -2771,8 +2814,22 @@ Gia_Man_t * Nf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars, Mio_Lib
 */
     Nf_StoDelete( p );
     return pNew;
+timeout:
+    Nf_StoDelete(p);
+    if ( pCls != pGia ) Gia_ManStop(pCls);
+    return NULL;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Maps with the supplied cell library without a deadline.]
+
+***********************************************************************/
+Gia_Man_t * Nf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars, Mio_Library_t * pLib )
+{
+    return Nf_ManPerformMappingIntTimed(pGia, pPars, pLib, 0);
+}
 
 /**Function*************************************************************
 
@@ -2849,6 +2906,114 @@ void Gia_ManCellMappingVerify( Gia_Man_t * p )
 //        Abc_Print( 1, "Mapping verified correctly.\n" );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Counts live cells and propagates pin delays through the cover.]
+
+  Description [Collect the actual output cones. Forward timing uses the same fixed pin
+  delays as NF and charges the named library cell once per live instance.
+  Supplying legal pin swaps enables in-place pin optimization.]
+
+***********************************************************************/
+int Gia_ManMeasureCellMapping( Gia_Man_t * g, const Mio_Cell2_t * pLib, int nGates,
+                               const Gia_CellPinSwaps_t * pSwaps, double * pArea, int * pDelay, int * pCells )
+{
+    int * arrival, * counts, n, id, lit, pass, i, k, fan, size, gate, off;
+    unsigned char * live;
+    Gia_Obj_t * obj;
+    int ok = 0;
+    if ( !g || !g->vCellMapping || !pLib || nGates < 4 ) return 0;
+    n = Gia_ManObjNum(g);
+    if ( Vec_IntSize(g->vCellMapping) < 2*n ) return 0;
+    live = ABC_CALLOC(unsigned char, 2*n);
+    arrival = ABC_CALLOC(int, 2*n);
+    counts = ABC_CALLOC(int, nGates);
+    if ( !live || !arrival || !counts ) goto done;
+    *pArea = 0; *pDelay = *pCells = 0;
+    Gia_ManForEachCo(g, obj, i) live[Gia_ObjFaninLit0p(g, obj)] = 1;
+    for ( id = n-1; id > 0; --id )
+    {
+        if ( live[2*id] && Gia_ObjIsCellInv(g, 2*id) ) live[2*id+1] = 1;
+        if ( live[2*id+1] && Gia_ObjIsCellInv(g, 2*id+1) ) live[2*id] = 1;
+        for ( lit = 2*id; lit <= 2*id+1; ++lit )
+        {
+            if ( !live[lit] ) continue;
+            off = Vec_IntEntry(g->vCellMapping, lit);
+            if ( off == -1 )
+            {
+                if ( Gia_ObjIsCellInv(g, lit^1) ) goto done;
+                continue;
+            }
+            if ( !off && !(lit&1) && Gia_ObjIsCi(Gia_ManObj(g,id)) ) continue;
+            if ( off < 2*n || off >= Vec_IntSize(g->vCellMapping) || !Gia_ObjIsAnd(Gia_ManObj(g,id)) ) goto done;
+            size = Gia_ObjCellSize(g, lit);
+            if ( size < 0 || size > 6 || off > Vec_IntSize(g->vCellMapping)-2-size ) goto done;
+            gate = Gia_ObjCellId(g, lit);
+            if ( gate < 0 || gate >= nGates || pLib[gate].nFanins != size ) goto done;
+            Gia_CellForEachFanin(g, lit, fan, k)
+            {
+                if ( fan < 0 || (fan>>1) >= id ) goto done;
+                live[fan] = 1;
+            }
+        }
+    }
+    for ( id = 1; id < n; ++id )
+        for ( pass = 0; pass < 2; ++pass )
+        {
+            lit = 2*id + (pass ^ Gia_ObjIsCellInv(g, 2*id));
+            if ( !live[lit] || !Gia_ObjIsCell(g, lit) ) continue;
+            if ( Gia_ObjIsCellInv(g, lit) )
+            {
+                gate = 3;
+                arrival[lit] = arrival[lit^1] + pLib[gate].iDelays[0];
+            }
+            else
+            {
+                gate = Gia_ObjCellId(g, lit);
+                if ( pSwaps )
+                {
+                    const Gia_CellPinSwaps_t * s = pSwaps + gate;
+                    int * pins = Gia_ObjCellFanins(g, lit);
+                    for ( k = 0; k < s->Count; ++k )
+                        if ( arrival[pins[s->Fast[k]]] < arrival[pins[s->Slow[k]]] )
+                            ABC_SWAP(int, pins[s->Fast[k]], pins[s->Slow[k]]);
+                }
+                Gia_CellForEachFanin(g, lit, fan, k)
+                    arrival[lit] = Abc_MaxInt(arrival[lit], arrival[fan] + pLib[gate].iDelays[k]);
+            }
+            ++counts[gate]; ++(*pCells);
+        }
+    // A nonzero-area tie cell is shared by all users of its constant.
+    for ( i = 0; i < 2; ++i )
+        if ( live[i] && Mio_GateReadArea((Mio_Gate_t *)pLib[i].pMioGate) > 0 )
+        { ++counts[i]; ++(*pCells); }
+    for ( i = 0; i < nGates; ++i )
+        *pArea += counts[i] * Mio_GateReadArea((Mio_Gate_t *)pLib[i].pMioGate);
+    Gia_ManForEachCo(g, obj, i)
+        *pDelay = Abc_MaxInt(*pDelay, arrival[Gia_ObjFaninLit0p(g, obj)]);
+    ok = 1;
+done:
+    ABC_FREE(live); ABC_FREE(arrival); ABC_FREE(counts);
+    return ok;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints the area, delay and cell count with the active library.]
+
+***********************************************************************/
+void Gia_ManPrintCellMappingStats( Gia_Man_t * g )
+{
+    Mio_Cell2_t * pLib;
+    double Area;
+    int nGates, Delay, Cells;
+    if ( !Gia_ManHasCellMapping(g) || !Abc_FrameReadGlobalFrame() || !Abc_FrameReadLibGen() ) return;
+    pLib = Mio_CollectRootsNewDefault2(6, &nGates, 0);
+    if ( pLib && Gia_ManMeasureCellMapping(g, pLib, nGates, NULL, &Area, &Delay, &Cells) )
+        Abc_Print(1, "Cell mapping: cells = %d  area = %.9f  delay = %.3f\n", Cells, Area, (double)Delay/SCL_NUM);
+    ABC_FREE(pLib);
+}
+
 void Gia_ManTransferCellMapping( Gia_Man_t * p, Gia_Man_t * pGia )
 {
     int iLit, iLitNew, k, iFanLit, iPlace;
@@ -2899,9 +3064,11 @@ void Gia_ManTransferCellMapping( Gia_Man_t * p, Gia_Man_t * pGia )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Nf_ManPerformMappingWithLib( Gia_Man_t * p, Jf_Par_t * pPars, Mio_Library_t * pLib )
+Gia_Man_t * Nf_ManPerformMappingWithLibTimed( Gia_Man_t * p, Jf_Par_t * pPars, Mio_Library_t * pLib, abctime Deadline )
 {
-    Gia_Man_t * pNew;
+    Gia_Man_t * pNew, * pOrig = p;
+    if ( !p || !pPars || !pLib || (Deadline && Abc_ClockHr() >= Deadline) )
+        return NULL;
     if ( p->pManTime && Tim_ManBoxNum((Tim_Man_t*)p->pManTime) && Gia_ManIsNormalized(p) )
     {
         pNew = Gia_ManDupUnnormalize( p );
@@ -2910,7 +3077,13 @@ Gia_Man_t * Nf_ManPerformMappingWithLib( Gia_Man_t * p, Jf_Par_t * pPars, Mio_Li
         Gia_ManTransferTiming( pNew, p );
         p = pNew;
         // mapping
-        pNew = Nf_ManPerformMappingInt( p, pPars, pLib );
+        pNew = Nf_ManPerformMappingIntTimed( p, pPars, pLib, Deadline );
+        if ( !pNew )
+        {
+            Gia_ManTransferTiming( pOrig, p );
+            Gia_ManStop( p );
+            return NULL;
+        }
         if ( pNew != p )
         {
             Gia_ManTransferTiming( pNew, p );
@@ -2925,7 +3098,8 @@ Gia_Man_t * Nf_ManPerformMappingWithLib( Gia_Man_t * p, Jf_Par_t * pPars, Mio_Li
     }
     else 
     {
-        pNew = Nf_ManPerformMappingInt( p, pPars, pLib );
+        pNew = Nf_ManPerformMappingIntTimed( p, pPars, pLib, Deadline );
+        if ( !pNew ) return NULL;
         Gia_ManTransferTiming( pNew, p );
         //Gia_ManCellMappingVerify( pNew );
         // remove choices after mapping
@@ -2935,6 +3109,26 @@ Gia_Man_t * Nf_ManPerformMappingWithLib( Gia_Man_t * p, Jf_Par_t * pPars, Mio_Li
     //pNew->MappedDelay = (int)((If_Par_t *)pp)->FinalDelay;
     //pNew->MappedArea  = (int)((If_Par_t *)pp)->FinalArea;
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Maps with the supplied standard-cell library to completion.]
+
+***********************************************************************/
+Gia_Man_t * Nf_ManPerformMappingWithLib( Gia_Man_t * p, Jf_Par_t * pPars, Mio_Library_t * pLib )
+{
+    return Nf_ManPerformMappingWithLibTimed( p, pPars, pLib, 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Maps with the active frame's library under a wall-clock deadline.]
+
+***********************************************************************/
+Gia_Man_t * Nf_ManPerformMappingTimed( Gia_Man_t * p, Jf_Par_t * pPars, abctime Deadline )
+{
+    return Nf_ManPerformMappingWithLibTimed( p, pPars, (Mio_Library_t *)Abc_FrameReadLibGen(), Deadline );
 }
 
 /**Function*************************************************************

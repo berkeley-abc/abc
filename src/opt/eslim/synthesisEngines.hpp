@@ -34,7 +34,7 @@ namespace eSLIM {
 
   class Relation;
   class Subcircuit;
-  class eSLIMConfig;
+  struct eSLIMConfig;
   class eSLIMLog;
 
   class AreaMinimizer {

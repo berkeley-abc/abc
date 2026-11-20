@@ -61,7 +61,6 @@ extern void   Lms_KernelStop( void * pData );
 
 // === abcRec3.c =======================================================
 // Borrowed library data remains valid until the active manager changes.
-extern int Abc_RecTargetReady3( void );
 extern int Abc_RecTargetCost3( word, int, const int *, int *, Lms_CutMatch_t * );
 extern int Abc_RecTargetData3( const unsigned char **, const word ** );
 extern int Abc_RecTargetProfiles3( int, const int ** );

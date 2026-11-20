@@ -32,6 +32,7 @@
 #include "aig/gia/gia.h"
 #include "misc/util/utilTruth.h"
 #include "misc/mem/mem.h"
+#include "misc/extra/extraUtilFlow.h"
 #include <float.h>
 #include <limits.h>
 
@@ -63,6 +64,7 @@ typedef struct Lmo_Cache_t_
 {
     Lmo_Memo_t ** pBins;
     int nBins, Clock, fLibrary, Pass;
+    abctime Deadline;
     size_t Bytes, Limit;
     word Hits, CrossHits, Misses, Evictions;
     Vec_Int_t * vPrograms, * vOffsets;
@@ -78,6 +80,7 @@ typedef struct Lmo_Man_t_
     word * pCandidateBins, * pMergedVersions, * pReplayVersion;
     int nCandidateBins, nCandidateSkips, nReplaySkips, fSkipTarget;
     int fInMerged;
+    unsigned nTimeChecks;
     word Builds[3], DuplicateOrigins[2];
     int nCutBins, nCutMemos, nWindowSkips, nResubSkips, nLibrarySkips;
     int * pLevels, * pReverse, * pSeen, * pSelected, * pNeeded, * pTruthIds;
@@ -118,6 +121,16 @@ typedef struct Lmo_Man_t_
 
 /**Function*************************************************************
 
+  Synopsis    [Checks the optional deadline shared by the LMS search passes.]
+
+***********************************************************************/
+static inline int Lmo_Expired( Lmo_Man_t * p )
+{
+    return p->pCache->Deadline && Abc_ClockHr() >= p->pCache->Deadline;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Charge elapsed profiling time to the previous category.]
 
 ***********************************************************************/
@@ -136,7 +149,6 @@ static int Lmo_TimeSwitch( Lmo_Man_t * p, int Category )
 extern void Abc_ResubPrepareManager( int nWords );
 extern int Abc_ResubComputeFunctions( void **, int, int, int, int, int, int,
     int, int, int, int, Vec_Wec_t *, int *, abctime *, abctime *, abctime *, int *, int * );
-extern int Abc_NtkRecStartBuiltin3( FILE *, FILE * );
 
 /**Function*************************************************************
 
@@ -918,7 +930,7 @@ static void Lmo_Library( Lmo_Man_t * p, word Truth, int n, int * pTimes )
     int i, k, Po, nPos, Area, Delay, Arrival, Offset, Count, a, b, Root, Variant, Goal, Previous, Lit, * pCode;
     int Lits[70];
     word Values[70];
-    if ( !p->pLibAreas ) goto done;
+    if ( !p->pLibAreas || Lmo_Expired(p) ) goto done;
     Previous = Lmo_TimeSwitch(p, LMO_TIME_MATCH);
     Delay = Abc_RecTargetCost3(Truth, n, pTimes, &Area, &Match);
     Lmo_TimeSwitch(p, Previous);
@@ -1093,6 +1105,7 @@ static int Lmo_MergedCut( void * pData, int Root, int nLeaves,
     Lmo_Man_t * p = (Lmo_Man_t *)pData;
     Lmo_Cut_t Cut;
     int i, w, Times[6], SkipTarget = 0;
+    if ( p->pCache->Deadline && !(p->nTimeChecks++ & 63) && Lmo_Expired(p) ) return -1;
     (void)pMatch;
     if ( p->pFocus && !p->pFocus[Root] ) return 1;
     if ( nLeaves > p->CutSize || (!p->fCompose && !Lmo_IsCritical(p, Root)) ) return 1;
@@ -1168,6 +1181,7 @@ static int Lmo_RememberMerged( void * pData, int Root, int nLeaves,
 {
     Lmo_Man_t * p = (Lmo_Man_t *)pData;
     int i;
+    if ( p->pCache->Deadline && !(p->nTimeChecks++ & 63) && Lmo_Expired(p) ) return -1;
     (void)pMatch;
     if ( p->pFocus && !p->pFocus[Root] ) return 1;
     if ( p->pBankCone && !p->pBankCone[Root] ) return 1;
@@ -1198,7 +1212,7 @@ static int Lmo_EnumerateMerged( Lmo_Man_t * p, Gia_Man_t * pCuts, Lms_CutVisit_t
     for ( i = 0; i < Gia_ManObjNum(pCuts); ++i )
         pLimits[i] = pCone ? (pCone[i] ? Cuts : 1) : p->pBankCone && !p->pBankCone[i] ? 1 :
             (Lmo_IsCritical(p, i) || p->fFullHelpers ? Cuts : Abc_MinInt(Cuts, 8));
-    Result = Lms_CutsCollectBudgeted(pCuts, Cuts, pLimits, Abc_RecTargetCost3, pVisit, p, 0);
+    Result = Lms_CutsCollectBudgetedTimed(pCuts, Cuts, pLimits, Abc_RecTargetCost3, pVisit, p, 0, p->pCache->Deadline);
     ABC_FREE(pLimits);
     return Result;
 }
@@ -1253,7 +1267,7 @@ static void Lmo_CollectMerged( Lmo_Man_t * p )
     int TimePrevious = Lmo_TimeSwitch(p, LMO_TIME_REPLAY);
     int i, k, Root, nLeaves, Previous, InMerged = p->fInMerged;
     p->fInMerged = 1;
-    if ( !p->pLibAreas ) goto done;
+    if ( !p->pLibAreas || Lmo_Expired(p) ) goto done;
     if ( !p->vMerged && !p->fMergedDirect )
     {
         p->vMerged = Vec_IntAlloc(1000);
@@ -1274,6 +1288,7 @@ static void Lmo_CollectMerged( Lmo_Man_t * p )
     }
     if ( p->fMergedDirect )
     {
+        if ( Lmo_Expired(p) ) goto done;
         Previous = Lmo_TimeSwitch(p, LMO_TIME_BANK);
         Lmo_EnumerateMerged(p, p->pGia, Lmo_MergedCut);
         Lmo_TimeSwitch(p, Previous);
@@ -1283,6 +1298,7 @@ static void Lmo_CollectMerged( Lmo_Man_t * p )
     // original-divisor, modest-composition, and aggressive-composition rounds.
     for ( i = k = 0; i < Vec_IntSize(p->vMerged); ++k )
     {
+        if ( !(k & 127) && Lmo_Expired(p) ) break;
         Root = Vec_IntEntry(p->vMerged, i++);
         nLeaves = Vec_IntEntry(p->vMerged, i++);
         p->pReplayVersion = p->pMergedVersions ? p->pMergedVersions+2*k : NULL;
@@ -1311,6 +1327,7 @@ static void Lmo_Collect( Lmo_Man_t * p, int fSideCones )
     int Root, nCuts, i, k, j, v, a, b, Id, Found;
     Gia_ManForEachAnd(p->pGia, pObj, Root)
     {
+        if ( !(Root & 15) && Lmo_Expired(p) ) break;
         if ( p->pFocus ? !p->pFocus[Root] :
              (!Lmo_IsCritical(p, Root) || (p->fUncovered && !p->pNeeded[Root])) ) continue;
         p->Root = Root;
@@ -1399,27 +1416,6 @@ static void Lmo_Uncovered( Lmo_Man_t * p )
     ABC_FREE(pReach);
 }
 
-typedef struct Lmo_Edge_t_ { int To, Next; word Cap; } Lmo_Edge_t;
-typedef struct Lmo_Flow_t_
-{
-    int * pHeads, * pParents, * pQueue;
-    Lmo_Edge_t * pEdges;
-    int n, nEdges;
-} Lmo_Flow_t;
-
-/**Function*************************************************************
-
-  Synopsis    [Add a capacity edge and its reverse edge to the flow graph.]
-
-***********************************************************************/
-static void Lmo_Edge( Lmo_Flow_t * f, int a, int b, word Cap )
-{
-    int e = f->nEdges;
-    f->pEdges[e].To = b; f->pEdges[e].Next = f->pHeads[a]; f->pEdges[e].Cap = Cap;
-    f->pEdges[e+1].To = a; f->pEdges[e+1].Next = f->pHeads[b]; f->pEdges[e+1].Cap = 0;
-    f->pHeads[a] = e; f->pHeads[b] = e+1; f->nEdges += 2;
-}
-
 // The initial infinite-capacity graph is acyclic, so one topological pass
 // decides whether any input-to-output path cannot be cut by a candidate.
 // This test includes the currently excluded edge alternatives in SAT search.
@@ -1469,37 +1465,34 @@ static int Lmo_InfinitePath( Lmo_Man_t * p )
 ***********************************************************************/
 static int Lmo_Select( Lmo_Man_t * p )
 {
-    Lmo_Flow_t F, * f = &F;
+    Extra_Flow_t F, * f = &F;
     Gia_Obj_t * pObj;
-    int Id, i, k, a, b, e, Head, Tail, Source, Sink, Count = 0, n = Gia_ManObjNum(p->pGia);
+    int Id, k, a, Source, Sink, Count = 0, n = Gia_ManObjNum(p->pGia);
     word Inf = ABC_CONST(0x4000000000000000), Flow = 0, Delta;
     word Scale = (word)n*(p->pEdgeBest ? 3 : 1)+1;
-    if ( Lmo_InfinitePath(p) )
+    int fInfinitePath = Lmo_InfinitePath(p);
+    Source = 2*n; Sink = Source+1;
+    if ( fInfinitePath || !Extra_FlowStart(f, Sink+1, (size_t)4*n+1) )
     {
         memset(p->pSelected, 0xFF, sizeof(int)*n);
         if ( p->pEdgeBest ) memset(p->pEdgeSelected, 0xFF, sizeof(int)*2*n);
-        ++p->nInfinitePaths; p->CutCost = Inf;
+        if ( fInfinitePath ) ++p->nInfinitePaths;
+        else Abc_Print( -1, "LMS2: Cannot allocate the critical-cut graph.\n" );
+        p->CutCost = Inf;
         return -1;
     }
-    memset(f, 0, sizeof(*f));
-    f->n = 2*n+2; Source = 2*n; Sink = Source+1;
-    f->pHeads = ABC_ALLOC(int, f->n);
-    f->pParents = ABC_ALLOC(int, f->n);
-    f->pQueue = ABC_ALLOC(int, f->n);
-    f->pEdges = ABC_ALLOC(Lmo_Edge_t, (size_t)8*n+2);
-    for ( i = 0; i < f->n; ++i ) f->pHeads[i] = -1;
     Gia_ManForEachObj(p->pGia, pObj, Id)
     {
         if ( Gia_ObjIsCo(pObj) )
         {
             a = Gia_ObjFaninId0p(p->pGia, pObj);
-            if ( p->pLevels[a] == p->Depth ) Lmo_Edge(f, 2*a+1, Sink, Inf);
+            if ( p->pLevels[a] == p->Depth ) Extra_FlowAdd(f, 2*a+1, Sink, Inf);
             continue;
         }
         if ( !Lmo_IsCritical(p, Id) ) continue;
         Delta = p->pBest[Id].n ? Scale*Abc_MaxInt(0, p->pBest[Id].Costs[0])+1 : Inf;
-        Lmo_Edge(f, 2*Id, 2*Id+1, Delta);
-        if ( !Gia_ObjIsAnd(pObj) ) { Lmo_Edge(f, Source, 2*Id, Inf); continue; }
+        Extra_FlowAdd(f, 2*Id, 2*Id+1, Delta);
+        if ( !Gia_ObjIsAnd(pObj) ) { Extra_FlowAdd(f, Source, 2*Id, Inf); continue; }
         for ( k = 0; k < 2; ++k )
         {
             a = k ? Gia_ObjFaninId1p(p->pGia, pObj) : Gia_ObjFaninId0p(p->pGia, pObj);
@@ -1507,32 +1500,11 @@ static int Lmo_Select( Lmo_Man_t * p )
             Delta = Inf;
             if ( p->pEdgeBest && p->pEdgeIndex[2*Id+k] < p->pEdgeBest[2*Id+k].n )
                 Delta = Scale*Abc_MaxInt(0, p->pEdgeBest[2*Id+k].Costs[p->pEdgeIndex[2*Id+k]])+1;
-            Lmo_Edge(f, 2*a+1, 2*Id, Delta);
+            Extra_FlowAdd(f, 2*a+1, 2*Id, Delta);
         }
     }
-    for ( ;; )
-    {
-        for ( i = 0; i < f->n; ++i ) f->pParents[i] = -1;
-        Head = 0; Tail = 1; f->pQueue[0] = Source; f->pParents[Source] = -2;
-        while ( Head < Tail && f->pParents[Sink] == -1 )
-        {
-            a = f->pQueue[Head++];
-            for ( e = f->pHeads[a]; e >= 0; e = f->pEdges[e].Next )
-            {
-                b = f->pEdges[e].To;
-                if ( !f->pEdges[e].Cap || f->pParents[b] != -1 ) continue;
-                f->pParents[b] = e; f->pQueue[Tail++] = b;
-            }
-        }
-        if ( f->pParents[Sink] == -1 ) break;
-        Delta = Inf;
-        for ( b = Sink; b != Source; b = f->pEdges[e^1].To )
-        { e = f->pParents[b]; if ( Delta > f->pEdges[e].Cap ) Delta = f->pEdges[e].Cap; }
-        Flow += Delta;
-        if ( Flow >= Inf ) { Count = -1; break; }
-        for ( b = Sink; b != Source; b = f->pEdges[e^1].To )
-        { e = f->pParents[b]; f->pEdges[e].Cap -= Delta; f->pEdges[e^1].Cap += Delta; }
-    }
+    Flow = Extra_FlowSolveTimed(f, Source, Sink, Inf, p->pCache->Deadline);
+    if ( Flow >= Inf ) Count = -1;
     for ( Id = 0; Id < n; ++Id )
     {
         p->pSelected[Id] = -1;
@@ -1557,7 +1529,7 @@ static int Lmo_Select( Lmo_Man_t * p )
         }
     }
     p->CutCost = Flow;
-    ABC_FREE(f->pHeads); ABC_FREE(f->pParents); ABC_FREE(f->pQueue); ABC_FREE(f->pEdges);
+    Extra_FlowStop(f);
     return Count;
 }
 
@@ -1611,6 +1583,7 @@ static int Lmo_SatLit( Lmo_Man_t * p, int Lit )
 static int Lmo_Compatible( Lmo_Man_t * p, int Id, int a, int b )
 {
     int Assumptions[3], Result;
+    if ( Lmo_Expired(p) ) return 0;
     if ( Gia_ObjIsXor(Gia_ManObj(p->pGia, Id)) ) return 1;
     Assumptions[0] = Lmo_SatLit(p, 2*Id+1);
     Assumptions[1] = Lmo_SatLit(p, a);
@@ -1666,11 +1639,13 @@ typedef struct Lmo_Search_t_
 static void Lmo_SelectSearch( Lmo_Man_t * p, Lmo_Search_t * s )
 {
     int Count, Conflict, k, n = Gia_ManObjNum(p->pGia);
+    if ( Lmo_Expired(p) ) return;
     if ( !s->Trials-- ) { s->Trials = 0; return; }
     ++p->nCutTrials;
     Count = Lmo_Select(p);
     if ( Count < 0 || p->CutCost >= s->Cost ) return;
     Conflict = Lmo_Conflict(p);
+    if ( Lmo_Expired(p) ) return;
     if ( Conflict < 0 )
     {
         s->Cost = p->CutCost; s->Count = Count;
@@ -1800,6 +1775,7 @@ static Gia_Man_t * Lmo_Refine( Lmo_Man_t * p, Gia_Man_t * pBest, int Trials )
         {
             Saved = p->pSelected[i];
             if ( Saved == p->pBest[i].Lits[k] ) continue;
+            if ( Lmo_Expired(p) ) return pBest;
             p->pSelected[i] = p->pBest[i].Lits[k];
             pTrial = Lmo_Build(p); ++Count;
             if ( Gia_ManAndNum(pTrial) < Gia_ManAndNum(pBest) && Lms_LevelNum(pTrial, p->fXor) < p->Depth )
@@ -1815,6 +1791,7 @@ static Gia_Man_t * Lmo_Refine( Lmo_Man_t * p, Gia_Man_t * pBest, int Trials )
         {
             int Lit = p->pEdgeBest[i].Lits[k], Other = p->pEdgeSelected[i^1];
             Saved = p->pEdgeSelected[i];
+            if ( Lmo_Expired(p) ) return pBest;
             if ( Saved == Lit || (Other >= 0 && !Lmo_Compatible(p, i/2, Lit, Other)) ) continue;
             p->pEdgeSelected[i] = Lit;
             pTrial = Lmo_Build(p); ++Count;
@@ -1833,12 +1810,13 @@ static Gia_Man_t * Lmo_Refine( Lmo_Man_t * p, Gia_Man_t * pBest, int Trials )
   Synopsis    [Run resubstitution without increasing gate count or depth.]
 
 ***********************************************************************/
-static Gia_Man_t * Lmo_RecoverArea( Gia_Man_t * pResult, int CutSize, int Nodes, int fXor )
+static Gia_Man_t * Lmo_RecoverArea( Gia_Man_t * pResult, int CutSize, int Nodes, int fXor, abctime Deadline )
 {
     Gia_Man_t * pRecovered, * pAig = NULL;
+    if ( Deadline && Abc_ClockHr() >= Deadline ) return pResult;
     // Recover area outside the critical graph under the achieved depth.
     if ( fXor && (pResult->pMuxes || Gia_ManXorNum(pResult)) ) pAig = Gia_ManDupNoMuxes(pResult, 0);
-    pRecovered = Rsub_ManPerformEx(pAig ? pAig : pResult, CutSize, Abc_MinInt(Nodes, 3), 1, 1, 0, 0);
+    pRecovered = Rsub_ManPerformTimed(pAig ? pAig : pResult, CutSize, Abc_MinInt(Nodes, 3), 1, 1, 0, 0, Deadline);
     if ( pAig ) Gia_ManStop(pAig);
     if ( pRecovered && fXor )
     {
@@ -1861,7 +1839,7 @@ static Gia_Man_t * Lmo_RecoverArea( Gia_Man_t * pResult, int CutSize, int Nodes,
   Synopsis    [Repeat level-preserving area recovery until no gain remains.]
 
 ***********************************************************************/
-static Gia_Man_t * Lmo_RecoverFinal( Gia_Man_t * pResult, int CutSize, int Nodes, int fXor, int fVerbose, const char * pStage )
+static Gia_Man_t * Lmo_RecoverFinal( Gia_Man_t * pResult, int CutSize, int Nodes, int fXor, int fVerbose, const char * pStage, abctime Deadline )
 {
     int InitialNodes = Gia_ManAndNum(pResult);
     int InitialDepth = Lms_LevelNum(pResult, fXor);
@@ -1869,7 +1847,7 @@ static Gia_Man_t * Lmo_RecoverFinal( Gia_Man_t * pResult, int CutSize, int Nodes
     abctime Start = Abc_Clock();
     for ( ;; )
     {
-        Gia_Man_t * pTrial = Lmo_RecoverArea(Gia_ManDup(pResult), CutSize, Nodes, fXor);
+        Gia_Man_t * pTrial = Lmo_RecoverArea(Gia_ManDup(pResult), CutSize, Nodes, fXor, Deadline);
         ++Sweeps;
         NextDepth = Lms_LevelNum(pTrial, fXor);
         if ( Gia_ManAndNum(pTrial) >= Gia_ManAndNum(pResult) && NextDepth >= Depth )
@@ -1894,7 +1872,7 @@ static Gia_Man_t * Lmo_ImproveBatch( Lmo_Man_t * p, Gia_Man_t * pResult, int Tri
     int Previous;
     pResult = Lmo_Refine(p, pResult, Trials);
     Previous = Lmo_TimeSwitch(p, LMO_TIME_RECOVER);
-    pResult = Lmo_RecoverArea(pResult, p->CutSize, p->Nodes, p->fXor);
+    pResult = Lmo_RecoverArea(pResult, p->CutSize, p->Nodes, p->fXor, p->pCache->Deadline);
     Lmo_TimeSwitch(p, Previous);
     return pResult;
 }
@@ -2146,7 +2124,7 @@ static Gia_Man_t * Lmo_OneSearch( Gia_Man_t * pGia, int CutSize, int Cuts, int N
     Lmo_CollectMerged(p);
     // Keep the cheapest fully recovered feasible batch while adding alternatives.
     // A first feasible cut can be expensive even when it was cheap to find.
-    for ( Round = 0; Round < 6; ++Round )
+    for ( Round = 0; Round < 6 && !Lmo_Expired(p); ++Round )
     {
         Gia_Man_t * pTrial;
         if ( fVerbose && (Round == 2 || Round == 4) )
@@ -2177,6 +2155,7 @@ static Gia_Man_t * Lmo_OneSearch( Gia_Man_t * pGia, int CutSize, int Cuts, int N
         p->fUncovered = Round >= 4 && !pResult;
         if ( p->fUncovered ) Lmo_Uncovered(p);
         Lmo_Collect(p, Round & 1);
+        if ( Lmo_Expired(p) ) break;
         if ( Round == 0 || Round == 2 ) continue;
         Lmo_CostReset(p);
         Count = Lmo_SelectEdges(p);
@@ -2205,10 +2184,10 @@ static Gia_Man_t * Lmo_OneSearch( Gia_Man_t * pGia, int CutSize, int Cuts, int N
     }
     Abc_ResubPrepareManager(0);
     Count = BestCount;
-    if ( !pResult && fEscalate && pfRecovered )
+    if ( !pResult && !Lmo_Expired(p) && fEscalate && pfRecovered )
     {
         int Previous = Lmo_TimeSwitch(p, LMO_TIME_RECOVER);
-        Gia_Man_t * pRecovered = Lmo_RecoverFinal(Gia_ManDup(pGia), CutSize, Nodes, fXor, fVerbose, "before escalation");
+        Gia_Man_t * pRecovered = Lmo_RecoverFinal(Gia_ManDup(pGia), CutSize, Nodes, fXor, fVerbose, "before escalation", pCache->Deadline);
         Lmo_TimeSwitch(p, Previous);
         if ( Gia_ManAndNum(pRecovered) < Gia_ManAndNum(pGia) || Lms_LevelNum(pRecovered, p->fXor) < p->Depth )
         {
@@ -2219,7 +2198,7 @@ static Gia_Man_t * Lmo_OneSearch( Gia_Man_t * pGia, int CutSize, int Cuts, int N
         }
         else Gia_ManStop(pRecovered);
     }
-    if ( !pResult && fEscalate ) pResult = Lmo_Escalate(p, Trials, fVerbose, &Count);
+    if ( !pResult && !Lmo_Expired(p) && fEscalate ) pResult = Lmo_Escalate(p, Trials, fVerbose, &Count);
     if ( fVerbose )
     {
         Abc_Print(1, "LMS2 budgets: cut size %d (delay and recovery), %d cuts/root, %d divisors, %d resub choices, %d alternatives/root.\n",
@@ -2326,17 +2305,18 @@ static Gia_Man_t * Lmo_OnePerform( Gia_Man_t * pGia, int CutSize, int Cuts, int 
   Synopsis    [Iterate weighted critical-path cuts with shared recipe caches.]
 
 ***********************************************************************/
-Gia_Man_t * Lms_TwoPerform( Gia_Man_t * pGia, int StopLevel, int CutSize,
-    int Cuts, int Nodes, int Trials, double AreaGrowth, int fXor, int fEscalate, int fVerbose )
+Gia_Man_t * Lms_TwoPerformTraceTimed( Gia_Man_t * pGia, int StopLevel, int CutSize,
+    int Cuts, int Nodes, int Trials, double AreaGrowth, int fXor, int fEscalate, int fVerbose,
+    int nPassLimit, Lms_TwoVisit_t pVisit, void * pData, abctime Deadline )
 {
     Lmo_Cache_t Cache, * c = &Cache;
     Gia_Man_t * pCurrent, * pNext;
     void * pSaved = NULL;
-    int i, Depth, NextDepth, InitialDepth, InitialNodes, Passes = 0, fPrivate = 0, fAfterRecovery = 0;
+    int i, Depth, NextDepth, InitialDepth, InitialNodes, Passes = 0, fPrivate = 0, fAfterRecovery = 0, fFinalChanged = 0;
     abctime Start = Abc_Clock();
     if ( !pGia || pGia->pManTime || Gia_ManHasChoices(pGia) || Gia_ManBufNum(pGia) || Gia_ManConstrNum(pGia) ||
          (fXor ? Gia_ManMuxNum(pGia) : pGia->pMuxes != NULL || Gia_ManXorNum(pGia)) ||
-         Gia_ManObjNum(pGia) > INT_MAX/8 || StopLevel < -1 || StopLevel >= ABC_INFINITY ||
+         Gia_ManObjNum(pGia) > INT_MAX/8 || StopLevel < -1 || StopLevel >= ABC_INFINITY || nPassLimit < 0 ||
          !(AreaGrowth == -1.0 || (AreaGrowth >= 0.0 && AreaGrowth <= DBL_MAX)) ||
          CutSize < 4 || CutSize > 16 || Cuts < 2 || Cuts > 256 || Nodes < 0 || Nodes > 64 || Trials < 0 || Trials > 10000 )
     {
@@ -2362,25 +2342,27 @@ Gia_Man_t * Lms_TwoPerform( Gia_Man_t * pGia, int StopLevel, int CutSize,
     if ( Depth > Abc_MaxInt(0, StopLevel) )
     {
         abctime RecoverStart = Abc_Clock();
-        pCurrent = Lmo_RecoverArea(pCurrent, CutSize, Nodes, fXor);
+        pCurrent = Lmo_RecoverArea(pCurrent, CutSize, Nodes, fXor, Deadline);
         Depth = Lms_LevelNum(pCurrent, fXor);
         if ( fVerbose )
             Abc_Print(1, "LMS2 input recovery: %d -> %d gates; level %d -> %d; time %.3f s.\n",
                 InitialNodes, Gia_ManAndNum(pCurrent), InitialDepth, Depth, (double)(Abc_Clock()-RecoverStart)/CLOCKS_PER_SEC);
     }
+    if ( pVisit ) pVisit(pData, pCurrent, Depth);
     if ( fXor && Nodes && Depth > Abc_MaxInt(0, StopLevel) )
     {
         if ( !Abc_RecTargetXorStart3(&pSaved, fVerbose) ) { Gia_ManStop(pCurrent); return NULL; }
         fPrivate = 1;
     }
     memset(c, 0, sizeof(*c));
+    c->Deadline = Deadline;
     // Scale slots with the problem count, rather than evicting on almost
     // every miss while most of the memory budget remains unused.
     c->nBins = 32768; c->Limit = 64*1024*1024;
     while ( c->nBins < (1<<20) && (size_t)c->nBins < (size_t)Gia_ManObjNum(pCurrent)*Cuts*8 ) c->nBins <<= 1;
     c->pBins = ABC_CALLOC(Lmo_Memo_t *, c->nBins);
     c->vPrograms = Vec_IntAlloc(1000); c->vOffsets = Vec_IntAlloc(1000);
-    while ( Depth > Abc_MaxInt(0, StopLevel) )
+    while ( Depth > Abc_MaxInt(0, StopLevel) && (!nPassLimit || Passes < nPassLimit) && (!Deadline || Abc_ClockHr() < Deadline) )
     {
         int fRecovered = 0;
         c->Pass = Passes+1;
@@ -2403,16 +2385,19 @@ Gia_Man_t * Lms_TwoPerform( Gia_Man_t * pGia, int StopLevel, int CutSize,
         }
         Gia_ManStop(pCurrent);
         pCurrent = pNext;
+        if ( pVisit ) pVisit(pData, pCurrent, NextDepth);
         if ( NextDepth == Depth && !fRecovered ) break;
         Depth = NextDepth;
         fAfterRecovery = fRecovered;
     }
     // Keep an already-met -D a no-op. Otherwise recover at the attained
     // depth without restarting the ordinary level search.
-    if ( InitialDepth > Abc_MaxInt(0, StopLevel) )
+    if ( InitialDepth > Abc_MaxInt(0, StopLevel) && (!Deadline || Abc_ClockHr() < Deadline) )
     {
-        pCurrent = Lmo_RecoverFinal(pCurrent, CutSize, Nodes, fXor, fVerbose, "final");
+        int OldNodes = Gia_ManAndNum(pCurrent), OldDepth = Depth;
+        pCurrent = Lmo_RecoverFinal(pCurrent, CutSize, Nodes, fXor, fVerbose, "final", Deadline);
         Depth = Lms_LevelNum(pCurrent, fXor);
+        fFinalChanged = Depth != OldDepth || Gia_ManAndNum(pCurrent) != OldNodes;
     }
     if ( !pCurrent->vNamesIn && pGia->vNamesIn ) pCurrent->vNamesIn = Vec_PtrDupStr(pGia->vNamesIn);
     if ( !pCurrent->vNamesOut && pGia->vNamesOut ) pCurrent->vNamesOut = Vec_PtrDupStr(pGia->vNamesOut);
@@ -2422,6 +2407,7 @@ Gia_Man_t * Lms_TwoPerform( Gia_Man_t * pGia, int StopLevel, int CutSize,
         pCurrent->vCoArrs = Vec_IntAlloc(Gia_ManCoNum(pCurrent));
         Lms_XorLevels(pCurrent, pCurrent->vCoArrs);
     }
+    if ( pVisit && fFinalChanged ) pVisit(pData, pCurrent, Depth);
     if ( fVerbose )
     {
         Abc_Print(1, "LMS2 resub cache: %llu hits (%llu across iterations), %llu misses, %llu evictions, %.2f MiB retained (%.0f MiB limit).\n",
@@ -2438,6 +2424,26 @@ Gia_Man_t * Lms_TwoPerform( Gia_Man_t * pGia, int StopLevel, int CutSize,
         (double)(Abc_Clock()-Start)/CLOCKS_PER_SEC);
     if ( StopLevel >= 0 && Depth <= StopLevel && fVerbose ) Abc_Print(1, "LMS2: stopping bound %d reached.\n", StopLevel);
     return pCurrent;
+}
+
+Gia_Man_t * Lms_TwoPerformTrace( Gia_Man_t * pGia, int StopLevel, int CutSize,
+    int Cuts, int Nodes, int Trials, double AreaGrowth, int fXor, int fEscalate, int fVerbose,
+    int nPassLimit, Lms_TwoVisit_t pVisit, void * pData )
+{
+    return Lms_TwoPerformTraceTimed(pGia, StopLevel, CutSize, Cuts, Nodes, Trials, AreaGrowth, fXor, fEscalate,
+                                    fVerbose, nPassLimit, pVisit, pData, 0);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs the unrestricted-pass LMS2 search.]
+
+***********************************************************************/
+Gia_Man_t * Lms_TwoPerform( Gia_Man_t * pGia, int StopLevel, int CutSize,
+    int Cuts, int Nodes, int Trials, double AreaGrowth, int fXor, int fEscalate, int fVerbose )
+{
+    return Lms_TwoPerformTrace(pGia, StopLevel, CutSize, Cuts, Nodes, Trials,
+                               AreaGrowth, fXor, fEscalate, fVerbose, 0, NULL, NULL);
 }
 
 ABC_NAMESPACE_IMPL_END

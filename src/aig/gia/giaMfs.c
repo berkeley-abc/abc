@@ -560,7 +560,7 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManPerformMfs( Gia_Man_t * p, Sfm_Par_t * pPars )
+Gia_Man_t * Gia_ManPerformMfsTimed( Gia_Man_t * p, Sfm_Par_t * pPars, abctime Deadline )
 {
     Sfm_Ntk_t * pNtk;
     Gia_Man_t * pNew;
@@ -615,7 +615,7 @@ Gia_Man_t * Gia_ManPerformMfs( Gia_Man_t * p, Sfm_Par_t * pPars )
         }
     }
     // perform optimization
-    nNodes = Sfm_NtkPerform( pNtk, pPars );
+    nNodes = Sfm_NtkPerformTimed( pNtk, pPars, Deadline );
     if ( nNodes == 0 )
     {
         if ( p->pManTime )
@@ -634,6 +634,16 @@ Gia_Man_t * Gia_ManPerformMfs( Gia_Man_t * p, Sfm_Par_t * pPars )
     }
     Sfm_NtkFree( pNtk );
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Optimizes a LUT cover using the supplied MFS parameters.]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManPerformMfs( Gia_Man_t * p, Sfm_Par_t * pPars )
+{
+    return Gia_ManPerformMfsTimed(p, pPars, 0);
 }
 
 ////////////////////////////////////////////////////////////////////////

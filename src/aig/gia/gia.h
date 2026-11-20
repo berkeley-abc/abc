@@ -1318,7 +1318,10 @@ static inline int         Gia_ObjCellId( Gia_Man_t * p, int iLit )          { re
 extern int                 Gia_FileSize( char * pFileName );
 extern Gia_Man_t *         Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSimple, int fSkipStrash, int fCheck );
 extern Gia_Man_t *         Gia_AigerRead( char * pFileName, int fGiaSimple, int fSkipStrash, int fCheck );
+extern Vec_Int_t *         Gia_AigerReadCellMappingDoc( Gia_Man_t * p, unsigned char * pCur, unsigned char * pEnd );
+extern Vec_Str_t *         Gia_AigerWriteCellMappingDoc( Gia_Man_t * p );
 extern void                Gia_AigerWrite( Gia_Man_t * p, char * pFileName, int fWriteSymbols, int fCompact, int fWriteNewLine );
+extern int                 Gia_AigerWriteChecked( Gia_Man_t * p, const char * pFileName, int fWriteSymbols, int fCompact, int fWriteNewLine, int fSkipComment );
 extern void                Gia_AigerWriteS( Gia_Man_t * p, char * pFileName, int fWriteSymbols, int fCompact, int fWriteNewLine, int fSkipComment );
 extern void                Gia_DumpAiger( Gia_Man_t * p, char * pFilePrefix, int iFileNum, int nFileNumDigits );
 extern Vec_Str_t *         Gia_AigerWriteIntoMemoryStr( Gia_Man_t * p );
@@ -1562,17 +1565,39 @@ extern Gia_Man_t *         Drf_ManRefactorWithStop( Gia_Man_t * pGia, int fKeepL
                               int (*pFuncStop)(void *), void * pStopData );
 //=== giaIf2.c ============================================================
 extern void                If2_ManSetDefaultPars( If2_Par_t * pPars );
+extern Gia_Man_t *         If2_ManPerformMappingTimed( Gia_Man_t * pGia, If2_Par_t * pPars, abctime Deadline );
 extern Gia_Man_t *         If2_ManPerformMapping( Gia_Man_t * pGia, If2_Par_t * pPars );
 //=== giaIf3.c ============================================================
 extern void                If3_ManSetDefaultPars( If3_Par_t * pPars );
 extern Gia_Man_t *         If3_ManPerformMapping( Gia_Man_t * pGia, If3_Par_t * pPars );
 //=== giaDc3.c ============================================================
 extern Gia_Man_t *         Gia_ManDc3( Gia_Man_t * pGia, int fKeepLevel, int fVerbose );
+extern Gia_Man_t *         Gia_ManDc3Timed( Gia_Man_t * p, int fKeepLevel, int fVerbose, abctime Deadline );
 //=== giaDch2.c ===========================================================
+extern Gia_Man_t *         Gia_ManDch2Timed( Gia_Man_t * p, int fKeepLevel, abctime Deadline );
+extern Gia_Man_t *         Gia_ManDch2( Gia_Man_t * p, int nSnapshots, int nConfs, int nConfsChoice, int fKeepLevel, int fVerbose );
 extern Gia_Man_t *         Gia_ManDch2Construct( Gia_Man_t * pGia, int fKeepLevel, int fVerbose );
 extern Gia_Man_t *         Gia_ManDch2DeriveChoices( Gia_Man_t * pGia );
+//=== giaNf.c ============================================================
+struct Mio_Cell2_t_;
+struct Mio_LibraryStruct_t_;
+typedef struct Gia_CellPinSwaps_t_
+{
+    unsigned char Count, Fast[15], Slow[15];
+} Gia_CellPinSwaps_t;
+
+extern int                 Gia_ManMeasureCellMapping( Gia_Man_t * p, const struct Mio_Cell2_t_ * pLib, int nGates,
+                               const Gia_CellPinSwaps_t * pSwaps, double * pArea, int * pDelay, int * pCells );
+extern void                Gia_ManPrintCellMappingStats( Gia_Man_t * p );
 //=== giaNf2.c / giaNf2Lib.c ===============================================
 // Round counts of -1 select native defaults or reference-fallback defaults.
+extern void                Nf_ManSetDefaultPars( Jf_Par_t * pPars );
+extern Gia_Man_t *         Nf_ManPerformMappingTimed( Gia_Man_t * p, Jf_Par_t * pPars, abctime Deadline );
+extern Gia_Man_t *         Nf_ManPerformMappingWithLibTimed( Gia_Man_t * p, Jf_Par_t * pPars, struct Mio_LibraryStruct_t_ * pLib, abctime Deadline );
+extern Gia_Man_t *         Nf2_ManPerformMappingTimed( Gia_Man_t * p, Jf_Par_t * pPars, abctime Deadline );
+extern int                 Nf2_ManSweepDelay( Gia_Man_t * p, int MaxDelay, int nSteps, abctime Deadline, void (*pVisit)(void *, Gia_Man_t *), void * pData );
+extern Gia_Man_t *         Nf3_ManRecoverTimed( Gia_Man_t * p, Jf_Par_t * pPars, int nRounds, abctime Deadline );
+extern Vec_Ptr_t *         Nf3_ManMapOutputCones( Gia_Man_t * pArea, Gia_Man_t * pFast, int nSteps, abctime Deadline );
 extern void                Nf2_ManSetDefaultPars( Jf_Par_t * pPars );
 extern void                Nf2_ManClearCache( void );
 extern void                Nf2_LibClearCache( void );
@@ -1587,6 +1612,7 @@ extern Gia_Man_t *         Nf3_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * p
 // Returns NULL for unsupported inputs, including barrier buffers.
 extern Gia_Man_t *         Rsub_ManPerform( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMinSaved, int fKeepLevel, int fVerbose );
 extern Gia_Man_t *         Rsub_ManPerformEx( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMinSaved, int fKeepLevel, int fFast, int fVerbose );
+extern Gia_Man_t *         Rsub_ManPerformTimed( Gia_Man_t * p, int nCutMax, int nSteps, int nMinSaved, int fKeepLevel, int fFast, int fVerbose, abctime Deadline );
 /*=== giaHash.c ===========================================================*/
 extern void                Gia_ManHashAlloc( Gia_Man_t * p ); 
 extern void                Gia_ManHashStart( Gia_Man_t * p ); 
@@ -1608,6 +1634,7 @@ extern int                 Gia_ManHashAndMulti( Gia_Man_t * p, Vec_Int_t * vLits
 extern int                 Gia_ManHashAndMulti2( Gia_Man_t * p, Vec_Int_t * vLits );
 extern int                 Gia_ManHashDualMiter( Gia_Man_t * p, Vec_Int_t * vOuts );
 /*=== giaIf.c ===========================================================*/
+extern int                 Gia_ManFromIfLogicCreateLut( Gia_Man_t * pNew, word * pRes, Vec_Int_t * vLeaves, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2 );
 extern void                Gia_ManPrintOutputLutStats( Gia_Man_t * p );
 extern void                Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile );
 extern void                Gia_ManPrintPackingStats( Gia_Man_t * p );
@@ -1626,6 +1653,9 @@ extern void                Gia_ManTransferPacking( Gia_Man_t * p, Gia_Man_t * pG
 extern void                Gia_ManTransferTiming( Gia_Man_t * p, Gia_Man_t * pGia );
 extern Gia_Man_t *         Gia_ManPerformMapping( Gia_Man_t * p, void * pIfPars );
 extern Gia_Man_t *         Gia_ManPerformSopBalance( Gia_Man_t * p, int nCutNum, int nRelaxRatio, int fVerbose );
+extern Gia_Man_t *         Gia_ManLutMapTimed( Gia_Man_t * p, int LutSize, int Cuts, int Target, abctime Deadline );
+extern Gia_Man_t *         Gia_ManSopBalanceTimed( Gia_Man_t * p, int nVars, int nCuts, abctime Deadline );
+extern Gia_Man_t *         Gia_ManRecBalanceTimed( Gia_Man_t * p, int nCuts, int nRelaxRatio, Vec_Int_t * vCopies, abctime Deadline );
 extern Gia_Man_t *         Gia_ManPerformDsdBalance( Gia_Man_t * p, int nLutSize, int nCutNum, int nRelaxRatio, int fVerbose );
 extern Gia_Man_t *         Gia_ManDupHashMapping( Gia_Man_t * p );
 /*=== giaJf.c ===========================================================*/

@@ -57,10 +57,6 @@ typedef struct Nf2_TieLib_t_
     Amap_Lib_t * pAmap;
 } Nf2_TieLib_t;
 
-// As with the compiled mapper cache, workers release this thread's library
-// with Nf2_LibClearCache (also called by Abc_Stop) before exiting.
-static ABC_THREAD_LOCAL Nf2_TieLib_t * s_pNf2Ties;
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -78,14 +74,15 @@ static ABC_THREAD_LOCAL Nf2_TieLib_t * s_pNf2Ties;
 ***********************************************************************/
 void Nf2_LibClearCache( void )
 {
-    Nf2_TieLib_t * p = s_pNf2Ties;
+    Abc_Nf2Cache_t * pCache = Abc_FrameReadNf2Cache();
+    Nf2_TieLib_t * p = pCache->pTies;
     if ( p == NULL ) return;
     if ( p->pMio ) Mio_LibraryDelete( p->pMio );
     if ( p->pAmap ) Amap_LibFree( p->pAmap );
     ABC_FREE( p->pSource );
     ABC_FREE( p->pCells );
     ABC_FREE( p->pMap );
-    ABC_FREE( s_pNf2Ties );
+    ABC_FREE( pCache->pTies );
 }
 
 /**Function*************************************************************
@@ -268,7 +265,8 @@ static Vec_Str_t * Nf2_TieGenlib( Nf2_TieLib_t * p )
 ***********************************************************************/
 static Nf2_TieLib_t * Nf2_TiePrepare( Mio_Cell2_t * pCells, int nCells )
 {
-    Nf2_TieLib_t * p = s_pNf2Ties;
+    Abc_Nf2Cache_t * pCache = Abc_FrameReadNf2Cache();
+    Nf2_TieLib_t * p = pCache->pTies;
     Vec_Str_t * vText;
     char * pCopy;
     signed char Pins[6];
@@ -276,7 +274,7 @@ static Nf2_TieLib_t * Nf2_TiePrepare( Mio_Cell2_t * pCells, int nCells )
     if ( p && p->nSource == nCells && !memcmp(p->pSource, pCells, sizeof(Mio_Cell2_t) * nCells) )
         return p;
     Nf2_LibClearCache();
-    s_pNf2Ties = p = ABC_CALLOC( Nf2_TieLib_t, 1 );
+    pCache->pTies = p = ABC_CALLOC( Nf2_TieLib_t, 1 );
     p->nSource = nCells;
     p->pSource = ABC_ALLOC( Mio_Cell2_t, nCells );
     memcpy( p->pSource, pCells, sizeof(Mio_Cell2_t) * nCells );

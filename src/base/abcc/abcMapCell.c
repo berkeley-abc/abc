@@ -1889,10 +1889,10 @@ int Abc_CommandAbc9Nf2( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * pEnd;
     long Value;
     double Delay;
-    int c, fTied = 0;
+    int c, fTied = 0, nRecover = 0;
     Nf2_ManSetDefaultPars( pPars );
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "KCFADapqtvh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "KCFARDapqtvh")) != EOF )
     {
         switch ( c )
         {
@@ -1900,6 +1900,7 @@ int Abc_CommandAbc9Nf2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'C':
         case 'F':
         case 'A':
+        case 'R':
             if ( globalUtilOptind >= argc ) goto usage;
             Value = strtol( argv[globalUtilOptind], &pEnd, 10 );
             if ( pEnd == argv[globalUtilOptind] || *pEnd || Value < 0 || Value > 1000 ) goto usage;
@@ -1915,6 +1916,7 @@ int Abc_CommandAbc9Nf2( Abc_Frame_t * pAbc, int argc, char ** argv )
                 pPars->nCutNum = (int)Value;
             }
             else if ( c == 'F' ) { if ( Value < 1 ) goto usage; pPars->nRounds = (int)Value; }
+            else if ( c == 'R' ) nRecover = (int)Value;
             else pPars->nRoundsEla = (int)Value;
             break;
         case 'D':
@@ -1949,15 +1951,25 @@ int Abc_CommandAbc9Nf2( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Nf2(): standard-cell mapping has failed.\n" );
         return 1;
     }
+    if ( nRecover )
+    {
+        Gia_Man_t * pRecovered = Nf3_ManRecoverTimed(pNew, pPars, nRecover, 0);
+        if ( pRecovered && pRecovered != pNew )
+        {
+            if ( pNew != pAbc->pGia ) Gia_ManStop(pNew);
+            pNew = pRecovered;
+        }
+    }
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 usage:
-    Abc_Print( -2, "usage: &nf2 [-KCFA num] [-D float] [-apqtvh]\n" );
+    Abc_Print( -2, "usage: &nf2 [-KCFAR num] [-D float] [-apqtvh]\n" );
     Abc_Print( -2, "\t           performs library-guided standard-cell mapping on the GIA\n" );
     Abc_Print( -2, "\t-K num   : the maximum cut size (2 <= num <= 6) [default = %d]\n", pPars->nLutSize );
     Abc_Print( -2, "\t-C num   : the maximum retained cuts (2 <= num <= %d) [default = %d]\n", pPars->nCutNumMax, pPars->nCutNum );
     Abc_Print( -2, "\t-F num   : the number of delay and area flow rounds [default = %d]\n", pPars->nRounds < 0 ? 1 : pPars->nRounds );
     Abc_Print( -2, "\t-A num   : the number of exact area recovery iterations [default = %d]\n", pPars->nRoundsEla < 0 ? 1 : pPars->nRoundsEla );
+    Abc_Print( -2, "\t-R num   : maximum NF3 cell recovery rounds after NF2 mapping (0..1000) [default = 0]\n" );
     Abc_Print( -2, "\t           choice inputs default to 2 exact area recovery iterations\n" );
     Abc_Print( -2, "\t           reference fallback defaults to 4 flow and 2 exact area rounds\n" );
     Abc_Print( -2, "\t-D float : sets the mapping delay constraint [default = best found]\n" );

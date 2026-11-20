@@ -2040,14 +2040,32 @@ static Gia_Obj_t * CecZ_ManFindRepr( Gia_Man_t * p, CecZ_Man_t * pMan, int iObj 
     pMan->timeResimLoc += Abc_Clock() - clk;
     return NULL;
 }
-static void CecZ_ManRemoveWrongChoices( Gia_Man_t * p )
+/**Function*************************************************************
+
+  Synopsis    [Tests whether two class members have the same established structural copy.]
+
+  Description [A timed sweep can stop before it creates a copy for either class member.]
+
+***********************************************************************/
+static int CecZ_ManSharesCopy( Gia_Man_t * p, int iObj, Gia_Obj_t * pRepr, int fHasCopies )
+{
+    unsigned Lit = Gia_ManObj(p, iObj)->Value;
+    return fHasCopies && !Gia_ObjFailed(p, iObj) && ~Lit && ~pRepr->Value &&
+           Abc_Lit2Var(Lit) == Abc_Lit2Var(pRepr->Value);
+}
+/**Function*************************************************************
+
+  Synopsis    [Drops choice links that the sweep could not justify.]
+
+***********************************************************************/
+static void CecZ_ManRemoveWrongChoices( Gia_Man_t * p, int fHasCopies )
 {
     int i = 0, iObj, iPrev;
     for ( iPrev = i, iObj = Gia_ObjNext(p, i); -1 < iObj; iObj = Gia_ObjNext(p, iPrev) )
     {
         Gia_Obj_t * pRepr = Gia_ObjReprObj(p, iObj);
         assert( pRepr == Gia_ManConst0(p) );
-        if( !Gia_ObjFailed(p,iObj) && Abc_Lit2Var(Gia_ManObj(p,iObj)->Value) == Abc_Lit2Var(pRepr->Value) )
+        if ( CecZ_ManSharesCopy(p, iObj, pRepr, fHasCopies) )
         {
             iPrev = iObj;
             continue;
@@ -2061,7 +2079,7 @@ static void CecZ_ManRemoveWrongChoices( Gia_Man_t * p )
         for ( iPrev = i, iObj = Gia_ObjNext(p, i); -1 < iObj; iObj = Gia_ObjNext(p, iPrev) )
         {
             Gia_Obj_t * pRepr = Gia_ObjReprObj(p, iObj);
-            if( !Gia_ObjFailed(p,iObj) && Abc_Lit2Var(Gia_ManObj(p,iObj)->Value) == Abc_Lit2Var(pRepr->Value) )
+            if ( CecZ_ManSharesCopy(p, iObj, pRepr, fHasCopies) )
             {
                 iPrev = iObj;
                 continue;
@@ -2280,12 +2298,12 @@ static void CecZ_ManSaveEquivs( CecZ_Man_t * p, Vec_Int_t * vEquivs )
   SeeAlso     []
 
 ***********************************************************************/
-static int CecZ_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** ppNew, int nEffort, Vec_Int_t * vOrigins, int nConfsChoice, Vec_Int_t * vEquivs )
+static int CecZ_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** ppNew, int nEffort, Vec_Int_t * vOrigins, int nConfsChoice, Vec_Int_t * vEquivs, abctime Deadline )
 {
 
     CecZ_Man_t * pMan = CecZ_ManCreate( p, pPars );
     Gia_Obj_t * pObj, * pRepr;
-    int i = 0, fSimulate = 1, Id, Pos, Count, Capacity, nLastCandidates;
+    int i = 0, fSimulate = 1, Id, Pos, Count, Capacity, nLastCandidates, fHasCopies;
     pMan->nEffort = nEffort;
     pMan->vOrigins = vOrigins;
     pMan->nConfsChoice = nConfsChoice;
@@ -2364,6 +2382,7 @@ static int CecZ_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man
     // perform simulation
     for ( i = 0; i < pPars->nRounds; i++ )
     {
+        if ( Deadline && Abc_ClockHr() >= Deadline ) goto finalize;
         CecZ_ManSimulateCis( p, pMan );
         CecZ_ManSimulate( p, pMan );
         if ( pPars->fCheckMiter && !CecZ_ManSimulateCos(p) ) // cex detected
@@ -2421,6 +2440,7 @@ static int CecZ_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man
     for ( Pos = 0; Pos < Count; Pos++ )
     {
         int id_obj, id_repr;
+        if ( Deadline && (Pos & 31) == 0 && Abc_ClockHr() >= Deadline ) goto finalize;
         i = pMan->fSparse ? Vec_IntEntry(pMan->vSimAnds, Pos) : Pos;
         pObj = Gia_ManObj(p, i);
         if ( !Gia_ObjIsAnd(pObj) ) continue;
@@ -2517,6 +2537,7 @@ finalize:
             pMan->nSimulates, pMan->nRecycles, 100.0*pMan->nGates[1]/Abc_MaxInt(1, pMan->nGates[0]+pMan->nGates[1]) );
     if ( pPars->pDumpName )
         CecZ_ManSimulateDumpInfo( pMan );
+    fHasCopies = pMan->pNew != NULL;
     CecZ_ManDestroy( pMan );
     if ( ppNew && *ppNew == NULL )
     {
@@ -2525,7 +2546,7 @@ finalize:
         if ( p->pMuxes && p->pCexSeq )
             (*ppNew)->pCexSeq = Abc_CexDup( p->pCexSeq, Gia_ManRegNum(p) );
     }
-    if ( p->pNexts ) CecZ_ManRemoveWrongChoices( p );
+    if ( p->pNexts ) CecZ_ManRemoveWrongChoices( p, fHasCopies );
     return p->pCexSeq ? 0 : 1;
 }
 /**Function*************************************************************
@@ -2572,7 +2593,7 @@ Gia_Man_t * CecZ_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars, int nEffo
         Abc_Print( -1, "&fraig -z: the supplied simulation vector has the wrong size.\n" );
         return NULL;
     }
-    CecZ_ManPerformSweeping( p, pPars, &pNew, nEffort, NULL, 0, NULL );
+    CecZ_ManPerformSweeping( p, pPars, &pNew, nEffort, NULL, 0, NULL, 0 );
 
     return pNew;
 }
@@ -2595,7 +2616,7 @@ Gia_Man_t * CecZ_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars, int nEffo
   SeeAlso     []
 
 ***********************************************************************/
-int CecZ_ManComputeEquivs( Gia_Man_t * p, Vec_Int_t * vOrigins, Vec_Int_t * vEquivs, int nConfs, int nConfsChoice, int fVerbose )
+int CecZ_ManComputeEquivsTimed( Gia_Man_t * p, Vec_Int_t * vOrigins, Vec_Int_t * vEquivs, int nConfs, int nConfsChoice, int fVerbose, abctime Deadline )
 {
     extern void Cec4_ManSetParams( Cec_ParFra_t * pPars );
     Cec_ParFra_t Pars;
@@ -2606,7 +2627,17 @@ int CecZ_ManComputeEquivs( Gia_Man_t * p, Vec_Int_t * vOrigins, Vec_Int_t * vEqu
     Pars.fVerbose = fVerbose;
     if ( nConfs < 0 || nConfsChoice < 0 || Gia_ManObjNum(p) > INT_MAX / Pars.nWords ||
          !vEquivs || !vOrigins || Vec_IntSize(vOrigins) != Gia_ManObjNum(p) ) return 0;
-    return CecZ_ManPerformSweeping( p, &Pars, NULL, 0, vOrigins, nConfsChoice, vEquivs );
+    return CecZ_ManPerformSweeping( p, &Pars, NULL, 0, vOrigins, nConfsChoice, vEquivs, Deadline );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes equivalence classes without a wall-clock deadline.]
+
+***********************************************************************/
+int CecZ_ManComputeEquivs( Gia_Man_t * p, Vec_Int_t * vOrigins, Vec_Int_t * vEquivs, int nConfs, int nConfsChoice, int fVerbose )
+{
+    return CecZ_ManComputeEquivsTimed(p, vOrigins, vEquivs, nConfs, nConfsChoice, fVerbose, 0);
 }
 
 ABC_NAMESPACE_IMPL_END

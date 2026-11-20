@@ -5558,7 +5558,7 @@ Rwr_ManAddTimeUpdate( pManRwr, Abc_Clock() - clk );
     Vec_IntZero(Valid_Ops); // reset updates
         continue;
     }
-    else if ((Valid_Ops->pArray[r] == 1)){
+    else if (Valid_Ops->pArray[r] == 1){
     // apply res
         pManRes->nTotalGain += pManRes->nLastGain;
 clk = Abc_Clock();
@@ -5570,7 +5570,7 @@ pManRes->timeNtk += Abc_Clock() - clk;
     Vec_IntZero(Valid_Ops); // reset updates
         continue;
     }
-    else if ((Valid_Ops->pArray[r] == 2)){
+    else if (Valid_Ops->pArray[r] == 2){
 clk = Abc_Clock();
         if ( !Dec_GraphUpdateNetwork( pNode, pFFormRef, fUpdateLevel, pManRef->nLastGain ) )
                  {

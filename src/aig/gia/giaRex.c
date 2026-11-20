@@ -431,7 +431,7 @@ void Gia_ManAutomWalkOne( Gia_Man_t * p, int nSteps, Vec_Wrd_t * vStates, Vec_In
                 continue;
             Index = Vec_WrdFind( vStates, pNext[k] );
             Count = Index == -1 ? 0 : Vec_IntEntry( vCounts, Index );
-            if ( CountMin > Count || (CountMin != ABC_INFINITY && Count && ((float)CountMin / Count) > (float)rand()/RAND_MAX ) )
+            if ( CountMin > Count || (CountMin != ABC_INFINITY && Count && ((float)CountMin / Count) > (float)rand()/(float)RAND_MAX ) )
             {
                 CountMin = Count;
                 IndexMin = Index;

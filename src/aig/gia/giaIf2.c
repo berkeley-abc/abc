@@ -52,6 +52,8 @@ struct If2_Man_t_
 {
     Gia_Man_t *     pGia;
     If2_Par_t *     pPars;
+    abctime         Deadline;
+    int             fStopped;
     Tim_Man_t *     pTim;
     If2_Cut_t *     pCuts;
     If2_Cut_t *     pBest;
@@ -1666,6 +1668,7 @@ static void If2_ReverseArea( If2_Man_t * p )
     float Bound, Delay;
     Gia_ManForEachAndReverse ( p->pGia, Obj, i )
     {
+        if ( p->Deadline && !(i & 63) && Abc_ClockHr() >= p->Deadline ) { p->fStopped = 1; return; }
         if ( !p->pRefs[i] ) continue;
         if ( Gia_ObjIsMuxId( p->pGia, i ) )
             If2_ObjMapMux( p, i );
@@ -1727,6 +1730,7 @@ static void If2_ManRound( If2_Man_t * p, int Mode )
     else
         Gia_ManForEachObj1 ( p->pGia, pObj, i )
         {
+            if ( p->Deadline && !(i & 63) && Abc_ClockHr() >= p->Deadline ) { p->fStopped = 1; return; }
             if ( Gia_ObjIsCi( pObj ) )
             {
                 iCi = Gia_ObjCioId( pObj );
@@ -1771,6 +1775,7 @@ static void If2_ManRound( If2_Man_t * p, int Mode )
                  p->pPars->nCutsMax <= 4 && Gia_ObjIsAnd( pObj ) )
                 If2_TryLevelCut( p, i );
         }
+    if ( p->fStopped ) return;
     If2_ManRequired( p );
     if ( p->pPars->fVerbose )
         Abc_Print( 1, "If2 %s %d: LUT = %d  Edge = %d  Delay = %.2f  Time = %.3f sec\n",
@@ -2202,10 +2207,10 @@ static void If2_InlineCover( If2_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static Gia_Man_t * If2_ManPerformMappingCore( Gia_Man_t * pGia, If2_Par_t * pPars )
+static Gia_Man_t * If2_ManPerformMappingCore( Gia_Man_t * pGia, If2_Par_t * pPars, abctime Deadline )
 {
     If2_Man_t Man, *p = &Man;
-    Gia_Man_t * pNew;
+    Gia_Man_t * pNew = NULL;
     Gia_Obj_t * pObj;
     int i, k, nObjs = Gia_ManObjNum( pGia );
     abctime clk = Abc_Clock(), clkExport;
@@ -2213,6 +2218,7 @@ static Gia_Man_t * If2_ManPerformMappingCore( Gia_Man_t * pGia, If2_Par_t * pPar
     if ( Gia_ManHasChoices( pGia ) ) Gia_ManSetPhase( pGia );
     memset( p, 0, sizeof( If2_Man_t ) );
     p->pGia = pGia;
+    p->Deadline = Deadline;
     p->pPars = pPars;
     p->fChoices = Gia_ManHasChoices( pGia );
     p->fTruth = pPars->fCutMin || Gia_ManHasChoices( pGia ) || Gia_ManMuxNum( pGia );
@@ -2280,11 +2286,13 @@ static Gia_Man_t * If2_ManPerformMappingCore( Gia_Man_t * pGia, If2_Par_t * pPar
     p->pOrigRefs = ABC_ALLOC( int, nObjs );
     memcpy( p->pOrigRefs, p->pRefs, sizeof( int ) * nObjs );
     If2_ManRound( p, 0 );
+    if ( p->fStopped ) goto cleanup;
     If2_ManGroup( p );
     If2_ManRound( p, 3 );
     ABC_FREE( p->pChoiceRefs );
-    for ( i = 0; i < pPars->nFlowIters; i++ ) If2_ManRound( p, 1 );
-    for ( i = 0; i < pPars->nAreaIters; i++ ) If2_ManRound( p, 2 );
+    for ( i = 0; !p->fStopped && i < pPars->nFlowIters; i++ ) If2_ManRound( p, 1 );
+    for ( i = 0; !p->fStopped && i < pPars->nAreaIters; i++ ) If2_ManRound( p, 2 );
+    if ( p->fStopped ) goto cleanup;
     if ( pPars->nAreaIters > 0 ) If2_InlineCover( p );
     clkExport = Abc_Clock();
     pNew = p->fTruth ? NULL : If2_ManExportStructural( p );
@@ -2305,6 +2313,7 @@ static Gia_Man_t * If2_ManPerformMappingCore( Gia_Man_t * pGia, If2_Par_t * pPar
                        ( 1 << 20 ),
                    1.0 * ( clkExport - clk ) / CLOCKS_PER_SEC, 1.0 * ( Abc_Clock() - clkExport ) / CLOCKS_PER_SEC,
                    1.0 * ( Abc_Clock() - clk ) / CLOCKS_PER_SEC );
+cleanup:
     if ( p->pTim ) Tim_ManStop( p->pTim );
     ABC_FREE( p->pCuts );
     ABC_FREE( p->pBest );
@@ -2463,13 +2472,13 @@ static Gia_Man_t * If2_ManCoarsen( Gia_Man_t * p, int fMux )
   SeeAlso     []
 
 ***********************************************************************/
-static Gia_Man_t * If2_ManPerformMappingInt( Gia_Man_t * pGia, If2_Par_t * pPars )
+static Gia_Man_t * If2_ManPerformMappingInt( Gia_Man_t * pGia, If2_Par_t * pPars, abctime Deadline )
 {
     Gia_Man_t * pCls, * pNew;
     if ( pGia->fGiaSimple || pGia->pManTime || pGia->vCiArrs || pGia->vInArrs || pGia->vCoReqs || pGia->vOutReqs || Gia_ManBufNum(pGia) )
-        return If2_ManPerformMappingCore(pGia, pPars);
+        return If2_ManPerformMappingCore(pGia, pPars, Deadline);
     pCls = If2_ManCoarsen(pGia, Gia_ManHasChoices(pGia) && pPars->nLutSize >= 3);
-    pNew = If2_ManPerformMappingCore(pCls, pPars);
+    pNew = If2_ManPerformMappingCore(pCls, pPars, Deadline);
     Gia_ManStop(pCls);
     return pNew;
 }
@@ -2570,7 +2579,7 @@ static void If2_ManTransferMetadata( Gia_Man_t * pNew, Gia_Man_t * pOld )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * If2_ManPerformMapping( Gia_Man_t * pGia, If2_Par_t * pPars )
+Gia_Man_t * If2_ManPerformMappingTimed( Gia_Man_t * pGia, If2_Par_t * pPars, abctime Deadline )
 {
     Gia_Man_t * pNew, * pTemp, * pOrder;
     Gia_Obj_t * pObj;
@@ -2593,7 +2602,7 @@ Gia_Man_t * If2_ManPerformMapping( Gia_Man_t * pGia, If2_Par_t * pPars )
         }
         pTemp = If2_ManFoldBuffers(pGia);
         If2_ManTransferMetadata(pTemp, pGia);
-        pNew = If2_ManPerformMapping(pTemp, pPars);
+        pNew = If2_ManPerformMappingTimed(pTemp, pPars, Deadline);
         if ( pNew == NULL ) If2_ManTransferMetadata(pGia, pTemp);
         Gia_ManStop(pTemp);
         return pNew;
@@ -2614,7 +2623,7 @@ Gia_Man_t * If2_ManPerformMapping( Gia_Man_t * pGia, If2_Par_t * pPars )
         }
         If2_ManTransferMetadata(pTemp, pOrder);
         if ( pOrder != pGia ) Gia_ManStop(pOrder);
-        pNew = If2_ManPerformMappingInt( pTemp, pPars );
+        pNew = If2_ManPerformMappingInt( pTemp, pPars, Deadline );
         if ( pNew == NULL )
         {
             If2_ManTransferMetadata(pGia, pTemp);
@@ -2631,11 +2640,21 @@ Gia_Man_t * If2_ManPerformMapping( Gia_Man_t * pGia, If2_Par_t * pPars )
     }
     else
     {
-        pNew = If2_ManPerformMappingInt( pGia, pPars );
+        pNew = If2_ManPerformMappingInt( pGia, pPars, Deadline );
         if ( pNew == NULL ) return NULL;
         If2_ManTransferMetadata( pNew, pGia );
     }
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs IF2 mapping to completion.]
+
+***********************************************************************/
+Gia_Man_t * If2_ManPerformMapping( Gia_Man_t * pGia, If2_Par_t * pPars )
+{
+    return If2_ManPerformMappingTimed(pGia, pPars, 0);
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -822,6 +822,21 @@ Abc_Frame_t * Abc_FrameReadGlobalFrame()
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the NF2 library caches for the current ABC frame.]
+
+  Description [An explicitly created frame can move between idle workers.
+  Calls using the standalone mapper without a frame retain the thread-local
+  caches and explicit cleanup provided by that interface.]
+
+***********************************************************************/
+Abc_Nf2Cache_t * Abc_FrameReadNf2Cache( void )
+{
+    static ABC_THREAD_LOCAL Abc_Nf2Cache_t Standalone;
+    return s_GlobalFrame ? &s_GlobalFrame->Nf2Cache : &Standalone;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []

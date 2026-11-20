@@ -872,7 +872,7 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
                 continue;
     //        Vta_ObjPreds( p, pThis, Gia_ManObj(p->pGia, pThis->iObj), &pThis0, &pThis1 );
     //        if ( (pThis0 && (pThis0->fAdded || pThis0->fVisit)) || (pThis1 && (pThis1->fAdded || pThis1->fVisit)) )
-                Vec_IntPush( vTermsToAdd, Vta_ObjId(p, pThis) );
+            Vec_IntPush( vTermsToAdd, Vta_ObjId(p, pThis) );
         }
         // remove those currenty included
         Vta_ManForEachObjVec( vTermsToAdd, p, pThis, i )

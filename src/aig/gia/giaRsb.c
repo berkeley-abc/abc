@@ -1371,15 +1371,17 @@ static Rsub_Man_t * Rsub_ManStart( Gia_Man_t * pGia, int fKeepLevel, Vec_Int_t *
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Rsub_ManPerformEx( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMinSaved, int fKeepLevel, int fFast, int fVerbose )
+Gia_Man_t * Rsub_ManPerformTimed( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMinSaved, int fKeepLevel, int fFast, int fVerbose, abctime Deadline )
 {
     Rsub_Man_t * p;
-    Gia_Man_t * pNew;
+    Gia_Man_t * pNew = NULL;
     Vec_Int_t * vCiLevels;
     Rsub_Cut_t Cut;
     Rsub_Neighbor_t * Neighbor;
+    unsigned nVisits = 0;
     int Id, Next, Lit, Phase, a, b, OldAnds, nStart;
     abctime Start = Abc_Clock(), Setup, Export, Clock = 0;
+    if ( Deadline && Abc_ClockHr() >= Deadline ) return NULL;
     if ( pGia == NULL || Gia_ManHasChoices( pGia ) || pGia->pMuxes || Gia_ManXorNum( pGia ) || Gia_ManBufNum( pGia ) )
         return NULL;
     if ( nCutMax < 4 || nCutMax > RSUB_LEAF_MAX || nSteps < 0 || nSteps > RSUB_UNATE_MAX || nMinSaved < 1 ) return NULL;
@@ -1412,6 +1414,7 @@ Gia_Man_t * Rsub_ManPerformEx( Gia_Man_t * pGia, int nCutMax, int nSteps, int nM
         Vec_IntPush( p->vTodo, Next );
         while ( Vec_IntSize( p->vTodo ) )
         {
+            if ( Deadline && !(nVisits++ & 63) && Abc_ClockHr() >= Deadline ) goto cleanup;
             Id = Vec_IntEntryLast( p->vTodo );
             if ( p->M.pObjs[Id].Handled ) goto finish;
             p->M.pObjs[Id].Busy = 1;
@@ -1581,6 +1584,7 @@ Gia_Man_t * Rsub_ManPerformEx( Gia_Man_t * pGia, int nCutMax, int nSteps, int nM
                    (double) ( p->timeSearch - p->timeSim ) / CLOCKS_PER_SEC, (double) p->timeUpdate / CLOCKS_PER_SEC,
                    (double) Export / CLOCKS_PER_SEC, (double) ( Abc_Clock() - Start ) / CLOCKS_PER_SEC );
     }
+cleanup:
     for ( Id = 0; Id < p->nNeighborBins; Id++ )
     {
         Rsub_Early_t *pRecipe, *pNext;
@@ -1602,6 +1606,16 @@ Gia_Man_t * Rsub_ManPerformEx( Gia_Man_t * pGia, int nCutMax, int nSteps, int nM
     Gie_ManStop( &p->M );
     ABC_FREE( p );
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs window resubstitution without a wall-clock deadline.]
+
+***********************************************************************/
+Gia_Man_t * Rsub_ManPerformEx( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMinSaved, int fKeepLevel, int fFast, int fVerbose )
+{
+    return Rsub_ManPerformTimed( pGia, nCutMax, nSteps, nMinSaved, fKeepLevel, fFast, fVerbose, 0 );
 }
 
 /**Function*************************************************************

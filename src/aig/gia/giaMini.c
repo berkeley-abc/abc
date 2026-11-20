@@ -281,17 +281,17 @@ Gia_Man_t * Gia_ManFromMiniLut( Mini_Lut_t * p, Vec_Int_t ** pvCopies )
             iGiaLit = Gia_ManAppendCi(pGia);
         else if ( Mini_LutNodeIsPo( p, i ) )
             iGiaLit = Gia_ManAppendCo(pGia, Vec_IntEntry(vCopies, Mini_LutNodeFanin(p, i, 0)));
-        else if ( Mini_LutNodeIsNode( p, i ) )
+        else
         {
             unsigned * puTruth = Mini_LutNodeTruth( p, i );
             word Truth = ((word)*puTruth << 32) | (word)*puTruth; 
             word * pTruth = LutSize < 6 ? &Truth : (word *)puTruth;
+            assert( Mini_LutNodeIsNode( p, i ) );
             Vec_IntClear( vLits );
             Mini_LutForEachFanin( p, i, Fan, k )
                 Vec_IntPush( vLits, Vec_IntEntry(vCopies, Fan) );
             iGiaLit = Dsm_ManTruthToGia( pGia, pTruth, vLits, vCover );
         }
-        else assert( 0 );
         Vec_IntPush( vCopies, iGiaLit );
     }
     Vec_IntFree( vCover );
@@ -346,15 +346,15 @@ Gia_Man_t * Gia_ManFromMiniLut2( Mini_Lut_t * p, Vec_Int_t ** pvCopies )
             iGiaLit = Gia_ManAppendCi(pGia);
         else if ( Mini_LutNodeIsPo( p, i ) )
             iGiaLit = Gia_ManAppendCo(pGia, Vec_IntEntry(vCopies, Mini_LutNodeFanin(p, i, 0)));
-        else if ( Mini_LutNodeIsNode( p, i ) )
+        else
         {
             unsigned * puTruth = Mini_LutNodeTruth( p, i );
+            assert( Mini_LutNodeIsNode( p, i ) );
             Vec_IntClear( vLits );
             Mini_LutForEachFanin( p, i, Fan, k )
                 Vec_IntPush( vLits, Vec_IntEntry(vCopies, Fan) );
             iGiaLit = Kit_TruthToGia( pGia, puTruth, Vec_IntSize(vLits), vCover, vLits, 0 );
         }
-        else assert( 0 );
         Vec_IntPush( vCopies, iGiaLit );
     }
     Vec_IntFree( vCover );

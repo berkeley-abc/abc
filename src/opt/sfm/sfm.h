@@ -88,6 +88,7 @@ struct Sfm_Par_t_
 //=== sfmCnf.c ==========================================================
 //=== sfmCore.c ==========================================================
 extern void         Sfm_ParSetDefault( Sfm_Par_t * pPars );
+extern int          Sfm_NtkPerformTimed( Sfm_Ntk_t * p, Sfm_Par_t * pPars, abctime Deadline );
 extern int          Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars );
 //=== sfmNtk.c ==========================================================
 extern Sfm_Ntk_t *  Sfm_NtkConstruct( Vec_Wec_t * vFanins, int nPis, int nPos, Vec_Str_t * vFixed, Vec_Str_t * vEmpty, Vec_Wrd_t * vTruths, Vec_Int_t * vStarts, Vec_Wrd_t * vTruths2 );

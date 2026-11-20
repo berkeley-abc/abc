@@ -26,10 +26,10 @@
 
 ABC_NAMESPACE_IMPL_START
 
-extern int CecZ_ManComputeEquivs( Gia_Man_t * p, Vec_Int_t * vOrigins, Vec_Int_t * vEquivs, int nConfs, int nConfsChoice,
-                                  int fVerbose );
-extern Gia_Man_t * Gia_ManDc3SnapshotsMore( Gia_Man_t * p, int fKeep, int fVerbose, Gia_Man_t ** ppSnapshot,
-                                            Vec_Ptr_t * vLabels, int fMore );
+extern int CecZ_ManComputeEquivsTimed( Gia_Man_t * p, Vec_Int_t * vOrigins, Vec_Int_t * vEquivs, int nConfs, int nConfsChoice,
+                                  int fVerbose, abctime Deadline );
+extern Gia_Man_t * Gia_ManDc3SnapshotsTimed( Gia_Man_t * p, int fKeep, int fVerbose, Gia_Man_t ** ppSnapshot,
+                                            Vec_Ptr_t * vLabels, int fMore, abctime Deadline );
 extern void Gia_ManRemoveBadChoices( Gia_Man_t * p );
 
 /**Function*************************************************************
@@ -684,7 +684,7 @@ static Gia_Man_t * Dch2_Export( Gia_Man_t * p )
 
 ***********************************************************************/
 static Gia_Man_t * Dch2_Perform( Gia_Man_t * p, int nSnapshots, int nConfs, int nConfsChoice, int fKeepLevel,
-                                 int fSweep, int fMore, int fVerbose )
+                                 int fSweep, int fMore, int fVerbose, abctime Deadline )
 {
     Gia_Man_t *pLast, *pMiddle = NULL, *pMiter, *pChoices, *pNew;
     Vec_Ptr_t *vSnapshots, *vLabels;
@@ -698,7 +698,7 @@ static Gia_Man_t * Dch2_Perform( Gia_Man_t * p, int nSnapshots, int nConfs, int 
         return NULL;
     if ( Gia_ManIsSeqWithBoxes( p ) && !Gia_ManIsNormalized( p ) ) return NULL;
     vLabels = Vec_PtrAlloc( nSnapshots );
-    pLast = Gia_ManDc3SnapshotsMore( p, fKeepLevel, fVerbose, &pMiddle, vLabels, fMore );
+    pLast = Gia_ManDc3SnapshotsTimed( p, fKeepLevel, fVerbose, &pMiddle, vLabels, fMore, Deadline );
     if ( !pLast )
     {
         if ( pMiddle ) Gia_ManStop( pMiddle );
@@ -740,7 +740,7 @@ static Gia_Man_t * Dch2_Perform( Gia_Man_t * p, int nSnapshots, int nConfs, int 
         // Identity here adds no unproved relation to those exact merges.
         for ( k = 0; k < Gia_ManObjNum(pReduced); k++ ) Vec_IntPush( vEquivs, 2*k );
     }
-    else if ( !CecZ_ManComputeEquivs( pReduced, vOrigins, vEquivs, nConfs, nConfsChoice, fVerbose ) )
+    else if ( !CecZ_ManComputeEquivsTimed( pReduced, vOrigins, vEquivs, nConfs, nConfsChoice, fVerbose, Deadline ) )
     {
         Gia_ManStop( pMiter );
         Gia_ManStop( pReduced );
@@ -789,9 +789,14 @@ static Gia_Man_t * Dch2_Perform( Gia_Man_t * p, int nSnapshots, int nConfs, int 
   SeeAlso     []
 
 ***********************************************************************/
+Gia_Man_t * Gia_ManDch2Timed( Gia_Man_t * p, int fKeepLevel, abctime Deadline )
+{
+    return Dch2_Perform( p, 2, 100, 30, fKeepLevel, 1, 0, 0, Deadline );
+}
+
 Gia_Man_t * Gia_ManDch2( Gia_Man_t * p, int nSnapshots, int nConfs, int nConfsChoice, int fKeepLevel, int fVerbose )
 {
-    return Dch2_Perform( p, nSnapshots, nConfs, nConfsChoice, fKeepLevel, 1, 0, fVerbose );
+    return Dch2_Perform( p, nSnapshots, nConfs, nConfsChoice, fKeepLevel, 1, 0, fVerbose, 0 );
 }
 
 /**Function*************************************************************
@@ -810,7 +815,7 @@ Gia_Man_t * Gia_ManDch2( Gia_Man_t * p, int nSnapshots, int nConfs, int nConfsCh
 ***********************************************************************/
 Gia_Man_t * Gia_ManDch2Construct( Gia_Man_t * p, int fKeepLevel, int fVerbose )
 {
-    return Dch2_Perform( p, 2, 0, 0, fKeepLevel, 0, 1, fVerbose );
+    return Dch2_Perform( p, 2, 0, 0, fKeepLevel, 0, 1, fVerbose, 0 );
 }
 
 /**Function*************************************************************

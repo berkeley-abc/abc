@@ -124,6 +124,7 @@ typedef struct Nf2_Ref_t_ { int Count; unsigned Stamp; } Nf2_Ref_t;
 typedef struct Nf2_Man_t_ Nf2_Man_t;
 struct Nf2_Man_t_
 {
+    abctime         Deadline;       // Wall-clock cutoff for a speculative mapping pass.
     // user data
     Gia_Man_t *     pGia;           // derived manager
     Tim_Man_t *     pManTim;        // timing manager
@@ -297,8 +298,6 @@ static Nf2_Man_t * Nf2_StoCreate( Gia_Man_t * pGia, Jf_Par_t * pPars, Mio_Librar
         Nf2_StoDelete(p);
         return NULL;
     }
-    ABC_FREE( pGia->pRefs );
-    Vec_IntFreeP( &pGia->vCellMapping );
     p->nLastCap=64;
     while ( p->nLastCap<NF2_CONTEXT_MAX && Gia_ManAndNum(pGia)>p->nLastCap/2 ) p->nLastCap*=2;
     p->pLast=ABC_CALLOC(Nf2_Last_t,p->nLastCap);
@@ -530,6 +529,8 @@ static int Nf2_PatternCut( Nf2_Man_t * p, Nf2_Pat_t * pPat, Nf2_Cut_t * pCut )
     word Values[NF2_PATTERN_FANS], Code = 0, Hash, Truth;
     Nf2_Ptc_t * pCache;
     int i, j, k, Id, Pos = 0, Phase, nOld, Old[6]; unsigned Supp = 0;
+    pCut->iFunc = 0;
+    pCut->Useless = 0;
     pCut->nLeaves = 0;
     for ( i = 0; i < pPat->nFans; i++ )
     {
@@ -1394,11 +1395,6 @@ typedef struct Nf2_Shared_t_
     Amap_Nod_t * Nodes;
     int nCells,nNodes,K,Cuts,Flags;
 } Nf2_Shared_t;
-// A worker that maps must call Abc_Stop or Nf2_ManClearCache before exiting;
-// portable thread-local storage does not supply an automatic destructor.
-static ABC_THREAD_LOCAL Nf2_Shared_t * s_pNf2Shared;
-// Retain one previous library/configuration for ordinary/tied-mode alternation.
-static ABC_THREAD_LOCAL Nf2_Shared_t * s_pNf2Previous;
 /**Function*************************************************************
 
   Synopsis    [Releases one compiled library cache.]
@@ -1422,7 +1418,7 @@ static void Nf2_SharedFree( Nf2_Shared_t * S )
 }
 /**Function*************************************************************
 
-  Synopsis    [Releases both compiled library caches owned by this thread.]
+  Synopsis    [Releases both compiled libraries owned by the active frame or standalone mapper.]
 
   Description []
 
@@ -1433,9 +1429,10 @@ static void Nf2_SharedFree( Nf2_Shared_t * S )
 ***********************************************************************/
 void Nf2_ManClearCache( void )
 {
-    Nf2_SharedFree( s_pNf2Shared );
-    Nf2_SharedFree( s_pNf2Previous );
-    s_pNf2Shared = s_pNf2Previous = NULL;
+    Abc_Nf2Cache_t * pCache = Abc_FrameReadNf2Cache();
+    Nf2_SharedFree( pCache->pCurrent );
+    Nf2_SharedFree( pCache->pPrevious );
+    pCache->pCurrent = pCache->pPrevious = NULL;
 }
 /**Function*************************************************************
 
@@ -1635,23 +1632,24 @@ static void Nf2_PrivateMatches( Nf2_Man_t * p )
 ***********************************************************************/
 static int Nf2_SharedAttach( Nf2_Man_t * p )
 {
-    if ( !Nf2_SharedValid(p, s_pNf2Shared) )
+    Abc_Nf2Cache_t * pCache = Abc_FrameReadNf2Cache();
+    if ( !Nf2_SharedValid(p, pCache->pCurrent) )
     {
-        if ( Nf2_SharedValid(p, s_pNf2Previous) )
+        if ( Nf2_SharedValid(p, pCache->pPrevious) )
         {
-            ABC_SWAP( Nf2_Shared_t *, s_pNf2Shared, s_pNf2Previous );
+            ABC_SWAP( Nf2_Shared_t *, pCache->pCurrent, pCache->pPrevious );
         }
         else
         {
-            Nf2_SharedFree( s_pNf2Previous );
-            s_pNf2Previous = s_pNf2Shared;
-            s_pNf2Shared = NULL;
+            Nf2_SharedFree( pCache->pPrevious );
+            pCache->pPrevious = pCache->pCurrent;
+            pCache->pCurrent = NULL;
             Nf2_PrivateMatches(p);
             return 0;
         }
     }
     ABC_FREE(p->Data.vPages.pArray);
-    Nf2_SharedMove(p,&s_pNf2Shared->Man);
+    Nf2_SharedMove(p,&pCache->pCurrent->Man);
     p->pNodeBanks=ABC_CALLOC(int,Gia_ManObjNum(p->pGia));
     p->pBindOffsets=ABC_CALLOC(int,Gia_ManObjNum(p->pGia));
     p->pNodeTemplates=ABC_CALLOC(int,Gia_ManObjNum(p->pGia));
@@ -1671,9 +1669,10 @@ static int Nf2_SharedAttach( Nf2_Man_t * p )
 ***********************************************************************/
 static void Nf2_SharedDetach( Nf2_Man_t * p )
 {
+    Abc_Nf2Cache_t * pCache = Abc_FrameReadNf2Cache();
     Nf2_Shared_t * S;
-    if ( !s_pNf2Shared ) s_pNf2Shared=ABC_CALLOC(Nf2_Shared_t,1);
-    S=s_pNf2Shared;
+    if ( !pCache->pCurrent ) pCache->pCurrent=ABC_CALLOC(Nf2_Shared_t,1);
+    S=pCache->pCurrent;
     if ( !S->Cells )
     {
         S->nCells=p->nCells; S->nNodes=p->Patterns.nNodes; S->K=p->pPars->nLutSize; S->Cuts=p->pPars->nCutNum;
@@ -1721,7 +1720,8 @@ static void Nf2_ManComputeCuts( Nf2_Man_t * p )
     Gia_Obj_t * pObj; int i,Arrival;
     if ( p->pManTim ) Tim_ManIncrementTravId(p->pManTim);
     Gia_ManForEachObjWithBoxes(p->pGia,pObj,i)
-        if ( Gia_ObjIsBuf(pObj) ) Nf2_ObjPrepareBuf(p,pObj);
+        if ( p->Deadline && !(i & 31) && Abc_ClockHr() >= p->Deadline ) return;
+        else if ( Gia_ObjIsBuf(pObj) ) Nf2_ObjPrepareBuf(p,pObj);
         else if ( Gia_ObjIsAnd(pObj) ) Nf2_ObjMergeOrder(p,i);
         else if ( Gia_ObjIsCi(pObj) )
         {
@@ -2385,7 +2385,8 @@ static void Nf2_ManComputeMapping( Nf2_Man_t * p )
     if ( p->pManTim )
         Tim_ManIncrementTravId( p->pManTim );
     Gia_ManForEachObjWithBoxes( p->pGia, pObj, i )
-        if ( Gia_ObjIsBuf(pObj) )
+        if ( p->Deadline && !(i & 31) && Abc_ClockHr() >= p->Deadline ) return;
+        else if ( Gia_ObjIsBuf(pObj) )
             Nf2_ObjPrepareBuf( p, pObj );
         else if ( Gia_ObjIsAnd(pObj) )
             Nf2_ManCutMatch( p, i );
@@ -3130,6 +3131,7 @@ static void Nf2_ManComputeMappingEla( Nf2_Man_t * p )
     Nf2_ManSetOutputRequireds( p, 1 );
     Gia_ManForEachObjReverseWithBoxes( p->pGia, pObj, i )
     {
+        if ( p->Deadline && !(i & 31) && Abc_ClockHr() >= p->Deadline ) return;
         if ( Gia_ObjIsBuf(pObj) )
         {
             int reqTime, iObj;
@@ -3327,7 +3329,6 @@ static Gia_Man_t * Nf2_ManDeriveMapping( Nf2_Man_t * p )
     Vec_Int_t * vMapping;
     Nf2_Mat_t * pM;
     int i, k, c, Id, iVar, fCompl, * pCut;
-    assert( p->pGia->vCellMapping == NULL );
     vMapping = Vec_IntAlloc( 2*Gia_ManObjNum(p->pGia) + (int)p->pPars->Edge + (int)p->pPars->Area * 2 );
     Vec_IntFill( vMapping, 2*Gia_ManObjNum(p->pGia), 0 );
     // create CI inverters
@@ -3350,6 +3351,8 @@ static Gia_Man_t * Nf2_ManDeriveMapping( Nf2_Man_t * p )
         {
             pM = Nf2_ObjMatchD( p, i, c );
             // remember inverter
+            if ( !pM->fBest ) pM = Nf2_ObjMatchA(p, i, c);
+            assert(pM->fBest);
             if ( pM->fCompl )
             {
                 Vec_IntWriteEntry( vMapping, Abc_Var2Lit(i, c), -1 );
@@ -3363,6 +3366,8 @@ static Gia_Man_t * Nf2_ManDeriveMapping( Nf2_Man_t * p )
             Vec_IntPush( vMapping, pM->Gate );
         }
     }
+    ABC_FREE( p->pGia->pRefs );
+    Vec_IntFreeP( &p->pGia->vCellMapping );
     p->pGia->vCellMapping = vMapping;
     return p->pGia;
 }
@@ -3470,6 +3475,47 @@ void Nf2_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->nCutNumMax   =  NF2_CUT_MAX - 1;
     pPars->MapDelayTarget = 0;
 }
+typedef struct Nf2_Sweep_t_
+{
+    int MaxDelay, Steps, Completed;
+    void (*pVisit)(void *, Gia_Man_t *);
+    void * pData;
+} Nf2_Sweep_t;
+
+/**Function*************************************************************
+
+  Synopsis    [Publishes successive exact-area covers while relaxing the timing target.]
+
+  Description [Keep the cuts and selected matches as the delay constraint is relaxed.
+  Publish each complete cover before spending time on the next exact-area pass.]
+
+***********************************************************************/
+static void Nf2_ManSweepCovers( Nf2_Man_t * p, Nf2_Sweep_t * sweep, abctime cost )
+{
+    int target = p->pPars->MapDelay, left = sweep->Steps;
+    for ( ;; )
+    {
+        abctime now;
+        Gia_Man_t * copy = Gia_ManDup(p->pGia);
+        Nf2_ManDeriveMapping(p);
+        copy->vCellMapping = p->pGia->vCellMapping; p->pGia->vCellMapping = NULL;
+        sweep->pVisit(sweep->pData, copy);
+        sweep->Completed++;
+        now = p->Deadline ? Abc_ClockHr() : 0;
+        if ( !left || target >= sweep->MaxDelay || (p->Deadline && now >= p->Deadline) ) break;
+        if ( p->Deadline && cost > 0 && (p->Deadline-now) / cost < left )
+            left = Abc_MaxInt(1, (int)((p->Deadline-now) / cost));
+        target += Abc_MaxInt(1, (sweep->MaxDelay-target)/left);
+        p->pPars->MapDelayTarget = target;
+        --left; ++p->Iter;
+        Nf2_ManComputeMappingEla(p);
+        if ( p->Deadline && Abc_ClockHr() >= p->Deadline ) break;
+        Nf2_ManUpdateStats(p);
+        Nf2_ManFinalTiming(p);
+        if ( p->Deadline ) cost = Abc_ClockHr()-now;
+    }
+}
+
 /**Function*************************************************************
 
   Synopsis    [Runs cut construction, mapping rounds, and cover export.]
@@ -3481,14 +3527,18 @@ void Nf2_ManSetDefaultPars( Jf_Par_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-static Gia_Man_t * Nf2_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars, Mio_Library_t * pMio, Amap_Lib_t * pAmap, int fAdaptive )
+static Gia_Man_t * Nf2_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars, Mio_Library_t * pMio, Amap_Lib_t * pAmap, int fAdaptive, abctime Deadline, Nf2_Sweep_t * pSweep )
 {
     Gia_Man_t * pNew = NULL;
     Nf2_Man_t * p; int i, Id, Stable = 0;
+    Vec_Int_t * vSaved = NULL;
+    Jf_Par_t SavedPars;
     float OldArea = 0;
+    abctime StartEla, LastEla = 0;
     p = Nf2_StoCreate( pGia, pPars, pMio, pAmap );
     if ( p == NULL )
         return NULL;
+    p->Deadline = Deadline;
     p->pGia->iFirstNonPiId = p->pManTim ? Tim_ManPiNum(p->pManTim) : Gia_ManCiNum(p->pGia);
     p->pGia->iFirstPoId    = p->pManTim ? Gia_ManCoNum(p->pGia) - Tim_ManPoNum(p->pManTim) : 0;
     p->pGia->iFirstAndObj  = 1 + p->pGia->iFirstNonPiId;
@@ -3506,6 +3556,7 @@ static Gia_Man_t * Nf2_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars,
     }
     if ( Gia_ManHasChoices(pGia) ) Gia_ManSetPhase(pGia);
     Nf2_ManComputeCuts( p );
+    if ( Deadline && Abc_ClockHr() >= Deadline ) goto cleanup;
     // Child binding programs are needed only while importing the choices.
     ABC_FREE( p->pChoiceOffsets );
     ABC_FREE( p->vChoiceValues.pArray );
@@ -3513,8 +3564,18 @@ static Gia_Man_t * Nf2_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars,
     for ( p->Iter = 0; p->Iter < p->pPars->nRounds; p->Iter++ )
     {
         if ( p->Iter ) Nf2_ManComputeMapping( p );
+        if ( Deadline && Abc_ClockHr() >= Deadline ) goto cleanup;
         Nf2_ManSetMapRefs( p );
         Nf2_ManPrintStats( p, p->Iter || pPars->fAreaOnly ? "Area " : "Delay" );
+        // An interrupted flow or first exact-area pass has incomplete node
+        // references. Keep the last fully selected area cover for that case.
+        if ( Deadline && pPars->fAreaOnly )
+        {
+            Vec_IntFreeP(&vSaved);
+            Nf2_ManDeriveMapping(p);
+            vSaved = pGia->vCellMapping; pGia->vCellMapping = NULL;
+            SavedPars = *pPars;
+        }
         // The area-oriented caller permits early termination after two weak
         // rounds. Ordinary NF2 retains its requested iteration schedule.
         if ( fAdaptive )
@@ -3528,9 +3589,15 @@ static Gia_Man_t * Nf2_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars,
     p->fUseEla = 1; Stable = 0;
     for ( ; p->Iter < p->pPars->nRounds + pPars->nRoundsEla; p->Iter++ )
     {
+        // A complete cover is already available after the first exact round.
+        // Return it when another measured sweep is unlikely to fit.
+        StartEla = Deadline ? Abc_ClockHr() : 0;
+        if ( Deadline && LastEla && Deadline-StartEla <= LastEla + LastEla/4 ) break;
         Nf2_ManComputeMappingEla( p );
+        if ( Deadline && Abc_ClockHr() >= Deadline ) goto cleanup;
         Nf2_ManUpdateStats( p );
         Nf2_ManPrintStats( p, "Ela  " );
+        if ( Deadline ) LastEla = Abc_ClockHr()-StartEla;
         if ( fAdaptive )
         {
             Stable = pPars->MapAreaF > 0.9995f * OldArea ? Stable+1 : 0;
@@ -3548,8 +3615,16 @@ static Gia_Man_t * Nf2_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars,
     }
     if ( pPars->fAreaOnly )
         Nf2_ManSetOutputRequireds(p,0);
-    pNew = Nf2_ManDeriveMapping( p );
+    if ( pSweep ) Nf2_ManSweepCovers(p, pSweep, LastEla);
+    else pNew = Nf2_ManDeriveMapping( p );
 
+cleanup:
+    if ( !pNew && vSaved )
+    {
+        pNew = pGia; pNew->vCellMapping = vSaved; vSaved = NULL;
+        *pPars = SavedPars;
+    }
+    Vec_IntFreeP(&vSaved);
     Nf2_StoDelete( p );
     return pNew;
 }
@@ -3566,10 +3641,8 @@ static Gia_Man_t * Nf2_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars,
   SeeAlso     []
 
 ***********************************************************************/
-static Gia_Man_t * Nf2_ManPerformMappingWithLibInt( Gia_Man_t * p, Jf_Par_t * pPars, Mio_Library_t * pMio, Amap_Lib_t * pAmap, int fAdaptive )
+static Gia_Man_t * Nf2_ManPerformMappingWithLibInt( Gia_Man_t * p, Jf_Par_t * pPars, Mio_Library_t * pMio, Amap_Lib_t * pAmap, int fAdaptive, abctime Deadline )
 {
-    extern Gia_Man_t * Nf_ManPerformMappingWithLib( Gia_Man_t *, Jf_Par_t *, Mio_Library_t * );
-    extern void Nf_ManSetDefaultPars( Jf_Par_t * );
     Gia_Man_t * pNew, * pOrig = p;
     Jf_Par_t Params, Defaults, * pUserPars = pPars;
     int fFallback;
@@ -3630,7 +3703,8 @@ static Gia_Man_t * Nf2_ManPerformMappingWithLibInt( Gia_Man_t * p, Jf_Par_t * pP
         Fallback.nCutNum = Abc_MinInt( Fallback.nCutNum, 32 );
         if ( pPars->fVerbose )
             Abc_Print( 1, "&nf2: using reference mapping for this library.\n" );
-        pNew = Nf_ManPerformMappingWithLib( p, &Fallback, pMio );
+        pNew = Nf_ManPerformMappingWithLibTimed(p, &Fallback, pMio, Deadline);
+        if ( !pNew ) return NULL;
         pPars->MapAreaF = Fallback.MapAreaF;
         // The area-only fallback reports its artificial target, not an arrival.
         pPars->MapDelay = pPars->fAreaOnly ? 0 : Fallback.MapDelay;
@@ -3646,7 +3720,7 @@ static Gia_Man_t * Nf2_ManPerformMappingWithLibInt( Gia_Man_t * p, Jf_Par_t * pP
         Gia_ManTransferTiming( pNew, p );
         p = pNew;
         // mapping
-        pNew = Nf2_ManPerformMappingInt( p, pPars, pMio, pAmap, fAdaptive );
+        pNew = Nf2_ManPerformMappingInt( p, pPars, pMio, pAmap, fAdaptive, Deadline, NULL );
         if ( pNew == NULL )
         {
             Gia_ManTransferTiming( pOrig, p );
@@ -3667,7 +3741,7 @@ static Gia_Man_t * Nf2_ManPerformMappingWithLibInt( Gia_Man_t * p, Jf_Par_t * pP
     }
     else
     {
-        pNew = Nf2_ManPerformMappingInt( p, pPars, pMio, pAmap, fAdaptive );
+        pNew = Nf2_ManPerformMappingInt( p, pPars, pMio, pAmap, fAdaptive, Deadline, NULL );
         if ( pNew == NULL ) return NULL;
         Gia_ManTransferTiming( pNew, p );
     }
@@ -3693,7 +3767,7 @@ finish:
 ***********************************************************************/
 Gia_Man_t * Nf2_ManPerformMappingWithLib( Gia_Man_t * p, Jf_Par_t * pPars, Mio_Library_t * pMio, Amap_Lib_t * pAmap )
 {
-    return Nf2_ManPerformMappingWithLibInt( p, pPars, pMio, pAmap, 0 );
+    return Nf2_ManPerformMappingWithLibInt( p, pPars, pMio, pAmap, 0, 0 );
 }
 
 /**Function*************************************************************
@@ -3711,7 +3785,7 @@ Gia_Man_t * Nf2_ManPerformMappingWithLib( Gia_Man_t * p, Jf_Par_t * pPars, Mio_L
 Gia_Man_t * Nf2_ManPerformMappingArea( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {
     return Nf2_ManPerformMappingWithLibInt( pGia, pPars,
-        (Mio_Library_t *)Abc_FrameReadLibGen(), (Amap_Lib_t *)Abc_FrameReadLibGen2(), 1 );
+        (Mio_Library_t *)Abc_FrameReadLibGen(), (Amap_Lib_t *)Abc_FrameReadLibGen2(), 1, 0 );
 }
 
 /**Function*************************************************************
@@ -3735,5 +3809,43 @@ Gia_Man_t * Nf2_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+/**Function*************************************************************
+
+  Synopsis    [Runs NF2 mapping with the active cell library and a deadline.]
+
+***********************************************************************/
+Gia_Man_t * Nf2_ManPerformMappingTimed( Gia_Man_t * p, Jf_Par_t * pPars, abctime Deadline )
+{
+    return Nf2_ManPerformMappingWithLibInt(p, pPars, (Mio_Library_t *)Abc_FrameReadLibGen(),
+                                          (Amap_Lib_t *)Abc_FrameReadLibGen2(), 1, Deadline);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reuses NF2 cuts to recover area over a range of output deadlines.]
+
+  Description [Takes a plain combinational subject. The callback owns each
+  completed cell-mapped GIA. A zero deadline runs all requested steps
+  up to MaxDelay. Returns the number of completed covers.]
+
+***********************************************************************/
+int Nf2_ManSweepDelay( Gia_Man_t * p, int MaxDelay, int nSteps, abctime Deadline, void (*pVisit)(void *, Gia_Man_t *), void * pData )
+{
+    Mio_Library_t * pMio = (Mio_Library_t *)Abc_FrameReadLibGen();
+    Amap_Lib_t * pAmap = (Amap_Lib_t *)Abc_FrameReadLibGen2();
+    Amap_PatView_t patterns;
+    Jf_Par_t pars;
+    Nf2_Sweep_t sweep = {MaxDelay, nSteps, 0, pVisit, pData};
+    if ( !p || !pVisit || !pMio || !pAmap || p->vCellMapping || p->pManTime || Gia_ManHasChoices(p) ||
+         Gia_ManRegNum(p) || Gia_ManMuxNum(p) || Gia_ManBufNum(p) || Gia_ManObjNum(p) > INT_MAX/20 ||
+         nSteps < 1 || MaxDelay <= 0 || MaxDelay >= SCL_INFINITY || (Deadline && Abc_ClockHr() >= Deadline) ) return 0;
+    Amap_LibReadPatterns(pAmap, &patterns);
+    if ( patterns.nNodes >= 2048 ) return 0;
+    Nf2_ManSetDefaultPars(&pars);
+    pars.nCutNum = 16; pars.nRounds = 2; pars.nRoundsEla = 1;
+    Nf2_ManPerformMappingInt(p, &pars, pMio, pAmap, 0, Deadline, &sweep);
+    return sweep.Completed;
+}
 
 ABC_NAMESPACE_IMPL_END

@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#include <assert.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,13 +44,13 @@
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #include <windows.h>
-#include <process.h>
 #include <io.h>
 #else
 #include <unistd.h>
 #endif
 
 #include "abc_global.h"
+#include "utilSignal.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -64,94 +64,93 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Exclusively creates a named temporary file.]
 
-  Description []
+  Description [Opens a temporary file with given prefix and returns file 
+  descriptor (-1 on failure) and a string containing the name of the file
+  (to be freed by caller). On POSIX, fPrivate selects owner-only access.
+  Ordinary output permissions are derived from the current umask.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-static ABC_UINT64_T realTimeAbs()  // -- absolute time in nano-seconds
+int Util_TempFileOpen( const char * prefix, const char * suffix, char ** out_name, int fPrivate )
 {
-#if defined(_MSC_VER)
-    LARGE_INTEGER f, t;
-    double realTime_freq;
-    int ok;
-
-    ok = QueryPerformanceFrequency(&f); assert(ok);
-    realTime_freq = 1.0 / (__int64)(((ABC_UINT64_T)f.LowPart) | ((ABC_UINT64_T)f.HighPart << 32));
-
-    ok = QueryPerformanceCounter(&t); assert(ok);
-    return (ABC_UINT64_T)(__int64)(((__int64)(((ABC_UINT64_T)t.LowPart | ((ABC_UINT64_T)t.HighPart << 32))) * realTime_freq * 1000000000));
+#if defined(_MSC_VER) || defined(__MINGW32__)
+    int i, fd;
+    LARGE_INTEGER counter;
+    DWORD token;
+    (void)fPrivate; // the Windows CRT uses the directory's inherited permissions
+    if ( !QueryPerformanceCounter(&counter) )
+    {
+        counter.LowPart = GetTickCount();
+        counter.HighPart = 0;
+    }
+    token = counter.LowPart ^ (DWORD)counter.HighPart ^ GetCurrentProcessId() ^ GetCurrentThreadId();
+    *out_name = ABC_ALLOC( char, strlen(prefix) + strlen(suffix) + 9 );
+    if ( !*out_name ) return -1;
+    for ( i = 0; i < 10; ++i )
+    {
+        sprintf(*out_name, "%s%08lX%s", prefix, (unsigned long)(token + i), suffix);
+        fd = _open(*out_name, O_CREAT | O_EXCL | O_BINARY | O_RDWR, _S_IREAD | _S_IWRITE);
+        if ( fd >= 0 ) return fd;
+        if ( errno != EEXIST ) break;
+    }
+    ABC_FREE( *out_name );
+    return -1;
+#elif defined(__wasm)
+    static ABC_THREAD_LOCAL unsigned seq = 0;
+    int fd;
+    *out_name = ABC_ALLOC( char, strlen(prefix) + strlen(suffix) + 9 );
+    if ( !*out_name ) return -1;
+    do
+    {
+        sprintf(*out_name, "%s%08X%s", prefix, seq++, suffix);
+        fd = open(*out_name, O_CREAT | O_EXCL | O_RDWR, fPrivate ? S_IREAD | S_IWRITE : 0666);
+    } while ( fd == -1 && errno == EEXIST );
+    if ( fd == -1 ) ABC_FREE( *out_name );
+    return fd;
 #else
-    return 0;
+    int fd;
+    *out_name = (char*)malloc(strlen(prefix) + strlen(suffix) + 7);
+    if ( !*out_name ) return -1;
+    sprintf(*out_name, "%sXXXXXX", prefix);
+    fd = mkstemp(*out_name);
+    if ( fd >= 0 && fPrivate && !suffix[0] )
+        return fd;
+    if (fd == -1){
+        free(*out_name);
+        *out_name = NULL;
+    }else{
+        // Reserve a unique name, then exclusively create the requested suffix
+        // or permissions. The open applies the process umask without changing it.
+        int closeStatus = close(fd);
+        if ( unlink(*out_name) != 0 || closeStatus != 0 )
+        {
+            ABC_FREE( *out_name );
+            return -1;
+        }
+        strcat(*out_name, suffix);
+        fd = open(*out_name, O_CREAT | O_EXCL | O_RDWR, fPrivate ? S_IREAD | S_IWRITE : 0666);
+        if (fd == -1){
+            free(*out_name);
+            *out_name = NULL;
+        }
+    }
+    return fd;
 #endif
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Opens a temporary file.]
-
-  Description [Opens a temporary file with given prefix and returns file 
-  descriptor (-1 on failure) and a string containing the name of the file 
-  (to be freed by caller).]
-               
-  SideEffects []
-
-  SeeAlso     []
+  Synopsis    [Opens a private temporary file using the existing interface.]
 
 ***********************************************************************/
-int tmpFile(const char* prefix, const char* suffix, char** out_name)
+int tmpFile( const char * prefix, const char * suffix, char ** out_name )
 {
-#if defined(_MSC_VER) || defined(__MINGW32__)
-    int i, fd;
-    *out_name = (char*)malloc(strlen(prefix) + strlen(suffix) + 27);
-    for (i = 0; i < 10; i++){
-        sprintf(*out_name, "%s%I64X%d%s", prefix, realTimeAbs(), _getpid(), suffix);
-        fd = _open(*out_name, O_CREAT | O_EXCL | O_BINARY | O_RDWR, _S_IREAD | _S_IWRITE);
-        if (fd == -1){
-            free(*out_name);
-            *out_name = NULL;
-        }
-        return fd;
-    }
-    assert(0);  // -- could not open temporary file
-    return 0;
-#elif defined(__wasm)
-    static int seq = 0; // no risk of collision since we're in a sandbox
-    int fd;
-    *out_name = (char*)malloc(strlen(prefix) + strlen(suffix) + 9);
-    sprintf(*out_name, "%s%08d%s", prefix, seq++, suffix);
-    fd = open(*out_name, O_CREAT | O_EXCL | O_RDWR, S_IREAD | S_IWRITE);
-    if (fd == -1){
-        free(*out_name);
-        *out_name = NULL;
-    }
-    return fd;
-#else
-    int fd;
-    *out_name = (char*)malloc(strlen(prefix) + strlen(suffix) + 7);
-    assert(*out_name != NULL);
-    sprintf(*out_name, "%sXXXXXX", prefix);
-    fd = mkstemp(*out_name);
-    if (fd == -1){
-        free(*out_name);
-        *out_name = NULL;
-    }else{
-        // Kludge:
-        close(fd);
-        unlink(*out_name);
-        strcat(*out_name, suffix);
-        fd = open(*out_name, O_CREAT | O_EXCL | O_RDWR, S_IREAD | S_IWRITE);
-        if (fd == -1){
-            free(*out_name);
-            *out_name = NULL;
-        }
-    }
-    return fd;
-#endif
+    return Util_TempFileOpen( prefix, suffix, out_name, 1 );
 }
 
 /**Function*************************************************************

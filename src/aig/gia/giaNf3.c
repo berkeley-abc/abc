@@ -27,8 +27,10 @@
 #include "map/mio/mio.h"
 #include "map/mio/exp.h"
 #include "map/scl/sclCon.h"
+#include "misc/vec/vecHsh.h"
 #include "misc/vec/vecMem.h"
 #include "misc/util/utilTruth.h"
+#include <limits.h>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -67,6 +69,7 @@ typedef struct Nf3_Man_t_
     Nf3_Obj_t * Objs;
     Vec_Int_t * Inputs, * Outputs, * Stack;
     int nObjs, nCells, Target, fDecompose;
+    abctime Deadline;
     word nTrials, nHits, Saved, nCacheHits, nTwo, nOdc, nCanonical, MinArea;
     Nf3_Cache_t * Cache;
     int nCached;
@@ -500,6 +503,7 @@ static Nf3_Cache_t * Nf3_Recipes( Nf3_Man_t * p, word Truth, int nVars )
     // inverter; direct matching requires those phases to exist already.
     for ( Mask = 1; Mask < (1 << nVars); Mask++ )
     {
+        if ( p->Deadline && Abc_ClockHr() >= p->Deadline ) break;
         nBound = nFree = 0;
         for ( k = 0; k < nVars; k++ )
             if ( (Mask >> k) & 1 ) Bound[nBound++] = k; else Free[nFree++] = k;
@@ -538,6 +542,7 @@ static Nf3_Cache_t * Nf3_Recipes( Nf3_Man_t * p, word Truth, int nVars )
                 R.Pins[0][k] = (unsigned char)(2*Bound[Perm & 15] + (Phase & 1));
             Vec_IntForEachEntryDouble(HMatches, HGate, HCfg, j)
             {
+                if ( p->Deadline && !(j & 127) && Abc_ClockHr() >= p->Deadline ) goto finish_recipes;
                 CfgH = (unsigned)HCfg;
                 if ( (CfgH & 1) != (unsigned)(H & 1) || (int)p->Cells[HGate].nFanins != nFree+1 ) continue;
                 Phase = (CfgH >> 1) & 127; Perm = CfgH >> 8;
@@ -563,6 +568,7 @@ static Nf3_Cache_t * Nf3_Recipes( Nf3_Man_t * p, word Truth, int nVars )
             }
         }
     }
+finish_recipes:
     Entry->nRecipes = nRecipes;
     Entry->Recipes = ABC_ALLOC(Nf3_Recipe_t, nRecipes);
     if ( nRecipes ) memcpy(Entry->Recipes, Recipes, sizeof(Nf3_Recipe_t)*nRecipes);
@@ -929,7 +935,7 @@ static void Nf3_TryCare( Nf3_Man_t * p, int Root, int * Nodes, int nNodes,
   SeeAlso     []
 
 ***********************************************************************/
-static void Nf3_Odc( Nf3_Man_t * p )
+static void Nf3_Odc( Nf3_Man_t * p, abctime Deadline )
 {
     Nf3_Obj_t * Obj;
     Nf3_Plan_t Best;
@@ -951,6 +957,7 @@ static void Nf3_Odc( Nf3_Man_t * p )
     Nf3_Required(p);
     for ( Id = 2; Id < p->nObjs; Id++ )
     {
+        if ( Deadline && !(Id & 31) && Abc_ClockHr() >= Deadline ) break;
         Obj = p->Objs+Id;
         if ( !Obj->Refs || Obj->Gate == NF3_CI ) continue;
         Obj->Arrival = Nf3_Delay(p, Obj->Gate, Obj->Fans, Obj->nFans);
@@ -1208,6 +1215,153 @@ static Gia_Man_t * Nf3_Export( Nf3_Man_t * p, Jf_Par_t * Pars )
     ABC_FREE(Copies); Vec_IntFree(Data);
     return q;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Releases the imported cell network and its recipe cache.]
+
+***********************************************************************/
+static void Nf3_Free( Nf3_Man_t * p )
+{
+    if ( !p ) return;
+    Nf3_CacheClear(p); ABC_FREE(p->Cache);
+    ABC_FREE(p->Objs); Vec_IntFree(p->Inputs); Vec_IntFree(p->Outputs); Vec_IntFree(p->Stack); ABC_FREE(p);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Interns a cover in the shared cell graph and returns its output drivers.]
+
+  Description [Both covers implement the same ordered outputs over the same inputs.
+  Intern by cell and ordered pin drivers so a shared instance is charged once.]
+
+***********************************************************************/
+static Vec_Int_t * Nf3_AddCover( Nf3_Man_t * p, Nf3_Man_t * cover, Hsh_VecMan_t * hash )
+{
+    int first = Vec_IntSize(p->Inputs) + 2, id, k, root;
+    int * copy = ABC_ALLOC(int, cover->nObjs);
+    Vec_Int_t * key = Vec_IntAlloc(7), * outputs = Vec_IntAlloc(Vec_IntSize(cover->Outputs));
+    for ( id = 0; id < first; ++id ) copy[id] = id;
+    for ( id = first; id < cover->nObjs; ++id )
+    {
+        Nf3_Obj_t * obj = cover->Objs + id, * node;
+        if ( !obj->Refs ) continue;
+        Vec_IntClear(key);
+        Vec_IntPush(key, obj->Gate);
+        for ( k = 0; k < obj->nFans; ++k ) Vec_IntPush(key, copy[obj->Fans[k]]);
+        copy[id] = first + Hsh_VecManAdd(hash, key);
+        if ( copy[id] < p->nObjs ) continue;
+        assert(copy[id] == p->nObjs);
+        node = p->Objs + p->nObjs++;
+        node->Gate = obj->Gate; node->nFans = obj->nFans;
+        for ( k = 0; k < node->nFans; ++k ) node->Fans[k] = Vec_IntEntry(key, k+1);
+        node->Arrival = Nf3_Delay(p, node->Gate, node->Fans, node->nFans);
+    }
+    Vec_IntForEachEntry(cover->Outputs, root, k) Vec_IntPush(outputs, copy[root]);
+    ABC_FREE(copy); Vec_IntFree(key);
+    return outputs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [References or dereferences a cone and returns the affected area.]
+
+  Description [Charge or release exactly the gates whose reference count crosses zero.]
+
+***********************************************************************/
+static word Nf3_ConeArea( Nf3_Man_t * p, int root, int fAdd )
+{
+    word area = 0;
+    int id, k;
+    Vec_IntPush(p->Stack, root);
+    while ( Vec_IntSize(p->Stack) )
+    {
+        Nf3_Obj_t * obj;
+        id = Vec_IntPop(p->Stack); obj = p->Objs + id;
+        assert(fAdd || obj->Refs > 0);
+        if ( fAdd ? obj->Refs++ : --obj->Refs ) continue;
+        area += Nf3_Area(p, id);
+        for ( k = 0; k < obj->nFans; ++k ) Vec_IntPush(p->Stack, obj->Fans[k]);
+    }
+    return area;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Combines the output cones of two cell mappings at feasible delays.]
+
+  Description [Tightens the output deadline at distinct arrival times. Moves
+  late outputs to their faster implementation, then switches other outputs
+  where the currently shared cover can save area. A zero deadline runs all
+  requested steps. Returns owned mappings.]
+
+***********************************************************************/
+Vec_Ptr_t * Nf3_ManMapOutputCones( Gia_Man_t * area, Gia_Man_t * fast, int nSteps, abctime end )
+{
+    Nf3_Man_t mix = {0}, * p = &mix, * a, * b;
+    Jf_Par_t pars;
+    Vec_Ptr_t * maps = Vec_PtrAlloc(nSteps);
+    Vec_Int_t * aOut, * bOut, * limits;
+    Hsh_VecMan_t * hash;
+    int i, j, step, count, limit, lo = 0, root, other, changed;
+    if ( area == fast || nSteps < 2 || Gia_ManCoNum(area) < 2 || (end && Abc_ClockHr() >= end) ) return maps;
+    assert(Gia_ManCiNum(area) == Gia_ManCiNum(fast) && Gia_ManCoNum(area) == Gia_ManCoNum(fast));
+    Nf3_ManSetDefaultPars(&pars);
+    a = Nf3_Import(area, &pars, 0); b = Nf3_Import(fast, &pars, 0);
+    if ( !a || !b || a->nObjs > INT_MAX - b->nObjs ) goto done;
+    p->Gia = area; p->Cells = a->Cells; p->Inputs = a->Inputs;
+    p->nObjs = 2 + Vec_IntSize(p->Inputs);
+    p->Objs = ABC_CALLOC(Nf3_Obj_t, a->nObjs + b->nObjs);
+    for ( i = 0; i < p->nObjs; ++i ) p->Objs[i].Gate = a->Objs[i].Gate;
+    hash = Hsh_VecManStart(Abc_MinInt(a->nObjs, 1 << 18));
+    aOut = Nf3_AddCover(p, a, hash); bOut = Nf3_AddCover(p, b, hash);
+    Hsh_VecManStop(hash);
+    p->Stack = Vec_IntAlloc(128);
+    p->Outputs = Vec_IntDup(aOut);
+    limits = Vec_IntAlloc(Vec_IntSize(aOut)+1);
+    Vec_IntForEachEntryTwo(aOut, bOut, root, other, i)
+    {
+        int da = p->Objs[root].Arrival, db = p->Objs[other].Arrival;
+        lo = Abc_MaxInt(lo, Abc_MinInt(da, db));
+        if ( da > db ) Vec_IntPush(limits, da);
+        Nf3_ConeArea(p, root, 1);
+    }
+    Vec_IntPush(limits, lo);
+    Vec_IntUniqify(limits);
+    // Only thresholds at or above the fastest attainable output delay matter.
+    j = Vec_IntFind(limits, lo);
+    count = Abc_MinInt(nSteps, Vec_IntSize(limits)-j);
+    for ( step = 0; step < count && (!end || Abc_ClockHr() < end); ++step )
+    {
+        int idx = Vec_IntSize(limits)-1;
+        if ( count > 1 ) idx -= (int)((abctime)step * (idx-j) / (count-1));
+        limit = Vec_IntEntry(limits, idx); changed = 0;
+        // First satisfy all required arrivals. Then evaluate optional swaps
+        // using the exact area of the resulting live cones.
+        for ( int pass = 0; pass < 2; ++pass )
+            Vec_IntForEachEntry(p->Outputs, root, i)
+            {
+                word gain, cost;
+                if ( end && !(i & 127) && Abc_ClockHr() >= end ) goto finish;
+                other = root == Vec_IntEntry(aOut, i) ? Vec_IntEntry(bOut, i) : Vec_IntEntry(aOut, i);
+                if ( other == root || p->Objs[other].Arrival > limit ) continue;
+                if ( (p->Objs[root].Arrival <= limit) != pass ) continue;
+                gain = Nf3_ConeArea(p, root, 0);
+                cost = Nf3_ConeArea(p, other, 1);
+                if ( !pass || cost < gain || (cost == gain && p->Objs[other].Arrival < p->Objs[root].Arrival) )
+                { Vec_IntWriteEntry(p->Outputs, i, other); changed = 1; }
+                else
+                { Nf3_ConeArea(p, other, 0); Nf3_ConeArea(p, root, 1); }
+            }
+        if ( changed ) Vec_PtrPush(maps, Nf3_Export(p, &pars));
+    }
+finish:
+    Vec_IntFree(limits); Vec_IntFree(aOut); Vec_IntFree(bOut);
+    Vec_IntFree(p->Stack); Vec_IntFree(p->Outputs); ABC_FREE(p->Objs);
+done:
+    Nf3_Free(a); Nf3_Free(b);
+    return maps;
+}
 /**Function*************************************************************
 
   Synopsis    [Runs bounded cell-window recovery under the original delay bound.]
@@ -1219,7 +1373,7 @@ static Gia_Man_t * Nf3_Export( Nf3_Man_t * p, Jf_Par_t * Pars )
   SeeAlso     []
 
 ***********************************************************************/
-static Gia_Man_t * Nf3_Recover( Gia_Man_t * Gia, Jf_Par_t * Pars, int nRounds )
+Gia_Man_t * Nf3_ManRecoverTimed( Gia_Man_t * Gia, Jf_Par_t * Pars, int nRounds, abctime Deadline )
 {
     Nf3_Man_t * p;
     Nf3_Obj_t * Obj;
@@ -1232,12 +1386,14 @@ static Gia_Man_t * Nf3_Recover( Gia_Man_t * Gia, Jf_Par_t * Pars, int nRounds )
          Gia->vCiArrs || Gia->vCoReqs || Scl_ConIsRunning() ) return Gia;
     p = Nf3_Import(Gia, Pars, nRounds > 1);
     if ( p == NULL ) return Gia;
+    p->Deadline = Deadline;
     Nf3_Canonical(p);
     for ( Round = 0; Round < nRounds; Round++ )
     {
         Nf3_Required(p); Hits = p->nHits;
         for ( Id = 2; Id < p->nObjs; Id++ )
         {
+            if ( Deadline && !(Id & 15) && Abc_ClockHr() >= Deadline ) goto export_cover;
             Obj = p->Objs+Id;
             if ( !Obj->Refs || Obj->Gate == NF3_CI ) continue;
             Obj->Arrival = Nf3_Delay(p, Obj->Gate, Obj->Fans, Obj->nFans);
@@ -1253,7 +1409,8 @@ static Gia_Man_t * Nf3_Recover( Gia_Man_t * Gia, Jf_Par_t * Pars, int nRounds )
         }
         if ( p->nHits == Hits ) break;
     }
-    Nf3_Odc(p);
+    Nf3_Odc(p, Deadline);
+export_cover:
     Nf3_Canonical(p);
     Result = Nf3_Export(p, Pars);
     if ( Pars->fVerbose )
@@ -1263,8 +1420,7 @@ static Gia_Man_t * Nf3_Recover( Gia_Man_t * Gia, Jf_Par_t * Pars, int nRounds )
     if ( Pars->fVerbose ) Abc_Print(1, "&nf3 two-cell: %lld changes, %d cached functions, %lld hits\n", (long long)p->nTwo, p->nCached, (long long)p->nCacheHits);
     if ( Pars->fVerbose ) Abc_Print(1, "&nf3 observability: %lld changes\n", (long long)p->nOdc);
     if ( Pars->fVerbose ) Abc_Print(1, "&nf3 cell sharing: %lld changes\n", (long long)p->nCanonical);
-    Nf3_CacheClear(p); ABC_FREE(p->Cache);
-    ABC_FREE(p->Objs); Vec_IntFree(p->Inputs); Vec_IntFree(p->Outputs); Vec_IntFree(p->Stack); ABC_FREE(p);
+    Nf3_Free(p);
     return Result;
 }
 
@@ -1315,7 +1471,7 @@ Gia_Man_t * Nf3_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars, int fSynt
     if ( pWork != pGia && pWork != pNew ) Gia_ManStop( pWork );
     if ( pNew && nRecover > 0 )
     {
-        pWork = Nf3_Recover(pNew, pPars, nRecover);
+        pWork = Nf3_ManRecoverTimed(pNew, pPars, nRecover, 0);
         if ( pNew != pGia && pNew != pWork ) Gia_ManStop(pNew);
         pNew = pWork;
     }

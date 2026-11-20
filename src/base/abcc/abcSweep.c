@@ -1657,7 +1657,6 @@ usage:
 ***********************************************************************/
 static int Abc_CommandLmsTarget( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Abc_NtkRecStartBuiltin3( FILE *, FILE * );
     Gia_Man_t * pNew;
     int c, Pass, Target = -1, Cuts = 8, CriticalCuts = 0, Rounds = 4, Exact = 16, Passes = 1, DpMode = 2, Memory = 1024, fVerbose = 0, fXor = 0;
     Extra_UtilGetoptReset();

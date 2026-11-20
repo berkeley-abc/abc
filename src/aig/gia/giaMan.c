@@ -591,6 +591,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
         Gia_ManPrintMappingStats( p, pPars ? pPars->pDumpFile : NULL );
     else if ( pPars && pPars->pDumpFile )
         Gia_ManLogAigStats( p, pPars->pDumpFile );
+    if ( pPars && !pPars->fSkipMap && Gia_ManHasCellMapping(p) )
+        Gia_ManPrintCellMappingStats( p );
     if ( pPars && pPars->fNpn && Gia_ManHasMapping(p) )
         Gia_ManPrintNpnClasses( p );
     if ( p->vPacking )

@@ -89,7 +89,7 @@ void Hop_ManStopMemory( Hop_Man_t * p )
 void Hop_ManAddMemory( Hop_Man_t * p )
 {
     char * pMemory = 0;
-    Hop_Obj_t * pEntry, * pNext;
+    Hop_Obj_t * pEntry;
     int i, nBytes;
     assert( sizeof(Hop_Obj_t) <= 64 );
     assert( p->pListFree == NULL );
@@ -107,12 +107,10 @@ void Hop_ManAddMemory( Hop_Man_t * p )
     p->pListFree = pEntry;
     for ( i = 1; i <= IVY_PAGE_MASK; i++ )
     {
-        pNext = pEntry + 1;
-        memcpy( pEntry, &pNext, sizeof(Hop_Obj_t *) );
+        pEntry->pData = pEntry + 1;
         pEntry++;
     }
-    pNext = NULL;
-    memcpy( pEntry, &pNext, sizeof(Hop_Obj_t *) );
+    pEntry->pData = NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////

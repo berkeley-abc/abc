@@ -17,6 +17,7 @@
 ***********************************************************************/
 
 #include "abcc.h"
+#include "bool/lms/lms.h"
 #include "base/main/mainInt.h"
 #include "aig/gia/giaAig.h"
 #include "map/fpga/fpga.h"
@@ -3409,7 +3410,6 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( !Abc_NtkRecIsRunning3() )
         {
-            extern int Abc_NtkRecStartBuiltin3( FILE * pOut, FILE * pError );
             if ( pPars->nLutSize != 6 )
             {
                 Abc_Print(-1, "Built-in LMS library has 6 inputs, but the selected cut size is %d. Use -K 6 or load a matching external LMS library.\n", pPars->nLutSize);
@@ -5508,7 +5508,6 @@ int Abc_CommandAbc9LNetMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Abc_Ntk_t * Gia_ManPerformLNetMap( Gia_Man_t * p, int GroupSize, int fUseFixed, int fTryNew, int fVerbose );
     Abc_Ntk_t * pTemp;
-    char * pFileName = NULL;
     int c, fTryNew = 1, nIns = 6, nOuts = 2, fUseFixed = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "IOfxvh" ) ) != EOF )
@@ -5561,7 +5560,6 @@ int Abc_CommandAbc9LNetMap( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 0;
         }
         fclose( pFile );
-        pFileName = argv[globalUtilOptind];
     }
     pTemp = Gia_ManPerformLNetMap( pAbc->pGia, nOuts, fUseFixed, fTryNew, fVerbose );
     Abc_FrameReplaceCurrentNetwork( pAbc, pTemp );

@@ -1047,10 +1047,11 @@ static void Vec_PtrUniqify2( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)(const void
 ***********************************************************************/
 static inline Vec_Ptr_t * Vec_PtrAllocSimInfo( int nEntries, int nWords )
 {
-    void ** pMemory;
+    size_t nBytes = (sizeof(void *) + sizeof(unsigned) * (size_t)nWords) * nEntries;
+    unsigned char * pStorage = ABC_ALLOC( unsigned char, nBytes );
+    void ** pMemory = (void **)pStorage;
     unsigned * pInfo;
     int i;
-    pMemory = (void **)ABC_ALLOC( char, (sizeof(void *) + sizeof(unsigned) * (size_t)nWords) * nEntries );
     pInfo = (unsigned *)(pMemory + nEntries);
     for ( i = 0; i < nEntries; i++ )
         pMemory[i] = pInfo + i * nWords;

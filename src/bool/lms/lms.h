@@ -125,6 +125,16 @@ extern int Lms_CollectWrite( Lms_Collect_t * p, const char * pFileName, FILE * p
 // Once feasible, widen cut neighborhoods while the rebuilt batch area falls.
 extern Gia_Man_t * Lms_TwoPerform( Gia_Man_t * pGia, int StopLevel, int CutSize,
     int Cuts, int Nodes, int Trials, double AreaGrowth, int fXor, int fEscalate, int fVerbose );
+// The visitor borrows the recovered input, each accepted pass and any further
+// improvement found during final recovery.
+// A zero pass limit runs the ordinary search to its stopping condition.
+typedef void (*Lms_TwoVisit_t)( void * pData, Gia_Man_t * pGia, int Depth );
+extern Gia_Man_t * Lms_TwoPerformTrace( Gia_Man_t * pGia, int StopLevel, int CutSize,
+    int Cuts, int Nodes, int Trials, double AreaGrowth, int fXor, int fEscalate, int fVerbose,
+    int nPassLimit, Lms_TwoVisit_t pVisit, void * pData );
+extern Gia_Man_t * Lms_TwoPerformTraceTimed( Gia_Man_t * pGia, int StopLevel, int CutSize,
+    int Cuts, int Nodes, int Trials, double AreaGrowth, int fXor, int fEscalate, int fVerbose,
+    int nPassLimit, Lms_TwoVisit_t pVisit, void * pData, abctime Deadline );
 
 // === lmsCuts.c ======================================================
 // Six-input cuts over a combinational AND/XOR GIA, including ordered choices;
@@ -153,6 +163,8 @@ extern int Lms_CutsCollect( Gia_Man_t * pGia, int Cuts, Lms_CutCost_t pCost,
 // Optional per-object cut budgets in [1, 128]; NULL uses the uniform budget.
 extern int Lms_CutsCollectBudgeted( Gia_Man_t * pGia, int Cuts, const int * pLimits,
     Lms_CutCost_t pCost, Lms_CutVisit_t pVisit, void * pData, int fVerbose );
+extern int Lms_CutsCollectBudgetedTimed( Gia_Man_t * pGia, int Cuts, const int * pLimits,
+    Lms_CutCost_t pCost, Lms_CutVisit_t pVisit, void * pData, int fVerbose, abctime Deadline );
 // Recollect after a uniform Cuts pass with unchanged graph, timing, library
 // and cost callback.
 // Visit only changed budgets and their transitive gate/choice consumers.
@@ -190,6 +202,10 @@ extern Gia_Man_t * Lms_TargetPerformAdaptive( Gia_Man_t * pGia, int Target, int 
 extern Gia_Man_t * Lms_TargetPerformEx( Gia_Man_t * pGia, int Target, int StopLevel, int Cuts,
     int Rounds, int Exact, int DpMode, int Memory, int CriticalCuts, int fXor, int fVerbose );
 extern int Lms_XorLevelNum( Gia_Man_t * pGia );
+// Recorded-cut library integration used by LMS and IF.
+extern int Abc_RecTargetReady3( void );
+extern int Abc_RecMapCache3( int fStart );
+extern int Abc_NtkRecStartBuiltin3( FILE * pOut, FILE * pError );
 // Release the private native library between optimizations (also at shutdown).
 extern void Abc_RecTargetXorClear3( void );
 // Save one canonical binding. PO profile arrays remain valid through selection

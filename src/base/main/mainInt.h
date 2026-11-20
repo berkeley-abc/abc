@@ -178,6 +178,7 @@ struct Abc_Frame_t_
     void **         pLibHandles;   // dynamically loaded extension libraries
 
     Abc_Frame_Callback_BmcFrameDone_Func pFuncOnFrameDone;
+    Abc_Nf2Cache_t  Nf2Cache;      // compiled cell libraries owned by this frame
 };
 
 typedef void (*Abc_Frame_Initialization_Func)( Abc_Frame_t * pAbc );

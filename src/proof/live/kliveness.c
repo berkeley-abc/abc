@@ -211,8 +211,8 @@ Aig_Man_t *introduceAbsorberLogic( Aig_Man_t *pAig, int *pLiveIndex_0, int *pLiv
     //****************************************************************
     // Step 2: map constant nodes
     //****************************************************************
-        pObj = Aig_ManConst1( pAig );
-        pObj->pData = Aig_ManConst1( pNewAig );
+    pObj = Aig_ManConst1( pAig );
+    pObj->pData = Aig_ManConst1( pNewAig );
 
     //****************************************************************
         // Step 3: create true PIs

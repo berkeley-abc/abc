@@ -1408,7 +1408,6 @@ void Gia_RsbEnumerateWindows( Gia_Man_t * p, int nInputsMax, int nLevelsMax )
         {
             Gia_ManPrint( pIn );
             Gia_ManPrint( pOut );
-            pOut = pOut;
         }
 
         nNodeGain += Gia_ManAndNum(pIn) - Gia_ManAndNum(pOut);

@@ -357,10 +357,10 @@ bool Solver::satisfied(const Clause& c) const {
     return (value(c[0]) == l_True) || (value(c[1]) == l_True);
 
   // Default mode.
-    for (int i = 0; i < c.size(); i++)
-        if (value(c[i]) == l_True)
-            return true;
-    return false; 
+  for (int i = 0; i < c.size(); i++)
+    if (value(c[i]) == l_True)
+      return true;
+  return false;
 }
 
 /************************************************************

@@ -74,7 +74,7 @@ static word s_Truths6Neg[6] = {
     ABC_CONST(0x00000000FFFFFFFF)
 };
 
-static word s_Truth26[2][6] = {
+static const word s_Truth26[2][6] = {
     {
         ABC_CONST(0xAAAAAAAAAAAAAAAA),
         ABC_CONST(0xCCCCCCCCCCCCCCCC),
@@ -1916,7 +1916,7 @@ static inline int Abc_Tt6IsXorType( word t, int nVars )
 ***********************************************************************/
 static inline word Abc_Tt6Flip( word Truth, int iVar )
 {
-    return Truth = ((Truth << (1 << iVar)) & s_Truths6[iVar]) | ((Truth & s_Truths6[iVar]) >> (1 << iVar));
+    return ((Truth << (1 << iVar)) & s_Truths6[iVar]) | ((Truth & s_Truths6[iVar]) >> (1 << iVar));
 }
 static inline void Abc_TtFlip( word * pTruth, int nWords, int iVar )
 {
@@ -3767,8 +3767,6 @@ static inline void Abc_TtProcessBiDecExperiment()
     Abc_TtDeriveBiDec( &t, nVars, resThis, resThat, nSuppLim, &This, &That );
 //    Dau_DsdPrintFromTruth( &This, Abc_TtBitCount16(resThis) );
 //    Dau_DsdPrintFromTruth( &That, Abc_TtBitCount16(resThat) );
-    nVars = nSuppLim;
-    This = s_Truth26[0][0];
 }
 
 /**Function*************************************************************

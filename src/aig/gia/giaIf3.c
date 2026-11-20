@@ -4045,7 +4045,7 @@ static Gia_Man_t * If3_Pack( If3_Man_t * m )
     int * Map = ABC_CALLOC(int, Gia_ManObjNum(m->pGia));
     int Nodes[IF3_PACK_NODES], Leaves[IF3_PACK_VARS], nNodes, nLeaves;
     Vec_Int_t * OldOrder;
-    int i, j, Id, Original, Pass, Before, Target = (m->pPars->fArea || m->Target >= INT_MAX/4) ? INT_MAX/4 : (int)(m->Target + IF3_EPSILON);
+    int i, j, Id, Original, Pass, Before, Target = (m->pPars->fArea || m->Target >= (float)(INT_MAX/4)) ? INT_MAX/4 : (int)(m->Target + IF3_EPSILON);
     size_t Capacity = 1 + (size_t)Gia_ManCiNum(m->pGia) + 3*(size_t)m->pPars->Area;
     abctime clk = Abc_Clock();
     if ( Capacity > INT_MAX/8 || Capacity > ((size_t)-1)/sizeof(If3_Lut_t) )

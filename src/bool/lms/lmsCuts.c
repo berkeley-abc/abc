@@ -324,7 +324,7 @@ static void Lmc_Release( Lmc_Obj_t * pObj, Lmc_Set_t ** ppFree )
 
 ***********************************************************************/
 static int Lmc_Collect( Gia_Man_t * pGia, int nCutsMax, const int * pLimits,
-    Lms_CutCost_t pCost, Lms_CutVisit_t pVisit, void * pData, int fRecollect, int fVerbose )
+    Lms_CutCost_t pCost, Lms_CutVisit_t pVisit, void * pData, int fRecollect, int fVerbose, abctime Deadline )
 {
     Lmc_Obj_t * pObjs = NULL, * pThis;
     Lmc_Set_t * pFree[129] = {0}, * pSet;
@@ -383,6 +383,8 @@ static int Lmc_Collect( Gia_Man_t * pGia, int nCutsMax, const int * pLimits,
     Gia_ManForEachAnd(pGia, pObj, Id)
     {
         Lmc_Cut_t * pFans[2];
+        if ( Deadline && !(Id & 31) && Abc_ClockHr() >= Deadline )
+        { fStopped = 1; goto cleanup; }
         i0 = Gia_ObjFaninId0p(pGia, pObj);
         i1 = Gia_ObjFaninId1p(pGia, pObj);
         for ( v = 0; v < 2; ++v )
@@ -522,7 +524,13 @@ cleanup:
 int Lms_CutsCollectBudgeted( Gia_Man_t * pGia, int nCutsMax, const int * pLimits,
     Lms_CutCost_t pCost, Lms_CutVisit_t pVisit, void * pData, int fVerbose )
 {
-    return Lmc_Collect(pGia, nCutsMax, pLimits, pCost, pVisit, pData, 0, fVerbose);
+    return Lmc_Collect(pGia, nCutsMax, pLimits, pCost, pVisit, pData, 0, fVerbose, 0);
+}
+
+int Lms_CutsCollectBudgetedTimed( Gia_Man_t * pGia, int nCutsMax, const int * pLimits,
+    Lms_CutCost_t pCost, Lms_CutVisit_t pVisit, void * pData, int fVerbose, abctime Deadline )
+{
+    return Lmc_Collect(pGia, nCutsMax, pLimits, pCost, pVisit, pData, 0, fVerbose, Deadline);
 }
 
 /**Function*************************************************************
@@ -541,7 +549,7 @@ int Lms_CutsCollectBudgeted( Gia_Man_t * pGia, int nCutsMax, const int * pLimits
 int Lms_CutsRecollect( Gia_Man_t * pGia, int nCutsMax, const int * pLimits,
     Lms_CutCost_t pCost, Lms_CutVisit_t pVisit, void * pData, int fVerbose )
 {
-    return Lmc_Collect(pGia, nCutsMax, pLimits, pCost, pVisit, pData, 1, fVerbose);
+    return Lmc_Collect(pGia, nCutsMax, pLimits, pCost, pVisit, pData, 1, fVerbose, 0);
 }
 
 /**Function*************************************************************

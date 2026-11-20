@@ -888,7 +888,7 @@ private: // Merge/decompose one
         vvCs[i].push_back(vCsOld[j]);
         continue;
       }
-      vPfUpdates[i] = vPfUpdates[i] | vPfUpdates[i0];
+      vPfUpdates[i] = vPfUpdates[i] || vPfUpdates[i0];
       vvFos[i0].erase(find(vvFos[i0].begin(), vvFos[i0].end(), i));
       count++;
       typename std::vector<int>::iterator itfi = vFisOld.begin() + j;
