@@ -153,6 +153,7 @@ struct Saig_ParBmc_t_
     int(*pFuncStop)(int);       // callback to terminate
     int(*pFuncProgress)(void *, int, unsigned); // progress/termination callback
     void *      pProgress;      // progress callback data
+    abctime     timeCnfStop;    // fixed-depth unrolling deadline (-1 = use nTimeOut, 0 = unlimited)
 };
 
  
@@ -304,6 +305,8 @@ extern int               Saig_ManBmcScalablePortfolio( Aig_Man_t * pAig, Saig_Pa
 /*=== bmcBmcGia.c ========================================================*/
 extern void              Bmc_GiaSetDefaultParams( Bmc_GiaPar_t * pPars );
 extern int               Bmc_GiaPerform( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars );
+extern int               Bmc_GiaPerformWindow( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int nGroup );
+extern int               Bmc_GiaFindTarget( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int Frame, int nTerms, int Window, int fPolarity );
 extern int               Bmcg_ManPerformWithStop( Gia_Man_t * pGia, Bmc_AndPar_t * pPars,
                              int (*pFuncStop)(void *), void * pStopData );
 /*=== bmcBmcAnd.c ==========================================================*/

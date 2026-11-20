@@ -28,6 +28,7 @@ void Gip_VarSetInit( Gip_VarSet_t * p, int nVarsAlloc )
     p->vSet = Vec_IntAlloc( 100 );
     p->pHas = ABC_CALLOC( char, nVarsAlloc );
     p->pLitFlags = NULL;
+    p->pValues = NULL;
 }
 
 void Gip_VarSetFree( Gip_VarSet_t * p )
@@ -247,9 +248,12 @@ void Gip_SolverPrepareVsids( Gip_Solver_t * p )
     int i, d;
     if ( !p->fPreparedVsids && !p->fTempDomain )
     {
+        int fLeaves = p->fInputQueue && p->fInputDecisions && !p->fInputAbandoned;
         p->fPreparedVsids = 1;
+        // The input-first picker would immediately discard internal variables.
+        // Its fallback and its branch-budget switch still see the entire domain.
         Vec_IntForEachEntry( p->Domain.Set.vSet, d, i )
-            if ( p->pValue[d] == GIP_NONE )
+            if ( p->pValue[d] == GIP_NONE && (!fLeaves || !Gip_SolverIsInternal(p, d)) )
                 Gip_VsidsPush( &p->Vsids, d );
     }
 }

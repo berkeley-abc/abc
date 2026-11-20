@@ -67,9 +67,11 @@ static inline int Gip_LitNot( int Lit )           { return Lit ^ 1;             
 
 typedef struct Gip_Wat_t_
 {
-    int          clause;      // CRef
+    int          clause;      // CRef, complemented for an inline binary implication
     int          blocker;     // Lit
 } Gip_Wat_t;
+
+static inline int Gip_WatchRef( int Ref ) { return Ref < 0 ? ~Ref : Ref; }
 
 // per-literal watcher list
 typedef struct Gip_WVec_t_
@@ -85,6 +87,7 @@ typedef struct Gip_VarSet_t_
     Vec_Int_t *  vSet;
     char *       pHas;        // indexed by var
     char *       pLitFlags;   // optional borrowed literal values: bit 2 mirrors membership
+    const char * pValues;     // when set, a member's byte is one plus its variable value
 } Gip_VarSet_t;
 
 typedef struct Gip_LitSet_t_
@@ -218,9 +221,17 @@ typedef struct Gip_Stats_t_
     ABC_INT64_T  nRecycled;
 } Gip_Stats_t;
 
+typedef struct Gip_Batch_t_
+{
+    Vec_Int_t * vClause;          // fixed guarded clause in this batch
+    Vec_Int_t * vPrevious;        // assumptions actually submitted to search
+    int nResumed;
+} Gip_Batch_t;
+
 typedef struct Gip_Solver_t_
 {
     Gip_Ctx_t *  pCtx;            // shared, read-only
+    Gip_Batch_t  Batch;           // saved temporary clause and trail prefix of this solver
     const char * pDumpFile;       // optional diagnostic snapshot of the next query (caller owned)
     struct Gip_Solver_t_ * pShared; // PDR-only logical frame handle; NULL for an actual solver
     Vec_Int_t * vSharedDomain;   // saved MIC domain of this logical frame, or NULL
@@ -234,6 +245,9 @@ typedef struct Gip_Solver_t_
     Vec_Int_t *  vLoad;          // lazy CNF: dependency traversal scratch
     // core CDCL state
     Gip_Cdb_t    Cdb;
+    Gip_Wat_t *  pWatchData;      // optional contiguous storage for initial watch lists
+    int          nWatchAhead;     // trail distance for watch-list prefetch
+    int          fInlineBinary;   // carry the implied literal in the binary watch
     Gip_WVec_t * pWatchers;       // per lit (2*nVarsAlloc)
     unsigned *   pSkipWatch;     // optional epoch of an entirely out-of-domain watch list
     unsigned     nWatchEpoch;
@@ -267,6 +281,7 @@ typedef struct Gip_Solver_t_
     int          fTempDomain;
     int          fPreparedVsids;
     int          fInputDecisions; // prefer leaves of the circuit dependency graph
+    int          fInputQueue;     // seed a fresh input-first queue with circuit leaves
     int          nInputConfLimit, fInputAbandoned;
     int          nInputMillis;
     abctime      InputDeadline;
@@ -374,6 +389,8 @@ extern int            Gip_SolverUnsatHas( Gip_Solver_t * p, int Lit );
 // MIC temporary domain
 extern void           Gip_SolverSetDomain( Gip_Solver_t * p, int * pLits, int nLits );
 extern void           Gip_SolverUnsetDomain( Gip_Solver_t * p );
+extern void           Gip_SolverStartBatch( Gip_Solver_t * p, int nLits );
+extern int            Gip_SolverStopBatch( Gip_Solver_t * p );
 // internals shared between gip*.c
 extern void           Gip_SolverReset( Gip_Solver_t * p );
 extern Gip_Solver_t *  Gip_SolverCloneRoot( Gip_Solver_t * p ); // deep copy; caller retires temporary query first
@@ -446,8 +463,19 @@ extern void           Gip_VarSetInit( Gip_VarSet_t * p, int nVarsAlloc );
 extern void           Gip_VarSetFree( Gip_VarSet_t * p );
 extern void           Gip_LitSetInit( Gip_LitSet_t * p, int nVarsAlloc );
 extern void           Gip_LitSetFree( Gip_LitSet_t * p );
-static inline int     Gip_VarSetHas( Gip_VarSet_t * p, int Var )  { return p->pHas[Var];  }
-static inline void    Gip_VarSetInsert( Gip_VarSet_t * p, int Var ) { if ( !p->pHas[Var] ) { p->pHas[Var] = 1; if (p->pLitFlags) { p->pLitFlags[2*Var] |= 4; p->pLitFlags[2*Var+1] |= 4; } Vec_IntPush(p->vSet, Var); } }
+static inline int     Gip_VarSetHas( Gip_VarSet_t * p, int Var )  { return p->pHas[Var] != 0; }
+static inline void    Gip_VarSetInsert( Gip_VarSet_t * p, int Var )
+{
+    if ( p->pHas[Var] )
+        return;
+    p->pHas[Var] = p->pValues ? 1 + p->pValues[Var] : 1;
+    if ( p->pLitFlags )
+    {
+        p->pLitFlags[2*Var] |= 4;
+        p->pLitFlags[2*Var+1] |= 4;
+    }
+    Vec_IntPush( p->vSet, Var );
+}
 static inline void    Gip_VarSetUnmark( Gip_VarSet_t * p, int Var ) { p->pHas[Var] = 0; if (p->pLitFlags) { p->pLitFlags[2*Var] &= 3; p->pLitFlags[2*Var+1] &= 3; } }
 static inline int     Gip_LitSetHas( Gip_LitSet_t * p, int Lit )  { return p->pHas[Lit];  }
 static inline void    Gip_LitSetInsert( Gip_LitSet_t * p, int Lit ) { if ( !p->pHas[Lit] ) { p->pHas[Lit] = 1; Vec_IntPush(p->vSet, Lit); } }
@@ -457,13 +485,18 @@ static inline void    Gip_LitSetClear( Gip_LitSet_t * p ) { int i, l; Vec_IntFor
 static inline int     Gip_SolverLitValue( Gip_Solver_t * p, int Lit ) { return p->pLitVal[Lit] & 3; }
 static inline void    Gip_SolverSetLit( Gip_Solver_t * p, int Lit )
 {
-    p->pValue[Gip_LitVar(Lit)] = (char)(1 ^ Gip_LitCompl(Lit));
+    int Var = Gip_LitVar(Lit), Value = 1 ^ Gip_LitCompl(Lit);
+    p->pValue[Var] = (char)Value;
+    if ( p->Domain.Set.pValues && p->Domain.Set.pHas[Var] )
+        p->Domain.Set.pHas[Var] = 1 + Value;
     p->pLitVal[Lit] = (p->pLitVal[Lit] & 4) | GIP_TRUE;
     p->pLitVal[Gip_LitNot(Lit)] &= 4;
 }
 static inline void    Gip_SolverSetNone( Gip_Solver_t * p, int Var )
 {
     p->pValue[Var] = GIP_NONE;
+    if ( p->Domain.Set.pValues && p->Domain.Set.pHas[Var] )
+        p->Domain.Set.pHas[Var] = 1 + GIP_NONE;
     p->pLitVal[2*Var] = p->pLitVal[2*Var+1] = (p->pLitVal[2*Var] & 4) | GIP_NONE;
 }
 static inline int     Gip_SolverLevelOf( Gip_Solver_t * p )           { return Vec_IntSize(p->vPosInTrail); }
@@ -473,7 +506,7 @@ static inline int     Gip_SolverLevelOf( Gip_Solver_t * p )           { return V
 ////////////////////////////////////////////////////////////////////////
 
 // domain membership
-static inline int     Gip_DomainHas( Gip_Domain_t * p, int Var )           { return p->Set.pHas[Var];                     }
+static inline int     Gip_DomainHas( Gip_Domain_t * p, int Var )           { return Gip_VarSetHas(&p->Set, Var);           }
 static inline void    Gip_DomainInsert( Gip_Domain_t * p, int Var )        { Gip_VarSetInsert( &p->Set, Var );            }
 
 // frame tag of a clause (see the clause layout)
@@ -485,13 +518,17 @@ static inline int     Gip_SolverClaFrame( Gip_Solver_t * p, int Cref )
     return (int)(w >> 1);
 }
 // assignment
-static inline void    Gip_SolverAssign( Gip_Solver_t * p, int Lit, int Reason )
+static inline void    Gip_SolverRecordAssignment( Gip_Solver_t * p, int Lit, int Reason )
 {
     int Var = Gip_LitVar( Lit );
     Vec_IntPush( p->vTrail, Lit );
-    Gip_SolverSetLit( p, Lit );
     p->pReason[Var] = Reason;
     p->pLevel[Var] = (unsigned)Gip_SolverLevelOf( p );
+}
+static inline void    Gip_SolverAssign( Gip_Solver_t * p, int Lit, int Reason )
+{
+    Gip_SolverSetLit( p, Lit );
+    Gip_SolverRecordAssignment( p, Lit, Reason );
 }
 
 // clause activity
@@ -690,6 +727,11 @@ static inline void Gip_SolverWakeWatch( Gip_Solver_t * p, int Lit )
     }
 }
 
+static inline int Gip_SolverIsInternal( Gip_Solver_t * p, int Var )
+{
+    return Var < p->pCtx->nVars && p->pCtx->pDepOffset[Var] != p->pCtx->pDepOffset[Var+1];
+}
+
 // Returns 0 when all domain variables are assigned or safely skipped.
 static inline int     Gip_SolverDecide( Gip_Solver_t * p )
 {
@@ -717,8 +759,7 @@ static inline int     Gip_SolverDecide( Gip_Solver_t * p )
     {
         if ( p->pValue[decide] != GIP_NONE )
             continue;
-        if ( p->fInputDecisions && !p->fInputAbandoned && decide < p->pCtx->nVars &&
-             p->pCtx->pDepOffset[decide] != p->pCtx->pDepOffset[decide+1] )
+        if ( p->fInputDecisions && !p->fInputAbandoned && Gip_SolverIsInternal(p, decide) )
             continue;
         if ( p->fJustify && Gip_SolverCanSkipDecision(p, decide) )
             continue;

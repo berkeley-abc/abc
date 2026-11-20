@@ -9,6 +9,7 @@ ABC under the ABC license (see copyright.txt in the ABC root) with the explicit 
 rIC3 author.
 **************************************************************************************************/
 
+#include <limits.h>
 #include "gipsat.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -35,6 +36,42 @@ static inline const char * Gip_SolverOption( Gip_Solver_t * p, const char * pNam
 
 /**Function*************************************************************
 
+  Synopsis    [Places the initial watch lists in literal order in one allocation.]
+
+  Description [Watch order is preserved. Lists that outgrow their initial
+  slice move to a separately owned allocation.]
+
+  SideEffects []
+
+***********************************************************************/
+static void Gip_SolverPackWatches( Gip_Solver_t * p )
+{
+    size_t Total = 0, Off = 0;
+    int i;
+    assert(!p->pWatchData);
+    for ( i = 0; i < 2*p->nVarsAlloc; ++i )
+    {
+        int Cap = p->pWatchers[i].nCap;
+        if ( (size_t)Cap > (size_t)-1 / sizeof(Gip_Wat_t) - Total ) return;
+        Total += Cap;
+    }
+    if ( !Total ) return;
+    p->pWatchData = ABC_ALLOC(Gip_Wat_t, Total);
+    if ( !p->pWatchData ) return;
+    for ( i = 0; i < 2*p->nVarsAlloc; ++i )
+    {
+        Gip_WVec_t * pW = &p->pWatchers[i];
+        if ( !pW->nCap ) continue;
+        memcpy(p->pWatchData + Off, pW->pArray, sizeof(Gip_Wat_t) * pW->nSize);
+        ABC_FREE(pW->pArray);
+        pW->pArray = p->pWatchData + Off;
+        Off += pW->nCap;
+        pW->nCap += INT_MIN;
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Allocates an eager or demand-loaded solver over an immutable circuit context.]
 
   Description []
@@ -45,6 +82,9 @@ static Gip_Solver_t * Gip_SolverNewInt( Gip_Ctx_t * pCtx, int fLazy )
     Gip_Solver_t * p = ABC_CALLOC( Gip_Solver_t, 1 );
     int i, c, Conflict;
     p->pCtx = pCtx;
+    p->fInlineBinary = Gip_SolverOption(p, "PDR2_WATCH_BINARY") && atoi(Gip_SolverOption(p, "PDR2_WATCH_BINARY")) > 0;
+    if ( Gip_SolverOption(p, "PDR2_WATCH_AHEAD") )
+        p->nWatchAhead = Abc_MaxInt(0, Abc_MinInt(32, atoi(Gip_SolverOption(p, "PDR2_WATCH_AHEAD"))));
     p->nVars = pCtx->nVars;
     p->constrainAct = pCtx->nVars;
     p->nVarsAlloc = pCtx->nVars + 1;
@@ -82,7 +122,12 @@ static Gip_Solver_t * Gip_SolverNewInt( Gip_Ctx_t * pCtx, int fLazy )
     Gip_CdbInit( &p->Cdb );
     Gip_VsidsInit( &p->Vsids, p->nVarsAlloc );
     Gip_DomainInit( &p->Domain, p->nVarsAlloc, pCtx->varConst );
-    if ( Gip_SolverOption(p, "PDR2_PACKEDDOM") && atoi(Gip_SolverOption(p, "PDR2_PACKEDDOM")) )
+    if ( Gip_SolverOption(p, "PDR2_WATCH_STATE") && atoi(Gip_SolverOption(p, "PDR2_WATCH_STATE")) )
+    {
+        p->Domain.Set.pValues = p->pValue;
+        p->Domain.Set.pHas[pCtx->varConst] = 1 + p->pValue[pCtx->varConst];
+    }
+    else if ( Gip_SolverOption(p, "PDR2_PACKEDDOM") && atoi(Gip_SolverOption(p, "PDR2_PACKEDDOM")) )
     {
         p->Domain.Set.pLitFlags = p->pLitVal;
         p->pLitVal[2*pCtx->varConst] |= 4;
@@ -109,6 +154,7 @@ static Gip_Solver_t * Gip_SolverNewInt( Gip_Ctx_t * pCtx, int fLazy )
     }
     p->fJustify = Gip_SolverOption(p, "PDR2_JUSTIFY") && atoi(Gip_SolverOption(p, "PDR2_JUSTIFY"));
     p->fInputDecisions = Gip_SolverOption(p, "PDR2_INPUT_DECISIONS") && atoi(Gip_SolverOption(p, "PDR2_INPUT_DECISIONS"));
+    p->fInputQueue = Gip_SolverOption(p, "PDR2_INPUT_QUEUE") && atoi(Gip_SolverOption(p, "PDR2_INPUT_QUEUE"));
     p->nInputConfLimit = Gip_SolverOption(p, "PDR2_INPUT_CONFS") ? Abc_MaxInt(0, atoi(Gip_SolverOption(p, "PDR2_INPUT_CONFS"))) : 0;
     p->nInputMillis = Gip_SolverOption(p, "PDR2_INPUT_MSEC") ? Abc_MaxInt(0, Abc_MinInt(10000, atoi(Gip_SolverOption(p, "PDR2_INPUT_MSEC")))) : 0;
     if ( p->fJustify )
@@ -131,6 +177,8 @@ static Gip_Solver_t * Gip_SolverNewInt( Gip_Ctx_t * pCtx, int fLazy )
     Conflict = Gip_SolverPropagate( p );
     assert( Conflict == GIP_CREF_NONE );
     assert( !p->fTrivialUnsat );
+    if ( !fLazy && Gip_SolverOption(p, "PDR2_WATCH_PACK") && atoi(Gip_SolverOption(p, "PDR2_WATCH_PACK")) )
+        Gip_SolverPackWatches(p);
     return p;
 }
 
@@ -197,6 +245,9 @@ Gip_Solver_t * Gip_SolverCloneRoot( Gip_Solver_t * pSrc )
     assert( Gip_SolverLevelOf(pSrc) == 0 && Vec_IntSize(pSrc->Cdb.vTemp) == 0 );
     assert( pSrc->pValue[pSrc->constrainAct] == GIP_NONE );
     *p = *pSrc;
+    p->Batch.vClause = p->Batch.vPrevious = NULL;
+    p->Batch.nResumed = 0;
+    p->pWatchData = NULL;
     p->pDumpFile = NULL;
     p->vSharedDomain = NULL;
     p->pLoaded = (char *)Gip_CloneArray( pSrc->pLoaded, pSrc->nVars );
@@ -211,10 +262,12 @@ Gip_Solver_t * Gip_SolverCloneRoot( Gip_Solver_t * pSrc )
     for ( i = 0; i < 2*n; i++ )
     {
         p->pWatchers[i] = pSrc->pWatchers[i];
-        p->pWatchers[i].pArray = pSrc->pWatchers[i].nCap ? ABC_ALLOC( Gip_Wat_t, pSrc->pWatchers[i].nCap ) : NULL;
+        p->pWatchers[i].nCap &= INT_MAX;
+        p->pWatchers[i].pArray = p->pWatchers[i].nCap ? ABC_ALLOC( Gip_Wat_t, p->pWatchers[i].nCap ) : NULL;
         if ( pSrc->pWatchers[i].nSize )
             memcpy( p->pWatchers[i].pArray, pSrc->pWatchers[i].pArray, sizeof(Gip_Wat_t) * pSrc->pWatchers[i].nSize );
     }
+    if ( pSrc->pWatchData ) Gip_SolverPackWatches(p);
     p->pValue = (char *)Gip_CloneArray( pSrc->pValue, n );
     p->pLitVal = (char *)Gip_CloneArray( pSrc->pLitVal, 2*n );
     p->pSkipWatch = (unsigned *)Gip_CloneArray( pSrc->pSkipWatch, sizeof(unsigned)*2*n );
@@ -236,6 +289,7 @@ Gip_Solver_t * Gip_SolverCloneRoot( Gip_Solver_t * pSrc )
     p->Domain.Set.vSet = Vec_IntDup( pSrc->Domain.Set.vSet );
     p->Domain.Set.pHas = (char *)Gip_CloneArray( pSrc->Domain.Set.pHas, n );
     p->Domain.Set.pLitFlags = pSrc->Domain.Set.pLitFlags ? p->pLitVal : NULL;
+    p->Domain.Set.pValues = pSrc->Domain.Set.pValues ? p->pValue : NULL;
     p->UnsatCore.vSet = Vec_IntDup( pSrc->UnsatCore.vSet );
     p->UnsatCore.pHas = (char *)Gip_CloneArray( pSrc->UnsatCore.pHas, 2*n );
     p->Vsids.Act.pAct = (double *)Gip_CloneArray( pSrc->Vsids.Act.pAct, sizeof(double)*n );
@@ -275,7 +329,9 @@ int Gip_SolverWarmStartMode( Gip_Solver_t * p, Gip_Solver_t * pSrc, int Mode )
     int i, j, Lit, Var, Cref, New, nLits, fTemporary, nCopied = 0;
     int * pLits;
     assert( p->pCtx == pSrc->pCtx && p->nVarsAlloc == pSrc->nVarsAlloc );
-    assert( Gip_SolverLevelOf(p) == 0 && !pSrc->fTrivialUnsat );
+    assert( Gip_SolverLevelOf(p) == 0 );
+    if ( p->fTrivialUnsat || pSrc->fTrivialUnsat )
+        return 0;
     if ( Mode & 4 )
     {
     Vec_IntForEachEntry( pSrc->vTrail, Lit, i )
@@ -310,7 +366,6 @@ int Gip_SolverWarmStartMode( Gip_Solver_t * p, Gip_Solver_t * pSrc, int Mode )
             nCopied++;
         }
     }
-    assert( !p->fTrivialUnsat );
     p->Cdb.actInc = pSrc->Cdb.actInc;
     }
     if ( Mode & 1 )
@@ -393,12 +448,14 @@ void Gip_SolverFree( Gip_Solver_t * p )
     int i;
     if ( p == NULL )
         return;
+    Gip_SolverStopBatch( p );
     if ( p->pActiveWatch && Gip_SolverOption(p, "PDR2_PARTWATCH_STATS") )
         Abc_Print(1, "Watch partitions: %.0f visits, %.0f rebuilt, skipped %.0f of %.0f entries.\n",
             (double)p->nPartWatchLists, (double)p->nPartWatchRebuilt,
             (double)p->nPartWatchSkipped, (double)p->nPartWatchEntries);
     for ( i = 0; i < 2 * p->nVarsAlloc; i++ )
-        ABC_FREE( p->pWatchers[i].pArray );
+        if ( p->pWatchers[i].nCap >= 0 ) ABC_FREE( p->pWatchers[i].pArray );
+    ABC_FREE( p->pWatchData );
     ABC_FREE( p->pWatchers );
     ABC_FREE( p->pSkipWatch );
     ABC_FREE( p->pActiveWatch );
@@ -645,6 +702,25 @@ void Gip_SolverReset( Gip_Solver_t * p )
     assert( !p->fTempDomain );
 }
 
+// The cached prefix and its temporary clause belong to this solver and
+// this batch. Restarting a batch requires installing the clause again.
+void Gip_SolverStartBatch( Gip_Solver_t * p, int nLits )
+{
+    assert( !p->Batch.vPrevious && p->fTempDomain && !p->pShared );
+    p->Batch.vClause = Vec_IntAlloc( nLits );
+    p->Batch.vPrevious = Vec_IntAlloc( nLits + 1 );
+    p->Batch.nResumed = 0;
+}
+
+int Gip_SolverStopBatch( Gip_Solver_t * p )
+{
+    int nResumed = p->Batch.nResumed;
+    Vec_IntFreeP( &p->Batch.vPrevious );
+    Vec_IntFreeP( &p->Batch.vClause );
+    p->Batch.nResumed = 0;
+    return nResumed;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Adds a lemma clause.]
@@ -697,6 +773,15 @@ static int Gip_SolverNewRound( Gip_Solver_t * p, Vec_Int_t * vSeeds,
     int c, i;
     Gip_SolverBacktrack( p, 0, p->fTempDomain );
     Gip_SolverCleanTemporary( p );
+    if ( !p->fTrivialUnsat )
+    {
+        int Conflict = Gip_SolverPropagate( p );
+        if ( Conflict != GIP_CREF_NONE )
+        {
+            p->fTrivialUnsat = 1;
+            p->iTrivialFrame = Gip_SolverConflictFrame( p, Conflict );
+        }
+    }
     if ( p->fTrivialUnsat )
     {
         p->iCoreFrame = p->iTrivialFrame;
@@ -878,6 +963,11 @@ int Gip_SolverSolve( Gip_Solver_t * p,
 {
     abctime clk, clkQuery = 0;
     int i, c, res, * pUse, nUse;
+    Gip_Batch_t * pBatch = p->Batch.vPrevious ? &p->Batch : NULL;
+    int fFixed = pBatch && nCst == 1 && !p->pLoaded && p->fTempDomain && !p->pDumpFile && !p->nRecycleMode;
+    int fResume = fFixed && Vec_IntSize(pBatch->vPrevious) &&
+        Vec_IntSize(pBatch->vClause) == pnCstLits[0] &&
+        !memcmp(Vec_IntArray(pBatch->vClause), ppCstCls[0], sizeof(int) * pnCstLits[0]);
     p->fCanceled = 0;
     p->nConfCounted = p->Stats.nConflicts;
     p->fInputAbandoned = 0;
@@ -910,14 +1000,7 @@ int Gip_SolverSolve( Gip_Solver_t * p,
     }
     p->Stats.nSolves++;
     clk = Abc_Clock();
-    if ( (i = Gip_SolverPropagate(p)) != GIP_CREF_NONE )
-    {
-        p->fTrivialUnsat = 1;
-        p->iTrivialFrame = p->iCoreFrame = Gip_SolverConflictFrame( p, i );
-        Gip_LitSetClear( &p->UnsatCore );
-        p->Stats.timeSolve += Abc_Clock() - clk;
-        return GIP_UNSAT;
-    }
+    if ( fResume ) goto assumptions;
     // domain seeds = assumption vars + constraint vars
     Vec_IntClear( p->vSeeds );
     for ( i = 0; i < nAssump; i++ )
@@ -936,6 +1019,7 @@ int Gip_SolverSolve( Gip_Solver_t * p,
         // The guard can be placed last without changing the formula. This
         // lets propagation under the cube find conflicts independent of the
         // temporary strengthening clause before the guard is assumed.
+assumptions:
         Vec_IntClear( p->vAssump );
         if ( !p->fActLast ) Vec_IntPush( p->vAssump, Gip_Lit(p->constrainAct, 0) );
         for ( i = 0; i < nAssump; i++ )
@@ -964,9 +1048,35 @@ int Gip_SolverSolve( Gip_Solver_t * p,
         if ( Gip_SolverOption(p, "PDR2_DUMP_CONE") ) Gip_SolverDumpCone( p, pUse, nUse );
         clkQuery = Abc_Clock();
     }
-    Gip_SolverCleanLearnt( p, 1 );
-    Gip_SolverSimplify( p );
+    if ( fResume )
+    {
+        int Limit = Abc_MinInt(Gip_SolverLevelOf(p), Abc_MinInt(nUse, Vec_IntSize(pBatch->vPrevious)));
+        for ( i = 0; i < Limit; ++i )
+            if ( pUse[i] != Vec_IntEntry(pBatch->vPrevious, i) ||
+                 Gip_SolverLitValue(p, pUse[i]) != GIP_TRUE ||
+                 p->pLevel[Gip_LitVar(pUse[i])] > (unsigned)(i + 1) )
+                break;
+        Gip_SolverBacktrack(p, i, 1);
+        pBatch->nResumed += i;
+    }
+    else
+    {
+        Gip_SolverCleanLearnt( p, 1 );
+        Gip_SolverSimplify( p );
+    }
     res = Gip_SolverSearchWithRestart( p, pUse, nUse, nRestartLimit );
+    if ( fFixed && res != GIP_UNDEF && !p->fTrivialUnsat )
+    {
+        if ( !fResume )
+        {
+            Vec_IntClear(pBatch->vClause);
+            Vec_IntPushArray(pBatch->vClause, ppCstCls[0], pnCstLits[0]);
+        }
+        Vec_IntClear(pBatch->vPrevious);
+        Vec_IntPushArray(pBatch->vPrevious, pUse, nUse);
+    }
+    else if ( pBatch )
+        Vec_IntClear( pBatch->vPrevious );
     if ( (p->nRecycleMode & 1) && res == GIP_UNSAT )
     {
         int Lit;
@@ -975,6 +1085,9 @@ int Gip_SolverSolve( Gip_Solver_t * p,
             Vec_IntPush( p->vRecycleTmp, Gip_LitNot(Lit) );
         Gip_SolverSaveRecycled( p, Vec_IntArray(p->vRecycleTmp), Vec_IntSize(p->vRecycleTmp), p->iCoreFrame );
     }
+    if ( p->Domain.Set.pValues && Gip_SolverOption(p, "PDR2_WATCH_STATE_CHECK") )
+        for ( i = 0; i < p->nVarsAlloc; i++ )
+            assert( !p->Domain.Set.pHas[i] || p->Domain.Set.pHas[i] == 1 + p->pValue[i] );
     if ( p->Domain.Set.pLitFlags && Gip_SolverOption(p, "PDR2_PACKED_CHECK") )
         for ( i = 0; i < p->nVarsAlloc; i++ )
         {

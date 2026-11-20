@@ -1933,7 +1933,15 @@ static Gia_Man_t * Mf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars,
         pGia->pData = Mf_ManDeriveCnf( p, p->pPars->fCnfObjIds, p->pPars->fAddOrCla );
     if ( Mf_ManCheckStop(p) )
     {
-        Gia_ManStopP( &pNew );
+        // Without cut minimization or coarsening, the mapping is attached
+        // directly to the caller's AIG. Discard only the mapping in this case.
+        if ( pNew == pGia )
+        {
+            Vec_IntFreeP( &pGia->vMapping );
+            pNew = NULL;
+        }
+        else
+            Gia_ManStopP( &pNew );
         if ( pPars->fGenCnf )
         {
             Cnf_DataFree( (Cnf_Dat_t *)pGia->pData );

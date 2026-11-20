@@ -18,6 +18,7 @@
 #include "pdr2Int.h"
 #include "aig/gia/giaAig.h"
 #include "proof/ssw/ssw.h"
+#include "sat/bmc/bmc.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -31,8 +32,8 @@ struct Pdr2_PolicyStage_t_
 {
     const char * pName, * pFlags, * pCommand;
     int nSeconds, nOptions;
-    const char * pKeys[16];
-    char Values[16][32];
+    const char * pKeys[32];
+    char Values[32][32];
 };
 struct Pdr2_Policy_t_
 {
@@ -215,7 +216,7 @@ static void Pdr2_PolicyOption( Pdr2_PolicyStage_t * p, const char * pKey, int Va
 {
     int i;
     for ( i = 0; i < p->nOptions; i++ ) if ( !strcmp(p->pKeys[i], pKey) ) break;
-    assert(i < 16);
+    assert(i < 32);
     if ( i == p->nOptions ) p->pKeys[p->nOptions++] = pKey;
     snprintf(p->Values[i], sizeof(p->Values[i]), "%d", Value);
 }
@@ -239,6 +240,26 @@ static Pdr2_PolicyStage_t * Pdr2_PolicyAdd( Pdr2_Policy_t * p, const char * pNam
 
 /**Function*************************************************************
 
+  Synopsis    [Prepends a bounded CTG search in the alternative multiplexer encoding.]
+
+***********************************************************************/
+static void Pdr2_PolicyMuxFirst( Pdr2_Policy_t * p, Aig_Man_t * pAig, Pdr2_Par_t * pPars, abctime Stop )
+{
+    const char * pValue = Gip_OptionGet("PDR2_JOINT_MUX");
+    Pdr2_PolicyStage_t First, * s;
+    int Seconds = pValue ? Abc_MinInt(60, atoi(pValue)) : 0;
+    if ( Seconds <= 0 || p->nStages >= 32 || !Pdr2_ManHasMuxReduction(pAig, pPars, Stop) ) return;
+    s = Pdr2_PolicyAdd(p, "mux-encoding", Seconds, "-g -B 0 -S 1");
+    Pdr2_PolicyOption(s, "PDR2_MUX_PHASE", 1);
+    Pdr2_PolicyOption(s, "PDR2_COI", 1);
+    Pdr2_PolicyOption(s, "PDR2_BMC", 0);
+    First = *s;
+    memmove(p->Stages + 1, p->Stages, (p->nStages - 1) * sizeof(First));
+    p->Stages[0] = First;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Schedules a bounded search for a concrete witness.]
 
   Description []
@@ -251,6 +272,94 @@ static void Pdr2_PolicyBmc( Pdr2_Policy_t * p, int Seconds )
     Pdr2_PolicyOption(s, "PDR2_BMC_CONFS", 5000);
     Pdr2_PolicyOption(s, "PDR2_BMC_FRAMES", 64);
     Pdr2_PolicyOption(s, "PDR2_BMC_ONLY", 1);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Schedules grouped transitions with a shared 180-second budget.]
+
+  Description []
+
+***********************************************************************/
+static void Pdr2_PolicyStride( Pdr2_Policy_t * p, int Stride, int fRetry )
+{
+    Pdr2_PolicyStage_t * s;
+    int i, Budgets[2] = { 180, 160 };
+    if ( fRetry ) Budgets[0] = 20;
+    for ( i = 0; i <= fRetry; i++ )
+    {
+        s = Pdr2_PolicyAdd(p, i ? "stride-retry" : "temporal-stride", Budgets[i], NULL);
+        Pdr2_PolicyOption(s, "PDR2_STRIDE", Stride);
+        Pdr2_PolicyOption(s, "PDR2_STRIDE_TIME", Budgets[i]);
+        Pdr2_PolicyOption(s, "PDR2_STRIDE_ONLY", 1);
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Searches at one bounded depth and leaves earlier depths to PDR.]
+
+***********************************************************************/
+static void Pdr2_PolicyTarget( Pdr2_PolicyStage_t * s, int Seconds, int Depth )
+{
+    Pdr2_PolicyOption(s, "PDR2_BMCFIRST", Seconds);
+    Pdr2_PolicyOption(s, "PDR2_BMC_HORIZON", Depth);
+    Pdr2_PolicyOption(s, "PDR2_BMC_ONLY", 1);
+    if ( Gip_OptionGet("PDR2_JOINT_TERMS") )
+        Pdr2_PolicyOption(s, "PDR2_BMC_TERMS", Abc_MaxInt(1, Abc_MinInt(64, atoi(Gip_OptionGet("PDR2_JOINT_TERMS")))));
+    if ( Gip_OptionGet("PDR2_JOINT_LIVE") )
+        Pdr2_PolicyOption(s, "PDR2_BMC_WINDOW", Abc_MaxInt(0, Abc_MinInt(2, atoi(Gip_OptionGet("PDR2_JOINT_LIVE")))));
+    if ( Gip_OptionGet("PDR2_JOINT_POLAR") )
+        Pdr2_PolicyOption(s, "PDR2_BMC_POLAR", 1);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds a bounded witness stage on the concrete machine.]
+
+***********************************************************************/
+static void Pdr2_PolicyHorizon( Pdr2_Policy_t * p, int Seconds, int Depth )
+{
+    Pdr2_PolicyTarget(Pdr2_PolicyAdd(p, "fixed-depth-witness", Seconds, NULL), Seconds, Depth);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Selects the PDR search used on a post-reset transition relation.]
+
+***********************************************************************/
+static void Pdr2_PolicyTail( Pdr2_Policy_t * p, int Seconds, int Depth, int fRefine, int Style )
+{
+    Pdr2_PolicyStage_t * s = Pdr2_PolicyAdd(p, "post-reset", Seconds, NULL);
+    s->pCommand = "tail";
+    Pdr2_PolicyOption(s, "PDR2_TAIL_DEPTH", Depth);
+    if ( fRefine ) Pdr2_PolicyOption(s, "PDR2_TAIL_REFINE", 1);
+    if ( Style == 1 || Style == 5 || Style == 6 ) Pdr2_PolicyOption(s, "PDR2_DROP_HISTORY", 3);
+    if ( Style == 2 )
+    {
+        Pdr2_PolicyOption(s, "PDR2_STRIDE", 2);
+        Pdr2_PolicyOption(s, "PDR2_STRIDE_TIME", Seconds);
+        Pdr2_PolicyOption(s, "PDR2_STRIDE_ONLY", 1);
+    }
+    if ( Style == 3 )
+    {
+        Pdr2_PolicyOption(s, "PDR2_INPUT_DECISIONS", 1);
+        Pdr2_PolicyOption(s, "PDR2_CNFJUST", 1);
+        Pdr2_PolicyOption(s, "PDR2_VERIFY_POLICY", 1);
+    }
+    if ( Style == 4 ) Pdr2_PolicyOption(s, "PDR2_MIC_GROUP", 4);
+    if ( Style == 5 ) s->pFlags = "-g -B 0 -U 1";
+    if ( Style == 6 ) Pdr2_PolicyOption(s, "PDR2_MICFAIL", 1);
+    if ( Style == 7 ) s->pFlags = "-t -g";
+    if ( Style == 8 ) s->pFlags = "-g -B 0 -H 1 -i -K 2 -U 1";
+    if ( Style == 9 || Style == 10 ) Pdr2_PolicyOption(s, "PDR2_MIC_GROUP", Style-2);
+    if ( Gip_OptionGet("PDR2_JOINT_TAIL_CUT") )
+        Pdr2_PolicyOption(s, "PDR2_SAMPLE", Abc_MaxInt(2, Abc_MinInt(64, atoi(Gip_OptionGet("PDR2_JOINT_TAIL_CUT")))));
+    if ( Style )
+    {
+        Pdr2_PolicyOption(s, "PDR2_WATCH_PACK", 1);
+        Pdr2_PolicyOption(s, "PDR2_WATCH_AHEAD", 4);
+    }
 }
 
 /**Function*************************************************************
@@ -321,26 +430,227 @@ static void Pdr2_PolicyZero( Pdr2_Policy_t * p, int Seconds )
 
 /**Function*************************************************************
 
+  Synopsis    [Adds an all-state safety query on the combinational property cone.]
+
+***********************************************************************/
+static void Pdr2_PolicyCombSafe( Pdr2_Policy_t * p, int Sweep, int Width, int fCadical, int DefaultConfs )
+{
+    int Confs = Gip_OptionGet("PDR2_JOINT_CSAFE_CONFS") ?
+        Abc_MaxInt(1, atoi(Gip_OptionGet("PDR2_JOINT_CSAFE_CONFS"))) : DefaultConfs;
+    Pdr2_PolicyStage_t * s = Pdr2_PolicyAdd( p, "combinational-sweep", 90, NULL );
+    s->pCommand = Width ? "comb-projection" : "comb-safe";
+    if ( Width )
+        Pdr2_PolicyOption( s, "PDR2_PROJECT", Width );
+    if ( Sweep > 0 )
+        Pdr2_PolicyOption( s, "PDR2_CSAFE_CEC", Abc_MinInt(10000, Sweep) );
+    if ( Gip_OptionGet("PDR2_JOINT_KISSAT") && atoi(Gip_OptionGet("PDR2_JOINT_KISSAT")) )
+        Pdr2_PolicyOption( s, "PDR2_CSAFE_KISSAT", 1 );
+    else if ( fCadical )
+        Pdr2_PolicyOption( s, "PDR2_CSAFE_CADICAL", 1 );
+    if ( Gip_OptionGet("PDR2_JOINT_CTRACE") )
+        Pdr2_PolicyOption( s, "PDR2_CSAFE_TRACE", atoi(Gip_OptionGet("PDR2_JOINT_CTRACE")) );
+    Pdr2_PolicyOption( s, "PDR2_CSAFE", Confs );
+    Pdr2_PolicyOption( s, "PDR2_CSAFE_TIME", 90 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds a binary encoding stage for large mutually exclusive groups.]
+
+***********************************************************************/
+static void Pdr2_PolicyMutex( Pdr2_Policy_t * p, int Seconds, int Minimum )
+{
+    Pdr2_PolicyStage_t * s = Pdr2_PolicyAdd(p, "mutex-recoding", Seconds, "-g -B 0");
+    s->pCommand = "mutex";
+    Pdr2_PolicyOption(s, "PDR2_MUTEX_MIN", Minimum);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Uses cut-mapped SAT for expensive bad-state and certificate queries.]
+
+***********************************************************************/
+static void Pdr2_PolicyMappedBad( Pdr2_PolicyStage_t * s, int fReuse )
+{
+    Pdr2_PolicyOption(s, "PDR2_BMC", 0);
+    Pdr2_PolicyOption(s, "PDR2_COI", 0);
+    Pdr2_PolicyOption(s, "PDR2_VERIFY_BATCH", 3);
+    Pdr2_PolicyOption(s, "PDR2_BAD_MAPPED_SECS", 40);
+    Pdr2_PolicyOption(s, "PDR2_BAD_MAPPED_CONFS", 512);
+    if ( fReuse ) Pdr2_PolicyOption(s, "PDR2_BAD_REUSE_SECS", 2);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Tests a numeric policy switch.]
+
+***********************************************************************/
+static int Pdr2_PolicyEnabled( const char * pName )
+{
+    const char * pValue = Gip_OptionGet(pName);
+    return pValue && atoi(pValue) != 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Selects sequential verification stages from structural measurements.]
 
   Description []
 
 ***********************************************************************/
-// Version 9 of the corpus-tuned research policy. This function only selects
-// stages from structural measurements; it has no instance names or answers.
+// Select verification stages from structural measurements of the input circuit.
 static void Pdr2_PolicyBuild( Pdr2_Policy_t * p, int * pFeatures )
 {
-    double nPis, nRegs, nAnds, nConeRegs, nTerms0, nTerms2, nWidth0, nWidth2;
+    double nPis = 0, nRegs = 0, nConeRegs = 0, nTerms0 = 0, nTerms2 = 0;
+    double nAnds = 0, nWidth0 = 0, nWidth2 = 0;
+    int i, fProject = 0, Mix = Gip_OptionGet("PDR2_JOINT_MIX") ? atoi(Gip_OptionGet("PDR2_JOINT_MIX")) : 0;
     Pdr2_PolicyStage_t * s;
+    if ( pFeatures )
+    {
+        nPis = pFeatures[0];
+        nRegs = pFeatures[1];
+        nAnds = pFeatures[2];
+        nConeRegs = pFeatures[3];
+        nTerms0 = pFeatures[6];
+        nWidth0 = pFeatures[7];
+        nTerms2 = pFeatures[9];
+        nWidth2 = pFeatures[10];
+        fProject = Mix >= 7 && 1000 <= nRegs && nRegs <= 10000 && 0 < nConeRegs &&
+                   32*nConeRegs <= nRegs && (Mix < 8 || nPis <= 4*nRegs);
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_MUTEX") && pFeatures && pFeatures[1] )
+    {
+        Pdr2_PolicyMutex(p, 180, Abc_MaxInt(2, atoi(Gip_OptionGet("PDR2_JOINT_MUTEX"))));
+        if ( Pdr2_PolicyEnabled("PDR2_JOINT_MUTEX_ONLY") ) goto adjust;
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_INPUT_LATCHES") && pFeatures && pFeatures[1] )
+    {
+        Pdr2_PolicyAdd(p, "private-input-latches", 180, NULL)->pCommand = "input-latches";
+        if ( Pdr2_PolicyEnabled("PDR2_JOINT_INPUT_LATCHES_ONLY") ) goto adjust;
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_CEC") )
+    {
+        int Width = Gip_OptionGet("PDR2_JOINT_PROJECT") ?
+            Abc_MaxInt(1, Abc_MinInt(8, atoi(Gip_OptionGet("PDR2_JOINT_PROJECT")))) : 0;
+        Pdr2_PolicyCombSafe( p, atoi(Gip_OptionGet("PDR2_JOINT_CEC")), Width,
+            Gip_OptionGet("PDR2_JOINT_CADICAL") && atoi(Gip_OptionGet("PDR2_JOINT_CADICAL")), 500000 );
+        if ( Pdr2_PolicyEnabled("PDR2_JOINT_CEC_ONLY") ) goto adjust;
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_CUT") && pFeatures && pFeatures[1] )
+    {
+        s = Pdr2_PolicyAdd(p, "sampled-property", 180, NULL);
+        s->pCommand = "sample";
+        Pdr2_PolicyOption(s, "PDR2_SAMPLE", Abc_MaxInt(2, Abc_MinInt(64, atoi(Gip_OptionGet("PDR2_JOINT_CUT")))));
+        if ( Pdr2_PolicyEnabled("PDR2_JOINT_CUT_ONLY") ) goto adjust;
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_HORIZON") )
+    {
+        Pdr2_PolicyHorizon(p, 90, atoi(Gip_OptionGet("PDR2_JOINT_HORIZON")));
+        if ( Pdr2_PolicyEnabled("PDR2_JOINT_HORIZON_ONLY") ) goto adjust;
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_GATES") && pFeatures )
+    {
+        s = Pdr2_PolicyAdd(p, "gate-refinement", 180, NULL);
+        s->pCommand = "gates";
+        Pdr2_PolicyOption(s, "PDR2_GATE_LAYERS", Abc_MaxInt(1, Abc_MinInt(16, atoi(Gip_OptionGet("PDR2_JOINT_GATES")))));
+        if ( Gip_OptionGet("PDR2_JOINT_GATE_FLOPS") ) Pdr2_PolicyOption(s, "PDR2_GATE_FLOPS", 1);
+        if ( Gip_OptionGet("PDR2_JOINT_GATE_HORIZON") )
+            Pdr2_PolicyTarget(s, 180, Abc_MaxInt(0, Abc_MinInt(256, atoi(Gip_OptionGet("PDR2_JOINT_GATE_HORIZON")))));
+        if ( Gip_OptionGet("PDR2_JOINT_GATE_SHARE") )
+        {
+            Pdr2_PolicyOption(s, "PDR2_GATE_SHARE", 1);
+            Pdr2_PolicyOption(s, "PDR2_PART_SHARE", Abc_MaxInt(1, Abc_MinInt(30, atoi(Gip_OptionGet("PDR2_JOINT_GATE_SHARE")))));
+        }
+        if ( Pdr2_PolicyEnabled("PDR2_JOINT_GATES_ONLY") ) goto adjust;
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_TAIL") && pFeatures && pFeatures[1] )
+    {
+        int Style = Gip_OptionGet("PDR2_JOINT_TAIL_STYLE") ? atoi(Gip_OptionGet("PDR2_JOINT_TAIL_STYLE")) : 0;
+        Pdr2_PolicyTail(p, 140, Abc_MaxInt(1, Abc_MinInt(32, atoi(Gip_OptionGet("PDR2_JOINT_TAIL")))),
+                       Gip_OptionGet("PDR2_JOINT_TAIL_REFINE") != NULL, Style);
+        if ( Pdr2_PolicyEnabled("PDR2_JOINT_TAIL_ONLY") ) goto adjust;
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_WINDOW") )
+    {
+        s = Pdr2_PolicyAdd(p, "window-bmc", 90, NULL);
+        s->pCommand = "window";
+        Pdr2_PolicyOption(s, "PDR2_WINDOW", Abc_MaxInt(1, Abc_MinInt(256, atoi(Gip_OptionGet("PDR2_JOINT_WINDOW")))));
+        if ( Pdr2_PolicyEnabled("PDR2_JOINT_WINDOW_ONLY") ) goto adjust;
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_INPUTS") && pFeatures )
+    {
+        int Width = atoi(Gip_OptionGet("PDR2_JOINT_INPUTS"));
+        if ( Width >= 2 && pFeatures[0] >= Width )
+        {
+            s = Pdr2_PolicyAdd(p, "correlated-input-witness", 60, "-g -B 0 -q -P 3");
+            s->pCommand = "input-probe";
+            Pdr2_PolicyOption(s, "PDR2_INPUT_WIDTH", Abc_MinInt(Width, 256));
+            Pdr2_PolicyOption(s, "PDR2_INPUT_BOUNDED", Gip_OptionGet("PDR2_JOINT_INPUT_BMC") != NULL);
+            if ( Gip_OptionGet("PDR2_JOINT_INPUT_LANES") )
+                Pdr2_PolicyOption(s, "PDR2_INPUT_LANES", Abc_MinInt(2, atoi(Gip_OptionGet("PDR2_JOINT_INPUT_LANES"))));
+            if ( Gip_OptionGet("PDR2_JOINT_INPUT_DEPTH") )
+            {
+                Pdr2_PolicyOption(s, "PDR2_INPUT_BOUNDED", 0);
+                Pdr2_PolicyOption(s, "PDR2_BMCFIRST", 60);
+                Pdr2_PolicyOption(s, "PDR2_BMC_HORIZON", atoi(Gip_OptionGet("PDR2_JOINT_INPUT_DEPTH")));
+                Pdr2_PolicyOption(s, "PDR2_BMC_ONLY", 1);
+                s->pFlags = "-g -B 0";
+            }
+        }
+        if ( Pdr2_PolicyEnabled("PDR2_JOINT_INPUT_ONLY") ) goto adjust;
+    }
     if ( pFeatures == NULL ) goto ordinary;
-    nPis = pFeatures[0];
-    nRegs = pFeatures[1];
-    nAnds = pFeatures[2];
-    nConeRegs = pFeatures[3];
-    nTerms0 = pFeatures[6];
-    nWidth0 = pFeatures[7];
-    nTerms2 = pFeatures[9];
-    nWidth2 = pFeatures[10];
+    if ( Mix > 0 )
+    {
+        // When most gates feed the property, an all-state proof can avoid
+        // rediscovering the same combinational contradiction in PDR frames.
+        if ( Mix >= 7 && !Gip_OptionGet("PDR2_JOINT_CEC") && nAnds >= 15000 &&
+             pFeatures[5] >= .95*nAnds && nTerms0 <= 8 )
+        {
+            int Width = nRegs <= 32 && nConeRegs <= 8 ? 8 : 0;
+            Pdr2_PolicyCombSafe(p, 0, Width, 1, Mix >= 9 && Width ? 5000000 : 500000);
+            // When the unrestricted check leaves a possible bad state, try
+            // blocking it in PDR with a mapped solver for expensive queries.
+            if ( Mix >= 11 && nRegs > 0 )
+                Pdr2_PolicyMappedBad(Pdr2_PolicyAdd(p, "mapped-bad-states", 300, NULL), Mix >= 13);
+        }
+        if ( Mix >= 9 && !Gip_OptionGet("PDR2_JOINT_MUTEX") && 96 <= nRegs && nRegs <= 1024 &&
+             nPis >= 96 && nConeRegs >= .75*nRegs && nAnds >= 3*nRegs )
+            Pdr2_PolicyMutex(p, 90, 96);
+        // Dense property cones with several wide terms can admit many witnesses
+        // at one depth even when proving each earlier bound is expensive.
+        if ( nAnds < 150000 && ((.8*nRegs <= nPis && nPis <= 1.5*nRegs &&
+               nConeRegs > .8*nRegs && 10 <= nTerms2 && nTerms2 <= 64 && nWidth2 >= 10) ||
+               (32 <= nRegs && nRegs <= 192 && nPis > 8*nRegs && nTerms2 <= 2 && nWidth2 >= 8)) )
+            Pdr2_PolicyHorizon(p, 12, 48);
+        if ( 64 < nRegs && nRegs <= 512 && nPis <= 128 && nAnds < 30000 &&
+             nConeRegs > .72*nRegs && nTerms2 <= 2 && nWidth2 <= 4 )
+        {
+            Pdr2_PolicyTail(p, 45, 1, 0, 0);
+            s = Pdr2_PolicyAdd(p, "limited-generalization", 100, NULL);
+            Pdr2_PolicyOption(s, "PDR2_MICFAIL", 1);
+        }
+        if ( nRegs >= 20000 && nPis > 1.7*nRegs && nConeRegs <= 128 )
+        {
+            if ( Mix >= 6 )
+            {
+                s = Pdr2_PolicyAdd(p, "gate-refinement", 8, NULL);
+                s->pCommand = "gates";
+                Pdr2_PolicyOption(s, "PDR2_GATE_LAYERS", 1);
+                Pdr2_PolicyOption(s, "PDR2_GATE_FLOPS", 1);
+            }
+            if ( Mix >= 3 ) Pdr2_PolicyInputs(p, 60, 0);
+            Pdr2_PolicyTail(p, 75, 1, 0, 0);
+        }
+        if ( Mix >= 2 && 1000 <= nRegs && nRegs <= 3000 && .8*nRegs <= nPis &&
+             nPis <= 1.5*nRegs && nConeRegs > nRegs/2 && nTerms2 <= 3 )
+        {
+            int Seconds = Mix >= 7 && nConeRegs >= .85*nRegs ? 90 : 160;
+            if ( Gip_OptionGet("PDR2_JOINT_TAIL_TIME") )
+                Seconds = Abc_MaxInt(1, Abc_MinInt(900, atoi(Gip_OptionGet("PDR2_JOINT_TAIL_TIME"))));
+            Pdr2_PolicyTail(p, Seconds, 1, 1, Mix >= 6 ? 8 : 1);
+        }
+    }
     if ( 0 < nRegs && nRegs <= 64 && nAnds < 30000 )
     {
         s = Pdr2_PolicyAdd(p, "bdd-square", 2, NULL);
@@ -349,8 +659,11 @@ static void Pdr2_PolicyBuild( Pdr2_Policy_t * p, int * pFeatures )
     }
     if ( nRegs >= 20000 )
     {
-        Pdr2_PolicyBmc(p, 15);
-        if ( nWidth2 <= 2 || nConeRegs > 8 ) Pdr2_PolicyInputs(p, 45, 0);
+        if ( Mix < 3 || !(nPis > 1.7*nRegs && nConeRegs <= 128) )
+        {
+            Pdr2_PolicyBmc(p, 15);
+            if ( nWidth2 <= 2 || nConeRegs > 8 ) Pdr2_PolicyInputs(p, 45, 0);
+        }
         if ( nConeRegs <= 8 ) Pdr2_PolicyAbs(p, 900, 0);
         goto ordinary;
     }
@@ -434,9 +747,7 @@ static void Pdr2_PolicyBuild( Pdr2_Policy_t * p, int * pFeatures )
     }
     if ( 128 <= nRegs && nRegs <= 256 && .8*nRegs <= nPis && nPis <= 1.5*nRegs && nConeRegs <= 8 && 3 <= nWidth0 && nTerms2 <= 8 )
     {
-        s = Pdr2_PolicyAdd(p, "temporal-stride", 180, NULL);
-        Pdr2_PolicyOption(s, "PDR2_STRIDE", 8); Pdr2_PolicyOption(s, "PDR2_STRIDE_TIME", 180);
-        Pdr2_PolicyOption(s, "PDR2_STRIDE_ONLY", 1);
+        Pdr2_PolicyStride(p, 8, Mix >= 10 && fProject);
     }
     if ( 1024 <= nRegs && nRegs <= 2000 && 1.5*nRegs <= nPis && nPis <= 4*nRegs && nTerms2 <= 8 && nConeRegs <= 32 ) Pdr2_PolicyAbs(p, 900, 0);
     if ( nPis <= 64 && nRegs >= 64 )
@@ -450,12 +761,7 @@ static void Pdr2_PolicyBuild( Pdr2_Policy_t * p, int * pFeatures )
         else if ( nPis >= 4*nRegs && nConeRegs <= 128 )
         {
             if ( nPis > 8*nRegs )
-            {
-                s = Pdr2_PolicyAdd(p, "temporal-stride", 180, NULL);
-                Pdr2_PolicyOption(s, "PDR2_STRIDE", 2);
-                Pdr2_PolicyOption(s, "PDR2_STRIDE_TIME", 180);
-                Pdr2_PolicyOption(s, "PDR2_STRIDE_ONLY", 1);
-            }
+                Pdr2_PolicyStride(p, 2, Mix >= 10 && fProject);
             if ( nWidth2 > 16 ) Pdr2_PolicyAbs(p, 900, 0);
             else if ( nConeRegs >= 80 ) { Pdr2_PolicyInputs(p, 60, 0); Pdr2_PolicyZero(p, 300); }
             else { Pdr2_PolicyAbs(p, 30, 0); Pdr2_PolicyInputs(p, 20, 0); Pdr2_PolicyZero(p, 40); }
@@ -464,10 +770,7 @@ static void Pdr2_PolicyBuild( Pdr2_Policy_t * p, int * pFeatures )
         {
             // Grouping two transitions also shortens proofs in designs with
             // compact interfaces. Leave the remaining budget for ordinary PDR.
-            s = Pdr2_PolicyAdd(p, "temporal-stride", 180, NULL);
-            Pdr2_PolicyOption(s, "PDR2_STRIDE", 2);
-            Pdr2_PolicyOption(s, "PDR2_STRIDE_TIME", 180);
-            Pdr2_PolicyOption(s, "PDR2_STRIDE_ONLY", 1);
+            Pdr2_PolicyStride(p, 2, Mix >= 10 && fProject);
             goto ordinary;
         }
         else if ( nPis <= 1.5*nRegs && nTerms2 <= 2 && nAnds > 15*nRegs && nConeRegs < nRegs/5 ) Pdr2_PolicyAbs(p, 900, 1);
@@ -475,6 +778,187 @@ static void Pdr2_PolicyBuild( Pdr2_Policy_t * p, int * pFeatures )
     }
 ordinary:
     Pdr2_PolicyAdd(p, "ordinary", 900, NULL);
+adjust:
+    if ( !p->nStages ) goto ordinary;
+    if ( Mix > 0 && pFeatures )
+        for ( i = 0; i < p->nStages; ++i )
+        {
+            s = &p->Stages[i];
+            Pdr2_PolicyOption(s, "PDR2_WATCH_PACK", 1);
+            Pdr2_PolicyOption(s, "PDR2_WATCH_AHEAD", 4);
+            // Seeding both an initial search and its fallback can repeat the
+            // same expensive proof obligations. Start retries without these clauses.
+            if ( fProject && !s->pCommand && (Mix < 10 ||
+                 (strcmp(s->pName, "stride-retry") && strcmp(s->pName, "dynamic-abstraction"))) )
+                Pdr2_PolicyOption( s, "PDR2_PROJECT", 8 );
+            if ( Mix >= 5 && !strcmp(s->pName, "input-search") && s->nSeconds < 900 )
+            {
+                if ( Mix < 8 && (!Gip_OptionGet("PDR2_JOINT_INPUT_GRACE") || !atoi(Gip_OptionGet("PDR2_JOINT_INPUT_GRACE"))) )
+                    Pdr2_PolicyOption(s, "PDR2_FRAME_SOFT", s->nSeconds);
+                s->nSeconds += Abc_MinInt(24, Abc_MaxInt(6, s->nSeconds / 3));
+            }
+            if ( Mix >= 12 && !strcmp(s->pName, "elimination") ) Pdr2_PolicyMappedBad(s, Mix >= 13);
+            if ( Mix >= 4 && !strcmp(s->pName, "ordinary") ) Pdr2_PolicyOption(s, "PDR2_DROP_HISTORY", 4);
+            if ( !strcmp(s->pName, "ordinary") && 1000 <= nRegs && nRegs <= 3000 &&
+                 .8*nRegs <= nPis && nPis <= 1.5*nRegs && nConeRegs > nRegs/2 && nTerms2 <= 3 )
+                Pdr2_PolicyOption(s, "PDR2_DROP_HISTORY", 3);
+            if ( (!strcmp(s->pName, "input-search") &&
+                  (Mix < 3 || (nRegs < 16000 && nTerms0 <= 4 && nConeRegs >= nRegs/8))) ||
+                 !strcmp(s->pName, "reverse") )
+                Pdr2_PolicyOption(s, "PDR2_MIC_GROUP", 4);
+            if ( nTerms0 >= 1024 && (!strcmp(s->pName, "treb") || !strcmp(s->pName, "dynamic-abstraction")) )
+                Pdr2_PolicyOption(s, "PDR2_MIC_GROUP", 2);
+        }
+    if ( Gip_OptionGet("PDR2_JOINT_PART_HOLD") )
+    {
+        int i, Width = Abc_MaxInt(2, Abc_MinInt(16, atoi(Gip_OptionGet("PDR2_JOINT_PART_HOLD"))));
+        int Pattern = Gip_OptionGet("PDR2_JOINT_PATTERN") ? atoi(Gip_OptionGet("PDR2_JOINT_PATTERN")) : 1;
+        for ( i = 0; i < p->nStages; i++ )
+            if ( !strcmp(p->Stages[i].pName, "decompose") )
+            {
+                Pdr2_PolicyOption(&p->Stages[i], "PDR2_STRIDE", Width);
+                Pdr2_PolicyOption(&p->Stages[i], "PDR2_STRIDE_PATTERN", Abc_MaxInt(1, Abc_MinInt(5, Pattern)));
+                Pdr2_PolicyOption(&p->Stages[i], "PDR2_STRIDE_PART", 1);
+                Pdr2_PolicyOption(&p->Stages[i], "PDR2_STRIDE_TIME", 6);
+                Pdr2_PolicyOption(&p->Stages[i], "PDR2_STRIDE_BOUNDED", 1);
+            }
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_PART_WINDOW") )
+    {
+        int i, Width = atoi(Gip_OptionGet("PDR2_JOINT_PART_WINDOW"));
+        for ( i = 0; i < p->nStages; ++i )
+            if ( !strcmp(p->Stages[i].pName, "decompose") )
+                Pdr2_PolicyOption(&p->Stages[i], "PDR2_PART_WINDOW", Width);
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_WATCH") )
+    {
+        int i, Mode = atoi(Gip_OptionGet("PDR2_JOINT_WATCH"));
+        for ( i = 0; i < p->nStages; ++i )
+        {
+            if ( Mode & 1 ) Pdr2_PolicyOption(&p->Stages[i], "PDR2_WATCH_PACK", 1);
+            if ( Mode > 1 ) Pdr2_PolicyOption(&p->Stages[i], "PDR2_WATCH_AHEAD", Mode >> 1);
+        }
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_BINARY") )
+        for ( i = 0; i < p->nStages; ++i ) Pdr2_PolicyOption(&p->Stages[i], "PDR2_WATCH_BINARY", 1);
+    if ( Gip_OptionGet("PDR2_JOINT_WATCH_STATE") )
+        for ( i = 0; i < p->nStages; ++i )
+            Pdr2_PolicyOption( &p->Stages[i], "PDR2_WATCH_STATE", atoi(Gip_OptionGet("PDR2_JOINT_WATCH_STATE")) );
+    if ( Gip_OptionGet("PDR2_JOINT_JOIN") )
+    {
+        int i, Mode = atoi(Gip_OptionGet("PDR2_JOINT_JOIN"));
+        for ( i = 0; i < p->nStages; ++i )
+            Pdr2_PolicyOption(&p->Stages[i], "PDR2_JOIN_PUSH", Mode);
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_HISTORY") )
+    {
+        int i, Mode = atoi(Gip_OptionGet("PDR2_JOINT_HISTORY"));
+        for ( i = 0; i < p->nStages; ++i )
+            Pdr2_PolicyOption(&p->Stages[i], "PDR2_DROP_HISTORY", Mode);
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_DRIVER") )
+    {
+        int i;
+        for ( i = 0; i < p->nStages; ++i )
+            Pdr2_PolicyOption(&p->Stages[i], "PDR2_LI_DRIVER", 1);
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_LATE") )
+    {
+        int i, Width = atoi(Gip_OptionGet("PDR2_JOINT_LATE"));
+        for ( i = 0; i < p->nStages; ++i )
+            Pdr2_PolicyOption(&p->Stages[i], "PDR2_STRENGTHEN_LATE", Width);
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_GUARD") )
+    {
+        int i, Mode = atoi(Gip_OptionGet("PDR2_JOINT_GUARD"));
+        for ( i = 0; i < p->nStages; ++i )
+            Pdr2_PolicyOption(&p->Stages[i], "PDR2_TRACE_GUARD", Mode);
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_MIC_CONFS") )
+    {
+        int i, Limit = atoi(Gip_OptionGet("PDR2_JOINT_MIC_CONFS"));
+        for ( i = 0; i < p->nStages; ++i )
+            Pdr2_PolicyOption( &p->Stages[i], "PDR2_MIC_CONFS", Limit );
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_GROUP") )
+    {
+        int i, Mode = atoi(Gip_OptionGet("PDR2_JOINT_GROUP"));
+        for ( i = 0; i < p->nStages; ++i )
+            Pdr2_PolicyOption(&p->Stages[i], "PDR2_MIC_GROUP", Mode);
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_RESOLVE") )
+    {
+        int Count = atoi(Gip_OptionGet("PDR2_JOINT_RESOLVE"));
+        for ( i = 0; i < p->nStages; ++i )
+            Pdr2_PolicyOption(&p->Stages[i], "PDR2_RESOLVE", Count);
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_DOWN") )
+    {
+        int Mode = atoi(Gip_OptionGet("PDR2_JOINT_DOWN"));
+        for ( i = 0; i < p->nStages; i++ )
+            if ( !strcmp(p->Stages[i].pName, "abstraction") || !strcmp(p->Stages[i].pName, "dynamic-abstraction") )
+                Pdr2_PolicyOption(&p->Stages[i], "PDR2_DOWN_TRIES", Mode);
+    }
+    if ( Gip_OptionGet("PDR2_JOINT_PROJECT") )
+        for ( i = 0; i < p->nStages; i++ )
+            Pdr2_PolicyOption(&p->Stages[i], "PDR2_PROJECT", Abc_MaxInt(1, Abc_MinInt(8, atoi(Gip_OptionGet("PDR2_JOINT_PROJECT")))));
+    if ( Gip_OptionGet("PDR2_JOINT_RESET_COI") )
+        for ( i = 0; i < p->nStages; i++ )
+            Pdr2_PolicyOption(&p->Stages[i], atoi(Gip_OptionGet("PDR2_JOINT_RESET_COI")) ? "PDR2_RESET_COI" : "PDR2_COI", 1);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Cofactors latches that record the preceding bad output.]
+
+  Description [On a shortest counterexample every earlier bad output was
+  zero. A register whose input is the bad output or its complement thus has
+  a known value before and including the failing step, provided its initial
+  value agrees. Keep the original interface for concrete witness replay.]
+
+***********************************************************************/
+static Aig_Man_t * Pdr2_PolicyFirstFail( Aig_Man_t * pAig, Vec_Int_t * vInit, int * pCount )
+{
+    int i, Value, nRegs = Aig_ManRegNum(pAig);
+    Aig_Obj_t * pObj, * pCi, * pBad, * pNext;
+    Aig_Man_t * pNew = NULL;
+    char * pKnown;
+    *pCount = 0;
+    if ( !nRegs || Saig_ManPoNum(pAig) != 1 || Saig_ManConstrNum(pAig) ||
+         Aig_ManBufNum(pAig) || Aig_ManExorNum(pAig) || (vInit && Vec_IntSize(vInit) != nRegs) ) return NULL;
+    pKnown = ABC_ALLOC(char, nRegs);
+    memset(pKnown, 2, nRegs);
+    pBad = Aig_ObjChild0(Aig_ManCo(pAig, 0));
+    Saig_ManForEachLi( pAig, pObj, i )
+    {
+        pNext = Aig_ObjChild0(pObj);
+        if ( Aig_Regular(pBad) != Aig_Regular(pNext) ) continue;
+        Value = Aig_IsComplement(pBad) ^ Aig_IsComplement(pNext);
+        if ( Value != (vInit ? Vec_IntEntry(vInit, i) : 0) ) continue;
+        pKnown[i] = Value;
+        ++*pCount;
+    }
+    if ( !*pCount ) goto done;
+    pNew = Aig_ManStart(Aig_ManNodeNum(pAig));
+    pNew->pName = Abc_UtilStrsav(pAig->pName);
+    Aig_ManConst1(pAig)->pData = Aig_ManConst1(pNew);
+    Saig_ManForEachPi( pAig, pObj, i ) pObj->pData = Aig_ObjCreateCi(pNew);
+    Saig_ManForEachLo( pAig, pObj, i )
+    {
+        pCi = Aig_ObjCreateCi(pNew);
+        pObj->pData = pKnown[i] == 2 ? pCi : Aig_NotCond(Aig_ManConst1(pNew), !pKnown[i]);
+    }
+    Aig_ManForEachNode( pAig, pObj, i )
+        pObj->pData = Aig_And(pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj));
+    Aig_ObjCreateCo(pNew, Aig_ObjChild0Copy(Aig_ManCo(pAig, 0)));
+    Saig_ManForEachLi( pAig, pObj, i )
+        Aig_ObjCreateCo(pNew, pKnown[i] == 2 ? Aig_ObjChild0Copy(pObj) : Aig_NotCond(Aig_ManConst1(pNew), !pKnown[i]));
+    Aig_ManSetRegNum(pNew, nRegs);
+    Aig_ManSetCioIds(pNew);
+    Aig_ManCleanup(pNew);
+done:
+    ABC_FREE(pKnown);
+    return pNew;
 }
 
 /**Function*************************************************************
@@ -484,11 +968,14 @@ ordinary:
   Description []
 
 ***********************************************************************/
-void Pdr2_ManPrintPolicy( Aig_Man_t * pAig )
+void Pdr2_ManPrintPolicy( Aig_Man_t * pAig, Vec_Int_t * vInit )
 {
     Pdr2_Policy_t * p = ABC_CALLOC(Pdr2_Policy_t, 1);
-    int F[12], fValid = Pdr2_PolicyFeatures(pAig, F), i, k;
+    int Count, Mode = Gip_OptionGet("PDR2_JOINT_MONITOR") ? atoi(Gip_OptionGet("PDR2_JOINT_MONITOR")) : 0;
+    Aig_Man_t * pFirst = Mode == 1 ? Pdr2_PolicyFirstFail(pAig, vInit, &Count) : NULL;
+    int F[12], fValid = Pdr2_PolicyFeatures(pFirst ? pFirst : pAig, F), i, k;
     Pdr2_PolicyBuild(p, fValid ? F : NULL);
+    if ( fValid ) Pdr2_PolicyMuxFirst(p, pFirst ? pFirst : pAig, NULL, 0);
     Abc_Print(1, "PDR2_PLAN {\"features\":");
     Pdr2_PolicyPrintFeatures(fValid ? F : NULL);
     Abc_Print(1, ",\"stages\":[");
@@ -504,6 +991,7 @@ void Pdr2_ManPrintPolicy( Aig_Man_t * pAig )
         Abc_Print(1, "}");
     }
     Abc_Print(1, "]}\n");
+    if ( pFirst ) Aig_ManStop(pFirst);
     ABC_FREE(p);
 }
 
@@ -608,6 +1096,19 @@ static int Pdr2_PolicySimStop( void * pData, int Kind, unsigned Frame )
 
 /**Function*************************************************************
 
+  Synopsis    [Forwards cancellation from the bounded input search.]
+
+  Description []
+
+***********************************************************************/
+static int Pdr2_PolicyBoundedStop( void * pData )
+{
+    Pdr2_Par_t * pPars = (Pdr2_Par_t *)pData;
+    return pPars->pFuncStop(pPars->RunId);
+}
+
+/**Function*************************************************************
+
   Synopsis    [Searches for a concrete counterexample with manager-local rarity simulation.]
 
   Description []
@@ -644,12 +1145,162 @@ static int Pdr2_PolicySimulate( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t 
 
 /**Function*************************************************************
 
+  Synopsis    [Runs incremental bounded search over groups of consecutive frames.]
+
+  Description [Only returns a witness that replays on the supplied graph.]
+
+  SideEffects []
+
+***********************************************************************/
+int Pdr2_ManWindowBmc( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars, int Seconds, int nGroup )
+{
+    Bmc_GiaPar_t Pars;
+    Gia_Man_t * pGia;
+    int i, Result = -1;
+    if ( vInit )
+        for ( i = 0; i < Vec_IntSize(vInit); ++i ) if ( Vec_IntEntry(vInit, i) ) return -1;
+    Bmc_GiaSetDefaultParams(&Pars);
+    Pars.nTimeOut = Seconds;
+    Pars.nMemoryLimit = 1536;
+    Pars.fSilent = 1;
+    Pars.fVerbose = pPars->fVerbose && !pPars->fSilent;
+    Pars.pFuncStop = pPars->pFuncStop ? Pdr2_PolicyBoundedStop : NULL;
+    Pars.pStopData = pPars;
+    pGia = Gia_ManFromAigSimple(pAig);
+    if ( Bmc_GiaPerformWindow(pGia, &Pars, nGroup) == 0 && pGia->pCexSeq &&
+         Saig_ManVerifyCex(pAig, pGia->pCexSeq) )
+    {
+        Abc_CexFreeP(&pAig->pSeqModel);
+        pAig->pSeqModel = pGia->pCexSeq;
+        pGia->pCexSeq = NULL;
+        pPars->iFrame = pAig->pSeqModel->iFrame;
+        Result = 0;
+    }
+    Gia_ManStop(pGia);
+    return Result;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Searches for a witness with correlated primary inputs.]
+
+  Description [Groups nearby low-fanout inputs while preserving independent
+  controls. Every input trace of the reduced machine expands to a trace of
+  the original. A proof of the reduced machine does not establish safety.]
+
+  SideEffects [Returns a counterexample in the original input coordinates.]
+
+***********************************************************************/
+static int Pdr2_PolicyInputWitness( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
+{
+    int Width = atoi(Gip_OptionGet("PDR2_INPUT_WIDTH"));
+    int Lanes = Gip_OptionGet("PDR2_INPUT_LANES") ? atoi(Gip_OptionGet("PDR2_INPUT_LANES")) : 0;
+    int nPis = Saig_ManPiNum(pAig), nRegs = Aig_ManRegNum(pAig), nNew = 0, Shared = -1;
+    int i, f, Ret = -1, * pMap = ABC_ALLOC(int, nPis);
+    Vec_Int_t * vLanes = Lanes ? Vec_IntStartFull(Width) : NULL;
+    Aig_Obj_t * pObj;
+    Aig_Man_t * pNew = NULL;
+    Abc_Cex_t * pSmall = NULL, * pBig;
+    abctime Stop = Abc_Clock() + (abctime)pPars->nTimeOut * CLOCKS_PER_SEC;
+    Saig_ManForEachPi(pAig, pObj, i)
+    {
+        if ( i % Width == 0 ) Shared = -1;
+        if ( Aig_ObjRefs(pObj) > 3 ) pMap[i] = Abc_Var2Lit(nNew++, 0);
+        else if ( vLanes )
+        {
+            int Lane = i % Width, Var = Vec_IntEntry(vLanes, Lane);
+            if ( Var < 0 ) Vec_IntWriteEntry(vLanes, Lane, (Var = nNew++));
+            pMap[i] = Abc_Var2Lit(Var, Lanes == 2 && (((unsigned)i * 2654435761u) >> 31));
+        }
+        else
+        {
+            if ( Shared < 0 ) Shared = nNew++;
+            pMap[i] = Abc_Var2Lit(Shared, 0);
+        }
+    }
+    if ( nNew == nPis || Aig_ManBufNum(pAig) || Aig_ManExorNum(pAig) ) goto done;
+    pNew = Aig_ManStart(Aig_ManNodeNum(pAig));
+    pNew->pName = Abc_UtilStrsav(pAig->pName);
+    Aig_ManConst1(pAig)->pData = Aig_ManConst1(pNew);
+    for ( i = 0; i < nNew; ++i ) Aig_ObjCreateCi(pNew);
+    Saig_ManForEachPi(pAig, pObj, i)
+        pObj->pData = Aig_NotCond(Aig_ManCi(pNew, Abc_Lit2Var(pMap[i])), Abc_LitIsCompl(pMap[i]));
+    Saig_ManForEachLo(pAig, pObj, i) pObj->pData = Aig_ObjCreateCi(pNew);
+    Aig_ManForEachNode(pAig, pObj, i)
+        pObj->pData = Aig_And(pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj));
+    Aig_ManForEachCo(pAig, pObj, i) Aig_ObjCreateCo(pNew, Aig_ObjChild0Copy(pObj));
+    Aig_ManSetRegNum(pNew, nRegs);
+    Aig_ManCleanup(pNew);
+    if ( pPars->fVerbose )
+        Abc_Print(1, "Correlated input search: %d inputs reduced to %d, %d nodes.\n", nPis, nNew, Aig_ManNodeNum(pNew));
+    if ( Aig_ObjChild0(Aig_ManCo(pNew, 0)) == Aig_ManConst0(pNew) ||
+         (pPars->pFuncStop && pPars->pFuncStop(pPars->RunId)) ) goto done;
+    if ( atoi(Gip_OptionGet("PDR2_INPUT_BOUNDED")) )
+    {
+        Bmc_GiaPar_t Pars;
+        Gia_Man_t * pGia;
+        if ( vInit )
+            for ( i = 0; i < nRegs; ++i ) if ( Vec_IntEntry(vInit, i) ) goto done;
+        pGia = Gia_ManFromAigSimple(pNew);
+        Bmc_GiaSetDefaultParams(&Pars);
+        Pars.TimeToStop = pPars->nTimeOut ? Stop : 0;
+        Pars.nMemoryLimit = 1536;
+        Pars.fSilent = 1;
+        Pars.pFuncStop = pPars->pFuncStop ? Pdr2_PolicyBoundedStop : NULL;
+        Pars.pStopData = pPars;
+        if ( Bmc_GiaPerform(pGia, &Pars) == 0 )
+        {
+            pSmall = pGia->pCexSeq;
+            pGia->pCexSeq = NULL;
+        }
+        Gia_ManStop(pGia);
+    }
+    else
+    {
+        Pdr2_Par_t Child = *pPars;
+        if ( Child.nTimeOut )
+        {
+            if ( Stop - Abc_Clock() < CLOCKS_PER_SEC ) goto done;
+            Child.nTimeOut = (int)((Stop - Abc_Clock()) / CLOCKS_PER_SEC);
+        }
+        if ( Pdr2_ManSolveInit(pNew, vInit, &Child) == 0 )
+        {
+            pSmall = pNew->pSeqModel;
+            pNew->pSeqModel = NULL;
+        }
+    }
+    if ( !pSmall || pSmall->iFrame < 0 || pSmall->nRegs != nRegs || pSmall->nPis != nNew ||
+         ((ABC_INT64_T)pSmall->iFrame + 1) * nPis + nRegs >= INT_MAX ) goto done;
+    pBig = Abc_CexAlloc(nRegs, nPis, pSmall->iFrame + 1);
+    pBig->iPo = 0;
+    pBig->iFrame = pSmall->iFrame;
+    for ( i = 0; i < nRegs; ++i )
+        if ( Abc_InfoHasBit(pSmall->pData, i) ) Abc_InfoSetBit(pBig->pData, i);
+    for ( f = 0; f <= pSmall->iFrame; ++f )
+        for ( i = 0; i < nPis; ++i )
+            if ( Abc_InfoHasBit(pSmall->pData, nRegs + nNew*f + Abc_Lit2Var(pMap[i])) ^ Abc_LitIsCompl(pMap[i]) )
+                Abc_InfoSetBit(pBig->pData, nRegs + nPis*f + i);
+    // The caller checks the expanded trace, including the original reset.
+    Abc_CexFreeP(&pAig->pSeqModel);
+    pAig->pSeqModel = pBig;
+    pPars->iFrame = pBig->iFrame;
+    Ret = 0;
+done:
+    Abc_CexFreeP(&pSmall);
+    Vec_IntFreeP(&vLanes);
+    if ( pNew ) Aig_ManStop(pNew);
+    ABC_FREE(pMap);
+    return Ret;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Checks the witness interface and initial state, then replays the original AIG.]
 
   Description []
 
 ***********************************************************************/
-static int Pdr2_PolicyCheckCex( Aig_Man_t * pAig, Vec_Int_t * vInit, Abc_Cex_t * pCex )
+static int Pdr2_PolicyCheckCex( Aig_Man_t * pAig, Vec_Int_t * vInit, Abc_Cex_t * pCex, int fFirst )
 {
     int i, Init;
     if ( !pCex || pCex->iPo != 0 || pCex->iFrame < 0 ||
@@ -662,7 +1313,9 @@ static int Pdr2_PolicyCheckCex( Aig_Man_t * pAig, Vec_Int_t * vInit, Abc_Cex_t *
         if ( Init != 2 && Init != Abc_InfoHasBit(pCex->pData, i) )
             return 0;
     }
-    return Saig_ManVerifyCex( pAig, pCex );
+    // A bounded query may choose a later bad frame. Trim the original trace before replay.
+    if ( fFirst && !Pdr2_ManFirstBad(pAig, pCex) ) return 0;
+    return Saig_ManVerifyCex(pAig, pCex);
 }
 
 /**Function*************************************************************
@@ -674,14 +1327,22 @@ static int Pdr2_PolicyCheckCex( Aig_Man_t * pAig, Vec_Int_t * vInit, Abc_Cex_t *
 ***********************************************************************/
 int Pdr2_ManSolvePolicy( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
 {
+    if ( pPars->fVerify && pPars->fVerifyComplete )
+        return Pdr2_ManSolveInit(pAig, vInit, pPars);
     Pdr2_Policy_t * p = ABC_CALLOC(Pdr2_Policy_t, 1);
     Pdr2_Par_t Child;
     Gip_Options_t Options;
-    const char * Keys[24], * Values[24];
+    const char * Keys[36], * Values[36];
     abctime Start = Abc_Clock(), Deadline = pPars->nTimeOut ? Start + (abctime)pPars->nTimeOut * CLOCKS_PER_SEC : 0;
-    int F[12], fValid = Pdr2_PolicyFeatures(pAig, F), i, k, nOptions, Budget, Result = -1;
+    int Count, Mode = Gip_OptionGet("PDR2_JOINT_MONITOR") ? atoi(Gip_OptionGet("PDR2_JOINT_MONITOR")) : 0;
+    Aig_Man_t * pFirst = Mode ? Pdr2_PolicyFirstFail(pAig, vInit, &Count) : NULL;
+    Aig_Man_t * pModel = pFirst ? pFirst : pAig;
+    int F[12], fValid = Pdr2_PolicyFeatures(Mode == 2 ? pAig : pModel, F), i, k, nOptions, Budget, Result = -1;
     int fPrintParams = Gip_OptionGet("PDR2_POLICY_PARAMS") != NULL;
     Pdr2_PolicyBuild(p, fValid ? F : NULL);
+    if ( fValid ) Pdr2_PolicyMuxFirst(p, Mode == 2 ? pAig : pModel, pPars, Deadline);
+    if ( pFirst && fValid && pPars->fVerbose )
+        Abc_Print(1, "First-failure cofactor: %d monitor flops, bad cone %d flops and %d nodes.\n", Count, F[3], F[5]);
     pPars->nPhasesRun = pPars->nRestartsRun = pPars->fBmcDecided = 0;
     if ( pPars->fVerbose )
         Abc_Print(1, "Native structural policy: one active engine, shared deadline, %d stages.\n", p->nStages);
@@ -689,16 +1350,19 @@ int Pdr2_ManSolvePolicy( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars
     {
         Pdr2_PolicyStage_t * s = &p->Stages[i];
         Aig_Man_t * pWork;
-        abctime StageStart = Abc_Clock();
+        abctime StageStart = Abc_Clock(), StageStop;
+        int fLast = i == p->nStages - 1;
         if ( pPars->pFuncStop && pPars->pFuncStop(pPars->RunId) ) break;
         Budget = s->nSeconds;
         if ( Deadline )
         {
             abctime Left = Deadline - StageStart;
             if ( Left <= 0 || (i > 0 && Left < CLOCKS_PER_SEC) ) break;
-            Budget = Abc_MaxInt(1, Abc_MinInt(Budget, (int)((Left - CLOCKS_PER_SEC / 5) / CLOCKS_PER_SEC)));
+            Budget = Abc_MaxInt(1, (int)((Left - CLOCKS_PER_SEC / 5) / CLOCKS_PER_SEC));
+            if ( !fLast ) Budget = Abc_MinInt(Budget, s->nSeconds);
         }
-        else if ( i == p->nStages - 1 ) Budget = 0;
+        else if ( fLast ) Budget = 0;
+        StageStop = Budget ? StageStart + (abctime)Budget * CLOCKS_PER_SEC : 0;
         // Stage values precede defaults, so an explicit scheduled BMC budget
         // overrides the common zero budget without touching the environment.
         nOptions = 0;
@@ -715,6 +1379,7 @@ int Pdr2_ManSolvePolicy( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars
         Pdr2_ManSetDefaultParams(&Child);
         Child.nRandomSeed = pPars->nRandomSeed;
         Child.nTimeOut = Budget;
+        Child.timePolicyStop = Deadline;
         Child.fVerbose = pPars->fVerbose; Child.fVeryVerbose = pPars->fVeryVerbose; Child.fSilent = pPars->fSilent;
         Child.fVerify = pPars->fVerify; Child.fVerifyComplete = pPars->fVerifyComplete;
         Child.fDumpInv = pPars->fDumpInv; Child.pInvFileName = pPars->pInvFileName;
@@ -736,19 +1401,37 @@ int Pdr2_ManSolvePolicy( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars
         if ( pPars->fVerbose ) Abc_Print(1, "POLICY_STAGE %s budget=%d\n", s->pName, Budget);
         // Each stage gets fresh object metadata while retaining the original
         // PI, latch, and output interface for counterexample transfer.
-        pWork = Aig_ManDupSimple(pAig);
+        pWork = Aig_ManDupSimple(pModel);
         assert(Aig_ManCiNum(pWork) == Aig_ManCiNum(pAig) && Aig_ManCoNum(pWork) == Aig_ManCoNum(pAig));
         assert(Aig_ManRegNum(pWork) == Aig_ManRegNum(pAig));
-        Result = s->pCommand ? Pdr2_PolicySimulate(pWork, vInit, &Child) : Pdr2_ManSolveInit(pWork, vInit, &Child);
+        if ( s->pCommand && !strcmp(s->pCommand, "input-latches") )
+            Result = Pdr2_ManSolveInputLatches(pWork, vInit, &Child);
+        else if ( s->pCommand && !strcmp(s->pCommand, "mutex") )
+            Result = Pdr2_ManSolveMutex(pWork, vInit, &Child, atoi(Gip_OptionGet("PDR2_MUTEX_MIN")));
+        else if ( s->pCommand && !strcmp(s->pCommand, "comb-safe") )
+            Result = Pdr2_ManCombSafe(pWork, &Child, StageStop, pWork, vInit);
+        else if ( s->pCommand && !strcmp(s->pCommand, "comb-projection") )
+            Result = Pdr2_ManProjectedComb(pWork, vInit, &Child, StageStop, atoi(Gip_OptionGet("PDR2_PROJECT")));
+        else if ( s->pCommand && !strcmp(s->pCommand, "gates") )
+            Result = Pdr2_ManSolveGla(pWork, vInit, &Child, atoi(Gip_OptionGet("PDR2_GATE_LAYERS")));
+        else if ( s->pCommand && !strcmp(s->pCommand, "sample") )
+            Result = Pdr2_ManSampleProperty(pWork, vInit, &Child, atoi(Gip_OptionGet("PDR2_SAMPLE")));
+        else if ( s->pCommand && !strcmp(s->pCommand, "tail") )
+            Result = Pdr2_ManSolveTail(pWork, vInit, &Child, atoi(Gip_OptionGet("PDR2_TAIL_DEPTH")));
+        else if ( s->pCommand && !strcmp(s->pCommand, "window") )
+            Result = Pdr2_ManWindowBmc(pWork, vInit, &Child, Budget, atoi(Gip_OptionGet("PDR2_WINDOW")));
+        else if ( s->pCommand && !strcmp(s->pCommand, "input-probe") ) Result = Pdr2_PolicyInputWitness(pWork, vInit, &Child);
+        else Result = s->pCommand ? Pdr2_PolicySimulate(pWork, vInit, &Child) : Pdr2_ManSolveInit(pWork, vInit, &Child);
         pPars->iFrame = Child.iFrame;
         pPars->nPhasesRun += Child.nPhasesRun; pPars->nRestartsRun += Child.nRestartsRun;
         pPars->fBmcDecided = Child.fBmcDecided;
         if ( Result == 0 )
         {
-            if ( Pdr2_PolicyCheckCex(pAig, vInit, pWork->pSeqModel) )
+            if ( Pdr2_PolicyCheckCex(pAig, vInit, pWork->pSeqModel, Mode != 0) )
             {
                 Abc_CexFreeP( &pAig->pSeqModel );
                 pAig->pSeqModel = pWork->pSeqModel;
+                pPars->iFrame = pAig->pSeqModel->iFrame;
                 pWork->pSeqModel = NULL;
             }
             else
@@ -768,6 +1451,7 @@ int Pdr2_ManSolvePolicy( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars
         Abc_Print(1, "Native structural policy total wall seconds = %.3f\n", (double)(Abc_Clock() - Start) / CLOCKS_PER_SEC);
     if ( Result == -1 && Deadline && Deadline - Abc_Clock() < 11 * CLOCKS_PER_SEC / 10 && !pPars->fSilent )
         Abc_Print(1, "Reached structural policy time limit (%d seconds).\n", pPars->nTimeOut);
+    if ( pFirst ) Aig_ManStop(pFirst);
     ABC_FREE(p);
     return Result;
 }

@@ -201,6 +201,8 @@ void Gip_SolverDetachClause( Gip_Solver_t * p, int Cref )
 ***********************************************************************/
 void Gip_SolverCleanTemporary( Gip_Solver_t * p )
 {
+    if ( p->Batch.vPrevious )
+        Vec_IntClear( p->Batch.vPrevious );
     if ( p->nRecycleMode & 2 )
     {
         int i, Cref, n = 0;
@@ -391,7 +393,11 @@ void Gip_SolverGarbageCollect( Gip_Solver_t * p )
     // watchers
     for ( i = 0; i < 2 * p->nVarsAlloc; i++ )
         for ( j = 0; j < p->pWatchers[i].nSize; j++ )
-            p->pWatchers[i].pArray[j].clause = Gip_AllocReloc( pOld, p->pWatchers[i].pArray[j].clause, &New );
+        {
+            Gip_Wat_t * pWatch = &p->pWatchers[i].pArray[j];
+            int Ref = Gip_AllocReloc(pOld, Gip_WatchRef(pWatch->clause), &New);
+            pWatch->clause = pWatch->clause < 0 ? ~Ref : Ref;
+        }
     // clause lists
     Vec_IntForEachEntry( p->Cdb.vTrans, Cref, i )
         Vec_IntWriteEntry( p->Cdb.vTrans, i, Gip_AllocReloc(pOld, Cref, &New) );

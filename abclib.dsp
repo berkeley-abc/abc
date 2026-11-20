@@ -8298,6 +8298,10 @@ SOURCE=.\src\proof\pdr2\pdr2Core.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\pdr2\pdr2Gla.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\pdr2\pdr2Int.h
 # End Source File
 # Begin Source File
@@ -8306,11 +8310,23 @@ SOURCE=.\src\proof\pdr2\pdr2Man.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\pdr2\pdr2Mutex.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\pdr2\pdr2Policy.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\pdr2\pdr2Proj.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\pdr2\pdr2Sat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\pdr2\pdr2Tail.c
 # End Source File
 # End Group
 # Begin Group "ssw"

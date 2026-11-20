@@ -124,6 +124,7 @@ struct Pdr2_Par_t_
     int nRestartsRun;     // output: the number of level restarts in all runs
     int fBmcDecided;      // output: the BMC stage decided the property
     char * pInvFileName;  // invariant file name
+    abctime timePolicyStop; // outer deadline for fixed-depth CNF construction (-1 = standalone, 0 = unlimited)
 };
 
 ////////////////////////////////////////////////////////////////////////

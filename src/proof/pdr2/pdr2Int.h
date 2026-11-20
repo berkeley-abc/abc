@@ -37,6 +37,7 @@ ABC_NAMESPACE_HEADER_START
 // nominal solver speed: the time slices of the alternating runs are measured in propagations
 // (a deterministic unit of work), with this many per nominal second
 #define PDR2_PROPS_PER_SEC  12000000.0
+#define PDR2_SOLVER_UNRESTRICTED  3
 static inline double Pdr2_ManPropUnit( Pdr2_Par_t * pPars ) { return pPars->nPropUnit > 0 ? (double)pPars->nPropUnit : PDR2_PROPS_PER_SEC; }
 
 ////////////////////////////////////////////////////////////////////////
@@ -158,7 +159,7 @@ struct Pdr2_Man_t_
     ABC_INT64_T   nReachReject;
     abctime       timeReach;
     int *         pLoVar;        // flop -> GipSAT var of the register output
-    int *         pLiVar;        // flop -> GipSAT var of the register input
+    int *         pLiLit;        // flop -> GipSAT literal of the register input
     int *         pPiVar;        // PI -> GipSAT var
     int *         pVar2Ci;       // optional SAT var -> CI index (PIs, then latches), -1 otherwise
     Vec_Int_t *   vLiftCis;      // sparse lifting candidates, sorted by CI index
@@ -188,6 +189,19 @@ struct Pdr2_Man_t_
     unsigned      iMicCexNext;
     ABC_INT64_T   nMicCexChecks, nMicCexHits, nMicCexStores, nMicCexKilled;
     int           nPredictMode; // 1 = parent prediction before MIC, 2 = also skip MIC on success
+    int           GuardLit;       // register literal required along bad traces, -1 when unused
+    int           GuardLo, GuardLi;  // corresponding current and next SAT literals, -1 when unused
+    int           nStrengthenOnDemand;
+    ABC_INT64_T   nStrengthenTrials, nStrengthenAvoided;
+    int           nDropHistory;
+    unsigned char * pDropHistory; // attempts and successes per signed literal and context
+    ABC_INT64_T   nDropHistorySkipped;
+    int           nJoinPush;
+    int           nResolveLimit;    // recent opposite-literal occurrences examined per pivot
+    ABC_INT64_T   nResolveCubes, nResolveLits;
+    ABC_INT64_T   nJoinTries, nJoinProofs, nJoinLocal, nJoinQueries;
+    int           nMicGroup;    // use grouped relative-induction queries for top-level MIC
+    ABC_INT64_T   nGroupQueries, nGroupLits, nGroupLevels;
     int           nMicGap;      // skip literal dropping this far below the frontier
     int           nGenTimeMode; // reuse the blocking proof's frame before generalization
     ABC_INT64_T   nMicGapSkipped, nGenTimeJumps, nGenTimeInf;
@@ -331,6 +345,10 @@ struct Pdr2_Man_t_
     ABC_INT64_T   nMicEarlyStop;
     ABC_INT64_T   nDowns;
     ABC_INT64_T   nDownQueries;  // SAT queries of the plain downs
+    ABC_INT64_T   nDownRetries, nDownStopped;
+    int           nDropConfLimit; // conflict allowance per optional minimization query
+    ABC_INT64_T   nDropConfCuts;  // literal-drop trials that exhausted their conflict allowance
+    int           nDownMode;      // optional budget for joins after the first counterexample
     ABC_INT64_T   nDownCacheHits;
     ABC_INT64_T   nCtgBypassed;
     ABC_INT64_T   nSolverClones;
@@ -375,6 +393,8 @@ struct Pdr2_Man_t_
     ABC_INT64_T   nPropInfCalls;
     ABC_INT64_T   nPropInfSkipped;
     ABC_INT64_T   nSemContained;
+    struct Pdr2_BadSat_t_ * pBadSat; // mapped property solver owned by this manager
+    int           fReuseBadSat;      // an expensive bad-state query triggered reuse
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -386,7 +406,7 @@ static inline int          Pdr2_ManLevel( Pdr2_Man_t * p )                { retu
 static inline Vec_Ptr_t *  Pdr2_ManFrame( Pdr2_Man_t * p, int k )         { return (Vec_Ptr_t *)Vec_PtrEntry( p->vFrames, k );          }
 static inline Gip_Solver_t * Pdr2_ManSolver( Pdr2_Man_t * p, int k )      { return (Gip_Solver_t *)Vec_PtrEntry( p->vSolvers, k );      }
 static inline int          Pdr2_LitLo( Pdr2_Man_t * p, int Lit )          { return Abc_Var2Lit( p->pLoVar[Abc_Lit2Var(Lit)], Abc_LitIsCompl(Lit) ); }
-static inline int          Pdr2_LitLi( Pdr2_Man_t * p, int Lit )          { return Abc_Var2Lit( p->pLiVar[Abc_Lit2Var(Lit)], Abc_LitIsCompl(Lit) ); }
+static inline int          Pdr2_LitLi( Pdr2_Man_t * p, int Lit )          { return p->pLiLit[Abc_Lit2Var(Lit)] ^ Abc_LitIsCompl(Lit); }
 static inline word         Pdr2_LitSign( int Lit )                        { return (word)1 << (Lit & 63);                               }
 // value of a flop literal (current state) in a SAT model: GIP_TRUE/GIP_FALSE/GIP_NONE
 static inline Gip_Solver_t * Pdr2_SolverActual( Gip_Solver_t * pSat )    { return pSat->pShared ? pSat->pShared : pSat; }
@@ -457,6 +477,7 @@ extern int                Pdr2_ManReachTryCex( Pdr2_Man_t * p, Pdr2_Obl_t * pObl
 extern Gip_Solver_t *     Pdr2_ManNewSolver( Pdr2_Man_t * p, int k );
 extern void               Pdr2_ManSolverAddLemma( Pdr2_Man_t * p, Gip_Solver_t * pSat, Pdr2_Cube_t * pCube, int Id );
 extern int                Pdr2_ManSolveRelative( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCube, int fStrengthen, Vec_Int_t * vCstCls );
+extern int                Pdr2_ManTryDrop( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCube, int fStrengthen, Vec_Int_t * vCstCls );
 extern int                Pdr2_ManSolveBad( Pdr2_Man_t * p );
 extern int                Pdr2_ManSolveContained( Pdr2_Man_t * p, Gip_Solver_t * pSat, Pdr2_Cube_t * pCube );
 extern int                Pdr2_ManInductiveCore( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCore );
@@ -464,6 +485,23 @@ extern void               Pdr2_ManGetPred( Pdr2_Man_t * p, int fStrengthen, Vec_
 extern void               Pdr2_ManMicCexStore( Pdr2_Man_t * p, Gip_Solver_t * pSat, int Frame );
 extern void               Pdr2_ManShareCompleted( Pdr2_Man_t * p, int Frame );
 extern int                Pdr2_ManMicCexFind( Pdr2_Man_t * p, int Frame, Vec_Int_t * vCube, char * pKeep );
+extern int                Pdr2_ManWindowBmc( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars, int Seconds, int nGroup );
+extern Aig_Man_t *        Pdr2_ManDupCoi( Aig_Man_t * pAig, Vec_Int_t ** pvPis, Vec_Int_t ** pvRegs );
+extern Aig_Man_t *        Pdr2_ManDupResetCoi( Aig_Man_t * pAig, char * pInit, Pdr2_Par_t * pPars, abctime Stop, Vec_Int_t ** pvPis, Vec_Int_t ** pvRegs );
+extern int                Pdr2_ManSolveTail( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars, int Depth );
+extern int                Pdr2_ManSolveInputLatches( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars );
+extern int                Pdr2_ManLogicLeaves( Aig_Man_t * pAig, Aig_Obj_t * pRoot, int fOr, int Limit, Vec_Ptr_t * vLeaves );
+extern int                Pdr2_ManSolveMutex( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars, int Minimum );
+extern int                Pdr2_ManCombSafe( Aig_Man_t * pAig, Pdr2_Par_t * pPars, abctime timeGlobal, Aig_Man_t * pTraceAig, Vec_Int_t * vInit );
+extern int                Pdr2_ManMappedBad( Pdr2_Man_t * p, int Seconds, Vec_Int_t * vModel );
+extern void               Pdr2_ManStopBadSat( Pdr2_Man_t * p );
+extern int                Pdr2_ManMappedInvariant( Pdr2_Man_t * p, Aig_Man_t * pMiter );
+extern void               Pdr2_ManSeedProjection( Pdr2_Man_t * p, int Width );
+extern int                Pdr2_ManProjectedComb( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars, abctime Stop, int Width );
+extern int                Pdr2_ManSampleProperty( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars, int Width );
+extern int                Pdr2_ManSolveGla( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars, int Layers );
+extern int                Pdr2_ManFirstBad( Aig_Man_t * pAig, Abc_Cex_t * pCex );
+extern int                Pdr2_ManFindGuard( Aig_Man_t * pAig, int fNext );
 extern void               Pdr2_ManSetMicDomain( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCube );
 extern void               Pdr2_ManSolverAddUnit( Pdr2_Man_t * p, Gip_Solver_t * pSat, int Lit );
 extern void               Pdr2_ManUnsetMicDomain( Pdr2_Man_t * p, Gip_Solver_t * pSat );
@@ -476,9 +514,10 @@ extern Aig_Man_t *        Pdr2_ManDupGatedInit( Aig_Man_t * pAig, char * pInit, 
 extern int                Pdr2_ManAbsCheckCex( Pdr2_Man_t * p, Pdr2_Obl_t * pObl );
 // pdr2Core.c
 extern int                Pdr2_ManSolveInt( Pdr2_Man_t * p );
+extern int                Pdr2_ManHasMuxReduction( Aig_Man_t * pAig, Pdr2_Par_t * pPars, abctime Stop );
 // pdr2Policy.c
 extern void               Pdr2_ManPrintFeatures( Aig_Man_t * pAig );
-extern void               Pdr2_ManPrintPolicy( Aig_Man_t * pAig );
+extern void               Pdr2_ManPrintPolicy( Aig_Man_t * pAig, Vec_Int_t * vInit );
 extern void               Pdr2_ManPrintPolicyParams( Pdr2_Par_t * pPars );
 extern int                Pdr2_ManSolvePolicy( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars );
 

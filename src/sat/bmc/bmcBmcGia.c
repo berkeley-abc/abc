@@ -282,7 +282,7 @@ static void Bmc3G_IndexCone( Bmc3G_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static Bmc3G_Man_t * Bmc3G_Start( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars )
+static Bmc3G_Man_t * Bmc3G_Start( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int fFixedTarget )
 {
     Bmc3G_Man_t * p = ABC_CALLOC( Bmc3G_Man_t, 1 );
     p->pPars = pPars;
@@ -307,10 +307,12 @@ static Bmc3G_Man_t * Bmc3G_Start( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars )
     p->pSat = ccadical_init();
     ccadical_set_option( p->pSat, "quiet", 1 );
     // Avoid repeated elimination while adding circuit clauses incrementally.
-    ccadical_set_option( p->pSat, "inprocessing", 0 );
-    ccadical_set_option( p->pSat, "fastelim", 0 );
-    // Whole-formula phase guesses are costly for short incremental queries.
-    ccadical_set_option( p->pSat, "lucky", 0 );
+    if ( !fFixedTarget )
+    {
+        ccadical_set_option( p->pSat, "inprocessing", 0 );
+        ccadical_set_option( p->pSat, "fastelim", 0 );
+        ccadical_set_option( p->pSat, "lucky", 0 );
+    }
     ccadical_set_option( p->pSat, "phase", pPars->fPhase );
     // Poll the caller at each solver cancellation point.
     ccadical_set_option( p->pSat, "terminateint", 0 );
@@ -606,11 +608,11 @@ static Abc_Cex_t * Bmc3G_Cex( Bmc3G_Man_t * p, int Frame, int Output, int fModel
     if ( fModel )
         Gia_ManForEachPi( p->pFrames, pObj, i )
         {
+            f = Vec_IntEntry( p->vCiMap, 2*i + 1 );
+            if ( f > Frame ) continue;
             Var = Vec_IntEntry( p->vVars, Gia_ObjId(p->pFrames, pObj) );
             if ( Var <= 0 || ccadical_val(p->pSat, Var) <= 0 ) continue;
             Pi = Vec_IntEntry( p->vCiMap, 2*i );
-            f = Vec_IntEntry( p->vCiMap, 2*i + 1 );
-            assert( f <= Frame );
             Abc_InfoSetBit( pCex->pData, nRegs + f*nPis + Pi );
         }
     if ( Gia_ManVerifyCex(p->pGia, pCex, 0) ) return pCex;
@@ -715,7 +717,7 @@ static void Bmc3G_PropagateConstants( Bmc3G_Man_t * p, int Frame )
   SeeAlso     []
 
 ***********************************************************************/
-int Bmc_GiaPerform( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars )
+int Bmc_GiaPerformWindow( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int nGroup )
 {
     Bmc3G_Man_t * p;
     Gia_Obj_t * pObj;
@@ -723,6 +725,7 @@ int Bmc_GiaPerform( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars )
     abctime clk, Start;
     int Frame, i, Lit, Root, Status, Result = -1, fTrivial = 1;
     if ( !Bmc3G_CheckInput(pGia, pPars) ) return -2;
+    if ( nGroup < 1 || nGroup > 256 || (nGroup > 1 && (pPars->pShared || Gia_ManPoNum(pGia) != 1)) ) return -2;
     if ( pPars->pShared && !pPars->pShared->pFuncFrames ) return -2;
     pPars->nFramesDone = pPars->nFramesShared = pPars->nQueries = 0;
     pPars->fMemoryLimit = 0;
@@ -731,7 +734,7 @@ int Bmc_GiaPerform( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars )
     pPars->timeTeardown = pPars->timeSatOverrun = 0;
     pPars->MemoryPeakMB = 0;
     Abc_CexFreeP( &pGia->pCexSeq );
-    p = Bmc3G_Start( pGia, pPars );
+    p = Bmc3G_Start( pGia, pPars, 0 );
     if ( p->fStopped ) goto finish;
     Gia_ManForEachPo( p->pGia, pObj, i )
         fTrivial &= Gia_ObjFaninLit0p(p->pGia, pObj) == 0;
@@ -749,7 +752,7 @@ int Bmc_GiaPerform( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars )
             goto frame_done;
         }
         if ( !pPars->nQueries ) Bmc3G_PropagateConstants(p, Frame);
-        Vec_IntClear( p->vRoots );
+        if ( nGroup == 1 || pPars->nFramesDone == Frame ) Vec_IntClear( p->vRoots );
         Gia_ManForEachPo( p->pGia, pObj, i )
         {
             Lit = Bmc3G_Unroll( p, Gia_ObjFaninId0p(p->pGia, pObj), Frame );
@@ -767,6 +770,15 @@ int Bmc_GiaPerform( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars )
         }
         pPars->timeUnroll += Abc_Clock() - clk;
         if ( pCex || i < Gia_ManPoNum(p->pGia) ) break;
+        if ( nGroup > 1 )
+        {
+            if ( Vec_IntSize(p->vRoots) < nGroup && Frame + 1 != pPars->nFramesMax &&
+                 !(Gia_ManRegNum(p->pGia) < 30 && Frame + 1 >= (1 << Gia_ManRegNum(p->pGia))) )
+                continue;
+            fFrameTrivial = 1;
+            Vec_IntForEachEntry(p->vRoots, Root, i)
+                if ( Gia_ObjFaninLit0p(p->pFrames, Gia_ManObj(p->pFrames, Root)) != 0 ) { fFrameTrivial = 0; break; }
+        }
         clk = Abc_Clock();
         if ( !fFrameTrivial && !Bmc3G_AddCnf(p) )
         {
@@ -774,6 +786,34 @@ int Bmc_GiaPerform( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars )
             break;
         }
         pPars->timeCnf += Abc_Clock() - clk;
+        if ( nGroup > 1 )
+        {
+            if ( fFrameTrivial ) goto frame_done;
+            if ( Bmc3G_Stop(p) ) break;
+            // Disjoin the bad outputs of this window for one SAT query.
+            // CaDiCaL removes the temporary constraint after the solve.
+            clk = Abc_Clock();
+            Vec_IntForEachEntry(p->vRoots, Root, i)
+                if ( Gia_ObjFaninLit0p(p->pFrames, Gia_ManObj(p->pFrames, Root)) != 0 )
+                    ccadical_constrain(p->pSat, Vec_IntEntry(p->vVars, Root));
+            ccadical_constrain(p->pSat, 0);
+            if ( pPars->nConfLimit ) ccadical_limit(p->pSat, "conflicts", pPars->nConfLimit);
+            pPars->nQueries++;
+            Status = ccadical_solve(p->pSat);
+            pPars->timeSat += Abc_Clock() - clk;
+            if ( Status == 20 && !ccadical_is_inconsistent(p->pSat) ) goto frame_done;
+            if ( Status == 10 )
+                Vec_IntForEachEntry(p->vRoots, Root, i)
+                {
+                    if ( Gia_ObjFaninLit0p(p->pFrames, Gia_ManObj(p->pFrames, Root)) == 0 ) continue;
+                    Lit = Vec_IntEntry(p->vVars, Root);
+                    if ( ccadical_val(p->pSat, Lit) <= 0 ) continue;
+                    pCex = Bmc3G_Cex(p, pPars->nFramesDone + i, 0, 1);
+                    if ( pCex ) Result = 0;
+                    break;
+                }
+            break;
+        }
         Vec_IntForEachEntry( p->vRoots, Root, i )
         {
             pObj = Gia_ManObj( p->pFrames, Root );
@@ -840,6 +880,211 @@ finish:
         if ( Result >= 0 ) Abc_Print( 1, " (solved by bmc3-cadical)" );
         Abc_Print( 1, ". Time = %.6f sec\n", (double)(Abc_Clock() - Start) / CLOCKS_PER_SEC );
     }
+    return Result;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks each output at every frame with incremental BMC.]
+
+  Description []
+
+***********************************************************************/
+int Bmc_GiaPerform( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars )
+{
+    return Bmc_GiaPerformWindow(pGia, pPars, 1);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Encodes only the polarities required to make the requested outputs true.]
+
+***********************************************************************/
+static int Bmc3G_AddTargetCnf( Bmc3G_Man_t * p, int fPolarity )
+{
+    Gia_Man_t * pGia = p->pFrames;
+    Gia_Obj_t * pObj;
+    unsigned char * pNeed;
+    int nObjs = Gia_ManObjNum(pGia), i, Id, Sign, Mask, Var, a, b, fReady = 0;
+    if ( !fPolarity ) return Bmc3G_AddCnf(p);
+    if ( Bmc3G_CheckMemory(p, 5.0*nObjs) ) return 0;
+    pNeed = ABC_CALLOC(unsigned char, nObjs);
+    Vec_IntFillExtra(p->vVars, nObjs, 0);
+    Vec_IntForEachEntry(p->vRoots, Id, i) pNeed[Id] = 1;
+    // Bit 0 requests the positive implication and bit 1 its converse.
+    // Edges run from higher to lower IDs. Shared cones collect both
+    // polarities before their fanins are visited.
+    for ( i = nObjs-1; i > 0; --i )
+    {
+        if ( !(i & 4095) && Bmc3G_Stop(p) ) goto done;
+        pObj = Gia_ManObj(pGia, i);
+        if ( !(Mask = pNeed[i]) || Gia_ObjIsCi(pObj) ) continue;
+        Sign = Gia_ObjFaninC0(pObj);
+        pNeed[Gia_ObjFaninId0(pObj,i)] |= Sign ? ((Mask&1)<<1) | (Mask>>1) : Mask;
+        if ( Gia_ObjIsCo(pObj) ) continue;
+        Sign = Gia_ObjFaninC1(pObj);
+        pNeed[Gia_ObjFaninId1(pObj,i)] |= Sign ? ((Mask&1)<<1) | (Mask>>1) : Mask;
+    }
+    for ( i = 1; i < nObjs; ++i )
+    {
+        if ( !(i & 4095) && (Bmc3G_Stop(p) || Bmc3G_CheckMemory(p, 5.0*nObjs)) ) goto done;
+        if ( !(Mask = pNeed[i]) ) continue;
+        pObj = Gia_ManObj(pGia, i);
+        Var = ++p->nVars;
+        Vec_IntWriteEntry(p->vVars, i, Var);
+        if ( Gia_ObjIsCi(pObj) ) continue;
+        a = Vec_IntEntry(p->vVars, Gia_ObjFaninId0(pObj,i));
+        if ( Gia_ObjFaninC0(pObj) ) a = -a;
+        if ( Mask & 1 )
+        {
+            ccadical_add(p->pSat, -Var); ccadical_add(p->pSat, a); ccadical_add(p->pSat, 0);
+            p->nCnfLits += 2;
+        }
+        if ( Gia_ObjIsCo(pObj) ) { assert(Mask == 1); continue; }
+        b = Vec_IntEntry(p->vVars, Gia_ObjFaninId1(pObj,i));
+        if ( Gia_ObjFaninC1(pObj) ) b = -b;
+        if ( Mask & 1 )
+        {
+            ccadical_add(p->pSat, -Var); ccadical_add(p->pSat, b); ccadical_add(p->pSat, 0);
+            p->nCnfLits += 2;
+        }
+        if ( Mask & 2 )
+        {
+            ccadical_add(p->pSat, Var); ccadical_add(p->pSat, -a); ccadical_add(p->pSat, -b); ccadical_add(p->pSat, 0);
+            p->nCnfLits += 3;
+        }
+    }
+    fReady = 1;
+done:
+    ABC_FREE(pNeed);
+    return fReady;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Asserts a disjunction of bad outputs and reconstructs its failing frame.]
+
+***********************************************************************/
+static Abc_Cex_t * Bmc3G_SolveTargetWindow( Bmc3G_Man_t * p, Vec_Int_t * vFrames, int fPolarity )
+{
+    int Root, Var, i;
+    if ( !Vec_IntSize(vFrames) || !Bmc3G_AddTargetCnf(p, fPolarity) || Bmc3G_Stop(p) ) return NULL;
+    // This solver is dedicated to a single disjunction. Making it a clause
+    // lets the SAT preprocessor use the property throughout simplification.
+    Vec_IntForEachEntry(p->vRoots, Root, i)
+        ccadical_add(p->pSat, Vec_IntEntry(p->vVars, Root));
+    ccadical_add(p->pSat, 0);
+    if ( p->pPars->nConfLimit ) ccadical_limit(p->pSat, "conflicts", p->pPars->nConfLimit);
+    p->pPars->nQueries++;
+    if ( ccadical_solve(p->pSat) != 10 ) return NULL;
+    Vec_IntForEachEntry(p->vRoots, Root, i)
+    {
+        Var = Vec_IntEntry(p->vVars, Root);
+        if ( ccadical_val(p->pSat, Var) > 0 )
+            return Bmc3G_Cex(p, Vec_IntEntry(vFrames, i), 0, 1);
+    }
+    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Searches a single depth, its last live output, or a whole prefix.]
+
+  Description [Window 0 selects the specified depth. Window 1 selects the
+  latest structurally possible failure up to that depth. Window 2 checks a
+  single SAT disjunction over all structurally possible failures.]
+
+***********************************************************************/
+int Bmc_GiaFindTarget( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int Frame, int nTerms, int Window, int fPolarity )
+{
+    Bmc3G_Man_t * p;
+    Gia_Obj_t * pObj;
+    Vec_Int_t * vTerms, * vFrames;
+    Abc_Cex_t * pCex = NULL;
+    int i, k, Best, Lit, Root, Status, Next = 1, Chosen = -1, Target = 0, Result = -1;
+    if ( !Bmc3G_CheckInput(pGia,pPars) || Gia_ManPoNum(pGia) != 1 ||
+         pPars->pShared || Frame < 0 || Frame > 256 || nTerms < 1 || nTerms > 64 || Window < 0 || Window > 2 ) return -1;
+    Abc_CexFreeP(&pGia->pCexSeq);
+    pPars->nQueries = pPars->nFramesDone = 0;
+    pPars->iFrame = -1;
+    p = Bmc3G_Start(pGia, pPars, 1);
+    vTerms = Vec_IntAlloc(nTerms);
+    vFrames = Vec_IntAlloc(Window == 2 ? Frame+1 : 0);
+    for ( i = 0; i <= Frame; ++i )
+    {
+        if ( Bmc3G_Stop(p) || !Bmc3G_MapStart(p) ) goto done;
+        Bmc3G_PropagateConstants(p, i);
+        if ( !Window && i != Frame ) continue;
+        if ( Bmc3G_Stop(p) ) goto done;
+        pObj = Gia_ManPo(p->pGia, 0);
+        Lit = Bmc3G_Unroll(p, Gia_ObjFaninId0p(p->pGia,pObj), i);
+        if ( Lit < 0 ) goto done;
+        Lit ^= Gia_ObjFaninC0(pObj);
+        if ( !Lit ) continue;
+        if ( Lit == 1 ) { pCex = Bmc3G_Cex(p, i, 0, 0); goto done; }
+        Chosen = i;
+        Target = Lit;
+        if ( Window == 2 )
+        {
+            Vec_IntPush(vFrames, i);
+            Root = Gia_ManAppendCo(p->pFrames, Lit);
+            Vec_IntPush(p->vRoots, Abc_Lit2Var(Root));
+        }
+    }
+    if ( Chosen < 0 || Bmc3G_Stop(p) ) goto done;
+    if ( Window == 2 )
+    {
+        pCex = Bmc3G_SolveTargetWindow(p, vFrames, fPolarity);
+        goto done;
+    }
+    Vec_IntPush(vTerms, Target);
+    while ( Vec_IntSize(vTerms) < nTerms )
+    {
+        Best = -1;
+        Vec_IntForEachEntry( vTerms, Lit, k )
+            if ( !Abc_LitIsCompl(Lit) && Gia_ObjIsAnd(Gia_ManObj(p->pFrames, Abc_Lit2Var(Lit))) &&
+                 (Best < 0 || Lit > Vec_IntEntry(vTerms, Best)) ) Best = k;
+        if ( Best < 0 ) break;
+        pObj = Gia_ManObj(p->pFrames, Abc_Lit2Var(Vec_IntEntry(vTerms, Best)));
+        Vec_IntWriteEntry(vTerms, Best, Gia_ObjFaninLit0p(p->pFrames,pObj));
+        Vec_IntPush(vTerms, Gia_ObjFaninLit1p(p->pFrames,pObj));
+    }
+    Vec_IntUniqify(vTerms);
+    Vec_IntForEachEntry( vTerms, Lit, i )
+    {
+        Root = Gia_ManAppendCo(p->pFrames, Lit);
+        Vec_IntPush(p->vRoots, Abc_Lit2Var(Root));
+    }
+    if ( !Bmc3G_AddTargetCnf(p, fPolarity) ) goto done;
+    Vec_IntForEachEntry( p->vRoots, Root, i )
+    {
+        if ( Bmc3G_Stop(p) ) goto done;
+        Lit = Vec_IntEntry(p->vVars, Root);
+        assert(Lit > 0);
+        ccadical_add(p->pSat, Lit); ccadical_add(p->pSat, 0);
+        if ( i+1 < Vec_IntSize(p->vRoots) && i+1 != Next ) continue;
+        Next *= 2;
+        if ( i+1 < Vec_IntSize(p->vRoots) )
+            ccadical_limit(p->pSat, "conflicts", pPars->nConfLimit ? Abc_MinInt(96, pPars->nConfLimit) : 96);
+        else if ( pPars->nConfLimit ) ccadical_limit(p->pSat, "conflicts", pPars->nConfLimit);
+        pPars->nQueries++;
+        Status = ccadical_solve(p->pSat);
+        if ( Status == 20 ) break;
+        if ( Status == 10 && i+1 == Vec_IntSize(p->vRoots) ) pCex = Bmc3G_Cex(p, Chosen, 0, 1);
+    }
+done:
+    if ( pCex )
+    {
+        pGia->pCexSeq = pCex;
+        pPars->iFrame = pCex->iFrame;
+        Result = 0;
+    }
+    if ( pPars->fVerbose )
+        Abc_Print(1, "Bounded target: depth %d, selected frame %d, %d terms, %d window outputs, %d SAT queries, %d SAT variables, memory limit %d, result %d.\n",
+            Frame, pCex ? pCex->iFrame : Chosen, Vec_IntSize(vTerms), Vec_IntSize(vFrames), pPars->nQueries, p->nVars, pPars->fMemoryLimit, Result);
+    Vec_IntFree(vFrames);
+    Vec_IntFree(vTerms);
+    Bmc3G_StopManager(p);
     return Result;
 }
 

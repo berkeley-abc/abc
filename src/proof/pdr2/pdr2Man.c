@@ -34,6 +34,35 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [Returns a register input's literal, bypassing an exact CNF buffer.]
+
+  Description [The pair (x or a) and (!x or !a) defines x as !a. Read
+  both clauses, including their polarities, so the same test works for
+  compact variables, inverted drivers, and different CNF mappings.]
+
+  SideEffects []
+
+***********************************************************************/
+static int Pdr2_ManInputLit( Gip_Ctx_t * pCtx, Aig_Obj_t * pCo, int fDirect )
+{
+    int Out = Abc_Var2Lit(Gip_CtxObjVar(pCtx, pCo), 0), Id = Aig_ObjId(pCo);
+    Cnf_Dat_t * pCnf = pCtx->pCnf;
+    int First, * pA, * pB, i, j;
+    if ( !fDirect || pCnf->pObj2Count[Id] != 2 ) return Out;
+    First = pCnf->pObj2Clause[Id];
+    pA = pCnf->pClauses[First];
+    pB = pCnf->pClauses[First + 1];
+    if ( pB - pA != 2 || pCnf->pClauses[First + 2] - pB != 2 ) return Out;
+    for ( i = 0; i < 2; ++i )
+        if ( Abc_Lit2Var(pA[i]) == Abc_Lit2Var(Out) )
+            for ( j = 0; j < 2; ++j )
+                if ( pB[j] == Abc_LitNot(pA[i]) && pB[1-j] == Abc_LitNot(pA[1-i]) )
+                    return pA[1-i] ^ !Abc_LitIsCompl(pA[i]);
+    return Out;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates the manager.]
 
   Description [The AIG should have one primary output and no constraints.]
@@ -56,6 +85,14 @@ Pdr2_Man_t * Pdr2_ManStart( Aig_Man_t * pAig, char * pInit, Pdr2_Par_t * pPars )
     p->nRegs     = Saig_ManRegNum( pAig );
     p->nPis      = Saig_ManPiNum( pAig );
     p->nPredictMode = Gip_OptionGet("PDR2_PREDICT") ? Abc_MaxInt(0, Abc_MinInt(2, atoi(Gip_OptionGet("PDR2_PREDICT")))) : 0;
+    p->nStrengthenOnDemand = Gip_OptionGet("PDR2_STRENGTHEN_LATE") ? atoi(Gip_OptionGet("PDR2_STRENGTHEN_LATE")) : 0;
+    p->nDropHistory = Gip_OptionGet("PDR2_DROP_HISTORY") ? Abc_MaxInt(0, Abc_MinInt(4, atoi(Gip_OptionGet("PDR2_DROP_HISTORY")))) : 0;
+    if ( p->nDropHistory ) p->pDropHistory = ABC_CALLOC(unsigned char, (size_t)16 * p->nRegs);
+    p->nJoinPush = Gip_OptionGet("PDR2_JOIN_PUSH") ? Abc_MaxInt(0, Abc_MinInt(3, atoi(Gip_OptionGet("PDR2_JOIN_PUSH")))) : 0;
+    p->nResolveLimit = Gip_OptionGet("PDR2_RESOLVE") ? Abc_MaxInt(0, Abc_MinInt(1024, atoi(Gip_OptionGet("PDR2_RESOLVE")))) : 0;
+    p->nMicGroup = Gip_OptionGet("PDR2_MIC_GROUP") ? Abc_MaxInt(0, Abc_MinInt(8, atoi(Gip_OptionGet("PDR2_MIC_GROUP")))) : 0;
+    p->nDropConfLimit = Gip_OptionGet("PDR2_MIC_CONFS") ? Abc_MaxInt(0, Abc_MinInt(10000, atoi(Gip_OptionGet("PDR2_MIC_CONFS")))) : 0;
+    p->nDownMode = Gip_OptionGet("PDR2_DOWN_TRIES") ? Abc_MaxInt(0, Abc_MinInt(3, atoi(Gip_OptionGet("PDR2_DOWN_TRIES")))) : 0;
     p->nMicGap = Gip_OptionGet("PDR2_MIC_GAP") ? Abc_MaxInt(0, atoi(Gip_OptionGet("PDR2_MIC_GAP"))) : 0;
     p->nGenTimeMode = Gip_OptionGet("PDR2_GEN_TIME") ? Abc_MaxInt(0, Abc_MinInt(2, atoi(Gip_OptionGet("PDR2_GEN_TIME")))) : 0;
     p->nHintTime = Gip_OptionGet("PDR2_BMC_HINT") ? Abc_MaxInt(0,Abc_MinInt(60,atoi(Gip_OptionGet("PDR2_BMC_HINT")))) : 0;
@@ -107,12 +144,15 @@ Pdr2_Man_t * Pdr2_ManStart( Aig_Man_t * pAig, char * pInit, Pdr2_Par_t * pPars )
         p->vSharedSeeds = Vec_IntAlloc( 1000 );
     }
     p->pLoVar    = ABC_ALLOC( int, p->nRegs );
-    p->pLiVar    = ABC_ALLOC( int, p->nRegs );
+    p->pLiLit    = ABC_ALLOC( int, p->nRegs );
     p->pPiVar    = ABC_ALLOC( int, Abc_MaxInt(p->nPis, 1) );
     Saig_ManForEachLo( pAig, pObj, i )
         p->pLoVar[i] = Gip_CtxObjVar( p->pCtx, pObj );
-    Saig_ManForEachLi( pAig, pObj, i )
-        p->pLiVar[i] = Gip_CtxObjVar( p->pCtx, pObj );
+    {
+        int fDirect = Gip_OptionGet("PDR2_LI_DRIVER") && atoi(Gip_OptionGet("PDR2_LI_DRIVER"));
+        Saig_ManForEachLi( pAig, pObj, i )
+            p->pLiLit[i] = Pdr2_ManInputLit(p->pCtx, pObj, fDirect);
+    }
     Saig_ManForEachPi( pAig, pObj, i )
         p->pPiVar[i] = Gip_CtxObjVar( p->pCtx, pObj );
     p->nLiftMemoMode = Gip_OptionGet("PDR2_LIFTMEMO") ? Abc_MaxInt(0, Abc_MinInt(3, atoi(Gip_OptionGet("PDR2_LIFTMEMO")))) : 0;
@@ -152,9 +192,26 @@ Pdr2_Man_t * Pdr2_ManStart( Aig_Man_t * pAig, char * pInit, Pdr2_Par_t * pPars )
     }
     p->VarBad    = Gip_CtxObjVar( p->pCtx, Aig_ManCo(pAig, 0) );
     p->nBadRootMode = Gip_OptionGet("PDR2_BADROOT") ? Abc_MaxInt(0, Abc_MinInt(2, atoi(Gip_OptionGet("PDR2_BADROOT")))) : 0;
+    p->GuardLit = p->GuardLo = p->GuardLi = -1;
+    if ( Gip_OptionGet("PDR2_TRACE_GUARD") && !pPars->fUseAbs &&
+         !pPars->nInitLiReg && !pPars->nLiftSim &&
+         !Aig_ManBufNum(pAig) && !Aig_ManExorNum(pAig) )
+    {
+        int Mode = atoi(Gip_OptionGet("PDR2_TRACE_GUARD"));
+        int Guard = Mode > 0 ? Pdr2_ManFindGuard(pAig, Mode >= 2) : -1;
+        if ( Guard >= 0 )
+        {
+            p->GuardLit = Guard;
+            p->GuardLo = Pdr2_LitLo(p, Guard);
+            if ( Mode >= 2 ) p->GuardLi = Pdr2_LitLi(p, Guard);
+            if ( pPars->fVerbose && !pPars->fSilent )
+                Abc_Print(1, "Bad-trace guard: flop %d = %d, next-state restriction %d.\n",
+                            Abc_Lit2Var(Guard), !Abc_LitIsCompl(Guard), p->GuardLi >= 0);
+        }
+    }
     p->vSolvers  = Vec_PtrAlloc( 100 );
     p->pInf      = Pdr2_ManNewSolver( p, 0 );
-    p->pLift     = Pdr2_ManNewSolver( p, 0 );
+    p->pLift     = Pdr2_ManNewSolver( p, PDR2_SOLVER_UNRESTRICTED );
     if ( Gip_OptionGet("PDR2_RECYCLE_LIFT") && Gip_OptionGet("PDR2_RECYCLE") )
         p->pLift->nRecycleMode = atoi(Gip_OptionGet("PDR2_RECYCLE")) & 3;
     // frames
@@ -291,13 +348,14 @@ void Pdr2_ManStop( Pdr2_Man_t * p )
     Vec_IntFreeP( &p->vSharedSeeds );
     Gip_SolverFree( p->pInf );
     Gip_SolverFree( p->pLift );
+    Pdr2_ManStopBadSat( p );
     if ( p->pInitSat ) Gip_SolverFree(p->pInitSat);
     if ( p->pBadRoot ) Gip_SolverFree(p->pBadRoot);
     Vec_IntFreeP(&p->vInitAssump);
     Gip_CtxFree( p->pCtx );
     Cnf_ManStop( p->pCnfMan );
     ABC_FREE( p->pLoVar );
-    ABC_FREE( p->pLiVar );
+    ABC_FREE( p->pLiLit );
     ABC_FREE( p->pPiVar );
     ABC_FREE( p->pVar2Ci );
     ABC_FREE( p->pCnfJustMark );
@@ -311,6 +369,7 @@ void Pdr2_ManStop( Pdr2_Man_t * p )
     ABC_FREE( p->pMicCexBits );
     Vec_IntFreeP( &p->vLiftMemoKey );
     Vec_IntFreeP( &p->vLiftMemoCore );
+    ABC_FREE( p->pDropHistory );
     ABC_FREE( p->pAct );
     ABC_FREE( p->pInit );
     ABC_FREE( p->pSimInitBound );
@@ -1249,6 +1308,38 @@ Abc_Cex_t * Pdr2_ManDeriveCex( Pdr2_Man_t * p )
     return pCex;
 }
 
+static void Pdr2_ManCollectCube( Pdr2_Man_t * p, Vec_Ptr_t * vInv, Pdr2_Cube_t * pCube )
+{
+    int i;
+    // A guarded proof establishes g => I.  Its excluded cubes are g & cube.
+    if ( p->GuardLit >= 0 )
+    {
+        for ( i = 0; i < pCube->nLits; i++ )
+            if ( Abc_Lit2Var(pCube->Lits[i]) == Abc_Lit2Var(p->GuardLit) )
+                break;
+        if ( i == pCube->nLits )
+        {
+            Pdr2_CubeToVec( pCube, p->vLits4 );
+            Vec_IntPush( p->vLits4, p->GuardLit );
+            Vec_PtrPush( vInv, Pdr2_CubeAllocVec(p->vLits4) );
+            return;
+        }
+        if ( pCube->Lits[i] != p->GuardLit )
+            return;
+    }
+    Pdr2_CubeRef( pCube );
+    Vec_PtrPush( vInv, pCube );
+}
+
+static void Pdr2_ManFreeInvariant( Vec_Ptr_t * vInv )
+{
+    Pdr2_Cube_t * pCube;
+    int i;
+    Vec_PtrForEachEntry( Pdr2_Cube_t *, vInv, pCube, i )
+        Pdr2_CubeDeref( pCube );
+    Vec_PtrFree( vInv );
+}
+
 /**Function*************************************************************
 
   Synopsis    [Collects the inductive invariant as a list of cubes.]
@@ -1279,9 +1370,9 @@ static Vec_Ptr_t * Pdr2_ManCollectInvariant( Pdr2_Man_t * p )
     }
     for ( k = kStart; k < Pdr2_ManFrameNum(p); k++ )
         Vec_PtrForEachEntry( Pdr2_Lem_t *, Pdr2_ManFrame(p, k), pLem, i )
-            Vec_PtrPush( vInv, pLem->pCube );
+            Pdr2_ManCollectCube( p, vInv, pLem->pCube );
     Vec_PtrForEachEntry( Pdr2_Lem_t *, p->vInf, pLem, i )
-        Vec_PtrPush( vInv, pLem->pCube );
+        Pdr2_ManCollectCube( p, vInv, pLem->pCube );
     return vInv;
 }
 
@@ -1329,6 +1420,8 @@ static int Pdr2_ManVerifyBatch( Pdr2_Man_t * p, Vec_Ptr_t * vInv, int Backend )
         Ioa_WriteAiger(pMiter,(char *)Gip_OptionGet("PDR2_VERIFY_DUMP"),0,0);
     if ( pFail == Aig_ManConst0(pMiter) ) Ret = 1;
     else if ( pFail == Aig_ManConst1(pMiter) ) Ret = 0;
+    else if ( Backend == 3 )
+        Ret = Pdr2_ManMappedInvariant(p, pMiter);
     else if ( Backend == 1 )
     {
         Cnf_Man_t * pCnfMan = Cnf_ManStart();
@@ -1396,11 +1489,11 @@ int Pdr2_ManVerifyInvariant( Pdr2_Man_t * p )
         BatchResult = Pdr2_ManVerifyBatch(p,vInv,BatchMode);
         if ( !Gip_OptionGet("PDR2_VERIFY_BATCH_CHECK") )
         {
-            Vec_PtrFree(vInv);
+            Pdr2_ManFreeInvariant( vInv );
             return BatchResult;
         }
     }
-    pSat = Pdr2_ManNewSolver( p, 0 );
+    pSat = Pdr2_ManNewSolver( p, PDR2_SOLVER_UNRESTRICTED );
     Pdr2_Cube_t * pCube;
     int i, Lit, RetValue, fOk = 1;
     int VerifyPolicy = Gip_OptionGet("PDR2_VERIFY_POLICY") ? atoi(Gip_OptionGet("PDR2_VERIFY_POLICY")) : 0;
@@ -1476,7 +1569,7 @@ int Pdr2_ManVerifyInvariant( Pdr2_Man_t * p )
         ABC_PRT( "Time", Abc_Clock() - clk );
     }
     Gip_SolverFree( pSat );
-    Vec_PtrFree( vInv );
+    Pdr2_ManFreeInvariant( vInv );
     p->nInputScope = InputScopeSaved;
     if ( BatchResult >= 0 && fOk >= 0 && BatchResult != fOk )
     {
@@ -1599,7 +1692,7 @@ int Pdr2_ManDumpInvariant( Pdr2_Man_t * p, int fTransformed )
         Abc_Print( 1, "Dumped the inductive invariant with %d cubes into file \"%s\" (over the flops of the design in \"%s\").\n", Vec_PtrSize(vInv), pFileName, pDesign );
     ABC_FREE( pBuffer );
     ABC_FREE( pDesign );
-    Vec_PtrFree( vInv );
+    Pdr2_ManFreeInvariant( vInv );
     return fOk;
 }
 
@@ -1672,6 +1765,19 @@ void Pdr2_ManPrintStats( Pdr2_Man_t * p )
     if ( p->pPars->nMicFailLimit )
         Abc_Print( 1, "MIC stopped after consecutive failures: %d calls (limit %d).\n",
             (int)p->nMicEarlyStop, p->pPars->nMicFailLimit );
+    if ( p->nStrengthenOnDemand )
+        Abc_Print( 1, "On-demand strengthening: %.0f probes, %.0f temporary clauses avoided.\n",
+                   (double)p->nStrengthenTrials, (double)p->nStrengthenAvoided );
+    if ( p->nDropHistory )
+        Abc_Print( 1, "Literal-drop history skipped %.0f attempts.\n", (double)p->nDropHistorySkipped );
+    if ( p->nResolveLimit )
+        Abc_Print(1, "Frame resolution: %.0f cubes strengthened, %.0f literals removed.\n", (double)p->nResolveCubes, (double)p->nResolveLits);
+    if ( p->nJoinPush )
+        Abc_Print( 1, "Predecessor joins: %.0f cubes, %.0f future proofs, %.0f local proofs, %.0f queries.\n",
+                   (double)p->nJoinTries, (double)p->nJoinProofs, (double)p->nJoinLocal, (double)p->nJoinQueries );
+    if ( p->nMicGroup )
+        Abc_Print( 1, "Grouped generalization: %.0f SAT queries, %.0f literals removed, %.0f assumption levels retained.\n",
+            (double)p->nGroupQueries, (double)p->nGroupLits, (double)p->nGroupLevels );
     if ( p->nMicGap || p->nGenTimeMode )
         Abc_Print(1, "Generalization placement: %.0f lower-frame MICs skipped, %.0f blocking-core frame jumps, %.0f invariant cores.\n",
             (double)p->nMicGapSkipped, (double)p->nGenTimeJumps, (double)p->nGenTimeInf);
@@ -1756,6 +1862,10 @@ void Pdr2_ManPrintStats( Pdr2_Man_t * p )
         (int)p->nMicDropOk, (int)p->nMicDropFail, (p->nMicDropOk + p->nMicDropFail) ? 100.0 * p->nMicDropOk / (p->nMicDropOk + p->nMicDropFail) : 0.0,
         (int)p->nDowns, (int)p->nCtgsBlocked );
     Abc_Print( 1, "Plain downs: %d queries, %d proved after joins. Queries canceled by the slice overrun limit: %d.\n", (int)p->nDownQueries, (int)p->nDownJoined, p->nQueryCuts );
+    if ( p->nDropConfLimit )
+        Abc_Print( 1, "Literal-drop conflict allowance %d exhausted on %.0f trials.\n", p->nDropConfLimit, (double)p->nDropConfCuts );
+    if ( p->nDownMode )
+        Abc_Print(1, "Down joins: %.0f retry queries, %.0f searches stopped after the first counterexample.\n", (double)p->nDownRetries, (double)p->nDownStopped);
     if ( p->pPars->fUseAbs )
         Abc_Print( 1, "Abstraction: %d of %d flops. Spurious counterexamples = %d (by simulation %d). Refined flops = %d (fixups = %d, stale chains = %d). Cleaned flops = %d. Checks cut by the deadline = %d.\n",
             p->nAbsFlops, p->nRegs, p->nAbsCexes, p->nAbsXsimRefs, p->nAbsRefined, p->nAbsFixups, p->nAbsStale, p->nAbsCleaned, p->nAbsCut );

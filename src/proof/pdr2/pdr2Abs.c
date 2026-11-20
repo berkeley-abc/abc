@@ -95,6 +95,7 @@ void Pdr2_ManAbsCleanup( Pdr2_Man_t * p )
 {
     Pdr2_Lem_t * pLem;
     int k, i, j, nRemoved = 0;
+    const char * pScratch;
     if ( !p->fAbsActive || !p->pPars->fAbsCleanup )
         return;
     memset( p->pAbsUsed, 0, sizeof(char) * p->nRegs );
@@ -120,13 +121,11 @@ void Pdr2_ManAbsCleanup( Pdr2_Man_t * p )
         // weakening the partition; all certified frame lemmas remain valid.
         Pdr2_QueueClear(p);
     }
-    // Cleanup marks lemma support. Refinement reuses the same array for the
-    // flops selected in its current trial and requires it to start empty.
-    // A retained mark can suppress a required trial, then make X-simulation
-    // silently add that flop while reporting zero refinements. Its fallback
-    // would replay the old trace against this changed abstraction.
-    if ( Gip_OptionGet("PDR2_ABS_SCRATCH") && atoi(Gip_OptionGet("PDR2_ABS_SCRATCH")) )
-        memset( p->pAbsUsed, 0, sizeof(char) * p->nRegs );
+    // Refinement uses this same array for its own selections. A stale
+    // support mark can suppress a refinement and invalidate its trace.
+    pScratch = Gip_OptionGet("PDR2_ABS_SCRATCH");
+    if ( !pScratch || atoi(pScratch) )
+        memset(p->pAbsUsed, 0, sizeof(char) * p->nRegs);
 }
 
 /**Function*************************************************************

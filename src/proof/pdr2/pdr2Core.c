@@ -27,6 +27,8 @@
 #include "opt/dar/dar.h"
 #include "sat/bmc/bmc.h"
 #include "sat/bsat/satSolver.h"
+#include "sat/cadical/ccadical.h"
+#include "sat/kissat/kissat.h"
 #include "aig/ioa/ioa.h"
 #include "aig/gia/giaAig.h"
 #ifdef ABC_USE_CUDD
@@ -67,6 +69,7 @@ static void Pdr2_ManSimSeedFrame( Pdr2_Man_t * p, int Frame );
 void Pdr2_ManSetDefaultParams( Pdr2_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(Pdr2_Par_t) );
+    pPars->timePolicyStop = -1;
     pPars->nFrameMax     =       0;  // limit on frame count
     pPars->nTimeOut      =       0;  // timeout in seconds
     pPars->nRandomSeed   =       0;  // random seed
@@ -709,6 +712,9 @@ static int Pdr2_ManDown( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube, char * p
     Vec_Int_t * vOrd = Vec_IntAlloc( 100 );
     Vec_Int_t * vTmp = Vec_IntAlloc( 100 );
     int i, k, Lit, Var, Value, RetValue, fFail, nTries = 0, Result = 0;
+    int fOneQuery = p->nDownMode == 1 || p->nDownMode == 2 ||
+        (p->nDownMode == 3 && p->nDownRetries >= 512 &&
+         64*(p->nDownJoined+1) < p->nDownRetries && (p->nDowns & 31));
     p->nDowns++;
     while ( 1 )
     {
@@ -731,13 +737,36 @@ static int Pdr2_ManDown( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube, char * p
         Pdr2_ManSortByAct( p, vOrd, 0 );
         nTries++;
         p->nDownQueries++;
-        RetValue = Pdr2_ManSolveRelative( p, pSat, vOrd, 1, vCst );
+        if ( p->nDownMode && nTries > 1 ) p->nDownRetries++;
+        RetValue = Pdr2_ManTryDrop( p, pSat, vOrd, 1, vCst );
         if ( RetValue == -1 )
             break;
         if ( RetValue == 1 )
         {
             if ( Pdr2_ManInductiveCore( p, pSat, vOut ) )
                 Result = 1, p->nDownJoined += nTries > 1;
+            break;
+        }
+        if ( fOneQuery && p->nDownMode != 1 )
+        {
+            // Save the transition as a reason to reject future drops. Only
+            // an UNSAT induction query above can certify a stronger lemma.
+            if ( p->pPars->nDownCacheMode != 2 )
+            {
+                Vec_IntClear(vOrd);
+                Vec_IntClear(vTmp);
+                Vec_IntForEachEntry(vFull, Lit, i)
+                {
+                    Var = Abc_Lit2Var(Lit);
+                    Value = Pdr2_SolverValue(pSat, p->pLoVar[Var]);
+                    if ( Value != GIP_NONE ) Vec_IntPush(vOrd, Abc_Var2Lit(Var, Value == GIP_FALSE));
+                    Value = Gip_SolverLitValue(Pdr2_SolverActual(pSat), p->pLiLit[Var]);
+                    if ( Value != GIP_NONE ) Vec_IntPush(vTmp, Abc_Var2Lit(Var, Value == GIP_FALSE));
+                }
+                Vec_PtrPush(vCexS, Pdr2_CubeAllocVec(vOrd));
+                Vec_PtrPush(vCexT, Pdr2_CubeAllocVec(vTmp));
+            }
+            p->nDownStopped++;
             break;
         }
         // keep the literals of the model that are needed
@@ -782,12 +811,13 @@ static int Pdr2_ManDown( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube, char * p
         Vec_IntClear( vTmp );
         Vec_IntForEachEntry( vFull, Lit, i )
         {
-            Value = Pdr2_SolverValue( pSat, p->pLiVar[Abc_Lit2Var(Lit)] );
+            Value = Gip_SolverLitValue( Pdr2_SolverActual(pSat), p->pLiLit[Abc_Lit2Var(Lit)] );
             if ( Value != GIP_NONE )
                 Vec_IntPush( vTmp, Abc_Var2Lit(Abc_Lit2Var(Lit), Value == GIP_FALSE) );
         }
         if ( p->pPars->nDownCacheMode != 2 )
             Vec_PtrPush( vCexT, Pdr2_CubeAllocVec( vTmp ) );
+        if ( fOneQuery ) { p->nDownStopped++; break; }
         if ( fFail )
             break;
     }
@@ -832,7 +862,7 @@ static int Pdr2_ManTrivialBlockRec( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vLem
         Vec_IntClear( vOrd );
         Vec_IntAppend( vOrd, vLemma );
         Pdr2_ManSortByAct( p, vOrd, 0 );
-        RetValue = Pdr2_ManSolveRelative( p, pSat, vOrd, 1, vCst );
+        RetValue = Pdr2_ManTryDrop( p, pSat, vOrd, 1, vCst );
         if ( RetValue == 1 )
         {
             if ( !Pdr2_ManInductiveCore( p, pSat, vMic ) )
@@ -904,7 +934,7 @@ static int Pdr2_ManCtgDown( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube, char 
         Vec_IntClear( vOrd );
         Vec_IntAppend( vOrd, vCur );
         Pdr2_ManSortByAct( p, vOrd, 0 );
-        RetValue = Pdr2_ManSolveRelative( p, pSat, vOrd, 1, NULL );
+        RetValue = Pdr2_ManTryDrop( p, pSat, vOrd, 1, NULL );
         if ( RetValue == -1 )
             break;
         if ( RetValue == 1 )
@@ -998,6 +1028,10 @@ static void Pdr2_ManMic( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube, Vec_Int_
     Pdr2_Cube_t * pParent, * pTemp;
     abctime clk = Abc_Clock();
     int i, k, Lit, iNew, nFailed = 0, fFixedDomain = Par.nLevel == 0 || !p->pPars->fCtgLocal;
+    int Context = (iFrame > 2) + 2 * (Vec_IntSize(vCube) > 12);
+    unsigned char * pHistory = p->pDropHistory ? p->pDropHistory + (size_t)4 * Context * p->nRegs : NULL;
+    int fUseHistory = p->nDropHistory != 4 || (p->nMics >= 64 && p->nMicLits >= 10 * p->nMics &&
+                       p->nMicDropFail > 6 * p->nMicDropOk);
     if ( p->fReachFilter && p->nReachStride && Gip_OptionGet("PDR2_REACH_CHECK") )
         assert( !Pdr2_ManReachContains(p, iFrame, vCube) );
     p->nMicNest++;
@@ -1036,7 +1070,19 @@ static void Pdr2_ManMic( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube, Vec_Int_
     while ( i < Vec_IntSize(vCube) )
     {
         int fOk;
+        unsigned char * pCounts;
         Lit = Vec_IntEntry( vCube, i );
+        pCounts = pHistory ? pHistory + 2 * Lit : NULL;
+        if ( fUseHistory && pCounts && pCounts[0] >= (p->nDropHistory == 1 ? 8 : 4) &&
+             (p->nDropHistory == 1 ? 16 : p->nDropHistory == 2 ? 8 : 4) * pCounts[1] < pCounts[0] &&
+             ((p->nMics + 13u * (unsigned)Lit) & 15) )
+        {
+            // Recheck occasionally. A skipped literal is still eligible to
+            // disappear in the proof core of a different, successful drop.
+            p->nDropHistorySkipped++;
+            i++;
+            continue;
+        }
         if ( pKeep[Lit] )
         {
             i++;
@@ -1054,6 +1100,12 @@ static void Pdr2_ManMic( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube, Vec_Int_
             fOk = Pdr2_ManDown( p, iFrame, vRemoved, pKeep, vFull, vCst, vCexS, vCexT, vNew );
         else
             fOk = Pdr2_ManCtgDown( p, iFrame, vRemoved, pKeep, vFull, Par, vNew );
+        if ( pCounts && !p->fQueryCut )
+        {
+            if ( pCounts[0] == 32 ) { pCounts[0] >>= 1; pCounts[1] >>= 1; }
+            pCounts[0]++;
+            pCounts[1] += fOk;
+        }
         if ( fOk )
         {
             nFailed = 0;
@@ -1172,7 +1224,7 @@ static void Pdr2_ManMicTreb( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube )
                 if ( !Pdr2_LitsAreInit(p, vTry) )
                 {
                     Pdr2_ManSortByAct( p, vTry, 0 );
-                    RetValue = Pdr2_ManSolveRelative( p, pSat, vTry, 1, NULL );
+                    RetValue = Pdr2_ManTryDrop( p, pSat, vTry, 1, NULL );
                     if ( RetValue == 1 && Pdr2_ManInductiveCore( p, pSat, vCore ) )
                     {
                         nFailed = 0;
@@ -1242,7 +1294,7 @@ static int Pdr2_ManPredictParent( Pdr2_Man_t * p, int Frame, Vec_Int_t * vCube )
         if ( Pdr2_LitsAreInit(p, vTry) ) break;
         Pdr2_ManSortByAct( p, vTry, 0 );
         p->nPredictQueries++;
-        Ret = Pdr2_ManSolveRelative( p, pSat, vTry, 1, NULL );
+        Ret = Pdr2_ManTryDrop( p, pSat, vTry, 1, NULL );
         if ( Ret == -1 ) break;
         if ( Ret == 1 )
         {
@@ -1275,13 +1327,356 @@ static int Pdr2_ManPredictParent( Pdr2_Man_t * p, int Frame, Vec_Int_t * vCube )
 
 /**Function*************************************************************
 
-  Synopsis    [Generalizes a blocked obligation into a lemma.]
+  Synopsis    [Generalizes an inductive cube by restoring literals challenged by a model.]
 
-  Description [Returns 1 if an inductive invariant was found.]
+  Description [Starts with its most active literals. A transition into this
+  tentative cube tells which omitted next-state literals can rule it out.
+  Restore one such literal and check again. Only a proved core that also
+  excludes the initial states replaces the original cube.]
+
+  SideEffects []
+
+***********************************************************************/
+static void Pdr2_ManMicGroup( Pdr2_Man_t * p, int Frame, Vec_Int_t * vCube )
+{
+    Gip_Solver_t * pSat = Pdr2_ManSolver(p, Frame - 1);
+    Vec_Int_t * vOrder = Vec_IntDup(vCube), * vTry = Vec_IntAlloc(Vec_IntSize(vCube));
+    Vec_Int_t * vCore = Vec_IntAlloc(Vec_IntSize(vCube));
+    int n = Vec_IntSize(vCube), Head, i, Iter, Lit, Best, Ret;
+    abctime Start = Abc_Clock();
+    p->nMics++;
+    p->nMicLits += n;
+    Pdr2_ManSortByAct(p, vOrder, 0);
+    Head = p->nMicGroup == 2 ? 1 : Abc_MaxInt(1, n / 2);
+    for ( i = 0; i < Head; ++i )
+        Vec_IntPush(vTry, Vec_IntEntry(vOrder, i));
+    if ( Pdr2_LitsAreInit(p, vTry) )
+    {
+        for ( i = Head; i < n; ++i )
+            if ( Pdr2_ManLitIsNonInit(p, Vec_IntEntry(vOrder, i)) ) break;
+        if ( i < n )
+        {
+            Lit = Vec_IntEntry(vOrder, i);
+            Vec_IntWriteEntry(vOrder, i, Vec_IntEntry(vOrder, Head));
+            Vec_IntWriteEntry(vOrder, Head++, Lit);
+            Vec_IntPush(vTry, Lit);
+        }
+    }
+    Pdr2_ManSetMicDomain(p, pSat, vCube);
+    for ( Iter = 0; Iter < (p->nMicGroup == 2 ? 12 : 6) && Head < n; ++Iter )
+    {
+        if ( Pdr2_LitsAreInit(p, vTry) ) break;
+        p->nGroupQueries++;
+        Ret = Pdr2_ManTryDrop(p, pSat, vTry, 1, NULL);
+        if ( Ret < 0 ) break;
+        if ( Ret == 1 )
+        {
+            if ( Pdr2_ManInductiveCore(p, pSat, vCore) )
+            {
+                p->nGroupLits += n - Vec_IntSize(vCore);
+                Vec_IntClear(vCube);
+                Vec_IntAppend(vCube, vCore);
+            }
+            break;
+        }
+        Best = -1;
+        for ( i = Head; i < n; ++i )
+        {
+            Lit = Vec_IntEntry(vOrder, i);
+            Ret = Gip_SolverLitValue(Pdr2_SolverActual(pSat), Pdr2_LitLi(p, Lit));
+            if ( Ret == GIP_FALSE ) { Best = i; break; }
+            if ( Ret != GIP_TRUE && Best < 0 ) Best = i;
+        }
+        if ( Best < 0 ) break;
+        Lit = Vec_IntEntry(vOrder, Best);
+        Vec_IntWriteEntry(vOrder, Best, Vec_IntEntry(vOrder, Head));
+        Vec_IntWriteEntry(vOrder, Head++, Lit);
+        Vec_IntPush(vTry, Lit);
+    }
+    Pdr2_ManUnsetMicDomain(p, pSat);
+    Pdr2_ManActBump(p, vCube);
+    Vec_IntFree(vOrder);
+    Vec_IntFree(vTry);
+    Vec_IntFree(vCore);
+    p->timeMic += Abc_Clock() - Start;
+}
+
+typedef struct Pdr2_MicHits_t_
+{
+    unsigned Rows[25], Best;
+    int Sizes[25], nRows, nBest, nVisits;
+} Pdr2_MicHits_t;
+
+/**Function*************************************************************
+
+  Synopsis    [Finds a short set of literals that hits the observed countermodels.]
+
+***********************************************************************/
+static void Pdr2_MicPickHits( Pdr2_MicHits_t * p, unsigned Selected, int Size )
+{
+    int i, Min = -1;
+    unsigned Bits, Bit;
+    if ( Size >= p->nBest || ++p->nVisits > 2048 ) return;
+    for ( i = 0; i < p->nRows; i++ )
+        if ( !(p->Rows[i] & Selected) && (Min < 0 || p->Sizes[i] < p->Sizes[Min]) ) Min = i;
+    if ( Min < 0 )
+    {
+        p->Best = Selected;
+        p->nBest = Size;
+        return;
+    }
+    for ( Bits = p->Rows[Min]; Bits && Size+1 < p->nBest && p->nVisits <= 2048; Bits &= Bits-1 )
+    {
+        Bit = Bits & (0u - Bits);
+        Pdr2_MicPickHits(p, Selected | Bit, Size+1);
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Uses successive transition models to propose a small inductive core.]
+
+  Description [Each row names literals that would exclude a previous target
+  assignment. A hit only selects the next SAT assumptions. The returned
+  reduction must exclude initial states and pass the full induction query.]
+
+***********************************************************************/
+static int Pdr2_ManMicHitModels( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCube,
+    Vec_Int_t * vSource, Vec_Int_t * vTry, Vec_Int_t * vCore )
+{
+    Pdr2_MicHits_t Hits = { {0}, 0, {0}, 1, 0, 0 };
+    int i, Lit, Ret, Trials, n = Vec_IntSize(vCube), Limit = p->nMicGroup == 7 ? 12 : 24;
+    unsigned All = (1u << n) - 1;
+    Vec_IntForEachEntry(vCube, Lit, i)
+        if ( Pdr2_ManLitIsNonInit(p, Lit) ) { Hits.Rows[0] |= 1u << i; Hits.Sizes[0]++; }
+    if ( !Hits.Rows[0] ) return 0;
+    for ( Trials = 0; Trials < Limit; )
+    {
+        Hits.Best = All; Hits.nBest = n; Hits.nVisits = 0;
+        Pdr2_MicPickHits(&Hits, 0, 0);
+        if ( Hits.Best == All ) break;
+        Vec_IntClear(vTry);
+        Vec_IntForEachEntry(vCube, Lit, i)
+            if ( Hits.Best & (1u << i) ) Vec_IntPush(vTry, Lit);
+        Trials++;
+        Ret = Pdr2_ManTryDrop(p, pSat, vTry, 0, vSource);
+        if ( Ret < 0 ) break;
+        if ( Ret == 1 )
+        {
+            if ( Pdr2_ManInductiveCore(p, pSat, vCore) )
+            {
+                Vec_IntClear(vCube); Vec_IntAppend(vCube, vCore);
+            }
+            break;
+        }
+        Vec_IntForEachEntry(vCube, Lit, i)
+            if ( !(Hits.Best & (1u << i)) &&
+                 Gip_SolverLitValue(Pdr2_SolverActual(pSat), Pdr2_LitLi(p, Lit)) != GIP_TRUE )
+            {
+                Hits.Rows[Hits.nRows] |= 1u << i;
+                Hits.Sizes[Hits.nRows]++;
+            }
+        if ( !Hits.Rows[Hits.nRows] ) break;
+        Hits.nRows++;
+    }
+    return Trials;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Drops groups of target literals with a fixed source clause.]
+
+  Description [All candidate cubes are subsets of the original cube. Their
+  blocking clauses imply the original blocking clause, so a proof with the
+  original source clause establishes relative induction for the reduced
+  cube. The SAT solver can retain assumption decisions and guarded learnt
+  clauses for this whole sequence.]
+
+***********************************************************************/
+static void Pdr2_ManMicBatch( Pdr2_Man_t * p, int Frame, Vec_Int_t * vCube )
+{
+    Gip_Solver_t * pSat = Pdr2_ManSolver(p, Frame-1);
+    Vec_Int_t * vSource = Vec_IntAlloc(Vec_IntSize(vCube)), * vTry = Vec_IntAlloc(Vec_IntSize(vCube));
+    Vec_Int_t * vCore = Vec_IntAlloc(Vec_IntSize(vCube));
+    int i, Lit, End, Begin, Width, Ret, fBatch, Trials = 0, Original = Vec_IntSize(vCube);
+    int Limit = p->nMicGroup == 4 ? 6 : 24;
+    abctime Start = Abc_Clock();
+    p->nMics++;
+    p->nMicLits += Original;
+    Pdr2_ManSortByAct(p, vCube, 0);
+    Vec_IntForEachEntry(vCube, Lit, i) Vec_IntPush(vSource, Abc_LitNot(Lit));
+    Pdr2_ManSetMicDomain(p, pSat, vCube);
+    fBatch = p->nMicGroup != 6 && !pSat->pShared && !pSat->pLoaded && pSat->fTempDomain;
+    if ( fBatch )
+        Gip_SolverStartBatch( pSat, Original );
+    End = Original;
+    Width = Abc_MaxInt(1, Original/2);
+    if ( p->nMicGroup >= 7 && Original <= 20 && !p->pInitSat )
+    {
+        Trials = Pdr2_ManMicHitModels(p, pSat, vCube, vSource, vTry, vCore);
+        End = 0;
+    }
+    while ( End > 0 && Vec_IntSize(vCube) > 1 && Trials < Limit )
+    {
+        Begin = Abc_MaxInt(0, End-Width);
+        Vec_IntClear(vTry);
+        Vec_IntForEachEntry(vCube, Lit, i)
+            if ( i < Begin || i >= End ) Vec_IntPush(vTry, Lit);
+        Ret = 0;
+        if ( Vec_IntSize(vTry) && !Pdr2_LitsAreInit(p, vTry) )
+        {
+            Trials++;
+            Ret = Pdr2_ManTryDrop(p, pSat, vTry, 0, vSource);
+            if ( Ret < 0 ) break;
+            if ( Ret == 1 && Pdr2_ManInductiveCore(p, pSat, vCore) )
+            {
+                Vec_IntClear(vCube); Vec_IntAppend(vCube, vCore);
+                End = Abc_MinInt(Begin, Vec_IntSize(vCube));
+                Width = Abc_MaxInt(1, Abc_MinInt(2 * Width, Vec_IntSize(vCube)/2));
+                continue;
+            }
+        }
+        if ( End - Begin > 1 ) Width = (End - Begin) / 2;
+        else End--;
+    }
+    if ( fBatch )
+        p->nGroupLevels += Gip_SolverStopBatch( pSat );
+    Pdr2_ManUnsetMicDomain(p, pSat);
+    p->nGroupQueries += Trials;
+    p->nGroupLits += Original - Vec_IntSize(vCube);
+    Pdr2_ManActBump(p, vCube);
+    Vec_IntFree(vSource); Vec_IntFree(vTry); Vec_IntFree(vCore);
+    p->timeMic += Abc_Clock() - Start;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Generalizes toward an inductive clause in a weaker future frame.]
+
+  Description [A failed push exhibits a source state outside the cube. Join
+  that state with the cube by keeping their common literals. The new cube
+  excludes this very transition from its relative-induction query. Continue
+  only while the cube shrinks and still excludes initial states. Every
+  retained result has an explicit induction proof at its reported frame.]
+
+  SideEffects []
+
+***********************************************************************/
+static int Pdr2_ManJoinPush( Pdr2_Man_t * p, int Frame, Vec_Int_t * vCube, int * pFrame, int * pInf )
+{
+    int i, k, Lit, Ret, Best, Level = Pdr2_ManLevel(p);
+    int Future = p->nJoinPush == 2 && Frame < Level ? Frame : -1;
+    int Result = 0;
+    Vec_Int_t * vTry = Vec_IntDup(vCube), * vCore = Vec_IntAlloc(Vec_IntSize(vCube));
+    Gip_Solver_t * pSat = Future < 0 ? p->pInf : Pdr2_ManSolver(p, Future);
+    p->nJoinTries++;
+    Pdr2_ManSetMicDomain(p, pSat, vCube);
+    for ( k = 0; k < 5; ++k )
+    {
+        p->nJoinQueries++;
+        Ret = Pdr2_ManSolveRelative(p, pSat, vTry, 1, NULL);
+        if ( Ret < 0 ) break;
+        if ( Ret == 1 )
+        {
+            if ( Pdr2_ManInductiveCore(p, pSat, vCore) )
+            {
+                p->nJoinProofs++;
+                if ( Future < 0 ) *pInf = 1;
+                else *pFrame = Future + 1;
+                Result = 1;
+            }
+            break;
+        }
+        Best = 0;
+        Vec_IntForEachEntry(vTry, Lit, i)
+            if ( Pdr2_ManLitValue(p, pSat, Lit) == GIP_TRUE ) Vec_IntWriteEntry(vTry, Best++, Lit);
+        if ( Best == Vec_IntSize(vTry) ) break;
+        Vec_IntShrink(vTry, Best);
+        if ( !Best || Pdr2_LitsAreInit(p, vTry) ) break;
+    }
+    Pdr2_ManUnsetMicDomain(p, pSat);
+    if ( !Result && p->nJoinPush == 3 && !p->fQueryCut && Vec_IntSize(vTry) &&
+         Vec_IntSize(vTry) < Vec_IntSize(vCube) && !Pdr2_LitsAreInit(p, vTry) )
+    {
+        pSat = Pdr2_ManSolver(p, Frame - 1);
+        p->nJoinQueries++;
+        if ( Pdr2_ManSolveRelative(p, pSat, vTry, 1, NULL) == 1 && Pdr2_ManInductiveCore(p, pSat, vCore) )
+        {
+            p->nJoinLocal++;
+            Result = 1;
+        }
+    }
+    if ( Result )
+    {
+        Vec_IntClear(vCube);
+        Vec_IntAppend(vCube, vCore);
+    }
+    Vec_IntFree(vCore);
+    Vec_IntFree(vTry);
+    return Result;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Resolves a blocked cube against clauses valid at its frame.]
 
   SideEffects []
 
   SeeAlso     []
+
+***********************************************************************/
+static void Pdr2_ManResolveCube( Pdr2_Man_t * p, int Frame, Vec_Int_t * vCube )
+{
+    Pdr2_Cube_t Flipped = {0};
+    Pdr2_Lem_t * pLem;
+    Vec_Ptr_t * vOcc;
+    int i, j, Lit, End, nBefore = Vec_IntSize(vCube);
+    word Sign = 0;
+    Vec_IntForEachEntry( vCube, Lit, i )
+    {
+        p->pLitMark[Lit] = 1;
+        Sign |= Pdr2_LitSign(Lit);
+    }
+    // For pivot x in D & x, look for a stored cube contained in D & !x.
+    // If both halves are blocked through Frame, D is blocked there too.
+    // The signature is only a filter; every hit is checked literal by literal.
+    for ( i = nBefore - 1; i >= 0 && Vec_IntSize(vCube) > 1; --i )
+    {
+        Lit = Vec_IntEntry(vCube,i);
+        p->pLitMark[Lit] = 0; p->pLitMark[Lit^1] = 1;
+        Flipped.nLits = Vec_IntSize(vCube);
+        Flipped.Sign = Sign | Pdr2_LitSign(Lit^1);
+        vOcc = &p->pOcc[Lit^1];
+        End = Abc_MaxInt(0, Vec_PtrSize(vOcc) - p->nResolveLimit);
+        for ( j = Vec_PtrSize(vOcc) - 1; j >= End; --j )
+        {
+            pLem = (Pdr2_Lem_t *)Vec_PtrEntry(vOcc,j);
+            if ( pLem->fRemoved || (pLem->iFrame != -1 && (Frame == -1 || pLem->iFrame < Frame)) ) continue;
+            if ( Pdr2_CubeSubsumeMarked(p, pLem->pCube, &Flipped) ) break;
+        }
+        p->pLitMark[Lit^1] = 0;
+        if ( j < End ) p->pLitMark[Lit] = 1;
+        else Vec_IntDrop(vCube,i);
+    }
+    Vec_IntForEachEntry( vCube, Lit, i ) p->pLitMark[Lit] = 0;
+    if ( Vec_IntSize(vCube) < nBefore )
+    {
+        p->nResolveCubes++; p->nResolveLits += nBefore - Vec_IntSize(vCube);
+        if ( Gip_OptionGet("PDR2_RESOLVE_CHECK") )
+        {
+            int fInit = Pdr2_LitsAreInit(p, vCube);
+            assert(!fInit || p->fInitUnknown);
+            (void)fInit;
+            if ( !p->fInitUnknown ) Pdr2_ManTimeGenCheck(p, Frame == -1 ? -1 : Frame-1, vCube);
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Generalizes a blocked obligation into a lemma.]
+
+  Description [Returns 1 if an inductive invariant was found.]
 
 ***********************************************************************/
 static int Pdr2_ManGeneralize( Pdr2_Man_t * p, Pdr2_Obl_t * pObl )
@@ -1289,7 +1684,7 @@ static int Pdr2_ManGeneralize( Pdr2_Man_t * p, Pdr2_Obl_t * pObl )
     Gip_Solver_t * pSat = Pdr2_ManSolver( p, pObl->iFrame - 1 );
     Vec_Int_t * vMic = Vec_IntAlloc( 100 );
     Pdr2_MicPar_t Par;
-    int iFrame, RetValue, fPredicted = 0, GenFrame = pObl->iFrame, fCoreInf = 0;
+    int iFrame, RetValue, fPredicted = 0, fJoined = 0, GenFrame = pObl->iFrame, fCoreInf = 0;
     Par.nLimit = 0;
     Par.nMax   = 0;
     Par.nLevel = 0;
@@ -1356,8 +1751,12 @@ static int Pdr2_ManGeneralize( Pdr2_Man_t * p, Pdr2_Obl_t * pObl )
         if ( p->fTimeGenCheck && (fCoreInf || GenFrame > pObl->iFrame) )
             Pdr2_ManTimeGenCheck(p, fCoreInf ? -1 : GenFrame-1, vMic);
     }
-    if ( p->nPredictMode && !fCoreInf )
+    if ( p->nJoinPush && !fCoreInf && Vec_IntSize(vMic) >= 2 )
+        fJoined = Pdr2_ManJoinPush(p, GenFrame, vMic, &GenFrame, &fCoreInf);
+    if ( p->nPredictMode && !fCoreInf && !fJoined )
         fPredicted = Pdr2_ManPredictParent( p, GenFrame, vMic );
+    if ( p->nResolveLimit && Vec_IntSize(vMic) > 1 )
+        Pdr2_ManResolveCube(p, fCoreInf ? -1 : GenFrame, vMic);
     // Select generalization effort inside the same frame database. Every
     // accepted drop still needs an UNSAT induction query. The rate-based
     // selector samples CTG periodically so it can recover from a poor phase.
@@ -1370,7 +1769,7 @@ static int Pdr2_ManGeneralize( Pdr2_Man_t * p, Pdr2_Obl_t * pObl )
         Par.nLevel = 0;
         p->nCtgBypassed++;
     }
-    if ( fCoreInf || (fPredicted && p->nPredictMode == 2) ||
+    if ( fCoreInf || fJoined || (fPredicted && p->nPredictMode == 2) ||
          (Gip_OptionGet("PDR2_MIC_CORE_ONLY") && atoi(Gip_OptionGet("PDR2_MIC_CORE_ONLY"))) )
         Pdr2_ManActBump( p, vMic );
     else if ( p->nMicGap && Pdr2_ManLevel(p) - GenFrame >= p->nMicGap )
@@ -1380,6 +1779,10 @@ static int Pdr2_ManGeneralize( Pdr2_Man_t * p, Pdr2_Obl_t * pObl )
         p->nMicGapSkipped++;
         Pdr2_ManActBump(p, vMic);
     }
+    else if ( p->nMicGroup >= 4 && Vec_IntSize(vMic) >= 2 )
+        Pdr2_ManMicBatch(p, GenFrame, vMic);
+    else if ( p->nMicGroup && Vec_IntSize(vMic) >= (p->nMicGroup == 3 ? 12 : 2) )
+        Pdr2_ManMicGroup(p, GenFrame, vMic);
     else if ( p->pPars->nMicMode == 1 )
         Pdr2_ManMicTreb( p, GenFrame, vMic );
     else
@@ -1935,6 +2338,163 @@ static void Pdr2_ManPropagateToInf( Pdr2_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Maps a register literal to its current or next literal in the induction CNF.]
+
+  Description []
+
+***********************************************************************/
+static int Pdr2_JointCnfLit( Cnf_Dat_t * pCnf, int Lit, int fNext )
+{
+    int Reg = Abc_Lit2Var( Lit );
+    Aig_Obj_t * pObj = fNext ? Saig_ManLi(pCnf->pMan, Reg) : Saig_ManLo(pCnf->pMan, Reg);
+    return Abc_Var2Lit( pCnf->pVarNums[Aig_ObjId(pObj)], Abc_LitIsCompl(Lit) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Certifies mutually inductive groups among the current frame lemmas.]
+
+  Description [Each finite lemma initially excludes the reset states. A SAT
+  model removes every candidate it violates in the successor. UNSAT proves
+  all survivors together relative to the established invariant or to the
+  preceding frame. An unfinished check leaves the frames untouched.]
+
+***********************************************************************/
+static void Pdr2_ManJointInduction( Pdr2_Man_t * p, int Seconds, int Max, int fFinite )
+{
+    abctime Start = Abc_Clock(), Stop = Start + (abctime)Seconds * CLOCKS_PER_SEC;
+    int Level = Pdr2_ManLevel(p), i, j, k, Count, Live, Rounds = 0, Added = 0, fProved = 0;
+    Pdr2_Lem_t * pLem;
+    Vec_Ptr_t * vCandidates, * vKnown;
+    Vec_Int_t * vClause, * vAssume;
+    Cnf_Dat_t * pCnf = NULL;
+    sat_solver * pSat = NULL;
+    if ( Level < 2 || p->GuardLit >= 0 || p->pPars->fUseAbs || p->pInitSat ||
+         p->pPars->nInitLiReg || p->pPars->nPropLimit || Pdr2_ManPastDeadline(p) )
+        return;
+    if ( p->timeLimit && p->timeLimit < Stop ) Stop = p->timeLimit;
+    if ( p->timeSlice && p->timeSlice < Stop ) Stop = p->timeSlice;
+    vCandidates = Vec_PtrAlloc( Max );
+    vKnown = Vec_PtrDup( p->vInf );
+    if ( fFinite )
+    {
+        // F_{Level-1} holds in every source frame below Level. If H also
+        // holds at reset and F_{Level-1} & H & T => H', it can be added to
+        // every frame through Level in one step.
+        Vec_PtrAppend( vKnown, Pdr2_ManFrame(p, Level - 1) );
+        Vec_PtrAppend( vKnown, Pdr2_ManFrame(p, Level) );
+    }
+    vClause = Vec_IntAlloc( Max );
+    vAssume = Vec_IntAlloc( Max );
+    for ( k = Level - fFinite; k > 0 && Vec_PtrSize(vCandidates) < Max; k-- )
+        Vec_PtrForEachEntry( Pdr2_Lem_t *, Pdr2_ManFrame(p,k), pLem, i )
+        {
+            if ( !pLem->fRemoved && !Pdr2_CubeIsInit(p, pLem->pCube) )
+                Vec_PtrPush( vCandidates, pLem );
+            if ( Vec_PtrSize(vCandidates) == Max ) break;
+        }
+    Count = Live = Vec_PtrSize( vCandidates );
+    if ( Count < 2 || Abc_Clock() >= Stop ) goto finish;
+    // Keep all outputs free. The CNF has no frame clauses or property assumption.
+    pCnf = Cnf_DeriveSimple( p->pAig, Aig_ManCoNum(p->pAig) );
+    if ( !pCnf ) goto finish;
+    pSat = sat_solver_new();
+    sat_solver_setnvars( pSat, pCnf->nVars + 2 * Count );
+    sat_solver_set_runtime_limit( pSat, Stop );
+    sat_solver_set_runid( pSat, p->pPars->RunId );
+    sat_solver_set_stop_func( pSat, p->pPars->pFuncStop );
+    for ( i = 0; i < pCnf->nClauses; i++ )
+    {
+        if ( (i & 1023) == 0 && (Abc_Clock() >= Stop || Pdr2_ManPastDeadline(p)) ) goto finish;
+        if ( !sat_solver_addclause(pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]) ) goto finish;
+    }
+    for ( k = 0; k < 2; k++ )
+        Vec_PtrForEachEntry( Pdr2_Lem_t *, k ? vCandidates : vKnown, pLem, i )
+        {
+            Pdr2_Cube_t * pCube = pLem->pCube;
+            int Enable = Abc_Var2Lit( pCnf->nVars + i, 0 );
+            int Fail = Abc_Var2Lit( pCnf->nVars + Count + i, 0 );
+            if ( (i & 63) == 0 && (Abc_Clock() >= Stop || Pdr2_ManPastDeadline(p)) ) goto finish;
+            Vec_IntClear( vClause );
+            if ( k ) Vec_IntPush( vClause, Abc_LitNot(Enable) );
+            for ( j = 0; j < pCube->nLits; j++ )
+                Vec_IntPush( vClause, Abc_LitNot(Pdr2_JointCnfLit(pCnf, pCube->Lits[j], 0)) );
+            if ( !sat_solver_addclause(pSat, Vec_IntArray(vClause), Vec_IntLimit(vClause)) ) goto finish;
+            if ( !k ) continue;
+            for ( j = 0; j < pCube->nLits; j++ )
+            {
+                int Pair[2] = { Abc_LitNot(Fail), Pdr2_JointCnfLit(pCnf, pCube->Lits[j], 1) };
+                if ( !sat_solver_addclause(pSat, Pair, Pair + 2) ) goto finish;
+            }
+            Vec_IntPush( vAssume, Enable );
+        }
+    Vec_IntClear( vClause );
+    for ( i = 0; i < Count; i++ )
+        Vec_IntPush( vClause, Abc_Var2Lit(pCnf->nVars + Count + i, 0) );
+    fProved = !sat_solver_addclause( pSat, Vec_IntArray(vClause), Vec_IntLimit(vClause) );
+    while ( Live && !fProved && Abc_Clock() < Stop && !Pdr2_ManPastDeadline(p) )
+    {
+        int Prev = Live;
+        int Ret = sat_solver_solve( pSat, Vec_IntArray(vAssume), Vec_IntLimit(vAssume), 0, 0, 0, 0 );
+        Rounds++;
+        if ( Ret == l_False ) { fProved = 1; break; }
+        if ( Ret != l_True ) break;
+        Vec_PtrForEachEntry( Pdr2_Lem_t *, vCandidates, pLem, i )
+        {
+            Pdr2_Cube_t * pCube;
+            if ( Abc_LitIsCompl(Vec_IntEntry(vAssume,i)) ) continue;
+            pCube = pLem->pCube;
+            for ( j = 0; j < pCube->nLits; j++ )
+            {
+                int Lit = Pdr2_JointCnfLit( pCnf, pCube->Lits[j], 1 );
+                if ( sat_solver_var_value(pSat, Abc_Lit2Var(Lit)) == Abc_LitIsCompl(Lit) ) break;
+            }
+            if ( j < pCube->nLits ) continue;
+            // Release the current-state clause and forbid this failure selector.
+            Vec_IntWriteEntry( vAssume, i, Abc_Var2Lit(pCnf->nVars + Count + i, 1) );
+            Live--;
+        }
+        if ( Live == Prev ) break;
+    }
+    if ( fProved )
+        Vec_PtrForEachEntry( Pdr2_Lem_t *, vCandidates, pLem, i )
+        {
+            int Frame;
+            Pdr2_Lem_t * pInf;
+            if ( Abc_LitIsCompl(Vec_IntEntry(vAssume,i)) || pLem->fRemoved ) continue;
+            Frame = pLem->iFrame;
+            if ( fFinite )
+            {
+                if ( pLem->pObl && pLem->pObl->iFrame <= Level && Pdr2_QueueRemove(p, pLem->pObl) )
+                    Pdr2_ManRequeue( p, pLem->pObl, Level + 1 );
+                Pdr2_CubeToVec( pLem->pCube, vClause );
+                Pdr2_ManAddLemma( p, Level, vClause, 1, pLem->pObl, pLem );
+                p->iEarly = Abc_MinInt( p->iEarly, Frame );
+                Added += pLem->fRemoved;
+                continue;
+            }
+            if ( pLem->pObl ) Pdr2_QueueRemove( p, pLem->pObl );
+            Pdr2_ManAddInfLemma( p, Frame, pLem );
+            pInf = (Pdr2_Lem_t *)Vec_PtrEntryLast( p->vInf );
+            for ( k = Frame + 1; k <= Level; k++ )
+                Pdr2_ManSolverAddLemma( p, Pdr2_ManSolver(p,k), pInf->pCube, pInf->Id );
+            p->iEarly = Abc_MinInt( p->iEarly, Frame );
+            Added++;
+        }
+finish:
+    if ( p->pPars->fVerbose && !p->pPars->fSilent && Count >= 2 )
+        Abc_Print( 1, "Joint induction in frame %d promoted %d of %d lemmas in %d SAT calls to %s. Time = %.3f sec.\n",
+            Level, Added, Count, Rounds, fFinite ? "the frontier" : "infinity", (double)(Abc_Clock() - Start) / CLOCKS_PER_SEC );
+    if ( pSat ) sat_solver_delete( pSat );
+    if ( pCnf ) Cnf_DataFree( pCnf );
+    Vec_IntFree( vAssume );
+    Vec_IntFree( vClause );
+    Vec_PtrFree( vKnown );
+    Vec_PtrFree( vCandidates );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Checks induction at a depth whose base frames PDR has already discharged.]
 
   Description []
@@ -2447,6 +3007,22 @@ int Pdr2_ManSolveInt( Pdr2_Man_t * p )
     Pdr2_Obl_t * pObl;
     abctime clk, clkRun = Abc_Clock();
     int RetValue, Result = -1;
+    const char * pSoftSeconds = Gip_OptionGet("PDR2_FRAME_SOFT");
+    const char * pJointTime = Gip_OptionGet("PDR2_JOINT_INDUCTION");
+    const char * pJointMax = Gip_OptionGet("PDR2_JOINT_INDUCTION_MAX");
+    const char * pJointFrame = Gip_OptionGet("PDR2_JOINT_INDUCTION_FRAME");
+    int JointTime = pJointTime ? Abc_MinInt(10, atoi(pJointTime)) : 0;
+    int JointMax = pJointMax ? Abc_MaxInt(2, Abc_MinInt(4096, atoi(pJointMax))) : 512;
+    int fJointFrame = pJointFrame && atoi(pJointFrame) > 0;
+    abctime HardDeadline = p->timeLimit, SoftDeadline = 0;
+    ABC_INT64_T nPreviousObls = p->nObls;
+    int nQuietFrames = 0;
+    if ( pSoftSeconds && atoi(pSoftSeconds) > 0 && HardDeadline && !p->propSlice && !p->timeSlice )
+    {
+        SoftDeadline = p->timeStart + (abctime)atoi(pSoftSeconds) * CLOCKS_PER_SEC;
+        if ( SoftDeadline < HardDeadline ) p->timeLimit = SoftDeadline;
+        else SoftDeadline = 0;
+    }
     if ( !p->fStarted )
     {
         if ( p->pInitSat )
@@ -2457,6 +3033,7 @@ int Pdr2_ManSolveInt( Pdr2_Man_t * p )
         }
         Pdr2_ManSeedStaticUnits( p );
         Pdr2_ManSeedInvariants( p, 0 );
+        if ( Gip_OptionGet("PDR2_PROJECT") ) Pdr2_ManSeedProjection(p, atoi(Gip_OptionGet("PDR2_PROJECT")));
         if ( !p->pPars->nInitLiReg ) Pdr2_ManSimInitBounds( p );
         Pdr2_ManExtend( p );
         p->fStarted = 1;
@@ -2506,7 +3083,20 @@ int Pdr2_ManSolveInt( Pdr2_Man_t * p )
             Pdr2_OblDeref( pObl );
         }
         Pdr2_ManPrintProgress( p, 0 );
+        if ( JointTime > 0 && Pdr2_ManLevel(p) >= 2 &&
+             Pdr2_ManLevel(p) % (Pdr2_ManLevel(p) < 16 ? 2 : 4) == 0 )
+            Pdr2_ManJointInduction( p, JointTime, JointMax, fJointFrame );
         if ( Pdr2_ManKindStep(p) ) { Result = 1; goto finish; }
+        // Requeued obligations can be discharged by existing clauses.
+        // Count newly allocated obligations to distinguish them from new
+        // predecessor searches while nearby frames are converging.
+        if ( SoftDeadline )
+        {
+            nQuietFrames = p->nObls == nPreviousObls && p->nLemmas - p->nLemmasLevel <= 4 ? nQuietFrames + 1 : 0;
+            nPreviousObls = p->nObls;
+            p->timeLimit = nQuietFrames >= 2 ? HardDeadline : SoftDeadline;
+            if ( Pdr2_ManPastDeadline(p) ) goto finish;
+        }
         if ( p->pPars->fUseAbs && !p->fAbsActive && Abc_Clock() - p->timeStart >= (abctime)p->pPars->nAbsStart * CLOCKS_PER_SEC )
             Pdr2_ManAbsStart( p );
         if ( p->pPars->nFrameMax && Pdr2_ManLevel(p) >= p->pPars->nFrameMax )
@@ -2535,6 +3125,7 @@ int Pdr2_ManSolveInt( Pdr2_Man_t * p )
         if ( Pdr2_ManTimedOut(p) ) { Result = -1; goto finish; }
     }
 finish:
+    p->timeLimit = HardDeadline;
     if ( p->fInitUnknown ) Result = -1;
     if ( Result == -1 && p->timeGlobal && Abc_Clock() > p->timeGlobal && !p->pPars->fSilent )
         Abc_Print( 1, "Reached timeout (%d seconds) in frame %d.\n", p->pPars->nTimeOut, Pdr2_ManLevel(p) );
@@ -2944,9 +3535,8 @@ static int Pdr2_ManBmcStage( Aig_Man_t * pAigOrig, char * pInit, Pdr2_Par_t * pP
     abctime clk = Abc_Clock();
     int i, RetValue, nTime = pPars->nBmcTime, nNewPis = 0;
     *ppCex = NULL;
-    // bmc3's trivial-counterexample path requires at least one register.
-    // Preprocessing can remove them all; the ordinary PDR path handles that.
-    if ( Aig_ManRegNum(pAigOrig) == 0 )
+    // The BMC stage and its zero-reset conversion require a sequential AND/inverter graph.
+    if ( !Aig_ManRegNum(pAigOrig) || Aig_ManExorNum(pAigOrig) || Aig_ManBufNum(pAigOrig) )
         return -1;
     if ( timeGlobal )
     {
@@ -2962,20 +3552,48 @@ static int Pdr2_ManBmcStage( Aig_Man_t * pAigOrig, char * pInit, Pdr2_Par_t * pP
         pAig = Pdr2_ManDupZeroInit( pAigOrig, pInit, &nNewPis );
     Saig_ParBmcSetDefaultParams( &Pars );
     Pars.nTimeOut = nTime;
+    Pars.timeCnfStop = pPars->timePolicyStop < 0 ? timeGlobal : pPars->timePolicyStop;
     if ( Gip_OptionGet("PDR2_BMC_CONFS") )
         Pars.nConfLimit = Abc_MaxInt( 1, atoi(Gip_OptionGet("PDR2_BMC_CONFS")) );
     if ( Gip_OptionGet("PDR2_BMC_FRAMES") )
         Pars.nFramesMax = Abc_MaxInt( 1, atoi(Gip_OptionGet("PDR2_BMC_FRAMES")) );
+    if ( Gip_OptionGet("PDR2_BMC_HORIZON") )
+    {
+        Pars.nStart = Abc_MaxInt(Gip_OptionGet("PDR2_BMC_TERMS") ? 0 : 1, Abc_MinInt(256, atoi(Gip_OptionGet("PDR2_BMC_HORIZON"))));
+        Pars.nFramesMax = Pars.nStart + 1;
+        Pars.fUseCadical = 1;
+    }
     Pars.fSilent  = 1;
     Pars.RunId = pPars->RunId;
     Pars.pFuncStop = pPars->pFuncStop;
-    RetValue = Saig_ManBmcScalable( pAig, &Pars );
+    if ( Gip_OptionGet("PDR2_BMC_HORIZON") && Gip_OptionGet("PDR2_BMC_TERMS") )
+    {
+        Bmc_GiaPar_t GiaPars;
+        Gia_Man_t * pGia = Gia_ManFromAigSimple(pAig);
+        Bmc_GiaSetDefaultParams(&GiaPars);
+        GiaPars.nTimeOut = nTime; GiaPars.TimeToStop = timeGlobal;
+        if ( Gip_OptionGet("PDR2_BMC_CONFS") ) GiaPars.nConfLimit = Pars.nConfLimit;
+        GiaPars.nMemoryLimit = 2048;
+        GiaPars.fSilent = 1; GiaPars.fVerbose = pPars->fVerbose && !pPars->fSilent;
+        GiaPars.pFuncStop = Pdr2_ManSimTraceStop; GiaPars.pStopData = pPars;
+        RetValue = Bmc_GiaFindTarget(pGia, &GiaPars, Pars.nStart, atoi(Gip_OptionGet("PDR2_BMC_TERMS")),
+                                   Gip_OptionGet("PDR2_BMC_WINDOW") ? atoi(Gip_OptionGet("PDR2_BMC_WINDOW")) : 0,
+                                   Gip_OptionGet("PDR2_BMC_POLAR") && atoi(Gip_OptionGet("PDR2_BMC_POLAR")));
+        if ( RetValue == 0 )
+        {
+            Abc_CexFreeP(&pAig->pSeqModel);
+            pAig->pSeqModel = pGia->pCexSeq; pGia->pCexSeq = NULL;
+        }
+        Gia_ManStop(pGia);
+        Pars.iFrame = GiaPars.iFrame;
+    }
+    else RetValue = Saig_ManBmcScalable( pAig, &Pars );
     if ( RetValue == 0 && pAig->pSeqModel )
     {
         pCex = pAig->pSeqModel;
         pAig->pSeqModel = NULL;
     }
-    else if ( RetValue == 0 )
+    else if ( RetValue == 0 || Pars.nStart )
         RetValue = -1;
     if ( pAig != pAigOrig )
     {
@@ -3476,7 +4094,6 @@ done:
     ABC_FREE( pNodes ); ABC_FREE( pYtoX ); ABC_FREE( pYtoZ ); ABC_FREE( pXtoZ ); ABC_FREE( pLastPi );
     return Result;
 }
-static Aig_Man_t * Pdr2_ManDupCoi( Aig_Man_t * pAig, Vec_Int_t ** pvPis, Vec_Int_t ** pvRegs );
 
 /**Function*************************************************************
 
@@ -3653,7 +4270,7 @@ static int Pdr2_ManPartBdd( Aig_Man_t * pAig, char * pInit, Pdr2_Par_t * pPars, 
 // Project the sequential cone while preserving CI/register order. The maps
 // name each retained input/register in the source manager. No SAT reasoning
 // or initial-state assumption is involved in this structural reduction.
-static Aig_Man_t * Pdr2_ManDupCoi( Aig_Man_t * pAig, Vec_Int_t ** pvPis, Vec_Int_t ** pvRegs )
+Aig_Man_t * Pdr2_ManDupCoi( Aig_Man_t * pAig, Vec_Int_t ** pvPis, Vec_Int_t ** pvRegs )
 {
     Aig_Man_t * pNew;
     Aig_Obj_t * pObj;
@@ -3710,7 +4327,7 @@ static Aig_Man_t * Pdr2_ManDupCoi( Aig_Man_t * pAig, Vec_Int_t ** pvPis, Vec_Int
 ***********************************************************************/
 // Flatten a conjunction (fOr=0) or disjunction (fOr=1) without distributing
 // any other gates. Keeping literal polarities makes the decomposition exact.
-static int Pdr2_ManLogicLeaves( Aig_Man_t * pAig, Aig_Obj_t * pRoot, int fOr, int Limit, Vec_Ptr_t * vLeaves )
+int Pdr2_ManLogicLeaves( Aig_Man_t * pAig, Aig_Obj_t * pRoot, int fOr, int Limit, Vec_Ptr_t * vLeaves )
 {
     Vec_Ptr_t * vWork = Vec_PtrAlloc( 100 );
     char * pSeen = ABC_CALLOC( char, 2*Aig_ManObjNumMax(pAig) );
@@ -3740,6 +4357,57 @@ static int Pdr2_ManLogicLeaves( Aig_Man_t * pAig, Aig_Obj_t * pRoot, int fOr, in
     ABC_FREE( pSeen );
     return Complete;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Finds a state literal required on every prefix of a bad trace.]
+
+  Description [If bad implies g and g' implies g, then g holds throughout
+  every bad trace. To assume g' on the final cycle as well, require that
+  bad implies g'. Check these implications by exact conjunction containment.]
+
+  SideEffects []
+
+***********************************************************************/
+int Pdr2_ManFindGuard( Aig_Man_t * pAig, int fNext )
+{
+    Vec_Ptr_t * vBad = Vec_PtrAlloc(32), * vNext = Vec_PtrAlloc(32);
+    Aig_Obj_t * pLit, * pLeaf, * pNext;
+    unsigned char * pBadLeaves = NULL;
+    int Limit = Gip_OptionGet("PDR2_GUARD_TERMS") ?
+        Abc_MaxInt(1, Abc_MinInt(1000000, atoi(Gip_OptionGet("PDR2_GUARD_TERMS")))) : 2048;
+    int i, j, Trials = 0, Result = -1;
+    Aig_ManSetCioIds(pAig);
+    if ( !Pdr2_ManLogicLeaves(pAig, Aig_ObjChild0(Aig_ManCo(pAig, 0)), 0, Limit, vBad) ) goto done;
+    if ( fNext )
+    {
+        pBadLeaves = ABC_CALLOC( unsigned char, Aig_ManObjNumMax(pAig) );
+        Vec_PtrForEachEntry( Aig_Obj_t *, vBad, pLit, i )
+            pBadLeaves[Aig_ObjId(Aig_Regular(pLit))] |= 1 << Aig_IsComplement(pLit);
+    }
+    Vec_PtrForEachEntry(Aig_Obj_t *, vBad, pLit, i)
+    {
+        Aig_Obj_t * pLo = Aig_Regular(pLit);
+        if ( !Saig_ObjIsLo(pAig, pLo) ) continue;
+        if ( ++Trials > 32 ) break;
+        pNext = Aig_NotCond(Aig_ObjChild0(Saig_ObjLoToLi(pAig, pLo)), Aig_IsComplement(pLit));
+        if ( !Pdr2_ManLogicLeaves(pAig, pNext, 0, Limit, vNext) || Vec_PtrFind(vNext, pLit) < 0 ) continue;
+        if ( fNext )
+        {
+            Vec_PtrForEachEntry(Aig_Obj_t *, vNext, pLeaf, j)
+                if ( !(pBadLeaves[Aig_ObjId(Aig_Regular(pLeaf))] & (1 << Aig_IsComplement(pLeaf))) ) break;
+            if ( j < Vec_PtrSize(vNext) ) continue;
+        }
+        Result = Abc_Var2Lit(Aig_ObjCioId(pLo) - Saig_ManPiNum(pAig), Aig_IsComplement(pLit));
+        break;
+    }
+done:
+    ABC_FREE(pBadLeaves);
+    Vec_PtrFree(vBad);
+    Vec_PtrFree(vNext);
+    return Result;
+}
+
 
 // bad = common AND (a OR b OR ...). Each child checks one exact disjunct
 // after sequential cone reduction. A child counterexample is a counterexample
@@ -4260,7 +4928,20 @@ static int Pdr2_ManSplitProperty( Aig_Man_t * pAig, char * pInit, Pdr2_Par_t * p
         if ( pPars->fVerbose && !pPars->fSilent )
             Abc_Print( 1, "Property parts %d..%d/%d.\n", i+1, i+Count, Vec_PtrSize(vChoice) );
         if ( fReuse ) { Ret = 1; nReuse++; }
-        else { Ret = Pdr2_ManSolveInit( pPart, vInit, &Child ); nTried++; }
+        else
+        {
+            const char * pWindow = Gip_OptionGet("PDR2_PART_WINDOW");
+            Ret = -1;
+            if ( pWindow && atoi(pWindow) > 0 )
+            {
+                int Seconds = Abc_MinInt(20, Child.nTimeOut);
+                Ret = Pdr2_ManWindowBmc(pPart, vInit, &Child, Seconds, Abc_MinInt(256, atoi(pWindow)));
+                Remaining = Deadline - Abc_Clock();
+                if ( Remaining >= CLOCKS_PER_SEC ) Child.nTimeOut = Abc_MinInt(Child.nTimeOut, (int)(Remaining / CLOCKS_PER_SEC));
+            }
+            if ( Ret == -1 && Remaining >= CLOCKS_PER_SEC ) Ret = Pdr2_ManSolveInit(pPart, vInit, &Child);
+            nTried++;
+        }
         if ( Ret == 0 && pPart->pSeqModel )
         {
             *ppCex = pPart->pSeqModel;
@@ -4483,24 +5164,97 @@ static int Pdr2_ManReverse( Aig_Man_t * pAig, char * pInit, Pdr2_Par_t * pPars,
 
 /**Function*************************************************************
 
+  Synopsis    [Selects the primary input vector for a substep of a grouped transition.]
+
+***********************************************************************/
+static int Pdr2_StrideInputSlot( int k, int Stride, int Pattern )
+{
+    switch ( Pattern )
+    {
+    case 1: return 0;
+    case 2: return k != 0;
+    case 3: return k & 1;
+    case 4: return k == 0 ? 0 : k + 1 == Stride && Stride > 2 ? 2 : 1;
+    case 5: return k >= Stride / 2;
+    default: return k;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Shortens a candidate trace to the first original bad output.]
+
+  Description [The caller has checked the trace interface and length. A
+  successful return preserves ABC's exact bit count for the retained prefix.]
+
+***********************************************************************/
+int Pdr2_ManFirstBad( Aig_Man_t * pAig, Abc_Cex_t * pCex )
+{
+    int i, f, Found = 0;
+    Aig_Obj_t * pObj;
+    char * pValues = ABC_CALLOC(char, Aig_ManObjNumMax(pAig));
+    pValues[Aig_ObjId(Aig_ManConst1(pAig))] = 1;
+    Saig_ManForEachLo( pAig, pObj, i ) pValues[Aig_ObjId(pObj)] = Abc_InfoHasBit(pCex->pData, i);
+    for ( f = 0; f <= pCex->iFrame; f++ )
+    {
+        Saig_ManForEachPi( pAig, pObj, i )
+            pValues[Aig_ObjId(pObj)] = Abc_InfoHasBit(pCex->pData, pCex->nRegs + f*pCex->nPis + i);
+        Aig_ManForEachNode( pAig, pObj, i )
+            pValues[Aig_ObjId(pObj)] = (pValues[Aig_ObjFaninId0(pObj)] ^ Aig_ObjFaninC0(pObj)) &
+                                      (pValues[Aig_ObjFaninId1(pObj)] ^ Aig_ObjFaninC1(pObj));
+        Aig_ManForEachCo( pAig, pObj, i )
+            pValues[Aig_ObjId(pObj)] = pValues[Aig_ObjFaninId0(pObj)] ^ Aig_ObjFaninC0(pObj);
+        if ( pValues[Aig_ObjId(Aig_ManCo(pAig, 0))] )
+        {
+            pCex->iFrame = f;
+            pCex->nBits = pCex->nRegs + (f+1)*pCex->nPis;
+            Found = 1;
+            break;
+        }
+        Saig_ManForEachLo( pAig, pObj, i ) pValues[Aig_ObjId(pObj)] = pValues[Aig_ObjId(Saig_ManLi(pAig, i))];
+    }
+    ABC_FREE(pValues);
+    return Found;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Groups consecutive transitions and checks each intermediate bad output.]
 
   Description []
 
 ***********************************************************************/
-// Group K transitions, with independent inputs at each substep. The new bad
-// output is the OR of ALL K intermediate bad outputs, so no time point is
-// skipped. Reachability and safety are exact for arbitrary initial states.
+// Decode the number of original inputs consumed by this grouped frame.
+static int Pdr2_StrideCexSteps( Abc_Cex_t * c, int f, int Stride, int Phase )
+{
+    int k, Count = 1, Select = c->nRegs + (f+1)*c->nPis - (Stride-1);
+    if ( !Phase ) return Stride;
+    if ( f == c->iFrame ) return 1;
+    if ( f && Phase == 1 ) return Stride;
+    for ( k = 0; k < Stride-1; k++ )
+        if ( Abc_InfoHasBit(c->pData, Select+k) )
+            Count = k+2;
+    return Count;
+}
+
+// A fixed stride observes every intermediate bad output. Alternatively,
+// observe block boundaries and allow the first block to take h in [1,K]
+// original steps. Every positive depth is h + m*K, and each selected block
+// expands to an original trace, even if later blocks also select their length.
 static int Pdr2_ManStride( Aig_Man_t * pAig, char * pInit, Pdr2_Par_t * pPars,
                           abctime timeGlobal, Abc_Cex_t ** ppCex )
 {
     int Stride = Gip_OptionGet("PDR2_STRIDE") ? Abc_MinInt(16, atoi(Gip_OptionGet("PDR2_STRIDE"))) : 0;
     int Seconds = Gip_OptionGet("PDR2_STRIDE_TIME") ? atoi(Gip_OptionGet("PDR2_STRIDE_TIME")) : 60;
     int nPis = Saig_ManPiNum(pAig), nRegs = Aig_ManRegNum(pAig), i, k, Result = -1;
+    int Pattern = Gip_OptionGet("PDR2_STRIDE_PATTERN") ? Abc_MaxInt(0, Abc_MinInt(5, atoi(Gip_OptionGet("PDR2_STRIDE_PATTERN")))) : 0;
+    int Phase = !Pattern && Gip_OptionGet("PDR2_STRIDE_PHASE") ? Abc_MaxInt(0, Abc_MinInt(2, atoi(Gip_OptionGet("PDR2_STRIDE_PHASE")))) : 0;
+    int nChoice = Phase && Stride > 1 ? Stride - 1 : 0;
+    int nSlots = !Pattern ? Stride : Pattern == 1 ? 1 : Pattern == 4 ? Abc_MinInt(Stride, 3) : 2;
     int PartOnly = Gip_OptionGet("PDR2_STRIDE_PART") && atoi(Gip_OptionGet("PDR2_STRIDE_PART"));
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj, * pBad;
-    Vec_Ptr_t * vNext;
+    Aig_Obj_t * pObj, * pBad, * pStarted = NULL;
+    Vec_Ptr_t * vNext, * vSelected;
     Vec_Int_t * vInit;
     Pdr2_Par_t Child = *pPars;
     abctime Start, Deadline, Remaining;
@@ -4508,39 +5262,61 @@ static int Pdr2_ManStride( Aig_Man_t * pAig, char * pInit, Pdr2_Par_t * pPars,
     if ( Stride < 2 || Seconds <= 0 || pPars->fStrideRun || (PartOnly && !pPars->fPartRun) ||
          !nRegs || pPars->nFrameMax || pPars->nPropLimit ||
          Aig_ManBufNum(pAig) || Aig_ManExorNum(pAig) ||
-         (ABC_INT64_T)Stride * (nPis + (ABC_INT64_T)Aig_ManNodeNum(pAig) + 1) + 2 * (ABC_INT64_T)nRegs + 2 > INT_MAX / 2 ||
+         (ABC_INT64_T)Stride * (nPis + (ABC_INT64_T)Aig_ManNodeNum(pAig) + 1) + 2 * (ABC_INT64_T)nRegs +
+         (ABC_INT64_T)nChoice * (3*(ABC_INT64_T)nRegs+2) + 4 > INT_MAX / 2 ||
          (ABC_INT64_T)Stride * Aig_ManNodeNum(pAig) > 4000000 ) return -1;
     Start = Abc_Clock(); Deadline = Start + (abctime)Seconds * CLOCKS_PER_SEC;
     if ( timeGlobal && Deadline > timeGlobal ) Deadline = timeGlobal;
     pNew = Aig_ManStart( Stride*Aig_ManNodeNum(pAig) );
     pNew->pName = Abc_UtilStrsav( pAig->pName );
     vNext = Vec_PtrAlloc( nRegs ); vInit = Vec_IntAlloc( nRegs );
+    vSelected = Phase ? Vec_PtrAlloc(nRegs) : NULL;
     Aig_ManConst1(pAig)->pData = Aig_ManConst1(pNew);
-    for ( k = 0; k < Stride; k++ )
+    for ( k = 0; k < nSlots; k++ )
         for ( i = 0; i < nPis; i++ ) Aig_ObjCreateCi( pNew );
+    for ( i = 0; i < nChoice; i++ )
+        Aig_ObjCreateCi( pNew );
     Saig_ManForEachLo( pAig, pObj, i )
     {
         pObj->pData = Aig_ObjCreateCi( pNew );
         Vec_IntPush( vInit, pInit[i] );
     }
+    if ( Phase == 1 )
+    {
+        pStarted = Aig_ObjCreateCi( pNew );
+        Vec_IntPush( vInit, 0 );
+    }
     pBad = Aig_ManConst0( pNew );
     for ( k = 0; k < Stride; k++ )
     {
-        Saig_ManForEachPi( pAig, pObj, i ) pObj->pData = Aig_ManCi(pNew, k*nPis+i);
+        int Slot = Pdr2_StrideInputSlot(k, Stride, Pattern);
+        Saig_ManForEachPi( pAig, pObj, i ) pObj->pData = Aig_ManCi(pNew, Slot*nPis+i);
         Aig_ManForEachNode( pAig, pObj, i )
             pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-        pBad = Aig_Or( pNew, pBad, Aig_ObjChild0Copy(Aig_ManCo(pAig, 0)) );
+        if ( !Phase || k == 0 )
+            pBad = Aig_Or( pNew, pBad, Aig_ObjChild0Copy(Aig_ManCo(pAig, 0)) );
         Vec_PtrClear( vNext );
         Saig_ManForEachLi( pAig, pObj, i ) Vec_PtrPush( vNext, Aig_ObjChild0Copy(pObj) );
+        if ( Phase && k == 0 )
+            Vec_PtrAppend( vSelected, vNext );
+        else if ( Phase )
+        {
+            Aig_Obj_t * pChoose = Aig_ManCi( pNew, nSlots*nPis+k-1 );
+            if ( pStarted ) pChoose = Aig_Or( pNew, pChoose, pStarted );
+            Vec_PtrForEachEntry( Aig_Obj_t *, vNext, pObj, i )
+                Vec_PtrWriteEntry( vSelected, i, Aig_Mux(pNew, pChoose, pObj, (Aig_Obj_t *)Vec_PtrEntry(vSelected, i)) );
+        }
         // Update state simultaneously; a next-state literal may be an old LO.
         Saig_ManForEachLo( pAig, pObj, i ) pObj->pData = Vec_PtrEntry(vNext, i);
     }
     Aig_ObjCreateCo( pNew, pBad );
-    Vec_PtrForEachEntry( Aig_Obj_t *, vNext, pObj, i ) Aig_ObjCreateCo( pNew, pObj );
-    Aig_ManSetRegNum( pNew, nRegs ); Aig_ManSetCioIds( pNew ); Aig_ManCleanup( pNew );
+    Vec_PtrForEachEntry( Aig_Obj_t *, Phase ? vSelected : vNext, pObj, i ) Aig_ObjCreateCo( pNew, pObj );
+    if ( pStarted ) Aig_ObjCreateCo( pNew, Aig_ManConst1(pNew) );
+    Aig_ManSetRegNum( pNew, Vec_IntSize(vInit) ); Aig_ManSetCioIds( pNew ); Aig_ManCleanup( pNew );
     if ( pPars->fVerbose && !pPars->fSilent )
-        Abc_Print( 1, "Transition stride %d: inputs %d -> %d, flops %d, nodes %d -> %d; all intermediate bad states checked.\n",
-            Stride, nPis, Stride*nPis, nRegs, Aig_ManNodeNum(pAig), Aig_ManNodeNum(pNew) );
+        Abc_Print( 1, "Transition stride %d: inputs %d -> %d, flops %d, nodes %d -> %d; %s.\n",
+            Stride, nPis, Saig_ManPiNum(pNew), nRegs, Aig_ManNodeNum(pAig), Aig_ManNodeNum(pNew),
+            Phase == 1 ? "selectable first block length" : Phase == 2 ? "selectable block lengths" : "all intermediate bad states checked" );
     Remaining = Deadline - Abc_Clock();
     if ( Remaining < CLOCKS_PER_SEC ) goto done;
     Child.nTimeOut = (int)(Remaining/CLOCKS_PER_SEC);
@@ -4548,22 +5324,29 @@ static int Pdr2_ManStride( Aig_Man_t * pAig, char * pInit, Pdr2_Par_t * pPars,
     Child.fDynamic = Child.nAbsRuns = Child.nDynTime = 0;
     if ( Child.fUseAbs ) Child.fAbsRefineAll = 1;
     Child.fPreproc = Child.fDumpInv = Child.nBmcTime = 0;
-    if ( Gip_OptionGet("PDR2_STRIDE_REVERSE") && atoi(Gip_OptionGet("PDR2_STRIDE_REVERSE")) )
+    if ( Pattern && Gip_OptionGet("PDR2_STRIDE_BOUNDED") )
+        Result = Pdr2_ManWindowBmc(pNew, vInit, &Child, Child.nTimeOut, 1);
+    else if ( Gip_OptionGet("PDR2_STRIDE_REVERSE") && atoi(Gip_OptionGet("PDR2_STRIDE_REVERSE")) )
     {
         // Reverse the grouped relation directly. Its bad predicate still
         // includes every intermediate original step, and both mappings
         // independently replay their reconstructed counterexample.
         Child.fStrideRun = Child.fPartRun = 0;
-        Result = Pdr2_ManReverse(pNew,pInit,&Child,Deadline,&pNew->pSeqModel);
+        char * pReset = ABC_CALLOC( char, Vec_IntSize(vInit) );
+        memcpy( pReset, pInit, nRegs );
+        Result = Pdr2_ManReverse(pNew,pReset,&Child,Deadline,&pNew->pSeqModel);
+        ABC_FREE( pReset );
     }
     else
         Result = Pdr2_ManSolveInit( pNew, vInit, &Child );
+    // Repeated primary inputs restrict the possible traces. A failed search
+    // can only return undecided to the original safety problem.
+    if ( Pattern && (Result != 0 || !pNew->pSeqModel) ) Result = -1;
     if ( Result == 0 && pNew->pSeqModel )
     {
         Abc_Cex_t * c = pNew->pSeqModel, * d;
-        char * v;
-        int f, Frames, Found = 0;
-        assert( c->nRegs == nRegs && c->nPis == Stride*nPis );
+        int f, Frames, OutFrame = 0;
+        assert( c->nRegs == Vec_IntSize(vInit) && c->nPis == nSlots*nPis+nChoice );
         if ( (ABC_INT64_T)Stride * ((ABC_INT64_T)c->iFrame + 1) > (2000000000 - nRegs) / Abc_MaxInt(nPis,1) )
         { Result = -1; goto done; }
         Frames = Stride * (c->iFrame+1);
@@ -4571,27 +5354,19 @@ static int Pdr2_ManStride( Aig_Man_t * pAig, char * pInit, Pdr2_Par_t * pPars,
         d->iPo = 0; d->iFrame = Frames-1;
         for ( i = 0; i < nRegs; i++ )
             if ( Abc_InfoHasBit(c->pData, i) ) Abc_InfoSetBit(d->pData, i);
-        // Inputs are already ordered by original time within each block.
-        for ( i = 0; i < Frames*nPis; i++ )
-            if ( Abc_InfoHasBit(c->pData, nRegs+i) ) Abc_InfoSetBit(d->pData, nRegs+i);
-        v = ABC_CALLOC( char, Aig_ManObjNumMax(pAig) );
-        v[Aig_ObjId(Aig_ManConst1(pAig))] = 1;
-        Saig_ManForEachLo( pAig, pObj, i ) v[Aig_ObjId(pObj)] = Abc_InfoHasBit(d->pData, i);
-        for ( f = 0; f < Frames; f++ )
+        for ( f = 0; f <= c->iFrame; f++ )
         {
-            Saig_ManForEachPi( pAig, pObj, i ) v[Aig_ObjId(pObj)] = Abc_InfoHasBit(d->pData, nRegs+f*nPis+i);
-            Aig_ManForEachNode( pAig, pObj, i )
-                v[Aig_ObjId(pObj)] = (v[Aig_ObjFaninId0(pObj)] ^ Aig_ObjFaninC0(pObj)) &
-                                     (v[Aig_ObjFaninId1(pObj)] ^ Aig_ObjFaninC1(pObj));
-            Aig_ManForEachCo( pAig, pObj, i ) v[Aig_ObjId(pObj)] = v[Aig_ObjFaninId0(pObj)] ^ Aig_ObjFaninC0(pObj);
-            if ( v[Aig_ObjId(Aig_ManCo(pAig, 0))] ) { Found = 1; d->iFrame = f; break; }
-            Saig_ManForEachLo( pAig, pObj, i ) v[Aig_ObjId(pObj)] = v[Aig_ObjId(Saig_ManLi(pAig, i))];
+            int Count = Pdr2_StrideCexSteps( c, f, Stride, Phase );
+            for ( k = 0; k < Count; k++, OutFrame++ )
+            {
+                int Source = c->nRegs + f*c->nPis + Pdr2_StrideInputSlot(k, Stride, Pattern)*nPis;
+                for ( i = 0; i < nPis; i++ )
+                    if ( Abc_InfoHasBit(c->pData, Source+i) ) Abc_InfoSetBit(d->pData, nRegs+OutFrame*nPis+i);
+            }
         }
-        ABC_FREE( v );
-        // The first bad substep can precede the end of its grouped frame.
-        // ABC requires nBits to describe exactly the retained trace length.
-        d->nBits = nRegs + (d->iFrame+1)*nPis;
-        if ( Found && Saig_ManVerifyCex(pAig, d) ) *ppCex = d;
+        d->iFrame = OutFrame-1;
+        d->nBits = nRegs + OutFrame*nPis;
+        if ( Pdr2_ManFirstBad(pAig, d) && Saig_ManVerifyCex(pAig, d) ) *ppCex = d;
         else
         {
             Abc_Print( 1, "Transition-stride counterexample verification FAILED.\n" );
@@ -4599,7 +5374,7 @@ static int Pdr2_ManStride( Aig_Man_t * pAig, char * pInit, Pdr2_Par_t * pPars,
         }
     }
 done:
-    Aig_ManStop( pNew ); Vec_PtrFree( vNext ); Vec_IntFree( vInit );
+    Aig_ManStop( pNew ); Vec_PtrFreeP( &vSelected ); Vec_PtrFree( vNext ); Vec_IntFree( vInit );
     return Result;
 }
 
@@ -4610,47 +5385,602 @@ done:
   Description []
 
 ***********************************************************************/
+static int Pdr2_ManCombSweep( Aig_Man_t ** ppCone, Pdr2_Par_t * pPars, abctime Deadline, int * pCancelled )
+{
+    Cec_ParCec_t Pars;
+    Cec_ParLimit_t Limits;
+    Gia_Man_t * pGia = Gia_ManFromAigSimple(*ppCone), * pReduced = NULL, * pMiter;
+    int Ret;
+    // The second output is the constant specification. A counterexample to
+    // this equality is a free state and cannot witness sequential failure.
+    Gia_ManAppendCo(pGia, 0);
+    Cec_ManCecSetDefaultParams(&Pars);
+    Pars.fSilent = 1;
+    if ( atoi(Gip_OptionGet("PDR2_CSAFE_CEC")) > 1 )
+        Pars.nBTLimit = Abc_MinInt(10000, atoi(Gip_OptionGet("PDR2_CSAFE_CEC")));
+    memset(&Limits, 0, sizeof(Limits));
+    Limits.TimeToStop = Deadline;
+    Limits.RunId = pPars->RunId;
+    Limits.pFuncStop = pPars->pFuncStop;
+    Limits.pCancelled = pCancelled;
+    Ret = Cec_ManVerifyWithLimits(pGia, &Pars, &Limits, &pReduced);
+    if ( pReduced && !*pCancelled )
+    {
+        pMiter = Gia_ManTransformMiter(pReduced);
+        Aig_ManStop(*ppCone);
+        *ppCone = Gia_ManToAigSimple(pMiter);
+        Gia_ManStop(pMiter);
+    }
+    Gia_ManStopP(&pReduced);
+    Gia_ManStop(pGia);
+    return Ret;
+}
+
+static int Pdr2_ManCombSatStop( void * pData )
+{
+    return Cec_ManIsStopped( (Cec_ParLimit_t *)pData );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Loads a cut-mapped CNF into the selected SAT solver.]
+
+***********************************************************************/
+static int Pdr2_ManLoadMappedCnf( Cnf_Dat_t * pCnf, kissat * pKis, CCaDiCaL * pCad, Cec_ParLimit_t * pLimits )
+{
+    int i, * pLit;
+    for ( i = 0; i < pCnf->nClauses; i++ )
+    {
+        if ( (i & 1023) == 0 && Cec_ManIsStopped(pLimits) ) return 0;
+        for ( pLit = pCnf->pClauses[i]; pLit < pCnf->pClauses[i+1]; pLit++ )
+        {
+            int Lit = Abc_Lit2Var(*pLit) + 1;
+            if ( Abc_LitIsCompl(*pLit) ) Lit = -Lit;
+            if ( pKis ) kissat_add( pKis, Lit );
+            else ccadical_add( pCad, Lit );
+        }
+        if ( pKis ) kissat_add( pKis, 0 );
+        else ccadical_add( pCad, 0 );
+    }
+    return !Cec_ManIsStopped(pLimits);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks the asserted bad output using mapped CNF.]
+
+***********************************************************************/
+static int Pdr2_ManCombMapped( Aig_Man_t * pCone, Pdr2_Par_t * pPars, abctime Stop, int nConfs, int fKissat, Vec_Int_t * vModel )
+{
+    Cec_ParLimit_t Limits = { Stop, pPars->RunId, pPars->pFuncStop, NULL };
+    Cnf_Man_t * pMan = Cnf_ManStart();
+    Cnf_Dat_t * pCnf = Cnf_DeriveWithMan( pMan, pCone, 0 );
+    CCaDiCaL * pCad = NULL;
+    kissat * pKis = NULL;
+    int i, Ret = 0;
+    Cnf_DataTranformPolarity( pCnf, 0 );
+    if ( fKissat )
+    {
+        pKis = kissat_init();
+        kissat_set_option( pKis, "quiet", 1 );
+        kissat_set_terminate( pKis, &Limits, Pdr2_ManCombSatStop );
+        kissat_set_conflict_limit( pKis, (unsigned)nConfs );
+    }
+    else
+    {
+        pCad = ccadical_init();
+        ccadical_set_option( pCad, "quiet", 1 );
+        ccadical_set_terminate( pCad, &Limits, Pdr2_ManCombSatStop );
+        ccadical_limit( pCad, "conflicts", nConfs );
+    }
+    if ( Pdr2_ManLoadMappedCnf(pCnf, pKis, pCad, &Limits) )
+        Ret = pKis ? kissat_solve(pKis) : ccadical_solve(pCad);
+    if ( pPars->fVerbose && !pPars->fSilent )
+    {
+        if ( pKis ) Abc_Print( 1, "Mapped cone Kissat: budget %d conflicts, result %d.\n", nConfs, Ret );
+        else Abc_Print( 1, "Mapped cone SAT: %d conflicts, budget %d, result %d.\n",
+            ccadical_conflicts(pCad), nConfs, Ret );
+    }
+    if ( Ret == 10 && vModel )
+    {
+        Aig_Obj_t * pObj;
+        int MaxVar = pKis ? pCnf->nVars : ccadical_vars(pCad);
+        Aig_ManForEachCi( pCone, pObj, i )
+        {
+            int Var = pCnf->pVarNums[Aig_ObjId(pObj)] + 1;
+            int Value = Var > 0 && Var <= MaxVar && (pKis ? kissat_value(pKis, Var) : ccadical_val(pCad, Var)) > 0;
+            Vec_IntPush( vModel, Value ^ pObj->fPhase );
+        }
+    }
+    if ( pKis ) kissat_release( pKis );
+    else ccadical_release( pCad );
+    Cnf_DataFree( pCnf );
+    Cnf_ManStop( pMan );
+    return Ret == 20 ? GIP_UNSAT : Ret == 10 ? GIP_SAT : GIP_UNDEF;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Copies the bad output and its original CI coordinates.]
+
+***********************************************************************/
+static Aig_Man_t * Pdr2_ManCopyBad( Pdr2_Man_t * p, abctime Stop, Aig_Obj_t ** ppBad )
+{
+    Aig_Man_t * pOrig = p->pAig, * pCone = Aig_ManStart(Aig_ManObjNumMax(pOrig));
+    Vec_Ptr_t * vCopy = Vec_PtrStart(Aig_ManObjNumMax(pOrig));
+    Aig_Obj_t * pObj, * pLeft, * pRight;
+    int i;
+    Vec_PtrWriteEntry( vCopy, Aig_ObjId(Aig_ManConst1(pOrig)), Aig_ManConst1(pCone) );
+    Aig_ManForEachCi( pOrig, pObj, i )
+        Vec_PtrWriteEntry( vCopy, Aig_ObjId(pObj), Aig_ObjCreateCi(pCone) );
+    Aig_ManForEachNode( pOrig, pObj, i )
+    {
+        if ( (i & 4095) == 0 && (Abc_Clock() >= Stop || Pdr2_ManPastDeadline(p)) )
+        {
+            Aig_ManStop(pCone);
+            Vec_PtrFree(vCopy);
+            return NULL;
+        }
+        pLeft = (Aig_Obj_t *)Vec_PtrEntry( vCopy, Aig_ObjId(Aig_ObjFanin0(pObj)) );
+        pRight = (Aig_Obj_t *)Vec_PtrEntry( vCopy, Aig_ObjId(Aig_ObjFanin1(pObj)) );
+        Vec_PtrWriteEntry( vCopy, Aig_ObjId(pObj),
+            Aig_And(pCone, Aig_NotCond(pLeft, Aig_ObjFaninC0(pObj)), Aig_NotCond(pRight, Aig_ObjFaninC1(pObj))) );
+    }
+    pObj = Aig_ManCo(pOrig, 0);
+    *ppBad = Aig_NotCond((Aig_Obj_t *)Vec_PtrEntry(vCopy, Aig_ObjId(Aig_ObjFanin0(pObj))), Aig_ObjFaninC0(pObj));
+    Vec_PtrFree(vCopy);
+    return pCone;
+}
+
+typedef struct Pdr2_BadSat_t_ Pdr2_BadSat_t;
+struct Pdr2_BadSat_t_
+{
+    CCaDiCaL * pSat;
+    Vec_Int_t * vCi;  // signed DIMACS variables in original CI order
+    int nVars, nQueries;
+};
+
+/**Function*************************************************************
+
+  Synopsis    [Releases the mapped property solver and its input map.]
+
+***********************************************************************/
+void Pdr2_ManStopBadSat( Pdr2_Man_t * p )
+{
+    if ( p->pBadSat == NULL ) return;
+    ccadical_release(p->pBadSat->pSat);
+    Vec_IntFree(p->pBadSat->vCi);
+    ABC_FREE(p->pBadSat);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Maps the bad output once and freezes its input variables.]
+
+***********************************************************************/
+static int Pdr2_ManStartBadSat( Pdr2_Man_t * p, Cec_ParLimit_t * pLimits )
+{
+    Aig_Obj_t * pBad, * pObj;
+    Aig_Man_t * pCone = Pdr2_ManCopyBad(p, pLimits->TimeToStop, &pBad);
+    Pdr2_BadSat_t * pBadSat;
+    Cnf_Man_t * pMan;
+    Cnf_Dat_t * pCnf;
+    int i, Var, Complete = 0;
+    if ( pCone == NULL ) return 0;
+    Aig_ObjCreateCo(pCone, pBad);
+    Aig_ManCleanup(pCone);
+    pMan = Cnf_ManStart();
+    pCnf = Cnf_DeriveWithMan(pMan, pCone, 0);
+    Cnf_DataTranformPolarity(pCnf, 0);
+    if ( pCnf->nVars < INT_MAX - Aig_ManCiNum(pCone) && !Cec_ManIsStopped(pLimits) )
+    {
+        p->pBadSat = pBadSat = ABC_CALLOC(Pdr2_BadSat_t, 1);
+        pBadSat->pSat = ccadical_init();
+        ccadical_set_option(pBadSat->pSat, "quiet", 1);
+        pBadSat->nVars = pCnf->nVars;
+        pBadSat->vCi = Vec_IntAlloc(Aig_ManCiNum(pCone));
+        Aig_ManForEachCi(pCone, pObj, i)
+        {
+            Var = pCnf->pVarNums[Aig_ObjId(pObj)];
+            Var = Var < 0 ? ++pBadSat->nVars : Var + 1;
+            Vec_IntPush(pBadSat->vCi, pObj->fPhase ? -Var : Var);
+            ccadical_freeze(pBadSat->pSat, Var);
+        }
+        Complete = Pdr2_ManLoadMappedCnf(pCnf, NULL, pBadSat->pSat, pLimits);
+        if ( !Complete ) Pdr2_ManStopBadSat(p);
+    }
+    Cnf_DataFree(pCnf);
+    Cnf_ManStop(pMan);
+    Aig_ManStop(pCone);
+    return Complete;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reuses the property CNF across independent frontier queries.]
+
+  Description [All frame clauses share a fresh selector. Its negative unit
+  retires the whole batch even if clause loading is interrupted. Reset
+  assumptions are scoped to frame zero. Only the property is permanent.]
+
+***********************************************************************/
+static int Pdr2_ManReuseBadSat( Pdr2_Man_t * p, abctime Stop, Vec_Int_t * vModel )
+{
+    Cec_ParLimit_t Limits = { Stop, p->pPars->RunId, p->pPars->pFuncStop, NULL };
+    Pdr2_BadSat_t * pBadSat;
+    Pdr2_Lem_t * pLem;
+    Vec_Ptr_t * vFrame;
+    int i, j, k, Lit, Var, Act, Level = Pdr2_ManLevel(p), Ret = 0;
+    if ( !p->pBadSat && !Pdr2_ManStartBadSat(p, &Limits) ) return GIP_UNDEF;
+    pBadSat = p->pBadSat;
+    if ( pBadSat->nQueries == INT_MAX - pBadSat->nVars ) return GIP_UNDEF;
+    Act = pBadSat->nVars + ++pBadSat->nQueries;
+    ccadical_freeze(pBadSat->pSat, Act);
+    for ( k = 0; k < 2; k++ )
+    {
+        vFrame = k ? p->vInf : Pdr2_ManFrame(p, Level);
+        Vec_PtrForEachEntry(Pdr2_Lem_t *, vFrame, pLem, i)
+        {
+            if ( (i & 255) == 0 && Cec_ManIsStopped(&Limits) ) goto finish;
+            if ( pLem->fRemoved ) continue;
+            ccadical_add(pBadSat->pSat, -Act);
+            for ( j = 0; j < pLem->pCube->nLits; j++ )
+            {
+                Lit = pLem->pCube->Lits[j];
+                Var = Vec_IntEntry(pBadSat->vCi, p->nPis+Abc_Lit2Var(Lit));
+                ccadical_add(pBadSat->pSat, Abc_LitIsCompl(Lit) ? Var : -Var);
+            }
+            ccadical_add(pBadSat->pSat, 0);
+        }
+    }
+    if ( Cec_ManIsStopped(&Limits) ) goto finish;
+    if ( Level == 0 )
+        for ( i = 0; i < p->nRegs; i++ )
+            if ( p->pInit[i] < 2 )
+            {
+                Var = Vec_IntEntry(pBadSat->vCi, p->nPis+i);
+                ccadical_assume(pBadSat->pSat, p->pInit[i] ? Var : -Var);
+            }
+    ccadical_assume(pBadSat->pSat, Act);
+    ccadical_set_terminate(pBadSat->pSat, &Limits, Pdr2_ManCombSatStop);
+    ccadical_limit(pBadSat->pSat, "conflicts", 10000000);
+    Ret = ccadical_solve(pBadSat->pSat);
+    ccadical_set_terminate(pBadSat->pSat, NULL, NULL);
+    if ( Ret == 10 )
+        Vec_IntForEachEntry(pBadSat->vCi, Var, i)
+            Vec_IntPush(vModel, (ccadical_val(pBadSat->pSat, Abc_AbsInt(Var)) > 0) ^ (Var < 0));
+finish:
+    ccadical_add(pBadSat->pSat, -Act);
+    ccadical_add(pBadSat->pSat, 0);
+    ccadical_melt(pBadSat->pSat, Act);
+    if ( p->pPars->fVerbose && !p->pPars->fSilent )
+        Abc_Print(1, "Mapped bad-state CaDiCaL: query %d, frame %d, result %d.\n", pBadSat->nQueries, Level, Ret);
+    return Ret == 20 ? GIP_UNSAT : Ret == 10 ? GIP_SAT : GIP_UNDEF;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks the current frontier and bad output using mapped CNF.]
+
+  Description [A model assigns original inputs and flops in CI order.
+  Omitting solver-private clauses weakens the query. The caller therefore
+  checks a SAT model in the frame solver before using it for lifting.]
+
+***********************************************************************/
+int Pdr2_ManMappedBad( Pdr2_Man_t * p, int Seconds, Vec_Int_t * vModel )
+{
+    Aig_Man_t * pCone;
+    Aig_Obj_t * pBad, * pSignal, * pBlocked;
+    Vec_Ptr_t * vTerms, * vCube, * vFrame;
+    Pdr2_Lem_t * pLem;
+    const char * pValue = Gip_OptionGet("PDR2_BAD_REUSE_SECS");
+    int Reuse = pValue ? Abc_MinInt(60, atoi(pValue)) : -1;
+    int i, j, k, Lit, Level = Pdr2_ManLevel(p), Ret = GIP_UNDEF;
+    abctime Start = Abc_Clock(), Stop = Start + (abctime)Seconds * CLOCKS_PER_SEC;
+    if ( p->timeLimit && Stop > p->timeLimit ) Stop = p->timeLimit;
+    if ( p->timeSliceHard && Stop > p->timeSliceHard ) Stop = p->timeSliceHard;
+    if ( Abc_Clock() >= Stop || Pdr2_ManPastDeadline(p) ) return GIP_UNDEF;
+    if ( Reuse == 0 || p->fReuseBadSat ) return Pdr2_ManReuseBadSat(p, Stop, vModel);
+    pCone = Pdr2_ManCopyBad(p, Stop, &pBad);
+    if ( pCone == NULL ) return GIP_UNDEF;
+    vTerms = Vec_PtrAlloc(64);
+    vCube = Vec_PtrAlloc(32);
+    Vec_PtrPush(vTerms, pBad);
+    if ( Level == 0 )
+        for ( i = 0; i < p->nRegs; i++ )
+            if ( p->pInit[i] < 2 )
+                Vec_PtrPush( vTerms, Aig_NotCond(Aig_ManCi(pCone, p->nPis+i), !p->pInit[i]) );
+    for ( k = 0; k < 2; k++ )
+    {
+        vFrame = k ? p->vInf : Pdr2_ManFrame(p, Level);
+        Vec_PtrForEachEntry( Pdr2_Lem_t *, vFrame, pLem, i )
+        {
+            if ( (i & 255) == 0 && (Abc_Clock() >= Stop || Pdr2_ManPastDeadline(p)) ) goto finish;
+            if ( pLem->fRemoved ) continue;
+            Vec_PtrClear( vCube );
+            for ( j = 0; j < pLem->pCube->nLits; j++ )
+            {
+                Lit = pLem->pCube->Lits[j];
+                pSignal = Aig_ManCi(pCone, p->nPis + Abc_Lit2Var(Lit));
+                Vec_PtrPush( vCube, Aig_NotCond(pSignal, Abc_LitIsCompl(Lit)) );
+            }
+            pBlocked = Vec_PtrSize(vCube) ? Aig_Multi(pCone, (Aig_Obj_t **)Vec_PtrArray(vCube), Vec_PtrSize(vCube), AIG_OBJ_AND)
+                                         : Aig_ManConst1(pCone);
+            Vec_PtrPush( vTerms, Aig_Not(pBlocked) );
+        }
+    }
+    pBad = Aig_Multi(pCone, (Aig_Obj_t **)Vec_PtrArray(vTerms), Vec_PtrSize(vTerms), AIG_OBJ_AND);
+    if ( pBad == Aig_ManConst0(pCone) )
+        Ret = GIP_UNSAT;
+    else if ( pBad != Aig_ManConst1(pCone) )
+    {
+        Aig_ObjCreateCo(pCone, pBad);
+        Aig_ManCleanup(pCone);
+        if ( Abc_Clock() < Stop && !Pdr2_ManPastDeadline(p) )
+            Ret = Pdr2_ManCombMapped(pCone, p->pPars, Stop, 10000000, 1, vModel);
+    }
+finish:
+    Vec_PtrFree(vCube);
+    Vec_PtrFree(vTerms);
+    Aig_ManStop(pCone);
+    if ( Reuse > 0 && Abc_Clock() - Start >= (abctime)Reuse * CLOCKS_PER_SEC )
+        p->fReuseBadSat = 1;
+    return Ret;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks the single failure output of the unrestricted proof miter.]
+
+***********************************************************************/
+int Pdr2_ManMappedInvariant( Pdr2_Man_t * p, Aig_Man_t * pMiter )
+{
+    Vec_Ptr_t * vInputs = Vec_PtrAlloc( 100 );
+    Vec_Ptr_t * vOutputs = Vec_PtrAlloc( 1 );
+    Aig_Man_t * pFail;
+    int Ret;
+    // The mapper asserts every output. Extract the failure cone and treat
+    // the state as free input so that next-state outputs cannot constrain it.
+    Vec_PtrPush( vOutputs, Aig_ManCo(pMiter, 0) );
+    Aig_SupportNodes(pMiter, (Aig_Obj_t **)Vec_PtrArray(vOutputs), 1, vInputs);
+    pFail = Aig_ManDupSimpleDfsPart(pMiter, vInputs, vOutputs);
+    Vec_PtrFree(vOutputs);
+    Vec_PtrFree(vInputs);
+    assert( Aig_ManCoNum(pFail) == 1 && Aig_ManRegNum(pFail) == 0 );
+    Ret = Pdr2_ManCombMapped(pFail, p->pPars, p->timeGlobal, INT_MAX, 1, NULL);
+    Aig_ManStop(pFail);
+    return Ret == GIP_UNSAT ? 1 : Ret == GIP_SAT ? 0 : -1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Replays an all-state SAT model's inputs from the actual reset.]
+
+***********************************************************************/
+static int Pdr2_ManCombTrace( Aig_Man_t * pAig, Vec_Int_t * vInit, Vec_Ptr_t * vSupport,
+                              Vec_Int_t * vModel, int Frames )
+{
+    int nPis = Saig_ManPiNum(pAig), nRegs = Aig_ManRegNum(pAig);
+    int i, f, Value;
+    Abc_Cex_t * pCex;
+    Frames = Abc_MinInt(Frames, Abc_MaxInt(1, 4000000 / Aig_ManObjNumMax(pAig)));
+    if ( (ABC_INT64_T)nPis * Frames + nRegs > INT_MAX )
+        return 0;
+    pCex = Abc_CexAlloc( nRegs, nPis, Frames );
+    pCex->iPo = 0;
+    pCex->iFrame = Frames - 1;
+    for ( i = 0; i < nRegs; i++ )
+        if ( vInit && Vec_IntEntry(vInit, i) == 1 )
+            Abc_InfoSetBit( pCex->pData, i );
+    if ( vModel )
+        Vec_IntForEachEntry( vModel, Value, i )
+        {
+            int Ci = Aig_ObjCioId((Aig_Obj_t *)Vec_PtrEntry(vSupport, i));
+            if ( !Value ) continue;
+            if ( Ci < nPis )
+                for ( f = 0; f < Frames; f++ )
+                    Abc_InfoSetBit( pCex->pData, nRegs + f*nPis + Ci );
+            else if ( vInit && Vec_IntEntry(vInit, Ci-nPis) == 2 )
+                Abc_InfoSetBit( pCex->pData, Ci-nPis );
+        }
+    if ( Pdr2_ManFirstBad(pAig, pCex) && Saig_ManVerifyCex(pAig, pCex) )
+    {
+        Abc_CexFreeP( &pAig->pSeqModel );
+        pAig->pSeqModel = pCex;
+        return 1;
+    }
+    Abc_CexFree( pCex );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Proves combinational safety for all current states.]
+
+***********************************************************************/
 // A bounded proof that bad is impossible even with arbitrary current state.
 // Only the combinational property cone is needed; adding the unrelated
 // next-state functions would waste both SAT setup time and memory. This is
 // particularly useful after property lookahead removes monitor registers.
-static int Pdr2_ManCombSafe( Aig_Man_t * pAig, Pdr2_Par_t * pPars, abctime timeGlobal )
+int Pdr2_ManCombSafe( Aig_Man_t * pAig, Pdr2_Par_t * pPars, abctime timeGlobal, Aig_Man_t * pTraceAig, Vec_Int_t * vInit )
 {
     int Confs = Gip_OptionGet("PDR2_CSAFE") ? atoi(Gip_OptionGet("PDR2_CSAFE")) : 0;
     int Seconds = Gip_OptionGet("PDR2_CSAFE_TIME") ? Abc_MaxInt(1, atoi(Gip_OptionGet("PDR2_CSAFE_TIME"))) : 1;
-    int Lit, Ret;
+    int Lit, Ret, fCancelled = 0, fTrace = 0;
+    int TraceFrames = pTraceAig && Gip_OptionGet("PDR2_CSAFE_TRACE") ?
+        Abc_MaxInt(0, Abc_MinInt(32, atoi(Gip_OptionGet("PDR2_CSAFE_TRACE")))) : 0;
+    int fKissat = Gip_OptionGet("PDR2_CSAFE_KISSAT") && atoi(Gip_OptionGet("PDR2_CSAFE_KISSAT"));
     abctime Start, Deadline;
     Vec_Ptr_t * vPis, * vPos;
+    Vec_Int_t * vModel = NULL;
     Aig_Man_t * pCone;
     Cnf_Man_t * pCnfMan;
     Gip_Ctx_t * pCtx;
     Gip_Solver_t * pSat;
-    if ( Confs <= 0 || pPars->nPropLimit || pPars->nFrameMax ||
+    if ( (pPars->fVerify && pPars->fVerifyComplete) || Confs <= 0 || pPars->nPropLimit || pPars->nFrameMax ||
          Aig_ManBufNum(pAig) || Aig_ManExorNum(pAig) ) return -1;
     if ( Gip_OptionGet("PDR2_CSAFE_PART") && atoi(Gip_OptionGet("PDR2_CSAFE_PART")) && !pPars->fPartRun ) return -1;
     Start = Abc_Clock(); Deadline = Start + (abctime)Seconds * CLOCKS_PER_SEC;
     if ( timeGlobal && Deadline > timeGlobal ) Deadline = timeGlobal;
     if ( Start >= Deadline || (pPars->pFuncStop && pPars->pFuncStop(pPars->RunId)) ) return -1;
     if ( Aig_ObjChild0(Aig_ManCo(pAig,0)) == Aig_ManConst0(pAig) ) return 1;
-    if ( Aig_ObjChild0(Aig_ManCo(pAig,0)) == Aig_ManConst1(pAig) ) return -1;
+    if ( Aig_ObjChild0(Aig_ManCo(pAig,0)) == Aig_ManConst1(pAig) )
+        return TraceFrames && Pdr2_ManCombTrace(pTraceAig, vInit, NULL, NULL, 1) ? 0 : -1;
+    if ( TraceFrames )
+    {
+        assert( Aig_ManCiNum(pAig) == Aig_ManCiNum(pTraceAig) );
+        Aig_ManSetCioIds( pAig );
+    }
     vPis = Vec_PtrAlloc(100); vPos = Vec_PtrAlloc(1);
     Vec_PtrPush(vPos, Aig_ManCo(pAig,0));
     Aig_SupportNodes(pAig, (Aig_Obj_t **)Vec_PtrArray(vPos), 1, vPis);
     pCone = Aig_ManDupSimpleDfsPart(pAig, vPis, vPos);
+    Vec_PtrFree(vPos);
+    if ( Gip_OptionGet("PDR2_CSAFE_CEC") )
+    {
+        Ret = Pdr2_ManCombSweep(&pCone, pPars, Start + (Deadline-Start)/2, &fCancelled);
+        if ( Ret != -1 || fCancelled || Abc_Clock() >= Deadline )
+        {
+            Ret = Ret == 1 ? GIP_UNSAT : Ret == 0 ? GIP_SAT : GIP_UNDEF;
+            goto finish;
+        }
+    }
     Aig_ManSetCioIds(pCone);
+    if ( fKissat || (Gip_OptionGet("PDR2_CSAFE_CADICAL") && atoi(Gip_OptionGet("PDR2_CSAFE_CADICAL"))) )
+    {
+        // Sweeping may reorder or remove support variables.  The original
+        // support maps the unswept CNF model directly to design inputs.
+        if ( TraceFrames && !Gip_OptionGet("PDR2_CSAFE_CEC") )
+            vModel = Vec_IntAlloc( Vec_PtrSize(vPis) );
+        Ret = Pdr2_ManCombMapped( pCone, pPars, Deadline, Confs, fKissat, vModel );
+        if ( Ret == GIP_SAT && vModel && Abc_Clock() < Deadline &&
+             (!pPars->pFuncStop || !pPars->pFuncStop(pPars->RunId)) )
+            fTrace = Pdr2_ManCombTrace( pTraceAig, vInit, vPis, vModel, TraceFrames );
+        goto finish;
+    }
     pCnfMan = Cnf_ManStart(); pCtx = Gip_CtxCreatePdr2(pCone, pCnfMan, 1);
     pSat = Gip_SolverNew(pCtx);
     pSat->TimeLimit = Deadline; pSat->nConfLimit = Abc_MinInt(Confs,1000000);
     pSat->RunId = pPars->RunId; pSat->pFuncStop = pPars->pFuncStop;
     Lit = Gip_Lit(Gip_CtxObjVar(pCtx,Aig_ManCo(pCone,0)),0);
     Ret = Gip_SolverSolve(pSat,&Lit,1,NULL,NULL,0,-1);
+    Gip_SolverFree(pSat); Gip_CtxFree(pCtx); Cnf_ManStop(pCnfMan);
+finish:
     if ( pPars->fVerbose && !pPars->fSilent )
         Abc_Print(1,"Combinational safety check: %s; %d cone inputs, %d nodes. Time = %.3f sec.\n",
             Ret == GIP_UNSAT ? "proved" : Ret == GIP_SAT ? "not combinationally safe" : "resource limit",
             Aig_ManCiNum(pCone), Aig_ManNodeNum(pCone), (double)(Abc_Clock()-Start)/CLOCKS_PER_SEC);
-    Gip_SolverFree(pSat); Gip_CtxFree(pCtx); Cnf_ManStop(pCnfMan); Aig_ManStop(pCone);
-    Vec_PtrFree(vPis); Vec_PtrFree(vPos);
-    return Ret == GIP_UNSAT ? 1 : -1;
+    Aig_ManStop(pCone);
+    Vec_PtrFree(vPis);
+    Vec_IntFreeP(&vModel);
+    return Ret == GIP_UNSAT ? 1 : fTrace ? 0 : -1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Samples a cut of the bad output on one common clock edge.]
+
+  Description [For bad = h(g1,...,gm) add registers qj' = gj and use
+  started & h(q) as the bad output. After startup its value is exactly
+  the previous bad output, including when the cut depends on inputs.
+  Discard the last input vector when transferring a witness.]
+
+***********************************************************************/
+int Pdr2_ManSampleProperty( Aig_Man_t * p, Vec_Int_t * vInit, Pdr2_Par_t * pPars, int Width )
+{
+    int i, j, Id, Best, Result = -1, nRegs = Aig_ManRegNum(p), nPis = Saig_ManPiNum(p);
+    Aig_Man_t * pNew = NULL;
+    Aig_Obj_t * pObj, * pFan, * pStart;
+    Vec_Int_t * vCut, * vNewInit = NULL;
+    Vec_Ptr_t * vAux = NULL, * vDrivers = NULL, * vNext = NULL;
+    Pdr2_Par_t Child = *pPars;
+    abctime Start = Abc_Clock();
+    if ( Width < 2 || Width > 64 || !nRegs || Saig_ManPoNum(p) != 1 || Saig_ManConstrNum(p) ||
+         Aig_ManBufNum(p) || Aig_ManExorNum(p) || pPars->fDumpInv || pPars->fVerifyComplete ||
+         (vInit && Vec_IntSize(vInit) != nRegs) ) return -1;
+    pObj = Aig_ObjFanin0(Aig_ManCo(p, 0));
+    if ( !Aig_ObjIsNode(pObj) ) return -1;
+    vCut = Vec_IntAlloc(Width);
+    Vec_IntPush(vCut, Aig_ObjId(pObj));
+    Aig_ManIncrementTravId(p);
+    for ( j = 0; j < 4*Width && Vec_IntSize(vCut) < Width; j++ )
+    {
+        Best = -1;
+        Vec_IntForEachEntry( vCut, Id, i )
+        {
+            pObj = Aig_ManObj(p, Id);
+            if ( Aig_ObjIsNode(pObj) && (Best < 0 ||
+                 Aig_ObjLevel(pObj) > Aig_ObjLevel(Aig_ManObj(p, Vec_IntEntry(vCut, Best)))) ) Best = i;
+        }
+        if ( Best < 0 ) break;
+        pObj = Aig_ManObj(p, Vec_IntEntry(vCut, Best));
+        Vec_IntDrop(vCut, Best);
+        Aig_ObjSetTravIdCurrent(p, pObj);
+        pFan = Aig_ObjFanin0(pObj);
+        if ( !Aig_ObjIsConst1(pFan) && !Aig_ObjIsTravIdCurrent(p, pFan) ) Vec_IntPushUnique(vCut, Aig_ObjId(pFan));
+        pFan = Aig_ObjFanin1(pObj);
+        if ( !Aig_ObjIsConst1(pFan) && !Aig_ObjIsTravIdCurrent(p, pFan) ) Vec_IntPushUnique(vCut, Aig_ObjId(pFan));
+    }
+    if ( !Vec_IntSize(vCut) ) goto done;
+    pNew = Aig_ManStart(Aig_ManNodeNum(p));
+    pNew->pName = Abc_UtilStrsav(p->pName);
+    vNewInit = vInit ? Vec_IntDup(vInit) : Vec_IntStart(nRegs);
+    vAux = Vec_PtrAlloc(Width); vDrivers = Vec_PtrAlloc(Width); vNext = Vec_PtrAlloc(nRegs);
+    Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
+    Aig_ManForEachCi( p, pObj, i ) pObj->pData = Aig_ObjCreateCi(pNew);
+    for ( i = 0; i < Vec_IntSize(vCut); i++ )
+    {
+        Vec_PtrPush(vAux, Aig_ObjCreateCi(pNew));
+        Vec_IntPush(vNewInit, 0);
+    }
+    pStart = Aig_ObjCreateCi(pNew);
+    Vec_IntPush(vNewInit, 0);
+    Aig_ManForEachNode( p, pObj, i )
+        pObj->pData = Aig_And(pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj));
+    Saig_ManForEachLi( p, pObj, i ) Vec_PtrPush(vNext, Aig_ObjChild0Copy(pObj));
+    Vec_IntForEachEntry( vCut, Id, i ) Vec_PtrPush(vDrivers, Aig_ManObj(p, Id)->pData);
+    Vec_IntForEachEntry( vCut, Id, i ) Aig_ManObj(p, Id)->pData = Vec_PtrEntry(vAux, i);
+    Aig_ManForEachNode( p, pObj, i )
+        if ( Aig_ObjIsTravIdCurrent(p, pObj) )
+            pObj->pData = Aig_And(pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj));
+    Aig_ObjCreateCo(pNew, Aig_And(pNew, pStart, Aig_ObjChild0Copy(Aig_ManCo(p, 0))));
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNext, pObj, i ) Aig_ObjCreateCo(pNew, pObj);
+    Vec_PtrForEachEntry( Aig_Obj_t *, vDrivers, pObj, i ) Aig_ObjCreateCo(pNew, pObj);
+    Aig_ObjCreateCo(pNew, Aig_ManConst1(pNew));
+    Aig_ManSetRegNum(pNew, Vec_IntSize(vNewInit));
+    Aig_ManSetCioIds(pNew);
+    Aig_ManCleanup(pNew);
+    if ( pPars->nTimeOut )
+    {
+        Child.nTimeOut -= (int)((Abc_Clock() - Start) / CLOCKS_PER_SEC);
+        if ( Child.nTimeOut < 1 ) goto done;
+    }
+    if ( pPars->pFuncStop && pPars->pFuncStop(pPars->RunId) ) goto done;
+    if ( pPars->fVerbose )
+        Abc_Print(1, "Sampled property: %d registered cut signals, %d original flops.\n", Vec_IntSize(vCut), nRegs);
+    Result = Pdr2_ManSolveInit(pNew, vNewInit, &Child);
+    if ( Result == 0 )
+    {
+        Abc_Cex_t * c = pNew->pSeqModel, * d;
+        Result = -1;
+        if ( !c || c->iFrame < 1 || c->nRegs != Vec_IntSize(vNewInit) || c->nPis != nPis ) goto done;
+        d = Abc_CexAlloc(nRegs, nPis, c->iFrame);
+        d->iPo = 0; d->iFrame = c->iFrame - 1;
+        for ( i = 0; i < nRegs; ++i ) if ( Abc_InfoHasBit(c->pData, i) ) Abc_InfoSetBit(d->pData, i);
+        for ( i = 0; i < nPis*c->iFrame; ++i )
+            if ( Abc_InfoHasBit(c->pData, c->nRegs+i) ) Abc_InfoSetBit(d->pData, nRegs+i);
+        if ( Saig_ManVerifyCex(p, d) )
+        {
+            Abc_CexFreeP(&p->pSeqModel);
+            p->pSeqModel = d; pPars->iFrame = d->iFrame; Result = 0;
+        }
+        else Abc_CexFree(d);
+    }
+done:
+    if ( pNew ) Aig_ManStop(pNew);
+    Vec_IntFree(vCut); Vec_IntFreeP(&vNewInit);
+    Vec_PtrFreeP(&vAux); Vec_PtrFreeP(&vDrivers); Vec_PtrFreeP(&vNext);
+    return Result;
 }
 
 typedef struct Pdr2_PredRank_t_ { int Id, Score; } Pdr2_PredRank_t;
@@ -5023,6 +6353,137 @@ static int Pdr2_ManReverse( Aig_Man_t * pAig, char * pInit, Pdr2_Par_t * pPars,
     return Result;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Merges registers with equal reset phases and identical signed drivers.]
+
+  Description [Complementary drivers can share a register if their reset
+  values are also complementary. The copy preserves all CI indices so
+  that the following cone reduction can use its usual witness mapping.]
+
+***********************************************************************/
+static Aig_Man_t * Pdr2_StrideMergeRegs( Aig_Man_t * p, char * pInit, int * pCount )
+{
+    Vec_Ptr_t * vMap;
+    Aig_Obj_t * pObj;
+    Aig_Man_t * pNew = NULL;
+    int i, Key, First, nPis = Saig_ManPiNum(p), * pRepr;
+    *pCount = 0;
+    if ( Aig_ManRegNum(p) < 2 || p->vFlopReprs || Aig_ManObjNumMax(p) > 1500000 ) return NULL;
+    pRepr = ABC_FALLOC(int, 2*Aig_ManObjNumMax(p));
+    vMap = Vec_PtrDup(p->vCis);
+    Saig_ManForEachLi(p, pObj, i)
+    {
+        if ( pInit[i] == 2 ) continue;
+        Key = Abc_Var2Lit(Aig_ObjFaninId0(pObj), pInit[i] ^ Aig_ObjFaninC0(pObj));
+        First = pRepr[Key];
+        if ( First < 0 ) pRepr[Key] = i;
+        else
+        {
+            Vec_PtrWriteEntry(vMap, nPis+i, Aig_NotCond(Saig_ManLo(p, First), pInit[i] ^ pInit[First]));
+            (*pCount)++;
+        }
+    }
+    if ( *pCount ) pNew = Aig_ManRemap(p, vMap);
+    ABC_FREE(pRepr); Vec_PtrFree(vMap);
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the image of a signed edge in a duplicated AIG.]
+
+***********************************************************************/
+static inline Aig_Obj_t * Pdr2_MuxImage( Aig_Obj_t ** pMap, Aig_Obj_t * pEdge )
+{
+    return Aig_NotCond(pMap[Aig_ObjId(Aig_Regular(pEdge))], Aig_IsComplement(pEdge));
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Rebuilds selected multiplexers from their positive product terms.]
+
+  Description [A regular AIG multiplexer root is a product of two negated
+  products. Rebuilding its positive sum of products preserves the full
+  transition relation, all outputs, and the order of the interface.]
+
+***********************************************************************/
+static Aig_Man_t * Pdr2_ManMuxPhase( Aig_Man_t * p, Pdr2_Par_t * pPars, abctime Stop, int Mode, int * pfUseful )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj, * pC, * pT, * pE, ** pMap;
+    int i, fXor, nMux = 0, nXor = 0, nEqual = 0;
+    if ( Mode < 1 || Mode > 3 || Aig_ManBufNum(p) || Aig_ManExorNum(p) ) return NULL;
+    pNew = Aig_ManStart(Aig_ManNodeNum(p));
+    pNew->pName = Abc_UtilStrsav(p->pName);
+    pNew->pSpec = Abc_UtilStrsav(p->pSpec);
+    pMap = ABC_ALLOC(Aig_Obj_t *, Aig_ManObjNumMax(p));
+    pMap[Aig_ObjId(Aig_ManConst1(p))] = Aig_ManConst1(pNew);
+    Aig_ManForEachCi(p, pObj, i)
+        pMap[Aig_ObjId(pObj)] = Aig_ObjCreateCi(pNew);
+    Aig_ManForEachNode(p, pObj, i)
+    {
+        if ( !(i & 4095) && ((Stop && Abc_Clock() >= Stop) ||
+             (pPars && pPars->pFuncStop && pPars->pFuncStop(pPars->RunId))) ) goto skip;
+        if ( Aig_ObjIsMuxType(pObj) )
+        {
+            pC = Aig_ObjRecognizeMux(pObj, &pT, &pE);
+            fXor = pT == Aig_Not(pE);
+            if ( Mode == 1 || Mode == (fXor ? 3 : 2) )
+            {
+                pT = Pdr2_MuxImage(pMap, pT);
+                pE = Pdr2_MuxImage(pMap, pE);
+                // Rewriting earlier gates can make the two data inputs equal.
+                pMap[i] = pT == pE ? pT : Aig_Mux(pNew, Pdr2_MuxImage(pMap, pC), pT, pE);
+                nEqual += pT == pE;
+                nXor += fXor;
+                nMux += !fXor;
+                continue;
+            }
+        }
+        pMap[i] = Aig_And(pNew, Pdr2_MuxImage(pMap, Aig_ObjChild0(pObj)),
+            Pdr2_MuxImage(pMap, Aig_ObjChild1(pObj)));
+    }
+    if ( pfUseful )
+    {
+        *pfUseful = nEqual && 5 * (nMux + nXor) >= Aig_ManNodeNum(p) && 20 * nXor >= Aig_ManNodeNum(p);
+        goto skip;
+    }
+    if ( !nMux && !nXor ) goto skip;
+    Aig_ManForEachCo(p, pObj, i)
+        Aig_ObjCreateCo(pNew, Pdr2_MuxImage(pMap, Aig_ObjChild0(pObj)));
+    Aig_ManSetRegNum(pNew, Aig_ManRegNum(p));
+    Aig_ManCleanup(pNew);
+    if ( pPars->fVerbose && !pPars->fSilent )
+        Abc_Print(1, "Multiplexer polarity: %d multiplexers and %d XORs, %d -> %d nodes.\n",
+            nMux, nXor, Aig_ManNodeNum(p), Aig_ManNodeNum(pNew));
+    ABC_FREE(pMap);
+    return pNew;
+skip:
+    ABC_FREE(pMap);
+    Aig_ManStop(pNew);
+    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Tests whether multiplexer rewriting collapses data inputs in a mux-rich circuit.]
+
+***********************************************************************/
+int Pdr2_ManHasMuxReduction( Aig_Man_t * p, Pdr2_Par_t * pPars, abctime Stop )
+{
+    int fUseful = 0;
+    if ( Aig_ManRegNum(p) < 32 || Aig_ManRegNum(p) > 512 || Aig_ManNodeNum(p) > 25000 ||
+         Aig_ManObjNumMax(p) > 100000 ) return 0;
+    Pdr2_ManMuxPhase(p, pPars, Stop, 1, &fUseful);
+    return fUseful;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks sequential safety with an explicit register reset vector.]
+
+***********************************************************************/
 int Pdr2_ManSolveInit( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
 {
     static const char * const pRunNames[5] = { "dynamic generalization", "CTG generalization", "abstraction with dynamic generalization",
@@ -5039,9 +6500,13 @@ int Pdr2_ManSolveInit( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
     char * pInit, * pInitGated = NULL, * pInitOrig = NULL;
     Vec_Int_t * vCoiPis = NULL, * vCoiRegs = NULL;
     int fGatedRun[5] = { 0, 0, 0, 0, 0 }, Order[5];
+    const char * pRewrite = Gip_OptionGet("PDR2_REWRITE");
+    int StridePrep = pPars->fStrideRun && Gip_OptionGet("PDR2_STRIDE_PREP") ?
+        atoi(Gip_OptionGet("PDR2_STRIDE_PREP")) : 0;
     int fWallSlices = Gip_OptionGet("PDR2_WALLSLICES") && atoi(Gip_OptionGet("PDR2_WALLSLICES"));
     int Race = Gip_OptionGet("PDR2_RACE") ? Abc_MaxInt(0, Abc_MinInt(2, atoi(Gip_OptionGet("PDR2_RACE")))) : 0;
     int RacePreferred = 0, fSimTraceDone = 0, fKindPrefixDone = 0, fReverseDone = 0;
+    int fRequireInv = pPars->fVerify && pPars->fVerifyComplete;
     double RaceSlice = Gip_OptionGet("PDR2_RACE_SLICE_MS") ?
         Abc_MaxInt(1, Abc_MinInt(60000, atoi(Gip_OptionGet("PDR2_RACE_SLICE_MS")))) / 1000.0 : 2.0;
     int RetValue = -1, fOrPos = 0, fPreproc = 0, fAlternate, nRuns, nAbsRuns, iPhase = 0, k = 0, j, fBmcDone = 0, fInitZero = 1, fExplicitDone = 0, fBddDone = 0, fSplitDone = 0, fShiftDone = 0, fStrideDone = 0, fPredDone = 0, fCombDone = 0;
@@ -5050,7 +6515,7 @@ int Pdr2_ManSolveInit( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
         return -1;
     if ( Gip_OptionGet("PDR2_PLAN") )
     {
-        Pdr2_ManPrintPolicy(pAig);
+        Pdr2_ManPrintPolicy(pAig, vInit);
         return -1;
     }
     if ( Gip_OptionGet("PDR2_FEATURES") )
@@ -5108,12 +6573,26 @@ int Pdr2_ManSolveInit( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
         pAigUsed = Saig_ManDupOrpos( pAig );
         fOrPos = 1;
     }
-    if ( (pPars->fPartRun || pPars->fShiftRun || (Gip_OptionGet("PDR2_COI") && atoi(Gip_OptionGet("PDR2_COI")))) && !Aig_ManBufNum(pAigUsed) && !Aig_ManExorNum(pAigUsed) )
+    // A completed invariant check uses the original latch interface.
+    if ( fRequireInv ) goto init_runs;
+    if ( (pPars->fPartRun || pPars->fShiftRun || (Gip_OptionGet("PDR2_COI") && atoi(Gip_OptionGet("PDR2_COI"))) ||
+          (Gip_OptionGet("PDR2_RESET_COI") && !pPars->fDumpInv && !pPars->fVerifyComplete)) && !Aig_ManBufNum(pAigUsed) && !Aig_ManExorNum(pAigUsed) )
     {
-        Aig_Man_t * pTemp;
-        int i, nPisOld = Saig_ManPiNum(pAigUsed), nRegsOld = Aig_ManRegNum(pAigUsed);
+        Aig_Man_t * pTemp, * pMerged = NULL, * pSource = pAigUsed;
+        int i, Merged, nPisOld = Saig_ManPiNum(pAigUsed), nRegsOld = Aig_ManRegNum(pAigUsed);
         abctime clk = Abc_Clock();
-        pTemp = Pdr2_ManDupCoi( pAigUsed, &vCoiPis, &vCoiRegs );
+        if ( StridePrep == 3 && !pPars->fDumpInv && !pPars->fVerifyComplete && !pPars->vPartCandidates )
+            pMerged = Pdr2_StrideMergeRegs(pAigUsed, pInit, &Merged);
+        if ( pMerged )
+        {
+            pSource = pMerged;
+            if ( pPars->fVerbose && !pPars->fSilent )
+                Abc_Print(1, "Stride register merging: %d equal or complementary next-state functions.\n", Merged);
+        }
+        if ( Gip_OptionGet("PDR2_RESET_COI") && !pPars->fDumpInv && !pPars->fVerifyComplete )
+            pTemp = Pdr2_ManDupResetCoi(pSource, pInit, pPars, timeGlobal, &vCoiPis, &vCoiRegs);
+        else pTemp = Pdr2_ManDupCoi( pSource, &vCoiPis, &vCoiRegs );
+        if ( pMerged ) Aig_ManStop(pMerged);
         pInitOrig = pInit;
         pInit = ABC_CALLOC( char, Aig_ManRegNum(pTemp) + 1 );
         for ( i = 0; i < Aig_ManRegNum(pTemp); i++ )
@@ -5140,20 +6619,30 @@ int Pdr2_ManSolveInit( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
             pAigUsed = pTemp; fOrPos = fPreproc = 1;
         }
     }
-    // Bounded combinational rewriting preserves CI/CO order and every
-    // next-state function. As with scorr, restrict this wrapper to zero
-    // initialization, for which its existing CEX mapping is exact.
-    if ( fInitZero && Aig_ManNodeNum(pAigUsed) &&
-         Gip_OptionGet("PDR2_REWRITE") && atoi(Gip_OptionGet("PDR2_REWRITE")) > 0 &&
-         ((!pPars->fPartRun && !pPars->fShiftRun && !pPars->fStrideRun && !pPars->fPredRun) ||
-          (Gip_OptionGet("PDR2_REWRITE_PART") && atoi(Gip_OptionGet("PDR2_REWRITE_PART")))) )
+    if ( Gip_OptionGet("PDR2_MUX_PHASE") )
+    {
+        Aig_Man_t * pTemp = Pdr2_ManMuxPhase(pAigUsed, pPars, timeGlobal, atoi(Gip_OptionGet("PDR2_MUX_PHASE")), NULL);
+        if ( pTemp )
+        {
+            if ( fOrPos ) Aig_ManStop(pAigUsed);
+            pAigUsed = pTemp;
+            fOrPos = 1;
+        }
+    }
+    // In a grouped transition the cone maps preserve the original reset
+    // vector and the chosen values of its don't-cares. Balancing and
+    // combinational rewriting preserve the order and functions of the COs.
+    if ( Aig_ManNodeNum(pAigUsed) && ((vCoiPis && (StridePrep == 1 || StridePrep == 2)) ||
+         (fInitZero && pRewrite && atoi(pRewrite) > 0 &&
+          ((!pPars->fPartRun && !pPars->fShiftRun && !pPars->fStrideRun && !pPars->fPredRun) ||
+           (Gip_OptionGet("PDR2_REWRITE_PART") && atoi(Gip_OptionGet("PDR2_REWRITE_PART")))))) )
     {
         Aig_Man_t * pTemp;
         abctime Start = Abc_Clock(), OldStop = pAigUsed->Time2Quit;
-        abctime Stop = Start + (abctime)atoi(Gip_OptionGet("PDR2_REWRITE"))*CLOCKS_PER_SEC;
+        abctime Stop = Start + (abctime)((StridePrep == 1 || StridePrep == 2) ? 8 : atoi(pRewrite))*CLOCKS_PER_SEC;
         if ( timeGlobal && Stop > timeGlobal ) Stop = timeGlobal;
         pAigUsed->Time2Quit = Stop;
-        pTemp = Dar_ManRwsat(pAigUsed, 1, 0);
+        pTemp = StridePrep == 1 ? Dar_ManBalance(pAigUsed, 0) : Dar_ManRwsat(pAigUsed, 1, 0);
         pAigUsed->Time2Quit = OldStop;
         if ( pTemp )
         {
@@ -5321,9 +6810,9 @@ init_runs:
         Pars[1].nInputPolicy = 2;
     }
     // the abstraction runs work on the design with a reset flop (built when the first of them starts)
-    if ( pPars->fAbsReset && pPars->fUseAbs )
+    if ( !fRequireInv && pPars->fAbsReset && pPars->fUseAbs )
         fGatedRun[0] = fGatedRun[1] = 1;
-    if ( pPars->fAbsReset && fAlternate && !pPars->fUseAbs && nAbsRuns > 0 )
+    if ( !fRequireInv && pPars->fAbsReset && fAlternate && !pPars->fUseAbs && nAbsRuns > 0 )
         fGatedRun[2] = fGatedRun[4] = 1;
     Budget[0] = pPars->fUseAbs ? Abc_MaxInt( 1, pPars->nAbsTime ) : pPars->nDynTime;
     Budget[1] = pPars->fUseAbs ? Abc_MaxInt( 1, pPars->nAbsTime ) : Abc_MaxInt( 1, pPars->nCtgTime );
@@ -5361,9 +6850,10 @@ init_runs:
             if ( pPars->fVerbose && !pPars->fSilent )
                 Abc_Print(1, "PDR race progress: ordinary %.3f, inputs %.3f; selected %d.\n", Score[0], Score[1], k);
         }
-        if ( !pPars->nInitLiReg )
+        // These engines cannot supply the invariant required by a strict verification request.
+        if ( !pPars->nInitLiReg && !fRequireInv )
         {
-        if ( iPhase == 0 && (RetValue = Pdr2_ManCombSafe(pAigUsed, pPars, timeGlobal)) == 1 )
+        if ( iPhase == 0 && (RetValue = Pdr2_ManCombSafe(pAigUsed, pPars, timeGlobal, NULL, NULL)) == 1 )
         {
             fBmcDone = fCombDone = 1;
             break;
@@ -5454,7 +6944,7 @@ init_runs:
         }
         if ( pMan[k] == NULL )
         {
-            if ( !pPars->nInitLiReg && iPhase == 0 && !pPars->fPredRun &&
+            if ( !pPars->nInitLiReg && !fRequireInv && iPhase == 0 && !pPars->fPredRun &&
                  ((RetValue = Pdr2_ManPredicates(pAigUsed, pInit, pPars, timeGlobal, &pCexBmc)) != -1 || Gip_OptionGet("PDR2_PRED_ONLY")) )
             {
                 fBmcDone = RetValue != -1;
@@ -5530,7 +7020,7 @@ init_runs:
         if ( Race && Budget[k] > 64 * RaceSlice ) Budget[k] = 64 * RaceSlice;
         // after the first slice (the examples that finish there pay nothing), a short BMC run
         // catches shallow counterexamples of designs on which every PDR frame is expensive
-        if ( !pPars->nInitLiReg && iPhase == 0 && !pPars->nPropLimit && pPars->nBmcTime > 0 && pPars->nFrameMax == 0 && (RetValue = Pdr2_ManBmcStage( pAigUsed, pInit, pPars, timeGlobal, &pCexBmc )) != -1 )
+        if ( !pPars->nInitLiReg && !fRequireInv && iPhase == 0 && !pPars->nPropLimit && pPars->nBmcTime > 0 && pPars->nFrameMax == 0 && (RetValue = Pdr2_ManBmcStage( pAigUsed, pInit, pPars, timeGlobal, &pCexBmc )) != -1 )
         {
             fBmcDone = 1;
             break;
@@ -5625,8 +7115,20 @@ init_runs:
     }
     else if ( RetValue == 1 && fBmcDone )
     {
+        // With no initial states the false invariant is inductive. Check its initiation independently.
+        if ( fRequireInv )
+        {
+            RetValue = -1;
+            if ( p && p->fInitEmpty )
+            {
+                Gip_Solver_t * pCheck = Pdr2_ManNewSolver(p, 1);
+                pCheck->TimeLimit = p->timeGlobal;
+                if ( Gip_SolverSolve(pCheck, NULL, 0, NULL, NULL, 0, -1) == GIP_UNSAT ) RetValue = 1;
+                Gip_SolverFree(pCheck);
+            }
+        }
         // An exhaustive reachability proof leaves no PDR invariant.
-        if ( pPars->fDumpInv && !pPars->fSilent )
+        if ( RetValue == 1 && pPars->fDumpInv && !pPars->fSilent )
             Abc_Print( 1, "The property was proved by %s; there is no single PDR invariant to dump.\n", p && p->fInitEmpty ? "empty initial-state predicate" : p && p->fKindProved ? "k-induction with a PDR-verified base" : fCombDone ? "combinational safety" : fPredDone ? "state predicate extension" : fStrideDone ? "transition grouping" : fShiftDone ? "property lookahead" : fSplitDone ? "property decomposition" : fBddDone ? "BDD reachability" : fExplicitDone ? "explicit reachability" : "BMC" );
     }
     else if ( RetValue == 1 )

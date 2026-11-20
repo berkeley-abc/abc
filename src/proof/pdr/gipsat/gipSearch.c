@@ -86,7 +86,7 @@ int Gip_SolverCanSkipDecision( Gip_Solver_t * p, int Var )
         Gip_WVec_t * pW = &p->pWatchers[2*Var+k];
         for ( i = 0; i < pW->nSize; i++ )
             if ( Gip_SolverLitValue(p, pW->pArray[i].blocker) != GIP_TRUE &&
-                 !Gip_SolverClauseSatisfiedOrOutside(p, pW->pArray[i].clause) )
+                 !Gip_SolverClauseSatisfiedOrOutside(p, Gip_WatchRef(pW->pArray[i].clause)) )
                 return 0;
     }
     if ( !p->pJustSkip[Var] )
@@ -174,7 +174,8 @@ static int Gip_SolverSearch( Gip_Solver_t * p, int * pAssump, int nAssump, doubl
             if ( Gip_SolverLevelOf(p) == 0 )
             {
                 Gip_LitSetClear( &p->UnsatCore );
-                p->iCoreFrame = Gip_SolverConflictFrame( p, Conflict );
+                p->fTrivialUnsat = 1;
+                p->iTrivialFrame = p->iCoreFrame = Gip_SolverConflictFrame( p, Conflict );
                 return GIP_UNSAT;
             }
             btl = Gip_SolverAnalyze( p, Conflict, p->vLearntCls );
