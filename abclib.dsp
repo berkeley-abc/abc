@@ -5389,6 +5389,242 @@ SOURCE=.\src\map\emap\emapCore.c
 # Begin Group "misc"
 
 # PROP Default_Filter ""
+# Begin Group "espresso"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cofactor.c
+# ADD CPP /Fo"$(INTDIR)\espresso_cofactor.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cols.c
+# ADD CPP /Fo"$(INTDIR)\espresso_cols.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\compl.c
+# ADD CPP /Fo"$(INTDIR)\espresso_compl.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\contain.c
+# ADD CPP /Fo"$(INTDIR)\espresso_contain.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cubehack.c
+# ADD CPP /Fo"$(INTDIR)\espresso_cubehack.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cubestr.c
+# ADD CPP /Fo"$(INTDIR)\espresso_cubestr.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cvrin.c
+# ADD CPP /Fo"$(INTDIR)\espresso_cvrin.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cvrm.c
+# ADD CPP /Fo"$(INTDIR)\espresso_cvrm.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cvrmisc.c
+# ADD CPP /Fo"$(INTDIR)\espresso_cvrmisc.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cvrout.c
+# ADD CPP /Fo"$(INTDIR)\espresso_cvrout.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\dominate.c
+# ADD CPP /Fo"$(INTDIR)\espresso_dominate.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\equiv.c
+# ADD CPP /Fo"$(INTDIR)\espresso_equiv.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\espresso.c
+# ADD CPP /Fo"$(INTDIR)\espresso_espresso.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\espresso.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\espressoPort.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\espressoRename.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\essen.c
+# ADD CPP /Fo"$(INTDIR)\espresso_essen.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\exact.c
+# ADD CPP /Fo"$(INTDIR)\espresso_exact.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\expand.c
+# ADD CPP /Fo"$(INTDIR)\espresso_expand.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\gasp.c
+# ADD CPP /Fo"$(INTDIR)\espresso_gasp.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\gimpel.c
+# ADD CPP /Fo"$(INTDIR)\espresso_gimpel.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\globals.c
+# ADD CPP /Fo"$(INTDIR)\espresso_globals.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\hack.c
+# ADD CPP /Fo"$(INTDIR)\espresso_hack.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\indep.c
+# ADD CPP /Fo"$(INTDIR)\espresso_indep.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\irred.c
+# ADD CPP /Fo"$(INTDIR)\espresso_irred.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\main.c
+# ADD CPP /Fo"$(INTDIR)\espresso_main.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\main.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\map.c
+# ADD CPP /Fo"$(INTDIR)\espresso_map.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\matrix.c
+# ADD CPP /Fo"$(INTDIR)\espresso_matrix.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\mincov.c
+# ADD CPP /Fo"$(INTDIR)\espresso_mincov.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\mincov.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\mincov_int.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\opo.c
+# ADD CPP /Fo"$(INTDIR)\espresso_opo.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\pair.c
+# ADD CPP /Fo"$(INTDIR)\espresso_pair.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\part.c
+# ADD CPP /Fo"$(INTDIR)\espresso_part.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\primes.c
+# ADD CPP /Fo"$(INTDIR)\espresso_primes.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\reduce.c
+# ADD CPP /Fo"$(INTDIR)\espresso_reduce.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\rows.c
+# ADD CPP /Fo"$(INTDIR)\espresso_rows.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\set.c
+# ADD CPP /Fo"$(INTDIR)\espresso_set.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\setc.c
+# ADD CPP /Fo"$(INTDIR)\espresso_setc.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\sharp.c
+# ADD CPP /Fo"$(INTDIR)\espresso_sharp.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\sminterf.c
+# ADD CPP /Fo"$(INTDIR)\espresso_sminterf.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\solution.c
+# ADD CPP /Fo"$(INTDIR)\espresso_solution.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\sparse.c
+# ADD CPP /Fo"$(INTDIR)\espresso_sparse.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\sparse.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\sparse_int.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\unate.c
+# ADD CPP /Fo"$(INTDIR)\espresso_unate.obj"
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\verify.c
+# ADD CPP /Fo"$(INTDIR)\espresso_verify.obj"
+# End Source File
+# End Group
 # Begin Group "extra"
 
 # PROP Default_Filter ""

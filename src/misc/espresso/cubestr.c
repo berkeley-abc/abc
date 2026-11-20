@@ -24,10 +24,10 @@ ABC_NAMESPACE_IMPL_START
     If a part_size is < 0, then the field size is abs(part_size) and the
     field read from the input is symbolic.
 */
-void cube_setup()
+void cube_setup(void)
 {
-    register int i, var;
-    register pcube p;
+    int i, var;
+    pcube p;
 
     if (cube.num_binary_vars < 0 || cube.num_vars < cube.num_binary_vars)
     fatal("cube size is silly, error in .i/.o or .mv");
@@ -43,6 +43,9 @@ void cube_setup()
     for(var = 0; var < cube.num_vars; var++) {
     if (var < cube.num_binary_vars)
         cube.part_size[var] = 2;
+    if (cube.part_size[var] == INT_MIN || !cube.part_size[var] ||
+        ABS(cube.part_size[var]) > ESPRESSO_MAX_SET - cube.size)
+        fatal("cube size exceeds packed set capacity");
     cube.first_part[var] = cube.size;
     cube.first_word[var] = WHICH_WORD(cube.size);
     cube.size += ABS(cube.part_size[var]);
@@ -92,9 +95,9 @@ void cube_setup()
     (I wanted to call this cube_setdown, but that violates the 8-character
     external routine limit on the IBM !)
 */
-void setdown_cube()
+void setdown_cube(void)
 {
-    register int i, var;
+    int i, var;
 
     FREE(cube.first_part);
     FREE(cube.last_part);
@@ -127,11 +130,11 @@ void setdown_cube()
     cube.var_mask = cube.temp = (pcube *) NULL;
 
     cdata.part_zeros = cdata.var_zeros = cdata.parts_active = (int *) NULL;
-    cdata.is_unate = (bool *) NULL;
+    cdata.is_unate = (espresso_bool *) NULL;
 }
 
 
-void save_cube_struct()
+void save_cube_struct(void)
 {
     temp_cube_save = cube;              /* structure copy ! */
     temp_cdata_save = cdata;            /*      ""          */
@@ -144,11 +147,11 @@ void save_cube_struct()
     cube.var_mask = cube.temp = (pcube *) NULL;
 
     cdata.part_zeros = cdata.var_zeros = cdata.parts_active = (int *) NULL;
-    cdata.is_unate = (bool *) NULL;
+    cdata.is_unate = (espresso_bool *) NULL;
 }
 
 
-void restore_cube_struct()
+void restore_cube_struct(void)
 {
     cube = temp_cube_save;              /* structure copy ! */
     cdata = temp_cdata_save;            /*      ""          */

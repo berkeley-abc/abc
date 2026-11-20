@@ -11,14 +11,15 @@
  *  espresso.h -- header file for Espresso-mv
  */
 
+#ifndef ABC__misc__espresso__espresso_h
+#define ABC__misc__espresso__espresso_h
+
 //#include "port.h"
 //#include "utility.h"
 #include "sparse.h"
 #include "mincov.h"
 
-#include "util_hack.h" // added
-
-#define ABC__misc__espresso__espresso_h
+ABC_NAMESPACE_HEADER_START
 #define print_time(t)    util_print_time(t)
 
 #ifdef IBM_WATC
@@ -55,12 +56,8 @@
 
 
 /* Define host machine characteristics of "unsigned int" */
-#ifndef ABC__misc__espresso__espresso_h
-#define BPI
-
-
-ABC_NAMESPACE_HEADER_START
-             32              /* # bits per integer */
+#ifndef BPI
+#define BPI             32              /* # bits per integer */
 #endif
 
 #if BPI == 32
@@ -106,13 +103,14 @@ typedef struct set_family {
 #if BPI == 32
 #define LOOPCOPY(set)           LOOP(set)
 #define SIZE(set)               (set[0] >> 16)
-#define PUTSIZE(set, size)      (set[0] &= 0xffff, set[0] |= ((size) << 16))
+#define PUTSIZE(set, size)      (set[0] &= 0xffff, set[0] |= ((unsigned)(size) << 16))
 #else
 #define LOOPCOPY(set)           (LOOP(set) + 1)
 #define SIZE(set)               (set[LOOP(set)+1])
 #define PUTSIZE(set, size)      ((set[LOOP(set)+1]) = (size))
 #endif
 
+#define ESPRESSO_MAX_SET (0x03ff * BPI)
 #define NELEM(set)        (BPI * LOOP(set))
 #define LOOPINIT(size)        ((size <= BPI) ? 1 : WHICH_WORD((size)-1))
 
@@ -167,9 +165,9 @@ typedef struct set_family {
 #define set_free(r)    FREE(r)
 
 /* Check for set membership, remove set element and insert set element */
-#define is_in_set(set, e)       (set[WHICH_WORD(e)] & (1 << WHICH_BIT(e)))
-#define set_remove(set, e)      (set[WHICH_WORD(e)] &= ~ (1 << WHICH_BIT(e)))
-#define set_insert(set, e)      (set[WHICH_WORD(e)] |= 1 << WHICH_BIT(e))
+#define is_in_set(set, e)       (set[WHICH_WORD(e)] & (1U << WHICH_BIT(e)))
+#define set_remove(set, e)      (set[WHICH_WORD(e)] &= ~ (1U << WHICH_BIT(e)))
+#define set_insert(set, e)      (set[WHICH_WORD(e)] |= 1U << WHICH_BIT(e))
 
 /* Inline code substitution for those places that REALLY need it on a VAX */
 #ifdef NO_INLINE
@@ -193,46 +191,46 @@ typedef struct set_family {
 #else
 
 #define INLINEset_copy(r, a)\
-    {register int i_=LOOPCOPY(a); do r[i_]=a[i_]; while (--i_>=0);}
+    {int i_=LOOPCOPY(a); do r[i_]=a[i_]; while (--i_>=0);}
 #define INLINEset_clear(r, size)\
-    {register int i_=LOOPINIT(size); *r=i_; do r[i_] = 0; while (--i_ > 0);}
+    {int i_=LOOPINIT(size); *r=i_; do r[i_] = 0; while (--i_ > 0);}
 #define INLINEset_fill(r, size)\
-    {register int i_=LOOPINIT(size); *r=i_; \
-    r[i_]=((unsigned int)(~0))>>(i_*BPI-size); while(--i_>0) r[i_]=~0;}
+    {int i_=LOOPINIT(size); *r=i_; \
+    r[i_]=(size) ? ~0U >> (i_*BPI-(size)) : 0; while(--i_>0) r[i_]=~0;}
 #define INLINEset_and(r, a, b)\
-    {register int i_=LOOP(a); PUTLOOP(r,i_);\
+    {int i_=LOOP(a); PUTLOOP(r,i_);\
     do r[i_] = a[i_] & b[i_]; while (--i_>0);}
 #define INLINEset_or(r, a, b)\
-    {register int i_=LOOP(a); PUTLOOP(r,i_);\
+    {int i_=LOOP(a); PUTLOOP(r,i_);\
     do r[i_] = a[i_] | b[i_]; while (--i_>0);}
 #define INLINEset_diff(r, a, b)\
-    {register int i_=LOOP(a); PUTLOOP(r,i_);\
+    {int i_=LOOP(a); PUTLOOP(r,i_);\
     do r[i_] = a[i_] & ~ b[i_]; while (--i_>0);}
 #define INLINEset_ndiff(r, a, b, fullset)\
-    {register int i_=LOOP(a); PUTLOOP(r,i_);\
+    {int i_=LOOP(a); PUTLOOP(r,i_);\
     do r[i_] = fullset[i_] & (a[i_] | ~ b[i_]); while (--i_>0);}
 #ifdef IBM_WATC
 #define INLINEset_xor(r, a, b)        (void) set_xor(r, a, b)
 #define INLINEset_xnor(r, a, b, f)    (void) set_xnor(r, a, b, f)
 #else
 #define INLINEset_xor(r, a, b)\
-    {register int i_=LOOP(a); PUTLOOP(r,i_);\
+    {int i_=LOOP(a); PUTLOOP(r,i_);\
     do r[i_] = a[i_] ^ b[i_]; while (--i_>0);}
 #define INLINEset_xnor(r, a, b, fullset)\
-    {register int i_=LOOP(a); PUTLOOP(r,i_);\
+    {int i_=LOOP(a); PUTLOOP(r,i_);\
     do r[i_] = fullset[i_] & ~ (a[i_] ^ b[i_]); while (--i_>0);}
 #endif
 #define INLINEset_merge(r, a, b, mask)\
-    {register int i_=LOOP(a); PUTLOOP(r,i_);\
+    {int i_=LOOP(a); PUTLOOP(r,i_);\
     do r[i_] = (a[i_]&mask[i_]) | (b[i_]&~mask[i_]); while (--i_>0);}
 #define INLINEsetp_implies(a, b, when_false)\
-    {register int i_=LOOP(a); do if (a[i_]&~b[i_]) break; while (--i_>0);\
+    {int i_=LOOP(a); do if (a[i_]&~b[i_]) break; while (--i_>0);\
     if (i_ != 0) when_false;}
 #define INLINEsetp_disjoint(a, b, when_false)\
-    {register int i_=LOOP(a); do if (a[i_]&b[i_]) break; while (--i_>0);\
+    {int i_=LOOP(a); do if (a[i_]&b[i_]) break; while (--i_>0);\
     if (i_ != 0) when_false;}
 #define INLINEsetp_equal(a, b, when_false)\
-    {register int i_=LOOP(a); do if (a[i_]!=b[i_]) break; while (--i_>0);\
+    {int i_=LOOP(a); do if (a[i_]!=b[i_]) break; while (--i_>0);\
     if (i_ != 0) when_false;}
 
 #endif
@@ -246,12 +244,12 @@ typedef struct set_family {
 #endif
 
 /* Table for efficient bit counting */
-extern int bit_count[256];
+extern const int bit_count[256];
 /*----- END OF set.h ----- */
 
 
 /* Define a boolean type */
-#define bool    int
+typedef int espresso_bool;
 #define FALSE    0
 #define TRUE     1
 #define MAYBE    2
@@ -403,11 +401,11 @@ typedef struct {
     (is_in_set(c, cube.first_part[cube.output] + pos) != 0)
 
 #define PUTINPUT(c, pos, value)\
-    c[WHICH_WORD(2*pos)] = (c[WHICH_WORD(2*pos)] & ~(3 << WHICH_BIT(2*pos)))\
-        | (value << WHICH_BIT(2*pos))
+    c[WHICH_WORD(2*pos)] = (c[WHICH_WORD(2*pos)] & ~(3U << WHICH_BIT(2*pos)))\
+        | ((unsigned)(value) << WHICH_BIT(2*pos))
 #define PUTOUTPUT(c, pos, value)\
-    c[WHICH_WORD(pos)] = (c[WHICH_WORD(pos)] & ~(1 << WHICH_BIT(pos)))\
-        | (value << WHICH_BIT(pos))
+    c[WHICH_WORD(pos)] = (c[WHICH_WORD(pos)] & ~(1U << WHICH_BIT(pos)))\
+        | ((unsigned)(value) << WHICH_BIT(pos))
 
 #define TWO     3
 #define DASH    3
@@ -426,36 +424,37 @@ typedef struct {
  *    Global Variable Declarations
  */
 
-extern unsigned int debug;              /* debug parameter */
-extern bool verbose_debug;              /* -v:  whether to print a lot */
-extern char *total_name[TIME_COUNT];    /* basic function names */
-extern long total_time[TIME_COUNT];     /* time spent in basic fcts */
-extern int total_calls[TIME_COUNT];     /* # calls to each fct */
+extern ABC_THREAD_LOCAL unsigned int debug;              /* debug parameter */
+extern ABC_THREAD_LOCAL espresso_bool verbose_debug;              /* -v:  whether to print a lot */
+extern ABC_THREAD_LOCAL const char *total_name[TIME_COUNT];    /* basic function names */
+extern ABC_THREAD_LOCAL long total_time[TIME_COUNT];     /* time spent in basic fcts */
+extern ABC_THREAD_LOCAL int total_calls[TIME_COUNT];     /* # calls to each fct */
+void Espresso_Reset(void);
 
-extern bool echo_comments;        /* turned off by -eat option */
-extern bool echo_unknown_commands;    /* always true ?? */
-extern bool force_irredundant;          /* -nirr command line option */
-extern bool skip_make_sparse;
-extern bool kiss;                       /* -kiss command line option */
-extern bool pos;                        /* -pos command line option */
-extern bool print_solution;             /* -x command line option */
-extern bool recompute_onset;            /* -onset command line option */
-extern bool remove_essential;           /* -ness command line option */
-extern bool single_expand;              /* -fast command line option */
-extern bool summary;                    /* -s command line option */
-extern bool trace;                      /* -t command line option */
-extern bool unwrap_onset;               /* -nunwrap command line option */
-extern bool use_random_order;        /* -random command line option */
-extern bool use_super_gasp;        /* -strong command line option */
-extern char *filename;            /* filename PLA was read from */
-extern bool debug_exact_minimization;   /* dumps info for -do exact */
+extern ABC_THREAD_LOCAL espresso_bool echo_comments;        /* turned off by -eat option */
+extern ABC_THREAD_LOCAL espresso_bool echo_unknown_commands;    /* always true ?? */
+extern ABC_THREAD_LOCAL espresso_bool force_irredundant;          /* -nirr command line option */
+extern ABC_THREAD_LOCAL espresso_bool skip_make_sparse;
+extern ABC_THREAD_LOCAL espresso_bool kiss;                       /* -kiss command line option */
+extern ABC_THREAD_LOCAL espresso_bool pos;                        /* -pos command line option */
+extern ABC_THREAD_LOCAL espresso_bool print_solution;             /* -x command line option */
+extern ABC_THREAD_LOCAL espresso_bool recompute_onset;            /* -onset command line option */
+extern ABC_THREAD_LOCAL espresso_bool remove_essential;           /* -ness command line option */
+extern ABC_THREAD_LOCAL espresso_bool single_expand;              /* -fast command line option */
+extern ABC_THREAD_LOCAL espresso_bool summary;                    /* -s command line option */
+extern ABC_THREAD_LOCAL espresso_bool trace;                      /* -t command line option */
+extern ABC_THREAD_LOCAL espresso_bool unwrap_onset;               /* -nunwrap command line option */
+extern ABC_THREAD_LOCAL espresso_bool use_random_order;        /* -random command line option */
+extern ABC_THREAD_LOCAL espresso_bool use_super_gasp;        /* -strong command line option */
+extern ABC_THREAD_LOCAL char *filename;            /* filename PLA was read from */
+extern ABC_THREAD_LOCAL espresso_bool debug_exact_minimization;   /* dumps info for -do exact */
 
 
 /*
  *  pla_types are the input and output types for reading/writing a PLA
  */
 struct pla_types_struct {
-    char *key;
+    const char *key;
     int value;
 };
 
@@ -494,16 +493,16 @@ struct cdata_struct {
     int *part_zeros;            /* count of zeros for each element */
     int *var_zeros;             /* count of zeros for each variable */
     int *parts_active;          /* number of "active" parts for each var */
-    bool *is_unate;             /* indicates given var is unate */
+    espresso_bool *is_unate;             /* indicates given var is unate */
     int vars_active;            /* number of "active" variables */
     int vars_unate;             /* number of unate variables */
     int best;                   /* best "binate" variable */
 };
 
 
-extern struct pla_types_struct pla_types[];
-extern struct cube_struct cube, temp_cube_save;
-extern struct cdata_struct cdata, temp_cdata_save;
+extern const struct pla_types_struct pla_types[];
+extern ABC_THREAD_LOCAL struct cube_struct cube, temp_cube_save;
+extern ABC_THREAD_LOCAL struct cdata_struct cdata, temp_cdata_save;
 
 #ifdef lint
 #define DISJOINT 0x5555
@@ -514,273 +513,277 @@ extern struct cdata_struct cdata, temp_cdata_save;
 #define DISJOINT 0x5555
 #endif
 
-
-ABC_NAMESPACE_HEADER_END
-
 #endif
 
 /* function declarations */
 
-/* cofactor.c */    extern int binate_split_select();
-/* cofactor.c */    extern pcover cubeunlist();
-/* cofactor.c */    extern pcube *cofactor();
-/* cofactor.c */    extern pcube *cube1list();
-/* cofactor.c */    extern pcube *cube2list();
-/* cofactor.c */    extern pcube *cube3list();
-/* cofactor.c */    extern pcube *scofactor();
-/* cofactor.c */    extern void massive_count();
-/* compl.c */    extern pcover complement();
-/* compl.c */    extern pcover simplify();
-/* compl.c */    extern void simp_comp();
-/* contain.c */    extern int d1_rm_equal();
-/* contain.c */    extern int rm2_contain();
-/* contain.c */    extern int rm2_equal();
-/* contain.c */    extern int rm_contain();
-/* contain.c */    extern int rm_equal();
-/* contain.c */    extern int rm_rev_contain();
-/* contain.c */    extern pset *sf_list();
-/* contain.c */    extern pset *sf_sort();
-/* contain.c */    extern pset_family d1merge();
-/* contain.c */    extern pset_family dist_merge();
-/* contain.c */    extern pset_family sf_contain();
-/* contain.c */    extern pset_family sf_dupl();
-/* contain.c */    extern pset_family sf_ind_contain();
-/* contain.c */    extern pset_family sf_ind_unlist();
-/* contain.c */    extern pset_family sf_merge();
-/* contain.c */    extern pset_family sf_rev_contain();
-/* contain.c */    extern pset_family sf_union();
-/* contain.c */    extern pset_family sf_unlist();
-/* cubestr.c */    extern void cube_setup();
-/* cubestr.c */    extern void restore_cube_struct();
-/* cubestr.c */    extern void save_cube_struct();
-/* cubestr.c */    extern void setdown_cube();
-/* cvrin.c */    extern void PLA_labels();
-/* cvrin.c */    extern char *get_word();
-/* cvrin.c */    extern int label_index();
-/* cvrin.c */    extern int read_pla();
-/* cvrin.c */    extern int read_symbolic();
-/* cvrin.c */    extern pPLA new_PLA();
-/* cvrin.c */    extern void PLA_summary();
-/* cvrin.c */    extern void free_PLA();
-/* cvrin.c */    extern void parse_pla();
-/* cvrin.c */    extern void read_cube();
-/* cvrin.c */    extern void skip_line();
-/* cvrm.c */    extern void foreach_output_function();
-/* cvrm.c */    extern int cubelist_partition();
-/* cvrm.c */    extern int so_both_do_espresso();
-/* cvrm.c */    extern int so_both_do_exact();
-/* cvrm.c */    extern int so_both_save();
-/* cvrm.c */    extern int so_do_espresso();
-/* cvrm.c */    extern int so_do_exact();
-/* cvrm.c */    extern int so_save();
-/* cvrm.c */    extern pcover cof_output();
-/* cvrm.c */    extern pcover lex_sort();
-/* cvrm.c */    extern pcover mini_sort();
-/* cvrm.c */    extern pcover random_order();
-/* cvrm.c */    extern pcover size_sort();
-/* cvrm.c */    extern pcover sort_reduce();
-/* cvrm.c */    extern pcover uncof_output();
-/* cvrm.c */    extern pcover unravel();
-/* cvrm.c */    extern pcover unravel_range();
-/* cvrm.c */    extern void so_both_espresso();
-/* cvrm.c */    extern void so_espresso();
-/* cvrmisc.c */    extern char *fmt_cost();
-/* cvrmisc.c */    extern char *print_cost();
-/* cvrmisc.c */    extern char *strsav();
-/* cvrmisc.c */    extern void copy_cost();
-/* cvrmisc.c */    extern void cover_cost();
-/* cvrmisc.c */    extern void fatal();
-/* cvrmisc.c */    extern void print_trace();
-/* cvrmisc.c */    extern void size_stamp();
-/* cvrmisc.c */    extern void totals();
-/* cvrout.c */    extern char *fmt_cube();
-/* cvrout.c */    extern char *fmt_expanded_cube();
-/* cvrout.c */    extern char *pc1();
-/* cvrout.c */    extern char *pc2();
-/* cvrout.c */    extern char *pc3();
-/* cvrout.c */    extern void makeup_labels();
-/* cvrout.c */    extern void kiss_output();
-/* cvrout.c */    extern void kiss_print_cube();
-/* cvrout.c */    extern void output_symbolic_constraints();
-/* cvrout.c */    extern void cprint();
-/* cvrout.c */    extern void debug1_print();
-/* cvrout.c */    extern void debug_print();
-/* cvrout.c */    extern void eqn_output();
-/* cvrout.c */    extern void fpr_header();
-/* cvrout.c */    extern void fprint_pla();
-/* cvrout.c */    extern void pls_group();
-/* cvrout.c */    extern void pls_label();
-/* cvrout.c */    extern void pls_output();
-/* cvrout.c */    extern void print_cube();
-/* cvrout.c */    extern void print_expanded_cube();
-/* cvrout.c */    extern void sf_debug_print();
-/* equiv.c */    extern void find_equiv_outputs();
-/* equiv.c */    extern int check_equiv();
-/* espresso.c */    extern pcover espresso();
-/* essen.c */    extern bool essen_cube();
-/* essen.c */    extern pcover cb_consensus();
-/* essen.c */    extern pcover cb_consensus_dist0();
-/* essen.c */    extern pcover essential();
-/* exact.c */    extern pcover minimize_exact();
-/* exact.c */    extern pcover minimize_exact_literals();
-/* expand.c */    extern bool feasibly_covered();
-/* expand.c */    extern int most_frequent();
-/* expand.c */    extern pcover all_primes();
-/* expand.c */    extern pcover expand();
-/* expand.c */    extern pcover find_all_primes();
-/* expand.c */    extern void elim_lowering();
-/* expand.c */    extern void essen_parts();
-/* expand.c */    extern void essen_raising();
-/* expand.c */    extern void expand1();
-/* expand.c */    extern void mincov();
-/* expand.c */    extern void select_feasible();
-/* expand.c */    extern void setup_BB_CC();
-/* gasp.c */    extern pcover expand_gasp();
-/* gasp.c */    extern pcover irred_gasp();
-/* gasp.c */    extern pcover last_gasp();
-/* gasp.c */    extern pcover super_gasp();
-/* gasp.c */    extern void expand1_gasp();
-/* getopt.c */    extern int util_getopt();
-/* hack.c */    extern void find_dc_inputs();
-/* hack.c */    extern void find_inputs();
-/* hack.c */    extern void form_bitvector();
-/* hack.c */    extern void map_dcset();
-/* hack.c */    extern void map_output_symbolic();
-/* hack.c */    extern void map_symbolic();
-/* hack.c */    extern pcover map_symbolic_cover();
-/* hack.c */    extern void symbolic_hack_labels();
-/* irred.c */    extern bool cube_is_covered();
-/* irred.c */    extern bool taut_special_cases();
-/* irred.c */    extern bool tautology();
-/* irred.c */    extern pcover irredundant();
-/* irred.c */    extern void mark_irredundant();
-/* irred.c */    extern void irred_split_cover();
-/* irred.c */    extern sm_matrix *irred_derive_table();
-/* map.c */    extern pset minterms();
-/* map.c */    extern void explode();
-/* map.c */    extern void map();
-/* opo.c */    extern void output_phase_setup();
-/* opo.c */    extern pPLA set_phase();
-/* opo.c */    extern pcover opo();
-/* opo.c */    extern pcube find_phase();
-/* opo.c */    extern pset_family find_covers();
-/* opo.c */    extern pset_family form_cover_table();
-/* opo.c */    extern pset_family opo_leaf();
-/* opo.c */    extern pset_family opo_recur();
-/* opo.c */    extern void opoall();
-/* opo.c */    extern void phase_assignment();
-/* opo.c */    extern void repeated_phase_assignment();
-/* pair.c */    extern void generate_all_pairs();
-/* pair.c */    extern int **find_pairing_cost();
-/* pair.c */    extern void find_best_cost();
-/* pair.c */    extern int greedy_best_cost();
-/* pair.c */    extern void minimize_pair();
-/* pair.c */    extern void pair_free();
-/* pair.c */    extern void pair_all();
-/* pair.c */    extern pcover delvar();
-/* pair.c */    extern pcover pairvar();
-/* pair.c */    extern ppair pair_best_cost();
-/* pair.c */    extern ppair pair_new();
-/* pair.c */    extern ppair pair_save();
-/* pair.c */    extern void print_pair();
-/* pair.c */    extern void find_optimal_pairing();
-/* pair.c */    extern void set_pair();
-/* pair.c */    extern void set_pair1();
-/* primes.c */    extern pcover primes_consensus();
-/* reduce.c */    extern bool sccc_special_cases();
-/* reduce.c */    extern pcover reduce();
-/* reduce.c */    extern pcube reduce_cube();
-/* reduce.c */    extern pcube sccc();
-/* reduce.c */    extern pcube sccc_cube();
-/* reduce.c */    extern pcube sccc_merge();
-/* set.c */    extern bool set_andp();
-/* set.c */    extern bool set_orp();
-/* set.c */    extern bool setp_disjoint();
-/* set.c */    extern bool setp_empty();
-/* set.c */    extern bool setp_equal();
-/* set.c */    extern bool setp_full();
-/* set.c */    extern bool setp_implies();
-/* set.c */    extern char *pbv1();
-/* set.c */    extern char *ps1();
-/* set.c */    extern int *sf_count();
-/* set.c */    extern int *sf_count_restricted();
-/* set.c */    extern int bit_index();
-/* set.c */    extern int set_dist();
-/* set.c */    extern int set_ord();
-/* set.c */    extern void set_adjcnt();
-/* set.c */    extern pset set_and();
-/* set.c */    extern pset set_clear();
-/* set.c */    extern pset set_copy();
-/* set.c */    extern pset set_diff();
-/* set.c */    extern pset set_fill();
-/* set.c */    extern pset set_merge();
-/* set.c */    extern pset set_or();
-/* set.c */    extern pset set_xor();
-/* set.c */    extern pset sf_and();
-/* set.c */    extern pset sf_or();
-/* set.c */    extern pset_family sf_active();
-/* set.c */    extern pset_family sf_addcol();
-/* set.c */    extern pset_family sf_addset();
-/* set.c */    extern pset_family sf_append();
-/* set.c */    extern pset_family sf_bm_read();
-/* set.c */    extern pset_family sf_compress();
-/* set.c */    extern pset_family sf_copy();
-/* set.c */    extern pset_family sf_copy_col();
-/* set.c */    extern pset_family sf_delc();
-/* set.c */    extern pset_family sf_delcol();
-/* set.c */    extern pset_family sf_inactive();
-/* set.c */    extern pset_family sf_join();
-/* set.c */    extern pset_family sf_new();
-/* set.c */    extern pset_family sf_permute();
-/* set.c */    extern pset_family sf_read();
-/* set.c */    extern pset_family sf_save();
-/* set.c */    extern pset_family sf_transpose();
-/* set.c */    extern void set_write();
-/* set.c */    extern void sf_bm_print();
-/* set.c */    extern void sf_cleanup();
-/* set.c */    extern void sf_delset();
-/* set.c */    extern void sf_free();
-/* set.c */    extern void sf_print();
-/* set.c */    extern void sf_write();
-/* setc.c */    extern bool ccommon();
-/* setc.c */    extern bool cdist0();
-/* setc.c */    extern bool full_row();
-/* setc.c */    extern int ascend();
-/* setc.c */    extern int cactive();
-/* setc.c */    extern int cdist();
-/* setc.c */    extern int cdist01();
-/* setc.c */    extern int cvolume();
-/* setc.c */    extern int d1_order();
-/* setc.c */    extern int d1_order_size();
-/* setc.c */    extern int desc1();
-/* setc.c */    extern int descend();
-/* setc.c */    extern int lex_order();
-/* setc.c */    extern int lex_order1();
-/* setc.c */    extern pset force_lower();
-/* setc.c */    extern void consensus();
-/* sharp.c */    extern pcover cb1_dsharp();
-/* sharp.c */    extern pcover cb_dsharp();
-/* sharp.c */    extern pcover cb_recur_dsharp();
-/* sharp.c */    extern pcover cb_recur_sharp();
-/* sharp.c */    extern pcover cb_sharp();
-/* sharp.c */    extern pcover cv_dsharp();
-/* sharp.c */    extern pcover cv_intersect();
-/* sharp.c */    extern pcover cv_sharp();
-/* sharp.c */    extern pcover dsharp();
-/* sharp.c */    extern pcover make_disjoint();
-/* sharp.c */    extern pcover sharp();
-/* sminterf.c */pset do_sm_minimum_cover();
-/* sparse.c */    extern pcover make_sparse();
-/* sparse.c */    extern pcover mv_reduce();
-/* unate.c */    extern pcover find_all_minimal_covers_petrick();
-/* unate.c */    extern pcover map_cover_to_unate();
-/* unate.c */    extern pcover map_unate_to_cover();
-/* unate.c */    extern pset_family exact_minimum_cover();
-/* unate.c */    extern pset_family gen_primes();
-/* unate.c */    extern pset_family unate_compl();
-/* unate.c */    extern pset_family unate_complement();
-/* unate.c */    extern pset_family unate_intersect();
-/* verify.c */    extern void PLA_permute();
-/* verify.c */    extern bool PLA_verify();
-/* verify.c */    extern bool check_consistency();
-/* verify.c */    extern bool verify();
+/* cofactor.c */    extern int binate_split_select(pcube *T, pcube cleft, pcube cright, int debug_flag);
+/* cofactor.c */    extern pcover cubeunlist(pcube *A1);
+/* cofactor.c */    extern pcube *cofactor(pcube *T, pcube c);
+/* cofactor.c */    extern pcube *cube1list(pcover A);
+/* cofactor.c */    extern pcube *cube2list(pcover A, pcover B);
+/* cofactor.c */    extern pcube *cube3list(pcover A, pcover B, pcover C);
+/* cofactor.c */    extern pcube *scofactor(pcube *T, pcube c, int var);
+/* cofactor.c */    extern void massive_count(pcube *T);
+/* compl.c */    extern pcover complement(pcube *T);
+/* compl.c */    extern pcover simplify(pcube *T);
+/* compl.c */    extern void simp_comp(pcube *T, pcover *Tnew, pcover *Tbar);
+/* contain.c */    extern int d1_rm_equal(pset *A1, int (*compare)(const void *, const void *));
+/* contain.c */    extern int rm2_contain(pset *A1, pset *B1);
+/* contain.c */    extern int rm2_equal(pset *A1, pset *B1, pset *E1, int (*compare)(const void *, const void *));
+/* contain.c */    extern int rm_contain(pset *A1);
+/* contain.c */    extern int rm_equal(pset *A1, int (*compare)(const void *, const void *));
+/* contain.c */    extern int rm_rev_contain(pset *A1);
+/* contain.c */    extern pset *sf_list(pset_family A);
+/* contain.c */    extern pset *sf_sort(pset_family A, int (*compare)(const void *, const void *));
+/* contain.c */    extern pset_family d1merge(pset_family A, int var);
+/* contain.c */    extern pset_family dist_merge(pset_family A, pset mask);
+/* contain.c */    extern pset_family sf_contain(pset_family A);
+/* contain.c */    extern pset_family sf_dupl(pset_family A);
+/* contain.c */    extern pset_family sf_ind_contain(pset_family A, int *row_indices);
+/* contain.c */    extern pset_family sf_ind_unlist(pset *A1, int totcnt, int size, int *row_indices, pset pfirst);
+/* contain.c */    extern pset_family sf_merge(pset *A1, pset *B1, pset *E1, int totcnt, int size);
+/* contain.c */    extern pset_family sf_rev_contain(pset_family A);
+/* contain.c */    extern pset_family sf_union(pset_family A, pset_family B);
+/* contain.c */    extern pset_family sf_unlist(pset *A1, int totcnt, int size);
+/* cubestr.c */    extern void cube_setup(void);
+/* cubestr.c */    extern void restore_cube_struct(void);
+/* cubestr.c */    extern void save_cube_struct(void);
+/* cubestr.c */    extern void setdown_cube(void);
+/* cvrin.c */    extern void PLA_labels(pPLA PLA);
+/* cvrin.c */    extern char *get_word(FILE *fp, char *word);
+/* cvrin.c */    extern int label_index(pPLA PLA, char *word, int *varp, int *ip);
+/* cvrin.c */    extern int read_pla(FILE *fp, espresso_bool needs_dcset, espresso_bool needs_offset, int pla_type, pPLA *PLA_return);
+/* cvrin.c */    extern int read_symbolic(FILE *fp, pPLA PLA, char *word, symbolic_t **retval);
+/* cvrin.c */    extern pPLA new_PLA(void);
+/* cvrin.c */    extern void PLA_summary(pPLA PLA);
+/* cvrin.c */    extern void free_PLA(pPLA PLA);
+/* cvrin.c */    extern void parse_pla(FILE *fp, pPLA PLA);
+/* cvrin.c */    extern void read_cube(FILE *fp, pPLA PLA);
+/* cvrin.c */    extern void skip_line(FILE *fpin, FILE *fpout, espresso_bool echo);
+/* cvrm.c */    extern void foreach_output_function(pPLA PLA, int (*func)(pPLA, int), int (*func1)(pPLA, int));
+/* cvrm.c */    extern int cubelist_partition(pcube *T, pcube **A, pcube **B, unsigned int comp_debug);
+/* cvrm.c */    extern int so_both_do_espresso(pPLA PLA, int i);
+/* cvrm.c */    extern int so_both_do_exact(pPLA PLA, int i);
+/* cvrm.c */    extern int so_both_save(pPLA PLA, int i);
+/* cvrm.c */    extern int so_do_espresso(pPLA PLA, int i);
+/* cvrm.c */    extern int so_do_exact(pPLA PLA, int i);
+/* cvrm.c */    extern int so_save(pPLA PLA, int i);
+/* cvrm.c */    extern pcover cof_output(pcover T, int i);
+/* cvrm.c */    extern pcover lex_sort(pcover T);
+/* cvrm.c */    extern pcover mini_sort(pcover F, int (*compare)(const void *, const void *));
+/* cvrm.c */    extern pcover random_order(pcover F);
+/* cvrm.c */    extern pcover size_sort(pcover T);
+/* cvrm.c */    extern pcover sort_reduce(pcover T);
+/* cvrm.c */    extern pcover uncof_output(pcover T, int i);
+/* cvrm.c */    extern pcover unravel(pcover B, int start);
+/* cvrm.c */    extern pcover unravel_range(pcover B, int start, int end);
+/* cvrm.c */    extern void so_both_espresso(pPLA PLA, int strategy);
+/* cvrm.c */    extern void so_espresso(pPLA PLA, int strategy);
+/* cvrmisc.c */    extern char *fmt_cost(pcost cost);
+/* cvrmisc.c */    extern char *print_cost(pcover F);
+
+/* cvrmisc.c */    extern void copy_cost(pcost s, pcost d);
+/* cvrmisc.c */    extern void cover_cost(pcover F, pcost cost);
+/* cvrmisc.c */    extern void fatal(const char *s);
+/* cvrmisc.c */    extern void print_trace(pcover T, const char *name, long time);
+/* cvrmisc.c */    extern void size_stamp(pcover T, const char *name);
+/* cvrmisc.c */    extern void totals(long time, int i, pcover T, pcost cost);
+/* cvrout.c */    extern char *fmt_cube(pcube c, const char *out_map, char *s);
+
+/* cvrout.c */    extern char *pc1(pcube c);
+/* cvrout.c */    extern char *pc2(pcube c);
+
+/* cvrout.c */    extern void makeup_labels(pPLA PLA);
+/* cvrout.c */    extern void kiss_output(FILE *fp, pPLA PLA);
+/* cvrout.c */    extern void kiss_print_cube(FILE *fp, pPLA PLA, pcube p, const char *out_string);
+/* cvrout.c */    extern void output_symbolic_constraints(FILE *fp, pPLA PLA, int output_symbolic);
+/* cvrout.c */    extern void cprint(pcover T);
+/* cvrout.c */    extern void debug1_print(pcover T, const char *name, int num);
+/* cvrout.c */    extern void debug_print(pcube *T, const char *name, int level);
+/* cvrout.c */    extern void eqn_output(pPLA PLA);
+/* cvrout.c */    extern void fpr_header(FILE *fp, pPLA PLA, int output_type);
+/* cvrout.c */    extern void fprint_pla(FILE *fp, pPLA PLA, int output_type);
+/* cvrout.c */    extern void pls_group(pPLA PLA, FILE *fp);
+/* cvrout.c */    extern void pls_label(pPLA PLA, FILE *fp);
+/* cvrout.c */    extern void pls_output(pPLA PLA);
+/* cvrout.c */    extern void print_cube(FILE *fp, pcube c, const char *out_map);
+/* cvrout.c */    extern void print_expanded_cube(FILE *fp, pcube c, pcube phase);
+
+/* equiv.c */    extern void find_equiv_outputs(pPLA PLA);
+/* equiv.c */    extern int check_equiv(pcover f1, pcover f2);
+/* espresso.c */    extern pcover espresso(pcover F, pcover D1, pcover R);
+/* essen.c */    extern espresso_bool essen_cube(pcover F, pcover D, pcube c);
+/* essen.c */    extern pcover cb_consensus(pcover T, pcube c);
+/* essen.c */    extern pcover cb_consensus_dist0(pcover R, pcube p, pcube c);
+/* essen.c */    extern pcover essential(pcover *Fp, pcover *Dp);
+/* exact.c */    extern pcover minimize_exact(pcover F, pcover D, pcover R, int exact_cover);
+/* exact.c */    extern pcover minimize_exact_literals(pcover F, pcover D, pcover R, int exact_cover);
+/* expand.c */    extern espresso_bool feasibly_covered(pcover BB, pcube c, pcube RAISE, pcube new_lower);
+/* expand.c */    extern int most_frequent(pcover CC, pcube FREESET);
+/* expand.c */    extern pcover all_primes(pcover F, pcover R);
+/* expand.c */    extern pcover expand(pcover F, pcover R, espresso_bool nonsparse);
+/* expand.c */    extern pcover find_all_primes(pcover BB, pcube RAISE, pcube FREESET);
+/* expand.c */    extern void elim_lowering(pcover BB, pcover CC, pcube RAISE, pcube FREESET);
+/* expand.c */    extern void essen_parts(pcover BB, pcover CC, pcube RAISE, pcube FREESET);
+/* expand.c */    extern void essen_raising(pcover BB, pcube RAISE, pcube FREESET);
+/* expand.c */    extern void expand1(pcover BB, pcover CC, pcube RAISE, pcube FREESET, pcube OVEREXPANDED_CUBE, pcube SUPER_CUBE, pcube INIT_LOWER, int *num_covered, pcube c);
+/* expand.c */    extern void mincov(pcover BB, pcube RAISE, pcube FREESET);
+/* expand.c */    extern void select_feasible(pcover BB, pcover CC, pcube RAISE, pcube FREESET, pcube SUPER_CUBE, int *num_covered);
+/* expand.c */    extern void setup_BB_CC(pcover BB, pcover CC);
+/* gasp.c */    extern pcover expand_gasp(pcover F, pcover D, pcover R, pcover Foriginal);
+/* gasp.c */    extern pcover irred_gasp(pcover F, pcover D, pcover G);
+/* gasp.c */    extern pcover last_gasp(pcover F, pcover D, pcover R, cost_t *cost);
+/* gasp.c */    extern pcover super_gasp(pcover F, pcover D, pcover R, cost_t *cost);
+/* gasp.c */    extern void expand1_gasp(pcover F, pcover D, pcover R, pcover Foriginal, int c1index, pcover *G);
+
+/* hack.c */    extern void find_dc_inputs(pPLA PLA, symbolic_list_t *list, int base, int maxval, pcover *newF, pcover *newD);
+/* hack.c */    extern void find_inputs(pcover A, pPLA PLA, symbolic_list_t *list, int base, int value, pcover *newF, pcover *newD);
+/* hack.c */    extern void form_bitvector(pset p, int base, int value, symbolic_list_t *list);
+/* hack.c */    extern void map_dcset(pPLA PLA);
+/* hack.c */    extern void map_output_symbolic(pPLA PLA);
+/* hack.c */    extern void map_symbolic(pPLA PLA);
+/* hack.c */    extern pcover map_symbolic_cover(pcover T, symbolic_list_t *list, int base);
+/* hack.c */    extern void symbolic_hack_labels(pPLA PLA, symbolic_t *list, pset compress, int new_size, int old_size, int size_added);
+/* irred.c */    extern espresso_bool cube_is_covered(pcube *T, pcube c);
+/* irred.c */    extern espresso_bool taut_special_cases(pcube *T);
+/* irred.c */    extern espresso_bool tautology(pcube *T);
+/* irred.c */    extern pcover irredundant(pcover F, pcover D);
+/* irred.c */    extern void mark_irredundant(pcover F, pcover D);
+/* irred.c */    extern void irred_split_cover(pcover F, pcover D, pcover *E, pcover *Rt, pcover *Rp);
+/* irred.c */    extern sm_matrix *irred_derive_table(pcover D, pcover E, pcover Rp);
+/* map.c */    extern pset minterms(pcover T);
+/* map.c */    extern void explode(int var, int z);
+/* map.c */    extern void map(pcover T);
+/* opo.c */    extern void output_phase_setup(pPLA PLA, int first_output);
+/* opo.c */    extern pPLA set_phase(pPLA PLA);
+/* opo.c */    extern pcover opo(pcube phase, pcover T, pcover D, pcover R, int first_output);
+/* opo.c */    extern pcube find_phase(pPLA PLA, int first_output, pcube phase1);
+/* opo.c */    extern pset_family find_covers(pcover F, pcover D, pset select, int n);
+/* opo.c */    extern pset_family form_cover_table(pcover F, pcover D, pset select, int f, int fbar);
+/* opo.c */    extern pset_family opo_leaf(pcover T, pset select, int out1, int out2);
+/* opo.c */    extern pset_family opo_recur(pcover T, pcover D, pcube select, int offset, int first, int last);
+/* opo.c */    extern void opoall(pPLA PLA, int first_output, int last_output, int opo_strategy);
+/* opo.c */    extern void phase_assignment(pPLA PLA, int opo_strategy);
+/* opo.c */    extern void repeated_phase_assignment(pPLA PLA);
+/* pair.c */    extern void generate_all_pairs(ppair pair, int n, pset candidate, void (*action)(ppair));
+/* pair.c */    extern int **find_pairing_cost(pPLA PLA, int strategy);
+/* pair.c */    extern void find_best_cost(ppair pair);
+/* pair.c */    extern int greedy_best_cost(int **cost_array_local, ppair *pair_p);
+/* pair.c */    extern void minimize_pair(ppair pair);
+/* pair.c */    extern void pair_free(ppair pair);
+/* pair.c */    extern void pair_all(pPLA PLA, int pair_strategy);
+/* pair.c */    extern pcover delvar(pcover A, espresso_bool paired[]);
+/* pair.c */    extern pcover pairvar(pcover A, ppair pair);
+/* pair.c */    extern ppair pair_best_cost(int **cost_array_local);
+/* pair.c */    extern ppair pair_new(int n);
+/* pair.c */    extern ppair pair_save(ppair pair, int n);
+/* pair.c */    extern void print_pair(ppair pair);
+/* pair.c */    extern void find_optimal_pairing(pPLA PLA, int strategy);
+/* pair.c */    extern void set_pair(pPLA PLA);
+/* pair.c */    extern void set_pair1(pPLA PLA, espresso_bool adjust_labels);
+/* primes.c */    extern pcover primes_consensus(pcube *T);
+/* reduce.c */    extern espresso_bool sccc_special_cases(pcube *T, pcube *result);
+/* reduce.c */    extern pcover reduce(pcover F, pcover D);
+/* reduce.c */    extern pcube reduce_cube(pcube *FD, pcube p);
+/* reduce.c */    extern pcube sccc(pcube *T);
+/* reduce.c */    extern pcube sccc_cube(pcube result, pcube p);
+/* reduce.c */    extern pcube sccc_merge(pcube left, pcube right, pcube cl, pcube cr);
+/* set.c */    extern espresso_bool set_andp(pset r, pset a, pset b);
+/* set.c */    extern espresso_bool set_orp(pset r, pset a, pset b);
+/* set.c */    extern espresso_bool setp_disjoint(pset a, pset b);
+/* set.c */    extern espresso_bool setp_empty(pset a);
+/* set.c */    extern espresso_bool setp_equal(pset a, pset b);
+/* set.c */    extern espresso_bool setp_full(pset a, int size);
+/* set.c */    extern espresso_bool setp_implies(pset a, pset b);
+/* set.c */    extern char *pbv1(pset s, int n);
+/* set.c */    extern char *ps1(pset a);
+/* set.c */    extern int *sf_count(pset_family A);
+/* set.c */    extern int *sf_count_restricted(pset_family A, pset r);
+/* set.c */    extern int bit_index(unsigned int a);
+/* set.c */    extern int set_dist(pset a, pset b);
+/* set.c */    extern int set_ord(pset a);
+/* set.c */    extern void set_adjcnt(pset a, int *count, int weight);
+/* set.c */    extern pset set_and(pset r, pset a, pset b);
+/* set.c */    extern pset set_clear(pset r, int size);
+/* set.c */    extern pset set_copy(pset r, pset a);
+/* set.c */    extern pset set_diff(pset r, pset a, pset b);
+/* set.c */    extern pset set_fill(pset r, int size);
+/* set.c */    extern pset set_merge(pset r, pset a, pset b, pset mask);
+/* set.c */    extern pset set_or(pset r, pset a, pset b);
+/* set.c */    extern pset set_xor(pset r, pset a, pset b);
+/* set.c */    extern pset sf_and(pset_family A);
+/* set.c */    extern pset sf_or(pset_family A);
+/* set.c */    extern pset_family sf_active(pset_family A);
+/* set.c */    extern pset_family sf_addcol(pset_family A, int firstcol, int n);
+/* set.c */    extern pset_family sf_addset(pset_family A, pset s);
+/* set.c */    extern pset_family sf_append(pset_family A, pset_family B);
+/* set.c */    extern pset_family sf_bm_read(FILE *fp);
+/* set.c */    extern pset_family sf_compress(pset_family A, pset c);
+/* set.c */    extern pset_family sf_copy(pset_family R, pset_family A);
+/* set.c */    extern pset_family sf_copy_col(pset_family dst, int dstcol, pset_family src, int srccol);
+/* set.c */    extern pset_family sf_delc(pset_family A, int first, int last);
+/* set.c */    extern pset_family sf_delcol(pset_family A, int firstcol, int n);
+/* set.c */    extern pset_family sf_inactive(pset_family A);
+/* set.c */    extern pset_family sf_join(pset_family A, pset_family B);
+/* set.c */    extern pset_family sf_new(int num, int size);
+/* set.c */    extern pset_family sf_permute(pset_family A, int *permute, int npermute);
+/* set.c */    extern pset_family sf_read(FILE *fp);
+/* set.c */    extern pset_family sf_save(pset_family A);
+/* set.c */    extern pset_family sf_transpose(pset_family A);
+/* set.c */    extern void set_write(FILE *fp, pset a);
+/* set.c */    extern void sf_bm_print(pset_family A);
+/* set.c */    extern void sf_cleanup(void);
+/* set.c */    extern void sf_delset(pset_family A, int i);
+/* set.c */    extern void sf_free(pset_family A);
+/* set.c */    extern void sf_print(pset_family A);
+/* set.c */    extern void sf_write(FILE *fp, pset_family A);
+/* setc.c */    extern espresso_bool ccommon(pcube a, pcube b, pcube cof);
+/* setc.c */    extern espresso_bool cdist0(pcube a, pcube b);
+/* setc.c */    extern espresso_bool full_row(pcube p, pcube cof);
+/* setc.c */    extern int ascend(const void *a, const void *b);
+/* setc.c */    extern int cactive(pcube a);
+/* setc.c */    extern int cdist(pset a, pset b);
+/* setc.c */    extern int cdist01(pset a, pset b);
+
+/* setc.c */    extern int d1_order(const void *a, const void *b);
+
+/* setc.c */    extern int desc1(pset a, pset b);
+/* setc.c */    extern int descend(const void *a, const void *b);
+/* setc.c */    extern int lex_order(const void *a, const void *b);
+
+/* setc.c */    extern pset force_lower(pset xlower, pset a, pset b);
+/* setc.c */    extern void consensus(pcube r, pcube a, pcube b);
+/* sharp.c */    extern pcover cb1_dsharp(pcover T, pcube c);
+/* sharp.c */    extern pcover cb_dsharp(pcube c, pcover T);
+
+/* sharp.c */    extern pcover cb_recur_sharp(pcube c, pcover T, int first, int last, int level);
+/* sharp.c */    extern pcover cb_sharp(pcube c, pcover T);
+/* sharp.c */    extern pcover cv_dsharp(pcover A, pcover B);
+/* sharp.c */    extern pcover cv_intersect(pcover A, pcover B);
+/* sharp.c */    extern pcover cv_sharp(pcover A, pcover B);
+/* sharp.c */    extern pcover dsharp(pcube a, pcube b);
+/* sharp.c */    extern pcover make_disjoint(pcover A);
+/* sharp.c */    extern pcover sharp(pcube a, pcube b);
+/* sminterf.c */pset do_sm_minimum_cover(pset_family A);
+/* sparse.c */    extern pcover make_sparse(pcover F, pcover D, pcover R);
+/* sparse.c */    extern pcover mv_reduce(pcover F, pcover D);
+
+/* unate.c */    extern pcover map_cover_to_unate(pcube *T);
+/* unate.c */    extern pcover map_unate_to_cover(pset_family A);
+/* unate.c */    extern pset_family exact_minimum_cover(pset_family T);
+
+/* unate.c */    extern pset_family unate_compl(pset_family A);
+/* unate.c */    extern pset_family unate_complement(pset_family A);
+/* unate.c */    extern pset_family unate_intersect(pset_family A, pset_family B, espresso_bool largest_only);
+/* verify.c */    extern void PLA_permute(pPLA PLA1, pPLA PLA2);
+/* verify.c */    extern espresso_bool PLA_verify(pPLA PLA1, pPLA PLA2);
+/* verify.c */    extern espresso_bool check_consistency(pPLA PLA);
+/* verify.c */    extern espresso_bool verify(pcover F, pcover Fold, pcover Dold);
+
+extern void disassemble_fsm(pPLA PLA, int verbose_mode);
+extern ABC_THREAD_LOCAL int espresso_reduce_toggle;
+
+ABC_NAMESPACE_HEADER_END
+
+#endif

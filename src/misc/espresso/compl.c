@@ -34,23 +34,22 @@ ABC_NAMESPACE_IMPL_START
 #define USE_COMPL_LIFT_ONSET_COMPLEX    2
 #define NO_LIFTING            3
 
-static bool compl_special_cases();
-static pcover compl_merge();
-static void compl_d1merge();
-static pcover compl_cube();
-static void compl_lift();
-static void compl_lift_onset();
-static void compl_lift_onset_complex();
-static bool simp_comp_special_cases();
-static bool simplify_special_cases();
+static espresso_bool compl_special_cases(pcube *T, pcover *Tbar);
+static pcover compl_merge(pcube *T1, pcover L, pcover R, pcube cl, pcube cr, int var, int lifting);
+static void compl_d1merge(pcube *L1, pcube *R1);
+static pcover compl_cube(pcube p);
+static void compl_lift(pcube *A1, pcube *B1, pcube bcube, int var);
+static void compl_lift_onset(pcube *A1, pcover T, pcube bcube, int var);
+static void compl_lift_onset_complex(pcube *A1, pcover T, int var);
+static espresso_bool simp_comp_special_cases(pcube *T, pcover *Tnew, pcover *Tbar);
+static espresso_bool simplify_special_cases(pcube *T, pcover *Tnew);
 
 
 /* complement -- compute the complement of T */
-pcover complement(T)
-pcube *T;            /* T will be disposed of */
+pcover complement(pcube *T)  /* T will be disposed of */
 {
-    register pcube cl, cr;
-    register int best;
+    pcube cl, cr;
+    int best;
     pcover Tbar, Tl, Tr;
     int lifting;
     static ABC_THREAD_LOCAL int compl_level = 0;
@@ -86,11 +85,9 @@ pcube *T;            /* T will be disposed of */
     return Tbar;
 }
 
-static bool compl_special_cases(T, Tbar)
-pcube *T;            /* will be disposed if answer is determined */
-pcover *Tbar;            /* returned only if answer determined */
+static espresso_bool compl_special_cases(pcube *T, pcover *Tbar)  /* will be disposed if answer is determined */ /* returned only if answer determined */
 {
-    register pcube *T1, p, ceil, cof=T[0];
+    pcube *T1, p, ceil, cof=T[0];
     pcover A, ceil_compl;
 
     /* Check for no cubes in the cover */
@@ -169,22 +166,17 @@ pcover *Tbar;            /* returned only if answer determined */
  *  expansion is not full containment, but single-cube containment).
  */
 
-static pcover compl_merge(T1, L, R, cl, cr, var, lifting)
-pcube *T1;            /* Original ON-set */
-pcover L, R;            /* Complement from each recursion branch */
-register pcube cl, cr;        /* cubes used for cofactoring */
-int var;            /* splitting variable */
-int lifting;            /* whether to perform lifting or not */
+static pcover compl_merge(pcube *T1, pcover L, pcover R, pcube cl, pcube cr, int var, int lifting)  /* Original ON-set */ /* Complement from each recursion branch */ /* cubes used for cofactoring */ /* splitting variable */ /* whether to perform lifting or not */
 {
-    register pcube p, last, pt;
+    pcube p, last, pt;
     pcover T, Tbar;
     pcube *L1, *R1;
 
     if (debug & COMPL) {
-    (void) printf("compl_merge: left %d, right %d\n", L->count, R->count);
-    (void) printf("%s (cl)\n%s (cr)\nLeft is\n", pc1(cl), pc2(cr));
+    (void) espresso_printf("compl_merge: left %d, right %d\n", L->count, R->count);
+    (void) espresso_printf("%s (cl)\n%s (cr)\nLeft is\n", pc1(cl), pc2(cr));
     cprint(L);
-    (void) printf("Right is\n");
+    (void) espresso_printf("Right is\n");
     cprint(R);
     }
 
@@ -200,8 +192,8 @@ int lifting;            /* whether to perform lifting or not */
 
     /* Sort the arrays for a distance-1 merge */
     (void) set_copy(cube.temp[0], cube.var_mask[var]);
-    qsort((char *) (L1 = sf_list(L)), (size_t)L->count, sizeof(pset), (int (*)()) d1_order);
-    qsort((char *) (R1 = sf_list(R)), (size_t)R->count, sizeof(pset), (int (*)()) d1_order);
+    qsort((char *) (L1 = sf_list(L)), (size_t)L->count, sizeof(pset), d1_order);
+    qsort((char *) (R1 = sf_list(R)), (size_t)R->count, sizeof(pset), d1_order);
 
     /* Perform distance-1 merge */
     compl_d1merge(L1, R1);
@@ -247,7 +239,7 @@ int lifting;            /* whether to perform lifting or not */
     }
 
     if (debug & COMPL) {
-    (void) printf("Result %d\n", Tbar->count);
+    (void) espresso_printf("Result %d\n", Tbar->count);
     if (verbose_debug)
         cprint(Tbar);
     }
@@ -263,11 +255,9 @@ int lifting;            /* whether to perform lifting or not */
  *  validity of the expansion, and expanding all (or none) of the
  *  splitting variable.
  */
-static void compl_lift(A1, B1, bcube, var)
-pcube *A1, *B1, bcube;
-int var;
+static void compl_lift(pcube *A1, pcube *B1, pcube bcube, int var)
 {
-    register pcube a, b, *B2, lift=cube.temp[4], liftor=cube.temp[5];
+    pcube a, b, *B2, lift=cube.temp[4], liftor=cube.temp[5];
     pcube mask = cube.var_mask[var];
 
     (void) set_and(liftor, bcube, mask);
@@ -300,13 +290,9 @@ int var;
  *  none) of the splitting variable.  Each cube of A1 is expanded
  *  against the original on-set T.
  */
-static void compl_lift_onset(A1, T, bcube, var)
-pcube *A1;
-pcover T;
-pcube bcube;
-int var;
+static void compl_lift_onset(pcube *A1, pcover T, pcube bcube, int var)
 {
-    register pcube a, last, p, lift=cube.temp[4], mask=cube.var_mask[var];
+    pcube a, last, p, lift=cube.temp[4], mask=cube.var_mask[var];
 
     /* for each active cube from one branch of the complement */
     for(; (a = *A1++) != NULL; ) {
@@ -335,13 +321,10 @@ nolift : ;
  *  T is the original ON-set
  *  A1 is either the left or right cofactor
  */
-static void compl_lift_onset_complex(A1, T, var)
-pcube *A1;            /* array of pointers to new result */
-pcover T;            /* original ON-set */
-int var;            /* which variable we split on */
+static void compl_lift_onset_complex(pcube *A1, pcover T, int var)  /* array of pointers to new result */ /* original ON-set */ /* which variable we split on */
 {
-    register int dist;
-    register pcube last, p, a, xlower;
+    int dist;
+    pcube last, p, a, xlower;
 
     /* for each cube in the complement */
     xlower = new_cube();
@@ -373,10 +356,9 @@ int var;            /* which variable we split on */
 /*
  *  compl_d1merge -- distance-1 merge in the splitting variable
  */
-static void compl_d1merge(L1, R1)
-register pcube *L1, *R1;
+static void compl_d1merge(pcube *L1, pcube *R1)
 {
-    register pcube pl, pr;
+    pcube pl, pr;
 
     /* Find equal cubes between the two cofactors */
     for(pl = *L1, pr = *R1; (pl != NULL) && (pr != NULL); )
@@ -397,10 +379,9 @@ register pcube *L1, *R1;
 
 
 /* compl_cube -- return the complement of a single cube (De Morgan's law) */
-static pcover compl_cube(p)
-register pcube p;
+static pcover compl_cube(pcube p)
 {
-    register pcube diff=cube.temp[7], pdest, mask, full=cube.fullset;
+    pcube diff=cube.temp[7], pdest, mask, full=cube.fullset;
     int var;
     pcover R;
 
@@ -422,13 +403,10 @@ register pcube p;
 }
 
 /* simp_comp -- quick simplification of T */
-void simp_comp(T, Tnew, Tbar)
-pcube *T;            /* T will be disposed of */
-pcover *Tnew;
-pcover *Tbar;
+void simp_comp(pcube *T, pcover *Tnew, pcover *Tbar)  /* T will be disposed of */
 {
-    register pcube cl, cr;
-    register int best;
+    pcube cl, cr;
+    int best;
     pcover Tl, Tr, Tlbar, Trbar;
     int lifting;
     static ABC_THREAD_LOCAL int simplify_level = 0;
@@ -471,12 +449,9 @@ pcover *Tbar;
     }
 }
 
-static bool simp_comp_special_cases(T, Tnew, Tbar)
-pcube *T;            /* will be disposed if answer is determined */
-pcover *Tnew;            /* returned only if answer determined */
-pcover *Tbar;            /* returned only if answer determined */
+static espresso_bool simp_comp_special_cases(pcube *T, pcover *Tnew, pcover *Tbar)  /* will be disposed if answer is determined */ /* returned only if answer determined */ /* returned only if answer determined */
 {
-    register pcube *T1, p, ceil, cof=T[0];
+    pcube *T1, p, ceil, cof=T[0];
     pcube last;
     pcover A;
 
@@ -563,11 +538,10 @@ pcover *Tbar;            /* returned only if answer determined */
 }
 
 /* simplify -- quick simplification of T */
-pcover simplify(T)
-pcube *T;            /* T will be disposed of */
+pcover simplify(pcube *T)  /* T will be disposed of */
 {
-    register pcube cl, cr;
-    register int best;
+    pcube cl, cr;
+    int best;
     pcover Tbar, Tl, Tr;
     int lifting;
     static ABC_THREAD_LOCAL int simplify_level = 0;
@@ -608,11 +582,9 @@ pcube *T;            /* T will be disposed of */
     return Tbar;
 }
 
-static bool simplify_special_cases(T, Tnew)
-pcube *T;            /* will be disposed if answer is determined */
-pcover *Tnew;            /* returned only if answer determined */
+static espresso_bool simplify_special_cases(pcube *T, pcover *Tnew)  /* will be disposed if answer is determined */ /* returned only if answer determined */
 {
-    register pcube *T1, p, ceil, cof=T[0];
+    pcube *T1, p, ceil, cof=T[0];
     pcube last;
     pcover A;
 

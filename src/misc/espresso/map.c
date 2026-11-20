@@ -12,18 +12,19 @@
 ABC_NAMESPACE_IMPL_START
 
 
-static pcube Gcube;
-static pset Gminterm;
+static ABC_THREAD_LOCAL pcube Gcube;
+static ABC_THREAD_LOCAL pset Gminterm;
 
-pset minterms(T)
-pcover T;
+pset minterms(pcover T)
 {
     int size, var;
-    register pcube last;
+    pcube last;
 
     size = 1;
-    for(var = 0; var < cube.num_vars; var++)
-    size *= cube.part_size[var];
+    for(var = 0; var < cube.num_vars; var++) {
+        if (size > ESPRESSO_MAX_SET / cube.part_size[var]) fatal("map exceeds packed set capacity");
+        size *= cube.part_size[var];
+    }
     Gminterm = set_new(size);
 
     foreach_set(T, last, Gcube)
@@ -33,8 +34,7 @@ pcover T;
 }
 
 
-void explode(var, z)
-int var, z;
+void explode(int var, int z)
 {
     int i, last = cube.last_part[var];
     for(i=cube.first_part[var], z *= cube.part_size[var]; i<=last; i++, z++)
@@ -48,7 +48,7 @@ int var, z;
 }
 
 
-static int mapindex[16][16] = {
+static const int mapindex[16][16] = {
     {  0,  1,  3,  2,   16, 17, 19, 18,      80, 81, 83, 82,   64, 65, 67, 66},
     {  4,  5,  7,  6,   20, 21, 23, 22,      84, 85, 87, 86,   68, 69, 71, 70},
     { 12, 13, 15, 14,   28, 29, 31, 30,      92, 93, 95, 94,   76, 77, 79, 78},
@@ -72,14 +72,13 @@ static int mapindex[16][16] = {
 };
 
 #define POWER2(n) (1 << n)
-void map(T)
-pcover T;
+void map(pcover T)
 {
     int j, k, l, other_input_offset, output_offset, outnum, ind;
     int largest_input_ind,  numout;
     char c;
     pset m;
-    bool some_output;
+    espresso_bool some_output;
 
     m = minterms(T);
     largest_input_ind = POWER2(cube.num_binary_vars);
@@ -87,7 +86,7 @@ pcover T;
 
     for(outnum = 0; outnum < numout; outnum++) {
     output_offset = outnum * largest_input_ind;
-    printf("\n\nOutput space # %d\n", outnum);
+    espresso_printf("\n\nOutput space # %d\n", outnum);
     for(l = 0; l <= MAX(cube.num_binary_vars - 8, 0); l++) {
         other_input_offset = l * 256;
         for(k = 0; k < 16; k++) {
@@ -96,23 +95,23 @@ pcover T;
             ind = mapindex[k][j] + other_input_offset;
             if (ind < largest_input_ind) {
             c = is_in_set(m, ind+output_offset) ? '1' : '.';
-            putchar(c);
+            espresso_putchar(c);
             some_output = TRUE;
             }
             if ((j+1)%4 == 0)
-            putchar(' ');
+            espresso_putchar(' ');
             if ((j+1)%8 == 0)
-            printf("  ");
+            espresso_printf("  ");
         }
         if (some_output)
-            putchar('\n');
+            espresso_putchar('\n');
         if ((k+1)%4 == 0) {
             if (k != 15 && mapindex[k+1][0] >= largest_input_ind)
             break;
-            putchar('\n');
+            espresso_putchar('\n');
         }
         if ((k+1)%8 == 0)
-            putchar('\n');
+            espresso_putchar('\n');
         }
     }
     }

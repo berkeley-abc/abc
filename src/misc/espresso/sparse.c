@@ -23,8 +23,7 @@
 ABC_NAMESPACE_IMPL_START
 
 
-pcover make_sparse(F, D, R)
-pcover F, D, R;
+pcover make_sparse(pcover F, pcover D, pcover R)
 {
     cost_t cost, best_cost;
 
@@ -60,11 +59,10 @@ pcover F, D, R;
 */
 
 pcover
-mv_reduce(F, D)
-pcover F, D;
+mv_reduce(pcover F, pcover D)
 {
-    register int i, var;
-    register pcube p, p1, last;
+    int i, var;
+    pcube p, p1, last;
     int index;
     pcover F1, D1;
     pcube *F_cube_table;

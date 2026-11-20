@@ -24,6 +24,7 @@
 #include "opt/cut/cut.h"
 #include "bool/kit/kit.h"
 #include "bool/rpo/rpo.h"
+#include "misc/espresso/espressoPort.h"
 #include "map/cov/cov.h"
 #include "opt/nwk/nwkMerge.h"
 #include <errno.h>
@@ -137,7 +138,7 @@ void Abc_InitLogic( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "expand",        Abc_CommandExpand,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "splitsop",      Abc_CommandSplitSop,         1 );
     Cmd_CommandAdd( pAbc, "Various",      "cut",           Abc_CommandCut,              0 );
-    Cmd_CommandAdd( pAbc, "Various",      "espresso",      Abc_CommandEspresso,         1 );
+    Cmd_CommandAdd( pAbc, "Various",      "espresso",      Abc_CommandEspresso,         0 );
     Cmd_CommandAdd( pAbc, "Various",      "cover",         Abc_CommandCover,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "inter",         Abc_CommandInter,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "qvar",          Abc_CommandQuaVar,           1 );
@@ -2851,55 +2852,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandEspresso( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c;
-    int fVerbose;
-    extern void Abc_NtkEspresso( Abc_Ntk_t * pNtk, int fVerbose );
-
-    if ( argc == 2 && !strcmp(argv[1], "-h") )
-    {
-        Abc_Print( -2, "The espresso command is currently disabled.\n" );
-        return 1;
-    }
-
-    Abc_Print( -1, "This command is currently disabled.\n" );
-    return 0;
-
-    // set defaults
-    fVerbose = 0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pNtk == NULL )
-    {
-        Abc_Print( -1, "Empty network.\n" );
-        return 1;
-    }
-    if ( !Abc_NtkIsLogic(pNtk) )
-    {
-        Abc_Print( -1, "SOP minimization is possible for logic networks (run \"renode\").\n" );
-        return 1;
-    }
-//    Abc_NtkEspresso( pNtk, fVerbose );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: espresso [-vh]\n" );
-    Abc_Print( -2, "\t         minimizes SOPs of the local functions using Espresso\n" );
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    return 1;
+    return Espresso_Main( argc, argv, Abc_FrameReadOut(pAbc), Abc_FrameReadErr(pAbc) );
 }
 
 /**Function*************************************************************

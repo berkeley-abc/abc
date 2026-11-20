@@ -19,23 +19,19 @@ ABC_NAMESPACE_IMPL_START
 #define USE_GIMPEL
 #define USE_INDEP_SET
 
-static int select_column();
-static void select_essential();
-static int verify_cover();
+static int select_column(sm_matrix *A, int *weight, solution_t *indep);
+static void select_essential(sm_matrix *A, solution_t *select, int *weight, int bound);
+static int verify_cover(sm_matrix *A, sm_row *cover);
 
 #define fail(why) {\
-    (void) fprintf(stderr, "Fatal error: file %s, line %d\n%s\n",\
+    (void) fprintf(espresso_err, "Fatal error: file %s, line %d\n%s\n",\
     __FILE__, __LINE__, why);\
-    (void) fflush(stdout);\
-    abort();\
+    (void) fflush(espresso_out);\
+    Espresso_Fail();\
 }
 
 sm_row *
-sm_minimum_cover(A, weight, heuristic, debug_level)
-sm_matrix *A;
-int *weight;
-int heuristic;        /* set to 1 for a heuristic covering */
-int debug_level;    /* how deep in the recursion to provide info */
+sm_minimum_cover(sm_matrix *A, int *weight, int heuristic, int debug_level)  /* set to 1 for a heuristic covering */ /* how deep in the recursion to provide info */
 {
     stats_t stats;
     solution_t *best, *select;
@@ -83,19 +79,19 @@ int debug_level;    /* how deep in the recursion to provide info */
 
     if (stats.debug) {
     if (stats.no_branching) {
-        (void) printf("**** heuristic covering ...\n");
-        (void) printf("lower bound = %d\n", stats.lower_bound);
+        (void) espresso_printf("**** heuristic covering ...\n");
+        (void) espresso_printf("lower bound = %d\n", stats.lower_bound);
     }
-    (void) printf("matrix     = %d by %d with %d elements (%4.3f%%)\n",
+    (void) espresso_printf("matrix     = %d by %d with %d elements (%4.3f%%)\n",
         A->nrows, A->ncols, nelem, sparsity * 100.0);
-    (void) printf("cover size = %d elements\n", best->row->length);
-    (void) printf("cover cost = %d\n", best->cost);
-    (void) printf("time       = %s\n", 
+    (void) espresso_printf("cover size = %d elements\n", best->row->length);
+    (void) espresso_printf("cover cost = %d\n", best->cost);
+    (void) espresso_printf("time       = %s\n",
             util_print_time(util_cpu_time() - stats.start_time));
-    (void) printf("components = %d\n", stats.comp_count);
-    (void) printf("gimpel     = %d\n", stats.gimpel_count);
-    (void) printf("nodes      = %d\n", stats.nodes);
-    (void) printf("max_depth  = %d\n", stats.max_depth);
+    (void) espresso_printf("components = %d\n", stats.comp_count);
+    (void) espresso_printf("gimpel     = %d\n", stats.gimpel_count);
+    (void) espresso_printf("nodes      = %d\n", stats.nodes);
+    (void) espresso_printf("max_depth  = %d\n", stats.max_depth);
     }
 
     sol = sm_row_dup(best->row);
@@ -116,14 +112,7 @@ int debug_level;    /* how deep in the recursion to provide info */
  */
 
 solution_t * 
-sm_mincov(A, select, weight, lb, bound, depth, stats)
-sm_matrix *A;
-solution_t *select;
-int *weight;
-int lb;
-int bound;
-int depth;
-stats_t *stats;
+sm_mincov(sm_matrix *A, solution_t *select, int *weight, int lb, int bound, int depth, stats_t *stats)
 {
     sm_matrix *A1, *A2, *L, *R;
     sm_element *p;
@@ -168,8 +157,8 @@ stats_t *stats;
     }
 
     if (debug) {
-        (void) printf("ABSMIN[%2d]%s", depth, stats->component ? "*" : " ");
-        (void) printf(" %3dx%3d sel=%3d bnd=%3d lb=%3d %12s ",
+        (void) espresso_printf("ABSMIN[%2d]%s", depth, stats->component ? "*" : " ");
+        (void) espresso_printf(" %3dx%3d sel=%3d bnd=%3d lb=%3d %12s ",
             A->nrows, A->ncols, select->cost + stats->gimpel, 
         bound + stats->gimpel, lb_new + stats->gimpel, 
         util_print_time(util_cpu_time()-stats->start_time));
@@ -177,16 +166,16 @@ stats_t *stats;
 
     /* Check for bounding based on no better solution possible */
     if (lb_new >= bound) {
-    if (debug) (void) printf("bounded\n");
+    if (debug) (void) espresso_printf("bounded\n");
     best = NIL(solution_t);
 
 
     /* Check for new best solution */
     } else if (A->nrows == 0) {
     best = solution_dup(select);
-    if (debug) (void) printf("BEST\n");
+    if (debug) (void) espresso_printf("BEST\n");
     if (stats->debug && stats->component == 0) {
-            (void) printf("new 'best' solution %d at level %d (time is %s)\n", 
+            (void) espresso_printf("new 'best' solution %d at level %d (time is %s)\n",
         best->cost + stats->gimpel, depth, 
         util_print_time(util_cpu_time() - stats->start_time));
         }
@@ -200,7 +189,7 @@ stats_t *stats;
         L = R;
         R = A1;
     }
-    if (debug) (void) printf("comp %d %d\n", L->nrows, R->nrows);
+    if (debug) (void) espresso_printf("comp %d %d\n", L->nrows, R->nrows);
     stats->comp_count++;
 
     /* Solve problem for L */
@@ -228,7 +217,7 @@ stats_t *stats;
 
     /* We've tried as hard as possible, but now we must split and recur */
     } else {
-    if (debug) (void) printf("pick=%d\n", pick);
+    if (debug) (void) espresso_printf("pick=%d\n", pick);
 
         /* Assume we choose this column to be in the covering set */
     A1 = sm_dup(A);
@@ -268,14 +257,11 @@ stats_t *stats;
 }
 
 static int 
-select_column(A, weight, indep)
-sm_matrix *A;
-int *weight;
-solution_t *indep;
+select_column(sm_matrix *A, int *weight, solution_t *indep)
 {
-    register sm_col *pcol;
-    register sm_row *prow, *indep_cols;
-    register sm_element *p, *p1;
+    sm_col *pcol;
+    sm_row *prow, *indep_cols;
+    sm_element *p, *p1;
     double w, best;
     int best_col;
 
@@ -325,14 +311,10 @@ solution_t *indep;
 }
 
 static void 
-select_essential(A, select, weight, bound)
-sm_matrix *A;
-solution_t *select;
-int *weight;
-int bound;            /* must beat this solution */
+select_essential(sm_matrix *A, solution_t *select, int *weight, int bound)  /* must beat this solution */
 {
-    register sm_element *p;
-    register sm_row *prow, *essen;
+    sm_element *p;
+    sm_row *prow, *essen;
     int delcols, delrows, essen_count;
 
     do {
@@ -366,9 +348,7 @@ int bound;            /* must beat this solution */
 }
 
 static int 
-verify_cover(A, cover)
-sm_matrix *A;
-sm_row *cover;
+verify_cover(sm_matrix *A, sm_row *cover)
 {
     sm_row *prow;
 

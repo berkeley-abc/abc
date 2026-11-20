@@ -16,12 +16,11 @@
 ABC_NAMESPACE_IMPL_START
 
 
-long start_time;
+static ABC_THREAD_LOCAL long start_time;
 
 
 /* cv_sharp -- form the sharp product between two covers */
-pcover cv_sharp(A, B)
-pcover A, B;
+pcover cv_sharp(pcover A, pcover B)
 {
     pcube last, p;
     pcover T;
@@ -34,9 +33,7 @@ pcover A, B;
 
 
 /* cb_sharp -- form the sharp product between a cube and a cover */
-pcover cb_sharp(c, T)
-pcube c;
-pcover T;
+pcover cb_sharp(pcube c, pcover T)
 {
     if (T->count == 0) {
     T = sf_addset(new_cover(1), c);
@@ -49,10 +46,7 @@ pcover T;
 
 
 /* recursive formulation to provide balanced merging */
-pcover cb_recur_sharp(c, T, first, last, level)
-pcube c;
-pcover T;
-int first, last, level;
+pcover cb_recur_sharp(pcube c, pcover T, int first, int last, int level)
 {
     pcover temp, left, right;
     int middle;
@@ -65,10 +59,10 @@ int first, last, level;
     right = cb_recur_sharp(c, T, middle+1, last, level+1);
     temp = cv_intersect(left, right);
     if ((debug & SHARP) && level < 4) {
-        printf("# SHARP[%d]: %4d = %4d x %4d, time = %s\n",
+        espresso_printf("# SHARP[%d]: %4d = %4d x %4d, time = %s\n",
         level, temp->count, left->count, right->count,
         print_time(ptime() - start_time));
-        (void) fflush(stdout);
+        (void) fflush(espresso_out);
     }
     free_cover(left);
     free_cover(right);
@@ -78,11 +72,10 @@ int first, last, level;
 
 
 /* sharp -- form the sharp product between two cubes */
-pcover sharp(a, b)
-pcube a, b;
+pcover sharp(pcube a, pcube b)
 {
-    register int var;
-    register pcube d=cube.temp[0], temp=cube.temp[1], temp1=cube.temp[2];
+    int var;
+    pcube d=cube.temp[0], temp=cube.temp[1], temp1=cube.temp[2];
     pcover r = new_cover(cube.num_vars);
 
     if (cdist0(a, b)) {
@@ -99,26 +92,24 @@ pcube a, b;
     return r;
 }
 
-pcover make_disjoint(A)
-pcover A;
+pcover make_disjoint(pcover A)
 {
-    pcover R, new;
-    register pset last, p;
+    pcover R, new_covering;
+    pset last, p;
 
     R = new_cover(0);
     foreach_set(A, last, p) {
-    new = cb_dsharp(p, R);
-    R = sf_append(R, new);
+    new_covering = cb_dsharp(p, R);
+    R = sf_append(R, new_covering);
     }
     return R;
 }
 
 
 /* cv_dsharp -- disjoint-sharp product between two covers */
-pcover cv_dsharp(A, B)
-pcover A, B;
+pcover cv_dsharp(pcover A, pcover B)
 {
-    register pcube last, p;
+    pcube last, p;
     pcover T;
 
     T = new_cover(0);
@@ -130,9 +121,7 @@ pcover A, B;
 
 
 /* cb1_dsharp -- disjoint-sharp product between a cover and a cube */
-pcover cb1_dsharp(T, c)
-pcover T;
-pcube c;
+pcover cb1_dsharp(pcover T, pcube c)
 {
     pcube last, p;
     pcover R;
@@ -146,9 +135,7 @@ pcube c;
 
 
 /* cb_dsharp -- disjoint-sharp product between a cube and a cover */
-pcover cb_dsharp(c, T)
-pcube c;
-pcover T;
+pcover cb_dsharp(pcube c, pcover T)
 {
     pcube last, p;
     pcover Y, Y1;
@@ -169,10 +156,9 @@ pcover T;
 
 
 /* dsharp -- form the disjoint-sharp product between two cubes */
-pcover dsharp(a, b)
-pcube a, b;
+pcover dsharp(pcube a, pcube b)
 {
-    register pcube mask, diff, and, temp, temp1 = cube.temp[0];
+    pcube mask, diff, intersection, temp, temp1 = cube.temp[0];
     int var;
     pcover r;
 
@@ -180,7 +166,7 @@ pcube a, b;
 
     if (cdist0(a, b)) {
     diff = set_diff(new_cube(), a, b);
-    and = set_and(new_cube(), a, b);
+    intersection = set_and(new_cube(), a, b);
     mask = new_cube();
     for(var = 0; var < cube.num_vars; var++) {
         /* check if position var of "a and not b" is not empty */
@@ -191,7 +177,7 @@ pcube a, b;
         (void) set_and(temp, diff, cube.var_mask[var]);
 
         /* coordinates 0 ... var-1 equal the intersection */
-        INLINEset_and(temp1, and, mask);
+        INLINEset_and(temp1, intersection, mask);
         INLINEset_or(temp, temp, temp1);
 
         /* coordinates var+1 .. cube.num_vars equal a */
@@ -201,7 +187,7 @@ pcube a, b;
         }
     }
     free_cube(diff);
-    free_cube(and);
+    free_cube(intersection);
     free_cube(mask);
     } else {
     r = sf_addset(r, a);
@@ -213,10 +199,9 @@ pcube a, b;
 
 #define MAGIC 500               /* save 500 cubes before containment */
 
-pcover cv_intersect(A, B)
-pcover A, B;
+pcover cv_intersect(pcover A, pcover B)
 {
-    register pcube pi, pj, lasti, lastj, pt;
+    pcube pi, pj, lasti, lastj, pt;
     pcover T, Tsave = NULL;
 
     /* How large should each temporary result cover be ? */

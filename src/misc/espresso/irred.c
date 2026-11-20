@@ -12,20 +12,19 @@
 ABC_NAMESPACE_IMPL_START
 
 
-static void fcube_is_covered();
-static void ftautology();
-static bool ftaut_special_cases();
+static void fcube_is_covered(pcube *T, pcube c, sm_matrix *table);
+static void ftautology(pcube *T, sm_matrix *table);
+static espresso_bool ftaut_special_cases(pcube *T, sm_matrix *table);
 
 
-static int Rp_current;
+static ABC_THREAD_LOCAL int Rp_current;
 
 /*
  *   irredundant -- Return a minimal subset of F
  */
 
 pcover
-irredundant(F, D)
-pcover F, D;
+irredundant(pcover F, pcover D)
 {
     mark_irredundant(F, D);
     return sf_inactive(F);
@@ -37,8 +36,7 @@ pcover F, D;
  */
 
 void
-mark_irredundant(F, D)
-pcover F, D;
+mark_irredundant(pcover F, pcover D)
 {
     pcover E, Rt, Rp;
     pset p, p1, last;
@@ -68,7 +66,7 @@ pcover F, D;
     }
 
     if (debug & IRRED) {
-    printf("# IRRED: F=%d E=%d R=%d Rt=%d Rp=%d Rc=%d Final=%d Bound=%d\n",
+    espresso_printf("# IRRED: F=%d E=%d R=%d Rt=%d Rp=%d Rc=%d Final=%d Bound=%d\n",
         F->count, E->count, Rt->count+Rp->count, Rt->count, Rp->count,
         cover->length, E->count + cover->length, 0);
     }
@@ -89,12 +87,10 @@ pcover F, D;
  */
 
 void
-irred_split_cover(F, D, E, Rt, Rp)
-pcover F, D;
-pcover *E, *Rt, *Rp;
+irred_split_cover(pcover F, pcover D, pcover *E, pcover *Rt, pcover *Rp)
 {
-    register pcube p, last;
-    register int index;
+    pcube p, last;
+    int index;
     pcover R;
     pcube *FD, *ED;
 
@@ -119,7 +115,7 @@ pcover *E, *Rt, *Rp;
         *E = sf_addset(*E, p);
     }
     if (debug & IRRED1) {
-        (void) printf("IRRED1: zr=%d ze=%d to-go=%d time=%s\n",
+        (void) espresso_printf("IRRED1: zr=%d ze=%d to-go=%d time=%s\n",
         R->count, (*E)->count, F->count - (R->count + (*E)->count),
         print_time(ptime()));
     }
@@ -135,7 +131,7 @@ pcover *E, *Rt, *Rp;
         *Rp = sf_addset(*Rp, p);
     }
     if (debug & IRRED1) {
-        (void) printf("IRRED1: zr=%d zrt=%d to-go=%d time=%s\n",
+        (void) espresso_printf("IRRED1: zr=%d zrt=%d to-go=%d time=%s\n",
         (*Rp)->count, (*Rt)->count,
         R->count - ((*Rp)->count +(*Rt)->count), print_time(ptime()));
     }
@@ -152,10 +148,9 @@ pcover *E, *Rt, *Rp;
  */
 
 sm_matrix *
-irred_derive_table(D, E, Rp)
-pcover D, E, Rp;
+irred_derive_table(pcover D, pcover E, pcover Rp)
 {
-    register pcube last, p, *list;
+    pcube last, p, *list;
     sm_matrix *table;
     int size_last_dominance, i;
 
@@ -182,7 +177,7 @@ pcover D, E, Rp;
     fcube_is_covered(list, p, table);
     RESET(p, REDUND);    /* can now consider this cube redundant */
     if (debug & IRRED1) {
-        (void) printf("IRRED1: %d of %d to-go=%d, table=%dx%d time=%s\n",
+        (void) espresso_printf("IRRED1: %d of %d to-go=%d, table=%dx%d time=%s\n",
         i, Rp->count, Rp->count - i,
         table->nrows, table->ncols, print_time(ptime()));
     }
@@ -191,7 +186,7 @@ pcover D, E, Rp;
         (void) sm_row_dominance(table);
         size_last_dominance = table->nrows;
         if (debug & IRRED1) {
-        (void) printf("IRRED1: delete redundant rows, now %dx%d\n",
+        (void) espresso_printf("IRRED1: delete redundant rows, now %dx%d\n",
             table->nrows, table->ncols);
         }
     }
@@ -203,9 +198,8 @@ pcover D, E, Rp;
 }
 
 /* cube_is_covered -- determine if a cubelist "covers" a single cube */
-bool
-cube_is_covered(T, c)
-pcube *T, c;
+espresso_bool
+cube_is_covered(pcube *T, pcube c)
 {
     return tautology(cofactor(T,c));
 }
@@ -213,12 +207,11 @@ pcube *T, c;
 
 
 /* tautology -- answer the tautology question for T */
-bool
-tautology(T)
-pcube *T;         /* T will be disposed of */
+espresso_bool
+tautology(pcube *T)  /* T will be disposed of */
 {
-    register pcube cl, cr;
-    register int best, result;
+    pcube cl, cr;
+    int best, result;
     static ABC_THREAD_LOCAL int taut_level = 0;
 
     if (debug & TAUT) {
@@ -237,7 +230,7 @@ pcube *T;         /* T will be disposed of */
     }
 
     if (debug & TAUT) {
-    printf("exit TAUTOLOGY[%d]: %s\n", --taut_level, print_bool(result));
+    espresso_printf("exit TAUTOLOGY[%d]: %s\n", --taut_level, print_bool(result));
     }
     return result;
 }
@@ -246,11 +239,10 @@ pcube *T;         /* T will be disposed of */
  *  taut_special_cases -- check special cases for tautology
  */
 
-bool
-taut_special_cases(T)
-pcube *T;            /* will be disposed if answer is determined */
+espresso_bool
+taut_special_cases(pcube *T)  /* will be disposed if answer is determined */
 {
-    register pcube *T1, *Tsave, p, ceil=cube.temp[0], temp=cube.temp[1];
+    pcube *T1, *Tsave, p, ceil=cube.temp[0], temp=cube.temp[1];
     pcube *A, *B;
     int var;
 
@@ -306,7 +298,7 @@ start:
     T[1] = (pcube) Tsave;
 
     if (debug & TAUT) {
-        printf("UNATE_REDUCTION: %d unate variables, reduced to %d\n",
+        espresso_printf("UNATE_REDUCTION: %d unate variables, reduced to %d\n",
         (int)cdata.vars_unate, (int)CUBELISTSIZE(T));
     }
     goto start;
@@ -332,9 +324,7 @@ start:
 
 /* fcube_is_covered -- determine exactly how a cubelist "covers" a cube */
 static void
-fcube_is_covered(T, c, table)
-pcube *T, c;
-sm_matrix *table;
+fcube_is_covered(pcube *T, pcube c, sm_matrix *table)
 {
     ftautology(cofactor(T,c), table);
 }
@@ -342,12 +332,10 @@ sm_matrix *table;
 
 /* ftautology -- find ways to make a tautology */
 static void
-ftautology(T, table)
-pcube *T;             /* T will be disposed of */
-sm_matrix *table;
+ftautology(pcube *T, sm_matrix *table)  /* T will be disposed of */
 {
-    register pcube cl, cr;
-    register int best;
+    pcube cl, cr;
+    int best;
     static ABC_THREAD_LOCAL int ftaut_level = 0;
 
     if (debug & TAUT) {
@@ -368,17 +356,15 @@ sm_matrix *table;
     }
 
     if (debug & TAUT) {
-    (void) printf("exit FIND_TAUTOLOGY[%d]: table is %d by %d\n",
+    (void) espresso_printf("exit FIND_TAUTOLOGY[%d]: table is %d by %d\n",
         --ftaut_level, table->nrows, table->ncols);
     }
 }
 
-static bool
-ftaut_special_cases(T, table)
-pcube *T;                 /* will be disposed if answer is determined */
-sm_matrix *table;
+static espresso_bool
+ftaut_special_cases(pcube *T, sm_matrix *table)  /* will be disposed if answer is determined */
 {
-    register pcube *T1, *Tsave, p, temp = cube.temp[0], ceil = cube.temp[1];
+    pcube *T1, *Tsave, p, temp = cube.temp[0], ceil = cube.temp[1];
     int var, rownum;
 
     /* Check for a row of all 1's in the essential cubes */
@@ -432,7 +418,7 @@ start:
     T[1] = (pcube) Tsave;
 
     if (debug & TAUT) {
-        printf("UNATE_REDUCTION: %d unate variables, reduced to %d\n",
+        espresso_printf("UNATE_REDUCTION: %d unate variables, reduced to %d\n",
         (int)cdata.vars_unate, (int)CUBELISTSIZE(T));
     }
     goto start;

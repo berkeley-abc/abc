@@ -38,7 +38,7 @@ MODULES := \
 	src/base/ver src/base/wlc src/base/wln src/base/sn src/base/parter src/base/acb src/base/pla src/base/test \
 	src/map/mapper src/map/mio src/map/super src/map/if src/map/if/acd \
 	src/map/amap src/map/cov src/map/scl src/map/mpm src/map/emap \
-	src/misc/extra src/misc/mvc src/misc/st src/misc/util src/misc/nm \
+	src/misc/extra src/misc/espresso src/misc/mvc src/misc/st src/misc/util src/misc/nm \
 	src/misc/vec src/misc/hash src/misc/tim src/misc/bzlib src/misc/zlib \
 	src/misc/mem src/misc/bar src/misc/bbl src/misc/parse src/misc/btor \
 	src/opt/abs2 src/opt/cut src/opt/fxu src/opt/fxch src/opt/rwr src/opt/mfs src/opt/sim \
@@ -208,6 +208,9 @@ OBJ := \
 ABCC_OBJ := $(filter-out src/base/abcc/abc.o,$(filter src/base/abcc/%.o,$(OBJ)))
 OBJ := $(filter-out $(ABCC_OBJ),$(OBJ)) $(patsubst src/base/abcc/%.o,src/base/abcc/abcc_%.o,$(ABCC_OBJ))
 
+ESPRESSO_OBJ := $(filter src/misc/espresso/%.o,$(OBJ))
+OBJ := $(filter-out $(ESPRESSO_OBJ),$(OBJ)) $(patsubst src/misc/espresso/%.o,src/misc/espresso/espresso_%.o,$(ESPRESSO_OBJ))
+
 LIBOBJ := $(filter-out src/base/main/main.o,$(OBJ))
 
 DEP := $(OBJ:.o=.d)
@@ -223,6 +226,16 @@ src/base/abcc/abcc_%.d: src/base/abcc/%.c
 	@mkdir -p $(dir $@)
 	@echo "$(MSG_PREFIX)\`\` Generating dependency:" $(LOCAL_PATH)/$<
 	$(VERBOSE)$(ABCSRC)/depends.sh "$(CC)" src/base/abcc $(OPTFLAGS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) -MT abcc_$*.o $< > $@
+
+src/misc/espresso/espresso_%.o: src/misc/espresso/%.c
+	@mkdir -p $(dir $@)
+	@echo "$(MSG_PREFIX)\`\` Compiling:" $(LOCAL_PATH)/$<
+	$(VERBOSE)$(CC) -c $(OPTFLAGS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) $< -o $@
+
+src/misc/espresso/espresso_%.d: src/misc/espresso/%.c
+	@mkdir -p $(dir $@)
+	@echo "$(MSG_PREFIX)\`\` Generating dependency:" $(LOCAL_PATH)/$<
+	$(VERBOSE)$(ABCSRC)/depends.sh "$(CC)" src/misc/espresso $(OPTFLAGS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) -MT espresso_$*.o $< > $@
 
 %.o: %.c
 	@mkdir -p $(dir $@)

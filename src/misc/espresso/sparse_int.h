@@ -7,11 +7,14 @@
  * $Date$
  *
  */
+#ifndef ABC__misc__espresso__sparse_int_h
+#define ABC__misc__espresso__sparse_int_h
+
 //#include "port.h"
 //#include "utility.h"
 #include "sparse.h"
 
-#include "util_hack.h" // added
+ABC_NAMESPACE_HEADER_START
 
 
 
@@ -30,7 +33,7 @@
  *  e: an object to use if insertion needed (set to actual value used)
  */
 
-#define ABC__misc__espresso__sparse_int_h
+#define sorted_insert(type, first, last, count, next, prev, value, newval, e) \
     if (last == 0) { \
     e->value = newval; \
     first = e; \
@@ -89,9 +92,9 @@
 
 
 #ifdef FAST_AND_LOOSE
-extern sm_element *sm_element_freelist;
-extern sm_row *sm_row_freelist;
-extern sm_col *sm_col_freelist;
+extern ABC_THREAD_LOCAL sm_element *sm_element_freelist;
+extern ABC_THREAD_LOCAL sm_row *sm_row_freelist;
+extern ABC_THREAD_LOCAL sm_col *sm_col_freelist;
 
 #define sm_element_alloc(newobj) \
     if (sm_element_freelist == NIL(sm_element)) { \
@@ -115,7 +118,11 @@ extern sm_col *sm_col_freelist;
 #endif
 
 
-extern void sm_row_remove_element();
-extern void sm_col_remove_element();
+extern void sm_row_remove_element(sm_row *prow, sm_element *p);
+extern void sm_col_remove_element(sm_col *pcol, sm_element *p);
 
 /* LINTLIBRARY */
+
+ABC_NAMESPACE_HEADER_END
+
+#endif

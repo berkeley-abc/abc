@@ -13,8 +13,8 @@ ABC_NAMESPACE_IMPL_START
 
 
 
-static void dump_irredundant();
-static pcover do_minimize();
+static void dump_irredundant(pcover E, pcover Rt, pcover Rp, sm_matrix *table);
+static pcover do_minimize(pcover F, pcover D, pcover R, int exact_cover, int weighted);
 
 
 /*
@@ -27,18 +27,14 @@ static pcover do_minimize();
  */
 
 pcover
-minimize_exact(F, D, R, exact_cover)
-pcover F, D, R;
-int exact_cover;
+minimize_exact(pcover F, pcover D, pcover R, int exact_cover)
 {
     return do_minimize(F, D, R, exact_cover, /*weighted*/ 0);
 }
 
 
 pcover
-minimize_exact_literals(F, D, R, exact_cover)
-pcover F, D, R;
-int exact_cover;
+minimize_exact_literals(pcover F, pcover D, pcover R, int exact_cover)
 {
     return do_minimize(F, D, R, exact_cover, /*weighted*/ 1);
 }
@@ -46,10 +42,7 @@ int exact_cover;
 
 
 static pcover
-do_minimize(F, D, R, exact_cover, weighted)
-pcover F, D, R;
-int exact_cover;
-int weighted;
+do_minimize(pcover F, pcover D, pcover R, int exact_cover, int weighted)
 {
     pcover newF, E, Rt, Rp;
     pset p, last;
@@ -64,7 +57,7 @@ int weighted;
     }
 #if defined(sun) || defined(bsd4_2)            /* hack ... */
     if (debug & MINCOV) {
-    setlinebuf(stdout);
+    setlinebuf(espresso_out);
     }
 #endif
     level = (debug & MINCOV) ? 4 : 0;
@@ -129,28 +122,28 @@ int weighted;
 }
 
 static void
-dump_irredundant(E, Rt, Rp, table)
-pcover E, Rt, Rp;
-sm_matrix *table;
+dump_irredundant(pcover E, pcover Rt, pcover Rp, sm_matrix *table)
 {
     FILE *fp_pi_table, *fp_primes;
     pPLA PLA;
     pset last, p;
     char *file;
+    size_t len;
 
     if (filename == 0 || strcmp(filename, "(stdin)") == 0) {
-    fp_pi_table = fp_primes = stdout;
+    fp_pi_table = fp_primes = espresso_out;
     } else {
-    file = ALLOC(char, strlen(filename)+20);
-    (void) sprintf(file, "%s.primes", filename);
+    len = strlen(filename) + sizeof(".primes");
+    file = ALLOC(char, len);
+    (void) snprintf(file, len, "%s.primes", filename);
     if ((fp_primes = fopen(file, "w")) == NULL) {
-        (void) fprintf(stderr, "espresso: Unable to open %s\n", file);
-        fp_primes = stdout;
+        (void) fprintf(espresso_err, "espresso: Unable to open %s\n", file);
+        fp_primes = espresso_out;
     }
-    (void) sprintf(file, "%s.pi", filename);
+    (void) snprintf(file, len, "%s.pi", filename);
     if ((fp_pi_table = fopen(file, "w")) == NULL) {
-        (void) fprintf(stderr, "espresso: Unable to open %s\n", file);
-        fp_pi_table = stdout;
+        (void) fprintf(espresso_err, "espresso: Unable to open %s\n", file);
+        fp_pi_table = espresso_out;
     }
     FREE(file);
     }
@@ -173,12 +166,12 @@ sm_matrix *table;
     foreach_set(Rp, last, p) {
     (void) fprintf(fp_primes, "%s\n", pc1(p));
     }
-    if (fp_primes != stdout) {
+    if (fp_primes != espresso_out) {
     (void) fclose(fp_primes);
     }
     
     sm_write(fp_pi_table, table);
-    if (fp_pi_table != stdout) {
+    if (fp_pi_table != espresso_out) {
     (void) fclose(fp_pi_table);
     }
 }

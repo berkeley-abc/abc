@@ -42,6 +42,9 @@ jobs:
             if ($src -match '^src\\base\\abcc\\.*\.c$') {
                 $obj = [System.IO.Path]::GetFileNameWithoutExtension($src)
                 $sourceItems += '    <ClCompile Include="' + $src + '"><ObjectFileName>$(IntDir)abcc_' + $obj + '.obj</ObjectFileName></ClCompile>' + "`r`n"
+            } elseif ($src -match '^src\\misc\\espresso\\.*\.c$') {
+                $obj = [System.IO.Path]::GetFileNameWithoutExtension($src)
+                $sourceItems += '    <ClCompile Include="' + $src + '"><ObjectFileName>$(IntDir)espresso_' + $obj + '.obj</ObjectFileName></ClCompile>' + "`r`n"
             } elseif ($src -match '\.c$') {
                 $sourceItems += "    <ClCompile Include=`"$src`" />`r`n"
             } elseif ($src -match '\.(cpp|cc)$') {

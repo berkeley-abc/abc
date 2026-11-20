@@ -20,6 +20,7 @@ SRC +=  src/misc/espresso/cofactor.c \
     src/misc/espresso/hack.c \
     src/misc/espresso/indep.c \
     src/misc/espresso/irred.c \
+    src/misc/espresso/main.c \
     src/misc/espresso/map.c \
     src/misc/espresso/matrix.c \
     src/misc/espresso/mincov.c \

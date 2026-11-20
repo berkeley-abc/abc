@@ -19,19 +19,18 @@ ABC_NAMESPACE_IMPL_START
  *  verify -- check that all minterms of F are contained in (Fold u Dold)
  *  and that all minterms of Fold are contained in (F u Dold).
  */
-bool verify(F, Fold, Dold)
-pcover F, Fold, Dold;
+espresso_bool verify(pcover F, pcover Fold, pcover Dold)
 {
     pcube p, last, *FD;
-    bool verify_error = FALSE;
+    espresso_bool verify_error = FALSE;
 
     /* Make sure the function didn't grow too large */
     FD = cube2list(Fold, Dold);
     foreach_set(F, last, p)
     if (! cube_is_covered(FD, p)) {
-        printf("some minterm in F is not covered by Fold u Dold\n");
+        espresso_printf("some minterm in F is not covered by Fold u Dold\n");
         verify_error = TRUE;
-        if (verbose_debug) printf("%s\n", pc1(p)); else break;
+        if (verbose_debug) espresso_printf("%s\n", pc1(p)); else break;
     }
     free_cubelist(FD);
 
@@ -39,9 +38,9 @@ pcover F, Fold, Dold;
     FD = cube2list(F, Dold);
     foreach_set(Fold, last, p)
     if (! cube_is_covered(FD, p)) {
-        printf("some minterm in Fold is not covered by F u Dold\n");
+        espresso_printf("some minterm in Fold is not covered by F u Dold\n");
         verify_error = TRUE;
-        if (verbose_debug) printf("%s\n", pc1(p)); else break;
+        if (verbose_debug) espresso_printf("%s\n", pc1(p)); else break;
     }
     free_cubelist(FD);
 
@@ -57,8 +56,7 @@ pcover F, Fold, Dold;
  *  the comparison meaningful.
  *
  */
-bool PLA_verify(PLA1, PLA2)
-pPLA PLA1, PLA2;
+espresso_bool PLA_verify(pPLA PLA1, pPLA PLA2)
 {
     /* Check if both have names given; if so, attempt to permute to
      * match the names
@@ -67,12 +65,12 @@ pPLA PLA1, PLA2;
        PLA2->label != NULL && PLA2->label[0] != NULL) {
     PLA_permute(PLA1, PLA2);
     } else {
-    (void) fprintf(stderr, "Warning: cannot permute columns without names\n");
+    (void) fprintf(espresso_err, "Warning: cannot permute columns without names\n");
     return TRUE;
     }
 
     if (PLA1->F->sf_size != PLA2->F->sf_size) {
-    (void) fprintf(stderr, "PLA_verify: PLA's are not the same size\n");
+    (void) fprintf(espresso_err, "PLA_verify: PLA's are not the same size\n");
     return TRUE;
     }
 
@@ -86,11 +84,10 @@ pPLA PLA1, PLA2;
  *  Discard any columns of PLA1 which are not in PLA2
  *  Association is strictly by the names of the columns of the cover.
  */
-void PLA_permute(PLA1, PLA2)
-pPLA PLA1, PLA2;
+void PLA_permute(pPLA PLA1, pPLA PLA2)
 {
-    register int i, j, *permute, npermute;
-    register char *labi;
+    int i, j, *permute, npermute;
+    char *labi;
     char **label;
 
     /* determine which columns of PLA1 to save, and place these in the list
@@ -101,7 +98,7 @@ pPLA PLA1, PLA2;
     for(i = 0; i < PLA2->F->sf_size; i++) {
     labi = PLA2->label[i];
     for(j = 0; j < PLA1->F->sf_size; j++) {
-        if (strcmp(labi, PLA1->label[j]) == 0) {
+        if (labi && PLA1->label[j] && strcmp(labi, PLA1->label[j]) == 0) {
         permute[npermute++] = j;
         break;
         }
@@ -139,59 +136,58 @@ pPLA PLA1, PLA2;
  *  check_consistency -- test that the ON-set, OFF-set and DC-set form
  *  a partition of the boolean space.
  */
-bool check_consistency(PLA)
-pPLA PLA;
+espresso_bool check_consistency(pPLA PLA)
 {
-    bool verify_error = FALSE;
+    espresso_bool verify_error = FALSE;
     pcover T;
 
     T = cv_intersect(PLA->F, PLA->D);
     if (T->count == 0)
-    printf("ON-SET and DC-SET are disjoint\n");
+    espresso_printf("ON-SET and DC-SET are disjoint\n");
     else {
-    printf("Some minterm(s) belong to both the ON-SET and DC-SET !\n");
+    espresso_printf("Some minterm(s) belong to both the ON-SET and DC-SET !\n");
     if (verbose_debug)
         cprint(T);
     verify_error = TRUE;
     }
-    (void) fflush(stdout);
+    (void) fflush(espresso_out);
     free_cover(T);
 
     T = cv_intersect(PLA->F, PLA->R);
     if (T->count == 0)
-    printf("ON-SET and OFF-SET are disjoint\n");
+    espresso_printf("ON-SET and OFF-SET are disjoint\n");
     else {
-    printf("Some minterm(s) belong to both the ON-SET and OFF-SET !\n");
+    espresso_printf("Some minterm(s) belong to both the ON-SET and OFF-SET !\n");
     if (verbose_debug)
         cprint(T);
     verify_error = TRUE;
     }
-    (void) fflush(stdout);
+    (void) fflush(espresso_out);
     free_cover(T);
 
     T = cv_intersect(PLA->D, PLA->R);
     if (T->count == 0)
-    printf("DC-SET and OFF-SET are disjoint\n");
+    espresso_printf("DC-SET and OFF-SET are disjoint\n");
     else {
-    printf("Some minterm(s) belong to both the OFF-SET and DC-SET !\n");
+    espresso_printf("Some minterm(s) belong to both the OFF-SET and DC-SET !\n");
     if (verbose_debug)
         cprint(T);
     verify_error = TRUE;
     }
-    (void) fflush(stdout);
+    (void) fflush(espresso_out);
     free_cover(T);
 
     if (tautology(cube3list(PLA->F, PLA->D, PLA->R)))
-    printf("Union of ON-SET, OFF-SET and DC-SET is the universe\n");
+    espresso_printf("Union of ON-SET, OFF-SET and DC-SET is the universe\n");
     else {
     T = complement(cube3list(PLA->F, PLA->D, PLA->R));
-    printf("There are minterms left unspecified !\n");
+    espresso_printf("There are minterms left unspecified !\n");
     if (verbose_debug)
         cprint(T);
     verify_error = TRUE;
     free_cover(T);
     }
-    (void) fflush(stdout);
+    (void) fflush(espresso_out);
     return verify_error;
 }
 ABC_NAMESPACE_IMPL_END

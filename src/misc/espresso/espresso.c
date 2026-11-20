@@ -50,8 +50,7 @@
 ABC_NAMESPACE_IMPL_START
 
 
-pcover espresso(F, D1, R)
-pcover F, D1, R;
+pcover espresso(pcover F, pcover D1, pcover R)
 {
     pcover E, D, Fsave;
     pset last, p;

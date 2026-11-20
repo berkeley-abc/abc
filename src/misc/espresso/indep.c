@@ -12,7 +12,7 @@
 ABC_NAMESPACE_IMPL_START
 
 
-static sm_matrix *build_intersection_matrix();
+static sm_matrix *build_intersection_matrix(sm_matrix *A);
 
 
 #if 0
@@ -20,12 +20,10 @@ static sm_matrix *build_intersection_matrix();
  *  verify that all rows in 'indep' are actually independent !
  */
 static int 
-verify_indep_set(A, indep)
-sm_matrix *A;
-sm_row *indep;
+verify_indep_set(sm_matrix *A, sm_row *indep)
 {
-    register sm_row *prow, *prow1;
-    register sm_element *p, *p1;
+    sm_row *prow, *prow1;
+    sm_element *p, *p1;
 
     for(p = indep->first_col; p != 0; p = p->next_col) {
     prow = sm_get_row(A, p->col_num);
@@ -41,12 +39,10 @@ sm_row *indep;
 #endif
 
 solution_t * 
-sm_maximal_independent_set(A, weight)
-sm_matrix *A;
-int *weight;
+sm_maximal_independent_set(sm_matrix *A, int *weight)
 {
-    register sm_row *best_row, *prow;
-    register sm_element *p;
+    sm_row *best_row, *prow;
+    sm_element *p;
     int least_weight;
     sm_row *save;
     sm_matrix *B;
@@ -99,12 +95,11 @@ int *weight;
 }
 
 static sm_matrix *
-build_intersection_matrix(A)
-sm_matrix *A;
+build_intersection_matrix(sm_matrix *A)
 {
-    register sm_row *prow, *prow1;
-    register sm_element *p, *p1;
-    register sm_col *pcol;
+    sm_row *prow, *prow1;
+    sm_element *p, *p1;
+    sm_col *pcol;
     sm_matrix *B;
 
     /* Build row-intersection matrix */

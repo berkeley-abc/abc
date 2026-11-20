@@ -13,32 +13,165 @@
  *  Old style -do xxx, -out xxx, etc. are still supported.
  */
 
+#include <setjmp.h>
 #include "espresso.h"
-#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
         /* table definitions for options */
+#include "main.h"
 
-static FILE *last_fp;
-static int input_type = FD_type;
+static ABC_THREAD_LOCAL FILE *last_fp;
+static ABC_THREAD_LOCAL jmp_buf espresso_abort;
+ABC_THREAD_LOCAL FILE *espresso_out, *espresso_err;
+
+/* Every block is zero-filled, including the tail added by a reallocation,
+   so that the inherited reads of unset words (for example, the SIZE field of
+   cubes built by dsharp and sorted by sf_union) do not depend on heap contents.
+   The header has four pointer-sized fields to keep the payload aligned. */
+typedef struct espresso_block {
+    struct espresso_block *prev, *next;
+    size_t size;
+    size_t unused;
+} espresso_block;
+static ABC_THREAD_LOCAL espresso_block *blocks;
+static ABC_THREAD_LOCAL char *text_buffers[3];
+static ABC_THREAD_LOCAL size_t text_capacity[3];
+
+char * Espresso_Buffer(int i, size_t n)
+{
+    if (text_capacity[i] < n) {
+        text_buffers[i] = REALLOC(char, text_buffers[i], n);
+        text_capacity[i] = n;
+    }
+    return text_buffers[i];
+}
 
 
-main(argc, argv)
-int argc;
-char *argv[];
+void Espresso_Fail(void)
+{
+    longjmp(espresso_abort, 1);
+}
+
+void * Espresso_Realloc(void *ptr, size_t n, size_t size)
+{
+    espresso_block *old = ptr ? (espresso_block *)ptr - 1 : NULL;
+    espresso_block *prev = old ? old->prev : NULL;
+    espresso_block *next = old ? old->next : blocks;
+    size_t old_size = old ? old->size : 0;
+    espresso_block *b;
+    if (n > ((size_t)-1 - sizeof(*b)) / size)
+        fatal("allocation too large");
+    b = (espresso_block *)realloc(old, sizeof(*b) + n*size);
+    if (!b)
+        fatal("out of memory");
+    if (n*size > old_size)
+        memset((char *)(b + 1) + old_size, 0, n*size - old_size);
+    b->size = n*size;
+    b->prev = prev;
+    b->next = next;
+    if (prev) prev->next = b;
+    else blocks = b;
+    if (next) next->prev = b;
+    return b + 1;
+}
+
+void * Espresso_Alloc(size_t n, size_t size)
+{
+    return Espresso_Realloc(NULL, n, size);
+}
+
+void Espresso_Free(void *ptr)
+{
+    espresso_block *b;
+    if (!ptr) return;
+    b = (espresso_block *)ptr - 1;
+    if (b->prev) b->prev->next = b->next;
+    else blocks = b->next;
+    if (b->next) b->next->prev = b->prev;
+    free(b);
+}
+
+char * Espresso_Strdup(const char *s)
+{
+    return s ? strcpy(ALLOC(char, strlen(s) + 1), s) : NULL;
+}
+
+const char * Espresso_PrintTime(long ms)
+{
+    static ABC_THREAD_LOCAL char buf[40];
+    snprintf(buf, sizeof(buf), "%ld.%02ld sec", ms / 1000, ms % 1000 / 10);
+    return buf;
+}
+
+static void getPLA(int, int, char **, int, pPLA *, int);
+static void runtime(void);
+static void init_runtime(void);
+static void usage(void);
+static void delete_arg(int *, char **, int);
+static int check_arg(int *, char **, const char *);
+static void backward_compatibility_hack(int *, char **, int *, int *, const struct esp_option *);
+
+static int next_option(int argc, char **argv, int *index, const char **scan, const char **arg)
+{
+    const char *spec = "D:S:de:ho:r:stv:x";
+    const char *opt;
+    int c;
+    *arg = NULL;
+    if (!**scan) {
+        const char *s = *index < argc ? argv[*index] : "";
+        if (s[0] != '-' || !s[1]) return EOF;
+        ++*index;
+        if (!strcmp(s, "--")) return EOF;
+        *scan = s + 1;
+    }
+    c = *(*scan)++;
+    opt = strchr(spec, c);
+    if (!opt || c == ':') return '?';
+    if (opt[1] == ':') {
+        if (**scan) *arg = *scan;
+        else if (*index < argc) *arg = argv[(*index)++];
+        else return '?';
+        *scan = "";
+    }
+    return c;
+}
+
+static ABC_THREAD_LOCAL int input_type = FD_type;
+
+
+static int espresso_run(int argc, char *argv[])
 {
     int i, j, first, last, strategy, out_type, option;
     pPLA PLA, PLA1;
     pcover F, Fold, Dold;
     pset last1, p;
     cost_t cost;
-    bool error, exact_cover;
+    espresso_bool error, exact_cover;
     long start;
-    extern char *util_optarg;
-    extern int util_optind;
+    int util_optind = 1;
+    const char *util_optarg;
+    const char *scan = "";
+    const struct esp_option esp_opt_table[] = {
+        {"eat", &echo_comments, FALSE},
+        {"eatdots", &echo_unknown_commands, FALSE},
+        {"fast", &single_expand, TRUE},
+        {"kiss", &kiss, TRUE},
+        {"ness", &remove_essential, FALSE},
+        {"nirr", &force_irredundant, FALSE},
+        {"nunwrap", &unwrap_onset, FALSE},
+        {"onset", &recompute_onset, TRUE},
+        {"pos", &pos, TRUE},
+        {"random", &use_random_order, TRUE},
+        {"strong", &use_super_gasp, TRUE},
+        {0, NULL, 0}
+    };
+
 
     start = ptime();
 
+    input_type = FD_type;
+    skip_make_sparse = FALSE;
+    espresso_reduce_toggle = TRUE;
     error = FALSE;
     init_runtime();
 #ifdef RANDOM
@@ -68,11 +201,11 @@ char *argv[];
     echo_unknown_commands = TRUE;
     exact_cover = FALSE;    /* for -qm option, the default */
 
-    backward_compatibility_hack(&argc, argv, &option, &out_type);
+    backward_compatibility_hack(&argc, argv, &option, &out_type, esp_opt_table);
 
 
     /* parse command line options*/
-    while ((i = util_getopt(argc, argv, "D:S:de:o:r:stv:x")) != EOF) {
+    while ((i = next_option(argc, argv, &util_optind, &scan, &util_optarg)) != EOF) {
     switch(i) {
         case 'D':        /* -Dcommand invokes a subcommand */
         for(j = 0; option_table[j].name != 0; j++) {
@@ -82,9 +215,9 @@ char *argv[];
             }
         }
         if (option_table[j].name == 0) {
-            (void) fprintf(stderr, "%s: bad subcommand \"%s\"\n",
+            (void) fprintf(espresso_err, "%s: bad subcommand \"%s\"\n",
             argv[0], util_optarg);
-            exit(1);
+            Espresso_Fail();
         }
         break;
 
@@ -96,9 +229,9 @@ char *argv[];
             }
         }
         if (pla_types[j].key == 0) {
-            (void) fprintf(stderr, "%s: bad output type \"%s\"\n",
+            (void) fprintf(espresso_err, "%s: bad output type \"%s\"\n",
             argv[0], util_optarg);
-            exit(1);
+            Espresso_Fail();
         }
         break;
 
@@ -110,9 +243,9 @@ char *argv[];
             }
         }
         if (esp_opt_table[j].name == 0) {
-            (void) fprintf(stderr, "%s: bad espresso option \"%s\"\n",
+            (void) fprintf(espresso_err, "%s: bad espresso option \"%s\"\n",
             argv[0], util_optarg);
-            exit(1);
+            Espresso_Fail();
         }
         break;
 
@@ -131,9 +264,9 @@ char *argv[];
             }
         }
         if (debug_table[j].name == 0) {
-            (void) fprintf(stderr, "%s: bad debug type \"%s\"\n",
+            (void) fprintf(espresso_err, "%s: bad debug type \"%s\"\n",
             argv[0], util_optarg);
-            exit(1);
+            Espresso_Fail();
         }
         break;
 
@@ -155,27 +288,31 @@ char *argv[];
 
         case 'r':        /* -r selects range (outputs or vars) */
         if (sscanf(util_optarg, "%d-%d", &first, &last) < 2) {
-            (void) fprintf(stderr, "%s: bad output range \"%s\"\n",
+            (void) fprintf(espresso_err, "%s: bad output range \"%s\"\n",
             argv[0], util_optarg);
-            exit(1);
+            Espresso_Fail();
         }
         break;
 
+        case 'h':
+        usage();
+        return 0;
+
         default:
         usage();
-        exit(1);
+        Espresso_Fail();
     }
     }
 
     /* provide version information and summaries */
     if (summary || trace) {
     /* echo command line and arguments */
-    printf("#");
+    espresso_printf("#");
     for(i = 0; i < argc; i++) {
-        printf(" %s", argv[i]);
+        espresso_printf(" %s", argv[i]);
     }
-    printf("\n");
-    printf("# %s\n", VERSION);
+    espresso_printf("\n");
+    espresso_printf("# %s\n", VERSION);
     }
 
     /* the remaining arguments are argv[util_optind ... argc-1] */
@@ -203,6 +340,8 @@ char *argv[];
  */
 
     switch(option_table[option].key) {
+    case KEY_unknown:
+    return 1;
 
 
 /******************** Espresso operations ********************/
@@ -225,15 +364,15 @@ char *argv[];
     do {
         EXEC(PLA->F=espresso(PLA->F,PLA->D,PLA->R),"ESPRESSO   ",PLA->F);
         if (print_solution) {
-        fprint_pla(stdout, PLA, out_type);
-        (void) fflush(stdout);
+        fprint_pla(espresso_out, PLA, out_type);
+        (void) fflush(espresso_out);
         }
         pla_type = PLA->pla_type;
         free_PLA(PLA);
         setdown_cube();
         FREE(cube.part_size);
     } while (read_pla(last_fp, TRUE, TRUE, pla_type, &PLA) != EOF);
-    exit(0);
+    return 0;
     }
 
     case KEY_simplify:
@@ -288,9 +427,8 @@ char *argv[];
     break;
 
     case KEY_exact:
-    exact_cover = TRUE;
-
     case KEY_qm:
+    exact_cover = option_table[option].key == KEY_exact;
     Fold = sf_save(PLA->F);
     PLA->F = minimize_exact(PLA->F, PLA->D, PLA->R, exact_cover);
     EXECUTE(error=verify(PLA->F,Fold,PLA->D), VERIFY_TIME, PLA->F, cost);
@@ -346,7 +484,7 @@ char *argv[];
     break;
 
     case KEY_taut:                /* tautology check */
-    printf("ON-set is%sa tautology\n",
+    espresso_printf("ON-set is%sa tautology\n",
         tautology(cube1list(PLA->F)) ? " " : " not ");
     print_solution = FALSE;
     break;
@@ -415,11 +553,11 @@ char *argv[];
     case KEY_PLA_verify:        /* check two PLAs for equivalence */
     EXECUTE(error = PLA_verify(PLA, PLA1), VERIFY_TIME, PLA->F, cost);
     if (error) {
-        printf("PLA comparison failed; the PLA's are not equivalent\n");
-        exit(1);
+        espresso_printf("PLA comparison failed; the PLA's are not equivalent\n");
+        Espresso_Fail();
     } else {
-        printf("PLA's compared equal\n");
-        exit(0);
+        espresso_printf("PLA's compared equal\n");
+        return 0;
     }
     break;    /* silly */
 
@@ -427,11 +565,11 @@ char *argv[];
     Fold = PLA->F;    Dold = PLA->D;    F = PLA1->F;
     EXECUTE(error=verify(F, Fold, Dold), VERIFY_TIME, PLA->F, cost);
     if (error) {
-        printf("PLA comparison failed; the PLA's are not equivalent\n");
-        exit(1);
+        espresso_printf("PLA comparison failed; the PLA's are not equivalent\n");
+        Espresso_Fail();
     } else {
-        printf("PLA's compared equal\n");
-        exit(0);
+        espresso_printf("PLA's compared equal\n");
+        return 0;
     }    
     break;    /* silly */
 
@@ -502,7 +640,7 @@ char *argv[];
 
     /* Output the solution */
     if (print_solution) {
-    EXECUTE(fprint_pla(stdout, PLA, out_type), WRITE_TIME, PLA->F, cost);
+    EXECUTE(fprint_pla(espresso_out, PLA, out_type), WRITE_TIME, PLA->F, cost);
     }
 
     /* Crash and burn if there was a verify error */
@@ -517,22 +655,18 @@ char *argv[];
     sf_cleanup();               /* free unused set structures */
     sm_cleanup();               /* sparse matrix cleanup */
 
-    exit(0);
+    return 0;
 }
 
 
-getPLA(opt, argc, argv, option, PLA, out_type)
-int opt;
-int argc;
-char *argv[];
-int option;
-pPLA *PLA;
-int out_type;
+static void getPLA(int opt, int argc, char *argv[], int option, pPLA *PLA, int out_type)
 {
     FILE *fp;
     int needs_dcset, needs_offset;
-    char *fname;
+    const char *fname;
 
+    if (last_fp && last_fp != stdin) fclose(last_fp);
+    last_fp = NULL;
     if (opt >= argc) {
     fp = stdin;
     fname = "(stdin)";
@@ -541,8 +675,8 @@ int out_type;
     if (strcmp(fname, "-") == 0) {
         fp = stdin;
     } else if ((fp = fopen(argv[opt], "r")) == NULL) {
-        (void) fprintf(stderr, "%s: Unable to open %s\n", argv[0], fname);
-        exit(1);
+        (void) fprintf(espresso_err, "%s: Unable to open %s\n", argv[0], fname);
+        Espresso_Fail();
     }
     }
     if (option_table[option].key == KEY_echo) {
@@ -553,19 +687,18 @@ int out_type;
     needs_offset = option_table[option].needs_offset;
     }
 
+    last_fp = fp;
     if (read_pla(fp, needs_dcset, needs_offset, input_type, PLA) == EOF) {
-    (void) fprintf(stderr, "%s: Unable to find PLA on file %s\n", argv[0], fname);
-    exit(1);
+    (void) fprintf(espresso_err, "%s: Unable to find PLA on file %s\n", argv[0], fname);
+    Espresso_Fail();
     }
     (*PLA)->filename = util_strsav(fname);
     filename = (*PLA)->filename;
-/*    (void) fclose(fp);*/
-/* hackto support -Dmany */
-    last_fp = fp;
+
 }
 
 
-runtime()
+static void runtime(void)
 {
     int i;
     long total = 1, temp;
@@ -576,7 +709,7 @@ runtime()
     for(i = 0; i < TIME_COUNT; i++) {
     if (total_calls[i] != 0) {
         temp = 100 * total_time[i];
-        printf("# %s\t%2d call(s) for %s (%2ld.%01ld%%)\n",
+        espresso_printf("# %s\t%2d call(s) for %s (%2ld.%01ld%%)\n",
         total_name[i], total_calls[i], print_time(total_time[i]),
             temp/total, (10 * (temp%total)) / total);
     }
@@ -584,7 +717,7 @@ runtime()
 }
 
 
-init_runtime()
+static void init_runtime(void)
 {
     total_name[READ_TIME] =     "READ       ";
     total_name[WRITE_TIME] =    "WRITE      ";
@@ -604,63 +737,60 @@ init_runtime()
 }
 
 
-subcommands()
+static void subcommands(void)
 {
     int i, col;
-    printf("                ");
+    espresso_printf("                ");
     col = 16;
     for(i = 0; option_table[i].name != 0; i++) {
     if ((col + strlen(option_table[i].name) + 1) > 76) {
-        printf(",\n                ");
+        espresso_printf(",\n                ");
         col = 16;
     } else if (i != 0) {
-        printf(", ");
+        espresso_printf(", ");
     }
-    printf("%s", option_table[i].name);
+    espresso_printf("%s", option_table[i].name);
     col += strlen(option_table[i].name) + 2;
     }
-    printf("\n");
+    espresso_printf("\n");
 }
 
 
-usage()
+static void usage(void)
 {
-    printf("%s\n\n", VERSION);
-    printf("SYNOPSIS: espresso [options] [file]\n\n");
-    printf("  -d        Enable debugging\n");
-    printf("  -e[opt]   Select espresso option:\n");
-    printf("                fast, ness, nirr, nunwrap, onset, pos, strong,\n");
-    printf("                eat, eatdots, kiss, random\n");
-    printf("  -o[type]  Select output format:\n");
-    printf("                f, fd, fr, fdr, pleasure, eqntott, kiss, cons\n");
-    printf("  -rn-m     Select range for subcommands:\n");
-    printf("                d1merge: first and last variables (0 ... m-1)\n");
-    printf("                minterms: first and last variables (0 ... m-1)\n");
-    printf("                opoall: first and last outputs (0 ... m-1)\n");
-    printf("  -s        Provide short execution summary\n");
-    printf("  -t        Provide longer execution trace\n");
-    printf("  -x        Suppress printing of solution\n");
-    printf("  -v[type]  Verbose debugging detail (-v '' for all)\n");
-    printf("  -D[cmd]   Execute subcommand 'cmd':\n");
+    espresso_printf("usage: espresso [options] [file [file2]]\n");
+    espresso_printf("%s\n\n", VERSION);
+    espresso_printf("  -d        Enable debugging\n");
+    espresso_printf("  -e[opt]   Select espresso option:\n");
+    espresso_printf("                fast, ness, nirr, nunwrap, onset, pos, strong,\n");
+    espresso_printf("                eat, eatdots, kiss, random\n");
+    espresso_printf("  -o[type]  Select output format:\n");
+    espresso_printf("                f, fd, fr, fdr, pleasure, eqntott, kiss, cons\n");
+    espresso_printf("  -rn-m     Select range for subcommands:\n");
+    espresso_printf("                d1merge: first and last variables (0 ... m-1)\n");
+    espresso_printf("                minterms: first and last variables (0 ... m-1)\n");
+    espresso_printf("                opoall: first and last outputs (0 ... m-1)\n");
+    espresso_printf("  -s        Provide short execution summary\n");
+    espresso_printf("  -t        Provide longer execution trace\n");
+    espresso_printf("  -x        Suppress printing of solution\n");
+    espresso_printf("  -v[type]  Verbose debugging detail (-v '' for all)\n");
+    espresso_printf("  -D[cmd]   Execute subcommand 'cmd':\n");
     subcommands();
-    printf("  -Sn       Select strategy for subcommands:\n");
-    printf("                opo: bit2=exact bit1=repeated bit0=skip sparse\n");
-    printf("                opoall: 0=minimize, 1=exact\n");
-    printf("                pair: 0=algebraic, 1=strongd, 2=espresso, 3=exact\n");
-    printf("                pairall: 0=minimize, 1=exact, 2=opo\n");
-    printf("                so_espresso: 0=minimize, 1=exact\n");
-    printf("                so_both: 0=minimize, 1=exact\n");
+    espresso_printf("  -h        Print this usage message\n");
+    espresso_printf("  -Sn       Select strategy for subcommands:\n");
+    espresso_printf("                opo: bit2=exact bit1=repeated bit0=skip sparse\n");
+    espresso_printf("                opoall: 0=minimize, 1=exact\n");
+    espresso_printf("                pair: 0=algebraic, 1=strongd, 2=espresso, 3=exact\n");
+    espresso_printf("                pairall: 0=minimize, 1=exact, 2=opo\n");
+    espresso_printf("                so_espresso: 0=minimize, 1=exact\n");
+    espresso_printf("                so_both: 0=minimize, 1=exact\n");
 }
 
 /*
  *  Hack for backward compatibility (ACK! )
  */
 
-backward_compatibility_hack(argc, argv, option, out_type)
-int *argc;
-char **argv;
-int *option;
-int *out_type;
+static void backward_compatibility_hack(int *argc, char **argv, int *option, int *out_type, const struct esp_option *esp_opt_table)
 {
     int i, j;
 
@@ -676,9 +806,9 @@ int *out_type;
             break;
         }
         if (option_table[j].name == 0) {
-        (void) fprintf(stderr,
+        (void) fprintf(espresso_err,
          "espresso: bad keyword \"%s\" following -do\n",argv[i+1]);
-        exit(1);
+        Espresso_Fail();
         }
         break;
     }
@@ -694,9 +824,9 @@ int *out_type;
             break;
         }
         if (pla_types[j].key == 0) {
-        (void) fprintf(stderr,
+        (void) fprintf(espresso_err,
            "espresso: bad keyword \"%s\" following -out\n",argv[i+1]);
-        exit(1);
+        Espresso_Fail();
         }
         break;
     }
@@ -721,11 +851,9 @@ int *out_type;
 
 
 /* delete_arg -- delete an argument from the argument list */
-delete_arg(argc, argv, num)
-int *argc, num;
-register char *argv[];
+static void delete_arg(int *argc, char *argv[], int num)
 {
-    register int i;
+    int i;
     (*argc)--;
     for(i = num; i < *argc; i++) {
     argv[i] = argv[i+1];
@@ -734,11 +862,9 @@ register char *argv[];
 
 
 /* check_arg -- scan argv for an argument, and return TRUE if found */
-bool check_arg(argc, argv, s)
-int *argc;
-register char *argv[], *s;
+static int check_arg(int *argc, char *argv[], const char *s)
 {
-    register int i;
+    int i;
     for(i = 1; i < *argc; i++) {
     if (strcmp(argv[i], s) == 0) {
         delete_arg(argc, argv, i);
@@ -747,5 +873,38 @@ register char *argv[], *s;
     }
     return FALSE;
 }
+
+int Espresso_Main(int argc, char **argv, FILE *out, FILE *err)
+{
+    int status;
+    char **args;
+    espresso_out = out;
+    espresso_err = err;
+    if (setjmp(espresso_abort))
+        status = 1;
+    else {
+        args = ALLOC(char *, argc + 1);
+        memcpy(args, argv, argc * sizeof(*args));
+        args[argc] = NULL;
+        status = espresso_run(argc, args);
+    }
+    if (last_fp && last_fp != stdin) fclose(last_fp);
+    last_fp = NULL;
+    sf_cleanup();
+    sm_cleanup();
+    while (blocks) Espresso_Free(blocks + 1);
+    memset(text_buffers, 0, sizeof(text_buffers));
+    memset(text_capacity, 0, sizeof(text_capacity));
+    Espresso_Reset();
+    espresso_out = espresso_err = NULL;
+    return status;
+}
 ABC_NAMESPACE_IMPL_END
+
+#ifdef ESPRESSO_MAIN
+int main(int argc, char **argv)
+{
+    return ABC_NAMESPACE_PREFIX Espresso_Main(argc, argv, stdout, stderr);
+}
+#endif
 

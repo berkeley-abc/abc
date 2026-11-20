@@ -7,12 +7,15 @@
  * $Date$
  *
  */
+#ifndef ABC__misc__espresso__mincov_int_h
+#define ABC__misc__espresso__mincov_int_h
+
 //#include "port.h"
 //#include "utility.h"
 #include "sparse.h"
 #include "mincov.h"
 
-#include "util_hack.h" // added
+ABC_NAMESPACE_HEADER_START
 
 
 typedef struct stats_struct stats_t;
@@ -39,17 +42,21 @@ struct solution_struct {
 };
 
 
-extern solution_t *solution_alloc();
-extern void solution_free();
-extern solution_t *solution_dup();
-extern void solution_accept();
-extern void solution_reject();
-extern void solution_add();
-extern solution_t *solution_choose_best();
+extern solution_t *solution_alloc(void);
+extern void solution_free(solution_t *sol);
+extern solution_t *solution_dup(solution_t *sol);
+extern void solution_accept(solution_t *sol, sm_matrix *A, int *weight, int col);
+extern void solution_reject(solution_t *sol, sm_matrix *A, int *weight, int col);
+extern void solution_add(solution_t *sol, int *weight, int col);
+extern solution_t *solution_choose_best(solution_t *best1, solution_t *best2);
 
-extern solution_t *sm_maximal_independent_set();
-extern solution_t *sm_mincov();
-extern int gimpel_reduce();
+extern solution_t *sm_maximal_independent_set(sm_matrix *A, int *weight);
+extern solution_t *sm_mincov(sm_matrix *A, solution_t *select, int *weight, int lb, int bound, int depth, stats_t *stats);
+extern int gimpel_reduce(sm_matrix *A, solution_t *select, int *weight, int lb, int bound, int depth, stats_t *stats, solution_t **best);
 
 
-#define ABC__misc__espresso__mincov_int_h
+#define WEIGHT(weight, col) ((weight) == NIL(int) ? 1 : (weight)[col])
+
+ABC_NAMESPACE_HEADER_END
+
+#endif

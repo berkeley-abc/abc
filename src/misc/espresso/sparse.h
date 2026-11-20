@@ -11,7 +11,33 @@
 #define ABC__misc__espresso__sparse_h
 
 
+#include "espressoPort.h"
+#include "espressoRename.h"
+
 ABC_NAMESPACE_HEADER_START
+
+extern ABC_THREAD_LOCAL FILE *espresso_out, *espresso_err;
+void * Espresso_Alloc(size_t count, size_t size);
+void * Espresso_Realloc(void *ptr, size_t count, size_t size);
+void Espresso_Free(void *ptr);
+void Espresso_Fail(void);
+char * Espresso_Buffer(int i, size_t n);
+char * Espresso_Strdup(const char *s);
+const char * Espresso_PrintTime(long ms);
+
+#define NIL(type) ((type *)0)
+#define ALLOC(type, n) ((type *)Espresso_Alloc((size_t)(n), sizeof(type)))
+#define REALLOC(type, p, n) ((type *)Espresso_Realloc(p, (size_t)(n), sizeof(type)))
+#define FREE(p) (Espresso_Free(p), (p) = NULL)
+#define ABS(x) ((x) < 0 ? -(x) : (x))
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define util_strsav Espresso_Strdup
+#define util_print_time Espresso_PrintTime
+#define ptime() ((long)(1000.0 * clock() / CLOCKS_PER_SEC))
+#define util_cpu_time() ptime()
+#define espresso_printf(...) fprintf(espresso_out, __VA_ARGS__)
+#define espresso_putchar(c) putc((c), espresso_out)
 
 
 /*
@@ -112,29 +138,29 @@ struct sm_matrix_struct {
 #define sm_get(type, x) \
     ((type) (x->user_word))
 
-extern sm_matrix *sm_alloc(), *sm_alloc_size(), *sm_dup();
-extern void sm_free(), sm_delrow(), sm_delcol(), sm_resize();
-extern void sm_write(), sm_print(), sm_dump(), sm_cleanup();
-extern void sm_copy_row(), sm_copy_col();
-extern void sm_remove(), sm_remove_element();
-extern sm_element *sm_insert(), *sm_find();
-extern sm_row *sm_longest_row();
-extern sm_col *sm_longest_col();
-extern int sm_read(), sm_read_compressed();
+extern sm_matrix *sm_alloc(void), *sm_alloc_size(int row, int col), *sm_dup(sm_matrix *A);
+extern void sm_free(sm_matrix *A), sm_delrow(sm_matrix *A, int i), sm_delcol(sm_matrix *A, int i), sm_resize(sm_matrix *A, int row, int col);
+extern void sm_write(FILE *fp, sm_matrix *A), sm_print(FILE *fp, sm_matrix *A), sm_dump(sm_matrix *A, char *s, int max), sm_cleanup(void);
+extern void sm_copy_row(sm_matrix *dest, int dest_row, sm_row *prow), sm_copy_col(sm_matrix *dest, int dest_col, sm_col *pcol);
+extern void sm_remove(sm_matrix *A, int rownum, int colnum), sm_remove_element(sm_matrix *A, sm_element *p);
+extern sm_element *sm_insert(sm_matrix *A, int row, int col), *sm_find(sm_matrix *A, int rownum, int colnum);
+extern sm_row *sm_longest_row(sm_matrix *A);
+extern sm_col *sm_longest_col(sm_matrix *A);
+extern int sm_read(FILE *fp, sm_matrix **A), sm_read_compressed(FILE *fp, sm_matrix **A);
 
-extern sm_row *sm_row_alloc(), *sm_row_dup(), *sm_row_and();
-extern void sm_row_free(), sm_row_remove(), sm_row_print();
-extern sm_element *sm_row_insert(), *sm_row_find();
-extern int sm_row_contains(), sm_row_intersects();
-extern int sm_row_compare(), sm_row_hash();
+extern sm_row *sm_row_alloc(void), *sm_row_dup(sm_row *prow), *sm_row_and(sm_row *p1, sm_row *p2);
+extern void sm_row_free(sm_row *prow), sm_row_remove(sm_row *prow, int col), sm_row_print(FILE *fp, sm_row *prow);
+extern sm_element *sm_row_insert(sm_row *prow, int col), *sm_row_find(sm_row *prow, int col);
+extern int sm_row_contains(sm_row *p1, sm_row *p2), sm_row_intersects(sm_row *p1, sm_row *p2);
+extern int sm_row_compare(sm_row *p1, sm_row *p2), sm_row_hash(sm_row *prow, int modulus);
 
-extern sm_col *sm_col_alloc(), *sm_col_dup(), *sm_col_and();
-extern void sm_col_free(), sm_col_remove(), sm_col_print();
-extern sm_element *sm_col_insert(), *sm_col_find();
-extern int sm_col_contains(), sm_col_intersects();
-extern int sm_col_compare(), sm_col_hash();
+extern sm_col *sm_col_alloc(void), *sm_col_dup(sm_col *pcol), *sm_col_and(sm_col *p1, sm_col *p2);
+extern void sm_col_free(sm_col *pcol), sm_col_remove(sm_col *pcol, int row), sm_col_print(FILE *fp, sm_col *pcol);
+extern sm_element *sm_col_insert(sm_col *pcol, int row), *sm_col_find(sm_col *pcol, int row);
+extern int sm_col_contains(sm_col *p1, sm_col *p2), sm_col_intersects(sm_col *p1, sm_col *p2);
+extern int sm_col_compare(sm_col *p1, sm_col *p2), sm_col_hash(sm_col *pcol, int modulus);
 
-extern int sm_row_dominance(), sm_col_dominance(), sm_block_partition();
+extern int sm_row_dominance(sm_matrix *A), sm_col_dominance(sm_matrix *A, int *weight), sm_block_partition(sm_matrix *A, sm_matrix **L, sm_matrix **R);
 
 
 

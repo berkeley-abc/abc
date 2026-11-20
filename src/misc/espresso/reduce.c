@@ -21,7 +21,7 @@
 ABC_NAMESPACE_IMPL_START
 
 
-static bool toggle = TRUE;
+ABC_THREAD_LOCAL int espresso_reduce_toggle;
 
 
 /*
@@ -56,18 +56,16 @@ static bool toggle = TRUE;
     as fast as possible.
 */
 
-pcover reduce(F, D)
-INOUT pcover F;
-IN pcover D;
+pcover reduce(pcover F, pcover D)
 {
-    register pcube last, p, cunder, *FD;
+    pcube last, p, cunder, *FD;
 
     /* Order the cubes */
     if (use_random_order)
     F = random_order(F);
     else {
-    F = toggle ? sort_reduce(F) : mini_sort(F, descend);
-    toggle = ! toggle;
+    F = espresso_reduce_toggle ? sort_reduce(F) : mini_sort(F, descend);
+    espresso_reduce_toggle = !espresso_reduce_toggle;
     }
 
     /* Try to reduce each cube */
@@ -79,7 +77,7 @@ IN pcover D;
         SET(p, PRIME);    /* cube remains prime ? */
     } else {
         if (debug & REDUCE) {
-        printf("REDUCE: %s to %s %s\n",
+        espresso_printf("REDUCE: %s to %s %s\n",
             pc1(p), pc2(cunder), print_time(ptime()));
         }
         set_copy(p, cunder);                /* save reduced version */
@@ -98,8 +96,7 @@ IN pcover D;
 }
 
 /* reduce_cube -- find the maximal reduction of a cube */
-pcube reduce_cube(FD, p)
-IN pcube *FD, p;
+pcube reduce_cube(pcube *FD, pcube p)
 {
     pcube cunder;
 
@@ -109,12 +106,11 @@ IN pcube *FD, p;
 
 
 /* sccc -- find Smallest Cube Containing the Complement of a cover */
-pcube sccc(T)
-INOUT pcube *T;         /* T will be disposed of */
+pcube sccc(pcube *T)  /* T will be disposed of */
 {
     pcube r;
-    register pcube cl, cr;
-    register int best;
+    pcube cl, cr;
+    int best;
     static ABC_THREAD_LOCAL int sccc_level = 0;
 
     if (debug & REDUCE1) {
@@ -131,14 +127,12 @@ INOUT pcube *T;         /* T will be disposed of */
     }
 
     if (debug & REDUCE1)
-    printf("SCCC[%d]: result is %s\n", --sccc_level, pc1(r));
+    espresso_printf("SCCC[%d]: result is %s\n", --sccc_level, pc1(r));
     return r;
 }
 
 
-pcube sccc_merge(left, right, cl, cr)
-INOUT register pcube left, right;       /* will be disposed of ... */
-INOUT register pcube cl, cr;            /* will be disposed of ... */
+pcube sccc_merge(pcube left, pcube right, pcube cl, pcube cr)  /* will be disposed of ... */ /* will be disposed of ... */
 {
     INLINEset_and(left, left, cl);
     INLINEset_and(right, right, cr);
@@ -163,10 +157,9 @@ INOUT register pcube cl, cr;            /* will be disposed of ... */
 
     This is "anded" with the incoming cube result.
 */
-pcube sccc_cube(result, p)
-register pcube result, p;
+pcube sccc_cube(pcube result, pcube p)
 {
-    register pcube temp=cube.temp[0], mask;
+    pcube temp=cube.temp[0], mask;
     int var;
 
     if ((var = cactive(p)) >= 0) {
@@ -181,11 +174,9 @@ register pcube result, p;
  *   sccc_special_cases -- check the special cases for sccc
  */
 
-bool sccc_special_cases(T, result)
-INOUT pcube *T;                 /* will be disposed if answer is determined */
-OUT pcube *result;              /* returned only if answer determined */
+espresso_bool sccc_special_cases(pcube *T, pcube *result)  /* will be disposed if answer is determined */ /* returned only if answer determined */
 {
-    register pcube *T1, p, temp = cube.temp[1], ceil, cof = T[0];
+    pcube *T1, p, temp = cube.temp[1], ceil, cof = T[0];
     pcube *A, *B;
 
     /* empty cover => complement is universe => SCCC is universe */

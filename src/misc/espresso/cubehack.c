@@ -32,8 +32,7 @@ ABC_NAMESPACE_IMPL_START
 
 
 void 
-cautious_define_cube_size(n)
-int n;
+cautious_define_cube_size(int n)
 {
     if (cube.fullset != 0 && cube.num_binary_vars == n)
     return;
@@ -48,11 +47,10 @@ int n;
 
 
 void
-define_cube_size(n)
-int n;
+define_cube_size(int n)
 {
-    register int q, i;
-    static int called_before = 0;
+    int q, i;
+    static ABC_THREAD_LOCAL int called_before = 0;
 
     /* check if the cube is already just the right size */
     if (cube.fullset != 0 && cube.num_binary_vars == n && cube.num_vars == n)
@@ -108,7 +106,7 @@ int n;
 
 
 void
-undefine_cube_size()
+undefine_cube_size(void)
 {
     if (cube.num_binary_vars > 100) {
     if (cube.fullset != 0) {
@@ -126,7 +124,7 @@ undefine_cube_size()
 
 
 void
-set_espresso_flags()
+set_espresso_flags(void)
 {
     summary = FALSE;
     trace = FALSE;

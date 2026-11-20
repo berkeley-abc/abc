@@ -18,14 +18,12 @@
 ABC_NAMESPACE_IMPL_START
 
 
-static bool line_length_error;
-static int lineno;
+static ABC_THREAD_LOCAL espresso_bool line_length_error;
+static ABC_THREAD_LOCAL int lineno;
 
-void skip_line(fpin, fpout, echo)
-register FILE *fpin, *fpout;
-register bool echo;
+void skip_line(FILE *fpin, FILE *fpout, espresso_bool echo)
 {
-    register int ch;
+    int ch;
     while ((ch=getc(fpin)) != EOF && ch != '\n')
     if (echo)
         putc(ch, fpout);
@@ -34,16 +32,16 @@ register bool echo;
     lineno++;
 }
 
-char *get_word(fp, word)
-register FILE *fp;
-register char *word;
+char *get_word(FILE *fp, char *word)
 {
-    register int ch, i = 0;
+    int ch, i = 0;
     while ((ch = getc(fp)) != EOF && isspace(ch))
     ;
-    word[i++] = ch;
-    while ((ch = getc(fp)) != EOF && ! isspace(ch))
-    word[i++] = ch;
+    if (ch == EOF) fatal("unexpected end of input");
+    do {
+        if (i == 255) fatal("PLA token too long");
+        word[i++] = (char)ch;
+    } while ((ch = getc(fp)) != EOF && !isspace(ch));
     word[i++] = '\0';
     return word;
 }
@@ -51,16 +49,15 @@ register char *word;
 /*
  *  Yes, I know this routine is a mess
  */
-void read_cube(fp, PLA)
-register FILE *fp;
-pPLA PLA;
+void read_cube(FILE *fp, pPLA PLA)
 {
-    register int var, i;
+    int var, i;
     pcube cf = cube.temp[0], cr = cube.temp[1], cd = cube.temp[2];
-    bool savef = FALSE, saved = FALSE, saver = FALSE;
+    espresso_bool savef = FALSE, saved = FALSE, saver = FALSE;
     char token[256];             /* for kiss read hack */
     int varx, first, last, offset;    /* for kiss read hack */
 
+    if (kiss && cube.num_mv_vars < 3) fatal("KISS requires state and output fields");
     set_clear(cf, cube.size);
 
     /* Loop and read binary variables */
@@ -70,7 +67,7 @@ pPLA PLA;
         goto bad_char;
         case '\n':
         if (! line_length_error)
-            (void) fprintf(stderr, "product term(s) %s\n",
+            (void) fprintf(espresso_err, "product term(s) %s\n",
             "span more than one line (warning only)");
         line_length_error = TRUE;
         lineno++;
@@ -81,6 +78,8 @@ pPLA PLA;
         break;
         case '2': case '-':
         set_insert(cf, var*2+1);
+        set_insert(cf, var*2);
+        break;
         case '0':
         set_insert(cf, var*2);
         break;
@@ -99,7 +98,7 @@ pPLA PLA;
 
     /* Read a symbolic multiple-valued variable */
     if (cube.part_size[var] < 0) {
-        (void) fscanf(fp, "%s", token);
+        if (fscanf(fp, "%255s", token) != 1) goto bad_char;
         if (equal(token, "-") || equal(token, "ANY")) {
         if (kiss && var == cube.num_vars - 2) {
             /* leave it empty */
@@ -128,9 +127,9 @@ pPLA PLA;
             break;
             }
         if (i > last) {
-            (void) fprintf(stderr,
+            (void) fprintf(espresso_err,
 "declared size of variable %d (counting from variable 0) is too small\n", var);
-            exit(-1);
+            Espresso_Fail();
         }
         }
     
@@ -140,7 +139,7 @@ pPLA PLA;
             goto bad_char;
         case '\n':
             if (! line_length_error)
-            (void) fprintf(stderr, "product term(s) %s\n",
+            (void) fprintf(espresso_err, "product term(s) %s\n",
                 "span more than one line (warning only)");
             line_length_error = TRUE;
             lineno++;
@@ -151,6 +150,7 @@ pPLA PLA;
             break;
         case '1':
             set_insert(cf, i);
+        break;
         case '0':
             break;
         default:
@@ -170,7 +170,7 @@ pPLA PLA;
         goto bad_char;
         case '\n':
         if (! line_length_error)
-            (void) fprintf(stderr, "product term(s) %s\n",
+            (void) fprintf(espresso_err, "product term(s) %s\n",
             "span more than one line (warning only)");
         line_length_error = TRUE;
         lineno++;
@@ -190,6 +190,7 @@ pPLA PLA;
         case '2': case '-':
         if (PLA->pla_type & D_type)
             set_insert(cd, i), saved = TRUE;
+        break;
         case '~':
         break;
         default:
@@ -201,15 +202,14 @@ pPLA PLA;
     return;
 
 bad_char:
-    (void) fprintf(stderr, "(warning): input line #%d ignored\n", lineno);
-    skip_line(fp, stdout, TRUE);
+    (void) fprintf(espresso_err, "(warning): input line #%d ignored\n", lineno);
+    skip_line(fp, espresso_out, TRUE);
     return;
 }
-void parse_pla(fp, PLA)
-IN FILE *fp;
-INOUT pPLA PLA;
+void parse_pla(FILE *fp, pPLA PLA)
 {
     int i, var, ch, np, last;
+    int reuse_size = cube.fullset != NULL;
     char word[256];
 
     lineno = 1;
@@ -222,23 +222,27 @@ loop:
 
     case '\n':
         lineno++;
+        break;
 
     case ' ': case '\t': case '\f': case '\r':
         break;
 
     case '#':
         (void) ungetc(ch, fp);
-        skip_line(fp, stdout, echo_comments);
+        skip_line(fp, espresso_out, echo_comments);
         break;
 
     case '.':
         /* .i gives the cube input size (binary-functions only) */
         if (equal(get_word(fp, word), "i")) {
         if (cube.fullset != NULL) {
-            (void) fprintf(stderr, "extra .i ignored\n");
-            skip_line(fp, stdout, /* echo */ FALSE);
+            if (reuse_size && (fscanf(fp, "%d", &np) != 1 || np != cube.num_binary_vars))
+                fatal("PLA input counts differ");
+            (void) fprintf(espresso_err, "extra .i ignored\n");
+            skip_line(fp, espresso_out, /* echo */ FALSE);
         } else {
-            if (fscanf(fp, "%d", &cube.num_binary_vars) != 1)
+            if (fscanf(fp, "%d", &cube.num_binary_vars) != 1 ||
+                cube.num_binary_vars < 0 || cube.num_binary_vars >= ESPRESSO_MAX_SET / 2)
             fatal("error reading .i");
             cube.num_vars = cube.num_binary_vars + 1;
             cube.part_size = ALLOC(int, cube.num_vars);
@@ -247,12 +251,15 @@ loop:
         /* .o gives the cube output size (binary-functions only) */
         } else if (equal(word, "o")) {
         if (cube.fullset != NULL) {
-            (void) fprintf(stderr, "extra .o ignored\n");
-            skip_line(fp, stdout, /* echo */ FALSE);
+            if (reuse_size && (fscanf(fp, "%d", &np) != 1 || np != cube.part_size[cube.num_vars-1]))
+                fatal("PLA output counts differ");
+            (void) fprintf(espresso_err, "extra .o ignored\n");
+            skip_line(fp, espresso_out, /* echo */ FALSE);
         } else {
             if (cube.part_size == NULL)
             fatal(".o cannot appear before .i");
-            if (fscanf(fp, "%d", &(cube.part_size[cube.num_vars-1]))!=1)
+            if (fscanf(fp, "%d", &(cube.part_size[cube.num_vars-1])) != 1 ||
+                cube.part_size[cube.num_vars-1] <= 0)
             fatal("error reading .o");
             cube_setup();
             PLA_labels(PLA);
@@ -261,8 +268,15 @@ loop:
         /* .mv gives the cube size for a multiple-valued function */
         } else if (equal(word, "mv")) {
         if (cube.fullset != NULL) {
-            (void) fprintf(stderr, "extra .mv ignored\n");
-            skip_line(fp, stdout, /* echo */ FALSE);
+            if (reuse_size) {
+                if (fscanf(fp, "%d %d", &i, &var) != 2 || i != cube.num_vars || var != cube.num_binary_vars)
+                    fatal("PLA variable dimensions differ");
+                for (; var < cube.num_vars; var++)
+                    if (fscanf(fp, "%d", &np) != 1 || np == INT_MIN || ABS(np) != cube.part_size[var])
+                        fatal("PLA variable dimensions differ");
+            }
+            (void) fprintf(espresso_err, "extra .mv ignored\n");
+            skip_line(fp, espresso_out, /* echo */ FALSE);
         } else {
             if (cube.part_size != NULL)
             fatal("cannot mix .i and .mv");
@@ -271,7 +285,7 @@ loop:
              fatal("error reading .mv");
             if (cube.num_binary_vars < 0)
 fatal("num_binary_vars (second field of .mv) cannot be negative");
-            if (cube.num_vars < cube.num_binary_vars)
+            if (cube.num_vars <= cube.num_binary_vars || cube.num_vars > ESPRESSO_MAX_SET)
             fatal(
 "num_vars (1st field of .mv) must exceed num_binary_vars (2nd field of .mv)");
             cube.part_size = ALLOC(int, cube.num_vars);
@@ -284,7 +298,7 @@ fatal("num_binary_vars (second field of .mv) cannot be negative");
 
         /* .p gives the number of product terms -- we ignore it */
         } else if (equal(word, "p"))
-        (void) fscanf(fp, "%d", &np);
+        { if (fscanf(fp, "%d", &np) != 1) fatal("error reading .p"); }
         /* .e and .end specify the end of the file */
         else if (equal(word, "e") || equal(word,"end")) {
         if (cube.fullset == NULL) {
@@ -318,11 +332,13 @@ fatal("num_binary_vars (second field of .mv) cannot be negative");
         if (PLA->label == NULL)
             PLA_labels(PLA);
         for(var = 0; var < cube.num_binary_vars; var++) {
+            size_t len;
             (void) get_word(fp, word);
+            len = strlen(word) + sizeof(".bar");
             i = cube.first_part[var];
             PLA->label[i+1] = util_strsav(word);
-            PLA->label[i] = ALLOC(char, strlen(word) + 6);
-            (void) sprintf(PLA->label[i], "%s.bar", word);
+            PLA->label[i] = ALLOC(char, len);
+            (void) snprintf(PLA->label[i], len, "%s.bar", word);
         }
         } else if (equal(word, "ob")) {
         if (cube.fullset == NULL)
@@ -340,7 +356,7 @@ fatal("num_binary_vars (second field of .mv) cannot be negative");
             fatal("PLA size must be declared before .label");
         if (PLA->label == NULL)
             PLA_labels(PLA);
-        if (fscanf(fp, "var=%d", &var) != 1)
+        if (fscanf(fp, "var=%d", &var) != 1 || var < 0 || var >= cube.num_vars)
             fatal("Error reading labels");
         for(i = cube.first_part[var]; i <= cube.last_part[var]; i++) {
             (void) get_word(fp, word);
@@ -382,8 +398,8 @@ fatal("num_binary_vars (second field of .mv) cannot be negative");
         if (cube.fullset == NULL)
             fatal("PLA size must be declared before .phase");
         if (PLA->phase != NULL) {
-            (void) fprintf(stderr, "extra .phase ignored\n");
-            skip_line(fp, stdout, /* echo */ FALSE);
+            (void) fprintf(espresso_err, "extra .phase ignored\n");
+            skip_line(fp, espresso_out, /* echo */ FALSE);
         } else {
             do ch = getc(fp); while (ch == ' ' || ch == '\t');
             (void) ungetc(ch, fp);
@@ -400,18 +416,19 @@ fatal("num_binary_vars (second field of .mv) cannot be negative");
         } else if (equal(word, "pair")) {
         int j;
         if (PLA->pair != NULL) {
-            (void) fprintf(stderr, "extra .pair ignored\n");
+            (void) fprintf(espresso_err, "extra .pair ignored\n");
         } else {
             ppair pair;
             PLA->pair = pair = ALLOC(pair_t, 1);
-            if (fscanf(fp, "%d", &(pair->cnt)) != 1)
+            if (cube.fullset == NULL || fscanf(fp, "%d", &(pair->cnt)) != 1 ||
+                pair->cnt < 0 || pair->cnt > cube.num_binary_vars / 2)
             fatal("syntax error in .pair");
             pair->var1 = ALLOC(int, pair->cnt);
             pair->var2 = ALLOC(int, pair->cnt);
             for(i = 0; i < pair->cnt; i++) {
             (void) get_word(fp, word);
-            if (word[0] == '(') (void) strcpy(word, word+1);
-            if (label_index(PLA, word, &var, &j)) {
+            if (word[0] == '(') memmove(word, word+1, strlen(word));
+            if (label_index(PLA, word, &var, &j) && var >= 0 && var < cube.num_binary_vars) {
                 pair->var1[i] = var+1;
             } else {
                 fatal("syntax error in .pair");
@@ -421,7 +438,7 @@ fatal("num_binary_vars (second field of .mv) cannot be negative");
             if (word[strlen(word)-1] == ')') {
                 word[strlen(word)-1]='\0';
             }
-            if (label_index(PLA, word, &var, &j)) {
+            if (label_index(PLA, word, &var, &j) && var >= 0 && var < cube.num_binary_vars) {
                 pair->var2[i] = var+1;
             } else {
                 fatal("syntax error in .pair");
@@ -431,8 +448,8 @@ fatal("num_binary_vars (second field of .mv) cannot be negative");
         
         } else {
         if (echo_unknown_commands)
-            printf("%c%s ", ch, word);
-        skip_line(fp, stdout, echo_unknown_commands);
+            espresso_printf("%c%s ", ch, word);
+        skip_line(fp, espresso_out, echo_unknown_commands);
         }
         break;
     default:
@@ -440,8 +457,8 @@ fatal("num_binary_vars (second field of .mv) cannot be negative");
         if (cube.fullset == NULL) {
 /*        fatal("unknown PLA size, need .i/.o or .mv");*/
         if (echo_comments)
-            putchar('#');
-        skip_line(fp, stdout, echo_comments);
+            espresso_putchar('#');
+        skip_line(fp, espresso_out, echo_comments);
         break;
         }
         if (PLA->F == NULL) {
@@ -490,11 +507,7 @@ fatal("num_binary_vars (second field of .mv) cannot be negative");
     > 0     : Operation successful
 */
 
-int read_pla(fp, needs_dcset, needs_offset, pla_type, PLA_return)
-IN FILE *fp;
-IN bool needs_dcset, needs_offset;
-IN int pla_type;
-OUT pPLA *PLA_return;
+int read_pla(FILE *fp, espresso_bool needs_dcset, espresso_bool needs_offset, int pla_type, pPLA *PLA_return)
 {
     pPLA PLA;
     int i, second, third;
@@ -519,11 +532,12 @@ OUT pPLA *PLA_return;
     cube.part_size[i] = ABS(cube.part_size[i]);
     }
     if (kiss) {
+    if (cube.num_mv_vars < 3) fatal("KISS requires state and output fields");
     third = cube.num_vars - 3;
     second = cube.num_vars - 2;
     if (cube.part_size[third] != cube.part_size[second]) {
-        (void) fprintf(stderr," with .kiss option, third to last and second\n");
-        (void) fprintf(stderr, "to last variables must be the same size.\n");
+        (void) fprintf(espresso_err," with .kiss option, third to last and second\n");
+        (void) fprintf(espresso_err, "to last variables must be the same size.\n");
         return EOF;
     }
     for(i = 0; i < cube.part_size[second]; i++) {
@@ -594,58 +608,57 @@ EXECUTE(PLA->R=complement(cube2list(PLA->F,PLA->D)), COMPL_TIME, PLA->R, cost);
     return 1;
 }
 
-void PLA_summary(PLA)
-pPLA PLA;
+void PLA_summary(pPLA PLA)
 {
     int var, i;
     symbolic_list_t *p2;
     symbolic_t *p1;
 
-    printf("# PLA is %s", PLA->filename);
+    espresso_printf("# PLA is %s", PLA->filename);
     if (cube.num_binary_vars == cube.num_vars - 1)
-    printf(" with %d inputs and %d outputs\n",
+    espresso_printf(" with %d inputs and %d outputs\n",
         cube.num_binary_vars, cube.part_size[cube.num_vars - 1]);
     else {
-    printf(" with %d variables (%d binary, mv sizes",
+    espresso_printf(" with %d variables (%d binary, mv sizes",
         cube.num_vars, cube.num_binary_vars);
     for(var = cube.num_binary_vars; var < cube.num_vars; var++)
-        printf(" %d", cube.part_size[var]);
-    printf(")\n");
+        espresso_printf(" %d", cube.part_size[var]);
+    espresso_printf(")\n");
     }
-    printf("# ON-set cost is  %s\n", print_cost(PLA->F));
-    printf("# OFF-set cost is %s\n", print_cost(PLA->R));
-    printf("# DC-set cost is  %s\n", print_cost(PLA->D));
+    espresso_printf("# ON-set cost is  %s\n", print_cost(PLA->F));
+    espresso_printf("# OFF-set cost is %s\n", print_cost(PLA->R));
+    espresso_printf("# DC-set cost is  %s\n", print_cost(PLA->D));
     if (PLA->phase != NULL)
-    printf("# phase is %s\n", pc1(PLA->phase));
+    espresso_printf("# phase is %s\n", pc1(PLA->phase));
     if (PLA->pair != NULL) {
-    printf("# two-bit decoders:");
+    espresso_printf("# two-bit decoders:");
     for(i = 0; i < PLA->pair->cnt; i++)
-        printf(" (%d %d)", PLA->pair->var1[i], PLA->pair->var2[i]);
-    printf("\n");
+        espresso_printf(" (%d %d)", PLA->pair->var1[i], PLA->pair->var2[i]);
+    espresso_printf("\n");
     }
     if (PLA->symbolic != NIL(symbolic_t)) {
     for(p1 = PLA->symbolic; p1 != NIL(symbolic_t); p1 = p1->next) {
-        printf("# symbolic: ");
+        espresso_printf("# symbolic: ");
         for(p2=p1->symbolic_list; p2!=NIL(symbolic_list_t); p2=p2->next) {
-        printf(" %d", p2->variable);
+        espresso_printf(" %d", p2->variable);
         }
-        printf("\n");
+        espresso_printf("\n");
     }
     }
     if (PLA->symbolic_output != NIL(symbolic_t)) {
     for(p1 = PLA->symbolic_output; p1 != NIL(symbolic_t); p1 = p1->next) {
-        printf("# output symbolic: ");
+        espresso_printf("# output symbolic: ");
         for(p2=p1->symbolic_list; p2!=NIL(symbolic_list_t); p2=p2->next) {
-        printf(" %d", p2->pos);
+        espresso_printf(" %d", p2->pos);
         }
-        printf("\n");
+        espresso_printf("\n");
     }
     }
-    (void) fflush(stdout);
+    (void) fflush(espresso_out);
 }
 
 
-pPLA new_PLA()
+pPLA new_PLA(void)
 {
     pPLA PLA;
 
@@ -662,8 +675,7 @@ pPLA new_PLA()
 }
 
 
-void PLA_labels(PLA)
-pPLA PLA;
+void PLA_labels(pPLA PLA)
 {
     int i;
 
@@ -673,8 +685,7 @@ pPLA PLA;
 }
 
 
-void free_PLA(PLA)
-pPLA PLA;
+void free_PLA(pPLA PLA)
 {
     symbolic_list_t *p2, *p2next;
     symbolic_t *p1, *p1next;
@@ -724,11 +735,7 @@ pPLA PLA;
 }
 
 
-int read_symbolic(fp, PLA, word, retval)
-FILE *fp;
-pPLA PLA;
-char *word;        /* scratch string for words */
-symbolic_t **retval;
+int read_symbolic(FILE *fp, pPLA PLA, char *word, symbolic_t **retval)  /* scratch string for words */
 {
     symbolic_list_t *listp, *prev_listp;
     symbolic_label_t *labelp, *prev_labelp;
@@ -759,7 +766,7 @@ symbolic_t **retval;
         prev_listp->next = listp;
         }
         prev_listp = listp;
-        newlist->symbolic_list_length++;
+        if (++newlist->symbolic_list_length >= 15) fatal("symbolic field exceeds packed set capacity");
     } else {
         return FALSE;
     }
@@ -786,14 +793,11 @@ symbolic_t **retval;
 }
 
 
-int label_index(PLA, word, varp, ip)
-pPLA PLA;
-char *word;
-int *varp;
-int *ip;
+int label_index(pPLA PLA, char *word, int *varp, int *ip)
 {
     int var, i;
 
+    if (!cube.fullset) return FALSE;
     if (PLA->label == NIL(char *) || PLA->label[0] == NIL(char)) {
     if (sscanf(word, "%d", varp) == 1) {
         *ip = *varp;
@@ -802,7 +806,7 @@ int *ip;
     } else {
     for(var = 0; var < cube.num_vars; var++) {
         for(i = 0; i < cube.part_size[var]; i++) {
-        if (equal(PLA->label[cube.first_part[var]+i], word)) {
+        if (PLA->label[cube.first_part[var]+i] && equal(PLA->label[cube.first_part[var]+i], word)) {
             *varp = var;
             *ip = i;
             return TRUE;

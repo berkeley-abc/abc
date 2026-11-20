@@ -16,15 +16,14 @@
 ABC_NAMESPACE_IMPL_START
 
 
-static pset_family abs_covered();
-static pset_family abs_covered_many();
-static int abs_select_restricted();
+static pset_family abs_covered(pset_family A, int pick);
+static pset_family abs_covered_many(pset_family A, pset pick_set);
+static int abs_select_restricted(pset_family A, pset restricted);
 
-pcover map_cover_to_unate(T)
-pcube *T;
+pcover map_cover_to_unate(pcube *T)
 {
-    register unsigned int word_test, word_set, bit_test, bit_set;
-    register pcube p, pA;
+    unsigned int word_test, word_set, bit_test, bit_set;
+    pcube p, pA;
     pset_family A;
     pcube *T1;
     int ncol, i;
@@ -42,9 +41,9 @@ pcube *T;
 
         /* Copy a column from T to A */
         word_test = WHICH_WORD(i);
-        bit_test = 1 << WHICH_BIT(i);
+        bit_test = 1U << WHICH_BIT(i);
         word_set = WHICH_WORD(ncol);
-        bit_set = 1 << WHICH_BIT(ncol);
+        bit_set = 1U << WHICH_BIT(ncol);
 
         pA = A->data;
         for(T1 = T+2; (p = *T1++) != 0; ) {
@@ -61,11 +60,10 @@ pcube *T;
     return A;
 }
 
-pcover map_unate_to_cover(A)
-pset_family A;
+pcover map_unate_to_cover(pset_family A)
 {
-    register int i, ncol, lp;
-    register pcube p, pB;
+    int i, ncol, lp;
+    pcube p, pB;
     int var, nunate, *unate;
     pcube last;
     pset_family B;
@@ -114,10 +112,9 @@ pset_family A;
  *  unate_compl
  */
 
-pset_family unate_compl(A)
-pset_family A;
+pset_family unate_compl(pset_family A)
 {
-    register pset p, last;
+    pset p, last;
 
     /* Make sure A is single-cube containment minimal */
 /*    A = sf_rev_contain(A);*/
@@ -138,12 +135,11 @@ pset_family A;
 /*
  *  Assume SIZE(p) records the size of each set
  */
-pset_family unate_complement(A)
-pset_family A;            /* disposes of A */
+pset_family unate_complement(pset_family A)  /* disposes of A */
 {
     pset_family Abar;
-    register pset p, p1, restrict;
-    register int i;
+    pset p, p1, restricted;
+    int i;
     int max_i, min_set_ord, j;
 
     /* Check for no sets in the matrix -- complement is the universe */
@@ -169,14 +165,14 @@ pset_family A;            /* disposes of A */
     /* Select splitting variable as the variable which belongs to a set
      * of the smallest size, and which has greatest column count
      */
-    restrict = set_new(A->sf_size);
+    restricted = set_new(A->sf_size);
     min_set_ord = A->sf_size + 1;
     foreachi_set(A, i, p) {
         if (SIZE(p) < min_set_ord) {
-        set_copy(restrict, p);
+        set_copy(restricted, p);
         min_set_ord = SIZE(p);
         } else if (SIZE(p) == min_set_ord) {
-        set_or(restrict, restrict, p);
+        set_or(restricted, restricted, p);
         }
     }
 
@@ -187,15 +183,15 @@ pset_family A;            /* disposes of A */
 
     /* Check for "essential" columns */
     } else if (min_set_ord == 1) {
-        Abar = unate_complement(abs_covered_many(A, restrict));
+        Abar = unate_complement(abs_covered_many(A, restricted));
         sf_free(A);
         foreachi_set(Abar, i, p) {
-        set_or(p, p, restrict);
+        set_or(p, p, restricted);
         }
 
     /* else, recur as usual */
     } else {
-        max_i = abs_select_restricted(A, restrict);
+        max_i = abs_select_restricted(A, restricted);
 
         /* Select those rows of A which are not covered by max_i,
          * recursively find all minimal covers of these rows, and
@@ -217,17 +213,16 @@ pset_family A;            /* disposes of A */
 
         Abar = sf_append(Abar, unate_complement(A));
     }
-    set_free(restrict);
+    set_free(restricted);
     }
 
     return Abar;
 }
 
-pset_family exact_minimum_cover(T)
-IN pset_family T;
+pset_family exact_minimum_cover(pset_family T)
 {
-    register pset p, last, p1;
-    register int i, n;
+    pset p, last, p1;
+    int i, n;
     int lev, lvl;
     pset nlast;
     pset_family temp;
@@ -268,10 +263,10 @@ IN pset_family T;
         temp = unate_intersect(stack[n-1].sf, stack[n-2].sf, FALSE);
         lvl = MIN(stack[n-1].level, stack[n-2].level) - 1;
         if (debug & MINCOV && lvl < 10) {
-        printf("# EXACT_MINCOV[%d]: %4d = %4d x %4d, time = %s\n",
+        espresso_printf("# EXACT_MINCOV[%d]: %4d = %4d x %4d, time = %s\n",
             lvl, temp->count, stack[n-1].sf->count,
             stack[n-2].sf->count, print_time(ptime() - start));
-        (void) fflush(stdout);
+        (void) fflush(espresso_out);
         }
         sf_free(stack[n-2].sf);
         sf_free(stack[n-1].sf);
@@ -287,7 +282,7 @@ IN pset_family T;
     INLINEset_diff(p, p1, p);
     set_free(p1);
     if (debug & MINCOV1) {
-    printf("MINCOV: family of all minimal coverings is\n");
+    espresso_printf("MINCOV: family of all minimal coverings is\n");
     sf_print(temp);
     }
     sf_free(T);         /* this is the copy of T we made ... */
@@ -302,13 +297,11 @@ IN pset_family T;
 
 #define MAGIC 500               /* save 500 cubes before containment */
 
-pset_family unate_intersect(A, B, largest_only)
-pset_family A, B;
-bool largest_only;
+pset_family unate_intersect(pset_family A, pset_family B, espresso_bool largest_only)
 {
-    register pset pi, pj, lasti, lastj, pt;
+    pset pi, pj, lasti, lastj, pt;
     pset_family T, Tsave;
-    bool save;
+    espresso_bool save;
     int maxord, ord;
 
     /* How large should each temporary result cover be ? */
@@ -368,12 +361,10 @@ bool largest_only;
  *  create a new matrix which is only those rows which are still uncovered
  */
 static pset_family
-abs_covered(A, pick)
-pset_family A;
-register int pick;
+abs_covered(pset_family A, int pick)
 {
-    register pset last, p, pdest;
-    register pset_family Aprime;
+    pset last, p, pdest;
+    pset_family Aprime;
 
     Aprime = sf_new(A->count, A->sf_size);
     pdest = Aprime->data;
@@ -392,12 +383,10 @@ register int pick;
  *  create a new matrix which is only those rows which are still uncovered
  */
 static pset_family
-abs_covered_many(A, pick_set)
-pset_family A;
-register pset pick_set;
+abs_covered_many(pset_family A, pset pick_set)
 {
-    register pset last, p, pdest;
-    register pset_family Aprime;
+    pset last, p, pdest;
+    pset_family Aprime;
 
     Aprime = sf_new(A->count, A->sf_size);
     pdest = Aprime->data;
@@ -413,18 +402,16 @@ register pset pick_set;
 
 /*
  *  abs_select_restricted -- select the column of maximum column count which
- *  also belongs to the set "restrict"; weight each column of a set as
+ *  also belongs to the set "restricted"; weight each column of a set as
  *  1 / (set_ord(p) - 1).
  */
 static int
-abs_select_restricted(A, restrict)
-pset_family A;
-pset restrict;
+abs_select_restricted(pset_family A, pset restricted)
 {
-    register int i, best_var, best_count, *count;
+    int i, best_var, best_count, *count;
 
     /* Sum the elements in these columns */
-    count = sf_count_restricted(A, restrict);
+    count = sf_count_restricted(A, restricted);
 
     /* Find which variable has maximum weight */
     best_var = -1;
