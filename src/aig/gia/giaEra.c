@@ -515,7 +515,7 @@ int Gia_ManAnalyzeResult( Gia_ManEra_t * p, Gia_ObjEra_t * pState, int fMiter, i
 
 /**Function*************************************************************
 
-  Synopsis    [Resizes the hash table.]
+  Synopsis    [Traverses reachable states with an optional stop callback.]
 
   Description []
                
@@ -524,7 +524,8 @@ int Gia_ManAnalyzeResult( Gia_ManEra_t * p, Gia_ObjEra_t * pState, int fMiter, i
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fDumpFile, int fVerbose )
+static int Gia_ManCollectReachableInt( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fDumpFile,
+    int fVerbose, int fSilent, int (*pFuncStop)(void *), void * pData )
 { 
     Gia_ManEra_t * p;
     Gia_ObjEra_t * pState;
@@ -545,9 +546,14 @@ int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int f
     // process reachable states
     while ( p->iCurState < Vec_PtrSize( p->vStates ) - 1 )
     {
+        if ( pFuncStop && !(p->iCurState & 15) && pFuncStop(pData) )
+        {
+            RetValue = -1;
+            break;
+        }
         if ( Vec_PtrSize(p->vStates) >= nStatesMax )
         {
-            printf( "Reached the limit on states traversed (%d).  ", nStatesMax );
+            if ( !fSilent ) printf( "Reached the limit on states traversed (%d).  ", nStatesMax );
             RetValue = -1;
             break;
         }
@@ -561,7 +567,7 @@ int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int f
         if ( Gia_ManAnalyzeResult( p, pState, fMiter, fDumpFile ) && fMiter )
         {
             RetValue = 0;
-            printf( "Miter failed in state %d after %d transitions.  ", 
+            if ( !fSilent ) printf( "Miter failed in state %d after %d transitions.  ",
                 p->iCurState, Vec_IntSize(p->vBugTrace)-1 );
             break;
         }
@@ -574,8 +580,11 @@ int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int f
             ABC_PRT( "Time", Abc_Clock() - clk );
         }
     }
-    printf( "Reachability analysis traversed %d states with depth %d.  ", p->iCurState-1, Gia_ManCountDepth(p) );
-    ABC_PRT( "Time", Abc_Clock() - clk );
+    if ( !fSilent )
+    {
+        printf( "Reachability analysis traversed %d states with depth %d.  ", p->iCurState-1, Gia_ManCountDepth(p) );
+        ABC_PRT( "Time", Abc_Clock() - clk );
+    }
     if ( fDumpFile )
     {
         char * pFileName = "test.stg";
@@ -591,6 +600,45 @@ int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int f
     }
     Gia_ManEraFree( p );
     return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Traverses reachable states for the explicit reachability command.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     [Gia_ManProveReachable]
+
+***********************************************************************/
+int Gia_ManCollectReachable( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fDumpFile, int fVerbose )
+{
+    return Gia_ManCollectReachableInt( pAig, nStatesMax, fMiter, fDumpFile, fVerbose, 0, NULL, NULL );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Proves a small zero-initialized miter by exact state traversal.]
+
+  Description [Returns 1 only when the queue of reachable states is exhausted
+  and every output is zero for every input in every visited state. A failing
+  output or an interrupted traversal leaves the property undecided.]
+
+  SideEffects []
+
+  SeeAlso     [Gia_ManCollectReachable]
+
+***********************************************************************/
+int Gia_ManProveReachable( Gia_Man_t * p, int nStatesMax, int (*pFuncStop)(void *), void * pData )
+{
+    if ( !p || !Gia_ManRegNum(p) || !Gia_ManPiNum(p) || Gia_ManPiNum(p) > 6 ||
+         Gia_ManRegNum(p) > 128 || Gia_ManObjNum(p) > 12000 || p->nConstrs || !Gia_ManPoNum(p) ||
+         Gia_ManXorNum(p) || Gia_ManBufNum(p) || p->pMuxes || Gia_ManHasChoices(p) || Gia_ManBoxNum(p) ||
+         (p->vRegInits && (Vec_IntSize(p->vRegInits) != Gia_ManRegNum(p) ||
+          Vec_IntCountEntry(p->vRegInits, 0) != Gia_ManRegNum(p))) || nStatesMax < 2 ) return -1;
+    return Gia_ManCollectReachableInt( p, nStatesMax, 1, 0, 0, 1, pFuncStop, pData ) == 1 ? 1 : -1;
 }
 
 ////////////////////////////////////////////////////////////////////////

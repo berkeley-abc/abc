@@ -39,6 +39,7 @@ typedef struct Cec_ParSuper_t_
     int nTimeOut;           // total time limit in seconds
     int nBmcMemory;         // estimated MiB budget per concrete BMC lane (0 = unlimited)
     int iEngine;            // 0 = automatic; otherwise a selected experiment
+    int fUseIso;            // reduce sequentially isomorphic properties before starting workers
     int fRewrite;           // use balance-free drwsat before races and after correspondence
     int fVerbose;           // report worker starts, reductions, and finishes
     int fSilent;            // suppress the final result line

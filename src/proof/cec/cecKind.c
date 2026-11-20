@@ -21,6 +21,7 @@
 #include <limits.h>
 #include "aig/gia/gia.h"
 #include "sat/bsat/satSolver.h"
+#include "sat/cadical/ccadical.h"
 #include "cec.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -147,14 +148,76 @@ stopped:
 
 /**Function*************************************************************
 
-  Synopsis    [Discharges one bounded induction obligation.]
+  Synopsis    [Checks the enclosing induction deadline from a SAT callback.]
 
-  Description [Returns 1 for UNSAT, 0 for SAT, and -1 for an interrupted or
-  limited query. No SAT model is reported as an original counterexample.]
+  Description [The effective deadline and caller's stop callback are copied
+  into a context whose lifetime covers the SAT call.]
 
   SideEffects []
 
-  SeeAlso     []
+  SeeAlso     [Cec_KindCadicalQuery]
+
+***********************************************************************/
+static int Cec_KindCadicalStop( void * pData )
+{
+    Cec_ParKind_t * pPars = (Cec_ParKind_t *)pData;
+    return Cec_KindCheckStop( pPars->TimeToStop, pPars );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks an induction obligation using CaDiCaL.]
+
+  Description [The query has one asserted output. Encode each AND as a
+  Boolean equivalence and stop without a verdict if construction is
+  interrupted. The solver and its stop context belong to this call.]
+
+  SideEffects [Increments the number of completed solver calls.]
+
+  SeeAlso     [Cec_KindQuery]
+
+***********************************************************************/
+static int Cec_KindCadicalQuery( Gia_Man_t * p, abctime TimeToStop, Cec_ParKind_t * pPars, int Lit )
+{
+    Cec_ParKind_t Limits = *pPars;
+    CCaDiCaL * pSat = ccadical_init();
+    Gia_Obj_t * pObj;
+    int i, Lit0, Lit1, Status, Result = -1;
+    Limits.TimeToStop = TimeToStop;
+    ccadical_set_option( pSat, "quiet", 1 );
+    ccadical_set_terminate( pSat, &Limits, Cec_KindCadicalStop );
+    ccadical_add( pSat, -1 ); ccadical_add( pSat, 0 );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( !(i & 1023) && Cec_KindCadicalStop(&Limits) ) goto finish;
+        Lit0 = lit_print( Gia_ObjFaninLit0p(p, pObj) );
+        Lit1 = lit_print( Gia_ObjFaninLit1p(p, pObj) );
+        ccadical_add( pSat, -(i+1) ); ccadical_add( pSat, Lit0 ); ccadical_add( pSat, 0 );
+        ccadical_add( pSat, -(i+1) ); ccadical_add( pSat, Lit1 ); ccadical_add( pSat, 0 );
+        ccadical_add( pSat, i+1 ); ccadical_add( pSat, -Lit0 );
+        ccadical_add( pSat, -Lit1 ); ccadical_add( pSat, 0 );
+    }
+    if ( Cec_KindCadicalStop(&Limits) ) goto finish;
+    ccadical_add( pSat, lit_print(Lit) ); ccadical_add( pSat, 0 );
+    if ( pPars->nConfLimit ) ccadical_limit( pSat, "conflicts", pPars->nConfLimit );
+    pPars->nQueries++;
+    Status = ccadical_solve( pSat );
+    Result = Status == 20 ? 1 : Status == 10 ? 0 : -1;
+finish:
+    ccadical_release( pSat );
+    return Result;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Discharges one bounded induction obligation.]
+
+  Description [Constant outputs are decided directly. Otherwise the
+  selected SAT solver checks the asserted output under the query limits.]
+
+  SideEffects [Counts SAT calls.]
+
+  SeeAlso     [Cec_KindCadicalQuery]
 
 ***********************************************************************/
 static int Cec_KindQuery( Gia_Man_t * p, abctime TimeToStop, Cec_ParKind_t * pPars )
@@ -165,6 +228,7 @@ static int Cec_KindQuery( Gia_Man_t * p, abctime TimeToStop, Cec_ParKind_t * pPa
     if ( Lit == 0 ) return 1;
     if ( Lit == 1 ) return 0;
     if ( Cec_KindCheckStop(TimeToStop, pPars) ) return -1;
+    if ( pPars->fUseCadical ) return Cec_KindCadicalQuery( p, TimeToStop, pPars, Lit );
     pSat = sat_solver_new();
     sat_solver_setnvars( pSat, Gia_ManObjNum(p) );
     sat_solver_set_stop_func( pSat, pPars->pFuncStop );

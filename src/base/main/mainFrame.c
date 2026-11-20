@@ -703,6 +703,29 @@ Abc_Frame_t * Abc_FrameCreate()
 
 /**Function*************************************************************
 
+  Synopsis    [Creates a private frame using the calling thread's output destinations.]
+
+  Description [The caller owns the streams and keeps them open through
+  destruction of the child. The streams also capture initialization. ]
+
+  SideEffects []
+
+  SeeAlso     [Abc_FrameCreate Abc_FrameCreateWithLog]
+
+***********************************************************************/
+Abc_Frame_t * Abc_FrameCreateChild( void )
+{
+    Abc_Frame_t * pAbc = Abc_FrameAllocate(), * pPrevious;
+    pAbc->Out = Abc_IoReadOut();
+    pAbc->Err = Abc_IoReadErr();
+    pPrevious = Abc_FrameEnter( pAbc );
+    Abc_FrameInit( pAbc );
+    Abc_FrameLeave( pPrevious );
+    return pAbc;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates a frame owning an isolated temporary log file.]
 
   Description [Returns NULL if capture is unavailable or log creation fails.

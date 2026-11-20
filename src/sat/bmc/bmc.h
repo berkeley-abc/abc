@@ -309,11 +309,15 @@ extern int               Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * 
 extern int               Saig_ManBmcScalablePortfolio( Aig_Man_t * pAig, Saig_ParBmc_t * pPars,
                              int nMemoryLimit, Bmc_Shared_t * pShared, Bmc_Stats_t * pStats );
 /*=== bmcBmcGia.c ========================================================*/
+extern Gia_Man_t *       Bmc_GiaReduceIso( Gia_Man_t * pGia, Vec_Int_t ** pvPos, int nMemoryLimit,
+                             int (*pFuncStop)(void *), void * pData, int fVerbose );
 extern void              Bmc_GiaSetDefaultParams( Bmc_GiaPar_t * pPars );
 extern int               Bmc_GiaPerform( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars );
 extern int               Bmc_GiaPerformWindow( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int nGroup );
 extern int               Bmc_GiaFindTarget( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int Frame, int nTerms, int Window, int fPolarity );
 /*=== bmcBmcG.c ============================================================*/
+extern int               Bmcg_ManPerformPortfolio( Gia_Man_t * pGia, Bmc_AndPar_t * pPars, int nMemoryLimit,
+                             int (*pFuncStop)(void *), void * pData );
 extern int               Bmcg_ManPerformCadical( Gia_Man_t * pGia, Bmc_AndPar_t * pPars );
 extern int               Bmcg_ManPerformWithStop( Gia_Man_t * pGia, Bmc_AndPar_t * pPars,
                              int (*pFuncStop)(void *), void * pStopData );

@@ -85,6 +85,7 @@ extern ABC_DLL Abc_Ntk_t *     Abc_FrameReadNtk( Abc_Frame_t * p );
 extern ABC_DLL Gia_Man_t *     Abc_FrameReadGia( Abc_Frame_t * p );
 extern ABC_DLL FILE *          Abc_FrameReadOut( Abc_Frame_t * p );
 extern ABC_DLL FILE *          Abc_FrameReadErr( Abc_Frame_t * p );
+extern ABC_DLL Abc_Frame_t *    Abc_FrameCreateChild( void );
 extern ABC_DLL Abc_Frame_t *    Abc_FrameCreateWithLog( void );
 extern ABC_DLL int             Abc_FrameCopyLog( Abc_Frame_t * p, FILE * pFile );
 extern ABC_DLL int             Abc_FrameReadMode( Abc_Frame_t * p );

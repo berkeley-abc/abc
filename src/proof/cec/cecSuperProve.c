@@ -33,17 +33,17 @@
 #include "opt/ufar/UfarCmd.h"
 #include "opt/drw/drw.h"
 #include "opt/abs2/abs2.h"
-#include "proof/pdr/pdr.h"
 #include "proof/pdr2/pdr2.h"
-#include "proof/imc/imc.h"
-#include "proof/int/int.h"
+#include "proof/pdr/gipsat/gipsat.h"
 #include "proof/ssw/ssw.h"
-#include "proof/ssw/sswSim4.h"
 #include "proof/abs/abs.h"
 #include "sat/bmc/bmc.h"
 #include "sat/bsat/satSolver.h"
 #include <errno.h>
 #include <limits.h>
+#if defined(__linux__)
+#include <unistd.h>
+#endif
 #ifdef ABC_USE_CUDD
 #include "bdd/llb/llb.h"
 #endif
@@ -67,21 +67,18 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 // Keep engine IDs in the same order as Names[] in Cec_ManSuperEngineName.
-enum { SUPER_AUTO, SUPER_PDR2, SUPER_FLA, SUPER_INT, SUPER_PDR,
-       SUPER_BMC3_CLASSIC, SUPER_BMC3_GLUCOSE, SUPER_RAR, SUPER_KIND, SUPER_SCORR3,
-       SUPER_SCORR4, SUPER_SCORR, SUPER_GLA, SUPER_ABS, SUPER_DRWSAT,
-       SUPER_PDR_T, SUPER_PDR_T_OR, SUPER_GLA_PDR, SUPER_GLA_PDR_ORIGINAL,
-       SUPER_SCNEW, SUPER_PDR_T_SCORR, SUPER_RAR_SCNEW, SUPER_UFAR, SUPER_INT_OLD,
-       SUPER_PDR2_T, SUPER_PDR2_QUICK, SUPER_PDR2_T_QUICK, SUPER_BMC3_CADICAL, SUPER_BMC3_CADICAL_GLUCOSE,
-       SUPER_SIM4, SUPER_SYN2_SCORR, SUPER_RETIME_SCORR, SUPER_PDR2_SIM, SUPER_PDR2_SIM_QUICK,
-       SUPER_PDR2_TEMPORAL, SUPER_GLA_TEMPORAL, SUPER_PDR2_RPM, SUPER_PHASE_SCORR, SUPER_INT_SYN2, SUPER_PDR2_STARTUP,
-       SUPER_BDD_SIMPLIFY, SUPER_ENGINES, SUPER_COMB = SUPER_ENGINES, SUPER_QUEUE = 128 };
+enum { SUPER_AUTO, SUPER_PDR2, SUPER_PDR2_T, SUPER_PDR2_SIM, SUPER_PDR2_QUICK, SUPER_PDR2_T_QUICK,
+       SUPER_PDR2_SCORR, SUPER_GLA_PDR2, SUPER_BMC3_CADICAL, SUPER_BMCG_CADICAL, SUPER_RAR,
+       SUPER_KIND, SUPER_SCORR4, SUPER_FLA, SUPER_PDR2_RPM, SUPER_PHASE_SCORR, SUPER_SYN2_SCORR,
+       SUPER_RETIME_SCORR, SUPER_BDD_SIMPLIFY, SUPER_UFAR, SUPER_PUBLIC_END,
+       SUPER_SCNEW = SUPER_PUBLIC_END, SUPER_SCORR, SUPER_ENGINES, SUPER_COMB = SUPER_ENGINES, SUPER_QUEUE = 128 };
 
 typedef struct Cec_SuperMan_t_ Cec_SuperMan_t;
 typedef struct Cec_SuperWorker_t_ Cec_SuperWorker_t;
 struct Cec_SuperMan_t_
 {
     Gia_Man_t * pOriginal;
+    Vec_Int_t * vIsoPos;        // representative output to original output
     Gia_Man_t * pInitial;
     Gia_Man_t * pStartup;
     Gia_Man_t * pBest;
@@ -96,12 +93,11 @@ struct Cec_SuperMan_t_
     int Queue[SUPER_QUEUE];
     int Started[SUPER_ENGINES+1], Running[SUPER_ENGINES+1];
     int Deferred[SUPER_ENGINES+1], RetryBudget[SUPER_ENGINES+1];
-    int fComb, fPersistentBmc, fPersistentPdr, fPersistentExtra, fEarlyAbs, fRpmEarly;
+    int fComb, fPersistentBmc, fPersistentPdr, fPersistentExtra, fEarlyAbs, fRpmEarly, fCompactMulti;
     int CorrState, CorrAttempts;
     int PrepareState[2], PrepareSteps[2];
     int StartupState;
     abctime PrepareLimit[2];
-    int nBmcFrames;
     word DirectHash[8];
     abctime DirectBudget[8];
     int DirectFrames[8], DirectLimit[8], nDirectEntries;
@@ -170,7 +166,7 @@ void Cec_ManSuperSetDefaultParams( Cec_ParSuper_t * pPars )
     pPars->nProcs = 6;
     pPars->nTimeOut = 110;
     pPars->nBmcMemory = 8192;
-    pPars->fRewrite = 1;
+    pPars->fUseIso = pPars->fRewrite = 1;
 }
 
 /**Function*************************************************************
@@ -186,14 +182,11 @@ void Cec_ManSuperSetDefaultParams( Cec_ParSuper_t * pPars )
 ***********************************************************************/
 const char * Cec_ManSuperEngineName( int iEngine )
 {
-    static const char * Names[SUPER_ENGINES] = {
-        "auto", "pdr2", "fla", "int", "pdr", "bmc3-classic", "bmc3-glucose", "rar",
-        "kind", "scorr3", "scorr4", "scorr", "gla", "abs", "drwsat",
-        "pdr-t", "pdr-t-or", "gla-pdr", "gla-pdr-original",
-        "scnew", "pdr-t-scorr", "rar-scnew", "ufar", "int-old", "pdr2-t",
-        "pdr2-quick", "pdr2-t-quick", "bmc3-cadical", "bmc3-cadical-glucose", "sim4", "syn2-scorr",
-        "retime-scorr", "pdr2-sim", "pdr2-sim-quick", "pdr2-temporal", "gla-temporal", "pdr2-rpm", "phase-scorr",
-        "int-syn2", "pdr2-startup", "bdd-simplify" };
+    static const char * const Names[SUPER_ENGINES] = {
+        "auto", "pdr2", "pdr2-t", "pdr2-sim", "pdr2-quick", "pdr2-t-quick",
+        "pdr2-scorr", "gla-pdr2", "bmc3-jump", "bmcg-cadical", "rar",
+        "kind", "scorr4", "fla", "pdr2-rpm", "phase-scorr", "syn2-scorr",
+        "retime-scorr", "bdd-simplify", "ufar", "scnew", "scorr" };
     if ( iEngine == SUPER_COMB ) return "comb-sat";
     return iEngine >= 0 && iEngine < SUPER_ENGINES ? Names[iEngine] : NULL;
 }
@@ -212,11 +205,8 @@ const char * Cec_ManSuperEngineName( int iEngine )
 int Cec_ManSuperEngineId( const char * pName )
 {
     int i;
-    if ( !strcmp(pName, "bmc") ) return SUPER_BMC3_CLASSIC;
-    if ( !strcmp(pName, "bmc-g") ) return SUPER_BMC3_GLUCOSE;
     if ( !strcmp(pName, "bmc3") ) return SUPER_BMC3_CADICAL;
-    if ( !strcmp(pName, "bmc3-g") ) return SUPER_BMC3_CADICAL_GLUCOSE;
-    for ( i = 0; i < SUPER_ENGINES; i++ )
+    for ( i = 0; i < SUPER_PUBLIC_END; i++ )
         if ( !strcmp(pName, Cec_ManSuperEngineName(i)) ) return i;
     return -1;
 }
@@ -446,30 +436,6 @@ static int Cec_SuperProgress( void * pData, int fSolved, unsigned Result )
 
 /**Function*************************************************************
 
-  Synopsis    [Exchanges safe prefixes between the two concrete BMC lanes.]
-
-  Description [Both lanes use the initial model with the same reset and
-  output semantics. Abstract, retimed and seeded simulations never share
-  this context. A prefix is published only after all its outputs are refuted.]
-
-  SideEffects [Updates the manager-owned prefix under its mutex.]
-
-  SeeAlso     [Cec_SuperSolve]
-
-***********************************************************************/
-static int Cec_SuperBmcFrames( void * pData, int nFrames )
-{
-    Cec_SuperMan_t * p = (Cec_SuperMan_t *)pData;
-    int Result;
-    Cec_SuperLock( p );
-    if ( nFrames > p->nBmcFrames ) p->nBmcFrames = nFrames;
-    Result = p->nBmcFrames;
-    Cec_SuperUnlock( p );
-    return Result;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Handles constants and direct primary-input properties.]
 
   Description []
@@ -602,18 +568,19 @@ static Abc_Cex_t * Cec_SuperCheckCex( Cec_SuperWorker_t * pWorker )
     Cec_SuperMan_t * p = pWorker->pMan;
     Gia_Man_t * pCheck;
     Abc_Cex_t * pCex = NULL, * pSource = pWorker->pGia->pCexSeq;
+    Vec_Int_t * vPos = pWorker->Engine == SUPER_UFAR && pWorker->fMerged ? NULL : p->vIsoPos;
     ABC_INT64_T nBits;
     int i;
     if ( !pSource || pSource->iFrame < 0 || pSource->iFrame == INT_MAX ||
          pSource->nRegs < 0 ||
          pSource->nPis != Gia_ManPiNum(p->pOriginal) ||
-         pSource->iPo < 0 || pSource->iPo >= Gia_ManPoNum(p->pOriginal) ) goto rejected;
+         pSource->iPo < 0 || pSource->iPo >= (vPos ? Vec_IntSize(vPos) : Gia_ManPoNum(p->pOriginal)) ) goto rejected;
     nBits = (ABC_INT64_T)pSource->nPis * (pSource->iFrame + 1);
     if ( nBits + Gia_ManRegNum(p->pOriginal) > INT_MAX - 32 ||
          nBits + pSource->nRegs > pSource->nBits ) goto rejected;
     pCex = Abc_CexAlloc( Gia_ManRegNum(p->pOriginal), pSource->nPis, pSource->iFrame + 1 );
     pCex->iFrame = pSource->iFrame;
-    pCex->iPo = pSource->iPo;
+    pCex->iPo = vPos ? Vec_IntEntry(vPos, pSource->iPo) : pSource->iPo;
     for ( i = 0; i < (int)nBits; i++ )
         if ( Abc_InfoHasBit(pSource->pData, pSource->nRegs + i) )
             Abc_InfoSetBit( pCex->pData, pCex->nRegs + i );
@@ -678,6 +645,46 @@ static int Cec_SuperPublish( Cec_SuperWorker_t * pWorker, int Result )
 
 /**Function*************************************************************
 
+  Synopsis    [Queues a deferred or longer attempt without duplicate entries.]
+
+  Description [The caller holds the scheduling mutex.]
+
+  SideEffects [May compact the pending queue.]
+
+  SeeAlso     [Cec_SuperWorker]
+
+***********************************************************************/
+static void Cec_SuperEnqueue( Cec_SuperMan_t * p, int Engine, int fPriority )
+{
+    int i;
+    for ( i = p->Head; i < p->Tail; i++ )
+        if ( p->Queue[i] == Engine )
+        {
+            if ( fPriority )
+            {
+                memmove( p->Queue + p->Head + 1, p->Queue + p->Head, sizeof(int) * (i - p->Head) );
+                p->Queue[p->Head] = Engine;
+            }
+            return;
+        }
+    if ( p->Tail == SUPER_QUEUE && p->Head )
+    {
+        memmove( p->Queue, p->Queue + p->Head, sizeof(int) * (p->Tail - p->Head) );
+        p->Tail -= p->Head;
+        p->Head = 0;
+    }
+    assert( p->Tail < SUPER_QUEUE );
+    if ( fPriority )
+    {
+        memmove( p->Queue + p->Head + 1, p->Queue + p->Head, sizeof(int) * (p->Tail - p->Head) );
+        p->Queue[p->Head] = Engine;
+        p->Tail++;
+    }
+    else p->Queue[p->Tail++] = Engine;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Queues reduction follow-ups without starving initial strategies.]
 
   Description [Pending tasks use the latest model when dequeued. Active
@@ -690,36 +697,16 @@ static int Cec_SuperPublish( Cec_SuperWorker_t * pWorker, int Result )
 ***********************************************************************/
 static void Cec_SuperPrioritize( Cec_SuperMan_t * p, int fStrong )
 {
-    int Queue[SUPER_QUEUE], Follow[] = { SUPER_KIND, SUPER_SCORR, SUPER_PDR2, SUPER_PDR_T_OR };
-    int i, nTasks = 0;
-    for ( i = 0; i < 4; i++ )
-        if ( (fStrong || i != 1) && p->Running[Follow[i]] && p->Started[Follow[i]] < p->Generation )
-            p->Deferred[Follow[i]] = 1;
-    for ( i = 0; i < (fStrong ? 4 : 1); i++ )
-        if ( !p->Running[Follow[i]] && p->Started[Follow[i]] < p->Generation ) Queue[nTasks++] = Follow[i];
-    if ( !fStrong )
+    const int Follow[] = { SUPER_PDR2_SIM, SUPER_PDR2, SUPER_KIND };
+    int i, Engine;
+    for ( i = 0; i < 3; i++ )
     {
-        // Give complementary initial searches a chance before another long proof.
-        for ( i = p->Head; i < p->Tail; i++ )
-            if ( p->Queue[i] == SUPER_RETIME_SCORR ) Queue[nTasks++] = p->Queue[i];
-        for ( i = p->Head; i < p->Tail; i++ )
-            if ( p->Queue[i] == SUPER_BMC3_CADICAL || p->Queue[i] == SUPER_SIM4 ||
-                 p->Queue[i] == SUPER_SYN2_SCORR ) Queue[nTasks++] = p->Queue[i];
-        for ( i = 2; i < 4; i++ )
-            if ( !p->Running[Follow[i]] && p->Started[Follow[i]] < p->Generation ) Queue[nTasks++] = Follow[i];
+        Engine = Follow[i];
+        if ( p->Started[Engine] >= p->Generation ) continue;
+        if ( p->Running[Engine] ) p->Deferred[Engine] = 1;
+        else Cec_SuperEnqueue( p, Engine, fStrong || Engine == SUPER_KIND ||
+            (p->fEarlyAbs && Engine == SUPER_PDR2_SIM) );
     }
-    for ( i = p->Head; i < p->Tail; i++ )
-        if ( p->Queue[i] != SUPER_KIND && p->Queue[i] != SUPER_PDR2 && p->Queue[i] != SUPER_PDR_T_OR )
-        {
-            if ( fStrong && p->Queue[i] == SUPER_SCORR ) continue;
-            if ( !fStrong && (p->Queue[i] == SUPER_BMC3_CADICAL || p->Queue[i] == SUPER_SIM4 ||
-                 p->Queue[i] == SUPER_SYN2_SCORR || p->Queue[i] == SUPER_RETIME_SCORR) ) continue;
-            assert( nTasks < SUPER_QUEUE );
-            Queue[nTasks++] = p->Queue[i];
-        }
-    memcpy( p->Queue, Queue, sizeof(int) * nTasks );
-    p->Head = 0;
-    p->Tail = nTasks;
     Cec_SuperWake( p );
 }
 
@@ -739,8 +726,8 @@ static void Cec_SuperReduce( Cec_SuperWorker_t * pWorker, Gia_Man_t * pNew )
     Cec_SuperMan_t * p = pWorker->pMan;
     ABC_INT64_T OldCost, NewCost;
     if ( !pNew ) return;
-    if ( Gia_ManPiNum(pNew) != Gia_ManPiNum(p->pOriginal) ||
-         Gia_ManPoNum(pNew) != Gia_ManPoNum(p->pOriginal) )
+    if ( Gia_ManPiNum(pNew) != Gia_ManPiNum(p->pInitial) ||
+         Gia_ManPoNum(pNew) != Gia_ManPoNum(p->pInitial) )
     {
         Gia_ManStop( pNew );
         return;
@@ -770,14 +757,14 @@ static void Cec_SuperReduce( Cec_SuperWorker_t * pWorker, Gia_Man_t * pNew )
         p->pSource = Cec_ManSuperEngineName(pWorker->Engine);
         p->Generation++;
         p->pPars->nReduced++;
-        // A completed correspondence pass has already processed its own result.
-        if ( pWorker->Engine == SUPER_SCORR )
-        {
-            p->Started[SUPER_SCORR] = p->Generation;
-            p->Deferred[SUPER_SCORR] = p->RetryBudget[SUPER_SCORR] = 0;
-        }
         if ( Meaningful && !p->pPars->iEngine )
             Cec_SuperPrioritize( p, Strong );
+        else if ( p->fCompactMulti && !p->pPars->iEngine )
+        {
+            // Even a small completed reduction can simplify the induction step.
+            Cec_SuperEnqueue( p, SUPER_KIND, 1 );
+            Cec_SuperWake( p );
+        }
     }
     Cec_SuperUnlock( p );
     Gia_ManStopP( &pNew );
@@ -800,7 +787,7 @@ static int Cec_SuperGlaProve( Gia_Man_t * pGia, void * pData )
     Gia_Man_t * pAbs, * pTemp;
     Aig_Man_t * pAig;
     Vec_Int_t * vClasses;
-    Pdr_Par_t Pars;
+    Pdr2_Par_t Pars;
     abctime Deadline = pWorker->Deadline, Now = Abc_Clock();
     int Result, Seconds, fInterrupted = pWorker->fInterrupted;
     if ( Cec_SuperStop(pWorker) || !pGia->vGateClasses ) return -1;
@@ -839,13 +826,16 @@ static int Cec_SuperGlaProve( Gia_Man_t * pGia, void * pData )
     // Give a stable abstraction a longer proof attempt before more unrolling.
     if ( Deadline - Now > Seconds * (abctime)CLOCKS_PER_SEC )
         pWorker->Deadline = Now + Seconds * (abctime)CLOCKS_PER_SEC;
-    Pdr_ManSetDefaultParams( &Pars );
+    Pdr2_ManSetDefaultParams( &Pars );
     Pars.nTimeOut = Seconds;
-    Pars.fTsimStop = 1;
+    Pars.nRandomSeed = 11;
+    Pars.nAbsRuns = Pars.nBmcTime = 0;
+    Pars.fVerifyComplete = 1;
+    Pars.timePolicyStop = pWorker->Deadline;
     Pars.fSilent = 1;
     Pars.pFuncStop = Cec_SuperStopId;
     Now = Abc_Clock();
-    Result = Pdr_ManSolve( pAig, &Pars );
+    Result = Pdr2_ManSolve( pAig, &Pars );
     pWorker->fGlaSat = Result == 0;
     Aig_ManStop( pAig );
     if ( pWorker->pMan->pPars->fVerbose )
@@ -858,7 +848,7 @@ static int Cec_SuperGlaProve( Gia_Man_t * pGia, void * pData )
 
 /**Function*************************************************************
 
-  Synopsis    [Computes the initial correspondence model once for both pipelines.]
+  Synopsis    [Reuses completed correspondence on the initial model.]
 
   Description [The cached graph is immutable except during serialized copies.
   Only a completed reduction is retained; an interrupted pass is discarded.]
@@ -953,7 +943,7 @@ static int Cec_SuperCorrProbe( Cec_SuperWorker_t * pWorker )
         pWorker->Deadline = Abc_Clock() + 2 * (abctime)CLOCKS_PER_SEC;
         if ( pWorker->Deadline > Deadline ) pWorker->Deadline = Deadline;
         pWorker->Seconds = 2;
-        pWorker->Engine = SUPER_PDR_T;
+        pWorker->Engine = SUPER_PDR2_T;
         Result = Cec_SuperSolve( pWorker );
         if ( Result >= 0 ) Gia_ManStop( pSaved );
         else Gia_ManStop( pProbe );
@@ -988,10 +978,9 @@ static int Cec_SuperCorrProbe( Cec_SuperWorker_t * pWorker )
 ***********************************************************************/
 static int Cec_SuperCorrRace( Cec_SuperWorker_t * pWorker )
 {
-    Gia_Man_t * pSaved;
     abctime Deadline = pWorker->Deadline, Now, Budget, Start;
-    int Engine = pWorker->Engine, Seconds = pWorker->Seconds, RarSeed = pWorker->RarSeed;
-    int i, Result = -1, nSteps = Engine == SUPER_PDR_T_SCORR ? 2 : 1;
+    int Engine = pWorker->Engine, Seconds = pWorker->Seconds;
+    int i, Result = -1;
     int fInitial = pWorker->fInitial;
     int nCorrMin = pWorker->pMan->nWorkers >= 6 && Seconds >= 15 ? 6 : 1;
     pWorker->fRaw = 1;
@@ -1002,33 +991,7 @@ static int Cec_SuperCorrRace( Cec_SuperWorker_t * pWorker )
         Cec_SuperSetGia( pWorker, pNew );
         pWorker->fMerged = 1;
     }
-    if ( Engine == SUPER_RAR_SCNEW && !Cec_SuperStop(pWorker) )
-    {
-        // Retain the quick simulation opportunity before sequential reduction.
-        pSaved = pWorker->pGia;
-        Cec_SuperLock( pWorker->pMan );
-        Cec_SuperSetGia( pWorker, Gia_ManDup(pWorker->pMan->pBest) );
-        Cec_SuperUnlock( pWorker->pMan );
-        Now = Abc_Clock();
-        pWorker->Deadline = Now + CLOCKS_PER_SEC;
-        if ( pWorker->Deadline > Deadline ) pWorker->Deadline = Deadline;
-        pWorker->Seconds = 1;
-        pWorker->Engine = SUPER_RAR;
-        pWorker->RarSeed = (RarSeed + 113) % 1000;
-        Result = Cec_SuperSolve( pWorker );
-        pWorker->RarSeed = RarSeed;
-        pWorker->Deadline = Deadline;
-        pWorker->Seconds = Seconds;
-        pWorker->fInterrupted = 0;
-        if ( Result >= 0 )
-        {
-            Gia_ManStop( pSaved );
-            goto finish;
-        }
-        Gia_ManStop( pWorker->pGia );
-        Cec_SuperSetGia( pWorker, pSaved );
-    }
-    for ( i = 0; i < nSteps && !Cec_SuperStop(pWorker); i++ )
+    for ( i = 0; i < 2 && !Cec_SuperStop(pWorker); i++ )
     {
         if ( !Gia_ManRegNum(pWorker->pGia) ||
              (i && (Gia_ManAndNum(pWorker->pGia) >= 100000 || !Gia_ManPiNum(pWorker->pGia))) )
@@ -1051,7 +1014,7 @@ static int Cec_SuperCorrRace( Cec_SuperWorker_t * pWorker )
         pWorker->Seconds = Seconds;
         pWorker->fInterrupted = 0;
         if ( Result >= 0 ) break;
-        if ( !i && Engine == SUPER_PDR_T_SCORR && pWorker->fPersistent &&
+        if ( !i && pWorker->fPersistent &&
              !pWorker->pMan->pPars->iEngine && Gia_ManPoNum(pWorker->pMan->pInitial) > 1 &&
              10 * (ABC_INT64_T)Gia_ManRegNum(pWorker->pGia) <=
              9 * (ABC_INT64_T)Gia_ManRegNum(pWorker->pMan->pInitial) && !Cec_SuperStop(pWorker) )
@@ -1062,10 +1025,9 @@ static int Cec_SuperCorrRace( Cec_SuperWorker_t * pWorker )
     }
     if ( Result < 0 && !Cec_SuperStop(pWorker) )
     {
-        int fConcreteFallback = Engine == SUPER_PDR_T_SCORR &&
-            !pWorker->pMan->pPars->iEngine && pWorker->fPersistent &&
+        int fConcreteFallback = !pWorker->pMan->pPars->iEngine && pWorker->fPersistent &&
             Deadline - Abc_Clock() >= 120 * (abctime)CLOCKS_PER_SEC;
-        pWorker->Engine = Engine == SUPER_PDR_T_SCORR ? SUPER_PDR_T : SUPER_RAR;
+        pWorker->Engine = SUPER_PDR2_T;
         if ( fConcreteFallback )
         {
             // Keep a long concrete proof on the completed correspondence model.
@@ -1083,13 +1045,12 @@ static int Cec_SuperCorrRace( Cec_SuperWorker_t * pWorker )
             if ( Result < 0 && !Cec_SuperStop(pWorker) )
             {
                 if ( pWorker->pMan->pPars->fVerbose )
-                    Abc_Print( 1, "super_prove: correspondence fallback to concrete PDR.\n" );
-                pWorker->Engine = SUPER_PDR;
+                    Abc_Print( 1, "super_prove: correspondence fallback to concrete PDR2.\n" );
+                pWorker->Engine = SUPER_PDR2_SIM;
                 Result = Cec_SuperSolve( pWorker );
             }
         }
     }
-finish:
     pWorker->Engine = Engine;
     pWorker->fRaw = 0;
     Cec_SuperLaneWinner( pWorker, Engine, Result );
@@ -1231,8 +1192,7 @@ static int Cec_SuperQuickPdr( Cec_SuperWorker_t * pWorker )
     pWorker->fInterrupted = 0;
     // Round up because the callback already enforces the precise deadline.
     pWorker->Seconds = Abc_MaxInt( 1, (int)((Deadline - Abc_Clock() + CLOCKS_PER_SEC - 1) / CLOCKS_PER_SEC) );
-    pWorker->Engine = Engine == SUPER_PDR2_QUICK ? SUPER_PDR2 :
-        Engine == SUPER_PDR2_SIM_QUICK ? SUPER_PDR2_SIM : SUPER_PDR2_T;
+    pWorker->Engine = Engine == SUPER_PDR2_QUICK ? SUPER_PDR2 : SUPER_PDR2_T;
     Result = Cec_SuperSolve( pWorker );
     pWorker->Engine = Engine;
     pWorker->Seconds = Seconds;
@@ -1250,7 +1210,7 @@ static int Cec_SuperQuickPdr( Cec_SuperWorker_t * pWorker )
 
   SideEffects [Uses Value in the worker's private input graph.]
 
-  SeeAlso     [Cec_SuperTemporalSolve]
+  SeeAlso     [Cec_SuperBddAttempt Cec_SuperTemporalCex]
 
 ***********************************************************************/
 static Gia_Man_t * Cec_SuperTemporalModel( Cec_SuperWorker_t * pWorker, int Prefix )
@@ -1494,6 +1454,18 @@ static int Cec_SuperRpm( Cec_SuperWorker_t * pWorker, int fUseAbs, int nObjLimit
             Gia_ManPiNum(pModel), Gia_ManRegNum(pModel), Gia_ManAndNum(pModel),
             (double)(Abc_Clock() - Start) / CLOCKS_PER_SEC );
     if ( Cec_SuperStop(pWorker) ) goto done;
+    if ( fUseBdd && Gia_ManPiNum(pModel) > 0 && Gia_ManPiNum(pModel) <= 6 && Gia_ManRegNum(pModel) )
+    {
+        Now = Abc_Clock();
+        if ( Deadline - Now > CLOCKS_PER_SEC / 10 ) pWorker->Deadline = Now + CLOCKS_PER_SEC / 10;
+        Result = Gia_ManProveReachable( pModel, 16384, Cec_SuperStop, pWorker );
+        pWorker->Deadline = Deadline;
+        pWorker->fInterrupted = 0;
+        if ( pWorker->pMan->pPars->fVerbose )
+            Abc_Print( 1, "super_prove: explicit reach result=%d elapsed=%.3f sec\n",
+                Result, (double)(Abc_Clock() - Now) / CLOCKS_PER_SEC );
+        if ( Result == 1 || Cec_SuperStop(pWorker) ) goto done;
+    }
     Pdr2_ManSetDefaultParams( &Pars );
     Pars.nTimeOut = Abc_MaxInt(1, (int)((Deadline - Abc_Clock() + CLOCKS_PER_SEC - 1) / CLOCKS_PER_SEC));
     Pars.pFuncStop = Cec_SuperStopId;
@@ -1538,6 +1510,7 @@ static int Cec_SuperRpm( Cec_SuperWorker_t * pWorker, int fUseAbs, int nObjLimit
         // for a just-found trace, while still stopping when another lane wins.
         Now = Abc_Clock();
         if ( pWorker->Deadline < Now + CLOCKS_PER_SEC ) pWorker->Deadline = Now + CLOCKS_PER_SEC;
+        if ( pWorker->Deadline > pWorker->pMan->Deadline ) pWorker->Deadline = pWorker->pMan->Deadline;
         if ( pBefore ) pCex = Cec_SuperRpmCex( pWorker, pBefore, pModel, pAig->pSeqModel );
         else { pCex = pAig->pSeqModel; pAig->pSeqModel = NULL; }
         pWorker->Deadline = Deadline;
@@ -1792,6 +1765,60 @@ static Gia_Man_t * Cec_SuperPhaseCorr( Gia_Man_t * pGia, Cec_SuperWorker_t * pWo
 
 /**Function*************************************************************
 
+  Synopsis    [Identifies the engines assigned a persistent worker.]
+
+  Description [Correspondence, reparameterization and abstraction share one
+  persistent proof slot, selected by the initial interface.]
+
+  SideEffects []
+
+  SeeAlso     [Cec_SuperNext Cec_SuperExtendPhase]
+
+***********************************************************************/
+static int Cec_SuperPersistentEngine( Cec_SuperMan_t * p, int Engine )
+{
+    if ( p->pPars->iEngine ) return 0;
+    if ( Engine == SUPER_BMC3_CADICAL ) return p->fPersistentBmc && Gia_ManRegNum(p->pInitial) <= 2048;
+    if ( Engine == SUPER_PDR2_QUICK ) return p->fPersistentPdr;
+    if ( !p->fPersistentExtra ) return 0;
+    return Engine == SUPER_RAR || Engine == SUPER_BDD_SIMPLIFY ||
+        (Engine == SUPER_PDR2_RPM && p->fRpmEarly) || (Engine == SUPER_PDR2_T_QUICK && p->fEarlyAbs) ||
+        (Engine == SUPER_PDR2_SCORR && !p->fRpmEarly && !p->fEarlyAbs);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reserves a spare persistent worker for a verified clock period.]
+
+  Description [Count running and queued persistent engines under the same
+  lock used for dispatch. Leave at least two workers available for rotation.]
+
+  SideEffects [A successful reservation lasts until the lane finishes.]
+
+  SeeAlso     [Cec_SuperPersistentEngine Cec_SuperPhaseSolve]
+
+***********************************************************************/
+static int Cec_SuperExtendPhase( Cec_SuperWorker_t * pWorker )
+{
+    Cec_SuperMan_t * p = pWorker->pMan;
+    int i, Reserved, Limit = Abc_MinInt( 4, p->nWorkers - 2 ), fGranted = 0;
+    if ( p->pPars->iEngine || p->nWorkers < 4 ) return 0;
+    Cec_SuperLock( p );
+    Reserved = p->ActivePersistent;
+    for ( i = p->Head; i < p->Tail && Reserved < Limit; i++ )
+        if ( !p->Running[p->Queue[i]] && Cec_SuperPersistentEngine(p, p->Queue[i]) )
+            Reserved++;
+    if ( p->Result == -1 && !pWorker->fPersistent && Reserved < Limit )
+    {
+        p->ActivePersistent++;
+        fGranted = pWorker->fPersistent = 1;
+    }
+    Cec_SuperUnlock( p );
+    return fGranted;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Complements the unmodified searches with clock-period folding.]
 
   Description [Period detection is a heuristic; all folded outputs remain
@@ -1830,7 +1857,7 @@ static int Cec_SuperPhaseSolve( Cec_SuperWorker_t * pWorker )
     pWorker->Deadline = Deadline;
     pWorker->fInterrupted = 0;
     if ( Factor < 2 || Cec_SuperStop(pWorker) ) goto cleanup;
-    if ( !pWorker->pMan->pPars->iEngine && pWorker->pMan->nWorkers >= 4 )
+    if ( Cec_SuperExtendPhase(pWorker) )
     {
         Deadline = pWorker->Deadline = pWorker->pMan->Deadline;
         pWorker->Seconds = Abc_MaxInt( 1, (int)((Deadline - Abc_Clock() + CLOCKS_PER_SEC - 1) / CLOCKS_PER_SEC) );
@@ -1899,16 +1926,17 @@ cleanup:
 
   Synopsis    [Selects the last Boolean-register transient in a ternary prefix.]
 
-  Description [The all-output safe prefix is established independently. Selection
-  only changes the search model, never the proof obligation.]
+  Description [The initial state is all zero and all primary inputs are
+  unknown on every step. Revisiting an identical ternary state proves safety
+  if all outputs were definitely zero on every preceding step.]
 
   SideEffects []
 
-  SeeAlso     [Cec_SuperStartupSolve]
+  SeeAlso     [Cec_SuperBddSolve]
 
 ***********************************************************************/
 static int Cec_SuperStartupPrefix( Gia_Man_t * pGia, Cec_SuperWorker_t * pWorker,
-    int * pSafe, int fSelectTransient )
+    int * pSafe, int * pfClosed )
 {
     const int Bins = 4093;
     unsigned char * pValues, * pStates, * pNext;
@@ -1917,6 +1945,7 @@ static int Cec_SuperStartupPrefix( Gia_Man_t * pGia, Cec_SuperWorker_t * pWorker
     int i, f, k, a, b, Regs = Gia_ManRegNum(pGia), Limit, Prefix = 1, fSafe = 1;
     unsigned Hash;
     *pSafe = 0;
+    *pfClosed = 0;
     if ( !Regs ) return 0;
     Limit = Abc_MinInt( 2048, 20000000 / Gia_ManObjNum(pGia) );
     Limit = Abc_MinInt( Limit, 16000000 / Regs - 1 );
@@ -1940,7 +1969,12 @@ static int Cec_SuperStartupPrefix( Gia_Man_t * pGia, Cec_SuperWorker_t * pWorker
         Hash %= Bins;
         for ( k = pHeads[Hash]; k >= 0; k = pLinks[k] )
             if ( !memcmp(pStates + k * Regs, pStates + f * Regs, Regs) ) break;
-        if ( k >= 0 ) { Prefix = Abc_MaxInt( 1, k ); break; }
+        if ( k >= 0 )
+        {
+            *pfClosed = fSafe;
+            Prefix = Abc_MaxInt( 1, k );
+            break;
+        }
         pLinks[f] = pHeads[Hash]; pHeads[Hash] = f;
         if ( f == Limit ) { Prefix = Limit; break; }
         Gia_ManForEachAnd( pGia, pObj, i )
@@ -1966,7 +2000,7 @@ static int Cec_SuperStartupPrefix( Gia_Man_t * pGia, Cec_SuperWorker_t * pWorker
         }
         Gia_ManForEachRo( pGia, pObj, i ) pValues[Gia_ObjId(pGia, pObj)] = pNext[i];
     }
-    if ( fSelectTransient && Prefix > 1 && !Cec_SuperStop(pWorker) )
+    if ( !*pfClosed && Prefix > 1 && !Cec_SuperStop(pWorker) )
     {
         int r, j, Last, Best = 0;
         // A register that settles to a Boolean constant marks a useful end
@@ -1987,7 +2021,7 @@ static int Cec_SuperStartupPrefix( Gia_Man_t * pGia, Cec_SuperWorker_t * pWorker
         }
     }
     if ( pWorker->pMan->pPars->fVerbose )
-        Abc_Print( 1, "super_prove: startup prefix=%d safe=%d scanned=%d\n", Prefix, *pSafe, f );
+        Abc_Print( 1, "super_prove: startup prefix=%d safe=%d scanned=%d closed=%d\n", Prefix, *pSafe, f, *pfClosed );
 cleanup:
     ABC_FREE(pValues); ABC_FREE(pStates); ABC_FREE(pNext); ABC_FREE(pHeads); ABC_FREE(pLinks);
     return Prefix;
@@ -2002,7 +2036,7 @@ cleanup:
 
   SideEffects [Uses the worker deadline.]
 
-  SeeAlso     [Cec_SuperStartupSolve]
+  SeeAlso     [Cec_SuperBddAttempt]
 
 ***********************************************************************/
 static Gia_Man_t * Cec_SuperStartupCorr( Gia_Man_t * pGia, Cec_SuperWorker_t * pWorker, int Seconds, int Depth )
@@ -2100,16 +2134,16 @@ static Gia_Man_t * Cec_SuperDeepSimplify( Gia_Man_t * pGia, Cec_SuperWorker_t * 
   SeeAlso     [Cec_SuperStartupCorr Cec_SuperStartupPrefix Cec_SuperRpm]
 
 ***********************************************************************/
-static int Cec_SuperBddSolve( Cec_SuperWorker_t * pWorker )
+static int Cec_SuperBddAttempt( Cec_SuperWorker_t * pWorker, int fQuick )
 {
     Gia_Man_t * pGia = pWorker->pGia, * pBase = NULL, * pModel = NULL, * pNext;
     Abc_Cex_t * pCex;
     abctime Deadline = pWorker->Deadline, Start = Abc_Clock();
-    int Depth, Prefix = 0, Safe = 0, Result = -1;
+    int Depth, Prefix = 0, Safe = 0, fClosed = 0, Result = -1, fInitial = pWorker->fInitial;
     if ( Gia_ManObjNum(pGia) > 100000 )
         return -1;
     pBase = Cec_SuperDeepSimplify( pGia, pWorker );
-    for ( Depth = 1; Depth <= 4 && !Cec_SuperStop(pWorker); Depth *= 4 )
+    for ( Depth = 1; !fQuick && Depth <= 4 && !Cec_SuperStop(pWorker); Depth *= 4 )
     {
         pNext = Cec_SuperStartupCorr( pBase, pWorker, 2, Depth );
         if ( pNext ) { Gia_ManStop(pBase); pBase = pNext; }
@@ -2121,14 +2155,15 @@ static int Cec_SuperBddSolve( Cec_SuperWorker_t * pWorker )
     if ( Cec_SuperStop(pWorker) ) goto cleanup;
     if ( Gia_ManRegNum(pBase) )
     {
-        Prefix = Cec_SuperStartupPrefix( pBase, pWorker, &Safe, 1 );
+        Prefix = Cec_SuperStartupPrefix( pBase, pWorker, &Safe, &fClosed );
+        if ( fClosed ) { Result = 1; goto cleanup; }
         Prefix = Abc_MinInt( Prefix, Abc_MaxInt(0, Safe - 1) );
     }
     Cec_SuperSetGia( pWorker, pBase );
     pModel = Prefix ? Cec_SuperTemporalModel(pWorker, Prefix) : Gia_ManDup(pBase);
     Cec_SuperSetGia( pWorker, pGia );
     if ( !pModel || Cec_SuperStop(pWorker) ) goto cleanup;
-    for ( Depth = 1; Prefix && Depth <= 2 && !Cec_SuperStop(pWorker); Depth++ )
+    for ( Depth = fQuick ? 2 : 1; Prefix && Depth <= 2 && !Cec_SuperStop(pWorker); Depth++ )
     {
         pNext = Cec_SuperDeepSimplify( pModel, pWorker );
         Gia_ManStop( pModel );
@@ -2163,6 +2198,8 @@ static int Cec_SuperBddSolve( Cec_SuperWorker_t * pWorker )
 cleanup:
     pWorker->Deadline = Deadline;
     Cec_SuperSetGia( pWorker, pGia );
+    // The original input remains alive throughout this attempt and can reuse its prepared copy.
+    pWorker->fInitial = fInitial;
     Gia_ManStopP( &pBase );
     Gia_ManStopP( &pModel );
     return Result;
@@ -2170,262 +2207,35 @@ cleanup:
 
 /**Function*************************************************************
 
-  Synopsis    [Solves after a certified long startup and input reparameterization.]
+  Synopsis    [Tries a certified startup prefix before deeper correspondence.]
 
-  Description [A short raw-model probe detects a long repeated-state prefix.
-  Completed correspondence exposes a useful transient, whose exact reachable
-  states become the initial relation. All skipped outputs are certified zero.
-  Abstract PDR2 then searches the private reparameterized model.]
+  Description [A compact design may have few reachable states after its
+  startup transient. Try one depth-two correspondence pass on that model.
+  If the bounded attempt is inconclusive, retain the full proof sequence.]
 
-  SideEffects [May attach an original-order trace to the private input graph.]
+  SideEffects [A solved attempt may install a reconstructed counterexample.]
 
-  SeeAlso     [Cec_SuperStartupPrefix Cec_SuperRpm Cec_SuperTemporalCex]
-
-***********************************************************************/
-static int Cec_SuperStartupSolve( Cec_SuperWorker_t * pWorker )
-{
-    Gia_Man_t * pGia = pWorker->pGia, * pBase = NULL, * pModel = NULL, * pNext;
-    Abc_Cex_t * pTrace;
-    abctime Deadline = pWorker->Deadline, Start = Abc_Clock();
-    int Prefix, Safe = 0, Depth, Result = -1;
-    if ( Gia_ManRegNum(pGia) > 512 || Gia_ManObjNum(pGia) > 30000 ) return -1;
-    if ( Deadline - Start > CLOCKS_PER_SEC / 4 ) pWorker->Deadline = Start + CLOCKS_PER_SEC / 4;
-    Prefix = Cec_SuperStartupPrefix( pGia, pWorker, &Safe, 0 );
-    pWorker->Deadline = Deadline;
-    pWorker->fInterrupted = 0;
-    Prefix = Abc_MinInt( Prefix, Abc_MaxInt(0, Safe - 1) );
-    if ( Prefix <= 16 || Cec_SuperStop(pWorker) ) return -1;
-    pBase = Cec_SuperPhaseQuick( pGia, pWorker );
-    for ( Depth = 1; Depth <= 2 && !Cec_SuperStop(pWorker); Depth++ )
-    {
-        pNext = Cec_SuperStartupCorr( pBase, pWorker, 2, Depth );
-        if ( pNext ) { Gia_ManStop(pBase); pBase = pNext; }
-        pNext = Cec_SuperPhaseQuick( pBase, pWorker ); Gia_ManStop(pBase); pBase = pNext;
-    }
-    if ( Cec_SuperConstant(pBase) == 1 ) { Result = 1; goto cleanup; }
-    if ( Cec_SuperStop(pWorker) ) goto cleanup;
-    Prefix = Cec_SuperStartupPrefix( pBase, pWorker, &Safe, 1 );
-    Prefix = Abc_MinInt( Prefix, Abc_MaxInt(0, Safe - 1) );
-    if ( Prefix <= 16 || Cec_SuperStop(pWorker) ) goto cleanup;
-    Cec_SuperSetGia( pWorker, pBase );
-    pModel = Cec_SuperTemporalModel( pWorker, Prefix );
-    Cec_SuperSetGia( pWorker, pGia );
-    if ( !pModel || Cec_SuperStop(pWorker) ) goto cleanup;
-    for ( Depth = 1; Depth <= 2 && !Cec_SuperStop(pWorker); Depth++ )
-    {
-        pNext = Cec_SuperPhaseQuick( pModel, pWorker ); Gia_ManStop(pModel); pModel = pNext;
-        pNext = Cec_SuperStartupCorr( pModel, pWorker, 2, Depth );
-        if ( pNext ) { Gia_ManStop(pModel); pModel = pNext; }
-    }
-    if ( pWorker->pMan->pPars->fVerbose )
-        Abc_Print( 1, "super_prove: startup model prefix=%d pi=%d ff=%d and=%d elapsed=%.3f sec\n",
-            Prefix, Gia_ManPiNum(pModel), Gia_ManRegNum(pModel), Gia_ManAndNum(pModel),
-            (double)(Abc_Clock() - Start) / CLOCKS_PER_SEC );
-    if ( Cec_SuperConstant(pModel) == 1 ) { Result = 1; goto cleanup; }
-    if ( Cec_SuperStop(pWorker) ) goto cleanup;
-    Cec_SuperSetGia( pWorker, pModel );
-    Result = Cec_SuperRpm( pWorker, 1, 2000000, 0 );
-    Cec_SuperSetGia( pWorker, pGia );
-    if ( Result == 0 )
-    {
-        pTrace = Cec_SuperTemporalCex( pGia, pModel->pCexSeq, Prefix );
-        if ( pTrace ) { Abc_CexFreeP(&pGia->pCexSeq); pGia->pCexSeq = pTrace; }
-        else
-        {
-            Abc_Print( 1, "Warning: super_prove rejected a malformed startup counterexample.\n" );
-            Result = -1;
-        }
-    }
-cleanup:
-    pWorker->Deadline = Deadline;
-    Cec_SuperSetGia( pWorker, pGia );
-    Gia_ManStopP( &pBase );
-    Gia_ManStopP( &pModel );
-    return Result;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Runs gate abstraction on a private temporal model.]
-
-  Description [Uses the synchronous proof hook on this worker. Abstract
-  counterexamples stay inside refinement and cannot become portfolio answers.]
-
-  SideEffects [May attach a concrete counterexample to the private model.]
-
-  SeeAlso     [Cec_SuperGlaProve Cec_SuperTemporalSolve]
+  SeeAlso     [Cec_SuperBddAttempt]
 
 ***********************************************************************/
-static int Cec_SuperTemporalGla( Gia_Man_t * pGia, Cec_SuperWorker_t * pWorker )
+static int Cec_SuperBddSolve( Cec_SuperWorker_t * pWorker )
 {
-    Abs_Par_t Pars;
-    if ( Gia_ManPoNum(pGia) != 1 || !Gia_ManPiNum(pGia) ) return -1;
-    Abs_ParSetDefaults( &Pars );
-    Pars.fSilent = !pWorker->pMan->pPars->fVerbose;
-    Pars.nTimeOut = Abc_MaxInt( 1,
-        (int)((pWorker->Deadline - Abc_Clock() + CLOCKS_PER_SEC - 1) / CLOCKS_PER_SEC) );
-    Pars.nFramesMax = 1000;
-    Pars.fCallProver = 0;
-    Pars.pFuncStop = Cec_SuperStopId;
-    Pars.pFuncProve = Cec_SuperGlaProve;
-    Pars.pProveData = pWorker;
-    return Gia_ManPerformGla( pGia, &Pars );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Proves an initial prefix and solves from its reachable states.]
-
-  Description [This complementary model stays private. A proof requires both
-  the prefix and the transformed remainder to be safe. SAT candidates regain
-  the removed inputs before the ordinary original-graph replay.]
-
-  SideEffects [May attach an original-order trace to the worker's graph.]
-
-  SeeAlso     [Cec_SuperTemporalModel Cec_SuperTemporalCex]
-
-***********************************************************************/
-static int Cec_SuperTemporalSolve( Cec_SuperWorker_t * pWorker )
-{
-    Gia_Man_t * pGia = pWorker->pGia, * pModel = NULL, * pNext;
-    Aig_Man_t * pAig = NULL;
-    Abc_Cex_t * pSource;
-    Bmc_GiaPar_t Bmc;
-    Pdr2_Par_t Pars;
-    abctime Start = Abc_Clock();
-    int i, Result, Prefix = 1;
-    Bmc_GiaSetDefaultParams( &Bmc );
-    Bmc.nFramesMax = Prefix;
-    Bmc.nMemoryLimit = 512;
-    Bmc.nTimeOut = 2;
-    Bmc.TimeToStop = pWorker->Deadline;
-    Bmc.pFuncStop = Cec_SuperStop;
-    Bmc.pStopData = pWorker;
-    Bmc.fSilent = 1;
-    Result = Bmc_GiaPerform( pGia, &Bmc );
-    if ( Result >= 0 || Bmc.nFramesDone < Prefix || Cec_SuperStop(pWorker) ) return Result;
-    pModel = Cec_SuperTemporalModel( pWorker, Prefix );
-    if ( !pModel ) return -1;
-    for ( i = 0; i < 3 && !Cec_SuperStop(pWorker); i++ )
+    Gia_Man_t * pGia = pWorker->pGia;
+    abctime Now = Abc_Clock(), Deadline = pWorker->Deadline;
+    int Result = -1;
+    if ( Gia_ManPoNum(pGia) == 1 && Gia_ManRegNum(pGia) >= 32 && Gia_ManRegNum(pGia) <= 128 &&
+         Gia_ManPiNum(pGia) > Gia_ManRegNum(pGia) && Gia_ManAndNum(pGia) <= 10000 )
     {
-        if ( i == 1 && !pWorker->pMan->pPars->fRewrite ) continue;
-        pNext = i == 1 ? Drw_ManRwsatWithStop(pModel, 0, 0, Cec_SuperStop, pWorker) :
-            Gia_ManSeqStructSweepWithStop(pModel, 1, 1, 0, Cec_SuperStop, pWorker);
-        if ( !pNext ) break;
-        Gia_ManStop( pModel ); pModel = pNext;
+        if ( Deadline - Now > CLOCKS_PER_SEC / 2 )
+            pWorker->Deadline = Now + CLOCKS_PER_SEC / 2;
+        Result = Cec_SuperBddAttempt( pWorker, 1 );
+        pWorker->Deadline = Deadline;
+        pWorker->fInterrupted = 0;
     }
-    if ( pWorker->pMan->pPars->fVerbose )
-        Abc_Print( 1, "super_prove: temporal prefix=%d pi=%d ff=%d and=%d elapsed=%.3f sec\n",
-            Prefix, Gia_ManPiNum(pModel), Gia_ManRegNum(pModel), Gia_ManAndNum(pModel),
-            (double)(Abc_Clock() - Start) / CLOCKS_PER_SEC );
-    if ( Cec_SuperStop(pWorker) ) goto cleanup;
-    if ( pWorker->Engine == SUPER_GLA_TEMPORAL )
-    {
-        Result = Cec_SuperTemporalGla( pModel, pWorker );
-        pSource = pModel->pCexSeq;
-    }
-    else
-    {
-        Pdr2_ManSetDefaultParams( &Pars );
-        Pars.nTimeOut = Abc_MaxInt( 1,
-            (int)((pWorker->Deadline - Abc_Clock() + CLOCKS_PER_SEC - 1) / CLOCKS_PER_SEC) );
-        Pars.pFuncStop = Cec_SuperStopId;
-        Pars.fSilent = 1;
-        Pars.nAbsRuns = 0;
-        Pars.nBmcTime = 0;
-        Pars.fVerifyComplete = 1;
-        pAig = Gia_ManToAigSimple( pModel );
-        Result = Pdr2_ManSolve( pAig, &Pars );
-        pSource = pAig->pSeqModel;
-    }
-    if ( Result == 0 )
-    {
-        Abc_CexFreeP( &pGia->pCexSeq );
-        pGia->pCexSeq = Cec_SuperTemporalCex( pGia, pSource, Prefix );
-        if ( !pGia->pCexSeq )
-        {
-            Abc_Print( 1, "Warning: super_prove rejected a malformed counterexample from %s.\n",
-                Cec_ManSuperEngineName(pWorker->Engine) );
-            Result = -1;
-        }
-    }
-    if ( pAig ) Aig_ManStop( pAig );
-cleanup:
-    Gia_ManStop( pModel );
-    return Result;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Tries a short CaDiCaL search before the scalable BMC search.]
-
-  Description [Uses one worker throughout and retains the overall deadline.]
-
-  SideEffects [May produce a concrete counterexample on the private model.]
-
-  SeeAlso     [Cec_SuperSolve]
-
-***********************************************************************/
-static int Cec_SuperBmcRace( Cec_SuperWorker_t * pWorker )
-{
-    abctime Deadline = pWorker->Deadline, Start = Abc_Clock();
-    int Result, Engine = pWorker->Engine, Seconds = pWorker->Seconds;
-    if ( Deadline - Start > 15 * (abctime)CLOCKS_PER_SEC )
-        pWorker->Deadline = Start + 15 * (abctime)CLOCKS_PER_SEC;
-    pWorker->Seconds = Abc_MinInt( Seconds, 15 );
-    pWorker->Engine = SUPER_BMC3_CADICAL;
-    Result = Cec_SuperSolve( pWorker );
-    pWorker->Deadline = Deadline;
-    pWorker->Seconds = Seconds;
-    pWorker->fInterrupted = 0;
     if ( Result < 0 && !Cec_SuperStop(pWorker) )
-    {
-        pWorker->Engine = SUPER_BMC3_GLUCOSE;
-        Result = Cec_SuperSolve( pWorker );
-    }
-    pWorker->Engine = Engine;
-    Cec_SuperLaneWinner( pWorker, Engine, Result );
+        Result = Cec_SuperBddAttempt( pWorker, 0 );
     return Result;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Tries interpolation on a privately synthesized model.]
-
-  Description [The preprocessing slice is bounded. Input ordering remains
-  unchanged, and the portfolio replays every trace on its original model.]
-
-  SideEffects [May replace the worker's graph.]
-
-  SeeAlso     [Cec_SuperSolve]
-
-***********************************************************************/
-static int Cec_SuperIntSyn2( Cec_SuperWorker_t * pWorker )
-{
-    Gia_Man_t * pNew, * pTemp;
-    abctime Deadline = pWorker->Deadline, Start = Abc_Clock();
-    int Result, Engine = pWorker->Engine, Seconds = pWorker->Seconds;
-    pNew = Cec_SuperPrepare( pWorker->pGia, pWorker, 1, 3, 0 );
-    Gia_ManStop( pWorker->pGia );
-    Cec_SuperSetGia( pWorker, pNew );
-    pWorker->Deadline = Deadline;
-    pWorker->fInterrupted = 0;
-    if ( pWorker->pMan->pPars->fVerbose )
-        Abc_Print( 1, "super_prove: interpolation synthesis and=%d ff=%d elapsed=%.3f sec\n",
-            Gia_ManAndNum(pWorker->pGia), Gia_ManRegNum(pWorker->pGia),
-            (double)(Abc_Clock() - Start) / CLOCKS_PER_SEC );
-    if ( Cec_SuperStop(pWorker) ) return -1;
-    Cec_SuperSetGia( pWorker, Gia_ManDupNormalize(pTemp = pWorker->pGia, 1) );
-    Gia_ManStop( pTemp );
-    pWorker->Seconds = Abc_MaxInt( 1, (int)((Deadline - Abc_Clock() + CLOCKS_PER_SEC - 1) / CLOCKS_PER_SEC) );
-    pWorker->Engine = SUPER_INT_OLD;
-    Result = Cec_SuperSolve( pWorker );
-    pWorker->Engine = Engine;
-    pWorker->Seconds = Seconds;
-    Cec_SuperLaneWinner( pWorker, Engine, Result );
-    return Result;
-}
-
 
 /**Function*************************************************************
 
@@ -2871,8 +2681,7 @@ static int Cec_SuperSolve( Cec_SuperWorker_t * pWorker )
     Aig_Man_t * pAig, * pTemp;
     int Result, Engine = pWorker->Engine;
     if ( pWorker->fInitial && Gia_ManObjNum(pGia) <= 1000000 &&
-         ((Engine == SUPER_BMC3_GLUCOSE && pWorker->pMan->fEarlyAbs) ||
-          (Engine == SUPER_BMC3_CADICAL && Gia_ManRegNum(pGia) >= 1024)) )
+         (Engine == SUPER_BMC3_CADICAL && Gia_ManRegNum(pGia) >= 1024) )
     {
         // Larger BMC instances reuse completed structural preparation.
         // The recipe preserves input/output order and the original frame index.
@@ -2895,24 +2704,16 @@ static int Cec_SuperSolve( Cec_SuperWorker_t * pWorker )
         pWorker->pSolvedBy = "comb-sat";
         return Cec_SuperComb(pWorker);
     }
-    if ( Engine == SUPER_PDR_T_SCORR || Engine == SUPER_RAR_SCNEW )
+    if ( Engine == SUPER_PDR2_SCORR )
         return Cec_SuperCorrRace( pWorker );
-    if ( Engine == SUPER_PDR2_QUICK || Engine == SUPER_PDR2_T_QUICK || Engine == SUPER_PDR2_SIM_QUICK )
+    if ( Engine == SUPER_PDR2_QUICK || Engine == SUPER_PDR2_T_QUICK )
         return Cec_SuperQuickPdr( pWorker );
     if ( Engine == SUPER_PHASE_SCORR ) return Cec_SuperPhaseSolve(pWorker);
-    if ( Engine == SUPER_INT_SYN2 ) return Cec_SuperIntSyn2(pWorker);
-    if ( Engine == SUPER_PDR2_STARTUP ) return Cec_SuperStartupSolve(pWorker);
     if ( Engine == SUPER_BDD_SIMPLIFY ) return Cec_SuperBddSolve(pWorker);
     if ( Engine == SUPER_PDR2_RPM ) return Cec_SuperRpm(pWorker, 0, 100000, 0);
-    if ( Engine == SUPER_PDR2_TEMPORAL || Engine == SUPER_GLA_TEMPORAL )
-        return Cec_SuperTemporalSolve( pWorker );
-    if ( Engine == SUPER_BMC3_CADICAL_GLUCOSE )
-        return Cec_SuperBmcRace( pWorker );
     if ( Engine == SUPER_SYN2_SCORR || Engine == SUPER_RETIME_SCORR )
         return Cec_SuperSyn2Corr( pWorker );
-    if ( Gia_ManPoNum(pGia) > 1 && (Engine == SUPER_FLA || Engine == SUPER_INT || Engine == SUPER_INT_OLD ||
-         Engine == SUPER_GLA || Engine == SUPER_GLA_PDR ||
-         Engine == SUPER_GLA_PDR_ORIGINAL || Engine == SUPER_PDR_T_OR) )
+    if ( Gia_ManPoNum(pGia) > 1 && (Engine == SUPER_FLA || Engine == SUPER_GLA_PDR2) )
     {
         pNew = Cec_SuperMergeOutputs( pGia );
         Gia_ManStop( pGia );
@@ -2924,88 +2725,101 @@ static int Cec_SuperSolve( Cec_SuperWorker_t * pWorker )
     }
     if ( Engine == SUPER_PDR2 || Engine == SUPER_PDR2_T || Engine == SUPER_PDR2_SIM )
     {
+        Gia_Man_t * pInput = pWorker->pMan->pInitial;
         Pdr2_Par_t Pars;
         Pdr2_ManSetDefaultParams( &Pars );
         Pars.nTimeOut = pWorker->Seconds;
         Pars.fSilent = 1;
         Pars.pFuncStop = Cec_SuperStopId;
         Pars.fVerifyComplete = 1;
-        if ( !pWorker->pMan->pPars->iEngine )
+        Pars.timePolicyStop = pWorker->Deadline;
+        Pars.nRandomSeed = (int)((37u * (unsigned)pWorker->Generation +
+            (Engine == SUPER_PDR2_T ? 17u : Engine == SUPER_PDR2_SIM ? 71u : 0u)) % 1000u);
+        Pars.nBmcTime = Pars.nAbsRuns = 0;
+        if ( Engine == SUPER_PDR2 && Gia_ManPoNum(pInput) == 1 && Gia_ManRegNum(pInput) >= 512 &&
+             Gia_ManRegNum(pInput) <= 4096 && Gia_ManRegNum(pInput) <= Gia_ManPiNum(pInput) &&
+             Gia_ManAndNum(pInput) <= 16 * Gia_ManRegNum(pInput) )
         {
-            Pars.nRandomSeed = (int)(37u * (unsigned)pWorker->Generation % 1000u);
-            Pars.nBmcTime = 0;
-            if ( Engine == SUPER_PDR2 ) Pars.nAbsRuns = 0;
+            // Prefer decisions on inputs in compact, input-rich transition relations.
+            Pars.nInputPolicy = 2;
+            Pars.fWarmStart = Pars.fSparseLift = 1;
+            Pars.nMicFailLimit = 2;
+            Pars.nRandomSeed++;
         }
         if ( Engine == SUPER_PDR2_T )
         {
             Pars.fUseAbs = 1;
-            Pars.fBlockInduct ^= 1;
+            Pars.fBlockInduct = 1;
         }
         if ( Engine == SUPER_PDR2_SIM )
         {
             // A complementary search uses simulation weakening and relative induction.
-            Pars.nBmcTime = 0;
-            Pars.nAbsRuns = 0;
             Pars.nLiftSim = 2;
             Pars.nMicMode = 1;
             Pars.fBlockInduct = 1;
         }
         pAig = Gia_ManToAigSimple( pGia );
-        Result = Pdr2_ManSolve( pAig, &Pars );
-        pGia->pCexSeq = pAig->pSeqModel; pAig->pSeqModel = NULL;
-        Aig_ManStop( pAig );
-    }
-    else if ( Engine == SUPER_PDR || Engine == SUPER_PDR_T || Engine == SUPER_PDR_T_OR )
-    {
-        Pdr_Par_t Pars;
-        Pdr_ManSetDefaultParams( &Pars );
-        Pars.nTimeOut = pWorker->Seconds;
-        Pars.fSilent = 1;
-        Pars.fUseAbs = Engine != SUPER_PDR;
-        Pars.fTsimStop = 1;
-        Pars.pFuncStop = Cec_SuperStopId;
-        pAig = Gia_ManToAigSimple( pGia );
-        Result = Pdr_ManSolve( pAig, &Pars );
+        if ( ABC_HAS_THREAD_LOCAL && Gia_ManAndNum(pGia) >= 500000 )
+        {
+            const char * pKeys[] = { "PDR2_COMPACT", "PDR2_LAZYCNF" };
+            const char * pValues[] = { "1", "1" };
+            Gip_Options_t Options;
+            abctime Deadline = pWorker->Deadline, Now = Abc_Clock(), Reserve = 0;
+            memset( &Options, 0, sizeof(Options) );
+            Options.nOptions = 2;
+            Options.pKeys = pKeys;
+            Options.pValues = pValues;
+            // Large persistent runs need time to release their frame solvers before the command deadline.
+            if ( pWorker->fPersistent && Deadline > Now )
+            {
+                Reserve = (Deadline - Now) / 16;
+                if ( Reserve > 10 * (abctime)CLOCKS_PER_SEC ) Reserve = 10 * (abctime)CLOCKS_PER_SEC;
+                Pars.timePolicyStop = pWorker->Deadline = Deadline - Reserve;
+                Pars.nTimeOut = Abc_MaxInt(1, (int)((pWorker->Deadline - Now + CLOCKS_PER_SEC - 1) / CLOCKS_PER_SEC));
+            }
+            if ( pWorker->pMan->pPars->fVerbose )
+                Abc_Print( 1, "super_prove: engine=%s uses lazy PDR2 frame CNF, cleanup reserve=%.3f sec\n",
+                    Cec_ManSuperEngineName(Engine), (double)Reserve / CLOCKS_PER_SEC );
+            Gip_OptionsPush( &Options );
+            Result = Pdr2_ManSolve( pAig, &Pars );
+            Gip_OptionsPop( &Options );
+            pWorker->Deadline = Deadline;
+        }
+        else
+            Result = Pdr2_ManSolve( pAig, &Pars );
         pGia->pCexSeq = pAig->pSeqModel; pAig->pSeqModel = NULL;
         Aig_ManStop( pAig );
     }
     else if ( Engine == SUPER_BMC3_CADICAL )
     {
         Bmc_GiaPar_t Pars;
-        Bmc_Shared_t Shared = { Cec_SuperBmcFrames, pWorker->pMan };
         Bmc_GiaSetDefaultParams( &Pars );
+        Pars.nLutSize = 5;
+        Pars.nFramesJump = 6;
+        Pars.fTernaryPrefix = Pars.fWindowProof = 1;
         Pars.nTimeOut = pWorker->Seconds;
         Pars.nMemoryLimit = pWorker->pMan->pPars->nBmcMemory;
         Pars.TimeToStop = pWorker->Deadline;
         Pars.fSilent = 1;
         Pars.pFuncStop = Cec_SuperStop;
         Pars.pStopData = pWorker;
-        if ( pWorker->pMan->pPars->iEngine == SUPER_BMC3_CADICAL_GLUCOSE ) Pars.pShared = &Shared;
         Result = Bmc_GiaPerform( pGia, &Pars );
         if ( pWorker->pMan->pPars->fVerbose )
-            Abc_Print( 1, "super_prove: bmc3-cadical safe=%d shared=%d queries=%d "
+            Abc_Print( 1, "super_prove: bmc3-jump safe=%d queries=%d "
                 "memory_stop=%d estimated_peak=%.1f MiB\n",
-                Pars.nFramesDone, Pars.nFramesShared, Pars.nQueries, Pars.fMemoryLimit, Pars.MemoryPeakMB );
+                Pars.nFramesDone, Pars.nQueries, Pars.fMemoryLimit, Pars.MemoryPeakMB );
     }
-    else if ( Engine == SUPER_BMC3_CLASSIC || Engine == SUPER_BMC3_GLUCOSE )
+    else if ( Engine == SUPER_BMCG_CADICAL )
     {
-        Saig_ParBmc_t Pars;
-        Bmc_Shared_t Shared = { Cec_SuperBmcFrames, pWorker->pMan };
-        Bmc_Stats_t Stats;
-        Saig_ParBmcSetDefaultParams( &Pars );
+        Bmc_AndPar_t Pars;
+        memset( &Pars, 0, sizeof(Pars) );
+        Pars.nProcs = Pars.nFramesAdd = 1;
         Pars.nTimeOut = pWorker->Seconds;
-        Pars.fSilent = 1;
-        Pars.fUseGlucose = Engine == SUPER_BMC3_GLUCOSE;
-        Pars.pFuncStop = Cec_SuperStopId;
-        pAig = Gia_ManToAigSimple( pGia );
-        Result = Saig_ManBmcScalablePortfolio( pAig, &Pars, pWorker->pMan->pPars->nBmcMemory,
-            pWorker->pMan->pPars->iEngine == SUPER_BMC3_CADICAL_GLUCOSE ? &Shared : NULL, &Stats );
+        Pars.fNotVerbose = 1;
+        Result = Bmcg_ManPerformPortfolio( pGia, &Pars, pWorker->pMan->pPars->nBmcMemory,
+            Cec_SuperStop, pWorker );
         if ( pWorker->pMan->pPars->fVerbose )
-            Abc_Print( 1, "super_prove: %s safe=%d shared=%d memory_stop=%d estimated_peak=%.1f MiB\n",
-                Cec_ManSuperEngineName(Engine), Pars.iFrame + 1, Stats.nFramesShared,
-                Stats.fMemoryLimit, Stats.MemoryPeakMB );
-        pGia->pCexSeq = pAig->pSeqModel; pAig->pSeqModel = NULL;
-        Aig_ManStop( pAig );
+            Abc_Print( 1, "super_prove: bmcg-cadical last frame=%d\n", Pars.iFrame );
     }
     else if ( Engine == SUPER_RAR )
     {
@@ -3025,19 +2839,6 @@ static int Cec_SuperSolve( Cec_SuperWorker_t * pWorker )
             Abc_Print( 1, "super_prove: rarity seed=%d model=%d\n", pWorker->RarSeed, pWorker->Generation );
         Result = Cec_SuperRarity( pWorker );
     }
-    else if ( Engine == SUPER_SIM4 )
-    {
-        Ssw_ParSim4_t Pars;
-        Ssw_Sim4SetDefaultParams( &Pars );
-        Pars.nTimeOut = pWorker->Seconds;
-        Pars.TimeToStop = pWorker->Deadline;
-        Pars.nMemoryLimit = 2048;
-        Pars.fSilent = 1;
-        Pars.pFuncStop = Cec_SuperStop;
-        Pars.pStopData = pWorker;
-        Result = Ssw_Sim4Perform( pGia, &Pars );
-        if ( Result != 0 ) Result = -1;
-    }
     else if ( Engine == SUPER_KIND )
     {
         Cec_ParKind_t Pars;
@@ -3047,6 +2848,7 @@ static int Cec_SuperSolve( Cec_SuperWorker_t * pWorker )
         Pars.nAndMax = 0;
         Pars.nFramesMax = 8;
         Pars.nConfLimit = 0;
+        Pars.fUseCadical = pWorker->Generation > 0 && Gia_ManPoNum(pGia) > 1;
         Pars.pFuncStop = Cec_SuperStopId;
         Result = Cec_GiaKind( pGia, &Pars );
     }
@@ -3063,40 +2865,7 @@ static int Cec_SuperSolve( Cec_SuperWorker_t * pWorker )
         Pars.pStopData = pWorker;
         Result = Gia_ManPerformFla( pGia, &Pars );
     }
-    else if ( Engine == SUPER_ABS )
-    {
-        Abs2_Par_t Pars;
-        Abs2_SetDefaultParams( &Pars );
-        Pars.nTimeOut = pWorker->Seconds;
-        Pars.pFuncStop = Cec_SuperStop;
-        Pars.pStopData = pWorker;
-        Result = Abs2_ManPerform( pGia, &Pars );
-        // This is a bounded abstraction experiment, never a safety proof.
-        if ( Result != 0 ) Result = -1;
-    }
-    else if ( Engine == SUPER_INT )
-    {
-        Imc_Par_t Pars;
-        Imc_ManSetDefaultParams( &Pars );
-        Pars.nTimeOut = pWorker->Seconds;
-        Result = Imc_ManPerformWithStop( pGia, &Pars, Cec_SuperStop, pWorker );
-    }
-    else if ( Engine == SUPER_INT_OLD )
-    {
-        Inter_ManParams_t Pars;
-        int Frame;
-        if ( !Gia_ManPiNum(pGia) ) return -1;
-        Inter_ManSetDefaultParams( &Pars );
-        Pars.nSecLimit = pWorker->Seconds;
-        Pars.TimeToStop = pWorker->Deadline;
-        Pars.pFuncStop = Cec_SuperStopId;
-        pAig = Gia_ManToAigSimple( pGia );
-        Result = Inter_ManPerformInterpolation( pAig, &Pars, &Frame );
-        pGia->pCexSeq = pAig->pSeqModel; pAig->pSeqModel = NULL;
-        Aig_ManStop( pAig );
-        if ( Result == 0 && !pGia->pCexSeq ) Result = -1;
-    }
-    else if ( Engine == SUPER_GLA || Engine == SUPER_GLA_PDR || Engine == SUPER_GLA_PDR_ORIGINAL )
+    else if ( Engine == SUPER_GLA_PDR2 )
     {
         Abs_Par_t Pars;
         if ( Gia_ManPoNum(pGia) != 1 || !Gia_ManPiNum(pGia) ) return -1;
@@ -3108,7 +2877,7 @@ static int Cec_SuperSolve( Cec_SuperWorker_t * pWorker )
         // The callback runs on this worker and creates no helper threads.
         Pars.fCallProver = 0;
         Pars.pFuncStop = Cec_SuperStopId;
-        Pars.pFuncProve = Engine != SUPER_GLA ? Cec_SuperGlaProve : NULL;
+        Pars.pFuncProve = Cec_SuperGlaProve;
         Pars.pProveData = pWorker;
         Vec_IntFreeP( &pWorker->vGlaClasses );
         pWorker->fGlaSat = 0;
@@ -3133,7 +2902,7 @@ static int Cec_SuperSolve( Cec_SuperWorker_t * pWorker )
         }
         Aig_ManStop( pAig );
     }
-    else if ( Engine == SUPER_SCNEW || Engine == SUPER_SCORR3 || Engine == SUPER_SCORR4 )
+    else if ( Engine == SUPER_SCNEW || Engine == SUPER_SCORR4 )
     {
         Cec_ParCor_t Pars;
         Cec_ManCorSetDefaultParams( &Pars );
@@ -3143,26 +2912,18 @@ static int Cec_SuperSolve( Cec_SuperWorker_t * pWorker )
         Pars.pFunc = (void *)Cec_SuperStop;
         Pars.pData = pWorker;
         pNew = Engine == SUPER_SCNEW ? Cec_ManLSCorrespondence(pGia, &Pars) :
-            Engine == SUPER_SCORR3 ? Cec_ManLSCorrespondence3(pGia, &Pars)
-                                    : Cec_ManLSCorrespondence4(pGia, &Pars, 4, 0);
+            Cec_ManLSCorrespondence4(pGia, &Pars, 4, 0);
     }
-    else if ( Engine == SUPER_DRWSAT )
-        pNew = Drw_ManRwsatWithStop( pGia, 0, 0, Cec_SuperStop, pWorker );
     if ( pNew )
     {
-        // Correspondence can export duplicate ANDs. DRWSAT already hashes
-        // its result, so it needs no second normalization here.
-        if ( Engine != SUPER_DRWSAT )
-        {
-            pNorm = Gia_ManDupNormalize( pNew, 1 );
-            Gia_ManStop( pNew );
-            pNew = pNorm;
-        }
+        pNorm = Gia_ManDupNormalize( pNew, 1 );
+        Gia_ManStop( pNew );
+        pNew = pNorm;
         Gia_ManStop( pGia );
         pGia = pNew; Cec_SuperSetGia( pWorker, pGia );
         Result = Cec_SuperConstant( pGia );
         if ( Result != -1 ) return Result;
-        if ( Engine != SUPER_DRWSAT && !pWorker->fRaw &&
+        if ( !pWorker->fRaw &&
              pWorker->pMan->pPars->fRewrite && !Cec_SuperStop(pWorker) )
         {
             pNew = Drw_ManRwsatWithStop( pGia, 0, 0, Cec_SuperStop, pWorker );
@@ -3194,128 +2955,45 @@ static int Cec_SuperSolve( Cec_SuperWorker_t * pWorker )
 ***********************************************************************/
 static void Cec_SuperSchedule( Cec_SuperMan_t * p )
 {
-    static const int Engines[] = { SUPER_KIND, SUPER_GLA_PDR, SUPER_PDR2_T_QUICK,
-        SUPER_RAR, SUPER_BMC3_GLUCOSE, SUPER_PDR2_QUICK,
-        SUPER_SCORR4, SUPER_SYN2_SCORR, SUPER_BMC3_CADICAL, SUPER_SIM4, SUPER_PDR_T_SCORR,
-        SUPER_GLA_PDR_ORIGINAL,
-        SUPER_INT_OLD, SUPER_FLA, SUPER_SCORR, SUPER_PDR_T, SUPER_SCORR3, SUPER_PDR, SUPER_BMC3_CLASSIC };
-    int i, Engine, fSmall = Gia_ManAndNum(p->pInitial) < 10000;
-    int fMulti = Gia_ManPoNum(p->pInitial) > 1;
-    int fTemporal = Gia_ManPoNum(p->pInitial) == 1 && Gia_ManRegNum(p->pInitial) <= 256 &&
-        Gia_ManAndNum(p->pInitial) < 100000 && p->pPars->nProcs >= 4;
-    p->fRpmEarly = !p->fEarlyAbs && !fMulti && p->pPars->nProcs >= 6 &&
-        Gia_ManRegNum(p->pInitial) <= 1024 && Gia_ManAndNum(p->pInitial) < 30000 &&
-        Gia_ManPiNum(p->pInitial) > Gia_ManRegNum(p->pInitial);
-    int fPhaseEarly = fTemporal && !fMulti && Gia_ManPiNum(p->pInitial) <= Gia_ManRegNum(p->pInitial) &&
-        Gia_ManAndNum(p->pInitial) < 10000;
+    int nRegs = Gia_ManRegNum(p->pInitial), nAnds = Gia_ManAndNum(p->pInitial);
+    int nPis = Gia_ManPiNum(p->pInitial), fMulti = Gia_ManPoNum(p->pInitial) > 1;
+    int fPhase = !fMulti && nRegs <= 256 && nAnds < 10000 && nPis <= nRegs;
+    int fRetime = fMulti && nRegs >= 512 && nRegs <= 10000 && nAnds >= 10000 && nAnds <= 100000;
     p->Head = p->Tail = 0;
     if ( p->pPars->iEngine )
-        p->Queue[p->Tail++] = p->pPars->iEngine;
-    else
     {
-        if ( p->pWlc && p->pWlc->nObjs[WLC_OBJ_ARI_MULTI] )
-            p->Queue[p->Tail++] = SUPER_UFAR;
-        if ( p->fComb )
-        {
-            p->Queue[p->Tail++] = SUPER_COMB;
-            return;
-        }
-        for ( i = 0; i < (int)(sizeof(Engines) / sizeof(int)); i++ )
-        {
-            if ( i == 6 && p->fRpmEarly ) p->Queue[p->Tail++] = SUPER_PDR_T_SCORR;
-            Engine = Engines[i];
-            // Keep both persistent concrete searches in the opening six tasks.
-            if ( fSmall )
-            {
-                if ( Engine == SUPER_KIND ) Engine = SUPER_PDR2_QUICK;
-                else if ( Engine == SUPER_PDR2_QUICK ) Engine = SUPER_KIND;
-            }
-            if ( !p->fEarlyAbs )
-            {
-                if ( Engine == SUPER_PDR2_T_QUICK ) Engine = SUPER_PDR_T_SCORR;
-                else if ( Engine == SUPER_PDR_T_SCORR ) Engine = SUPER_PDR2_T_QUICK;
-            }
-            if ( fMulti )
-            {
-                if ( Engine == SUPER_GLA_PDR ) Engine = SUPER_SCORR4;
-                else if ( Engine == SUPER_SCORR4 ) Engine = SUPER_GLA_PDR;
-            }
-            if ( fPhaseEarly && Engine == SUPER_GLA_PDR ) Engine = SUPER_PHASE_SCORR;
-            if ( Gia_ManRegNum(p->pInitial) > 512 )
-            {
-                if ( Engine == SUPER_SIM4 ) Engine = SUPER_BMC3_CADICAL;
-                else if ( Engine == SUPER_BMC3_CADICAL ) Engine = SUPER_SIM4;
-            }
-            // Retiming exposes register invariants in larger multi-output cones.
-            if ( Engine == SUPER_SYN2_SCORR && fMulti &&
-                 Gia_ManRegNum(p->pInitial) >= 512 && Gia_ManRegNum(p->pInitial) <= 10000 &&
-                 Gia_ManAndNum(p->pInitial) >= 10000 && Gia_ManAndNum(p->pInitial) <= 100000 )
-                Engine = SUPER_RETIME_SCORR;
-            // Complement the persistent PDR2 model with a reachable-state prefix.
-            if ( Engine == SUPER_INT_OLD && !fMulti && p->pPars->nProcs >= 4 &&
-                 Gia_ManRegNum(p->pInitial) >= 4096 && Gia_ManRegNum(p->pInitial) <= 8192 &&
-                 Gia_ManAndNum(p->pInitial) >= 100000 && Gia_ManAndNum(p->pInitial) <= 250000 ) Engine = SUPER_INT_SYN2;
-            if ( Engine == SUPER_GLA_PDR_ORIGINAL && fTemporal ) Engine = SUPER_GLA_TEMPORAL;
-            if ( Engine == SUPER_PDR_T_SCORR && p->fRpmEarly ) Engine = SUPER_PDR2_RPM;
+        Cec_SuperEnqueue( p, p->pPars->iEngine, 0 );
+        return;
+    }
+    if ( p->pWlc && p->pWlc->nObjs[WLC_OBJ_ARI_MULTI] ) Cec_SuperEnqueue( p, SUPER_UFAR, 0 );
+    if ( p->fComb ) { Cec_SuperEnqueue( p, SUPER_COMB, 0 ); return; }
+    p->fRpmEarly = !p->fEarlyAbs && !fMulti && nRegs <= 1024 && nAnds < 30000 && nPis > nRegs;
+    if ( p->fRpmEarly )
+    {
 #ifdef ABC_USE_CUDD
-            if ( Engine == SUPER_PDR2_RPM && Gia_ManRegNum(p->pInitial) >= 32 &&
-                 Gia_ManRegNum(p->pInitial) <= 128 && Gia_ManAndNum(p->pInitial) >= 1000 &&
-                 Gia_ManAndNum(p->pInitial) < 10000 )
-                Engine = SUPER_BDD_SIMPLIFY;
+        if ( nRegs >= 32 && nRegs <= 128 && nAnds >= 1000 && nAnds < 10000 )
+            Cec_SuperEnqueue( p, SUPER_BDD_SIMPLIFY, 0 );
+        else
 #endif
-            p->Queue[p->Tail++] = Engine;
-            if ( i == 9 )
-            {
-                if ( fTemporal ) p->Queue[p->Tail++] = SUPER_PDR2_TEMPORAL;
-                if ( p->pPars->nProcs >= 4 && Gia_ManRegNum(p->pInitial) <= 10000 &&
-                     Gia_ManObjNum(p->pInitial) <= 250000 )
-                    p->Queue[p->Tail++] = fPhaseEarly ? SUPER_GLA_PDR : SUPER_PHASE_SCORR;
-                if ( !fMulti && p->pPars->nProcs >= 4 &&
-                     Gia_ManRegNum(p->pInitial) <= 512 && Gia_ManObjNum(p->pInitial) <= 30000 )
-                    p->Queue[p->Tail++] = SUPER_PDR2_STARTUP;
-            }
-        }
+            Cec_SuperEnqueue( p, SUPER_PDR2_RPM, 0 );
     }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Queues a deferred or longer attempt without duplicate entries.]
-
-  Description [The caller holds the scheduling mutex.]
-
-  SideEffects [May compact the pending queue.]
-
-  SeeAlso     [Cec_SuperWorker]
-
-***********************************************************************/
-static void Cec_SuperEnqueue( Cec_SuperMan_t * p, int Engine, int fPriority )
-{
-    int i;
-    for ( i = p->Head; i < p->Tail; i++ )
-        if ( p->Queue[i] == Engine )
-        {
-            if ( fPriority )
-            {
-                memmove( p->Queue + p->Head + 1, p->Queue + p->Head, sizeof(int) * (i - p->Head) );
-                p->Queue[p->Head] = Engine;
-            }
-            return;
-        }
-    if ( p->Tail == SUPER_QUEUE && p->Head )
-    {
-        memmove( p->Queue, p->Queue + p->Head, sizeof(int) * (p->Tail - p->Head) );
-        p->Tail -= p->Head;
-        p->Head = 0;
-    }
-    assert( p->Tail < SUPER_QUEUE );
-    if ( fPriority )
-    {
-        memmove( p->Queue + p->Head + 1, p->Queue + p->Head, sizeof(int) * (p->Tail - p->Head) );
-        p->Queue[p->Head] = Engine;
-        p->Tail++;
-    }
-    else p->Queue[p->Tail++] = Engine;
+    if ( fPhase ) Cec_SuperEnqueue( p, SUPER_PHASE_SCORR, 0 );
+    Cec_SuperEnqueue( p, fMulti ? SUPER_SCORR4 : SUPER_GLA_PDR2, 0 );
+    Cec_SuperEnqueue( p, SUPER_RAR, 0 );
+    Cec_SuperEnqueue( p, SUPER_PDR2_QUICK, 0 );
+    Cec_SuperEnqueue( p, SUPER_BMC3_CADICAL, 0 );
+    Cec_SuperEnqueue( p, SUPER_KIND, 0 );
+    Cec_SuperEnqueue( p, p->fEarlyAbs ? SUPER_PDR2_T_QUICK : SUPER_PDR2_SCORR, 0 );
+    Cec_SuperEnqueue( p, fMulti ? SUPER_GLA_PDR2 : SUPER_SCORR4, 0 );
+    if ( p->fEarlyAbs && Gia_ManObjNum(p->pInitial) <= 100000 )
+        Cec_SuperEnqueue( p, SUPER_SYN2_SCORR, 0 );
+    Cec_SuperEnqueue( p, SUPER_BMCG_CADICAL, 0 );
+    if ( fRetime ) Cec_SuperEnqueue( p, SUPER_RETIME_SCORR, 0 );
+    if ( Gia_ManObjNum(p->pInitial) <= 100000 ) Cec_SuperEnqueue( p, SUPER_SYN2_SCORR, 0 );
+    Cec_SuperEnqueue( p, p->fEarlyAbs ? SUPER_PDR2_SCORR : SUPER_PDR2_T_QUICK, 0 );
+    if ( nRegs <= 10000 && Gia_ManObjNum(p->pInitial) <= 250000 ) Cec_SuperEnqueue( p, SUPER_PHASE_SCORR, 0 );
+    Cec_SuperEnqueue( p, SUPER_PDR2_SIM, 0 );
+    Cec_SuperEnqueue( p, SUPER_FLA, 0 );
 }
 
 /**Function*************************************************************
@@ -3339,7 +3017,8 @@ static int Cec_SuperNext( Cec_SuperWorker_t * pWorker )
         int Position = p->Head;
         if ( p->StartupState != 2 )
             for ( ; Position < p->Tail; Position++ )
-                if ( p->Queue[Position] == SUPER_RAR || p->Queue[Position] == SUPER_BMC3_GLUCOSE ||
+                if ( p->Queue[Position] == SUPER_RAR || (p->Queue[Position] == SUPER_BMC3_CADICAL &&
+                     (p->fEarlyAbs || Gia_ManRegNum(p->pInitial) < 1024 || Gia_ManObjNum(p->pInitial) > 1000000)) ||
                      p->Queue[Position] == SUPER_UFAR ) break;
         if ( Position < p->Tail )
         {
@@ -3349,37 +3028,11 @@ static int Cec_SuperNext( Cec_SuperWorker_t * pWorker )
             memmove( p->Queue + p->Head + 1, p->Queue + p->Head, sizeof(int) * (Position - p->Head) );
             p->Queue[p->Head] = Engine;
             pWorker->Engine = p->Queue[p->Head++];
-            if ( !p->pPars->iEngine && pWorker->Engine == SUPER_GLA_TEMPORAL && p->nWorkers < 4 )
-                pWorker->Engine = SUPER_GLA_PDR_ORIGINAL;
-            if ( !p->pPars->iEngine &&
-                 (pWorker->Engine == SUPER_PDR2_RPM || pWorker->Engine == SUPER_BDD_SIMPLIFY) && p->nWorkers < 6 )
-                pWorker->Engine = SUPER_PDR_T_SCORR;
-            fOriginal = pWorker->Engine == SUPER_BDD_SIMPLIFY ||
-                pWorker->Engine == SUPER_PDR2_STARTUP || pWorker->Engine == SUPER_INT_SYN2 ||
-                pWorker->Engine == SUPER_PHASE_SCORR ||
-                pWorker->Engine == SUPER_PDR2_RPM ||
-                pWorker->Engine == SUPER_GLA_PDR_ORIGINAL || pWorker->Engine == SUPER_BMC3_GLUCOSE ||
-                pWorker->Engine == SUPER_UFAR || pWorker->Engine == SUPER_INT_OLD ||
-                pWorker->Engine == SUPER_PDR2_QUICK || pWorker->Engine == SUPER_PDR2_T_QUICK ||
-                pWorker->Engine == SUPER_PDR2_SIM_QUICK || pWorker->Engine == SUPER_PDR2_TEMPORAL ||
-                pWorker->Engine == SUPER_GLA_TEMPORAL ||
-                pWorker->Engine == SUPER_BMC3_CADICAL || pWorker->Engine == SUPER_BMC3_CADICAL_GLUCOSE ||
-                pWorker->Engine == SUPER_RAR || pWorker->Engine == SUPER_RAR_SCNEW ||
-                (pWorker->Engine == SUPER_PDR_T_SCORR && (p->pPars->iEngine || !p->fEarlyAbs)) ||
-                pWorker->Engine == SUPER_SIM4 || pWorker->Engine == SUPER_SYN2_SCORR ||
-                pWorker->Engine == SUPER_RETIME_SCORR;
-            if ( !p->pPars->iEngine )
-            {
-                // Reserve a bounded complementary search for the available graph size.
-                if ( pWorker->Engine == SUPER_BMC3_CADICAL &&
-                     (p->nWorkers < 4 || Gia_ManRegNum(p->pInitial) > 2048) ) continue;
-                if ( pWorker->Engine == SUPER_SIM4 && p->nWorkers < 4 ) continue;
-                if ( pWorker->Engine == SUPER_INT_SYN2 && p->nWorkers < 4 ) continue;
-                if ( pWorker->Engine == SUPER_PHASE_SCORR && p->nWorkers < 4 ) continue;
-                if ( pWorker->Engine == SUPER_PDR2_STARTUP && p->nWorkers < 4 ) continue;
-                if ( pWorker->Engine == SUPER_PDR2_TEMPORAL && p->nWorkers < 4 ) continue;
-                if ( pWorker->Engine == SUPER_SYN2_SCORR && Gia_ManObjNum(p->pInitial) > 100000 ) continue;
-            }
+            fOriginal = Engine == SUPER_RAR || Engine == SUPER_BMC3_CADICAL || Engine == SUPER_BDD_SIMPLIFY ||
+                Engine == SUPER_PHASE_SCORR || Engine == SUPER_PDR2_RPM || Engine == SUPER_UFAR ||
+                Engine == SUPER_PDR2_QUICK || Engine == SUPER_PDR2_T_QUICK ||
+                (Engine == SUPER_PDR2_SCORR && (p->pPars->iEngine || !p->fEarlyAbs)) ||
+                Engine == SUPER_SYN2_SCORR || Engine == SUPER_RETIME_SCORR;
             pWorker->Generation = fOriginal ? 0 : p->Generation;
             if ( p->Running[pWorker->Engine] )
             {
@@ -3394,32 +3047,27 @@ static int Cec_SuperNext( Cec_SuperWorker_t * pWorker )
             p->Running[pWorker->Engine] = 1;
             pWorker->fInterrupted = 0;
             pWorker->fMerged = 0;
-            if ( pWorker->Engine == SUPER_RAR || pWorker->Engine == SUPER_RAR_SCNEW )
+            if ( pWorker->Engine == SUPER_RAR )
                 pWorker->RarSeed = (113 + 23 * p->nRarRuns++) % 1000;
-            pWorker->fPersistent = !p->pPars->iEngine &&
-                ((p->fPersistentBmc && pWorker->Engine == SUPER_BMC3_GLUCOSE) ||
-                 (p->fPersistentPdr && pWorker->Engine == SUPER_PDR2_QUICK) ||
-                 (p->fPersistentExtra && ((p->fRpmEarly ?
-                    (pWorker->Engine == SUPER_PDR2_RPM || pWorker->Engine == SUPER_BDD_SIMPLIFY) :
-                    pWorker->Engine == (p->fEarlyAbs ? SUPER_PDR2_T_QUICK : SUPER_PDR_T_SCORR)) ||
-                    pWorker->Engine == SUPER_RAR)));
+            pWorker->fPersistent = Cec_SuperPersistentEngine(p, Engine) &&
+                p->ActivePersistent < Abc_MinInt( 4, p->nWorkers - 2 );
             Budget = pWorker->fPersistent || pWorker->Engine == SUPER_COMB ||
                 p->pPars->iEngine ? p->Deadline - Now : (abctime)15 * CLOCKS_PER_SEC;
             if ( !p->pPars->iEngine && !pWorker->fPersistent )
             {
-                if ( pWorker->Engine == SUPER_SCORR4 ) Budget = (abctime)5 * CLOCKS_PER_SEC;
-                if ( pWorker->Engine == SUPER_GLA_PDR || pWorker->Engine == SUPER_GLA_PDR_ORIGINAL )
-                    Budget = (abctime)10 * CLOCKS_PER_SEC;
-                if ( pWorker->Engine == SUPER_INT_OLD ) Budget = (abctime)8 * CLOCKS_PER_SEC;
-                if ( pWorker->Engine == SUPER_KIND ) Budget = (abctime)2 * CLOCKS_PER_SEC;
-                if ( pWorker->Engine == SUPER_UFAR ) Budget = (abctime)30 * CLOCKS_PER_SEC;
-                if ( pWorker->Engine == SUPER_SIM4 )
-                    Budget = (abctime)(Gia_ManRegNum(p->pInitial) > 512 &&
-                        Gia_ManRegNum(p->pInitial) <= 2048 ? 5 : 15) * CLOCKS_PER_SEC;
+                if ( Engine == SUPER_SCORR4 )
+                    Budget = (abctime)(p->fCompactMulti ? 8 : 5) * CLOCKS_PER_SEC;
+                if ( Engine == SUPER_GLA_PDR2 ) Budget = (abctime)10 * CLOCKS_PER_SEC;
+                if ( Engine == SUPER_KIND )
+                    Budget = (abctime)(p->fCompactMulti && pWorker->Generation ? 24 : 2) * CLOCKS_PER_SEC;
+                if ( Engine == SUPER_PDR2_SIM && p->fEarlyAbs && pWorker->Generation && p->pStartup &&
+                     5 * (ABC_INT64_T)Gia_ManAndNum(p->pBest) <= 4 * (ABC_INT64_T)Gia_ManAndNum(p->pStartup) )
+                    Budget = (abctime)45 * CLOCKS_PER_SEC;
+                if ( Engine == SUPER_UFAR ) Budget = (abctime)30 * CLOCKS_PER_SEC;
                 if ( pWorker->Engine == SUPER_SYN2_SCORR && Gia_ManAndNum(p->pInitial) < 10000 )
                     Budget = (abctime)3 * CLOCKS_PER_SEC;
                 if ( Retry ) Budget = (abctime)Retry * CLOCKS_PER_SEC;
-                if ( p->nWorkers < 4 && pWorker->Engine != SUPER_PDR_T_OR )
+                if ( p->nWorkers < 4 )
                 {
                     abctime Share = (p->Deadline - p->Start) / (p->nWorkers == 1 ? 8 : 4);
                     if ( !Retry && Budget > Share ) Budget = Share;
@@ -3562,6 +3210,31 @@ static void Cec_SuperStartup( Cec_SuperWorker_t * pWorker )
 
 /**Function*************************************************************
 
+  Synopsis    [Samples the resident memory of the whole ABC process in MiB.]
+
+  Description [Returns a negative value when a sample is unavailable.]
+
+  SideEffects []
+
+  SeeAlso     [Cec_SuperWorker]
+
+***********************************************************************/
+static double Cec_SuperProcessRssMiB( void )
+{
+#if defined(__linux__)
+    FILE * pFile;
+    unsigned long nResident;
+    long PageSize = sysconf( _SC_PAGESIZE );
+    if ( PageSize <= 0 || (pFile = fopen("/proc/self/statm", "r")) == NULL ) return -1;
+    if ( fscanf(pFile, "%*s %lu", &nResident) != 1 ) nResident = 0;
+    fclose( pFile );
+    if ( nResident ) return (double)nResident * PageSize / (1024 * 1024);
+#endif
+    return -1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Owns its frame and solver data until cooperative completion.]
 
   Description []
@@ -3576,7 +3249,7 @@ static void * Cec_SuperWorker( void * pArg )
     Cec_SuperWorker_t * pWorker = (Cec_SuperWorker_t *)pArg;
     Cec_SuperMan_t * p = pWorker->pMan;
     Cec_SuperWorker_t * pPreviousWorker = s_pSuperWorker;
-    Abc_Frame_t * pFrame = Abc_FrameCreate(), * pPrevious = Abc_FrameEnter(pFrame);
+    Abc_Frame_t * pFrame = Abc_FrameCreateChild(), * pPrevious = Abc_FrameEnter(pFrame);
     int fStartup;
     s_pSuperWorker = pWorker;
     Cec_SuperLock( p );
@@ -3587,12 +3260,14 @@ static void * Cec_SuperWorker( void * pArg )
     while ( Cec_SuperNext(pWorker) )
     {
         abctime Start = Abc_Clock(), CpuStart = p->pPars->fVerbose ? Abc_ThreadClock() : 0;
+        double Rss = -1;
         int Result = Cec_SuperSolve( pWorker );
         if ( Result >= 0 ) Cec_SuperPublish( pWorker, Result );
         Abc_CexFreeP( &pWorker->pCheckedCex );
         Gia_ManStopP( &pWorker->pGia );
         pWorker->fInitial = 0;
         Vec_IntFreeP( &pWorker->vGlaClasses );
+        if ( p->pPars->fVerbose ) Rss = Cec_SuperProcessRssMiB();
         Cec_SuperLock( p );
         p->Active--;
         p->ActivePersistent -= pWorker->fPersistent;
@@ -3612,10 +3287,11 @@ static void * Cec_SuperWorker( void * pArg )
         assert( p->Active >= p->ActivePersistent && p->ActivePersistent >= 0 && p->ActivePersistent <= 4 );
         Cec_SuperWake( p );
         if ( p->pPars->fVerbose )
-            Abc_Print( 1, "super_prove: stop worker=%d engine=%s result=%d elapsed=%.3f sec cpu=%.3f sec\n",
+            Abc_Print( 1, "super_prove: stop worker=%d engine=%s result=%d elapsed=%.3f sec"
+                " cpu=%.3f sec process_rss_mib=%.1f\n",
                 pWorker->Id, Cec_ManSuperEngineName(pWorker->Engine), Result,
                 (double)(Abc_Clock() - Start) / CLOCKS_PER_SEC,
-                (double)(Abc_ThreadClock() - CpuStart) / CLOCKS_PER_SEC );
+                (double)(Abc_ThreadClock() - CpuStart) / CLOCKS_PER_SEC, Rss );
         Cec_SuperUnlock( p );
     }
     s_pSuperWorker = pPreviousWorker;
@@ -3647,6 +3323,22 @@ static void Cec_SuperReport( Gia_Man_t * pGia, Cec_ParSuper_t * pPars, int Resul
 
 /**Function*************************************************************
 
+  Synopsis    [Checks the deadline during shared property preprocessing.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     [Cec_SuperProve]
+
+***********************************************************************/
+static int Cec_SuperIsoStop( void * pData )
+{
+    return Abc_Clock() >= *(abctime *)pData;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Runs the bounded native portfolio and retains the input miter.]
 
   Description []
@@ -3667,7 +3359,7 @@ static int Cec_SuperProve( Gia_Man_t * pGia, Wlc_Ntk_t * pWlc, Cec_ParSuper_t * 
     if ( !pGia || !pPars || pPars->nProcs < 1 || pPars->nProcs > 256 ||
          pPars->nTimeOut < 1 || pPars->nTimeOut > 86400 ||
          pPars->nBmcMemory < 0 || pPars->nBmcMemory > 65536 ||
-         pPars->iEngine < 0 || pPars->iEngine >= SUPER_ENGINES ||
+         pPars->iEngine < 0 || pPars->iEngine >= SUPER_PUBLIC_END ||
          (pPars->iEngine == SUPER_UFAR && !pWlc) ||
          pGia->nConstrs || !Abs2_ManCheckZeroInit(pGia) ||
          Gia_ManHasChoices(pGia) || pGia->pMuxes || Gia_ManXorNum(pGia) ||
@@ -3695,12 +3387,40 @@ static int Cec_SuperProve( Gia_Man_t * pGia, Wlc_Ntk_t * pWlc, Cec_ParSuper_t * 
     p->pSource = "original";
     p->Result = -1;
     p->Deadline = p->Start + (abctime)pPars->nTimeOut * CLOCKS_PER_SEC;
+    if ( pPars->fUseIso )
+    {
+        abctime Start = Abc_Clock();
+        abctime Deadline = Start + 2 * (abctime)CLOCKS_PER_SEC;
+        Gia_Man_t * pIso = NULL;
+        if ( Deadline > p->Deadline ) Deadline = p->Deadline;
+        if ( Gia_ManPoNum(p->pInitial) > 1 )
+        {
+            p->vIsoPos = Gia_ManIsoOutputReprs( p->pInitial, Deadline );
+            if ( p->vIsoPos )
+                pIso = Gia_ManDupCones( p->pInitial, Vec_IntArray(p->vIsoPos), Vec_IntSize(p->vIsoPos), 0 );
+        }
+        else
+            pIso = Bmc_GiaReduceIso( p->pInitial, &p->vIsoPos, pPars->nBmcMemory, Cec_SuperIsoStop, &Deadline, 0 );
+        if ( pIso )
+        {
+            Gia_ManStop( p->pInitial );
+            p->pInitial = pIso;
+        }
+        if ( pPars->fVerbose )
+            Abc_Print( 1, "super_prove: iso outputs=%d->%d ands=%d->%d elapsed=%.6f sec\n",
+                Gia_ManPoNum(pGia), Gia_ManPoNum(p->pInitial), Gia_ManAndNum(pGia),
+                Gia_ManAndNum(p->pInitial), (double)(Abc_Clock() - Start) / CLOCKS_PER_SEC );
+    }
     p->pBest = Gia_ManDup( p->pInitial );
     p->pKind = Gia_ManDup( p->pInitial );
     p->StartupState = pPars->iEngine ? 2 : 0;
     // Select the complementary persistent proof by interface size.
     p->fEarlyAbs = Gia_ManRegNum(p->pInitial) >= 1024 &&
         Gia_ManPiNum(p->pInitial) >= Gia_ManRegNum(p->pInitial);
+    p->fCompactMulti = Gia_ManPoNum(p->pInitial) > 1 && Gia_ManPoNum(p->pInitial) <= 64 &&
+        Gia_ManRegNum(p->pInitial) >= 256 && Gia_ManRegNum(p->pInitial) <= 2048 &&
+        Gia_ManPiNum(p->pInitial) <= 2 * Gia_ManRegNum(p->pInitial) &&
+        Gia_ManAndNum(p->pInitial) <= 32 * Gia_ManRegNum(p->pInitial);
     p->fComb = !Gia_ManRegNum(p->pBest);
     Cec_SuperSchedule( p );
     nWorkers = pPars->iEngine ? 1 : Abc_MinInt(pPars->nProcs, p->Tail);
@@ -3717,12 +3437,14 @@ static int Cec_SuperProve( Gia_Man_t * pGia, Wlc_Ntk_t * pWlc, Cec_ParSuper_t * 
 #ifdef SUPER_USE_PTHREADS
     if ( pthread_mutex_init(&p->Mutex, NULL) )
     {
+        Vec_IntFreeP( &p->vIsoPos );
         ABC_FREE(pWorkers); Gia_ManStop(p->pBest); Gia_ManStop(p->pInitial); Gia_ManStop(p->pKind);
         return -3;
     }
     if ( pthread_cond_init(&p->Cond, NULL) )
     {
         pthread_mutex_destroy(&p->Mutex);
+        Vec_IntFreeP( &p->vIsoPos );
         ABC_FREE(pWorkers); Gia_ManStop(p->pBest); Gia_ManStop(p->pInitial); Gia_ManStop(p->pKind);
         return -3;
     }
@@ -3752,6 +3474,7 @@ static int Cec_SuperProve( Gia_Man_t * pGia, Wlc_Ntk_t * pWlc, Cec_ParSuper_t * 
 #endif
     Result = p->Result;
     pGia->pCexSeq = p->pCex;
+    Vec_IntFreeP( &p->vIsoPos );
     Gia_ManStop( p->pBest );
     Gia_ManStop( p->pInitial );
     Gia_ManStopP( &p->pStartup );

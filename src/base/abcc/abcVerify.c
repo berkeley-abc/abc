@@ -4092,7 +4092,7 @@ int Abc_CommandAbc9SuperProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, Result, fUseUfar = 0;
     Cec_ManSuperSetDefaultParams( &Pars );
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "PTMEurvsh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "PTMEuirvsh")) != EOF )
     {
         switch ( c )
         {
@@ -4140,6 +4140,7 @@ int Abc_CommandAbc9SuperProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             break;
         case 'u': fUseUfar ^= 1; break;
+        case 'i': Pars.fUseIso ^= 1; break;
         case 'r': Pars.fRewrite ^= 1; break;
         case 'v': Pars.fVerbose ^= 1; break;
         case 's': Pars.fSilent ^= 1; break;
@@ -4186,24 +4187,19 @@ int Abc_CommandAbc9SuperProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 usage:
-    Abc_Print( -2, "usage: &super_prove [-PTM <num>] [-E str] [-urvsh]\n" );
+    Abc_Print( -2, "usage: &super_prove [-PTM <num>] [-E str] [-uirvsh]\n" );
     Abc_Print( -2, "\t           native simplify/prove/abstract portfolio\n" );
     Abc_Print( -2, "\t-P <num> : maximum solver workers (1..256) [default = %d]\n", Pars.nProcs );
     Abc_Print( -2, "\t-T <num> : total time limit in seconds [default = %d]\n", Pars.nTimeOut );
     Abc_Print( -2, "\t-M <num> : estimated MiB per BMC lane (0 = unlimited) [default = %d]\n", Pars.nBmcMemory );
     Abc_Print( -2, "\t-E <str> : select one engine experiment [default = auto]\n" );
-    Abc_Print( -2, "\t           pdr2, pdr2-t, fla, int, pdr, pdr-t, pdr-t-or, rar, sim4, kind,\n" );
-    Abc_Print( -2, "\t           scorr3, scorr4, scorr, gla, gla-pdr, gla-pdr-original, abs, drwsat,\n" );
-    Abc_Print( -2, "\t           scnew, pdr-t-scorr, rar-scnew, syn2-scorr, retime-scorr, int-old,\n" );
-    Abc_Print( -2, "\t           ufar (requires -u),\n" );
-    Abc_Print( -2, "\t           pdr2-quick, pdr2-t-quick, pdr2-sim, pdr2-sim-quick,\n" );
-    Abc_Print( -2, "\t           pdr2-temporal, pdr2-startup, gla-temporal, pdr2-rpm,\n" );
-    Abc_Print( -2, "\t           phase-scorr, int-syn2, bdd-simplify, bmc3-classic, bmc3-glucose,\n" );
-    Abc_Print( -2, "\t           bmc3-cadical, bmc3-cadical-glucose (15-second CaDiCaL prefix)\n" );
-    Abc_Print( -2, "\t           aliases: bmc, bmc-g, bmc3, bmc3-g, respectively\n" );
+    Abc_Print( -2, "\t           pdr2, pdr2-t, pdr2-sim, pdr2-quick, pdr2-t-quick, pdr2-scorr, gla-pdr2,\n" );
+    Abc_Print( -2, "\t           bmc3-jump (alias bmc3, K=5, J=6), bmcg-cadical, rar, kind, scorr4, fla,\n" );
+    Abc_Print( -2, "\t           pdr2-rpm, phase-scorr, syn2-scorr, retime-scorr, bdd-simplify, ufar (requires -u)\n" );
     Abc_Print( -2, "\t-u       : toggle word-level miter construction and UFAR/PDR2 [default = %s]\n",
         fUseUfar ? "yes" : "no" );
     Abc_Print( -2, "\t           replaces the current AIG with the word-level miter\n" );
+    Abc_Print( -2, "\t-i       : toggle shared sequential property isomorphism [default = %s]\n", Pars.fUseIso ? "yes" : "no" );
     Abc_Print( -2, "\t-r       : toggle balance-free rewriting [default = %s]\n", Pars.fRewrite ? "yes" : "no" );
     Abc_Print( -2, "\t-v       : toggle reporting engine progress [default = %s]\n", Pars.fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-s       : toggle silent result reporting [default = %s]\n", Pars.fSilent ? "yes" : "no" );

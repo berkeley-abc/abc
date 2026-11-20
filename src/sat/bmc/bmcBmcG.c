@@ -43,12 +43,15 @@ struct Bmcg_Man_t_
     Vec_Ptr_t         vGia2Fr;             // copies of GIA in each timeframe
     Vec_Int_t         vFr2Sat;             // mapping of objects in pFrames into SAT variables
     Vec_Int_t         vCiMap;              // maps CIs of pFrames into CIs/frames of GIA
+    Vec_Int_t         vPending;            // explicit traversal stack for CaDiCaL
     bmcg_sat_solver * pSats[PAR_THR_MAX];  // concurrent SAT solvers
     CCaDiCaL *        pCadical;            // optional incremental solver
     abctime           Deadline;            // deadline for the CaDiCaL instance
     int               nSatVars;            // number of SAT variables used
     int               nOldFrPis;           // number of primary inputs
     int               nOldFrPos;           // number of primary output
+    int               nMemoryLimit;        // portfolio memory budget in MiB
+    unsigned          nMemoryPolls;        // amortize solver accounting
     int               fStopNow;            // signal when it is time to stop
     int (*pFuncStop)(void *);              // optional per-instance cancellation
     void *            pStopData;
@@ -64,6 +67,31 @@ static inline int * Bmcg_ManCopies( Bmcg_Man_t * p, int f ) { return (int*)Vec_P
 
 /**Function*************************************************************
 
+  Synopsis    [Bounds retained frame maps, unrolled objects and solver storage.]
+
+  Description [Only the portfolio enables the memory estimate. The object
+  guard also leaves space for a partial frame before the next stop poll.]
+
+  SideEffects []
+
+  SeeAlso     [Bmcg_ManCancelled]
+
+***********************************************************************/
+static int Bmcg_ManOverBudget( Bmcg_Man_t * p, int nExtraFrames )
+{
+    double Bytes;
+    if ( Gia_ManObjNum(p->pFrames) >= (1 << 27) ) return 1;
+    if ( !p->nMemoryLimit ) return 0;
+    Bytes = 4.0 * (Vec_PtrSize(&p->vGia2Fr) + nExtraFrames) * Gia_ManObjNum(p->pGia);
+    Bytes += 64.0 * p->pFrames->nObjsAlloc + 192.0 * p->nSatVars;
+    Bytes += sizeof(int) * (double)p->vPending.nCap;
+    Bytes += 64.0 * ccadical_live_clauses(p->pCadical);
+    if ( p->pClean ) Bytes += 64.0 * p->pClean->nObjsAlloc;
+    return Bytes >= (double)p->nMemoryLimit * (1 << 20);
+}
+
+/**Function*************************************************************
+
   Synopsis    [Latches an explicitly requested cancellation.]
 
   Description [Legacy entry points leave the callback unset.]
@@ -76,6 +104,8 @@ static inline int * Bmcg_ManCopies( Bmcg_Man_t * p, int f ) { return (int*)Vec_P
 static int Bmcg_ManCancelled( void * pData )
 {
     Bmcg_Man_t * p = (Bmcg_Man_t *)pData;
+    if ( p->pCadical && p->pFuncStop && !(p->nMemoryPolls++ & 255) && Bmcg_ManOverBudget(p, 0) )
+        p->fStopNow = 1;
     if ( (p->pFuncStop && p->pFuncStop(p->pStopData)) ||
          (p->Deadline && Abc_Clock() >= p->Deadline) )
         p->fStopNow = 1;
@@ -146,6 +176,7 @@ void Bmcg_ManStop( Bmcg_Man_t * p )
     Vec_PtrErase( &p->vGia2Fr );
     Vec_IntErase( &p->vFr2Sat );
     Vec_IntErase( &p->vCiMap );
+    Vec_IntErase( &p->vPending );
     for ( i = 0; i < p->pPars->nProcs; i++ )
         if ( p->pSats[i] ) 
             bmcg_sat_solver_stop( p->pSats[i] );
@@ -231,6 +262,124 @@ int Bmcg_ManCollect_rec( Bmcg_Man_t * p, int iObj )
     Gia_ObjSetCopyArray( p->pFrames, iObj, iLitClean );
     return iLitClean;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Unfolds a sequential cone on an explicit stack.]
+
+  Description [A transition can depend on a signal many frames earlier.
+  Each pending entry stores an object and frame. Cached fanins determine
+  which child is visited next, in the same order as recursive unfolding.]
+
+  SideEffects [Extends the unrolled AIG and its time-frame maps.]
+
+  SeeAlso     [Bmcg_ManUnfold_rec]
+
+***********************************************************************/
+static int Bmcg_ManUnfoldIter( Bmcg_Man_t * p, int Root, int Frame )
+{
+    Vec_Int_t * v = &p->vPending;
+    Gia_Obj_t * pObj;
+    int f, Id, Fan0, Fan1, Lit, Other, * pCopies;
+    Vec_IntClear( v );
+    Vec_IntPushTwo( v, Root, Frame );
+    while ( Vec_IntSize(v) )
+    {
+        if ( p->fStopNow || (!(p->nStopCalls++ & 1023) && Bmcg_ManCancelled(p)) ) return -1;
+        f = Vec_IntEntryLast( v );
+        Id = Vec_IntEntry( v, Vec_IntSize(v) - 2 );
+        pCopies = Bmcg_ManCopies( p, f );
+        if ( pCopies[Id] < 0 )
+        {
+            pObj = Gia_ManObj( p->pGia, Id );
+            Lit = 0;
+            if ( Gia_ObjIsPi(p->pGia, pObj) )
+            {
+                Vec_IntPushTwo( &p->vCiMap, Gia_ObjCioId(pObj), f );
+                Lit = Gia_ManAppendCi( p->pFrames );
+            }
+            else if ( Gia_ObjIsRo(p->pGia, pObj) )
+            {
+                if ( f )
+                {
+                    pObj = Gia_ObjRoToRi( p->pGia, pObj );
+                    Fan0 = Gia_ObjFaninId0p( p->pGia, pObj );
+                    Lit = Bmcg_ManCopies(p, f - 1)[Fan0];
+                    if ( Lit < 0 ) { Vec_IntPushTwo(v, Fan0, f - 1); continue; }
+                    Lit = Abc_LitNotCond( Lit, Gia_ObjFaninC0(pObj) );
+                }
+            }
+            else
+            {
+                assert( Gia_ObjIsAnd(pObj) );
+                Fan0 = Gia_ObjFaninId0( pObj, Id );
+                Lit = pCopies[Fan0];
+                if ( Lit < 0 ) { Vec_IntPushTwo(v, Fan0, f); continue; }
+                Lit = Abc_LitNotCond( Lit, Gia_ObjFaninC0(pObj) );
+                if ( Lit )
+                {
+                    Fan1 = Gia_ObjFaninId1( pObj, Id );
+                    Other = pCopies[Fan1];
+                    if ( Other < 0 ) { Vec_IntPushTwo(v, Fan1, f); continue; }
+                    Lit = Gia_ManHashAnd( p->pFrames, Lit, Abc_LitNotCond(Other, Gia_ObjFaninC1(pObj)) );
+                }
+            }
+            pCopies[Id] = Lit;
+        }
+        Vec_IntShrink( v, Vec_IntSize(v) - 2 );
+    }
+    return Bmcg_ManCopies(p, Frame)[Root];
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the incremental CNF cone without recursive calls.]
+
+  Description [An existing SAT variable is a leaf. Otherwise both signed
+  fanins are copied before their AND. The maps have the same numbering
+  and interpretation as in the recursive construction.]
+
+  SideEffects [Extends the incremental AIG and the frame-to-cone map.]
+
+  SeeAlso     [Bmcg_ManCollect_rec]
+
+***********************************************************************/
+static int Bmcg_ManCollectIter( Bmcg_Man_t * p, int Root )
+{
+    Vec_Int_t * v = &p->vPending;
+    Gia_Obj_t * pObj;
+    int Id, Fan0, Fan1, Lit0, Lit1, Lit;
+    Vec_IntClear( v );
+    Vec_IntPush( v, Root );
+    while ( Vec_IntSize(v) )
+    {
+        if ( p->fStopNow || (!(p->nStopCalls++ & 1023) && Bmcg_ManCancelled(p)) ) return -1;
+        Id = Vec_IntEntryLast( v );
+        if ( Gia_ObjCopyArray(p->pFrames, Id) < 0 )
+        {
+            pObj = Gia_ManObj( p->pFrames, Id );
+            if ( Vec_IntEntry(&p->vFr2Sat, Id) > 0 || Gia_ObjIsCi(pObj) )
+                Lit = Gia_ManAppendCi( p->pClean );
+            else
+            {
+                assert( Gia_ObjIsAnd(pObj) );
+                Fan0 = Gia_ObjFaninId0( pObj, Id );
+                Lit0 = Gia_ObjCopyArray( p->pFrames, Fan0 );
+                if ( Lit0 < 0 ) { Vec_IntPush(v, Fan0); continue; }
+                Fan1 = Gia_ObjFaninId1( pObj, Id );
+                Lit1 = Gia_ObjCopyArray( p->pFrames, Fan1 );
+                if ( Lit1 < 0 ) { Vec_IntPush(v, Fan1); continue; }
+                Lit = Gia_ManAppendAnd( p->pClean, Abc_LitNotCond(Lit0, Gia_ObjFaninC0(pObj)),
+                    Abc_LitNotCond(Lit1, Gia_ObjFaninC1(pObj)) );
+            }
+            Gia_ManObj( p->pClean, Abc_Lit2Var(Lit) )->Value = Id;
+            Gia_ObjSetCopyArray( p->pFrames, Id, Lit );
+        }
+        Vec_IntPop( v );
+    }
+    return Gia_ObjCopyArray( p->pFrames, Root );
+}
+
 Gia_Man_t * Bmcg_ManUnfold( Bmcg_Man_t * p, int f, int nFramesAdd )
 {
     Gia_Man_t * pNew = NULL; Gia_Obj_t * pObj;
@@ -239,6 +388,11 @@ Gia_Man_t * Bmcg_ManUnfold( Bmcg_Man_t * p, int f, int nFramesAdd )
     assert( Gia_ManPoNum(p->pFrames) == f * Gia_ManPoNum(p->pGia) );
     for ( k = 0; k < nFramesAdd; k++ )
     {
+        if ( p->pCadical && p->pFuncStop && Bmcg_ManOverBudget(p, 1) )
+        {
+            p->fStopNow = 1;
+            return NULL;
+        }
         // unfold this timeframe
         Vec_PtrPush( &p->vGia2Fr, ABC_FALLOC(int, Gia_ManObjNum(p->pGia)) );
         assert( Vec_PtrSize(&p->vGia2Fr) == f+k+1 );
@@ -247,7 +401,8 @@ Gia_Man_t * Bmcg_ManUnfold( Bmcg_Man_t * p, int f, int nFramesAdd )
         pCopies[0] = 0;
         Gia_ManForEachPo( p->pGia, pObj, i )
         {
-            iLitFrame = Bmcg_ManUnfold_rec( p, Gia_ObjFaninId0p(p->pGia, pObj), f+k );
+            int Root = Gia_ObjFaninId0p( p->pGia, pObj );
+            iLitFrame = p->pCadical ? Bmcg_ManUnfoldIter(p, Root, f+k) : Bmcg_ManUnfold_rec(p, Root, f+k);
             if ( iLitFrame < 0 ) return NULL;
             iLitFrame = Abc_LitNotCond( iLitFrame, Gia_ObjFaninC0(pObj) );
             pCopies[Gia_ObjId(p->pGia, pObj)] = Gia_ManAppendCo( p->pFrames, iLitFrame );
@@ -267,7 +422,8 @@ Gia_Man_t * Bmcg_ManUnfold( Bmcg_Man_t * p, int f, int nFramesAdd )
     for ( i = 0; i < Gia_ManPoNum(p->pGia); i++ )
     {
         pObj = Gia_ManCo( p->pFrames, (f+k) * Gia_ManPoNum(p->pGia) + i );
-        iLitClean = Bmcg_ManCollect_rec( p, Gia_ObjFaninId0p(p->pFrames, pObj) );
+        iLitClean = p->pCadical ? Bmcg_ManCollectIter(p, Gia_ObjFaninId0p(p->pFrames, pObj)) :
+            Bmcg_ManCollect_rec(p, Gia_ObjFaninId0p(p->pFrames, pObj));
         if ( iLitClean < 0 ) return NULL;
         iLitClean = Abc_LitNotCond( iLitClean, Gia_ObjFaninC0(pObj) );
         iLitClean = Gia_ManAppendCo( p->pClean, iLitClean );
@@ -302,7 +458,7 @@ Cnf_Dat_t * Bmcg_ManAddNewCnf( Bmcg_Man_t * p, int f, int nFramesAdd )
         Gia_ManStopP( &pMapped );
         pCnf = (Cnf_Dat_t *)pNew->pData;
         pNew->pData = NULL;
-        if ( !pCnf ) { Gia_ManStop(pNew); return NULL; }
+        if ( !pCnf ) { p->fStopNow = 1; Gia_ManStop(pNew); return NULL; }
     }
     else
         pCnf = (Cnf_Dat_t *) Mf_ManGenerateCnf( pNew, 8, 1, 0, 0, 0 );
@@ -474,7 +630,7 @@ void Bmcg_ManAddCnf( Bmcg_Man_t * p, bmcg_sat_solver * pSat, Cnf_Dat_t * pCnf )
 
 ***********************************************************************/
 static int Bmcg_ManPerformOneInt( Gia_Man_t * pGia, Bmc_AndPar_t * pPars,
-    int (*pFuncStop)(void *), void * pStopData, int fCadical )
+    int (*pFuncStop)(void *), void * pStopData, int fCadical, int nMemoryLimit )
 {
     abctime clkStart = Abc_Clock();
     Bmcg_Man_t * p = Bmcg_ManStart( pGia, pPars, fCadical );
@@ -485,6 +641,7 @@ static int Bmcg_ManPerformOneInt( Gia_Man_t * pGia, Bmc_AndPar_t * pPars,
     int nSafe = 0;
     p->pFuncStop = pFuncStop;
     p->pStopData = pStopData;
+    p->nMemoryLimit = nMemoryLimit;
     if ( fCadical && pPars->nTimeOut )
         p->Deadline = clkStart + (abctime)pPars->nTimeOut * CLOCKS_PER_SEC;
     if ( fCadical && fCanStop )
@@ -622,7 +779,7 @@ static int Bmcg_ManPerformOneInt( Gia_Man_t * pGia, Bmc_AndPar_t * pPars,
 ***********************************************************************/
 int Bmcg_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
-    return Bmcg_ManPerformOneInt( pGia, pPars, NULL, NULL, 0 );
+    return Bmcg_ManPerformOneInt( pGia, pPars, NULL, NULL, 0, 0 );
 }
 
 /**Function*************************************************************
@@ -643,7 +800,7 @@ int Bmcg_ManPerformWithStop( Gia_Man_t * pGia, Bmc_AndPar_t * pPars,
     pPars->nProcs = 1;
     if ( pFuncStop && pFuncStop(pStopData) ) return -1;
     if ( pPars->pFuncProgress && pPars->pFuncProgress(pPars->pProgress, 0, 0) ) return -1;
-    return Bmcg_ManPerformOneInt( pGia, pPars, pFuncStop, pStopData, 0 );
+    return Bmcg_ManPerformOneInt( pGia, pPars, pFuncStop, pStopData, 0, 0 );
 }
 
 /**Function*************************************************************
@@ -693,12 +850,32 @@ int Bmcg_ManPerformCadical( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         return -1;
     }
     if ( !Gia_ManPoNum(pGia) ) return 1;
-    return Bmcg_ManPerformOneInt( pGia, pPars, NULL, NULL, 1 );
+    return Bmcg_ManPerformOneInt( pGia, pPars, NULL, NULL, 1, 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs the forward CaDiCaL frame builder on a portfolio worker.]
+
+  Description [The caller supplies a checked sequential miter and its deadline.]
+
+  SideEffects [Returns a replayed witness on success.]
+
+  SeeAlso     [Bmcg_ManPerformCadical]
+
+***********************************************************************/
+int Bmcg_ManPerformPortfolio( Gia_Man_t * pGia, Bmc_AndPar_t * pPars, int nMemoryLimit,
+    int (*pFuncStop)(void *), void * pData )
+{
+    if ( !pFuncStop || pFuncStop(pData) || Gia_ManObjNum(pGia) >= (1 << 26) ||
+         (nMemoryLimit && 192.0 * Gia_ManObjNum(pGia) >= (double)nMemoryLimit * (1 << 20)) ) return -1;
+    pPars->nProcs = 1;
+    pPars->iFrame = -1;
+    return Bmcg_ManPerformOneInt( pGia, pPars, pFuncStop, pData, 1, nMemoryLimit );
 }
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
 
 ABC_NAMESPACE_IMPL_END

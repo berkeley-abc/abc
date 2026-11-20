@@ -53,6 +53,7 @@ struct Cec_ParKind_t_
     int              nQueries;      // SAT calls, excluding constant obligations
     int              RunId;         // identifier passed to the stop callback
     int            (*pFuncStop)(int); // optional cooperative cancellation
+    int              fUseCadical;   // use CaDiCaL for base and induction queries
 };
 
 // Optional limits for callers embedding CEC with an absolute deadline.

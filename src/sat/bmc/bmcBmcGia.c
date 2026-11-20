@@ -328,12 +328,12 @@ static void Bmc3G_CollectTerms( Gia_Man_t * pGia, int Lit, int fOr, int Limit, V
 
   SideEffects [Uses traversal IDs and Value on the private input.]
 
-  SeeAlso     [Bmc3G_ReduceOutputs]
+  SeeAlso     [Bmc_GiaReduceIso]
 
 ***********************************************************************/
-static Gia_Man_t * Bmc3G_SplitProperty( Bmc3G_Man_t * p )
+static Gia_Man_t * Bmc3G_SplitProperty( Gia_Man_t * pGia, int (*pFuncStop)(void *), void * pData )
 {
-    Gia_Man_t * pGia = p->pGia, * pNew = NULL;
+    Gia_Man_t * pNew = NULL;
     Gia_Obj_t * pObj;
     Vec_Int_t * vLits = Vec_IntAlloc( 64 ), * vParents = Vec_IntAlloc( 64 );
     Vec_Int_t * vTerms = Vec_IntAlloc( 32 ), * vBest = Vec_IntAlloc( 32 ), * vWork = Vec_IntAlloc( 32 );
@@ -345,7 +345,7 @@ static Gia_Man_t * Bmc3G_SplitProperty( Bmc3G_Man_t * p )
         End = Vec_IntSize(vLits);
         for ( ; i < End; i++ )
         {
-            if ( Bmc3G_Stop(p) ) goto finish;
+            if ( (pFuncStop && pFuncStop(pData)) ) goto finish;
             Lit = Vec_IntEntry( vLits, i );
             if ( !Gia_ObjIsAnd(Gia_ManObj(pGia, Abc_Lit2Var(Lit))) ) continue;
             fOr = Abc_LitIsCompl( Lit );
@@ -371,7 +371,7 @@ static Gia_Man_t * Bmc3G_SplitProperty( Bmc3G_Man_t * p )
             }
         }
     }
-    if ( Best < 0 || Bmc3G_Stop(p) ) goto finish;
+    if ( Best < 0 || (pFuncStop && pFuncStop(pData)) ) goto finish;
     pNew = Gia_ManStart( Gia_ManObjNum(pGia) + 2 * Vec_IntSize(vBest) + 64 );
     pNew->pName = Abc_UtilStrsav( pGia->pName );
     Gia_ManHashAlloc( pNew );
@@ -380,7 +380,7 @@ static Gia_Man_t * Bmc3G_SplitProperty( Bmc3G_Man_t * p )
         pObj->Value = Gia_ManAppendCi( pNew );
     Gia_ManForEachAnd( pGia, pObj, i )
     {
-        if ( !(i & 1023) && Bmc3G_Stop(p) ) { Gia_ManStopP(&pNew); goto finish; }
+        if ( !(i & 1023) && (pFuncStop && pFuncStop(pData)) ) { Gia_ManStopP(&pNew); goto finish; }
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     }
     while ( Vec_IntEntry(vParents, Best) >= 0 )
@@ -435,18 +435,26 @@ finish:
   SeeAlso     [Bmc3G_SplitProperty]
 
 ***********************************************************************/
-static Gia_Man_t * Bmc3G_ReduceOutputs( Bmc3G_Man_t * p )
+Gia_Man_t * Bmc_GiaReduceIso( Gia_Man_t * pGia, Vec_Int_t ** pvPos, int nMemoryLimit,
+    int (*pFuncStop)(void *), void * pData, int fVerbose )
 {
     Gia_Man_t * pSplit, * pPart, * pCanon, * pResult = NULL;
     Vec_Ptr_t * vKeys;
     Vec_Int_t * vReps;
     Vec_Str_t * vKey, * vOther, * vSeen;
     abctime Stop = Abc_Clock() + CLOCKS_PER_SEC;
-    int i, k, Lit, nObjs = Gia_ManObjNum(p->pGia);
-    int fSplit = Gia_ManPoNum(p->pGia) == 1;
-    if ( !Gia_ManPoNum(p->pGia) || !Gia_ManRegNum(p->pGia) || nObjs > 200000 ||
-         (p->pPars->nMemoryLimit && 24.0 + 0.00025 * nObjs >= p->pPars->nMemoryLimit) ) return NULL;
-    pSplit = fSplit ? Bmc3G_SplitProperty(p) : p->pGia;
+    int i, k, Lit, nPartAnds, nRepAndMax = 0, nObjs, fSplit;
+    if ( !pvPos ) return NULL;
+    *pvPos = NULL;
+    if ( !pGia || Gia_ManConstrNum(pGia) || pGia->pMuxes || Gia_ManXorNum(pGia) ||
+         Gia_ManBufNum(pGia) || Gia_ManHasChoices(pGia) || Gia_ManBoxNum(pGia) ||
+         (pGia->vRegInits && (Vec_IntSize(pGia->vRegInits) != Gia_ManRegNum(pGia) ||
+          Vec_IntCountEntry(pGia->vRegInits, 0) != Gia_ManRegNum(pGia))) ) return NULL;
+    nObjs = Gia_ManObjNum( pGia );
+    fSplit = Gia_ManPoNum(pGia) == 1;
+    if ( !Gia_ManPoNum(pGia) || !Gia_ManRegNum(pGia) || nObjs > 200000 ||
+         (nMemoryLimit && 24.0 + 0.00025 * nObjs >= nMemoryLimit) ) return NULL;
+    pSplit = fSplit ? Bmc3G_SplitProperty(pGia, pFuncStop, pData) : pGia;
     if ( !pSplit ) return NULL;
     vKeys = Vec_PtrAlloc( 16 );
     vReps = Vec_IntAlloc( 16 );
@@ -454,7 +462,7 @@ static Gia_Man_t * Bmc3G_ReduceOutputs( Bmc3G_Man_t * p )
     if ( Gia_ManLevelNum(pSplit) > (fSplit ? 512 : 1024) ) goto finish;
     for ( i = 0; i < Gia_ManPoNum(pSplit); i++ )
     {
-        if ( Bmc3G_Stop(p) ) goto finish;
+        if ( (pFuncStop && pFuncStop(pData)) ) goto finish;
         Lit = Gia_ObjFaninLit0p( pSplit, Gia_ManPo(pSplit, i) );
         if ( Vec_StrEntry(vSeen, Lit) ) continue;
         Vec_StrWriteEntry( vSeen, Lit, 1 );
@@ -472,6 +480,14 @@ static Gia_Man_t * Bmc3G_ReduceOutputs( Bmc3G_Man_t * p )
             Vec_IntPush( vReps, i );
             continue;
         }
+        nPartAnds = Gia_ManAndNum( pPart );
+        // The first distinct literal is always retained. Its cone alone
+        // can already rule out the required reduction in total AND count.
+        if ( fSplit && !Vec_IntSize(vReps) && 4 * nPartAnds > 3 * Gia_ManAndNum(pGia) )
+        {
+            Gia_ManStop( pPart );
+            goto finish;
+        }
         pCanon = Gia_ManIsoCanonicize( pPart, 0 );
         vKey = Gia_AigerWriteIntoMemoryStr( pCanon );
         Gia_ManStop( pCanon );
@@ -483,22 +499,29 @@ static Gia_Man_t * Bmc3G_ReduceOutputs( Bmc3G_Man_t * p )
         {
             Vec_PtrPush( vKeys, vKey );
             Vec_IntPush( vReps, i );
+            // Every retained cone is present in the final representative AIG.
+            nRepAndMax = Abc_MaxInt( nRepAndMax, nPartAnds );
+            if ( fSplit && (2 * Vec_IntSize(vReps) > Gia_ManPoNum(pSplit) ||
+                 4 * nRepAndMax > 3 * Gia_ManAndNum(pGia) ||
+                 (ABC_INT64_T)nRepAndMax * Vec_IntSize(vReps) > Gia_ManAndNum(pGia)) )
+                goto finish;
         }
     }
-    if ( Vec_IntSize(vReps) == Gia_ManPoNum(pSplit) || Bmc3G_Stop(p) ) goto finish;
+    if ( Vec_IntSize(vReps) == Gia_ManPoNum(pSplit) || (pFuncStop && pFuncStop(pData)) ) goto finish;
     if ( fSplit && 2 * Vec_IntSize(vReps) > Gia_ManPoNum(pSplit) ) goto finish;
     pResult = Gia_ManDupCones( pSplit, Vec_IntArray(vReps), Vec_IntSize(vReps), 0 );
     // Splitting a single property introduces a query per representative in each frame.
-    if ( fSplit && (4 * Gia_ManAndNum(pResult) > 3 * Gia_ManAndNum(p->pGia) ||
-         (ABC_INT64_T)Vec_IntSize(vReps) * Gia_ManAndNum(pResult) > Gia_ManAndNum(p->pGia)) )
+    if ( fSplit && (4 * Gia_ManAndNum(pResult) > 3 * Gia_ManAndNum(pGia) ||
+         (ABC_INT64_T)Vec_IntSize(vReps) * Gia_ManAndNum(pResult) > Gia_ManAndNum(pGia)) )
         Gia_ManStopP( &pResult );
-    if ( pResult && p->pPars->fVerbose )
+    if ( pResult && fVerbose )
         Abc_Print( 1, "BMC symmetry: %d %s, %d representatives, %d -> %d ANDs.\n",
             Gia_ManPoNum(pSplit), fSplit ? "disjuncts" : "outputs", Vec_IntSize(vReps),
-            Gia_ManAndNum(p->pGia), Gia_ManAndNum(pResult) );
-    if ( pResult && !fSplit )
+            Gia_ManAndNum(pGia), Gia_ManAndNum(pResult) );
+    if ( pResult )
     {
-        p->vOriginalPos = vReps;
+        if ( fSplit ) Vec_IntFill( vReps, Vec_IntSize(vReps), 0 );
+        *pvPos = vReps;
         vReps = NULL;
     }
 finish:
@@ -592,7 +615,8 @@ static Bmc3G_Man_t * Bmc3G_Start( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int fF
     p->pGia = Gia_ManDupNormalize( pGia, 1 );
     if ( !fFixedTarget && pPars->fUseIso && !pPars->pShared )
     {
-        Gia_Man_t * pReduced = Bmc3G_ReduceOutputs( p );
+        Gia_Man_t * pReduced = Bmc_GiaReduceIso( p->pGia, &p->vOriginalPos, pPars->nMemoryLimit,
+            Bmc3G_Stop, p, pPars->fVerbose );
         if ( pReduced )
         {
             p->pOriginal = p->pGia;

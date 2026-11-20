@@ -1496,6 +1496,9 @@ extern int                 Gia_ManEvalWindow( Gia_Man_t * p, Vec_Int_t * vLeaves
 extern void                Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset, int fVerbose );
 extern Gia_Man_t *         Gia_ManUnrollAndCofactor( Gia_Man_t * p, int nFrames, int nFanMax, int fVerbose );
 extern Gia_Man_t *         Gia_ManRemoveEnables( Gia_Man_t * p );
+//=== giaEra.c ============================================================
+extern int                 Gia_ManProveReachable( Gia_Man_t * p, int nStatesMax,
+                               int (*pFuncStop)(void *), void * pData );
 /*=== giaEquiv.c ==========================================================*/
 extern void                Gia_ManOrigIdsInit( Gia_Man_t * p );
 extern void                Gia_ManOrigIdsStart( Gia_Man_t * p );
@@ -1666,6 +1669,7 @@ extern Gia_Man_t *         Jf_ManDeriveCnf( Gia_Man_t * p, int fCnfObjIds );
 extern Gia_Man_t *         Gia_ManIsoCanonicize( Gia_Man_t * p, int fVerbose );
 extern Gia_Man_t *         Gia_ManIsoReduce( Gia_Man_t * p, Vec_Ptr_t ** pvPosEquivs, Vec_Ptr_t ** pvPiPerms, int fEstimate, int fDualOut, int fVerbose, int fVeryVerbose );
 extern Gia_Man_t *         Gia_ManIsoReduce2( Gia_Man_t * p, Vec_Ptr_t ** pvPosEquivs, Vec_Ptr_t ** pvPiPerms, int fEstimate, int fBetterQual, int fDualOut, int fVerbose, int fVeryVerbose );
+extern Vec_Int_t *         Gia_ManIsoOutputReprs( Gia_Man_t * p, abctime Deadline );
 /*=== giaLf.c ===========================================================*/
 extern void                Lf_ManSetDefaultPars( Jf_Par_t * pPars );
 extern Gia_Man_t *         Lf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars );

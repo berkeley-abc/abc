@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [gia.c]
+  FileName    [giaIso2.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -677,7 +677,7 @@ Vec_Wec_t * Gia_Iso2ManCheckIsoClasses( Gia_Man_t * p, Vec_Wec_t * vEquivs )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Wec_t * Gia_Iso2ManPerform( Gia_Man_t * pGia, int fVerbose )
+static Vec_Wec_t * Gia_Iso2ManPerformUntil( Gia_Man_t * pGia, int fVerbose, abctime Deadline )
 {
     Gia_Iso2Man_t * p;
     abctime clk = Abc_Clock();
@@ -687,6 +687,11 @@ Vec_Wec_t * Gia_Iso2ManPerform( Gia_Man_t * pGia, int fVerbose )
     Gia_Iso2ManPrint( p, Abc_Clock() - clk, fVerbose );
     while ( Gia_Iso2ManUniqify( p ) )
     {
+        if ( Deadline && Abc_Clock() >= Deadline )
+        {
+            Gia_Iso2ManStop( p );
+            return NULL;
+        }
         Gia_Iso2ManPrint( p, Abc_Clock() - clk, fVerbose );
         Gia_Iso2ManPropagate( pGia );
     }
@@ -702,6 +707,122 @@ Vec_Wec_t * Gia_Iso2ManPerform( Gia_Man_t * pGia, int fVerbose )
 */
     Gia_Iso2ManStop( p );
     return Gia_Iso2ManDerivePoClasses( pGia );
+}
+Vec_Wec_t * Gia_Iso2ManPerform( Gia_Man_t * pGia, int fVerbose )
+{
+    return Gia_Iso2ManPerformUntil( pGia, fVerbose, 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks a candidate bijection including signed outputs and latch feedback.]
+
+  Description [The traversal orders propose the permutation. Every signed
+  edge must correspond under it, including edges incident on shared nodes
+  and the pairing of each register with its next-state function.]
+
+  SideEffects []
+
+  SeeAlso     [Gia_Iso2ManCollectOrder]
+
+***********************************************************************/
+static int Gia_Iso2ManVerifyOrder( Gia_Man_t * p, Vec_Int_t * vOrder0, Vec_Int_t * vOrder1,
+    Vec_Int_t * vMap0, Vec_Int_t * vMap1 )
+{
+    int i, Id0, Id1, a, b, c, d;
+    if ( Vec_IntSize(vOrder0) != Vec_IntSize(vOrder1) ) return 0;
+    Vec_IntForEachEntryTwo( vOrder0, vOrder1, Id0, Id1, i )
+    {
+        Gia_Obj_t * p0 = Gia_ManObj(p, Id0), * p1 = Gia_ManObj(p, Id1);
+        if ( Gia_ObjIsAnd(p0) )
+        {
+            if ( !Gia_ObjIsAnd(p1) ) return 0;
+            a = Abc_Var2Lit( Vec_IntEntry(vMap0, Gia_ObjFaninId0(p0, Id0)), Gia_ObjFaninC0(p0) );
+            b = Abc_Var2Lit( Vec_IntEntry(vMap0, Gia_ObjFaninId1(p0, Id0)), Gia_ObjFaninC1(p0) );
+            c = Abc_Var2Lit( Vec_IntEntry(vMap1, Gia_ObjFaninId0(p1, Id1)), Gia_ObjFaninC0(p1) );
+            d = Abc_Var2Lit( Vec_IntEntry(vMap1, Gia_ObjFaninId1(p1, Id1)), Gia_ObjFaninC1(p1) );
+            if ( !((a == c && b == d) || (a == d && b == c)) ) return 0;
+        }
+        else if ( Gia_ObjIsCo(p0) )
+        {
+            if ( !Gia_ObjIsCo(p1) || Gia_ObjIsPo(p, p0) != Gia_ObjIsPo(p, p1) ||
+                 Gia_ObjFaninC0(p0) != Gia_ObjFaninC0(p1) ||
+                 Vec_IntEntry(vMap0, Gia_ObjFaninId0(p0, Id0)) != Vec_IntEntry(vMap1, Gia_ObjFaninId0(p1, Id1)) )
+                return 0;
+        }
+        else if ( Gia_ObjIsCi(p0) )
+        {
+            if ( !Gia_ObjIsCi(p1) || Gia_ObjIsRo(p, p0) != Gia_ObjIsRo(p, p1) ) return 0;
+            if ( Gia_ObjIsRo(p, p0) &&
+                 Vec_IntEntry(vMap0, Gia_ObjId(p, Gia_ObjRoToRi(p, p0))) !=
+                 Vec_IntEntry(vMap1, Gia_ObjId(p, Gia_ObjRoToRi(p, p1))) ) return 0;
+        }
+        else if ( !Gia_ObjIsConst0(p1) ) return 0;
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns representatives of verified isomorphic output cones.]
+
+  Description [Uses the fast partitioning and sequential traversal of &iso.
+  The result lists original PO indices in ascending order. Unchecked and
+  unmatched cones are preserved. NULL means all outputs should be kept.
+  Sequential inputs have the usual all-zero initial state.]
+
+  SideEffects [Uses Value and traversal IDs on the private input.]
+
+  SeeAlso     [Gia_ManIsoReduce2]
+
+***********************************************************************/
+Vec_Int_t * Gia_ManIsoOutputReprs( Gia_Man_t * p, abctime Deadline )
+{
+    Vec_Wec_t * vClasses;
+    Vec_Int_t * vReps = NULL, * vRoots, * vOrder0, * vOrder1, * vMap0, * vMap1, * vClass;
+    Vec_Bit_t * vDrop;
+    int i, k, Po, Rep, Dropped = 0;
+    if ( !p || Gia_ManPoNum(p) < 2 || Gia_ManObjNum(p) > 2000000 || Gia_ManConstrNum(p) ||
+         p->pMuxes || Gia_ManXorNum(p) || Gia_ManBufNum(p) || Gia_ManHasChoices(p) || Gia_ManBoxNum(p) ||
+         (p->vRegInits && (Vec_IntSize(p->vRegInits) != Gia_ManRegNum(p) ||
+          Vec_IntCountEntry(p->vRegInits, 0) != Gia_ManRegNum(p))) || Gia_ManLevelNum(p) > 1024 ) return NULL;
+    vClasses = Gia_Iso2ManPerformUntil( p, 0, Deadline );
+    if ( !vClasses ) return NULL;
+    if ( Vec_WecSize(vClasses) == Gia_ManPoNum(p) ) { Vec_WecFree(vClasses); return NULL; }
+    vRoots = Vec_IntAlloc( 1000 );
+    vOrder0 = Vec_IntAlloc( 1000 );
+    vOrder1 = Vec_IntAlloc( 1000 );
+    vMap0 = Vec_IntStart( Gia_ManObjNum(p) );
+    vMap1 = Vec_IntStart( Gia_ManObjNum(p) );
+    vDrop = Vec_BitStart( Gia_ManPoNum(p) );
+    Vec_WecForEachLevel( vClasses, vClass, i )
+    {
+        if ( Vec_IntSize(vClass) < 2 ) continue;
+        if ( Abc_Clock() >= Deadline ) break;
+        Rep = Vec_IntEntry( vClass, 0 );
+        Gia_Iso2ManCollectOrder( p, &Rep, 1, vRoots, vOrder0, vMap0 );
+        Vec_IntForEachEntryStart( vClass, Po, k, 1 )
+        {
+            if ( Abc_Clock() >= Deadline ) break;
+            Gia_Iso2ManCollectOrder( p, &Po, 1, vRoots, vOrder1, vMap1 );
+            if ( Gia_Iso2ManVerifyOrder(p, vOrder0, vOrder1, vMap0, vMap1) )
+            {
+                Vec_BitWriteEntry( vDrop, Po, 1 );
+                Dropped++;
+            }
+        }
+    }
+    if ( Dropped )
+    {
+        vReps = Vec_IntAlloc( Gia_ManPoNum(p) - Dropped );
+        for ( Po = 0; Po < Gia_ManPoNum(p); Po++ )
+            if ( !Vec_BitEntry(vDrop, Po) ) Vec_IntPush( vReps, Po );
+    }
+    Vec_BitFree( vDrop );
+    Vec_IntFree( vMap1 ); Vec_IntFree( vMap0 );
+    Vec_IntFree( vOrder1 ); Vec_IntFree( vOrder0 ); Vec_IntFree( vRoots );
+    Vec_WecFree( vClasses );
+    return vReps;
 }
 
 /**Function*************************************************************
