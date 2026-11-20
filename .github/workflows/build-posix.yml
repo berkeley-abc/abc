@@ -47,6 +47,7 @@ jobs:
     - name: Test Mapping Regression
       run: |
         test/mf_maprefs_overflow.sh
+        test/sopb_shared_leaf.sh
 
     - name: Build Library
       run: |

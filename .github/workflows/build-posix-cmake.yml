@@ -55,6 +55,7 @@ jobs:
     - name: Test Mapping Regression
       run: |
         ABC=./build/abc test/mf_maprefs_overflow.sh
+        ABC=./build/abc test/sopb_shared_leaf.sh
 
     - name: Test Library
       run: |
