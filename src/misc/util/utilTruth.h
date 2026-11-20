@@ -163,6 +163,9 @@ static inline int Abc_TtBitCount16( int i ) { return __builtin_popcount( i & 0xf
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+// utilIsop.c
+extern int Abc_IsopCnf( word * pFunc, int nVars, int nCubeLim, int * pCover );
+
 /**Function*************************************************************
 
   Synopsis    []

@@ -20,6 +20,8 @@
 
 #include <limits.h>
 #include "bmc.h"
+#include "misc/util/utilTruth.h"
+#include "opt/drw/drw.h"
 #include "sat/cnf/cnf.h"
 #include "sat/cadical/ccadical.h"
 
@@ -41,19 +43,24 @@ struct Bmc3G_Man_t_
     Bmc_GiaPar_t * pPars;
     Gia_Man_t *    pGia;
     Gia_Man_t *    pFrames;
+    Gia_Man_t *    pOriginal;
     CCaDiCaL *     pSat;
     Vec_Ptr_t *   vMaps;
     Vec_Int_t *   vVars;
     Vec_Int_t *   vCopies;
     Vec_Int_t *   vCiMap;
     Vec_Int_t *   vRoots;
+    Vec_Int_t *   vOriginalPos;
     Vec_Int_t *   vStack;
     Vec_Wrd_t *   vWork;
     Vec_Int_t *   vMapIds;
     abctime       Start;
     abctime       Deadline;
+    abctime       PrepDeadline;
     int           nVars;
     int           fStopped;
+    int           fFreeInit;
+    int           nWindowQueries;
     int           nMapEntries;
     unsigned      nStopCalls;
     word          nMapBytes;
@@ -103,6 +110,7 @@ static int Bmc3G_CheckMemory( Bmc3G_Man_t * p, double Extra )
     if ( p->fStopped ) return 1;
     if ( p->pFrames && Gia_ManObjNum(p->pFrames) >= (1 << 28) ) goto limit;
     if ( p->pGia ) Used += 32.0 * p->pGia->nObjsAlloc;
+    if ( p->pOriginal ) Used += 32.0 * p->pOriginal->nObjsAlloc;
     if ( p->pFrames ) Used += 64.0 * p->pFrames->nObjsAlloc;
     if ( p->vMaps ) Used += (double)p->nMapBytes + (double)Vec_PtrCap(p->vMaps) * sizeof(void *);
     if ( p->pSat )
@@ -273,6 +281,295 @@ static void Bmc3G_IndexCone( Bmc3G_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Flattens a conjunction or a disjunction into literals.]
+
+  Description [Unexpanded subgraphs remain literals when the limit is reached.
+  A repeated subgraph has the same polarity inside one flattened operator.]
+
+  SideEffects [Uses traversal IDs on the private graph.]
+
+  SeeAlso     [Bmc3G_SplitProperty]
+
+***********************************************************************/
+static void Bmc3G_CollectTerms( Gia_Man_t * pGia, int Lit, int fOr, int Limit, Vec_Int_t * vWork, Vec_Int_t * vTerms )
+{
+    Gia_Obj_t * pObj;
+    Vec_IntClear( vWork );
+    Vec_IntClear( vTerms );
+    Vec_IntPush( vWork, Lit );
+    Gia_ManIncrementTravId( pGia );
+    while ( Vec_IntSize(vWork) )
+    {
+        Lit = Vec_IntPop( vWork );
+        pObj = Gia_ManObj( pGia, Abc_Lit2Var(Lit) );
+        if ( Gia_ObjIsAnd(pObj) && Abc_LitIsCompl(Lit) == fOr )
+        {
+            if ( Gia_ObjIsTravIdCurrent(pGia, pObj) ) continue;
+            if ( Vec_IntSize(vWork) + Vec_IntSize(vTerms) + 1 < Limit )
+            {
+                Gia_ObjSetTravIdCurrent( pGia, pObj );
+                Vec_IntPushTwo( vWork, Gia_ObjFaninLit0p(pGia, pObj) ^ fOr, Gia_ObjFaninLit1p(pGia, pObj) ^ fOr );
+                continue;
+            }
+        }
+        Vec_IntPushUnique( vTerms, Lit );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Splits a large disjunction below a property's Boolean guards.]
+
+  Description [Searches a bounded number of alternating AND and OR levels.
+  Above the chosen disjunction D the property has the form R | (G & D).
+  An AND sibling restricts both R and G, while an OR sibling extends R.
+  The outputs R and G & D_i therefore cover the exact original property.
+  The input order and the register transition functions are preserved.]
+
+  SideEffects [Uses traversal IDs and Value on the private input.]
+
+  SeeAlso     [Bmc3G_ReduceOutputs]
+
+***********************************************************************/
+static Gia_Man_t * Bmc3G_SplitProperty( Bmc3G_Man_t * p )
+{
+    Gia_Man_t * pGia = p->pGia, * pNew = NULL;
+    Gia_Obj_t * pObj;
+    Vec_Int_t * vLits = Vec_IntAlloc( 64 ), * vParents = Vec_IntAlloc( 64 );
+    Vec_Int_t * vTerms = Vec_IntAlloc( 32 ), * vBest = Vec_IntAlloc( 32 ), * vWork = Vec_IntAlloc( 32 );
+    int i, k, Level, End, Lit, Child, Rest, fOr, Best = -1, Guard = 1, Residual = 0;
+    Vec_IntPush( vLits, Gia_ObjFaninLit0p(pGia, Gia_ManPo(pGia, 0)) );
+    Vec_IntPush( vParents, -1 );
+    for ( i = Level = 0; Level < 5 && i < Vec_IntSize(vLits); Level++ )
+    {
+        End = Vec_IntSize(vLits);
+        for ( ; i < End; i++ )
+        {
+            if ( Bmc3G_Stop(p) ) goto finish;
+            Lit = Vec_IntEntry( vLits, i );
+            if ( !Gia_ObjIsAnd(Gia_ManObj(pGia, Abc_Lit2Var(Lit))) ) continue;
+            fOr = Abc_LitIsCompl( Lit );
+            Bmc3G_CollectTerms( pGia, Lit, fOr, fOr ? 512 : 64, vWork, vTerms );
+            if ( fOr && Vec_IntSize(vTerms) >= 8 )
+            {
+                if ( Vec_IntSize(vBest) < Vec_IntSize(vTerms) )
+                {
+                    Vec_IntClear( vBest );
+                    Vec_IntAppend( vBest, vTerms );
+                    Best = i;
+                }
+                continue;
+            }
+            if ( Level == 4 ) continue;
+            Vec_IntForEachEntry( vTerms, Child, k )
+            {
+                if ( Vec_IntSize(vLits) >= 192 ) break;
+                if ( !Gia_ObjIsAnd(Gia_ManObj(pGia, Abc_Lit2Var(Child))) || Vec_IntFind(vLits, Child) >= 0 )
+                    continue;
+                Vec_IntPush( vLits, Child );
+                Vec_IntPush( vParents, i );
+            }
+        }
+    }
+    if ( Best < 0 || Bmc3G_Stop(p) ) goto finish;
+    pNew = Gia_ManStart( Gia_ManObjNum(pGia) + 2 * Vec_IntSize(vBest) + 64 );
+    pNew->pName = Abc_UtilStrsav( pGia->pName );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManConst0(pGia)->Value = 0;
+    Gia_ManForEachCi( pGia, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( pGia, pObj, i )
+    {
+        if ( !(i & 1023) && Bmc3G_Stop(p) ) { Gia_ManStopP(&pNew); goto finish; }
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    }
+    while ( Vec_IntEntry(vParents, Best) >= 0 )
+    {
+        Child = Vec_IntEntry( vLits, Best );
+        Best = Vec_IntEntry( vParents, Best );
+        Lit = Vec_IntEntry( vLits, Best );
+        fOr = Abc_LitIsCompl( Lit );
+        Bmc3G_CollectTerms( pGia, Lit, fOr, fOr ? 512 : 64, vWork, vTerms );
+        Rest = 1;
+        Vec_IntForEachEntry( vTerms, Lit, i )
+            if ( Lit != Child )
+                Rest = Gia_ManHashAnd( pNew, Rest, Gia_ObjLitCopy(pGia, Lit) ^ fOr );
+        if ( fOr )
+            Residual = Gia_ManHashOr( pNew, Residual, Abc_LitNot(Rest) );
+        else
+        {
+            Guard = Gia_ManHashAnd( pNew, Guard, Rest );
+            Residual = Gia_ManHashAnd( pNew, Residual, Rest );
+        }
+    }
+    Vec_IntForEachEntry( vBest, Lit, i )
+        Vec_IntWriteEntry( vBest, i, Gia_ManHashAnd(pNew, Guard, Gia_ObjLitCopy(pGia, Lit)) );
+    if ( Residual ) Gia_ManAppendCo( pNew, Residual );
+    Vec_IntForEachEntry( vBest, Lit, i )
+        Gia_ManAppendCo( pNew, Lit );
+    Gia_ManForEachRi( pGia, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(pGia) );
+    Gia_ManHashStop( pNew );
+finish:
+    Vec_IntFree( vLits );
+    Vec_IntFree( vParents );
+    Vec_IntFree( vTerms );
+    Vec_IntFree( vBest );
+    Vec_IntFree( vWork );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Keeps representatives of structurally isomorphic sequential properties.]
+
+  Description [Identical canonical AIGER records include the full transition
+  relation of both cones, with registers and their next-state functions
+  permuted together. Such properties have witnesses at the same depths.
+  The representative model retains the original PI order. Its PO indices
+  map to the initial outputs or, after splitting, to the single initial PO.]
+
+  SideEffects [Uses traversal IDs and Value on the private model.]
+
+  SeeAlso     [Bmc3G_SplitProperty]
+
+***********************************************************************/
+static Gia_Man_t * Bmc3G_ReduceOutputs( Bmc3G_Man_t * p )
+{
+    Gia_Man_t * pSplit, * pPart, * pCanon, * pResult = NULL;
+    Vec_Ptr_t * vKeys;
+    Vec_Int_t * vReps;
+    Vec_Str_t * vKey, * vOther, * vSeen;
+    abctime Stop = Abc_Clock() + CLOCKS_PER_SEC;
+    int i, k, Lit, nObjs = Gia_ManObjNum(p->pGia);
+    int fSplit = Gia_ManPoNum(p->pGia) == 1;
+    if ( !Gia_ManPoNum(p->pGia) || !Gia_ManRegNum(p->pGia) || nObjs > 200000 ||
+         (p->pPars->nMemoryLimit && 24.0 + 0.00025 * nObjs >= p->pPars->nMemoryLimit) ) return NULL;
+    pSplit = fSplit ? Bmc3G_SplitProperty(p) : p->pGia;
+    if ( !pSplit ) return NULL;
+    vKeys = Vec_PtrAlloc( 16 );
+    vReps = Vec_IntAlloc( 16 );
+    vSeen = Vec_StrStart( 2 * Gia_ManObjNum(pSplit) );
+    if ( Gia_ManLevelNum(pSplit) > (fSplit ? 512 : 1024) ) goto finish;
+    for ( i = 0; i < Gia_ManPoNum(pSplit); i++ )
+    {
+        if ( Bmc3G_Stop(p) ) goto finish;
+        Lit = Gia_ObjFaninLit0p( pSplit, Gia_ManPo(pSplit, i) );
+        if ( Vec_StrEntry(vSeen, Lit) ) continue;
+        Vec_StrWriteEntry( vSeen, Lit, 1 );
+        if ( Abc_Clock() >= Stop )
+        {
+            if ( fSplit ) goto finish;
+            Vec_IntPush( vReps, i );
+            continue;
+        }
+        pPart = Gia_ManDupCones( pSplit, &i, 1, 1 );
+        if ( Gia_ManObjNum(pPart) > 8192 )
+        {
+            Gia_ManStop( pPart );
+            if ( fSplit ) goto finish;
+            Vec_IntPush( vReps, i );
+            continue;
+        }
+        pCanon = Gia_ManIsoCanonicize( pPart, 0 );
+        vKey = Gia_AigerWriteIntoMemoryStr( pCanon );
+        Gia_ManStop( pCanon );
+        Gia_ManStop( pPart );
+        Vec_PtrForEachEntry( Vec_Str_t *, vKeys, vOther, k )
+            if ( Vec_StrCompareVec(vKey, vOther) == 0 ) break;
+        if ( k < Vec_PtrSize(vKeys) ) Vec_StrFree( vKey );
+        else
+        {
+            Vec_PtrPush( vKeys, vKey );
+            Vec_IntPush( vReps, i );
+        }
+    }
+    if ( Vec_IntSize(vReps) == Gia_ManPoNum(pSplit) || Bmc3G_Stop(p) ) goto finish;
+    if ( fSplit && 2 * Vec_IntSize(vReps) > Gia_ManPoNum(pSplit) ) goto finish;
+    pResult = Gia_ManDupCones( pSplit, Vec_IntArray(vReps), Vec_IntSize(vReps), 0 );
+    // Splitting a single property introduces a query per representative in each frame.
+    if ( fSplit && (4 * Gia_ManAndNum(pResult) > 3 * Gia_ManAndNum(p->pGia) ||
+         (ABC_INT64_T)Vec_IntSize(vReps) * Gia_ManAndNum(pResult) > Gia_ManAndNum(p->pGia)) )
+        Gia_ManStopP( &pResult );
+    if ( pResult && p->pPars->fVerbose )
+        Abc_Print( 1, "BMC symmetry: %d %s, %d representatives, %d -> %d ANDs.\n",
+            Gia_ManPoNum(pSplit), fSplit ? "disjuncts" : "outputs", Vec_IntSize(vReps),
+            Gia_ManAndNum(p->pGia), Gia_ManAndNum(pResult) );
+    if ( pResult && !fSplit )
+    {
+        p->vOriginalPos = vReps;
+        vReps = NULL;
+    }
+finish:
+    Vec_StrFree( vSeen );
+    Vec_PtrForEachEntry( Vec_Str_t *, vKeys, vKey, i ) Vec_StrFree( vKey );
+    Vec_PtrFree( vKeys );
+    Vec_IntFreeP( &vReps );
+    if ( fSplit ) Gia_ManStop( pSplit );
+    return pResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks the separate time allowance for preprocessing.]
+
+  Description []
+
+  SideEffects [Only a stop requested by the outer run ends the main search.]
+
+  SeeAlso     [Bmc3G_Prepare]
+
+***********************************************************************/
+static int Bmc3G_PrepStop( void * pData )
+{
+    Bmc3G_Man_t * p = (Bmc3G_Man_t *)pData;
+    return Bmc3G_Stop(p) || Abc_Clock() >= p->PrepDeadline;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sweeps redundant registers and rewrites the transition relation.]
+
+  Description [Both steps preserve PI and PO order. Keeps each completed
+  step that removes registers or ANDs. The two steps share a time budget.]
+
+  SideEffects [Retains the original model for counterexample replay.]
+
+  SeeAlso     [Bmc3G_Start Bmc3G_Cex]
+
+***********************************************************************/
+static void Bmc3G_Prepare( Bmc3G_Man_t * p )
+{
+    Gia_Man_t * pNext;
+    abctime Start = Abc_Clock();
+    int i, nAnds = Gia_ManAndNum(p->pGia), nRegs = Gia_ManRegNum(p->pGia);
+    if ( !nRegs || (p->pPars->nMemoryLimit &&
+         p->pPars->MemoryPeakMB + 256.0 * Gia_ManObjNum(p->pGia) / (1 << 20) >= p->pPars->nMemoryLimit) )
+        return;
+    p->PrepDeadline = Start + 2 * (abctime)CLOCKS_PER_SEC;
+    for ( i = 0; i < 2 && !Bmc3G_PrepStop(p); i++ )
+    {
+        pNext = i ? Drw_ManRwsatWithStop(p->pGia, 0, 0, Bmc3G_PrepStop, p) :
+                    Gia_ManSeqStructSweepWithStop(p->pGia, 1, 1, 0, Bmc3G_PrepStop, p);
+        if ( !pNext ) break;
+        if ( Gia_ManPiNum(pNext) != Gia_ManPiNum(p->pGia) || Gia_ManPoNum(pNext) != Gia_ManPoNum(p->pGia) ||
+             (Gia_ManAndNum(pNext) >= Gia_ManAndNum(p->pGia) && Gia_ManRegNum(pNext) >= Gia_ManRegNum(p->pGia)) )
+        {
+            Gia_ManStop( pNext );
+            continue;
+        }
+        if ( p->pOriginal ) Gia_ManStop( p->pGia );
+        else p->pOriginal = p->pGia;
+        p->pGia = pNext;
+    }
+    if ( p->pPars->fVerbose )
+        Abc_Print( 1, "BMC preprocessing: ANDs %d -> %d, registers %d -> %d, time=%.3f sec.\n",
+            nAnds, Gia_ManAndNum(p->pGia), nRegs, Gia_ManRegNum(p->pGia), (double)(Abc_Clock()-Start)/CLOCKS_PER_SEC );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Allocates private unrolling and incremental solver state.]
 
   Description []
@@ -293,13 +590,28 @@ static Bmc3G_Man_t * Bmc3G_Start( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int fF
     if ( Gia_ManObjNum(pGia) >= (1 << 28) ) pPars->fMemoryLimit = p->fStopped = 1;
     if ( Bmc3G_Stop(p) || Bmc3G_CheckMemory(p, 64.0 * Gia_ManObjNum(pGia)) ) return p;
     p->pGia = Gia_ManDupNormalize( pGia, 1 );
+    if ( !fFixedTarget && pPars->fUseIso && !pPars->pShared )
+    {
+        Gia_Man_t * pReduced = Bmc3G_ReduceOutputs( p );
+        if ( pReduced )
+        {
+            p->pOriginal = p->pGia;
+            p->pGia = pReduced;
+        }
+        if ( p->fStopped ) return p;
+    }
+    if ( !fFixedTarget && pPars->fPreprocess && !pPars->pShared )
+    {
+        Bmc3G_Prepare( p );
+        if ( Bmc3G_Stop(p) ) return p;
+    }
     p->pFrames = Gia_ManStart( Gia_ManObjNum(p->pGia) );
     Gia_ManHashStart( p->pFrames );
     p->vMaps = Vec_PtrAlloc( 128 );
     p->vVars = Vec_IntAlloc( 1024 );
     p->vCopies = Vec_IntAlloc( 1024 );
     p->vCiMap = Vec_IntAlloc( 1024 );
-    p->vRoots = Vec_IntAlloc( Gia_ManPoNum(pGia) );
+    p->vRoots = Vec_IntAlloc( Gia_ManPoNum(p->pGia) );
     p->vStack = Vec_IntAlloc( 1024 );
     p->vWork = Vec_WrdAlloc( 1024 );
     Bmc3G_IndexCone( p );
@@ -314,6 +626,16 @@ static Bmc3G_Man_t * Bmc3G_Start( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int fF
         ccadical_set_option( p->pSat, "lucky", 0 );
     }
     ccadical_set_option( p->pSat, "phase", pPars->fPhase );
+    if ( pPars->fEarlyActivity )
+    {
+        // Alternate focused and activity-based search, using glue-based restarts in both.
+        ccadical_set_option( p->pSat, "stabilizeinit", 64 );
+        ccadical_set_option( p->pSat, "reluctant", 0 );
+        ccadical_set_option( p->pSat, "restartmarginstable", 10 );
+        ccadical_set_option( p->pSat, "target", 0 );
+        ccadical_set_option( p->pSat, "rephase", 0 );
+        ccadical_set_option( p->pSat, "chrono", 0 );
+    }
     // Poll the caller at each solver cancellation point.
     ccadical_set_option( p->pSat, "terminateint", 0 );
     ccadical_set_terminate( p->pSat, p, Bmc3G_Stop );
@@ -342,6 +664,7 @@ static void Bmc3G_StopManager( Bmc3G_Man_t * p )
     if ( p->pSat ) ccadical_release( p->pSat );
     Gia_ManStopP( &p->pGia );
     Gia_ManStopP( &p->pFrames );
+    Gia_ManStopP( &p->pOriginal );
     if ( p->vMaps )
     {
         Vec_PtrForEachEntry( Bmc3G_Map_t *, p->vMaps, pMap, i )
@@ -356,6 +679,7 @@ static void Bmc3G_StopManager( Bmc3G_Man_t * p )
     Vec_IntFreeP( &p->vCopies );
     Vec_IntFreeP( &p->vCiMap );
     Vec_IntFreeP( &p->vRoots );
+    Vec_IntFreeP( &p->vOriginalPos );
     Vec_IntFreeP( &p->vStack );
     Vec_WrdFreeP( &p->vWork );
     Vec_IntFreeP( &p->vMapIds );
@@ -428,6 +752,8 @@ static int Bmc3G_Unroll( Bmc3G_Man_t * p, int Id, int Frame )
                 continue;
             }
             Lit0 = f ? Bmc3G_Fixed(p, Bmc3G_MapRead(pPrev, Index0)) ^ Gia_ObjFaninC0(pRi) : 0;
+            if ( !f && p->fFreeInit )
+                Lit0 = Gia_ManAppendCi( p->pFrames );
             if ( !Bmc3G_MapWrite(p, pMap, Index, Lit0) ) return -1;
         }
         else
@@ -608,6 +934,7 @@ static Abc_Cex_t * Bmc3G_Cex( Bmc3G_Man_t * p, int Frame, int Output, int fModel
     if ( fModel )
         Gia_ManForEachPi( p->pFrames, pObj, i )
         {
+            // A previous probe can have introduced inputs beyond this witness.
             f = Vec_IntEntry( p->vCiMap, 2*i + 1 );
             if ( f > Frame ) continue;
             Var = Vec_IntEntry( p->vVars, Gia_ObjId(p->pFrames, pObj) );
@@ -637,9 +964,14 @@ static int Bmc3G_CheckInput( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars )
     int i, Init;
     if ( !pGia || !pPars || pPars->nFramesMax < 0 || pPars->nFramesMax >= INT_MAX ||
          pPars->nTimeOut < 0 || pPars->nTimeOut > 86400 || pPars->nConfLimit < 0 ||
+         pPars->nFramesJump < 0 || pPars->nFramesJump >= INT_MAX ||
          pPars->nMemoryLimit < 0 || pPars->nMemoryLimit > (1 << 20) ||
          (pPars->fPhase != 0 && pPars->fPhase != 1) ||
-         pPars->nLutSize < 3 || pPars->nLutSize > 8 || Gia_ManConstrNum(pGia) ||
+         (pPars->fEarlyActivity != 0 && pPars->fEarlyActivity != 1) ||
+         (pPars->fTernaryPrefix != 0 && pPars->fTernaryPrefix != 1) ||
+         (pPars->fUseIso != 0 && pPars->fUseIso != 1) ||
+         (pPars->fWindowProof != 0 && pPars->fWindowProof != 1) ||
+         pPars->nLutSize < 3 || pPars->nLutSize > 9 || Gia_ManConstrNum(pGia) ||
          Gia_ManHasChoices(pGia) || pGia->pMuxes || Gia_ManXorNum(pGia) ||
          Gia_ManBufNum(pGia) || Gia_ManBoxNum(pGia) ) return 0;
     if ( pGia->vRegInits )
@@ -704,13 +1036,274 @@ static void Bmc3G_PropagateConstants( Bmc3G_Man_t * p, int Frame )
 
 /**Function*************************************************************
 
+  Synopsis    [Records a newly certified range of consecutive frames.]
+
+  Description [An event-driven prefix can be ahead of the concrete maps.]
+
+  SideEffects [Advances the safe prefix monotonically.]
+
+  SeeAlso     [Bmc3G_EventPrefix]
+
+***********************************************************************/
+static void Bmc3G_RecordFrames( Bmc3G_Man_t * p, int Frame, int nFrames )
+{
+    if ( Frame < p->pPars->nFramesDone ) return;
+    assert( nFrames > 0 && Frame + 1 - nFrames == p->pPars->nFramesDone );
+    p->pPars->nFramesDone = Frame + 1;
+    if ( p->pPars->fVerbose )
+        Abc_Print( 1, "%4d + : Var = %d. Cla = %llu. Conf = %d. Time = %.3f sec\n",
+            Frame, p->nVars, (unsigned long long)ccadical_live_clauses(p->pSat), ccadical_conflicts(p->pSat),
+            (double)(Abc_Clock() - p->Start) / CLOCKS_PER_SEC );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Evaluates an AND or output over zero, one and unknown.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     [Bmc3G_EventPrefix]
+
+***********************************************************************/
+static inline int Bmc3G_TernaryValue( Gia_Obj_t * pObj, int Id, unsigned char * pValues )
+{
+    int A = pValues[Gia_ObjFaninId0(pObj, Id)], B;
+    if ( A < 2 ) A ^= Gia_ObjFaninC0(pObj);
+    if ( Gia_ObjIsCo(pObj) || A == 0 ) return A;
+    B = pValues[Gia_ObjFaninId1(pObj, Id)];
+    if ( B < 2 ) B ^= Gia_ObjFaninC1(pObj);
+    return B == 0 ? 0 : Abc_MaxInt(A, B);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Schedules changed fanouts in topological object order.]
+
+  Description [One bit per object coalesces multiple changes to its inputs.
+  A second level skips blocks of 64 objects that have no pending changes.]
+
+  SideEffects []
+
+  SeeAlso     [Bmc3G_EventPrefix]
+
+***********************************************************************/
+static inline void Bmc3G_ScheduleFanouts( Gia_Man_t * pGia, int Id, word * pWords, word * pPages )
+{
+    int Fan, i;
+    Gia_ObjForEachFanoutStaticId( pGia, Id, Fan, i )
+    {
+        Abc_TtSetBit( pWords, Fan );
+        Abc_TtSetBit( pPages, Fan >> 6 );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Certifies frames using ternary simulation with unknown primary inputs.]
+
+  Description [Starts from register constants already established by unrolling.
+  Each simulated cube covers every reachable state at that depth. A repeated
+  cube closes a safe cycle. A nonzero or unknown output returns control to
+  concrete BMC with all preceding certified frames retained. Only changed
+  gates are evaluated after initialization. Brent's cycle detection uses one
+  saved register cube, with an incremental count of its differing entries.]
+
+  SideEffects [Advances the safe prefix. Returns one for a complete proof.]
+
+  SeeAlso     [Bmc3G_PropagateConstants]
+
+***********************************************************************/
+static int Bmc3G_EventPrefix( Bmc3G_Man_t * p, int Frame, int Limit )
+{
+    Gia_Man_t * pGia = p->pGia;
+    Gia_Obj_t * pObj;
+    Bmc3G_Map_t * pMap = (Bmc3G_Map_t *)Vec_PtrEntry( p->vMaps, Frame );
+    int nObjs = Gia_ManObjNum(pGia), nWords = Abc_Bit6WordNum(nObjs), nPages = Abc_Bit6WordNum(nWords);
+    int i, k, Id, Ro, Reg, Index, Value, nDiff = 0, Length = 0, Power = 1, nBad = 0, fProof = 0;
+    int Checkpoint = Frame;
+    unsigned Visits = 0;
+    word Extra = (word)48 * nObjs;
+    unsigned char * pValues, * pSaved;
+    word * pWords, * pPages;
+    Vec_Int_t * vRis;
+    // Static fanout construction is one linear pass without cancellation.
+    if ( nObjs > (1 << 20) || (p->pPars->nMemoryLimit &&
+         p->pPars->MemoryPeakMB + 1.25 * Extra / (1 << 20) >= p->pPars->nMemoryLimit) ) return 0;
+    p->nMapBytes += Extra;
+    Gia_ManStaticFanoutStart( pGia );
+    pValues = ABC_CALLOC( unsigned char, nObjs );
+    pSaved = ABC_ALLOC( unsigned char, Gia_ManRegNum(pGia) );
+    pWords = ABC_CALLOC( word, nWords );
+    pPages = ABC_CALLOC( word, nPages );
+    vRis = Vec_IntAlloc( Gia_ManRegNum(pGia) );
+    Gia_ManForEachObj1( pGia, pObj, Id )
+    {
+        if ( !(Id & 1023) && Bmc3G_Stop(p) ) goto finish;
+        if ( Gia_ObjIsCi(pObj) )
+        {
+            Value = 2;
+            if ( Gia_ObjIsRo(pGia, pObj) )
+            {
+                Index = Vec_IntEntry( p->vMapIds, Id );
+                if ( Index >= 0 ) Value = Bmc3G_MapRead( pMap, Index );
+                if ( Value != 0 && Value != 1 ) Value = 2;
+                pSaved[Gia_ObjCioId(pObj) - Gia_ManPiNum(pGia)] = (unsigned char)Value;
+            }
+        }
+        else
+        {
+            Value = Bmc3G_TernaryValue( pObj, Id, pValues );
+            if ( Gia_ObjIsRi(pGia, pObj) ) Vec_IntPush( vRis, Id );
+            if ( Gia_ObjIsPo(pGia, pObj) ) nBad += Value != 0;
+        }
+        pValues[Id] = (unsigned char)Value;
+    }
+    while ( Frame < Limit && !nBad && !Bmc3G_Stop(p) )
+    {
+        Bmc3G_RecordFrames( p, Frame++, 1 );
+        Vec_IntForEachEntry( vRis, Id, i )
+        {
+            if ( !(++Visits & 1023) && Bmc3G_Stop(p) ) goto finish;
+            pObj = Gia_ManObj( pGia, Id );
+            Reg = Gia_ObjCioId(pObj) - Gia_ManPoNum(pGia);
+            Ro = Gia_ObjId( pGia, Gia_ManRo(pGia, Reg) );
+            if ( pValues[Ro] == pValues[Id] ) continue;
+            nDiff += (pValues[Id] != pSaved[Reg]) - (pValues[Ro] != pSaved[Reg]);
+            pValues[Ro] = pValues[Id];
+            Bmc3G_ScheduleFanouts( pGia, Ro, pWords, pPages );
+        }
+        if ( !nDiff ) { fProof = 1; break; }
+        if ( Frame == Limit ) break;
+        if ( ++Length == Power )
+        {
+            Gia_ManForEachRo( pGia, pObj, i )
+            {
+                if ( !(++Visits & 1023) && Bmc3G_Stop(p) ) goto finish;
+                pSaved[i] = pValues[Gia_ObjId(pGia, pObj)];
+            }
+            if ( Power <= INT_MAX / 2 ) Power *= 2;
+            Length = nDiff = 0;
+            Checkpoint = Frame;
+        }
+        Vec_IntClear( vRis );
+        for ( k = 0; k < nPages; k++ )
+            while ( pPages[k] )
+            {
+                int Block = 64 * k + Abc_Tt6FirstBit(pPages[k]);
+                while ( pWords[Block] )
+                {
+                    if ( !(++Visits & 1023) && Bmc3G_Stop(p) ) goto finish;
+                    Id = 64 * Block + Abc_Tt6FirstBit(pWords[Block]);
+                    pWords[Block] &= pWords[Block] - 1;
+                    pObj = Gia_ManObj( pGia, Id );
+                    Value = Bmc3G_TernaryValue( pObj, Id, pValues );
+                    if ( pValues[Id] == Value ) continue;
+                    if ( Gia_ObjIsAnd(pObj) ) Bmc3G_ScheduleFanouts( pGia, Id, pWords, pPages );
+                    else if ( Gia_ObjIsRi(pGia, pObj) ) Vec_IntPush( vRis, Id );
+                    else nBad += (Value != 0) - (pValues[Id] != 0);
+                    pValues[Id] = (unsigned char)Value;
+                }
+                pPages[k] &= pPages[k] - 1;
+            }
+    }
+finish:
+    if ( fProof && p->pPars->fVerbose )
+        Abc_Print( 1, "BMC ternary simulation closed a safe cycle from frame %d to %d.\n", Checkpoint, Frame );
+    Vec_IntFree( vRis );
+    ABC_FREE( pValues );
+    ABC_FREE( pSaved );
+    ABC_FREE( pWords );
+    ABC_FREE( pPages );
+    Gia_ManStaticFanoutStop( pGia );
+    p->nMapBytes -= Extra;
+    return fProof;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Checks a property after a bounded number of arbitrary-state transitions.]
+
+  Description [All earlier frames from reset must already be safe. Every
+  reachable state at any later frame has a predecessor Depth steps earlier.
+  Refuting the disjunction of outputs after Depth steps from arbitrary state
+  therefore proves safety. A satisfiable or interrupted query is inconclusive.]
+
+  SideEffects [Accounts for the auxiliary solver in the caller's statistics.]
+
+  SeeAlso     [Bmc3G_Unroll Bmc3G_AddCnf]
+
+***********************************************************************/
+static int Bmc3G_WindowProof( Bmc3G_Man_t * p, int Depth )
+{
+    Bmc_GiaPar_t Pars;
+    Bmc3G_Man_t * pFree;
+    Gia_Obj_t * pObj;
+    int i, Lit, Root, Bad = 0, Status, Result = 0;
+    abctime Start = Abc_Clock(), clk;
+    double Used = p->pPars->MemoryPeakMB;
+    if ( p->pPars->nMemoryLimit && Used + 64 >= p->pPars->nMemoryLimit ) return 0;
+    Bmc_GiaSetDefaultParams( &Pars );
+    Pars.nLutSize = p->pPars->nLutSize;
+    Pars.nMemoryLimit = p->pPars->nMemoryLimit ? Abc_MinInt(2048, p->pPars->nMemoryLimit - (int)Used - 1) : 2048;
+    Pars.TimeToStop = Start + 6 * CLOCKS_PER_SEC;
+    // Limit the auxiliary cost when the reachable prefix needed no SAT calls.
+    if ( !p->pPars->nQueries && Start - p->Start + CLOCKS_PER_SEC / 10 < Pars.TimeToStop - Start )
+        Pars.TimeToStop = Start + (Start - p->Start) + CLOCKS_PER_SEC / 10;
+    Pars.pFuncStop = Bmc3G_Stop;
+    Pars.pStopData = p;
+    pFree = Bmc3G_Start( p->pGia, &Pars, 0 );
+    if ( pFree->fStopped ) goto finish;
+    pFree->fFreeInit = 1;
+    for ( i = 0; i <= Depth; i++ )
+        if ( !Bmc3G_MapStart(pFree) ) goto finish;
+    Gia_ManForEachPo( pFree->pGia, pObj, i )
+    {
+        if ( Bmc3G_Stop(pFree) ) goto finish;
+        Lit = Bmc3G_Unroll( pFree, Gia_ObjFaninId0p(pFree->pGia, pObj), Depth );
+        if ( Lit < 0 ) goto finish;
+        Bad = Gia_ManHashOr( pFree->pFrames, Bad, Lit ^ Gia_ObjFaninC0(pObj) );
+        if ( Bad == 1 ) goto finish;
+    }
+    if ( !Bad ) { Result = 1; goto finish; }
+    Root = Abc_Lit2Var( Gia_ManAppendCo(pFree->pFrames, Bad) );
+    Vec_IntPush( pFree->vRoots, Root );
+    clk = Abc_Clock();
+    Status = Bmc3G_AddCnf( pFree );
+    Pars.timeCnf = Abc_Clock() - clk;
+    if ( !Status || Bmc3G_Stop(pFree) ) goto finish;
+    Lit = Vec_IntEntry( pFree->vVars, Root );
+    assert( Lit > 0 );
+    ccadical_assume( pFree->pSat, Lit );
+    clk = Abc_Clock();
+    p->nWindowQueries++;
+    Status = ccadical_solve( pFree->pSat );
+    Pars.timeSat = Abc_Clock() - clk;
+    Result = Status == 20 && !ccadical_is_inconsistent(pFree->pSat);
+finish:
+    p->pPars->timeUnroll += Abc_Clock() - Start - Pars.timeCnf - Pars.timeSat;
+    p->pPars->timeCnf += Pars.timeCnf;
+    p->pPars->timeSat += Pars.timeSat;
+    Bmc3G_StopManager( pFree );
+    if ( Used + Pars.MemoryPeakMB > p->pPars->MemoryPeakMB )
+        p->pPars->MemoryPeakMB = Used + Pars.MemoryPeakMB;
+    if ( p->pPars->fVerbose )
+        Abc_Print( 1, "BMC arbitrary-state window: depth=%d proved=%d time=%.3f sec.\n",
+            Depth, Result, (double)(Abc_Clock() - Start) / CLOCKS_PER_SEC );
+    return Result;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Runs incremental GIA BMC using one CaDiCaL instance.]
 
   Description [Returns 0 with a verified counterexample, 1 for a complete
   safety proof, -1 for undecided, and -2 for unsupported input. Completing
   a finite frame limit is not a proof. Complete exploration through the
-  finite-state bound is sufficient for small state spaces. No global frame,
-  mutable static state, or helper thread is used.]
+  finite-state bound or closure of a ternary cycle establishes safety. Optional
+  property-cone isomorphism preserves the depths of all reachable failures.]
 
   SideEffects [Replaces pGia->pCexSeq and updates the caller's statistics.]
 
@@ -724,9 +1317,15 @@ int Bmc_GiaPerformWindow( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int nGroup )
     Abc_Cex_t * pCex = NULL;
     abctime clk, Start;
     int Frame, i, Lit, Root, Status, Result = -1, fTrivial = 1;
+    int FirstGap = -1, LastGap = -1, Series = 0, Stride = 0, Targets = 0, Furthest = 0, Step, JumpLimit;
+    int BaseLimit, Trigger, ConfLimit;
+    ABC_INT64_T ForwardWork = 0, ProbeWork = 0, Credit;
+    unsigned Before = 0;
     if ( !Bmc3G_CheckInput(pGia, pPars) ) return -2;
-    if ( nGroup < 1 || nGroup > 256 || (nGroup > 1 && (pPars->pShared || Gia_ManPoNum(pGia) != 1)) ) return -2;
+    if ( nGroup < 1 || nGroup > 256 || (nGroup > 1 && (pPars->pShared || pPars->fUseIso ||
+         pPars->nFramesJump || Gia_ManPoNum(pGia) != 1)) ) return -2;
     if ( pPars->pShared && !pPars->pShared->pFuncFrames ) return -2;
+    Trigger = BaseLimit = pPars->nConfLimit ? pPars->nConfLimit : 10000;
     pPars->nFramesDone = pPars->nFramesShared = pPars->nQueries = 0;
     pPars->fMemoryLimit = 0;
     pPars->iFrame = -1;
@@ -736,6 +1335,9 @@ int Bmc_GiaPerformWindow( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int nGroup )
     Abc_CexFreeP( &pGia->pCexSeq );
     p = Bmc3G_Start( pGia, pPars, 0 );
     if ( p->fStopped ) goto finish;
+    JumpLimit = pPars->nFramesMax ? pPars->nFramesMax : INT_MAX - 1;
+    if ( Gia_ManRegNum(p->pGia) < 30 )
+        JumpLimit = Abc_MinInt( JumpLimit, 1 << Gia_ManRegNum(p->pGia) );
     Gia_ManForEachPo( p->pGia, pObj, i )
         fTrivial &= Gia_ObjFaninLit0p(p->pGia, pObj) == 0;
     if ( fTrivial ) { Result = 1; goto finish; }
@@ -744,14 +1346,36 @@ int Bmc_GiaPerformWindow( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int nGroup )
         int fFrameTrivial = 1;
         if ( Bmc3G_Stop(p) ) break;
         clk = Abc_Clock();
-        if ( !Bmc3G_MapStart(p) ) break;
-        if ( pPars->pShared && pPars->pShared->pFuncFrames(pPars->pShared->pData, 0) > Frame )
+        while ( Vec_PtrSize(p->vMaps) <= Frame )
+        {
+            if ( Bmc3G_Stop(p) || !Bmc3G_MapStart(p) ) goto finish;
+        }
+        if ( FirstGap < 0 && pPars->pShared && pPars->pShared->pFuncFrames(pPars->pShared->pData, 0) > Frame )
         {
             pPars->nFramesShared++;
             pPars->timeUnroll += Abc_Clock() - clk;
             goto frame_done;
         }
         if ( !pPars->nQueries ) Bmc3G_PropagateConstants(p, Frame);
+        if ( nGroup == 1 && Frame == 16 && pPars->fTernaryPrefix && !pPars->nQueries && !pPars->pShared &&
+             !p->fStopped && Gia_ManRegNum(p->pGia) )
+        {
+            int nRegs = Gia_ManRegNum(p->pGia);
+            int Bound = nRegs < 30 ? 1 << nRegs : INT_MAX - 1;
+            int Limit = pPars->nFramesMax ? Abc_MinInt(pPars->nFramesMax, Bound) : Bound;
+            int fProved = Bmc3G_EventPrefix( p, Frame, Limit );
+            if ( fProved || p->fStopped || pPars->nFramesDone >= Limit )
+            {
+                if ( fProved || (nRegs < 30 && pPars->nFramesDone == Bound) ) Result = 1;
+                pPars->timeUnroll += Abc_Clock() - clk;
+                break;
+            }
+        }
+        if ( Frame < pPars->nFramesDone )
+        {
+            pPars->timeUnroll += Abc_Clock() - clk;
+            goto frame_done;
+        }
         if ( nGroup == 1 || pPars->nFramesDone == Frame ) Vec_IntClear( p->vRoots );
         Gia_ManForEachPo( p->pGia, pObj, i )
         {
@@ -822,10 +1446,31 @@ int Bmc_GiaPerformWindow( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int nGroup )
             Lit = Vec_IntEntry( p->vVars, Root );
             assert( Lit > 0 );
             clk = Abc_Clock();
-            if ( pPars->nConfLimit ) ccadical_limit( p->pSat, "conflicts", pPars->nConfLimit );
+            ConfLimit = pPars->nConfLimit;
+            if ( pPars->nFramesJump )
+            {
+                Before = (unsigned)ccadical_conflicts( p->pSat );
+                if ( FirstGap < 0 )
+                    ConfLimit = pPars->nConfLimit ? pPars->nConfLimit : Trigger;
+                else
+                {
+                    Credit = ForwardWork + 8 * (ABC_INT64_T)BaseLimit - ProbeWork;
+                    if ( Credit <= 0 ) goto next_jump;
+                    ConfLimit = 2 * Abc_MinInt( BaseLimit, INT_MAX / 2 );
+                    if ( Credit < ConfLimit ) ConfLimit = (int)Credit;
+                }
+            }
+            if ( ConfLimit ) ccadical_limit( p->pSat, "conflicts", ConfLimit );
             ccadical_assume( p->pSat, Lit );
             pPars->nQueries++;
             Status = ccadical_solve( p->pSat );
+            if ( pPars->nFramesJump )
+            {
+                // The difference of the low words is exact for one conflict-limited call.
+                unsigned Used = (unsigned)ccadical_conflicts( p->pSat ) - Before;
+                if ( FirstGap < 0 ) ForwardWork += Used;
+                else                ProbeWork += Used;
+            }
             pPars->timeSat += Abc_Clock() - clk;
             if ( p->Deadline && Abc_Clock() > p->Deadline )
                 pPars->timeSatOverrun += Abc_Clock() - p->Deadline;
@@ -839,23 +1484,85 @@ int Bmc_GiaPerformWindow( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int nGroup )
                 pCex = Bmc3G_Cex( p, Frame, i, 1 );
                 if ( pCex ) Result = 0;
             }
+            if ( Status == 0 && pPars->nFramesJump && !Bmc3G_Stop(p) &&
+                 (FirstGap >= 0 || !pPars->nConfLimit || Frame != LastGap) )
+                goto next_jump;
             break;
         }
         if ( i < Vec_IntSize(p->vRoots) ) break;
+        // A refuted probe says nothing about the unchecked intervening frames.
+        if ( FirstGap >= 0 ) goto next_jump;
         if ( pPars->pShared ) pPars->pShared->pFuncFrames( pPars->pShared->pData, Frame + 1 );
 frame_done:
-        pPars->nFramesDone = Frame + 1;
-        if ( pPars->fVerbose )
-            Abc_Print( 1, "%4d + : Var = %d. Cla = %llu. Conf = %d. Time = %.3f sec\n",
-                Frame, p->nVars, (unsigned long long)ccadical_live_clauses(p->pSat), ccadical_conflicts(p->pSat),
-                (double)(Abc_Clock() - p->Start) / CLOCKS_PER_SEC );
+        Bmc3G_RecordFrames( p, Frame, nGroup == 1 ? 1 : Vec_IntSize(p->vRoots) );
+        if ( Frame == 5 && pPars->nFramesDone == 6 && pPars->fWindowProof && !pPars->nConfLimit &&
+             !pPars->pShared && Gia_ManPoNum(pGia) > 1 && Gia_ManRegNum(pGia) && Gia_ManObjNum(pGia) < 240000 &&
+             (!pPars->nFramesMax || pPars->nFramesMax > 6) && Bmc3G_WindowProof(p, 6) )
+        {
+            Result = 1;
+            break;
+        }
         if ( Gia_ManRegNum(p->pGia) < 30 && Frame + 1 >= (1 << Gia_ManRegNum(p->pGia)) )
         {
             Result = 1;
             break;
         }
+        continue;
+next_jump:
+        if ( FirstGap < 0 )
+        {
+            FirstGap = LastGap = Frame;
+            Stride = pPars->nFramesJump - ((Series & 1) && pPars->nFramesJump > 1);
+            ++Series;
+            Targets = 0;
+            if ( pPars->fVerbose )
+                Abc_Print( 1, "BMC probe series %d: gap=%d stride=%d trigger=%d\n",
+                    Series, Frame, Stride, Trigger );
+        }
+        // Charge actual probe conflicts to forward search, with a fixed opening allowance.
+        // A target limit also bounds sequences of trivially refuted probes.
+        // Alternate series revisit the other parity near the deepest previous probe.
+        Step = Stride;
+        if ( !Targets && !(Series & 1) && Furthest > Frame + 1 )
+            Step = Abc_MaxInt( Step, Furthest - Frame - 1 );
+        if ( Targets < 16 && ProbeWork < ForwardWork + 8 * (ABC_INT64_T)BaseLimit &&
+             Step < JumpLimit - Frame )
+        {
+            ++Targets;
+            Frame += Step - 1;
+            Furthest = Abc_MaxInt( Furthest, Frame + 1 );
+            if ( pPars->fVerbose )
+                Abc_Print( 1, "BMC witness probe: frame=%d safe=%d\n", Frame + 1, pPars->nFramesDone );
+        }
+        else
+        {
+            if ( !pPars->nConfLimit )
+                Trigger = Trigger <= INT_MAX / 2 ? 2 * Trigger : INT_MAX;
+            Frame = FirstGap - 1;
+            FirstGap = -1;
+        }
     }
 finish:
+    if ( pCex && p->pOriginal )
+    {
+        Abc_Cex_t * pFull = NULL;
+        // Abc_CexDup adds the new register count before subtracting the old count.
+        if ( (ABC_INT64_T)pCex->nBits + Gia_ManRegNum(pGia) <= INT_MAX - 32 )
+        {
+            pFull = Abc_CexDup( pCex, Gia_ManRegNum(pGia) );
+            if ( p->vOriginalPos ) pFull->iPo = Vec_IntEntry( p->vOriginalPos, pCex->iPo );
+            else if ( Gia_ManPoNum(p->pOriginal) == 1 ) pFull->iPo = 0;
+            if ( !Gia_ManVerifyCex(p->pOriginal, pFull, 0) )
+            {
+                Abc_Print( 1, "Warning: &bmc3 rejected a counterexample on the original graph.\n" );
+                Abc_CexFreeP( &pFull );
+            }
+        }
+        Abc_CexFree( pCex );
+        pCex = pFull;
+        Result = pCex ? 0 : -1;
+    }
+    pPars->nQueries += p->nWindowQueries;
     pPars->iFrame = pCex ? pCex->iFrame : pPars->nFramesDone - 1;
     pGia->pCexSeq = pCex;
     Start = p->Start;

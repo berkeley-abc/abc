@@ -281,6 +281,27 @@ static inline void Mf_CutPrintOne( int * pCut )
     printf( " }\n" );
 }
 static inline int Mf_CubeLit( int Cube, int iVar ) { return (Cube >> (iVar << 1)) & 3; }
+
+/**Function*************************************************************
+
+  Synopsis    [Counts or derives clauses for a mapped cut.]
+
+  Description [The general ISOP routine handles nine inputs. Each minterm
+  belongs to one polarity, so the two covers need at most 2^nLeaves cubes.]
+
+  SideEffects []
+
+  SeeAlso     [Mf_ManDeriveCnfs]
+
+***********************************************************************/
+static inline int Mf_CutCnf( word * pTruth, int nLeaves, int * pCover )
+{
+    assert( nLeaves <= 9 );
+    if ( nLeaves == 9 )
+        return Abc_IsopCnf( pTruth, nLeaves, (1 << nLeaves) + 1, pCover );
+    return pCover ? Abc_Tt8Cnf( pTruth, nLeaves, pCover ) : Abc_Tt8CnfSize( pTruth, nLeaves );
+}
+
 static inline int Mf_ManCountLits( int * pCnf, int nCubes, int nVars )
 {
     int i, k, nLits = nCubes;
@@ -292,11 +313,12 @@ static inline int Mf_ManCountLits( int * pCnf, int nCubes, int nVars )
 }
 Vec_Int_t * Mf_ManDeriveCnfs( Mf_Man_t * p, int * pnVars, int * pnClas, int * pnLits )
 {
-    int i, k, iFunc, nCubes, nLits, * pCut, pCnf[512];
+    // The two covers use at most one cube per assignment. ISOP needs 32 scratch entries.
+    int i, k, iFunc, nCubes, nLits, * pCut, pCnf[(1 << 9) + 32];
     Vec_Int_t * vLits = Vec_IntStart( Vec_IntSize(&p->vCnfSizes) );
     Vec_Int_t * vCnfs = Vec_IntAlloc( 3 * Vec_IntSize(&p->vCnfSizes) );
     Vec_IntFill( vCnfs, Vec_IntSize(&p->vCnfSizes), -1 );
-    assert( p->pPars->nLutSize <= 8 );
+    assert( p->pPars->nLutSize <= 9 );
     // constant/buffer
     for ( iFunc = 0; iFunc < 2; iFunc++ )
     {
@@ -333,7 +355,7 @@ Vec_Int_t * Mf_ManDeriveCnfs( Mf_Man_t * p, int * pnVars, int * pnClas, int * pn
             if ( p->pPars->nLutSize <= 6 )
                 nCubes = Abc_Tt6Cnf( *Vec_MemReadEntry(p->vTtMem, iFunc), Mf_CutSize(pCut), pCnf );
             else
-                nCubes = Abc_Tt8Cnf( Vec_MemReadEntry(p->vTtMem, iFunc), Mf_CutSize(pCut), pCnf );
+                nCubes = Mf_CutCnf( Vec_MemReadEntry(p->vTtMem, iFunc), Mf_CutSize(pCut), pCnf );
             assert( nCubes == Vec_IntEntry(&p->vCnfSizes, iFunc) );
             nLits = Mf_ManCountLits( pCnf, nCubes, Mf_CutSize(pCut) );
             // save CNF
@@ -627,8 +649,10 @@ static inline int Mf_CutComputeTruth( Mf_Man_t * p, Mf_Cut_t * pCut0, Mf_Cut_t *
 //Kit_DsdPrintFromTruth( uTruth, pCutR->nLeaves ), printf("\n" ), printf("\n" );
     truthId        = Vec_MemHashInsert(p->vTtMem, uTruth);
     pCutR->iFunc   = Abc_Var2Lit( truthId, fCompl );
-    if ( (p->pPars->fGenCnf || p->pPars->fGenLit) && truthId == Vec_IntSize(&p->vCnfSizes) && LutSize <= 8 )
-        Vec_IntPush( &p->vCnfSizes, p->pPars->fGenCnf ? Abc_Tt8CnfSize(uTruth, pCutR->nLeaves) : Kit_TruthLitNum((unsigned *)uTruth, pCutR->nLeaves, &p->vCnfMem) );
+    if ( (p->pPars->fGenCnf || p->pPars->fGenLit) && truthId == Vec_IntSize(&p->vCnfSizes) &&
+         (LutSize <= 8 || (LutSize == 9 && p->pPars->fGenCnf)) )
+        Vec_IntPush( &p->vCnfSizes, p->pPars->fGenCnf ? Mf_CutCnf(uTruth, pCutR->nLeaves, NULL) :
+                     Kit_TruthLitNum((unsigned *)uTruth, pCutR->nLeaves, &p->vCnfMem) );
     assert( (int)pCutR->nLeaves <= nOldSupp );
     return (int)pCutR->nLeaves < nOldSupp;
     }
@@ -681,8 +705,10 @@ static inline int Mf_CutComputeTruthMux( Mf_Man_t * p, Mf_Cut_t * pCut0, Mf_Cut_
     assert( (uTruth[0] & 1) == 0 );
     truthId        = Vec_MemHashInsert(p->vTtMem, uTruth);
     pCutR->iFunc   = Abc_Var2Lit( truthId, fCompl );
-    if ( (p->pPars->fGenCnf || p->pPars->fGenLit) && truthId == Vec_IntSize(&p->vCnfSizes) && LutSize <= 8 )
-        Vec_IntPush( &p->vCnfSizes, p->pPars->fGenCnf ? Abc_Tt8CnfSize(uTruth, pCutR->nLeaves) : Kit_TruthLitNum((unsigned *)uTruth, pCutR->nLeaves, &p->vCnfMem) );
+    if ( (p->pPars->fGenCnf || p->pPars->fGenLit) && truthId == Vec_IntSize(&p->vCnfSizes) &&
+         (LutSize <= 8 || (LutSize == 9 && p->pPars->fGenCnf)) )
+        Vec_IntPush( &p->vCnfSizes, p->pPars->fGenCnf ? Mf_CutCnf(uTruth, pCutR->nLeaves, NULL) :
+                     Kit_TruthLitNum((unsigned *)uTruth, pCutR->nLeaves, &p->vCnfMem) );
     assert( (int)pCutR->nLeaves <= nOldSupp );
     return (int)pCutR->nLeaves < nOldSupp;
     }
@@ -1886,6 +1912,12 @@ static Gia_Man_t * Mf_ManPerformMappingInt( Gia_Man_t * pGia, Jf_Par_t * pPars,
     // fCnfOnly returns no network, so the CNF is the only output left
     assert( !pPars->fCnfOnly || pPars->fGenCnf );
     if ( pPars->fGenCnf && fCnfSupport ) pGia->pData = NULL;
+    // Nine-input CNF cuts are available without the optional truth-table mapping.
+    if ( pPars->fGenCnf && pPars->nLutSize > (pPars->fCnfMapping ? 8 : 9) )
+    {
+        pGia->pData = NULL;
+        return NULL;
+    }
     if ( pFuncStop && pFuncStop(pStopData) ) return NULL;
     if ( pPars->fGenCnf || pPars->fGenLit )
         pPars->fCutMin = 1;

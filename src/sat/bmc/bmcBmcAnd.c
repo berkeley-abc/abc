@@ -91,37 +91,45 @@ Vec_Ptr_t * Bmc_MnaTernary( Gia_Man_t * p, int nFrames, int nFramesAdd, int fVer
         // if frames are given, break at frames
         if ( nFrames && f == nFrames )
             break;
-        // if frames are not given, break after nFramesAdd from the first x-valued
-        if ( !nFrames && *iFirst >= 0 && f == *iFirst + nFramesAdd )
+        // If no horizon is given, continue nFramesAdd frames after the first possibly bad output.
+        if ( !nFrames && *iFirst >= 0 && f - *iFirst >= nFramesAdd )
             break;
-        // aassign CI values
+        // assign CI values
         Gia_ManForEachRiRo( p, pObj, pObjRo, i )
             pObjRo->Value = pObj->Value;
         Gia_ManForEachAnd( p, pObj, i )
             pObj->Value = Gia_XsimAndCond( Gia_ObjFanin0(pObj)->Value, Gia_ObjFaninC0(pObj), Gia_ObjFanin1(pObj)->Value, Gia_ObjFaninC1(pObj) );
         // compute and save CO values
-        pState = ABC_ALLOC( unsigned, nStateWords );
+        pState = ABC_CALLOC( unsigned, nStateWords );
         Gia_ManForEachCo( p, pObj, i )
         {
             pObj->Value = Gia_XsimNotCond( Gia_ObjFanin0(pObj)->Value, Gia_ObjFaninC0(pObj) );
             Gia_ManTerSimInfoSet( pState, i, pObj->Value );
-            if ( *iFirst == -1 && i < Gia_ManPoNum(p) && pObj->Value == GIA_UND )
+            if ( *iFirst == -1 && i < Gia_ManPoNum(p) && pObj->Value != GIA_ZER )
                 *iFirst = f;
         }
         Vec_PtrPush( vStates, pState );
+        if ( !nFrames && *iFirst == -1 )
+        {
+            Gia_ManForEachRiRo( p, pObj, pObjRo, i )
+                if ( pObj->Value != pObjRo->Value )
+                    break;
+            if ( i == Gia_ManRegNum(p) )
+                break;
+        }
         // print statistics
         if ( !fVerbose )
             continue;
         Count[0] = Count[1] = Count[2] = Count[3] = 0;
         Gia_ManForEachRi( p, pObj, i )
             Count[pObj->Value]++;
-        printf( "%5d : 0 =%7d    1 =%7d    x =%7d    all =%7d   out = %s\n", 
+        printf( "%5d : 0 =%7d    1 =%7d    x =%7d    all =%7d   out = %c\n",
             f, Count[GIA_ZER], Count[GIA_ONE], Count[GIA_UND], Gia_ManRegNum(p), 
-            Gia_ManPo(p, 0)->Value == GIA_UND ? "x" : "0" );  
+            "?01x"[Gia_ManPo(p, 0)->Value] );
     }
 //    assert( Vec_PtrSize(vStates) == nFrames );
     if ( fVerbose )
-        printf( "Finished %d frames. First x-valued PO is in frame %d.  ", nFrames, *iFirst );
+        printf( "Finished %d frames. First possibly bad PO is in frame %d.  ", Vec_PtrSize(vStates), *iFirst );
     if ( fVerbose )
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return vStates;
@@ -316,9 +324,9 @@ Gia_Man_t * Gia_ManBmcUnroll( Gia_Man_t * pGia, int nFramesMax, int nFramesAdd, 
         if ( fVerbose )
         printf( "Frame %4d :  Roots = %6d  Leaves = %6d  Cone = %6d\n", 
             f, Vec_IntSize(vRoots), Vec_IntSize(vLeaves), Vec_IntSize(vCone) );
-        if ( Vec_IntSize(vLeaves) == 0 )
+        // Earlier outputs still need their own cones even if this frame needs no register inputs.
+        if ( Vec_IntSize(vLeaves) == 0 && (iFirst == -1 || f <= iFirst) )
             break;
-        // it is possible that some of the POs are still ternary... 
     }
     assert( f >= 0 );
     // go forward
@@ -338,9 +346,9 @@ Gia_Man_t * Gia_ManBmcUnroll( Gia_Man_t * pGia, int nFramesMax, int nFramesAdd, 
         // get ternary states
         pStateF = (unsigned *)Vec_PtrEntry(vStates, f);
         pStateP = f ? (unsigned *)Vec_PtrEntry(vStates, f-1) : 0;
-        // clean POs
+        // Preserve definite ternary outputs. The cone construction fills in the unknown ones.
         Gia_ManForEachPo( pGia, pObj, i )
-            Vec_IntWriteEntry( vMap, Gia_ObjId(pGia, pObj), 0 );
+            Vec_IntWriteEntry( vMap, Gia_ObjId(pGia, pObj), Gia_ManTerSimInfoGet(pStateF, i) == GIA_ONE );
         // find the cone
         Vec_IntPush( *pvPiMap, -f-1 );
         Bmc_MnaCollect( pGia, vRoots, vCone, pStateP );   // computes vCone
@@ -740,18 +748,22 @@ Abc_Cex_t * Gia_ManBmcCexGen( Bmc_Mna_t * pMan, Gia_Man_t * p, int iOut )
     pCex = Abc_CexAlloc( Gia_ManRegNum(p), Gia_ManPiNum(p), iOut / Gia_ManPoNum(p) + 1 );
     pCex->iFrame = iOut / Gia_ManPoNum(p);
     pCex->iPo = iOut % Gia_ManPoNum(p);
+    if ( Gia_ObjChild0(Gia_ManPo(pMan->pFrames, iOut)) == Gia_ManConst1(pMan->pFrames) )
+        return pCex;
     // fill in the input values
     Vec_IntForEachEntry( pMan->vPiMap, iOrigPi, i )
     {
         if ( iOrigPi < 0 )
         {
             iFrame = -iOrigPi-1;
+            if ( iFrame > pCex->iFrame )
+                return pCex;
             continue;
         }
         // iOrigPi in iFrame of pGia has PI index iFramePi in pMan->pFrames,
         iObjId = Gia_ObjId( pMan->pFrames, Gia_ManPi(pMan->pFrames, iFramePi) );
         iSatVar = Vec_IntEntry( pMan->vId2Var, iObjId );
-        if ( sat_solver_var_value(pMan->pSat, iSatVar) )
+        if ( iSatVar && sat_solver_var_value(pMan->pSat, iSatVar) )
             Abc_InfoSetBit( pCex->pData, Gia_ManRegNum(p) + Gia_ManPiNum(p) * iFrame + iOrigPi );
         iFramePi++;
     }
@@ -954,18 +966,21 @@ static inline Cnf_Dat_t * Cnf_DeriveGia( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManBmcPerformInt( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
+static int Gia_ManBmcPerformInt( Gia_Man_t * pGia, Bmc_AndPar_t * pPars, int * pfCanGrow )
 {
     Bmc_Mna_t * p;
     Gia_Man_t * pTemp;
     int nFramesMax, f, i=0, Lit = 1, status, RetValue = -2;
     abctime clk = Abc_Clock();
+    *pfCanGrow = 0;
     if ( pPars->pFuncProgress && pPars->pFuncProgress( pPars->pProgress, 0, 0 ) )
         return -1;
     p = Bmc_MnaAlloc();
     sat_solver_set_runtime_limit( p->pSat, pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0 );
     p->pFrames = Gia_ManBmcUnroll( pGia, pPars->nFramesMax, pPars->nFramesAdd, pPars->fVeryVerbose, &p->vPiMap );
     nFramesMax = Gia_ManPoNum(p->pFrames) / Gia_ManPoNum(pGia);
+    // An automatic horizon shorter than its requested extension reached a safe ternary fixed point.
+    *pfCanGrow = !pPars->nFramesMax && pPars->nFramesAdd > 0 && nFramesMax >= pPars->nFramesAdd;
     if ( pPars->fVerbose )
     {
         printf( "Unfolding for %d frames with first non-trivial PO %d.  ", nFramesMax, Gia_ManBmcFindFirst(p->pFrames) );
@@ -986,9 +1001,16 @@ int Gia_ManBmcPerformInt( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         p->pCnf = Cnf_DeriveGia( p->pFrames );
     else
     {
-//        p->pFrames = Jf_ManDeriveCnf( pTemp = p->pFrames, 1 );  Gia_ManStop( pTemp );
-//        p->pCnf = (Cnf_Dat_t *)p->pFrames->pData; p->pFrames->pData = NULL;
-        p->pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p->pFrames, pPars->nLutSize, 1, 0, 0, pPars->fVerbose );
+        Jf_Par_t Pars;
+        assert( pPars->nLutSize >= 3 && pPars->nLutSize <= 8 );
+        Mf_ManSetDefaultPars( &Pars );
+        Pars.nLutSize = pPars->nLutSize;
+        Pars.fGenCnf = Pars.fCnfObjIds = Pars.fCnfOnly = 1;
+        Pars.fCoarsen = 0;
+        Pars.fVerbose = pPars->fVerbose;
+        // Cached clauses must place the output literal after the same cut support at every use.
+        Mf_ManPerformMappingWithStop( p->pFrames, &Pars, NULL, NULL );
+        p->pCnf = (Cnf_Dat_t *)p->pFrames->pData;
     }
     Vec_IntFillExtra( p->vId2Var, Gia_ManObjNum(p->pFrames), 0 );
     // create clauses for constant node
@@ -1017,8 +1039,8 @@ int Gia_ManBmcPerformInt( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                     continue;
                 if ( Gia_ObjChild0(pObj) == Gia_ManConst1(p->pFrames) )
                 {
-                    printf( "Output %d is trivially SAT.\n", i );
-                    continue;
+                    RetValue = 0;
+                    break;
                 }
                 Lit = Abc_Var2Lit( Vec_IntEntry(p->vId2Var, Gia_ObjId(p->pFrames, pObj)), 0 );
                 status = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
@@ -1078,16 +1100,16 @@ int Gia_ManBmcPerformInt( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
     abctime TimeToStop = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + Abc_Clock() : 0;
-    if ( pPars->nFramesAdd == 0 )
-        return Gia_ManBmcPerformInt( pGia, pPars );
+    int RetValue, fCanGrow;
     // iterate over the engine until we read the global timeout
     assert( pPars->nTimeOut >= 0 );
     while ( 1 )
     {
         if ( TimeToStop && TimeToStop < Abc_Clock() )
             return -1;
-        if ( Gia_ManBmcPerformInt( pGia, pPars ) == 0 )
-            return 0;
+        RetValue = Gia_ManBmcPerformInt( pGia, pPars, &fCanGrow );
+        if ( RetValue != -1 || !fCanGrow || pPars->nFramesAdd > ABC_INT_MAX / 2 )
+            return RetValue;
         // set the new runtime limit
         if ( pPars->nTimeOut )
         {

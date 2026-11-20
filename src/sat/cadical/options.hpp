@@ -317,11 +317,11 @@ class Options;
 
 struct Option {
   const char *name;
-  int def, lo, hi;
+  int lo, hi;
   int optimizable;
   bool preprocessing;
   const char *description;
-  int &val (Options *);
+  int &val (Options *) const;
 };
 
 /*------------------------------------------------------------------------*/
@@ -340,10 +340,10 @@ class Options {
 
   Internal *internal;
 
-  void set (Option *, int val); // Force to [lo,hi] interval.
+  void set (const Option *, int val); // Force to [lo,hi] interval.
 
   friend struct Option;
-  static Option table[];
+  static const Option table[];
 
   static void initialize_from_environment (int &val, const char *name,
                                            const int L, const int H);
@@ -390,7 +390,7 @@ public:
   }
 
   // With the following function we can get rather fast access to the option
-  // limits, the default value and the description.  The code uses binary
+  // limits and the description.  The code uses binary
   // search over the sorted option 'table'.  This static data is shared
   // among different instances of the solver.  The actual current option
   // values are here in the 'Options' class.  They can be accessed by the
@@ -398,7 +398,7 @@ public:
   // 'Option' or to have even faster access directly by the member function
   // (the 'N' above, e.g., 'restart').
   //
-  static Option *has (const char *name);
+  static const Option *has (const char *name);
 
   bool set (const char *name, int); // Explicit version.
   int get (const char *name);       // Get current value.
@@ -424,7 +424,7 @@ public:
 
   // Iterating options.
 
-  typedef Option *iterator;
+  typedef const Option *iterator;
   typedef const Option *const_iterator;
 
   static iterator begin () { return table; }
@@ -433,7 +433,7 @@ public:
   void copy (Options &other) const; // Copy 'this' into 'other'.
 };
 
-inline int &Option::val (Options *opts) {
+inline int &Option::val (Options *opts) const {
   CADICAL_assert (Options::table <= this &&
           this < Options::table + number_of_options);
   return opts->val (this - Options::table);

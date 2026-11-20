@@ -4664,8 +4664,10 @@ int Abc_CommandAbc9Bmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     Bmc_GiaPar_t Pars;
     int c, Result;
     Bmc_GiaSetDefaultParams( &Pars );
+    Pars.fTernaryPrefix = 1;
+    Pars.fWindowProof = 1;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "FTCKMvsh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "FTCKMJaeipwvsh")) != EOF )
     {
         switch ( c )
         {
@@ -4674,6 +4676,7 @@ int Abc_CommandAbc9Bmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'C':
         case 'K':
         case 'M':
+        case 'J':
         {
             char * pArg, * pEnd;
             long Value;
@@ -4687,18 +4690,24 @@ int Abc_CommandAbc9Bmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             Value = strtol( pArg, &pEnd, 10 );
             if ( errno || pEnd == pArg || *pEnd || Value < 0 || Value >= INT_MAX ||
                  (c == 'T' && Value > 86400) || (c == 'M' && Value > (1 << 20)) ||
-                 (c == 'K' && (Value < 3 || Value > 8)) )
+                 (c == 'K' && (Value < 3 || Value > 9)) )
             {
                 Abc_Print( -1, "Command line switch \"-%c\" should be followed by an integer in range.\n", c );
                 goto usage;
             }
             if ( c == 'F' ) Pars.nFramesMax = (int)Value;
+            if ( c == 'J' ) Pars.nFramesJump = (int)Value;
             if ( c == 'T' ) Pars.nTimeOut = (int)Value;
             if ( c == 'C' ) Pars.nConfLimit = (int)Value;
             if ( c == 'K' ) Pars.nLutSize = (int)Value;
             if ( c == 'M' ) Pars.nMemoryLimit = (int)Value;
             break;
         }
+        case 'a': Pars.fEarlyActivity ^= 1; break;
+        case 'e': Pars.fTernaryPrefix ^= 1; break;
+        case 'i': Pars.fUseIso ^= 1; break;
+        case 'p': Pars.fPreprocess ^= 1; break;
+        case 'w': Pars.fWindowProof ^= 1; break;
         case 'v': Pars.fVerbose ^= 1; break;
         case 's': Pars.fSilent ^= 1; break;
         default: goto usage;
@@ -4722,13 +4731,26 @@ int Abc_CommandAbc9Bmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 usage:
-    Abc_Print( -2, "usage: &bmc3 [-FTCKM <num>] [-vsh]\n" );
+    Abc_Print( -2, "usage: &bmc3 [-FTCKMJ <num>] [-aeipwvsh]\n" );
     Abc_Print( -2, "\t            incremental GIA bounded model checking using CaDiCaL\n" );
     Abc_Print( -2, "\t-F <num> : maximum frames to check (0 = unlimited) [default = %d]\n", Pars.nFramesMax );
     Abc_Print( -2, "\t-T <num> : wall-clock seconds (0 = unlimited, max 86400) [default = %d]\n", Pars.nTimeOut );
     Abc_Print( -2, "\t-C <num> : conflicts per query (0 = unlimited) [default = %d]\n", Pars.nConfLimit );
-    Abc_Print( -2, "\t-K <num> : CNF cut size (3..8) [default = %d]\n", Pars.nLutSize );
+    Abc_Print( -2, "\t-K <num> : CNF cut size (3..9) [default = %d]\n", Pars.nLutSize );
+    Abc_Print( -2, "\t-J <num> : probe frames this far apart after a hard query (0 = off) [default = %d]\n",
+        Pars.nFramesJump );
+    Abc_Print( -2, "\t           starts at -C or 10000 conflicts; later probes may return a longer witness\n" );
     Abc_Print( -2, "\t-M <num> : estimated memory budget in MiB (0 = unlimited) [default = %d]\n", Pars.nMemoryLimit );
+    Abc_Print( -2, "\t-a       : toggle early activity-based SAT search [default = %s]\n",
+        Pars.fEarlyActivity ? "yes" : "no" );
+    Abc_Print( -2, "\t-e       : toggle event-driven simulation of constant prefixes [default = %s]\n",
+        Pars.fTernaryPrefix ? "yes" : "no" );
+    Abc_Print( -2, "\t-i       : toggle preprocessing isomorphic sequential property cones [default = %s]\n",
+        Pars.fUseIso ? "yes" : "no" );
+    Abc_Print( -2, "\t-p       : toggle register sweeping and balance-free rewriting [default = %s]\n",
+        Pars.fPreprocess ? "yes" : "no" );
+    Abc_Print( -2, "\t-w       : toggle a short arbitrary-state safety check [default = %s]\n",
+        Pars.fWindowProof ? "yes" : "no" );
     Abc_Print( -2, "\t-v       : toggle reporting completed frames [default = %s]\n", Pars.fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-s       : toggle suppressing the final result [default = %s]\n", Pars.fSilent ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
@@ -4738,7 +4760,7 @@ usage:
 
 /**Function*************************************************************
 
-  Synopsis    [Runs incremental BMC with the existing Satoko/Glucose engines.]
+  Synopsis    [Runs incremental BMC with Satoko, Glucose, or CaDiCaL.]
 
   Description []
 
@@ -4751,7 +4773,7 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern int Bmcs_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars );
     extern int Bmcg_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars );
-    Bmc_AndPar_t Pars, * pPars = &Pars; int c;
+    Bmc_AndPar_t Pars, * pPars = &Pars; int c, fCadical = 0;
     memset( pPars, 0, sizeof(Bmc_AndPar_t) );
     pPars->nStart        =    0;  // starting timeframe
     pPars->nFramesMax    =    0;  // maximum number of timeframes
@@ -4775,7 +4797,7 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->pFuncOnFrameDone = pAbc->pFuncOnFrameDone; // frame done callback
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PCFATgevwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PCFATgcevwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4834,6 +4856,9 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nTimeOut < 0 )
                 goto usage;
             break;
+        case 'c':
+            fCadical ^= 1;
+            break;
         case 'g':
             pPars->fUseGlucose ^= 1;
             break;
@@ -4862,13 +4887,21 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Bmcs(): Currently this command can run at most 4 concurrent solvers.\n" );
         return 0;
     }
-    pAbc->Status  = pPars->fUseGlucose ? Bmcg_ManPerform(pAbc->pGia, pPars) : Bmcs_ManPerform(pAbc->pGia, pPars);
+    if ( fCadical && pPars->nFramesAdd < 1 )
+    {
+        Abc_Print( -1, "Command line switch \"-A\" requires a positive frame count.\n" );
+        goto usage;
+    }
+    if ( fCadical )
+        pAbc->Status = Bmcg_ManPerformCadical( pAbc->pGia, pPars );
+    else
+        pAbc->Status = pPars->fUseGlucose ? Bmcg_ManPerform(pAbc->pGia, pPars) : Bmcs_ManPerform(pAbc->pGia, pPars);
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &bmcs [-PCFAT num] [-gevwh]\n" );
+    Abc_Print( -2, "usage: &bmcs [-PCFAT num] [-gcevwh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking\n" );
     Abc_Print( -2, "\t-P num : the number of parallel solvers [default = %d]\n",              pPars->nProcs );
     Abc_Print( -2, "\t-C num : the SAT solver conflict limit [default = %d]\n",               pPars->nConfLimit );
@@ -4876,6 +4909,7 @@ usage:
     Abc_Print( -2, "\t-A num : the number of additional frames to unroll [default = %d]\n",   pPars->nFramesAdd );
     Abc_Print( -2, "\t-T num : approximate timeout in seconds [default = %d]\n",              pPars->nTimeOut );
     Abc_Print( -2, "\t-g     : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", pPars->fUseGlucose?  "Glucose" : "Satoko" );
+    Abc_Print( -2, "\t-c     : use CaDiCaL with the -g frame builder (one solver) [default = %s]\n", fCadical?"yes":"no" );
     Abc_Print( -2, "\t-e     : toggle using variable eliminatation [default = %s]\n",         pPars->fUseEliminate?"yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         pPars->fVerbose?     "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing information about unfolding [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );

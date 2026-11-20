@@ -229,6 +229,12 @@ struct Bmc_GiaPar_t_
     abctime     timeTeardown;
     abctime     timeSatOverrun;
     double      MemoryPeakMB;
+    int         fEarlyActivity; // enter activity-based search earlier in each SAT query
+    int         fTernaryPrefix; // advance constant-only frames with event-driven simulation
+    int         fUseIso;        // reduce isomorphic sequential property cones
+    int         fWindowProof;   // check a short arbitrary-state window after its reachable base
+    int         fPreprocess;    // sweep registers and rewrite the transition relation before unrolling
+    int         nFramesJump;    // optional stride for witness probes after the first conflict-limited query
 };
 
 struct Bmc_BCorePar_t_
@@ -307,6 +313,8 @@ extern void              Bmc_GiaSetDefaultParams( Bmc_GiaPar_t * pPars );
 extern int               Bmc_GiaPerform( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars );
 extern int               Bmc_GiaPerformWindow( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int nGroup );
 extern int               Bmc_GiaFindTarget( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int Frame, int nTerms, int Window, int fPolarity );
+/*=== bmcBmcG.c ============================================================*/
+extern int               Bmcg_ManPerformCadical( Gia_Man_t * pGia, Bmc_AndPar_t * pPars );
 extern int               Bmcg_ManPerformWithStop( Gia_Man_t * pGia, Bmc_AndPar_t * pPars,
                              int (*pFuncStop)(void *), void * pStopData );
 /*=== bmcBmcAnd.c ==========================================================*/
