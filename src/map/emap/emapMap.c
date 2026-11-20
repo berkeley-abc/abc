@@ -1542,7 +1542,8 @@ static void Emp_ObjMatchCell( Emp_Man_t * p, Emp_Best_t * pB, Emp_Cell_t * pCell
 {
     Emp_Fam_t * pFam = p->pFams + pCell->iFam;
     double LeafFlow = Emp_CellFlow( p, pCell, pCutLeaves ) - pCell->Area, Flow;
-    int m, mBest = -1, nMem = (p->fGainMode || !p->fNldm) ? 1 : pFam->nMem;
+    int fLinear = p->fGainMode || !p->fNldm;
+    int m, mBest = -1, nMem = fLinear ? 1 : pFam->nMem;
     Emp_Best_t Cand, Best;
     Best.Arr = EMP_INF;
     for ( m = 0; m < nMem; m++ )
@@ -1551,10 +1552,10 @@ static void Emp_ObjMatchCell( Emp_Man_t * p, Emp_Best_t * pB, Emp_Cell_t * pCell
         Flow = pFam->Area[m] + LeafFlow;
         if ( fArea && pB->Type != EMP_NONE && Flow > pB->Flow + 0.0001 )
             break;
-        Emp_CellArrival( p, pCell, pCutLeaves, Load, fLeafLoad, nMem == 1 ? -1 : m, &Cand );
+        Emp_CellArrival( p, pCell, pCutLeaves, Load, fLeafLoad, fLinear ? -1 : m, &Cand );
         if ( Cand.Arr > Req + EMP_EPS )
             continue;
-        if ( fLeafLoad && fArea && nMem > 1 && !Emp_LeavesLoadOk(p, Cand.Leaves, Cand.Phases, pFam->Cin[m], pCell->nPins) )
+        if ( fLeafLoad && fArea && !fLinear && !Emp_LeavesLoadOk(p, Cand.Leaves, Cand.Phases, pFam->Cin[m], pCell->nPins) )
             continue;
         if ( fArea || Cand.Arr < Best.Arr - 0.0001 )
             mBest = m, Best = Cand;
@@ -1678,13 +1679,16 @@ static inline void Emp_LoadInc( Emp_Man_t * p, int e, float Cap, float CapD )
 // adds load to a node phase; its arrival moves by the load sensitivity of its driver
 static inline void Emp_LoadAdd( Emp_Man_t * p, int i, int f, float Cap, float CapD )
 {
+    Emp_Best_t * pB = p->pBest + 2 * i + f;
     if ( !p->fNldm )
         return;
     Emp_LoadInc( p, 2 * i + f, Cap, CapD );
     if ( p->fTrack )
         Vec_IntPush( p->vDirty, i );
     if ( !p->fNoShift )
-        Emp_BestShiftArr( p->pBest + 2 * i + f, p->pBest[2 * i + f].Sens * Cap );
+        Emp_BestShiftArr( pB, pB->Sens * Cap );
+    if ( p->pImpl[2 * i + f] && pB->Type == EMP_WIRE )
+        Emp_LoadAdd( p, pB->Leaves[0], pB->Phases[0], Cap, CapD );
 }
 // records node i as a fanout of the leaves of the implementation of (i, f) and as changed
 static void Emp_ObjAddFanouts( Emp_Man_t * p, int i, int f )
@@ -1720,6 +1724,7 @@ static float Emp_ObjImpl( Emp_Man_t * p, int i, int f, int fAdd )
         Emp_LoadAdd( p, i, !f, Sign * Emp_InvCin(p, pB->iMem), Sign * Emp_InvCinD(p, pB->iMem) );
         return pB->Area + Emp_ObjRef_rec( p, i, !f, fAdd );
     case EMP_WIRE:
+        Emp_LoadAdd( p, pB->Leaves[0], pB->Phases[0], Sign * p->pLoad[2 * i + f], Sign * p->pLoadD[2 * i + f] );
         return Emp_ObjRef_rec( p, pB->Leaves[0], pB->Phases[0], fAdd );
     case EMP_MOG:
     case EMP_GATE:
@@ -1876,19 +1881,25 @@ static void Emp_ManSetLoads( Emp_Man_t * p )
     Abc_NtkForEachPo( p->pNtk, pObj, i )
         p->pLoad[2 * Abc_ObjFaninId0(pObj) + Abc_ObjFaninC0(pObj)] += p->PoLoad;
     for ( i = p->nObjs - 1; i >= 0; i-- )
+    {
+        for ( f = 0; f < 2; f++ )
+        {
+            Emp_Best_t * pB = Emp_ObjBest( p, i, f );
+            if ( p->pImpl[2 * i + f] && pB->Type == EMP_INV )
+                Emp_LoadInc( p, 2 * i + !f, Emp_InvCin(p, pB->iMem), Emp_InvCinD(p, pB->iMem) );
+        }
         for ( f = 0; f < 2; f++ )
         {
             Emp_Best_t * pB = Emp_ObjBest( p, i, f );
             if ( !p->pImpl[2 * i + f] || Emp_ObjIsTwinSecond(p, i, f) )
                 continue;
-            if ( pB->Type == EMP_INV )
-                Emp_LoadInc( p, 2 * i + !f, Emp_InvCin(p, pB->iMem), Emp_InvCinD(p, pB->iMem) );
             else if ( pB->Type == EMP_WIRE )
                 Emp_LoadInc( p, 2 * pB->Leaves[0] + pB->Phases[0], p->pLoad[2 * i + f], p->pLoadD[2 * i + f] );
             else if ( pB->Type == EMP_GATE || pB->Type == EMP_MOG )
                 for ( k = 0; k < pB->nPins; k++ )
                     Emp_LoadInc( p, 2 * pB->Leaves[k] + pB->Phases[k], pB->pCin[k], Emp_BestCinD(p, pB, k) );
         }
+    }   
 }
 // recomputes the loads and the arrival times of the current cover
 static void Emp_ManRetime( Emp_Man_t * p )
@@ -2508,10 +2519,11 @@ static int Emp_PairMogSize( Emp_Man_t * p, int * Node, int * Ph, Emp_Tup_t * pTu
 {
     Emp_Mog_t * pMog = p->pMogs + pKey->iMog;
     Emp_Fam_t * pFam = p->pFams + pMog->iFam;
-    int m, o, k, nMem = p->fNldm ? pFam->nMem : 1;
+    int fLinear = p->fGainMode || !p->fNldm;
+    int m, o, k, nMem = fLinear ? 1 : pFam->nMem;
     for ( m = 0; m < nMem; m++ )
     {
-        int iMem = fExact ? (p->fNldm ? m : -1) : (nMem == 1 ? -1 : m), fOk = 1;
+        int iMem = fLinear ? -1 : m, fOk = 1;
         for ( o = 0; o < 2 && fOk; o++ )
         {
             int i = Node[o], f = Ph[o];
@@ -3984,11 +3996,12 @@ static float Emp_ManAreaFlowRounds( Emp_Man_t * p, int fMogs, char * pTitle, int
 // NLDM timing from the Liberty library loaded by read_lib
 static void Emp_ManStartNldm( Emp_Man_t * p )
 {
+    Mio_Gate_t * pGateInv = Mio_LibraryReadInv( p->pMio );
     Vec_Flt_t * vCaps;
     SC_Cell * pCell;
     int i;
     p->pScl = p->pPars->fNldm ? (SC_Lib *)Abc_FrameReadLibScl() : NULL;
-    if ( p->pScl == NULL || Abc_SclCellFind(p->pScl, Mio_GateReadName(Mio_LibraryReadInv(p->pMio))) < 0 )
+    if ( p->pScl == NULL || pGateInv == NULL || Abc_SclCellFind(p->pScl, Mio_GateReadName(pGateInv)) < 0 )
         return;
     p->fNldm = 1;
     p->fNldmDelay = !p->pPars->fAreaMode;
