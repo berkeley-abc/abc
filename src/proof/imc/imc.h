@@ -63,6 +63,10 @@ struct Imc_Par_t_
     int fCheck;            // independently check interpolants and the invariant
     int fVerbose;          // print progress and timing information
     int iFrame;            // output: maximum counterexample frame checked
+    int fForwardFirst;     // favor forward tail search for two thirds of a timed portfolio run
+    int fShortProbe;       // start a timed portfolio with a short backward probe, then favor forward search
+    int fPdrHints;         // pass clauses from a timed forward search to PDR2
+    int fPdrFrames;        // interpolate the PDR frames and strengthen them at each selected cut
 };
 
 ////////////////////////////////////////////////////////////////////////

@@ -222,6 +222,73 @@ Gia_Man_t * Imc_ManRewriteSat( Gia_Man_t * p, abctime TimeStop )
     return pResult;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Collects the negation of a short clause over state variables.]
+
+  Description [Only clauses excluding a cube disjoint from reset zero
+  are candidates. At most eight distinct literals are retained.]
+
+***********************************************************************/
+static void Imc_ManCollectHintClause( Gia_Man_t * p, int Root, Vec_Wec_t * vCubes )
+{
+    Vec_Int_t * vStack = Vec_IntAlloc(16), * vCube = Vec_IntAlloc(8), * vOther;
+    Gia_Obj_t * pObj;
+    int i, Lit, nOrs = 0, fNonInit = 0;
+    Vec_IntPush(vStack, Root);
+    while ( Vec_IntSize(vStack) )
+    {
+        Lit = Vec_IntPop(vStack);
+        pObj = Gia_ManObj(p, Abc_Lit2Var(Lit));
+        if ( Gia_ObjIsCi(pObj) )
+        {
+            Lit = Abc_Var2Lit(Gia_ObjCioId(pObj), !Abc_LitIsCompl(Lit));
+            if ( Vec_IntFind(vCube, Abc_LitNot(Lit)) >= 0 ) goto finish;
+            Vec_IntPushUnique(vCube, Lit);
+            if ( Vec_IntSize(vCube) > 8 ) goto finish;
+            if ( !Abc_LitIsCompl(Lit) ) fNonInit = 1;
+        }
+        else if ( Gia_ObjIsAnd(pObj) && Abc_LitIsCompl(Lit) && ++nOrs < 16 )
+            Vec_IntPushTwo(vStack, Abc_LitNot(Gia_ObjFaninLit0p(p,pObj)), Abc_LitNot(Gia_ObjFaninLit1p(p,pObj)));
+        else goto finish;
+    }
+    if ( !fNonInit ) goto finish;
+    Vec_IntSort(vCube, 0);
+    Vec_WecForEachLevel( vCubes, vOther, i )
+        if ( Vec_IntEqual(vCube, vOther) ) goto finish;
+    Vec_IntAppend(Vec_WecPushLevel(vCubes), vCube);
+finish:
+    Vec_IntFree(vStack);
+    Vec_IntFree(vCube);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Finds bounded clause factors of a concrete forward interpolant.]
+
+  Description [The interpolant's inputs are the original registers.
+  The recipient checks each candidate by relative induction.]
+
+***********************************************************************/
+void Imc_ManCollectHintCubes( Gia_Man_t * p, Vec_Wec_t * vCubes )
+{
+    Vec_Int_t * vStack;
+    Gia_Obj_t * pObj;
+    int Lit, nVisited = 0;
+    if ( Vec_WecSize(vCubes) >= 1024 ) return;
+    vStack = Vec_IntAlloc(16);
+    Vec_IntPush(vStack, Gia_ObjFaninLit0p(p, Gia_ManCo(p, 0)));
+    while ( Vec_IntSize(vStack) && ++nVisited < 2048 && Vec_WecSize(vCubes) < 1024 )
+    {
+        Lit = Vec_IntPop(vStack);
+        pObj = Gia_ManObj(p, Abc_Lit2Var(Lit));
+        if ( Gia_ObjIsAnd(pObj) && !Abc_LitIsCompl(Lit) )
+            Vec_IntPushTwo(vStack, Gia_ObjFaninLit0p(p,pObj), Gia_ObjFaninLit1p(p,pObj));
+        else Imc_ManCollectHintClause(p, Lit, vCubes);
+    }
+    Vec_IntFree(vStack);
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

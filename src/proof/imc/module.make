@@ -1,4 +1,5 @@
 SRC += src/proof/imc/imcCore.c \
+       src/proof/imc/imcPdr.c \
        src/proof/imc/imcSim.c \
        src/proof/imc/imcWalk.c \
        src/proof/imc/imcPrep.c \

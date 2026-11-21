@@ -27,6 +27,7 @@
 // ZZ project: https://github.com/berkeley-abc/abc-zz
 
 #include "imcInt.h"
+#include "proof/pdr2/pdr2.h"
 #include <limits.h>
 
 ABC_NAMESPACE_IMPL_START
@@ -49,6 +50,7 @@ struct Imc_Trans_t_
 typedef struct Imc_Phase_t_ Imc_Phase_t;
 struct Imc_Phase_t_
 {
+    Vec_Wec_t * vHintCubes; // optional destination for concrete forward image clauses
     int nFrontMax;         // frontier gate; zero for the main search
     int fResume;           // retain concrete state across cooperative turns
     int nProbeQueries, nProbeConflicts;
@@ -625,6 +627,8 @@ int Imc_ManSearchRun( Imc_Search_t * pSearch, int nQueries, int nConflicts )
         if ( Status == l_Undef && p->Image.fPending )
             return -1;
         Gia_ManStopP( &pSearch->pDelta );
+        if ( pNext && pSearch->vHintCubes )
+            Imc_ManCollectHintCubes(pNext, pSearch->vHintCubes);
         if ( pNext && p->pInvariant )
         {
             Gia_Man_t * pTemp = Imc_ManCombine( pNext, p->pInvariant, 2 );
@@ -755,6 +759,7 @@ static int Imc_ManSearchStart( Imc_Search_t * pSearch, Gia_Man_t * pGia, Imc_Par
     Imc_Trans_t * pTrans = &pRun->Trans[pGia == pRun->pDelayed];
     int Status, Result = -1;
     abctime TimeSetup = Abc_Clock(), TimeHoud = 0;
+    pSearch->vHintCubes = pPhase->vHintCubes;
     pSearch->nSliceConflicts = 4096;
     pSearch->Pars = *pPars;
     pPars = &pSearch->Pars;
@@ -1135,6 +1140,59 @@ static int Imc_ManRunWalk( Gia_Man_t * pGia, Imc_Par_t * pPars, abctime TimeStar
 
 /**Function*************************************************************
 
+  Synopsis    [Passes clauses from a bounded forward search to a concrete PDR run.]
+
+  Description [The forward interpolants may describe only a bounded
+  prefix. PDR therefore treats their clauses as candidates. Both engines
+  use the same register interface, deadline and cancellation request.]
+
+***********************************************************************/
+static int Imc_ManRunHintPdr( Gia_Man_t * pGia, Imc_Par_t * pPars, abctime Start,
+    abctime Stop, int iPredClass, Imc_Run_t * pRun )
+{
+    Imc_Par_t Probe = *pPars;
+    Imc_Phase_t Phase;
+    Vec_Wec_t * vCubes = Vec_WecAlloc(100);
+    abctime ProbeTime = (Stop - Start) / 8;
+    int Result, Frame = -1;
+    if ( ProbeTime > 12 * (abctime)CLOCKS_PER_SEC )
+        ProbeTime = 12 * (abctime)CLOCKS_PER_SEC;
+    Probe.fAbstract = Probe.fPredicates = Probe.fBackward = 0;
+    Probe.fUseMiniSat = 1;
+    Probe.fInductive = iPredClass == 1;
+    Imc_ManPhaseSet(&Phase, 0, 0, 0);
+    Phase.vHintCubes = vCubes;
+    Result = Imc_ManPhaseCore(pGia, &Probe, Start, Start + ProbeTime, iPredClass, pRun, &Phase, "hint-forward");
+    pPars->iFrame = Abc_MaxInt(pPars->iFrame, Probe.iFrame);
+    if ( Result < 0 && !Imc_ManCheckStop(Stop) )
+    {
+        abctime PdrStart = Abc_Clock();
+        Aig_Man_t * pAig = Gia_ManToAigSimple(pGia);
+        if ( pPars->fPdrFrames )
+            Result = Imc_ManSolvePdrFrames(pAig, vCubes, Stop, &Frame, pPars);
+        else
+            Result = Pdr2_ManSolveHints(pAig, vCubes, Stop, Imc_ManStopId, &Frame, pPars->fVerbose);
+        if ( Result == 0 && pAig->pSeqModel && Gia_ManVerifyCex(pGia, pAig->pSeqModel, 0) )
+        {
+            Abc_CexFreeP(&pGia->pCexSeq);
+            pGia->pCexSeq = pAig->pSeqModel;
+            pAig->pSeqModel = NULL;
+            pPars->iFrame = pGia->pCexSeq->iFrame;
+        }
+        else
+        {
+            if ( Result == 0 ) Result = -1;
+            pPars->iFrame = Abc_MaxInt(pPars->iFrame, Frame);
+        }
+        Aig_ManStop(pAig);
+        Imc_ManPhaseReport(pPars, pRun, "pdr-after-interpolation", PdrStart, Result);
+    }
+    Vec_WecFree(vCubes);
+    return Result;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Schedules simulation, preprocessing, and retained interpolation searches.]
 
   Description []
@@ -1148,6 +1206,8 @@ static int Imc_ManPerformRun( Gia_Man_t * pGia, Imc_Par_t * pPars, Imc_Run_t * p
 {
     abctime TimeStart = Abc_Clock(), PhaseStart;
     abctime TimeStop = pPars->nTimeOut ? TimeStart + (abctime)pPars->nTimeOut * CLOCKS_PER_SEC : 0;
+    abctime ForwardStop = (pPars->fForwardFirst || pPars->fShortProbe || pPars->fPdrHints || pPars->fPdrFrames) && TimeStop ?
+        TimeStart + (TimeStop - TimeStart) * 2 / 3 : 0;
     Gia_Man_t * pNew = NULL, * pWork = pGia;
     Imc_Par_t Probe = *pPars;
     Imc_Phase_t Phase;
@@ -1166,6 +1226,25 @@ static int Imc_ManPerformRun( Gia_Man_t * pGia, Imc_Par_t * pPars, Imc_Run_t * p
         return Imc_ManPhaseCore( pGia, pPars, TimeStart, 0, iPredClass, pRun, &Phase, "direct" );
     if ( pPars->fAbstract || pPars->fPredicates )
         iPredClass = Imc_ManPredicateClass( pGia, &pRun->fPredAfterInit );
+    if ( (pPars->fPdrHints || pPars->fPdrFrames) && pPars->fPortfolio && TimeStop && Gia_ManRegNum(pGia) )
+    {
+        Result = Imc_ManRunHintPdr(pGia, pPars, TimeStart, TimeStop, iPredClass, pRun);
+        if ( Result >= 0 || Imc_ManCheckStop(TimeStop) ) goto finish;
+    }
+    if ( pPars->fShortProbe && pPars->fPortfolio && TimeStop && Gia_ManRegNum(pGia) )
+    {
+        abctime ProbeTime = (TimeStop - TimeStart) / 12;
+        if ( ProbeTime > 4 * (abctime)CLOCKS_PER_SEC )
+            ProbeTime = 4 * (abctime)CLOCKS_PER_SEC;
+        Probe.fAbstract = Probe.fPredicates = 0;
+        Probe.fUseMiniSat = Probe.fBackward = Probe.fInductive = 1;
+        Imc_ManPhaseSet( &Phase, 32, 2048, 0 );
+        Result = Imc_ManPhaseCore( pGia, &Probe, TimeStart, TimeStart + ProbeTime,
+            iPredClass, pRun, &Phase, "timed-backward" );
+        pPars->iFrame = Abc_MaxInt( pPars->iFrame, Probe.iFrame );
+        if ( Result >= 0 ) goto finish;
+        goto portfolio_tail;
+    }
     if ( pPars->fSimulate )
     {
         Imc_Par_t Sim = *pPars;
@@ -1286,6 +1365,10 @@ static int Imc_ManPerformRun( Gia_Man_t * pGia, Imc_Par_t * pPars, Imc_Run_t * p
             pWork = pNew ? pNew : pGia;
             Imc_ManPhaseReport( pPars, pRun, "sequential-sweep", PhaseStart, -1 );
         }
+    }
+portfolio_tail:
+    if ( pPars->fPortfolio )
+    {
         // Retain each frontier, unrolling and solver across cooperative
         // slices. Only the global deadline interrupts proof construction.
         Imc_ManPhaseSet( &Phase, 0, 0, 0 );
@@ -1306,6 +1389,8 @@ static int Imc_ManPerformRun( Gia_Man_t * pGia, Imc_Par_t * pPars, Imc_Run_t * p
                 pRun->pSearch[0] && pRun->pSearch[0]->fDone,
                 pRun->pSearch[1] && pRun->pSearch[1]->fDone);
             if ( Probe.fBackward < 0 ) break;
+            if ( ForwardStop && Abc_Clock() < ForwardStop && !(pRun->pSearch[0] && pRun->pSearch[0]->fDone) )
+                Probe.fBackward = 0;
             pSearch = pRun->pSearch[Probe.fBackward];
             Frames = pSearch ? pSearch->nFrames : 0;
             Images = pSearch ? pSearch->nImages : 0;

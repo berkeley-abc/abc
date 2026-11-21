@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "imcInt.h"
+#include <limits.h>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -30,6 +31,8 @@ struct Imc_Unr_t_
 {
     Gia_Man_t * pGia;
     Vec_Int_t * vState, * vInputs, * vResets, * vBad, * vVars;
+    Vec_Str_t * vBoundaryUsed;  // forward state variables used in any encoded chunk
+    int nClauseCap, nLitCap;    // allocated space in the accumulated CNF
     int nFrames, nVars, iFail;
 };
 
@@ -58,6 +61,7 @@ void Imc_ManUnrollStop( Imc_Man_t * p )
     Vec_IntFree( pUnroll->vResets );
     Vec_IntFree( pUnroll->vBad );
     Vec_IntFree( pUnroll->vVars );
+    Vec_StrFreeP( &pUnroll->vBoundaryUsed );
     ABC_FREE( p->pUnroll );
 }
 
@@ -111,6 +115,13 @@ static Imc_Unr_t * Imc_UnrStart( Imc_Man_t * p )
     pUnroll->nFrames = p->pPars->fBackward;
     if ( p->pCnfB ) Cnf_DataFree( p->pCnfB );
     p->pCnfB = Cnf_DataAlloc( NULL, pUnroll->nVars, 1, 1 );
+    pUnroll->nClauseCap = pUnroll->nLitCap = 1;
+    if ( !p->pPars->fBackward )
+    {
+        pUnroll->vBoundaryUsed = Vec_StrStart( pUnroll->nVars );
+        Vec_IntFreeP( &p->vMapB );
+        p->vMapB = Vec_IntAlloc( pUnroll->nVars );
+    }
     p->pCnfB->pClauses[0][0] = 1;
     Vec_IntFreeP( &p->vCnfStartB );
     Vec_IntFreeP( &p->vCnfCountB );
@@ -216,12 +227,33 @@ static Vec_Int_t * Imc_UnrEncode( Imc_Man_t * p, Vec_Int_t * vRoots )
             nClauses++;
             nLits += pCnf->pClauses[i+1] - pCnf->pClauses[i];
         }
-    pNext = Cnf_DataAlloc( NULL, pUnroll->nVars, pOld->nClauses + nClauses, pOld->nLiterals + nLits );
-    memcpy( pNext->pClauses[0], pOld->pClauses[0], sizeof(int) * pOld->nLiterals );
-    for ( i = 1; i <= pOld->nClauses; i++ )
-        pNext->pClauses[i] = pNext->pClauses[0] + (pOld->pClauses[i] - pOld->pClauses[0]);
     Offset = pOld->nLiterals;
     k = pOld->nClauses;
+    if ( nClauses > INT_MAX - 1 - k || nLits > INT_MAX - Offset )
+    {
+        // The newly assigned variable IDs have no defining clauses.
+        Vec_IntFreeP( &vResult );
+        Imc_ManUnrollStop( p );
+        goto finish;
+    }
+    nClauses += k;
+    nLits += Offset;
+    pNext = pOld;
+    if ( nClauses > pUnroll->nClauseCap || nLits > pUnroll->nLitCap )
+    {
+        pUnroll->nClauseCap = nClauses + Abc_MinInt(k / 2, INT_MAX - 1 - nClauses);
+        pUnroll->nLitCap = nLits + Abc_MinInt(Offset / 2, INT_MAX - nLits);
+        pNext = Cnf_DataAlloc( NULL, pUnroll->nVars, pUnroll->nClauseCap, pUnroll->nLitCap );
+        memcpy( pNext->pClauses[0], pOld->pClauses[0], sizeof(int) * Offset );
+        for ( i = 1; i <= k; i++ )
+            pNext->pClauses[i] = pNext->pClauses[0] + (pOld->pClauses[i] - pOld->pClauses[0]);
+        Cnf_DataFree( pOld );
+    }
+    pNext->nVars = pUnroll->nVars;
+    pNext->nClauses = nClauses;
+    pNext->nLiterals = nLits;
+    // The terminal pointer bounds the live clauses even when there is spare capacity.
+    pNext->pClauses[nClauses] = pNext->pClauses[0] + nLits;
     Vec_IntFillExtra( p->vCnfStartB, pUnroll->nVars, -1 );
     Vec_IntFillExtra( p->vCnfCountB, pUnroll->nVars, 0 );
     for ( i = 0; i < pCnf->nClauses; i++ )
@@ -237,7 +269,6 @@ static Vec_Int_t * Imc_UnrEncode( Imc_Man_t * p, Vec_Int_t * vRoots )
     }
     assert( k == pNext->nClauses && Offset == pNext->nLiterals );
     p->pCnfB = pNext;
-    Cnf_DataFree( pOld );
 finish:
     Vec_IntFree( vStack );
     Vec_IntFree( vNodes );
@@ -269,7 +300,6 @@ int Imc_ManExtendSuffix( Imc_Man_t * p, int nFrames )
     Imc_Unr_t * pUnroll;
     Gia_Obj_t * pObj;
     Vec_Int_t * vRoots, * vOutputs;
-    Vec_Str_t * vUsed;
     int i, Lit, Var, Reset, nOldFrames, nOldClauses, nOldInputs, nOldResets, * pLit;
     abctime Start = Abc_Clock();
     Imc_ManImageStop( p );
@@ -350,23 +380,22 @@ int Imc_ManExtendSuffix( Imc_Man_t * p, int nFrames )
         p->vImageBad = vOutputs;
         Vec_IntForEachEntry( vOutputs, Var, i )
             Vec_IntWriteEntry( vOutputs, i, Var + p->pCnf->nVars );
-        Vec_IntFreeP( &p->vMapB );
         Vec_IntFreeP( &p->vSharedUsed );
-        p->vMapB = Vec_IntAlloc( p->pCnfB->nVars );
-        for ( i = 0; i < p->pCnfB->nVars; i++ ) Vec_IntPush( p->vMapB, p->pCnf->nVars + i );
+        for ( i = Vec_IntSize(p->vMapB); i < p->pCnfB->nVars; i++ )
+            Vec_IntPush( p->vMapB, p->pCnf->nVars + i );
         p->vPrefix = Vec_IntAlloc( Gia_ManRegNum(p->pGia) );
         p->vSharedUsed = Vec_IntAlloc( Gia_ManRegNum(p->pGia) );
-        vUsed = Vec_StrStart( p->pCnfB->nVars );
-        for ( pLit = p->pCnfB->pClauses[0]; pLit < p->pCnfB->pClauses[p->pCnfB->nClauses]; pLit++ )
-            Vec_StrWriteEntry( vUsed, Abc_Lit2Var(*pLit), 1 );
+        // Only the original register variables at the boundary can be shared.
+        for ( pLit = p->pCnfB->pClauses[nOldClauses]; pLit < p->pCnfB->pClauses[p->pCnfB->nClauses]; pLit++ )
+            if ( Abc_Lit2Var(*pLit) < Vec_StrSize(pUnroll->vBoundaryUsed) )
+                Vec_StrWriteEntry( pUnroll->vBoundaryUsed, Abc_Lit2Var(*pLit), 1 );
         for ( i = 0; i < Gia_ManRegNum(p->pGia); i++ )
         {
             Var = Abc_Lit2Var(Vec_IntEntry(pUnroll->vVars, Gia_ObjId(pUnroll->pGia, Gia_ManCi(pUnroll->pGia, i))));
             Vec_IntPush( p->vPrefix, Var );
             Vec_IntWriteEntry( p->vMapB, Var, Vec_IntEntry(p->vRis, i) );
-            if ( Vec_StrEntry(vUsed, Var) ) Vec_IntPush( p->vSharedUsed, i );
+            if ( Vec_StrEntry(pUnroll->vBoundaryUsed, Var) ) Vec_IntPush( p->vSharedUsed, i );
         }
-        Vec_StrFree( vUsed );
     }
     if ( p->pPars->fVerbose )
         Abc_Print( 1, "IMC: Extended %s depth %d -> %d; clauses %d -> %d; CNF wall = %.6f s.\n",

@@ -146,6 +146,7 @@ struct Imc_Search_t_
     int fDone;             // terminal result or a non-budget failure
     int fFineFrames, nFrontMax, fCostProbe;
     int nSliceConflicts;   // adaptive allowance for a search with a pending query
+    Vec_Wec_t * vHintCubes; // borrowed by the forward probe for clause collection
     word nSteps;           // completed or suspended SAT queries
 };
 
@@ -173,6 +174,9 @@ extern int Imc_ManSeqSweepAllowed( int nAnds, int nRegs );
 extern int Imc_ManSeqSweepUseful( int nAnds, int nRegs, int nNewAnds, int nNewRegs );
 extern word        Imc_ManSimInput( int iPi, int iFrame, int iWord, word * pSeed );
 extern int         Imc_ManPredicateClass( Gia_Man_t * pGia, int * pfAfterInit );
+extern void        Imc_ManCollectHintCubes( Gia_Man_t * pFront, Vec_Wec_t * vCubes );
+extern int         Imc_ManSolvePdrFrames( Aig_Man_t * pAig, Vec_Wec_t * vCubes, abctime TimeStop,
+                       int * piFrame, Imc_Par_t * pPars );
 extern Gia_Man_t * Imc_ManFindPredicates( Gia_Man_t * pGia, abctime TimeStop, int fCoarse, int iPredClass, int fAfterInit );
 extern Gia_Man_t * Imc_ManExpandPredicates( Gia_Man_t * pImage, Gia_Man_t * pPred );
 extern Gia_Man_t * Imc_ManPredicateInvariant( Imc_Man_t * p, int * pfSafe );

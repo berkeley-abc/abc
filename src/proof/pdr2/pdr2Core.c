@@ -2986,6 +2986,157 @@ finish:
     return p->pReachCex != NULL;
 }
 
+typedef struct Pdr2_Hints_t_ Pdr2_Hints_t;
+struct Pdr2_Hints_t_
+{
+    Vec_Wec_t * vCubes;
+    Vec_Str_t * vUsed;
+    int nTried, nAdded;
+    Pdr2_FrameHintFunc pFuncFrame;
+    void * pFrameData;
+};
+
+/**Function*************************************************************
+
+  Synopsis    [Blocks and shortens a candidate cube at a particular frame.]
+
+  Description [The caller supplies a mutable sorted cube of distinct
+  register literals and the query conflict cap. Every accepted cube is
+  disjoint from reset and relatively inductive at the preceding frame.]
+
+***********************************************************************/
+static int Pdr2_ManBlockHint( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube, int * pfClosed )
+{
+    Gip_Solver_t * pSat = Pdr2_ManSolver(p, iFrame - 1);
+    int i, Lit;
+    if ( Pdr2_LitsAreInit(p, vCube) || Pdr2_ManTryDrop(p, pSat, vCube, 1, NULL) != 1 )
+        return 0;
+    for ( i = Vec_IntSize(vCube) - 1; i >= 0 && Vec_IntSize(vCube) > 1 && !Pdr2_ManPastDeadline(p); i-- )
+    {
+        Lit = Vec_IntEntry(vCube, i);
+        Vec_IntDrop(vCube, i);
+        if ( Pdr2_LitsAreInit(p, vCube) || Pdr2_ManTryDrop(p, pSat, vCube, 1, NULL) != 1 )
+            Vec_IntPushOrder(vCube, Lit);
+    }
+    *pfClosed = Pdr2_ManAddLemma(p, iFrame, vCube, 1, NULL, NULL);
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Tests the enclosing PDR run for cancellation or timeout.]
+
+***********************************************************************/
+int Pdr2_FrameIsStopped( const Pdr2_Frame_t * pFrame )
+{
+    return Pdr2_ManPastDeadline(pFrame->pMan);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Borrows the register literals of a delta or infinity cube.]
+
+***********************************************************************/
+int Pdr2_FrameReadCube( const Pdr2_Frame_t * pFrame, int iLevel, int iCube, const int ** ppLits )
+{
+    Vec_Ptr_t * v;
+    Pdr2_Lem_t * pLem;
+    *ppLits = NULL;
+    if ( iLevel < 0 || iLevel > pFrame->iLevel + 1 || iCube < 0 )
+        return -1;
+    v = iLevel == pFrame->iLevel + 1 ? pFrame->pMan->vInf : Pdr2_ManFrame(pFrame->pMan, iLevel);
+    if ( iCube >= Vec_PtrSize(v) )
+        return -1;
+    pLem = (Pdr2_Lem_t *)Vec_PtrEntry(v, iCube);
+    if ( pLem->fRemoved )
+        return 0;
+    *ppLits = pLem->pCube->Lits;
+    return pLem->pCube->nLits;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks that a candidate names distinct registers in ascending order.]
+
+***********************************************************************/
+static int Pdr2_ManValidHint( Pdr2_Man_t * p, Vec_Int_t * vCube )
+{
+    int i, Lit, Last = -1;
+    Vec_IntForEachEntry( vCube, Lit, i )
+    {
+        if ( Lit < 0 || Abc_Lit2Var(Lit) <= Last || Abc_Lit2Var(Lit) >= p->nRegs )
+            return 0;
+        Last = Abc_Lit2Var(Lit);
+    }
+    return Vec_IntSize(vCube) > 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks and generalizes a feedback cube within the caller's budget.]
+
+***********************************************************************/
+int Pdr2_FrameBlockCube( const Pdr2_Frame_t * pFrame, int iLevel, Vec_Int_t * vCube,
+    int nConfLimit, abctime TimeStop, int * pfClosed )
+{
+    Pdr2_Man_t * p = pFrame->pMan;
+    abctime SavedTime = p->timeLimit;
+    int SavedLimit = p->nDropConfLimit, Result = 0;
+    *pfClosed = 0;
+    if ( iLevel < 1 || iLevel > pFrame->iLevel || nConfLimit < 0 || !Pdr2_ManValidHint(p, vCube) )
+        return 0;
+    if ( TimeStop && (!SavedTime || TimeStop < SavedTime) )
+        p->timeLimit = TimeStop;
+    p->nDropConfLimit = nConfLimit;
+    if ( !Pdr2_ManPastDeadline(p) )
+        Result = Pdr2_ManBlockHint(p, iLevel, vCube, pfClosed);
+    p->nDropConfLimit = SavedLimit;
+    p->timeLimit = SavedTime;
+    return Result;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Tries small candidate cubes at the newly opened frame.]
+
+  Description [The candidate's complement must hold initially and be
+  inductive relative to the preceding frame. Repeat both checks when
+  dropping a literal. A capped or interrupted query cannot add a lemma.]
+
+***********************************************************************/
+static int Pdr2_ManAdmitHints( Pdr2_Man_t * p, Pdr2_Hints_t * pHints )
+{
+    int Level = Pdr2_ManLevel(p), Count = Vec_WecSize(pHints->vCubes);
+    int k, Index, Offset, fClosed = 0, SavedLimit = p->nDropConfLimit;
+    Vec_Int_t * vCube, * vTrial;
+    if ( Level < 1 || !Count ) return 0;
+    Offset = (int)(((word)(Level - 1) * 31) % Count);
+    vTrial = Vec_IntAlloc(8);
+    p->nDropConfLimit = 128;
+    for ( k = 0; k < Abc_MinInt(64, Count) && !Pdr2_ManPastDeadline(p); k++ )
+    {
+        Index = (int)(((word)Offset + k) % Count);
+        if ( Vec_StrEntry(pHints->vUsed, Index) ) continue;
+        vCube = Vec_WecEntry(pHints->vCubes, Index);
+        if ( Vec_IntSize(vCube) > 8 || !Pdr2_ManValidHint(p, vCube) )
+        {
+            Vec_StrWriteEntry(pHints->vUsed, Index, 1);
+            continue;
+        }
+        if ( Pdr2_LitsAreInit(p, vCube) ) continue;
+        pHints->nTried++;
+        Vec_IntClear(vTrial);
+        Vec_IntAppend(vTrial, vCube);
+        if ( !Pdr2_ManBlockHint(p, Level, vTrial, &fClosed) ) continue;
+        Vec_StrWriteEntry(pHints->vUsed, Index, 1);
+        pHints->nAdded++;
+        if ( fClosed ) break;
+    }
+    p->nDropConfLimit = SavedLimit;
+    Vec_IntFree(vTrial);
+    return fClosed;
+}
+
 /**Function*************************************************************
 
   Synopsis    [The main loop.]
@@ -2998,7 +3149,7 @@ finish:
   SeeAlso     []
 
 ***********************************************************************/
-int Pdr2_ManSolveInt( Pdr2_Man_t * p )
+static int Pdr2_ManSolveFrames( Pdr2_Man_t * p, Pdr2_Hints_t * pHints )
 {
     Vec_Int_t * vPred = Vec_IntAlloc( 100 );
     Vec_Int_t * vInputs = Vec_IntAlloc( 100 );
@@ -3108,6 +3259,13 @@ int Pdr2_ManSolveInt( Pdr2_Man_t * p )
             goto finish;
         }
         Pdr2_ManExtend( p );
+        if ( pHints && pHints->pFuncFrame )
+        {
+            Pdr2_Frame_t Frame = { p->pAig, Pdr2_ManLevel(p), p->timeLimit, p };
+            if ( pHints->pFuncFrame(&Frame, pHints->vCubes, pHints->pFrameData) ) { Result = 1; goto finish; }
+            Vec_StrFillExtra(pHints->vUsed, Vec_WecSize(pHints->vCubes), 0);
+        }
+        if ( pHints && Pdr2_ManAdmitHints(p, pHints) ) { Result = 1; goto finish; }
         p->iStage = 1;
         p->fSweepCut = 0;
         if ( Pdr2_ManPropagate( p ) )
@@ -3134,6 +3292,92 @@ finish:
     Vec_IntFree( vInputs );
     Vec_IntFree( vPpis );
     return Result;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs the ordinary PDR frame loop.]
+
+***********************************************************************/
+int Pdr2_ManSolveInt( Pdr2_Man_t * p )
+{
+    return Pdr2_ManSolveFrames(p, NULL);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks one zero-initialized property using candidate register cubes.]
+
+  Description [The caller owns the candidates. Each is a sorted cube of
+  at most eight register literals. Verify the final invariant on the full
+  transition relation, and replay a counterexample before returning it.]
+
+***********************************************************************/
+int Pdr2_ManSolveFrameHints( Aig_Man_t * pAig, Vec_Wec_t * vCubes, abctime TimeStop,
+    int (*pFuncStop)(int), int * piFrame, int fVerbose, Pdr2_FrameHintFunc pFuncFrame, void * pFrameData )
+{
+    Pdr2_Hints_t Hints = { NULL, NULL, 0, 0, pFuncFrame, pFrameData };
+    Pdr2_Par_t Pars;
+    Gip_Options_t Options;
+    Pdr2_Man_t * p;
+    int Result = -1;
+    *piFrame = -1;
+    Abc_CexFreeP(&pAig->pSeqModel);
+    if ( !Aig_ManRegNum(pAig) || Saig_ManPoNum(pAig) != 1 || Saig_ManConstrNum(pAig) ||
+         Aig_ManExorNum(pAig) || Aig_ManBufNum(pAig) ||
+         (TimeStop && Abc_Clock() >= TimeStop) || (pFuncStop && pFuncStop(0)) )
+        return -1;
+    if ( vCubes )
+    {
+        Hints.vCubes = vCubes;
+        Hints.vUsed = Vec_StrStart(Vec_WecSize(vCubes));
+    }
+    memset(&Options, 0, sizeof(Options));
+    Options.fIsolate = 1;
+    Gip_OptionsPush(&Options);
+    Pdr2_ManSetDefaultParams(&Pars);
+    Pars.fUseAbs = Pars.fVerbose = 0;
+    Pars.fCtg = Pars.fSilent = Pars.fVerifyComplete = 1;
+    Pars.pFuncStop = pFuncStop;
+    Aig_ManSetCioIds(pAig);
+    p = Pdr2_ManStart(pAig, NULL, &Pars);
+    p->timeGlobal = p->timeLimit = TimeStop;
+    if ( p->GuardLit < 0 && !Pdr2_ManPastDeadline(p) )
+        Result = Pdr2_ManSolveFrames(p, vCubes ? &Hints : NULL);
+    if ( p->fStarted ) *piFrame = Abc_MaxInt(0, Pdr2_ManLevel(p) - 1);
+    if ( Result == 1 && Pdr2_ManVerifyInvariant(p) != 1 ) Result = -1;
+    if ( Result == 0 )
+    {
+        Abc_Cex_t * pCex = p->pCexObl || p->pReachCex ? Pdr2_ManDeriveCex(p) : NULL;
+        if ( pCex && Saig_ManVerifyCex(pAig, pCex) )
+        {
+            *piFrame = pCex->iFrame;
+            pAig->pSeqModel = pCex;
+        }
+        else
+        {
+            Abc_CexFreeP(&pCex);
+            Result = -1;
+        }
+    }
+    if ( fVerbose )
+        Abc_Print(1, "PDR2: %d candidate cubes, %d relative queries, %d admitted.\n",
+            vCubes ? Vec_WecSize(vCubes) : 0, Hints.nTried, Hints.nAdded);
+    Pdr2_ManStop(p);
+    Gip_OptionsPop(&Options);
+    Vec_StrFreeP(&Hints.vUsed);
+    return Result;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs concrete PDR with a fixed list of candidate register cubes.]
+
+***********************************************************************/
+int Pdr2_ManSolveHints( Aig_Man_t * pAig, Vec_Wec_t * vCubes, abctime TimeStop,
+    int (*pFuncStop)(int), int * piFrame, int fVerbose )
+{
+    return Pdr2_ManSolveFrameHints(pAig, vCubes, TimeStop, pFuncStop, piFrame, fVerbose, NULL, NULL);
 }
 
 /**Function*************************************************************

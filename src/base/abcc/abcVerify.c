@@ -1950,7 +1950,7 @@ int Abc_CommandAbc9Int( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, fSelected = 0;
     Imc_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "TFCBPmbcdiprgsaeulnqzjwoxvh")) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "TFCBPmbcdiprgsaeulnqzjwoxtykKvh")) != EOF )
     {
         if ( strchr("mbdiprgsaeulqjwox", c) )
             fSelected = 1;
@@ -1998,6 +1998,10 @@ int Abc_CommandAbc9Int( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'w': pPars->fWeaken ^= 1; break;
         case 'o': pPars->fPredicates ^= 1; break;
         case 'x': pPars->fAbstract ^= 1; break;
+        case 't': pPars->fForwardFirst ^= 1; break;
+        case 'y': pPars->fShortProbe ^= 1; break;
+        case 'k': pPars->fPdrHints ^= 1; break;
+        case 'K': pPars->fPdrFrames ^= 1; break;
         case 'v': pPars->fVerbose ^= 1; break;
         default: goto usage;
         }
@@ -2024,7 +2028,7 @@ int Abc_CommandAbc9Int( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &int [-TFCB <num>] [-Pmbcdiprgsaeulnqzjwoxvh]\n" );
+    Abc_Print( -2, "usage: &int [-TFCB <num>] [-PmbcdiprgsaeulnqzjwoxtykKvh]\n" );
     Abc_Print( -2, "\t           interpolation-based model checking of one safety property\n" );
     Abc_Print( -2, "\t           inspired by Niklas Een's ,imc implementation in ZZ/Bip\n" );
     Abc_Print( -2, "\t-T <num> : total runtime limit in seconds (0 = unlimited) [default = %d]\n", pPars->nTimeOut );
@@ -2032,6 +2036,10 @@ usage:
     Abc_Print( -2, "\t-C <num> : conflicts per image/induction/check query (0 = unlimited) [default = %d]\n", pPars->nConfLimit );
     Abc_Print( -2, "\t-B <num> : total live BDD node limit (0 = disabled) [default = %d]\n", pPars->nBddMax );
     Abc_Print( -2, "\t-P       : toggle automatic schedule (engine options/nonzero -FCB disable it) [default = %s]\n", pPars->fPortfolio ? "yes" : "no" );
+    Abc_Print( -2, "\t-t       : toggle forward-first tail search during the first two thirds of a timed automatic run [default = %s]\n", pPars->fForwardFirst ? "yes" : "no" );
+    Abc_Print( -2, "\t-y       : toggle a short backward probe followed by forward-first search in a timed automatic run [default = %s]\n", pPars->fShortProbe ? "yes" : "no" );
+    Abc_Print( -2, "\t-k       : toggle a timed forward probe followed by PDR2 with interpolant-derived clauses [default = %s]\n", pPars->fPdrHints ? "yes" : "no" );
+    Abc_Print( -2, "\t-K       : toggle a timed forward probe and PDR2 with repeated frame interpolation [default = %s]\n", pPars->fPdrFrames ? "yes" : "no" );
     Abc_Print( -2, "\t-m       : toggle using MiniSat instead of CaDiCaL [default = %s]\n", pPars->fUseMiniSat ? "yes" : "no" );
     Abc_Print( -2, "\t-b       : toggle backward interpolation [default = %s]\n", pPars->fBackward ? "yes" : "no" );
     Abc_Print( -2, "\t-c       : toggle independent interpolant and invariant checks [default = %s]\n", pPars->fCheck ? "yes" : "no" );

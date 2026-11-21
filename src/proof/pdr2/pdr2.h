@@ -127,6 +127,20 @@ struct Pdr2_Par_t_
     abctime timePolicyStop; // outer deadline for fixed-depth CNF construction (-1 = standalone, 0 = unlimited)
 };
 
+// Borrowed for one frame-hint callback. Levels 1..iLevel store delta clauses;
+// level iLevel+1 stores clauses proved at infinity. A zero deadline is unlimited.
+typedef struct Pdr2_Frame_t_ Pdr2_Frame_t;
+struct Pdr2_Man_t_;
+struct Pdr2_Frame_t_
+{
+    Aig_Man_t *          pAig;
+    int                  iLevel;
+    abctime              TimeStop;
+    struct Pdr2_Man_t_ * pMan;      // private to the PDR2 accessors
+};
+// Append candidates to the supplied vector. Return one if blocking closed a frame.
+typedef int (*Pdr2_FrameHintFunc)( const Pdr2_Frame_t *, Vec_Wec_t *, void * );
+
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
@@ -139,6 +153,17 @@ struct Pdr2_Par_t_
 extern void               Pdr2_ManSetDefaultParams( Pdr2_Par_t * pPars );
 extern int                Pdr2_ManSolve( Aig_Man_t * p, Pdr2_Par_t * pPars );
 extern int                Pdr2_ManSolveInit( Aig_Man_t * p, Vec_Int_t * vInit, Pdr2_Par_t * pPars );
+extern int                Pdr2_ManSolveHints( Aig_Man_t * pAig, Vec_Wec_t * vCubes, abctime TimeStop,
+                              int (*pFuncStop)(int), int * piFrame, int fVerbose );
+extern int                Pdr2_ManSolveFrameHints( Aig_Man_t * pAig, Vec_Wec_t * vCubes, abctime TimeStop,
+                              int (*pFuncStop)(int), int * piFrame, int fVerbose, Pdr2_FrameHintFunc pFuncFrame, void * pFrameData );
+extern int                Pdr2_FrameIsStopped( const Pdr2_Frame_t * pFrame );
+// Returns the cube size, or -1 at the end. Removed entries have NULL literals.
+// The borrowed literals remain valid until the next blocking call.
+extern int                Pdr2_FrameReadCube( const Pdr2_Frame_t * pFrame, int iLevel, int iCube, const int ** ppLits );
+// On success vCube contains the generalized cube and pfClosed reports convergence.
+extern int                Pdr2_FrameBlockCube( const Pdr2_Frame_t * pFrame, int iLevel, Vec_Int_t * vCube,
+                              int nConfLimit, abctime TimeStop, int * pfClosed );
 
 ABC_NAMESPACE_HEADER_END
 
