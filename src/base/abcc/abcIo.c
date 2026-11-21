@@ -1113,6 +1113,9 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         Abc_Ntk_t * pNtkNoCh;
+        // derive equivalence classes from the file-read choices (extension "q"), if needed
+        if ( pAbc->pGia->pSibls && !pAbc->pGia->pReprs )
+            Gia_ManDeriveReprsFromSibls( pAbc->pGia );
         Abc_Print( 0, "Transforming AIG with %d choice nodes.\n", Gia_ManEquivCountClasses(pAbc->pGia) );
         // create network without choices
         pMan = Gia_ManToAig( pAbc->pGia, 0 );

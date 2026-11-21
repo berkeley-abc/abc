@@ -147,6 +147,71 @@ static unsigned Io_ObjMakeLit( int Var, int fCompl )                 { return (V
 static unsigned Io_ObjAigerNum( Abc_Obj_t * pObj )                   { return (unsigned)(ABC_PTRINT_T)pObj->pCopy;  }
 static void     Io_ObjSetAigerNum( Abc_Obj_t * pObj, unsigned Num )  { pObj->pCopy = (Abc_Obj_t *)(ABC_PTRINT_T)Num;     }
 
+// writing 4-byte big-endian integers, as in the AIGER extensions written by GIA
+static void Io_WriteAigerInt( Vec_Str_t * vStr, unsigned Value )
+{
+    Vec_StrPush( vStr, (char)((Value >> 24) & 0xff) );
+    Vec_StrPush( vStr, (char)((Value >> 16) & 0xff) );
+    Vec_StrPush( vStr, (char)((Value >>  8) & 0xff) );
+    Vec_StrPush( vStr, (char)( Value        & 0xff) );
+}
+
+/**Function***********************************************************
+
+  Synopsis    [Creates the binary buffer with choice pairs (extension "q").]
+
+  Description [The choices are stored the same way as in the GIA package
+  (cf. Gia_AigerWriteExtensions): each choice class is written as a chain
+  of pairs of decreasing AIGER variables.  The dangling member nodes are
+  written as ordinary AND gates in the body of the file; this extension
+  only records the classes.  The representative does not necessarily have
+  the largest number in the network (e.g., in the networks created by
+  &put), so each class is sorted before it is written.
+  Returns NULL if the network has no choices.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Io_WriteAigerChoices( Abc_Ntk_t * pNtk )
+{
+    Vec_Str_t * vStr;
+    Vec_Int_t * vClass;
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k, nPairs = 0;
+    if ( !Abc_NtkGetChoiceNum(pNtk) )
+        return NULL;
+    // count the pairs (a class of n nodes contributes n-1 pairs)
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        if ( Abc_AigNodeIsChoice(pObj) )
+            for ( pFanin = (Abc_Obj_t *)pObj->pData; pFanin; pFanin = (Abc_Obj_t *)pFanin->pData )
+                nPairs++;
+    // write the extension
+    vStr = Vec_StrAlloc( 10 + 8 * nPairs );
+    vClass = Vec_IntAlloc( 100 );
+    Vec_StrPush( vStr, 'q' );
+    Io_WriteAigerInt( vStr, 4 * (2 * nPairs + 1) );
+    Io_WriteAigerInt( vStr, nPairs );
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        if ( Abc_AigNodeIsChoice(pObj) )
+        {
+            // collect one class and write it as a chain of decreasing numbers
+            Vec_IntClear( vClass );
+            Vec_IntPush( vClass, Io_ObjAigerNum(pObj) );
+            for ( pFanin = (Abc_Obj_t *)pObj->pData; pFanin; pFanin = (Abc_Obj_t *)pFanin->pData )
+                Vec_IntPush( vClass, Io_ObjAigerNum(pFanin) );
+            Vec_IntSort( vClass, 0 );
+            for ( k = Vec_IntSize(vClass) - 1; k > 0; k-- )
+            {
+                Io_WriteAigerInt( vStr, Vec_IntEntry(vClass, k) );
+                Io_WriteAigerInt( vStr, Vec_IntEntry(vClass, k-1) );
+            }
+        }
+    Vec_IntFree( vClass );
+    return vStr;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -434,6 +499,7 @@ void Io_WriteAigerGz( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
 {
     ProgressBar * pProgress;
     gzFile pFile;
+    Vec_Str_t * vChoices;
     Abc_Obj_t * pObj, * pDriver, * pLatch;
     int i, nNodes, Pos, nBufferSize, fExtended;
     unsigned char * pBuffer;
@@ -554,7 +620,14 @@ void Io_WriteAigerGz( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
     }
 
     // write the comment
-    gzprintf( pFile, "c\n" );
+    gzprintf( pFile, "c" );
+    // write choices
+    if ( (vChoices = Io_WriteAigerChoices(pNtk)) )
+    {
+        gzwrite( pFile, Vec_StrArray(vChoices), Vec_StrSize(vChoices) );
+        Vec_StrFree( vChoices );
+    }
+    gzprintf( pFile, "\n" );
     if ( pNtk->pName && strlen(pNtk->pName) > 0 )
         gzprintf( pFile, ".model %s\n", pNtk->pName );
     gzprintf( pFile, "This file was produced by ABC on %s\n", Extra_TimeStamp() );
@@ -633,6 +706,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
 {
     ProgressBar * pProgress;
 //    FILE * pFile;
+    Vec_Str_t * vChoices;
     Abc_Obj_t * pObj, * pDriver, * pLatch;
     int i, nNodes, nBufferSize, bzError, Pos, fExtended;
     unsigned char * pBuffer;
@@ -831,6 +905,15 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
 
     // write the comment
     fprintfBz2Aig( &b, "c" );
+    // write choices
+    if ( !fUnique && (vChoices = Io_WriteAigerChoices(pNtk)) )
+    {
+        if ( !b.b )
+            fwrite( Vec_StrArray(vChoices), 1, Vec_StrSize(vChoices), b.f );
+        else
+            BZ2_bzWrite( &bzError, b.b, Vec_StrArray(vChoices), Vec_StrSize(vChoices) );
+        Vec_StrFree( vChoices );
+    }
     if ( !fUnique )
     {
         if ( pNtk->pName && strlen(pNtk->pName) > 0 )
