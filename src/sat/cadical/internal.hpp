@@ -298,6 +298,7 @@ struct Internal {
   Delay delaying_vivify_irredundant;
   Delay delaying_sweep;
 
+  bool flush_lidrup_trace = false; // The environment enabled tracing for this solver.
   Proof *proof; // abstraction layer between solver and tracers
   vector<Tracer *>
       tracers; // proof tracing objects (ie interpolant calculator)

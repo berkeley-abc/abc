@@ -3511,6 +3511,8 @@ int Abc_CommandAbc9SetRegNum( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9SetRegNum(): The number of registers should be less than the number of COs.\n" );
         return 1;
     }
+    if ( pAbc->pGia->nRegs != nRegNum )
+        Abc_FrameSetGias( pAbc, NULL, 0, 0 );
     pAbc->pGia->nRegs = nRegNum;
     return 0;
 
@@ -4898,6 +4900,8 @@ int Abc_CommandAbc9Init1( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Init1(): Flop init states are not available.\n" );
         return 0;
     }
+    if ( pAbc->pGias && Vec_IntCountEntry(pAbc->pGia->vRegInits, 1) )
+        Abc_FrameSetGias( pAbc, NULL, 0, 0 );
     Gia_ManFlipInit1( pAbc->pGia, pAbc->pGia->vRegInits );
     return 0;
 

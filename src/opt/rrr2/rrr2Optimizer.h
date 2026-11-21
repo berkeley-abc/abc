@@ -57,9 +57,11 @@ namespace rrr2 {
     int nNeutral;
     int nCandidates;
     int nDepthLimit;
+    bool fBalancedAig;
+    mutable BalancedAig binary;
     bool fCompatible;
     bool fGreedy;
-    seconds nTimeout; // assigned upon Run
+    double nTimeout; // seconds, assigned upon Run
     std::function<void(std::string)> PrintLine;
 
     // data
@@ -151,7 +153,8 @@ namespace rrr2 {
     void SetPrintLine(std::function<void(std::string)> const &PrintLine_);
 
     // run
-    void Run(int iSeed = 0, seconds nTimeout_ = 0);
+    // Only flows 0 and 5 call onSingleTarget, after initial cleanup and after each completed target.
+    void Run(int iSeed = 0, double nTimeout_ = 0, std::function<void(Ntk *)> const &onSingleTarget = {});
 
     // summary
     void ResetSummary();
@@ -327,12 +330,21 @@ namespace rrr2 {
 
     Synopsis    [Computes levels after the optimizer's binary decomposition.]
 
-    Description [Wide gates are decomposed from their last two fanins. The
-    wrapper also checks the actual returned AIG before accepting its depth.]
+    Description [Depth-bounded and traced runs use the exact hashed binary
+    realization. Unbounded legacy candidate ranking retains its original heuristic.]
 
   ***********************************************************************/
   template <typename Ntk, typename Ana>
   int Optimizer<Ntk, Ana>::AigLevels(std::vector<int> *pLevels) const {
+    if(fBalancedAig) {
+      binary.Build(pNtk,false);
+      if(pLevels) {
+        pLevels->resize(binary.lits.size());
+        for(size_t i = 0; i < binary.lits.size(); ++i)
+          (*pLevels)[i] = binary.nodes[binary.lits[i]/2].level;
+      }
+      return binary.depth;
+    }
     std::vector<int> levels(pNtk->GetNumNodes(), 0);
     pNtk->ForEachInt([&](int id) {
       int n = pNtk->GetNumFanins(id);
@@ -1499,6 +1511,7 @@ namespace rrr2 {
     nNeutral(pPar->nNeutral),
     nCandidates(pPar->nCandidates),
     nDepthLimit(pPar->nDepthLimit),
+    fBalancedAig(pPar->fBalancedAig || pPar->nDepthLimit >= 0),
     fCompatible(pPar->fUseBddCspf),
     fGreedy(pPar->fGreedy),
     ana(pPar),
@@ -1525,7 +1538,7 @@ namespace rrr2 {
   // {{{ Run
 
   template <typename Ntk, typename Ana>
-  void Optimizer<Ntk, Ana>::Run(int iSeed, seconds nTimeout_) {
+  void Optimizer<Ntk, Ana>::Run(int iSeed, double nTimeout_, std::function<void(Ntk *)> const &onSingleTarget) {
     rng.seed(iSeed);
     vRandPiOrder.clear();
     vRandCosts.clear();
@@ -1539,6 +1552,7 @@ namespace rrr2 {
     case 5: // local trials with a global cleanup after each target
     case 0:
       RemoveRedundancy();
+      if(onSingleTarget) onSingleTarget(pNtk);
       statsLocal.Reset();
       ApplyReverseTopologically([&](int id) {
         std::vector<int> vCands;
@@ -1548,6 +1562,8 @@ namespace rrr2 {
           vCands = pNtk->GetPisInts();
         }
         SingleResub(id, vCands);
+        // SingleResub has completed cleanup and any depth rollback for this target.
+        if(onSingleTarget) onSingleTarget(pNtk);
       });
       stats["single"] += statsLocal;
       Print(0, statsLocal.GetString());

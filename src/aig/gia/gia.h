@@ -1367,6 +1367,9 @@ extern void                Cbs_ManSyncCore( Cbs_Man_t * p );
 extern Vec_Int_t *         Cbs_ManSolveRoots( Cbs_Man_t * p, Vec_Int_t * vRootLits, Vec_Str_t ** pvStatus, int fVerbose );
 extern void                Cbs_ManSetConflictNum( Cbs_Man_t * p, int Num );
 extern Vec_Int_t *         Cbs_ReadModel( Cbs_Man_t * p );
+/*=== giaTranStoch2.c =====================================================*/
+extern Gia_Man_t *         Gia_ManTranStoch2AreaTimed( Gia_Man_t * p, int Seed, abctime Deadline );
+
 /*=== giaCTas.c ============================================================*/
 extern Vec_Int_t *         Tas_ManSolveMiterNc( Gia_Man_t * pGia, int nConfs, Vec_Str_t ** pvStatus, int fVerbose );
 extern Vec_Int_t *         Tas_ManSolveMiterNcOutVals( Gia_Man_t * pGia, int nConfs, Vec_Str_t ** pvStatus, int fVerbose, Vec_Int_t * vOutLits, Vec_Int_t ** pvOutVals );
@@ -1971,6 +1974,11 @@ struct Gia_Rrr2Pars_t_
     int nFirstConflicts;
     int nWindow;
 };
+extern Gia_Man_t *         Gia_ManRrr2Area( Gia_Man_t * p, int Seed, int fUseBddMspf, Gia_Rrr2Pars_t const * pOptions, int fBalancedExport );
+extern Gia_Man_t *         Gia_ManRrr2Trace( Gia_Man_t * p, int Seed, int MaxDepth, int Seconds,
+                               void (*pVisit)(void *, Gia_Man_t *, int), void * pContext );
+extern Gia_Man_t *         Gia_ManRrr2TraceTimed( Gia_Man_t * p, int Seed, int MaxDepth, abctime Deadline,
+                               void (*pVisit)(void *, Gia_Man_t *, int), void * pContext );
 extern Gia_Man_t *         Gia_ManRrr2( Gia_Man_t *pGia, int iSeed, int nWords, int nTimeout, int nSchedulerVerbose, int nPartitionerVerbose, int nOptimizerVerbose, int nAnalyzerVerbose, int nSimulatorVerbose, int nSatSolverVerbose, int fUseBddCspf, int fUseBddMspf, int nConflictLimit, int nSortType, int nOptimizerFlow, int nSchedulerFlow, int nPartitionType, int nDistance, int nJobs, int nThreads, int nPartitionSize, int nPartitionSizeMin, int fDeterministic, int nParallelPartitions, int fOptOnInsert, int fGreedy );
 extern Gia_Man_t *         Gia_ManRrr2Ex( Gia_Man_t *pGia, int iSeed, int nWords, int nTimeout, int nSchedulerVerbose, int nPartitionerVerbose, int nOptimizerVerbose, int nAnalyzerVerbose, int nSimulatorVerbose, int nSatSolverVerbose, int fUseBddCspf, int fUseBddMspf, int nConflictLimit, int nSortType, int nOptimizerFlow, int nSchedulerFlow, int nPartitionType, int nDistance, int nJobs, int nThreads, int nPartitionSize, int nPartitionSizeMin, int fDeterministic, int nParallelPartitions, int fOptOnInsert, int fGreedy, Gia_Rrr2Pars_t const * pOptions );
 

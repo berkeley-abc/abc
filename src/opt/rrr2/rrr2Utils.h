@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -36,6 +37,82 @@
 ABC_NAMESPACE_CXX_HEADER_START
 
 namespace rrr2 {
+
+  // Realize each wide AND by joining its two earliest arrivals. The same
+  // hashed binary graph supplies feasibility checks, trace costs and export.
+  class BalancedAig {
+    std::vector<int> buckets;
+    std::vector<std::pair<int,int>> heap;
+    int andLit(int a, int b) {
+      if(a == b || b == 1) return a;
+      if(a == 1) return b;
+      if(!a || !b || a == (b ^ 1)) return 0;
+      if(b < a) std::swap(a,b);
+      unsigned slot = (static_cast<unsigned>(a)*12582917u ^ static_cast<unsigned>(b)*4256249u) & (buckets.size()-1);
+      for(int id = buckets[slot]; id; id = nodes[id].next)
+        if(nodes[id].a == a && nodes[id].b == b) return 2*id;
+      int id = static_cast<int>(nodes.size());
+      nodes.push_back({a,b,1+std::max(nodes[a/2].level,nodes[b/2].level),buckets[slot]});
+      buckets[slot] = id;
+      return 2*id;
+    }
+  public:
+    struct Gate { int a, b, level, next; };
+    std::vector<Gate> nodes;
+    std::vector<int> lits, outs;
+    std::vector<unsigned char> live;
+    int inputs = 0, depth = 0, area = 0;
+
+    template <typename Ntk>
+    void Build(Ntk *ntk, bool countArea = true) {
+      size_t size = 16;
+      while(size < static_cast<size_t>(ntk->GetNumNodes())) size *= 2;
+      buckets.assign(size,0);
+      inputs = ntk->GetNumPis();
+      nodes.assign(inputs+1,Gate{0,0,0,0});
+      lits.assign(ntk->GetNumNodes(),0);
+      int index = 0;
+      ntk->ForEachPi([&](int id) { lits[id] = 2*++index; });
+      auto compare = std::greater<std::pair<int,int>>{};
+      ntk->ForEachInt([&](int id) {
+        int n = ntk->GetNumFanins(id);
+        auto lit = [&](int k) { return lits[ntk->GetFanin(id,k)] ^ ntk->GetCompl(id,k); };
+        if(n <= 2) {
+          lits[id] = n == 2 ? andLit(lit(0),lit(1)) : n == 1 ? lit(0) : 1;
+          return;
+        }
+        heap.clear();
+        ntk->ForEachFanin(id,[&](int fi,bool c) {
+          int a = lits[fi]^c;
+          heap.emplace_back(nodes[a/2].level,a);
+        });
+        std::make_heap(heap.begin(),heap.end(),compare);
+        while(heap.size() > 1) {
+          std::pop_heap(heap.begin(),heap.end(),compare);
+          int a = heap.back().second;
+          heap.pop_back();
+          std::pop_heap(heap.begin(),heap.end(),compare);
+          int b = andLit(a,heap.back().second);
+          heap.back() = {nodes[b/2].level,b};
+          std::push_heap(heap.begin(),heap.end(),compare);
+        }
+        lits[id] = heap[0].second;
+      });
+      depth = area = 0;
+      outs.clear();
+      ntk->ForEachPoDriver([&](int fi,bool c) {
+        outs.push_back(lits[fi]^c);
+        depth = std::max(depth,nodes[lits[fi]/2].level);
+      });
+      if(!countArea) return;
+      live.assign(nodes.size(),0);
+      for(int lit : outs) live[lit/2] = 1;
+      for(int id = static_cast<int>(nodes.size())-1; id > inputs; --id) if(live[id]) {
+        live[nodes[id].a/2] = live[nodes[id].b/2] = 1;
+        ++area;
+      }
+    }
+  };
 
   // {{{ Invocable
 

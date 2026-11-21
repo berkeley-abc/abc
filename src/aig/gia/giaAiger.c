@@ -804,15 +804,24 @@ static Gia_Man_t * Gia_AigerReadFromMemoryInt( char * pContents, int nFileSize, 
             // read mapping
             else if ( *pCur == 'm' )
             {
-                extern int * Gia_AigerReadMapping( unsigned char ** ppPos, int nSize );
-                extern int * Gia_AigerReadMappingSimple( unsigned char ** ppPos, int nSize );
                 extern Vec_Int_t * Gia_AigerReadMappingDoc( unsigned char ** ppPos, int nObjs );
+                unsigned char * end = (unsigned char *)pContents + nFileSize;
                 int nSize;
-                pCur++;
-                nSize = Gia_AigerReadInt(pCur);
-                pCurTemp = pCur + nSize + 4;           pCur += 4;
-                pNew->vMapping = Gia_AigerReadMappingDoc( &pCur, Gia_ManObjNum(pNew) );
-                assert( pCur == pCurTemp );
+                if ( end - ++pCur < 4 ) break;
+                nSize = Gia_AigerReadInt(pCur); pCur += 4;
+                if ( nSize < 8 || nSize > end - pCur ) break;
+                // LUT roots and leaves refer to object IDs in the file.
+                if ( (fSkipStrash || fGiaSimple) && Gia_ManAndNum(pNew) == nAnds )
+                {
+                    pCurTemp = pCur + nSize;
+                    pNew->vMapping = Gia_AigerReadMappingDoc( &pCur, Gia_ManObjNum(pNew) );
+                    assert( pCur == pCurTemp );
+                }
+                else
+                {
+                    pCur += nSize;
+                    Abc_Print( 0, "Structural hashing enabled while reading AIGER invalidated the mapping.  Consider using \"&r -s\".\n" );
+                }
                 if ( fVerbose ) printf( "Finished reading extension \"m\".\n" );
             }
             // Named standard-cell mapping. The file literals must have their original IDs.
@@ -1275,11 +1284,6 @@ static Gia_Man_t * Gia_AigerReadFromMemoryInt( char * pContents, int nFileSize, 
             Vec_IntFreeP(&pNew->vCellMapping);
             Abc_Print(0, "Cell mapping cannot cover the rewritten initialization logic. Use &read -s to preserve it.\n");
         }
-    }
-    if ( !fGiaSimple && !fSkipStrash && pNew->vMapping )
-    {
-        Abc_Print( 0, "Structural hashing enabled while reading AIGER invalidated the mapping.  Consider using \"&r -s\".\n" );
-        Vec_IntFreeP( &pNew->vMapping );
     }
     if ( vNamesIn && Gia_ManPiNum(pNew) != Vec_PtrSize(vNamesIn) )
         Abc_Print( 0, "The number of inputs does not match the number of input names.\n" );

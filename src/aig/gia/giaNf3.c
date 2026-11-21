@@ -1377,13 +1377,18 @@ Gia_Man_t * Nf3_ManRecoverTimed( Gia_Man_t * Gia, Jf_Par_t * Pars, int nRounds, 
 {
     Nf3_Man_t * p;
     Nf3_Obj_t * Obj;
+    Gia_Obj_t * pBuf;
     Gia_Man_t * Result;
     Nf3_Plan_t Best;
     int Round, Id, k, nNodes, nLeaves, Nodes[NF3_WINDOW_MAX], Leaves[NF3_LEAF_MAX];
     word Hits;
     abctime Start = Abc_Clock();
-    if ( Gia->pManTime || Gia_ManBufNum(Gia) || Gia->vInArrs || Gia->vOutReqs ||
+    if ( Gia->pManTime || (Gia_ManBufNum(Gia) && (!Deadline || !Gia_ManHasCellMapping(Gia))) || Gia->vInArrs || Gia->vOutReqs ||
          Gia->vCiArrs || Gia->vCoReqs || Scl_ConIsRunning() ) return Gia;
+    // A timed mapped-netlist search can import explicit physical buffer
+    // instances. An unbound GIA buffer can represent a timing barrier.
+    Gia_ManForEachBuf(Gia,pBuf,Id)
+        if ( !Gia_ObjIsCell(Gia,2*Id) && !Gia_ObjIsCell(Gia,2*Id+1) ) return Gia;
     p = Nf3_Import(Gia, Pars, nRounds > 1);
     if ( p == NULL ) return Gia;
     p->Deadline = Deadline;

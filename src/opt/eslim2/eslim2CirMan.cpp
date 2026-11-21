@@ -1105,11 +1105,18 @@ namespace eSLIM2 {
       taboo->discardSubcircuit(subcir);
     }
     std::vector<std::unique_ptr<eSLIM2CirObj>> nodes_aux = replaceInternal(replacement, subcir);
-    int size_diff = subcir.nodes.size() - replacement.getNofGates();
-    if (nodes_aux.size() + size_diff != nodes.size()) {
+    const size_t projected_size = nodes.size() - subcir.nodes.size() + replacement.getNofGates();
+    if (nodes_aux.size() != projected_size) {
       int nredundant = processRedundant(subcir);
       (void)nredundant;
-      assert(nodes_aux.size() + size_diff + nredundant == nodes.size());
+#ifndef NDEBUG
+      // A replacement output can lose its last use in the enclosing circuit.
+      // Only gates still owned by the replacement were skipped by the rebuild.
+      const auto unused = std::count_if(replacement.nodes.begin() + replacement.getNofPis() + 1,
+          replacement.nodes.end() - replacement.getNofPos(),
+          [](const std::unique_ptr<eSLIM2CirObj>& gate) { return bool(gate); });
+      assert(nodes_aux.size() + nredundant + unused == projected_size);
+#endif
     }
     std::swap(nodes, nodes_aux);
   }
@@ -1156,9 +1163,9 @@ namespace eSLIM2 {
       invec.push_back(nodes[subcir.inputs[i]].get());
     }
 
-    int size_diff = subcir.nodes.size() - replacement.getNofGates();
+    const size_t projected_size = nodes.size() - subcir.nodes.size() + replacement.getNofGates();
     std::vector<std::unique_ptr<eSLIM2CirObj>> nodes_aux;
-    nodes_aux.reserve(getNofObjs() - size_diff);
+    nodes_aux.reserve(projected_size);
     for (int i = 0; i <= getNofPis(); i++) { // "<=" because of the constant node
       moveNode(nodes_aux, nodes[i]);
     }
@@ -1168,7 +1175,7 @@ namespace eSLIM2 {
     for (int i = 1; i <= getNofPos(); i++) {
       insertSorted(nodes[nodes.size() - i].get(), nodes_aux, replacement, out_map, invec);
     }
-    assert (nodes_aux.size() <= nodes.size());
+    assert(nodes_aux.size() + getNofPos() <= projected_size);
     int current_depth = 0;
     for (int i = 0; i < getNofPos(); i++) {
       int po_id = getNofObjs() - getNofPos() + i;

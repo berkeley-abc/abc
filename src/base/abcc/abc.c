@@ -217,6 +217,7 @@ void Abc_FrameUpdateGia( Abc_Frame_t * pAbc, Gia_Man_t * pNew )
         Abc_Print( 0, "The current GIA has no primary outputs. Some commands may not work correctly.\n" );
     if ( pNew == pAbc->pGia )
         return;
+    Abc_FrameSetGias( pAbc, NULL, 0, 0 );
     // transfer names
     if (!pNew->vNamesIn && pAbc->pGia && pAbc->pGia->vNamesIn && Gia_ManCiNum(pNew) == Vec_PtrSize(pAbc->pGia->vNamesIn))
     {
@@ -259,6 +260,7 @@ Gia_Man_t * Abc_FrameGetGia( Abc_Frame_t * pAbc )
     pAbc->pGia2 = NULL;
     pGia = pAbc->pGia;
     pAbc->pGia = NULL;
+    Abc_FrameSetGias( pAbc, NULL, 0, 0 );
     Sn_ForgetGiaDescriptor(pAbc);
     return pGia;
 }
@@ -357,6 +359,7 @@ void Abc_End( Abc_Frame_t * pAbc )
         Sdm_ManQuit();
     }
     Abc_NtkFraigStoreClean();
+    Abc_FrameSetGias( pAbc, NULL, 0, 0 );
     Gia_ManStopP( &pAbc->pGia );
     Gia_ManStopP( &pAbc->pGia2 );
     Gia_ManStopP( &pAbc->pGiaBest );

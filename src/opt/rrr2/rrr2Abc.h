@@ -85,6 +85,17 @@ namespace rrr2 {
     return pGia;
   }
 
+  inline Gia_Man_t *CreateBalancedGia(BalancedAig const &aig) {
+    Gia_Man_t *g = Gia_ManStart(1+aig.inputs+aig.area+static_cast<int>(aig.outs.size()));
+    std::vector<int> copy(aig.nodes.size(),0);
+    for(int i = 1; i <= aig.inputs; ++i) copy[i] = Gia_ManAppendCi(g);
+    auto lit = [&](int x) { return copy[x/2] ^ (x&1); };
+    for(int i = aig.inputs+1; i < static_cast<int>(aig.nodes.size()); ++i)
+      if(aig.live[i]) copy[i] = Gia_ManAppendAnd(g,lit(aig.nodes[i].a),lit(aig.nodes[i].b));
+    for(int x : aig.outs) Gia_ManAppendCo(g,lit(x));
+    return g;
+  }
+
   template <typename Ntk>
   void Abc9Execute(Ntk *pNtk, std::string Command) {
     Abc_Frame_t *pAbc = Abc_FrameGetGlobalFrame();

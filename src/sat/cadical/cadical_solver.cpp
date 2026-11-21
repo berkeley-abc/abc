@@ -352,8 +352,6 @@ static bool tracing_api_calls_through_environment_variable_method;
 #endif
 /*------------------------------------------------------------------------*/
 
-static bool tracing_nb_lidrup_env_var_method = false;
-
 Solver::Solver () {
 
 #ifndef CADICAL_NTRACING
@@ -396,18 +394,13 @@ Solver::Solver () {
     lidrup_path = getenv ("CADICALLIDRUPTRACE");
   if (lidrup_path) {
 
-    // if (tracing_nb_lidrup_env_var_method)
-    // FATAL ("can not trace LIDRUP of two solver instances "
-    //   "using environment variable 'CADICAL_LIDRUP_TRACE'");
     // Here we use the solver interface to setup non-binary IDRUP tracing to
     // the defined file. Options set by the user can and will overwrite
     // these settings if neeed be.
     set ("lidrup", 1);
     set ("binary", 0);
     trace_proof (lidrup_path);
-    tracing_nb_lidrup_env_var_method = true;
-  } else {
-    tracing_nb_lidrup_env_var_method = false;
+    internal->flush_lidrup_trace = true;
   }
 
   delete_internal.release ();
@@ -419,8 +412,6 @@ Solver::~Solver () {
   TRACE ("reset");
   REQUIRE_VALID_OR_SOLVING_STATE ();
   STATE (DELETING);
-
-  tracing_nb_lidrup_env_var_method = false;
 
 #ifdef LOGGING
   //
@@ -758,7 +749,7 @@ int Solver::propagate () {
   REQUIRE_VALID_STATE ();
   transition_to_steady_state ();
   const int res = external->propagate_assumptions ();
-  if (tracing_nb_lidrup_env_var_method)
+  if (internal->flush_lidrup_trace)
     flush_proof_trace (true);
   LOG_API_CALL_RETURNS ("propagate_assumptions", res);
   if (res == 10)
@@ -778,7 +769,7 @@ void Solver::implied (std::vector<int> &entrailed) {
       "can only get implied literals only in unknown or satisfied state");
   external->conclude_unknown ();
   external->implied (entrailed);
-  if (tracing_nb_lidrup_env_var_method)
+  if (internal->flush_lidrup_trace)
     flush_proof_trace (true);
   LOG_API_CALL_RETURNS ("implied", (int) entrailed.size ());
 }
@@ -834,7 +825,7 @@ int Solver::solve () {
   REQUIRE_READY_STATE ();
   const int res = call_external_solve_and_check_results (false);
   LOG_API_CALL_RETURNS ("solve", res);
-  if (tracing_nb_lidrup_env_var_method)
+  if (internal->flush_lidrup_trace)
     flush_proof_trace (true);
   return res;
 }

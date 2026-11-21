@@ -121,9 +121,11 @@ struct Abc_Frame_t_
     // inductive don't-cares
     Vec_Int_t *     vIndFlops;
     int             nIndFrames;
+    int             nGiasLutSize;   // 0 for ANDs, positive for LUT width, -1 for cell delay
 
     // new code
     Gia_Man_t *     pGia;          // alternative current network as a light-weight AIG
+    Vec_Ptr_t *     pGias;         // indexed by logic level, or packed in increasing cell delay
     Gia_Man_t *     pGia2;         // copy of the above
     Gia_Man_t *     pGiaBest;      // copy of the above
     Gia_Man_t *     pGiaBest2;     // copy of the above
@@ -179,6 +181,7 @@ struct Abc_Frame_t_
 
     Abc_Frame_Callback_BmcFrameDone_Func pFuncOnFrameDone;
     Abc_Nf2Cache_t  Nf2Cache;      // compiled cell libraries owned by this frame
+    word            GiasLibSignature; // library identity for saved standard-cell witnesses
 };
 
 typedef void (*Abc_Frame_Initialization_Func)( Abc_Frame_t * pAbc );

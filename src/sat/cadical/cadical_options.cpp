@@ -98,12 +98,15 @@ void Options::initialize_from_environment (int &val, const char *name,
 // Initialize all the options to their default value 'V'.
 
 Options::Options (Internal *s) : internal (s) {
-  CADICAL_assert (number_of_options == sizeof Options::table / sizeof (Option));
+  static_assert (sizeof table / sizeof *table == number_of_options,
+                 "invalid CaDiCaL option table size");
 
   // First initialize them according to defaults in 'options.hpp'.
   //
   const char *prev = "";
+#if !defined(CADICAL_NDEBUG) && !defined(NDEBUG)
   size_t i = 0;
+#endif
 #define OPTION(N, V, L, H, O, P, R, D) \
   do { \
     if ((L) > (V)) \
@@ -115,10 +118,9 @@ Options::Options (Internal *s) : internal (s) {
     if (strcmp (prev, #N) > 0) \
       FATAL ("'%s' ordered before '" #N "' in 'options.hpp'", prev); \
     N = (int) (V); \
-    CADICAL_assert (&val (i) == &N); \
     CADICAL_assert (!strcmp (table[i].name, #N)); \
+    CADICAL_assert (&val (i++) == &N); \
     prev = #N; \
-    i++; \
   } while (0);
   OPTIONS
 #undef OPTION

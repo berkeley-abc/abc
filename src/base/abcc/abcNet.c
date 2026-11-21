@@ -4212,6 +4212,7 @@ int Abc_CommandAbc9Append( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // compute the miter
     Gia_ManDupAppend( pAbc->pGia, pSecond, fShareCis );
+    Abc_FrameSetGias( pAbc, NULL, 0, 0 );
     Gia_ManStop( pSecond );
     return 0;
 

@@ -1520,6 +1520,7 @@ int Abc_CommandAbc9Load( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Gia_ManStopP( &pAbc->pGia );
     pAbc->pGia = Gia_ManDupWithAttributes( pAbc->pGiaBest );
+    Abc_FrameSetGias(pAbc, NULL, 0, 0);
     Sn_ForgetGiaDescriptor(pAbc);
     return 0;
 
@@ -1564,6 +1565,7 @@ int Abc_CommandAbc9Load2( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Gia_ManStopP( &pAbc->pGia );
     pAbc->pGia = pAbc->pGiaBest2;
+    Abc_FrameSetGias(pAbc, NULL, 0, 0);
     Sn_ForgetGiaDescriptor(pAbc);
     pAbc->pGiaBest2 = NULL;
     pAbc->nBestLuts2 = 0;
@@ -1612,6 +1614,7 @@ int Abc_CommandAbc9LoadAig( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Gia_ManStopP( &pAbc->pGia );
     pAbc->pGia = Gia_ManDupWithAttributes( pAbc->pGiaSaved );
+    Abc_FrameSetGias(pAbc, NULL, 0, 0);
     Sn_ForgetGiaDescriptor(pAbc);
     return 0;
 
@@ -2033,6 +2036,7 @@ int Abc_CommandAbc9Undo( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Gia_ManStop( pAbc->pGia );
     pAbc->pGia = pAbc->pGia2;
+    Abc_FrameSetGias(pAbc, NULL, 0, 0);
     Sn_ForgetGiaDescriptor(pAbc);
     pAbc->pGia2 = NULL;
     return 0;

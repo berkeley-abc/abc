@@ -286,7 +286,7 @@ static Gia_Man_t * Gia_ManTranStoch2Opt3( Gia_ManTranStoch2Param * p ) {
   Synopsis    [Runs independent stochastic transduction with one worker.]
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManTranStoch2( Gia_Man_t * pGia, int nRestarts, int nHops, int nSeedBase, int fMspf, int fMerge, int fResetHop, int fZeroCostHop, int fRefactor, int fTruth, int fSingle, int fOriginalOnly, int fNewLine, Gia_Man_t * pExdc, int nVerbose, int nCandidates, int nMspfRestarts, int fHybrid, int fLocal, int nTime ) {
+static Gia_Man_t * Gia_ManTranStoch2Int( Gia_Man_t * pGia, int nRestarts, int nHops, int nSeedBase, int fMspf, int fMerge, int fResetHop, int fZeroCostHop, int fRefactor, int fTruth, int fSingle, int fOriginalOnly, int fNewLine, Gia_Man_t * pExdc, int nVerbose, int nCandidates, int nMspfRestarts, int fHybrid, int fLocal, abctime Deadline ) {
   int i, j = 0;
   Gia_Man_t * pNew, * pBest, * pStart;
   Abc_Ntk_t * pNtk, * pNtkRes; Vec_Ptr_t * vpStarts;
@@ -309,8 +309,8 @@ Gia_Man_t * Gia_ManTranStoch2( Gia_Man_t * pGia, int nRestarts, int nHops, int n
   p->nMspfRestarts = nMspfRestarts;
   p->fHybrid = fHybrid;
   p->fLocal = fLocal;
-  p->Deadline = nTime ? Abc_Clock() + (abctime)nTime * CLOCKS_PER_SEC : 0;
-  p->pBestSeen = (nCandidates || nMspfRestarts || fHybrid || fLocal || nTime) ? Gia_ManDup(pGia) : NULL;
+  p->Deadline = Deadline;
+  p->pBestSeen = (nCandidates || nMspfRestarts || fHybrid || fLocal || Deadline) ? Gia_ManDup(pGia) : NULL;
   // Build alternative starting points only when their BDD package is available.
 #ifndef ABC_USE_CUDD
   fOriginalOnly = 1;
@@ -400,6 +400,34 @@ Gia_Man_t * Gia_ManTranStoch2( Gia_Man_t * pGia, int nRestarts, int nHops, int n
   pBest->pName = Abc_UtilStrsav( pGia->pName );
   pBest->pSpec = Abc_UtilStrsav( pGia->pSpec );
   return pBest;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs the stochastic search with the command's whole-second timeout.]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManTranStoch2( Gia_Man_t * pGia, int nRestarts, int nHops, int nSeedBase, int fMspf, int fMerge, int fResetHop, int fZeroCostHop, int fRefactor, int fTruth, int fSingle, int fOriginalOnly, int fNewLine, Gia_Man_t * pExdc, int nVerbose, int nCandidates, int nMspfRestarts, int fHybrid, int fLocal, int nTime ) {
+  abctime Deadline = nTime ? Abc_Clock() + (abctime)nTime * CLOCKS_PER_SEC : 0;
+  return Gia_ManTranStoch2Int(pGia,nRestarts,nHops,nSeedBase,fMspf,fMerge,fResetHop,
+      fZeroCostHop,fRefactor,fTruth,fSingle,fOriginalOnly,fNewLine,pExdc,nVerbose,
+      nCandidates,nMspfRestarts,fHybrid,fLocal,Deadline);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs an area trial until an absolute Abc_ClockHr deadline.]
+
+***********************************************************************/
+Gia_Man_t * Gia_ManTranStoch2AreaTimed( Gia_Man_t * pGia, int Seed, abctime Deadline ) {
+  abctime stop = 0;
+  if ( Deadline ) {
+    abctime remaining = Deadline - Abc_ClockHr();
+    if ( remaining <= 0 ) return NULL;
+    stop = Abc_Clock() + (remaining / 1000000000) * CLOCKS_PER_SEC
+                       + (remaining % 1000000000) * CLOCKS_PER_SEC / 1000000000;
+  }
+  return Gia_ManTranStoch2Int(pGia,1,3,Seed,1,1,1,0,0,2,0,1,0,NULL,0,0,0,0,0,stop);
 }
 
 ABC_NAMESPACE_IMPL_END

@@ -83,6 +83,9 @@ extern ABC_DLL void            Abc_Stop();
 /*=== mainFrame.c ===========================================================*/
 extern ABC_DLL Abc_Ntk_t *     Abc_FrameReadNtk( Abc_Frame_t * p );
 extern ABC_DLL Gia_Man_t *     Abc_FrameReadGia( Abc_Frame_t * p );
+extern ABC_DLL Vec_Ptr_t *     Abc_FrameReadGias( Abc_Frame_t * p );
+extern ABC_DLL int             Abc_FrameReadGiasLutSize( Abc_Frame_t * p );
+extern ABC_DLL word            Abc_FrameReadGiasLibSignature( Abc_Frame_t * p );
 extern ABC_DLL FILE *          Abc_FrameReadOut( Abc_Frame_t * p );
 extern ABC_DLL FILE *          Abc_FrameReadErr( Abc_Frame_t * p );
 extern ABC_DLL Abc_Frame_t *    Abc_FrameCreateChild( void );
@@ -94,6 +97,7 @@ extern ABC_DLL void            Abc_FrameRestart( Abc_Frame_t * p );
 extern ABC_DLL int             Abc_FrameShowProgress( Abc_Frame_t * p );
 extern ABC_DLL void            Abc_FrameClearVerifStatus( Abc_Frame_t * p );
 extern ABC_DLL void            Abc_FrameUpdateGia( Abc_Frame_t * p, Gia_Man_t * pNew );
+extern ABC_DLL void            Abc_FrameSetGias( Abc_Frame_t * p, Vec_Ptr_t * vNew, int nLutSize, word LibSignature );
 extern ABC_DLL Gia_Man_t *     Abc_FrameGetGia( Abc_Frame_t * p );
 
 extern ABC_DLL void            Abc_FrameSetCurrentNetwork( Abc_Frame_t * p, Abc_Ntk_t * pNet );

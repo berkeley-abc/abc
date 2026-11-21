@@ -56,6 +56,7 @@ namespace rrr2 {
     int nNeutral = -1;
     int nCandidates = 0;
     int nDepthLimit = -1;
+    bool fBalancedAig = false;
     int nFirstConflicts = 0;
     int nWindow = 0;
   };

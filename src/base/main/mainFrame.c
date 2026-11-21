@@ -374,6 +374,41 @@ Gia_Man_t * Abc_FrameReadGia( Abc_Frame_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Borrows the current vector of level-indexed AIG witnesses.]
+
+  Description [The frame owns both the vector and its non-NULL entries.
+  Abc_FrameReadGiasLutSize gives the LUT width for mapped levels, or zero
+  when the vector uses AND levels. Standard-cell witnesses are packed in
+  increasing pin delay and use -1.]
+
+***********************************************************************/
+Vec_Ptr_t * Abc_FrameReadGias( Abc_Frame_t * p )
+{
+    return p->pGias;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns LUT width, zero for AND levels, or -1 for cell delays.]
+
+***********************************************************************/
+int Abc_FrameReadGiasLutSize( Abc_Frame_t * p )
+{
+    return p->nGiasLutSize;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the cell witness library signature, or zero for AIGs and LUTs.]
+
+***********************************************************************/
+word Abc_FrameReadGiasLibSignature( Abc_Frame_t * p )
+{
+    return p->GiasLibSignature;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -663,12 +698,40 @@ void Abc_FrameDeleteAllNetworks( Abc_Frame_t * p )
         Abc_NtkDelete( pNtk );
     // set the current network empty
     p->pNtkCur = NULL;
+    Abc_FrameSetGias( p, NULL, 0, 0 );
 //    fprintf( p->Out, "All networks have been deleted.\n" );
     Gia_ManStopP( &p->pGia );
     Gia_ManStopP( &p->pGia2 );
     Gia_ManStopP( &p->pGiaBest );
     Gia_ManStopP( &p->pGiaBest2 );
     Gia_ManStopP( &p->pGiaSaved );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Installs the witness vector and its mapping metadata together.]
+
+  Description [The frame owns the vector and each distinct non-NULL witness.
+  A witness may occupy several slots. Entries in a new vector must be owned
+  independently of the current GIA and of the vector being replaced. Passing
+  the installed vector updates its metadata. Passing NULL clears the set.
+  Use width zero for AIGs, a positive LUT width, or -1 with a cell library signature.]
+
+***********************************************************************/
+void Abc_FrameSetGias( Abc_Frame_t * p, Vec_Ptr_t * vNew, int nLutSize, word LibSignature )
+{
+    Gia_Man_t * pGia;
+    int i;
+    if ( p->pGias && p->pGias != vNew )
+    {
+        Vec_PtrUniqify( p->pGias, NULL );
+        Vec_PtrForEachEntry( Gia_Man_t *, p->pGias, pGia, i )
+            if ( pGia ) Gia_ManStop( pGia );
+        Vec_PtrFree( p->pGias );
+    }
+    p->pGias = vNew;
+    p->nGiasLutSize = vNew ? nLutSize : 0;
+    p->GiasLibSignature = vNew && nLutSize == -1 ? LibSignature : 0;
 }
 
 /**Function*************************************************************
