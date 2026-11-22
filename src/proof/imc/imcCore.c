@@ -127,6 +127,7 @@ void Imc_ManSetDefaultParams( Imc_Par_t * p )
 {
     memset( p, 0, sizeof(Imc_Par_t) );
     p->fPortfolio = 1;
+    p->fShortProbe = 1;
     p->fUseMiniSat = 0;
     p->fBackward = 1;
     p->fDual = 0;
@@ -1509,8 +1510,12 @@ static int Imc_ManPerformEntry( Gia_Man_t * pGia, Imc_Par_t * pPars )
         Abc_Print( 1, "IMC: Solved by phase %s.\n", Run.pSolvedPhase );
     Imc_ManClearRun( &Run );
     pPars->iFrame = Pars.iFrame;
-    Abc_Print( 1, "IMC: %s.  ", Result == 1 ? "Property proved" : Result == 0 ? "Property disproved" : "Undecided" );
-    Abc_PrintTime( 1, "Time", Abc_Clock() - TimeStart );
+    if ( !pPars->fSilent )
+    {
+        Abc_Print( 1, "IMC: %s.  ",
+            Result == 1 ? "Property proved" : Result == 0 ? "Property disproved" : "Undecided" );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - TimeStart );
+    }
     return Result;
 }
 

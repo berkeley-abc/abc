@@ -517,8 +517,9 @@ extern int                Pdr2_ManSolveInt( Pdr2_Man_t * p );
 extern int                Pdr2_ManHasMuxReduction( Aig_Man_t * pAig, Pdr2_Par_t * pPars, abctime Stop );
 // pdr2Policy.c
 extern void               Pdr2_ManPrintFeatures( Aig_Man_t * pAig );
-extern void               Pdr2_ManPrintPolicy( Aig_Man_t * pAig, Vec_Int_t * vInit );
+extern void               Pdr2_ManPrintPolicy( Aig_Man_t * pAig, Vec_Int_t * vInit, int fTuned );
 extern void               Pdr2_ManPrintPolicyParams( Pdr2_Par_t * pPars );
+extern int                Pdr2_ManCheckedProbe( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars, int fStride );
 extern int                Pdr2_ManSolvePolicy( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars );
 
 ABC_NAMESPACE_HEADER_END

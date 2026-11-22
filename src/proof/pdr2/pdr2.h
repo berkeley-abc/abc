@@ -37,7 +37,9 @@ ABC_NAMESPACE_HEADER_START
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
+enum { PDR2_SCHED_DIRECT = 0, PDR2_SCHED_BASE = 3, PDR2_SCHED_TUNED, PDR2_SCHED_TUNED_DIRECT, PDR2_SCHED_CHECKED };
 typedef struct Pdr2_Par_t_ Pdr2_Par_t;
+struct Gip_Options_t_;
 struct Pdr2_Par_t_
 {
     int nFrameMax;        // limit on frame count (0 = no limit)
@@ -125,6 +127,8 @@ struct Pdr2_Par_t_
     int fBmcDecided;      // output: the BMC stage decided the property
     char * pInvFileName;  // invariant file name
     abctime timePolicyStop; // outer deadline for fixed-depth CNF construction (-1 = standalone, 0 = unlimited)
+    const struct Gip_Options_t_ * pOptions;
+    int iSchedule;
 };
 
 // Borrowed for one frame-hint callback. Levels 1..iLevel store delta clauses;
@@ -152,6 +156,7 @@ typedef int (*Pdr2_FrameHintFunc)( const Pdr2_Frame_t *, Vec_Wec_t *, void * );
 // pdr2Core.c
 extern void               Pdr2_ManSetDefaultParams( Pdr2_Par_t * pPars );
 extern int                Pdr2_ManSolve( Aig_Man_t * p, Pdr2_Par_t * pPars );
+extern int                Pdr2_ManSolveAbstraction( Aig_Man_t * p, Pdr2_Par_t * pPars );
 extern int                Pdr2_ManSolveInit( Aig_Man_t * p, Vec_Int_t * vInit, Pdr2_Par_t * pPars );
 extern int                Pdr2_ManSolveHints( Aig_Man_t * pAig, Vec_Wec_t * vCubes, abctime TimeStop,
                               int (*pFuncStop)(int), int * piFrame, int fVerbose );

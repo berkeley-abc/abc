@@ -140,6 +140,10 @@ extern int               Gia_ManPerformGlaOld( Gia_Man_t * p, Abs_Par_t * pPars,
 /*=== absIter.c =========================================================*/
 extern Gia_Man_t *       Gia_ManShrinkGla( Gia_Man_t * p, int nFrameMax, int nTimeOut, int fUsePdr, int fUseSat, int fUseBdd, int fVerbose );
 /*=== absPth.c =========================================================*/
+typedef struct Abs_Prover_t_ Abs_Prover_t;
+extern Abs_Prover_t *    Gia_GlaProverStart( Gia_Man_t * p, int fSimpProver, int fVerbose, abctime Deadline );
+extern int               Gia_GlaProverCheck( Abs_Prover_t * p );
+extern void              Gia_GlaProverStop( Abs_Prover_t ** pp );
 extern void              Gia_GlaProveAbsracted( Gia_Man_t * p, int fSimpProver, int fVerbose );
 extern void              Gia_GlaProveCancel( int fVerbose );
 extern int               Gia_GlaProveCheck( int fVerbose );

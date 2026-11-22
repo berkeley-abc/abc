@@ -70,6 +70,7 @@ void Pdr2_ManSetDefaultParams( Pdr2_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(Pdr2_Par_t) );
     pPars->timePolicyStop = -1;
+    pPars->iSchedule = PDR2_SCHED_TUNED;
     pPars->nFrameMax     =       0;  // limit on frame count
     pPars->nTimeOut      =       0;  // timeout in seconds
     pPars->nRandomSeed   =       0;  // random seed
@@ -6723,12 +6724,43 @@ int Pdr2_ManHasMuxReduction( Aig_Man_t * p, Pdr2_Par_t * pPars, abctime Stop )
     return fUseful;
 }
 
+int Pdr2_ManCheckedProbe( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars, int fStride )
+{
+    Abc_Cex_t * pCex = NULL;
+    char * pInit = ABC_CALLOC( char, Aig_ManRegNum(pAig) + 1 );
+    int i, Result;
+    assert( !vInit || Vec_IntSize(vInit) == Aig_ManRegNum(pAig) );
+    for ( i = 0; vInit && i < Vec_IntSize(vInit); i++ )
+        pInit[i] = (char)Vec_IntEntry(vInit, i);
+    if ( fStride && Gip_OptionGet("PDR2_STRIDE_REVERSE") && atoi(Gip_OptionGet("PDR2_STRIDE_REVERSE")) )
+        Result = -1;
+    else if ( fStride )
+        Result = Pdr2_ManStride( pAig, pInit, pPars, pPars->timePolicyStop, &pCex );
+    else
+    {
+        pPars->nBmcTime = pPars->nTimeOut;
+        Result = Pdr2_ManBmcStage( pAig, pInit, pPars, pPars->timePolicyStop, &pCex );
+        if ( Result != 0 ) Result = -1;
+    }
+    ABC_FREE( pInit );
+    if ( Result == 0 && !pCex ) Result = -1;
+    if ( Result == 0 )
+    {
+        Abc_CexFreeP( &pAig->pSeqModel );
+        pAig->pSeqModel = pCex;
+        pPars->iFrame = pCex->iFrame;
+        pPars->fBmcDecided = !fStride;
+    }
+    else Abc_CexFreeP( &pCex );
+    return Result;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Checks sequential safety with an explicit register reset vector.]
 
 ***********************************************************************/
-int Pdr2_ManSolveInit( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
+static int Pdr2_ManSolveCore( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
 {
     static const char * const pRunNames[5] = { "dynamic generalization", "CTG generalization", "abstraction with dynamic generalization",
         "CTG generalization with weakening by simulation", "abstraction with CTG generalization" };
@@ -6754,12 +6786,14 @@ int Pdr2_ManSolveInit( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
     double RaceSlice = Gip_OptionGet("PDR2_RACE_SLICE_MS") ?
         Abc_MaxInt(1, Abc_MinInt(60000, atoi(Gip_OptionGet("PDR2_RACE_SLICE_MS")))) / 1000.0 : 2.0;
     int RetValue = -1, fOrPos = 0, fPreproc = 0, fAlternate, nRuns, nAbsRuns, iPhase = 0, k = 0, j, fBmcDone = 0, fInitZero = 1, fExplicitDone = 0, fBddDone = 0, fSplitDone = 0, fShiftDone = 0, fStrideDone = 0, fPredDone = 0, fCombDone = 0;
+    if ( pPars->timePolicyStop > 0 && (!timeGlobal || pPars->timePolicyStop < timeGlobal) )
+        timeGlobal = pPars->timePolicyStop;
     Abc_CexFreeP( &pAig->pSeqModel );
-    if ( pPars->pFuncStop && pPars->pFuncStop(pPars->RunId) )
+    if ( (timeGlobal && timeStart >= timeGlobal) || (pPars->pFuncStop && pPars->pFuncStop(pPars->RunId)) )
         return -1;
     if ( Gip_OptionGet("PDR2_PLAN") )
     {
-        Pdr2_ManPrintPolicy(pAig, vInit);
+        Pdr2_ManPrintPolicy(pAig, vInit, pPars->iSchedule == PDR2_SCHED_TUNED);
         return -1;
     }
     if ( Gip_OptionGet("PDR2_FEATURES") )
@@ -6798,8 +6832,23 @@ int Pdr2_ManSolveInit( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
         pInit[j] = (char)Vec_IntEntry( vInit, j );
         fInitZero &= pInit[j] == 0;
     }
-    if ( ABC_HAS_THREAD_LOCAL && Gip_OptionGet("PDR2_POLICY") && atoi(Gip_OptionGet("PDR2_POLICY")) &&
-         Saig_ManPoNum(pAig) == 1 && !Saig_ManConstrNum(pAig) && !Aig_ManBufNum(pAig) && !Aig_ManExorNum(pAig) &&
+    if ( pPars->iSchedule == PDR2_SCHED_CHECKED && fRequireInv && fInitZero && Saig_ManPoNum(pAig) == 1 &&
+         !Aig_ManBufNum(pAig) && !Aig_ManExorNum(pAig) && Aig_ManRegNum(pAig) &&
+         Aig_ManNodeNum(pAig) < 500000 && Aig_ManObjNumMax(pAig) <= 1000000 &&
+         !pPars->fDumpInv && !pPars->nFrameMax && !pPars->nInitLiReg &&
+         !pPars->fPartRun && !pPars->fShiftRun && !pPars->fStrideRun && !pPars->fPredRun &&
+         (!timeGlobal || timeGlobal - timeStart >= 4 * (abctime)CLOCKS_PER_SEC) )
+    {
+        int Result = Pdr2_ManSolvePolicy( pAig, vInit, pPars );
+        if ( Result >= 0 || (pPars->nPropLimit && Result == -1) || (timeGlobal && Abc_Clock() >= timeGlobal) ||
+             (pPars->pFuncStop && pPars->pFuncStop(pPars->RunId)) )
+        {
+            ABC_FREE( pInit );
+            return Result < 0 ? -1 : Result;
+        }
+    }
+    if ( (pPars->iSchedule == PDR2_SCHED_TUNED || pPars->iSchedule == PDR2_SCHED_BASE) &&
+         fInitZero && Saig_ManPoNum(pAig) == 1 && !Aig_ManBufNum(pAig) && !Aig_ManExorNum(pAig) &&
          !pPars->fDumpInv && !pPars->fVerifyComplete &&
          !pPars->nFrameMax && !pPars->nPropLimit && !pPars->nInitLiReg &&
          !pPars->fPartRun && !pPars->fShiftRun && !pPars->fStrideRun && !pPars->fPredRun )
@@ -7456,6 +7505,66 @@ init_runs:
     Vec_IntFreeP( &vCoiPis );
     Vec_IntFreeP( &vCoiRegs );
     return RetValue;
+}
+
+int Pdr2_ManSolveInit( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars )
+{
+    const char * pKeys[] = { "PDR2_WATCH_PACK", "PDR2_WATCH_AHEAD", "PDR2_DROP_HISTORY" };
+    const char * pValues[] = { "1", "4", "4" };
+    Gip_Options_t Options;
+    int Result, Schedule = pPars->iSchedule;
+    int fTunedDirect = Schedule == PDR2_SCHED_TUNED_DIRECT || Schedule == PDR2_SCHED_CHECKED ||
+                       (Schedule == PDR2_SCHED_TUNED && pPars->fVerifyComplete);
+    if ( !fTunedDirect && !pPars->pOptions )
+        return Pdr2_ManSolveCore( pAig, vInit, pPars );
+    memset( &Options, 0, sizeof(Options) );
+    Options.nOptions = fTunedDirect ? 3 : 0;
+    Options.pKeys = pKeys;
+    Options.pValues = pValues;
+    Options.pOverrides = pPars->pOptions;
+    Gip_OptionsPush( &Options );
+    if ( Schedule == PDR2_SCHED_TUNED && pPars->fVerify && pPars->fVerifyComplete )
+        pPars->iSchedule = PDR2_SCHED_CHECKED;
+    else if ( fTunedDirect && Schedule != PDR2_SCHED_CHECKED )
+        pPars->iSchedule = PDR2_SCHED_DIRECT;
+    Result = Pdr2_ManSolveCore( pAig, vInit, pPars );
+    pPars->iSchedule = Schedule;
+    Gip_OptionsPop( &Options );
+    return Result;
+}
+
+int Pdr2_ManSolveAbstraction( Aig_Man_t * pAig, Pdr2_Par_t * pPars )
+{
+    Pdr2_Par_t Probe = *pPars;
+    abctime Start = Abc_Clock(), ProbeStop = Start + 3 * (abctime)CLOCKS_PER_SEC;
+    abctime Deadline = pPars->nTimeOut ? Start + (abctime)pPars->nTimeOut * CLOCKS_PER_SEC : 0;
+    abctime Saved = pPars->timePolicyStop;
+    int Result;
+    if ( Saved > 0 && (!Deadline || Saved < Deadline) ) Deadline = Saved;
+    if ( Deadline && Deadline < ProbeStop ) ProbeStop = Deadline;
+    Probe.iSchedule = PDR2_SCHED_TUNED_DIRECT;
+    Probe.fDynamic = 0;
+    Probe.nLiftSim = 2;
+    Probe.nMicMode = Probe.fBlockInduct = 1;
+    Probe.timePolicyStop = ProbeStop;
+    Result = Pdr2_ManSolve( pAig, &Probe );
+    if ( Result < 0 && !pPars->nPropLimit && (!Deadline || ProbeStop < Deadline) &&
+         (!pPars->pFuncStop || !pPars->pFuncStop(pPars->RunId)) )
+    {
+        pPars->timePolicyStop = Deadline;
+        Result = Pdr2_ManSolve( pAig, pPars );
+        pPars->timePolicyStop = Saved;
+        pPars->nPhasesRun += Probe.nPhasesRun;
+        pPars->nRestartsRun += Probe.nRestartsRun;
+    }
+    else
+    {
+        pPars->iFrame = Probe.iFrame;
+        pPars->nPhasesRun = Probe.nPhasesRun;
+        pPars->nRestartsRun = Probe.nRestartsRun;
+        pPars->fBmcDecided = Probe.fBmcDecided;
+    }
+    return Result;
 }
 
 ////////////////////////////////////////////////////////////////////////

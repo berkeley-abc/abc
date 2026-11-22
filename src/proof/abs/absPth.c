@@ -19,7 +19,8 @@
 ***********************************************************************/
  
 #include "abs.h"
-#include "proof/pdr/pdr.h"
+#include "proof/pdr2/pdr2.h"
+#include "base/main/main.h"
 #include "proof/ssw/ssw.h"
 
 
@@ -40,161 +41,142 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifndef ABC_USE_PTHREADS
+#ifdef ABC_USE_PTHREADS
+pthread_mutex_t g_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
-void Gia_GlaProveAbsracted( Gia_Man_t * p, int fSimpProver, int fVerbose ) {}
-void Gia_GlaProveCancel( int fVerbose )                                    {}
-int  Gia_GlaProveCheck( int fVerbose )                                     { return 0; }
+#if defined(ABC_USE_PTHREADS) && ABC_HAS_THREAD_LOCAL
 
-#else // pthreads are used
-
-// information given to the thread
-typedef struct Abs_ThData_t_
+struct Abs_Prover_t_
 {
     Aig_Man_t * pAig;
-    int         fVerbose;
-    int         RunId;
-} Abs_ThData_t;
+    pthread_t Thread;
+    pthread_mutex_t Mutex;
+    abctime Deadline;
+    int fStop, fProved;
+};
 
-// mutext to control access to shared variables
-pthread_mutex_t g_mutex = PTHREAD_MUTEX_INITIALIZER;
-static volatile int g_nRunIds = 0;             // the number of the last prover instance
-static volatile int g_fAbstractionProved = 0;  // set to 1 when prover successed to prove
-
-// call back procedure for PDR
-int Abs_CallBackToStop( int RunId ) { assert( RunId <= g_nRunIds ); return RunId < g_nRunIds; }
-
-// test procedure to replace PDR
-int Pdr_ManSolve_test( Aig_Man_t * pAig, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
-{
-    char * p = ABC_ALLOC( char, 111 );
-    while ( 1 )
-    {
-        if ( pPars->pFuncStop && pPars->pFuncStop(pPars->RunId) )
-            break;
-    }
-    ABC_FREE( p );
-    return -1;
-}
+static ABC_THREAD_LOCAL Abs_Prover_t * s_pAbsWorker;
+static ABC_THREAD_LOCAL Abs_Prover_t * s_pAbsLegacy;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/**Function*************************************************************
-
-  Synopsis    [Create one thread]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void * Abs_ProverThread( void * pArg )
+static int Abs_ProverStop( int RunId )
 {
-    Abs_ThData_t * pThData = (Abs_ThData_t *)pArg;
-    Pdr_Par_t Pars, * pPars = &Pars;
-    int RetValue, status;
-    // call PDR
-    Pdr_ManSetDefaultParams( pPars );
-    pPars->fSilent   = 1;
-    pPars->RunId     = pThData->RunId;
-    pPars->pFuncStop = Abs_CallBackToStop;
-    RetValue = Pdr_ManSolve( pThData->pAig, pPars );
-    // update the result
-    if ( RetValue == 1 )
-    {
-        status = pthread_mutex_lock(&g_mutex);  assert( status == 0 );
-        g_fAbstractionProved = 1;
-        status = pthread_mutex_unlock(&g_mutex);  assert( status == 0 );
-    }
-    // quit this thread
-    if ( pThData->fVerbose )
-    {
-        if ( RetValue == 1 )
-            Abc_Print( 1, "Proved abstraction %d.\n", pThData->RunId );
-        else if ( RetValue == 0 )
-            Abc_Print( 1, "Disproved abstraction %d.\n", pThData->RunId );
-        else if ( RetValue == -1 )
-            Abc_Print( 1, "Cancelled abstraction %d.\n", pThData->RunId );
-        else assert( 0 );
-    }
-    // free memory
-    Aig_ManStop( pThData->pAig );
-    ABC_FREE( pThData );
-    // quit this thread
-    pthread_exit( NULL );
-    assert(0);
+    Abs_Prover_t * p = s_pAbsWorker;
+    int Stop;
+    (void)RunId;
+    pthread_mutex_lock( &p->Mutex );
+    Stop = p->fStop;
+    pthread_mutex_unlock( &p->Mutex );
+    return Stop;
+}
+
+static void * Abs_ProverThread( void * pArg )
+{
+    Abs_Prover_t * p = (Abs_Prover_t *)pArg;
+    Abc_Frame_t * pFrame = Abc_FrameCreateChild(), * pPrevious = Abc_FrameEnter(pFrame);
+    Pdr2_Par_t Pars;
+    int Result;
+    s_pAbsWorker = p;
+    Pdr2_ManSetDefaultParams( &Pars );
+    Pars.iSchedule = PDR2_SCHED_CHECKED;
+    Pars.timePolicyStop = p->Deadline;
+    Pars.fSilent = Pars.fVerify = Pars.fVerifyComplete = 1;
+    Pars.pFuncStop = Abs_ProverStop;
+    Result = Pdr2_ManSolveAbstraction( p->pAig, &Pars );
+    pthread_mutex_lock( &p->Mutex );
+    p->fProved = Result == 1;
+    pthread_mutex_unlock( &p->Mutex );
+    s_pAbsWorker = NULL;
+    Abc_FrameLeave( pPrevious );
+    Abc_FrameDestroy( pFrame );
     return NULL;
 }
-void Gia_GlaProveAbsracted( Gia_Man_t * pGia, int fSimpProver, int fVerbose )
+
+Abs_Prover_t * Gia_GlaProverStart( Gia_Man_t * pGia, int fSimpProver, int fVerbose, abctime Deadline )
 {
-    extern Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose );
-    Abs_ThData_t * pThData;
-    Ssw_Pars_t Pars, * pPars = &Pars;
-    Aig_Man_t * pAig, * pTemp;
+    Abs_Prover_t * p;
+    Aig_Man_t * pReduced;
     Gia_Man_t * pAbs;
-    pthread_t ProverThread;
-    int status;
-    // disable verbosity
-//    fVerbose = 0;
-    // create abstraction 
-    assert( pGia->vGateClasses != NULL );
+    Ssw_Pars_t Pars;
+    if ( Deadline && Abc_Clock() >= Deadline ) return NULL;
+    p = ABC_CALLOC( Abs_Prover_t, 1 );
+    if ( pthread_mutex_init(&p->Mutex, NULL) )
+    {
+        ABC_FREE( p );
+        return NULL;
+    }
     pAbs = Gia_ManDupAbsGates( pGia, pGia->vGateClasses );
     Gia_ManCleanValue( pGia );
-    pAig = Gia_ManToAigSimple( pAbs );
+    p->pAig = Gia_ManToAig( pAbs, 0 );
     Gia_ManStop( pAbs );
-    // simplify abstraction
     if ( fSimpProver )
     {
-        Ssw_ManSetDefaultParams( pPars );
-        pPars->nFramesK = 4;
-        pAig = Ssw_SignalCorrespondence( pTemp = pAig, pPars );
-//printf( "\n" );
-//Aig_ManPrintStats( pTemp );
-//Aig_ManPrintStats( pAig );
-        Aig_ManStop( pTemp );
+        Ssw_ManSetDefaultParams( &Pars );
+        Pars.nFramesK = 4;
+        if ( Deadline ) Pars.TimeLimit = Abc_MaxInt(1, (int)((Deadline - Abc_Clock()) / CLOCKS_PER_SEC));
+        pReduced = Ssw_SignalCorrespondence( p->pAig, &Pars );
+        if ( pReduced )
+        {
+            Aig_ManStop( p->pAig );
+            p->pAig = pReduced;
+        }
     }
-    // synthesize abstraction
-//    pAig = Dar_ManRwsat( pTemp = pAig, 0, 0 ); 
-//    Aig_ManStop( pTemp );
-    // reset the proof 
-    status = pthread_mutex_lock(&g_mutex);  assert( status == 0 );
-    g_fAbstractionProved = 0;
-    status = pthread_mutex_unlock(&g_mutex);  assert( status == 0 );
-    // collect thread data
-    pThData = ABC_CALLOC( Abs_ThData_t, 1 );
-    pThData->pAig = pAig;
-    pThData->fVerbose = fVerbose;
-    status = pthread_mutex_lock(&g_mutex);  assert( status == 0 );
-    pThData->RunId = ++g_nRunIds;
-    status = pthread_mutex_unlock(&g_mutex);  assert( status == 0 );
-    // create thread
-    if ( fVerbose )  Abc_Print( 1, "\nTrying to prove abstraction %d.\n", pThData->RunId );
-    status = pthread_create( &ProverThread, NULL, Abs_ProverThread, pThData );
-    assert( status == 0 );
+    p->Deadline = Deadline;
+    if ( (!Deadline || Abc_Clock() < Deadline) && !pthread_create(&p->Thread, NULL, Abs_ProverThread, p) )
+    {
+        if ( fVerbose ) Abc_Print( 1, "Trying to prove the abstraction with PDR2.\n" );
+        return p;
+    }
+    Aig_ManStop( p->pAig );
+    pthread_mutex_destroy( &p->Mutex );
+    ABC_FREE( p );
+    return NULL;
 }
-void Gia_GlaProveCancel( int fVerbose )
+int Gia_GlaProverCheck( Abs_Prover_t * p )
 {
-    int status;
-    status = pthread_mutex_lock(&g_mutex);  assert( status == 0 );
-    g_nRunIds++;
-    status = pthread_mutex_unlock(&g_mutex);  assert( status == 0 );
+    int Result;
+    if ( !p ) return 0;
+    pthread_mutex_lock( &p->Mutex );
+    Result = p->fProved;
+    p->fProved = 0;
+    pthread_mutex_unlock( &p->Mutex );
+    return Result;
 }
-int Gia_GlaProveCheck( int fVerbose )
+void Gia_GlaProverStop( Abs_Prover_t ** pp )
 {
-    int status;
-    if ( g_fAbstractionProved == 0 )
-        return 0;
-    status = pthread_mutex_lock(&g_mutex);  assert( status == 0 );
-    g_fAbstractionProved = 0;
-    status = pthread_mutex_unlock(&g_mutex);  assert( status == 0 );
-    return 1;
+    Abs_Prover_t * p = *pp;
+    if ( !p ) return;
+    pthread_mutex_lock( &p->Mutex );
+    p->fStop = 1;
+    pthread_mutex_unlock( &p->Mutex );
+    pthread_join( p->Thread, NULL );
+    pthread_mutex_destroy( &p->Mutex );
+    Aig_ManStop( p->pAig );
+    ABC_FREE( *pp );
 }
 
-#endif // pthreads are used
+void Gia_GlaProveAbsracted( Gia_Man_t * p, int fSimpProver, int fVerbose )
+{
+    Gia_GlaProverStop( &s_pAbsLegacy );
+    s_pAbsLegacy = Gia_GlaProverStart( p, fSimpProver, fVerbose, 0 );
+}
+void Gia_GlaProveCancel( int fVerbose ) { (void)fVerbose; Gia_GlaProverStop( &s_pAbsLegacy ); }
+int Gia_GlaProveCheck( int fVerbose ) { (void)fVerbose; return Gia_GlaProverCheck(s_pAbsLegacy); }
+
+#else
+
+Abs_Prover_t * Gia_GlaProverStart( Gia_Man_t * p, int fSimpProver, int fVerbose, abctime Deadline ) { return NULL; }
+int Gia_GlaProverCheck( Abs_Prover_t * p ) { return 0; }
+void Gia_GlaProverStop( Abs_Prover_t ** pp ) {}
+void Gia_GlaProveAbsracted( Gia_Man_t * p, int fSimpProver, int fVerbose ) {}
+void Gia_GlaProveCancel( int fVerbose ) {}
+int Gia_GlaProveCheck( int fVerbose ) { return 0; }
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -28,6 +28,7 @@ struct Gip_Options_t_
     int nOptions, fIsolate;
     const char ** pKeys;
     const char ** pValues;
+    const Gip_Options_t * pOverrides;
 };
 extern const char * Gip_OptionGet( const char * pName );
 extern void Gip_OptionsPush( Gip_Options_t * p );

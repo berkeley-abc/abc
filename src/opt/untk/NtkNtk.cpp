@@ -1248,6 +1248,7 @@ int SolveAbstractModel( Wlc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, const string * pFi
     if ( pAig->pSpec == NULL )
         pAig->pSpec = Abc_UtilStrsav( pSolve->pName ? pSolve->pName : pSolve->pSpec );
     Pdr2_ManSetDefaultParams( &Pars );
+    Pars.iSchedule = PDR2_SCHED_CHECKED;
     Pars.nTimeOut = Abc_MaxInt( 0, nTimeOut );
     Pars.fVerifyComplete = 1;
     Pars.RunId = RunId;

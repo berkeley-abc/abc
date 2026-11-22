@@ -337,7 +337,8 @@ int Pdr2_ManSolveTail( Aig_Man_t * p, Vec_Int_t * vInit, Pdr2_Par_t * pPars, int
     Vec_Int_t * vAssume = NULL;
     int Result = -1, Count, Round, Added, i, r;
     abctime Stop = pPars->nTimeOut ? Abc_Clock() + (abctime)pPars->nTimeOut * CLOCKS_PER_SEC : 0;
-    if ( pPars->fVerify && pPars->fVerifyComplete ) return -1;
+    if ( pPars->fDumpInv ) return -1;
+    if ( pPars->timePolicyStop > 0 && (!Stop || pPars->timePolicyStop < Stop) ) Stop = pPars->timePolicyStop;
     if ( Depth < 1 || Depth > 32 || (ABC_INT64_T)Depth * Aig_ManObjNumMax(p) > 8000000 ||
          !Aig_ManRegNum(p) || Saig_ManPoNum(p) != 1 || Saig_ManConstrNum(p) || Aig_ManBufNum(p) || Aig_ManExorNum(p) ) return -1;
     pPast = Aig_ManStart(Aig_ManNodeNum(p));
@@ -351,7 +352,7 @@ int Pdr2_ManSolveTail( Aig_Man_t * p, Vec_Int_t * vInit, Pdr2_Par_t * pPars, int
     Vec_IntForEachEntry( vRegs, r, i ) Aig_ObjCreateCo(pPast, (Aig_Obj_t *)Vec_PtrEntry(vState, r));
     Aig_ManCleanup(pPast);
     Aig_ManSetCioIds(pPast);
-    if ( Gip_OptionGet("PDR2_TAIL_REFINE") && Vec_IntSize(vRegs) )
+    if ( !pPars->nPropLimit && Gip_OptionGet("PDR2_TAIL_REFINE") && Vec_IntSize(vRegs) )
         pKeep = ABC_CALLOC(char, Vec_IntSize(vRegs));
     for ( Round = 0; Round < 24; Round++ )
     {
@@ -366,7 +367,8 @@ int Pdr2_ManSolveTail( Aig_Man_t * p, Vec_Int_t * vInit, Pdr2_Par_t * pPars, int
             if ( Left < CLOCKS_PER_SEC ) break;
             Child.nTimeOut = (int)(Left / CLOCKS_PER_SEC);
         }
-        Result = Gip_OptionGet("PDR2_SAMPLE") ?
+        Child.timePolicyStop = Stop;
+        Result = !pPars->fVerifyComplete && Gip_OptionGet("PDR2_SAMPLE") ?
             Pdr2_ManSampleProperty(pModel, vTailInit, &Child, atoi(Gip_OptionGet("PDR2_SAMPLE"))) :
             Pdr2_ManSolveInit(pModel, vTailInit, &Child);
         if ( Result != 0 ) break;

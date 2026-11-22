@@ -179,6 +179,9 @@ struct Abc_Frame_t_
     int *           pNdrArray;
     void **         pLibHandles;   // dynamically loaded extension libraries
 
+#if !ABC_HAS_THREAD_LOCAL
+    struct Gip_Options_t_ * pGipOptions;
+#endif
     Abc_Frame_Callback_BmcFrameDone_Func pFuncOnFrameDone;
     Abc_Nf2Cache_t  Nf2Cache;      // compiled cell libraries owned by this frame
     word            GiasLibSignature; // library identity for saved standard-cell witnesses

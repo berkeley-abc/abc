@@ -10,7 +10,11 @@ rIC3 author.
 **************************************************************************************************/
 
 #include "gipsat.h"
+#if ABC_HAS_THREAD_LOCAL
 #include "base/main/main.h"
+#else
+#include "base/main/mainInt.h"
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
@@ -27,20 +31,28 @@ static ABC_THREAD_LOCAL Gip_Options_t * s_pGipOptions;
 ***********************************************************************/
 const char * Gip_OptionGet( const char * pName )
 {
-#if ABC_HAS_THREAD_LOCAL
+    Abc_Frame_t * pFrame;
     Gip_Options_t * p;
-    Abc_Frame_t * pFrame = s_pGipOptions ? Abc_FrameReadGlobalFrame() : NULL;
     int i;
-    for ( p = s_pGipOptions; p; p = p->pPrevious )
+#if ABC_HAS_THREAD_LOCAL
+    p = s_pGipOptions;
+    pFrame = p ? Abc_FrameReadGlobalFrame() : NULL;
+#else
+    pFrame = Abc_FrameReadGlobalFrame();
+    p = pFrame ? pFrame->pGipOptions : NULL;
+#endif
+    for ( ; p; p = p->pPrevious )
     {
         if ( p->pFrame != pFrame ) continue;
+        if ( p->pOverrides )
+            for ( i = 0; i < p->pOverrides->nOptions; i++ )
+                if ( !strcmp(pName, p->pOverrides->pKeys[i]) ) return p->pOverrides->pValues[i];
         for ( i = 0; i < p->nOptions; i++ )
             if ( !strcmp(pName, p->pKeys[i]) ) return p->pValues[i];
         // Retain explicitly requested diagnostic checks in an isolated stage.
         if ( p->fIsolate && !strncmp(pName, "PDR2_", 5) && !strstr(pName, "_CHECK") )
             return NULL;
     }
-#endif
     return getenv(pName);
 }
 
@@ -58,7 +70,10 @@ void Gip_OptionsPush( Gip_Options_t * p )
     p->pPrevious = s_pGipOptions;
     s_pGipOptions = p;
 #else
-    (void)p;
+    Abc_Frame_t * pFrame = Abc_FrameGetGlobalFrame();
+    p->pFrame = pFrame;
+    p->pPrevious = pFrame->pGipOptions;
+    pFrame->pGipOptions = p;
 #endif
 }
 
@@ -75,7 +90,9 @@ void Gip_OptionsPop( Gip_Options_t * p )
     assert(s_pGipOptions == p);
     s_pGipOptions = p->pPrevious;
 #else
-    (void)p;
+    Abc_Frame_t * pFrame = (Abc_Frame_t *)p->pFrame;
+    assert( pFrame->pGipOptions == p );
+    pFrame->pGipOptions = p->pPrevious;
 #endif
 }
 

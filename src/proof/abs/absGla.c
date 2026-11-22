@@ -1507,6 +1507,7 @@ void Gia_Ga2SendCancel( Ga2_Man_t * p, int fVerbose )
 int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
 {
     int fUseSecondCore = 1;
+    Abs_Prover_t * pProver = NULL;
     Ga2_Man_t * p;
     Vec_Int_t * vCore, * vPPis;
     abctime clk2, clk = Abc_Clock();
@@ -1523,8 +1524,16 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
             Abc_Print( 1, "Sequential miter is trivially UNSAT.\n" );
             return 1;
         }
-        pAig->pCexSeq = Abc_CexMakeTriv( Gia_ManRegNum(pAig), Gia_ManPiNum(pAig), 1, 0 );
+        pAig->pCexSeq = Abc_CexAlloc( Gia_ManRegNum(pAig), Gia_ManPiNum(pAig), 1 );
         Abc_Print( 1, "Sequential miter is trivially SAT.\n" );
+        return 0;
+    }
+    if ( Gia_ObjIsPi(pAig, Gia_ObjFanin0(Gia_ManPo(pAig, 0))) )
+    {
+        Gia_Obj_t * pPo = Gia_ManPo( pAig, 0 );
+        pAig->pCexSeq = Abc_CexAlloc( Gia_ManRegNum(pAig), Gia_ManPiNum(pAig), 1 );
+        if ( !Gia_ObjFaninC0(pPo) )
+            Abc_InfoSetBit( pAig->pCexSeq->pData, Gia_ManRegNum(pAig) + Gia_ObjCioId(Gia_ObjFanin0(pPo)) );
         return 0;
     }
     // create gate classes if not given
@@ -1660,7 +1669,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                     }
                     if ( iFrameTryToProve >= 0 )
                     {
-                        Gia_GlaProveCancel( pPars->fVerbose );
+                        Gia_GlaProverStop( &pProver );
                         iFrameTryToProve = -1;
                     }
 
@@ -1787,7 +1796,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
             if ( pPars->fVerbose )
                 Ga2_ManAbsPrintFrame( p, f, sat_solver2_nconflicts(p->pSat)-nConflsBeg, c, Abc_Clock() - clk, 1 );
             // check if abstraction was proved
-            if ( pPars->fCallProver && Gia_GlaProveCheck( pPars->fVerbose ) )
+            if ( pPars->fCallProver && Gia_GlaProverCheck( pProver ) )
             {
                 RetValue = 1;
                 goto finish;
@@ -1842,9 +1851,10 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                 {
                     // cancel old one if it is proving
                     if ( iFrameTryToProve >= 0 )
-                        Gia_GlaProveCancel( pPars->fVerbose );
+                        Gia_GlaProverStop( &pProver );
                     // prove new one
-                    Gia_GlaProveAbsracted( pAig, pPars->fSimpProver, pPars->fVeryVerbose );
+                    pProver = Gia_GlaProverStart( pAig, pPars->fSimpProver, pPars->fVeryVerbose,
+                        p->pSat->nRuntimeLimit );
                     iFrameTryToProve = f;
                     p->nPdrCalls++;
                 }
@@ -1876,7 +1886,7 @@ finish:
         Prf_ManStopP( &p->pSat->pPrf2 );
     // cancel old one if it is proving
     if ( iFrameTryToProve >= 0 )
-        Gia_GlaProveCancel( pPars->fVerbose );
+        Gia_GlaProverStop( &pProver );
     // analize the results
     if ( !p->fUseNewLine && !pPars->fSilent )
         Abc_Print( 1, "\n" );

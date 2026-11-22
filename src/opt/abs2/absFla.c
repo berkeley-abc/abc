@@ -254,6 +254,8 @@ static void * Fla_ManProveThread( void * pData )
     int Result;
     s_pFlaWorker = p;
     Pdr2_ManSetDefaultParams( &Pars );
+    Pars.iSchedule = p->pPars->nProveMode ? PDR2_SCHED_DIRECT : PDR2_SCHED_CHECKED;
+    Pars.timePolicyStop = p->clkStop;
     Pars.fSilent = 1;
     Pars.fVerify = 1;
     Pars.fVerifyComplete = 1;
@@ -261,6 +263,8 @@ static void * Fla_ManProveThread( void * pData )
     if ( !p->fThreaded )
         // The in-flight obligation may use one more slice before stopping.
         Pars.nPropLimit = (ABC_INT64_T)1000000 << p->nSlice;
+    if ( !p->pPars->nProveMode && !p->fThreaded && (p->nSlice < 2 || (p->nSlice & 1)) )
+        Pars.iSchedule = PDR2_SCHED_TUNED_DIRECT;
     if ( p->pPars->nProveMode == 1 )
         Pars.fDynamic = Pars.fCtg = 0;
     else if ( p->pPars->nProveMode >= 2 )
@@ -271,7 +275,10 @@ static void * Fla_ManProveThread( void * pData )
         Pars.fUseAbs = 1;
     if ( p->pPars->nProveMode == 5 )
         Pars.fDynamic = 0;
-    Result = Pdr2_ManSolve( p->pAigProve, &Pars );
+    if ( !p->pPars->nProveMode && (p->fThreaded || p->nSlice == 1) )
+        Result = Pdr2_ManSolveAbstraction( p->pAigProve, &Pars );
+    else
+        Result = Pdr2_ManSolve( p->pAigProve, &Pars );
     pCex = p->pAigProve->pSeqModel;
     p->pAigProve->pSeqModel = NULL;
     Aig_ManStop( p->pAigProve );
@@ -332,7 +339,7 @@ static int Fla_ManProveStart( Fla_Man_t * p, Vec_Int_t * vClasses, int iFrame )
         pAbs = Gia_ManDupMarked( pTemp = pAbs );
         Gia_ManStop( pTemp );
     }
-    p->pAigProve = Gia_ManToAigSimple( pAbs );
+    p->pAigProve = p->pPars->fRewrite ? Gia_ManToAig(pAbs, 0) : Gia_ManToAigSimple(pAbs);
     Gia_ManStop( pAbs );
     p->nSlice = p->vProve && Vec_IntEqual(p->vProve, vClasses) ? Abc_MinInt(p->nSlice + 1, 5) : 0;
     Vec_IntFreeP( &p->vProve );

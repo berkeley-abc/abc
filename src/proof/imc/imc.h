@@ -67,6 +67,7 @@ struct Imc_Par_t_
     int fShortProbe;       // start a timed portfolio with a short backward probe, then favor forward search
     int fPdrHints;         // pass clauses from a timed forward search to PDR2
     int fPdrFrames;        // interpolate the PDR frames and strengthen them at each selected cut
+    int fSilent;
 };
 
 ////////////////////////////////////////////////////////////////////////
