@@ -57,10 +57,39 @@ static void Pdr2_ManCheckSharedQuery( Pdr2_Man_t * p, int Frame, int Result,
     Gip_SolverFree( pCheck );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Decides whether a solver of the manager may request the jftr mode.]
+
+  Description [The conditions of pdr2; GipSAT ignores a request for a
+  solver or a context the mode is not defined for (see gipJftr.c). pSat
+  is a frame handle or an actual solver.]
+
+***********************************************************************/
+static int Pdr2_ManJftrEligible( Pdr2_Man_t * p, Gip_Solver_t * pSat )
+{
+    // the manager: no unit over a register input (initial-state predicate, trace guard), no shared solver, and no
+    // predecessor extraction that reads a full model (CNF justification, lifting memo)
+    if ( p->pPars->nInitLiReg || p->pInitSat || p->GuardLit >= 0 )
+        return 0;
+    if ( p->nSharedSlots || p->pShared )
+        return 0;
+    if ( p->nCnfJustMode || p->nLiftMemoMode )
+        return 0;
+    // the solver: not the private bad-state solver, and of the manager's context
+    return pSat != p->pBadRoot && pSat->pCtx == p->pCtx;
+}
+
+// the jftr request of one physical solve, set before every Gip_SolverSolve (the solver consumes it)
+static inline void Pdr2_ManSatSetJftr( Pdr2_Man_t * p, Gip_Solver_t * pHandle, int Request )
+{
+    Gip_SolverSetJftr( Pdr2_SolverActual(pHandle), Pdr2_ManJftrEligible(p, pHandle) ? Request : GIP_JFTR_NONE );
+}
+
 // runs one SAT query and accounts for its cost (the propagation count is the deterministic
 // measure of work used by the level restarts)
 static void Pdr2_ManSeedPhases( Pdr2_Man_t * p, Gip_Solver_t * pSat, int Frame, int Mode );
-static inline int Pdr2_ManSatSolve( Pdr2_Man_t * p, Gip_Solver_t * pSat, int * pLits, int nLits, int ** pCst, int * nCst, int nC, int QueryKind, int nDropConfs )
+static inline int Pdr2_ManSatSolve( Pdr2_Man_t * p, Gip_Solver_t * pSat, int * pLits, int nLits, int ** pCst, int * nCst, int nC, int QueryKind, int nDropConfs, int Request )
 {
     Gip_Solver_t * pHandle = pSat;
     pSat = Pdr2_SolverActual( pSat );
@@ -156,6 +185,8 @@ static inline int Pdr2_ManSatSolve( Pdr2_Man_t * p, Gip_Solver_t * pSat, int * p
     else
         pSat->nPropLimit = 0;
     p->nSolves++;
+    // evaluated here, after the per-query policy adjustments above
+    Pdr2_ManSatSetJftr( p, pHandle, Request );
     RetValue = Gip_SolverSolve( pSat, pLits, nLits, pCst, nCst, nC, -1 );
     if ( RetValue == GIP_UNDEF && p->fBadPhaseProbe && pSat->nConfLimit > 0 &&
          pSat->Stats.nConflicts >= pSat->nConfCounted + pSat->nConfLimit &&
@@ -180,6 +211,7 @@ static inline int Pdr2_ManSatSolve( Pdr2_Man_t * p, Gip_Solver_t * pSat, int * p
         Pdr2_ManSeedPhases(p, pSat, Pdr2_ManLevel(p), 2);
         pSat->nConfLimit = 0;
         p->nBadRephases++; p->nSolves++;
+        Pdr2_ManSatSetJftr( p, pHandle, Request );   // each physical solve needs its own request
         RetValue = Gip_SolverSolve(pSat, pLits, nLits, pCst, nCst, nC, -1);
     }
     pSat->nConfLimit = 0;
@@ -584,7 +616,7 @@ void Pdr2_ManSolverAddUnit( Pdr2_Man_t * p, Gip_Solver_t * pSat, int Lit )
   SeeAlso     []
 
 ***********************************************************************/
-static int Pdr2_ManSolveRelativeLimit( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCube, int fStrengthen, Vec_Int_t * vCstCls, int nDropConfs )
+static int Pdr2_ManSolveRelativeLimit( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCube, int fStrengthen, Vec_Int_t * vCstCls, int nDropConfs, int Request )
 {
     int * pCst[2], nCst[2], nC = 0;
     int i, Lit, RetValue;
@@ -603,7 +635,7 @@ static int Pdr2_ManSolveRelativeLimit( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_
         // clause. An UNSAT result without that clause proves a stronger fact.
         p->nStrengthenTrials++;
         RetValue = Pdr2_ManSatSolve(p, pSat, Vec_IntArray(p->vAssump), Vec_IntSize(p->vAssump),
-                                    NULL, NULL, 0, p->fInputBlockQuery ? 2 : 4, nDropConfs);
+                                    NULL, NULL, 0, p->fInputBlockQuery ? 2 : 4, nDropConfs, GIP_JFTR_NONE);
         if ( RetValue == GIP_UNDEF ) return -1;
         if ( RetValue == GIP_UNSAT ) { p->nStrengthenAvoided++; return 1; }
         Vec_IntForEachEntry(vCube, Lit, i)
@@ -631,7 +663,7 @@ static int Pdr2_ManSolveRelativeLimit( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_
         nCst[nC] = Vec_IntSize( p->vCst2 );
         nC++;
     }
-    RetValue = Pdr2_ManSatSolve( p, pSat, Vec_IntArray(p->vAssump), Vec_IntSize(p->vAssump), pCst, nCst, nC, p->fInputBlockQuery ? 2 : 4, nDropConfs );
+    RetValue = Pdr2_ManSatSolve( p, pSat, Vec_IntArray(p->vAssump), Vec_IntSize(p->vAssump), pCst, nCst, nC, p->fInputBlockQuery ? 2 : 4, nDropConfs, Request );
     if ( RetValue == GIP_UNSAT )
         return 1;
     if ( RetValue == GIP_SAT )
@@ -641,13 +673,25 @@ static int Pdr2_ManSolveRelativeLimit( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_
 
 int Pdr2_ManSolveRelative( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCube, int fStrengthen, Vec_Int_t * vCstCls )
 {
-    return Pdr2_ManSolveRelativeLimit( p, pSat, vCube, fStrengthen, vCstCls, 0 );
+    return Pdr2_ManSolveRelativeLimit( p, pSat, vCube, fStrengthen, vCstCls, 0, GIP_JFTR_NONE );
 }
 
 // Optional minimization may keep its last proved cube when a trial times out.
 int Pdr2_ManTryDrop( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCube, int fStrengthen, Vec_Int_t * vCstCls )
 {
-    return Pdr2_ManSolveRelativeLimit( p, pSat, vCube, fStrengthen, vCstCls, p->nDropConfLimit );
+    return Pdr2_ManSolveRelativeLimit( p, pSat, vCube, fStrengthen, vCstCls, p->nDropConfLimit, GIP_JFTR_NONE );
+}
+
+// the same two queries with a jftr request (GIP_JFTR_*)
+int Pdr2_ManSolveRelativeJftr( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCube, int fStrengthen,
+                               Vec_Int_t * vCstCls, int Request )
+{
+    return Pdr2_ManSolveRelativeLimit( p, pSat, vCube, fStrengthen, vCstCls, 0, Request );
+}
+int Pdr2_ManTryDropJftr( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCube, int fStrengthen,
+                         Vec_Int_t * vCstCls, int Request )
+{
+    return Pdr2_ManSolveRelativeLimit( p, pSat, vCube, fStrengthen, vCstCls, p->nDropConfLimit, Request );
 }
 
 /**Function*************************************************************
@@ -655,7 +699,7 @@ int Pdr2_ManTryDrop( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCube, int
   Synopsis    [Tries a cut-mapped solver when a frontier query runs out of conflicts.]
 
 ***********************************************************************/
-static int Pdr2_ManSolveBadMapped( Pdr2_Man_t * p, Gip_Solver_t * pSat, int Lit, int Seconds )
+static int Pdr2_ManSolveBadMapped( Pdr2_Man_t * p, Gip_Solver_t * pSat, int Lit, int Seconds, int Request )
 {
     const char * pOption = Gip_OptionGet("PDR2_BAD_MAPPED_CONFS");
     int Limit = pOption ? Abc_MaxInt(0, atoi(pOption)) : 512;
@@ -664,7 +708,7 @@ static int Pdr2_ManSolveBadMapped( Pdr2_Man_t * p, Gip_Solver_t * pSat, int Lit,
     if ( Limit )
     {
         ABC_INT64_T Cuts = p->nDropConfCuts;
-        Ret = Pdr2_ManSatSolve(p, pSat, &Lit, 1, NULL, NULL, 0, 1, Limit);
+        Ret = Pdr2_ManSatSolve(p, pSat, &Lit, 1, NULL, NULL, 0, 1, Limit, Request);
         if ( Ret != GIP_UNDEF || p->nDropConfCuts == Cuts ) return Ret;
         p->nDropConfCuts = Cuts;
     }
@@ -688,7 +732,7 @@ static int Pdr2_ManSolveBadMapped( Pdr2_Man_t * p, Gip_Solver_t * pSat, int Lit,
         }
         // Lifting consumes the frame solver's model and the original bad
         // literal in vLastAssump. Use the CI assignments for this call only.
-        Ret = Pdr2_ManSatSolve(p, pSat, Vec_IntArray(vFixed), Vec_IntSize(vFixed), NULL, NULL, 0, 1, 0);
+        Ret = Pdr2_ManSatSolve(p, pSat, Vec_IntArray(vFixed), Vec_IntSize(vFixed), NULL, NULL, 0, 1, 0, GIP_JFTR_NONE);
         Vec_IntFree(vFixed);
         if ( Ret != GIP_UNSAT )
         {
@@ -698,7 +742,7 @@ static int Pdr2_ManSolveBadMapped( Pdr2_Man_t * p, Gip_Solver_t * pSat, int Lit,
     }
     Vec_IntFree(vModel);
     if ( Pdr2_ManPastDeadline(p) ) return GIP_UNDEF;
-    return Pdr2_ManSatSolve(p, pSat, &Lit, 1, NULL, NULL, 0, 1, 0);
+    return Pdr2_ManSatSolve(p, pSat, &Lit, 1, NULL, NULL, 0, 1, 0, Request);
 }
 
 /**Function*************************************************************
@@ -717,6 +761,7 @@ int Pdr2_ManSolveBad( Pdr2_Man_t * p )
 {
     Gip_Solver_t * pSat = Pdr2_ManSolver( p, Pdr2_ManLevel(p) );
     int Lit = Abc_Var2Lit( p->VarBad, 0 ), RetValue;
+    int Request = Pdr2_ManJftrReq( p, PDR2_JQ_BAD, GIP_JFTR_WALK_SHRINK );
     const char * pPrefix = Gip_OptionGet( "PDR2_DUMP_BAD" );
     const char * pMapped = Gip_OptionGet( "PDR2_BAD_MAPPED_SECS" );
     char FileName[4096];
@@ -768,9 +813,9 @@ int Pdr2_ManSolveBad( Pdr2_Man_t * p )
          !p->pPars->nPropLimit && !p->propLimit && !p->propSlice && !p->nSharedSlots &&
          !p->nBadRootMode && !p->fBadPhaseProbe && !pPrefix &&
          !Aig_ManBufNum(p->pAig) && !Aig_ManExorNum(p->pAig) )
-        RetValue = Pdr2_ManSolveBadMapped(p, pSat, Lit, Abc_MinInt(60, atoi(pMapped)));
+        RetValue = Pdr2_ManSolveBadMapped(p, pSat, Lit, Abc_MinInt(60, atoi(pMapped)), Request);
     else
-        RetValue = Pdr2_ManSatSolve( p, pSat, &Lit, 1, NULL, NULL, 0, 1, 0 );
+        RetValue = Pdr2_ManSatSolve( p, pSat, &Lit, 1, NULL, NULL, 0, 1, 0, Request );
     if ( pSat == p->pBadRoot && Gip_OptionGet("PDR2_BADROOT_CHECK") )
         Pdr2_ManCheckSharedQuery(p, Pdr2_ManLevel(p), RetValue, &Lit, 1, NULL, NULL, 0);
     p->fBadPhaseProbe = 0;
@@ -803,7 +848,7 @@ int Pdr2_ManSolveContained( Pdr2_Man_t * p, Gip_Solver_t * pSat, Pdr2_Cube_t * p
     Vec_IntClear( p->vLastAssump );
     Vec_IntAppend( p->vLastAssump, p->vAssump );
     p->pLastSolver = pSat;
-    RetValue = Pdr2_ManSatSolve( p, pSat, Vec_IntArray(p->vAssump), Vec_IntSize(p->vAssump), NULL, NULL, 0, 16, 0 );
+    RetValue = Pdr2_ManSatSolve( p, pSat, Vec_IntArray(p->vAssump), Vec_IntSize(p->vAssump), NULL, NULL, 0, 16, 0, GIP_JFTR_NONE );
     if ( RetValue == GIP_UNSAT )
         return 1;
     if ( RetValue == GIP_SAT )
@@ -1240,6 +1285,8 @@ void Pdr2_ManGetPred( Pdr2_Man_t * p, int fStrengthen, Vec_Int_t * vCube, Vec_In
     int * pCls, nCls, fMemoProved = 0, fCnfJust = 0;
     if ( p->GuardLo >= 0 ) Vec_IntPushUnique(p->vLastAssump, p->GuardLo);
     if ( p->GuardLi >= 0 ) Vec_IntPushUnique(p->vLastAssump, p->GuardLi);
+    assert( !pModel->Jftr.fEarly || pModel->Jftr.fWalkClosed );
+    assert( !pModel->Jftr.fEarly || (!p->nLiftMemoMode && !p->nCnfJustMode) );
     Vec_IntClear( vCube );
     Vec_IntClear( vInputs );
     if ( p->nLiftMemoMode )
@@ -1347,12 +1394,13 @@ void Pdr2_ManGetPred( Pdr2_Man_t * p, int fStrengthen, Vec_Int_t * vCube, Vec_In
         // functionally (they are outside the lifting domain, which follows the CNF): those are
         // dropped afterwards, the implication of the targets does not need them
         Vec_IntClear( vCube );
-        vCis = Pdr2_ManLiftCis( p, pModel->vTrail, 1, 0 );
+        // an early answer: the completed registers are not on the trail, so the sparse scan of the trail misses them
+        vCis = pModel->Jftr.fEarly ? NULL : Pdr2_ManLiftCis( p, pModel->vTrail, 1, 0 );
         nCis = vCis ? Vec_IntSize(vCis) : p->nRegs;
         for ( j = 0; j < nCis; j++ )
         {
             i = vCis ? Vec_IntEntry(vCis, j) : j;
-            Value = pModel->pValue[p->pLoVar[i]];
+            Value = Pdr2_SolverCompletedValue( pModel, p->pLoVar[i] );
             if ( Value != GIP_NONE )
                 Vec_IntPush( vCube, Abc_Var2Lit(i, Value == GIP_FALSE) );
         }
@@ -1397,7 +1445,7 @@ lift_ready:
         Vec_IntAppend( p->vLift2, p->vLift1 );
         Vec_IntForEachEntry( vCube, Lit, i )
             Vec_IntPush( p->vLift2, Pdr2_LitLo(p, Lit) );
-        RetValue = Pdr2_ManSatSolve( p, p->pLift, Vec_IntArray(p->vLift2), Vec_IntSize(p->vLift2), &pCls, &nCls, 1, 8, 0 );
+        RetValue = Pdr2_ManSatSolve( p, p->pLift, Vec_IntArray(p->vLift2), Vec_IntSize(p->vLift2), &pCls, &nCls, 1, 8, 0, GIP_JFTR_NONE );
         if ( RetValue != GIP_UNSAT )
         {
             // on a timeout the current cube is kept: it still implies the target

@@ -2767,7 +2767,7 @@ usage:
     Abc_Print( -2, "\t         WATCH_PACK 0..1, WATCH_AHEAD 0..32, DROP_HISTORY 0..4, DIRECT_PROBE 0..60 sec\n" );
     Abc_Print( -2, "\t         BMC (seconds), TIMEGEN 0..2, DYNRUN, COMPACT, LAZYCNF, CTGLOCAL, CTP 0..8,\n" );
     Abc_Print( -2, "\t         WARM, SPARSELIFT, PREFIX 0..256, MICFAIL 0..32, WALLSLICES, SHARED 0..4,\n" );
-    Abc_Print( -2, "\t         REACH 0..256, LCORR (unmarked switches accept 0 or 1)\n" );
+    Abc_Print( -2, "\t         REACH 0..256, LCORR (unmarked switches accept 0 or 1), JFTR_CONFS (conflicts)\n" );
     return 1;
 }
 
@@ -2779,7 +2779,7 @@ static int Abc_CommandPdr2( Abc_Frame_t * pAbc, int argc, char ** argv )
         { "PDR2_DYNRUN", 1 }, { "PDR2_COMPACT", 1 }, { "PDR2_LAZYCNF", 1 },
         { "PDR2_CTGLOCAL", 1 }, { "PDR2_CTP", 8 }, { "PDR2_WARM", 1 }, { "PDR2_SPARSELIFT", 1 },
         { "PDR2_PREFIX", 256 }, { "PDR2_MICFAIL", 32 }, { "PDR2_WALLSLICES", 1 },
-        { "PDR2_SHARED", 4 }, { "PDR2_REACH", 256 }, { "PDR2_LCORR", 1 } };
+        { "PDR2_SHARED", 4 }, { "PDR2_REACH", 256 }, { "PDR2_LCORR", 1 }, { "PDR2_JFTR_CONFS", INT_MAX } };
     enum { nSettings = sizeof(Settings) / sizeof(Settings[0]) };
     const char * pKeys[nSettings], * pValues[nSettings], * pName, * pEqual;
     char * pEnd, ** pArgs;

@@ -114,6 +114,15 @@ typedef struct Pdr2_LiftMemo_t_
     int nKey, nCore;
     int Lits[1];
 } Pdr2_LiftMemo_t;
+// the query kinds of the mask PDR2_JFTR_SCOPE: bit (1 << PDR2_JQ_*) selects a kind (default 63 = all)
+enum {
+    PDR2_JQ_BAD = 0,           //  1: the bad-state query
+    PDR2_JQ_BLOCK,             //  2: the query that blocks a proof obligation
+    PDR2_JQ_MIC,               //  4: the generalization queries
+    PDR2_JQ_PUSH,              //  8: the push of a new lemma
+    PDR2_JQ_PROP,              // 16: the propagation query
+    PDR2_JQ_INF                // 32: promotion and propagation to infinity
+};
 
 struct Pdr2_Man_t_
 {
@@ -168,6 +177,7 @@ struct Pdr2_Man_t_
     ABC_INT64_T   nLiftPiBefore, nLiftPiAfter;
     int           nCnfJustMode;  // 1 = then SAT core, 2 = justification alone, 3 = only for an input-first model
     int           nInputScope;   // input-first query mask: bad, blocking, other relative, lifting, containment
+    int           nJftrScope;    // jftr query mask: bad, blocking, generalization, push, propagation, infinity
     int           nInputBadLimit; // optional input-first conflict limit for bad-state queries only
     int           fInputBlockQuery;
     char *        pCnfJustMark;
@@ -412,7 +422,29 @@ static inline word         Pdr2_LitSign( int Lit )                        { retu
 static inline Gip_Solver_t * Pdr2_SolverActual( Gip_Solver_t * pSat )    { return pSat->pShared ? pSat->pShared : pSat; }
 static inline int          Pdr2_SolverValue( Gip_Solver_t * pSat, int v ) { return Pdr2_SolverActual(pSat)->pValue[v]; }
 static inline int          Pdr2_SolverFlip( Gip_Solver_t * pSat, int v ) { return Gip_SolverFlipToNone(Pdr2_SolverActual(pSat), v); }
-static inline int          Pdr2_ManLitValue( Pdr2_Man_t * p, Gip_Solver_t * pSat, int Lit ) { return Gip_SolverLitValue( Pdr2_SolverActual(pSat), Pdr2_LitLo(p, Lit) ); }
+// the value of a register in the last model; where an early answer left it unassigned, its value in the completion
+static inline int          Pdr2_SolverCompletedValue( Gip_Solver_t * pSat, int Var )
+{
+    Gip_Solver_t * pAct = Pdr2_SolverActual( pSat );
+    int Value = pAct->pValue[Var];
+    if ( Value == GIP_NONE && pAct->Jftr.fEarly && pAct->pCtx->pLoIdx[Var] >= 0 )
+        Value = Gip_SolverCompletionValue( pAct, Var );
+    return Value;
+}
+static inline int          Pdr2_ManLitValue( Pdr2_Man_t * p, Gip_Solver_t * pSat, int Lit )
+{
+    Gip_Solver_t * pAct = Pdr2_SolverActual( pSat );
+    int LitLo = Pdr2_LitLo( p, Lit ), Value;
+    if ( !pAct->Jftr.fEarly )
+        return Gip_SolverLitValue( pAct, LitLo );
+    Value = Pdr2_SolverCompletedValue( pAct, Gip_LitVar(LitLo) );
+    return Value == GIP_NONE ? GIP_NONE : (Value == GIP_TRUE) ^ Gip_LitCompl(LitLo) ? GIP_TRUE : GIP_FALSE;
+}
+// the jftr request (GIP_JFTR_*) of a query of kind PDR2_JQ_*: none when PDR2_JFTR_SCOPE deselects the kind
+static inline int          Pdr2_ManJftrReq( Pdr2_Man_t * p, int Kind, int Request )
+{
+    return ((p->nJftrScope >> Kind) & 1) ? Request : GIP_JFTR_NONE;
+}
 // a flop literal excludes the initial states iff its flop has a defined initial value opposite to it
 // (a literal of a don't-care flop never does); a cube intersects them iff no literal excludes them
 static inline int          Pdr2_ManLitIsNonInit( Pdr2_Man_t * p, int Lit ) { return p->pInit[Abc_Lit2Var(Lit)] == Abc_LitIsCompl(Lit);    }
@@ -478,6 +510,8 @@ extern Gip_Solver_t *     Pdr2_ManNewSolver( Pdr2_Man_t * p, int k );
 extern void               Pdr2_ManSolverAddLemma( Pdr2_Man_t * p, Gip_Solver_t * pSat, Pdr2_Cube_t * pCube, int Id );
 extern int                Pdr2_ManSolveRelative( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCube, int fStrengthen, Vec_Int_t * vCstCls );
 extern int                Pdr2_ManTryDrop( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCube, int fStrengthen, Vec_Int_t * vCstCls );
+extern int                Pdr2_ManSolveRelativeJftr( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCube, int fStrengthen, Vec_Int_t * vCstCls, int Request );
+extern int                Pdr2_ManTryDropJftr( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCube, int fStrengthen, Vec_Int_t * vCstCls, int Request );
 extern int                Pdr2_ManSolveBad( Pdr2_Man_t * p );
 extern int                Pdr2_ManSolveContained( Pdr2_Man_t * p, Gip_Solver_t * pSat, Pdr2_Cube_t * pCube );
 extern int                Pdr2_ManInductiveCore( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCore );

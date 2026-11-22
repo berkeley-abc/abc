@@ -444,6 +444,18 @@ void Pdr2_ManSimWeaken( Pdr2_Man_t * p, Vec_Int_t * vCube, Vec_Int_t * vInputs )
     p->nLiftTrav++;
     Vec_IntForEachEntry( vVisit, Id, i )
         Pdr2_ManSimCone_rec( pAig, Aig_ManObj(pAig, Id), p->pLiftTrav, p->nLiftTrav, p->vLiftCone );
+    // an early answer of the jftr mode leaves inputs of the cone unassigned; the simulation uses them with value 0,
+    // so they become premises with that value: the weakened cube implies the targets together with vInputs
+    if ( Pdr2_SolverActual(p->pLastSolver)->Jftr.fEarly )
+        Vec_IntForEachEntry( p->vLiftCone, Id, i )
+        {
+            pObj = Aig_ManObj( pAig, Id );
+            if ( Saig_ObjIsPi(pAig, pObj) && !pPi[Aig_ObjCioId(pObj)] )
+            {
+                Vec_IntPush( vInputs, Abc_Var2Lit(Aig_ObjCioId(pObj), 1) );
+                pPi[Aig_ObjCioId(pObj)] = 1;
+            }
+        }
     Pdr2_ManSimCone( p, pVals );
     if ( fBad )
         fOk = pVals[Aig_ObjId(Aig_ManCo(pAig, 0))] == PDR2_V1;
