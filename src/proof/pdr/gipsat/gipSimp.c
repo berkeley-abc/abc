@@ -30,6 +30,7 @@ static void Gip_ClaSwapRemoveLit( Gip_Alloc_t * pA, int Cref, int j )
     for ( j = 0; j < Gip_ClaIsLearnt(pA, Cref) + 1; j++ )
         pA->pData[Cref + nLits + j] = pA->pData[Cref + nLits + 1 + j];
     Gip_ClaSetLen( pA, Cref, nLits - 1 );
+    Gip_ClaSetWhole( pA, Cref, 0 );
 }
 
 // removes satisfied clauses; strips false literals
@@ -96,6 +97,7 @@ static void Gip_SolverSimplifySatisfied( Gip_Solver_t * p )
     Gip_SolverSimplifySatisfiedList( p, p->Cdb.vLearnt );
     Gip_SolverSimplifySatisfiedList( p, p->Cdb.vTrans );
     p->nLastNumAssign = Vec_IntSize( p->vTrail );
+    p->Jftr.fCoverDirty = 1;
 }
 
 typedef struct Gip_SubEnt_t_
@@ -294,6 +296,7 @@ static void Gip_SolverSimplifySubsume( Gip_Solver_t * p )
         Vec_IntClear( vLemmas );
         Vec_IntAppend( vLemmas, vNew );
         Vec_IntFree( vNew );
+        p->Jftr.fCoverDirty = 1;
     }
     for ( i = 0; i < nEnts; i++ )
         Vec_IntFree( pEnts[i].vSorted );

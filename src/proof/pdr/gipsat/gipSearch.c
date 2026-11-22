@@ -133,6 +133,11 @@ void Gip_SolverBacktrack( Gip_Solver_t * p, int Level, int fVsids )
         Gip_SolverWakeSkipped( p, fVsids );
         return;
     }
+    if ( p->Jftr.nConfLimit )
+        Gip_SolverJftrBacktrack( p, Level );
+    // the jftr mode does not consume the decision queue, so nothing is put back
+    if ( p->Jftr.fActive )
+        fVsids = 0;
     while ( Vec_IntSize(p->vTrail) > Vec_IntEntry(p->vPosInTrail, Level) )
     {
         int Lit = Vec_IntPop( p->vTrail );
@@ -140,7 +145,8 @@ void Gip_SolverBacktrack( Gip_Solver_t * p, int Level, int fVsids )
         Gip_SolverSetNone( p, Var );
         if ( fVsids )
             Gip_VsidsPush( &p->Vsids, Var );
-        p->pPhase[Var] = (char)(1 ^ Gip_LitCompl(Lit));
+        if ( !p->Jftr.fActive )   // the jftr part of a solve leaves the saved phases alone
+            p->pPhase[Var] = (char)(1 ^ Gip_LitCompl(Lit));
     }
     p->nPropagated = Vec_IntEntry( p->vPosInTrail, Level );
     Vec_IntShrink( p->vPosInTrail, Level );
@@ -223,7 +229,7 @@ static int Gip_SolverSearch( Gip_Solver_t * p, int * pAssump, int nAssump, doubl
                 if ( v == GIP_TRUE )
                 {
                     Gip_SolverNewLevel( p );
-                    if ( Gip_SolverLevelOf(p) == nAssump )
+                    if ( Gip_SolverLevelOf(p) == nAssump && !p->Jftr.fActive )
                         Gip_SolverPrepareVsids( p );
                 }
                 else if ( v == GIP_FALSE )
@@ -235,12 +241,26 @@ static int Gip_SolverSearch( Gip_Solver_t * p, int * pAssump, int nAssump, doubl
                 {
                     Gip_SolverNewLevel( p );
                     Gip_SolverAssign( p, a, GIP_CREF_NONE );
-                    if ( Gip_SolverLevelOf(p) == nAssump )
+                    if ( Gip_SolverLevelOf(p) == nAssump && !p->Jftr.fActive )
                         Gip_SolverPrepareVsids( p );
                     goto continue_main;
                 }
             }
-            if ( !Gip_SolverDecide( p ) )
+            if ( p->Jftr.fActive )
+            {
+                if ( p->Stats.nConflicts - p->nConfCounted >= p->Jftr.nConfLimit )
+                {
+                    // the budget ran out: the rest of the solve is the ordinary GipSAT search, from the assumptions
+                    Gip_SolverJftrHandover( p, nAssump );
+                    goto continue_main;
+                }
+                if ( !Gip_SolverJftrDecide( p ) )
+                {
+                    p->Jftr.fEarly = 1;
+                    return GIP_SAT;
+                }
+            }
+            else if ( !Gip_SolverDecide( p ) )
                 return GIP_SAT;
         }
 continue_main:;
@@ -282,7 +302,8 @@ int Gip_SolverSearchWithRestart( Gip_Solver_t * p, int * pAssump, int nAssump, i
     // With assumptions, Search prepares the decision queue after installing
     // the last one. An assumption-free query must prepare it here; otherwise
     // an empty queue can report SAT before deciding the permanent domain.
-    if ( nAssump == 0 )
+    // In jftr mode the queue is prepared at the hand-over to the ordinary search (Gip_SolverJftrHandover).
+    if ( nAssump == 0 && !p->Jftr.fActive )
         Gip_SolverPrepareVsids( p );
     while ( 1 )
     {
@@ -290,7 +311,7 @@ int Gip_SolverSearchWithRestart( Gip_Solver_t * p, int * pAssump, int nAssump, i
         int res;
         if ( nRestartLimit >= 0 && restarts >= (unsigned)nRestartLimit )
             return GIP_UNDEF;
-        if ( restarts > 10 && p->Vsids.fEnableBucket )
+        if ( restarts > 10 && p->Vsids.fEnableBucket && !p->Jftr.fActive )
         {
             int i, d;
             p->Vsids.fEnableBucket = 0;

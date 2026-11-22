@@ -8210,6 +8210,10 @@ SOURCE=.\src\proof\pdr\gipsat\gipDomain.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\pdr\gipsat\gipJftr.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\pdr\gipsat\gipMain.c
 # End Source File
 # Begin Source File

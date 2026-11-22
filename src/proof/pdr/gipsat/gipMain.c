@@ -157,10 +157,16 @@ static Gip_Solver_t * Gip_SolverNewInt( Gip_Ctx_t * pCtx, int fLazy )
     p->fInputQueue = Gip_SolverOption(p, "PDR2_INPUT_QUEUE") && atoi(Gip_SolverOption(p, "PDR2_INPUT_QUEUE"));
     p->nInputConfLimit = Gip_SolverOption(p, "PDR2_INPUT_CONFS") ? Abc_MaxInt(0, atoi(Gip_SolverOption(p, "PDR2_INPUT_CONFS"))) : 0;
     p->nInputMillis = Gip_SolverOption(p, "PDR2_INPUT_MSEC") ? Abc_MaxInt(0, Abc_MinInt(10000, atoi(Gip_SolverOption(p, "PDR2_INPUT_MSEC")))) : 0;
+    p->Jftr.nConfLimit = Gip_SolverOption(p, "PDR2_JFTR_CONFS") ? Abc_MaxInt(0, atoi(Gip_SolverOption(p, "PDR2_JFTR_CONFS"))) : 0;
     if ( p->fJustify )
     {
         p->pJustSkip = ABC_CALLOC( char, p->nVarsAlloc );
         p->vJustSkip = Vec_IntAlloc( 100 );
+    }
+    if ( p->Jftr.nConfLimit )
+    {
+        Gip_SolverJftrInit( p );
+        p->Jftr.fCheck = Gip_SolverOption(p, "PDR2_JFTR_CHECK") != NULL;
     }
     p->nLastNumLemma = 1000;
     p->nCleanIdle = -1;
@@ -311,6 +317,9 @@ Gip_Solver_t * Gip_SolverCloneRoot( Gip_Solver_t * pSrc )
     p->vRecycleQueue = pSrc->vRecycleQueue ? Vec_IntDup(pSrc->vRecycleQueue) : NULL;
     p->vRecycleTmp = pSrc->vRecycleTmp ? Vec_IntDup(pSrc->vRecycleTmp) : NULL;
     p->Stats.nRecycleTry = p->Stats.nRecycled = 0;
+    if ( p->Jftr.nConfLimit )
+        Gip_SolverJftrInit( p );   // its own state: the pointers copied above belong to the source
+    p->Jftr.fCopied = 1;
     return p;
 }
 
@@ -332,6 +341,8 @@ int Gip_SolverWarmStartMode( Gip_Solver_t * p, Gip_Solver_t * pSrc, int Mode )
     assert( Gip_SolverLevelOf(p) == 0 );
     if ( p->fTrivialUnsat || pSrc->fTrivialUnsat )
         return 0;
+    // the jftr mode is not defined for a solver with imported state
+    p->Jftr.fCopied = 1;
     if ( Mode & 4 )
     {
     Vec_IntForEachEntry( pSrc->vTrail, Lit, i )
@@ -486,6 +497,7 @@ void Gip_SolverFree( Gip_Solver_t * p )
     Vec_IntFreeP( &p->vRecycleCond );
     Vec_IntFreeP( &p->vRecycleQueue );
     Vec_IntFreeP( &p->vRecycleTmp );
+    Gip_SolverJftrFree( p );
     ABC_FREE( p );
 }
 
@@ -675,7 +687,13 @@ int Gip_SolverAddClauseTag( Gip_Solver_t * p, int * pLits, int nLits, int Kind, 
         }
         return GIP_CREF_NONE;
     }
-    return Gip_SolverAttachClauseTag( p, Vec_IntArray(p->vSimpCls), Vec_IntSize(p->vSimpCls), Kind, TagWord );
+    {
+        int Cref = Gip_SolverAttachClauseTag( p, Vec_IntArray(p->vSimpCls), Vec_IntSize(p->vSimpCls), Kind, TagWord );
+        // relies on the kind TRANS being used only for the static defining clauses of the circuit
+        if ( p->Jftr.nConfLimit && Kind == GIP_CLA_TRANS && Vec_IntSize(p->vSimpCls) == nLits )
+            Gip_ClaSetWhole( &p->Cdb.Alloc, Cref, 1 );
+        return Cref;
+    }
 }
 int Gip_SolverAddClauseInner( Gip_Solver_t * p, int * pLits, int nLits, int Kind )
 {
@@ -696,6 +714,8 @@ int Gip_SolverAddClauseInner( Gip_Solver_t * p, int * pLits, int nLits, int Kind
 void Gip_SolverReset( Gip_Solver_t * p )
 {
     Gip_SolverBacktrack( p, 0, 0 );
+    // an early answer of the jftr mode ends with its assignment
+    p->Jftr.fActive = p->Jftr.fEarly = p->Jftr.fWalkClosed = 0;
     Gip_SolverCleanTemporary( p );
     p->fPreparedVsids = 0;
     Gip_DomainReset( &p->Domain );
@@ -813,6 +833,12 @@ static int Gip_SolverNewRound( Gip_Solver_t * p, Vec_Int_t * vSeeds,
                 if ( Gip_SolverLitValue(p, ppCstCls[c][i]) == GIP_FALSE && p->pTag0[Gip_LitVar(ppCstCls[c][i])] < Frame )
                     Frame = p->pTag0[Gip_LitVar(ppCstCls[c][i])];
             Gip_SolverAttachClauseTag( p, Vec_IntArray(p->vSimpCls), Vec_IntSize(p->vSimpCls), GIP_CLA_TEMPORARY, (unsigned)Frame << 1 );
+            if ( p->Jftr.Mode != GIP_JFTR_NONE )
+            {
+                // jftr mode: the constraint clause just attached
+                Vec_IntPush( p->Jftr.vCst, Vec_IntEntryLast(p->Cdb.vTemp) );
+                Vec_IntPush( p->Jftr.vCstWit, -1 );
+            }
         }
     }
     if ( !p->fTempDomain )
@@ -968,6 +994,8 @@ int Gip_SolverSolve( Gip_Solver_t * p,
     int fResume = fFixed && Vec_IntSize(pBatch->vPrevious) &&
         Vec_IntSize(pBatch->vClause) == pnCstLits[0] &&
         !memcmp(Vec_IntArray(pBatch->vClause), ppCstCls[0], sizeof(int) * pnCstLits[0]);
+    assert( !fResume || !p->Jftr.fActive );
+    Gip_SolverJftrBegin( p, pBatch != NULL );
     p->fCanceled = 0;
     p->nConfCounted = p->Stats.nConflicts;
     p->fInputAbandoned = 0;
@@ -1064,6 +1092,8 @@ assumptions:
         Gip_SolverCleanLearnt( p, 1 );
         Gip_SolverSimplify( p );
     }
+    if ( p->Jftr.Mode != GIP_JFTR_NONE )
+        Gip_SolverJftrStart( p, pUse, nUse );
     res = Gip_SolverSearchWithRestart( p, pUse, nUse, nRestartLimit );
     if ( fFixed && res != GIP_UNDEF && !p->fTrivialUnsat )
     {
