@@ -2302,15 +2302,17 @@ int IoCommandWriteAiger( Abc_Frame_t * pAbc, int argc, char **argv )
     int fWriteSymbols;
     int fCompact;
     int fUnique;
+    int fWriteChoices;
     int fVerbose;
     int c;
 
     fWriteSymbols = 0;
     fCompact      = 0;
     fUnique       = 0;
+    fWriteChoices = 0;
     fVerbose      = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "scuvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "scuqvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2322,6 +2324,9 @@ int IoCommandWriteAiger( Abc_Frame_t * pAbc, int argc, char **argv )
                 break;
             case 'u':
                 fUnique ^= 1;
+                break;
+            case 'q':
+                fWriteChoices ^= 1;
                 break;
             case 'v':
                 fVerbose ^= 1;
@@ -2356,19 +2361,20 @@ int IoCommandWriteAiger( Abc_Frame_t * pAbc, int argc, char **argv )
         Abc_Ntk_t * pTemp = Abc_NtkFromAigPhase( pCan );
         Aig_ManStop( pCan );
         Aig_ManStop( pAig );
-        Io_WriteAiger( pTemp, pFileName, fWriteSymbols, fCompact, fUnique );
+        Io_WriteAiger( pTemp, pFileName, fWriteSymbols, fCompact, fUnique, 0 );
         Abc_NtkDelete( pTemp );
     }
     else
-        Io_WriteAiger( pAbc->pNtkCur, pFileName, fWriteSymbols, fCompact, fUnique );
+        Io_WriteAiger( pAbc->pNtkCur, pFileName, fWriteSymbols, fCompact, fUnique, fWriteChoices );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_aiger [-scuvh] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_aiger [-scuqvh] <file>\n" );
     fprintf( pAbc->Err, "\t         writes the network in the AIGER format (http://fmv.jku.at/aiger)\n" );
     fprintf( pAbc->Err, "\t-s     : toggle saving I/O names [default = %s]\n", fWriteSymbols? "yes" : "no" );
     fprintf( pAbc->Err, "\t-c     : toggle writing more compactly [default = %s]\n", fCompact? "yes" : "no" );
     fprintf( pAbc->Err, "\t-u     : toggle writing canonical AIG structure [default = %s]\n", fUnique? "yes" : "no" );
+    fprintf( pAbc->Err, "\t-q     : toggle writing choices using the ABC9 \"q\" extension [default = %s]\n", fWriteChoices? "yes" : "no" );
     fprintf( pAbc->Err, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes" : "no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .aig)\n" );
