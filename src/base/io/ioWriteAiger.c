@@ -147,6 +147,123 @@ static unsigned Io_ObjMakeLit( int Var, int fCompl )                 { return (V
 static unsigned Io_ObjAigerNum( Abc_Obj_t * pObj )                   { return (unsigned)(ABC_PTRINT_T)pObj->pCopy;  }
 static void     Io_ObjSetAigerNum( Abc_Obj_t * pObj, unsigned Num )  { pObj->pCopy = (Abc_Obj_t *)(ABC_PTRINT_T)Num;     }
 
+// writing 4-byte big-endian integers, as in the AIGER extensions written by GIA
+static void Io_WriteAigerInt( Vec_Str_t * vStr, unsigned Value )
+{
+    Vec_StrPush( vStr, (char)((Value >> 24) & 0xff) );
+    Vec_StrPush( vStr, (char)((Value >> 16) & 0xff) );
+    Vec_StrPush( vStr, (char)((Value >>  8) & 0xff) );
+    Vec_StrPush( vStr, (char)( Value        & 0xff) );
+}
+
+/**Function***********************************************************
+
+  Synopsis    [Collects the AND gates in the order they are written.]
+
+  Description [When the network has choices, the gates are collected in
+  the same order as in the existing GIA conversion (cf. Gia_ManFromAigChoices_rec):
+  each choice member is collected immediately before its representative,
+  so the representative always receives a larger AIGER variable than the
+  members of its class.  This preserves the direction of the choice links
+  in extension "q" even when the representative has a smaller node ID than
+  its members (which happens in the networks created by &put).
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_WriteAigerCollectGates_rec( Vec_Ptr_t * vGates, Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pFanin, * pMember;
+    if ( pNode->fMarkA )
+        return;
+    pNode->fMarkA = 1;
+    pFanin = Abc_ObjRegular( Abc_ObjFanin0(pNode) );
+    if ( Abc_ObjIsNode(pFanin) && Abc_ObjFaninNum(pFanin) == 2 )
+        Io_WriteAigerCollectGates_rec( vGates, pFanin );
+    pFanin = Abc_ObjRegular( Abc_ObjFanin1(pNode) );
+    if ( Abc_ObjIsNode(pFanin) && Abc_ObjFaninNum(pFanin) == 2 )
+        Io_WriteAigerCollectGates_rec( vGates, pFanin );
+    // collect the choice members before this node
+    if ( pNode->pData && pNode->pData != pNode && !Abc_ObjIsComplement((Abc_Obj_t *)pNode->pData) )
+    {
+        pMember = (Abc_Obj_t *)pNode->pData;
+        if ( Abc_ObjIsNode(pMember) && Abc_ObjFaninNum(pMember) == 2 )
+            Io_WriteAigerCollectGates_rec( vGates, pMember );
+    }
+    Vec_PtrPush( vGates, pNode );
+}
+Vec_Ptr_t * Io_WriteAigerCollectGates( Abc_Ntk_t * pNtk, int fChoices )
+{
+    Vec_Ptr_t * vGates;
+    Abc_Obj_t * pObj;
+    int i;
+    vGates = Vec_PtrAlloc( Abc_NtkNodeNum(pNtk) );
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        pObj->fMarkA = 0;
+    if ( fChoices && Abc_NtkGetChoiceNum(pNtk) )
+    {
+        Abc_NtkForEachCo( pNtk, pObj, i )
+        {
+            pObj = Abc_ObjRegular( Abc_ObjFanin0(pObj) );
+            if ( Abc_ObjIsNode(pObj) && Abc_ObjFaninNum(pObj) == 2 )
+                Io_WriteAigerCollectGates_rec( vGates, pObj );
+        }
+    }
+    // collect the remaining (dangling) gates in the ID order
+    Abc_AigForEachAnd( pNtk, pObj, i )
+        if ( !pObj->fMarkA )
+            Io_WriteAigerCollectGates_rec( vGates, pObj );
+    Abc_AigForEachAnd( pNtk, pObj, i )
+        pObj->fMarkA = 0;
+    assert( Vec_PtrSize(vGates) == Abc_NtkNodeNum(pNtk) );
+    return vGates;
+}
+
+/**Function***********************************************************
+
+  Synopsis    [Creates the binary buffer with choice pairs (extension "q").]
+
+  Description [The choices are stored the same way as in the GIA package
+  (cf. Gia_AigerWriteExtensions): one (representative, member) pair for each
+  link of each choice class.  Because the gates are collected in the order
+  that puts each member before its representative (Io_WriteAigerCollectGates),
+  the first number of each pair is always larger than the second one, which
+  is the format expected by the GIA reader.
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Io_WriteAigerChoices( Abc_Ntk_t * pNtk, Vec_Ptr_t * vGates )
+{
+    Vec_Str_t * vStr;
+    Abc_Obj_t * pObj, * pMember;
+    int i, nPairs = 0;
+    // count the pairs (one per choice link)
+    Vec_PtrForEachEntry( Abc_Obj_t *, vGates, pObj, i )
+        if ( pObj->pData && pObj->pData != pObj && !Abc_ObjIsComplement((Abc_Obj_t *)pObj->pData) )
+            nPairs++;
+    if ( nPairs == 0 )
+        return NULL;
+    // write the extension
+    vStr = Vec_StrAlloc( 10 + 8 * nPairs );
+    Vec_StrPush( vStr, 'q' );
+    Io_WriteAigerInt( vStr, 4 * (2 * nPairs + 1) );
+    Io_WriteAigerInt( vStr, nPairs );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vGates, pObj, i )
+        if ( pObj->pData && pObj->pData != pObj && !Abc_ObjIsComplement((Abc_Obj_t *)pObj->pData) )
+        {
+            pMember = (Abc_Obj_t *)pObj->pData;
+            assert( Io_ObjAigerNum(pObj) > Io_ObjAigerNum(pMember) );
+            Io_WriteAigerInt( vStr, Io_ObjAigerNum(pObj) );
+            Io_WriteAigerInt( vStr, Io_ObjAigerNum(pMember) );
+        }
+    return vStr;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -270,6 +387,7 @@ void Io_WriteAiger_old( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, i
 {
     ProgressBar * pProgress;
     FILE * pFile;
+    Vec_Ptr_t * vGates;
     Abc_Obj_t * pObj, * pDriver, * pLatch;
     int i, nNodes, nBufferSize, Pos, fExtended;
     unsigned char * pBuffer;
@@ -296,15 +414,16 @@ void Io_WriteAiger_old( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, i
     }
 
     // set the node numbers to be used in the output file
+    vGates = Io_WriteAigerCollectGates( pNtk, 0 );
     nNodes = 0;
     Io_ObjSetAigerNum( Abc_AigConst1(pNtk), nNodes++ );
     Abc_NtkForEachCi( pNtk, pObj, i )
         Io_ObjSetAigerNum( pObj, nNodes++ );
-    Abc_AigForEachAnd( pNtk, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vGates, pObj, i )
         Io_ObjSetAigerNum( pObj, nNodes++ );
 
     // write the header "M I L O A" where M = I + L + A
-    fprintf( pFile, "aig%s %u %u %u %u %u", 
+    fprintf( pFile, "aig%s %u %u %u %u %u",
         fCompact? "2" : "",
         Abc_NtkPiNum(pNtk) + Abc_NtkLatchNum(pNtk) + Abc_NtkNodeNum(pNtk), 
         Abc_NtkPiNum(pNtk),
@@ -362,7 +481,7 @@ void Io_WriteAiger_old( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, i
     nBufferSize = 6 * Abc_NtkNodeNum(pNtk) + 100; // skeptically assuming 3 chars per one AIG edge
     pBuffer = ABC_ALLOC( unsigned char, nBufferSize );
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
-    Abc_AigForEachAnd( pNtk, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vGates, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         uLit  = Io_ObjMakeLit( Io_ObjAigerNum(pObj), 0 );
@@ -381,6 +500,7 @@ void Io_WriteAiger_old( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, i
         {
             printf( "Io_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
             fclose( pFile );
+            Vec_PtrFree( vGates );
             return;
         }
     }
@@ -417,6 +537,7 @@ void Io_WriteAiger_old( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, i
     fprintf( pFile, "This file was produced by ABC on %s\n", Extra_TimeStamp() );
     fprintf( pFile, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
     fclose( pFile );
+    Vec_PtrFree( vGates );
 }
 
 /**Function*************************************************************
@@ -430,10 +551,12 @@ void Io_WriteAiger_old( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, i
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteAigerGz( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
+void Io_WriteAigerGz( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int fWriteChoices )
 {
     ProgressBar * pProgress;
     gzFile pFile;
+    Vec_Ptr_t * vGates;
+    Vec_Str_t * vChoices;
     Abc_Obj_t * pObj, * pDriver, * pLatch;
     int i, nNodes, Pos, nBufferSize, fExtended;
     unsigned char * pBuffer;
@@ -450,12 +573,15 @@ void Io_WriteAigerGz( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
 
     fExtended = Abc_NtkConstrNum(pNtk);
 
+    // collect the AND gates in the order they are written
+    vGates = Io_WriteAigerCollectGates( pNtk, fWriteChoices );
+
     // set the node numbers to be used in the output file
     nNodes = 0;
     Io_ObjSetAigerNum( Abc_AigConst1(pNtk), nNodes++ );
     Abc_NtkForEachCi( pNtk, pObj, i )
         Io_ObjSetAigerNum( pObj, nNodes++ );
-    Abc_AigForEachAnd( pNtk, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vGates, pObj, i )
         Io_ObjSetAigerNum( pObj, nNodes++ );
 
     // write the header "M I L O A" where M = I + L + A
@@ -505,7 +631,7 @@ void Io_WriteAigerGz( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
     nBufferSize = 6 * Abc_NtkNodeNum(pNtk) + 100; // skeptically assuming 3 chars per one AIG edge
     pBuffer = ABC_ALLOC( unsigned char, nBufferSize );
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
-    Abc_AigForEachAnd( pNtk, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vGates, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         uLit  = Io_ObjMakeLit( Io_ObjAigerNum(pObj), 0 );
@@ -524,6 +650,7 @@ void Io_WriteAigerGz( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
         {
             printf( "Io_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
             gzclose( pFile );
+            Vec_PtrFree( vGates );
             return;
         }
     }
@@ -554,12 +681,20 @@ void Io_WriteAigerGz( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
     }
 
     // write the comment
-    gzprintf( pFile, "c\n" );
+    gzprintf( pFile, "c" );
+    // write choices
+    if ( fWriteChoices && (vChoices = Io_WriteAigerChoices(pNtk, vGates)) )
+    {
+        gzwrite( pFile, Vec_StrArray(vChoices), Vec_StrSize(vChoices) );
+        Vec_StrFree( vChoices );
+    }
+    gzprintf( pFile, "\n" );
     if ( pNtk->pName && strlen(pNtk->pName) > 0 )
         gzprintf( pFile, ".model %s\n", pNtk->pName );
     gzprintf( pFile, "This file was produced by ABC on %s\n", Extra_TimeStamp() );
     gzprintf( pFile, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
     gzclose( pFile );
+    Vec_PtrFree( vGates );
 }
 
  
@@ -629,10 +764,12 @@ int fprintfBz2Aig( bz2file * b, char * fmt, ... ) {
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int fCompact, int fUnique )
+void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int fCompact, int fUnique, int fWriteChoices )
 {
     ProgressBar * pProgress;
 //    FILE * pFile;
+    Vec_Ptr_t * vGates;
+    Vec_Str_t * vChoices;
     Abc_Obj_t * pObj, * pDriver, * pLatch;
     int i, nNodes, nBufferSize, bzError, Pos, fExtended;
     unsigned char * pBuffer;
@@ -662,7 +799,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
     // write the GZ file
     if (!strncmp(pFileName+strlen(pFileName)-3,".gz",3)) 
     {
-        Io_WriteAigerGz( pNtk, pFileName, fWriteSymbols );
+        Io_WriteAigerGz( pNtk, pFileName, fWriteSymbols, fWriteChoices );
         return;
     }
 
@@ -689,16 +826,19 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
         }
     }
 
+    // collect the AND gates in the order they are written
+    vGates = Io_WriteAigerCollectGates( pNtk, fWriteChoices && !fUnique );
+
     // set the node numbers to be used in the output file
     nNodes = 0;
     Io_ObjSetAigerNum( Abc_AigConst1(pNtk), nNodes++ );
     Abc_NtkForEachCi( pNtk, pObj, i )
         Io_ObjSetAigerNum( pObj, nNodes++ );
-    Abc_AigForEachAnd( pNtk, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vGates, pObj, i )
         Io_ObjSetAigerNum( pObj, nNodes++ );
 
     // write the header "M I L O A" where M = I + L + A
-    fprintfBz2Aig( &b, "aig%s %u %u %u %u %u", 
+    fprintfBz2Aig( &b, "aig%s %u %u %u %u %u",
         fCompact? "2" : "",
         Abc_NtkPiNum(pNtk) + Abc_NtkLatchNum(pNtk) + Abc_NtkNodeNum(pNtk), 
         Abc_NtkPiNum(pNtk),
@@ -768,7 +908,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
     nBufferSize = 6 * Abc_NtkNodeNum(pNtk) + 100; // skeptically assuming 3 chars per one AIG edge
     pBuffer = ABC_ALLOC( unsigned char, nBufferSize );
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
-    Abc_AigForEachAnd( pNtk, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vGates, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         uLit  = Io_ObjMakeLit( Io_ObjAigerNum(pObj), 0 );
@@ -788,6 +928,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
             printf( "Io_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
             fclose( b.f );
             ABC_FREE(b.buf);
+            Vec_PtrFree( vGates );
             Extra_ProgressBarStop( pProgress );
             return;
         }
@@ -831,6 +972,15 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
 
     // write the comment
     fprintfBz2Aig( &b, "c" );
+    // write choices
+    if ( fWriteChoices && !fUnique && (vChoices = Io_WriteAigerChoices(pNtk, vGates)) )
+    {
+        if ( !b.b )
+            fwrite( Vec_StrArray(vChoices), 1, Vec_StrSize(vChoices), b.f );
+        else
+            BZ2_bzWrite( &bzError, b.b, Vec_StrArray(vChoices), Vec_StrSize(vChoices) );
+        Vec_StrFree( vChoices );
+    }
     if ( !fUnique )
     {
         if ( pNtk->pName && strlen(pNtk->pName) > 0 )
@@ -851,6 +1001,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
     }
     fclose( b.f );
     ABC_FREE(b.buf);
+    Vec_PtrFree( vGates );
 }
 
 ABC_NAMESPACE_IMPL_END

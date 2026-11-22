@@ -67,10 +67,89 @@ static inline unsigned Io_ReadAigerDecode( char ** ppPos )
 
 /**Function*************************************************************
 
+  Synopsis    [Reads one 4-byte big-endian integer, as in the AIGER extensions.]
+
+  Description []
+
+  SideEffects [Updates the current reading position.]
+
+  SeeAlso     []
+
+***********************************************************************/
+static unsigned Io_ReadAigerInt( char ** ppPos )
+{
+    unsigned Value = ((unsigned char)(*ppPos)[0] << 24) | ((unsigned char)(*ppPos)[1] << 16) | ((unsigned char)(*ppPos)[2] << 8) | (unsigned char)(*ppPos)[3];
+    *ppPos += 4;
+    return Value;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Detects the comment marker 'c' in the AIGER file.]
+
+  Description [The comment marker is the letter 'c' NOT followed by a digit.
+  A 'c' followed by a digit is a constraint symbol entry (for example "c0").]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Io_ReadAigerIsCommentMarker( char * pCur, char * pEnd )
+{
+    if ( pCur >= pEnd || *pCur != 'c' )
+        return 0;
+    return !( pCur + 1 < pEnd && pCur[1] >= '0' && pCur[1] <= '9' );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds one entry to the fanout vector of a node.]
+
+  Description [Duplicates the growth logic of Vec_IntPushMem() (cf. abcFanio.c),
+  because the fanout vectors of the networks created with the memory manager
+  are allocated from the stepped memory manager and cannot be reallocated
+  with realloc().]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Io_ReadAigerFanoutPush( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj, int Entry )
+{
+    Vec_Int_t * p = &pObj->vFanouts;
+    if ( p->nSize == p->nCap )
+    {
+        int * pArray;
+        int i;
+        if ( p->nSize == 0 )
+            p->nCap = 1;
+        if ( pNtk->pMmStep )
+            pArray = (int *)Mem_StepEntryFetch( pNtk->pMmStep, p->nCap * 8 );
+        else
+            pArray = ABC_ALLOC( int, p->nCap * 2 );
+        if ( p->pArray )
+        {
+            for ( i = 0; i < p->nSize; i++ )
+                pArray[i] = p->pArray[i];
+            if ( pNtk->pMmStep )
+                Mem_StepEntryRecycle( pNtk->pMmStep, (char *)p->pArray, p->nCap * 4 );
+            else
+                ABC_FREE( p->pArray );
+        }
+        p->nCap *= 2;
+        p->pArray = pArray;
+    }
+    p->pArray[p->nSize++] = Entry;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Decodes the encoded array of literals.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -236,12 +315,13 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     ProgressBar * pProgress;
     FILE * pFile;
     Vec_Ptr_t * vNodes, * vTerms;
-    Vec_Int_t * vLits = NULL;
+    Vec_Int_t * vLits = NULL, * vChoices = NULL;
     Abc_Obj_t * pObj, * pNode0, * pNode1;
     Abc_Ntk_t * pNtkNew;
     int nTotal, nInputs, nOutputs, nLatches, nAnds;
     int nBad = 0, nConstr = 0, nJust = 0, nFair = 0;
     int nFileSize = -1, iTerm, nDigits, i;
+    int fBadExt = 0;
     char * pContents, * pDrivers = NULL, * pSymbols, * pCur, * pName, * pType;
     unsigned uLit0, uLit1, uLit;
     int RetValue;
@@ -481,11 +561,11 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
  
     // read the names if present
     pCur = pSymbols;
-    if ( pCur < pContents + nFileSize && *pCur != 'c' )
+    if ( pCur < pContents + nFileSize && !Io_ReadAigerIsCommentMarker( pCur, pContents + nFileSize ) )
     {
         int Counter = 0;
         int fNodeNames = 0;
-        while ( pCur < pContents + nFileSize && *pCur != 'c' )
+        while ( pCur < pContents + nFileSize && !Io_ReadAigerIsCommentMarker( pCur, pContents + nFileSize ) )
         {
             // get the terminal type
             pType = pCur;
@@ -508,6 +588,9 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
             }
             // get the terminal number
             iTerm = atoi( ++pCur );  while ( *pCur++ != ' ' );
+            // the constraint outputs are numbered after the bad outputs
+            if ( *pType == 'c' )
+                iTerm += nBad;
             // get the node
             if ( iTerm >= Vec_PtrSize(vTerms) )
             {
@@ -564,15 +647,72 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     }
 
     // read the name of the model if given
-    pCur = pSymbols;
+    // (pCur is at the comment marker 'c', either right after the ANDs or after the symbol table)
     if ( pCur + 1 < pContents + nFileSize && *pCur == 'c' )
     {
         pCur++;
-        if ( *pCur == 'n' )
+        // read the extensions, skipping the known ones, until the model name or an unknown one
+        while ( pCur + 8 < pContents + nFileSize )
         {
+            if ( *pCur == 'q' ) // choices
+            {
+                char * pCurTemp;
+                unsigned nSize, nPairs, k, iRepr, iNode;
+                pCur++;
+                nSize  = Io_ReadAigerInt( &pCur );
+                nPairs = Io_ReadAigerInt( &pCur );
+                pCurTemp = pCur - 4 + nSize;
+                if ( pCurTemp > pContents + nFileSize || pCur + 8 * (size_t)nPairs != pCurTemp )
+                {
+                    printf( "Io_ReadAiger: Extension \"q\" is corrupted. Choices are ignored.\n" );
+                    if ( vChoices )
+                        Vec_IntFree( vChoices ), vChoices = NULL;
+                    fBadExt = 1;
+                    break;
+                }
+                if ( vChoices == NULL )
+                    vChoices = Vec_IntAlloc( 2 * (int)nPairs );
+                for ( k = 0; k < nPairs; k++ )
+                {
+                    iRepr = Io_ReadAigerInt( &pCur );
+                    iNode = Io_ReadAigerInt( &pCur );
+                    if ( iRepr <= iNode || iNode == 0 || iRepr >= (unsigned)Vec_PtrSize(vNodes) )
+                    {
+                        printf( "Io_ReadAiger: Extension \"q\" contains an invalid pair (%d, %d). Choices are ignored.\n", (int)iRepr, (int)iNode );
+                        Vec_IntFree( vChoices ), vChoices = NULL;
+                        fBadExt = 1;
+                        break;
+                    }
+                    Vec_IntPush( vChoices, (int)iRepr );
+                    Vec_IntPush( vChoices, (int)iNode );
+                }
+                if ( fBadExt )
+                    break;
+                continue;
+            }
+            // the extensions written by the GIA package have the format <letter> <4-byte size> <data>
+            if ( *pCur && strchr( "abcdefghijkmoprstuvwy", *pCur ) )
+            {
+                unsigned nSize;
+                pCur++;
+                nSize = Io_ReadAigerInt( &pCur );
+                if ( pContents + nFileSize - pCur < (long)nSize )
+                {
+                    fBadExt = 1;
+                    break;
+                }
+                pCur += nSize;
+                continue;
+            }
+            break;
+        }
+        // read the model name, given as a GIA-style record "n" <4-byte length> <name> <0>
+        if ( !fBadExt && pContents + nFileSize - pCur > 5 && *pCur == 'n' )
+        {
+            unsigned nSize;
             pCur++;
-            // read model name
-            if ( strlen(pCur) > 0 )
+            nSize = Io_ReadAigerInt( &pCur );
+            if ( nSize > 1 && pCur + nSize <= pContents + nFileSize && pCur[nSize-1] == 0 )
             {
                 ABC_FREE( pNtkNew->pName );
                 pNtkNew->pName = Extra_UtilStrsav( pCur );
@@ -582,10 +722,91 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
 
     // skipping the comments
     ABC_FREE( pContents );
-    Vec_PtrFree( vNodes );
 
     // remove the extra nodes
-    Abc_AigCleanup( (Abc_Aig_t *)pNtkNew->pManFunc );
+    if ( vChoices == NULL )
+    {
+        Vec_PtrFree( vNodes );
+        Abc_AigCleanup( (Abc_Aig_t *)pNtkNew->pManFunc );
+    }
+    else
+    {
+        Vec_Int_t * vMarks;
+        Vec_Ptr_t * vClass;
+        Abc_Obj_t * pHi, * pLo, * pObj, * pRepr, * pFanin;
+        int iEntry, k = 0;
+        // filter out the pairs that do not reference AND nodes
+        for ( iEntry = 0; iEntry < Vec_IntSize(vChoices); iEntry += 2 )
+        {
+            pHi = (Abc_Obj_t *)Vec_PtrEntry( vNodes, Vec_IntEntry(vChoices, iEntry) );
+            pLo = (Abc_Obj_t *)Vec_PtrEntry( vNodes, Vec_IntEntry(vChoices, iEntry+1) );
+            if ( !Abc_ObjIsComplement(pHi) && !Abc_ObjIsComplement(pLo) &&
+                 Abc_ObjIsNode(pHi) && Abc_ObjFaninNum(pHi) == 2 &&
+                 Abc_ObjIsNode(pLo) && Abc_ObjFaninNum(pLo) == 2 )
+            {
+                Vec_IntWriteEntry( vChoices, k++, Vec_IntEntry(vChoices, iEntry) );
+                Vec_IntWriteEntry( vChoices, k++, Vec_IntEntry(vChoices, iEntry+1) );
+            }
+        }
+        Vec_IntShrink( vChoices, k );
+        // temporarily add a dummy fanout to each choice node so that the cleanup
+        // below does not remove them as dangling nodes (adding a real entry keeps
+        // the fanout array consistent with its size while other nodes are deleted)
+        for ( iEntry = 0; iEntry < Vec_IntSize(vChoices); iEntry++ )
+            Io_ReadAigerFanoutPush( pNtkNew, (Abc_Obj_t *)Vec_PtrEntry( vNodes, Vec_IntEntry(vChoices, iEntry) ), -1 );
+        Abc_AigCleanup( (Abc_Aig_t *)pNtkNew->pManFunc );
+        // remove the dummy fanouts and set up the links given by the pairs
+        // (the links are decreasing because the pairs are checked to be so)
+        vMarks = Vec_IntStart( Vec_PtrSize(vNodes) );
+        for ( iEntry = 0; iEntry < Vec_IntSize(vChoices); iEntry += 2 )
+        {
+            pHi = (Abc_Obj_t *)Vec_PtrEntry( vNodes, Vec_IntEntry(vChoices, iEntry) );
+            pLo = (Abc_Obj_t *)Vec_PtrEntry( vNodes, Vec_IntEntry(vChoices, iEntry+1) );
+            Vec_IntPop( &pHi->vFanouts );
+            Vec_IntPop( &pLo->vFanouts );
+            if ( pHi == pLo ) // structural hashing merged the two gates into one node
+                continue;
+            pHi->pData = pLo;
+            Vec_IntWriteEntry( vMarks, Vec_IntEntry(vChoices, iEntry+1), 1 );
+        }
+        // rechain each class starting from its representative, which is the only
+        // node of the class with fanouts (the largest node of the class is not
+        // necessarily the representative, e.g., in the networks created by &put).
+        // Only the nodes referenced by the pairs are visited here, because they
+        // are guaranteed to have survived the cleanup; the other entries of the
+        // file-ID table may point to the nodes removed by the cleanup.
+        vClass = Vec_PtrAlloc( 100 );
+        for ( iEntry = 0; iEntry < Vec_IntSize(vChoices); iEntry += 2 )
+        {
+            pObj = (Abc_Obj_t *)Vec_PtrEntry( vNodes, Vec_IntEntry(vChoices, iEntry) );
+            if ( pObj->pData == NULL || Vec_IntEntry(vMarks, Vec_IntEntry(vChoices, iEntry)) )
+                continue;
+            // collect the class and find its representative
+            Vec_PtrClear( vClass );
+            for ( pFanin = pObj; pFanin; pFanin = (Abc_Obj_t *)pFanin->pData )
+                Vec_PtrPush( vClass, pFanin );
+            pRepr = NULL;
+            Vec_PtrForEachEntry( Abc_Obj_t *, vClass, pFanin, k )
+                if ( Abc_ObjFanoutNum(pFanin) > 0 )
+                    pRepr = pFanin;
+            if ( pRepr == NULL )
+                continue;
+            // rechain the class starting from the representative
+            pObj = pRepr;
+            Vec_PtrForEachEntry( Abc_Obj_t *, vClass, pFanin, k )
+            {
+                if ( pFanin == pRepr )
+                    continue;
+                pObj->pData = pFanin;
+                pObj = pFanin;
+            }
+            pObj->pData = NULL;
+        }
+        Vec_PtrFree( vClass );
+        Vec_IntFree( vMarks );
+        Vec_IntFree( vChoices );
+        Vec_PtrFree( vNodes );
+    }
 
     // update polarity of the additional outputs
     if ( nBad || nConstr || nJust || nFair )
