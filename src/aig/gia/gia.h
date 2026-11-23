@@ -1664,6 +1664,9 @@ extern Gia_Man_t *         Gia_ManSopBalanceTimed( Gia_Man_t * p, int nVars, int
 extern Gia_Man_t *         Gia_ManRecBalanceTimed( Gia_Man_t * p, int nCuts, int nRelaxRatio, Vec_Int_t * vCopies, abctime Deadline );
 extern Gia_Man_t *         Gia_ManPerformDsdBalance( Gia_Man_t * p, int nLutSize, int nCutNum, int nRelaxRatio, int fVerbose );
 extern Gia_Man_t *         Gia_ManDupHashMapping( Gia_Man_t * p );
+/*=== giaLutAbsorb.c ====================================================*/
+struct If_LibLut_t_;
+extern int                 Gia_ManLutAbsorb( Gia_Man_t * p, int nLutSize, int nFanoutMax, int nRounds, int fVerbose, struct If_LibLut_t_ * pLutLib, float * pfAreaGain );
 /*=== giaJf.c ===========================================================*/
 extern void                Jf_ManSetDefaultPars( Jf_Par_t * pPars );
 extern Gia_Man_t *         Jf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars );
