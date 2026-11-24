@@ -386,6 +386,10 @@ SOURCE=.\src\base\abci\abcLutAbsorb.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcLutResyn.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcFraig.c
 # End Source File
 # Begin Source File
