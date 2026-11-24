@@ -20,6 +20,7 @@ SRC +=    src/base/abci/abcAttach.c \
     src/base/abci/abcExact.c \
     src/base/abci/abcExtract.c \
     src/base/abci/abcLutAbsorb.c \
+    src/base/abci/abcLutResyn.c \
     src/base/abci/abcFraig.c \
     src/base/abci/abcFx.c \
     src/base/abci/abcFx2.c \

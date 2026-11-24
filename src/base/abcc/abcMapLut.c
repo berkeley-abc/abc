@@ -33,6 +33,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 static int Abc_CommandLutAbsorb                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandLutResyn                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLutpack                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLutmin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTrace                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -86,6 +87,7 @@ static int Abc_CommandAbc9Trace              ( Abc_Frame_t * pAbc, int argc, cha
 void Abc_InitMapLut( Abc_Frame_t * pAbc )
 {
     Cmd_CommandAdd( pAbc, "Synthesis",    "lutabsorb",     Abc_CommandLutAbsorb,        1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "lutresyn",      Abc_CommandLutResyn,         1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "lutpack",       Abc_CommandLutpack,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "lutmin",        Abc_CommandLutmin,           1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "trace",         Abc_CommandTrace,            0 );
@@ -241,6 +243,133 @@ usage:
     Abc_Print( -2, "\t-R num : the number of passes [default = %d]\n", nRounds );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reduces the LUT count by post-mapping decomposition.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandLutResyn( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, nInit, nRemoved;
+    int nLutSize     = 6;
+    int nRounds      = 1;
+    int nGrowthLevel = 0;
+    int nMaxLuts     = 2;
+    int nMaxExtLuts  = 0;
+    int fVerbose     = 0;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KRLMQvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 2 )
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nRounds = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRounds < 1 )
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nGrowthLevel = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nGrowthLevel < 0 )
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nMaxLuts = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nMaxLuts < 1 || nMaxLuts > 3 )
+                goto usage;
+            break;
+        case 'Q':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-Q\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nMaxExtLuts = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nMaxExtLuts < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        Abc_Print( -1, "The network should be a LUT-mapped logic network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkHasAig(pNtk) && !Abc_NtkToAig(pNtk) )
+    {
+        Abc_Print( -1, "Converting node functions to AIGs has failed.\n" );
+        return 1;
+    }
+    nInit = Abc_NtkNodeNum(pNtk);
+    nRemoved = Abc_NtkLutResyn( pNtk, nLutSize, nRounds, nGrowthLevel, nMaxLuts, nMaxExtLuts, fVerbose, NULL, NULL );
+    Abc_Print( 1, "lutresyn: K=%d R=%d L=%d M=%d Q=%d  nodes %d -> %d (-%d)\n",
+        nLutSize, nRounds, nGrowthLevel, nMaxLuts, nMaxExtLuts, nInit, Abc_NtkNodeNum(pNtk), nRemoved );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: lutresyn [-KRLMQ num] [-vh]\n" );
+    Abc_Print( -2, "\t         reduces the LUT count by re-implementing fanout-free cones with up to M LUTs\n" );
+    Abc_Print( -2, "\t-K num : the max LUT size [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-R num : the number of passes [default = %d]\n", nRounds );
+    Abc_Print( -2, "\t-L num : the allowed increase of the logic level [default = %d]\n", nGrowthLevel );
+    Abc_Print( -2, "\t-M num : the max number of LUTs produced per cone, 1..3 [default = %d]\n", nMaxLuts );
+    Abc_Print( -2, "\t-Q num : the max number of absorbed nodes with fanouts outside the MFFC [default = %d]\n", nMaxExtLuts );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n" );
+    Abc_Print( -2, "\t         This command was contributed by Longfei Fan.\n" );
     return 1;
 }
 

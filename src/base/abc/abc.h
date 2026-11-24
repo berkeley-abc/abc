@@ -669,6 +669,8 @@ extern ABC_DLL Abc_Ntk_t *        Abc_NtkFindExact( word * pTruth, int nVars, in
 /*=== abcLutAbsorb.c ========================================================*/
 struct If_LibLut_t_;
 extern ABC_DLL int                Abc_NtkLutAbsorb( Abc_Ntk_t * pNtk, int nLutSize, int nFanoutMax, int nRounds, int fVerbose, struct If_LibLut_t_ * pLutLib, float * pfAreaGain );
+/*=== abcLutResyn.c =========================================================*/
+extern ABC_DLL int                Abc_NtkLutResyn( Abc_Ntk_t * pNtk, int nLutSize, int nRounds, int nGrowthLevel, int nMaxLuts, int nMaxExtLuts, int fVerbose, struct If_LibLut_t_ * pLutLib, float * pfAreaGain );
 /*=== abcFanio.c ==========================================================*/
 extern ABC_DLL void               Abc_ObjAddFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin );
 extern ABC_DLL void               Abc_ObjDeleteFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin );
