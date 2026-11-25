@@ -199,6 +199,8 @@ struct Emp_Man_t_
     float            SensK;                     // scales the load sensitivity (2 also covers the slower
                                                 // transition of the loaded node)
     int              fNoShift;                  // add loads without arrival updates
+    SC_Cell *        pPiDrive;                  // PI driving cell
+    float            PiSens;                    // PI cell load sensitivity
     // cuts
     Emp_Cut_t *      pCuts;
     int              nCuts;
@@ -265,6 +267,16 @@ static inline float        Emp_ObjEst( Emp_Man_t * p, int i, int f )    { return
 static inline double       Emp_ObjFlowRef( Emp_Man_t * p, int i, int f ){ return p->pBest[2 * i + f].Flow / p->pEst[2 * i + f]; }
 static inline int          Emp_ObjIsUsed( Emp_Man_t * p, int i )        { return p->pImpl[2 * i] || p->pImpl[2 * i + 1]; }
 static inline int          Emp_ObjIsAnd( Emp_Man_t * p, int i )         { return Abc_AigNodeIsAnd( Abc_NtkObj(p->pNtk, i) ); }
+
+static inline int          Emp_ObjIsMatched( Emp_Man_t * p, int i )     { return p->pBest[2 * i].Type != EMP_NONE;      }
+static inline int Emp_LeavesMatched( Emp_Man_t * p, int * pLeaves, int nLeaves )
+{
+    int k;
+    for ( k = 0; k < nLeaves; k++ )
+        if ( !Emp_ObjIsMatched(p, pLeaves[k]) )
+            return 0;
+    return 1;
+}
 
 static inline float        Emp_ObjLoad( Emp_Man_t * p, int i, int f )   { return p->pLoad[2 * i + f];                    }
 static inline void Emp_BestSetArr( Emp_Best_t * pB, double Arr )
@@ -775,19 +787,26 @@ static int Emp_LibMogLookup( Emp_Man_t * p, int nPins, word Truth0, word Truth1,
     *pnKeys = i - Beg;
     return i > Beg ? Beg : -1;
 }
-// returns 1 if the gates have the same function and pin names
-static int Emp_GatesSame( Mio_Gate_t * pA, Mio_Gate_t * pB )
+// returns 1 if the gates have the same input pin names in the same order
+static int Emp_GatesPinsSame( Mio_Gate_t * pA, Mio_Gate_t * pB )
 {
     Mio_Pin_t * pPinA, * pPinB;
-    int nPins = Mio_GateReadPinNum( pA );
-    if ( nPins != Mio_GateReadPinNum(pB) || Emp_GateTruth(pA, nPins) != Emp_GateTruth(pB, nPins) )
-        return 0;
-    if ( strcmp(Mio_GateReadOutName(pA), Mio_GateReadOutName(pB)) )
+    if ( Mio_GateReadPinNum(pA) != Mio_GateReadPinNum(pB) )
         return 0;
     for ( pPinA = Mio_GateReadPins(pA), pPinB = Mio_GateReadPins(pB); pPinA && pPinB; pPinA = Mio_PinReadNext(pPinA), pPinB = Mio_PinReadNext(pPinB) )
         if ( strcmp(Mio_PinReadName(pPinA), Mio_PinReadName(pPinB)) )
             return 0;
     return 1;
+}
+// returns 1 if the gates have the same function and pin names
+static int Emp_GatesSame( Mio_Gate_t * pA, Mio_Gate_t * pB )
+{
+    int nPins = Mio_GateReadPinNum( pA );
+    if ( nPins != Mio_GateReadPinNum(pB) || Emp_GateTruth(pA, nPins) != Emp_GateTruth(pB, nPins) )
+        return 0;
+    if ( strcmp(Mio_GateReadOutName(pA), Mio_GateReadOutName(pB)) )
+        return 0;
+    return Emp_GatesPinsSame(pA, pB);
 }
 // finds pPerm[k], the pin of gate B taking pin k of gate A, making the functions equal;
 // returns 0 if there is none
@@ -945,6 +964,13 @@ static void Emp_LibBuildFamilies( Emp_Man_t * p, Mio_Gate_t * pGateInv )
             continue;
         if ( pTwin != NULL && (pGate > pTwin || Mio_GateReadPinNum(pTwin) != nPins || nPins > EMP_MOG_LEAF) )
             continue;
+        //Rejects cells whose pin orders differ
+        if ( pTwin != NULL && !Emp_GatesPinsSame(pGate, pTwin) )
+        {
+            if ( p->pPars->fUseMogs )
+                printf( "Warning: two-output cell \"%s\" lists its inputs in a different order for its outputs; it is not used.\n", Mio_GateReadName(pGate) );
+            continue;
+        }
         Emp_LibAddToFamily( p, pGate, pTwin );
     }
     for ( i = 0; i < p->nFams; i++ )
@@ -1477,6 +1503,22 @@ static inline void Emp_BestSetInv( Emp_Man_t * p, int i, int f )
     pB->Flow = pO->Flow + p->InvArea;
     pB->Area = p->InvArea;
 }
+// sets arrivals of primary inputs as in stime
+static void Emp_PiTiming( Emp_Man_t * p, int i )
+{
+    Emp_Best_t * pB = Emp_ObjBest( p, i, 0 );
+    SC_Pair Load, Arr, Slew;
+    assert( pB->Type == EMP_PI );
+    if ( p->pPiDrive == NULL || p->fGainMode )
+    {
+        Emp_BestSetArr( pB, 0 );
+        return;
+    }
+    Load.rise = p->pLoad[2 * i] - p->pLoadD[2 * i];
+    Load.fall = p->pLoad[2 * i] + p->pLoadD[2 * i];
+    Scl_LibHandleInputDriver( p->pPiDrive, &Load, &Arr, &Slew );
+    Emp_BestSetTiming( pB, &Arr, &Slew, p->PiSens );
+}
 // recomputes the timing of the implementations of the node (with fImplOnly, only of those in the cover)
 static void Emp_ObjUpdateArr( Emp_Man_t * p, int i )
 {
@@ -1486,7 +1528,9 @@ static void Emp_ObjUpdateArr( Emp_Man_t * p, int i )
         Emp_Best_t * pB = Emp_ObjBest( p, i, f );
         if ( p->fImplOnly && !p->pImpl[2 * i + f] )
             continue;
-        if ( pB->Type == EMP_WIRE )
+        if ( pB->Type == EMP_PI )
+            Emp_PiTiming( p, i );
+        else if ( pB->Type == EMP_WIRE )
             Emp_BestCopyTiming( pB, Emp_ObjBest(p, pB->Leaves[0], pB->Phases[0]) );
         else if ( (pB->Type == EMP_GATE || pB->Type == EMP_MOG) && !p->fNldm )
         {
@@ -1584,6 +1628,8 @@ static void Emp_ObjMatchCuts( Emp_Man_t * p, int iObj, double * pReq, int fArea,
     {
         if ( pCut->nLeaves == 1 && pCut->Leaves[0] == iObj )
             continue;
+        if ( !Emp_LeavesMatched(p, pCut->Leaves, pCut->nLeaves) )
+            continue;
         if ( pCut->nLeaves == 0 )
         {
             for ( f = 0; f < 2; f++ )
@@ -1655,7 +1701,7 @@ static void Emp_ObjMatch( Emp_Man_t * p, int iObj, int fArea, int fLeafLoad )
     // no match meets the required time: use the fastest matches
     Emp_ObjMatchCuts( p, iObj, ReqInf, 0, fLeafLoad );
     Emp_ObjMatchPhases( p, iObj, ReqInf, 0 );
-    assert( pB[0].Type != EMP_NONE && pB[1].Type != EMP_NONE );
+    assert( (pB[0].Type != EMP_NONE) == (pB[1].Type != EMP_NONE) );
 }
 
 /**Function*************************************************************
@@ -1812,6 +1858,22 @@ static float Emp_ManSetRefs( Emp_Man_t * p )
         Area += Emp_ObjRef_rec( p, Abc_ObjFaninId0(pObj), Abc_ObjFaninC0(pObj), 1 );
     }
     p->fNoShift = 0;
+    return Area;
+}
+// area of the cells in the cover
+static float Emp_ManCoverArea( Emp_Man_t * p )
+{
+    float Area = 0;
+    int i, f;
+    for ( i = 0; i < p->nObjs; i++ )
+        for ( f = 0; f < 2; f++ )
+        {
+            Emp_Best_t * pB = Emp_ObjBest( p, i, f );
+            if ( !p->pImpl[2 * i + f] || Emp_ObjIsTwinSecond(p, i, f) )
+                continue;
+            if ( pB->Type == EMP_INV || pB->Type == EMP_GATE || pB->Type == EMP_MOG )
+                Area += pB->Area;
+        }
     return Area;
 }
 // blends the fanout estimates with the references of the cover
@@ -2262,6 +2324,8 @@ static int Emp_ManFindCands( Emp_Man_t * p, Emp_Tup_t ** ppCands )
     {
         for ( End = Beg + 1; End < nEntries && pEntries[End].nLeaves == pEntries[Beg].nLeaves &&
               !memcmp(pEntries[End].Leaves, pEntries[Beg].Leaves, sizeof(int) * pEntries[Beg].nLeaves); End++ );
+        if ( !Emp_LeavesMatched(p, pEntries[Beg].Leaves, pEntries[Beg].nLeaves) )
+            continue;
         for ( a = Beg; a < End; a++ )
         for ( b = a + 1; b < End; b++ )
         {
@@ -2271,6 +2335,9 @@ static int Emp_ManFindCands( Emp_Man_t * p, Emp_Tup_t ** ppCands )
             // the gain is estimated for the most favorable phases of the roots
             float Gain = -EMP_FINF;
             int Ph0, Ph1;
+            //A node without a single output match is not paired
+            if ( !Emp_ObjIsMatched(p, p0->Node) || !Emp_ObjIsMatched(p, p1->Node) )
+                continue;
             for ( Ph0 = 0; Ph0 < 2; Ph0++ )
             for ( Ph1 = 0; Ph1 < 2; Ph1++ )
                 Gain = Abc_MaxFloat( Gain, Emp_PairGain(p, p0->nLeaves, (Ph0 ? ~p0->Truth : p0->Truth) & Mask, (Ph1 ? ~p1->Truth : p1->Truth) & Mask) );
@@ -2772,6 +2839,8 @@ static float Emp_ObjFindExact( Emp_Man_t * p, int i, int f, double Limit, Emp_Be
         float CacheArea[16];
         if ( pCut->nLeaves == 1 && pCut->Leaves[0] == i )
             continue;
+        if ( !Emp_LeavesMatched(p, pCut->Leaves, pCut->nLeaves) )
+            continue;
         if ( pCut->nLeaves == 0 )
         {
             if ( AreaBest > 0 || ArrBest > 0 )
@@ -3169,8 +3238,9 @@ static void Emp_ManExactAreaRev( Emp_Man_t * p, int fPairs )
             Emp_PairExact( p, m, n, 0 );
         Emp_ObjPropagateReq( p, n );
     }
-    Abc_AigForEachAnd( p->pNtk, pObj, i )
-        Emp_ObjUpdateArr( p, i );
+    Abc_NtkForEachObj( p->pNtk, pObj, i )
+        if ( Abc_ObjIsCi(pObj) || Abc_AigNodeIsAnd(pObj) )
+            Emp_ObjUpdateArr( p, i );
 }
 
 /**Function*************************************************************
@@ -3855,13 +3925,13 @@ static int Emp_ManTighten( Emp_Man_t * p, double * pDelay )
   SeeAlso     []
 
 ***********************************************************************/
-static float Emp_ManExactRounds( Emp_Man_t * p, int fPairs, float Area, char * pTitle, int fTighten )
+static float Emp_ManExactRounds( Emp_Man_t * p, int fPairs, char * pTitle, int fTighten )
 {
     // the starting cover of a round, in case the budget is used up
     Emp_Best_t * pStart = p->fNldmDelay && p->pPars->nPropBudget > 0 ? ABC_ALLOC( Emp_Best_t, 2 * p->nObjs ) : NULL;
     // with NLDM timing, recovery may start from the delay-oriented cover: allow more rounds
     int r, nRounds = p->fNldmDelay ? 3 * p->pPars->nAreaRounds : p->pPars->nAreaRounds;
-    float AreaPrev = Area;
+    float Area = Emp_ManCoverArea( p ), AreaPrev = Area;
     double Delay;
     for ( r = 0; r < nRounds; r++ )
     {
@@ -3935,7 +4005,7 @@ static float Emp_ManAreaFlowRounds( Emp_Man_t * p, int fMogs, char * pTitle, int
 {
     // the starting cover and fanout estimates of a round, in case the round is dropped
     Emp_Best_t * pStart = p->fNldmDelay ? ABC_ALLOC( Emp_Best_t, 2 * p->nObjs ) : NULL;
-    float Area = 0, AreaPrev = EMP_FINF, * pEstSave = pStart ? ABC_ALLOC( float, 2 * p->nObjs ) : NULL;
+    float Area = Emp_ManCoverArea( p ), AreaPrev = EMP_FINF, * pEstSave = pStart ? ABC_ALLOC( float, 2 * p->nObjs ) : NULL;
     double Delay, DelayStart = 0;
     int r, nRounds = pStart ? 3 * p->pPars->nFlowRounds : p->pPars->nFlowRounds;
     for ( r = 0; r < nRounds; r++ )
@@ -3988,6 +4058,60 @@ static float Emp_ManAreaFlowRounds( Emp_Man_t * p, int fMogs, char * pTitle, int
     ABC_FREE( pEstSave );
     return Area;
 }
+// returns 1 if a phase of the node is the only output in the cover of a two-output cell
+static int Emp_ObjIsLoneMog( Emp_Man_t * p, int i )
+{
+    int f;
+    for ( f = 0; f < 2; f++ )
+        if ( p->pImpl[2 * i + f] && Emp_ObjBest(p, i, f)->Type == EMP_MOG && Emp_BestTwinUsed(p, Emp_ObjBest(p, i, f)) < 0 )
+            return 1;
+    return 0;
+}
+// replaces the one output used of two-output cells with single-output cells,
+// unless those are larger or miss the required times; returns the number replaced
+// and the number kept
+static void Emp_ManReplaceLoneMogs( Emp_Man_t * p, float * pArea, double * pDelay, int * pnReplaced, int * pnKept )
+{
+    Abc_Obj_t * pObj;
+    double Target = p->DelayTarget;
+    int i, r, fChange = 1;
+    *pnReplaced = *pnKept = 0;
+    // nothing to do without such cells
+    Abc_AigForEachAnd( p->pNtk, pObj, i )
+        if ( Emp_ObjIsLoneMog(p, i) )
+            break;
+    if ( i == Abc_NtkObjNumMax(p->pNtk) )
+        return;
+    // if the cover misses the target, its own delay is the target
+    if ( *pDelay > p->DelayTarget )
+        p->DelayTarget = *pDelay;
+    Emp_ManSetRequired( p );
+    if ( p->fNldmDelay )
+    {
+        p->RetimeLimit = 0;
+        Emp_ManStartIncr( p );
+    }
+    // a replacement may leave the other output of another cell without fanouts
+    for ( r = 0; r < 10 && fChange; r++ )
+    {
+        fChange = 0;
+        Abc_AigForEachAnd( p->pNtk, pObj, i )
+        {
+            if ( !Emp_ObjIsLoneMog(p, i) )
+                continue;
+            Emp_ObjExact( p, i );
+            if ( Emp_ObjIsLoneMog(p, i) )
+                continue;
+            (*pnReplaced)++;
+            fChange = 1;
+        }
+    }
+    p->fIncr = 0;
+    p->DelayTarget = Target;
+    *pArea = Emp_ManUpdate( p, pDelay );
+    Abc_AigForEachAnd( p->pNtk, pObj, i )
+        *pnKept += Emp_ObjIsLoneMog( p, i );
+}
 
 /**Function*************************************************************
 
@@ -4022,10 +4146,26 @@ static void Emp_ManStartNldm( Emp_Man_t * p )
     p->LoadAvg = Vec_FltSize(vCaps) ? Vec_FltEntry( vCaps, Vec_FltSize(vCaps) / 2 ) : 1;
     Vec_FltFree( vCaps );
     p->PoLoad = Abc_FrameReadMaxLoad();
+    // PI driver as in stime
+    if ( Abc_FrameReadDrivingCell() )
+    {
+        int iCell = Abc_SclCellFind( p->pScl, Abc_FrameReadDrivingCell() );
+        if ( iCell < 0 || SC_LibCell(p->pScl, iCell)->n_inputs != 1 )
+            printf( "Warning: driving cell \"%s\" is not a single-input cell of the library; the inputs are not driven.\n", Abc_FrameReadDrivingCell() );
+        else
+        {
+            SC_Pair L1 = { p->LoadAvg, p->LoadAvg }, L2 = { 4 * p->LoadAvg, 4 * p->LoadAvg }, A1, A2, S;
+            p->pPiDrive = SC_LibCell( p->pScl, iCell );
+            // slope between one and four times the average pin load
+            Scl_LibHandleInputDriver( p->pPiDrive, &L1, &A1, &S );
+            Scl_LibHandleInputDriver( p->pPiDrive, &L2, &A2, &S );
+            p->PiSens = 0.5f * ((A2.rise - A1.rise) + (A2.fall - A1.fall)) / (L2.rise - L1.rise);
+        }
+    }
 }
 // delay-oriented mapping; with NLDM timing, the structure is chosen with the
 // load-independent delays and then sized for delay; sets the delay target
-static void Emp_ManMapDelay( Emp_Man_t * p )
+static int Emp_ManMapDelay( Emp_Man_t * p )
 {
     Emap_Par_t * pPars = p->pPars;
     Abc_Obj_t * pObj;
@@ -4040,6 +4180,12 @@ static void Emp_ManMapDelay( Emp_Man_t * p )
         Emp_ObjMatch( p, i, 0, 0 );
     }
     p->fGainMode = 0;
+    Abc_NtkForEachCo( p->pNtk, pObj, i )
+        if ( !Emp_ObjIsMatched(p, Abc_ObjFaninId0(pObj)) )
+        {
+            printf( "Error: emap cannot implement output \"%s\" with the current library.\n", Abc_ObjName(pObj) );
+            return 0;
+        }
     Area = Emp_ManUpdate( p, &Delay );
     Emp_ManPrintRound( p, "Delay", Area, Delay );
     if ( p->fNldm )
@@ -4065,6 +4211,7 @@ static void Emp_ManMapDelay( Emp_Man_t * p )
     }
     Emp_ManCheckpoint( p, Area, Delay );
     Emp_ManUpdateEst( p );
+    return 1;
 }
 
 /**Function*************************************************************
@@ -4086,7 +4233,7 @@ Abc_Ntk_t * Emap_ManMapNew( Abc_Ntk_t * pNtk, Mio_Library_t * pMio, Emap_Par_t *
     Abc_Ntk_t * pNtkNew;
     float Area;
     double Delay = 0;
-    int fMogs, fMogFlow, fMogLast, fTighten;
+    int fMogs, fMogFlow, fMogLast, fTighten, nLoneRepl = 0, nLoneKept = 0;
     assert( Abc_NtkIsStrash(pNtk) );
     p = Emp_ManStart( pNtk, pMio, pPars );
     Emp_ManStartNldm( p );
@@ -4110,30 +4257,37 @@ Abc_Ntk_t * Emap_ManMapNew( Abc_Ntk_t * pNtk, Mio_Library_t * pMio, Emap_Par_t *
         else
             printf( "Timing: GENLIB pin delays (load-independent).\n" );
     }
-    Emp_ManMapDelay( p );
+    if ( !Emp_ManMapDelay(p) )
+    {
+        Emp_ManStop( p );
+        return NULL;
+    }
     // pairs, the processing order, area flow, and exact area
     if ( fMogFlow )
         Emp_ManSelectPairs( p );
     Emp_ManComputeOrder( p );
     Area = Emp_ManAreaFlowRounds( p, fMogFlow, "AreaFlow", fTighten );
-    Area = Emp_ManExactRounds( p, fMogFlow, Area, "ExactArea", fTighten );
+    Area = Emp_ManExactRounds( p, fMogFlow, "ExactArea", fTighten );
     if ( fMogLast )
     {
         Emp_ManSelectPairs( p );
         Emp_ManComputeOrder( p );
-        Area = Emp_ManExactRounds( p, 1, Area, "ExactMog", 0 );
+        Area = Emp_ManExactRounds( p, 1, "ExactMog", 0 );
         // area flow with two-output cells from the best cover (skipped with NLDM timing without a target)
         if ( !fTighten )
         {
             Emp_CoverCopy( p, p->pBest, p->pGood );
             Emp_ManUpdate( p, &Delay );
             Area = Emp_ManAreaFlowRounds( p, 1, "AreaFlowMog", 0 );
-            Area = Emp_ManExactRounds( p, 1, Area, "ExactMog", 0 );
+            Area = Emp_ManExactRounds( p, 1, "ExactMog", 0 );
         }
     }
     // the smallest cover meeting the delay target
     Emp_CoverCopy( p, p->pBest, p->pGood );
     Area = Emp_ManUpdate( p, &Delay );
+    // two-output cells with one output used
+    if ( fMogs )
+        Emp_ManReplaceLoneMogs( p, &Area, &Delay, &nLoneRepl, &nLoneKept );
     // with NLDM timing, the cells off the critical paths are downsized
     if ( p->fNldmDelay && Delay <= p->DelayTarget + EMP_EPS )
     {

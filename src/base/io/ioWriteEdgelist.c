@@ -685,6 +685,9 @@ int Io_NtkEdgelistWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode, int Length, in
     {
         if ( !fReport )
             fReport = 1, printf( "Warning: Missing second output of gate(s) \"%s\".\n", Mio_GateReadName(pGate) );
+        // record of a cell with one output used
+        fprintf( pFile, " %s", Mio_GateReadName(pGate) );
+        fprintf( pFile, " %lu", Mio_GateReadTruth(pGate) );
         return 0;
     }
     fprintf( pFile, " %s",  Abc_ObjName( Abc_ObjFanout0(pNode2) ) );

@@ -185,6 +185,12 @@ int Emap_Command( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pAbc->Err, "The current network is not an AIG. Run strash first.\n" );
         return 1;
     }
+    //Rejects sequential networks
+    if ( Abc_NtkLatchNum(pNtk) > 0 )
+    {
+        fprintf( pAbc->Err, "The current network has latches; emap maps combinational networks only.\n" );
+        return 1;
+    }
 
     if ( pPars->fVerbose )
     {
