@@ -27,7 +27,11 @@
 #include <errno.h>
 #include <limits.h>
 
+#include "aig/gia/giaScmap.h"
+
 ABC_NAMESPACE_IMPL_START
+
+static int Abc_CommandScmap( Abc_Frame_t *, int, char ** );
 
 ////////////////////////////////////////////////////////////////////////
 ///                           DECLARATIONS                           ///
@@ -86,6 +90,7 @@ void Abc_InitMapCell( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&nf2",          Abc_CommandAbc9Nf2,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&nf3",          Abc_CommandAbc9Nf3,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&nf",           Abc_CommandAbc9Nf,           0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&scmap",        Abc_CommandScmap,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&simap",        Abc_CommandAbc9Simap,        0 );
 }
 
@@ -2414,6 +2419,36 @@ usage:
     Abc_Print( -2, "\t-f       : toggles keeping the intermediate CNF file [default = %s]\n", fKeepFile? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
+    return 1;
+}
+
+
+/* Map using the electrical model and bounded shared-cover refinement. */
+static int Abc_CommandScmap( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pNew;
+    int c, fVerbose = 0, fVeryVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "vwh")) != EOF )
+        switch ( c )
+        {
+        case 'v': fVerbose ^= 1; break;
+        case 'w': fVeryVerbose ^= 1; break;
+        default: goto usage;
+        }
+    if ( globalUtilOptind != argc ) goto usage;
+    if ( !pAbc->pGia ) { Abc_Print(-1, "Empty GIA network.\n"); return 1; }
+    if ( !Abc_FrameReadLibGen() ) { Abc_Print(-1, "Current library is not available.\n"); return 1; }
+    pNew = Gia_ManScmap(pAbc->pGia, fVerbose, fVeryVerbose);
+    if ( !pNew ) { Abc_Print(-1, "SCMap: technology mapping failed.\n"); return 1; }
+    Abc_FrameUpdateGia(pAbc, pNew);
+    return 0;
+usage:
+    Abc_Print(-2, "usage: &scmap [-vwh]\n");
+    Abc_Print(-2, "         standard-cell mapping with electrical cover refinement\n");
+    Abc_Print(-2, "    -v : print mapping statistics\n");
+    Abc_Print(-2, "    -w : print detailed mapping statistics\n");
+    Abc_Print(-2, "    -h : print this message\n");
     return 1;
 }
 
