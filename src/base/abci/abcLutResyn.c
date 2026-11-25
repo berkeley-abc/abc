@@ -63,6 +63,116 @@ typedef struct Abc_LutResynCone_t_
     Vec_Ptr_t *      vLeaves;                    // leaves of the cone
 } Abc_LutResynCone_t;
 
+#define LUTRESYN_CACHE_LOG2 15
+#define LUTRESYN_CACHE_SIZE (1 << LUTRESYN_CACHE_LOG2)
+#define LUTRESYN_CACHE_ENTRY_MAX (3 * LUTRESYN_CACHE_SIZE / 4)
+#define LUTRESYN_CACHE_PROBE_MAX 64
+
+typedef struct Abc_LutResynCache_t_
+{
+    unsigned          Hash;
+    unsigned          MaskCrit;
+    short             n;
+    short             fUsed;
+    word              pTruth[LUTRESYN_WORD_MAX];
+    Abc_LutResynSol_t Sol;
+} Abc_LutResynCache_t;
+
+typedef struct Abc_LutResynCacheMgr_t_
+{
+    Abc_LutResynCache_t * pTable;   // the hash table, NULL when disabled
+    int                   nEntries;
+} Abc_LutResynCacheMgr_t;
+
+/**Function*************************************************************
+
+  Synopsis    [Hashes the cone truth table.]
+
+***********************************************************************/
+static unsigned Abc_LutResynCacheHash( word * pTruth, int n, unsigned MaskCrit )
+{
+    unsigned h = (2166136261u ^ (unsigned)n) * 16777619u ^ MaskCrit;
+    int i, w;
+    for ( i = 0; i < Abc_TtWordNum(n); i++ )
+    {
+        word x = pTruth[i];
+        for ( w = 0; w < 4; w++ )
+        {
+            h = (h ^ (unsigned)x) * 16777619u;
+            x >>= 32;
+        }
+    }
+    return h;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Looks up the decomposition of a truth table.]
+
+  Description [The key is the cone truth table, the number of leaves, and
+  the level-class mask: two bits per essential leaf encode whether its
+  level is <= ReqLevel-3, == ReqLevel-2, or == ReqLevel-1. Every timing
+  check of the search compares a leaf level against ReqLevel-1, ReqLevel-2,
+  or ReqLevel-3 (the latter is the prefix check of the chain decomposition),
+  so the outcome of the whole search is fully determined by this key.
+  Both successful and failed searches are cached; failed entries are stored
+  with Mode=0.]
+
+***********************************************************************/
+static Abc_LutResynSol_t * Abc_LutResynCacheLookup( Abc_LutResynCacheMgr_t * pCache, word * pTruth, int n, unsigned MaskCrit )
+{
+    unsigned Mask = LUTRESYN_CACHE_SIZE - 1;
+    unsigned h = Abc_LutResynCacheHash( pTruth, n, MaskCrit );
+    unsigned i = h & Mask;
+    int probe;
+    if ( pCache->pTable == NULL )
+        return NULL;
+    for ( probe = 0; probe < LUTRESYN_CACHE_PROBE_MAX; probe++, i = (i + 1) & Mask )
+    {
+        Abc_LutResynCache_t * pEnt = pCache->pTable + i;
+        if ( !pEnt->fUsed )
+            return NULL;
+        if ( pEnt->Hash == h && pEnt->n == n && pEnt->MaskCrit == MaskCrit &&
+             memcmp( pEnt->pTruth, pTruth, sizeof(word) * Abc_TtWordNum(n) ) == 0 )
+            return &pEnt->Sol;
+    }
+    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stores the decomposition of a truth table.]
+
+***********************************************************************/
+static void Abc_LutResynCacheInsert( Abc_LutResynCacheMgr_t * pCache, word * pTruth, int n, unsigned MaskCrit, Abc_LutResynSol_t * pSol )
+{
+    unsigned Mask = LUTRESYN_CACHE_SIZE - 1;
+    unsigned h = Abc_LutResynCacheHash( pTruth, n, MaskCrit );
+    unsigned i = h & Mask;
+    int probe;
+    if ( pCache->pTable == NULL || pCache->nEntries >= LUTRESYN_CACHE_ENTRY_MAX )
+        return;
+    for ( probe = 0; probe < LUTRESYN_CACHE_PROBE_MAX; probe++, i = (i + 1) & Mask )
+    {
+        Abc_LutResynCache_t * pEnt = pCache->pTable + i;
+        if ( pEnt->fUsed )
+        {
+            if ( pEnt->Hash == h && pEnt->n == n && pEnt->MaskCrit == MaskCrit &&
+                 memcmp( pEnt->pTruth, pTruth, sizeof(word) * Abc_TtWordNum(n) ) == 0 )
+                return;
+            continue;
+        }
+        pEnt->Hash = h;
+        pEnt->MaskCrit = MaskCrit;
+        pEnt->n = (short)n;
+        pEnt->fUsed = 1;
+        memcpy( pEnt->pTruth, pTruth, sizeof(word) * Abc_TtWordNum(n) );
+        pEnt->Sol = *pSol;
+        pCache->nEntries++;
+        return;
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -97,13 +207,19 @@ static int Abc_LutResynNextComb( int * pComb, int nComb, int nTotal )
 static void Abc_LutResynTruthVar( word * pTruth, int nVars, int iVar )
 {
     int nWords = Abc_TtWordNum( nVars );
-    int Limit = 1 << nVars;
-    int i;
-    for ( i = 0; i < nWords; i++ )
-        pTruth[i] = 0;
-    for ( i = 0; i < Limit; i++ )
-        if ( (i >> iVar) & 1 )
-            pTruth[i>>6] |= (word)1 << (i & 63);
+    int w;
+    if ( iVar < 6 )
+    {
+        word Pat = s_Truths6[iVar];
+        for ( w = 0; w < nWords; w++ )
+            pTruth[w] = Pat;
+    }
+    else
+    {
+        int Step = iVar - 6;
+        for ( w = 0; w < nWords; w++ )
+            pTruth[w] = ((w >> Step) & 1) ? ~(word)0 : (word)0;
+    }
 }
 
 /**Function*************************************************************
@@ -358,6 +474,40 @@ static int Abc_LutResynConeSameLeaves( Abc_LutResynCone_t * pC1, Abc_LutResynCon
 
 /**Function*************************************************************
 
+  Synopsis    [Composes a LUT truth over the truth tables of its fanins.]
+
+  Description [Shannon expansion on the fanin variables: pOut = t(t0,..,tk-1)
+  where variable j is the truth table ppTruths[j].]
+
+***********************************************************************/
+static void Abc_LutResynComposeTruth( word * pOut, word t, int nFans, word ** ppTruths, int nWords )
+{
+    word Buf0[LUTRESYN_WORD_MAX], Buf1[LUTRESYN_WORD_MAX];
+    word Mask = (nFans >= 6) ? ~(word)0 : (((word)1 << (1 << nFans)) - 1);
+    int v, w;
+    t &= Mask;
+    if ( t == 0 )
+    {
+        Abc_TtClear( pOut, nWords );
+        return;
+    }
+    if ( t == Mask )
+    {
+        Abc_TtFill( pOut, nWords );
+        return;
+    }
+    for ( v = nFans - 1; v >= 0; v-- )
+        if ( Abc_Tt6HasVar( t, v ) )
+            break;
+    assert( v >= 0 );
+    Abc_LutResynComposeTruth( Buf0, Abc_Tt6Cofactor0(t, v), v, ppTruths, nWords );
+    Abc_LutResynComposeTruth( Buf1, Abc_Tt6Cofactor1(t, v), v, ppTruths, nWords );
+    for ( w = 0; w < nWords; w++ )
+        pOut[w] = (Buf0[w] & ~ppTruths[v][w]) | (Buf1[w] & ppTruths[v][w]);
+}
+
+/**Function*************************************************************
+
   Synopsis    [Builds the truth table of the cone root over its leaves.]
 
   Description [The leaves are the first variables. The cone nodes are
@@ -366,7 +516,7 @@ static int Abc_LutResynConeSameLeaves( Abc_LutResynCone_t * pC1, Abc_LutResynCon
   the absorption order non-topological.]
 
 ***********************************************************************/
-static int Abc_LutResynTruthCone( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCone, Vec_Ptr_t * vLeaves, word * pStore, word * pCube, word * pConeTruth )
+static int Abc_LutResynTruthCone( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCone, Vec_Ptr_t * vLeaves, word * pStore, word * pConeTruth )
 {
     Hop_Man_t * pMan = (Hop_Man_t *)pNtk->pManFunc;
     Vec_Int_t * vTruth = Vec_IntAlloc( 0 );
@@ -374,9 +524,9 @@ static int Abc_LutResynTruthCone( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCone, Vec_Ptr_t
     int nCone = Vec_PtrSize( vCone );
     int nWords = Abc_TtWordNum( n );
     int pOrder[LUTRESYN_CONE_MAX], fDone[LUTRESYN_CONE_MAX];
-    int i, k, j, m, Limit, nFans, iLeaf, iCone, nBits, nDone, kNext, fReady;
+    int i, k, j, m, nFans, iLeaf, iCone, nBits, nDone, kNext, fReady;
     Abc_Obj_t * pObj, * pFanin;
-    word * pFaninTruth, t;
+    word t, * pFansTruth[6];
     unsigned * pTruth;
     int fOk = 1;
 
@@ -425,6 +575,8 @@ static int Abc_LutResynTruthCone( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCone, Vec_Ptr_t
         }
         pTruth = Hop_ManConvertAigToTruth( pMan, (Hop_Obj_t *)pObj->pData, nFans, vTruth, 0 );
         t = (word)pTruth[0] | (nFans >= 6 ? ((word)pTruth[1] << 32) : (word)0);
+        if ( nFans < 6 )
+            t &= ((word)1 << (1 << nFans)) - 1;
         if ( nFans == 0 )
         {
             if ( t & 1 )
@@ -433,29 +585,20 @@ static int Abc_LutResynTruthCone( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCone, Vec_Ptr_t
                 Abc_TtClear( pStore + (n + k) * nWords, nWords );
             continue;
         }
-        Abc_TtClear( pStore + (n + k) * nWords, nWords );
-        Limit = 1 << nFans;
-        for ( i = 0; i < Limit; i++ )
+        for ( j = 0; j < nFans; j++ )
         {
-            if ( ((t >> i) & 1) == 0 )
-                continue;
-            Abc_TtFill( pCube, nWords );
-            for ( j = 0; j < nFans; j++ )
+            pFanin = Abc_ObjFanin( pObj, j );
+            iLeaf = Vec_PtrFind( vLeaves, pFanin );
+            if ( iLeaf >= 0 )
+                pFansTruth[j] = pStore + iLeaf * nWords;
+            else
             {
-                pFanin = Abc_ObjFanin( pObj, j );
-                iLeaf = Vec_PtrFind( vLeaves, pFanin );
-                if ( iLeaf >= 0 )
-                    pFaninTruth = pStore + iLeaf * nWords;
-                else
-                {
-                    iCone = Vec_PtrFind( vCone, pFanin );
-                    assert( iCone >= 0 );
-                    pFaninTruth = pStore + (n + iCone) * nWords;
-                }
-                Abc_TtAndCompl( pCube, pCube, 0, pFaninTruth, ((i >> j) & 1) ? 0 : 1, nWords );
+                iCone = Vec_PtrFind( vCone, pFanin );
+                assert( iCone >= 0 );
+                pFansTruth[j] = pStore + (n + iCone) * nWords;
             }
-            Abc_TtOr( pStore + (n + k) * nWords, pStore + (n + k) * nWords, pCube, nWords );
         }
+        Abc_LutResynComposeTruth( pStore + (n + k) * nWords, t, nFans, pFansTruth, nWords );
     }
     if ( fOk )
     {
@@ -470,16 +613,6 @@ static int Abc_LutResynTruthCone( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCone, Vec_Ptr_t
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the level of a leaf given its truth-table variable.]
-
-***********************************************************************/
-static int Abc_LutResynLeafLevel( Vec_Ptr_t * vLeaves, int * pPerm, int iVar )
-{
-    return Abc_ObjLevel( (Abc_Obj_t *)Vec_PtrEntry(vLeaves, pPerm[iVar]) );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Tries one partition of the variables into Free, Bound, and
   Shared sets.]
 
@@ -490,13 +623,13 @@ static int Abc_LutResynLeafLevel( Vec_Ptr_t * vLeaves, int * pPerm, int iVar )
   ReqLevel-1 and Bound/Shared leaves by ReqLevel-2.]
 
 ***********************************************************************/
-static int Abc_LutResynTryPartition( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, Vec_Ptr_t * vLeaves, int ReqLevel,
+static int Abc_LutResynTryPartition( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, int * pLev, int ReqLevel,
                                    int * pFree, int nFree, int * pBound, int nBound, int * pShared, int nShared )
 {
     word Buf[LUTRESYN_WORD_MAX];
     word Slice0[LUTRESYN_SLICE_MAX], Slice1[LUTRESYN_SLICE_MAX];
     int nKinds[LUTRESYN_SLICE_MAX];
-    word TruthG = 0, TruthH = 0;
+    word TruthG = 0, TruthH = 0, MaskF;
     int pOrder[16], pGMap[16], pHMap[16];
     int nWords = Abc_TtWordNum( n );
     int nFbits = 1 << nFree, nBbits = 1 << nBound, nSbits = 1 << nShared;
@@ -508,18 +641,18 @@ static int Abc_LutResynTryPartition( Abc_LutResynSol_t * pSol, word * pTruth, in
     MaxFree = -1;
     for ( i = 0; i < nFree; i++ )
     {
-        Lev = Abc_LutResynLeafLevel( vLeaves, pPerm, pFree[i] );
+        Lev = pLev[pFree[i]];
         MaxFree = Abc_MaxInt( MaxFree, Lev );
     }
     MaxRest = -1;
     for ( i = 0; i < nBound; i++ )
     {
-        Lev = Abc_LutResynLeafLevel( vLeaves, pPerm, pBound[i] );
+        Lev = pLev[pBound[i]];
         MaxRest = Abc_MaxInt( MaxRest, Lev );
     }
     for ( i = 0; i < nShared; i++ )
     {
-        Lev = Abc_LutResynLeafLevel( vLeaves, pPerm, pShared[i] );
+        Lev = pLev[pShared[i]];
         MaxRest = Abc_MaxInt( MaxRest, Lev );
     }
     if ( MaxFree + 1 > ReqLevel || MaxRest > ReqLevel - 2 )
@@ -536,18 +669,18 @@ static int Abc_LutResynTryPartition( Abc_LutResynSol_t * pSol, word * pTruth, in
     Abc_TtCopy( Buf, pTruth, nWords, 0 );
     Abc_TtPermute( Buf, pOrder, n );
     // slice the cofactors over Shared and Bound
+    MaskF = ((word)1 << nFbits) - 1;
     for ( s = 0; s < nSbits; s++ )
     {
         nKinds[s] = 0;
         for ( b = 0; b < nBbits; b++ )
         {
-            word Slice = 0;
-            for ( f = 0; f < nFbits; f++ )
-            {
-                idx = f | (b << nFree) | (s << (nFree + nBound));
-                if ( (Buf[idx>>6] >> (idx & 63)) & 1 )
-                    Slice |= (word)1 << f;
-            }
+            word Slice;
+            idx = (b << nFree) | (s << (nFree + nBound));
+            Slice = Buf[idx>>6] >> (idx & 63);
+            if ( (idx & 63) + nFbits > 64 )
+                Slice |= Buf[(idx>>6)+1] << (64 - (idx & 63));
+            Slice &= MaskF;
             if ( nKinds[s] == 0 )
             {
                 Slice0[s] = Slice;
@@ -637,7 +770,7 @@ static int Abc_LutResynTryPartition( Abc_LutResynSol_t * pSol, word * pTruth, in
   numbers and h implements the suffix.]
 
 ***********************************************************************/
-static int Abc_LutResynTryPartition3( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, Vec_Ptr_t * vLeaves, int ReqLevel,
+static int Abc_LutResynTryPartition3( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, int * pLev, int ReqLevel,
                                     int * pFree, int nFree, int * pBound1, int nBound1,
                                     int * pBound2, int nBound2, int * pShared, int nShared )
 {
@@ -658,14 +791,14 @@ static int Abc_LutResynTryPartition3( Abc_LutResynSol_t * pSol, word * pTruth, i
     // the prefixes have level ReqLevel-1 and the suffix ReqLevel
     MaxFree = -1;
     for ( i = 0; i < nFree; i++ )
-        MaxFree = Abc_MaxInt( MaxFree, Abc_LutResynLeafLevel( vLeaves, pPerm, pFree[i] ) );
+        MaxFree = Abc_MaxInt( MaxFree, pLev[pFree[i]] );
     MaxRest = -1;
     for ( i = 0; i < nBound1; i++ )
-        MaxRest = Abc_MaxInt( MaxRest, Abc_LutResynLeafLevel( vLeaves, pPerm, pBound1[i] ) );
+        MaxRest = Abc_MaxInt( MaxRest, pLev[pBound1[i]] );
     for ( i = 0; i < nBound2; i++ )
-        MaxRest = Abc_MaxInt( MaxRest, Abc_LutResynLeafLevel( vLeaves, pPerm, pBound2[i] ) );
+        MaxRest = Abc_MaxInt( MaxRest, pLev[pBound2[i]] );
     for ( i = 0; i < nShared; i++ )
-        MaxRest = Abc_MaxInt( MaxRest, Abc_LutResynLeafLevel( vLeaves, pPerm, pShared[i] ) );
+        MaxRest = Abc_MaxInt( MaxRest, pLev[pShared[i]] );
     if ( MaxFree + 1 > ReqLevel || MaxRest > ReqLevel - 2 )
         return 0;
     // reorder the truth as [Free, Bound1, Bound2, Shared]
@@ -827,11 +960,11 @@ static int Abc_LutResynTryPartition3( Abc_LutResynSol_t * pSol, word * pTruth, i
   Synopsis    [Enumerates the Free subset for a given Shared subset.]
 
 ***********************************************************************/
-static int Abc_LutResynTryFree( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, Vec_Ptr_t * vLeaves,
+static int Abc_LutResynTryFree( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, int * pLev,
                               int nLutSize, int ReqLevel, int * pShared, int nShared, int * pAvail, int nAvail )
 {
     int pFree[LUTRESYN_LEAF_MAX], pBound[LUTRESYN_LEAF_MAX], pComb[LUTRESYN_LEAF_MAX];
-    int nFree, nBound, i, j, k, fIn;
+    int nFree, nBound, i, j, MaskF;
     for ( nFree = 0; nFree <= nLutSize - 1 - nShared && nFree <= nAvail; nFree++ )
     {
         nBound = nAvail - nFree;
@@ -841,21 +974,16 @@ static int Abc_LutResynTryFree( Abc_LutResynSol_t * pSol, word * pTruth, int n, 
             pComb[i] = i;
         while ( 1 )
         {
-            for ( i = 0; i < nFree; i++ )
-                pFree[i] = pAvail[pComb[i]];
-            for ( j = 0, i = 0; i < nAvail; i++ )
+            for ( MaskF = 0, i = 0; i < nFree; i++ )
             {
-                for ( fIn = 0, k = 0; k < nFree; k++ )
-                    if ( pAvail[i] == pFree[k] )
-                    {
-                        fIn = 1;
-                        break;
-                    }
-                if ( !fIn )
-                    pBound[j++] = pAvail[i];
+                pFree[i] = pAvail[pComb[i]];
+                MaskF |= 1 << pFree[i];
             }
+            for ( j = 0, i = 0; i < nAvail; i++ )
+                if ( !((MaskF >> pAvail[i]) & 1) )
+                    pBound[j++] = pAvail[i];
             assert( j == nBound );
-            if ( Abc_LutResynTryPartition( pSol, pTruth, n, pPerm, vLeaves, ReqLevel,
+            if ( Abc_LutResynTryPartition( pSol, pTruth, n, pPerm, pLev, ReqLevel,
                                          pFree, nFree, pBound, nBound, pShared, nShared ) )
                 return 1;
             if ( nFree == 0 || !Abc_LutResynNextComb( pComb, nFree, nAvail ) )
@@ -873,12 +1001,12 @@ static int Abc_LutResynTryFree( Abc_LutResynSol_t * pSol, word * pTruth, int n, 
   partitions are tried, so that large cones do not make the search hang.]
 
 ***********************************************************************/
-static int Abc_LutResynTryFree3( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, Vec_Ptr_t * vLeaves,
+static int Abc_LutResynTryFree3( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, int * pLev,
                                int nLutSize, int ReqLevel, int * pShared, int nShared, int * pAvail, int nAvail, int * pnTries )
 {
     int pFree[LUTRESYN_LEAF_MAX], pB1[LUTRESYN_LEAF_MAX], pB2[LUTRESYN_LEAF_MAX];
     int pCombF[LUTRESYN_LEAF_MAX], pComb1[LUTRESYN_LEAF_MAX], pRest[LUTRESYN_LEAF_MAX];
-    int nFree, nB1, nB2, nRest, i, j, k, fIn;
+    int nFree, nB1, nB2, nRest, i, j, MaskF;
     for ( nFree = 0; nFree <= nLutSize - 2 - nShared && nFree <= nAvail; nFree++ )
     {
         for ( nB1 = 1; nB1 <= nLutSize - nShared && nB1 <= nAvail - nFree; nB1++ )
@@ -890,41 +1018,31 @@ static int Abc_LutResynTryFree3( Abc_LutResynSol_t * pSol, word * pTruth, int n,
                 pCombF[i] = i;
             while ( 1 )
             {
-                for ( i = 0; i < nFree; i++ )
-                    pFree[i] = pAvail[pCombF[i]];
-                for ( nRest = 0, i = 0; i < nAvail; i++ )
+                for ( MaskF = 0, i = 0; i < nFree; i++ )
                 {
-                    for ( fIn = 0, k = 0; k < nFree; k++ )
-                        if ( pAvail[i] == pFree[k] )
-                        {
-                            fIn = 1;
-                            break;
-                        }
-                    if ( !fIn )
-                        pRest[nRest++] = pAvail[i];
+                    pFree[i] = pAvail[pCombF[i]];
+                    MaskF |= 1 << pFree[i];
                 }
+                for ( nRest = 0, i = 0; i < nAvail; i++ )
+                    if ( !((MaskF >> pAvail[i]) & 1) )
+                        pRest[nRest++] = pAvail[i];
                 assert( nRest == nB1 + nB2 );
                 for ( i = 0; i < nB1; i++ )
                     pComb1[i] = i;
                 while ( 1 )
                 {
-                    for ( i = 0; i < nB1; i++ )
-                        pB1[i] = pRest[pComb1[i]];
-                    for ( j = 0, i = 0; i < nRest; i++ )
+                    for ( MaskF = 0, i = 0; i < nB1; i++ )
                     {
-                        for ( fIn = 0, k = 0; k < nB1; k++ )
-                            if ( pRest[i] == pB1[k] )
-                            {
-                                fIn = 1;
-                                break;
-                            }
-                        if ( !fIn )
-                            pB2[j++] = pRest[i];
+                        pB1[i] = pRest[pComb1[i]];
+                        MaskF |= 1 << pB1[i];
                     }
+                    for ( j = 0, i = 0; i < nRest; i++ )
+                        if ( !((MaskF >> pRest[i]) & 1) )
+                            pB2[j++] = pRest[i];
                     assert( j == nB2 );
                     if ( ++(*pnTries) > LUTRESYN_M3_TRY_MAX )
                         return 0;
-                    if ( Abc_LutResynTryPartition3( pSol, pTruth, n, pPerm, vLeaves, ReqLevel,
+                    if ( Abc_LutResynTryPartition3( pSol, pTruth, n, pPerm, pLev, ReqLevel,
                                                   pFree, nFree, pB1, nB1, pB2, nB2, pShared, nShared ) )
                         return 1;
                     if ( !Abc_LutResynNextComb( pComb1, nB1, nRest ) )
@@ -951,7 +1069,7 @@ static int Abc_LutResynTryFree3( Abc_LutResynSol_t * pSol, word * pTruth, int n,
   class from different g classes must be identical.]
 
 ***********************************************************************/
-static int Abc_LutResynTryPartition3Chain( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, Vec_Ptr_t * vLeaves, int ReqLevel,
+static int Abc_LutResynTryPartition3Chain( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, int * pLev, int ReqLevel,
                                          int * pFree1, int nFree1, int * pFree2, int nFree2,
                                          int * pBound, int nBound, int * pShared, int nShared )
 {
@@ -972,15 +1090,15 @@ static int Abc_LutResynTryPartition3Chain( Abc_LutResynSol_t * pSol, word * pTru
     // timing: h2 at ReqLevel, h1 at ReqLevel-1, g at ReqLevel-2
     MaxB = -1;
     for ( i = 0; i < nBound; i++ )
-        MaxB = Abc_MaxInt( MaxB, Abc_LutResynLeafLevel( vLeaves, pPerm, pBound[i] ) );
+        MaxB = Abc_MaxInt( MaxB, pLev[pBound[i]] );
     for ( i = 0; i < nShared; i++ )
-        MaxB = Abc_MaxInt( MaxB, Abc_LutResynLeafLevel( vLeaves, pPerm, pShared[i] ) );
+        MaxB = Abc_MaxInt( MaxB, pLev[pShared[i]] );
     MaxF1 = -1;
     for ( i = 0; i < nFree1; i++ )
-        MaxF1 = Abc_MaxInt( MaxF1, Abc_LutResynLeafLevel( vLeaves, pPerm, pFree1[i] ) );
+        MaxF1 = Abc_MaxInt( MaxF1, pLev[pFree1[i]] );
     MaxF2 = -1;
     for ( i = 0; i < nFree2; i++ )
-        MaxF2 = Abc_MaxInt( MaxF2, Abc_LutResynLeafLevel( vLeaves, pPerm, pFree2[i] ) );
+        MaxF2 = Abc_MaxInt( MaxF2, pLev[pFree2[i]] );
     if ( MaxB > ReqLevel - 3 || MaxF1 > ReqLevel - 2 || MaxF2 > ReqLevel - 1 )
         return 0;
     // reorder the truth as [Free1, Free2, Bound, Shared]
@@ -1167,31 +1285,26 @@ static int Abc_LutResynTryPartition3Chain( Abc_LutResynSol_t * pSol, word * pTru
   Synopsis    [Enumerates the Free1 and Free2 subsets for the chained search.]
 
 ***********************************************************************/
-static int Abc_LutResynTryFree3Chain( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, Vec_Ptr_t * vLeaves,
+static int Abc_LutResynTryFree3Chain( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, int * pLev,
                                     int nLutSize, int ReqLevel, int * pShared, int nShared, int * pAvail, int nAvail, int * pnTries )
 {
     int pFree1[LUTRESYN_LEAF_MAX], pFree2[LUTRESYN_LEAF_MAX], pBound[LUTRESYN_LEAF_MAX];
     int pComb1[LUTRESYN_LEAF_MAX], pComb2[LUTRESYN_LEAF_MAX], pRest[LUTRESYN_LEAF_MAX];
-    int nFree1, nFree2, nBound, nRest, i, j, k, fIn;
+    int nFree1, nFree2, nBound, nRest, i, j, MaskF;
     for ( nFree1 = 0; nFree1 <= nLutSize - 1 - nShared && nFree1 <= nAvail; nFree1++ )
     {
         for ( i = 0; i < nFree1; i++ )
             pComb1[i] = i;
         while ( 1 )
         {
-            for ( i = 0; i < nFree1; i++ )
-                pFree1[i] = pAvail[pComb1[i]];
-            for ( nRest = 0, i = 0; i < nAvail; i++ )
+            for ( MaskF = 0, i = 0; i < nFree1; i++ )
             {
-                for ( fIn = 0, k = 0; k < nFree1; k++ )
-                    if ( pAvail[i] == pFree1[k] )
-                    {
-                        fIn = 1;
-                        break;
-                    }
-                if ( !fIn )
-                    pRest[nRest++] = pAvail[i];
+                pFree1[i] = pAvail[pComb1[i]];
+                MaskF |= 1 << pFree1[i];
             }
+            for ( nRest = 0, i = 0; i < nAvail; i++ )
+                if ( !((MaskF >> pAvail[i]) & 1) )
+                    pRest[nRest++] = pAvail[i];
             for ( nFree2 = 0; nFree2 <= nLutSize - 1 - nShared && nFree2 < nRest; nFree2++ )
             {
                 nBound = nRest - nFree2;
@@ -1201,23 +1314,18 @@ static int Abc_LutResynTryFree3Chain( Abc_LutResynSol_t * pSol, word * pTruth, i
                     pComb2[i] = i;
                 while ( 1 )
                 {
-                    for ( i = 0; i < nFree2; i++ )
-                        pFree2[i] = pRest[pComb2[i]];
-                    for ( j = 0, i = 0; i < nRest; i++ )
+                    for ( MaskF = 0, i = 0; i < nFree2; i++ )
                     {
-                        for ( fIn = 0, k = 0; k < nFree2; k++ )
-                            if ( pRest[i] == pFree2[k] )
-                            {
-                                fIn = 1;
-                                break;
-                            }
-                        if ( !fIn )
-                            pBound[j++] = pRest[i];
+                        pFree2[i] = pRest[pComb2[i]];
+                        MaskF |= 1 << pFree2[i];
                     }
+                    for ( j = 0, i = 0; i < nRest; i++ )
+                        if ( !((MaskF >> pRest[i]) & 1) )
+                            pBound[j++] = pRest[i];
                     assert( j == nBound );
                     if ( ++(*pnTries) > LUTRESYN_M3_TRY_MAX )
                         return 0;
-                    if ( Abc_LutResynTryPartition3Chain( pSol, pTruth, n, pPerm, vLeaves, ReqLevel,
+                    if ( Abc_LutResynTryPartition3Chain( pSol, pTruth, n, pPerm, pLev, ReqLevel,
                                                        pFree1, nFree1, pFree2, nFree2, pBound, nBound, pShared, nShared ) )
                         return 1;
                     if ( nFree2 == 0 || !Abc_LutResynNextComb( pComb2, nFree2, nRest ) )
@@ -1236,10 +1344,10 @@ static int Abc_LutResynTryFree3Chain( Abc_LutResynSol_t * pSol, word * pTruth, i
   Synopsis    [Enumerates the Shared subsets for the chained search.]
 
 ***********************************************************************/
-static int Abc_LutResynComposeThreeChain( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, Vec_Ptr_t * vLeaves, int nLutSize, int ReqLevel, int * pnTries )
+static int Abc_LutResynComposeThreeChain( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, int * pLev, int nLutSize, int ReqLevel, int * pnTries )
 {
-    int pShared[LUTRESYN_LEAF_MAX], pAvail[LUTRESYN_LEAF_MAX], pComb[LUTRESYN_LEAF_MAX], pUsed[LUTRESYN_LEAF_MAX];
-    int nShared, i, m;
+    int pShared[LUTRESYN_LEAF_MAX], pAvail[LUTRESYN_LEAF_MAX], pComb[LUTRESYN_LEAF_MAX];
+    int nShared, i, m, MaskF;
     if ( nLutSize > 6 || n < 3 )
         return 0;
     for ( nShared = 0; nShared <= nLutSize - 2 && nShared <= n; nShared++ )
@@ -1248,7 +1356,7 @@ static int Abc_LutResynComposeThreeChain( Abc_LutResynSol_t * pSol, word * pTrut
         {
             for ( m = 0; m < n; m++ )
                 pAvail[m] = m;
-            if ( Abc_LutResynTryFree3Chain( pSol, pTruth, n, pPerm, vLeaves, nLutSize, ReqLevel, pShared, 0, pAvail, n, pnTries ) )
+            if ( Abc_LutResynTryFree3Chain( pSol, pTruth, n, pPerm, pLev, nLutSize, ReqLevel, pShared, 0, pAvail, n, pnTries ) )
                 return 1;
             continue;
         }
@@ -1258,14 +1366,12 @@ static int Abc_LutResynComposeThreeChain( Abc_LutResynSol_t * pSol, word * pTrut
         {
             for ( i = 0; i < nShared; i++ )
                 pShared[i] = pComb[i];
-            for ( i = 0; i < n; i++ )
-                pUsed[i] = 0;
-            for ( i = 0; i < nShared; i++ )
-                pUsed[pShared[i]] = 1;
+            for ( MaskF = 0, i = 0; i < nShared; i++ )
+                MaskF |= 1 << pShared[i];
             for ( m = 0, i = 0; i < n; i++ )
-                if ( !pUsed[i] )
+                if ( !((MaskF >> i) & 1) )
                     pAvail[m++] = i;
-            if ( Abc_LutResynTryFree3Chain( pSol, pTruth, n, pPerm, vLeaves, nLutSize, ReqLevel, pShared, nShared, pAvail, m, pnTries ) )
+            if ( Abc_LutResynTryFree3Chain( pSol, pTruth, n, pPerm, pLev, nLutSize, ReqLevel, pShared, nShared, pAvail, m, pnTries ) )
                 return 1;
             if ( !Abc_LutResynNextComb( pComb, nShared, n ) )
                 break;
@@ -1279,13 +1385,13 @@ static int Abc_LutResynComposeThreeChain( Abc_LutResynSol_t * pSol, word * pTrut
   Synopsis    [Enumerates all four-way partitions for the three-LUT search.]
 
 ***********************************************************************/
-static int Abc_LutResynComposeThree( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, Vec_Ptr_t * vLeaves, int nLutSize, int ReqLevel, int * pnTries )
+static int Abc_LutResynComposeThree( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, int * pLev, int nLutSize, int ReqLevel, int * pnTries )
 {
-    int pShared[LUTRESYN_LEAF_MAX], pAvail[LUTRESYN_LEAF_MAX], pComb[LUTRESYN_LEAF_MAX], pUsed[LUTRESYN_LEAF_MAX];
-    int nShared, i, m;
+    int pShared[LUTRESYN_LEAF_MAX], pAvail[LUTRESYN_LEAF_MAX], pComb[LUTRESYN_LEAF_MAX];
+    int nShared, i, m, MaskF;
     if ( nLutSize > 6 || n < 3 )
         return 0;
-    if ( Abc_LutResynComposeThreeChain( pSol, pTruth, n, pPerm, vLeaves, nLutSize, ReqLevel, pnTries ) )
+    if ( Abc_LutResynComposeThreeChain( pSol, pTruth, n, pPerm, pLev, nLutSize, ReqLevel, pnTries ) )
         return 1;
     for ( nShared = 0; nShared <= nLutSize - 2 && nShared <= n; nShared++ )
     {
@@ -1293,7 +1399,7 @@ static int Abc_LutResynComposeThree( Abc_LutResynSol_t * pSol, word * pTruth, in
         {
             for ( m = 0; m < n; m++ )
                 pAvail[m] = m;
-            if ( Abc_LutResynTryFree3( pSol, pTruth, n, pPerm, vLeaves, nLutSize, ReqLevel, pShared, 0, pAvail, n, pnTries ) )
+            if ( Abc_LutResynTryFree3( pSol, pTruth, n, pPerm, pLev, nLutSize, ReqLevel, pShared, 0, pAvail, n, pnTries ) )
                 return 1;
             continue;
         }
@@ -1303,14 +1409,12 @@ static int Abc_LutResynComposeThree( Abc_LutResynSol_t * pSol, word * pTruth, in
         {
             for ( i = 0; i < nShared; i++ )
                 pShared[i] = pComb[i];
-            for ( i = 0; i < n; i++ )
-                pUsed[i] = 0;
-            for ( i = 0; i < nShared; i++ )
-                pUsed[pShared[i]] = 1;
+            for ( MaskF = 0, i = 0; i < nShared; i++ )
+                MaskF |= 1 << pShared[i];
             for ( m = 0, i = 0; i < n; i++ )
-                if ( !pUsed[i] )
+                if ( !((MaskF >> i) & 1) )
                     pAvail[m++] = i;
-            if ( Abc_LutResynTryFree3( pSol, pTruth, n, pPerm, vLeaves, nLutSize, ReqLevel, pShared, nShared, pAvail, m, pnTries ) )
+            if ( Abc_LutResynTryFree3( pSol, pTruth, n, pPerm, pLev, nLutSize, ReqLevel, pShared, nShared, pAvail, m, pnTries ) )
                 return 1;
             if ( !Abc_LutResynNextComb( pComb, nShared, n ) )
                 break;
@@ -1324,10 +1428,10 @@ static int Abc_LutResynComposeThree( Abc_LutResynSol_t * pSol, word * pTruth, in
   Synopsis    [Enumerates all three-way partitions for the two-LUT search.]
 
 ***********************************************************************/
-static int Abc_LutResynComposeTwo( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, Vec_Ptr_t * vLeaves, int nLutSize, int ReqLevel )
+static int Abc_LutResynComposeTwo( Abc_LutResynSol_t * pSol, word * pTruth, int n, int * pPerm, int * pLev, int nLutSize, int ReqLevel )
 {
-    int pShared[LUTRESYN_LEAF_MAX], pAvail[LUTRESYN_LEAF_MAX], pComb[LUTRESYN_LEAF_MAX], pUsed[LUTRESYN_LEAF_MAX];
-    int nShared, i, m;
+    int pShared[LUTRESYN_LEAF_MAX], pAvail[LUTRESYN_LEAF_MAX], pComb[LUTRESYN_LEAF_MAX];
+    int nShared, i, m, MaskF;
     if ( nLutSize > 6 )
         return 0;
     for ( nShared = 0; nShared <= nLutSize - 1 && nShared <= n; nShared++ )
@@ -1336,7 +1440,7 @@ static int Abc_LutResynComposeTwo( Abc_LutResynSol_t * pSol, word * pTruth, int 
         {
             for ( m = 0; m < n; m++ )
                 pAvail[m] = m;
-            if ( Abc_LutResynTryFree( pSol, pTruth, n, pPerm, vLeaves, nLutSize, ReqLevel, pShared, 0, pAvail, n ) )
+            if ( Abc_LutResynTryFree( pSol, pTruth, n, pPerm, pLev, nLutSize, ReqLevel, pShared, 0, pAvail, n ) )
                 return 1;
             continue;
         }
@@ -1346,14 +1450,12 @@ static int Abc_LutResynComposeTwo( Abc_LutResynSol_t * pSol, word * pTruth, int 
         {
             for ( i = 0; i < nShared; i++ )
                 pShared[i] = pComb[i];
-            for ( i = 0; i < n; i++ )
-                pUsed[i] = 0;
-            for ( i = 0; i < nShared; i++ )
-                pUsed[pShared[i]] = 1;
+            for ( MaskF = 0, i = 0; i < nShared; i++ )
+                MaskF |= 1 << pShared[i];
             for ( m = 0, i = 0; i < n; i++ )
-                if ( !pUsed[i] )
+                if ( !((MaskF >> i) & 1) )
                     pAvail[m++] = i;
-            if ( Abc_LutResynTryFree( pSol, pTruth, n, pPerm, vLeaves, nLutSize, ReqLevel, pShared, nShared, pAvail, m ) )
+            if ( Abc_LutResynTryFree( pSol, pTruth, n, pPerm, pLev, nLutSize, ReqLevel, pShared, nShared, pAvail, m ) )
                 return 1;
             if ( !Abc_LutResynNextComb( pComb, nShared, n ) )
                 break;
@@ -1367,27 +1469,53 @@ static int Abc_LutResynComposeTwo( Abc_LutResynSol_t * pSol, word * pTruth, int 
   Synopsis    [Decomposes the cone truth table into one or two LUTs.]
 
 ***********************************************************************/
-static int Abc_LutResynCompose( Abc_LutResynSol_t * pSol, word * pTruth, int n, Vec_Ptr_t * vLeaves, int nLutSize, int ReqLevel, int nMaxLuts )
+static int Abc_LutResynCompose( Abc_LutResynCacheMgr_t * pCache, Abc_LutResynSol_t * pSol, word * pTruth, int n, Vec_Ptr_t * vLeaves, int nLutSize, int ReqLevel, int nMaxLuts )
 {
     word Buf[LUTRESYN_WORD_MAX];
-    int pPerm[16];
+    int pPerm[16], pLevEss[16], pLevIn[LUTRESYN_LEAF_MAX];
+    unsigned MaskCrit;
     int nWords = Abc_TtWordNum( n );
     int nEss, i, MaxLev, Lev, nTries = 0;
     pSol->Mode = 0;
     if ( n > LUTRESYN_LEAF_MAX )
         return 0;
+    for ( i = 0; i < n; i++ )
+        pLevIn[i] = Abc_ObjLevel( (Abc_Obj_t *)Vec_PtrEntry(vLeaves, i) );
     Abc_TtCopy( Buf, pTruth, nWords, 0 );
     for ( i = 0; i < n; i++ )
         pPerm[i] = i;
     nEss = Abc_TtMinBase( Buf, pPerm, n, n );
     if ( nEss == 0 )
         return 0;
+    // two bits per essential leaf: 0 = level <= ReqLevel-3,
+    // 1 = level == ReqLevel-2, 2 = level == ReqLevel-1
+    MaskCrit = 0;
+    for ( i = 0; i < nEss; i++ )
+    {
+        pLevEss[i] = pLevIn[pPerm[i]];
+        if ( pLevEss[i] > ReqLevel - 1 )
+            return 0;
+        if ( pLevEss[i] == ReqLevel - 1 )
+            MaskCrit |= 3 << (2 * i);
+        else if ( pLevEss[i] == ReqLevel - 2 )
+            MaskCrit |= 1 << (2 * i);
+    }
+    {
+        Abc_LutResynSol_t * pOld = Abc_LutResynCacheLookup( pCache, pTruth, n, MaskCrit );
+        if ( pOld && pOld->Mode == 0 )
+            return 0;
+        if ( pOld )
+        {
+            *pSol = *pOld;
+            return 1;
+        }
+    }
     if ( nEss <= nLutSize )
     {
         MaxLev = -1;
         for ( i = 0; i < nEss; i++ )
         {
-            Lev = Abc_LutResynLeafLevel( vLeaves, pPerm, i );
+            Lev = pLevEss[i];
             MaxLev = Abc_MaxInt( MaxLev, Lev );
         }
         if ( MaxLev + 1 > ReqLevel )
@@ -1397,12 +1525,20 @@ static int Abc_LutResynCompose( Abc_LutResynSol_t * pSol, word * pTruth, int n, 
         for ( i = 0; i < nEss; i++ )
             pSol->pLeaves[i] = pPerm[i];
         Abc_TtCopy( pSol->Truth1, Buf, Abc_TtWordNum(nEss), 0 );
+        Abc_LutResynCacheInsert( pCache, pTruth, n, MaskCrit, pSol );
         return 1;
     }
-    if ( nMaxLuts >= 2 && Abc_LutResynComposeTwo( pSol, Buf, nEss, pPerm, vLeaves, nLutSize, ReqLevel ) )
+    if ( nMaxLuts >= 2 && Abc_LutResynComposeTwo( pSol, Buf, nEss, pPerm, pLevEss, nLutSize, ReqLevel ) )
+    {
+        Abc_LutResynCacheInsert( pCache, pTruth, n, MaskCrit, pSol );
         return 1;
-    if ( nMaxLuts >= 3 && Abc_LutResynComposeThree( pSol, Buf, nEss, pPerm, vLeaves, nLutSize, ReqLevel, &nTries ) )
+    }
+    if ( nMaxLuts >= 3 && Abc_LutResynComposeThree( pSol, Buf, nEss, pPerm, pLevEss, nLutSize, ReqLevel, &nTries ) )
+    {
+        Abc_LutResynCacheInsert( pCache, pTruth, n, MaskCrit, pSol );
         return 1;
+    }
+    Abc_LutResynCacheInsert( pCache, pTruth, n, MaskCrit, pSol );
     return 0;
 }
 
@@ -1549,10 +1685,10 @@ static void Abc_LutResynConeAliveFlags( Vec_Ptr_t * vCone, int * pAlive )
   removed nodes is added to pnSaved together with the area gain.]
 
 ***********************************************************************/
-static int Abc_LutResynTryCone( Abc_Ntk_t * pNtk, Abc_Obj_t * pRoot, Vec_Ptr_t * vCone, Vec_Ptr_t * vLeaves, int nLutSize, int nMaxLuts, If_LibLut_t * pLutLib, Vec_Vec_t * vLevels, int * pnSaved, float * pfGain, int * pModeCnt )
+static int Abc_LutResynTryCone( Abc_LutResynCacheMgr_t * pCache, Abc_Ntk_t * pNtk, Abc_Obj_t * pRoot, Vec_Ptr_t * vCone, Vec_Ptr_t * vLeaves, int nLutSize, int nMaxLuts, If_LibLut_t * pLutLib, Vec_Vec_t * vLevels, int * pnSaved, float * pfGain, int * pModeCnt )
 {
     Abc_LutResynSol_t Sol;
-    word * pStore, * pCube, ConeTruth[LUTRESYN_WORD_MAX];
+    word * pStore, ConeTruth[LUTRESYN_WORD_MAX];
     int pAlive[LUTRESYN_CONE_MAX];
     int n, nCone, nDead, nWords, i, fOk;
     int nNodesBefore, ReqLevel;
@@ -1564,14 +1700,13 @@ static int Abc_LutResynTryCone( Abc_Ntk_t * pNtk, Abc_Obj_t * pRoot, Vec_Ptr_t *
         return 0;
     nWords = Abc_TtWordNum( n );
     pStore = ABC_ALLOC( word, (n + nCone) * nWords );
-    pCube = ABC_ALLOC( word, nWords );
-    fOk = Abc_LutResynTruthCone( pNtk, vCone, vLeaves, pStore, pCube, ConeTruth );
+    fOk = Abc_LutResynTruthCone( pNtk, vCone, vLeaves, pStore, ConeTruth );
     ABC_FREE( pStore );
-    ABC_FREE( pCube );
     if ( !fOk )
         return 0;
     ReqLevel = Abc_ObjRequiredLevel( pRoot );
-    if ( !Abc_LutResynCompose( &Sol, ConeTruth, n, vLeaves, nLutSize, ReqLevel, nMaxLuts ) )
+    fOk = Abc_LutResynCompose( pCache, &Sol, ConeTruth, n, vLeaves, nLutSize, ReqLevel, nMaxLuts );
+    if ( !fOk )
         return 0;
     Abc_LutResynConeAliveFlags( vCone, pAlive );
     nDead = 1;
@@ -1621,15 +1756,16 @@ static int Abc_LutResynTryCone( Abc_Ntk_t * pNtk, Abc_Obj_t * pRoot, Vec_Ptr_t *
   plain pipeline.]
 
 ***********************************************************************/
-static int Abc_LutResynTryPipeline( Abc_Ntk_t * pNtk, Abc_Obj_t * pRoot, int nLutSize, int nMaxLuts, int nMaxExt, If_LibLut_t * pLutLib, Vec_Vec_t * vLevels, int * pnSaved, float * pfGain, int * pModeCnt, int * pnCutsTried, int * pnCutsUsed )
+static int Abc_LutResynTryPipeline( Abc_LutResynCacheMgr_t * pCache, Abc_Ntk_t * pNtk, Abc_Obj_t * pRoot, int nLutSize, int nMaxLuts, int nMaxExt, If_LibLut_t * pLutLib, Vec_Vec_t * vLevels, int * pnSaved, float * pfGain, int * pModeCnt, int * pnCutsTried, int * pnCutsUsed )
 {
     Vec_Ptr_t * vCone = Vec_PtrAlloc( LUTRESYN_CONE_MAX );
     Vec_Ptr_t * vLeaves = Vec_PtrAlloc( LUTRESYN_LEAF_MAX );
     Abc_LutResynCone_t Cands[LUTRESYN_CUT_CAND_MAX];
-    int nCands, i, k, nTried = 0, fOk = 0;
-    if ( Abc_LutResynCollectCone( pRoot, nLutSize, nMaxExt, vCone, vLeaves ) &&
-         ( nMaxExt == 0 || Abc_LutResynConeExtNum(vCone) > 0 ) &&
-         Abc_LutResynTryCone( pNtk, pRoot, vCone, vLeaves, nLutSize, nMaxLuts, pLutLib, vLevels, pnSaved, pfGain, pModeCnt ) )
+    int nCands, i, k, nTried = 0, fOk = 0, fCol;
+    fCol = Abc_LutResynCollectCone( pRoot, nLutSize, nMaxExt, vCone, vLeaves );
+    fCol = fCol && ( nMaxExt == 0 || Abc_LutResynConeExtNum(vCone) > 0 );
+    if ( fCol &&
+         Abc_LutResynTryCone( pCache, pNtk, pRoot, vCone, vLeaves, nLutSize, nMaxLuts, pLutLib, vLevels, pnSaved, pfGain, pModeCnt ) )
     {
         fOk = 1;
         goto cleanup;
@@ -1654,7 +1790,7 @@ static int Abc_LutResynTryPipeline( Abc_Ntk_t * pNtk, Abc_Obj_t * pRoot, int nLu
         if ( Cands[i].vCone == NULL )
             continue;
         nTried++;
-        if ( Abc_LutResynTryCone( pNtk, pRoot, Cands[i].vCone, Cands[i].vLeaves, nLutSize, nMaxLuts, pLutLib, vLevels, pnSaved, pfGain, pModeCnt ) )
+        if ( Abc_LutResynTryCone( pCache, pNtk, pRoot, Cands[i].vCone, Cands[i].vLeaves, nLutSize, nMaxLuts, pLutLib, vLevels, pnSaved, pfGain, pModeCnt ) )
         {
             fOk = 1;
             (*pnCutsUsed)++;
@@ -1685,13 +1821,13 @@ cleanup:
   is added to pnSaved with the area gain.]
 
 ***********************************************************************/
-static int Abc_LutResynTryRoot( Abc_Ntk_t * pNtk, Abc_Obj_t * pRoot, int nLutSize, int nMaxLuts, int nMaxExt, If_LibLut_t * pLutLib, Vec_Vec_t * vLevels, int * pnSaved, float * pfGain, int * pModeCnt, int * pnCutsTried, int * pnCutsUsed )
+static int Abc_LutResynTryRoot( Abc_LutResynCacheMgr_t * pCache, Abc_Ntk_t * pNtk, Abc_Obj_t * pRoot, int nLutSize, int nMaxLuts, int nMaxExt, If_LibLut_t * pLutLib, Vec_Vec_t * vLevels, int * pnSaved, float * pfGain, int * pModeCnt, int * pnCutsTried, int * pnCutsUsed )
 {
     *pnSaved = 0;
     *pfGain = 0.0;
-    if ( Abc_LutResynTryPipeline( pNtk, pRoot, nLutSize, nMaxLuts, 0, pLutLib, vLevels, pnSaved, pfGain, pModeCnt, pnCutsTried, pnCutsUsed ) )
+    if ( Abc_LutResynTryPipeline( pCache, pNtk, pRoot, nLutSize, nMaxLuts, 0, pLutLib, vLevels, pnSaved, pfGain, pModeCnt, pnCutsTried, pnCutsUsed ) )
         return 1;
-    if ( nMaxExt > 0 && Abc_LutResynTryPipeline( pNtk, pRoot, nLutSize, nMaxLuts, nMaxExt, pLutLib, vLevels, pnSaved, pfGain, pModeCnt, pnCutsTried, pnCutsUsed ) )
+    if ( nMaxExt > 0 && Abc_LutResynTryPipeline( pCache, pNtk, pRoot, nLutSize, nMaxLuts, nMaxExt, pLutLib, vLevels, pnSaved, pfGain, pModeCnt, pnCutsTried, pnCutsUsed ) )
         return 1;
     return 0;
 }
@@ -1714,6 +1850,7 @@ int Abc_NtkLutResyn( Abc_Ntk_t * pNtk, int nLutSize, int nRounds, int nGrowthLev
     Vec_Ptr_t * vNodes = NULL;
     Vec_Int_t * vIds;
     Vec_Vec_t * vLevels;
+    Abc_LutResynCacheMgr_t Cache;
     Abc_Obj_t * pRoot;
     int i, r, nSaved, nRoundSaved, nTotal = 0;
     int nLevelMax, nCutsTried, nCutsUsed;
@@ -1723,6 +1860,8 @@ int Abc_NtkLutResyn( Abc_Ntk_t * pNtk, int nLutSize, int nRounds, int nGrowthLev
     if ( pfAreaGain )
         *pfAreaGain = 0.0;
     assert( Abc_NtkIsLogic(pNtk) && Abc_NtkHasAig(pNtk) );
+    memset( &Cache, 0, sizeof(Cache) );
+    Cache.pTable = ABC_CALLOC( Abc_LutResynCache_t, LUTRESYN_CACHE_SIZE );
     vLevels = Vec_VecAlloc( 1000 );
     nLevelMax = Abc_NtkLevel( pNtk ) + nGrowthLevel;
     for ( r = 0; r < nRounds; r++ )
@@ -1746,7 +1885,7 @@ int Abc_NtkLutResyn( Abc_Ntk_t * pNtk, int nLutSize, int nRounds, int nGrowthLev
                 continue;
             if ( Abc_ObjFaninNum(pRoot) < 2 )
                 continue;
-            if ( Abc_LutResynTryRoot( pNtk, pRoot, nLutSize, nMaxLuts, nMaxExtLuts, pLutLib, vLevels, &nSaved, &Gain, ModeCnt, &nCutsTried, &nCutsUsed ) )
+            if ( Abc_LutResynTryRoot( &Cache, pNtk, pRoot, nLutSize, nMaxLuts, nMaxExtLuts, pLutLib, vLevels, &nSaved, &Gain, ModeCnt, &nCutsTried, &nCutsUsed ) )
             {
                 nRoundSaved += nSaved;
                 GainRound += Gain;
@@ -1773,6 +1912,7 @@ int Abc_NtkLutResyn( Abc_Ntk_t * pNtk, int nLutSize, int nRounds, int nGrowthLev
     Vec_VecFree( vLevels );
     if ( pfAreaGain )
         *pfAreaGain = GainTotal;
+    ABC_FREE( Cache.pTable );
     return nTotal;
 }
 
