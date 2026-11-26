@@ -192,7 +192,7 @@ typedef struct Gip_Ctx_t_
     int          nDepData;
     int          iUnusedPiVar; // -1, or an unconstrained alias used only for unreferenced PIs
     int          fJftrCnf;    // Cnf_DeriveOther's CNF as derived (no structural encoding, no variable elimination)
-    int          fJftrOrder;  // in the clauses of every var, the other literals have smaller vars
+    int          fJftrOrder;  // gate fanins precede the gate and its defining clauses can be split by polarity
     // tables of the jftr mode, built on its first use
     char *       pKind;       // per var: GIP_KIND_*
     int *        pCost;       // per var, 4 ints: the cost of value 0 / 1 in two metrics (registers needed; SCOAP)
@@ -251,8 +251,14 @@ enum {
 };
 
 // state of the jftr mode of one solver (see gipJftr.c); the arrays and vectors exist only when nConfLimit is positive
+typedef struct Gip_JftrStats_t_
+{
+    ABC_INT64_T nFallbacks, nRebuilds, nChecks, nFailures;
+} Gip_JftrStats_t;
+
 typedef struct Gip_Jftr_t_
 {
+    Gip_JftrStats_t * pStats;     // optional counters owned by the calling PDR2 manager
     int          fCopied;         // the solver holds state imported from another solver: the mode is not defined for it
     int          nConfLimit;      // the mode's conflict budget per solve (PDR2_JFTR_CONFS); 0 = the solver has no mode
     int          fCheck;          // check every early answer (PDR2_JFTR_CHECK)
@@ -262,12 +268,13 @@ typedef struct Gip_Jftr_t_
     int          fActive;         // the mode decides; kept by an answer given in it until its trail is retired
     int          fEarly;          // the answer is an early answer
     int          fWalkClosed;     // ... and its justification walk closed
+    unsigned     nPoll;           // work between deadline and stop-callback checks
     int *        pAssump;         // the assumptions: the caller's array, valid during the solve
     int          nAssump;
     char *       pCompletion;     // per register (pCtx->pLoIdx): its value where an early answer leaves it unassigned
     // the frontier of nodes to justify
     Vec_Int_t *  vFront;          // assigned vars that may have an open defining clause (examined when popped)
-    int *        pCur;            // per var: its clauses before this index were found satisfied since it was queued
+    unsigned char * pCur;         // per var: verified prefix length in the current clause range, capped at UCHAR_MAX
     int          iScan;           // trail position up to which the register literals were examined
     int          iCheck;          // trail position up to which the nodes were queued (reset by backtracks)
     Vec_Int_t *  vMarked;         // vars marked by the justification walk (in pMark; cleared after the walk)

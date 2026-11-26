@@ -248,13 +248,20 @@ static int Gip_SolverSearch( Gip_Solver_t * p, int * pAssump, int nAssump, doubl
             }
             if ( p->Jftr.fActive )
             {
-                if ( p->Stats.nConflicts - p->nConfCounted >= p->Jftr.nConfLimit )
+                int Decision = -1;
+                if ( p->Stats.nConflicts - p->nConfCounted < p->Jftr.nConfLimit )
+                    Decision = Gip_SolverJftrDecide( p );
+                if ( Decision < 0 )
                 {
-                    // the budget ran out: the rest of the solve is the ordinary GipSAT search, from the assumptions
+                    if ( p->fCanceled )
+                    {
+                        Gip_SolverBacktrack( p, nAssump, 1 );
+                        return GIP_UNDEF;
+                    }
                     Gip_SolverJftrHandover( p, nAssump );
                     goto continue_main;
                 }
-                if ( !Gip_SolverJftrDecide( p ) )
+                if ( Decision == 0 )
                 {
                     p->Jftr.fEarly = 1;
                     return GIP_SAT;

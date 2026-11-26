@@ -2400,9 +2400,37 @@ usage:
     return 1;
 }
 
+#define ABC_PDR2_NUM_SWITCHES "FTSXYANZQDERCPMGKUJHB"
+
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Reads one PDR2 switch and its argument, if present.]
+
+  Description [A bare O toggles obligation retention. A value following
+  O selects a per-call solver setting.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Abc_Pdr2ReadSwitch( int argc, char ** argv, char ** ppArg )
+{
+    int c = Extra_UtilGetopt( argc, argv, ABC_PDR2_NUM_SWITCHES "LIcgopluktedrbxjsOWVmfqianvywzh" );
+    *ppArg = NULL;
+    if ( c != EOF && globalUtilOptind < argc )
+    {
+        char * pNext = argv[globalUtilOptind];
+        if ( strchr(ABC_PDR2_NUM_SWITCHES "LI", c) ||
+             (c == 'O' && (pNext[0] != '-' || (pNext[1] >= '0' && pNext[1] <= '9'))) )
+            *ppArg = argv[globalUtilOptind++];
+    }
+    return c;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs PDR2 with the current call's numeric settings.]
 
   Description []
 
@@ -2418,25 +2446,26 @@ static int Abc_CommandPdr2Run( Abc_Frame_t * pAbc, int argc, char ** argv, const
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkUsed, * pNtkFlop = NULL;
     char * pLogFileName = NULL;
     long Value = 0;
-    char * pEnd;
+    char * pArg, * pEnd;
     int c, fDirect = 0, Schedule = -1;
     Pdr2_ManSetDefaultParams( pPars );
     pPars->pOptions = pOptions;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FTSXYANZQDERCPMGKUJHLIcgopluktedrbxjsOBWVmfqianvywzh" ) ) != EOF )
+    while ( (c = Abc_Pdr2ReadSwitch( argc, argv, &pArg )) != EOF )
     {
-        if ( strchr("FTSXYANZQDERCPMGKUJHB", c) )
+        if ( c == 'O' && pArg )
+            continue;
+        if ( strchr(ABC_PDR2_NUM_SWITCHES, c) )
         {
-            if ( globalUtilOptind >= argc )
+            if ( pArg == NULL )
             {
                 Abc_Print( -1, "Command line switch \"-%c\" should be followed by an integer.\n", c );
                 goto usage;
             }
             errno = 0;
-            Value = strtol( argv[globalUtilOptind], &pEnd, 10 );
-            if ( errno == ERANGE || pEnd == argv[globalUtilOptind] || *pEnd || Value < INT_MIN || Value > INT_MAX )
+            Value = strtol( pArg, &pEnd, 10 );
+            if ( errno == ERANGE || pEnd == pArg || *pEnd || Value < INT_MIN || Value > INT_MAX )
                 goto usage;
-            globalUtilOptind++;
         }
         if ( !strchr("BSTLIyvwzh", c) ) fDirect = 1;
         switch ( c )
@@ -2542,22 +2571,20 @@ static int Abc_CommandPdr2Run( Abc_Frame_t * pAbc, int argc, char ** argv, const
                 goto usage;
             break;
         case 'L':
-            if ( globalUtilOptind >= argc )
+            if ( pArg == NULL )
             {
                 Abc_Print( -1, "Command line switch \"-L\" should be followed by a file name.\n" );
                 goto usage;
             }
-            pLogFileName = argv[globalUtilOptind];
-            globalUtilOptind++;
+            pLogFileName = pArg;
             break;
         case 'I':
-            if ( globalUtilOptind >= argc )
+            if ( pArg == NULL )
             {
                 Abc_Print( -1, "Command line switch \"-I\" should be followed by a file name.\n" );
                 goto usage;
             }
-            pPars->pInvFileName = argv[globalUtilOptind];
-            globalUtilOptind++;
+            pPars->pInvFileName = pArg;
             break;
         case 'c':
             pPars->fCtg ^= 1;
@@ -2705,10 +2732,12 @@ static int Abc_CommandPdr2Run( Abc_Frame_t * pAbc, int argc, char ** argv, const
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: pdr2 [-FTSXYANZQDERCPMGKUJHB <num>] [-LI <file>] [--set NAME=value] [-cgopluktedrbxjsOWVmfqianvywzh]\n" );
+    Abc_Print( -2, "usage: pdr2 [-" ABC_PDR2_NUM_SWITCHES " <num>] [-LI <file>] [-O <num|NAME=value>] "
+                   "[-cgopluktedrbxjsOWVmfqianvywzh]\n" );
     Abc_Print( -2, "\t         model checking using property directed reachability (aka IC3)\n" );
     Abc_Print( -2, "\t         with SAT-core lifting, CTG generalization, and the GipSAT solver\n" );
-    Abc_Print( -2, "\t         (the algorithm follows rIC3 by Yuheng Su, https://github.com/gipsyh/rIC3)\n" );
+    Abc_Print( -2, "\t         The algorithm follows rIC3 by Yuheng Su, https://github.com/gipsyh/rIC3\n" );
+    Abc_Print( -2, "\t         Refinement (-G 2) and generalization (-H 1) follow Niklas Een's ,treb command in ZZ/Bip\n" );
     Abc_Print( -2, "\t-F num : limit on timeframes explored to stop computation [default = %d]\n",           pPars->nFrameMax );
     Abc_Print( -2, "\t-T num : runtime limit, in seconds (0 = no limit) [default = %d]\n",                   pPars->nTimeOut );
     Abc_Print( -2, "\t-S num : random seed [default = %d]\n",                                                pPars->nRandomSeed );
@@ -2718,17 +2747,17 @@ usage:
     Abc_Print( -2, "\t-N num : max number of lifting iterations (0 = until no change, -1 = no SAT lifting) [default = %d]\n",   pPars->nLiftIters );
     Abc_Print( -2, "\t-Z num : cap on the CTG blocking effort in dynamic mode [default = %d]\n",            pPars->nDynLimitMax );
     Abc_Print( -2, "\t-Q num : obligation activity threshold for CTG in dynamic mode [default = %d]\n",     pPars->nDynAct );
-    Abc_Print( -2, "\t-D num : first budget of the dynamic phases, in nominal seconds (12 M solver propagations each); phases alternate and double (0 = dynamic only; the plain dynamic run needs --set DYNRUN=1) [default = %d]\n", pPars->nDynTime );
+    Abc_Print( -2, "\t-D num : first dynamic slice in -C units (doubles, 0=dynamic only, -O DYNRUN=1 for plain runs) [default = %d]\n", pPars->nDynTime );
     Abc_Print( -2, "\t-C num : first budget of the CTG phases, in nominal seconds (12 M solver propagations each) [default = %d]\n", pPars->nCtgTime );
-    Abc_Print( -2, "\t-E num : end a dynamic phase when a level handles this many obligations (and 3x the previous max; 0 = never) [default = %d]\n", pPars->nDynExplode );
-    Abc_Print( -2, "\t-R num : restart the obligation queue when a level has used this many millions of solver propagations (the budget doubles; 0 = never) [default = %d]\n", pPars->nLevelRestart );
+    Abc_Print( -2, "\t-E num : end dynamic phase if obligations at a level exceed num and 3x the prior peak (0=off) [default = %d]\n", pPars->nDynExplode );
+    Abc_Print( -2, "\t-R num : obligation queue restart budget per level in millions of propagations (doubles, 0=off) [default = %d]\n", pPars->nLevelRestart );
     Abc_Print( -2, "\t-P num : time limit (sec) of the scorr preprocessing (with -q) [default = %d]\n", pPars->nPreprocTime );
-    Abc_Print( -2, "\t-M num : first budget of the abstraction runs (with -t, -B, -V), in nominal seconds (12 M solver propagations each) [default = %d]\n", pPars->nAbsTime );
-    Abc_Print( -2, "\t-G num : refinement variant: 0 = recorded pseudo-inputs, 1 = all outside flops fixed, 2 = treb's loop, 3 = 2 + intermediate frames [default = %d]\n", pPars->nAbsRefineMode );
-    Abc_Print( -2, "\t-K num : obligation order in a frame: 0 = deepest chain first, 1 = shortest cube first, 2 = most recently queued first, 3 = shortest, then most recently queued [default = %d]\n", pPars->nQueueOrder );
-    Abc_Print( -2, "\t-U num : weaken predecessors by justification and ternary simulation: 0 = no, 1 = before the SAT core, 2 = instead of it [default = %d]\n", pPars->nLiftSim );
+    Abc_Print( -2, "\t-M num : first abstraction budget with -t, -B, or -V (12M propagations per unit) [default = %d]\n", pPars->nAbsTime );
+    Abc_Print( -2, "\t-G num : refine (0=recorded pseudo-inputs, 1=all outside flops, 2=treb, 3=treb + intermediate frames) [default = %d]\n", pPars->nAbsRefineMode );
+    Abc_Print( -2, "\t-K num : order per frame (0=deepest chain, 1=shortest cube, 2=last queued, 3=shortest then last queued) [default = %d]\n", pPars->nQueueOrder );
+    Abc_Print( -2, "\t-U num : justify and weaken predecessors by ternary simulation (0=off, 1=before SAT core, 2=instead) [default = %d]\n", pPars->nLiftSim );
     Abc_Print( -2, "\t-J num : order of the removal trials: 0 = highest activity first, 1 = lowest first, 2 = by flop index [default = %d]\n", pPars->nLiftSimOrder );
-    Abc_Print( -2, "\t-H num : generalization: 0 = MIC with down/CTG (rIC3), 1 = two-orbit literal removal with core shrinking (treb) [default = %d]\n", pPars->nMicMode );
+    Abc_Print( -2, "\t-H num : generalize (0=rIC3 MIC with down/CTG, 1=treb two-orbit literal removal with core shrinking) [default = %d]\n", pPars->nMicMode );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n",                                          pLogFileName ? pLogFileName : "no logging" );
     Abc_Print( -2, "\t-I file: the invariant file name; the design is written as <name>_design.aig [default = %s]\n", pPars->pInvFileName ? pPars->pInvFileName : "inv.pla" );
     Abc_Print( -2, "\t-c     : toggle generalization with counterexamples to generalization [default = %s]\n", pPars->fCtg? "yes": "no" );
@@ -2745,13 +2774,22 @@ usage:
     Abc_Print( -2, "\t-x     : toggle refining by ternary-simulation minimization [default = %s]\n",      pPars->fAbsRefineXsim? "yes": "no" );
     Abc_Print( -2, "\t-j     : toggle minimum CTG effort for top-level obligations [default = %s]\n",       pPars->fTopCtg? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle the semantic containment check of obligations [default = %s]\n",     pPars->fSemContain? "yes": "no" );
-    Abc_Print( -2, "\t-f     : toggle starting with a dynamic phase instead of a CTG phase (with -t or --set DYNRUN=1) [default = %s]\n", pPars->fDynFirst? "yes": "no" );
+    Abc_Print( -2, "\t-f     : toggle starting with a dynamic phase instead of a CTG phase (with -t or -O DYNRUN=1) [default = %s]\n", pPars->fDynFirst? "yes": "no" );
     Abc_Print( -2, "\t-q     : toggle simplifying the design with signal correspondence (scorr) first [default = %s]\n", pPars->fPreproc? "yes": "no" );
     Abc_Print( -2, "\t-i     : toggle assuming the negation of the cube in the blocking query [default = %s; yes with -t]\n", pPars->fBlockInduct? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle treb's obligation order (shortest cube first) instead of deepest chain first [default = %s]\n", pPars->nQueueOrder? "yes": "no" );
-    Abc_Print( -2, "\t-n     : toggle passing invariant lemmas between runs 0 and 1 (with -t or --set DYNRUN=1) [default = %s]\n", pPars->fShareInf? "yes": "no" );
+    Abc_Print( -2, "\t-n     : toggle passing invariant lemmas between runs 0 and 1 (with -t or -O DYNRUN=1) [default = %s]\n", pPars->fShareInf? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle generalizing the lemmas that block CTGs [default = %s]\n", pPars->fCtgMic? "yes": "no" );
     Abc_Print( -2, "\t-O     : toggle keeping obligations pushed beyond the last frame [default = %s]\n",   pPars->fKeepObl? "yes": "no" );
+    Abc_Print( -2, "\t-O num : JFTR conflict budget per eligible SAT query (0 disables JFTR) [default = schedule]\n" );
+    Abc_Print( -2, "\t         -B 4 uses 8, or 0 when the plan opens with abstraction or dynamic abstraction\n" );
+    Abc_Print( -2, "\t         Justification-frontier search (JFTR) was contributed by Wei-Hsu (Wish) Chen\n" );
+    Abc_Print( -2, "\t-O NAME=value : override a numeric setting for this call (repeatable)\n" );
+    Abc_Print( -2, "\t         WATCH_PACK 0..1, WATCH_AHEAD 0..32, DROP_HISTORY 0..4, DIRECT_PROBE 0..60 sec\n" );
+    Abc_Print( -2, "\t         BMC (seconds), TIMEGEN 0..2, DYNRUN, COMPACT, LAZYCNF, CTGLOCAL, CTP 0..8,\n" );
+    Abc_Print( -2, "\t         WARM, SPARSELIFT, PREFIX 0..256, MICFAIL 0..32, WALLSLICES, SHARED 0..4,\n" );
+    Abc_Print( -2, "\t         REACH 0..256, LCORR (unmarked switches accept 0 or 1), JFTR_CONFS (same as -O num),\n" );
+    Abc_Print( -2, "\t         JFTR_SCOPE 0..63 (query mask, default 63), JFTR_CHECK 0..1 (check early SAT, default 0)\n" );
     Abc_Print( -2, "\t-B num : schedule (0..2 = direct with as many abstraction runs, 3 = original structural,\n" );
     Abc_Print( -2, "\t         4 = tuned structural, 5 = tuned direct, 6 = checked PDR policy) [default = %d]\n", PDR2_SCHED_TUNED );
     Abc_Print( -2, "\t         Explicit search options select the direct schedule. -T and -S apply to all schedules.\n" );
@@ -2763,14 +2801,20 @@ usage:
     Abc_Print( -2, "\t-w     : toggle printing very verbose information [default = %s]\n",                   pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-z     : toggle silent solver execution [default = %s]\n",                           pPars->fSilent? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
-    Abc_Print( -2, "\t--set NAME=value : override a numeric PDR2 setting for this call (repeatable)\n" );
-    Abc_Print( -2, "\t         WATCH_PACK 0..1, WATCH_AHEAD 0..32, DROP_HISTORY 0..4, DIRECT_PROBE 0..60 sec\n" );
-    Abc_Print( -2, "\t         BMC (seconds), TIMEGEN 0..2, DYNRUN, COMPACT, LAZYCNF, CTGLOCAL, CTP 0..8,\n" );
-    Abc_Print( -2, "\t         WARM, SPARSELIFT, PREFIX 0..256, MICFAIL 0..32, WALLSLICES, SHARED 0..4,\n" );
-    Abc_Print( -2, "\t         REACH 0..256, LCORR (unmarked switches accept 0 or 1), JFTR_CONFS (conflicts)\n" );
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Applies per-call overrides before initializing PDR2.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static int Abc_CommandPdr2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     static const struct { const char * pKey; int Max; } Settings[] = {
@@ -2779,57 +2823,57 @@ static int Abc_CommandPdr2( Abc_Frame_t * pAbc, int argc, char ** argv )
         { "PDR2_DYNRUN", 1 }, { "PDR2_COMPACT", 1 }, { "PDR2_LAZYCNF", 1 },
         { "PDR2_CTGLOCAL", 1 }, { "PDR2_CTP", 8 }, { "PDR2_WARM", 1 }, { "PDR2_SPARSELIFT", 1 },
         { "PDR2_PREFIX", 256 }, { "PDR2_MICFAIL", 32 }, { "PDR2_WALLSLICES", 1 },
-        { "PDR2_SHARED", 4 }, { "PDR2_REACH", 256 }, { "PDR2_LCORR", 1 }, { "PDR2_JFTR_CONFS", INT_MAX } };
+        { "PDR2_SHARED", 4 }, { "PDR2_REACH", 256 }, { "PDR2_LCORR", 1 }, { "PDR2_JFTR_CONFS", INT_MAX },
+        { "PDR2_JFTR_SCOPE", 63 }, { "PDR2_JFTR_CHECK", 1 } };
     enum { nSettings = sizeof(Settings) / sizeof(Settings[0]) };
-    const char * pKeys[nSettings], * pValues[nSettings], * pName, * pEqual;
-    char * pEnd, ** pArgs;
+    const char * pKeys[nSettings], * pValues[nSettings], * pName, * pValue, * pEqual;
+    size_t nName;
+    char * pArg, * pEnd;
     long Value;
-    int i, k, j, Ret, nArgs = 0;
+    int i, k, j, c, Ret;
     Gip_Options_t Options;
     for ( i = 1; i < argc; i++ )
-        if ( !strcmp(argv[i], "--set") ) break;
+        if ( argv[i][0] == '-' && strchr(argv[i] + 1, 'O') ) break;
     if ( i == argc )
         return Abc_CommandPdr2Run( pAbc, argc, argv, NULL );
-    pArgs = ABC_ALLOC( char *, argc + 1 );
     memset( &Options, 0, sizeof(Options) );
     Options.pKeys = pKeys;
     Options.pValues = pValues;
-    for ( i = 0; i < argc; i++ )
+    Extra_UtilGetoptReset();
+    while ( (c = Abc_Pdr2ReadSwitch( argc, argv, &pArg )) != EOF )
     {
-        if ( strcmp(argv[i], "--set") )
-        {
-            pArgs[nArgs++] = argv[i];
+        if ( c == '?' )
+            return 1;
+        if ( c != 'O' || pArg == NULL )
             continue;
-        }
-        if ( ++i == argc ) goto invalid;
-        pName = argv[i];
-        pEqual = strchr( pName, '=' );
-        if ( !pEqual || pEqual == pName || !pEqual[1] ) goto invalid;
+        pEqual = strchr( pArg, '=' );
+        pName  = pEqual ? pArg : "JFTR_CONFS";
+        nName  = pEqual ? (size_t)(pEqual - pArg) : strlen(pName);
+        pValue = pEqual ? pEqual + 1 : pArg;
         for ( k = 0; k < nSettings; k++ )
-            if ( strlen(Settings[k].pKey + 5) == (size_t)(pEqual - pName) &&
-                 !strncmp(Settings[k].pKey + 5, pName, (size_t)(pEqual - pName)) ) break;
+            if ( strlen(Settings[k].pKey + 5) == nName && !strncmp(Settings[k].pKey + 5, pName, nName) ) break;
         errno = 0;
-        Value = strtol( pEqual + 1, &pEnd, 10 );
-        if ( k == nSettings || errno == ERANGE || pEnd == pEqual + 1 || *pEnd ||
+        Value = strtol( pValue, &pEnd, 10 );
+        if ( k == nSettings || errno == ERANGE || pEnd == pValue || *pEnd ||
              Value < 0 || Value > Settings[k].Max ) goto invalid;
         for ( j = 0; j < Options.nOptions; j++ )
             if ( pKeys[j] == Settings[k].pKey ) break;
         if ( j == Options.nOptions ) Options.nOptions++;
         pKeys[j] = Settings[k].pKey;
-        pValues[j] = pEqual + 1;
+        pValues[j] = pValue;
     }
-    pArgs[nArgs] = NULL;
+    if ( !Options.nOptions )
+        return Abc_CommandPdr2Run( pAbc, argc, argv, NULL );
     Gip_OptionsPush( &Options );
-    Ret = Abc_CommandPdr2Run( pAbc, nArgs, pArgs, &Options );
+    Ret = Abc_CommandPdr2Run( pAbc, argc, argv, &Options );
     Gip_OptionsPop( &Options );
-    ABC_FREE( pArgs );
     return Ret;
 invalid:
-    Abc_Print( -1, "Invalid pdr2 --set argument \"%s\". See pdr2 -h for names and ranges.\n",
-               i < argc ? argv[i] : "" );
-    ABC_FREE( pArgs );
+    Abc_Print( -1, "Invalid pdr2 -O argument \"%s\". See pdr2 -h for names and ranges.\n", pArg );
     return 1;
 }
+
+#undef ABC_PDR2_NUM_SWITCHES
 
 /**Function*************************************************************
 

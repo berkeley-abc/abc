@@ -286,6 +286,11 @@ void Pdr2_ManStop( Pdr2_Man_t * p )
     Pdr2_Lem_t * pLem;
     Pdr2_Obl_t * pObl;
     int i, k;
+    if ( p->JftrStats.nFailures || (p->pPars->fVerbose && !p->pPars->fSilent &&
+         (p->JftrStats.nFallbacks || p->JftrStats.nRebuilds || p->JftrStats.nChecks)) )
+        Abc_Print( 1, "JFTR search fallbacks = %.0f  cover rebuilds = %.0f  checks = %.0f  failures = %.0f\n",
+            (double)p->JftrStats.nFallbacks, (double)p->JftrStats.nRebuilds,
+            (double)p->JftrStats.nChecks, (double)p->JftrStats.nFailures );
     if ( p->pAig->pFanData )
         Aig_ManFanoutStop( p->pAig );
     Pdr2_ManCollectGarbage( p, 1 );

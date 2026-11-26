@@ -83,7 +83,9 @@ static int Pdr2_ManJftrEligible( Pdr2_Man_t * p, Gip_Solver_t * pSat )
 // the jftr request of one physical solve, set before every Gip_SolverSolve (the solver consumes it)
 static inline void Pdr2_ManSatSetJftr( Pdr2_Man_t * p, Gip_Solver_t * pHandle, int Request )
 {
-    Gip_SolverSetJftr( Pdr2_SolverActual(pHandle), Pdr2_ManJftrEligible(p, pHandle) ? Request : GIP_JFTR_NONE );
+    Gip_Solver_t * pSat = Pdr2_SolverActual( pHandle );
+    pSat->Jftr.pStats = &p->JftrStats;
+    Gip_SolverSetJftr( pSat, Pdr2_ManJftrEligible(p, pHandle) ? Request : GIP_JFTR_NONE );
 }
 
 // runs one SAT query and accounts for its cost (the propagation count is the deterministic

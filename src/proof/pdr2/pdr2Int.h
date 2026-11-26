@@ -178,6 +178,7 @@ struct Pdr2_Man_t_
     int           nCnfJustMode;  // 1 = then SAT core, 2 = justification alone, 3 = only for an input-first model
     int           nInputScope;   // input-first query mask: bad, blocking, other relative, lifting, containment
     int           nJftrScope;    // jftr query mask: bad, blocking, generalization, push, propagation, infinity
+    Gip_JftrStats_t JftrStats;
     int           nInputBadLimit; // optional input-first conflict limit for bad-state queries only
     int           fInputBlockQuery;
     char *        pCnfJustMark;

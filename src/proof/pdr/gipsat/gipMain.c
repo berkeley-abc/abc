@@ -165,8 +165,9 @@ static Gip_Solver_t * Gip_SolverNewInt( Gip_Ctx_t * pCtx, int fLazy )
     }
     if ( p->Jftr.nConfLimit )
     {
+        const char * pCheck = Gip_SolverOption( p, "PDR2_JFTR_CHECK" );
         Gip_SolverJftrInit( p );
-        p->Jftr.fCheck = Gip_SolverOption(p, "PDR2_JFTR_CHECK") != NULL;
+        p->Jftr.fCheck = pCheck && atoi(pCheck) != 0;
     }
     p->nLastNumLemma = 1000;
     p->nCleanIdle = -1;
@@ -317,8 +318,7 @@ Gip_Solver_t * Gip_SolverCloneRoot( Gip_Solver_t * pSrc )
     p->vRecycleQueue = pSrc->vRecycleQueue ? Vec_IntDup(pSrc->vRecycleQueue) : NULL;
     p->vRecycleTmp = pSrc->vRecycleTmp ? Vec_IntDup(pSrc->vRecycleTmp) : NULL;
     p->Stats.nRecycleTry = p->Stats.nRecycled = 0;
-    if ( p->Jftr.nConfLimit )
-        Gip_SolverJftrInit( p );   // its own state: the pointers copied above belong to the source
+    memset( &p->Jftr, 0, sizeof(p->Jftr) );
     p->Jftr.fCopied = 1;
     return p;
 }
@@ -1094,7 +1094,7 @@ assumptions:
     }
     if ( p->Jftr.Mode != GIP_JFTR_NONE )
         Gip_SolverJftrStart( p, pUse, nUse );
-    res = Gip_SolverSearchWithRestart( p, pUse, nUse, nRestartLimit );
+    res = p->fCanceled ? GIP_UNDEF : Gip_SolverSearchWithRestart( p, pUse, nUse, nRestartLimit );
     if ( fFixed && res != GIP_UNDEF && !p->fTrivialUnsat )
     {
         if ( !fResume )
