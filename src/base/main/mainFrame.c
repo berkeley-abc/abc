@@ -22,6 +22,8 @@
 #include "mainInt.h"
 #include "bool/dec/dec.h"
 #include "map/if/if.h"
+#include "aig/aig/aig.h"
+#include "opt/dar/dar.h"
 #include "aig/miniaig/ndr.h"
 #include "misc/util/abc_io.h"
 #include <errno.h>
@@ -70,7 +72,12 @@ void *      Abc_FrameReadManDd()                             { if ( s_GlobalFram
 void *      Abc_FrameReadManDec()                            { if ( s_GlobalFrame->pManDec == NULL ) s_GlobalFrame->pManDec = Dec_ManStart();                                        return s_GlobalFrame->pManDec; } 
 void *      Abc_FrameReadManDsd()                            { return s_GlobalFrame->pManDsd;      } 
 void *      Abc_FrameReadManDsd2()                           { return s_GlobalFrame->pManDsd2;     }
-void *      Abc_FrameReadManDar()                            { return s_GlobalFrame->pManDar;      }
+void *      Abc_FrameReadManDar()
+{
+    if ( !s_GlobalFrame->pManDar && s_GlobalFrame->fSolverChild )
+        s_GlobalFrame->pManDar = Dar_LibRead();
+    return s_GlobalFrame->pManDar;
+}
 void *      Abc_FrameReadManCnf()                            { return s_GlobalFrame->pManCnf;      }
 void *      Abc_FrameReadManAigR()                           { return s_GlobalFrame->pManAigR;     }
 void *      Abc_FrameReadManNpn()                            { return s_GlobalFrame->pManNpn;      }
@@ -776,15 +783,21 @@ Abc_Frame_t * Abc_FrameCreate()
   SeeAlso     [Abc_FrameCreate Abc_FrameCreateWithLog]
 
 ***********************************************************************/
-Abc_Frame_t * Abc_FrameCreateChild( void )
+Abc_Frame_t * Abc_FrameCreateChildMode( int fSolverChild )
 {
     Abc_Frame_t * pAbc = Abc_FrameAllocate(), * pPrevious;
+    pAbc->fSolverChild = fSolverChild;
     pAbc->Out = Abc_IoReadOut();
     pAbc->Err = Abc_IoReadErr();
     pPrevious = Abc_FrameEnter( pAbc );
     Abc_FrameInit( pAbc );
     Abc_FrameLeave( pPrevious );
     return pAbc;
+}
+
+Abc_Frame_t * Abc_FrameCreateChild( void )
+{
+    return Abc_FrameCreateChildMode( 0 );
 }
 
 /**Function*************************************************************

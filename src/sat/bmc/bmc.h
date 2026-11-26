@@ -312,6 +312,7 @@ extern int               Saig_ManBmcScalablePortfolio( Aig_Man_t * pAig, Saig_Pa
 extern Gia_Man_t *       Bmc_GiaReduceIso( Gia_Man_t * pGia, Vec_Int_t ** pvPos, int nMemoryLimit,
                              int (*pFuncStop)(void *), void * pData, int fVerbose );
 extern void              Bmc_GiaSetDefaultParams( Bmc_GiaPar_t * pPars );
+extern int               Bmc_GiaTernaryProof( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars );
 extern int               Bmc_GiaPerform( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars );
 extern int               Bmc_GiaPerformWindow( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int nGroup );
 extern int               Bmc_GiaFindTarget( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars, int Frame, int nTerms, int Window, int fPolarity );

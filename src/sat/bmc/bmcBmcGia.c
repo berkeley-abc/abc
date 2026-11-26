@@ -112,7 +112,8 @@ static int Bmc3G_CheckMemory( Bmc3G_Man_t * p, double Extra )
     if ( p->pGia ) Used += 32.0 * p->pGia->nObjsAlloc;
     if ( p->pOriginal ) Used += 32.0 * p->pOriginal->nObjsAlloc;
     if ( p->pFrames ) Used += 64.0 * p->pFrames->nObjsAlloc;
-    if ( p->vMaps ) Used += (double)p->nMapBytes + (double)Vec_PtrCap(p->vMaps) * sizeof(void *);
+    Used += (double)p->nMapBytes;
+    if ( p->vMaps ) Used += (double)Vec_PtrCap(p->vMaps) * sizeof(void *);
     if ( p->pSat )
     {
         ABC_INT64_T Clauses = ccadical_live_clauses( p->pSat );
@@ -1074,7 +1075,7 @@ static void Bmc3G_RecordFrames( Bmc3G_Man_t * p, int Frame, int nFrames )
     if ( Frame < p->pPars->nFramesDone ) return;
     assert( nFrames > 0 && Frame + 1 - nFrames == p->pPars->nFramesDone );
     p->pPars->nFramesDone = Frame + 1;
-    if ( p->pPars->fVerbose )
+    if ( p->pPars->fVerbose && p->pSat )
         Abc_Print( 1, "%4d + : Var = %d. Cla = %llu. Conf = %d. Time = %.3f sec\n",
             Frame, p->nVars, (unsigned long long)ccadical_live_clauses(p->pSat), ccadical_conflicts(p->pSat),
             (double)(Abc_Clock() - p->Start) / CLOCKS_PER_SEC );
@@ -1143,10 +1144,10 @@ static int Bmc3G_EventPrefix( Bmc3G_Man_t * p, int Frame, int Limit )
 {
     Gia_Man_t * pGia = p->pGia;
     Gia_Obj_t * pObj;
-    Bmc3G_Map_t * pMap = (Bmc3G_Map_t *)Vec_PtrEntry( p->vMaps, Frame );
+    Bmc3G_Map_t * pMap = Frame ? (Bmc3G_Map_t *)Vec_PtrEntry( p->vMaps, Frame ) : NULL;
     int nObjs = Gia_ManObjNum(pGia), nWords = Abc_Bit6WordNum(nObjs), nPages = Abc_Bit6WordNum(nWords);
     int i, k, Id, Ro, Reg, Index, Value, nDiff = 0, Length = 0, Power = 1, nBad = 0, fProof = 0;
-    int Checkpoint = Frame;
+    int Checkpoint = Frame, fOwnFanout = 0;
     unsigned Visits = 0;
     word Extra = (word)48 * nObjs;
     unsigned char * pValues, * pSaved;
@@ -1156,7 +1157,7 @@ static int Bmc3G_EventPrefix( Bmc3G_Man_t * p, int Frame, int Limit )
     if ( nObjs > (1 << 20) || (p->pPars->nMemoryLimit &&
          p->pPars->MemoryPeakMB + 1.25 * Extra / (1 << 20) >= p->pPars->nMemoryLimit) ) return 0;
     p->nMapBytes += Extra;
-    Gia_ManStaticFanoutStart( pGia );
+    if ( !pMap ) Bmc3G_CheckMemory( p, 0 );
     pValues = ABC_CALLOC( unsigned char, nObjs );
     pSaved = ABC_ALLOC( unsigned char, Gia_ManRegNum(pGia) );
     pWords = ABC_CALLOC( word, nWords );
@@ -1170,8 +1171,12 @@ static int Bmc3G_EventPrefix( Bmc3G_Man_t * p, int Frame, int Limit )
             Value = 2;
             if ( Gia_ObjIsRo(pGia, pObj) )
             {
-                Index = Vec_IntEntry( p->vMapIds, Id );
-                if ( Index >= 0 ) Value = Bmc3G_MapRead( pMap, Index );
+                if ( !pMap ) Value = 0;
+                else
+                {
+                    Index = Vec_IntEntry( p->vMapIds, Id );
+                    if ( Index >= 0 ) Value = Bmc3G_MapRead( pMap, Index );
+                }
                 if ( Value != 0 && Value != 1 ) Value = 2;
                 pSaved[Gia_ObjCioId(pObj) - Gia_ManPiNum(pGia)] = (unsigned char)Value;
             }
@@ -1183,6 +1188,12 @@ static int Bmc3G_EventPrefix( Bmc3G_Man_t * p, int Frame, int Limit )
             if ( Gia_ObjIsPo(pGia, pObj) ) nBad += Value != 0;
         }
         pValues[Id] = (unsigned char)Value;
+    }
+    if ( nBad || Bmc3G_Stop(p) ) goto finish;
+    if ( !pGia->vFanout )
+    {
+        Gia_ManStaticFanoutStart( pGia );
+        fOwnFanout = 1;
     }
     while ( Frame < Limit && !nBad && !Bmc3G_Stop(p) )
     {
@@ -1240,9 +1251,41 @@ finish:
     ABC_FREE( pSaved );
     ABC_FREE( pWords );
     ABC_FREE( pPages );
-    Gia_ManStaticFanoutStop( pGia );
+    if ( fOwnFanout ) Gia_ManStaticFanoutStop( pGia );
     p->nMapBytes -= Extra;
     return fProof;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks for a closed safe ternary cycle from the zero reset state.]
+
+  Description [Returns one only for a complete proof and minus one otherwise.]
+
+  SideEffects [Records the safe prefix and the estimated peak memory.]
+
+  SeeAlso     [Bmc_GiaPerform]
+
+***********************************************************************/
+int Bmc_GiaTernaryProof( Gia_Man_t * pGia, Bmc_GiaPar_t * pPars )
+{
+    Bmc3G_Man_t Man;
+    abctime Limit;
+    if ( !pPars ) return -1;
+    pPars->nFramesDone = pPars->nQueries = pPars->fMemoryLimit = 0;
+    pPars->MemoryPeakMB = 0;
+    if ( !Bmc3G_CheckInput(pGia, pPars) || !Gia_ManRegNum(pGia) ) return -1;
+    memset( &Man, 0, sizeof(Man) );
+    Man.pGia = pGia;
+    Man.pPars = pPars;
+    Man.Deadline = pPars->TimeToStop;
+    if ( pPars->nTimeOut )
+    {
+        Limit = Abc_Clock() + (abctime)pPars->nTimeOut * CLOCKS_PER_SEC;
+        if ( !Man.Deadline || Limit < Man.Deadline ) Man.Deadline = Limit;
+    }
+    if ( Bmc3G_Stop(&Man) ) return -1;
+    return Bmc3G_EventPrefix(&Man, 0, pPars->nFramesMax ? pPars->nFramesMax : INT_MAX - 1) ? 1 : -1;
 }
 
 

@@ -40,6 +40,7 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 
 typedef struct Dar_RwrPar_t_            Dar_RwrPar_t;
+typedef struct Dar_Lib_t_               Dar_Lib_t;
 typedef struct Dar_RefPar_t_            Dar_RefPar_t;
 
 struct Dar_RwrPar_t_  
@@ -83,6 +84,7 @@ struct Dar_RefPar_t_
 
 /*=== darLib.c ========================================================*/
 extern void            Dar_LibStart();
+extern Dar_Lib_t *     Dar_LibRead( void );
 extern void            Dar_LibStop();
 extern void            Dar_LibPrepare( int nSubgraphs );
 extern int             Dar_LibReturnClass( unsigned uTruth );

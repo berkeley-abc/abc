@@ -185,6 +185,7 @@ struct Abc_Frame_t_
     Abc_Frame_Callback_BmcFrameDone_Func pFuncOnFrameDone;
     Abc_Nf2Cache_t  Nf2Cache;      // compiled cell libraries owned by this frame
     word            GiasLibSignature; // library identity for saved standard-cell witnesses
+    int             fSolverChild;
 };
 
 typedef void (*Abc_Frame_Initialization_Func)( Abc_Frame_t * pAbc );

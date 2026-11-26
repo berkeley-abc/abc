@@ -68,7 +68,7 @@ void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
     int nLastSaved  = 20000;  // when saving a file, save no more than this number of last entries
     char Buffer[ABC_MAX_STR];
     int Len;
-    if ( p->fBatchMode )
+    if ( p->fBatchMode || p->fSolverChild )
         return;
     Len = strlen(command);
     strcpy( Buffer, command );
@@ -120,6 +120,7 @@ void Cmd_HistoryRead( Abc_Frame_t * p )
 #if !defined(ABC_NO_HISTORY)
     char Buffer[ABC_MAX_STR];
     FILE * pFile;
+    if ( p->fSolverChild ) return;
     assert( Vec_PtrSize(p->aHistory) == 0 );
     Cmd_HistoryLock();
     pFile = fopen( "abc.history", "rb" );
@@ -158,6 +159,7 @@ void Cmd_HistoryWrite( Abc_Frame_t * p, int Limit )
     FILE * pFile;
     char * pStr; 
     int i;
+    if ( p->fSolverChild ) return;
     Cmd_HistoryLock();
     if ( 1 )
     {

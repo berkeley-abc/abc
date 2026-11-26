@@ -307,7 +307,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     {
         extern void Dar_LibStart();
-        Dar_LibStart();
+        if ( !pAbc->fSolverChild ) Dar_LibStart();
     }
     {
 //        extern void Dau_DsdTest();
@@ -344,7 +344,7 @@ void Abc_End( Abc_Frame_t * pAbc )
     }
     {
         extern void Dar_LibStop();
-        Dar_LibStop();
+        if ( pAbc->pManDar ) Dar_LibStop();
     }
     {
         extern void Aig_RManQuit();

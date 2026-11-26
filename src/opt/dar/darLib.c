@@ -30,7 +30,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Dar_Lib_t_            Dar_Lib_t;
 typedef struct Dar_LibObj_t_         Dar_LibObj_t;
 typedef struct Dar_LibDat_t_         Dar_LibDat_t;
 
@@ -571,7 +570,7 @@ void Dar_LibPrepare( int nSubgraphs )
   SeeAlso     []
 
 ***********************************************************************/
-Dar_Lib_t * Dar_LibRead()
+Dar_Lib_t * Dar_LibRead( void )
 {
     Vec_Int_t * vObjs, * vOuts, * vPrios;
     Dar_Lib_t * p;
