@@ -3,6 +3,7 @@ SRC +=    src/proof/pdr/gipsat/gipMan.c \
     src/proof/pdr/gipsat/gipCdb.c \
     src/proof/pdr/gipsat/gipProp.c \
     src/proof/pdr/gipsat/gipAnalyze.c \
+    src/proof/pdr/gipsat/gipJftr.c \
     src/proof/pdr/gipsat/gipSearch.c \
     src/proof/pdr/gipsat/gipVsids.c \
     src/proof/pdr/gipsat/gipDomain.c \

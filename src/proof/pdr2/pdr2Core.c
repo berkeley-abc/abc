@@ -649,7 +649,8 @@ static int Pdr2_ManPushLemma( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube )
     p->fPushInf = 0;
     for ( i = iFrame + 1; i <= Pdr2_ManLevel(p); )
     {
-        RetValue = Pdr2_ManSolveRelative( p, Pdr2_ManSolver(p, i-1), vCube, 1, NULL );
+        RetValue = Pdr2_ManSolveRelativeJftr( p, Pdr2_ManSolver(p, i-1), vCube, 1, NULL,
+                                              Pdr2_ManJftrReq(p, PDR2_JQ_PUSH, GIP_JFTR_ANSWER) );
         if ( RetValue != 1 )
         {
             Result = i;
@@ -739,7 +740,7 @@ static int Pdr2_ManDown( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube, char * p
         nTries++;
         p->nDownQueries++;
         if ( p->nDownMode && nTries > 1 ) p->nDownRetries++;
-        RetValue = Pdr2_ManTryDrop( p, pSat, vOrd, 1, vCst );
+        RetValue = Pdr2_ManTryDropJftr( p, pSat, vOrd, 1, vCst, Pdr2_ManJftrReq(p, PDR2_JQ_MIC, GIP_JFTR_WALK) );
         if ( RetValue == -1 )
             break;
         if ( RetValue == 1 )
@@ -759,7 +760,7 @@ static int Pdr2_ManDown( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube, char * p
                 Vec_IntForEachEntry(vFull, Lit, i)
                 {
                     Var = Abc_Lit2Var(Lit);
-                    Value = Pdr2_SolverValue(pSat, p->pLoVar[Var]);
+                    Value = Pdr2_SolverCompletedValue(pSat, p->pLoVar[Var]);
                     if ( Value != GIP_NONE ) Vec_IntPush(vOrd, Abc_Var2Lit(Var, Value == GIP_FALSE));
                     Value = Gip_SolverLitValue(Pdr2_SolverActual(pSat), p->pLiLit[Var]);
                     if ( Value != GIP_NONE ) Vec_IntPush(vTmp, Abc_Var2Lit(Var, Value == GIP_FALSE));
@@ -799,11 +800,11 @@ static int Pdr2_ManDown( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube, char * p
         Vec_IntForEachEntry( vFull, Lit, i )
         {
             Var = p->pLoVar[Abc_Lit2Var(Lit)];
-            Value = Pdr2_SolverValue( pSat, Var );
+            Value = Pdr2_SolverCompletedValue( pSat, Var );
             if ( Value != GIP_NONE )
             {
                 int fRemoved = Pdr2_SolverFlip( pSat, Var );
-                if ( fRemoved == (p->pPars->nDownCacheMode == 1) )
+                if ( Pdr2_SolverActual(pSat)->Jftr.fEarly || fRemoved == (p->pPars->nDownCacheMode == 1) )
                     Vec_IntPush( vTmp, Abc_Var2Lit(Abc_Lit2Var(Lit), Value == GIP_FALSE) );
             }
         }
@@ -863,7 +864,7 @@ static int Pdr2_ManTrivialBlockRec( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vLem
         Vec_IntClear( vOrd );
         Vec_IntAppend( vOrd, vLemma );
         Pdr2_ManSortByAct( p, vOrd, 0 );
-        RetValue = Pdr2_ManTryDrop( p, pSat, vOrd, 1, vCst );
+        RetValue = Pdr2_ManTryDropJftr( p, pSat, vOrd, 1, vCst, Pdr2_ManJftrReq(p, PDR2_JQ_MIC, GIP_JFTR_WALK) );
         if ( RetValue == 1 )
         {
             if ( !Pdr2_ManInductiveCore( p, pSat, vMic ) )
@@ -935,7 +936,7 @@ static int Pdr2_ManCtgDown( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube, char 
         Vec_IntClear( vOrd );
         Vec_IntAppend( vOrd, vCur );
         Pdr2_ManSortByAct( p, vOrd, 0 );
-        RetValue = Pdr2_ManTryDrop( p, pSat, vOrd, 1, NULL );
+        RetValue = Pdr2_ManTryDropJftr( p, pSat, vOrd, 1, NULL, Pdr2_ManJftrReq(p, PDR2_JQ_MIC, GIP_JFTR_WALK) );
         if ( RetValue == -1 )
             break;
         if ( RetValue == 1 )
@@ -1225,7 +1226,8 @@ static void Pdr2_ManMicTreb( Pdr2_Man_t * p, int iFrame, Vec_Int_t * vCube )
                 if ( !Pdr2_LitsAreInit(p, vTry) )
                 {
                     Pdr2_ManSortByAct( p, vTry, 0 );
-                    RetValue = Pdr2_ManTryDrop( p, pSat, vTry, 1, NULL );
+                    RetValue = Pdr2_ManTryDropJftr( p, pSat, vTry, 1, NULL,
+                                                    Pdr2_ManJftrReq(p, PDR2_JQ_MIC, GIP_JFTR_WALK) );
                     if ( RetValue == 1 && Pdr2_ManInductiveCore( p, pSat, vCore ) )
                     {
                         nFailed = 0;
@@ -1295,7 +1297,7 @@ static int Pdr2_ManPredictParent( Pdr2_Man_t * p, int Frame, Vec_Int_t * vCube )
         if ( Pdr2_LitsAreInit(p, vTry) ) break;
         Pdr2_ManSortByAct( p, vTry, 0 );
         p->nPredictQueries++;
-        Ret = Pdr2_ManTryDrop( p, pSat, vTry, 1, NULL );
+        Ret = Pdr2_ManTryDropJftr( p, pSat, vTry, 1, NULL, Pdr2_ManJftrReq(p, PDR2_JQ_MIC, GIP_JFTR_WALK) );
         if ( Ret == -1 ) break;
         if ( Ret == 1 )
         {
@@ -1810,7 +1812,7 @@ static int Pdr2_ManGeneralize( Pdr2_Man_t * p, Pdr2_Obl_t * pObl )
             p->nInfPromoteCalls++;
             p->nPropInfCalls++;
             Pdr2_CubeToVec( pLem->pCube, vMic );
-            k = Pdr2_ManSolveRelative( p, p->pInf, vMic, 1, NULL );
+            k = Pdr2_ManSolveRelativeJftr( p, p->pInf, vMic, 1, NULL, Pdr2_ManJftrReq(p, PDR2_JQ_INF, GIP_JFTR_WALK) );
             if ( k == 1 )
             {
                 if ( pLem->pObl )
@@ -1841,6 +1843,7 @@ static int Pdr2_ManGeneralize( Pdr2_Man_t * p, Pdr2_Obl_t * pObl )
 static int Pdr2_ManSolveBlockedInt( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int_t * vCube )
 {
     int i, RetValue = 0, nPrefix = p->pPars->nPrefix;
+    int Request = Pdr2_ManJftrReq( p, PDR2_JQ_BLOCK, GIP_JFTR_WALK_SHRINK );
     if ( nPrefix && Vec_IntSize(vCube) >= 4 * nPrefix )
     {
         Vec_Int_t * vPrefix = Vec_IntAlloc( nPrefix );
@@ -1849,7 +1852,7 @@ static int Pdr2_ManSolveBlockedInt( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int
         if ( !Pdr2_LitsAreInit(p, vPrefix) )
         {
             p->nPrefixCalls++;
-            RetValue = Pdr2_ManSolveRelative( p, pSat, vPrefix, p->pPars->fBlockInduct, NULL );
+            RetValue = Pdr2_ManSolveRelativeJftr( p, pSat, vPrefix, p->pPars->fBlockInduct, NULL, Request );
             if ( RetValue == 1 )
             {
                 p->nPrefixProved++;
@@ -1860,7 +1863,7 @@ static int Pdr2_ManSolveBlockedInt( Pdr2_Man_t * p, Gip_Solver_t * pSat, Vec_Int
         if ( RetValue != 0 )
             return RetValue;
     }
-    return Pdr2_ManSolveRelative( p, pSat, vCube, p->pPars->fBlockInduct, NULL );
+    return Pdr2_ManSolveRelativeJftr( p, pSat, vCube, p->pPars->fBlockInduct, NULL, Request );
 }
 
 /**Function*************************************************************
@@ -2091,7 +2094,7 @@ static int Pdr2_ManBlockCtp( Pdr2_Man_t * p, int k, Vec_Int_t * vPred, Vec_Int_t
     if ( Pdr2_LitsAreInit(p, vPred) )
         return 0;
     Pdr2_ManSortByAct( p, vPred, 0 );
-    RetValue = Pdr2_ManSolveRelative( p, pSat, vPred, 1, NULL );
+    RetValue = Pdr2_ManSolveRelativeJftr( p, pSat, vPred, 1, NULL, Pdr2_ManJftrReq(p, PDR2_JQ_MIC, GIP_JFTR_WALK) );
     if ( RetValue != 1 )
         return RetValue;
     if ( !Pdr2_ManInductiveCore( p, pSat, vCore ) )
@@ -2140,7 +2143,9 @@ static int Pdr2_ManPropagate( Pdr2_Man_t * p )
                 Pdr2_CubeToVec( pLem->pCube, p->vLits4 );
                 Pdr2_ManSortByAct( p, p->vLits4, 0 );
                 p->nPropCalls++;
-                RetValue = Pdr2_ManSolveRelative( p, Pdr2_ManSolver(p, k), p->vLits4, 0, NULL );
+                // the model goes to the predecessor extraction of Pdr2_ManBlockCtp when j < nCtpMax
+                RetValue = Pdr2_ManSolveRelativeJftr( p, Pdr2_ManSolver(p, k), p->vLits4, 0, NULL,
+                    Pdr2_ManJftrReq(p, PDR2_JQ_PROP, j < p->pPars->nCtpMax ? GIP_JFTR_WALK_SHRINK : GIP_JFTR_ANSWER) );
                 if ( RetValue == -1 )
                 {
                     p->fSweepCut = 1;
@@ -2257,7 +2262,8 @@ static int Pdr2_ManPropInfRec( Pdr2_Man_t * p, Vec_Ptr_t * vLast, Vec_Int_t * vC
     {
         Pdr2_CubeToVec( pLem->pCube, vLits );
         p->nPropInfCalls++;
-        RetValue = Pdr2_ManSolveRelative( p, p->pInf, vLits, 1, NULL );
+        RetValue = Pdr2_ManSolveRelativeJftr( p, p->pInf, vLits, 1, NULL,
+                                              Pdr2_ManJftrReq(p, PDR2_JQ_INF, GIP_JFTR_WALK) );
         if ( RetValue == 1 )
         {
             if ( pLem->pObl )
@@ -2308,7 +2314,8 @@ static void Pdr2_ManPropagateToInf( Pdr2_Man_t * p )
         {
             Pdr2_CubeToVec( pLem->pCube, vLits );
             p->nPropInfCalls++;
-            RetValue = Pdr2_ManSolveRelative( p, p->pInf, vLits, 1, NULL );
+            RetValue = Pdr2_ManSolveRelativeJftr( p, p->pInf, vLits, 1, NULL,
+                                                  Pdr2_ManJftrReq(p, PDR2_JQ_INF, GIP_JFTR_WALK) );
             if ( RetValue == 1 )
             {
                 if ( pLem->pObl )

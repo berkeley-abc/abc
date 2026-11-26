@@ -1359,7 +1359,8 @@ int Pdr2_ManSolvePolicy( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars
     Pdr2_Policy_t * p = ABC_CALLOC(Pdr2_Policy_t, 1);
     Pdr2_Par_t Child;
     Gip_Options_t Options;
-    const char * Keys[36], * Values[36];
+    const char * Keys[40], * Values[40];
+    const char * pJftrDefault = NULL;
     abctime Start = Abc_Clock(), Deadline = pPars->nTimeOut ? Start + (abctime)pPars->nTimeOut * CLOCKS_PER_SEC : 0;
     int fChecked = pPars->iSchedule == PDR2_SCHED_CHECKED, fTried = 0;
     int Count, Mode = !fChecked && Gip_OptionGet("PDR2_JOINT_MONITOR") ? atoi(Gip_OptionGet("PDR2_JOINT_MONITOR")) : 0;
@@ -1371,6 +1372,11 @@ int Pdr2_ManSolvePolicy( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars
     if ( pPars->timePolicyStop > 0 && (!Deadline || pPars->timePolicyStop < Deadline) )
         Deadline = pPars->timePolicyStop;
     if ( fValid && !fChecked ) Pdr2_PolicyMuxFirst(p, Mode == 2 ? pAig : pModel, pPars, Deadline);
+    if ( pPars->iSchedule == PDR2_SCHED_TUNED )
+    {
+        const char * pOpening = p->Stages[0].pName;
+        pJftrDefault = (!strcmp(pOpening, "abstraction") || !strcmp(pOpening, "dynamic-abstraction")) ? "0" : "8";
+    }
     if ( pFirst && fValid && pPars->fVerbose )
         Abc_Print(1, "First-failure cofactor: %d monitor flops, bad cone %d flops and %d nodes.\n", Count, F[3], F[5]);
     pPars->nPhasesRun = pPars->nRestartsRun = pPars->fBmcDecided = 0;
@@ -1404,6 +1410,7 @@ int Pdr2_ManSolvePolicy( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars
         // Stage values precede defaults, so an explicit scheduled BMC budget
         // overrides the common zero budget without touching the environment.
         nOptions = 0;
+        assert( s->nOptions + 4 <= (int)(sizeof(Keys) / sizeof(Keys[0])) );
         for ( k = 0; k < s->nOptions; k++ )
         {
             Keys[nOptions] = s->pKeys[k]; Values[nOptions++] = s->Values[k];
@@ -1411,10 +1418,17 @@ int Pdr2_ManSolvePolicy( Aig_Man_t * pAig, Vec_Int_t * vInit, Pdr2_Par_t * pPars
         Keys[nOptions] = "PDR2_BMC"; Values[nOptions++] = "0";
         Keys[nOptions] = "PDR2_ABS_EPOCH"; Values[nOptions++] = "0";
         Keys[nOptions] = "PDR2_ABS_SCRATCH"; Values[nOptions++] = "1";
+        if ( pJftrDefault )
+        {
+            Keys[nOptions] = "PDR2_JFTR_CONFS";
+            Values[nOptions++] = pJftrDefault;
+        }
         memset(&Options, 0, sizeof(Options));
         Options.nOptions = nOptions; Options.pKeys = Keys; Options.pValues = Values; Options.fIsolate = 1;
         Options.pOverrides = pPars->pOptions;
         Gip_OptionsPush(&Options);
+        if ( i == 0 && pJftrDefault && pPars->fVerbose && !pPars->fSilent )
+            Abc_Print( 1, "POLICY_JFTR conflicts=%s\n", Gip_OptionGet("PDR2_JFTR_CONFS") );
         Pdr2_ManSetDefaultParams(&Child);
         Child.iSchedule = PDR2_SCHED_DIRECT;
         Child.nRandomSeed = pPars->nRandomSeed;

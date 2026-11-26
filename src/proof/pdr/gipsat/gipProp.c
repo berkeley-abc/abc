@@ -601,6 +601,9 @@ int Gip_SolverFlipToNone( Gip_Solver_t * p, int Var )
     Gip_Alloc_t * pA = &p->Cdb.Alloc;
     Gip_WVec_t * pWs;
     int Lit, w;
+    // An early answer of the jftr mode keeps its values; a var it leaves unassigned is not removable either.
+    if ( p->Jftr.fEarly )
+        return 0;
     if ( p->pValue[Var] == GIP_NONE )
         return 1;
     // With a partial model, a true literal need not be watched: both watched

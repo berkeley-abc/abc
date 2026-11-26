@@ -159,6 +159,7 @@ Pdr2_Man_t * Pdr2_ManStart( Aig_Man_t * pAig, char * pInit, Pdr2_Par_t * pPars )
     p->nLiftPiMode = Gip_OptionGet("PDR2_LIFT_PI") ? atoi(Gip_OptionGet("PDR2_LIFT_PI")) & 3 : 0;
     p->nCnfJustMode = Gip_OptionGet("PDR2_CNFJUST") ? Abc_MaxInt(0, Abc_MinInt(3, atoi(Gip_OptionGet("PDR2_CNFJUST")))) : 0;
     p->nInputScope = Gip_OptionGet("PDR2_INPUT_SCOPE") ? atoi(Gip_OptionGet("PDR2_INPUT_SCOPE")) & 31 : 0;
+    p->nJftrScope = Gip_OptionGet("PDR2_JFTR_SCOPE") ? atoi(Gip_OptionGet("PDR2_JFTR_SCOPE")) & 63 : 63;
     p->nInputBadLimit = Gip_OptionGet("PDR2_INPUT_BAD_CONFS") ? Abc_MaxInt(0,atoi(Gip_OptionGet("PDR2_INPUT_BAD_CONFS"))) : -1;
     if ( pPars->fUseAbs || pPars->nInputPolicy ) p->nInputScope = 0;
     if ( p->nInputScope && !Gip_OptionGet("PDR2_CNFJUST") ) p->nCnfJustMode = 3;
@@ -285,6 +286,11 @@ void Pdr2_ManStop( Pdr2_Man_t * p )
     Pdr2_Lem_t * pLem;
     Pdr2_Obl_t * pObl;
     int i, k;
+    if ( p->JftrStats.nFailures || (p->pPars->fVerbose && !p->pPars->fSilent &&
+         (p->JftrStats.nFallbacks || p->JftrStats.nRebuilds || p->JftrStats.nChecks)) )
+        Abc_Print( 1, "JFTR search fallbacks = %.0f  cover rebuilds = %.0f  checks = %.0f  failures = %.0f\n",
+            (double)p->JftrStats.nFallbacks, (double)p->JftrStats.nRebuilds,
+            (double)p->JftrStats.nChecks, (double)p->JftrStats.nFailures );
     if ( p->pAig->pFanData )
         Aig_ManFanoutStop( p->pAig );
     Pdr2_ManCollectGarbage( p, 1 );
@@ -1047,6 +1053,9 @@ void Pdr2_LemCacheCti( Pdr2_Man_t * p, Pdr2_Lem_t * pLem, Gip_Solver_t * pSat, i
         word * pVal  = p->pCtiVal  + (size_t)i * nStride + (Slot >> 6);
         word * pMask = p->pCtiMask + (size_t)i * nStride + (Slot >> 6);
         Value = pSat->pValue[p->pLoVar[i]];
+        // an early answer stands for one state: an unassigned register of the domain has its completion value
+        if ( Value == GIP_NONE && pSat->Jftr.fEarly && Gip_DomainHas(&pSat->Domain, p->pLoVar[i]) )
+            Value = Gip_SolverCompletionValue( pSat, p->pLoVar[i] );
         if ( Value == GIP_NONE )
         {
             *pMask &= ~Bit;
