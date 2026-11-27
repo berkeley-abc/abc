@@ -40,6 +40,7 @@ extern void Abc_InitSweep( Abc_Frame_t * pAbc );
 extern void Abc_InitMapLut( Abc_Frame_t * pAbc );
 extern void Abc_InitMapCell( Abc_Frame_t * pAbc );
 extern void Abc_InitSeq( Abc_Frame_t * pAbc );
+extern int Acb_CommandRunEco2( Abc_Frame_t * pAbc, int argc, char ** argv );
 extern void Abc_InitCec( Abc_Frame_t * pAbc );
 extern void Abc_InitVerify( Abc_Frame_t * pAbc );
 extern void Abc_InitAbstract( Abc_Frame_t * pAbc );

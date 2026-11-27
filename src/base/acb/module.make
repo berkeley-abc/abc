@@ -1,5 +1,6 @@
 SRC +=    src/base/acb/acbAbc.c \
     src/base/acb/acbAig.c \
+    src/base/acb/acbEco2.cpp \
     src/base/acb/acbFunc.c \
     src/base/acb/acbMfs.c \
     src/base/acb/acbPush.c \

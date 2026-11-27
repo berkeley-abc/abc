@@ -98,6 +98,7 @@ extern Bnd_Man_t * pBnd;
 void Abc_InitCec( Abc_Frame_t * pAbc )
 {
     Cmd_CommandAdd( pAbc, "Synthesis",    "runeco",        Abc_CommandRunEco,           0 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "runeco2",       Acb_CommandRunEco2,          0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "xec",           Abc_CommandRunTest,          0 );
     Cmd_CommandAdd( pAbc, "Various",      "miter",         Abc_CommandMiter,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "miter2",        Abc_CommandMiter2,           1 );

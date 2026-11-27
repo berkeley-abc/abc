@@ -1078,6 +1078,10 @@ SOURCE=.\src\base\acb\acbAig.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\acb\acbEco2.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\acb\acbFunc.c
 # End Source File
 # Begin Source File
