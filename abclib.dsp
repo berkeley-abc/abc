@@ -7066,6 +7066,30 @@ SOURCE=.\src\aig\gia\giaNf.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaScmap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaScmapSeed.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaScmapRefine.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaScmapInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaScmapQuality.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaScmapWindow.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaOf.c
 # End Source File
 # Begin Source File

@@ -684,7 +684,7 @@ static Gia_Man_t * Dch2_Export( Gia_Man_t * p )
 
 ***********************************************************************/
 static Gia_Man_t * Dch2_Perform( Gia_Man_t * p, int nSnapshots, int nConfs, int nConfsChoice, int fKeepLevel,
-                                 int fSweep, int fMore, int fVerbose, abctime Deadline )
+                                 int fSweep, int fMore, int fVerbose, abctime Deadline, Gia_Man_t * pExtra )
 {
     Gia_Man_t *pLast, *pMiddle = NULL, *pMiter, *pChoices, *pNew;
     Vec_Ptr_t *vSnapshots, *vLabels;
@@ -695,6 +695,10 @@ static Gia_Man_t * Dch2_Perform( Gia_Man_t * p, int nSnapshots, int nConfs, int 
     int nMiterAnds, nChoices;
     if ( !p || ( nSnapshots != 2 && nSnapshots != 3 ) || nConfs < 0 || nConfsChoice < 0 || Gia_ManHasChoices( p ) ||
          Gia_ManMuxNum( p ) || Gia_ManXorNum( p ) || Gia_ManBufNum( p ) || Gia_ManObjNum( p ) > INT_MAX / 16 )
+        return NULL;
+    if ( pExtra && ( !fSweep || Gia_ManHasChoices( pExtra ) || Gia_ManMuxNum( pExtra ) || Gia_ManXorNum( pExtra ) ||
+                     Gia_ManBufNum( pExtra ) || Gia_ManRegNum( pExtra ) || Gia_ManRegNum( p ) ||
+                     Gia_ManCiNum( pExtra ) != Gia_ManCiNum( p ) || Gia_ManCoNum( pExtra ) != Gia_ManCoNum( p ) ) )
         return NULL;
     if ( Gia_ManIsSeqWithBoxes( p ) && !Gia_ManIsNormalized( p ) ) return NULL;
     vLabels = Vec_PtrAlloc( nSnapshots );
@@ -717,6 +721,12 @@ static Gia_Man_t * Dch2_Perform( Gia_Man_t * p, int nSnapshots, int nConfs, int 
     }
     else
         Vec_PtrPush( vSnapshots, p );
+    if ( pExtra )
+    {
+        // Unlabeled: only simulation and SAT relate the extra structure to the others.
+        Vec_PtrPush( vSnapshots, pExtra );
+        Vec_PtrPushFirst( vLabels, Vec_IntStartFull( Gia_ManObjNum( pExtra ) ) );
+    }
     Merge = Abc_Clock();
     pMiter = Gia_ManChoiceMiter( vSnapshots );
     vOrigins = Vec_IntStart( Gia_ManObjNum( pMiter ) );
@@ -791,12 +801,12 @@ static Gia_Man_t * Dch2_Perform( Gia_Man_t * p, int nSnapshots, int nConfs, int 
 ***********************************************************************/
 Gia_Man_t * Gia_ManDch2Timed( Gia_Man_t * p, int fKeepLevel, abctime Deadline )
 {
-    return Dch2_Perform( p, 2, 100, 30, fKeepLevel, 1, 0, 0, Deadline );
+    return Dch2_Perform( p, 2, 100, 30, fKeepLevel, 1, 0, 0, Deadline, NULL );
 }
 
 Gia_Man_t * Gia_ManDch2( Gia_Man_t * p, int nSnapshots, int nConfs, int nConfsChoice, int fKeepLevel, int fVerbose )
 {
-    return Dch2_Perform( p, nSnapshots, nConfs, nConfsChoice, fKeepLevel, 1, 0, fVerbose, 0 );
+    return Dch2_Perform( p, nSnapshots, nConfs, nConfsChoice, fKeepLevel, 1, 0, fVerbose, 0, NULL );
 }
 
 /**Function*************************************************************
@@ -815,7 +825,26 @@ Gia_Man_t * Gia_ManDch2( Gia_Man_t * p, int nSnapshots, int nConfs, int nConfsCh
 ***********************************************************************/
 Gia_Man_t * Gia_ManDch2Construct( Gia_Man_t * p, int fKeepLevel, int fVerbose )
 {
-    return Dch2_Perform( p, 2, 0, 0, fKeepLevel, 0, 1, fVerbose, 0 );
+    return Dch2_Perform( p, 2, 0, 0, fKeepLevel, 0, 1, fVerbose, 0, NULL );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Construction-proved choices that keep the input structure.]
+
+  Description [Like Gia_ManDch2Construct, plus the input itself as a third
+  snapshot. A non-NULL pExtra, with the same interface and function, joins
+  as a fourth snapshot; simulation and SAT (the &dch2 default limits) then
+  relate it to the others, and may also add relations among the rest.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDch2ConstructWith( Gia_Man_t * p, Gia_Man_t * pExtra, int fKeepLevel, int fVerbose )
+{
+    return Dch2_Perform( p, 3, 100, 30, fKeepLevel, pExtra != NULL, 1, fVerbose, 0, pExtra );
 }
 
 /**Function*************************************************************

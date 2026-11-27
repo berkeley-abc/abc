@@ -132,3 +132,6 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaBound.c \
     src/aig/gia/giaDecGraph.cpp \
     src/aig/gia/giaDecGraph2.cpp
+
+SRC += src/aig/gia/giaScmap.c \
+    src/aig/gia/giaScmapWindow.c

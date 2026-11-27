@@ -25,7 +25,9 @@
 #include "opt/mfs/mfs.h"
 #include "opt/sfm/sfm.h"
 #include <errno.h>
+#include <float.h>
 #include <limits.h>
+#include <math.h>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -51,6 +53,7 @@ static int Abc_CommandAbc9Embed              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Nf2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Nf3                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Nf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Scmap              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Simap              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 
@@ -86,6 +89,7 @@ void Abc_InitMapCell( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&nf2",          Abc_CommandAbc9Nf2,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&nf3",          Abc_CommandAbc9Nf3,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&nf",           Abc_CommandAbc9Nf,           0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&scmap",        Abc_CommandAbc9Scmap,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&simap",        Abc_CommandAbc9Simap,        0 );
 }
 
@@ -2414,6 +2418,77 @@ usage:
     Abc_Print( -2, "\t-f       : toggles keeping the intermediate CNF file [default = %s]\n", fKeepFile? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Shared-cover standard-cell mapping, aware of buffering and sizing.]
+
+  Description [Maps the current GIA into the loaded standard-cell library,
+  fast by default or with one of the quality modes -q, -r and -t, and
+  replaces it with the mapped GIA.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Abc_CommandAbc9Scmap( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pNew, * pWork = NULL, * pIn;
+    float DelayFloor = 0;
+    int c, fFloor = 0, fQuality = 0, fRemap = 0, fTarget = 0, fSynthesis = 1, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "Tqrtsvh")) != EOF )
+        switch ( c )
+        {
+        case 'T':
+        {
+            char * pEnd;
+            double Value;
+            if ( globalUtilOptind >= argc ) goto usage;
+            errno = 0;
+            Value = strtod(argv[globalUtilOptind], &pEnd);
+            if ( errno == ERANGE || pEnd == argv[globalUtilOptind] || *pEnd ||
+                 !isfinite(Value) || Value > FLT_MAX || Value < 0 ) goto usage;
+            DelayFloor = (float)Value;
+            fFloor = 1;
+            globalUtilOptind++;
+            break;
+        }
+        case 'q': fQuality ^= 1; break;
+        case 'r': fRemap ^= 1; break;
+        case 't': fTarget ^= 1; break;
+        case 's': fSynthesis ^= 1; break;
+        case 'v': fVerbose ^= 1; break;
+        default: goto usage;
+        }
+    if ( globalUtilOptind != argc || fQuality + fRemap + fTarget > 1 || (fFloor && !fTarget) ) goto usage;
+    if ( !pAbc->pGia ) { Abc_Print(-1, "Empty GIA network.\n"); return 1; }
+    if ( !Abc_FrameReadLibGen() ) { Abc_Print(-1, "Current library is not available.\n"); return 1; }
+    if ( fSynthesis ) pWork = Gia_ManScmapChoices(pAbc->pGia, 0);
+    pIn = pWork ? pWork : pAbc->pGia;
+    pNew = fTarget ? Gia_ManScmapTarget(pIn, DelayFloor, fVerbose) :
+           fQuality || fRemap ? Gia_ManScmapQuality(pIn, fRemap, fVerbose) :
+                                Gia_ManScmap(pIn, fVerbose);
+    if ( pWork && pWork != pNew ) Gia_ManStop(pWork);
+    if ( !pNew ) { Abc_Print(-1, "SCMap: technology mapping failed.\n"); return 1; }
+    Abc_FrameUpdateGia(pAbc, pNew);
+    return 0;
+usage:
+    Abc_Print( -2, "usage: &scmap [-T <num>] [-qrtsvh]\n" );
+    Abc_Print( -2, "\t           shared-cover standard-cell mapping aware of buffering and sizing\n" );
+    Abc_Print( -2, "\t           (at most one of -q, -r and -t; -T only with -t)\n" );
+    Abc_Print( -2, "\t-T <num> : the delay floor of -t in ps (0 = the best delay found) [default = %g]\n", DelayFloor );
+    Abc_Print( -2, "\t-q       : toggle quality mapping with windows measured after buffering [default = %s]\n", fQuality ? "yes" : "no" );
+    Abc_Print( -2, "\t-r       : toggle quality mapping in a restructuring loop [default = %s]\n", fRemap ? "yes" : "no" );
+    Abc_Print( -2, "\t-t       : toggle -r followed by area recovery under a delay target [default = %s]\n", fTarget ? "yes" : "no" );
+    Abc_Print( -2, "\t-s       : toggle building synthesis choices for an AIG without choices [default = %s]\n", fSynthesis ? "yes" : "no" );
+    Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n" );
+    Abc_Print( -2, "\t           \n" );
+    Abc_Print( -2, "\t           This command was contributed by Anqi Lu from UC Berkeley.\n" );
     return 1;
 }
 
