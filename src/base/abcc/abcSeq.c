@@ -4338,7 +4338,7 @@ usage:
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Computes signal correspondence with optional inductive constraints.]
 
   Description []
 
@@ -4349,91 +4349,58 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Scorr2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Cec_ManScorrCorrespondence( Gia_Man_t * p, Cec_ParCor_t * pPars );
-    extern Gia_Man_t * Cec_ManLSCorrespondence2( Gia_Man_t * p, Cec_ParCor_t * pPars );
     extern Gia_Man_t * Gia_ManScorrDivideTest( Gia_Man_t * p, Cec_ParCor_t * pPars );
-    extern Gia_Man_t * Gia_SignalCorrespondencePart( Gia_Man_t * p, Cec_ParCor_t * pPars );
-    Cec_ParCor_t Pars, * pPars = &Pars;
+    Cec_ParCor_t Defaults, Pars, * pPars = &Pars;
     Gia_Man_t * pTemp;
-    int fPartition = 0;
-    int fUseOld = 0, c;
-    Cec_ManCorSetDefaultParams( pPars );
-    pPars->nProcs           = 1;
-    pPars->fIncremental     = 1;
-    pPars->fDynSrm          = 1;
-    pPars->fIncrSim         = 1;
-    pPars->fSkipFailResim   = 1;
+    int fPartition = 0, fUseOld = 0, fOldOptions = 0;
+    int fConflictLimitGiven = 0, fAdvanced = 0;
+    int nSides = 0, c;
+    Cec_ManCorSetDefaultParams( &Defaults );
+    Defaults.nProcs           = 1;
+    Defaults.fIncremental     = 1;
+    Defaults.fDynSrm          = 1;
+    Defaults.fIncrSim         = 1;
+    Defaults.fSkipFailResim   = 1;
+    Pars = Defaults;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCGXPSKYDpkrecqiIosvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCGXPSKYDpkrecqiIosvh/" ) ) != EOF )
     {
+        if ( strchr( "GXPpkrecqiDIsY", c ) )
+            fOldOptions = 1;
         switch ( c )
         {
         case 'F':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nFrames = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nFrames < 0 )
-                goto usage;
-            break;
         case 'C':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nBTLimit = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nBTLimit < 0 )
-                goto usage;
-            break;
         case 'G':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nPrefix = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nPrefix < 0 )
-                goto usage;
-            break;
         case 'X':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-X\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nLimitMax = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nLimitMax < 0 )
-                goto usage;
-            break;
         case 'P':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nProcs = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nProcs < 0 )
-                goto usage;
-            break;
         case 'S':
+        {
+            char * pArg, * pEnd;
+            long Value;
             if ( globalUtilOptind >= argc )
+                goto usage;
+            pArg = argv[globalUtilOptind++];
+            errno = 0;
+            Value = strtol( pArg, &pEnd, 10 );
+            if ( pEnd == pArg || *pEnd || errno == ERANGE ||
+                 Value < (c == 'S' ? -1 : 0) || Value > INT_MAX )
+                goto usage;
+            switch ( c )
             {
-                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
-                goto usage;
+            case 'F': pPars->nFrames = (int)Value; break;
+            case 'C': pPars->nBTLimit = (int)Value; fConflictLimitGiven = 1; break;
+            case 'G': pPars->nPrefix = (int)Value; break;
+            case 'X': pPars->nLimitMax = (int)Value; break;
+            case 'P': pPars->nProcs = (int)Value; break;
+            case 'S':
+                if ( Value > 1000000 )
+                    goto usage;
+                nSides = (int)Value;
+                break;
             }
-            pPars->nPartSize = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nPartSize < 0 )
-                goto usage;
             break;
+        }
         case 'p':
             fPartition ^= 1;
             break;
@@ -4476,10 +4443,23 @@ int Abc_CommandAbc9Scorr2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'v':
             pPars->fVerbose ^= 1;
             break;
+        case '/':
+            fAdvanced = 1;
+            goto usage;
         default:
             goto usage;
         }
     }
+    if ( globalUtilOptind != argc )
+        goto usage;
+    fUseOld |= fOldOptions;
+    if ( nSides && fUseOld )
+    {
+        Abc_Print( -1, "&scorr2: nonzero -S cannot be combined with -o or incremental engine options.\n" );
+        return 1;
+    }
+    if ( !fUseOld && (pPars->nFrames < 1 || pPars->nFrames > 1000000 || pPars->nBTLimit > 1000000) )
+        goto usage;
     if ( pPars->fDynSrm && !pPars->fIncremental )
     {
         Abc_Print( -1, "The dynamic SRM manager (-D) requires -i.\n" );
@@ -4490,9 +4470,7 @@ int Abc_CommandAbc9Scorr2( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "The adaptive BMC solver policy (-Y) requires -D.\n" );
         return 1;
     }
-    if ( pPars->fKissatCert &&
-         (fUseOld || fPartition || pPars->nPartSize > 0 ||
-          pPars->nPrefix > 0) )
+    if ( pPars->fKissatCert && (fPartition || pPars->nPrefix > 0) )
     {
         Abc_Print( -1, "The strict fixed-point oracle (-K) supports the direct engine with -G 0 only.\n" );
         return 1;
@@ -4502,7 +4480,7 @@ int Abc_CommandAbc9Scorr2( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "&scorr2: There is no AIG.\n" );
         return 1;
     }
-    if ( Gia_ManBoxNum(pAbc->pGia) && Gia_ManRegBoxNum(pAbc->pGia) )
+    if ( fUseOld && Gia_ManBoxNum(pAbc->pGia) && Gia_ManRegBoxNum(pAbc->pGia) )
     {
         if ( pAbc->pGia->pAigExtra == NULL )
         {
@@ -4518,41 +4496,64 @@ int Abc_CommandAbc9Scorr2( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 0, "The network is combinational.\n" );
         return 0;
     }
-    if ( pPars->nPartSize > 0 )
-        pTemp = Gia_SignalCorrespondencePart( pAbc->pGia, pPars );
-    else if ( fUseOld )
-        pTemp = Cec_ManScorrCorrespondence( pAbc->pGia, pPars );
+    if ( !fUseOld )
+    {
+        Cec_ParCor_t NewPars;
+        if ( Gia_ManRegBoxNum(pAbc->pGia) )
+        {
+            Abc_Print( -1, "&scorr2: register boxes are not supported.\n" );
+            return 1;
+        }
+        Cec_ManCorSetDefaultParams( &NewPars );
+        NewPars.nFrames = pPars->nFrames;
+        NewPars.nBTLimit = nSides && !fConflictLimitGiven ? 1000 : pPars->nBTLimit;
+        NewPars.fVerbose = pPars->fVerbose;
+        NewPars.fKissatCert = pPars->fKissatCert;
+        pTemp = nSides ? Cec_ManLSCorrespondence4( pAbc->pGia, &NewPars, nSides, 0 )
+                       : Cec_ManLSCorrespondence3( pAbc->pGia, &NewPars );
+    }
     else if ( fPartition )
         pTemp = Gia_ManScorrDivideTest( pAbc->pGia, pPars );
     else
         pTemp = Cec_ManLSCorrespondence2( pAbc->pGia, pPars );
+    if ( !pTemp )
+        return 1;
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &scorr2 [-FCGXPS num] [-pkrecqiDIsYKovh]\n" );
-    Abc_Print( -2, "\t         performs signal correpondence computation using the incremental scorr2 engine\n" );
-    Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
-    Abc_Print( -2, "\t-F num : the number of timeframes in inductive case [default = %d]\n", pPars->nFrames );
-    Abc_Print( -2, "\t-G num : the number of timeframes in the prefix [default = %d]\n", pPars->nPrefix );
-    Abc_Print( -2, "\t-X num : the number of iterations of little or no improvement [default = %d]\n", pPars->nLimitMax );
-    Abc_Print( -2, "\t-P num : the number of concurrent processes [default = %d]\n", pPars->nProcs );
-    Abc_Print( -2, "\t-S num : the number of flops in one partition [default = %d]\n", pPars->nPartSize );
-    Abc_Print( -2, "\t-p     : toggle using partitioning for the input AIG [default = %s]\n", fPartition? "yes": "no" );
-    Abc_Print( -2, "\t-k     : toggle using constant correspondence [default = %s]\n", pPars->fConstCorr? "yes": "no" );
+    pPars = &Defaults;
+    if ( fAdvanced )
+        Abc_Print( -2, "usage: &scorr2 [-FCSGXP num] [-ovhK/] [-krepcqiDIsY]\n" );
+    else
+        Abc_Print( -2, "usage: &scorr2 [-FCS num] [-ovh] [-kre] [-G num]\n" );
+    Abc_Print( -2, "\t         performs signal correspondence using the &scorr3 engine by default\n" );
+    Abc_Print( -2, "\t-F num : number of induction frames (at least 1 for &scorr3/4) [default = %d]\n", pPars->nFrames );
+    Abc_Print( -2, "\t-C num : max conflicts per node [default = %d, or 1000 with nonzero -S]\n", pPars->nBTLimit );
+    Abc_Print( -2, "\t-S num : &scorr4 inductive constraints per query (1..1000000 = cap, -1 = all, 0 = off) [default = 0]\n" );
+    Abc_Print( -2, "\t-o     : toggle using the original incremental &scorr2 engine [default = no]\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage (use -/ for all options)\n" );
+    if ( fAdvanced )
+        Abc_Print( -2, "\t-K     : toggle strict final fixed-point Kissat audit [default = %s]\n", pPars->fKissatCert? "yes": "no" );
+    Abc_Print( -2, "\t         The following options select the incremental engine (-S must be zero or omitted).\n" );
+    Abc_Print( -2, "\t-k     : toggle considering only constant candidates [default = %s]\n", pPars->fConstCorr? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle using implication rings during refinement [default = %s]\n", pPars->fUseRings? "yes": "no" );
     Abc_Print( -2, "\t-e     : toggle using equivalences as choices [default = %s]\n", pPars->fMakeChoices? "yes": "no" );
-    Abc_Print( -2, "\t-c     : toggle using circuit-based SAT solver [default = %s]\n", pPars->fUseCSat? "yes": "no" );
-    Abc_Print( -2, "\t-q     : toggle quitting when PO is not a constant candidate [default = %s]\n", pPars->fStopWhenGone? "yes": "no" );
-    Abc_Print( -2, "\t-i     : toggle incremental TFO-triggered re-proof [default = %s]\n", pPars->fIncremental? "yes": "no" );
-    Abc_Print( -2, "\t-D     : toggle persistent dynamic SRM construction [default = %s]\n", pPars->fDynSrm? "yes": "no" );
-    Abc_Print( -2, "\t-I     : toggle persistent event-driven resimulation [default = %s]\n", pPars->fIncrSim? "yes": "no" );
-    Abc_Print( -2, "\t-s     : toggle skipping resimulation without a real CEX [default = %s]\n", pPars->fSkipFailResim? "yes": "no" );
-    Abc_Print( -2, "\t-Y     : toggle guarded CBS-first/TAS-rescue BMC policy [default = %s]\n", pPars->fBmcTasAdaptive? "yes": "no" );
-    Abc_Print( -2, "\t-K     : toggle strict final fixed-point Kissat audit [default = %s]\n", pPars->fKissatCert? "yes": "no" );
-    Abc_Print( -2, "\t-o     : toggle calling old engine [default = %s]\n", fUseOld? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t-G num : prefix frames (allows prefix-dependent invariants) [default = %d]\n", pPars->nPrefix );
+    if ( fAdvanced )
+    {
+        Abc_Print( -2, "\t-X num : BMC iteration limit and slow-refinement threshold [default = %d]\n", pPars->nLimitMax );
+        Abc_Print( -2, "\t-P num : accept the legacy process count for compatibility (unused) [default = %d]\n", pPars->nProcs );
+        Abc_Print( -2, "\t-p     : toggle using partitioning for the input AIG [default = no]\n" );
+        Abc_Print( -2, "\t-c     : toggle using circuit-based SAT solver [default = %s]\n", pPars->fUseCSat? "yes": "no" );
+        Abc_Print( -2, "\t-q     : toggle quitting when PO is not a constant candidate [default = %s]\n", pPars->fStopWhenGone? "yes": "no" );
+        Abc_Print( -2, "\t-i     : toggle incremental TFO-triggered re-proof [default = %s]\n", pPars->fIncremental? "yes": "no" );
+        Abc_Print( -2, "\t-D     : toggle persistent dynamic SRM construction [default = %s]\n", pPars->fDynSrm? "yes": "no" );
+        Abc_Print( -2, "\t-I     : toggle persistent event-driven resimulation [default = %s]\n", pPars->fIncrSim? "yes": "no" );
+        Abc_Print( -2, "\t-s     : toggle skipping resimulation without a real CEX [default = %s]\n", pPars->fSkipFailResim? "yes": "no" );
+        Abc_Print( -2, "\t-Y     : toggle guarded CBS-first/TAS-rescue BMC policy [default = %s]\n", pPars->fBmcTasAdaptive? "yes": "no" );
+    }
     Abc_Print( -2, "\t         This command was contributed by Xiran Zhao from University of Chinese Academy of Sciences (UCAS).\n" );
     return 1;
 }
