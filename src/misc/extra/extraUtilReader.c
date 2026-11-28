@@ -286,7 +286,7 @@ void * Extra_FileReaderGetTokens_int( Extra_FileReader_t * p )
         if ( *pChar == '\n' )
             p->nLineCounter++;
         // switch depending on the character
-        MapValue = p->pCharMap[(int)*pChar];
+        MapValue = p->pCharMap[(unsigned char)*pChar];
 
 //        printf( "Char value = %d. Map value = %d.\n", *pChar, MapValue );
 
