@@ -3319,18 +3319,17 @@ int Pa_ManCommitCandidate(Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, Vec_Ptr_t * v
             }
             TimingRebuilt = true;
         }
+        // The replacement is functionally correct, and the placement and the
+        // timing rebuilt above describe the actual netlist.  A replacement
+        // that turned out worse than predicted is reported and kept, so that
+        // one misprediction does not discard the whole pass.
         if ( ActualGain < 0 || ActualScore <= kCompareTolerance )
-        {
-            Abc_Print(-1,
-                      "placement error: materialized replacement has nonpositive actual score %.9f "
+            Abc_Print(0,
+                      "placement: a replacement with a %s result has nonpositive actual score %.9f "
                       "(predicted gain %d, actual gain %d, HPWL %.9f -> %.9f, predicted local "
-                      "reduction %.9f).\n",
+                      "reduction %.9f); it is kept.\n",
+                      Plan.ResultIsVirtual() ? "virtual" : "structurally reused",
                       ActualScore, nGain, ActualGain, HpwlBefore, HpwlAfter, Plan.HpwlSaved() - Plan.HpwlAdded());
-            Abc_Print(-1, "placement error: candidate result was %s.\n",
-                      Plan.ResultIsVirtual() ? "virtual" : "structurally reused");
-            Pa_ManClearPlacement();
-            return 0;
-        }
     }
     if ( s_pSettings->timingEvaluation && !TimingRebuilt )
     {

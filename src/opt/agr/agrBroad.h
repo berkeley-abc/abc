@@ -81,7 +81,8 @@ int broadRound(Abc_Frame_t * frame)
         auto & scan = *storage;
         scan.prepareOpportunities(n, &blockState().shapes);
         auto & history = blockState().broadHistory[op];
-        history.prepare(n, scan);
+        if ( !history.prepare(n, scan) )
+            return 1;
         auto roots = scan.roots(n, 100, initialNodes, history.novelty, nullptr);
         history.prepareSelected(n, scan, roots);
         std::vector<std::array<int, 2>> before;

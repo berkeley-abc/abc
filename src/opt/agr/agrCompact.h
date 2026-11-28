@@ -991,7 +991,11 @@ int compactRounds(Abc_Frame_t * frame, int maximum)
         auto & scan = *scanCache;
         // Selection only: structural/care validity comes from fresh candidate checks.
         scan.prepareOpportunities(n, &shapeCache);
-        opportunityMemory.prepare(n, scan);
+        if ( !opportunityMemory.prepare(n, scan) )
+        {
+            ok = false;
+            break;
+        }
 
         // Allocate more slots to classes that produced useful local gain.
         // Hashes define heuristic classes only; candidates are always rebuilt

@@ -115,7 +115,8 @@ struct RootHistory
     }
     // Object IDs only append inside a command: new objects get new identities.
     // A root whose history entry saw the same local context is deprioritized.
-    void prepare(Abc_Ntk_t * n, const TensionScan & scan)
+    // Returns false if the placement of the network cannot be read.
+    bool prepare(Abc_Ntk_t * n, const TensionScan & scan)
     {
         int size = Abc_NtkObjNumMax(n);
         const size_t oldSize = keys.size();
@@ -131,23 +132,26 @@ struct RootHistory
         double width, height, bx, by;
         int bins;
         if ( !Pa_ManReadCanvas(n, &width, &height, &bins, &bx, &by) )
-            assert(!"no placement canvas");
+            return false;
         // Read the authoritative density grid under a temporary read-only
         // pass when RW is between passes, avoiding repeated full fingerprints.
         bool own = !Pa_ManIsPassActive(n);
         if ( own && !Pa_ManBeginPass(n) )
-            assert(!"placement pass rejected");
+            return false;
+        bool ok = true;
         std::vector<double> pressure(bins * bins);
-        for ( int x = 0; x < bins; ++x )
-            for ( int y = 0; y < bins; ++y )
+        for ( int x = 0; x < bins && ok; ++x )
+            for ( int y = 0; y < bins && ok; ++y )
             {
                 double cells = 0, target = 0;
-                if ( !Pa_ManReadDensityBin(n, x, y, &cells, &target) )
-                    assert(!"no density bin");
+                ok = Pa_ManReadDensityBin(n, x, y, &cells, &target) != 0;
                 pressure[x * bins + y] = cells / std::max(1e-9, target);
             }
+        // The temporary pass is closed on failure as well.
         if ( own && !Pa_ManEndPass(n) )
-            assert(!"placement pass rejected");
+            ok = false;
+        if ( !ok )
+            return false;
         cachedPressure = pressure;
         cachedBx = bx;
         cachedBy = by;
@@ -166,6 +170,7 @@ struct RootHistory
             seen[id] = 1;
             novelty[id] = it->second.context == context ? (it->second.accepted ? .25 : .05) : 1;
         }
+        return true;
     }
 
     void observe(int id, bool accepted)

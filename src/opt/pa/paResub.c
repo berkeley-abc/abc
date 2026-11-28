@@ -821,18 +821,6 @@ static Dec_Graph_t * Pa_ManResubQuit( Pa_ManRes_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    []
-
-  Description []
-
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-
-/**Function*************************************************************
-
   Synopsis    [Keeps a truth-valid candidate if it ranks best so far.]
 
   Description [Takes ownership of a truth-valid graph and keeps it if it

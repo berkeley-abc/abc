@@ -119,12 +119,11 @@ static int Pa_CommandPlace( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "pa_place: the current network must be a strashed AIG or a mapped network.\n" );
         return 1;
     }
+    // a network without internal nodes has nothing to place
     if ( Abc_NtkNodeNum(pNtk) == 0 )
-    {
-        Abc_Print( -1, "pa_place: the current network has no internal nodes.\n" );
-        return 1;
-    }
-    Pa_ManPlace( pNtk, PA_PLACE_STEP );
+        Pa_ManClearPlacement();
+    else
+        Pa_ManPlace( pNtk, PA_PLACE_STEP );
     if ( fVerbose )
         Pa_PrintMetrics( "pa_place", pNtk );
     return 0;
@@ -160,7 +159,8 @@ static int Pa_CommandStats( Abc_Frame_t * pAbc, int argc, char ** argv )
         goto usage;
     if ( globalUtilOptind != argc )
         goto usage;
-    if ( pNtk == NULL || !Pa_ManHasPlacement(pNtk) )
+    // a network without internal nodes has no placement and no wires
+    if ( pNtk == NULL || (Abc_NtkNodeNum(pNtk) > 0 && !Pa_ManHasPlacement(pNtk)) )
     {
         Abc_Print( -1, "pa_stats: the current network has no placement; run pa_place.\n" );
         return 1;
@@ -215,6 +215,9 @@ static int Pa_RunOperator( Abc_Frame_t * pAbc, int argc, char ** argv, const cha
         Abc_Print( -1, "%s: the current network must be a combinational AIG without choices.\n", pName );
         return 1;
     }
+    // an AIG without internal nodes has nothing to optimize
+    if ( Abc_NtkNodeNum(pNtk) == 0 )
+        return 0;
     if ( !Pa_ManHasPlacement(pNtk) )
     {
         Abc_Print( -1, "%s: the current AIG has no placement; run pa_place.\n", pName );

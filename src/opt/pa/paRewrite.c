@@ -284,6 +284,9 @@ int Pa_NtkRewrite( Abc_Ntk_t * pNtk, Pa_Filter_t * pFilter, int fReassignIds )
             Dec_GraphComplement( pGraph );
         if ( !Pa_ManCommitCandidate( pNode, pGraph, pManRwr->vFanins, 1, nGain ) )
         {
+            // restore the library graph, which is reused by later calls
+            if ( fCompl )
+                Dec_GraphComplement( pGraph );
             RetValue = -1;
             break;
         }

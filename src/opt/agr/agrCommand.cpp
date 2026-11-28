@@ -163,11 +163,9 @@ static int Agr_Command( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "agr: the current network must be a combinational AIG without choices or constraints.\n" );
         return 1;
     }
+    // an AIG without internal nodes has nothing to restructure
     if ( Abc_NtkNodeNum(pNtk) == 0 )
-    {
-        Abc_Print( -1, "agr: the current network has no internal nodes.\n" );
-        return 1;
-    }
+        return 0;
     nNodes = Abc_NtkNodeNum(pNtk);
     pBackup = Abc_NtkDup( pNtk );
     Agr_SetVerbose( fVerbose );
