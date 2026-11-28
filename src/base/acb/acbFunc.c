@@ -400,7 +400,7 @@ void * Acb_VerilogSimpleParse( Vec_Int_t * vBuffer, Abc_Nam_t * pNames )
 ***********************************************************************/
 int Gia_FileSimpleParse_rec( Gia_Man_t * pNew, int Token, Vec_Int_t * vMapType, Vec_Int_t * vTypes, Vec_Int_t * vFanins, Vec_Int_t * vMap )
 {
-    int nFanins, * pFanins, pLits[16];
+    int nFanins, * pFanins, pLits[16] = {0};
     int i, Type, Size, Place = Vec_IntEntry( vMapType, Token ); 
     int iLit = Vec_IntEntry( vMap, Token );
     if ( iLit >= 0 )

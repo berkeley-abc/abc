@@ -792,7 +792,7 @@ void generate_prefix_adder_verilog(int* array, int width, int mfo, int print_mit
 	}
 	
 	char filename[100];
-	sprintf(filename, "prefix_adder_%d_%d%s.v", width, mfo, print_miter ? "_miter":"" );
+	snprintf(filename, sizeof(filename), "prefix_adder_%d_%d%s.v", width, mfo, print_miter ? "_miter":"" );
 	FILE *fp = fopen(filename, "w");
 	if (!fp) {
 		std::cerr << "Error: Cannot create " << filename << std::endl;
@@ -1343,7 +1343,7 @@ void generate_prefix_adder_aiger_int( char * pFileName, int * pObjs, int nObjs, 
 void generate_prefix_adder_aiger( int width, int mfo )
 {
 	char pFileName[100];
-	sprintf( pFileName, "prefix_adder_%d_%d.aig", width, mfo );
+	snprintf( pFileName, sizeof(pFileName), "prefix_adder_%d_%d.aig", width, mfo );
 	int nObjs = 0, nIns = 0, nLatches = 0, nOuts = 0, nAnds = 0;
 	int * pObjs = adder_return_array( width, mfo, 0, 0, 1, 0, 0, 0, 0,  &nObjs, &nIns, &nLatches, &nOuts, &nAnds ); 
 	if ( pObjs == NULL )

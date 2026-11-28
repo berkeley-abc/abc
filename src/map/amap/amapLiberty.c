@@ -962,7 +962,7 @@ int Amap_LibertyBuildItem( Amap_Tree_t * p, char ** ppPos, char * pEnd )
 exit:
     if ( p->pError == NULL )
     {
-        p->pError = ABC_ALLOC( char, 1000 );
+        p->pError = ABC_ALLOC( char, 1000 + ABC_MAX_LIB_STR_LEN );
         sprintf( p->pError, "File \"%s\". Line %6d. Failed to parse entry \"%s\".\n", 
             p->pFileName, p->nLines, Amap_LibertyGetString(p, Key) );
     }
