@@ -1583,6 +1583,7 @@ extern Gia_Man_t *         Gia_ManDc3Timed( Gia_Man_t * p, int fKeepLevel, int f
 extern Gia_Man_t *         Gia_ManDch2Timed( Gia_Man_t * p, int fKeepLevel, abctime Deadline );
 extern Gia_Man_t *         Gia_ManDch2( Gia_Man_t * p, int nSnapshots, int nConfs, int nConfsChoice, int fKeepLevel, int fVerbose );
 extern Gia_Man_t *         Gia_ManDch2Construct( Gia_Man_t * pGia, int fKeepLevel, int fVerbose );
+extern Gia_Man_t *         Gia_ManDch2ConstructWith( Gia_Man_t * pGia, Gia_Man_t * pExtra, int fKeepLevel, int fVerbose );
 extern Gia_Man_t *         Gia_ManDch2DeriveChoices( Gia_Man_t * pGia );
 //=== giaNf.c ============================================================
 struct Mio_Cell2_t_;
@@ -1614,6 +1615,15 @@ extern Gia_Man_t *         Nf2_ManPerformMappingTied( Gia_Man_t * pGia, Jf_Par_t
 //=== giaNf3.c ============================================================
 extern void                Nf3_ManSetDefaultPars( Jf_Par_t * pPars );
 extern Gia_Man_t *         Nf3_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars, int fSynthesis, int nRecover );
+//=== giaScmap.c ==========================================================
+// Fast mapping with the electrical model only (the default).
+extern Gia_Man_t *         Gia_ManScmap( Gia_Man_t * pGia, int fVerbose );
+// Refined seeds and electrical windows measured after buffering (-q); fLoop adds the restructuring loop (-r).
+extern Gia_Man_t *         Gia_ManScmapQuality( Gia_Man_t * pGia, int fLoop, int fVerbose );
+// -r, then area recovery under the target max(DelayFloor, best delay + 0.01 ps); a zero floor keeps the best delay (-t).
+extern Gia_Man_t *         Gia_ManScmapTarget( Gia_Man_t * pGia, float DelayFloor, int fVerbose );
+// Construction-proved synthesis choices for an ordinary untimed AIG without choices, as in &nf3; NULL otherwise.
+extern Gia_Man_t *         Gia_ManScmapChoices( Gia_Man_t * pGia, int fVerbose );
 //=== giaRsb.c ============================================================
 // Returns NULL for unsupported inputs, including barrier buffers.
 extern Gia_Man_t *         Rsub_ManPerform( Gia_Man_t * pGia, int nCutMax, int nSteps, int nMinSaved, int fKeepLevel, int fVerbose );
