@@ -5490,6 +5490,10 @@ SOURCE=.\src\map\emap\emap.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\emap\emapMap.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\emap\emapCore.c
 # End Source File
 # End Group
