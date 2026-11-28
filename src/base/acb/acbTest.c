@@ -2236,7 +2236,7 @@ int Acb_GiaBuildOverlapSchedule( Gia_Man_t * p, Acb_SplitPoOrder_t * pOrder, int
             pUsed[k] = 1;
             nAdded++;
         }
-        for ( l = 0, r = Vec_IntSize(vCluster) - 1; l <= r; l++, r-- )
+        for ( l = 0, r = Vec_IntSize(vCluster) - 1; l <= r && nSched < nMiterOuts; l++, r-- )
         {
             if ( nGroups == 1 )
             {

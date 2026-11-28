@@ -1058,8 +1058,8 @@ std::string TruthTable::str(Format format) {
             for (const auto &j : irange(4)) {
                 value |= (*this)[i * 4 + j] << (3 - j);
             }
-            char buf[2];
-            sprintf(buf, "%X", value);
+            char buf[16];
+            snprintf(buf, sizeof(buf), "%X", value);
             str += buf[0];
         }
     }
@@ -1079,8 +1079,8 @@ std::string TruthTable::strReverse(Format format) {
             for (const auto &j : irange(4)) {
                 value |= (*this)[bits - (i * 4 + j) - 1] << (3 - j);
             }
-            char buf[2];
-            sprintf(buf, "%X", value);
+            char buf[16];
+            snprintf(buf, sizeof(buf), "%X", value);
             str += buf[0];
         }
     }

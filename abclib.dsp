@@ -3872,6 +3872,110 @@ SOURCE=.\src\opt\rwr\rwrTemp.c
 SOURCE=.\src\opt\rwr\rwrUtil.c
 # End Source File
 # End Group
+# Begin Group "pa"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\pa\pa.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\pa\paAig.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\pa\paCommands.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\pa\paDensity.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\pa\paDensity.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\pa\paEvaluate.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\pa\paInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\pa\paMath.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\pa\paPlace.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\pa\paRefactor.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\pa\paResub.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\pa\paRewrite.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\pa\paStrash.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\pa\paWorkspace.h
+# End Source File
+# End Group
+# Begin Group "agr"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\agr\agr.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\agr\agrBlock.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\agr\agrBroad.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\agr\agrCare.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\agr\agrCommand.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\agr\agrCompact.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\agr\agrGeometryCut.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\agr\agrHistory.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\agr\agrInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\agr\agrLibraryData.h
+# End Source File
+# End Group
 # Begin Group "abs2"
 
 # PROP Default_Filter ""

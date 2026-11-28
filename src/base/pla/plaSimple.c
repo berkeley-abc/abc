@@ -230,7 +230,7 @@ Vec_Wrd_t * Pla_ManFxMinimize( word * pOn, int nVars )
     for ( i = 0; i < nMints; i++ )
         if ( Pla_TtGetBit(pOn, i) && !Pla_TtGetBit(pDc, i) )
         {
-            int pDirs[32], nDirs = Pla_ManExpendDirNum(pOn, nVars, i, pDirs);
+            int pDirs[32] = {0}, nDirs = Pla_ManExpendDirNum(pOn, nVars, i, pDirs);
             // find direction, which is not taken
             for ( v = 0; v < nDirs; v++ )
                 if ( Pla_TtGetBit(pOn, i ^ (1 << pDirs[v])) && !Pla_TtGetBit(pDc, i ^ (1 << pDirs[v])) )

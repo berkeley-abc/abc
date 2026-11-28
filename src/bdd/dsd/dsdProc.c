@@ -1562,7 +1562,7 @@ int dsdKernelVerifyDecomposition( Dsd_Manager_t * pDsdMan, Dsd_Node_t * pDE )
     Dsd_Node_t * pR    = Dsd_Regular(pDE);
     int RetValue;
 
-    DdNode * bRes;
+    DdNode * bRes = NULL;
     if ( pR->Type == DSD_NODE_CONST1 )
         bRes = b1;
     else if ( pR->Type == DSD_NODE_BUF )

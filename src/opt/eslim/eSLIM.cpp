@@ -466,7 +466,7 @@ namespace eSLIM {
     int nlevel = Gia_ManLevelNum(pGia);
     char * resyn2 = "balance; rewrite; rewrite -z; balance; rewrite -z; balance";
     char Command[2000];
-    sprintf( Command, "strash; if -g -K 6; %s; if -K 6", resyn2 );
+    snprintf( Command, sizeof(Command), "strash; if -g -K 6; %s; if -K 6", resyn2 );
     bool reset_batch_mode = false ;
     if ( !Abc_FrameIsBatchMode() ) {
       reset_batch_mode = true;
