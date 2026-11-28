@@ -3,6 +3,9 @@ add_subdirectory(gia)
 if(UNIX)
     add_test(NAME acec_output_coverage
         COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/acec_output_coverage.sh $<TARGET_FILE:abc>)
+    add_test(NAME lutresyn
+        COMMAND ${CMAKE_COMMAND} -E env "ABC=$<TARGET_FILE:abc>"
+            bash "${CMAKE_CURRENT_SOURCE_DIR}/lutresyn.sh")
 endif()
 find_program(ABC_BASH_EXECUTABLE bash)
 if(ABC_BASH_EXECUTABLE)
