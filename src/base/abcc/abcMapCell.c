@@ -2447,11 +2447,19 @@ static int Abc_CommandAbc9Scmap( Abc_Frame_t * pAbc, int argc, char ** argv )
         {
             char * pEnd;
             double Value;
-            if ( globalUtilOptind >= argc ) goto usage;
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by a non-negative floating point number.\n" );
+                goto usage;
+            }
             errno = 0;
             Value = strtod(argv[globalUtilOptind], &pEnd);
             if ( errno == ERANGE || pEnd == argv[globalUtilOptind] || *pEnd ||
-                 !isfinite(Value) || Value > FLT_MAX || Value < 0 ) goto usage;
+                 !isfinite(Value) || Value > FLT_MAX || Value < 0 )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by a non-negative floating point number.\n" );
+                goto usage;
+            }
             DelayFloor = (float)Value;
             fFloor = 1;
             globalUtilOptind++;

@@ -164,6 +164,7 @@ struct Scm_Man_t_
 {
     // Cuts, matches and the selected cover.
     Gia_Man_t *     pGia;
+    Vec_Int_t *     vMappingOld;    // the cell mapping the GIA came with; restored unless a new cover is derived
     Scm_Par_t *     pPars;
     Vec_Mem_t *     vTtMem;         // cut functions
     Vec_Wec_t *     vTt2Match;      // per function: matching cells and configurations
@@ -470,6 +471,32 @@ static int Scm_ManSurfaceGridOk( SC_Surface * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns 1 if Scl_LibLookupI() can interpolate at every value of the axis.]
+
+  Description [Scl_LibLookupI() divides by the width of the segment it
+  selects; this repeats its selection for each value of the axis.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Scm_ManFitAxisOk( Vec_Int_t * vIndex )
+{
+    int * pIndex = Vec_IntArray(vIndex), n = Vec_IntSize(vIndex), i, s;
+    for ( i = 0; n > 1 && i < n; i++ )
+    {
+        for ( s = 1; s < n-1; s++ )
+            if ( pIndex[s] > pIndex[i] )
+                break;
+        s--;
+        if ( pIndex[s+1] == pIndex[s] ) return 0;
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Adds the table's grid points in ABC's fixed-point rounding to the
   normal equations of Value = c0 + c1 * Load (+ c2 * Slew if nVars ==
   3). fFixed reads a private fixed-point copy through Scl_LibLookupI();
@@ -489,6 +516,14 @@ static int Scm_ManFitSurfaceAdd( SC_Surface * p, int fFixed, double Mat[3][4], i
     int nLoads = fFixed ? Vec_IntSize(&p->vIndex1I) : Vec_FltSize(&p->vIndex1);
     int i, k;
     if ( !((nSlews == 1 && nLoads == 1) || (nSlews >= 2 && nLoads >= 2)) ) return 0;
+    if ( fFixed )
+    {
+        // Scl_LibLookupI() needs a full grid and a nonzero width of every segment it selects
+        if ( Vec_PtrSize(&p->vDataI) != nSlews ) return 0;
+        for ( i = 0; i < nSlews; i++ )
+            if ( Vec_IntSize((Vec_Int_t *)Vec_PtrEntry(&p->vDataI, i)) != nLoads ) return 0;
+        if ( !Scm_ManFitAxisOk(&p->vIndex0I) || !Scm_ManFitAxisOk(&p->vIndex1I) ) return 0;
+    }
     for ( i = 0; i < nSlews; i++ )
     for ( k = 0; k < nLoads; k++ )
     {
@@ -746,7 +781,7 @@ static void Scm_ManUnitBlend( Scm_Man_t * p )
         pDelays[k] = Value;
     }
     assert(n > 0);
-    Unit = pDelays[n/2];
+    Unit = n > 0 ? pDelays[n/2] : 1.0f;
     p->UnitDelay = Unit;
     ABC_FREE(pDelays);
     for ( i = 0; i < p->nCells; i++ )
@@ -938,11 +973,13 @@ static Scm_Man_t * Scm_StoCreate( Gia_Man_t * pGia, Scm_Par_t * pPars )
     float Gain = 0;
     int i, k, Entry, nPins = 0, nFailed = 0, nLits = 2 * Gia_ManObjNum(pGia);
     ABC_FREE( pGia->pRefs );
-    Vec_IntFreeP( &pGia->vCellMapping );
     if ( Gia_ManHasChoices(pGia) )
         Gia_ManSetPhase(pGia);
     p = ABC_CALLOC( Scm_Man_t, 1 );
     p->pGia     = pGia;
+    // Set the incumbent mapping aside; Scm_StoDelete() restores it unless a new cover replaced it.
+    p->vMappingOld = pGia->vCellMapping;
+    pGia->vCellMapping = NULL;
     p->pPars    = pPars;
     p->pObjs    = ABC_CALLOC( Scm_Obj_t, Gia_ManObjNum(pGia) );
     p->iCur     = 2;
@@ -990,6 +1027,12 @@ static Scm_Man_t * Scm_StoCreate( Gia_Man_t * pGia, Scm_Par_t * pPars )
         if ( p->pSclCells[i] < 0 )
             continue;
         pSclCell = SC_LibCell(p->pScl, p->pSclCells[i]);
+        // A Liberty cell with other pins than the GENLIB cell is not a match; its arcs are reported below.
+        if ( pSclCell->n_inputs != (int)p->pCells[i].nFanins )
+        {
+            p->pSclCells[i] = -1;
+            continue;
+        }
         assert(pSclCell->n_inputs <= SCM_LEAF_MAX);
         SC_RingForEachCell(pSclCell, pMember, k)
         {
@@ -1100,6 +1143,11 @@ static Scm_Man_t * Scm_StoCreate( Gia_Man_t * pGia, Scm_Par_t * pPars )
 static void Scm_StoDelete( Scm_Man_t * p )
 {
     int i;
+    // A failed run leaves the GIA with the mapping it came with.
+    if ( p->pGia->vCellMapping == NULL )
+        p->pGia->vCellMapping = p->vMappingOld;
+    else
+        Vec_IntFreeP( &p->vMappingOld );
     Scm_CtxFree( p->pCtxSpare );
     p->pCtxSpare = NULL;
     ABC_FREE( p->pFitCache );
@@ -2068,7 +2116,9 @@ static float Scm_PwlEval( Scm_Pwl_t * pPwl, float Load )
 {
     int Lo = 0, Hi = pPwl->nSegs, Mid;
     Scm_Seg_t * pSeg;
-    assert( pPwl->nSegs > 0 );
+    // An empty function belongs to a cell whose envelope could not be built;
+    // fEnvError is set then, and the mapping is rejected.
+    if ( pPwl->nSegs == 0 ) return 0.0f;
     Load = Abc_MaxFloat(0.0f, Load);
     while ( Lo + 1 < Hi )
     {
@@ -2417,7 +2467,12 @@ static void Scm_ManEnsureEnvBuild( Scm_Man_t * p, Mio_Cell2_t * pCell )
     fOk = fOk && Scm_PwlCheck(p->pEnvSlews + 2 * i) && Scm_PwlCheck(p->pEnvSlews + 2 * i + 1) &&
           Scm_PwlCheck(p->pEnvCosts + i);
     p->pEnvState[i] = fOk ? 1 : 2;
-    if ( !fOk ) p->fEnvError = 1;
+    if ( !fOk )
+    {
+        p->fEnvError = 1;
+        Abc_Print( 0, "&scmap cannot model Liberty cell \"%s\" over load (its area must be positive and its timing finite).\n",
+            pCell->pName ? pCell->pName : "unknown" );
+    }
 }
 
 /**Function*************************************************************
@@ -4787,7 +4842,8 @@ static Gia_Man_t * Scm_ManPerformMapping( Gia_Man_t * pGia, Scm_Par_t * pPars )
             Scm_ObjMatch(p, 0, 0)->Gate = 0;
             Scm_ObjMatch(p, 0, 1)->Gate = 1;
         }
-        if ( !Scm_ManSeedBuild(p, m, 0) || !Scm_ManTimeCover(p) ) { fOk = 0; break; }
+        // a cell of the cover without a load model ends the run here
+        if ( !Scm_ManSeedBuild(p, m, 0) || !Scm_ManTimeCover(p) || p->fEnvError ) { fOk = 0; break; }
         Delay[m] = p->ModelDelay;
         Area[m] = (long long)Scm_ManCoverArea(p);
         if ( pPars->fVerbose )
