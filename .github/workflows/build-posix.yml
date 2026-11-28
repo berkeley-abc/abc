@@ -48,6 +48,7 @@ jobs:
       run: |
         test/mf_maprefs_overflow.sh
         test/sopb_shared_leaf.sh
+        test/gia_lutabsorb.sh
 
     - name: Build Library
       run: |

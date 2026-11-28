@@ -8,7 +8,7 @@
 
   Synopsis    [Absorbs multi-fanout LUTs into all their fanout LUTs.]
 
-  Author      [longfei]
+  Author      [Longfei Fan]
 
 ***********************************************************************/
 

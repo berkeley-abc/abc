@@ -32,7 +32,7 @@ ABC_NAMESPACE_IMPL_START
 ///                           DECLARATIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-static int Abc_CommandLutAbsorb                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandLutAbsorb              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLutpack                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLutmin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTrace                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -66,6 +66,7 @@ static int Abc_CommandAbc9Of                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Pack               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Edge               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatLut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9LutAbsorb          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9LNetMap            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Unmap              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Trace              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -119,6 +120,7 @@ void Abc_InitMapLut( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&pack",         Abc_CommandAbc9Pack,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&edge",         Abc_CommandAbc9Edge,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satlut",       Abc_CommandAbc9SatLut,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&lutabsorb",    Abc_CommandAbc9LutAbsorb,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&lnetmap",      Abc_CommandAbc9LNetMap,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&unmap",        Abc_CommandAbc9Unmap,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&trace",        Abc_CommandAbc9Trace,        0 );
@@ -241,6 +243,8 @@ usage:
     Abc_Print( -2, "\t-R num : the number of passes [default = %d]\n", nRounds );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n" );
+    Abc_Print( -2, "\t\n" );
+    Abc_Print( -2, "\t         This command was contributed by Longfei Fan.\n" );
     return 1;
 }
 
@@ -5490,6 +5494,121 @@ usage:
     Abc_Print( -2, "\t-r       : toggles using reverse search [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9LutAbsorb( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Gia_ManLutAbsorb( Gia_Man_t * p, int nLutSize, int nFanoutMax, int nRounds, int fVerbose, If_LibLut_t * pLutLib, float * pfAreaGain );
+    Gia_Man_t * pGia = pAbc->pGia;
+    If_LibLut_t * pLutLib = (If_LibLut_t *)Abc_FrameReadLibLut();
+    int c, nInit, nRemoved, nLutSizeMax;
+    int nLutSize   = pLutLib? Abc_MinInt(6, pLutLib->LutMax) : 6;
+    int nFanoutMax = 8;
+    int nRounds    = 1;
+    int fVerbose   = 0;
+    float AreaGain = 0.0;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KMRvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 2 )
+                goto usage;
+            // if the LUT size is specified, disable the library
+            pLutLib = NULL;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFanoutMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFanoutMax < 2 )
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nRounds = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRounds < 1 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pGia == NULL )
+    {
+        Abc_Print( -1, "Empty GIA network.\n" );
+        return 1;
+    }
+    if ( !Gia_ManHasMapping(pGia) )
+    {
+        Abc_Print( -1, "The current AIG has no LUT mapping. Run \"&if\".\n" );
+        return 1;
+    }
+    if ( pLutLib && pLutLib->LutMax < 2 )
+    {
+        Abc_Print( -1, "The LUT library max LUT size (%d) is less than 2.\n", pLutLib->LutMax );
+        return 1;
+    }
+    nLutSizeMax = Gia_ManLutSizeMax( pGia );
+    if ( pLutLib && nLutSizeMax > pLutLib->LutMax )
+        Abc_Print( ABC_WARNING, "The network has LUTs with up to %d inputs, but the LUT library max is %d; candidates involving larger LUTs are skipped.\n",
+            nLutSizeMax, pLutLib->LutMax );
+    nInit = Gia_ManLutNum( pGia );
+    nRemoved = Gia_ManLutAbsorb( pGia, nLutSize, nFanoutMax, nRounds, fVerbose, pLutLib, &AreaGain );
+    Abc_Print( 1, "lutabsorb: K=%d M=%d R=%d  LUTs %d -> %d (-%d)",
+        nLutSize, nFanoutMax, nRounds, nInit, Gia_ManLutNum(pGia), nRemoved );
+    if ( pLutLib )
+        Abc_Print( 1, "  area gain %.2f", AreaGain );
+    Abc_Print( 1, "\n" );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &lutabsorb [-KMR num] [-vh]\n" );
+    Abc_Print( -2, "\t           absorbs multi-fanout LUTs of the mapped AIG into all their fanout LUTs when every result fits in K inputs\n" );
+    Abc_Print( -2, "\t-K num : the max LUT size after absorption [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t         giving -K disables the LUT library, which otherwise bounds the LUT size\n" );
+    Abc_Print( -2, "\t-M num : the max fanout count of a candidate LUT [default = %d]\n", nFanoutMax );
+    Abc_Print( -2, "\t-R num : the number of passes [default = %d]\n", nRounds );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n" );
+    Abc_Print( -2, "\t\n" );
+    Abc_Print( -2, "\t           This command was contributed by Longfei Fan.\n" );
     return 1;
 }
 

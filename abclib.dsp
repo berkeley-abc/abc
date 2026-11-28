@@ -7118,6 +7118,10 @@ SOURCE=.\src\aig\gia\giaLf.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaLutAbsorb.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaMan.c
 # End Source File
 # Begin Source File
